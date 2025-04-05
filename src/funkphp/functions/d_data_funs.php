@@ -21,3 +21,6 @@ function d_connect_db($dbHost, $dbUser, $dbPass, $dbName, $dbPort = 3306, $dbCha
         return fail("[d_connect_db]: DB Connection failed: " . $e->getMessage());
     }
 }
+
+// The main validation function for validating data in FunkPHP
+function d_validate(array $stringsWithNamesAndEqualsValues, &$validateAndReturnErrorsOrOK = null) {}

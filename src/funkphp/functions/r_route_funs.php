@@ -1,11 +1,5 @@
 <?php // ROUTE-related FUNCTIONS FOR FunPHP
 
-function r_delete_end_slash($string)
-{
-    // Remove the trailing slash from the string if it exists
-    return rtrim($string, '/');
-}
-
 // Redirect to HTTPS if the application is online (not localhost)
 function r_https_redirect()
 {
@@ -38,9 +32,9 @@ function r_match_denied_global_ips($ip, $denied_ips)
 
     $deniedConfig = $denied_ips['denied'];
 
-    // Check if the IP address starts with any of the denied IPs
+    //Check if the IP address starts with any of the denied IPs
     if (isset($deniedConfig['ip_starts_with']) && is_array($deniedConfig['ip_starts_with'])) {
-        if (array_any_element("starts_with", $deniedConfig['ip_starts_with'], $ip)) {
+        if (array_any_element($deniedConfig['ip_starts_with'], 'str_starts_with', $ip, ["swap_args"])) {
             echo " | IP STARTS WITH FOUND! ";
             return true;
         }
@@ -48,7 +42,7 @@ function r_match_denied_global_ips($ip, $denied_ips)
 
     // Check if the IP address ends with any of the denied IPs
     if (isset($deniedConfig['ip_ends_with']) && is_array($deniedConfig['ip_ends_with'])) {
-        if (array_any_element("ends_with", $deniedConfig['ip_ends_with'], $ip)) {
+        if (array_any_element($deniedConfig['ip_ends_with'], 'str_ends_with', $ip, ["swap_args"])) {
             echo " | IP ENDS WITH FOUND! ";
             return true;
         }
@@ -56,7 +50,7 @@ function r_match_denied_global_ips($ip, $denied_ips)
 
     // Check if the IP address is an exact match with any of the denied IPs
     if (isset($deniedConfig['exact_ips']) && is_array($deniedConfig['exact_ips'])) {
-        if (array_any_element("exact", $deniedConfig['exact_ips'], $ip)) {
+        if (array_any_element($deniedConfig['exact_ips'], 'str_equals', $ip, ["swap_args"])) {
             echo " | IP EXACT MATCH FOUND! ";
             return true;
         }

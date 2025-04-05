@@ -54,26 +54,39 @@ function return_download($filePath, $fileName = null, $statusCode = 200)
     exit;
 }
 
-// Function to check if any element in the array either starts with,
-// ends with, contains or is exact match with the specified string
-function array_any_element($what, $array, $stringToCheck, $lowerCaseEachPart = false)
+// Function that loops through an array and checks if any element matches based on user-defined function
+function array_any_element($array, $callback, $stringToCheck, $options = [])
 {
+    if (isset($options) && is_array($options) && in_array("lowercase", $options)) {
+        $stringToCheck = mb_strtolower($stringToCheck);
+    }
     foreach ($array as $element) {
-        if ($lowerCaseEachPart) {
+        if (isset($options) && is_array($options) && in_array("lowercase", $options)) {
             $element = mb_strtolower($element);
-            $stringToCheck = mb_strtolower($stringToCheck);
         }
-        if ($what == "starts_with" && str_starts_with($stringToCheck, $element)) {
-            return true;
-        } elseif ($what == "ends_with" && str_ends_with($stringToCheck, $element)) {
-            return true;
-        } elseif ($what == "contains" && str_contains($stringToCheck, $element)) {
-            return true;
-        } elseif ($what == "exact" && $stringToCheck == $element) {
-            return true;
+        if (isset($options) && is_array($options) && in_array("swap_args", $options)) {
+            if ($callback($stringToCheck, $element)) {
+                if (in_array("return_element", $options)) {
+                    return $element;
+                }
+                return true;
+            }
+        } else {
+            if ($callback($element, $stringToCheck)) {
+                if (isset($options) && is_array($options) && in_array("return_element", $options)) {
+                    return $element;
+                }
+                return true;
+            }
         }
     }
     return false;
+}
+
+// Function to check if both strings are equal
+function str_equals($a, $b)
+{
+    return strcmp($a, $b) === 0;
 }
 
 // The function "h_destroy_session" is used to destroy the session and optionally redirect to a specified URI
