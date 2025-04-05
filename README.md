@@ -1,4 +1,4 @@
-# FuncPHP (Route, Data, Page) - The 99 % Function-based PHP Framework by WebbKodsFrilansaren at GitHub
+# FunkPHP (Route, Data, Page) - The 99 % Function-based PHP Framework by WebbKodsFrilansaren at GitHub
 
 - This is a ~99 % function-based PHP framework meaning there are almost no classes used besides using objects for accessing some data because that is more convenient at some times.
 
