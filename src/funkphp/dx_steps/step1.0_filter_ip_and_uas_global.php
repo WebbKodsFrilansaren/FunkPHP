@@ -10,8 +10,8 @@ $fphp_ips_filtered_globals = [
         "ip_starts_with" => ["127.0"],
         "ip_ends_with" => [],
         "exact_ips" => [],
-        "o_ok" => ["code=418", "ilog=Denied IP blocked!", "redirect=https://www.lol.com"],
-        "o_fail" => ["ilog=ok, IP is not blocked", "redirect=https://www.lol.com", "code=201"],
+        "o_ok" => ["code=418", "ilog=DENIED IP blocked!", "redirect=https://www.lol.com"],
+        "o_fail" => ["ilog=IP IS OK, not blocked", "redirect=https://www.lol.com", "code=201"],
     ],
 ];
 //IP_FILTERING_GLOBALS_END_DELIMTIER//
@@ -20,8 +20,8 @@ $fphp_ips_filtered_globals = [
 $fphp_uas_filtered_globals = [
     'denied' => [
         "contains" => $fphp_denied_uas_ais, // see "_internals/deny_uas.php"
-        "o_ok" => ["ilog=Denied UAS blocked!", "code=418", "redirect=https://www.lol.com"],
-        "o_fail" => ["code=200", "ilog=ok, UA is not blocked", "redirect=https://www.lol.com"],
+        "o_ok" => ["ilog=DENIED UAS blocked!", "code=418", "redirect=https://www.lol.com"],
+        "o_fail" => ["code=200", "ilog=OK UA, not blocked", "redirect=https://www.lol.com"],
     ],
 ];
 //UAS_FILTERING_GLOBALS_END_DELIMTIER//

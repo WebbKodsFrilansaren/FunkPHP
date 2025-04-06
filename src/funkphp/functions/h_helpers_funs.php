@@ -284,31 +284,29 @@ function h_run_fail_functions($fnNameWithArg, $callerName, &$req, &$d, &$p, $glo
 
     // failFns is an array where each element is "fnName=value" format so we need to iterate through it
     // and split each element by "=" to get the function name and its argument(s)
-    $fnNameWithArg = [];
     $parsedFailFunctions = [];
+    $finalFns = [];
     foreach ($failFns as $failFn) {
         $parts = explode("=", $failFn, 2); // Split by "=" and limit to 2 parts
         if (count($parts) == 2) {
-            $parsedFailFunctions[$parts[0]] = $parts[1];
+            $parsedFailFunctions[$parts[0]] = $parts[1] ?? null;
+            $finalFns[$runPriority[$parts[0]]][$parts[0]] = $parsedFailFunctions[$parts[0]] ?? null;
         }
     }
+    ksort($finalFns);
+    echo "<br>Parsed Fail Functions: <br>";
+    //var_dump($parsedFailFunctions);
+    var_dump($finalFns); // REMOVE LATER!!!
 
     // Now we have an associative array where the key is the function name and the value is the argument(s)
     // We need to order the functions based on their priorities. The final key sort (ksort) will be done later
     // in the code so that we can run them in the order of their priorities.
-    $orderedArgs = [];
-    foreach ($runPriority as $fnName => $priority) {
-        if (isset($parsedFailFunctions[$fnName])) {
-            $orderedArgs[$priority] = [$fnName => $parsedFailFunctions[$fnName]];
-        }
-    }
-    // REMOVE LATER!!!
-    echo "<br>UnOrdered Args: <br>";
-    var_dump($orderedArgs);
-    ksort($orderedArgs);
-    echo "<br>Ordered Args: <br>";
-    var_dump($orderedArgs);
-    // REMOVE LATER!!!
+    // $orderedArgs = [];
+    // foreach ($runPriority as $fnName => $priority) {
+    //     if (isset($parsedFailFunctions[$fnName])) {
+    //         $orderedArgs[$priority] = [$fnName => $parsedFailFunctions[$fnName]];
+    //     }
+    // }
 }
 function h_run_ok_functions($fnNameWithArg, $callerName, &$req, &$d, &$p, $globalConfig)
 {
@@ -319,32 +317,30 @@ function h_run_ok_functions($fnNameWithArg, $callerName, &$req, &$d, &$p, $globa
     }
     // okFns is an array where each element is "fnName=value" format so we need to iterate through it
     // and split each element by "=" to get the function name and its argument(s)
-    $fnNameWithArg = [];
     $parsedokFunctions = [];
+    $finalFns = [];
     foreach ($okFns as $okFn) {
         $parts = explode("=", $okFn, 2); // Split by "=" and limit to 2 parts
         if (count($parts) == 2) {
             $parsedokFunctions[$parts[0]] = $parts[1];
+            $finalFns[$runPriority[$parts[0]]][$parts[0]] = $parsedokFunctions[$parts[0]] ?? null;
         }
     }
+    ksort($finalFns);
+    echo "<br>Parsed Ok Functions: <br>";
+    //var_dump($parsedFailFunctions);
+    var_dump($finalFns); // REMOVE LATER!!!
 
     // Now we have an associative array where the key is the function name and the value is the argument(s)
     // We need to order the functions based on their priorities. The final key sort (ksort) will be done later
     // in the code so that we can run them in the order of their priorities.
-    $orderedArgs = [];
-    foreach ($runPriority as $fnName => $priority) {
-        if (isset($parsedokFunctions[$fnName])) {
-            $orderedArgs[$priority] = [$fnName => $parsedokFunctions[$fnName]];
-        }
-    }
+    // $orderedArgs = [];
+    // foreach ($runPriority as $fnName => $priority) {
+    //     if (isset($parsedokFunctions[$fnName])) {
+    //         $orderedArgs[$priority] = [$fnName => $parsedokFunctions[$fnName]];
+    //     }
+    // }
 
-    // REMOVE LATER!!!
-    echo "<br>UnOrdered Args: <br>";
-    var_dump($orderedArgs);
-    ksort($orderedArgs);
-    echo "<br>Ordered Args: <br>";
-    var_dump($orderedArgs);
-    // REMOVE LATER!!!
 }
 
 
