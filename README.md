@@ -2,7 +2,7 @@
 
 - This is a ~99 % function-based PHP framework meaning there are almost no classes used besides using objects for accessing some data because that is more convenient at some times.
 
-- The name "RDP" stands for "Route, Data, Page" and is just another way to say "Model, View, Controller" (MVC) but the idea is the procedural logic here:
+- Previously, it was called "RDP" ("Route, Data, Page") and is just another way to say "Model, View, Controller" (MVC) but the idea is the procedural logic here:
 
   - We start with a Route (R; what to access, who can access, when and so forth).
   - Then we move on to the data (D) that may or may not be accessible within that route.
