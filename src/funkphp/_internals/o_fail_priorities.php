@@ -4,7 +4,7 @@
 // The optional functions are only executed if they exist here!
 $fphp_o_fail_priorities = [
     "r_match_denied_global_ips" => [
-        "ilog" => 5,
+        "ilog" => 1,
         "code" => 2,
         "redirect" => 3,
     ],
