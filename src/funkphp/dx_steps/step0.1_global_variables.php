@@ -32,3 +32,30 @@ $fphp_data_keys = [
     "session" => "session", // This is the session data that will be used to handle the request (not needed in this app)
 ];
 //DATA_KEY_NAMES_END_DELIMTIER//
+
+//ALL_GLOBAL_VARIABLES_START_DELIMTIER//
+$fphp_all_global_variables_as_strings =
+    [
+        "fphp_BASEURL_LOCAL",
+        "fphp_BASEURL_ONLINE",
+        "fphp_BASEURL",
+        "fphp_BASEURL_URI",
+        "fphp_BASE_STATIC_FILE_PATHS",
+        "fphp_data_keys",
+        "fphp_DEFAULT_SESSION_COOKIE_NAME",
+        "fphp_DEFAULT_SESSION_COOKIE_LIFETIME",
+        "fphp_DEFAULT_SESSION_COOKIE_PATH",
+        "fphp_DEFAULT_SESSION_COOKIE_DOMAIN",
+        "fphp_DEFAULT_SESSION_COOKIE_SECURE",
+        "fphp_DEFAULT_SESSION_COOKIE_HTTPONLY",
+        "fphp_DEFAULT_SESSION_COOKIE_SAMESITE",
+        "fphp_ips_filtered_globals",
+        "fphp_ips_filtered_grouped",
+        "fphp_uas_filtered_globals",
+        "fphp_uas_filtered_grouped",
+        "fphp_denied_uas_ais",
+        "fphp_denied_uas_others",
+        "fphp_o_fail_priorities",
+        "fphp_o_ok_priorities",
+    ];
+//ALL_GLOBAL_VARIABLES_END_DELIMTIER//

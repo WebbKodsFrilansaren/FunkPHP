@@ -19,7 +19,7 @@ function r_https_redirect()
 }
 
 // Try match against denied IPs globally
-function r_match_denied_global_ips($ip, $denied_ips)
+function r_match_denied_global_ips($denied_ips, $ip)
 {
     // First check $ip is a valid IP address
     if (!filter_var($ip, FILTER_VALIDATE_IP)) {
@@ -35,7 +35,7 @@ function r_match_denied_global_ips($ip, $denied_ips)
     //Check if the IP address starts with any of the denied IPs
     if (isset($deniedConfig['ip_starts_with']) && is_array($deniedConfig['ip_starts_with'])) {
         if (array_any_element($deniedConfig['ip_starts_with'], 'str_starts_with', $ip, ["swap_args"])) {
-            echo " | IP STARTS WITH FOUND! ";
+            echo " | DENIED IP STARTS WITH FOUND!<br>";
             return true;
         }
     }
@@ -43,7 +43,7 @@ function r_match_denied_global_ips($ip, $denied_ips)
     // Check if the IP address ends with any of the denied IPs
     if (isset($deniedConfig['ip_ends_with']) && is_array($deniedConfig['ip_ends_with'])) {
         if (array_any_element($deniedConfig['ip_ends_with'], 'str_ends_with', $ip, ["swap_args"])) {
-            echo " | IP ENDS WITH FOUND! ";
+            echo " | DENIED IP ENDS WITH FOUND!<br>";
             return true;
         }
     }
@@ -51,13 +51,34 @@ function r_match_denied_global_ips($ip, $denied_ips)
     // Check if the IP address is an exact match with any of the denied IPs
     if (isset($deniedConfig['exact_ips']) && is_array($deniedConfig['exact_ips'])) {
         if (array_any_element($deniedConfig['exact_ips'], 'str_equals', $ip, ["swap_args"])) {
-            echo " | IP EXACT MATCH FOUND! ";
+            echo " | DENIED IP EXACT MATCH FOUND!<br>";
             return true;
         }
     }
 
+    echo " | DENIED IP NOT FOUND! - Move on!<br>";
     return false; // IP address did not match any denied criteria
 
+}
+
+// Try match against denied UAs globally
+function r_match_denied_global_uas($denied_uas, $ua)
+{
+    if (!isset($denied_uas['denied'])) {
+        return false; // No denied UAs configured or passed
+    }
+
+    // Check if the User-Agent contains any of the denied UAs
+    $deniedConfig = $denied_uas['denied'];
+    if (isset($deniedConfig['contains']) && is_array($deniedConfig['contains'])) {
+        if (array_any_element($deniedConfig['contains'], 'str_contains', $ua, ["swap_args"])) {
+            echo " | DENIED UAS CONTAINS FOUND!<br>";
+            return true;
+        }
+    }
+
+    echo " | DENIED UA NOT FOUND! - Move on!<br>";
+    return false; // IP address did not match any denied criteria
 }
 
 // Prepare $req['uri'] for consistent use in the app
