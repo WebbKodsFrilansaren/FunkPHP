@@ -2,6 +2,7 @@
 // List of optional functions with priorities for the "o_fail" options where the first
 // key is the function that called and returned list of "o_fail".
 // The optional functions are only executed if they exist here!
+// IMPORTANT: Do NOT use same order number for different functions within same scope!
 $fphp_o_fail_priorities = [
     "r_match_denied_global_ips" => [
         "ilog" => 1,
