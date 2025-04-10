@@ -14,84 +14,23 @@ if (!ok($fphp_global_config)) {
     exit;
 }
 
-
-// --- Example Usage (demonstrating the full flow) ---
-
 // Developer's route definitions
-$developerRoutes = [
-    'GET' => [
-        '/' => ['handler' => 'handle_root', /*...*/],
-        '/users' => ['handler' => 'handle_user_root', /*...*/],
-        '/users/{id}' => ['handler' => 'get_user_profile', /*...*/],
-        '/users/{id}/profile' => ['handler' => 'get_user_profile_extended', /*...*/],
-        '/users/{id}/profile/test' => ['handler' => 'get_user_profile_test_extended', /*...*/],
-        '/about' => ['handler' => 'show_about_page', /*...*/],
-        '/users/static' => ['handler' => 'show_static_user_page', /*...*/], // Added for testing
-    ]
-];
+// Middlwares
+$developerMiddleRoutes = include __DIR__ . '/routes/middleware_routes.php';
 
-// Compiled Trie structure (without __END__)
-$compiledTrie = [
-    'GET' => [
-        // Assumes no middleware at root '/' for this example
-        'users' => [
-            '|' => [], // Middleware applies at /users level (sibling key)
-            '#' => [
-                '{id}' => [
-                    // No middleware specifically at /users/{id}
-                    'profile' => [
-                        // No middleware specifically at /users/{id}/profile
-                        'test' => ["|" => []]
-                    ]
-                ]
-            ],
-            'static' => [] // Node exists for /users/static
-        ],
-        'about' => [] // Node exists for /about
-    ]
-];
+// Singles
+$developerSingleRoutes = include __DIR__ . '/routes/single_routes.php';
 
+// Compiled Trie structure where "#" indicates dynamic route and "|" indicates middleware
+$compiledTrie = include __DIR__ . '/_internals/compiled_route_trie.php';
 
 // --- Test Cases ---
-run_router('GET', '/', $compiledTrie, $developerRoutes);
-// Expected: Matches '/', Handler: handle_root
-run_router('GET', '/users', $compiledTrie, $developerRoutes);
-// Expected: 404 (Path structure exists but not defined as endpoint: /users)
-//       	(Assuming /users endpoint isn't in $developerRoutes['GET'])
-
-run_router('GET', '/users/99', $compiledTrie, $developerRoutes);
-run_router('GET', '/users/123/profile/', $compiledTrie, $developerRoutes);
-run_router('GET', '/users/123/profile/test', $compiledTrie, $developerRoutes);
+run_router('GET', '/users/99', $compiledTrie, $developerSingleRoutes);
+//run_router('GET', '/users/123/profile/', $compiledTrie, $developerRoutes);
+run_router('GET', '/users/123/profile/test', $compiledTrie, $developerSingleRoutes);
+// Expected: Matches '/users/{id}/profile/test', Handler: get_user_profile
+run_router('GET', '/users/abc', $compiledTrie, $developerRoutes);
 // Expected: Matches '/users/{id}', Handler: get_user_profile
-
-// run_router('GET', '/users/abc', $compiledTrie, $developerRoutes);
-// // Expected: Matches '/users/{id}', Handler: get_user_profile
-
-// run_router('GET', '/users/123/profile', $compiledTrie, $developerRoutes);
-// // Expected: Matches '/users/{id}/profile', Handler: get_user_profile_extended
-
-//run_router('GET', '/users/123/profile/test', $compiledTrie, $developerRoutes);
-// // Expected: Matches '/users/{id}/profile', Handler: get_user_profile_extended (trailing / trimmed)
-
-//run_router('GET', '/users/123/settings', $compiledTrie, $developerRoutes);
-// // Expected: 404 (Path structure mismatch... 'settings' not found after {id})
-
-// run_router('GET', '/users/123/profile/extra', $compiledTrie, $developerRoutes);
-// // Expected: 404 (Path structure mismatch... 'extra' not found after profile)
-
-// run_router('GET', '/about', $compiledTrie, $developerRoutes);
-// // Expected: Matches '/about', Handler: show_about_page
-
-// run_router('GET', '/contact', $compiledTrie, $developerRoutes);
-// // Expected: 404 (Path structure mismatch... 'contact' not found)
-
-//run_router('GET', '/users/static', $compiledTrie, $developerRoutes);
-// // Expected: Matches '/users/static', Handler: show_static_user_page
-
-// run_router('POST', '/users', $compiledTrie, $developerRoutes);
-// // Expected: Method POST not supported... (or would match if defined)
-
-
 
 
 // Run the main function to handle the request which is a pipeline of functions

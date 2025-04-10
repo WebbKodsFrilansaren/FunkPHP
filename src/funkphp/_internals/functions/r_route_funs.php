@@ -189,8 +189,6 @@ function find_exact_structural_route_match(string $requestUri, array $methodRoot
 
     // Final check to see if we are at a middleware node at the end of the loop
     if (isset($currentNode['|'])) {
-        // Push all current matched segments as a string to the $middleware array and
-        // increase place the next $currentNode
         array_push($matchedMiddlewares["middlewares"], "/" . implode('/', $matchedPathSegments));
     }
 
@@ -240,7 +238,7 @@ function run_router(string $method, string $uri, array $compiledTrie, array $dev
             $routeInfo = $developerRoutes[$method][$routeDefinition[0]];
             echo "<br>FOUND Route! Handler: " . $routeInfo['handler'] . "<br>";
             echo "FOUND PARAMS! " . json_encode($routeDefinition[1] ?? []) . "<br>";
-            echo "FOUND MIDDLEWARES! " . var_export($routeDefinition[2]) . "<br><br>";
+            echo "FOUND MIDDLEWARES! " . json_encode($routeDefinition[2] ?? [], JSON_UNESCAPED_SLASHES) . "<br><br>";
         } else {
             echo "  404 Not Found (Path structure exists but not defined as endpoint)<br><br>";
         }
