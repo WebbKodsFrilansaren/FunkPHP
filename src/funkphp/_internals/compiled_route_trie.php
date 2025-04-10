@@ -3,7 +3,7 @@
 return [
     'GET' => [ // This is "/" level
         'users' => [
-            '|' => [], // Middleware applies at /users level (sibling key)
+            '|' => ['|' => []], // Middleware applies at /users level (sibling key)
             ':' => [
                 'id' => [
                     '|' => [],

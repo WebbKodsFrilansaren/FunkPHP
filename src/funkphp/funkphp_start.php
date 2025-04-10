@@ -24,8 +24,6 @@ $developerSingleRoutes = include __DIR__ . '/routes/single_routes.php';
 // Compiled Trie structure where "#" indicates dynamic route and "|" indicates middleware
 $compiledTrie = include __DIR__ . '/_internals/compiled_route_trie.php';
 
-//var_export($compiledTrie); exit;
-
 // --- Test Cases ---
 echo json_encode(r_match_developer_route($req['method'], $req['uri'], $compiledTrie, $developerSingleRoutes, $developerMiddleRoutes), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 
@@ -53,15 +51,4 @@ echo json_encode(r_match_developer_route($req['method'], $req['uri'], $compiledT
 
 // This part is only executed if the request was not properly handled by the pipeline!
 // Feel free to add your own error handling here and/or easter egg!
-echo "YOU SHOULD NOT SEE THIS! SO ERROR!<br>";
-// echo '<br>RESPONSE Headers:<br>';
-
-// foreach (headers_list() as $header) {
-//     echo $header . '<br>';
-// }
-
-// echo '<br>REQUEST Headers:<br>';
-// foreach ($_SERVER as $key => $value) {
-
-//     echo $key . ' => ' . $value . '<br>';
-// }
+echo "<br>YOU SHOULD NOT SEE THIS! SO ERROR!<br>";
