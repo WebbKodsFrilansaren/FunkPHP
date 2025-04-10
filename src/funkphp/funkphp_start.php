@@ -3,9 +3,9 @@ include_once __DIR__ . '/_internals/functions/_includeAll.php';
 include_once __DIR__ . '/dx_steps/_includeAll.php';
 
 //REMOVE AFTER TESTING!
-// echo "User IP:'" . $req['ip'] . "'<br> ";
-// echo "User URI:'" . $req['uri'] . "'<br> ";
-// echo "User Query: " . $req['query'] . "<br> <br>";
+echo "User IP:'" . $req['ip'] . "'<br> ";
+echo "User URI:'" . $req['uri'] . "'<br> ";
+echo "User Query: " . $req['query'] . "<br> <br>";
 
 // Load configurations and global variables
 $fphp_global_config = h_load_config($fphp_all_global_variables_as_strings);
@@ -33,10 +33,16 @@ $developerRoutes = [
 // Compiled Trie structure (without __END__)
 $compiledTrie = [
     'GET' => [
+        // Assumes no middleware at root '/' for this example
         'users' => [
+            '|' => [], // Middleware applies at /users level (sibling key)
             '#' => [
                 '{id}' => [
-                    'profile' => ['test' => []] // Node exists, signifying structure
+                    // No middleware specifically at /users/{id}
+                    'profile' => [
+                        // No middleware specifically at /users/{id}/profile
+                        'test' => ["|" => []]
+                    ]
                 ]
             ],
             'static' => [] // Node exists for /users/static
@@ -49,12 +55,13 @@ $compiledTrie = [
 // --- Test Cases ---
 run_router('GET', '/', $compiledTrie, $developerRoutes);
 // Expected: Matches '/', Handler: handle_root
-
 run_router('GET', '/users', $compiledTrie, $developerRoutes);
 // Expected: 404 (Path structure exists but not defined as endpoint: /users)
 //       	(Assuming /users endpoint isn't in $developerRoutes['GET'])
 
 run_router('GET', '/users/99', $compiledTrie, $developerRoutes);
+run_router('GET', '/users/123/profile/', $compiledTrie, $developerRoutes);
+run_router('GET', '/users/123/profile/test', $compiledTrie, $developerRoutes);
 // Expected: Matches '/users/{id}', Handler: get_user_profile
 
 // run_router('GET', '/users/abc', $compiledTrie, $developerRoutes);
@@ -63,11 +70,10 @@ run_router('GET', '/users/99', $compiledTrie, $developerRoutes);
 // run_router('GET', '/users/123/profile', $compiledTrie, $developerRoutes);
 // // Expected: Matches '/users/{id}/profile', Handler: get_user_profile_extended
 
-run_router('GET', '/users/123/profile/', $compiledTrie, $developerRoutes);
-run_router('GET', '/users/123/profile/test', $compiledTrie, $developerRoutes);
+//run_router('GET', '/users/123/profile/test', $compiledTrie, $developerRoutes);
 // // Expected: Matches '/users/{id}/profile', Handler: get_user_profile_extended (trailing / trimmed)
 
-run_router('GET', '/users/123/settings', $compiledTrie, $developerRoutes);
+//run_router('GET', '/users/123/settings', $compiledTrie, $developerRoutes);
 // // Expected: 404 (Path structure mismatch... 'settings' not found after {id})
 
 // run_router('GET', '/users/123/profile/extra', $compiledTrie, $developerRoutes);
@@ -79,7 +85,7 @@ run_router('GET', '/users/123/settings', $compiledTrie, $developerRoutes);
 // run_router('GET', '/contact', $compiledTrie, $developerRoutes);
 // // Expected: 404 (Path structure mismatch... 'contact' not found)
 
-run_router('GET', '/users/static', $compiledTrie, $developerRoutes);
+//run_router('GET', '/users/static', $compiledTrie, $developerRoutes);
 // // Expected: Matches '/users/static', Handler: show_static_user_page
 
 // run_router('POST', '/users', $compiledTrie, $developerRoutes);
