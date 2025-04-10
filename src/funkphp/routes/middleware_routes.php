@@ -2,8 +2,8 @@
 
 return [
     'GET' => [
-        '/' => ['handler' => 'GET_MIDDLEWARE_ROOT', /*...*/],
-        '/users' => ['handler' => 'GET_MIDDLEWARE_USER', /*...*/],
+        '/' => ['handler' => 'GET_CHECK_CONTENT_TYPE', /*...*/],
+        '/users' => ['handler' => ['GET_VALIDATE_USER_IP', 'GET_VALIDATE_USER_AU'], /*...*/],
         '/users/:id' => ['handler' => 'GET_MIDDLEWARE_USER_ID', /*...*/],
     ],
     'POST' => [

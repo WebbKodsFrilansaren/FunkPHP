@@ -2,7 +2,6 @@
 
 return [
     'GET' => [
-        '/' => ['handler' => 'ROOT_PAGE', /*...*/],
         '/users' => ['handler' => 'USERS_PAGE', /*...*/],
         '/users/:id' => ['handler' => 'USER_ID_PAGE', /*...*/],
         '/about' => ['handler' => 'ABOUT_PAGE', /*...*/],
