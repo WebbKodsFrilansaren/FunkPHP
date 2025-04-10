@@ -103,7 +103,7 @@ function r_prepare_uri($uri, $fphp_BASEURL_URI)
 /* @param array $methodRootNode The root node of the Trie for the specific HTTP method.
 ** @return string|null The reconstructed route definition string on exact structural match, otherwise null.
 */
-function find_exact_structural_route_match(string $requestUri, array $methodRootNode): ?array
+function r_match_compiled_route(string $requestUri, array $methodRootNode): ?array
 {
     // 1. Process the Request URI internally
     $path = parse_url($requestUri, PHP_URL_PATH);
@@ -111,52 +111,46 @@ function find_exact_structural_route_match(string $requestUri, array $methodRoot
         $path = '/'; // Handle parse errors or empty paths
     }
     $path = trim(strtolower($path), '/');
-    echo "Path:$path<br>";
 
     // Split into segments. array_filter removes empty elements (e.g., from '//')
     // array_values re-indexes the array.
     $uriSegments = empty($path) ? [] : array_values(array_filter(explode('/', $path)));
-    echo "URI Segments: " . json_encode($uriSegments) . "<br>";
     $uriSegmentCount = count($uriSegments);
+    echo "<br>Extracted URI Segments: " . json_encode($uriSegments) . " (count: $uriSegmentCount)<br>";
 
-    // --- Traversal Logic ---
+    // Prepare variables to store the current node, matched segments, parameters, and middlewares
     $currentNode = $methodRootNode;
-    $matchedPathSegments = []; // Stores the *definition* segments ('users', '{id}', etc.)
-    $params = ["params" => []]; // Store parameters for placeholders
-    $matchedMiddlewares = ["middlewares" => []]; // Stores the middlewares
+    $matchedPathSegments = [];
+    $matchedParams = [];
+    $matchedMiddlewares = [];
     $segmentsConsumed = 0;
 
-    echo "Current Node: " . json_encode($currentNode) . "<br>";
-    echo "Matched segments so far: " . json_encode($matchedPathSegments) . "<br>";
-    echo "Params so far: " . json_encode($params) . "<br>";
-    echo "Middlewares so far: " . json_encode($matchedMiddlewares) . "<br>";
+    echo "<br>PATH TO MATCH: \"/$path\"<br>";
+    echo "START NODE: " . json_encode($currentNode) . "<br>";
+    echo "MATCHED SEGMENTS: " . json_encode($matchedPathSegments) . " | PARAMS: " . json_encode($matchedParams) .  " | MIDDLEWARES: " . json_encode($matchedMiddlewares) . "<br><br>";
 
-    // Handle root path '/' match
+    // Handle EDGE CASE: '/' and include middleware at root node if it exists
     if ($uriSegmentCount === 0) {
-        // If the URI is '/', we have consumed 0 segments.
-        // The caller will check if '/' is actually defined.
-        // We return '/' as the potential definition string.
-        return ['/', $params];
+        if (isset($currentNode['|'])) {
+            array_push($matchedMiddlewares, "/" . implode('/', $matchedPathSegments));
+        }
+        echo "FINAL MATCHED: " . json_encode($matchedPathSegments, JSON_UNESCAPED_SLASHES) . " | FINAL PARAMS: " . json_encode($matchedParams) . " | FINAL MIDDLEWARES: " . json_encode($matchedMiddlewares, JSON_UNESCAPED_SLASHES) . "<br>";
+        return ["route" => '/', "params" => $matchedParams, "middlewares" => $matchedMiddlewares];
     }
 
     // Iterate through the segments from the URI
     for ($i = 0; $i < $uriSegmentCount; $i++) {
         $currentUriSegment = $uriSegments[$i];
 
-        echo "Current UriSegment: " . json_encode($currentUriSegment) . "<br>";
-        echo "Current Node: " . json_encode($currentNode) . "<br>";
-        echo "Matched segments so far: " . json_encode($matchedPathSegments) . "<br>";
-        echo "Params so far: " . json_encode($params) . "<br>";
-        echo "Middlewares so far: " . json_encode($matchedMiddlewares, JSON_UNESCAPED_SLASHES) . "<br>";
+        echo "STEP " . $i + 1 . ": AT NODE: " . json_encode($currentNode, JSON_PRETTY_PRINT) . " | URI: $currentUriSegment <br>";
+        echo "MATCHED SEGMENTS: " . json_encode($matchedPathSegments, JSON_PRETTY_PRINT) . " | PARAMS: " . json_encode($matchedParams) .  " | MIDDLEWARES: " . json_encode($matchedMiddlewares, JSON_PRETTY_PRINT) . "<br><br>";
 
-        // First check for middleware at the current node and then just add
-        // It is always at the same level as the next child node
+        /// First try match "|" middleware node
         if (isset($currentNode['|'])) {
-            array_push($matchedMiddlewares["middlewares"], "/" . implode('/', $matchedPathSegments));
+            array_push($matchedMiddlewares, "/" . implode('/', $matchedPathSegments));
         }
 
-
-        // Prioritize literal match
+        // Then try match literal route
         if (isset($currentNode[$currentUriSegment])) {
             $matchedPathSegments[] = $currentUriSegment;
             $currentNode = $currentNode[$currentUriSegment];
@@ -164,14 +158,17 @@ function find_exact_structural_route_match(string $requestUri, array $methodRoot
             continue;
         }
 
-        // Then try placeholder match
+        // Or try match dynamic route ":" indicator node
         if (isset($currentNode[':'])) {
             $placeholderKey = key($currentNode[':']); // Get e.g., ':id'
-            echo "Placeholder Key: $placeholderKey<br>";
+            echo "Placeholder key:" . json_encode($placeholderKey) . "<br>";
+            echo "FOUND DYNAMIC ROUTE KEY: \"$placeholderKey\"<br><br>";
+
+            // Only store param and matched URI segment if not null
             if ($placeholderKey !== null && isset($currentNode[':'][$placeholderKey])) {
-                $matchedPathSegments[] = ":" . $placeholderKey; // Add the placeholder definition
+                $matchedParams[$placeholderKey] = $currentUriSegment;
+                $matchedPathSegments[] = ":" . $placeholderKey;
                 $currentNode = $currentNode[':'][$placeholderKey];
-                $params["params"][$placeholderKey] = $currentUriSegment;; // Store the actual value from the URI
                 $segmentsConsumed++;
                 continue;
             }
@@ -181,15 +178,12 @@ function find_exact_structural_route_match(string $requestUri, array $methodRoot
         return null;
     }
 
-    echo "Current UriSegment: " . json_encode($currentUriSegment) . "<br>";
-    echo "Current Node: " . json_encode($currentNode) . "<br>";
-    echo "Matched segments so far: " . json_encode($matchedPathSegments) . "<br>";
-    echo "Params so far: " . json_encode($params) . "<br>";
-    echo "Middlewares so far: " . json_encode($matchedMiddlewares, JSON_UNESCAPED_SLASHES) . "<br>";
+    echo "AT NODE: " . json_encode($currentNode, JSON_PRETTY_PRINT) . "| URI: $currentUriSegment <br>";
+    echo "MATCHED SEGMENTS: " . json_encode($matchedPathSegments, JSON_PRETTY_PRINT) . " | PARAMS: " . json_encode($matchedParams, JSON_PRETTY_PRINT) .  " | MIDDLEWARES: " . json_encode($matchedMiddlewares, JSON_UNESCAPED_SLASHES) . "<br><br>";
 
     // Final check to see if we are at a middleware node at the end of the loop
     if (isset($currentNode['|'])) {
-        array_push($matchedMiddlewares["middlewares"], "/" . implode('/', $matchedPathSegments));
+        array_push($matchedMiddlewares, "/" . implode('/', $matchedPathSegments));
     }
 
     // After the loop: Check if we consumed the correct number of segments
@@ -200,13 +194,11 @@ function find_exact_structural_route_match(string $requestUri, array $methodRoot
         if (empty($matchedPathSegments)) {
             // This case should only be hit if $uriSegmentCount was 0 initially, handled above.
             // But as a safeguard, return '/'.
-            return ['/', $params, $matchedMiddlewares];
+            return ["route" => '/', "params" => $matchedParams, "middlewares" => $matchedMiddlewares];
         } else {
-            echo "Final Matched Path Segments: " . json_encode($matchedPathSegments, JSON_UNESCAPED_SLASHES) . "<br>";
-            echo "Final Extracted Params: " . json_encode($params) . "<br>";
-            echo "Final Matched Middlewares: " . json_encode($matchedMiddlewares, JSON_UNESCAPED_SLASHES) . "<br>";
+            echo "FINAL MATCHED: " . json_encode($matchedPathSegments, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) . " | FINAL PARAMS: " . json_encode($matchedParams, JSON_PRETTY_PRINT) . " | FINAL MIDDLEWARES: " . json_encode($matchedMiddlewares, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) . "<br>";
 
-            return ['/' . implode('/', $matchedPathSegments), $params, $matchedMiddlewares];
+            return ["route" => '/' . implode('/', $matchedPathSegments), "params" => $matchedParams, "middlewares" => $matchedMiddlewares];
         }
     } else {
         // Should not happen if the loop logic is correct, but as a safeguard:
@@ -215,35 +207,56 @@ function find_exact_structural_route_match(string $requestUri, array $methodRoot
     }
 }
 
-
-
-function run_router(string $method, string $uri, array $compiledTrie, array $developerRoutes)
+function r_match_developer_route(string $method, string $uri, array $compiledTrie, array $developerSingleRoutes, array $developerMiddlewareRoutes, string $handlerKey = "handler", string $mHandlerKey = "mHandler")
 {
-    echo "Request: $method $uri\n";
-
+    // Prepare return values
+    $matchedRoute = null;
+    $matchedRouteHandler = null;
+    $matchedRouteParams = null;
+    $matchedMiddlewareHandlers = [];
     $routeDefinition = null;
+    $noMatchIn = "";
+
+    // Try match HTTP Method Key in Compiled Routes
     if (isset($compiledTrie[$method])) {
-        $routeDefinition = find_exact_structural_route_match($uri, $compiledTrie[$method]);
+        $routeDefinition = r_match_compiled_route($uri, $compiledTrie[$method]);
     } else {
-        echo "  Method $method not supported in compiled Trie.<br>"; // Or 405 Method Not Allowed
-        echo "----<br>";
-        return;
+        $noMatchIn = "COMPILED_ROUTE_KEY (" . mb_strtoupper($method) . ") & ";
     }
 
+    // When Matched Compiled Route, try match Developer's defined route
     if ($routeDefinition !== null) {
-        echo "  Structurally matched definition: {$routeDefinition[0]}<br>";
+        $matchedRoute = $routeDefinition["route"];
+        $matchedRouteParams = $routeDefinition["params"] ?? null;
 
-        // **Final Check:** Does this structurally valid path exist in developer's definitions?
-        if (isset($developerRoutes[$method][$routeDefinition[0]])) {
-            $routeInfo = $developerRoutes[$method][$routeDefinition[0]];
-            echo "<br>FOUND Route! Handler: " . $routeInfo['handler'] . "<br>";
-            echo "FOUND PARAMS! " . json_encode($routeDefinition[1] ?? []) . "<br>";
-            echo "FOUND MIDDLEWARES! " . json_encode($routeDefinition[2] ?? [], JSON_UNESCAPED_SLASHES) . "<br><br>";
+        // If Compiled Route Matches Developers Defined Route!
+        if (isset($developerSingleRoutes[$method][$routeDefinition["route"]])) {
+            $routeInfo = $developerSingleRoutes[$method][$routeDefinition["route"]];
+            $matchedRouteHandler = $routeInfo[$handlerKey] ?? null;
+            $noMatchIn = "BOTH_MATCHED";
+
+            // Add Any Matched Middlewares Handlers Defined By Developer!
+            if (
+                isset($routeDefinition["middlewares"]) && !empty($routeDefinition["middlewares"])
+            ) {
+                foreach ($routeDefinition["middlewares"] as $middleware) {
+                    if (isset($developerMiddlewareRoutes[$method][$middleware]) && isset($developerMiddlewareRoutes[$method][$middleware][$mHandlerKey])) {
+                        $matchedMiddlewareHandlers[] = $developerMiddlewareRoutes[$method][$middleware][$mHandlerKey] ?? null;
+                    }
+                }
+            }
+            // Now also check in the middleware
         } else {
-            echo "  404 Not Found (Path structure exists but not defined as endpoint)<br><br>";
+            $noMatchIn .= "DEVELOPER_SINGLE_ROUTES";
         }
     } else {
-        echo "  404 Not Found (Path structure mismatch or URI length wrong)<br><br>";
+        $noMatchIn .= "COMPILED_ROUTES";
     }
-    echo "----\n";
+    return [
+        "route" => $matchedRoute,
+        "$handlerKey" => $matchedRouteHandler,
+        "params" => $matchedRouteParams,
+        "middlewares" => $matchedMiddlewareHandlers,
+        "no_match_in" => $noMatchIn,
+    ];
 }

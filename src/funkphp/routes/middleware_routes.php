@@ -2,7 +2,12 @@
 
 return [
     'GET' => [
-        '/users' => ['handler' => 'MIDDLEWARE_USER', /*...*/],
-        '/users/{id}/profile/test' => ['handler' => 'MIDDLEWARE_USER_PROFILE_TEST', /*...*/],
-    ]
+        '/' => ['handler' => 'GET_MIDDLEWARE_ROOT', /*...*/],
+        '/users' => ['mHandler' => 'GET_MIDDLEWARE_USER', /*...*/],
+        '/users/:id' => ['mHandler' => 'GET_MIDDLEWARE_USER_ID', /*...*/],
+    ],
+    'POST' => [
+        '/users' => ['mHandler' => 'POST_MIDDLEWARE_USER', /*...*/],
+        '/users/:id' => ['mHandler' => 'POST_MIDDLEWARE_USER_PROFILE_TEST', /*...*/],
+    ],
 ];

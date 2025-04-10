@@ -3,9 +3,9 @@ include_once __DIR__ . '/_internals/functions/_includeAll.php';
 include_once __DIR__ . '/dx_steps/_includeAll.php';
 
 //REMOVE AFTER TESTING!
-echo "User IP:'" . $req['ip'] . "'<br> ";
-echo "User URI:'" . $req['uri'] . "'<br> ";
-echo "User Query: " . $req['query'] . "<br> <br>";
+// echo "User IP:'" . $req['ip'] . "'<br> ";
+// echo "User URI:'" . $req['uri'] . "'<br> ";
+// echo "User Query: " . $req['query'] . "<br> <br>";
 
 // Load configurations and global variables
 $fphp_global_config = h_load_config($fphp_all_global_variables_as_strings);
@@ -27,35 +27,29 @@ $compiledTrie = include __DIR__ . '/_internals/compiled_route_trie.php';
 //var_export($compiledTrie); exit;
 
 // --- Test Cases ---
-run_router('GET', '/users/99', $compiledTrie, $developerSingleRoutes);
-//run_router('GET', '/users/123/profile/', $compiledTrie, $developerRoutes);
-run_router('GET', '/users/123/profile/test', $compiledTrie, $developerSingleRoutes);
-// Expected: Matches '/users/{id}/profile/test', Handler: get_user_profile
-run_router('GET', '/users/abc', $compiledTrie, $developerSingleRoutes);
-// Expected: Matches '/users/{id}', Handler: get_user_profile
-
+echo json_encode(r_match_developer_route($req['method'], $req['uri'], $compiledTrie, $developerSingleRoutes, $developerMiddleRoutes), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 
 // Run the main function to handle the request which is a pipeline of functions
 // where each function can also call optional functions to handle the request!
-outerFunktionTrain(
-    $req,
-    $d,
-    $p,
-    $fphp_global_config,
-    [
-        "r_match_denied_global_ips" // Deny IPs filtering globally
-        => [
-            $fphp_global_config['fphp_ips_filtered_globals'],
-            $req['ip']
-        ],
-        "r_match_denied_global_uas" // Deny UAs filtering globally
-        =>
-        [
-            $fphp_global_config['fphp_uas_filtered_globals'],
-            $req['ua']
-        ],
-    ]
-);
+// outerFunktionTrain(
+//     $req,
+//     $d,
+//     $p,
+//     $fphp_global_config,
+//     [
+//         "r_match_denied_global_ips" // Deny IPs filtering globally
+//         => [
+//             $fphp_global_config['fphp_ips_filtered_globals'],
+//             $req['ip']
+//         ],
+//         "r_match_denied_global_uas" // Deny UAs filtering globally
+//         =>
+//         [
+//             $fphp_global_config['fphp_uas_filtered_globals'],
+//             $req['ua']
+//         ],
+//     ]
+// );
 
 // This part is only executed if the request was not properly handled by the pipeline!
 // Feel free to add your own error handling here and/or easter egg!
