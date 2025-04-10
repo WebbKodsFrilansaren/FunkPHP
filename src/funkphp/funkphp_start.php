@@ -24,12 +24,14 @@ $developerSingleRoutes = include __DIR__ . '/routes/single_routes.php';
 // Compiled Trie structure where "#" indicates dynamic route and "|" indicates middleware
 $compiledTrie = include __DIR__ . '/_internals/compiled_route_trie.php';
 
+//var_export($compiledTrie); exit;
+
 // --- Test Cases ---
 run_router('GET', '/users/99', $compiledTrie, $developerSingleRoutes);
 //run_router('GET', '/users/123/profile/', $compiledTrie, $developerRoutes);
 run_router('GET', '/users/123/profile/test', $compiledTrie, $developerSingleRoutes);
 // Expected: Matches '/users/{id}/profile/test', Handler: get_user_profile
-run_router('GET', '/users/abc', $compiledTrie, $developerRoutes);
+run_router('GET', '/users/abc', $compiledTrie, $developerSingleRoutes);
 // Expected: Matches '/users/{id}', Handler: get_user_profile
 
 

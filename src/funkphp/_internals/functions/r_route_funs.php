@@ -165,13 +165,13 @@ function find_exact_structural_route_match(string $requestUri, array $methodRoot
         }
 
         // Then try placeholder match
-        if (isset($currentNode['#'])) {
-            $placeholderKey = key($currentNode['#']); // Get e.g., '{id}'
+        if (isset($currentNode[':'])) {
+            $placeholderKey = key($currentNode[':']); // Get e.g., ':id'
             echo "Placeholder Key: $placeholderKey<br>";
-            if ($placeholderKey !== null && isset($currentNode['#'][$placeholderKey])) {
-                $matchedPathSegments[] = $placeholderKey; // Add the placeholder definition
-                $currentNode = $currentNode['#'][$placeholderKey];
-                $params["params"][substr($placeholderKey, 1, -1)] = $currentUriSegment;; // Store the actual value from the URI
+            if ($placeholderKey !== null && isset($currentNode[':'][$placeholderKey])) {
+                $matchedPathSegments[] = ":" . $placeholderKey; // Add the placeholder definition
+                $currentNode = $currentNode[':'][$placeholderKey];
+                $params["params"][$placeholderKey] = $currentUriSegment;; // Store the actual value from the URI
                 $segmentsConsumed++;
                 continue;
             }
