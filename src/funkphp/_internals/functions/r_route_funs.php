@@ -236,3 +236,9 @@ function r_match_developer_route(string $method, string $uri, array $compiledTri
         "no_match_in" => $noMatchIn, // Use as debug value
     ];
 }
+
+// Build Compiled Route from Developer's Defined Routes
+function r_build_compiled_route(array $developerSingleRoutes, array $developerMiddlewareRoutes) {}
+
+// Audit Developer's Defined Routes
+function r_audit_developer_routes(array $developerSingleRoutes, array $developerMiddlewareRoutes) {}
