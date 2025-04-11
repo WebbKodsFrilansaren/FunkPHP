@@ -241,8 +241,13 @@ function r_match_developer_route(string $method, string $uri, array $compiledTri
 function r_convert_array_to_simple_syntax(array $array): string | null | array
 {
     // Must be non-empty array
-    if (!is_array($array) || empty($array)) {
-        return ["err" => "[r_convert_array_to_simple_syntax]: Must be an array!"];
+    if (!is_array($array)) {
+        return ["err" => "[r_convert_array_to_simple_syntax]: Must be a non-empty array!"];
+    }
+
+    // Check if the array is empty
+    if (empty($array)) {
+        ["err" => "[r_convert_array_to_simple_syntax]: Must be a non-empty array!"];
     }
 
     // Prepare array and parse state variables
