@@ -326,7 +326,153 @@ function r_convert_array_to_simple_syntax(array $array): string | null | array
 }
 
 // Build Compiled Route from Developer's Defined Routes
-function r_build_compiled_route(array $developerSingleRoutes, array $developerMiddlewareRoutes) {}
+function r_build_compiled_routes(array $developerSingleRoutes, array $developerMiddlewareRoutes, string $outputDestination = null)
+{
+    // Both arrays must be non-empty arrays
+    if (!is_array($developerSingleRoutes)) {
+        return ["err" => "[r_build_compiled_route]: '\$developerSingleRoutes' Must be a non-empty array!"];
+    } elseif (!is_array($developerMiddlewareRoutes)) {
+        return ["err" => "[r_build_compiled_route]: '\$developerMiddlewareRoutes' Must be a non-empty array!"];
+    }
+    if (empty($developerSingleRoutes)) {
+        ["err" => "[r_build_compiled_route]: '\$developerSingleRoutes' Must be a non-empty array!"];
+    } else if (empty($developerMiddlewareRoutes)) {
+        ["err" => "[r_build_compiled_route]: Must '\$developerMiddlewareRoutes' be a non-empty array!"];
+    }
+
+    // Prepare compiled route array to return and other variables
+    $compiledTrie = [];
+    $GETSingles = $developerSingleRoutes["GET"] ?? null;
+    $POSTSingles = $developerSingleRoutes["POST"] ?? null;
+    $PUTSingles = $developerSingleRoutes["PUT"] ?? null;
+    $DELETESingles = $developerSingleRoutes["DELETE"] ?? null;
+
+    // Using method below, iterate through each HttpMethod and then add it to the $compiledTrie array
+    function addMethodRoutes($singleRoutes)
+    {
+        // Begin with just getting the key names and no other nested values inside of them:
+        // For example:  '/users' => ['handler' => 'USERS_PAGE', /*...*/], only gets the '/users' key name
+        // and not the value inside of it. This is done by using array_keys() to get the keys of the array.
+        $keys = array_keys($singleRoutes) ?? null;
+        $compiledTrie = [];
+
+        // Iterate through each key in the array and add it to the $compiledTrie array
+        foreach ($keys as $key) {
+
+            // Special case: "/" route
+            if ($key === "/") {
+                $compiledTrie["/"] = [];
+                continue;
+            }
+
+            // Split the route into segments
+            $splitRouteSegments = explode("/", trim($key, "/"));
+            echo "Segments: " . implode(", ", $splitRouteSegments) . "<br>";
+
+            // Initialize the current node in the trie
+            $currentNode = &$compiledTrie;
+
+            // Iterate through each segment of the route
+            foreach ($splitRouteSegments as $segment) {
+                // WHEN DYNAMIC PARAMETER ROUTE SEGMENT
+                if (str_starts_with($segment, ":")) {
+                    // Create when not exist
+                    if (!isset($currentNode[':'])) {
+                        $currentNode[':'] = [];
+                    }
+                    // And insert param as next nested key and/or move to next node
+                    $paramName = substr($segment, 1);
+                    if (!isset($currentNode[':'][$paramName])) {
+                        $currentNode[':'][$paramName] = [];
+                    }
+                    $currentNode = &$currentNode[':'][$paramName];
+                }
+                // WHEN LITERAL ROUTE SEGMENT
+                else {
+                    // Insert if not exist and/or move to next node
+                    if (!isset($currentNode[$segment])) {
+                        $currentNode[$segment] = [];
+                    }
+                    $currentNode = &$currentNode[$segment];
+                }
+            }
+        }
+        // Return the compiled trie for the method
+        return $compiledTrie;
+    }
+
+    // Add the middleware routes to the compiled trie
+    function addMiddlewareRoutes($middlewareRoutes, &$compiledTrie)
+    {
+        // Only extract the keys from the middleware routes
+        $keys = array_keys($middlewareRoutes) ?? null;
+
+        // The way we insert "|" to signify a middleware is to just go through all segments for each key
+        // and when we are at the last segment that is the node we insert "|" and then we move on to key.
+        foreach ($keys as $key) {
+            // Special case: the middleware is at the root "/"
+            if ($key === "/") {
+                $compiledTrie["|"] = [];
+                continue;
+            }
+
+            // Now split key into segments and iterate through each segment
+            $splitRouteSegments = explode("/", trim($key, "/"));
+
+            // Now we just navigate to the last segment and add the middleware node "|".
+            // We just check what it is and then just navigate,
+            $currentNode = &$compiledTrie;
+
+            // So we just check one of three things: is there a literal route to navigate to?
+            // is there a dynamic route to navigate to? or is it a middleware node? WE JUST NAVIGATE TO IT
+            // until we run out of segments, that means we have reached the node where we insert the middleware node "|".
+            foreach ($splitRouteSegments as $segment) {
+
+                // WHEN SEGMENT STARTS WITH ":param", navigate to ":", extract param and navigate to that.
+
+                // SPECIAL CASE: Navigate past any middleware node "|" but not at root node!
+                if (isset($currentNode['|']) && !empty($currentNode['|'])) {
+                    $currentNode = &$currentNode['|'];
+                }
+
+                // LITERAL ROUTE SEGMENT
+                if (isset($currentNode[$segment])) {
+                    $currentNode = &$currentNode[$segment];
+                    continue;
+                }
+                // DYNAMIC ROUTE SEGMENT
+                elseif (str_starts_with($segment, ":")) {
+                    // Use the parameter name as the key in the dynamic node
+                    $paramName = substr($segment, 1);
+                    $currentNode = &$currentNode[':'][$paramName];
+                    continue;
+                }
+            }
+
+            // Now we are at the last segment, we just add the middleware node "|"
+            // and then we add the middleware route to it.
+            if (!isset($currentNode['|'])) {
+                $currentNode['|'] = [];
+            }
+        }
+    }
+
+    // First add the single routes to the compiled trie
+    $compiledTrie['GET'] = addMethodRoutes($GETSingles);
+    $compiledTrie['POST'] = addMethodRoutes($POSTSingles);
+    $compiledTrie['PUT'] = addMethodRoutes($PUTSingles);
+    $compiledTrie['DELETE'] = addMethodRoutes($DELETESingles);
+
+    // Then add the middlewares to the compiled trie
+    $compiledTrie['GET'] = addMiddlewareRoutes($developerMiddlewareRoutes["GET"] ?? [], $compiledTrie['GET']);
+    $compiledTrie['POST'] = addMiddlewareRoutes($developerMiddlewareRoutes["POST"] ?? [], $compiledTrie['POST']);
+    $compiledTrie['PUT'] = addMiddlewareRoutes($developerMiddlewareRoutes["PUT"] ?? [], $compiledTrie['PUT']);
+    $compiledTrie['DELETE'] = addMiddlewareRoutes($developerMiddlewareRoutes["DELETE"] ?? [], $compiledTrie['DELETE']);
+
+    var_export($compiledTrie);
+
+    return $compiledTrie;
+}
 
 // Audit Developer's Defined Routes
 function r_audit_developer_routes(array $developerSingleRoutes, array $developerMiddlewareRoutes) {}

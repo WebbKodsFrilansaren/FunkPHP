@@ -1,5 +1,29 @@
 <?php // This file includes generating functiosn (generating unique passwords, tokens, etc.)
 
+// Run the main function to handle the request which is a pipeline of functions
+// where each function can also call optional functions to handle the request!
+// outerFunktionTrain(
+//     $req,
+//     $d,
+//     $p,
+//     $fphp_global_config,
+//     [
+//         "r_match_denied_global_ips" // Deny IPs filtering globally
+//         => [
+//             $fphp_global_config['fphp_ips_filtered_globals'],
+//             $req['ip']
+//         ],
+//         "r_match_denied_global_uas" // Deny UAs filtering globally
+//         =>
+//         [
+//             $fphp_global_config['fphp_uas_filtered_globals'],
+//             $req['ua']
+//         ],
+//     ]
+// );
+
+
+
 // These functions uses "The Random\Randomizer class with heavy inspiration from this GitHub repo:
 // https://github.com/valorin/random/blob/main/src/Generator.php#L195
 
