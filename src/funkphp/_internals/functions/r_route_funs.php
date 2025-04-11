@@ -258,8 +258,6 @@ function r_convert_array_to_simple_syntax(array $array): string | null | array
     $inStr = false;
     $converted = "";
 
-    echo "Before: " . var_export($array, true) . "<br>";
-
     // Check if first character is "a"
     if ($str[0] !== "a") {
         return ["err" => "[r_convert_array_to_simple_syntax]: Invalid var_export array syntax! Expected 'array ('"];
