@@ -24,8 +24,12 @@ $developerSingleRoutes = include __DIR__ . '/routes/single_routes.php';
 // Compiled Trie structure where "#" indicates dynamic route and "|" indicates middleware
 $compiledTrie = include __DIR__ . '/_internals/compiled_route_trie.php';
 
+echo "Converted: " . r_convert_array_to_simple_syntax($compiledTrie);
+echo "<br>";
+
+
 // --- Test Cases ---
-echo json_encode(r_match_developer_route($req['method'], $req['uri'], $compiledTrie, $developerSingleRoutes, $developerMiddleRoutes), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+//echo json_encode(r_match_developer_route($req['method'], $req['uri'], $compiledTrie, $developerSingleRoutes, $developerMiddleRoutes), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 
 // Run the main function to handle the request which is a pipeline of functions
 // where each function can also call optional functions to handle the request!

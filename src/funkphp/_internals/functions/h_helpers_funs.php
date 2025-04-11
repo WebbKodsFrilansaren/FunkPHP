@@ -372,3 +372,4 @@ function h_splitOnAndCheckInArray($splitOn, $stringToCheck, $InArray, $lowerCase
         return false;
     }
 }
+

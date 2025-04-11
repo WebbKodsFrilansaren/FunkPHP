@@ -237,6 +237,83 @@ function r_match_developer_route(string $method, string $uri, array $compiledTri
     ];
 }
 
+// Convert PHP array() syntax to simplified [] syntax
+function r_convert_array_to_simple_syntax(array $array): string | null | array
+{
+    // Must be non-empty array
+    if (!is_array($array) || empty($array)) {
+        return ["err" => "[r_convert_array_to_simple_syntax]: Must be an array!"];
+    }
+
+    // Prepare array and parse state variables
+    $str = mb_str_split(var_export($array, true));
+    $arrStack = [];
+    $arrayLetters = ["a", "r", "r", "a", "y", " "];
+    $quotes = ["'", '"'];
+    $inStr = false;
+    $converted = "";
+
+    // Parse on each character of the prepared string
+    for ($i = 0; $i < count($str); $i++) {
+        $c = $str[$i];
+
+        // If inside string and is not a quote
+        if ($inStr && (!in_array($c, $quotes) && $c !== "\\")) {
+            $converted .= $c;
+            continue;
+        }
+        // If inside string with escaped character, just skip it
+        elseif ($inStr && ($c === "\\")) {
+            $i++;
+            continue;
+        }
+        // If inside string and is a quote
+        elseif ($inStr && (in_array($c, $quotes))) {
+            $converted .= $c;
+            $inStr = false;
+            continue;
+        }
+
+        // If not inside string and is a quote
+        if (!$inStr && empty($arrStack) && (in_array($c, $quotes))) {
+            $inStr = true;
+            $converted .= $c;
+            continue;
+        }
+
+        // If not inside string and next character is "a" from "array (" & not from false boolean
+        if (!$inStr && empty($arrStack)  && $c === "a" && $str[$i + 1] !== "l") {
+            $arrStack[] = $c;
+            continue;
+        }
+
+        // If not inside string and next character is one from:"rray ("
+        if (!$inStr && !empty($arrStack)) {
+            if (count($arrStack) < 5 && in_array($c, $arrayLetters)) {
+                $arrStack[] = $c;
+                continue;
+
+                // If not inside string and next character is "(" from "array ("
+            } elseif (count($arrStack) === 5 && $c === "(") {
+                $converted .= "[";
+                unset($arrStack);
+                continue;
+            }
+        }
+
+        // If outside string and ")"
+        if (!$inStr && $c === ")") {
+            $converted .= "]";
+            continue;
+        }
+        $converted .= $c;
+    }
+
+    // Return the finalized string varaible
+    $converted .= ";";
+    return $converted;
+}
+
 // Build Compiled Route from Developer's Defined Routes
 function r_build_compiled_route(array $developerSingleRoutes, array $developerMiddlewareRoutes) {}
 
