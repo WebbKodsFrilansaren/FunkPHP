@@ -62,23 +62,13 @@ function r_match_denied_global_ips($denied_ips, $ip)
 }
 
 // Try match against denied UAs globally
-function r_match_denied_global_uas($denied_uas, $ua)
+function r_match_denied_uas($ua)
 {
-    if (!isset($denied_uas['denied'])) {
-        return false; // No denied UAs configured or passed
-    }
+    $uas = include dirname(__DIR__) . '/compiled/uas.php';
+    echo $ua;
 
-    // Check if the User-Agent contains any of the denied UAs
-    $deniedConfig = $denied_uas['denied'];
-    if (isset($deniedConfig['contains']) && is_array($deniedConfig['contains'])) {
-        if (array_any_element($deniedConfig['contains'], 'str_contains', $ua, ["swap_args"])) {
-            echo " | DENIED UAS CONTAINS FOUND!<br>";
-            return true;
-        }
-    }
-
-    echo " | DENIED UA NOT FOUND! - Move on!<br>";
-    return false; // IP address did not match any denied criteria
+    // First we lowercase the $ua
+    $ua = mb_strtolower($ua);
 }
 
 // Prepare $req['uri'] for consistent use in the app
@@ -336,7 +326,7 @@ function r_is_localhost(): bool
 }
 
 // Build Compiled Route from Developer's Defined Routes
-function r_build_compiled_routes(array $developerSingleRoutes, array $developerMiddlewareRoutes, string $outputDestination = null)
+function r_build_compiled_routes(array $developerSingleRoutes, array $developerMiddlewareRoutes)
 {
     // Only localhost can run this function (meaning you cannot run this in production!)
     if (!r_is_localhost()) {
@@ -489,7 +479,7 @@ function r_build_compiled_routes(array $developerSingleRoutes, array $developerM
 }
 
 // Output Compiled Route to File or Return as String
-function r_output_compiled_routes(array $compiledTrie, string $outputDestination = "")
+function r_output_compiled_routes(array $compiledTrie, string $outputFileNameFolderIsAlways_compiled_routes = "null")
 {
     // Only localhost can run this function (meaning you cannot run this in production!)
     if (!r_is_localhost()) {
@@ -507,12 +497,24 @@ function r_output_compiled_routes(array $compiledTrie, string $outputDestination
 
     // Output either to file destiation or in current folder as datetime in file name
     $datetime = date("Y-m-d_H-i-s");
-    if ($outputDestination !== null) {
-        file_put_contents($outputDestination . $datetime . ".php", "<?php\nreturn " . r_convert_array_to_simple_syntax($compiledTrie) . ";");
-    } else {
+    $outputDestination = $outputFileNameFolderIsAlways_compiled_routes === "null" ? dirname(__DIR__) . "/compiled_routes/troute_" . $datetime . ".php" : dirname(__DIR__) . "\/compiled_routes\/" . $outputFileNameFolderIsAlways_compiled_routes . ".php";
 
-        $outputDestination = __DIR__ . "/compiled_route_trie_" . $datetime . ".php";
-        file_put_contents($outputDestination, "<?php\nreturn " . r_convert_array_to_simple_syntax($compiledTrie) . ";");
+    // Check if file already exists
+    if (file_exists($outputDestination)) {
+        echo "FILE EXISTS. THIS OVERWRITES THE FILE!<br>";
+    }
+
+
+    $result = null;
+    if ($outputFileNameFolderIsAlways_compiled_routes !== "null") {
+        $result = file_put_contents(dirname(__DIR__) . "/compiled/" . $outputFileNameFolderIsAlways_compiled_routes . ".php", "<?php\nreturn " . r_convert_array_to_simple_syntax($compiledTrie));
+    } else {
+        $result = file_put_contents($outputDestination, "<?php\nreturn " . r_convert_array_to_simple_syntax($compiledTrie));
+    }
+    if ($result === false) {
+        echo "[r_output_compiled_routes-ERROR]: Compiled routes was NOT written to: $outputDestination\n<br>";
+    } else {
+        echo "[r_output_compiled_routes-SUCCESS: Compiled routes written to: $outputDestination\n<br>";
     }
 }
 

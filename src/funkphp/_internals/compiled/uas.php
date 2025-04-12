@@ -1,5 +1,5 @@
 <?php
-$fphp_denied_uas_ais = [
+return [
     ".ai" => [],
     ".aibot" => [],
     ".ai bot" => [],

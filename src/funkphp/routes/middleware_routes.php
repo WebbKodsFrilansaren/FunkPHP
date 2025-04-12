@@ -11,6 +11,7 @@ return [
         '/about' => ['handler' => 'ABOUT_MW',],
     ],
     'POST' => [
+        '/' => ['handler' => 'POST_MIDDLEWARE_ROOT',],
         '/users' => ['handler' => 'POST_MIDDLEWARE_USER',],
         '/users/:id' => ['handler' => 'POST_MIDDLEWARE_USER_PROFILE_TEST',],
     ],

@@ -15,25 +15,21 @@ if (!ok($fphp_global_config)) {
 }
 
 // Developer's route definitions
-// Middlwares
+// Middlwares & Singles
 $developerMiddleRoutes = include __DIR__ . '/routes/middleware_routes.php';
-
-// Singles
 $developerSingleRoutes = include __DIR__ . '/routes/single_routes.php';
 
-// Compiled Trie structure where "#" indicates dynamic route and "|" indicates middleware
-$compiledTrie = include __DIR__ . '/_internals/compiled_route_trie.php';
+// Built & compiled trie routes ("troute")
+//$compiledRoutes =  r_build_compiled_routes($developerSingleRoutes, $developerMiddleRoutes);
+//r_output_compiled_routes($compiledRoutes, "troute");
 
+// Imported compiled trie routes ("troute")
+$compiledTrie = include __DIR__ . '/_internals/compiled/troute.php';
 
-$compiledRoutes =  r_build_compiled_routes($developerSingleRoutes, $developerMiddleRoutes);
-
-
-echo "Converted: " . r_convert_array_to_simple_syntax($compiledRoutes) . "<br>";
-echo "<br>";
-
+echo r_match_denied_uas($req['ua']) . "<br>";
 
 // --- Test Cases ---
-echo json_encode(r_match_developer_route($req['method'], $req['uri'], $compiledRoutes, $developerSingleRoutes, $developerMiddleRoutes), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+echo json_encode(r_match_developer_route($req['method'], $req['uri'], $compiledTrie, $developerSingleRoutes, $developerMiddleRoutes), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 
 
 // This part is only executed if the request was not properly handled by the pipeline!

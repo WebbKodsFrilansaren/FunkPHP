@@ -8,15 +8,82 @@ $p = null; // This is the page object that will be used to handle the page rende
 
 //STUFFING_REQ_VARIABLE_WITH_DATA_START_DELIMTIER//
 $req['matched_route'] = null; // This is the matched route that will be used to handle the request
+
 $req['matched_params'] = []; // This is the matched parameters that will be used to handle the request
+
 $req['matched_auth'] = []; // This is the matched authentication that will be used to handle the request
+
 $req['code'] = 418; // HTTP status code of the response (default is 418, meaning "I'm a teapot")
-$req['ip'] = $_SERVER['REMOTE_ADDR']; // This is the IP address of the client making the request
-$req['ua'] = $_SERVER['HTTP_USER_AGENT']; // This is the user agent string of the client making the request
+
+$req['ip'] = $_SERVER['REMOTE_ADDR'] ?? null; // This is the IP address of the client making the request
+
+$req['ua'] = $_SERVER['HTTP_USER_AGENT'] ?? null; // This is the user agent string of the client making the request
+
 $req['content_type'] = $_SERVER['CONTENT_TYPE'] ?? null; // This is the content type of the request (application/json, application/x-www-form-urlencoded, etc.)
-$req['accept'] = $_SERVER['HTTP_ACCEPT']; // This is the accept header of the request (text/html, application/json, etc.)
-$req['uri'] = r_prepare_uri($_SERVER['REQUEST_URI'], $fphp_BASEURL_URI); // This is the URI of the request
-$req['method'] = $_SERVER['REQUEST_METHOD']; // This is the HTTP method of the request (GET, POST, etc.)
-$req['protocol'] = $_SERVER['SERVER_PROTOCOL']; // This is the protocol of the request (HTTP/1.1, HTTP/2, etc.)
-$req['query'] = $_SERVER['QUERY_STRING']; // This is the query string of the request (example.com?param=value, etc.)
+
+$req['accept'] = $_SERVER['HTTP_ACCEPT'] ?? null; // This is the accept header of the request (text/html, application/json, etc.)
+
+// CHECK THIS HARDCODED TO YOUR LOCAL!!! ("/funkphp/src/public_html/")
+$req['uri'] = r_prepare_uri($_SERVER['REQUEST_URI'], "/funkphp/src/public_html/");
+
+$req['method'] = $_SERVER['REQUEST_METHOD'] ?? null; // This is the HTTP method of the request (GET, POST, etc.)
+
+$req['protocol'] = $_SERVER['SERVER_PROTOCOL'] ?? null; // This is the protocol of the request (HTTP/1.1, HTTP/2, etc.)
+
+$req['query'] = $_SERVER['QUERY_STRING'] ?? null; // This is the query string of the request (example.com?param=value, etc.)
 //STUFFING_REQ_VARIABLE_WITH_DATA_END_DELIMTIER//
+
+
+// List of optional functions with priorities for the "o_fail" options where the first
+// key is the function that called and returned list of "o_fail".
+// The optional functions are only executed if they exist here!
+// IMPORTANT: Do NOT use same order number for different functions within same scope!
+$fphp_o_fail_priorities = [
+    "r_match_denied_global_ips" => [
+        "ilog" => 1,
+        "code" => 2,
+        "redirect" => 3,
+    ],
+    "r_match_denied_global_uas" => [
+        "ilog" => 1,
+        "code" => 2,
+        "redirect" => 3,
+    ],
+    "fphp_uas_filtered_grouped" => [
+        "ilog" => 1,
+        "code" => 2,
+        "redirect" => 3,
+    ],
+    "fphp_ips_filtered_grouped" => [
+        "ilog" => 1,
+        "code" => 2,
+        "redirect" => 3,
+    ],
+];
+
+// List of optional functions with priorities for the "o_ok" options where the first
+// key is the function that called and returned list of "o_ok".
+// The optional functions are only executed if they exist here!
+// IMPORTANT: Do NOT use same order number for different functions within same scope!
+$fphp_o_ok_priorities = [
+    "r_match_denied_global_ips" => [
+        "ilog" => 1,
+        "code" => 2,
+        "redirect" => 3,
+    ],
+    "r_match_denied_global_uas" => [
+        "ilog" => 1,
+        "code" => 2,
+        "redirect" => 3,
+    ],
+    "fphp_uas_filtered_grouped" => [
+        "ilog" => 1,
+        "code" => 2,
+        "redirect" => 3,
+    ],
+    "fphp_ips_filtered_grouped" => [
+        "ilog" => 1,
+        "code" => 2,
+        "redirect" => 3,
+    ],
+];

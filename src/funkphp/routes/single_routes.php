@@ -3,8 +3,7 @@
 // IMPORTANT: Routes must match here and in middleware in order for them to take effect!
 return [
     'GET' => [
-        '' => ['handler' => 'ROOT_PAGE',],
-        '/users' => ['handler' => 'USERS_PAGE',],
+        '/users' => ['handler' => 'USRES_ROOT_PAGE',],
         '/users/:id' => ['handler' => 'USER_ID_PAGE',],
         '/users/:id/test' => ['handler' => 'USER_ID_PAGE',],
         '/about' => ['handler' => 'ABOUT_PAGE',],
