@@ -325,9 +325,23 @@ function r_convert_array_to_simple_syntax(array $array): string | null | array
     return $converted;
 }
 
+// Check if the request is from localhost or 127.0.0.1
+function r_is_localhost(): bool
+{
+    if (isset($_SERVER['REMOTE_ADDR']) && ($_SERVER['REMOTE_ADDR'] === "localhost" || $_SERVER['REMOTE_ADDR'] === "127.0.0.1")) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
 // Build Compiled Route from Developer's Defined Routes
 function r_build_compiled_routes(array $developerSingleRoutes, array $developerMiddlewareRoutes, string $outputDestination = null)
 {
+    // Only localhost can run this function (meaning you cannot run this in production!)
+    if (!r_is_localhost()) {
+        ["err" => "[r_build_compiled_route]: This function can only be run locally!"];
+    }
     // Both arrays must be non-empty arrays
     if (!is_array($developerSingleRoutes)) {
         return ["err" => "[r_build_compiled_route]: '\$developerSingleRoutes' Must be a non-empty array!"];
@@ -353,7 +367,7 @@ function r_build_compiled_routes(array $developerSingleRoutes, array $developerM
         // Begin with just getting the key names and no other nested values inside of them:
         // For example:  '/users' => ['handler' => 'USERS_PAGE', /*...*/], only gets the '/users' key name
         // and not the value inside of it. This is done by using array_keys() to get the keys of the array.
-        $keys = array_keys($singleRoutes) ?? null;
+        $keys = array_keys($singleRoutes) ?? [];
         $compiledTrie = [];
 
         // Iterate through each key in the array and add it to the $compiledTrie array
@@ -407,7 +421,7 @@ function r_build_compiled_routes(array $developerSingleRoutes, array $developerM
     function addMiddlewareRoutes($middlewareRoutes, &$compiledTrie)
     {
         // Only extract the keys from the middleware routes
-        $keys = array_keys($middlewareRoutes) ?? null;
+        $keys = array_keys($middlewareRoutes) ?? [];
 
         // The way we insert "|" to signify a middleware is to just go through all segments for each key
         // and when we are at the last segment that is the node we insert "|" and then we move on to key.
@@ -474,5 +488,55 @@ function r_build_compiled_routes(array $developerSingleRoutes, array $developerM
     return $compiledTrie;
 }
 
+// Output Compiled Route to File or Return as String
+function r_output_compiled_routes(array $compiledTrie, string $outputDestination = "")
+{
+    // Only localhost can run this function (meaning you cannot run this in production!)
+    if (!r_is_localhost()) {
+        ["err" => "[r_output_compiled_routes]: This function can only be run locally!"];
+    }
+    // Check if the compiled route is empty
+    if (!is_array($compiledTrie)) {
+        return ["err" => "[r_output_compiled_routes]: Compiled Routes Must Be A Non-Empty Array!"];
+    }
+    if (empty($compiledTrie)) {
+        return ["err" => "[r_output_compiled_routes]: Compiled Routes Must Be A Non-Empty Array!"];
+    }
+
+    // TODO: Add the audit function check here!
+
+    // Output either to file destiation or in current folder as datetime in file name
+    $datetime = date("Y-m-d_H-i-s");
+    if ($outputDestination !== null) {
+        file_put_contents($outputDestination . $datetime . ".php", "<?php\nreturn " . r_convert_array_to_simple_syntax($compiledTrie) . ";");
+    } else {
+
+        $outputDestination = __DIR__ . "/compiled_route_trie_" . $datetime . ".php";
+        file_put_contents($outputDestination, "<?php\nreturn " . r_convert_array_to_simple_syntax($compiledTrie) . ";");
+    }
+}
+
 // Audit Developer's Defined Routes
-function r_audit_developer_routes(array $developerSingleRoutes, array $developerMiddlewareRoutes) {}
+function r_audit_developer_routes(array $developerSingleRoutes, array $developerMiddlewareRoutes): array
+{
+    // Only localhost can run this function (meaning you cannot run this in production!)
+    if (!r_is_localhost()) {
+        ["err" => "[r_audit_developer_routes]: This function can only be run locally!"];
+    }
+    // Both arrays must be non-empty arrays
+    if (!is_array($developerSingleRoutes)) {
+        return ["err" => "[r_audit_developer_routes]: '\$developerSingleRoutes' Must be a non-empty array!"];
+    } elseif (!is_array($developerMiddlewareRoutes)) {
+        return ["err" => "[r_audit_developer_routes]: '\$developerMiddlewareRoutes' Must be a non-empty array!"];
+    }
+    if (empty($developerSingleRoutes)) {
+        ["err" => "[r_audit_developer_routes]: '\$developerSingleRoutes' Must be a non-empty array!"];
+    } else if (empty($developerMiddlewareRoutes)) {
+        ["err" => "[r_audit_developer_routes]: Must '\$developerMiddlewareRoutes' be a non-empty array!"];
+    }
+
+    // Prepare result variable
+    $auditResult = [];
+
+    return $auditResult;
+}
