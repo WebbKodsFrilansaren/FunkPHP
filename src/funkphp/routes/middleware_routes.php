@@ -1,10 +1,12 @@
 <?php
-
+// ENTER YOUR MIDDLEWARE ROUTES HERE (GET, POST, PUT, DELETE) | SINGLES ARE IN A SEPARATE FILE
+// WARNING: This is where you define your middleware routes, NOT YOUR SINGLE ROUTES!
+// IMPORTANT: Both must match in order for middleware to take effect!
 return [
     'GET' => [
-        '/' => ['handler' => 'GET_CHECK_CONTENT_TYPE', /*...*/],
-        '/users' => ['handler' => ['GET_VALIDATE_USER_IP', 'GET_VALIDATE_USER_AU'], /*...*/],
-        '/users/:id' => ['handler' => 'GET_MIDDLEWARE_USER_ID', /*...*/],
+        '/users' => ['handler' => 'USERS_MW', /*...*/],
+        '/users/:id' => ['handler' => 'USER_ID_MW', /*...*/],
+        '/about' => ['handler' => 'ABOUT_MW', /*...*/],
     ],
     'POST' => [
         '/users' => ['handler' => 'POST_MIDDLEWARE_USER', /*...*/],

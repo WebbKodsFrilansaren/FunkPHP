@@ -170,8 +170,8 @@ function r_match_compiled_route(string $requestUri, array $methodRootNode): ?arr
         if (!empty($matchedPathSegments)) {
             return ["route" => '/' . implode('/', $matchedPathSegments), "params" => $matchedParams, "middlewares" => $matchedMiddlewares];
         }
-        // EDGE-CASE: 0 consumed segments
-        // matched, return null instead of matched
+        // EDGE-CASE: 0 consumed segments,
+        // return null instead of matched
         else {
             return null;
         }
@@ -367,7 +367,6 @@ function r_build_compiled_routes(array $developerSingleRoutes, array $developerM
 
             // Split the route into segments
             $splitRouteSegments = explode("/", trim($key, "/"));
-            echo "Segments: " . implode(", ", $splitRouteSegments) . "<br>";
 
             // Initialize the current node in the trie
             $currentNode = &$compiledTrie;
@@ -427,9 +426,6 @@ function r_build_compiled_routes(array $developerSingleRoutes, array $developerM
             // is there a dynamic route to navigate to? or is it a middleware node? WE JUST NAVIGATE TO IT
             // until we run out of segments, that means we have reached the node where we insert the middleware node "|".
             foreach ($splitRouteSegments as $segment) {
-
-                // WHEN SEGMENT STARTS WITH ":param", navigate to ":", extract param and navigate to that.
-
                 // SPECIAL CASE: Navigate past any middleware node "|" but not at root node!
                 if (isset($currentNode['|']) && !empty($currentNode['|'])) {
                     $currentNode = &$currentNode['|'];
@@ -440,6 +436,7 @@ function r_build_compiled_routes(array $developerSingleRoutes, array $developerM
                     $currentNode = &$currentNode[$segment];
                     continue;
                 }
+
                 // DYNAMIC ROUTE SEGMENT
                 elseif (str_starts_with($segment, ":")) {
                     // Use the parameter name as the key in the dynamic node
@@ -463,13 +460,11 @@ function r_build_compiled_routes(array $developerSingleRoutes, array $developerM
     $compiledTrie['PUT'] = addMethodRoutes($PUTSingles);
     $compiledTrie['DELETE'] = addMethodRoutes($DELETESingles);
 
-    // Then add the middlewares to the compiled trie
-    $compiledTrie['GET'] = addMiddlewareRoutes($developerMiddlewareRoutes["GET"] ?? [], $compiledTrie['GET']);
-    $compiledTrie['POST'] = addMiddlewareRoutes($developerMiddlewareRoutes["POST"] ?? [], $compiledTrie['POST']);
-    $compiledTrie['PUT'] = addMiddlewareRoutes($developerMiddlewareRoutes["PUT"] ?? [], $compiledTrie['PUT']);
-    $compiledTrie['DELETE'] = addMiddlewareRoutes($developerMiddlewareRoutes["DELETE"] ?? [], $compiledTrie['DELETE']);
-
-    var_export($compiledTrie);
+    // Then add the middlewares to the compiled trie and return it
+    addMiddlewareRoutes($developerMiddlewareRoutes["GET"] ?? [], $compiledTrie['GET']);
+    addMiddlewareRoutes($developerMiddlewareRoutes["POST"] ?? [], $compiledTrie['POST']);
+    addMiddlewareRoutes($developerMiddlewareRoutes["PUT"] ?? [], $compiledTrie['PUT']);
+    addMiddlewareRoutes($developerMiddlewareRoutes["DELETE"] ?? [], $compiledTrie['DELETE']);
 
     return $compiledTrie;
 }

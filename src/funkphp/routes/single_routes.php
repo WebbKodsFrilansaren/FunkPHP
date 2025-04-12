@@ -1,10 +1,11 @@
 <?php
-
+// ENTER YOUR SINGLE ROUTES HERE (GET, POST, PUT, DELETE) | MIDDLESWARES ARE IN A SEPARATE FILE
+// IMPORTANT: Routes must match here and in middleware in order for them to take effect!
 return [
     'GET' => [
-        '/' => ['handler' => 'HOME_PAGE', /*...*/],
         '/users' => ['handler' => 'USERS_PAGE', /*...*/],
         '/users/:id' => ['handler' => 'USER_ID_PAGE', /*...*/],
+        '/about' => ['handler' => 'ABOUT_PAGE', /*...*/],
         '/about/test' => ['handler' => 'ABOUT_PAGE', /*...*/],
     ],
     'POST' => [
