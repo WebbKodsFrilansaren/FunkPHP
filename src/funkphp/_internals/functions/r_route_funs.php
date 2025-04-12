@@ -359,7 +359,10 @@ function r_build_compiled_routes(array $developerSingleRoutes, array $developerM
         // Iterate through each key in the array and add it to the $compiledTrie array
         foreach ($keys as $key) {
 
-            // Special case: "/" route
+            // Ignore empty keys or null values & handle special case for "/"
+            if ($key === "" || $key === null || $key === false || $key === "") {
+                continue;
+            }
             if ($key === "/") {
                 $compiledTrie["/"] = [];
                 continue;
@@ -409,7 +412,10 @@ function r_build_compiled_routes(array $developerSingleRoutes, array $developerM
         // The way we insert "|" to signify a middleware is to just go through all segments for each key
         // and when we are at the last segment that is the node we insert "|" and then we move on to key.
         foreach ($keys as $key) {
-            // Special case: the middleware is at the root "/"
+            // Ignore empty keys or null values & handle special case for "/"
+            if ($key === "" || $key === null || $key === false || $key === "") {
+                continue;
+            }
             if ($key === "/") {
                 $compiledTrie["|"] = [];
                 continue;
