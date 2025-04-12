@@ -439,7 +439,6 @@ function r_build_compiled_routes(array $developerSingleRoutes, array $developerM
 
                 // DYNAMIC ROUTE SEGMENT
                 elseif (str_starts_with($segment, ":")) {
-                    // Use the parameter name as the key in the dynamic node
                     $paramName = substr($segment, 1);
                     $currentNode = &$currentNode[':'][$paramName];
                     continue;

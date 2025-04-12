@@ -4,6 +4,7 @@
 // IMPORTANT: Both must match in order for middleware to take effect!
 return [
     'GET' => [
+        '/' => ['handler' => 'ROOT_MW', /*...*/],
         '/users' => ['handler' => 'USERS_MW', /*...*/],
         '/users/:id' => ['handler' => 'USER_ID_MW', /*...*/],
         '/about' => ['handler' => 'ABOUT_MW', /*...*/],
@@ -17,5 +18,6 @@ return [
     ],
     'DELETE' => [
         '/users/:id' => ['handler' => 'DELETE_MIDDLEWARE_USER', /*...*/],
+        '/users' => ['handler' => 'DELETE_MIDDLEWARE_USER', /*...*/],
     ],
 ];
