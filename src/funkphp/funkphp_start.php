@@ -29,10 +29,6 @@ $compiledTrie = include __DIR__ . '/_internals/compiled/troute.php';
 $uaTests = include __DIR__ . '/tests/tests_uas.php';
 
 foreach ($uaTests as $uaTest) {
-    r_match_denied_uas($uaTest);
-}
-
-foreach ($uaTests as $uaTest) {
     r_match_denied_uas_simple($uaTest);
 }
 

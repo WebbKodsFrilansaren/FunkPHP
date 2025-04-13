@@ -35,7 +35,7 @@ function r_match_denied_ips($denied_ips, $ip)
 }
 
 // Try match against denied UAs globally (slower version apparently)
-function r_match_denied_uas($ua)
+function r_match_denied_uas_slow($ua)
 {
     // Return null if $ua is invalid UA variable
     if ($ua === "" || $ua === null || !is_string($ua)) {
@@ -119,13 +119,6 @@ function r_match_denied_uas($ua)
     if ($iblePos !== -1 && isset($ua[$iblePos + 1])  && $ua[$iblePos + 1] === " ") {
         $iblePos += 1;
     }
-
-    echo "<br>UA TO TEST:<br>$ua<br>";
-    echo "ible at: " . ($iblePos !== -1 ? $iblePos : 'not found') . "\n";
-    echo " | bot at: " . ($botPos !== -1 ? $botPos : 'not found') . "\n";
-    echo " | UA ible value: '" . $ua[$iblePos] . "'\n";
-    echo " | UA bot value: '" . $ua[$botPos] . "'\n";
-    echo "<br>";
 
     // LOOP 1: Starting at "iblePos" and adding one character
     // to all 5 arrays ($ible1Word, $ible2Words, etc.) with "ible"
@@ -274,21 +267,14 @@ function r_match_denied_uas($ua)
     // True = match found, false = no match found
     foreach ($uaArrayToCompareAgainst as $uaWord) {
         if (isset($uas[$uaWord])) {
-            echo "<br>FOUND: '" . $uaWord . "' in ($ua)<br>";
-            $endTime = microtime(true);
-            $executionTime = round(($endTime - $startTime) * 1000, 3);
-            echo "<br>FOUND TIME: " . $executionTime . " ms<br>";
             return true;
         }
     }
-    $endTime = microtime(true);
-    $executionTime = round(($endTime - $startTime) * 1000, 3);
-    echo "<br>NONE TIME: " . $executionTime . " ms<br>";
     return false;
 }
 
 // Try match against denied UAs globally (str_contains version version)
-function r_match_denied_uas_simple($ua)
+function r_match_denied_uas_fast($ua)
 {
     // Return null if $ua is invalid UA variable
     if ($ua === "" || $ua === null || !is_string($ua)) {
@@ -298,24 +284,17 @@ function r_match_denied_uas_simple($ua)
     // Load compiled UAs from file
     $uas = include dirname(__DIR__) . '/compiled/uas.php';
     if ($uas === false) {
-        return ["err" =>  "[r_match_denied_uas]: Failed to load compiled UAs!"];
+        return ["err" =>  "[r_match_denied_uas]: Failed to load list of blocked UAs!"];
     }
 
-    $startTimeSimple = microtime(true);
+    // Lowercase UA and match against denied UAs
+    $ua = mb_strtolower($ua);
     foreach (array_keys($uas) as $deniedUa) {
         if (str_contains($ua, $deniedUa)) {
-            $endTimeSimple = microtime(true);
-            $executionTimeSimple = round(($endTimeSimple - $startTimeSimple) * 1000, 3);
-            echo "<br>STR_CONTAINS: '" . $deniedUa . "' in ($ua)<br>";
-            echo "<br>STR_CONTAIN TIME: " . $executionTimeSimple . " ms<br>";
-            //return true;
+            return true;
         }
     }
-    // return false;
-    $endTimeSimple = microtime(true);
-    $executionTimeSimple = round(($endTimeSimple - $startTimeSimple) * 1000, 3);
-    echo "<br>STR_CONTAINS NONE: ($ua)</br>";
-    echo "<br>STR_CONTAINS NONE TIME: " . $executionTimeSimple . " ms<br>";
+    return false;
 }
 
 
