@@ -26,11 +26,6 @@ $developerSingleRoutes = include __DIR__ . '/routes/single_routes.php';
 // Imported compiled trie routes ("troute")
 $compiledTrie = include __DIR__ . '/_internals/compiled/troute.php';
 
-$uaTests = include __DIR__ . '/tests/tests_uas.php';
-
-foreach ($uaTests as $uaTest) {
-    r_match_denied_uas_simple($uaTest);
-}
 
 // --- Test Cases ---
 //echo json_encode(r_match_developer_route($req['method'], $req['uri'], $compiledTrie, $developerSingleRoutes, $developerMiddleRoutes), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
@@ -39,3 +34,7 @@ foreach ($uaTests as $uaTest) {
 // This part is only executed if the request was not properly handled by the pipeline!
 // Feel free to add your own error handling here and/or easter egg!
 //echo "<br>YOU SHOULD NOT SEE THIS! SO ERROR!<br>";
+
+
+// Split $uas into an array of user agents
+$uas = explode("\n", $uas);
