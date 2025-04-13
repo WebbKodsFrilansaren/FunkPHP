@@ -273,7 +273,7 @@ function r_match_denied_uas_slow($ua)
     return false;
 }
 
-// Try match against denied UAs globally (str_contains version version)
+// Try match against denied UAs globally (str_contains version, faster)
 function r_match_denied_uas_fast($ua)
 {
     // Return null if $ua is invalid UA variable
@@ -296,7 +296,6 @@ function r_match_denied_uas_fast($ua)
     }
     return false;
 }
-
 
 // Prepare $req['uri'] for consistent use in the app
 function r_prepare_uri($uri, $fphp_BASEURL_URI)

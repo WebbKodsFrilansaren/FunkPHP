@@ -134,7 +134,7 @@ if (err($d['db'])) {
 
 //DEFAULT_HEADERS_ADD_START_DELIMTIER//
 h_headers_set(
-    "Content-Type: text/html; charset=utf-8", // Change this per matched route in your application
+    "Content-Type: text/plain; charset=utf-8", // Change this per matched route in your application
     "Content-Security-Policy: default-src 'none'; img-src 'self'; script-src 'self'; connect-src 'none'; style-src 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; font-src 'self'; base-uri 'self';",
     "x-frame-options: DENY",
     "x-content-type-options: nosniff",

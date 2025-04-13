@@ -7,7 +7,7 @@ include_once __DIR__ . '/dx_steps/_includeAll.php';
 // echo "User URI:'" . $req['uri'] . "'<br> ";
 // echo "User Query: " . $req['query'] . "<br> <br>";
 
-// Load configurations and global variables
+// // Load configurations and global variables
 $fphp_global_config = h_load_config($fphp_all_global_variables_as_strings);
 if (!ok($fphp_global_config)) {
     return_code(418);
@@ -28,13 +28,9 @@ $compiledTrie = include __DIR__ . '/_internals/compiled/troute.php';
 
 
 // --- Test Cases ---
-//echo json_encode(r_match_developer_route($req['method'], $req['uri'], $compiledTrie, $developerSingleRoutes, $developerMiddleRoutes), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+echo json_encode(r_match_developer_route($req['method'], $req['uri'], $compiledTrie, $developerSingleRoutes, $developerMiddleRoutes), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 
 
 // This part is only executed if the request was not properly handled by the pipeline!
 // Feel free to add your own error handling here and/or easter egg!
 //echo "<br>YOU SHOULD NOT SEE THIS! SO ERROR!<br>";
-
-
-// Split $uas into an array of user agents
-$uas = explode("\n", $uas);
