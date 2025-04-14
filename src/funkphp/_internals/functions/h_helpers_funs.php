@@ -23,14 +23,14 @@ function success($data)
 // content type and then returns response code and usually some data
 function return_html($html, $statusCode = 200)
 {
-    // Set the content type to HTML and the status code, then return the HTML response
+    // Set/change the content type to HTML and the status code, then return the HTML response
     header('Content-Type: text/html', true, $statusCode);
     echo $html;
     exit;
 }
 function return_json($json, $statusCode = 200)
 {
-    // Set the content type to JSON and the status code, then return the JSON response
+    // Set/change the content type to JSON and the status code, then return the JSON response
     header('Content-Type: application/json', true, $statusCode);
     echo json_encode($json);
     exit;
@@ -41,7 +41,7 @@ function return_code($statusCode = 418)
     if (!is_numeric($statusCode) || $statusCode < 100 || $statusCode > 599) {
         $statusCode = 418;
     }
-    // Set the content type to text and the status code, then return the code response
+    // Set the/change content type to text and the status code, then return the code response
     header('Content-Type: text/plain', true, $statusCode);
     exit;
 }
@@ -143,6 +143,27 @@ function h_headers_setcookie($name, $value, $expire = 0, $path = '/', $domain = 
         'httponly' => $httponly,
         'samesite' => $samesite
     ]);
+}
+
+// Function that checks for a specific key in $c['DEFAULT_BEHAVIOR'] for a specific step (STEP_1 -> STEP_5)
+// and then a callback function it will call if a specific key in that step exists with a specific value
+function h_check_default_behavior(&$c, $step, $key, $value, $callback = null)
+{
+    // Check if the step exists in the default behavior array
+    if (isset($c['DEFAULT_BEHAVIOR'][$step])) {
+        // Check if the key exists in the step array
+        if (isset($c['DEFAULT_BEHAVIOR'][$step][$key])) {
+            // Check if the value matches the expected value
+            if ($c['DEFAULT_BEHAVIOR'][$step][$key] === $value) {
+                // Call the callback function if provided
+                if ($callback && is_callable($callback)) {
+                    return call_user_func($callback, $c['DEFAULT_BEHAVIOR'][$step][$key]);
+                }
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 // This function works as a pipeline and processes the request through a series of functions

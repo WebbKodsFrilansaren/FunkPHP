@@ -2,6 +2,7 @@
 
 return [
     'matched_route' => null,
+    'matched_data' => null,
     'matched_params' => null,
     'matched_middlewares' => null,
     'matched_auth' => null,

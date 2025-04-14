@@ -38,11 +38,39 @@ return [
         ],
         'db' => ['NOT_FOUND' => []],
     ],
-    'STEP_1' => [],
-    'STEP_2' => [],
-    'STEP_3' => [],
-    'STEP_4' => [],
-    'STEP_5' => [],
-    'STEP_6' => [],
-    'STEP_7' => [],
+    'STEP_1' => [
+        'req' => [
+            'method' => ['NOT_FOUND' => []],
+            'uri' => ['NOT_FOUND' => []],
+        ],
+        'db' => ['NOT_FOUND' => []],
+    ],
+    'STEP_2' => [
+        'req' => [
+            'method' => ['NOT_FOUND' => []],
+            'uri' => ['NOT_FOUND' => []],
+        ],
+        'db' => ['NOT_FOUND' => []],
+    ],
+    'STEP_3' => [
+        'req' => [
+            'method' => ['NOT_FOUND' => []],
+            'uri' => ['NOT_FOUND' => []],
+        ],
+        'db' => ['NOT_FOUND' => []],
+    ],
+    'STEP_4' => [
+        'req' => [
+            'method' => ['NOT_FOUND' => []],
+            'uri' => ['NOT_FOUND' => []],
+        ],
+        'db' => ['NOT_FOUND' => []],
+    ],
+    'STEP_5' => [
+        'req' => [
+            'method' => ['NOT_FOUND' => []],
+            'uri' => ['NOT_FOUND' => []],
+        ],
+        'db' => ['NOT_FOUND' => []],
+    ],
 ];

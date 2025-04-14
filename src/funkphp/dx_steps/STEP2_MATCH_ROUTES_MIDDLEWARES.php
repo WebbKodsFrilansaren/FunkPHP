@@ -1,13 +1,12 @@
 <?php // STEP 2: Match Single Route and its associated Middlewares
-// This is the second step in the process of matching routes and applying middlewares to them.
 
-// Load Routes since we are at this step and need them!
+// Load URI Routes since we are at this step and need them!
 // GOTO "funkphp/routes/single_routes.php" to Add Your Single Routes!
 // GOTO "funkphp/routes/middleware_routes.php" to Add Your middlewares!
 $c['ROUTES'] = [
     'COMPILED' => include dirname(__DIR__) . '/_internals/compiled/troute.php',
-    'SINGLES' => include dirname(__DIR__) . '/routes/single_routes.php',
-    'MIDDLEWARES' => include dirname(__DIR__) . '/routes/middleware_routes.php',
+    'SINGLES' => include dirname(__DIR__) . '/routes/route_single_routes.php',
+    'MIDDLEWARES' => include dirname(__DIR__) . '/routes/route_middleware_routes.php',
 ];
 
 // STEP 2: Match Route & Middlewares and then

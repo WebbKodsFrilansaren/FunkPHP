@@ -9,7 +9,13 @@ return [
     'STATIC' => include __DIR__ . '/STATIC.php',
     'DEFAULT_BEHAVIOR' => include __DIR__ . '/DEFAULT_BEHAVIOR.php',
     'ROUTES' => [
-        // Loads first:/"dx_steps/STEP2_MATCH_ROUTES_MIDDLEWARES.php"
+        // Route matching Loads first:/"dx_steps/STEP2_MATCH_ROUTES_MIDDLEWARES.php"
+        // Change their Loading Logic there if needed!
+
+        // Data matching Loads first:/"dx_steps/STEP4_DATA_MATCH_FETCH_VALIDATION.php"
+        // Change their Loading Logic there if needed!
+
+        // Page matching Loads first:/"dx_steps/STEP5_PAGE_MATCH_AFTER_DATA_MATCH.php"
         // Change their Loading Logic there if needed!
     ],
     'req' => include __DIR__ . '/req.php',
