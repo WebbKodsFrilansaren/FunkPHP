@@ -6,8 +6,8 @@ return [
     'ONLINE' => 'https://www.funkphp.com/',
     'BASEURL' => (isset($_SERVER['SERVER_NAME'])
         && ($_SERVER['SERVER_NAME'] === 'localhost' || $_SERVER['SERVER_NAME'] === "127.0.0.1"))
-        ? 'http://localhost/funkphp/src/public_html/'
-        : 'https://funkphp.com/',
+        ? 'http://localhost/funkphp/src/public_html'
+        : 'https://funkphp.com',
     // This changes to "/" in localhost to match online experience
     'BASEURL_URI' => '/funkphp/src/public_html/',
 ];

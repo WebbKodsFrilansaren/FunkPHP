@@ -168,11 +168,55 @@ function h_try_default_action(&$c, $step1_5_Key, $contextKey, $conditionKey, $ac
         return false;
     }
 
+    // The available functions, written here for closest scope when being called!
+    function CODE(&$c, $CODE = 500)
+    {
+        http_response_code($CODE);
+        exit;
+    }
+    function REDIRECT(&$c, $REDIRECT_STRING)
+    {
+        header("Location: {$c['BASEURLS']['BASE_URI']}$REDIRECT_STRING", true, $c['REDIRECT_CODE']['code'] ?? 418);
+        exit;
+    }
+    function RETURN_JSON_CUSTOM(&$c, $JSON_STRING)
+    {
+        header('Content-Type: application/json', true, $c['RETURN_JSON_CODE']['code'] ?? 418);
+        echo json_encode([$JSON_STRING]);
+        exit;
+    }
+    function RETURN_JSON_ERROR(&$c, $JSON_ERROR_STRING)
+    {
+        header('Content-Type: application/json', true, $c['RETURN_JSON_CODE']['code'] ?? 418);
+        echo json_encode(['error' => $JSON_ERROR_STRING]);
+        exit;
+    }
+    function SET_HEADER(&$c, $HEADER_STRING)
+    {
+        header($HEADER_STRING, true);
+    }
+    function LOG(&$c, $LOG_STRING)
+    {
+        // TODO: Implement logging functionality
+        // This is a placeholder for the logging functionality
+        // You can use a logging library or custom implementation here
+        // For example, you can use Monolog or any other logging library!
+    }
+    function LOG_ERR(&$c, $LOG_ERR_STRING)
+    {
+        error_log($LOG_ERR_STRING);
+    }
+    function RENDER_PAGE(&$c, $PAGE_FILE)
+    {
+        // TODO: Implement rendering functionality when I know how the Template Engine will work!
+    }
+
     // Here we know that the step, context and condition keys are set and that there is
     // a specific action to be taken. We now check whether to use the actionKeyName and
     // actionKeyValue or the optionalCallback which is default null meaning not to use it.
+
     if ($actionKeyName && $actionKeyValue) {
-        if (function_exists($actionKeyName) && is_callable($actionKeyName)) {
+        if (function_exists(mb_strtoupper($actionKeyName)) && is_callable(mb_strtoupper($actionKeyName))) {
             return call_user_func($actionKeyName, $actionKeyValue);
         } else if (function_exists($optionalCallback) &&  is_callable($optionalCallback)) {
             return call_user_func($optionalCallback, $actionKeyValue);

@@ -99,11 +99,15 @@
  *
  * - REDIRECT = URL to redirect to ("/uriString") with hardcoded 301 code, then exit
  *
- * - LOG = Log message to write to the log file ("string", "optionalFileLocation"), then continue execution
+ * - LOG = Log message to write to the pre-configured log file ("string"), then continue execution
+ *
+ * - LOG_ERR = Log error message to write to the pre-configured log file ("string"), then continue execution
  *
  * - RENDER_PAGE = Page to render ("string", "optionalDataToPassToPage"), then exit
  *
- * - RETURN_JSON_ERROR = JSON Error with optional HttpCode and then exit ("Json_EncodedString", optionalHttpCode:int), then exit
+ * - RETURN_JSON_CUSTOM = JSON Custom Object String ("Json_EncodedString"), then exit
+ *
+ * - RETURN_JSON_ERROR = JSON ['error' => ("Json_EncodedString")], then exit
  *
  * - SET_HEADER = Header to set ("string", "string") - (headerName, headerValue), then continue execution
  *
