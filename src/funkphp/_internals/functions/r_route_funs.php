@@ -101,7 +101,7 @@ function r_run_middleware_after_matched_routing(&$c)
                 }
             } // CUSTOM ERROR HANDLING HERE! - no dir or file
             else {
-                h_try_default_action($c, "STEP_3", "middlewares", "NOT_FOUND", "<Action>", "<Value>");
+                h_try_default_action($c, "STEP_3", "middlewares", "NOT_FOUND", "CODE", 404);
             }
 
             // Remove middleware[$i] from the array after trying to run
@@ -413,7 +413,6 @@ function r_match_denied_uas_fast_test($ua = null)
     }
     return false;
 }
-
 
 // Prepare $req['uri'] for consistent use in the app CHANGE and/or UPDATE
 // this function if you need to filter the REQUEST_URI in more ways!

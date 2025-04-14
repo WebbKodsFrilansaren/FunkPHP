@@ -195,7 +195,7 @@ function h_try_default_action(&$c, $step1_5_Key, $contextKey, $conditionKey, $ac
     {
         header($HEADER_STRING, true);
     }
-    function LOG(&$c, $LOG_STRING)
+    function LOG_TEXT(&$c, $LOG_STRING)
     {
         // TODO: Implement logging functionality
         // This is a placeholder for the logging functionality
@@ -217,7 +217,7 @@ function h_try_default_action(&$c, $step1_5_Key, $contextKey, $conditionKey, $ac
 
     if ($actionKeyName && $actionKeyValue) {
         if (function_exists(mb_strtoupper($actionKeyName)) && is_callable(mb_strtoupper($actionKeyName))) {
-            return call_user_func($actionKeyName, $actionKeyValue);
+            return call_user_func_array(mb_strtoupper($actionKeyName), array(&$c, $actionKeyValue));
         } else if (function_exists($optionalCallback) &&  is_callable($optionalCallback)) {
             return call_user_func($optionalCallback, $actionKeyValue);
         } else {
@@ -263,7 +263,7 @@ function h_splitOnAndCheckInArray($splitOn, $stringToCheck, $InArray, $lowerCase
 }
 
 // This function uses the "The Random\Randomizer class" to generate a unique password
-function h_generate_password($length = 20, $returnHashed = false)
+function h_generate_random_password($length = 20, $returnHashed = false)
 {
     // Create a new Randomizer object
     $randomizer = new Random\Randomizer();
@@ -398,7 +398,7 @@ function h_generate_password($length = 20, $returnHashed = false)
 }
 
 // This function uses the "The Random\Randomizer class" to generate a unique number
-function h_generate_number($length = 10)
+function h_generate_random_number($length = 10)
 {
     // Create a new Randomizer object
     $randomizer = new Random\Randomizer();
@@ -436,7 +436,7 @@ function h_generate_number($length = 10)
 }
 
 // This function uses the "The Random\Randomizer class" to generate a unique user_id
-function h_generate_user_id($length = 96)
+function h_generate_random_user_id($length = 96)
 {
     // Create a new Randomizer object
     $randomizer = new Random\Randomizer();
@@ -532,7 +532,7 @@ function h_generate_user_id($length = 96)
 }
 
 // This function uses the "The Random\Randomizer class" to generate a unique CSRF
-function h_generate_csrf($length = 384)
+function h_generate_random_csrf($length = 384)
 {
     // Create a new Randomizer object
     $randomizer = new Random\Randomizer();

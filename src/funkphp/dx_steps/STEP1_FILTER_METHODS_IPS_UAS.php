@@ -4,7 +4,7 @@
 $FPHP_INVALID_METHOD = r_match_denied_methods();
 if ($FPHP_INVALID_METHOD) {
     // If desired, response behavior edit as you please!
-    echo "HTTP 418: I'm a teapot!";
+    echo "I'm a funky teapot!";
     http_response_code(418);
     exit;
 }
@@ -14,7 +14,7 @@ unset($FPHP_INVALID_METHOD);
 $FPHP_INVALID_IP = r_match_denied_exact_ips();
 if ($FPHP_INVALID_IP) {
     // If desired, response behavior edit as you please!
-    echo "HTTP 418: I'm a teapot!";
+    echo "I'm a funky teapot!";
     http_response_code(418);
     exit;
 }
@@ -24,7 +24,7 @@ unset($FPHP_INVALID_IP);
 $FPHP_INVALID_UA = r_match_denied_uas_fast();
 if ($FPHP_INVALID_UA) {
     // If desired, edit response behavior as you please!
-    echo "HTTP 418: I'm a teapot!";
+    echo "I'm a funky teapot!";
     http_response_code(418);
     exit;
 }
