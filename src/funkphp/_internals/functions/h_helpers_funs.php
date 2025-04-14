@@ -114,49 +114,16 @@ function h_destroy_session($set_other_cookies_with_h_setcookie_as_array = [], $r
     }
 }
 
-// Return "o_ok" options if available
-function h_has_ok_options($array)
-{
-    foreach ($array as $key => $value) {
-        if ($key === 'o_ok' && !empty($value)) {
-            return $value;
-        }
-        if (is_array($value)) {
-            $result = h_has_ok_options($value); // Recursive call
-            if ($result !== fail("[h_has_options]: No options provided in the array.")) {
-                return $result; // Return the options if found in a nested array
-            }
-        }
-    }
-    return fail("[h_has_options]: No options provided in the array.");
-}
-
-// Return "o_fail" options if available
-function h_has_fail_options($array)
-{
-    foreach ($array as $key => $value) {
-        if ($key === 'o_fail' && !empty($value)) {
-            return $value;
-        }
-        if (is_array($value)) {
-            $result = h_has_fail_options($value); // Recursive call
-            if ($result !== fail("[h_has_options]: No options provided in the array.")) {
-                return $result; // Return the options if found in a nested array
-            }
-        }
-    }
-    return fail("[h_has_options]: No options provided in the array.");
-}
 // The function "h_headers_set" is used to set the headers for the HTTPS response
 // while the "h_headers_remove" is used to remove the headers for the HTTPS response
-function h_headers_remove(...$headersToRemove)
+function h_headers_remove($headersToRemove)
 {
     // Remove header(s) for the HTTPS reponse
     foreach ($headersToRemove as $header) {
         header_remove($header);
     }
 }
-function h_headers_set(...$headersToSet)
+function h_headers_set($headersToSet)
 {
     // Set the header(s) for the HTTPS response
     foreach ($headersToSet as $header) {
@@ -178,34 +145,85 @@ function h_headers_setcookie($name, $value, $expire = 0, $path = '/', $domain = 
     ]);
 }
 
-// Function that loads configuration from a string array where each string
-// is a variable from $GLOBALS array!
-function h_load_config($configArrayString)
-{
-    // Check if the config array is not empty and is an array
-    if (!empty($configArrayString) && is_array($configArrayString)) {
-        $mergedConfig = []; // Initialize an empty array to store the merged config
-
-        // Loop through the provided array of global variable names
-        foreach ($configArrayString as $varName) {
-            // Check if a global variable with this name exists
-            if (isset($GLOBALS[$varName])) {
-                // Retrieve the value of the global variable and store it in $mergedConfig
-                $mergedConfig[$varName] = $GLOBALS[$varName];
-            }
-        }
-        return $mergedConfig;
-    } else {
-        return fail("[h_load_config]: No (or invalid) config array provided.");
-    }
-}
-
 // This function works as a pipeline and processes the request through a series of functions
 // The "outer" part means this is the one that takes the main step functions whereas
 // the "inner" part means this is the one that takes the inner step functions such as
 // the "o" (option(s)) key in the array each specific step function might come across!
 function outerFunktionTrain(&$req, &$d, &$p, $globalConfig, $listOuterFunctionsNamesAsKeysWithTheirArgsAsAssociatedValues)
 {
+    function innerFunktionTrain(&$req, &$d, &$p, $globalConfig, $listOuterFunctionsNamesWithCorrespondingOptionsNames, $listOuterFunctionsNamesWithCorrespondingOptionsArgs) {}
+
+    // Two functions to run the fail and ok functions that are inside
+    // of the "o_ok" and "o_fail" options of the outer functions!
+    function h_run_fail_functions($fnNameWithArg, $callerName, &$req, &$d, &$p, $globalConfig)
+    {
+        $runPriority = $globalConfig['fphp_o_fail_priorities'][$callerName] ?? null;
+        $failFns = $fnNameWithArg ?? null;
+        if ($runPriority == null || $failFns == null) {
+            return fail("[h_run_fail_functions]: Optional Fail Function or its priorities not found for function $callerName.");
+        }
+
+        // failFns is an array where each element is "fnName=value" format so we need to iterate through it
+        // and split each element by "=" to get the function name and its argument(s)
+        $parsedFailFunctions = [];
+        $finalFns = [];
+        foreach ($failFns as $failFn) {
+            $parts = explode("=", $failFn, 2); // Split by "=" and limit to 2 parts
+            if (count($parts) == 2) {
+                $parsedFailFunctions[$parts[0]] = $parts[1] ?? null;
+                $finalFns[$runPriority[$parts[0]]][$parts[0]] = $parsedFailFunctions[$parts[0]] ?? null;
+            }
+        }
+        ksort($finalFns);
+        echo "<br>Parsed Fail Functions: <br>";
+        //var_dump($parsedFailFunctions);
+        var_dump($finalFns); // REMOVE LATER!!!
+
+        // Now we have an associative array where the key is the function name and the value is the argument(s)
+        // We need to order the functions based on their priorities. The final key sort (ksort) will be done later
+        // in the code so that we can run them in the order of their priorities.
+        // $orderedArgs = [];
+        // foreach ($runPriority as $fnName => $priority) {
+        //     if (isset($parsedFailFunctions[$fnName])) {
+        //         $orderedArgs[$priority] = [$fnName => $parsedFailFunctions[$fnName]];
+        //     }
+        // }
+    }
+    function h_run_ok_functions($fnNameWithArg, $callerName, &$req, &$d, &$p, $globalConfig)
+    {
+        $runPriority = $globalConfig['fphp_o_ok_priorities'][$callerName] ?? null;
+        $okFns = $fnNameWithArg ?? null;
+        if ($runPriority == null || $okFns == null) {
+            return fail("[h_run_fail_functions]: Optional Ok Function or its priorities not found for function $callerName.");
+        }
+        // okFns is an array where each element is "fnName=value" format so we need to iterate through it
+        // and split each element by "=" to get the function name and its argument(s)
+        $parsedokFunctions = [];
+        $finalFns = [];
+        foreach ($okFns as $okFn) {
+            $parts = explode("=", $okFn, 2); // Split by "=" and limit to 2 parts
+            if (count($parts) == 2) {
+                $parsedokFunctions[$parts[0]] = $parts[1];
+                $finalFns[$runPriority[$parts[0]]][$parts[0]] = $parsedokFunctions[$parts[0]] ?? null;
+            }
+        }
+        ksort($finalFns);
+        echo "<br>Parsed Ok Functions: <br>";
+        //var_dump($parsedFailFunctions);
+        var_dump($finalFns); // REMOVE LATER!!!
+
+        // Now we have an associative array where the key is the function name and the value is the argument(s)
+        // We need to order the functions based on their priorities. The final key sort (ksort) will be done later
+        // in the code so that we can run them in the order of their priorities.
+        // $orderedArgs = [];
+        // foreach ($runPriority as $fnName => $priority) {
+        //     if (isset($parsedokFunctions[$fnName])) {
+        //         $orderedArgs[$priority] = [$fnName => $parsedokFunctions[$fnName]];
+        //     }
+        // }
+
+    }
+
     // Loop through "$listOuterFunctionsNames" and turn the function names into the key of corresponding
     $fns = [];
 
@@ -272,79 +290,13 @@ function outerFunktionTrain(&$req, &$d, &$p, $globalConfig, $listOuterFunctionsN
 }
 
 
-// Two functions to run the fail and ok functions that are inside
-// of the "o_ok" and "o_fail" options of the outer functions!
-function h_run_fail_functions($fnNameWithArg, $callerName, &$req, &$d, &$p, $globalConfig)
+// Function to run an array of simple ini_sets(key,value)
+function h_run_ini_sets(array $iniSets)
 {
-    $runPriority = $globalConfig['fphp_o_fail_priorities'][$callerName] ?? null;
-    $failFns = $fnNameWithArg ?? null;
-    if ($runPriority == null || $failFns == null) {
-        return fail("[h_run_fail_functions]: Optional Fail Function or its priorities not found for function $callerName.");
+    foreach ($iniSets as $key => $value) {
+        ini_set($key, $value);
     }
-
-    // failFns is an array where each element is "fnName=value" format so we need to iterate through it
-    // and split each element by "=" to get the function name and its argument(s)
-    $parsedFailFunctions = [];
-    $finalFns = [];
-    foreach ($failFns as $failFn) {
-        $parts = explode("=", $failFn, 2); // Split by "=" and limit to 2 parts
-        if (count($parts) == 2) {
-            $parsedFailFunctions[$parts[0]] = $parts[1] ?? null;
-            $finalFns[$runPriority[$parts[0]]][$parts[0]] = $parsedFailFunctions[$parts[0]] ?? null;
-        }
-    }
-    ksort($finalFns);
-    echo "<br>Parsed Fail Functions: <br>";
-    //var_dump($parsedFailFunctions);
-    var_dump($finalFns); // REMOVE LATER!!!
-
-    // Now we have an associative array where the key is the function name and the value is the argument(s)
-    // We need to order the functions based on their priorities. The final key sort (ksort) will be done later
-    // in the code so that we can run them in the order of their priorities.
-    // $orderedArgs = [];
-    // foreach ($runPriority as $fnName => $priority) {
-    //     if (isset($parsedFailFunctions[$fnName])) {
-    //         $orderedArgs[$priority] = [$fnName => $parsedFailFunctions[$fnName]];
-    //     }
-    // }
 }
-function h_run_ok_functions($fnNameWithArg, $callerName, &$req, &$d, &$p, $globalConfig)
-{
-    $runPriority = $globalConfig['fphp_o_ok_priorities'][$callerName] ?? null;
-    $okFns = $fnNameWithArg ?? null;
-    if ($runPriority == null || $okFns == null) {
-        return fail("[h_run_fail_functions]: Optional Ok Function or its priorities not found for function $callerName.");
-    }
-    // okFns is an array where each element is "fnName=value" format so we need to iterate through it
-    // and split each element by "=" to get the function name and its argument(s)
-    $parsedokFunctions = [];
-    $finalFns = [];
-    foreach ($okFns as $okFn) {
-        $parts = explode("=", $okFn, 2); // Split by "=" and limit to 2 parts
-        if (count($parts) == 2) {
-            $parsedokFunctions[$parts[0]] = $parts[1];
-            $finalFns[$runPriority[$parts[0]]][$parts[0]] = $parsedokFunctions[$parts[0]] ?? null;
-        }
-    }
-    ksort($finalFns);
-    echo "<br>Parsed Ok Functions: <br>";
-    //var_dump($parsedFailFunctions);
-    var_dump($finalFns); // REMOVE LATER!!!
-
-    // Now we have an associative array where the key is the function name and the value is the argument(s)
-    // We need to order the functions based on their priorities. The final key sort (ksort) will be done later
-    // in the code so that we can run them in the order of their priorities.
-    // $orderedArgs = [];
-    // foreach ($runPriority as $fnName => $priority) {
-    //     if (isset($parsedokFunctions[$fnName])) {
-    //         $orderedArgs[$priority] = [$fnName => $parsedokFunctions[$fnName]];
-    //     }
-    // }
-
-}
-
-
-function innerFunktionTrain(&$req, &$d, &$p, $globalConfig, $listOuterFunctionsNamesWithCorrespondingOptionsNames, $listOuterFunctionsNamesWithCorrespondingOptionsArgs) {}
 
 // Function to start session if not already started
 function h_start_session()
@@ -372,4 +324,3 @@ function h_splitOnAndCheckInArray($splitOn, $stringToCheck, $InArray, $lowerCase
         return false;
     }
 }
-

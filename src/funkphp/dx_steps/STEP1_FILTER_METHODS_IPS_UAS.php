@@ -1,8 +1,4 @@
-<?php
-// Step 1: IP & UA Filtering - check against allowed and denied IPs & UAs
-// Step 1.0: IP & UA Filtering Groups - check against denied IPs globally
-// This means checking if current IP can access the web app or not
-// "o_ok" = options when ok result, "o_fail" = options when not ok result
+<?php // STEP 1: Globally Filter Allowed Methods, IPs and User Agents (UAs)
 
 //IP_FILTERING_GLOBALS_START_DELIMTIER//
 $fphp_ips_filtered_globals = [

@@ -1,4 +1,5 @@
-<?php
+<?php // DEFAULT BLOCKED UAS - Change as needed!
+// IMPORTANT: Check whether some "popular" UAs should be unblocked (Bing, Google, etc.)
 return [
     ".ai" => [],
     ".aibot" => [],
@@ -705,6 +706,7 @@ return [
     "finditanswersbot" => [],
     "finditanswers bot" => [],
     "finditanswers-bot" => [],
+    "finditanswers_bot" => [],
     "findlink" => [],
     "findthatfile" => [],
     "findxbot" => [],
@@ -712,6 +714,9 @@ return [
     "findx-bot" => [],
     "findx_bot" => [],
     "firecrawl" => [],
+    "fire crawl" => [],
+    "fire-crawl" => [],
+    "fire_crawl" => [],
     "flaming attackbot" => [],
     "flaming attack bot" => [],
     "flaming attack-bot" => [],
@@ -721,6 +726,7 @@ return [
     "flamingo searchengine" => [],
     "flamingo search engine" => [],
     "flipboardproxy" => [],
+    "flipboard proxy" => [],
     "fluffy" => [],
     "flyriver" => [],
     "foobot" => [],

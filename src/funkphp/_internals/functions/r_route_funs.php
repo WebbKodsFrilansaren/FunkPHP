@@ -1,20 +1,21 @@
 <?php // ROUTE-related FUNCTIONS FOR FunPHP
 
-// Redirect to HTTPS if the application is online (not localhost)
+// Redirect to HTTPS if the application is online (not localhost) and not secured yet
 function r_https_redirect()
 {
     try {
-        if ($_SERVER['SERVER_NAME'] !== "localhost" ||  $_SERVER['SERVER_NAME'] !== "127.0.0.1") {
-            // Only redirect if the connection is not secure
+        if (isset($_SERVER['SERVER_NAME']) && $_SERVER['SERVER_NAME'] !== "localhost" &&  $_SERVER['SERVER_NAME'] !== "127.0.0.1") {
             if (!isset($_SERVER['HTTPS']) || $_SERVER['HTTPS'] !== 'on') {
-                global $fphp_BASEURL_ONLINE;
-                header("Location: $fphp_BASEURL_ONLINE" . $_SERVER['REQUEST_URI'], true, 301);
+                global $c;
+                // We check if the url ended in "/" and if so we remove it
+                $onlineURL = $c['BASEURLS']['ONLINE'] ? rtrim($c['BASEURLS']['ONLINE'], "/") : $c['BASEURLS']['ONLINE'];
+                header("Location: $onlineURL" . $_SERVER['REQUEST_URI'], true, 301);
                 exit;
             }
         }
     } catch (Exception $e) {
-        // Handle any exceptions that may occur
-        error_log("Error in r_https_redirect: " . $e->getMessage());
+        // Change this if you wanna redirect somewhere else or log the error!
+        echo "[r_https_redirect-ERROR]: " . $e->getMessage();
     }
 }
 
