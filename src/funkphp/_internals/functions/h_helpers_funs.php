@@ -145,22 +145,35 @@ function h_headers_setcookie($name, $value, $expire = 0, $path = '/', $domain = 
     ]);
 }
 
-// Function that checks for a specific key in $c['DEFAULT_BEHAVIOR'] for a specific step (STEP_1 -> STEP_5)
-// and then a callback function it will call if a specific key in that step exists with a specific value
-function h_check_default_behavior(&$c, $step, $key, $value, $callback = null)
+// Function that checks for a specific key in $c['DEFAULT_BEHAVIOR'] for a specific step (STEP_1 -> STEP_5),
+// contextKey, conditionKey, actionKeyName and actionKeyValue. actionKeyName and actionKeyValue are used
+// if a specific condition is met. Or an optional callback can be used instead of actionKeyName and actionKeyValue!
+function h_try_default_behavior(&$c, $step1_5_Key, $contextKey, $conditionKey, $actionKeyName, $actionKeyValue, $optionalCallback = null)
 {
-    // Check if the step exists in the default behavior array
-    if (isset($c['DEFAULT_BEHAVIOR'][$step])) {
-        // Check if the key exists in the step array
-        if (isset($c['DEFAULT_BEHAVIOR'][$step][$key])) {
-            // Check if the value matches the expected value
-            if ($c['DEFAULT_BEHAVIOR'][$step][$key] === $value) {
-                // Call the callback function if provided
-                if ($callback && is_callable($callback)) {
-                    return call_user_func($callback, $c['DEFAULT_BEHAVIOR'][$step][$key]);
-                }
-                return true;
-            }
+    // First check each key level just in case
+    if (!isset($c['DEFAULT_BEHAVIOR'][$step1_5_Key])) {
+        return false;
+    }
+    if (!isset($c['DEFAULT_BEHAVIOR'][$step1_5_Key][$contextKey])) {
+        return false;
+    }
+    if (!isset($c['DEFAULT_BEHAVIOR'][$step1_5_Key][$contextKey][$conditionKey])) {
+        return false;
+    }
+    if (isset($c['DEFAULT_BEHAVIOR'][$step1_5_Key][$contextKey][$conditionKey][$actionKeyName])) {
+        return false;
+    }
+
+    // Here we know that the step, context and condition keys are set and that there is
+    // a specific action to be taken. We now check whether to use the actionKeyName and
+    // actionKeyValue or the optionalCallback which is default null meaning not to use it.
+    if ($actionKeyName && $actionKeyValue) {
+        if (is_callable($actionKeyName)) {
+            return call_user_func($actionKeyName, $actionKeyValue);
+        } else if (is_callable($optionalCallback)) {
+            return call_user_func($optionalCallback, $actionKeyValue);
+        } else {
+            return false;
         }
     }
     return false;
@@ -344,4 +357,364 @@ function h_splitOnAndCheckInArray($splitOn, $stringToCheck, $InArray, $lowerCase
     } catch (Exception $e) {
         return false;
     }
+}
+
+// This function uses the "The Random\Randomizer class" to generate a unique password
+function h_generate_password($length = 20, $returnHashed = false)
+{
+    // Create a new Randomizer object
+    $randomizer = new Random\Randomizer();
+
+    // Prepare characters that can be used
+    $lowers =  [
+        'a',
+        'b',
+        'c',
+        'd',
+        'e',
+        'f',
+        'g',
+        'h',
+        'i',
+        'j',
+        'k',
+        'l',
+        'm',
+        'n',
+        'o',
+        'p',
+        'q',
+        'r',
+        's',
+        't',
+        'u',
+        'v',
+        'w',
+        'x',
+        'y',
+        'z',
+    ];
+    $uppers =  [
+        'A',
+        'B',
+        'C',
+        'D',
+        'E',
+        'F',
+        'G',
+        'H',
+        'I',
+        'J',
+        'K',
+        'L',
+        'M',
+        'N',
+        'O',
+        'P',
+        'Q',
+        'R',
+        'S',
+        'T',
+        'U',
+        'V',
+        'W',
+        'X',
+        'Y',
+        'Z',
+    ];
+    $numbers =  [
+        '0',
+        '1',
+        '2',
+        '3',
+        '4',
+        '5',
+        '6',
+        '7',
+        '8',
+        '9',
+    ];
+    $special = [
+        '!',
+        '"',
+        '#',
+        '$',
+        '%',
+        '&',
+        '\'',
+        '(',
+        ')',
+        '*',
+        '+',
+        ',',
+        '-',
+        '.',
+        '/',
+        ':',
+        ';',
+        '<',
+        '=',
+        '>',
+        '?',
+        '@',
+        '[',
+        '\\',
+        ']',
+        '^',
+        '_',
+        '`',
+        '{',
+        '|',
+        '}',
+        '~',
+    ];
+    // Merge the arrays into one:
+    $all = array_merge($lowers, $uppers, $numbers, $special);
+    $total = count($all) - 1;
+
+    // Prepare empty password string
+    $password = '';
+
+    // Add random characters to the password until it reaches the desired length
+    while (strlen($password) < $length) {
+        $randomCharIndex = $randomizer->getInt(0, $total); // Get a random index using the randomizer
+        $password .= $all[$randomCharIndex];
+    }
+
+    // Split the password, shuffle it and join it back together using shuffleArray from randomizer class!
+    $password = $randomizer->shuffleArray(str_split($password));
+    $password = implode('', $password);
+
+    // Return a hashed password if needed
+    if ($returnHashed) {
+        return password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
+    }
+
+    // Otherwise, return the generated password
+    return $password;
+}
+
+// This function uses the "The Random\Randomizer class" to generate a unique number
+function h_generate_number($length = 10)
+{
+    // Create a new Randomizer object
+    $randomizer = new Random\Randomizer();
+
+    // Prepare numbers that can be used
+    $numbers =  [
+        '0',
+        '1',
+        '2',
+        '3',
+        '4',
+        '5',
+        '6',
+        '7',
+        '8',
+        '9',
+    ];
+
+    // Prepare empty number string and total count of numbers array minus 1
+    // and add random numbers to the number until it reaches the desired length
+    $total = count($numbers) - 1;
+    $number = '';
+
+    // First number cannot be 0
+    $randomCharIndex = $randomizer->getInt(1, $total);
+    $number .= $numbers[$randomCharIndex];
+
+    while (strlen($number) < $length) {
+        $randomCharIndex = $randomizer->getInt(0, $total);
+        $number .= $numbers[$randomCharIndex];
+    }
+
+    // Return the generated number as an integer
+    return (int)$number;
+}
+
+// This function uses the "The Random\Randomizer class" to generate a unique user_id
+function h_generate_user_id($length = 96)
+{
+    // Create a new Randomizer object
+    $randomizer = new Random\Randomizer();
+
+    // Prepare characters that can be used
+    $lowers =  [
+        'a',
+        'b',
+        'c',
+        'd',
+        'e',
+        'f',
+        'g',
+        'h',
+        'i',
+        'j',
+        'k',
+        'l',
+        'm',
+        'n',
+        'o',
+        'p',
+        'q',
+        'r',
+        's',
+        't',
+        'u',
+        'v',
+        'w',
+        'x',
+        'y',
+        'z',
+    ];
+    $uppers =  [
+        'A',
+        'B',
+        'C',
+        'D',
+        'E',
+        'F',
+        'G',
+        'H',
+        'I',
+        'J',
+        'K',
+        'L',
+        'M',
+        'N',
+        'O',
+        'P',
+        'Q',
+        'R',
+        'S',
+        'T',
+        'U',
+        'V',
+        'W',
+        'X',
+        'Y',
+        'Z',
+    ];
+    $numbers =  [
+        '0',
+        '1',
+        '2',
+        '3',
+        '4',
+        '5',
+        '6',
+        '7',
+        '8',
+        '9',
+    ];
+
+    // Merge the arrays into one:
+    $all = array_merge($lowers, $uppers, $numbers);
+    $total = count($all) - 1;
+
+    // Prepare empty user_id string and add random characters to the user_id until it reaches the desired length
+    $user_id = '';
+    while (strlen($user_id) < $length) {
+        // Insert a "-" after every 24 characters except for the last one
+        if (strlen($user_id) % 24 == 0 && strlen($user_id) != 0) {
+            $user_id .= '-';
+            continue;
+        }
+        $randomCharIndex = $randomizer->getInt(0, $total);
+        $user_id .= $all[$randomCharIndex];
+    }
+
+    // Return the generated user_id
+    return $user_id;
+}
+
+// This function uses the "The Random\Randomizer class" to generate a unique CSRF
+function h_generate_csrf($length = 384)
+{
+    // Create a new Randomizer object
+    $randomizer = new Random\Randomizer();
+
+    // Prepare characters that can be used
+    $lowers =  [
+        'a',
+        'b',
+        'c',
+        'd',
+        'e',
+        'f',
+        'g',
+        'h',
+        'i',
+        'j',
+        'k',
+        'l',
+        'm',
+        'n',
+        'o',
+        'p',
+        'q',
+        'r',
+        's',
+        't',
+        'u',
+        'v',
+        'w',
+        'x',
+        'y',
+        'z',
+    ];
+    $uppers =  [
+        'A',
+        'B',
+        'C',
+        'D',
+        'E',
+        'F',
+        'G',
+        'H',
+        'I',
+        'J',
+        'K',
+        'L',
+        'M',
+        'N',
+        'O',
+        'P',
+        'Q',
+        'R',
+        'S',
+        'T',
+        'U',
+        'V',
+        'W',
+        'X',
+        'Y',
+        'Z',
+    ];
+    $numbers =  [
+        '0',
+        '1',
+        '2',
+        '3',
+        '4',
+        '5',
+        '6',
+        '7',
+        '8',
+        '9',
+    ];
+
+    // Merge the arrays into one:
+    $all = array_merge($lowers, $uppers, $numbers);
+    $total = count($all) - 1;
+
+    // Prepare empty CSRF string and add random characters to the CSRF until it reaches the desired length
+    $csrf = '';
+    while (strlen($csrf) < $length) {
+        $randomCharIndex = $randomizer->getInt(0, $total);
+        $csrf .= $all[$randomCharIndex];
+    }
+
+    // Return the generated CSRF
+    return $csrf;
 }

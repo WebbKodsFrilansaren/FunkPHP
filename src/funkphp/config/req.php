@@ -6,6 +6,7 @@ return [
     'matched_params' => null,
     'matched_middlewares' => null,
     'matched_auth' => null,
+    'matched_csrf' => null,
     'no_match_in' => null,
     'keep_running_mws' => null,
     'code' => 418,
