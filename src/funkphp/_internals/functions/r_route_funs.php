@@ -19,20 +19,50 @@ function r_https_redirect()
     }
 }
 
-// Try match against denied IPs globally
-function r_match_denied_ips($denied_ips, $ip)
+// Try match against denied methods globally (or when just invalid)
+function r_match_denied_methods()
 {
-    // Return null if $ip is invalid IP variable
-    if ($ip === "" || $ip === null || !is_string($ip)) {
-        return null;
+    // Return null if $method is invalid method variable
+    $method = $_SERVER['REQUEST_METHOD'] ?? null;
+    if ($method === "" || $method === null || !is_string($method)) {
+        return true;
+    }
+    $method = strtoupper($method);
+
+    // Then check $method is a valid HTTP method
+    if (!in_array($method, ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"])) {
+        return true; // Invalid HTTP method, so deny access
     }
 
-    // Then check $ip is a valid IP address
-    if (!filter_var($ip, FILTER_VALIDATE_IP)) {
-        return true; // Invalid IP address, so deny access
+    // Finally try load blocked methods to match against
+    $methods = include dirname(dirname(__DIR__)) . '../config/BLOCKED_METHODS.php';
+    if ($methods === false) {
+        return ["err" =>  "[r_match_denied_methods]: Failed to load compiled methods!"];
+    }
+    if (isset($methods[$method])) {
+        return true;
+    }
+    return false;
+}
+
+// Try match against denied IPs globally
+function r_match_denied_exact_ips()
+{
+    // Try parse IP and check if it is valid
+    $ip = $_SERVER['REMOTE_ADDR'] ?? null;
+    if ($ip === "" || $ip === null || !is_string($ip) || !filter_var($ip, FILTER_VALIDATE_IP)) {
+        return true;
     }
 
-    $ips_exact = include dirname(__DIR__) . '/compiled/ips_exact.php';
+    // Finally try load exact IPs to match against
+    $ips_exact = include dirname(dirname(__DIR__)) . '/config/BLOCKED_IPS.php';
+    if ($ips_exact === false) {
+        return ["err" =>  "[r_match_denied_exact_ips]: Failed to load compiled IPs!"];
+    }
+    if (isset($ips_exact[$ip])) {
+        return true;
+    }
+    return false;
 }
 
 // Try match against denied UAs globally (slower version apparently)
@@ -275,21 +305,20 @@ function r_match_denied_uas_slow($ua)
 }
 
 // Try match against denied UAs globally (str_contains version, faster)
-function r_match_denied_uas_fast($ua)
+function r_match_denied_uas_fast()
 {
-    // Return null if $ua is invalid UA variable
+    // Try parse UA and check if it is valid
+    $ua = $_SERVER['HTTP_USER_AGENT'] ?? null;
     if ($ua === "" || $ua === null || !is_string($ua)) {
-        return null;
+        return true;
     }
+    $ua = mb_strtolower($ua);
 
-    // Load compiled UAs from file
-    $uas = include dirname(__DIR__) . '/compiled/uas.php';
+    // Finally try load blocked UAs to match against
+    $uas = include dirname(dirname(__DIR__)) . '/config/BLOCKED_UAS.php';
     if ($uas === false) {
         return ["err" =>  "[r_match_denied_uas]: Failed to load list of blocked UAs!"];
     }
-
-    // Lowercase UA and match against denied UAs
-    $ua = mb_strtolower($ua);
     foreach (array_keys($uas) as $deniedUa) {
         if (str_contains($ua, $deniedUa)) {
             return true;
@@ -298,7 +327,34 @@ function r_match_denied_uas_fast($ua)
     return false;
 }
 
-// Prepare $req['uri'] for consistent use in the app
+// Try match against denied UAs globally (str_contains version, faster - for testing purposes)
+function r_match_denied_uas_fast_test($ua = null)
+{
+    // Try parse UA and check if it is valid
+    if ($ua === null) {
+        $ua = $_SERVER['HTTP_USER_AGENT'] ?? null;
+    }
+    if ($ua === "" || $ua === null || !is_string($ua)) {
+        return true;
+    }
+    $ua = mb_strtolower($ua);
+
+    // Finally try load blocked UAs to match against
+    $uas = include dirname(dirname(__DIR__)) . '/config/BLOCKED_UAS.php';
+    if ($uas === false) {
+        return ["err" =>  "[r_match_denied_uas]: Failed to load list of blocked UAs!"];
+    }
+    foreach (array_keys($uas) as $deniedUa) {
+        if (str_contains($ua, $deniedUa)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+
+// Prepare $req['uri'] for consistent use in the app CHANGE and/or UPDATE
+// this function if you need to filter the REQUEST_URI in more ways!
 function r_prepare_uri($uri, $fphp_BASEURL_URI)
 {
     $uri = str_starts_with($_SERVER['REQUEST_URI'], $fphp_BASEURL_URI) ? "/" . ltrim(substr(strtok($_SERVER['REQUEST_URI'], "?"), strlen($fphp_BASEURL_URI)), '/') : strtok($_SERVER['REQUEST_URI'], "?");
@@ -430,12 +486,24 @@ function r_match_developer_route(string $method, string $uri, array $compiledTri
             $noMatchIn = "BOTH_MATCHED";
 
             // Add Any Matched Middlewares Handlers Defined By Developer
+            // It loops through and only adds those that are non-empty strings
+            // It does loop through arrays of non-empty strings! All values must
+            // belong to the $mHandler key in the $developerMiddlewareRoutes array
+            // or they will be ignored!
             if (
                 isset($routeDefinition["middlewares"]) && !empty($routeDefinition["middlewares"] && is_array($routeDefinition["middlewares"]))
             ) {
                 foreach ($routeDefinition["middlewares"] as $middleware) {
                     if (isset($developerMiddlewareRoutes[$method][$middleware]) && isset($developerMiddlewareRoutes[$method][$middleware][$mHandlerKey])) {
-                        $matchedMiddlewareHandlers[] = $developerMiddlewareRoutes[$method][$middleware][$mHandlerKey] ?? null;
+                        if (is_array($developerMiddlewareRoutes[$method][$middleware][$mHandlerKey])) {
+                            foreach ($developerMiddlewareRoutes[$method][$middleware][$mHandlerKey] as $mHandler) {
+                                if (is_string($mHandler) && !empty($mHandler)) {
+                                    $matchedMiddlewareHandlers[] = $mHandler;
+                                }
+                            }
+                        } elseif (is_string($developerMiddlewareRoutes[$method][$middleware][$mHandlerKey]) && !empty($developerMiddlewareRoutes[$method][$middleware][$mHandlerKey])) {
+                            $matchedMiddlewareHandlers[] = $developerMiddlewareRoutes[$method][$middleware][$mHandlerKey];
+                        } // If not array or non-empty string, skip
                     }
                 }
             }

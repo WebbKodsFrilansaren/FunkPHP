@@ -6,6 +6,7 @@ return [
     'matched_middlewares' => null,
     'matched_auth' => null,
     'no_match_in' => null,
+    'keep_running_mws' => null,
     'code' => 418,
     'ip' => $_SERVER['REMOTE_ADDR'] ?? null,
     'ua' => $_SERVER['HTTP_USER_AGENT'] ?? null,

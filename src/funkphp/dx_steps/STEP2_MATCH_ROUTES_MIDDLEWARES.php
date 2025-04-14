@@ -11,7 +11,8 @@ $c['ROUTES'] = [
 ];
 
 // STEP 2: Match Route & Middlewares and then
-// store them in global $c(onfig) variable!
+// store them in global $c(onfig) variable,
+// then free up memory by unsetting variable
 $FPHP_MATCHED_ROUTE = r_match_developer_route(
     $c['req']['method'],
     $c['req']['uri'],
@@ -23,6 +24,8 @@ $c['req']['matched_route'] = $FPHP_MATCHED_ROUTE['route'];
 $c['req']['matched_params'] = $FPHP_MATCHED_ROUTE['params'];
 $c['req']['matched_middlewares'] = $FPHP_MATCHED_ROUTE['middlewares'];
 $c['req']['no_matched_in'] = $FPHP_MATCHED_ROUTE['no_match_in'];
+unset($FPHP_MATCHED_ROUTE);
+
 
 echo json_encode(r_match_developer_route(
     $c['req']['method'],

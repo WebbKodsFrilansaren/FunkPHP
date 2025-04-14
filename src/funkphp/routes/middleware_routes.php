@@ -4,9 +4,9 @@
 // IMPORTANT: Both must match in order for middleware to take effect!
 return [
     'GET' => [
-        '/' => ['handler' => 'ROOT_MW',],
+        '/' => ['handler' => '',],
         '/users' => ['handler' => 'USERS_MW',],
-        '/users/:id' => ['handler' => 'USER_ID_MW',],
+        '/users/:id' => ['handler' => ['MW_USER_ID1', "MW_USER_ID2",],],
         '/users/:id/test' => ['handler' => 'USER_TEST',],
         '/about' => ['handler' => 'ABOUT_MW',],
     ],

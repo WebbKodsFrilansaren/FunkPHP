@@ -7,9 +7,10 @@ return [
     'COOKIES' => include __DIR__ . '/COOKIES.php',
     'HEADERS' => include __DIR__ . '/HEADERS.php',
     'STATIC' => include __DIR__ . '/STATIC.php',
+    'DEFAULT_BEHAVIOR' => include __DIR__ . '/DEFAULT_BEHAVIOR.php',
     'ROUTES' => [
-        // Loaded first:/"dx_steps/STEP2_MATCH_ROUTES_MIDDLEWARES.php"
-        // Change them there if needed!
+        // Loads first:/"dx_steps/STEP2_MATCH_ROUTES_MIDDLEWARES.php"
+        // Change their Loading Logic there if needed!
     ],
     'req' => include __DIR__ . '/req.php',
     'db' => include __DIR__ . '/db.php',
