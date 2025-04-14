@@ -4,8 +4,8 @@
 // IMPORTANT: Both must match in order for middleware to take effect!
 return [
     'GET' => [
-        '/users' => ['handler' => ['MW_R_TEST', 'MW_R_TEST2'],],
-        '/users/:id' => ['handler' => ['MW_R_USER_ID1', "MW_R_USER_ID2",],],
+        '/users' => ['handler' => ['R/users_id/MW_R_TEST', 'R/users_id/MW_R_TEST2'],],
+        '/users/:id' => ['handler' => ['R/users_id/MW_R_USER_ID1', "R/users_id/MW_R_USER_ID2",],],
         '/users/:id/test' => ['handler' => 'MW_R_USER_TEST',],
         '/about' => ['handler' => 'MW_R_ABOUT',],
     ],

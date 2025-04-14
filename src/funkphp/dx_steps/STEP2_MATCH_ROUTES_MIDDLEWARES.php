@@ -1,8 +1,8 @@
 <?php // STEP 2: Match Single Route and its associated Middlewares
 
 // Load URI Routes since we are at this step and need them!
-// GOTO "funkphp/routes/single_routes.php" to Add Your Single Routes!
-// GOTO "funkphp/routes/middleware_routes.php" to Add Your middlewares!
+// GOTO "funkphp/routes/route_single_routes.php" to Add Your Single Routes!
+// GOTO "funkphp/routes/route_middleware_routes.php" to Add Your middlewares!
 $c['ROUTES'] = [
     'COMPILED' => include dirname(__DIR__) . '/_internals/compiled/troute.php',
     'SINGLES' => include dirname(__DIR__) . '/routes/route_single_routes.php',

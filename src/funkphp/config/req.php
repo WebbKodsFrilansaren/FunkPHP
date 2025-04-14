@@ -9,6 +9,8 @@ return [
     'matched_csrf' => null,
     'no_match_in' => null,
     'number_of_ran_middlewares' => 0,
+    'number_of_deleted_middlewares' => 0,
+    'deleted_middlewares' => null,
     'keep_running_middlewares' => null,
     'current_middleware_running' => null,
     'code' => 418,

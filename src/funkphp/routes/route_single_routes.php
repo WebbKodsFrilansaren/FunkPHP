@@ -4,6 +4,7 @@
 return [
     'GET' => [
         'BEFORE_MATCH' => ['handler' => 'BEFORE_MATCH'],
+        '/' => ['handler' => 'ROOT_PAGE',],
         '/users' => ['handler' => 'USRES_ROOT_PAGE',],
         '/users/:id' => ['handler' => 'USER_ID_PAGE',],
         '/users/:id/test' => ['handler' => 'USER_ID_PAGE',],
