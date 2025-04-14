@@ -70,7 +70,7 @@ function r_match_denied_exact_ips()
 function r_run_middleware_after_matched_routing(&$c)
 {
     if (isset($c['req']['matched_middlewares']) && is_array($c['req']['matched_middlewares']) && count($c['req']['matched_middlewares']) > 0) {
-        for ($middleware = 0; $middleware <= count($c['req']['matched_middlewares']); $middleware++) {
+        for ($middleware = 0; $middleware < count($c['req']['matched_middlewares']); $middleware++) {
             if ($c['req']['keep_running_middlewares'] === false) {
                 break;
             }
@@ -79,11 +79,13 @@ function r_run_middleware_after_matched_routing(&$c)
             // file in "middlewares" folder exists before including it
             // Get the current middleware name
             $current_mw = $c['req']['matched_middlewares'][$middleware] ?? null;
+            echo "<br><br>CURRENT MW: $current_mw !<br><br>";
             if ($current_mw === null || !is_string($current_mw)) {
-                h_try_default_action($c, "STEP_3", "middlewares", "IS_NULL", "<Action>", "<Value>");
+                //h_try_default_action($c, "STEP_3", "middlewares", "IS_NULL", "<Action>", "<Value>");
+
                 unset($c['req']['matched_middlewares'][$middleware]);
-                $middleware--;
-                //continue;
+                //$middleware--;
+                continue;
             }
 
             $mwDir = dirname(dirname(__DIR__)) . '/middlewares/';
@@ -99,19 +101,19 @@ function r_run_middleware_after_matched_routing(&$c)
                     $RunMW($c);
                 } // CUSTOM ERROR HANDLING HERE! - not callable
                 else {
-                    h_try_default_action($c, "STEP_3", "middlewares", "NOT_CALLABLE", "<Action>", "<Value>");
+                    //h_try_default_action($c, "STEP_3", "middlewares", "NOT_CALLABLE", "<Action>", "<Value>");
                 }
             }
 
             // CUSTOM ERROR HANDLING HERE! - no dir or file
             else {
-                h_try_default_action($c, "STEP_3", "middlewares", "NOT_FOUND", "<Action>", "<Value>");
+                // h_try_default_action($c, "STEP_3", "middlewares", "NOT_FOUND", "<Action>", "<Value>");
             }
 
             // Remove the middleware from the array after running it
             // with adjusted index to avoid skipping the next middleware
             unset($c['req']['matched_middlewares'][$middleware]);
-            $middleware = 0;
+            $middleware--;
         }
         // Set default settings for the next middleware run
         $c['req']['current_middleware_running'] = null;
@@ -126,6 +128,7 @@ function r_run_middleware_after_matched_routing(&$c)
     }
     // CUSTOM ERROR HANDLING HERE! - no matched middlewares
     else {
+        h_try_default_action($c, "STEP_3", "middlewares", "IS_NULL", "<Action>", "<Value>");
     }
 }
 
