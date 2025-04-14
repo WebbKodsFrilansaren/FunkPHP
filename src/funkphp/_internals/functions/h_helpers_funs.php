@@ -172,9 +172,9 @@ function h_try_default_action(&$c, $step1_5_Key, $contextKey, $conditionKey, $ac
     // a specific action to be taken. We now check whether to use the actionKeyName and
     // actionKeyValue or the optionalCallback which is default null meaning not to use it.
     if ($actionKeyName && $actionKeyValue) {
-        if (is_callable($actionKeyName)) {
+        if (function_exists($actionKeyName) && is_callable($actionKeyName)) {
             return call_user_func($actionKeyName, $actionKeyValue);
-        } else if (is_callable($optionalCallback)) {
+        } else if (function_exists($optionalCallback) &&  is_callable($optionalCallback)) {
             return call_user_func($optionalCallback, $actionKeyValue);
         } else {
             return false;

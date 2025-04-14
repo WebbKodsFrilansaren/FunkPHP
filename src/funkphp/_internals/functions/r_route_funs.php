@@ -69,65 +69,60 @@ function r_match_denied_exact_ips()
 // &$c is Global Config Variable with "everything"!
 function r_run_middleware_after_matched_routing(&$c)
 {
-    if (isset($c['req']['matched_middlewares'])) {
-        if (is_array($c['req']['matched_middlewares']) && count($c['req']['matched_middlewares']) > 0) {
-            for ($middleware = 0; $middleware <= count($c['req']['matched_middlewares']); $middleware++) {
-                if ($c['req']['keep_running_middlewares'] === false) {
-                    break;
-                }
+    if (isset($c['req']['matched_middlewares']) && is_array($c['req']['matched_middlewares']) && count($c['req']['matched_middlewares']) > 0) {
+        for ($middleware = 0; $middleware <= count($c['req']['matched_middlewares']); $middleware++) {
+            if ($c['req']['keep_running_middlewares'] === false) {
+                break;
+            }
 
-                // Check if the middleware exists in the routes first and then that the
-                // file in "middlewares" folder exists before including it
-                // Get the current middleware name
-                $current_mw = $c['req']['matched_middlewares'][$middleware] ?? null;
-                if ($current_mw === null || !is_string($current_mw)) {
-                    h_try_default_action($c, "STEP_3", "middlewares", "IS_NULL", "<Action>", "<Value>");
-                    unset($c['req']['matched_middlewares'][$middleware]);
-                    $middleware--;
-                    //continue;
-                }
-
-                $mwDir = dirname(dirname(__DIR__)) . '/middlewares/';
-                $mwToRun = $mwDir . $current_mw . '.php';
-
-                // Only run middleware if dir, file and callable,
-                // then run it and increment the number of ran middlewares
-                if (is_dir($mwDir) && file_exists($mwToRun)) {
-                    $RunMW = include $mwToRun;
-                    if (is_callable($RunMW)) {
-                        $c['req']['current_middleware_running'] = $current_mw;
-                        $c['req']['number_of_ran_middlewares']++;
-                        $RunMW($c);
-                    } // CUSTOM ERROR HANDLING HERE! - not callable
-                    else {
-                        h_try_default_action($c, "STEP_3", "middlewares", "NOT_CALLABLE", "<Action>", "<Value>");
-                    }
-                }
-
-                // CUSTOM ERROR HANDLING HERE! - no dir or file
-                else {
-                    h_try_default_action($c, "STEP_3", "middlewares", "NOT_FOUND", "<Action>", "<Value>");
-                }
-
-                // Remove the middleware from the array after running it
-                // with adjusted index to avoid skipping the next middleware
+            // Check if the middleware exists in the routes first and then that the
+            // file in "middlewares" folder exists before including it
+            // Get the current middleware name
+            $current_mw = $c['req']['matched_middlewares'][$middleware] ?? null;
+            if ($current_mw === null || !is_string($current_mw)) {
+                h_try_default_action($c, "STEP_3", "middlewares", "IS_NULL", "<Action>", "<Value>");
                 unset($c['req']['matched_middlewares'][$middleware]);
-                $middleware = 0;
+                $middleware--;
+                //continue;
             }
-            // Set default settings for the next middleware run
-            $c['req']['current_middleware_running'] = null;
-            if (
-                isset($c['req']['matched_middlewares'])
-                && is_array($c['req']['matched_middlewares'])
-                && count($c['req']['matched_middlewares']) === 0
-            ) {
-                $c['req']['matched_middlewares'] = null;
+
+            $mwDir = dirname(dirname(__DIR__)) . '/middlewares/';
+            $mwToRun = $mwDir . $current_mw . '.php';
+
+            // Only run middleware if dir, file and callable,
+            // then run it and increment the number of ran middlewares
+            if (is_dir($mwDir) && file_exists($mwToRun)) {
+                $RunMW = include $mwToRun;
+                if (is_callable($RunMW)) {
+                    $c['req']['current_middleware_running'] = $current_mw;
+                    $c['req']['number_of_ran_middlewares']++;
+                    $RunMW($c);
+                } // CUSTOM ERROR HANDLING HERE! - not callable
+                else {
+                    h_try_default_action($c, "STEP_3", "middlewares", "NOT_CALLABLE", "<Action>", "<Value>");
+                }
             }
-            $c['req']['keep_running_middlewares'] = null;
+
+            // CUSTOM ERROR HANDLING HERE! - no dir or file
+            else {
+                h_try_default_action($c, "STEP_3", "middlewares", "NOT_FOUND", "<Action>", "<Value>");
+            }
+
+            // Remove the middleware from the array after running it
+            // with adjusted index to avoid skipping the next middleware
+            unset($c['req']['matched_middlewares'][$middleware]);
+            $middleware = 0;
         }
-        // CUSTOM ERROR HANDLING HERE! - no matched middlewares
-        else {
+        // Set default settings for the next middleware run
+        $c['req']['current_middleware_running'] = null;
+        if (
+            isset($c['req']['matched_middlewares'])
+            && is_array($c['req']['matched_middlewares'])
+            && count($c['req']['matched_middlewares']) === 0
+        ) {
+            $c['req']['matched_middlewares'] = null;
         }
+        $c['req']['keep_running_middlewares'] = null;
     }
     // CUSTOM ERROR HANDLING HERE! - no matched middlewares
     else {

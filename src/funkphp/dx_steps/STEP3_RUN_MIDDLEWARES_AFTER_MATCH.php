@@ -7,8 +7,8 @@ if ($c['req']['matched_middlewares'] !== null) {
     r_run_middleware_after_matched_routing($c);
 }
 
-r_run_middleware_after_matched_routing($c);
+//r_run_middleware_after_matched_routing($c);
 
-//var_dump($c['req']);
+var_dump($c['req']);
 // This is the end of Step 3, you can freely add any other checks you want here!
 // You have all global (meta) data in $c variable, so you can use it as you please!
