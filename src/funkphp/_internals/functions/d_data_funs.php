@@ -23,4 +23,104 @@ function d_connect_db($dbHost, $dbUser, $dbPass, $dbName, $dbPort = 3306, $dbCha
 }
 
 // The main validation function for validating data in FunkPHP
-function d_validate(array $stringsWithNamesAndEqualsValues, &$validateAndReturnErrorsOrOK = null) {}
+function d_validate(&$c, array $data_keys_and_associated_validation_rules_values)
+{
+    $errors = [];
+
+    // It has a start function so it can also be used recursively!
+    function start_validate(&$c, $data_keys_and_associated_validation_rules_values) {}
+
+    // The Available Validation Rules
+    function mb_minlen(&$c, $data, $value)
+    {
+        if (mb_strlen($value) < $data['min']) {
+            $errors[] = "The field {$data['name']} must be at least {$data['min']} characters long.";
+        }
+    }
+    function mb_maxlen(&$c, $data, $value)
+    {
+        if (mb_strlen($value) > $data['max']) {
+            $errors[] = "The field {$data['name']} must be at most {$data['max']} characters long.";
+        }
+    }
+    function minlen(&$c, $data, $value)
+    {
+        if (strlen($value) < $data['min']) {
+            $errors[] = "The field {$data['name']} must be at least {$data['min']} characters long.";
+        }
+    }
+    function maxlen(&$c, $data, $value)
+    {
+        if (strlen($value) > $data['max']) {
+            $errors[] = "The field {$data['name']} must be at most {$data['max']} characters long.";
+        }
+    }
+    function minmax(&$c, $data, $value)
+    {
+        if ($value < $data['min'] || $value > $data['max']) {
+            $errors[] = "The field {$data['name']} must be between {$data['min']} and {$data['max']}.";
+        }
+    }
+    function minval(&$c, $data, $value)
+    {
+        if ($value < $data['min']) {
+            $errors[] = "The field {$data['name']} must be at least {$data['min']}.";
+        }
+    }
+    function required(&$c, $data, $value)
+    {
+        if (!isset($value) || empty($value)) {
+            $errors[] = "The field {$data['name']} is required.";
+        }
+    }
+    function string(&$c, $data, $value)
+    {
+        if (!is_string($value)) {
+            $errors[] = "The field {$data['name']} must be a string.";
+        }
+    }
+    function int(&$c, $data, $value)
+    {
+        if (!is_int($value)) {
+            $errors[] = "The field {$data['name']} must be an integer.";
+        }
+    }
+    function float(&$c, $data, $value)
+    {
+        if (!is_float($value)) {
+            $errors[] = "The field {$data['name']} must be a float.";
+        }
+    }
+    function bool(&$c, $data, $value)
+    {
+        if (!is_bool($value)) {
+            $errors[] = "The field {$data['name']} must be a boolean.";
+        }
+    }
+    function hex(&$c, $data, $value)
+    {
+        if (!preg_match('/^[0-9A-Fa-f]{6}$/', $value)) {
+            $errors[] = "The field {$data['name']} must be a valid hex color code.";
+        }
+    }
+    // TODO: Improve this!
+    function email(&$c, $data, $value)
+    {
+        if (!filter_var($value, FILTER_VALIDATE_EMAIL)) {
+            $errors[] = "The field {$data['name']} must be a valid email address.";
+        }
+    }
+    function url(&$c, $data, $value)
+    {
+        if (!filter_var($value, FILTER_VALIDATE_URL)) {
+            $errors[] = "The field {$data['name']} must be a valid URL.";
+        }
+    }
+    // TODO: Improve this!
+    function phone(&$c, $data, $value)
+    {
+        if (!preg_match('/^\+?[0-9]{1,4}?[-. ]?\(?[0-9]{1,4}?\)?[-. ]?[0-9]{1,4}[-. ]?[0-9]{1,9}$/', $value)) {
+            $errors[] = "The field {$data['name']} must be a valid phone number.";
+        }
+    }
+}

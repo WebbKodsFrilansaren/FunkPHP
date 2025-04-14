@@ -1,8 +1,13 @@
 # Enable mod_rewrite to allow URL rewriting in order to remove ".php" endings and redirect all requests to index.php
 RewriteEngine On
 
+
+# Check if file exists (images, css, js)
+
 # Add ".php" endings to HTTPS requests so "about" would be "about.php"
 RewriteRule ^([^\.]+)$ $1.php [NC]
+
+
 
 # Redirect all HTTP requests to index.php and append query string
 RewriteRule ^.*$ index.php [L,QSA]
