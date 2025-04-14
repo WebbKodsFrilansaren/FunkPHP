@@ -1,4 +1,4 @@
-<?php
+<?php // ROUTE_Middleware_ROUTES.PHP - FunkPHP Framework
 // ENTER YOUR MIDDLEWARE ROUTES HERE (GET, POST, PUT, DELETE) | SINGLES ARE IN A SEPARATE FILE
 // WARNING: This is where you define your middleware routes, NOT YOUR SINGLE ROUTES!
 // IMPORTANT: Both must match in order for middleware to take effect!
