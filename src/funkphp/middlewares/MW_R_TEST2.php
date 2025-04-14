@@ -3,5 +3,5 @@
 // Always include &$c so you can edit the ongoing request as
 // needed and so other middlewares can use request processing!
 return function (&$c) {
-    echo "I am a test middleware test 1!<br>";
+    echo "<br>I AM SECOND MIDDLEWARE!!!!!!!!!!!! (Step 2)!<br>";
 };

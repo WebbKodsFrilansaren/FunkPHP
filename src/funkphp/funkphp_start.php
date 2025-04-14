@@ -13,15 +13,15 @@ include_once __DIR__ . '/dx_steps/_includeAll.php';
 // Feel free to add your own error handling here and/or easter egg!
 
 // RETURN DEFAULT WHEN NO MATCH AT ALL OR PROCESS FAILED!
-if (isset($c['req']['accept']) && $c['req']['accept'] === 'application/json') {
-    return_json([
-        'code' => 418,
-        'message' => 'YOU SHOULD NOT SEE THIS! SO ERROR!',
-        'data' => null,
-    ], 418);
-} else if (isset($c['req']['accept']) && $c['req']['accept'] === 'text/html') {
-    return_html("<h1>YOU SHOULD NOT SEE THIS! SO ERROR!</h1>");
-} else {
-    echo "YOU SHOULD NOT SEE THIS! SO ERROR!";
-    return_code(418);
-}
+// if (isset($c['req']['accept']) && $c['req']['accept'] === 'application/json') {
+//     return_json([
+//         'code' => 418,
+//         'message' => 'YOU SHOULD NOT SEE THIS! SO ERROR!',
+//         'data' => null,
+//     ], 418);
+// } else if (isset($c['req']['accept']) && $c['req']['accept'] === 'text/html') {
+//     return_html("<h1>YOU SHOULD NOT SEE THIS! SO ERROR!</h1>");
+// } else {
+//     echo "YOU SHOULD NOT SEE THIS! SO ERROR!";
+//     return_code(418);
+// }

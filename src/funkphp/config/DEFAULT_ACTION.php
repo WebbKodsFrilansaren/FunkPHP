@@ -1,5 +1,5 @@
 <?php
-// IMPORTANT: Still under Development = NOTHING IS IMPLEMENTED YET! (You can use "h_try_default_action" to test it though!)
+// IMPORTANT: Still under Development! (You can use "h_try_default_action" to test it though!)
 // It is in "src/funkphp/_internals/functions/h_helper_funs.php" along with the other helper functions!
 //
 // (This will probably only be fully implemented if FunkPHP actually gets a user base to begin with!)
@@ -43,11 +43,15 @@
  * AVAILABLE CONDITIONS (keys within each context, except for 'req' - see below):
  * - IS_NULL = When value is still null when it shouldn't be
  *
+ * - WRONG_TYPE = When a value is not the expected type when it should be (e.g. string, int, array, etc.)
+ *
  * - NOT_CALLABLE = When a value is not callable when it should be
  *
  * - EXCEPTION = When an exception occured somewhere when it shouldn't have
  *
- * - NOT_FOUND = When a FILE (middleware, data and/or page) was not found when it should have been found
+ * - NO_MATCH = When a value was not found/matched during isset(), loop/in_array when it should have been found/matched
+ *
+ * - NOT_FOUND = When a FILE or DIR (middleware, data and/or page) was not found when it should have been found
  *
  * - FAILED = When a value is not valid when it should be valid (e.g. authentication failed)
  *
@@ -104,7 +108,7 @@
  * - SET_HEADER = Header to set ("string", "string") - (headerName, headerValue), then continue execution
  *
  *******/
-// IMPORTANT: Still under Development = NOTHING IS IMPLEMENTED YET! (You can use "h_try_default_action" to test it though!)
+// IMPORTANT: Still under Development! (You can use "h_try_default_action" to test it though!)
 // It is in "src/funkphp/_internals/functions/h_helper_funs.php" along with the other helper functions!
 // NOTICE: Calling the _EXAMPLE_ will just return an err key!
 // EXAMPLE: 'STEP_0' => ['req' => ['METHOD_IS_NULL' => ['CODE' => 418]]]
@@ -138,22 +142,28 @@ return [
             'IS_NULL' => [],
             'NOT_CALLABLE' => [],
             'EXCEPTION' => [],
-            'NOT_FOUND' => []
+            'NOT_FOUND' => [],
+            'NO_MATCH' => [],
+            'WRONG_TYPE' => [],
         ],
         'db' =>
         [
             'IS_NULL' => [],
-            'DATA_IS_NULL' => []
+            'DATA_IS_NULL' => [],
+            'WRONG_TYPE' => [],
         ],
         'd' =>
         [
             'IS_NULL' => [],
-            'DATA_IS_NULL' => []
+            'DATA_IS_NULL' => [],
+            'WRONG_TYPE' => [],
         ],
         'p' =>
         [
             'IS_NULL' => [],
-            'DATA_IS_NULL' => []
+            'DATA_IS_NULL' => [],
+            'NO_MATCH' => [],
+            'WRONG_TYPE' => [],
         ],
     ],
     'STEP_1' => [
@@ -180,25 +190,32 @@ return [
         'auth' => [
             'IS_NULL' => [],
             'NOT_CALLABLE' => [],
+            'NO_MATCH' => [],
             'EXCEPTION' => [],
-            'FAILED' => []
+            'FAILED' => [],
+            'WRONG_TYPE' => [],
         ],
         'middlewares' =>
         [
             'IS_NULL' => [],
             'NOT_CALLABLE' => [],
             'EXCEPTION' => [],
-            'NOT_FOUND' => []
+            'NOT_FOUND' => [],
+            'NO_MATCH' => [],
+            'WRONG_TYPE' => [],
         ],
         'db' =>
         [
             'IS_NULL' => [],
-            'DATA_IS_NULL' => []
+            'DATA_IS_NULL' => [],
+            'WRONG_TYPE' => [],
         ],
         'd' =>
         [
             'IS_NULL' => [],
-            'DATA_IS_NULL' => []
+            'DATA_IS_NULL' => [],
+            'NO_MATCH' => [],
+            'WRONG_TYPE' => [],
         ],
         'p' =>
         [
@@ -206,7 +223,9 @@ return [
             'DATA_IS_NULL' => [],
             'NOT_CALLABLE' => [],
             'EXCEPTION' => [],
-            'NOT_FOUND' => []
+            'NOT_FOUND' => [],
+            'NO_MATCH' => [],
+            'WRONG_TYPE' => [],
         ],
     ],
     'STEP_2' => [
@@ -233,25 +252,32 @@ return [
         'auth' => [
             'IS_NULL' => [],
             'NOT_CALLABLE' => [],
+            'NO_MATCH' => [],
             'EXCEPTION' => [],
-            'FAILED' => []
+            'FAILED' => [],
+            'WRONG_TYPE' => [],
         ],
         'middlewares' =>
         [
             'IS_NULL' => [],
             'NOT_CALLABLE' => [],
             'EXCEPTION' => [],
-            'NOT_FOUND' => []
+            'NOT_FOUND' => [],
+            'NO_MATCH' => [],
+            'WRONG_TYPE' => [],
         ],
         'db' =>
         [
             'IS_NULL' => [],
-            'DATA_IS_NULL' => []
+            'DATA_IS_NULL' => [],
+            'WRONG_TYPE' => [],
         ],
         'd' =>
         [
             'IS_NULL' => [],
-            'DATA_IS_NULL' => []
+            'DATA_IS_NULL' => [],
+            'NO_MATCH' => [],
+            'WRONG_TYPE' => [],
         ],
         'p' =>
         [
@@ -259,52 +285,41 @@ return [
             'DATA_IS_NULL' => [],
             'NOT_CALLABLE' => [],
             'EXCEPTION' => [],
-            'NOT_FOUND' => []
+            'NOT_FOUND' => [],
+            'NO_MATCH' => [],
+            'WRONG_TYPE' => [],
         ],
     ],
     'STEP_3' => [
-        'req' =>
-        [
-            'METHOD_IS_NULL' => [],
-            'CONTENT_TYPE_IS_NULL' => [],
-            'ACCEPT_IS_NULL' => [],
-            'URI_IS_NULL' => [],
-            'QUERY_IS_NULL' => [],
-            'MATCHED_ROUTE_IS_NULL' => [],
-            'MATCHED_DATA_IS_NULL' => [],
-            'MATCHED_PARAMS_IS_NULL' => [],
-            'MATCHED_MIDDLEWARES_IS_NULL' => [],
-            'MATCHED_AUTH_IS_NULL' => [],
-            'MATCHED_CSRF_IS_NULL' => [],
-            'NO_MATCH_IN_IS_NULL' => [],
-            'KEEP_RUNNING_MWS_IS_NULL' => [],
-            'PROTOCOL_IS_NULL' => [],
-            'CODE_IS_NULL' => [],
-            'UA_IS_NULL' => [],
-            'IP_IS_NULL' => [],
-        ],
         'auth' => [
             'IS_NULL' => [],
             'NOT_CALLABLE' => [],
+            'NO_MATCH' => [],
             'EXCEPTION' => [],
-            'FAILED' => []
+            'FAILED' => [],
+            'WRONG_TYPE' => [],
         ],
         'middlewares' =>
         [
             'IS_NULL' => [],
             'NOT_CALLABLE' => [],
             'EXCEPTION' => [],
-            'NOT_FOUND' => []
+            'NOT_FOUND' => [],
+            'NO_MATCH' => [],
+            'WRONG_TYPE' => [],
         ],
         'db' =>
         [
             'IS_NULL' => [],
-            'DATA_IS_NULL' => []
+            'DATA_IS_NULL' => [],
+            'WRONG_TYPE' => [],
         ],
         'd' =>
         [
             'IS_NULL' => [],
-            'DATA_IS_NULL' => []
+            'DATA_IS_NULL' => [],
+            'NO_MATCH' => [],
+            'WRONG_TYPE' => [],
         ],
         'p' =>
         [
@@ -312,7 +327,9 @@ return [
             'DATA_IS_NULL' => [],
             'NOT_CALLABLE' => [],
             'EXCEPTION' => [],
-            'NOT_FOUND' => []
+            'NOT_FOUND' => [],
+            'NO_MATCH' => [],
+            'WRONG_TYPE' => [],
         ],
     ],
     'STEP_4' => [
@@ -339,25 +356,32 @@ return [
         'auth' => [
             'IS_NULL' => [],
             'NOT_CALLABLE' => [],
+            'NO_MATCH' => [],
             'EXCEPTION' => [],
-            'FAILED' => []
+            'FAILED' => [],
+            'WRONG_TYPE' => [],
         ],
         'middlewares' =>
         [
             'IS_NULL' => [],
             'NOT_CALLABLE' => [],
             'EXCEPTION' => [],
-            'NOT_FOUND' => []
+            'NOT_FOUND' => [],
+            'NO_MATCH' => [],
+            'WRONG_TYPE' => [],
         ],
         'db' =>
         [
             'IS_NULL' => [],
-            'DATA_IS_NULL' => []
+            'DATA_IS_NULL' => [],
+            'WRONG_TYPE' => [],
         ],
         'd' =>
         [
             'IS_NULL' => [],
-            'DATA_IS_NULL' => []
+            'DATA_IS_NULL' => [],
+            'NO_MATCH' => [],
+            'WRONG_TYPE' => [],
         ],
         'p' =>
         [
@@ -365,7 +389,9 @@ return [
             'DATA_IS_NULL' => [],
             'NOT_CALLABLE' => [],
             'EXCEPTION' => [],
-            'NOT_FOUND' => []
+            'NOT_FOUND' => [],
+            'NO_MATCH' => [],
+            'WRONG_TYPE' => [],
         ],
     ],
     'STEP_5' => [
@@ -392,25 +418,32 @@ return [
         'auth' => [
             'IS_NULL' => [],
             'NOT_CALLABLE' => [],
+            'NO_MATCH' => [],
             'EXCEPTION' => [],
-            'FAILED' => []
+            'FAILED' => [],
+            'WRONG_TYPE' => [],
         ],
         'middlewares' =>
         [
             'IS_NULL' => [],
             'NOT_CALLABLE' => [],
             'EXCEPTION' => [],
-            'NOT_FOUND' => []
+            'NOT_FOUND' => [],
+            'NO_MATCH' => [],
+            'WRONG_TYPE' => [],
         ],
         'db' =>
         [
             'IS_NULL' => [],
-            'DATA_IS_NULL' => []
+            'DATA_IS_NULL' => [],
+            'WRONG_TYPE' => [],
         ],
         'd' =>
         [
             'IS_NULL' => [],
-            'DATA_IS_NULL' => []
+            'DATA_IS_NULL' => [],
+            'NO_MATCH' => [],
+            'WRONG_TYPE' => [],
         ],
         'p' =>
         [
@@ -418,7 +451,9 @@ return [
             'DATA_IS_NULL' => [],
             'NOT_CALLABLE' => [],
             'EXCEPTION' => [],
-            'NOT_FOUND' => []
+            'NOT_FOUND' => [],
+            'NO_MATCH' => [],
+            'WRONG_TYPE' => [],
         ],
     ],
 ];

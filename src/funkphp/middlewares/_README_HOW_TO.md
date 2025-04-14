@@ -4,9 +4,9 @@
 
 ## Last Updated: 14th April 2025
 
-- Step 1: Create a new file in "/src/funkphp/middlewares/" and name it after your middleware handler name. For example: "MW_ROOT.php". There is no forced naming convention, but "MW\_" would help you to know what kind of handler you are calling.
+- Step 1: Create a new file in "/src/funkphp/middlewares/" and name it after your middleware handler name. For example: "MW_R_ROOT.php". There is no forced naming convention, but "MW_R" would help you to know what kind of handler you are calling - a middleware for routes. Use "MW_D" for Middleware for Data Routes, and "MW_P" for Middleware after Page Routing!
 
-- Step 2: Your created "MW_ROOT.php" file should be in the style of:
+- Step 2: Your created "MW_R_ROOT.php" file should be in the style of:
 
 ```
 <?php return function(&$c, $optionalVariables){/* Do something with $c as reference variable and/or the other variables */} ?>

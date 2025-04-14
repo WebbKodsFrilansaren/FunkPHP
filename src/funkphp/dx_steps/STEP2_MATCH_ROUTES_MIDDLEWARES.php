@@ -25,13 +25,17 @@ $c['req']['matched_middlewares'] = $FPHP_MATCHED_ROUTE['middlewares'];
 $c['req']['no_matched_in'] = $FPHP_MATCHED_ROUTE['no_match_in'];
 unset($FPHP_MATCHED_ROUTE);
 
+//var_dump($c['req']);
 
-echo json_encode(r_match_developer_route(
-    $c['req']['method'],
-    $c['req']['uri'],
-    $c['ROUTES']['COMPILED'],
-    $c['ROUTES']['SINGLES'],
-    $c['ROUTES']['MIDDLEWARES']
-), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+// echo json_encode(r_match_developer_route(
+//     $c['req']['method'],
+//     $c['req']['uri'],
+//     $c['ROUTES']['COMPILED'],
+//     $c['ROUTES']['SINGLES'],
+//     $c['ROUTES']['MIDDLEWARES']
+// ), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 
-var_dump($c['req']);
+
+
+// This is the end of Step 2, you can freely add any other checks you want here!
+// You have all global (meta) data in $c variable, so you can use it as you please!
