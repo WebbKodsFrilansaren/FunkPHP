@@ -27,8 +27,9 @@
  *
  * - @part(filename) = includes the filename with default DIR at "src/funkphp/pages/parts/"
  *
+ * - @auth() = Auth check, if the user is logged in, it will show the content inside the @auth and @endauth tags.
  *
- *
+ * - @endauth = End of the auth check, remember to use @auth before you use this statement!
  */
 
 // Always include &$c so you can use the processed data,
