@@ -2,9 +2,6 @@
 return  [
   'GET' => 
    [
-    'BEFORE_MATCH' => 
-     [
-    ],
     '/' => 
      [
     ],

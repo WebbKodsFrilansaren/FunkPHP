@@ -148,10 +148,6 @@ function cli_build_compiled_routes(array $developerSingleRoutes, array $develope
     $addMiddlewareRoutes($developerMiddlewareRoutes["POST"] ?? [], $compiledTrie['POST']);
     $addMiddlewareRoutes($developerMiddlewareRoutes["PUT"] ?? [], $compiledTrie['PUT']);
     $addMiddlewareRoutes($developerMiddlewareRoutes["DELETE"] ?? [], $compiledTrie['DELETE']);
-    // addMiddlewareRoutes($developerMiddlewareRoutes["GET"] ?? [], $compiledTrie['GET']);
-    // addMiddlewareRoutes($developerMiddlewareRoutes["POST"] ?? [], $compiledTrie['POST']);
-    // addMiddlewareRoutes($developerMiddlewareRoutes["PUT"] ?? [], $compiledTrie['PUT']);
-    // addMiddlewareRoutes($developerMiddlewareRoutes["DELETE"] ?? [], $compiledTrie['DELETE']);
 
     return $compiledTrie;
 }
@@ -187,9 +183,9 @@ function cli_output_compiled_routes(array $compiledTrie, string $outputFileNameF
         $result = file_put_contents($outputDestination, "<?php\nreturn " . cli_convert_array_to_simple_syntax($compiledTrie));
     }
     if ($result === false) {
-        echo "[ERROR]: Compiled routes was NOT written to: $outputDestination\n!";
+        echo "[ERROR]: Compiled routes FAILED: $outputDestination\n!";
     } else {
-        echo "[SUCCESS: Compiled routes written to: $outputDestination\n!";
+        echo "[SUCCESS]: Compiled routes: $outputDestination\n!";
     }
 }
 
@@ -205,10 +201,10 @@ function cli_audit_developer_routes(array $developerSingleRoutes, array $develop
         exit;
     }
     if (empty($developerSingleRoutes)) {
-        echo "[ERROR]: Must '\$developerSingleRoutes' be a non-empty array!\n";
+        echo "[ERROR]: '\$developerSingleRoutes' be a non-empty array!\n";
         exit;
     } else if (empty($developerMiddlewareRoutes)) {
-        echo "[ERROR]: Must '\$developerMiddlewareRoutes' be a non-empty array!\n";
+        echo "[ERROR]: '\$developerMiddlewareRoutes' be a non-empty array!\n";
         exit;
     }
 
@@ -223,12 +219,14 @@ function cli_convert_array_to_simple_syntax(array $array): string | null | array
 {
     // Must be non-empty array
     if (!is_array($array)) {
-        return ["err" => "[r_convert_array_to_simple_syntax]: Must be a non-empty array!"];
+        echo "[ERROR]: Must be a non-empty array!\n";
+        exit;
     }
 
     // Check if the array is empty
     if (empty($array)) {
-        ["err" => "[r_convert_array_to_simple_syntax]: Must be a non-empty array!"];
+        echo "[ERROR]: Must be a non-empty array!\n";
+        exit;
     }
 
     // Prepare array and parse state variables
@@ -241,9 +239,9 @@ function cli_convert_array_to_simple_syntax(array $array): string | null | array
 
     // Check if first character is "a"
     if ($str[0] !== "a") {
-        return ["err" => "[r_convert_array_to_simple_syntax]: Invalid var_export array syntax! Expected 'array ('"];
+        echo "[ERROR]: Must be a non-empty array!\n";
+        exit;
     }
-
 
     // Parse on each character of the prepared string
     for ($i = 0; $i < count($str); $i++) {

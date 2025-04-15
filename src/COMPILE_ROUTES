@@ -36,7 +36,7 @@ if ($argv[1] === 'all') {
 elseif ($argv[1] === 'route') {
     $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRoute, $middlewareRoutesRoute);
     cli_output_compiled_routes($compiledRouteRoutes, "troute_route");
-    echo "[INFO]: Compiled only route routes!\n";
+    echo "[INFO]: Compiled Only Route routes!\n";
     exit;
 }
 
@@ -44,7 +44,7 @@ elseif ($argv[1] === 'route') {
 elseif ($argv[1] === 'page') {
     $compiledPageRoutes = cli_build_compiled_routes($singleRoutesPage, $middlewareRoutesPage);
     cli_output_compiled_routes($compiledPageRoutes, "troute_page");
-    echo "[INFO]: Compiled only page routes!\n";
+    echo "[INFO]: Compiled Only Page routes!\n";
     exit;
 }
 
@@ -52,7 +52,7 @@ elseif ($argv[1] === 'page') {
 elseif ($argv[1] === 'data') {
     $compiledDataRoutes = cli_build_compiled_routes($singleRoutesData, $middlewareRoutesData);
     cli_output_compiled_routes($compiledDataRoutes, "troute_data");
-    echo "[INFO]: Compiled only data routes!\n";
+    echo "[INFO]: Compiled Only Data routes!\n";
     exit;
 }
 echo "[SYNTAX ERROR]: You shouldn't end up here!\n";
