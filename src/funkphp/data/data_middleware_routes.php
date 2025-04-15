@@ -1,8 +1,4 @@
 <?php // DATA_Middleware_ROUTES.PHP - FunkPHP Framework
-// ENTER YOUR MATCHING MIDDLEWARE ROUTES HERE (GET, POST, PUT, DELETE) | SINGLES ARE IN A SEPARATE FILE
-// WARNING: This is where you define your middleware routes, NOT YOUR SINGLE ROUTES!
-// IMPORTANT: Both must match in order for middleware to take effect!
-// These are middlewares that will be executed after matched route and after the data handling is done!
 return [
     'GET' => [
         '/users/:id' => ['handler' => ['MW_DATA_SPECIFIC_USER_ID', 'SHEESH'],],

@@ -159,99 +159,89 @@ function d_validate(&$c, array $data_keys_and_associated_validation_rules_values
     $errors = [];
 
     // It has a start function so it can also be used recursively!
-    function start_validate(&$c, $data_keys_and_associated_validation_rules_values) {}
+    $start_validate = function (&$c, $data_keys_and_associated_validation_rules_values) use ($errors) {};
 
     // The Available Validation Rules
-    function mb_minlen(&$c, $data, $value)
-    {
+    $utf8 = function (&$c, $data, $value, $customErr = null) {
+        if (!mb_check_encoding($value, 'UTF-8')) {
+            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be a valid UTF-8 string.";
+        }
+    };
+    $mb_minlen = function (&$c, $data, $value, $customErr = null) {
         if (mb_strlen($value) < $data['min']) {
-            $errors[] = "The field {$data['name']} must be at least {$data['min']} characters long.";
+            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be at least {$data['min']} characters long.";
         }
-    }
-    function mb_maxlen(&$c, $data, $value)
-    {
+    };
+    $mb_maxlen = function (&$c, $data, $value, $customErr = null) {
         if (mb_strlen($value) > $data['max']) {
-            $errors[] = "The field {$data['name']} must be at most {$data['max']} characters long.";
+            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be at most {$data['max']} characters long.";
         }
-    }
-    function minlen(&$c, $data, $value)
-    {
+    };
+    $minlen = function (&$c, $data, $value, $customErr = null) {
         if (strlen($value) < $data['min']) {
-            $errors[] = "The field {$data['name']} must be at least {$data['min']} characters long.";
+            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be at least {$data['min']} characters long.";
         }
-    }
-    function maxlen(&$c, $data, $value)
-    {
+    };
+    $maxlen = function (&$c, $data, $value, $customErr = null) {
         if (strlen($value) > $data['max']) {
-            $errors[] = "The field {$data['name']} must be at most {$data['max']} characters long.";
+            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be at most {$data['max']} characters long.";
         }
-    }
-    function minmax(&$c, $data, $value)
-    {
+    };
+    $minmax = function (&$c, $data, $value, $customErr = null) {
         if ($value < $data['min'] || $value > $data['max']) {
-            $errors[] = "The field {$data['name']} must be between {$data['min']} and {$data['max']}.";
+            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be between {$data['min']} and {$data['max']}.";
         }
-    }
-    function minval(&$c, $data, $value)
-    {
+    };
+    $minval  = function (&$c, $data, $value, $customErr = null) {
         if ($value < $data['min']) {
-            $errors[] = "The field {$data['name']} must be at least {$data['min']}.";
+            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be at least {$data['min']}.";
         }
-    }
-    function required(&$c, $data, $value)
-    {
+    };
+    $required = function (&$c, $data, $value, $customErr = null) {
         if (!isset($value) || empty($value)) {
-            $errors[] = "The field {$data['name']} is required.";
+            $errors[] = $customErr ? $customErr : "The field {$data['name']} is required.";
         }
-    }
-    function string(&$c, $data, $value)
-    {
+    };
+    $string  = function (&$c, $data, $value, $customErr = null) {
         if (!is_string($value)) {
-            $errors[] = "The field {$data['name']} must be a string.";
+            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be a string.";
         }
-    }
-    function int(&$c, $data, $value)
-    {
+    };
+    $int  = function (&$c, $data, $value, $customErr = null) {
         if (!is_int($value)) {
-            $errors[] = "The field {$data['name']} must be an integer.";
+            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be an integer.";
         }
-    }
-    function float(&$c, $data, $value)
-    {
+    };
+    $float  = function (&$c, $data, $value, $customErr = null) {
         if (!is_float($value)) {
-            $errors[] = "The field {$data['name']} must be a float.";
+            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be a float.";
         }
-    }
-    function bool(&$c, $data, $value)
-    {
+    };
+    $bool  = function (&$c, $data, $value, $customErr = null) {
         if (!is_bool($value)) {
-            $errors[] = "The field {$data['name']} must be a boolean.";
+            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be a boolean.";
         }
-    }
-    function hex(&$c, $data, $value)
-    {
+    };
+    $hex  = function (&$c, $data, $value, $customErr = null) {
         if (!preg_match('/^[0-9A-Fa-f]{6}$/', $value)) {
-            $errors[] = "The field {$data['name']} must be a valid hex color code.";
+            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be a valid hex color code.";
         }
-    }
+    };
     // TODO: Improve this!
-    function email(&$c, $data, $value)
-    {
+    $email  = function (&$c, $data, $value, $customErr = null) {
         if (!filter_var($value, FILTER_VALIDATE_EMAIL)) {
-            $errors[] = "The field {$data['name']} must be a valid email address.";
+            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be a valid email address.";
         }
-    }
-    function url(&$c, $data, $value)
-    {
+    };
+    $url =  function (&$c, $data, $value, $customErr = null) {
         if (!filter_var($value, FILTER_VALIDATE_URL)) {
-            $errors[] = "The field {$data['name']} must be a valid URL.";
+            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be a valid URL.";
         }
-    }
+    };
     // TODO: Improve this!
-    function phone(&$c, $data, $value)
-    {
+    $phone = function (&$c, $data, $value, $customErr = null) {
         if (!preg_match('/^\+?[0-9]{1,4}?[-. ]?\(?[0-9]{1,4}?\)?[-. ]?[0-9]{1,4}[-. ]?[0-9]{1,9}$/', $value)) {
-            $errors[] = "The field {$data['name']} must be a valid phone number.";
+            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be a valid phone number.";
         }
-    }
+    };
 }

@@ -1,6 +1,4 @@
 <?php // ROUTE_SINGLE_ROUTES.PHP - FunkPHP Framework
-// ENTER YOUR SINGLE ROUTES HERE (GET, POST, PUT, DELETE) | MIDDLESWARES ARE IN A SEPARATE FILE
-// IMPORTANT: Routes must match here and in middleware in order for them to take effect!
 return [
     'GET' => [
         '/' => ['handler' => 'ROOT_PAGE',],
