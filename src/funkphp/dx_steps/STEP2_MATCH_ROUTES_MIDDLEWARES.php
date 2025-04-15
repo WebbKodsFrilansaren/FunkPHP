@@ -6,10 +6,11 @@ if ($c['req']['current_step'] === 2) {
     // GOTO "funkphp/routes/route_single_routes.php" to Add Your Single Routes!
     // GOTO "funkphp/routes/route_middleware_routes.php" to Add Your middlewares!
     $c['ROUTES'] = [
-        'COMPILED' => include dirname(__DIR__) . '/_internals/compiled/troute.php',
+        'COMPILED' => include dirname(__DIR__) . '/_internals/compiled/troute_route.php',
         'SINGLES' => include dirname(__DIR__) . '/routes/route_single_routes.php',
         'MIDDLEWARES' => include dirname(__DIR__) . '/routes/route_middleware_routes.php',
     ];
+    var_dump($c['ROUTES']['COMPILED']);
 
     // STEP 2: Match Route & Middlewares and then
     // store them in global $c(onfig) variable,
@@ -21,11 +22,18 @@ if ($c['req']['current_step'] === 2) {
         $c['ROUTES']['SINGLES'],
         $c['ROUTES']['MIDDLEWARES']
     );
+    var_dump($FPHP_MATCHED_ROUTE);
+
+    $c['req']['matched_method'] = $c['req']['method'];
     $c['req']['matched_route'] = $FPHP_MATCHED_ROUTE['route'];
     $c['req']['matched_params'] = $FPHP_MATCHED_ROUTE['params'];
+    $c['req']['matched_params_route'] = $FPHP_MATCHED_ROUTE['params'];
     $c['req']['matched_middlewares'] = $FPHP_MATCHED_ROUTE['middlewares'];
+    $c['req']['matched_middlewares_route'] = $FPHP_MATCHED_ROUTE['middlewares'];
     $c['req']['no_matched_in'] = $FPHP_MATCHED_ROUTE['no_match_in'];
-    unset($FPHP_MATCHED_ROUTE);
+
+    //unset($FPHP_MATCHED_ROUTE);
+
 
     // This is the end of Step 2, you can freely add any other checks you want here!
     // You have all global (meta) data in $c variable, so you can use it as you please!

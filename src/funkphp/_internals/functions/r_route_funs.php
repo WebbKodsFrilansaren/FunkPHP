@@ -71,6 +71,7 @@ function r_run_middleware_after_matched_routing(&$c)
 {
     if (isset($c['req']['matched_middlewares']) && is_array($c['req']['matched_middlewares']) && count($c['req']['matched_middlewares']) > 0) {
         $count = count($c['req']['matched_middlewares']);
+        $c['req']['keep_running_middlewares'] = true;
         for ($i = 0; $i < $count; $i++) {
             if ($c['req']['keep_running_middlewares'] === false) {
                 break;
@@ -94,6 +95,7 @@ function r_run_middleware_after_matched_routing(&$c)
                 if (is_callable($RunMW)) {
                     $c['req']['current_middleware_running'] = $current_mw;
                     $c['req']['number_of_ran_middlewares']++;
+                    $c['req']['next_middleware_to_run'] = $c['req']['matched_middlewares'][$i + 1] ?? null;
                     $RunMW($c);
                 } // CUSTOM ERROR HANDLING HERE! - not callable
                 else {
@@ -101,12 +103,13 @@ function r_run_middleware_after_matched_routing(&$c)
                 }
             } // CUSTOM ERROR HANDLING HERE! - no dir or file
             else {
-                h_try_default_action($c, "STEP_3", "middlewares", "NOT_FOUND", "CODE", 404);
+                h_try_default_action($c, "STEP_3", "middlewares", "NOT_FOUND", "<Action>", "<Value>");
             }
 
             // Remove middleware[$i] from the array after trying to run
             // it (it is removed even if it was not callable/existed!)
             $c['req']['deleted_middlewares'][] = $current_mw;
+            $c['req']['deleted_middlewares_route'][] = $current_mw;
             unset($c['req']['matched_middlewares'][$i]);
             $c['req']['number_of_deleted_middlewares']++;
         }
@@ -119,12 +122,18 @@ function r_run_middleware_after_matched_routing(&$c)
         ) {
             $c['req']['matched_middlewares'] = null;
         }
-        $c['req']['keep_running_middlewares'] = null;
+        $c['req']['keep_running_middlewares'] = false;
     }
     // CUSTOM ERROR HANDLING HERE! - no matched middlewares
     else {
         h_try_default_action($c, "STEP_3", "middlewares", "IS_NULL", "<Action>", "<Value>");
     }
+}
+
+// Exit middleware_
+function r_exit_middleware_running_early_matched_routing(&$c)
+{
+    $c['req']['keep_running_middlewares'] === false;
 }
 
 // Try match against denied UAs globally (slower version apparently)
@@ -518,7 +527,7 @@ function r_match_compiled_route(string $requestUri, array $methodRootNode): ?arr
 }
 
 // TRIE ROUTER STARTING POINT: Match Returned Matched Compiled Route With Developer's Defined Route
-function r_match_developer_route(string $method, string $uri, array $compiledTrie, array $developerSingleRoutes, array $developerMiddlewareRoutes, string $handlerKey = "handler", string $mHandlerKey = "handler")
+function r_match_developer_route(string $method, string $uri, array $compiledRouteTrie, array $developerSingleRoutes, array $developerMiddlewareRoutes, string $handlerKey = "handler", string $mHandlerKey = "handler")
 {
     // Prepare return values
     $matchedRoute = null;
@@ -529,8 +538,8 @@ function r_match_developer_route(string $method, string $uri, array $compiledTri
     $noMatchIn = ""; // Use as debug value
 
     // Try match HTTP Method Key in Compiled Routes
-    if (isset($compiledTrie[$method])) {
-        $routeDefinition = r_match_compiled_route($uri, $compiledTrie[$method]);
+    if (isset($compiledRouteTrie[$method])) {
+        $routeDefinition = r_match_compiled_route($uri, $compiledRouteTrie[$method]);
     } else {
         $noMatchIn = "COMPILED_ROUTE_KEY (" . mb_strtoupper($method) . ") & ";
     }
