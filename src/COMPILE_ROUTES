@@ -10,7 +10,7 @@ if (!isset($argv[1])) {
 }
 
 // Include all files needed to compile routes
-include __DIR__ . '/funkphp/_internals/functions/_includeAll.php';
+include __DIR__ . '/funkphp/_internals/functions/cli_funs.php';
 $outPutDir = __DIR__ . '/funkphp/_internals/compiled/';
 $singleRoutesRoute = include __DIR__ . '/funkphp/routes/route_single_routes.php';
 $singleRoutesData = include __DIR__ . '/funkphp/data/data_single_routes.php';
@@ -22,33 +22,36 @@ $middlewareRoutesPage = include __DIR__ . '/funkphp/pages/page_middleware_routes
 // Compile only based on user input
 // Compile all routes
 if ($argv[1] === 'all') {
-    r_output_compiled_routes($compiledRouteRoutes, "troute_route");
-    r_output_compiled_routes($compiledPageRoutes, "troute_page");
-    r_output_compiled_routes($compiledDataRoutes, "troute_data");
+    $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRoute, $middlewareRoutesRoute);
+    $compiledPageRoutes = cli_build_compiled_routes($singleRoutesPage, $middlewareRoutesPage);
+    $compiledDataRoutes = cli_build_compiled_routes($singleRoutesData, $middlewareRoutesData);
+    cli_output_compiled_routes($compiledRouteRoutes, "troute_route");
+    cli_output_compiled_routes($compiledPageRoutes, "troute_page");
+    cli_output_compiled_routes($compiledDataRoutes, "troute_data");
     echo "[INFO]: Compiled all routes!\n";
     exit;
 }
 
 // Compile only route routes
 elseif ($argv[1] === 'route') {
-    $compiledRouteRoutes = r_build_compiled_routes($singleRoutesRoute, $middlewareRoutesRoute);
-    r_output_compiled_routes($compiledRouteRoutes, "troute_route");
+    $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRoute, $middlewareRoutesRoute);
+    cli_output_compiled_routes($compiledRouteRoutes, "troute_route");
     echo "[INFO]: Compiled only route routes!\n";
     exit;
 }
 
 // Compile only page routes}
 elseif ($argv[1] === 'page') {
-    $compiledPageRoutes = r_build_compiled_routes($singleRoutesPage, $middlewareRoutesPage);
-    r_output_compiled_routes($compiledPageRoutes, "troute_page");
+    $compiledPageRoutes = cli_build_compiled_routes($singleRoutesPage, $middlewareRoutesPage);
+    cli_output_compiled_routes($compiledPageRoutes, "troute_page");
     echo "[INFO]: Compiled only page routes!\n";
     exit;
 }
 
 // Compile only data routes
 elseif ($argv[1] === 'data') {
-    $compiledDataRoutes = r_build_compiled_routes($singleRoutesData, $middlewareRoutesData);
-    r_output_compiled_routes($compiledDataRoutes, "troute_data");
+    $compiledDataRoutes = cli_build_compiled_routes($singleRoutesData, $middlewareRoutesData);
+    cli_output_compiled_routes($compiledDataRoutes, "troute_data");
     echo "[INFO]: Compiled only data routes!\n";
     exit;
 }
