@@ -3,5 +3,5 @@
 // Always include &$c so you can edit the ongoing request as
 // needed and so other middlewares can use request processing!
 return function (&$c) {
-    echo "<h1><br><br><br><br><br><br><br><br><br><br><br><br><br><br>MW4 FROM USERS_ID FOLDER - MW_R_TEST2</h1>";
+    echo "<br><h1>MW 4 --------- I am a FOURTH middleware executed after route matching (Step 2)!</h1><br>";
 };
