@@ -1,7 +1,7 @@
 <?php // ENTRY POINT OF EACH HTTPS REQUEST thanks to ".htaccess" file
 
 // Load all functions needed for the FunkPHP Framework Web Application
-include_once __DIR__ . '/_internals/functions/_includeAll.php';
+include_once __DIR__ . '/_internals/functions/_includeAllExceptCLI.php';
 
 // $c is the global configuration array that will be used throughout the application
 $c = include __DIR__ . '/config/_all.php';
