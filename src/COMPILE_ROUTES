@@ -72,35 +72,62 @@ $commands = [
         },
     ],
     'add' => [
-        'route' => function () {
+        'route' => function () use ($argv) {
+            if (!isset($argv[3])) {
+                cli_err_syntax("No FunkPHP Command was given?!\nShould be at least three arguments!");
+            }
             cli_info("[INFO]: Adding route routes (not implemented yet)");
         },
-        'page' => function () {
+        'page' => function () use ($argv) {
+            if (!isset($argv[3])) {
+                cli_err_syntax("No FunkPHP Command was given?!\nShould be at least three arguments!");
+            }
             cli_info("[INFO]: Adding page routes (not implemented yet)");
         },
-        'data' => function () {
+        'data' => function () use ($argv) {
+            if (!isset($argv[3])) {
+                cli_err_syntax("No FunkPHP Command was given?!\nShould be at least three arguments!");
+            }
             cli_info("[INFO]: Adding data routes (not implemented yet)");
         },
     ],
     'change' => [
-        'route' => function () {
+        'route' => function () use ($argv) {
+            if (!isset($argv[3])) {
+                cli_err_syntax("No FunkPHP Command was given?!\nShould be at least three arguments!");
+            }
             cli_info("[INFO]: Changing route routes (not implemented yet)");
         },
-        'page' => function () {
+        'page' => function () use ($argv) {
+            if (!isset($argv[3])) {
+                cli_err_syntax("No FunkPHP Command was given?!\nShould be at least three arguments!");
+            }
             cli_info("[INFO]: Changing page routes (not implemented yet)");
         },
-        'data' => function () {
+        'data' => function () use ($argv) {
+            if (!isset($argv[3])) {
+                cli_err_syntax("No FunkPHP Command was given?!\nShould be at least three arguments!");
+            }
             cli_info("[INFO]: Changing data routes (not implemented yet)");
         },
     ],
     'delete' => [
-        'route' => function () {
+        'route' => function () use ($argv) {
+            if (!isset($argv[3])) {
+                cli_err_syntax("No FunkPHP Command was given?!\nShould be at least three arguments!");
+            }
             cli_info("[INFO]: Deleting route routes (not implemented yet)");;
         },
-        'page' => function () {
+        'page' => function () use ($argv) {
+            if (!isset($argv[3])) {
+                cli_err_syntax("No FunkPHP Command was given?!\nShould be at least three arguments!");
+            }
             cli_info("[INFO]: Deleting page routes (not implemented yet)");
         },
-        'data' => function () {
+        'data' => function () use ($argv) {
+            if (!isset($argv[3])) {
+                cli_err_syntax("No FunkPHP Command was given?!\nShould be at least three arguments!");
+            }
             cli_info("[INFO]: Deleting data routes (not implemented yet)");;
         },
     ],
@@ -109,7 +136,6 @@ $commands = [
 // Execute the command
 $command = $argv[1];
 $action = $argv[2];
-$value = $argv[3] ?? null; // Optional third argument
 
 if (isset($commands[$command][$action])) {
     $commands[$command][$action]();
