@@ -17,5 +17,3 @@ if ($c['req']['current_step'] === 5) {
     // You have all global (meta) data in $c variable, so you can use it as you please!
 }
 // This is essentially the end of the entire request process!
-var_dump($c['req']['keep_running_middlewares']);
-var_dump($c['req']['next_middleware_to_run']);

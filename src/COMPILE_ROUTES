@@ -1,0 +1,57 @@
+#!/usr/bin/env php
+<?php // Compile Routes for Routing, Data & Pages!
+// Validate arguments
+if (!isset($argv[1])) {
+    echo "[SYNTAX ERROR]: Pass 'all', 'route', 'data' or 'page' to compile routes!";
+    exit;
+} elseif ($argv[1] !== 'all' && $argv[1] !== 'route' && $argv[1] !== 'data' && $argv[1] !== 'page') {
+    echo "[SYNTAX ERROR]: Pass 'all', 'route', 'data' or 'page' to compile routes!";
+    exit;
+}
+
+// Include all files needed to compile routes
+include __DIR__ . '/funkphp/_internals/functions/_includeAll.php';
+$outPutDir = __DIR__ . '/funkphp/_internals/compiled/';
+$singleRoutesRoute = include __DIR__ . '/funkphp/routes/route_single_routes.php';
+$singleRoutesData = include __DIR__ . '/funkphp/data/data_single_routes.php';
+$singleRoutesPage = include __DIR__ . '/funkphp/pages/page_single_routes.php';
+$middlewareRoutesRoute = include  __DIR__ . '/funkphp/routes/route_middleware_routes.php';
+$middlewareRoutesData = include __DIR__ . '/funkphp/data/data_middleware_routes.php';
+$middlewareRoutesPage = include __DIR__ . '/funkphp/pages/page_middleware_routes.php';
+
+// Compile only based on user input
+// Compile all routes
+if ($argv[1] === 'all') {
+    r_output_compiled_routes($compiledRouteRoutes, "troute_route");
+    r_output_compiled_routes($compiledPageRoutes, "troute_page");
+    r_output_compiled_routes($compiledDataRoutes, "troute_data");
+    echo "[INFO]: Compiled all routes!\n";
+    exit;
+}
+
+// Compile only route routes
+elseif ($argv[1] === 'route') {
+    $compiledRouteRoutes = r_build_compiled_routes($singleRoutesRoute, $middlewareRoutesRoute);
+    r_output_compiled_routes($compiledRouteRoutes, "troute_route");
+    echo "[INFO]: Compiled only route routes!\n";
+    exit;
+}
+
+// Compile only page routes}
+elseif ($argv[1] === 'page') {
+    $compiledPageRoutes = r_build_compiled_routes($singleRoutesPage, $middlewareRoutesPage);
+    r_output_compiled_routes($compiledPageRoutes, "troute_page");
+    echo "[INFO]: Compiled only page routes!\n";
+    exit;
+}
+
+// Compile only data routes
+elseif ($argv[1] === 'data') {
+    $compiledDataRoutes = r_build_compiled_routes($singleRoutesData, $middlewareRoutesData);
+    r_output_compiled_routes($compiledDataRoutes, "troute_data");
+    echo "[INFO]: Compiled only data routes!\n";
+    exit;
+}
+echo "[SYNTAX ERROR]: You shouldn't end up here!\n";
+exit;
+?>

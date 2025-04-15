@@ -5,7 +5,7 @@
 // These are middlewares that will be executed after matched route and after the data handling is done!
 return [
     'GET' => [
-        '/users/:id' => ['handler' => 'MW_DATA_SPECIFIC_USER_ID',],
+        '/users/:id' => ['handler' => ['MW_DATA_SPECIFIC_USER_ID', 'SHEESH'],],
         '/users/:id/test' => ['handler' => 'MW_DATA_SPECIFIC_USER_TEST',],
     ],
     'POST' => [

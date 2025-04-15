@@ -99,7 +99,7 @@ function d_match_developer_data_route(string $method, string $uri, array $compil
     $noMatchIn = ""; // Use as debug value
 
     // Try match HTTP Method Key in Compiled Routes
-    if (isset($compiledDatarie[$method])) {
+    if (isset($compiledDataTrie[$method])) {
         $routeDefinition = r_match_compiled_route($uri, $compiledDataTrie[$method]);
     } else {
         $noMatchIn = "COMPILED_ROUTE_KEY (" . mb_strtoupper($method) . ") & ";
@@ -111,8 +111,8 @@ function d_match_developer_data_route(string $method, string $uri, array $compil
         $matchedRouteParams = $routeDefinition["params"] ?? null;
 
         // If Compiled Route Matches Developers Defined Route!
-        if (isset($developerSingleRoutes[$method][$routeDefinition["route"]])) {
-            $routeInfo = $developerSingleRoutes[$method][$routeDefinition["route"]];
+        if (isset($developerSingleDataRoutes[$method][$routeDefinition["route"]])) {
+            $routeInfo = $developerSingleDataRoutes[$method][$routeDefinition["route"]];
             $matchedRouteHandler = $routeInfo[$handlerKey] ?? null;
             $noMatchIn = "BOTH_MATCHED";
 
@@ -125,15 +125,15 @@ function d_match_developer_data_route(string $method, string $uri, array $compil
                 isset($routeDefinition["middlewares"]) && !empty($routeDefinition["middlewares"] && is_array($routeDefinition["middlewares"]))
             ) {
                 foreach ($routeDefinition["middlewares"] as $middleware) {
-                    if (isset($developerMiddlewareRoutes[$method][$middleware]) && isset($developerMiddlewareRoutes[$method][$middleware][$mHandlerKey])) {
-                        if (is_array($developerMiddlewareRoutes[$method][$middleware][$mHandlerKey])) {
-                            foreach ($developerMiddlewareRoutes[$method][$middleware][$mHandlerKey] as $mHandler) {
+                    if (isset($developerMiddlewareDataRoutes[$method][$middleware]) && isset($developerMiddlewareDataRoutes[$method][$middleware][$mHandlerKey])) {
+                        if (is_array($developerMiddlewareDataRoutes[$method][$middleware][$mHandlerKey])) {
+                            foreach ($developerMiddlewareDataRoutes[$method][$middleware][$mHandlerKey] as $mHandler) {
                                 if (is_string($mHandler) && !empty($mHandler)) {
                                     $matchedMiddlewareHandlers[] = $mHandler;
                                 }
                             }
-                        } elseif (is_string($developerMiddlewareRoutes[$method][$middleware][$mHandlerKey]) && !empty($developerMiddlewareRoutes[$method][$middleware][$mHandlerKey])) {
-                            $matchedMiddlewareHandlers[] = $developerMiddlewareRoutes[$method][$middleware][$mHandlerKey];
+                        } elseif (is_string($developerMiddlewareDataRoutes[$method][$middleware][$mHandlerKey]) && !empty($developerMiddlewareDataRoutes[$method][$middleware][$mHandlerKey])) {
+                            $matchedMiddlewareHandlers[] = $developerMiddlewareDataRoutes[$method][$middleware][$mHandlerKey];
                         } // If not array or non-empty string, skip
                     }
                 }

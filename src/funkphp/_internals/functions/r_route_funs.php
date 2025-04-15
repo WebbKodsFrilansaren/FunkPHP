@@ -862,7 +862,7 @@ function r_output_compiled_routes(array $compiledTrie, string $outputFileNameFol
 
     // Output either to file destiation or in current folder as datetime in file name
     $datetime = date("Y-m-d_H-i-s");
-    $outputDestination = $outputFileNameFolderIsAlways_compiled_routes === "null" ? dirname(__DIR__) . "/compiled_routes/troute_" . $datetime . ".php" : dirname(__DIR__) . "\/compiled_routes\/" . $outputFileNameFolderIsAlways_compiled_routes . ".php";
+    $outputDestination = $outputFileNameFolderIsAlways_compiled_routes === "null" ? dirname(__DIR__) . "/compiled/troute_" . $datetime . ".php" : dirname(__DIR__) . "\/compiled\/" . $outputFileNameFolderIsAlways_compiled_routes . ".php";
 
     // Check if file already exists
     if (file_exists($outputDestination)) {

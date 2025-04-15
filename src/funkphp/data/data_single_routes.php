@@ -15,17 +15,17 @@
 //
 return [
     'GET' => [
-        '/users/:id' => ['get' => 'validate_id_get_query_data',],
-        '/users/:id/test' => ['get' => 'another_one',],
+        '/users/:id' => ['handler' => 'validate_id_get_query_data',],
+        '/users/:id/test' => ['handler' => 'another_one',],
     ],
     'POST' => [
-        '/users/:id' => ['json' => 'post_update_user_from_json_data',],
-        '/users' => ['post' => 'post_create_user_from_post_data',],
+        '/users/:id' => ['handler' => 'post_update_user_from_json_data',],
+        '/users' => ['handler' => 'post_create_user_from_post_data',],
     ],
     'PUT' => [
-        '/users/:id' => ['json' => 'put_update_user_from_json_data',],
+        '/users/:id' => ['handler' => 'put_update_user_from_json_data',],
     ],
     'DELETE' => [
-        '/users/:id' => ['json' => 'delete_delete_user_from_json_data',],
+        '/users/:id' => ['handler' => 'delete_delete_user_from_json_data',],
     ],
 ];
