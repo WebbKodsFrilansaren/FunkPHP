@@ -307,27 +307,31 @@ function cli_convert_array_to_simple_syntax(array $array): string | null | array
 // CLI Functions to show errors and success messages with colors
 function cli_err_syntax($string)
 {
-    echo "\033[31m[SYNTAX ERROR]: $string\n\033[0m";
+    echo "\033[31m[FunkCLI - SYNTAX ERROR]: $string\n\033[0m";
     exit;
 }
 
 function cli_err_command($string)
 {
-    echo "\033[31m[COMMAND ERROR]: $string\n\033[0m";
+    echo "\033[31m[FunkCLI - COMMAND ERROR]: $string\n\033[0m";
     exit;
 }
 function cli_success($string)
 {
-    echo "\033[32m[SUCCESS]: $string\n\033[0m";
+    echo "\033[32m[FunkCLI - SUCCESS]: $string\n\033[0m";
     exit;
 }
 function cli_info($string)
 {
-    echo "\033[34m[INFO]: $string\n\033[0m";
+    echo "\033[34m[FunkCLI - INFO]: $string\n\033[0m";
     exit;
+}
+function cli_info_multiline($string)
+{
+    echo "\033[34m[FunkCLI - INFO]: $string\n\033[0m";
 }
 function cli_warning($string)
 {
-    echo "\033[33m[WARNING]: $string\n\033[0m";
+    echo "\033[33m[FunkCLI - WARNING]: $string\n\033[0m";
     exit;
 }

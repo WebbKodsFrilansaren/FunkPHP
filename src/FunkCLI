@@ -2,27 +2,30 @@
 <?php // Include all CLI Functions needed to manage FunkPHP CLI!
 include __DIR__ . '/funkphp/_internals/functions/cli_funs.php';
 
-// Validate arguments
+// Valid commands with valid sub-commands
+// Inspiration from Trie & Hashmaps!
 $validArg1withArg2Values =  [
-    'compile' => ['all', 'route', 'page', 'data'],
-    'add' => ['route', 'page', 'data'],
-    'change' => ['route', 'page', 'data'],
-    'delete' => ['route', 'page', 'data'],
+    'help' => [],
+    'compile' => ['all', 'route', 'page', 'data', 'help'],
+    'add' => ['route', 'page', 'data', 'help'],
+    'change' => ['route', 'page', 'data', 'help'],
+    'delete' => ['route', 'page', 'data', 'help'],
 ];
 
-if (!isset($argv[1]) || !isset($argv[2])) {
+// No command
+if (!isset($argv[1])) {
     cli_err_syntax("No FunkPHP Command was given?!\nShould be at least two arguments!");
-    exit;
 }
+// Non-existing command
 if (!array_key_exists($argv[1], $validArg1withArg2Values)) {
-    cli_err_syntax("That FunkPHP Command doesn't exist!");
+    cli_err_syntax("That FunkCLI Command doesn't exist!");
     exit;
 }
-if (!in_array($argv[2], $validArg1withArg2Values[$argv[1]])) {
-    cli_err_syntax("FunkPHP Command exist, but not that sub-command!");
+// No sub-command
+if ($argv[1] !== "help" && !in_array($argv[2] ?? "", $validArg1withArg2Values[$argv[1]])) {
+    cli_err_syntax("FunkCLI Command exist, but not that sub-command!");
     exit;
 }
-
 
 $outPutDir = __DIR__ . '/funkphp/_internals/compiled/';
 $singleRoutesRoute = include __DIR__ . '/funkphp/routes/route_single_routes.php';
@@ -69,6 +72,17 @@ $commands = [
             $compiledDataRoutes = cli_build_compiled_routes($singleRoutesData, $middlewareRoutesData);
             cli_output_compiled_routes($compiledDataRoutes, "troute_data");
             cli_success("Compiled Only Data routes!");
+        },
+        'help' => function () {
+            cli_info_multiline("FunkCLI - Compile Help");
+            cli_info_multiline("Usage: funkcli compile [all|route|page|data]");
+            cli_info_multiline("The different values:");
+            cli_info_multiline("  all - Compiles all routes");
+            cli_info_multiline("  route - Compiles only route routes");
+            cli_info_multiline("  page - Compiles only page routes");
+            cli_info_multiline("  data - Compiles only data routes");
+            cli_info_multiline("  These files end up in: funkphp/_internals/compiled/");
+            exit;
         },
     ],
     'add' => [
@@ -131,16 +145,34 @@ $commands = [
             cli_info("[INFO]: Deleting data routes (not implemented yet)");;
         },
     ],
+    'help' => function () use ($argv) {
+        cli_info_multiline("FunkPHP CLI - Help");
+        cli_info_multiline("Usage: funkcli [command] [action] [value]");
+        cli_info_multiline("Commands:");
+        cli_info_multiline("  compile [all|route|page|data] - Compile routes");
+        cli_info_multiline("  add [route|page|data] [value] - Add new routes");
+        cli_info_multiline("  change [route|page|data] [oldValue] [newValue]  - Change existing routes");
+        cli_info_multiline("  delete [route|page|data] [value] - Delete existing routes");
+        exit;
+    },
 ];
 
 // Execute the command
-$command = $argv[1];
-$action = $argv[2];
+$command = $argv[1] ?? null;
+$action = $argv[2] ?? null;
+
+
+if (isset($commands[$command]) && $action == null) {
+    $commands[$command]();
+    exit;
+}
 
 if (isset($commands[$command][$action])) {
     $commands[$command][$action]();
+    exit;
 } else {
-    echo "\033[31m[ERROR]: Invalid command or action.\n"; // This should not happen due to validation
+    cli_err_syntax("That FunkCLI Command doesn't exist! Enter ``funkcli help`` for more information!");
+    exit;
 }
 exit;
 ?>
