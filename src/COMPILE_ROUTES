@@ -1,16 +1,29 @@
 #!/usr/bin/env php
-<?php // Compile Routes for Routing, Data & Pages!
+<?php // Include all CLI Functions needed to manage FunkPHP CLI!
+include __DIR__ . '/funkphp/_internals/functions/cli_funs.php';
+
 // Validate arguments
-if (!isset($argv[1])) {
-    echo "[SYNTAX ERROR]: Pass 'all', 'route', 'data' or 'page' to compile routes!";
+$validArg1withArg2Values =  [
+    'compile' => ['all', 'route', 'page', 'data'],
+    'add' => ['route', 'page', 'data'],
+    'change' => ['route', 'page', 'data'],
+    'delete' => ['route', 'page', 'data'],
+];
+
+if (!isset($argv[1]) || !isset($argv[2])) {
+    cli_err_syntax("No FunkPHP Command was given?!\nShould be at least two arguments!");
     exit;
-} elseif ($argv[1] !== 'all' && $argv[1] !== 'route' && $argv[1] !== 'data' && $argv[1] !== 'page') {
-    echo "[SYNTAX ERROR]: Pass 'all', 'route', 'data' or 'page' to compile routes!";
+}
+if (!array_key_exists($argv[1], $validArg1withArg2Values)) {
+    cli_err_syntax("That FunkPHP Command doesn't exist!");
+    exit;
+}
+if (!in_array($argv[2], $validArg1withArg2Values[$argv[1]])) {
+    cli_err_syntax("FunkPHP Command exist, but not that sub-command!");
     exit;
 }
 
-// Include all files needed to compile routes
-include __DIR__ . '/funkphp/_internals/functions/cli_funs.php';
+
 $outPutDir = __DIR__ . '/funkphp/_internals/compiled/';
 $singleRoutesRoute = include __DIR__ . '/funkphp/routes/route_single_routes.php';
 $singleRoutesData = include __DIR__ . '/funkphp/data/data_single_routes.php';
@@ -21,40 +34,86 @@ $middlewareRoutesPage = include __DIR__ . '/funkphp/pages/page_middleware_routes
 
 // Compile only based on user input
 // Compile all routes
-if ($argv[1] === 'all') {
-    $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRoute, $middlewareRoutesRoute);
-    $compiledPageRoutes = cli_build_compiled_routes($singleRoutesPage, $middlewareRoutesPage);
-    $compiledDataRoutes = cli_build_compiled_routes($singleRoutesData, $middlewareRoutesData);
-    cli_output_compiled_routes($compiledRouteRoutes, "troute_route");
-    cli_output_compiled_routes($compiledPageRoutes, "troute_page");
-    cli_output_compiled_routes($compiledDataRoutes, "troute_data");
-    echo "[INFO]: Compiled all routes!\n";
-    exit;
-}
+// Define the command actions map
+$commands = [
+    'compile' => [
+        'all' => function () use (
+            $singleRoutesRoute,
+            $middlewareRoutesRoute,
+            $singleRoutesPage,
+            $middlewareRoutesPage,
+            $singleRoutesData,
+            $middlewareRoutesData,
+            $outPutDir
+        ) {
+            $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRoute, $middlewareRoutesRoute);
+            $compiledPageRoutes = cli_build_compiled_routes($singleRoutesPage, $middlewareRoutesPage);
+            $compiledDataRoutes = cli_build_compiled_routes($singleRoutesData, $middlewareRoutesData);
+            cli_output_compiled_routes($compiledRouteRoutes, "troute_route");
+            cli_output_compiled_routes($compiledPageRoutes, "troute_page");
+            cli_output_compiled_routes($compiledDataRoutes, "troute_data");
+            cli_success("All routes compiled successfully!");
+        },
+        'route' => function () use ($singleRoutesRoute, $middlewareRoutesRoute, $outPutDir) {
+            $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRoute, $middlewareRoutesRoute);
+            cli_output_compiled_routes($compiledRouteRoutes, "troute_route");
+            cli_success("Compiled Only Route routes!");
+        },
+        'page' => function () use ($singleRoutesPage, $middlewareRoutesPage, $outPutDir) {
+            $compiledPageRoutes = cli_build_compiled_routes($singleRoutesPage, $middlewareRoutesPage);
+            cli_output_compiled_routes($compiledPageRoutes, "troute_page");
+            cli_success("Compiled Only Page routes!");
+            echo "\033[32m[INFO]: Compiled Only Page routes!\n";
+        },
+        'data' => function () use ($singleRoutesData, $middlewareRoutesData, $outPutDir) {
+            $compiledDataRoutes = cli_build_compiled_routes($singleRoutesData, $middlewareRoutesData);
+            cli_output_compiled_routes($compiledDataRoutes, "troute_data");
+            cli_success("Compiled Only Data routes!");
+        },
+    ],
+    'add' => [
+        'route' => function () {
+            cli_info("[INFO]: Adding route routes (not implemented yet)");
+        },
+        'page' => function () {
+            cli_info("[INFO]: Adding page routes (not implemented yet)");
+        },
+        'data' => function () {
+            cli_info("[INFO]: Adding data routes (not implemented yet)");
+        },
+    ],
+    'change' => [
+        'route' => function () {
+            cli_info("[INFO]: Changing route routes (not implemented yet)");
+        },
+        'page' => function () {
+            cli_info("[INFO]: Changing page routes (not implemented yet)");
+        },
+        'data' => function () {
+            cli_info("[INFO]: Changing data routes (not implemented yet)");
+        },
+    ],
+    'delete' => [
+        'route' => function () {
+            cli_info("[INFO]: Deleting route routes (not implemented yet)");;
+        },
+        'page' => function () {
+            cli_info("[INFO]: Deleting page routes (not implemented yet)");
+        },
+        'data' => function () {
+            cli_info("[INFO]: Deleting data routes (not implemented yet)");;
+        },
+    ],
+];
 
-// Compile only route routes
-elseif ($argv[1] === 'route') {
-    $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRoute, $middlewareRoutesRoute);
-    cli_output_compiled_routes($compiledRouteRoutes, "troute_route");
-    echo "[INFO]: Compiled Only Route routes!\n";
-    exit;
-}
+// Execute the command
+$command = $argv[1];
+$action = $argv[2];
 
-// Compile only page routes}
-elseif ($argv[1] === 'page') {
-    $compiledPageRoutes = cli_build_compiled_routes($singleRoutesPage, $middlewareRoutesPage);
-    cli_output_compiled_routes($compiledPageRoutes, "troute_page");
-    echo "[INFO]: Compiled Only Page routes!\n";
-    exit;
+if (isset($commands[$command][$action])) {
+    $commands[$command][$action]();
+} else {
+    echo "\033[31m[ERROR]: Invalid command or action.\n"; // This should not happen due to validation
 }
-
-// Compile only data routes
-elseif ($argv[1] === 'data') {
-    $compiledDataRoutes = cli_build_compiled_routes($singleRoutesData, $middlewareRoutesData);
-    cli_output_compiled_routes($compiledDataRoutes, "troute_data");
-    echo "[INFO]: Compiled Only Data routes!\n";
-    exit;
-}
-echo "[SYNTAX ERROR]: You shouldn't end up here!\n";
 exit;
 ?>
