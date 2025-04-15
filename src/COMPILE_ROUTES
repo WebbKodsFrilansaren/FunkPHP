@@ -109,6 +109,7 @@ $commands = [
 // Execute the command
 $command = $argv[1];
 $action = $argv[2];
+$value = $argv[3] ?? null; // Optional third argument
 
 if (isset($commands[$command][$action])) {
     $commands[$command][$action]();
