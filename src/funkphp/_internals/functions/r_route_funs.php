@@ -80,7 +80,7 @@ function r_run_middleware_after_matched_routing(&$c)
             // Check that it is a string and not null
             $current_mw = $c['req']['matched_middlewares'][$i] ?? null;
             if ($current_mw === null || !is_string($current_mw)) {
-                h_try_default_action($c, "STEP_3", "middlewares", "IS_NULL", "<Action>", "<Value>");
+
                 unset($c['req']['matched_middlewares'][$i]);
                 $c['req']['number_of_deleted_middlewares']++;
                 continue;
@@ -99,11 +99,9 @@ function r_run_middleware_after_matched_routing(&$c)
                     $RunMW($c);
                 } // CUSTOM ERROR HANDLING HERE! - not callable
                 else {
-                    h_try_default_action($c, "STEP_3", "middlewares", "NOT_CALLABLE", "<Action>", "<Value>");
                 }
             } // CUSTOM ERROR HANDLING HERE! - no dir or file
             else {
-                h_try_default_action($c, "STEP_3", "middlewares", "NOT_FOUND", "<Action>", "<Value>");
             }
 
             // Remove middleware[$i] from the array after trying to run
@@ -126,7 +124,6 @@ function r_run_middleware_after_matched_routing(&$c)
     }
     // CUSTOM ERROR HANDLING HERE! - no matched middlewares
     else {
-        h_try_default_action($c, "STEP_3", "middlewares", "IS_NULL", "<Action>", "<Value>");
     }
 }
 
@@ -602,5 +599,3 @@ function r_is_localhost(): bool
         return false;
     }
 }
-
-

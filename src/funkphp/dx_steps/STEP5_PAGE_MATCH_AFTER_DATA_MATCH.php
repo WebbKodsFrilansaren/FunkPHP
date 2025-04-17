@@ -8,7 +8,7 @@ if ($c['req']['current_step'] === 5) {
     // GOTO "funkphp/pages/page_single_routes.php" to Add Your Single Routes!
     // GOTO "funkphp/pages/page_middleware_routes.php" to Add Your middlewares!
     $c['ROUTES']['PAGE'] = [
-        //'COMPILED' => include dirname(__DIR__) . '/_internals/compiled/page_troute.php',
+        'COMPILED' => include dirname(__DIR__) . '/_internals/compiled/troute_page.php',
         'SINGLES' => include dirname(__DIR__) . '/pages/page_single_routes.php',
         'MIDDLEWARES' => include dirname(__DIR__) . '/pages/page_middleware_routes.php',
     ];

@@ -21,8 +21,8 @@ if ($c['req']['current_step'] === 4) {
         (string)$c['req']['matched_method'],
         (string)$c['req']['matched_route'],
         $c['ROUTES']['DATA']['COMPILED'],
-        $c['ROUTES']['DATA']['SINGLES'],
-        $c['ROUTES']['DATA']['MIDDLEWARES']
+        $c['ROUTES']['DATA']['SINGLES']['ROUTES'],
+        $c['ROUTES']['DATA']['MIDDLEWARES']['MIDDLEWARES'],
     );
 
     // Check if middlewares still exist and if so

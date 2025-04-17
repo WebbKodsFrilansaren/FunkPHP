@@ -18,8 +18,8 @@ if ($c['req']['current_step'] === 2) {
         $c['req']['method'],
         $c['req']['uri'],
         $c['ROUTES']['COMPILED'],
-        $c['ROUTES']['SINGLES'],
-        $c['ROUTES']['MIDDLEWARES']
+        $c['ROUTES']['SINGLES']['ROUTES'],
+        $c['ROUTES']['MIDDLEWARES']['MIDDLEWARES'],
     );
 
     $c['req']['matched_method'] = $c['req']['method'];

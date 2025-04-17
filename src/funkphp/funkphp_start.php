@@ -1,4 +1,4 @@
-<?php // ENTRY POINT OF EACH HTTPS REQUEST thanks to ".htaccess" file
+<?php // ENTRY POINT OF EACH HTTP(S) REQUEST thanks to ".htaccess" file
 
 // Load all functions needed for the FunkPHP Framework Web Application
 include_once __DIR__ . '/_internals/functions/_includeAllExceptCLI.php';

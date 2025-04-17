@@ -49,26 +49,26 @@ $commands = [
             $middlewareRoutesData,
             $outPutDir
         ) {
-            $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRoute, $middlewareRoutesRoute);
-            $compiledPageRoutes = cli_build_compiled_routes($singleRoutesPage, $middlewareRoutesPage);
-            $compiledDataRoutes = cli_build_compiled_routes($singleRoutesData, $middlewareRoutesData);
+            $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRoute['ROUTES'], $middlewareRoutesRoute['MIDDLEWARES']);
+            $compiledPageRoutes = cli_build_compiled_routes($singleRoutesPage['ROUTES'], $middlewareRoutesPage['MIDDLEWARES']);
+            $compiledDataRoutes = cli_build_compiled_routes($singleRoutesData['ROUTES'], $middlewareRoutesData['MIDDLEWARES']);
             cli_output_compiled_routes($compiledRouteRoutes, "troute_route");
             cli_output_compiled_routes($compiledPageRoutes, "troute_page");
             cli_output_compiled_routes($compiledDataRoutes, "troute_data");
             cli_success("All routes compiled successfully!");
         },
         'route' => function () use ($singleRoutesRoute, $middlewareRoutesRoute, $outPutDir) {
-            $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRoute, $middlewareRoutesRoute);
+            $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRoute['ROUTES'], $middlewareRoutesRoute['MIDDLEWARES']);
             cli_output_compiled_routes($compiledRouteRoutes, "troute_route");
             cli_success("Compiled Only Route routes!");
         },
         'page' => function () use ($singleRoutesPage, $middlewareRoutesPage, $outPutDir) {
-            $compiledPageRoutes = cli_build_compiled_routes($singleRoutesPage, $middlewareRoutesPage);
+            $compiledPageRoutes = cli_build_compiled_routes($singleRoutesPage['ROUTES'], $middlewareRoutesPage['MIDDLEWARES']);
             cli_output_compiled_routes($compiledPageRoutes, "troute_page");
             cli_success("Compiled Only Page routes!");
         },
         'data' => function () use ($singleRoutesData, $middlewareRoutesData, $outPutDir) {
-            $compiledDataRoutes = cli_build_compiled_routes($singleRoutesData, $middlewareRoutesData);
+            $compiledDataRoutes = cli_build_compiled_routes($singleRoutesData['ROUTES'], $middlewareRoutesData['MIDDLEWARES']);
             cli_output_compiled_routes($compiledDataRoutes, "troute_data");
             cli_success("Compiled Only Data routes!");
         },
