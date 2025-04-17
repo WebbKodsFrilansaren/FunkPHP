@@ -1,8 +1,8 @@
 <?php
 
 return [
-    'current_step' => 0,
-    'next_step' => 0,
+    'current_step' => 1,
+    'next_step' => 1,
     'no_match_in' => null,
     'matched_method' => null,
     'matched_handler_route' => null,

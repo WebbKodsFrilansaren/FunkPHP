@@ -1,7 +1,7 @@
-<?php // STEP 1: Globally Filter Allowed Methods, IPs and User Agents (UAs)
+<?php // STEP 2: Globally Filter Allowed Methods, IPs and User Agents (UAs)
 
-// Only Run Step 1 if the current step is 0 (the second step of the request)
-if ($c['req']['current_step'] === 1) {
+// Only Run Step 1 if the current step is 1 (the second step of the request)
+if ($c['req']['current_step'] === 2) {
     // Match against denied and invalid methods | true = denied, false = allowed
     $FPHP_INVALID_METHOD = r_match_denied_methods();
     if ($FPHP_INVALID_METHOD) {
@@ -32,9 +32,9 @@ if ($c['req']['current_step'] === 1) {
     }
     unset($FPHP_INVALID_UA);
 
-    // This is the end of Step 1, you can freely add any other checks you want here!
+    // This is the end of Step 2, you can freely add any other checks you want here!
     // You have all global (meta) data in $c variable, so you can use it as you please!
-    $c['req']['next_step'] = 2; // Set next step to 1 (Step 1)
+    $c['req']['next_step'] = 3; // Set next step to 3 (Step 3)
 }
 // This sets next step. If you wanna do something more before that, do that before this line!
 $c['req']['current_step'] = $c['req']['next_step'];

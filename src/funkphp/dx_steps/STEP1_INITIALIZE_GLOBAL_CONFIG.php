@@ -1,9 +1,9 @@
-<?php // STEP 0: LOAD & INITIALIZE GLOBAL CONFIGURATION FILES
+<?php // STEP 1: LOAD & INITIALIZE GLOBAL CONFIGURATION FILES
 // This includes: Setting initial INI_SETS, Setting Sesssion Cookies Params,
 // Connecting to the Database, Setting Headers and Starting the Session
 
-// Only Run Step 0 if the current step is 0 (the first step of the request)
-if ($c['req']['current_step'] === 0) {
+// Only Run Step 1 if the current step is 1 (the first step of the request)
+if ($c['req']['current_step'] === 1) {
     // Redirect to HTTPS if not already on HTTPS (if needed)
     r_https_redirect();
 
@@ -34,8 +34,8 @@ if ($c['req']['current_step'] === 0) {
     // the function if you need to filter REQUEST_URI in more ways!
     $c['req']['uri'] = r_prepare_uri($_SERVER['REQUEST_URI'], $c['BASEURLS']['BASEURL_URI']);
 
-    // This is the end of Step 0, do anything more if you want to
-    $c['req']['next_step'] = 1; // Set next step to 1 (Step 1)
+    // This is the end of Step 1, do anything more if you want to
+    $c['req']['next_step'] = 2; // Set next step to 2 (Step 2)
 }
 
 // This sets next step. If you wanna do something more before that, do that before this line!
