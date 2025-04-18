@@ -13,6 +13,11 @@ if ($c['req']['current_step'] === 5) {
         'MIDDLEWARES' => include dirname(__DIR__) . '/pages/page_middleware_routes.php',
     ];
 
+    // TODO: Add function that runs the handler key for matched page step!
+    // TODO: Add matching page step. Add running middleware step. Add the Template Engine function too!
+    // INFO: Unsure of the flow if MWs first before handler or viceversa?
+
+
     // This is the end of Step 5, you can freely add any other checks you want here!
     // You have all global (meta) data in $c variable, so you can use it as you please!
 }

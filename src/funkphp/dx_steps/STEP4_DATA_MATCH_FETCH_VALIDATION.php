@@ -34,6 +34,9 @@ if ($c['req']['current_step'] === 4) {
     }
     $c['req']['matched_middlewares_data'] = $FPHP_MATCHED_DATA_ROUTE['middlewares'];
 
+    // TODO: Add function that runs the handler key for matched data step!
+    // INFO: Unsure of the flow if MWs first before handler or viceversa?
+
     // This one doesn't have any middleawres since we just grabbed all possible middlewares
     // for matched Data Route, so we can just set it to the new matched middlewares!
     $c['req']['matched_middlewares_data'] = $FPHP_MATCHED_DATA_ROUTE['middlewares'];

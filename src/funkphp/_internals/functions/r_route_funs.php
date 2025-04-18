@@ -550,7 +550,7 @@ function r_match_developer_route(string $method, string $uri, array $compiledRou
         if (isset($developerSingleRoutes[$method][$routeDefinition["route"]])) {
             $routeInfo = $developerSingleRoutes[$method][$routeDefinition["route"]];
             $matchedRouteHandler = $routeInfo[$handlerKey] ?? null;
-            $noMatchIn = "BOTH_MATCHED";
+            $noMatchIn = "BOTH_MATCHED_ROUTE";
 
             // Add Any Matched Middlewares Handlers Defined By Developer
             // It loops through and only adds those that are non-empty strings
@@ -575,10 +575,10 @@ function r_match_developer_route(string $method, string $uri, array $compiledRou
                 }
             }
         } else {
-            $noMatchIn .= "DEVELOPER_SINGLE_ROUTES";
+            $noMatchIn .= "DEVELOPER_SINGLE_ROUTES_ROUTE";
         }
     } else {
-        $noMatchIn .= "COMPILED_ROUTES";
+        $noMatchIn .= "COMPILED_ROUTES_ROUTE";
     }
     return [
         "route" => $matchedRoute,
