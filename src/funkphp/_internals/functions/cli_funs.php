@@ -3,6 +3,9 @@
 // Build Compiled Route from Developer's Defined Routes
 function cli_build_compiled_routes(array $developerSingleRoutes, array $developerMiddlewareRoutes)
 {
+    if ($_SERVER['SCRIPT_NAME'] !== 'funkcli') {
+        exit;
+    }
     // Only localhost can run this function (meaning you cannot run this in production!)
     // Both arrays must be non-empty arrays
     if (!is_array($developerSingleRoutes)) {
@@ -155,6 +158,9 @@ function cli_build_compiled_routes(array $developerSingleRoutes, array $develope
 // Output Compiled Route to File or Return as String
 function cli_output_compiled_routes(array $compiledTrie, string $outputFileNameFolderIsAlways_compiled_routes = "null")
 {
+    if ($_SERVER['SCRIPT_NAME'] !== 'funkcli') {
+        exit;
+    }
     // Check if the compiled route is empty
     if (!is_array($compiledTrie)) {
         echo "[ERROR]: Compiled Routes Must Be A Non-Empty Array!\n";
@@ -192,6 +198,9 @@ function cli_output_compiled_routes(array $compiledTrie, string $outputFileNameF
 // Audit Developer's Defined Routes
 function cli_audit_developer_routes(array $developerSingleRoutes, array $developerMiddlewareRoutes): array
 {
+    if ($_SERVER['SCRIPT_NAME'] !== 'funkcli') {
+        exit;
+    }
     // Both arrays must be non-empty arrays
     if (!is_array($developerSingleRoutes)) {
         echo "[ERROR]: '\$developerSingleRoutes' Must be a non-empty array!\n";
@@ -307,31 +316,49 @@ function cli_convert_array_to_simple_syntax(array $array): string | null | array
 // CLI Functions to show errors and success messages with colors
 function cli_err_syntax($string)
 {
+    if ($_SERVER['SCRIPT_NAME'] !== 'funkcli') {
+        exit;
+    }
     echo "\033[31m[FunkCLI - SYNTAX ERROR]: $string\n\033[0m";
     exit;
 }
 
 function cli_err_command($string)
 {
+    if ($_SERVER['SCRIPT_NAME'] !== 'funkcli') {
+        exit;
+    }
     echo "\033[31m[FunkCLI - COMMAND ERROR]: $string\n\033[0m";
     exit;
 }
 function cli_success($string)
 {
+    if ($_SERVER['SCRIPT_NAME'] !== 'funkcli') {
+        exit;
+    }
     echo "\033[32m[FunkCLI - SUCCESS]: $string\n\033[0m";
     exit;
 }
 function cli_info($string)
 {
+    if ($_SERVER['SCRIPT_NAME'] !== 'funkcli') {
+        exit;
+    }
     echo "\033[34m[FunkCLI - INFO]: $string\n\033[0m";
     exit;
 }
 function cli_info_multiline($string)
 {
+    if ($_SERVER['SCRIPT_NAME'] !== 'funkcli') {
+        exit;
+    }
     echo "\033[34m[FunkCLI - INFO]: $string\n\033[0m";
 }
 function cli_warning($string)
 {
+    if ($_SERVER['SCRIPT_NAME'] !== 'funkcli') {
+        exit;
+    }
     echo "\033[33m[FunkCLI - WARNING]: $string\n\033[0m";
     exit;
 }
