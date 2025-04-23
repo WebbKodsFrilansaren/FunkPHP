@@ -163,15 +163,11 @@ function cli_output_compiled_routes(array $compiledTrie, string $outputFileNameF
     }
     // Check if the compiled route is empty
     if (!is_array($compiledTrie)) {
-        echo "[ERROR]: Compiled Routes Must Be A Non-Empty Array!\n";
-        exit;
+        cli_err_syntax("Compiled Routes Must Be A Non-Empty Array!");
     }
     if (empty($compiledTrie)) {
-        echo "[ERROR]: Compiled Routes Must Be A Non-Empty Array!\n";
-        exit;
+        cli_err_syntax("Compiled Routes Must Be A Non-Empty Array!");
     }
-
-    // TODO: Add the audit function check here!
 
     // Output either to file destiation or in current folder as datetime in file name
     $datetime = date("Y-m-d_H-i-s");
@@ -179,7 +175,7 @@ function cli_output_compiled_routes(array $compiledTrie, string $outputFileNameF
 
     // Check if file already exists
     if (file_exists($outputDestination)) {
-        echo "[INFO]: FILE EXISTS. THIS OVERWRITES THE FILE!\n";
+        echo "\033[34m[FunkCLI - INFO]: COMPILED TROUTE FILE EXISTS. THIS OVERWRITES THE FILE!\n\033[0m";
     }
 
     $result = null;
@@ -189,9 +185,9 @@ function cli_output_compiled_routes(array $compiledTrie, string $outputFileNameF
         $result = file_put_contents($outputDestination, "<?php\nreturn " . cli_convert_array_to_simple_syntax($compiledTrie));
     }
     if ($result === false) {
-        echo "[ERROR]: Compiled routes FAILED: $outputDestination\n!";
+        echo "\033[31m[FunkCLI - ERROR]: Compiled routes FAILED: $outputDestination!\n\033[0m";
     } else {
-        echo "[SUCCESS]: Compiled routes: $outputDestination\n!";
+        echo "\033[32m[FunkCLI - SUCCESS]: Compiled routes: $outputDestination!\n\033[0m";
     }
 }
 
@@ -313,6 +309,129 @@ function cli_convert_array_to_simple_syntax(array $array): string | null | array
     return $converted;
 }
 
+// Output file until success (by waiting one second and retrying with new file name that is the file name + new datetime and extension    )
+function cli_output_file_until_success($outputPathWithoutExtension, $extension, $outputData, $customSuccessMessage = "")
+{
+    // First check not empty strings
+    if (
+        !is_string($outputPathWithoutExtension) ||  !is_string($extension) || !is_string($outputData)
+        || $outputPathWithoutExtension === "" || $extension === "" || $outputData === ""
+    ) {
+        cli_err_syntax("Output path, extension and data must be non-empty strings!");
+    }
+
+    // Check extension is valid (starting with ".") and ending with only characters
+    if (!str_starts_with($extension, ".")) {
+        cli_err_syntax("Output extension must start with '.' and only contain characters!");
+    }
+
+    // Check preg_match for extension which is (.[a-zA-Z0-9-_]+$)
+    if (!preg_match("/\.[a-zA-Z0-9-_]+$/", $extension)) {
+        cli_err_syntax("Output extension must start with '.' and only contain characters (a-zA-Z0-9-_)!");
+    }
+
+    // Check that output path exists (each folder in the path must exist)
+    $outputPath = dirname($outputPathWithoutExtension);
+    if (!is_dir($outputPath)) {
+        cli_err_syntax("Output path must be a valid directory. Path: $outputPath is not!");
+    }
+    if (!is_writable($outputPath)) {
+        cli_err_syntax("Output path must be writable! Path: $outputPath is not!");
+    }
+
+    // Now create first datetime string and file name and try to write it (by checking if that exact output file path exists)
+    // If it exists, we wait one second and try again with new datetime string and file name
+    $datetime = date("Y-m-d_H-i-s");
+    $success = false;
+    $outputFilePath = $outputPathWithoutExtension . "_" . $datetime . $extension;
+    while (!$success) {
+        if (file_exists($outputFilePath)) {
+            cli_info_without_exit("Output file already exists: $outputFilePath! Trying again in 1 second...");
+            sleep(1);
+            $datetime = date("Y-m-d_H-i-s");
+            $outputFilePath = $outputPathWithoutExtension . "_" . $datetime . $extension;
+        } else {
+            // Try to write the file
+            $result = file_put_contents($outputFilePath, $outputData);
+            if ($result === false) {
+                cli_err_syntax("Output file failed to write: $outputFilePath!");
+            } else {
+                if ($customSuccessMessage !== "") {
+                    cli_success_without_exit($customSuccessMessage);
+                    $success = true;
+                } else {
+                    cli_success_without_exit("Output file written successfully: $outputFilePath!");
+                    $success = true;
+                }
+            }
+        }
+    }
+}
+
+// Output backup file until success (by waiting one second and retrying with new file name that is the file name + new datetime and extension    )
+function cli_backup_file_until_success($backupDestinationWithoutExtension, $extension, $backupData)
+{
+    // Check non-empty strings in all three variables
+    if (
+        !is_string($backupDestinationWithoutExtension) ||  !is_string($extension) || !is_string($backupData)
+        || $backupDestinationWithoutExtension === "" || $extension === "" || $backupData === ""
+    ) {
+        cli_err_syntax("Backup destination, extension and exact backup data must be non-empty strings!");
+    }
+
+    // Check extension is valid (starting with ".") and ending with only characters
+    if (!str_starts_with($extension, ".")) {
+        cli_err_syntax("Backup extension must start with '.' and only contain characters!");
+    }
+
+    // Check preg_match for extension which is (.[a-zA-Z0-9-_]+$)
+    if (!preg_match("/\.[a-zA-Z0-9-_]+$/", $extension)) {
+        cli_err_syntax("Backup extension must start with '.' and only contain characters (a-zA-Z0-9-_)!");
+    }
+
+    // Check that backup destination exists (each folder in the path must exist)
+    $backupDestination = dirname($backupDestinationWithoutExtension);
+    if (!is_dir($backupDestination)) {
+        cli_err_syntax("Backup destination must be a valid directory. Path: $backupDestination is not!");
+    }
+    if (!is_writable($backupDestination)) {
+        cli_err_syntax("Backup destination must be writable! Path: $backupDestination is not!");
+    }
+
+    // Check that backup data file exists (each folder in the path must exist)
+    if (!is_file($backupData)) {
+        cli_err_syntax("Backup data file must be a valid file. Path: $backupData is not!");
+    }
+    if (!is_readable($backupData)) {
+        cli_err_syntax("Backup data file must be readable! Path: $backupData is not!");
+    }
+
+    // Get the contents from the $backupData file before we write it to the backup file
+    $backupData = file_get_contents($backupData);
+
+    // Now we use the cli_backup_file_until_success function to create the backup file
+    cli_output_file_until_success($backupDestinationWithoutExtension, $extension, $backupData, "Backup file written successfully: $backupDestinationWithoutExtension!");
+}
+
+// Validate start syntax for route string before processing the rest of the string
+// Valid ones are: "GET/", "POST/", "PUT/", "DELETE/", "g/", "po/", "pu/", "d/")
+function cli_valid_route_start_syntax($routeString)
+{
+    // First check that string is non-empty string
+    if (!is_string($routeString) || empty($routeString)) {
+        cli_err_syntax("Route string must be a non-empty string!");
+    }
+    // Then we lowercase string and check if it starts with one of the valid ones
+    $routeString = strtolower($routeString);
+    if (str_starts_with($routeString, "get/") || str_starts_with($routeString, "post/") || str_starts_with($routeString, "put/") || str_starts_with($routeString, "delete/")) {
+        return true;
+    } elseif (str_starts_with($routeString, "g/") || str_starts_with($routeString, "po/") || str_starts_with($routeString, "pu/") || str_starts_with($routeString, "d/")) {
+        return true;
+    } else {
+        cli_err_syntax("Route string must start with one of the valid ones:\n'GET/' (or g/)'\n'POST/' (or po/)\n'PUT/'(or pu/)\n'DELETE/' (or d/)");
+    }
+}
+
 // CLI Functions to show errors and success messages with colors
 function cli_err_syntax($string)
 {
@@ -346,6 +465,20 @@ function cli_info($string)
     }
     echo "\033[34m[FunkCLI - INFO]: $string\n\033[0m";
     exit;
+}
+function cli_success_without_exit($string)
+{
+    if ($_SERVER['SCRIPT_NAME'] !== 'funkcli') {
+        exit;
+    }
+    echo "\033[32m[FunkCLI - SUCCESS]: $string\n\033[0m";
+}
+function cli_info_without_exit($string)
+{
+    if ($_SERVER['SCRIPT_NAME'] !== 'funkcli') {
+        exit;
+    }
+    echo "\033[34m[FunkCLI - INFO]: $string\n\033[0m";
 }
 function cli_info_multiline($string)
 {

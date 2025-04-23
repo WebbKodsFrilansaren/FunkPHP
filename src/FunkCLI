@@ -27,7 +27,40 @@ if ($argv[1] !== "help" && !in_array($argv[2] ?? "", $validArg1withArg2Values[$a
     exit;
 }
 
+// All available dirs to use for the CLI
 $outPutDir = __DIR__ . '/funkphp/_internals/compiled/';
+$dirs = [
+    "compiled" => __DIR__ . '/funkphp/_internals/compiled/',
+    "routes" => __DIR__ . '/funkphp/routes/',
+    "data" => __DIR__ . '/funkphp/data/',
+    "pages" => __DIR__ . '/funkphp/pages/',
+    "middlwares" => __DIR__ . '/funkphp/middlewares/',
+    "middlwares_routes" => __DIR__ . '/funkphp/middlewares/R/',
+    "middlwares_data" => __DIR__ . '/funkphp/middlewares/D/',
+    "middlwares_pages" => __DIR__ . '/funkphp/middlewares/P/',
+    "backups_finals" => __DIR__ . '/funkphp/_BACKUPS/_FINAL_BACKUPS/',
+    "backups_routes" => __DIR__ . '/funkphp/_BACKUPS/routes/',
+    "backups_data" => __DIR__ . '/funkphp/_BACKUPS/data/',
+    "backups_pages" => __DIR__ . '/funkphp/_BACKUPS/pages/',
+    "backups_routes_mw" => __DIR__ . '/funkphp/_BACKUPS/routes/MW/',
+    "backups_data_mw" => __DIR__ . '/funkphp/_BACKUPS/data/MW/',
+    "backups_pages_mw" => __DIR__ . '/funkphp/_BACKUPS/pages/MW/',
+];
+
+// Exact file paths to use for the CLI
+$exactFiles = [
+    "troute_data" => $dirs['compiled'] . "troute_data.php",
+    "troute_page" => $dirs['compiled'] . "troute_page.php",
+    "troute_route" => $dirs['compiled'] . "troute_route.php",
+    "single_routes" => $dirs['routes'] . "route_single_routes.php",
+    "single_middlwares" => $dirs['middlwares'] . "route_single_middlwares.php",
+    "single_data" => $dirs['data'] . "data_single_routes.php",
+    "single_middlwares_data" => $dirs['middlwares_data'] . "data_single_middlwares.php",
+    "single_page" => $dirs['pages'] . "page_single_routes.php",
+    "single_middlwares_page" => $dirs['middlwares_pages'] . "page_single_middlwares.php",
+];
+
+// Load current routes, data and pages before processing any commands
 $singleRoutesRoute = include __DIR__ . '/funkphp/routes/route_single_routes.php';
 $singleRoutesData = include __DIR__ . '/funkphp/data/data_single_routes.php';
 $singleRoutesPage = include __DIR__ . '/funkphp/pages/page_single_routes.php';
@@ -47,8 +80,25 @@ $commands = [
             $middlewareRoutesPage,
             $singleRoutesData,
             $middlewareRoutesData,
-            $outPutDir
+            $exactFiles,
+            $dirs
         ) {
+            // Backup the old route files first
+            $oldRouteFile = $exactFiles['troute_route']; // Routes
+            $backupRoutePath = $dirs['backups_routes'];
+            cli_backup_file_until_success($backupRoutePath . "troute_route", ".php", $oldRouteFile);
+            $oldRouteFile = $exactFiles['troute_data']; // Data
+            $backupRoutePath = $dirs['backups_data'];
+            cli_backup_file_until_success($backupRoutePath . "troute_data", ".php", $oldRouteFile);
+            $oldRouteFile = $exactFiles['troute_page']; // Pages
+            $backupRoutePath = $dirs['backups_pages'];
+            cli_backup_file_until_success($backupRoutePath . "troute_page", ".php", $oldRouteFile);
+            $backupFinalsPath = $dirs['backups_finals'];
+            cli_backup_file_until_success($backupFinalsPath . "troute_route", ".php", $oldRouteFile);
+            cli_backup_file_until_success($backupFinalsPath . "troute_data", ".php", $oldRouteFile);
+            cli_backup_file_until_success($backupFinalsPath . "troute_page", ".php", $oldRouteFile);
+
+            // Then build and output new route files
             $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRoute['ROUTES'], $middlewareRoutesRoute['MIDDLEWARES']);
             $compiledPageRoutes = cli_build_compiled_routes($singleRoutesPage['ROUTES'], $middlewareRoutesPage['MIDDLEWARES']);
             $compiledDataRoutes = cli_build_compiled_routes($singleRoutesData['ROUTES'], $middlewareRoutesData['MIDDLEWARES']);
@@ -57,20 +107,44 @@ $commands = [
             cli_output_compiled_routes($compiledDataRoutes, "troute_data");
             cli_success("All routes compiled successfully!");
         },
-        'route' => function () use ($singleRoutesRoute, $middlewareRoutesRoute, $outPutDir) {
+        'route' => function () use ($singleRoutesRoute, $middlewareRoutesRoute, $exactFiles, $dirs) {
+            // Backup the old route file first
+            $oldRouteFile = $exactFiles['troute_route'];
+            $backupRoutePath = $dirs['backups_routes'];
+            $backupFinalsPath = $dirs['backups_finals'];
+            cli_backup_file_until_success($backupRoutePath . "troute_route", ".php", $oldRouteFile);
+            cli_backup_file_until_success($backupFinalsPath . "troute_route", ".php", $oldRouteFile);
+
+            // Then build and output new route file
             $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRoute['ROUTES'], $middlewareRoutesRoute['MIDDLEWARES']);
             cli_output_compiled_routes($compiledRouteRoutes, "troute_route");
             cli_success("Compiled Only Route routes!");
         },
-        'page' => function () use ($singleRoutesPage, $middlewareRoutesPage, $outPutDir) {
-            $compiledPageRoutes = cli_build_compiled_routes($singleRoutesPage['ROUTES'], $middlewareRoutesPage['MIDDLEWARES']);
-            cli_output_compiled_routes($compiledPageRoutes, "troute_page");
-            cli_success("Compiled Only Page routes!");
-        },
-        'data' => function () use ($singleRoutesData, $middlewareRoutesData, $outPutDir) {
+        'data' => function () use ($singleRoutesData, $middlewareRoutesData, $exactFiles, $dirs) {
+            // Backup the old route file first
+            $oldRouteFile = $exactFiles['troute_data'];
+            $backupRoutePath = $dirs['backups_data'];
+            $backupFinalsPath = $dirs['backups_finals'];
+            cli_backup_file_until_success($backupRoutePath . "troute_data", ".php", $oldRouteFile);
+            cli_backup_file_until_success($backupFinalsPath . "troute_data", ".php", $oldRouteFile);
+
+            // Then build and output new route file
             $compiledDataRoutes = cli_build_compiled_routes($singleRoutesData['ROUTES'], $middlewareRoutesData['MIDDLEWARES']);
             cli_output_compiled_routes($compiledDataRoutes, "troute_data");
             cli_success("Compiled Only Data routes!");
+        },
+        'page' => function () use ($singleRoutesPage, $middlewareRoutesPage, $exactFiles, $dirs) {
+            // Backup the old route file first
+            $oldRouteFile = $exactFiles['troute_page'];
+            $backupRoutePath = $dirs['backups_pages'];
+            $backupFinalsPath = $dirs['backups_finals'];
+            cli_backup_file_until_success($backupRoutePath . "troute_page", ".php", $oldRouteFile);
+            cli_backup_file_until_success($backupFinalsPath . "troute_page", ".php", $oldRouteFile);
+
+            // Then build and output new route file
+            $compiledPageRoutes = cli_build_compiled_routes($singleRoutesPage['ROUTES'], $middlewareRoutesPage['MIDDLEWARES']);
+            cli_output_compiled_routes($compiledPageRoutes, "troute_page");
+            cli_success("Compiled Only Page routes!");
         },
         'help' => function () {
             cli_info_multiline("FunkCLI - Compile Help");
@@ -85,11 +159,11 @@ $commands = [
         },
     ],
     'add' => [
-        'route' => function () use ($argv) {
-            if (!isset($argv[3])) {
-                cli_err_syntax("No FunkPHP Command was given?!\nShould be at least three arguments!");
+        'route' => function () use ($argv, $outPutDir) {
+            if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3])) {
+                cli_err_syntax("No FunkPHP Command was given?!\nShould be at least three non-empty string arguments!");
             }
-            cli_info("[INFO]: Adding route routes (not implemented yet)");
+            cli_output_file_until_success($outPutDir . $argv[3], ".php", $argv[3]);
         },
         'page' => function () use ($argv) {
             if (!isset($argv[3])) {
@@ -156,20 +230,20 @@ $commands = [
     },
 ];
 
-// Execute the command
+// Execute the command with the action if it exists
 $command = $argv[1] ?? null;
 $action = $argv[2] ?? null;
-
-
 if (isset($commands[$command]) && $action == null) {
     $commands[$command]();
     exit;
 }
-
 if (isset($commands[$command][$action])) {
     $commands[$command][$action]();
     exit;
-} else {
+}
+
+// All-catch for invalid use of FunkCLI
+else {
     cli_err_syntax("That FunkCLI Command doesn't exist! Enter ``funkcli help`` for more information!");
     exit;
 }
