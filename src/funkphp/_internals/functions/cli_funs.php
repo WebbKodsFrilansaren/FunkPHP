@@ -441,7 +441,7 @@ function cli_restore_file($backupDirPath, $restoreFilePath, $fileStartingName)
     // We check if backup dir has any files in it. We sort descnding so we
     // get the latest file first due to the date time stamp in the file name
     $files = scandir($backupDirPath, SCANDIR_SORT_DESCENDING);
-    if (count($files) <= 3) {
+    if (count($files) <= 2) {
         cli_err_syntax("Backup Dir Path must have at least one file in it! Path: $backupDirPath has no files!");
     }
 
@@ -459,7 +459,8 @@ function cli_restore_file($backupDirPath, $restoreFilePath, $fileStartingName)
             // Copy the file to the restore file path and delete the backup file after restoring it
             copy($backupDirPath . "/" . $file, $restoreFilePath);
             unlink($backupDirPath . "/" . $file);
-            cli_success("Backup file restored successfully: $restoreFilePath!");
+            cli_success_without_exit("Backup File Restored: $restoreFilePath!");
+            return;
         }
     }
     // If we reach here, it means we didn't find any files that start with the file starting name

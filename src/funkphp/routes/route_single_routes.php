@@ -2,8 +2,9 @@
 return [
     'ROUTES' => [
         'GET' => [
-            '/' => ['handler' => 'ROOT_PAGE',],
-            '/users' => ['handler' => 'get_users',],
+            '/' => ['handler' => 'ROOT_get_create_user',],
+            '/tests' => ['handler' => 'get_create_user',],
+            '/users/:id' => ['handler' => 'get_update_user',],
         ],
         'POST' => [
             '/' => ['handler' => 'ROOT_post_create_user',],
