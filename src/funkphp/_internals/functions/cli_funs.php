@@ -709,7 +709,6 @@ function cli_err_syntax($string)
     echo "\033[31m[FunkCLI - SYNTAX ERROR]: $string\n\033[0m";
     exit;
 }
-
 function cli_err_command($string)
 {
     if ($_SERVER['SCRIPT_NAME'] !== 'funkcli') {
