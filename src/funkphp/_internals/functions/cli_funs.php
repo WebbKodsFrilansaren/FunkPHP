@@ -467,6 +467,34 @@ function cli_restore_file($backupDirPath, $restoreFilePath, $fileStartingName)
     cli_err_syntax("No Backup File in $backupDirPath starting with \"$fileStartingName\"!");
 }
 
+// Delete all files in a given directory, but not folders inside of it though!
+function cli_delete_all_files_in_directory_except_other_directories($directoryPath)
+{
+    // Check if the directory path is a valid directory
+    if (!is_dir($directoryPath)) {
+        cli_err_syntax("Directory Path must be a valid directory. Path: $directoryPath is not!");
+    }
+
+    // Check if the directory path is writable
+    if (!is_writable($directoryPath)) {
+        cli_err_syntax("Directory Path must be writable! Path: $directoryPath is not!");
+    }
+
+    // Get all files in the directory
+    $files = scandir($directoryPath);
+    $filecount = count($files);
+
+    // Loop through all files and delete them
+    foreach ($files as $file) {
+        // Check if file is not a directory and not "." or ".." and only then delete it
+        if (is_dir($directoryPath . "/" . $file) || $file === "." || $file === "..") {
+            continue;
+        }
+        unlink($directoryPath . "/" . $file);
+    }
+    cli_success_without_exit("$filecount Files Deleted in: $directoryPath!");
+}
+
 // Validate start syntax for route string before processing the rest of the string
 // Valid ones are: "GET/", "POST/", "PUT/", "DELETE/", "g/", "po/", "pu/", "d/")
 function cli_valid_route_start_syntax($routeString)
