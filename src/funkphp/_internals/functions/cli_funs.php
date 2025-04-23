@@ -577,7 +577,7 @@ function cli_parse_rest_of_valid_route_syntax($routeString)
         array_merge(
             range('a', 'z'),
             range('0', '9'),
-            ['_', '-']
+            ['_', '-',]
         )
     );
 
@@ -690,8 +690,16 @@ function cli_parse_rest_of_valid_route_syntax($routeString)
         $entireBuiltRoute = substr($entireBuiltRoute, 0, -2);
     } elseif (str_ends_with($entireBuiltRoute, "/_")) {
         $entireBuiltRoute = substr($entireBuiltRoute, 0, -2);
+    } elseif (str_ends_with($entireBuiltRoute, ":") || str_ends_with($entireBuiltRoute, "_") || str_ends_with($entireBuiltRoute, "-")) {
+        $entireBuiltRoute = substr($entireBuiltRoute, 0, -1);
     }
 
+    // Preg_replace check against multiple "/" or "-" or "_" in a row
+    $entireBuiltRoute = preg_replace(
+        '/([\/_-])\1+/',
+        '/',
+        $entireBuiltRoute
+    );
     // Final check if string suddenöly is empty, we just return "/"
     if ($entireBuiltRoute === "") {
         return "/";
