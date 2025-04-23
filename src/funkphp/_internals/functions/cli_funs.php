@@ -25,10 +25,10 @@ function cli_build_compiled_routes(array $developerSingleRoutes, array $develope
 
     // Prepare compiled route array to return and other variables
     $compiledTrie = [];
-    $GETSingles = $developerSingleRoutes["GET"] ?? null;
-    $POSTSingles = $developerSingleRoutes["POST"] ?? null;
-    $PUTSingles = $developerSingleRoutes["PUT"] ?? null;
-    $DELETESingles = $developerSingleRoutes["DELETE"] ?? null;
+    $GETSingles = $developerSingleRoutes["GET"] ?? [];
+    $POSTSingles = $developerSingleRoutes["POST"] ?? [];
+    $PUTSingles = $developerSingleRoutes["PUT"] ?? [];
+    $DELETESingles = $developerSingleRoutes["DELETE"] ?? [];
 
     // Using method below, iterate through each HttpMethod and then add it to the $compiledTrie array
     $addMethods = function ($singleRoutes) {
