@@ -3,11 +3,7 @@ return [
     'ROUTES' => [
         'GET' => [
             '/' => ['handler' => 'ROOT_PAGE',],
-            '/users' => ['handler' => 'USRES_ROOT_PAGE',],
-            '/users/:id' => ['handler' => 'USER_ID_PAGE',],
-            '/users/:id/test' => ['handler' => 'USER_ID_PAGE',],
-            '/about' => ['handler' => 'ABOUT_PAGE',],
-            '/about/test' => ['handler' => 'ABOUT_PAGE',],
+            '/users' => ['handler' => 'get_users',],
         ],
         'POST' => [
             '/' => ['handler' => 'ROOT_post_create_user',],

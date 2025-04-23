@@ -413,6 +413,59 @@ function cli_backup_file_until_success($backupDestinationWithoutExtension, $exte
     cli_output_file_until_success($backupDestinationWithoutExtension, $extension, $backupData, "Backup file written successfully: $backupDestinationWithoutExtension!");
 }
 
+// Restore a backup file from the backup directory to the restore file path (it also deletes the backup file after restoring it!)
+function cli_restore_file($backupDirPath, $restoreFilePath, $fileStartingName)
+{
+    // Check non-empty strings in all variables
+    if (
+        !is_string($backupDirPath) ||  !is_string($restoreFilePath) || !is_string($fileStartingName)
+        || $backupDirPath === "" || $restoreFilePath === "" || $fileStartingName === ""
+
+    ) {
+        cli_err_syntax("Backup Dir Path, Restore File Path and File Starting Name must be non-empty strings!");
+    }
+
+    // We check if backup dir path is a valid directory
+    if (!is_dir($backupDirPath)) {
+        cli_err_syntax("Backup Dir Path must be a valid directory. Path: $backupDirPath is not!");
+    }
+
+    // We check if backup dir path is readable
+    if (!is_readable($backupDirPath)) {
+        cli_err_syntax("Backup Dir Path must be readable! Path: $backupDirPath is not!");
+    }
+
+    // Lowercase the file starting name
+    $fileStartingName = strtolower($fileStartingName);
+
+    // We check if backup dir has any files in it. We sort descnding so we
+    // get the latest file first due to the date time stamp in the file name
+    $files = scandir($backupDirPath, SCANDIR_SORT_DESCENDING);
+    if (count($files) <= 3) {
+        cli_err_syntax("Backup Dir Path must have at least one file in it! Path: $backupDirPath has no files!");
+    }
+
+    // We loop through all the files in the backup dir path and check if they start with the file starting name
+    // and if they do, we check if the file is readable and then we copy it to the restore file path
+    foreach ($files as $file) {
+        // Check if the file starts with the file starting name
+        if (str_starts_with(strtolower($file), $fileStartingName)) {
+
+            // Check if the file is readable
+            if (!is_readable($backupDirPath . "/" . $file)) {
+                cli_err_syntax("Backup file must be readable! Path: $backupDirPath/$file is not!");
+            }
+
+            // Copy the file to the restore file path and delete the backup file after restoring it
+            copy($backupDirPath . "/" . $file, $restoreFilePath);
+            unlink($backupDirPath . "/" . $file);
+            cli_success("Backup file restored successfully: $restoreFilePath!");
+        }
+    }
+    // If we reach here, it means we didn't find any files that start with the file starting name
+    cli_err_syntax("No Backup File in $backupDirPath starting with \"$fileStartingName\"!");
+}
+
 // Validate start syntax for route string before processing the rest of the string
 // Valid ones are: "GET/", "POST/", "PUT/", "DELETE/", "g/", "po/", "pu/", "d/")
 function cli_valid_route_start_syntax($routeString)

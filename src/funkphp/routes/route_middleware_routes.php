@@ -1,12 +1,7 @@
 <?php // ROUTE_Middleware_ROUTES.PHP - FunkPHP Framework
 return     [
     'MIDDLEWARES' => [
-        'GET' => [
-            '/users' => ['handler' => ['R/users_id/MW_R_TEST', 'R/users_id/MW_R_TEST2'],],
-            '/users/:id' => ['handler' => ['R/users_id/MW_R_USER_ID1', "R/users_id/MW_R_USER_ID2",],],
-            '/users/:id/test' => ['handler' => 'MW_R_USER_TEST',],
-            '/about' => ['handler' => 'MW_R_ABOUT',],
-        ],
+        'GET' => [],
         'POST' => [
             '/' => ['handler' => 'POST_MIDDLEWARE_ROOT',],
             '/users' => ['handler' => 'POST_MIDDLEWARE_USER',],

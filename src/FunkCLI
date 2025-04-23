@@ -6,10 +6,22 @@ include __DIR__ . '/funkphp/_internals/functions/cli_funs.php';
 // Inspiration from Trie & Hashmaps!
 $validArg1withArg2Values =  [
     'help' => [],
-    'compile' => ['all', 'route', 'page', 'data', 'help'],
-    'add' => ['route', 'page', 'data', 'help'],
-    'change' => ['route', 'page', 'data', 'help'],
-    'delete' => ['route', 'page', 'data', 'help'],
+    'compile' => ['all', 'route', 'data', 'page', 'help'],
+    'add' => ['route', 'data', 'page',  'help'],
+    'change' => ['route', 'data', 'page',  'help'],
+    'delete' => ['route', 'data', 'page',  'help'],
+    'restore' => [
+        'route_compiled',
+        'data_compiled',
+        'page_compiled',
+        'route_singles',
+        'data_singles',
+        'page_singles',
+        'route_middlwares',
+        'data_middlwares',
+        'page_middlwares',
+        'help'
+    ],
 ];
 
 // No command
@@ -84,19 +96,53 @@ $commands = [
             $dirs
         ) {
             // Backup the old route files first
-            $oldRouteFile = $exactFiles['troute_route']; // Routes
-            $backupRoutePath = $dirs['backups_routes'];
-            cli_backup_file_until_success($backupRoutePath . "troute_route", ".php", $oldRouteFile);
-            $oldRouteFile = $exactFiles['troute_data']; // Data
-            $backupRoutePath = $dirs['backups_data'];
-            cli_backup_file_until_success($backupRoutePath . "troute_data", ".php", $oldRouteFile);
-            $oldRouteFile = $exactFiles['troute_page']; // Pages
-            $backupRoutePath = $dirs['backups_pages'];
-            cli_backup_file_until_success($backupRoutePath . "troute_page", ".php", $oldRouteFile);
+
+            // Backup paths
             $backupFinalsPath = $dirs['backups_finals'];
-            cli_backup_file_until_success($backupFinalsPath . "troute_route", ".php", $oldRouteFile);
-            cli_backup_file_until_success($backupFinalsPath . "troute_data", ".php", $oldRouteFile);
-            cli_backup_file_until_success($backupFinalsPath . "troute_page", ".php", $oldRouteFile);
+
+            // Routes
+            $oldTrouteRouteFile = $exactFiles['troute_route'];
+            $backupRouteRoutePath = $dirs['backups_routes'];
+            $oldSingleRouteRouteFile = $exactFiles['single_routes'];
+            $oldSingleMiddlwaresRouteFile = $exactFiles['single_middlwares'];
+
+            // Data
+            $oldTrouteDataFile = $exactFiles['troute_data'];
+            $backupDataRoutePath = $dirs['backups_data'];
+            $oldSingleDataFile = $exactFiles['single_data'];
+            $oldSingleMiddlwaresDataFile = $exactFiles['single_middlwares_data'];
+
+            // Pages
+            $oldTroutePageFile = $exactFiles['troute_page'];
+            $backupPageRoutePath = $dirs['backups_pages'];
+            $oldSinglePageFile = $exactFiles['single_page'];
+            $oldSingleMiddlwaresPageFile = $exactFiles['single_middlwares_page'];
+
+            // Now backup the old route files
+
+            // Routes
+            cli_backup_file_until_success($backupRouteRoutePath . "troute_route", ".php", $oldTrouteRouteFile);
+            cli_backup_file_until_success($backupFinalsPath . "troute_route", ".php", $oldTrouteRouteFile);
+            cli_backup_file_until_success($backupRouteRoutePath . "route_single_routes", ".php", $oldSingleRouteRouteFile);
+            cli_backup_file_until_success($backupRouteRoutePath . "route_single_middlwares", ".php", $oldSingleMiddlwaresRouteFile);
+            cli_backup_file_until_success($backupFinalsPath . "route_single_routes", ".php", $oldSingleRouteRouteFile);
+            cli_backup_file_until_success($backupFinalsPath . "route_single_middlwares", ".php", $oldSingleMiddlwaresRouteFile);
+
+            // Data
+            cli_backup_file_until_success($backupDataRoutePath . "troute_data", ".php", $oldTrouteDataFile);
+            cli_backup_file_until_success($backupFinalsPath . "troute_data", ".php", $oldTrouteDataFile);
+            cli_backup_file_until_success($backupDataRoutePath . "data_single_routes", ".php", $oldSingleDataFile);
+            cli_backup_file_until_success($backupDataRoutePath . "data_single_middlwares", ".php", $oldSingleMiddlwaresDataFile);
+            cli_backup_file_until_success($backupFinalsPath . "data_single_routes", ".php", $oldSingleDataFile);
+            cli_backup_file_until_success($backupFinalsPath . "data_single_middlwares", ".php", $oldSingleMiddlwaresDataFile);
+
+            // Pages
+            cli_backup_file_until_success($backupPageRoutePath . "troute_page", ".php", $oldTroutePageFile);
+            cli_backup_file_until_success($backupFinalsPath . "troute_page", ".php", $oldTroutePageFile);
+            cli_backup_file_until_success($backupPageRoutePath . "page_single_routes", ".php", $oldSinglePageFile);
+            cli_backup_file_until_success($backupPageRoutePath . "page_single_middlwares", ".php", $oldSingleMiddlwaresPageFile);
+            cli_backup_file_until_success($backupFinalsPath . "page_single_routes", ".php", $oldSinglePageFile);
+            cli_backup_file_until_success($backupFinalsPath . "page_single_middlwares", ".php", $oldSingleMiddlwaresPageFile);
 
             // Then build and output new route files
             $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRoute['ROUTES'], $middlewareRoutesRoute['MIDDLEWARES']);
@@ -108,12 +154,15 @@ $commands = [
             cli_success("All routes compiled successfully!");
         },
         'route' => function () use ($singleRoutesRoute, $middlewareRoutesRoute, $exactFiles, $dirs) {
-            // Backup the old route file first
+            // Backup the old route file first (troute and single_routes)
             $oldRouteFile = $exactFiles['troute_route'];
+            $oldSingleRouteFile = $exactFiles['single_routes'];
             $backupRoutePath = $dirs['backups_routes'];
             $backupFinalsPath = $dirs['backups_finals'];
             cli_backup_file_until_success($backupRoutePath . "troute_route", ".php", $oldRouteFile);
             cli_backup_file_until_success($backupFinalsPath . "troute_route", ".php", $oldRouteFile);
+            cli_backup_file_until_success($backupRoutePath . "route_single_routes", ".php", $oldSingleRouteFile);
+            cli_backup_file_until_success($backupFinalsPath . "route_single_routes", ".php", $oldSingleRouteFile);
 
             // Then build and output new route file
             $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRoute['ROUTES'], $middlewareRoutesRoute['MIDDLEWARES']);
@@ -123,10 +172,13 @@ $commands = [
         'data' => function () use ($singleRoutesData, $middlewareRoutesData, $exactFiles, $dirs) {
             // Backup the old route file first
             $oldRouteFile = $exactFiles['troute_data'];
+            $oldSingleRouteFile = $exactFiles['single_data'];
             $backupRoutePath = $dirs['backups_data'];
             $backupFinalsPath = $dirs['backups_finals'];
             cli_backup_file_until_success($backupRoutePath . "troute_data", ".php", $oldRouteFile);
             cli_backup_file_until_success($backupFinalsPath . "troute_data", ".php", $oldRouteFile);
+            cli_backup_file_until_success($backupRoutePath . "data_single_routes", ".php", $oldSingleRouteFile);
+            cli_backup_file_until_success($backupFinalsPath . "data_single_routes", ".php", $oldSingleRouteFile);
 
             // Then build and output new route file
             $compiledDataRoutes = cli_build_compiled_routes($singleRoutesData['ROUTES'], $middlewareRoutesData['MIDDLEWARES']);
@@ -136,10 +188,13 @@ $commands = [
         'page' => function () use ($singleRoutesPage, $middlewareRoutesPage, $exactFiles, $dirs) {
             // Backup the old route file first
             $oldRouteFile = $exactFiles['troute_page'];
+            $oldSingleRouteFile = $exactFiles['single_page'];
             $backupRoutePath = $dirs['backups_pages'];
             $backupFinalsPath = $dirs['backups_finals'];
             cli_backup_file_until_success($backupRoutePath . "troute_page", ".php", $oldRouteFile);
             cli_backup_file_until_success($backupFinalsPath . "troute_page", ".php", $oldRouteFile);
+            cli_backup_file_until_success($backupRoutePath . "page_single_routes", ".php", $oldSingleRouteFile);
+            cli_backup_file_until_success($backupFinalsPath . "page_single_routes", ".php", $oldSingleRouteFile);
 
             // Then build and output new route file
             $compiledPageRoutes = cli_build_compiled_routes($singleRoutesPage['ROUTES'], $middlewareRoutesPage['MIDDLEWARES']);
@@ -163,19 +218,19 @@ $commands = [
             if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3])) {
                 cli_err_syntax("No FunkPHP Command was given?!\nShould be at least three non-empty string arguments!");
             }
-            cli_output_file_until_success($outPutDir . $argv[3], ".php", $argv[3]);
+            cli_info("Adding route routes (not implemented yet)");
         },
         'page' => function () use ($argv) {
             if (!isset($argv[3])) {
                 cli_err_syntax("No FunkPHP Command was given?!\nShould be at least three arguments!");
             }
-            cli_info("[INFO]: Adding page routes (not implemented yet)");
+            cli_info("Adding page routes (not implemented yet)");
         },
         'data' => function () use ($argv) {
             if (!isset($argv[3])) {
                 cli_err_syntax("No FunkPHP Command was given?!\nShould be at least three arguments!");
             }
-            cli_info("[INFO]: Adding data routes (not implemented yet)");
+            cli_info("Adding data routes (not implemented yet)");
         },
     ],
     'change' => [
@@ -218,6 +273,60 @@ $commands = [
             cli_info("[INFO]: Deleting data routes (not implemented yet)");;
         },
     ],
+    'restore' => [
+        'route_compiled' => function () use ($argv, $dirs, $exactFiles) {
+            // Grab backup dir and restore exact file path
+            $oldRouteFileDir = $dirs['backups_routes'];
+            $exactRestorePath = $exactFiles['troute_route'];
+
+            cli_restore_file($oldRouteFileDir, $exactRestorePath, "troute_route");
+        },
+        'page_compiled' => function () use ($argv, $dirs, $exactFiles) {
+            if (!isset($argv[3])) {
+                cli_err_syntax("No FunkPHP Command was given?!\nShould be at least three arguments!");
+            }
+            cli_info("Restoring page routes (not implemented yet)");
+        },
+        'data_compiled' => function () use ($argv, $dirs, $exactFiles) {
+            if (!isset($argv[3])) {
+                cli_err_syntax("No FunkPHP Command was given?!\nShould be at least three arguments!");
+            }
+            cli_info("Restoring data routes (not implemented yet)");
+        },
+        'help' => function () {
+            cli_info_multiline("FunkCLI - Restore Help");
+            cli_info_multiline("Usage 1: funkcli restore [route_compiled|data_compiled|page_compiled]");
+            cli_info_multiline("Usage 2: funkcli restore [route_singles|data_singles|page_singles]");
+            cli_info_multiline("Usage 3: funkcli restore [route_middlwares|data_middlwares|page_middlwares]");
+            cli_info_multiline("------------------------------------------");
+            cli_info_multiline("The different values (for Usage 1:");
+            cli_info_multiline("  route_compiled - Restores Compiled Route routes from backup (earliest version)");
+            cli_info_multiline("  data_compiled - Restores Compiled Data routes from backup (earliest version)");
+            cli_info_multiline("  page_compiled - Restores Compiled Page routes from backup (earliest version)");
+            cli_info_multiline("  These files end up in: funkphp/_internals/compiled/");
+            cli_info_multiline("It uses Backup Path: funkphp/_BACKUPS/[routes|pages|data]/");
+            cli_info_multiline("***IMPORTANT*** This overwrites the current Troute File!!!");
+            cli_info_multiline("------------------------------------------");
+            cli_info_multiline("The different values (for Usage 2:");
+            cli_info_multiline("  route_singles - Restores Single Route routes from backup (earliest version)");
+            cli_info_multiline("  data_singles - Restores Single Data routes from backup (earliest version)");
+            cli_info_multiline("  page_singles - Restores Single Page routes from backup (earliest version)");
+            cli_info_multiline("  These files end up in: [funkphp/routes|funkphp/data|funkphp/pages]/");
+            cli_info_multiline("It uses Backup Path: funkphp/_BACKUPS/[routes|pages|data]/");
+            cli_info_multiline("***IMPORTANT*** This overwrites the current Single Route File!!!");
+            cli_info_multiline("------------------------------------------");
+            cli_info_multiline("The different values (for Usage 3:");
+            cli_info_multiline("  route_middlwares - Restores Single Route routes from backup (earliest version)");
+            cli_info_multiline("  data_middlwares - Restores Single Data routes from backup (earliest version)");
+            cli_info_multiline("  page_middlwares - Restores Single Page routes from backup (earliest version)");
+            cli_info_multiline("  These files end up in: [funkphp/routes|funkphp/data|funkphp/pages]/");
+            cli_info_multiline("It uses Backup Path: funkphp/_BACKUPS/[routes/MW|pages/MW|data/MW]/");
+            cli_info_multiline("***IMPORTANT*** This overwrites the current Middleware Route File!!!");
+
+            exit;
+        },
+    ],
+
     'help' => function () use ($argv) {
         cli_info_multiline("FunkPHP CLI - Help");
         cli_info_multiline("Usage: funkcli [command] [action] [value]");
