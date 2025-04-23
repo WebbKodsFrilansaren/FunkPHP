@@ -1,7 +1,7 @@
 <?php // ROUTE_SINGLE_ROUTES.PHP - FunkPHP Framework
 return [
     'ROUTES' => [
-        'GET' => [
+        'GETa' => [
             '/' => ['handler' => 'ROOT_get_create_user',],
             '/tests' => ['handler' => 'get_create_user',],
             '/users/:id' => ['handler' => 'get_update_user',],

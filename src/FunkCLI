@@ -17,6 +17,7 @@ $validArg1withArg2Values =  [
         'help',
     ],
     'restore' => [
+        'all_routes_compiled_and_singles',
         'route_compiled_and_singles',
         'data_compiled_and_singles',
         'page_compiled_and_singles',
@@ -126,25 +127,25 @@ $commands = [
             cli_backup_file_until_success($backupCompiledPath . "troute_route", ".php", $oldTrouteRouteFile);
             cli_backup_file_until_success($backupFinalsPath . "troute_route", ".php", $oldTrouteRouteFile);
             cli_backup_file_until_success($backupRouteRoutePath . "route_single_routes", ".php", $oldSingleRouteRouteFile);
-            cli_backup_file_until_success($backupRouteRoutePath . "route_single_middlwares", ".php", $oldSingleMiddlwaresRouteFile);
+            cli_backup_file_until_success($backupRouteRoutePath . "route_middleware_routes", ".php", $oldSingleMiddlwaresRouteFile);
             cli_backup_file_until_success($backupFinalsPath . "route_single_routes", ".php", $oldSingleRouteRouteFile);
-            cli_backup_file_until_success($backupFinalsPath . "route_single_middlwares", ".php", $oldSingleMiddlwaresRouteFile);
+            cli_backup_file_until_success($backupFinalsPath . "route_middleware_routes", ".php", $oldSingleMiddlwaresRouteFile);
 
             // Data
             cli_backup_file_until_success($backupCompiledPath . "troute_data", ".php", $oldTrouteDataFile);
             cli_backup_file_until_success($backupFinalsPath . "troute_data", ".php", $oldTrouteDataFile);
             cli_backup_file_until_success($backupDataRoutePath . "data_single_routes", ".php", $oldSingleDataFile);
-            cli_backup_file_until_success($backupDataRoutePath . "data_single_middlwares", ".php", $oldSingleMiddlwaresDataFile);
+            cli_backup_file_until_success($backupDataRoutePath . "data_middleware_routes", ".php", $oldSingleMiddlwaresDataFile);
             cli_backup_file_until_success($backupFinalsPath . "data_single_routes", ".php", $oldSingleDataFile);
-            cli_backup_file_until_success($backupFinalsPath . "data_single_middlwares", ".php", $oldSingleMiddlwaresDataFile);
+            cli_backup_file_until_success($backupFinalsPath . "data_middleware_routes", ".php", $oldSingleMiddlwaresDataFile);
 
             // Pages
             cli_backup_file_until_success($backupCompiledPath . "troute_page", ".php", $oldTroutePageFile);
             cli_backup_file_until_success($backupFinalsPath . "troute_page", ".php", $oldTroutePageFile);
             cli_backup_file_until_success($backupPageRoutePath . "page_single_routes", ".php", $oldSinglePageFile);
-            cli_backup_file_until_success($backupPageRoutePath . "page_single_middlwares", ".php", $oldSingleMiddlwaresPageFile);
+            cli_backup_file_until_success($backupPageRoutePath . "page_middleware_routes", ".php", $oldSingleMiddlwaresPageFile);
             cli_backup_file_until_success($backupFinalsPath . "page_single_routes", ".php", $oldSinglePageFile);
-            cli_backup_file_until_success($backupFinalsPath . "page_single_middlwares", ".php", $oldSingleMiddlwaresPageFile);
+            cli_backup_file_until_success($backupFinalsPath . "page_middleware_routes", ".php", $oldSingleMiddlwaresPageFile);
 
             // Then build and output new route files
             $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRoute['ROUTES'], $middlewareRoutesRoute['MIDDLEWARES']);
