@@ -339,9 +339,18 @@ $commands = [
         },
     ],
     'add' => [
-        'all_routes' => function () use ($argv, $outPutDir, $settings) {
-            if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3])) {
-                cli_err_syntax("No FunkPHP Command was given?!\nShould be at least three non-empty string arguments!");
+        // Adding to ALL Routes at the same time (Route, Data, Page)
+        'all_routes' => function () use (
+            $argv,
+            $outPutDir,
+            $settings,
+            $dirs,
+            $singleRoutesRoute,
+            $singleRoutesPage,
+            $singleRoutesData,
+        ) {
+            if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3]) || !isset($argv[4]) || !is_string($argv[4]) || empty($argv[4])) {
+                cli_err_syntax("No FunkPHP Command was given?!\nShould be at least four(4) non-empty string arguments!");
             }
 
             // Prepare the route string by trimming, validating starting, ending and middle parts of it
@@ -349,25 +358,86 @@ $commands = [
             echo "\nROUTE BEFORE PARSE: " . "\"$addRoute\"" . "\n";
             [$method, $validRoute] = cli_prepare_valid_route_string($addRoute);
 
-            echo "\nMETHOD: \"$method\" \n";
-            echo "PARSED ROUTE: " . "\"$validRoute\"" . "\n";
-        },
-        'only_route' => function () use ($argv, $outPutDir, $settings) {
+            // Check Route is not used currently in ALL 3 Main Single Route Files!
+            if (isset($singleRoutesRoute['ROUTES'][$method][$validRoute]) ?? null) {
+                cli_err_syntax("\"$validRoute\" already exists in $method/Single Route Routes!");
+            } elseif (isset($singleRoutesData['ROUTES'][$method][$validRoute]) ?? null) {
+                cli_err_syntax("\"$validRoute\" already exists in $method/Single Data Routes!");
+            } elseif (isset($singleRoutesPage['ROUTES'][$method][$validRoute]) ?? null) {
+                cli_err_syntax("\"$validRoute\" already exists in $method/Single Page Routes!");
+            }
 
-            cli_info("Adding route routes (not implemented yet)");
-        },
-        'only_data_route' => function () use ($argv, $settings) {
-            if (!isset($argv[3])) {
-                cli_err_syntax("No FunkPHP Command was given?!\nShould be at least three arguments!");
+            // TODO: Add the route to the correct file based on the method and route type
+            // and also handler to the "handler" array in the route file and create a handler
+            // file with the name ($argv[4]) in the correct directory (routes, data, pages).
+            // Check now that handler $argv[4] is a string containg only letters, numbers and underscores!
+            if (!preg_match('/^[a-zA-Z0-9_]+$/', $argv[4])) {
+                cli_err_syntax("\"{$argv[4]}\" - Handler name must be a string containing only letters, numbers and underscores!");
             }
-            cli_info("Adding data routes (not implemented yet)");
         },
-        'only_page_route' => function () use ($argv, $settings) {
-            if (!isset($argv[3])) {
-                cli_err_syntax("No FunkPHP Command was given?!\nShould be at least three arguments!");
+        // Adding Route to only Route Routes
+        'only_route' => function () use ($argv, $outPutDir, $settings, $singleRoutesRoute) {
+            if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3]) || !isset($argv[4]) || !is_string($argv[4]) || empty($argv[4])) {
+                cli_err_syntax("No FunkPHP Command was given?!\nShould be at least four(4) non-empty string arguments!");
             }
-            cli_info("Adding page routes (not implemented yet)");
+            // Prepare the route string by trimming, validating starting, ending and middle parts of it
+            $addRoute = trim(strtolower($argv[3]));
+            echo "\nROUTE BEFORE PARSE: " . "\"$addRoute\"" . "\n";
+            [$method, $validRoute] = cli_prepare_valid_route_string($addRoute);
+
+            // Check Route is not used currently in Single Route Routes File!
+            if (isset($singleRoutesRoute['ROUTES'][$method][$validRoute]) ?? null) {
+                cli_err_syntax("\"$validRoute\" already exists in $method/Single Route Routes!");
+            }
+
+            // TODO: Add the route to the correct file based on the method and route type
+            if (!preg_match('/^[a-zA-Z0-9_]+$/', $argv[4])) {
+                cli_err_syntax("\"{$argv[4]}\" - Handler name must be a string containing only letters, numbers and underscores!");
+            }
         },
+        // Adding Route to only Data Routes
+        'only_data_route' => function () use ($argv, $settings, $singleRoutesData) {
+            if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3]) || !isset($argv[4]) || !is_string($argv[4]) || empty($argv[4])) {
+                cli_err_syntax("No FunkPHP Command was given?!\nShould be at least four(4) non-empty string arguments!");
+            }
+            // Prepare the route string by trimming, validating starting, ending and middle parts of it
+            $addRoute = trim(strtolower($argv[3]));
+            echo "\nROUTE BEFORE PARSE: " . "\"$addRoute\"" . "\n";
+            [$method, $validRoute] = cli_prepare_valid_route_string($addRoute);
+
+            // Check Route is not used currently in ALL 3 Main Single Route Files!
+            if (isset($singleRoutesData['ROUTES'][$method][$validRoute]) ?? null) {
+                cli_err_syntax("\"$validRoute\" already exists in $method/Single Data Routes!");
+            }
+
+            // TODO: Add the route to the correct file based on the method and route type
+            if (!preg_match('/^[a-zA-Z0-9_]+$/', $argv[4])) {
+                cli_err_syntax("\"{$argv[4]}\" - Handler name must be a string containing only letters, numbers and underscores!");
+            }
+        },
+        // Adding Route to only Page Routes
+        'only_page_route' => function () use ($argv, $settings, $singleRoutesPage) {
+            if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3]) || !isset($argv[4]) || !is_string($argv[4]) || empty($argv[4])) {
+                cli_err_syntax("No FunkPHP Command was given?!\nShould be at least four(4) non-empty string arguments!");
+            }
+            // Prepare the route string by trimming, validating starting, ending and middle parts of it
+            $addRoute = trim(strtolower($argv[3]));
+            echo "\nROUTE BEFORE PARSE: " . "\"$addRoute\"" . "\n";
+            [$method, $validRoute] = cli_prepare_valid_route_string($addRoute);
+
+            // Check Route is not used currently in ALL 3 Main Single Route Files!
+            if (isset($singleRoutesPage['ROUTES'][$method][$validRoute]) ?? null) {
+                cli_err_syntax("\"$validRoute\" already exists in $method/Single Page Routes!");
+            }
+
+            // TODO: Add the route to the correct file based on the method and route type
+            if (!preg_match('/^[a-zA-Z0-9_]+$/', $argv[4])) {
+                cli_err_syntax("\"{$argv[4]}\" - Handler name must be a string containing only letters, numbers and underscores!");
+            }
+        },
+        'mw_route' => function () use ($argv, $outPutDir, $settings, $singleRoutesRoute) {},
+        'mw_data' => function () use ($argv, $outPutDir, $settings, $singleRoutesData) {},
+        'mw_page' => function () use ($argv, $outPutDir, $settings, $singleRoutesPage) {},
     ],
     'change' => [
         'route' => function () use ($argv, $settings) {

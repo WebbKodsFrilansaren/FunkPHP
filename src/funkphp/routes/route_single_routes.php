@@ -3,7 +3,7 @@ return [
     'ROUTES' => [
         'GET' => [
             '/' => ['handler' => 'ROOT_get_create_user',],
-            '/tests' => ['handler' => 'get_create_user',],
+            '/tests' => ['handler' => 'get_test',],
             '/users/:id' => ['handler' => 'get_update_user',],
         ],
         'POST' => [

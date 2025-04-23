@@ -594,7 +594,6 @@ function cli_parse_rest_of_valid_route_syntax($routeString)
     // Implode again and add a "/" to the beginning of the string
     $path = "/" . implode("/", $uriSegments);
     $len = strlen($path);
-    echo "PATH TO PARSE: \"$path\"" . "\n";
 
     // We now iterate through each character in the string and build the route
     for ($i = 0; $i < $len; $i++) {
