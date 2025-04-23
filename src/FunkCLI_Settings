@@ -23,4 +23,5 @@ return [
         "ROUTES_MWS_IN_BACKUPS" => false,
         "ROUTES_MWS_IN_FINAL_BACKUPS" => false,
     ],
+    "ALLOW_COMPLETE_BACKUP_DELETION" => false,
 ];

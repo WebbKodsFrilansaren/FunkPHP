@@ -503,15 +503,201 @@ function cli_valid_route_start_syntax($routeString)
     if (!is_string($routeString) || empty($routeString)) {
         cli_err_syntax("Route string must be a non-empty string!");
     }
-    // Then we lowercase string and check if it starts with one of the valid ones
-    $routeString = strtolower($routeString);
+    // Then we check if it starts with one of the valid ones
     if (str_starts_with($routeString, "get/") || str_starts_with($routeString, "post/") || str_starts_with($routeString, "put/") || str_starts_with($routeString, "delete/")) {
         return true;
     } elseif (str_starts_with($routeString, "g/") || str_starts_with($routeString, "po/") || str_starts_with($routeString, "pu/") || str_starts_with($routeString, "d/")) {
         return true;
     } else {
+        return false;
+    }
+}
+
+// Prepares a valid route string to by validating starting syntax and extracting the method from it
+function cli_prepare_valid_route_string($addRoute)
+{
+    // Grab the route to add and validate correct starting syntax
+    // first: get/put/post/delete/ or its short form g/pu/po/d/
+    if (!cli_valid_route_start_syntax($addRoute)) {
         cli_err_syntax("Route string must start with one of the valid ones:\n'GET/' (or g/)'\n'POST/' (or po/)\n'PUT/'(or pu/)\n'DELETE/' (or d/)");
     }
+    // Try extract the method from the route string
+    $method = cli_extracted_parsed_method_from_valid_start_syntax($addRoute);
+    if ($method === null) {
+        cli_err_syntax("Failed to parse the Method the Route string must start with (all of these below are valid):\n'GET/' (or g/)'\n'POST/' (or po/)\n'PUT/'(or pu/)\n'DELETE/' (or d/)");
+    }
+    // Split route oon first "/" and add a a "/" to beginning of the route string
+    // and then parse the rest of the string to build the route and its parameters
+    $addRoute = explode("/", $addRoute, 2)[1] ?? null;
+    $addRoute = "/" . $addRoute;
+
+    $validRoute = cli_parse_rest_of_valid_route_syntax($addRoute);
+    return [
+        $method,
+        $validRoute,
+    ];
+}
+
+// Extract the method from the route string and parse the rest of the string
+function cli_extracted_parsed_method_from_valid_start_syntax($routeString)
+{
+    // We now extract the method from the string and then begin
+    // parsing the rest of the string character by character
+    // to build the route and its parameters.
+    $extractedMethod = explode("/", $routeString)[0];
+    if ($extractedMethod == "get") {
+        $parsedMethod = "GET";
+    } elseif ($extractedMethod == "post") {
+        $parsedMethod = "POST";
+    } elseif ($extractedMethod == "put") {
+        $parsedMethod = "PUT";
+    } elseif ($extractedMethod == "delete") {
+        $parsedMethod = "DELETE";
+    } elseif ($extractedMethod == "g") {
+        $parsedMethod = "GET";
+    } elseif ($extractedMethod == "po") {
+        $parsedMethod = "POST";
+    } elseif ($extractedMethod == "pu") {
+        $parsedMethod = "PUT";
+    } elseif ($extractedMethod == "d") {
+        $parsedMethod = "DELETE";
+    }
+    return $parsedMethod ?? null;
+}
+
+// Parse the rest of the route string after the method has been extracted
+// and return the valid built route string with
+function cli_parse_rest_of_valid_route_syntax($routeString)
+{
+    $entireBuiltRoute = "";
+    $parsedParams = [];
+    $inParamBuilding = false;
+    $currentParamBuilding = "";
+    $allowedCharacters = array_flip(
+        array_merge(
+            range('a', 'z'),
+            range('0', '9'),
+            ['_', '-']
+        )
+    );
+
+    // Prepare segments by splitting the route string
+    //  by "/" and also deleting empty segments
+    $path = trim($routeString, '/');
+    $uriSegments = empty($path) ? [] : array_values(array_filter(explode('/', $path)));
+
+    // Edge case: if the route string is empty, we just return "/"
+    if (count($uriSegments) === 0) {
+        return "/";
+    }
+
+    // Implode again and add a "/" to the beginning of the string
+    $path = "/" . implode("/", $uriSegments);
+    $len = strlen($path);
+    echo "PATH TO PARSE: \"$path\"" . "\n";
+
+    // We now iterate through each character in the string and build the route
+    for ($i = 0; $i < $len; $i++) {
+        $c = $path[$i];
+
+        // Edge-cases, just continue if first character is "-" or "_",
+        if ($i === 1) {
+            if ($c === "-" || $c === "_") {
+                continue;
+            }
+        }
+
+        // First check if we are inside of a parameter building
+        if ($inParamBuilding) {
+            // Then we check if the character is "/" meaning we reached the end of the parameter
+            if ($c === "/") {
+                $inParamBuilding = false;
+                // Now we check if the param we built alraedy exists in the parsed params array
+                if (in_array($currentParamBuilding, $parsedParams)) {
+                    cli_err_syntax("Duplicate parameter: \"$currentParamBuilding\" in route: $path!");
+                } elseif ($currentParamBuilding === "" || $currentParamBuilding === ":" || $currentParamBuilding === " ") {
+                    cli_err_syntax("Empty parameter: \"$currentParamBuilding\" in route: $path!");
+                }
+                // Otherwise we add it to the parsed params array and build the route
+                $parsedParams[] = $currentParamBuilding;
+                $entireBuiltRoute .= $currentParamBuilding . $c;
+                continue;
+            }
+            // Check if the character is a valid character for a parameter
+            // and then add it to the current parameter building or ignore it
+            if (isset($allowedCharacters[$c])) {
+                if ($c === "-" && isset($path[$i - 1]) && ($path[$i - 1] === "-" || $path[$i - 1] === "_" || $path[$i + 1] === "/")) {
+                    continue;
+                } else if ($c === "_" && isset($path[$i - 1]) && ($path[$i - 1] === "-" || $path[$i - 1] === "_" || $path[$i + 1] === "/")) {
+                    continue;
+                } else if ($c === "_" && isset($path[$i - 1]) && $path[$i - 1] === ":") {
+                    continue;
+                } else if ($c === "-" && isset($path[$i - 1]) && $path[$i - 1] === ":") {
+                    continue;
+                }
+                $currentParamBuilding .= $c;
+                continue;
+            }
+        }
+        // If we are not inside of a parameter building, we check if the character
+        // is a ":" meaning we are starting a new parameter building
+        elseif (!$inParamBuilding) {
+            if ($c === ":") {
+                if (isset($entireBuiltRoute[strlen($entireBuiltRoute) - 1])) {
+                    if (($entireBuiltRoute[strlen($entireBuiltRoute) - 1] === "-" || $entireBuiltRoute[strlen($entireBuiltRoute) - 1] === "_")) {
+                        continue;
+                    }
+                }
+                $inParamBuilding = true;
+                $currentParamBuilding = "";
+                $entireBuiltRoute .= $c;
+                continue;
+            }
+            if ($c === "/") {
+                $entireBuiltRoute .= $c;
+                continue;
+            }
+            if (isset($allowedCharacters[$c])) {
+                if ($c === "-" && isset($path[$i - 1]) && ($path[$i - 1] === "-" || $path[$i - 1] === "_")) {
+                    continue;
+                } else if ($c === "_" && isset($path[$i - 1]) && ($path[$i - 1] === "-" || $path[$i - 1] === "_")) {
+                    continue;
+                }
+                $entireBuiltRoute .= $c;
+                continue;
+            }
+        }
+    }
+
+    // Check if we are still inside of a parameter building and if so, we add it to the parsed params array
+    if ($inParamBuilding) {
+        $inParamBuilding = false;
+        // Now we check if the param we built alraedy exists in the parsed params array
+        if (in_array($currentParamBuilding, $parsedParams)) {
+            cli_err_syntax("Duplicate parameter: $currentParamBuilding in route: $path!");
+        }
+        // Otherwise we add it to the parsed params array and build the route
+        $parsedParams[] = $currentParamBuilding;
+        $entireBuiltRoute .= $currentParamBuilding;
+    }
+
+    // Then check remove endings:"/:", "/", "/-", "/_"
+    if (str_ends_with($entireBuiltRoute, "/:")) {
+        $entireBuiltRoute = substr($entireBuiltRoute, 0, -2);
+    } elseif (str_ends_with($entireBuiltRoute, "/")) {
+        $entireBuiltRoute = substr($entireBuiltRoute, 0, -1);
+    } elseif (str_ends_with($entireBuiltRoute, "/-")) {
+        $entireBuiltRoute = substr($entireBuiltRoute, 0, -2);
+    } elseif (str_ends_with($entireBuiltRoute, "/_")) {
+        $entireBuiltRoute = substr($entireBuiltRoute, 0, -2);
+    }
+
+    // Final check if string suddenöly is empty, we just return "/"
+    if ($entireBuiltRoute === "") {
+        return "/";
+    }
+
+    return $entireBuiltRoute;
 }
 
 // CLI Functions to show errors and success messages with colors
