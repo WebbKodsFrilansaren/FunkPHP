@@ -430,10 +430,6 @@ function r_prepare_uri($uri, $fphp_BASEURL_URI)
         $uri = "/";
     }
 
-    $uri = str_replace(["./", "../"], '', $uri);
-
-    $uri = htmlspecialchars($uri, ENT_QUOTES, 'UTF-8');
-
     if ((substr($uri, -1) == "/") && substr_count($uri, "/") > 1) {
         $uri = substr($uri, 0, -1);
     }
