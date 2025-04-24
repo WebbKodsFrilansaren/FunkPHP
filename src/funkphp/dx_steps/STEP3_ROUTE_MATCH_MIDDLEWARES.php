@@ -34,6 +34,8 @@ if ($c['req']['current_step'] === 3) {
 
     // TODO: Add function that runs the handler key for matched route step!
     // INFO: Unsure of the flow if MWs first before handler or viceversa?
+    // TODO 2: Also add to STEP 4 & 5 for similar Handlers!
+
 
     // GOTO: "funkphp/middlewares/" and copy&paste the "_TEMPLATE.php" file to create your own middlewares!
     // Check that middlewares array exists and is not empty in $c global variable
