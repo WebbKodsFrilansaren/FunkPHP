@@ -92,7 +92,6 @@ $settings = include __DIR__ . '/FunkCLI_Settings' ?? [
 ];
 
 // All available dirs to use for the CLI
-$outPutDir = __DIR__ . '/funkphp/_internals/compiled/';
 $dirs = [
     "compiled" => __DIR__ . '/funkphp/_internals/compiled/',
     "handlers" => __DIR__ . '/funkphp/handlers/',
@@ -346,7 +345,6 @@ $commands = [
         // Adding to ALL Routes at the same time (Route, Data, Page)
         'all_routes' => function () use (
             $argv,
-            $outPutDir,
             $settings,
             $dirs,
             $singleRoutesRoute,
@@ -429,7 +427,7 @@ $commands = [
             // + then Recompile them (attach middlewares route variables also!)
         },
         // Adding Route to only Route Routes
-        'only_route' => function () use ($argv, $outPutDir, $settings, $singleRoutesRoute, $dirs, $middlewareRoutesRoute) {
+        'only_route' => function () use ($argv, $settings, $singleRoutesRoute, $dirs, $middlewareRoutesRoute) {
             if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3]) || !isset($argv[4]) || !is_string($argv[4]) || empty($argv[4])) {
                 cli_err_syntax("No FunkPHP Command was given?!\nShould be at least four(4) non-empty string arguments!");
             }
@@ -561,9 +559,9 @@ $commands = [
             // TODO: Output new Single Route Files with the new route added to them
             // + then Recompile them (attach middlewares route variables also!)
         },
-        'mw_route' => function () use ($argv, $outPutDir, $settings, $singleRoutesRoute) {},
-        'mw_data' => function () use ($argv, $outPutDir, $settings, $singleRoutesData) {},
-        'mw_page' => function () use ($argv, $outPutDir, $settings, $singleRoutesPage) {},
+        'mw_route' => function () use ($argv, $settings, $singleRoutesRoute) {},
+        'mw_data' => function () use ($argv, $settings, $singleRoutesData) {},
+        'mw_page' => function () use ($argv, $settings, $singleRoutesPage) {},
     ],
     'change' => [
         'route' => function () use ($argv, $settings) {
@@ -712,7 +710,6 @@ $commands = [
             exit;
         },
     ],
-
     'help' => function () use ($argv) {
         cli_info_multiline("FunkPHP CLI - Help");
         cli_info_multiline("Usage: funkcli [command] [action] [value]");
