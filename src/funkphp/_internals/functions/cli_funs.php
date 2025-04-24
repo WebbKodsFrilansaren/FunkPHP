@@ -467,6 +467,62 @@ function cli_restore_file($backupDirPath, $restoreFilePath, $fileStartingName)
     cli_err_syntax("No Backup File in $backupDirPath starting with \"$fileStartingName\"!");
 }
 
+// Retrieve starting code for files created by the CLI
+function cli_get_prefix_code($keyString)
+{
+    $prefixCode = [
+        "route_singles_routes_start" => "<?php // ROUTE_SINGLE_ROUTES.PHP - FunkPHP Framework",
+        "route_middleware_routes_start" => "<?php // ROUTE_Middleware_ROUTES.PHP - FunkPHP Framework",
+        "data_middleware_routes_start" => "<?php // DATA_Middleware_ROUTES.PHP - FunkPHP Framework",
+        "page_middleware_routes_start" => "<?php // PAGES_Middleware_ROUTES.PHP - FunkPHP Framework",
+        "data_singles_routes_start" => "<?php // DATA_SINGLE_ROUTES.PHP - FunkPHP Framework",
+        "page_singles_routes_start" => "<?php // PAGE_SINGLE_ROUTES.PHP - FunkPHP Framework",
+    ];
+
+    return $prefixCode[$keyString] ?? null;
+}
+
+// Get a unique file name for a given directory and starting file name (so it checks with the starting file name and then adds a number to it)
+function cli_get_unique_filename_for_dir($dirPath, $startingFileName)
+{
+    // Check both are non-empty strings
+    if (
+        !is_string($dirPath) ||  !is_string($startingFileName)
+        || $dirPath === "" || $startingFileName === ""
+    ) {
+        cli_err_syntax("Directory Path and Starting File Name must be non-empty strings!");
+    }
+
+    // Check if the starting file name is valid (it must not contain any special characters)
+    if (!preg_match('/^[a-zA-Z0-9_]+$/', $startingFileName)) {
+        cli_err_syntax("Starting File Name must only contain letters, numbers and underscores!");
+    }
+
+    // Check if the directory path is a valid directory
+    if (!is_dir($dirPath)) {
+        cli_err_syntax("Directory Path must be a valid directory. Path: $dirPath is not!");
+    }
+
+    // Check if the directory path is writable
+    if (!is_writable($dirPath)) {
+        cli_err_syntax("Directory Path must be writable! Path: $dirPath is not!");
+    }
+
+    // First do a quick check if the combined dir path and starting file name exists
+    // add ".php" to the end of the file name
+    $filePath = $dirPath . "/" . $startingFileName . ".php";
+    if (file_exists($filePath)) {
+        // If it exists, we need to add a number to the end of the file name
+        $i = 1;
+        while (file_exists($dirPath . "/" . $startingFileName . "-" . $i . ".php")) {
+            $i++;
+        }
+        return $startingFileName . "-" . $i . ".php";
+    }
+    // If it doesn't exist, we just return the starting file name with ".php" added to the end of it
+    return $startingFileName . ".php";
+}
+
 // Delete all files in a given directory, but not folders inside of it though!
 function cli_delete_all_files_in_directory_except_other_directories($directoryPath)
 {

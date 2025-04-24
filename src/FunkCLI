@@ -95,6 +95,10 @@ $settings = include __DIR__ . '/FunkCLI_Settings' ?? [
 $outPutDir = __DIR__ . '/funkphp/_internals/compiled/';
 $dirs = [
     "compiled" => __DIR__ . '/funkphp/_internals/compiled/',
+    "handlers" => __DIR__ . '/funkphp/handlers/',
+    "handlers_routes" => __DIR__ . '/funkphp/handlers/R/',
+    "handlers_data" => __DIR__ . '/funkphp/handlers/D/',
+    "handlers_pages" => __DIR__ . '/funkphp/handlers/P/',
     "routes" => __DIR__ . '/funkphp/routes/',
     "data" => __DIR__ . '/funkphp/data/',
     "pages" => __DIR__ . '/funkphp/pages/',
@@ -348,6 +352,9 @@ $commands = [
             $singleRoutesRoute,
             $singleRoutesPage,
             $singleRoutesData,
+            $middlewareRoutesRoute,
+            $middlewareRoutesData,
+            $middlewareRoutesPage,
         ) {
             if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3]) || !isset($argv[4]) || !is_string($argv[4]) || empty($argv[4])) {
                 cli_err_syntax("No FunkPHP Command was given?!\nShould be at least four(4) non-empty string arguments!");
@@ -367,16 +374,62 @@ $commands = [
                 cli_err_syntax("\"$validRoute\" already exists in $method/Single Page Routes!");
             }
 
-            // TODO: Add the route to the correct file based on the method and route type
-            // and also handler to the "handler" array in the route file and create a handler
-            // file with the name ($argv[4]) in the correct directory (routes, data, pages).
             // Check now that handler $argv[4] is a string containg only letters, numbers and underscores!
             if (!preg_match('/^[a-zA-Z0-9_]+$/', $argv[4])) {
                 cli_err_syntax("\"{$argv[4]}\" - Handler name must be a string containing only letters, numbers and underscores!");
             }
+
+            // Prepare handlers folders
+            $handlersR = $dirs['handlers_routes'];
+            $handlersD = $dirs['handlers_data'];
+            $handlersP = $dirs['handlers_pages'];
+
+            // Check if file already exists in each directory and then retrieve a new unique file name for each dir
+            $uniqueR = cli_get_unique_filename_for_dir($handlersR, $argv[4]);
+            $uniqueD = cli_get_unique_filename_for_dir($handlersD, $argv[4]);
+            $uniqueP = cli_get_unique_filename_for_dir($handlersP, $argv[4]);
+
+            // Now add the new route to the correct file based on the method and route type
+            // and also handler to the "handler" array in the route file and create a handler.
+            // We split the handler name on ".php"
+            $singleRoutesRoute['ROUTES'][$method][$validRoute] = [
+                'handler' => explode(".", $uniqueR)[0],
+            ];
+            $singleRoutesData['ROUTES'][$method][$validRoute] = [
+                'handler' => explode(".", $uniqueD)[0],
+            ];
+            $singleRoutesPage['ROUTES'][$method][$validRoute] = [
+                'handler' => explode(".", $uniqueP)[0],
+            ];
+
+            // Output handler file for each route type
+            $outputHandlerRoute = file_put_contents(
+                $handlersR . $uniqueR,
+                "<?php\n// Handler for Route: $validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
+            );
+            $outputHandlerData = file_put_contents(
+                $handlersD . $uniqueD,
+                "<?php\n// Handler for Data: $validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
+            );
+            $outputHandlerPage = file_put_contents(
+                $handlersP . $uniqueP,
+                "<?php\n// Handler for Page: $validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
+            );
+            if ($outputHandlerRoute) {
+                cli_success_without_exit("Added \"funkphp/handlers/R/$uniqueR\"!");
+            }
+            if ($outputHandlerData) {
+                cli_success_without_exit("Added \"funkphp/handlers/D/$uniqueD\"!");
+            }
+            if ($outputHandlerPage) {
+                cli_success_without_exit("Added \"funkphp/handlers/P/$uniqueP\"!");
+            }
+
+            // TODO: Output new Single Route Files with the new route added to them
+            // + then Recompile them (attach middlewares route variables also!)
         },
         // Adding Route to only Route Routes
-        'only_route' => function () use ($argv, $outPutDir, $settings, $singleRoutesRoute) {
+        'only_route' => function () use ($argv, $outPutDir, $settings, $singleRoutesRoute, $dirs, $middlewareRoutesRoute) {
             if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3]) || !isset($argv[4]) || !is_string($argv[4]) || empty($argv[4])) {
                 cli_err_syntax("No FunkPHP Command was given?!\nShould be at least four(4) non-empty string arguments!");
             }
@@ -394,9 +447,31 @@ $commands = [
             if (!preg_match('/^[a-zA-Z0-9_]+$/', $argv[4])) {
                 cli_err_syntax("\"{$argv[4]}\" - Handler name must be a string containing only letters, numbers and underscores!");
             }
+
+            // Prepare handler folder
+            $handlersR = $dirs['handlers_routes'];
+
+            // Check if file already exists in directory and then retrieve a new unique file name for each dir
+            $uniqueR = cli_get_unique_filename_for_dir($handlersR, $argv[4]);
+
+            // Now add the new route to the correct file based on the method and route type
+            // and also handler to the "handler" array in the route file and create a handler.
+            // We split the handler name on ".php"
+            $singleRoutesRoute['ROUTES'][$method][$validRoute] = [
+                'handler' => explode(".", $uniqueR)[0],
+            ];
+
+            // Output handler file for Route routes
+            $outputHandlerRoute = file_put_contents(
+                $handlersR . $uniqueR,
+                "<?php\n// Handler for Route: $validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
+            );
+            if ($outputHandlerRoute) {
+                cli_success_without_exit("Added \"funkphp/handlers/R/$uniqueR\"!");
+            }
         },
         // Adding Route to only Data Routes
-        'only_data_route' => function () use ($argv, $settings, $singleRoutesData) {
+        'only_data_route' => function () use ($argv, $settings, $singleRoutesData, $dirs, $middlewareRoutesData) {
             if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3]) || !isset($argv[4]) || !is_string($argv[4]) || empty($argv[4])) {
                 cli_err_syntax("No FunkPHP Command was given?!\nShould be at least four(4) non-empty string arguments!");
             }
@@ -410,13 +485,39 @@ $commands = [
                 cli_err_syntax("\"$validRoute\" already exists in $method/Single Data Routes!");
             }
 
-            // TODO: Add the route to the correct file based on the method and route type
+            // Check now that handler $argv[4] is a string containg only letters, numbers and underscores!
             if (!preg_match('/^[a-zA-Z0-9_]+$/', $argv[4])) {
                 cli_err_syntax("\"{$argv[4]}\" - Handler name must be a string containing only letters, numbers and underscores!");
             }
+
+            // Prepare handler folders
+            $handlersD = $dirs['handlers_data'];
+
+            // Check if file already exists in each directory and then retrieve a new unique file name for each dir
+            $uniqueD = cli_get_unique_filename_for_dir($handlersD, $argv[4]);
+
+            // Now add the new route to the correct file based on the method and route type
+            // and also handler to the "handler" array in the route file and create a handler.
+            // We split the handler name on ".php"
+            $singleRoutesData['ROUTES'][$method][$validRoute] = [
+                'handler' => explode(".", $uniqueD)[0],
+            ];
+
+            // Output handler file for each route type
+            $outputHandlerData = file_put_contents(
+                $handlersD . $uniqueD,
+                "<?php\n// Handler for Data: $validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
+            );
+            if ($outputHandlerData) {
+                cli_success_without_exit("Added \"funkphp/handlers/D/$uniqueD\"!");
+            }
+
+            // TODO: Output new Single Route Files with the new route added to them
+            // + then Recompile them (attach middlewares route variables also!)
+
         },
         // Adding Route to only Page Routes
-        'only_page_route' => function () use ($argv, $settings, $singleRoutesPage) {
+        'only_page_route' => function () use ($argv, $settings, $singleRoutesPage, $dirs, $middlewareRoutesPage) {
             if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3]) || !isset($argv[4]) || !is_string($argv[4]) || empty($argv[4])) {
                 cli_err_syntax("No FunkPHP Command was given?!\nShould be at least four(4) non-empty string arguments!");
             }
@@ -430,10 +531,35 @@ $commands = [
                 cli_err_syntax("\"$validRoute\" already exists in $method/Single Page Routes!");
             }
 
-            // TODO: Add the route to the correct file based on the method and route type
+            // Check now that handler $argv[4] is a string containg only letters, numbers and underscores!
             if (!preg_match('/^[a-zA-Z0-9_]+$/', $argv[4])) {
                 cli_err_syntax("\"{$argv[4]}\" - Handler name must be a string containing only letters, numbers and underscores!");
             }
+
+            // Prepare handlers folders
+            $handlersP = $dirs['handlers_pages'];
+
+            // Check if file already exists in each directory and then retrieve a new unique file name for each dir
+            $uniqueP = cli_get_unique_filename_for_dir($handlersP, $argv[4]);
+
+            // Now add the new route to the correct file based on the method and route type
+            // and also handler to the "handler" array in the route file and create a handler.
+            // We split the handler name on ".php"
+            $singleRoutesPage['ROUTES'][$method][$validRoute] = [
+                'handler' => explode(".", $uniqueP)[0],
+            ];
+
+            // Output handler file for each route type
+            $outputHandlerPage = file_put_contents(
+                $handlersP . $uniqueP,
+                "<?php\n// Handler for Page: $validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
+            );
+            if ($outputHandlerPage) {
+                cli_success_without_exit("Added \"funkphp/handlers/P/$uniqueP\"!");
+            }
+
+            // TODO: Output new Single Route Files with the new route added to them
+            // + then Recompile them (attach middlewares route variables also!)
         },
         'mw_route' => function () use ($argv, $outPutDir, $settings, $singleRoutesRoute) {},
         'mw_data' => function () use ($argv, $outPutDir, $settings, $singleRoutesData) {},

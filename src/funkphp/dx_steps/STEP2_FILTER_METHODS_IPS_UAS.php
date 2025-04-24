@@ -34,7 +34,11 @@ if ($c['req']['current_step'] === 2) {
 
     // This is the end of Step 2, you can freely add any other checks you want here!
     // You have all global (meta) data in $c variable, so you can use it as you please!
-    $c['req']['next_step'] = 3; // Set next step to 3 (Step 3)
+    // Maybe you want to globally block specific Content-Type headers or something else?
+
+
+    // Set next step to 3 (Step 3)
+    $c['req']['next_step'] = 3;
 }
 // This sets next step. If you wanna do something more before that, do that before this line!
 $c['req']['current_step'] = $c['req']['next_step'];
