@@ -443,7 +443,7 @@ $commands = [
                 cli_err_syntax("\"$validRoute\" already exists in $method/Single Route Routes!");
             }
 
-            // TODO: Add the route to the correct file based on the method and route type
+            // Check now that handler $argv[4] is a string containg only letters, numbers and underscores!
             if (!preg_match('/^[a-zA-Z0-9_]+$/', $argv[4])) {
                 cli_err_syntax("\"{$argv[4]}\" - Handler name must be a string containing only letters, numbers and underscores!");
             }
