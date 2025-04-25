@@ -35,7 +35,7 @@ function r_match_denied_methods()
     }
 
     // Finally try load blocked methods to match against
-    $methods = include dirname(dirname(__DIR__)) . '../config/BLOCKED_METHODS.php';
+    $methods = include dirname(dirname(__DIR__)) . '/config/BLOCKED_METHODS.php';
     if ($methods === false) {
         return ["err" =>  "[r_match_denied_methods]: Failed to load compiled methods!"];
     }
