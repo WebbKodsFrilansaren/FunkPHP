@@ -586,13 +586,8 @@ function cli_prepare_valid_route_string($addRoute, $test = false)
     // and then parse the rest of the string to build the route and its parameters
     $addRoute = explode("/", $addRoute, 2)[1] ?? null;
     $addRoute = "/" . $addRoute;
-    if ($test) {
-        echo "ChatGPT URI Parser: ";
-        $validRoute = cli_parse_rest_fsm($addRoute);
-    } else {
-        echo "WKFs URI Parser: ";
-        $validRoute = cli_parse_rest_of_valid_route_syntax_better($addRoute);
-    }
+    $validRoute = cli_parse_rest_of_valid_route_syntax_better($addRoute);
+
     return [
         $method,
         $validRoute,
@@ -626,7 +621,7 @@ function cli_extracted_parsed_method_from_valid_start_syntax($routeString)
     return $parsedMethod ?? null;
 }
 
-// ChatGPT Suggested Parser:
+// ChatGPT Suggested Parser 1:
 function cli_parse_rest_fsm(string $routeString): string
 {
     // 1) strip extra slashes, ensure leading /
@@ -723,6 +718,140 @@ function cli_parse_rest_fsm(string $routeString): string
     // trim trailing slash (if it’s not the only char)
     return rtrim($out, '/') ?: '/';
 }
+
+// ChatGPT Suggested Parser 2:
+function cli_parse_parseRoute(string $raw): string
+{
+    // 1) normalize
+    $s = '/' . preg_replace('#/{2,}#', '/', trim($raw, "/ \t\n"));
+    $len = strlen($s);
+
+    // 2) drop illegal start chars after the slash
+    if ($len > 1 && in_array($s[1], [':', '-', '_'], true)) {
+        $s = '/' . substr($s, 2);
+        $len = strlen($s);
+    }
+
+    // prepare FSM
+    $out       = '';
+    $state     = 'SEG_START';
+    $param     = '';
+    $seenParam = [];
+    $allowed   = array_flip(array_merge(range('a', 'z'), range('0', '9')));
+    $seps      = ['-' => 1, '_' => 1];
+
+    for ($i = 0; $i < $len; $i++) {
+        $c = $s[$i];
+        $n = $i + 1 < $len ? $s[$i + 1] : null;
+
+        if ($state === 'SEG_START') {
+            // must be '/'
+            $out   .= '/';
+            $state  = 'IN_STATIC';
+            continue;
+        }
+
+        if ($state === 'IN_STATIC') {
+            if ($c === '/') {
+                // new segment
+                $state = 'SEG_START';
+                $i--;
+                continue;      // re-process slash
+            }
+            if (isset($seps[$c])) {
+                // only allow '-' or '_' if next is alnum
+                if (isset($allowed[$n])) {
+                    $out   .= $c;
+                }
+                continue;
+            }
+            if ($c === ':' && isset($allowed[$n])) {
+                $state = 'IN_PARAM';
+                $param = '';
+                $out   .= ':';
+                continue;
+            }
+            if (isset($allowed[$c])) {
+                $out   .= $c;
+            }
+            continue;
+        }
+
+        if ($state === 'IN_PARAM') {
+            // end of param on slash or end-of-string
+            if ($c === '/' || $n === null) {
+                // drop trailing sep in param
+                $param = rtrim($param, '-_');
+                if ($param !== '' && !in_array($param, $seenParam, true)) {
+                    $seenParam[] = $param;
+                    $out        .= $param;
+                }
+                // transition
+                if ($c === '/') {
+                    $state = 'SEG_START';
+                    $i--;
+                    continue;
+                }
+                break;  // done parsing
+            }
+            // accumulate valid param char
+            if (isset($allowed[$c])) {
+                $param .= $c;
+            }
+            // else skip it
+            continue;
+        }
+    }
+
+    // 4) final trim
+    $out = rtrim($out, "/-_");
+    return $out === '' ? '/' : $out;
+}
+
+// ChatGPT Suggested Parser 3:
+function parseRouteBySegment(string $raw): string
+{
+    // normalize slashes
+    $norm = '/' . preg_replace('#/{2,}#', '/', trim($raw, "/ \t\n"));
+    $parts = explode('/', trim($norm, '/'));
+    $seen  = [];
+    $out   = [];
+
+    foreach ($parts as $seg) {
+        // drop any leading/trailing bugs
+        $seg = preg_replace('#[^a-z0-9:_-]#', '', strtolower($seg));
+        $seg = trim($seg, ":-_");             // no leading/trailing colon/sep
+
+        // collapse multiple ":" into one, keep only the *last* param
+        if (substr_count($seg, ':') > 1) {
+            $pieces = array_filter(explode(':', $seg));
+            $seg    = ':' . array_pop($pieces);
+        }
+
+        // if it’s a param, track duplicates
+        if (str_starts_with($seg, ':')) {
+            $name = substr($seg, 1);
+            if ($name !== '' && !in_array($name, $seen, true)) {
+                $seen[] = $name;
+            } else {
+                continue;  // skip empty or duplicate
+            }
+        }
+        // static piece can’t start with sep
+        else {
+            if (in_array($seg[0] ?? '', ['-', '_'], true)) {
+                $seg = ltrim($seg, '-_');
+            }
+        }
+
+        if ($seg !== '') {
+            $out[] = $seg;
+        }
+    }
+
+    return '/' . implode('/', $out);
+}
+
 
 // Parse the rest of the route string after the method has been extracted
 // and return the valid built route string with
