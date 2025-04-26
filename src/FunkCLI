@@ -360,8 +360,13 @@ $commands = [
 
             // Prepare the route string by trimming, validating starting, ending and middle parts of it
             $addRoute = trim(strtolower($argv[3]));
-            echo "\nROUTE BEFORE PARSE: " . "\"$addRoute\"" . "\n";
+            echo "\nWKF-ROUTE BEFORE PARSE: " . "\"$addRoute\"" . "\n";
             [$method, $validRoute] = cli_prepare_valid_route_string($addRoute);
+            echo "\nWKF-ROUTE AFTER PARSE: " . "\"$validRoute\"" . "\n";
+            echo "\nGPT-ROUTE BEFORE PARSE: " . "\"$addRoute\"" . "\n";
+            [$method, $validRoute] = cli_prepare_valid_route_string($addRoute, true);
+            echo "\nGPT-ROUTE AFTER PARSE: " . "\"$validRoute\"" . "\n";
+            exit;
 
             // Check Route is not used currently in ALL 3 Main Single Route Files!
             if (isset($singleRoutesRoute['ROUTES'][$method][$validRoute]) ?? null) {

@@ -570,7 +570,7 @@ function cli_valid_route_start_syntax($routeString)
 }
 
 // Prepares a valid route string to by validating starting syntax and extracting the method from it
-function cli_prepare_valid_route_string($addRoute)
+function cli_prepare_valid_route_string($addRoute, $test = false)
 {
     // Grab the route to add and validate correct starting syntax
     // first: get/put/post/delete/ or its short form g/pu/po/d/
@@ -586,8 +586,13 @@ function cli_prepare_valid_route_string($addRoute)
     // and then parse the rest of the string to build the route and its parameters
     $addRoute = explode("/", $addRoute, 2)[1] ?? null;
     $addRoute = "/" . $addRoute;
-
-    $validRoute = cli_parse_rest_of_valid_route_syntax($addRoute);
+    if ($test) {
+        echo "ChatGPT URI Parser: ";
+        $validRoute = cli_parse_rest_fsm($addRoute);
+    } else {
+        echo "WKFs URI Parser: ";
+        $validRoute = cli_parse_rest_of_valid_route_syntax_better($addRoute);
+    }
     return [
         $method,
         $validRoute,
@@ -619,6 +624,335 @@ function cli_extracted_parsed_method_from_valid_start_syntax($routeString)
         $parsedMethod = "DELETE";
     }
     return $parsedMethod ?? null;
+}
+
+// ChatGPT Suggested Parser:
+function cli_parse_rest_fsm(string $routeString): string
+{
+    // 1) strip extra slashes, ensure leading /
+    $routeString = '/' . preg_replace('#/{2,}#', '/', trim($routeString, '/'));
+
+    $state      = 'SLASH';
+    $out        = '';
+    $lastChar   = '';
+    $curParam   = '';
+    $seenParams = [];
+    $allowed    = array_flip(array_merge(range('a', 'z'), range('0', '9')));
+    $seps       = ['-' => 1, '_' => 1];
+
+    $len = strlen($routeString);
+    for ($i = 0; $i < $len; $i++) {
+        $c  = $routeString[$i];
+        $n  = ($i + 1 < $len ? $routeString[$i + 1] : null);
+
+        switch ($state) {
+
+            case 'SLASH':
+                // we just saw a slash, accept it
+                $out      .= '/';
+                $lastChar  = '/';
+                $state     = 'STATIC';
+                break;
+
+            case 'STATIC':
+                if ($c === '/') {
+                    // repeated slash? skip
+                    if ($lastChar === '/') break;
+                    $state = 'SLASH';
+                    $i--;   // re-process this slash in SLASH state
+                    break;
+                }
+                if (isset($seps[$c])) {
+                    // no two separators in a row, and not at segment start
+                    if (in_array($lastChar, ['/', '-', '_'], true)) break;
+                    $out      .= $c;
+                    $lastChar  = $c;
+                    break;
+                }
+                if ($c === ':') {
+                    // colon can appear only if next is a valid param-char
+                    if (isset($allowed[$n])) {
+                        $out      .= ':';
+                        $lastChar  = ':';
+                        $state     = 'PARAM';
+                        $curParam  = '';
+                    }
+                    break;
+                }
+                if (isset($allowed[$c])) {
+                    // normal static char
+                    $out      .= $c;
+                    $lastChar  = $c;
+                }
+                // else skip invalid
+                break;
+
+            case 'PARAM':
+                if (isset($allowed[$c])) {
+                    // append to param name
+                    $curParam .= $c;
+                    // but don’t append to $out until we know it’s valid
+                } elseif ($c === '/' || $n === null) {
+                    // end of param
+                    // 1) trim trailing sep from name
+                    $curParam = rtrim($curParam, '-_');
+                    // 2) reject empty or duplicate
+                    if ($curParam === '') break;
+                    if (in_array($curParam, $seenParams, true)) {
+                        cli_err_syntax("Duplicate parameter “{$curParam}”");
+                    }
+                    $seenParams[] = $curParam;
+                    // 3) commit to $out
+                    $out .= $curParam;
+                    $lastChar = substr($out, -1);
+                    // 4) transition
+                    $state = ($c === '/') ? 'SLASH' : 'END';
+                    if ($state === 'SLASH') {
+                        $i--; // reprocess slash
+                    }
+                }
+                // else skip invalid param chars
+                break;
+
+            case 'END':
+                // after finishing param at end, drop anything else
+                break 2;
+        }
+    }
+
+    // trim trailing slash (if it’s not the only char)
+    return rtrim($out, '/') ?: '/';
+}
+
+// Parse the rest of the route string after the method has been extracted
+// and return the valid built route string with
+function cli_parse_rest_of_valid_route_syntax_better($routeString)
+{
+    // Variables for states and possible characters
+    $BUILTRoute = "";
+    $lastAddedC = "";
+    $BUILTParam = "";
+    $PARAMS = [];
+    $IN_DYNAMIC = false;
+    $IN_STATIC = false;
+    $NEW_SEGMENT = false;
+    $NUMS_N_CHARS = array_flip(
+        array_merge(
+            range('a', 'z'),
+            range('0', '9'),
+        )
+    );
+    $SEPARATORS = [
+        "-" => [],
+        "_" => [],
+    ];
+    $PARAM_CHAR = [":" => []];
+    // Prepare segments by splitting the route string
+    //  by "/" and also deleting empty segments
+    $path = trim($routeString, '/');
+    $uriSegments = empty($path) ? [] : array_values(array_filter(explode('/', $path)));
+    // Edge case: if the route string is empty, we just return "/"
+    if (count($uriSegments) === 0) {
+        return "/";
+    }
+    // Implode again and add a "/" to the beginning of the string
+    $path = "/" . implode("/", $uriSegments);
+    $len = strlen($path);
+    // We now loop through.
+    for ($i = 0; $i < $len; $i++) {
+        $c = $path[$i];
+        // Special case: only one character in the string which means we just
+        // return "/"
+        if ($len === 1) {
+            return "/";
+        }
+        // First char is ALWAYS a "/"!
+        if ($i === 0) {
+            $BUILTRoute .= "/";
+            $lastAddedC = "/";
+            $NEW_SEGMENT = true;
+            continue;
+        }
+        // Check if we are at the end of the string
+        if ($i === $len - 1) {
+            // Only allowed chars are: NUMS_N_CHARS
+            if (isset($NUMS_N_CHARS[$c])) {
+                $BUILTRoute .= $c;
+                $lastAddedC = $c;
+                // Check if we in param building and if so, we
+                // add the param to the params array unless it already exists
+                if ($IN_DYNAMIC) {
+                    $BUILTParam .= $c;
+                    if (in_array($BUILTParam, $PARAMS)) {
+                        cli_err_syntax("Duplicate parameter found in Route: \"$BUILTParam\"!");
+                    }
+                    $PARAMS[] = $BUILTParam;
+                    $BUILTParam = "";
+                }
+                continue;
+            }
+            // Since we are at the end of the string, we check
+            // if in dynamic building and if so, we add the
+            //  param to the params array unless it already exists
+            if ($IN_DYNAMIC) {
+                if (in_array($BUILTParam, $PARAMS)) {
+                    cli_err_syntax("Duplicate parameter found in Route: \"$BUILTParam\"!");
+                }
+                if ($BUILTParam !== "") {
+                    // Check if built param ends with "_" or "-" and remove it
+                    if (isset($SEPARATORS[$BUILTParam[strlen($BUILTParam) - 1]])) {
+                        $BUILTParam = substr($BUILTParam, 0, -1);
+                    }
+                    $PARAMS[] = $BUILTParam;
+                }
+                $BUILTParam = "";
+            }
+            // This is last character so let's check if it ends with "/", "_" or "-" and remove it
+            if (isset($SEPARATORS[$c]) || isset($PARAM_CHAR[$c])) {
+                //$BUILTRoute = substr($BUILTRoute, 0, -1);
+            }
+            continue;
+        }
+        // First check if we are inside of a new segment building
+        if ($NEW_SEGMENT) {
+            // If new segment, then only allowed chars are: NUMS_N_CHARS or PARAM_CHAR
+            if (isset($NUMS_N_CHARS[$c])) {
+                $BUILTRoute .= $c;
+                $lastAddedC = $c;
+                $NEW_SEGMENT = false;
+                $IN_STATIC = true;
+                continue;
+            }
+            // Here a new ":" param starts!
+            if (isset($PARAM_CHAR[$c])) {
+                $BUILTRoute .= $c;
+                $lastAddedC = $c;
+                $NEW_SEGMENT = false;
+                $IN_DYNAMIC = true;
+                continue;
+            }
+
+            // Continue cause no allowed char is found!
+            continue;
+        }
+        // Check if we are inside of a parameter building (meaning the previous char was ":")
+        if ($IN_DYNAMIC) {
+            // Check if next is a "/" meaning we reached the end of the static segment
+            if ($c === "/") {
+                // Here we check if the last added char was a separator too so we remove it
+                // from the built route string before adding the "/", also from param string
+                if (isset($SEPARATORS[$lastAddedC]) || isset($SEPARATORS[$c])) {
+                    $BUILTRoute = substr($BUILTRoute, 0, -1);
+                    $BUILTParam = substr($BUILTParam, 0, -1);
+                }
+                // Edge case when ":" appears right before "/"
+                if ($lastAddedC === ":") {
+                    $BUILTRoute = substr($BUILTRoute, 0, -1);
+                    $IN_DYNAMIC = false;
+                    $NEW_SEGMENT = true;
+                    continue;
+                }
+                $BUILTRoute .= $c;
+                $lastAddedC = $c;
+                $IN_DYNAMIC = false;
+                $NEW_SEGMENT = true;
+                // We add the param to the params array unless it already exists
+                if (in_array($BUILTParam, $PARAMS)) {
+                    cli_err_syntax("Duplicate parameter found: $BUILTParam!");
+                }
+                // Add and reset the param string if not empty
+                if ($BUILTParam !== "") {
+                    $PARAMS[] = $BUILTParam;
+                }
+                $BUILTParam = "";
+                continue;
+            }
+            if (isset($NUMS_N_CHARS[$c])) {
+                $BUILTRoute .= $c;
+                $BUILTParam .= $c;
+                $lastAddedC = $c;
+                continue;
+            }
+            // In static, we only allow a separator char if the last added char was a separator too
+            // like "_" or "-" and if so, we check if the current char is a separator too
+            // meaning we will just ignore the current char and continue
+            if ((isset($SEPARATORS[$lastAddedC]) || isset($PARAM_CHAR[$lastAddedC])) && isset($SEPARATORS[$c])) {
+                continue;
+            }
+            // We allow a separator char if the last added char was a num or char
+            // and if so, we check if the current char is a separator too
+            if (!isset($SEPARATORS[$lastAddedC]) && isset($SEPARATORS[$c])) {
+                $BUILTRoute .= $c;
+                $BUILTParam .= $c;
+                $lastAddedC = $c;
+                continue;
+            }
+        }
+        // Check if we are inside of a static building
+        if ($IN_STATIC) {
+            // Check if next is a "/" meaning we reached the end of the static segment
+            if ($c === "/") {
+                // Here we check if the last added char was a separator too so we remove it
+                // from the built route string before adding the "/"
+                if (isset($SEPARATORS[$lastAddedC]) || isset($SEPARATORS[$c])) {
+                    $BUILTRoute = substr($BUILTRoute, 0, -1);
+                }
+                $BUILTRoute .= $c;
+                $lastAddedC = $c;
+                $IN_STATIC = false;
+                $NEW_SEGMENT = true;
+                continue;
+            }
+            // In static, we first check if current char is just a num or char
+            // and if so, we just add it to the built route string
+            if (isset($NUMS_N_CHARS[$c])) {
+                $BUILTRoute .= $c;
+                $lastAddedC = $c;
+                continue;
+            }
+            // In static, we only allow a separator char if the last added char was a separator too
+            // like "_" or "-" and if so, we check if the current char is a separator too
+            // meaning we will just ignore the current char and continue
+            if (isset($SEPARATORS[$lastAddedC]) && isset($SEPARATORS[$c])) {
+                continue;
+            }
+            // We allow a separator char if the last added char was a num or char
+            // and if so, we check if the current char is a separator too
+            if (!isset($SEPARATORS[$lastAddedC]) && isset($SEPARATORS[$c])) {
+                $BUILTRoute .= $c;
+                $lastAddedC = $c;
+                continue;
+            }
+        }
+    }
+    // If more than 1 params, first extract last param from the params array
+    // then check if it ends with "-" or "_" and if so, we remove it from that
+    // param and check if both params are the same and thus throw error
+    // otherwise add it again!
+    if (count($PARAMS) > 1) {
+        $lastParam = array_pop($PARAMS);
+        if (isset($SEPARATORS[$lastParam[strlen($lastParam) - 1]])) {
+            $lastParam = substr($lastParam, 0, -1);
+            if (in_array($lastParam, $PARAMS)) {
+                cli_err_syntax("Duplicate parameter found: $lastParam!");
+            }
+            $PARAMS[] = $lastParam;
+        } else {
+            if (in_array($lastParam, $PARAMS)) {
+                cli_err_syntax("Duplicate parameter found: $lastParam!");
+            }
+            $PARAMS[] = $lastParam;
+        }
+    }
+    // We now remove  "/:" or "/" trailing at the end of the string
+    if (strlen($BUILTRoute) > 2) {
+        if (str_ends_with($BUILTRoute, "/:")) {
+            $BUILTRoute = substr($BUILTRoute, 0, -2);
+        } elseif (str_ends_with($BUILTRoute, "/")) {
+            $BUILTRoute = substr($BUILTRoute, 0, -1);
+        }
+    }
+    return $BUILTRoute;
 }
 
 // Parse the rest of the route string after the method has been extracted
@@ -762,6 +1096,8 @@ function cli_parse_rest_of_valid_route_syntax($routeString)
 
     return $entireBuiltRoute;
 }
+
+
 
 // CLI Functions to show errors and success messages with colors
 function cli_err_syntax($string)
