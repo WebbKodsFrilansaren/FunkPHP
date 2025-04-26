@@ -363,7 +363,6 @@ $commands = [
             echo "ROUTE BEFORE PARSE: " . "\"$addRoute\"" . "\n";
             [$method, $validRoute] = cli_prepare_valid_route_string($addRoute);
             echo "\nAFTER PARSE: " . "\"$validRoute\"" . "\n";
-            exit;
 
             // Check Route is not used currently in ALL 3 Main Single Route Files!
             if (isset($singleRoutesRoute['ROUTES'][$method][$validRoute]) ?? null) {
@@ -405,15 +404,15 @@ $commands = [
             // Output handler file for each route type
             $outputHandlerRoute = file_put_contents(
                 $handlersR . $uniqueR,
-                "<?php\n// Handler for Route: $validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
+                "<?php\n// Handler for Route: $method$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
             );
             $outputHandlerData = file_put_contents(
                 $handlersD . $uniqueD,
-                "<?php\n// Handler for Data: $validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
+                "<?php\n// Handler for Data: $method$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
             );
             $outputHandlerPage = file_put_contents(
                 $handlersP . $uniqueP,
-                "<?php\n// Handler for Page: $validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
+                "<?php\n// Handler for Page: $method$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
             );
             if ($outputHandlerRoute) {
                 cli_success_without_exit("Added \"funkphp/handlers/R/$uniqueR\"!");
