@@ -837,11 +837,19 @@ function cli_parse_rest_of_valid_route_syntax_better($routeString)
             $PARAMS[] = $lastParam;
         }
     }
-    // We now remove  "/:" or "/" trailing at the end of the string
+    if ($BUILTRoute === "" || $BUILTRoute === "/:") {
+        $BUILTRoute = "/";
+    }
+    // We now remove "/:", "/", "-", "_" trailing at the end of the string
     if (strlen($BUILTRoute) > 2) {
         if (str_ends_with($BUILTRoute, "/:")) {
             $BUILTRoute = substr($BUILTRoute, 0, -2);
-        } elseif (str_ends_with($BUILTRoute, "/")) {
+        } elseif (
+            str_ends_with($BUILTRoute, "/")
+            || str_ends_with($BUILTRoute, ":")
+            || str_ends_with($BUILTRoute, "-")
+            || str_ends_with($BUILTRoute, "_")
+        ) {
             $BUILTRoute = substr($BUILTRoute, 0, -1);
         }
     }
