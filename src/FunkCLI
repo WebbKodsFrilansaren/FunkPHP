@@ -363,6 +363,7 @@ $commands = [
             echo "ROUTE BEFORE PARSE: " . "\"$addRoute\"" . "\n";
             [$method, $validRoute] = cli_prepare_valid_route_string($addRoute);
             echo "\nAFTER PARSE: " . "\"$validRoute\"" . "\n";
+            exit;
 
             // Check Route is not used currently in ALL 3 Main Single Route Files!
             if (isset($singleRoutesRoute['ROUTES'][$method][$validRoute]) ?? null) {
