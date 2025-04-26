@@ -673,6 +673,7 @@ function cli_parse_rest_of_valid_route_syntax_better($routeString)
         // Check if we are at the end of the string
         if ($i === $len - 1) {
             // Only allowed chars are: NUMS_N_CHARS
+            echo "BUILTRoute: $BUILTRoute\n";
             if (isset($NUMS_N_CHARS[$c])) {
                 $BUILTRoute .= $c;
                 $lastAddedC = $c;
