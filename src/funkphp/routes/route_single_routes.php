@@ -1,4 +1,4 @@
-<?php // ROUTE_SINGLE_ROUTES.PHP - FunkPHP Framework | This File Was Modified In FunkCLI 2025-04-27 05:51:03
+<?php // ROUTE_SINGLE_ROUTES.PHP - FunkPHP Framework | This File Was Modified In FunkCLI 2025-04-27 05:56:17
 return  [
   'ROUTES' =>
   [
@@ -7,10 +7,6 @@ return  [
       '/' =>
       [
         'handler' => 'ROOT_get_create_user',
-      ],
-      '/tests' =>
-      [
-        'handler' => 'get_test',
       ],
       '/users/:id' =>
       [
@@ -34,6 +30,10 @@ return  [
       '/users/:id' =>
       [
         'handler' => 'post_update_user',
+      ],
+      '/users2' =>
+      [
+        'handler' => 'users_p',
       ],
     ],
     'PUT' =>

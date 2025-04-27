@@ -88,7 +88,7 @@ function r_run_middleware_after_matched_routing(&$c)
 
             // Only run middleware if dir, file and callable,
             // then run it and increment the number of ran middlewares
-            $mwDir = dirname(dirname(__DIR__)) . '/middlewares/';
+            $mwDir = dirname(dirname(__DIR__)) . '/middlewares/R/';
             $mwToRun = $mwDir . $current_mw . '.php';
             if (is_dir($mwDir) && file_exists($mwToRun)) {
                 $RunMW = include $mwToRun;
@@ -131,245 +131,6 @@ function r_run_middleware_after_matched_routing(&$c)
 function r_exit_middleware_running_early_matched_routing(&$c)
 {
     $c['req']['keep_running_middlewares'] === false;
-}
-
-// Try match against denied UAs globally (slower version apparently)
-function r_match_denied_uas_slow_test($ua)
-{
-    // Return null if $ua is invalid UA variable
-    if ($ua === "" || $ua === null || !is_string($ua)) {
-        return null;
-    }
-    $startTime = microtime(true);
-
-    // Load compiled UAs from file
-    $uas = include dirname(__DIR__) . '/compiled/uas.php';
-    if ($uas === false) {
-        return ["err" =>  "[r_match_denied_uas]: Failed to load compiled UAs!"];
-    }
-
-    // First we lowercase the $ua and prepare to store the positions of the "ible" and "bot" words
-    $ua = mb_strtolower($ua);
-    $uaArrayToCompareAgainst = [];
-    $ibleArr = [];
-    $ible1Word = [];
-    $ible2Words = [];
-    $ible3Words = [];
-    $ible4Words = [];
-    $ible5Words = [];
-    $bot1WordLeft = [];
-    $bot2WordsLeft = [];
-    $bot3WordsLeft = [];
-    $bot4WordsLeft = [];
-    $bot5WordsLeft = [];
-    $botArr = [];
-    $iblePos = -1;
-    $botPos = -1;
-
-    // Iteriate through the $ua string and check for the "ible" and "bot" words
-    $len = mb_strlen($ua);
-    for ($i = 0; $i < $len; $i++) {
-        $char = $ua[$i];
-
-        // For "ible;"
-        if ($iblePos === -1) {
-            if ($char === 'i' && count($ibleArr) === 0) {
-                $ibleArr[] = 'i';
-            } elseif ($char === 'b' && count($ibleArr) === 1 && isset($ua[$i - 1]) && $ua[$i - 1] === 'i') {
-                $ibleArr[] = 'b';
-            } elseif ($char === 'l' && count($ibleArr) === 2 && isset($ua[$i - 1]) && $ua[$i - 1] === 'b' && isset($ua[$i - 2]) && $ua[$i - 2] === 'i') {
-                $ibleArr[] = 'l';
-            } elseif ($char === 'e' && count($ibleArr) === 3 && isset($ua[$i - 1]) && $ua[$i - 1] === 'l' && isset($ua[$i - 2]) && $ua[$i - 2] === 'b' && isset($ua[$i - 3]) && $ua[$i - 3] === 'i') {
-                $ibleArr[] = 'e';
-            } elseif ($char === ';' && count($ibleArr) === 4 && isset($ua[$i - 1]) && $ua[$i - 1] === 'e' && isset($ua[$i - 2]) && $ua[$i - 2] === 'l' && isset($ua[$i - 3]) && $ua[$i - 3] === 'b' && isset($ua[$i - 4]) && $ua[$i - 4] === 'i') {
-                $iblePos = $i;
-                $ibleArr = [];
-            } else if ($char !== 'i') {
-                $ibleArr = []; // Reset if the sequence breaks
-            }
-        }
-
-        // For "bot"
-        if ($botPos === -1) {
-            if ($char === 'b' && count($botArr) === 0) {
-                $botArr[] = 'b';
-            } elseif ($char === 'o' && count($botArr) === 1 && isset($ua[$i - 1]) && $ua[$i - 1] === 'b') {
-                $botArr[] = 'o';
-            } elseif ($char === 't' && count($botArr) === 2 && isset($ua[$i - 1]) && $ua[$i - 1] === 'o' && isset($ua[$i - 2]) && $ua[$i - 2] === 'b') {
-                $botPos = $i;
-                $botArr = [];
-            } else if ($char !== 'b') {
-                $botArr = []; // Reset if the sequence breaks
-            }
-        }
-    }
-
-    // Now we check if we found positions for both "ible"
-    // and "bot" and store them to use for next 2-3 loops!
-    $iblePos = $iblePos !== -1 ? $iblePos : -1;
-    $botPos = $botPos !== -1 ? $botPos : -1;
-
-    // If both are -1 return false, meaning we found no starting point for the next loops!
-    if ($iblePos === -1 && $botPos === -1) {
-        return false;
-    }
-
-    // Check for  " " after ";" to increase iblePos by 1
-    if ($iblePos !== -1 && isset($ua[$iblePos + 1])  && $ua[$iblePos + 1] === " ") {
-        $iblePos += 1;
-    }
-
-    // LOOP 1: Starting at "iblePos" and adding one character
-    // to all 5 arrays ($ible1Word, $ible2Words, etc.) with "ible"
-    // So we just check if the next character is a space or a semicolon or /
-    $currentWord = []; // Adds one character a time
-    for ($k = $iblePos; $k < $len; $k++) {
-        // If not reached the end or found ";" or "/"
-        if (isset($ua[$k])) {
-            $char = $ua[$k];
-            if ($char === ";" || $char === "/" || $char == "(") {
-                if (count($currentWord) > 0) {
-                    // Stringify current array word and push to all not full arrays
-                    $currentWordStr = implode("", $currentWord);
-                    if (count($ible1Word) < 1) {
-                        $ible1Word[] = $currentWordStr;
-                    }
-                    if (count($ible2Words) < 2) {
-                        $ible2Words[] = $currentWordStr;
-                    }
-                    if (count($ible3Words) < 3) {
-                        $ible3Words[] = $currentWordStr;
-                    }
-                    if (count($ible4Words) < 4) {
-                        $ible4Words[] = $currentWordStr;
-                    }
-                    if (count($ible5Words) < 5) {
-                        $ible5Words[] = $currentWordStr;
-                    }
-                }
-                // Exit loop cause we found typical ending characters of AI UA
-                break;
-            }
-            // We now found a space meaning we can add the current word to each array is not full yet
-            // meaning checking the count of each $ible1Word array (should be count less < 1) and so on.
-            elseif ($char === " ") {
-                if (count($currentWord) > 0) {
-                    // Stringify current array word and push to all not full arrays
-                    $currentWordStr = implode("", $currentWord);
-                    if (count($ible1Word) < 1) {
-                        $ible1Word[] = $currentWordStr;
-                    }
-                    if (count($ible2Words) < 2) {
-                        $ible2Words[] = $currentWordStr;
-                    }
-                    if (count($ible3Words) < 3) {
-                        $ible3Words[] = $currentWordStr;
-                    }
-                    if (count($ible4Words) < 4) {
-                        $ible4Words[] = $currentWordStr;
-                    }
-                    if (count($ible5Words) < 5) {
-                        $ible5Words[] = $currentWordStr;
-                    }
-                    $currentWord = []; // Reset the current word array for next iteration
-                }
-            } // Just add the current character to the current word array
-            else {
-                $currentWord[] = $char; // Add the character to the current word
-            }
-        }
-    }
-    // Now we add to $uaArrayToCompareAgainst with the $ible1Word, $ible2Words, etc.
-    if (count($ible1Word) > 0) {
-        $uaArrayToCompareAgainst[] = $ible1Word[0];
-    }
-    if (count($ible2Words) > 0) {
-        $uaArrayToCompareAgainst[] = count($ible2Words) > 1 ? implode(" ", $ible2Words) : $ible2Words[0];
-    }
-    if (count($ible3Words) > 0) {
-        $uaArrayToCompareAgainst[] = count($ible3Words) > 1 ? implode(" ", $ible3Words) : $ible3Words[0];
-    }
-    if (count($ible4Words) > 0) {
-        $uaArrayToCompareAgainst[] = count($ible4Words) > 1 ? implode(" ", $ible4Words) : $ible4Words[0];
-    }
-    if (count($ible5Words) > 0) {
-        $uaArrayToCompareAgainst[] = count($ible5Words) > 1 ? implode(" ", $ible5Words) : $ible5Words[0];
-    }
-
-    // LOOP 2: Starting at "botPos" and extracting up to 5 words to the right
-    $currentWordLeft = [];
-    for ($l = $botPos; $l < $len; $l--) {
-        // If not reached the end or found ";" or "/"
-        if (isset($ua[$l])) {
-            $char = $ua[$l];
-            if ($char === ";" || $char === "/") {
-                if (count($currentWordLeft) > 0) {
-                    // Stringify current array word and push to all not full arrays
-                    $currentWordStr = implode("", array_reverse($currentWordLeft));
-                    if (count($bot1WordLeft) < 1) {
-                        $bot1WordLeft[] = $currentWordStr;
-                    }
-                    if (count($bot2WordsLeft) < 2) {
-                        $bot2WordsLeft[] = $currentWordStr;
-                    }
-                    if (count($bot3WordsLeft) < 3) {
-                        $bot3WordsLeft[] = $currentWordStr;
-                    }
-                    if (count($bot4WordsLeft) < 4) {
-                        $bot4WordsLeft[] = $currentWordStr;
-                    }
-                    if (count($bot5WordsLeft) < 5) {
-                        $bot5WordsLeft[] = $currentWordStr;
-                    }
-                }
-                // Exit loop cause we found typical ending characters of AI UA
-                break;
-            }
-            // We now found a space meaning we can add the current word to each array is not full yet
-            // meaning checking the count of each $bot1Word array (should be count less < 1) and so on.
-            elseif ($char === " ") {
-                if (count($currentWordLeft) > 0) {
-                    // Stringify current array word and push to all not full arrays
-                    $currentWordStr = implode("", array_reverse($currentWordLeft));
-                    if (count($bot1WordLeft) < 1) {
-                        $bot1WordLeft[] = $currentWordStr;
-                    }
-                    if (count($bot2WordsLeft) < 2) {
-                        $bot2WordsLeft[] = $currentWordStr;
-                    }
-                    if (count($bot3WordsLeft) < 3) {
-                        $bot3WordsLeft[] = $currentWordStr;
-                    }
-                    if (count($bot4WordsLeft) < 4) {
-                        $bot4WordsLeft[] = $currentWordStr;
-                    }
-                    if (count($bot5WordsLeft) < 5) {
-                        $bot5WordsLeft[] = $currentWordStr;
-                    }
-                    $currentWordLeft = []; // Reset the current word array for next iteration
-                }
-            } // Just add the current character to the current word array
-            else {
-                $currentWordLeft[] = $char; // Add the character to the current word
-            }
-        }
-    }
-
-    // Add Left-side bot words to the comparison array
-    if (count($bot1WordLeft) > 0) $uaArrayToCompareAgainst[] = $bot1WordLeft[0];
-    if (count($bot2WordsLeft) > 0) $uaArrayToCompareAgainst[] = count($bot2WordsLeft) > 1 ? implode(" ", $bot2WordsLeft) : $bot2WordsLeft[0];
-    if (count($bot3WordsLeft) > 0) $uaArrayToCompareAgainst[] = count($bot3WordsLeft) > 1 ? implode(" ", $bot3WordsLeft) : $bot3WordsLeft[0];
-    if (count($bot4WordsLeft) > 0) $uaArrayToCompareAgainst[] = count($bot4WordsLeft) > 1 ? implode(" ", $bot4WordsLeft) : $bot4WordsLeft[0];
-    if (count($bot5WordsLeft) > 0) $uaArrayToCompareAgainst[] = count($bot5WordsLeft) > 1 ? implode(" ", $bot5WordsLeft) : $bot5WordsLeft[0];
-
-    // Loop through $uaArrayToCompareAgainst and compare against hashed $uas array
-    // True = match found, false = no match found
-    foreach ($uaArrayToCompareAgainst as $uaWord) {
-        if (isset($uas[$uaWord])) {
-            return true;
-        }
-    }
-    return false;
 }
 
 // Try match against denied UAs globally (str_contains version, faster)
@@ -583,6 +344,25 @@ function r_match_developer_route(string $method, string $uri, array $compiledRou
         "middlewares" => $matchedMiddlewareHandlers,
         "no_match_in" => $noMatchIn, // Use as debug value
     ];
+}
+
+// Run the matched route handler (Step 3 after matched routing in Routes Route)
+function r_run_matched_route_handler(&$c)
+{
+    // Grab Route Handler Path and check that it exists, is readable and callable and only then run it
+    $handlerPath = dirname(dirname(__DIR__)) . '/handlers/R/' . ($c['req']['matched_handler_route'] ? $c['req']['matched_handler_route'] : "") . '.php';
+    if (file_exists($handlerPath) && is_readable($handlerPath)) {
+        $runHandler = include $handlerPath;
+        if (is_callable($runHandler)) {
+            $runHandler($c);
+        }  // Handle error: not callable
+        else {
+            echo "[r_run_matched_route_handler]: Handler is not callable!";
+        }
+    } // Handle error: file not found or not readable
+    else {
+        echo "[r_run_matched_route_handler]: Handler file not found or not readable!";
+    }
 }
 
 

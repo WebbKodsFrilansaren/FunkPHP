@@ -613,7 +613,7 @@ function cli_add_route_batch($arrayOfRoutesToAdd)
                     . cli_convert_array_to_simple_syntax($singleRoutesPage)
             );
             if ($outputPageSingleFile) {
-                cli_success_without_exit("Added Route \"$method$validRoute\" to Single Routes Data \"funkphp/pages/page_single_routes.php\" with Page Handler \"$handlerP\"!");
+                cli_success_without_exit("Added Route \"$method$validRoute\" to Single Routes Page \"funkphp/pages/page_single_routes.php\" with Page Handler \"$handlerP\"!");
             }
             $compiledPageRoutes = cli_build_compiled_routes($singleRoutesPage['ROUTES'], $middlewareRoutesPage['MIDDLEWARES']);
             cli_output_compiled_routes($compiledPageRoutes, "troute_page");
@@ -700,7 +700,7 @@ function cli_add_route_batch($arrayOfRoutesToAdd)
                     . cli_convert_array_to_simple_syntax($singleRoutesPage)
             );
             if ($outputPageSingleFile) {
-                cli_success_without_exit("Added Route \"$method$validRoute\" to Single Routes Data \"funkphp/pages/page_single_routes.php\" with Page Handler \"$handlerP\"!");
+                cli_success_without_exit("Added Route \"$method$validRoute\" to Single Routes Page \"funkphp/pages/page_single_routes.php\" with Page Handler \"$handlerP\"!");
             }
             $compiledPageRoutes = cli_build_compiled_routes($singleRoutesPage['ROUTES'], $middlewareRoutesPage['MIDDLEWARES']);
             cli_output_compiled_routes($compiledPageRoutes, "troute_page");

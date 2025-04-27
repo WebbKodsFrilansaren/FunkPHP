@@ -32,12 +32,18 @@ if ($c['req']['current_step'] === 3) {
     $c['req']['no_matched_in'] = $FPHP_MATCHED_ROUTE['no_match_in'];
     unset($FPHP_MATCHED_ROUTE);
 
-    // TODO: Add function that runs the handler key for matched route step!
-    // INFO: Unsure of the flow if MWs first before handler or viceversa?
-    // TODO 2: Also add to STEP 4 & 5 for similar Handlers!
+    // Run the matched route handler if it exists and is not empty.
+    // Even if not null, file may not exist; the function checks that.
+    if ($c['req']['matched_handler_route'] !== null) {
+        r_run_matched_route_handler($c);
+    }
+    // matched_handler_route doesn't exist? What then or just move on?
+    else {
+    }
 
-
-    // GOTO: "funkphp/middlewares/" and copy&paste the "_TEMPLATE.php" file to create your own middlewares!
+    // GOTO: "funkphp/middlewares/R/" and copy&paste the "_TEMPLATE.php" file to create your own middlewares!
+    // OR use the FunkCLI "php funkcli add mw:middleware_name route|METHOD/route_path"
+    // You specificy "route|" first to indicate ofr what type of route you want to create a middleware for.
     // Check that middlewares array exists and is not empty in $c global variable
     // Then run each middleware in the order they are defined as long as keep_running_mws is true.
     // After each run, remove it from the array to avoid running it again.

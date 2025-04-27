@@ -45,7 +45,7 @@ function d_run_middleware_after_matched_data_routing(&$c)
 
             // Only run middleware if dir, file and callable,
             // then run it and increment the number of ran middlewares
-            $mwDir = dirname(dirname(__DIR__)) . '/middlewares/';
+            $mwDir = dirname(dirname(__DIR__)) . '/middlewares/D/';
             $mwToRun = $mwDir . $current_mw . '.php';
             if (is_dir($mwDir) && file_exists($mwToRun)) {
                 $RunMW = include $mwToRun;
@@ -148,6 +148,25 @@ function d_match_developer_data_route(string $method, string $uri, array $compil
         "middlewares" => $matchedMiddlewareHandlers,
         "no_match_in" => $noMatchIn, // Use as debug value
     ];
+}
+
+// Run the matched route handler (Step 4 after matched routing in Routes Data)
+function d_run_matched_route_handler(&$c)
+{
+    // Grab Route Handler Path and check that it exists, is readable and callable and only then run it
+    $handlerPath = dirname(dirname(__DIR__)) . '/handlers/D/' . ($c['req']['matched_handler_data'] ? $c['req']['matched_handler_data'] : "") . '.php';
+    if (file_exists($handlerPath) && is_readable($handlerPath)) {
+        $runHandler = include $handlerPath;
+        if (is_callable($runHandler)) {
+            $runHandler($c);
+        }  // Handle error: not callable
+        else {
+            echo "[d_run_matched_route_handler]: Handler is not callable!";
+        }
+    } // Handle error: file not found or not readable
+    else {
+        echo "[d_run_matched_route_handler]: Handler file not found or not readable!";
+    }
 }
 
 // The main validation function for validating data in FunkPHP
