@@ -368,6 +368,382 @@ function cli_output_file_until_success($outputPathWithoutExtension, $extension, 
     }
 }
 
+// Backup batch of files based on the array of files (string values) to backup
+// Function uses "cli_backup_file_until_success"!
+function cli_backup_batch($arrayOfFilesToBackup)
+{
+    // Check if the array is a non-empty array
+    if (!is_array($arrayOfFilesToBackup) || empty($arrayOfFilesToBackup)) {
+        cli_err_syntax("Array of files to backup must be a non-empty array!");
+    }
+
+    // Load $dirs, $exactFiles as globals
+    global $dirs, $exactFiles, $settings;
+
+    // Prepare paths for all possible that could be backed up
+    // Backup paths
+    $backupFinalsPath = $dirs['backups_finals'];
+    $backupCompiledPath = $dirs['backups_compiled'];
+    $backupRouteRoutePath = $dirs['backups_routes'];
+    $backupDataRoutePath = $dirs['backups_data'];
+    $backupPageRoutePath = $dirs['backups_pages'];
+    $backupRoutesMWPath = $dirs['backups_routes_mw'];
+    $backupDataMWPath = $dirs['backups_data_mw'];
+    $backupPageMWPath = $dirs['backups_pages_mw'];
+
+    // Middleware folders
+    $middlewareRoutesPath = $dirs['middlewares_routes'];
+    $middlewareDataPath = $dirs['middlewares_data'];
+    $middlewarePagePath = $dirs['middlewares_pages'];
+
+    // Single Route Routes (including Middlewares)
+    $oldTrouteRouteFile = $exactFiles['troute_route'];
+    $oldSingleRouteRouteFile = $exactFiles['single_routes'];
+    $oldSingleMiddlwaresRouteFile = $exactFiles['single_middlewares'];
+
+    // Single Data Routes (including Middlewares)
+    $oldTrouteDataFile = $exactFiles['troute_data'];
+    $oldSingleDataFile = $exactFiles['single_data'];
+    $oldSingleMiddlwaresDataFile = $exactFiles['single_middlewares_data'];
+
+    // Single Pages Routes (including Middlewares)
+    $oldTroutePageFile = $exactFiles['troute_page'];
+    $oldSinglePageFile = $exactFiles['single_page'];
+    $oldSingleMiddlwaresPageFile = $exactFiles['single_middlewares_page'];
+
+    // Now backup the old route files based on provided $filesString
+    // Loop through each file in the array and backup it
+    foreach ($arrayOfFilesToBackup as $fileString) {
+        if ($fileString === "troute_route") {
+            // Routes
+            if ($settings['ALWAYS_BACKUP_IN']['COMPILED_IN_BACKUPS']) {
+                cli_backup_file_until_success($backupCompiledPath . "troute_route", ".php", $oldTrouteRouteFile);
+            }
+            if ($settings['ALWAYS_BACKUP_IN']['COMPILED_IN_FINAL_BACKUPS']) {
+                cli_backup_file_until_success($backupFinalsPath . "troute_route", ".php", $oldTrouteRouteFile);
+            }
+            continue;
+        }
+        if ($fileString === "route_single_routes") {
+            // Single Route Routes & Middlewares
+            if ($settings['ALWAYS_BACKUP_IN']['ROUTES_IN_BACKUPS']) {
+                cli_backup_file_until_success($backupRouteRoutePath . "route_single_routes", ".php", $oldSingleRouteRouteFile);
+                cli_backup_file_until_success($backupRouteRoutePath . "route_middleware_routes", ".php", $oldSingleMiddlwaresRouteFile);
+            }
+            if ($settings['ALWAYS_BACKUP_IN']['ROUTES_IN_FINAL_BACKUPS']) {
+                cli_backup_file_until_success($backupFinalsPath . "route_single_routes", ".php", $oldSingleRouteRouteFile);
+                cli_backup_file_until_success($backupFinalsPath . "route_middleware_routes", ".php", $oldSingleMiddlwaresRouteFile);
+            }
+            continue;
+        }
+
+        if ($fileString === "troute_data") {
+            // Data
+            if ($settings['ALWAYS_BACKUP_IN']['COMPILED_IN_BACKUPS']) {
+                cli_backup_file_until_success($backupCompiledPath . "troute_data", ".php", $oldTrouteDataFile);
+            }
+            if ($settings['ALWAYS_BACKUP_IN']['COMPILED_IN_FINAL_BACKUPS']) {
+                cli_backup_file_until_success($backupFinalsPath . "troute_data", ".php", $oldTrouteDataFile);
+            }
+            continue;
+        }
+        if ($fileString === "data_single_routes") {
+            // Single Data Routes & Middlewares
+            if ($settings['ALWAYS_BACKUP_IN']['DATA_IN_BACKUPS']) {
+                cli_backup_file_until_success($backupDataRoutePath . "data_single_routes", ".php", $oldSingleDataFile);
+                cli_backup_file_until_success($backupDataRoutePath . "data_middleware_routes", ".php", $oldSingleMiddlwaresDataFile);
+            }
+            if ($settings['ALWAYS_BACKUP_IN']['DATA_IN_FINAL_BACKUPS']) {
+                cli_backup_file_until_success($backupFinalsPath . "data_single_routes", ".php", $oldSingleDataFile);
+                cli_backup_file_until_success($backupFinalsPath . "data_middleware_routes", ".php", $oldSingleMiddlwaresDataFile);
+            }
+            continue;
+        }
+        if ($fileString === "troute_page") {
+            // Pages
+            if ($settings['ALWAYS_BACKUP_IN']['COMPILED_IN_BACKUPS']) {
+                cli_backup_file_until_success($backupCompiledPath . "troute_page", ".php", $oldTroutePageFile);
+            }
+            if ($settings['ALWAYS_BACKUP_IN']['COMPILED_IN_FINAL_BACKUPS']) {
+                cli_backup_file_until_success($backupFinalsPath . "troute_page", ".php", $oldTroutePageFile);
+            }
+            continue;
+        }
+        if ($fileString === "page_single_routes") {
+            // Single Page Routes & Middlewares
+            if ($settings['ALWAYS_BACKUP_IN']['PAGES_IN_BACKUPS']) {
+                cli_backup_file_until_success($backupPageRoutePath . "page_single_routes", ".php", $oldSinglePageFile);
+                cli_backup_file_until_success($backupPageRoutePath . "page_middleware_routes", ".php", $oldSingleMiddlwaresPageFile);
+            }
+            if ($settings['ALWAYS_BACKUP_IN']['PAGES_IN_FINAL_BACKUPS']) {
+
+                cli_backup_file_until_success($backupFinalsPath . "page_single_routes", ".php", $oldSinglePageFile);
+                cli_backup_file_until_success($backupFinalsPath . "page_middleware_routes", ".php", $oldSingleMiddlwaresPageFile);
+            }
+            continue;
+        }
+        if ($fileString === "") {
+
+            continue;
+        }
+        if ($fileString === "") {
+
+            continue;
+        }
+        if ($fileString === "") {
+
+            continue;
+        }
+        if ($fileString === "") {
+
+            continue;
+        }
+    }
+}
+
+// Add one or more routes from array of string values!
+function cli_add_route_batch($arrayOfRoutesToAdd)
+{
+    // Load globals and validate input
+    global $argv,
+        $settings,
+        $dirs,
+        $exactFiles,
+        $singleRoutesRoute,
+        $singleRoutesPage,
+        $singleRoutesData,
+        $middlewareRoutesRoute,
+        $middlewareRoutesData,
+        $middlewareRoutesPage;
+    if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3]) || !isset($argv[4]) || !is_string($argv[4]) || empty($argv[4])) {
+        cli_err_syntax("No FunkPHP Command was given?!\nShould be at least four(4) non-empty string arguments!");
+    }
+
+    // Prepare handlers folders
+    $handlersR = $dirs['handlers_routes'];
+    $handlersD = $dirs['handlers_data'];
+    $handlersP = $dirs['handlers_pages'];
+
+    // Prepare the route string by trimming, validating starting, ending and middle parts of it
+    $addRoute = trim(strtolower($argv[3]));
+    echo "ROUTE BEFORE PARSE: " . "\"$addRoute\"" . "\n";
+    [$method, $validRoute] = cli_prepare_valid_route_string($addRoute);
+    echo "\nAFTER PARSE: " . "\"$validRoute\"" . "\n";
+
+    // Check now that handler $argv[4] is a string containg only letters, numbers and underscores!
+    if (!preg_match('/^[a-zA-Z0-9_]+$/', $argv[4])) {
+        cli_err_syntax("\"{$argv[4]}\" - Handler name must be a string containing only letters, numbers and underscores!");
+    }
+
+    foreach ($arrayOfRoutesToAdd as $routeToAdd) {
+        if ($routeToAdd === "all_routes") {
+            // Check Route is not used currently in ALL 3 Main Single Route Files!
+            if (isset($singleRoutesRoute['ROUTES'][$method][$validRoute]) ?? null) {
+                cli_err_syntax("\"$validRoute\" already exists in $method/Single Route Routes!");
+            } elseif (isset($singleRoutesData['ROUTES'][$method][$validRoute]) ?? null) {
+                cli_err_syntax("\"$validRoute\" already exists in $method/Single Data Routes!");
+            } elseif (isset($singleRoutesPage['ROUTES'][$method][$validRoute]) ?? null) {
+                cli_err_syntax("\"$validRoute\" already exists in $method/Single Page Routes!");
+            }
+
+            // Check if file already exists in each directory and then retrieve a new unique file name for each dir
+            $uniqueR = cli_get_unique_filename_for_dir($handlersR, $argv[4]);
+            $uniqueD = cli_get_unique_filename_for_dir($handlersD, $argv[4]);
+            $uniqueP = cli_get_unique_filename_for_dir($handlersP, $argv[4]);
+
+            // Now add the new route to the correct file based on the method and route type
+            // and also handler to the "handler" array in the route file and create a handler.
+            // We split the handler name on ".php"
+            $singleRoutesRoute['ROUTES'][$method][$validRoute] = [
+                'handler' => explode(".", $uniqueR)[0],
+            ];
+            $singleRoutesData['ROUTES'][$method][$validRoute] = [
+                'handler' => explode(".", $uniqueD)[0],
+            ];
+            $singleRoutesPage['ROUTES'][$method][$validRoute] = [
+                'handler' => explode(".", $uniqueP)[0],
+            ];
+            // Output handler file for each route type
+            $outputHandlerRoute = file_put_contents(
+                $handlersR . $uniqueR,
+                "<?php\n// Handler for Route: $method$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
+            );
+            $outputHandlerData = file_put_contents(
+                $handlersD . $uniqueD,
+                "<?php\n// Handler for Data: $method$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
+            );
+            $outputHandlerPage = file_put_contents(
+                $handlersP . $uniqueP,
+                "<?php\n// Handler for Page: $method$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
+            );
+            if ($outputHandlerRoute) {
+                cli_success_without_exit("Added \"funkphp/handlers/R/$uniqueR\"!");
+            }
+            if ($outputHandlerData) {
+                cli_success_without_exit("Added \"funkphp/handlers/D/$uniqueD\"!");
+            }
+            if ($outputHandlerPage) {
+                cli_success_without_exit("Added \"funkphp/handlers/P/$uniqueP\"!");
+            }
+            // Output each Route File and then recompile its Troute
+            // Route
+            $outputRouteSingleFile = file_put_contents(
+                $exactFiles['single_routes'],
+                cli_get_prefix_code("route_singles_routes_start")
+                    . cli_convert_array_to_simple_syntax($singleRoutesRoute)
+            );
+            $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRoute['ROUTES'], $middlewareRoutesRoute['MIDDLEWARES']);
+            cli_output_compiled_routes($compiledRouteRoutes, "troute_route");
+
+            // Data
+            if ($outputRouteSingleFile) {
+                cli_success_without_exit("Added $method$validRoute to \"funkphp/routes/single_routes.php\"!");
+            }
+            $outputDataSingleFile = file_put_contents(
+                $exactFiles['single_data'],
+                cli_get_prefix_code("data_singles_routes_start")
+                    . cli_convert_array_to_simple_syntax($singleRoutesData)
+            );
+            $compiledDataRoutes = cli_build_compiled_routes($singleRoutesData['ROUTES'], $middlewareRoutesData['MIDDLEWARES']);
+            cli_output_compiled_routes($compiledDataRoutes, "troute_data");
+
+            // Page
+            if ($outputDataSingleFile) {
+                cli_success_without_exit("Added $method$validRoute to \"funkphp/routes/single_data.php\"!");
+            }
+            $outputDataSingleFile = file_put_contents(
+                $exactFiles['single_page'],
+                cli_get_prefix_code("page_singles_routes_start")
+                    . cli_convert_array_to_simple_syntax($singleRoutesPage)
+            );
+            if ($outputDataSingleFile) {
+                cli_success_without_exit("Added $method$validRoute to \"funkphp/routes/single_page.php\"!");
+            }
+            $compiledPageRoutes = cli_build_compiled_routes($singleRoutesPage['ROUTES'], $middlewareRoutesPage['MIDDLEWARES']);
+            cli_output_compiled_routes($compiledPageRoutes, "troute_page");
+        }
+        // Adding only a Route Route to the Route Route File
+        if ($routeToAdd === "only_route") {
+            // Check Route is not used currently in ALL 3 Main Single Route Files!
+            if (isset($singleRoutesRoute['ROUTES'][$method][$validRoute]) ?? null) {
+                cli_err_syntax("\"$validRoute\" already exists in $method/Single Route Routes!");
+            }
+            $uniqueR = cli_get_unique_filename_for_dir($handlersR, $argv[4]);
+            $handlerR = explode(".", $uniqueR)[0];
+            $singleRoutesRoute['ROUTES'][$method][$validRoute] = [
+                'handler' => $handlerR,
+            ];
+            $outputHandlerRoute = file_put_contents(
+                $handlersR . $uniqueR,
+                "<?php\n// Handler for Route: $method$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
+            );
+            if ($outputHandlerRoute) {
+                cli_success_without_exit("Added Handler \"$handlerR\" in \"funkphp/handlers/R/$uniqueR\"!");
+            }
+            $outputRouteSingleFile = file_put_contents(
+                $exactFiles['single_routes'],
+                cli_get_prefix_code("route_singles_routes_start")
+                    . cli_convert_array_to_simple_syntax($singleRoutesRoute)
+            );
+            if ($outputRouteSingleFile) {
+                cli_success_without_exit("Added Route \"$method$validRoute\" to Single Routes Route \"funkphp/routes/route_single_routes.php\" with handler \"$handlerR\"!");
+            }
+            $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRoute['ROUTES'], $middlewareRoutesRoute['MIDDLEWARES']);
+            cli_output_compiled_routes($compiledRouteRoutes, "troute_route");
+        }
+        // Adding only a Data Route to the Data Route File
+        if ($routeToAdd === "only_data") {
+            // Check Route is not used currently in ALL 3 Main Single Route Files!
+            if (isset($singleRoutesData['ROUTES'][$method][$validRoute]) ?? null) {
+                cli_err_syntax("\"$validRoute\" already exists in $method/Single Route Routes!");
+            }
+            $uniqueD = cli_get_unique_filename_for_dir($handlersD, $argv[4]);
+            $handlerD = explode(".", $uniqueD)[0];
+            $singleRoutesData['ROUTES'][$method][$validRoute] = [
+                'handler' => $handlerD,
+            ];
+            $outputHandlerData = file_put_contents(
+                $handlersD . $uniqueD,
+                "<?php\n// Handler for Data: $method$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
+            );
+            if ($outputHandlerData) {
+                cli_success_without_exit("Added Handler \"$handlerD\" in \"funkphp/handlers/D/$uniqueD\"!");
+            }
+            $outputDataSingleFile = file_put_contents(
+                $exactFiles['single_data'],
+                cli_get_prefix_code("data_singles_routes_start")
+                    . cli_convert_array_to_simple_syntax($singleRoutesData)
+            );
+            if ($outputDataSingleFile) {
+                cli_success_without_exit("Added Route \"$method$validRoute\" to Single Routes Data \"funkphp/data/data_single_routes.php\" with handler \"$handlerD\"!");
+            }
+            $compiledDataRoutes = cli_build_compiled_routes($singleRoutesData['ROUTES'], $middlewareRoutesData['MIDDLEWARES']);
+            cli_output_compiled_routes($compiledDataRoutes, "troute_data");
+        }
+        // Adding only a Page Route to the Page Route File
+        if ($routeToAdd === "only_page") {
+            // Check Route is not used currently in ALL 3 Main Single Route Files!
+            if (isset($singleRoutesPage['ROUTES'][$method][$validRoute]) ?? null) {
+                cli_err_syntax("\"$validRoute\" already exists in $method/Single Route Routes!");
+            }
+            $uniqueP = cli_get_unique_filename_for_dir($handlersP, $argv[4]);
+            $handlerP = explode(".", $uniqueP)[0];
+            $singleRoutesPage['ROUTES'][$method][$validRoute] = [
+                'page' => $handlerP,
+            ];
+            $outputHandlerPage = file_put_contents(
+                $handlersP . $uniqueP,
+                "<?php\n// Page Handler for Page: $method$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
+            );
+            if ($outputHandlerPage) {
+                cli_success_without_exit("Added Page Handler \"$handlerP\" in \"funkphp/handlers/P/$uniqueP\"!");
+            }
+            $outputPageSingleFile = file_put_contents(
+                $exactFiles['single_page'],
+                cli_get_prefix_code("page_singles_routes_start")
+                    . cli_convert_array_to_simple_syntax($singleRoutesPage)
+            );
+            if ($outputPageSingleFile) {
+                cli_success_without_exit("Added Route \"$method$validRoute\" to Single Routes Data \"funkphp/pages/page_single_routes.php\" with Page Handler \"$handlerP\"!");
+            }
+            $compiledPageRoutes = cli_build_compiled_routes($singleRoutesPage['ROUTES'], $middlewareRoutesPage['MIDDLEWARES']);
+            cli_output_compiled_routes($compiledPageRoutes, "troute_page");
+        }
+    }
+}
+
+// Batched function of compiling and outputting routing files
+function cli_compile_batch($arrayOfRoutesToCompileAndOutput)
+{
+    // Check if the array is a non-empty array
+    if (!is_array($arrayOfRoutesToCompileAndOutput) || empty($arrayOfRoutesToCompileAndOutput)) {
+        cli_err_syntax("Array of Routing Files to Compile & Output must be a non-empty array!");
+    }
+
+    // Load global routing files
+    global $singleRoutesRoute, $singleRoutesData,
+        $singleRoutesPage, $middlewareRoutesRoute,
+        $middlewareRoutesData, $middlewareRoutesPage;
+
+    foreach ($arrayOfRoutesToCompileAndOutput as $routeString) {
+        if ($routeString === "troute_route") {
+            $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRoute['ROUTES'], $middlewareRoutesRoute['MIDDLEWARES']);
+            cli_output_compiled_routes($compiledRouteRoutes, "troute_route");
+            continue;
+        }
+        if ($routeString === "troute_data") {
+            $compiledDataRoutes = cli_build_compiled_routes($singleRoutesData['ROUTES'], $middlewareRoutesData['MIDDLEWARES']);
+            cli_output_compiled_routes($compiledDataRoutes, "troute_data");
+            continue;
+        }
+        if ($routeString === "troute_page") {
+            $compiledPageRoutes = cli_build_compiled_routes($singleRoutesPage['ROUTES'], $middlewareRoutesPage['MIDDLEWARES']);
+            cli_output_compiled_routes($compiledPageRoutes, "troute_page");
+            continue;
+        }
+    }
+}
+
 // Output backup file until success (by waiting one second and retrying with new file name that is the file name + new datetime and extension    )
 function cli_backup_file_until_success($backupDestinationWithoutExtension, $extension, $backupData)
 {
@@ -470,13 +846,14 @@ function cli_restore_file($backupDirPath, $restoreFilePath, $fileStartingName)
 // Retrieve starting code for files created by the CLI
 function cli_get_prefix_code($keyString)
 {
+    $currDate = date("Y-m-d H:i:s");
     $prefixCode = [
-        "route_singles_routes_start" => "<?php // ROUTE_SINGLE_ROUTES.PHP - FunkPHP Framework\n",
-        "route_middleware_routes_start" => "<?php // ROUTE_Middleware_ROUTES.PHP - FunkPHP Framework\n",
-        "data_middleware_routes_start" => "<?php // DATA_Middleware_ROUTES.PHP - FunkPHP Framework\n",
-        "page_middleware_routes_start" => "<?php // PAGES_Middleware_ROUTES.PHP - FunkPHP Framework\n",
-        "data_singles_routes_start" => "<?php // DATA_SINGLE_ROUTES.PHP - FunkPHP Framework\n",
-        "page_singles_routes_start" => "<?php // PAGE_SINGLE_ROUTES.PHP - FunkPHP Framework\n",
+        "route_singles_routes_start" => "<?php // ROUTE_SINGLE_ROUTES.PHP - FunkPHP Framework | This File Was Modified In FunkCLI $currDate\nreturn ",
+        "route_middleware_routes_start" => "<?php // ROUTE_Middleware_ROUTES.PHP - FunkPHP Framework | This File Was Modified In FunkCLI $currDate\n return ",
+        "data_middleware_routes_start" => "<?php // DATA_Middleware_ROUTES.PHP - FunkPHP Framework | This File Was Modified In FunkCLI $currDate\n return ",
+        "page_middleware_routes_start" => "<?php // PAGES_Middleware_ROUTES.PHP - FunkPHP Framework | This File Was Modified In FunkCLI $currDate\n return ",
+        "data_singles_routes_start" => "<?php // DATA_SINGLE_ROUTES.PHP - FunkPHP Framework | This File Was Modified In FunkCLI $currDate\n return ",
+        "page_singles_routes_start" => "<?php // PAGE_SINGLE_ROUTES.PHP - FunkPHP Framework | This File Was Modified In FunkCLI $currDate\n return",
     ];
 
     return $prefixCode[$keyString] ?? null;
@@ -917,4 +1294,11 @@ function cli_warning($string)
     }
     echo "\033[33m[FunkCLI - WARNING]: $string\n\033[0m";
     exit;
+}
+function cli_warning_without_exit($string)
+{
+    if ($_SERVER['SCRIPT_NAME'] !== 'funkcli') {
+        exit;
+    }
+    echo "\033[33m[FunkCLI - WARNING]: $string\n\033[0m";
 }
