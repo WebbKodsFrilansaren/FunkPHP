@@ -62,7 +62,7 @@ if ($c['req']['current_step'] === 4) {
         d_run_middleware_after_matched_data_routing($c);
     }
 
-    var_dump($c['req']);
+    //var_dump($c['req']);
 
     // This is the end of Step 4, you can freely add any other checks you want here!
     // You have all global (meta) data in $c variable, so you can use it as you please!

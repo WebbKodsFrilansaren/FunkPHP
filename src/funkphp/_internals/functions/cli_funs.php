@@ -554,7 +554,7 @@ function cli_add_route_batch($arrayOfRoutesToAdd)
             ];
             $outputHandlerRoute = file_put_contents(
                 $handlersR . $uniqueR,
-                "<?php\n// Handler for Route: $method$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
+                "<?php\n// Route Handler for Route Route: $method$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
             );
             if ($outputHandlerRoute) {
                 cli_success_without_exit("Added Handler \"$handlerR\" in \"funkphp/handlers/R/$uniqueR\"!");
@@ -578,7 +578,7 @@ function cli_add_route_batch($arrayOfRoutesToAdd)
             ];
             $outputHandlerData = file_put_contents(
                 $handlersD . $uniqueD,
-                "<?php\n// Handler for Data: $method$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
+                "<?php\n// Route Handler for Data Route: $method$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
             );
             if ($outputHandlerData) {
                 cli_success_without_exit("Added Handler \"$handlerD\" in \"funkphp/handlers/D/$uniqueD\"!");
@@ -598,11 +598,11 @@ function cli_add_route_batch($arrayOfRoutesToAdd)
             $uniqueP = cli_get_unique_filename_for_dir($handlersP, $argv[4]);
             $handlerP = explode(".", $uniqueP)[0];
             $singleRoutesPage['ROUTES'][$method][$validRoute] = [
-                'page' => $handlerP,
+                'handler' => $handlerP,
             ];
             $outputHandlerPage = file_put_contents(
                 $handlersP . $uniqueP,
-                "<?php\n// Page Handler for Page: $method$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
+                "<?php\n// Page Handler for Page Route: $method$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
             );
             if ($outputHandlerPage) {
                 cli_success_without_exit("Added Page Handler \"$handlerP\" in \"funkphp/handlers/P/$uniqueP\"!");
@@ -631,7 +631,7 @@ function cli_add_route_batch($arrayOfRoutesToAdd)
             ];
             $outputHandlerRoute = file_put_contents(
                 $handlersR . $uniqueR,
-                "<?php\n// Handler for Route: $method$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
+                "<?php\n// Route Handler for Route Route: $method$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
             );
             if ($outputHandlerRoute) {
                 cli_success_without_exit("Added Handler \"$handlerR\" in \"funkphp/handlers/R/$uniqueR\"!");
@@ -660,7 +660,7 @@ function cli_add_route_batch($arrayOfRoutesToAdd)
             ];
             $outputHandlerData = file_put_contents(
                 $handlersD . $uniqueD,
-                "<?php\n// Handler for Data: $method$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
+                "<?php\n// Route Handler for Data Route: $method$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
             );
             if ($outputHandlerData) {
                 cli_success_without_exit("Added Handler \"$handlerD\" in \"funkphp/handlers/D/$uniqueD\"!");
@@ -685,11 +685,11 @@ function cli_add_route_batch($arrayOfRoutesToAdd)
             $uniqueP = cli_get_unique_filename_for_dir($handlersP, $argv[4]);
             $handlerP = explode(".", $uniqueP)[0];
             $singleRoutesPage['ROUTES'][$method][$validRoute] = [
-                'page' => $handlerP,
+                'handler' => $handlerP,
             ];
             $outputHandlerPage = file_put_contents(
                 $handlersP . $uniqueP,
-                "<?php\n// Page Handler for Page: $method$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
+                "<?php\n// Page Handler for Page Route: $method$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
             );
             if ($outputHandlerPage) {
                 cli_success_without_exit("Added Page Handler \"$handlerP\" in \"funkphp/handlers/P/$uniqueP\"!");

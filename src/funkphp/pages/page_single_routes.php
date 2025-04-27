@@ -1,4 +1,4 @@
-<?php // PAGE_SINGLE_ROUTES.PHP - FunkPHP Framework | This File Was Modified In FunkCLI 2025-04-27 05:56:17
+<?php // PAGE_SINGLE_ROUTES.PHP - FunkPHP Framework | This File Was Modified In FunkCLI 2025-04-27 06:45:58
 return [
   'ROUTES' =>
   [
@@ -15,6 +15,10 @@ return [
       '/users' =>
       [
         'page' => 'users_p-1',
+      ],
+      '/test_all' =>
+      [
+        'handler' => 'testall',
       ],
     ],
     'POST' =>
