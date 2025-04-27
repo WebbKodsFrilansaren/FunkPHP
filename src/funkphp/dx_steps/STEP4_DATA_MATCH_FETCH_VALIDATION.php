@@ -53,7 +53,7 @@ if ($c['req']['current_step'] === 4) {
     }
 
     // GOTO: "funkphp/middlewares/D/" and copy&paste the "_TEMPLATE.php" file to create your own middlewares!
-    // OR use the FunkCLI "php funkcli add mw:middleware_name data|METHOD/route_path"
+    // OR use the FunkCLI "php funkcli add mw middleware_name data|METHOD/route_path"
     // You specificy "data|" first to indicate ofr what type of route you want to create a middleware for.
     // Check that middlewares array exists and is not empty in $c global variable
     // Then run each middleware in the order they are defined as long as keep_running_mws is true.
