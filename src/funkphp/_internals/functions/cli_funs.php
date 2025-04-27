@@ -546,78 +546,74 @@ function cli_add_route_batch($arrayOfRoutesToAdd)
                 cli_err_syntax("\"$validRoute\" already exists in $method/Single Page Routes!");
             }
 
-            // Check if file already exists in each directory and then retrieve a new unique file name for each dir
+            // ADDING ROUTES ROUTE
             $uniqueR = cli_get_unique_filename_for_dir($handlersR, $argv[4]);
-            $uniqueD = cli_get_unique_filename_for_dir($handlersD, $argv[4]);
-            $uniqueP = cli_get_unique_filename_for_dir($handlersP, $argv[4]);
-
-            // Now add the new route to the correct file based on the method and route type
-            // and also handler to the "handler" array in the route file and create a handler.
-            // We split the handler name on ".php"
+            $handlerR = explode(".", $uniqueR)[0];
             $singleRoutesRoute['ROUTES'][$method][$validRoute] = [
-                'handler' => explode(".", $uniqueR)[0],
+                'handler' => $handlerR,
             ];
-            $singleRoutesData['ROUTES'][$method][$validRoute] = [
-                'handler' => explode(".", $uniqueD)[0],
-            ];
-            $singleRoutesPage['ROUTES'][$method][$validRoute] = [
-                'handler' => explode(".", $uniqueP)[0],
-            ];
-            // Output handler file for each route type
             $outputHandlerRoute = file_put_contents(
                 $handlersR . $uniqueR,
                 "<?php\n// Handler for Route: $method$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
             );
-            $outputHandlerData = file_put_contents(
-                $handlersD . $uniqueD,
-                "<?php\n// Handler for Data: $method$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
-            );
-            $outputHandlerPage = file_put_contents(
-                $handlersP . $uniqueP,
-                "<?php\n// Handler for Page: $method$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
-            );
             if ($outputHandlerRoute) {
-                cli_success_without_exit("Added \"funkphp/handlers/R/$uniqueR\"!");
+                cli_success_without_exit("Added Handler \"$handlerR\" in \"funkphp/handlers/R/$uniqueR\"!");
             }
-            if ($outputHandlerData) {
-                cli_success_without_exit("Added \"funkphp/handlers/D/$uniqueD\"!");
-            }
-            if ($outputHandlerPage) {
-                cli_success_without_exit("Added \"funkphp/handlers/P/$uniqueP\"!");
-            }
-            // Output each Route File and then recompile its Troute
-            // Route
             $outputRouteSingleFile = file_put_contents(
                 $exactFiles['single_routes'],
                 cli_get_prefix_code("route_singles_routes_start")
                     . cli_convert_array_to_simple_syntax($singleRoutesRoute)
             );
+            if ($outputRouteSingleFile) {
+                cli_success_without_exit("Added Route \"$method$validRoute\" to Single Routes Route \"funkphp/routes/route_single_routes.php\" with handler \"$handlerR\"!");
+            }
             $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRoute['ROUTES'], $middlewareRoutesRoute['MIDDLEWARES']);
             cli_output_compiled_routes($compiledRouteRoutes, "troute_route");
 
-            // Data
-            if ($outputRouteSingleFile) {
-                cli_success_without_exit("Added $method$validRoute to \"funkphp/routes/single_routes.php\"!");
+            // ADD DATA ROUTE
+            $uniqueD = cli_get_unique_filename_for_dir($handlersD, $argv[4]);
+            $handlerD = explode(".", $uniqueD)[0];
+            $singleRoutesData['ROUTES'][$method][$validRoute] = [
+                'handler' => $handlerD,
+            ];
+            $outputHandlerData = file_put_contents(
+                $handlersD . $uniqueD,
+                "<?php\n// Handler for Data: $method$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
+            );
+            if ($outputHandlerData) {
+                cli_success_without_exit("Added Handler \"$handlerD\" in \"funkphp/handlers/D/$uniqueD\"!");
             }
             $outputDataSingleFile = file_put_contents(
                 $exactFiles['single_data'],
                 cli_get_prefix_code("data_singles_routes_start")
                     . cli_convert_array_to_simple_syntax($singleRoutesData)
             );
+            if ($outputDataSingleFile) {
+                cli_success_without_exit("Added Route \"$method$validRoute\" to Single Routes Data \"funkphp/data/data_single_routes.php\" with handler \"$handlerD\"!");
+            }
             $compiledDataRoutes = cli_build_compiled_routes($singleRoutesData['ROUTES'], $middlewareRoutesData['MIDDLEWARES']);
             cli_output_compiled_routes($compiledDataRoutes, "troute_data");
 
-            // Page
-            if ($outputDataSingleFile) {
-                cli_success_without_exit("Added $method$validRoute to \"funkphp/routes/single_data.php\"!");
+            // ADD PAGE ROUTE
+            $uniqueP = cli_get_unique_filename_for_dir($handlersP, $argv[4]);
+            $handlerP = explode(".", $uniqueP)[0];
+            $singleRoutesPage['ROUTES'][$method][$validRoute] = [
+                'page' => $handlerP,
+            ];
+            $outputHandlerPage = file_put_contents(
+                $handlersP . $uniqueP,
+                "<?php\n// Page Handler for Page: $method$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
+            );
+            if ($outputHandlerPage) {
+                cli_success_without_exit("Added Page Handler \"$handlerP\" in \"funkphp/handlers/P/$uniqueP\"!");
             }
-            $outputDataSingleFile = file_put_contents(
+            $outputPageSingleFile = file_put_contents(
                 $exactFiles['single_page'],
                 cli_get_prefix_code("page_singles_routes_start")
                     . cli_convert_array_to_simple_syntax($singleRoutesPage)
             );
-            if ($outputDataSingleFile) {
-                cli_success_without_exit("Added $method$validRoute to \"funkphp/routes/single_page.php\"!");
+            if ($outputPageSingleFile) {
+                cli_success_without_exit("Added Route \"$method$validRoute\" to Single Routes Data \"funkphp/pages/page_single_routes.php\" with Page Handler \"$handlerP\"!");
             }
             $compiledPageRoutes = cli_build_compiled_routes($singleRoutesPage['ROUTES'], $middlewareRoutesPage['MIDDLEWARES']);
             cli_output_compiled_routes($compiledPageRoutes, "troute_page");
