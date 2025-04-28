@@ -282,6 +282,7 @@ return [
     "bombora bot" => [],
     "bombora-bot" => [],
     "bookmark search tool" => [],
+    "bot" => [], // Hm, maybe overkill?
     "bot pge.chlooe.com" => [],
     "botpge.chlooe.com" => [],
     "botpgechlooe.com" => [],
