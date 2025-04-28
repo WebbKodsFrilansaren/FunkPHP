@@ -560,6 +560,7 @@ return [
     "discord_bot" => [],
     "disqus" => [],
     "dittospyder" => [],
+    "dnyz" => [],
     "dnyzbot" => [],
     "dnyz bot" => [],
     "dnyz-bot" => [],
