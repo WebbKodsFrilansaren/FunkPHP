@@ -2,6 +2,12 @@
 return  [
   'GET' => 
    [
+    'test3' => 
+     [
+    ],
+    'test_all' => 
+     [
+    ],
     'users' => 
      [
       ':' => 
@@ -19,9 +25,6 @@ return  [
           ],
         ],
       ],
-    ],
-    'test_all' => 
-     [
     ],
   ],
   'POST' => 

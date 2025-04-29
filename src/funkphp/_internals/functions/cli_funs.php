@@ -623,7 +623,7 @@ function cli_add_route_batch($arrayOfRoutesToAdd)
     $addRoute = trim(strtolower($argv[3]));
     echo "ROUTE BEFORE PARSE: " . "\"$addRoute\"" . "\n";
     [$method, $validRoute] = cli_prepare_valid_route_string($addRoute);
-    echo "\nAFTER PARSE: " . "\"$validRoute\"" . "\n";
+    echo "AFTER PARSE: " . "\"$validRoute\"" . "\n";
 
     // Check now that handler $argv[4] is a string containg only letters, numbers and underscores!
     if (!preg_match('/^[a-zA-Z0-9_]+$/', $argv[4])) {
@@ -647,6 +647,7 @@ function cli_add_route_batch($arrayOfRoutesToAdd)
             $singleRoutesRoute['ROUTES'][$method][$validRoute] = [
                 'handler' => $handlerR,
             ];
+            ksort($singleRoutesRoute['ROUTES'][$method]);
             $outputHandlerRoute = file_put_contents(
                 $handlersR . $uniqueR,
                 "<?php\n// Route Handler for Route Route: $method$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
@@ -671,6 +672,7 @@ function cli_add_route_batch($arrayOfRoutesToAdd)
             $singleRoutesData['ROUTES'][$method][$validRoute] = [
                 'handler' => $handlerD,
             ];
+            ksort($singleRoutesData['ROUTES'][$method]);
             $outputHandlerData = file_put_contents(
                 $handlersD . $uniqueD,
                 "<?php\n// Route Handler for Data Route: $method$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
@@ -695,6 +697,7 @@ function cli_add_route_batch($arrayOfRoutesToAdd)
             $singleRoutesPage['ROUTES'][$method][$validRoute] = [
                 'handler' => $handlerP,
             ];
+            ksort($singleRoutesPage['ROUTES'][$method]);
             $outputHandlerPage = file_put_contents(
                 $handlersP . $uniqueP,
                 "<?php\n// Page Handler for Page Route: $method$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
@@ -724,6 +727,7 @@ function cli_add_route_batch($arrayOfRoutesToAdd)
             $singleRoutesRoute['ROUTES'][$method][$validRoute] = [
                 'handler' => $handlerR,
             ];
+            ksort($singleRoutesRoute['ROUTES'][$method]);
             $outputHandlerRoute = file_put_contents(
                 $handlersR . $uniqueR,
                 "<?php\n// Route Handler for Route Route: $method$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
@@ -753,6 +757,7 @@ function cli_add_route_batch($arrayOfRoutesToAdd)
             $singleRoutesData['ROUTES'][$method][$validRoute] = [
                 'handler' => $handlerD,
             ];
+            ksort($singleRoutesData['ROUTES'][$method]);
             $outputHandlerData = file_put_contents(
                 $handlersD . $uniqueD,
                 "<?php\n// Route Handler for Data Route: $method$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
@@ -782,6 +787,7 @@ function cli_add_route_batch($arrayOfRoutesToAdd)
             $singleRoutesPage['ROUTES'][$method][$validRoute] = [
                 'handler' => $handlerP,
             ];
+            ksort($singleRoutesPage['ROUTES'][$method]);
             $outputHandlerPage = file_put_contents(
                 $handlersP . $uniqueP,
                 "<?php\n// Page Handler for Page Route: $method$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
