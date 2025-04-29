@@ -217,6 +217,7 @@ $commands = [
         'only_page_route' => function () {
             cli_add_route_batch(["only_page"]);
         },
+        'mw_all' => function () use ($argv, $settings, $singleRoutesRoute) {},
         'mw_route' => function () use ($argv, $settings, $singleRoutesRoute) {},
         'mw_data' => function () use ($argv, $settings, $singleRoutesData) {},
         'mw_page' => function () use ($argv, $settings, $singleRoutesPage) {},
