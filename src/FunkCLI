@@ -94,6 +94,7 @@ $settings = include __DIR__ . '/FunkCLI_Settings' ?? [
 // All available dirs to use for the CLI
 $dirs = [
     "compiled" => __DIR__ . '/funkphp/_internals/compiled/',
+    "_BACKUPS" => __DIR__ . '/funkphp/_BACKUPS/',
     "handlers" => __DIR__ . '/funkphp/handlers/',
     "handlers_routes" => __DIR__ . '/funkphp/handlers/R/',
     "handlers_data" => __DIR__ . '/funkphp/handlers/D/',
@@ -128,13 +129,16 @@ $exactFiles = [
     "single_middlewares_page" => $dirs['pages'] . "page_middleware_routes.php",
 ];
 
+// First restore the folders if they don't exist
+cli_restore_default_folders_and_files();
+
 // Load current routes, data and pages before processing any commands
-$singleRoutesRoute = include __DIR__ . '/funkphp/routes/route_single_routes.php';
-$singleRoutesData = include __DIR__ . '/funkphp/data/data_single_routes.php';
-$singleRoutesPage = include __DIR__ . '/funkphp/pages/page_single_routes.php';
-$middlewareRoutesRoute = include  __DIR__ . '/funkphp/routes/route_middleware_routes.php';
-$middlewareRoutesData = include __DIR__ . '/funkphp/data/data_middleware_routes.php';
-$middlewareRoutesPage = include __DIR__ . '/funkphp/pages/page_middleware_routes.php';
+$singleRoutesRoute = include __DIR__ . '/funkphp/routes/route_single_routes.php' ?? ['ROUTES' => ['GET' => [], 'POST' => [], 'PUT' => [], 'DELETE' => []]];
+$singleRoutesData = include __DIR__ . '/funkphp/data/data_single_routes.php'  ?? ['ROUTES' => ['GET' => [], 'POST' => [], 'PUT' => [], 'DELETE' => []]];
+$singleRoutesPage = include __DIR__ . '/funkphp/pages/page_single_routes.php'  ?? ['ROUTES' => ['GET' => [], 'POST' => [], 'PUT' => [], 'DELETE' => []]];
+$middlewareRoutesRoute = include  __DIR__ . '/funkphp/routes/route_middleware_routes.php' ?? ['MIDDLEWARES' => ['GET' => [], 'POST' => [], 'PUT' => [], 'DELETE' => []]];
+$middlewareRoutesData = include __DIR__ . '/funkphp/data/data_middleware_routes.php' ?? ['MIDDLEWARES' => ['GET' => [], 'POST' => [], 'PUT' => [], 'DELETE' => []]];
+$middlewareRoutesPage = include __DIR__ . '/funkphp/pages/page_middleware_routes.php' ?? ['MIDDLEWARES' => ['GET' => [], 'POST' => [], 'PUT' => [], 'DELETE' => []]];
 
 // Compile only based on user input
 // Compile all routes

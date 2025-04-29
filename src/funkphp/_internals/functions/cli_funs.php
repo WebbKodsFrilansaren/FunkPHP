@@ -1,5 +1,100 @@
 <?php
 
+// Restore essentially the "funkphp" folder and all its subfolders if they do not exist!
+function cli_restore_default_folders_and_files()
+{
+    if ($_SERVER['SCRIPT_NAME'] !== 'funkcli') {
+        exit;
+    }
+
+    // Prepare what folders to loop through and create if they don't exist!
+    $folderBase = dirname(dirname(__DIR__));
+    $folders = [
+        "$folderBase",
+        "$folderBase/_BACKUPS/",
+        "$folderBase/_BACKUPS/_FINAL_BACKUPS/",
+        "$folderBase/_BACKUPS/compiled/",
+        "$folderBase/_BACKUPS/data/",
+        "$folderBase/_BACKUPS/data/MW/",
+        "$folderBase/_BACKUPS/handlers/",
+        "$folderBase/_BACKUPS/handlers/R/",
+        "$folderBase/_BACKUPS/handlers/D/",
+        "$folderBase/_BACKUPS/handlers/P/",
+        "$folderBase/_BACKUPS/pages/",
+        "$folderBase/_BACKUPS/pages/MW/",
+        "$folderBase/_BACKUPS/routes/",
+        "$folderBase/_BACKUPS/routes/MW/",
+        "$folderBase/_internals/",
+        "$folderBase/_internals/compiled/",
+        "$folderBase/_internals/functions/",
+        "$folderBase/_internals/templates/",
+        "$folderBase/cached/",
+        "$folderBase/cached/R/",
+        "$folderBase/cached/D/",
+        "$folderBase/cached/P/",
+        "$folderBase/config/",
+        "$folderBase/data/",
+        "$folderBase/dx_steps/",
+        "$folderBase/handlers/",
+        "$folderBase/handlers/R/",
+        "$folderBase/handlers/D/",
+        "$folderBase/handlers/P/",
+        "$folderBase/middlewares/",
+        "$folderBase/middlewares/R/",
+        "$folderBase/middlewares/D/",
+        "$folderBase/middlewares/P/",
+        "$folderBase/pages/",
+        "$folderBase/pages/complete/",
+        "$folderBase/pages/parts/",
+        "$folderBase/routes/",
+        "$folderBase/tests/",
+    ];
+
+    // Prepare default files that doesn't exist if certain folders don't exist
+    $defaultFiles = [
+        "$folderBase/_internals/compiled/troute_route.php",
+        "$folderBase/_internals/compiled/troute_data.php",
+        "$folderBase/_internals/compiled/troute_page.php",
+        "$folderBase/data/data_middleware_routes.php",
+        "$folderBase/data/data_single_routes.php",
+        "$folderBase/routes/route_middleware_routes.php",
+        "$folderBase/routes/route_single_routes.php",
+        "$folderBase/pages/page_middleware_routes.php",
+        "$folderBase/pages/page_single_routes.php",
+    ];
+
+    // Create folderBase if it does not exist
+    if (!is_dir($folderBase)) {
+        mkdir($folderBase, 0777, true);
+    }
+    // Loop through each folder and create it if it does not exist
+    foreach ($folders as $folder) {
+        if (!is_dir($folder)) {
+            mkdir($folder, 0777, true);
+            echo "\033[32m[FunkCLI - SUCCESS]: Recreated folder: $folder\n\033[0m";
+        }
+    }
+    // Loop through files, and create them if they don't exist
+    foreach ($defaultFiles as $file) {
+        if (!file_exists($file)) {
+            // Recreate default files based on type ("troute", "middleware routes" or "single routes")
+            if (str_contains($file, "troute")) {
+                file_put_contents($file, "<?php\n// This file was recreated by FunkCLI!\nreturn [];\n?>");
+                echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
+                continue;
+            } elseif (str_contains($file, "middleware")) {
+                file_put_contents($file, "<?php\n// This file was recreated by FunkCLI!\nreturn [\n'MIDDLEWARES' => \n['GET' => [], 'POST' => [], 'PUT' => [], 'DELETE' => [],]];\n?>");
+                echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
+                continue;
+            } elseif (str_contains($file, "single")) {
+                file_put_contents($file, "<?php\n// This file was recreated by FunkCLI!\nreturn [\n'ROUTES' => \n['GET' => [], 'POST' => [], 'PUT' => [], 'DELETE' => [],]];\n?>");
+                echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
+                continue;
+            }
+        }
+    }
+}
+
 // Build Compiled Route from Developer's Defined Routes
 function cli_build_compiled_routes(array $developerSingleRoutes, array $developerMiddlewareRoutes)
 {
