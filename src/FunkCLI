@@ -32,6 +32,7 @@ $validArg1withArg2Values =  [
         'help'
     ],
     'delete' => [
+        'all_routes',
         'all_route_compiled_singles_middlewares_and_all_their_handlers_files_i_know_files_will_be_hard_to_get_back',
         'all_route_compiled_and_singles_files_except_handlers_i_know_files_will_be_hard_to_get_back',
         'all_backups_compiled_and_single_files_i_know_files_will_be_hard_to_get_back',
@@ -150,7 +151,7 @@ $middlewareRoutesPage = include __DIR__ . '/funkphp/pages/page_middleware_routes
 $commands = [
     'compile' => [
         'all_routes' => function () {
-            // Backup the old route files first
+            // Backup the old route files first if settings allow it
             cli_backup_batch(
                 [
                     "troute_route",
@@ -255,6 +256,17 @@ $commands = [
         },
     ],
     'delete' => [
+        // Delete a single route for /routes/, /data/ AND /pages/ folder
+        'all_routes' => function () {
+            // Load global and check that argv[3] is a non-empty string
+            global $argv;
+            if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3])) {
+                cli_err_syntax("Provide a valid route to delete from all routes!\n Example: \"funkcli delete all_routes method/route_name\"");
+            }
+            cli_delete_a_single_all_routes();
+        },
+        // THESE DELETING FUNCTIONS ARE TO DELETE ACTUALLY MOST FILES IN MOST FOLDERS. FUNCTION ABOVE HERE ARE FOR DELETING INSIDE
+        // OF FILES SUCH AS ROUTES, MIDDLEWARE, HANDLERS AND SO ON. PROCEED WITH CAUTION USING ANY OF THE FOLLOWING FUNCTIONS!!!
         'all_route_compiled_singles_middlewares_and_all_their_handlers_files_i_know_files_will_be_hard_to_get_back' => function () {
             global $dirs, $settings;
             cli_delete_all_files_in_directory_except_other_directories($dirs['compiled']);

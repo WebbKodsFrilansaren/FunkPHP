@@ -95,6 +95,30 @@ function cli_restore_default_folders_and_files()
     }
 }
 
+// Check if a specific Route file exists in either "/routes/", "/data/" or "/pages/"
+function cli_route_file_exist($fileName): bool
+{
+    // Load valid file names and check if argument is valid
+    global $dirs, $exactFiles, $settings;
+    $validFilenames = [
+        "route_single_routes" => $exactFiles['single_routes'],
+        "route_middleware_routes" => $exactFiles['single_middlewares'],
+        "data_single_routes" => $exactFiles['single_data'],
+        "data_middleware_routes" => $exactFiles['single_middlewares_data'],
+        "page_single_routes" => $exactFiles['single_page'],
+        "page_middleware_routes" => $exactFiles['single_middlewares_page'],
+    ];
+
+    if (!is_string($fileName) || empty($fileName) || !array_key_exists($fileName, $validFilenames)) {
+        cli_err_syntax("[cli_route_file_exist] Route file name must be a non-empty string and one of the following: " . implode(", ", array_keys($validFilenames)) . "!");
+    }
+    // Here we know the argument is valid so check if the file exists by using the matched key from $validFilenames
+    if (file_exists($validFilenames[$fileName])) {
+        return true;
+    }
+    return false;
+}
+
 // Check if Routes Route Handler in handlers/R/ exists
 function cli_r_handler_exists($fileName): bool
 {
@@ -114,6 +138,156 @@ function cli_r_handler_exists($fileName): bool
         return true;
     }
     return false;
+}
+
+// Rebuilds the Single Routes Route file (funkphp/routes/route_single_routes.php) based on valid array
+function cli_rebuild_single_routes_route_file($singleRouteRoutesFileArray): bool
+{
+    global $exactFiles, $dirs, $settings;
+    if (!is_array($singleRouteRoutesFileArray) || empty($singleRouteRoutesFileArray)) {
+        cli_err_syntax("[cli_rebuild_single_routes_file] Single Route Routes File Array (funkphp/routes/route_single_routes.php) must be a non-empty array!");
+    }
+    if (!isset($singleRouteRoutesFileArray['ROUTES'])) {
+        cli_err_syntax("[cli_rebuild_single_routes_file] Single Route Routes File Array (funkphp/routes/route_single_routes.php) must start with a 'ROUTES' key!");
+    }
+    // Check that dir exist, is writable and is a directory
+    if (!is_dir($dirs['routes']) || !is_writable($dirs['routes'])) {
+        cli_err_syntax("[cli_rebuild_single_routes_file] Routes directory (funkphp/routes/) must be a valid directory and writable!");
+    }
+    // Check that if file exists, it can be overwritten
+    if (file_exists($exactFiles['single_routes']) && !is_writable($exactFiles['single_routes'])) {
+        cli_err_syntax("[cli_rebuild_single_routes_file] Routes file (funkphp/routes/route_single_routes.php) must be writable. It is not!");
+    }
+    return file_put_contents(
+        $exactFiles['single_routes'],
+        cli_get_prefix_code("route_singles_routes_start")
+            . cli_convert_array_to_simple_syntax($singleRouteRoutesFileArray)
+    );
+}
+
+// Rebuilds the Single Middleware Routes Route file (funkphp/routes/route_middleware_routes.php) based on valid array
+function cli_rebuild_single_routes_mw_route_file($singleRouteRoutesFileArray): bool
+{
+    global $exactFiles, $dirs, $settings;
+    if (!is_array($singleRouteRoutesFileArray) || empty($singleRouteRoutesFileArray)) {
+        cli_err_syntax("[cli_rebuild_single_routes_mw_route_file] Single Route Middleware Routes File Array (funkphp/routes/route_middleware_routes.php) must be a non-empty array!");
+    }
+    if (!isset($singleRouteRoutesFileArray['MIDDLEWARES'])) {
+        cli_err_syntax("[cli_rebuild_single_routes_mw_route_file] Single Route Middleware Routes File Array (funkphp/routes/route_middleware_routes.php) must start with a 'ROUTES' key!");
+    }
+    // Check that dir exist, is writable and is a directory
+    if (!is_dir($dirs['routes']) || !is_writable($dirs['routes'])) {
+        cli_err_syntax("[cli_rebuild_single_routes_mw_route_file] Routes directory (funkphp/routes/) must be a valid directory and writable!");
+    }
+    // Check that if file exists, it can be overwritten
+    if (file_exists($exactFiles['single_middlewares']) && !is_writable($exactFiles['single_middlewares'])) {
+        cli_err_syntax("[cli_rebuild_single_routes_mw_route_file] Routes file (funkphp/routes/route_middleware_routes.php) must be writable. It is not!");
+    }
+    return file_put_contents(
+        $exactFiles['single_middlewares'],
+        cli_get_prefix_code("route_middleware_routes_start")
+            . cli_convert_array_to_simple_syntax($singleRouteRoutesFileArray)
+    );
+}
+
+// Rebuilds the Single Data Routes Route file (funkphp/data/data_single_routes.php) based on valid array
+function cli_rebuild_single_data_route_file($singleRouteRoutesFileArray): bool
+{
+    global $exactFiles, $dirs, $settings;
+    if (!is_array($singleRouteRoutesFileArray) || empty($singleRouteRoutesFileArray)) {
+        cli_err_syntax("[cli_rebuild_single_data_route_file] Single Data Routes File Array (funkphp/data/data_single_routes.php) must be a non-empty array!");
+    }
+    if (!isset($singleRouteRoutesFileArray['ROUTES'])) {
+        cli_err_syntax("[cli_rebuild_single_data_route_file] Single Data Routes File Array (funkphp/data/data_single_routes.php) must start with a 'ROUTES' key!");
+    }
+    // Check that dir exist, is writable and is a directory
+    if (!is_dir($dirs['data']) || !is_writable($dirs['data'])) {
+        cli_err_syntax("[cli_rebuild_single_data_route_file] Routes directory (funkphp/data/) must be a valid directory and writable!");
+    }
+    // Check that if file exists, it can be overwritten
+    if (file_exists($exactFiles['single_data']) && !is_writable($exactFiles['single_data'])) {
+        cli_err_syntax("[cli_rebuild_single_data_route_file] Routes file (funkphp/data/data_single_routes.php) must be writable. It is not!");
+    }
+    return file_put_contents(
+        $exactFiles['single_data'],
+        cli_get_prefix_code("data_singles_routes_start")
+            . cli_convert_array_to_simple_syntax($singleRouteRoutesFileArray)
+    );
+}
+
+// Rebuilds the Single Middleware Routes Data file (funkphp/data/data_middleware_routes.php) based on valid array
+function cli_rebuild_single_data_mw_route_file($singleRouteRoutesFileArray): bool
+{
+    global $exactFiles, $dirs, $settings;
+    if (!is_array($singleRouteRoutesFileArray) || empty($singleRouteRoutesFileArray)) {
+        cli_err_syntax("[cli_rebuild_single_data_mw_route_file] Single Route Middleware Routes File Array (funkphp/data/data_middleware_routes.php) must be a non-empty array!");
+    }
+    if (!isset($singleRouteRoutesFileArray['MIDDLEWARES'])) {
+        cli_err_syntax("[cli_rebuild_single_data_mw_route_file] Single Route Middleware Routes File Array (funkphp/data/data_middleware_routes.php) must start with a 'ROUTES' key!");
+    }
+    // Check that dir exist, is writable and is a directory
+    if (!is_dir($dirs['data']) || !is_writable($dirs['data'])) {
+        cli_err_syntax("[cli_rebuild_single_data_mw_route_file] Routes directory (funkphp/data/) must be a valid directory and writable!");
+    }
+    // Check that if file exists, it can be overwritten
+    if (file_exists($exactFiles['single_middlewares_data']) && !is_writable($exactFiles['single_middlewares_data'])) {
+        cli_err_syntax("[cli_rebuild_single_data_mw_route_file] Routes file (funkphp/data/data_middleware_routes.php) must be writable. It is not!");
+    }
+    return file_put_contents(
+        $exactFiles['single_middlewares_data'],
+        cli_get_prefix_code("data_middleware_routes_start")
+            . cli_convert_array_to_simple_syntax($singleRouteRoutesFileArray)
+    );
+}
+
+// Rebuilds the Single Middleware Routes Page file (funkphp/pages/page_single_routes.php) based on valid array
+function cli_rebuild_single_page_route_file($singleRouteRoutesFileArray): bool
+{
+    global $exactFiles, $dirs, $settings;
+    if (!is_array($singleRouteRoutesFileArray) || empty($singleRouteRoutesFileArray)) {
+        cli_err_syntax("[cli_rebuild_single_page_route_file] Single Page Routes File Array (funkphp/pages/page_single_routes.php) must be a non-empty array!");
+    }
+    if (!isset($singleRouteRoutesFileArray['ROUTES'])) {
+        cli_err_syntax("[cli_rebuild_single_page_route_file] Single Page Routes File Array (funkphp/pages/page_single_routes.php) must start with a 'ROUTES' key!");
+    }
+    // Check that dir exist, is writable and is a directory
+    if (!is_dir($dirs['pages']) || !is_writable($dirs['pages'])) {
+        cli_err_syntax("[cli_rebuild_single_page_route_file] Routes directory (funkphp/pages/) must be a valid directory and writable!");
+    }
+    // Check that if file exists, it can be overwritten
+    if (file_exists($exactFiles['single_page']) && !is_writable($exactFiles['single_page'])) {
+        cli_err_syntax("[cli_rebuild_single_page_route_file] Routes file (funkphp/pages/page_single_routes.php) must be writable. It is not!");
+    }
+    return file_put_contents(
+        $exactFiles['single_page'],
+        cli_get_prefix_code("page_singles_routes_start")
+            . cli_convert_array_to_simple_syntax($singleRouteRoutesFileArray)
+    );
+}
+
+// Rebuilds the Single Middleware Routes Page file (funkphp/pages/page_middleware_routes.php) based on valid array
+function cli_rebuild_single_page_mw_route_file($singleRouteRoutesFileArray): bool
+{
+    global $exactFiles, $dirs, $settings;
+    if (!is_array($singleRouteRoutesFileArray) || empty($singleRouteRoutesFileArray)) {
+        cli_err_syntax("[cli_rebuild_single_page_mw_route_file] Single Route Middleware Routes File Array (funkphp/pages/page_middleware_routes.php) must be a non-empty array!");
+    }
+    if (!isset($singleRouteRoutesFileArray['MIDDLEWARES'])) {
+        cli_err_syntax("[cli_rebuild_single_page_mw_route_file] Single Route Middleware Routes File Array (funkphp/pages/page_middleware_routes.php) must start with a 'ROUTES' key!");
+    }
+    // Check that dir exist, is writable and is a directory
+    if (!is_dir($dirs['pages']) || !is_writable($dirs['pages'])) {
+        cli_err_syntax("[cli_rebuild_single_routes_mw_route_file] Routes directory (funkphp/pages/) must be a valid directory and writable!");
+    }
+    // Check that if file exists, it can be overwritten
+    if (file_exists($exactFiles['single_middlewares_page']) && !is_writable($exactFiles['single_middlewares_page'])) {
+        cli_err_syntax("[cli_rebuild_single_routes_mw_route_file] Routes file (funkphp/pages/page_middleware_routes.php) must be writable. It is not!");
+    }
+    return file_put_contents(
+        $exactFiles['single_middlewares_page'],
+        cli_get_prefix_code("page_middleware_routes_start")
+            . cli_convert_array_to_simple_syntax($singleRouteRoutesFileArray)
+    );
 }
 
 // Check if Routes Data Handler in handlers/D/ exists
@@ -719,6 +893,57 @@ function cli_backup_batch($arrayOfFilesToBackup)
 
             continue;
         }
+    }
+}
+
+// Delete a single route for /routes/, /data/ AND /pages/ folder
+function cli_delete_a_single_all_routes()
+{
+    global $argv, $dirs, $exactFiles,
+        $settings, $singleRoutesRoute,
+        $singleRoutesData, $singleRoutesPage;
+    // Prepare the route string by trimming, validating starting, ending and middle parts of it
+    $deleteRoute = trim(strtolower($argv[3]));
+    $oldRoute = $deleteRoute;
+    [$method, $validRoute] = cli_prepare_valid_route_string($deleteRoute);
+    cli_info_without_exit("ROUTE: " . "\"$oldRoute\"" . " parsed as: \"$validRoute\"");
+
+    // Check that provided route exists in all 3 main route files
+    if (
+        isset($singleRoutesRoute['ROUTES'][$method][$validRoute])
+        && isset($singleRoutesData['ROUTES'][$method][$validRoute])
+        && isset($singleRoutesPage['ROUTES'][$method][$validRoute])
+    ) {
+        // First backup all associated route files if settings allow it
+        cli_backup_batch(
+            [
+                "troute_route",
+                "route_single_routes",
+                "troute_data",
+                "data_single_routes",
+                "troute_page",
+                "page_single_routes",
+            ]
+        );
+        // Then we unset() each matched route in all 3 main route files
+        unset($singleRoutesRoute['ROUTES'][$method][$validRoute]);
+        cli_success_without_exit("Deleted Route \"$method$validRoute\" from Single Routes Route \"funkphp/routes/route_single_routes.php\"!");
+        unset($singleRoutesData['ROUTES'][$method][$validRoute]);
+        cli_success_without_exit("Deleted Route \"$method$validRoute\" from Single Data Routes \"funkphp/routes/data_single_routes.php\"!");
+        unset($singleRoutesPage['ROUTES'][$method][$validRoute]);
+        cli_success_without_exit("Deleted Route \"$method$validRoute\" from Single Page Routes \"funkphp/routes/page_single_routes.php\"!");
+
+        // Then we rebuild and recompile all 3 main route files!
+        $outputRouteSingleFile = file_put_contents(
+            $exactFiles['single_routes'],
+            cli_get_prefix_code("route_singles_routes_start")
+                . cli_convert_array_to_simple_syntax($singleRoutesRoute)
+        );
+    }
+    // When one ore more is missing, we do not go ahead with deletion
+    // since this function is meant to delete all three at once!
+    else {
+        cli_err_syntax("\"$validRoute\" does not exist in all 3 main route files. Either make sure all three exists or use the other delete functions to delete each separately!");
     }
 }
 
