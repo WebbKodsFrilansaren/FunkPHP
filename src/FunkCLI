@@ -32,6 +32,7 @@ $validArg1withArg2Values =  [
         'help'
     ],
     'delete' => [
+        'all_route_compiled_singles_middlewares_and_all_their_handlers_files_i_know_files_will_be_hard_to_get_back',
         'all_route_compiled_and_singles_files_except_handlers_i_know_files_will_be_hard_to_get_back',
         'all_backups_compiled_and_single_files_i_know_files_will_be_hard_to_get_back',
         'all_backups_finals_files_i_know_files_will_be_hard_to_get_back',
@@ -254,6 +255,19 @@ $commands = [
         },
     ],
     'delete' => [
+        'all_route_compiled_singles_middlewares_and_all_their_handlers_files_i_know_files_will_be_hard_to_get_back' => function () {
+            global $dirs, $settings;
+            cli_delete_all_files_in_directory_except_other_directories($dirs['compiled']);
+            cli_delete_all_files_in_directory_except_other_directories($dirs['routes']);
+            cli_delete_all_files_in_directory_except_other_directories($dirs['data']);
+            cli_delete_all_files_in_directory_except_other_directories($dirs['pages']);
+            cli_delete_all_files_in_directory_except_other_directories($dirs['handlers_routes']);
+            cli_delete_all_files_in_directory_except_other_directories($dirs['handlers_data']);
+            cli_delete_all_files_in_directory_except_other_directories($dirs['handlers_pages']);
+            cli_delete_all_files_in_directory_except_other_directories($dirs['middlewares_routes']);
+            cli_delete_all_files_in_directory_except_other_directories($dirs['middlewares_data']);
+            cli_delete_all_files_in_directory_except_other_directories($dirs['middlewares_pages']);
+        },
         'all_route_compiled_and_singles_files_except_handlers_i_know_files_will_be_hard_to_get_back' => function () {
             global $dirs, $settings;
             cli_delete_all_files_in_directory_except_other_directories($dirs['compiled']);
