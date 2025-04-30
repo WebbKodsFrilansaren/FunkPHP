@@ -14,7 +14,7 @@ if ($c['req']['current_step'] === 3) {
     // STEP 3: Match Route & Middlewares and then
     // store them in global $c(onfig) variable,
     // then free up memory by unsetting variable
-    $FPHP_MATCHED_ROUTE = r_match_developer_route(
+    $FPHP_MATCHED_ROUTE = funk_match_developer_route(
         $c['req']['method'],
         $c['req']['uri'],
         $c['ROUTES']['COMPILED'],
@@ -34,17 +34,15 @@ if ($c['req']['current_step'] === 3) {
 
     $path = dirname(__DIR__) . '/handlers/t_1.php';
     $test = include_once $path;
-    if (is_callable($test)) {
-        $test($c);
-    } else {
-        echo "Route handler not callable!<br>";
+    if (function_exists("t_1")) {
+        echo "t_1 function exists!<br>";
     }
     exit;
 
     // Run the matched route handler if it exists and is not empty.
     // Even if not null, file may not exist; the function checks that.
     if ($c['req']['matched_handler_route'] !== null) {
-        r_run_matched_route_handler($c);
+        funk_run_matched_route_handler($c);
     }
     // matched_handler_route doesn't exist? What then or just move on?
     else {
@@ -57,7 +55,7 @@ if ($c['req']['current_step'] === 3) {
     // Then run each middleware in the order they are defined as long as keep_running_mws is true.
     // After each run, remove it from the array to avoid running it again.
     if ($c['req']['matched_middlewares'] !== null) {
-        r_run_middleware_after_matched_routing($c);
+        funk_run_middleware_after_matched_routing($c);
     }
     // This is the end of Step 3, you can freely add any other checks you want here!
 

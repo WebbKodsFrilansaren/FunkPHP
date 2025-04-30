@@ -5,7 +5,7 @@
 // Only Run Step 1 if the current step is 1 (the first step of the request)
 if ($c['req']['current_step'] === 1) {
     // Redirect to HTTPS if not already on HTTPS (if needed)
-    r_https_redirect();
+    funk_https_redirect();
 
     // See src/funkphp/config/ini_sets.php for the default ini_sets() settings!
     h_run_ini_sets($c['INI_SETS'] ?? []);
@@ -32,7 +32,7 @@ if ($c['req']['current_step'] === 1) {
 
     // Prepare the request URI for the FunkPHP Framework - Change
     // the function if you need to filter REQUEST_URI in more ways!
-    $c['req']['uri'] = r_prepare_uri($_SERVER['REQUEST_URI'], $c['BASEURLS']['BASEURL_URI']);
+    $c['req']['uri'] = funk_prepare_uri($_SERVER['REQUEST_URI'], $c['BASEURLS']['BASEURL_URI']);
 
     // This is the end of Step 1, do anything more if you want to
     $c['req']['next_step'] = 2; // Set next step to 2 (Step 2)

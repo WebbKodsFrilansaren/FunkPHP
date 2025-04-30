@@ -3,7 +3,7 @@
 // Only Run Step 1 if the current step is 1 (the second step of the request)
 if ($c['req']['current_step'] === 2) {
     // Match against denied and invalid methods | true = denied, false = allowed
-    $FPHP_INVALID_METHOD = r_match_denied_methods();
+    $FPHP_INVALID_METHOD = funk_match_denied_methods();
     if ($FPHP_INVALID_METHOD) {
         // If desired, response behavior edit as you please!
         echo "I'm a funky teapot!";
@@ -13,7 +13,7 @@ if ($c['req']['current_step'] === 2) {
     unset($FPHP_INVALID_METHOD);
 
     // Match against denied and invalid exact IPs | true = denied, false = allowed
-    $FPHP_INVALID_IP = r_match_denied_exact_ips();
+    $FPHP_INVALID_IP = funk_match_denied_exact_ips();
     if ($FPHP_INVALID_IP) {
         // If desired, response behavior edit as you please!
         echo "I'm a funky teapot!";
@@ -23,7 +23,7 @@ if ($c['req']['current_step'] === 2) {
     unset($FPHP_INVALID_IP);
 
     // Match against denied UAs | true = denied, false = allowed
-    $FPHP_INVALID_UA = r_match_denied_uas_fast();
+    $FPHP_INVALID_UA = funk_match_denied_uas_fast();
     if ($FPHP_INVALID_UA) {
         // If desired, edit response behavior as you please!
         echo "I'm a funky teapot!";

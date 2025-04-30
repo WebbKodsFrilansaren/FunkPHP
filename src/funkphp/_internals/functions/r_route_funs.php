@@ -1,7 +1,7 @@
 <?php // ROUTE-related FUNCTIONS FOR FunPHP
 
 // Redirect to HTTPS if the application is online (not localhost) and not secured yet
-function r_https_redirect()
+function funk_https_redirect()
 {
     try {
         if (isset($_SERVER['SERVER_NAME']) && $_SERVER['SERVER_NAME'] !== "localhost" &&  $_SERVER['SERVER_NAME'] !== "127.0.0.1") {
@@ -20,7 +20,7 @@ function r_https_redirect()
 }
 
 // Try match against denied methods globally (or when just invalid)
-function r_match_denied_methods()
+function funk_match_denied_methods()
 {
     // Return null if $method is invalid method variable
     $method = $_SERVER['REQUEST_METHOD'] ?? null;
@@ -46,7 +46,7 @@ function r_match_denied_methods()
 }
 
 // Try match against denied IPs globally
-function r_match_denied_exact_ips()
+function funk_match_denied_exact_ips()
 {
     // Try parse IP and check if it is valid
     $ip = $_SERVER['REMOTE_ADDR'] ?? null;
@@ -67,7 +67,7 @@ function r_match_denied_exact_ips()
 
 // Try run middlewares after matched routing (step 2)
 // &$c is Global Config Variable with "everything"!
-function r_run_middleware_after_matched_routing(&$c)
+function funk_run_middleware_after_matched_routing(&$c)
 {
     if (isset($c['req']['matched_middlewares']) && is_array($c['req']['matched_middlewares']) && count($c['req']['matched_middlewares']) > 0) {
         $count = count($c['req']['matched_middlewares']);
@@ -134,7 +134,7 @@ function r_exit_middleware_running_early_matched_routing(&$c)
 }
 
 // Try match against denied UAs globally (str_contains version, faster)
-function r_match_denied_uas_fast()
+function funk_match_denied_uas_fast()
 {
     // Try parse UA and check if it is valid
     $ua = $_SERVER['HTTP_USER_AGENT'] ?? null;
@@ -157,7 +157,7 @@ function r_match_denied_uas_fast()
 }
 
 // Try match against denied UAs globally (str_contains version, faster - for testing purposes)
-function r_match_denied_uas_fast_test($ua = null)
+function funk_match_denied_uas_fast_test($ua = null)
 {
     // Try parse UA and check if it is valid
     if ($ua === null) {
@@ -183,7 +183,7 @@ function r_match_denied_uas_fast_test($ua = null)
 
 // Prepare $req['uri'] for consistent use in the app CHANGE and/or UPDATE
 // this function if you need to filter the REQUEST_URI in more ways!
-function r_prepare_uri($uri, $fphp_BASEURL_URI)
+function funk_prepare_uri($uri, $fphp_BASEURL_URI)
 {
     $uri = str_starts_with($_SERVER['REQUEST_URI'], $fphp_BASEURL_URI) ? "/" . ltrim(substr(strtok($_SERVER['REQUEST_URI'], "?"), strlen($fphp_BASEURL_URI)), '/') : strtok($_SERVER['REQUEST_URI'], "?");
 
@@ -198,7 +198,7 @@ function r_prepare_uri($uri, $fphp_BASEURL_URI)
 }
 
 // Match Compiled Route with URI Segments, used by "r_match_developer_route"
-function r_match_compiled_route(string $requestUri, array $methodRootNode): ?array
+function funk_match_compiled_route(string $requestUri, array $methodRootNode): ?array
 {
     // Prepare & and extract URI Segments and remove empty segments
     $path = trim(strtolower($requestUri), '/');
@@ -281,7 +281,7 @@ function r_match_compiled_route(string $requestUri, array $methodRootNode): ?arr
 }
 
 // TRIE ROUTER STARTING POINT: Match Returned Matched Compiled Route With Developer's Defined Route
-function r_match_developer_route(string $method, string $uri, array $compiledRouteTrie, array $developerSingleRoutes, array $developerMiddlewareRoutes, string $handlerKey = "handler", string $mHandlerKey = "middlewares")
+function funk_match_developer_route(string $method, string $uri, array $compiledRouteTrie, array $developerSingleRoutes, array $developerMiddlewareRoutes, string $handlerKey = "handler", string $mHandlerKey = "middlewares")
 {
     // Prepare return values
     $matchedRoute = null;
@@ -293,7 +293,7 @@ function r_match_developer_route(string $method, string $uri, array $compiledRou
 
     // Try match HTTP Method Key in Compiled Routes
     if (isset($compiledRouteTrie[$method])) {
-        $routeDefinition = r_match_compiled_route($uri, $compiledRouteTrie[$method]);
+        $routeDefinition = funk_match_compiled_route($uri, $compiledRouteTrie[$method]);
     } else {
         $noMatchIn = "COMPILED_ROUTE_KEY (" . mb_strtoupper($method) . ") & ";
     }
@@ -347,7 +347,7 @@ function r_match_developer_route(string $method, string $uri, array $compiledRou
 }
 
 // Run the matched route handler (Step 3 after matched routing in Routes Route)
-function r_run_matched_route_handler(&$c)
+function funk_run_matched_route_handler(&$c)
 {
     // Grab Route Handler Path and check that it exists, is readable and callable and only then run it
     $handlerPath = dirname(dirname(__DIR__)) . '/handlers/' . ($c['req']['matched_handler_route'] ? $c['req']['matched_handler_route'] : "") . '.php';
