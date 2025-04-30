@@ -899,9 +899,15 @@ function cli_backup_batch($arrayOfFilesToBackup)
 // Delete a single route for /routes/, /data/ AND /pages/ folder
 function cli_delete_a_single_all_routes()
 {
-    global $argv, $dirs, $exactFiles,
-        $settings, $singleRoutesRoute,
-        $singleRoutesData, $singleRoutesPage;
+    global
+        $argv, $dirs, $exactFiles,
+        $settings,
+        $singleRoutesRoute,
+        $singleRoutesData,
+        $singleRoutesPage,
+        $middlewareRoutesRoute,
+        $middlewareRoutesData,
+        $middlewareRoutesPage;
     // Prepare the route string by trimming, validating starting, ending and middle parts of it
     $deleteRoute = trim(strtolower($argv[3]));
     $oldRoute = $deleteRoute;
@@ -934,11 +940,22 @@ function cli_delete_a_single_all_routes()
         cli_success_without_exit("Deleted Route \"$method$validRoute\" from Single Page Routes \"funkphp/routes/page_single_routes.php\"!");
 
         // Then we rebuild and recompile all 3 main route files!
-        $outputRouteSingleFile = file_put_contents(
-            $exactFiles['single_routes'],
-            cli_get_prefix_code("route_singles_routes_start")
-                . cli_convert_array_to_simple_syntax($singleRoutesRoute)
-        );
+        // Routes
+        cli_rebuild_single_routes_route_file($singleRoutesRoute);
+        $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRoute['ROUTES'], $middlewareRoutesRoute['MIDDLEWARES']);
+        cli_output_compiled_routes($compiledRouteRoutes, "troute_route");
+
+        // Data
+        cli_rebuild_single_data_route_file($singleRoutesData);
+        $compiledRouteData = cli_build_compiled_routes($singleRoutesData['ROUTES'], $middlewareRoutesData['MIDDLEWARES']);
+        cli_output_compiled_routes($compiledRouteData, "troute_data");
+
+        // Pages
+        cli_rebuild_single_page_route_file($singleRoutesPage);
+        $compiledRoutePage = cli_build_compiled_routes($singleRoutesPage['ROUTES'], $middlewareRoutesPage['MIDDLEWARES']);
+        cli_output_compiled_routes($compiledRoutePage, "troute_page");
+
+        cli_success("Deleted Route \"$method$validRoute\" from all 3 main route files!");
     }
     // When one ore more is missing, we do not go ahead with deletion
     // since this function is meant to delete all three at once!
