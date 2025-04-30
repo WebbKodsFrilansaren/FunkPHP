@@ -7,17 +7,17 @@ include __DIR__ . '/funkphp/_internals/functions/cli_funs.php';
 $validArg1withArg2Values =  [
     'help' => [],
     'compile' => [
-        'all_routes',
-        'only_route',
-        'only_data',
-        'only_page',
+        'routes',
         'help'
     ],
     'add' => [
-        'all_routes',
-        'only_route',
-        'only_data_route',
-        'only_page_route',
+        'route',
+        'middleware',
+        'mw',
+        'mws',
+        'middlewares',
+        'data',
+        'page',
         'mw_all',
         'mw_route',
         'mw_data',
@@ -130,15 +130,8 @@ $dirs = [
 
 // Exact file paths to use for the CLI
 $exactFiles = [
-    "troute_data" => $dirs['compiled'] . "troute_data.php",
-    "troute_page" => $dirs['compiled'] . "troute_page.php",
     "troute_route" => $dirs['compiled'] . "troute_route.php",
     "single_routes" => $dirs['routes'] . "route_single_routes.php",
-    "single_middlewares" => $dirs['routes'] . "route_middleware_routes.php",
-    "single_data" => $dirs['data'] . "data_single_routes.php",
-    "single_middlewares_data" => $dirs['data'] . "data_middleware_routes.php",
-    "single_page" => $dirs['pages'] . "page_single_routes.php",
-    "single_middlewares_page" => $dirs['pages'] . "page_middleware_routes.php",
 ];
 
 // First restore the folders if they don't exist
@@ -146,57 +139,19 @@ cli_restore_default_folders_and_files();
 
 // Load current routes, data and pages before processing any commands
 $singleRoutesRoute = include __DIR__ . '/funkphp/routes/route_single_routes.php' ?? ['ROUTES' => ['GET' => [], 'POST' => [], 'PUT' => [], 'DELETE' => []]];
-$singleRoutesData = include __DIR__ . '/funkphp/data/data_single_routes.php'  ?? ['ROUTES' => ['GET' => [], 'POST' => [], 'PUT' => [], 'DELETE' => []]];
-$singleRoutesPage = include __DIR__ . '/funkphp/pages/page_single_routes.php'  ?? ['ROUTES' => ['GET' => [], 'POST' => [], 'PUT' => [], 'DELETE' => []]];
-$middlewareRoutesRoute = include  __DIR__ . '/funkphp/routes/route_middleware_routes.php' ?? ['MIDDLEWARES' => ['GET' => [], 'POST' => [], 'PUT' => [], 'DELETE' => []]];
-$middlewareRoutesData = include __DIR__ . '/funkphp/data/data_middleware_routes.php' ?? ['MIDDLEWARES' => ['GET' => [], 'POST' => [], 'PUT' => [], 'DELETE' => []]];
-$middlewareRoutesPage = include __DIR__ . '/funkphp/pages/page_middleware_routes.php' ?? ['MIDDLEWARES' => ['GET' => [], 'POST' => [], 'PUT' => [], 'DELETE' => []]];
 
 // Compile only based on user input
 // Compile all routes
 // Define the command actions map
 $commands = [
     'compile' => [
-        'all_routes' => function () {
-            // Backup the old route files first if settings allow it
-            cli_backup_batch(
-                [
-                    "troute_route",
-                    "route_single_routes",
-                    "troute_data",
-                    "data_single_routes",
-                    "troute_page",
-                    "page_single_routes",
-                ]
-            );
-
-            // Then build and output new route files
-            cli_compile_batch(["troute_route", "troute_data", "troute_page"]);
-            cli_success("All routes compiled successfully!");
-        },
-        'only_route' => function () {
+        'routes' => function () {
             // Backup the old route file first (troute and single_routes)
             cli_backup_batch(["troute_route", "route_single_routes"]);
 
             // Then build and output new route file
             cli_compile_batch(["troute_route"]);
             cli_success("Compiled Only Route routes!");
-        },
-        'only_data' => function () {
-            // Backup the old route file first (troute and single_routes)
-            cli_backup_batch(["troute_data", "data_single_routes"]);
-
-            // Then build and output new route file
-            cli_compile_batch(["troute_data"]);
-            cli_success("Compiled Only Data routes!");
-        },
-        'only_page' => function () {
-            // Backup the old route file first (troute and single_routes)
-            cli_backup_batch(["troute_page", "page_single_routes"]);
-
-            // Then build and output new route file
-            cli_compile_batch(["troute_page"]);
-            cli_success("Compiled Only Page routes!");
         },
         'help' => function () {
             cli_info_multiline("FunkCLI - Compile Help");
@@ -214,9 +169,6 @@ $commands = [
     ],
     'add' => [
         // Adding to ALL Routes at the same time (Route, Data, Page)
-        'all_routes' => function () {
-            cli_add_route_batch(["all_routes"]);
-        },
         // Adding Route to only Route Routes
         'only_route' => function () {
             cli_add_route_batch(["only_route"]);
@@ -278,22 +230,6 @@ $commands = [
                 cli_err_syntax("Provide a valid route to delete from Single Routes!\nExample: \"funkcli delete only_route method/route_name\"");
             }
             cli_delete_a_single_routes_route();
-        },
-        // Delete a single route for /data/ folder only
-        'only_data_route' => function () {
-            global $argv;
-            if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3])) {
-                cli_err_syntax("Provide a valid route to delete from Single Data Routes!\nExample: \"funkcli delete only_data_route method/route_name\"");
-            }
-            cli_delete_a_single_data_route();
-        },
-        // Delete a single route for /pages/ folder only
-        'only_page_route' => function () {
-            global $argv;
-            if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3])) {
-                cli_err_syntax("Provide a valid route to delete from Single Page Routes!\nExample: \"funkcli delete only_page_route method/route_name\"");
-            }
-            cli_delete_a_single_page_route();
         },
         // THESE DELETING FUNCTIONS ARE TO DELETE ACTUALLY MOST FILES IN MOST FOLDERS. FUNCTION ABOVE HERE ARE FOR DELETING INSIDE
         // OF FILES SUCH AS ROUTES, MIDDLEWARE, HANDLERS AND SO ON. PROCEED WITH CAUTION USING ANY OF THE FOLLOWING FUNCTIONS!!!

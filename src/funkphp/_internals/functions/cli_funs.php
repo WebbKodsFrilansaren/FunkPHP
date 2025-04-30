@@ -15,34 +15,21 @@ function cli_restore_default_folders_and_files()
         "$folderBase/_BACKUPS/_FINAL_BACKUPS/",
         "$folderBase/_BACKUPS/compiled/",
         "$folderBase/_BACKUPS/data/",
-        "$folderBase/_BACKUPS/data/MW/",
         "$folderBase/_BACKUPS/handlers/",
-        "$folderBase/_BACKUPS/handlers/R/",
-        "$folderBase/_BACKUPS/handlers/D/",
-        "$folderBase/_BACKUPS/handlers/P/",
         "$folderBase/_BACKUPS/pages/",
-        "$folderBase/_BACKUPS/pages/MW/",
         "$folderBase/_BACKUPS/routes/",
-        "$folderBase/_BACKUPS/routes/MW/",
         "$folderBase/_internals/",
         "$folderBase/_internals/compiled/",
         "$folderBase/_internals/functions/",
         "$folderBase/_internals/templates/",
         "$folderBase/cached/",
-        "$folderBase/cached/R/",
-        "$folderBase/cached/D/",
-        "$folderBase/cached/P/",
+        "$folderBase/cached/pages/",
+        "$folderBase/cached/json/",
+        "$folderBase/cached/files/",
         "$folderBase/config/",
         "$folderBase/data/",
         "$folderBase/dx_steps/",
-        "$folderBase/handlers/",
-        "$folderBase/handlers/R/",
-        "$folderBase/handlers/D/",
-        "$folderBase/handlers/P/",
         "$folderBase/middlewares/",
-        "$folderBase/middlewares/R/",
-        "$folderBase/middlewares/D/",
-        "$folderBase/middlewares/P/",
         "$folderBase/pages/",
         "$folderBase/pages/complete/",
         "$folderBase/pages/parts/",
@@ -53,14 +40,7 @@ function cli_restore_default_folders_and_files()
     // Prepare default files that doesn't exist if certain folders don't exist
     $defaultFiles = [
         "$folderBase/_internals/compiled/troute_route.php",
-        "$folderBase/_internals/compiled/troute_data.php",
-        "$folderBase/_internals/compiled/troute_page.php",
-        "$folderBase/data/data_middleware_routes.php",
-        "$folderBase/data/data_single_routes.php",
-        "$folderBase/routes/route_middleware_routes.php",
         "$folderBase/routes/route_single_routes.php",
-        "$folderBase/pages/page_middleware_routes.php",
-        "$folderBase/pages/page_single_routes.php",
     ];
 
     // Create folderBase if it does not exist
@@ -80,10 +60,6 @@ function cli_restore_default_folders_and_files()
             // Recreate default files based on type ("troute", "middleware routes" or "single routes")
             if (str_contains($file, "troute")) {
                 file_put_contents($file, "<?php\n// This file was recreated by FunkCLI!\nreturn [];\n?>");
-                echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
-                continue;
-            } elseif (str_contains($file, "middleware")) {
-                file_put_contents($file, "<?php\n// This file was recreated by FunkCLI!\nreturn [\n'MIDDLEWARES' => \n['GET' => [], 'POST' => [], 'PUT' => [], 'DELETE' => [],]];\n?>");
                 echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
                 continue;
             } elseif (str_contains($file, "single")) {
@@ -114,27 +90,6 @@ function cli_route_file_exist($fileName): bool
     }
     // Here we know the argument is valid so check if the file exists by using the matched key from $validFilenames
     if (file_exists($validFilenames[$fileName])) {
-        return true;
-    }
-    return false;
-}
-
-// Check if Routes Route Handler in handlers/R/ exists
-function cli_r_handler_exists($fileName): bool
-{
-    // Load globals, verify & transform string with .php if not already
-    global $argv,
-        $settings,
-        $dirs,
-        $exactFiles;
-    if (!is_string($fileName) || empty($fileName)) {
-        cli_err_syntax("[cli_r_handler_exists] Route Handler File name must be a non-empty string!");
-    }
-    if (!str_ends_with($fileName, ".php")) {
-        $fileName .= ".php";
-    }
-    // Return true if file exists in handlers/R/ folder, false otherwise
-    if (file_exists($dirs['handlers_routes'] . $fileName)) {
         return true;
     }
     return false;
@@ -291,7 +246,7 @@ function cli_rebuild_single_page_mw_route_file($singleRouteRoutesFileArray): boo
 }
 
 // Check if Routes Data Handler in handlers/D/ exists
-function cli_d_handler_exists($fileName): bool
+function cli_data_exists($fileName): bool
 {
     // Load globals, verify & transform string with .php if not already
     global $argv,
@@ -312,7 +267,7 @@ function cli_d_handler_exists($fileName): bool
 }
 
 // Check if Routes Page Handler in handlers/P/ exists
-function cli_p_handler_exists($fileName): bool
+function cli_page_exists($fileName): bool
 {
     // Load globals, verify & transform string with .php if not already
     global $argv,
@@ -332,8 +287,29 @@ function cli_p_handler_exists($fileName): bool
     return false;
 }
 
+// Check if Routes Route Handler in handlers/R/ exists
+function cli_handler_exists($fileName): bool
+{
+    // Load globals, verify & transform string with .php if not already
+    global $argv,
+        $settings,
+        $dirs,
+        $exactFiles;
+    if (!is_string($fileName) || empty($fileName)) {
+        cli_err_syntax("[cli_r_handler_exists] Route Handler File name must be a non-empty string!");
+    }
+    if (!str_ends_with($fileName, ".php")) {
+        $fileName .= ".php";
+    }
+    // Return true if file exists in handlers/R/ folder, false otherwise
+    if (file_exists($dirs['handlers_routes'] . $fileName)) {
+        return true;
+    }
+    return false;
+}
+
 // Check if Route Middleware Handler in middlewares/R/ exists
-function cli_mw_r_handler_exists($fileName): bool
+function cli_middleware_exists($fileName): bool
 {
     // Load globals, verify & transform string with .php if not already
     global $argv,
@@ -348,48 +324,6 @@ function cli_mw_r_handler_exists($fileName): bool
     }
     // Return true if file exists in middlewares/R/ folder, false otherwise
     if (file_exists($dirs['middlewares_routes'] . $fileName)) {
-        return true;
-    }
-    return false;
-}
-
-// Check if Data Middleware Handler in middlewares/D/ exists
-function cli_mw_d_handler_exists($fileName): bool
-{
-    // Load globals, verify & transform string with .php if not already
-    global $argv,
-        $settings,
-        $dirs,
-        $exactFiles;
-    if (!is_string($fileName) || empty($fileName)) {
-        cli_err_syntax("[cli_mw_d_handler_exists] Middleware Data Handler File name must be a non-empty string!");
-    }
-    if (!str_ends_with($fileName, ".php")) {
-        $fileName .= ".php";
-    }
-    // Return true if file exists in middlewares/D/ folder, false otherwise
-    if (file_exists($dirs['middlewares_data'] . $fileName)) {
-        return true;
-    }
-    return false;
-}
-
-// Check if Page Middleware Handler in middlewares/P/ exists
-function cli_mw_p_handler_exists($fileName): bool
-{
-    // Load globals, verify & transform string with .php if not already
-    global $argv,
-        $settings,
-        $dirs,
-        $exactFiles;
-    if (!is_string($fileName) || empty($fileName)) {
-        cli_err_syntax("[cli_mw_p_handler_exists] Middleware Page Handler File name must be a non-empty string!");
-    }
-    if (!str_ends_with($fileName, ".php")) {
-        $fileName .= ".php";
-    }
-    // Return true if file exists in middlewares/P/ folder, false otherwise
-    if (file_exists($dirs['middlewares_pages'] . $fileName)) {
         return true;
     }
     return false;
@@ -483,16 +417,18 @@ function cli_build_compiled_routes(array $developerSingleRoutes, array $develope
     // Add the middleware routes to the compiled trie
     $addMiddlewareRoutes = function ($middlewareRoutes, &$compiledTrie) {
         // Only extract the keys from the middleware routes
-        $keys = array_keys($middlewareRoutes) ?? [];
+        //$keys = array_keys($middlewareRoutes) ?? [];
+        $keys = $middlewareRoutes ?? [];
+
 
         // The way we insert "|" to signify a middleware is to just go through all segments for each key
         // and when we are at the last segment that is the node we insert "|" and then we move on to key.
-        foreach ($keys as $key) {
+        foreach ($keys as $key => $value) {
             // Ignore empty keys or null values & handle special case for "/"
             if ($key === "" || $key === null || $key === false || $key === "") {
                 continue;
             }
-            if ($key === "/") {
+            if ($key === "/" && isset($value['middlewares']) && !empty($value['middlewares'])) {
                 $compiledTrie["|"] = [];
                 continue;
             }
@@ -529,7 +465,7 @@ function cli_build_compiled_routes(array $developerSingleRoutes, array $develope
 
             // Now we are at the last segment, we just add the middleware node "|"
             // and then we add the middleware route to it.
-            if (!isset($currentNode['|'])) {
+            if (!isset($currentNode['|']) && isset($value['middlewares']) && !empty($value['middlewares'])) {
                 $currentNode['|'] = [];
             }
         }
@@ -781,25 +717,9 @@ function cli_backup_batch($arrayOfFilesToBackup)
     $backupDataMWPath = $dirs['backups_data_mw'];
     $backupPageMWPath = $dirs['backups_pages_mw'];
 
-    // Middleware folders
-    $middlewareRoutesPath = $dirs['middlewares_routes'];
-    $middlewareDataPath = $dirs['middlewares_data'];
-    $middlewarePagePath = $dirs['middlewares_pages'];
-
     // Single Route Routes (including Middlewares)
     $oldTrouteRouteFile = $exactFiles['troute_route'];
     $oldSingleRouteRouteFile = $exactFiles['single_routes'];
-    $oldSingleMiddlwaresRouteFile = $exactFiles['single_middlewares'];
-
-    // Single Data Routes (including Middlewares)
-    $oldTrouteDataFile = $exactFiles['troute_data'];
-    $oldSingleDataFile = $exactFiles['single_data'];
-    $oldSingleMiddlwaresDataFile = $exactFiles['single_middlewares_data'];
-
-    // Single Pages Routes (including Middlewares)
-    $oldTroutePageFile = $exactFiles['troute_page'];
-    $oldSinglePageFile = $exactFiles['single_page'];
-    $oldSingleMiddlwaresPageFile = $exactFiles['single_middlewares_page'];
 
     // Now backup the old route files based on provided $filesString
     // Loop through each file in the array and backup it
@@ -818,60 +738,13 @@ function cli_backup_batch($arrayOfFilesToBackup)
             // Single Route Routes & Middlewares
             if ($settings['ALWAYS_BACKUP_IN']['ROUTES_IN_BACKUPS']) {
                 cli_backup_file_until_success($backupRouteRoutePath . "route_single_routes", ".php", $oldSingleRouteRouteFile);
-                cli_backup_file_until_success($backupRouteRoutePath . "route_middleware_routes", ".php", $oldSingleMiddlwaresRouteFile);
             }
             if ($settings['ALWAYS_BACKUP_IN']['ROUTES_IN_FINAL_BACKUPS']) {
                 cli_backup_file_until_success($backupFinalsPath . "route_single_routes", ".php", $oldSingleRouteRouteFile);
-                cli_backup_file_until_success($backupFinalsPath . "route_middleware_routes", ".php", $oldSingleMiddlwaresRouteFile);
             }
             continue;
         }
 
-        if ($fileString === "troute_data") {
-            // Data
-            if ($settings['ALWAYS_BACKUP_IN']['COMPILED_IN_BACKUPS']) {
-                cli_backup_file_until_success($backupCompiledPath . "troute_data", ".php", $oldTrouteDataFile);
-            }
-            if ($settings['ALWAYS_BACKUP_IN']['COMPILED_IN_FINAL_BACKUPS']) {
-                cli_backup_file_until_success($backupFinalsPath . "troute_data", ".php", $oldTrouteDataFile);
-            }
-            continue;
-        }
-        if ($fileString === "data_single_routes") {
-            // Single Data Routes & Middlewares
-            if ($settings['ALWAYS_BACKUP_IN']['DATA_IN_BACKUPS']) {
-                cli_backup_file_until_success($backupDataRoutePath . "data_single_routes", ".php", $oldSingleDataFile);
-                cli_backup_file_until_success($backupDataRoutePath . "data_middleware_routes", ".php", $oldSingleMiddlwaresDataFile);
-            }
-            if ($settings['ALWAYS_BACKUP_IN']['DATA_IN_FINAL_BACKUPS']) {
-                cli_backup_file_until_success($backupFinalsPath . "data_single_routes", ".php", $oldSingleDataFile);
-                cli_backup_file_until_success($backupFinalsPath . "data_middleware_routes", ".php", $oldSingleMiddlwaresDataFile);
-            }
-            continue;
-        }
-        if ($fileString === "troute_page") {
-            // Pages
-            if ($settings['ALWAYS_BACKUP_IN']['COMPILED_IN_BACKUPS']) {
-                cli_backup_file_until_success($backupCompiledPath . "troute_page", ".php", $oldTroutePageFile);
-            }
-            if ($settings['ALWAYS_BACKUP_IN']['COMPILED_IN_FINAL_BACKUPS']) {
-                cli_backup_file_until_success($backupFinalsPath . "troute_page", ".php", $oldTroutePageFile);
-            }
-            continue;
-        }
-        if ($fileString === "page_single_routes") {
-            // Single Page Routes & Middlewares
-            if ($settings['ALWAYS_BACKUP_IN']['PAGES_IN_BACKUPS']) {
-                cli_backup_file_until_success($backupPageRoutePath . "page_single_routes", ".php", $oldSinglePageFile);
-                cli_backup_file_until_success($backupPageRoutePath . "page_middleware_routes", ".php", $oldSingleMiddlwaresPageFile);
-            }
-            if ($settings['ALWAYS_BACKUP_IN']['PAGES_IN_FINAL_BACKUPS']) {
-
-                cli_backup_file_until_success($backupFinalsPath . "page_single_routes", ".php", $oldSinglePageFile);
-                cli_backup_file_until_success($backupFinalsPath . "page_middleware_routes", ".php", $oldSingleMiddlwaresPageFile);
-            }
-            continue;
-        }
         if ($fileString === "handlers_r") {
             if ($settings['ALWAYS_BACKUP_IN']['ROUTES_HANDLERS_IN_BACKUPS']) {
             }
@@ -1851,24 +1724,12 @@ function cli_compile_batch($arrayOfRoutesToCompileAndOutput)
     }
 
     // Load global routing files
-    global $singleRoutesRoute, $singleRoutesData,
-        $singleRoutesPage, $middlewareRoutesRoute,
-        $middlewareRoutesData, $middlewareRoutesPage;
+    global $singleRoutesRoute;
 
     foreach ($arrayOfRoutesToCompileAndOutput as $routeString) {
         if ($routeString === "troute_route") {
-            $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRoute['ROUTES'], $middlewareRoutesRoute['MIDDLEWARES']);
+            $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRoute['ROUTES'], $singleRoutesRoute['ROUTES']);
             cli_output_compiled_routes($compiledRouteRoutes, "troute_route");
-            continue;
-        }
-        if ($routeString === "troute_data") {
-            $compiledDataRoutes = cli_build_compiled_routes($singleRoutesData['ROUTES'], $middlewareRoutesData['MIDDLEWARES']);
-            cli_output_compiled_routes($compiledDataRoutes, "troute_data");
-            continue;
-        }
-        if ($routeString === "troute_page") {
-            $compiledPageRoutes = cli_build_compiled_routes($singleRoutesPage['ROUTES'], $middlewareRoutesPage['MIDDLEWARES']);
-            cli_output_compiled_routes($compiledPageRoutes, "troute_page");
             continue;
         }
     }

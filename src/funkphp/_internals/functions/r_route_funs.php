@@ -281,7 +281,7 @@ function r_match_compiled_route(string $requestUri, array $methodRootNode): ?arr
 }
 
 // TRIE ROUTER STARTING POINT: Match Returned Matched Compiled Route With Developer's Defined Route
-function r_match_developer_route(string $method, string $uri, array $compiledRouteTrie, array $developerSingleRoutes, array $developerMiddlewareRoutes, string $handlerKey = "handler", string $mHandlerKey = "handler")
+function r_match_developer_route(string $method, string $uri, array $compiledRouteTrie, array $developerSingleRoutes, array $developerMiddlewareRoutes, string $handlerKey = "handler", string $mHandlerKey = "middlewares")
 {
     // Prepare return values
     $matchedRoute = null;
