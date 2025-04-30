@@ -982,7 +982,7 @@ function cli_add_middlewares_batch($arrayOfMiddlewaresToAdd)
                 }
             }
             if (!$singleExist) {
-                cli_err_syntax("Route \"$validRoute\" does not exist in $method/Single Route Routes!");
+                cli_err_syntax("Route \"$validRoute\" does not exist in $method/Single Route Routes! (funkphp/routes/route_single_routes.php) Add that first!");
             }
             $singleExist = false;
             foreach ($singleRoutesData['ROUTES'][$method] as $routeSingle => $val) {
@@ -992,7 +992,7 @@ function cli_add_middlewares_batch($arrayOfMiddlewaresToAdd)
                 }
             }
             if (!$singleExist) {
-                cli_err_syntax("Route \"$validRoute\" does not exist in $method/Single Data Routes!");
+                cli_err_syntax("Route \"$validRoute\" does not exist in $method/Single Data Routes! (funkphp/data/data_single_routes.php) Add that first!");
             }
             $singleExist = false;
             foreach ($singleRoutesPage['ROUTES'][$method] as $routeSingle => $val) {
@@ -1002,7 +1002,7 @@ function cli_add_middlewares_batch($arrayOfMiddlewaresToAdd)
                 }
             }
             if (!$singleExist) {
-                cli_err_syntax("Route \"$validRoute\" does not exist in $method/Single Page Routes!");
+                cli_err_syntax("Route \"$validRoute\" does not exist in $method/Single Page Routes! (funkphp/pages/page_single_routes.php) Add that first!");
             }
 
             // For each Route, Data, Page Middleware Route, we first check that the route exists.
@@ -1210,7 +1210,7 @@ function cli_add_middlewares_batch($arrayOfMiddlewaresToAdd)
                 }
             }
             if (!$singleExist) {
-                cli_err_syntax("Route \"$validRoute\" does not exist in $method/Single Route Routes!");
+                cli_err_syntax("Route \"$validRoute\" does not exist in $method/Single Route Routes! (funkphp/routes/route_single_routes.php) Add that first!");
             }
             // Check that handler is not already used in the Middlewares Route Routes file
             if (isset($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute])) {
@@ -1286,6 +1286,9 @@ function cli_add_middlewares_batch($arrayOfMiddlewaresToAdd)
                     $singleExist = true;
                     break;
                 }
+            }
+            if (!$singleExist) {
+                cli_err_syntax("Route \"$validRoute\" does not exist in $method/Single Data Routes! (funkphp/data/data_single_routes.php) Add that first!");
             }
             // Check that handler is not already used in the Middlewares Data Routes file
             if (isset($middlewareRoutesData['MIDDLEWARES'][$method][$validRoute])) {
@@ -1363,7 +1366,7 @@ function cli_add_middlewares_batch($arrayOfMiddlewaresToAdd)
                 }
             }
             if (!$singleExist) {
-                cli_err_syntax("Route \"$validRoute\" does not exist in $method/Single Page Routes!");
+                cli_err_syntax("Route \"$validRoute\" does not exist in $method/Single Page Routes! (funkphp/pages/page_single_routes.php) Add that first!");
             }
             // Check that handler is not already used in the Middlewares Page Routes file
             if (isset($middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute])) {

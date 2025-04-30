@@ -254,9 +254,11 @@ $commands = [
         },
     ],
     'delete' => [
-        'all_route_compiled_and_singles' => function () use ($argv, $settings) {
-
-            cli_info("[INFO]: Deleting route routes (not implemented yet)");
+        'all_route_compiled_and_singles_files_except_handlers_i_know_files_will_be_hard_to_get_back' => function () use ($argv, $dirs, $settings) {
+            cli_delete_all_files_in_directory_except_other_directories($dirs['compiled']);
+            cli_delete_all_files_in_directory_except_other_directories($dirs['routes']);
+            cli_delete_all_files_in_directory_except_other_directories($dirs['data']);
+            cli_delete_all_files_in_directory_except_other_directories($dirs['pages']);
         },
         // This deletes all backups in the _BACKUPS/compiled, _BACKUPS/data, _BACKUPS/pages
         // & _BACKUPS/routes Subfolders are not deleted such as _BACKUPS/routes/MW/ etc.

@@ -1,6 +1,19 @@
-<?php
-// This file was recreated by FunkCLI!
+<?php // PAGE_SINGLE_ROUTES.PHP - FunkPHP Framework | This File Was Modified In FunkCLI 2025-04-30 13:46:43
 return [
-'ROUTES' => 
-['GET' => [], 'POST' => [], 'PUT' => [], 'DELETE' => [],]];
-?>
+  'ROUTES' =>
+  [
+    'GET' =>
+    [
+      '/tes' =>
+      [
+        'handler' => 'test',
+      ],
+    ],
+    'POST' =>
+    [],
+    'PUT' =>
+    [],
+    'DELETE' =>
+    [],
+  ],
+];
