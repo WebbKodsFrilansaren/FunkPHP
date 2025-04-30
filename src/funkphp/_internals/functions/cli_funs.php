@@ -971,6 +971,39 @@ function cli_add_middlewares_batch($arrayOfMiddlewaresToAdd)
 
     foreach ($arrayOfMiddlewaresToAdd as $middlewareString) {
         if ($middlewareString === "mw_all") {
+            // We loop routes to see if any of the routes at least starts with the middleware route
+            // otherwise we cannot add it because it wouldn't match any valid/navigable route!
+            $singleExist = false;
+            foreach ($singleRoutesRoute['ROUTES'][$method] as $routeSingle) {
+                if (str_starts_with($routeSingle, $validRoute)) {
+                    $singleExist = true;
+                    break;
+                }
+            }
+            if (!$singleExist) {
+                cli_err_syntax("Route \"$validRoute\" does not exist in $method/Single Route Routes!");
+            }
+            $singleExist = false;
+            foreach ($singleRoutesData['ROUTES'][$method] as $routeSingle) {
+                if (str_starts_with($routeSingle, $validRoute)) {
+                    $singleExist = true;
+                    break;
+                }
+            }
+            if (!$singleExist) {
+                cli_err_syntax("Route \"$validRoute\" does not exist in $method/Single Data Routes!");
+            }
+            $singleExist = false;
+            foreach ($singleRoutesPage['ROUTES'][$method] as $routeSingle) {
+                if (str_starts_with($routeSingle, $validRoute)) {
+                    $singleExist = true;
+                    break;
+                }
+            }
+            if (!$singleExist) {
+                cli_err_syntax("Route \"$validRoute\" does not exist in $method/Single Page Routes!");
+            }
+
             // For each Route, Data, Page Middleware Route, we first check that the route exists.
             // And then we chekc if the handler is a string or an array. If a string, we check if exact
             // handler name already exists in the route. If an array, we check if the handler exists in array.
@@ -1126,6 +1159,19 @@ function cli_add_middlewares_batch($arrayOfMiddlewaresToAdd)
         }
         // When ONLY adding a middleware in the Middleware Route Routes file
         if ($middlewareString === "mw_route") {
+            // At least one route in Single Route Routes file must start with the middleware route
+            // otherwise we cannot add it because it wouldn't match any valid/navigable route!
+            $singleExist = false;
+            foreach ($singleRoutesRoute['ROUTES'][$method] as $routeSingle) {
+                if (str_starts_with($routeSingle, $validRoute)) {
+                    $singleExist = true;
+                    break;
+                }
+            }
+            if (!$singleExist) {
+                cli_err_syntax("Route \"$validRoute\" does not exist in $method/Single Route Routes!");
+            }
+            // Check that handler is not already used in the Middlewares Route Routes file
             if (isset($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute])) {
                 if (isset($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute]["handler"])) {
                     if (is_string($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute]["handler"])) {
@@ -1191,6 +1237,16 @@ function cli_add_middlewares_batch($arrayOfMiddlewaresToAdd)
         }
         // When ONLY adding a middleware in the Middleware Data Routes file
         if ($middlewareString === "mw_data") {
+            // At least one route in Single Data Routes file must start with the middleware route
+            // otherwise we cannot add it because it wouldn't match any valid/navigable route!
+            $singleExist = false;
+            foreach ($singleRoutesData['ROUTES'][$method] as $routeSingle) {
+                if (str_starts_with($routeSingle, $validRoute)) {
+                    $singleExist = true;
+                    break;
+                }
+            }
+            // Check that handler is not already used in the Middlewares Data Routes file
             if (isset($middlewareRoutesData['MIDDLEWARES'][$method][$validRoute])) {
                 if (isset($middlewareRoutesData['MIDDLEWARES'][$method][$validRoute]["handler"])) {
                     if (is_string($middlewareRoutesData['MIDDLEWARES'][$method][$validRoute]["handler"])) {
@@ -1220,6 +1276,19 @@ function cli_add_middlewares_batch($arrayOfMiddlewaresToAdd)
         }
         // When ONLY adding a middleware in the Middleware Page Routes file
         if ($middlewareString === "mw_page") {
+            // At least one route in Single Page Routes file must start with the middleware route
+            // otherwise we cannot add it because it wouldn't match any valid/navigable route!
+            $singleExist = false;
+            foreach ($singleRoutesPage['ROUTES'][$method] as $routeSingle) {
+                if (str_starts_with($routeSingle, $validRoute)) {
+                    $singleExist = true;
+                    break;
+                }
+            }
+            if (!$singleExist) {
+                cli_err_syntax("Route \"$validRoute\" does not exist in $method/Single Page Routes!");
+            }
+            // Check that handler is not already used in the Middlewares Page Routes file
             if (isset($middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute])) {
                 if (isset($middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute]["handler"])) {
                     if (is_string($middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute]["handler"])) {
