@@ -872,20 +872,46 @@ function cli_backup_batch($arrayOfFilesToBackup)
             }
             continue;
         }
-        if ($fileString === "") {
-
+        if ($fileString === "handlers_r") {
+            if ($settings['ALWAYS_BACKUP_IN']['ROUTES_HANDLERS_IN_BACKUPS']) {
+            }
+            if ($settings['ALWAYS_BACKUP_IN']['ROUTES_HANDLERS_IN_FINAL_BACKUPS']) {
+            }
             continue;
         }
-        if ($fileString === "") {
-
+        if ($fileString === "handlers_d") {
+            if ($settings['ALWAYS_BACKUP_IN']['DATA_HANDLERS_IN_BACKUPS']) {
+            }
+            if ($settings['ALWAYS_BACKUP_IN']['DATA_HANDLERS_IN_FINAL_BACKUPS']) {
+            }
             continue;
         }
-        if ($fileString === "") {
-
+        if ($fileString === "handlers_p") {
+            if ($settings['ALWAYS_BACKUP_IN']['PAGES_HANDLERS_IN_BACKUPS']) {
+            }
+            if ($settings['ALWAYS_BACKUP_IN']['PAGES_HANDLERS_IN_FINAL_BACKUPS']) {
+            }
             continue;
         }
-        if ($fileString === "") {
-
+        if ($fileString === "handlers_mw_r") {
+            if ($settings['ALWAYS_BACKUP_IN']['ROUTES_MWS_IN_BACKUPS']) {
+            }
+            if ($settings['ALWAYS_BACKUP_IN']['ROUTES_MWS_IN_FINAL_BACKUPS']) {
+            }
+            continue;
+        }
+        if ($fileString === "handlers_mw_d") {
+            if ($settings['ALWAYS_BACKUP_IN']['DATA_MWS_IN_BACKUPS']) {
+            }
+            if ($settings['ALWAYS_BACKUP_IN']['DATA_MWS_IN_FINAL_BACKUPS']) {
+            }
+            continue;
+        }
+        if ($fileString === "handlers_mw_p") {
+            if ($settings['ALWAYS_BACKUP_IN']['PAGES_MWS_IN_BACKUPS']) {
+            }
+            if ($settings['ALWAYS_BACKUP_IN']['PAGES_MWS_IN_FINAL_BACKUPS']) {
+            }
             continue;
         }
     }
@@ -916,9 +942,12 @@ function cli_delete_a_single_routes_route()
                 "route_single_routes",
             ]
         );
+        // Store handler variable
+        $handler = $singleRoutesRoute['ROUTES'][$method][$validRoute]['handler'] ?? "<Handler missing?>";
         // Then we unset() each matched route
         unset($singleRoutesRoute['ROUTES'][$method][$validRoute]);
         cli_success_without_exit("Deleted Route \"$method$validRoute\" from Single Routes Route \"funkphp/routes/route_single_routes.php\"!");
+        cli_info("Handler: \"$handler.php\" used by the route still exists in \"funkphp/handlers/R/\" folder. Delete manually or use for other routes!");
 
         // Then we rebuild and recompile Routes
         cli_rebuild_single_routes_route_file($singleRoutesRoute);
@@ -958,9 +987,12 @@ function cli_delete_a_single_data_route()
                 "data_single_routes",
             ]
         );
+        // Store handler variable
+        $handler = $singleRoutesData['ROUTES'][$method][$validRoute]['handler'] ?? "<Handler missing?>";
         // Then we unset() each matched route
         unset($singleRoutesData['ROUTES'][$method][$validRoute]);
         cli_success_without_exit("Deleted Route \"$method$validRoute\" from Single Data Routes \"funkphp/data/data_single_routes.php\"!");
+        cli_info("Handler: \"$handler.php\" used by the route still exists in \"funkphp/handlers/D/\" folder. Delete manually or use for other routes!");
 
         // Then we rebuild and recompile - Data
         cli_rebuild_single_data_route_file($singleRoutesData);
@@ -1001,9 +1033,12 @@ function cli_delete_a_single_page_route()
                 "page_single_routes",
             ]
         );
+        // Store handler variable
+        $handler = $singleRoutesPage['ROUTES'][$method][$validRoute]['handler'] ?? "<Handler missing?>";
         // Then we unset() each matched route
         unset($singleRoutesPage['ROUTES'][$method][$validRoute]);
         cli_success_without_exit("Deleted Route \"$method$validRoute\" from Single Page Routes \"funkphp/pages/page_single_routes.php\"!");
+        cli_info("Handler: \"$handler.php\" used by the route still exists in \"funkphp/handlers/P/\" folder. Delete manually or use for other routes!");
 
         // Then we rebuild and recompile Pages
         cli_rebuild_single_page_route_file($singleRoutesPage);
@@ -1054,13 +1089,22 @@ function cli_delete_a_single_all_routes()
                 "page_single_routes",
             ]
         );
+        // Store all three handler variables
+        $handlerRoute = $singleRoutesRoute['ROUTES'][$method][$validRoute]['handler'] ?? "<Handler missing?>";
+        $handlerData = $singleRoutesData['ROUTES'][$method][$validRoute]['handler'] ?? "<Handler missing?>";
+        $handlerPage = $singleRoutesPage['ROUTES'][$method][$validRoute]['handler'] ?? "<Handler missing?>";
         // Then we unset() each matched route in all 3 main route files
         unset($singleRoutesRoute['ROUTES'][$method][$validRoute]);
         cli_success_without_exit("Deleted Route \"$method$validRoute\" from Single Routes Route \"funkphp/routes/route_single_routes.php\"!");
+        cli_info("Handler: \"$handlerRoute.php\" used by the route still exists in \"funkphp/handlers/R/\" folder. Delete manually or use for other routes!");
+
         unset($singleRoutesData['ROUTES'][$method][$validRoute]);
         cli_success_without_exit("Deleted Route \"$method$validRoute\" from Single Data Routes \"funkphp/data/data_single_routes.php\"!");
+        cli_info("Handler: \"$handlerData.php\" used by the route still exists in \"funkphp/handlers/D/\" folder. Delete manually or use for other routes!");
+
         unset($singleRoutesPage['ROUTES'][$method][$validRoute]);
         cli_success_without_exit("Deleted Route \"$method$validRoute\" from Single Page Routes \"funkphp/pages/page_single_routes.php\"!");
+        cli_info("Handler: \"$handlerPage.php\" used by the route still exists in \"funkphp/handlers/P/\" folder. Delete manually or use for other routes!");
 
         // Then we rebuild and recompile all 3 main route files!
         // Routes
@@ -1826,6 +1870,53 @@ function cli_compile_batch($arrayOfRoutesToCompileAndOutput)
             cli_output_compiled_routes($compiledPageRoutes, "troute_page");
             continue;
         }
+    }
+}
+
+// Backup all files in a folder to another folder
+function cli_backup_all_files_in_folder_to_another_folder($backupFolderDestinationWithoutExtension, $ext, $backupFolder)
+{
+    // Check that all three arguments are non-empty strings!
+    if (
+        !is_string($backupFolderDestinationWithoutExtension) ||  !is_string($ext) || !is_string($backupFolder)
+        || $backupFolderDestinationWithoutExtension === "" || $ext === "" || $backupFolder === ""
+    ) {
+        cli_err_syntax("[cli_backup_all_files_in_folder_to_another_folder] Backup folder destination, file extension and backup folder must be non-empty strings!");
+    }
+
+    // Check that both dirs exist, are readable and writable
+    if (!is_dir($backupFolderDestinationWithoutExtension)) {
+        cli_err_syntax("[cli_backup_all_files_in_folder_to_another_folder] Backup folder destination must be a valid directory. Path: $backupFolderDestinationWithoutExtension is not!");
+    }
+    if (!is_writable($backupFolderDestinationWithoutExtension)) {
+        cli_err_syntax("[cli_backup_all_files_in_folder_to_another_folder] Backup folder destination must be writable! Path: $backupFolderDestinationWithoutExtension is not!");
+    }
+    if (!is_dir($backupFolder)) {
+        cli_err_syntax("[cli_backup_all_files_in_folder_to_another_folder] Backup folder must be a valid directory. Path: $backupFolder is not!");
+    }
+    if (!is_readable($backupFolder)) {
+        cli_err_syntax("[cli_backup_all_files_in_folder_to_another_folder] Backup folder must be readable! Path: $backupFolder is not!");
+    }
+    // We will now loop through the $backupFolder and call the cli_backup_file_until_success() function for each file in the folder
+    // and that is not a folder itself. Those are just ignored (continue;)
+    $files = scandir($backupFolder);
+    $countOfCopiedFiles = 0;
+    foreach ($files as $file) {
+        if (is_dir($backupFolder . "/" . $file)) {
+            continue;
+        }
+        // Check if the file ends with the extension
+        if (str_ends_with($file, $ext)) {
+            // Call the cli_backup_file_until_success() function for each file in the folder
+            cli_backup_file_until_success($backupFolderDestinationWithoutExtension, $ext, $backupFolder . "/" . $file);
+            $countOfCopiedFiles++;
+        }
+    }
+    // Check if we copied any files
+    if ($countOfCopiedFiles === 0) {
+        cli_info("No files copied from $backupFolder to $backupFolderDestinationWithoutExtension!");
+    } else {
+        cli_success_without_exit("Copied $countOfCopiedFiles files from $backupFolder to $backupFolderDestinationWithoutExtension!");
     }
 }
 

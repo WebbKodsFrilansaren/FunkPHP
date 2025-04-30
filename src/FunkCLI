@@ -122,6 +122,10 @@ $dirs = [
     "backups_routes_mw" => __DIR__ . '/funkphp/_BACKUPS/routes/MW/',
     "backups_data_mw" => __DIR__ . '/funkphp/_BACKUPS/data/MW/',
     "backups_pages_mw" => __DIR__ . '/funkphp/_BACKUPS/pages/MW/',
+    "backups_handlers" => __DIR__ . '/funkphp/_BACKUPS/handlers/',
+    "backups_handlers_routes" => __DIR__ . '/funkphp/_BACKUPS/handlers/R/',
+    "backups_handlers_data" => __DIR__ . '/funkphp/_BACKUPS/handlers/D/',
+    "backups_handlers_pages" => __DIR__ . '/funkphp/_BACKUPS/handlers/P/',
 ];
 
 // Exact file paths to use for the CLI
@@ -271,9 +275,25 @@ $commands = [
         'only_route' => function () {
             global $argv;
             if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3])) {
-                cli_err_syntax("Provide a valid route to delete from all routes!\nExample: \"funkcli delete only_route method/route_name\"");
+                cli_err_syntax("Provide a valid route to delete from Single Routes!\nExample: \"funkcli delete only_route method/route_name\"");
             }
             cli_delete_a_single_routes_route();
+        },
+        // Delete a single route for /data/ folder only
+        'only_data_route' => function () {
+            global $argv;
+            if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3])) {
+                cli_err_syntax("Provide a valid route to delete from Single Data Routes!\nExample: \"funkcli delete only_data_route method/route_name\"");
+            }
+            cli_delete_a_single_data_route();
+        },
+        // Delete a single route for /pages/ folder only
+        'only_page_route' => function () {
+            global $argv;
+            if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3])) {
+                cli_err_syntax("Provide a valid route to delete from Single Page Routes!\nExample: \"funkcli delete only_page_route method/route_name\"");
+            }
+            cli_delete_a_single_page_route();
         },
         // THESE DELETING FUNCTIONS ARE TO DELETE ACTUALLY MOST FILES IN MOST FOLDERS. FUNCTION ABOVE HERE ARE FOR DELETING INSIDE
         // OF FILES SUCH AS ROUTES, MIDDLEWARE, HANDLERS AND SO ON. PROCEED WITH CAUTION USING ANY OF THE FOLLOWING FUNCTIONS!!!
