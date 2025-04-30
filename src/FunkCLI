@@ -33,6 +33,9 @@ $validArg1withArg2Values =  [
     ],
     'delete' => [
         'all_routes',
+        'only_route',
+        'only_data_route',
+        'only_page_route',
         'all_route_compiled_singles_middlewares_and_all_their_handlers_files_i_know_files_will_be_hard_to_get_back',
         'all_route_compiled_and_singles_files_except_handlers_i_know_files_will_be_hard_to_get_back',
         'all_backups_compiled_and_single_files_i_know_files_will_be_hard_to_get_back',
@@ -263,6 +266,14 @@ $commands = [
                 cli_err_syntax("Provide a valid route to delete from all routes!\nExample: \"funkcli delete all_routes method/route_name\"");
             }
             cli_delete_a_single_all_routes();
+        },
+        // Delete a single route for /routes/ folder only
+        'only_route' => function () {
+            global $argv;
+            if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3])) {
+                cli_err_syntax("Provide a valid route to delete from all routes!\nExample: \"funkcli delete only_route method/route_name\"");
+            }
+            cli_delete_a_single_routes_route();
         },
         // THESE DELETING FUNCTIONS ARE TO DELETE ACTUALLY MOST FILES IN MOST FOLDERS. FUNCTION ABOVE HERE ARE FOR DELETING INSIDE
         // OF FILES SUCH AS ROUTES, MIDDLEWARE, HANDLERS AND SO ON. PROCEED WITH CAUTION USING ANY OF THE FOLLOWING FUNCTIONS!!!

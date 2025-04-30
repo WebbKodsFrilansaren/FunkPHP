@@ -566,12 +566,7 @@ function cli_output_compiled_routes(array $compiledTrie, string $outputFileNameF
 
     // Output either to file destiation or in current folder as datetime in file name
     $datetime = date("Y-m-d_H-i-s");
-    $outputDestination = $outputFileNameFolderIsAlways_compiled_routes === "null" ? dirname(__DIR__) . "/compiled/troute_" . $datetime . ".php" : dirname(__DIR__) . "\/compiled\/" . $outputFileNameFolderIsAlways_compiled_routes . ".php";
-
-    // Check if file already exists
-    if (file_exists($outputDestination)) {
-        echo "\033[34m[FunkCLI - INFO]: COMPILED TROUTE FILE EXISTS. THIS OVERWRITES THE FILE!\n\033[0m";
-    }
+    $outputDestination = $outputFileNameFolderIsAlways_compiled_routes === "null" ? dirname(__DIR__) . "/compiled/troute_" . $datetime . ".php" : dirname(__DIR__) . "/compiled/" . $outputFileNameFolderIsAlways_compiled_routes . ".php";
 
     $result = null;
     if ($outputFileNameFolderIsAlways_compiled_routes !== "null") {
@@ -580,9 +575,9 @@ function cli_output_compiled_routes(array $compiledTrie, string $outputFileNameF
         $result = file_put_contents($outputDestination, "<?php\nreturn " . cli_convert_array_to_simple_syntax($compiledTrie));
     }
     if ($result === false) {
-        echo "\033[31m[FunkCLI - ERROR]: Compiled routes FAILED: $outputDestination!\n\033[0m";
+        echo "\033[31m[FunkCLI - ERROR]: Compiling Trie Route FAILED: \"$outputDestination\"!\n\033[0m";
     } else {
-        echo "\033[32m[FunkCLI - SUCCESS]: Compiled routes: $outputDestination!\n\033[0m";
+        echo "\033[32m[FunkCLI - SUCCESS]: Compiled Trie Route: \"$outputDestination\"!\n\033[0m";
     }
 }
 
@@ -896,6 +891,7 @@ function cli_backup_batch($arrayOfFilesToBackup)
     }
 }
 
+// Delete a Single Route from "routes" folder
 function cli_delete_a_single_routes_route()
 {
     global
@@ -929,18 +925,99 @@ function cli_delete_a_single_routes_route()
         $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRoute['ROUTES'], $middlewareRoutesRoute['MIDDLEWARES']);
         cli_output_compiled_routes($compiledRouteRoutes, "troute_route");
 
-        cli_success("Deleted Route \"$method$validRoute\" from Single Route Routes!");
+        cli_success("Deleted Single Route \"$method$validRoute\" from Single Route file!");
     }
     // When one ore more is missing, we do not go ahead with deletion
     // since this function is meant to delete all three at once!
     else {
-        cli_err_syntax("\"$method$validRoute\" does not exist in Single Route Routes file!");
+        cli_err_syntax("Single Route: \"$method$validRoute\" does not exist!");
     }
 }
 
-function cli_delete_a_single_data_route() {}
+function cli_delete_a_single_data_route()
+{
+    global
+        $argv, $dirs, $exactFiles,
+        $settings,
+        $singleRoutesData,
+        $middlewareRoutesData;
+    // Prepare the route string by trimming, validating starting, ending and middle parts of it
+    $deleteRoute = trim(strtolower($argv[3]));
+    $oldRoute = $deleteRoute;
+    [$method, $validRoute] = cli_prepare_valid_route_string($deleteRoute);
+    cli_info_without_exit("ROUTE: " . "\"$oldRoute\"" . " parsed as: \"$validRoute\"");
 
-function cli_delete_a_single_page_route() {}
+    // Check that provided route exists
+    if (
+        isset($singleRoutesData['ROUTES'][$method][$validRoute])
+    ) {
+        // First backup all associated route files if settings allow it
+        cli_backup_batch(
+            [
+                "troute_data",
+                "data_single_routes",
+            ]
+        );
+        // Then we unset() each matched route
+        unset($singleRoutesData['ROUTES'][$method][$validRoute]);
+        cli_success_without_exit("Deleted Route \"$method$validRoute\" from Single Data Routes \"funkphp/data/data_single_routes.php\"!");
+
+        // Then we rebuild and recompile - Data
+        cli_rebuild_single_data_route_file($singleRoutesData);
+        $compiledRouteData = cli_build_compiled_routes($singleRoutesData['ROUTES'], $middlewareRoutesData['MIDDLEWARES']);
+        cli_output_compiled_routes($compiledRouteData, "troute_data");
+
+        cli_success("Deleted Single Data Route \"$method$validRoute\" from Single Data Route file!");
+    }
+    // When one ore more is missing, we do not go ahead with deletion
+    // since this function is meant to delete all three at once!
+    else {
+        cli_err_syntax("Single Data Route: \"$method$validRoute\" does not exist!");
+    }
+}
+
+// Delete a Single Page Route from "pages" folder
+function cli_delete_a_single_page_route()
+{
+    global
+        $argv, $dirs, $exactFiles,
+        $settings,
+        $singleRoutesPage,
+        $middlewareRoutesPage;
+    // Prepare the route string by trimming, validating starting, ending and middle parts of it
+    $deleteRoute = trim(strtolower($argv[3]));
+    $oldRoute = $deleteRoute;
+    [$method, $validRoute] = cli_prepare_valid_route_string($deleteRoute);
+    cli_info_without_exit("ROUTE: " . "\"$oldRoute\"" . " parsed as: \"$validRoute\"");
+
+    // Check that provided route exists
+    if (
+        isset($singleRoutesPage['ROUTES'][$method][$validRoute])
+    ) {
+        // First backup all associated route files if settings allow it
+        cli_backup_batch(
+            [
+                "troute_page",
+                "page_single_routes",
+            ]
+        );
+        // Then we unset() each matched route
+        unset($singleRoutesPage['ROUTES'][$method][$validRoute]);
+        cli_success_without_exit("Deleted Route \"$method$validRoute\" from Single Page Routes \"funkphp/pages/page_single_routes.php\"!");
+
+        // Then we rebuild and recompile Pages
+        cli_rebuild_single_page_route_file($singleRoutesPage);
+        $compiledRoutePage = cli_build_compiled_routes($singleRoutesPage['ROUTES'], $middlewareRoutesPage['MIDDLEWARES']);
+        cli_output_compiled_routes($compiledRoutePage, "troute_page");
+
+        cli_success("Deleted Single Page Route \"$method$validRoute\" from Single Page Route file!");
+    }
+    // When one ore more is missing, we do not go ahead with deletion
+    // since this function is meant to delete all three at once!
+    else {
+        cli_err_syntax("Single Page Route: \"$method$validRoute\" does not exist!");
+    }
+}
 
 // Delete a single route for /routes/, /data/ AND /pages/ folder
 function cli_delete_a_single_all_routes()
@@ -981,9 +1058,9 @@ function cli_delete_a_single_all_routes()
         unset($singleRoutesRoute['ROUTES'][$method][$validRoute]);
         cli_success_without_exit("Deleted Route \"$method$validRoute\" from Single Routes Route \"funkphp/routes/route_single_routes.php\"!");
         unset($singleRoutesData['ROUTES'][$method][$validRoute]);
-        cli_success_without_exit("Deleted Route \"$method$validRoute\" from Single Data Routes \"funkphp/routes/data_single_routes.php\"!");
+        cli_success_without_exit("Deleted Route \"$method$validRoute\" from Single Data Routes \"funkphp/data/data_single_routes.php\"!");
         unset($singleRoutesPage['ROUTES'][$method][$validRoute]);
-        cli_success_without_exit("Deleted Route \"$method$validRoute\" from Single Page Routes \"funkphp/routes/page_single_routes.php\"!");
+        cli_success_without_exit("Deleted Route \"$method$validRoute\" from Single Page Routes \"funkphp/pages/page_single_routes.php\"!");
 
         // Then we rebuild and recompile all 3 main route files!
         // Routes
@@ -1001,7 +1078,7 @@ function cli_delete_a_single_all_routes()
         $compiledRoutePage = cli_build_compiled_routes($singleRoutesPage['ROUTES'], $middlewareRoutesPage['MIDDLEWARES']);
         cli_output_compiled_routes($compiledRoutePage, "troute_page");
 
-        cli_success("Deleted Route \"$method$validRoute\" from all 3 main route files!");
+        cli_success("Deleted Single Route \"$method$validRoute\" from all 3 Main Route files!");
     }
     // When one ore more is missing, we do not go ahead with deletion
     // since this function is meant to delete all three at once!
