@@ -32,7 +32,7 @@ $validArg1withArg2Values =  [
         'help'
     ],
     'delete' => [
-        'all_route_compiled_and_singles',
+        'all_route_compiled_and_singles_files_except_handlers_i_know_files_will_be_hard_to_get_back',
         'all_backups_compiled_and_single_files_i_know_files_will_be_hard_to_get_back',
         'all_backups_finals_files_i_know_files_will_be_hard_to_get_back',
         'all_all_backups_files_i_know_files_will_be_hard_to_get_back_and_i_will_cry',
@@ -254,7 +254,8 @@ $commands = [
         },
     ],
     'delete' => [
-        'all_route_compiled_and_singles_files_except_handlers_i_know_files_will_be_hard_to_get_back' => function () use ($argv, $dirs, $settings) {
+        'all_route_compiled_and_singles_files_except_handlers_i_know_files_will_be_hard_to_get_back' => function () {
+            global $dirs, $settings;
             cli_delete_all_files_in_directory_except_other_directories($dirs['compiled']);
             cli_delete_all_files_in_directory_except_other_directories($dirs['routes']);
             cli_delete_all_files_in_directory_except_other_directories($dirs['data']);
@@ -262,7 +263,8 @@ $commands = [
         },
         // This deletes all backups in the _BACKUPS/compiled, _BACKUPS/data, _BACKUPS/pages
         // & _BACKUPS/routes Subfolders are not deleted such as _BACKUPS/routes/MW/ etc.
-        'all_backups_compiled_and_single_files_i_know_files_will_be_hard_to_get_back' => function () use ($dirs, $settings) {
+        'all_backups_compiled_and_single_files_i_know_files_will_be_hard_to_get_back' => function () {
+            global $dirs, $settings;
             $backupCompiledPath = $dirs['backups_compiled'];
             $backupRoutePath = $dirs['backups_routes'];
             $backupDataPath = $dirs['backups_data'];
@@ -274,12 +276,14 @@ $commands = [
         },
         // This deletes all final backups in the _BACKUPS/_FINAL_BACKUPS ONLY!
         // So, it does NOT delete any other (sub)folders with files in _BACKUPS/
-        'all_backups_finals_files_i_know_files_will_be_hard_to_get_back' => function () use ($dirs, $settings) {
+        'all_backups_finals_files_i_know_files_will_be_hard_to_get_back' => function () {
+            global $dirs, $settings;
             $backupFinalsPath = $dirs['backups_finals'];
             cli_delete_all_files_in_directory_except_other_directories($backupFinalsPath);
         },
         // Yes, this deletes EVERYTHING BACKUPED. So, think twice before using it!!!
-        'all_all_backups_files_i_know_files_will_be_hard_to_get_back_and_i_will_cry' => function () use ($dirs, $settings) {
+        'all_all_backups_files_i_know_files_will_be_hard_to_get_back_and_i_will_cry' => function () {
+            global $dirs, $settings;
             if ($settings['ALLOW_COMPLETE_BACKUP_DELETION'] == false) {
                 cli_err_syntax("By default, you are not allowed to delete all backups including final backups! First set ALLOW_COMPLETE_BACKUP_DELETION to true in the settings file (\"src/FunkCLI_Settings\")!");
                 exit;
@@ -297,7 +301,8 @@ $commands = [
         },
     ],
     'restore' => [
-        'all_routes_compiled_and_singles_files' => function () use ($argv, $dirs, $exactFiles, $settings) {
+        'all_routes_compiled_and_singles_files' => function () {
+            global $argv, $dirs, $exactFiles, $settings;
             // Grab backup dir and restore exact file path
             $oldRouteFileDir = $dirs['backups_compiled'];
             $oldSingleRouteFileDir = $dirs['backups_routes'];
@@ -328,7 +333,8 @@ $commands = [
             cli_restore_file($oldSingleRouteFileDir, $exactRestorePathSingleRoute, "page_single_routes");
             cli_restore_file($oldSingleRouteFileDir, $exactRestorePathSingleMiddlwaresRoute, "page_middleware_routes");
         },
-        'route_compiled_and_singles_files' => function () use ($argv, $dirs, $exactFiles, $settings) {
+        'route_compiled_and_singles_files' => function () {
+            global $argv, $dirs, $exactFiles, $settings;
             // Grab backup dir and restore exact file path
             $oldRouteFileDir = $dirs['backups_compiled'];
             $oldSingleRouteFileDir = $dirs['backups_routes'];
@@ -339,8 +345,8 @@ $commands = [
             cli_restore_file($oldSingleRouteFileDir, $exactRestorePathSingleRoute, "route_single_routes");
             cli_restore_file($oldSingleRouteFileDir, $exactRestorePathSingleMiddlwaresRoute, "route_middleware_routes");
         },
-        'data_compiled_and_singles_files' => function () use ($argv, $dirs, $exactFiles, $settings) {
-
+        'data_compiled_and_singles_files' => function () {
+            global $argv, $dirs, $exactFiles, $settings;
             // Grab backup dir and restore exact file path
             $oldRouteFileDir = $dirs['backups_compiled'];
             $oldSingleRouteFileDir = $dirs['backups_data'];
@@ -352,7 +358,8 @@ $commands = [
             cli_restore_file($oldSingleRouteFileDir, $exactRestorePathSingleRoute, "data_single_routes");
             cli_restore_file($oldSingleRouteFileDir, $exactRestorePathSingleMiddlwaresRoute, "data_middleware_routes");
         },
-        'page_compiled_and_singles_files' => function () use ($argv, $dirs, $exactFiles, $settings) {
+        'page_compiled_and_singles_files' => function () {
+            global $argv, $dirs, $exactFiles, $settings;
             // Grab backup dir and restore exact file path
             $oldRouteFileDir = $dirs['backups_compiled'];
             $oldSingleRouteFileDir = $dirs['backups_pages'];
@@ -382,7 +389,8 @@ $commands = [
             exit;
         },
     ],
-    'help' => function () use ($argv) {
+    'help' => function () {
+        global $argv;
         cli_info_multiline("FunkPHP CLI - Help");
         cli_info_multiline("Usage: funkcli [command] [action] [value]");
         cli_info_multiline("Commands:");
