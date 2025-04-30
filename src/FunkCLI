@@ -258,10 +258,9 @@ $commands = [
     'delete' => [
         // Delete a single route for /routes/, /data/ AND /pages/ folder
         'all_routes' => function () {
-            // Load global and check that argv[3] is a non-empty string
             global $argv;
             if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3])) {
-                cli_err_syntax("Provide a valid route to delete from all routes!\n Example: \"funkcli delete all_routes method/route_name\"");
+                cli_err_syntax("Provide a valid route to delete from all routes!\nExample: \"funkcli delete all_routes method/route_name\"");
             }
             cli_delete_a_single_all_routes();
         },
