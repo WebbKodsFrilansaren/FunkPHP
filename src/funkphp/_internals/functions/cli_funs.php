@@ -747,9 +747,9 @@ function cli_add_route_batch($arrayOfRoutesToAdd)
 
     // Prepare the route string by trimming, validating starting, ending and middle parts of it
     $addRoute = trim(strtolower($argv[3]));
-    echo "ROUTE BEFORE PARSE: " . "\"$addRoute\"" . "\n";
+    $oldRoute = $addRoute;
     [$method, $validRoute] = cli_prepare_valid_route_string($addRoute);
-    echo "AFTER PARSE: " . "\"$validRoute\"" . "\n";
+    cli_info_without_exit("ROUTE: " . "\"$oldRoute\"" . " parsed as: \"$validRoute\"");
 
     // Check now that handler $argv[4] is a string containg only letters, numbers and underscores!
     if (!preg_match('/^[a-z0-9_]+$/', $argv[4])) {
@@ -960,10 +960,9 @@ function cli_add_middlewares_batch($arrayOfMiddlewaresToAdd)
 
     // Prepare the route string by trimming, validating starting, ending and middle parts of it
     $addRoute = trim(strtolower($argv[3]));
-    echo "ROUTE BEFORE PARSE: " . "\"$addRoute\"" . "\n";
+    $oldRoute = $addRoute;
     [$method, $validRoute] = cli_prepare_valid_route_string($addRoute);
-    echo "AFTER PARSE: " . "\"$validRoute\"" . "\n";
-    echo "Method: " . "\"$method\" | Route: \"$validRoute\"\n";
+    cli_info_without_exit("ROUTE: " . "\"$oldRoute\"" . " parsed as: \"$validRoute\"");
 
     // Check now that handler $argv[4] is a string containg only letters, numbers and underscores!
     if (!preg_match('/^[a-z0-9_]+$/', $argv[4])) {
