@@ -963,6 +963,7 @@ function cli_add_middlewares_batch($arrayOfMiddlewaresToAdd)
     echo "ROUTE BEFORE PARSE: " . "\"$addRoute\"" . "\n";
     [$method, $validRoute] = cli_prepare_valid_route_string($addRoute);
     echo "AFTER PARSE: " . "\"$validRoute\"" . "\n";
+    echo "Method: " . "\"$method\" | Route: \"$validRoute\"\n";
 
     // Check now that handler $argv[4] is a string containg only letters, numbers and underscores!
     if (!preg_match('/^[a-z0-9_]+$/', $argv[4])) {
@@ -974,7 +975,7 @@ function cli_add_middlewares_batch($arrayOfMiddlewaresToAdd)
             // We loop routes to see if any of the routes at least starts with the middleware route
             // otherwise we cannot add it because it wouldn't match any valid/navigable route!
             $singleExist = false;
-            foreach ($singleRoutesRoute['ROUTES'][$method] as $routeSingle) {
+            foreach ($singleRoutesRoute['ROUTES'][$method] as $routeSingle => $val) {
                 if (str_starts_with($routeSingle, $validRoute)) {
                     $singleExist = true;
                     break;
@@ -984,7 +985,7 @@ function cli_add_middlewares_batch($arrayOfMiddlewaresToAdd)
                 cli_err_syntax("Route \"$validRoute\" does not exist in $method/Single Route Routes!");
             }
             $singleExist = false;
-            foreach ($singleRoutesData['ROUTES'][$method] as $routeSingle) {
+            foreach ($singleRoutesData['ROUTES'][$method] as $routeSingle => $val) {
                 if (str_starts_with($routeSingle, $validRoute)) {
                     $singleExist = true;
                     break;
@@ -994,7 +995,7 @@ function cli_add_middlewares_batch($arrayOfMiddlewaresToAdd)
                 cli_err_syntax("Route \"$validRoute\" does not exist in $method/Single Data Routes!");
             }
             $singleExist = false;
-            foreach ($singleRoutesPage['ROUTES'][$method] as $routeSingle) {
+            foreach ($singleRoutesPage['ROUTES'][$method] as $routeSingle => $val) {
                 if (str_starts_with($routeSingle, $validRoute)) {
                     $singleExist = true;
                     break;
@@ -1202,7 +1203,7 @@ function cli_add_middlewares_batch($arrayOfMiddlewaresToAdd)
             // At least one route in Single Route Routes file must start with the middleware route
             // otherwise we cannot add it because it wouldn't match any valid/navigable route!
             $singleExist = false;
-            foreach ($singleRoutesRoute['ROUTES'][$method] as $routeSingle) {
+            foreach ($singleRoutesRoute['ROUTES'][$method] as $routeSingle => $val) {
                 if (str_starts_with($routeSingle, $validRoute)) {
                     $singleExist = true;
                     break;
@@ -1280,7 +1281,7 @@ function cli_add_middlewares_batch($arrayOfMiddlewaresToAdd)
             // At least one route in Single Data Routes file must start with the middleware route
             // otherwise we cannot add it because it wouldn't match any valid/navigable route!
             $singleExist = false;
-            foreach ($singleRoutesData['ROUTES'][$method] as $routeSingle) {
+            foreach ($singleRoutesData['ROUTES'][$method] as $routeSingle => $val) {
                 if (str_starts_with($routeSingle, $validRoute)) {
                     $singleExist = true;
                     break;
@@ -1355,7 +1356,7 @@ function cli_add_middlewares_batch($arrayOfMiddlewaresToAdd)
             // At least one route in Single Page Routes file must start with the middleware route
             // otherwise we cannot add it because it wouldn't match any valid/navigable route!
             $singleExist = false;
-            foreach ($singleRoutesPage['ROUTES'][$method] as $routeSingle) {
+            foreach ($singleRoutesPage['ROUTES'][$method] as $routeSingle => $val) {
                 if (str_starts_with($routeSingle, $validRoute)) {
                     $singleExist = true;
                     break;
