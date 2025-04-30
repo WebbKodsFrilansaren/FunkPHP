@@ -1036,9 +1036,14 @@ function cli_delete_a_single_page_route()
         // Store handler variable
         $handler = $singleRoutesPage['ROUTES'][$method][$validRoute]['handler'] ?? "<Handler missing?>";
         // Then we unset() each matched route
+
         unset($singleRoutesPage['ROUTES'][$method][$validRoute]);
+        var_dump($singleRoutesPage['ROUTES']);
+        exit;
         cli_success_without_exit("Deleted Route \"$method$validRoute\" from Single Page Routes \"funkphp/pages/page_single_routes.php\"!");
         cli_info("Handler: \"$handler.php\" used by the route still exists in \"funkphp/handlers/P/\" folder. Delete manually or use for other routes!");
+
+
 
         // Then we rebuild and recompile Pages
         cli_rebuild_single_page_route_file($singleRoutesPage);
