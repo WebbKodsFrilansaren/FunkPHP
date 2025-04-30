@@ -223,9 +223,15 @@ $commands = [
         'mw_all' => function () {
             cli_add_middlewares_batch(["mw_all"]);
         },
-        'mw_route' => function () use ($argv, $settings, $singleRoutesRoute) {},
-        'mw_data' => function () use ($argv, $settings, $singleRoutesData) {},
-        'mw_page' => function () use ($argv, $settings, $singleRoutesPage) {},
+        'mw_route' => function () {
+            cli_add_middlewares_batch(["mw_route"]);
+        },
+        'mw_data' => function () {
+            cli_add_middlewares_batch(["mw_data"]);
+        },
+        'mw_page' => function () {
+            cli_add_middlewares_batch(["mw_page"]);
+        },
     ],
     'change' => [
         'route' => function () use ($argv, $settings) {
