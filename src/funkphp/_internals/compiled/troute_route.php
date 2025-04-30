@@ -1,15 +1,4 @@
 <?php
-return  [
-  'GET' => 
-   [
-  ],
-  'POST' => 
-   [
-  ],
-  'PUT' => 
-   [
-  ],
-  'DELETE' => 
-   [
-  ],
-];
+// This file was recreated by FunkCLI!
+return [];
+?>

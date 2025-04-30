@@ -947,7 +947,7 @@ function cli_delete_a_single_routes_route()
         // Then we unset() each matched route
         unset($singleRoutesRoute['ROUTES'][$method][$validRoute]);
         cli_success_without_exit("Deleted Route \"$method$validRoute\" from Single Routes Route \"funkphp/routes/route_single_routes.php\"!");
-        cli_info("Handler: \"$handler.php\" used by the route still exists in \"funkphp/handlers/R/\" folder. Delete manually or use for other routes!");
+        cli_info_without_exit("Handler: \"$handler.php\" used by the route still exists in \"funkphp/handlers/R/\" folder. Delete manually or use for other routes!");
 
         // Then we rebuild and recompile Routes
         cli_rebuild_single_routes_route_file($singleRoutesRoute);
@@ -992,7 +992,7 @@ function cli_delete_a_single_data_route()
         // Then we unset() each matched route
         unset($singleRoutesData['ROUTES'][$method][$validRoute]);
         cli_success_without_exit("Deleted Route \"$method$validRoute\" from Single Data Routes \"funkphp/data/data_single_routes.php\"!");
-        cli_info("Handler: \"$handler.php\" used by the route still exists in \"funkphp/handlers/D/\" folder. Delete manually or use for other routes!");
+        cli_info_without_exit("Handler: \"$handler.php\" used by the route still exists in \"funkphp/handlers/D/\" folder. Delete manually or use for other routes!");
 
         // Then we rebuild and recompile - Data
         cli_rebuild_single_data_route_file($singleRoutesData);
@@ -1038,12 +1038,8 @@ function cli_delete_a_single_page_route()
         // Then we unset() each matched route
 
         unset($singleRoutesPage['ROUTES'][$method][$validRoute]);
-        var_dump($singleRoutesPage['ROUTES']);
-        exit;
         cli_success_without_exit("Deleted Route \"$method$validRoute\" from Single Page Routes \"funkphp/pages/page_single_routes.php\"!");
-        cli_info("Handler: \"$handler.php\" used by the route still exists in \"funkphp/handlers/P/\" folder. Delete manually or use for other routes!");
-
-
+        cli_info_without_exit("Handler: \"$handler.php\" used by the route still exists in \"funkphp/handlers/P/\" folder. Delete manually or use for other routes!");
 
         // Then we rebuild and recompile Pages
         cli_rebuild_single_page_route_file($singleRoutesPage);
@@ -1101,15 +1097,15 @@ function cli_delete_a_single_all_routes()
         // Then we unset() each matched route in all 3 main route files
         unset($singleRoutesRoute['ROUTES'][$method][$validRoute]);
         cli_success_without_exit("Deleted Route \"$method$validRoute\" from Single Routes Route \"funkphp/routes/route_single_routes.php\"!");
-        cli_info("Handler: \"$handlerRoute.php\" used by the route still exists in \"funkphp/handlers/R/\" folder. Delete manually or use for other routes!");
+        cli_info_without_exit("Handler: \"$handlerRoute.php\" used by the route still exists in \"funkphp/handlers/R/\" folder. Delete manually or use for other routes!");
 
         unset($singleRoutesData['ROUTES'][$method][$validRoute]);
         cli_success_without_exit("Deleted Route \"$method$validRoute\" from Single Data Routes \"funkphp/data/data_single_routes.php\"!");
-        cli_info("Handler: \"$handlerData.php\" used by the route still exists in \"funkphp/handlers/D/\" folder. Delete manually or use for other routes!");
+        cli_info_without_exit("Handler: \"$handlerData.php\" used by the route still exists in \"funkphp/handlers/D/\" folder. Delete manually or use for other routes!");
 
         unset($singleRoutesPage['ROUTES'][$method][$validRoute]);
         cli_success_without_exit("Deleted Route \"$method$validRoute\" from Single Page Routes \"funkphp/pages/page_single_routes.php\"!");
-        cli_info("Handler: \"$handlerPage.php\" used by the route still exists in \"funkphp/handlers/P/\" folder. Delete manually or use for other routes!");
+        cli_info_without_exit("Handler: \"$handlerPage.php\" used by the route still exists in \"funkphp/handlers/P/\" folder. Delete manually or use for other routes!");
 
         // Then we rebuild and recompile all 3 main route files!
         // Routes
