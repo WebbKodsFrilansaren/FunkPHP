@@ -1,25 +1,40 @@
-<?php
-// This file was recreated by FunkCLI!
-return [
+<?php // ROUTE_SINGLE_ROUTES.PHP - FunkPHP Framework | This File Was Modified In FunkCLI 2025-04-30 22:37:53
+return  [
     'ROUTES' =>
     [
-        'GET' => [
-            "/" => [
+        'GET' =>
+        [
+            '/' =>
+            [
                 'handler' => 'test',
-                //'middlewares' => "test",
+            ],
+            '/test' =>
+            [
+                'handler' => 't',
+                'middlewares' => 'test3',
+            ],
+            '/test/2' =>
+            [
+                'handler' => 't_1',
+                'middlewares' => 'test2',
             ],
         ],
-        'POST' => [
-            '/users' => [
+        'POST' =>
+        [
+            '/users' =>
+            [
                 'handler' => 'test',
-                'middlewares' => "test3",
+                'middlewares' => 'test3',
             ],
-            '/users/:test' => [
+            '/users/:test' =>
+            [
                 'handler' => 'test2',
-                'middlewares' => "test2",
+                'middlewares' => 'test2',
             ],
         ],
-        'PUT' => [],
-        'DELETE' => [],
-    ]
+        'PUT' =>
+        [],
+        'DELETE' =>
+        [],
+    ],
 ];

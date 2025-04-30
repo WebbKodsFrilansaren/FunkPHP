@@ -350,11 +350,12 @@ function r_match_developer_route(string $method, string $uri, array $compiledRou
 function r_run_matched_route_handler(&$c)
 {
     // Grab Route Handler Path and check that it exists, is readable and callable and only then run it
-    $handlerPath = dirname(dirname(__DIR__)) . '/handlers/R/' . ($c['req']['matched_handler_route'] ? $c['req']['matched_handler_route'] : "") . '.php';
+    $handlerPath = dirname(dirname(__DIR__)) . '/handlers/' . ($c['req']['matched_handler_route'] ? $c['req']['matched_handler_route'] : "") . '.php';
     if (file_exists($handlerPath) && is_readable($handlerPath)) {
-        $runHandler = include $handlerPath;
+        $handleString = $c['req']['matched_handler_route'];
+        $runHandler = include_once $handlerPath;
         if (is_callable($runHandler)) {
-            $runHandler($c);
+            $runHandler($c, $handleString);
         }  // Handle error: not callable
         else {
             echo "[r_run_matched_route_handler]: Handler is not callable!";

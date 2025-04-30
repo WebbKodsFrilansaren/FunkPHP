@@ -120,131 +120,6 @@ function cli_rebuild_single_routes_route_file($singleRouteRoutesFileArray): bool
     );
 }
 
-// Rebuilds the Single Middleware Routes Route file (funkphp/routes/route_middleware_routes.php) based on valid array
-function cli_rebuild_single_routes_mw_route_file($singleRouteRoutesFileArray): bool
-{
-    global $exactFiles, $dirs, $settings;
-    if (!is_array($singleRouteRoutesFileArray) || empty($singleRouteRoutesFileArray)) {
-        cli_err_syntax("[cli_rebuild_single_routes_mw_route_file] Single Route Middleware Routes File Array (funkphp/routes/route_middleware_routes.php) must be a non-empty array!");
-    }
-    if (!isset($singleRouteRoutesFileArray['MIDDLEWARES'])) {
-        cli_err_syntax("[cli_rebuild_single_routes_mw_route_file] Single Route Middleware Routes File Array (funkphp/routes/route_middleware_routes.php) must start with a 'ROUTES' key!");
-    }
-    // Check that dir exist, is writable and is a directory
-    if (!is_dir($dirs['routes']) || !is_writable($dirs['routes'])) {
-        cli_err_syntax("[cli_rebuild_single_routes_mw_route_file] Routes directory (funkphp/routes/) must be a valid directory and writable!");
-    }
-    // Check that if file exists, it can be overwritten
-    if (file_exists($exactFiles['single_middlewares']) && !is_writable($exactFiles['single_middlewares'])) {
-        cli_err_syntax("[cli_rebuild_single_routes_mw_route_file] Routes file (funkphp/routes/route_middleware_routes.php) must be writable. It is not!");
-    }
-    return file_put_contents(
-        $exactFiles['single_middlewares'],
-        cli_get_prefix_code("route_middleware_routes_start")
-            . cli_convert_array_to_simple_syntax($singleRouteRoutesFileArray)
-    );
-}
-
-// Rebuilds the Single Data Routes Route file (funkphp/data/data_single_routes.php) based on valid array
-function cli_rebuild_single_data_route_file($singleRouteRoutesFileArray): bool
-{
-    global $exactFiles, $dirs, $settings;
-    if (!is_array($singleRouteRoutesFileArray) || empty($singleRouteRoutesFileArray)) {
-        cli_err_syntax("[cli_rebuild_single_data_route_file] Single Data Routes File Array (funkphp/data/data_single_routes.php) must be a non-empty array!");
-    }
-    if (!isset($singleRouteRoutesFileArray['ROUTES'])) {
-        cli_err_syntax("[cli_rebuild_single_data_route_file] Single Data Routes File Array (funkphp/data/data_single_routes.php) must start with a 'ROUTES' key!");
-    }
-    // Check that dir exist, is writable and is a directory
-    if (!is_dir($dirs['data']) || !is_writable($dirs['data'])) {
-        cli_err_syntax("[cli_rebuild_single_data_route_file] Routes directory (funkphp/data/) must be a valid directory and writable!");
-    }
-    // Check that if file exists, it can be overwritten
-    if (file_exists($exactFiles['single_data']) && !is_writable($exactFiles['single_data'])) {
-        cli_err_syntax("[cli_rebuild_single_data_route_file] Routes file (funkphp/data/data_single_routes.php) must be writable. It is not!");
-    }
-    return file_put_contents(
-        $exactFiles['single_data'],
-        cli_get_prefix_code("data_singles_routes_start")
-            . cli_convert_array_to_simple_syntax($singleRouteRoutesFileArray)
-    );
-}
-
-// Rebuilds the Single Middleware Routes Data file (funkphp/data/data_middleware_routes.php) based on valid array
-function cli_rebuild_single_data_mw_route_file($singleRouteRoutesFileArray): bool
-{
-    global $exactFiles, $dirs, $settings;
-    if (!is_array($singleRouteRoutesFileArray) || empty($singleRouteRoutesFileArray)) {
-        cli_err_syntax("[cli_rebuild_single_data_mw_route_file] Single Route Middleware Routes File Array (funkphp/data/data_middleware_routes.php) must be a non-empty array!");
-    }
-    if (!isset($singleRouteRoutesFileArray['MIDDLEWARES'])) {
-        cli_err_syntax("[cli_rebuild_single_data_mw_route_file] Single Route Middleware Routes File Array (funkphp/data/data_middleware_routes.php) must start with a 'ROUTES' key!");
-    }
-    // Check that dir exist, is writable and is a directory
-    if (!is_dir($dirs['data']) || !is_writable($dirs['data'])) {
-        cli_err_syntax("[cli_rebuild_single_data_mw_route_file] Routes directory (funkphp/data/) must be a valid directory and writable!");
-    }
-    // Check that if file exists, it can be overwritten
-    if (file_exists($exactFiles['single_middlewares_data']) && !is_writable($exactFiles['single_middlewares_data'])) {
-        cli_err_syntax("[cli_rebuild_single_data_mw_route_file] Routes file (funkphp/data/data_middleware_routes.php) must be writable. It is not!");
-    }
-    return file_put_contents(
-        $exactFiles['single_middlewares_data'],
-        cli_get_prefix_code("data_middleware_routes_start")
-            . cli_convert_array_to_simple_syntax($singleRouteRoutesFileArray)
-    );
-}
-
-// Rebuilds the Single Middleware Routes Page file (funkphp/pages/page_single_routes.php) based on valid array
-function cli_rebuild_single_page_route_file($singleRouteRoutesFileArray): bool
-{
-    global $exactFiles, $dirs, $settings;
-    if (!is_array($singleRouteRoutesFileArray) || empty($singleRouteRoutesFileArray)) {
-        cli_err_syntax("[cli_rebuild_single_page_route_file] Single Page Routes File Array (funkphp/pages/page_single_routes.php) must be a non-empty array!");
-    }
-    if (!isset($singleRouteRoutesFileArray['ROUTES'])) {
-        cli_err_syntax("[cli_rebuild_single_page_route_file] Single Page Routes File Array (funkphp/pages/page_single_routes.php) must start with a 'ROUTES' key!");
-    }
-    // Check that dir exist, is writable and is a directory
-    if (!is_dir($dirs['pages']) || !is_writable($dirs['pages'])) {
-        cli_err_syntax("[cli_rebuild_single_page_route_file] Routes directory (funkphp/pages/) must be a valid directory and writable!");
-    }
-    // Check that if file exists, it can be overwritten
-    if (file_exists($exactFiles['single_page']) && !is_writable($exactFiles['single_page'])) {
-        cli_err_syntax("[cli_rebuild_single_page_route_file] Routes file (funkphp/pages/page_single_routes.php) must be writable. It is not!");
-    }
-    return file_put_contents(
-        $exactFiles['single_page'],
-        cli_get_prefix_code("page_singles_routes_start")
-            . cli_convert_array_to_simple_syntax($singleRouteRoutesFileArray)
-    );
-}
-
-// Rebuilds the Single Middleware Routes Page file (funkphp/pages/page_middleware_routes.php) based on valid array
-function cli_rebuild_single_page_mw_route_file($singleRouteRoutesFileArray): bool
-{
-    global $exactFiles, $dirs, $settings;
-    if (!is_array($singleRouteRoutesFileArray) || empty($singleRouteRoutesFileArray)) {
-        cli_err_syntax("[cli_rebuild_single_page_mw_route_file] Single Route Middleware Routes File Array (funkphp/pages/page_middleware_routes.php) must be a non-empty array!");
-    }
-    if (!isset($singleRouteRoutesFileArray['MIDDLEWARES'])) {
-        cli_err_syntax("[cli_rebuild_single_page_mw_route_file] Single Route Middleware Routes File Array (funkphp/pages/page_middleware_routes.php) must start with a 'ROUTES' key!");
-    }
-    // Check that dir exist, is writable and is a directory
-    if (!is_dir($dirs['pages']) || !is_writable($dirs['pages'])) {
-        cli_err_syntax("[cli_rebuild_single_routes_mw_route_file] Routes directory (funkphp/pages/) must be a valid directory and writable!");
-    }
-    // Check that if file exists, it can be overwritten
-    if (file_exists($exactFiles['single_middlewares_page']) && !is_writable($exactFiles['single_middlewares_page'])) {
-        cli_err_syntax("[cli_rebuild_single_routes_mw_route_file] Routes file (funkphp/pages/page_middleware_routes.php) must be writable. It is not!");
-    }
-    return file_put_contents(
-        $exactFiles['single_middlewares_page'],
-        cli_get_prefix_code("page_middleware_routes_start")
-            . cli_convert_array_to_simple_syntax($singleRouteRoutesFileArray)
-    );
-}
-
 // Check if Routes Data Handler in handlers/D/ exists
 function cli_data_exists($fileName): bool
 {
@@ -836,174 +711,77 @@ function cli_delete_a_single_routes_route()
     }
 }
 
-function cli_delete_a_single_data_route()
+// Add a handler to the route file (funkphp/handlers/)
+function cli_add_handler_batch($arrayOfHandlers)
 {
-    global
-        $argv, $dirs, $exactFiles,
-        $settings,
-        $singleRoutesData,
-        $middlewareRoutesData;
-    // Prepare the route string by trimming, validating starting, ending and middle parts of it
-    $deleteRoute = trim(strtolower($argv[3]));
-    $oldRoute = $deleteRoute;
-    [$method, $validRoute] = cli_prepare_valid_route_string($deleteRoute);
-    cli_info_without_exit("ROUTE: " . "\"$oldRoute\"" . " parsed as: \"$validRoute\"");
-
-    // Check that provided route exists
-    if (
-        isset($singleRoutesData['ROUTES'][$method][$validRoute])
-    ) {
-        // First backup all associated route files if settings allow it
-        cli_backup_batch(
-            [
-                "troute_data",
-                "data_single_routes",
-            ]
-        );
-        // Store handler variable
-        $handler = $singleRoutesData['ROUTES'][$method][$validRoute]['handler'] ?? "<Handler missing?>";
-        // Then we unset() each matched route
-        unset($singleRoutesData['ROUTES'][$method][$validRoute]);
-        cli_success_without_exit("Deleted Route \"$method$validRoute\" from Single Data Routes \"funkphp/data/data_single_routes.php\"!");
-        cli_info_without_exit("Handler: \"$handler.php\" used by the route still exists in \"funkphp/handlers/D/\" folder. Delete manually or use for other routes!");
-
-        // Then we rebuild and recompile - Data
-        cli_rebuild_single_data_route_file($singleRoutesData);
-        $compiledRouteData = cli_build_compiled_routes($singleRoutesData['ROUTES'], $middlewareRoutesData['MIDDLEWARES']);
-        cli_output_compiled_routes($compiledRouteData, "troute_data");
-
-        cli_success("Deleted Single Data Route \"$method$validRoute\" from Single Data Route file!");
+    global $argv, $dirs, $exactFiles, $settings;
+    // Validate arguments (ensure file name, new function name, etc. are provided)
+    if (!isset($argv[3]) || strpos($argv[3], '=>') === false || !isset($argv[4])) {
+        cli_err_syntax("Syntax: php funkcli add handler <handler_file>=><new_function_name> <route>\n");
+        return;
     }
-    // When one ore more is missing, we do not go ahead with deletion
-    // since this function is meant to delete all three at once!
-    else {
-        cli_err_syntax("Single Data Route: \"$method$validRoute\" does not exist!");
+
+    [$handlerFile, $newFunctionName] = explode('=>', $argv[3]);
+    $route = $argv[4]; // The route associated with this handler (you might need this later)
+
+    $handlerPath = $dirs['handlers'] . $handlerFile . '.php';
+
+    // Check if the handler file exists
+    if (!file_exists($handlerPath)) {
+        cli_err_syntax("Handler file '{$handlerFile}.php' not found!");
+        return;
+    }
+
+    $fileContent = file_get_contents($handlerPath);
+
+    // 1. Add the new anonymous function definition at the beginning (after the initial comment)
+    // Find the position after the initial comment block.
+    // Assuming the initial comment ends with "// File created in FunkCLI!"
+    $commentEndPos = strpos($fileContent, "// File created in FunkCLI!");
+    $insertionPos = strpos($fileContent, "\n", $commentEndPos) + 1; // Insert after the newline
+
+    $newFunctionDefinition = "\n$" . $newFunctionName . " = function (&\$c) {\n    // TODO: Implement logic for {$newFunctionName}\n};\n\n";
+
+    $fileContent = substr_replace($fileContent, $newFunctionDefinition, $insertionPos, 0);
+
+    // 2. Add the new function variable to the 'use' list of the main returned function
+    // We need a regex to find the 'return function (...) use (...) {' line and capture the use list.
+    // This regex looks for 'return function' followed by parentheses, optional whitespace, 'use',
+    // parentheses, and then the opening brace of the function body.
+    // It captures the content within the use() parentheses.
+    $pattern = '/(return\s+function\s*\(.*?\) \s*use\s*\()(.*?)(\)\s*\{)/s';
+
+    // Use preg_replace_callback for more control over the replacement
+    $fileContent = preg_replace_callback($pattern, function ($matches) use ($newFunctionName) {
+        $beforeUse = $matches[1]; // The part before the use() parentheses (e.g., "return function (...) use (")
+        $currentUseList = $matches[2]; // The current content inside the use() parentheses (e.g., "$test, $test2")
+        $afterUse = $matches[3]; // The part after the use() parentheses (e.g., ") {")
+
+        // Add the new variable to the use list
+        if (trim($currentUseList) === '') {
+            // If the use list is empty, just add the new variable
+            $newUseList = "$" . $newFunctionName;
+        } else {
+            // If the use list is not empty, append the new variable
+            $newUseList = $currentUseList . ", $" . $newFunctionName;
+        }
+
+        // Reconstruct the line with the updated use list
+        return $beforeUse . $newUseList . $afterUse;
+    }, $fileContent, 1); // The '1' limits the replacement to the first occurrence
+
+    // 3. Write the modified content back to the file
+    $writeSuccess = file_put_contents($handlerPath, $fileContent);
+
+    if ($writeSuccess !== false) {
+        cli_success("Added function \${$newFunctionName} to handler file {$handlerFile}.php and updated use list!");
+        // You might want to trigger a route compilation here as well
+        // cli_compile_route_routes(); or similar
+    } else {
+        cli_err_syntax("Failed to write to handler file {$handlerFile}.php.");
     }
 }
 
-// Delete a Single Page Route from "pages" folder
-function cli_delete_a_single_page_route()
-{
-    global
-        $argv, $dirs, $exactFiles,
-        $settings,
-        $singleRoutesPage,
-        $middlewareRoutesPage;
-    // Prepare the route string by trimming, validating starting, ending and middle parts of it
-    $deleteRoute = trim(strtolower($argv[3]));
-    $oldRoute = $deleteRoute;
-    [$method, $validRoute] = cli_prepare_valid_route_string($deleteRoute);
-    cli_info_without_exit("ROUTE: " . "\"$oldRoute\"" . " parsed as: \"$validRoute\"");
-
-    // Check that provided route exists
-    if (
-        isset($singleRoutesPage['ROUTES'][$method][$validRoute])
-    ) {
-        // First backup all associated route files if settings allow it
-        cli_backup_batch(
-            [
-                "troute_page",
-                "page_single_routes",
-            ]
-        );
-        // Store handler variable
-        $handler = $singleRoutesPage['ROUTES'][$method][$validRoute]['handler'] ?? "<Handler missing?>";
-        // Then we unset() each matched route
-
-        unset($singleRoutesPage['ROUTES'][$method][$validRoute]);
-        cli_success_without_exit("Deleted Route \"$method$validRoute\" from Single Page Routes \"funkphp/pages/page_single_routes.php\"!");
-        cli_info_without_exit("Handler: \"$handler.php\" used by the route still exists in \"funkphp/handlers/P/\" folder. Delete manually or use for other routes!");
-
-        // Then we rebuild and recompile Pages
-        cli_rebuild_single_page_route_file($singleRoutesPage);
-        $compiledRoutePage = cli_build_compiled_routes($singleRoutesPage['ROUTES'], $middlewareRoutesPage['MIDDLEWARES']);
-        cli_output_compiled_routes($compiledRoutePage, "troute_page");
-
-        cli_success("Deleted Single Page Route \"$method$validRoute\" from Single Page Route file!");
-    }
-    // When one ore more is missing, we do not go ahead with deletion
-    // since this function is meant to delete all three at once!
-    else {
-        cli_err_syntax("Single Page Route: \"$method$validRoute\" does not exist!");
-    }
-}
-
-// Delete a single route for /routes/, /data/ AND /pages/ folder
-function cli_delete_a_single_all_routes()
-{
-    global
-        $argv, $dirs, $exactFiles,
-        $settings,
-        $singleRoutesRoute,
-        $singleRoutesData,
-        $singleRoutesPage,
-        $middlewareRoutesRoute,
-        $middlewareRoutesData,
-        $middlewareRoutesPage;
-    // Prepare the route string by trimming, validating starting, ending and middle parts of it
-    $deleteRoute = trim(strtolower($argv[3]));
-    $oldRoute = $deleteRoute;
-    [$method, $validRoute] = cli_prepare_valid_route_string($deleteRoute);
-    cli_info_without_exit("ROUTE: " . "\"$oldRoute\"" . " parsed as: \"$validRoute\"");
-
-    // Check that provided route exists in all 3 main route files
-    if (
-        isset($singleRoutesRoute['ROUTES'][$method][$validRoute])
-        && isset($singleRoutesData['ROUTES'][$method][$validRoute])
-        && isset($singleRoutesPage['ROUTES'][$method][$validRoute])
-    ) {
-        // First backup all associated route files if settings allow it
-        cli_backup_batch(
-            [
-                "troute_route",
-                "route_single_routes",
-                "troute_data",
-                "data_single_routes",
-                "troute_page",
-                "page_single_routes",
-            ]
-        );
-        // Store all three handler variables
-        $handlerRoute = $singleRoutesRoute['ROUTES'][$method][$validRoute]['handler'] ?? "<Handler missing?>";
-        $handlerData = $singleRoutesData['ROUTES'][$method][$validRoute]['handler'] ?? "<Handler missing?>";
-        $handlerPage = $singleRoutesPage['ROUTES'][$method][$validRoute]['handler'] ?? "<Handler missing?>";
-        // Then we unset() each matched route in all 3 main route files
-        unset($singleRoutesRoute['ROUTES'][$method][$validRoute]);
-        cli_success_without_exit("Deleted Route \"$method$validRoute\" from Single Routes Route \"funkphp/routes/route_single_routes.php\"!");
-        cli_info_without_exit("Handler: \"$handlerRoute.php\" used by the route still exists in \"funkphp/handlers/R/\" folder. Delete manually or use for other routes!");
-
-        unset($singleRoutesData['ROUTES'][$method][$validRoute]);
-        cli_success_without_exit("Deleted Route \"$method$validRoute\" from Single Data Routes \"funkphp/data/data_single_routes.php\"!");
-        cli_info_without_exit("Handler: \"$handlerData.php\" used by the route still exists in \"funkphp/handlers/D/\" folder. Delete manually or use for other routes!");
-
-        unset($singleRoutesPage['ROUTES'][$method][$validRoute]);
-        cli_success_without_exit("Deleted Route \"$method$validRoute\" from Single Page Routes \"funkphp/pages/page_single_routes.php\"!");
-        cli_info_without_exit("Handler: \"$handlerPage.php\" used by the route still exists in \"funkphp/handlers/P/\" folder. Delete manually or use for other routes!");
-
-        // Then we rebuild and recompile all 3 main route files!
-        // Routes
-        cli_rebuild_single_routes_route_file($singleRoutesRoute);
-        $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRoute['ROUTES'], $middlewareRoutesRoute['MIDDLEWARES']);
-        cli_output_compiled_routes($compiledRouteRoutes, "troute_route");
-
-        // Data
-        cli_rebuild_single_data_route_file($singleRoutesData);
-        $compiledRouteData = cli_build_compiled_routes($singleRoutesData['ROUTES'], $middlewareRoutesData['MIDDLEWARES']);
-        cli_output_compiled_routes($compiledRouteData, "troute_data");
-
-        // Pages
-        cli_rebuild_single_page_route_file($singleRoutesPage);
-        $compiledRoutePage = cli_build_compiled_routes($singleRoutesPage['ROUTES'], $middlewareRoutesPage['MIDDLEWARES']);
-        cli_output_compiled_routes($compiledRoutePage, "troute_page");
-
-        cli_success("Deleted Single Route \"$method$validRoute\" from all 3 Main Route files!");
-    }
-    // When one ore more is missing, we do not go ahead with deletion
-    // since this function is meant to delete all three at once!
-    else {
-        cli_err_syntax("\"$method$validRoute\" does not exist in all 3 main route files. Either make sure all three exists or use the other delete functions to delete each separately!");
-    }
-}
 
 // Add one or more routes from array of string values!
 function cli_add_route_batch($arrayOfRoutesToAdd)
@@ -1013,20 +791,13 @@ function cli_add_route_batch($arrayOfRoutesToAdd)
         $settings,
         $dirs,
         $exactFiles,
-        $singleRoutesRoute,
-        $singleRoutesPage,
-        $singleRoutesData,
-        $middlewareRoutesRoute,
-        $middlewareRoutesData,
-        $middlewareRoutesPage;
+        $singleRoutesRoute;
     if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3]) || !isset($argv[4]) || !is_string($argv[4]) || empty($argv[4])) {
         cli_err_syntax("Should be at least four(4) non-empty string arguments!\nadd [all_routes|only_route|only_data_route|only_page_route] [Method/route] [handler]\nExample: 'add all_routes GET/users/:id getSingleUser'");
     }
 
     // Prepare handlers folders
     $handlersR = $dirs['handlers_routes'];
-    $handlersD = $dirs['handlers_data'];
-    $handlersP = $dirs['handlers_pages'];
 
     // Prepare the route string by trimming, validating starting, ending and middle parts of it
     $addRoute = trim(strtolower($argv[3]));
@@ -1040,93 +811,8 @@ function cli_add_route_batch($arrayOfRoutesToAdd)
     }
 
     foreach ($arrayOfRoutesToAdd as $routeToAdd) {
-        if ($routeToAdd === "all_routes") {
-            // Check Route is not used currently in ALL 3 Main Single Route Files!
-            if (isset($singleRoutesRoute['ROUTES'][$method][$validRoute]) ?? null) {
-                cli_err_syntax("\"$validRoute\" already exists in $method/Single Route Routes!");
-            } elseif (isset($singleRoutesData['ROUTES'][$method][$validRoute]) ?? null) {
-                cli_err_syntax("\"$validRoute\" already exists in $method/Single Data Routes!");
-            } elseif (isset($singleRoutesPage['ROUTES'][$method][$validRoute]) ?? null) {
-                cli_err_syntax("\"$validRoute\" already exists in $method/Single Page Routes!");
-            }
-
-            // ADDING ROUTES ROUTE
-            $uniqueR = cli_get_unique_filename_for_dir($handlersR, $argv[4]);
-            $handlerR = explode(".", $uniqueR)[0];
-            $singleRoutesRoute['ROUTES'][$method][$validRoute] = [
-                'handler' => $handlerR,
-            ];
-            ksort($singleRoutesRoute['ROUTES'][$method]);
-            $outputHandlerRoute = file_put_contents(
-                $handlersR . $uniqueR,
-                "<?php\n// Route Handler for Route Route: $method$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
-            );
-            if ($outputHandlerRoute) {
-                cli_success_without_exit("Added Handler \"$handlerR\" in \"funkphp/handlers/R/$uniqueR\"!");
-            }
-            $outputRouteSingleFile = file_put_contents(
-                $exactFiles['single_routes'],
-                cli_get_prefix_code("route_singles_routes_start")
-                    . cli_convert_array_to_simple_syntax($singleRoutesRoute)
-            );
-            if ($outputRouteSingleFile) {
-                cli_success_without_exit("Added Route \"$method$validRoute\" to Single Routes Route \"funkphp/routes/route_single_routes.php\" with handler \"$handlerR\"!");
-            }
-            $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRoute['ROUTES'], $middlewareRoutesRoute['MIDDLEWARES']);
-            cli_output_compiled_routes($compiledRouteRoutes, "troute_route");
-
-            // ADD DATA ROUTE
-            $uniqueD = cli_get_unique_filename_for_dir($handlersD, $argv[4]);
-            $handlerD = explode(".", $uniqueD)[0];
-            $singleRoutesData['ROUTES'][$method][$validRoute] = [
-                'handler' => $handlerD,
-            ];
-            ksort($singleRoutesData['ROUTES'][$method]);
-            $outputHandlerData = file_put_contents(
-                $handlersD . $uniqueD,
-                "<?php\n// Route Handler for Data Route: $method$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
-            );
-            if ($outputHandlerData) {
-                cli_success_without_exit("Added Handler \"$handlerD\" in \"funkphp/handlers/D/$uniqueD\"!");
-            }
-            $outputDataSingleFile = file_put_contents(
-                $exactFiles['single_data'],
-                cli_get_prefix_code("data_singles_routes_start")
-                    . cli_convert_array_to_simple_syntax($singleRoutesData)
-            );
-            if ($outputDataSingleFile) {
-                cli_success_without_exit("Added Route \"$method$validRoute\" to Single Routes Data \"funkphp/data/data_single_routes.php\" with handler \"$handlerD\"!");
-            }
-            $compiledDataRoutes = cli_build_compiled_routes($singleRoutesData['ROUTES'], $middlewareRoutesData['MIDDLEWARES']);
-            cli_output_compiled_routes($compiledDataRoutes, "troute_data");
-
-            // ADD PAGE ROUTE
-            $uniqueP = cli_get_unique_filename_for_dir($handlersP, $argv[4]);
-            $handlerP = explode(".", $uniqueP)[0];
-            $singleRoutesPage['ROUTES'][$method][$validRoute] = [
-                'handler' => $handlerP,
-            ];
-            ksort($singleRoutesPage['ROUTES'][$method]);
-            $outputHandlerPage = file_put_contents(
-                $handlersP . $uniqueP,
-                "<?php\n// Page Handler for Page Route: $method$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
-            );
-            if ($outputHandlerPage) {
-                cli_success_without_exit("Added Page Handler \"$handlerP\" in \"funkphp/handlers/P/$uniqueP\"!");
-            }
-            $outputPageSingleFile = file_put_contents(
-                $exactFiles['single_page'],
-                cli_get_prefix_code("page_singles_routes_start")
-                    . cli_convert_array_to_simple_syntax($singleRoutesPage)
-            );
-            if ($outputPageSingleFile) {
-                cli_success_without_exit("Added Route \"$method$validRoute\" to Single Routes Page \"funkphp/pages/page_single_routes.php\" with Page Handler \"$handlerP\"!");
-            }
-            $compiledPageRoutes = cli_build_compiled_routes($singleRoutesPage['ROUTES'], $middlewareRoutesPage['MIDDLEWARES']);
-            cli_output_compiled_routes($compiledPageRoutes, "troute_page");
-        }
         // Adding only a Route Route to the Route Route File
-        if ($routeToAdd === "only_route") {
+        if ($routeToAdd === "route") {
             // Check Route is not used currently in ALL 3 Main Single Route Files!
             if (isset($singleRoutesRoute['ROUTES'][$method][$validRoute]) ?? null) {
                 cli_err_syntax("\"$validRoute\" already exists in $method/Single Route Routes!");
@@ -1152,68 +838,8 @@ function cli_add_route_batch($arrayOfRoutesToAdd)
             if ($outputRouteSingleFile) {
                 cli_success_without_exit("Added Route \"$method$validRoute\" to Single Routes Route \"funkphp/routes/route_single_routes.php\" with handler \"$handlerR\"!");
             }
-            $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRoute['ROUTES'], $middlewareRoutesRoute['MIDDLEWARES']);
+            $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRoute['ROUTES'], $singleRoutesRoute['ROUTES']);
             cli_output_compiled_routes($compiledRouteRoutes, "troute_route");
-        }
-        // Adding only a Data Route to the Data Route File
-        if ($routeToAdd === "only_data") {
-            // Check Route is not used currently in ALL 3 Main Single Route Files!
-            if (isset($singleRoutesData['ROUTES'][$method][$validRoute]) ?? null) {
-                cli_err_syntax("\"$validRoute\" already exists in $method/Single Route Routes!");
-            }
-            $uniqueD = cli_get_unique_filename_for_dir($handlersD, $argv[4]);
-            $handlerD = explode(".", $uniqueD)[0];
-            $singleRoutesData['ROUTES'][$method][$validRoute] = [
-                'handler' => $handlerD,
-            ];
-            ksort($singleRoutesData['ROUTES'][$method]);
-            $outputHandlerData = file_put_contents(
-                $handlersD . $uniqueD,
-                "<?php\n// Route Handler for Data Route: $method$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
-            );
-            if ($outputHandlerData) {
-                cli_success_without_exit("Added Handler \"$handlerD\" in \"funkphp/handlers/D/$uniqueD\"!");
-            }
-            $outputDataSingleFile = file_put_contents(
-                $exactFiles['single_data'],
-                cli_get_prefix_code("data_singles_routes_start")
-                    . cli_convert_array_to_simple_syntax($singleRoutesData)
-            );
-            if ($outputDataSingleFile) {
-                cli_success_without_exit("Added Route \"$method$validRoute\" to Single Routes Data \"funkphp/data/data_single_routes.php\" with handler \"$handlerD\"!");
-            }
-            $compiledDataRoutes = cli_build_compiled_routes($singleRoutesData['ROUTES'], $middlewareRoutesData['MIDDLEWARES']);
-            cli_output_compiled_routes($compiledDataRoutes, "troute_data");
-        }
-        // Adding only a Page Route to the Page Route File
-        if ($routeToAdd === "only_page") {
-            // Check Route is not used currently in ALL 3 Main Single Route Files!
-            if (isset($singleRoutesPage['ROUTES'][$method][$validRoute]) ?? null) {
-                cli_err_syntax("\"$validRoute\" already exists in $method/Single Route Routes!");
-            }
-            $uniqueP = cli_get_unique_filename_for_dir($handlersP, $argv[4]);
-            $handlerP = explode(".", $uniqueP)[0];
-            $singleRoutesPage['ROUTES'][$method][$validRoute] = [
-                'handler' => $handlerP,
-            ];
-            ksort($singleRoutesPage['ROUTES'][$method]);
-            $outputHandlerPage = file_put_contents(
-                $handlersP . $uniqueP,
-                "<?php\n// Page Handler for Page Route: $method$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
-            );
-            if ($outputHandlerPage) {
-                cli_success_without_exit("Added Page Handler \"$handlerP\" in \"funkphp/handlers/P/$uniqueP\"!");
-            }
-            $outputPageSingleFile = file_put_contents(
-                $exactFiles['single_page'],
-                cli_get_prefix_code("page_singles_routes_start")
-                    . cli_convert_array_to_simple_syntax($singleRoutesPage)
-            );
-            if ($outputPageSingleFile) {
-                cli_success_without_exit("Added Route \"$method$validRoute\" to Single Routes Page \"funkphp/pages/page_single_routes.php\" with Page Handler \"$handlerP\"!");
-            }
-            $compiledPageRoutes = cli_build_compiled_routes($singleRoutesPage['ROUTES'], $middlewareRoutesPage['MIDDLEWARES']);
-            cli_output_compiled_routes($compiledPageRoutes, "troute_page");
         }
     }
 }
@@ -1227,19 +853,13 @@ function cli_add_middlewares_batch($arrayOfMiddlewaresToAdd)
         $dirs,
         $exactFiles,
         $singleRoutesRoute,
-        $singleRoutesPage,
-        $singleRoutesData,
-        $middlewareRoutesRoute,
-        $middlewareRoutesData,
-        $middlewareRoutesPage;
+        $middlewareRoutesRoute;
     if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3]) || !isset($argv[4]) || !is_string($argv[4]) || empty($argv[4])) {
         cli_err_syntax("Should be at least four(4) non-empty string arguments!\nadd [mw_all|mw_route|mw_data|mw_page] [Method/route] [Middleware_handler]\nExample: 'add mw_all GET/users/:id getSingleUser'");
     }
 
     // Prepare handlers folders
     $handlersR = $dirs['middlewares_routes'];
-    $handlersD = $dirs['middlewares_data'];
-    $handlersP = $dirs['middlewares_pages'];
 
     // Prepare the route string by trimming, validating starting, ending and middle parts of it
     $addRoute = trim(strtolower($argv[3]));
@@ -1253,233 +873,6 @@ function cli_add_middlewares_batch($arrayOfMiddlewaresToAdd)
     }
 
     foreach ($arrayOfMiddlewaresToAdd as $middlewareString) {
-        if ($middlewareString === "mw_all") {
-            // We loop routes to see if any of the routes at least starts with the middleware route
-            // otherwise we cannot add it because it wouldn't match any valid/navigable route!
-            $singleExist = false;
-            foreach ($singleRoutesRoute['ROUTES'][$method] as $routeSingle => $val) {
-                if (str_starts_with($routeSingle, $validRoute)) {
-                    $singleExist = true;
-                    break;
-                }
-            }
-            if (!$singleExist) {
-                cli_err_syntax("Route \"$validRoute\" does not exist in $method/Single Route Routes! (funkphp/routes/route_single_routes.php) Add that first!");
-            }
-            $singleExist = false;
-            foreach ($singleRoutesData['ROUTES'][$method] as $routeSingle => $val) {
-                if (str_starts_with($routeSingle, $validRoute)) {
-                    $singleExist = true;
-                    break;
-                }
-            }
-            if (!$singleExist) {
-                cli_err_syntax("Route \"$validRoute\" does not exist in $method/Single Data Routes! (funkphp/data/data_single_routes.php) Add that first!");
-            }
-            $singleExist = false;
-            foreach ($singleRoutesPage['ROUTES'][$method] as $routeSingle => $val) {
-                if (str_starts_with($routeSingle, $validRoute)) {
-                    $singleExist = true;
-                    break;
-                }
-            }
-            if (!$singleExist) {
-                cli_err_syntax("Route \"$validRoute\" does not exist in $method/Single Page Routes! (funkphp/pages/page_single_routes.php) Add that first!");
-            }
-
-            // For each Route, Data, Page Middleware Route, we first check that the route exists.
-            // And then we chekc if the handler is a string or an array. If a string, we check if exact
-            // handler name already exists in the route. If an array, we check if the handler exists in array.
-            // Routes Route
-            if (isset($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute])) {
-                if (isset($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute]["handler"])) {
-                    if (is_string($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute]["handler"])) {
-                        if ($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute]["handler"] === $argv[4]) {
-                            cli_err_syntax("Handler \"{$argv[4]}\" for \"$validRoute\" already exists in $method/Single Middleware Route Routes!");
-                        }
-                    } elseif (is_array($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute]["handler"])) {
-                        if (in_array($argv[4], $middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute]["handler"])) {
-                            cli_err_syntax("Handler \"{$argv[4]}\" for \"$validRoute\" already exists in $method/Single Middleware Route Routes!");
-                        }
-                    }
-                }
-            }
-            // Routes Data
-            if (isset($middlewareRoutesData['MIDDLEWARES'][$method][$validRoute])) {
-                if (isset($middlewareRoutesData['MIDDLEWARES'][$method][$validRoute]["handler"])) {
-                    if (is_string($middlewareRoutesData['MIDDLEWARES'][$method][$validRoute]["handler"])) {
-                        if ($middlewareRoutesData['MIDDLEWARES'][$method][$validRoute]["handler"] === $argv[4]) {
-                            cli_err_syntax("Handler \"{$argv[4]}\" for \"$validRoute\" already exists in $method/Single Middleware Data Routes!");
-                        }
-                    } elseif (is_array($middlewareRoutesData['MIDDLEWARES'][$method][$validRoute]["handler"])) {
-                        if (in_array($argv[4], $middlewareRoutesData['MIDDLEWARES'][$method][$validRoute]["handler"])) {
-                            cli_err_syntax("Handler \"{$argv[4]}\" for \"$validRoute\" already exists in $method/Single Middleware Data Routes!");
-                        }
-                    }
-                }
-            }
-            // Routes Page
-            if (isset($middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute])) {
-                if (isset($middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute]["handler"])) {
-                    if (is_string($middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute]["handler"])) {
-                        if ($middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute]["handler"] === $argv[4]) {
-                            cli_err_syntax("Handler \"{$argv[4]}\" for \"$validRoute\" already exists in $method/Single Middleware Page Routes!");
-                        }
-                    } elseif (is_array($middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute]["handler"])) {
-                        if (in_array($argv[4], $middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute]["handler"])) {
-                            cli_err_syntax("Handler \"{$argv[4]}\" for \"$validRoute\" already exists in $method/Single Middleware Page Routes!");
-                        }
-                    }
-                }
-            }
-
-            // CREATE MIDDLEWARE HANDLER FOR ROUTE ROUTE
-            // Create Middleware Route Handler if it does not exist
-            if (!cli_mw_r_handler_exists($argv[4])) {
-                $outputHandlerRoute = file_put_contents(
-                    $handlersR . $argv[4] . ".php",
-                    "<?php\n// Middleware Handler for Route Route: $method$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
-                );
-                if ($outputHandlerRoute) {
-                    cli_success_without_exit("Added Middleware Route Handler \"{$argv[4]}\" in \"funkphp/middlewares/R/{$argv[4]}.php\"!");
-                }
-            } else {
-                cli_info_without_exit("Middleware Route Handler \"{$argv[4]}\" already exists in \"funkphp/middlewares/R/{$argv[4]}.php\"!");
-            }
-
-            // ADDING MIDDLEWARE HANDLER TO THE CORRECT MIDDLEWARE METHOD/ROUTE!
-            // Three scenarios: 1) Handler doesn't exist, so we just add it as the first string
-            // 2) Handler exists as a string, so we convert it to an array and add the new handler to the array
-            // 3) Handler exists as an array, so we just add the new handler to the array
-            // Middleware Route and its handler don't exist, so just add it:
-            if (
-                !isset($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute])
-                || (isset($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute])
-                    && !isset($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute]["handler"]))
-            ) {
-                $middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute] = [
-                    'handler' => $argv[4],
-                ];
-            }  //
-            elseif (isset($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute])) {
-                if (is_string($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute]["handler"])) {
-                    $middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute]["handler"] = [
-                        $middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute]["handler"],
-                        $argv[4],
-                    ];
-                } elseif (is_array($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute]["handler"])) {
-                    $middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute]["handler"][] = $argv[4];
-                }
-            }
-
-            // Finally sort the array by keys, recompile and output the updated Single Route & Middleware files!
-            ksort($middlewareRoutesRoute['MIDDLEWARES'][$method]);
-            $outputRouteSingleMiddlewareFile = file_put_contents(
-                $exactFiles['single_middlewares'],
-                cli_get_prefix_code("route_middleware_routes_start")
-                    . cli_convert_array_to_simple_syntax($middlewareRoutesRoute)
-            );
-            if ($outputRouteSingleMiddlewareFile) {
-                cli_success_without_exit("Added Middleware Route \"$method$validRoute\" to Single Middleware Routes Route \"funkphp/routes/route_middleware_routes.php\" with handler \"{$argv[4]}\"!");
-            }
-            $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRoute['ROUTES'], $middlewareRoutesRoute['MIDDLEWARES']);
-            cli_output_compiled_routes($compiledRouteRoutes, "troute_route");
-
-
-            // CREATE MIDDLEWARE HANDLER FOR DATA ROUTE
-            // Create Middleware Route Handler if it does not exist
-            if (!cli_mw_d_handler_exists($argv[4])) {
-                $outputHandlerRoute = file_put_contents(
-                    $handlersD . $argv[4] . ".php",
-                    "<?php\n// Middleware Handler for Data Route: $method$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
-                );
-                if ($outputHandlerRoute) {
-                    cli_success_without_exit("Added Middleware Route Handler \"{$argv[4]}\" in \"funkphp/middlewares/D/{$argv[4]}.php\"!");
-                }
-            } else {
-                cli_info_without_exit("Middleware Route Handler \"{$argv[4]}\" already exists in \"funkphp/middlewares/D/{$argv[4]}.php\"!");
-            }
-            if (
-                !isset($middlewareRoutesData['MIDDLEWARES'][$method][$validRoute])
-                || (isset($middlewareRoutesData['MIDDLEWARES'][$method][$validRoute])
-                    && !isset($middlewareRoutesData['MIDDLEWARES'][$method][$validRoute]["handler"]))
-            ) {
-                $middlewareRoutesData['MIDDLEWARES'][$method][$validRoute] = [
-                    'handler' => $argv[4],
-                ];
-            }  //
-            elseif (isset($middlewareRoutesData['MIDDLEWARES'][$method][$validRoute])) {
-                if (is_string($middlewareRoutesData['MIDDLEWARES'][$method][$validRoute]["handler"])) {
-                    $middlewareRoutesData['MIDDLEWARES'][$method][$validRoute]["handler"] = [
-                        $middlewareRoutesData['MIDDLEWARES'][$method][$validRoute]["handler"],
-                        $argv[4],
-                    ];
-                } elseif (is_array($middlewareRoutesData['MIDDLEWARES'][$method][$validRoute]["handler"])) {
-                    $middlewareRoutesData['MIDDLEWARES'][$method][$validRoute]["handler"][] = $argv[4];
-                }
-            }
-
-            // Finally sort the array by keys, recompile and output the updated Single Route & Middleware files!
-            ksort($middlewareRoutesData['MIDDLEWARES'][$method]);
-            $outputRouteSingleMiddlewareFile = file_put_contents(
-                $exactFiles['single_middlewares_data'],
-                cli_get_prefix_code("data_middleware_routes_start")
-                    . cli_convert_array_to_simple_syntax($middlewareRoutesData)
-            );
-            if ($outputRouteSingleMiddlewareFile) {
-                cli_success_without_exit("Added Middleware Route \"$method$validRoute\" to Single Middleware Routes Data \"funkphp/data/data_middleware_routes.php\" with handler \"{$argv[4]}\"!");
-            }
-            $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesData['ROUTES'], $middlewareRoutesData['MIDDLEWARES']);
-            cli_output_compiled_routes($compiledRouteRoutes, "troute_data");
-
-
-            // CREATE MIDDLEWARE HANDLER FOR PAGE ROUTE
-            // Create Middleware Route Handler if it does not exist
-            if (!cli_mw_p_handler_exists($argv[4])) {
-                $outputHandlerRoute = file_put_contents(
-                    $handlersP . $argv[4] . ".php",
-                    "<?php\n// Middleware Handler for Page Route: $method$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
-                );
-                if ($outputHandlerRoute) {
-                    cli_success_without_exit("Added Middleware Route Handler \"{$argv[4]}\" in \"funkphp/middlewares/P/{$argv[4]}.php\"!");
-                }
-            } else {
-                cli_info_without_exit("Middleware Route Handler \"{$argv[4]}\" already exists in \"funkphp/middlewares/P/{$argv[4]}.php\"!");
-            }
-            if (
-                !isset($middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute])
-                || (isset($middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute])
-                    && !isset($middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute]["handler"]))
-            ) {
-                $middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute] = [
-                    'handler' => $argv[4],
-                ];
-            }  //
-            elseif (isset($middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute])) {
-                if (is_string($middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute]["handler"])) {
-                    $middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute]["handler"] = [
-                        $middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute]["handler"],
-                        $argv[4],
-                    ];
-                } elseif (is_array($middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute]["handler"])) {
-                    $middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute]["handler"][] = $argv[4];
-                }
-            }
-
-            // Finally sort the array by keys, recompile and output the updated Single Route & Middleware files!
-            ksort($middlewareRoutesPage['MIDDLEWARES'][$method]);
-            $outputRouteSingleMiddlewareFile = file_put_contents(
-                $exactFiles['single_middlewares_page'],
-                cli_get_prefix_code("page_middleware_routes_start")
-                    . cli_convert_array_to_simple_syntax($middlewareRoutesPage)
-            );
-            if ($outputRouteSingleMiddlewareFile) {
-                cli_success_without_exit("Added Middleware Route \"$method$validRoute\" to Single Middleware Routes Page \"funkphp/pages/page_middleware_routes.php\" with handler \"{$argv[4]}\"!");
-            }
-            $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesPage['ROUTES'], $middlewareRoutesPage['MIDDLEWARES']);
-            cli_output_compiled_routes($compiledRouteRoutes, "troute_page");
-            continue;
-        }
         // When ONLY adding a middleware in the Middleware Route Routes file
         if ($middlewareString === "mw_route") {
             // At least one route in Single Route Routes file must start with the middleware route
@@ -1509,7 +902,7 @@ function cli_add_middlewares_batch($arrayOfMiddlewaresToAdd)
                 }
             }
             // Create Middleware Route Handler if it does not exist
-            if (!cli_mw_r_handler_exists($argv[4])) {
+            if (!cli_middleware_exists($argv[4])) {
                 $outputHandlerRoute = file_put_contents(
                     $handlersR . $argv[4] . ".php",
                     "<?php\n// Middleware Handler for Route Route: $method/$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
@@ -1556,160 +949,6 @@ function cli_add_middlewares_batch($arrayOfMiddlewaresToAdd)
             }
             $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRoute['ROUTES'], $middlewareRoutesRoute['MIDDLEWARES']);
             cli_output_compiled_routes($compiledRouteRoutes, "troute_route");
-            continue;
-        }
-        // When ONLY adding a middleware in the Middleware Data Routes file
-        if ($middlewareString === "mw_data") {
-            // At least one route in Single Data Routes file must start with the middleware route
-            // otherwise we cannot add it because it wouldn't match any valid/navigable route!
-            $singleExist = false;
-            foreach ($singleRoutesData['ROUTES'][$method] as $routeSingle => $val) {
-                if (str_starts_with($routeSingle, $validRoute)) {
-                    $singleExist = true;
-                    break;
-                }
-            }
-            if (!$singleExist) {
-                cli_err_syntax("Route \"$validRoute\" does not exist in $method/Single Data Routes! (funkphp/data/data_single_routes.php) Add that first!");
-            }
-            // Check that handler is not already used in the Middlewares Data Routes file
-            if (isset($middlewareRoutesData['MIDDLEWARES'][$method][$validRoute])) {
-                if (isset($middlewareRoutesData['MIDDLEWARES'][$method][$validRoute]["handler"])) {
-                    if (is_string($middlewareRoutesData['MIDDLEWARES'][$method][$validRoute]["handler"])) {
-                        if ($middlewareRoutesData['MIDDLEWARES'][$method][$validRoute]["handler"] === $argv[4]) {
-                            cli_err_syntax("Handler \"{$argv[4]}\" for \"$validRoute\" already exists in $method/Single Middleware Data Routes!");
-                        }
-                    } elseif (is_array($middlewareRoutesData['MIDDLEWARES'][$method][$validRoute]["handler"])) {
-                        if (in_array($argv[4], $middlewareRoutesData['MIDDLEWARES'][$method][$validRoute]["handler"])) {
-                            cli_err_syntax("Handler \"{$argv[4]}\" for \"$validRoute\" already exists in $method/Single Middleware Data Routes!");
-                        }
-                    }
-                }
-            }
-            // Create Middleware Route Handler if it does not exist
-            if (!cli_mw_d_handler_exists($argv[4])) {
-                $outputHandlerRoute = file_put_contents(
-                    $handlersD . $argv[4] . ".php",
-                    "<?php\n// Middleware Handler for Data Route: $method/$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
-                );
-                if ($outputHandlerRoute) {
-                    cli_success_without_exit("Added Middleware Route Handler \"{$argv[4]}\" in \"funkphp/middlewares/D/{$argv[4]}.php\"!");
-                }
-            } else {
-                cli_info_without_exit("Middleware Route Handler \"{$argv[4]}\" already exists in \"funkphp/middlewares/D/{$argv[4]}.php\"!");
-            }
-            // ADDING MIDDLEWARE HANDLER TO THE CORRECT MIDDLEWARE METHOD/ROUTE!
-            // Three scenarios: 1) Handler doesn't exist, so we just add it as the first string
-            // 2) Handler exists as a string, so we convert it to an array and add the new handler to the array
-            // 3) Handler exists as an array, so we just add the new handler to the array
-            // Middleware Route and its handler don't exist, so just add it:
-            if (
-                !isset($middlewareRoutesData['MIDDLEWARES'][$method][$validRoute])
-                || (isset($middlewareRoutesData['MIDDLEWARES'][$method][$validRoute])
-                    && !isset($middlewareRoutesData['MIDDLEWARES'][$method][$validRoute]["handler"]))
-            ) {
-                $middlewareRoutesData['MIDDLEWARES'][$method][$validRoute] = [
-                    'handler' => $argv[4],
-                ];
-            }  //
-            elseif (isset($middlewareRoutesData['MIDDLEWARES'][$method][$validRoute])) {
-                if (is_string($middlewareRoutesData['MIDDLEWARES'][$method][$validRoute]["handler"])) {
-                    $middlewareRoutesData['MIDDLEWARES'][$method][$validRoute]["handler"] = [
-                        $middlewareRoutesData['MIDDLEWARES'][$method][$validRoute]["handler"],
-                        $argv[4],
-                    ];
-                } elseif (is_array($middlewareRoutesData['MIDDLEWARES'][$method][$validRoute]["handler"])) {
-                    $middlewareRoutesData['MIDDLEWARES'][$method][$validRoute]["handler"][] = $argv[4];
-                }
-            }
-            // Finally sort the array by keys, recompile and output the updated Single Route & Middleware files!
-            ksort($middlewareRoutesData['MIDDLEWARES'][$method]);
-            $outputRouteSingleMiddlewareFile = file_put_contents(
-                $exactFiles['single_middlewares_data'],
-                cli_get_prefix_code("data_middleware_routes_start")
-                    . cli_convert_array_to_simple_syntax($middlewareRoutesData)
-            );
-            if ($outputRouteSingleMiddlewareFile) {
-                cli_success_without_exit("Added Middleware Route \"$method$validRoute\" to Single Middleware Data Route \"funkphp/data/data_middleware_routes.php\" with handler \"{$argv[4]}\"!");
-            }
-            $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesData['ROUTES'], $middlewareRoutesData['MIDDLEWARES']);
-            cli_output_compiled_routes($compiledRouteRoutes, "troute_data");
-            continue;
-        }
-        // When ONLY adding a middleware in the Middleware Page Routes file
-        if ($middlewareString === "mw_page") {
-            // At least one route in Single Page Routes file must start with the middleware route
-            // otherwise we cannot add it because it wouldn't match any valid/navigable route!
-            $singleExist = false;
-            foreach ($singleRoutesPage['ROUTES'][$method] as $routeSingle => $val) {
-                if (str_starts_with($routeSingle, $validRoute)) {
-                    $singleExist = true;
-                    break;
-                }
-            }
-            if (!$singleExist) {
-                cli_err_syntax("Route \"$validRoute\" does not exist in $method/Single Page Routes! (funkphp/pages/page_single_routes.php) Add that first!");
-            }
-            // Check that handler is not already used in the Middlewares Page Routes file
-            if (isset($middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute])) {
-                if (isset($middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute]["handler"])) {
-                    if (is_string($middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute]["handler"])) {
-                        if ($middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute]["handler"] === $argv[4]) {
-                            cli_err_syntax("Handler \"{$argv[4]}\" for \"$validRoute\" already exists in $method/Single Middleware Page Routes!");
-                        }
-                    } elseif (is_array($middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute]["handler"])) {
-                        if (in_array($argv[4], $middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute]["handler"])) {
-                            cli_err_syntax("Handler \"{$argv[4]}\" for \"$validRoute\" already exists in $method/Single Middleware Page Routes!");
-                        }
-                    }
-                }
-            }
-
-            // CREATE MIDDLEWARE HANDLER FOR PAGE ROUTE
-            // Create Middleware Route Handler if it does not exist
-            if (!cli_mw_p_handler_exists($argv[4])) {
-                $outputHandlerRoute = file_put_contents(
-                    $handlersP . $argv[4] . ".php",
-                    "<?php\n// Middleware Handler for Page Route: $method$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
-                );
-                if ($outputHandlerRoute) {
-                    cli_success_without_exit("Added Middleware Route Handler \"{$argv[4]}\" in \"funkphp/middlewares/P/{$argv[4]}.php\"!");
-                }
-            } else {
-                cli_info_without_exit("Middleware Route Handler \"{$argv[4]}\" already exists in \"funkphp/middlewares/P/{$argv[4]}.php\"!");
-            }
-            if (
-                !isset($middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute])
-                || (isset($middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute])
-                    && !isset($middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute]["handler"]))
-            ) {
-                $middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute] = [
-                    'handler' => $argv[4],
-                ];
-            }  //
-            elseif (isset($middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute])) {
-                if (is_string($middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute]["handler"])) {
-                    $middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute]["handler"] = [
-                        $middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute]["handler"],
-                        $argv[4],
-                    ];
-                } elseif (is_array($middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute]["handler"])) {
-                    $middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute]["handler"][] = $argv[4];
-                }
-            }
-
-            // Finally sort the array by keys, recompile and output the updated Single Route & Middleware files!
-            ksort($middlewareRoutesPage['MIDDLEWARES'][$method]);
-            $outputRouteSingleMiddlewareFile = file_put_contents(
-                $exactFiles['single_middlewares_page'],
-                cli_get_prefix_code("page_middleware_routes_start")
-                    . cli_convert_array_to_simple_syntax($middlewareRoutesPage)
-            );
-            if ($outputRouteSingleMiddlewareFile) {
-                cli_success_without_exit("Added Middleware Route \"$method$validRoute\" to Single Middleware Routes Page \"funkphp/pages/page_middleware_routes.php\" with handler \"{$argv[4]}\"!");
-            }
-            $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesPage['ROUTES'], $middlewareRoutesPage['MIDDLEWARES']);
-            cli_output_compiled_routes($compiledRouteRoutes, "troute_page");
             continue;
         }
     }

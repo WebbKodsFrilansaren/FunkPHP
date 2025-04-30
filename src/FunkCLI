@@ -12,6 +12,7 @@ $validArg1withArg2Values =  [
     ],
     'add' => [
         'route',
+        'handler',
         'middleware',
         'mw',
         'mws',
@@ -104,9 +105,7 @@ $dirs = [
     "compiled" => __DIR__ . '/funkphp/_internals/compiled/',
     "_BACKUPS" => __DIR__ . '/funkphp/_BACKUPS/',
     "handlers" => __DIR__ . '/funkphp/handlers/',
-    "handlers_routes" => __DIR__ . '/funkphp/handlers/R/',
-    "handlers_data" => __DIR__ . '/funkphp/handlers/D/',
-    "handlers_pages" => __DIR__ . '/funkphp/handlers/P/',
+    "handlers_routes" => __DIR__ . '/funkphp/handlers/',
     "routes" => __DIR__ . '/funkphp/routes/',
     "data" => __DIR__ . '/funkphp/data/',
     "pages" => __DIR__ . '/funkphp/pages/',
@@ -170,27 +169,30 @@ $commands = [
     'add' => [
         // Adding to ALL Routes at the same time (Route, Data, Page)
         // Adding Route to only Route Routes
-        'only_route' => function () {
-            cli_add_route_batch(["only_route"]);
+        'route' => function () {
+            cli_add_route_batch(["route"]);
+        },
+        'handler' => function () {
+            cli_add_handler_batch(["handler"]);
         },
         // Adding Route to only Data Routes
-        'only_data_route' => function () {
-            cli_add_route_batch(["only_data"]);
+        'data' => function () {
+            cli_add_route_batch(["data"]);
         },
         // Adding Route to only Page Routes
-        'only_page_route' => function () {
-            cli_add_route_batch(["only_page"]);
+        'page' => function () {
+            cli_add_route_batch(["page"]);
         },
-        'mw_all' => function () {
+        'mw' => function () {
             cli_add_middlewares_batch(["mw_all"]);
         },
-        'mw_route' => function () {
+        'mws' => function () {
             cli_add_middlewares_batch(["mw_route"]);
         },
-        'mw_data' => function () {
+        'middleware' => function () {
             cli_add_middlewares_batch(["mw_data"]);
         },
-        'mw_page' => function () {
+        'middlewares' => function () {
             cli_add_middlewares_batch(["mw_page"]);
         },
     ],
@@ -215,14 +217,6 @@ $commands = [
         },
     ],
     'delete' => [
-        // Delete a single route for /routes/, /data/ AND /pages/ folder
-        'all_routes' => function () {
-            global $argv;
-            if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3])) {
-                cli_err_syntax("Provide a valid route to delete from all routes!\nExample: \"funkcli delete all_routes method/route_name\"");
-            }
-            cli_delete_a_single_all_routes();
-        },
         // Delete a single route for /routes/ folder only
         'only_route' => function () {
             global $argv;

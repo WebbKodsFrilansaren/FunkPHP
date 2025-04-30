@@ -7,42 +7,42 @@ if ($c['req']['current_step'] === 5) {
     // Load Page Routes since we are at this step and need them!
     // GOTO "funkphp/pages/page_single_routes.php" to Add Your Single Routes!
     // GOTO "funkphp/pages/page_middleware_routes.php" to Add Your middlewares!
-    $c['ROUTES']['PAGE'] = [
-        'COMPILED' => include dirname(__DIR__) . '/_internals/compiled/troute_page.php',
-        'SINGLES' => include dirname(__DIR__) . '/pages/page_single_routes.php',
-        'MIDDLEWARES' => include dirname(__DIR__) . '/pages/page_middleware_routes.php',
-    ];
-    // BEFORE STEP 5: Do anything you want here before matching the page route and middlewares!
+    // $c['ROUTES']['PAGE'] = [
+    //     'COMPILED' => include dirname(__DIR__) . '/_internals/compiled/troute_page.php',
+    //     'SINGLES' => include dirname(__DIR__) . '/pages/page_single_routes.php',
+    //     'MIDDLEWARES' => include dirname(__DIR__) . '/pages/page_middleware_routes.php',
+    // ];
+    // // BEFORE STEP 5: Do anything you want here before matching the page route and middlewares!
 
-    // STEP 5: Match Page Route & Middlewares and then
-    // store them in global $c(onfig) variable,
-    // then free up memory by unsetting variable
-    // (string) because PHP Intelesense doesn't understand the actual variables being passed!
-    $FPHP_MATCHED_PAGE_ROUTE = p_match_developer_page_route(
-        (string)$c['req']['matched_method'],
-        (string)$c['req']['matched_route'],
-        $c['ROUTES']['PAGE']['COMPILED'],
-        $c['ROUTES']['PAGE']['SINGLES']['ROUTES'],
-        $c['ROUTES']['PAGE']['MIDDLEWARES']['MIDDLEWARES'],
-    );
+    // // STEP 5: Match Page Route & Middlewares and then
+    // // store them in global $c(onfig) variable,
+    // // then free up memory by unsetting variable
+    // // (string) because PHP Intelesense doesn't understand the actual variables being passed!
+    // $FPHP_MATCHED_PAGE_ROUTE = p_match_developer_page_route(
+    //     (string)$c['req']['matched_method'],
+    //     (string)$c['req']['matched_route'],
+    //     $c['ROUTES']['PAGE']['COMPILED'],
+    //     $c['ROUTES']['PAGE']['SINGLES']['ROUTES'],
+    //     $c['ROUTES']['PAGE']['MIDDLEWARES']['MIDDLEWARES'],
+    // );
 
-    // Check if middlewares still exist and if so
-    // merge them with the new matched middlewares
-    if (isset($c['req']['matched_middlewares']) && is_array($c['req']['matched_middlewares'])) {
-        $c['req']['matched_middlewares'] = array_merge($c['req']['matched_middlewares'], $FPHP_MATCHED_PAGE_ROUTE['middlewares']);
-    } else {
-        $c['req']['matched_middlewares'] = $FPHP_MATCHED_PAGE_ROUTE['middlewares'];
-    }
-    $c['req']['matched_middlewares_page'] = $FPHP_MATCHED_PAGE_ROUTE['middlewares'];
+    // // Check if middlewares still exist and if so
+    // // merge them with the new matched middlewares
+    // if (isset($c['req']['matched_middlewares']) && is_array($c['req']['matched_middlewares'])) {
+    //     $c['req']['matched_middlewares'] = array_merge($c['req']['matched_middlewares'], $FPHP_MATCHED_PAGE_ROUTE['middlewares']);
+    // } else {
+    //     $c['req']['matched_middlewares'] = $FPHP_MATCHED_PAGE_ROUTE['middlewares'];
+    // }
+    // $c['req']['matched_middlewares_page'] = $FPHP_MATCHED_PAGE_ROUTE['middlewares'];
 
-    // This one doesn't have any middlewares since we just grabbed all possible middlewares
-    // for matched Data Route, so we can just set it to the new matched middlewares!
-    $c['req']['matched_middlewares_page'] = $FPHP_MATCHED_PAGE_ROUTE['middlewares'];
-    $c['req']['no_matched_in'] = $FPHP_MATCHED_PAGE_ROUTE['no_match_in'];
-    $c['req']['matched_handler_page'] = $FPHP_MATCHED_PAGE_ROUTE['handler'];
-    $c['req']['matched_params_page'] = $FPHP_MATCHED_PAGE_ROUTE['params'];
-    $c['req']['matched_route_page'] = $FPHP_MATCHED_PAGE_ROUTE['route'];
-    unset($FPHP_MATCHED_PAGE_ROUTE);
+    // // This one doesn't have any middlewares since we just grabbed all possible middlewares
+    // // for matched Data Route, so we can just set it to the new matched middlewares!
+    // $c['req']['matched_middlewares_page'] = $FPHP_MATCHED_PAGE_ROUTE['middlewares'];
+    // $c['req']['no_matched_in'] = $FPHP_MATCHED_PAGE_ROUTE['no_match_in'];
+    // $c['req']['matched_handler_page'] = $FPHP_MATCHED_PAGE_ROUTE['handler'];
+    // $c['req']['matched_params_page'] = $FPHP_MATCHED_PAGE_ROUTE['params'];
+    // $c['req']['matched_route_page'] = $FPHP_MATCHED_PAGE_ROUTE['route'];
+    // unset($FPHP_MATCHED_PAGE_ROUTE);
 
     // Run the matched route handler if it exists and is not empty.
     // Even if not null, file may not exist; the function checks that.

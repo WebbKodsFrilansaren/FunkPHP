@@ -32,6 +32,15 @@ if ($c['req']['current_step'] === 3) {
     $c['req']['no_matched_in'] = $FPHP_MATCHED_ROUTE['no_match_in'];
     unset($FPHP_MATCHED_ROUTE);
 
+    $path = dirname(__DIR__) . '/handlers/t_1.php';
+    $test = include_once $path;
+    if (is_callable($test)) {
+        $test($c);
+    } else {
+        echo "Route handler not callable!<br>";
+    }
+    exit;
+
     // Run the matched route handler if it exists and is not empty.
     // Even if not null, file may not exist; the function checks that.
     if ($c['req']['matched_handler_route'] !== null) {

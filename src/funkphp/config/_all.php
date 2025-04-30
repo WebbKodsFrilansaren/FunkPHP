@@ -12,12 +12,6 @@ return [
     'ROUTES' => [
         // Route matching Loads first:/"dx_steps/STEP3_ROUTE_MATCH_MIDDLEWARES.php"
         // Change their Loading Logic there if needed!
-
-        // Data matching Loads first:/"dx_steps/STEP4_DATA_MATCH_FETCH_VALIDATION.php"
-        // Change their Loading Logic there if needed!
-
-        // Page matching Loads first:/"dx_steps/STEP5_PAGE_MATCH_AFTER_DATA_MATCH.php"
-        // Change their Loading Logic there if needed!
     ],
     'req' => include __DIR__ . '/req.php',
     'db' => include __DIR__ . '/db.php',
