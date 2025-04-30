@@ -896,6 +896,52 @@ function cli_backup_batch($arrayOfFilesToBackup)
     }
 }
 
+function cli_delete_a_single_routes_route()
+{
+    global
+        $argv, $dirs, $exactFiles,
+        $settings,
+        $singleRoutesRoute,
+        $middlewareRoutesRoute;
+    // Prepare the route string by trimming, validating starting, ending and middle parts of it
+    $deleteRoute = trim(strtolower($argv[3]));
+    $oldRoute = $deleteRoute;
+    [$method, $validRoute] = cli_prepare_valid_route_string($deleteRoute);
+    cli_info_without_exit("ROUTE: " . "\"$oldRoute\"" . " parsed as: \"$validRoute\"");
+
+    // Check that provided route exists
+    if (
+        isset($singleRoutesRoute['ROUTES'][$method][$validRoute])
+    ) {
+        // First backup all associated route files if settings allow it
+        cli_backup_batch(
+            [
+                "troute_route",
+                "route_single_routes",
+            ]
+        );
+        // Then we unset() each matched route
+        unset($singleRoutesRoute['ROUTES'][$method][$validRoute]);
+        cli_success_without_exit("Deleted Route \"$method$validRoute\" from Single Routes Route \"funkphp/routes/route_single_routes.php\"!");
+
+        // Then we rebuild and recompile Routes
+        cli_rebuild_single_routes_route_file($singleRoutesRoute);
+        $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRoute['ROUTES'], $middlewareRoutesRoute['MIDDLEWARES']);
+        cli_output_compiled_routes($compiledRouteRoutes, "troute_route");
+
+        cli_success("Deleted Route \"$method$validRoute\" from Single Route Routes!");
+    }
+    // When one ore more is missing, we do not go ahead with deletion
+    // since this function is meant to delete all three at once!
+    else {
+        cli_err_syntax("\"$method$validRoute\" does not exist in Single Route Routes file!");
+    }
+}
+
+function cli_delete_a_single_data_route() {}
+
+function cli_delete_a_single_page_route() {}
+
 // Delete a single route for /routes/, /data/ AND /pages/ folder
 function cli_delete_a_single_all_routes()
 {
@@ -960,7 +1006,7 @@ function cli_delete_a_single_all_routes()
     // When one ore more is missing, we do not go ahead with deletion
     // since this function is meant to delete all three at once!
     else {
-        cli_err_syntax("\"$validRoute\" does not exist in all 3 main route files. Either make sure all three exists or use the other delete functions to delete each separately!");
+        cli_err_syntax("\"$method$validRoute\" does not exist in all 3 main route files. Either make sure all three exists or use the other delete functions to delete each separately!");
     }
 }
 
