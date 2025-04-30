@@ -12,6 +12,7 @@ if ($c['req']['current_step'] === 4) {
         'SINGLES' => include dirname(__DIR__) . '/data/data_single_routes.php',
         'MIDDLEWARES' => include dirname(__DIR__) . '/data/data_middleware_routes.php',
     ];
+    // BEFORE STEP 4: Do anything you want here before matching the data route and middlewares!
 
     // STEP 4: Match Data Route & Middlewares and then
     // store them in global $c(onfig) variable,
@@ -61,10 +62,8 @@ if ($c['req']['current_step'] === 4) {
     if ($c['req']['matched_middlewares'] !== null) {
         d_run_middleware_after_matched_data_routing($c);
     }
-
-    //var_dump($c['req']);
-
     // This is the end of Step 4, you can freely add any other checks you want here!
+
     // You have all global (meta) data in $c variable, so you can use it as you please!
     $c['req']['next_step'] = 5; // Set next step to 5 (Step 5)
 

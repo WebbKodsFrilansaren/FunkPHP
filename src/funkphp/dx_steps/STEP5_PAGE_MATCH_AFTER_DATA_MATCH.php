@@ -12,6 +12,7 @@ if ($c['req']['current_step'] === 5) {
         'SINGLES' => include dirname(__DIR__) . '/pages/page_single_routes.php',
         'MIDDLEWARES' => include dirname(__DIR__) . '/pages/page_middleware_routes.php',
     ];
+    // BEFORE STEP 5: Do anything you want here before matching the page route and middlewares!
 
     // STEP 5: Match Page Route & Middlewares and then
     // store them in global $c(onfig) variable,
@@ -64,7 +65,8 @@ if ($c['req']['current_step'] === 5) {
 
     // TODO: Add matching page step. Add running middleware step. Add the Template Engine function too!
 
-    // This is the end of Step 5, you can freely add any other checks you want here!
+    // This is the end of Step 5, you can freely add any final code here!
     // You have all global (meta) data in $c variable, so you can use it as you please!
+
 }
 // This is essentially the end of the entire request process!
