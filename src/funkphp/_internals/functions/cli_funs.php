@@ -95,6 +95,132 @@ function cli_restore_default_folders_and_files()
     }
 }
 
+// Check if Routes Route Handler in handlers/R/ exists
+function cli_r_handler_exists($fileName): bool
+{
+    // Load globals, verify & transform string with .php if not already
+    global $argv,
+        $settings,
+        $dirs,
+        $exactFiles;
+    if (!is_string($fileName) || empty($fileName)) {
+        cli_err_syntax("[cli_r_handler_exists] Route Handler File name must be a non-empty string!");
+    }
+    if (!str_ends_with($fileName, ".php")) {
+        $fileName .= ".php";
+    }
+    // Return true if file exists in handlers/R/ folder, false otherwise
+    if (file_exists($dirs['handlers_routes'] . $fileName)) {
+        return true;
+    }
+    return false;
+}
+
+// Check if Routes Data Handler in handlers/D/ exists
+function cli_d_handler_exists($fileName): bool
+{
+    // Load globals, verify & transform string with .php if not already
+    global $argv,
+        $settings,
+        $dirs,
+        $exactFiles;
+    if (!is_string($fileName) || empty($fileName)) {
+        cli_err_syntax("[cli_d_handler_exists] Data Handler File name must be a non-empty string!");
+    }
+    if (!str_ends_with($fileName, ".php")) {
+        $fileName .= ".php";
+    }
+    // Return true if file exists in handlers/D/ folder, false otherwise
+    if (file_exists($dirs['handlers_data'] . $fileName)) {
+        return true;
+    }
+    return false;
+}
+
+// Check if Routes Page Handler in handlers/P/ exists
+function cli_p_handler_exists($fileName): bool
+{
+    // Load globals, verify & transform string with .php if not already
+    global $argv,
+        $settings,
+        $dirs,
+        $exactFiles;
+    if (!is_string($fileName) || empty($fileName)) {
+        cli_err_syntax("[cli_p_handler_exists] Page Handler File name must be a non-empty string!");
+    }
+    if (!str_ends_with($fileName, ".php")) {
+        $fileName .= ".php";
+    }
+    // Return true if file exists in handlers/P/ folder, false otherwise
+    if (file_exists($dirs['handlers_pages'] . $fileName)) {
+        return true;
+    }
+    return false;
+}
+
+// Check if Route Middleware Handler in middlewares/R/ exists
+function cli_mw_r_handler_exists($fileName): bool
+{
+    // Load globals, verify & transform string with .php if not already
+    global $argv,
+        $settings,
+        $dirs,
+        $exactFiles;
+    if (!is_string($fileName) || empty($fileName)) {
+        cli_err_syntax("[cli_mw_r_handler_exists] Middleware Route Handler File name must be a non-empty string!");
+    }
+    if (!str_ends_with($fileName, ".php")) {
+        $fileName .= ".php";
+    }
+    // Return true if file exists in middlewares/R/ folder, false otherwise
+    if (file_exists($dirs['middlewares_routes'] . $fileName)) {
+        return true;
+    }
+    return false;
+}
+
+// Check if Data Middleware Handler in middlewares/D/ exists
+function cli_mw_d_handler_exists($fileName): bool
+{
+    // Load globals, verify & transform string with .php if not already
+    global $argv,
+        $settings,
+        $dirs,
+        $exactFiles;
+    if (!is_string($fileName) || empty($fileName)) {
+        cli_err_syntax("[cli_mw_d_handler_exists] Middleware Data Handler File name must be a non-empty string!");
+    }
+    if (!str_ends_with($fileName, ".php")) {
+        $fileName .= ".php";
+    }
+    // Return true if file exists in middlewares/D/ folder, false otherwise
+    if (file_exists($dirs['middlewares_data'] . $fileName)) {
+        return true;
+    }
+    return false;
+}
+
+// Check if Page Middleware Handler in middlewares/P/ exists
+function cli_mw_p_handler_exists($fileName): bool
+{
+    // Load globals, verify & transform string with .php if not already
+    global $argv,
+        $settings,
+        $dirs,
+        $exactFiles;
+    if (!is_string($fileName) || empty($fileName)) {
+        cli_err_syntax("[cli_mw_p_handler_exists] Middleware Page Handler File name must be a non-empty string!");
+    }
+    if (!str_ends_with($fileName, ".php")) {
+        $fileName .= ".php";
+    }
+    // Return true if file exists in middlewares/P/ folder, false otherwise
+    if (file_exists($dirs['middlewares_pages'] . $fileName)) {
+        return true;
+    }
+    return false;
+}
+
 // Build Compiled Route from Developer's Defined Routes
 function cli_build_compiled_routes(array $developerSingleRoutes, array $developerMiddlewareRoutes)
 {
@@ -611,7 +737,7 @@ function cli_add_route_batch($arrayOfRoutesToAdd)
         $middlewareRoutesData,
         $middlewareRoutesPage;
     if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3]) || !isset($argv[4]) || !is_string($argv[4]) || empty($argv[4])) {
-        cli_err_syntax("No FunkPHP Command was given?!\nShould be at least four(4) non-empty string arguments!");
+        cli_err_syntax("Should be at least four(4) non-empty string arguments!\nadd [all_routes|only_route|only_data_route|only_page_route] [Method/route] [handler]\nExample: 'add all_routes GET/users/:id getSingleUser'");
     }
 
     // Prepare handlers folders
@@ -626,8 +752,8 @@ function cli_add_route_batch($arrayOfRoutesToAdd)
     echo "AFTER PARSE: " . "\"$validRoute\"" . "\n";
 
     // Check now that handler $argv[4] is a string containg only letters, numbers and underscores!
-    if (!preg_match('/^[a-zA-Z0-9_]+$/', $argv[4])) {
-        cli_err_syntax("\"{$argv[4]}\" - Handler name must be a string containing only letters, numbers and underscores!");
+    if (!preg_match('/^[a-z0-9_]+$/', $argv[4])) {
+        cli_err_syntax("\"{$argv[4]}\" - Handler name must be a lowercased string containing only letters, numbers and underscores!");
     }
 
     foreach ($arrayOfRoutesToAdd as $routeToAdd) {
@@ -809,6 +935,309 @@ function cli_add_route_batch($arrayOfRoutesToAdd)
     }
 }
 
+// Batched function of adding and outputting middlewares to the middleware route files
+function cli_add_middlewares_batch($arrayOfMiddlewaresToAdd)
+{
+    // Load globals and validate input
+    global $argv,
+        $settings,
+        $dirs,
+        $exactFiles,
+        $singleRoutesRoute,
+        $singleRoutesPage,
+        $singleRoutesData,
+        $middlewareRoutesRoute,
+        $middlewareRoutesData,
+        $middlewareRoutesPage;
+    if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3]) || !isset($argv[4]) || !is_string($argv[4]) || empty($argv[4])) {
+        cli_err_syntax("Should be at least four(4) non-empty string arguments!\nadd [mw_all|mw_route|mw_data|mw_page] [Method/route] [Middleware_handler]\nExample: 'add mw_all GET/users/:id getSingleUser'");
+    }
+
+    // Prepare handlers folders
+    $handlersR = $dirs['middlewares_routes'];
+    $handlersD = $dirs['middlewares_data'];
+    $handlersP = $dirs['middlewares_pages'];
+
+    // Prepare the route string by trimming, validating starting, ending and middle parts of it
+    $addRoute = trim(strtolower($argv[3]));
+    echo "ROUTE BEFORE PARSE: " . "\"$addRoute\"" . "\n";
+    [$method, $validRoute] = cli_prepare_valid_route_string($addRoute);
+    echo "AFTER PARSE: " . "\"$validRoute\"" . "\n";
+
+    // Check now that handler $argv[4] is a string containg only letters, numbers and underscores!
+    if (!preg_match('/^[a-z0-9_]+$/', $argv[4])) {
+        cli_err_syntax("\"{$argv[4]}\" - Middleware Handler name must be a lowercased string containing only letters, numbers and underscores!");
+    }
+
+    foreach ($arrayOfMiddlewaresToAdd as $middlewareString) {
+        if ($middlewareString === "mw_all") {
+            // For each Route, Data, Page Middleware Route, we first check that the route exists.
+            // And then we chekc if the handler is a string or an array. If a string, we check if exact
+            // handler name already exists in the route. If an array, we check if the handler exists in array.
+            // Routes Route
+            if (isset($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute])) {
+                if (isset($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute]["handler"])) {
+                    if (is_string($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute]["handler"])) {
+                        if ($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute]["handler"] === $argv[4]) {
+                            cli_err_syntax("Handler \"{$argv[4]}\" for \"$validRoute\" already exists in $method/Single Middleware Route Routes!");
+                        }
+                    } elseif (is_array($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute]["handler"])) {
+                        if (in_array($argv[4], $middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute]["handler"])) {
+                            cli_err_syntax("Handler \"{$argv[4]}\" for \"$validRoute\" already exists in $method/Single Middleware Route Routes!");
+                        }
+                    }
+                }
+            }
+            // Routes Data
+            if (isset($middlewareRoutesData['MIDDLEWARES'][$method][$validRoute])) {
+                if (isset($middlewareRoutesData['MIDDLEWARES'][$method][$validRoute]["handler"])) {
+                    if (is_string($middlewareRoutesData['MIDDLEWARES'][$method][$validRoute]["handler"])) {
+                        if ($middlewareRoutesData['MIDDLEWARES'][$method][$validRoute]["handler"] === $argv[4]) {
+                            cli_err_syntax("Handler \"{$argv[4]}\" for \"$validRoute\" already exists in $method/Single Middleware Data Routes!");
+                        }
+                    } elseif (is_array($middlewareRoutesData['MIDDLEWARES'][$method][$validRoute]["handler"])) {
+                        if (in_array($argv[4], $middlewareRoutesData['MIDDLEWARES'][$method][$validRoute]["handler"])) {
+                            cli_err_syntax("Handler \"{$argv[4]}\" for \"$validRoute\" already exists in $method/Single Middleware Data Routes!");
+                        }
+                    }
+                }
+            }
+            // Routes Page
+            if (isset($middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute])) {
+                if (isset($middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute]["handler"])) {
+                    if (is_string($middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute]["handler"])) {
+                        if ($middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute]["handler"] === $argv[4]) {
+                            cli_err_syntax("Handler \"{$argv[4]}\" for \"$validRoute\" already exists in $method/Single Middleware Page Routes!");
+                        }
+                    } elseif (is_array($middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute]["handler"])) {
+                        if (in_array($argv[4], $middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute]["handler"])) {
+                            cli_err_syntax("Handler \"{$argv[4]}\" for \"$validRoute\" already exists in $method/Single Middleware Page Routes!");
+                        }
+                    }
+                }
+            }
+
+            // CREATE MIDDLEWARE HANDLER FOR ROUTE ROUTE
+            // Create Middleware Route Handler if it does not exist
+            if (!cli_mw_r_handler_exists($argv[4])) {
+                $outputHandlerRoute = file_put_contents(
+                    $handlersR . $argv[4] . ".php",
+                    "<?php\n// Middleware Handler for Route Route: $method$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
+                );
+                if ($outputHandlerRoute) {
+                    cli_success_without_exit("Added Middleware Route Handler \"{$argv[4]}\" in \"funkphp/middlewares/R/{$argv[4]}.php\"!");
+                }
+            } else {
+                cli_info_without_exit("Middleware Route Handler \"{$argv[4]}\" already exists in \"funkphp/middlewares/R/{$argv[4]}.php\"!");
+            }
+
+            // ADDING MIDDLEWARE HANDLER TO THE CORRECT MIDDLEWARE METHOD/ROUTE!
+            // Three scenarios: 1) Handler doesn't exist, so we just add it as the first string
+            // 2) Handler exists as a string, so we convert it to an array and add the new handler to the array
+            // 3) Handler exists as an array, so we just add the new handler to the array
+            // Middleware Route and its handler don't exist, so just add it:
+            if (
+                !isset($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute])
+                || (isset($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute])
+                    && !isset($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute]["handler"]))
+            ) {
+                $middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute] = [
+                    'handler' => $argv[4],
+                ];
+            }  //
+            elseif (isset($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute])) {
+                if (is_string($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute]["handler"])) {
+                    $middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute]["handler"] = [
+                        $middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute]["handler"],
+                        $argv[4],
+                    ];
+                } elseif (is_array($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute]["handler"])) {
+                    $middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute]["handler"][] = $argv[4];
+                }
+            }
+
+            // Finally sort the array by keys, recompile and output the updated Single Route & Middleware files!
+            ksort($middlewareRoutesRoute['MIDDLEWARES'][$method]);
+            $outputRouteSingleMiddlewareFile = file_put_contents(
+                $exactFiles['single_middlewares'],
+                cli_get_prefix_code("route_middleware_routes_start")
+                    . cli_convert_array_to_simple_syntax($middlewareRoutesRoute)
+            );
+            if ($outputRouteSingleMiddlewareFile) {
+                cli_success_without_exit("Added Middleware Route \"$method$validRoute\" to Single Middleware Routes Route \"funkphp/routes/route_middleware_routes.php\" with handler \"{$argv[4]}\"!");
+            }
+            $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRoute['ROUTES'], $middlewareRoutesRoute['MIDDLEWARES']);
+            cli_output_compiled_routes($compiledRouteRoutes, "troute_route");
+
+            // CREATE MIDDLEWARE HANDLER FOR DATA ROUTE
+            // Create Middleware Route Handler if it does not exist
+            if (!cli_mw_d_handler_exists($argv[4])) {
+                $outputHandlerRoute = file_put_contents(
+                    $handlersD . $argv[4] . ".php",
+                    "<?php\n// Middleware Handler for Data Route: $method$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
+                );
+                if ($outputHandlerRoute) {
+                    cli_success_without_exit("Added Middleware Route Handler \"{$argv[4]}\" in \"funkphp/middlewares/D/{$argv[4]}.php\"!");
+                }
+            } else {
+                cli_info_without_exit("Middleware Route Handler \"{$argv[4]}\" already exists in \"funkphp/middlewares/D/{$argv[4]}.php\"!");
+            }
+            if (
+                !isset($middlewareRoutesData['MIDDLEWARES'][$method][$validRoute])
+                || (isset($middlewareRoutesData['MIDDLEWARES'][$method][$validRoute])
+                    && !isset($middlewareRoutesData['MIDDLEWARES'][$method][$validRoute]["handler"]))
+            ) {
+                $middlewareRoutesData['MIDDLEWARES'][$method][$validRoute] = [
+                    'handler' => $argv[4],
+                ];
+            }  //
+            elseif (isset($middlewareRoutesData['MIDDLEWARES'][$method][$validRoute])) {
+                if (is_string($middlewareRoutesData['MIDDLEWARES'][$method][$validRoute]["handler"])) {
+                    $middlewareRoutesData['MIDDLEWARES'][$method][$validRoute]["handler"] = [
+                        $middlewareRoutesData['MIDDLEWARES'][$method][$validRoute]["handler"],
+                        $argv[4],
+                    ];
+                } elseif (is_array($middlewareRoutesData['MIDDLEWARES'][$method][$validRoute]["handler"])) {
+                    $middlewareRoutesData['MIDDLEWARES'][$method][$validRoute]["handler"][] = $argv[4];
+                }
+            }
+
+            // Finally sort the array by keys, recompile and output the updated Single Route & Middleware files!
+            ksort($middlewareRoutesData['MIDDLEWARES'][$method]);
+            $outputRouteSingleMiddlewareFile = file_put_contents(
+                $exactFiles['single_middlewares_data'],
+                cli_get_prefix_code("data_middleware_routes_start")
+                    . cli_convert_array_to_simple_syntax($middlewareRoutesData)
+            );
+            if ($outputRouteSingleMiddlewareFile) {
+                cli_success_without_exit("Added Middleware Route \"$method$validRoute\" to Single Middleware Routes Data \"funkphp/data/data_middleware_routes.php\" with handler \"{$argv[4]}\"!");
+            }
+            $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesData['ROUTES'], $middlewareRoutesData['MIDDLEWARES']);
+            cli_output_compiled_routes($compiledRouteRoutes, "troute_data");
+
+
+
+
+
+
+
+
+            continue;
+        }
+        // When ONLY adding a middleware in the Middleware Route Routes file
+        if ($middlewareString === "mw_route") {
+            if (isset($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute])) {
+                if (isset($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute]["handler"])) {
+                    if (is_string($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute]["handler"])) {
+                        if ($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute]["handler"] === $argv[4]) {
+                            cli_err_syntax("Handler \"{$argv[4]}\" for \"$validRoute\" already exists in $method/Single Middleware Route Routes!");
+                        }
+                    } elseif (is_array($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute]["handler"])) {
+                        if (in_array($argv[4], $middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute]["handler"])) {
+                            cli_err_syntax("Handler \"{$argv[4]}\" for \"$validRoute\" already exists in $method/Single Middleware Route Routes!");
+                        }
+                    }
+                }
+            }
+            // Create Middleware Route Handler if it does not exist
+            if (!cli_mw_r_handler_exists($argv[4])) {
+                $outputHandlerRoute = file_put_contents(
+                    $handlersR . $argv[4] . ".php",
+                    "<?php\n// Middleware Handler for Route Route: $method/$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
+                );
+                if ($outputHandlerRoute) {
+                    cli_success_without_exit("Added Middleware Route Handler \"{$argv[4]}\" in \"funkphp/middlewares/R/{$argv[4]}.php\"!");
+                }
+            } else {
+                cli_info_without_exit("Middleware Route Handler \"{$argv[4]}\" already exists in \"funkphp/middlewares/R/{$argv[4]}.php\"!");
+            }
+            // ADDING MIDDLEWARE HANDLER TO THE CORRECT MIDDLEWARE METHOD/ROUTE!
+            // Three scenarios: 1) Handler doesn't exist, so we just add it as the first string
+            // 2) Handler exists as a string, so we convert it to an array and add the new handler to the array
+            // 3) Handler exists as an array, so we just add the new handler to the array
+            // Middleware Route and its handler don't exist, so just add it:
+            if (
+                !isset($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute])
+                || (isset($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute])
+                    && !isset($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute]["handler"]))
+            ) {
+                $middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute] = [
+                    'handler' => $argv[4],
+                ];
+            }  //
+            elseif (isset($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute])) {
+                if (is_string($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute]["handler"])) {
+                    $middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute]["handler"] = [
+                        $middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute]["handler"],
+                        $argv[4],
+                    ];
+                } elseif (is_array($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute]["handler"])) {
+                    $middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute]["handler"][] = $argv[4];
+                }
+            }
+            // Finally sort the array by keys, recompile and output the updated Single Route & Middleware files!
+            ksort($middlewareRoutesRoute['MIDDLEWARES'][$method]);
+            $outputRouteSingleMiddlewareFile = file_put_contents(
+                $exactFiles['single_middlewares'],
+                cli_get_prefix_code("route_middleware_routes_start")
+                    . cli_convert_array_to_simple_syntax($middlewareRoutesRoute)
+            );
+            if ($outputRouteSingleMiddlewareFile) {
+                cli_success_without_exit("Added Middleware Route \"$method$validRoute\" to Single Middleware Routes Route \"funkphp/routes/route_middleware_routes.php\" with handler \"{$argv[4]}\"!");
+            }
+            $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRoute['ROUTES'], $middlewareRoutesRoute['MIDDLEWARES']);
+            cli_output_compiled_routes($compiledRouteRoutes, "troute_route");
+            continue;
+        }
+        // When ONLY adding a middleware in the Middleware Data Routes file
+        if ($middlewareString === "mw_data") {
+            if (isset($middlewareRoutesData['MIDDLEWARES'][$method][$validRoute])) {
+                if (isset($middlewareRoutesData['MIDDLEWARES'][$method][$validRoute]["handler"])) {
+                    if (is_string($middlewareRoutesData['MIDDLEWARES'][$method][$validRoute]["handler"])) {
+                        if ($middlewareRoutesData['MIDDLEWARES'][$method][$validRoute]["handler"] === $argv[4]) {
+                            cli_err_syntax("Handler \"{$argv[4]}\" for \"$validRoute\" already exists in $method/Single Middleware Data Routes!");
+                        }
+                    } elseif (is_array($middlewareRoutesData['MIDDLEWARES'][$method][$validRoute]["handler"])) {
+                        if (in_array($argv[4], $middlewareRoutesData['MIDDLEWARES'][$method][$validRoute]["handler"])) {
+                            cli_err_syntax("Handler \"{$argv[4]}\" for \"$validRoute\" already exists in $method/Single Middleware Data Routes!");
+                        }
+                    }
+                }
+            }
+            // Create Middleware Route Handler if it does not exist
+            if (!cli_mw_d_handler_exists($argv[4])) {
+                $outputHandlerRoute = file_put_contents(
+                    $handlersD . $argv[4] . ".php",
+                    "<?php\n// Middleware Handler for Data Route: $method/$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
+                );
+                if ($outputHandlerRoute) {
+                    cli_success_without_exit("Added Middleware Route Handler \"{$argv[4]}\" in \"funkphp/middlewares/D/{$argv[4]}.php\"!");
+                }
+            } else {
+                cli_info_without_exit("Middleware Route Handler \"{$argv[4]}\" already exists in \"funkphp/middlewares/D/{$argv[4]}.php\"!");
+            }
+            continue;
+        }
+        // When ONLY adding a middleware in the Middleware Page Routes file
+        if ($middlewareString === "mw_page") {
+            if (isset($middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute])) {
+                if (isset($middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute]["handler"])) {
+                    if (is_string($middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute]["handler"])) {
+                        if ($middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute]["handler"] === $argv[4]) {
+                            cli_err_syntax("Handler \"{$argv[4]}\" for \"$validRoute\" already exists in $method/Single Middleware Page Routes!");
+                        }
+                    } elseif (is_array($middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute]["handler"])) {
+                        if (in_array($argv[4], $middlewareRoutesPage['MIDDLEWARES'][$method][$validRoute]["handler"])) {
+                            cli_err_syntax("Handler \"{$argv[4]}\" for \"$validRoute\" already exists in $method/Single Middleware Page Routes!");
+                        }
+                    }
+                }
+            }
+            continue;
+        }
+    }
+}
+
 // Batched function of compiling and outputting routing files
 function cli_compile_batch($arrayOfRoutesToCompileAndOutput)
 {
@@ -957,7 +1386,7 @@ function cli_get_prefix_code($keyString)
 }
 
 // Get a unique file name for a given directory and starting file name (so it checks with the starting file name and then adds a number to it)
-function cli_get_unique_filename_for_dir($dirPath, $startingFileName)
+function cli_get_unique_filename_for_dir($dirPath, $startingFileName, $middlewareException = false)
 {
     // Check both are non-empty strings
     if (

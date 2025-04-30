@@ -18,7 +18,10 @@ $validArg1withArg2Values =  [
         'only_route',
         'only_data_route',
         'only_page_route',
-        'mw',
+        'mw_all',
+        'mw_route',
+        'mw_data',
+        'mw_page',
         'middleware',
         'help'
     ],
@@ -217,7 +220,9 @@ $commands = [
         'only_page_route' => function () {
             cli_add_route_batch(["only_page"]);
         },
-        'mw_all' => function () use ($argv, $settings, $singleRoutesRoute) {},
+        'mw_all' => function () {
+            cli_add_middlewares_batch(["mw_all"]);
+        },
         'mw_route' => function () use ($argv, $settings, $singleRoutesRoute) {},
         'mw_data' => function () use ($argv, $settings, $singleRoutesData) {},
         'mw_page' => function () use ($argv, $settings, $singleRoutesPage) {},
