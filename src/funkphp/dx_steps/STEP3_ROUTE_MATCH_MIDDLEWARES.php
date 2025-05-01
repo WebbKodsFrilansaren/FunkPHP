@@ -24,41 +24,44 @@ if ($c['req']['current_step'] === 3) {
 
     $c['req']['matched_method'] = $c['req']['method'];
     $c['req']['matched_route'] = $FPHP_MATCHED_ROUTE['route'];
-    $c['req']['matched_handler_route'] = $FPHP_MATCHED_ROUTE['handler'];
+    $c['req']['matched_handler'] = $FPHP_MATCHED_ROUTE['handler'];
+    $c['req']['matched_data'] = $FPHP_MATCHED_ROUTE['data'];
+    $c['req']['matched_page'] = $FPHP_MATCHED_ROUTE['page'];
     $c['req']['matched_params'] = $FPHP_MATCHED_ROUTE['params'];
-    $c['req']['matched_params_route'] = $FPHP_MATCHED_ROUTE['params'];
     $c['req']['matched_middlewares'] = $FPHP_MATCHED_ROUTE['middlewares'];
-    $c['req']['matched_middlewares_route'] = $FPHP_MATCHED_ROUTE['middlewares'];
     $c['req']['no_matched_in'] = $FPHP_MATCHED_ROUTE['no_match_in'];
     unset($FPHP_MATCHED_ROUTE);
 
-    $path = dirname(__DIR__) . '/handlers/t_1.php';
-    $test = include_once $path;
-    if (function_exists("t_1")) {
-        echo "t_1 function exists!<br>";
-    }
-    exit;
-
     // Run the matched route handler if it exists and is not empty.
     // Even if not null, file may not exist; the function checks that.
-    if ($c['req']['matched_handler_route'] !== null) {
+    if ($c['req']['matched_handler'] !== null) {
         funk_run_matched_route_handler($c);
     }
-    // matched_handler_route doesn't exist? What then or just move on?
+    // OPTIONAL Handling: Edit or just remove, doesn't matter!
+    // matched_handler doesn't exist? What then or just move on?
     else {
     }
+    // matched_handler failed to run? What then or just move on?
+    if ($c['err']['FAILED_TO_RUN_ROUTE_HANDLER']) {
+    }
 
-    // GOTO: "funkphp/middlewares/R/" and copy&paste the "_TEMPLATE.php" file to create your own middlewares!
-    // OR use the FunkCLI "php funkcli add mw middleware_name route|METHOD/route_path"
-    // You specificy "route|" first to indicate ofr what type of route you want to create a middleware for.
+    // GOTO: "funkphp/middlewares/" and copy&paste the "_TEMPLATE.php" file to create your own middlewares!
+    // OR use the FunkCLI "php funkcli add mw middleware_name METHOD/route_path"
     // Check that middlewares array exists and is not empty in $c global variable
     // Then run each middleware in the order they are defined as long as keep_running_mws is true.
     // After each run, remove it from the array to avoid running it again.
     if ($c['req']['matched_middlewares'] !== null) {
         funk_run_middleware_after_matched_routing($c);
     }
-    // This is the end of Step 3, you can freely add any other checks you want here!
 
+    // OPTIONAL Handling: Edit or just remove, doesn't matter!
+    // One or more middlewares failed to run? What then or just move on?
+    // IMPORTANT: This occurs after trying to run the middlewares, so if one of them fails, this will be true.
+    // This means one or more middlewares might have run _before_ this error is handled!
+    if ($c['err']['FAILED_TO_RUN_MIDDLEWARE']) {
+    }
+
+    // This is the end of Step 3, you can freely add any other checks you want here!
     // You have all global (meta) data in $c variable, so you can use it as you please!
     $c['req']['next_step'] = 4; // Set next step to 4 (Step 4)
 }

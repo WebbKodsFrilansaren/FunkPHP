@@ -88,7 +88,7 @@ function funk_run_middleware_after_matched_routing(&$c)
 
             // Only run middleware if dir, file and callable,
             // then run it and increment the number of ran middlewares
-            $mwDir = dirname(dirname(__DIR__)) . '/middlewares/R/';
+            $mwDir = dirname(dirname(__DIR__)) . '/middlewares/';
             $mwToRun = $mwDir . $current_mw . '.php';
             if (is_dir($mwDir) && file_exists($mwToRun)) {
                 $RunMW = include $mwToRun;
@@ -97,17 +97,20 @@ function funk_run_middleware_after_matched_routing(&$c)
                     $c['req']['number_of_ran_middlewares']++;
                     $c['req']['next_middleware_to_run'] = $c['req']['matched_middlewares'][$i + 1] ?? null;
                     $RunMW($c);
-                } // CUSTOM ERROR HANDLING HERE! - not callable
+                } // CUSTOM ERROR HANDLING HERE! - not callable (or change below to whatever you like)
                 else {
+                    $c['err']['FAILED_TO_RUN_MIDDLEWARE'] = true;
+                    $c['req']['current_middleware_running'] = null;
                 }
-            } // CUSTOM ERROR HANDLING HERE! - no dir or file
+            } // CUSTOM ERROR HANDLING HERE! - no dir or file (or change below to whatever you like)
             else {
+                $c['err']['FAILED_TO_RUN_MIDDLEWARE'] = true;
+                $c['req']['current_middleware_running'] = null;
             }
 
             // Remove middleware[$i] from the array after trying to run
             // it (it is removed even if it was not callable/existed!)
             $c['req']['deleted_middlewares'][] = $current_mw;
-            $c['req']['deleted_middlewares_route'][] = $current_mw;
             unset($c['req']['matched_middlewares'][$i]);
             $c['req']['number_of_deleted_middlewares']++;
         }
@@ -122,7 +125,8 @@ function funk_run_middleware_after_matched_routing(&$c)
         }
         $c['req']['keep_running_middlewares'] = false;
     }
-    // CUSTOM ERROR HANDLING HERE! - no matched middlewares
+    // CUSTOM ERROR HANDLING HERE! - no matched middlewares (or change below to whatever you like)
+    // IMPORTANT: No matched middlewares could mean misconfigured routes or no middlewares at all!
     else {
     }
 }
@@ -284,6 +288,8 @@ function funk_match_compiled_route(string $requestUri, array $methodRootNode): ?
 function funk_match_developer_route(string $method, string $uri, array $compiledRouteTrie, array $developerSingleRoutes, array $developerMiddlewareRoutes, string $handlerKey = "handler", string $mHandlerKey = "middlewares")
 {
     // Prepare return values
+    $matchedData = null;
+    $matchedPage = null;
     $matchedRoute = null;
     $matchedRouteHandler = null;
     $matchedRouteParams = null;
@@ -307,7 +313,9 @@ function funk_match_developer_route(string $method, string $uri, array $compiled
         if (isset($developerSingleRoutes[$method][$routeDefinition["route"]])) {
             $routeInfo = $developerSingleRoutes[$method][$routeDefinition["route"]];
             $matchedRouteHandler = $routeInfo[$handlerKey] ?? null;
-            $noMatchIn = "BOTH_MATCHED_ROUTE";
+            $noMatchIn = "ROUTE_MATCHED_BOTH";
+            $matchedData = $routeInfo["data"] ?? null;
+            $matchedPage = $routeInfo["page"] ?? null;
 
             // Add Any Matched Middlewares Handlers Defined By Developer
             // It loops through and only adds those that are non-empty strings
@@ -332,13 +340,15 @@ function funk_match_developer_route(string $method, string $uri, array $compiled
                 }
             }
         } else {
-            $noMatchIn .= "DEVELOPER_SINGLE_ROUTES_ROUTE";
+            $noMatchIn .= "DEVELOPER_ROUTES(route_single_routes.php)";
         }
     } else {
-        $noMatchIn .= "COMPILED_ROUTES_ROUTE";
+        $noMatchIn .= "COMPILED_ROUTES(troute_route.php)";
     }
     return [
         "route" => $matchedRoute,
+        'data' => $matchedData,
+        'page' => $matchedPage,
         "$handlerKey" => $matchedRouteHandler,
         "params" => $matchedRouteParams,
         "middlewares" => $matchedMiddlewareHandlers,
@@ -349,23 +359,41 @@ function funk_match_developer_route(string $method, string $uri, array $compiled
 // Run the matched route handler (Step 3 after matched routing in Routes Route)
 function funk_run_matched_route_handler(&$c)
 {
-    // Grab Route Handler Path and check that it exists, is readable and callable and only then run it
-    $handlerPath = dirname(dirname(__DIR__)) . '/handlers/' . ($c['req']['matched_handler_route'] ? $c['req']['matched_handler_route'] : "") . '.php';
-    if (file_exists($handlerPath) && is_readable($handlerPath)) {
-        $handleString = $c['req']['matched_handler_route'];
-        $runHandler = include_once $handlerPath;
+    // Grab Route Handler Path and prepare whether it is a string
+    // or array to match "handler" or ["handler" => "fn"]
+    $handlerPath = dirname(dirname(__DIR__)) . '/handlers/';
+    $handler = "";
+    $handleString = null;
+    if (is_string($c['req']['matched_handler'])) {
+        $handler = $c['req']['matched_handler'];
+    } elseif (is_array($c['req']['matched_handler'])) {
+        $handler = key($c['req']['matched_handler']);
+        $handleString = $c['req']['matched_handler'][$handler] ?? null;
+    }
+
+    // Finally check if the file exists and is readable, and then include it
+    // and run the handler function with the $c variable as argument
+    if (file_exists("$handlerPath/$handler.php") && is_readable("$handlerPath/$handler.php")) {
+        $runHandler = include_once "$handlerPath/$handler.php";
         if (is_callable($runHandler)) {
-            $runHandler($c, $handleString);
-        }  // Handle error: not callable
-        else {
-            echo "[r_run_matched_route_handler]: Handler is not callable!";
+            if (!is_null($handleString)) {
+                $runHandler($c, $handleString);
+            } else {
+                $runHandler($c);
+            }
         }
-    } // Handle error: file not found or not readable
+        // Handle error: not callable (or just use default below)
+        else {
+            $c['err']['FAILED_TO_RUN_ROUTE_HANDLER'] = true;
+            return;
+        }
+    }
+    // Handle error: file not found or not readable  (or just use default below)
     else {
-        echo "[r_run_matched_route_handler]: Handler file not found or not readable!";
+        $c['err']['FAILED_TO_RUN_ROUTE_HANDLER'] = true;
+        return;
     }
 }
-
 
 // Check if the request is from localhost or 127.0.0.1
 function r_is_localhost(): bool

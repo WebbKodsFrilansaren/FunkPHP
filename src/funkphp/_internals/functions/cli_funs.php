@@ -386,9 +386,9 @@ function cli_output_compiled_routes(array $compiledTrie, string $outputFileNameF
         $result = file_put_contents($outputDestination, "<?php\nreturn " . cli_convert_array_to_simple_syntax($compiledTrie));
     }
     if ($result === false) {
-        echo "\033[31m[FunkCLI - ERROR]: Compiling Trie Route FAILED: \"$outputDestination\"!\n\033[0m";
+        echo "\033[31m[FunkCLI - ERROR]: FAILED to Recompile Trie Route: \"funkphp/_internals/compiled/troute_route.php\"!\n\033[0m";
     } else {
-        echo "\033[32m[FunkCLI - SUCCESS]: Compiled Trie Route: \"$outputDestination\"!\n\033[0m";
+        echo "\033[32m[FunkCLI - SUCCESS]: Recompiled Trie Route: \"funkphp/_internals/compiled/troute_route.php\"!\n\033[0m";
     }
 }
 
@@ -823,7 +823,7 @@ function cli_add_route()
     if ($fnName === null) {
         $fnName = $handlerFile;
     }
-    cli_info_without_exit("Parsed Handler: \"$handlerFile\" and Function: \"$fnName\"");
+    cli_info_without_exit("Parsed Handler: \"funkphp/handlers/$handlerFile.php\" and Function: \"$fnName\"");
     // Prepare the route string by trimming, validating starting, ending and middle parts of it
     $addRoute = trim(strtolower($argv[3]));
     $oldRoute = $addRoute;
@@ -843,26 +843,26 @@ function cli_add_route()
         // Read the file content and check if the function name exists in the file
         $fileContent = file_get_contents($handlersDir . $handlerFile . ".php");
         if ($fnName !== null && strpos($fileContent, "//DELIMITER_HANDLER_FUNCTION_START=$fnName") !== false) {
-            cli_err_syntax("Function \"$fnName\" in Handler \"$handlerFile.php\" is already used!");
+            cli_err_syntax("Function \"$fnName\" in Handler \"funkphp/handlers/$handlerFile.php\" is already used!");
         }
         // This means handler file exists but function name is not used, so we can add it
         else {
-            cli_info_without_exit("Handler \"$handlerFile.php\" exists and Function \"$fnName\" is valid!");
+            cli_info_without_exit("Handler \"funkphp/handlers/$handlerFile.php\" exists and Function \"$fnName\" is valid!");
             // We now check if we can find "//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile" in the file
             // and if not that means either error or Developer is trying to break the file, so we exit
             if (strpos($fileContent, "//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile") === false) {
-                cli_err_syntax("Handler \"$handlerFile.php\" is invalid. Could not find \"//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile\". Please do not be a jerk trying to break the file!");
+                cli_err_syntax("Handler \"funkphp/handlers/$handlerFile.php\" is invalid. Could not find \"//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile\". Please do not be a jerk trying to break the file!");
             }
             // We found the comment, so we can add the function name to the file by replacing the comment with the function name and then the comment again!
             $fileContent = str_replace(
                 "//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile",
-                "//DELIMITER_HANDLER_FUNCTION_START=$fnName\nfunction $fnName(&\$c) // <$method$validRoute>\n{};\n//DELIMITER_HANDLER_FUNCTION_END=$fnName\n\n//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile",
+                "//DELIMITER_HANDLER_FUNCTION_START=$fnName\nfunction $fnName(&\$c) // <$method$validRoute>\n{\n\n};\n//DELIMITER_HANDLER_FUNCTION_END=$fnName\n\n//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile",
                 $fileContent
             );
             if (file_put_contents($handlersDir . $handlerFile . ".php", $fileContent) !== false) {
-                cli_success_without_exit("Added Function \"$fnName\" to Handler \"$handlerFile.php\"!");
+                cli_success_without_exit("Added Function \"$fnName\" to Handler \"funkphp/handlers/$handlerFile.php\"!");
             } else {
-                cli_err_syntax("FAILED to add Function \"$fnName\" to Handler \"$handlerFile.php\". File permissions issue?");
+                cli_err_syntax("FAILED to add Function \"$fnName\" to Handler \"funkphp/handlers/$handlerFile.php\". File permissions issue?");
             }
         }
     } // File does not exist, so we create it
@@ -870,12 +870,12 @@ function cli_add_route()
         // Create the handler file with the function name and return a success message
         $outputHandlerRoute = file_put_contents(
             $handlersDir . $handlerFile . ".php",
-            "<?php\n//Handler File - This runs after Middlewares have ran after matched Route!\n\n//DELIMITER_HANDLER_FUNCTION_START=$fnName\nfunction $fnName(&\$c) // <$method$validRoute>\n{};\n//DELIMITER_HANDLER_FUNCTION_END=$fnName\n\n//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile\nreturn function (&\$c, \$handler = \"$fnName\") {\n\$handler(\$c);\n};\n//NEVER_TOUCH_ANY_COMMENTS_END=$handlerFile"
+            "<?php\n//Handler File - This runs after Middlewares have ran after matched Route!\n\n//DELIMITER_HANDLER_FUNCTION_START=$fnName\nfunction $fnName(&\$c) // <$method$validRoute>\n{\n\n};\n//DELIMITER_HANDLER_FUNCTION_END=$fnName\n\n//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile\nreturn function (&\$c, \$handler = \"$fnName\") {\n\$handler(\$c);\n};\n//NEVER_TOUCH_ANY_COMMENTS_END=$handlerFile"
         );
         if ($outputHandlerRoute) {
-            cli_success_without_exit("Added Handler \"$handlerFile\" with Function \"$fnName\" in \"funkphp/handlers/$handlerFile.php\"!");
+            cli_success_without_exit("Added Handler \"funkphp/handlers/$handlerFile.php\" with Function \"$fnName\" in \"funkphp/handlers/$handlerFile.php\"!");
         } else {
-            cli_err_syntax("FAILED to create Handler \"$handlerFile.php\". File permissions issue?");
+            cli_err_syntax("FAILED to create Handler \"funkphp/handlers/$handlerFile.php\". File permissions issue?");
         }
     }
     // If we are here, that means we managed to add a handler with a function

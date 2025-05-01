@@ -1,5 +1,26 @@
 <?php // HELPER FUNCTIONS FOR FuncPHP
 
+// Data Dump function to dump data and optionally return it as JSON
+function dd($data, $json = false)
+{
+    // Dump the data and die (stop execution)
+    if ($json) {
+        header('Content-Type: application/json', true, 200);
+        echo json_encode($data);
+    } else {
+        echo var_export($data, true);
+    }
+    exit;
+}
+
+// Data Dump function to dump data as JSON
+function dj($data, $json = false)
+{
+    header('Content-Type: application/json', true, 200);
+    echo json_encode($data);
+    exit;
+}
+
 // The functions "ok" and "err" are used to check the result of a function call
 // whereas "fail" and "success" are used to return the result of a function call
 function ok($result)

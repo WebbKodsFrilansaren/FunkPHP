@@ -20,5 +20,23 @@ return [
     // 'p' is the page object that will be used to handle the page rendering and output (not needed for API requests)!
     'p' => null,
     // 'files' is the array of uploaded files (if any) that will be used to handle the file uploads!
-    'files' => null
+    'files' => null,
+    // 'err(ors)' is an array of errors that will be filled when errors occur in the application!
+    // so they can optionally be handled later in the application flow!
+    'err' => [
+        'FAILED_TO_MATCH_ROUTE' => false,
+        'FAILED_TO_RUN_ROUTE_HANDLER' => false,
+        'FAILED_TO_RUN_DATA_HANDLER' => false,
+        'FAILED_TO_RUN_PAGE_HANDLER' => false,
+        'FAILED_TO_RUN_MIDDLEWARE' => false,
+        'FAILED_TO_RUN_PAGE' => false,
+        'FAILED_TO_RUN_JSON' => false,
+        'FAILED_TO_RUN_API' => false,
+        'FAILED_TO_RUN_DB' => false,
+        'FAILED_TO_RUN_CACHE' => false,
+        'FAILED_TO_RUN_SESSION' => false,
+        'FAILED_TO_RUN_COOKIE' => false,
+        'FAILED_TO_RUN_HEADER' => false,
+        'FAILED_TO_RUN_STATIC' => false,
+    ],
 ];
