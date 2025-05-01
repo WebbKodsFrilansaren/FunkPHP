@@ -666,7 +666,7 @@ function cli_backup_batch($arrayOfFilesToBackup)
 }
 
 // Delete a Single Route from "routes" folder
-function cli_delete_a_single_routes_route()
+function cli_delete_a_route()
 {
     global
         $argv, $dirs, $exactFiles,
@@ -712,7 +712,7 @@ function cli_delete_a_single_routes_route()
 }
 
 // Add a handler to the route file (funkphp/handlers/)
-function cli_add_handler_batch($arrayOfHandlers)
+function cli_add_handler($arrayOfHandlers)
 {
     global $argv, $dirs, $exactFiles, $settings;
     // Validate arguments (ensure file name, new function name, etc. are provided)
@@ -782,7 +782,6 @@ function cli_add_handler_batch($arrayOfHandlers)
     }
 }
 
-
 // Add a single route to the route file (funkphp/routes/)
 function cli_add_route()
 {
@@ -791,7 +790,7 @@ function cli_add_route()
         $settings,
         $dirs,
         $exactFiles,
-        $singleRoutesRoute;
+        $singleRoutesRoute, $reserved_functions;
     if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3]) || !isset($argv[4]) || !is_string($argv[4]) || empty($argv[4])) {
         cli_err_syntax("Should be at least four(4) non-empty string arguments!\nphp funkcli add [method/route] [handler]\nExample: 'add route GET/users/:id getUser'");
     }
@@ -818,12 +817,22 @@ function cli_add_route()
     if ($fnName !== null && !preg_match('/^[a-z0-9_]+$/', $fnName)) {
         cli_err_syntax("\"{$fnName}\" - Function name must be a lowercased string containing only letters, numbers and underscores!");
     }
+
+    // Check that both fnName and handlerFile are not reserved functions
+    if ($fnName !== null && in_array($fnName, $reserved_functions)) {
+        cli_err_syntax("\"{$fnName}\" - Function is a reserved function name!");
+    }
+    if ($handlerFile !== null && in_array($handlerFile, $reserved_functions)) {
+        cli_err_syntax("\"{$handlerFile}\" - Handler is a reserved function name!");
+    }
+
     // Function name is optional, so if not provided, we set it to the handler file name since
     // that is the default name for the function in the handler file when the file is created
     if ($fnName === null) {
         $fnName = $handlerFile;
     }
     cli_info_without_exit("Parsed Handler: \"funkphp/handlers/$handlerFile.php\" and Function: \"$fnName\"");
+
     // Prepare the route string by trimming, validating starting, ending and middle parts of it
     $addRoute = trim(strtolower($argv[3]));
     $oldRoute = $addRoute;
@@ -904,69 +913,8 @@ function cli_add_route()
     cli_output_compiled_routes($compiledRouteRoutes, "troute_route");
 }
 
-// Add one or more routes from array of string values!
-function cli_add_route_batch($arrayOfRoutesToAdd)
-{
-    // Load globals and validate input
-    global $argv,
-        $settings,
-        $dirs,
-        $exactFiles,
-        $singleRoutesRoute;
-    if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3]) || !isset($argv[4]) || !is_string($argv[4]) || empty($argv[4])) {
-        cli_err_syntax("Should be at least four(4) non-empty string arguments!\nadd [all_routes|only_route|only_data_route|only_page_route] [Method/route] [handler]\nExample: 'add all_routes GET/users/:id getSingleUser'");
-    }
-
-    // Prepare handlers folders
-    $handlersR = $dirs['handlers_routes'];
-
-    // Prepare the route string by trimming, validating starting, ending and middle parts of it
-    $addRoute = trim(strtolower($argv[3]));
-    $oldRoute = $addRoute;
-    [$method, $validRoute] = cli_prepare_valid_route_string($addRoute);
-    cli_info_without_exit("ROUTE: " . "\"$oldRoute\"" . " parsed as: \"$validRoute\"");
-
-    // Check now that handler $argv[4] is a string containg only letters, numbers and underscores!
-    if (!preg_match('/^[a-z0-9_]+$/', $argv[4])) {
-        cli_err_syntax("\"{$argv[4]}\" - Handler name must be a lowercased string containing only letters, numbers and underscores!");
-    }
-
-    foreach ($arrayOfRoutesToAdd as $routeToAdd) {
-        // Adding only a Route Route to the Route Route File
-        if ($routeToAdd === "route") {
-            // Check Route is not used currently in ALL 3 Main Single Route Files!
-            if (isset($singleRoutesRoute['ROUTES'][$method][$validRoute]) ?? null) {
-                cli_err_syntax("\"$validRoute\" already exists in $method/Single Route Routes!");
-            }
-            $uniqueR = cli_get_unique_filename_for_dir($handlersR, $argv[4]);
-            $handlerR = explode(".", $uniqueR)[0];
-            $singleRoutesRoute['ROUTES'][$method][$validRoute] = [
-                'handler' => $handlerR,
-            ];
-            ksort($singleRoutesRoute['ROUTES'][$method]);
-            $outputHandlerRoute = file_put_contents(
-                $handlersR . $uniqueR,
-                "<?php\n// Route Handler for Route Route: $method$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
-            );
-            if ($outputHandlerRoute) {
-                cli_success_without_exit("Added Handler \"$handlerR\" in \"funkphp/handlers/R/$uniqueR\"!");
-            }
-            $outputRouteSingleFile = file_put_contents(
-                $exactFiles['single_routes'],
-                cli_get_prefix_code("route_singles_routes_start")
-                    . cli_convert_array_to_simple_syntax($singleRoutesRoute)
-            );
-            if ($outputRouteSingleFile) {
-                cli_success_without_exit("Added Route \"$method$validRoute\" to Single Routes Route \"funkphp/routes/route_single_routes.php\" with handler \"$handlerR\"!");
-            }
-            $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRoute['ROUTES'], $singleRoutesRoute['ROUTES']);
-            cli_output_compiled_routes($compiledRouteRoutes, "troute_route");
-        }
-    }
-}
-
 // Batched function of adding and outputting middlewares to the middleware route files
-function cli_add_middlewares_batch($arrayOfMiddlewaresToAdd)
+function cli_add_middlewares($arrayOfMiddlewaresToAdd)
 {
     // Load globals and validate input
     global $argv,

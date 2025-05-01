@@ -39,4 +39,5 @@ return [
         'FAILED_TO_RUN_HEADER' => false,
         'FAILED_TO_RUN_STATIC' => false,
     ],
+
 ];
