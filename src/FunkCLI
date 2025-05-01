@@ -11,6 +11,7 @@ $validArg1withArg2Values =  [
         'help'
     ],
     'add' => [
+        'r',
         'route',
         'handler',
         'middleware',
@@ -105,26 +106,16 @@ $dirs = [
     "compiled" => __DIR__ . '/funkphp/_internals/compiled/',
     "_BACKUPS" => __DIR__ . '/funkphp/_BACKUPS/',
     "handlers" => __DIR__ . '/funkphp/handlers/',
-    "handlers_routes" => __DIR__ . '/funkphp/handlers/',
     "routes" => __DIR__ . '/funkphp/routes/',
     "data" => __DIR__ . '/funkphp/data/',
     "pages" => __DIR__ . '/funkphp/pages/',
     "middlewares" => __DIR__ . '/funkphp/middlewares/',
-    "middlewares_routes" => __DIR__ . '/funkphp/middlewares/R/',
-    "middlewares_data" => __DIR__ . '/funkphp/middlewares/D/',
-    "middlewares_pages" => __DIR__ . '/funkphp/middlewares/P/',
     "backups_finals" => __DIR__ . '/funkphp/_BACKUPS/_FINAL_BACKUPS/',
     "backups_compiled" => __DIR__ . '/funkphp/_BACKUPS/compiled/',
     "backups_routes" => __DIR__ . '/funkphp/_BACKUPS/routes/',
     "backups_data" => __DIR__ . '/funkphp/_BACKUPS/data/',
     "backups_pages" => __DIR__ . '/funkphp/_BACKUPS/pages/',
-    "backups_routes_mw" => __DIR__ . '/funkphp/_BACKUPS/routes/MW/',
-    "backups_data_mw" => __DIR__ . '/funkphp/_BACKUPS/data/MW/',
-    "backups_pages_mw" => __DIR__ . '/funkphp/_BACKUPS/pages/MW/',
     "backups_handlers" => __DIR__ . '/funkphp/_BACKUPS/handlers/',
-    "backups_handlers_routes" => __DIR__ . '/funkphp/_BACKUPS/handlers/R/',
-    "backups_handlers_data" => __DIR__ . '/funkphp/_BACKUPS/handlers/D/',
-    "backups_handlers_pages" => __DIR__ . '/funkphp/_BACKUPS/handlers/P/',
 ];
 
 // Exact file paths to use for the CLI
@@ -170,7 +161,10 @@ $commands = [
         // Adding to ALL Routes at the same time (Route, Data, Page)
         // Adding Route to only Route Routes
         'route' => function () {
-            cli_add_route_batch(["route"]);
+            cli_add_route();
+        },
+        'r' => function () {
+            cli_add_route();
         },
         'handler' => function () {
             cli_add_handler_batch(["handler"]);
