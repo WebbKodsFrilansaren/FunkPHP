@@ -588,9 +588,6 @@ function cli_backup_batch($arrayOfFilesToBackup)
     $backupRouteRoutePath = $dirs['backups_routes'];
     $backupDataRoutePath = $dirs['backups_data'];
     $backupPageRoutePath = $dirs['backups_pages'];
-    $backupRoutesMWPath = $dirs['backups_routes_mw'];
-    $backupDataMWPath = $dirs['backups_data_mw'];
-    $backupPageMWPath = $dirs['backups_pages_mw'];
 
     // Single Route Routes (including Middlewares)
     $oldTrouteRouteFile = $exactFiles['troute_route'];

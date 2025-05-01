@@ -7,6 +7,7 @@ include __DIR__ . '/funkphp/_internals/functions/cli_funs.php';
 $validArg1withArg2Values =  [
     'help' => [],
     'compile' => [
+        'r',
         'routes',
         'help'
     ],
@@ -240,6 +241,14 @@ $singleRoutesRoute = include __DIR__ . '/funkphp/routes/route_single_routes.php'
 // Define the command actions map
 $commands = [
     'compile' => [
+        'r' => function () {
+            // Backup the old route file first (troute and single_routes)
+            cli_backup_batch(["troute_route", "route_single_routes"]);
+
+            // Then build and output new route file
+            cli_compile_batch(["troute_route"]);
+            cli_success("Recompiling means any manually (not through FunkCLI) added middlewares or routing should work now!");
+        },
         'routes' => function () {
             // Backup the old route file first (troute and single_routes)
             cli_backup_batch(["troute_route", "route_single_routes"]);

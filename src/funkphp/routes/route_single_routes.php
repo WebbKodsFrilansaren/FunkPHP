@@ -18,7 +18,17 @@ return  [
             '/test/2' =>
             [
                 'handler' => 't1',
-                'middlewares' => 'test2',
+                'middlewares' => 'test',
+            ],
+            '/test/3' =>
+            [
+                'handler' => 't1',
+                'middlewares' => 'test',
+            ],
+            '/test/4' =>
+            [
+                'handler' => 't1',
+                'middlewares' => 'test',
             ],
         ],
         'POST' =>
