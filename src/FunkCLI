@@ -230,6 +230,7 @@ $reserved_functions = [
     'funk_run_matched_route_handler',
     'r_is_localhost',
     'funk_is_localhost',
+    'cli_sort_build_routes_compile_and_output',
 ];
 
 // First restore the folders if they don't exist

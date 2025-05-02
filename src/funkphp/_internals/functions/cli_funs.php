@@ -1037,8 +1037,7 @@ function cli_add_handler()
 // All-in-one function to Sort all keys in ROUTES, build Route file, recompile and output them!
 function cli_sort_build_routes_compile_and_output($singleRoutesRootArray)
 {
-    // Load globals and validate input
-    global $dirs, $exactFiles, $settings, $singleRoutesRoute;
+    // Validate input
     if (!is_array($singleRoutesRootArray) || empty($singleRoutesRootArray) || !isset($singleRoutesRootArray['ROUTES'])) {
         cli_err_syntax("The Routes Array must be a non-empty array starting with the ROUTES key!");
     }
@@ -1579,7 +1578,7 @@ function cli_valid_route_start_syntax($routeString)
 }
 
 // Prepares a valid route string to by validating starting syntax and extracting the method from it
-function cli_prepare_valid_route_string($addRoute, $test = false)
+function cli_prepare_valid_route_string($addRoute)
 {
     // Grab the route to add and validate correct starting syntax
     // first: get/put/post/delete/ or its short form g/pu/po/d/
