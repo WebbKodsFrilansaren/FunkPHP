@@ -36,8 +36,10 @@ $validArg1withArg2Values =  [
         'help'
     ],
     'delete' => [
-        'all_routes',
-        'only_route',
+        'r',
+        '_route',
+        'h',
+        'handler',
         'only_data_route',
         'only_page_route',
         'all_route_compiled_singles_middlewares_and_all_their_handlers_files_i_know_files_will_be_hard_to_get_back',
@@ -331,9 +333,16 @@ $commands = [
     'delete' => [
         // Delete a single route for /routes/ folder only
         'route' => function () {
-            global $argv;
-
             cli_delete_a_route();
+        },
+        'r' => function () {
+            cli_delete_a_route();
+        },
+        'handler' => function () use ($argv) {
+            cli_delete_a_handler_function_or_entire_file($argv[3] ?? null);
+        },
+        'h' => function () use ($argv) {
+            cli_delete_a_handler_function_or_entire_file($argv[3] ?? null);
         },
         // THESE DELETING FUNCTIONS ARE TO DELETE ACTUALLY MOST FILES IN MOST FOLDERS. FUNCTION ABOVE HERE ARE FOR DELETING INSIDE
         // OF FILES SUCH AS ROUTES, MIDDLEWARE, HANDLERS AND SO ON. PROCEED WITH CAUTION USING ANY OF THE FOLLOWING FUNCTIONS!!!

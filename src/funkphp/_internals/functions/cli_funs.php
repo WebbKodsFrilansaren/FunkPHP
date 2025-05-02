@@ -1063,7 +1063,7 @@ function cli_add_route()
         $exactFiles,
         $singleRoutesRoute, $reserved_functions;
     if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3]) || !isset($argv[4]) || !is_string($argv[4]) || empty($argv[4])) {
-        cli_err_syntax("Should be at least four(4) non-empty string arguments!\nSyntax: php funkcli add [method/route] [handlerFile[=>handleFunction]]\nExample: 'php funkcli add route get/users/:id users=>getUser'\nIMPORTANT: Writing [handlerFile] is parsed as [handlerFile=>handlerFile]!\n");
+        cli_err_syntax("Should be at least four(4) non-empty string arguments!\nSyntax: php funkcli add [method/route] [handlerFile[=>handleFunction]]\nExample: 'php funkcli add route get/users/:id users=>getUser'\nIMPORTANT: Writing [handlerFile] is parsed as [handlerFile=>handlerFile]!");
     }
 
     // Check if "$argv[4]" contains "=>" and split it into
