@@ -501,34 +501,6 @@ function cli_output_compiled_routes(array $compiledTrie, string $outputFileNameF
     }
 }
 
-// Audit Developer's Defined Routes
-function cli_audit_developer_routes(array $developerSingleRoutes, array $developerMiddlewareRoutes): array
-{
-    if ($_SERVER['SCRIPT_NAME'] !== 'funkcli') {
-        exit;
-    }
-    // Both arrays must be non-empty arrays
-    if (!is_array($developerSingleRoutes)) {
-        echo "[ERROR]: '\$developerSingleRoutes' Must be a non-empty array!\n";
-        exit;
-    } elseif (!is_array($developerMiddlewareRoutes)) {
-        echo "[ERROR]: '\$developerMiddlewareRoutes' Must be a non-empty array!\n";
-        exit;
-    }
-    if (empty($developerSingleRoutes)) {
-        echo "[ERROR]: '\$developerSingleRoutes' be a non-empty array!\n";
-        exit;
-    } else if (empty($developerMiddlewareRoutes)) {
-        echo "[ERROR]: '\$developerMiddlewareRoutes' be a non-empty array!\n";
-        exit;
-    }
-
-    // Prepare result variable
-    $auditResult = [];
-
-    return $auditResult;
-}
-
 // Convert PHP array() syntax to simplified [] syntax
 function cli_convert_array_to_simple_syntax(array $array): string | null | array
 {
