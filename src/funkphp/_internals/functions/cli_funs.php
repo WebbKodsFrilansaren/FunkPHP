@@ -1563,7 +1563,7 @@ function cli_prepare_valid_route_string($addRoute)
     // Try extract the method from the route string
     $method = cli_extracted_parsed_method_from_valid_start_syntax($addRoute);
     if ($method === null) {
-        cli_err_syntax("Failed to parse the Method the Route string must start with (all of these below are valid):\n'GET/' (or g/)'\n'POST/' (or po/)\n'PUT/'(or pu/)\n'DELETE/' (or d/)");
+        cli_err_syntax("Failed to parse the Method the Route string must start with (all of these below are valid):\n'GET/' (or g/)'\n'POST/' (or po/)\n'PUT/'(or pu/)\n'DELETE/' (or d/)\n'PATCH/' (or pa/)");
     }
     // Split route oon first "/" and add a a "/" to beginning of the route string
     // and then parse the rest of the string to build the route and its parameters
@@ -1600,6 +1600,12 @@ function cli_extracted_parsed_method_from_valid_start_syntax($routeString)
         $parsedMethod = "PUT";
     } elseif ($extractedMethod == "d") {
         $parsedMethod = "DELETE";
+    } elseif ($extractedMethod == "pa") {
+        $parsedMethod = "PATCH";
+    } elseif ($extractedMethod == "pa") {
+        $parsedMethod = "PATCH";
+    } else {
+        $parsedMethod = null;
     }
     return $parsedMethod ?? null;
 }
