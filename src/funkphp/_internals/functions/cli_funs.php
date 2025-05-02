@@ -213,11 +213,11 @@ function cli_rebuild_single_routes_route_file($singleRouteRoutesFileArray): bool
     }
     // Check that dir exist, is writable and is a directory
     if (!is_dir($dirs['routes']) || !is_writable($dirs['routes'])) {
-        cli_err_syntax("[cli_rebuild_single_routes_file] Routes directory (funkphp/routes/) must be a valid directory and writable!");
+        cli_err("[cli_rebuild_single_routes_file] Routes directory (funkphp/routes/) must be a valid directory and writable!");
     }
     // Check that if file exists, it can be overwritten
     if (file_exists($exactFiles['single_routes']) && !is_writable($exactFiles['single_routes'])) {
-        cli_err_syntax("[cli_rebuild_single_routes_file] Routes file (funkphp/routes/route_single_routes.php) must be writable. It is not!");
+        cli_err("[cli_rebuild_single_routes_file] Routes file (funkphp/routes/route_single_routes.php) must be writable. It is not!");
     }
     return file_put_contents(
         $exactFiles['single_routes'],
@@ -506,13 +506,13 @@ function cli_convert_array_to_simple_syntax(array $array): string | null | array
 {
     // Must be non-empty array
     if (!is_array($array)) {
-        echo "[ERROR]: Must be a non-empty array!\n";
+        cli_err_syntax("Array must be a non-empty array!");
         exit;
     }
 
     // Check if the array is empty
     if (empty($array)) {
-        echo "[ERROR]: Must be a non-empty array!\n";
+        cli_err_syntax("Array must be a non-empty array!");
         exit;
     }
 
@@ -636,7 +636,7 @@ function cli_output_file_until_success($outputPathWithoutExtension, $extension, 
             // Try to write the file
             $result = file_put_contents($outputFilePath, $outputData);
             if ($result === false) {
-                cli_err_syntax("Output file failed to write: $outputFilePath!");
+                cli_err("Output file failed to write: $outputFilePath!");
             } else {
                 if ($customSuccessMessage !== "") {
                     cli_success_without_exit($customSuccessMessage);
@@ -763,7 +763,8 @@ function cli_backup_batch($arrayOfFilesToBackup)
     }
 }
 
-// Delete a Single Route from "routes" folder
+// Delete a Single Route from the Route file (funkphp/routes/route_single_routes.php)
+// and delete its associated Handler Function (and Handler File if last function)
 function cli_delete_a_route()
 {
     // Load globals and validate input
@@ -811,7 +812,7 @@ function cli_delete_a_route()
     // When one ore more is missing, we do not go ahead with deletion
     // since this function is meant to delete all three at once!
     else {
-        cli_err_syntax("The Route: \"$method$validRoute\" does not exis. Another HTTP Method or was it deleted already?");
+        cli_err("The Route: \"$method$validRoute\" does not exist. Another HTTP Method or was it deleted already?");
     }
 }
 
@@ -866,7 +867,7 @@ function cli_delete_a_handler_function_or_entire_file($handlerVar)
 
     // We now check if the handler file exists in the handlers folder, add .php if not
     if (!file_exists($handlersFolder . $handlerFile . ".php")) {
-        cli_err_syntax("Handler File \"$handlerFile\" not found in \"funkphp/handlers/\"!");
+        cli_err("Handler File \"$handlerFile\" not found in \"funkphp/handlers/\"!");
     }
 
     // We now read the file content and check for the delimiter function name
@@ -877,7 +878,7 @@ function cli_delete_a_handler_function_or_entire_file($handlerVar)
         strpos($fileContent, "//DELIMITER_HANDLER_FUNCTION_START=$fnName") === false
         || strpos($fileContent, "//DELIMITER_HANDLER_FUNCTION_END=$fnName") === false
     ) {
-        cli_err_syntax("Function \"$fnName\" in Handler \"$handlerFile\" not found or invalid structure!");
+        cli_err("Function \"$fnName\" in Handler \"$handlerFile\" not found or invalid structure!");
     }
 
     // We now match the number of "//DELIMITER_HANDLER_FUNCTION_START" and "//DELIMITER_HANDLER_FUNCTION_END"
@@ -887,12 +888,12 @@ function cli_delete_a_handler_function_or_entire_file($handlerVar)
     $startMatches = preg_match_all("/\/\/DELIMITER_HANDLER_FUNCTION_START=/", $fileContent, $matchesStart);
     $endMatches = preg_match_all("/\/\/DELIMITER_HANDLER_FUNCTION_END=/", $fileContent, $matchesEnd);
     if ($startMatches === false || $endMatches === false) {
-        cli_err_syntax("Failed to find the Functions in the Handler File \"$handlerFile\"!");
+        cli_err("Failed to find the Functions in the Handler File \"$handlerFile\"!");
     }
 
     // If matches are uneven, the file structure is invalid and we cannot delete it
     if ($startMatches !== $endMatches) {
-        cli_err_syntax("The Handler File \"$handlerFile\" has an invalid structure! Every \"//DELIMITER_HANDLER_FUNCTION_START=\" should have a matching \"//DELIMITER_HANDLER_FUNCTION_END=\"!");
+        cli_err("The Handler File \"$handlerFile\" has an invalid structure! Every \"//DELIMITER_HANDLER_FUNCTION_START=\" should have a matching \"//DELIMITER_HANDLER_FUNCTION_END=\"!");
     }
 
     // We now check if the number of matches is 1, meaning it is the last
@@ -904,7 +905,7 @@ function cli_delete_a_handler_function_or_entire_file($handlerVar)
         if (unlink($handlersFolder . $handlerFile . ".php")) {
             cli_success("Deleted Handler File \"$handlerFile\" and Function \"$fnName\"!");
         } else {
-            cli_err_syntax("FAILED to delete Handler File \"$handlerFile\" and Function \"$fnName\"!");
+            cli_err("FAILED to delete Handler File \"$handlerFile\" and Function \"$fnName\"!");
         }
     }
     // Here we know we have more than 1 match and that we have same number of matches
@@ -914,11 +915,11 @@ function cli_delete_a_handler_function_or_entire_file($handlerVar)
     $startPos = strpos($fileContent, "//DELIMITER_HANDLER_FUNCTION_START=$fnName");
     $endPos = strpos($fileContent, "//DELIMITER_HANDLER_FUNCTION_END=$fnName") + mb_strlen("//DELIMITER_HANDLER_FUNCTION_END=$fnName") + 1;
     if ($startPos === false || $endPos === false) {
-        cli_err_syntax("Failed to find the Function \"$fnName\" in the Handler File \"$handlerFile\"!");
+        cli_err("Failed to find the Function \"$fnName\" in the Handler File \"$handlerFile\"!");
     }
     // Start position should NOT be larger than end position!
     if ($startPos > $endPos) {
-        cli_err_syntax("The Handler File \"$handlerFile\" has an invalid structure! The start position is larger than the end position for \"$fnName\"!");
+        cli_err("The Handler File \"$handlerFile\" has an invalid structure! The start position is larger than the end position for \"$fnName\"!");
     }
     // We now replace the function in the file content with an empty string and write it back to the file
     $fileContent = substr_replace($fileContent, "", $startPos, $endPos - $startPos);
@@ -927,7 +928,7 @@ function cli_delete_a_handler_function_or_entire_file($handlerVar)
     if (file_put_contents($handlersFolder . $handlerFile . ".php", $fileContent) !== false) {
         cli_success("Deleted Function \"$fnName\" from Handler File \"$handlerFile\"!");
     } else {
-        cli_err_syntax("FAILED to delete Function \"$fnName\" from Handler File \"$handlerFile\"!");
+        cli_err("FAILED to delete Function \"$fnName\" from Handler File \"$handlerFile\"!");
     }
 }
 
@@ -988,7 +989,7 @@ function cli_add_handler()
         // Read the file content and check if the function name exists in the file
         $fileContent = file_get_contents($handlersDir . $handlerFile . ".php");
         if ($fnName !== null && strpos($fileContent, "//DELIMITER_HANDLER_FUNCTION_START=$fnName") !== false) {
-            cli_err_syntax("Function \"$fnName\" in Handler \"funkphp/handlers/$handlerFile.php\" is already used!");
+            cli_err("Function \"$fnName\" in Handler \"funkphp/handlers/$handlerFile.php\" is already used!");
         }
         // This means handler file exists but function name is not used, so we can add it
         else {
@@ -996,7 +997,7 @@ function cli_add_handler()
             // We now check if we can find "//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile" in the file
             // and if not that means either error or Developer is trying to break the file, so we exit
             if (strpos($fileContent, "//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile") === false) {
-                cli_err_syntax("Handler \"funkphp/handlers/$handlerFile.php\" is invalid. Could not find \"//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile\". Please do not be a jerk trying to break the file!");
+                cli_err("Handler \"funkphp/handlers/$handlerFile.php\" is invalid. Could not find \"//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile\". Please do not be a jerk trying to break the file!");
             }
             // We found the comment, so we can add the function name to the file by replacing the comment with the function name and then the comment again!
             $fileContent = str_replace(
@@ -1007,7 +1008,7 @@ function cli_add_handler()
             if (file_put_contents($handlersDir . $handlerFile . ".php", $fileContent) !== false) {
                 cli_success_without_exit("Added Function \"$fnName\" to Handler \"funkphp/handlers/$handlerFile.php\"!");
             } else {
-                cli_err_syntax("FAILED to add Function \"$fnName\" to Handler \"funkphp/handlers/$handlerFile.php\". File permissions issue?");
+                cli_err("FAILED to add Function \"$fnName\" to Handler \"funkphp/handlers/$handlerFile.php\". File permissions issue?");
             }
         }
     } // File does not exist, so we create it
@@ -1020,13 +1021,13 @@ function cli_add_handler()
         if ($outputHandlerRoute) {
             cli_success_without_exit("Added Handler \"funkphp/handlers/$handlerFile.php\" with Function \"$fnName\" in \"funkphp/handlers/$handlerFile.php\"!");
         } else {
-            cli_err_syntax("FAILED to create Handler \"funkphp/handlers/$handlerFile.php\". File permissions issue?");
+            cli_err("FAILED to create Handler \"funkphp/handlers/$handlerFile.php\". File permissions issue?");
         }
     }
     // Warn that the handler file was created/updated but the route is unknown (so it is not added to the route file)
     cli_warning_without_exit("You have ONLY created/updated Handler File: \"$handlerFile\" with Function \"$fnName\"");
     cli_warning_without_exit("Its associated route for Function \"$fnName\" is \"<UNKNOWN_ROUTE>\". You must add it MANUALLY to the Route file!");
-    cli_warning("IMPORTANT: Using \"php funkcli add route\" to combine the Route with its associated Handler File and Function will NOT work!");
+    cli_warning("IMPORTANT: Using \"php funkcli add route [method/route] [$handlerFile=>$fnName]\" to combine the Route with its this created/updated Handler File and/or Function will NOT work!");
 }
 
 // All-in-one function to Sort all keys in ROUTES, build Route file, recompile and output them!
@@ -1058,14 +1059,14 @@ function cli_sort_build_routes_compile_and_output($singleRoutesRootArray)
     if ($rebuild) {
         cli_success_without_exit("Rebuilt Route file \"funkphp/routes/route_single_routes.php\"!");
     } else {
-        cli_err_syntax("FAILED to rebuild Route file \"funkphp/routes/route_single_routes.php\". File permissions issue?");
+        cli_err("FAILED to rebuild Route file \"funkphp/routes/route_single_routes.php\". File permissions issue?");
     }
     $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRootArray['ROUTES'], $singleRoutesRootArray['ROUTES']);
     cli_output_compiled_routes($compiledRouteRoutes, "troute_route");
 }
 
 // Add a Route to the Route file (funkphp/routes/) INCLUDING a [HandlerFile[=>Function]]
-function cli_add_route()
+function cli_add_a_route()
 {
     // Load globals and validate input
     global $argv,
@@ -1123,13 +1124,13 @@ function cli_add_route()
 
     // Check if the exact route already exists in the route file
     if (isset($singleRoutesRoute['ROUTES'][$method][$validRoute]) ?? null) {
-        cli_err_syntax("\"$method$validRoute\" already exists in Routes!");
+        cli_err("\"$method$validRoute\" already exists in Routes!");
     }
 
     // Now we check against conflicting routes (dynamic routes) and if it exists, we error
     $findDynamicRoute = cli_match_developer_route($method, $validRoute, include_once $exactFiles['troute_route'], $singleRoutesRoute['ROUTES'], $singleRoutesRoute['ROUTES']);
     if ($findDynamicRoute['route'] !== null) {
-        cli_err_syntax("Dynamic Route \"{$findDynamicRoute['method']}{$findDynamicRoute['route']}\" would conflict with \"$method$validRoute\" in Routes!");
+        cli_err("Dynamic Route \"{$findDynamicRoute['method']}{$findDynamicRoute['route']}\" would conflict with \"$method$validRoute\" in Routes!");
     }
 
     // Prepare handlers folders
@@ -1140,8 +1141,8 @@ function cli_add_route()
         // Read the file content and check if the function name exists in the file
         $fileContent = file_get_contents($handlersDir . $handlerFile . ".php");
         if ($fnName !== null && strpos($fileContent, "//DELIMITER_HANDLER_FUNCTION_START=$fnName") !== false) {
-            cli_err_syntax_without_exit("Function \"$fnName\" in Handler \"funkphp/handlers/$handlerFile.php\" is already used!");
-            cli_err_syntax_without_exit("If the Handler File with the Function was created using \"php funkcli add handler [HandlerFile[=>Function]]\", you must MANUALLY add it to the Route file!");
+            cli_err_without_exit("Function \"$fnName\" in Handler \"funkphp/handlers/$handlerFile.php\" is already used!");
+            cli_err_without_exit("If the Handler File with the Function was created using \"php funkcli add handler [HandlerFile[=>Function]]\", you must MANUALLY add it to the Route file!");
             cli_info("Use \"php funkcli add route [Method/Route] [HandlerFile[=>Function]]\" instead to avoid these possible issues in the first place!");
         }
         // This means handler file exists but function name is not used, so we can add it
@@ -1150,7 +1151,7 @@ function cli_add_route()
             // We now check if we can find "//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile" in the file
             // and if not that means either error or Developer is trying to break the file, so we exit
             if (strpos($fileContent, "//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile") === false) {
-                cli_err_syntax("Handler \"funkphp/handlers/$handlerFile.php\" is invalid. Could not find \"//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile\". Please do not be a jerk trying to break the file!");
+                cli_err("Handler \"funkphp/handlers/$handlerFile.php\" is invalid. Could not find \"//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile\". Please do not be a jerk trying to break the file!");
             }
             // We found the comment, so we can add the function name to the file by replacing the comment with the function name and then the comment again!
             $fileContent = str_replace(
@@ -1161,7 +1162,7 @@ function cli_add_route()
             if (file_put_contents($handlersDir . $handlerFile . ".php", $fileContent) !== false) {
                 cli_success_without_exit("Added Function \"$fnName\" to Handler \"funkphp/handlers/$handlerFile.php\"!");
             } else {
-                cli_err_syntax("FAILED to add Function \"$fnName\" to Handler \"funkphp/handlers/$handlerFile.php\". File permissions issue?");
+                cli_err("FAILED to add Function \"$fnName\" to Handler \"funkphp/handlers/$handlerFile.php\". File permissions issue?");
             }
         }
     } // File does not exist, so we create it
@@ -1174,7 +1175,7 @@ function cli_add_route()
         if ($outputHandlerRoute) {
             cli_success_without_exit("Added Handler \"funkphp/handlers/$handlerFile.php\" with Function \"$fnName\" in \"funkphp/handlers/$handlerFile.php\"!");
         } else {
-            cli_err_syntax("FAILED to create Handler \"funkphp/handlers/$handlerFile.php\". File permissions issue?");
+            cli_err("FAILED to create Handler \"funkphp/handlers/$handlerFile.php\". File permissions issue?");
         }
     }
     // If we are here, that means we managed to add a handler with a function
@@ -1193,22 +1194,23 @@ function cli_add_route()
     cli_sort_build_routes_compile_and_output($singleRoutesRoute);
 }
 
-// Batched function of adding and outputting middlewares to the middleware route files
-function cli_add_middlewares($arrayOfMiddlewaresToAdd)
+// Add a single Middleware file to middleware folder (funkphp/middlewares/)
+function cli_add_a_middleware()
 {
     // Load globals and validate input
     global $argv,
         $settings,
         $dirs,
         $exactFiles,
-        $singleRoutesRoute,
-        $middlewareRoutesRoute;
+        $singleRoutesRoute;
     if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3]) || !isset($argv[4]) || !is_string($argv[4]) || empty($argv[4])) {
-        cli_err_syntax("Should be at least four(4) non-empty string arguments!\nadd [mw_all|mw_route|mw_data|mw_page] [Method/route] [Middleware_handler]\nExample: 'add mw_all GET/users/:id getSingleUser'");
+        cli_err_syntax("Should be at least four(4) non-empty string arguments!\nphp funkcli add mw [Method/route] [Middleware_handler]\nExample: 'php funkcli add mw GET/users/:id validateUserId'");
     }
 
-    // Prepare handlers folders
-    $handlersR = $dirs['middlewares_routes'];
+    // Check now that handler $argv[4] is a string containg only letters, numbers and underscores!
+    if (!preg_match('/^[a-z0-9_]+$/', $argv[4])) {
+        cli_err_syntax("\"{$argv[4]}\" - Middleware Name must be a lowercased string containing only letters, numbers and underscores!");
+    }
 
     // Prepare the route string by trimming, validating starting, ending and middle parts of it
     $addRoute = trim(strtolower($argv[3]));
@@ -1216,92 +1218,121 @@ function cli_add_middlewares($arrayOfMiddlewaresToAdd)
     [$method, $validRoute] = cli_prepare_valid_route_string($addRoute);
     cli_info_without_exit("ROUTE: " . "\"$oldRoute\"" . " parsed as: \"$validRoute\"");
 
-    // Check now that handler $argv[4] is a string containg only letters, numbers and underscores!
-    if (!preg_match('/^[a-z0-9_]+$/', $argv[4])) {
-        cli_err_syntax("\"{$argv[4]}\" - Middleware Handler name must be a lowercased string containing only letters, numbers and underscores!");
+    // Check that the exact route already exists in the route file
+    if (!isset($singleRoutesRoute['ROUTES'][$method][$validRoute])) {
+        cli_err("The Route \"$method$validRoute\" does not exist. Add it first!");
     }
 
-    foreach ($arrayOfMiddlewaresToAdd as $middlewareString) {
-        // When ONLY adding a middleware in the Middleware Route Routes file
-        if ($middlewareString === "mw_route") {
-            // At least one route in Single Route Routes file must start with the middleware route
-            // otherwise we cannot add it because it wouldn't match any valid/navigable route!
-            $singleExist = false;
-            foreach ($singleRoutesRoute['ROUTES'][$method] as $routeSingle => $val) {
-                if (str_starts_with($routeSingle, $validRoute)) {
-                    $singleExist = true;
-                    break;
-                }
-            }
-            if (!$singleExist) {
-                cli_err_syntax("Route \"$validRoute\" does not exist in $method/Single Route Routes! (funkphp/routes/route_single_routes.php) Add that first!");
-            }
-            // Check that handler is not already used in the Middlewares Route Routes file
-            if (isset($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute])) {
-                if (isset($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute]["handler"])) {
-                    if (is_string($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute]["handler"])) {
-                        if ($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute]["handler"] === $argv[4]) {
-                            cli_err_syntax("Handler \"{$argv[4]}\" for \"$validRoute\" already exists in $method/Single Middleware Route Routes!");
-                        }
-                    } elseif (is_array($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute]["handler"])) {
-                        if (in_array($argv[4], $middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute]["handler"])) {
-                            cli_err_syntax("Handler \"{$argv[4]}\" for \"$validRoute\" already exists in $method/Single Middleware Route Routes!");
-                        }
-                    }
-                }
-            }
-            // Create Middleware Route Handler if it does not exist
-            if (!cli_middleware_exists($argv[4])) {
-                $outputHandlerRoute = file_put_contents(
-                    $handlersR . $argv[4] . ".php",
-                    "<?php\n// Middleware Handler for Route Route: $method/$validRoute\n// File created in FunkCLI!\n\nreturn function (&\$c) { };\n?>"
-                );
-                if ($outputHandlerRoute) {
-                    cli_success_without_exit("Added Middleware Route Handler \"{$argv[4]}\" in \"funkphp/middlewares/R/{$argv[4]}.php\"!");
-                }
-            } else {
-                cli_info_without_exit("Middleware Route Handler \"{$argv[4]}\" already exists in \"funkphp/middlewares/R/{$argv[4]}.php\"!");
-            }
-            // ADDING MIDDLEWARE HANDLER TO THE CORRECT MIDDLEWARE METHOD/ROUTE!
-            // Three scenarios: 1) Handler doesn't exist, so we just add it as the first string
-            // 2) Handler exists as a string, so we convert it to an array and add the new handler to the array
-            // 3) Handler exists as an array, so we just add the new handler to the array
-            // Middleware Route and its handler don't exist, so just add it:
-            if (
-                !isset($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute])
-                || (isset($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute])
-                    && !isset($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute]["handler"]))
-            ) {
-                $middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute] = [
-                    'handler' => $argv[4],
-                ];
-            }  //
-            elseif (isset($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute])) {
-                if (is_string($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute]["handler"])) {
-                    $middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute]["handler"] = [
-                        $middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute]["handler"],
-                        $argv[4],
-                    ];
-                } elseif (is_array($middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute]["handler"])) {
-                    $middlewareRoutesRoute['MIDDLEWARES'][$method][$validRoute]["handler"][] = $argv[4];
-                }
-            }
-            // Finally sort the array by keys, recompile and output the updated Single Route & Middleware files!
-            ksort($middlewareRoutesRoute['MIDDLEWARES'][$method]);
-            $outputRouteSingleMiddlewareFile = file_put_contents(
-                $exactFiles['single_middlewares'],
-                cli_get_prefix_code("route_middleware_routes_start")
-                    . cli_convert_array_to_simple_syntax($middlewareRoutesRoute)
-            );
-            if ($outputRouteSingleMiddlewareFile) {
-                cli_success_without_exit("Added Middleware Route \"$method$validRoute\" to Single Middleware Routes Route \"funkphp/routes/route_middleware_routes.php\" with handler \"{$argv[4]}\"!");
-            }
-            $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRoute['ROUTES'], $middlewareRoutesRoute['MIDDLEWARES']);
-            cli_output_compiled_routes($compiledRouteRoutes, "troute_route");
-            continue;
+    if (isset($singleRoutesRoute['ROUTES'][$method][$validRoute]['middlewares']) && cli_value_exists_as_string_or_in_array($argv[4], $singleRoutesRoute['ROUTES'][$method][$validRoute]['middlewares'])) {
+        cli_err("Middleware \"$argv[4]\" already exists in \"$method$validRoute\"!");
+    }
+
+    // We will now check if the middleware already exists one URI level down the
+    // current route. This means that if the route is GET/users/:id, we will check if
+    // the middleware exists in GET/users/, and then GET/. We first split the route
+    // on "/" and then loop through that array and
+    $splittedURI = explode("/", trim($validRoute, "/"));
+    $currentParentUri = '';
+
+    // First check default root "/" route for the given method
+    $checkUri = '/';
+    if (
+        isset($singleRoutesRoute['ROUTES'][$method][$checkUri])
+        && cli_value_exists_as_string_or_in_array($argv[4], $singleRoutesRoute['ROUTES'][$method][$checkUri]['middlewares'] ?? null)
+    ) {
+        cli_err_without_exit("Middleware \"$argv[4]\" already exists in \"$method$checkUri\"!");
+        cli_err("Adding it would to \"$method$validRoute\" would cause it to run twice!");
+    }
+
+    // Now we loop through the $splittedURI array and check if
+    // the middleware exists when adding each segment of the URI
+    foreach ($splittedURI as $uriSegment) {
+        $currentParentUri .= '/' . $uriSegment;
+        if (
+            isset($singleRoutesRoute['ROUTES'][$method][$currentParentUri])
+            && cli_value_exists_as_string_or_in_array($argv[4], $singleRoutesRoute['ROUTES'][$method][$currentParentUri]['middlewares'] ?? null)
+        ) {
+            cli_err_without_exit("Middleware \"$argv[4]\" already exists in \"$method$currentParentUri\"!");
+            cli_err("Adding it would to \"$method$validRoute\" would cause it to run twice!");
         }
     }
+
+    // Here we know the middleware can be added to the
+    // current Route so prepare middleware folder & file name
+    $mwDir = $dirs['middlewares'];
+    $mwName = str_ends_with($argv[4], ".php") ? $argv[4] : $argv[4] . ".php";
+
+    // We check if file exists already because then we do not need to create it.
+    if (file_exists($mwDir . $mwName)) {
+        cli_info_without_exit("Middleware \"$argv[4]\" already exists in \"funkphp/middlewares/$mwName\"!");
+    } else {
+        // Create the middleware file with the function name and return a success message
+        $date = date("Y-m-d H:i:s");
+        $outputHandlerRoute = file_put_contents(
+            $mwDir . $mwName,
+            "<?php\n// Middleware \"$mwName\" \n// File created in FunkCLI on $date!\n\nreturn function (&\$c) {\n};\n?>"
+        );
+        if ($outputHandlerRoute) {
+            cli_success_without_exit("Created new Middleware \"$argv[4].php\" in \"funkphp/middlewares/$mwName\"!");
+        } else {
+            cli_err("FAILED to create Middleware \"$argv[4]\". File permissions issue?");
+        }
+    }
+    // File now created if not existed, so now we add it to the 'middlewares' handler (or create it if not existed)
+    if (isset($singleRoutesRoute['ROUTES'][$method][$validRoute]['middlewares'])) {
+        $singleRoutesRoute['ROUTES'][$method][$validRoute]['middlewares'][] = $argv[4];
+    } else {
+        $singleRoutesRoute['ROUTES'][$method][$validRoute]['middlewares'] = [$argv[4]];
+    }
+    cli_success_without_exit("Added Middleware \"$argv[4]\" to \"$method$validRoute\"!");
+    // Finally we show success message and then sort, build, compile and output the routes
+    cli_sort_build_routes_compile_and_output($singleRoutesRoute);
 }
+
+// Delete a single Middleware from a given method/route (does NOT delete the MW file!)
+function cli_delete_a_middleware()
+{
+    // Load globals and validate input
+    global $argv,
+        $settings,
+        $dirs,
+        $exactFiles,
+        $singleRoutesRoute;
+    if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3]) || !isset($argv[4]) || !is_string($argv[4]) || empty($argv[4])) {
+        cli_err_syntax("Should be at least four(4) non-empty string arguments!\nfunkcli delete [mw|middleware] [method/route] [Middleware_handler]\nExample: 'php funkcli delete mw GET/users/:id validateUserId'");
+    }
+
+    // Check now that handler $argv[4] is a string containg only letters, numbers and underscores!
+    if (!preg_match('/^[a-z0-9_]+$/', $argv[4])) {
+        cli_err_syntax("\"{$argv[4]}\" - Middleware name must be a lowercased string containing only letters, numbers and underscores!");
+    }
+
+    // Grab middlewares folder and file name with .php extension
+    // and then check if the file exists in the middlewares folder
+    $mwFolder = $dirs['middlewares'];
+    $mwName = str_ends_with($argv[4], ".php") ? $argv[4] : $argv[4] . ".php";
+    if (file_exists($mwFolder . $mwName)) {
+        cli_info_without_exit("Middleware \"$argv[4]\" exists in \"funkphp/middlewares/$mwName\"!");
+    } else {
+        cli_err_without_exit("Middleware \"$argv[4]\" does not even exist in \"funkphp/middlewares\"!");
+        cli_info("Check if it is a misspelled file name if you are already using \"$argv[4]\" in other routes!");
+    }
+
+    // Prepare the route string by trimming, validating starting, ending and middle parts of it
+    $addRoute = trim(strtolower($argv[3]));
+    $oldRoute = $addRoute;
+    [$method, $validRoute] = cli_prepare_valid_route_string($addRoute);
+    cli_info_without_exit("ROUTE: " . "\"$oldRoute\"" . " parsed as: \"$validRoute\"");
+
+    // Check that route actually exists for the given method in the route file
+    if (!isset($singleRoutesRoute['ROUTES'][$method][$validRoute])) {
+        cli_err("The Route \"$method$validRoute\" does not exist. So, it doesn't have the middleware \"$argv[4]\"!");
+    }
+}
+
+// Delete an actual Middleware file from the middlewares folder (funkphp/middlewares/)
+// This also removes it from every route it is used in, so be careful with this one!
+function cli_delete_a_middleware_file() {}
 
 // Batched function of compiling and outputting routing files
 function cli_compile_batch($arrayOfRoutesToCompileAndOutput)
@@ -1455,7 +1486,7 @@ function cli_restore_file($backupDirPath, $restoreFilePath, $fileStartingName)
 
             // Check if the file is readable
             if (!is_readable($backupDirPath . "/" . $file)) {
-                cli_err_syntax("Backup file must be readable! Path: $backupDirPath/$file is not!");
+                cli_err("Backup file must be readable! Path: $backupDirPath/$file is not!");
             }
 
             // Copy the file to the restore file path and delete the backup file after restoring it
@@ -1466,7 +1497,7 @@ function cli_restore_file($backupDirPath, $restoreFilePath, $fileStartingName)
         }
     }
     // If we reach here, it means we didn't find any files that start with the file starting name
-    cli_err_syntax("No Backup File in $backupDirPath starting with \"$fileStartingName\"!");
+    cli_err("No Backup File in $backupDirPath starting with \"$fileStartingName\"!");
 }
 
 // Retrieve starting code for files created by the CLI
@@ -1583,7 +1614,7 @@ function cli_prepare_valid_route_string($addRoute)
     // Try extract the method from the route string
     $method = cli_extracted_parsed_method_from_valid_start_syntax($addRoute);
     if ($method === null) {
-        cli_err_syntax("Failed to parse the Method the Route string must start with (all of these below are valid):\n'GET/' (or g/)'\n'POST/' (or po/)\n'PUT/'(or pu/)\n'DELETE/' (or d/)\n'PATCH/' (or pa/)");
+        cli_err("Failed to parse the Method the Route string must start with (all of these below are valid):\n'GET/' (or g/)'\n'POST/' (or po/)\n'PUT/'(or pu/)\n'DELETE/' (or d/)\n'PATCH/' (or pa/)");
     }
     // Split route oon first "/" and add a a "/" to beginning of the route string
     // and then parse the rest of the string to build the route and its parameters
@@ -1874,6 +1905,21 @@ function cli_err_syntax($string)
     echo "\033[31m[FunkCLI - SYNTAX ERROR]: $string\n\033[0m";
     exit;
 }
+function cli_err($string)
+{
+    if ($_SERVER['SCRIPT_NAME'] !== 'funkcli') {
+        exit;
+    }
+    echo "\033[31m[FunkCLI - ERROR]: $string\n\033[0m";
+    exit;
+}
+function cli_err_without_exit($string)
+{
+    if ($_SERVER['SCRIPT_NAME'] !== 'funkcli') {
+        exit;
+    }
+    echo "\033[31m[FunkCLI - ERROR]: $string\n\033[0m";
+}
 function cli_err_syntax_without_exit($string)
 {
     if ($_SERVER['SCRIPT_NAME'] !== 'funkcli') {
@@ -1940,4 +1986,41 @@ function cli_warning_without_exit($string)
         exit;
     }
     echo "\033[33m[FunkCLI - WARNING]: $string\n\033[0m";
+}
+
+// Function that takes a variable ($existsInWhat) and then checks if a given value
+// already exists in it as a string or in an array. It returns true if it does, false otherwise.
+function cli_value_exists_as_string_or_in_array($valueThatExists, $existsInWhat)
+{
+    // Also check first if it is null, because that means it doesn't exist
+    if ($existsInWhat === null) {
+        return false;
+    }
+    if (is_array($existsInWhat)) {
+        return in_array($valueThatExists, $existsInWhat);
+    } elseif (is_string($existsInWhat)) {
+        return $valueThatExists === $existsInWhat;
+    } else {
+        return false;
+    }
+}
+
+// Function takes a key and a value to add to it and then checks if referenced
+// &$addToWhat exists or not, and if does exist, then it checks if it is an array
+// otherwise it adds the key with value or it adds/pushes to the current array.
+function cli_add_value_as_string_or_to_array($keyToAdd, $valueToAdd, &$addToWhat)
+{
+    // Check if the key exists in the array and if it is an array
+    if (array_key_exists($keyToAdd, $addToWhat)) {
+        if (is_array($addToWhat[$keyToAdd])) {
+            // If it is an array, we just add the value to it
+            $addToWhat[$keyToAdd][] = $valueToAdd;
+        } elseif (is_string($addToWhat[$keyToAdd])) {
+            // If it is a string, we convert it to an array and add the value to it
+            $addToWhat[$keyToAdd] = [$addToWhat[$keyToAdd], $valueToAdd];
+        }
+    } else {
+        // If it doesn't exist, we just add the key with the value to it
+        $addToWhat[$keyToAdd] = $valueToAdd;
+    }
 }

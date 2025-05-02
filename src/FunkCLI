@@ -40,8 +40,10 @@ $validArg1withArg2Values =  [
         '_route',
         'h',
         'handler',
-        'only_data_route',
-        'only_page_route',
+        'mw',
+        'middleware',
+        'data',
+        'page',
         'all_route_compiled_singles_middlewares_and_all_their_handlers_files_i_know_files_will_be_hard_to_get_back',
         'all_route_compiled_and_singles_files_except_handlers_i_know_files_will_be_hard_to_get_back',
         'all_backups_compiled_and_single_files_i_know_files_will_be_hard_to_get_back',
@@ -157,7 +159,6 @@ $reserved_functions = [
     'all_backups_compiled_and_single_files_i_know_files_will_be_hard_to_get_back',
     'all_backups_finals_files_i_know_files_will_be_hard_to_get_back',
     'all_all_backups_files_i_know_files_will_be_hard_to_get_back_and_i_will_cry',
-    'help',
     'all_routes_compiled_and_singles_files',
     'route_compiled_and_singles_files',
     'data_compiled_and_singles_files',
@@ -239,6 +240,7 @@ $reserved_functions = [
     'r_is_localhost',
     'funk_is_localhost',
     'cli_sort_build_routes_compile_and_output',
+    'cli_value_exists_as_string_or_in_array',
 ];
 
 // First restore the folders if they don't exist
@@ -286,10 +288,10 @@ $commands = [
         // Adding to ALL Routes at the same time (Route, Data, Page)
         // Adding Route to only Route Routes
         'route' => function () {
-            cli_add_route();
+            cli_add_a_route();
         },
         'r' => function () {
-            cli_add_route();
+            cli_add_a_route();
         },
         'handler' => function () {
             cli_add_handler();
@@ -297,25 +299,17 @@ $commands = [
         'h' => function () {
             cli_add_handler();
         },
-        // Adding Route to only Data Routes
         'data' => function () {
-            cli_add_route(["data"]);
+            //
         },
-        // Adding Route to only Page Routes
         'page' => function () {
-            cli_add_route(["page"]);
+            //
         },
         'mw' => function () {
-            cli_add_middlewares(["mw_all"]);
-        },
-        'mws' => function () {
-            cli_add_middlewares(["mw_route"]);
+            cli_add_a_middleware();
         },
         'middleware' => function () {
-            cli_add_middlewares(["mw_data"]);
-        },
-        'middlewares' => function () {
-            cli_add_middlewares(["mw_page"]);
+            cli_add_a_middleware();
         },
     ],
     'change' => [
@@ -351,6 +345,12 @@ $commands = [
         },
         'h' => function () use ($argv) {
             cli_delete_a_handler_function_or_entire_file($argv[3] ?? null);
+        },
+        'mw' => function () {
+            cli_delete_a_middleware();
+        },
+        'middleware' => function () {
+            cli_delete_a_middleware();
         },
         // THESE DELETING FUNCTIONS ARE TO DELETE ACTUALLY MOST FILES IN MOST FOLDERS. FUNCTION ABOVE HERE ARE FOR DELETING INSIDE
         // OF FILES SUCH AS ROUTES, MIDDLEWARE, HANDLERS AND SO ON. PROCEED WITH CAUTION USING ANY OF THE FOLLOWING FUNCTIONS!!!
