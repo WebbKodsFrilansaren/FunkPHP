@@ -109,11 +109,13 @@ $settings = include __DIR__ . '/FunkCLI_Settings' ?? [
 $dirs = [
     "compiled" => __DIR__ . '/funkphp/_internals/compiled/',
     "_BACKUPS" => __DIR__ . '/funkphp/_BACKUPS/',
-    "handlers" => __DIR__ . '/funkphp/handlers/',
     "routes" => __DIR__ . '/funkphp/routes/',
+    "handlers" => __DIR__ . '/funkphp/handlers/',
+    "middlewares" => __DIR__ . '/funkphp/middlewares/',
     "data" => __DIR__ . '/funkphp/data/',
     "pages" => __DIR__ . '/funkphp/pages/',
-    "middlewares" => __DIR__ . '/funkphp/middlewares/',
+    "templates" => __DIR__ . '/funkphp/templates/',
+    "sql" => __DIR__ . '/funkphp/sql/',
     "backups_finals" => __DIR__ . '/funkphp/_BACKUPS/_FINAL_BACKUPS/',
     "backups_compiled" => __DIR__ . '/funkphp/_BACKUPS/compiled/',
     "backups_routes" => __DIR__ . '/funkphp/_BACKUPS/routes/',
@@ -122,6 +124,8 @@ $dirs = [
     "backups_handlers" => __DIR__ . '/funkphp/_BACKUPS/handlers/',
     "backups_middlewares" => __DIR__ . '/funkphp/_BACKUPS/middlewares/',
     "backups_templates" => __DIR__ . '/funkphp/_BACKUPS/templates/',
+    "backups_cached" => __DIR__ . '/funkphp/_BACKUPS/cached/',
+    "backups_config" => __DIR__ . '/funkphp/_BACKUPS/config/',
     "backups_sql" => __DIR__ . '/funkphp/_BACKUPS/sql/',
     "backups_tests" => __DIR__ . '/funkphp/_BACKUPS/tests/',
 ];
@@ -250,18 +254,18 @@ $commands = [
     'compile' => [
         'r' => function () {
             // Backup the old route file first (troute and single_routes)
-            cli_backup_batch(["troute_route", "route_single_routes"]);
+            cli_backup_batch(["troutes", "routes"]);
 
             // Then build and output new route file
-            cli_compile_batch(["troute_route"]);
+            cli_compile_batch(["troutes"]);
             cli_success("Recompiling means any manually (not through FunkCLI) added middlewares or routing should work now!");
         },
         'routes' => function () {
             // Backup the old route file first (troute and single_routes)
-            cli_backup_batch(["troute_route", "route_single_routes"]);
+            cli_backup_batch(["troutes", "routes"]);
 
             // Then build and output new route file
-            cli_compile_batch(["troute_route"]);
+            cli_compile_batch(["troutes"]);
             cli_success("Compiled Only Route routes!");
         },
         'help' => function () {
@@ -356,12 +360,8 @@ $commands = [
             cli_delete_all_files_in_directory_except_other_directories($dirs['routes']);
             cli_delete_all_files_in_directory_except_other_directories($dirs['data']);
             cli_delete_all_files_in_directory_except_other_directories($dirs['pages']);
-            cli_delete_all_files_in_directory_except_other_directories($dirs['handlers_routes']);
-            cli_delete_all_files_in_directory_except_other_directories($dirs['handlers_data']);
-            cli_delete_all_files_in_directory_except_other_directories($dirs['handlers_pages']);
-            cli_delete_all_files_in_directory_except_other_directories($dirs['middlewares_routes']);
-            cli_delete_all_files_in_directory_except_other_directories($dirs['middlewares_data']);
-            cli_delete_all_files_in_directory_except_other_directories($dirs['middlewares_pages']);
+            cli_delete_all_files_in_directory_except_other_directories($dirs['handlers']);
+            cli_delete_all_files_in_directory_except_other_directories($dirs['middlewares']);
         },
         'all_route_compiled_and_singles_files_except_handlers_i_know_files_will_be_hard_to_get_back' => function () {
             global $dirs, $settings;
@@ -410,38 +410,6 @@ $commands = [
         },
     ],
     'restore' => [
-        'all_routes_compiled_and_singles_files' => function () {
-            global $argv, $dirs, $exactFiles, $settings;
-            // Grab backup dir and restore exact file path
-            $oldRouteFileDir = $dirs['backups_compiled'];
-            $oldSingleRouteFileDir = $dirs['backups_routes'];
-            $exactRestorePathTroute = $exactFiles['troute_route'];
-            $exactRestorePathSingleRoute = $exactFiles['single_routes'];
-            $exactRestorePathSingleMiddlwaresRoute = $exactFiles['single_middlewares'];
-            cli_restore_file($oldRouteFileDir, $exactRestorePathTroute, "troute_route");
-            cli_restore_file($oldSingleRouteFileDir, $exactRestorePathSingleRoute, "route_single_routes");
-            cli_restore_file($oldSingleRouteFileDir, $exactRestorePathSingleMiddlwaresRoute, "route_middleware_routes");
-
-            // Grab backup dir and restore exact file path
-            $oldRouteFileDir = $dirs['backups_compiled'];
-            $oldSingleRouteFileDir = $dirs['backups_data'];
-            $exactRestorePathTroute = $exactFiles['troute_data'];
-            $exactRestorePathSingleRoute = $exactFiles['single_data'];
-            $exactRestorePathSingleMiddlwaresRoute = $exactFiles['single_middlewares_data'];
-            cli_restore_file($oldRouteFileDir, $exactRestorePathTroute, "troute_data");
-            cli_restore_file($oldSingleRouteFileDir, $exactRestorePathSingleRoute, "data_single_routes");
-            cli_restore_file($oldSingleRouteFileDir, $exactRestorePathSingleMiddlwaresRoute, "data_middleware_routes");
-
-            // Grab backup dir and restore exact file path
-            $oldRouteFileDir = $dirs['backups_compiled'];
-            $oldSingleRouteFileDir = $dirs['backups_pages'];
-            $exactRestorePathTroute = $exactFiles['troute_page'];
-            $exactRestorePathSingleRoute = $exactFiles['single_page'];
-            $exactRestorePathSingleMiddlwaresRoute = $exactFiles['single_middlewares_page'];
-            cli_restore_file($oldRouteFileDir, $exactRestorePathTroute, "troute_page");
-            cli_restore_file($oldSingleRouteFileDir, $exactRestorePathSingleRoute, "page_single_routes");
-            cli_restore_file($oldSingleRouteFileDir, $exactRestorePathSingleMiddlwaresRoute, "page_middleware_routes");
-        },
         'route_compiled_and_singles_files' => function () {
             global $argv, $dirs, $exactFiles, $settings;
             // Grab backup dir and restore exact file path
@@ -449,36 +417,20 @@ $commands = [
             $oldSingleRouteFileDir = $dirs['backups_routes'];
             $exactRestorePathTroute = $exactFiles['troute_route'];
             $exactRestorePathSingleRoute = $exactFiles['single_routes'];
-            $exactRestorePathSingleMiddlwaresRoute = $exactFiles['single_middlewares'];
             cli_restore_file($oldRouteFileDir, $exactRestorePathTroute, "troute_route");
             cli_restore_file($oldSingleRouteFileDir, $exactRestorePathSingleRoute, "route_single_routes");
-            cli_restore_file($oldSingleRouteFileDir, $exactRestorePathSingleMiddlwaresRoute, "route_middleware_routes");
         },
         'data_compiled_and_singles_files' => function () {
             global $argv, $dirs, $exactFiles, $settings;
             // Grab backup dir and restore exact file path
             $oldRouteFileDir = $dirs['backups_compiled'];
             $oldSingleRouteFileDir = $dirs['backups_data'];
-            $exactRestorePathTroute = $exactFiles['troute_data'];
-            $exactRestorePathSingleRoute = $exactFiles['single_data'];
-            $exactRestorePathSingleMiddlwaresRoute = $exactFiles['single_middlewares_data'];
-
-            cli_restore_file($oldRouteFileDir, $exactRestorePathTroute, "troute_data");
-            cli_restore_file($oldSingleRouteFileDir, $exactRestorePathSingleRoute, "data_single_routes");
-            cli_restore_file($oldSingleRouteFileDir, $exactRestorePathSingleMiddlwaresRoute, "data_middleware_routes");
         },
         'page_compiled_and_singles_files' => function () {
             global $argv, $dirs, $exactFiles, $settings;
             // Grab backup dir and restore exact file path
             $oldRouteFileDir = $dirs['backups_compiled'];
             $oldSingleRouteFileDir = $dirs['backups_pages'];
-            $exactRestorePathTroute = $exactFiles['troute_page'];
-            $exactRestorePathSingleRoute = $exactFiles['single_page'];
-            $exactRestorePathSingleMiddlwaresRoute = $exactFiles['single_middlewares_page'];
-
-            cli_restore_file($oldRouteFileDir, $exactRestorePathTroute, "troute_page");
-            cli_restore_file($oldSingleRouteFileDir, $exactRestorePathSingleRoute, "page_single_routes");
-            cli_restore_file($oldSingleRouteFileDir, $exactRestorePathSingleMiddlwaresRoute, "page_middleware_routes");
         },
         'help' => function () {
             cli_info_multiline("FunkCLI - Restore Help");

@@ -677,7 +677,7 @@ function cli_backup_batch($arrayOfFilesToBackup)
     // Now backup the old route files based on provided $filesString
     // Loop through each file in the array and backup it
     foreach ($arrayOfFilesToBackup as $fileString) {
-        if ($fileString === "troute_route") {
+        if ($fileString === "troutes") {
             // Routes
             if ($settings['ALWAYS_BACKUP_IN']['COMPILED_IN_BACKUPS']) {
                 cli_backup_file_until_success($backupCompiledPath . "troute_route", ".php", $oldTrouteRouteFile);
@@ -687,7 +687,7 @@ function cli_backup_batch($arrayOfFilesToBackup)
             }
             continue;
         }
-        if ($fileString === "route_single_routes") {
+        if ($fileString === "routes") {
             // Single Route Routes & Middlewares
             if ($settings['ALWAYS_BACKUP_IN']['ROUTES_IN_BACKUPS']) {
                 cli_backup_file_until_success($backupRouteRoutePath . "route_single_routes", ".php", $oldSingleRouteRouteFile);
@@ -746,10 +746,17 @@ function cli_backup_batch($arrayOfFilesToBackup)
             }
             continue;
         }
-        if ($fileString === "handlers_mw_p") {
-            if ($settings['ALWAYS_BACKUP_IN']['PAGES_MWS_IN_BACKUPS']) {
+        if ($fileString === "config") {
+            if ($settings['ALWAYS_BACKUP_IN']['CONFIG_IN_BACKUPS']) {
             }
-            if ($settings['ALWAYS_BACKUP_IN']['PAGES_MWS_IN_FINAL_BACKUPS']) {
+            if ($settings['ALWAYS_BACKUP_IN']['CONFIG_IN_FINAL_BACKUPS']) {
+            }
+            continue;
+        }
+        if ($fileString === "cached") {
+            if ($settings['ALWAYS_BACKUP_IN']['CACHED_IN_BACKUPS']) {
+            }
+            if ($settings['ALWAYS_BACKUP_IN']['CACHED_IN_FINAL_BACKUPS']) {
             }
             continue;
         }
@@ -782,8 +789,8 @@ function cli_delete_a_route()
         // First backup all associated route files if settings allow it
         cli_backup_batch(
             [
-                "troute_route",
-                "route_single_routes",
+                "troutes",
+                "routes",
             ]
         );
         // Store handler variable
@@ -1041,8 +1048,8 @@ function cli_sort_build_routes_compile_and_output($singleRoutesRootArray)
     // First backup all associated route files if settings allow it
     cli_backup_batch(
         [
-            "troute_route",
-            "route_single_routes",
+            "troutes",
+            "routes",
         ]
     );
 
@@ -1308,7 +1315,7 @@ function cli_compile_batch($arrayOfRoutesToCompileAndOutput)
     global $singleRoutesRoute;
 
     foreach ($arrayOfRoutesToCompileAndOutput as $routeString) {
-        if ($routeString === "troute_route") {
+        if ($routeString === "troutes") {
             $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRoute['ROUTES'], $singleRoutesRoute['ROUTES']);
             cli_output_compiled_routes($compiledRouteRoutes, "troute_route");
             continue;
