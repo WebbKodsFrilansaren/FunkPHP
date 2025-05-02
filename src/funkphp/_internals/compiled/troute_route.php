@@ -8,4 +8,6 @@ return  [
   [],
   'DELETE' =>
   [],
+  'PATCH' =>
+  [],
 ];

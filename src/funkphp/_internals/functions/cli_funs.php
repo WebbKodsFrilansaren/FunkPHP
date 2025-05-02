@@ -339,6 +339,7 @@ function cli_build_compiled_routes(array $developerSingleRoutes, array $develope
     $POSTSingles = $developerSingleRoutes["POST"] ?? [];
     $PUTSingles = $developerSingleRoutes["PUT"] ?? [];
     $DELETESingles = $developerSingleRoutes["DELETE"] ?? [];
+    $PATCHSingles = $developerSingleRoutes["PATCH"] ?? [];
 
     // Using method below, iterate through each HttpMethod and then add it to the $compiledTrie array
     $addMethods = function ($singleRoutes) {
@@ -457,12 +458,14 @@ function cli_build_compiled_routes(array $developerSingleRoutes, array $develope
     $compiledTrie['POST'] = $addMethods($POSTSingles);
     $compiledTrie['PUT'] = $addMethods($PUTSingles);
     $compiledTrie['DELETE'] = $addMethods($DELETESingles);
+    $compiledTrie['PATCH'] = $addMethods($PATCHSingles);
 
     // Then add the middlewares to the compiled trie and return it
     $addMiddlewareRoutes($developerMiddlewareRoutes["GET"] ?? [], $compiledTrie['GET']);
     $addMiddlewareRoutes($developerMiddlewareRoutes["POST"] ?? [], $compiledTrie['POST']);
     $addMiddlewareRoutes($developerMiddlewareRoutes["PUT"] ?? [], $compiledTrie['PUT']);
     $addMiddlewareRoutes($developerMiddlewareRoutes["DELETE"] ?? [], $compiledTrie['DELETE']);
+    $addMiddlewareRoutes($developerMiddlewareRoutes["PATCH"] ?? [], $compiledTrie['PATCH']);
 
     return $compiledTrie;
 }
