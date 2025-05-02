@@ -37,7 +37,7 @@ $validArg1withArg2Values =  [
     ],
     'delete' => [
         'r',
-        '_route',
+        'route',
         'h',
         'handler',
         'mw',

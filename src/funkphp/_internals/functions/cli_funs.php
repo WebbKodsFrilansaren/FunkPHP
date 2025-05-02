@@ -1299,7 +1299,7 @@ function cli_delete_a_middleware()
         $exactFiles,
         $singleRoutesRoute;
     if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3]) || !isset($argv[4]) || !is_string($argv[4]) || empty($argv[4])) {
-        cli_err_syntax("Should be at least four(4) non-empty string arguments!\nfunkcli delete [mw|middleware] [method/route] [Middleware_handler]\nExample: 'php funkcli delete mw GET/users/:id validateUserId'");
+        cli_err_syntax("Should be at least four(4) non-empty string arguments!\nfunkcli delete [mw|middleware] [method/route] [Middleware_name]\nExample: 'php funkcli delete mw GET/users/:id validateUserId'");
     }
 
     // Check now that handler $argv[4] is a string containg only letters, numbers and underscores!
@@ -1312,10 +1312,10 @@ function cli_delete_a_middleware()
     $mwFolder = $dirs['middlewares'];
     $mwName = str_ends_with($argv[4], ".php") ? $argv[4] : $argv[4] . ".php";
     if (file_exists($mwFolder . $mwName)) {
-        cli_info_without_exit("Middleware \"$argv[4]\" exists in \"funkphp/middlewares/$mwName\"!");
+        cli_info_without_exit("Middleware \"$argv[4].php\" exists in \"funkphp/middlewares/$mwName\"!");
     } else {
-        cli_err_without_exit("Middleware \"$argv[4]\" does not even exist in \"funkphp/middlewares\"!");
-        cli_info("Check if it is a misspelled file name if you are already using \"$argv[4]\" in other routes!");
+        cli_err_without_exit("Middleware \"$argv[4].php\" not found in \"funkphp/middlewares\"!");
+        cli_info("Maybe misspelled file name if you are already using \"$argv[4]\" in other routes?");
     }
 
     // Prepare the route string by trimming, validating starting, ending and middle parts of it
@@ -1326,9 +1326,36 @@ function cli_delete_a_middleware()
 
     // Check that route actually exists for the given method in the route file
     if (!isset($singleRoutesRoute['ROUTES'][$method][$validRoute])) {
-        cli_err("The Route \"$method$validRoute\" does not exist. So, it doesn't have the middleware \"$argv[4]\"!");
+        cli_err("Route \"$method$validRoute\" does not exist. It cannot have the middleware \"$argv[4]\"!");
+    }
+    // Now check if "middleware" key exists in the route and if it does, check if the middleware exists in it
+    if (isset($singleRoutesRoute['ROUTES'][$method][$validRoute]['middlewares'])) {
+        if (!cli_value_exists_as_string_or_in_array($argv[4], $singleRoutesRoute['ROUTES'][$method][$validRoute]['middlewares'])) {
+            cli_err("Middleware \"$argv[4]\" not found in Route \"$method$validRoute\"!");
+        } else {
+            // Remove the middleware from the route, first check if it is an array or string
+            if (is_array($singleRoutesRoute['ROUTES'][$method][$validRoute]['middlewares'])) {
+                $key = array_search($argv[4], $singleRoutesRoute['ROUTES'][$method][$validRoute]['middlewares']);
+                unset($singleRoutesRoute['ROUTES'][$method][$validRoute]['middlewares'][$key]);
+                // Also remove middleware key if it is empty after removing the middleware
+                if (empty($singleRoutesRoute['ROUTES'][$method][$validRoute]['middlewares'])) {
+                    unset($singleRoutesRoute['ROUTES'][$method][$validRoute]['middlewares']);
+                }
+            } else {
+                unset($singleRoutesRoute['ROUTES'][$method][$validRoute]['middlewares']);
+            }
+            // If successful, we show success message and then sort, build, compile and output the routes
+            cli_sort_build_routes_compile_and_output($singleRoutesRoute);
+            cli_success_without_exit("Removed Middleware \"$argv[4]\" from Route \"$method$validRoute\"!");
+            cli_info_without_exit("The Middleware \"$argv[4].php\" still exists in \"funkphp/middlewares/\"!");
+        }
+    } else {
+        cli_err("Route \"$method$validRoute\" has no middlewares!");
     }
 }
+
+// Delete a single Middleware from all methods with routes (does NOT delete the MW file!)
+function cli_delete_a_middleware_from_all_routes() {}
 
 // Delete an actual Middleware file from the middlewares folder (funkphp/middlewares/)
 // This also removes it from every route it is used in, so be careful with this one!
