@@ -1,5 +1,134 @@
 <?php
 
+// Match Compiled Route with URI Segments, used by "r_match_developer_route"
+function cli_match_compiled_route(string $requestUri, array $methodRootNode): ?array
+{
+    // Prepare & and extract URI Segments and remove empty segments
+    $path = trim(strtolower($requestUri), '/');
+    $uriSegments = empty($path) ? [] : array_values(array_filter(explode('/', $path)));
+    $uriSegmentCount = count($uriSegments);
+
+    // Prepare variables to store the current node,
+    // matched segments, parameters, and middlewares
+    $currentNode = $methodRootNode;
+    $matchedPathSegments = [];
+    $matchedParams = [];
+    $matchedMiddlewares = [];
+    $segmentsConsumed = 0;
+
+    // EDGE-CASE: '/' and include middleware at root node if it exists
+    if ($uriSegmentCount === 0) {
+        if (isset($currentNode['|'])) {
+            array_push($matchedMiddlewares, "/" . implode('/', $matchedPathSegments));
+        }
+        return ["route" => '/', "params" => $matchedParams, "middlewares" => $matchedMiddlewares];
+    }
+
+    // Iterate URI segments when more than 0
+    for ($i = 0; $i < $uriSegmentCount; $i++) {
+        $currentUriSegment = $uriSegments[$i];
+
+        /// First try match "|" middleware node
+        if (isset($currentNode['|'])) {
+            array_push($matchedMiddlewares, "/" . implode('/', $matchedPathSegments));
+        }
+
+        // Then try match literal route
+        if (isset($currentNode[$currentUriSegment])) {
+            $matchedPathSegments[] = $currentUriSegment;
+            $currentNode = $currentNode[$currentUriSegment];
+            $segmentsConsumed++;
+            continue;
+        }
+
+        // Or try match dynamic route ":" indicator node and
+        // only store param and matched URI segment if not null
+        if (isset($currentNode[':'])) {
+            $placeholderKey = key($currentNode[':']);
+
+            if ($placeholderKey !== null && isset($currentNode[':'][$placeholderKey])) {
+                $matchedParams[$placeholderKey] = $currentUriSegment;
+                $matchedPathSegments[] = ":" . $placeholderKey;
+                $currentNode = $currentNode[':'][$placeholderKey];
+                $segmentsConsumed++;
+                continue;
+            }
+        }
+
+        // No matched "|", ":" or literal route in Compiled Routes!
+        return null;
+    }
+
+    // EDGE-CASE: Add middleware at last node if it exists
+    if (isset($currentNode['|'])) {
+        array_push($matchedMiddlewares, "/" . implode('/', $matchedPathSegments));
+    }
+
+    // Return matched route, params & middlewares
+    // if all consumed segments matched
+    if ($segmentsConsumed === $uriSegmentCount) {
+        if (!empty($matchedPathSegments)) {
+            return ["route" => '/' . implode('/', $matchedPathSegments), "params" => $matchedParams, "middlewares" => $matchedMiddlewares];
+        }
+        // EDGE-CASE: 0 consumed segments,
+        // return null instead of matched
+        else {
+            return null;
+        }
+    }
+    // EDGE-CASES: Return null when impossible(?)/unexpected behavior
+    else {
+        return null;
+    }
+    return null;
+}
+
+// TRIE ROUTER STARTING POINT: Match Returned Matched Compiled Route With Developer's Defined Route
+function cli_match_developer_route(string $method, string $uri, array $compiledRouteTrie, array $developerSingleRoutes, array $developerMiddlewareRoutes, string $handlerKey = "handler", string $mHandlerKey = "middlewares")
+{
+    // Prepare return values
+    $matchedData = null;
+    $matchedPage = null;
+    $matchedRoute = null;
+    $matchedRouteHandler = null;
+    $matchedRouteParams = null;
+    $routeDefinition = null;
+    $noMatchIn = ""; // Use as debug value
+
+    // Try match HTTP Method Key in Compiled Routes
+    if (isset($compiledRouteTrie[$method])) {
+        $routeDefinition = cli_match_compiled_route($uri, $compiledRouteTrie[$method]);
+    } else {
+        $noMatchIn = "COMPILED_ROUTE_KEY (" . mb_strtoupper($method) . ") & ";
+    }
+
+    // When Matched Compiled Route, try match Developer's defined route
+    if ($routeDefinition !== null) {
+        $matchedRoute = $routeDefinition["route"];
+        $matchedRouteParams = $routeDefinition["params"] ?? null;
+
+        // If Compiled Route Matches Developers Defined Route!
+        if (isset($developerSingleRoutes[$method][$routeDefinition["route"]])) {
+            $routeInfo = $developerSingleRoutes[$method][$routeDefinition["route"]];
+            $matchedRouteHandler = $routeInfo[$handlerKey] ?? null;
+            $noMatchIn = "ROUTE_MATCHED_BOTH";
+            $matchedData = $routeInfo["data"] ?? null;
+            $matchedPage = $routeInfo["page"] ?? null;
+        } else {
+            $noMatchIn .= "DEVELOPER_ROUTES(route_single_routes.php)";
+        }
+    } else {
+        $noMatchIn .= "COMPILED_ROUTES(troute_route.php)";
+    }
+    return [
+        "method" => $method,
+        "route" => $matchedRoute,
+        "$handlerKey" => $matchedRouteHandler,
+        "params" => $matchedRouteParams,
+        "no_match_in" => $noMatchIn, // Use as debug value
+    ];
+}
+
 // Restore essentially the "funkphp" folder and all its subfolders if they do not exist!
 function cli_restore_default_folders_and_files()
 {
@@ -28,7 +157,7 @@ function cli_restore_default_folders_and_files()
         "$folderBase/cached/files/",
         "$folderBase/config/",
         "$folderBase/data/",
-        "$folderBase/dx_steps/",
+        "$folderBase/_dx_steps/",
         "$folderBase/middlewares/",
         "$folderBase/pages/",
         "$folderBase/pages/complete/",
@@ -789,7 +918,7 @@ function cli_add_route()
         $exactFiles,
         $singleRoutesRoute, $reserved_functions;
     if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3]) || !isset($argv[4]) || !is_string($argv[4]) || empty($argv[4])) {
-        cli_err_syntax("Should be at least four(4) non-empty string arguments!\nphp funkcli add [method/route] [handler]\nExample: 'add route GET/users/:id getUser'");
+        cli_err_syntax("Should be at least four(4) non-empty string arguments!\nSyntax: php funkcli add [method/route] [handlerFile[=>handleFunction]]\nExample: 'add route get/users/:id users=>getUser'\nIMPORTANT: Writing [handlerFile] is parsed as [handlerFile=>handlerFile]!\n");
     }
 
     // Check if "$argv[4]" contains "=>" and split it into
@@ -836,9 +965,15 @@ function cli_add_route()
     [$method, $validRoute] = cli_prepare_valid_route_string($addRoute);
     cli_info_without_exit("ROUTE: " . "\"$oldRoute\"" . " parsed as: \"$method$validRoute\"");
 
-    // Check if the route already exists in the route file
+    // Check if the exact route already exists in the route file
     if (isset($singleRoutesRoute['ROUTES'][$method][$validRoute]) ?? null) {
         cli_err_syntax("\"$method$validRoute\" already exists in Routes!");
+    }
+
+    // Now we check against conflicting routes (dynamic routes) and if it exists, we error
+    $findDynamicRoute = cli_match_developer_route($method, $validRoute, include_once $exactFiles['troute_route'], $singleRoutesRoute['ROUTES'], $singleRoutesRoute['ROUTES']);
+    if ($findDynamicRoute['route'] !== null) {
+        cli_err_syntax("Dynamic Route \"{$findDynamicRoute['method']}{$findDynamicRoute['route']}\" would conflict with \"$method$validRoute\" in Routes!");
     }
 
     // Prepare handlers folders
