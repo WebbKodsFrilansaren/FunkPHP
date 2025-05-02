@@ -87,8 +87,6 @@ function cli_match_compiled_route(string $requestUri, array $methodRootNode): ?a
 function cli_match_developer_route(string $method, string $uri, array $compiledRouteTrie, array $developerSingleRoutes, array $developerMiddlewareRoutes, string $handlerKey = "handler", string $mHandlerKey = "middlewares")
 {
     // Prepare return values
-    $matchedData = null;
-    $matchedPage = null;
     $matchedRoute = null;
     $matchedRouteHandler = null;
     $matchedRouteParams = null;
@@ -112,8 +110,6 @@ function cli_match_developer_route(string $method, string $uri, array $compiledR
             $routeInfo = $developerSingleRoutes[$method][$routeDefinition["route"]];
             $matchedRouteHandler = $routeInfo[$handlerKey] ?? null;
             $noMatchIn = "ROUTE_MATCHED_BOTH";
-            $matchedData = $routeInfo["data"] ?? null;
-            $matchedPage = $routeInfo["page"] ?? null;
         } else {
             $noMatchIn .= "DEVELOPER_ROUTES(route_single_routes.php)";
         }
@@ -794,11 +790,16 @@ function cli_backup_batch($arrayOfFilesToBackup)
 // Delete a Single Route from "routes" folder
 function cli_delete_a_route()
 {
+    // Load globals and validate input
     global
         $argv, $dirs, $exactFiles,
         $settings,
-        $singleRoutesRoute,
-        $middlewareRoutesRoute;
+        $singleRoutesRoute;
+    if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3])) {
+        cli_err_syntax_without_exit("Provide a valid Route to delete from the Route file!\nExample: \"php funkcli delete [route|r] [method/route_name]\"");
+        cli_info("IMPORTANT: Its associated Handler Function (and Handler File if last function) will be deleted as well!\n");
+    }
+
     // Prepare the route string by trimming, validating starting, ending and middle parts of it
     $deleteRoute = trim(strtolower($argv[3]));
     $oldRoute = $deleteRoute;
@@ -820,95 +821,239 @@ function cli_delete_a_route()
         $handler = $singleRoutesRoute['ROUTES'][$method][$validRoute]['handler'] ?? "<Handler missing?>";
         // Then we unset() each matched route
         unset($singleRoutesRoute['ROUTES'][$method][$validRoute]);
-        cli_success_without_exit("Deleted Route \"$method$validRoute\" from Single Routes Route \"funkphp/routes/route_single_routes.php\"!");
-        cli_info_without_exit("Handler: \"$handler.php\" used by the route still exists in \"funkphp/handlers/R/\" folder. Delete manually or use for other routes!");
+        cli_success_without_exit("Deleted Single Route \"$method$validRoute\" from the Route file!");
 
         // Then we rebuild and recompile Routes
         cli_rebuild_single_routes_route_file($singleRoutesRoute);
-        $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRoute['ROUTES'], $middlewareRoutesRoute['MIDDLEWARES']);
+        $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRoute['ROUTES'], $singleRoutesRoute['ROUTES']);
         cli_output_compiled_routes($compiledRouteRoutes, "troute_route");
 
-        cli_success("Deleted Single Route \"$method$validRoute\" from Single Route file!");
+        // Send the handler variable to delete it (this will
+        // also delete file if it's the last function in it!)
+        cli_delete_a_handler_function_or_entire_file($handler);
     }
     // When one ore more is missing, we do not go ahead with deletion
     // since this function is meant to delete all three at once!
     else {
-        cli_err_syntax("Single Route: \"$method$validRoute\" does not exist!");
+        cli_err_syntax("The Route: \"$method$validRoute\" does not exis. Another HTTP Method or was it deleted already?");
     }
 }
 
-// Add a handler to the route file (funkphp/handlers/)
-function cli_add_handler($arrayOfHandlers)
+// Delete a Handler Function or entire Handler File if it is the last function in it
+function cli_delete_a_handler_function_or_entire_file($handlerVar)
 {
-    global $argv, $dirs, $exactFiles, $settings;
-    // Validate arguments (ensure file name, new function name, etc. are provided)
-    if (!isset($argv[3]) || strpos($argv[3], '=>') === false || !isset($argv[4])) {
-        cli_err_syntax("Syntax: php funkcli add handler <handler_file>=><new_function_name> <route>\n");
-        return;
+    // Load globals and validate input
+    global
+        $argv, $dirs, $exactFiles,
+        $settings;
+
+    // $handlerVar must either be a string or an array with a single string value!
+    if (!is_string($handlerVar) && !is_array($handlerVar)) {
+        cli_err_syntax_without_exit("The Handler argument must be 1) One string or 2) One array with one string!");
+        cli_err_syntax("Example: \"[HandlerFile|HandlerFile=>Function] (the variable structure, not as a string!)\"");
     }
 
-    [$handlerFile, $newFunctionName] = explode('=>', $argv[3]);
-    $route = $argv[4]; // The route associated with this handler (you might need this later)
-
-    $handlerPath = $dirs['handlers'] . $handlerFile . '.php';
-
-    // Check if the handler file exists
-    if (!file_exists($handlerPath)) {
-        cli_err_syntax("Handler file '{$handlerFile}.php' not found!");
-        return;
+    // If it is a string, check that it is valid and not empty
+    if (is_string($handlerVar) && empty($handlerVar)) {
+        cli_err_syntax_without_exit("\"$handlerVar\" must be a non-empty string!");
     }
 
-    $fileContent = file_get_contents($handlerPath);
+    // Prepare what is the handler file, function name, and handlers folder
+    $handlerFile = null;
+    $fnName = null;
+    $handlersFolder = $dirs['handlers'];
 
-    // 1. Add the new anonymous function definition at the beginning (after the initial comment)
-    // Find the position after the initial comment block.
-    // Assuming the initial comment ends with "// File created in FunkCLI!"
-    $commentEndPos = strpos($fileContent, "// File created in FunkCLI!");
-    $insertionPos = strpos($fileContent, "\n", $commentEndPos) + 1; // Insert after the newline
-
-    $newFunctionDefinition = "\n$" . $newFunctionName . " = function (&\$c) {\n    // TODO: Implement logic for {$newFunctionName}\n};\n\n";
-
-    $fileContent = substr_replace($fileContent, $newFunctionDefinition, $insertionPos, 0);
-
-    // 2. Add the new function variable to the 'use' list of the main returned function
-    // We need a regex to find the 'return function (...) use (...) {' line and capture the use list.
-    // This regex looks for 'return function' followed by parentheses, optional whitespace, 'use',
-    // parentheses, and then the opening brace of the function body.
-    // It captures the content within the use() parentheses.
-    $pattern = '/(return\s+function\s*\(.*?\) \s*use\s*\()(.*?)(\)\s*\{)/s';
-
-    // Use preg_replace_callback for more control over the replacement
-    $fileContent = preg_replace_callback($pattern, function ($matches) use ($newFunctionName) {
-        $beforeUse = $matches[1]; // The part before the use() parentheses (e.g., "return function (...) use (")
-        $currentUseList = $matches[2]; // The current content inside the use() parentheses (e.g., "$test, $test2")
-        $afterUse = $matches[3]; // The part after the use() parentheses (e.g., ") {")
-
-        // Add the new variable to the use list
-        if (trim($currentUseList) === '') {
-            // If the use list is empty, just add the new variable
-            $newUseList = "$" . $newFunctionName;
+    // If it is a string, check for "=>" because this function is either called by deleting a route
+    // or just by deleting a handler function directly meaning the handlerFile=>Function would be
+    // passed as a string and not as an array with one string value in the case of deleting a route.
+    if (is_string($handlerVar)) {
+        if (strpos($handlerVar, '=>') !== false) {
+            [$handlerFile, $fnName] = explode('=>', $handlerVar);
+            $handlerFile = trim($handlerFile);
+            $fnName = trim($fnName);
         } else {
-            // If the use list is not empty, append the new variable
-            $newUseList = $currentUseList . ", $" . $newFunctionName;
+            $handlerFile = $handlerVar;
+            $fnName = $handlerFile;
         }
+    } elseif (is_array($handlerVar)) {
+        $handlerFile = key($handlerVar);
+        $fnName = $handlerVar[$handlerFile];
+    }
 
-        // Reconstruct the line with the updated use list
-        return $beforeUse . $newUseList . $afterUse;
-    }, $fileContent, 1); // The '1' limits the replacement to the first occurrence
+    // Check that the handler file and function name are not empty strings with invalid characters
+    if (!preg_match('/^[a-z0-9_]+$/', $handlerFile)) {
+        cli_err_syntax("\"{$handlerFile}\" Handler File must be a lowercase string containing only letters, numbers and underscores!");
+    }
+    if (!preg_match('/^[a-z0-9_]+$/', $fnName)) {
+        cli_err_syntax("\"{$fnName}\" Function Name must be a lowercase string containing only letters, numbers and underscores!");
+    }
 
-    // 3. Write the modified content back to the file
-    $writeSuccess = file_put_contents($handlerPath, $fileContent);
+    // We now check if the handler file exists in the handlers folder, add .php if not
+    if (!file_exists($handlersFolder . $handlerFile . ".php")) {
+        cli_err_syntax("Handler File \"$handlerFile\" not found in \"funkphp/handlers/\"!");
+    }
 
-    if ($writeSuccess !== false) {
-        cli_success("Added function \${$newFunctionName} to handler file {$handlerFile}.php and updated use list!");
-        // You might want to trigger a route compilation here as well
-        // cli_compile_route_routes(); or similar
+    // We now read the file content and check for the delimiter function name
+    // as such: "//NEVER_TOUCH_ANY_COMMENTS_START|END=$handlerFile". Both
+    // must exist otherwise we cannot be certain it is a valid handler file.
+    $fileContent = file_get_contents($handlersFolder . $handlerFile . ".php");
+    if (
+        strpos($fileContent, "//DELIMITER_HANDLER_FUNCTION_START=$fnName") === false
+        || strpos($fileContent, "//DELIMITER_HANDLER_FUNCTION_END=$fnName") === false
+    ) {
+        cli_err_syntax("Function \"$fnName\" in Handler \"$handlerFile\" not found or invalid structure!");
+    }
+
+    // We now match the number of "//DELIMITER_HANDLER_FUNCTION_START" and "//DELIMITER_HANDLER_FUNCTION_END"
+    // in order to know how many functions are in the file. If it is 1, we then check if it is the last function
+    // and thus delete entire file. If it is more than 1, we just delete the function and leave the file intact.
+    // We do this by using preg_match_all() to count the number of matches in the file content.
+    $startMatches = preg_match_all("/\/\/DELIMITER_HANDLER_FUNCTION_START=/", $fileContent, $matchesStart);
+    $endMatches = preg_match_all("/\/\/DELIMITER_HANDLER_FUNCTION_END=/", $fileContent, $matchesEnd);
+    if ($startMatches === false || $endMatches === false) {
+        cli_err_syntax("Failed to find the Functions in the Handler File \"$handlerFile\"!");
+    }
+
+    // If matches are uneven, the file structure is invalid and we cannot delete it
+    if ($startMatches !== $endMatches) {
+        cli_err_syntax("The Handler File \"$handlerFile\" has an invalid structure! Every \"//DELIMITER_HANDLER_FUNCTION_START=\" should have a matching \"//DELIMITER_HANDLER_FUNCTION_END=\"!");
+    }
+
+    // We now check if the number of matches is 1, meaning it is the last
+    // function in the file and thus we delete the entire file. If it is
+    // more than 1, we just delete the function and leave the file intact.
+    if ($startMatches === 1 && $endMatches === 1) {
+        // TODO: Add Backup Fn that backups the file before deleting!
+        // Delete the entire file
+        if (unlink($handlersFolder . $handlerFile . ".php")) {
+            cli_success("Deleted Handler File \"$handlerFile\" and Function \"$fnName\"!");
+        } else {
+            cli_err_syntax("FAILED to delete Handler File \"$handlerFile\" and Function \"$fnName\"!");
+        }
+    }
+    // Here we know we have more than 1 match and that we have same number of matches
+    // We now wanna find: //DELIMITER_HANDLER_FUNCTION_START=$fnName and //DELIMITER_HANDLER_FUNCTION_END=$fnName
+    // in order to find the starting position and ending position of the function in the file content so we can
+    // just replace/delete that part of the file content and then write it back to the file.
+    $startPos = strpos($fileContent, "//DELIMITER_HANDLER_FUNCTION_START=$fnName");
+    $endPos = strpos($fileContent, "//DELIMITER_HANDLER_FUNCTION_END=$fnName") + mb_strlen("//DELIMITER_HANDLER_FUNCTION_END=$fnName") + 1;
+    if ($startPos === false || $endPos === false) {
+        cli_err_syntax("Failed to find the Function \"$fnName\" in the Handler File \"$handlerFile\"!");
+    }
+    // Start position should NOT be larger than end position!
+    if ($startPos > $endPos) {
+        cli_err_syntax("The Handler File \"$handlerFile\" has an invalid structure! The start position is larger than the end position for \"$fnName\"!");
+    }
+    // We now replace the function in the file content with an empty string and write it back to the file
+    $fileContent = substr_replace($fileContent, "", $startPos, $endPos - $startPos);
+
+    // We write back the file content to the file and check if it was successful
+    if (file_put_contents($handlersFolder . $handlerFile . ".php", $fileContent) !== false) {
+        cli_success("Deleted Function \"$fnName\" from Handler File \"$handlerFile\"!");
     } else {
-        cli_err_syntax("Failed to write to handler file {$handlerFile}.php.");
+        cli_err_syntax("FAILED to delete Function \"$fnName\" from Handler File \"$handlerFile\"!");
     }
 }
 
-// Add a single route to the route file (funkphp/routes/)
+// Add a handler to (funkphp/handlers/) WITHOUT adding to the Route file
+function cli_add_handler()
+{
+    // Load globals and validate input
+    global $argv,
+        $settings,
+        $dirs,
+        $exactFiles,
+        $singleRoutesRoute, $reserved_functions;
+    if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3])) {
+        cli_err_syntax("Should be at least three(3) non-empty string arguments!\nSyntax: php funkcli add handler [handlerFile[=>handleFunction]]\nExample: 'php funkcli add handler users=>getUser'\nIMPORTANT: Writing [handlerFile] is parsed as [handlerFile=>handlerFile]!\n");
+    }
+
+    $handlerFile = null;
+    $fnName = null;
+    $arrow = null;
+    if (strpos($argv[3], '=>') !== false) {
+        [$handlerFile, $fnName] = explode('=>', $argv[3]);
+        $handlerFile = trim($handlerFile);
+        $fnName = trim($fnName);
+        $arrow = true;
+    } else {
+        $handlerFile = $argv[3];
+        $fnName = null;
+    }
+
+    // Preg_match validate both (unless null) handler file and function name
+    if ($handlerFile !== null && !preg_match('/^[a-z0-9_]+$/', $handlerFile)) {
+        cli_err_syntax("\"{$handlerFile}\" - Handler name must be a lowercased string containing only letters, numbers and underscores!");
+    }
+    if ($fnName !== null && !preg_match('/^[a-z0-9_]+$/', $fnName)) {
+        cli_err_syntax("\"{$fnName}\" - Function name must be a lowercased string containing only letters, numbers and underscores!");
+    }
+
+    // Check that both fnName and handlerFile are not reserved functions
+    if ($fnName !== null && in_array($fnName, $reserved_functions)) {
+        cli_err_syntax("\"{$fnName}\" - Function is a reserved function name!");
+    }
+    if ($handlerFile !== null && in_array($handlerFile, $reserved_functions)) {
+        cli_err_syntax("\"{$handlerFile}\" - Handler is a reserved function name!");
+    }
+
+    // Function name is optional, so if not provided, we set it to the handler file name since
+    // that is the default name for the function in the handler file when the file is created
+    if ($fnName === null) {
+        $fnName = $handlerFile;
+    }
+    cli_info_without_exit("Parsed Handler: \"funkphp/handlers/$handlerFile.php\" and Function: \"$fnName\"");
+
+    // Prepare handlers folders
+    $handlersDir = $dirs['handlers'];
+
+    // Check first if the handler file exists in the handlers folder, add .php if not
+    if (file_exists($handlersDir . $handlerFile . ".php")) {
+        // Read the file content and check if the function name exists in the file
+        $fileContent = file_get_contents($handlersDir . $handlerFile . ".php");
+        if ($fnName !== null && strpos($fileContent, "//DELIMITER_HANDLER_FUNCTION_START=$fnName") !== false) {
+            cli_err_syntax("Function \"$fnName\" in Handler \"funkphp/handlers/$handlerFile.php\" is already used!");
+        }
+        // This means handler file exists but function name is not used, so we can add it
+        else {
+            cli_info_without_exit("Handler \"funkphp/handlers/$handlerFile.php\" exists and Function \"$fnName\" is valid!");
+            // We now check if we can find "//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile" in the file
+            // and if not that means either error or Developer is trying to break the file, so we exit
+            if (strpos($fileContent, "//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile") === false) {
+                cli_err_syntax("Handler \"funkphp/handlers/$handlerFile.php\" is invalid. Could not find \"//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile\". Please do not be a jerk trying to break the file!");
+            }
+            // We found the comment, so we can add the function name to the file by replacing the comment with the function name and then the comment again!
+            $fileContent = str_replace(
+                "//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile",
+                "//DELIMITER_HANDLER_FUNCTION_START=$fnName\nfunction $fnName(&\$c) // <UNKNOWN_ROUTE>\n{\n\n};\n//DELIMITER_HANDLER_FUNCTION_END=$fnName\n\n//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile",
+                $fileContent
+            );
+            if (file_put_contents($handlersDir . $handlerFile . ".php", $fileContent) !== false) {
+                cli_success_without_exit("Added Function \"$fnName\" to Handler \"funkphp/handlers/$handlerFile.php\"!");
+            } else {
+                cli_err_syntax("FAILED to add Function \"$fnName\" to Handler \"funkphp/handlers/$handlerFile.php\". File permissions issue?");
+            }
+        }
+    } // File does not exist, so we create it
+    else {
+        // Create the handler file with the function name and return a success message
+        $outputHandlerRoute = file_put_contents(
+            $handlersDir . $handlerFile . ".php",
+            "<?php\n//Handler File - This runs after Middlewares have ran after matched Route!\n\n//DELIMITER_HANDLER_FUNCTION_START=$fnName\nfunction $fnName(&\$c) // <UNKOWN_ROUTE>\n{\n\n};\n//DELIMITER_HANDLER_FUNCTION_END=$fnName\n\n//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile\nreturn function (&\$c, \$handler = \"$fnName\") {\n\$handler(\$c);\n};\n//NEVER_TOUCH_ANY_COMMENTS_END=$handlerFile"
+        );
+        if ($outputHandlerRoute) {
+            cli_success_without_exit("Added Handler \"funkphp/handlers/$handlerFile.php\" with Function \"$fnName\" in \"funkphp/handlers/$handlerFile.php\"!");
+        } else {
+            cli_err_syntax("FAILED to create Handler \"funkphp/handlers/$handlerFile.php\". File permissions issue?");
+        }
+    }
+    // Warn that the handler file was created/updated but the route is unknown (so it is not added to the route file)
+    cli_warning_without_exit("You have ONLY created/updated Handler File: \"$handlerFile\" with Function \"$fnName\"");
+    cli_warning_without_exit("Its associated route for Function \"$fnName\" is \"<UNKNOWN_ROUTE>\". You must add it MANUALLY to the Route file!");
+    cli_warning("IMPORTANT: Using \"php funkcli add route\" to combine the Route with its associated Handler File and Function will NOT work!");
+}
+
+// Add a Route to the Route file (funkphp/routes/) INCLUDING a [HandlerFile[=>Function]]
 function cli_add_route()
 {
     // Load globals and validate input
@@ -918,7 +1063,7 @@ function cli_add_route()
         $exactFiles,
         $singleRoutesRoute, $reserved_functions;
     if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3]) || !isset($argv[4]) || !is_string($argv[4]) || empty($argv[4])) {
-        cli_err_syntax("Should be at least four(4) non-empty string arguments!\nSyntax: php funkcli add [method/route] [handlerFile[=>handleFunction]]\nExample: 'add route get/users/:id users=>getUser'\nIMPORTANT: Writing [handlerFile] is parsed as [handlerFile=>handlerFile]!\n");
+        cli_err_syntax("Should be at least four(4) non-empty string arguments!\nSyntax: php funkcli add [method/route] [handlerFile[=>handleFunction]]\nExample: 'php funkcli add route get/users/:id users=>getUser'\nIMPORTANT: Writing [handlerFile] is parsed as [handlerFile=>handlerFile]!\n");
     }
 
     // Check if "$argv[4]" contains "=>" and split it into
@@ -984,7 +1129,9 @@ function cli_add_route()
         // Read the file content and check if the function name exists in the file
         $fileContent = file_get_contents($handlersDir . $handlerFile . ".php");
         if ($fnName !== null && strpos($fileContent, "//DELIMITER_HANDLER_FUNCTION_START=$fnName") !== false) {
-            cli_err_syntax("Function \"$fnName\" in Handler \"funkphp/handlers/$handlerFile.php\" is already used!");
+            cli_err_syntax_without_exit("Function \"$fnName\" in Handler \"funkphp/handlers/$handlerFile.php\" is already used!");
+            cli_err_syntax_without_exit("If the Handler File with the Function was created using \"php funkcli add handler [HandlerFile[=>Function]]\", you must MANUALLY add it to the Route file!");
+            cli_info("Use \"php funkcli add route [Method/Route] [HandlerFile[=>Function]]\" instead to avoid these possible issues in the first place!");
         }
         // This means handler file exists but function name is not used, so we can add it
         else {
@@ -1719,6 +1866,13 @@ function cli_err_syntax($string)
     }
     echo "\033[31m[FunkCLI - SYNTAX ERROR]: $string\n\033[0m";
     exit;
+}
+function cli_err_syntax_without_exit($string)
+{
+    if ($_SERVER['SCRIPT_NAME'] !== 'funkcli') {
+        exit;
+    }
+    echo "\033[31m[FunkCLI - SYNTAX ERROR]: $string\n\033[0m";
 }
 function cli_err_command($string)
 {

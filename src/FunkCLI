@@ -14,6 +14,7 @@ $validArg1withArg2Values =  [
     'add' => [
         'r',
         'route',
+        'h',
         'handler',
         'middleware',
         'mw',
@@ -281,7 +282,10 @@ $commands = [
             cli_add_route();
         },
         'handler' => function () {
-            cli_add_handler(["handler"]);
+            cli_add_handler();
+        },
+        'h' => function () {
+            cli_add_handler();
         },
         // Adding Route to only Data Routes
         'data' => function () {
@@ -326,11 +330,9 @@ $commands = [
     ],
     'delete' => [
         // Delete a single route for /routes/ folder only
-        'only_route' => function () {
+        'route' => function () {
             global $argv;
-            if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3])) {
-                cli_err_syntax("Provide a valid route to delete from Single Routes!\nExample: \"funkcli delete only_route method/route_name\"");
-            }
+
             cli_delete_a_route();
         },
         // THESE DELETING FUNCTIONS ARE TO DELETE ACTUALLY MOST FILES IN MOST FOLDERS. FUNCTION ABOVE HERE ARE FOR DELETING INSIDE
