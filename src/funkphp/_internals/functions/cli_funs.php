@@ -241,7 +241,7 @@ function cli_data_exists($fileName): bool
         $fileName .= ".php";
     }
     // Return true if file exists in handlers/D/ folder, false otherwise
-    if (file_exists($dirs['handlers_data'] . $fileName)) {
+    if (file_exists($dirs['data'] . $fileName)) {
         return true;
     }
     return false;
@@ -697,7 +697,20 @@ function cli_backup_batch($arrayOfFilesToBackup)
             }
             continue;
         }
-
+        if ($fileString === "data") {
+            if ($settings['ALWAYS_BACKUP_IN']['DATA_IN_BACKUPS']) {
+            }
+            if ($settings['ALWAYS_BACKUP_IN']['DATA_IN_FINAL_BACKUPS']) {
+            }
+            continue;
+        }
+        if ($fileString === "pages") {
+            if ($settings['ALWAYS_BACKUP_IN']['PAGES_IN_BACKUPS']) {
+            }
+            if ($settings['ALWAYS_BACKUP_IN']['PAGES_IN_FINAL_BACKUPS']) {
+            }
+            continue;
+        }
         if ($fileString === "handlers") {
             if ($settings['ALWAYS_BACKUP_IN']['HANDLERS_IN_BACKUPS']) {
             }

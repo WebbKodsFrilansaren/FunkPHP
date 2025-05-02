@@ -120,6 +120,10 @@ $dirs = [
     "backups_data" => __DIR__ . '/funkphp/_BACKUPS/data/',
     "backups_pages" => __DIR__ . '/funkphp/_BACKUPS/pages/',
     "backups_handlers" => __DIR__ . '/funkphp/_BACKUPS/handlers/',
+    "backups_middlewares" => __DIR__ . '/funkphp/_BACKUPS/middlewares/',
+    "backups_templates" => __DIR__ . '/funkphp/_BACKUPS/templates/',
+    "backups_sql" => __DIR__ . '/funkphp/_BACKUPS/sql/',
+    "backups_tests" => __DIR__ . '/funkphp/_BACKUPS/tests/',
 ];
 
 // Exact file paths to use for the CLI
