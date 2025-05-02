@@ -698,38 +698,38 @@ function cli_backup_batch($arrayOfFilesToBackup)
             continue;
         }
 
-        if ($fileString === "handlers_r") {
-            if ($settings['ALWAYS_BACKUP_IN']['ROUTES_HANDLERS_IN_BACKUPS']) {
+        if ($fileString === "handlers") {
+            if ($settings['ALWAYS_BACKUP_IN']['HANDLERS_IN_BACKUPS']) {
             }
-            if ($settings['ALWAYS_BACKUP_IN']['ROUTES_HANDLERS_IN_FINAL_BACKUPS']) {
-            }
-            continue;
-        }
-        if ($fileString === "handlers_d") {
-            if ($settings['ALWAYS_BACKUP_IN']['DATA_HANDLERS_IN_BACKUPS']) {
-            }
-            if ($settings['ALWAYS_BACKUP_IN']['DATA_HANDLERS_IN_FINAL_BACKUPS']) {
+            if ($settings['ALWAYS_BACKUP_IN']['HANDLERS_IN_FINAL_BACKUPS']) {
             }
             continue;
         }
-        if ($fileString === "handlers_p") {
-            if ($settings['ALWAYS_BACKUP_IN']['PAGES_HANDLERS_IN_BACKUPS']) {
+        if ($fileString === "middlewares") {
+            if ($settings['ALWAYS_BACKUP_IN']['MIDDLEWARES_IN_BACKUPS']) {
             }
-            if ($settings['ALWAYS_BACKUP_IN']['PAGES_HANDLERS_IN_FINAL_BACKUPS']) {
-            }
-            continue;
-        }
-        if ($fileString === "handlers_mw_r") {
-            if ($settings['ALWAYS_BACKUP_IN']['ROUTES_MWS_IN_BACKUPS']) {
-            }
-            if ($settings['ALWAYS_BACKUP_IN']['ROUTES_MWS_IN_FINAL_BACKUPS']) {
+            if ($settings['ALWAYS_BACKUP_IN']['MIDDLEWARES_IN_FINAL_BACKUPS']) {
             }
             continue;
         }
-        if ($fileString === "handlers_mw_d") {
-            if ($settings['ALWAYS_BACKUP_IN']['DATA_MWS_IN_BACKUPS']) {
+        if ($fileString === "templates") {
+            if ($settings['ALWAYS_BACKUP_IN']['TEMPLATES_IN_BACKUPS']) {
             }
-            if ($settings['ALWAYS_BACKUP_IN']['DATA_MWS_IN_FINAL_BACKUPS']) {
+            if ($settings['ALWAYS_BACKUP_IN']['TEMPLATES_IN_FINAL_BACKUPS']) {
+            }
+            continue;
+        }
+        if ($fileString === "sql") {
+            if ($settings['ALWAYS_BACKUP_IN']['SQL_IN_BACKUPS']) {
+            }
+            if ($settings['ALWAYS_BACKUP_IN']['SQL_IN_FINAL_BACKUPS']) {
+            }
+            continue;
+        }
+        if ($fileString === "tests") {
+            if ($settings['ALWAYS_BACKUP_IN']['TESTS_IN_BACKUPS']) {
+            }
+            if ($settings['ALWAYS_BACKUP_IN']['TESTS_IN_FINAL_BACKUPS']) {
             }
             continue;
         }
