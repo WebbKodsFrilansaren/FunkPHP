@@ -128,7 +128,6 @@ $exactFiles = [
     "single_routes" => $dirs['routes'] . "route_single_routes.php",
 ];
 
-
 // List of all functions that are reserved for the framework and
 // should not be used in the application code. They are checked against
 // when adding a new function as a result of a route/data/page/mw handler.

@@ -141,8 +141,11 @@ function cli_restore_default_folders_and_files()
         "$folderBase/_BACKUPS/compiled/",
         "$folderBase/_BACKUPS/data/",
         "$folderBase/_BACKUPS/handlers/",
+        "$folderBase/_BACKUPS/middlewares/",
         "$folderBase/_BACKUPS/pages/",
         "$folderBase/_BACKUPS/routes/",
+        "$folderBase/_BACKUPS/sql/",
+        "$folderBase/_BACKUPS/templates/",
         "$folderBase/_internals/",
         "$folderBase/_internals/compiled/",
         "$folderBase/_internals/functions/",
@@ -160,6 +163,8 @@ function cli_restore_default_folders_and_files()
         "$folderBase/pages/parts/",
         "$folderBase/routes/",
         "$folderBase/tests/",
+        "$folderBase/templates/",
+        "$folderBase/sql/",
     ];
 
     // Prepare default files that doesn't exist if certain folders don't exist
@@ -194,30 +199,6 @@ function cli_restore_default_folders_and_files()
             }
         }
     }
-}
-
-// Check if a specific Route file exists in either "/routes/", "/data/" or "/pages/"
-function cli_route_file_exist($fileName): bool
-{
-    // Load valid file names and check if argument is valid
-    global $dirs, $exactFiles, $settings;
-    $validFilenames = [
-        "route_single_routes" => $exactFiles['single_routes'],
-        "route_middleware_routes" => $exactFiles['single_middlewares'],
-        "data_single_routes" => $exactFiles['single_data'],
-        "data_middleware_routes" => $exactFiles['single_middlewares_data'],
-        "page_single_routes" => $exactFiles['single_page'],
-        "page_middleware_routes" => $exactFiles['single_middlewares_page'],
-    ];
-
-    if (!is_string($fileName) || empty($fileName) || !array_key_exists($fileName, $validFilenames)) {
-        cli_err_syntax("[cli_route_file_exist] Route file name must be a non-empty string and one of the following: " . implode(", ", array_keys($validFilenames)) . "!");
-    }
-    // Here we know the argument is valid so check if the file exists by using the matched key from $validFilenames
-    if (file_exists($validFilenames[$fileName])) {
-        return true;
-    }
-    return false;
 }
 
 // Rebuilds the Single Routes Route file (funkphp/routes/route_single_routes.php) based on valid array
@@ -281,7 +262,7 @@ function cli_page_exists($fileName): bool
         $fileName .= ".php";
     }
     // Return true if file exists in handlers/P/ folder, false otherwise
-    if (file_exists($dirs['handlers_pages'] . $fileName)) {
+    if (file_exists($dirs['pages'] . $fileName)) {
         return true;
     }
     return false;
@@ -302,7 +283,7 @@ function cli_handler_exists($fileName): bool
         $fileName .= ".php";
     }
     // Return true if file exists in handlers/R/ folder, false otherwise
-    if (file_exists($dirs['handlers_routes'] . $fileName)) {
+    if (file_exists($dirs['handlers'] . $fileName)) {
         return true;
     }
     return false;
@@ -323,7 +304,7 @@ function cli_middleware_exists($fileName): bool
         $fileName .= ".php";
     }
     // Return true if file exists in middlewares/R/ folder, false otherwise
-    if (file_exists($dirs['middlewares_routes'] . $fileName)) {
+    if (file_exists($dirs['middlewares'] . $fileName)) {
         return true;
     }
     return false;
@@ -1053,6 +1034,42 @@ function cli_add_handler()
     cli_warning("IMPORTANT: Using \"php funkcli add route\" to combine the Route with its associated Handler File and Function will NOT work!");
 }
 
+// All-in-one function to Sort all keys in ROUTES, build Route file, recompile and output them!
+function cli_sort_build_routes_compile_and_output($singleRoutesRootArray)
+{
+    // Load globals and validate input
+    global $dirs, $exactFiles, $settings, $singleRoutesRoute;
+    if (!is_array($singleRoutesRootArray) || empty($singleRoutesRootArray) || !isset($singleRoutesRootArray['ROUTES'])) {
+        cli_err_syntax("The Routes Array must be a non-empty array starting with the ROUTES key!");
+    }
+
+    // Loop through each key below ROUTES and sort the keys
+    // and values in the array by the key name (route name)
+    foreach ($singleRoutesRootArray['ROUTES'] as $key => $value) {
+        if (is_array($value)) {
+            ksort($singleRoutesRootArray['ROUTES'][$key]);
+        }
+    }
+
+    // First backup all associated route files if settings allow it
+    cli_backup_batch(
+        [
+            "troute_route",
+            "route_single_routes",
+        ]
+    );
+
+    // Then we rebuild and recompile Routes
+    $rebuild = cli_rebuild_single_routes_route_file($singleRoutesRootArray);
+    if ($rebuild) {
+        cli_success_without_exit("Rebuilt Route file \"funkphp/routes/route_single_routes.php\"!");
+    } else {
+        cli_err_syntax("FAILED to rebuild Route file \"funkphp/routes/route_single_routes.php\". File permissions issue?");
+    }
+    $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRootArray['ROUTES'], $singleRoutesRootArray['ROUTES']);
+    cli_output_compiled_routes($compiledRouteRoutes, "troute_route");
+}
+
 // Add a Route to the Route file (funkphp/routes/) INCLUDING a [HandlerFile[=>Function]]
 function cli_add_route()
 {
@@ -1177,19 +1194,9 @@ function cli_add_route()
             'handler' => $handlerFile,
         ];
     }
+    // Show success message and then sort, build, compile and output the routes
     cli_success_without_exit("Added Route \"$method$validRoute\" to \"funkphp/routes/route_single_routes.php\" with Handler \"$handlerFile\" and Function \"$fnName\"!");
-
-    // Now we sort the routes for the method and then we write it to the file
-    ksort($singleRoutesRoute['ROUTES'][$method]);
-    $rebuild = cli_rebuild_single_routes_route_file($singleRoutesRoute);
-    if ($rebuild) {
-        cli_success_without_exit("Rebuilt Route file \"funkphp/routes/route_single_routes.php\"!");
-    } else {
-        cli_err_syntax("FAILED to rebuild Route file \"funkphp/routes/route_single_routes.php\". File permissions issue?");
-    }
-    // Now we build the compiled routes and output them to the file
-    $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRoute['ROUTES'], $singleRoutesRoute['ROUTES']);
-    cli_output_compiled_routes($compiledRouteRoutes, "troute_route");
+    cli_sort_build_routes_compile_and_output($singleRoutesRoute);
 }
 
 // Batched function of adding and outputting middlewares to the middleware route files
@@ -1516,7 +1523,7 @@ function cli_get_unique_filename_for_dir($dirPath, $startingFileName, $middlewar
     if (file_exists($filePath)) {
         // If it exists, we need to add a number to the end of the file name
         $i = 1;
-        while (file_exists($dirPath . "/" . $startingFileName . "-" . $i . ".php")) {
+        while (file_exists($dirPath . "/" . $startingFileName . "_" . $i . ".php")) {
             $i++;
         }
         return $startingFileName . "-" . $i . ".php";
@@ -1554,17 +1561,17 @@ function cli_delete_all_files_in_directory_except_other_directories($directoryPa
 }
 
 // Validate start syntax for route string before processing the rest of the string
-// Valid ones are: "GET/", "POST/", "PUT/", "DELETE/", "g/", "po/", "pu/", "d/")
+// Valid ones are: "GET/g", "POST/po", "PUT/pu", "DELETE/d", "PATCH/pa"
 function cli_valid_route_start_syntax($routeString)
 {
     // First check that string is non-empty string
     if (!is_string($routeString) || empty($routeString)) {
-        cli_err_syntax("Route string must be a non-empty string!");
+        cli_err_syntax("Route string must be a non-empty string starting with a valid HTTP Method and then the Route!");
     }
     // Then we check if it starts with one of the valid ones
-    if (str_starts_with($routeString, "get/") || str_starts_with($routeString, "post/") || str_starts_with($routeString, "put/") || str_starts_with($routeString, "delete/")) {
+    if (str_starts_with($routeString, "get/") || str_starts_with($routeString, "post/") || str_starts_with($routeString, "put/") || str_starts_with($routeString, "delete/") || str_starts_with($routeString, "patch/")) {
         return true;
-    } elseif (str_starts_with($routeString, "g/") || str_starts_with($routeString, "po/") || str_starts_with($routeString, "pu/") || str_starts_with($routeString, "d/")) {
+    } elseif (str_starts_with($routeString, "g/") || str_starts_with($routeString, "po/") || str_starts_with($routeString, "pu/") || str_starts_with($routeString, "d/") || str_starts_with($routeString, "pa/")) {
         return true;
     } else {
         return false;
@@ -1577,7 +1584,7 @@ function cli_prepare_valid_route_string($addRoute, $test = false)
     // Grab the route to add and validate correct starting syntax
     // first: get/put/post/delete/ or its short form g/pu/po/d/
     if (!cli_valid_route_start_syntax($addRoute)) {
-        cli_err_syntax("Route string must start with one of the valid ones:\n'GET/' (or g/)'\n'POST/' (or po/)\n'PUT/'(or pu/)\n'DELETE/' (or d/)");
+        cli_err_syntax("Route string must start with one of the valid ones:\n'GET/' (or g/)'\n'POST/' (or po/)\n'PUT/'(or pu/)\n'DELETE/' (or d/)\n'PATCH/' (or pa/)");
     }
     // Try extract the method from the route string
     $method = cli_extracted_parsed_method_from_valid_start_syntax($addRoute);
