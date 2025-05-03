@@ -41,7 +41,9 @@ $validArg1withArg2Values =  [
         'h',
         'handler',
         'mw',
+        'mw_file',
         'middleware',
+        'middleware_file',
         'middleware_from_all_routes',
         'mw_from_all_routes',
         'data',
@@ -354,6 +356,12 @@ $commands = [
         },
         'mw' => function () {
             cli_delete_a_middleware();
+        },
+        'mw_file' => function () {
+            cli_delete_a_middleware_file();
+        },
+        'middleware_file' => function () {
+            cli_delete_a_middleware_file();
         },
         'middleware' => function () {
             cli_delete_a_middleware();
