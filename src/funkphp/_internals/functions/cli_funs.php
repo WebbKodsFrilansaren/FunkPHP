@@ -1355,7 +1355,61 @@ function cli_delete_a_middleware()
 }
 
 // Delete a single Middleware from all methods with routes (does NOT delete the MW file!)
-function cli_delete_a_middleware_from_all_routes() {}
+function cli_delete_a_middleware_from_all_routes()
+{
+    // Load globals and validate input
+    global $argv,
+        $settings,
+        $dirs,
+        $exactFiles,
+        $singleRoutesRoute;
+    if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3])) {
+        cli_err_syntax("Should be at least three(3) non-empty string arguments!\nphp funkcli delete [mw_from_all_routes|middleware_from_all_routes] [method/route] [Middleware_name]\nExample: 'php funkcli delete mw_from_all_routes validateUserId'");
+    }
+
+    // Check now that handler $argv[4] is a string containg only letters, numbers and underscores!
+    if (!preg_match('/^[a-z0-9_]+$/', $argv[3])) {
+        cli_err_syntax("\"{$argv[3]}\" - Middleware name must be a lowercased string containing only letters, numbers and underscores!");
+    }
+
+    // Grab middlewares folder and file name with .php extension
+    // and then check if the file exists in the middlewares folder
+    $mwFolder = $dirs['middlewares'];
+    $mwName = str_ends_with($argv[3], ".php") ? $argv[3] : $argv[3] . ".php";
+    if (file_exists($mwFolder . $mwName)) {
+        cli_info_without_exit("Middleware \"$argv[3].php\" exists in \"funkphp/middlewares/$mwName\"!");
+    } else {
+        cli_err_without_exit("Middleware \"$argv[3].php\" not found in \"funkphp/middlewares\"!");
+        cli_info("Maybe misspelled file name if you are already using \"$argv[3]\" in other routes?");
+    }
+
+    // We will now loop through all routes and check if the middleware exists in them
+    $removeCount = 0;
+    foreach ($singleRoutesRoute['ROUTES'] as $method => $routes) {
+        foreach ($routes as $route => $routeData) {
+            // Check if the route has the middleware in it, and if it does, remove it; be it a string or inside an array
+            if (isset($routeData['middlewares']) && cli_value_exists_as_string_or_in_array($argv[3], $routeData['middlewares'])) {
+                if (is_array($singleRoutesRoute['ROUTES'][$method][$route]['middlewares'])) {
+                    $key = array_search($argv[3], $singleRoutesRoute['ROUTES'][$method][$route]['middlewares']);
+                    unset($singleRoutesRoute['ROUTES'][$method][$route]['middlewares'][$key]);
+                    // Also remove middleware key if it is empty after removing the middleware
+                    if (empty($singleRoutesRoute['ROUTES'][$method][$route]['middlewares'])) {
+                        unset($singleRoutesRoute['ROUTES'][$method][$route]['middlewares']);
+                    }
+                } else {
+                    unset($singleRoutesRoute['ROUTES'][$method][$route]['middlewares']);
+                }
+                cli_info_without_exit("Removed Middleware \"$argv[3]\" from Route \"$method$route\"!");
+                $removeCount++;
+            }
+        }
+    }
+
+    // Show success message and then sort, build, compile and output the routes
+    cli_success_without_exit("Removed Middleware \"$argv[3]\" from $removeCount Routes!");
+    cli_info_without_exit("The Middleware \"$argv[3].php\" still exists in \"funkphp/middlewares/\"!");
+    cli_sort_build_routes_compile_and_output($singleRoutesRoute);
+}
 
 // Delete an actual Middleware file from the middlewares folder (funkphp/middlewares/)
 // This also removes it from every route it is used in, so be careful with this one!
@@ -2023,9 +2077,12 @@ function cli_value_exists_as_string_or_in_array($valueThatExists, $existsInWhat)
     if ($existsInWhat === null) {
         return false;
     }
+    // Check based on array or string, and lowercase everything first
     if (is_array($existsInWhat)) {
+        $existsInWhat = array_map('strtolower', $existsInWhat);
         return in_array($valueThatExists, $existsInWhat);
     } elseif (is_string($existsInWhat)) {
+        $existsInWhat = strtolower($existsInWhat);
         return $valueThatExists === $existsInWhat;
     } else {
         return false;

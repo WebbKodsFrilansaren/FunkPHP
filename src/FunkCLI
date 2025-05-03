@@ -42,6 +42,8 @@ $validArg1withArg2Values =  [
         'handler',
         'mw',
         'middleware',
+        'middleware_from_all_routes',
+        'mw_from_all_routes',
         'data',
         'page',
         'all_route_compiled_singles_middlewares_and_all_their_handlers_files_i_know_files_will_be_hard_to_get_back',
@@ -241,6 +243,10 @@ $reserved_functions = [
     'funk_is_localhost',
     'cli_sort_build_routes_compile_and_output',
     'cli_value_exists_as_string_or_in_array',
+    'cli_delete_a_middleware_from_all_routes',
+    'cli_delete_a_middleware',
+    'cli_add_a_middleware',
+    'cli_add_a_route'
 ];
 
 // First restore the folders if they don't exist
@@ -351,6 +357,12 @@ $commands = [
         },
         'middleware' => function () {
             cli_delete_a_middleware();
+        },
+        'mw_from_all_routes' => function () {
+            cli_delete_a_middleware_from_all_routes();
+        },
+        'middleware_from_all_routes' => function () {
+            cli_delete_a_middleware_from_all_routes();
         },
         // THESE DELETING FUNCTIONS ARE TO DELETE ACTUALLY MOST FILES IN MOST FOLDERS. FUNCTION ABOVE HERE ARE FOR DELETING INSIDE
         // OF FILES SUCH AS ROUTES, MIDDLEWARE, HANDLERS AND SO ON. PROCEED WITH CAUTION USING ANY OF THE FOLLOWING FUNCTIONS!!!
