@@ -20,6 +20,7 @@ $validArg1withArg2Values =  [
         'mw',
         'mws',
         'middlewares',
+        'd',
         'data',
         'page',
         'mw_all',
@@ -308,7 +309,10 @@ $commands = [
             cli_add_handler();
         },
         'data' => function () {
-            //
+            cli_add_a_data_handler();
+        },
+        'd' => function () {
+            cli_add_a_data_handler();
         },
         'page' => function () {
             //

@@ -903,9 +903,9 @@ function cli_delete_a_handler_function_or_entire_file($handlerVar)
         // TODO: Add Backup Fn that backups the file before deleting!
         // Delete the entire file
         if (unlink($handlersFolder . $handlerFile . ".php")) {
-            cli_success("Deleted Handler File \"$handlerFile\" and Function \"$fnName\"!");
+            cli_success("Deleted Handler File \"handlers/$handlerFile.php\" and Function \"$fnName\"!");
         } else {
-            cli_err("FAILED to delete Handler File \"$handlerFile\" and Function \"$fnName\"!");
+            cli_err("FAILED to delete Handler File \"handlers/$handlerFile.php\" and Function \"$fnName\"!");
         }
     }
     // Here we know we have more than 1 match and that we have same number of matches
@@ -915,20 +915,20 @@ function cli_delete_a_handler_function_or_entire_file($handlerVar)
     $startPos = strpos($fileContent, "//DELIMITER_HANDLER_FUNCTION_START=$fnName");
     $endPos = strpos($fileContent, "//DELIMITER_HANDLER_FUNCTION_END=$fnName") + mb_strlen("//DELIMITER_HANDLER_FUNCTION_END=$fnName") + 1;
     if ($startPos === false || $endPos === false) {
-        cli_err("Failed to find the Function \"$fnName\" in the Handler File \"$handlerFile\"!");
+        cli_err("Failed to find the Function \"$fnName\" in the Handler File \"handlers/$handlerFile.php\"!");
     }
     // Start position should NOT be larger than end position!
     if ($startPos > $endPos) {
-        cli_err("The Handler File \"$handlerFile\" has an invalid structure! The start position is larger than the end position for \"$fnName\"!");
+        cli_err("The Handler File \"handlers/$handlerFile.php\" has an invalid structure! The start position is larger than the end position for \"$fnName\"!");
     }
     // We now replace the function in the file content with an empty string and write it back to the file
     $fileContent = substr_replace($fileContent, "", $startPos, $endPos - $startPos);
 
     // We write back the file content to the file and check if it was successful
     if (file_put_contents($handlersFolder . $handlerFile . ".php", $fileContent) !== false) {
-        cli_success("Deleted Function \"$fnName\" from Handler File \"$handlerFile\"!");
+        cli_success("Deleted Function \"$fnName\" from Handler File \"handlers/$handlerFile.php\"!");
     } else {
-        cli_err("FAILED to delete Function \"$fnName\" from Handler File \"$handlerFile\"!");
+        cli_err("FAILED to delete Function \"$fnName\" from Handler File \"handlers/$handlerFile.php\"!");
     }
 }
 
@@ -1191,6 +1191,145 @@ function cli_add_a_route()
     }
     // Show success message and then sort, build, compile and output the routes
     cli_success_without_exit("Added Route \"$method$validRoute\" to \"funkphp/routes/route_single_routes.php\" with Handler \"$handlerFile\" and Function \"$fnName\"!");
+    cli_sort_build_routes_compile_and_output($singleRoutesRoute);
+}
+
+// Add a 'data' handler to a specific route (route must exist or the function will error)
+function cli_add_a_data_handler()
+{
+    // Load globals and validate input
+    global $argv,
+        $settings,
+        $dirs,
+        $exactFiles,
+        $singleRoutesRoute, $reserved_functions;
+    if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3]) || !isset($argv[4]) || !is_string($argv[4]) || empty($argv[4])) {
+        cli_err_syntax("Should be at least four(4) non-empty string arguments!\nSyntax: php funkcli add data [method/route] [handlerFile[=>handleFunction]]\nExample: 'php funkcli add data get/users/:id users=>getUser'\nIMPORTANT: Writing [handlerFile] is parsed as [handlerFile=>handlerFile]!");
+    }
+
+    // Check if "$argv[4]" contains "=>" and split it into
+    // handler & function name or just use $handlerFile name.
+    $handlerFile = null;
+    $fnName = null;
+    $arrow = null;
+    if (strpos($argv[4], '=>') !== false) {
+        [$handlerFile, $fnName] = explode('=>', $argv[4]);
+        $handlerFile = trim($handlerFile);
+        $fnName = trim($fnName);
+        $arrow = true;
+    } else {
+        $handlerFile = $argv[4];
+        $fnName = null;
+    }
+
+    // Preg_match validate both (unless null) handler file and function name
+    if ($handlerFile !== null && !preg_match('/^[a-z0-9_]+$/', $handlerFile)) {
+        cli_err_syntax("\"{$handlerFile}\" - Data Handler name must be a lowercased string containing only letters, numbers and underscores!");
+    }
+    if ($fnName !== null && !preg_match('/^[a-z0-9_]+$/', $fnName)) {
+        cli_err_syntax("\"{$fnName}\" - Function name must be a lowercased string containing only letters, numbers and underscores!");
+    }
+
+    // Check that both fnName and handlerFile are not reserved functions
+    if ($fnName !== null && in_array($fnName, $reserved_functions)) {
+        cli_err_syntax("\"{$fnName}\" - Function is a reserved function name!");
+    }
+    if ($handlerFile !== null && in_array($handlerFile, $reserved_functions)) {
+        cli_err_syntax("\"{$handlerFile}\" - Handler is a reserved function name!");
+    }
+
+    // Function name is optional, so if not provided, we set it to the handler file name since
+    // that is the default name for the function in the handler file when the file is created
+    if ($fnName === null) {
+        $fnName = $handlerFile;
+    }
+    cli_info_without_exit("Parsed Data Handler: \"funkphp/data/$handlerFile.php\" and Function: \"$fnName\"");
+
+    // Prepare the route string by trimming, validating starting, ending and middle parts of it
+    $addRoute = trim(strtolower($argv[3]));
+    $oldRoute = $addRoute;
+    [$method, $validRoute] = cli_prepare_valid_route_string($addRoute);
+    cli_info_without_exit("ROUTE: " . "\"$oldRoute\"" . " parsed as: \"$method$validRoute\"");
+
+    // Check if the exact route does not exist the route file
+    if (!isset($singleRoutesRoute['ROUTES'][$method][$validRoute]) ?? null) {
+        cli_err("Route \"$method$validRoute\" not found in Routes. Add it first before adding a Data Handler!");
+    }
+
+    // Check that a data handler does not already exist for the route
+    if (isset($singleRoutesRoute['ROUTES'][$method][$validRoute]['data']) && !empty($singleRoutesRoute['ROUTES'][$method][$validRoute]['data'])) {
+        cli_err_without_exit("A Data Handler for Route \"$method$validRoute\" already exists!");
+        cli_info("Use command \"php funkcli delete data [method/route] [handlerFile[=>Function]]\" to delete it first!");
+    }
+
+    // When data handler is empty which it should not be so we error out
+    if (isset($singleRoutesRoute['ROUTES'][$method][$validRoute]['data']) && empty($singleRoutesRoute['ROUTES'][$method][$validRoute]['data'])) {
+        cli_err("Data Handler for Route \"$method$validRoute\" is empty. Consider deleting it OR manually adding a Data Handler to it!");
+    }
+
+    // Here, the routing is so far all OK so prepare data folder
+    $handlersDir = $dirs['data'];
+
+    // Check first if the handler file exists in the handlers folder, add .php if not
+    if (file_exists($handlersDir . $handlerFile . ".php")) {
+        // Read the file content and check if the function name exists in the file
+        $fileContent = file_get_contents($handlersDir . $handlerFile . ".php");
+        if ($fnName !== null && strpos($fileContent, "//DELIMITER_HANDLER_FUNCTION_START=$fnName") !== false) {
+            // Find what <method/route> that is already using it or just show default error!
+            $pattern = "/\/\/DELIMITER_HANDLER_FUNCTION_START={$fnName}.*\n.*?<(.*?)>.*/si";
+            if (preg_match($pattern, $fileContent, $matches) && isset($matches[1])) {
+                cli_err_without_exit("Function \"$fnName\" in Data Handler \"funkphp/data/$handlerFile.php\" is already used by Route \"{$matches[1]}\"! (unless false comment)");
+            } else {
+                cli_err_without_exit("Function \"$fnName\" in Data Handler \"funkphp/data/$handlerFile.php\" has already been created!");
+            }
+            cli_info("If you know what Route that should be using that Data Handler instead, just manually change it in the Route file!");
+        }
+        // This means data handler file exists but function name is not used, so we can add it
+        else {
+            cli_info_without_exit("Handler \"funkphp/data/$handlerFile.php\" exists and Function \"$fnName\" is valid!");
+            // We now check if we can find "//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile" in the file
+            // and if not that means either error or Developer is trying to break the file, so we exit
+            if (strpos($fileContent, "//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile") === false) {
+                cli_err("Handler \"funkphp/data/$handlerFile.php\" is invalid. Could not find \"//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile\". Please do not be a jerk trying to break the file!");
+            }
+            // We found the comment, so we can add the function name to the file by replacing the comment with the function name and then the comment again!
+            $fileContent = str_replace(
+                "//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile",
+                "//DELIMITER_HANDLER_FUNCTION_START=$fnName\nfunction $fnName(&\$c) // <$method$validRoute>\n{\n\n};\n//DELIMITER_HANDLER_FUNCTION_END=$fnName\n\n//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile",
+                $fileContent
+            );
+            if (file_put_contents($handlersDir . $handlerFile . ".php", $fileContent) !== false) {
+                cli_success_without_exit("Added Function \"$fnName\" to Data Handler \"funkphp/data/$handlerFile.php\"!");
+            } else {
+                cli_err("FAILED to add Function \"$fnName\" to Data Handler \"funkphp/data/$handlerFile.php\". File permissions issue?");
+            }
+        }
+    } // File does not exist, so we create it
+    else {
+        // Create the handler file with the function name and return a success message
+        $outputHandlerRoute = file_put_contents(
+            $handlersDir . $handlerFile . ".php",
+            "<?php\n//Data Handler File - This runs after Route Handler have ran for matched Route!\n\n//DELIMITER_HANDLER_FUNCTION_START=$fnName\nfunction $fnName(&\$c) // <$method$validRoute>\n{\n\n};\n//DELIMITER_HANDLER_FUNCTION_END=$fnName\n\n//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile\nreturn function (&\$c, \$handler = \"$fnName\") {\n\$handler(\$c);\n};\n//NEVER_TOUCH_ANY_COMMENTS_END=$handlerFile"
+        );
+        if ($outputHandlerRoute) {
+            cli_success_without_exit("Added Data Handler \"funkphp/data/$handlerFile.php\" with Function \"$fnName\" in \"funkphp/data/$handlerFile.php\"!");
+        } else {
+            cli_err("FAILED to create Data Handler \"funkphp/data/$handlerFile.php\". File permissions issue?");
+        }
+    }
+    // If we are here, that means we managed to add a data handler with a function
+    // name to a file so now we add route to the route file and then compile it!
+    if ($arrow) {
+        $singleRoutesRoute['ROUTES'][$method][$validRoute] = [
+            'data' => [$handlerFile => $fnName],
+        ];
+    } else {
+        $singleRoutesRoute['ROUTES'][$method][$validRoute] = [
+            'data' => $handlerFile,
+        ];
+    }
+    // Show success message and then sort, build, compile and output the routes
+    cli_success_without_exit("Added Data Data Handler \"$handlerFile\" and Function \"$fnName\" to Route \"$method$validRoute\" in \"funkphp/routes/route_single_routes.php\"!");
     cli_sort_build_routes_compile_and_output($singleRoutesRoute);
 }
 
