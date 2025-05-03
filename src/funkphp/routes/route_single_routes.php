@@ -1,4 +1,4 @@
-<?php // ROUTE_SINGLE_ROUTES.PHP - FunkPHP Framework | This File Was Modified In FunkCLI 2025-05-03 20:59:36
+<?php // ROUTE_SINGLE_ROUTES.PHP - FunkPHP Framework | This File Was Modified In FunkCLI 2025-05-03 21:37:28
 return  [
   'ROUTES' =>
   [

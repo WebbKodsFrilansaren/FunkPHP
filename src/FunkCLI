@@ -41,6 +41,8 @@ $validArg1withArg2Values =  [
         'route',
         'h',
         'handler',
+        'd',
+        'data',
         'mw',
         'mw_file',
         'middleware',
@@ -357,6 +359,12 @@ $commands = [
         },
         'h' => function () use ($argv) {
             cli_delete_a_handler_function_or_entire_file($argv[3] ?? null);
+        },
+        'd' => function () {
+            cli_delete_a_data_handler_function_or_entire_file($argv[3] ?? null);
+        },
+        'data' => function () {
+            cli_delete_a_data_handler_function_or_entire_file($argv[3] ?? null);
         },
         'mw' => function () {
             cli_delete_a_middleware();

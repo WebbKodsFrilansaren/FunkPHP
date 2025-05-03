@@ -794,8 +794,10 @@ function cli_delete_a_route()
                 "routes",
             ]
         );
-        // Store handler variable
+        // Grab handlers for 'handler' and 'data' from the route array
         $handler = $singleRoutesRoute['ROUTES'][$method][$validRoute]['handler'] ?? "<Handler missing?>";
+        $datahandler = $singleRoutesRoute['ROUTES'][$method][$validRoute]['data'] ?? "<Data Handler missing?>";
+
         // Then we unset() each matched route
         unset($singleRoutesRoute['ROUTES'][$method][$validRoute]);
         cli_success_without_exit("Deleted Single Route \"$method$validRoute\" from the Route file!");
@@ -808,6 +810,7 @@ function cli_delete_a_route()
         // Send the handler variable to delete it (this will
         // also delete file if it's the last function in it!)
         cli_delete_a_handler_function_or_entire_file($handler);
+        cli_delete_a_data_handler_function_or_entire_file($datahandler);
     }
     // When one ore more is missing, we do not go ahead with deletion
     // since this function is meant to delete all three at once!
@@ -903,7 +906,8 @@ function cli_delete_a_handler_function_or_entire_file($handlerVar)
         // TODO: Add Backup Fn that backups the file before deleting!
         // Delete the entire file
         if (unlink($handlersFolder . $handlerFile . ".php")) {
-            cli_success("Deleted Handler File \"handlers/$handlerFile.php\" and Function \"$fnName\"!");
+            cli_success_without_exit("Deleted Handler File \"handlers/$handlerFile.php\" and Function \"$fnName\"!");
+            return; // We return here since we deleted the file and don't need to run the rest of the code
         } else {
             cli_err("FAILED to delete Handler File \"handlers/$handlerFile.php\" and Function \"$fnName\"!");
         }
@@ -926,11 +930,129 @@ function cli_delete_a_handler_function_or_entire_file($handlerVar)
 
     // We write back the file content to the file and check if it was successful
     if (file_put_contents($handlersFolder . $handlerFile . ".php", $fileContent) !== false) {
-        cli_success("Deleted Function \"$fnName\" from Handler File \"handlers/$handlerFile.php\"!");
+        cli_success_without_exit("Deleted Function \"$fnName\" from Handler File \"handlers/$handlerFile.php\"!");
     } else {
         cli_err("FAILED to delete Function \"$fnName\" from Handler File \"handlers/$handlerFile.php\"!");
     }
 }
+
+// Delete a Data Handler Function or entire Data Handler File if it is the last function in it
+function cli_delete_a_data_handler_function_or_entire_file($handlerVar)
+{
+    // Load globals and validate input
+    global
+        $argv, $dirs, $exactFiles,
+        $settings;
+
+    // $handlerVar must either be a string or an array with a single string value!
+    if (!is_string($handlerVar) && !is_array($handlerVar)) {
+        cli_err_syntax_without_exit("The Data Handler argument must be 1) One string or 2) One array with one string!");
+        cli_err_syntax("Example: \"[HandlerFile|HandlerFile=>Function] (the variable structure, not as a string!)\"");
+    }
+
+    // If it is a string, check that it is valid and not empty
+    if (is_string($handlerVar) && empty($handlerVar)) {
+        cli_err_syntax_without_exit("\"$handlerVar\" must be a non-empty string!");
+    }
+
+    // Prepare what is the handler file, function name, and handlers folder
+    $handlerFile = null;
+    $fnName = null;
+    $handlersFolder = $dirs['data'];
+
+    // If it is a string, check for "=>" because this function is either called by deleting a route
+    // or just by deleting a handler function directly meaning the handlerFile=>Function would be
+    // passed as a string and not as an array with one string value in the case of deleting a route.
+    if (is_string($handlerVar)) {
+        if (strpos($handlerVar, '=>') !== false) {
+            [$handlerFile, $fnName] = explode('=>', $handlerVar);
+            $handlerFile = trim($handlerFile);
+            $fnName = trim($fnName);
+        } else {
+            $handlerFile = $handlerVar;
+            $fnName = $handlerFile;
+        }
+    } elseif (is_array($handlerVar)) {
+        $handlerFile = key($handlerVar);
+        $fnName = $handlerVar[$handlerFile];
+    }
+
+    // Check that the handler file and function name are not empty strings with invalid characters
+    if (!preg_match('/^[a-z0-9_]+$/', $handlerFile)) {
+        cli_err_syntax("\"{$handlerFile}\" DataHandler File must be a lowercase string containing only letters, numbers and underscores!");
+    }
+    if (!preg_match('/^[a-z0-9_]+$/', $fnName)) {
+        cli_err_syntax("\"{$fnName}\" Function Name must be a lowercase string containing only letters, numbers and underscores!");
+    }
+
+    // We now check if the handler file exists in the handlers folder, add .php if not
+    if (!file_exists($handlersFolder . $handlerFile . ".php")) {
+        cli_err("Data Handler File \"$handlerFile.php\" not found in \"funkphp/data/\"!");
+    }
+
+    // We now read the file content and check for the delimiter function name
+    // as such: "//NEVER_TOUCH_ANY_COMMENTS_START|END=$handlerFile". Both
+    // must exist otherwise we cannot be certain it is a valid handler file.
+    $fileContent = file_get_contents($handlersFolder . $handlerFile . ".php");
+    if (
+        strpos($fileContent, "//DELIMITER_HANDLER_FUNCTION_START=$fnName") === false
+        || strpos($fileContent, "//DELIMITER_HANDLER_FUNCTION_END=$fnName") === false
+    ) {
+        cli_err("Function \"$fnName\" in Data Handler \"$handlerFile\" not found or invalid structure!");
+    }
+
+    // We now match the number of "//DELIMITER_HANDLER_FUNCTION_START" and "//DELIMITER_HANDLER_FUNCTION_END"
+    // in order to know how many functions are in the file. If it is 1, we then check if it is the last function
+    // and thus delete entire file. If it is more than 1, we just delete the function and leave the file intact.
+    // We do this by using preg_match_all() to count the number of matches in the file content.
+    $startMatches = preg_match_all("/\/\/DELIMITER_HANDLER_FUNCTION_START=/", $fileContent, $matchesStart);
+    $endMatches = preg_match_all("/\/\/DELIMITER_HANDLER_FUNCTION_END=/", $fileContent, $matchesEnd);
+    if ($startMatches === false || $endMatches === false) {
+        cli_err("Failed to find the Functions in the Data Handler File \"$handlerFile\"!");
+    }
+
+    // If matches are uneven, the file structure is invalid and we cannot delete it
+    if ($startMatches !== $endMatches) {
+        cli_err("The Data Handler File \"$handlerFile\" has an invalid structure! Every \"//DELIMITER_HANDLER_FUNCTION_START=\" should have a matching \"//DELIMITER_HANDLER_FUNCTION_END=\"!");
+    }
+
+    // We now check if the number of matches is 1, meaning it is the last
+    // function in the file and thus we delete the entire file. If it is
+    // more than 1, we just delete the function and leave the file intact.
+    if ($startMatches === 1 && $endMatches === 1) {
+        // TODO: Add Backup Fn that backups the file before deleting!
+        // Delete the entire file
+        if (unlink($handlersFolder . $handlerFile . ".php")) {
+            cli_success_without_exit("Deleted Data Handler File \"data/$handlerFile.php\" and Function \"$fnName\"!");
+            return; // We exit function since we deleted the file
+        } else {
+            cli_err("FAILED to delete Data Handler File \"data/$handlerFile.php\" and Function \"$fnName\"!");
+        }
+    }
+    // Here we know we have more than 1 match and that we have same number of matches
+    // We now wanna find: //DELIMITER_HANDLER_FUNCTION_START=$fnName and //DELIMITER_HANDLER_FUNCTION_END=$fnName
+    // in order to find the starting position and ending position of the function in the file content so we can
+    // just replace/delete that part of the file content and then write it back to the file.
+    $startPos = strpos($fileContent, "//DELIMITER_HANDLER_FUNCTION_START=$fnName");
+    $endPos = strpos($fileContent, "//DELIMITER_HANDLER_FUNCTION_END=$fnName") + mb_strlen("//DELIMITER_HANDLER_FUNCTION_END=$fnName") + 1;
+    if ($startPos === false || $endPos === false) {
+        cli_err("Failed to find the Function \"$fnName\" in the Data Handler File \"data/$handlerFile.php\"!");
+    }
+    // Start position should NOT be larger than end position!
+    if ($startPos > $endPos) {
+        cli_err("The Data Handler File \"data/$handlerFile.php\" has an invalid structure! The start position is larger than the end position for \"$fnName\"!");
+    }
+    // We now replace the function in the file content with an empty string and write it back to the file
+    $fileContent = substr_replace($fileContent, "", $startPos, $endPos - $startPos);
+
+    // We write back the file content to the file and check if it was successful
+    if (file_put_contents($handlersFolder . $handlerFile . ".php", $fileContent) !== false) {
+        cli_success_without_exit("Deleted Function \"$fnName\" from Data Handler File \"data/$handlerFile.php\"!");
+    } else {
+        cli_err("FAILED to delete Function \"$fnName\" from Handler File \"data/$handlerFile.php\"!");
+    }
+}
+
 
 // Add a handler to (funkphp/handlers/) WITHOUT adding to the Route file
 function cli_add_handler()
@@ -1320,13 +1442,13 @@ function cli_add_a_data_handler()
     // If we are here, that means we managed to add a data handler with a function
     // name to a file so now we add route to the route file and then compile it!
     if ($arrow) {
-        $singleRoutesRoute['ROUTES'][$method][$validRoute] = [
+        $singleRoutesRoute['ROUTES'][$method][$validRoute] = array_merge($singleRoutesRoute['ROUTES'][$method][$validRoute], [
             'data' => [$handlerFile => $fnName],
-        ];
+        ]);
     } else {
-        $singleRoutesRoute['ROUTES'][$method][$validRoute] = [
+        $singleRoutesRoute['ROUTES'][$method][$validRoute] = array_merge($singleRoutesRoute['ROUTES'][$method][$validRoute], [
             'data' => $handlerFile,
-        ];
+        ]);
     }
     // Show success message and then sort, build, compile and output the routes
     cli_success_without_exit("Added Data Data Handler \"$handlerFile\" and Function \"$fnName\" to Route \"$method$validRoute\" in \"funkphp/routes/route_single_routes.php\"!");
