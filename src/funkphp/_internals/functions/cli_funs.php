@@ -1516,7 +1516,7 @@ function cli_add_a_data_handler()
         ]);
     }
     // Show success message and then sort, build, compile and output the routes
-    cli_success_without_exit("Added Data Data Handler \"$handlerFile\" and Function \"$fnName\" to Route \"$method$validRoute\" in \"funkphp/routes/route_single_routes.php\"!");
+    cli_success_without_exit("Added Data Handler \"$handlerFile\" and Function \"$fnName\" to Route \"$method$validRoute\" in \"funkphp/routes/route_single_routes.php\"!");
     cli_sort_build_routes_compile_and_output($singleRoutesRoute);
 }
 
