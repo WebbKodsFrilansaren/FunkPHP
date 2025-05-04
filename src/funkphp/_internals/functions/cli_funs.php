@@ -762,6 +762,13 @@ function cli_backup_batch($arrayOfFilesToBackup)
             }
             continue;
         }
+        if ($fileString === "validations") {
+            if ($settings['ALWAYS_BACKUP_IN']['VALIDATIONS_IN_BACKUPS']) {
+            }
+            if ($settings['ALWAYS_BACKUP_IN']['VALIDATIONS_IN_FINAL_BACKUPS']) {
+            }
+            continue;
+        }
     }
 }
 
