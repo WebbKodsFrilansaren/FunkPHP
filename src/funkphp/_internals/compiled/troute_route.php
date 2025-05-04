@@ -2,9 +2,6 @@
 return  [
   'GET' => 
    [
-    'users' => 
-     [
-    ],
   ],
   'POST' => 
    [

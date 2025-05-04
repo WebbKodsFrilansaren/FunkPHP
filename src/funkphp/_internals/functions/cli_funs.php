@@ -797,8 +797,8 @@ function cli_delete_a_route()
             ]
         );
         // Grab handlers for 'handler' and 'data' from the route array
-        $handler = $singleRoutesRoute['ROUTES'][$method][$validRoute]['handler'] ?? "<Handler missing?>";
-        $datahandler = $singleRoutesRoute['ROUTES'][$method][$validRoute]['data'] ?? "<Data Handler missing?>";
+        $handler = $singleRoutesRoute['ROUTES'][$method][$validRoute]['handler'] ?? null;
+        $datahandler = $singleRoutesRoute['ROUTES'][$method][$validRoute]['data'] ?? null;
 
         // Then we unset() each matched route
         unset($singleRoutesRoute['ROUTES'][$method][$validRoute]);
@@ -811,8 +811,14 @@ function cli_delete_a_route()
 
         // Send the handler variable to delete it (this will
         // also delete file if it's the last function in it!)
-        cli_delete_a_handler_function_or_entire_file($handler);
-        cli_delete_a_data_handler_function_or_entire_file($datahandler);
+        // But we only call them if they are not null or empty strings
+        if ($handler !== null && !empty($handler)) {
+            cli_delete_a_handler_function_or_entire_file($handler);
+        }
+        if ($datahandler !== null && !empty($datahandler)) {
+            // We check if the data handler exists before deleting it
+            cli_delete_a_data_handler_function_or_entire_file($datahandler);
+        }
     }
     // When one ore more is missing, we do not go ahead with deletion
     // since this function is meant to delete all three at once!
@@ -1127,8 +1133,13 @@ function cli_add_handler()
     }
     // Now we add "r_" to both $fnName & $handlerFile to indicate it is a route handler and also to not
     // conflict with data, middlware, and/or page handlers that might use the same name in the future
-    $fnName = "r_" . $fnName;
-    $handlerFile = "r_" . $handlerFile;
+    // But first we check if they already start with "r_" and if not, we add it
+    if (!str_starts_with($handlerFile, "r_")) {
+        $handlerFile = "r_" . $handlerFile;
+    }
+    if (!str_starts_with($fnName, "r_")) {
+        $fnName = "r_" . $fnName;
+    }
     cli_info_without_exit("Parsed Handler: \"funkphp/handlers/$handlerFile.php\" and Function: \"$fnName\"");
 
     // Prepare handlers folders
@@ -1265,9 +1276,14 @@ function cli_add_a_route()
         $fnName = $handlerFile;
     }
     // Now we add "r_" to both $fnName & $handlerFile to indicate it is a route handler and also
-    // to not conflict with data and/or page handlers that might use the same name in the future
-    $fnName = "r_" . $fnName;
-    $handlerFile = "r_" . $handlerFile;
+    // to not conflict with data and/or page handlers that might use the same name in the future.
+    // But before adding we just check if it already starts with "r_" and if not, we add it.
+    if (!str_starts_with($fnName, "r_")) {
+        $fnName = "r_" . $fnName;
+    }
+    if (!str_starts_with($handlerFile, "r_")) {
+        $handlerFile = "r_" . $handlerFile;
+    }
     cli_info_without_exit("Parsed Handler: \"funkphp/handlers/$handlerFile.php\" and Function: \"$fnName\"");
 
     // Prepare the route string by trimming, validating starting, ending and middle parts of it
@@ -1399,8 +1415,14 @@ function cli_add_a_data_handler()
     }
     // Now we add "d_" to both $fnName & $handlerFile to indicate it is a data handler and also
     // to not conflict with route, page and/or middleware handlers that might use the same name in the future
-    $fnName = "d_" . $fnName;
-    $handlerFile = "d_" . $handlerFile;
+    // But before adding we just check if it already starts with "d_" and if not, we add it.
+    if (!str_starts_with($fnName, "d_")) {
+        $fnName = "d_" . $fnName;
+    }
+    if (!str_starts_with($handlerFile, "d_")) {
+        $handlerFile = "d_" . $handlerFile;
+    }
+
     cli_info_without_exit("Parsed Data Handler: \"funkphp/data/$handlerFile.php\" and Function: \"$fnName\"");
 
     // Prepare the route string by trimming, validating starting, ending and middle parts of it
@@ -1769,6 +1791,7 @@ function cli_delete_a_middleware_file()
 
     // We now try to unlink the file and check if it was successful
     if (unlink($mwFolder . $mwName)) {
+        // TODO: Add a backup of the file to a backup folder before deleting it
         cli_success_without_exit("Deleted Middleware \"$argv[3].php\" from \"funkphp/middlewares/$mwName\"!");
         cli_info_without_exit("Moving on to removing it from all Routes that use it...");
     } else {
