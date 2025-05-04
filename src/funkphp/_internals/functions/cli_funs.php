@@ -146,6 +146,7 @@ function cli_restore_default_folders_and_files()
         "$folderBase/_BACKUPS/routes/",
         "$folderBase/_BACKUPS/sql/",
         "$folderBase/_BACKUPS/templates/",
+        "$folderBase/_BACKUPS/validations/",
         "$folderBase/_internals/",
         "$folderBase/_internals/compiled/",
         "$folderBase/_internals/functions/",
@@ -165,6 +166,7 @@ function cli_restore_default_folders_and_files()
         "$folderBase/tests/",
         "$folderBase/templates/",
         "$folderBase/sql/",
+        "$folderBase/validations/",
     ];
 
     // Prepare default files that doesn't exist if certain folders don't exist
@@ -226,7 +228,7 @@ function cli_rebuild_single_routes_route_file($singleRouteRoutesFileArray): bool
     );
 }
 
-// Check if Routes Data Handler in handlers/D/ exists
+// Check if a Data Handler in data/ exists
 function cli_data_exists($fileName): bool
 {
     // Load globals, verify & transform string with .php if not already
@@ -247,7 +249,7 @@ function cli_data_exists($fileName): bool
     return false;
 }
 
-// Check if Routes Page Handler in handlers/P/ exists
+// Check if a Page in pages/ exists
 function cli_page_exists($fileName): bool
 {
     // Load globals, verify & transform string with .php if not already
@@ -268,7 +270,7 @@ function cli_page_exists($fileName): bool
     return false;
 }
 
-// Check if Routes Route Handler in handlers/R/ exists
+// Check if a Route Handler in handlers/ exists
 function cli_handler_exists($fileName): bool
 {
     // Load globals, verify & transform string with .php if not already
@@ -289,7 +291,7 @@ function cli_handler_exists($fileName): bool
     return false;
 }
 
-// Check if Route Middleware Handler in middlewares/R/ exists
+// Check if a Middleware Handler in middlewares/ exists
 function cli_middleware_exists($fileName): bool
 {
     // Load globals, verify & transform string with .php if not already
@@ -2392,18 +2394,6 @@ function cli_warning_without_exit($string)
     echo "\033[33m[FunkCLI - WARNING]: $string\n\033[0m";
 }
 
-// Boolean function that returns that a directory exists and is readable & writable
-function dir_exists_is_readable_writable($dirPath)
-{
-    return is_dir($dirPath) && is_readable($dirPath) && is_writable($dirPath);
-}
-
-// Boolean function that returns that a file exists and is readable & writable
-function file_exists_is_readable_writable($filePath)
-{
-    return is_file($filePath) && is_readable($filePath) && is_writable($filePath);
-}
-
 // Function loops through all function files in funkphp/_internals/functions/
 // and preg matchdes "function ([a-zA-Z0-9_]+)" and then adds the function name to an
 // array which is then converted to a [] array string using cli_convert_array_to_simple_syntax
@@ -2425,7 +2415,7 @@ function cli_update_reserved_functions_list()
         if (pathinfo($file, PATHINFO_EXTENSION) === "php") {
             // Check that file name ends with "_funs.php" or exit
             if (!str_ends_with($file, "_funs.php")) {
-                cli_warning_without_exit("File $file not valid function file! Skipping it...");
+                cli_info_without_exit("File $file not valid function file! Skipping it...");
                 continue;
             }
             // Get the contents of the file
@@ -2487,4 +2477,16 @@ function cli_add_value_as_string_or_to_array($keyToAdd, $valueToAdd, &$addToWhat
         // If it doesn't exist, we just add the key with the value to it
         $addToWhat[$keyToAdd] = $valueToAdd;
     }
+}
+
+// Boolean function that returns that a directory exists and is readable & writable
+function dir_exists_is_readable_writable($dirPath)
+{
+    return is_dir($dirPath) && is_readable($dirPath) && is_writable($dirPath);
+}
+
+// Boolean function that returns that a file exists and is readable & writable
+function file_exists_is_readable_writable($filePath)
+{
+    return is_file($filePath) && is_readable($filePath) && is_writable($filePath);
 }

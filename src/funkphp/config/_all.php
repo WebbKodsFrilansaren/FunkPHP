@@ -13,6 +13,10 @@ return [
         // Route matching Loads first:/"dx_steps/STEP3_ROUTE_MATCH_MIDDLEWARES.php"
         // Change their Loading Logic there if needed!
     ],
+    // 'TABLES' is the array of SQL Tables that will be used to handle the database tables and their data!
+    'TABLES' => include __DIR__ . '/tables.php',
+    // 'req' is the array of request data which will also include changed data based
+    // on matched route, middlewares (if any), data (if any) and page (if any), etc.
     'req' => include __DIR__ . '/req.php',
     'db' => include __DIR__ . '/db.php',
     // 'd' will ALWAYS store fetched database data and/or validated 'post', 'get', 'json' data!
