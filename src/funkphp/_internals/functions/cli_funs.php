@@ -870,6 +870,17 @@ function cli_delete_a_handler_function_or_entire_file($handlerVar)
         cli_err_syntax("\"{$fnName}\" Function Name must be a lowercase string containing only letters, numbers and underscores!");
     }
 
+    // We now check if $fnName and $handlerFile both start with "r_" and if not
+    // then we add it to the handler file name. This to not conflict with other
+    // types of handlers that might be included into the global scope of functions
+    // such as data ("d_"), page ("p_") and/or middleware ("m_") handlers.
+    if (!str_starts_with($handlerFile, "r_")) {
+        $handlerFile = "r_" . $handlerFile;
+    }
+    if (!str_starts_with($fnName, "r_")) {
+        $fnName = "r_" . $fnName;
+    }
+
     // We now check if the handler file exists in the handlers folder, add .php if not
     if (!file_exists($handlersFolder . $handlerFile . ".php")) {
         cli_err("Handler File \"$handlerFile\" not found in \"funkphp/handlers/\"!");
@@ -985,6 +996,17 @@ function cli_delete_a_data_handler_function_or_entire_file($handlerVar)
     }
     if (!preg_match('/^[a-z0-9_]+$/', $fnName)) {
         cli_err_syntax("\"{$fnName}\" Function Name must be a lowercase string containing only letters, numbers and underscores!");
+    }
+
+    // We now check if $fnName and $handlerFile both start with "d_" and if not
+    // then we add it to the data handler file name. This to not conflict with other
+    // types of handlers that might be included into the global scope of functions
+    // such as route ("r_"), page ("p_") and/or middleware ("m_") handlers.
+    if (!str_starts_with($handlerFile, "d_")) {
+        $handlerFile = "d_" . $handlerFile;
+    }
+    if (!str_starts_with($fnName, "d_")) {
+        $fnName = "d_" . $fnName;
     }
 
     // We now check if the handler file exists in the handlers folder, add .php if not
@@ -1103,6 +1125,10 @@ function cli_add_handler()
     if ($fnName === null) {
         $fnName = $handlerFile;
     }
+    // Now we add "r_" to both $fnName & $handlerFile to indicate it is a route handler and also to not
+    // conflict with data, middlware, and/or page handlers that might use the same name in the future
+    $fnName = "r_" . $fnName;
+    $handlerFile = "r_" . $handlerFile;
     cli_info_without_exit("Parsed Handler: \"funkphp/handlers/$handlerFile.php\" and Function: \"$fnName\"");
 
     // Prepare handlers folders
@@ -1238,6 +1264,10 @@ function cli_add_a_route()
     if ($fnName === null) {
         $fnName = $handlerFile;
     }
+    // Now we add "r_" to both $fnName & $handlerFile to indicate it is a route handler and also
+    // to not conflict with data and/or page handlers that might use the same name in the future
+    $fnName = "r_" . $fnName;
+    $handlerFile = "r_" . $handlerFile;
     cli_info_without_exit("Parsed Handler: \"funkphp/handlers/$handlerFile.php\" and Function: \"$fnName\"");
 
     // Prepare the route string by trimming, validating starting, ending and middle parts of it
@@ -1367,6 +1397,10 @@ function cli_add_a_data_handler()
     if ($fnName === null) {
         $fnName = $handlerFile;
     }
+    // Now we add "d_" to both $fnName & $handlerFile to indicate it is a data handler and also
+    // to not conflict with route, page and/or middleware handlers that might use the same name in the future
+    $fnName = "d_" . $fnName;
+    $handlerFile = "d_" . $handlerFile;
     cli_info_without_exit("Parsed Data Handler: \"funkphp/data/$handlerFile.php\" and Function: \"$fnName\"");
 
     // Prepare the route string by trimming, validating starting, ending and middle parts of it
@@ -1465,6 +1499,7 @@ function cli_add_a_middleware()
         $settings,
         $dirs,
         $exactFiles,
+        $reserved_functions,
         $singleRoutesRoute;
     if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3]) || !isset($argv[4]) || !is_string($argv[4]) || empty($argv[4])) {
         cli_err_syntax("Should be at least four(4) non-empty string arguments!\nphp funkcli add mw [Method/route] [Middleware_handler]\nExample: 'php funkcli add mw GET/users/:id validateUserId'");
@@ -1473,6 +1508,16 @@ function cli_add_a_middleware()
     // Check now that handler $argv[4] is a string containg only letters, numbers and underscores!
     if (!preg_match('/^[a-z0-9_]+$/', $argv[4])) {
         cli_err_syntax("\"{$argv[4]}\" - Middleware Name must be a lowercased string containing only letters, numbers and underscores!");
+    }
+
+    // Now we check if the middleware name starts with "m_" and if not we add it to the name
+    // This is to avoid conflicts with other handler files that might use the same name in the future
+    if (!str_starts_with($argv[4], "m_")) {
+        $argv[4] = "m_" . $argv[4];
+    }
+    // Now we check that it doesn't conflict with any reserved functions
+    if (in_array($argv[4], $reserved_functions)) {
+        cli_err_syntax("\"{$argv[4]}\" is a reserved function name!");
     }
 
     // Prepare the route string by trimming, validating starting, ending and middle parts of it
@@ -1570,6 +1615,12 @@ function cli_delete_a_middleware()
         cli_err_syntax("\"{$argv[4]}\" - Middleware name must be a lowercased string containing only letters, numbers and underscores!");
     }
 
+    // Now we check if it starts with "m_" and if it doesn't then we add it so we can check if it exists in the middlewares folder
+    // because it is ALWAYS with a "m_" to not conflict with other types of handlers that might use the same name in the future!
+    if (!str_starts_with($argv[4], "m_")) {
+        $argv[4] = "m_" . $argv[4];
+    }
+
     // Grab middlewares folder and file name with .php extension
     // and then check if the file exists in the middlewares folder
     $mwFolder = $dirs['middlewares'];
@@ -1635,6 +1686,12 @@ function cli_delete_a_middleware_from_all_routes()
         cli_err_syntax("\"{$argv[3]}\" - Middleware name must be a lowercased string containing only letters, numbers and underscores!");
     }
 
+    // Now we check if it starts with "m_" and if it doesn't then we add it so we can check if it exists in the middlewares folder
+    // because it is ALWAYS with a "m_" to not conflict with other types of handlers that might use the same name in the future!
+    if (!str_starts_with($argv[3], "m_")) {
+        $argv[3] = "m_" . $argv[3];
+    }
+
     // Grab middlewares folder and file name with .php extension
     // and then check if the file exists in the middlewares folder
     $mwFolder = $dirs['middlewares'];
@@ -1691,6 +1748,12 @@ function cli_delete_a_middleware_file()
     // Check now that handler $argv[4] is a string containg only letters, numbers and underscores!
     if (!preg_match('/^[a-z0-9_]+$/', $argv[3])) {
         cli_err_syntax("\"{$argv[3]}\" - Middleware name must be a lowercased string containing only letters, numbers and underscores!");
+    }
+
+    // Now we check if it starts with "m_" and if it doesn't then we add it so we can check if it exists in the middlewares folder
+    // because it is ALWAYS with a "m_" to not conflict with other types of handlers that might use the same name in the future!
+    if (!str_starts_with($argv[3], "m_")) {
+        $argv[3] = "m_" . $argv[3];
     }
 
     // Grab middlewares folder and file name with .php extension

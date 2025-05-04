@@ -32,19 +32,6 @@ if ($c['req']['current_step'] === 3) {
     $c['req']['no_matched_in'] = $FPHP_MATCHED_ROUTE['no_match_in'];
     unset($FPHP_MATCHED_ROUTE);
 
-    // Run the matched route handler if it exists and is not empty.
-    // Even if not null, file may not exist; the function checks that.
-    if ($c['req']['matched_handler'] !== null) {
-        funk_run_matched_route_handler($c);
-    }
-    // OPTIONAL Handling: Edit or just remove, doesn't matter!
-    // matched_handler doesn't exist? What then or just move on?
-    else {
-    }
-    // matched_handler failed to run? What then or just move on?
-    if ($c['err']['FAILED_TO_RUN_ROUTE_HANDLER']) {
-    }
-
     // GOTO: "funkphp/middlewares/" and copy&paste the "_TEMPLATE.php" file to create your own middlewares!
     // OR use the FunkCLI "php funkcli add mw middleware_name METHOD/route_path"
     // Check that middlewares array exists and is not empty in $c global variable
@@ -60,6 +47,20 @@ if ($c['req']['current_step'] === 3) {
     // This means one or more middlewares might have run _before_ this error is handled!
     if ($c['err']['FAILED_TO_RUN_MIDDLEWARE']) {
     }
+
+    // Run the matched route handler if it exists and is not empty.
+    // Even if not null, file may not exist; the function checks that.
+    if ($c['req']['matched_handler'] !== null) {
+        funk_run_matched_route_handler($c);
+    }
+    // OPTIONAL Handling: Edit or just remove, doesn't matter!
+    // matched_handler doesn't exist? What then or just move on?
+    else {
+    }
+    // matched_handler failed to run? What then or just move on?
+    if ($c['err']['FAILED_TO_RUN_ROUTE_HANDLER']) {
+    }
+
 
     // This is the end of Step 3, you can freely add any other checks you want here!
     // You have all global (meta) data in $c variable, so you can use it as you please!

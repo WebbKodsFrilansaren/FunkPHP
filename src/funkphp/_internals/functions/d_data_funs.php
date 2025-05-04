@@ -2,7 +2,7 @@
 // This file contains functions related to database operations and/or configurations.
 
 // Return the database connection object or an error message
-function d_connect_db($dbHost, $dbUser, $dbPass, $dbName, $dbPort = 3306, $dbCharset = 'utf8mb4')
+function funk_connect_db($dbHost, $dbUser, $dbPass, $dbName, $dbPort = 3306, $dbCharset = 'utf8mb4')
 {
     // Attempt connecting to the database creating a new mysqli object
     try {
@@ -23,7 +23,7 @@ function d_connect_db($dbHost, $dbUser, $dbPass, $dbName, $dbPort = 3306, $dbCha
 }
 
 // The main validation function for validating data in FunkPHP
-function d_validate(&$c, array $data_keys_and_associated_validation_rules_values)
+function funk_validate(&$c, array $data_keys_and_associated_validation_rules_values)
 {
     $errors = [];
 
@@ -113,4 +113,44 @@ function d_validate(&$c, array $data_keys_and_associated_validation_rules_values
             $errors[] = $customErr ? $customErr : "The field {$data['name']} must be a valid phone number.";
         }
     };
+}
+
+// Run the matched data handler (Step 4 after matched routing in Routes,
+// then running Middlewares and then the Route Handler)
+function funk_run_matched_data_handler(&$c)
+{
+    // Grab Data Handler Path and prepare whether it is a string
+    // or array to match "handler" or ["handler" => "fn"]
+    $handlerPath = dirname(dirname(__DIR__)) . '/data/';
+    $handler = "";
+    $handleString = null;
+    if (is_string($c['req']['matched_data'])) {
+        $handler = $c['req']['matched_data'];
+    } elseif (is_array($c['req']['matched_data'])) {
+        $handler = key($c['req']['matched_data']);
+        $handleString = $c['req']['matched_data'][$handler] ?? null;
+    }
+
+    // Finally check if the file exists and is readable, and then include it
+    // and run the handler function with the $c variable as argument
+    if (file_exists("$handlerPath/$handler.php") && is_readable("$handlerPath/$handler.php")) {
+        $runHandler = include_once "$handlerPath/$handler.php";
+        if (is_callable($runHandler)) {
+            if (!is_null($handleString)) {
+                $runHandler($c, $handleString);
+            } else {
+                $runHandler($c);
+            }
+        }
+        // Handle error: not callable (or just use default below)
+        else {
+            $c['err']['FAILED_TO_RUN_DATA_HANDLER'] = true;
+            return;
+        }
+    }
+    // Handle error: file not found or not readable  (or just use default below)
+    else {
+        $c['err']['FAILED_TO_RUN_DATA_HANDLER'] = true;
+        return;
+    }
 }

@@ -21,7 +21,7 @@ if ($c['req']['current_step'] === 1) {
     ]);
 
     // See src/funkphp/config/db.php for the default database settings!
-    $c['db'] = d_connect_db(DB_HOST, DB_USER, DB_PASSWORD, DB_NAME)['data'] ?? null;
+    $c['db'] = funk_connect_db(DB_HOST, DB_USER, DB_PASSWORD, DB_NAME)['data'] ?? null;
 
     // Headers to Set and Remove for each HTTP(S) Request
     h_headers_set($c['HEADERS']['ADD']);
