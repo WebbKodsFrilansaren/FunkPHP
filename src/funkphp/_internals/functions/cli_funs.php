@@ -2445,6 +2445,7 @@ function cli_update_reserved_functions_list()
     // Replace all /\d+ => / with "" to remove the array keys
     $reserved_functions_string = preg_replace("/\d+\s*=>\s*/", "", $reserved_functions_string);
     $reserved_functions_string = preg_replace("/\n/", "", $reserved_functions_string);
+    $reserved_functions_string = preg_replace("/\',/", "',\n", $reserved_functions_string, 1);
     echo "COPY & PASTE THIS INTO FunkCLI at the \"\$reserved_functions = [...];\" lines!\n\$reserved_functions = $reserved_functions_string";
 }
 
