@@ -2446,7 +2446,7 @@ function cli_update_reserved_functions_list()
     $reserved_functions_string = preg_replace("/\d+\s*=>\s*/", "", $reserved_functions_string);
     $reserved_functions_string = preg_replace("/\n/", "", $reserved_functions_string);
     $reserved_functions_string = preg_replace("/\',/", "',\n", $reserved_functions_string, 1);
-    echo "COPY & PASTE THIS INTO FunkCLI at the \"\$reserved_functions = [...];\" lines!\n\$reserved_functions = $reserved_functions_string";
+    echo "COPY & PASTE THIS INTO FunkCLI at the \"\$reserved_functions = [...];\" lines!\n---------------------------------------------------------------------------\n\$reserved_functions = $reserved_functions_string\n---------------------------------------------------------------------------";
 }
 
 // Function that takes a variable ($existsInWhat) and then checks if a given value
