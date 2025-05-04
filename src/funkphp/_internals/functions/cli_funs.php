@@ -2440,13 +2440,12 @@ function cli_update_reserved_functions_list()
         }
     }
 
-
     // Convert the array to a string using cli_convert_array_to_simple_syntax
     $reserved_functions_string = cli_convert_array_to_simple_syntax($reserved_functions);
     // Replace all /\d+ => / with "" to remove the array keys
     $reserved_functions_string = preg_replace("/\d+\s*=>\s*/", "", $reserved_functions_string);
-
-    echo $reserved_functions_string;
+    $reserved_functions_string = preg_replace("/\n/", "", $reserved_functions_string);
+    echo "COPY & PASTE THIS INTO FunkCLI at the \"\$reserved_functions = [...];\" lines!\n\$reserved_functions = $reserved_functions_string";
 }
 
 // Function that takes a variable ($existsInWhat) and then checks if a given value
