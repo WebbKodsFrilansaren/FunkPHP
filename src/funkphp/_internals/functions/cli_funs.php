@@ -2392,6 +2392,63 @@ function cli_warning_without_exit($string)
     echo "\033[33m[FunkCLI - WARNING]: $string\n\033[0m";
 }
 
+// Boolean function that returns that a directory exists and is readable & writable
+function dir_exists_is_readable_writable($dirPath)
+{
+    return is_dir($dirPath) && is_readable($dirPath) && is_writable($dirPath);
+}
+
+// Boolean function that returns that a file exists and is readable & writable
+function file_exists_is_readable_writable($filePath)
+{
+    return is_file($filePath) && is_readable($filePath) && is_writable($filePath);
+}
+
+// Function loops through all function files in funkphp/_internals/functions/
+// and preg matchdes "function ([a-zA-Z0-9_]+)" and then adds the function name to an
+// array which is then converted to a [] array string using cli_convert_array_to_simple_syntax
+// and then the FunkCLI file is open and the line "$reserved_functions = [...];" is replaced with the new array string
+function cli_update_reserved_functions_list()
+{
+    global $dirs;
+    $dir = $dirs['functions'];
+    if (!dir_exists_is_readable_writable($dir)) {
+        cli_err("Directory $dir does not exist or is not readable/writable!");
+    }
+
+    // Get all files in the directory
+    $files = scandir($dir);
+    $reserved_functions = [];
+
+    // Loop through all files and check if they are PHP files
+    foreach ($files as $file) {
+        if (pathinfo($file, PATHINFO_EXTENSION) === "php") {
+            // Check that file name ends with "_funs.php" or exit
+            if (!str_ends_with($file, "_funs.php")) {
+                cli_warning_without_exit("File $file not valid function file! Skipping it...");
+                continue;
+            }
+            // Get the contents of the file
+            $contents = file_get_contents($dir . $file);
+            // Use preg_match to find all function names in the file
+            // The line MUST begin with "function " and then a space and then the function name
+            preg_match_all("/^function\s+([a-zA-Z0-9_]+)\(/m", $contents, $matches);
+            // Add the function names to the reserved_functions array
+            foreach ($matches[1] as $function_name) {
+                $reserved_functions[] = $function_name;
+            }
+        }
+    }
+
+
+    // Convert the array to a string using cli_convert_array_to_simple_syntax
+    $reserved_functions_string = cli_convert_array_to_simple_syntax($reserved_functions);
+    // Replace all /\d+ => / with "" to remove the array keys
+    $reserved_functions_string = preg_replace("/\d+\s*=>\s*/", "", $reserved_functions_string);
+
+    echo $reserved_functions_string;
+}
+
 // Function that takes a variable ($existsInWhat) and then checks if a given value
 // already exists in it as a string or in an array. It returns true if it does, false otherwise.
 function cli_value_exists_as_string_or_in_array($valueThatExists, $existsInWhat)

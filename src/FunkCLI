@@ -9,6 +9,7 @@ $validArg1withArg2Values =  [
     'compile' => [
         'r',
         'routes',
+        'reserved_list',
         'help'
     ],
     'add' => [
@@ -117,6 +118,7 @@ $settings = include __DIR__ . '/FunkCLI_Settings' ?? [
 // All available dirs to use for the CLI
 $dirs = [
     "compiled" => __DIR__ . '/funkphp/_internals/compiled/',
+    "functions" => __DIR__ . '/funkphp/_internals/functions/',
     "_BACKUPS" => __DIR__ . '/funkphp/_BACKUPS/',
     "routes" => __DIR__ . '/funkphp/routes/',
     "handlers" => __DIR__ . '/funkphp/handlers/',
@@ -149,109 +151,7 @@ $exactFiles = [
 // should not be used in the application code. They are checked against
 // when adding a new function as a result of a route/data/page/mw handler.
 $reserved_functions = [
-    'cli_add_route',
-    'cli_add_handler',
-    'cli_add_middleware',
-    'cli_delete_route',
-    'cli_delete_handler',
-    'cli_delete_middleware',
-    'cli_change_route',
-    'cli_change_handler',
-    'cli_change_middleware',
-    'cli_restore_route',
-    'cli_restore_handler',
-    'cli_restore_middleware',
-    'all_route_compiled_singles_middlewares_and_all_their_handlers_files_i_know_files_will_be_hard_to_get_back',
-    'all_route_compiled_and_singles_files_except_handlers_i_know_files_will_be_hard_to_get_back',
-    'all_backups_compiled_and_single_files_i_know_files_will_be_hard_to_get_back',
-    'all_backups_finals_files_i_know_files_will_be_hard_to_get_back',
-    'all_all_backups_files_i_know_files_will_be_hard_to_get_back_and_i_will_cry',
-    'all_routes_compiled_and_singles_files',
-    'route_compiled_and_singles_files',
-    'data_compiled_and_singles_files',
-    'page_compiled_and_singles_files',
-    'cli_restore_default_folders_and_files',
-    'cli_route_file_exist',
-    'cli_rebuild_single_routes_route_file',
-    'cli_data_exists',
-    'cli_page_exists',
-    'cli_handler_exists',
-    'cli_middleware_exists',
-    'cli_build_compiled_routes',
-    'cli_output_compiled_routes',
-    'cli_audit_developer_routes',
-    'cli_convert_array_to_simple_syntax',
-    'cli_output_file_until_success',
-    'cli_backup_batch',
-    'cli_delete_a_route',
-    'cli_add_handler',
-    'cli_add_route',
-    'cli_add_middleware',
-    'cli_add_middlewares',
-    'cli_compile_batch',
-    'cli_backup_all_files_in_folder_to_another_folder',
-    'cli_backup_file_until_success',
-    'cli_restore_file',
-    'cli_get_prefix_code',
-    'cli_get_unique_filename_for_dir',
-    'cli_delete_all_files_in_directory_except_other_directories',
-    'cli_valid_route_start_syntax',
-    'cli_prepare_valid_route_string',
-    'cli_extracted_parsed_method_from_valid_start_syntax',
-    'cli_parse_rest_of_valid_route_syntax_better',
-    'cli_err_syntax',
-    'cli_err_command',
-    'cli_success',
-    'cli_info',
-    'cli_success_without_exit',
-    'cli_info_without_exit',
-    'cli_info_multiline',
-    'cli_warning',
-    'cli_warning_without_exit',
-    'd_connect_db',
-    'd_validate',
-    'dd',
-    'dj',
-    'ok',
-    'err',
-    'fail',
-    'success',
-    'return_html',
-    'return_json',
-    'return_code',
-    'return_download',
-    'str_equals',
-    'h_destroy_session',
-    'h_headers_remove',
-    'h_headers_set',
-    'h_headers_setcookie',
-    'h_try_default_action',
-    'h_run_ini_sets',
-    'h_start_session',
-    'h_splitOnAndCheckInArray',
-    'h_generate_random_password',
-    'h_generate_random_number',
-    'h_generate_random_user_id',
-    'h_generate_random_csrf',
-    'funk_https_redirect',
-    'funk_match_denied_methods',
-    'funk_match_denied_exact_ips',
-    'funk_run_middleware_after_matched_routing',
-    'r_exit_middleware_running_early_matched_routing',
-    'funk_match_denied_uas_fast',
-    'funk_match_denied_uas_fast_test',
-    'funk_prepare_uri',
-    'funk_match_compiled_route',
-    'funk_match_developer_route',
-    'funk_run_matched_route_handler',
-    'r_is_localhost',
-    'funk_is_localhost',
-    'cli_sort_build_routes_compile_and_output',
-    'cli_value_exists_as_string_or_in_array',
-    'cli_delete_a_middleware_from_all_routes',
-    'cli_delete_a_middleware',
-    'cli_add_a_middleware',
-    'cli_add_a_route'
+    'test',
 ];
 
 // First restore the folders if they don't exist
@@ -265,6 +165,7 @@ $singleRoutesRoute = include __DIR__ . '/funkphp/routes/route_single_routes.php'
 // Define the command actions map
 $commands = [
     'compile' => [
+        // 'r' & 'routes' recompiles the Troute & Single Route files!
         'r' => function () {
             // Backup the old route file first (troute and single_routes)
             cli_backup_batch(["troutes", "routes"]);
@@ -281,6 +182,7 @@ $commands = [
             cli_compile_batch(["troutes"]);
             cli_success("Compiled Only Route routes!");
         },
+        // 'help' shows the help for the compile command
         'help' => function () {
             cli_info_multiline("FunkCLI - Compile Help");
             cli_info_multiline("Usage: funkcli compile [all_routes|only_[route|page|data]]");
@@ -293,6 +195,10 @@ $commands = [
             cli_info_multiline("***IMPORTANT 1*** This overwrites the current Troute Files!!!");
             cli_info_multiline("***IMPORTANT 2*** Files are Backed Up in _funkphp/_BACKUPS/compiled/ & _BACKUPS/_FINAL_BACKUPS/!!!");
             exit;
+        },
+        // 'reserved_list' recompiles the $$reserved_functions variable inside of the FunkCLI File!
+        'reserved_list' => function () {
+            cli_update_reserved_functions_list();
         },
     ],
     'add' => [
