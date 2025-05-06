@@ -37,33 +37,48 @@ function funk_validate(&$c, array $data_keys_and_associated_validation_rules_val
         }
     };
     $mb_minlen = function (&$c, $data, $value, $customErr = null) {
-        if (mb_strlen($value) < $data['min']) {
+        if (mb_strlen($value) < $data['minlen']) {
             $errors[] = $customErr ? $customErr : "The field {$data['name']} must be at least {$data['min']} characters long.";
         }
     };
     $mb_maxlen = function (&$c, $data, $value, $customErr = null) {
-        if (mb_strlen($value) > $data['max']) {
+        if (mb_strlen($value) > $data['maxlen']) {
             $errors[] = $customErr ? $customErr : "The field {$data['name']} must be at most {$data['max']} characters long.";
         }
     };
     $minlen = function (&$c, $data, $value, $customErr = null) {
-        if (strlen($value) < $data['min']) {
+        if (strlen($value) < $data['minlen']) {
             $errors[] = $customErr ? $customErr : "The field {$data['name']} must be at least {$data['min']} characters long.";
         }
     };
     $maxlen = function (&$c, $data, $value, $customErr = null) {
-        if (strlen($value) > $data['max']) {
+        if (strlen($value) > $data['maxlen']) {
             $errors[] = $customErr ? $customErr : "The field {$data['name']} must be at most {$data['max']} characters long.";
         }
     };
-    $minmax = function (&$c, $data, $value, $customErr = null) {
-        if ($value < $data['min'] || $value > $data['max']) {
+    $minmaxlen = function (&$c, $data, $value, $customErr = null) {
+        if (strlen($value) < $data['minlen'] || strlen($value) > $data['maxlen']) {
+            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be between {$data['min']} and {$data['max']} characters long.";
+        }
+    };
+    $minmaxval = function (&$c, $data, $value, $customErr = null) {
+        if ($value < $data['minval'] || $value > $data['maxval']) {
             $errors[] = $customErr ? $customErr : "The field {$data['name']} must be between {$data['min']} and {$data['max']}.";
         }
     };
+    $maxval = function (&$c, $data, $value, $customErr = null) {
+        if ($value > $data['maxval']) {
+            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be at most {$data['max']}.";
+        }
+    };
     $minval  = function (&$c, $data, $value, $customErr = null) {
-        if ($value < $data['min']) {
+        if ($value < $data['minval']) {
             $errors[] = $customErr ? $customErr : "The field {$data['name']} must be at least {$data['min']}.";
+        }
+    };
+    $nonnegative = function (&$c, $data, $value, $customErr = null) {
+        if ($value < 0) {
+            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be a non-negative value.";
         }
     };
     $required = function (&$c, $data, $value, $customErr = null) {
@@ -84,6 +99,11 @@ function funk_validate(&$c, array $data_keys_and_associated_validation_rules_val
     $float  = function (&$c, $data, $value, $customErr = null) {
         if (!is_float($value)) {
             $errors[] = $customErr ? $customErr : "The field {$data['name']} must be a float.";
+        }
+    };
+    $number = function (&$c, $data, $value, $customErr = null) {
+        if (!is_numeric($value)) {
+            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be a number.";
         }
     };
     $bool  = function (&$c, $data, $value, $customErr = null) {
@@ -113,6 +133,30 @@ function funk_validate(&$c, array $data_keys_and_associated_validation_rules_val
             $errors[] = $customErr ? $customErr : "The field {$data['name']} must be a valid phone number.";
         }
     };
+
+    // TODO: Verify this works as intended!
+    // We now loop through the data keys and their associated validation rules
+    foreach ($data_keys_and_associated_validation_rules_values as $key => $data) {
+        // Check if the key exists in the request data
+        if (isset($c['req'][$key])) {
+            // Loop through the validation rules and apply them
+            foreach ($data['validation'] as $rule => $value) {
+                // Check if the rule is callable (a function)
+                if (is_callable($$rule)) {
+                    // Call the rule with the data and value
+                    $$rule($c, $data, $c['req'][$key], $value);
+                } else {
+                    // Handle error: rule not callable (or just use default below)
+                    $errors[] = "The validation rule {$rule} is not callable.";
+                }
+            }
+        } else {
+            // Handle error: key not found in request data (or just use default below)
+            $errors[] = "The field {$key} is not found in the request data.";
+        }
+    }
+
+    return $errors;
 }
 
 // Run the matched data handler (Step 4 after matched routing in Routes,

@@ -18,15 +18,6 @@ CREATE TABLE fphp_users (
     user_updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Table: fphp_users_ips
-CREATE TABLE fphp_users_ips (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id_ref VARCHAR(255) NOT NULL UNIQUE,
-    user_ip VARCHAR(255) NOT NULL UNIQUE,
-    user_ip_created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id_ref) REFERENCES fphp_users(user_id)
-);
-
 -- Table: fphp_roles
 CREATE TABLE fphp_roles (
     id INT AUTO_INCREMENT PRIMARY KEY,

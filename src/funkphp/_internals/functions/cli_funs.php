@@ -1,5 +1,141 @@
 <?php
 
+// Function takes a SQL file and parses the CREATE TABLE(); statement
+// and then stores it in funkphp/config/tables.php file as a PHP array
+function cli_parse_a_sql_table_file()
+{
+    // Load globals and verify $argv is not empty string and ends with .sql
+    global $argv, $dirs, $exactFiles, $settings, $tablesAndRelationshipsFile;
+    $sqlFile = null;
+    if (!is_string_and_not_empty(trim($argv[3] ?? null))) {
+        cli_err_syntax("Provide a SQL file from \"funkphp/sql/\" folder as a string!");
+    }
+
+    // Trim, add .sql extension if not already, and check that file exsts in /sql/ folder
+    $argv[3] = strtolower(trim($argv[3]));
+    if (!str_ends_with($argv[3], ".sql")) {
+        $argv[3] .= ".sql";
+    }
+    if (file_exists_is_readable_writable($dirs['sql'] . $argv[3])) {
+        $sqlFile = file_get_contents($dirs['sql'] . $argv[3]);
+    } else {
+        cli_err_syntax("\"{$argv[3]}\" must must exist in\"funkphp/sql/\"!");
+    }
+
+    // Check that the tables.php file exists and is writable, then load it
+    if (!file_exists_is_readable_writable($exactFiles['tables'])) {
+        cli_err_syntax("The \"funkphp/config/tables.php\" file must exist and be writable!");
+    }
+
+    // Prepare variables to store the tables.php file and parsed table
+    // plus the validation array and output file name
+    $tablesFile = $tablesAndRelationshipsFile;
+    $tableName = null;
+    $parsedTable = [];
+    $validationArray = [];
+    $validationOutputFile = "";
+
+    // Check that keys "tables" and "relationships" exist in the tables.php file
+    if (!isset($tablesFile['tables']) || !is_array($tablesFile['tables']) || !isset($tablesFile['relationships']) || !is_array($tablesFile['relationships'])) {
+        cli_err_syntax("The \"funkphp/config/tables.php\" file must contain the two keys: \"tables\" & \"relationships\" at root level!");
+    }
+
+    // Check that file starsts with "CREATE TABLE a-zA-Z0-9_\s+()" or error out
+    if (!preg_match("/^CREATE TABLE\s+([a-zA-Z0-9_]+)\s*\(/", $sqlFile, $matches)) {
+        cli_err_syntax("\"{$argv[3]}\" must start with \"CREATE TABLE /[a-zA-Z0-9_]+/ (\"");
+    }
+    // Parse out the table name and check if it is valid
+    $tableName = $matches[1] ?? null;
+    if (!preg_match("/^[a-zA-Z0-9_]+$/", $tableName)) {
+        cli_err_syntax("Invalid table name \"$tableName\". Should just be: \"[a-zA-Z0-9_]+\"");
+    }
+    // Check if the table name already exists in the tables.php file (as a key under "tables")
+    if (isset($tablesFile['tables'][$tableName])) {
+        cli_err_syntax("Table \"$tableName\" already exists in \"funkphp/config/tables.php\"!");
+    }
+    echo $tableName . "\n";
+
+    // We now check if a validation file already exists with that table name ending in ".php"
+    // because we do NOT wanna overwrite that. If file don't exist, we prepare its output path!
+    // Then we add the table name to the parsed table array
+    if (file_exists($dirs['validations'] . $tableName . ".php")) {
+        cli_err_syntax("Validation file \"$tableName.php\" already exists in \"funkphp/validations/\". Either rename it if your table is newer or consider not adding this table if it might be by mistake!");
+    }
+    $validationOutputFile = $dirs['validations'] . $tableName . ".php";
+    $parsedTable[$tableName] = [];
+
+    /* PREPARING TO PARSE LINE BY LINE IN THE SQL TABLE WHOSE NAME IS VALID! */
+    // We now split on "\n" and iterate through each line of the SQL file
+    // (this will skip the first line which is just the table name already parsed!)
+    // We also remove first element, trim trailing spaces, remove empty lines,
+    // the ending ");" and also all trailing "," at the end of each line. A final check
+    // is that the first element must start with "id" or we error out. Just to keep things
+    // consistent for all added tables in the tables.php file and all functions interacting
+    // with them. But before that we will loop through each line and check if there are any
+    // duplicates because that is just trolling or mistakes from the End-Developer's side!
+    $sqlLines = explode("\n", $sqlFile);
+    array_shift($sqlLines);
+    $sqlLines = array_map('trim', $sqlLines);
+    $sqlLines = array_filter($sqlLines, function ($line) {
+        return !empty($line) && $line !== ");";
+    });
+    $sqlLines = array_map(function ($line) {
+        return rtrim($line, ",\r\n\t ");
+    }, $sqlLines);
+    if (!str_starts_with(strtolower($sqlLines[0]), "id ")) {
+        cli_err_syntax("First Table Column in the Table SQL File must be: \"id\"!");
+    }
+    // Check for duplicates in the SQL lines and error out if found. In each line we
+    // split on " " and check if the first element is already in a duplicate array.
+    // If it is we error out, otherwise we add it to the duplicate array.
+    $duplicates = [];
+    foreach ($sqlLines as $line) {
+        $lineParts = explode(" ", $line);
+        if (isset($duplicates[$lineParts[0]])) {
+            cli_err_syntax("Duplicate Column Name \"{$lineParts[0]}\" found in \"{$argv[3]}\"!");
+        } else {
+            $duplicates[$lineParts[0]] = true;
+        }
+    }
+    var_dump($sqlLines);
+
+    // Load typical MySQL Data Types with min & max lengths and number of digits (if at all applicable)
+    // to compare against during parsing. This is also used when creating the validation file!
+    $mysqlDataTypes = include_once $exactFiles['supported_mysql_data_types'];
+
+    // Finally we start iterating through each line by splitting on
+    foreach ($sqlLines as $line) {
+        $lineParts = explode(" ", $line);
+        var_dump($lineParts);
+    }
+
+
+    // Finally add the entire parsed table to the Tables.php file's array!
+    //$tablesFile['tables'][$tableName] = $parsedTable[$tableName];
+
+}
+
+// Outputs the tables.php file based on the array passed to it
+function cli_output_tables_file($array)
+{
+    // Load globals and verify non-empty array and that file exists to written to
+    global $dirs, $exactFiles, $settings;
+    if (!is_array_and_not_empty($array)) {
+        cli_err_syntax("The provided array must be a non-empty array!");
+    }
+    if (!file_exists_is_readable_writable($exactFiles['tables'])) {
+        cli_err_syntax("The \"funkphp/config/tables.php\" file must exist and be writable!");
+    }
+
+    // Attempt to write to the Tables.php file and check if it was successful
+    $result = file_put_contents($exactFiles['tables'], "<?php\nreturn " . cli_convert_array_to_simple_syntax($array));
+    if ($result === false) {
+        cli_err_syntax("FAILED recompiling tables in \"funkphp/config/tables.php\"!");
+    } else {
+        cli_success_without_exit("Recompiled Tables in \"funkphp/config/tables.php\"!");
+    }
+}
+
 // Match Compiled Route with URI Segments, used by "r_match_developer_route"
 function cli_match_compiled_route(string $requestUri, array $methodRootNode): ?array
 {
@@ -125,84 +261,6 @@ function cli_match_developer_route(string $method, string $uri, array $compiledR
     ];
 }
 
-// Restore essentially the "funkphp" folder and all its subfolders if they do not exist!
-function cli_restore_default_folders_and_files()
-{
-    if ($_SERVER['SCRIPT_NAME'] !== 'funkcli') {
-        exit;
-    }
-
-    // Prepare what folders to loop through and create if they don't exist!
-    $folderBase = dirname(dirname(__DIR__));
-    $folders = [
-        "$folderBase",
-        "$folderBase/_BACKUPS/",
-        "$folderBase/_BACKUPS/_FINAL_BACKUPS/",
-        "$folderBase/_BACKUPS/compiled/",
-        "$folderBase/_BACKUPS/data/",
-        "$folderBase/_BACKUPS/handlers/",
-        "$folderBase/_BACKUPS/middlewares/",
-        "$folderBase/_BACKUPS/pages/",
-        "$folderBase/_BACKUPS/routes/",
-        "$folderBase/_BACKUPS/sql/",
-        "$folderBase/_BACKUPS/templates/",
-        "$folderBase/_BACKUPS/validations/",
-        "$folderBase/_internals/",
-        "$folderBase/_internals/compiled/",
-        "$folderBase/_internals/functions/",
-        "$folderBase/_internals/templates/",
-        "$folderBase/cached/",
-        "$folderBase/cached/pages/",
-        "$folderBase/cached/json/",
-        "$folderBase/cached/files/",
-        "$folderBase/config/",
-        "$folderBase/data/",
-        "$folderBase/_dx_steps/",
-        "$folderBase/middlewares/",
-        "$folderBase/pages/",
-        "$folderBase/pages/complete/",
-        "$folderBase/pages/parts/",
-        "$folderBase/routes/",
-        "$folderBase/tests/",
-        "$folderBase/templates/",
-        "$folderBase/sql/",
-        "$folderBase/validations/",
-    ];
-
-    // Prepare default files that doesn't exist if certain folders don't exist
-    $defaultFiles = [
-        "$folderBase/_internals/compiled/troute_route.php",
-        "$folderBase/routes/route_single_routes.php",
-    ];
-
-    // Create folderBase if it does not exist
-    if (!is_dir($folderBase)) {
-        mkdir($folderBase, 0777, true);
-    }
-    // Loop through each folder and create it if it does not exist
-    foreach ($folders as $folder) {
-        if (!is_dir($folder)) {
-            mkdir($folder, 0777, true);
-            echo "\033[32m[FunkCLI - SUCCESS]: Recreated folder: $folder\n\033[0m";
-        }
-    }
-    // Loop through files, and create them if they don't exist
-    foreach ($defaultFiles as $file) {
-        if (!file_exists($file)) {
-            // Recreate default files based on type ("troute", "middleware routes" or "single routes")
-            if (str_contains($file, "troute")) {
-                file_put_contents($file, "<?php\n// This file was recreated by FunkCLI!\nreturn [];\n?>");
-                echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
-                continue;
-            } elseif (str_contains($file, "single")) {
-                file_put_contents($file, "<?php\n// This file was recreated by FunkCLI!\nreturn [\n'ROUTES' => \n['GET' => [], 'POST' => [], 'PUT' => [], 'DELETE' => [],]];\n?>");
-                echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
-                continue;
-            }
-        }
-    }
-}
-
 // Rebuilds the Single Routes Route file (funkphp/routes/route_single_routes.php) based on valid array
 function cli_rebuild_single_routes_route_file($singleRouteRoutesFileArray): bool
 {
@@ -226,90 +284,6 @@ function cli_rebuild_single_routes_route_file($singleRouteRoutesFileArray): bool
         cli_get_prefix_code("route_singles_routes_start")
             . cli_convert_array_to_simple_syntax($singleRouteRoutesFileArray)
     );
-}
-
-// Check if a Data Handler in data/ exists
-function cli_data_exists($fileName): bool
-{
-    // Load globals, verify & transform string with .php if not already
-    global $argv,
-        $settings,
-        $dirs,
-        $exactFiles;
-    if (!is_string($fileName) || empty($fileName)) {
-        cli_err_syntax("[cli_d_handler_exists] Data Handler File name must be a non-empty string!");
-    }
-    if (!str_ends_with($fileName, ".php")) {
-        $fileName .= ".php";
-    }
-    // Return true if file exists in handlers/D/ folder, false otherwise
-    if (file_exists($dirs['data'] . $fileName)) {
-        return true;
-    }
-    return false;
-}
-
-// Check if a Page in pages/ exists
-function cli_page_exists($fileName): bool
-{
-    // Load globals, verify & transform string with .php if not already
-    global $argv,
-        $settings,
-        $dirs,
-        $exactFiles;
-    if (!is_string($fileName) || empty($fileName)) {
-        cli_err_syntax("[cli_p_handler_exists] Page Handler File name must be a non-empty string!");
-    }
-    if (!str_ends_with($fileName, ".php")) {
-        $fileName .= ".php";
-    }
-    // Return true if file exists in handlers/P/ folder, false otherwise
-    if (file_exists($dirs['pages'] . $fileName)) {
-        return true;
-    }
-    return false;
-}
-
-// Check if a Route Handler in handlers/ exists
-function cli_handler_exists($fileName): bool
-{
-    // Load globals, verify & transform string with .php if not already
-    global $argv,
-        $settings,
-        $dirs,
-        $exactFiles;
-    if (!is_string($fileName) || empty($fileName)) {
-        cli_err_syntax("[cli_r_handler_exists] Route Handler File name must be a non-empty string!");
-    }
-    if (!str_ends_with($fileName, ".php")) {
-        $fileName .= ".php";
-    }
-    // Return true if file exists in handlers/R/ folder, false otherwise
-    if (file_exists($dirs['handlers'] . $fileName)) {
-        return true;
-    }
-    return false;
-}
-
-// Check if a Middleware Handler in middlewares/ exists
-function cli_middleware_exists($fileName): bool
-{
-    // Load globals, verify & transform string with .php if not already
-    global $argv,
-        $settings,
-        $dirs,
-        $exactFiles;
-    if (!is_string($fileName) || empty($fileName)) {
-        cli_err_syntax("[cli_mw_r_handler_exists] Middleware Route Handler File name must be a non-empty string!");
-    }
-    if (!str_ends_with($fileName, ".php")) {
-        $fileName .= ".php";
-    }
-    // Return true if file exists in middlewares/R/ folder, false otherwise
-    if (file_exists($dirs['middlewares'] . $fileName)) {
-        return true;
-    }
-    return false;
 }
 
 // Build Compiled Route from Developer's Defined Routes
@@ -591,6 +565,168 @@ function cli_convert_array_to_simple_syntax(array $array): string | null | array
     // Return the finalized string varaible
     $converted .= ";";
     return $converted;
+}
+
+// Restore essentially the "funkphp" folder and all its subfolders if they do not exist!
+function cli_restore_default_folders_and_files()
+{
+    if ($_SERVER['SCRIPT_NAME'] !== 'funkcli') {
+        exit;
+    }
+
+    // Prepare what folders to loop through and create if they don't exist!
+    $folderBase = dirname(dirname(__DIR__));
+    $folders = [
+        "$folderBase",
+        "$folderBase/_BACKUPS/",
+        "$folderBase/_BACKUPS/_FINAL_BACKUPS/",
+        "$folderBase/_BACKUPS/compiled/",
+        "$folderBase/_BACKUPS/data/",
+        "$folderBase/_BACKUPS/handlers/",
+        "$folderBase/_BACKUPS/middlewares/",
+        "$folderBase/_BACKUPS/pages/",
+        "$folderBase/_BACKUPS/routes/",
+        "$folderBase/_BACKUPS/sql/",
+        "$folderBase/_BACKUPS/templates/",
+        "$folderBase/_BACKUPS/validations/",
+        "$folderBase/_internals/",
+        "$folderBase/_internals/compiled/",
+        "$folderBase/_internals/functions/",
+        "$folderBase/_internals/templates/",
+        "$folderBase/cached/",
+        "$folderBase/cached/pages/",
+        "$folderBase/cached/json/",
+        "$folderBase/cached/files/",
+        "$folderBase/config/",
+        "$folderBase/data/",
+        "$folderBase/_dx_steps/",
+        "$folderBase/middlewares/",
+        "$folderBase/pages/",
+        "$folderBase/pages/complete/",
+        "$folderBase/pages/parts/",
+        "$folderBase/routes/",
+        "$folderBase/tests/",
+        "$folderBase/templates/",
+        "$folderBase/sql/",
+        "$folderBase/validations/",
+    ];
+
+    // Prepare default files that doesn't exist if certain folders don't exist
+    $defaultFiles = [
+        "$folderBase/_internals/compiled/troute_route.php",
+        "$folderBase/routes/route_single_routes.php",
+    ];
+
+    // Create folderBase if it does not exist
+    if (!is_dir($folderBase)) {
+        mkdir($folderBase, 0777, true);
+    }
+    // Loop through each folder and create it if it does not exist
+    foreach ($folders as $folder) {
+        if (!is_dir($folder)) {
+            mkdir($folder, 0777, true);
+            echo "\033[32m[FunkCLI - SUCCESS]: Recreated folder: $folder\n\033[0m";
+        }
+    }
+    // Loop through files, and create them if they don't exist
+    foreach ($defaultFiles as $file) {
+        if (!file_exists($file)) {
+            // Recreate default files based on type ("troute", "middleware routes" or "single routes")
+            if (str_contains($file, "troute")) {
+                file_put_contents($file, "<?php\n// This file was recreated by FunkCLI!\nreturn [];\n?>");
+                echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
+                continue;
+            } elseif (str_contains($file, "single")) {
+                file_put_contents($file, "<?php\n// This file was recreated by FunkCLI!\nreturn [\n'ROUTES' => \n['GET' => [], 'POST' => [], 'PUT' => [], 'DELETE' => [],]];\n?>");
+                echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
+                continue;
+            }
+        }
+    }
+}
+
+// Check if a Data File Handler in data/ exists
+function cli_data_file_exists($fileName): bool
+{
+    // Load globals, verify & transform string with .php if not already
+    global $argv,
+        $settings,
+        $dirs,
+        $exactFiles;
+    if (!is_string($fileName) || empty($fileName)) {
+        cli_err_syntax("[cli_d_handler_exists] Data Handler File name must be a non-empty string!");
+    }
+    if (!str_ends_with($fileName, ".php")) {
+        $fileName .= ".php";
+    }
+    // Return true if file exists in handlers/D/ folder, false otherwise
+    if (file_exists($dirs['data'] . $fileName)) {
+        return true;
+    }
+    return false;
+}
+
+// Check if a Page File in pages/ exists
+function cli_page_file_exists($fileName): bool
+{
+    // Load globals, verify & transform string with .php if not already
+    global $argv,
+        $settings,
+        $dirs,
+        $exactFiles;
+    if (!is_string($fileName) || empty($fileName)) {
+        cli_err_syntax("[cli_p_handler_exists] Page Handler File name must be a non-empty string!");
+    }
+    if (!str_ends_with($fileName, ".php")) {
+        $fileName .= ".php";
+    }
+    // Return true if file exists in handlers/P/ folder, false otherwise
+    if (file_exists($dirs['pages'] . $fileName)) {
+        return true;
+    }
+    return false;
+}
+
+// Check if a Route File Handler in handlers/ exists
+function cli_handler_file_exists($fileName): bool
+{
+    // Load globals, verify & transform string with .php if not already
+    global $argv,
+        $settings,
+        $dirs,
+        $exactFiles;
+    if (!is_string($fileName) || empty($fileName)) {
+        cli_err_syntax("[cli_r_handler_exists] Route Handler File name must be a non-empty string!");
+    }
+    if (!str_ends_with($fileName, ".php")) {
+        $fileName .= ".php";
+    }
+    // Return true if file exists in handlers/R/ folder, false otherwise
+    if (file_exists($dirs['handlers'] . $fileName)) {
+        return true;
+    }
+    return false;
+}
+
+// Check if a Middleware Handler in middlewares/ exists
+function cli_middleware_exists($fileName): bool
+{
+    // Load globals, verify & transform string with .php if not already
+    global $argv,
+        $settings,
+        $dirs,
+        $exactFiles;
+    if (!is_string($fileName) || empty($fileName)) {
+        cli_err_syntax("[cli_mw_r_handler_exists] Middleware Route Handler File name must be a non-empty string!");
+    }
+    if (!str_ends_with($fileName, ".php")) {
+        $fileName .= ".php";
+    }
+    // Return true if file exists in middlewares/R/ folder, false otherwise
+    if (file_exists($dirs['middlewares'] . $fileName)) {
+        return true;
+    }
+    return false;
 }
 
 // Output file until success (by waiting one second and retrying with new file name that is the file name + new datetime and extension    )
@@ -1089,7 +1225,6 @@ function cli_delete_a_data_handler_function_or_entire_file($handlerVar)
         cli_err("FAILED to delete Function \"$fnName\" from Handler File \"data/$handlerFile.php\"!");
     }
 }
-
 
 // Add a handler to (funkphp/handlers/) WITHOUT adding to the Route file
 function cli_add_handler()
@@ -2582,4 +2717,15 @@ function dir_exists_is_readable_writable($dirPath)
 function file_exists_is_readable_writable($filePath)
 {
     return is_file($filePath) && is_readable($filePath) && is_writable($filePath);
+}
+
+// Boolean function that checks if a variable is a non-empty array
+function is_array_and_not_empty($array)
+{
+    return isset($array) && is_array($array) && !empty($array);
+}
+// Boolean function that checks if a variable is a non-empty string
+function is_string_and_not_empty($string)
+{
+    return isset($string) && is_string($string) && !empty($string);
 }

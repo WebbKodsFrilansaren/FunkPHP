@@ -29,6 +29,7 @@ $validArg1withArg2Values =  [
         'mw_data',
         'mw_page',
         'middleware',
+        'table',
         'help'
     ],
     'change' => [
@@ -117,6 +118,8 @@ $settings = include __DIR__ . '/FunkCLI_Settings' ?? [
 
 // All available dirs to use for the CLI
 $dirs = [
+    "config" => __DIR__ . '/funkphp/config/',
+    "_internals" => __DIR__ . '/funkphp/_internals/',
     "compiled" => __DIR__ . '/funkphp/_internals/compiled/',
     "functions" => __DIR__ . '/funkphp/_internals/functions/',
     "_BACKUPS" => __DIR__ . '/funkphp/_BACKUPS/',
@@ -127,6 +130,7 @@ $dirs = [
     "pages" => __DIR__ . '/funkphp/pages/',
     "templates" => __DIR__ . '/funkphp/templates/',
     "sql" => __DIR__ . '/funkphp/sql/',
+    'validations' => __DIR__ . '/funkphp/validations/',
     "backups_finals" => __DIR__ . '/funkphp/_BACKUPS/_FINAL_BACKUPS/',
     "backups_compiled" => __DIR__ . '/funkphp/_BACKUPS/compiled/',
     "backups_routes" => __DIR__ . '/funkphp/_BACKUPS/routes/',
@@ -139,12 +143,15 @@ $dirs = [
     "backups_config" => __DIR__ . '/funkphp/_BACKUPS/config/',
     "backups_sql" => __DIR__ . '/funkphp/_BACKUPS/sql/',
     "backups_tests" => __DIR__ . '/funkphp/_BACKUPS/tests/',
+    "backups_validations" => __DIR__ . '/funkphp/_BACKUPS/validations/',
 ];
 
 // Exact file paths to use for the CLI
 $exactFiles = [
     "troute_route" => $dirs['compiled'] . "troute_route.php",
     "single_routes" => $dirs['routes'] . "route_single_routes.php",
+    "tables" => $dirs['config'] . "tables.php",
+    "supported_mysql_data_types" => $dirs['_internals'] . "supported_mysql_data_types.php",
 ];
 
 // List of all functions that are reserved for the framework and
@@ -247,7 +254,8 @@ $reserved_functions =  [
 cli_restore_default_folders_and_files();
 
 // Load current routes, data and pages before processing any commands
-$singleRoutesRoute = include __DIR__ . '/funkphp/routes/route_single_routes.php' ?? ['ROUTES' => ['GET' => [], 'POST' => [], 'PUT' => [], 'DELETE' => []]];
+$singleRoutesRoute = include __DIR__ . '/funkphp/routes/route_single_routes.php' ?? ['ROUTES' => ['GET' => [], 'POST' => [], 'PUT' => [], 'DELETE' => [], 'PATCH' => []]];
+$tablesAndRelationshipsFile = include __DIR__ . '/funkphp/config/tables.php' ?? ['tables' => [], 'relationships' => []];
 
 // Compile only based on user input
 // Compile all routes
@@ -319,6 +327,10 @@ $commands = [
         },
         'middleware' => function () {
             cli_add_a_middleware();
+        },
+        'table' => function () {
+            cli_parse_a_sql_table_file();
+            //cli_output_tables_file(["tables" => [], "relationships" => []]);
         },
     ],
     'change' => [
