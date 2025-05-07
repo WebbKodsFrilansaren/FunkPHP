@@ -1,12 +1,10 @@
-CREATE TABLE article(
+CREATE TABLE articles (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    title VARCHAR(255) NOT NULL,
-    content TEXT NOT NULL DEFAULT "No content",
+    title VARCHAR(255) UNIQUE NOT NULL,
+    content TEXT NOT NULL,
     author_id INT NOT NULL,
-
     published BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_author
     FOREIGN KEY (author_id) REFERENCES authors(id)
     );

@@ -5,6 +5,7 @@
 function cli_parse_a_sql_table_file()
 {
     // Load globals and verify $argv is not empty string and ends with .sql
+    cli_info_without_exit("IMPORTANT: \"php funkcli add table\" command is NOT meant for actual Table Migration. It is ONLY meant for providing structure for more efficient Data Hydration!");
     global $argv, $dirs, $exactFiles, $settings, $tablesAndRelationshipsFile;
     $sqlFile = null;
     if (!is_string_and_not_empty(trim($argv[3] ?? null))) {
@@ -117,7 +118,6 @@ function cli_parse_a_sql_table_file()
     foreach ($sqlLines as $index => $line) {
         $lineParts = explode(" ", $line);
         $currentDataType = "";
-        echo "Line: \"$line\"\n";
 
         // Special Case #1: First Column (thus first index at 0) "ID" must be "BIGINT AUTO_INCREMENT PRIMARY KEY" for the first element
         // for consistency reasons. We check if it is the first element and if it is not we error out.
@@ -160,7 +160,7 @@ function cli_parse_a_sql_table_file()
                 } else {
                     // Check if the other table exists in the tables.php file
                     if (!isset($tablesFile['tables'][$otherTable])) {
-                        cli_err_syntax("Foreign Key \"{$line}\" references \"$otherTable\" not found in \"funkphp/config/tables.php\". Please fix \"sql/{$argv[3]}\" and try again!");
+                        cli_err_syntax("Foreign Key \"{$thisTableFK}\" references Table \"$otherTable\" not found in \"funkphp/config/tables.php\". First add Table \"$otherTable\", or fix \"sql/{$argv[3]}\" and try again!");
                     } else {
                         // Add the foreign key to the parsed table array
                         $parsedTable[$tableName][$thisTableFK] = [
@@ -170,6 +170,8 @@ function cli_parse_a_sql_table_file()
                             "references_column" => $otherTablePK,
                             "referenced_joined" => $otherTable . "_" . $otherTablePK,
                         ];
+                        cli_info_without_exit("Foreign Key \"{$thisTableFK}\" added to Table \"$tableName\" which references Table \"$otherTable\".");
+                        cli_info_without_exit("IMPORTANT: You must MANUALLY ADD the Relationship Between the Two Tables using \"php funkcli add [relationship] [table1=>table2]\" command!");
                         continue;
                     }
                 }
@@ -237,7 +239,7 @@ function cli_parse_a_sql_table_file()
                 }
             }
         } else {
-            cli_err_syntax("\"{$lineParts[1]}\" is not defined in \"funkphp/_internals/supported_mysql_data_types.php\" of valid MySQL Data Types. Please add its key if you believe it should be included, and then retry in FunkCLI!");
+            cli_err_syntax("Line: \"{$lineParts[1]}\" is not defined in \"funkphp/_internals/supported_mysql_data_types.php\" of valid MySQL Data Types. Please add its key if you believe it should be included, and then retry in FunkCLI!");
         }
 
         // FOR REMAINING ELEMENTS[2-n] we first concatenate element[0-1] and remove them from the $line string
@@ -245,18 +247,20 @@ function cli_parse_a_sql_table_file()
         // and so on! We begin now with removing the first two elements from the $line string.
         $line = trim(str_replace($lineParts[0] . " " . $lineParts[1], "", $line));
 
+        if (str_contains($line, "\\\"") || str_contains($line, "\'")) {
+            cli_warning_without_exit("\"$line\" contains unescaped qoutes such as \\\" and/or \' which cause issues parsing anything coming after it. Consider adding it at the end of each line!");
+        }
+
         // Check for "NOT NULL" and add to parsed array if found
-        if (preg_match("/NOT NULL/i", $line)) {
+        if (cli_find_string_outside_quotes("NOT NULL", $line) === "NOT NULL") {
             $parsedTable[$tableName][$lineParts[0]]["nullable"] = false;
-            $line = str_replace("NOT NULL", "", $line);
         } else {
             $parsedTable[$tableName][$lineParts[0]]["nullable"] = true;
         }
 
         // Check for "UNIQUE" and add to parsed array if found
-        if (preg_match("/UNIQUE/i", $line)) {
+        if (cli_find_string_outside_quotes("UNIQUE", $line) === "UNIQUE") {
             $parsedTable[$tableName][$lineParts[0]]["unique"] = true;
-            $line = str_replace("UNIQUE", "", $line);
         } else {
             $parsedTable[$tableName][$lineParts[0]]["unique"] = false;
         }
@@ -264,15 +268,7 @@ function cli_parse_a_sql_table_file()
         // Check for "DEFAULT " and if we find it, then we will regex match
         // "DEFAULT and the $defaultPattern" and then we will parse it out
         // and add it to the parsed table array.
-        $defaultPattern = "/\bDEFAULT\s+(" .
-            "'(?:[^']|'')*?'|" .  // Single-quoted string (handles escaped single quotes '')
-            "\"(?:[^\"]|\"\")*?\"|" . // Double-quoted string (handles escaped double quotes "")
-            "\bNULL\b|" .            // NULL keyword
-            "\bCURRENT_TIMESTAMP\b|" . // CURRENT_TIMESTAMP keyword
-            "\bNOW\(\)\b|" .          // NOW() function (but () is not included for some reason, so we add manually)
-            "[+-]?[0-9]+(?:\.[0-9]+)?|" . // Numbers (integer/float, with optional sign)
-            "[a-zA-Z_][a-zA-Z0-9_]*" . // Other unquoted identifiers/keywords
-            ")/i";
+        $defaultPattern = "/\bDEFAULT\s+('(?:[^']|'')*?'|\"(?:[^\"]|\"\")*?\"|\bNULL\b|\bCURRENT_TIMESTAMP\b|\bNOW\(\)\b|[+-]?[0-9]+(?:\.[0-9]+)?|[a-zA-Z_][a-zA-Z0-9_]*)/i";
         if (preg_match($defaultPattern, $line, $matches)) {
             $defaultValue = $matches[1] ?? null;
             if (isset($defaultValue)) {
@@ -297,6 +293,9 @@ function cli_parse_a_sql_table_file()
                     $defaultValue = trim(str_replace('"', "", $defaultValue));
                 }
                 $parsedTable[$tableName][$lineParts[0]]["default"] = $defaultValue;
+                if (str_contains($line, "DEFAULT UNIQUE") || str_contains($line, "DEFAULT NOT") || str_contains($line, "DEFAULT NOT NULL")) {
+                    cli_warning_without_exit("Default: \"$defaultValue\" might be unintentional? Please review in \"funkphp/config/tables.php\" => \"tables\" =>  \"{$tableName}\" => \"{$lineParts[0]}\" => \"default\"!");
+                }
 
                 // Special edge-case: if the data type is a date/time type and the default value is "NOW" we add "()"
                 if (
@@ -323,6 +322,59 @@ function cli_parse_a_sql_table_file()
     // based on the parsed table array and the validation array
     cli_info_without_exit("Attempting recompiling tables with newly added Table \"$tableName\"...");
     cli_output_tables_file($tablesFile);
+}
+
+// Function that finds a string that is NOT inside of quotes
+// by iterating one character at a time and checking if it is inside quotes
+function cli_find_string_outside_quotes($needle, $haystack)
+{
+    // Prepare variables
+    $currentBuiltString = [];
+    $insideQuotes = false;
+    $splittedString = str_split($needle);
+
+    // We iterate through each character in the haystack string
+    // and we check first if we are inside of quotes or not
+    // and if we are inside of quotes we skip the current character
+    // and also reset the $currentBuiltString array to empty.
+    // As we iterate through each character that is outside of quotes
+    // we then check if the current character is equal to the first character of the $needle string
+    // or the next one and so on. If it is we add it to the $currentBuiltString array otherwise
+    // we reset the $currentBuiltString array to empty and continue iterating.
+    // If we reach the end of the haystack string and the $currentBuiltString array is equal to the $needle string
+    // we return the $currentBuiltString array as a string. Otherwise we return "".
+    foreach (str_split($haystack) as $index => $char) {
+        if ($char === '"' || $char === "'") {
+            // Check first that previous character is not a backslash
+            // and then toggle the $insideQuotes variable
+            if ($index > 0 && $haystack[$index - 1] !== "\\") {
+                $insideQuotes = !$insideQuotes;
+            }
+            continue;
+        }
+        if ($insideQuotes) {
+            $currentBuiltString = [];
+            continue;
+        }
+        // If first character is the first in the $needle string and the $currentBuiltString is empty
+        if ($char === $splittedString[0] && empty($currentBuiltString)) {
+            $currentBuiltString[] = $char;
+            continue;
+        }
+        // Here we check if $char is the next character in the $needle string
+        // by taking the current count + 1 in the $currentBuiltString array and checking if it is equal to the $needle string
+        // If it is we add it to the $currentBuiltString array otherwise we reset the $currentBuiltString array to empty.
+        // We also check if the $currentBuiltString array is equal to the $needle string and return it as a string.
+        // Otherwise we return "".
+        if (count($currentBuiltString) < count($splittedString) && $char === $splittedString[count($currentBuiltString)]) {
+            $currentBuiltString[] = $char;
+        } elseif (count($currentBuiltString) == count($splittedString)) {
+            return implode("", $currentBuiltString);
+        } elseif ($char !== $splittedString[count($currentBuiltString)]) {
+            $currentBuiltString = [];
+        }
+    }
+    return implode("", $currentBuiltString);
 }
 
 // Outputs the tables.php file based on the array passed to it
