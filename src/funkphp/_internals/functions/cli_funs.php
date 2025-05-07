@@ -5,7 +5,9 @@
 function cli_parse_a_sql_table_file()
 {
     // Load globals and verify $argv is not empty string and ends with .sql
-    cli_info_without_exit("IMPORTANT: \"php funkcli add table\" command is NOT meant for actual Table Migration. It is ONLY meant for providing structure for more efficient Data Hydration!");
+    cli_info_without_exit("IMPORTANT #1: \"php funkcli add table\" command is NOT meant for actual Table Migration. It is ONLY meant for providing structure for more efficient Data Hydration!");
+    cli_info_without_exit("IMPORTANT #2: The function cli_convert_array_to_simple_syntax() in \"funkphp/_internals/functions/cli_funs.php\" which converts array() to array[] ignores quotes inside of other qoutes. For example, \"Yours' truly\" would become \"Yours truly\".");
+    cli_info_without_exit("Keep this in mind if you plan on using quotes inside of DEFAULT \"Value with quotes!\" as you must manually add it inside of your tables.php!");
     global $argv, $dirs, $exactFiles, $settings, $tablesAndRelationshipsFile;
     $sqlFile = null;
     if (!is_string_and_not_empty(trim($argv[3] ?? null))) {
@@ -217,13 +219,22 @@ function cli_parse_a_sql_table_file()
         // FOR SECOND ELEMENT[1] we assume to be the data type so we first extract it if there might be
         // any numbers inside of two () brackets. We also check if it is a valid MySQL data type by comparing
         // against "STRINGS", "NUMBERIC" and "DATETIMES" arrays in the supported_mysql_data_types.php file.
-        $regexExtractDataTypeFromOptionalValue = "/([a-zA-Z_]+)(\s*\((\d+)\))?/";
-        if (preg_match($regexExtractDataTypeFromOptionalValue, $lineParts[1], $matches)) {
+        $lineSpec = $lineParts[1] ?? null;
+
+        // We concatenate two parts if the first part contains "(" and the second part does
+        // not contain ")" which happens due to splitting parts on " " (e.g. DECIMAL(10, 2))
+        if (str_contains($lineParts[1], "(") && !str_contains($lineParts[1], ")")) {
+            $lineSpec = $lineParts[1] . " " . $lineParts[2];
+            $lineSpec = str_replace(", ", ",", $lineSpec);
+        }
+        $regexExtractDataTypeFromOptionalValue = "/([a-zA-Z_]+)(\s*\((\d+,{0,1}\s*\d*)\))?/i";
+        if (preg_match($regexExtractDataTypeFromOptionalValue, $lineSpec, $matches)) {
             $dataType = $matches[1] ?? null;
             if (isset($dataType)) {
                 $dataType = strtoupper($dataType);
             }
             $dataTypeValue = $matches[2] ?? null;
+
             // Check if the data type is valid and exists in the supported_mysql_data_types.php file
             if (!isset($mysqlDataTypes[$dataType])) {
                 cli_err_syntax("Data Type \"{$dataType}\" is not defined in \"funkphp/_internals/supported_mysql_data_types.php\" of valid MySQL Data Types. Please add its key if you believe it should be included, and then retry in FunkCLI!");
@@ -247,8 +258,9 @@ function cli_parse_a_sql_table_file()
         // and so on! We begin now with removing the first two elements from the $line string.
         $line = trim(str_replace($lineParts[0] . " " . $lineParts[1], "", $line));
 
-        if (str_contains($line, "\\\"") || str_contains($line, "\'")) {
-            cli_warning_without_exit("\"$line\" contains unescaped qoutes such as \\\" and/or \' which cause issues parsing anything coming after it. Consider adding it at the end of each line!");
+        if (substr_count($line, '"') % 2 !== 0 || substr_count($line, "'") % 2 !== 0) {
+            cli_warning_without_exit("Uneven numbers of quotes in `$line`. Values might get clipped!");
+            cli_warning_without_exit("Quotes inside of quotes might be ignored!");
         }
 
         // Check for "NOT NULL" and add to parsed array if found
@@ -768,7 +780,7 @@ function cli_convert_array_to_simple_syntax(array $array): string | null | array
 
     // Check if first character is "a"
     if ($str[0] !== "a") {
-        echo "[ERROR]: Must be a non-empty array!\n";
+        echo "[cli_convert_array_to_simple_syntax - ERROR]: The array should start with the letter 'a' as in array()!\n";
         exit;
     }
 

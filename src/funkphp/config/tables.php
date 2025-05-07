@@ -79,7 +79,16 @@ return  [
         'value' => '255',
         'nullable' => false,
         'unique' => true,
-        'default' => NULL,
+        'default' => 'test',
+      ],
+      'price' => 
+       [
+        'joined_name' => 'articles_price',
+        'type' => 'DECIMAL',
+        'value' => '10,2',
+        'nullable' => true,
+        'unique' => false,
+        'default' => '0.00',
       ],
       'content' => 
        [
