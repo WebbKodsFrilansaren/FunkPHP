@@ -31,11 +31,11 @@
     ],
     // Date and time types
     "DATETIMES" => [
-        "DATE" => 1,
-        "TIME" => 2,
-        "DATETIME" => 3,
-        "TIMESTAMP" => 4,
-        "YEAR" => 5
+        "DATE",
+        "TIME",
+        "DATETIME",
+        "TIMESTAMP",
+        "YEAR",
     ],
     // Binary types
     "BLOBS" => [

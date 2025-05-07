@@ -1,7 +1,124 @@
 <?php
 return  [
-  'tables' =>
-  [],
-  'relationships' =>
-  [],
+  'tables' => 
+   [
+    'authors' => 
+     [
+      'id' => 
+       [
+        'joined_name' => 'authors_id',
+        'auto_increment' => true,
+        'type' => 'BIGINT',
+        'value' => NULL,
+        'primary_key' => true,
+        'nullable' => false,
+        'default' => NULL,
+      ],
+      'name' => 
+       [
+        'joined_name' => 'authors_name',
+        'type' => 'NVARCHAR',
+        'value' => '255',
+        'nullable' => false,
+        'unique' => false,
+        'default' => NULL,
+      ],
+      'email' => 
+       [
+        'joined_name' => 'authors_email',
+        'type' => 'NVARCHAR',
+        'value' => '255',
+        'nullable' => true,
+        'unique' => true,
+        'default' => NULL,
+      ],
+      'age' => 
+       [
+        'joined_name' => 'authors_age',
+        'type' => 'INT',
+        'value' => NULL,
+        'nullable' => true,
+        'unique' => false,
+        'default' => 18,
+      ],
+      'nickname' => 
+       [
+        'joined_name' => 'authors_nickname',
+        'type' => 'NVARCHAR',
+        'value' => '255',
+        'nullable' => true,
+        'unique' => false,
+        'default' => 'Anonymous',
+      ],
+      'updated_at' => 
+       [
+        'joined_name' => 'authors_updated_at',
+        'type' => 'TIME',
+        'value' => NULL,
+        'nullable' => true,
+        'unique' => false,
+        'default' => 'NOW()',
+      ],
+    ],
+    'articles' => 
+     [
+      'id' => 
+       [
+        'joined_name' => 'articles_id',
+        'auto_increment' => true,
+        'type' => 'BIGINT',
+        'value' => NULL,
+        'primary_key' => true,
+        'nullable' => false,
+        'default' => NULL,
+      ],
+      'title' => 
+       [
+        'joined_name' => 'articles_title',
+        'type' => 'VARCHAR',
+        'value' => '255',
+        'nullable' => false,
+        'unique' => false,
+        'default' => NULL,
+      ],
+      'content' => 
+       [
+        'joined_name' => 'articles_content',
+        'type' => 'TEXT',
+        'value' => NULL,
+        'nullable' => false,
+        'unique' => false,
+        'default' => NULL,
+      ],
+      'author_id' => 
+       [
+        'joined_name' => 'articles_author_id',
+        'foreign_key' => true,
+        'references' => 'authors',
+        'references_column' => 'id',
+        'referenced_joined' => 'authors_id',
+      ],
+      'created_at' => 
+       [
+        'joined_name' => 'articles_created_at',
+        'type' => 'TIMESTAMP',
+        'value' => NULL,
+        'nullable' => true,
+        'unique' => false,
+        'default' => 'CURRENT_TIMESTAMP',
+      ],
+      'updated_at' => 
+       [
+        'joined_name' => 'articles_updated_at',
+        'type' => 'TIMESTAMP',
+        'value' => NULL,
+        'nullable' => true,
+        'unique' => false,
+        'default' => 'CURRENT_TIMESTAMP',
+      ],
+    ],
+  ],
+  'relationships' => 
+   [
+  ],
 ];

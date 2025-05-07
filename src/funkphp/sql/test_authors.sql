@@ -4,5 +4,5 @@ CREATE TABLE authors (
     email NVARCHAR(255) UNIQUE,
     age INT DEFAULT 18,
     nickname NVARCHAR(255) DEFAULT "Anonymous",
-    updated_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIME DEFAULT NOW(),
 );

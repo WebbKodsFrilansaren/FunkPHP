@@ -40,6 +40,11 @@ function cli_parse_a_sql_table_file()
         cli_err_syntax("The \"funkphp/config/tables.php\" file must contain the two keys: \"tables\" & \"relationships\" at root level!");
     }
 
+    // Inform but continue that "CREATE TABLE AS" (using other tables) is not supported
+    if (preg_match("/^CREATE TABLE\s+([a-zA-Z0-9_]+)\s*AS/", $sqlFile, $matches)) {
+        cli_info_without_exit("You cannot use \"CREATE TABLE AS\" in the SQL file. Please use \"CREATE TABLE\" instead!");
+    }
+
     // Check that file starsts with "CREATE TABLE a-zA-Z0-9_\s+()" or error out
     if (!preg_match("/^CREATE TABLE\s+([a-zA-Z0-9_]+)\s*\(/", $sqlFile, $matches)) {
         cli_err_syntax("\"{$argv[3]}\" must start with \"CREATE TABLE /[a-zA-Z0-9_]+/ (\"");
@@ -98,7 +103,7 @@ function cli_parse_a_sql_table_file()
     foreach ($sqlLines as $line) {
         $lineParts = explode(" ", $line);
         if (isset($duplicates[$lineParts[0]])) {
-            cli_err_syntax("Duplicate Column Name \"{$lineParts[0]}\". Fix any duplicates in your SQL \"{$argv[3]}\" File before proceeding!");
+            cli_err_syntax("Duplicate Column Name \"{$lineParts[0]}\". Please fix \"sql/{$argv[3]}\" and try again!");
         } else {
             $duplicates[$lineParts[0]] = true;
         }
@@ -111,13 +116,14 @@ function cli_parse_a_sql_table_file()
     // Finally we start iterating through each line by splitting on
     foreach ($sqlLines as $index => $line) {
         $lineParts = explode(" ", $line);
-        $currentDataType = null;
+        $currentDataType = "";
+        echo "Line: \"$line\"\n";
 
-        // First Column (thus first index at 0) "ID" must be "BIGINT AUTO_INCREMENT PRIMARY KEY" for the first element
+        // Special Case #1: First Column (thus first index at 0) "ID" must be "BIGINT AUTO_INCREMENT PRIMARY KEY" for the first element
         // for consistency reasons. We check if it is the first element and if it is not we error out.
         if ($index === 0) {
             if ($line !== "id BIGINT AUTO_INCREMENT PRIMARY KEY") {
-                cli_err_syntax("First Column \"{$lineParts[0]}\" must be \"id BIGINT AUTO_INCREMENT PRIMARY KEY\". Please fix your SQL \"{$argv[3]}\" File before proceeding!");
+                cli_err_syntax("First Column \"{$lineParts[0]}\" must be \"id BIGINT AUTO_INCREMENT PRIMARY KEY\". Please fix \"sql/{$argv[3]}\" and try again!");
             } else {
                 $parsedTable[$tableName][$lineParts[0]] = [
                     "joined_name" => $tableName . "_" . $lineParts[0],
@@ -130,6 +136,60 @@ function cli_parse_a_sql_table_file()
                 ];
                 continue;
             }
+        }
+
+        // Special Case #2: The $line starts with "FOREIGN KEY" meaning we need to parse it by getting the
+        // regex that I wrote myself for once instead of help from LLMs. Kinda incredible, right?! ^_^
+        if (str_starts_with($line, "FOREIGN KEY")) {
+            $foreignKeyRegex = "/FOREIGN KEY \(([a-zA-Z09_]+)\) REFERENCES ([a-zA-Z09_]+)\(([a-zA-Z09]+)\)/";
+
+            // At match, grab variables and check all NOT being null first
+            if (preg_match($foreignKeyRegex, $line, $matches)) {
+                $thisTableFK = $matches[1] ?? null;
+                $otherTable = $matches[2] ?? null;
+                $otherTablePK = $matches[3] ?? null;
+                if (!isset($thisTableFK) || !isset($otherTable) || !isset($otherTablePK)) {
+                    cli_err_syntax("Foreign Key \"{$line}\" is missing one or more of the following: \"this_table_column\", \"other_table_name\" or \"other_table_primary_key\". Please fix \"sql/{$argv[3]}\" and try again!");
+                } else {
+                    // Check if the other table exists in the tables.php file
+                    if (!isset($tablesFile['tables'][$otherTable])) {
+                        cli_err_syntax("Foreign Key \"{$line}\" references \"$otherTable\" not found in \"funkphp/config/tables.php\". Please fix \"sql/{$argv[3]}\" and try again!");
+                    } else {
+                        // Add the foreign key to the parsed table array
+                        $parsedTable[$tableName][$thisTableFK] = [
+                            "joined_name" => $tableName . "_" . $thisTableFK,
+                            "foreign_key" => true,
+                            "references" => $otherTable,
+                            "references_column" => $otherTablePK,
+                            "referenced_joined" => $otherTable . "_" . $otherTablePK,
+                        ];
+                        continue;
+                    }
+                }
+            }
+            // Line started with "FOREIGN KEY" but no match found so we error out
+            else {
+                cli_err_syntax_without_exit("\"$line\" started with \"FOREIGN KEY\" but failed to match. Please fix \"sql/{$argv[3]}\" and try again!");
+                cli_info_without_exit("Expected Syntax:\"FOREIGN KEY (existing_column_name_in_this_table) REFERENCES other_existing_referenced_table(id)\"");
+                cli_info("Anything after is not matched so you can include things such as \"ON DELETE CASCADE\", \"ON UPDATE CASCADE\", etc.");
+            }
+        } // This step succeeds it will continue to the next line and skip the rest of the code below!
+
+
+        // Special Case #3: The $line starts with "CONSTRAINT" or "CHECK" so we just inform the Developer
+        // that these are currently not supported and we will skip them for now, meaning we will not parse them,
+        // but we will continue to the next line and skip the rest of the code below!
+        if (str_starts_with(strtoupper($line), "CONSTRAINT")) {
+            cli_info_without_exit("Skipping \"{$line}\" as parsing \"CONSTRAINT\"not implemented.");
+            continue;
+        }
+        if (str_starts_with(strtoupper($line), "CHECK")) {
+            cli_info_without_exit("Skipping \"{$line}\" as parsing \"CHECK\" is not implemented.");
+            continue;
+        }
+        if (str_starts_with(strtoupper($line), "PRIMARY KEY")) {
+            cli_info_without_exit("Skipping \"{$line}\" as a Primary Key has already been added if you reached this far!");
+            continue;
         }
 
         // FOR FIRST ELEMENT[0] we assume a valid column name using
@@ -156,11 +216,11 @@ function cli_parse_a_sql_table_file()
             $dataTypeValue = $matches[2] ?? null;
             // Check if the data type is valid and exists in the supported_mysql_data_types.php file
             if (!isset($mysqlDataTypes[$dataType])) {
-                cli_err_syntax("Data Type \"{$dataType}\" is not defined in \"funkphp/_internals/supported_mysql_data_types.php\" of valid MySQL Data Types. Please add its key if you believe it should be included, and then retry again in FunkCLI!");
+                cli_err_syntax("Data Type \"{$dataType}\" is not defined in \"funkphp/_internals/supported_mysql_data_types.php\" of valid MySQL Data Types. Please add its key if you believe it should be included, and then retry in FunkCLI!");
             } else {
                 // Add the data type and its optional value to the parsed table array
                 $parsedTable[$tableName][$lineParts[0]]["type"] = $dataType;
-                $currentDataType = $mysqlDataTypes[$dataType] ?? null;
+                $currentDataType = $dataType;
                 if ($dataTypeValue !== null) {
                     $dataTypeValue = trim(str_replace("(", "", str_replace(")", "", $dataTypeValue)));
                     $parsedTable[$tableName][$lineParts[0]]["value"] = $dataTypeValue;
@@ -169,7 +229,7 @@ function cli_parse_a_sql_table_file()
                 }
             }
         } else {
-            cli_err_syntax("\"{$lineParts[1]}\" is not defined in \"funkphp/_internals/supported_mysql_data_types.php\" of valid MySQL Data Types. Please add its key if you believe it should be included, and then retry again in FunkCLI!");
+            cli_err_syntax("\"{$lineParts[1]}\" is not defined in \"funkphp/_internals/supported_mysql_data_types.php\" of valid MySQL Data Types. Please add its key if you believe it should be included, and then retry in FunkCLI!");
         }
 
         // FOR REMAINING ELEMENTS[2-n] we first concatenate element[0-1] and remove them from the $line string
@@ -201,14 +261,12 @@ function cli_parse_a_sql_table_file()
             "\"(?:[^\"]|\"\")*?\"|" . // Double-quoted string (handles escaped double quotes "")
             "\bNULL\b|" .            // NULL keyword
             "\bCURRENT_TIMESTAMP\b|" . // CURRENT_TIMESTAMP keyword
-            "\bNOW\(\)\b|" .          // NOW() function
+            "\bNOW\(\)\b|" .          // NOW() function (but () is not included for some reason, so we add manually)
             "[+-]?[0-9]+(?:\.[0-9]+)?|" . // Numbers (integer/float, with optional sign)
             "[a-zA-Z_][a-zA-Z0-9_]*" . // Other unquoted identifiers/keywords
             ")/i";
         if (preg_match($defaultPattern, $line, $matches)) {
             $defaultValue = $matches[1] ?? null;
-            echo "\nMatched: " . $defaultValue ?? "<none>";
-            echo "\n";
             if (isset($defaultValue)) {
                 // Convert $defaultValue to a number if it is parsed as a number
                 if (is_numeric($defaultValue)) {
@@ -231,11 +289,21 @@ function cli_parse_a_sql_table_file()
                     $defaultValue = trim(str_replace('"', "", $defaultValue));
                 }
                 $parsedTable[$tableName][$lineParts[0]]["default"] = $defaultValue;
+
+                // Special edge-case: if the data type is a date/time type and the default value is "NOW" we add "()"
+                if (
+                    in_array($parsedTable[$tableName][$lineParts[0]]["type"], $mysqlDataTypes["DATETIMES"])
+                    && $parsedTable[$tableName][$lineParts[0]]["default"] === "NOW"
+                ) {
+                    $parsedTable[$tableName][$lineParts[0]]["default"] .= "()";
+                }
             } else {
                 $parsedTable[$tableName][$lineParts[0]]["default"] = null;
             }
             $line = str_replace("DEFAULT " . $defaultValue, "", $line);
-        } else {
+        }
+        // No match after "DEFAULT " so we set it to null
+        else {
             $parsedTable[$tableName][$lineParts[0]]["default"] = null;
         }
     }
@@ -247,9 +315,8 @@ function cli_parse_a_sql_table_file()
 
     // Now we iterate through that table to craete the validation file
     // based on the parsed table array and the validation array
-
-
-    //cli_output_tables_file($tablesFile);
+    cli_info_without_exit("Attempting recompiling tables with newly added Table \"$tableName\"...");
+    cli_output_tables_file($tablesFile);
 }
 
 // Outputs the tables.php file based on the array passed to it
