@@ -49,11 +49,16 @@ function cli_parse_a_sql_table_file()
     if (!preg_match("/^[a-zA-Z0-9_]+$/", $tableName)) {
         cli_err_syntax("Invalid table name \"$tableName\". Should just be: \"[a-zA-Z0-9_]+\"");
     }
+    // Check if the table name ends with "s" and if not add it, and inform the Developer that it happened
+    if (!str_ends_with($tableName, "s")) {
+        cli_info_without_exit("Table name \"$tableName\" was not pluralized.");
+        $tableName .= "s";
+        cli_info_without_exit("Table name is now \"$tableName\" for consistency reasons - just a heads up!");
+    }
     // Check if the table name already exists in the tables.php file (as a key under "tables")
     if (isset($tablesFile['tables'][$tableName])) {
         cli_err_syntax("Table \"$tableName\" already exists in \"funkphp/config/tables.php\"!");
     }
-    echo $tableName . "\n";
 
     // We now check if a validation file already exists with that table name ending in ".php"
     // because we do NOT wanna overwrite that. If file don't exist, we prepare its output path!
@@ -63,6 +68,7 @@ function cli_parse_a_sql_table_file()
     }
     $validationOutputFile = $dirs['validations'] . $tableName . ".php";
     $parsedTable[$tableName] = [];
+    $validationArray[$tableName] = [];
 
     /* PREPARING TO PARSE LINE BY LINE IN THE SQL TABLE WHOSE NAME IS VALID! */
     // We now split on "\n" and iterate through each line of the SQL file
@@ -92,27 +98,158 @@ function cli_parse_a_sql_table_file()
     foreach ($sqlLines as $line) {
         $lineParts = explode(" ", $line);
         if (isset($duplicates[$lineParts[0]])) {
-            cli_err_syntax("Duplicate Column Name \"{$lineParts[0]}\" found in \"{$argv[3]}\"!");
+            cli_err_syntax("Duplicate Column Name \"{$lineParts[0]}\". Fix any duplicates in your SQL \"{$argv[3]}\" File before proceeding!");
         } else {
             $duplicates[$lineParts[0]] = true;
         }
     }
-    var_dump($sqlLines);
 
     // Load typical MySQL Data Types with min & max lengths and number of digits (if at all applicable)
     // to compare against during parsing. This is also used when creating the validation file!
     $mysqlDataTypes = include_once $exactFiles['supported_mysql_data_types'];
 
     // Finally we start iterating through each line by splitting on
-    foreach ($sqlLines as $line) {
+    foreach ($sqlLines as $index => $line) {
         $lineParts = explode(" ", $line);
-        var_dump($lineParts);
+        $currentDataType = null;
+
+        // First Column (thus first index at 0) "ID" must be "BIGINT AUTO_INCREMENT PRIMARY KEY" for the first element
+        // for consistency reasons. We check if it is the first element and if it is not we error out.
+        if ($index === 0) {
+            if ($line !== "id BIGINT AUTO_INCREMENT PRIMARY KEY") {
+                cli_err_syntax("First Column \"{$lineParts[0]}\" must be \"id BIGINT AUTO_INCREMENT PRIMARY KEY\". Please fix your SQL \"{$argv[3]}\" File before proceeding!");
+            } else {
+                $parsedTable[$tableName][$lineParts[0]] = [
+                    "joined_name" => $tableName . "_" . $lineParts[0],
+                    "auto_increment" => true,
+                    "type" => "BIGINT",
+                    "value" => null,
+                    "primary_key" => true,
+                    "nullable" => false,
+                    "default" => null,
+                ];
+                continue;
+            }
+        }
+
+        // FOR FIRST ELEMENT[0] we assume a valid column name using
+        // the regex ^[a-zA-Z_][a-zA-Z0-9_]*$ and check if it is valid
+        if (!preg_match("/^[a-zA-Z_][a-zA-Z0-9_]*$/", $lineParts[0])) {
+            cli_err_syntax("Column Name \"{$lineParts[0]}\" must follow Regex (\"[a-zA-Z_][a-zA-Z0-9_]*\") meaning starting with a letter or underscore and then letters, numbers and/or underscores!");
+        }
+        // Otherwise we add it to the parsed table array
+        else {
+            $parsedTable[$tableName][$lineParts[0]] = [
+                "joined_name" => $tableName . "_" . $lineParts[0],
+            ];
+        }
+
+        // FOR SECOND ELEMENT[1] we assume to be the data type so we first extract it if there might be
+        // any numbers inside of two () brackets. We also check if it is a valid MySQL data type by comparing
+        // against "STRINGS", "NUMBERIC" and "DATETIMES" arrays in the supported_mysql_data_types.php file.
+        $regexExtractDataTypeFromOptionalValue = "/([a-zA-Z_]+)(\s*\((\d+)\))?/";
+        if (preg_match($regexExtractDataTypeFromOptionalValue, $lineParts[1], $matches)) {
+            $dataType = $matches[1] ?? null;
+            if (isset($dataType)) {
+                $dataType = strtoupper($dataType);
+            }
+            $dataTypeValue = $matches[2] ?? null;
+            // Check if the data type is valid and exists in the supported_mysql_data_types.php file
+            if (!isset($mysqlDataTypes[$dataType])) {
+                cli_err_syntax("Data Type \"{$dataType}\" is not defined in \"funkphp/_internals/supported_mysql_data_types.php\" of valid MySQL Data Types. Please add its key if you believe it should be included, and then retry again in FunkCLI!");
+            } else {
+                // Add the data type and its optional value to the parsed table array
+                $parsedTable[$tableName][$lineParts[0]]["type"] = $dataType;
+                $currentDataType = $mysqlDataTypes[$dataType] ?? null;
+                if ($dataTypeValue !== null) {
+                    $dataTypeValue = trim(str_replace("(", "", str_replace(")", "", $dataTypeValue)));
+                    $parsedTable[$tableName][$lineParts[0]]["value"] = $dataTypeValue;
+                } else {
+                    $parsedTable[$tableName][$lineParts[0]]["value"] = null;
+                }
+            }
+        } else {
+            cli_err_syntax("\"{$lineParts[1]}\" is not defined in \"funkphp/_internals/supported_mysql_data_types.php\" of valid MySQL Data Types. Please add its key if you believe it should be included, and then retry again in FunkCLI!");
+        }
+
+        // FOR REMAINING ELEMENTS[2-n] we first concatenate element[0-1] and remove them from the $line string
+        // so we don't accidentally parse them again. Then we will start to check for things like "NOT NULL", "UNIQUE"
+        // and so on! We begin now with removing the first two elements from the $line string.
+        $line = trim(str_replace($lineParts[0] . " " . $lineParts[1], "", $line));
+
+        // Check for "NOT NULL" and add to parsed array if found
+        if (preg_match("/NOT NULL/i", $line)) {
+            $parsedTable[$tableName][$lineParts[0]]["nullable"] = false;
+            $line = str_replace("NOT NULL", "", $line);
+        } else {
+            $parsedTable[$tableName][$lineParts[0]]["nullable"] = true;
+        }
+
+        // Check for "UNIQUE" and add to parsed array if found
+        if (preg_match("/UNIQUE/i", $line)) {
+            $parsedTable[$tableName][$lineParts[0]]["unique"] = true;
+            $line = str_replace("UNIQUE", "", $line);
+        } else {
+            $parsedTable[$tableName][$lineParts[0]]["unique"] = false;
+        }
+
+        // Check for "DEFAULT " and if we find it, then we will regex match
+        // "DEFAULT and the $defaultPattern" and then we will parse it out
+        // and add it to the parsed table array.
+        $defaultPattern = "/\bDEFAULT\s+(" .
+            "'(?:[^']|'')*?'|" .  // Single-quoted string (handles escaped single quotes '')
+            "\"(?:[^\"]|\"\")*?\"|" . // Double-quoted string (handles escaped double quotes "")
+            "\bNULL\b|" .            // NULL keyword
+            "\bCURRENT_TIMESTAMP\b|" . // CURRENT_TIMESTAMP keyword
+            "\bNOW\(\)\b|" .          // NOW() function
+            "[+-]?[0-9]+(?:\.[0-9]+)?|" . // Numbers (integer/float, with optional sign)
+            "[a-zA-Z_][a-zA-Z0-9_]*" . // Other unquoted identifiers/keywords
+            ")/i";
+        if (preg_match($defaultPattern, $line, $matches)) {
+            $defaultValue = $matches[1] ?? null;
+            echo "\nMatched: " . $defaultValue ?? "<none>";
+            echo "\n";
+            if (isset($defaultValue)) {
+                // Convert $defaultValue to a number if it is parsed as a number
+                if (is_numeric($defaultValue)) {
+                    // Check what data type is $currentDataType and convert it to that type
+                    if (isset($currentDataType)) {
+                        if ($currentDataType === "BIGINT" || $currentDataType === "INT" || $currentDataType === "SMALLINT" || $currentDataType === "MEDIUMINT") {
+                            $defaultValue = (int)$defaultValue;
+                        } elseif ($currentDataType === "FLOAT" || $currentDataType === "DOUBLE" || $currentDataType === "DOUBLE PRECISION") {
+                            $defaultValue = (float)$defaultValue;
+                        } elseif ($currentDataType === "DECIMAL" || $currentDataType === "NUMERIC") {
+                            $defaultValue = (string)$defaultValue;
+                        } else {
+                            $defaultValue = (int)$defaultValue;
+                        }
+                    } else {
+                        $defaultValue = (int)$defaultValue;
+                    }
+                } else {
+                    $defaultValue = trim(str_replace("'", "", $defaultValue));
+                    $defaultValue = trim(str_replace('"', "", $defaultValue));
+                }
+                $parsedTable[$tableName][$lineParts[0]]["default"] = $defaultValue;
+            } else {
+                $parsedTable[$tableName][$lineParts[0]]["default"] = null;
+            }
+            $line = str_replace("DEFAULT " . $defaultValue, "", $line);
+        } else {
+            $parsedTable[$tableName][$lineParts[0]]["default"] = null;
+        }
     }
 
+    var_dump($parsedTable);
 
     // Finally add the entire parsed table to the Tables.php file's array!
-    //$tablesFile['tables'][$tableName] = $parsedTable[$tableName];
+    $tablesFile['tables'][$tableName] = $parsedTable[$tableName];
 
+    // Now we iterate through that table to craete the validation file
+    // based on the parsed table array and the validation array
+
+
+    //cli_output_tables_file($tablesFile);
 }
 
 // Outputs the tables.php file based on the array passed to it
@@ -125,6 +262,10 @@ function cli_output_tables_file($array)
     }
     if (!file_exists_is_readable_writable($exactFiles['tables'])) {
         cli_err_syntax("The \"funkphp/config/tables.php\" file must exist and be writable!");
+    }
+    // Check for the keys "tables" and "relationships" in the array at the root level
+    if (!isset($array['tables']) || !is_array($array['tables']) || !isset($array['relationships']) || !is_array($array['relationships'])) {
+        cli_err_syntax("The \"funkphp/config/tables.php\" file must contain the two keys: \"tables\" & \"relationships\" at root level!");
     }
 
     // Attempt to write to the Tables.php file and check if it was successful
