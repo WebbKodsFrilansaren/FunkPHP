@@ -1,5 +1,5 @@
 CREATE TABLE comments(
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
     article_id INT NOT NULL,
     content TEXT NOT NULL,
     author_id INT NOT NULL,

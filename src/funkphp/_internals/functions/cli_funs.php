@@ -104,6 +104,14 @@ function cli_parse_a_sql_table_file()
     // If it is we error out, otherwise we add it to the duplicate array.
     $duplicates = [];
     foreach ($sqlLines as $line) {
+        if (
+            str_starts_with($line, "//")
+            || str_starts_with($line, "--")
+            || empty(trim($line))
+            || str_starts_with($line, "FOREIGN KEY")
+        ) {
+            continue;
+        }
         $lineParts = explode(" ", $line);
         if (isset($duplicates[$lineParts[0]])) {
             cli_err_syntax("Duplicate Column Name \"{$lineParts[0]}\". Please fix \"sql/{$argv[3]}\" and try again!");
