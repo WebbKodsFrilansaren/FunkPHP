@@ -138,7 +138,14 @@ function cli_parse_a_sql_table_file()
             }
         }
 
-        // Special Case #2: The $line starts with "FOREIGN KEY" meaning we need to parse it by getting the
+        // Special Case #2: The $line starts with "//" or "--" meaning a comment to just ignore it
+        // and continue to the next line. We also check if the line is empty after trimming it.
+        if (str_starts_with($line, "//") || str_starts_with($line, "--") || empty(trim($line))) {
+            cli_info_without_exit("Skipping commented \"$line\"");
+            continue;
+        }
+
+        // Special Case #3: The $line starts with "FOREIGN KEY" meaning we need to parse it by getting the
         // regex that I wrote myself for once instead of help from LLMs. Kinda incredible, right?! ^_^
         if (str_starts_with($line, "FOREIGN KEY")) {
             $foreignKeyRegex = "/FOREIGN KEY \(([a-zA-Z09_]+)\) REFERENCES ([a-zA-Z09_]+)\(([a-zA-Z09]+)\)/";
@@ -176,11 +183,12 @@ function cli_parse_a_sql_table_file()
         } // This step succeeds it will continue to the next line and skip the rest of the code below!
 
 
-        // Special Case #3: The $line starts with "CONSTRAINT" or "CHECK" so we just inform the Developer
+        // Special Case #4: The $line starts with "CONSTRAINT" or "CHECK" so we just inform the Developer
         // that these are currently not supported and we will skip them for now, meaning we will not parse them,
         // but we will continue to the next line and skip the rest of the code below!
         if (str_starts_with(strtoupper($line), "CONSTRAINT")) {
-            cli_info_without_exit("Skipping \"{$line}\" as parsing \"CONSTRAINT\"not implemented.");
+            cli_info_without_exit("Skipping \"{$line}\" as parsing \"CONSTRAINT\" is not implemented.");
+            cli_warning_without_exit("If you use CONSTRAINT to add a Foreign Key, please start with \"FOREIGN KEY\" instead!");
             continue;
         }
         if (str_starts_with(strtoupper($line), "CHECK")) {
@@ -307,8 +315,6 @@ function cli_parse_a_sql_table_file()
             $parsedTable[$tableName][$lineParts[0]]["default"] = null;
         }
     }
-
-    var_dump($parsedTable);
 
     // Finally add the entire parsed table to the Tables.php file's array!
     $tablesFile['tables'][$tableName] = $parsedTable[$tableName];
