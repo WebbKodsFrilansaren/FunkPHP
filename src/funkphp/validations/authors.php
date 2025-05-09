@@ -1,201 +1,201 @@
 <?php
 return  [
-  'authors' => 
-   [
-    'name' => 
-     [
-      'MAP_TO' => 
-       [
+  'authors' =>
+  [
+    'name' =>
+    [
+      'MAP_TO' =>
+      [
         'post' => '',
         'get' => '',
         'json' => '',
       ],
-      'string' => 
-       [
+      'string' =>
+      [
         'err' => NULL,
       ],
-      'required' => 
-       [
+      'required' =>
+      [
         'err' => NULL,
       ],
-      'max' => 
-       [
+      'max' =>
+      [
         'val' => 255,
         'err' => NULL,
       ],
-      'min' => 
-       [
+      'min' =>
+      [
         'val' => 1,
         'err' => NULL,
       ],
     ],
-    'email' => 
-     [
-      'MAP_TO' => 
-       [
+    'email' =>
+    [
+      'MAP_TO' =>
+      [
         'post' => '',
         'get' => '',
         'json' => '',
       ],
-      'string' => 
-       [
+      'string' =>
+      [
         'err' => NULL,
       ],
-      'unique' => 
-       [
-        'val' => 
-         [
+      'unique' =>
+      [
+        'val' =>
+        [
           'authors' => 'email',
         ],
         'err' => NULL,
       ],
-      'max' => 
-       [
+      'max' =>
+      [
         'val' => 21845,
         'err' => NULL,
       ],
-      'min' => 
-       [
+      'min' =>
+      [
         'val' => 0,
         'err' => NULL,
       ],
-      'email' => 
-       [
+      'email' =>
+      [
         'val' => NULL,
         'err' => NULL,
       ],
     ],
-    'blob_test' => 
-     [
-      'MAP_TO' => 
-       [
+    'blob_test' =>
+    [
+      'MAP_TO' =>
+      [
         'post' => '',
         'get' => '',
         'json' => '',
       ],
-      'blob' => 
-       [
+      'blob' =>
+      [
         'err' => NULL,
       ],
       'default' => 'No blob',
-      'min' => 
-       [
+      'min' =>
+      [
         'val' => 0,
         'err' => NULL,
       ],
-      'max' => 
-       [
+      'max' =>
+      [
         'val' => 65535,
         'err' => NULL,
       ],
     ],
-    'description' => 
-     [
-      'MAP_TO' => 
-       [
+    'description' =>
+    [
+      'MAP_TO' =>
+      [
         'post' => '',
         'get' => '',
         'json' => '',
       ],
-      'string' => 
-       [
+      'string' =>
+      [
         'err' => NULL,
       ],
-      'required' => 
-       [
+      'required' =>
+      [
         'err' => NULL,
       ],
       'default' => 'No description',
-      'max' => 
-       [
+      'max' =>
+      [
         'val' => 255,
         'err' => NULL,
       ],
-      'min' => 
-       [
+      'min' =>
+      [
         'val' => 1,
         'err' => NULL,
       ],
     ],
-    'longer_description' => 
-     [
-      'MAP_TO' => 
-       [
+    'longer_description' =>
+    [
+      'MAP_TO' =>
+      [
         'post' => '',
         'get' => '',
         'json' => '',
       ],
-      'string' => 
-       [
+      'string' =>
+      [
         'err' => NULL,
       ],
-      'required' => 
-       [
+      'required' =>
+      [
         'err' => NULL,
       ],
       'default' => 'No longer description',
-      'max' => 
-       [
+      'max' =>
+      [
         'val' => 65535,
         'err' => NULL,
       ],
-      'min' => 
-       [
+      'min' =>
+      [
         'val' => 1,
         'err' => NULL,
       ],
     ],
-    'age' => 
-     [
-      'MAP_TO' => 
-       [
+    'age' =>
+    [
+      'MAP_TO' =>
+      [
         'post' => '',
         'get' => '',
         'json' => '',
       ],
-      'integer' => 
-       [
+      'integer' =>
+      [
         'err' => NULL,
       ],
       'default' => 18,
-      'max' => 
-       [
+      'max' =>
+      [
         'val' => 2147483647,
         'err' => NULL,
       ],
-      'min' => 
-       [
+      'min' =>
+      [
         'val' => -2147483648,
         'err' => NULL,
       ],
-      'min_digits' => 
-       [
+      'min_digits' =>
+      [
         'val' => 1,
         'err' => NULL,
       ],
-      'max_digits' => 
-       [
+      'max_digits' =>
+      [
         'val' => 11,
         'err' => NULL,
       ],
     ],
-    'enum_test' => 
-     [
-      'MAP_TO' => 
-       [
+    'enum_test' =>
+    [
+      'MAP_TO' =>
+      [
         'post' => '',
         'get' => '',
         'json' => '',
       ],
-      'string' => 
-       [
+      'string' =>
+      [
         'err' => NULL,
       ],
       'default' => 'c what i did',
-      'in_array' => 
-       [
-        'val' => 
-         [
+      'in_array' =>
+      [
+        'val' =>
+        [
           0 => 'a test',
           1 => 'b or more',
           2 => 'c what i did',
@@ -203,98 +203,98 @@ return  [
         'err' => NULL,
       ],
     ],
-    'weight' => 
-     [
-      'MAP_TO' => 
-       [
+    'weight' =>
+    [
+      'MAP_TO' =>
+      [
         'post' => '',
         'get' => '',
         'json' => '',
       ],
-      'float' => 
-       [
+      'float' =>
+      [
         'err' => NULL,
       ],
-      'required' => 
-       [
+      'required' =>
+      [
         'err' => NULL,
       ],
       'default' => 70,
-      'max' => 
-       [
+      'max' =>
+      [
         'val' => -1.175494351E-38,
         'err' => NULL,
       ],
-      'min' => 
-       [
+      'min' =>
+      [
         'val' => -3.402823466E+38,
         'err' => NULL,
       ],
-      'min_digits' => 
-       [
+      'min_digits' =>
+      [
         'val' => 1,
         'err' => NULL,
       ],
-      'max_digits' => 
-       [
+      'max_digits' =>
+      [
         'val' => 7,
         'err' => NULL,
       ],
     ],
-    'nickname' => 
-     [
-      'MAP_TO' => 
-       [
+    'nickname' =>
+    [
+      'MAP_TO' =>
+      [
         'post' => '',
         'get' => '',
         'json' => '',
       ],
-      'string' => 
-       [
+      'string' =>
+      [
         'err' => NULL,
       ],
       'default' => 'Anonymous',
-      'max' => 
-       [
+      'max' =>
+      [
         'val' => 255,
         'err' => NULL,
       ],
-      'min' => 
-       [
+      'min' =>
+      [
         'val' => 0,
         'err' => NULL,
       ],
     ],
-    'updated_at' => 
-     [
-      'MAP_TO' => 
-       [
+    'updated_at' =>
+    [
+      'MAP_TO' =>
+      [
         'post' => '',
         'get' => '',
         'json' => '',
       ],
-      'time' => 
-       [
+      'time' =>
+      [
         'err' => NULL,
       ],
       'default' => 'NOW()',
-      'min' => 
-       [
+      'min' =>
+      [
         'val' => 8,
         'err' => NULL,
       ],
-      'min_digits' => 
-       [
+      'min_digits' =>
+      [
         'val' => 6,
         'err' => NULL,
       ],
-      'max' => 
-       [
+      'max' =>
+      [
         'val' => 8,
         'err' => NULL,
       ],
-      'max_digits' => 
-       [
+      'max_digits' =>
+      [
         'val' => 6,
         'err' => NULL,
       ],

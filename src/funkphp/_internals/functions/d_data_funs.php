@@ -161,23 +161,41 @@ function funk_validate(&$c, array $data_keys_and_associated_validation_rules_val
 
 // Loads a validation file from the funkphp/validations/ and then
 // sends it to the funk_validate function to validate the data
-function funk_use_validation(&$c, $validation, $data)
+function funk_use_validation(&$c, $validation)
 {
-    $validationFile = dirname(dirname(__DIR__)) . '/validations/' . $validation . '.php';
-    if (file_exists_is_readable_writable($validationFile)) {
-        $validationData = include_once $validationFile;
-        dj($validationData);
-        exit;
-        if (is_array($validationData)) {
-            $c['d'] = funk_validate($c, $validationData);
-            return $c['d'];
+    // Check if the validation file exists and is readable
+    if (!is_array($validation)) {
+        $c['err']['FAILED_TO_LOAD_VALIDATION_FILE'] = true;
+        return false;
+    }
+
+    // We will now loop through the root keys in $validation
+    // since each root key is the file name inside of funkphp/validations/
+    // so we need to include all files and then merge them into one array
+    // and then pass it to the funk_validate function! For each root key
+    // we check that the file exists and is readable, and then include it
+    // and run the validation function with the $c variable as argument.
+    $tablesAndColsToValidate = [];
+
+    foreach ($validation as $key => $value) {
+        // Check if the file exists and is readable
+        $validationFile = dirname(dirname(__DIR__)) . '/validations/' . $key . '.php';
+        if (file_exists_is_readable_writable($validationFile)) {
+            $validationData = include_once $validationFile;
+            if (is_array($validationData)) {
+                // Merge the validation data into the main validation array
+                $tablesAndColsToValidate = array_merge($tablesAndColsToValidate, $validationData);
+            } else {
+                $c['err']['FAILED_TO_LOAD_VALIDATION_FILE'] = true;
+                echo "Validation file is not an array!";
+                return false;
+            }
         } else {
+            // Handle error: file not found or not readable (or just use default below)
+            echo "Validation file does not exist or is not readable!";
             $c['err']['FAILED_TO_LOAD_VALIDATION_FILE'] = true;
             return false;
         }
-    } else {
-        $c['err']['FAILED_TO_LOAD_VALIDATION_FILE'] = true;
-        return false;
     }
 }
 

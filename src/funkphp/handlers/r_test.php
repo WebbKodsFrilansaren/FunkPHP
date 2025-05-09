@@ -4,14 +4,14 @@
 //DELIMITER_HANDLER_FUNCTION_START=r_test
 function r_test(&$c) // <GET/test>
 {
-    $validTest = [
+    $validate = [
         'authors' =>
         [
             'name',
             'email'
         ]
     ];
-    funk_use_validation($c, 'authors', "test");
+    funk_use_validation($c, $validate, "test");
 };
 //DELIMITER_HANDLER_FUNCTION_END=r_test
 
