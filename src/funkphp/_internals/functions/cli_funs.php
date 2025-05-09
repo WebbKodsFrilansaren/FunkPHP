@@ -299,7 +299,6 @@ function cli_parse_a_sql_table_file()
         $defaultPattern = "/DEFAULT\s*(NOW\(\)|(NULL)|(\d+\.*\d+)|(\d+)|(CURRENT_TIMESTAMP)|(\"{1}(.*)\"{1})|(\'{1}(.*)\'{1})|\(.+\))/i";
         if (preg_match($defaultPattern, $line, $matches)) {
             $defaultValue = $matches[1] ?? null;
-            var_dump($matches);
             if (isset($defaultValue)) {
                 // Convert $defaultValue to a number if it is parsed as a number
                 if (is_numeric($defaultValue)) {
@@ -328,7 +327,7 @@ function cli_parse_a_sql_table_file()
                 }
                 $parsedTable[$tableName][$lineParts[0]]["default"] = $defaultValue;
             }
-            // No default value found so we set it to null
+            // No matched default value found so we set it to null
             else {
                 $parsedTable[$tableName][$lineParts[0]]["default"] = null;
             }
