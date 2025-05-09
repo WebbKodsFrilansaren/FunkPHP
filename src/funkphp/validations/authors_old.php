@@ -1,183 +1,193 @@
 <?php
 return  [
-  'authors' => 
-   [
-    'name' => 
-     [
-      'string' => 
-       [
-        'error' => NULL,
+  'authors' =>
+  [
+    'name' =>
+    [
+      'string' =>
+      [
+        'err' => NULL,
       ],
-      'required' => 
-       [
-        'error' => NULL,
+      'required' =>
+      [
+        'err' => NULL,
       ],
-      'max' => 
-       [
-        'value' => 255,
-        'error' => NULL,
+      'max' =>
+      [
+        'val' => 255,
+        'err' => NULL,
       ],
-      'min' => 
-       [
-        'value' => 1,
-        'error' => NULL,
+      'min' =>
+      [
+        'val' => 1,
+        'err' => NULL,
       ],
     ],
-    'email' => 
-     [
-      'string' => 
-       [
-        'error' => NULL,
+    'email' =>
+    [
+      'string' =>
+      [
+        'err' => NULL,
       ],
-      'unique' => 
-       [
+      'unique' =>
+      [
         'authors' => 'email',
-        'error' => NULL,
+        'err' => NULL,
       ],
-      'max' => 
-       [
-        'value' => 21845,
-        'error' => NULL,
+      'max' =>
+      [
+        'val' => 128,
+        'err' => NULL,
       ],
-      'min' => 
-       [
-        'value' => 0,
-        'error' => NULL,
+      'min' =>
+      [
+        'val' => 0,
+        'err' => NULL,
       ],
     ],
-    'description' => 
-     [
-      'string' => 
-       [
-        'error' => NULL,
+    'description' =>
+    [
+      'string' =>
+      [
+        'err' => NULL,
       ],
-      'required' => 
-       [
-        'error' => NULL,
+      'required' =>
+      [
+        'err' => NULL,
       ],
       'default' => 'No description',
-      'max' => 
-       [
-        'value' => 255,
-        'error' => NULL,
+      'max' =>
+      [
+        'val' => 255,
+        'err' => NULL,
       ],
-      'min' => 
-       [
-        'value' => 1,
-        'error' => NULL,
+      'min' =>
+      [
+        'val' => 0,
+        'err' => NULL,
       ],
     ],
-    'longer_description' => 
-     [
-      'string' => 
-       [
-        'error' => NULL,
+    'longer_description' =>
+    [
+      'string' =>
+      [
+        'err' => NULL,
       ],
-      'required' => 
-       [
-        'error' => NULL,
+      'required' =>
+      [
+        'err' => NULL,
       ],
       'default' => 'No longer description',
-      'max' => 
-       [
-        'value' => 65535,
-        'error' => NULL,
+      'max' =>
+      [
+        'val' => 65535,
+        'err' => NULL,
       ],
-      'min' => 
-       [
-        'value' => 1,
-        'error' => NULL,
+      'min' =>
+      [
+        'val' => 0,
+        'err' => NULL,
       ],
     ],
-    'age' => 
-     [
-      'integer' => 
-       [
-        'error' => NULL,
+    'age' =>
+    [
+      'integer' =>
+      [
+        'err' => NULL,
       ],
       'default' => 18,
+      'max' =>
+      [
+        'val' => 3,
+        'err' => NULL,
+      ],
+      'min' =>
+      [
+        'val' => 0,
+        'err' => NULL,
+      ],
     ],
-    'enum_test' => 
-     [
-      'string' => 
-       [
-        'error' => NULL,
+    'enum_test' =>
+    [
+      'string' =>
+      [
+        'err' => NULL,
       ],
       'default' => 'c',
-      'max' => 
-       [
-        'value' => 
-         [
+      'max' =>
+      [
+        'val' =>
+        [
           0 => 'a test',
           1 => 'b or more',
           2 => 'c what i did',
         ],
-        'error' => NULL,
+        'err' => NULL,
       ],
-      'min' => 
-       [
-        'value' => 0,
-        'error' => NULL,
+      'min' =>
+      [
+        'val' => 0,
+        'err' => NULL,
       ],
     ],
-    'set_test' => 
-     [
-      'string' => 
-       [
-        'error' => NULL,
+    'set_test' =>
+    [
+      'string' =>
+      [
+        'err' => NULL,
       ],
       'default' => 'a,b',
-      'max' => 
-       [
-        'value' => 
-         [
+      'max' =>
+      [
+        'val' =>
+        [
           0 => 'every',
           1 => 'unique',
           2 => 'carrot or morot',
         ],
-        'error' => NULL,
+        'err' => NULL,
       ],
-      'min' => 
-       [
-        'value' => 0,
-        'error' => NULL,
+      'min' =>
+      [
+        'val' => 0,
+        'err' => NULL,
       ],
     ],
-    'weight' => 
-     [
-      'float' => 
-       [
-        'error' => NULL,
+    'weight' =>
+    [
+      'float' =>
+      [
+        'err' => NULL,
       ],
-      'required' => 
-       [
-        'error' => NULL,
+      'required' =>
+      [
+        'err' => NULL,
       ],
       'default' => 70,
     ],
-    'nickname' => 
-     [
-      'string' => 
-       [
-        'error' => NULL,
+    'nickname' =>
+    [
+      'string' =>
+      [
+        'err' => NULL,
       ],
       'default' => 'Anonymous',
-      'max' => 
-       [
-        'value' => 255,
-        'error' => NULL,
+      'max' =>
+      [
+        'val' => 255,
+        'err' => NULL,
       ],
-      'min' => 
-       [
-        'value' => 0,
-        'error' => NULL,
+      'min' =>
+      [
+        'val' => 0,
+        'err' => NULL,
       ],
     ],
-    'updated_at' => 
-     [
-      'time' => 
-       [
-        'error' => NULL,
+    'updated_at' =>
+    [
+      'time' =>
+      [
+        'err' => NULL,
       ],
       'default' => 'NOW()',
     ],

@@ -6,152 +6,166 @@ return  [
     [
       'string' =>
       [
-        'error' => NULL,
+        'err' => NULL,
       ],
       'required' =>
       [
-        'error' => NULL,
+        'err' => NULL,
       ],
       'max' =>
       [
-        'value' => 255,
-        'error' => NULL,
+        'val' => 255,
+        'err' => NULL,
       ],
       'min' =>
       [
-        'value' => 1,
-        'error' => NULL,
+        'val' => 1,
+        'err' => NULL,
       ],
     ],
     'email' =>
     [
       'string' =>
       [
-        'error' => NULL,
+        'err' => NULL,
+      ],
+      'required' =>
+      [
+        'err' => NULL,
       ],
       'unique' =>
       [
         'authors' => 'email',
-        'error' => NULL,
+        'err' => NULL,
       ],
       'max' =>
       [
-        'value' => 21845,
-        'error' => NULL,
+        'val' => 128,
+        'err' => NULL,
       ],
       'min' =>
       [
-        'value' => 0,
-        'error' => NULL,
+        'val' => 1,
+        'err' => NULL,
       ],
     ],
     'description' =>
     [
       'string' =>
       [
-        'error' => NULL,
+        'err' => NULL,
       ],
       'required' =>
       [
-        'error' => NULL,
+        'err' => NULL,
       ],
       'default' => 'No description',
       'max' =>
       [
-        'value' => 255,
-        'error' => NULL,
+        'val' => 255,
+        'err' => NULL,
       ],
       'min' =>
       [
-        'value' => 0,
-        'error' => NULL,
+        'val' => 0,
+        'err' => NULL,
       ],
     ],
     'longer_description' =>
     [
       'string' =>
       [
-        'error' => NULL,
+        'err' => NULL,
       ],
       'required' =>
       [
-        'error' => NULL,
+        'err' => NULL,
       ],
       'default' => 'No longer description',
       'max' =>
       [
-        'value' => 65535,
-        'error' => NULL,
+        'val' => 65535,
+        'err' => NULL,
       ],
       'min' =>
       [
-        'value' => 0,
-        'error' => NULL,
+        'val' => 0,
+        'err' => NULL,
       ],
     ],
     'age' =>
     [
       'integer' =>
       [
-        'error' => NULL,
+        'err' => NULL,
       ],
       'default' => 18,
+      'max' =>
+      [
+        'val' => 3,
+        'err' => NULL,
+      ],
+      'min' =>
+      [
+        'val' => 0,
+        'err' => NULL,
+      ],
     ],
     'enum_test' =>
     [
       'string' =>
       [
-        'error' => NULL,
+        'err' => NULL,
       ],
       'default' => 'c',
       'max' =>
       [
-        'value' =>
+        'val' =>
         [
           0 => 'a test',
           1 => 'b or more',
           2 => 'c what i did',
         ],
-        'error' => NULL,
+        'err' => NULL,
       ],
       'min' =>
       [
-        'value' => 0,
-        'error' => NULL,
+        'val' => 0,
+        'err' => NULL,
       ],
     ],
     'set_test' =>
     [
       'string' =>
       [
-        'error' => NULL,
+        'err' => NULL,
       ],
       'default' => 'a,b',
       'max' =>
       [
-        'value' =>
+        'val' =>
         [
           0 => 'every',
           1 => 'unique',
           2 => 'carrot or morot',
         ],
-        'error' => NULL,
+        'err' => NULL,
       ],
       'min' =>
       [
-        'value' => 0,
-        'error' => NULL,
+        'val' => 0,
+        'err' => NULL,
       ],
     ],
     'weight' =>
     [
       'float' =>
       [
-        'error' => NULL,
+        'err' => NULL,
       ],
       'required' =>
       [
-        'error' => NULL,
+        'err' => NULL,
       ],
       'default' => 70,
     ],
@@ -159,25 +173,25 @@ return  [
     [
       'string' =>
       [
-        'error' => NULL,
+        'err' => NULL,
       ],
       'default' => 'Anonymous',
       'max' =>
       [
-        'value' => 255,
-        'error' => NULL,
+        'val' => 255,
+        'err' => NULL,
       ],
       'min' =>
       [
-        'value' => 0,
-        'error' => NULL,
+        'val' => 0,
+        'err' => NULL,
       ],
     ],
     'updated_at' =>
     [
       'time' =>
       [
-        'error' => NULL,
+        'err' => NULL,
       ],
       'default' => 'NOW()',
     ],

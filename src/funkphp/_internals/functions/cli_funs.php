@@ -102,18 +102,18 @@ function cli_generate_a_validation_from_a_table($table = null)
         // The "DATETIMES" itself is grouped into: "DATE", "TIME", "DATETIME", "TIMESTAMP" and "YEAR".
         // These types are found in: "funkphp/_internals/supported_mysql_data_types.php" => ["DATATYPE"]["TYPE"]
         if (isset($validSQLDataTypes[$colKeys['type']]['TYPE'])) {
-            $validatedTable[$tableName][$colName][$validSQLDataTypes[$colKeys['type']]['TYPE']] = ['error' => null];
+            $validatedTable[$tableName][$colName][$validSQLDataTypes[$colKeys['type']]['TYPE']] = ['err' => null];
             $validationType = $validSQLDataTypes[$colKeys['type']]['TYPE'];
         }
 
         // We now create a "required" based on whether "nullable" is set to true or false for the given column
         if (isset($colKeys['nullable']) && $colKeys['nullable'] === false) {
-            $validatedTable[$tableName][$colName]['required'] = ['error' => null];
+            $validatedTable[$tableName][$colName]['required'] = ['err' => null];
         }
 
         // We now create a "unique" based on whether "unique" is set to true or false for the given column
         if (isset($colKeys['unique']) && $colKeys['unique'] === true) {
-            $validatedTable[$tableName][$colName]['unique'] = [$tableName => $colName, 'error' => null];
+            $validatedTable[$tableName][$colName]['unique'] = [$tableName => $colName, 'err' => null];
             cli_warning_without_exit("Unique Rule applied for \"Table:$tableName => Column:$colName\", meaning it will validate against unique value");
             cli_warning_without_exit("in Column \"$colName\" in Table \"$tableName\". Verify this is correct or change it in \"validatons/{$tableName}.php\"!");
         }
@@ -142,25 +142,25 @@ function cli_generate_a_validation_from_a_table($table = null)
         // the column is NOT NULL (nullable === false) or not.
         if (isset($colKeys['value'])) {
             if ($validationType === 'string') {
-                $validatedTable[$tableName][$colName]['max'] = ["value" => $colKeys['value'], "error" => null];
+                $validatedTable[$tableName][$colName]['max'] = ["val" => $colKeys['value'], "err" => null];
                 if (isset($validatedTable[$tableName][$colName]['required'])) {
-                    $validatedTable[$tableName][$colName]['min'] = ["value" => 1, "error" => null];
+                    $validatedTable[$tableName][$colName]['min'] = ["val" => 1, "err" => null];
                 } else {
-                    $validatedTable[$tableName][$colName]['min'] = ["value" => 0, "error" => null];
+                    $validatedTable[$tableName][$colName]['min'] = ["val" => 0, "err" => null];
                 }
             } elseif ($validationType === 'integer') {
-                $validatedTable[$tableName][$colName]['max'] = ["value" => $colKeys['value'], "error" => null];
+                $validatedTable[$tableName][$colName]['max'] = ["val" => $colKeys['value'], "err" => null];
                 if (isset($validatedTable[$tableName][$colName]['required'])) {
-                    $validatedTable[$tableName][$colName]['min'] = ["value" => 1, "error" => null];
+                    $validatedTable[$tableName][$colName]['min'] = ["val" => 1, "err" => null];
                 } else {
-                    $validatedTable[$tableName][$colName]['min'] = ["value" => 0, "error" => null];
+                    $validatedTable[$tableName][$colName]['min'] = ["val" => 0, "err" => null];
                 }
             } elseif ($validationType === 'float') {
-                $validatedTable[$tableName][$colName]['max'] = ["value" => $colKeys['value'], "error" => null];
+                $validatedTable[$tableName][$colName]['max'] = ["val" => $colKeys['value'], "err" => null];
                 if (isset($validatedTable[$tableName][$colName]['required'])) {
-                    $validatedTable[$tableName][$colName]['min'] = ["value" => 1, "error" => null];
+                    $validatedTable[$tableName][$colName]['min'] = ["val" => 1, "err" => null];
                 } else {
-                    $validatedTable[$tableName][$colName]['min'] = ["value" => 0, "error" => null];
+                    $validatedTable[$tableName][$colName]['min'] = ["val" => 0, "err" => null];
                 }
             }
         }
@@ -170,21 +170,21 @@ function cli_generate_a_validation_from_a_table($table = null)
         else {
             if ($validationType === 'string') {
                 if (isset($matchedSQLType['MAX'])) {
-                    $validatedTable[$tableName][$colName]['max'] = ["value" => $matchedSQLType['MAX'], "error" => null];
+                    $validatedTable[$tableName][$colName]['max'] = ["val" => $matchedSQLType['MAX'], "err" => null];
                 } else {
-                    $validatedTable[$tableName][$colName]['max'] = ["value" => null, "error" => null];
+                    $validatedTable[$tableName][$colName]['max'] = ["val" => null, "err" => null];
                     cli_warning_without_exit("No max value found for Column \"$colName\" in Table \"$tableName\". Please check Data Type or fix after in \"validations/{$tableName}.php\"!");
                 }
                 if (isset($validatedTable[$tableName][$colName]['required'])) {
-                    $validatedTable[$tableName][$colName]['min'] = ["value" => (isset($matchedSQLType['MIN']) ? $matchedSQLType['MIN'] : 1), "error" => null];
+                    $validatedTable[$tableName][$colName]['min'] = ["val" => (isset($matchedSQLType['MIN']) ? $matchedSQLType['MIN'] : 1), "err" => null];
                 } else {
-                    $validatedTable[$tableName][$colName]['min'] = ["value" => 0, "error" => null];
+                    $validatedTable[$tableName][$colName]['min'] = ["val" => 0, "err" => null];
                 }
             } elseif ($validationType === 'integer') {
                 if (isset($matchedSQLType['MAX'])) {
-                    $validatedTable[$tableName][$colName]['max'] = ["value" => $matchedSQLType['MAX'], "error" => null];
+                    $validatedTable[$tableName][$colName]['max'] = ["val" => $matchedSQLType['MAX'], "err" => null];
                 } else {
-                    $validatedTable[$tableName][$colName]['max'] = ["value" => null, "error" => null];
+                    $validatedTable[$tableName][$colName]['max'] = ["val" => null, "err" => null];
                     cli_warning_without_exit("No max value found for Column \"$colName\" in Table \"$tableName\". Please check Data Type or fix after in \"validations/{$tableName}.php\"!");
                 }
             }

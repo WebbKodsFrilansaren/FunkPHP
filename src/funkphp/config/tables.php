@@ -1,11 +1,11 @@
 <?php
 return  [
-  'tables' => 
-   [
-    'authors' => 
-     [
-      'id' => 
-       [
+  'tables' =>
+  [
+    'authors' =>
+    [
+      'id' =>
+      [
         'joined_name' => 'authors_id',
         'auto_increment' => true,
         'type' => 'BIGINT',
@@ -14,8 +14,8 @@ return  [
         'nullable' => false,
         'default' => NULL,
       ],
-      'name' => 
-       [
+      'name' =>
+      [
         'joined_name' => 'authors_name',
         'type' => 'NVARCHAR',
         'value' => 255,
@@ -25,19 +25,19 @@ return  [
         'signed' => false,
         'default' => NULL,
       ],
-      'email' => 
-       [
+      'email' =>
+      [
         'joined_name' => 'authors_email',
         'type' => 'NVARCHAR',
-        'value' => NULL,
-        'nullable' => true,
+        'value' => 128,
+        'nullable' => false,
         'unique' => true,
         'unsigned' => false,
         'signed' => false,
         'default' => NULL,
       ],
-      'description' => 
-       [
+      'description' =>
+      [
         'joined_name' => 'authors_description',
         'type' => 'TINYTEXT',
         'value' => NULL,
@@ -47,8 +47,8 @@ return  [
         'signed' => false,
         'default' => 'No description',
       ],
-      'longer_description' => 
-       [
+      'longer_description' =>
+      [
         'joined_name' => 'authors_longer_description',
         'type' => 'TEXT',
         'value' => NULL,
@@ -58,8 +58,8 @@ return  [
         'signed' => false,
         'default' => 'No longer description',
       ],
-      'age' => 
-       [
+      'age' =>
+      [
         'joined_name' => 'authors_age',
         'type' => 'INT',
         'value' => 3,
@@ -69,12 +69,12 @@ return  [
         'signed' => true,
         'default' => 18,
       ],
-      'enum_test' => 
-       [
+      'enum_test' =>
+      [
         'joined_name' => 'authors_enum_test',
         'type' => 'ENUM',
-        'value' => 
-         [
+        'value' =>
+        [
           0 => 'a test',
           1 => 'b or more',
           2 => 'c what i did',
@@ -85,12 +85,12 @@ return  [
         'signed' => false,
         'default' => 'c',
       ],
-      'set_test' => 
-       [
+      'set_test' =>
+      [
         'joined_name' => 'authors_set_test',
         'type' => 'SET',
-        'value' => 
-         [
+        'value' =>
+        [
           0 => 'every',
           1 => 'unique',
           2 => 'carrot or morot',
@@ -101,8 +101,8 @@ return  [
         'signed' => false,
         'default' => 'a,b',
       ],
-      'weight' => 
-       [
+      'weight' =>
+      [
         'joined_name' => 'authors_weight',
         'type' => 'FLOAT',
         'value' => NULL,
@@ -112,8 +112,8 @@ return  [
         'signed' => false,
         'default' => 70,
       ],
-      'nickname' => 
-       [
+      'nickname' =>
+      [
         'joined_name' => 'authors_nickname',
         'type' => 'NVARCHAR',
         'value' => 255,
@@ -123,8 +123,8 @@ return  [
         'signed' => false,
         'default' => 'Anonymous',
       ],
-      'updated_at' => 
-       [
+      'updated_at' =>
+      [
         'joined_name' => 'authors_updated_at',
         'type' => 'TIME',
         'value' => NULL,
@@ -136,7 +136,6 @@ return  [
       ],
     ],
   ],
-  'relationships' => 
-   [
-  ],
+  'relationships' =>
+  [],
 ];

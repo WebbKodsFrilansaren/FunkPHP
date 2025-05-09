@@ -27,7 +27,11 @@
         "FLOAT" => 6,
         "DOUBLE" => 7,
         "DECIMAL" => 8,
-        "NUMERIC" => 9
+        "NUMERIC" => 9,
+        "DOUBLE PRECISION" => 10,
+        "BIT" => 11,
+        "DEC" => 12,
+        "BOOLEAN" => 13,
     ],
     "INTS" => [
         "TINYINT" => 1,
@@ -40,6 +44,8 @@
         "FLOAT" => 1,
         "DOUBLE" => 2,
         "DECIMAL" => 3,
+        "DEC" => 4,
+        "DOUBLE PRECISION" => 5,
         "NUMERIC" => 4
     ],
     // Date and time types
@@ -67,59 +73,72 @@
     // Each data type with its min and max values (including in unsigned
     // where applicable) and optionally the number of digits
     "BIGINT" => [
-        "MIN" => -9223372036854775808,
-        "MAX" => 9223372036854775807,
+        "MIN_SIGNED" => -9223372036854775808,
+        "MAX_SIGNED" => 9223372036854775807,
         "MIN_USIGNED" => 0,
         "MAX_UNSIGNED" => 18446744073709551615,
-        "DIGITS" => 20,
+        "MIN_DIGITS" => 1,
+        "MAX_DIGITS" => 20,
         "TYPE" => "integer"
     ],
     "BINARY" => [
         "MIN" => null,
         "MAX" => null,
-        "DIGITS" => null,
+        "MIN_DIGITS" => null,
+        "MAX_DIGITS" => null,
         "TYPE" => "blob"
     ],
     "BIT" => [
         "MIN" => 1,
         "MAX" => 64,
-        "DIGITS" => 1,
+        "MIN_DIGITS" => 1,
+        "MAX_DIGITS" => 64,
         "TYPE" => "integer"
     ],
     "BLOB" => [
         "MIN" => 0,
         "MAX" => 65535,
-        "DIGITS" => 5,
+        "MIN_DIGITS" => 1,
+        "MAX_DIGITS" => 5,
         "TYPE" => "blob"
     ],
     "BOOL" => [
         "MIN" => 0,
         "MAX" => 1,
-        "DIGITS" => 1,
+        "MIN_DIGITS" => 1,
+        "MAX_DIGITS" => 1,
         "TYPE" => "integer"
     ],
     "BOOLEAN" => [
         "MIN" => 0,
         "MAX" => 1,
-        "DIGITS" => 1,
+        "MIN_DIGITS" => 1,
+        "MAX_DIGITS" => 1,
         "TYPE" => "integer"
     ],
     "CHAR" => [
-        "MIN" => 0,
+        "MIN" => 1,
         "MAX" => 255,
-        "DIGITS" => 3,
+        "MIN_DIGITS" => 1,
+        "MAX_DIGITS" => 3,
         "TYPE" => "string"
     ],
     "DATE" => [
         "MIN" => 10,
         "MAX" => 10,
-        "DIGITS" => null,
+        "MIN_DIGITS" => null,
+        "MAX_DIGITS" => null,
+        "MIN_SIZE" => 0,
+        "MAX_SIZE" => 0,
         "TYPE" => "date"
     ],
     "DATETIME" => [
         "MIN" => 19,
         "MAX" => 19,
-        "DIGITS" => null,
+        "MIN_DIGITS" => null,
+        "MAX_DIGITS" => null,
+        "MIN_SIZE" => 0,
+        "MAX_SIZE" => 0,
         "TYPE" => "datetime"
     ],
     "DEC" => [
@@ -127,7 +146,8 @@
         "MAX_SIZE" => 65,
         "MIN_D" => 0,
         "MAX_D" => 30,
-        "DIGITS" => null,
+        "MIN_DIGITS" => 3, // 1 plus dot plus 1
+        "MAX_DIGITS" => 96, // 65 plus dot plus 30
         "TYPE" => "float"
     ],
     "DECIMAL" => [
@@ -135,7 +155,8 @@
         "MAX_SIZE" => 65,
         "MIN_D" => 0,
         "MAX_D" => 30,
-        "DIGITS" => null,
+        "MIN_DIGITS" => 3, // 1 plus dot plus 1
+        "MAX_DIGITS" => 96, // 65 plus dot plus 30
         "TYPE" => "float"
     ],
     "DOUBLE PRECISION" => [
@@ -147,7 +168,8 @@
     "DOUBLE" => [
         "MIN" => -1.7976931348623157E+308,
         "MAX" => 1.7976931348623157E+308,
-        "DIGITS" => 15,
+        "MIN_DIGITS" => 1,
+        "MAX_DIGITS" => 15,
         "TYPE" => "float"
     ],
     "ENUM" => [
@@ -159,13 +181,15 @@
     "FLOAT" => [
         "MIN" => -3.402823466E+38,
         "MAX" => 3.402823466E+38,
-        "DIGITS" => 7,
+        "MIN_DIGITS" => 1,
+        "MAX_DIGITS" => 7,
         "TYPE" => "float"
     ],
     "INT" => [
-        "MIN" => -2147483648,
-        "MAX" => 2147483647,
-        "DIGITS" => 11,
+        "MIN_SIGNED" => -2147483648,
+        "MAX_SIGNED" => 2147483647,
+        "MIN_UNSIGNED" => 1,
+        "MAX_DIGITS" => 11,
         "MIN_UNSIGNED" => 0,
         "MAX_UNSIGNED" => 4294967295,
         "TYPE" => "integer"
@@ -173,7 +197,8 @@
     "INTEGER" => [
         "MIN" => -2147483648,
         "MAX" => 2147483647,
-        "DIGITS" => 11,
+        "MIN_DIGITS" => 1,
+        "MAX_DIGITS" => 11,
         "MIN_UNSIGNED" => 0,
         "MAX_UNSIGNED" => 4294967295,
         "TYPE" => "integer"
@@ -181,7 +206,10 @@
     "JSON" => [
         "MIN" => null,
         "MAX" => null,
-        "DIGITS" => null,
+        "MIN_DIGITS" => null,
+        "MAX_DIGITS" => null,
+        "MIN_SIZE" => 0,
+        "MAX_SIZE" => 18446744073709551616,
         "TYPE" => "json"
     ],
     "LONGBLOB" => [
