@@ -642,3 +642,26 @@ function h_generate_random_csrf($length = 384)
     // Return the generated CSRF
     return $csrf;
 }
+
+// Boolean function that returns that a directory exists and is readable & writable
+function dir_exists_is_readable_writable($dirPath)
+{
+    return is_dir($dirPath) && is_readable($dirPath) && is_writable($dirPath);
+}
+
+// Boolean function that returns that a file exists and is readable & writable
+function file_exists_is_readable_writable($filePath)
+{
+    return is_file($filePath) && is_readable($filePath) && is_writable($filePath);
+}
+
+// Boolean function that checks if a variable is a non-empty array
+function is_array_and_not_empty($array)
+{
+    return isset($array) && is_array($array) && !empty($array);
+}
+// Boolean function that checks if a variable is a non-empty string
+function is_string_and_not_empty($string)
+{
+    return isset($string) && is_string($string) && !empty($string);
+}

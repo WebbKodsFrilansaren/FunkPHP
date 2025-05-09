@@ -15,6 +15,7 @@ return [
     ],
     // 'TABLES' is the array of SQL Tables that will be used to handle the database tables and their data!
     'TABLES' => include __DIR__ . '/tables.php',
+
     // 'req' is the array of request data which will also include changed data based
     // on matched route, middlewares (if any), data (if any) and page (if any), etc.
     'req' => include __DIR__ . '/req.php',
@@ -31,9 +32,12 @@ return [
         'FAILED_TO_MATCH_ROUTE' => false,
         'FAILED_TO_RUN_ROUTE_HANDLER' => false,
         'FAILED_TO_RUN_DATA_HANDLER' => false,
+        'FAILED_TO_LOAD_VALIDATION_FILE' => false,
+        'FAILED_TO_RUN_VALIDATION_FUNCTION' => false,
         'FAILED_TO_RUN_PAGE_HANDLER' => false,
+        'FAILED_TO_RENDER_PAGE_FILE' => false,
+        'FAILED_TO_LOAD_MIDDLEWARE' => false,
         'FAILED_TO_RUN_MIDDLEWARE' => false,
-        'FAILED_TO_RUN_PAGE' => false,
         'FAILED_TO_RUN_JSON' => false,
         'FAILED_TO_RUN_API' => false,
         'FAILED_TO_RUN_DB' => false,

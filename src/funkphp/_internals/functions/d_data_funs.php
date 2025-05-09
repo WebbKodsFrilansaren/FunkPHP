@@ -159,6 +159,28 @@ function funk_validate(&$c, array $data_keys_and_associated_validation_rules_val
     return $errors;
 }
 
+// Loads a validation file from the funkphp/validations/ and then
+// sends it to the funk_validate function to validate the data
+function funk_use_validation(&$c, $validation, $data)
+{
+    $validationFile = dirname(dirname(__DIR__)) . '/validations/' . $validation . '.php';
+    if (file_exists_is_readable_writable($validationFile)) {
+        $validationData = include_once $validationFile;
+        dj($validationData);
+        exit;
+        if (is_array($validationData)) {
+            $c['d'] = funk_validate($c, $validationData);
+            return $c['d'];
+        } else {
+            $c['err']['FAILED_TO_LOAD_VALIDATION_FILE'] = true;
+            return false;
+        }
+    } else {
+        $c['err']['FAILED_TO_LOAD_VALIDATION_FILE'] = true;
+        return false;
+    }
+}
+
 // Run the matched data handler (Step 4 after matched routing in Routes,
 // then running Middlewares and then the Route Handler)
 function funk_run_matched_data_handler(&$c)

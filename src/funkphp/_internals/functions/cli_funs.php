@@ -96,6 +96,7 @@ function cli_generate_a_validation_from_a_table($table = null)
 
         // This stores the min, max, digits and other values for the current column data type matched with a SQL type
         $matchedSQLType = $validSQLDataTypes[$colKeys['type']];
+        $validatedTable[$tableName][$colName]['MAP_TO'] = ['post' => "", 'get' => "", 'json' => ""];
 
         // We now add the type of value to the validated table array for the current column which is usually
         // grouped into: "STRINGS", "NUMBERS", "INTS", "FLOATS", "DATETIMES", "BLOBS" and "TEXTS".
@@ -124,15 +125,8 @@ function cli_generate_a_validation_from_a_table($table = null)
             $validatedTable[$tableName][$colName]['default'] = $colKeys['default'];
         }
 
-        // We will now set the min and max values for the given column based on the data type. For this we will need to check
-        // two things: 1) First if there is a isset($colKeys['value']) which signifies the max size/value for that column, and
-        // what the min and max allowed sizes are for that column data type. If the $colKeys['value'] is null then the max size/value
-        // is the "MAX" or MAX_UNSIGNED value for that column data type. If the $colKeys['value'] is not null then we will check if it is
-        // a number and if it is we will set the min and max values for that column data type. If it is not a number then we will set
-        // the min and max values for that column data type to the "MIN" or MIN_UNSIGNED value for that column data type.
-        // We will also set the "digits" value for that column data type if it is a number. If it is not a number then we will set
-        // the "digits" value for that column data type to null.
-
+        // We will now set MIN, MAX, MIN_DIGITS and MAX_DIGITS, based on $colType and $validationType.
+        // We also take MIN|MAX_SIGNED and MIN|MAX_SIGNED into account for signed and unsigned values.
         echo "ColName: $colName | ColType: $colType | ValidationType: $validationType\n";
         echo "Matched SQL Type: ";
         var_dump($matchedSQLType);
@@ -259,7 +253,9 @@ function cli_generate_a_validation_from_a_table($table = null)
     if ($outputValidationFile === false) {
         cli_err_syntax("FAILED creating Validation \"validations/$tableName.php\" for Table \"$tableName\"!");
     } else {
-        cli_info_without_exit("SUCCESSFULLY created Validation \"validations/$tableName.php\" for Table \"$tableName\"!");
+        cli_success_without_exit("SUCCESSFULLY created Validation \"validations/$tableName.php\" for Table \"$tableName\"!");
+        cli_info_without_exit("Please fill out all the necessary 'MAP_TO' Keys for all Columns in \"validations/$tableName.php\".");
+        cli_info_without_exit("These will be used to validate correct \"\$_POST\", \"\$_GET\" and \"JSON\" data when used by \"funk_validate()\"!");
     }
 }
 

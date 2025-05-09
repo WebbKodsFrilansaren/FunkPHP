@@ -4,6 +4,12 @@ return  [
   [
     'name' =>
     [
+      'MAP_TO' =>
+      [
+        'post' => '',
+        'get' => 'test',
+        'json' => '',
+      ],
       'string' =>
       [
         'err' => NULL,
@@ -25,6 +31,12 @@ return  [
     ],
     'email' =>
     [
+      'MAP_TO' =>
+      [
+        'post' => '',
+        'get' => '',
+        'json' => '',
+      ],
       'string' =>
       [
         'err' => NULL,
@@ -53,8 +65,38 @@ return  [
         'err' => NULL,
       ],
     ],
+    'blob_test' =>
+    [
+      'MAP_TO' =>
+      [
+        'post' => '',
+        'get' => '',
+        'json' => '',
+      ],
+      'blob' =>
+      [
+        'err' => NULL,
+      ],
+      'default' => 'No blob',
+      'min' =>
+      [
+        'val' => 0,
+        'err' => NULL,
+      ],
+      'max' =>
+      [
+        'val' => 65535,
+        'err' => NULL,
+      ],
+    ],
     'description' =>
     [
+      'MAP_TO' =>
+      [
+        'post' => '',
+        'get' => '',
+        'json' => '',
+      ],
       'string' =>
       [
         'err' => NULL,
@@ -77,6 +119,12 @@ return  [
     ],
     'longer_description' =>
     [
+      'MAP_TO' =>
+      [
+        'post' => '',
+        'get' => '',
+        'json' => '',
+      ],
       'string' =>
       [
         'err' => NULL,
@@ -99,6 +147,12 @@ return  [
     ],
     'age' =>
     [
+      'MAP_TO' =>
+      [
+        'post' => '',
+        'get' => '',
+        'json' => '',
+      ],
       'integer' =>
       [
         'err' => NULL,
@@ -127,6 +181,12 @@ return  [
     ],
     'enum_test' =>
     [
+      'MAP_TO' =>
+      [
+        'post' => '',
+        'get' => '',
+        'json' => '',
+      ],
       'string' =>
       [
         'err' => NULL,
@@ -145,6 +205,12 @@ return  [
     ],
     'weight' =>
     [
+      'MAP_TO' =>
+      [
+        'post' => '',
+        'get' => '',
+        'json' => '',
+      ],
       'float' =>
       [
         'err' => NULL,
@@ -177,6 +243,12 @@ return  [
     ],
     'nickname' =>
     [
+      'MAP_TO' =>
+      [
+        'post' => '',
+        'get' => '',
+        'json' => '',
+      ],
       'string' =>
       [
         'err' => NULL,
@@ -195,6 +267,12 @@ return  [
     ],
     'updated_at' =>
     [
+      'MAP_TO' =>
+      [
+        'post' => '',
+        'get' => '',
+        'json' => '',
+      ],
       'time' =>
       [
         'err' => NULL,
