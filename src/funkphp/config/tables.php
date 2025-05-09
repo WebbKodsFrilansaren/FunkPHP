@@ -147,6 +147,28 @@ return  [
         'nullable' => false,
         'default' => NULL,
       ],
+      'test_number_that_is_unsigned' => 
+       [
+        'joined_name' => 'comments_test_number_that_is_unsigned',
+        'type' => 'INT',
+        'value' => NULL,
+        'nullable' => false,
+        'unique' => false,
+        'unsigned' => true,
+        'signed' => false,
+        'default' => NULL,
+      ],
+      'test_number_that_is_signed' => 
+       [
+        'joined_name' => 'comments_test_number_that_is_signed',
+        'type' => 'INT',
+        'value' => NULL,
+        'nullable' => false,
+        'unique' => false,
+        'unsigned' => false,
+        'signed' => true,
+        'default' => NULL,
+      ],
       'article_id' => 
        [
         'joined_name' => 'comments_article_id',
@@ -166,7 +188,9 @@ return  [
         'value' => NULL,
         'nullable' => false,
         'unique' => false,
-        'default' => NULL,
+        'unsigned' => false,
+        'signed' => false,
+        'default' => '',
       ],
       'author_id' => 
        [
@@ -175,6 +199,8 @@ return  [
         'value' => NULL,
         'nullable' => false,
         'unique' => false,
+        'unsigned' => false,
+        'signed' => false,
         'default' => NULL,
         'foreign_key' => true,
         'references' => 'authors',
@@ -188,6 +214,8 @@ return  [
         'value' => 'approved, pending, spam',
         'nullable' => true,
         'unique' => false,
+        'unsigned' => false,
+        'signed' => false,
         'default' => 'pending',
       ],
       'comment_type' => 
@@ -197,6 +225,8 @@ return  [
         'value' => 'text, image, video',
         'nullable' => true,
         'unique' => false,
+        'unsigned' => false,
+        'signed' => false,
         'default' => 'text',
       ],
       'created_at' => 
@@ -206,6 +236,8 @@ return  [
         'value' => NULL,
         'nullable' => true,
         'unique' => false,
+        'unsigned' => false,
+        'signed' => false,
         'default' => 'CURRENT_TIMESTAMP',
       ],
     ],

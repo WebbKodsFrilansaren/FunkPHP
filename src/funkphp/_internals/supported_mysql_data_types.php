@@ -29,6 +29,19 @@
         "DECIMAL" => 8,
         "NUMERIC" => 9
     ],
+    "INTS" => [
+        "TINYINT" => 1,
+        "SMALLINT" => 2,
+        "MEDIUMINT" => 3,
+        "INT" => 4,
+        "BIGINT" => 5
+    ],
+    "FLOATS" => [
+        "FLOAT" => 1,
+        "DOUBLE" => 2,
+        "DECIMAL" => 3,
+        "NUMERIC" => 4
+    ],
     // Date and time types
     "DATETIMES" => [
         "DATE",

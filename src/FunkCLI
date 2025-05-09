@@ -66,8 +66,12 @@ $validArg1withArg2Values =  [
     'restore' => [
         'all_routes_compiled_and_singles_files',
         'route_compiled_and_singles_files',
-        'data_compiled_and_singles_files',
-        'page_compiled_and_singles_files',
+        'handlers',
+        'data_handlers',
+        'pages',
+        'templates',
+        'sql',
+        'validations',
         'help'
     ],
 ];
@@ -161,17 +165,21 @@ $exactFiles = [
 // should not be used in the application code. They are checked against
 // when adding a new function as a result of a route/data/page/mw handler.
 $reserved_functions =  [
+    'cli_generate_a_validation_from_a_table',
+    'cli_parse_a_sql_table_file',
+    'cli_find_string_outside_quotes',
+    'cli_output_tables_file',
     'cli_match_compiled_route',
     'cli_match_developer_route',
-    'cli_restore_default_folders_and_files',
     'cli_rebuild_single_routes_route_file',
-    'cli_data_exists',
-    'cli_page_exists',
-    'cli_handler_exists',
-    'cli_middleware_exists',
     'cli_build_compiled_routes',
     'cli_output_compiled_routes',
     'cli_convert_array_to_simple_syntax',
+    'cli_restore_default_folders_and_files',
+    'cli_data_file_exists',
+    'cli_page_file_exists',
+    'cli_handler_file_exists',
+    'cli_middleware_exists',
     'cli_output_file_until_success',
     'cli_backup_batch',
     'cli_delete_a_route',
@@ -208,13 +216,16 @@ $reserved_functions =  [
     'cli_info_multiline',
     'cli_warning',
     'cli_warning_without_exit',
-    'dir_exists_is_readable_writable',
-    'file_exists_is_readable_writable',
     'cli_update_reserved_functions_list',
     'cli_value_exists_as_string_or_in_array',
     'cli_add_value_as_string_or_to_array',
-    'd_connect_db',
-    'd_validate',
+    'dir_exists_is_readable_writable',
+    'file_exists_is_readable_writable',
+    'is_array_and_not_empty',
+    'is_string_and_not_empty',
+    'funk_connect_db',
+    'funk_validate',
+    'funk_run_matched_data_handler',
     'dd',
     'dj',
     'ok',
@@ -334,6 +345,10 @@ $commands = [
         'table' => function () {
             cli_parse_a_sql_table_file();
             //cli_output_tables_file(["tables" => [], "relationships" => []]);
+        },
+        'validation' => function () {
+
+            cli_generate_a_validation_from_a_table();
         },
     ],
     'change' => [

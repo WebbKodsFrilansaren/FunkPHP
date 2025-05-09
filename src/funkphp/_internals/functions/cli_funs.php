@@ -4,18 +4,90 @@
 // generates a validation file based on the table structure where
 // it uses the values from the data type, default value, typical default
 // values for the data type, and the min and max values for the data type, etc.
-function cli_generate_a_validation_from_a_table($table)
+function cli_generate_a_validation_from_a_table($table = null)
 {
     // Load globals and verify $table is not empty and the root key is only one which is the table name
-    global $dirs, $exactFiles, $settings;
+    global $dirs, $exactFiles, $settings, $argv, $tablesAndRelationshipsFile;
     $validatedTable = [];
-    var_dump($table);
     $validationDir = $dirs['validations'];
+    $validSQLDataTypes = include_once $exactFiles['supported_mysql_data_types'];
+
+    // Check if $table is null meaning we should include the tables.php file
+    // and check if it exists and is readable and then whether a table inside of it
+    // matches an argv passed through the FunkCLI command which should be the table name
+    // in the form of "tablename" (all lowercase) and then we will parse it
+    if ($table === null) {
+        if (file_exists_is_readable_writable($exactFiles['tables'])) {
+            $table = $tablesAndRelationshipsFile;
+        } else {
+            cli_err_syntax("The \"funkphp/config/tables.php\" file must exist and be readable!");
+        }
+        if (!isset($argv[3]) || !is_string_and_not_empty(trim($argv[3]))) {
+            cli_err_syntax("Provide a Table name as a string!");
+        }
+        // Regex means that "table_name" is valid whereas "_table_name"|"1_table_name" are invalid!
+        if (!preg_match("/^[a-z_][a-z0-9_]+$/", $argv[3])) {
+            cli_err_syntax("\"$argv[3]\" must begin with a lowercased letter and then only contain lowercased letters, numbers and underscores!");
+        }
+        // Here we have a valid $table name so we check if it exists in the tables.php file
+        if (!is_array($table) || !isset($table['tables'][$argv[3]])) {
+            cli_err_syntax("Table \"$argv[3]\" not found in \"funkphp/config/tables.php\"!");
+        }
+        $tableCols = $table['tables'][$argv[3]];
+        $table = [$argv[3] => $tableCols];
+    }
+
+    // Check if the $table is an array and not empty and that the root key is only one which is the table name
     is_array_and_not_empty($table) or cli_err_syntax("The provided Table must be a non-empty array!");
     if (count($table) !== 1) {
         cli_err_syntax("Root key should be only the Table name for the provided non-empty Table array!");
     }
+
+    // Grab the table name from the root key
+    $tableName = key($table);
     echo "OKAY! Table is a non-empty array and root key is only one which is the table name!\n";
+
+    // Check if the file with the table name already exists and if it does then we will rename it do
+    // "tableName_old.php"so we can use this new one instead but still keep the old one for reference!
+    $validationFile = $validationDir . $tableName . ".php";
+    if (!dir_exists_is_readable_writable($validationDir)) {
+        cli_err_syntax("The \"funkphp/validations/\" directory must exist, be readable and writable!");
+    }
+    if (file_exists_is_readable_writable($validationFile)) {
+        $oldValidationFile = $validationDir . $tableName . "_old.php";
+        // Delete the old file if it exists and is readable and writable
+        if (file_exists_is_readable_writable($oldValidationFile)) {
+            unlink($oldValidationFile);
+        }
+        // Rename the old file to the new one
+        if (!rename($validationFile, $oldValidationFile)) {
+            cli_err_syntax("Failed to rename \"$validationFile\" to \"$oldValidationFile\"!");
+        } else {
+            cli_info_without_exit("Renamed \"$validationFile\" to \"$oldValidationFile\"!");
+        }
+    }
+
+    // Add the table name to the validated table array
+    $validatedTable[$tableName] = [];
+
+    // Now we loop through each column in the table and check if it is valid
+    foreach ($table[$tableName] as $colName => $colKeys) {
+
+        // We ignore the first column which is the ID column
+        if ($colName === 'id') {
+            continue;
+        }
+        // We grab the column name and add it to the validation array
+        $validatedTable[$tableName][$colName] = [];
+
+        // We check that data type for current column is a valid one compared to
+        // what is stored in the supported_mysql_data_types.php file
+        if (!isset($validSQLDataTypes[$colKeys['type']])) {
+            cli_err_syntax("Data Type \"{$colKeys['type']}\" not found in \"funkphp/_internals/supported_mysql_data_types.php\" of valid MySQL Data Types.");
+            cli_info("Please add its key if you believe it should be included, and then retry in FunkCLI!");
+        }
+    }
+    var_dump($validatedTable);
     exit;
 }
 
@@ -289,17 +361,31 @@ function cli_parse_a_sql_table_file()
         }
 
         // Check for "NOT NULL" and add to parsed array if found
-        if (cli_find_string_outside_quotes("NOT NULL", $line) === "NOT NULL") {
+        if (cli_find_string_outside_quotes_improved("NOT NULL", $line) === "NOT NULL") {
             $parsedTable[$tableName][$lineParts[0]]["nullable"] = false;
         } else {
             $parsedTable[$tableName][$lineParts[0]]["nullable"] = true;
         }
 
         // Check for "UNIQUE" and add to parsed array if found
-        if (cli_find_string_outside_quotes("UNIQUE", $line) === "UNIQUE") {
+        if (cli_find_string_outside_quotes_improved("UNIQUE", $line) === "UNIQUE") {
             $parsedTable[$tableName][$lineParts[0]]["unique"] = true;
         } else {
             $parsedTable[$tableName][$lineParts[0]]["unique"] = false;
+        }
+
+        // Check for "UNSIGNED" and add to parsed array if found
+        if (cli_find_string_outside_quotes_improved("UNSIGNED", $line) === "UNSIGNED") {
+            $parsedTable[$tableName][$lineParts[0]]["unsigned"] = true;
+        } else {
+            $parsedTable[$tableName][$lineParts[0]]["unsigned"] = false;
+        }
+
+        // Check for "SIGNED" and add to parsed array if found
+        if (cli_find_string_outside_quotes_improved("SIGNED", $line) === "SIGNED") {
+            $parsedTable[$tableName][$lineParts[0]]["signed"] = true;
+        } else {
+            $parsedTable[$tableName][$lineParts[0]]["signed"] = false;
         }
 
         // Try match DEFAULT and its value or just set it to null
@@ -389,7 +475,10 @@ function cli_find_string_outside_quotes($needle, $haystack)
             continue;
         }
         // If first character is the first in the $needle string and the $currentBuiltString is empty
-        if ($char === $splittedString[0] && empty($currentBuiltString)) {
+        if (
+            $char === $splittedString[0] && empty($currentBuiltString)
+            && $index > 0 && $haystack[$index - 1] === " "
+        ) {
             $currentBuiltString[] = $char;
             continue;
         }
@@ -398,7 +487,10 @@ function cli_find_string_outside_quotes($needle, $haystack)
         // If it is we add it to the $currentBuiltString array otherwise we reset the $currentBuiltString array to empty.
         // We also check if the $currentBuiltString array is equal to the $needle string and return it as a string.
         // Otherwise we return "".
-        if (count($currentBuiltString) < count($splittedString) && $char === $splittedString[count($currentBuiltString)]) {
+        if (
+            count($currentBuiltString) < count($splittedString)
+            && $char === $splittedString[count($currentBuiltString)]
+        ) {
             $currentBuiltString[] = $char;
         } elseif (count($currentBuiltString) == count($splittedString)) {
             return implode("", $currentBuiltString);
@@ -407,6 +499,96 @@ function cli_find_string_outside_quotes($needle, $haystack)
         }
     }
     return implode("", $currentBuiltString);
+}
+
+// Improved version of the cli_find_string_outside_quotes() function
+// using some help from LLMs to handle cases like NOT matching word SIGNED
+// because it is inside of the word UNSIGNED and similar cases like that.
+function cli_find_string_outside_quotes_improved($needle, $haystack)
+{
+    // Prepare variables
+    $currentBuiltString = [];
+    $insideQuotes = false;
+    $splittedString = str_split($needle);
+
+    // We iterate through each character in the haystack string
+    // and we check first if we are inside of quotes or not
+    // and if we are inside of quotes we skip the current character
+    // and also reset the $currentBuiltString array to empty.
+    // As we iterate through each character that is outside of quotes
+    // we then check if the current character is equal to the first character of the $needle string
+    // or the next one and so on. If it is we add it to the $currentBuiltString array otherwise
+    // we reset the $currentBuiltString array to empty and continue iterating.
+    // If we reach the end of the haystack string and the $currentBuiltString array is equal to the $needle string
+    // we return the $currentBuiltString array as a string. Otherwise we return "".
+    foreach (str_split($haystack) as $index => $char) {
+        if ($char === '"' || $char === "'") {
+            // Check first that previous character is not a backslash
+            // and then toggle the $insideQuotes variable
+            if ($index > 0 && $haystack[$index - 1] !== "\\") {
+                $insideQuotes = !$insideQuotes;
+            }
+            continue;
+        }
+        if ($insideQuotes) {
+            $currentBuiltString = [];
+            continue;
+        }
+        // If first character is the first in the $needle string and the $currentBuiltString is empty
+        if (
+            $char === $splittedString[0] && empty($currentBuiltString)
+            && $index > 0 && $haystack[$index - 1] === " "
+        ) {
+            $currentBuiltString[] = $char;
+            continue;
+        }
+        // Here we check if $char is the next character in the $needle string
+        // by taking the current count + 1 in the $currentBuiltString array and checking if it is equal to the $needle string
+        // If it is we add it to the $currentBuiltString array otherwise we reset the $currentBuiltString array to empty.
+        // We also check if the $currentBuiltString array is equal to the $needle string and return it as a string.
+        // Otherwise we return "".
+        // Check if we are currently building a potential match string
+        // If we are already building, check if the current character is the next expected character
+        if (count($currentBuiltString) > 0) {
+            if (count($currentBuiltString) < count($splittedString) && $char === $splittedString[count($currentBuiltString)]) {
+                // Character matches the next expected one, continue building
+                $currentBuiltString[] = $char;
+            }
+            // Else if we already have a full match from the previous iteration, return it
+            elseif (count($currentBuiltString) == count($splittedString)) {
+                return implode("", $currentBuiltString);
+            }
+            // The current character does NOT match the next expected character in the sequence.
+            // Reset the built string because the sequence is broken.
+            // Now, check if the CURRENT character could be the START of a *new* potential match (after a reset)
+            // This handles cases like "abab" searching for "aba", when it sees the second 'a', it resets and could start a new match.
+            else {
+                $currentBuiltString = [];
+                // Check the character *before* the current one for a word boundary
+                // A word boundary is the start of the string, or a non-word character (\W or [^a-zA-Z0-9_])
+                if ($char === $splittedString[0]) {
+                    if ($index === 0 || ($index > 0 && !ctype_alnum($haystack[$index - 1]) && $haystack[$index - 1] !== '_')) {
+                        $currentBuiltString[] = $char;
+                    }
+                }
+            }
+        } else {
+            // We are NOT currently building a potential match string.
+            // Check if the current character could be the START of a match.
+            // Check the character *before* the current one for a word boundary
+            if ($char === $splittedString[0]) {
+                if ($index === 0 || ($index > 0 && !ctype_alnum($haystack[$index - 1]) && $haystack[$index - 1] !== '_')) {
+                    $currentBuiltString[] = $char;
+                }
+            }
+        }
+    }
+    // After loop return fully matched or not
+    if (count($currentBuiltString) == count($splittedString)) {
+        return implode("", $currentBuiltString);
+    } else {
+        return "";
+    }
 }
 
 // Outputs the tables.php file based on the array passed to it
