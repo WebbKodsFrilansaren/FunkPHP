@@ -30,6 +30,9 @@ $validArg1withArg2Values =  [
         'mw_page',
         'middleware',
         'table',
+        'template',
+        'validation',
+        'v',
         'help'
     ],
     'change' => [

@@ -1,5 +1,24 @@
 <?php
 
+// Function takes a table which is an array of columns and then
+// generates a validation file based on the table structure where
+// it uses the values from the data type, default value, typical default
+// values for the data type, and the min and max values for the data type, etc.
+function cli_generate_a_validation_from_a_table($table)
+{
+    // Load globals and verify $table is not empty and the root key is only one which is the table name
+    global $dirs, $exactFiles, $settings;
+    $validatedTable = [];
+    var_dump($table);
+    $validationDir = $dirs['validations'];
+    is_array_and_not_empty($table) or cli_err_syntax("The provided Table must be a non-empty array!");
+    if (count($table) !== 1) {
+        cli_err_syntax("Root key should be only the Table name for the provided non-empty Table array!");
+    }
+    echo "OKAY! Table is a non-empty array and root key is only one which is the table name!\n";
+    exit;
+}
+
 // Function takes a SQL file and parses the CREATE TABLE(); statement
 // and then stores it in funkphp/config/tables.php file as a PHP array
 function cli_parse_a_sql_table_file()
@@ -31,12 +50,9 @@ function cli_parse_a_sql_table_file()
     }
 
     // Prepare variables to store the tables.php file and parsed table
-    // plus the validation array and output file name
     $tablesFile = $tablesAndRelationshipsFile;
     $tableName = null;
     $parsedTable = [];
-    $validationArray = [];
-    $validationOutputFile = "";
 
     // Check that keys "tables" and "relationships" exist in the tables.php file
     if (!isset($tablesFile['tables']) || !is_array($tablesFile['tables']) || !isset($tablesFile['relationships']) || !is_array($tablesFile['relationships'])) {
@@ -68,15 +84,8 @@ function cli_parse_a_sql_table_file()
         cli_err_syntax("Table \"$tableName\" already exists in \"funkphp/config/tables.php\"!");
     }
 
-    // We now check if a validation file already exists with that table name ending in ".php"
-    // because we do NOT wanna overwrite that. If file don't exist, we prepare its output path!
-    // Then we add the table name to the parsed table array
-    if (file_exists($dirs['validations'] . $tableName . ".php")) {
-        cli_err_syntax("Validation file \"$tableName.php\" already exists in \"funkphp/validations/\". Either rename it if your table is newer or consider not adding this table if it might be by mistake!");
-    }
-    $validationOutputFile = $dirs['validations'] . $tableName . ".php";
+    // Prepare the parsed table array with the table name
     $parsedTable[$tableName] = [];
-    $validationArray[$tableName] = [];
 
     /* PREPARING TO PARSE LINE BY LINE IN THE SQL TABLE WHOSE NAME IS VALID! */
     // We now split on "\n" and iterate through each line of the SQL file
@@ -172,7 +181,7 @@ function cli_parse_a_sql_table_file()
                     if (!isset($tablesFile['tables'][$otherTable])) {
                         cli_err_syntax("Foreign Key \"{$thisTableFK}\" references Table \"$otherTable\" not found in \"funkphp/config/tables.php\". First add Table \"$otherTable\", or fix \"sql/{$argv[3]}\" and try again!");
                     } else {
-                        // Add the foreign key to the parsed table array, merge it with the existing one
+                        // Add the foreign key to the parsed table array and merge it with the existing one...
                         if (isset($parsedTable[$tableName][$thisTableFK])) {
                             $parsedTable[$tableName][$thisTableFK] = array_merge($parsedTable[$tableName][$thisTableFK], [
                                 "joined_name" => $tableName . "_" . $thisTableFK,
@@ -181,7 +190,9 @@ function cli_parse_a_sql_table_file()
                                 "references_column" => $otherTablePK,
                                 "referenced_joined" => $otherTable . "_" . $otherTablePK,
                             ]);
-                        } else {
+                        }
+                        // ...unless it doesn't exist
+                        else {
                             $parsedTable[$tableName][$thisTableFK] = [
                                 "joined_name" => $tableName . "_" . $thisTableFK,
                                 "foreign_key" => true,
@@ -191,7 +202,7 @@ function cli_parse_a_sql_table_file()
                             ];
                         }
                         cli_info_without_exit("Foreign Key \"{$thisTableFK}\" added to Table \"$tableName\" which references Table \"$otherTable\".");
-                        cli_info_without_exit("IMPORTANT: You must MANUALLY ADD the Relationship Between the Two Tables using \"php funkcli add [relationship] [table1=>table2]\" command!");
+                        cli_info_without_exit("IMPORTANT: You must MANUALLY ADD the Relationship Between the Two Tables using \"php funkcli add relationship [$tableName=>$otherTable|$otherTable=>$tableName]\" command!");
                         continue;
                     }
                 }
@@ -203,7 +214,6 @@ function cli_parse_a_sql_table_file()
                 cli_info("Anything after is not matched so you can include things such as \"ON DELETE CASCADE\", \"ON UPDATE CASCADE\", etc.");
             }
         } // This step succeeds it will continue to the next line and skip the rest of the code below!
-
 
         // Special Case #4: The $line starts with "CONSTRAINT" or "CHECK" so we just inform the Developer
         // that these are currently not supported and we will skip them for now, meaning we will not parse them,
@@ -218,7 +228,7 @@ function cli_parse_a_sql_table_file()
             continue;
         }
         if (str_starts_with(strtoupper($line), "PRIMARY KEY")) {
-            cli_info_without_exit("Skipping \"{$line}\" as a Primary Key has already been added if you reached this far!");
+            cli_info_without_exit("Skipping \"{$line}\" as a PK has already been added if you reached this far!");
             continue;
         }
 
@@ -263,7 +273,6 @@ function cli_parse_a_sql_table_file()
         // so we don't accidentally parse them again. Then we will start to check for things like "NOT NULL", "UNIQUE"
         // and so on! We begin now with removing the first two elements from the $line string.
         $line = trim(preg_replace("/^([a-zA-Z_][a-zA-Z0-9_]+)\s*(([a-zA-Z0-9_]+)(\((.+)\))*)*/", "", $line));
-        var_dump($line);
 
         // If there are no more elements in the $line string we just continue to the next line
         // This also means that the column is nullable and not unique
@@ -273,9 +282,9 @@ function cli_parse_a_sql_table_file()
             continue;
         }
 
-
+        // Check for uneven numbers of quotes in the $line string and warn the Developer
         if (substr_count($line, '"') % 2 !== 0 || substr_count($line, "'") % 2 !== 0) {
-            cli_warning_without_exit("Uneven numbers of quotes in `$line`. Values might get clipped!");
+            cli_warning_without_exit("Uneven numbers of quotes left in `$line`. Values might get clipped when saving to \"tables.php\"!");
             cli_warning_without_exit("Quotes inside of quotes might be ignored!");
         }
 
@@ -293,10 +302,9 @@ function cli_parse_a_sql_table_file()
             $parsedTable[$tableName][$lineParts[0]]["unique"] = false;
         }
 
-        // Check for "DEFAULT " and if we find it, then we will regex match
-        // "DEFAULT and the $defaultPattern" and then we will parse it out
-        // and add it to the parsed table array.
-        $defaultPattern = "/DEFAULT\s*(NOW\(\)|(NULL)|(\d+\.*\d+)|(\d+)|(CURRENT_TIMESTAMP)|(\"{1}(.*)\"{1})|(\'{1}(.*)\'{1})|\(.+\))/i";
+        // Try match DEFAULT and its value or just set it to null
+        // (ambiguity due to DEFAULT NULL is possible as well!)
+        $defaultPattern = "/DEFAULT\s*(NOW\(\)|(NULL)|(\d+\.*\d+)|(\d+)|(CURRENT_DATE)|(CURRENT_TIMESTAMP)|(CURRENT_TIME)|(\"{1}(.*)\"{1})|(\'{1}(.*)\'{1})|\(.+\))/i";
         if (preg_match($defaultPattern, $line, $matches)) {
             $defaultValue = $matches[1] ?? null;
             if (isset($defaultValue)) {
@@ -331,8 +339,6 @@ function cli_parse_a_sql_table_file()
             else {
                 $parsedTable[$tableName][$lineParts[0]]["default"] = null;
             }
-            // We now remove the "DEFAULT $defaultValue" part from the $line
-            $line = str_replace("DEFAULT " . $defaultValue, "", $line);
         }
         // No match after "DEFAULT " (or no DEFALT key at all) so we set it to null
         else {
@@ -343,10 +349,11 @@ function cli_parse_a_sql_table_file()
     // Finally add the entire parsed table to the Tables.php file's array!
     $tablesFile['tables'][$tableName] = $parsedTable[$tableName];
 
-    // Now we iterate through that table to craete the validation file
-    // based on the parsed table array and the validation array
+    // Now we add the table to the tables.php file and also pass it to the validation function which might fail
+    // but the recompiling will still run first and if that fails then the validation won't run!
     cli_info_without_exit("Attempting recompiling tables with newly added Table \"$tableName\"...");
     cli_output_tables_file($tablesFile);
+    cli_generate_a_validation_from_a_table($parsedTable);
 }
 
 // Function that finds a string that is NOT inside of quotes
@@ -421,7 +428,7 @@ function cli_output_tables_file($array)
     // Attempt to write to the Tables.php file and check if it was successful
     $result = file_put_contents($exactFiles['tables'], "<?php\nreturn " . cli_convert_array_to_simple_syntax($array));
     if ($result === false) {
-        cli_err_syntax("FAILED recompiling tables in \"funkphp/config/tables.php\"!");
+        cli_err_syntax("FAILED recompiling Tables in \"funkphp/config/tables.php\"!");
     } else {
         cli_success_without_exit("Recompiled Tables in \"funkphp/config/tables.php\"!");
     }
