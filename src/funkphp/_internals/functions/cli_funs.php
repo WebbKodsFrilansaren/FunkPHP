@@ -7,10 +7,10 @@
 function cli_generate_a_validation_from_a_table($table = null)
 {
     // Load globals and verify $table is not empty and the root key is only one which is the table name
-    global $dirs, $exactFiles, $settings, $argv, $tablesAndRelationshipsFile;
+    global $dirs, $exactFiles, $settings, $argv, $tablesAndRelationshipsFile, $mysqlDataTypesFile;
     $validatedTable = [];
     $validationDir = $dirs['validations'];
-    $validSQLDataTypes = include_once $exactFiles['supported_mysql_data_types'];
+    $validSQLDataTypes = $mysqlDataTypesFile;
 
     // Check if $table is null meaning we should include the tables.php file
     // and check if it exists and is readable and then whether a table inside of it
@@ -45,7 +45,6 @@ function cli_generate_a_validation_from_a_table($table = null)
 
     // Grab the table name from the root key
     $tableName = key($table);
-    echo "OKAY! Table is a non-empty array and root key is only one which is the table name!\n";
 
     // Check if the file with the table name already exists and if it does then we will rename it do
     // "tableName_old.php"so we can use this new one instead but still keep the old one for reference!
@@ -61,9 +60,9 @@ function cli_generate_a_validation_from_a_table($table = null)
         }
         // Rename the old file to the new one
         if (!rename($validationFile, $oldValidationFile)) {
-            cli_err_syntax("Failed to rename \"$validationFile\" to \"$oldValidationFile\"!");
+            cli_err_syntax("Failed to rename \"$tableName\" to \"$tableName.php\"!");
         } else {
-            cli_info_without_exit("Renamed \"$validationFile\" to \"$oldValidationFile\"!");
+            cli_info_without_exit("Renamed \"$tableName\" to \"$tableName" . "_old.php\"!");
         }
     }
 
@@ -77,17 +76,26 @@ function cli_generate_a_validation_from_a_table($table = null)
         if ($colName === 'id') {
             continue;
         }
+        // Grab column data type and also prepare what validation type it will become which is one
+        // the following: "STRINGS", "NUMBERS", "INTS", "FLOATS", "DATETIMES", "BLOBS" and "TEXTS".
+        $colType = $colKeys['type'] ?? null;
+        $validationType = "";
 
-        var_dump($colKeys);
+        $colSigned = $colKeys['signed'] ?? null;
+        $colUnsigned = $colKeys['unsigned'] ?? null;
+
         // We grab the column name and add it to the validation array
         $validatedTable[$tableName][$colName] = [];
 
         // We check that data type for current column is a valid one compared to
         // what is stored in "funkphp/_internals/supported_mysql_data_types.php"
         if (!isset($validSQLDataTypes[$colKeys['type']])) {
-            cli_err_syntax("Data Type \"{$colKeys['type']}\" not found in \"funkphp/_internals/supported_mysql_data_types.php\" of valid MySQL Data Types.");
+            cli_err_syntax_without_exit("[cli_generate_a_validation_from_a_table] Data Type \"{$colKeys['type']}\" not found in \"funkphp/_internals/supported_mysql_data_types.php\" of valid MySQL Data Types.");
             cli_info("Please add its key if you believe it should be included, and then retry in FunkCLI!");
         }
+
+        // This stores the min, max, digits and other values for the current column data type matched with a SQL type
+        $matchedSQLType = $validSQLDataTypes[$colKeys['type']];
 
         // We now add the type of value to the validated table array for the current column which is usually
         // grouped into: "STRINGS", "NUMBERS", "INTS", "FLOATS", "DATETIMES", "BLOBS" and "TEXTS".
@@ -95,6 +103,7 @@ function cli_generate_a_validation_from_a_table($table = null)
         // These types are found in: "funkphp/_internals/supported_mysql_data_types.php" => ["DATATYPE"]["TYPE"]
         if (isset($validSQLDataTypes[$colKeys['type']]['TYPE'])) {
             $validatedTable[$tableName][$colName][$validSQLDataTypes[$colKeys['type']]['TYPE']] = ['error' => null];
+            $validationType = $validSQLDataTypes[$colKeys['type']]['TYPE'];
         }
 
         // We now create a "required" based on whether "nullable" is set to true or false for the given column
@@ -104,17 +113,92 @@ function cli_generate_a_validation_from_a_table($table = null)
 
         // We now create a "unique" based on whether "unique" is set to true or false for the given column
         if (isset($colKeys['unique']) && $colKeys['unique'] === true) {
-            $validatedTable[$tableName][$colName]['unique'] = ['error' => null, 'table' => [$tableName => $colName]];
-            cli_warning_without_exit("Unique Rule applied for \"Table:$tableName => Column:$colName\". Verify this is correct Table & Column to uniquely validate against when this Validation Rule runs!");
+            $validatedTable[$tableName][$colName]['unique'] = [$tableName => $colName, 'error' => null];
+            cli_warning_without_exit("Unique Rule applied for \"Table:$tableName => Column:$colName\", meaning it will validate against unique value");
+            cli_warning_without_exit("in Column \"$colName\" in Table \"$tableName\". Verify this is correct or change it in \"validatons/{$tableName}.php\"!");
+        }
+
+        // We now create a "default" based on whether "default" is NOT set to null, and we insert its value. This value
+        // is used during Validation if something is not provided but it must have a default value.
+        if (isset($colKeys['default']) && $colKeys['default'] !== null) {
+            $validatedTable[$tableName][$colName]['default'] = $colKeys['default'];
+        }
+
+        // We will now set the min and max values for the given column based on the data type. For this we will need to check
+        // two things: 1) First if there is a isset($colKeys['value']) which signifies the max size/value for that column, and
+        // what the min and max allowed sizes are for that column data type. If the $colKeys['value'] is null then the max size/value
+        // is the "MAX" or MAX_UNSIGNED value for that column data type. If the $colKeys['value'] is not null then we will check if it is
+        // a number and if it is we will set the min and max values for that column data type. If it is not a number then we will set
+        // the min and max values for that column data type to the "MIN" or MIN_UNSIGNED value for that column data type.
+        // We will also set the "digits" value for that column data type if it is a number. If it is not a number then we will set
+        // the "digits" value for that column data type to null.
+
+        echo "ColName: $colName | ColType: $colType | ValidationType: $validationType\n";
+        echo "Matched SQL Type: ";
+        var_dump($matchedSQLType);
+
+        // When there IS a default max value for the column based on its data type such as strings, floats, integers,
+        // numbers and so on. We set max and min values for strings based on if it is "required" or not based on whether
+        // the column is NOT NULL (nullable === false) or not.
+        if (isset($colKeys['value'])) {
+            if ($validationType === 'string') {
+                $validatedTable[$tableName][$colName]['max'] = ["value" => $colKeys['value'], "error" => null];
+                if (isset($validatedTable[$tableName][$colName]['required'])) {
+                    $validatedTable[$tableName][$colName]['min'] = ["value" => 1, "error" => null];
+                } else {
+                    $validatedTable[$tableName][$colName]['min'] = ["value" => 0, "error" => null];
+                }
+            } elseif ($validationType === 'integer') {
+                $validatedTable[$tableName][$colName]['max'] = ["value" => $colKeys['value'], "error" => null];
+                if (isset($validatedTable[$tableName][$colName]['required'])) {
+                    $validatedTable[$tableName][$colName]['min'] = ["value" => 1, "error" => null];
+                } else {
+                    $validatedTable[$tableName][$colName]['min'] = ["value" => 0, "error" => null];
+                }
+            } elseif ($validationType === 'float') {
+                $validatedTable[$tableName][$colName]['max'] = ["value" => $colKeys['value'], "error" => null];
+                if (isset($validatedTable[$tableName][$colName]['required'])) {
+                    $validatedTable[$tableName][$colName]['min'] = ["value" => 1, "error" => null];
+                } else {
+                    $validatedTable[$tableName][$colName]['min'] = ["value" => 0, "error" => null];
+                }
+            }
+        }
+        // There exists no value for the column so we set the max and min values based on the exact data type
+        // based on whether it is a number or not. We also set the "digits" value for that column data type
+        // where it is applicable.
+        else {
+            if ($validationType === 'string') {
+                if (isset($matchedSQLType['MAX'])) {
+                    $validatedTable[$tableName][$colName]['max'] = ["value" => $matchedSQLType['MAX'], "error" => null];
+                } else {
+                    $validatedTable[$tableName][$colName]['max'] = ["value" => null, "error" => null];
+                    cli_warning_without_exit("No max value found for Column \"$colName\" in Table \"$tableName\". Please check Data Type or fix after in \"validations/{$tableName}.php\"!");
+                }
+                if (isset($validatedTable[$tableName][$colName]['required'])) {
+                    $validatedTable[$tableName][$colName]['min'] = ["value" => (isset($matchedSQLType['MIN']) ? $matchedSQLType['MIN'] : 1), "error" => null];
+                } else {
+                    $validatedTable[$tableName][$colName]['min'] = ["value" => 0, "error" => null];
+                }
+            } elseif ($validationType === 'integer') {
+                if (isset($matchedSQLType['MAX'])) {
+                    $validatedTable[$tableName][$colName]['max'] = ["value" => $matchedSQLType['MAX'], "error" => null];
+                } else {
+                    $validatedTable[$tableName][$colName]['max'] = ["value" => null, "error" => null];
+                    cli_warning_without_exit("No max value found for Column \"$colName\" in Table \"$tableName\". Please check Data Type or fix after in \"validations/{$tableName}.php\"!");
+                }
+            }
         }
     }
 
-    // output the file
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Finally attempt to output the created Validation file
     $outputValidationFile = file_put_contents($validationFile, "<?php\nreturn " . cli_convert_array_to_simple_syntax($validatedTable) . ";\n");
     if ($outputValidationFile === false) {
-        cli_err_syntax("Failed to create Validation \"validations/$validationFile/.php\" for Table \"$tableName\"!");
+        cli_err_syntax("FAILED creating Validation \"validations/$tableName.php\" for Table \"$tableName\"!");
     } else {
-        cli_info_without_exit("SUCCESSFULLY created Validation \"validations/$validationFile/.php\" for Table \"$tableName\"!");
+        cli_info_without_exit("SUCCESSFULLY created Validation \"validations/$tableName.php\" for Table \"$tableName\"!");
     }
 }
 
@@ -129,7 +213,7 @@ function cli_parse_a_sql_table_file()
     cli_info_without_exit("array() to array[] ignores quotes inside of other qoutes. For example, \"Yours' truly\" would become \"Yours truly\".");
     cli_info_without_exit("KEEP THAT IN MIND: If you wanna use `DEFAULT \"Qouted Value with '\"Quotes\"' Inside\"` as it must be manually added inside \"config/Tables.php\"");
 
-    global $argv, $dirs, $exactFiles, $settings, $tablesAndRelationshipsFile;
+    global $argv, $dirs, $exactFiles, $settings, $tablesAndRelationshipsFile, $mysqlDataTypesFile;
     $sqlFile = null;
     if (!is_string_and_not_empty(trim($argv[3] ?? null))) {
         cli_err_syntax("Provide a SQL file from \"funkphp/sql/\" folder as a string!");
@@ -233,7 +317,7 @@ function cli_parse_a_sql_table_file()
 
     // Load typical MySQL Data Types with min & max lengths and number of digits (if at all applicable)
     // to compare against during parsing. This is also used when creating the validation file!
-    $mysqlDataTypes = include_once $exactFiles['supported_mysql_data_types'];
+    $mysqlDataTypes = $mysqlDataTypesFile;
 
     // Finally we start iterating through each line by splitting on
     foreach ($sqlLines as $index => $line) {
@@ -356,8 +440,9 @@ function cli_parse_a_sql_table_file()
             }
             // Insert data type or error out if it is not valid
             if (isset($matches[3])) {
+                $matches[3] = strtoupper($matches[3]);
                 if (!isset($mysqlDataTypes[$matches[3]])) {
-                    cli_err_syntax("Data Type \"{$matches[3]}\" not found in \"funkphp/_internals/supported_mysql_data_types.php\" of valid MySQL Data Types.");
+                    cli_err_syntax("[cli_parse_a_sql_table_file] Data Type \"{$matches[3]}\" not found in \"funkphp/_internals/supported_mysql_data_types.php\" of valid MySQL Data Types.");
                     cli_info("Please add its key if you believe it should be included, and then retry in FunkCLI!");
                 } else {
                     $parsedTable[$tableName][$matches[1]]["type"] = $matches[3];
@@ -365,8 +450,17 @@ function cli_parse_a_sql_table_file()
             }
             // Insert optional value or just null
             if (isset($matches[5])) {
-                $parsedTable[$tableName][$matches[1]]["value"] = $matches[5];
-            } else {
+                // Special case when data type is ENUM or SET, we store it as string converted to array
+                if ($matches[3] === "ENUM" || $matches[3] === "SET") {
+                    $parsedTable[$tableName][$matches[1]]["value"] = cli_try_parse_listed_string_as_array($matches[5]);
+                }
+                // Try to parse and store as a number or string
+                else {
+                    $parsedTable[$tableName][$matches[1]]["value"] = cli_try_parse_number($matches[5]);
+                }
+            }
+            // Either it doesn't exist or is null so we set it to null
+            else {
                 $parsedTable[$tableName][$matches[1]]["value"] = null;
             }
         }
@@ -471,6 +565,54 @@ function cli_parse_a_sql_table_file()
     cli_output_tables_file($tablesFile);
     cli_generate_a_validation_from_a_table($parsedTable);
 }
+
+// Function tries to parse a number by first checking if it
+// is a numeric, and then whether it is float, int or string
+function cli_try_parse_number($number)
+{
+    if (!is_string_and_not_empty($number)) {
+        cli_err_syntax("cli_try_parse_number() expects a string as input!");
+    }
+    $number = trim($number);
+    if (is_numeric($number)) {
+        if (is_float($number)) {
+            return (float)$number;
+        } else {
+            return (int)$number;
+        }
+    } else {
+        return $number;
+    }
+}
+
+// Function that takes a string like "1,2,3,4,5" or "('a', 'b', 'c')" and tries
+// to parse it as an array and return it as an aray instead of a string.
+function cli_try_parse_listed_string_as_array($stringedList)
+{
+    if (!is_string_and_not_empty($stringedList)) {
+        cli_err_syntax("cli_try_parse_listed_string_as_array() expects a string as input!");
+    }
+    $array = [];
+    $stringedList = trim($stringedList);
+    if (str_starts_with($stringedList, "(") && str_ends_with($stringedList, ")")) {
+        $stringedList = substr($stringedList, 1, -1);
+    }
+
+    // We split on "," and remove any quotes around the
+    // string and trim any whitespace around the string
+    $stringedList = explode(",", $stringedList);
+    foreach ($stringedList as $key => $value) {
+        $value = trim($value);
+        if (str_starts_with($value, "'") && str_ends_with($value, "'")) {
+            $value = substr($value, 1, -1);
+        } elseif (str_starts_with($value, '"') && str_ends_with($value, '"')) {
+            $value = substr($value, 1, -1);
+        }
+        $array[] = $value;
+    }
+    return $array ? array_values($array) : null;
+}
+
 
 // Function that finds a string that is NOT inside of quotes
 // by iterating one character at a time and checking if it is inside quotes

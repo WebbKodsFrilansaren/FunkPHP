@@ -187,19 +187,18 @@
     "LONGBLOB" => [
         "MIN" => 0,
         "MAX" => 4294967295,
-        "DIGITS" => 10,
+        "DIGITS" => null,
         "TYPE" => "blob"
     ],
     "LONGTEXT" => [
         "MIN" => 0,
         "MAX" => 4294967295,
-        "DIGITS" => 10,
+        "DIGITS" => null,
         "TYPE" => "string"
     ],
     "MEDIUMBLOB" => [
         "MIN" => 0,
         "MAX" => 16777215,
-        "DIGITS" => 8,
         "TYPE" => "blob"
     ],
     "MEDIUMINT" => [

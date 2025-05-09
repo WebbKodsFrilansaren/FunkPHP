@@ -270,6 +270,7 @@ cli_restore_default_folders_and_files();
 // Load current routes, data and pages before processing any commands
 $singleRoutesRoute = include __DIR__ . '/funkphp/routes/route_single_routes.php' ?? ['ROUTES' => ['GET' => [], 'POST' => [], 'PUT' => [], 'DELETE' => [], 'PATCH' => []]];
 $tablesAndRelationshipsFile = include __DIR__ . '/funkphp/config/tables.php' ?? ['tables' => [], 'relationships' => []];
+$mysqlDataTypesFile = include __DIR__ . '/funkphp/_internals/supported_mysql_data_types.php' ?? ['STRINGS' => [], 'NUMBERS' => [], 'INTS' => [], 'FLOATS' => [], 'DATETIMES' => [], 'BLOBS' => []];
 
 // Compile only based on user input
 // Compile all routes
