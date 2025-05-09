@@ -77,18 +77,45 @@ function cli_generate_a_validation_from_a_table($table = null)
         if ($colName === 'id') {
             continue;
         }
+
+        var_dump($colKeys);
         // We grab the column name and add it to the validation array
         $validatedTable[$tableName][$colName] = [];
 
         // We check that data type for current column is a valid one compared to
-        // what is stored in the supported_mysql_data_types.php file
+        // what is stored in "funkphp/_internals/supported_mysql_data_types.php"
         if (!isset($validSQLDataTypes[$colKeys['type']])) {
             cli_err_syntax("Data Type \"{$colKeys['type']}\" not found in \"funkphp/_internals/supported_mysql_data_types.php\" of valid MySQL Data Types.");
             cli_info("Please add its key if you believe it should be included, and then retry in FunkCLI!");
         }
+
+        // We now add the type of value to the validated table array for the current column which is usually
+        // grouped into: "STRINGS", "NUMBERS", "INTS", "FLOATS", "DATETIMES", "BLOBS" and "TEXTS".
+        // The "DATETIMES" itself is grouped into: "DATE", "TIME", "DATETIME", "TIMESTAMP" and "YEAR".
+        // These types are found in: "funkphp/_internals/supported_mysql_data_types.php" => ["DATATYPE"]["TYPE"]
+        if (isset($validSQLDataTypes[$colKeys['type']]['TYPE'])) {
+            $validatedTable[$tableName][$colName][$validSQLDataTypes[$colKeys['type']]['TYPE']] = ['error' => null];
+        }
+
+        // We now create a "required" based on whether "nullable" is set to true or false for the given column
+        if (isset($colKeys['nullable']) && $colKeys['nullable'] === false) {
+            $validatedTable[$tableName][$colName]['required'] = ['error' => null];
+        }
+
+        // We now create a "unique" based on whether "unique" is set to true or false for the given column
+        if (isset($colKeys['unique']) && $colKeys['unique'] === true) {
+            $validatedTable[$tableName][$colName]['unique'] = ['error' => null, 'table' => [$tableName => $colName]];
+            cli_warning_without_exit("Unique Rule applied for \"Table:$tableName => Column:$colName\". Verify this is correct Table & Column to uniquely validate against when this Validation Rule runs!");
+        }
     }
-    var_dump($validatedTable);
-    exit;
+
+    // output the file
+    $outputValidationFile = file_put_contents($validationFile, "<?php\nreturn " . cli_convert_array_to_simple_syntax($validatedTable) . ";\n");
+    if ($outputValidationFile === false) {
+        cli_err_syntax("Failed to create Validation \"validations/$validationFile/.php\" for Table \"$tableName\"!");
+    } else {
+        cli_info_without_exit("SUCCESSFULLY created Validation \"validations/$validationFile/.php\" for Table \"$tableName\"!");
+    }
 }
 
 // Function takes a SQL file and parses the CREATE TABLE(); statement
