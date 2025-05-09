@@ -1,6 +1,8 @@
 <?php return [
     // This file contains the supported MySQL data types and their properties.
     // It is used to validate the data types and their properties in the database.
+    /////////////////////////////////////////////////////////////////////////////
+    // CATEGORIES OF DATA TYPES
     // String types
     "STRINGS" => [
         "CHAR" => 1,
@@ -38,7 +40,10 @@
         "SMALLINT" => 2,
         "MEDIUMINT" => 3,
         "INT" => 4,
-        "BIGINT" => 5
+        "BIGINT" => 5,
+        "SMALLSERIAL" => 6,
+        "SERIAL" => 7,
+        "BIGSERIAL" => 8,
     ],
     "FLOATS" => [
         "FLOAT" => 1,
@@ -46,7 +51,8 @@
         "DECIMAL" => 3,
         "DEC" => 4,
         "DOUBLE PRECISION" => 5,
-        "NUMERIC" => 4
+        "NUMERIC" => 6,
+        "REAL" => 7,
     ],
     // Date and time types
     "DATETIMES" => [
@@ -70,6 +76,8 @@
         "MEDIUMTEXT" => 3,
         "LONGTEXT" => 4
     ],
+    "INVALID_VALUES_FOR_NUMBER_TYPES" => [],
+    ////////////////////////////////////////////////////////////////////
     // Each data type with its min and max values (including in unsigned
     // where applicable) and optionally the number of digits
     "BIGINT" => [
@@ -79,7 +87,15 @@
         "MAX_UNSIGNED" => 18446744073709551615,
         "MIN_DIGITS" => 1,
         "MAX_DIGITS" => 20,
-        "TYPE" => "integer"
+        "TYPE" => "integer",
+        "CAN_BE_(UN)SIGNED" => true
+    ],
+    "BIGSERIAL" => [
+        "MIN" => 1,
+        "MAX" => 9223372036854775807,
+        "MIN_DIGITS" => 1,
+        "MAX_DIGITS" => 19,
+        "TYPE" => "integer",
     ],
     "BINARY" => [
         "MIN" => null,
@@ -160,17 +176,24 @@
         "TYPE" => "float"
     ],
     "DOUBLE PRECISION" => [
-        "MIN" => -1.7976931348623157E+308,
-        "MAX" => 1.7976931348623157E+308,
-        "DIGITS" => 15,
-        "TYPE" => "float"
-    ],
-    "DOUBLE" => [
-        "MIN" => -1.7976931348623157E+308,
-        "MAX" => 1.7976931348623157E+308,
+        "MIN_SIGNED" => -1.7976931348623157E+308,
+        "MAX_SIGNED" => -2.2250738585072014E-308,
         "MIN_DIGITS" => 1,
         "MAX_DIGITS" => 15,
-        "TYPE" => "float"
+        "MIN_UNSIGNED" =>  2.2250738585072014E-308,
+        "MAX_UNSIGNED" => 1.7976931348623157E+308,
+        "TYPE" => "float",
+        "CAN_BE_(UN)SIGNED" => true
+    ],
+    "DOUBLE" => [
+        "MIN_SIGNED" => -1.7976931348623157E+308,
+        "MAX_SIGNED" => -2.2250738585072014E-308,
+        "MIN_DIGITS" => 1,
+        "MAX_DIGITS" => 15,
+        "MIN_UNSIGNED" =>  2.2250738585072014E-308,
+        "MAX_UNSIGNED" => 1.7976931348623157E+308,
+        "TYPE" => "float",
+        "CAN_BE_(UN)SIGNED" => true
     ],
     "ENUM" => [
         "MIN" => null,
@@ -179,29 +202,33 @@
         "TYPE" => "string"
     ],
     "FLOAT" => [
-        "MIN" => -3.402823466E+38,
-        "MAX" => 3.402823466E+38,
+        "MIN_SIGNED" => -3.402823466E+38,
+        "MAX_SIGNED" => -1.175494351E-38,
         "MIN_DIGITS" => 1,
         "MAX_DIGITS" => 7,
+        "MIN_UNSIGNED" =>  1.175494351E-38,
+        "MAX_UNSIGNED" => 3.402823466E+38,
         "TYPE" => "float"
     ],
     "INT" => [
         "MIN_SIGNED" => -2147483648,
         "MAX_SIGNED" => 2147483647,
-        "MIN_UNSIGNED" => 1,
-        "MAX_DIGITS" => 11,
-        "MIN_UNSIGNED" => 0,
-        "MAX_UNSIGNED" => 4294967295,
-        "TYPE" => "integer"
-    ],
-    "INTEGER" => [
-        "MIN" => -2147483648,
-        "MAX" => 2147483647,
         "MIN_DIGITS" => 1,
         "MAX_DIGITS" => 11,
         "MIN_UNSIGNED" => 0,
         "MAX_UNSIGNED" => 4294967295,
-        "TYPE" => "integer"
+        "TYPE" => "integer",
+        "CAN_BE_(UN)SIGNED" => true
+    ],
+    "INTEGER" => [
+        "MIN_SIGNED" => -2147483648,
+        "MAX_SIGNED" => 2147483647,
+        "MIN_DIGITS" => 1,
+        "MAX_DIGITS" => 11,
+        "MIN_UNSIGNED" => 0,
+        "MAX_UNSIGNED" => 4294967295,
+        "TYPE" => "integer",
+        "CAN_BE_(UN)SIGNED" => true
     ],
     "JSON" => [
         "MIN" => null,
@@ -215,38 +242,46 @@
     "LONGBLOB" => [
         "MIN" => 0,
         "MAX" => 4294967295,
-        "DIGITS" => null,
+        "MIN_DIGITS" => null,
+        "MAX_DIGITS" => null,
         "TYPE" => "blob"
     ],
     "LONGTEXT" => [
         "MIN" => 0,
         "MAX" => 4294967295,
-        "DIGITS" => null,
+        "MIN_DIGITS" => null,
+        "MAX_DIGITS" => null,
         "TYPE" => "string"
     ],
     "MEDIUMBLOB" => [
         "MIN" => 0,
         "MAX" => 16777215,
+        "MIN_DIGITS" => null,
+        "MAX_DIGITS" => null,
         "TYPE" => "blob"
     ],
     "MEDIUMINT" => [
-        "MIN" => -8388608,
-        "MAX" => 8388607,
-        "DIGITS" => 8,
+        "MIN_SIGNED" => -8388608,
+        "MAX_SIGNED" => 8388607,
         "MIN_UNSIGNED" => 0,
         "MAX_UNSIGNED" => 16777215,
-        "TYPE" => "integer"
+        "MIN_DIGITS" => 1,
+        "MAX_DIGITS" => 8,
+        "TYPE" => "integer",
+        "CAN_BE_(UN)SIGNED" => true
     ],
     "MEDIUMTEXT" => [
         "MIN" => 0,
         "MAX" => 16777215,
-        "DIGITS" => 8,
+        "MIN_DIGITS" => 1,
+        "MAX_DIGITS" => 8,
         "TYPE" => "string"
     ],
     "NVARCHAR" => [
         "MIN" => 0,
         "MAX" => 21845,
-        "DIGITS" => 5,
+        "MIN_DIGITS" => 1,
+        "MAX_DIGITS" => 5,
         "TYPE" => "string"
     ],
     "NUMERIC" => [
@@ -254,79 +289,116 @@
         "MAX_SIZE" => 65,
         "MIN_D" => 0,
         "MAX_D" => 30,
-        "DIGITS" => null,
+        "MIN_DIGITS" => 3, // 1 plus dot plus 1
+        "MAX_DIGITS" => 96, // 65 plus dot plus 30
         "TYPE" => "float"
+    ],
+    "REAL" => [
+        "MIN_SIGNED" => -3.402823466E+38,
+        "MAX_SIGNED" => -1.175494351E-38,
+        "MIN_DIGITS" => 3, // 1 plus dot plus 1
+        "MAX_DIGITS" => 8, // 6 plus dot plus 1
+        "MIN_UNSIGNED" =>  1.175494351E-38,
+        "MAX_UNSIGNED" => 3.402823466E+38,
+        "TYPE" => "float",
+        "CAN_BE_(UN)SIGNED" => true
+    ],
+    "SERIAL" => [
+        "MIN" => 1,
+        "MAX" => 2147483647,
+        "MIN_DIGITS" => 1,
+        "MAX_DIGITS" => 10,
+        "TYPE" => "integer",
     ],
     "SET" => [
         "MIN" => null,
         "MAX" => null,
-        "DIGITS" => null,
+        "MIN_DIGITS" => null,
+        "MAX_DIGITS" => null,
         "TYPE" => "string"
     ],
     "SMALLINT" => [
-        "MIN" => -32768,
-        "MAX" => 32767,
+        "MIN_SIGNED" => -32768,
+        "MAX_SIGNED" => 32767,
         "DIGITS" => 5,
         "MIN_UNSIGNED" => 0,
         "MAX_UNSIGNED" => 65535,
-        "TYPE" => "integer"
+        "TYPE" => "integer",
+        "CAN_BE_(UN)SIGNED" => true
+    ],
+    "SMALLSERIAL" => [
+        "MIN" => 1,
+        "MAX" => 32767,
+        "MIN_DIGITS" => 1,
+        "MAX_DIGITS" => 5,
+        "TYPE" => "integer",
     ],
     "TEXT" => [
         "MIN" => 0,
         "MAX" => 65535,
-        "DIGITS" => 5,
+        "MIN_DIGITS" => 1,
+        "MAX_DIGITS" => 5,
         "TYPE" => "string"
     ],
     "TIME" => [
         "MIN" => 8,
         "MAX" => 8,
-        "DIGITS" => 6,
+        "MIN_DIGITS" => 6,
+        "MAX_DIGITS" => 6,
         "TYPE" => "time"
     ],
     "TIMESTAMP" => [
-        "MIN" => 0,
-        "MAX" => 2147483647,
+        "MIN_SIGNED" => 0,
+        "MAX_SIGNED" => 2147483647,
         "DIGITS" => 10,
         "MIN_UNSIGNED" => 0,
         "MAX_UNSIGNED" => 4294967295,
-        "TYPE" => "timestamp"
+        "TYPE" => "timestamp",
+        "CAN_BE_(UN)SIGNED" => true
     ],
     "TINYBLOB" => [
         "MIN" => 0,
         "MAX" => 255,
-        "DIGITS" => 3,
+        "MIN_DIGITS" => 1,
+        "MAX_DIGITS" => 3,
         "TYPE" => "blob"
     ],
     "TINYINT" => [
-        "MIN" => -128,
-        "MAX" => 127,
-        "DIGITS" => 3,
+        "MIN_SIGNED" => -128,
+        "MAX_SIGNED" => 127,
+        "MIN_DIGITS" => 1,
+        "MAX_DIGITS" => 3,
         "MIN_UNSIGNED" => 0,
         "MAX_UNSIGNED" => 255,
-        "TYPE" => "integer"
+        "TYPE" => "integer",
+        "CAN_BE_(UN)SIGNED" => true
     ],
     "TINYTEXT" => [
         "MIN" => 0,
         "MAX" => 255,
-        "DIGITS" => 3,
+        "MIN_DIGITS" => 1,
+        "MAX_DIGITS" => 3,
         "TYPE" => "string"
     ],
     "VARBINARY" => [
         "MIN" => 0,
         "MAX" => 255,
-        "DIGITS" => 3,
+        "MIN_DIGITS" => 1,
+        "MAX_DIGITS" => 3,
         "TYPE" => "blob"
     ],
     "VARCHAR" => [
         "MIN" => 0,
         "MAX" => 65535,
-        "DIGITS" => 5,
+        "MIN_DIGITS" => 1,
+        "MAX_DIGITS" => 5,
         "TYPE" => "string"
     ],
     "YEAR" => [
         "MIN" => 4,
         "MAX" => 4,
-        "DIGITS" => 4,
+        "MIN_DIGITS" => 4,
+        "MAX_DIGITS" => 4,
         "TYPE" => "year"
     ],
 ];
