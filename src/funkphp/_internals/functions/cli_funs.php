@@ -454,6 +454,10 @@ function cli_parse_a_sql_table_file()
                 if ($matches[3] === "ENUM" || $matches[3] === "SET") {
                     $parsedTable[$tableName][$matches[1]]["value"] = cli_try_parse_listed_string_as_array($matches[5]);
                 }
+                // Certain types will NOT get a value assigned to them.
+                elseif (in_array($matches[3], $mysqlDataTypes["INVALID_VALUES_FOR_NUMBER_TYPES"])) {
+                    $parsedTable[$tableName][$matches[1]]["value"] = null;
+                }
                 // Try to parse and store as a number or string
                 else {
                     $parsedTable[$tableName][$matches[1]]["value"] = cli_try_parse_number($matches[5]);

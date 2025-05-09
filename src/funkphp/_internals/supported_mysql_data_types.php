@@ -76,7 +76,46 @@
         "MEDIUMTEXT" => 3,
         "LONGTEXT" => 4
     ],
-    "INVALID_VALUES_FOR_NUMBER_TYPES" => [],
+    // These data types cannot have any values assigned to them when
+    // creating the table. For example "NVARCHAR" can have that to its
+    // "value" key and also VARCHAR, but not "BLOB" or "TEXT" since they
+    // already have fixed sizes. And also "ENUM" and "SET" types and all
+    // integer and float types since they have max and min values, either
+    // signed or unsigned.
+    "INVALID_VALUES_FOR_NUMBER_TYPES" => [
+        "TINYINT",
+        "SMALLINT",
+        "MEDIUMINT",
+        "INT",
+        "BIGINT",
+        "FLOAT",
+        "DOUBLE",
+        "DECIMAL",
+        "NUMERIC",
+        "DOUBLE PRECISION",
+        "BIT",
+        "DEC",
+        "BOOLEAN",
+        "TINYBLOB",
+        "BLOB",
+        "MEDIUMBLOB",
+        "LONGBLOB",
+        "TINYTEXT",
+        "TEXT",
+        "MEDIUMTEXT",
+        "LONGTEXT",
+        "ENUM",
+        "SET",
+        "SERIAL",
+        "BIGSERIAL",
+        "SMALLSERIAL",
+        "REAL",
+        "DATE",
+        "TIME",
+        "DATETIME",
+        "TIMESTAMP",
+        "YEAR",
+    ],
     ////////////////////////////////////////////////////////////////////
     // Each data type with its min and max values (including in unsigned
     // where applicable) and optionally the number of digits
