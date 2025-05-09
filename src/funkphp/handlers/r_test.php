@@ -7,11 +7,21 @@ function r_test(&$c) // <GET/test>
     $validate = [
         'authors' =>
         [
+            'email',
             'name',
-            'email'
-        ]
+        ],
+        'articles' =>
+        [
+            'title',
+            'content',
+            'published',
+        ],
+        'comments' =>
+        [
+            'content',
+        ],
     ];
-    funk_use_validation($c, $validate, "test");
+    funk_use_validation($c, $validate, 'post');
 };
 //DELIMITER_HANDLER_FUNCTION_END=r_test
 

@@ -1,5 +1,13 @@
 <?php // HELPER FUNCTIONS FOR FuncPHP
 
+// Data Dump ONLY $c['err'] array and die (stop execution)
+function derr()
+{
+    header('Content-Type: application/json', true, 200);
+    echo json_encode($GLOBALS['c']['err']);
+    exit;
+}
+
 // Data Dump function to dump data and optionally return it as JSON
 function dd($data, $json = false)
 {

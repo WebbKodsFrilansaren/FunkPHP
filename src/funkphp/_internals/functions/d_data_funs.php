@@ -22,183 +22,6 @@ function funk_connect_db($dbHost, $dbUser, $dbPass, $dbName, $dbPort = 3306, $db
     }
 }
 
-// The main validation function for validating data in FunkPHP
-function funk_validate(&$c, array $data_keys_and_associated_validation_rules_values)
-{
-    $errors = [];
-
-    // It has a start function so it can also be used recursively!
-    $start_validate = function (&$c, $data_keys_and_associated_validation_rules_values) use ($errors) {};
-
-    // The Available Validation Rules
-    $utf8 = function (&$c, $data, $value, $customErr = null) {
-        if (!mb_check_encoding($value, 'UTF-8')) {
-            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be a valid UTF-8 string.";
-        }
-    };
-    $mb_minlen = function (&$c, $data, $value, $customErr = null) {
-        if (mb_strlen($value) < $data['minlen']) {
-            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be at least {$data['min']} characters long.";
-        }
-    };
-    $mb_maxlen = function (&$c, $data, $value, $customErr = null) {
-        if (mb_strlen($value) > $data['maxlen']) {
-            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be at most {$data['max']} characters long.";
-        }
-    };
-    $minlen = function (&$c, $data, $value, $customErr = null) {
-        if (strlen($value) < $data['minlen']) {
-            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be at least {$data['min']} characters long.";
-        }
-    };
-    $maxlen = function (&$c, $data, $value, $customErr = null) {
-        if (strlen($value) > $data['maxlen']) {
-            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be at most {$data['max']} characters long.";
-        }
-    };
-    $minmaxlen = function (&$c, $data, $value, $customErr = null) {
-        if (strlen($value) < $data['minlen'] || strlen($value) > $data['maxlen']) {
-            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be between {$data['min']} and {$data['max']} characters long.";
-        }
-    };
-    $minmaxval = function (&$c, $data, $value, $customErr = null) {
-        if ($value < $data['minval'] || $value > $data['maxval']) {
-            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be between {$data['min']} and {$data['max']}.";
-        }
-    };
-    $maxval = function (&$c, $data, $value, $customErr = null) {
-        if ($value > $data['maxval']) {
-            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be at most {$data['max']}.";
-        }
-    };
-    $minval  = function (&$c, $data, $value, $customErr = null) {
-        if ($value < $data['minval']) {
-            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be at least {$data['min']}.";
-        }
-    };
-    $nonnegative = function (&$c, $data, $value, $customErr = null) {
-        if ($value < 0) {
-            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be a non-negative value.";
-        }
-    };
-    $required = function (&$c, $data, $value, $customErr = null) {
-        if (!isset($value) || empty($value)) {
-            $errors[] = $customErr ? $customErr : "The field {$data['name']} is required.";
-        }
-    };
-    $string  = function (&$c, $data, $value, $customErr = null) {
-        if (!is_string($value)) {
-            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be a string.";
-        }
-    };
-    $int  = function (&$c, $data, $value, $customErr = null) {
-        if (!is_int($value)) {
-            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be an integer.";
-        }
-    };
-    $float  = function (&$c, $data, $value, $customErr = null) {
-        if (!is_float($value)) {
-            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be a float.";
-        }
-    };
-    $number = function (&$c, $data, $value, $customErr = null) {
-        if (!is_numeric($value)) {
-            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be a number.";
-        }
-    };
-    $bool  = function (&$c, $data, $value, $customErr = null) {
-        if (!is_bool($value)) {
-            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be a boolean.";
-        }
-    };
-    $hex  = function (&$c, $data, $value, $customErr = null) {
-        if (!preg_match('/^[0-9A-Fa-f]{6}$/', $value)) {
-            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be a valid hex color code.";
-        }
-    };
-    // TODO: Improve this!
-    $email  = function (&$c, $data, $value, $customErr = null) {
-        if (!filter_var($value, FILTER_VALIDATE_EMAIL)) {
-            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be a valid email address.";
-        }
-    };
-    $url =  function (&$c, $data, $value, $customErr = null) {
-        if (!filter_var($value, FILTER_VALIDATE_URL)) {
-            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be a valid URL.";
-        }
-    };
-    // TODO: Improve this!
-    $phone = function (&$c, $data, $value, $customErr = null) {
-        if (!preg_match('/^\+?[0-9]{1,4}?[-. ]?\(?[0-9]{1,4}?\)?[-. ]?[0-9]{1,4}[-. ]?[0-9]{1,9}$/', $value)) {
-            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be a valid phone number.";
-        }
-    };
-
-    // TODO: Verify this works as intended!
-    // We now loop through the data keys and their associated validation rules
-    foreach ($data_keys_and_associated_validation_rules_values as $key => $data) {
-        // Check if the key exists in the request data
-        if (isset($c['req'][$key])) {
-            // Loop through the validation rules and apply them
-            foreach ($data['validation'] as $rule => $value) {
-                // Check if the rule is callable (a function)
-                if (is_callable($$rule)) {
-                    // Call the rule with the data and value
-                    $$rule($c, $data, $c['req'][$key], $value);
-                } else {
-                    // Handle error: rule not callable (or just use default below)
-                    $errors[] = "The validation rule {$rule} is not callable.";
-                }
-            }
-        } else {
-            // Handle error: key not found in request data (or just use default below)
-            $errors[] = "The field {$key} is not found in the request data.";
-        }
-    }
-
-    return $errors;
-}
-
-// Loads a validation file from the funkphp/validations/ and then
-// sends it to the funk_validate function to validate the data
-function funk_use_validation(&$c, $validation)
-{
-    // Check if the validation file exists and is readable
-    if (!is_array($validation)) {
-        $c['err']['FAILED_TO_LOAD_VALIDATION_FILE'] = true;
-        return false;
-    }
-
-    // We will now loop through the root keys in $validation
-    // since each root key is the file name inside of funkphp/validations/
-    // so we need to include all files and then merge them into one array
-    // and then pass it to the funk_validate function! For each root key
-    // we check that the file exists and is readable, and then include it
-    // and run the validation function with the $c variable as argument.
-    $tablesAndColsToValidate = [];
-
-    foreach ($validation as $key => $value) {
-        // Check if the file exists and is readable
-        $validationFile = dirname(dirname(__DIR__)) . '/validations/' . $key . '.php';
-        if (file_exists_is_readable_writable($validationFile)) {
-            $validationData = include_once $validationFile;
-            if (is_array($validationData)) {
-                // Merge the validation data into the main validation array
-                $tablesAndColsToValidate = array_merge($tablesAndColsToValidate, $validationData);
-            } else {
-                $c['err']['FAILED_TO_LOAD_VALIDATION_FILE'] = true;
-                echo "Validation file is not an array!";
-                return false;
-            }
-        } else {
-            // Handle error: file not found or not readable (or just use default below)
-            echo "Validation file does not exist or is not readable!";
-            $c['err']['FAILED_TO_LOAD_VALIDATION_FILE'] = true;
-            return false;
-        }
-    }
-}
-
 // Run the matched data handler (Step 4 after matched routing in Routes,
 // then running Middlewares and then the Route Handler)
 function funk_run_matched_data_handler(&$c)
@@ -237,4 +60,235 @@ function funk_run_matched_data_handler(&$c)
         $c['err']['FAILED_TO_RUN_DATA_HANDLER'] = true;
         return;
     }
+}
+
+// Loads a validation file from the funkphp/validations/ and then
+// sends it to the funk_validate function to validate the data
+function funk_use_validation(&$c, $validation, $contentType)
+{
+    // Check if the input $validation is a valid array structure
+    if (!is_array($validation) || empty($validation)) {
+        $c['err']['INVALID_VALIDATION_INPUT'] = "Validation input must be a non-empty array!";
+        return false;
+    }
+
+    // Validate that $contentType is a valid string
+    if (!is_string($contentType) || empty($contentType)) {
+        $c['err']['INVALID_VALIDATION_CONTENT_TYPE'] = "Content Type to validate against must be a non-empty string!";
+        return false;
+    }
+
+    // Validate  $contentType is only one of the
+    // following: 'post', 'get', 'json', 'files'
+    $validContentTypes = [
+        'post' => [],
+        'get' => [],
+        'json' => [],
+        'files' => [],
+    ];
+    if (!array_key_exists(strtolower($contentType), $validContentTypes)) {
+        $c['err']['INVALID_VALIDATION_CONTENT_TYPE'] = "Content Type '{$contentType}' is not valid. Choose one of: " . implode(', ', array_keys($validContentTypes));
+        return false;
+    }
+
+    // This will hold all loaded data before filtering
+    // $tableKey is 'authors', $columnListForTable is ['email', 'name']
+    $allLoadedValidationData = [];
+    foreach ($validation as $tableKey => $columnListForTable) {
+        if (!is_string($tableKey) || empty($tableKey)) {
+            $c['err']['INVALID_VALIDATION_INPUT'] = "Validation table key must be a non-empty string!";
+            return false;
+        }
+        if (!is_array($columnListForTable)) {
+            $c['err']['INVALID_VALIDATION_INPUT'] = "Validation column list for table '{$tableKey}' must be an array!";
+            return false;
+        }
+        foreach ($columnListForTable as $colName) {
+            if (!is_string($colName) || empty($colName)) {
+                $c['err']['INVALID_VALIDATION_INPUT'] = "Validation column names in the list for table '{$tableKey}' must be non-empty strings!";
+                return false;
+            }
+        }
+
+        // Construct the path to the validation file for this table
+        // Check if the validation file exists and is readable
+        $validationFile = dirname(dirname(__DIR__)) . '/validations/' . $tableKey . '.php';
+        if (file_exists_is_readable_writable($validationFile)) {
+            $validationDataFromFile = include_once $validationFile;
+
+            // Check if the file returned a valid array containing data for the specific table key
+            // And then store the loaded validation data for this table into our accumulator
+            // Only take the data specifically under the table key
+            if (is_array($validationDataFromFile) && isset($validationDataFromFile[$tableKey]) && is_array($validationDataFromFile[$tableKey])) {
+                $allLoadedValidationData[$tableKey] = $validationDataFromFile[$tableKey];
+            }
+            // Handle error: file content is not in the expected format
+            else {
+                $c['err']['INVALID_VALIDATION_FILE_CONTENT'] = "Validation file '{$tableKey}.php' content is invalid or missing table key!";
+                return false;
+            }
+        }
+        // Handle error: validation file not found or not readable
+        else {
+            $c['err']['VALIDATION_FILE_NOT_FOUND'] = "Validation file '{$tableKey}.php' not found or not readable!";
+            return false;
+        }
+    }
+
+    // Now we call the validation function for the specific
+    // content type and pass the loaded validation data to it
+    $validationFunctionName = 'funk_validate_' . strtolower($contentType);
+    if (function_exists($validationFunctionName)) {
+        $validationErrors = $validationFunctionName($c, $allLoadedValidationData, $validation);
+        if (!empty($validationErrors)) {
+            // Handle validation errors
+            $c['err']['VALIDATION_FAILED'] = true;
+            $c['err']['VALIDATION_ERRORS'] = $validationErrors;
+            return false;
+        }
+    } else {
+        // Handle error: validation function not found
+        $c['err']['VALIDATION_FUNCTION_NOT_FOUND'] = "Validation function '{$validationFunctionName}' not found!";
+        return false;
+    }
+
+    // If we reach here, it means ALL VALIDATION passed successfully
+    return true;
+}
+
+// The main validation function for validating data
+// in FunkPHP mapping to the "$_POST" variables ONLY!
+function funk_validate_post(&$c, $allLoadedValidationData, $tablesAndColsToValidate)
+{
+    $errors = [];
+    echo "<pre>";
+    print_r($tablesAndColsToValidate);
+    echo "</pre>";
+
+    return $errors;
+}
+
+// The main validation function for validating data
+// in FunkPHP mapping to the "$_GET" variables ONLY!
+function funk_validate_get(&$c, $allLoadedValidationData, $tablesAndColsToValidate)
+{
+    $errors = [];
+
+    // It has a start function so it can also be used recursively!
+    $start_validate = function (&$c, $data_keys_and_associated_validation_rules_values) use ($errors) {};
+
+    // TODO: Improve this!
+    $email  = function (&$c, $data, $value, $customErr = null) {
+        if (!filter_var($value, FILTER_VALIDATE_EMAIL)) {
+            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be a valid email address.";
+        }
+    };
+    $url =  function (&$c, $data, $value, $customErr = null) {
+        if (!filter_var($value, FILTER_VALIDATE_URL)) {
+            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be a valid URL.";
+        }
+    };
+    // TODO: Improve this!
+    $phone = function (&$c, $data, $value, $customErr = null) {
+        if (!preg_match('/^\+?[0-9]{1,4}?[-. ]?\(?[0-9]{1,4}?\)?[-. ]?[0-9]{1,4}[-. ]?[0-9]{1,9}$/', $value)) {
+            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be a valid phone number.";
+        }
+    };
+
+    // TODO: Verify this works as intended!
+
+
+    return $errors;
+}
+
+// The main validation function for validating data
+// in FunkPHP mapping to the php://input data ONLY!
+function funk_validate_json(&$c, $allLoadedValidationData, $tablesAndColsToValidate)
+{
+    $errors = [];
+
+    // It has a start function so it can also be used recursively!
+    $start_validate = function (&$c, $data_keys_and_associated_validation_rules_values) use ($errors) {};
+
+    // TODO: Improve this!
+    $email  = function (&$c, $data, $value, $customErr = null) {
+        if (!filter_var($value, FILTER_VALIDATE_EMAIL)) {
+            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be a valid email address.";
+        }
+    };
+    $url =  function (&$c, $data, $value, $customErr = null) {
+        if (!filter_var($value, FILTER_VALIDATE_URL)) {
+            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be a valid URL.";
+        }
+    };
+    // TODO: Improve this!
+    $phone = function (&$c, $data, $value, $customErr = null) {
+        if (!preg_match('/^\+?[0-9]{1,4}?[-. ]?\(?[0-9]{1,4}?\)?[-. ]?[0-9]{1,4}[-. ]?[0-9]{1,9}$/', $value)) {
+            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be a valid phone number.";
+        }
+    };
+
+    // TODO: Verify this works as intended!
+
+
+    return $errors;
+}
+
+// The main validation function for validating data
+// in FunkPHP mapping to the $_FILES variables ONLY!
+function funk_validate_files(&$c, $allLoadedValidationData, $tablesAndColsToValidate)
+{
+    $errors = [];
+
+    // It has a start function so it can also be used recursively!
+    $start_validate = function (&$c, $data_keys_and_associated_validation_rules_values) use ($errors) {};
+
+    // TODO: Improve this!
+    $email  = function (&$c, $data, $value, $customErr = null) {
+        if (!filter_var($value, FILTER_VALIDATE_EMAIL)) {
+            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be a valid email address.";
+        }
+    };
+    $url =  function (&$c, $data, $value, $customErr = null) {
+        if (!filter_var($value, FILTER_VALIDATE_URL)) {
+            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be a valid URL.";
+        }
+    };
+    // TODO: Improve this!
+    $phone = function (&$c, $data, $value, $customErr = null) {
+        if (!preg_match('/^\+?[0-9]{1,4}?[-. ]?\(?[0-9]{1,4}?\)?[-. ]?[0-9]{1,4}[-. ]?[0-9]{1,9}$/', $value)) {
+            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be a valid phone number.";
+        }
+    };
+
+    // TODO: Verify this works as intended!
+
+    return $errors;
+}
+
+///////////////////////////////////////////////////////////////////////////////////
+// BELOW ARE ALL THE VALIDATION FUNCTIONS THAT WILL BE USED TO VALIDATE THE DATA //
+// Feel free to add your own as needed. Name them funk_validate_<name> and they  //
+// will be automatically added to the list of available validation functions     //
+///////////////////////////////////////////////////////////////////////////////////
+
+// Validate that Value is a valid UTF-8 string
+function funk_validate_string(&$c, $data, $value, $customErr = null)
+{
+    if (!is_string($value)) {
+        $c['d']['VALIDATION_FAILED'] = $customErr ? $customErr : "The field {$data['name']} must be a string.";
+        return false;
+    }
+    return true;
+}
+
+// Validate that Value is a valid integer - this function won't
+// run if "nullable" is set to true in the table definition!!!
+function funk_validate_required(&$c, $data, $value, $customErr = null)
+{
+    if (!isset($value) || empty($value)) {
+        $c['err']['VALIDATION_FAILED'] = $customErr ? $customErr : "The field {$data['name']} is required.";
+        return false;
+    }
+    return true;
 }

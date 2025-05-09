@@ -21,7 +21,9 @@ return [
     'req' => include __DIR__ . '/req.php',
     'db' => include __DIR__ . '/db.php',
     // 'd' will ALWAYS store fetched database data and/or validated 'post', 'get', 'json' data!
-    'd' => null,
+    'd' => [
+        "VALIDATION_FAILED" => null // This is by default null, but can be set to true or false based on the validation result!
+    ],
     // 'p' is the page object that will be used to handle the page rendering and output (not needed for API requests)!
     'p' => null,
     // 'files' is the array of uploaded files (if any) that will be used to handle the file uploads!
