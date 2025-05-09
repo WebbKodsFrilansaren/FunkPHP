@@ -172,14 +172,24 @@ function cli_parse_a_sql_table_file()
                     if (!isset($tablesFile['tables'][$otherTable])) {
                         cli_err_syntax("Foreign Key \"{$thisTableFK}\" references Table \"$otherTable\" not found in \"funkphp/config/tables.php\". First add Table \"$otherTable\", or fix \"sql/{$argv[3]}\" and try again!");
                     } else {
-                        // Add the foreign key to the parsed table array
-                        $parsedTable[$tableName][$thisTableFK] = [
-                            "joined_name" => $tableName . "_" . $thisTableFK,
-                            "foreign_key" => true,
-                            "references" => $otherTable,
-                            "references_column" => $otherTablePK,
-                            "referenced_joined" => $otherTable . "_" . $otherTablePK,
-                        ];
+                        // Add the foreign key to the parsed table array, merge it with the existing one
+                        if (isset($parsedTable[$tableName][$thisTableFK])) {
+                            $parsedTable[$tableName][$thisTableFK] = array_merge($parsedTable[$tableName][$thisTableFK], [
+                                "joined_name" => $tableName . "_" . $thisTableFK,
+                                "foreign_key" => true,
+                                "references" => $otherTable,
+                                "references_column" => $otherTablePK,
+                                "referenced_joined" => $otherTable . "_" . $otherTablePK,
+                            ]);
+                        } else {
+                            $parsedTable[$tableName][$thisTableFK] = [
+                                "joined_name" => $tableName . "_" . $thisTableFK,
+                                "foreign_key" => true,
+                                "references" => $otherTable,
+                                "references_column" => $otherTablePK,
+                                "referenced_joined" => $otherTable . "_" . $otherTablePK,
+                            ];
+                        }
                         cli_info_without_exit("Foreign Key \"{$thisTableFK}\" added to Table \"$tableName\" which references Table \"$otherTable\".");
                         cli_info_without_exit("IMPORTANT: You must MANUALLY ADD the Relationship Between the Two Tables using \"php funkcli add [relationship] [table1=>table2]\" command!");
                         continue;
@@ -212,59 +222,57 @@ function cli_parse_a_sql_table_file()
             continue;
         }
 
-        // FOR FIRST ELEMENT[0] we assume a valid column name using
+        // FOR FIRST two ELEMENTS[0-1] we assume a valid column name and
+        // data type with optional value inside of two () brackets.
         // the regex ^[a-zA-Z_][a-zA-Z0-9_]*$ and check if it is valid
-        if (!preg_match("/^[a-zA-Z_][a-zA-Z0-9_]*$/", $lineParts[0])) {
-            cli_err_syntax("Column Name \"{$lineParts[0]}\" must follow Regex (\"[a-zA-Z_][a-zA-Z0-9_]*\") meaning starting with a letter or underscore and then letters, numbers and/or underscores!");
+        if (!preg_match("/^([a-zA-Z_][a-zA-Z0-9_]+)\s*(([a-zA-Z0-9_]+)(\((.+)\))*)*/", $line, $matches)) {
+            cli_err_without_exit("Column \"{$lineParts[0]}\" should start with valid Column Name and then valid Data Type syntax!");
+            cli_info_without_exit("For example: `columnName` `dataType(optionalValueInsideOfParentheses)` (ignoring the backticks!)");
+            cli_info("Examples: `comment VARCHAR(255)` OR `like_counter INT` (ignoring the backticks!)");
         }
         // Otherwise we add it to the parsed table array
         else {
-            $parsedTable[$tableName][$lineParts[0]] = [
-                "joined_name" => $tableName . "_" . $lineParts[0],
-            ];
-        }
-
-        // FOR SECOND ELEMENT[1] we assume to be the data type so we first extract it if there might be
-        // any numbers inside of two () brackets. We also check if it is a valid MySQL data type by comparing
-        // against "STRINGS", "NUMBERIC" and "DATETIMES" arrays in the supported_mysql_data_types.php file.
-        $lineSpec = $lineParts[1] ?? null;
-
-        // We concatenate two parts if the first part contains "(" and the second part does
-        // not contain ")" which happens due to splitting parts on " " (e.g. DECIMAL(10, 2))
-        if (str_contains($lineParts[1], "(") && !str_contains($lineParts[1], ")")) {
-            $lineSpec = $lineParts[1] . " " . $lineParts[2];
-            $lineSpec = str_replace(", ", ",", $lineSpec);
-        }
-        $regexExtractDataTypeFromOptionalValue = "/([a-zA-Z_]+)(\s*\((\d+,{0,1}\s*\d*)\))?/i";
-        if (preg_match($regexExtractDataTypeFromOptionalValue, $lineSpec, $matches)) {
-            $dataType = $matches[1] ?? null;
-            if (isset($dataType)) {
-                $dataType = strtoupper($dataType);
-            }
-            $dataTypeValue = $matches[2] ?? null;
-
-            // Check if the data type is valid and exists in the supported_mysql_data_types.php file
-            if (!isset($mysqlDataTypes[$dataType])) {
-                cli_err_syntax("Data Type \"{$dataType}\" is not defined in \"funkphp/_internals/supported_mysql_data_types.php\" of valid MySQL Data Types. Please add its key if you believe it should be included, and then retry in FunkCLI!");
+            // Insert column name or error out if it is not valid
+            if (isset($matches[1])) {
+                $parsedTable[$tableName][$matches[1]] = [
+                    "joined_name" => $tableName . "_" . $matches[1],
+                ];
             } else {
-                // Add the data type and its optional value to the parsed table array
-                $parsedTable[$tableName][$lineParts[0]]["type"] = $dataType;
-                $currentDataType = $dataType;
-                if ($dataTypeValue !== null) {
-                    $dataTypeValue = trim(str_replace("(", "", str_replace(")", "", $dataTypeValue)));
-                    $parsedTable[$tableName][$lineParts[0]]["value"] = $dataTypeValue;
+                cli_err_syntax("Column \"{$lineParts[0]}\" should start with valid Column Name and then valid Data Type syntax!");
+                cli_info_without_exit("For example: `columnName` `dataType(optionalValueInsideOfParentheses)` (ignoring the backticks!)");
+                cli_info("Examples: `comment VARCHAR(255)` OR `like_counter INT` (ignoring the backticks!)");
+            }
+            // Insert data type or error out if it is not valid
+            if (isset($matches[3])) {
+                if (!isset($mysqlDataTypes[$matches[3]])) {
+                    cli_err_syntax("Data Type \"{$matches[3]}\" not found in \"funkphp/_internals/supported_mysql_data_types.php\" of valid MySQL Data Types.");
+                    cli_info("Please add its key if you believe it should be included, and then retry in FunkCLI!");
                 } else {
-                    $parsedTable[$tableName][$lineParts[0]]["value"] = null;
+                    $parsedTable[$tableName][$matches[1]]["type"] = $matches[3];
                 }
             }
-        } else {
-            cli_err_syntax("Line: \"{$lineParts[1]}\" is not defined in \"funkphp/_internals/supported_mysql_data_types.php\" of valid MySQL Data Types. Please add its key if you believe it should be included, and then retry in FunkCLI!");
+            // Insert optional value or just null
+            if (isset($matches[5])) {
+                $parsedTable[$tableName][$matches[1]]["value"] = $matches[5];
+            } else {
+                $parsedTable[$tableName][$matches[1]]["value"] = null;
+            }
         }
 
         // FOR REMAINING ELEMENTS[2-n] we first concatenate element[0-1] and remove them from the $line string
         // so we don't accidentally parse them again. Then we will start to check for things like "NOT NULL", "UNIQUE"
         // and so on! We begin now with removing the first two elements from the $line string.
-        $line = trim(str_replace($lineParts[0] . " " . $lineParts[1], "", $line));
+        $line = trim(preg_replace("/^([a-zA-Z_][a-zA-Z0-9_]+)\s*(([a-zA-Z0-9_]+)(\((.+)\))*)*/", "", $line));
+        var_dump($line);
+
+        // If there are no more elements in the $line string we just continue to the next line
+        // This also means that the column is nullable and not unique
+        if (empty($line)) {
+            $parsedTable[$tableName][$lineParts[0]]["nullable"] = true;
+            $parsedTable[$tableName][$lineParts[0]]["unique"] = false;
+            continue;
+        }
+
 
         if (substr_count($line, '"') % 2 !== 0 || substr_count($line, "'") % 2 !== 0) {
             cli_warning_without_exit("Uneven numbers of quotes in `$line`. Values might get clipped!");
@@ -288,9 +296,10 @@ function cli_parse_a_sql_table_file()
         // Check for "DEFAULT " and if we find it, then we will regex match
         // "DEFAULT and the $defaultPattern" and then we will parse it out
         // and add it to the parsed table array.
-        $defaultPattern = "/\bDEFAULT\s+('(?:[^']|'')*?'|\"(?:[^\"]|\"\")*?\"|\bNULL\b|\bCURRENT_TIMESTAMP\b|\bNOW\(\)\b|[+-]?[0-9]+(?:\.[0-9]+)?|[a-zA-Z_][a-zA-Z0-9_]*)/i";
+        $defaultPattern = "/DEFAULT\s*(NOW\(\)|(NULL)|(\d+\.*\d+)|(\d+)|(CURRENT_TIMESTAMP)|(\"{1}(.*)\"{1})|(\'{1}(.*)\'{1})|\(.+\))/i";
         if (preg_match($defaultPattern, $line, $matches)) {
             $defaultValue = $matches[1] ?? null;
+            var_dump($matches);
             if (isset($defaultValue)) {
                 // Convert $defaultValue to a number if it is parsed as a number
                 if (is_numeric($defaultValue)) {
@@ -308,28 +317,25 @@ function cli_parse_a_sql_table_file()
                     } else {
                         $defaultValue = (int)$defaultValue;
                     }
-                } else {
-                    $defaultValue = trim(str_replace("'", "", $defaultValue));
-                    $defaultValue = trim(str_replace('"', "", $defaultValue));
+                }
+                // Else means it is a string, we remove the quotes at the beginning and end
+                else {
+                    if (str_starts_with($defaultValue, '"') && str_ends_with($defaultValue, '"')) {
+                        $defaultValue = substr($defaultValue, 1, -1);
+                    } elseif (str_starts_with($defaultValue, "'") && str_ends_with($defaultValue, "'")) {
+                        $defaultValue = substr($defaultValue, 1, -1);
+                    }
                 }
                 $parsedTable[$tableName][$lineParts[0]]["default"] = $defaultValue;
-                if (str_contains($line, "DEFAULT UNIQUE") || str_contains($line, "DEFAULT NOT") || str_contains($line, "DEFAULT NOT NULL")) {
-                    cli_warning_without_exit("Default: \"$defaultValue\" might be unintentional? Please review in \"funkphp/config/tables.php\" => \"tables\" =>  \"{$tableName}\" => \"{$lineParts[0]}\" => \"default\"!");
-                }
-
-                // Special edge-case: if the data type is a date/time type and the default value is "NOW" we add "()"
-                if (
-                    in_array($parsedTable[$tableName][$lineParts[0]]["type"], $mysqlDataTypes["DATETIMES"])
-                    && $parsedTable[$tableName][$lineParts[0]]["default"] === "NOW"
-                ) {
-                    $parsedTable[$tableName][$lineParts[0]]["default"] .= "()";
-                }
-            } else {
+            }
+            // No default value found so we set it to null
+            else {
                 $parsedTable[$tableName][$lineParts[0]]["default"] = null;
             }
+            // We now remove the "DEFAULT $defaultValue" part from the $line
             $line = str_replace("DEFAULT " . $defaultValue, "", $line);
         }
-        // No match after "DEFAULT " so we set it to null
+        // No match after "DEFAULT " (or no DEFALT key at all) so we set it to null
         else {
             $parsedTable[$tableName][$lineParts[0]]["default"] = null;
         }

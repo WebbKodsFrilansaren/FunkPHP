@@ -1,11 +1,11 @@
 <?php
 return  [
-  'tables' =>
-  [
-    'authors' =>
-    [
-      'id' =>
-      [
+  'tables' => 
+   [
+    'authors' => 
+     [
+      'id' => 
+       [
         'joined_name' => 'authors_id',
         'auto_increment' => true,
         'type' => 'BIGINT',
@@ -14,8 +14,8 @@ return  [
         'nullable' => false,
         'default' => NULL,
       ],
-      'name' =>
-      [
+      'name' => 
+       [
         'joined_name' => 'authors_name',
         'type' => 'NVARCHAR',
         'value' => '255',
@@ -23,8 +23,8 @@ return  [
         'unique' => false,
         'default' => NULL,
       ],
-      'email' =>
-      [
+      'email' => 
+       [
         'joined_name' => 'authors_email',
         'type' => 'NVARCHAR',
         'value' => '255',
@@ -32,8 +32,8 @@ return  [
         'unique' => true,
         'default' => NULL,
       ],
-      'age' =>
-      [
+      'age' => 
+       [
         'joined_name' => 'authors_age',
         'type' => 'INT',
         'value' => NULL,
@@ -41,8 +41,8 @@ return  [
         'unique' => false,
         'default' => 18,
       ],
-      'nickname' =>
-      [
+      'nickname' => 
+       [
         'joined_name' => 'authors_nickname',
         'type' => 'NVARCHAR',
         'value' => '255',
@@ -50,8 +50,8 @@ return  [
         'unique' => false,
         'default' => 'Anonymous',
       ],
-      'updated_at' =>
-      [
+      'updated_at' => 
+       [
         'joined_name' => 'authors_updated_at',
         'type' => 'TIME',
         'value' => NULL,
@@ -60,10 +60,10 @@ return  [
         'default' => 'NOW()',
       ],
     ],
-    'articles' =>
-    [
-      'id' =>
-      [
+    'articles' => 
+     [
+      'id' => 
+       [
         'joined_name' => 'articles_id',
         'auto_increment' => true,
         'type' => 'BIGINT',
@@ -72,8 +72,8 @@ return  [
         'nullable' => false,
         'default' => NULL,
       ],
-      'title' =>
-      [
+      'title' => 
+       [
         'joined_name' => 'articles_title',
         'type' => 'VARCHAR',
         'value' => '255',
@@ -81,8 +81,8 @@ return  [
         'unique' => true,
         'default' => 'test',
       ],
-      'price' =>
-      [
+      'price' => 
+       [
         'joined_name' => 'articles_price',
         'type' => 'DECIMAL',
         'value' => '10,2',
@@ -90,8 +90,8 @@ return  [
         'unique' => false,
         'default' => '0.00',
       ],
-      'content' =>
-      [
+      'content' => 
+       [
         'joined_name' => 'articles_content',
         'type' => 'TEXT',
         'value' => NULL,
@@ -99,16 +99,16 @@ return  [
         'unique' => false,
         'default' => NULL,
       ],
-      'author_id' =>
-      [
+      'author_id' => 
+       [
         'joined_name' => 'articles_author_id',
         'foreign_key' => true,
         'references' => 'authors',
         'references_column' => 'id',
         'referenced_joined' => 'authors_id',
       ],
-      'published' =>
-      [
+      'published' => 
+       [
         'joined_name' => 'articles_published',
         'type' => 'BOOLEAN',
         'value' => NULL,
@@ -116,8 +116,8 @@ return  [
         'unique' => false,
         'default' => 'FALSE',
       ],
-      'created_at' =>
-      [
+      'created_at' => 
+       [
         'joined_name' => 'articles_created_at',
         'type' => 'TIMESTAMP',
         'value' => NULL,
@@ -125,8 +125,8 @@ return  [
         'unique' => false,
         'default' => 'CURRENT_TIMESTAMP',
       ],
-      'updated_at' =>
-      [
+      'updated_at' => 
+       [
         'joined_name' => 'articles_updated_at',
         'type' => 'TIMESTAMP',
         'value' => NULL,
@@ -135,10 +135,10 @@ return  [
         'default' => 'CURRENT_TIMESTAMP',
       ],
     ],
-    'comments' =>
-    [
-      'id' =>
-      [
+    'comments' => 
+     [
+      'id' => 
+       [
         'joined_name' => 'comments_id',
         'auto_increment' => true,
         'type' => 'BIGINT',
@@ -147,42 +147,52 @@ return  [
         'nullable' => false,
         'default' => NULL,
       ],
-      'article_id' =>
-      [
+      'article_id' => 
+       [
         'joined_name' => 'comments_article_id',
+        'type' => 'INT',
+        'value' => NULL,
+        'nullable' => true,
+        'unique' => false,
         'foreign_key' => true,
         'references' => 'articles',
         'references_column' => 'id',
         'referenced_joined' => 'articles_id',
       ],
-      'content' =>
-      [
+      'content' => 
+       [
         'joined_name' => 'comments_content',
         'type' => 'TEXT',
         'value' => NULL,
         'nullable' => false,
         'unique' => false,
-        'default' => NULL,
+        'default' => '(RAND() * RAND())',
       ],
-      'author_id' =>
-      [
+      'author_id' => 
+       [
         'joined_name' => 'comments_author_id',
+        'type' => 'INT',
+        'value' => NULL,
+        'nullable' => false,
+        'unique' => false,
+        'default' => NULL,
         'foreign_key' => true,
         'references' => 'authors',
         'references_column' => 'id',
         'referenced_joined' => 'authors_id',
       ],
-      'created_at' =>
-      [
+      'created_at' => 
+       [
         'joined_name' => 'comments_created_at',
         'type' => 'TIMESTAMP',
         'value' => NULL,
         'nullable' => true,
         'unique' => false,
-        'default' => 'CURRENT_TIMESTAMP',
+        'default' => 'NOW()',
       ],
     ],
   ],
-  'relationships' =>
-  [],
+  'relationships' => 
+   [
+  ],
 ];
