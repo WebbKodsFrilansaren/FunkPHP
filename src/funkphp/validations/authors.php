@@ -29,23 +29,27 @@ return  [
       [
         'err' => NULL,
       ],
-      'required' =>
-      [
-        'err' => NULL,
-      ],
       'unique' =>
       [
-        'authors' => 'email',
+        'val' =>
+        [
+          'authors' => 'email',
+        ],
         'err' => NULL,
       ],
       'max' =>
       [
-        'val' => 128,
+        'val' => 21845,
         'err' => NULL,
       ],
       'min' =>
       [
-        'val' => 1,
+        'val' => 0,
+        'err' => NULL,
+      ],
+      'email' =>
+      [
+        'val' => NULL,
         'err' => NULL,
       ],
     ],
@@ -67,7 +71,7 @@ return  [
       ],
       'min' =>
       [
-        'val' => 0,
+        'val' => 1,
         'err' => NULL,
       ],
     ],
@@ -89,7 +93,7 @@ return  [
       ],
       'min' =>
       [
-        'val' => 0,
+        'val' => 1,
         'err' => NULL,
       ],
     ],
@@ -102,12 +106,22 @@ return  [
       'default' => 18,
       'max' =>
       [
-        'val' => 3,
+        'val' => 2147483647,
         'err' => NULL,
       ],
       'min' =>
       [
-        'val' => 0,
+        'val' => -2147483648,
+        'err' => NULL,
+      ],
+      'min_digits' =>
+      [
+        'val' => 1,
+        'err' => NULL,
+      ],
+      'max_digits' =>
+      [
+        'val' => 11,
         'err' => NULL,
       ],
     ],
@@ -118,7 +132,7 @@ return  [
         'err' => NULL,
       ],
       'default' => 'c',
-      'max' =>
+      'in_array' =>
       [
         'val' =>
         [
@@ -126,11 +140,6 @@ return  [
           1 => 'b or more',
           2 => 'c what i did',
         ],
-        'err' => NULL,
-      ],
-      'min' =>
-      [
-        'val' => 0,
         'err' => NULL,
       ],
     ],
@@ -141,7 +150,7 @@ return  [
         'err' => NULL,
       ],
       'default' => 'a,b',
-      'max' =>
+      'in_array' =>
       [
         'val' =>
         [
@@ -149,11 +158,6 @@ return  [
           1 => 'unique',
           2 => 'carrot or morot',
         ],
-        'err' => NULL,
-      ],
-      'min' =>
-      [
-        'val' => 0,
         'err' => NULL,
       ],
     ],
@@ -168,6 +172,26 @@ return  [
         'err' => NULL,
       ],
       'default' => 70,
+      'max' =>
+      [
+        'val' => -1.175494351E-38,
+        'err' => NULL,
+      ],
+      'min' =>
+      [
+        'val' => -3.402823466E+38,
+        'err' => NULL,
+      ],
+      'min_digits' =>
+      [
+        'val' => 1,
+        'err' => NULL,
+      ],
+      'max_digits' =>
+      [
+        'val' => 7,
+        'err' => NULL,
+      ],
     ],
     'nickname' =>
     [
@@ -196,4 +220,4 @@ return  [
       'default' => 'NOW()',
     ],
   ],
-];;
+];

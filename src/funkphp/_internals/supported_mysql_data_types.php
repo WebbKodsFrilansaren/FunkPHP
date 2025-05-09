@@ -237,7 +237,8 @@
     "ENUM" => [
         "MIN" => null,
         "MAX" => null,
-        "DIGITS" => null,
+        "MIN_DIGITS" => null,
+        "MAX_DIGITS" => null,
         "TYPE" => "string"
     ],
     "FLOAT" => [
@@ -247,7 +248,8 @@
         "MAX_DIGITS" => 7,
         "MIN_UNSIGNED" =>  1.175494351E-38,
         "MAX_UNSIGNED" => 3.402823466E+38,
-        "TYPE" => "float"
+        "TYPE" => "float",
+        "CAN_BE_(UN)SIGNED" => true
     ],
     "INT" => [
         "MIN_SIGNED" => -2147483648,
@@ -286,7 +288,7 @@
         "TYPE" => "blob"
     ],
     "LONGTEXT" => [
-        "MIN" => 0,
+        "MIN" => 1,
         "MAX" => 4294967295,
         "MIN_DIGITS" => null,
         "MAX_DIGITS" => null,
@@ -310,14 +312,14 @@
         "CAN_BE_(UN)SIGNED" => true
     ],
     "MEDIUMTEXT" => [
-        "MIN" => 0,
+        "MIN" => 1,
         "MAX" => 16777215,
         "MIN_DIGITS" => 1,
         "MAX_DIGITS" => 8,
         "TYPE" => "string"
     ],
     "NVARCHAR" => [
-        "MIN" => 0,
+        "MIN" => 1,
         "MAX" => 21845,
         "MIN_DIGITS" => 1,
         "MAX_DIGITS" => 5,
@@ -359,7 +361,8 @@
     "SMALLINT" => [
         "MIN_SIGNED" => -32768,
         "MAX_SIGNED" => 32767,
-        "DIGITS" => 5,
+        "MIN_DIGITS" => 1,
+        "MAX_DIGITS" => 5,
         "MIN_UNSIGNED" => 0,
         "MAX_UNSIGNED" => 65535,
         "TYPE" => "integer",
@@ -373,7 +376,7 @@
         "TYPE" => "integer",
     ],
     "TEXT" => [
-        "MIN" => 0,
+        "MIN" => 1,
         "MAX" => 65535,
         "MIN_DIGITS" => 1,
         "MAX_DIGITS" => 5,
@@ -389,7 +392,8 @@
     "TIMESTAMP" => [
         "MIN_SIGNED" => 0,
         "MAX_SIGNED" => 2147483647,
-        "DIGITS" => 10,
+        "MIN_DIGITS" => 1,
+        "MAX_DIGITS" => 10,
         "MIN_UNSIGNED" => 0,
         "MAX_UNSIGNED" => 4294967295,
         "TYPE" => "timestamp",
@@ -413,7 +417,7 @@
         "CAN_BE_(UN)SIGNED" => true
     ],
     "TINYTEXT" => [
-        "MIN" => 0,
+        "MIN" => 1,
         "MAX" => 255,
         "MIN_DIGITS" => 1,
         "MAX_DIGITS" => 3,

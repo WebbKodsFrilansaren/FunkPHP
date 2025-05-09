@@ -113,7 +113,7 @@ function cli_generate_a_validation_from_a_table($table = null)
 
         // We now create a "unique" based on whether "unique" is set to true or false for the given column
         if (isset($colKeys['unique']) && $colKeys['unique'] === true) {
-            $validatedTable[$tableName][$colName]['unique'] = [$tableName => $colName, 'err' => null];
+            $validatedTable[$tableName][$colName]['unique'] = ['val' => [$tableName => $colName], 'err' => null];
             cli_warning_without_exit("Unique Rule applied for \"Table:$tableName => Column:$colName\", meaning it will validate against unique value");
             cli_warning_without_exit("in Column \"$colName\" in Table \"$tableName\". Verify this is correct or change it in \"validatons/{$tableName}.php\"!");
         }
@@ -141,21 +141,8 @@ function cli_generate_a_validation_from_a_table($table = null)
         // numbers and so on. We set max and min values for strings based on if it is "required" or not based on whether
         // the column is NOT NULL (nullable === false) or not.
         if (isset($colKeys['value'])) {
-            if ($validationType === 'string') {
-                $validatedTable[$tableName][$colName]['max'] = ["val" => $colKeys['value'], "err" => null];
-                if (isset($validatedTable[$tableName][$colName]['required'])) {
-                    $validatedTable[$tableName][$colName]['min'] = ["val" => 1, "err" => null];
-                } else {
-                    $validatedTable[$tableName][$colName]['min'] = ["val" => 0, "err" => null];
-                }
-            } elseif ($validationType === 'integer') {
-                $validatedTable[$tableName][$colName]['max'] = ["val" => $colKeys['value'], "err" => null];
-                if (isset($validatedTable[$tableName][$colName]['required'])) {
-                    $validatedTable[$tableName][$colName]['min'] = ["val" => 1, "err" => null];
-                } else {
-                    $validatedTable[$tableName][$colName]['min'] = ["val" => 0, "err" => null];
-                }
-            } elseif ($validationType === 'float') {
+            // For "string" types, the max and min will represent the mb(strlen()) of the string
+            if ($validationType === 'string' && $colType !== 'ENUM' && $colType !== 'SET') {
                 $validatedTable[$tableName][$colName]['max'] = ["val" => $colKeys['value'], "err" => null];
                 if (isset($validatedTable[$tableName][$colName]['required'])) {
                     $validatedTable[$tableName][$colName]['min'] = ["val" => 1, "err" => null];
@@ -163,11 +150,16 @@ function cli_generate_a_validation_from_a_table($table = null)
                     $validatedTable[$tableName][$colName]['min'] = ["val" => 0, "err" => null];
                 }
             }
+            // For ENUM or SET types, we set the in_array rule with the values value key
+            elseif ($colType === 'ENUM' || $colType === 'SET') {
+                $validatedTable[$tableName][$colName]['in_array'] = ["val" => $colKeys['value'], "err" => null];
+            }
         }
         // There exists no value for the column so we set the max and min values based on the exact data type
         // based on whether it is a number or not. We also set the "digits" value for that column data type
         // where it is applicable.
         else {
+            // MAX & MIN values for strings when value = null in the column
             if ($validationType === 'string') {
                 if (isset($matchedSQLType['MAX'])) {
                     $validatedTable[$tableName][$colName]['max'] = ["val" => $matchedSQLType['MAX'], "err" => null];
@@ -180,21 +172,79 @@ function cli_generate_a_validation_from_a_table($table = null)
                 } else {
                     $validatedTable[$tableName][$colName]['min'] = ["val" => 0, "err" => null];
                 }
-            } elseif ($validationType === 'integer') {
-                if (isset($matchedSQLType['MAX'])) {
-                    $validatedTable[$tableName][$colName]['max'] = ["val" => $matchedSQLType['MAX'], "err" => null];
-                } else {
-                    $validatedTable[$tableName][$colName]['max'] = ["val" => null, "err" => null];
-                    cli_warning_without_exit("No max value found for Column \"$colName\" in Table \"$tableName\". Please check Data Type or fix after in \"validations/{$tableName}.php\"!");
-                }
             }
+            // MAX & MIN values for integers & floats when value = null in the column
+            // It also checks for signed and unsigned values for the column by checking
+            // "CAN_BE_(UN)SIGNED" isset and then if "$colSigned" or " $colUnsigned" is set.
+            // If both "$colSigned" and " $colUnsigned" are unset then we set the default
+            // value using the "MIN_SIGNED".
+            elseif ($validationType === 'integer' || $validationType === 'float') {
+                // When CAN_BE_(UN)SIGNED isset, the keys "MIN" AND "MAX" are replaced with
+                // "MIN_SIGNED" and "MAX_SIGNED" for signed values and "MIN_UNSIGNED" and
+                // "MAX_UNSIGNED" for unsigned values inside of the current "$matchedSQLType"!
+                if (isset($matchedSQLType['CAN_BE_(UN)SIGNED'])) {
+                    if ($colSigned === true && $colUnsigned === false) {
+                        $validatedTable[$tableName][$colName]['max'] = ["val" => ($matchedSQLType['MAX_SIGNED'] ?? null), "err" => null];
+                        $validatedTable[$tableName][$colName]['min'] = ["val" => ($matchedSQLType['MIN_SIGNED']  ?? null), "err" => null];
+                    } elseif ($colSigned === false && $colUnsigned === true) {
+                        $validatedTable[$tableName][$colName]['max'] = ["val" => ($matchedSQLType['MAX_UNSIGNED'] ?? null), "err" => null];
+                        $validatedTable[$tableName][$colName]['min'] = ["val" => ($matchedSQLType['MIN_UNSIGNED'] ?? null), "err" => null];
+                    } else {
+                        $validatedTable[$tableName][$colName]['max'] = ["val" => ($matchedSQLType['MAX_SIGNED'] ?? null), "err" => null];
+                        $validatedTable[$tableName][$colName]['min'] = ["val" => ($matchedSQLType['MIN_SIGNED'] ?? null), "err" => null];
+                    }
+                } else {
+                    // If both "$colSigned" and " $colUnsigned" are unset then we set the default
+                    // value using the "MIN_SIGNED".
+                    if (isset($matchedSQLType['MIN'])) {
+                        $validatedTable[$tableName][$colName]['max'] = ["val" => ($matchedSQLType['MAX'] ?? null), "err" => null];
+                        $validatedTable[$tableName][$colName]['min'] = ["val" => ($matchedSQLType['MIN'] ?? null), "err" => null];
+                    } else {
+                        cli_warning_without_exit("No min value found for Column \"$colName\" in Table \"$tableName\". Please check Data Type or fix after in \"validations/{$tableName}.php\"!");
+                    }
+                }
+                // We also set the "digits" value for that column data type where it is applicable.
+                $validatedTable[$tableName][$colName]['min_digits'] = ["val" => ($matchedSQLType['MIN_DIGITS'] ?? null), "err" => null];
+                $validatedTable[$tableName][$colName]['max_digits'] = ["val" => ($matchedSQLType['MAX_DIGITS'] ?? null), "err" => null];
+            }
+            // TODO: Add elseifs for "blob" and "datetime","timestamp", "date", "time" and "year" types
+        }
+
+        // We now do some qualitative guesses based on $colName: for example, if it contains "email" or "mail" we will
+        // add the rule "email" which can be configured to validate against a specific email regex syntax.
+        // If it contains "url" we will add the rule "url" which can be configured to validate against a specific URL regex syntax.
+        // If it contains "password" we will add the rule "password" which can be configured to validate against a specific password regex syntax.
+        // If it contains "phone" we will add the rule "phone" which can be configured to validate against a specific phone regex syntax.
+        if (str_contains(strtolower($colName), "email")) {
+            $validatedTable[$tableName][$colName]['email'] = ['val' => null, 'err' => null];
+            cli_info_without_exit("Email Rule added based on guessing \"Table:$tableName => Column:$colName\". Tweak it further in \"validations/{$tableName}.php\"!");
+        } elseif (str_contains(strtolower($colName), "url")) {
+            $validatedTable[$tableName][$colName]['url'] = ['val' => null, 'err' => null];
+            cli_info_without_exit("URL Rule added based on guessing \"Table:$tableName => Column:$colName\". Tweak it further in \"validations/{$tableName}.php\"!");
+        } elseif (str_contains(strtolower($colName), "password")) {
+            $validatedTable[$tableName][$colName]['password'] = [
+                'val' => [
+                    "min_length" => 12,
+                    "min_lowercases" => 2,
+                    "min_uppercases" => 2,
+                    "min_numbers" => 2,
+                    "min_specials" => 2,
+                ],
+                'err' => null
+            ];
+            $validatedTable[$tableName][$colName]['max'] = ['val' => 50, 'err' => null];
+            cli_info_without_exit("Password Rule added based on guessing \"Table:$tableName => Column:$colName\". Tweak it further in \"validations/{$tableName}.php\"!");
+        } elseif (str_contains(strtolower($colName), "phone")) {
+            $validatedTable[$tableName][$colName]['phone'] = ['val' => null, 'err' => null];
+            $validatedTable[$tableName][$colName]['max'] = ['val' => 24, 'err' => null];
+            cli_info_without_exit("Phone Rule added based on guessing \"Table:$tableName => Column:$colName\". Tweak it further in \"validations/{$tableName}.php\"!");
         }
     }
 
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Finally attempt to output the created Validation file
-    $outputValidationFile = file_put_contents($validationFile, "<?php\nreturn " . cli_convert_array_to_simple_syntax($validatedTable) . ";\n");
+    $outputValidationFile = file_put_contents($validationFile, "<?php\nreturn " . cli_convert_array_to_simple_syntax($validatedTable));
     if ($outputValidationFile === false) {
         cli_err_syntax("FAILED creating Validation \"validations/$tableName.php\" for Table \"$tableName\"!");
     } else {
