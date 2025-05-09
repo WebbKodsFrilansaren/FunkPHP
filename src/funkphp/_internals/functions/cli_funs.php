@@ -207,14 +207,27 @@ function cli_generate_a_validation_from_a_table($table = null)
                 $validatedTable[$tableName][$colName]['min_digits'] = ["val" => ($matchedSQLType['MIN_DIGITS'] ?? null), "err" => null];
                 $validatedTable[$tableName][$colName]['max_digits'] = ["val" => ($matchedSQLType['MAX_DIGITS'] ?? null), "err" => null];
             }
-            // TODO: Add elseifs for "blob" and "datetime","timestamp", "date", "time" and "year" types
+            // Setting default rules for "timestamp", "time", "year", "date" and "datetime" types
+            elseif (
+                $validationType === 'timestamp' || $validationType === 'time'
+                || $validationType === 'year' || $validationType === 'date' || $validationType === 'datetime'
+            ) {
+                $validatedTable[$tableName][$colName]['min'] = ["val" => ($matchedSQLType['MIN']  ?? null), "err" => null];
+                $validatedTable[$tableName][$colName]['min_digits'] = ["val" => ($matchedSQLType['MIN_DIGITS'] ?? null), "err" => null];
+                $validatedTable[$tableName][$colName]['max'] = ["val" => ($matchedSQLType['MAX'] ?? null), "err" => null];
+                $validatedTable[$tableName][$colName]['max_digits'] = ["val" => ($matchedSQLType['MAX_DIGITS'] ?? null), "err" => null];
+            }
+            // And finally the "blob" types which are usually used for binary data such as images, files, etc.
+            elseif (
+                $validationType === 'blob'
+            ) {
+                $validatedTable[$tableName][$colName]['min'] = ["val" => ($matchedSQLType['MIN']  ?? null), "err" => null];
+                $validatedTable[$tableName][$colName]['max'] = ["val" => ($matchedSQLType['MAX'] ?? null), "err" => null];
+            }
         }
 
-        // We now do some qualitative guesses based on $colName: for example, if it contains "email" or "mail" we will
-        // add the rule "email" which can be configured to validate against a specific email regex syntax.
-        // If it contains "url" we will add the rule "url" which can be configured to validate against a specific URL regex syntax.
-        // If it contains "password" we will add the rule "password" which can be configured to validate against a specific password regex syntax.
-        // If it contains "phone" we will add the rule "phone" which can be configured to validate against a specific phone regex syntax.
+        // We now do some qualitative guesses based on $colName: for example, if it contains "email" or "mail" we
+        // will add the rule "email" which can be configured to validate against a specific email regex syntax.
         if (str_contains(strtolower($colName), "email")) {
             $validatedTable[$tableName][$colName]['email'] = ['val' => null, 'err' => null];
             cli_info_without_exit("Email Rule added based on guessing \"Table:$tableName => Column:$colName\". Tweak it further in \"validations/{$tableName}.php\"!");
@@ -241,8 +254,6 @@ function cli_generate_a_validation_from_a_table($table = null)
         }
     }
 
-
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Finally attempt to output the created Validation file
     $outputValidationFile = file_put_contents($validationFile, "<?php\nreturn " . cli_convert_array_to_simple_syntax($validatedTable));
     if ($outputValidationFile === false) {
@@ -502,9 +513,20 @@ function cli_parse_a_sql_table_file()
             if (isset($matches[5])) {
                 // Special case when data type is ENUM or SET, we store it as string converted to array
                 if ($matches[3] === "ENUM" || $matches[3] === "SET") {
-                    $parsedTable[$tableName][$matches[1]]["value"] = cli_try_parse_listed_string_as_array($matches[5]);
+                    $parsedArray = cli_try_parse_listed_string_as_array($matches[5]);
+                    // Error out if the array is empty or not valid (too long)
+                    if (is_array($parsedArray) && count($parsedArray) > 0) {
+                        if ($matches[3] === "ENUM" && count($parsedArray) > 65535) {
+                            cli_err_syntax("ENUM value \"{$matches[5]}\" is too long. Please fix \"sql/{$argv[3]}\" and try again!");
+                        } elseif ($matches[3] === "SET" && count($parsedArray) > 64) {
+                            cli_err_syntax("SET value \"{$matches[5]}\" is too long. Please fix \"sql/{$argv[3]}\" and try again!");
+                        }
+                    } else {
+                        cli_warning_without_exit("ENUM/SET value \"{$matches[5]}\" is not valid. Please fix \"sql/{$argv[3]}\" after this!");
+                    }
+                    $parsedTable[$tableName][$matches[1]]["value"] = $parsedArray;
                 }
-                // Certain types will NOT get a value assigned to them.
+                // Certain types will NOT get a value assigned to them!
                 elseif (in_array($matches[3], $mysqlDataTypes["INVALID_VALUES_FOR_NUMBER_TYPES"])) {
                     $parsedTable[$tableName][$matches[1]]["value"] = null;
                 }

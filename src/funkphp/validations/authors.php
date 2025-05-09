@@ -53,6 +53,24 @@ return  [
         'err' => NULL,
       ],
     ],
+    'blob_test' =>
+    [
+      'blob' =>
+      [
+        'err' => NULL,
+      ],
+      'default' => 'No blob',
+      'min' =>
+      [
+        'val' => 0,
+        'err' => NULL,
+      ],
+      'max' =>
+      [
+        'val' => 65535,
+        'err' => NULL,
+      ],
+    ],
     'description' =>
     [
       'string' =>
@@ -131,7 +149,7 @@ return  [
       [
         'err' => NULL,
       ],
-      'default' => 'c',
+      'default' => 'c what i did',
       'in_array' =>
       [
         'val' =>
@@ -139,24 +157,6 @@ return  [
           0 => 'a test',
           1 => 'b or more',
           2 => 'c what i did',
-        ],
-        'err' => NULL,
-      ],
-    ],
-    'set_test' =>
-    [
-      'string' =>
-      [
-        'err' => NULL,
-      ],
-      'default' => 'a,b',
-      'in_array' =>
-      [
-        'val' =>
-        [
-          0 => 'every',
-          1 => 'unique',
-          2 => 'carrot or morot',
         ],
         'err' => NULL,
       ],
@@ -218,6 +218,26 @@ return  [
         'err' => NULL,
       ],
       'default' => 'NOW()',
+      'min' =>
+      [
+        'val' => 8,
+        'err' => NULL,
+      ],
+      'min_digits' =>
+      [
+        'val' => 6,
+        'err' => NULL,
+      ],
+      'max' =>
+      [
+        'val' => 8,
+        'err' => NULL,
+      ],
+      'max_digits' =>
+      [
+        'val' => 6,
+        'err' => NULL,
+      ],
     ],
   ],
 ];

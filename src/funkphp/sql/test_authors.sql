@@ -2,6 +2,7 @@ CREATE TABLE authors(
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     name NVARCHAR(255) NOT NULL,
     email NVARCHAR UNIQUE,
+    blob_test BLOB DEFAULT "No blob",
     description tinytext NOT NULL DEFAULT "No description",
     longer_description text NOT NULL DEFAULT "No longer description",
     age INT(3) DEFAULT 18 SIGNED,

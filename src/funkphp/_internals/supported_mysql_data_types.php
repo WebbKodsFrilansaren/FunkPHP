@@ -139,22 +139,18 @@
     "BINARY" => [
         "MIN" => null,
         "MAX" => null,
-        "MIN_DIGITS" => null,
-        "MAX_DIGITS" => null,
         "TYPE" => "blob"
     ],
     "BIT" => [
         "MIN" => 1,
         "MAX" => 64,
         "MIN_DIGITS" => 1,
-        "MAX_DIGITS" => 64,
+        "MAX_DIGITS" => 1,
         "TYPE" => "integer"
     ],
     "BLOB" => [
         "MIN" => 0,
         "MAX" => 65535,
-        "MIN_DIGITS" => 1,
-        "MAX_DIGITS" => 5,
         "TYPE" => "blob"
     ],
     "BOOL" => [
@@ -174,26 +170,20 @@
     "CHAR" => [
         "MIN" => 1,
         "MAX" => 255,
-        "MIN_DIGITS" => 1,
-        "MAX_DIGITS" => 3,
         "TYPE" => "string"
     ],
     "DATE" => [
         "MIN" => 10,
         "MAX" => 10,
-        "MIN_DIGITS" => null,
-        "MAX_DIGITS" => null,
-        "MIN_SIZE" => 0,
-        "MAX_SIZE" => 0,
+        "MIN_DIGITS" => 8,
+        "MAX_DIGITS" => 8,
         "TYPE" => "date"
     ],
     "DATETIME" => [
         "MIN" => 19,
         "MAX" => 19,
-        "MIN_DIGITS" => null,
-        "MAX_DIGITS" => null,
-        "MIN_SIZE" => 0,
-        "MAX_SIZE" => 0,
+        "MIN_DIGITS" => 16,
+        "MAX_DIGITS" => 16,
         "TYPE" => "datetime"
     ],
     "DEC" => [
@@ -237,9 +227,9 @@
     "ENUM" => [
         "MIN" => null,
         "MAX" => null,
-        "MIN_DIGITS" => null,
-        "MAX_DIGITS" => null,
-        "TYPE" => "string"
+        "TYPE" => "string",
+        "MIN_SIZE" => 0,
+        "MAX_SIZE" => 65535,
     ],
     "FLOAT" => [
         "MIN_SIGNED" => -3.402823466E+38,
@@ -274,8 +264,6 @@
     "JSON" => [
         "MIN" => null,
         "MAX" => null,
-        "MIN_DIGITS" => null,
-        "MAX_DIGITS" => null,
         "MIN_SIZE" => 0,
         "MAX_SIZE" => 18446744073709551616,
         "TYPE" => "json"
@@ -283,22 +271,16 @@
     "LONGBLOB" => [
         "MIN" => 0,
         "MAX" => 4294967295,
-        "MIN_DIGITS" => null,
-        "MAX_DIGITS" => null,
         "TYPE" => "blob"
     ],
     "LONGTEXT" => [
         "MIN" => 1,
         "MAX" => 4294967295,
-        "MIN_DIGITS" => null,
-        "MAX_DIGITS" => null,
         "TYPE" => "string"
     ],
     "MEDIUMBLOB" => [
         "MIN" => 0,
         "MAX" => 16777215,
-        "MIN_DIGITS" => null,
-        "MAX_DIGITS" => null,
         "TYPE" => "blob"
     ],
     "MEDIUMINT" => [
@@ -314,15 +296,11 @@
     "MEDIUMTEXT" => [
         "MIN" => 1,
         "MAX" => 16777215,
-        "MIN_DIGITS" => 1,
-        "MAX_DIGITS" => 8,
         "TYPE" => "string"
     ],
     "NVARCHAR" => [
         "MIN" => 1,
         "MAX" => 21845,
-        "MIN_DIGITS" => 1,
-        "MAX_DIGITS" => 5,
         "TYPE" => "string"
     ],
     "NUMERIC" => [
@@ -354,8 +332,8 @@
     "SET" => [
         "MIN" => null,
         "MAX" => null,
-        "MIN_DIGITS" => null,
-        "MAX_DIGITS" => null,
+        "MIN_SIZE" => 0,
+        "MAX_SIZE" => 64,
         "TYPE" => "string"
     ],
     "SMALLINT" => [
@@ -378,8 +356,6 @@
     "TEXT" => [
         "MIN" => 1,
         "MAX" => 65535,
-        "MIN_DIGITS" => 1,
-        "MAX_DIGITS" => 5,
         "TYPE" => "string"
     ],
     "TIME" => [
@@ -390,20 +366,15 @@
         "TYPE" => "time"
     ],
     "TIMESTAMP" => [
-        "MIN_SIGNED" => 0,
-        "MAX_SIGNED" => 2147483647,
+        "MIN" => 0,
+        "MAX" => 2147483647,
         "MIN_DIGITS" => 1,
         "MAX_DIGITS" => 10,
-        "MIN_UNSIGNED" => 0,
-        "MAX_UNSIGNED" => 4294967295,
         "TYPE" => "timestamp",
-        "CAN_BE_(UN)SIGNED" => true
     ],
     "TINYBLOB" => [
         "MIN" => 0,
         "MAX" => 255,
-        "MIN_DIGITS" => 1,
-        "MAX_DIGITS" => 3,
         "TYPE" => "blob"
     ],
     "TINYINT" => [
@@ -419,22 +390,16 @@
     "TINYTEXT" => [
         "MIN" => 1,
         "MAX" => 255,
-        "MIN_DIGITS" => 1,
-        "MAX_DIGITS" => 3,
         "TYPE" => "string"
     ],
     "VARBINARY" => [
         "MIN" => 0,
         "MAX" => 255,
-        "MIN_DIGITS" => 1,
-        "MAX_DIGITS" => 3,
         "TYPE" => "blob"
     ],
     "VARCHAR" => [
         "MIN" => 0,
         "MAX" => 65535,
-        "MIN_DIGITS" => 1,
-        "MAX_DIGITS" => 5,
         "TYPE" => "string"
     ],
     "YEAR" => [
