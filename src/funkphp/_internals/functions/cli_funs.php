@@ -96,9 +96,12 @@ function cli_generate_a_validation_from_a_table($table = null)
 function cli_parse_a_sql_table_file()
 {
     // Load globals and verify $argv is not empty string and ends with .sql
-    cli_info_without_exit("IMPORTANT #1: \"php funkcli add table\" command is NOT meant for actual Table Migration. It is ONLY meant for providing structure for more efficient Data Hydration!");
-    cli_info_without_exit("IMPORTANT #2: The function cli_convert_array_to_simple_syntax() in \"funkphp/_internals/functions/cli_funs.php\" which converts array() to array[] ignores quotes inside of other qoutes. For example, \"Yours' truly\" would become \"Yours truly\".");
-    cli_info_without_exit("KEEP THAT IN MIND: If you plan on using quotes inside of DEFAULT \"Value with quotes!\" as you must manually add it inside of your tables.php!");
+    cli_info_without_exit("IMPORTANT #1: \"php funkcli add table\" command is NOT meant for actual Table Migration.");
+    cli_info_without_exit("It is ONLY meant for providing structure for more efficient Data Hydration!");
+    cli_info_without_exit("IMPORTANT #2: The function cli_convert_array_to_simple_syntax() in \"funkphp/_internals/functions/cli_funs.php\" which converts ");
+    cli_info_without_exit("array() to array[] ignores quotes inside of other qoutes. For example, \"Yours' truly\" would become \"Yours truly\".");
+    cli_info_without_exit("KEEP THAT IN MIND: If you wanna use `DEFAULT \"Qouted Value with '\"Quotes\"' Inside\"` as it must be manually added inside \"config/Tables.php\"");
+
     global $argv, $dirs, $exactFiles, $settings, $tablesAndRelationshipsFile;
     $sqlFile = null;
     if (!is_string_and_not_empty(trim($argv[3] ?? null))) {
