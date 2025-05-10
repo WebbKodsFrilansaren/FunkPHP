@@ -7,7 +7,7 @@ return  [
       'MAP_TO' =>
       [
         'post' => '',
-        'get' => 'test',
+        'get' => '',
         'json' => '',
       ],
       'string' =>

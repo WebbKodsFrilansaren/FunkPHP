@@ -6,9 +6,9 @@ return  [
     [
       'MAP_TO' =>
       [
-        'post' => '',
-        'get' => '',
-        'json' => '',
+        'post' => 'authors_name',
+        'get' => 'authors_name',
+        'json' => 'authors_name',
       ],
       'string' =>
       [
@@ -33,9 +33,9 @@ return  [
     [
       'MAP_TO' =>
       [
-        'post' => '',
-        'get' => '',
-        'json' => '',
+        'post' => 'authors_email',
+        'get' => 'authors_email',
+        'json' => 'authors_email',
       ],
       'string' =>
       [
@@ -69,9 +69,9 @@ return  [
     [
       'MAP_TO' =>
       [
-        'post' => '',
-        'get' => '',
-        'json' => '',
+        'post' => 'authors_blob_test',
+        'get' => 'authors_blob_test',
+        'json' => 'authors_blob_test',
       ],
       'blob' =>
       [
@@ -93,9 +93,9 @@ return  [
     [
       'MAP_TO' =>
       [
-        'post' => '',
-        'get' => '',
-        'json' => '',
+        'post' => 'authors_description',
+        'get' => 'authors_description',
+        'json' => 'authors_description',
       ],
       'string' =>
       [
@@ -121,9 +121,9 @@ return  [
     [
       'MAP_TO' =>
       [
-        'post' => '',
-        'get' => '',
-        'json' => '',
+        'post' => 'authors_longer_description',
+        'get' => 'authors_longer_description',
+        'json' => 'authors_longer_description',
       ],
       'string' =>
       [
@@ -149,9 +149,9 @@ return  [
     [
       'MAP_TO' =>
       [
-        'post' => '',
-        'get' => '',
-        'json' => '',
+        'post' => 'authors_age',
+        'get' => 'authors_age',
+        'json' => 'authors_age',
       ],
       'integer' =>
       [
@@ -183,9 +183,9 @@ return  [
     [
       'MAP_TO' =>
       [
-        'post' => '',
-        'get' => '',
-        'json' => '',
+        'post' => 'authors_enum_test',
+        'get' => 'authors_enum_test',
+        'json' => 'authors_enum_test',
       ],
       'string' =>
       [
@@ -207,9 +207,9 @@ return  [
     [
       'MAP_TO' =>
       [
-        'post' => '',
-        'get' => '',
-        'json' => '',
+        'post' => 'authors_weight',
+        'get' => 'authors_weight',
+        'json' => 'authors_weight',
       ],
       'float' =>
       [
@@ -245,9 +245,9 @@ return  [
     [
       'MAP_TO' =>
       [
-        'post' => '',
-        'get' => '',
-        'json' => '',
+        'post' => 'authors_nickname',
+        'get' => 'authors_nickname',
+        'json' => 'authors_nickname',
       ],
       'string' =>
       [
@@ -269,9 +269,9 @@ return  [
     [
       'MAP_TO' =>
       [
-        'post' => '',
-        'get' => '',
-        'json' => '',
+        'post' => 'authors_updated_at',
+        'get' => 'authors_updated_at',
+        'json' => 'authors_updated_at',
       ],
       'time' =>
       [

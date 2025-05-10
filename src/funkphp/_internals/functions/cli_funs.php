@@ -96,7 +96,7 @@ function cli_generate_a_validation_from_a_table($table = null)
 
         // This stores the min, max, digits and other values for the current column data type matched with a SQL type
         $matchedSQLType = $validSQLDataTypes[$colKeys['type']];
-        $validatedTable[$tableName][$colName]['MAP_TO'] = ['post' => "", 'get' => "", 'json' => ""];
+        $validatedTable[$tableName][$colName]['MAP_TO'] = ['post' => $tableName . "_" . $colName, 'get' => $tableName . "_" . $colName, 'json' => $tableName . "_" . $colName];
 
         // We now add the type of value to the validated table array for the current column which is usually
         // grouped into: "STRINGS", "NUMBERS", "INTS", "FLOATS", "DATETIMES", "BLOBS" and "TEXTS".
