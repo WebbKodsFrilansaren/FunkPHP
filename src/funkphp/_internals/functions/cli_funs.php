@@ -2795,7 +2795,7 @@ function cli_add_a_data_handler()
         cli_err_syntax("\"{$handlerFile}\" - Data Handler name must be a lowercased string containing only letters, numbers and underscores!");
     }
     if ($fnName !== null && !preg_match('/^[a-z0-9_]+$/', $fnName)) {
-        cli_err_syntax("\"{$fnName}\" - Function name must be a lowercased string containing only letters, numbers and underscores!");
+        cli_err_syntax("\"{$fnName}\" - Data Function name must be a lowercased string containing only letters, numbers and underscores!");
     }
 
     // Check that both fnName and handlerFile are not reserved functions
@@ -2856,9 +2856,9 @@ function cli_add_a_data_handler()
             // Find what <method/route> that is already using it or just show default error!
             $pattern = "/\/\/DELIMITER_HANDLER_FUNCTION_START={$fnName}.*\n.*?<(.*?)>.*/si";
             if (preg_match($pattern, $fileContent, $matches) && isset($matches[1])) {
-                cli_err_without_exit("Function \"$fnName\" in Data Handler \"funkphp/data/$handlerFile.php\" is already used by Route \"{$matches[1]}\"! (unless false comment)");
+                cli_err_without_exit("Data Function \"$fnName\" in Data Handler \"funkphp/data/$handlerFile.php\" is already used by Route \"{$matches[1]}\"! (unless false comment)");
             } else {
-                cli_err_without_exit("Function \"$fnName\" in Data Handler \"funkphp/data/$handlerFile.php\" has already been created!");
+                cli_err_without_exit("Data Function \"$fnName\" in Data Handler \"funkphp/data/$handlerFile.php\" has already been created!");
             }
             cli_info("If you know what Route that should be using that Data Handler instead, just manually change it in the Route file!");
         }
@@ -2868,7 +2868,7 @@ function cli_add_a_data_handler()
             // We now check if we can find "//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile" in the file
             // and if not that means either error or Developer is trying to break the file, so we exit
             if (strpos($fileContent, "//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile") === false) {
-                cli_err("Handler \"funkphp/data/$handlerFile.php\" is invalid. Could not find \"//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile\". Please do not be a jerk trying to break the file!");
+                cli_err("Data Handler \"funkphp/data/$handlerFile.php\" is invalid. Could not find \"//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile\". Please do not be a jerk trying to break the file!");
             }
             // We found the comment, so we can add the function name to the file by replacing the comment with the function name and then the comment again!
             $fileContent = str_replace(
@@ -2877,9 +2877,9 @@ function cli_add_a_data_handler()
                 $fileContent
             );
             if (file_put_contents($handlersDir . $handlerFile . ".php", $fileContent) !== false) {
-                cli_success_without_exit("Added Function \"$fnName\" to Data Handler \"funkphp/data/$handlerFile.php\"!");
+                cli_success_without_exit("Added Data Function \"$fnName\" to Data Handler \"funkphp/data/$handlerFile.php\"!");
             } else {
-                cli_err("FAILED to add Function \"$fnName\" to Data Handler \"funkphp/data/$handlerFile.php\". File permissions issue?");
+                cli_err("FAILED to add Data Function \"$fnName\" to Data Handler \"funkphp/data/$handlerFile.php\". File permissions issue?");
             }
         }
     } // File does not exist, so we create it
@@ -2890,7 +2890,7 @@ function cli_add_a_data_handler()
             "<?php\n//Data Handler File - This runs after Route Handler have ran for matched Route!\n\n//DELIMITER_HANDLER_FUNCTION_START=$fnName\nfunction $fnName(&\$c) // <$method$validRoute>\n{\n\n};\n//DELIMITER_HANDLER_FUNCTION_END=$fnName\n\n//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile\nreturn function (&\$c, \$handler = \"$fnName\") {\n\$handler(\$c);\n};\n//NEVER_TOUCH_ANY_COMMENTS_END=$handlerFile"
         );
         if ($outputHandlerRoute) {
-            cli_success_without_exit("Added Data Handler \"funkphp/data/$handlerFile.php\" with Function \"$fnName\" in \"funkphp/data/$handlerFile.php\"!");
+            cli_success_without_exit("Added Data Handler \"funkphp/data/$handlerFile.php\" with Data Function \"$fnName\" in \"funkphp/data/$handlerFile.php\"!");
         } else {
             cli_err("FAILED to create Data Handler \"funkphp/data/$handlerFile.php\". File permissions issue?");
         }
@@ -2907,7 +2907,7 @@ function cli_add_a_data_handler()
         ]);
     }
     // Show success message and then sort, build, compile and output the routes
-    cli_success_without_exit("Added Data Handler \"$handlerFile\" and Function \"$fnName\" to Route \"$method$validRoute\" in \"funkphp/routes/route_single_routes.php\"!");
+    cli_success_without_exit("Added Data Handler \"$handlerFile\" and Data Function \"$fnName\" to Route \"$method$validRoute\" in \"funkphp/routes/route_single_routes.php\"!");
     cli_sort_build_routes_compile_and_output($singleRoutesRoute);
 }
 
@@ -3036,30 +3036,29 @@ function cli_add_a_validation_handler()
         // Create the handler file with the function name and return a success message
         $outputHandlerRoute = file_put_contents(
             $handlersDir . $handlerFile . ".php",
-            "<?php\n//Data Handler File - This runs after Route Handler have ran for matched Route!\n\n//DELIMITER_HANDLER_FUNCTION_START=$fnName\nfunction $fnName(&\$c) // <$method$validRoute>\n{\n\n};\n//DELIMITER_HANDLER_FUNCTION_END=$fnName\n\n//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile\nreturn function (&\$c, \$handler = \"$fnName\") {\n\$handler(\$c);\n};\n//NEVER_TOUCH_ANY_COMMENTS_END=$handlerFile"
+            "<?php\n//Validation Handler File - This runs after Route Handler have ran for matched Route!\n\n//DELIMITER_HANDLER_FUNCTION_START=$fnName\nfunction $fnName(&\$c) // <$method$validRoute>\n{\n\n};\n//DELIMITER_HANDLER_FUNCTION_END=$fnName\n\n//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile\nreturn function (&\$c, \$handler = \"$fnName\") {\n\$handler(\$c);\n};\n//NEVER_TOUCH_ANY_COMMENTS_END=$handlerFile"
         );
         if ($outputHandlerRoute) {
-            cli_success_without_exit("Added Data Handler \"funkphp/data/$handlerFile.php\" with Function \"$fnName\" in \"funkphp/data/$handlerFile.php\"!");
+            cli_success_without_exit("Added Validation Handler \"funkphp/data/$handlerFile.php\" with Validation Function \"$fnName\" in \"funkphp/validations/$handlerFile.php\"!");
         } else {
-            cli_err("FAILED to create Data Handler \"funkphp/data/$handlerFile.php\". File permissions issue?");
+            cli_err("FAILED to create Validation Handler \"funkphp/data/$handlerFile.php\". File permissions issue?");
         }
     }
     // If we are here, that means we managed to add a data handler with a function
     // name to a file so now we add route to the route file and then compile it!
     if ($arrow) {
         $singleRoutesRoute['ROUTES'][$method][$validRoute] = array_merge($singleRoutesRoute['ROUTES'][$method][$validRoute], [
-            'data' => [$handlerFile => $fnName],
+            'validation' => [$handlerFile => $fnName],
         ]);
     } else {
         $singleRoutesRoute['ROUTES'][$method][$validRoute] = array_merge($singleRoutesRoute['ROUTES'][$method][$validRoute], [
-            'data' => $handlerFile,
+            'validation' => $handlerFile,
         ]);
     }
     // Show success message and then sort, build, compile and output the routes
-    cli_success_without_exit("Added Data Handler \"$handlerFile\" and Function \"$fnName\" to Route \"$method$validRoute\" in \"funkphp/routes/route_single_routes.php\"!");
+    cli_success_without_exit("Added Validation Handler \"$handlerFile\" and Validation Function \"$fnName\" to Route \"$method$validRoute\" in \"funkphp/routes/route_single_routes.php\"!");
     cli_sort_build_routes_compile_and_output($singleRoutesRoute);
 }
-
 
 // Add a single Middleware file to middleware folder (funkphp/middlewares/)
 function cli_add_a_middleware()
