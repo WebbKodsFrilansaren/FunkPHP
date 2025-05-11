@@ -972,11 +972,43 @@ function cli_compile_dx_validation_to_optimized_validation()
     }
 
     // VERY IMPORTANT WARNING: Function uses eval() to parse the validation file!!!
-    $parsedArray = cli_parse_validation_function_variable_as_array($argv[3]);
-    if ($parsedArray === null) {
+    [$parsedArray, $handlerFile, $fnName] = cli_parse_validation_function_variable_as_array($argv[3]);
+    if ($parsedArray === null || !is_array($parsedArray) || empty($parsedArray)) {
         cli_err_syntax("cli_compile_dx_validation_to_optimized_validation() expects a non-empty array as input!");
     }
+
+    // The compiled array which is then inserted into the document again
+    $compiledArray = $parsedArray;
     var_dump($parsedArray);
+    var_dump($handlerFile);
+    var_dump($fnName);
+
+    // This is the last step where we now replace the $fName's optimized
+    // returned []; with the $compiledArray and then we show success message
+    // We use the delimiters: //DELIMITER_VALIDATION_COMPILED_START=$fnName
+    // and //DELIMITER_VALIDATION_COMPILED_END=$fnName to find the start and end!
+    // Here we assume file already exists and is readable because otherwise
+    // we would have errored out before this point!
+    $fileContent = file_get_contents($dirs['validations'] . $handlerFile . ".php");
+
+    // We set the start and end delimiters to the function name
+    $startDelimiter = "//DELIMITER_VALIDATION_COMPILED_START=$fnName";
+    $endDelimiter = "//DELIMITER_VALIDATION_COMPILED_END=$fnName";
+    $startDelimiterPos = strpos($fileContent, $startDelimiter);
+    $endDelimiterPos = strpos($fileContent, $endDelimiter, $startDelimiterPos + strlen($startDelimiter));
+
+    // We now replace the content between the delimiters with the compiled array
+    if ($startDelimiterPos !== false && $endDelimiterPos !== false) {
+        $compiledArrayString = "\nreturn " . var_export($compiledArray, true) . ";\n";
+        $fileContent = substr_replace($fileContent, $compiledArrayString, $startDelimiterPos + strlen($startDelimiter), $endDelimiterPos - ($startDelimiterPos + strlen($startDelimiter)));
+        $recompiled = file_put_contents($dirs['validations'] . $handlerFile . ".php", $fileContent);
+        if (!$recompiled) {
+            cli_err_syntax("FAILED recompiling Validation Handler \"$handlerFile\" with Validation Function \"$fnName\"!");
+        }
+        cli_success("Recompiled Validation Handler \"$handlerFile\" with Validation Function \"$fnName\"!");
+    } else {
+        cli_err_syntax("Validation Handler \"/validations/$handlerFile.php\" must contain the following delimiters:\n//DELIMITER_VALIDATION_COMPILED_START=$fnName\n//DELIMITER_VALIDATION_COMPILED_END=$fnName\n\nIMPORTANT: The delimiters must be on their own line and not inside of a comment or string!");
+    }
 }
 
 // Match Compiled Route with URI Segments, used by "r_match_developer_route"
@@ -3171,7 +3203,7 @@ function cli_add_a_validation_handler()
         // Create the handler file with the function name and return a success message
         $outputHandlerRoute = file_put_contents(
             $handlersDir . $handlerFile . ".php",
-            "<?php\n//Validation Handler File - Write your Validation Rules\n// in the \$DX variable and then run the command\n// `php funkcli compile v $handlerFile=>$fnName`\n// to get the optimized version below it!\n\n//DELIMITER_HANDLER_FUNCTION_START=$fnName\nfunction $fnName(&\$c) // <$method$validRoute>\n{\n$validationLimiterStrings\n};\n//DELIMITER_HANDLER_FUNCTION_END=$fnName\n\n//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile\nreturn function (&\$c, \$handler = \"$fnName\") {\n\$handler(\$c);\n};\n//NEVER_TOUCH_ANY_COMMENTS_END=$handlerFile"
+            "<?php\n//Validation Handler File - Write your Validation Rules\n// in the \$DX variable and then run the command\n// `php funkcli compile v $handlerFile=>\$function_name`\n// to get the optimized version below it!\n\n//DELIMITER_HANDLER_FUNCTION_START=$fnName\nfunction $fnName(&\$c) // <$method$validRoute>\n{\n$validationLimiterStrings\n};\n//DELIMITER_HANDLER_FUNCTION_END=$fnName\n\n//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile\nreturn function (&\$c, \$handler = \"$fnName\") {\n\$handler(\$c);\n};\n//NEVER_TOUCH_ANY_COMMENTS_END=$handlerFile"
         );
         if ($outputHandlerRoute) {
             cli_success_without_exit("Added Validation Handler \"funkphp/data/$handlerFile.php\" with Validation Function \"$fnName\" in \"funkphp/validations/$handlerFile.php\"!");
