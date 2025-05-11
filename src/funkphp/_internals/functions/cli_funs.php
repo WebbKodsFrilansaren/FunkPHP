@@ -684,7 +684,6 @@ function cli_try_parse_listed_string_as_array($stringedList)
     return $array ? array_values($array) : null;
 }
 
-
 // Function that finds a string that is NOT inside of quotes
 // by iterating one character at a time and checking if it is inside quotes
 function cli_find_string_outside_quotes($needle, $haystack)
@@ -857,6 +856,127 @@ function cli_output_tables_file($array)
     } else {
         cli_success_without_exit("Recompiled Tables in \"funkphp/config/tables.php\"!");
     }
+}
+
+// Parses a validation file, finds the $DX variable and then parses the entire
+// [] array until it finds the ];\n//DELIMITER_VALIDATION_USER_END=$fnName and
+// then uses eval() to return an array or null if it fails to parse.
+// VERY IMPORTANT WARNING: This function uses eval() to parse the validation file!!!
+function cli_parse_validation_function_variable_as_array($validationHandlerFileWithFunctionName)
+{
+    // Load globals and verify non-empty array and that file exists to written to
+    global $dirs, $exactFiles, $settings, $delimiters;
+    if (!is_string_and_not_empty($validationHandlerFileWithFunctionName)) {
+        cli_err_syntax_without_exit("[cli_parse_validation_function_variable_as_json] The provided File Name must be a string!");
+        cli_err_syntax("Syntax: validationFileName OR validationFileName=>validationFunctionName\nIMPORTRANT: Using only validationFileName will be parsed as validationFileName=>validationFileName");
+    }
+    // Check if string argument contains "=>" and split it into
+    // handler & function name or just use $handlerFile name.
+    $handlerFile = null;
+    $fnName = null;
+    if (strpos($validationHandlerFileWithFunctionName, '=>') !== false) {
+        [$handlerFile, $fnName] = explode('=>', $validationHandlerFileWithFunctionName);
+        $handlerFile = trim($handlerFile);
+        $fnName = trim($fnName);
+    } else {
+        $handlerFile = $validationHandlerFileWithFunctionName;
+        $fnName = null;
+    }
+
+    // Preg_match validate both (unless null) handler file and function name
+    if ($handlerFile !== null && !preg_match('/^[a-z0-9_]+$/', $handlerFile)) {
+        cli_err_syntax("\"{$handlerFile}\" - Validation Handler name must be a lowercased string containing only letters, numbers and underscores!");
+    }
+    if ($fnName !== null && !preg_match('/^[a-z0-9_]+$/', $fnName)) {
+        cli_err_syntax("\"{$fnName}\" - Validation Function name must be a lowercased string containing only letters, numbers and underscores!");
+    }
+
+    // Function name is optional, so if not provided, we set it to the handler file name since
+    // that is the default name for the function in the handler file when the file is created
+    if ($fnName === null) {
+        $fnName = $handlerFile;
+    }
+    // Now we add "v_" to both $fnName & $handlerFile to indicate it is a validation handler and also
+    // to not conflict with route, page and/or middleware handlers that might use the same name in the future
+    // But before adding we just check if it already starts with "v_" and if not, we add it.
+    if (!str_starts_with($fnName, "v_")) {
+        $fnName = "v_" . $fnName;
+    }
+    if (!str_starts_with($handlerFile, "v_")) {
+        $handlerFile = "v_" . $handlerFile;
+    }
+    cli_info_without_exit("Found Validation Handler: \"validations/$handlerFile.php\" with Validation Function: \"$fnName\"");
+
+    // Now we check if the file exists and is readable
+    $handlersDir = $dirs['validations'];
+    if (!file_exists_is_readable_writable($handlersDir . $handlerFile . ".php")) {
+        cli_err("Validation Handler file \"$handlerFile\" not found in \"funkphp/validations/\" or not readable!");
+    }
+
+    // We read in the file and look for delimiters "//DELIMITER_VALIDATION_USER_START=$fName"
+    // and "//DELIMITER_VALIDATION_USER_END=$fName" and then we parse the entire AFTER the start
+    // and before the end delimiter until we find the end delimiter.
+    $fileContent = file_get_contents($handlersDir . $handlerFile . ".php");
+    if (!$fileContent) {
+        cli_err("FAILED to read Validation Handler file \"validations/$handlerFile.php\"!");
+    }
+
+    // Check if the file contains the start delimiter
+    if (!cli_delimiters_exist($fileContent, $fnName, "validation")) {
+        cli_err("Validation Handler \"/validations/$handlerFile.php\" must contain the following delimiters:\n//DELIMITER_VALIDATION_USER_START=$fnName\n//DELIMITER_VALIDATION_USER_END=$fnName\n//DELIMITER_VALIDATION_COMPILED_START=$fnName\n//DELIMITER_VALIDATION_COMPILED_END=$fnName\n\nIMPORTANT: The delimiters must be on their own line and not inside of a comment or string!");
+    }
+
+    // We found all necessary so we now parse from "//DELIMITER_VALIDATION_USER_START=$fnName" to "//DELIMITER_VALIDATION_USER_END=$fnName"
+    $startDelimiter = "//DELIMITER_VALIDATION_USER_START=$fnName";
+    $endDelimiter = "//DELIMITER_VALIDATION_USER_END=$fnName";
+    $startDelimiterPos = strpos($fileContent, $startDelimiter);
+    $endDelimiterPos = strpos($fileContent, $endDelimiter, $startDelimiterPos + strlen($startDelimiter));
+    if ($startDelimiterPos === false || $endDelimiterPos === false) {
+        cli_err("Validation Handler \"/validations/$handlerFile.php\" must contain the following delimiters:\n//DELIMITER_VALIDATION_USER_START=$fnName\n//DELIMITER_VALIDATION_USER_END=$fnName\n//DELIMITER_VALIDATION_COMPILED_START=$fnName\n//DELIMITER_VALIDATION_COMPILED_END=$fnName\n\nIMPORTANT: The delimiters must be on their own line and not inside of a comment or string!");
+    }
+    // We now extract the content between the delimiters and trim it
+    $validationFunctionContent = substr($fileContent, $startDelimiterPos + strlen($startDelimiter), $endDelimiterPos - ($startDelimiterPos + strlen($startDelimiter)));
+    $validationFunctionContent = trim($validationFunctionContent);
+    // We now check if the content is empty and if it is we error out
+    if (empty($validationFunctionContent)) {
+        cli_err("Validation Handler \"/validations/$handlerFile.php\" must contain the following delimiters:\n//DELIMITER_VALIDATION_USER_START=$fnName\n//DELIMITER_VALIDATION_USER_END=$fnName\n//DELIMITER_VALIDATION_COMPILED_START=$fnName\n//DELIMITER_VALIDATION_COMPILED_END=$fnName\n\nIMPORTANT: The delimiters must be on their own line and not inside of a comment or string!");
+    }
+    // Extracting the content between the delimiters by evaluating the code which should RARELY be done
+    // but in this case we need to do it to get the $DX array which is returned at the end of the function!
+    try {
+        $evalCode = "\nreturn $validationFunctionContent";
+        $DX_array = eval($evalCode);
+    } catch (Throwable $e) {
+        cli_err("Validation Handler \"/validations/$handlerFile.php\" must contain the following delimiters:\n//DELIMITER_VALIDATION_USER_START=$fnName\n//DELIMITER_VALIDATION_USER_END=$fnName\n//DELIMITER_VALIDATION_COMPILED_START=$fnName\n//DELIMITER_VALIDATION_COMPILED_END=$fnName\n\nIMPORTANT: The delimiters must be on their own line and not inside of a comment or string!");
+    }
+
+    // Return the array if it is an array and not empty plus
+    // the handler file & function name to be reused later
+    if (is_array($DX_array) && !empty($DX_array)) {
+        return [$DX_array, $handlerFile, $fnName];
+    } else {
+        cli_err_without_exit("Parsed DX Validation might be an empty array or invalid some other way.");
+        cli_err("Please review Validation File: \"validations/$handlerFile.php\" with Validation Function \"$fnName\"!");
+    }
+}
+
+// Compiles a $DX Validation [] to an optmized validation array that is returned within the same
+// function that is used to validate the data. This is used to optimize the validation process!
+// VERY IMPORTANT WARNING: This function calls a function which uses eval() to parse the validation file!!!
+function cli_compile_dx_validation_to_optimized_validation()
+{
+    // Load globals and check for the argv[3] argument
+    global $dirs, $exactFiles, $settings, $delimiters, $argv;
+    if (!isset($argv[3]) || !is_string_and_not_empty($argv[3])) {
+        cli_err_syntax("cli_compile_dx_validation_to_optimized_validation() expects a string as input!");
+    }
+
+    // VERY IMPORTANT WARNING: Function uses eval() to parse the validation file!!!
+    $parsedArray = cli_parse_validation_function_variable_as_array($argv[3]);
+    if ($parsedArray === null) {
+        cli_err_syntax("cli_compile_dx_validation_to_optimized_validation() expects a non-empty array as input!");
+    }
+    var_dump($parsedArray);
 }
 
 // Match Compiled Route with URI Segments, used by "r_match_developer_route"
@@ -1754,7 +1874,6 @@ function cli_validation_handler_exists($routeFileWithOptionalFunctionname, $info
 
     return false;
 }
-
 
 // Check if a Middleware Handler in middlewares/ exists
 function cli_middleware_exists($fileName): bool
@@ -3011,6 +3130,7 @@ function cli_add_a_validation_handler()
 
     // Here, the routing is so far all OK so prepare data folder
     $handlersDir = $dirs['validations'];
+    $validationLimiterStrings = "//DELIMITER_VALIDATION_USER_START=$fnName\n\n\$DX = [];\n\n//DELIMITER_VALIDATION_USER_END=$fnName\n\n\n//DELIMITER_VALIDATION_COMPILED_START=$fnName\nreturn[];\n//DELIMITER_VALIDATION_COMPILED_END=$fnName";
 
     // Check first if the handler file exists in the handlers folder, add .php if not
     if (file_exists($handlersDir . $handlerFile . ".php")) {
@@ -3037,7 +3157,7 @@ function cli_add_a_validation_handler()
             // We found the comment, so we can add the function name to the file by replacing the comment with the function name and then the comment again!
             $fileContent = str_replace(
                 "//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile",
-                "//DELIMITER_HANDLER_FUNCTION_START=$fnName\nfunction $fnName(&\$c) // <$method$validRoute>\n{\n\n};\n//DELIMITER_HANDLER_FUNCTION_END=$fnName\n\n//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile",
+                "//DELIMITER_HANDLER_FUNCTION_START=$fnName\nfunction $fnName(&\$c) // <$method$validRoute>\n{\n$validationLimiterStrings\n};\n//DELIMITER_HANDLER_FUNCTION_END=$fnName\n\n//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile",
                 $fileContent
             );
             if (file_put_contents($handlersDir . $handlerFile . ".php", $fileContent) !== false) {
@@ -3051,7 +3171,7 @@ function cli_add_a_validation_handler()
         // Create the handler file with the function name and return a success message
         $outputHandlerRoute = file_put_contents(
             $handlersDir . $handlerFile . ".php",
-            "<?php\n//Validation Handler File - This runs after Route Handler have ran for matched Route!\n\n//DELIMITER_HANDLER_FUNCTION_START=$fnName\nfunction $fnName(&\$c) // <$method$validRoute>\n{\n\n};\n//DELIMITER_HANDLER_FUNCTION_END=$fnName\n\n//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile\nreturn function (&\$c, \$handler = \"$fnName\") {\n\$handler(\$c);\n};\n//NEVER_TOUCH_ANY_COMMENTS_END=$handlerFile"
+            "<?php\n//Validation Handler File - Write your Validation Rules\n// in the \$DX variable and then run the command\n// `php funkcli compile v $handlerFile=>$fnName`\n// to get the optimized version below it!\n\n//DELIMITER_HANDLER_FUNCTION_START=$fnName\nfunction $fnName(&\$c) // <$method$validRoute>\n{\n$validationLimiterStrings\n};\n//DELIMITER_HANDLER_FUNCTION_END=$fnName\n\n//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile\nreturn function (&\$c, \$handler = \"$fnName\") {\n\$handler(\$c);\n};\n//NEVER_TOUCH_ANY_COMMENTS_END=$handlerFile"
         );
         if ($outputHandlerRoute) {
             cli_success_without_exit("Added Validation Handler \"funkphp/data/$handlerFile.php\" with Validation Function \"$fnName\" in \"funkphp/validations/$handlerFile.php\"!");

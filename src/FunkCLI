@@ -10,7 +10,9 @@ $validArg1withArg2Values =  [
         'r',
         'routes',
         'reserved_list',
-        'help'
+        'help',
+        'v',
+        'validation',
     ],
     'add' => [
         'r',
@@ -347,6 +349,13 @@ $commands = [
             // Then build and output new route file
             cli_compile_batch(["troutes"]);
             cli_success("Compiled Only Route routes!");
+        },
+        // 'v' & 'validation' recompiles matched validation handler file!
+        'v' => function () {
+            cli_compile_dx_validation_to_optimized_validation();
+        },
+        'validation' => function () {
+            cli_compile_dx_validation_to_optimized_validation();
         },
         // 'help' shows the help for the compile command
         'help' => function () {
