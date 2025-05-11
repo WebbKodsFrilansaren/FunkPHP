@@ -1822,13 +1822,13 @@ function cli_output_file_until_success($outputPathWithoutExtension, $extension, 
             // Try to write the file
             $result = file_put_contents($outputFilePath, $outputData);
             if ($result === false) {
-                cli_err("Output file failed to write: $outputFilePath!");
+                cli_err("Output file FAILED to write: $outputFilePath!");
             } else {
                 if ($customSuccessMessage !== "") {
                     cli_success_without_exit($customSuccessMessage);
                     $success = true;
                 } else {
-                    cli_success_without_exit("Output file written successfully: $outputFilePath!");
+                    cli_success_without_exit("Output file written SUCCESSFULLY: $outputFilePath!");
                     $success = true;
                 }
             }
@@ -1970,6 +1970,11 @@ function cli_delete_a_route()
         cli_err_syntax_without_exit("Provide a valid Route to delete from the Route file!\nExample: \"php funkcli delete [route|r] [method/route_name]\"");
         cli_info("IMPORTANT: Its associated Handler Function (and Handler File if last function) will be deleted as well!\n");
     }
+    // argv[4] is optional and can be used to delete the validation handler
+    $deleteValidationHandler = false;
+    if (isset($argv[4]) && is_string($argv[4]) && strtolower($argv[4]) === "with_validation") {
+        $deleteValidationHandler = true;
+    }
 
     // Prepare the route string by trimming, validating starting, ending and middle parts of it
     $deleteRoute = trim(strtolower($argv[3]));
@@ -1991,6 +1996,7 @@ function cli_delete_a_route()
         // Grab handlers for 'handler' and 'data' from the route array
         $handler = $singleRoutesRoute['ROUTES'][$method][$validRoute]['handler'] ?? null;
         $datahandler = $singleRoutesRoute['ROUTES'][$method][$validRoute]['data'] ?? null;
+        $validationHandler = $singleRoutesRoute['ROUTES'][$method][$validRoute]['validation'] ?? null;
 
         // Then we unset() each matched route
         unset($singleRoutesRoute['ROUTES'][$method][$validRoute]);
@@ -2010,6 +2016,16 @@ function cli_delete_a_route()
         if ($datahandler !== null && !empty($datahandler)) {
             // We check if the data handler exists before deleting it
             cli_delete_a_data_handler_function_or_entire_file($datahandler);
+        }
+        // Only delete the validation handler if it is not null or empty string
+        // and if the user provided the "with_validation" argument
+        if ($validationHandler !== null && !empty($validationHandler)) {
+            if ($deleteValidationHandler) {
+                // We check if the validation handler exists before deleting it
+                cli_delete_a_validation_handler_function_or_entire_file($validationHandler);
+            } else {
+                cli_info_without_exit("Validation Handler \"" . key($validationHandler) ?? $validationHandler ?? "<No Validation Handler Found?>" . "\" was NOT deleted since \"with_validation\" argument was not provided!");
+            }
         }
     }
     // When one ore more is missing, we do not go ahead with deletion
@@ -2113,7 +2129,7 @@ function cli_delete_a_handler_function_or_entire_file($handlerVar)
 
     // If it is a string, check that it is valid and not empty
     if (is_string($handlerVar) && empty($handlerVar)) {
-        cli_err_syntax_without_exit("\"$handlerVar\" must be a non-empty string!");
+        cli_err_syntax("\"$handlerVar\" must be a non-empty string!");
     }
 
     // Prepare what is the handler file, function name, and handlers folder
@@ -2241,7 +2257,7 @@ function cli_delete_a_data_handler_function_or_entire_file($handlerVar)
 
     // If it is a string, check that it is valid and not empty
     if (is_string($handlerVar) && empty($handlerVar)) {
-        cli_err_syntax_without_exit("\"$handlerVar\" must be a non-empty string!");
+        cli_err_syntax("\"$handlerVar\" must be a non-empty string!");
     }
 
     // Prepare what is the handler file, function name, and handlers folder
@@ -2369,7 +2385,7 @@ function cli_delete_a_validation_handler_function_or_entire_file($handlerVar)
 
     // If it is a string, check that it is valid and not empty
     if (is_string($handlerVar) && empty($handlerVar)) {
-        cli_err_syntax_without_exit("\"$handlerVar\" must be a non-empty string!");
+        cli_err_syntax("\"$handlerVar\" must be a non-empty string!");
     }
 
     // Prepare what is the handler file, function name, and handlers folder
@@ -2480,7 +2496,6 @@ function cli_delete_a_validation_handler_function_or_entire_file($handlerVar)
         cli_err("FAILED to delete Validation Function \"$fnName\" from Validation Handler File \"validations/$handlerFile.php\"!");
     }
 }
-
 
 // Add a handler to (funkphp/handlers/) WITHOUT adding to the Route file
 function cli_add_handler()
@@ -4133,4 +4148,30 @@ function is_array_and_not_empty($array)
 function is_string_and_not_empty($string)
 {
     return isset($string) && is_string($string) && !empty($string);
+}
+
+// Function takes a 'arrayKey' => 'singleStringvalue' and converts it to a
+// string in the style:"arrayKey=>singleStringvalue". This is used in very
+// sensitive places so we will return "<INVALID>=><INVALID>" instead of halting.
+function flatten_single_array_key_to_a_string($arrayKeyWithSingleStringValue)
+{
+    // Check if the input is a non-empty array with exactly ONE element
+    if (is_array($arrayKeyWithSingleStringValue) && count($arrayKeyWithSingleStringValue) === 1) {
+        $key = key($arrayKeyWithSingleStringValue);
+        $value = $arrayKeyWithSingleStringValue[$key];
+
+        // Ensure both key and value are strings before processing
+        // Construct the desired string format by concatenating the lowercased key, "=>", and the lowercased value
+        if (is_string($key) && is_string($value)) {
+            return strtolower($key) . "=>" . strtolower($value);
+        }
+        // Return error string if key or value are not strings (as expected by the function name)
+        else {
+            return "<INVALID>=><INVALID>";
+        }
+    }
+    // Input is not a valid single-element array
+    else {
+        return "<INVALID>=><INVALID>";
+    }
 }

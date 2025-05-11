@@ -19,11 +19,12 @@ return [
     // 'req' is the array of request data which will also include changed data based
     // on matched route, middlewares (if any), data (if any) and page (if any), etc.
     'req' => include __DIR__ . '/req.php',
+    // 'db' is the database object that will be used to handle the database connection & queries!
     'db' => include __DIR__ . '/db.php',
-    // 'd' will ALWAYS store fetched database data and/or validated 'post', 'get', 'json' data!
-    'd' => [
-        "VALIDATION_FAILED" => null // This is by default null, but can be set to true or false based on the validation result!
-    ],
+    // 'v' should be NULL but stores ANY founds errors during the validation process
+    'v' => null,
+    // 'd' will ALWAYS store fetched database data (it does NOT store validation errors)
+    'd' => null,
     // 'p' is the page object that will be used to handle the page rendering and output (not needed for API requests)!
     'p' => null,
     // 'files' is the array of uploaded files (if any) that will be used to handle the file uploads!
