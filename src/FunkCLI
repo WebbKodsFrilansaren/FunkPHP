@@ -401,8 +401,11 @@ $commands = [
             cli_parse_a_sql_table_file();
         },
         'validation' => function () {
-            cli_generate_a_validation_from_a_table();
+            cli_add_a_validation_handler();
         },
+        'v' => function () {
+            cli_add_a_validation_handler();
+        }
     ],
     'change' => [
         'route' => function () use ($argv, $settings) {
