@@ -50,6 +50,8 @@ $validArg1withArg2Values =  [
         'handler',
         'd',
         'data',
+        'v',
+        'validation',
         'mw',
         'mw_file',
         'middleware',
@@ -214,6 +216,8 @@ $reserved_functions =  [
     'cli_find_string_outside_quotes',
     'cli_find_string_outside_quotes_improved',
     'cli_output_tables_file',
+    'cli_parse_validation_function_variable_as_array',
+    'cli_compile_dx_validation_to_optimized_validation',
     'cli_match_compiled_route',
     'cli_match_developer_route',
     'cli_rebuild_single_routes_route_file',
@@ -221,19 +225,26 @@ $reserved_functions =  [
     'cli_output_compiled_routes',
     'cli_convert_array_to_simple_syntax',
     'cli_restore_default_folders_and_files',
-    'cli_data_file_exists',
+    'cli_data_handler_file_exists',
     'cli_page_file_exists',
-    'cli_handler_file_exists',
+    'cli_route_handler_file_exists',
+    'cli_route_handler_exists',
+    'cli_data_handler_exists',
+    'cli_validation_handler_exists',
     'cli_middleware_exists',
     'cli_output_file_until_success',
     'cli_backup_batch',
     'cli_delete_a_route',
+    'cli_output_delimiter',
+    'cli_delimiters_exist',
     'cli_delete_a_handler_function_or_entire_file',
     'cli_delete_a_data_handler_function_or_entire_file',
+    'cli_delete_a_validation_handler_function_or_entire_file',
     'cli_add_handler',
     'cli_sort_build_routes_compile_and_output',
     'cli_add_a_route',
     'cli_add_a_data_handler',
+    'cli_add_a_validation_handler',
     'cli_add_a_middleware',
     'cli_delete_a_middleware',
     'cli_delete_a_middleware_from_all_routes',
@@ -268,6 +279,7 @@ $reserved_functions =  [
     'file_exists_is_readable_writable',
     'is_array_and_not_empty',
     'is_string_and_not_empty',
+    'flatten_single_array_key_to_a_string',
     'funk_connect_db',
     'funk_run_matched_data_handler',
     'funk_use_validation',
@@ -450,11 +462,17 @@ $commands = [
         'h' => function () use ($argv) {
             cli_delete_a_handler_function_or_entire_file($argv[3] ?? null);
         },
-        'd' => function () {
+        'd' => function () use ($argv) {
             cli_delete_a_data_handler_function_or_entire_file($argv[3] ?? null);
         },
-        'data' => function () {
+        'data' => function () use ($argv) {
             cli_delete_a_data_handler_function_or_entire_file($argv[3] ?? null);
+        },
+        'v' => function () use ($argv) {
+            cli_delete_a_validation_handler_function_or_entire_file($argv[3] ?? null);
+        },
+        'validation' => function () use ($argv) {
+            cli_delete_a_validation_handler_function_or_entire_file($argv[3] ?? null);
         },
         'mw' => function () {
             cli_delete_a_middleware();

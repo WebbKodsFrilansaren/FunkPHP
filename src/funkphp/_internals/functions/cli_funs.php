@@ -976,9 +976,22 @@ function cli_compile_dx_validation_to_optimized_validation()
     if ($parsedArray === null || !is_array($parsedArray) || empty($parsedArray)) {
         cli_err_syntax("cli_compile_dx_validation_to_optimized_validation() expects a non-empty array as input!");
     }
+    if (!is_string_and_not_empty($handlerFile) || !is_string_and_not_empty($fnName)) {
+        cli_err_syntax("cli_compile_dx_validation_to_optimized_validation() expects strings for Validation Handler File and its associated Validation Function Name!");
+    }
 
     // The compiled array which is then inserted into the document again
-    $compiledArray = $parsedArray;
+    $compiledArray = [];
+    $uniqueRulesToCheck = [];
+    $uniqueRulesToCheckCount = 0;
+    $existRulesToCheck = [];
+    $existRulesToCheckCount = 0;
+
+    // TODO: Here we start to parse the $parsedArray and convert the rules
+    // TODO: to highly optimized rules that are then returned in the same function
+
+
+    // REMOVE WHEN DONE
     var_dump($parsedArray);
     var_dump($handlerFile);
     var_dump($fnName);
@@ -1862,7 +1875,7 @@ function cli_validation_handler_exists($routeFileWithOptionalFunctionname, $info
     // Check file can be read and is a file
     if (!file_exists_is_readable_writable($dirs['validations'] . $routeFile . ".php")) {
         if ($info) {
-            cli_err_syntax("[cli_validation_handler_exists] Validation Handler File \"funkphp/validations/$routeFile.php\" exists but is NOT readable/writable!");
+            cli_err_without_exit("[cli_validation_handler_exists] Validation Handler File \"funkphp/validations/$routeFile.php\" exists but is NOT readable/writable!");
         }
         return false;
     }
@@ -1916,7 +1929,10 @@ function cli_middleware_exists($fileName): bool
         $dirs,
         $exactFiles;
     if (!is_string($fileName) || empty($fileName)) {
-        cli_err_syntax("[cli_mw_r_handler_exists] Middleware Route Handler File name must be a non-empty string!");
+        cli_err_syntax("[cli_middleware_exists] Middleware Route Handler File name must be a non-empty string!");
+    }
+    if (!str_starts_with($fileName, "m_")) {
+        $fileName = "m_" . $fileName;
     }
     if (!str_ends_with($fileName, ".php")) {
         $fileName .= ".php";
@@ -2642,7 +2658,7 @@ function cli_delete_a_validation_handler_function_or_entire_file($handlerVar)
 
     // We write back the file content to the file and check if it was successful
     if (file_put_contents($handlersFolder . $handlerFile . ".php", $fileContent) !== false) {
-        cli_success_without_exit("Deleted Function \"$fnName\" from Validation Handler File \"validations/$handlerFile.php\"!");
+        cli_success_without_exit("Deleted Validation Function \"$fnName\" from Validation Handler File \"validations/$handlerFile.php\"!");
     } else {
         cli_err("FAILED to delete Validation Function \"$fnName\" from Validation Handler File \"validations/$handlerFile.php\"!");
     }
@@ -4105,92 +4121,56 @@ function cli_parse_rest_of_valid_route_syntax_better($routeString)
 // CLI Functions to show errors and success messages with colors
 function cli_err_syntax($string)
 {
-    if ($_SERVER['SCRIPT_NAME'] !== 'funkcli') {
-        exit;
-    }
     echo "\033[31m[FunkCLI - SYNTAX ERROR]: $string\n\033[0m";
     exit;
 }
 function cli_err($string)
 {
-    if ($_SERVER['SCRIPT_NAME'] !== 'funkcli') {
-        exit;
-    }
     echo "\033[31m[FunkCLI - ERROR]: $string\n\033[0m";
     exit;
 }
 function cli_err_without_exit($string)
 {
-    if ($_SERVER['SCRIPT_NAME'] !== 'funkcli') {
-        exit;
-    }
     echo "\033[31m[FunkCLI - ERROR]: $string\n\033[0m";
 }
 function cli_err_syntax_without_exit($string)
 {
-    if ($_SERVER['SCRIPT_NAME'] !== 'funkcli') {
-        exit;
-    }
     echo "\033[31m[FunkCLI - SYNTAX ERROR]: $string\n\033[0m";
 }
 function cli_err_command($string)
 {
-    if ($_SERVER['SCRIPT_NAME'] !== 'funkcli') {
-        exit;
-    }
     echo "\033[31m[FunkCLI - COMMAND ERROR]: $string\n\033[0m";
     exit;
 }
 function cli_success($string)
 {
-    if ($_SERVER['SCRIPT_NAME'] !== 'funkcli') {
-        exit;
-    }
     echo "\033[32m[FunkCLI - SUCCESS]: $string\n\033[0m";
     exit;
 }
 function cli_info($string)
 {
-    if ($_SERVER['SCRIPT_NAME'] !== 'funkcli') {
-        exit;
-    }
     echo "\033[34m[FunkCLI - INFO]: $string\n\033[0m";
     exit;
 }
 function cli_success_without_exit($string)
 {
-    if ($_SERVER['SCRIPT_NAME'] !== 'funkcli') {
-        exit;
-    }
     echo "\033[32m[FunkCLI - SUCCESS]: $string\n\033[0m";
 }
 function cli_info_without_exit($string)
 {
-    if ($_SERVER['SCRIPT_NAME'] !== 'funkcli') {
-        exit;
-    }
     echo "\033[34m[FunkCLI - INFO]: $string\n\033[0m";
 }
 function cli_info_multiline($string)
 {
-    if ($_SERVER['SCRIPT_NAME'] !== 'funkcli') {
-        exit;
-    }
     echo "\033[34m[FunkCLI - INFO]: $string\n\033[0m";
 }
 function cli_warning($string)
 {
-    if ($_SERVER['SCRIPT_NAME'] !== 'funkcli') {
-        exit;
-    }
     echo "\033[33m[FunkCLI - WARNING]: $string\n\033[0m";
     exit;
 }
 function cli_warning_without_exit($string)
 {
-    if ($_SERVER['SCRIPT_NAME'] !== 'funkcli') {
-        exit;
-    }
     echo "\033[33m[FunkCLI - WARNING]: $string\n\033[0m";
 }
 
@@ -4243,11 +4223,9 @@ function cli_update_reserved_functions_list()
 // already exists in it as a string or in an array. It returns true if it does, false otherwise.
 function cli_value_exists_as_string_or_in_array($valueThatExists, $existsInWhat)
 {
-    // Also check first if it is null, because that means it doesn't exist
     if ($existsInWhat === null) {
         return false;
     }
-    // Check based on array or string, and lowercase everything first
     if (is_array($existsInWhat)) {
         $existsInWhat = array_map('strtolower', $existsInWhat);
         return in_array($valueThatExists, $existsInWhat);
@@ -4264,39 +4242,31 @@ function cli_value_exists_as_string_or_in_array($valueThatExists, $existsInWhat)
 // otherwise it adds the key with value or it adds/pushes to the current array.
 function cli_add_value_as_string_or_to_array($keyToAdd, $valueToAdd, &$addToWhat)
 {
-    // Check if the key exists in the array and if it is an array
     if (array_key_exists($keyToAdd, $addToWhat)) {
         if (is_array($addToWhat[$keyToAdd])) {
-            // If it is an array, we just add the value to it
             $addToWhat[$keyToAdd][] = $valueToAdd;
         } elseif (is_string($addToWhat[$keyToAdd])) {
-            // If it is a string, we convert it to an array and add the value to it
             $addToWhat[$keyToAdd] = [$addToWhat[$keyToAdd], $valueToAdd];
         }
     } else {
-        // If it doesn't exist, we just add the key with the value to it
         $addToWhat[$keyToAdd] = $valueToAdd;
     }
 }
 
-// Boolean function that returns that a directory exists and is readable & writable
+// Shorthand Boolean functions to check combined
+// things for files, dirs and/or different data types
 function dir_exists_is_readable_writable($dirPath)
 {
     return is_dir($dirPath) && is_readable($dirPath) && is_writable($dirPath);
 }
-
-// Boolean function that returns that a file exists and is readable & writable
 function file_exists_is_readable_writable($filePath)
 {
     return is_file($filePath) && is_readable($filePath) && is_writable($filePath);
 }
-
-// Boolean function that checks if a variable is a non-empty array
 function is_array_and_not_empty($array)
 {
     return isset($array) && is_array($array) && !empty($array);
 }
-// Boolean function that checks if a variable is a non-empty string
 function is_string_and_not_empty($string)
 {
     return isset($string) && is_string($string) && !empty($string);
@@ -4307,23 +4277,15 @@ function is_string_and_not_empty($string)
 // sensitive places so we will return "<INVALID>=><INVALID>" instead of halting.
 function flatten_single_array_key_to_a_string($arrayKeyWithSingleStringValue)
 {
-    // Check if the input is a non-empty array with exactly ONE element
     if (is_array($arrayKeyWithSingleStringValue) && count($arrayKeyWithSingleStringValue) === 1) {
         $key = key($arrayKeyWithSingleStringValue);
         $value = $arrayKeyWithSingleStringValue[$key];
-
-        // Ensure both key and value are strings before processing
-        // Construct the desired string format by concatenating the lowercased key, "=>", and the lowercased value
         if (is_string($key) && is_string($value)) {
             return strtolower($key) . "=>" . strtolower($value);
-        }
-        // Return error string if key or value are not strings (as expected by the function name)
-        else {
+        } else {
             return "<INVALID>=><INVALID>";
         }
-    }
-    // Input is not a valid single-element array
-    else {
+    } else {
         return "<INVALID>=><INVALID>";
     }
 }
