@@ -63,6 +63,24 @@ $validArg1withArg2Values =  [
         'all_all_backups_files_i_know_files_will_be_hard_to_get_back_and_i_will_cry',
         'help',
     ],
+    'find' => [
+        'any',
+        'a',
+        'route',
+        'r',
+        'data',
+        'd',
+        'page',
+        'p',
+        'handler',
+        'h',
+        'middleware',
+        'mw',
+        'mws',
+        'validation',
+        'v',
+        'help'
+    ],
     'restore' => [
         'all_routes_compiled_and_singles_files',
         'route_compiled_and_singles_files',
@@ -159,6 +177,28 @@ $exactFiles = [
     "single_routes" => $dirs['routes'] . "route_single_routes.php",
     "tables" => $dirs['config'] . "tables.php",
     "supported_mysql_data_types" => $dirs['_internals'] . "supported_mysql_data_types.php",
+];
+
+// Array list of different delimiters to faster use them in FunkCLI
+$delimiters = [
+    "route_never_start" => "//NEVER_TOUCH_ANY_COMMENTS_START=",
+    "route_never_end" => "//NEVER_TOUCH_ANY_COMMENTS_END=",
+    "route_start" => "//DELIMITER_HANDLER_FUNCTION_START=",
+    "route_end" => "//DELIMITER_HANDLER_FUNCTION_END=",
+    "data_start" => "//DELIMITER_HANDLER_FUNCTION_START=",
+    "data_end" => "//DELIMITER_HANDLER_FUNCTION_END=",
+    "data_never_start" => "//NEVER_TOUCH_ANY_COMMENTS_START=",
+    "data_never_end" => "//NEVER_TOUCH_ANY_COMMENTS_END=",
+    "page_start" => "//DELIMITER_HANDLER_FUNCTION_START=",
+    "page_end" => "//DELIMITER_HANDLER_FUNCTION_END=",
+    "page_never_start" => "//NEVER_TOUCH_ANY_COMMENTS_START=",
+    "page_never_end" => "//NEVER_TOUCH_ANY_COMMENTS_END=",
+    "validation_user_start" => "//DELIMITER_VALIDATION_USER_START=",
+    "validation_user_end" => "//DELIMITER_VALIDATION_USER_END=",
+    "validation_compiled_start" => "//DELIMITER_VALIDATION_COMPILED_START=",
+    "validation_compiled_end" => "//DELIMITER_VALIDATION_COMPILED_END=",
+    "never_touch_start" => "//NEVER_TOUCH_ANY_COMMENTS_START=",
+    "never_touch_end" => "//NEVER_TOUCH_ANY_COMMENTS_END=",
 ];
 
 // List of all functions that are reserved for the framework and
@@ -359,10 +399,8 @@ $commands = [
         },
         'table' => function () {
             cli_parse_a_sql_table_file();
-            //cli_output_tables_file(["tables" => [], "relationships" => []]);
         },
         'validation' => function () {
-
             cli_generate_a_validation_from_a_table();
         },
     ],
@@ -479,6 +517,42 @@ $commands = [
             cli_delete_all_files_in_directory_except_other_directories($backupDataPath);
             cli_delete_all_files_in_directory_except_other_directories($backupPagePath);
             cli_delete_all_files_in_directory_except_other_directories($backupFinalsPath);
+        },
+    ],
+    'find' => [
+        'any' => function () {
+            cli_info("[INFO]: Finding any routes (not implemented yet)");
+        },
+        'route' => function () {
+            cli_info("[INFO]: Finding route routes (not implemented yet)");
+        },
+        'page' => function () {
+            cli_info("[INFO]: Finding page routes (not implemented yet)");
+        },
+        'handler' => function () use ($argv) {
+            if (isset($argv[3]) && is_string($argv[3]) && !empty($argv[3])) {
+                // Check if the handler is a route, data or page handler
+                // by checking if it starts with "h:", "d:" or "v:"
+                if (strpos($argv[3], 'h:') === 0) {
+                    $argv[3] = substr($argv[3], 2);
+                    cli_route_handler_exists($argv[3], true);
+                } elseif (strpos($argv[3], 'd:') === 0) {
+                    $argv[3] = substr($argv[3], 2);
+                    cli_data_handler_exists($argv[3], true);
+                } elseif (strpos($argv[3], 'v:') === 0) {
+                    $argv[3] = substr($argv[3], 2);
+                    cli_validation_handler_exists($argv[3], true);
+                }
+            } else {
+                cli_err_syntax_without_exit("No FunkPHP Command was given?!\nShould be at least three arguments!");
+                cli_err_syntax_without_exit("Syntax: 'php funkcli find handler h|d|v:[handler_name=>[optionalFunctionName]]'");
+                cli_err_syntax_without_exit("Example 1: 'php funkcli find handler h:handlerFileName=>handlerFunctionName'");
+                cli_err_syntax_without_exit("Example 2: 'php funkcli find handler d:dataHandlerFileName=>dataHandlerFunctionName'");
+                cli_err_syntax("Example 3: 'php funkcli find handler v:validationFileName=>validationFunctionName'");
+            }
+        },
+        'middleware' => function () {
+            cli_info("[INFO]: Finding middleware routes (not implemented yet)");
         },
     ],
     'restore' => [
