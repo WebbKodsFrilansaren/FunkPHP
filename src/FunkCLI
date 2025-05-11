@@ -26,6 +26,7 @@ $validArg1withArg2Values =  [
         'd',
         'data',
         'page',
+        'rdv',
         'mw_all',
         'mw_route',
         'mw_data',
@@ -426,7 +427,21 @@ $commands = [
         },
         'v' => function () {
             cli_add_a_validation_handler();
-        }
+        },
+        'rdv' => function () {
+            $r_test = "php funkcli add r g/test test=>test";
+            $d_test = "php funkcli add d g/test test=>test";
+            $v_test = "php funkcli add v g/test test=>test";
+            // /Use shell_exec to run the commands
+            $output = shell_exec($r_test);
+            echo $output;
+            $output = shell_exec($d_test);
+            // Output the result
+            echo $output;
+            $output = shell_exec($v_test);
+            // Output the result
+            echo $output;
+        },
     ],
     'change' => [
         'route' => function () use ($argv, $settings) {

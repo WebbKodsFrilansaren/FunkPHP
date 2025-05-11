@@ -3,25 +3,7 @@ return  [
   'ROUTES' =>
   [
     'GET' =>
-    [
-      '/test' =>
-      [
-        'handler' => 'r_test',
-        'data' => 'd_test',
-        'validation' => 'v_test',
-      ],
-      '/test/:id' =>
-      [
-        'handler' =>
-        [
-          'r_test' => 'r_by_id',
-        ],
-        'validation' =>
-        [
-          'v_test' => 'v_by_id',
-        ],
-      ],
-    ],
+    [],
     'POST' =>
     [],
     'PUT' =>
