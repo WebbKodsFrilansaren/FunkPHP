@@ -981,7 +981,7 @@ function cli_compile_dx_validation_to_optimized_validation()
     }
 
     // The compiled array which is then inserted into the document again
-    $compiledArray = [];
+    $compiledArray = $parsedArray;
     $uniqueRulesToCheck = [];
     $uniqueRulesToCheckCount = 0;
     $existRulesToCheck = [];
@@ -2890,7 +2890,7 @@ function cli_add_a_route()
     if (file_exists($handlersDir . $handlerFile . ".php")) {
         // Read the file content and check if the function name exists in the file
         $fileContent = file_get_contents($handlersDir . $handlerFile . ".php");
-        if ($fnName !== null && strpos($fileContent, "//DELIMITER_HANDLER_FUNCTION_START=$fnName") !== false) {
+        if ($fnName !== null && strpos($fileContent, "//DELIMITER_HANDLER_FUNCTION_START=$fnName\n") !== false) {
             cli_err_without_exit("Function \"$fnName\" in Handler \"funkphp/handlers/$handlerFile.php\" is already used!");
             cli_err_without_exit("If the Handler File with the Function was created using \"php funkcli add handler [HandlerFile[=>Function]]\", you must MANUALLY add it to the Route file!");
             cli_info("Use \"php funkcli add route [Method/Route] [HandlerFile[=>Function]]\" instead to avoid these possible issues in the first place!");
@@ -2900,7 +2900,7 @@ function cli_add_a_route()
             cli_info_without_exit("Handler \"funkphp/handlers/$handlerFile.php\" exists and Function \"$fnName\" is valid!");
             // We now check if we can find "//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile" in the file
             // and if not that means either error or Developer is trying to break the file, so we exit
-            if (strpos($fileContent, "//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile") === false) {
+            if (strpos($fileContent, "//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile\n") === false) {
                 cli_err("Handler \"funkphp/handlers/$handlerFile.php\" is invalid. Could not find \"//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile\". Please do not be a jerk trying to break the file!");
             }
             // We found the comment, so we can add the function name to the file by replacing the comment with the function name and then the comment again!
@@ -3034,7 +3034,7 @@ function cli_add_a_data_handler()
     if (file_exists($handlersDir . $handlerFile . ".php")) {
         // Read the file content and check if the function name exists in the file
         $fileContent = file_get_contents($handlersDir . $handlerFile . ".php");
-        if ($fnName !== null && strpos($fileContent, "//DELIMITER_HANDLER_FUNCTION_START=$fnName") !== false) {
+        if ($fnName !== null && strpos($fileContent, "//DELIMITER_HANDLER_FUNCTION_START=$fnName\n") !== false) {
             // Find what <method/route> that is already using it or just show default error!
             $pattern = "/\/\/DELIMITER_HANDLER_FUNCTION_START={$fnName}.*\n.*?<(.*?)>.*/si";
             if (preg_match($pattern, $fileContent, $matches) && isset($matches[1])) {
@@ -3049,7 +3049,7 @@ function cli_add_a_data_handler()
             cli_info_without_exit("Handler \"funkphp/data/$handlerFile.php\" exists and Function \"$fnName\" is valid!");
             // We now check if we can find "//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile" in the file
             // and if not that means either error or Developer is trying to break the file, so we exit
-            if (strpos($fileContent, "//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile") === false) {
+            if (strpos($fileContent, "//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile\n") === false) {
                 cli_err("Data Handler \"funkphp/data/$handlerFile.php\" is invalid. Could not find \"//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile\". Please do not be a jerk trying to break the file!");
             }
             // We found the comment, so we can add the function name to the file by replacing the comment with the function name and then the comment again!
@@ -3184,7 +3184,7 @@ function cli_add_a_validation_handler()
     if (file_exists($handlersDir . $handlerFile . ".php")) {
         // Read the file content and check if the function name exists in the file
         $fileContent = file_get_contents($handlersDir . $handlerFile . ".php");
-        if ($fnName !== null && strpos($fileContent, "//DELIMITER_HANDLER_FUNCTION_START=$fnName") !== false) {
+        if ($fnName !== null && strpos($fileContent, "//DELIMITER_HANDLER_FUNCTION_START=$fnName\n") !== false) {
             // Find what <method/route> that is already using it or just show default error!
             $pattern = "/\/\/DELIMITER_HANDLER_FUNCTION_START={$fnName}.*\n.*?<(.*?)>.*/si";
             if (preg_match($pattern, $fileContent, $matches) && isset($matches[1])) {
@@ -3199,7 +3199,7 @@ function cli_add_a_validation_handler()
             cli_info_without_exit("Validation Handler \"funkphp/validations/$handlerFile.php\" exists and Validation Function \"$fnName\" is valid!");
             // We now check if we can find "//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile" in the file
             // and if not that means either error or Developer is trying to break the file, so we exit
-            if (strpos($fileContent, "//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile") === false) {
+            if (strpos($fileContent, "//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile\n") === false) {
                 cli_err("Validation Handler \"funkphp/validations/$handlerFile.php\" is invalid. Could not find \"//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile\". Please do not be a jerk trying to break the file!");
             }
             // We found the comment, so we can add the function name to the file by replacing the comment with the function name and then the comment again!

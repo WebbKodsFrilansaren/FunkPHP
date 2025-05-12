@@ -8,6 +8,12 @@ return  [
     'test2' => 
      [
     ],
+    'testar' => 
+     [
+    ],
+    'testar2' => 
+     [
+    ],
   ],
   'POST' => 
    [

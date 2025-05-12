@@ -9,13 +9,55 @@ function v_test(&$c) // <GET/test>
 {
     //DELIMITER_VALIDATION_USER_START=v_test
 
-    $DX = [];
+    $DX = [
+        'input_filed1' => 'required("Must be filled!")|string|min:10|max:111',
+        'input_filed2' => 'required|string|email|min:10|max:50',
+        'input_filed3' => 'required|integer|min:10|max:50',
+    ];
 
     //DELIMITER_VALIDATION_USER_END=v_test
 
 
     //DELIMITER_VALIDATION_COMPILED_START=v_test
-    return [];
+    return array(
+        'input_filed1' =>
+        ['required' => [
+            'err' => 'Must be filled!'
+        ], 'string' => [
+            'err' => null
+        ], ['min' => [
+            'err' => null,
+            'val' => '10'
+        ]], ['max' => [
+            'err' => null,
+            'val' => 111
+        ]]],
+        'input_filed2' => ['required' => [
+            'err' => null
+        ], 'string' => [
+            'err' => null
+        ], 'email' => [
+            'err' => null
+        ], ['min' => [
+            'err' => null,
+            'val' => '10'
+        ]], ['max' => [
+            'err' => null,
+            'val' => 50
+        ]]],
+        'input_filed3' => ['required' => [
+            'err' => 'Must be filled!'
+        ], 'integer' => [
+            'err' => null
+        ], ['min' => [
+            'err' => null,
+            'val' => '10'
+        ]], ['max' => [
+            'err' => null,
+            'val' => 50
+        ]]],
+
+    );
     //DELIMITER_VALIDATION_COMPILED_END=v_test
 };
 //DELIMITER_HANDLER_FUNCTION_END=v_test
