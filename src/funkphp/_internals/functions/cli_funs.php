@@ -2962,32 +2962,10 @@ function cli_add_a_middleware()
         $settings,
         $dirs,
         $exactFiles,
-        $reserved_functions,
         $singleRoutesRoute;
-    if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3]) || !isset($argv[4]) || !is_string($argv[4]) || empty($argv[4])) {
-        cli_err_syntax("Should be at least four(4) non-empty string arguments!\nphp funkcli add mw [Method/route] [Middleware_handler]\nExample: 'php funkcli add mw GET/users/:id validateUserId'");
-    }
 
-    // Check now that handler $argv[4] is a string containg only letters, numbers and underscores!
-    if (!preg_match('/^[a-z0-9_]+$/', $argv[4])) {
-        cli_err_syntax("\"{$argv[4]}\" - Middleware Name must be a lowercased string containing only letters, numbers and underscores!");
-    }
-
-    // Now we check if the middleware name starts with "m_" and if not we add it to the name
-    // This is to avoid conflicts with other handler files that might use the same name in the future
-    if (!str_starts_with($argv[4], "m_")) {
-        $argv[4] = "m_" . $argv[4];
-    }
-    // Now we check that it doesn't conflict with any reserved functions
-    if (in_array($argv[4], $reserved_functions)) {
-        cli_err_syntax("\"{$argv[4]}\" is a reserved function name!");
-    }
-
-    // Prepare the route string by trimming, validating starting, ending and middle parts of it
-    $addRoute = trim(strtolower($argv[3]));
-    $oldRoute = $addRoute;
-    [$method, $validRoute] = cli_prepare_valid_route_string($addRoute);
-    cli_info_without_exit("ROUTE: " . "\"$oldRoute\"" . " parsed as: \"$validRoute\"");
+    // Retrieve valid middleware name & the method and route from the arguments
+    [$argv[4], $method, $validRoute] = get_valid_mw_string_and_matched_route_or_err_out("\nSyntax: `php funkcli add mw [Method/route] [Middleware_handler]`\nExample: `php funkcli add mw GET/users/:id validateUserId`");
 
     // Check that the exact route already exists in the route file
     if (!isset($singleRoutesRoute['ROUTES'][$method][$validRoute])) {
@@ -4092,6 +4070,47 @@ function get_matched_route_from_argv3_or_err_out($handlerType)
     cli_info_without_exit("ROUTE: " . "\"$oldRoute\"" . " parsed as: \"$method$validRoute\"");
 
     return [$method, $validRoute];
+}
+
+// Returns [$argv[4], $method, $validRoute] or errors out
+// For middleware handlers in funkphp/middlewares/
+function get_valid_mw_string_and_matched_route_or_err_out($syntaxExample)
+{
+    // Load globals and validate input
+    global $argv,
+        $settings,
+        $dirs,
+        $exactFiles,
+        $reserved_functions;
+    if (!is_string($syntaxExample) || empty($syntaxExample)) {
+        cli_err_syntax("[get_valid_mw_string_and_matched_route_or_err_out] Middleware Syntax Example must be a non-empty string!");
+    }
+    if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3]) || !isset($argv[4]) || !is_string($argv[4]) || empty($argv[4])) {
+        cli_err_syntax("[get_valid_mw_string_and_matched_route_or_err_out] Should be at least four(4) non-empty string arguments!$syntaxExample");
+    }
+
+    // Check now that handler $argv[4] is a string containg only letters, numbers and underscores!
+    if (!preg_match('/^[a-z0-9_]+$/', $argv[4])) {
+        cli_err_syntax("[get_valid_mw_string_and_matched_route_or_err_out] \"{$argv[4]}\" - Middleware Name must be a lowercased string containing only letters, numbers and underscores!");
+    }
+
+    // Now we check if the middleware name starts with "m_" and if not we add it to the name
+    // This is to avoid conflicts with other handler files that might use the same name in the future
+    if (!str_starts_with($argv[4], "m_")) {
+        $argv[4] = "m_" . $argv[4];
+    }
+    // Now we check that it doesn't conflict with any reserved functions
+    if (in_array($argv[4], $reserved_functions)) {
+        cli_err_syntax("[get_valid_mw_string_and_matched_route_or_err_out] \"{$argv[4]}\" is a reserved function name!");
+    }
+
+    // Prepare the route string by trimming, validating starting, ending and middle parts of it
+    $addRoute = trim(strtolower($argv[3]));
+    $oldRoute = $addRoute;
+    [$method, $validRoute] = cli_prepare_valid_route_string($addRoute);
+    cli_info_without_exit("ROUTE: " . "\"$oldRoute\"" . " parsed as: \"$validRoute\"");
+
+    return [$argv[4], $method, $validRoute];
 }
 
 // Function that takes a handler file name, function name,
