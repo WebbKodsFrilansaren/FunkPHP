@@ -281,6 +281,10 @@ $reserved_functions =  [
     'is_array_and_not_empty',
     'is_string_and_not_empty',
     'flatten_single_array_key_to_a_string',
+    'get_handler_and_fn_from_argv4_or_err_out',
+    'get_matched_route_from_argv3_or_err_out',
+    'get_valid_mw_string_and_matched_route_or_err_out',
+    'create_handler_file_with_fn_or_fn_or_err_out',
     'funk_connect_db',
     'funk_run_matched_data_handler',
     'funk_use_validation',
@@ -429,12 +433,12 @@ $commands = [
             cli_add_a_validation_handler();
         },
         'rdv' => function () {
-            $r_test = escapeshellcmd("php funkcli add r g/test2 test=>test2");
-            $d_test = escapeshellcmd("php funkcli add d g/test2 test=>test2");
-            $v_test = escapeshellcmd("php funkcli add v g/test2 test=>test2");
-            echo shell_exec($r_test);
-            echo shell_exec($d_test);
-            echo shell_exec($v_test);
+            // $r_test = escapeshellcmd("php funkcli add r g/test2 test=>test2");
+            // $d_test = escapeshellcmd("php funkcli add d g/test2 test=>test2");
+            // $v_test = escapeshellcmd("php funkcli add v g/test2 test=>test2");
+            // echo shell_exec($r_test);
+            // echo shell_exec($d_test);
+            // echo shell_exec($v_test);
         },
     ],
     'change' => [

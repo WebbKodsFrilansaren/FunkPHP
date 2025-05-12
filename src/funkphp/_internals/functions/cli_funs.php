@@ -1,5 +1,57 @@
 <?php
 
+// Function that creates a regex pattern to match a function name
+// inside of a typical handler file with a handler function name!
+function get_match_function_regex($fnName, $method, $route)
+{
+    // Check if the function name is valid
+    if (!is_string_and_not_empty($fnName)) {
+        cli_err_syntax("[cli_match_function_part] Function name must be a non-empty string!");
+    }
+    // Check if the method is valid
+    if (!is_string_and_not_empty($method)) {
+        cli_err_syntax("[cli_match_function_part] Method must be a non-empty string!");
+    }
+    // Check if the route is valid
+    if (!is_string_and_not_empty($route)) {
+        cli_err_syntax("[cli_match_function_part] Route must be a non-empty string!");
+    }
+
+    // Create regex pattern based on method and route
+    // It can find things like (ignore the quotes):
+    // "function post_user(&$c) // <POST/user>
+    // {
+    // };"
+    // The matching is only valid if after "};" there is a new line otherwise it will be invalid!
+    $regex = "/^function ({$fnName})\(\&\$c\)\s*\/\/ <({$method})\/({$route})>$.*?^};$/ims";
+    return $regex;
+}
+
+// Function that creates a regex pattern to match the $DX = []; part of
+// the function inside of a Validation Handler file with a Function Name!
+function get_match_dx_function_regex($fnName, $method, $route, $matchedFnRegex)
+{
+    // Check if the function name is valid
+    if (!is_string_and_not_empty($fnName)) {
+        cli_err_syntax("[cli_match_function_part] Function name must be a non-empty string!");
+    }
+    // Check if the method is valid
+    if (!is_string_and_not_empty($method)) {
+        cli_err_syntax("[cli_match_function_part] Method must be a non-empty string!");
+    }
+    // Check if the route is valid
+    if (!is_string_and_not_empty($route)) {
+        cli_err_syntax("[cli_match_function_part] Route must be a non-empty string!");
+    }
+    // Check the matched function regex is a string
+    if (!is_string_and_not_empty($matchedFnRegex)) {
+        cli_err_syntax("[cli_match_function_part] Matched Function Regex must be a non-empty string!");
+    }
+    // This matches "$DX = [multi-lines possible];" part
+    // of the function within the provided regex string!
+    return "/\$DX\s*=\s*\[(.*?)];/ims";
+};
+
 // Function takes a table which is an array of columns and then
 // generates a validation file based on the table structure where
 // it uses the values from the data type, default value, typical default
@@ -3901,11 +3953,13 @@ function cli_update_reserved_functions_list()
 
     // Convert the array to a string using cli_convert_array_to_simple_syntax
     $reserved_functions_string = cli_convert_array_to_simple_syntax($reserved_functions);
+    $count = count($reserved_functions);
+
     // Replace all /\d+ => / with "" to remove the array keys
     $reserved_functions_string = preg_replace("/\d+\s*=>\s*/", "", $reserved_functions_string);
     $reserved_functions_string = preg_replace("/\n/", "", $reserved_functions_string);
     $reserved_functions_string = preg_replace("/\',/", "',\n", $reserved_functions_string, 1);
-    echo "COPY & PASTE THIS INTO FunkCLI at the \"\$reserved_functions = [...];\" lines!\n---------------------------------------------------------------------------\n\$reserved_functions = $reserved_functions_string\n---------------------------------------------------------------------------";
+    echo "RESULT: $count Functions total!\nCOPY & PASTE THIS INTO FunkCLI at the \"\$reserved_functions = [...];\" lines!\n---------------------------------------------------------------------------\n\$reserved_functions = $reserved_functions_string\n---------------------------------------------------------------------------";
 }
 
 // Function that takes a variable ($existsInWhat) and then checks if a given value
