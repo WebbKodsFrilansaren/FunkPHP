@@ -182,28 +182,6 @@ $exactFiles = [
     "supported_mysql_data_types" => $dirs['_internals'] . "supported_mysql_data_types.php",
 ];
 
-// Array list of different delimiters to faster use them in FunkCLI
-$delimiters = [
-    "route_never_start" => "//NEVER_TOUCH_ANY_COMMENTS_START=",
-    "route_never_end" => "//NEVER_TOUCH_ANY_COMMENTS_END=",
-    "route_start" => "//DELIMITER_HANDLER_FUNCTION_START=",
-    "route_end" => "//DELIMITER_HANDLER_FUNCTION_END=",
-    "data_start" => "//DELIMITER_HANDLER_FUNCTION_START=",
-    "data_end" => "//DELIMITER_HANDLER_FUNCTION_END=",
-    "data_never_start" => "//NEVER_TOUCH_ANY_COMMENTS_START=",
-    "data_never_end" => "//NEVER_TOUCH_ANY_COMMENTS_END=",
-    "page_start" => "//DELIMITER_HANDLER_FUNCTION_START=",
-    "page_end" => "//DELIMITER_HANDLER_FUNCTION_END=",
-    "page_never_start" => "//NEVER_TOUCH_ANY_COMMENTS_START=",
-    "page_never_end" => "//NEVER_TOUCH_ANY_COMMENTS_END=",
-    "validation_user_start" => "//DELIMITER_VALIDATION_USER_START=",
-    "validation_user_end" => "//DELIMITER_VALIDATION_USER_END=",
-    "validation_compiled_start" => "//DELIMITER_VALIDATION_COMPILED_START=",
-    "validation_compiled_end" => "//DELIMITER_VALIDATION_COMPILED_END=",
-    "never_touch_start" => "//NEVER_TOUCH_ANY_COMMENTS_START=",
-    "never_touch_end" => "//NEVER_TOUCH_ANY_COMMENTS_END=",
-];
-
 // List of all functions that are reserved for the framework and
 // should not be used in the application code. They are checked against
 // when adding a new function as a result of a route/data/page/mw handler.
@@ -401,10 +379,10 @@ $commands = [
             cli_add_a_route();
         },
         'data' => function () {
-            cli_add_a_data_handler();
+            cli_add_a_data_or_a_validation_handler("d");
         },
         'd' => function () {
-            cli_add_a_data_handler();
+            cli_add_a_data_or_a_validation_handler("d");
         },
         'page' => function () {
             //
@@ -419,10 +397,10 @@ $commands = [
             cli_parse_a_sql_table_file();
         },
         'validation' => function () {
-            cli_add_a_validation_handler();
+            cli_add_a_data_or_a_validation_handler("v");
         },
         'v' => function () {
-            cli_add_a_validation_handler();
+            cli_add_a_data_or_a_validation_handler("v");
         },
         'rdv' => function () {
             // $r_test = escapeshellcmd("php funkcli add r g/test2 test=>test2");
@@ -570,13 +548,13 @@ $commands = [
                 // by checking if it starts with "h:", "d:" or "v:"
                 if (strpos($argv[3], 'h:') === 0) {
                     $argv[3] = substr($argv[3], 2);
-                    cli_route_handler_exists($argv[3], true);
+                    //cli_route_handler_exists($argv[3], true);
                 } elseif (strpos($argv[3], 'd:') === 0) {
                     $argv[3] = substr($argv[3], 2);
-                    cli_data_handler_exists($argv[3], true);
+                    //cli_data_handler_exists($argv[3], true);
                 } elseif (strpos($argv[3], 'v:') === 0) {
                     $argv[3] = substr($argv[3], 2);
-                    cli_validation_handler_exists($argv[3], true);
+                    //cli_validation_handler_exists($argv[3], true);
                 }
             } else {
                 cli_err_syntax_without_exit("No FunkPHP Command was given?!\nShould be at least three arguments!");

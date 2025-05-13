@@ -1037,10 +1037,14 @@ function cli_compile_dx_validation_to_optimized_validation()
         $evalCode = "\nreturn $matchedSimpleSyntax";
         $evalCode = eval($evalCode);
     } catch (Throwable $e) {
-        cli_err("The \"\$DX\" variable was found but could not be parsed as a valid PHP Array!");
+        cli_err_without_exit("The \"\$DX\" variable was found but could not be parsed as a valid PHP Array!");
+        cli_info_without_exit("Make sure it is intended using CMD+S or CTRL+S to autoformat the Validation Handler File!");
+        cli_info("It must start as an array: `\$DX = ['<anything_inside_here>'];` or it will not be found!");
     }
     if ($evalCode === null) {
-        cli_err("The \"\$DX\" variable was found but could not be parsed as a valid PHP Array!");
+        cli_err_without_exit("The \"\$DX\" variable was found but could not be parsed as a valid PHP Array!");
+        cli_info_without_exit("Make sure it is intended using CMD+S or CTRL+S to autoformat the Validation Handler File!");
+        cli_info("It must start as an array: `\$DX = ['<anything_inside_here>'];` or it will not be found!");
     }
     if (is_array($evalCode)) {
         cli_info_without_exit("Found \"\$DX\" variable parsed as a valid PHP Array!");
@@ -1665,314 +1669,6 @@ function cli_route_handler_file_exists($fileName): bool
     return false;
 }
 
-// Check if a Route Handler exists in handlers/ folder. $info
-// is optional and then shows info in Terminal if true.
-function cli_route_handler_exists($routeFileWithOptionalFunctionname, $info = false)
-{
-    // Load globals, verify & transform string with .php if not already
-    global $argv,
-        $settings,
-        $dirs,
-        $delimiters,
-        $exactFiles;
-    if (!is_string($routeFileWithOptionalFunctionname) || empty($routeFileWithOptionalFunctionname)) {
-        cli_err_syntax("[cli_route_handler_exists] Route Handler File name must be a non-empty string!");
-    }
-    // Lowercase the file name
-    $routeFileWithOptionalFunctionname = strtolower($routeFileWithOptionalFunctionname);
-
-    // The regex checks for a valid file name with optional function name
-    $validRegex = "/^([a-z_][a-z0-9_]+)(?:=>(?=[a-z_][a-z0-9_]+)([a-z_][a-z0-9_]+))?$/";
-    if (!preg_match($validRegex, $routeFileWithOptionalFunctionname)) {
-        cli_err_syntax("[cli_route_handler_exists] Syntax should be: \"filename\" or \"filename=>functionname\"!");
-    }
-
-    // We prepare the route file name and function name
-    // and we split on "=>" if it exists, otherwise we
-    // assume same name for file and function
-    $routeFile = "";
-    $routeFunction = "";
-
-    if (str_contains($routeFileWithOptionalFunctionname, "=>")) {
-        $routeFile = explode("=>", $routeFileWithOptionalFunctionname)[0];
-        $routeFunction = explode("=>", $routeFileWithOptionalFunctionname)[1];
-    } else {
-        $routeFile = $routeFileWithOptionalFunctionname;
-        $routeFunction = $routeFileWithOptionalFunctionname;
-    }
-
-    // Add "r_" if not already
-    if (!str_starts_with($routeFile, "r_")) {
-        $routeFile = "r_" . $routeFile;
-    }
-    if (!str_starts_with($routeFunction, "r_")) {
-        $routeFunction = "r_" . $routeFunction;
-    }
-
-    // We now check if the file exists in the handlers folder
-    if (!file_exists($dirs['handlers'] . $routeFile . ".php")) {
-        if ($info) {
-            cli_warning_without_exit("[cli_route_handler_exists] Route Handler File \"$routeFile\" NOT found in \"funkphp/handlers/\"!");
-        }
-        return false;
-    }
-
-    // Here file exists, so we know we can check if the function exists
-    // by checking for the delimiters based on the file name AND function name
-    // We check for both end and start delimiters for both file and function!
-    // Check file can be read and is a file
-    if (!file_exists_is_readable_writable($dirs['handlers'] . $routeFile . ".php")) {
-        if ($info) {
-            cli_warning_without_exit("[cli_route_handler_exists] Route Handler File \"funkphp/handlers/$routeFile.php\" exists but is NOT readable/writable!");
-        }
-        return false;
-    }
-    $routeFileContents = file_get_contents($dirs['handlers'] . $routeFile . ".php");
-
-    // We now use the "cli_delimiters_exist" function to check if the delimiters exist
-    // first we check the handler function itself (return function (&$c, $handler = "$routeFile"){};)
-    $delimiterHandlerExist = cli_delimiters_exist($routeFileContents, $routeFile, "never");
-    if ($delimiterHandlerExist) {
-        if ($info) {
-            cli_info_without_exit("[cli_route_handler_exists] Route Handler \"$routeFile\" found in \"funkphp/handlers/$routeFile.php\"!");
-        }
-    } else {
-        if ($info) {
-            cli_warning_without_exit("[cli_route_handler_exists] Route Handler \"$routeFile\" NOT found in \"funkphp/handlers/$routeFile.php\"!");
-        }
-    }
-    // And then we check the function name (function $routeFunction(&$c){};)
-    $delimiterFunctionExist = cli_delimiters_exist($routeFileContents, $routeFunction);
-    if ($delimiterFunctionExist) {
-        if ($info) {
-            cli_info_without_exit("[cli_route_handler_exists] Route Function \"$routeFunction\" found in Route Handler \"funkphp/handlers/$routeFile.php\"!");
-        }
-    } else {
-        if ($info) {
-            cli_warning_without_exit("[cli_route_handler_exists] Route Function \"$routeFunction\" NOT found in Route Handler \"funkphp/handlers/$routeFile.php\"!");
-        }
-    }
-    // If both delimiters exist, we return true
-    if ($delimiterHandlerExist && $delimiterFunctionExist) {
-        if ($info) {
-            cli_success_without_exit("[cli_route_handler_exists] Route Handler \"$routeFile\" with Handler Function \"$routeFunction\" found in \"funkphp/handlers/$routeFile.php\"!");
-        }
-        return true;
-    }
-
-    // Return false if either of the delimiters do not exist and with optional info
-    if ($info) {
-        cli_warning_without_exit("[cli_route_handler_exists] Route Handler \"$routeFile\" with Handler Function \"$routeFunction\" NOT found in \"funkphp/handlers/$routeFile.php\"!");
-    }
-
-    return false;
-}
-
-// Check if a Data Handler exists in data/ folder. $info
-// is optional and then shows info in Terminal if true.
-function cli_data_handler_exists($routeFileWithOptionalFunctionname, $info = false)
-{
-    // Load globals, verify & transform string with .php if not already
-    global $argv,
-        $settings,
-        $dirs,
-        $delimiters,
-        $exactFiles;
-    if (!is_string($routeFileWithOptionalFunctionname) || empty($routeFileWithOptionalFunctionname)) {
-        cli_err_syntax("[cli_data_handler_exists] Data Handler File name must be a non-empty string!");
-    }
-    // Lowercase the file name
-    $routeFileWithOptionalFunctionname = strtolower($routeFileWithOptionalFunctionname);
-
-    // The regex checks for a valid file name with optional function name
-    $validRegex = "/^([a-z_][a-z0-9_]+)(?:=>(?=[a-z_][a-z0-9_]+)([a-z_][a-z0-9_]+))?$/";
-    if (!preg_match($validRegex, $routeFileWithOptionalFunctionname)) {
-        cli_err_syntax("[cli_data_handler_exists] Syntax should be: \"filename\" or \"filename=>functionname\"!");
-    }
-
-    // We prepare the route file name and function name
-    // and we split on "=>" if it exists, otherwise we
-    // assume same name for file and function
-    $routeFile = "";
-    $routeFunction = "";
-
-    if (str_contains($routeFileWithOptionalFunctionname, "=>")) {
-        $routeFile = explode("=>", $routeFileWithOptionalFunctionname)[0];
-        $routeFunction = explode("=>", $routeFileWithOptionalFunctionname)[1];
-    } else {
-        $routeFile = $routeFileWithOptionalFunctionname;
-        $routeFunction = $routeFileWithOptionalFunctionname;
-    }
-
-    // Add "d_" if not already
-    if (!str_starts_with($routeFile, "d_")) {
-        $routeFile = "d_" . $routeFile;
-    }
-    if (!str_starts_with($routeFunction, "d_")) {
-        $routeFunction = "d_" . $routeFunction;
-    }
-
-    // We now check if the file exists in the data folder
-    if (!file_exists($dirs['data'] . $routeFile . ".php")) {
-        if ($info) {
-            cli_warning_without_exit("[cli_data_handler_exists] Data Handler File \"$routeFile\" NOT found in \"funkphp/data/\"!");
-        }
-        return false;
-    }
-
-    // Here file exists, so we know we can check if the function exists
-    // by checking for the delimiters based on the file name AND function name
-    // We check for both end and start delimiters for both file and function!
-    // Check file can be read and is a file
-    if (!file_exists_is_readable_writable($dirs['data'] . $routeFile . ".php")) {
-        if ($info) {
-            cli_warning_without_exit("[cli_data_handler_exists] Data Handler File \"funkphp/data/$routeFile.php\" exists but is NOT readable/writable!");
-        }
-        return false;
-    }
-    $routeFileContents = file_get_contents($dirs['data'] . $routeFile . ".php");
-
-    // We now use the "cli_delimiters_exist" function to check if the delimiters exist
-    // first we check the handler function itself (return function (&$c, $handler = "$routeFile"){};)
-    $delimiterHandlerExist = cli_delimiters_exist($routeFileContents, $routeFile, "never");
-    if ($delimiterHandlerExist) {
-        if ($info) {
-            cli_info_without_exit("[cli_data_handler_exists] Data Handler \"$routeFile\" found in \"funkphp/data/$routeFile.php\"!");
-        }
-    } else {
-        if ($info) {
-            cli_warning_without_exit("[cli_data_handler_exists] Data Handler \"$routeFile\" NOT found in \"funkphp/data/$routeFile.php\"!");
-        }
-    }
-    // And then we check the function name (function $routeFunction(&$c){};)
-    $delimiterFunctionExist = cli_delimiters_exist($routeFileContents, $routeFunction);
-    if ($delimiterFunctionExist) {
-        if ($info) {
-            cli_info_without_exit("[cli_data_handler_exists] Data Function \"$routeFunction\" found in Data Handler \"funkphp/data/$routeFile.php\"!");
-        }
-    } else {
-        if ($info) {
-            cli_warning_without_exit("[cli_data_handler_exists] Data Function \"$routeFunction\" NOT found in Data Handler \"funkphp/data/$routeFile.php\"!");
-        }
-    }
-    // If both delimiters exist, we return true
-    if ($delimiterHandlerExist && $delimiterFunctionExist) {
-        if ($info) {
-            cli_success_without_exit("[cli_data_handler_exists] Data Handler \"$routeFile\" with Data Function \"$routeFunction\" found in \"funkphp/data/$routeFile.php\"!");
-        }
-        return true;
-    }
-
-    // Return false if either of the delimiters do not exist and with optional info
-    if ($info) {
-        cli_warning_without_exit("[cli_data_handler_exists] Data Handler \"$routeFile\" with Data Function \"$routeFunction\" NOT found in \"funkphp/data/$routeFile.php\"!");
-    }
-
-    return false;
-}
-
-// Check if a Validation Handler in validations/ folder exists
-function cli_validation_handler_exists($routeFileWithOptionalFunctionname, $info = false)
-{
-    // Load globals, verify & transform string with .php if not already
-    global $argv,
-        $settings,
-        $dirs,
-        $delimiters,
-        $exactFiles;
-    if (!is_string($routeFileWithOptionalFunctionname) || empty($routeFileWithOptionalFunctionname)) {
-        cli_err_syntax("[cli_validation_handler_exists] Validation Handler File name must be a non-empty string!");
-    }
-    // Lowercase the file name
-    $routeFileWithOptionalFunctionname = strtolower($routeFileWithOptionalFunctionname);
-
-    // The regex checks for a valid file name with optional function name
-    $validRegex = "/^([a-z_][a-z0-9_]+)(?:=>(?=[a-z_][a-z0-9_]+)([a-z_][a-z0-9_]+))?$/";
-    if (!preg_match($validRegex, $routeFileWithOptionalFunctionname)) {
-        cli_err_syntax("[cli_validation_handler_exists] Syntax should be: \"filename\" or \"filename=>functionname\"!");
-    }
-
-    // We prepare the route file name and function name
-    // and we split on "=>" if it exists, otherwise we
-    // assume same name for file and function
-    $routeFile = "";
-    $routeFunction = "";
-
-    if (str_contains($routeFileWithOptionalFunctionname, "=>")) {
-        $routeFile = explode("=>", $routeFileWithOptionalFunctionname)[0];
-        $routeFunction = explode("=>", $routeFileWithOptionalFunctionname)[1];
-    } else {
-        $routeFile = $routeFileWithOptionalFunctionname;
-        $routeFunction = $routeFileWithOptionalFunctionname;
-    }
-
-    // Add "v_" if not already
-    if (!str_starts_with($routeFile, "v_")) {
-        $routeFile = "v_" . $routeFile;
-    }
-    if (!str_starts_with($routeFunction, "v_")) {
-        $routeFunction = "v_" . $routeFunction;
-    }
-
-    // We now check if the file exists in the data folder
-    if (!file_exists($dirs['validations'] . $routeFile . ".php")) {
-        if ($info) {
-            cli_info_without_exit("[cli_validation_handler_exists] Validation Handler File \"$routeFile\" NOT found in \"funkphp/validations/\"!");
-        }
-        return false;
-    }
-
-    // Here file exists, so we know we can check if the function exists
-    // by checking for the delimiters based on the file name AND function name
-    // We check for both end and start delimiters for both file and function!
-    // Check file can be read and is a file
-    if (!file_exists_is_readable_writable($dirs['validations'] . $routeFile . ".php")) {
-        if ($info) {
-            cli_err_without_exit("[cli_validation_handler_exists] Validation Handler File \"funkphp/validations/$routeFile.php\" exists but is NOT readable/writable!");
-        }
-        return false;
-    }
-    $routeFileContents = file_get_contents($dirs['validations'] . $routeFile . ".php");
-
-    // We now use the "cli_delimiters_exist" function to check if the delimiters exist
-    // first we check the handler function itself (return function (&$c, $handler = "$routeFile"){};)
-    $delimiterHandlerExist = cli_delimiters_exist($routeFileContents, $routeFile, "never");
-    if ($delimiterHandlerExist) {
-        if ($info) {
-            cli_info_without_exit("[cli_validation_handler_exists] Validation Handler \"$routeFile\" found in \"funkphp/validations/$routeFile.php\"!");
-        }
-    } else {
-        if ($info) {
-            cli_warning_without_exit("[cli_validation_handler_exists] Validation Handler \"$routeFile\" NOT found in \"funkphp/validations/$routeFile.php\"!");
-        }
-    }
-    // And then we check the function name (function $routeFunction(&$c){};)
-    $delimiterFunctionExist = cli_delimiters_exist($routeFileContents, $routeFunction);
-    if ($delimiterFunctionExist) {
-        if ($info) {
-            cli_info_without_exit("[cli_validation_handler_exists] Validation Function \"$routeFunction\" found in Validation Handler \"funkphp/validations/$routeFile.php\"!");
-        }
-    } else {
-        if ($info) {
-            cli_warning_without_exit("[cli_validation_handler_exists] Validation Function \"$routeFunction\" NOT found in Validation Handler \"funkphp/validations/$routeFile.php\"!");
-        }
-    }
-    // If both delimiters exist, we return true
-    if ($delimiterHandlerExist && $delimiterFunctionExist) {
-        if ($info) {
-            cli_success_without_exit("[cli_validation_handler_exists] Validation Handler \"$routeFile\" with Validation Function \"$routeFunction\" found in \"funkphp/validations/$routeFile.php\"!");
-        }
-        return true;
-    }
-
-    // Return false if either of the delimiters do not exist and with optional info
-    if ($info) {
-        cli_warning_without_exit("[cli_validation_handler_exists] Validation Handler \"$routeFile\" with Validation Function \"$routeFunction\" NOT found in \"funkphp/validations/$routeFile.php\"!");
-    }
-
-    return false;
-}
-
 // Check if a Middleware Handler in middlewares/ exists
 function cli_middleware_exists($fileName): bool
 {
@@ -2216,6 +1912,7 @@ function cli_delete_a_route()
         ]
     );
     // Grab handlers for 'handler' and 'data' from the route array
+    $middlewares = $singleRoutesRoute['ROUTES'][$method][$validRoute]['middlewares'] ?? null;
     $handler = $singleRoutesRoute['ROUTES'][$method][$validRoute]['handler'] ?? null;
     $datahandler = $singleRoutesRoute['ROUTES'][$method][$validRoute]['data'] ?? null;
     $validationHandler = $singleRoutesRoute['ROUTES'][$method][$validRoute]['validation'] ?? null;
@@ -2257,84 +1954,19 @@ function cli_delete_a_route()
             }
         }
     }
-}
 
-// Returns the delimiter string for the start or end of a function using the global $delimiters variable
-function cli_output_delimiter($delimiter)
-{
-    // Load globals and check that $delimiter is non-empty string
-    global $delimiters;
-    if (!is_string($delimiter) || empty($delimiter)) {
-        cli_err_syntax("[cli_output_delimiter] Provided Delimiter be a Non-Empty String!");
-    }
-    // Check that $delimiter is a valid delimiter by checking that it is a key set in the $delimiters array
-    if (!array_key_exists($delimiter, $delimiters)) {
-        cli_err_syntax("[cli_output_delimiter] Provided Delimiter (\"$delimiter\") must be a valid key in the \$delimiters array!");
-    }
-
-    // Then return the delimiter string
-    return $delimiters[$delimiter] ?? "[cli_output_delimiter-ERROR]: \"$delimiter\" not found in \$delimiters array!";
-}
-
-// Check if delimiters exist in the file (it can also check for the "never" OR "validation" limiters
-// by providing optional string value "never" or "validation" as the third argument)
-function cli_delimiters_exist($fileContent, $functionName, $neverOrValidationDelimiter = "")
-{
-    // Check that $fileContent & $functionName are not empty strings
-    if (!is_string($fileContent) || empty($fileContent) || !is_string($functionName) || empty($functionName) || !is_string($neverOrValidationDelimiter)) {
-        cli_err_syntax("[cli_delimiters_exist] Provided File Content & Function Name must both be Non-Empty Strings!");
-    }
-
-    // Check that $functionName starts with "r_", "d_", "p_", "m_" or "v_" and if not, error out!
-    if (
-        !str_starts_with($functionName, "r_")
-        && !str_starts_with($functionName, "d_")
-        && !str_starts_with($functionName, "p_")
-        && !str_starts_with($functionName, "m_")
-        && !str_starts_with($functionName, "v_")
-    ) {
-        cli_err_syntax("[cli_delimiters_exist] Provided Function Name must start with \"r_\", \"d_\", \"m_\", \"p_\" or \"v_\"!");
-    }
-
-    // If "$neverOrValidationDelimiter" === "never", only check for the "never" delimiter in $fileContent
-    if ($neverOrValidationDelimiter === "never") {
-        if (
-            strpos($fileContent, "//NEVER_TOUCH_ANY_COMMENTS_START=$functionName\n") !== false
-            && strpos($fileContent, "//NEVER_TOUCH_ANY_COMMENTS_END=$functionName") !== false
-        ) {
-            return true;
-        } else {
-            return false;
+    // If "middlewares" is not null and not empty string/array
+    // then we list the middlewares and inform that the middlewwares
+    // where deleted from route but not as files!
+    if ($middlewares !== null && !empty($middlewares)) {
+        if (is_string($middlewares)) {
+            cli_info_without_exit("\"$method$validRoute\" used the following middleware: \"$middlewares\" from \"funkphp/middlewares/\"!");
+        } elseif (is_array($middlewares) && array_is_list($middlewares)) {
+            // Join all as a string with ", " separator
+            $middlewares = implode(", ", $middlewares);
+            cli_info_without_exit("\"$method$validRoute\" used the following middleware(s): \"$middlewares\" from \"funkphp/middlewares/\"!");
         }
     }
-    // If "$neverOrValidationDelimiter" === "validation, only check for the "validation" limiters in $fileContent. It also
-    // checks both for the "user" and "compiled" delimiters (first is user-provided, second is compiled)
-    elseif ($neverOrValidationDelimiter === "validation") {
-        if (
-            strpos($fileContent, "//DELIMITER_VALIDATION_USER_START=$functionName\n") !== false
-            && strpos($fileContent, "//DELIMITER_VALIDATION_USER_END=$functionName\n") !== false
-            && strpos($fileContent, "//DELIMITER_VALIDATION_COMPILED_START=$functionName\n") !== false
-            && strpos($fileContent, "//DELIMITER_VALIDATION_COMPILED_END=$functionName\n") !== false
-        ) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-    // Otherwise, check for the "handler" (route, data) delimiters in $fileContent
-    else {
-        if (
-            strpos($fileContent, "//DELIMITER_HANDLER_FUNCTION_START=$functionName\n") !== false
-            && strpos($fileContent, "//DELIMITER_HANDLER_FUNCTION_END=$functionName\n") !== false
-        ) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    // Catch any impossible errors
-    cli_err_syntax("[cli_delimiters_exist] Failed to check delimiters in the provided File Content using \"$functionName\" as Function Name!");
 }
 
 // Delete a Handler Function or entire Handler File if it is the last function in it
@@ -2465,113 +2097,6 @@ function cli_delete_a_handler_function_or_entire_file($handlerVar)
     }
 }
 
-// Add a handler to (funkphp/handlers/) WITHOUT adding to the Route file
-function cli_add_handler()
-{
-    // Load globals and validate input
-    global $argv,
-        $settings,
-        $dirs,
-        $exactFiles,
-        $singleRoutesRoute, $reserved_functions;
-    if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3])) {
-        cli_err_syntax("Should be at least three(3) non-empty string arguments!\nSyntax: php funkcli add handler [handlerFile[=>handleFunction]]\nExample: 'php funkcli add handler users=>getUser'\nIMPORTANT: Writing [handlerFile] is parsed as [handlerFile=>handlerFile]!\n");
-    }
-
-    $handlerFile = null;
-    $fnName = null;
-    $arrow = null;
-    if (strpos($argv[3], '=>') !== false) {
-        [$handlerFile, $fnName] = explode('=>', $argv[3]);
-        $handlerFile = trim($handlerFile);
-        $fnName = trim($fnName);
-        $arrow = true;
-    } else {
-        $handlerFile = $argv[3];
-        $fnName = null;
-    }
-
-    // Preg_match validate both (unless null) handler file and function name
-    if ($handlerFile !== null && !preg_match('/^[a-z0-9_]+$/', $handlerFile)) {
-        cli_err_syntax("\"{$handlerFile}\" - Handler name must be a lowercased string containing only letters, numbers and underscores!");
-    }
-    if ($fnName !== null && !preg_match('/^[a-z0-9_]+$/', $fnName)) {
-        cli_err_syntax("\"{$fnName}\" - Function name must be a lowercased string containing only letters, numbers and underscores!");
-    }
-
-    // Check that both fnName and handlerFile are not reserved functions
-    if ($fnName !== null && in_array($fnName, $reserved_functions)) {
-        cli_err_syntax("\"{$fnName}\" - Function is a reserved function name!");
-    }
-    if ($handlerFile !== null && in_array($handlerFile, $reserved_functions)) {
-        cli_err_syntax("\"{$handlerFile}\" - Handler is a reserved function name!");
-    }
-
-    // Function name is optional, so if not provided, we set it to the handler file name since
-    // that is the default name for the function in the handler file when the file is created
-    if ($fnName === null) {
-        $fnName = $handlerFile;
-    }
-    // Now we add "r_" to both $fnName & $handlerFile to indicate it is a route handler and also to not
-    // conflict with data, middlware, and/or page handlers that might use the same name in the future
-    // But first we check if they already start with "r_" and if not, we add it
-    if (!str_starts_with($handlerFile, "r_")) {
-        $handlerFile = "r_" . $handlerFile;
-    }
-    if (!str_starts_with($fnName, "r_")) {
-        $fnName = "r_" . $fnName;
-    }
-    cli_info_without_exit("Parsed Handler: \"funkphp/handlers/$handlerFile.php\" and Function: \"$fnName\"");
-
-    // Prepare handlers folders
-    $handlersDir = $dirs['handlers'];
-
-    // Check first if the handler file exists in the handlers folder, add .php if not
-    if (file_exists($handlersDir . $handlerFile . ".php")) {
-        // Read the file content and check if the function name exists in the file
-        $fileContent = file_get_contents($handlersDir . $handlerFile . ".php");
-        if ($fnName !== null && strpos($fileContent, "//DELIMITER_HANDLER_FUNCTION_START=$fnName") !== false) {
-            cli_err("Function \"$fnName\" in Handler \"funkphp/handlers/$handlerFile.php\" is already used!");
-        }
-        // This means handler file exists but function name is not used, so we can add it
-        else {
-            cli_info_without_exit("Handler \"funkphp/handlers/$handlerFile.php\" exists and Function \"$fnName\" is valid!");
-            // We now check if we can find "//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile" in the file
-            // and if not that means either error or Developer is trying to break the file, so we exit
-            if (strpos($fileContent, "//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile") === false) {
-                cli_err("Handler \"funkphp/handlers/$handlerFile.php\" is invalid. Could not find \"//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile\". Please do not be a jerk trying to break the file!");
-            }
-            // We found the comment, so we can add the function name to the file by replacing the comment with the function name and then the comment again!
-            $fileContent = str_replace(
-                "//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile",
-                "//DELIMITER_HANDLER_FUNCTION_START=$fnName\nfunction $fnName(&\$c) // <UNKNOWN_ROUTE>\n{\n\n};\n//DELIMITER_HANDLER_FUNCTION_END=$fnName\n\n//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile",
-                $fileContent
-            );
-            if (file_put_contents($handlersDir . $handlerFile . ".php", $fileContent) !== false) {
-                cli_success_without_exit("Added Function \"$fnName\" to Handler \"funkphp/handlers/$handlerFile.php\"!");
-            } else {
-                cli_err("FAILED to add Function \"$fnName\" to Handler \"funkphp/handlers/$handlerFile.php\". File permissions issue?");
-            }
-        }
-    } // File does not exist, so we create it
-    else {
-        // Create the handler file with the function name and return a success message
-        $outputHandlerRoute = file_put_contents(
-            $handlersDir . $handlerFile . ".php",
-            "<?php\n//Handler File - This runs after Middlewares have ran after matched Route!\n\n//DELIMITER_HANDLER_FUNCTION_START=$fnName\nfunction $fnName(&\$c) // <UNKOWN_ROUTE>\n{\n\n};\n//DELIMITER_HANDLER_FUNCTION_END=$fnName\n\n//NEVER_TOUCH_ANY_COMMENTS_START=$handlerFile\nreturn function (&\$c, \$handler = \"$fnName\") {\n\$handler(\$c);\n};\n//NEVER_TOUCH_ANY_COMMENTS_END=$handlerFile"
-        );
-        if ($outputHandlerRoute) {
-            cli_success_without_exit("Added Handler \"funkphp/handlers/$handlerFile.php\" with Function \"$fnName\" in \"funkphp/handlers/$handlerFile.php\"!");
-        } else {
-            cli_err("FAILED to create Handler \"funkphp/handlers/$handlerFile.php\". File permissions issue?");
-        }
-    }
-    // Warn that the handler file was created/updated but the route is unknown (so it is not added to the route file)
-    cli_warning_without_exit("You have ONLY created/updated Handler File: \"$handlerFile\" with Function \"$fnName\"");
-    cli_warning_without_exit("Its associated route for Function \"$fnName\" is \"<UNKNOWN_ROUTE>\". You must add it MANUALLY to the Route file!");
-    cli_warning("IMPORTANT: Using \"php funkcli add route [method/route] [$handlerFile=>$fnName]\" to combine the Route with its this created/updated Handler File and/or Function will NOT work!");
-}
-
 // All-in-one function to Sort all keys in ROUTES, build Route file, recompile and output them!
 function cli_sort_build_routes_compile_and_output($singleRoutesRootArray)
 {
@@ -2655,105 +2180,57 @@ function cli_add_a_route()
     cli_sort_build_routes_compile_and_output($singleRoutesRoute);
 }
 
-// Add a 'data' handler to a specific route (route must exist or the function will error)
-function cli_add_a_data_handler()
+// Adds a 'data' OR 'validation' handler to an existing route (errors out on non-existing)
+function cli_add_a_data_or_a_validation_handler($handlerType)
 {
-    // Load globals and validate input
-    global $argv,
-        $settings,
-        $dirs,
-        $exactFiles,
-        $singleRoutesRoute;
+    // Load globals and check $handlerType is valid (a string that is either 'v' or 'd')
+    global $argv, $settings, $dirs, $exactFiles, $singleRoutesRoute;
+    if (!is_string($handlerType) || empty($handlerType) || !in_array($handlerType, ['v', 'd'])) {
+        cli_err_syntax("Handler Type must be a non-empty string that is either 'v' or 'd'!");
+    }
 
     // Get Handler File, Function Name & Arrow and parsed Route
-    [$handlerFile, $fnName, $arrow] =  get_handler_and_fn_from_argv4_or_err_out("d");
-    [$method, $validRoute] = get_matched_route_from_argv3_or_err_out("d");
+    [$handlerFile, $fnName, $arrow] =  get_handler_and_fn_from_argv4_or_err_out($handlerType);
+    [$method, $validRoute] = get_matched_route_from_argv3_or_err_out($handlerType);
+    $handlersPrefix = $handlerType === 'v' ? "Validation" : "Data";
+    $handlersKeyPrefix = $handlerType === 'v' ? "validation" : "data";
 
     // Check if the exact route does not exist the route file
     if (!isset($singleRoutesRoute['ROUTES'][$method][$validRoute]) ?? null) {
-        cli_err("Route \"$method$validRoute\" not found in Routes. Add it first before adding a Data Handler!");
+        cli_err_without_exit("Route \"$method$validRoute\" not found in Routes. Add it first before adding a $handlersPrefix Handler!");
+        cli_info("You can only add a $handlersPrefix Handler to an existing Route to not cause any undesired inconsistent behaviors!");
     }
 
-    // Check that a data handler does not already exist for the route
-    if (isset($singleRoutesRoute['ROUTES'][$method][$validRoute]['data']) && !empty($singleRoutesRoute['ROUTES'][$method][$validRoute]['data'])) {
+    // Check that a data/validation handler does not already exist for the route
+    if (isset($singleRoutesRoute['ROUTES'][$method][$validRoute][$handlersKeyPrefix]) && !empty($singleRoutesRoute['ROUTES'][$method][$validRoute][$handlersKeyPrefix])) {
         cli_err_without_exit("A Data Handler for Route \"$method$validRoute\" already exists!");
-        cli_info("Use command \"php funkcli delete data [method/route] [handlerFile[=>Function]]\" to delete it first!");
+        cli_info("Use command \"php funkcli delete $handlersKeyPrefix [method/route] [handlerFile[=>Function]]\" to delete it first!");
     }
 
-    // When data handler is empty which it should not be so we error out
-    if (isset($singleRoutesRoute['ROUTES'][$method][$validRoute]['data']) && empty($singleRoutesRoute['ROUTES'][$method][$validRoute]['data'])) {
-        cli_err("Data Handler for Route \"$method$validRoute\" is empty. Consider deleting it OR manually adding a Data Handler to it!");
+    // When data/validation handler is empty which it should not be so we error out
+    if (isset($singleRoutesRoute['ROUTES'][$method][$validRoute][$handlersKeyPrefix]) && empty($singleRoutesRoute['ROUTES'][$method][$validRoute][$handlersKeyPrefix])) {
+        cli_err("$handlersPrefix Handler for Route \"$method$validRoute\" is empty. Consider deleting it OR manually adding a $handlersPrefix Handler to it!");
     }
 
-    // Prepare handlers folders and then attempt to create the handler
-    // file with a function (or just a function in existing one)
-    $handlersDir = $dirs['data'];
+    // If we are here, that means we managed to add a data/validation handler with a function
+    // name to a file so now we add route to the route file and then compile it!
+    $handlersDir = $handlerType === 'v' ? $dirs['validations'] : $dirs['data'];
     create_handler_file_with_fn_or_fn_or_err_out("d", $handlersDir, $handlerFile, $fnName, $method, $validRoute);
 
-    // If we are here, that means we managed to add a data handler with a function
+    // If we are here, that means we managed to add a data/validation handler with a function
     // name to a file so now we add route to the route file and then compile it!
     if ($arrow) {
         $singleRoutesRoute['ROUTES'][$method][$validRoute] = array_merge($singleRoutesRoute['ROUTES'][$method][$validRoute], [
-            'data' => [$handlerFile => $fnName],
+            $handlersKeyPrefix => [$handlerFile => $fnName],
         ]);
     } else {
         $singleRoutesRoute['ROUTES'][$method][$validRoute] = array_merge($singleRoutesRoute['ROUTES'][$method][$validRoute], [
-            'data' => $handlerFile,
+            $handlersKeyPrefix => $handlerFile,
         ]);
     }
+
     // Show success message and then sort, build, compile and output the routes
-    cli_success_without_exit("Added Data Handler \"$handlerFile\" and Data Function \"$fnName\" to Route \"$method$validRoute\" in \"funkphp/routes/route_single_routes.php\"!");
-    cli_sort_build_routes_compile_and_output($singleRoutesRoute);
-}
-
-// Add a 'validation' handler to a specific route (route must exist or the function will error)
-function cli_add_a_validation_handler()
-{
-    // Load globals and validate input
-    global $argv,
-        $settings,
-        $dirs,
-        $exactFiles,
-        $singleRoutesRoute;
-
-    // Get Handler File, Function Name & Arrow and parsed Route
-    [$handlerFile, $fnName, $arrow] =  get_handler_and_fn_from_argv4_or_err_out("v");
-    [$method, $validRoute] = get_matched_route_from_argv3_or_err_out("v");
-
-    // Check if the exact route does not exist the route file
-    if (!isset($singleRoutesRoute['ROUTES'][$method][$validRoute]) ?? null) {
-        cli_err("Route \"$method$validRoute\" not found in Routes. Add it first before adding a Validation Handler!");
-    }
-
-    // Check that a data handler does not already exist for the route
-    if (isset($singleRoutesRoute['ROUTES'][$method][$validRoute]['validation']) && !empty($singleRoutesRoute['ROUTES'][$method][$validRoute]['validation'])) {
-        cli_err_without_exit("A Validation Handler for Route \"$method$validRoute\" already exists!");
-        cli_info("Use command \"php funkcli delete validation [method/route] [handlerFile[=>Function]]\" to delete it first!");
-    }
-
-    // When data handler is empty which it should not be so we error out
-    if (isset($singleRoutesRoute['ROUTES'][$method][$validRoute]['validation']) && empty($singleRoutesRoute['ROUTES'][$method][$validRoute]['validation'])) {
-        cli_err("Validation Handler for Route \"$method$validRoute\" is empty. Consider deleting it OR manually adding a Validation Handler to it!");
-    }
-
-    // Here, the routing is so far all OK so prepare data folder
-    $handlersDir = $dirs['validations'];
-
-    create_handler_file_with_fn_or_fn_or_err_out("v", $handlersDir, $handlerFile, $fnName, $method, $validRoute);
-
-    // If we are here, that means we managed to add a data handler with a function
-    // name to a file so now we add route to the route file and then compile it!
-    if ($arrow) {
-        $singleRoutesRoute['ROUTES'][$method][$validRoute] = array_merge($singleRoutesRoute['ROUTES'][$method][$validRoute], [
-            'validation' => [$handlerFile => $fnName],
-        ]);
-    } else {
-        $singleRoutesRoute['ROUTES'][$method][$validRoute] = array_merge($singleRoutesRoute['ROUTES'][$method][$validRoute], [
-            'validation' => $handlerFile,
-        ]);
-    }
-    // Show success message and then sort, build, compile and output the routes
-    cli_success_without_exit("Added Validation Handler \"$handlerFile\" and Validation Function \"$fnName\" to Route \"$method$validRoute\" in \"funkphp/routes/route_single_routes.php\"!");
+    cli_success_without_exit("Added $handlersPrefix Handler \"$handlerFile\" and $handlersPrefix Function \"$fnName\" to Route \"$method$validRoute\" in the Routes File!");
     cli_sort_build_routes_compile_and_output($singleRoutesRoute);
 }
 
@@ -2816,7 +2293,7 @@ function cli_add_a_middleware()
 
     // We check if file exists already because then we do not need to create it.
     if (file_exists($mwDir . $mwName)) {
-        cli_info_without_exit("Middleware \"$argv[4]\" already exists in \"funkphp/middlewares/$mwName\"!");
+        cli_info_without_exit("Middleware \"$argv[4].php\" already exists in \"funkphp/middlewares/$mwName\"!");
     } else {
         // Create the middleware file with the function name and return a success message
         $date = date("Y-m-d H:i:s");
@@ -3849,7 +3326,7 @@ function get_handler_and_fn_from_argv4_or_err_out($handlerType)
         $handlerFile = $handlerType . "_" . $handlerFile;
     }
     // Inform parsed handler and function name and return them
-    cli_info_without_exit("Parsed $handlerPrefix Handler: \"funkphp/$handlerDir/$handlerFile.php\" and $handlerType Function: \"$fnName\"");
+    cli_info_without_exit("Parsed $handlerPrefix Handler: \"funkphp/$handlerDir/$handlerFile.php\" and $handlerPrefix Function: \"$fnName\"");
     return [$handlerFile, $fnName, $arrow];
 }
 
@@ -3991,7 +3468,6 @@ function create_handler_file_with_fn_or_fn_or_err_out($handlerType, $handlersDir
 
             // $matches[0] now contains an array: [matched string, offset]
             $matchedString = $matches[0][0]; // The actual string that matched
-            var_dump($matchedString);
             $matchOffset = $matches[0][1];   // The byte offset of the match in $fileContent
 
             // Construct the string for the *new* function definition only.
@@ -4032,8 +3508,6 @@ function create_handler_file_with_fn_or_fn_or_err_out($handlerType, $handlersDir
             return false; // Exit the function as the file structure is unexpected
         }
     }
-    // REMOVE THIS LATER
-    exit;
 }
 
 // Returns [$handlerFile, $fnName] or errors out (used to validate
@@ -4074,7 +3548,6 @@ function get_valid_handlerVar_or_err_out($handlerVar, $handlerType)
         $handlerFile = key($handlerVar);
         $fnName = $handlerVar[$handlerFile];
     }
-    echo "[[Handler File: $handlerFile | Function Name: $fnName]]\n";
     // We now check if $fnName and $handlerFile both start with "d_" and if not
     // then we add it to the data handler file name. This to not conflict with other
     // types of handlers that might be included into the global scope of functions
@@ -4126,6 +3599,7 @@ function delete_handler_file_with_fn_or_just_fn_or_err_out($handlerType, $handle
 
     // Prepare correct handler prefix, directory path
     $handlerPrefix = $handlerType === "r" ? "Route" : ($handlerType === "d" ? "Data" : "Validation");
+    $handlerDirShort = $handlerType === "r" ? "handlers" : ($handlerType === "d" ? "data" : "validations");
     $handlerDirPath = $handlerType === "r" ? $dirs['handlers'] : ($handlerType === "d" ? $dirs['data'] : $dirs['validations']);
     $fnNameRegex = get_match_function_regex($fnName);
 
@@ -4148,14 +3622,14 @@ function delete_handler_file_with_fn_or_just_fn_or_err_out($handlerType, $handle
     // inside of $fileContent in order to remove it from the file!
     if ($matchedFn && isset($matches[0])) {
         $fileContent = str_replace($matches[0] . "\n", "", $fileContent);
-        cli_success_without_exit("Removed $handlerPrefix Function \"$fnName\" from \"funkphp/$handlerDirPath$handlerFile.php\"!");
+        cli_success_without_exit("Removed $handlerPrefix Function \"$fnName\" from \"funkphp/$handlerDirShort/$handlerFile.php\"!");
         $matchedAllFn = preg_match_all(get_match_all_functions_regex_without_capture_groups($handlerType), $fileContent, $matches2);
 
         // If no functions are left in the file, we delete the file
         if (isset($matches2[0]) && count($matches2[0]) === 0) {
             // If no functions are left in the file, we delete the file
             unlink($handlerDirPath . $handlerFile . ".php");
-            cli_success_without_exit("Deleted $handlerPrefix Handler \"$handlerFile\" File \"funkphp/$handlerDirPath$handlerFile.php\"!");
+            cli_success_without_exit("Deleted $handlerPrefix Handler \"$handlerFile.php\" File \"funkphp/$handlerDirShort/$handlerFile.php\"!");
             return;
         }
         // Otherwise we just write the file content back to the file with the function removed
