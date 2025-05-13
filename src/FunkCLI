@@ -17,8 +17,6 @@ $validArg1withArg2Values =  [
     'add' => [
         'r',
         'route',
-        'h',
-        'handler',
         'middleware',
         'mw',
         'mws',
@@ -401,12 +399,6 @@ $commands = [
         },
         'r' => function () {
             cli_add_a_route();
-        },
-        'handler' => function () {
-            cli_add_handler();
-        },
-        'h' => function () {
-            cli_add_handler();
         },
         'data' => function () {
             cli_add_a_data_handler();

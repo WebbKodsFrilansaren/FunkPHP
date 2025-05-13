@@ -1,21 +1,13 @@
 <?php
 return  [
-  'GET' => 
-   [
-    'testar3' => 
-     [
-    ],
-  ],
-  'POST' => 
-   [
-  ],
-  'PUT' => 
-   [
-  ],
-  'DELETE' => 
-   [
-  ],
-  'PATCH' => 
-   [
-  ],
+  'GET' =>
+  [],
+  'POST' =>
+  [],
+  'PUT' =>
+  [],
+  'DELETE' =>
+  [],
+  'PATCH' =>
+  [],
 ];
