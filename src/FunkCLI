@@ -462,22 +462,22 @@ $commands = [
             cli_delete_a_route();
         },
         'handler' => function () use ($argv) {
-            cli_delete_a_handler_function_or_entire_file($argv[3] ?? null);
+            delete_handler_file_with_fn_or_just_fn_or_err_out("r", $argv[3] ?? null);
         },
         'h' => function () use ($argv) {
-            cli_delete_a_handler_function_or_entire_file($argv[3] ?? null);
+            delete_handler_file_with_fn_or_just_fn_or_err_out("r", $argv[3] ?? null);
         },
         'd' => function () use ($argv) {
-            cli_delete_a_data_handler_function_or_entire_file($argv[3] ?? null);
+            delete_handler_file_with_fn_or_just_fn_or_err_out("d", $argv[3] ?? null);
         },
         'data' => function () use ($argv) {
-            cli_delete_a_data_handler_function_or_entire_file($argv[3] ?? null);
+            delete_handler_file_with_fn_or_just_fn_or_err_out("d", $argv[3] ?? null);
         },
         'v' => function () use ($argv) {
-            cli_delete_a_validation_handler_function_or_entire_file($argv[3] ?? null);
+            delete_handler_file_with_fn_or_just_fn_or_err_out("v", $argv[3] ?? null);
         },
         'validation' => function () use ($argv) {
-            cli_delete_a_validation_handler_function_or_entire_file($argv[3] ?? null);
+            delete_handler_file_with_fn_or_just_fn_or_err_out("v", $argv[3] ?? null);
         },
         'mw' => function () {
             cli_delete_a_middleware();

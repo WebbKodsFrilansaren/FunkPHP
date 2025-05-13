@@ -4142,7 +4142,7 @@ function delete_handler_file_with_fn_or_just_fn_or_err_out($handlerType, $handle
     // Read in file content and preg_match the function name
     $fileContent = file_get_contents($handlerDirPath . $handlerFile . ".php");
     $matchedFn = preg_match($fnNameRegex, $fileContent, $matches);
-    $matchedAllFn = preg_match_all(get_match_all_functions_regex_without_capture_groups($handlerType), $fileContent, $matches2);
+    //    $matchedAllFn = preg_match_all(get_match_all_functions_regex_without_capture_groups($handlerType), $fileContent, $matches2);
 
     // If function name is found we first replace it with an empty string
     // inside of $fileContent in order to remove it from the file!
