@@ -973,12 +973,17 @@ function cli_output_tables_file($array)
 // it to highly optimized validation rules that are then returned as an array
 function cli_convert_simple_validation_rules_to_optimized_validation($validationArray)
 {
-    // Validate it is an array
+    // Validate it is an associative array - not a list
     if (!is_array_and_not_empty($validationArray)) {
-        cli_err_without_exit("[cli_convert_simple_validation_rules_to_optimized_validation]: Expects a Non-Empty Array as input!");
+        cli_err_without_exit("[cli_convert_simple_validation_rules_to_optimized_validation]: Expects a Non-Empty Associative Array as input!");
         cli_info("This probably means that the \"\$DX\" variable is an Empty Array, or not an Array at all?");
     }
+    if (array_is_list($validationArray)) {
+        cli_err_without_exit("[cli_convert_simple_validation_rules_to_optimized_validation]: Expects a Non-Empty Associative Array as input!");
+        cli_info("Here it probably means that the \"\$DX\" variable is a List Array, empty or not?");
+    }
 
+    var_dump($validationArray);
     // TODO: Convert all the rules to optimized validation rules
 
     return $validationArray;
@@ -2215,7 +2220,7 @@ function cli_add_a_data_or_a_validation_handler($handlerType)
     // If we are here, that means we managed to add a data/validation handler with a function
     // name to a file so now we add route to the route file and then compile it!
     $handlersDir = $handlerType === 'v' ? $dirs['validations'] : $dirs['data'];
-    create_handler_file_with_fn_or_fn_or_err_out("d", $handlersDir, $handlerFile, $fnName, $method, $validRoute);
+    create_handler_file_with_fn_or_fn_or_err_out($handlerType, $handlersDir, $handlerFile, $fnName, $method, $validRoute);
 
     // If we are here, that means we managed to add a data/validation handler with a function
     // name to a file so now we add route to the route file and then compile it!
