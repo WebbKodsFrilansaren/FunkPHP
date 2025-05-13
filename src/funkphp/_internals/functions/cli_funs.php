@@ -3138,6 +3138,50 @@ function cli_warning($string)
     echo "\033[33m[FunkCLI - WARNING]: $string\n\033[0m";
     exit;
 }
+function cli_success_with_warning_same_line($string1, $string2)
+{
+    echo "\033[32m[FunkCLI - SUCCESS + WARNING]: $string1\033[0m";
+    echo "\033[33m$string2\n\033[0m";
+    exit;
+}
+function cli_err_with_info_same_line($string1, $string2)
+{
+    echo "\033[31m[FunkCLI - ERROR + INFO]: $string1\033[0m";
+    echo "\033[34m$string2\n\033[0m";
+    exit;
+}
+function cli_err_with_info_same_line_without_exit($string1, $string2)
+{
+    echo "\033[31m[FunkCLI - ERROR + INFO]: $string1\033[0m";
+    echo "\033[34m$string2\n\033[0m";
+}
+function cli_err_with_warning_same_line($string1, $string2)
+{
+    echo "\033[31m[FunkCLI - ERROR + WARNING]: $string1\033[0m";
+    echo "\033[33m$string2\n\033[0m";
+    exit;
+}
+function cli_err_with_warning_same_line_without_exit($string1, $string2)
+{
+    echo "\033[31m[FunkCLI - ERROR + WARNING]: $string1\033[0m";
+    echo "\033[33m$string2\n\033[0m";
+}
+function cli_success_with_info_same_line($string1, $string2)
+{
+    echo "\033[32m[FunkCLI - SUCCESS + INFO]: $string1\033[0m";
+    echo "\033[34m$string2\n\033[0m";
+    exit;
+}
+function cli_success_with_info_same_line_without_exit($string1, $string2)
+{
+    echo "\033[32m[FunkCLI - SUCCESS]: $string1\033[0m";
+    echo "\033[34m$string2\n\033[0m";
+}
+function cli_success_with_warning_same_line_without_exit($string1, $string2)
+{
+    echo "\033[32m[FunkCLI - SUCCESS]: $string1\033[0m";
+    echo "\033[33m$string2\n\033[0m";
+}
 function cli_warning_without_exit($string)
 {
     echo "\033[33m[FunkCLI - WARNING]: $string\n\033[0m";
