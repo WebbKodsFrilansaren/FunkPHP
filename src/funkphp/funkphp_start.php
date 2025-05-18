@@ -102,8 +102,8 @@ if ($c['req']['current_step'] === 3) {
     // GOTO "funkphp/routes/route_single_routes.php" to Add Your Single Routes!
     // GOTO "funkphp/routes/route_middleware_routes.php" to Add Your middlewares!
     $c['ROUTES'] = [
-        'COMPILED' => include dirname(__DIR__) . '/_internals/compiled/troute_route.php',
-        'SINGLES' => include dirname(__DIR__) . '/routes/route_single_routes.php',
+        'COMPILED' => include __DIR__ . '/_internals/compiled/troute_route.php',
+        'SINGLES' => include __DIR__ . '/routes/route_single_routes.php',
     ];
     // BEFORE STEP 3: Do anything you want here before matching the route and middlewares!
 
