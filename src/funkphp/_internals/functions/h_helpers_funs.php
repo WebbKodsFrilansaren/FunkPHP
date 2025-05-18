@@ -83,35 +83,6 @@ function return_download($filePath, $fileName = null, $statusCode = 200)
     exit;
 }
 
-// Function that loops through an array and checks if any element matches based on user-defined function
-function array_any_element($array, $callback, $stringToCheck, $options = [])
-{
-    if (isset($options) && is_array($options) && in_array("lowercase", $options)) {
-        $stringToCheck = mb_strtolower($stringToCheck);
-    }
-    foreach ($array as $element) {
-        if (isset($options) && is_array($options) && in_array("lowercase", $options)) {
-            $element = mb_strtolower($element);
-        }
-        if (isset($options) && is_array($options) && in_array("swap_args", $options)) {
-            if ($callback($stringToCheck, $element)) {
-                if (in_array("return_element", $options)) {
-                    return $element;
-                }
-                return true;
-            }
-        } else {
-            if ($callback($element, $stringToCheck)) {
-                if (isset($options) && is_array($options) && in_array("return_element", $options)) {
-                    return $element;
-                }
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
 // Function to check if both strings are equal
 function str_equals($a, $b)
 {
@@ -119,20 +90,20 @@ function str_equals($a, $b)
 }
 
 // The function "h_destroy_session" is used to destroy the session and optionally redirect to a specified URI
-function h_destroy_session($set_other_cookies_with_h_setcookie_as_array = [], $redirect = null)
+function funk_destroy_session($set_other_cookies_with_h_setcookie_as_array = [], $redirect = null)
 {
     // If session is active, destroy it
     if (session_id() || session_status() === PHP_SESSION_ACTIVE) {
         $_SESSION = [];
         session_unset();
         session_destroy();
-        h_headers_setcookie(session_name(), '', time() - 3600);
-        h_headers_setcookie("csrf", '', time() - 3600);
+        funk_headers_setcookie(session_name(), '', time() - 3600);
+        funk_headers_setcookie("csrf", '', time() - 3600);
 
         // Optional h_setcookie() to set other cookies
         if (!empty($set_other_cookies_with_h_setcookie_as_array)) {
             foreach ($set_other_cookies_with_h_setcookie_as_array as $cookie) {
-                h_headers_setcookie(...$cookie);
+                funk_headers_setcookie(...$cookie);
             }
         }
     }
@@ -145,14 +116,14 @@ function h_destroy_session($set_other_cookies_with_h_setcookie_as_array = [], $r
 
 // The function "h_headers_set" is used to set the headers for the HTTPS response
 // while the "h_headers_remove" is used to remove the headers for the HTTPS response
-function h_headers_remove($headersToRemove)
+function funk_headers_remove($headersToRemove)
 {
     // Remove header(s) for the HTTPS reponse
     foreach ($headersToRemove as $header) {
         header_remove($header);
     }
 }
-function h_headers_set($headersToSet)
+function funk_headers_set($headersToSet)
 {
     // Set the header(s) for the HTTPS response
     foreach ($headersToSet as $header) {
@@ -161,7 +132,7 @@ function h_headers_set($headersToSet)
 }
 
 // Function to set a cookie with the specified parameters
-function h_headers_setcookie($name, $value, $expire = 0, $path = '/', $domain = '', $secure = false, $httponly = true, $samesite = 'strict')
+function funk_headers_setcookie($name, $value, $expire = 0, $path = '/', $domain = '', $secure = false, $httponly = true, $samesite = 'strict')
 {
     // Set the cookie with the specified parameters
     setcookie($name, $value, [
@@ -174,90 +145,8 @@ function h_headers_setcookie($name, $value, $expire = 0, $path = '/', $domain = 
     ]);
 }
 
-// Function that checks for a specific key in $c['DEFAULT_ACTION'] for a specific step (STEP_1 -> STEP_5),
-// contextKey, conditionKey, actionKeyName and actionKeyValue. actionKeyName and actionKeyValue are used
-// if a specific condition is met. Or an optional callback can be used instead of actionKeyName and actionKeyValue!
-function h_try_default_action(&$c, $step1_5_Key, $contextKey, $conditionKey, $actionKeyName, $actionKeyValue, $optionalCallback = null)
-{
-    // First check if it is example that is trying to be ran:
-    if ($step1_5_Key === "STEP_0" && $contextKey === "req" && $conditionKey === "_EXAMPLE_") {
-        err("[h_try_default_action]: Hardcoded example without any valid function and/or value is trying to be ran. Please check the code!");
-    }
-    // First check each key level just in case
-    if (!isset($c['DEFAULT_ACTION'][$step1_5_Key])) {
-        return false;
-    }
-    if (!isset($c['DEFAULT_ACTION'][$step1_5_Key][$contextKey])) {
-        return false;
-    }
-    if (!isset($c['DEFAULT_ACTION'][$step1_5_Key][$contextKey][$conditionKey])) {
-        return false;
-    }
-    if (!isset($c['DEFAULT_ACTION'][$step1_5_Key][$contextKey][$conditionKey][$actionKeyName])) {
-        return false;
-    }
-
-    // The available functions, written here for closest scope when being called!
-    function CODE(&$c, $CODE = 500)
-    {
-        http_response_code($CODE);
-        exit;
-    }
-    function REDIRECT(&$c, $REDIRECT_STRING)
-    {
-        header("Location: {$c['BASEURLS']['BASE_URI']}$REDIRECT_STRING", true, $c['REDIRECT_CODE']['code'] ?? 418);
-        exit;
-    }
-    function RETURN_JSON_CUSTOM(&$c, $JSON_STRING)
-    {
-        header('Content-Type: application/json', true, $c['RETURN_JSON_CODE']['code'] ?? 418);
-        echo json_encode([$JSON_STRING]);
-        exit;
-    }
-    function RETURN_JSON_ERROR(&$c, $JSON_ERROR_STRING)
-    {
-        header('Content-Type: application/json', true, $c['RETURN_JSON_CODE']['code'] ?? 418);
-        echo json_encode(['error' => $JSON_ERROR_STRING]);
-        exit;
-    }
-    function SET_HEADER(&$c, $HEADER_STRING)
-    {
-        header($HEADER_STRING, true);
-    }
-    function LOG_TEXT(&$c, $LOG_STRING)
-    {
-        // TODO: Implement logging functionality
-        // This is a placeholder for the logging functionality
-        // You can use a logging library or custom implementation here
-        // For example, you can use Monolog or any other logging library!
-    }
-    function LOG_ERR(&$c, $LOG_ERR_STRING)
-    {
-        error_log($LOG_ERR_STRING);
-    }
-    function RENDER_PAGE(&$c, $PAGE_FILE)
-    {
-        // TODO: Implement rendering functionality when I know how the Template Engine will work!
-    }
-
-    // Here we know that the step, context and condition keys are set and that there is
-    // a specific action to be taken. We now check whether to use the actionKeyName and
-    // actionKeyValue or the optionalCallback which is default null meaning not to use it.
-
-    if ($actionKeyName && $actionKeyValue) {
-        if (function_exists(mb_strtoupper($actionKeyName)) && is_callable(mb_strtoupper($actionKeyName))) {
-            return call_user_func_array(mb_strtoupper($actionKeyName), array(&$c, $actionKeyValue));
-        } else if (function_exists($optionalCallback) &&  is_callable($optionalCallback)) {
-            return call_user_func($optionalCallback, $actionKeyValue);
-        } else {
-            return false;
-        }
-    }
-    return false;
-}
-
 // Function to run an array of simple ini_sets(key,value)
-function h_run_ini_sets(array $iniSets)
+function funk_run_ini_sets(array $iniSets)
 {
     foreach ($iniSets as $key => $value) {
         ini_set($key, $value);
@@ -265,34 +154,15 @@ function h_run_ini_sets(array $iniSets)
 }
 
 // Function to start session if not already started
-function h_start_session()
+function funk_start_session()
 {
     if (!session_id() || session_status() === PHP_SESSION_NONE) {
         session_start();
     }
 }
 
-// Function to check if a string contains any of the specified substrings
-function h_splitOnAndCheckInArray($splitOn, $stringToCheck, $InArray, $lowerCaseEachPart = false)
-{
-    try {
-        // Split the string on the specified delimiter and check if any of the parts are in the array
-        $parts = explode($splitOn, $stringToCheck);
-        foreach ($parts as $part) {
-            if ($lowerCaseEachPart) {
-                $part = mb_strtolower($part);
-            }
-            if (in_array($part, $InArray)) {
-                return true;
-            }
-        }
-    } catch (Exception $e) {
-        return false;
-    }
-}
-
 // This function uses the "The Random\Randomizer class" to generate a unique password
-function h_generate_random_password($length = 20, $returnHashed = false)
+function funk_generate_random_password($length = 20, $returnHashed = false)
 {
     // Create a new Randomizer object
     $randomizer = new Random\Randomizer();
@@ -427,7 +297,7 @@ function h_generate_random_password($length = 20, $returnHashed = false)
 }
 
 // This function uses the "The Random\Randomizer class" to generate a unique number
-function h_generate_random_number($length = 10)
+function funk_generate_random_number($length = 10)
 {
     // Create a new Randomizer object
     $randomizer = new Random\Randomizer();
@@ -465,7 +335,7 @@ function h_generate_random_number($length = 10)
 }
 
 // This function uses the "The Random\Randomizer class" to generate a unique user_id
-function h_generate_random_user_id($length = 96)
+function funk_generate_random_user_id($length = 96)
 {
     // Create a new Randomizer object
     $randomizer = new Random\Randomizer();
@@ -561,7 +431,7 @@ function h_generate_random_user_id($length = 96)
 }
 
 // This function uses the "The Random\Randomizer class" to generate a unique CSRF
-function h_generate_random_csrf($length = 384)
+function funk_generate_random_csrf($length = 384)
 {
     // Create a new Randomizer object
     $randomizer = new Random\Randomizer();

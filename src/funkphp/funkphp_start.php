@@ -4,7 +4,7 @@
 include_once __DIR__ . '/_internals/functions/_includeAllExceptCLI.php';
 
 // $c is the global configuration array that will be used throughout the application
-$c = include __DIR__ . '/config/_all.php';
+$c = include_once __DIR__ . '/config/_all.php';
 
 // STEP 1: LOAD & INITIALIZE GLOBAL CONFIGURATION FILES
 // This includes: Setting initial INI_SETS, Setting Sesssion Cookies Params,
@@ -16,7 +16,7 @@ if ($c['req']['current_step'] === 1) {
     funk_https_redirect();
 
     // See src/funkphp/config/ini_sets.php for the default ini_sets() settings!
-    h_run_ini_sets($c['INI_SETS'] ?? []);
+    funk_run_ini_sets($c['INI_SETS'] ?? []);
 
     // See src/funkphp/config/cookies.php for the default (session) cookie settings!
     session_set_cookie_params([
@@ -32,11 +32,11 @@ if ($c['req']['current_step'] === 1) {
     $c['db'] = funk_connect_db(DB_HOST, DB_USER, DB_PASSWORD, DB_NAME)['data'] ?? null;
 
     // Headers to Set and Remove for each HTTP(S) Request
-    h_headers_set($c['HEADERS']['ADD']);
-    h_headers_remove($c['HEADERS']['REMOVE']);
+    funk_headers_set($c['HEADERS']['ADD']);
+    funk_headers_remove($c['HEADERS']['REMOVE']);
 
     // Start the session (if not already started)
-    h_start_session();
+    funk_start_session();
 
     // Prepare the request URI for the FunkPHP Framework - Change
     // the function if you need to filter REQUEST_URI in more ways!
@@ -203,7 +203,7 @@ if ($c['req']['current_step'] === 5) {
     // You have all global (meta) data in $c variable, so you can use it as you please!
 
 }
-// This is essentially the end of the entire request process!
+// This is the end of the entire request process!
 
 // This part is only executed if the request was not properly handled by the pipeline!
 // Feel free to add your own error handling here and/or easter egg!

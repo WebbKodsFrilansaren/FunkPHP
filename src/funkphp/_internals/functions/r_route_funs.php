@@ -15,7 +15,7 @@ function funk_https_redirect()
         }
     } catch (Exception $e) {
         // Change this if you wanna redirect somewhere else or log the error!
-        echo "[r_https_redirect-ERROR]: " . $e->getMessage();
+        echo "[funk_https_redirect-ERROR]: " . $e->getMessage();
     }
 }
 
@@ -37,7 +37,7 @@ function funk_match_denied_methods()
     // Finally try load blocked methods to match against
     $methods = include dirname(dirname(__DIR__)) . '/config/BLOCKED_METHODS.php';
     if ($methods === false) {
-        return ["err" =>  "[r_match_denied_methods]: Failed to load compiled methods!"];
+        return ["err" =>  "[funk_match_denied_methods]: Failed to load compiled methods!"];
     }
     if (isset($methods[$method])) {
         return true;
@@ -57,7 +57,7 @@ function funk_match_denied_exact_ips()
     // Finally try load exact IPs to match against
     $ips_exact = include dirname(dirname(__DIR__)) . '/config/BLOCKED_IPS.php';
     if ($ips_exact === false) {
-        return ["err" =>  "[r_match_denied_exact_ips]: Failed to load compiled IPs!"];
+        return ["err" =>  "[funk_match_denied_exact_ips]: Failed to load compiled IPs!"];
     }
     if (isset($ips_exact[$ip])) {
         return true;
@@ -131,8 +131,8 @@ function funk_run_middleware_after_matched_routing(&$c)
     }
 }
 
-// Exit middleware_
-function r_exit_middleware_running_early_matched_routing(&$c)
+// Exit funk_run_middleware_after_matched_routing
+function funk_exit_middleware_running_early_matched_routing(&$c)
 {
     $c['req']['keep_running_middlewares'] === false;
 }
@@ -150,7 +150,7 @@ function funk_match_denied_uas_fast()
     // Finally try load blocked UAs to match against
     $uas = include dirname(dirname(__DIR__)) . '/config/BLOCKED_UAS.php';
     if ($uas === false) {
-        return ["err" =>  "[r_match_denied_uas]: Failed to load list of blocked UAs!"];
+        return ["err" =>  "[funk_match_denied_uas]: Failed to load list of blocked UAs!"];
     }
     foreach (array_keys($uas) as $deniedUa) {
         if (str_contains($ua, $deniedUa)) {
@@ -175,7 +175,7 @@ function funk_match_denied_uas_fast_test($ua = null)
     // Finally try load blocked UAs to match against
     $uas = include dirname(dirname(__DIR__)) . '/config/BLOCKED_UAS.php';
     if ($uas === false) {
-        return ["err" =>  "[r_match_denied_uas]: Failed to load list of blocked UAs!"];
+        return ["err" =>  "[funk_match_denied_uas]: Failed to load list of blocked UAs!"];
     }
     foreach (array_keys($uas) as $deniedUa) {
         if (str_contains($ua, $deniedUa)) {
@@ -190,11 +190,9 @@ function funk_match_denied_uas_fast_test($ua = null)
 function funk_prepare_uri($uri, $fphp_BASEURL_URI)
 {
     $uri = str_starts_with($_SERVER['REQUEST_URI'], $fphp_BASEURL_URI) ? "/" . ltrim(substr(strtok($_SERVER['REQUEST_URI'], "?"), strlen($fphp_BASEURL_URI)), '/') : strtok($_SERVER['REQUEST_URI'], "?");
-
     if ($uri === "") {
         $uri = "/";
     }
-
     if ((substr($uri, -1) == "/") && substr_count($uri, "/") > 1) {
         $uri = substr($uri, 0, -1);
     }
@@ -396,7 +394,7 @@ function funk_run_matched_route_handler(&$c)
 }
 
 // Check if the request is from localhost or 127.0.0.1
-function r_is_localhost(): bool
+function is_localhost(): bool
 {
     if (isset($_SERVER['REMOTE_ADDR']) && ($_SERVER['REMOTE_ADDR'] === "localhost" || $_SERVER['REMOTE_ADDR'] === "127.0.0.1")) {
         return true;

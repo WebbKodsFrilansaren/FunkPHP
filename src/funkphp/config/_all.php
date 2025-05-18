@@ -7,8 +7,6 @@ return [
     'COOKIES' => include __DIR__ . '/COOKIES.php',
     'HEADERS' => include __DIR__ . '/HEADERS.php',
     'STATIC' => include __DIR__ . '/STATIC.php',
-    'DEFAULT_VALUES' => include __DIR__ . '/DEFAULT_VALUES.php',
-    'DEFAULT_ACTION' => include __DIR__ . '/DEFAULT_ACTION.php',
     'ROUTES' => [
         // Route matching Loads first:/"dx_steps/STEP3_ROUTE_MATCH_MIDDLEWARES.php"
         // Change their Loading Logic there if needed!
