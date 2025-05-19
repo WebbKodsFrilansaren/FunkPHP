@@ -4,7 +4,7 @@
 // Runs AFTER: Loading all $c variables in (funkpphp/funkphp_start.php)
 // Runs BEFORE: Establishing Database ($c['db'] ?? null) connection
 // Runs BEFORE: Setting/removing default sent Headers ($c['HEADERS']['ADD']) & removed ($c['HEADERS']['REMOVE'])
-// RUNS BEFORE: Session starts (h_start_session())!
+// RUNS BEFORE: Session starts (funk_start_session())!
 return [
     'session.cache_limiter' => 'public',
     'session.use_strict_mode' => 1, // Prevent session fixation attacks

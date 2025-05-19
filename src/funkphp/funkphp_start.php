@@ -1,15 +1,17 @@
 <?php // ENTRY POINT OF EACH HTTP(S) REQUEST thanks to ".htaccess" file
 
-// Load all functions needed for the FunkPHP Framework Web Application
+// Load all functions needed for the
+// FunkPHP Framework Web Application
 include_once __DIR__ . '/_internals/functions/_includeAllExceptCLI.php';
 
-// $c is the global configuration array that will be used throughout the application
+// $c is the global configuration array that
+// will be used throughout the application
 $c = include_once __DIR__ . '/config/_all.php';
+
 
 // STEP 1: LOAD & INITIALIZE GLOBAL CONFIGURATION FILES
 // This includes: Setting initial INI_SETS, Setting Sesssion Cookies Params,
-// Connecting to the Database, Setting Headers and Starting the Session
-
+// Connecting to the Database, Setting Headers and Starting the Session.
 // Only Run Step 1 if the current step is 1 (the first step of the request)
 if ($c['req']['current_step'] === 1) {
     // Redirect to HTTPS if not already on HTTPS (if needed)
@@ -45,7 +47,6 @@ if ($c['req']['current_step'] === 1) {
     // This is the end of Step 1, do anything more if you want to
     $c['req']['next_step'] = 2; // Set next step to 2 (Step 2)
 }
-
 // This sets next step. If you wanna do something more before that, do that before this line!
 $c['req']['current_step'] = $c['req']['next_step'];
 

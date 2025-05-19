@@ -332,4 +332,5 @@ return  [
   ],
   'relationships' =>
   [],
+  'mappings' => [],
 ];

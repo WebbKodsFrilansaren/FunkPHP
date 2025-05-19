@@ -407,9 +407,13 @@ function cli_parse_a_sql_table_file()
     $tableName = null;
     $parsedTable = [];
 
-    // Check that keys "tables" and "relationships" exist in the tables.php file
-    if (!isset($tablesFile['tables']) || !is_array($tablesFile['tables']) || !isset($tablesFile['relationships']) || !is_array($tablesFile['relationships'])) {
-        cli_err_syntax("The \"funkphp/config/tables.php\" file must contain the two keys: \"tables\" & \"relationships\" at root level!");
+    // Check that keys "tables", "relationships" & "mappings" exist in the tables.php file
+    if (
+        !isset($tablesFile['tables']) || !is_array($tablesFile['tables'])
+        || !isset($tablesFile['relationships']) || !is_array($tablesFile['relationships'])
+        || !isset($tablesFile['mappings']) || !is_array($tablesFile['mappings'])
+    ) {
+        cli_err_syntax("The \"funkphp/config/tables.php\" file must contain the three keys: \"tables\", \"relationships\" & \"mappings\" at root level!");
     }
 
     // Inform but continue that "CREATE TABLE AS" (using other tables) is not supported
@@ -476,7 +480,7 @@ function cli_parse_a_sql_table_file()
         }
         $lineParts = explode(" ", $line);
         if (isset($duplicates[$lineParts[0]])) {
-            cli_err_syntax("Duplicate Column Name \"{$lineParts[0]}\". Please fix \"sql/{$argv[3]}\" and try again!");
+            cli_err_syntax("Duplicate Column Name \"{$lineParts[0]}\". Please fix \"sql/{$argv[3]}\" and retry!");
         } else {
             $duplicates[$lineParts[0]] = true;
         }
@@ -663,7 +667,7 @@ function cli_parse_a_sql_table_file()
         // Check for uneven numbers of quotes in the $line string and warn the Developer
         if (substr_count($line, '"') % 2 !== 0 || substr_count($line, "'") % 2 !== 0) {
             cli_warning_without_exit("Uneven numbers of quotes left in `$line`. Values might get clipped when saving to \"tables.php\"!");
-            cli_warning_without_exit("Quotes inside of quotes might be ignored!");
+            cli_warning_without_exit("Quotes inside of quotes might be ignored during parsing!");
         }
 
         // Check for "NOT NULL" and add to parsed array if found
@@ -752,7 +756,7 @@ function cli_parse_a_sql_table_file()
 function cli_try_parse_number($number)
 {
     if (!is_string_and_not_empty($number)) {
-        cli_err_syntax("cli_try_parse_number() expects a string as input!");
+        cli_err_syntax("[cli_try_parse_number]: Expects a string as input!");
     }
     $number = trim($number);
     if (is_numeric($number)) {
@@ -771,7 +775,7 @@ function cli_try_parse_number($number)
 function cli_try_parse_listed_string_as_array($stringedList)
 {
     if (!is_string_and_not_empty($stringedList)) {
-        cli_err_syntax("cli_try_parse_listed_string_as_array() expects a string as input!");
+        cli_err_syntax("[cli_try_parse_listed_string_as_array]: Expects a string as input!");
     }
     $array = [];
     $stringedList = trim($stringedList);
@@ -798,6 +802,10 @@ function cli_try_parse_listed_string_as_array($stringedList)
 // by iterating one character at a time and checking if it is inside quotes
 function cli_find_string_outside_quotes($needle, $haystack)
 {
+    // Check that both are strings and not empty
+    if (!is_string_and_not_empty($needle) || !is_string_and_not_empty($haystack)) {
+        cli_err_syntax("[cli_find_string_outside_quotes]: Expects two non-empty strings as input!");
+    }
     // Prepare variables
     $currentBuiltString = [];
     $insideQuotes = false;
@@ -858,6 +866,10 @@ function cli_find_string_outside_quotes($needle, $haystack)
 // because it is inside of the word UNSIGNED and similar cases like that.
 function cli_find_string_outside_quotes_improved($needle, $haystack)
 {
+    // Check that both are strings and not empty
+    if (!is_string_and_not_empty($needle) || !is_string_and_not_empty($haystack)) {
+        cli_err_syntax("[cli_find_string_outside_quotes_improved]: Expects two non-empty strings as input!");
+    }
     // Prepare variables
     $currentBuiltString = [];
     $insideQuotes = false;
@@ -955,8 +967,12 @@ function cli_output_tables_file($array)
         cli_err_syntax("The \"funkphp/config/tables.php\" file must exist and be writable!");
     }
     // Check for the keys "tables" and "relationships" in the array at the root level
-    if (!isset($array['tables']) || !is_array($array['tables']) || !isset($array['relationships']) || !is_array($array['relationships'])) {
-        cli_err_syntax("The \"funkphp/config/tables.php\" file must contain the two keys: \"tables\" & \"relationships\" at root level!");
+    if (
+        !isset($array['tables']) || !is_array($array['tables'])
+        || !isset($array['relationships']) || !is_array($array['relationships'])
+        || !isset($array['mappings']) || !is_array($array['mappings'])
+    ) {
+        cli_err_syntax("The \"funkphp/config/tables.php\" file must contain the three keys: \"tables\", \"relationships\" & \"mappings\" at root level!");
     }
 
     // Attempt to write to the Tables.php file and check if it was successful
@@ -982,10 +998,14 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         cli_info("Here it probably means that the \"\$DX\" variable is a List Array, empty or not?");
     }
 
+    // Prepare variables to store the converted validation rules
+    $convertedValidationArray = [];
+    $existsTableColsToCheck = [];
+
     var_dump($validationArray);
     // TODO: Convert all the rules to optimized validation rules
 
-    return $validationArray;
+    return $convertedValidationArray;
 }
 
 // Compiles a $DX Validation [] to an optmized validation array that is returned within the same
@@ -3647,6 +3667,8 @@ function get_valid_handlerVar_or_err_out($handlerVar, $handlerType)
         cli_err_syntax("[get_valid_handlerVar_or_err_out]: \"$handlerVar\" must be a non-empty string!");
     }
 
+    $handlerTypeName = $handlerType === "r" ? "Route" : ($handlerType === "d" ? "Data" : "Validation");
+
     // If it is a string, check for "=>" because this function is either called by deleting a route
     // or just by deleting a handler function directly meaning the handlerFile=>Function would be
     // passed as a string and not as an array with one string value in the case of deleting a route.
@@ -3681,10 +3703,10 @@ function get_valid_handlerVar_or_err_out($handlerVar, $handlerType)
 
     // Check that the handler file and function name are not empty strings with invalid characters
     if (!preg_match('/^[a-z0-9_]+$/', $handlerFile)) {
-        cli_err_syntax("\"{$handlerFile}\" Validation Handler File must be a lowercase string containing only letters, numbers and underscores!");
+        cli_err_syntax("\"{$handlerFile}\" $handlerTypeName Handler File must be a lowercase string containing only letters, numbers and underscores!");
     }
     if (!preg_match('/^[a-z0-9_]+$/', $fnName)) {
-        cli_err_syntax("\"{$fnName}\" Validation Function Name must be a lowercase string containing only letters, numbers and underscores!");
+        cli_err_syntax("\"{$fnName}\" $handlerTypeName Function Name must be a lowercase string containing only letters, numbers and underscores!");
     }
 
     return [$handlerFile, $fnName];
