@@ -14,6 +14,7 @@ function v_test(&$c) // <POST/test/:id>
     // Run the command `php funkcli compile v v_test=>v_test`
     // to get optimized version in return statement below it!
     $DX = [
+        'user' => 'array|required|count:5',
         'user.*.name' => [
             'min:3',
             'max:50',
@@ -28,6 +29,24 @@ function v_test(&$c) // <POST/test/:id>
     return array(
         'user' =>
         array(
+            '<RULES>' =>
+            array(
+                'array' =>
+                array(
+                    'value' => NULL,
+                    'err_msg' => NULL,
+                ),
+                'required' =>
+                array(
+                    'value' => NULL,
+                    'err_msg' => NULL,
+                ),
+                'count' =>
+                array(
+                    'value' => 5,
+                    'err_msg' => NULL,
+                ),
+            ),
             '*' =>
             array(
                 'name' =>
