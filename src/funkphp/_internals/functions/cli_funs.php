@@ -1233,6 +1233,8 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
 
         // Finally add the priority sorted rules to the converted validation array
         $convertedValidationArray[$currentDXKey] = $sortedRulesForField;
+        $convertedValidationArray['<DX_KEYS>'] = array_flip(array_keys($validationArray));
+        ksort($convertedValidationArray);
 
         // We check if the key contains a "." and if it does we need to split it
         // and then we need to rebuild the nested keys in the converted validation array

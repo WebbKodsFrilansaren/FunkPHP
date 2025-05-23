@@ -210,10 +210,12 @@ YOUR CUSTOM VALIDATION FUNCTIONS ENDS_HERE
 */
 
 /* ALL IN-BUILT VALIDATION FUNCTIONS IN FunkPHP */
+// This function exists so "nullable" can be used as a validation rule
+// When it exists and value for the $inputName is null, some rules
+// should be skipped associated with value, length,
+// etc. since it is already no value and no length!
 function funk_validate_nullable(&$c, $inputName, $inputData, $validationValues, $customErr = null)
 {
-    // This function is used to validate that the input data is nullable
-    // and can be null or empty. It does not do any validation.
     return true;
 }
 // Validate that Value is a valid integer - this function won't

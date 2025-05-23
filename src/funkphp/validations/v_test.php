@@ -27,6 +27,13 @@ function v_test(&$c) // <POST/test/:id>
     ];
 
     return array(
+        '<DX_KEYS>' =>
+        array(
+            'user' => 0,
+            'user.*.name' => 1,
+            'user.*.age' => 2,
+            'user.*.email' => 3,
+        ),
         'user' =>
         array(
             '<RULES>' =>
