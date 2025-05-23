@@ -28,7 +28,7 @@ function v_test(&$c) // <POST/test/:id>
     return array(
         'user_name' =>
         array(
-            '<FUNKPHP_VALIDATION_RULES>' =>
+            '<RULES>' =>
             array(
                 'min' =>
                 array(
@@ -59,7 +59,7 @@ function v_test(&$c) // <POST/test/:id>
         ),
         'user_age' =>
         array(
-            '<FUNKPHP_VALIDATION_RULES>' =>
+            '<RULES>' =>
             array(
                 'min' =>
                 array(
@@ -97,7 +97,7 @@ function v_test(&$c) // <POST/test/:id>
         array(
             'email' =>
             array(
-                '<FUNKPHP_VALIDATION_RULES>' =>
+                '<RULES>' =>
                 array(
                     'email' =>
                     array(

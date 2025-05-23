@@ -1240,7 +1240,7 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
             }
 
             // Add the current rule to the converted validation array
-            $convertedValidationArray[$currentDXKey]["<FUNKPHP_VALIDATION_RULES>"][$currentRuleForCurrentDXKey] = [
+            $convertedValidationArray[$currentDXKey]["<RULES>"][$currentRuleForCurrentDXKey] = [
                 "value" => is_string($currentRuleValueForCurrentDXKeyValue)
                     ? cli_try_parse_number($currentRuleValueForCurrentDXKeyValue) : $currentRuleValueForCurrentDXKeyValue,
                 "err_msg" => $currentRuleErrMsgForCurrentDXKeyValue,
