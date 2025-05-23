@@ -27,26 +27,6 @@ function get_match_function_regex($fnName)
     return $regex;
 }
 
-// Function creates a regex pattern that can return the typical
-// validation syntax rules that could be provided like:
-// "'required("Name is required!")', 'string', 'min:3',
-// min:6("Email must be at least six(6) characters long!")"
-function get_rules_regex($type)
-{
-    // The different types of rules syntaxes that can be used
-    if ($type === "ONLY_RULE_NAME") {
-        return '/^([a-z_][a-z_0-9]+)$/';
-    } elseif ($type === "ONLY_RULE_NAME_AND_VALUE") {
-        return '/^([a-z_][a-z_0-9]+):(.+)$/';
-    } elseif ($type === "ONLY_RULE_NAME_AND_ERROR") {
-        return '/^([a-z_][a-z_0-9]+)\("([^"]+)"\)$/';
-    } elseif ($type === "ONLY_RULE_NAME_AND_VALUE_AND_ERROR") {
-        return '/^([a-z_][a-z_0-9]+):(.+)\("([^"]+)"\)$/';
-    }
-    // Here we error out since we did not find a valid type
-    cli_err_syntax("[get_rules_regex - probably called by 'cli_convert_simple_validation_rules_to_optimized_validation()'] Type must be one of the following: 'ONLY_RULE_NAME', 'ONLY_RULE_NAME_AND_VALUE', 'ONLY_RULE_NAME_AND_ERROR' or 'ONLY_RULE_NAME_AND_VALUE_AND_ERROR'");
-}
-
 // Same as "get_match_function_regex" but it maches all functions
 // like:"function handlertype_functionName(&$c) // <METHOD/route>"
 // in order to know if the entire file now should be removed!
