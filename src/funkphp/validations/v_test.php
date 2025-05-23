@@ -14,107 +14,110 @@ function v_test(&$c) // <POST/test/:id>
     // Run the command `php funkcli compile v v_test=>v_test`
     // to get optimized version in return statement below it!
     $DX = [
-        'test_name' => [
+        'user_name' => [
             'min:3',
             'max:50',
             'string',
             'required("Name is required!")',
             'nullable',
         ],
-        'test_age' => 'min:18|max:120|max_digits:3|min_digits:2|required|integer("Age must be a number!")',
-        'test.user.email.primary' => 'email|required|min:6("Email must be at least six(6) characters long!")|max:100',
+        'user_age' => 'min:18|max:120|max_digits:3|min_digits:2|required|integer("Age must be a number!")',
+        'user.email' => 'email|required|min:6("Email must be at least six(6) characters long!")|max:100',
     ];
 
     return array(
-        'test_name' =>
+        'user_name' =>
         array(
-            'nullable' =>
+            '<FUNKPHP_VALIDATION_RULES>' =>
             array(
-                'value' => NULL,
-                'err_msg' => NULL,
-            ),
-            'required' =>
-            array(
-                'value' => NULL,
-                'err_msg' => 'Name is required!',
-            ),
-            'string' =>
-            array(
-                'value' => NULL,
-                'err_msg' => NULL,
-            ),
-            'min' =>
-            array(
-                'value' => 3,
-                'err_msg' => NULL,
-            ),
-            'max' =>
-            array(
-                'value' => 50,
-                'err_msg' => NULL,
-            ),
-        ),
-        'test_age' =>
-        array(
-            'required' =>
-            array(
-                'value' => NULL,
-                'err_msg' => NULL,
-            ),
-            'integer' =>
-            array(
-                'value' => NULL,
-                'err_msg' => 'Age must be a number!',
-            ),
-            'min' =>
-            array(
-                'value' => 18,
-                'err_msg' => NULL,
-            ),
-            'max' =>
-            array(
-                'value' => 120,
-                'err_msg' => NULL,
-            ),
-            'max_digits' =>
-            array(
-                'value' => 3,
-                'err_msg' => NULL,
-            ),
-            'min_digits' =>
-            array(
-                'value' => 2,
-                'err_msg' => NULL,
-            ),
-        ),
-        'test' =>
-        array(
-            'user' =>
-            array(
-                'email' =>
+                'min' =>
                 array(
-                    'primary' =>
+                    'value' => 3,
+                    'err_msg' => NULL,
+                ),
+                'max' =>
+                array(
+                    'value' => 50,
+                    'err_msg' => NULL,
+                ),
+                'string' =>
+                array(
+                    'value' => NULL,
+                    'err_msg' => NULL,
+                ),
+                'required' =>
+                array(
+                    'value' => NULL,
+                    'err_msg' => 'Name is required!',
+                ),
+                'nullable' =>
+                array(
+                    'value' => NULL,
+                    'err_msg' => NULL,
+                ),
+            ),
+        ),
+        'user_age' =>
+        array(
+            '<FUNKPHP_VALIDATION_RULES>' =>
+            array(
+                'min' =>
+                array(
+                    'value' => 18,
+                    'err_msg' => NULL,
+                ),
+                'max' =>
+                array(
+                    'value' => 120,
+                    'err_msg' => NULL,
+                ),
+                'max_digits' =>
+                array(
+                    'value' => 3,
+                    'err_msg' => NULL,
+                ),
+                'min_digits' =>
+                array(
+                    'value' => 2,
+                    'err_msg' => NULL,
+                ),
+                'required' =>
+                array(
+                    'value' => NULL,
+                    'err_msg' => NULL,
+                ),
+                'integer' =>
+                array(
+                    'value' => NULL,
+                    'err_msg' => 'Age must be a number!',
+                ),
+            ),
+        ),
+        'user' =>
+        array(
+            'email' =>
+            array(
+                '<FUNKPHP_VALIDATION_RULES>' =>
+                array(
+                    'email' =>
                     array(
-                        'required' =>
-                        array(
-                            'value' => NULL,
-                            'err_msg' => NULL,
-                        ),
-                        'email' =>
-                        array(
-                            'value' => NULL,
-                            'err_msg' => NULL,
-                        ),
-                        'min' =>
-                        array(
-                            'value' => 6,
-                            'err_msg' => 'Email must be at least six(6) characters long!',
-                        ),
-                        'max' =>
-                        array(
-                            'value' => 100,
-                            'err_msg' => NULL,
-                        ),
+                        'value' => NULL,
+                        'err_msg' => NULL,
+                    ),
+                    'required' =>
+                    array(
+                        'value' => NULL,
+                        'err_msg' => NULL,
+                    ),
+                    'min' =>
+                    array(
+                        'value' => 6,
+                        'err_msg' => 'Email must be at least six(6) characters long!',
+                    ),
+                    'max' =>
+                    array(
+                        'value' => 100,
+                        'err_msg' => NULL,
                     ),
                 ),
             ),
