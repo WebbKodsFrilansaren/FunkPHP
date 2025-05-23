@@ -1,43 +1,5 @@
 <?php
 
-// Function takes a dotted string (e.g. "test.email" or "test.user.name")
-// and converts it to a key with subkeys (e.g. ["test" => "email"]
-// or ["test" => ["user" => "name"]])
-function convert_dotted_string_to_key_with_subkeys($dottedString)
-{
-    // Check if the input is a valid string
-    if (!is_string_and_not_empty($dottedString)) {
-        cli_err_syntax("[convert_dotted_string_to_key_with_subkeys] Input for `\$dottedString` must be a non-empty string!");
-    }
-
-    // Regex that checks that it is a valid dotted string meaning it has at least one any character
-    // that is NOT a dot and then one dot and then any character that is NOT a dot and so on.
-    if (!preg_match("/^(([a-z_])([a-z_0-9]+)\.([a-z_0-9]+))(\.([a-z_0-9]+))*$/", $dottedString)) {
-        cli_err_syntax("[convert_dotted_string_to_key_with_subkeys] Invalid dotted string format in `$dottedString`! Must be like: \"test.email\" or \"test_with_underscored_and_numbers1337.user.name\"!");
-    }
-
-    // Split the dotted string into parts
-    $parts = explode('.', $dottedString);
-    $result = [];
-    $count = count($parts);
-    $counter = 0;
-
-    // Initialize the current reference to the result array
-    $current = &$result;
-
-    // Loop through each part and create nested arrays
-    foreach ($parts as $part) {
-        if (!is_string_and_not_empty($part)) {
-            cli_err_syntax("[convert_dotted_string_to_key_with_subkeys] Each `\$part` of the dotted string must be a non-empty string!");
-        }
-        $current = &$current[$part];
-    }
-
-    return $result;
-}
-// Function that takes a value and sets it in a nested array
-function set_value_in_nested_array(&$value) {}
-
 // Function that creates a regex pattern to match a function name
 // inside of a typical handler file with a handler function name!
 // Such as:
@@ -1162,9 +1124,10 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         $currentDXKey = $DXkey;
         $convertedValidationArray[$currentDXKey] = [];
 
-        if (str_contains($currentDXKey, ".") && !str_contains($currentDXKey, "*")) {
-            if (!preg_match("/^(([a-z_])([a-z_0-9]+)\.([a-z_0-9]+))(\.([a-z_0-9]+))*$/", $currentDXKey)) {
-                cli_err_syntax("[cli_convert_simple_validation_rules_to_optimized_validation] Invalid Nested Validation Key in `$currentDXKey`! Valid Syntax is: `user.email`, `user.email.primary` and so on!");
+        if (str_contains($currentDXKey, ".")) {
+            if (!preg_match("/^(([a-z_])([a-z_0-9]+)\.(\*|[a-z_][a-z_0-9]+))(\.(\*|[a-z_][a-z_0-9]+))*$/", $currentDXKey)) {
+                cli_err_syntax_without_exit("[cli_convert_simple_validation_rules_to_optimized_validation] Invalid Nested Validation Key in `$currentDXKey`!");
+                cli_info("Valid Syntax is: `user.email`, `user.email.primary`, `user.*.email`, `user.*.name` and so on.\nThe `*` character means the key before it indicates this is a numbered array and any keys after it are its subkeys for each element in that numbered array!");
             }
         }
 
@@ -1276,8 +1239,7 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         // and then we need to set the value to the $sortedRulesForField array.
         if (
             str_contains($currentDXKey, ".")
-            && !str_contains($currentDXKey, "*")
-            && preg_match("/^(([a-z_])([a-z_0-9]+)\.([a-z_0-9]+))(\.([a-z_0-9]+))*$/", $currentDXKey)
+            && preg_match("/^(([a-z_])([a-z_0-9]+)\.(\*|[a-z_][a-z_0-9]+))(\.(\*|[a-z_][a-z_0-9]+))*$/", $currentDXKey)
         ) {
             $nestedKeys = explode(".", $currentDXKey);
             $nestedKeyCount = count($nestedKeys);
