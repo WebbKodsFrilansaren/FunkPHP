@@ -191,7 +191,44 @@ function funk_validate_files(&$c, $optimizedValidationArray, $tablesAndColsToVal
 // $customErr is the custom error message to be used if validation fails         //
 ///////////////////////////////////////////////////////////////////////////////////
 
-// Validate that Value is a valid UTF-8 string
+/*
+YOUR CUSTOM VALIDATION FUNCTIONS STARTS_HERE
+- It must start with "funk_validate_" and then the name of the function or
+  else it won't be called when you use it in any of the validation files!
+- It must accept the following parameters:
+    - &$c: The main FunkPHP context variable
+    - $inputName: The name of the input field being validated
+    - $inputData: The data being validated
+    - $validationValues: The validation values for this input field
+    - $customErr: A custom error message to be used if validation fails
+*/
+
+
+
+/*
+YOUR CUSTOM VALIDATION FUNCTIONS ENDS_HERE
+*/
+
+/* ALL IN-BUILT VALIDATION FUNCTIONS IN FunkPHP */
+function funk_validate_nullable(&$c, $inputName, $inputData, $validationValues, $customErr = null)
+{
+    // This function is used to validate that the input data is nullable
+    // and can be null or empty. It does not do any validation.
+    return true;
+}
+// Validate that Value is a valid integer - this function won't
+// run if "nullable" is set to true in the table definition!!!
+function funk_validate_required(&$c, $inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (!isset($inputData) || empty($inputData)) {
+        $c['v'][$inputName]['required'] = (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must is required.";
+        return false;
+    }
+    return true;
+}
+
+/* Validating valid data type: string, integer, float, array, boolean, email, date */
+// Validate that Input Data is a valid UTF-8 string
 function funk_validate_string(&$c, $inputName, $inputData, $validationValues, $customErr = null)
 {
     if (!is_string($inputData)) {
@@ -200,21 +237,260 @@ function funk_validate_string(&$c, $inputName, $inputData, $validationValues, $c
     }
     return true;
 }
-function funk_validate_str(&$c, $inputName, $inputData, $validationValues, $customErr = null)
+
+// Validate that Input Data is a valid integer
+function funk_validate_integer(&$c, $inputName, $inputData, $validationValues, $customErr = null)
 {
-    if (!is_string($inputData)) {
-        $c['v'][$inputName]['string'] = (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a string.";
+    if (!is_int($inputData) || (intval($inputData) != $inputData)) {
+        $c['v'][$inputName]['integer'] = (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be an integer.";
         return false;
     }
     return true;
 }
 
-// Validate that Value is a valid integer - this function won't
-// run if "nullable" is set to true in the table definition!!!
-function funk_validate_required(&$c, $inputName, $inputData, $validationValues, $customErr = null)
+// Validate that Input Data is a valid float
+function funk_validate_float(&$c, $inputName, $inputData, $validationValues, $customErr = null)
 {
-    if (!isset($inputData) || empty($inputData)) {
-        $c['v'][$inputName]['required'] = (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must is required.";
+    if (!is_float($inputData) || (floatval($inputData) != $inputData)) {
+        $c['v'][$inputName]['float'] = (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a float number.";
+        return false;
+    }
+    return true;
+}
+
+// Validate that Input Data is a valid number (is numeric)
+function funk_validate_number(&$c, $inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (!is_numeric($inputData)) {
+        $c['v'][$inputName]['number'] = (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a number.";
+        return false;
+    }
+    return true;
+}
+
+// Validate that Input Data is a valid array
+function funk_validate_array(&$c, $inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (!is_array($inputData)) {
+        $c['v'][$inputName]['array'] = (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be an array.";
+        return false;
+    }
+    return true;
+}
+
+// Validate that Input Data is a valid boolean
+function funk_validate_boolean(&$c, $inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (!is_bool($inputData)) {
+        $c['v'][$inputName]['boolean'] = (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a boolean.";
+        return false;
+    }
+    return true;
+}
+
+// Validate that Input Data is a valid email address
+// TODO: Improve this function to check for valid email address format
+function funk_validate_email(&$c, $inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (!filter_var($inputData, FILTER_VALIDATE_EMAIL)) {
+        $c['v'][$inputName]['email'] = (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a valid email address.";
+        return false;
+    }
+    return true;
+}
+
+// Validate that Input Data is a valid file (this means we need to check the $_FILES array)
+// where the $inputName is the name of the file input field
+// TODO: Maybe add more checks for file type, size?
+function funk_validate_file(&$c, $inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (!isset($_FILES[$inputName])) {
+        $c['v'][$inputName]['file'] = (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a valid file.";
+        return false;
+    }
+    return true;
+}
+
+/* Validating min & max sizes as values in numbers, as lengths in strings and as number of element sin arrays */
+/* These first ones are just placeholders for "cli_convert_simple_validation_rules_to_optimized_validation()"
+   to not freak out when it tries to validate a funk_validate_FUNCTION actually exists during compilation! */
+function funk_validate_count(&$c, $inputName, $inputData, $validationValues, $customErr = null) {};
+function funk_validate_between(&$c, $inputName, $inputData, $validationValues, $customErr = null) {};
+function funk_validate_min(&$c, $inputName, $inputData, $validationValues, $customErr = null) {};
+function funk_validate_max(&$c, $inputName, $inputData, $validationValues, $customErr = null) {};
+function funk_validate_exact(&$c, $inputName, $inputData, $validationValues, $customErr = null) {};
+
+// Validate that Input Data is of valid minimal length provided in $validationValues
+// This is used ONLY for string inputs. This is "min" when it knows it is a string.
+function funk_validate_minlen(&$c, $inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (mb_strlen($inputData) < $validationValues) {
+        $c['v'][$inputName]['min'] = (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be at least $validationValues characters long.";
+        return false;
+    }
+    return true;
+}
+
+// Validate that Input Data is of valid maximum length provided in $validationValues
+// This is used ONLY for string inputs. This is "max" when it knows it is a string.
+function funk_validate_maxlen(&$c, $inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (mb_strlen($inputData) > $validationValues) {
+        $c['v'][$inputName]['max'] = (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be at most $validationValues characters long.";
+        return false;
+    }
+    return true;
+}
+
+// Validate that Input Data is of valid length provided in $validationValues
+// This is used ONLY for string inputs. This is "between" when it knows it is a string.
+function funk_validate_betweenlen(&$c, $inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (mb_strlen($inputData) <= $validationValues[0] || mb_strlen($inputData) >= $validationValues[1]) {
+        $c['v'][$inputName]['between'] = (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be inclusively between {$validationValues[0]} and {$validationValues[1]} characters long.";
+        return false;
+    }
+    return true;
+}
+
+// Validate that Input Data is of valid minimum value provided in $validationValues
+// This is used ONLY for numerical inputs. This is "min" when it knows it is a number.
+function funk_validate_minval(&$c, $inputName, $inputData, $validationValues, $customErr = null)
+{
+    if ($inputData < $validationValues) {
+        $c['v'][$inputName]['min'] = (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be at least $validationValues in value.";
+        return false;
+    }
+    return true;
+}
+
+// Validate that Input Data is of valid maximum value provided in $validationValues
+// This is used ONLY for numerical inputs. This is "max" when it knows it is a number.
+function funk_validate_maxval(&$c, $inputName, $inputData, $validationValues, $customErr = null)
+{
+    if ($inputData > $validationValues) {
+        $c['v'][$inputName]['min'] = (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be at most $validationValues in value.";
+        return false;
+    }
+    return true;
+}
+
+// Validate that Input Data is of valid minimum and maximum value provided in $validationValues
+// This is used ONLY for numerical inputs. This is "between" when it knows it is a number.
+function funk_validate_betweenval(&$c, $inputName, $inputData, $validationValues, $customErr = null)
+{
+    if ($inputData <= $validationValues[0] || $inputData >= $validationValues[1]) {
+        $c['v'][$inputName]['between'] = (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be inclusively between {$validationValues[0]} and {$validationValues[1]} in value.";
+        return false;
+    }
+    return true;
+}
+
+// Validate that Input Data's array has minimum number of elements as in $validationValues
+// This is used ONLY for array inputs. This is "min" when it knows it is a array.
+function funk_validate_mincount(&$c, $inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (count($inputData) < $validationValues) {
+        $c['v'][$inputName]['min'] = (isset($customErr) && is_string($customErr)) ? $customErr : "Array $inputName must have at least $validationValues elements.";
+        return false;
+    }
+    return true;
+}
+
+// Validate that Input Data's array has maximum number of elements as in $validationValues
+// This is used ONLY for array inputs. This is "max" when it knows it is a array.
+function funk_validate_maxcount(&$c, $inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (count($inputData) < $validationValues) {
+        $c['v'][$inputName]['max'] = (isset($customErr) && is_string($customErr)) ? $customErr : "Array $inputName must have at most $validationValues elements.";
+        return false;
+    }
+    return true;
+}
+
+// Validate that Input Data's array has minimum and maximum number of elements as in $validationValues
+// This is used ONLY for array inputs. This is "between" when it knows it is a array.
+function funk_validate_betweencount(&$c, $inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (count($inputData) <= $validationValues[0] || count($inputData) >= $validationValues[1]) {
+        $c['v'][$inputName]['between'] = (isset($customErr) && is_string($customErr)) ? $customErr : "Array $inputName must have inclusively between {$validationValues[0]} and {$validationValues[1]} elements.";
+        return false;
+    }
+    return true;
+}
+
+// Validate that Input Data is of valid maximum value provided in $validationValues
+// This is used ONLY for numerical inputs. This is "max" when it knows it is a number.
+function funk_validate_exactval(&$c, $inputName, $inputData, $validationValues, $customErr = null)
+{
+    if ($inputData !== $validationValues) {
+        $c['v'][$inputName]['exact'] = (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be exactly $validationValues in value.";
+        return false;
+    }
+    return true;
+}
+
+// Validate that Input Data is of valid exact length provided in $validationValues meaning
+// it must be that length and not less or more. This is used ONLY for string inputs.
+function funk_validate_exactlen(&$c, $inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (mb_strlen($inputData) !== $validationValues) {
+        $c['v'][$inputName]['exact'] = (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be exactly $validationValues characters long.";
+        return false;
+    }
+    return true;
+}
+
+// Validate that Input Data's array has an exact number of elements as in $validationValues
+// This is used ONLY for array inputs. This is "max" when it knows it is a array.
+function funk_validate_exactcount(&$c, $inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (count($inputData) !== $validationValues) {
+        $c['v'][$inputName]['exact'] = (isset($customErr) && is_string($customErr)) ? $customErr : "Array $inputName must have exactly $validationValues elements.";
+        return false;
+    }
+    return true;
+}
+
+// Validate that Input Data is of valid maximum number of digits as in $validationValues
+// This is used ONLY for numerical inputs. This is "min_digits" when it knows it is a number.
+function funk_validate_min_digits(&$c, $inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (strlen($inputData) < $validationValues) {
+        $c['v'][$inputName]['min_digits'] = (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must have at least $validationValues digits.";
+        return false;
+    }
+    return true;
+}
+
+// Validate that Input Data is of valid maximum number of digits as in $validationValues
+// This is used ONLY for numerical inputs. This is "max_digits" when it knows it is a number.
+function funk_validate_max_digits(&$c, $inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (strlen($inputData) > $validationValues) {
+        $c['v'][$inputName]['max_digits'] = (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must have at most $validationValues digits.";
+        return false;
+    }
+    return true;
+}
+
+// Validate that Input Data is of valid minimum and maximum number of digits as in $validationValues
+// This is used ONLY for numerical inputs. This is "between_digits" when it knows it is a number.
+function funk_validate_digits_between(&$c, $inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (strlen($inputData) <= $validationValues[0] || strlen($inputData) >= $validationValues[1]) {
+        $c['v'][$inputName]['between_digits'] = (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must have inclusively between {$validationValues[0]} and {$validationValues[1]} digits.";
+        return false;
+    }
+    return true;
+}
+
+// Validate that Input Data is of valid exact number of digits as in $validationValues
+// This is used ONLY for numerical inputs. This is "digits" when it knows it is a number.
+function funk_validate_digits(&$c, $inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (strlen($inputData) !== $validationValues) {
+        $c['v'][$inputName]['digits'] = (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must have exactly $validationValues digits.";
         return false;
     }
     return true;

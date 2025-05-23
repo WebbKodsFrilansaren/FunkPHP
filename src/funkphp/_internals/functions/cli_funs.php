@@ -1,5 +1,43 @@
 <?php
 
+// Function takes a dotted string (e.g. "test.email" or "test.user.name")
+// and converts it to a key with subkeys (e.g. ["test" => "email"]
+// or ["test" => ["user" => "name"]])
+function convert_dotted_string_to_key_with_subkeys($dottedString)
+{
+    // Check if the input is a valid string
+    if (!is_string_and_not_empty($dottedString)) {
+        cli_err_syntax("[convert_dotted_string_to_key_with_subkeys] Input for `\$dottedString` must be a non-empty string!");
+    }
+
+    // Regex that checks that it is a valid dotted string meaning it has at least one any character
+    // that is NOT a dot and then one dot and then any character that is NOT a dot and so on.
+    if (!preg_match("/^(([a-z_])([a-z_0-9]+)\.([a-z_0-9]+))(\.([a-z_0-9]+))*$/", $dottedString)) {
+        cli_err_syntax("[convert_dotted_string_to_key_with_subkeys] Invalid dotted string format in `$dottedString`! Must be like: \"test.email\" or \"test_with_underscored_and_numbers1337.user.name\"!");
+    }
+
+    // Split the dotted string into parts
+    $parts = explode('.', $dottedString);
+    $result = [];
+    $count = count($parts);
+    $counter = 0;
+
+    // Initialize the current reference to the result array
+    $current = &$result;
+
+    // Loop through each part and create nested arrays
+    foreach ($parts as $part) {
+        if (!is_string_and_not_empty($part)) {
+            cli_err_syntax("[convert_dotted_string_to_key_with_subkeys] Each `\$part` of the dotted string must be a non-empty string!");
+        }
+        $current = &$current[$part];
+    }
+
+    return $result;
+}
+// Function that takes a value and sets it in a nested array
+function set_value_in_nested_array(&$value) {}
+
 // Function that creates a regex pattern to match a function name
 // inside of a typical handler file with a handler function name!
 // Such as:
@@ -25,6 +63,26 @@ function get_match_function_regex($fnName)
     // The matching is only valid if after "};" there is a new line otherwise it will be invalid!
     $regex = '/^function (' . $fnName . ')\(\&\$c\)\s*\/\/ <([A-Z]+)\/([a-z0-9_:\-\/]*)>\s*$.*?^};$/ims';
     return $regex;
+}
+
+// Function creates a regex pattern that can return the typical
+// validation syntax rules that could be provided like:
+// "'required("Name is required!")', 'string', 'min:3',
+// min:6("Email must be at least six(6) characters long!")"
+function get_rules_regex($type)
+{
+    // The different types of rules syntaxes that can be used
+    if ($type === "ONLY_RULE_NAME") {
+        return '/^([a-z_][a-z_0-9]+)$/';
+    } elseif ($type === "ONLY_RULE_NAME_AND_VALUE") {
+        return '/^([a-z_][a-z_0-9]+):(.+)$/';
+    } elseif ($type === "ONLY_RULE_NAME_AND_ERROR") {
+        return '/^([a-z_][a-z_0-9]+)\("([^"]+)"\)$/';
+    } elseif ($type === "ONLY_RULE_NAME_AND_VALUE_AND_ERROR") {
+        return '/^([a-z_][a-z_0-9]+):(.+)\("([^"]+)"\)$/';
+    }
+    // Here we error out since we did not find a valid type
+    cli_err_syntax("[get_rules_regex - probably called by 'cli_convert_simple_validation_rules_to_optimized_validation()'] Type must be one of the following: 'ONLY_RULE_NAME', 'ONLY_RULE_NAME_AND_VALUE', 'ONLY_RULE_NAME_AND_ERROR' or 'ONLY_RULE_NAME_AND_VALUE_AND_ERROR'");
 }
 
 // Same as "get_match_function_regex" but it maches all functions
@@ -756,11 +814,11 @@ function cli_parse_a_sql_table_file()
 function cli_try_parse_number($number)
 {
     if (!is_string_and_not_empty($number)) {
-        cli_err_syntax("[cli_try_parse_number]: Expects a string as input!");
+        cli_err_syntax("[cli_try_parse_number]: Expects a string as input for \$number!");
     }
     $number = trim($number);
     if (is_numeric($number)) {
-        if (is_float($number)) {
+        if (strpos($number, '.') !== false) {
             return (float)$number;
         } else {
             return (int)$number;
@@ -986,26 +1044,267 @@ function cli_output_tables_file($array)
 
 // Function takes a a valid array with simplified Validation Rules Syntax and converts
 // it to highly optimized validation rules that are then returned as an array
-function cli_convert_simple_validation_rules_to_optimized_validation($validationArray)
+function cli_convert_simple_validation_rules_to_optimized_validation($validationArray, $handlerFile, $fnName)
 {
+    global $dirs, $exactFiles, $settings;
     // Validate it is an associative array - not a list
     if (!is_array_and_not_empty($validationArray)) {
-        cli_err_without_exit("[cli_convert_simple_validation_rules_to_optimized_validation]: Expects a Non-Empty Associative Array as input!");
+        cli_err_without_exit("[cli_convert_simple_validation_rules_to_optimized_validation]: Expects a Non-Empty Associative Array as input for `\$validationArray`!");
         cli_info("This probably means that the \"\$DX\" variable is an Empty Array, or not an Array at all?");
     }
     if (array_is_list($validationArray)) {
-        cli_err_without_exit("[cli_convert_simple_validation_rules_to_optimized_validation]: Expects a Non-Empty Associative Array as input!");
+        cli_err_without_exit("[cli_convert_simple_validation_rules_to_optimized_validation]: Expects a Non-Empty Associative Array as input for `\$validationArray`!");
         cli_info("Here it probably means that the \"\$DX\" variable is a List Array, empty or not?");
+    }
+
+    // Both $handlerFile and $fnName must be non-empty strings
+    if (!is_string_and_not_empty($handlerFile)) {
+        cli_err_without_exit("[cli_convert_simple_validation_rules_to_optimized_validation]: Expects a Non-Empty String as input for `\$handlerFile`!");
+        cli_info("This probably means that the \"\$DX\" variable is an Empty Array, or not an Array at all?");
+    }
+    if (!is_string_and_not_empty($fnName)) {
+        cli_err_without_exit("[cli_convert_simple_validation_rules_to_optimized_validation]: Expects a Non-Empty String as input for `\$fnName`!");
+        cli_info("This probably means that the \"\$DX\" variable is an Empty Array, or not an Array at all?");
     }
 
     // Prepare variables to store the converted validation rules
     $convertedValidationArray = [];
     $existsTableColsToCheck = [];
+    $currentDXKey = null;
+    $currentRules = null;
+    $currentRuleForCurrentDXKey = null;
+    $currentRuleValueForCurrentDXKeyValue = null;
+    $currentRuleErrMsgForCurrentDXKeyValue = null;
 
-    var_dump($validationArray);
-    exit;
-    // TODO: Convert all the rules to optimized validation rules
+    // Regex patterns to match the validation rules
+    $regexType = [
+        'ONLY_RULE_NAME' => '/^([a-z_][a-z_0-9]+)$/',
+        'ONLY_RULE_NAME_AND_VALUE' => '/^([a-z_][a-z_0-9]+):(.+)$/',
+        'ONLY_RULE_NAME_AND_ERROR' => '/^([a-z_][a-z_0-9]+)\("([^"]+)"\)$/',
+        'ONLY_RULE_NAME_AND_VALUE_AND_ERROR' => '/^([a-z_][a-z_0-9]+):(.+)\("([^"]+)"\)$/'
+    ];
 
+    // Priority order of validation rules (required and the data
+    // type must always be first for each $currentDXKey!). 'nullable'
+    // must come very early to allow for data that are actually null!
+    $priorityOrder = [
+        'nullable',
+        'required',
+        'string',
+        'integer',
+        'float',
+        'boolean',
+        'number',
+        'date',
+        'array',
+        'enum',
+        'email',
+        'url',
+        'ip',
+        'uuid',
+        'phone',
+        'regex',
+        'object',
+        'json',
+    ];
+    include_once($dirs['functions'] . "d_data_funs.php");
+
+    // We first verify for any duplicates in the array keys.
+    // This should be impossible since same key name would just
+    // overwrite the previous one, but we still check for it.
+    $duplicates = [];
+    foreach ($validationArray as $key => $value) {
+        if (isset($duplicates[$key])) {
+            cli_err_syntax_without_exit("Duplicate Validation Key `$key` found in Validation `$handlerFile.php=>$fnName`!");
+            cli_err_syntax("Please make sure all keys (the matching data to validate) are unique!");
+        }
+        $duplicates[$key] = [];
+    }
+
+    // We verify each array key is a non-empty string and we verify each value
+    // is either a non-empty string or a single array of non-empty strings!
+    foreach ($validationArray as $key => $value) {
+        if (!is_string_and_not_empty($key)) {
+            cli_err_syntax_without_exit("An empty or non-string key found in Validation `$handlerFile.php=>$fnName`!");
+            cli_err_syntax("Please make sure all keys (the matching data to validate) are non-empty strings!");
+        }
+        if (!is_string($value) && !is_array($value)) {
+            cli_err_syntax_without_exit("Invalid Validation Rules for \$DX key `$key` found in Validation `$handlerFile.php=>$fnName`!");
+            cli_err_syntax_without_exit("Please make sure all Validation Rules are either non-empty strings as elements");
+            cli_err_syntax("in a single array OR just a single non-empty string with Validation Rules separated with `|`!");
+        }
+        if ((is_string($value) && empty($value)) || (is_array($value) && empty($value))) {
+            cli_err_syntax_without_exit("No Validation Rules found for \$DX key `$key` found in Validation `$handlerFile.php=>$fnName`!");
+            cli_err_syntax_without_exit("Please make sure all Validation Rules are either non-empty strings as elements");
+            cli_err_syntax("in a single array OR just a single non-empty string with Validation Rules separated with `|`!");
+        }
+        // If array, each element must be a non-empty string!
+        if (is_array($value)) {
+            foreach ($value as $subKey => $subValue) {
+                if (!is_string_and_not_empty($subValue)) {
+                    cli_err_syntax_without_exit("An empty or non-string Validation Rule found for \$DX key `$key` in Validation `$handlerFile.php=>$fnName`!");
+                    cli_err_syntax_without_exit("Please make sure all Validation Rules are either non-empty strings as elements");
+                    cli_err_syntax("in a single array OR just a single non-empty string with Validation Rules separated with `|`!");
+                }
+            }
+        }
+    }
+
+    // Now we finally start converting the validation rules to optimized validation rules
+    foreach ($validationArray as $DXkey => $Rules) {
+
+        // Prepare the current rule for the current key and add
+        // it to the converted validation array as its own key
+        // since each rule will be a subkey there and each rule
+        // will also have subkeys such as "value" and "err_msg".
+        // The "value" is after ":" and the "err_msg" is inside ("")
+        // and it is optional and is otherwise set to null.
+        $currentDXKey = $DXkey;
+        $convertedValidationArray[$currentDXKey] = [];
+
+        if (str_contains($currentDXKey, ".") && !str_contains($currentDXKey, "*")) {
+            if (!preg_match("/^(([a-z_])([a-z_0-9]+)\.([a-z_0-9]+))(\.([a-z_0-9]+))*$/", $currentDXKey)) {
+                cli_err_syntax("[cli_convert_simple_validation_rules_to_optimized_validation] Invalid Nested Validation Key in `$currentDXKey`! Valid Syntax is: `user.email`, `user.email.primary` and so on!");
+            }
+        }
+
+        // We now check if the $Rules is a string and if it is a string then we check
+        // if it has "|" meaning we should split it into an array of rules. If it is just a
+        // single rule string we still convert it to an array with a single element.
+        // If it is an array we just use it as is.
+        if (is_string($Rules) && str_contains($Rules, "|")) {
+            $currentRules = explode("|", $Rules);
+        } elseif (is_string($Rules) && !str_contains($Rules, "|")) {
+            $currentRules = [$Rules];
+        } else {
+            $currentRules = $Rules;
+        }
+
+        // We now iterate through each rule by first checking it against the $regexType
+        // array to see if it matches any of them. If not, then it is invalid rule syntax
+        // and we error out. If it is valid we then check if it is a rule with a value.
+        foreach ($currentRules as $singleRule) {
+            // $singleRule is a rule name with a value and an error message?
+            if (preg_match($regexType['ONLY_RULE_NAME_AND_VALUE_AND_ERROR'], $singleRule, $matches)) {
+                $currentRuleForCurrentDXKey = $matches[1];
+                $currentRuleValueForCurrentDXKeyValue = $matches[2];
+                $currentRuleErrMsgForCurrentDXKeyValue = $matches[3];
+            }
+            // $singleRule is a rule name with a value but no error message?
+            elseif (preg_match($regexType['ONLY_RULE_NAME_AND_VALUE'], $singleRule, $matches)) {
+                $currentRuleForCurrentDXKey = $matches[1];
+                $currentRuleValueForCurrentDXKeyValue = $matches[2];
+                $currentRuleErrMsgForCurrentDXKeyValue = null;
+            }
+            // $singleRule is a rule name with an error message but no value?
+            elseif (preg_match($regexType['ONLY_RULE_NAME_AND_ERROR'], $singleRule, $matches)) {
+                $currentRuleForCurrentDXKey = $matches[1];
+                $currentRuleValueForCurrentDXKeyValue = null;
+                $currentRuleErrMsgForCurrentDXKeyValue = $matches[2];
+            }
+            // $singleRule is just a rule name with no value nor error message?
+            elseif (preg_match($regexType['ONLY_RULE_NAME'], $singleRule, $matches)) {
+                $currentRuleForCurrentDXKey = $matches[1];
+                $currentRuleValueForCurrentDXKeyValue = null;
+                $currentRuleErrMsgForCurrentDXKeyValue = null;
+            } else {
+                cli_err_syntax_without_exit("Invalid Validation Rule Syntax for `$singleRule` in Validation `$handlerFile.php=>$fnName`!");
+                cli_err_syntax_without_exit("Please make sure all Validation Rules are using one of the valid Validation Rule Syntaxes supported in FunkPHP!");
+                cli_info("Examples of valid Validation Rule Syntaxes:\n`required` OR `required(\"This is required!\")`\n`min:3` OR `min:3(\"This is too short!\")`\n`between:3,50` OR `between:3,50(\"This is too short or too long!\")");
+            }
+
+            // We check if "$currentRuleForCurrentDXKey" actually exists
+            // as a funk_validate_function and if it does not exist we error out.
+            if (!function_exists('funk_validate_' . $currentRuleForCurrentDXKey)) {
+                cli_err_syntax_without_exit("Validation Rule \"$currentRuleForCurrentDXKey\" not found in Validation Handler File \"$handlerFile.php\".");
+                cli_info_without_exit("Make sure it is intended using CMD+S or CTRL+S to autoformat the Validation Handler File!");
+                cli_info("It must start as a function: `function $currentRuleForCurrentDXKey()` or it will not be found!");
+            }
+
+            // We check if the "$currentRuleValueForCurrentDXKeyValue" contains a
+            // "," meaning we should split it into an array of values that is the value then!
+            // We also trim all the values in the array to remove any whitespace around them.
+            if (str_contains($currentRuleValueForCurrentDXKeyValue, ",")) {
+                $currentRuleValueForCurrentDXKeyValue = explode(",", $currentRuleValueForCurrentDXKeyValue);
+                foreach ($currentRuleValueForCurrentDXKeyValue as $subKey => $subValue) {
+                    $currentRuleValueForCurrentDXKeyValue[$subKey] = trim($subValue);
+                }
+
+                // We then check if each element is actually a number but that is stringified
+                // so we turn it back to a number again!
+                foreach ($currentRuleValueForCurrentDXKeyValue as $subKey => $subValue) {
+                    if (is_numeric($subValue)) {
+                        $currentRuleValueForCurrentDXKeyValue[$subKey] = cli_try_parse_number($subValue);
+                    }
+                }
+            }
+
+            // Add the current rule to the converted validation array
+            $convertedValidationArray[$currentDXKey][$currentRuleForCurrentDXKey] = [
+                "value" => is_string($currentRuleValueForCurrentDXKeyValue)
+                    ? cli_try_parse_number($currentRuleValueForCurrentDXKeyValue) : $currentRuleValueForCurrentDXKeyValue,
+                "err_msg" => $currentRuleErrMsgForCurrentDXKeyValue,
+            ];
+        }
+
+        // We will now sort some keys for the given $DXKey were are at. For example: we need 'required'
+        // and the data type ('string', 'int', 'float', etc.) to be at the top of the array
+        // so we can check for them first and then check for the rest of the rules. This will help the
+        // actual Validation function which will need to check for some rules before others in order to
+        // call the correct validation function (e.g. knowing to call 'funk_validate_minlen' or
+        // 'funk_validate_minval' based on whether data type is a string or a number).
+        $sortedRulesForField = [];
+        $createdRules = $convertedValidationArray[$currentDXKey];
+
+        // First Add priority rules first, in their defined order
+        // and then add remaining rules in the order they were found
+        foreach ($priorityOrder as $ruleName) {
+            if (isset($createdRules[$ruleName])) {
+                $sortedRulesForField[$ruleName] = $createdRules[$ruleName];
+                unset($createdRules[$ruleName]);
+            }
+        }
+        foreach ($createdRules as $ruleName => $details) {
+            $sortedRulesForField[$ruleName] = $details;
+        }
+
+        // Finally add the priority sorted rules to the converted validation array
+        $convertedValidationArray[$currentDXKey] = $sortedRulesForField;
+
+        // We check if the key contains a "." and if it does we need to split it
+        // and then we need to rebuild the nested keys in the converted validation array
+        // and then we need to set the value to the $sortedRulesForField array.
+        if (
+            str_contains($currentDXKey, ".")
+            && !str_contains($currentDXKey, "*")
+            && preg_match("/^(([a-z_])([a-z_0-9]+)\.([a-z_0-9]+))(\.([a-z_0-9]+))*$/", $currentDXKey)
+        ) {
+            $nestedKeys = explode(".", $currentDXKey);
+            $nestedKeyCount = count($nestedKeys);
+            $currentNestedKey = array_shift($nestedKeys);
+            $currentNestedArray = &$convertedValidationArray[$currentNestedKey];
+
+            // We need to check if the current nested key already exists
+            // and if it does not exist we need to create it as an empty array
+            if (!isset($currentNestedArray) || !is_array($currentNestedArray)) {
+                $currentNestedArray = [];
+            }
+
+            // We now iterate through the remaining nested keys and create them
+            // as empty arrays until we reach the last key which will be the value
+            foreach ($nestedKeys as $key) {
+                if (!isset($currentNestedArray[$key]) || !is_array($currentNestedArray[$key])) {
+                    $currentNestedArray[$key] = [];
+                }
+                $currentNestedArray = &$currentNestedArray[$key];
+            }
+            // Finally set the value to the sorted rules for the field
+            $currentNestedArray = $sortedRulesForField;
+            unset($convertedValidationArray[$currentDXKey]);
+        }
+    }
+
+    // Return the converted validation array
     return $convertedValidationArray;
 }
 
@@ -1085,7 +1384,7 @@ function cli_compile_dx_validation_to_optimized_validation()
 
     // This contains the optimized validation rules which will then replace the "$matchedReturnStmt"
     // The function can error out on its own so we do not need to check for the return value!
-    $optimizedRuleArray = cli_convert_simple_validation_rules_to_optimized_validation($evalCode);
+    $optimizedRuleArray = cli_convert_simple_validation_rules_to_optimized_validation($evalCode, $handlerFile, $fnName);
 
     // Convert the optimized rule array to a string with ";\n" at the end
     $optimizedRuleArrayAsStringWithReturnStmt = "return " . var_export($optimizedRuleArray, true) . ";\n";
