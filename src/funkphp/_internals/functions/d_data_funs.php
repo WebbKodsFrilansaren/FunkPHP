@@ -36,6 +36,9 @@ function funk_run_matched_data_handler(&$c)
     } elseif (is_array($c['req']['matched_data'])) {
         $handler = key($c['req']['matched_data']);
         $handleString = $c['req']['matched_data'][$handler] ?? null;
+    } else {
+        $c['err']['FAILED_TO_RUN_DATA_HANDLER'] = true;
+        return;
     }
 
     // Finally check if the file exists and is readable, and then include it
@@ -157,126 +160,50 @@ function funk_use_validation(&$c, $validation, $contentType)
 }
 
 // The main validation function for validating data
+// in FunkPHP mapping to the "$_GET" variables ONLY!
+function funk_validate_get(&$c, $optimizedValidationArray, $tablesAndColsToValidate = null) {}
+
+// The main validation function for validating data
 // in FunkPHP mapping to the "$_POST" variables ONLY!
-function funk_validate_post(&$c, $allLoadedValidationData, $tablesAndColsToValidate)
+function funk_validate_post(&$c, $optimizedValidationArray, $tablesAndColsToValidate = null)
 {
     $errors = [];
     echo "<pre>";
     print_r($tablesAndColsToValidate);
     echo "</pre>";
-
-    return $errors;
 }
 
-// The main validation function for validating data
-// in FunkPHP mapping to the "$_GET" variables ONLY!
-function funk_validate_get(&$c, $allLoadedValidationData, $tablesAndColsToValidate)
-{
-    $errors = [];
-
-    // It has a start function so it can also be used recursively!
-    $start_validate = function (&$c, $data_keys_and_associated_validation_rules_values) use ($errors) {};
-
-    // TODO: Improve this!
-    $email  = function (&$c, $data, $value, $customErr = null) {
-        if (!filter_var($value, FILTER_VALIDATE_EMAIL)) {
-            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be a valid email address.";
-        }
-    };
-    $url =  function (&$c, $data, $value, $customErr = null) {
-        if (!filter_var($value, FILTER_VALIDATE_URL)) {
-            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be a valid URL.";
-        }
-    };
-    // TODO: Improve this!
-    $phone = function (&$c, $data, $value, $customErr = null) {
-        if (!preg_match('/^\+?[0-9]{1,4}?[-. ]?\(?[0-9]{1,4}?\)?[-. ]?[0-9]{1,4}[-. ]?[0-9]{1,9}$/', $value)) {
-            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be a valid phone number.";
-        }
-    };
-
-    // TODO: Verify this works as intended!
-
-
-    return $errors;
-}
 
 // The main validation function for validating data
 // in FunkPHP mapping to the php://input data ONLY!
-function funk_validate_json(&$c, $allLoadedValidationData, $tablesAndColsToValidate)
-{
-    $errors = [];
-
-    // It has a start function so it can also be used recursively!
-    $start_validate = function (&$c, $data_keys_and_associated_validation_rules_values) use ($errors) {};
-
-    // TODO: Improve this!
-    $email  = function (&$c, $data, $value, $customErr = null) {
-        if (!filter_var($value, FILTER_VALIDATE_EMAIL)) {
-            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be a valid email address.";
-        }
-    };
-    $url =  function (&$c, $data, $value, $customErr = null) {
-        if (!filter_var($value, FILTER_VALIDATE_URL)) {
-            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be a valid URL.";
-        }
-    };
-    // TODO: Improve this!
-    $phone = function (&$c, $data, $value, $customErr = null) {
-        if (!preg_match('/^\+?[0-9]{1,4}?[-. ]?\(?[0-9]{1,4}?\)?[-. ]?[0-9]{1,4}[-. ]?[0-9]{1,9}$/', $value)) {
-            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be a valid phone number.";
-        }
-    };
-
-    // TODO: Verify this works as intended!
-
-
-    return $errors;
-}
+function funk_validate_json(&$c, $optimizedValidationArray, $tablesAndColsToValidate = null) {}
 
 // The main validation function for validating data
 // in FunkPHP mapping to the $_FILES variables ONLY!
-function funk_validate_files(&$c, $allLoadedValidationData, $tablesAndColsToValidate)
-{
-    $errors = [];
-
-    // It has a start function so it can also be used recursively!
-    $start_validate = function (&$c, $data_keys_and_associated_validation_rules_values) use ($errors) {};
-
-    // TODO: Improve this!
-    $email  = function (&$c, $data, $value, $customErr = null) {
-        if (!filter_var($value, FILTER_VALIDATE_EMAIL)) {
-            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be a valid email address.";
-        }
-    };
-    $url =  function (&$c, $data, $value, $customErr = null) {
-        if (!filter_var($value, FILTER_VALIDATE_URL)) {
-            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be a valid URL.";
-        }
-    };
-    // TODO: Improve this!
-    $phone = function (&$c, $data, $value, $customErr = null) {
-        if (!preg_match('/^\+?[0-9]{1,4}?[-. ]?\(?[0-9]{1,4}?\)?[-. ]?[0-9]{1,4}[-. ]?[0-9]{1,9}$/', $value)) {
-            $errors[] = $customErr ? $customErr : "The field {$data['name']} must be a valid phone number.";
-        }
-    };
-
-    // TODO: Verify this works as intended!
-
-    return $errors;
-}
+function funk_validate_files(&$c, $optimizedValidationArray, $tablesAndColsToValidate = null) {}
 
 ///////////////////////////////////////////////////////////////////////////////////
 // BELOW ARE ALL THE VALIDATION FUNCTIONS THAT WILL BE USED TO VALIDATE THE DATA //
 // Feel free to add your own as needed. Name them funk_validate_<name> and they  //
 // will be automatically added to the list of available validation functions     //
+// $inputName is the $_POST/GET/JSON Key with its $inputData value               //
+// $validationValues is the array of validation values for this input field      //
+// $customErr is the custom error message to be used if validation fails         //
 ///////////////////////////////////////////////////////////////////////////////////
 
 // Validate that Value is a valid UTF-8 string
-function funk_validate_string(&$c, $data, $value, $customErr = null)
+function funk_validate_string(&$c, $inputName, $inputData, $validationValues, $customErr = null)
 {
-    if (!is_string($value)) {
-        $c['d']['VALIDATION_FAILED'] = $customErr ? $customErr : "The field {$data['name']} must be a string.";
+    if (!is_string($inputData)) {
+        $c['v'][$inputName]['string'] = (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a string.";
+        return false;
+    }
+    return true;
+}
+function funk_validate_str(&$c, $inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (!is_string($inputData)) {
+        $c['v'][$inputName]['string'] = (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a string.";
         return false;
     }
     return true;
@@ -284,10 +211,10 @@ function funk_validate_string(&$c, $data, $value, $customErr = null)
 
 // Validate that Value is a valid integer - this function won't
 // run if "nullable" is set to true in the table definition!!!
-function funk_validate_required(&$c, $data, $value, $customErr = null)
+function funk_validate_required(&$c, $inputName, $inputData, $validationValues, $customErr = null)
 {
-    if (!isset($value) || empty($value)) {
-        $c['err']['VALIDATION_FAILED'] = $customErr ? $customErr : "The field {$data['name']} is required.";
+    if (!isset($inputData) || empty($inputData)) {
+        $c['v'][$inputName]['required'] = (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must is required.";
         return false;
     }
     return true;

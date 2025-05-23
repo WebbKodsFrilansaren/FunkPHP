@@ -7,10 +7,9 @@ return [
     'COOKIES' => include __DIR__ . '/COOKIES.php',
     'HEADERS' => include __DIR__ . '/HEADERS.php',
     'STATIC' => include __DIR__ . '/STATIC.php',
-    'ROUTES' => [
-        // Route matching Loads first:/"dx_steps/STEP3_ROUTE_MATCH_MIDDLEWARES.php"
-        // Change their Loading Logic there if needed!
-    ],
+    // Route matching Loads first:"STEP 3: Match Single Route and its associated Middlewares"
+    // in "funkphp_start.php" file! Change their Loading Logic there if needed!
+    'ROUTES' => [],
     // 'TABLES' is the array of SQL Tables that will be used to handle the database tables and their data!
     'TABLES' => include __DIR__ . '/tables.php',
 

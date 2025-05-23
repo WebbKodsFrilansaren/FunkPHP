@@ -23,7 +23,7 @@ function get_match_function_regex($fnName)
     // {
     // };"
     // The matching is only valid if after "};" there is a new line otherwise it will be invalid!
-    $regex = '/^function (' . $fnName . ')\(\&\$c\)\s*\/\/ <([A-Z]+)\/([a-z0-9_\-\/]*)>\s*$.*?^};$/ims';
+    $regex = '/^function (' . $fnName . ')\(\&\$c\)\s*\/\/ <([A-Z]+)\/([a-z0-9_:\-\/]*)>\s*$.*?^};$/ims';
     return $regex;
 }
 
@@ -43,7 +43,7 @@ function get_match_all_functions_regex($handlerType)
     // {
     // };"
     // The matching is only valid if after "};" there is a new line otherwise it will be invalid!
-    $regex = '/^function (' . $handlerType . '_[a-z0-9_]+)\(\&\$c\)\s*\/\/ <([A-Z]+)\/([a-z0-9_\-\/]*)>\s*$.*?^};$/ims';
+    $regex = '/^function (' . $handlerType . '_[a-z0-9_]+)\(\&\$c\)\s*\/\/ <([A-Z]+)\/([a-z0-9_:\-\/]*)>\s*$.*?^};$/ims';
     return $regex;
 }
 
@@ -62,7 +62,7 @@ function get_match_all_functions_regex_without_capture_groups($handlerType)
     // {
     // };"
     // The matching is only valid if after "};" there is a new line otherwise it will be invalid!
-    $regex = '/^function ' . $handlerType . '_[a-z0-9_]+\(\&\$c\)\s*\/\/ <[A-Z]+\/[a-z0-9_\-\/]*>\s*$.*?^};$/ims';
+    $regex = '/^function ' . $handlerType . '_[a-z0-9_]+\(\&\$c\)\s*\/\/ <[A-Z]+\/[a-z0-9_:\-\/]*>\s*$.*?^};$/ims';
     return $regex;
 }
 
@@ -1003,6 +1003,7 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
     $existsTableColsToCheck = [];
 
     var_dump($validationArray);
+    exit;
     // TODO: Convert all the rules to optimized validation rules
 
     return $convertedValidationArray;
@@ -3516,7 +3517,7 @@ function create_handler_file_with_fn_or_fn_or_err_out($handlerType, $handlersDir
     $templateDirs = $dirs['templates'];
     $date = date("Y-m-d H:i:s");
     $outputHandlerRoute = null;
-    $validationLimiterStrings = $handlerType === 'v' ? "// Created in FunkCLI on $date! Keep \"};\" on its\n// own new line without indentation no comment right after it!\n\$DX = [];\n\n\nreturn array([]);\n" : "";
+    $validationLimiterStrings = $handlerType === 'v' ? "// Created in FunkCLI on $date! Keep \"};\" on its\n// own new line without indentation no comment right after it!\n// Run the command `php funkcli compile v $handlerFile=>$fnName`\n// to get optimized version in return statement below it!\n\$DX = [];\n\n\nreturn array([]);\n" : "";
     $customCodeString = "";
     $returnFunctionRegex = get_match_return_function_regex($fnName, $method, $validRoute) ?? "";
 

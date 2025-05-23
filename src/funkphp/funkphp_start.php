@@ -208,3 +208,4 @@ if ($c['req']['current_step'] === 5) {
 
 // This part is only executed if the request was not properly handled by the pipeline!
 // Feel free to add your own error handling here and/or easter egg!
+//http_response_code(500);
