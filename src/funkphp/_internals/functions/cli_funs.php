@@ -1546,10 +1546,11 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
                 || isset($sortedRulesForField['min']) || isset($sortedRulesForField['max'])
                 || isset($sortedRulesForField['size']) || isset($sortedRulesForField['digits'])
                 || isset($sortedRulesForField['min_digits']) || isset($sortedRulesForField['max_digits'])
+                || isset($sortedRulesForField['decmials'])
             ) {
-                cli_err_syntax_without_exit("The `exact` Rule does not work with `count`, `size`, `between`, `digits`, `min_digits`, `max_digits`, `min`, or `max` Rules for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_err_syntax_without_exit("The `exact` Rule does not work with `count`, `decimals`, `size`, `between`, `digits`, `min_digits`, `max_digits`, `min`, or `max` Rules for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
                 cli_info_without_exit("The `exact` Rule is meant to be exact which conflicts with other 'exact'-like Rules or scalar-like Rules!");
-                cli_info("Remove `count`, `size`, `between`, `digits`, `min_digits`, `max_digits`, `min`, `max` Rules to use the `exact` Rule - or vice versa!");
+                cli_info("Remove `count`, `decimals`, `size`, `between`, `digits`, `min_digits`, `max_digits`, `min`, `max` Rules to use the `exact` Rule - or vice versa!");
             }
             // $exactValue is NOT numeric but "number_types" data type is used, we error out
             if (
