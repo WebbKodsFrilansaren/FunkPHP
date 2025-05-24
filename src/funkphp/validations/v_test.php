@@ -14,18 +14,11 @@ function v_test(&$c) // <POST/test/:id>
     // Run the command `php funkcli compile v v_test=>v_test`
     // to get optimized version in return statement below it!
     $DX = [
-        'username' => 'string("Must be string or null!")|required|between:3,10|nullable',
-        'age' => 'number|min_digits:2|max_digits:3|required',
+        'username' => 'string|required|between:3,10|nullable',
         'user.name' => 'string|min:5|max:10|required',
     ];
 
     return array(
-        '<DX_KEYS>' =>
-        array(
-            'username' => 0,
-            'age' => 1,
-            'user.name' => 2,
-        ),
         'username' =>
         array(
             '<RULES>' =>
@@ -43,7 +36,7 @@ function v_test(&$c) // <POST/test/:id>
                 'string' =>
                 array(
                     'value' => NULL,
-                    'err_msg' => 'Must be string or null!',
+                    'err_msg' => NULL,
                 ),
                 'between' =>
                 array(
@@ -52,32 +45,6 @@ function v_test(&$c) // <POST/test/:id>
                         0 => 3,
                         1 => 10,
                     ),
-                    'err_msg' => NULL,
-                ),
-            ),
-        ),
-        'age' =>
-        array(
-            '<RULES>' =>
-            array(
-                'required' =>
-                array(
-                    'value' => NULL,
-                    'err_msg' => NULL,
-                ),
-                'number' =>
-                array(
-                    'value' => NULL,
-                    'err_msg' => NULL,
-                ),
-                'min_digits' =>
-                array(
-                    'value' => 2,
-                    'err_msg' => NULL,
-                ),
-                'max_digits' =>
-                array(
-                    'value' => 3,
                     'err_msg' => NULL,
                 ),
             ),

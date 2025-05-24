@@ -1250,6 +1250,20 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
             $sortedRulesForField[$ruleName] = $details;
         }
 
+        // A final check that there is actually one data type rule added or
+        // we error out since each $currentDXKey must have a data type rule!
+        $noDataTypeRule = true;
+        foreach ($dataTypeRules as $dataTypeRule) {
+            if (isset($sortedRulesForField[$dataTypeRule])) {
+                $noDataTypeRule = false;
+                break;
+            }
+        }
+        if ($noDataTypeRule) {
+            cli_err_syntax_without_exit("No Data Type Rule found for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+            cli_info("Use one of these: `string`, `integer`, `float`, `boolean`, `number`, `date`, `array`,\n\t\t  `email`, `url`, `ip`, `uuid`, `phone`, `regex`, `object`, `json`, `enum` or `set`!");
+        }
+
         // Finally add the priority sorted rules to the converted validation array
         $convertedValidationArray[$currentDXKey]["<RULES>"] = $sortedRulesForField;
 
@@ -1287,12 +1301,13 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
 
     // Finally return the converted validation array after adding the
     // <DX_KEYS> key at the top of the converted validation array
-    $dxKeysArray = array_flip(array_keys($validationArray));
-    $finalConvertedValidationArray = [
-        '<DX_KEYS>' => $dxKeysArray,
-    ];
-    $finalConvertedValidationArray = array_merge($finalConvertedValidationArray, $convertedValidationArray);
-    return $finalConvertedValidationArray;
+    // $dxKeysArray = array_flip(array_keys($validationArray));
+    // $finalConvertedValidationArray = [
+    //     '<DX_KEYS>' => $dxKeysArray,
+    // ];
+    // $finalConvertedValidationArray = array_merge($finalConvertedValidationArray, $convertedValidationArray);
+    //return $finalConvertedValidationArray;
+    return $convertedValidationArray;
 }
 
 // Compiles a $DX Validation [] to an optmized validation array that is returned within the same

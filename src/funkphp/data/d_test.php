@@ -8,7 +8,7 @@ function d_test(&$c) // <POST/test/:id>
     // own new line without indentation no comment right after it!
     $v_file = funk_use_validation_get_validation_array_or_err_out($c, "v_test");
     $validatePOST = funk_use_validation($c, $v_file, "POST");
-    var_dump($c['v']);
+    dj($c['v']);
     var_dump($c['err']);
 };
 
