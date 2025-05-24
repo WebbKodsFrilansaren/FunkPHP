@@ -126,10 +126,14 @@ function funk_use_validation_get_validation_array_or_err_out(&$c, $string)
 }
 
 // Function that returns a reference to the current array
-function &funk_navigate_v_err_array(&$c, &$currentArrRef, $key)
+function &funk_navigate_v_err_array(&$c, &$currentArrRef, $key, $setValue = null)
 {
     if (!isset($currentArrRef[$key]) || !is_array($currentArrRef[$key])) {
         $currentArrRef[$key] = [];
+    }
+    // If a value is set, we set it in the current array reference
+    if (is_string($setValue) && !empty(trim($setValue))) {
+        $currentArrRef[$key] =  $setValue;
     }
     // Return a reference to the newly navigated segment
     return $currentArrRef[$key];
@@ -142,25 +146,71 @@ function funk_set_v_err_value(&$c, &$currentArrRef, $value)
     $currentArrRef = $value;
 }
 
-function funk_validation_recursively_improved(&$c, array $inputData, array $validationRules, array $currentPath = []): bool
+// Function that validates a set of rules for a given single input field/data
+function funk_validation_validate_rules(&$c, $singleInputData, $fullFieldName, array $rules, array &$currentErrPath, &$allPassed): void
 {
-    // We assume success until error found
-    $v_ok = true;
+    $inputValue = $singleInputData;
+    $inputValue = is_string($inputValue) ? trim($inputValue) : $inputValue;
+    var_dump("CURRENT INPUT VALUE: ", $inputValue);
+    $stop = array_key_exists('stop', $rules);
+    $nullable = array_key_exists('nullable', $rules);
+    $required = array_key_exists('required', $rules);
+
+    // if nullable exists and the input value is null,
+    // then we can just skip validation for this field
+    if ($nullable && $inputValue === null) {
+        return;
+    }
+
+    // ITERATING THROUGH EACH SINGLE RULE FOR THIS FIELD
+    foreach ($rules as $rule => $ruleConfig) {
+        $ruleValue = $ruleConfig['value'];
+        $customErr = $ruleConfig['err_msg'];
+
+        // Dynamically call the validation function for this rule
+        // Assuming your rule functions are named funk_validate_rule
+        $validatorFn = 'funk_validate_' . $rule;
+        echo "Running `$validatorFn` for field `$fullFieldName` with value `" . json_encode($inputValue) . "`\n";
+
+        if (function_exists($validatorFn)) {
+            // Pass current input value, rule value, and custom error
+            $error = $validatorFn($fullFieldName, $inputValue, $ruleValue, $customErr);
+
+            if ($error !== null) {
+                $currentErrPath[$rule] = $error; // Set the error message for this specific rule
+                $allPassed = false;
+
+                // If 'stop' is true, we stop further validation for this field
+                // and do not continue with other rules for this field
+                if ($stop) {
+                    break;
+                }
+            }
+        } else {
+            // Handle unknown validator functions (e.g., log, add to $c['err'])
+            $c['err']['UNKNOWN_VALIDATOR_RULE'] = "Please inform the Developer that Validation Rule '{$rule}' has not been implemented yet!";
+            $allPassed = false;
+        }
+    }
+};
+
+
+// Supposed to be an improved version of funk_validation_recursively
+function funk_validation_recursively_improved(&$c, array $inputData, array $validationRules, array &$currentErrPath, &$allPassed): bool
+{
 
     // Iterate through the main `return array()` from optimized validation array
-    foreach ($validationRules as $key => $rulesOrNestedFields) {
-        $isRulesNode = isset($rulesOrNestedFields['<RULES>']);
+    foreach ($validationRules as $DXey => $rulesOrNestedFields) {
+        $rulesNodeExist = isset($rulesOrNestedFields['<RULES>']);
+        $wildCardExist = $DXey === '*' || $rulesOrNestedFields === '*';
     }
-    return $v_ok;
+    return $allPassed;
 }
 
 // Function is called by funk_use_validation recursively to validate
 // all the rules & nested fields in the input data (GET, POST or JSON).
-function funk_validation_recursively(&$c, array $inputData, array $validationRules, array $currentPath = []): bool
+function funk_validation_recursively(&$c, array $inputData, array $validationRules, array $currentPath = [], &$allPassed): bool
 {
-    // Assume success until an error is found
-    $allPassed = true;
-
     // Iterate through the main `return array()` from optimized validation array
     foreach ($validationRules as $key => $rulesOrNestedFields) {
         $isRulesNode = isset($rulesOrNestedFields['<RULES>']);
@@ -170,8 +220,6 @@ function funk_validation_recursively(&$c, array $inputData, array $validationRul
         // Construct the full path for the current field
         $currentFieldPath = array_merge($currentPath, [$key]);
         $fullFieldName = implode('.', $currentFieldPath);
-        var_dump("Current Path", $currentPath);
-        var_dump("Current Field Path", $currentFieldPath);
 
         // 1. Process regular fields with direct rules
         // THIS IS WHERE ACTUAL RULE VALIDATION HAPPENS - AND HERE WE WANNA
@@ -183,6 +231,7 @@ function funk_validation_recursively(&$c, array $inputData, array $validationRul
             $fieldRules = $rulesOrNestedFields['<RULES>'];
             $inputValue = $inputData[$key] ?? null;
             $inputValue = is_string($inputValue) ? trim($inputValue) : $inputValue;
+            var_dump("CURRENT INPUT VALUE: ", $inputValue);
             $stop = array_key_exists('stop', $fieldRules);
             $nullable = array_key_exists('nullable', $fieldRules);
             $required = array_key_exists('required', $fieldRules);
@@ -195,7 +244,6 @@ function funk_validation_recursively(&$c, array $inputData, array $validationRul
 
             // ITERATING THROUGH EACH SINGLE RULE FOR THIS FIELD
             foreach ($fieldRules as $ruleName => $ruleConfig) {
-
                 $ruleValue = $ruleConfig['value'];
                 $customErr = $ruleConfig['err_msg'];
 
@@ -234,7 +282,7 @@ function funk_validation_recursively(&$c, array $inputData, array $validationRul
             }
         }
         // 2. Process nested fields (recursive call)
-        elseif (is_array($rulesOrNestedFields) && !$isWildcardNode) {
+        if (is_array($rulesOrNestedFields) && !$isWildcardNode) {
             // Recurse into nested structure
             $nestedInputData = $inputData[$key] ?? [];
             if (!is_array($nestedInputData)) {
@@ -247,15 +295,15 @@ function funk_validation_recursively(&$c, array $inputData, array $validationRul
                 $allPassed = false;
                 // Don't recurse further if it's not an array
             } else {
-                if (!funk_validation_recursively($c, $nestedInputData, $rulesOrNestedFields, $currentFieldPath)) {
+                if (!funk_validation_recursively($c, $nestedInputData, $rulesOrNestedFields, $currentFieldPath, $allPassed)) {
                     $allPassed = false; // If any nested validation fails, overall fails
                 }
             }
         }
         // 3. Handle wildcard '*' array elements
-        elseif ($isWildcardNode) {
-            var_dump("Input", $inputData);
-            $inputArray = $inputData ?? []; // The array that contains multiple elements
+        if ($isWildcardNode) {
+            var_dump("InputData", $inputData);
+            $inputArray = $inputData[$key] ?? []; // The array that contains multiple elements
             if (!is_array($inputArray)) {
                 $errorPathRef = &$c['v'];
                 foreach ($currentPath as $pathSegment) {
@@ -272,7 +320,7 @@ function funk_validation_recursively(&$c, array $inputData, array $validationRul
 
                     // Recurse using the *rules* defined under the wildcard, applied to each element
                     // The rules under '*' are for direct children of the array elements (e.g. 'email' in 'user.*.email')
-                    if (!funk_validation_recursively($c, $arrayElement, $rulesOrNestedFields, $elementPath)) {
+                    if (!funk_validation_recursively($c, $arrayElement, $rulesOrNestedFields, $elementPath, $allPassed)) {
                         $allPassed = false;
                     }
                 }
@@ -339,9 +387,21 @@ function funk_use_validation(&$c, $optimizedValidationArray, $source)
 
     // REMOVE THIS LINE WHEN DONE TESTING
     // This is just for testing purposes to see the input data
-    var_dump($inputData);
-    if (!funk_validation_recursively($c, $inputData, $optimizedValidationArray)) {
-        $c['v_ok'] = false; // Mark overall validation as failed
+    var_dump("TEST DATA", $inputData);
+
+    // Now we can run the validation recursively and
+    // assume validations is true until proven otherwise
+    $allPassed = true;
+    if (!funk_validation_recursively(
+        $c,
+        $inputData,
+        $optimizedValidationArray,
+        [],
+        $allPassed
+    )) {
+        $c['v_ok'] = false;
+    } else {
+        $c['v_ok'] = true;
     }
 
     // When this is set to true, it means that the validation

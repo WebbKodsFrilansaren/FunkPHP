@@ -15,7 +15,9 @@ function v_test(&$c) // <POST/test/:id>
     // to get optimized version in return statement below it!
     $DX = [
         'user' => 'string|min:2|max:3|required',
-        'age' => 'number|min:5|max:10|required',
+        'name' => 'string|min:2|max:3|required',
+        '*.name' => 'string|min:2|max:3|required',
+        '*.age' => 'string|min:2|max:3|required',
     ];
 
     return array(
@@ -45,7 +47,7 @@ function v_test(&$c) // <POST/test/:id>
                 ),
             ),
         ),
-        'age' =>
+        'name' =>
         array(
             '<RULES>' =>
             array(
@@ -54,20 +56,75 @@ function v_test(&$c) // <POST/test/:id>
                     'value' => NULL,
                     'err_msg' => NULL,
                 ),
-                'number' =>
+                'string' =>
                 array(
                     'value' => NULL,
                     'err_msg' => NULL,
                 ),
                 'min' =>
                 array(
-                    'value' => 5,
+                    'value' => 2,
                     'err_msg' => NULL,
                 ),
                 'max' =>
                 array(
-                    'value' => 10,
+                    'value' => 3,
                     'err_msg' => NULL,
+                ),
+            ),
+        ),
+        '*' =>
+        array(
+            'name' =>
+            array(
+                '<RULES>' =>
+                array(
+                    'required' =>
+                    array(
+                        'value' => NULL,
+                        'err_msg' => NULL,
+                    ),
+                    'string' =>
+                    array(
+                        'value' => NULL,
+                        'err_msg' => NULL,
+                    ),
+                    'min' =>
+                    array(
+                        'value' => 2,
+                        'err_msg' => NULL,
+                    ),
+                    'max' =>
+                    array(
+                        'value' => 3,
+                        'err_msg' => NULL,
+                    ),
+                ),
+            ),
+            'age' =>
+            array(
+                '<RULES>' =>
+                array(
+                    'required' =>
+                    array(
+                        'value' => NULL,
+                        'err_msg' => NULL,
+                    ),
+                    'string' =>
+                    array(
+                        'value' => NULL,
+                        'err_msg' => NULL,
+                    ),
+                    'min' =>
+                    array(
+                        'value' => 2,
+                        'err_msg' => NULL,
+                    ),
+                    'max' =>
+                    array(
+                        'value' => 3,
+                        'err_msg' => NULL,
+                    ),
                 ),
             ),
         ),

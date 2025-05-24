@@ -1128,7 +1128,7 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         $convertedValidationArray[$currentDXKey] = [];
 
         if (str_contains($currentDXKey, ".")) {
-            if (!preg_match("/^(([a-z_])([a-z_0-9]+)\.(\*|[a-z_][a-z_0-9]+))(\.(\*|[a-z_][a-z_0-9]+))*$/", $currentDXKey)) {
+            if (!preg_match("/^(\*|(([a-z_])([a-z_0-9]+))\.(\*|[a-z_][a-z_0-9]+))(\.(\*|[a-z_][a-z_0-9]+))*$/", $currentDXKey)) {
                 cli_err_syntax_without_exit("[cli_convert_simple_validation_rules_to_optimized_validation] Invalid Nested Validation Key in `$currentDXKey`!");
                 cli_info("Valid Syntax is: `user.email`, `user.email.primary`, `user.*.email`, `user.*.name` and so on.\nThe `*` character means the key before it indicates this is a numbered array and any keys after it are its subkeys for each element in that numbered array!");
             }
@@ -1272,7 +1272,7 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         // and then we need to set the value to the $sortedRulesForField array.
         if (
             str_contains($currentDXKey, ".")
-            && preg_match("/^(([a-z_])([a-z_0-9]+)\.(\*|[a-z_][a-z_0-9]+))(\.(\*|[a-z_][a-z_0-9]+))*$/", $currentDXKey)
+            && preg_match("/^((\*|([a-z_])([a-z_0-9]+))\.(\*|[a-z_][a-z_0-9]+))(\.(\*|[a-z_][a-z_0-9]+))*$/", $currentDXKey)
         ) {
             $nestedKeys = explode(".", $currentDXKey);
             $nestedKeyCount = count($nestedKeys);

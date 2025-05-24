@@ -10,6 +10,7 @@ function d_test(&$c) // <POST/test/:id>
     $validatePOST = funk_use_validation($c, $v_file, "JSON");
     dj($c['v']);
     var_dump($c['err']);
+    var_dump($c['v_ok']);
 };
 
 return function (&$c, $handler = "d_test") {
