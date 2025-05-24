@@ -1685,6 +1685,18 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
                 cli_err_syntax_without_exit("The `digits` Rule cannot be used with `min_digits` or `max_digits` Rules for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
                 cli_info("Remove `min_digits` or `max_digits` Rules to use the `digits` Rule - or vice versa!");
             }
+            // if "min" or "max" is set, then its number of digits must be equal to the "digits" rule
+            if (isset($sortedRulesForField['min']) || isset($sortedRulesForField['max'])) {
+                $minValue = $sortedRulesForField['min']['value'] ?? null;
+                $maxValue = $sortedRulesForField['max']['value'] ?? null;
+                if (
+                    (is_numeric($minValue) && strlen((string)$minValue) !== $digitsValue)
+                    || (is_numeric($maxValue) && strlen((string)$maxValue) !== $digitsValue)
+                ) {
+                    cli_err_syntax_without_exit("The `digits` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` does not match the `min` and/or `max` Rule Value!");
+                    cli_info("Specify the `digits` Rule Value as equal to the number of digits in the `min` and/or `max` Rule Value for `$currentDXKey`!");
+                }
+            }
         }
 
         /*
