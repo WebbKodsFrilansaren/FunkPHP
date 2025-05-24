@@ -3844,7 +3844,7 @@ function create_handler_file_with_fn_or_fn_or_err_out($handlerType, $handlersDir
         if ($handlerType === 'v') {
             $outputHandlerRoute = file_put_contents(
                 $handlersDir . $handlerFile . ".php",
-                "<?php\n// $handlerPrefix Handler File - Created in FunkCLI on $date!\n// Write your Validation Rules in the\n// \$DX variable and then run the command\n// `php funkcli compile v $handlerFile=>\$function_name`\n// to get the optimized version below it!\n// IMPORTANT: CMD+S or CTRL+S to autoformat each time function is added!\n\nfunction $fnName(&\$c) // <$method$validRoute>\n{\n$customCodeString\n$validationLimiterStrings\n};\n\nreturn function (&\$c, \$handler = \"$fnName\") {\n\$handler(\$c);\n};"
+                "<?php\n// $handlerPrefix Handler File - Created in FunkCLI on $date!\n// Write your Validation Rules in the\n// \$DX variable and then run the command\n// `php funkcli compile v $handlerFile=>\$function_name`\n// to get the optimized version below it!\n// IMPORTANT: CMD+S or CTRL+S to autoformat each time function is added!\n\nfunction $fnName(&\$c) // <$method$validRoute>\n{\n$customCodeString\n$validationLimiterStrings\n};\n\nreturn function (&\$c, \$handler = \"$fnName\") {\nreturn \$handler(\$c);\n};"
             );
         }
         // For "route" & "data" handlers, we just add the function name after file creation
@@ -3852,7 +3852,7 @@ function create_handler_file_with_fn_or_fn_or_err_out($handlerType, $handlersDir
             // Create the handler file with the function name and return a success message
             $outputHandlerRoute = file_put_contents(
                 $handlersDir . $handlerFile . ".php",
-                "<?php\n// $handlerPrefix Handler File - Created in FunkCLI on $date!\n// IMPORTANT: CMD+S or CTRL+S to autoformat each time function is added!\n\nfunction $fnName(&\$c) // <$method$validRoute>\n{\n// Created in FunkCLI on $date! Keep \"};\" on its\n// own new line without indentation no comment right after it!\n$customCodeString\n};\n\nreturn function (&\$c, \$handler = \"$fnName\") {\n\$handler(\$c);\n};\n"
+                "<?php\n// $handlerPrefix Handler File - Created in FunkCLI on $date!\n// IMPORTANT: CMD+S or CTRL+S to autoformat each time function is added!\n\nfunction $fnName(&\$c) // <$method$validRoute>\n{\n// Created in FunkCLI on $date! Keep \"};\" on its\n// own new line without indentation no comment right after it!\n$customCodeString\n};\n\nreturn function (&\$c, \$handler = \"$fnName\") {\nreturn \$handler(\$c);\n};\n"
             );
         }
         if ($outputHandlerRoute) {

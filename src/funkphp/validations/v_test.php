@@ -1,5 +1,5 @@
 <?php
-// Validation Handler File - Created in FunkCLI on 2025-05-23 05:11:13!
+// Validation Handler File - Created in FunkCLI on 2025-05-24 08:52:30!
 // Write your Validation Rules in the
 // $DX variable and then run the command
 // `php funkcli compile v v_test=>$function_name`
@@ -9,7 +9,7 @@
 function v_test(&$c) // <POST/test/:id>
 {
 
-    // Created in FunkCLI on 2025-05-23 05:11:13! Keep "};" on its
+    // Created in FunkCLI on 2025-05-24 08:52:30! Keep "};" on its
     // own new line without indentation no comment right after it!
     // Run the command `php funkcli compile v v_test=>v_test`
     // to get optimized version in return statement below it!

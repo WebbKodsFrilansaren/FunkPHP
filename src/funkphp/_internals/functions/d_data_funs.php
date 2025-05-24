@@ -201,7 +201,17 @@ function funk_use_validation_get_valid_validation_or_err_out(&$c, $string)
     $validationFile = dirname(dirname(__DIR__)) . '/validations/' . $handlerFile . '.php';
     if (file_exists_is_readable_writable($validationFile)) {
         $validationDataFromFile = include_once $validationFile;
-        return $validationDataFromFile($c, $fnName) ?? null;
+        if (is_callable($validationDataFromFile)) {
+            $resultFromHandler = $validationDataFromFile($c, $fnName);
+            if ($resultFromHandler === null || $resultFromHandler === false) {
+                $c['err']['FAILED_TO_LOAD_VALIDATION_FILE'] = "Validation Handler File '{$handlerFile}.php' returned null instead of Validation Function Name \"$fnName\"!";
+                return null;
+            }
+            return $resultFromHandler;
+        } else {
+            $c['err']['FAILED_TO_LOAD_VALIDATION_FILE'] = "Validation Handler File '{$handlerFile}.php' did not return a callable function.";
+            return null;
+        }
     } else {
         $c['err']['FAILED_TO_LOAD_VALIDATION_FILE'] = "Validation Handler File \"{$handlerFile}.php\" not found or not readable!";
         return null;
