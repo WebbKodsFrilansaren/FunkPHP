@@ -16,16 +16,26 @@ return [
     // 'req' is the array of request data which will also include changed data based
     // on matched route, middlewares (if any), data (if any) and page (if any), etc.
     'req' => include __DIR__ . '/req.php',
+
     // 'db' is the database object that will be used to handle the database connection & queries!
     'db' => include __DIR__ . '/db.php',
-    // 'v' should be NULL but stores ANY founds errors during the validation process
+
+    // 'v' should be NULL but stores ANY founds errors during the validation process while
+    // 'v_ok' will is true if not a single v['key']['optionalSubkey'] is set with error(s)!
+    // The 'v_ok_files' is boolean for validating files and works the same way as 'v_ok'!
     'v' => null,
+    'v_ok' => null,
+    'v_ok_files' => null,
+
     // 'd' will ALWAYS store fetched database data (it does NOT store validation errors)
     'd' => null,
+
     // 'p' is the page object that will be used to handle the page rendering and output (not needed for API requests)!
     'p' => null,
+
     // 'files' is the array of uploaded files (if any) that will be used to handle the file uploads!
     'files' => null,
+
     // 'err(ors)' is an array of errors that will be filled when errors occur in the application!
     // so they can optionally be handled later in the application flow!
     'err' => [
@@ -34,6 +44,7 @@ return [
         'FAILED_TO_RUN_DATA_HANDLER' => false,
         'FAILED_TO_LOAD_VALIDATION_FILE' => false,
         'FAILED_TO_RUN_VALIDATION_FUNCTION' => false,
+        'FAILED_TO_RUN_VALIDATION_FUNCTION_FILES' => false,
         'FAILED_TO_RUN_PAGE_HANDLER' => false,
         'FAILED_TO_RENDER_PAGE_FILE' => false,
         'FAILED_TO_LOAD_MIDDLEWARE' => false,
@@ -45,7 +56,6 @@ return [
         'FAILED_TO_RUN_SESSION' => false,
         'FAILED_TO_RUN_COOKIE' => false,
         'FAILED_TO_RUN_HEADER' => false,
-        'FAILED_TO_RUN_STATIC' => false,
     ],
 
 ];

@@ -14,21 +14,19 @@ function v_test(&$c) // <POST/test/:id>
     // Run the command `php funkcli compile v v_test=>v_test`
     // to get optimized version in return statement below it!
     $DX = [
-        'user' => 'array|required|count:5|nullable',
-        'age' => 'number|min:5|nullable',
-        'user.*.email.primary' => 'number|min:5|nullable',
-        'user.*.name.primary' => 'number|min:5|nullable',
+        'username' => 'string("Must be string or null!")|required|between:3,10|nullable',
+        'age' => 'number|min_digits:2|max_digits:3|required',
+        'user.name' => 'string|min:5|max:10|required',
     ];
 
     return array(
         '<DX_KEYS>' =>
         array(
-            'user' => 0,
+            'username' => 0,
             'age' => 1,
-            'user.*.email.primary' => 2,
-            'user.*.name.primary' => 3,
+            'user.name' => 2,
         ),
-        'user' =>
+        'username' =>
         array(
             '<RULES>' =>
             array(
@@ -42,66 +40,19 @@ function v_test(&$c) // <POST/test/:id>
                     'value' => NULL,
                     'err_msg' => NULL,
                 ),
-                'array' =>
+                'string' =>
                 array(
                     'value' => NULL,
-                    'err_msg' => NULL,
+                    'err_msg' => 'Must be string or null!',
                 ),
-                'count' =>
+                'between' =>
                 array(
-                    'value' => 5,
-                    'err_msg' => NULL,
-                ),
-            ),
-            '*' =>
-            array(
-                'email' =>
-                array(
-                    'primary' =>
+                    'value' =>
                     array(
-                        '<RULES>' =>
-                        array(
-                            'nullable' =>
-                            array(
-                                'value' => NULL,
-                                'err_msg' => NULL,
-                            ),
-                            'number' =>
-                            array(
-                                'value' => NULL,
-                                'err_msg' => NULL,
-                            ),
-                            'min' =>
-                            array(
-                                'value' => 5,
-                                'err_msg' => NULL,
-                            ),
-                        ),
+                        0 => 3,
+                        1 => 10,
                     ),
-                ),
-                'name' =>
-                array(
-                    'primary' =>
-                    array(
-                        '<RULES>' =>
-                        array(
-                            'nullable' =>
-                            array(
-                                'value' => NULL,
-                                'err_msg' => NULL,
-                            ),
-                            'number' =>
-                            array(
-                                'value' => NULL,
-                                'err_msg' => NULL,
-                            ),
-                            'min' =>
-                            array(
-                                'value' => 5,
-                                'err_msg' => NULL,
-                            ),
-                        ),
-                    ),
+                    'err_msg' => NULL,
                 ),
             ),
         ),
@@ -109,7 +60,7 @@ function v_test(&$c) // <POST/test/:id>
         array(
             '<RULES>' =>
             array(
-                'nullable' =>
+                'required' =>
                 array(
                     'value' => NULL,
                     'err_msg' => NULL,
@@ -119,10 +70,44 @@ function v_test(&$c) // <POST/test/:id>
                     'value' => NULL,
                     'err_msg' => NULL,
                 ),
-                'min' =>
+                'min_digits' =>
                 array(
-                    'value' => 5,
+                    'value' => 2,
                     'err_msg' => NULL,
+                ),
+                'max_digits' =>
+                array(
+                    'value' => 3,
+                    'err_msg' => NULL,
+                ),
+            ),
+        ),
+        'user' =>
+        array(
+            'name' =>
+            array(
+                '<RULES>' =>
+                array(
+                    'required' =>
+                    array(
+                        'value' => NULL,
+                        'err_msg' => NULL,
+                    ),
+                    'string' =>
+                    array(
+                        'value' => NULL,
+                        'err_msg' => NULL,
+                    ),
+                    'min' =>
+                    array(
+                        'value' => 5,
+                        'err_msg' => NULL,
+                    ),
+                    'max' =>
+                    array(
+                        'value' => 10,
+                        'err_msg' => NULL,
+                    ),
                 ),
             ),
         ),

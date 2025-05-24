@@ -65,102 +65,9 @@ function funk_run_matched_data_handler(&$c)
     }
 }
 
-// Loads a validation file from the funkphp/validations/ and then
-// sends it to the funk_validate function to validate the data
-function funk_use_validation(&$c, $validation, $contentType)
-{
-    // Check if the input $validation is a valid array structure
-    if (!is_array($validation) || empty($validation)) {
-        $c['err']['INVALID_VALIDATION_INPUT'] = "Validation input must be a non-empty array!";
-        return false;
-    }
-
-    // Validate that $contentType is a valid string
-    if (!is_string($contentType) || empty($contentType)) {
-        $c['err']['INVALID_VALIDATION_CONTENT_TYPE'] = "Content Type to validate against must be a non-empty string!";
-        return false;
-    }
-
-    // Validate  $contentType is only one of the
-    // following: 'post', 'get', 'json', 'files'
-    $validContentTypes = [
-        'post' => [],
-        'get' => [],
-        'json' => [],
-        'files' => [],
-    ];
-    if (!array_key_exists(strtolower($contentType), $validContentTypes)) {
-        $c['err']['INVALID_VALIDATION_CONTENT_TYPE'] = "Content Type '{$contentType}' is not valid. Choose one of: " . implode(', ', array_keys($validContentTypes));
-        return false;
-    }
-
-    // This will hold all loaded data before filtering
-    // $tableKey is 'authors', $columnListForTable is ['email', 'name']
-    $allLoadedValidationData = [];
-    foreach ($validation as $tableKey => $columnListForTable) {
-        if (!is_string($tableKey) || empty($tableKey)) {
-            $c['err']['INVALID_VALIDATION_INPUT'] = "Validation table key must be a non-empty string!";
-            return false;
-        }
-        if (!is_array($columnListForTable)) {
-            $c['err']['INVALID_VALIDATION_INPUT'] = "Validation column list for table '{$tableKey}' must be an array!";
-            return false;
-        }
-        foreach ($columnListForTable as $colName) {
-            if (!is_string($colName) || empty($colName)) {
-                $c['err']['INVALID_VALIDATION_INPUT'] = "Validation column names in the list for table '{$tableKey}' must be non-empty strings!";
-                return false;
-            }
-        }
-
-        // Construct the path to the validation file for this table
-        // Check if the validation file exists and is readable
-        $validationFile = dirname(dirname(__DIR__)) . '/validations/' . $tableKey . '.php';
-        if (file_exists_is_readable_writable($validationFile)) {
-            $validationDataFromFile = include_once $validationFile;
-
-            // Check if the file returned a valid array containing data for the specific table key
-            // And then store the loaded validation data for this table into our accumulator
-            // Only take the data specifically under the table key
-            if (is_array($validationDataFromFile) && isset($validationDataFromFile[$tableKey]) && is_array($validationDataFromFile[$tableKey])) {
-                $allLoadedValidationData[$tableKey] = $validationDataFromFile[$tableKey];
-            }
-            // Handle error: file content is not in the expected format
-            else {
-                $c['err']['INVALID_VALIDATION_FILE_CONTENT'] = "Validation file '{$tableKey}.php' content is invalid or missing table key!";
-                return false;
-            }
-        }
-        // Handle error: validation file not found or not readable
-        else {
-            $c['err']['VALIDATION_FILE_NOT_FOUND'] = "Validation file '{$tableKey}.php' not found or not readable!";
-            return false;
-        }
-    }
-
-    // Now we call the validation function for the specific
-    // content type and pass the loaded validation data to it
-    $validationFunctionName = 'funk_validate_' . strtolower($contentType);
-    if (function_exists($validationFunctionName)) {
-        $validationErrors = $validationFunctionName($c, $allLoadedValidationData, $validation);
-        if (!empty($validationErrors)) {
-            // Handle validation errors
-            $c['err']['VALIDATION_FAILED'] = true;
-            $c['err']['VALIDATION_ERRORS'] = $validationErrors;
-            return false;
-        }
-    } else {
-        // Handle error: validation function not found
-        $c['err']['VALIDATION_FUNCTION_NOT_FOUND'] = "Validation function '{$validationFunctionName}' not found!";
-        return false;
-    }
-
-    // If we reach here, it means ALL VALIDATION passed successfully
-    return true;
-}
-
-// Function that either gets a valid validation array or errors out
-function funk_use_validation_get_valid_validation_or_err_out(&$c, $string)
+// Function that either gets a valid validation array from a given validation
+// file and then a given validation function name or returns null with error.
+function funk_use_validation_get_validation_array_or_err_out(&$c, $string)
 {
     $handlerFile = null;
     $fnName = null;
@@ -191,11 +98,11 @@ function funk_use_validation_get_valid_validation_or_err_out(&$c, $string)
         $handlerFile = substr($handlerFile, 0, -4);
     }
     if (!preg_match('/^[a-z0-9_]+$/', $handlerFile)) {
-        $c['err']['FAILED_TO_LOAD_VALIDATION_FILE'] = "\"{$handlerFile}\" Validation Handler File must be a lowercase string containing only letters, numbers and underscores!";
+        $c['err']['FAILED_TO_LOAD_VALIDATION_FILE'] = "Validation Handler File \"{$handlerFile}\" must be a lowercase string containing only letters, numbers and underscores!";
         return null;
     }
     if (!preg_match('/^[a-z0-9_]+$/', $fnName)) {
-        $c['err']['FAILED_TO_LOAD_VALIDATION_FILE'] =  "Validation Function Name must be a lowercase string containing only letters, numbers and underscores!";
+        $c['err']['FAILED_TO_LOAD_VALIDATION_FILE'] =  "Validation Function Name \"$fnName\" must be a lowercase string containing only letters, numbers and underscores!";
         return null;
     }
     $validationFile = dirname(dirname(__DIR__)) . '/validations/' . $handlerFile . '.php';
@@ -218,21 +125,85 @@ function funk_use_validation_get_valid_validation_or_err_out(&$c, $string)
     }
 }
 
-// The main validation function for validating data
-// in FunkPHP mapping to the "$_GET" variables ONLY!
-function funk_use_validation_get(&$c, $optimizedValidationArray) {}
+// The main validation function for validating data in FunkPHP
+// mapping to the "$_GET"/"$_POST" or "php://input" (JSON) variable ONLY!
+function funk_use_validation(&$c, $optimizedValidationArray, $source)
+{
+    // Inform about the fact that this function is not
+    // used for validating $_FILES variables and that
+    // a different function should be used for that!
+    if ($source === "FILES") {
+        $c['err']['FAILED_TO_RUN_VALIDATION_FUNCTION'] = "Use Validation Function `funk_use_validation_files(&\$c, \$optimizedValidationArray)` instead to validate `\$_FILES`!";
+        return false;
+    }
+    // Check that $optimizedValidationArray is a valid array
+    if (!is_array($optimizedValidationArray) || empty($optimizedValidationArray)) {
+        $c['err']['FAILED_TO_RUN_VALIDATION_FUNCTION'] = "Validation Function needs a non-empty array for `\$optimizedValidationArray`!";
+        return false;
+    }
+    // Check that $source is a valid string and is either "GET", "POST" or "JSON" (must be exact)
+    $allowedSources = ['GET' => [], 'POST' => [], 'JSON' => []];
+    if (!is_string($source) || !isset($allowedSources[$source])) {
+        $c['err']['FAILED_TO_RUN_VALIDATION_FUNCTION'] = "Validation Function needs a valid string for `\$source` (\"GET\", \"POST\" or \"JSON\" - uppercase only)!";
+        return false;
+    }
 
-// The main validation function for validating data
-// in FunkPHP mapping to the "$_POST" variables ONLY!
-function funk_use_validation_post(&$c, $optimizedValidationArray) {}
+    // Load input based on the source and make
+    // sure it is a valid non-empty array!
+    $inputData = null;
+    if ($source === 'GET') {
+        $inputData = $_GET ?? null;
+    } elseif ($source === 'POST') {
+        $inputData = $_POST ?? null;
+    } elseif ($source === 'JSON') {
+        $inputData = json_decode(file_get_contents('php://input'), true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            $c['err']['FAILED_TO_RUN_VALIDATION_FUNCTION'] = "Validation Function needs a valid decoded JSON string for `\$source`!";
+            return false;
+        }
+    }
+    if (!is_array($inputData) || empty($inputData)) {
+        $c['err']['FAILED_TO_RUN_VALIDATION_FUNCTION'] = "Validation Function needs a valid non-empty array for `\$inputData`!";
+        return false;
+    }
 
-// The main validation function for validating data
-// in FunkPHP mapping to the php://input data ONLY!
-function funk_use_validation_json(&$c, $optimizedValidationArray) {}
+    // REMOVE THIS LINE WHEN DONE TESTING
+    // This is just for testing purposes to see the input data
+    var_dump($inputData);
+
+    // When this is set to true, it means that the validation
+    // function has passed and no errors were found/added to $c['v']
+    // Its default value is null meaning either no validation was run
+    // or it failed and no errors were found/added to $c['v'] before this!
+    if ($c['v_ok']) {
+        return true;
+    }
+    return false;
+}
 
 // The main validation function for validating data
 // in FunkPHP mapping to the $_FILES variables ONLY!
-function funk_use_validation_files(&$c, $optimizedValidationArray) {}
+function funk_use_validation_files(&$c, $optimizedValidationArray)
+{
+    // Check that $optimizedValidationArray is a valid array
+    if (!is_array($optimizedValidationArray) || empty($optimizedValidationArray)) {
+        $c['err']['FAILED_TO_RUN_VALIDATION_FUNCTION_FILES'] = "Files Validation Function must receive a non-empty array for `\$optimizedValidationArray`!";
+        return false;
+    }
+
+    // Check that $_FILES is a valid array and is not empty
+    if (!is_array($_FILES) || empty($_FILES)) {
+        $c['err']['FAILED_TO_RUN_VALIDATION_FUNCTION_FILES'] = "Files Validation Function must receive a non-empty array for `\$_FILES`!";
+        return false;
+    }
+
+    // When this is set to true, it means that the validation
+    // function has passed and no errors were found/added to $c['v']
+    if ($c['v_ok']) {
+        return true;
+    }
+    return false;
+}
 
 ///////////////////////////////////////////////////////////////////////////////////
 // BELOW ARE ALL THE VALIDATION FUNCTIONS THAT WILL BE USED TO VALIDATE THE DATA //
