@@ -1268,7 +1268,7 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
                     if ($addedDataTypeRule) {
                         cli_err_syntax_without_exit("Multiple Data Type Rules found for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
                         cli_err_syntax_without_exit("Please make sure only one Data Type Rule is used for each key!");
-                        cli_info("Use one of these: `string`, `integer`, `float`, `boolean`, `number`, `date`, `array`,\n\t\t  `email`, `url`, `ip`, `uuid`, `phone`, `regex`, `object`, `json`, `enum` or `set`!");
+                        cli_info("Use one of these: `string`, `integer`, `float`, `boolean`, `number`, `date`, `array`,\n\t\t  `email`, `url`, `ip`, `uuid`, `phone`, `object`, `json`, `enum`, `set`\n\t\t  `ip4`, `ip6`, `checked`, `file`, `audio`, `video`, `image`, or `list`");
                     }
                     $addedDataTypeRule = true;
                 }
@@ -1291,7 +1291,7 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         }
         if ($noDataTypeRule) {
             cli_err_syntax_without_exit("No Data Type Rule found for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
-            cli_info("Use one of these: `string`, `integer`, `float`, `boolean`, `number`, `date`, `array`,\n\t\t  `email`, `url`, `ip`, `uuid`, `phone`, `regex`, `object`, `json`, `enum`, `set`\n\t\t  `ip4`, `ip6`, `checked`, `file`, `audio`, `video`, `image`, or `list`!");
+            cli_info("Use one of these: `string`, `integer`, `float`, `boolean`, `number`, `date`, `array`,\n\t\t  `email`, `url`, `ip`, `uuid`, `phone`, `object`, `json`, `enum`, `set`\n\t\t  `ip4`, `ip6`, `checked`, `file`, `audio`, `video`, `image`, or `list`!");
         }
 
 
@@ -1362,6 +1362,13 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
             $foundTypeRule,
             'required',
             'nullable',
+            'string',
+            'integer',
+            'float',
+            'boolean',
+            'number',
+            'array',
+            'list',
             'checked',
             'file',
             'image',
@@ -1376,7 +1383,7 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         foreach ($theseRulesShouldHaveNoValue as $ruleName) {
             if (isset($sortedRulesForField[$ruleName]) && isset($sortedRulesForField[$ruleName]['value'])) {
                 cli_warning_without_exit("The `$ruleName` Rule for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` has a value set!");
-                cli_info_without_exit("This would be ignored so it has been set to `null` since the `$ruleName` Rule does not use a value!");
+                cli_info_without_exit("This has been set to `null` since the `$ruleName` Rule does not use a value!");
                 $sortedRulesForField[$ruleName]['value'] = null;
             }
         }
@@ -1548,8 +1555,19 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         }
 
         // Special cases for the "regex" & "no_regex" Rules
-        if (isset($sortedRulesForField['exact'])) {
-            $exactValue = $sortedRulesForField['exact']['value'];
+        if (isset($sortedRulesForField['regex'])) {
+            $regexValue = $sortedRulesForField['regex']['value'];
+            if ($foundTypeCat !== 'number_types' && $foundTypeCat !== 'string_types') {
+                cli_err_syntax_without_exit("The `regex` Rule cannot be used with Array-typed Data Type for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify a \"stringifiable\" Data Type Rule (string, numeric, etc.) for `$currentDXKey` to use the `regex` rule!");
+            }
+        }
+        if (isset($sortedRulesForField['no_regex'])) {
+            $noRegexValue = $sortedRulesForField['no_regex']['value'];
+            if ($foundTypeCat !== 'number_types' && $foundTypeCat !== 'string_types') {
+                cli_err_syntax_without_exit("The `no_regex` Rule cannot be used with Array-typed Data Type for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify a \"stringifiable\" Data Type Rule (string, numeric, etc.) for `$currentDXKey` to use the `no_regex` rule!");
+            }
         }
         /*
             MANY SPECIAL CASES ARE CHECKED HERE - END:
