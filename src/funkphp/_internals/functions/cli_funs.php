@@ -1145,7 +1145,7 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
                 // If it does, we warn the user to rewrite the string as an array
                 // to avoid issues with regex rule value containing "|"
                 cli_warning_without_exit("Please convert string `$Rules` to an array to be able ");
-                cli_warning("to use the `regex:` rule due to possible conflicts of `|` inside of the `regex:` rule. Truly sorry for the sudden spontaneous inconvenience!");
+                cli_warning("to use the `regex:` rule due to possible conflicts of `|` inside of the `regex:` rule. Truly sorry for the sudden spontaneous nuisance!");
             }
         }
 
