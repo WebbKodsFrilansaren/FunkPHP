@@ -1038,15 +1038,23 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         'number',
         'date',
         'array',
+        'list',
         'email',
         'url',
         'ip',
+        'ip4',
+        'ip6',
         'uuid',
         'phone',
         'object',
         'json',
         'enum',
         'set',
+        'checked',
+        'file',
+        'image',
+        'video',
+        'audio',
     ];
 
     // Priority order of validation rules (required and the data
@@ -1062,15 +1070,23 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         'number',
         'date',
         'array',
+        'list',
         'email',
         'url',
         'ip',
+        'ip4',
+        'ip6',
         'uuid',
         'phone',
         'object',
         'json',
         'enum',
         'set',
+        'checked',
+        'file',
+        'image',
+        'video',
+        'audio',
     ];
     include_once($dirs['functions'] . "d_data_funs.php");
 
@@ -1197,9 +1213,8 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
             // We check if "$currentRuleForCurrentDXKey" actually exists
             // as a funk_validate_function and if it does not exist we error out.
             if (!function_exists('funk_validate_' . $currentRuleForCurrentDXKey)) {
-                cli_err_syntax_without_exit("Validation Rule \"$currentRuleForCurrentDXKey\" not found in Validation Handler File \"$handlerFile.php\".");
-                cli_info_without_exit("Make sure it is intended using CMD+S or CTRL+S to autoformat the Validation Handler File!");
-                cli_info("It must start as a function: `function $currentRuleForCurrentDXKey()` or it will not be found!");
+                cli_err_syntax_without_exit("Validation Rule \"$currentRuleForCurrentDXKey\" not found in \"_internals/functions/d_data_funs.php\".");
+                cli_info("It must start as a function: `function funk_validate_$currentRuleForCurrentDXKey()` or it will not be found!");
             }
 
             // We check if the "$currentRuleValueForCurrentDXKeyValue" contains a
@@ -1276,8 +1291,269 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         }
         if ($noDataTypeRule) {
             cli_err_syntax_without_exit("No Data Type Rule found for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
-            cli_info("Use one of these: `string`, `integer`, `float`, `boolean`, `number`, `date`, `array`,\n\t\t  `email`, `url`, `ip`, `uuid`, `phone`, `regex`, `object`, `json`, `enum` or `set`!");
+            cli_info("Use one of these: `string`, `integer`, `float`, `boolean`, `number`, `date`, `array`,\n\t\t  `email`, `url`, `ip`, `uuid`, `phone`, `regex`, `object`, `json`, `enum`, `set`\n\t\t  `ip4`, `ip6`, `checked`, `file`, `audio`, `video`, `image`, or `list`!");
         }
+
+
+        /*
+            MANY SPECIAL CASES ARE CHECKED HERE - START:
+        */
+        // First we get the current data type rule for the $currentDXKey
+        // so we can make special case checks for it like not a negative
+        // number for "min" rule when string type is used, etc.
+        $categorizedDataTypeRules = [
+            'string_types' => [
+                'string' => true,
+                'email' => true,
+                'json' => true,
+                'url' => true,
+                'ip' => true,
+                'ip4' => true,
+                'ip6' => true,
+                'uuid' => true,
+                'phone' => true,
+                'date' => true,
+            ],
+            'number_types' => [
+                'integer' => true,
+                'float' => true,
+                'number' => true,
+            ],
+            'array_types' => [
+                'array' => true,
+                'list' => true,
+                'set' => true,
+            ],
+            'complex_types' => [
+                'object' => true,
+                'checked',
+                'enum' => true,
+                'boolean' => true,
+                'file' => true,
+                'image' => true,
+                'audio' => true,
+                'video' => true,
+            ],
+        ];
+        $foundTypeRule = null;
+        $foundTypeCat = null;
+        foreach ($sortedRulesForField as $ruleName => $ruleConfig) {
+            if (
+                isset($categorizedDataTypeRules['string_types'][$ruleName])
+            ) {
+                $foundTypeRule = $ruleName;
+                $foundTypeCat = 'string_types';
+                break;
+            } elseif (isset($categorizedDataTypeRules['number_types'][$ruleName])) {
+                $foundTypeRule = $ruleName;
+                $foundTypeCat = 'number_types';
+                break;
+            } elseif (isset($categorizedDataTypeRules['array_types'][$ruleName])) {
+                $foundTypeRule = $ruleName;
+                $foundTypeCat = 'array_types';
+                break;
+            } elseif (isset($categorizedDataTypeRules['complex_types'][$ruleName])) {
+                $foundTypeRule = $ruleName;
+                $foundTypeCat = 'complex_types';
+                break;
+            }
+        }
+        $theseRulesShouldHaveNoValue = [
+            $foundTypeRule,
+            'required',
+            'nullable',
+            'checked',
+            'file',
+            'image',
+            'video',
+            'audio',
+            'object',
+            'enum',
+        ];
+
+        // Special cases for any rule found in $theseRulesShouldHaveNoValue that has a value
+        // when it should not (but we do not error out but just warn that the value will be ignored).
+        foreach ($theseRulesShouldHaveNoValue as $ruleName) {
+            if (isset($sortedRulesForField[$ruleName]) && isset($sortedRulesForField[$ruleName]['value'])) {
+                cli_warning_without_exit("The `$ruleName` Rule for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` has a value set!");
+                cli_info_without_exit("This would be ignored so it has been set to `null` since the `$ruleName` Rule does not use a value!");
+                $sortedRulesForField[$ruleName]['value'] = null;
+            }
+        }
+
+        // Special cases for the "decimals" Rule
+        if (isset($sortedRulesForField['decimals']) && !isset($sortedRulesForField['float'])) {
+            cli_err_syntax_without_exit("The `decimals` Rule needs `float` data type for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+            cli_info("Specify the `float` data type rule for `$currentDXKey` if you want to use the `decimals` rule!");
+        }
+        if (isset($sortedRulesForField['decimals'])) {
+            $decimalsValue = $sortedRulesForField['decimals']['value'];
+            if (is_array($decimalsValue)) {
+                if (count($decimalsValue) > 2 || count($decimalsValue) < 1) {
+                    cli_err_syntax_without_exit("Invalid `decimals` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                    cli_info("Specify either one(1) or two(2) integers as the value for the `decimals` rule!");
+                }
+                if ($decimalsValue[0] > 20 || (count($decimalsValue) > 1 && $decimalsValue[1] > 20)) {
+                    cli_warning_without_exit("Dangerous `decimals` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                    cli_info_without_exit("Specify integers between 0 and 20 as the value for the `decimals` rule!");
+                }
+                if ($decimalsValue[0] > $decimalsValue[1]) {
+                    cli_warning_without_exit("Dangerous `decimals` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                    cli_info_without_exit("Specify the First Integer as less than or equal to the Second Integer for the `decimals` rule!");
+                }
+                if ($decimalsValue[0] === $decimalsValue[1]) {
+                    cli_warning_without_exit("The `decimals` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` is Equal between Both Numbers!");
+                    cli_info_without_exit("Recommended is to use `exact` but this will work without issues, might be confusing though!");
+                }
+                foreach ($decimalsValue as $subValue) {
+                    if (!is_int($subValue)) {
+                        cli_err_syntax_without_exit("Invalid `decimals` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                        cli_info("Specify only Integers (whole numbers) as the value for the `decimals` rule!");
+                    }
+                }
+            } elseif (!is_int($decimalsValue)) {
+                cli_err_syntax_without_exit("Invalid `decimals` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify an integer or an array of integers (whole numbers) as the value for the `decimals` rule!");
+            }
+        }
+
+        // Special cases for the "min" Rule
+        if (isset($sortedRulesForField['min'])) {
+            $minValue = $sortedRulesForField['min']['value'];
+            // If min is not a number, we error out
+            if (!is_numeric($minValue)) {
+                cli_err_syntax_without_exit("Invalid `min` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify a Single Number as the value for the `min` rule!");
+            }
+            // When min is float but data type is NOT float, we error out
+            if (is_float($minValue) && (!isset($sortedRulesForField['float']) && !isset($sortedRulesForField['number']))) {
+                cli_err_syntax_without_exit("Invalid `min` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify the `float` OR `number` Data Type Rule for `$currentDXKey` to use the `min` rule with a decimal value!");
+            }
+            // If min is negative when data type is a string type, we error out
+            if (
+                ($foundTypeCat === 'string_types' || $foundTypeCat === 'array_types')
+                && is_numeric($minValue)
+                && $minValue < 0
+            ) {
+                cli_err_syntax_without_exit("Invalid `min` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify a Non-Negative Number as the value for the `min` rule when Data Type is a String or an Array!");
+            }
+        }
+
+        // Special cases for the "max" Rule
+        if (isset($sortedRulesForField['max'])) {
+            $maxValue = $sortedRulesForField['max']['value'];
+            // If max is not a number, OR it is a float but not data type float or number, we error out
+            if (!is_numeric($maxValue)) {
+                cli_err_syntax_without_exit("Invalid `max` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify a Single Number as the value for the `max` rule!");
+            }
+            if (is_float($maxValue) && (!isset($sortedRulesForField['float']) && !isset($sortedRulesForField['number']))) {
+                cli_err_syntax_without_exit("Invalid `max` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify the `float` OR `number` Data Type Rule for `$currentDXKey` to use the `max` rule with a decimal value!");
+            }
+            // If max is negative when data type is a string type, we error out
+            if (
+                ($foundTypeCat === 'string_types' || $foundTypeCat === 'array_types')
+                && is_numeric($maxValue)
+                && $maxValue < 0
+            ) {
+                cli_err_syntax_without_exit("Invalid `max` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify a Non-Negative Number as the value for the `max` rule when Data Type is a String or an Array!");
+            }
+        }
+
+        // Special cases for the "between" Rule
+        if (isset($sortedRulesForField['between'])) {
+            $betweenValue = $sortedRulesForField['between']['value'];
+            // If between is not an array, we error out
+            if (!is_array($betweenValue)) {
+                cli_err_syntax_without_exit("Invalid `between` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify Two Numbers (separated with a comma) as the value for the `between` Rule!");
+            }
+            // If between is not two numbers, we error out
+            if (count($betweenValue) !== 2 || !is_numeric($betweenValue[0]) || !is_numeric($betweenValue[1])) {
+                cli_err_syntax_without_exit("Invalid `between` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify Two Numbers (separated with a comma) as the values for the `between` Rule!");
+            }
+            if ((is_float($betweenValue[0]) || is_float($betweenValue[1])) && (!isset($sortedRulesForField['float']) && !isset($sortedRulesForField['number']))) {
+                cli_err_syntax_without_exit("Invalid `min` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify the `float` OR `number` Data Type Rule for `$currentDXKey` to use the `between` rule with decimal value(s)!");
+            }
+            if ($betweenValue[0] > $betweenValue[1]) {
+                cli_err_syntax_without_exit("The `between` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` First Number is Larger than the Second Number!");
+                cli_info("Specify the First Number as less than or equal to the Second Number for the `between` Rule!");
+            }
+            if ($betweenValue[0] === $betweenValue[1]) {
+                cli_warning_without_exit("The `between` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` is Equal between Both Numbers!");
+                cli_info_without_exit("Recommended is to use `exact` but this will work without issues, might be confusing though!");
+            }
+            // If min is negative when data type is a string type, we error out
+            if (
+                ($foundTypeCat === 'string_types' || $foundTypeCat === 'array_types')
+                && is_numeric($betweenValue[0])
+                && ($betweenValue[0] < 0 || $betweenValue[1] < 0)
+            ) {
+                cli_err_syntax_without_exit("Invalid `between` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify a Non-Negative Number as the First Value in the Array for the `between` Rule when Data Type is a String or an array!");
+            }
+        }
+
+        // Special cases for the "count" Rule (affects arrays & lists)
+        if (isset($sortedRulesForField['count'])) {
+            $countValue = $sortedRulesForField['count']['value'];
+            // If count is NOT used with "array" or "list" data type, we error out
+            if (!isset($sortedRulesForField['array']) && !isset($sortedRulesForField['list'])) {
+                cli_err_syntax_without_exit("The `count` Rule must be used with Data Type `array` or `list` for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify the `array` OR `list` Data Type Rule for `$currentDXKey` to use the `count` rule!");
+            }
+            // If count is not a number, we error out
+            if (!is_int($countValue)) {
+                cli_err_syntax_without_exit("Invalid `count` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify a Single Integer as the value for the `count` Rule!");
+            }
+            // If count is negative when data type is a string type, we error out
+            if (
+                ($foundTypeCat === 'string_types' || $foundTypeCat === 'array_types')
+                && is_int($countValue)
+                && $countValue < 0
+            ) {
+                cli_err_syntax_without_exit("Invalid `count` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify a Non-Negative Number as the value for the `count` Rule when Data Type is a String or an Array!");
+            }
+        }
+
+        // Special cases for the "exact" Rule
+        if (isset($sortedRulesForField['exact'])) {
+            $exactValue = $sortedRulesForField['exact']['value'];
+            // $exactValue is NOT numeric but "number_types" data type is used, we error out
+            if (
+                !is_numeric($exactValue)
+                && ($foundTypeCat === 'number_types')
+            ) {
+                cli_err_syntax_without_exit("Invalid `exact` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify a Valid Single Number value for the `exact` Rule if you intend to use a Numeric Data Type or change Data Type to a String!");
+            }
+            // $exactValue is a string but data type is NOT string, we error out
+            if (is_string($exactValue) && !isset($sortedRulesForField['string'])) {
+                cli_err_syntax_without_exit("Invalid `exact` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify the `string` Data Type Rule for `$currentDXKey` to use the `exact` rule with a string value!");
+            }
+            // $exactValue is a float value but data type is NOT float nor number, we error out
+            if (is_float($exactValue) && !isset($sortedRulesForField['float']) && !isset($sortedRulesForField['number'])) {
+                cli_err_syntax_without_exit("Invalid `exact` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify the `float` OR `number` Data Type Rule for `$currentDXKey` to use the `exact` rule with a decimal value!");
+            }
+        }
+
+        // Special cases for the "regex" & "no_regex" Rules
+        if (isset($sortedRulesForField['exact'])) {
+            $exactValue = $sortedRulesForField['exact']['value'];
+        }
+        /*
+            MANY SPECIAL CASES ARE CHECKED HERE - END:
+        */
 
         // Finally add the priority sorted rules to the converted validation array
         $convertedValidationArray[$currentDXKey]["<RULES>"] = $sortedRulesForField;
@@ -3625,7 +3901,7 @@ function is_array_and_not_empty($array)
 }
 function is_string_and_not_empty($string)
 {
-    return isset($string) && is_string($string) && !empty($string);
+    return isset($string) && is_string($string) && mb_strlen($string) > 0;
 }
 
 // Function takes a 'arrayKey' => 'singleStringvalue' and converts it to a

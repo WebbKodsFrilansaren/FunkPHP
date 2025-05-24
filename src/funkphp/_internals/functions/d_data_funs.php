@@ -195,6 +195,97 @@ function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array 
         }
     }
 
+    // Categorize found data type rule so "min" and "max" and similar
+    // ambiguous rules can be applied to the correct data type!
+    // We will swiftly loop through to find it. Thanks to the priority
+    // order of the rules, it should actually be the first rule right
+    // after "nullable", "required", & "stop" rules if they exist!
+    $categorizedDataTypeRules = [
+        // Rules that generally apply to string-like inputs
+        // Dates are often validated as strings
+        'string_types' => [
+            'string' => true,
+            'email' => true,
+            'json' => true,
+            'url' => true,
+            'ip' => true,
+            'ip4' => true,
+            'ip6' => true,
+            'uuid' => true,
+            'phone' => true,
+            'date' => true,
+        ],
+        // Rules that generally apply to numeric inputs
+        // "numbers" = More general numeric type
+        'number_types' => [
+            'integer' => true,
+            'float' => true,
+            'number' => true,
+        ],
+        // Rules that generally apply to array-like inputs
+        // Lists are often treated as arrays
+        // Sets can be treated as arrays with unique values
+        'array_types' => [
+            'array' => true,
+            'list' => true,
+            'set' => true,
+        ],
+        // Rules for arrays, objects, and other complex structures
+        // JSON is typically validated as a string or an object/array
+        // Enums can be strings or numbers, but often involve specific sets
+        // Similar to enum, for validating against a predefined set
+        // Booleans are distinct, but often processed separately from numbers/strings
+        'complex_types' => [
+            'object' => true,
+            'checked',
+            'enum' => true,
+            'boolean' => true,
+            'file' => true,
+            'image' => true,
+            'audio' => true,
+            'video' => true,
+        ],
+    ];
+    $foundTypeRule = null;
+    $foundTypeCat = null;
+    foreach ($rules as $ruleName => $ruleConfig) {
+        if (
+            isset($categorizedDataTypeRules['string_types'][$ruleName])
+        ) {
+            $foundTypeRule = $ruleName;
+            $foundTypeCat = 'string_types';
+            break;
+        } elseif (isset($categorizedDataTypeRules['number_types'][$ruleName])) {
+            $foundTypeRule = $ruleName;
+            $foundTypeCat = 'number_types';
+            break;
+        } elseif (isset($categorizedDataTypeRules['array_types'][$ruleName])) {
+            $foundTypeRule = $ruleName;
+            $foundTypeCat = 'array_types';
+            break;
+        } elseif (isset($categorizedDataTypeRules['complex_types'][$ruleName])) {
+            $foundTypeRule = $ruleName;
+            $foundTypeCat = 'complex_types';
+            break;
+        }
+    }
+    if ($foundTypeRule) {
+        $validatorFn = 'funk_validate_' . $foundTypeRule;
+        $ruleConfig = $rules[$foundTypeRule];
+        $ruleValue = $ruleConfig['value'] ?? null;
+        $customErr = $ruleConfig['err_msg'] ?? null;
+
+        $error = $validatorFn($fullFieldName, $inputValue, $ruleValue, $customErr);
+
+        if ($error !== null) {
+            $currentErrPath[$foundTypeRule] = $error;
+            $allPassed = false;
+            if (isset($rules['stop'])) {
+                return;
+            }
+        }
+    }
+
     // ITERATING THROUGH REMAINING RULES THIS INPUT FIELD
     foreach ($rules as $rule => $ruleConfig) {
         $ruleValue = $ruleConfig['value'];
@@ -566,11 +657,66 @@ function funk_validate_array($inputName, $inputData, $validationValues, $customE
     return null;
 }
 
-// Validate that Input Data is a valid boolean
+// Validate that Input Data is a valid list (a numbered array)
+function funk_validate_list($inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (!is_array($inputData) || (is_array($inputData) && !array_is_list($inputData))) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a list";
+    }
+    return null;
+}
+
+// Validate that Input Data is a valid boolean (true/false, 1/0, "1"/"0")
 function funk_validate_boolean($inputName, $inputData, $validationValues, $customErr = null)
 {
-    if (!is_bool($inputData)) {
-        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a boolean.";
+    if (
+        $inputData === true ||
+        $inputData === false ||
+        $inputData === 1 ||
+        $inputData === 0 ||
+        $inputData === "1" ||
+        $inputData === "0"
+    ) {
+        return null;
+    } else {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be of a boolean value type.";
+    }
+}
+
+// Validate that Input Data checked in a boolean way
+function funk_validate_checked($inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (
+        $inputData === true ||
+        $inputData === 1 ||
+        $inputData === "1" ||
+        $inputData === "on" ||
+        $inputData === "yes" ||
+        $inputData === "ja" || // Swedish easter egg
+        $inputData === "true" ||
+        $inputData === "checked" ||
+        $inputData === "enabled" ||
+        $inputData === "selected"
+    ) {
+        return null;
+    } else {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be checked in one way or another.";
+    }
+}
+
+// Validate that Input Data is a valid date in any provided format
+// This function uses PHP's strtotime to validate the date format
+function funk_validate_date($inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (!is_string($inputData)) {
+        return (isset($customErr) && is_string($customErr))
+            ? $customErr
+            : "$inputName must be a date string.";
+    }
+    if (strtotime($inputData) === false) {
+        return (isset($customErr) && is_string($customErr))
+            ? $customErr
+            : "$inputName must be a valid date in a recognizable format.";
     }
     return null;
 }
@@ -776,3 +922,34 @@ function funk_validate_regex($inputName, $inputData, $validationValues, $customE
     }
     return null;
 }
+
+// Validate that Input Data does NOT match a specific regex pattern provided in $validationValues
+// This can be used for validating strings, numbers, etc., if it can be regex-expressed!
+function funk_validate_not_regex($inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (preg_match($validationValues, $inputData)) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName matches a forbidden pattern.";
+    }
+    return null;
+}
+
+// Validate that Input Data has a number of decimal places as specified in $validationValues (which can
+// be a single number or an array with min and max values for decimal places). This function should
+// only be used for floats to be on the safe side since it does NOT check for the decimal point!
+function funk_validate_decimals($inputName, $inputData, $validationValues, $customErr = null)
+{
+    $decimalPart = explode('.', (string)$inputData)[1] ?? '';
+    $decimalCount = strlen($decimalPart);
+
+    if (is_array($validationValues)) {
+        if ($decimalCount < $validationValues[0] || $decimalCount > $validationValues[1]) {
+            return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must have between {$validationValues[0]} and {$validationValues[1]} decimal places.";
+        }
+    } else {
+        if ($decimalCount !== $validationValues) {
+            return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must have exactly $validationValues decimal places.";
+        }
+    }
+    return null;
+}
+function funk_validate_not_decimals($inputName, $inputData, $validationValues, $customErr = null) {}

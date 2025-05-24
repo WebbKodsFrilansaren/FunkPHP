@@ -14,8 +14,8 @@ function v_test(&$c) // <POST/test/:id>
     // Run the command `php funkcli compile v v_test=>v_test`
     // to get optimized version in return statement below it!
     $DX = [
-        'firstname' => 'min:2|max:30|required|string|regex:/^[a-zA-Z]+$/("Invalid regex for firstname!")',
-        'lastname' => 'string|min:2|max:30|required',
+        'firstname' => 'exact:5....0|required|string|regex:/^[a-zA-Z]+$/("Invalid regex for firstname!")',
+        'lastname' => 'min:2|max:2|required|float|decimals:0,20',
         '*.interests' => 'string|min:3|max:20|required|nullable',
         '*.tags' => 'string|min:3|max:10|required|nullable',
     ];
@@ -35,14 +35,9 @@ function v_test(&$c) // <POST/test/:id>
                     'value' => NULL,
                     'err_msg' => NULL,
                 ),
-                'min' =>
+                'exact' =>
                 array(
-                    'value' => 2,
-                    'err_msg' => NULL,
-                ),
-                'max' =>
-                array(
-                    'value' => 30,
+                    'value' => '5....0',
                     'err_msg' => NULL,
                 ),
                 'regex' =>
@@ -61,7 +56,7 @@ function v_test(&$c) // <POST/test/:id>
                     'value' => NULL,
                     'err_msg' => NULL,
                 ),
-                'string' =>
+                'float' =>
                 array(
                     'value' => NULL,
                     'err_msg' => NULL,
@@ -73,7 +68,16 @@ function v_test(&$c) // <POST/test/:id>
                 ),
                 'max' =>
                 array(
-                    'value' => 30,
+                    'value' => 2,
+                    'err_msg' => NULL,
+                ),
+                'decimals' =>
+                array(
+                    'value' =>
+                    array(
+                        0 => 0,
+                        1 => 20,
+                    ),
                     'err_msg' => NULL,
                 ),
             ),
