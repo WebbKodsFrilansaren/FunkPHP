@@ -25,7 +25,7 @@ function dd($data, $json = false)
 function dj($data, $json = false)
 {
     header('Content-Type: application/json', true, 200);
-    echo json_encode($data);
+    echo json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     exit;
 }
 

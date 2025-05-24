@@ -142,37 +142,67 @@ function funk_set_v_err_value(&$c, &$currentArrRef, $value)
     $currentArrRef = $value;
 }
 
+function funk_validation_recursively_improved(&$c, array $inputData, array $validationRules, array $currentPath = []): bool
+{
+    // We assume success until error found
+    $v_ok = true;
+
+    // Iterate through the main `return array()` from optimized validation array
+    foreach ($validationRules as $key => $rulesOrNestedFields) {
+        $isRulesNode = isset($rulesOrNestedFields['<RULES>']);
+    }
+    return $v_ok;
+}
+
+// Function is called by funk_use_validation recursively to validate
+// all the rules & nested fields in the input data (GET, POST or JSON).
 function funk_validation_recursively(&$c, array $inputData, array $validationRules, array $currentPath = []): bool
 {
-    // Ensure $c['v'] exists for errors
-    if (!isset($c['v']) || !is_array($c['v'])) {
-        $c['v'] = [];
-    }
+    // Assume success until an error is found
+    $allPassed = true;
 
-    $allPassed = true; // Assume success until an error is found
-
+    // Iterate through the main `return array()` from optimized validation array
     foreach ($validationRules as $key => $rulesOrNestedFields) {
         $isRulesNode = isset($rulesOrNestedFields['<RULES>']);
         $isWildcardNode = $key === '*';
+        var_dump("Widlcard Node", $isWildcardNode);
 
         // Construct the full path for the current field
         $currentFieldPath = array_merge($currentPath, [$key]);
-        $fullFieldName = implode('.', $currentFieldPath); // e.g., "user.name"
+        $fullFieldName = implode('.', $currentFieldPath);
+        var_dump("Current Path", $currentPath);
+        var_dump("Current Field Path", $currentFieldPath);
 
         // 1. Process regular fields with direct rules
+        // THIS IS WHERE ACTUAL RULE VALIDATION HAPPENS - AND HERE WE WANNA
+        // USE THE DYNAMIC NATURE OF FIRST FINDING OUT ABOUT "NULLABLE", "REQUIRED",
+        // AND THE DATA TYPE FOUND SO WE KNOW WHAT "MIN", "MAX" is ACTUALLY FOR!
+        // (minval, maxval, minlen, maxlen, etc.)
         if ($isRulesNode) {
-            // Get the rules for the current field
+            // Get the rules & input value for the current field
             $fieldRules = $rulesOrNestedFields['<RULES>'];
-            $inputValue = $inputData[$key] ?? null; // Get the input value for the current field
+            $inputValue = $inputData[$key] ?? null;
+            $inputValue = is_string($inputValue) ? trim($inputValue) : $inputValue;
+            $stop = array_key_exists('stop', $fieldRules);
+            $nullable = array_key_exists('nullable', $fieldRules);
+            $required = array_key_exists('required', $fieldRules);
 
-            // Iterate through each rule for this field
+            // if nullable exists and the input value is null,
+            // then we can just skip validation for this field
+            if ($nullable && $inputValue === null) {
+                continue;
+            }
+
+            // ITERATING THROUGH EACH SINGLE RULE FOR THIS FIELD
             foreach ($fieldRules as $ruleName => $ruleConfig) {
+
                 $ruleValue = $ruleConfig['value'];
                 $customErr = $ruleConfig['err_msg'];
 
                 // Dynamically call the validation function for this rule
                 // Assuming your rule functions are named funk_validate_ruleName
                 $validatorFn = 'funk_validate_' . $ruleName;
+                echo "Running `$validatorFn` for field `$fullFieldName` with value `" . json_encode($inputValue) . "`\n";
 
                 if (function_exists($validatorFn)) {
                     // Pass current input value, rule value, and custom error
@@ -186,8 +216,15 @@ function funk_validation_recursively(&$c, array $inputData, array $validationRul
                             $errorPathRef = &funk_navigate_v_err_array($c, $errorPathRef, $pathSegment);
                         }
                         // Set the error message for this specific rule
+                        // and mark overall validation as failed
                         funk_set_v_err_value($c, $errorPathRef[$ruleName], $error);
-                        $allPassed = false; // Mark overall validation as failed
+                        $allPassed = false;
+
+                        // If 'stop' is true, we stop further validation for this field
+                        // and do not continue with other rules for this field
+                        if ($stop) {
+                            break;
+                        }
                     }
                 } else {
                     // Handle unknown validator functions (e.g., log, add to $c['err'])
@@ -217,8 +254,8 @@ function funk_validation_recursively(&$c, array $inputData, array $validationRul
         }
         // 3. Handle wildcard '*' array elements
         elseif ($isWildcardNode) {
-            $inputArray = $inputData[$key] ?? []; // The array that contains multiple elements
-
+            var_dump("Input", $inputData);
+            $inputArray = $inputData ?? []; // The array that contains multiple elements
             if (!is_array($inputArray)) {
                 $errorPathRef = &$c['v'];
                 foreach ($currentPath as $pathSegment) {
@@ -230,7 +267,7 @@ function funk_validation_recursively(&$c, array $inputData, array $validationRul
                 // Iterate through each element in the input array for wildcard validation
                 foreach ($inputArray as $index => $arrayElement) {
                     // Construct path for the current array element (e.g., "user.0", "user.1")
-                    $elementPath = array_merge($currentPath, [$key, (string)$index]); // Use original $key for *
+                    $elementPath = array_merge($currentPath, [$index]); // Use original $key for *
                     $elementInput = is_array($arrayElement) ? $arrayElement : [$key => $arrayElement]; // Ensure array for sub-traversal
 
                     // Recurse using the *rules* defined under the wildcard, applied to each element
@@ -250,6 +287,16 @@ function funk_validation_recursively(&$c, array $inputData, array $validationRul
 // mapping to the "$_GET"/"$_POST" or "php://input" (JSON) variable ONLY!
 function funk_use_validation(&$c, $optimizedValidationArray, $source)
 {
+    // Validation Error Array and its OK varaible must exist to run this function
+    if (!array_key_exists('v', $c)) {
+        $c['err']['FAILED_TO_RUN_VALIDATION_FUNCTION'] = "Validation Function needs the Validation Error Array `\$c['v']`!";
+        return false;
+    }
+    if (!array_key_exists('v_ok', $c)) {
+        $c['err']['FAILED_TO_RUN_VALIDATION_FUNCTION'] = "Validation Function needs the Validation Error Array `\$c['v_ok']`!";
+        return false;
+    }
+
     // Inform about the fact that this function is not
     // used for validating $_FILES variables and that
     // a different function should be used for that!
@@ -257,11 +304,13 @@ function funk_use_validation(&$c, $optimizedValidationArray, $source)
         $c['err']['FAILED_TO_RUN_VALIDATION_FUNCTION'] = "Use Validation Function `funk_use_validation_files(&\$c, \$optimizedValidationArray)` instead to validate `\$_FILES`!";
         return false;
     }
+
     // Check that $optimizedValidationArray is a valid array
     if (!is_array($optimizedValidationArray) || empty($optimizedValidationArray)) {
         $c['err']['FAILED_TO_RUN_VALIDATION_FUNCTION'] = "Validation Function needs a non-empty array for `\$optimizedValidationArray`!";
         return false;
     }
+
     // Check that $source is a valid string and is either "GET", "POST" or "JSON" (must be exact)
     $allowedSources = ['GET' => [], 'POST' => [], 'JSON' => []];
     if (!is_string($source) || !isset($allowedSources[$source])) {
@@ -463,6 +512,7 @@ function funk_validate_between($inputName, $inputData, $validationValues, $custo
 function funk_validate_min($inputName, $inputData, $validationValues, $customErr = null) {};
 function funk_validate_max($inputName, $inputData, $validationValues, $customErr = null) {};
 function funk_validate_exact($inputName, $inputData, $validationValues, $customErr = null) {};
+function funk_validate_stop($inputName, $inputData, $validationValues, $customErr = null) {};
 
 // Validate that Input Data is of valid minimal length provided in $validationValues
 // This is used ONLY for string inputs. This is "min" when it knows it is a string.
