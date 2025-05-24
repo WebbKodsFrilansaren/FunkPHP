@@ -147,14 +147,25 @@ function funk_set_v_err_value(&$c, &$currentArrRef, $value)
 }
 
 // Function that validates a set of rules for a given single input field/data
-function funk_validation_validate_rules(&$c, $singleInputData, $fullFieldName, array $rules, array &$currentErrPath, &$allPassed): void
+function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array $rules, array &$currentErrPath, &$allPassed): void
 {
-    $inputValue = $singleInputData;
-    $inputValue = is_string($inputValue) ? trim($inputValue) : $inputValue;
-    var_dump("CURRENT INPUT VALUE: ", $inputValue);
+    // Extract some important flag-like rules from the rules array
     $stop = array_key_exists('stop', $rules);
     $nullable = array_key_exists('nullable', $rules);
     $required = array_key_exists('required', $rules);
+
+    // If required rule exist, we grab its value & error and unset it
+    // from the array of rules so we do not loop through it later
+    if ($required) {
+        $required = $rules['required'];
+        unset($rules['required']);
+    }
+
+    // If stop rule exist, we just unset it because the boolean value
+    // is enough to know if we should stop further validation later
+    if ($stop) {
+        unset($rules['stop']);
+    }
 
     // if nullable exists and the input value is null,
     // then we can just skip validation for this field
@@ -162,7 +173,29 @@ function funk_validation_validate_rules(&$c, $singleInputData, $fullFieldName, a
         return;
     }
 
-    // ITERATING THROUGH EACH SINGLE RULE FOR THIS FIELD
+    // Now use the required rule to validate
+    // the input value if it exists and we
+    // stored its value + error message
+    if ($required) {
+        $ruleValue = $required['value'] ?? null;
+        $customErr = $required['err_msg'] ?? null;
+        $error = funk_validate_required($fullFieldName, $inputValue, $ruleValue, $customErr);
+
+        // We set the error we got from the
+        // required validation meaning it failed
+        if ($error !== null) {
+            $currentErrPath['required'] = $error;
+            $allPassed = false;
+
+            // Stop further validation for this field as
+            // 'required' failed and if 'stop' is true!
+            if ($stop) {
+                return;
+            }
+        }
+    }
+
+    // ITERATING THROUGH REMAINING RULES THIS INPUT FIELD
     foreach ($rules as $rule => $ruleConfig) {
         $ruleValue = $ruleConfig['value'];
         $customErr = $ruleConfig['err_msg'];
@@ -387,10 +420,11 @@ function funk_use_validation(&$c, $optimizedValidationArray, $source)
 
     // REMOVE THIS LINE WHEN DONE TESTING
     // This is just for testing purposes to see the input data
-    var_dump("TEST DATA", $inputData);
+    var_dump("TEST DATA(GET/POST/JSON):", $inputData);
 
     // Now we can run the validation recursively and
-    // assume validations is true until proven otherwise
+    $c['v_ok'] = true;
+    $c['v'] = [];
     $allPassed = true;
     if (!funk_validation_recursively(
         $c,
@@ -400,8 +434,6 @@ function funk_use_validation(&$c, $optimizedValidationArray, $source)
         $allPassed
     )) {
         $c['v_ok'] = false;
-    } else {
-        $c['v_ok'] = true;
     }
 
     // When this is set to true, it means that the validation
@@ -730,6 +762,17 @@ function funk_validate_digits($inputName, $inputData, $validationValues, $custom
 {
     if (strlen($inputData) !== $validationValues) {
         return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must have exactly $validationValues digits.";
+    }
+    return null;
+}
+
+
+// Validate that Input Data matches a specific regex pattern provided in $validationValues
+// This can be used for validating strings, numbers, etc., if it can be regex-expressed!
+function funk_validate_regex($inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (!preg_match($validationValues, $inputData)) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName does not match the required pattern.";
     }
     return null;
 }

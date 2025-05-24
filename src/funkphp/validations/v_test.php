@@ -14,14 +14,14 @@ function v_test(&$c) // <POST/test/:id>
     // Run the command `php funkcli compile v v_test=>v_test`
     // to get optimized version in return statement below it!
     $DX = [
-        'user' => 'string|min:2|max:3|required',
-        'name' => 'string|min:2|max:3|required',
-        '*.name' => 'string|min:2|max:3|required',
-        '*.age' => 'string|min:2|max:3|required',
+        'firstname' => 'min:2|max:30|required|string|regex:/^[a-zA-Z]+$/("Invalid regex for firstname!")',
+        'lastname' => 'string|min:2|max:30|required',
+        '*.interests' => 'string|min:3|max:20|required|nullable',
+        '*.tags' => 'string|min:3|max:10|required|nullable',
     ];
 
     return array(
-        'user' =>
+        'firstname' =>
         array(
             '<RULES>' =>
             array(
@@ -42,12 +42,17 @@ function v_test(&$c) // <POST/test/:id>
                 ),
                 'max' =>
                 array(
-                    'value' => 3,
+                    'value' => 30,
                     'err_msg' => NULL,
+                ),
+                'regex' =>
+                array(
+                    'value' => '/^[a-zA-Z]+$/',
+                    'err_msg' => 'Invalid regex for firstname!',
                 ),
             ),
         ),
-        'name' =>
+        'lastname' =>
         array(
             '<RULES>' =>
             array(
@@ -68,17 +73,22 @@ function v_test(&$c) // <POST/test/:id>
                 ),
                 'max' =>
                 array(
-                    'value' => 3,
+                    'value' => 30,
                     'err_msg' => NULL,
                 ),
             ),
         ),
         '*' =>
         array(
-            'name' =>
+            'interests' =>
             array(
                 '<RULES>' =>
                 array(
+                    'nullable' =>
+                    array(
+                        'value' => NULL,
+                        'err_msg' => NULL,
+                    ),
                     'required' =>
                     array(
                         'value' => NULL,
@@ -91,20 +101,25 @@ function v_test(&$c) // <POST/test/:id>
                     ),
                     'min' =>
                     array(
-                        'value' => 2,
+                        'value' => 3,
                         'err_msg' => NULL,
                     ),
                     'max' =>
                     array(
-                        'value' => 3,
+                        'value' => 20,
                         'err_msg' => NULL,
                     ),
                 ),
             ),
-            'age' =>
+            'tags' =>
             array(
                 '<RULES>' =>
                 array(
+                    'nullable' =>
+                    array(
+                        'value' => NULL,
+                        'err_msg' => NULL,
+                    ),
                     'required' =>
                     array(
                         'value' => NULL,
@@ -117,12 +132,12 @@ function v_test(&$c) // <POST/test/:id>
                     ),
                     'min' =>
                     array(
-                        'value' => 2,
+                        'value' => 3,
                         'err_msg' => NULL,
                     ),
                     'max' =>
                     array(
-                        'value' => 3,
+                        'value' => 10,
                         'err_msg' => NULL,
                     ),
                 ),

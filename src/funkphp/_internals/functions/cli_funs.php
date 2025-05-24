@@ -1134,6 +1134,21 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
             }
         }
 
+        // Special case: using regex rule inside of string when "|" exists
+        // which could cause issues if "|" is used as part of regex rule value!
+        // This warning only happens if there is a "|" right after splittig on
+        // "regex:" which means You, the Developer, should convert it to an array!
+        if (is_string($Rules) && str_contains($Rules, "|") && str_contains($Rules, "regex:")) {
+            // First split on "regex:" and then check if that split still contains "|"
+            $regexParts = explode("regex:", $Rules);
+            if (count($regexParts) > 1 && str_contains($regexParts[1], "|")) {
+                // If it does, we warn the user to rewrite the string as an array
+                // to avoid issues with regex rule value containing "|"
+                cli_warning_without_exit("Please convert string `$Rules` to an array to be able ");
+                cli_warning("to use the `regex:` rule due to possible conflicts of `|` inside of the `regex:` rule. Truly sorry for the sudden spontaneous inconvenience!");
+            }
+        }
+
         // We now check if the $Rules is a string and if it is a string then we check
         // if it has "|" meaning we should split it into an array of rules. If it is just a
         // single rule string we still convert it to an array with a single element.
