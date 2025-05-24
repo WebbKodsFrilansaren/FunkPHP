@@ -37,7 +37,7 @@ function funk_run_matched_data_handler(&$c)
         $handler = key($c['req']['matched_data']);
         $handleString = $c['req']['matched_data'][$handler] ?? null;
     } else {
-        $c['err']['FAILED_TO_RUN_DATA_HANDLER'] = true;
+        $c['err']['FAILED_TO_RUN_DATA_HANDLER'] = "Data Handler must be a string or an array!";
         return;
     }
 
@@ -54,13 +54,13 @@ function funk_run_matched_data_handler(&$c)
         }
         // Handle error: not callable (or just use default below)
         else {
-            $c['err']['FAILED_TO_RUN_DATA_HANDLER'] = true;
+            $c['err']['FAILED_TO_RUN_DATA_HANDLER'] = "Data Handler function is not callable!";
             return;
         }
     }
     // Handle error: file not found or not readable  (or just use default below)
     else {
-        $c['err']['FAILED_TO_RUN_DATA_HANDLER'] = true;
+        $c['err']['FAILED_TO_RUN_DATA_HANDLER'] = "Data Handler File '$handler.php' not found or not readable!";
         return;
     }
 }
@@ -159,28 +159,70 @@ function funk_use_validation(&$c, $validation, $contentType)
     return true;
 }
 
+// Function that either gets a valid validation array or errors out
+function funk_use_validation_get_valid_validation_or_err_out(&$c, $string)
+{
+    $handlerFile = null;
+    $fnName = null;
+    if (!is_string($string) && !is_array($string)) {
+        $c['err']['FAILED_TO_LOAD_VALIDATION_FILE'] = "Validation Handler File must be a string or an array!";
+        return null;
+    }
+    if (is_string($string)) {
+        if (strpos($string, '=>') !== false) {
+            [$handlerFile, $fnName] = explode('=>', $string);
+            $handlerFile = trim($handlerFile);
+            $fnName = trim($fnName);
+        } else {
+            $handlerFile = $string;
+            $fnName = $handlerFile;
+        }
+    } elseif (is_array($string)) {
+        $handlerFile = key($string);
+        $fnName = $string[$handlerFile];
+    }
+    if (!str_starts_with($handlerFile, "v_")) {
+        $handlerFile = "v_" . $handlerFile;
+    }
+    if (!str_starts_with($fnName, "v_")) {
+        $fnName = "v_" . $fnName;
+    }
+    if (str_ends_with($handlerFile, ".php")) {
+        $handlerFile = substr($handlerFile, 0, -4);
+    }
+    if (!preg_match('/^[a-z0-9_]+$/', $handlerFile)) {
+        $c['err']['FAILED_TO_LOAD_VALIDATION_FILE'] = "\"{$handlerFile}\" Validation Handler File must be a lowercase string containing only letters, numbers and underscores!";
+        return null;
+    }
+    if (!preg_match('/^[a-z0-9_]+$/', $fnName)) {
+        $c['err']['FAILED_TO_LOAD_VALIDATION_FILE'] =  "Validation Function Name must be a lowercase string containing only letters, numbers and underscores!";
+        return null;
+    }
+    $validationFile = dirname(dirname(__DIR__)) . '/validations/' . $handlerFile . '.php';
+    if (file_exists_is_readable_writable($validationFile)) {
+        $validationDataFromFile = include_once $validationFile;
+        return $validationDataFromFile($c, $fnName) ?? null;
+    } else {
+        $c['err']['FAILED_TO_LOAD_VALIDATION_FILE'] = "Validation Handler File \"{$handlerFile}.php\" not found or not readable!";
+        return null;
+    }
+}
+
 // The main validation function for validating data
 // in FunkPHP mapping to the "$_GET" variables ONLY!
-function funk_validate_get(&$c, $optimizedValidationArray, $tablesAndColsToValidate = null) {}
+function funk_use_validation_get(&$c, $optimizedValidationArray) {}
 
 // The main validation function for validating data
 // in FunkPHP mapping to the "$_POST" variables ONLY!
-function funk_validate_post(&$c, $optimizedValidationArray, $tablesAndColsToValidate = null)
-{
-    $errors = [];
-    echo "<pre>";
-    print_r($tablesAndColsToValidate);
-    echo "</pre>";
-}
-
+function funk_use_validation_post(&$c, $optimizedValidationArray) {}
 
 // The main validation function for validating data
 // in FunkPHP mapping to the php://input data ONLY!
-function funk_validate_json(&$c, $optimizedValidationArray, $tablesAndColsToValidate = null) {}
+function funk_use_validation_json(&$c, $optimizedValidationArray) {}
 
 // The main validation function for validating data
 // in FunkPHP mapping to the $_FILES variables ONLY!
-function funk_validate_files(&$c, $optimizedValidationArray, $tablesAndColsToValidate = null) {}
+function funk_use_validation_files(&$c, $optimizedValidationArray) {}
 
 ///////////////////////////////////////////////////////////////////////////////////
 // BELOW ARE ALL THE VALIDATION FUNCTIONS THAT WILL BE USED TO VALIDATE THE DATA //

@@ -1251,7 +1251,7 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         }
 
         // Finally add the priority sorted rules to the converted validation array
-        $convertedValidationArray[$currentDXKey] = $sortedRulesForField;
+        $convertedValidationArray[$currentDXKey]["<RULES>"] = $sortedRulesForField;
 
         // We check if the key contains a "." and if it does we need to split it
         // and then we need to rebuild the nested keys in the converted validation array
@@ -1280,7 +1280,7 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
                 $currentNestedArray = &$currentNestedArray[$key];
             }
             // Finally set the value to the sorted rules for the field
-            $currentNestedArray = $sortedRulesForField;
+            $currentNestedArray["<RULES>"] = $sortedRulesForField;
             unset($convertedValidationArray[$currentDXKey]);
         }
     }

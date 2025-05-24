@@ -14,8 +14,10 @@ function v_test(&$c) // <POST/test/:id>
     // Run the command `php funkcli compile v v_test=>v_test`
     // to get optimized version in return statement below it!
     $DX = [
-        'user' => 'array|required|count:5|count:6|nullable',
+        'user' => 'array|required|count:5|nullable',
         'age' => 'number|min:5|nullable',
+        'user.*.email.primary' => 'number|min:5|nullable',
+        'user.*.name.primary' => 'number|min:5|nullable',
     ];
 
     return array(
@@ -23,51 +25,110 @@ function v_test(&$c) // <POST/test/:id>
         array(
             'user' => 0,
             'age' => 1,
+            'user.*.email.primary' => 2,
+            'user.*.name.primary' => 3,
         ),
         'user' =>
         array(
-            'nullable' =>
+            '<RULES>' =>
             array(
-                'value' => NULL,
-                'err_msg' => NULL,
+                'nullable' =>
+                array(
+                    'value' => NULL,
+                    'err_msg' => NULL,
+                ),
+                'required' =>
+                array(
+                    'value' => NULL,
+                    'err_msg' => NULL,
+                ),
+                'array' =>
+                array(
+                    'value' => NULL,
+                    'err_msg' => NULL,
+                ),
+                'count' =>
+                array(
+                    'value' => 5,
+                    'err_msg' => NULL,
+                ),
             ),
-            'required' =>
+            '*' =>
             array(
-                'value' => NULL,
-                'err_msg' => NULL,
-            ),
-            'array' =>
-            array(
-                'value' => NULL,
-                'err_msg' => NULL,
-            ),
-            'count' =>
-            array(
-                'value' => 6,
-                'err_msg' => NULL,
+                'email' =>
+                array(
+                    'primary' =>
+                    array(
+                        '<RULES>' =>
+                        array(
+                            'nullable' =>
+                            array(
+                                'value' => NULL,
+                                'err_msg' => NULL,
+                            ),
+                            'number' =>
+                            array(
+                                'value' => NULL,
+                                'err_msg' => NULL,
+                            ),
+                            'min' =>
+                            array(
+                                'value' => 5,
+                                'err_msg' => NULL,
+                            ),
+                        ),
+                    ),
+                ),
+                'name' =>
+                array(
+                    'primary' =>
+                    array(
+                        '<RULES>' =>
+                        array(
+                            'nullable' =>
+                            array(
+                                'value' => NULL,
+                                'err_msg' => NULL,
+                            ),
+                            'number' =>
+                            array(
+                                'value' => NULL,
+                                'err_msg' => NULL,
+                            ),
+                            'min' =>
+                            array(
+                                'value' => 5,
+                                'err_msg' => NULL,
+                            ),
+                        ),
+                    ),
+                ),
             ),
         ),
         'age' =>
         array(
-            'nullable' =>
+            '<RULES>' =>
             array(
-                'value' => NULL,
-                'err_msg' => NULL,
-            ),
-            'number' =>
-            array(
-                'value' => NULL,
-                'err_msg' => NULL,
-            ),
-            'min' =>
-            array(
-                'value' => 5,
-                'err_msg' => NULL,
+                'nullable' =>
+                array(
+                    'value' => NULL,
+                    'err_msg' => NULL,
+                ),
+                'number' =>
+                array(
+                    'value' => NULL,
+                    'err_msg' => NULL,
+                ),
+                'min' =>
+                array(
+                    'value' => 5,
+                    'err_msg' => NULL,
+                ),
             ),
         ),
     );
 };
 
 return function (&$c, $handler = "v_test") {
-    $handler($c);
+    return $handler($c);
 };

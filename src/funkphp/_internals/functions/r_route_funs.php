@@ -99,12 +99,12 @@ function funk_run_middleware_after_matched_routing(&$c)
                     $RunMW($c);
                 } // CUSTOM ERROR HANDLING HERE! - not callable (or change below to whatever you like)
                 else {
-                    $c['err']['FAILED_TO_RUN_MIDDLEWARE'] = true;
+                    $c['err']['FAILED_TO_RUN_MIDDLEWARE'] = "Middleware Function not callable!";
                     $c['req']['current_middleware_running'] = null;
                 }
             } // CUSTOM ERROR HANDLING HERE! - no dir or file (or change below to whatever you like)
             else {
-                $c['err']['FAILED_TO_RUN_MIDDLEWARE'] = true;
+                $c['err']['FAILED_TO_RUN_MIDDLEWARE'] = "Middleware File not found or not readable!";
                 $c['req']['current_middleware_running'] = null;
             }
 
@@ -128,6 +128,7 @@ function funk_run_middleware_after_matched_routing(&$c)
     // CUSTOM ERROR HANDLING HERE! - no matched middlewares (or change below to whatever you like)
     // IMPORTANT: No matched middlewares could mean misconfigured routes or no middlewares at all!
     else {
+        $c['err']['FAILED_TO_RUN_MIDDLEWARE'] = "No matched middlewares to run. If you expected some, check your Routes or Middlewares configuration!";
     }
 }
 
@@ -382,13 +383,13 @@ function funk_run_matched_route_handler(&$c)
         }
         // Handle error: not callable (or just use default below)
         else {
-            $c['err']['FAILED_TO_RUN_ROUTE_HANDLER'] = true;
+            $c['err']['FAILED_TO_RUN_ROUTE_HANDLER'] = "Route Handler Function not callable!";
             return;
         }
     }
     // Handle error: file not found or not readable  (or just use default below)
     else {
-        $c['err']['FAILED_TO_RUN_ROUTE_HANDLER'] = true;
+        $c['err']['FAILED_TO_RUN_ROUTE_HANDLER'] = "Route Handler File not found or not readable!";
         return;
     }
 }
