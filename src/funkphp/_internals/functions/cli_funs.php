@@ -1475,6 +1475,21 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
             }
         }
 
+        // Special case for "min" + "max" Rule
+        if (isset($sortedRulesForField['min']) && isset($sortedRulesForField['max'])) {
+            $minValue = $sortedRulesForField['min']['value'];
+            $maxValue = $sortedRulesForField['max']['value'];
+            // If min is larger than max, we error out
+            if (is_numeric($minValue) && is_numeric($maxValue) && $minValue > $maxValue) {
+                cli_err_syntax_without_exit("The `min` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` is Larger than the `max` Rule Value!");
+                cli_info("Specify the `min` Rule Value as less than the `max` Rule Value for `$currentDXKey`!");
+            }
+            if (is_numeric($minValue) && is_numeric($maxValue) && $minValue === $maxValue) {
+                cli_warning_without_exit("The `min` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` is Equal to the `max` Rule Value!");
+                cli_info_without_exit("Recommended is to use `exact` but this will work without issues, might be confusing though!");
+            }
+        }
+
         // Special cases for the "between" Rule
         if (isset($sortedRulesForField['between'])) {
             $betweenValue = $sortedRulesForField['between']['value'];
@@ -1538,6 +1553,13 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         // Special cases for the "exact" Rule
         if (isset($sortedRulesForField['exact'])) {
             $exactValue = $sortedRulesForField['exact']['value'];
+
+            // If data type is string typed then we strval force the exact value
+            if (is_numeric($exactValue) && $foundTypeCat === "string_types") {
+                $sortedRulesForField['exact']['value'] = strval($sortedRulesForField['exact']['value']);
+                cli_info_without_exit("The `exact` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` is Numberic while Data Type is String-typed!");
+                cli_info("Its Rule Value converted to String Value for `$currentDXKey`. Change this manually back to numeric value if you intended to use an exact numeric value!");
+            }
 
             // 'exact' Rule shouldn't not be combined with 'count', 'between', 'min', or 'max' Rules
             // as 'exact' is a strict rule that expects a strict single value.
@@ -1614,9 +1636,55 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         // Special cases for the "min_digits" & "max_digits" Rules
         if (isset($sortedRulesForField['min_digits'])) {
             $minDigitsValue = $sortedRulesForField['min_digits']['value'];
+            if (!is_int($minDigitsValue)) {
+                cli_err_syntax_without_exit("Invalid `min_digits` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify a Single Integer as the value for the `min_digits` rule!");
+            }
+            if ($minDigitsValue < 1) {
+                cli_err_syntax_without_exit("Invalid `min_digits` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify a Non-Negative Integer as the value for the `min_digits` rule!");
+            }
         }
         if (isset($sortedRulesForField['max_digits'])) {
             $maxDigitsValue = $sortedRulesForField['max_digits']['value'];
+            if (!is_int($maxDigitsValue)) {
+                cli_err_syntax_without_exit("Invalid `max_digits` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify a Single Integer as the value for the `max_digits` rule!");
+            }
+            if ($maxDigitsValue < 1) {
+                cli_err_syntax_without_exit("Invalid `max_digits` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify a Non-Negative Integer as the value for the `max_digits` rule!");
+            }
+        }
+        if (isset($sortedRulesForField['min_digits']) && isset($sortedRulesForField['max_digits'])) {
+            $minDigitsValue = $sortedRulesForField['min_digits']['value'];
+            $maxDigitsValue = $sortedRulesForField['max_digits']['value'];
+            // If min_digits is larger than max_digits, we error out
+            if (is_numeric($minDigitsValue) && is_numeric($maxDigitsValue) && $minDigitsValue > $maxDigitsValue) {
+                cli_err_syntax_without_exit("The `min_digits` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` is Larger than the `max_digits` Rule Value!");
+                cli_info("Specify the `min_digits` Rule Value as less than the `max_digits` Rule Value for `$currentDXKey`!");
+            }
+            if (is_numeric($minDigitsValue) && is_numeric($maxDigitsValue) && $minDigitsValue === $maxDigitsValue) {
+                cli_warning_without_exit("The `min_digits` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` is Equal to the `max_digits` Rule Value!");
+                cli_info_without_exit("Recommended is to use `digits` but this will work without issues, might be confusing though!");
+            }
+        }
+
+        // Special cases for the "digits" Rule
+        if (isset($sortedRulesForField['digits'])) {
+            $digitsValue = $sortedRulesForField['digits']['value'];
+            if (!is_int($digitsValue)) {
+                cli_err_syntax_without_exit("Invalid `digits` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify a Single Integer as the value for the `digits` rule!");
+            }
+            if ($digitsValue < 1) {
+                cli_err_syntax_without_exit("Invalid `digits` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify a Non-Negative Integer as the value for the `digits` rule!");
+            }
+            if (isset($sortedRulesForField['min_digits']) || isset($sortedRulesForField['max_digits'])) {
+                cli_err_syntax_without_exit("The `digits` Rule cannot be used with `min_digits` or `max_digits` Rules for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Remove `min_digits` or `max_digits` Rules to use the `digits` Rule - or vice versa!");
+            }
         }
 
         /*
