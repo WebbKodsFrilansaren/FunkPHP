@@ -111,6 +111,7 @@ function get_match_dx_return_regex()
     return '/return\s*array\(.*?\);$\n/ims';
 }
 
+
 // Function takes a table which is an array of columns and then
 // generates a validation file based on the table structure where
 // it uses the values from the data type, default value, typical default
@@ -1026,6 +1027,28 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         'ONLY_RULE_NAME_AND_VALUE_AND_ERROR' => '/^([a-z_][a-z_0-9]+):(.+)\("([^"]+)"\)$/'
     ];
 
+    // List of all supported data types where we check so not
+    // two are used for the same $$currentDXKey since each
+    // given single input must be of only one data type!
+    $dataTypeRules = [
+        'string',
+        'integer',
+        'float',
+        'boolean',
+        'number',
+        'date',
+        'array',
+        'email',
+        'url',
+        'ip',
+        'uuid',
+        'phone',
+        'object',
+        'json',
+        'enum',
+        'set',
+    ];
+
     // Priority order of validation rules (required and the data
     // type must always be first for each $currentDXKey!). 'nullable'
     // must come very early to allow for data that are actually null!
@@ -1039,15 +1062,15 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         'number',
         'date',
         'array',
-        'enum',
         'email',
         'url',
         'ip',
         'uuid',
         'phone',
-        'regex',
         'object',
         'json',
+        'enum',
+        'set',
     ];
     include_once($dirs['functions'] . "d_data_funs.php");
 
@@ -1173,13 +1196,19 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
                     $currentRuleValueForCurrentDXKeyValue[$subKey] = trim($subValue);
                 }
 
-                // We then check if each element is actually a number but that is stringified
-                // so we turn it back to a number again!
+                // We then check if each element is actually a number but that
+                // is stringified so we turn it back to a number again!
                 foreach ($currentRuleValueForCurrentDXKeyValue as $subKey => $subValue) {
                     if (is_numeric($subValue)) {
                         $currentRuleValueForCurrentDXKeyValue[$subKey] = cli_try_parse_number($subValue);
                     }
                 }
+            }
+
+            // Check if duplicate rule name is found for the current $currentDXKey which is not allowed
+            if (isset($convertedValidationArray[$currentDXKey]["<RULES>"][$currentRuleForCurrentDXKey])) {
+                cli_err_syntax_without_exit("Duplicate Validation Rule `$currentRuleForCurrentDXKey` found for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_err_syntax("Please make sure all Validation Rules are unique for each key!");
             }
 
             // Add the current rule to the converted validation array
@@ -1197,12 +1226,22 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         // call the correct validation function (e.g. knowing to call 'funk_validate_minlen' or
         // 'funk_validate_minval' based on whether data type is a string or a number).
         $sortedRulesForField = [];
-        $createdRules = $convertedValidationArray[$currentDXKey];
+        $createdRules = $convertedValidationArray[$currentDXKey]["<RULES>"];
 
         // First Add priority rules first, in their defined order
-        // and then add remaining rules in the order they were found
+        // and then add remaining rules in the order they were found.
+        // We also make sure only one data type rule is used for each key!
+        $addedDataTypeRule = false;
         foreach ($priorityOrder as $ruleName) {
             if (isset($createdRules[$ruleName])) {
+                if (in_array($ruleName, $dataTypeRules)) {
+                    if ($addedDataTypeRule) {
+                        cli_err_syntax_without_exit("Multiple Data Type Rules found for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                        cli_err_syntax_without_exit("Please make sure only one Data Type Rule is used for each key!");
+                        cli_info("Use one of these: `string`, `integer`, `float`, `boolean`, `number`, `date`, `array`,\n\t\t  `email`, `url`, `ip`, `uuid`, `phone`, `regex`, `object`, `json`, `enum` or `set`!");
+                    }
+                    $addedDataTypeRule = true;
+                }
                 $sortedRulesForField[$ruleName] = $createdRules[$ruleName];
                 unset($createdRules[$ruleName]);
             }
@@ -1213,8 +1252,6 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
 
         // Finally add the priority sorted rules to the converted validation array
         $convertedValidationArray[$currentDXKey] = $sortedRulesForField;
-        $convertedValidationArray['<DX_KEYS>'] = array_flip(array_keys($validationArray));
-        ksort($convertedValidationArray);
 
         // We check if the key contains a "." and if it does we need to split it
         // and then we need to rebuild the nested keys in the converted validation array
@@ -1248,8 +1285,14 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         }
     }
 
-    // Return the converted validation array
-    return $convertedValidationArray;
+    // Finally return the converted validation array after adding the
+    // <DX_KEYS> key at the top of the converted validation array
+    $dxKeysArray = array_flip(array_keys($validationArray));
+    $finalConvertedValidationArray = [
+        '<DX_KEYS>' => $dxKeysArray,
+    ];
+    $finalConvertedValidationArray = array_merge($finalConvertedValidationArray, $convertedValidationArray);
+    return $finalConvertedValidationArray;
 }
 
 // Compiles a $DX Validation [] to an optmized validation array that is returned within the same
