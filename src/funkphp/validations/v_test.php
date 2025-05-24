@@ -14,7 +14,7 @@ function v_test(&$c) // <POST/test/:id>
     // Run the command `php funkcli compile v v_test=>v_test`
     // to get optimized version in return statement below it!
     $DX = [
-        'firstname' => 'exact:5|required|list:test|regex:/^[a-zA-Z]+$/("Invalid regex for firstname!")',
+        'firstname' => 'exact:1|max:1|required|string',
         'lastname' => 'min:2|max:2|required|float|decimals:0,20',
         '*.interests' => 'string|min:3|max:20|required|nullable',
         '*.tags' => 'string|min:3|max:10|required|nullable',
@@ -37,13 +37,13 @@ function v_test(&$c) // <POST/test/:id>
                 ),
                 'exact' =>
                 array(
-                    'value' => 5,
+                    'value' => 1,
                     'err_msg' => NULL,
                 ),
-                'regex' =>
+                'size' =>
                 array(
-                    'value' => '/^[a-zA-Z]+$/',
-                    'err_msg' => 'Invalid regex for firstname!',
+                    'value' => 1,
+                    'err_msg' => NULL,
                 ),
             ),
         ),

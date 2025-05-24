@@ -285,6 +285,14 @@ function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array 
             }
         }
     }
+    // In case no valid data type rule was found (should only happen if it hasn't been added yet)
+    else {
+        $c['err']['UNKNOWN_VALIDATOR_DATA_TYPE_RULE'] = "Please inform the Developer that An Unknown Data Type Validation Rule was spotted!";
+        if (isset($rules['stop'])) {
+            return;
+        }
+        $allPassed = false;
+    }
 
     // ITERATING THROUGH REMAINING RULES THIS INPUT FIELD
     foreach ($rules as $rule => $ruleConfig) {
@@ -300,12 +308,13 @@ function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array 
             // Pass current input value, rule value, and custom error
             $error = $validatorFn($fullFieldName, $inputValue, $ruleValue, $customErr);
 
+            // Set the error message for this specific rule
+            // if it is not null, meaning validation failed
+            // Also stop remaining validation for
+            // this input data if 'stop' is true!
             if ($error !== null) {
-                $currentErrPath[$rule] = $error; // Set the error message for this specific rule
+                $currentErrPath[$rule] = $error;
                 $allPassed = false;
-
-                // If 'stop' is true, we stop further validation for this field
-                // and do not continue with other rules for this field
                 if ($stop) {
                     break;
                 }
@@ -750,6 +759,7 @@ function funk_validate_between($inputName, $inputData, $validationValues, $custo
 function funk_validate_min($inputName, $inputData, $validationValues, $customErr = null) {};
 function funk_validate_max($inputName, $inputData, $validationValues, $customErr = null) {};
 function funk_validate_exact($inputName, $inputData, $validationValues, $customErr = null) {};
+function funk_validate_size($inputName, $inputData, $validationValues, $customErr = null) {};
 function funk_validate_stop($inputName, $inputData, $validationValues, $customErr = null) {};
 
 // Validate that Input Data is of valid minimal length provided in $validationValues
@@ -911,7 +921,6 @@ function funk_validate_digits($inputName, $inputData, $validationValues, $custom
     }
     return null;
 }
-
 
 // Validate that Input Data matches a specific regex pattern provided in $validationValues
 // This can be used for validating strings, numbers, etc., if it can be regex-expressed!

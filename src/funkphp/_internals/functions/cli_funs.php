@@ -1170,7 +1170,11 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         // single rule string we still convert it to an array with a single element.
         // If it is an array we just use it as is.
         if (is_string($Rules) && str_contains($Rules, "|")) {
+            // Array filter empty values to avoid empty rules
             $currentRules = explode("|", $Rules);
+            $currentRules = array_filter($currentRules, function ($rule) {
+                return is_string_and_not_empty($rule);
+            });
         } elseif (is_string($Rules) && !str_contains($Rules, "|")) {
             $currentRules = [$Rules];
         } else {
@@ -1534,6 +1538,19 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         // Special cases for the "exact" Rule
         if (isset($sortedRulesForField['exact'])) {
             $exactValue = $sortedRulesForField['exact']['value'];
+
+            // 'exact' Rule shouldn't not be combined with 'count', 'between', 'min', or 'max' Rules
+            // as 'exact' is a strict rule that expects a strict single value.
+            if (
+                isset($sortedRulesForField['count']) || isset($sortedRulesForField['between'])
+                || isset($sortedRulesForField['min']) || isset($sortedRulesForField['max'])
+                || isset($sortedRulesForField['size']) || isset($sortedRulesForField['digits'])
+                || isset($sortedRulesForField['min_digits']) || isset($sortedRulesForField['max_digits'])
+            ) {
+                cli_err_syntax_without_exit("The `exact` Rule does not work with `count`, `size`, `between`, `digits`, `min_digits`, `max_digits`, `min`, or `max` Rules for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info_without_exit("The `exact` Rule is meant to be exact which conflicts with other 'exact'-like Rules or scalar-like Rules!");
+                cli_info("Remove `count`, `size`, `between`, `digits`, `min_digits`, `max_digits`, `min`, `max` Rules to use the `exact` Rule - or vice versa!");
+            }
             // $exactValue is NOT numeric but "number_types" data type is used, we error out
             if (
                 !is_numeric($exactValue)
@@ -1569,6 +1586,38 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
                 cli_info("Specify a \"stringifiable\" Data Type Rule (string, numeric, etc.) for `$currentDXKey` to use the `no_regex` rule!");
             }
         }
+
+        // Special cases for the "size" Rule
+        if (isset($sortedRulesForField['size'])) {
+            $sizeValue = $sortedRulesForField['size']['value'];
+            if (!is_numeric($sizeValue)) {
+                cli_err_syntax_without_exit("Invalid `size` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify a Single Number as the value for the `size` rule!");
+            }
+            // When size is float but data type is NOT float, we error out
+            if (is_float($sizeValue) && (!isset($sortedRulesForField['float']) && !isset($sortedRulesForField['number']))) {
+                cli_err_syntax_without_exit("Invalid `size` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify the `float` OR `number` Data Type Rule for `$currentDXKey` to use the `size` rule with a decimal value!");
+            }
+            // If size is negative when data type is a string type, we error out
+            if (
+                ($foundTypeCat === 'string_types' || $foundTypeCat === 'array_types')
+                && is_numeric($sizeValue)
+                && $sizeValue < 0
+            ) {
+                cli_err_syntax_without_exit("Invalid `size` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify a Non-Negative Number as the value for the `size` rule when Data Type is a String or an Array!");
+            }
+        }
+
+        // Special cases for the "min_digits" & "max_digits" Rules
+        if (isset($sortedRulesForField['min_digits'])) {
+            $minDigitsValue = $sortedRulesForField['min_digits']['value'];
+        }
+        if (isset($sortedRulesForField['max_digits'])) {
+            $maxDigitsValue = $sortedRulesForField['max_digits']['value'];
+        }
+
         /*
             MANY SPECIAL CASES ARE CHECKED HERE - END:
         */
