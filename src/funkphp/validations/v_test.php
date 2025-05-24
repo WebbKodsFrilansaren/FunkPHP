@@ -14,7 +14,7 @@ function v_test(&$c) // <POST/test/:id>
     // Run the command `php funkcli compile v v_test=>v_test`
     // to get optimized version in return statement below it!
     $DX = [
-        'firstname' => 'min:13555|max:1444|required|integer|digits:5',
+        'firstname' => 'required|array|array_keys:color,lowercase',
         'lastname' => 'min:2|max:3|required|float|decimals:0,20',
         '*.interests' => 'string|min:3|max:20|required|nullable',
         '*.tags' => 'string|min:3|max:10|required|nullable',
@@ -30,24 +30,18 @@ function v_test(&$c) // <POST/test/:id>
                     'value' => NULL,
                     'err_msg' => NULL,
                 ),
-                'integer' =>
+                'array' =>
                 array(
                     'value' => NULL,
                     'err_msg' => NULL,
                 ),
-                'min' =>
+                'array_keys' =>
                 array(
-                    'value' => 13555,
-                    'err_msg' => NULL,
-                ),
-                'max' =>
-                array(
-                    'value' => 14444,
-                    'err_msg' => NULL,
-                ),
-                'digits' =>
-                array(
-                    'value' => 5,
+                    'value' =>
+                    array(
+                        0 => 'color',
+                        1 => 'lowercase',
+                    ),
                     'err_msg' => NULL,
                 ),
             ),

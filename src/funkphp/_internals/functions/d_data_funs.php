@@ -922,6 +922,35 @@ function funk_validate_digits($inputName, $inputData, $validationValues, $custom
     return null;
 }
 
+// Validate that Input Data is a valid hex color code
+// This function checks if the input is a valid hex color code in the format #RRGGBB or #RGB
+function funk_validate_color($inputName, $inputData, $validationValues, $customErr = null)
+{
+    // Check if the input is a string and matches the hex color code pattern
+    if (!preg_match('/^#([a-fA-F0-9]{6})$/', $inputData)) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a valid hex color code.";
+    }
+    return null;
+}
+
+// Validate that Input Data is in uppercase, must be combiend with string validation
+function funk_validate_lowercase($inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (!is_string($inputData) || mb_strtolower($inputData) !== $inputData) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be in lowercase.";
+    }
+    return null;
+}
+
+// Validate that Input Data is in uppercase, must be combined with string validation
+function funk_validate_uppercase($inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (!is_string($inputData) || mb_strtoupper($inputData) !== $inputData) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be in uppercase.";
+    }
+    return null;
+}
+
 // Validate that Input Data matches a specific regex pattern provided in $validationValues
 // This can be used for validating strings, numbers, etc., if it can be regex-expressed!
 function funk_validate_regex($inputName, $inputData, $validationValues, $customErr = null)
@@ -961,4 +990,72 @@ function funk_validate_decimals($inputName, $inputData, $validationValues, $cust
     }
     return null;
 }
-function funk_validate_not_decimals($inputName, $inputData, $validationValues, $customErr = null) {}
+
+// Validate that Input Data has all the keys specified in $validationValues (which is an array of keys).
+// This function checks if the input data is an array and if it contains all the specified keys.
+function funk_validate_array_keys($inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (!is_array($inputData)) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be an array.";
+    }
+
+    foreach ($validationValues as $key) {
+        if (!array_key_exists($key, $inputData)) {
+            return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must contain the key '$key'.";
+        }
+    }
+    return null;
+}
+
+// Validate that Input Data's array values are within the specified $validationValues.
+// This function checks if the input data is an array and if all its values are in the
+// specified validation values and the count must be equal to the count of $validationValues.
+function funk_validate_array_keys_exact($inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (!is_array($inputData)) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be an array.";
+    }
+    if (count($inputData) !== count($validationValues)) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must have exactly " . count($validationValues) . " keys.";
+    }
+    foreach ($validationValues as $key) {
+        if (!array_key_exists($key, $inputData)) {
+            return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must contain the key '$key'.";
+        }
+    }
+    return null;
+}
+
+// Validate that Input Data's array values are within the specified $validationValues.
+// This function checks if the input data is an array and if all its values are in the specified validation values.
+function funk_validate_array_values($inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (!is_array($inputData)) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be an array.";
+    }
+    foreach ($inputData as $key => $value) {
+        if (!in_array($value, $validationValues, true)) {
+            return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName contains an invalid value '$value' for key '$key'.";
+        }
+    }
+    return null;
+}
+
+// Validate that Input Data's array values are exactly as specified in $validationValues.
+// This function checks if the input data is an array and if all its values match exactly the specified
+// validation values and the count must be equal to the count of $validationValues.
+function funk_validate_array_values_exact($inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (!is_array($inputData)) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be an array.";
+    }
+    if (count($inputData) !== count($validationValues)) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must have exactly " . count($validationValues) . " values.";
+    }
+    foreach ($inputData as $key => $value) {
+        if (!in_array($value, $validationValues, true)) {
+            return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName contains an invalid value '$value' for key '$key'.";
+        }
+    }
+    return null;
+}

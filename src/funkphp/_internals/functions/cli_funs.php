@@ -1366,6 +1366,8 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
             $foundTypeRule,
             'required',
             'nullable',
+            'lowercase',
+            'uppercase',
             'string',
             'integer',
             'float',
@@ -1695,6 +1697,115 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
                 ) {
                     cli_err_syntax_without_exit("The `digits` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` does not match the `min` and/or `max` Rule Value!");
                     cli_info("Specify the `digits` Rule Value as equal to the number of digits in the `min` and/or `max` Rule Value for `$currentDXKey`!");
+                }
+            }
+        }
+
+        // Special case for "color" Rule
+        if (isset($sortedRulesForField['color'])) {
+            $colorValue = $sortedRulesForField['color']['value'];
+            if (!isset($sortedRulesForField['string'])) {
+                cli_err_syntax_without_exit("The `color` Rule need the Data Type `string` for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify the `string` Data Type Rule for `$currentDXKey` to use the `color` rule!");
+            }
+            if (!is_string($colorValue)) {
+                cli_err_syntax_without_exit("Invalid `color` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify a Single String as the value for the `color` rule!");
+            }
+            if (!preg_match('/^#([a-fA-F0-9]{3}|[a-fA-F0-9]{6})$/', $colorValue)) {
+                cli_err_syntax_without_exit("Invalid `color` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify a Valid Six Character-based Hex Color String as the value for the `color` rule!");
+            }
+        }
+
+        // Special case for "lowercase" & "uppercase" Rules
+        if (isset($sortedRulesForField['lowercase']) || isset($sortedRulesForField['uppercase'])) {
+            if (!isset($sortedRulesForField['string'])) {
+                cli_err_syntax_without_exit("The `lowercase` and/or `uppercase` Rule need the Data Type `string` for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify the `string` Data Type Rule for `$currentDXKey` to use the `lowercase` and/or `uppercase` rule!");
+            }
+            if (isset($sortedRulesForField['lowercase']) && isset($sortedRulesForField['uppercase'])) {
+                cli_err_syntax_without_exit("Cannot combine the `lowercase` and `uppercase` Rules for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Remove one of the Rules to use the other for `$currentDXKey`!");
+            }
+        }
+
+        // Special case for "array_keys" Rule (which
+        // checks if the array has specific keys)
+        if (isset($sortedRulesForField['array_keys'])) {
+            $arrayKeysValue = $sortedRulesForField['array_keys']['value'];
+            if (!isset($sortedRulesForField['array']) && !isset($sortedRulesForField['list'])) {
+                cli_err_syntax_without_exit("The `array_keys` Rule need the Data Type `array` or `list` for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify the `array` OR `list` Data Type Rule for `$currentDXKey` to use the `array_keys` rule!");
+            }
+            if (!is_array($arrayKeysValue)) {
+                cli_err_syntax_without_exit("Invalid `array_keys` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify an Array of Strings as the value for the `array_keys` rule!");
+            }
+            foreach ($arrayKeysValue as $key) {
+                if (!is_string($key) && !is_int($key)) {
+                    cli_err_syntax_without_exit("Invalid `array_keys` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                    cli_info("Specify an Array mixed with Strings and/or Integers as the value for the `array_keys` rule!");
+                }
+            }
+        }
+
+        // Special case for "array_values" Rule (which checks if the array
+        // has specific values inside of it without caring about the keys)
+        if (isset($sortedRulesForField['array_values'])) {
+            $arrayValuesValue = $sortedRulesForField['array_values']['value'];
+            if (!isset($sortedRulesForField['array']) && !isset($sortedRulesForField['list'])) {
+                cli_err_syntax_without_exit("The `array_values` Rule need the Data Type `array` or `list` for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify the `array` OR `list` Data Type Rule for `$currentDXKey` to use the `array_values` rule!");
+            }
+            if (!is_array($arrayValuesValue)) {
+                cli_err_syntax_without_exit("Invalid `array_values` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify an Array of Primitive Values (strings, numbers, booleans, nulls, etc.) as the value for the `array_values` rule!");
+            }
+            foreach ($arrayValuesValue as $value) {
+                if (!is_string($value) && !is_numeric($value) && !is_bool($value) && !is_null($value)) {
+                    cli_err_syntax_without_exit("Invalid `array_values` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                    cli_info("Specify an Array mixed with Strings, Numbers, Booleans and/or Nulls as the value for the `array_values` rule!");
+                }
+            }
+        }
+
+        // Special case for "array_keys_exact" Rule (which
+        // checks if the array has specific keys and no more)
+        if (isset($sortedRulesForField['array_keys_exact'])) {
+            $arrayKeysExactValue = $sortedRulesForField['array_keys_exact']['value'];
+            if (!isset($sortedRulesForField['array']) && !isset($sortedRulesForField['list'])) {
+                cli_err_syntax_without_exit("The `array_keys_exact` Rule need the Data Type `array` or `list` for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify the `array` OR `list` Data Type Rule for `$currentDXKey` to use the `array_keys_exact` rule!");
+            }
+            if (!is_array($arrayKeysExactValue)) {
+                cli_err_syntax_without_exit("Invalid `array_keys_exact` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify an Array of Strings as the value for the `array_keys_exact` rule!");
+            }
+            foreach ($arrayKeysExactValue as $key) {
+                if (!is_string($key) && !is_int($key)) {
+                    cli_err_syntax_without_exit("Invalid `array_keys_exact` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                    cli_info("Specify an Array mixed with Strings and/or Integers as the value for the `array_keys_exact` rule!");
+                }
+            }
+        }
+
+        // Special case for "array_values_exact" Rule (which checks if the array
+        // has specific values inside of it without caring about the keys)
+        if (isset($sortedRulesForField['array_values_exact'])) {
+            $arrayValuesExactValue = $sortedRulesForField['array_values_exact']['value'];
+            if (!isset($sortedRulesForField['array']) && !isset($sortedRulesForField['list'])) {
+                cli_err_syntax_without_exit("The `array_values_exact` Rule need the Data Type `array` or `list` for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify the `array` OR `list` Data Type Rule for `$currentDXKey` to use the `array_values_exact` rule!");
+            }
+            if (!is_array($arrayValuesExactValue)) {
+                cli_err_syntax_without_exit("Invalid `array_values_exact` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify an Array of Primitive Values (strings, numbers, booleans, nulls, etc.) as the value for the `array_values_exact` rule!");
+            }
+            foreach ($arrayValuesExactValue as $value) {
+                if (!is_string($value) && !is_numeric($value) && !is_bool($value) && !is_null($value)) {
+                    cli_err_syntax_without_exit("Invalid `array_values_exact` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                    cli_info("Specify an Array mixed with Strings, Numbers, Booleans and/or Nulls as the value for the `array_values_exact` rule!");
                 }
             }
         }
