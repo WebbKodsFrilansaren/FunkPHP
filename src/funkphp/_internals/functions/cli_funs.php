@@ -1786,9 +1786,9 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
 
         // Special case for "lowercase" & "uppercase" Rules
         if (isset($sortedRulesForField['lowercase']) || isset($sortedRulesForField['uppercase'])) {
-            if (!isset($sortedRulesForField['string'])) {
-                cli_err_syntax_without_exit("The `lowercase` and/or `uppercase` Rule need the Data Type `string` for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
-                cli_info("Specify the `string` Data Type Rule for `$currentDXKey` to use the `lowercase` and/or `uppercase` rule!");
+            if ($foundTypeCat !== 'string_types') {
+                cli_err_syntax_without_exit("The `lowercase` and/or `uppercase` Rule need a String-like  Data Type for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify a String-like Data Type Rule for `$currentDXKey` to use the `lowercase` and/or `uppercase` rule!");
             }
             if (isset($sortedRulesForField['lowercase']) && isset($sortedRulesForField['uppercase'])) {
                 cli_err_syntax_without_exit("Cannot combine the `lowercase` and `uppercase` Rules for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
@@ -1986,10 +1986,9 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
                     break;
                 }
             }
-            // If no subkeys found, we error out
             if (!$hasSubkeys) {
-                cli_err_syntax_without_exit("The Validation Key `$currentKey` in Validation `$handlerFile.php=>$fnName` requires at least one subkey to exist!");
-                cli_info("Add a Subkey to the Validation Array that starts with `$currentKey` to use it!");
+                cli_err_syntax_without_exit("The Validation Key `$currentKey` in Validation `$handlerFile.php=>$fnName` requires at least one Subkey to exist!");
+                cli_info("Add a Subkey to the \$DX Array that starts with `$currentKey` to use it!");
             }
         }
     }
