@@ -1960,6 +1960,19 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
     // applicable to arrays). We error out when for example "key.*.subkey" is used
     // but the "key.*" is not used as a key in the validation array.
     $arrayKeys = array_keys($validationArray);
+    // But first we loop through to find if ANY key contains "*.*" implying
+    // a multi-dimensional array which is NOT supported yet so this will error out
+    // and say it has not been implemented yet.
+    foreach ($arrayKeys as $currentKey) {
+        // If the key does not contain "*.*" we skip it
+        if (!str_contains($currentKey, "*.*")) {
+            continue;
+        }
+        // If the key contains "*.*" we error out and say it is not supported yet
+        cli_err_syntax_without_exit("The Validation Key `$currentKey` in Validation `$handlerFile.php=>$fnName` contains a Multi-Dimensional Array which is not supported yet in FunkPHP!");
+        cli_info_without_exit("Specify Single-Dimensional Arrays with keys containing only one `*` per level.");
+        cli_info("For example: `key.*` or `key.*.subkey` but not `key.*.*.subkey`!");
+    }
     foreach ($arrayKeys as $currentKey) {
         // Key doesn't contain "*", so we skip it
         if (!str_contains($currentKey, "*")) {

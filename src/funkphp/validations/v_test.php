@@ -14,12 +14,12 @@ function v_test(&$c) // <POST/test/:id>
     // Run the command `php funkcli compile v v_test=>v_test`
     // to get optimized version in return statement below it!
     $DX = [
-        'test.*' => 'array|between:1,5',
-        'test.*.name' => 'float|between:400,5000|min_digits:3|max_digits:4|decimals:2',
+        '*.*' => 'array|between:1,5',
+        '*.*.name' => 'float|between:400,5000|min_digits:3|max_digits:4|decimals:2',
     ];
 
     return array(
-        'test' =>
+        '*' =>
         array(
             '*' =>
             array(
