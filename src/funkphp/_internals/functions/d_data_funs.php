@@ -329,7 +329,7 @@ function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array 
 
 
 // Supposed to be an improved version of funk_validation_recursively
-function funk_validation_recursively_improved(&$c, array $inputData, array $validationRules, array &$currentErrPath, &$allPassed): bool
+function funk_validation_recursively_improved(&$c, array $inputData, array $validationRules, array &$currentErrPath)
 {
 
     // Iterate through the main `return array()` from optimized validation array
@@ -337,7 +337,6 @@ function funk_validation_recursively_improved(&$c, array $inputData, array $vali
         $rulesNodeExist = isset($rulesOrNestedFields['<RULES>']);
         $wildCardExist = $DXey === '*' || $rulesOrNestedFields === '*';
     }
-    return $allPassed;
 }
 
 // Function is called by funk_use_validation recursively to validate
@@ -525,16 +524,13 @@ function funk_use_validation(&$c, $optimizedValidationArray, $source)
     // Now we can run the validation recursively and
     $c['v_ok'] = true;
     $c['v'] = [];
-    $allPassed = true;
-    if (!funk_validation_recursively(
+    funk_validation_recursively(
         $c,
         $inputData,
         $optimizedValidationArray,
         [],
         $allPassed
-    )) {
-        $c['v_ok'] = false;
-    }
+    );
 
     // When this is set to true, it means that the validation
     // function has passed and no errors were found/added to $c['v']
