@@ -675,6 +675,15 @@ function funk_validate_list($inputName, $inputData, $validationValues, $customEr
     return null;
 }
 
+// Validate that Input Data is a valid set (an array with unique values)
+function funk_validate_set($inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (!is_array($inputData) || (is_array($inputData) && count($inputData) !== count(array_unique($inputData)))) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a set (an array with unique values).";
+    }
+    return null;
+}
+
 // Validate that Input Data is a valid boolean (true/false, 1/0, "1"/"0")
 function funk_validate_boolean($inputName, $inputData, $validationValues, $customErr = null)
 {

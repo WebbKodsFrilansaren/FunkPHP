@@ -98,7 +98,9 @@ function get_match_dx_function_regex()
 {
     // This matches "$DX = [multi-lines possible];" part
     // of the function within the provided regex string!
-    return '/\$DX\s*=\s*\[.*?];$/ims';
+    // Everything inside of the $DX
+    // array must be [''] and NOT [""]
+    return '/\$DX\s*=\s*\[\s*\'.*?];$/ims';
 };
 
 // Function that creates a regex for the "return array();"
@@ -1071,6 +1073,8 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         'date',
         'array',
         'list',
+        'set',
+        'enum',
         'email',
         'url',
         'ip',
@@ -1080,8 +1084,6 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         'phone',
         'object',
         'json',
-        'enum',
-        'set',
         'checked',
         'file',
         'image',
@@ -1328,6 +1330,12 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
                 'list' => true,
                 'set' => true,
             ],
+            'file_types' => [
+                'file' => true,
+                'image' => true,
+                'audio' => true,
+                'video' => true,
+            ],
             'complex_types' => [
                 'object' => true,
                 'checked',
@@ -1359,6 +1367,9 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
             } elseif (isset($categorizedDataTypeRules['complex_types'][$ruleName])) {
                 $foundTypeRule = $ruleName;
                 $foundTypeCat = 'complex_types';
+                if (isset($categorizedDataTypeRules['file_types'][$ruleName])) {
+                    $foundTypeCat = 'file_types';
+                }
                 break;
             }
         }
@@ -1391,6 +1402,65 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
                 cli_warning_without_exit("The `$ruleName` Rule for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` has a value set!");
                 cli_info_without_exit("This has been set to `null` since the `$ruleName` Rule does not use a value!");
                 $sortedRulesForField[$ruleName]['value'] = null;
+            }
+        }
+
+        // Special case where we check for a "$currentDXKey" that ends with a "*"
+        // that its type is "array" or "list" or "set", otherweise we error out.
+        if (str_ends_with($currentDXKey, "*")) {
+            if (!isset($categorizedDataTypeRules['array_types'][$foundTypeRule])) {
+                cli_err_syntax_without_exit("The `$currentDXKey` key in Validation `$handlerFile.php=>$fnName` must be of type `array`, `list` or `set`!");
+                cli_info("Specify one Array-like Data Type for `$currentDXKey` to use the Array Numbering `*` character at the end of the key!");
+            }
+            // We check if the rule "min" exists while "max" does not exist so we warn
+            // about that it could lead to infinite loop in the validation function
+            if (isset($sortedRulesForField['min']) && !isset($sortedRulesForField['max'])) {
+                cli_warning_without_exit("The `min` Rule for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` exists but the `max` Rule does not!");
+                cli_info_without_exit("This could lead to processing more than desired, consider adding a `max` Rule or changing to the `between` Rule instead!");
+            }
+        }
+
+        // Special cases for the "between" Rule
+        if (isset($sortedRulesForField['between'])) {
+            $betweenValue = $sortedRulesForField['between']['value'];
+            // If between is not an array, we error out
+            if (!is_array($betweenValue)) {
+                cli_err_syntax_without_exit("Invalid `between` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify Two Numbers (separated with a comma) as the value for the `between` Rule!");
+            }
+            // If between is not two numbers, we error out
+            if (count($betweenValue) !== 2 || !is_numeric($betweenValue[0]) || !is_numeric($betweenValue[1])) {
+                cli_err_syntax_without_exit("Invalid `between` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify Two Numbers (separated with a comma) as the values for the `between` Rule!");
+            }
+            if ((is_float($betweenValue[0]) || is_float($betweenValue[1])) && (!isset($sortedRulesForField['float']) && !isset($sortedRulesForField['number']))) {
+                cli_err_syntax_without_exit("Invalid `min` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify the `float` OR `number` Data Type Rule for `$currentDXKey` to use the `between` rule with decimal value(s)!");
+            }
+            if ($betweenValue[0] > $betweenValue[1]) {
+                cli_err_syntax_without_exit("The `between` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` First Number is Larger than the Second Number!");
+                cli_info("Specify the First Number as less than or equal to the Second Number for the `between` Rule!");
+            }
+            if ($betweenValue[0] === $betweenValue[1]) {
+                cli_warning_without_exit("The `between` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` is Equal between Both Numbers!");
+                cli_info_without_exit("Recommended is to use `exact` but this will work without issues, might be confusing though!");
+            }
+            if (
+                ($foundTypeCat === 'string_types' || $foundTypeCat === 'array_types')
+                && is_numeric($betweenValue[0])
+                && ($betweenValue[0] < 0 || $betweenValue[1] < 0)
+            ) {
+                cli_err_syntax_without_exit("Invalid `between` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify a Non-Negative Number as the First Value in the Array for the `between` Rule when Data Type is a String or an array!");
+            }
+            // Cannot use "min", "max", "size", "exact", rules with "between" rule since it is confusing
+            if (
+                isset($sortedRulesForField['min']) || isset($sortedRulesForField['max'])
+                || isset($sortedRulesForField['size']) || isset($sortedRulesForField['exact'])
+            ) {
+                cli_err_syntax_without_exit("The `between` Rule does not work with `min`, `max`, `size`, or `exact`, Rules for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info_without_exit("The `between` Rule is meant to be a range which conflicts with other 'exact'-like Rules or scalar-like Rules!");
+                cli_info("Remove `min`, `max`, `size`, `exact`, Rules to use the `between` Rule - or vice versa!");
             }
         }
 
@@ -1452,6 +1522,16 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
                 cli_err_syntax_without_exit("Invalid `min` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
                 cli_info("Specify a Non-Negative Number as the value for the `min` rule when Data Type is a String or an Array!");
             }
+            // min is set but not max so warn about getting larger data than desired
+            if (isset($sortedRulesForField['max']) && $sortedRulesForField['max']['value'] < $minValue) {
+                cli_warning_without_exit("The `min` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` is Larger than the `max` Rule Value!");
+                cli_info_without_exit("This could lead to processing more than desired, consider adding a `max` Rule or changing to the `between` Rule instead!");
+            }
+            // min is set but not max so warn about getting larger data than desired
+            if (!isset($sortedRulesForField['max'])) {
+                cli_warning_without_exit("The `min` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` is set but the `max` Rule is not!");
+                cli_info_without_exit("This could lead to processing more than desired, consider adding a `max` Rule or changing to the `between` Rule instead!");
+            }
         }
 
         // Special cases for the "max" Rule
@@ -1492,63 +1572,32 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
             }
         }
 
-        // Special cases for the "between" Rule
-        if (isset($sortedRulesForField['between'])) {
-            $betweenValue = $sortedRulesForField['between']['value'];
-            // If between is not an array, we error out
-            if (!is_array($betweenValue)) {
-                cli_err_syntax_without_exit("Invalid `between` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
-                cli_info("Specify Two Numbers (separated with a comma) as the value for the `between` Rule!");
-            }
-            // If between is not two numbers, we error out
-            if (count($betweenValue) !== 2 || !is_numeric($betweenValue[0]) || !is_numeric($betweenValue[1])) {
-                cli_err_syntax_without_exit("Invalid `between` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
-                cli_info("Specify Two Numbers (separated with a comma) as the values for the `between` Rule!");
-            }
-            if ((is_float($betweenValue[0]) || is_float($betweenValue[1])) && (!isset($sortedRulesForField['float']) && !isset($sortedRulesForField['number']))) {
-                cli_err_syntax_without_exit("Invalid `min` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
-                cli_info("Specify the `float` OR `number` Data Type Rule for `$currentDXKey` to use the `between` rule with decimal value(s)!");
-            }
-            if ($betweenValue[0] > $betweenValue[1]) {
-                cli_err_syntax_without_exit("The `between` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` First Number is Larger than the Second Number!");
-                cli_info("Specify the First Number as less than or equal to the Second Number for the `between` Rule!");
-            }
-            if ($betweenValue[0] === $betweenValue[1]) {
-                cli_warning_without_exit("The `between` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` is Equal between Both Numbers!");
-                cli_info_without_exit("Recommended is to use `exact` but this will work without issues, might be confusing though!");
-            }
-            // If min is negative when data type is a string type, we error out
-            if (
-                ($foundTypeCat === 'string_types' || $foundTypeCat === 'array_types')
-                && is_numeric($betweenValue[0])
-                && ($betweenValue[0] < 0 || $betweenValue[1] < 0)
-            ) {
-                cli_err_syntax_without_exit("Invalid `between` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
-                cli_info("Specify a Non-Negative Number as the First Value in the Array for the `between` Rule when Data Type is a String or an array!");
-            }
-        }
-
         // Special cases for the "count" Rule (affects arrays & lists)
         if (isset($sortedRulesForField['count'])) {
             $countValue = $sortedRulesForField['count']['value'];
             // If count is NOT used with "array" or "list" data type, we error out
-            if (!isset($sortedRulesForField['array']) && !isset($sortedRulesForField['list'])) {
-                cli_err_syntax_without_exit("The `count` Rule must be used with Data Type `array` or `list` for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
-                cli_info("Specify the `array` OR `list` Data Type Rule for `$currentDXKey` to use the `count` rule!");
+            if (!isset($sortedRulesForField['array']) && !isset($sortedRulesForField['list']) && !isset($sortedRulesForField['set'])) {
+                cli_err_syntax_without_exit("The `count` Rule must be used with Data Type `array`, `list` or `set` for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify the `array`, `list` OR `set` Data Type Rule for `$currentDXKey` to use the `count` rule!");
             }
             // If count is not a number, we error out
             if (!is_int($countValue)) {
                 cli_err_syntax_without_exit("Invalid `count` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
                 cli_info("Specify a Single Integer as the value for the `count` Rule!");
             }
-            // If count is negative when data type is a string type, we error out
+            // If count is negative when data type is a array type, we error out
             if (
-                ($foundTypeCat === 'string_types' || $foundTypeCat === 'array_types')
+                ($foundTypeCat === 'array_types')
                 && is_int($countValue)
                 && $countValue < 0
             ) {
                 cli_err_syntax_without_exit("Invalid `count` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
                 cli_info("Specify a Non-Negative Number as the value for the `count` Rule when Data Type is a String or an Array!");
+            }
+            // If count value is 0 but there is required rule, we error out
+            if ($countValue === 0 && isset($sortedRulesForField['required'])) {
+                cli_err_syntax_without_exit("The `count` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` is 0 but there is a `required` Rule!");
+                cli_info("Remove the `required` Rule or set the `count` Rule Value to 1 or more for `$currentDXKey`!");
             }
         }
 
@@ -1670,6 +1719,23 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
                 cli_warning_without_exit("The `min_digits` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` is Equal to the `max_digits` Rule Value!");
                 cli_info_without_exit("Recommended is to use `digits` but this will work without issues, might be confusing though!");
             }
+            // When both are used we cannot use "digits" Rule since it is a special case
+            if (isset($sortedRulesForField['digits'])) {
+                cli_err_syntax_without_exit("The `min_digits` and `max_digits` Rules cannot be used with the `digits` Rule for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Remove the `digits` Rule to use the `min_digits` and `max_digits` Rules - or vice versa!");
+            }
+            // When between are used and one of its number values have fewer
+            // or more digits than the `min_digits` and `max_digits` Rules, we error out
+            if (isset($sortedRulesForField['between'])) {
+                $betweenValue = $sortedRulesForField['between']['value'];
+                if (
+                    (is_int($betweenValue[0]) && strlen((string)$betweenValue[0]) !== $minDigitsValue)
+                    || (is_int($betweenValue[1]) && strlen((string)$betweenValue[1]) !== $maxDigitsValue)
+                ) {
+                    cli_err_syntax_without_exit("The `min_digits` and `max_digits` Rule Values for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` do not match the `between` Rule Value!");
+                    cli_info("Specify the `min_digits` and `max_digits` Rule Values as equal to the number of digits in the `between` Rule Value for `$currentDXKey`!");
+                }
+            }
         }
 
         // Special cases for the "digits" Rule
@@ -1768,6 +1834,22 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
                     cli_info("Specify an Array mixed with Strings, Numbers, Booleans and/or Nulls as the value for the `array_values` rule!");
                 }
             }
+            // "min" rule demanding more the set array values than actually specified
+            if (isset($sortedRulesForField['min']) && is_int($sortedRulesForField['min']['value'])) {
+                $minValue = $sortedRulesForField['min']['value'];
+                if ($minValue > count($arrayValuesValue)) {
+                    cli_err_syntax_without_exit("The `min` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` is Larger than the Number of Values in the `array_values` Rule!");
+                    cli_info("Specify the `min` Rule Value as less than or equal to the Number of Values in the `array_values` Rule for `$currentDXKey`!");
+                }
+            }
+            // "max" rule is less than the set array values than actually specified
+            if (isset($sortedRulesForField['max']) && is_int($sortedRulesForField['max']['value'])) {
+                $maxValue = $sortedRulesForField['max']['value'];
+                if ($maxValue < count($arrayValuesValue)) {
+                    cli_err_syntax_without_exit("The `max` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` is Less than the Number of Values in the `array_values` Rule!");
+                    cli_info("Specify the `max` Rule Value as greater than or equal to the Number of Values in the `array_values` Rule for `$currentDXKey`!");
+                }
+            }
         }
 
         // Special case for "array_keys_exact" Rule (which
@@ -1788,6 +1870,17 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
                     cli_info("Specify an Array mixed with Strings and/or Integers as the value for the `array_keys_exact` rule!");
                 }
             }
+            // "min", "max", "between", "exact", "size", rules are not allowed with "array_keys_exact"
+            // since its exact number of elements with values implies its count automatically
+            if (
+                isset($sortedRulesForField['min']) || isset($sortedRulesForField['max'])
+                || isset($sortedRulesForField['between']) || isset($sortedRulesForField['exact'])
+                || isset($sortedRulesForField['size']) || isset($sortedRulesForField['count'])
+            ) {
+                cli_err_syntax_without_exit("The `array_keys_exact` Rule cannot be used with `min`, `max`, `between`, `exact`, `size`, or `count` Rules for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info_without_exit("The `array_keys_exact` Rule is meant to be exact which conflicts with other 'exact'-like Rules or scalar-like Rules!");
+                cli_info("Remove `min`, `max`, `between`, `exact`, `size`, or `count` Rules to use the `array_keys_exact` Rule!");
+            }
         }
 
         // Special case for "array_values_exact" Rule (which checks if the array
@@ -1807,6 +1900,17 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
                     cli_err_syntax_without_exit("Invalid `array_values_exact` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
                     cli_info("Specify an Array mixed with Strings, Numbers, Booleans and/or Nulls as the value for the `array_values_exact` rule!");
                 }
+            }
+            // "min", "max", "between", "exact", "size", rules are not allowed with "array_values_exact"
+            // since its exact number of elements with values implies its count automatically
+            if (
+                isset($sortedRulesForField['min']) || isset($sortedRulesForField['max'])
+                || isset($sortedRulesForField['between']) || isset($sortedRulesForField['exact'])
+                || isset($sortedRulesForField['size']) || isset($sortedRulesForField['count'])
+            ) {
+                cli_err_syntax_without_exit("The `array_values_exact` Rule cannot be used with `min`, `max`, `between`, `exact`, `size`, or `count` Rules for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info_without_exit("The `array_values_exact` Rule is meant to be exact which conflicts with other 'exact'-like Rules or scalar-like Rules!");
+                cli_info("Remove `min`, `max`, `between`, `exact`, `size`, or `count` Rules to use the `array_values_exact` Rule!");
             }
         }
 
@@ -1846,6 +1950,47 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
             // Finally set the value to the sorted rules for the field
             $currentNestedArray["<RULES>"] = $sortedRulesForField;
             unset($convertedValidationArray[$currentDXKey]);
+        }
+    }
+
+    // We now grab all the array keys from the converted validation array
+    // to validate for each key that contains a "*" also has a key that begins
+    // with "key.*" before "key.*.subkey" and so on. The "key.*" is what would
+    // hod the rules for that numbered array like count, min, max, etc. (what is
+    // applicable to arrays). We error out when for example "key.*.subkey" is used
+    // but the "key.*" is not used as a key in the validation array.
+    $arrayKeys = array_keys($validationArray);
+    foreach ($arrayKeys as $currentKey) {
+        // Key doesn't contain "*", so we skip it
+        if (!str_contains($currentKey, "*")) {
+            continue;
+        }
+        // When we find a key that contains "*", but does not end with "*",
+        // we split on the last ".", and check if the first part exists
+        // anywhere in the validation array keys. Error out if it does not exist.
+        if (str_contains($currentKey, "*") && !str_ends_with($currentKey, "*")) {
+            $lastSplit = strrpos($currentKey, ".");
+            $firstPart = substr($currentKey, 0, $lastSplit);
+            if (!in_array($firstPart, $arrayKeys)) {
+                cli_err_syntax_without_exit("The Validation Key `$currentKey` in Validation `$handlerFile.php=>$fnName` requires the Key `$firstPart` to exist in the Validation Array!");
+                cli_info("Add the Key `$firstPart` to the Validation Array to use the Key `$currentKey`!");
+            }
+        }
+        // When a key ends with "*", we check that it actually has any subkeys
+        // by looping through all keys to see if they start with the current key
+        if (str_contains($currentKey, "*") && str_ends_with($currentKey, "*")) {
+            $hasSubkeys = false;
+            foreach ($arrayKeys as $key) {
+                if (str_starts_with($key, $currentKey) && $key !== $currentKey) {
+                    $hasSubkeys = true;
+                    break;
+                }
+            }
+            // If no subkeys found, we error out
+            if (!$hasSubkeys) {
+                cli_err_syntax_without_exit("The Validation Key `$currentKey` in Validation `$handlerFile.php=>$fnName` requires at least one subkey to exist!");
+                cli_info("Add a Subkey to the Validation Array that starts with `$currentKey` to use it!");
+            }
         }
     }
 
@@ -1900,7 +2045,7 @@ function cli_compile_dx_validation_to_optimized_validation()
     if (!$matchedDX) {
         cli_err_without_exit("The \"\$DX\" variable not found in Validation Function \"$fnName\" in Validation Handler File \"$handlerFile.php\".");
         cli_info_without_exit("Make sure it is intended using CMD+S or CTRL+S to autoformat the Validation Handler File!");
-        cli_info("It must start as an array: `\$DX = ['<anything_inside_here>'];` or it will not be found!");
+        cli_info("It must start as an array: `\$DX = ['<anything_inside_here>'];` or it will not be found. Only single quotes '<DXarray>' are allowed!");
     }
 
     // We store found match and now try find the return statement within "$matchedEntireFnName"
@@ -1915,12 +2060,12 @@ function cli_compile_dx_validation_to_optimized_validation()
     } catch (Throwable $e) {
         cli_err_without_exit("The \"\$DX\" variable was found but could not be parsed as a valid PHP Array!");
         cli_info_without_exit("Make sure it is intended using CMD+S or CTRL+S to autoformat the Validation Handler File!");
-        cli_info("It must start as an array: `\$DX = ['<anything_inside_here>'];` or it will not be found!");
+        cli_info("It must start as an array: `\$DX = ['<anything_inside_here>'];` or it will not be found.  Only single quotes '<DXarray>' are allowed!");
     }
     if ($evalCode === null) {
         cli_err_without_exit("The \"\$DX\" variable was found but could not be parsed as a valid PHP Array!");
         cli_info_without_exit("Make sure it is intended using CMD+S or CTRL+S to autoformat the Validation Handler File!");
-        cli_info("It must start as an array: `\$DX = ['<anything_inside_here>'];` or it will not be found!");
+        cli_info("It must start as an array: `\$DX = ['<anything_inside_here>'];` or it will not be found.  Only single quotes '<DXarray>' are allowed!");
     }
     if (is_array($evalCode)) {
         cli_info_without_exit("Found \"\$DX\" variable parsed as a valid PHP Array!");

@@ -14,134 +14,65 @@ function v_test(&$c) // <POST/test/:id>
     // Run the command `php funkcli compile v v_test=>v_test`
     // to get optimized version in return statement below it!
     $DX = [
-        'firstname' => 'required|array|array_keys:color,lowercase',
-        'lastname' => 'min:2|max:3|required|float|decimals:0,20',
-        '*.interests' => 'string|min:3|max:20|required|nullable',
-        '*.tags' => 'string|min:3|max:10|required|nullable',
+        'test.*' => 'array|between:1,5',
+        'test.*.name' => 'float|between:400,5000|min_digits:3|max_digits:4|decimals:2',
     ];
 
     return array(
-        'firstname' =>
+        'test' =>
         array(
-            '<RULES>' =>
-            array(
-                'required' =>
-                array(
-                    'value' => NULL,
-                    'err_msg' => NULL,
-                ),
-                'array' =>
-                array(
-                    'value' => NULL,
-                    'err_msg' => NULL,
-                ),
-                'array_keys' =>
-                array(
-                    'value' =>
-                    array(
-                        0 => 'color',
-                        1 => 'lowercase',
-                    ),
-                    'err_msg' => NULL,
-                ),
-            ),
-        ),
-        'lastname' =>
-        array(
-            '<RULES>' =>
-            array(
-                'required' =>
-                array(
-                    'value' => NULL,
-                    'err_msg' => NULL,
-                ),
-                'float' =>
-                array(
-                    'value' => NULL,
-                    'err_msg' => NULL,
-                ),
-                'min' =>
-                array(
-                    'value' => 2,
-                    'err_msg' => NULL,
-                ),
-                'max' =>
-                array(
-                    'value' => 3,
-                    'err_msg' => NULL,
-                ),
-                'decimals' =>
-                array(
-                    'value' =>
-                    array(
-                        0 => 0,
-                        1 => 20,
-                    ),
-                    'err_msg' => NULL,
-                ),
-            ),
-        ),
-        '*' =>
-        array(
-            'interests' =>
+            '*' =>
             array(
                 '<RULES>' =>
                 array(
-                    'nullable' =>
+                    'array' =>
                     array(
                         'value' => NULL,
                         'err_msg' => NULL,
                     ),
-                    'required' =>
+                    'between' =>
                     array(
-                        'value' => NULL,
-                        'err_msg' => NULL,
-                    ),
-                    'string' =>
-                    array(
-                        'value' => NULL,
-                        'err_msg' => NULL,
-                    ),
-                    'min' =>
-                    array(
-                        'value' => 3,
-                        'err_msg' => NULL,
-                    ),
-                    'max' =>
-                    array(
-                        'value' => 20,
+                        'value' =>
+                        array(
+                            0 => 1,
+                            1 => 5,
+                        ),
                         'err_msg' => NULL,
                     ),
                 ),
-            ),
-            'tags' =>
-            array(
-                '<RULES>' =>
+                'name' =>
                 array(
-                    'nullable' =>
+                    '<RULES>' =>
                     array(
-                        'value' => NULL,
-                        'err_msg' => NULL,
-                    ),
-                    'required' =>
-                    array(
-                        'value' => NULL,
-                        'err_msg' => NULL,
-                    ),
-                    'string' =>
-                    array(
-                        'value' => NULL,
-                        'err_msg' => NULL,
-                    ),
-                    'min' =>
-                    array(
-                        'value' => 3,
-                        'err_msg' => NULL,
-                    ),
-                    'max' =>
-                    array(
-                        'value' => 10,
-                        'err_msg' => NULL,
+                        'float' =>
+                        array(
+                            'value' => NULL,
+                            'err_msg' => NULL,
+                        ),
+                        'between' =>
+                        array(
+                            'value' =>
+                            array(
+                                0 => 400,
+                                1 => 5000,
+                            ),
+                            'err_msg' => NULL,
+                        ),
+                        'min_digits' =>
+                        array(
+                            'value' => 3,
+                            'err_msg' => NULL,
+                        ),
+                        'max_digits' =>
+                        array(
+                            'value' => 4,
+                            'err_msg' => NULL,
+                        ),
+                        'decimals' =>
+                        array(
+                            'value' => 2,
+                            'err_msg' => NULL,
+                        ),
                     ),
                 ),
             ),
