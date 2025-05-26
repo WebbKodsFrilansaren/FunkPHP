@@ -1069,6 +1069,7 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
     // type must always be first for each $currentDXKey!). 'nullable'
     // must come very early to allow for data that are actually null!
     $priorityOrder = [
+        'field',
         'nullable',
         'required',
         'string',
@@ -1087,6 +1088,7 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         'date',
         'json',
         'integer',
+        'digit',
         'float',
         'boolean',
         'number',
@@ -1095,11 +1097,21 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         'set',
         'enum',
         'object',
+        'unchecked',
         'checked',
         'file',
         'image',
         'video',
         'audio',
+        'between',
+        'exact',
+        'count',
+        'min',
+        'min_digits',
+        'max',
+        'max_digits',
+        // At the end
+        'password_hash',
     ];
     include_once($dirs['functions'] . "d_data_funs.php");
 
@@ -1322,6 +1334,7 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         $categorizedDataTypeRules = [
             'string_types' => [
                 'string' => true,
+                'field' => true,
                 'char' => true,
                 'email' => true,
                 'email_custom' => true,
@@ -1355,14 +1368,12 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
                 'video' => true,
             ],
             'complex_types' => [
+                'null' => true,
                 'object' => true,
-                'checked',
+                'unchecked' => true,
+                'checked' => true,
                 'enum' => true,
                 'boolean' => true,
-                'file' => true,
-                'image' => true,
-                'audio' => true,
-                'video' => true,
             ],
         ];
         $foundTypeRule = null;
@@ -1448,6 +1459,7 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
             'max_digits',
             'min',
             'max',
+            'field',
             'count',
             'exact',
             'count',
@@ -1536,6 +1548,21 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
             if (isset($sortedRulesForField['min']) && !isset($sortedRulesForField['max'])) {
                 cli_warning_without_exit("The `min` Rule for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` exists but the `max` Rule does not!");
                 cli_info_without_exit("This could lead to processing more than desired, consider adding a `max` Rule or changing to the `between` Rule instead!");
+            }
+        }
+
+        // Special case for 'field' Rule it can ONLY have
+        // a single string as a value, so we check that!
+        if (isset($sortedRulesForField['field'])) {
+            if (!is_string($sortedRulesForField['field']['value']) || empty($sortedRulesForField['field']['value'])) {
+                cli_err_syntax_without_exit("The `field` Rule for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` must have a non-empty string value!");
+                cli_info("Specify a non-empty string as the value for the `field` Rule!");
+            }
+            // if it has an error message we remove it and inform
+            if (isset($sortedRulesForField['field']['err_msg']) && !empty($sortedRulesForField['field']['err_msg'])) {
+                cli_warning_without_exit("The `field` Rule for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` has an error message set!");
+                cli_info_without_exit("The `field` Rule does not use an error message, so it has been set to null!");
+                $sortedRulesForField['field']['err_msg'] = null;
             }
         }
 

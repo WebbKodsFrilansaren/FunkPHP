@@ -146,187 +146,6 @@ function funk_set_v_err_value(&$c, &$currentArrRef, $value)
     $currentArrRef = $value;
 }
 
-// Function that validates a set of rules for a given single input field/data
-function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array $rules, array &$currentErrPath, &$allPassed): void
-{
-    // Extract some important flag-like rules from the rules array
-    $stop = array_key_exists('stop', $rules);
-    $nullable = array_key_exists('nullable', $rules);
-    $required = array_key_exists('required', $rules);
-
-    // If required rule exist, we grab its value & error and unset it
-    // from the array of rules so we do not loop through it later
-    if ($required) {
-        $required = $rules['required'];
-        unset($rules['required']);
-    }
-
-    // If stop rule exist, we just unset it because the boolean value
-    // is enough to know if we should stop further validation later
-    if ($stop) {
-        unset($rules['stop']);
-    }
-
-    // if nullable exists and the input value is null,
-    // then we can just skip validation for this field
-    if ($nullable && $inputValue === null) {
-        return;
-    }
-
-    // Now use the required rule to validate
-    // the input value if it exists and we
-    // stored its value + error message
-    if ($required) {
-        $ruleValue = $required['value'] ?? null;
-        $customErr = $required['err_msg'] ?? null;
-        $error = funk_validate_required($fullFieldName, $inputValue, $ruleValue, $customErr);
-
-        // We set the error we got from the
-        // required validation meaning it failed
-        if ($error !== null) {
-            $currentErrPath['required'] = $error;
-            $allPassed = false;
-
-            // Stop further validation for this field as
-            // 'required' failed and if 'stop' is true!
-            if ($stop) {
-                return;
-            }
-        }
-    }
-
-    // Categorize found data type rule so "min" and "max" and similar
-    // ambiguous rules can be applied to the correct data type!
-    // We will swiftly loop through to find it. Thanks to the priority
-    // order of the rules, it should actually be the first rule right
-    // after "nullable", "required", & "stop" rules if they exist!
-    $categorizedDataTypeRules = [
-        // Rules that generally apply to string-like inputs
-        // Dates are often validated as strings
-        'string_types' => [
-            'string' => true,
-            'email' => true,
-            'json' => true,
-            'url' => true,
-            'ip' => true,
-            'ip4' => true,
-            'ip6' => true,
-            'uuid' => true,
-            'phone' => true,
-            'date' => true,
-        ],
-        // Rules that generally apply to numeric inputs
-        // "numbers" = More general numeric type
-        'number_types' => [
-            'integer' => true,
-            'float' => true,
-            'number' => true,
-        ],
-        // Rules that generally apply to array-like inputs
-        // Lists are often treated as arrays
-        // Sets can be treated as arrays with unique values
-        'array_types' => [
-            'array' => true,
-            'list' => true,
-            'set' => true,
-        ],
-        // Rules for arrays, objects, and other complex structures
-        // JSON is typically validated as a string or an object/array
-        // Enums can be strings or numbers, but often involve specific sets
-        // Similar to enum, for validating against a predefined set
-        // Booleans are distinct, but often processed separately from numbers/strings
-        'complex_types' => [
-            'object' => true,
-            'checked',
-            'enum' => true,
-            'boolean' => true,
-            'file' => true,
-            'image' => true,
-            'audio' => true,
-            'video' => true,
-        ],
-    ];
-    $foundTypeRule = null;
-    $foundTypeCat = null;
-    foreach ($rules as $ruleName => $ruleConfig) {
-        if (
-            isset($categorizedDataTypeRules['string_types'][$ruleName])
-        ) {
-            $foundTypeRule = $ruleName;
-            $foundTypeCat = 'string_types';
-            break;
-        } elseif (isset($categorizedDataTypeRules['number_types'][$ruleName])) {
-            $foundTypeRule = $ruleName;
-            $foundTypeCat = 'number_types';
-            break;
-        } elseif (isset($categorizedDataTypeRules['array_types'][$ruleName])) {
-            $foundTypeRule = $ruleName;
-            $foundTypeCat = 'array_types';
-            break;
-        } elseif (isset($categorizedDataTypeRules['complex_types'][$ruleName])) {
-            $foundTypeRule = $ruleName;
-            $foundTypeCat = 'complex_types';
-            break;
-        }
-    }
-    if ($foundTypeRule) {
-        $validatorFn = 'funk_validate_' . $foundTypeRule;
-        $ruleConfig = $rules[$foundTypeRule];
-        $ruleValue = $ruleConfig['value'] ?? null;
-        $customErr = $ruleConfig['err_msg'] ?? null;
-
-        $error = $validatorFn($fullFieldName, $inputValue, $ruleValue, $customErr);
-
-        if ($error !== null) {
-            $currentErrPath[$foundTypeRule] = $error;
-            $allPassed = false;
-            if (isset($rules['stop'])) {
-                return;
-            }
-        }
-    }
-    // In case no valid data type rule was found (should only happen if it hasn't been added yet)
-    else {
-        $c['err']['UNKNOWN_VALIDATOR_DATA_TYPE_RULE'] = "Please inform the Developer that An Unknown Data Type Validation Rule was spotted!";
-        if (isset($rules['stop'])) {
-            return;
-        }
-        $allPassed = false;
-    }
-
-    // ITERATING THROUGH REMAINING RULES THIS INPUT FIELD
-    foreach ($rules as $rule => $ruleConfig) {
-        $ruleValue = $ruleConfig['value'];
-        $customErr = $ruleConfig['err_msg'];
-
-        // Dynamically call the validation function for this rule
-        // Assuming your rule functions are named funk_validate_rule
-        $validatorFn = 'funk_validate_' . $rule;
-        echo "Running `$validatorFn` for field `$fullFieldName` with value `" . json_encode($inputValue) . "`\n";
-
-        if (function_exists($validatorFn)) {
-            // Pass current input value, rule value, and custom error
-            $error = $validatorFn($fullFieldName, $inputValue, $ruleValue, $customErr);
-
-            // Set the error message for this specific rule
-            // if it is not null, meaning validation failed
-            // Also stop remaining validation for
-            // this input data if 'stop' is true!
-            if ($error !== null) {
-                $currentErrPath[$rule] = $error;
-                $allPassed = false;
-                if ($stop) {
-                    break;
-                }
-            }
-        } else {
-            // Handle unknown validator functions (e.g., log, add to $c['err'])
-            $c['err']['UNKNOWN_VALIDATOR_RULE'] = "Please inform the Developer that Validation Rule '{$rule}' has not been implemented yet!";
-            $allPassed = false;
-        }
-    }
-};
-
 // Function is called by funk_use_validation recursively to validate
 // all the rules & nested fields in the input data (GET, POST or JSON).
 function funk_validation_recursively(&$c, array $inputData, array $validationRules, array $currentPath = [], &$allPassed): bool
@@ -451,15 +270,248 @@ function funk_validation_recursively(&$c, array $inputData, array $validationRul
     return $allPassed;
 }
 
+// Function that validates a set of rules for a given single input field/data
+function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array $rules, array &$currentErrPath): void
+{
+    // Extract some important flag-like rules from the rules array
+    $stop = array_key_exists('stop', $rules);
+    $nullable = array_key_exists('nullable', $rules);
+    $required = array_key_exists('required', $rules);
+    $field = array_key_exists('field', $rules);
+
+    // Check if "field" rule exist since that contains the custom
+    // field name used by the Developer that would then apply to
+    // ALL rules for this given input field/data!
+    if ($field) {
+        $fullFieldName = $rules['field']['value'] ?? $fullFieldName;
+        unset($rules['field']);
+    }
+
+    // If required rule exist, we grab its value & error and unset it
+    // from the array of rules so we do not loop through it later
+    if ($required) {
+        $required = $rules['required'];
+        unset($rules['required']);
+    }
+
+    // If stop rule exist, we just unset it because the boolean value
+    // is enough to know if we should stop further validation later
+    if ($stop) {
+        unset($rules['stop']);
+    }
+
+    // if nullable exists and the input value is null,
+    // then we can just skip validation for this field
+    if ($nullable && $inputValue === null) {
+        return;
+    }
+
+    // Now use the required rule to validate
+    // the input value if it exists and we
+    // stored its value + error message
+    if ($required) {
+        $ruleValue = $required['value'] ?? null;
+        $customErr = $required['err_msg'] ?? null;
+        $error = funk_validate_required($fullFieldName, $inputValue, $ruleValue, $customErr);
+
+        // We set the error we got from the
+        // required validation meaning it failed
+        if ($error !== null) {
+            $currentErrPath['required'] = $error;
+            $c['v_ok'] = false;
+
+            // Stop further validation for this field as
+            // 'required' failed and if 'stop' is true!
+            if ($stop) {
+                return;
+            }
+        }
+    }
+
+    // Categorize found data type rule so "min" and "max" and similar
+    // ambiguous rules can be applied to the correct data type!
+    // We will swiftly loop through to find it. Thanks to the priority
+    // order of the rules, it should actually be the first rule right
+    // after "nullable", "required", & "stop" rules if they exist!
+    $categorizedDataTypeRules = [
+        // Rules that generally apply to string-like inputs
+        // Dates are often validated as strings
+        'string_types' => [
+            'string' => true,
+            'char' => true,
+            'email' => true,
+            'email_custom' => true,
+            'password' => true,
+            'password_custom' => true,
+            'password_confirm' => true,
+            'json' => true,
+            'url' => true,
+            'ip' => true,
+            'ip4' => true,
+            'ip6' => true,
+            'uuid' => true,
+            'phone' => true,
+            'date' => true,
+        ],
+        // Rules that generally apply to numeric inputs
+        // "numbers" = More general numeric type
+        'number_types' => [
+            'digit' => true,
+            'integer' => true,
+            'float' => true,
+            'number' => true,
+        ],
+        // Rules that generally apply to array-like inputs
+        // Lists are often treated as arrays
+        // Sets can be treated as arrays with unique values
+        'array_types' => [
+            'array' => true,
+            'list' => true,
+            'set' => true,
+        ],
+        // Rules for arrays, objects, and other complex structures
+        // JSON is typically validated as a string or an object/array
+        // Enums can be strings or numbers, but often involve specific sets
+        // Similar to enum, for validating against a predefined set
+        // Booleans are distinct, but often processed separately from numbers/strings
+        'complex_types' => [
+            'null' => true,
+            'object' => true,
+            'unchecked' => true,
+            'checked' => true,
+            'enum' => true,
+            'boolean' => true,
+        ],
+    ];
+    $foundTypeRule = null;
+    $foundTypeCat = null;
+    foreach ($rules as $ruleName => $ruleConfig) {
+        if (
+            isset($categorizedDataTypeRules['string_types'][$ruleName])
+        ) {
+            $foundTypeRule = $ruleName;
+            $foundTypeCat = 'string_types';
+            break;
+        } elseif (isset($categorizedDataTypeRules['number_types'][$ruleName])) {
+            $foundTypeRule = $ruleName;
+            $foundTypeCat = 'number_types';
+            break;
+        } elseif (isset($categorizedDataTypeRules['array_types'][$ruleName])) {
+            $foundTypeRule = $ruleName;
+            $foundTypeCat = 'array_types';
+            break;
+        } elseif (isset($categorizedDataTypeRules['complex_types'][$ruleName])) {
+            $foundTypeRule = $ruleName;
+            $foundTypeCat = 'complex_types';
+            break;
+        }
+    }
+    if ($foundTypeRule) {
+        $validatorFn = 'funk_validate_' . $foundTypeRule;
+        $ruleConfig = $rules[$foundTypeRule];
+        $ruleValue = $ruleConfig['value'] ?? null;
+        $customErr = $ruleConfig['err_msg'] ?? null;
+
+        $error = $validatorFn($fullFieldName, $inputValue, $ruleValue, $customErr);
+
+        // Mark validation as failed if error is not null
+        // and also stop if optionally set
+        if ($error !== null) {
+            $currentErrPath[$foundTypeRule] = $error;
+            $c['v_ok'] = false;
+            if (isset($rules['stop'])) {
+                return;
+            }
+        }
+    }
+    // In case no valid data type rule was found
+    // (should only happen if it hasn't been added yet)
+    else {
+        // Because we find no valid data type rule, nothing else
+        // would work as expected so we just set the error and quit
+        // validation for this input field! Internal error is logged!
+        $currentErrPath[$foundTypeRule] = "This is unknown data type: '{$foundTypeRule}' in field '{$fullFieldName}'. Please tell the Developer about it since validation cannot continue without a valid data type provided!";
+        $c['err']['UNKNOWN_VALIDATOR_DATA_TYPE_RULE'] = "Unknown Data Type Validation Rule: '{$foundTypeRule}' for field '{$fullFieldName}'.";
+        $c['v_ok'] = false;
+        return;
+    }
+
+    // ITERATING THROUGH REMAINING RULES THIS INPUT FIELD
+    foreach ($rules as $rule => $ruleConfig) {
+        $ruleValue = $ruleConfig['value'];
+        $customErr = $ruleConfig['err_msg'];
+
+        // Dynamically call the validation function for this rule
+        // Assuming your rule functions are named funk_validate_rule
+        $validatorFn = 'funk_validate_' . $rule;
+        echo "Running `$validatorFn` for field `$fullFieldName` with value `" . json_encode($inputValue) . "`\n";
+
+        if (function_exists($validatorFn)) {
+            // Pass current input value, rule value, and custom error
+            $error = $validatorFn($fullFieldName, $inputValue, $ruleValue, $customErr);
+
+            // Set the error message for this specific rule
+            // if it is not null, meaning validation failed
+            // Also stop remaining validation for
+            // this input data if 'stop' is true!
+            if ($error !== null) {
+                $currentErrPath[$rule] = $error;
+                $c['v_ok'] = false;
+                if ($stop) {
+                    return;
+                }
+            }
+        } else {
+            // Handle unknown validator functions (e.g., log, add to $c['err'])
+            $currentErrPath[$foundTypeRule] = "This is unknown data type: '{$foundTypeRule}' in field '{$fullFieldName}'. Please tell the Developer about it. Validation will continue though!";
+            $c['err']["UNKNOWN_VALIDATOR_DATA_RULE-$foundTypeRule"] = "Unknown Data Validation Rule: '{$foundTypeRule}' for field '{$fullFieldName}'.";
+            $c['v_ok'] = false;
+        }
+    }
+};
+
+
 // Supposed to be an improved version of funk_validation_recursively
 function funk_validation_recursively_improved(&$c, array $inputData, array $validationRules, array &$currentErrPath)
 {
 
     // Iterate through the main `return array()` from optimized validation array
-    var_dump("TEST DATA:", $inputData);
-    foreach ($validationRules as $DXey => $rulesOrNestedFields) {
-        $rulesNodeExist = isset($rulesOrNestedFields['<RULES>']);
-        $wildCardExist = $DXey === '*' || $rulesOrNestedFields === '*';
+    foreach ($validationRules as $DXKey => $rulesOrNestedFields) {
+        $currentRules = $rulesOrNestedFields['<RULES>'] ?? null;
+        $currentInputData = $inputData[$DXKey] ?? null;
+        $wildCardExist = $DXKey === '*' || $rulesOrNestedFields === '*';
+        echo "Current Key: `$DXKey`, Rules?: `" . ($currentRules ? 'Yes' : 'No') . "`, Wildcard?: `" . ($wildCardExist ? 'Yes' : 'No') . "`\n";
+        echo "Key Data Name: " . (is_string($rulesOrNestedFields) ? $rulesOrNestedFields : 'Array') . "\n";
+
+        // Initialize error path for this key (this
+        // is $c['v'] array as starting point!)
+        $currentErrPath[$DXKey] = [];
+
+        // If "<RULES>" node exists, we process it by passing it to the
+        // funk_validation_validate_rules function which also receives
+        // the current error path!
+        if ($currentRules) {
+            funk_validation_validate_rules($c, $currentInputData, $DXKey, $rulesOrNestedFields['<RULES>'], $currentErrPath[$DXKey]);
+            unset($rulesOrNestedFields['<RULES>']); // Remove the <RULES> key after processing
+            // If no errors were found for this key, we can just remove it
+            if (empty($currentErrPath[$DXKey])) {
+                unset($currentErrPath[$DXKey]);
+            }
+        }
+        var_dump($rulesOrNestedFields);
+        return;
+
+        // If the current key is a regular array (not a wildcard "*"),
+        // then we set the current error path to the input data for this key
+        if (is_array($rulesOrNestedFields) && !$wildCardExist && !isset($rulesOrNestedFields['<RULES>'])) {
+            $currentErrPath[key($rulesOrNestedFields)] = [];
+            if (!isset($inputData[$rulesOrNestedFields]) || !is_array($inputData[$rulesOrNestedFields])) {
+                $inputData[$rulesOrNestedFields] = [];
+            }
+
+            // Now we can recurse into the nested structure
+            funk_validation_recursively_improved($c, $inputData[$rulesOrNestedFields] ?? [], $rulesOrNestedFields, $currentErrPath);
+        }
     }
 }
 
@@ -528,7 +580,7 @@ function funk_use_validation(&$c, $optimizedValidationArray, $source)
         $c,
         $inputData,
         $optimizedValidationArray,
-        [],
+        $c['v'],
     );
 
     // When this is set to true, it means that the validation
@@ -901,9 +953,6 @@ function funk_validate_email_custom($inputName, $inputData, $validationValues, $
 // This is primarily for optional password fields that can be left empty
 function funk_validate_password_hash($inputName, $inputData, $validationValues, $customErr = null)
 {
-    if (!is_string($inputData)) {
-        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a valid password.";
-    }
     return null;
 }
 
@@ -971,19 +1020,19 @@ function funk_validate_password($inputName, $inputData, $validationValues, $cust
     return null;
 }
 
-// Validate that Input Data is a valid password with at least X amount of lowercases
-// stored in the $validationValues array as an integer
-function funk_validate_password_uppercases($inputName, $inputData, $validationValues, $customErr = null)
-{
-    if ($validationValues < 0) {
-        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must have at least $validationValues uppercase letters.";
-    }
-    return null;
-}
-
 // Validate that Input Data is a valid password confirmation
-// TODO: Fix so it can compare with another input field
-function funk_validate_password_confirm($inputName, $inputData, $validationValues, $customErr = null) {}
+// This takes an extra parameter $otherPassword which is the original password
+// and compares it to the confirmation password to see if they match.
+function funk_validate_password_confirm($inputName, $inputData, $validationValues, $customErr = null, $otherPassword)
+{
+    // Check both are strings and then compare them
+    if (!is_string($inputData) || !is_string($otherPassword)) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a valid password confirmation.";
+    }
+    if ($inputData !== $otherPassword) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must match the original password.";
+    }
+}
 
 // Validate that Input Data is a valid password with custom validation where $validationValues
 // is the name of the custom validation function that will be called
@@ -998,7 +1047,7 @@ function funk_validate_password_custom($inputName, $inputData, $validationValues
             return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a valid password.";
         }
     } else {
-        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a valid password. Also, tell the Developer of the website that the custom validation function was not found?!";
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a valid password. Also, tell the Developer of the website that the Custom Password Validation Function was not found!";
     }
     return null;
 }
@@ -1023,13 +1072,21 @@ function funk_validate_min($inputName, $inputData, $validationValues, $customErr
 function funk_validate_max($inputName, $inputData, $validationValues, $customErr = null) {};
 function funk_validate_exact($inputName, $inputData, $validationValues, $customErr = null) {};
 function funk_validate_size($inputName, $inputData, $validationValues, $customErr = null) {};
+
+// Validate that Input Data is a valid stop condition which means stop running any rules
+// if this rule is found in the validation rules and when any error occurs for a given field!
 function funk_validate_stop($inputName, $inputData, $validationValues, $customErr = null) {};
+
+// "Field" rule is just so you can specify what a field should be called when showing
+// for the end-user and is never really used for validation purposes. End-user sees this if used!
+// instead of the $inputName which is usually a key in $_POST/$_GET/JSON
+function funk_validate_field($inputName, $inputData, $validationValues, $customErr = null) {};
 
 // Validate that Input Data is of valid minimal length provided in $validationValues
 // This is used ONLY for string inputs. This is "min" when it knows it is a string.
 function funk_validate_minlen($inputName, $inputData, $validationValues, $customErr = null)
 {
-    if (mb_strlen($inputData) < $validationValues) {
+    if (!is_string($inputData) || mb_strlen($inputData) < $validationValues) {
         return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be at least $validationValues characters long.";
     }
     return null;
@@ -1039,7 +1096,7 @@ function funk_validate_minlen($inputName, $inputData, $validationValues, $custom
 // This is used ONLY for string inputs. This is "max" when it knows it is a string.
 function funk_validate_maxlen($inputName, $inputData, $validationValues, $customErr = null)
 {
-    if (mb_strlen($inputData) > $validationValues) {
+    if (!is_string($inputData) || mb_strlen($inputData) > $validationValues) {
         return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be at most $validationValues characters long.";
     }
     return null;
@@ -1049,7 +1106,7 @@ function funk_validate_maxlen($inputName, $inputData, $validationValues, $custom
 // This is used ONLY for string inputs. This is "between" when it knows it is a string.
 function funk_validate_betweenlen($inputName, $inputData, $validationValues, $customErr = null)
 {
-    if (mb_strlen($inputData) <= $validationValues[0] || mb_strlen($inputData) >= $validationValues[1]) {
+    if (!is_string($inputData) || mb_strlen($inputData) <= $validationValues[0] || mb_strlen($inputData) >= $validationValues[1]) {
         return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be inclusively between {$validationValues[0]} and {$validationValues[1]} characters long.";
     }
     return null;
@@ -1059,7 +1116,7 @@ function funk_validate_betweenlen($inputName, $inputData, $validationValues, $cu
 // This is used ONLY for numerical inputs. This is "min" when it knows it is a number.
 function funk_validate_minval($inputName, $inputData, $validationValues, $customErr = null)
 {
-    if ($inputData < $validationValues) {
+    if (!is_numeric($inputData) || $inputData < $validationValues) {
         return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be at least $validationValues in value.";
     }
     return null;
@@ -1069,7 +1126,7 @@ function funk_validate_minval($inputName, $inputData, $validationValues, $custom
 // This is used ONLY for numerical inputs. This is "max" when it knows it is a number.
 function funk_validate_maxval($inputName, $inputData, $validationValues, $customErr = null)
 {
-    if ($inputData > $validationValues) {
+    if (!is_numeric($inputData) || $inputData > $validationValues) {
         return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be at most $validationValues in value.";
     }
     return null;
@@ -1079,7 +1136,7 @@ function funk_validate_maxval($inputName, $inputData, $validationValues, $custom
 // This is used ONLY for numerical inputs. This is "between" when it knows it is a number.
 function funk_validate_betweenval($inputName, $inputData, $validationValues, $customErr = null)
 {
-    if ($inputData <= $validationValues[0] || $inputData >= $validationValues[1]) {
+    if (!is_numeric($inputData) || $inputData <= $validationValues[0] || $inputData >= $validationValues[1]) {
         return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be inclusively between {$validationValues[0]} and {$validationValues[1]} in value.";
     }
     return null;
@@ -1089,7 +1146,7 @@ function funk_validate_betweenval($inputName, $inputData, $validationValues, $cu
 // This is used ONLY for array inputs. This is "min" when it knows it is a array.
 function funk_validate_mincount($inputName, $inputData, $validationValues, $customErr = null)
 {
-    if (count($inputData) < $validationValues) {
+    if (!is_array($inputData) || count($inputData) < $validationValues) {
         return (isset($customErr) && is_string($customErr)) ? $customErr : "Array $inputName must have at least $validationValues elements.";
     }
     return null;
@@ -1099,7 +1156,7 @@ function funk_validate_mincount($inputName, $inputData, $validationValues, $cust
 // This is used ONLY for array inputs. This is "max" when it knows it is a array.
 function funk_validate_maxcount($inputName, $inputData, $validationValues, $customErr = null)
 {
-    if (count($inputData) < $validationValues) {
+    if (!is_array($inputData) || count($inputData) < $validationValues) {
         return (isset($customErr) && is_string($customErr)) ? $customErr : "Array $inputName must have at most $validationValues elements.";
     }
     return null;
@@ -1109,7 +1166,7 @@ function funk_validate_maxcount($inputName, $inputData, $validationValues, $cust
 // This is used ONLY for array inputs. This is "between" when it knows it is a array.
 function funk_validate_betweencount($inputName, $inputData, $validationValues, $customErr = null)
 {
-    if (count($inputData) <= $validationValues[0] || count($inputData) >= $validationValues[1]) {
+    if (!is_array($inputData) || count($inputData) <= $validationValues[0] || count($inputData) >= $validationValues[1]) {
         return (isset($customErr) && is_string($customErr)) ? $customErr : "Array $inputName must have inclusively between {$validationValues[0]} and {$validationValues[1]} elements.";
     }
     return null;
@@ -1119,7 +1176,7 @@ function funk_validate_betweencount($inputName, $inputData, $validationValues, $
 // This is used ONLY for numerical inputs. This is "max" when it knows it is a number.
 function funk_validate_exactval($inputName, $inputData, $validationValues, $customErr = null)
 {
-    if ($inputData !== $validationValues) {
+    if (!is_numeric($inputData) || $inputData !== $validationValues) {
         return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be exactly $validationValues in value.";
     }
     return null;
@@ -1129,7 +1186,7 @@ function funk_validate_exactval($inputName, $inputData, $validationValues, $cust
 // it must be that length and not less or more. This is used ONLY for string inputs.
 function funk_validate_exactlen($inputName, $inputData, $validationValues, $customErr = null)
 {
-    if (mb_strlen($inputData) !== $validationValues) {
+    if (!is_string($inputData) || mb_strlen($inputData) !== $validationValues) {
         return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be exactly $validationValues characters long.";
     }
     return null;
@@ -1139,7 +1196,7 @@ function funk_validate_exactlen($inputName, $inputData, $validationValues, $cust
 // This is used ONLY for array inputs. This is "max" when it knows it is a array.
 function funk_validate_exactcount($inputName, $inputData, $validationValues, $customErr = null)
 {
-    if (count($inputData) !== $validationValues) {
+    if (!is_array($inputData) || count($inputData) !== $validationValues) {
         return (isset($customErr) && is_string($customErr)) ? $customErr : "Array $inputName must have exactly $validationValues elements.";
     }
     return null;
@@ -1149,7 +1206,7 @@ function funk_validate_exactcount($inputName, $inputData, $validationValues, $cu
 // This is used ONLY for numerical inputs. This is "min_digits" when it knows it is a number.
 function funk_validate_min_digits($inputName, $inputData, $validationValues, $customErr = null)
 {
-    if (strlen($inputData) < $validationValues) {
+    if (!is_string($inputData) || strlen($inputData) < $validationValues) {
         return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must have at least $validationValues digits.";
     }
     return null;
@@ -1159,7 +1216,7 @@ function funk_validate_min_digits($inputName, $inputData, $validationValues, $cu
 // This is used ONLY for numerical inputs. This is "max_digits" when it knows it is a number.
 function funk_validate_max_digits($inputName, $inputData, $validationValues, $customErr = null)
 {
-    if (strlen($inputData) > $validationValues) {
+    if (!is_string($inputData) || strlen($inputData) > $validationValues) {
         return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must have at most $validationValues digits.";
     }
     return null;
@@ -1169,7 +1226,7 @@ function funk_validate_max_digits($inputName, $inputData, $validationValues, $cu
 // This is used ONLY for numerical inputs. This is "between_digits" when it knows it is a number.
 function funk_validate_digits_between($inputName, $inputData, $validationValues, $customErr = null)
 {
-    if (strlen($inputData) <= $validationValues[0] || strlen($inputData) >= $validationValues[1]) {
+    if (!is_string($inputData) || strlen($inputData) <= $validationValues[0] || strlen($inputData) >= $validationValues[1]) {
         return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must have inclusively between {$validationValues[0]} and {$validationValues[1]} digits.";
     }
     return null;
@@ -1179,7 +1236,7 @@ function funk_validate_digits_between($inputName, $inputData, $validationValues,
 // This is used ONLY for numerical inputs. This is "digits" when it knows it is a number.
 function funk_validate_digits($inputName, $inputData, $validationValues, $customErr = null)
 {
-    if (strlen($inputData) !== $validationValues) {
+    if (!is_string($inputData) || strlen($inputData) !== $validationValues) {
         return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must have exactly $validationValues digits.";
     }
     return null;

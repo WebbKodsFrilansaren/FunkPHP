@@ -15,8 +15,9 @@ function v_test(&$c) // <POST/test/:id>
     // to get optimized version in return statement below it!
     $DX = [
         'user' => 'required|string|between:1,5',
-        'age' => 'required|integer|between:1,35|digits:2',
-        'bio_gender' => 'char:m,f|required'
+        'name' => 'required|string|between:5,10',
+        'age' => 'required|integer|between:1,35|digits:2|field:Age',
+        'gender' => 'char:m,f|required',
     ];
 
     return array(
@@ -45,10 +46,40 @@ function v_test(&$c) // <POST/test/:id>
                 ),
             ),
         ),
+        'name' =>
+        array(
+            '<RULES>' =>
+            array(
+                'required' =>
+                array(
+                    'value' => NULL,
+                    'err_msg' => NULL,
+                ),
+                'string' =>
+                array(
+                    'value' => NULL,
+                    'err_msg' => NULL,
+                ),
+                'between' =>
+                array(
+                    'value' =>
+                    array(
+                        0 => 5,
+                        1 => 10,
+                    ),
+                    'err_msg' => NULL,
+                ),
+            ),
+        ),
         'age' =>
         array(
             '<RULES>' =>
             array(
+                'field' =>
+                array(
+                    'value' => 'Age',
+                    'err_msg' => NULL,
+                ),
                 'required' =>
                 array(
                     'value' => NULL,
@@ -75,7 +106,7 @@ function v_test(&$c) // <POST/test/:id>
                 ),
             ),
         ),
-        'bio_gender' =>
+        'gender' =>
         array(
             '<RULES>' =>
             array(
