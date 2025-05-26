@@ -718,6 +718,27 @@ function funk_validate_checked($inputName, $inputData, $validationValues, $custo
     }
 }
 
+// Validate that Input Data unchecked in a boolean way
+function funk_validate_unchecked($inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (
+        $inputData === false ||
+        $inputData === 0 ||
+        $inputData === "0" ||
+        $inputData === "off" ||
+        $inputData === "no" ||
+        $inputData === "nej" || // Swedish easter egg
+        $inputData === "false" ||
+        $inputData === "unchecked" ||
+        $inputData === "disabled" ||
+        $inputData === "unselected"
+    ) {
+        return null;
+    } else {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be unchecked in one way or another.";
+    }
+}
+
 // Validate that Input Data is a valid date in any provided format
 // This function uses PHP's strtotime to validate the date format
 function funk_validate_date($inputName, $inputData, $validationValues, $customErr = null)
@@ -849,10 +870,58 @@ function funk_validate_password($inputName, $inputData, $validationValues, $cust
     if (!is_string($inputData)) {
         return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a valid password.";
     }
-    // Check if validationValues is a string or an array
+    // Convert to array if validationValues is a string
     if (is_string($validationValues)) {
-        $validationValues = explode(',', $validationValues);
+        $validationValues = [$validationValues];
     }
+
+    // We now use regex to validate the password where the first valuue
+    // is the number of lowercases, the second value is the number of uppercases,
+    // the third value is the number of digits, and the fourth value is the number of special characters
+    $lowercaseCount = isset($validationValues[0]) ? (int)$validationValues[0] : 0;
+    $uppercaseCount = isset($validationValues[1]) ? (int)$validationValues[1] : 0;
+    $digitCount = isset($validationValues[2]) ? (int)$validationValues[2] : 0;
+    $specialCharCount = isset($validationValues[3]) ? (int)$validationValues[3] : 0;
+
+    // Count the number of lowercases first!
+    $lowercasePattern = '/[a-z]/';
+    if ($lowercaseCount > 0) {
+        preg_match_all($lowercasePattern, $inputData, $matches);
+        if (count($matches[0]) < $lowercaseCount) {
+            return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must have at least $lowercaseCount lowercase letters.";
+        }
+    }
+
+    // Count the number of uppercases next!
+    $uppercasePattern = '/[A-Z]/';
+    if ($uppercaseCount > 0) {
+        preg_match_all($uppercasePattern, $inputData, $matches);
+        if (count($matches[0]) < $uppercaseCount) {
+            return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must have at least $uppercaseCount uppercase letters.";
+        }
+    }
+
+    // Count the number of digits next!
+    $digitPattern = '/[0-9]/';
+    if ($digitCount > 0) {
+        preg_match_all($digitPattern, $inputData, $matches);
+        if (count($matches[0]) < $digitCount) {
+            return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must have at least $digitCount digits.";
+        }
+    }
+
+    // Count the number of special characters next!
+    // YOU CAN CHANGE THE SPECIAL CHARACTERS TO YOUR LIKING!
+    // Change below what are considered default special characters!
+    $specialCharPattern = '/[!@#$%^&*()[\]\.,?"\':{}|<>]/';
+
+    if ($specialCharCount > 0) {
+        preg_match_all($specialCharPattern, $inputData, $matches);
+        if (count($matches[0]) < $specialCharCount) {
+            return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must have at least $specialCharCount special characters.";
+        }
+    }
+
     return null;
 }
 
@@ -1206,4 +1275,235 @@ function funk_validate_array_values_exact($inputName, $inputData, $validationVal
         }
     }
     return null;
+}
+
+// Validate that Input Data's array all values are evaluated as arrays.
+function funk_validate_elements_all_arrays($inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (!is_array($inputData)) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be an array.";
+    }
+    foreach ($inputData as $key => $value) {
+        if (!is_array($value)) {
+            return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be an array with only arrays!";
+        }
+    }
+    return null;
+}
+
+// Validate that Input Data's array all values are evaluated as lists (numbered arrays).
+function funk_validate_elements_all_lists($inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (!is_array($inputData)) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be an array.";
+    }
+    foreach ($inputData as $key => $value) {
+        if (!is_array($value) || array_keys($value) !== range(0, count($value) - 1)) {
+            return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a numbered array!";
+        }
+    }
+    return null;
+}
+
+// Validate that Input Data's array all values are evaluated as strings.
+function funk_validate_elements_all_strings($inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (!is_array($inputData)) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be an array.";
+    }
+    foreach ($inputData as $key => $value) {
+        if (!is_string($value)) {
+            return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be an array with only strings!";
+        }
+    }
+    return null;
+}
+
+// Validate that Input Data's array all values are evaluated as numbers (int, float, numeric).
+function funk_validate_elements_all_numbers($inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (!is_array($inputData)) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be an array.";
+    }
+    foreach ($inputData as $key => $value) {
+        if (!is_numeric($value) || !is_int($value) || !is_float($value)) {
+            return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be an array with only numbers!";
+        }
+    }
+    return null;
+}
+
+// Validate that Input Data's array all values are evaluated as INTEGERS (whole numbers)
+function funk_validate_elements_all_integers($inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (!is_array($inputData)) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be an array.";
+    }
+    foreach ($inputData as $key => $value) {
+        if (!is_int($value)) {
+            return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be an array with only integers!";
+        }
+    }
+    return null;
+}
+
+// Validate that Input Data's array all values are evaluated as FLOATS (decimal numbers)
+function funk_validate_elements_all_floats($inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (!is_array($inputData)) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be an array.";
+    }
+    foreach ($inputData as $key => $value) {
+        if (!is_float($value)) {
+            return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be an array with only decimal numbers!";
+        }
+    }
+    return null;
+}
+
+// Validate that Input Data's array all values are evaluated as BOOLEANS (true/false, 1/0, "1"/"0")
+function funk_validate_elements_all_booleans($inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (!is_array($inputData)) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be an array.";
+    }
+    foreach ($inputData as $key => $value) {
+        if (!is_bool($value) && !in_array($value, [true, false, 1, 0, "1", "0"], true)) {
+            return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be an array with only booleans!";
+        }
+    }
+    return null;
+}
+
+// Validate that Input Data's array all values are evaluated as CHECKED (true, 1, "1", "on", "yes", etc.)
+function funk_validate_elements_all_checked($inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (!is_array($inputData)) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be an array.";
+    }
+    foreach ($inputData as $key => $value) {
+        if (
+            $value !== true &&
+            $value !== 1 &&
+            $value !== "1" &&
+            $value !== "on" &&
+            $value !== "yes" &&
+            $value !== "ja" && // Swedish easter egg
+            $value !== "true" &&
+            $value !== "checked" &&
+            $value !== "enabled" &&
+            $value !== "selected"
+        ) {
+            return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be an array with only checked values!";
+        }
+    }
+    return null;
+}
+
+// Validate that Input Data's array all values are evaluated as UNCHECKED (false, 0, "0", "off", "no", etc.)
+function funk_validate_elements_all_unchecked($inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (!is_array($inputData)) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be an array.";
+    }
+    foreach ($inputData as $key => $value) {
+        if (
+            $value !== false &&
+            $value !== 0 &&
+            $value !== "0" &&
+            $value !== "off" &&
+            $value !== "no" &&
+            $value !== "nej" && // Swedish easter egg
+            $value !== "false" &&
+            $value !== "unchecked" &&
+            $value !== "disabled" &&
+            $value !== "unselected"
+        ) {
+            return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be an array with only unchecked values!";
+        }
+    }
+    return null;
+}
+
+// Validate that Input Data's array all values are evaluated as NULL
+function funk_validate_elements_all_nulls($inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (!is_array($inputData)) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be an array.";
+    }
+    foreach ($inputData as $key => $value) {
+        if (!is_null($value)) {
+            return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be an array with only null values!";
+        }
+    }
+    return null;
+}
+
+// Validate that Input Data's array all values are evaluated as single characters (strings of length 1)
+function funk_validate_elements_all_chars($inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (!is_array($inputData)) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be an array.";
+    }
+    foreach ($inputData as $key => $value) {
+        if (!is_string($value) || mb_strlen($value) !== 1) {
+            return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be an array with only single character strings!";
+        }
+    }
+    return null;
+}
+
+// Validate that Input Data's array all values are the data type in the following order stored in $validationValues
+// for example, if $validationValues is ['string', 'number', 'boolean'], then the first value in the array must be a string,
+// the second value must be a number, and the third value must be a boolean. This is used for validating arrays of mixed types.
+function funk_validate_elements_this_type_order($inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (!is_array($inputData)) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be an array.";
+    }
+    if (count($inputData) !== count($validationValues)) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must have exactly " . count($validationValues) . " elements.";
+    }
+    foreach ($inputData as $key => $value) {
+        $expectedType = $validationValues[$key];
+        switch ($expectedType) {
+            case 'string':
+                if (!is_string($value)) {
+                    return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName element at index $key must be a string.";
+                }
+                break;
+            case 'number':
+                if (!is_numeric($value)) {
+                    return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName element at index $key must be a number.";
+                }
+                break;
+            case 'boolean':
+                if (!is_bool($value) && !in_array($value, [true, false, 1, 0, "1", "0"], true)) {
+                    return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName element at index $key must be a boolean.";
+                }
+                break;
+            case 'array':
+                if (!is_array($value)) {
+                    return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName element at index $key must be an array.";
+                }
+                break;
+            case 'list':
+                if (!is_array($value) || array_keys($value) !== range(0, count($value) - 1)) {
+                    return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName element at index $key must be a numbered array.";
+                }
+                break;
+            case 'integer':
+                if (!is_int($value)) {
+                    return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName element at index $key must be an integer.";
+                }
+                break;
+            case 'float':
+                if (!is_float($value)) {
+                    return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName element at index $key must be a float.";
+                }
+                break;
+            default:
+                return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName has an invalid type '$expectedType' for element at index $key.";
+        }
+    }
 }

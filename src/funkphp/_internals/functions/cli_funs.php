@@ -1386,6 +1386,9 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
                 break;
             }
         }
+
+        // LIST OF RULES THAT SHOULD NOT HAVE A VALUE
+        // AND THUS A WARNING WILL BE SHOWN IF THEY DO!
         $theseRulesShouldHaveNoValue = [
             'required',
             'nullable',
@@ -1398,6 +1401,7 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
             'number',
             'array',
             'list',
+            'unchecked',
             'checked',
             'file',
             'image',
@@ -1413,6 +1417,37 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
             'ip6',
             'uuid',
             'phone',
+            'elements_all_chars', // single characters per element
+            'elements_all_arrays',
+            'elements_all_lists', // numbered arrays
+            'elements_all_strings',
+            'elements_all_nulls',
+            'elements_all_numbers',
+            'elements_all_integers',
+            'elements_all_floats',
+            'elements_all_booleans',
+            'elements_all_checked',
+            'elements_all_unchecked',
+        ];
+
+        // LIST OF RULES that must have a value, but this array
+        // does not specify what kind of values but does provide
+        // a quick first check using a loop below!
+        $theseRulesMustHaveValues = [
+            'elements_this_type_order',
+            'min_digits',
+            'max_digits',
+            'min',
+            'max',
+            'count',
+            'exact',
+            'count',
+            'digits',
+            'between',
+            'array_keys',
+            'array_values',
+            'array_keys_exact',
+            'array_values_exact',
         ];
 
         // List of specific values for specific data types
@@ -1428,6 +1463,19 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
                 cli_warning_without_exit("The `$ruleName` Rule for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` has a value set!");
                 cli_info_without_exit("This has been set to `null` since the `$ruleName` Rule does not use a value!");
                 $sortedRulesForField[$ruleName]['value'] = null;
+            }
+        }
+
+        // Special case for any rule found in $theseRulesMustHaveValues
+        // that does not have a value when it should (but we do error out).
+        foreach ($theseRulesMustHaveValues as $ruleName) {
+            if (isset($sortedRulesForField[$ruleName])) {
+                // If the rule is in $theseRulesMustHaveValues, we check if it has a value
+                // and if it does not, we error out.
+                if (!isset($sortedRulesForField[$ruleName]['value']) || empty($sortedRulesForField[$ruleName]['value'])) {
+                    cli_err_syntax_without_exit("The `$ruleName` Rule for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` must have a non-empty value!");
+                    cli_info("Specify a non-empty value for the `$ruleName` Rule. This could be several values separated by commas. You will be informed!");
+                }
             }
         }
 
@@ -2089,6 +2137,36 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
                 cli_err_syntax_without_exit("The `array_values_exact` Rule cannot be used with `min`, `max`, `between`, `exact`, `size`, or `count` Rules for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
                 cli_info_without_exit("The `array_values_exact` Rule is meant to be exact which conflicts with other 'exact'-like Rules or scalar-like Rules!");
                 cli_info("Remove `min`, `max`, `between`, `exact`, `size`, or `count` Rules to use the `array_values_exact` Rule!");
+            }
+        }
+
+        // Special case for "elements_all_X" Rule which checks if all elements
+        // in an array are of data type X, and if not, it errors out. This needs
+        //  the "array" OR "list" data type to be set first though!
+        $elementsAllRules = [
+            'elements_all_arrays',
+            'elements_all_checked',
+            'elements_all_unchecked',
+            'elements_all_lists',
+            'elements_all_chars',
+            'elements_all_strings',
+            'elements_all_numbers',
+            'elements_all_booleans',
+            'elements_all_nulls',
+            'elements_all_floats',
+            'elements_all_integers',
+
+        ];
+        foreach ($elementsAllRules as $ruleName) {
+            if (isset($sortedRulesForField[$ruleName])) {
+                if (!isset($sortedRulesForField['array']) && !isset($sortedRulesForField['list'])) {
+                    cli_err_syntax_without_exit(
+                        "The `{$ruleName}` Rule needs the Data Type `array` or `list` for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!"
+                    );
+                    cli_info(
+                        "Specify the `array` OR `list` Data Type Rule for `$currentDXKey` to use the `{$ruleName}` rule!"
+                    );
+                }
             }
         }
 
