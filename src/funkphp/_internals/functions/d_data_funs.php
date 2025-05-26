@@ -327,18 +327,6 @@ function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array 
     }
 };
 
-
-// Supposed to be an improved version of funk_validation_recursively
-function funk_validation_recursively_improved(&$c, array $inputData, array $validationRules, array &$currentErrPath)
-{
-
-    // Iterate through the main `return array()` from optimized validation array
-    foreach ($validationRules as $DXey => $rulesOrNestedFields) {
-        $rulesNodeExist = isset($rulesOrNestedFields['<RULES>']);
-        $wildCardExist = $DXey === '*' || $rulesOrNestedFields === '*';
-    }
-}
-
 // Function is called by funk_use_validation recursively to validate
 // all the rules & nested fields in the input data (GET, POST or JSON).
 function funk_validation_recursively(&$c, array $inputData, array $validationRules, array $currentPath = [], &$allPassed): bool
@@ -463,6 +451,18 @@ function funk_validation_recursively(&$c, array $inputData, array $validationRul
     return $allPassed;
 }
 
+// Supposed to be an improved version of funk_validation_recursively
+function funk_validation_recursively_improved(&$c, array $inputData, array $validationRules, array &$currentErrPath)
+{
+
+    // Iterate through the main `return array()` from optimized validation array
+    var_dump("TEST DATA:", $inputData);
+    foreach ($validationRules as $DXey => $rulesOrNestedFields) {
+        $rulesNodeExist = isset($rulesOrNestedFields['<RULES>']);
+        $wildCardExist = $DXey === '*' || $rulesOrNestedFields === '*';
+    }
+}
+
 // The main validation function for validating data in FunkPHP
 // mapping to the "$_GET"/"$_POST" or "php://input" (JSON) variable ONLY!
 function funk_use_validation(&$c, $optimizedValidationArray, $source)
@@ -524,12 +524,11 @@ function funk_use_validation(&$c, $optimizedValidationArray, $source)
     // Now we can run the validation recursively and
     $c['v_ok'] = true;
     $c['v'] = [];
-    funk_validation_recursively(
+    funk_validation_recursively_improved(
         $c,
         $inputData,
         $optimizedValidationArray,
         [],
-        $allPassed
     );
 
     // When this is set to true, it means that the validation
@@ -622,6 +621,53 @@ function funk_validate_string($inputName, $inputData, $validationValues, $custom
 {
     if (!is_string($inputData)) {
         return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a string.";
+    }
+    return null;
+}
+
+// Validate that Input Data is a single character string (either any or
+// based on validationValues) and is not empty meaning whitespace is not allowed
+function funk_validate_char($inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (!is_string($inputData) || strlen($inputData) !== 1) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a single character.";
+    }
+    // Only use validationValues if they are set
+    // and are not empty, otherwise skip this check
+    if (isset($validationValues)) {
+        $validationValues = is_string($validationValues)
+            ? [$validationValues] : $validationValues;
+
+        // Check that single input character is in the allowed characters
+        if (!in_array($inputData, $validationValues, true)) {
+            $allowedChars = implode(', ', $validationValues);
+            return (isset($customErr) && is_string($customErr))
+                ? $customErr
+                : "$inputName must be one of the following characters: $allowedChars.";
+        }
+    }
+
+    return null;
+}
+
+// Validate that Input Data is a valid single digit (either
+// any digit or based on validationValues)
+function funk_validate_digit($inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (!preg_match('/^\d$/', $inputData)) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a single digit (0-9).";
+    }
+    if (isset($validationValues)) {
+        $validationValues = is_string($validationValues)
+            ? [$validationValues] : $validationValues;
+
+        // Check that single input is in the allowed digits
+        if (!in_array($inputData, $validationValues, true)) {
+            $allowedChars = implode(', ', $validationValues);
+            return (isset($customErr) && is_string($customErr))
+                ? $customErr
+                : "$inputName must be one of the following digits: $allowedChars.";
+        }
     }
     return null;
 }
@@ -1559,6 +1605,7 @@ function funk_validate_elements_all_chars($inputName, $inputData, $validationVal
 // Validate that Input Data's array all values are the data type in the following order stored in $validationValues
 // for example, if $validationValues is ['string', 'number', 'boolean'], then the first value in the array must be a string,
 // the second value must be a number, and the third value must be a boolean. This is used for validating arrays of mixed types.
+// This also implies the count based on the number of elements in $validationValues!
 function funk_validate_elements_this_type_order($inputName, $inputData, $validationValues, $customErr = null)
 {
     if (!is_array($inputData)) {

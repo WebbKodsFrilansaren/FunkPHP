@@ -14,12 +14,13 @@ function v_test(&$c) // <POST/test/:id>
     // Run the command `php funkcli compile v v_test=>v_test`
     // to get optimized version in return statement below it!
     $DX = [
-        'user_email' => 'required|email:dns,tld|between:1,5',
-        'array_test' => 'required|array|elements_this_type_order:string,char',
+        'user' => 'required|string|between:1,5',
+        'age' => 'required|integer|between:1,35|digits:2',
+        'bio_gender' => 'char:m,f|required'
     ];
 
     return array(
-        'user_email' =>
+        'user' =>
         array(
             '<RULES>' =>
             array(
@@ -28,13 +29,9 @@ function v_test(&$c) // <POST/test/:id>
                     'value' => NULL,
                     'err_msg' => NULL,
                 ),
-                'email' =>
+                'string' =>
                 array(
-                    'value' =>
-                    array(
-                        0 => 'dns',
-                        1 => 'tld',
-                    ),
+                    'value' => NULL,
                     'err_msg' => NULL,
                 ),
                 'between' =>
@@ -48,7 +45,7 @@ function v_test(&$c) // <POST/test/:id>
                 ),
             ),
         ),
-        'array_test' =>
+        'age' =>
         array(
             '<RULES>' =>
             array(
@@ -57,17 +54,42 @@ function v_test(&$c) // <POST/test/:id>
                     'value' => NULL,
                     'err_msg' => NULL,
                 ),
-                'array' =>
+                'integer' =>
                 array(
                     'value' => NULL,
                     'err_msg' => NULL,
                 ),
-                'elements_this_type_order' =>
+                'between' =>
                 array(
                     'value' =>
                     array(
-                        0 => 'string',
-                        1 => 'char',
+                        0 => 1,
+                        1 => 35,
+                    ),
+                    'err_msg' => NULL,
+                ),
+                'digits' =>
+                array(
+                    'value' => 2,
+                    'err_msg' => NULL,
+                ),
+            ),
+        ),
+        'bio_gender' =>
+        array(
+            '<RULES>' =>
+            array(
+                'required' =>
+                array(
+                    'value' => NULL,
+                    'err_msg' => NULL,
+                ),
+                'char' =>
+                array(
+                    'value' =>
+                    array(
+                        0 => 'm',
+                        1 => 'f',
                     ),
                     'err_msg' => NULL,
                 ),

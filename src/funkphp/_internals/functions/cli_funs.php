@@ -1034,6 +1034,8 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
     // given single input must be of only one data type!
     $dataTypeRules = [
         'string',
+        'char',
+        'digit',
         'integer',
         'float',
         'boolean',
@@ -1070,6 +1072,7 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         'nullable',
         'required',
         'string',
+        'char',
         'email',
         'email_custom',
         'password',
@@ -1281,7 +1284,7 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
                     if ($addedDataTypeRule) {
                         cli_err_syntax_without_exit("Multiple Data Type Rules found for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
                         cli_err_syntax_without_exit("Please make sure only one Data Type Rule is used for each key!");
-                        cli_info("Use one of these: `string`, `integer`, `float`, `boolean`, `number`, `date`, `array`,\n\t\t  `email`, `email_custom`, `password`,`password_custom`, `password_confirm`, `url`,\n\t\t  `ip`, `uuid`, `phone`, `object`, `json`, `enum`, `set`, `ip4`, `ip6`,\n\t\t `checked`, `file`, `audio`, `video`, `image`, or `list`!");
+                        cli_info("Use one of these: `string`, `integer`, `float`, `boolean`, `number`, `date`, `array`,\n\t\t  `email`, `email_custom`, `password`,`password_custom`, `password_confirm`, `url`,\n\t\t  `ip`, `uuid`, `phone`, `object`, `json`, `enum`, `set`, `ip4`, `ip6`,\n\t\t `checked`, `file`, `audio`, `video`, `image`, or `list`, `char`, or `digit`!");
                     }
                     $addedDataTypeRule = true;
                 }
@@ -1304,7 +1307,7 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         }
         if ($noDataTypeRule) {
             cli_err_syntax_without_exit("No Data Type Rule found for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
-            cli_info("Use one of these: `string`, `integer`, `float`, `boolean`, `number`, `date`, `array`,\n\t\t  `email`, `email_custom`, `password`,`password_custom`, `password_confirm`, `url`,\n\t\t  `ip`, `uuid`, `phone`, `object`, `json`, `enum`, `set`, `ip4`, `ip6`,\n\t\t `checked`, `file`, `audio`, `video`, `image`, or `list`!");
+            cli_info("Use one of these: `string`, `integer`, `float`, `boolean`, `number`, `date`, `array`,\n\t\t  `email`, `email_custom`, `password`,`password_custom`, `password_confirm`, `url`,\n\t\t  `ip`, `uuid`, `phone`, `object`, `json`, `enum`, `set`, `ip4`, `ip6`,\n\t\t `checked`, `file`, `audio`, `video`, `image`, or `list`, `char`, or `digit`!");
         }
 
 
@@ -1319,6 +1322,7 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         $categorizedDataTypeRules = [
             'string_types' => [
                 'string' => true,
+                'char' => true,
                 'email' => true,
                 'email_custom' => true,
                 'password' => true,
@@ -1334,6 +1338,7 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
                 'date' => true,
             ],
             'number_types' => [
+                'digit' => true,
                 'integer' => true,
                 'float' => true,
                 'number' => true,
