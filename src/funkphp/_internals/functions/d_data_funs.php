@@ -840,9 +840,31 @@ function funk_validate_password_hash($inputName, $inputData, $validationValues, 
     return null;
 }
 
-// Validate that Input Data is a valid password
-// TODO: Maybe add more checks for password strength, length, etc.?
-function funk_validate_password($inputName, $inputData, $validationValues, $customErr = null) {}
+// Validate that Input Data is a valid password where the values in $validationValues
+// the first value is the number of lowercases required in the password, the second value
+// is the number of uppercases required in the password, and the third value is number of digits
+// and the fourth value is the number of special characters required in the password
+function funk_validate_password($inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (!is_string($inputData)) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a valid password.";
+    }
+    // Check if validationValues is a string or an array
+    if (is_string($validationValues)) {
+        $validationValues = explode(',', $validationValues);
+    }
+    return null;
+}
+
+// Validate that Input Data is a valid password with at least X amount of lowercases
+// stored in the $validationValues array as an integer
+function funk_validate_password_uppercases($inputName, $inputData, $validationValues, $customErr = null)
+{
+    if ($validationValues < 0) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must have at least $validationValues uppercase letters.";
+    }
+    return null;
+}
 
 // Validate that Input Data is a valid password confirmation
 // TODO: Fix so it can compare with another input field

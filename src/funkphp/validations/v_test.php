@@ -15,7 +15,7 @@ function v_test(&$c) // <POST/test/:id>
     // to get optimized version in return statement below it!
     $DX = [
         'user_email' => 'required|email:dns,tld|between:1,6',
-        'user_password' => 'required|password|between:12,15',
+        'user_password' => 'required|password:1,2,3,4|between:12,15',
     ];
 
     return array(
@@ -59,7 +59,13 @@ function v_test(&$c) // <POST/test/:id>
                 ),
                 'password' =>
                 array(
-                    'value' => NULL,
+                    'value' =>
+                    array(
+                        0 => 1,
+                        1 => 2,
+                        2 => 3,
+                        3 => 4,
+                    ),
                     'err_msg' => NULL,
                 ),
                 'between' =>

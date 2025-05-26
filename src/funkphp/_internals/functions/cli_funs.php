@@ -1388,7 +1388,6 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         }
         $theseRulesShouldHaveNoValue = [
             'required',
-            'password',
             'nullable',
             'lowercase',
             'uppercase',
@@ -1488,7 +1487,7 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
             // We loop through "$validationArray" to see if there is a "password_custom" rule
             // in any of the other $DXKeys and if there is, we warn the user that
             // they should also use "password_confirm" to increase security.
-            $foundPasswordCustom = false;
+            $foundPasswordConfirm = false;
             foreach ($validationArray as $key => $value) {
                 if (is_string($value) && str_contains($value, 'password_confirm')) {
                     $foundPasswordConfirm = true;
@@ -1508,7 +1507,7 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
                 $betweenValue = $sortedRulesForField['between']['value'];
                 if ($betweenValue[0] < 12) {
                     cli_warning_without_exit("The `password` Rule for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` has a `between` Rule with a first value less than 12!");
-                    cli_info_without_exit("This means you want to allow passwords shorter than 12 characters? Otherwise change the first value to at least 12!");
+                    cli_info_without_exit("Allow passwords shorter than 12 characters? Otherwise change the first value to at least 12!");
                 }
             }
             // Check that current $DXKey also has a "required" Rule or just warn
@@ -1522,6 +1521,40 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
                 cli_err_syntax_without_exit("The `password` Rule for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` cannot use `nullable` Rule!");
                 cli_info_without_exit("If `$currentDXKey` should be optional as a `password`, use the `string` Data Type with the `password_hash` Rule instead!");
                 cli_info("This will \"password_hash\" the value stored in `$currentDXKey` after ALL validation has passed for the value stored in `$currentDXKey`!");
+            }
+            // Check if the `password` has any values stored, and otherwise just warn and inform what each
+            // value means in what order if they wanna use it.
+            if (!isset($sortedRulesForField['password']['value']) || empty($sortedRulesForField['password']['value'])) {
+                cli_warning_without_exit("The `password` Rule for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` has no value set!");
+                cli_info_without_exit("The value for the `password` Rule parses in the following order:number_of_uppercases,number_of_lowercases,number_of_digits,number_of_specials");
+                cli_info_without_exit("Or specify them using `uppercases:INT`, `lowercases:INT`, `specials:INT`, `numbers:INT` as additional Rules for the `password` Data Type Rule!");
+                cli_info_without_exit("If you wanna change what is considered a special character, either use `password_custom` Data Type Rule for your very own");
+                cli_info("Custom Password Validation Logic OR edit `_internals/functions/d_data_funs.php` in the `funk_validate_password` function!");
+            }
+            // If `password` rule has values, check that each value are all integers!
+            if (isset($sortedRulesForField['password']['value'])) {
+                $passwordValues = $sortedRulesForField['password']['value'];
+                if (is_string($passwordValues)) {
+                    // Check that string is a single integer by trying to parse it
+                    if (!is_int($passwordValues)) {
+                        cli_err_syntax_without_exit("Invalid `password` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                        cli_info_without_exit("Specify an Array of Integers as the value for the `password` Rule. Up to 4 Integers are allowed!");
+                        cli_info("First=number of uppercases, Second=number of lowercases, Third=number of digits, Fourth=number of specials!");
+                    }
+                } elseif (is_array($passwordValues)) {
+                    if (count($passwordValues) < 1 || count($passwordValues) > 4) {
+                        cli_err_syntax_without_exit("Invalid `password` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                        cli_info_without_exit("Specify an Array of Integers as the value for the `password` Rule. Up to 4 Integers are allowed!");
+                        cli_info("First=number of uppercases, Second=number of lowercases, Third=number of digits, Fourth=number of specials!");
+                    }
+                    foreach ($passwordValues as $value) {
+                        if (!is_int($value)) {
+                            cli_err_syntax_without_exit("Invalid `password` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                            cli_info_without_exit("Specify an Array of Integers as the value for the `password` Rule. Up to 4 Integers are allowed!");
+                            cli_info("First=number of uppercases, Second=number of lowercases, Third=number of digits, Fourth=number of specials!");
+                        }
+                    }
+                }
             }
         }
 
