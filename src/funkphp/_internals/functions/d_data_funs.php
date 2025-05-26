@@ -188,7 +188,7 @@ function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array 
     if ($required) {
         $ruleValue = $required['value'] ?? null;
         $customErr = $required['err_msg'] ?? null;
-        echo "Running `funk_validate_required` for field `$fullFieldName` with value `" . json_encode($inputValue) . "`\n";
+        // echo "Running `funk_validate_required` for field `$fullFieldName` with value `" . (is_string($inputValue) ? $inputValue :  json_encode($inputValue)) . "`\n";
         $error = funk_validate_required($fullFieldName, $inputValue, $ruleValue, $customErr);
 
         // We set the error we got from the
@@ -331,7 +331,7 @@ function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array 
         // Dynamically call the validation function for this rule
         // Assuming your rule functions are named funk_validate_rule
         $validatorFn = 'funk_validate_' . $rule;
-        echo "Running `$validatorFn` for field `$fullFieldName` with value `" . json_encode($inputValue) . "`\n";
+        //echo "Running `$validatorFn` for field `$fullFieldName` with value `" . (is_string($inputValue) ? $inputValue : json_encode($inputValue)) . "`\n";
 
         if (function_exists($validatorFn)) {
             // Pass current input value, rule value, and custom error
@@ -365,67 +365,149 @@ function funk_validation_recursively_improved(
     array $validationRules,
     array &$currentErrPath
 ) {
-
     // Iterate through the main `return array()` from optimized validation array
     foreach ($validationRules as $DXKey => $rulesOrNestedFields) {
-        // Get current rules, input data|null and initialize current error path
-        $currentRules = $rulesOrNestedFields['<RULES>'] ?? null;
-        $currentInputData = $inputData[$DXKey] ?? null;
-        $currentErrPath[$DXKey] = [];
-        $wildCardExist = $DXKey === '*' || $rulesOrNestedFields === '*';
 
-        // REMOVE LATER
-        echo "Current Key: `$DXKey`, Rules?: `" . ($currentRules ? 'Yes' : 'No') . "`, Wildcard?: `" . ($wildCardExist ? 'Yes' : 'No') . "`\n";
-        echo "Key Data Name: " . (is_string($rulesOrNestedFields) ? $rulesOrNestedFields : 'Array') . "\n";
-        echo "Current Input Data (if string): " . (is_string($currentInputData) ? $currentInputData : 'Array') . "\n";
+        // When root key is NOT "*" (but "key.*", "key" or "key.subkey" and so on!)
+        if ($DXKey !== '*') {
+            // Get current rules, input data|null and initialize current error path
+            $currentRules = $rulesOrNestedFields['<RULES>'] ?? null;
+            $currentInputData = $inputData[$DXKey] ?? null;
+            $currentErrPath[$DXKey] = [];
+            $wildCardExist = ($DXKey === '*' || key($rulesOrNestedFields) === '*');
 
-        // If "<RULES>" node exists, we process it by passing it to the
-        // funk_validation_validate_rules function which also receives
-        // the current error path!
-        if ($currentRules) {
-            funk_validation_validate_rules($c, $currentInputData, $DXKey, $rulesOrNestedFields['<RULES>'], $currentErrPath[$DXKey]);
-            // Remove the <RULES> key after processing
-            // If no errors were found for this key, we can just remove it
-            unset($rulesOrNestedFields['<RULES>']);
-            if (empty($currentErrPath[$DXKey])) {
-                unset($currentErrPath[$DXKey]);
-            }
-        }
+            // REMOVE LATER
+            //echo "Current Key: `$DXKey`, Rules?: `" . ($currentRules ? 'Yes' : 'No') . "\n";
+            //echo "WildCard Exists: " . ($wildCardExist ? 'Yes' : 'No') . "\n";
+            //echo "Key Data Name: " . (is_string($rulesOrNestedFields) ? $rulesOrNestedFields : 'Array') . "\n";
+            //  echo "Current Input Data (if string): " . (is_string($currentInputData) ? $currentInputData : 'Array') . "\n";
 
-        // If there still exists elements in the $rulesOrNestedFields we
-        // can assume that they are nested fields or the * wildcard
-        // but we first ONLY process the nested fields first
-        if (
-            is_array($rulesOrNestedFields)
-            && !empty($rulesOrNestedFields)
-            && !$wildCardExist
-        ) {
-            foreach ($rulesOrNestedFields as $name => $nestedField) {
-                // if ($name === '<RULES>' || $name === '*') {
-                //     continue; // Skip the <RULES> key if it exists
-                // } <- This might not be needed since we always checked, processed
-                // and unset it above in the currentRules check
-                if (is_array($nestedField) && $name !== '*') {
-                    // If the nested field is an array, we can recurse into it
-                    // and pass the current error path for this nested field
-                    $currentErrPath[$DXKey][$name] = [];
-                    var_dump("NESTED NAME KEY: ", $name);
-                    funk_validation_recursively_improved(
-                        $c,
-                        $inputData[$DXKey] ?? null,
-                        $rulesOrNestedFields ?? [],
-                        $currentErrPath[$DXKey]
-                    );
+            // If "<RULES>" node exists, we process it by passing it to the
+            // funk_validation_validate_rules function which also receives
+            // the current error path!
+            if ($currentRules) {
+                funk_validation_validate_rules($c, $currentInputData, $DXKey, $rulesOrNestedFields['<RULES>'], $currentErrPath[$DXKey]);
+                // Remove the <RULES> key after processing
+                // If no errors were found for this key, we can just remove it
+                unset($rulesOrNestedFields['<RULES>']);
+                if (empty($currentErrPath[$DXKey])) {
+                    unset($currentErrPath[$DXKey]);
                 }
             }
-            // After loop check if the error path is empty
-            if (empty($currentErrPath[$DXKey])) {
-                unset($currentErrPath[$DXKey]);
+
+            // If there still exists elements in the $rulesOrNestedFields we
+            // can assume that they are nested fields or the * wildcard
+            // but we first ONLY process the nested fields first
+            if (
+                is_array($rulesOrNestedFields)
+                && !empty($rulesOrNestedFields)
+                && !$wildCardExist
+            ) {
+                foreach ($rulesOrNestedFields as $name => $nestedField) {
+                    // if ($name === '<RULES>' || $name === '*') {
+                    //     continue; // Skip the <RULES> key if it exists
+                    // } <- This might not be needed since we always checked, processed
+                    // and unset it above in the currentRules check
+                    if (is_array($nestedField) && $name !== '*') {
+                        // If the nested field is an array, we can recurse into it
+                        // and pass the current error path for this nested field
+                        $currentErrPath[$DXKey][$name] = [];
+                        funk_validation_recursively_improved(
+                            $c,
+                            $inputData[$DXKey] ?? null,
+                            $rulesOrNestedFields ?? [],
+                            $currentErrPath[$DXKey]
+                        );
+                    }
+                }
+                // After loop check if the error path is empty
+                if (empty($currentErrPath[$DXKey])) {
+                    unset($currentErrPath[$DXKey]);
+                }
+            }
+
+            // Handle "*" wildcard for Numbered Arrays (works when they are in
+            // the $wildCardExist = $rulesOrNestedFields, not $DXKey === '*' yet!)
+            if ($wildCardExist) {
+                $wildCardRules = $rulesOrNestedFields['*']["<RULES>"] ?? null;
+
+                // If Rules found for Numbered Array * we pass on the rules to the
+                // validation function and then set the current error path.
+                // Only if it all passes do we actually start iterating through the numbered array
+                if ($wildCardRules) {
+                    $currentErrPath[$DXKey] = [];
+                    funk_validation_validate_rules(
+                        $c,
+                        $currentInputData,
+                        $DXKey,
+                        $wildCardRules,
+                        $currentErrPath[$DXKey]
+                    );
+
+                    // Only if it is empty do we actually iterate
+                    if (empty($currentErrPath[$DXKey])) {
+                        echo "No errors found for `$DXKey` with Wildcard Rules!\n";
+                        unset($currentErrPath[$DXKey]);
+                        unset($rulesOrNestedFields['*']["<RULES>"]);
+
+                        // We now extract the number of iterations
+                        // from the Wildcard Rules array, which should exist
+                        // otherwise we set to 0
+                        $iterations = 0;
+                        if (
+                            isset($wildCardRules['count']['value'])
+                        ) {
+                            $iterations = (int)$wildCardRules['count']['value'] ?? 0;
+                        } else if (isset($wildCardRules['count']['value'])) {
+                            $iterations = (int)$wildCardRules['exact']['value'] ?? 0;
+                        } else if (isset($wildCardRules['exact']['value'])) {
+                            $iterations = (int)$wildCardRules['exact']['value'] ?? 0;
+                        } else if (isset($wildCardRules['size']['value'])) {
+                            $iterations = (int)$wildCardRules['size']['value'] ?? 0;
+                        } else if (isset($wildCardRules['between']['value'])) {
+                            $iterations = (int)$wildCardRules['between']['value'][1] ?? 0;
+                        }
+
+                        // REMOVE LATER
+                        echo "Iterations set to: $iterations\n";
+
+                        // Now we can recurse into the validation function for this
+                        // numbered array element when iterations is greater than 0!
+                        if ($iterations > 0) {
+                            for ($index = 0; $index < $iterations; $index++) {
+
+                                $currentErrPath[$DXKey][$index] = [];
+                                funk_validation_recursively_improved(
+                                    $c,
+                                    $currentInputData[$index] ?? null,
+                                    $rulesOrNestedFields['*'],
+                                    $currentErrPath[$DXKey][$index]
+                                );
+                                // Unset if no errors were found
+                                if (empty($currentErrPath[$DXKey][$index])) {
+                                    unset($currentErrPath[$DXKey][$index]);
+                                }
+                            }
+                            // Also unset for the main DXKey if no errors were found
+                            if (empty($currentErrPath[$DXKey])) {
+                                unset($currentErrPath[$DXKey]);
+                            }
+                        }
+                    }
+                }
+                // We found Wildcard * Indicator but not the Rules
+                // so throw possible misconfiguration error!
+                else {
+                    $c['err']['FAILED_TO_RUN_VALIDATION_FUNCTION-NUMBERED-ARRAY-' . $DXKey] = "Validation Function for `$DXKey` with Wildcard * found but no Rules were defined for it!";
+                    $currentErrPath[$DXKey] = "Failed to Validate Numbered Array in `$DXKey`. Tell the Developer about it since this is possibly a misconfiguration in the so called `returned validation array()`!";
+                }
             }
         }
 
-        // TODO: Handle wildcard '*' array elements
-        if ($wildCardExist) {
+        // TODO: Handle the case when root key is "*" - OH NO!
+        // When root key IS "*" meaning everything is shifted to the left where the first key
+        // is the wildcard "*" and the rest are the nested fields meaning all must be different.
+        if ($DXKey === '*') {
         }
     }
 }

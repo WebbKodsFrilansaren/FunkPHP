@@ -1218,7 +1218,7 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         $convertedValidationArray[$currentDXKey] = [];
 
         if (str_contains($currentDXKey, ".")) {
-            if (!preg_match("/^(\*|(([a-z_])([a-z_0-9]+))\.(\*|[a-z_][a-z_0-9]+))(\.(\*|[a-z_][a-z_0-9]+))*$/", $currentDXKey)) {
+            if (!preg_match("/^(\*|(([a-z_]*)([a-z_0-9]+))\.(\*|[a-z_][a-z_0-9]+))(\.(\*|[a-z_][a-z_0-9]+))*$/", $currentDXKey)) {
                 cli_err_syntax_without_exit("[cli_convert_simple_validation_rules_to_optimized_validation] Invalid Nested Validation Key in `$currentDXKey`!");
                 cli_info("Valid Syntax is: `user.email`, `user.email.primary`, `user.*.email`, `user.*.name` and so on.\nThe `*` character means the key before it indicates this is a numbered array and any keys after it are its subkeys for each element in that numbered array!");
             }
@@ -1599,11 +1599,14 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
             if (
                 !isset($sortedRulesForField['max'])
                 && !isset($sortedRulesForField['count'])
+                && !isset($sortedRulesForField['size'])
                 && !isset($sortedRulesForField['exact'])
                 && !isset($sortedRulesForField['between'])
             ) {
-                cli_warning_without_exit("There are no Array Elements Limiting Rule(s) set for the Numbered Array `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
-                cli_info_without_exit("Add `between`,`count`,`exact` or `max` Rule to prevent CPU/DoS exploits!");
+                cli_err_without_exit("There are no Array Elements Limiting Rule(s) set for the Numbered Array `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info_without_exit("Add `between`,`count`,`exact`, `size` or `max` Rule to prevent CPU/DoS exploits!");
+                cli_info_without_exit("Just set a very high number to prevent infinite loops while still processing as many as you think you will need!");
+                cli_info("The Value in your `between` (the higher value),`count`,`exact`, `size` or `max` Rule will set the number of iterations for the Numbered Array `$currentDXKey`!");
             }
         }
 
@@ -2310,7 +2313,7 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         // and then we need to set the value to the $sortedRulesForField array.
         if (
             str_contains($currentDXKey, ".")
-            && preg_match("/^((\*|([a-z_])([a-z_0-9]+))\.(\*|[a-z_][a-z_0-9]+))(\.(\*|[a-z_][a-z_0-9]+))*$/", $currentDXKey)
+            && preg_match("/^((\*|([a-z_]*)([a-z_0-9]+))\.(\*|[a-z_][a-z_0-9]+))(\.(\*|[a-z_][a-z_0-9]+))*$/", $currentDXKey)
         ) {
             $nestedKeys = explode(".", $currentDXKey);
             $nestedKeyCount = count($nestedKeys);
@@ -2390,6 +2393,16 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
             }
         }
     }
+
+
+    // CURRENTLY: We do NOT support "*" as the root key
+    // since the function that validates uses $DX => $nested
+    // where it NEVER assumes $DX to be "*" as the root key.
+    // if (array_key_exists("*", $convertedValidationArray)) {
+    //     cli_err_syntax_without_exit("The Validation Key `*` in Validation `$handlerFile.php=>$fnName` is currently NOT supported as a root key!");
+    //     cli_info("Place the `*` key one level up like: `key.*` in the Validation Array to use it. Sorry for the so called `Skill Issues`!");
+    // }
+
     // Special case: if we have "*" as a key, we need to check that
     // all other keys also start with "*." because now we are saying that
     // the entire thing begins as a numbered array!
