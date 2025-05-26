@@ -14,66 +14,15 @@ function v_test(&$c) // <POST/test/:id>
     // Run the command `php funkcli compile v v_test=>v_test`
     // to get optimized version in return statement below it!
     $DX = [
-        'user.test' => 'string|required|between:5,10',
-        'user.test2' => 'string|required|between:5,10',
-        'gender' => 'char:m,f|required',
+        'testa' => 'string|required',
+        'test.*' => 'array|nullable',
+        'test.*.testa' => 'string|required',
+        'test.*.test.*' => 'array|required',
+        'test.*.test.*.test3' => 'string|required',
     ];
 
     return array(
-        'user' =>
-        array(
-            'test' =>
-            array(
-                '<RULES>' =>
-                array(
-                    'required' =>
-                    array(
-                        'value' => NULL,
-                        'err_msg' => NULL,
-                    ),
-                    'string' =>
-                    array(
-                        'value' => NULL,
-                        'err_msg' => NULL,
-                    ),
-                    'between' =>
-                    array(
-                        'value' =>
-                        array(
-                            0 => 5,
-                            1 => 10,
-                        ),
-                        'err_msg' => NULL,
-                    ),
-                ),
-            ),
-            'test2' =>
-            array(
-                '<RULES>' =>
-                array(
-                    'required' =>
-                    array(
-                        'value' => NULL,
-                        'err_msg' => NULL,
-                    ),
-                    'string' =>
-                    array(
-                        'value' => NULL,
-                        'err_msg' => NULL,
-                    ),
-                    'between' =>
-                    array(
-                        'value' =>
-                        array(
-                            0 => 5,
-                            1 => 10,
-                        ),
-                        'err_msg' => NULL,
-                    ),
-                ),
-            ),
-        ),
-        'gender' =>
+        'testa' =>
         array(
             '<RULES>' =>
             array(
@@ -82,14 +31,80 @@ function v_test(&$c) // <POST/test/:id>
                     'value' => NULL,
                     'err_msg' => NULL,
                 ),
-                'char' =>
+                'string' =>
                 array(
-                    'value' =>
-                    array(
-                        0 => 'm',
-                        1 => 'f',
-                    ),
+                    'value' => NULL,
                     'err_msg' => NULL,
+                ),
+            ),
+        ),
+        'test' =>
+        array(
+            '*' =>
+            array(
+                '<RULES>' =>
+                array(
+                    'nullable' =>
+                    array(
+                        'value' => NULL,
+                        'err_msg' => NULL,
+                    ),
+                    'array' =>
+                    array(
+                        'value' => NULL,
+                        'err_msg' => NULL,
+                    ),
+                ),
+                'testa' =>
+                array(
+                    '<RULES>' =>
+                    array(
+                        'required' =>
+                        array(
+                            'value' => NULL,
+                            'err_msg' => NULL,
+                        ),
+                        'string' =>
+                        array(
+                            'value' => NULL,
+                            'err_msg' => NULL,
+                        ),
+                    ),
+                ),
+                'test' =>
+                array(
+                    '*' =>
+                    array(
+                        '<RULES>' =>
+                        array(
+                            'required' =>
+                            array(
+                                'value' => NULL,
+                                'err_msg' => NULL,
+                            ),
+                            'array' =>
+                            array(
+                                'value' => NULL,
+                                'err_msg' => NULL,
+                            ),
+                        ),
+                        'test3' =>
+                        array(
+                            '<RULES>' =>
+                            array(
+                                'required' =>
+                                array(
+                                    'value' => NULL,
+                                    'err_msg' => NULL,
+                                ),
+                                'string' =>
+                                array(
+                                    'value' => NULL,
+                                    'err_msg' => NULL,
+                                ),
+                            ),
+                        ),
+                    ),
                 ),
             ),
         ),

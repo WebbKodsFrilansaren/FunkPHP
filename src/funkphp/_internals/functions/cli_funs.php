@@ -1384,7 +1384,6 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         $categorizedDataTypeRules = [
             'string_types' => [
                 'string' => true,
-                'field' => true,
                 'char' => true,
                 'email' => true,
                 'email_custom' => true,
@@ -1591,7 +1590,7 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         if (str_ends_with($currentDXKey, "*")) {
             if (!isset($categorizedDataTypeRules['array_types'][$foundTypeRule])) {
                 cli_err_syntax_without_exit("The `$currentDXKey` key in Validation `$handlerFile.php=>$fnName` must be of type `array` or `list`!");
-                cli_info("Specify `array` or `list` Data Type for `$currentDXKey` to use the Array Numbering `*` character at the end of the key!");
+                cli_info("Specify `array` aar `list` Data Type for `$currentDXKey` to use the Array Numbering `*` character at the end of the key!");
             }
             // We check if the rule "min" exists while "max" does not exist so we warn
             // about that it could lead to infinite loop in the validation function
@@ -2338,6 +2337,7 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
     // applicable to arrays). We error out when for example "key.*.subkey" is used
     // but the "key.*" is not used as a key in the validation array.
     $arrayKeys = array_keys($validationArray);
+
     // But first we loop through to find if ANY key contains "*.*" implying
     // a multi-dimensional array which is NOT supported yet so this will error out
     // and say it has not been implemented yet.
@@ -2383,22 +2383,40 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
             }
         }
     }
+    // Special case: if we have "*" as a key, we need to check that
+    // all other keys also start with "*." because now we are saying that
+    // the entire thing begins as a numbered array!
+    if (array_key_exists("*", $convertedValidationArray)) {
+        // If we have "*" as a key, we need to check that all other keys
+        // start with "*." because now we are saying that the entire thing
+        // begins as a numbered array!
+        foreach ($arrayKeys as $currentKey) {
+            if (!str_starts_with($currentKey, "*.") && $currentKey !== "*") {
+                cli_err_syntax_without_exit("The Validation Key `$currentKey` in Validation `$handlerFile.php=>$fnName` must start with `*.` when `*` is used as a root key!");
+                cli_info("Change the Key `$currentKey` to start with `*.$currentKey` to use it!");
+            }
+        }
+    }
 
-    // We loop through the converted validation array to make sure that
-    // for each "*" key there can only exist "<RULES"> key besides it
-    // otherwise we error out and say that it is not allowed. Because
-    // that would be like "user.[0]" and "user.whatever" which is not allowed.
-    foreach ($convertedValidationArray as $currentDXKey => $rules) {
-        // If the key does not contain "*", we skip it
-        if (!str_contains($currentDXKey, "*")) {
+    // We loop through the array keys again to check if any key
+    // ends with ".*" and then we check if any other key ends
+    // without ".*" but starts with the same key. This means
+    // an associative key is competing with a numbered array key
+    foreach ($arrayKeys as $currentKey) {
+        // If the key does not end with ".*", we skip it
+        if (!str_ends_with($currentKey, ".*")) {
             continue;
         }
-        // If the key contains "*", we check if it has any other keys besides "<RULES>"
-        $keys = array_keys($rules);
-        var_dump($keys);
-        if (count($keys) > 1 || !in_array("<RULES>", $keys)) {
-            cli_err_syntax_without_exit("The Validation Key `$currentDXKey` in Validation `$handlerFile.php=>$fnName` can only have the `<RULES>` key!");
-            cli_info("Remove any other keys from the Validation Array for `$currentDXKey` to use it!");
+        // If the key ends with ".*", we check if any other key
+        // starts with the same key but does not end with ".*"
+        $baseKey = substr($currentKey, 0, -2); // Remove ".*" from the end
+        foreach ($arrayKeys as $otherKey) {
+            if ($otherKey === $baseKey) {
+                cli_err_syntax_without_exit("The Validation Key `$currentKey` (indicating a numbered array) in Validation `$handlerFile.php=>$fnName` conflicts with the Key `$otherKey` which is on the same key level!");
+                cli_err_syntax_without_exit("It is invalid JSON to have both a numbered array and an associative key with the same base name!");
+                cli_info_without_exit("Associative Key `['$otherKey'] = {values}` will conflict with Numbered Key(s) `['$baseKey'][0-9] = {values}`!");
+                cli_info("Change the Key `$currentKey` to not end with `.*` (thus removing its numbered array function) or change the Key `$otherKey`!");
+            }
         }
     }
 
@@ -2455,7 +2473,7 @@ function cli_compile_dx_validation_to_optimized_validation()
     if (!$matchedDX) {
         cli_err_without_exit("The \"\$DX\" variable not found in Validation Function \"$fnName\" in Validation Handler File \"$handlerFile.php\".");
         cli_info_without_exit("Make sure it is intended using CMD+S or CTRL+S to autoformat the Validation Handler File!");
-        cli_info("It must start as an array: `\$DX = ['<anything_inside_here>'];` or it will not be found. Only single quotes '<DXarray>' are allowed!");
+        cli_info("It must start as an array: `\$DX = ['<anything_inside_here>'];` or it will not be found. Only single quotes `['<DXarray>']` are allowed!");
     }
 
     // We store found match and now try find the return statement within "$matchedEntireFnName"
@@ -2470,12 +2488,12 @@ function cli_compile_dx_validation_to_optimized_validation()
     } catch (Throwable $e) {
         cli_err_without_exit("The \"\$DX\" variable was found but could not be parsed as a valid PHP Array!");
         cli_info_without_exit("Make sure it is intended using CMD+S or CTRL+S to autoformat the Validation Handler File!");
-        cli_info("It must start as an array: `\$DX = ['<anything_inside_here>'];` or it will not be found.  Only single quotes '<DXarray>' are allowed!");
+        cli_info("It must start as an array: `\$DX = ['<anything_inside_here>'];` or it will not be found.  Only single quotes `['<DXarray>']` are allowed!");
     }
     if ($evalCode === null) {
         cli_err_without_exit("The \"\$DX\" variable was found but could not be parsed as a valid PHP Array!");
         cli_info_without_exit("Make sure it is intended using CMD+S or CTRL+S to autoformat the Validation Handler File!");
-        cli_info("It must start as an array: `\$DX = ['<anything_inside_here>'];` or it will not be found.  Only single quotes '<DXarray>' are allowed!");
+        cli_info("It must start as an array: `\$DX = ['<anything_inside_here>'];` or it will not be found.  Only single quotes `['<DXarray>']` are allowed!");
     }
     if (is_array($evalCode)) {
         cli_info_without_exit("Found \"\$DX\" variable parsed as a valid PHP Array!");

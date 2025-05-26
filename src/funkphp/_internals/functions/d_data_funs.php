@@ -368,9 +368,10 @@ function funk_validation_recursively_improved(
 
     // Iterate through the main `return array()` from optimized validation array
     foreach ($validationRules as $DXKey => $rulesOrNestedFields) {
+        // Get current rules, input data|null and initialize current error path
         $currentRules = $rulesOrNestedFields['<RULES>'] ?? null;
         $currentInputData = $inputData[$DXKey] ?? null;
-        $currentErrPath[$DXKey] = []; // Current Error Path for this key (root: $c['v'])
+        $currentErrPath[$DXKey] = [];
         $wildCardExist = $DXKey === '*' || $rulesOrNestedFields === '*';
 
         // REMOVE LATER
@@ -391,16 +392,23 @@ function funk_validation_recursively_improved(
             }
         }
 
-        if (is_array($rulesOrNestedFields) && !empty($rulesOrNestedFields)) {
+        // If there still exists elements in the $rulesOrNestedFields we
+        // can assume that they are nested fields or the * wildcard
+        // but we first ONLY process the nested fields first
+        if (
+            is_array($rulesOrNestedFields)
+            && !empty($rulesOrNestedFields)
+            && !$wildCardExist
+        ) {
             foreach ($rulesOrNestedFields as $name => $nestedField) {
-                if ($name === '<RULES>' || $name === '*') {
-                    continue; // Skip the <RULES> key if it exists
-                }
-                // Initialize error path for this nested field
-                $currentErrPath[$DXKey][$name] = [];
+                // if ($name === '<RULES>' || $name === '*') {
+                //     continue; // Skip the <RULES> key if it exists
+                // } <- This might not be needed since we always checked, processed
+                // and unset it above in the currentRules check
                 if (is_array($nestedField) && $name !== '*') {
                     // If the nested field is an array, we can recurse into it
                     // and pass the current error path for this nested field
+                    $currentErrPath[$DXKey][$name] = [];
                     var_dump("NESTED NAME KEY: ", $name);
                     funk_validation_recursively_improved(
                         $c,
@@ -417,6 +425,8 @@ function funk_validation_recursively_improved(
         }
 
         // TODO: Handle wildcard '*' array elements
+        if ($wildCardExist) {
+        }
     }
 }
 
@@ -493,6 +503,8 @@ function funk_use_validation(&$c, $optimizedValidationArray, $source)
     // Its default value is null meaning either no validation was run
     // or it failed and no errors were found/added to $c['v'] before this!
     if ($c['v_ok']) {
+        // If validation passed, we can set the $c['v'] to null again
+        $c['v'] = null;
         return true;
     }
     return false;
