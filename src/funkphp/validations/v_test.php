@@ -14,95 +14,62 @@ function v_test(&$c) // <POST/test/:id>
     // Run the command `php funkcli compile v v_test=>v_test`
     // to get optimized version in return statement below it!
     $DX = [
-        'user' => 'required|string|between:1,5',
-        'name' => 'required|string|between:5,10',
-        'age' => 'required|integer|between:1,35|digits:2|field:Age',
+        'user.test' => 'string|required|between:5,10',
+        'user.test2' => 'string|required|between:5,10',
         'gender' => 'char:m,f|required',
     ];
 
     return array(
         'user' =>
         array(
-            '<RULES>' =>
+            'test' =>
             array(
-                'required' =>
+                '<RULES>' =>
                 array(
-                    'value' => NULL,
-                    'err_msg' => NULL,
-                ),
-                'string' =>
-                array(
-                    'value' => NULL,
-                    'err_msg' => NULL,
-                ),
-                'between' =>
-                array(
-                    'value' =>
+                    'required' =>
                     array(
-                        0 => 1,
-                        1 => 5,
+                        'value' => NULL,
+                        'err_msg' => NULL,
                     ),
-                    'err_msg' => NULL,
+                    'string' =>
+                    array(
+                        'value' => NULL,
+                        'err_msg' => NULL,
+                    ),
+                    'between' =>
+                    array(
+                        'value' =>
+                        array(
+                            0 => 5,
+                            1 => 10,
+                        ),
+                        'err_msg' => NULL,
+                    ),
                 ),
             ),
-        ),
-        'name' =>
-        array(
-            '<RULES>' =>
+            'test2' =>
             array(
-                'required' =>
+                '<RULES>' =>
                 array(
-                    'value' => NULL,
-                    'err_msg' => NULL,
-                ),
-                'string' =>
-                array(
-                    'value' => NULL,
-                    'err_msg' => NULL,
-                ),
-                'between' =>
-                array(
-                    'value' =>
+                    'required' =>
                     array(
-                        0 => 5,
-                        1 => 10,
+                        'value' => NULL,
+                        'err_msg' => NULL,
                     ),
-                    'err_msg' => NULL,
-                ),
-            ),
-        ),
-        'age' =>
-        array(
-            '<RULES>' =>
-            array(
-                'field' =>
-                array(
-                    'value' => 'Age',
-                    'err_msg' => NULL,
-                ),
-                'required' =>
-                array(
-                    'value' => NULL,
-                    'err_msg' => NULL,
-                ),
-                'integer' =>
-                array(
-                    'value' => NULL,
-                    'err_msg' => NULL,
-                ),
-                'between' =>
-                array(
-                    'value' =>
+                    'string' =>
                     array(
-                        0 => 1,
-                        1 => 35,
+                        'value' => NULL,
+                        'err_msg' => NULL,
                     ),
-                    'err_msg' => NULL,
-                ),
-                'digits' =>
-                array(
-                    'value' => 2,
-                    'err_msg' => NULL,
+                    'between' =>
+                    array(
+                        'value' =>
+                        array(
+                            0 => 5,
+                            1 => 10,
+                        ),
+                        'err_msg' => NULL,
+                    ),
                 ),
             ),
         ),

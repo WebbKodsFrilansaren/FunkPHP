@@ -1069,9 +1069,12 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
     // type must always be first for each $currentDXKey!). 'nullable'
     // must come very early to allow for data that are actually null!
     $priorityOrder = [
+        // Special properites
         'field',
         'nullable',
+        'stop',
         'required',
+        // Data types
         'string',
         'char',
         'email',
@@ -1103,14 +1106,61 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         'image',
         'video',
         'audio',
+        // Data "measurements"
         'between',
+        'betweenlen',
+        'betweenval',
+        'betweencount',
         'exact',
+        'exactlen',
+        'exactval',
+        'exactcount',
         'count',
+        'mincount',
+        'maxcount',
         'min',
-        'min_digits',
+        'minlen',
+        'minval',
         'max',
+        'maxlen',
+        'maxval',
+        'digits',
+        'digits_between',
+        'min_digits',
         'max_digits',
-        // At the end
+        'decimals',
+        // Other types of data validation
+        'color',
+        'lowercase',
+        'lowercases',
+        'uppercase',
+        'uppercases',
+        'numbers',
+        'specials',
+        // Regex
+        'regex',
+        'not_regex',
+        // Arrays
+        'array_keys',
+        'array_keys_exact',
+        'array_values',
+        'array_values_exact',
+        // Elements in arrays
+        'elements_all_arrays',
+        'elements_all_lists',
+        'elements_all_numbers',
+        'elements_all_chars',
+        'elements_all_strings',
+        'elements_all_integers',
+        'elements_all_floats',
+        'elements_all_booleans',
+        'elements_all_checked',
+        'elements_all_unchecked',
+        'elements_all_nulls',
+        'elements_this_type_order',
+        // Always last
+        'exists',
+        'unique',
         'password_hash',
     ];
     include_once($dirs['functions'] . "d_data_funs.php");
@@ -2334,6 +2384,26 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         }
     }
 
+    // We loop through the converted validation array to make sure that
+    // for each "*" key there can only exist "<RULES"> key besides it
+    // otherwise we error out and say that it is not allowed. Because
+    // that would be like "user.[0]" and "user.whatever" which is not allowed.
+    foreach ($convertedValidationArray as $currentDXKey => $rules) {
+        // If the key does not contain "*", we skip it
+        if (!str_contains($currentDXKey, "*")) {
+            continue;
+        }
+        // If the key contains "*", we check if it has any other keys besides "<RULES>"
+        $keys = array_keys($rules);
+        var_dump($keys);
+        if (count($keys) > 1 || !in_array("<RULES>", $keys)) {
+            cli_err_syntax_without_exit("The Validation Key `$currentDXKey` in Validation `$handlerFile.php=>$fnName` can only have the `<RULES>` key!");
+            cli_info("Remove any other keys from the Validation Array for `$currentDXKey` to use it!");
+        }
+    }
+
+
+    //var_dump($convertedValidationArray);
     // Finally return the converted validation array after adding the
     // <DX_KEYS> key at the top of the converted validation array
     // $dxKeysArray = array_flip(array_keys($validationArray));
