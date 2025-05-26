@@ -98,4 +98,5 @@ return array(
     ".tips",
     ".ms",
     ".sa",
-    ".app");
+    ".app"
+);
