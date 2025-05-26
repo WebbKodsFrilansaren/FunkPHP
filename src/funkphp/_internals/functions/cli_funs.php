@@ -1066,15 +1066,6 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         'nullable',
         'required',
         'string',
-        'integer',
-        'float',
-        'boolean',
-        'number',
-        'date',
-        'array',
-        'list',
-        'set',
-        'enum',
         'email',
         'url',
         'ip',
@@ -1082,8 +1073,17 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         'ip6',
         'uuid',
         'phone',
-        'object',
+        'date',
         'json',
+        'integer',
+        'float',
+        'boolean',
+        'number',
+        'array',
+        'list',
+        'set',
+        'enum',
+        'object',
         'checked',
         'file',
         'image',
@@ -1374,7 +1374,6 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
             }
         }
         $theseRulesShouldHaveNoValue = [
-            $foundTypeRule,
             'required',
             'nullable',
             'lowercase',
@@ -1393,6 +1392,20 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
             'audio',
             'object',
             'enum',
+            'set',
+            'json',
+            'url',
+            'ip',
+            'ip4',
+            'ip6',
+            'uuid',
+            'phone',
+        ];
+
+        // List of specific values for specific data types
+        // that are allowed to be used as value(s) for the rule.
+        $allowedSpecificRuleValuesForDataTypes = [
+            'email' => ['dns', 'tld'],
         ];
 
         // Special cases for any rule found in $theseRulesShouldHaveNoValue that has a value
@@ -1402,6 +1415,42 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
                 cli_warning_without_exit("The `$ruleName` Rule for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` has a value set!");
                 cli_info_without_exit("This has been set to `null` since the `$ruleName` Rule does not use a value!");
                 $sortedRulesForField[$ruleName]['value'] = null;
+            }
+        }
+
+        // Iterate through all rules and see if they are a key in
+        // $allowedSpecificRuleValuesForDataTypes. If they are, loop
+        // through all its values and check if the value
+        foreach ($sortedRulesForField as $ruleKey => $ruleName) {
+            // If the rule is a data type rule, we check if it has a value
+            // and if it does, we check if it is in the allowed specific rule values
+            // for that data type. If not, we error out.
+            if (isset($allowedSpecificRuleValuesForDataTypes[$ruleKey]) && isset($sortedRulesForField[$ruleKey]['value'])) {
+                $ruleValue = $sortedRulesForField[$ruleKey]['value'];
+                if (is_string($ruleValue) && !in_array($ruleValue, $allowedSpecificRuleValuesForDataTypes[$ruleKey] ?? [])) {
+                    cli_err_syntax_without_exit("Invalid Value for `$ruleKey` Rule for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                    $transformed = "";
+                    foreach ($allowedSpecificRuleValuesForDataTypes[$ruleKey] as $allowedValue) {
+                        $transformed .= "`$allowedValue`, ";
+                    }
+                    $transformed = rtrim($transformed, ", ");
+                    cli_info("Allowed Values for `$ruleKey` Rule are: $transformed!");
+                }
+                // If the rule value is an array, we check if all its
+                // values are in the allowed specific rule values!
+                else if (is_array($ruleValue)) {
+                    foreach ($ruleValue as $value) {
+                        if (!in_array($value, $allowedSpecificRuleValuesForDataTypes[$ruleKey] ?? [])) {
+                            cli_err_syntax_without_exit("Invalid Value for `$ruleKey` Rule for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                            $transformed = "";
+                            foreach ($allowedSpecificRuleValuesForDataTypes[$ruleKey] as $allowedValue) {
+                                $transformed .= "`$allowedValue`, ";
+                            }
+                            $transformed = rtrim($transformed, ", ");
+                            cli_info("Allowed Values for `$ruleKey` Rule are: $transformed!");
+                        }
+                    }
+                }
             }
         }
 

@@ -736,11 +736,34 @@ function funk_validate_date($inputName, $inputData, $validationValues, $customEr
 }
 
 // Validate that Input Data is a valid email address
-// TODO: Improve this function to check for valid email address format
 function funk_validate_email($inputName, $inputData, $validationValues, $customErr = null)
 {
-    if (!filter_var($inputData, FILTER_VALIDATE_EMAIL)) {
+    if (!is_string($inputData)) {
         return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a valid email address.";
+    }
+    if (!preg_match('/^(?!.*\.\.)[a-zA-Z0-9](?:[a-zA-Z0-9._%+-]*[a-zA-Z0-9])?@(?:[a-zA-Z0-9](?!.*--)[a-zA-Z0-9-]*[a-zA-Z0-9]\.)+[a-zA-Z]{2,}$/', $inputData)) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a valid email address.";
+    }
+    // Run optional additional validation if provided
+    if (isset($validationValues)) {
+        if (is_string($validationValues)) {
+            $validationValues = [$validationValues];
+        }
+        // Run 'tld' if it is set in the validation values
+        if (in_array('tld', $validationValues, true)) {
+            $domain = substr(strrchr($inputData, '@'), 1);
+            $tld = substr(strrchr($domain, '.'), 1);
+            if (!preg_match('/^[a-zA-Z]{2,}$/', $tld)) {
+                return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a valid email address.";
+            }
+        }
+        // Run 'dns' if it is set in the validation values where we check if the domain has a valid DNS record
+        if (in_array('dns', $validationValues, true)) {
+            $domain = substr(strrchr($inputData, '@'), 1);
+            if (!checkdnsrr($domain, 'MX') && !checkdnsrr($domain, 'A')) {
+                return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a valid email address.";
+            }
+        }
     }
     return null;
 }
