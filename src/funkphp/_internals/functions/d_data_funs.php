@@ -745,25 +745,123 @@ function funk_validate_email($inputName, $inputData, $validationValues, $customE
         return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a valid email address.";
     }
     // Run optional additional validation if provided
+    // Currently "tld" & "dns" are supported
     if (isset($validationValues)) {
         if (is_string($validationValues)) {
             $validationValues = [$validationValues];
         }
         // Run 'tld' if it is set in the validation values
+        // where we check if the domain ends with valid TLD
         if (in_array('tld', $validationValues, true)) {
-            $domain = substr(strrchr($inputData, '@'), 1);
-            $tld = substr(strrchr($domain, '.'), 1);
-            if (!preg_match('/^[a-zA-Z]{2,}$/', $tld)) {
+            $domain = strtolower(substr(strrchr($inputData, '@'), 1));
+            // We now include "VALID_TLDS_TOP100" array which is prefined with top 100 tlds endings
+            // and we loop through it to check if the domain ends with a valid TLD
+            $validTldsTop100 = dirname(dirname(__DIR__)) . '/config/VALID_TLDS_TOP100.php';
+            $validTldsTopAll = dirname(dirname(__DIR__)) . '/config/VALID_TLDS_ALL.php';
+            $allTop100 = include_once $validTldsTop100;
+
+            // Iterate through the top 100 TLDs to
+            // check domain ends with a valid TLD
+            $isValidTld = false;
+            foreach ($allTop100 as $tld) {
+                if (str_ends_with($domain, $tld)) {
+                    $isValidTld = true;
+                    break;
+                }
+            }
+            // Only iterate all TLDs if
+            // the top 100 did not match
+            if (!$isValidTld) {
+                $allTlds = include_once $validTldsTopAll;
+                foreach ($allTlds as $tld) {
+                    if (str_ends_with($domain, $tld)) {
+                        $isValidTld = true;
+                        break;
+                    }
+                }
+            }
+            // If the domain does not end with
+            // a valid TLD, return an error
+            if (!$isValidTld) {
                 return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a valid email address.";
             }
+            // if it is valid then the optional DNS might run
+            // instead or it will just return null (= no error)
         }
-        // Run 'dns' if it is set in the validation values where we check if the domain has a valid DNS record
+        // Run 'dns' if it is set in the validation values
+        // where we check if the domain has a valid DNS record
         if (in_array('dns', $validationValues, true)) {
             $domain = substr(strrchr($inputData, '@'), 1);
-            if (!checkdnsrr($domain, 'MX') && !checkdnsrr($domain, 'A')) {
+            if (
+                !checkdnsrr($domain, 'MX') // Check for MX records first (Mail Exchange)
+                && !checkdnsrr($domain, 'A') // Check for A records (IPv4)
+                && !checkdnsrr($domain, 'AAAA') // Check for AAAA records (IPv6)
+            ) {
                 return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a valid email address.";
             }
         }
+    }
+    return null;
+}
+
+// Validate that Input Data is a valid email address by using the validationValue
+// which should be a custom validation function name OR a regex pattern
+function funk_validate_email_custom($inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (!is_string($inputData)) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a valid email address.";
+    }
+    // If validationValues is a string, we assume it is a regex pattern
+    if (is_string($validationValues)) {
+        if (!preg_match($validationValues, $inputData)) {
+            return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a valid email address.";
+        }
+    } elseif (is_callable($validationValues)) {
+        // If validationValues is a callable function, we call it
+        $result = call_user_func($validationValues, $inputData);
+        if ($result !== true) {
+            return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a valid email address.";
+        }
+    } else {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a valid email address.";
+    }
+    return null;
+}
+
+// Validate that Input Data is a string meaning it can be hashed as a password later.
+// IMPORTANT: This does NOT validate the password strength, length, etc.! It only "signals"
+// to the Validation system that a valid string field should be hashed as a password later.
+// This is primarily for optional password fields that can be left empty
+function funk_validate_password_hash($inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (!is_string($inputData)) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a valid password.";
+    }
+    return null;
+}
+
+// Validate that Input Data is a valid password
+// TODO: Maybe add more checks for password strength, length, etc.?
+function funk_validate_password($inputName, $inputData, $validationValues, $customErr = null) {}
+
+// Validate that Input Data is a valid password confirmation
+// TODO: Fix so it can compare with another input field
+function funk_validate_password_confirm($inputName, $inputData, $validationValues, $customErr = null) {}
+
+// Validate that Input Data is a valid password with custom validation where $validationValues
+// is the name of the custom validation function that will be called
+function funk_validate_password_custom($inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (!is_string($inputData)) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a valid password.";
+    }
+    if (is_callable($validationValues)) {
+        $result = call_user_func($validationValues, $inputData);
+        if ($result !== true) {
+            return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a valid password.";
+        }
+    } else {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a valid password. Also, tell the Developer of the website that the custom validation function was not found?!";
     }
     return null;
 }

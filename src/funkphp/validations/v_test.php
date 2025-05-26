@@ -14,11 +14,12 @@ function v_test(&$c) // <POST/test/:id>
     // Run the command `php funkcli compile v v_test=>v_test`
     // to get optimized version in return statement below it!
     $DX = [
-        'email' => 'required|email:dns,tld|between:1,6',
+        'user_email' => 'required|email:dns,tld|between:1,6',
+        'user_password' => 'required|password|between:12,15',
     ];
 
     return array(
-        'email' =>
+        'user_email' =>
         array(
             '<RULES>' =>
             array(
@@ -42,6 +43,31 @@ function v_test(&$c) // <POST/test/:id>
                     array(
                         0 => 1,
                         1 => 6,
+                    ),
+                    'err_msg' => NULL,
+                ),
+            ),
+        ),
+        'user_password' =>
+        array(
+            '<RULES>' =>
+            array(
+                'required' =>
+                array(
+                    'value' => NULL,
+                    'err_msg' => NULL,
+                ),
+                'password' =>
+                array(
+                    'value' => NULL,
+                    'err_msg' => NULL,
+                ),
+                'between' =>
+                array(
+                    'value' =>
+                    array(
+                        0 => 12,
+                        1 => 15,
                     ),
                     'err_msg' => NULL,
                 ),

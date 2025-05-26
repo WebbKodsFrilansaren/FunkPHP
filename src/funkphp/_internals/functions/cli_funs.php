@@ -1042,6 +1042,10 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         'array',
         'list',
         'email',
+        'email_custom',
+        'password',
+        'password_custom',
+        'password_confirm',
         'url',
         'ip',
         'ip4',
@@ -1067,6 +1071,10 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         'required',
         'string',
         'email',
+        'email_custom',
+        'password',
+        'password_custom',
+        'password_confirm',
         'url',
         'ip',
         'ip4',
@@ -1135,7 +1143,6 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
 
     // Now we finally start converting the validation rules to optimized validation rules
     foreach ($validationArray as $DXkey => $Rules) {
-
         // Prepare the current rule for the current key and add
         // it to the converted validation array as its own key
         // since each rule will be a subkey there and each rule
@@ -1274,7 +1281,7 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
                     if ($addedDataTypeRule) {
                         cli_err_syntax_without_exit("Multiple Data Type Rules found for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
                         cli_err_syntax_without_exit("Please make sure only one Data Type Rule is used for each key!");
-                        cli_info("Use one of these: `string`, `integer`, `float`, `boolean`, `number`, `date`, `array`,\n\t\t  `email`, `url`, `ip`, `uuid`, `phone`, `object`, `json`, `enum`, `set`\n\t\t  `ip4`, `ip6`, `checked`, `file`, `audio`, `video`, `image`, or `list`");
+                        cli_info("Use one of these: `string`, `integer`, `float`, `boolean`, `number`, `date`, `array`,\n\t\t  `email`, `email_custom`, `password`,`password_custom`, `password_confirm`, `url`,\n\t\t  `ip`, `uuid`, `phone`, `object`, `json`, `enum`, `set`, `ip4`, `ip6`,\n\t\t `checked`, `file`, `audio`, `video`, `image`, or `list`!");
                     }
                     $addedDataTypeRule = true;
                 }
@@ -1297,12 +1304,14 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         }
         if ($noDataTypeRule) {
             cli_err_syntax_without_exit("No Data Type Rule found for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
-            cli_info("Use one of these: `string`, `integer`, `float`, `boolean`, `number`, `date`, `array`,\n\t\t  `email`, `url`, `ip`, `uuid`, `phone`, `object`, `json`, `enum`, `set`\n\t\t  `ip4`, `ip6`, `checked`, `file`, `audio`, `video`, `image`, or `list`!");
+            cli_info("Use one of these: `string`, `integer`, `float`, `boolean`, `number`, `date`, `array`,\n\t\t  `email`, `email_custom`, `password`,`password_custom`, `password_confirm`, `url`,\n\t\t  `ip`, `uuid`, `phone`, `object`, `json`, `enum`, `set`, `ip4`, `ip6`,\n\t\t `checked`, `file`, `audio`, `video`, `image`, or `list`!");
         }
 
 
         /*
             MANY SPECIAL CASES ARE CHECKED HERE - START:
+            This includes special cases both
+            for Rules and the $DXKey itself.
         */
         // First we get the current data type rule for the $currentDXKey
         // so we can make special case checks for it like not a negative
@@ -1311,6 +1320,10 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
             'string_types' => [
                 'string' => true,
                 'email' => true,
+                'email_custom' => true,
+                'password' => true,
+                'password_custom' => true,
+                'password_confirm' => true,
                 'json' => true,
                 'url' => true,
                 'ip' => true,
@@ -1375,6 +1388,7 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         }
         $theseRulesShouldHaveNoValue = [
             'required',
+            'password',
             'nullable',
             'lowercase',
             'uppercase',
@@ -1458,8 +1472,8 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         // that its type is "array" or "list" or "set", otherweise we error out.
         if (str_ends_with($currentDXKey, "*")) {
             if (!isset($categorizedDataTypeRules['array_types'][$foundTypeRule])) {
-                cli_err_syntax_without_exit("The `$currentDXKey` key in Validation `$handlerFile.php=>$fnName` must be of type `array`, `list` or `set`!");
-                cli_info("Specify one Array-like Data Type for `$currentDXKey` to use the Array Numbering `*` character at the end of the key!");
+                cli_err_syntax_without_exit("The `$currentDXKey` key in Validation `$handlerFile.php=>$fnName` must be of type `array` or `list`!");
+                cli_info("Specify `array` or `list` Data Type for `$currentDXKey` to use the Array Numbering `*` character at the end of the key!");
             }
             // We check if the rule "min" exists while "max" does not exist so we warn
             // about that it could lead to infinite loop in the validation function
@@ -1467,6 +1481,88 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
                 cli_warning_without_exit("The `min` Rule for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` exists but the `max` Rule does not!");
                 cli_info_without_exit("This could lead to processing more than desired, consider adding a `max` Rule or changing to the `between` Rule instead!");
             }
+        }
+
+        // Special cases for "password" Rule
+        if (isset($sortedRulesForField['password'])) {
+            // We loop through "$validationArray" to see if there is a "password_custom" rule
+            // in any of the other $DXKeys and if there is, we warn the user that
+            // they should also use "password_confirm" to increase security.
+            $foundPasswordCustom = false;
+            foreach ($validationArray as $key => $value) {
+                if (is_string($value) && str_contains($value, 'password_confirm')) {
+                    $foundPasswordConfirm = true;
+                    break;
+                }
+            }
+            if (!$foundPasswordConfirm) {
+                cli_warning_without_exit("The `password` Data Type Rule for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` is recommended to also have an accompanying `password_confirm` Data Type in another `\$DX Key`!");
+            }
+            // Check that current $DXKey also has a "between" Rule
+            if (!isset($sortedRulesForField['between'])) {
+                cli_err_syntax_without_exit("The `password` Rule for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` need a `between` Rule!");
+                cli_info("Add the `between` Rule to `$currentDXKey` to use the `password` Rule!");
+            }
+            // If the "between" Rule's first value is shorter than 12 characters, we warn but allow it
+            if (isset($sortedRulesForField['between'])) {
+                $betweenValue = $sortedRulesForField['between']['value'];
+                if ($betweenValue[0] < 12) {
+                    cli_warning_without_exit("The `password` Rule for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` has a `between` Rule with a first value less than 12!");
+                    cli_info_without_exit("This means you want to allow passwords shorter than 12 characters? Otherwise change the first value to at least 12!");
+                }
+            }
+            // Check that current $DXKey also has a "required" Rule or just warn
+            // because you might wanna use the `password` Rule without `required` Rule
+            if (!isset($sortedRulesForField['required'])) {
+                cli_err_syntax_without_exit("The `password` Rule for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` need a `required` Rule!");
+                cli_info_without_exit("If `$currentDXKey` should be optional as a `password`, use the `string` Data Type with the `password_hash` Rule instead!");
+                cli_info("This will password_hash the value stored in `$currentDXKey` after ALL validation has passed for all Input Data!");
+            }
+            if (isset($sortedRulesForField['nullable'])) {
+                cli_err_syntax_without_exit("The `password` Rule for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` cannot use `nullable` Rule!");
+                cli_info_without_exit("If `$currentDXKey` should be optional as a `password`, use the `string` Data Type with the `password_hash` Rule instead!");
+                cli_info("This will \"password_hash\" the value stored in `$currentDXKey` after ALL validation has passed for the value stored in `$currentDXKey`!");
+            }
+        }
+
+        // Special cases for "password_confirm" Rule
+        if (isset($sortedRulesForField['password_confirm'])) {
+            $foundPasswordCustom = false;
+            foreach ($validationArray as $key => $value) {
+                if (is_string($value) && str_contains($value, 'password') && !str_contains($value, 'password_confirm')) {
+                    $foundPasswordCustom = true;
+                    break;
+                }
+            }
+            if (!$foundPasswordCustom) {
+                cli_warning_without_exit("The `password_confirm` Data Type Rule for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` is recommended to also have an accompanying `password` Data Type in another `\$DX Key`!");
+            }
+            // Check that password_confirm has a value
+            if (!isset($sortedRulesForField['password_confirm']['value']) || empty($sortedRulesForField['password_confirm']['value'])) {
+                cli_err_syntax_without_exit("The `password_confirm` Rule for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` must have a value!");
+                cli_info("Specify the Password Field (the field with a `password` Data Type Rule) as the value for the `password_confirm` Rule!");
+            }
+            // Check that any $validationArray that has the value from password_confirm
+            if (isset($sortedRulesForField['password_confirm']['value'])) {
+                $passwordConfirmValue = $sortedRulesForField['password_confirm']['value'];
+                // If the value is not a string, we error out
+                if (!is_string_and_not_empty($passwordConfirmValue)) {
+                    cli_err_syntax_without_exit("Invalid `password_confirm` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                    cli_info("Specify a Non-Empty String as the value for the `password_confirm` Rule!");
+                }
+                // If the value is not a valid key in $validationArray, we error out
+                if (!isset($validationArray[$passwordConfirmValue])) {
+                    cli_err_syntax_without_exit("Invalid `password_confirm` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                    cli_info("Specify a Valid Key from the \$DX Array as the value for the `password_confirm` Rule which it should confirm against!");
+                }
+            }
+            // Check that current $DXKey ONLY has "required" and "password_confirm" Rules meaning the count
+            // should be 2, otherwise we error out since it is not allowed to have other rules
+            if (count($sortedRulesForField) !== 2 || !isset($sortedRulesForField['required']) || !isset($sortedRulesForField['password_confirm'])) {
+                cli_err_syntax_without_exit("The `password_confirm` Rule for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` must only have `required` and `password_confirm` Rules!");
+                cli_info("Remove any other Rules from `$currentDXKey` to use the `password_confirm` Rule!");
+            }
+            // Here we check if the `password_confirm` Rule is used with a `between` Rule
         }
 
         // Special cases for the "between" Rule
