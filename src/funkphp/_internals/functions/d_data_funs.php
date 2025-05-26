@@ -1143,11 +1143,48 @@ function funk_validate_digits($inputName, $inputData, $validationValues, $custom
 // This function checks if the input is a valid hex color code in the format #RRGGBB or #RGB
 function funk_validate_color($inputName, $inputData, $validationValues, $customErr = null)
 {
-    // Check if the input is a string and matches the hex color code pattern
-    if (!preg_match('/^#([a-fA-F0-9]{6})$/', $inputData)) {
-        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a valid hex color code.";
+    // Run defasult validation if no $validationValues are provided (#RRGGBB)
+    if (!isset($validationValues)) {
+        if (!preg_match('/^#([a-fA-F0-9]{6})$/', $inputData)) {
+            return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a valid six hexadecimal color code.";
+        } else {
+            return null;
+        }
     }
-    return null;
+
+    // Prepare compatible patterns for different color formats that are supported
+    $colorPatterns = [
+        // #RRGGBB
+        'hex6'      => '/^#([a-fA-F0-9]{6})$/',
+        // #RGB (shorthand)
+        'hex3'      => '/^#([a-fA-F0-9]{3})$/',
+
+        // RGB: rgb(R, G, B) - R, G, B are integers 0-255, possibly with spaces
+        // Allowing percentages too, but typically for (0-255)
+        // RGBA: rgba(R, G, B, A) - A is float 0-1 or percentage
+        'rgb'       => '/^rgb\(\s*((\d{1,3})\s*,\s*){2}(\d{1,3})\s*\)$/',
+        'rgba'      => '/^rgba\(\s*((\d{1,3})\s*,\s*){2}(\d{1,3})\s*,\s*((0(\.\d+)?|1(\.0+)?|\d{1,2}%|100%))\s*\)$/',
+
+        // HSL: hsl(H, S%, L%) - H is 0-360, S, L are 0-100%
+        // HSLA: hsla(H, S%, L%, A) - A is float 0-1 or percentage
+        'hsl'       => '/^hsl\(\s*((\d{1,3}|360)\s*,\s*){1}((\d{1,3}%)\s*,\s*){1}(\d{1,3}%)\s*\)$/',
+        'hsla'      => '/^hsla\(\s*((\d{1,3}|360)\s*,\s*){1}((\d{1,3}%)\s*,\s*){1}(\d{1,3}%)\s*,\s*((0(\.\d+)?|1(\.0+)?|\d{1,2}%|100%))\s*\)$/',
+
+        // CSS Color Keywords (e.g., "red", "blue", "transparent")
+        'names'   => '/^(rebeccapurple|aliceblue|antiquewhite|aqua|aquamarine|azure|beige|bisque|black|blanchedalmond|blue|blueviolet|brown|burlywood|cadetblue|chartreuse|chocolate|coral|cornflowerblue|cornsilk|crimson|cyan|darkblue|darkcyan|darkgoldenrod|darkgray|darkgreen|darkgrey|darkkhaki|darkmagenta|darkolivegreen|darkorange|darkorchid|darkred|darksalmon|darkseagreen|darkslateblue|darkslategray|darkslategrey|darkturquoise|darkviolet|deeppink|deepskyblue|dimgray|dimgrey|dodgerblue|firebrick|floralwhite|forestgreen|fuchsia|gainsboro|ghostwhite|gold|goldenrod|gray|green|greenyellow|grey|honeydew|hotpink|indianred|indigo|ivory|khaki|lavender|lavenderblush|lawngreen|lemonchiffon|lightblue|lightcoral|lightcyan|lightgoldenrodyellow|lightgray|lightgreen|lightgrey|lightpink|lightsalmon|lightseagreen|lightskyblue|lightslategray|lightslategrey|lightsteelblue|lightyellow|lime|limegreen|linen|magenta|maroon|mediumaquamarine|mediumblue|mediumorchid|mediumpurple|mediumseagreen|mediumslateblue|mediumspringgreen|mediumturquoise|mediumvioletred|midnightblue|mintcream|mistyrose|moccasin|navajowhite|navy|oldlace|olive|olivedrab|orange|orangered|orchid|palegoldenrod|palegreen|paleturquoise|palevioletred|papayawhip|peachpuff|peru|pink|plum|powderblue|purple|red|rosybrown|royalblue|saddlebrown|salmon|sandybrown|seagreen|seashell|sienna|silver|skyblue|slateblue|slategray|slategrey|snow|springgreen|steelblue|tan|teal|thistle|tomato|turquoise|violet|wheat|white|whitesmoke|yellow|yellowgreen|transparent)$/i',
+    ];
+
+    // We now loop through the array of $validationValues and use the preg_match function
+    if (is_string($validationValues)) {
+        $validationValues = [$validationValues];
+    }
+    foreach ($validationValues as $value) {
+        if (isset($colorPatterns[$value]) && preg_match($colorPatterns[$value], $inputData)) {
+            return null; // Valid color format found
+        }
+    }
+    // Here we return an error if no valid color format was found when $validationValues were provided
+    return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a valid color code in one of the supported formats: " . implode(', ', array_keys($colorPatterns)) . ".";
 }
 
 // Validate that Input Data is in uppercase, must be combiend with string validation
@@ -1159,11 +1196,77 @@ function funk_validate_lowercase($inputName, $inputData, $validationValues, $cus
     return null;
 }
 
+// Validate that Input Data has a number of lowercases as specified in $validationValues
+// This function checks if the input data is a string and if it contains the specified number of lowercases.
+function funk_validate_lowercases($inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (!is_string($inputData)) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a string.";
+    }
+    $lowercaseCount = preg_match_all('/[a-z]/', $inputData);
+    if ($lowercaseCount < $validationValues) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must have at least $validationValues lowercase letters (a-z).";
+    }
+    return null;
+}
+
 // Validate that Input Data is in uppercase, must be combined with string validation
 function funk_validate_uppercase($inputName, $inputData, $validationValues, $customErr = null)
 {
     if (!is_string($inputData) || mb_strtoupper($inputData) !== $inputData) {
         return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be in uppercase.";
+    }
+    return null;
+}
+
+// Validate that Input Data has a number of uppercases as specified in $validationValues
+// This function checks if the input data is a string and if it contains the specified number of uppercases.
+function funk_validate_uppercases($inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (!is_string($inputData)) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a string.";
+    }
+    $lowercaseCount = preg_match_all('/[A-Z]/', $inputData);
+    if ($lowercaseCount < $validationValues) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must have at least $validationValues uppercase letters (A-Z).";
+    }
+    return null;
+}
+
+// Validate that Input Data is has a certain number of digits as specified in $validationValues
+// This function checks if the input data is a string and if it contains the specified number of digits.
+function funk_validate_numbers($inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (!is_string($inputData)) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a string.";
+    }
+    $digitCount = preg_match_all('/[0-9]/', $inputData);
+    if ($digitCount < $validationValues) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must have at least $validationValues digits (0-9).";
+    }
+    return null;
+}
+
+// Validate that Input Data is has a certain number of special characters as specified in $validationValues
+// This function checks if the input data is a string and if it contains the specified number of special characters.
+function funk_validate_specials($inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (!is_string($inputData)) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a string.";
+    }
+    // Define the special characters you want to check for
+    // CHANGE IF NEEDED (ADDING OR REMOVING BELOW!)
+    $specialChars = '!@#$%^&*()_+[]{}|;:,.<>?';
+    $specialCharCount = 0;
+
+    // Count the number of special characters in the input data
+    for ($i = 0; $i < mb_strlen($inputData); $i++) {
+        if (strpos($specialChars, mb_substr($inputData, $i, 1)) !== false) {
+            $specialCharCount++;
+        }
+    }
+    if ($specialCharCount < $validationValues) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must have at least $validationValues valid special characters - any of these: `$specialChars`";
     }
     return null;
 }
@@ -1467,6 +1570,16 @@ function funk_validate_elements_this_type_order($inputName, $inputData, $validat
     foreach ($inputData as $key => $value) {
         $expectedType = $validationValues[$key];
         switch ($expectedType) {
+            case 'char':
+                if (!is_string($value) || mb_strlen($value) !== 1) {
+                    return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName element at index $key must be a single string character.";
+                }
+                break;
+            case 'null':
+                if (!is_null($value)) {
+                    return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName element at index $key must be null.";
+                }
+                break;
             case 'string':
                 if (!is_string($value)) {
                     return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName element at index $key must be a string.";

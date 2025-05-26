@@ -1435,6 +1435,10 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         // a quick first check using a loop below!
         $theseRulesMustHaveValues = [
             'elements_this_type_order',
+            'uppercases',
+            'lowercases',
+            'numbers',
+            'specials',
             'min_digits',
             'max_digits',
             'min',
@@ -2139,6 +2143,42 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
                 cli_info("Remove `min`, `max`, `between`, `exact`, `size`, or `count` Rules to use the `array_values_exact` Rule!");
             }
         }
+
+        // Special case for "elements_this_type_order" Rule which must have a
+        // "array" or "list" data type set first, and then it can be used
+        if (isset($sortedRulesForField['elements_this_type_order'])) {
+            // If data type is not "array" or "list", we error out
+            if (!isset($sortedRulesForField['array']) && !isset($sortedRulesForField['list'])) {
+                cli_err_syntax_without_exit("The `elements_this_type_order` Rule need the Data Type `array` or `list` for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify the `array` OR `list` Data Type Rule for `$currentDXKey` to use the `elements_this_type_order` rule!");
+            }
+            // Convert to array if needed
+            $values = is_string($sortedRulesForField['elements_this_type_order']['value']) ?
+                [$sortedRulesForField['elements_this_type_order']['value']] :
+                $sortedRulesForField['elements_this_type_order']['value'];
+
+            // Iterate and make sure each element is of one of the allowed types
+            $allowedTypes = [
+                'array',
+                'list',
+                'checked',
+                'unchecked',
+                'char',
+                'string',
+                'number',
+                'boolean',
+                'null',
+                'float',
+                'integer'
+            ];
+            foreach ($values as $value) {
+                if (!in_array($value, $allowedTypes, true)) {
+                    cli_err_syntax_without_exit("Invalid `elements_this_type_order` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                    cli_info("Specify an Array of Allowed Types (array, list, checked, unchecked, char, string, number, boolean, null, float, integer) as the value for the `elements_this_type_order` rule!");
+                }
+            }
+        }
+
 
         // Special case for "elements_all_X" Rule which checks if all elements
         // in an array are of data type X, and if not, it errors out. This needs

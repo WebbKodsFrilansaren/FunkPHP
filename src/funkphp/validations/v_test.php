@@ -15,7 +15,7 @@ function v_test(&$c) // <POST/test/:id>
     // to get optimized version in return statement below it!
     $DX = [
         'user_email' => 'required|email:dns,tld|between:1,5',
-        'array_test' => 'required|array|elements_this_type_order:string,test',
+        'array_test' => 'required|array|elements_this_type_order:string,char',
     ];
 
     return array(
@@ -67,7 +67,7 @@ function v_test(&$c) // <POST/test/:id>
                     'value' =>
                     array(
                         0 => 'string',
-                        1 => 'test',
+                        1 => 'char',
                     ),
                     'err_msg' => NULL,
                 ),
