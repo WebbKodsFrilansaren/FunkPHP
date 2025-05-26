@@ -1586,17 +1586,24 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         }
 
         // Special case where we check for a "$currentDXKey" that ends with a "*"
-        // that its type is "array" or "list" or "set", otherweise we error out.
+        // that its type is "list", otherweise we error out. We also check for
+        // the "min", "max", "count", "exact" and "between" rules to see if they
+        // are set, otherwise we warn the user that it could lead to infinite loop!
         if (str_ends_with($currentDXKey, "*")) {
-            if (!isset($categorizedDataTypeRules['array_types'][$foundTypeRule])) {
-                cli_err_syntax_without_exit("The `$currentDXKey` key in Validation `$handlerFile.php=>$fnName` must be of type `array` or `list`!");
-                cli_info("Specify `array` aar `list` Data Type for `$currentDXKey` to use the Array Numbering `*` character at the end of the key!");
+            if (!isset($sortedRulesForField['list'])) {
+                cli_err_syntax_without_exit("The `$currentDXKey` key in Validation `$handlerFile.php=>$fnName` must the Array Numbering Data Type `list`!");
+                cli_info("Specify `list` Data Type for `$currentDXKey` to use the Array Numbering `*` Character at the end of the Key!");
             }
             // We check if the rule "min" exists while "max" does not exist so we warn
             // about that it could lead to infinite loop in the validation function
-            if (isset($sortedRulesForField['min']) && !isset($sortedRulesForField['max'])) {
-                cli_warning_without_exit("The `min` Rule for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` exists but the `max` Rule does not!");
-                cli_info_without_exit("This could lead to processing more than desired, consider adding a `max` Rule or changing to the `between` Rule instead!");
+            if (
+                !isset($sortedRulesForField['max'])
+                && !isset($sortedRulesForField['count'])
+                && !isset($sortedRulesForField['exact'])
+                && !isset($sortedRulesForField['between'])
+            ) {
+                cli_warning_without_exit("There are no Array Elements Limiting Rule(s) set for the Numbered Array `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info_without_exit("Add `between`,`count`,`exact` or `max` Rule to prevent CPU/DoS exploits!");
             }
         }
 
@@ -2413,15 +2420,13 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         foreach ($arrayKeys as $otherKey) {
             if ($otherKey === $baseKey) {
                 cli_err_syntax_without_exit("The Validation Key `$currentKey` (indicating a numbered array) in Validation `$handlerFile.php=>$fnName` conflicts with the Key `$otherKey` which is on the same key level!");
-                cli_err_syntax_without_exit("It is invalid JSON to have both a numbered array and an associative key with the same base name!");
+                cli_err_syntax_without_exit("It is invalid JSON to have both a Numbered Array[0-9] and an ['Associative_Key'] at the same Key Level!");
                 cli_info_without_exit("Associative Key `['$otherKey'] = {values}` will conflict with Numbered Key(s) `['$baseKey'][0-9] = {values}`!");
                 cli_info("Change the Key `$currentKey` to not end with `.*` (thus removing its numbered array function) or change the Key `$otherKey`!");
             }
         }
     }
 
-
-    //var_dump($convertedValidationArray);
     // Finally return the converted validation array after adding the
     // <DX_KEYS> key at the top of the converted validation array
     // $dxKeysArray = array_flip(array_keys($validationArray));

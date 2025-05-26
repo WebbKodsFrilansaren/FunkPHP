@@ -14,15 +14,15 @@ function v_test(&$c) // <POST/test/:id>
     // Run the command `php funkcli compile v v_test=>v_test`
     // to get optimized version in return statement below it!
     $DX = [
-        'testa' => 'string|required',
-        'test.*' => 'array|nullable',
-        'test.*.testa' => 'string|required',
-        'test.*.test.*' => 'array|required',
-        'test.*.test.*.test3' => 'string|required',
+        'users' => 'integer|required',
+        'user.*' => 'list|nullable',
+        'user.*.name' => 'string|required',
+        'user.*.age' => 'integer|required',
+        'user.*.gender' => 'char:m,f|required',
     ];
 
     return array(
-        'testa' =>
+        'users' =>
         array(
             '<RULES>' =>
             array(
@@ -31,14 +31,14 @@ function v_test(&$c) // <POST/test/:id>
                     'value' => NULL,
                     'err_msg' => NULL,
                 ),
-                'string' =>
+                'integer' =>
                 array(
                     'value' => NULL,
                     'err_msg' => NULL,
                 ),
             ),
         ),
-        'test' =>
+        'user' =>
         array(
             '*' =>
             array(
@@ -49,13 +49,13 @@ function v_test(&$c) // <POST/test/:id>
                         'value' => NULL,
                         'err_msg' => NULL,
                     ),
-                    'array' =>
+                    'list' =>
                     array(
                         'value' => NULL,
                         'err_msg' => NULL,
                     ),
                 ),
-                'testa' =>
+                'name' =>
                 array(
                     '<RULES>' =>
                     array(
@@ -71,38 +71,39 @@ function v_test(&$c) // <POST/test/:id>
                         ),
                     ),
                 ),
-                'test' =>
+                'age' =>
                 array(
-                    '*' =>
+                    '<RULES>' =>
                     array(
-                        '<RULES>' =>
+                        'required' =>
                         array(
-                            'required' =>
-                            array(
-                                'value' => NULL,
-                                'err_msg' => NULL,
-                            ),
-                            'array' =>
-                            array(
-                                'value' => NULL,
-                                'err_msg' => NULL,
-                            ),
+                            'value' => NULL,
+                            'err_msg' => NULL,
                         ),
-                        'test3' =>
+                        'integer' =>
                         array(
-                            '<RULES>' =>
+                            'value' => NULL,
+                            'err_msg' => NULL,
+                        ),
+                    ),
+                ),
+                'gender' =>
+                array(
+                    '<RULES>' =>
+                    array(
+                        'required' =>
+                        array(
+                            'value' => NULL,
+                            'err_msg' => NULL,
+                        ),
+                        'char' =>
+                        array(
+                            'value' =>
                             array(
-                                'required' =>
-                                array(
-                                    'value' => NULL,
-                                    'err_msg' => NULL,
-                                ),
-                                'string' =>
-                                array(
-                                    'value' => NULL,
-                                    'err_msg' => NULL,
-                                ),
+                                0 => 'm',
+                                1 => 'f',
                             ),
+                            'err_msg' => NULL,
                         ),
                     ),
                 ),
