@@ -2394,7 +2394,7 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         }
     }
 
-
+    // TODO: When fixed, remove this error message!
     // CURRENTLY: We do NOT support "*" as the root key
     // since the function that validates uses $DX => $nested
     // where it NEVER assumes $DX to be "*" as the root key.

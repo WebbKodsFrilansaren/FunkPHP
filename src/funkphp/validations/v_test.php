@@ -14,59 +14,41 @@ function v_test(&$c) // <POST/test/:id>
     // Run the command `php funkcli compile v v_test=>v_test`
     // to get optimized version in return statement below it!
     $DX = [
-        '*' => 'list|count:1|required',
-        '*.user.*' => 'list|count:1|required',
-        '*.user.*.name' => 'string|required',
-        '*.user.*.age' => 'integer|required',
-        '*.user.*.gender' => 'char:m,f|required',
-        '*.user.*.hobbies.*' => 'list|required|count:1',
-        '*.user.*.hobbies.*.sports' => 'string|required',
+        'a.*' => 'list|count:1|required',
+        'a.*.user.*' => 'list|count:1|required',
+        'a.*.user.*.name' => 'string|required',
+        'a.*.user.*.age' => 'integer|required',
+        'a.*.user.*.gender' => 'char:f|required',
+        'a.*.user.*.hobbies.*' => 'list|required|count:1',
+        'a.*.user.*.hobbies.*.sports' => 'string|required',
     ];
 
     return array(
-        '*' =>
+        'a' =>
         array(
-            '<RULES>' =>
+            '*' =>
             array(
-                'required' =>
+                '<RULES>' =>
                 array(
-                    'value' => NULL,
-                    'err_msg' => NULL,
-                ),
-                'list' =>
-                array(
-                    'value' => NULL,
-                    'err_msg' => NULL,
-                ),
-                'count' =>
-                array(
-                    'value' => 1,
-                    'err_msg' => NULL,
-                ),
-            ),
-            'user' =>
-            array(
-                '*' =>
-                array(
-                    '<RULES>' =>
+                    'required' =>
                     array(
-                        'required' =>
-                        array(
-                            'value' => NULL,
-                            'err_msg' => NULL,
-                        ),
-                        'list' =>
-                        array(
-                            'value' => NULL,
-                            'err_msg' => NULL,
-                        ),
-                        'count' =>
-                        array(
-                            'value' => 1,
-                            'err_msg' => NULL,
-                        ),
+                        'value' => NULL,
+                        'err_msg' => NULL,
                     ),
-                    'name' =>
+                    'list' =>
+                    array(
+                        'value' => NULL,
+                        'err_msg' => NULL,
+                    ),
+                    'count' =>
+                    array(
+                        'value' => 1,
+                        'err_msg' => NULL,
+                    ),
+                ),
+                'user' =>
+                array(
+                    '*' =>
                     array(
                         '<RULES>' =>
                         array(
@@ -75,52 +57,18 @@ function v_test(&$c) // <POST/test/:id>
                                 'value' => NULL,
                                 'err_msg' => NULL,
                             ),
-                            'string' =>
+                            'list' =>
                             array(
                                 'value' => NULL,
+                                'err_msg' => NULL,
+                            ),
+                            'count' =>
+                            array(
+                                'value' => 1,
                                 'err_msg' => NULL,
                             ),
                         ),
-                    ),
-                    'age' =>
-                    array(
-                        '<RULES>' =>
-                        array(
-                            'required' =>
-                            array(
-                                'value' => NULL,
-                                'err_msg' => NULL,
-                            ),
-                            'integer' =>
-                            array(
-                                'value' => NULL,
-                                'err_msg' => NULL,
-                            ),
-                        ),
-                    ),
-                    'gender' =>
-                    array(
-                        '<RULES>' =>
-                        array(
-                            'required' =>
-                            array(
-                                'value' => NULL,
-                                'err_msg' => NULL,
-                            ),
-                            'char' =>
-                            array(
-                                'value' =>
-                                array(
-                                    0 => 'm',
-                                    1 => 'f',
-                                ),
-                                'err_msg' => NULL,
-                            ),
-                        ),
-                    ),
-                    'hobbies' =>
-                    array(
-                        '*' =>
+                        'name' =>
                         array(
                             '<RULES>' =>
                             array(
@@ -129,18 +77,48 @@ function v_test(&$c) // <POST/test/:id>
                                     'value' => NULL,
                                     'err_msg' => NULL,
                                 ),
-                                'list' =>
+                                'string' =>
                                 array(
                                     'value' => NULL,
                                     'err_msg' => NULL,
                                 ),
-                                'count' =>
+                            ),
+                        ),
+                        'age' =>
+                        array(
+                            '<RULES>' =>
+                            array(
+                                'required' =>
                                 array(
-                                    'value' => 1,
+                                    'value' => NULL,
+                                    'err_msg' => NULL,
+                                ),
+                                'integer' =>
+                                array(
+                                    'value' => NULL,
                                     'err_msg' => NULL,
                                 ),
                             ),
-                            'sports' =>
+                        ),
+                        'gender' =>
+                        array(
+                            '<RULES>' =>
+                            array(
+                                'required' =>
+                                array(
+                                    'value' => NULL,
+                                    'err_msg' => NULL,
+                                ),
+                                'char' =>
+                                array(
+                                    'value' => 'f',
+                                    'err_msg' => NULL,
+                                ),
+                            ),
+                        ),
+                        'hobbies' =>
+                        array(
+                            '*' =>
                             array(
                                 '<RULES>' =>
                                 array(
@@ -149,10 +127,31 @@ function v_test(&$c) // <POST/test/:id>
                                         'value' => NULL,
                                         'err_msg' => NULL,
                                     ),
-                                    'string' =>
+                                    'list' =>
                                     array(
                                         'value' => NULL,
                                         'err_msg' => NULL,
+                                    ),
+                                    'count' =>
+                                    array(
+                                        'value' => 1,
+                                        'err_msg' => NULL,
+                                    ),
+                                ),
+                                'sports' =>
+                                array(
+                                    '<RULES>' =>
+                                    array(
+                                        'required' =>
+                                        array(
+                                            'value' => NULL,
+                                            'err_msg' => NULL,
+                                        ),
+                                        'string' =>
+                                        array(
+                                            'value' => NULL,
+                                            'err_msg' => NULL,
+                                        ),
                                     ),
                                 ),
                             ),
