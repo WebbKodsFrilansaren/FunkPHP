@@ -173,7 +173,6 @@ function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array 
     // If stop rule exist, we just unset it because the boolean value
     // is enough to know if we should stop further validation later
     if ($stop) {
-        echo "Stop Rule Found!\n";
         unset($rules['stop']);
     }
 
@@ -378,7 +377,6 @@ function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array 
     ];
 
     // ITERATING THROUGH REMAINING RULES THIS INPUT FIELD
-    echo "Data Type Rule: `$foundTypeRule` | Category: `$foundTypeCat`\n";
     foreach ($rules as $rule => $ruleConfig) {
         $ruleValue = $ruleConfig['value'];
         $customErr = $ruleConfig['err_msg'];
