@@ -10,7 +10,8 @@ function d_test(&$c) // <POST/test/:id>
     $validatePOST = funk_use_validation($c, $v_file, "JSON");
     $test = [
         'v' => $c['v'],
-        'v_ok' => $c['v_ok']
+        'v_ok' => $c['v_ok'],
+        'v_config' => $c['v_config'],
     ];
     dj($test);
 };

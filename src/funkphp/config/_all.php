@@ -23,9 +23,13 @@ return [
     // 'v' should be NULL but stores ANY founds errors during the validation process while
     // 'v_ok' will is true if not a single v['key']['optionalSubkey'] is set with error(s)!
     // The 'v_ok_files' is boolean for validating files and works the same way as 'v_ok'!
+    // 'v_config' is a global array of validation configurations that can be accessed
+    // when validating no matter how nested or not the validation is! It stores "password"
+    // to for "password_confirm" to check against the "password" field, etc.
     'v' => null,
     'v_ok' => null,
     'v_ok_files' => null,
+    'v_config' => [],
 
     // 'd' will ALWAYS store fetched database data (it does NOT store validation errors)
     'd' => null,

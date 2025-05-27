@@ -1340,16 +1340,18 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         // and then add remaining rules in the order they were found.
         // We also make sure only one data type rule is used for each key!
         $addedDataTypeRule = false;
+        $firstDataTypeRule = "";
         foreach ($priorityOrder as $ruleName) {
             if (isset($createdRules[$ruleName])) {
                 if (in_array($ruleName, $dataTypeRules)) {
                     if ($addedDataTypeRule) {
-                        cli_err_syntax_without_exit("Multiple Data Type Rules found for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                        cli_err_syntax_without_exit("Multiple Data Type Rule `$ruleName` (while Data Type Rule `$firstDataTypeRule` already exists) found for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
                         cli_err_syntax_without_exit("Please make sure only one Data Type Rule is used for each key!");
-                        cli_info("Use one of these: `string`, `integer`, `float`, `boolean`, `number`, `date`, `array`,\n\t\t  `email`, `email_custom`, `password`,`password_custom`, `password_confirm`, `url`,\n\t\t  `ip`, `uuid`, `phone`, `object`, `json`, `enum`, `set`, `ip4`, `ip6`,\n\t\t `checked`, `file`, `audio`, `video`, `image`, or `list`, `char`, or `digit`!");
+                        cli_info("Use ONLY ONE of these Data Type Rules for each single Input Data: `string`, `integer`, `float`, `boolean`, `number`, `date`, `array`,\n\t\t  `email`, `email_custom`, `password`,`password_custom`, `password_confirm`, `url`, `ip`, `uuid`, `phone`, `object`, `json`, `enum`,\n\t\t  `set`, `ip4`, `ip6`, `checked`, `file`, `audio`, `video`, `image`, or `list`, `char`, or `digit`!");
                     }
                     $addedDataTypeRule = true;
                 }
+                $firstDataTypeRule = $ruleName;
                 $sortedRulesForField[$ruleName] = $createdRules[$ruleName];
                 unset($createdRules[$ruleName]);
             }
@@ -1369,7 +1371,7 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         }
         if ($noDataTypeRule) {
             cli_err_syntax_without_exit("No Data Type Rule found for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
-            cli_info("Use one of these: `string`, `integer`, `float`, `boolean`, `number`, `date`, `array`,\n\t\t  `email`, `email_custom`, `password`,`password_custom`, `password_confirm`, `url`,\n\t\t  `ip`, `uuid`, `phone`, `object`, `json`, `enum`, `set`, `ip4`, `ip6`,\n\t\t `checked`, `file`, `audio`, `video`, `image`, or `list`, `char`, or `digit`!");
+            cli_info("Use ONLY ONE of these Data Type Rules for each single Input Data: `string`, `integer`, `float`, `boolean`, `number`, `date`, `array`,\n\t\t  `email`, `email_custom`, `password`,`password_custom`, `password_confirm`, `url`, `ip`, `uuid`, `phone`, `object`, `json`, `enum`,\n\t\t  `set`, `ip4`, `ip6`, `checked`, `file`, `audio`, `video`, `image`, or `list`, `char`, or `digit`!");
         }
 
 
@@ -1526,6 +1528,19 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
             'email' => ['dns', 'tld'],
         ];
 
+        // List of other Rules that some Data Types Rules
+        // ONLY can have. For example `digit` can only have
+        // "required","nullable" but nothing else. So this
+        // array is compared so no other rules are used
+        // when the specific data type is used.
+        $allowedOtherRulesForSpecificDataTypeRule = [
+            'digit' => [
+                'required',
+                'nullable',
+                'field'
+            ],
+        ];
+
         // Special cases for any rule found in $theseRulesShouldHaveNoValue that has a value
         // when it should not (but we do not error out but just warn that the value will be ignored).
         foreach ($theseRulesShouldHaveNoValue as $ruleName) {
@@ -1625,6 +1640,53 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
             }
         }
 
+
+        // Special case for "digit" Rule. We check that its value is (whether a single string
+        // or an array of values) are all single digits (0-9) and if not, we error out. We also
+        // check for duplicates in the digits and if there are duplicates, we error out.
+        if (isset($sortedRulesForField['digit'])) {
+            if (isset($sortedRulesForField['digit']['value'])) {
+                $digitValue = $sortedRulesForField['digit']['value'];
+                // Check if the string is a single digit
+                if (is_string($digitValue)) {
+
+                    if (!preg_match('/^[0-9]$/', $digitValue)) {
+                        cli_err_syntax_without_exit("Invalid `digit` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                        cli_info("The `digit` Rule Value must be a Single Digit (0-9)!");
+                    }
+                } elseif (is_array($digitValue)) {
+                    // Check that each value in the array is a single digit
+                    foreach ($digitValue as $subValue) {
+                        if (!preg_match('/^[0-9]$/', $subValue)) {
+                            cli_err_syntax_without_exit("Invalid `digit` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                            cli_info("If several Digits are used, the `digit` Rule Value must be an Array of only Single Digits (0-9)!");
+                        }
+                    }
+                    // Check for duplicates in the array
+                    if (count($digitValue) !== count(array_unique($digitValue))) {
+                        cli_err_syntax_without_exit("Duplicate Digits found in `digit` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                        cli_info("All Digits must be unique in the `digit` Rule Value Array!");
+                    }
+                } else {
+                    cli_err_syntax_without_exit("Invalid `digit` Rule Value Type for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                    cli_info("The `digit` Rule Value must be a Single Digit or an Array of Single Digits (0-9)!");
+                }
+            }
+            // We loop through "$sortedRulesForField" to see if the "digit" Rule
+            // has any other rules that are NOT inside of "$allowedOtherRulesForSpecificDataTypeRule"
+            // meaning they cannot be used with the "digit" Rule and we error out.
+            foreach ($sortedRulesForField as $ruleName => $ruleConfig) {
+                if (
+                    $ruleName !== 'digit'
+                    && isset($allowedOtherRulesForSpecificDataTypeRule['digit'])
+                    && !in_array($ruleName, $allowedOtherRulesForSpecificDataTypeRule['digit'])
+                ) {
+                    cli_err_syntax_without_exit("The `digit` Rule for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` cannot have the `$ruleName` Rule!");
+                    cli_info("The `digit` Rule can ONLY have the following additional Rules: " . implode(", ", quotify_elements($allowedOtherRulesForSpecificDataTypeRule['digit'])) . "!");
+                }
+            }
+        }
+
         // Special cases for "password" Rule
         if (isset($sortedRulesForField['password'])) {
             // We loop through "$validationArray" to see if there is a "password_custom" rule
@@ -1638,7 +1700,7 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
                 }
             }
             if (!$foundPasswordConfirm) {
-                cli_warning_without_exit("The `password` Data Type Rule for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` is recommended to also have an accompanying `password_confirm` Data Type in another `\$DX Key`!");
+                cli_warning_without_exit("The `password` Data Type Rule for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` is recommended (and also optional) to also have an accompanying `password_confirm` Data Type in another `\$DX Key`!");
             }
             // Check that current $DXKey also has a "between" Rule
             if (!isset($sortedRulesForField['between'])) {
@@ -1669,10 +1731,12 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
             // value means in what order if they wanna use it.
             if (!isset($sortedRulesForField['password']['value']) || empty($sortedRulesForField['password']['value'])) {
                 cli_warning_without_exit("The `password` Rule for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` has no value set!");
-                cli_info_without_exit("The value for the `password` Rule parses in the following order:number_of_uppercases,number_of_lowercases,number_of_digits,number_of_specials");
+                cli_warning_without_exit("This means you have NO CHECKS on the password length or complexity - just a heads up!");
+                cli_info_without_exit("Values for the `password` Rule are parsed in this order:number_of_uppercases,number_of_lowercases,number_of_digits,number_of_specials");
                 cli_info_without_exit("Or specify them using `uppercases:INT`, `lowercases:INT`, `specials:INT`, `numbers:INT` as additional Rules for the `password` Data Type Rule!");
+                cli_info_without_exit("EXAMPLE:`password:2,2,2,2` means 2 uppercases, 2 lowercases, 2 digits and 2 specials!");
                 cli_info_without_exit("If you wanna change what is considered a special character, either use `password_custom` Data Type Rule for your very own");
-                cli_info("Custom Password Validation Logic OR edit `_internals/functions/d_data_funs.php` in the `funk_validate_password` function!");
+                cli_info_without_exit("Custom Password Validation Logic OR edit `_internals/functions/d_data_funs.php` in the `funk_validate_password` function!");
             }
             // If `password` rule has values, check that each value are all integers!
             if (isset($sortedRulesForField['password']['value'])) {
@@ -1698,6 +1762,14 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
                         }
                     }
                 }
+            }
+            // If `password` rule has an error message, we warn about how it only returns a single error default message
+            // even if you check four uppercases, lowercases, digits and specials at the same time. Recommended to add a
+            // custom error message to the `password` Rule so it is more informative.
+            if (!isset($sortedRulesForField['password']['err_msg'])) {
+                cli_warning_without_exit("The `password` Rule for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` has no Custom Error Message set!");
+                cli_info_without_exit("The Default Error Message only returns about one thing at a time (uppercase missing, digit missing, etc.)");
+                cli_info_without_exit("Recommended to add a custom error message to the `password` Rule so it is more informative!");
             }
         }
 
@@ -1729,7 +1801,8 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
                 // If the value is not a valid key in $validationArray, we error out
                 if (!isset($validationArray[$passwordConfirmValue])) {
                     cli_err_syntax_without_exit("Invalid `password_confirm` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
-                    cli_info("Specify a Valid Key from the \$DX Array as the value for the `password_confirm` Rule which it should confirm against!");
+                    cli_info_without_exit("Specify a Valid Key (using the Data Type `password` or `password_custom`) from the \$DX Array as the value for the `password_confirm` Rule which it should confirm against.");
+                    cli_info("This Data Type (`password` or `password_custom`) must be on the same Key Level as the `password_confirm` Rule that should confirm against it!");
                 }
             }
             // Check that current $DXKey ONLY has "required" and "password_confirm" Rules meaning the count
@@ -4754,6 +4827,42 @@ function is_array_and_not_empty($array)
 function is_string_and_not_empty($string)
 {
     return isset($string) && is_string($string) && mb_strlen($string) > 0;
+}
+
+// Function that takes a string and returns it with quotes such as (", ' or `) around it.
+// Default is backtick (`) but can be changed to single quote (') or double quote (").
+function quotify_string($string, $type = "`")
+{
+    if (!is_string($string) || empty($string)) {
+        cli_err_syntax("[quotify_string]: String must be a non-empty string!");
+    }
+    if (!in_array($type, ["'", '"', '`'])) {
+        cli_err_syntax("[quotify_string]: Type must be one of the following: ' (single quote), \" (double quote) or ` (backtick)!");
+    }
+    return $type . $string . $type;
+}
+
+// Function same above but for arrays, it takes an array and returns all its elements
+// quotified with the given type (default is backtick `).
+function quotify_elements($array, $type = "`")
+{
+    if (!is_array($array) || empty($array)) {
+        cli_err_syntax("[quotify_elements]: Array must be a Non-Empty Array!");
+    }
+    if (!in_array($type, ["'", '"', '`'])) {
+        cli_err_syntax("[quotify_elements]: Type must be one of the following: ' (single quote), \" (double quote) or ` (backtick)!");
+    }
+    $quotedArray = [];
+    foreach ($array as $element) {
+        // Element must be string, number or boolean we type cast it to string
+        if (!is_string($element) && !is_numeric($element) && !is_bool($element)) {
+            cli_err_syntax("[quotify_elements]: All elements in the Array must be Strings, Numbers or Booleans!");
+        }
+        // Type cast the element to string and then quotify it
+        $element = (string)$element;
+        $quotedArray[] = quotify_string($element, $type);
+    }
+    return $quotedArray;
 }
 
 // Function takes a 'arrayKey' => 'singleStringvalue' and converts it to a

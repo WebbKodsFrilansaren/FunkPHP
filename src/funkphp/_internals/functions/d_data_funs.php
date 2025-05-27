@@ -173,6 +173,7 @@ function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array 
     // If stop rule exist, we just unset it because the boolean value
     // is enough to know if we should stop further validation later
     if ($stop) {
+        echo "Stop Rule Found!\n";
         unset($rules['stop']);
     }
 
@@ -245,6 +246,7 @@ function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array 
             'array' => true,
             'list' => true,
             'set' => true,
+            'enum' => true,
         ],
         'file_types' => [
             'file' => true,
@@ -262,7 +264,6 @@ function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array 
             'object' => true,
             'unchecked' => true,
             'checked' => true,
-            'enum' => true,
             'boolean' => true,
         ],
     ];
@@ -323,10 +324,56 @@ function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array 
         return;
     }
 
+    // Rule mappings based on data type categories
+    $mappedRulesBasedTypeCategory = [
+        'string_types' => [
+            'min' => 'minlen',
+            'max' => 'maxlen',
+            'exact' => 'exactlen',
+            'between' => 'betweenlen',
+            'size' => 'sizelen',
+        ],
+        'number_types' => [
+            'min' => 'minval',
+            'max' => 'maxval',
+            'exact' => 'exactval',
+            'between' => 'betweenval',
+            'size' => 'sizeval',
+        ],
+        'array_types' => [
+            'count' => 'arraycount',
+            'min' => 'mincount',
+            'max' => 'maxcount',
+            'exact' => 'exactcount',
+            'between' => 'betweencount',
+            'size' => 'sizecount',
+        ],
+        'complex_types' => [],
+        'file_types' => [
+            'min' => 'min_filesize',
+            'max' => 'max_filesize',
+            'exact' => 'exact_filesize',
+            'between' => 'between_filesize',
+            'size' => 'size_filesize',
+        ],
+    ];
+
     // ITERATING THROUGH REMAINING RULES THIS INPUT FIELD
+    echo "Data Type Rule: `$foundTypeRule` | Category: `$foundTypeCat`\n";
     foreach ($rules as $rule => $ruleConfig) {
         $ruleValue = $ruleConfig['value'];
         $customErr = $ruleConfig['err_msg'];
+
+        echo "CURRENT Rule (Error Key Also): `$rule`\n";
+        $errorKey = $rule;
+        // Check if $rule is the mapped rule ($foundTypeCat['$foundTypeRule'])
+        // and set $Rule to that value then before concatenating.
+        // If the rule is not in the mapped rules, we just use it as is
+        if (isset($mappedRulesBasedTypeCategory[$foundTypeCat][$rule])) {
+            $rule = $mappedRulesBasedTypeCategory[$foundTypeCat][$rule];
+        }
+
+        echo "PARSED Rule to run: `$rule`\n";
 
         // Dynamically call the validation function for this rule
         // Assuming your rule functions are named funk_validate_rule
@@ -342,7 +389,7 @@ function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array 
             // Also stop remaining validation for
             // this input data if 'stop' is true!
             if ($error !== null) {
-                $currentErrPath[$rule] = $error;
+                $currentErrPath[$errorKey] = $error;
                 $c['v_ok'] = false;
                 if ($stop) {
                     return;
@@ -736,7 +783,7 @@ function funk_validate_integer($inputName, $inputData, $validationValues, $custo
 function funk_validate_float($inputName, $inputData, $validationValues, $customErr = null)
 {
     if (!is_float($inputData) || (floatval($inputData) != $inputData)) {
-        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a float number.";
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a float number (must end with a decimal point).";
     }
     return null;
 }
@@ -1007,7 +1054,7 @@ function funk_validate_password($inputName, $inputData, $validationValues, $cust
     // Count the number of special characters next!
     // YOU CAN CHANGE THE SPECIAL CHARACTERS TO YOUR LIKING!
     // Change below what are considered default special characters!
-    $specialCharPattern = '/[!@#$%^&*()[\]\.,?"\':{}|<>]/';
+    $specialCharPattern = '/[!@#$%^&*()[\]\.,`?"\':{}|<>~]/';
 
     if ($specialCharCount > 0) {
         preg_match_all($specialCharPattern, $inputData, $matches);
@@ -1072,6 +1119,11 @@ function funk_validate_max($inputName, $inputData, $validationValues, $customErr
 function funk_validate_exact($inputName, $inputData, $validationValues, $customErr = null) {};
 function funk_validate_size($inputName, $inputData, $validationValues, $customErr = null) {};
 
+// This function is here so that "stop_all_on_first" can be used as a validation rule.
+// It stops ALL validation rules from running on the first error found. When compiled,
+// it is added as the first root key as "<'STOP'>" before any other root keys!
+function funk_validate_stop_all_on_first($inputName, $inputData, $validationValues, $customErr = null) {};
+
 // Validate that Input Data is a valid stop condition which means stop running any rules
 // if this rule is found in the validation rules and when any error occurs for a given field!
 function funk_validate_stop($inputName, $inputData, $validationValues, $customErr = null) {};
@@ -1105,7 +1157,11 @@ function funk_validate_maxlen($inputName, $inputData, $validationValues, $custom
 // This is used ONLY for string inputs. This is "between" when it knows it is a string.
 function funk_validate_betweenlen($inputName, $inputData, $validationValues, $customErr = null)
 {
-    if (!is_string($inputData) || mb_strlen($inputData) <= $validationValues[0] || mb_strlen($inputData) >= $validationValues[1]) {
+    if (
+        !is_string($inputData)
+        || (mb_strlen($inputData) < $validationValues[0]
+            || mb_strlen($inputData) > $validationValues[1])
+    ) {
         return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be inclusively between {$validationValues[0]} and {$validationValues[1]} characters long.";
     }
     return null;
@@ -1135,7 +1191,11 @@ function funk_validate_maxval($inputName, $inputData, $validationValues, $custom
 // This is used ONLY for numerical inputs. This is "between" when it knows it is a number.
 function funk_validate_betweenval($inputName, $inputData, $validationValues, $customErr = null)
 {
-    if (!is_numeric($inputData) || $inputData <= $validationValues[0] || $inputData >= $validationValues[1]) {
+    if (
+        !is_numeric($inputData)
+        || ($inputData < $validationValues[0]
+            || $inputData > $validationValues[1])
+    ) {
         return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be inclusively between {$validationValues[0]} and {$validationValues[1]} in value.";
     }
     return null;
@@ -1155,7 +1215,7 @@ function funk_validate_mincount($inputName, $inputData, $validationValues, $cust
 // This is used ONLY for array inputs. This is "max" when it knows it is a array.
 function funk_validate_maxcount($inputName, $inputData, $validationValues, $customErr = null)
 {
-    if (!is_array($inputData) || count($inputData) < $validationValues) {
+    if (!is_array($inputData) || count($inputData) > $validationValues) {
         return (isset($customErr) && is_string($customErr)) ? $customErr : "Array $inputName must have at most $validationValues elements.";
     }
     return null;
@@ -1165,7 +1225,11 @@ function funk_validate_maxcount($inputName, $inputData, $validationValues, $cust
 // This is used ONLY for array inputs. This is "between" when it knows it is a array.
 function funk_validate_betweencount($inputName, $inputData, $validationValues, $customErr = null)
 {
-    if (!is_array($inputData) || count($inputData) <= $validationValues[0] || count($inputData) >= $validationValues[1]) {
+    if (
+        !is_array($inputData)
+        || (count($inputData) < $validationValues[0]
+            || count($inputData) > $validationValues[1])
+    ) {
         return (isset($customErr) && is_string($customErr)) ? $customErr : "Array $inputName must have inclusively between {$validationValues[0]} and {$validationValues[1]} elements.";
     }
     return null;
@@ -1180,6 +1244,14 @@ function funk_validate_exactval($inputName, $inputData, $validationValues, $cust
     }
     return null;
 }
+// Alias of "funk_validate_exactval"
+function funk_validate_sizeval($inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (!is_numeric($inputData) || $inputData !== $validationValues) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must have a fixed value size of $validationValues in value.";
+    }
+    return null;
+}
 
 // Validate that Input Data is of valid exact length provided in $validationValues meaning
 // it must be that length and not less or more. This is used ONLY for string inputs.
@@ -1190,6 +1262,14 @@ function funk_validate_exactlen($inputName, $inputData, $validationValues, $cust
     }
     return null;
 }
+// Alias of "funk_validate_exactlen"
+function funk_validate_sizelen($inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (!is_string($inputData) || mb_strlen($inputData) !== $validationValues) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must have a fixed size of $validationValues characters long.";
+    }
+    return null;
+}
 
 // Validate that Input Data's array has an exact number of elements as in $validationValues
 // This is used ONLY for array inputs. This is "max" when it knows it is a array.
@@ -1197,6 +1277,22 @@ function funk_validate_exactcount($inputName, $inputData, $validationValues, $cu
 {
     if (!is_array($inputData) || count($inputData) !== $validationValues) {
         return (isset($customErr) && is_string($customErr)) ? $customErr : "Array $inputName must have exactly $validationValues elements.";
+    }
+    return null;
+}
+// Alias of "funk_validate_exactcount"
+function funk_validate_sizecount($inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (!is_array($inputData) || count($inputData) !== $validationValues) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "Array $inputName must have a fixed size of $validationValues elements.";
+    }
+    return null;
+}
+// Alias of "funk_validate_exactcount"
+function funk_validate_arraycount($inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (!is_array($inputData) || count($inputData) !== $validationValues) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "Array $inputName must have a count of $validationValues elements.";
     }
     return null;
 }
