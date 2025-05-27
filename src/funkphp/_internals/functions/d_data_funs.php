@@ -429,7 +429,6 @@ function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array 
     }
 };
 
-
 // This is the improved version of funk_validation_recursively (RIP)
 function funk_validation_recursively_improved(
     &$c,
@@ -733,7 +732,7 @@ function funk_validation_recursively_improved(
 
 // The main validation function for validating data in FunkPHP
 // mapping to the "$_GET"/"$_POST" or "php://input" (JSON) variable ONLY!
-function funk_use_validation(&$c, $optimizedValidationArray, $source)
+function funk_use_validation(&$c, $optimizedValidationArray, $source, $onlyDataIfAllValid = true)
 {
     // Validation Error Array and its OK varaible must exist to run this function
     if (!array_key_exists('v', $c)) {
@@ -805,10 +804,16 @@ function funk_use_validation(&$c, $optimizedValidationArray, $source)
     // function has passed and no errors were found/added to $c['v']
     // Its default value is null meaning either no validation was run
     // or it failed and no errors were found/added to $c['v'] before this!
+    // If validation passed, we can set the $c['v'] to null again
     if ($c['v_ok']) {
-        // If validation passed, we can set the $c['v'] to null again
         $c['v'] = null;
         return true;
+    }
+
+    // Clear Valid Data Array if Validation failed but
+    // only if "onlyDataIfAllValid" is set to true!
+    if ($onlyDataIfAllValid) {
+        $c['v_data'] = null;
     }
     return false;
 }

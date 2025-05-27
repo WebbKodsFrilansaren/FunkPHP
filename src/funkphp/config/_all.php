@@ -26,7 +26,10 @@ return [
     // 'v_config' is a global array of validation configurations that can be accessed
     // when validating no matter how nested or not the validation is! It stores "password"
     // to for "password_confirm" to check against the "password" field, etc.
-    // 'v_data' contains the validate data for a given validation process!
+    // 'v_data' contains the validate data for a given validation process and default
+    // for the "funk_use_validation" function is to ONLY populate it if EVERYTHING
+    // is valid. Set this to "false" if you want to for example repopulate incomplete
+    // form data instead of Users having to re-enter everything because of a single error!
     'v' => null,
     'v_ok' => null,
     'v_ok_files' => null,
