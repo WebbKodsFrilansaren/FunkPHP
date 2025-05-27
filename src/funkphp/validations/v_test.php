@@ -14,12 +14,13 @@ function v_test(&$c) // <POST/test/:id>
     // Run the command `php funkcli compile v v_test=>v_test`
     // to get optimized version in return statement below it!
     $DX = [
-        'name' => 'string|required|between:2,30',
-        'age' => 'integer|required|between:18,30',
+        '*' => 'list|required|size:3',
+        '*.name' => 'string|required|between:2,30',
+        '*.age' => 'integer|required|between:18,30',
     ];
 
     return array(
-        'name' =>
+        '*' =>
         array(
             '<RULES>' =>
             array(
@@ -28,44 +29,65 @@ function v_test(&$c) // <POST/test/:id>
                     'value' => NULL,
                     'err_msg' => NULL,
                 ),
-                'string' =>
+                'list' =>
                 array(
                     'value' => NULL,
                     'err_msg' => NULL,
                 ),
-                'between' =>
+                'size' =>
                 array(
-                    'value' =>
-                    array(
-                        0 => 2,
-                        1 => 30,
-                    ),
+                    'value' => 3,
                     'err_msg' => NULL,
                 ),
             ),
-        ),
-        'age' =>
-        array(
-            '<RULES>' =>
+            'name' =>
             array(
-                'required' =>
+                '<RULES>' =>
                 array(
-                    'value' => NULL,
-                    'err_msg' => NULL,
-                ),
-                'integer' =>
-                array(
-                    'value' => NULL,
-                    'err_msg' => NULL,
-                ),
-                'between' =>
-                array(
-                    'value' =>
+                    'required' =>
                     array(
-                        0 => 18,
-                        1 => 30,
+                        'value' => NULL,
+                        'err_msg' => NULL,
                     ),
-                    'err_msg' => NULL,
+                    'string' =>
+                    array(
+                        'value' => NULL,
+                        'err_msg' => NULL,
+                    ),
+                    'between' =>
+                    array(
+                        'value' =>
+                        array(
+                            0 => 2,
+                            1 => 30,
+                        ),
+                        'err_msg' => NULL,
+                    ),
+                ),
+            ),
+            'age' =>
+            array(
+                '<RULES>' =>
+                array(
+                    'required' =>
+                    array(
+                        'value' => NULL,
+                        'err_msg' => NULL,
+                    ),
+                    'integer' =>
+                    array(
+                        'value' => NULL,
+                        'err_msg' => NULL,
+                    ),
+                    'between' =>
+                    array(
+                        'value' =>
+                        array(
+                            0 => 18,
+                            1 => 30,
+                        ),
+                        'err_msg' => NULL,
+                    ),
                 ),
             ),
         ),

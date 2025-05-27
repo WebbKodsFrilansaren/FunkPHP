@@ -435,7 +435,8 @@ function funk_validation_recursively_improved(
     &$c,
     $inputData,
     array $validationRules,
-    array &$currentErrPath
+    array &$currentErrPath,
+    &$currentValidData
 ) {
     // Iterate through the main `return array()` from optimized validation array
     foreach ($validationRules as $DXKey => $rulesOrNestedFields) {
@@ -469,18 +470,29 @@ function funk_validation_recursively_improved(
             $currentRules = $rulesOrNestedFields['<RULES>'] ?? null;
             $currentInputData = $inputData[$DXKey] ?? null;
             $currentErrPath[$DXKey] = [];
+            $currentValidData[$DXKey] = null;
             $wildCardExist = ($DXKey === '*' || key($rulesOrNestedFields) === '*');
 
             // If "<RULES>" node exists, we process it by passing it to the
             // funk_validation_validate_rules function which also receives
             // the current error path!
             if ($currentRules) {
-                funk_validation_validate_rules($c, $currentInputData, $DXKey, $rulesOrNestedFields['<RULES>'], $currentErrPath[$DXKey]);
+                funk_validation_validate_rules(
+                    $c,
+                    $currentInputData,
+                    $DXKey,
+                    $rulesOrNestedFields['<RULES>'],
+                    $currentErrPath[$DXKey],
+                );
                 // Remove the <RULES> key after processing
                 // If no errors were found for this key, we can just remove it
+                // We also set the data to the current valid data array
                 unset($rulesOrNestedFields['<RULES>']);
                 if (empty($currentErrPath[$DXKey])) {
                     unset($currentErrPath[$DXKey]);
+                    $currentValidData[$DXKey] = $currentInputData;
+                } else {
+                    unset($currentValidData[$DXKey]);
                 }
             }
 
@@ -501,17 +513,24 @@ function funk_validation_recursively_improved(
                         // If the nested field is an array, we can recurse into it
                         // and pass the current error path for this nested field
                         $currentErrPath[$DXKey][$name] = [];
+                        $currentValidData[$DXKey][$name] = null;
+
                         funk_validation_recursively_improved(
                             $c,
                             $inputData[$DXKey] ?? null,
                             $rulesOrNestedFields ?? [],
-                            $currentErrPath[$DXKey]
+                            $currentErrPath[$DXKey],
+                            $currentValidData[$DXKey]
                         );
                     }
                 }
                 // After loop check if the error path is empty
                 if (empty($currentErrPath[$DXKey])) {
                     unset($currentErrPath[$DXKey]);
+                    // If no errors were found, we can set the valid data
+                    $currentValidData[$DXKey] = $currentInputData;
+                } else {
+                    unset($currentValidData[$DXKey]);
                 }
             }
 
@@ -525,9 +544,6 @@ function funk_validation_recursively_improved(
                 // Only if it all passes do we actually start iterating through the numbered array
                 $actualCount = (is_array($currentInputData)
                     && array_is_list($currentInputData)) ? count($currentInputData) : 0;
-
-                // REMOVE LATER
-                echo "ACTUAL ARR COUNT: $actualCount\n";
 
                 // If Rules for Numbered Array * exist, we can validate it
                 if ($wildCardRules) {
@@ -578,20 +594,32 @@ function funk_validation_recursively_improved(
                             for ($index = 0; $index < $iterations; $index++) {
 
                                 $currentErrPath[$DXKey][$index] = [];
+                                $currentValidData[$DXKey][$index] = null;
                                 funk_validation_recursively_improved(
                                     $c,
                                     $currentInputData[$index] ?? null,
                                     $rulesOrNestedFields['*'],
-                                    $currentErrPath[$DXKey][$index]
+                                    $currentErrPath[$DXKey][$index],
+                                    $currentValidData[$DXKey][$index]
                                 );
                                 // Unset if no errors were found
                                 if (empty($currentErrPath[$DXKey][$index])) {
                                     unset($currentErrPath[$DXKey][$index]);
+                                    $currentValidData[$DXKey][$index] = $currentInputData[$index];
+                                }
+                                // Unset non-existing/invalid data
+                                else {
+                                    unset($currentValidData[$DXKey][$index]);
                                 }
                             }
                             // Also unset for the main DXKey if no errors were found
                             if (empty($currentErrPath[$DXKey])) {
                                 unset($currentErrPath[$DXKey]);
+                                //HM? $currentValidData[$DXKey] = $currentInputData;
+                            }
+                            // Unset non-existing/invalid data
+                            else {
+                                unset($currentValidData[$DXKey]);
                             }
                         }
                     }
@@ -611,6 +639,7 @@ function funk_validation_recursively_improved(
         if ($DXKey === '*') {
             $currentInputData = $inputData ?? null;
             $currentErrPath[$DXKey] = [];
+            $currentValidData[$DXKey] = null;
             $wildCardRules = $rulesOrNestedFields["<RULES>"] ?? null;
 
             // If Rules found for Numbered Array * we pass on the rules to the
@@ -635,6 +664,7 @@ function funk_validation_recursively_improved(
                     echo "[* as ROOT] No errors found for `$DXKey` with Wildcard Rules!\n";
                     unset($currentErrPath[$DXKey]);
                     unset($rulesOrNestedFields["<RULES>"]);
+                    unset($currentValidData[$DXKey]); // Delete "$c['v_data']['*'] = null"
 
                     // We now extract the number of iterations
                     // from the Wildcard Rules array, which should exist
@@ -665,15 +695,21 @@ function funk_validation_recursively_improved(
                         for ($index = 0; $index < $iterations; $index++) {
 
                             $currentErrPath[$index] = [];
+                            $currentValidData[$index] = null;
                             funk_validation_recursively_improved(
                                 $c,
                                 $currentInputData[$index] ?? null,
                                 $rulesOrNestedFields,
-                                $currentErrPath[$index]
+                                $currentErrPath[$index],
+                                $currentValidData[$index]
                             );
                             // Unset if no errors were found
                             if (empty($currentErrPath[$index])) {
                                 unset($currentErrPath[$index]);
+                            }
+                            // Unset non-existing/invalid data
+                            else {
+                                unset($currentValidData[$index]);
                             }
                         }
                         // TODO: Maybe is needed after all in special case
@@ -756,11 +792,13 @@ function funk_use_validation(&$c, $optimizedValidationArray, $source)
     // Now we can run the validation recursively and
     $c['v_ok'] = true;
     $c['v'] = [];
+    $c['v_data'] = [];
     funk_validation_recursively_improved(
         $c,
         $inputData,
         $optimizedValidationArray,
         $c['v'],
+        $c['v_data'],
     );
 
     // When this is set to true, it means that the validation

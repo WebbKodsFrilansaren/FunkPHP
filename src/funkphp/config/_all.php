@@ -26,10 +26,12 @@ return [
     // 'v_config' is a global array of validation configurations that can be accessed
     // when validating no matter how nested or not the validation is! It stores "password"
     // to for "password_confirm" to check against the "password" field, etc.
+    // 'v_data' contains the validate data for a given validation process!
     'v' => null,
     'v_ok' => null,
     'v_ok_files' => null,
     'v_config' => [],
+    'v_data' => null,
 
     // 'd' will ALWAYS store fetched database data (it does NOT store validation errors)
     'd' => null,

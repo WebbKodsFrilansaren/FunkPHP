@@ -12,6 +12,7 @@ function d_test(&$c) // <POST/test/:id>
         'v' => $c['v'],
         'v_ok' => $c['v_ok'],
         'v_config' => $c['v_config'],
+        'v_data' => $c['v_data'],
     ];
     dj($test);
 };
