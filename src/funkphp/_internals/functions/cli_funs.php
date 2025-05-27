@@ -1065,11 +1065,16 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         'audio',
     ];
 
+    // When this value turns true, then we will add it as a special root key
+    // before when finally returning the converted validation array.
+    $stop_on_first_error = false;
+
     // Priority order of validation rules (required and the data
     // type must always be first for each $currentDXKey!). 'nullable'
     // must come very early to allow for data that are actually null!
     $priorityOrder = [
         // Special properites
+        'stop_all_on_first_error',
         'field',
         'nullable',
         'stop',
@@ -1530,14 +1535,24 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
 
         // List of other Rules that some Data Types Rules
         // ONLY can have. For example `digit` can only have
-        // "required","nullable" but nothing else. So this
-        // array is compared so no other rules are used
-        // when the specific data type is used.
+        // "required","nullable" & "field" but nothing else.
+        // So this array is compared so no other rules are
+        // used when the specific data type is used.
         $allowedOtherRulesForSpecificDataTypeRule = [
             'digit' => [
                 'required',
                 'nullable',
                 'field'
+            ],
+            'email' => [
+                'required',
+                'nullable',
+                'field',
+                'min',
+                'max',
+                'between',
+                'regex',
+                'not_regex',
             ],
         ];
 
@@ -1625,6 +1640,23 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
             }
         }
 
+        // Special case ofr "stop_all_on_first_error" Rule
+        // meaning we set the $stop_on_first_error to true
+        // and if we see this rule again we will just remove it
+        // as it is just a special root key that is used
+        // to stop all validation on the first error found.
+        if (isset($sortedRulesForField['stop_all_on_first_error'])) {
+            if ($stop_on_first_error) {
+                cli_info_without_exit("The `stop_all_on_first_error` Rule for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` is already set!");
+            } else {
+                cli_success_without_exit("Special Root Key Rule `stop_all_on_first_error` in `$currentDXKey` in Validation `$handlerFile.php=>$fnName` is set!");
+                cli_info_without_exit("This will remove further occurrences of this Rule in the Validation Rules for this Key!");
+                $stop_on_first_error = true;
+                unset($sortedRulesForField['stop_all_on_first_error']);
+            }
+            unset($sortedRulesForField['stop_all_on_first_error']);
+        }
+
         // Special case for 'field' Rule it can ONLY have
         // a single string as a value, so we check that!
         if (isset($sortedRulesForField['field'])) {
@@ -1640,6 +1672,43 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
             }
         }
 
+        // Special case for 'email" Rule
+        if (isset($sortedRulesForField['email'])) {
+            foreach ($sortedRulesForField as $ruleName => $ruleConfig) {
+                if (
+                    $ruleName !== 'email'
+                    && isset($allowedOtherRulesForSpecificDataTypeRule['email'])
+                    && !in_array($ruleName, $allowedOtherRulesForSpecificDataTypeRule['email'])
+                ) {
+                    cli_err_syntax_without_exit("The `email` Rule for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` cannot have the `$ruleName` Rule!");
+                    cli_info("The `email` Rule can ONLY have the following additional Rules: " . implode(", ", quotify_elements($allowedOtherRulesForSpecificDataTypeRule['email'])) . "!");
+                }
+            }
+            // Check if the 'max' value is lower than 6 then we warn that the email would be
+            // too short as its max length.
+            if (isset($sortedRulesForField['min'])) {
+                $minValue = $sortedRulesForField['min']['value'];
+                if (is_numeric($minValue) && $minValue < 6) {
+                    cli_warning_without_exit("The `email` Rule for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` has a `min` Rule with a value less than 6!");
+                    cli_info_without_exit("This means the email would be too short to be valid. Consider increasing the min value to at least 6!");
+                }
+            }
+            if (isset($sortedRulesForField['max'])) {
+                $maxValue = $sortedRulesForField['max']['value'];
+                if (is_numeric($maxValue) && $maxValue < 6) {
+                    cli_warning_without_exit("The `email` Rule for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` has a `max` Rule with a value less than 6!");
+                    cli_info_without_exit("This means the email would be too short to be valid. Consider increasing the max value to at least 6!");
+                }
+            }
+            // The first value of `between` Rule should also be at least 6 or warn
+            if (isset($sortedRulesForField['between'])) {
+                $betweenValue = $sortedRulesForField['between']['value'];
+                if (is_array($betweenValue) && isset($betweenValue[0]) && is_numeric($betweenValue[0]) && $betweenValue[0] < 6) {
+                    cli_warning_without_exit("The `email` Rule for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` has a `between` Rule with a first value less than 6!");
+                    cli_info_without_exit("This means the email would be too short to be valid. Consider increasing the first value to at least 6!");
+                }
+            }
+        }
 
         // Special case for "digit" Rule. We check that its value is (whether a single string
         // or an array of values) are all single digits (0-9) and if not, we error out. We also
@@ -2514,6 +2583,18 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
             }
         }
     }
+
+    // WE check if the "stop_all_on_first_error" varible is true
+    // and if it is insert the "stop_all_on_first_error" key as
+    // the root key meaning we shift all other root keys to the right
+    if ($stop_on_first_error) {
+        // We remove the "stop_all_on_first_error" key from the validation array
+        // We insert it as the first key in the converted validation array
+        $convertedValidationArray = ['<STOP_ALL_ON_FIRST_ERROR>' => true] + $convertedValidationArray;
+        cli_success_without_exit("ADDED `<STOP_ALL_ON_FIRST_ERROR>` Root Key Configuration in The Validation Function `$fnName` in Validation Handler File `$handlerFile.php`!");
+        cli_info_without_exit("This means that the Validation Function will stop on the first error found and return all validated so far!");
+    }
+
 
     // Finally return the converted validation array after adding the
     // <DX_KEYS> key at the top of the converted validation array

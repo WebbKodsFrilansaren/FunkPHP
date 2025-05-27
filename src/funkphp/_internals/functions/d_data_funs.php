@@ -198,6 +198,15 @@ function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array 
             $currentErrPath['required'] = $error;
             $c['v_ok'] = false;
 
+            // TODO: EXPERIMENTAL: Might not work as intended in all cases
+            // This is the "'<STOP_ALL_ON_FIRST_ERROR>' => true," root key!
+            if (
+                isset($c['v_config']['stop_all_on_first_error'])
+            ) {
+                $c['v_config']['stop_all_on_first_error'] = true;
+                return;
+            }
+
             // Stop further validation for this field as
             // 'required' failed and if 'stop' is true!
             if ($stop) {
@@ -307,6 +316,16 @@ function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array 
         if ($error !== null) {
             $currentErrPath[$foundTypeRule] = $error;
             $c['v_ok'] = false;
+
+            // TODO: EXPERIMENTAL: Might not work as intended in all cases
+            // This is the "'<STOP_ALL_ON_FIRST_ERROR>' => true," root key!
+            if (
+                isset($c['v_config']['stop_all_on_first_error'])
+            ) {
+                $c['v_config']['stop_all_on_first_error'] = true;
+                return;
+            }
+
             if (isset($rules['stop'])) {
                 return;
             }
@@ -391,6 +410,17 @@ function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array 
             if ($error !== null) {
                 $currentErrPath[$errorKey] = $error;
                 $c['v_ok'] = false;
+
+                // TODO: EXPERIMENTAL: Might not work as intended in all cases
+                // This is the "'<STOP_ALL_ON_FIRST_ERROR>' => true," root key!
+                // Stop ALL Validation if "stop_all_on_first_error" key exists
+                if (
+                    isset($c['v_config']['stop_all_on_first_error'])
+                ) {
+                    $c['v_config']['stop_all_on_first_error'] = true;
+                    return;
+                }
+
                 if ($stop) {
                     return;
                 }
@@ -414,6 +444,29 @@ function funk_validation_recursively_improved(
 ) {
     // Iterate through the main `return array()` from optimized validation array
     foreach ($validationRules as $DXKey => $rulesOrNestedFields) {
+        // TODO: EXPERIMENTAL: Might not work as intended in all cases
+        // This is the "'<STOP_ALL_ON_FIRST_ERROR>' => true," root key!
+        // If stop_all_on_first_error is true, we stop further validation
+        // and return immediately with the current error path
+        if (
+            isset($c['v_config']['stop_all_on_first_error'])
+            && $c['v_config']['stop_all_on_first_error'] === true
+        ) {
+            if (!empty($currentErrPath)) {
+                $c['v'] = $currentErrPath;
+            }
+            return;
+        }
+        // Set "STOP_ALL_ON_FIRST_ERROR" key to true in $c['v_config']['stop_all_on_first_error']
+        // as a global configuration for the validation process (including if it is a nested field)
+        // Any error will check if this exists and set it to true and when true it all returns
+        // TODO: EXPERIMENTAL: Might not work as intended in all cases
+        // This is the "'<STOP_ALL_ON_FIRST_ERROR>' => true," root key!
+        if ($DXKey === '<STOP_ALL_ON_FIRST_ERROR>') {
+            $c['v_config']['stop_all_on_first_error'] = false;
+            unset($validationRules[$DXKey]);
+            continue;
+        }
 
         // When root key is NOT "*" (but "key.*", "key" or "key.subkey" and so on!)
         if ($DXKey !== '*') {
@@ -901,11 +954,15 @@ function funk_validate_date($inputName, $inputData, $validationValues, $customEr
 }
 
 // Validate that Input Data is a valid email address
+// IMPORTANT: The regex unfortunately cannot match "@[a-zA-Z]\.[a-zA-Z]{2,}" meaning
+// when there is just a single character before the dot and at least 2 characters after it!
 function funk_validate_email($inputName, $inputData, $validationValues, $customErr = null)
 {
     if (!is_string($inputData)) {
         return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a valid email address.";
     }
+    // IMPORTANT: This regex unfortunately cannot match "@[a-zA-Z]\.[a-zA-Z]{2,}" meaning
+    // when there is just a single character before the dot and at least 2 characters after it!
     if (!preg_match('/^(?!.*\.\.)[a-zA-Z0-9](?:[a-zA-Z0-9._%+-]*[a-zA-Z0-9])?@(?:[a-zA-Z0-9](?!.*--)[a-zA-Z0-9-]*[a-zA-Z0-9]\.)+[a-zA-Z]{2,}$/', $inputData)) {
         return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a valid email address.";
     }
@@ -1067,15 +1124,13 @@ function funk_validate_password($inputName, $inputData, $validationValues, $cust
 }
 
 // Validate that Input Data is a valid password confirmation
-// This takes an extra parameter $otherPassword which is the original password
-// and compares it to the confirmation password to see if they match.
-function funk_validate_password_confirm($inputName, $inputData, $validationValues, $customErr = null, $otherPassword)
+function funk_validate_password_confirm($inputName, $inputData, $validationValues, $customErr = null)
 {
     // Check both are strings and then compare them
-    if (!is_string($inputData) || !is_string($otherPassword)) {
+    if (!is_string($inputData) || !is_string($validationValues)) {
         return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a valid password confirmation.";
     }
-    if ($inputData !== $otherPassword) {
+    if ($inputData !== $validationValues) {
         return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must match the original password.";
     }
 }
@@ -1119,10 +1174,10 @@ function funk_validate_max($inputName, $inputData, $validationValues, $customErr
 function funk_validate_exact($inputName, $inputData, $validationValues, $customErr = null) {};
 function funk_validate_size($inputName, $inputData, $validationValues, $customErr = null) {};
 
-// This function is here so that "stop_all_on_first" can be used as a validation rule.
+// This function is here so that "stop_all_on_first_error" can be used as a validation rule.
 // It stops ALL validation rules from running on the first error found. When compiled,
 // it is added as the first root key as "<'STOP'>" before any other root keys!
-function funk_validate_stop_all_on_first($inputName, $inputData, $validationValues, $customErr = null) {};
+function funk_validate_stop_all_on_first_error($inputName, $inputData, $validationValues, $customErr = null) {};
 
 // Validate that Input Data is a valid stop condition which means stop running any rules
 // if this rule is found in the validation rules and when any error occurs for a given field!

@@ -14,13 +14,13 @@ function v_test(&$c) // <POST/test/:id>
     // Run the command `php funkcli compile v v_test=>v_test`
     // to get optimized version in return statement below it!
     $DX = [
-        'array_test' => 'array|size:1|required',
+        'array_test' => 'array|count:1|required',
+        'email_test' => 'email|between:6,30|required',
         'string_test' => 'string|between:1,3|required',
         'int_test' => 'integer|between:1,3|required',
         'float_test' => 'float|between:1,3|required',
-        'password_custom_test' => 'password_custom:test|between:12,15|required',
         'password_test' => 'password:1,1,1,1|between:12,15|required',
-        "password_confirm_test" => 'password_confirm:password_custom_test|required',
+        "password_confirm_test" => 'password_confirm:password_test|required',
     ];
 
     return array(
@@ -38,9 +38,34 @@ function v_test(&$c) // <POST/test/:id>
                     'value' => NULL,
                     'err_msg' => NULL,
                 ),
-                'size' =>
+                'count' =>
                 array(
                     'value' => 1,
+                    'err_msg' => NULL,
+                ),
+            ),
+        ),
+        'email_test' =>
+        array(
+            '<RULES>' =>
+            array(
+                'required' =>
+                array(
+                    'value' => NULL,
+                    'err_msg' => NULL,
+                ),
+                'email' =>
+                array(
+                    'value' => NULL,
+                    'err_msg' => NULL,
+                ),
+                'between' =>
+                array(
+                    'value' =>
+                    array(
+                        0 => 6,
+                        1 => 30,
+                    ),
                     'err_msg' => NULL,
                 ),
             ),
@@ -120,31 +145,6 @@ function v_test(&$c) // <POST/test/:id>
                 ),
             ),
         ),
-        'password_custom_test' =>
-        array(
-            '<RULES>' =>
-            array(
-                'required' =>
-                array(
-                    'value' => NULL,
-                    'err_msg' => NULL,
-                ),
-                'password_custom' =>
-                array(
-                    'value' => 'test',
-                    'err_msg' => NULL,
-                ),
-                'between' =>
-                array(
-                    'value' =>
-                    array(
-                        0 => 12,
-                        1 => 15,
-                    ),
-                    'err_msg' => NULL,
-                ),
-            ),
-        ),
         'password_test' =>
         array(
             '<RULES>' =>
@@ -187,7 +187,7 @@ function v_test(&$c) // <POST/test/:id>
                 ),
                 'password_confirm' =>
                 array(
-                    'value' => 'password_custom_test',
+                    'value' => 'password_test',
                     'err_msg' => NULL,
                 ),
             ),
