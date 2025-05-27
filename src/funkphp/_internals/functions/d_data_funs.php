@@ -382,17 +382,14 @@ function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array 
     foreach ($rules as $rule => $ruleConfig) {
         $ruleValue = $ruleConfig['value'];
         $customErr = $ruleConfig['err_msg'];
-
-        echo "CURRENT Rule (Error Key Also): `$rule`\n";
         $errorKey = $rule;
+
         // Check if $rule is the mapped rule ($foundTypeCat['$foundTypeRule'])
         // and set $Rule to that value then before concatenating.
         // If the rule is not in the mapped rules, we just use it as is
         if (isset($mappedRulesBasedTypeCategory[$foundTypeCat][$rule])) {
             $rule = $mappedRulesBasedTypeCategory[$foundTypeCat][$rule];
         }
-
-        echo "PARSED Rule to run: `$rule`\n";
 
         // Dynamically call the validation function for this rule
         // Assuming your rule functions are named funk_validate_rule
@@ -435,7 +432,7 @@ function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array 
 };
 
 
-// Supposed to be an improved version of funk_validation_recursively
+// This is the improved version of funk_validation_recursively (RIP)
 function funk_validation_recursively_improved(
     &$c,
     $inputData,
@@ -624,9 +621,6 @@ function funk_validation_recursively_improved(
             $actualCount = (is_array($currentInputData)
                 && array_is_list($currentInputData)) ? count($currentInputData) : 0;
 
-            // REMOVE LATER
-            echo "[* as ROOT] ACTUAL ARR COUNT: $actualCount\n";
-
             // If Rules for Numbered Array * exist, we can validate it
             if ($wildCardRules) {
                 $currentErrPath[$DXKey] = [];
@@ -667,9 +661,6 @@ function funk_validation_recursively_improved(
                     // iterate more than the actual number of elements
                     $iterations = ($iterations > 0) ? min($iterations, $actualCount) : $actualCount;
 
-                    // REMOVE LATER
-                    echo "[* as ROOT] SET ARR COUNT TO: $iterations\n";
-
                     // Now we can recurse into the validation function for this
                     // numbered array element when iterations is greater than 0!
                     if ($iterations > 0) {
@@ -687,7 +678,8 @@ function funk_validation_recursively_improved(
                                 unset($currentErrPath[$index]);
                             }
                         }
-                        // TODO: Maybe is needed after all in special case when root is numbered array?
+                        // TODO: Maybe is needed after all in special case
+                        // when root is numbered array?
                         // Also unset for the main DXKey if no errors were found
                         // if (empty($currentErrPath[$DXKey])) {
                         //     unset($currentErrPath[$DXKey]);
