@@ -125,27 +125,6 @@ function funk_use_validation_get_validation_array_or_err_out(&$c, $string)
     }
 }
 
-// Function that returns a reference to the current array
-function &funk_navigate_v_err_array(&$c, &$currentArrRef, $key, $setValue = null)
-{
-    if (!isset($currentArrRef[$key]) || !is_array($currentArrRef[$key])) {
-        $currentArrRef[$key] = [];
-    }
-    // If a value is set, we set it in the current array reference
-    if (is_string($setValue) && !empty(trim($setValue))) {
-        $currentArrRef[$key] =  $setValue;
-    }
-    // Return a reference to the newly navigated segment
-    return $currentArrRef[$key];
-}
-
-// Fuction that sets the value of the current array reference
-// it assumes $value is string to be optimized for performance
-function funk_set_v_err_value(&$c, &$currentArrRef, $value)
-{
-    $currentArrRef = $value;
-}
-
 // Function that validates a set of rules for a given single input field/data
 function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array $rules, array &$currentErrPath): void
 {
