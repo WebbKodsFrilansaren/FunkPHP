@@ -749,7 +749,7 @@ function funk_use_validation(&$c, $optimizedValidationArray, $source)
         return false;
     }
 
-    // REMOVE THIS LINE WHEN DONE TESTING
+    // TODO: REMOVE THIS LINE WHEN DONE TESTING
     // This is just for testing purposes to see the input data
     var_dump("TEST DATA(GET/POST/JSON):", $inputData);
 
