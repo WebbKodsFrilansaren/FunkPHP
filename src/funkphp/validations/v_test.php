@@ -14,181 +14,128 @@ function v_test(&$c) // <POST/test/:id>
     // Run the command `php funkcli compile v v_test=>v_test`
     // to get optimized version in return statement below it!
     $DX = [
-        'array_test' => 'array|count:1|required',
-        'email_test' => 'email|between:6,30|required',
-        'string_test' => 'string|between:1,3|required',
-        'int_test' => 'integer|between:1,3|required',
-        'float_test' => 'float|between:1,3|required',
-        'password_test' => 'password:1,1,1,1|between:12,15|required',
-        "password_confirm_test" => 'password_confirm:password_test|required',
+        'arr_test.*' => 'list|between:1,5|nullable|required',
+        'arr_test.*.test' => 'string|required|min:5|max:10',
+        'arr_test2.*' => 'list|between:1,5|nullable|required',
+        'arr_test2.*.test' => 'string|required|min:5|max:10',
     ];
 
     return array(
-        'array_test' =>
+        'arr_test' =>
         array(
-            '<RULES>' =>
+            '*' =>
             array(
-                'required' =>
+                '<RULES>' =>
                 array(
-                    'value' => NULL,
-                    'err_msg' => NULL,
+                    'nullable' =>
+                    array(
+                        'value' => NULL,
+                        'err_msg' => NULL,
+                    ),
+                    'required' =>
+                    array(
+                        'value' => NULL,
+                        'err_msg' => NULL,
+                    ),
+                    'list' =>
+                    array(
+                        'value' => NULL,
+                        'err_msg' => NULL,
+                    ),
+                    'between' =>
+                    array(
+                        'value' =>
+                        array(
+                            0 => 1,
+                            1 => 5,
+                        ),
+                        'err_msg' => NULL,
+                    ),
                 ),
-                'array' =>
+                'test' =>
                 array(
-                    'value' => NULL,
-                    'err_msg' => NULL,
-                ),
-                'count' =>
-                array(
-                    'value' => 1,
-                    'err_msg' => NULL,
+                    '<RULES>' =>
+                    array(
+                        'required' =>
+                        array(
+                            'value' => NULL,
+                            'err_msg' => NULL,
+                        ),
+                        'string' =>
+                        array(
+                            'value' => NULL,
+                            'err_msg' => NULL,
+                        ),
+                        'min' =>
+                        array(
+                            'value' => 5,
+                            'err_msg' => NULL,
+                        ),
+                        'max' =>
+                        array(
+                            'value' => 10,
+                            'err_msg' => NULL,
+                        ),
+                    ),
                 ),
             ),
         ),
-        'email_test' =>
+        'arr_test2' =>
         array(
-            '<RULES>' =>
+            '*' =>
             array(
-                'required' =>
+                '<RULES>' =>
                 array(
-                    'value' => NULL,
-                    'err_msg' => NULL,
-                ),
-                'email' =>
-                array(
-                    'value' => NULL,
-                    'err_msg' => NULL,
-                ),
-                'between' =>
-                array(
-                    'value' =>
+                    'nullable' =>
                     array(
-                        0 => 6,
-                        1 => 30,
+                        'value' => NULL,
+                        'err_msg' => NULL,
                     ),
-                    'err_msg' => NULL,
-                ),
-            ),
-        ),
-        'string_test' =>
-        array(
-            '<RULES>' =>
-            array(
-                'required' =>
-                array(
-                    'value' => NULL,
-                    'err_msg' => NULL,
-                ),
-                'string' =>
-                array(
-                    'value' => NULL,
-                    'err_msg' => NULL,
-                ),
-                'between' =>
-                array(
-                    'value' =>
+                    'required' =>
                     array(
-                        0 => 1,
-                        1 => 3,
+                        'value' => NULL,
+                        'err_msg' => NULL,
                     ),
-                    'err_msg' => NULL,
-                ),
-            ),
-        ),
-        'int_test' =>
-        array(
-            '<RULES>' =>
-            array(
-                'required' =>
-                array(
-                    'value' => NULL,
-                    'err_msg' => NULL,
-                ),
-                'integer' =>
-                array(
-                    'value' => NULL,
-                    'err_msg' => NULL,
-                ),
-                'between' =>
-                array(
-                    'value' =>
+                    'list' =>
                     array(
-                        0 => 1,
-                        1 => 3,
+                        'value' => NULL,
+                        'err_msg' => NULL,
                     ),
-                    'err_msg' => NULL,
-                ),
-            ),
-        ),
-        'float_test' =>
-        array(
-            '<RULES>' =>
-            array(
-                'required' =>
-                array(
-                    'value' => NULL,
-                    'err_msg' => NULL,
-                ),
-                'float' =>
-                array(
-                    'value' => NULL,
-                    'err_msg' => NULL,
-                ),
-                'between' =>
-                array(
-                    'value' =>
+                    'between' =>
                     array(
-                        0 => 1,
-                        1 => 3,
+                        'value' =>
+                        array(
+                            0 => 1,
+                            1 => 5,
+                        ),
+                        'err_msg' => NULL,
                     ),
-                    'err_msg' => NULL,
                 ),
-            ),
-        ),
-        'password_test' =>
-        array(
-            '<RULES>' =>
-            array(
-                'required' =>
+                'test' =>
                 array(
-                    'value' => NULL,
-                    'err_msg' => NULL,
-                ),
-                'password' =>
-                array(
-                    'value' =>
+                    '<RULES>' =>
                     array(
-                        0 => 1,
-                        1 => 1,
-                        2 => 1,
-                        3 => 1,
+                        'required' =>
+                        array(
+                            'value' => NULL,
+                            'err_msg' => NULL,
+                        ),
+                        'string' =>
+                        array(
+                            'value' => NULL,
+                            'err_msg' => NULL,
+                        ),
+                        'min' =>
+                        array(
+                            'value' => 5,
+                            'err_msg' => NULL,
+                        ),
+                        'max' =>
+                        array(
+                            'value' => 10,
+                            'err_msg' => NULL,
+                        ),
                     ),
-                    'err_msg' => NULL,
-                ),
-                'between' =>
-                array(
-                    'value' =>
-                    array(
-                        0 => 12,
-                        1 => 15,
-                    ),
-                    'err_msg' => NULL,
-                ),
-            ),
-        ),
-        'password_confirm_test' =>
-        array(
-            '<RULES>' =>
-            array(
-                'required' =>
-                array(
-                    'value' => NULL,
-                    'err_msg' => NULL,
-                ),
-                'password_confirm' =>
-                array(
-                    'value' => 'password_test',
-                    'err_msg' => NULL,
                 ),
             ),
         ),

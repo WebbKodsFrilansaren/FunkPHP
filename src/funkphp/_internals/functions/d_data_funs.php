@@ -534,6 +534,13 @@ function funk_validation_recursively_improved(
                 // If Rules found for Numbered Array * we pass on the rules to the
                 // validation function and then set the current error path.
                 // Only if it all passes do we actually start iterating through the numbered array
+                $actualCount = (is_array($currentInputData)
+                    && array_is_list($currentInputData)) ? count($currentInputData) : 0;
+
+                // REMOVE LATER
+                echo "ACTUAL ARR COUNT: $actualCount\n";
+
+                // If Rules for Numbered Array * exist, we can validate it
                 if ($wildCardRules) {
                     $currentErrPath[$DXKey] = [];
                     funk_validation_validate_rules(
@@ -568,8 +575,13 @@ function funk_validation_recursively_improved(
                             $iterations = (int)$wildCardRules['between']['value'][1] ?? 0;
                         }
 
+                        // If iterations is larger than the actual count,
+                        // we can set it to the actual count so we do not
+                        // iterate more than the actual number of elements
+                        $iterations = ($iterations > 0) ? min($iterations, $actualCount) : $actualCount;
+
                         // REMOVE LATER
-                        echo "Iterations set to: $iterations\n";
+                        echo "SET ARR COUNT TO: $iterations\n";
 
                         // Now we can recurse into the validation function for this
                         // numbered array element when iterations is greater than 0!

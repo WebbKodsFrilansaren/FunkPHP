@@ -2531,7 +2531,7 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
             }
             if (!$hasSubkeys) {
                 cli_err_syntax_without_exit("The Validation Key `$currentKey` in Validation `$handlerFile.php=>$fnName` requires at least one Subkey to exist!");
-                cli_info("Add a Subkey to the \$DX Array that starts with `$currentKey` to use it!");
+                cli_info("Add a Subkey (as in `$currentKey.SubKey`) to the \$DX Array that starts with `$currentKey` to use it!");
             }
         }
     }
