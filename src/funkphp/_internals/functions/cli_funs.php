@@ -2540,12 +2540,12 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
     // CURRENTLY: We do NOT support "*" as the root key
     // since the function that validates uses $DX => $nested
     // where it NEVER assumes $DX to be "*" as the root key.
-    if (array_key_exists("*", $convertedValidationArray)) {
-        cli_err_syntax_without_exit("The Validation Key `*` in Validation `$handlerFile.php=>$fnName` is currently NOT supported as a root key!");
-        cli_info_without_exit("The Validation Function that validates the Data does not currently support `*` (= numbered array) as a root key.");
-        cli_info_without_exit("Please see Lines 507-513 in `/_internals/functions/d_data_funs.php` if you are able to help me out with it!");
-        cli_info("Place the `*` key one level up like: `key.*` in the Validation Array to use it. Sorry for the so called `Skill Issues`!");
-    }
+    // if (array_key_exists("*", $convertedValidationArray)) {
+    //     cli_err_syntax_without_exit("The Validation Key `*` in Validation `$handlerFile.php=>$fnName` is currently NOT supported as a root key!");
+    //     cli_info_without_exit("The Validation Function that validates the Data does not currently support `*` (= numbered array) as a root key.");
+    //     cli_info_without_exit("Please see Lines 507-513 in `/_internals/functions/d_data_funs.php` if you are able to help me out with it!");
+    //     cli_info("Place the `*` key one level up like: `key.*` in the Validation Array to use it. Sorry for the so called `Skill Issues`!");
+    // }
 
     // Special case: if we have "*" as a key, we need to check that
     // all other keys also start with "*." because now we are saying that

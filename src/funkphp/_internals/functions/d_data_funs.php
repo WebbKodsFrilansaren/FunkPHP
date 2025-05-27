@@ -620,6 +620,93 @@ function funk_validation_recursively_improved(
         // When root key IS "*" meaning everything is shifted to the left where the first key
         // is the wildcard "*" and the rest are the nested fields meaning all must be different.
         if ($DXKey === '*') {
+            $currentInputData = $inputData[$DXKey] ?? null;
+            $currentErrPath[$DXKey] = [];
+
+            $wildCardRules = $rulesOrNestedFields["<RULES>"] ?? null;
+
+            // If Rules found for Numbered Array * we pass on the rules to the
+            // validation function and then set the current error path.
+            // Only if it all passes do we actually start iterating through the numbered array
+            $actualCount = (is_array($currentInputData)
+                && array_is_list($currentInputData)) ? count($currentInputData) : 0;
+
+            // REMOVE LATER
+            echo "ACTUAL ARR COUNT: $actualCount\n";
+
+            // If Rules for Numbered Array * exist, we can validate it
+            if ($wildCardRules) {
+                $currentErrPath[$DXKey] = [];
+                funk_validation_validate_rules(
+                    $c,
+                    $currentInputData,
+                    $DXKey,
+                    $wildCardRules,
+                    $currentErrPath[$DXKey]
+                );
+
+                // Only if it is empty do we actually iterate
+                if (empty($currentErrPath[$DXKey])) {
+                    echo "No errors found for `$DXKey` with Wildcard Rules!\n";
+                    unset($currentErrPath[$DXKey]);
+                    unset($rulesOrNestedFields['*']["<RULES>"]);
+
+                    // We now extract the number of iterations
+                    // from the Wildcard Rules array, which should exist
+                    // otherwise we set to 0
+                    $iterations = 0;
+                    if (
+                        isset($wildCardRules['count']['value'])
+                    ) {
+                        $iterations = (int)$wildCardRules['count']['value'] ?? 0;
+                    } else if (isset($wildCardRules['count']['value'])) {
+                        $iterations = (int)$wildCardRules['exact']['value'] ?? 0;
+                    } else if (isset($wildCardRules['exact']['value'])) {
+                        $iterations = (int)$wildCardRules['exact']['value'] ?? 0;
+                    } else if (isset($wildCardRules['size']['value'])) {
+                        $iterations = (int)$wildCardRules['size']['value'] ?? 0;
+                    } else if (isset($wildCardRules['between']['value'])) {
+                        $iterations = (int)$wildCardRules['between']['value'][1] ?? 0;
+                    }
+
+                    // If iterations is larger than the actual count,
+                    // we can set it to the actual count so we do not
+                    // iterate more than the actual number of elements
+                    $iterations = ($iterations > 0) ? min($iterations, $actualCount) : $actualCount;
+
+                    // REMOVE LATER
+                    echo "SET ARR COUNT TO: $iterations\n";
+
+                    // Now we can recurse into the validation function for this
+                    // numbered array element when iterations is greater than 0!
+                    if ($iterations > 0) {
+                        for ($index = 0; $index < $iterations; $index++) {
+
+                            $currentErrPath[$DXKey][$index] = [];
+                            funk_validation_recursively_improved(
+                                $c,
+                                $currentInputData[$index] ?? null,
+                                $rulesOrNestedFields['*'],
+                                $currentErrPath[$DXKey][$index]
+                            );
+                            // Unset if no errors were found
+                            if (empty($currentErrPath[$DXKey][$index])) {
+                                unset($currentErrPath[$DXKey][$index]);
+                            }
+                        }
+                        // Also unset for the main DXKey if no errors were found
+                        if (empty($currentErrPath[$DXKey])) {
+                            unset($currentErrPath[$DXKey]);
+                        }
+                    }
+                }
+            }
+            // We found Wildcard * Indicator but not the Rules
+            // so throw possible misconfiguration error!
+            else {
+                $c['err']['FAILED_TO_RUN_VALIDATION_FUNCTION-NUMBERED-ARRAY-' . $DXKey] = "Validation Function for `$DXKey` with Wildcard * found but no Rules were defined for it!";
+                $currentErrPath[$DXKey] = "Failed to Validate Numbered Array in `$DXKey`. Tell the Developer about it since this is possibly a misconfiguration in the so called `returned validation array()`!";
+            }
         }
     }
 }
