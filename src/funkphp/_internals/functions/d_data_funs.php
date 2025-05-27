@@ -476,12 +476,6 @@ function funk_validation_recursively_improved(
             $currentErrPath[$DXKey] = [];
             $wildCardExist = ($DXKey === '*' || key($rulesOrNestedFields) === '*');
 
-            // REMOVE LATER
-            //echo "Current Key: `$DXKey`, Rules?: `" . ($currentRules ? 'Yes' : 'No') . "\n";
-            //echo "WildCard Exists: " . ($wildCardExist ? 'Yes' : 'No') . "\n";
-            //echo "Key Data Name: " . (is_string($rulesOrNestedFields) ? $rulesOrNestedFields : 'Array') . "\n";
-            //  echo "Current Input Data (if string): " . (is_string($currentInputData) ? $currentInputData : 'Array') . "\n";
-
             // If "<RULES>" node exists, we process it by passing it to the
             // funk_validation_validate_rules function which also receives
             // the current error path!
@@ -616,13 +610,12 @@ function funk_validation_recursively_improved(
             }
         }
 
-        // TODO: Handle the case when root key is "*" - OH NO!
+        // MAYBE EXPERIMENTAL: Might not work as intended in all cases, but otherwise nicely done!!! ^_^
         // When root key IS "*" meaning everything is shifted to the left where the first key
         // is the wildcard "*" and the rest are the nested fields meaning all must be different.
         if ($DXKey === '*') {
-            $currentInputData = $inputData[$DXKey] ?? null;
+            $currentInputData = $inputData ?? null;
             $currentErrPath[$DXKey] = [];
-
             $wildCardRules = $rulesOrNestedFields["<RULES>"] ?? null;
 
             // If Rules found for Numbered Array * we pass on the rules to the
@@ -632,7 +625,7 @@ function funk_validation_recursively_improved(
                 && array_is_list($currentInputData)) ? count($currentInputData) : 0;
 
             // REMOVE LATER
-            echo "ACTUAL ARR COUNT: $actualCount\n";
+            echo "[* as ROOT] ACTUAL ARR COUNT: $actualCount\n";
 
             // If Rules for Numbered Array * exist, we can validate it
             if ($wildCardRules) {
@@ -647,9 +640,9 @@ function funk_validation_recursively_improved(
 
                 // Only if it is empty do we actually iterate
                 if (empty($currentErrPath[$DXKey])) {
-                    echo "No errors found for `$DXKey` with Wildcard Rules!\n";
+                    echo "[* as ROOT] No errors found for `$DXKey` with Wildcard Rules!\n";
                     unset($currentErrPath[$DXKey]);
-                    unset($rulesOrNestedFields['*']["<RULES>"]);
+                    unset($rulesOrNestedFields["<RULES>"]);
 
                     // We now extract the number of iterations
                     // from the Wildcard Rules array, which should exist
@@ -675,29 +668,30 @@ function funk_validation_recursively_improved(
                     $iterations = ($iterations > 0) ? min($iterations, $actualCount) : $actualCount;
 
                     // REMOVE LATER
-                    echo "SET ARR COUNT TO: $iterations\n";
+                    echo "[* as ROOT] SET ARR COUNT TO: $iterations\n";
 
                     // Now we can recurse into the validation function for this
                     // numbered array element when iterations is greater than 0!
                     if ($iterations > 0) {
                         for ($index = 0; $index < $iterations; $index++) {
 
-                            $currentErrPath[$DXKey][$index] = [];
+                            $currentErrPath[$index] = [];
                             funk_validation_recursively_improved(
                                 $c,
                                 $currentInputData[$index] ?? null,
-                                $rulesOrNestedFields['*'],
-                                $currentErrPath[$DXKey][$index]
+                                $rulesOrNestedFields,
+                                $currentErrPath[$index]
                             );
                             // Unset if no errors were found
-                            if (empty($currentErrPath[$DXKey][$index])) {
-                                unset($currentErrPath[$DXKey][$index]);
+                            if (empty($currentErrPath[$index])) {
+                                unset($currentErrPath[$index]);
                             }
                         }
+                        // TODO: Maybe is needed after all in special case when root is numbered array?
                         // Also unset for the main DXKey if no errors were found
-                        if (empty($currentErrPath[$DXKey])) {
-                            unset($currentErrPath[$DXKey]);
-                        }
+                        // if (empty($currentErrPath[$DXKey])) {
+                        //     unset($currentErrPath[$DXKey]);
+                        // }
                     }
                 }
             }
