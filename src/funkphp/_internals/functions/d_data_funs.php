@@ -287,6 +287,15 @@ function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array 
         $ruleValue = $ruleConfig['value'] ?? null;
         $customErr = $ruleConfig['err_msg'] ?? null;
 
+        // SPECIAL EDGE-CASE for 'password' and 'password_confirm' where the first
+        // one is used to store the password for the second one to match against!
+        if ($foundTypeRule === 'password') {
+            $c['v_config']['passwords_to_match'][$fullFieldName] = is_string($inputValue) ? (string)$inputValue : null;
+        } elseif ($foundTypeRule === 'password_confirm') {
+            $ruleValue = $c['v_config']['passwords_to_match'][$ruleValue] ?? null;
+        }
+
+        // Validate matching Data Type Rule
         $error = $validatorFn($fullFieldName, $inputValue, $ruleValue, $customErr);
 
         // Mark validation as failed if error is not null
@@ -308,6 +317,9 @@ function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array 
                 return;
             }
         }
+
+        // Remove the found Data Type to not repeat
+        unset($rules[$foundTypeRule]);
     }
     // In case no valid data type rule was found
     // (should only happen if it hasn't been added yet)
@@ -380,41 +392,9 @@ function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array 
         // Dynamically call the validation function for this rule
         // Assuming your rule functions are named funk_validate_rule
         $validatorFn = 'funk_validate_' . $rule;
-        echo "RULE TO RUN: `$validatorFn`\n";
 
         if (function_exists($validatorFn)) {
-            $error = null;
-
-            if ($validatorFn === 'funk_validate_password') {
-                $error = $validatorFn($fullFieldName, $inputValue, $ruleValue, $customErr);
-                $c['v_config']['passwords_to_match'][$fullFieldName] = is_string($inputValue) ? (string)$inputValue : null;
-            } elseif ($validatorFn === 'funk_validate_password_confirm') {
-                $passwordToMatch = $c['v_config']['passwords_to_match'][$ruleValue] ?? null;
-                $error = $validatorFn($fullFieldName, $inputValue, $passwordToMatch, $customErr);
-            } else {
-                $error = $validatorFn($fullFieldName, $inputValue, $ruleValue, $customErr);
-            }
-            // Rule is 'password'? Then we store its possible string value for
-            // the corresponding 'password_confirm' Rule to confirm against!
-            // if ($rule === 'password') {
-            //     echo "PASSWORD RULE RUNS!\n";
-            //     $error = $validatorFn($fullFieldName, $inputValue, $ruleValue, $customErr);
-            //     $c['v_config']['passwords_to_match'][$fullFieldName] = is_string($inputValue) ? (string)$inputValue : null;
-            // }
-            // Special case when "password_confirm" rule is used which takes the value stored by
-            // the 'password' rule above and checks if it matches (when not string sends "")
-            // if ($rule === 'password_confirm') {
-            //     echo "CONFIRM PASSWORD RULE RUNS!\n";
-            //     $error = $validatorFn(
-            //         $fullFieldName,
-            //         is_string($inputValue) ? (string)$inputValue : null,
-            //         ($c['v_config']['passwords_to_match'][$ruleValue]), // This is correct now!
-            //         $customErr
-            //     );
-            // }
-            // Default Validation Rule running & storing either error or null
-
-
+            $error = $validatorFn($fullFieldName, $inputValue, $ruleValue, $customErr);
 
             // Set the error message for this specific rule
             // if it is not null, meaning validation failed
@@ -1300,11 +1280,12 @@ function funk_validate_password_confirm($inputName, $inputData, $validationValue
     if (!is_string($inputData) || !is_string($validationValues)) {
         return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a valid password confirmation.";
     }
-    echo "Both string!";
-    if ($inputData !== $validationValues) {
-        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must match the original password.";
+
+    // Return null if they match, otherwise return an error message
+    if ($inputData === $validationValues) {
+        return null;
     }
-    return null;
+    return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must match the original password.";
 }
 
 // Validate that Input Data is a valid password with custom validation where $validationValues

@@ -15,10 +15,8 @@ function v_test(&$c) // <POST/test/:id>
     // to get optimized version in return statement below it!
     $DX = [
         '<CONFIG>' => null,
-        'user_name' => 'string|required|between:2,30',
-        'user_password' => 'password:1,1,1,1|required|between:12,15',
+        'user_password' => 'password:1,1,1,1|required|between:5,15',
         'user_password_confirm' => 'password_confirm:user_password|required',
-        'user_age' => 'integer|required|between:18,30',
     ];
 
     return array(
@@ -26,36 +24,7 @@ function v_test(&$c) // <POST/test/:id>
         array(
             'passwords_to_match' =>
             array(
-                'user_password' =>
-                array(
-                    'user_password_confirm' =>
-                    array(),
-                ),
-            ),
-        ),
-        'user_name' =>
-        array(
-            '<RULES>' =>
-            array(
-                'required' =>
-                array(
-                    'value' => NULL,
-                    'err_msg' => NULL,
-                ),
-                'string' =>
-                array(
-                    'value' => NULL,
-                    'err_msg' => NULL,
-                ),
-                'between' =>
-                array(
-                    'value' =>
-                    array(
-                        0 => 2,
-                        1 => 30,
-                    ),
-                    'err_msg' => NULL,
-                ),
+                'user_password' => 'user_password_confirm',
             ),
         ),
         'user_password' =>
@@ -82,7 +51,7 @@ function v_test(&$c) // <POST/test/:id>
                 array(
                     'value' =>
                     array(
-                        0 => 12,
+                        0 => 5,
                         1 => 15,
                     ),
                     'err_msg' => NULL,
@@ -101,31 +70,6 @@ function v_test(&$c) // <POST/test/:id>
                 'password_confirm' =>
                 array(
                     'value' => 'user_password',
-                    'err_msg' => NULL,
-                ),
-            ),
-        ),
-        'user_age' =>
-        array(
-            '<RULES>' =>
-            array(
-                'required' =>
-                array(
-                    'value' => NULL,
-                    'err_msg' => NULL,
-                ),
-                'integer' =>
-                array(
-                    'value' => NULL,
-                    'err_msg' => NULL,
-                ),
-                'between' =>
-                array(
-                    'value' =>
-                    array(
-                        0 => 18,
-                        1 => 30,
-                    ),
                     'err_msg' => NULL,
                 ),
             ),
