@@ -14,12 +14,26 @@ function v_test(&$c) // <POST/test/:id>
     // Run the command `php funkcli compile v v_test=>v_test`
     // to get optimized version in return statement below it!
     $DX = [
-        'name' => 'string|required|between:2,30',
-        'age' => 'integer|required|between:18,30',
+        '<CONFIG>' => null,
+        'user_name' => 'string|required|between:2,30',
+        'user_password' => 'password:1,1,1,1|required|between:12,15',
+        'user_password_confirm' => 'password_confirm:user_password|required',
+        'user_age' => 'integer|required|between:18,30',
     ];
 
     return array(
-        'name' =>
+        '<CONFIG>' =>
+        array(
+            'passwords_to_match' =>
+            array(
+                'user_password' =>
+                array(
+                    'user_password_confirm' =>
+                    array(),
+                ),
+            ),
+        ),
+        'user_name' =>
         array(
             '<RULES>' =>
             array(
@@ -44,7 +58,54 @@ function v_test(&$c) // <POST/test/:id>
                 ),
             ),
         ),
-        'age' =>
+        'user_password' =>
+        array(
+            '<RULES>' =>
+            array(
+                'required' =>
+                array(
+                    'value' => NULL,
+                    'err_msg' => NULL,
+                ),
+                'password' =>
+                array(
+                    'value' =>
+                    array(
+                        0 => 1,
+                        1 => 1,
+                        2 => 1,
+                        3 => 1,
+                    ),
+                    'err_msg' => NULL,
+                ),
+                'between' =>
+                array(
+                    'value' =>
+                    array(
+                        0 => 12,
+                        1 => 15,
+                    ),
+                    'err_msg' => NULL,
+                ),
+            ),
+        ),
+        'user_password_confirm' =>
+        array(
+            '<RULES>' =>
+            array(
+                'required' =>
+                array(
+                    'value' => NULL,
+                    'err_msg' => NULL,
+                ),
+                'password_confirm' =>
+                array(
+                    'value' => 'user_password',
+                    'err_msg' => NULL,
+                ),
+            ),
+        ),
+        'user_age' =>
         array(
             '<RULES>' =>
             array(

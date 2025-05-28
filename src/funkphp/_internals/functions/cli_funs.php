@@ -1182,6 +1182,59 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         $duplicates[$key] = [];
     }
 
+    // List of available Global Config Rules
+    $globalConfigRules = [
+        'show_v_data_only_if_all_valid' => [],
+        'stop_all_first' => [], // Alias for 'stop_all_on_first_error'
+        'stop_all_on_first_error' => [],
+        'passwords_to_match' => [],
+    ];
+
+    // We now check for the "'<CONFIG>'" key in $validationArray which is a configuration
+    // key that will always be processed first so we grab it and remove it from the array.
+    if (isset($validationArray['<CONFIG>']) && $validationArray['<CONFIG>'] !== null) {
+        if (!is_array($validationArray['<CONFIG>']) || empty($validationArray['<CONFIG>'])) {
+            cli_warning_without_exit("The Global Validation `<CONFIG>` Key is empty - no Global Config Rules have been added!");
+            cli_info_without_exit("You can add Global Config Rules to the Validation Array by adding a key `<CONFIG>` with an Array of Rules.");
+            $convertedValidationArray['<CONFIG>'] = null;
+        } else {
+            // We initialize the `<CONFIG>` key in the converted validation array
+            // and here we will add all the valid configuration rules that are found
+            $convertedValidationArray['<CONFIG>'] = [];
+
+            // Now we check if the `<CONFIG>` key has any rules and if it does, we process them
+            foreach ($validationArray['<CONFIG>'] as $configKey => $configVal) {
+                // Check that config rule is valid ($globalConfigRules) or err out
+                if (!isset($globalConfigRules[$configKey])) {
+                    cli_err_syntax_without_exit("Invalid Global Config Rule `$configKey` found in Validation `$handlerFile.php=>$fnName`!");
+                    cli_info("Use any - once - of the following available Global Config Rules: " . implode(", ", quotify_elements($globalConfigRules)) . "!");
+                }
+
+                // NOW WE ADD THE CONFIG RULES THAT EXIST!
+                // If "stop_all_on_first_error", add it to the CONFIG key
+                if (($configKey === 'stop_all_on_first_error'
+                        || $configKey === 'stop_all_first')
+                    && $configVal === true
+                ) {
+                    $convertedValidationArray['<CONFIG>']['stop_all_on_first_error'] = true;
+                    cli_success_without_exit("GLOBAL CONFIG RULE ADDED: `stop_all_on_first_error` in Validation `$handlerFile.php=>$fnName`!");
+                }
+
+                // If "show_v_data_only_if_all_valid", add it to the CONFIG key
+                if ($configKey === 'show_v_data_only_if_all_valid' && $configVal === true) {
+                    $convertedValidationArray['<CONFIG>']['show_v_data_only_if_all_valid'] = true;
+                    cli_success_without_exit("GLOBAL CONFIG RULE ADDED: `show_v_data_only_if_all_valid` in Validation `$handlerFile.php=>$fnName`!");
+                }
+            }
+        }
+
+        // Finally, remove the `<CONFIG>` key from the validation array since we processed it
+        unset($validationArray['<CONFIG>']);
+    } else {
+        $convertedValidationArray['<CONFIG>'] = null;
+        unset($validationArray['<CONFIG>']);
+    }
+
     // We verify each array key is a non-empty string and we verify each value
     // is either a non-empty string or a single array of non-empty strings!
     foreach ($validationArray as $key => $value) {
@@ -1210,6 +1263,8 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
             }
         }
     }
+
+
 
     // Now we finally start converting the validation rules to optimized validation rules
     foreach ($validationArray as $DXkey => $Rules) {
@@ -1840,6 +1895,10 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
                 cli_info_without_exit("The Default Error Message only returns about one thing at a time (uppercase missing, digit missing, etc.)");
                 cli_info_without_exit("Recommended to add a custom error message to the `password` Rule so it is more informative!");
             }
+            // Here, the "password" rule passed all checks
+            // so we now add it '<CONFIG>' => 'passwords_to_match' array!
+            // When we come acropss 'password_confirm' Rule we will add it as the value to this!
+            $convertedValidationArray['<CONFIG>']['passwords_to_match'][$currentDXKey] = "";
         }
 
         // Special cases for "password_confirm" Rule
@@ -1880,7 +1939,16 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
                 cli_err_syntax_without_exit("The `password_confirm` Rule for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` must only have `required` and `password_confirm` Rules!");
                 cli_info("Remove any other Rules from `$currentDXKey` to use the `password_confirm` Rule!");
             }
-            // Here we check if the `password_confirm` Rule is used with a `between` Rule
+            // All checks passed, so we add the `password_confirm` Rule to the corresponding "passwords_to_match" array
+            // here its value is the key of the `password` Rule that it should confirm against. If it does not exist
+            // we will error out later when we try to match the passwords so we error out here!
+            if (!isset($convertedValidationArray['<CONFIG>']['passwords_to_match'][$sortedRulesForField['password_confirm']['value']])) {
+                cli_err_syntax_without_exit("The `password_confirm` Rule for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` has no corresponding `password` Rule to confirm against!");
+                cli_info("Specify a Valid Key (using the Data Type `password` or `password_custom`) from the \$DX Array as the value for the `password_confirm` Rule which it should confirm against.");
+                cli_info("This Data Type (`password` or `password_custom`) must be on the same Key Level as the `password_confirm` Rule that should confirm against it!");
+            } else {
+                $convertedValidationArray['<CONFIG>']['passwords_to_match'][$sortedRulesForField['password_confirm']['value']] = [$currentDXKey => []];
+            }
         }
 
         // Special cases for the "between" Rule
@@ -2573,17 +2641,7 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         }
     }
 
-    // WE check if the "stop_all_on_first_error" varible is true
-    // and if it is insert the "stop_all_on_first_error" key as
-    // the root key meaning we shift all other root keys to the right
-    if ($stop_on_first_error) {
-        // We remove the "stop_all_on_first_error" key from the validation array
-        // We insert it as the first key in the converted validation array
-        $convertedValidationArray = ['<STOP_ALL_ON_FIRST_ERROR>' => true] + $convertedValidationArray;
-        cli_success_without_exit("ADDED `<STOP_ALL_ON_FIRST_ERROR>` Root Key Configuration in The Validation Function `$fnName` in Validation Handler File `$handlerFile.php`!");
-        cli_info_without_exit("This means that the Validation Function will stop on the first error found and return all validated so far!");
-    }
-
+    // Return the finally finalized converted validation array!
     return $convertedValidationArray;
 }
 

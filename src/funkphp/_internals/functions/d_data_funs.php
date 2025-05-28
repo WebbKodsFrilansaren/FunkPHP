@@ -176,7 +176,7 @@ function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array 
             $currentErrPath['required'] = $error;
             $c['v_ok'] = false;
 
-            // TODO: EXPERIMENTAL: Might not work as intended in all cases
+            // MAYBE EXPERIMENTAL: Might not work as intended in all cases
             // This is the "'<STOP_ALL_ON_FIRST_ERROR>' => true," root key!
             if (
                 isset($c['v_config']['stop_all_on_first_error'])
@@ -295,7 +295,7 @@ function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array 
             $currentErrPath[$foundTypeRule] = $error;
             $c['v_ok'] = false;
 
-            // TODO: EXPERIMENTAL: Might not work as intended in all cases
+            // MAYBE EXPERIMENTAL: Might not work as intended in all cases
             // This is the "'<STOP_ALL_ON_FIRST_ERROR>' => true," root key!
             if (
                 isset($c['v_config']['stop_all_on_first_error'])
@@ -318,6 +318,15 @@ function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array 
         $currentErrPath[$foundTypeRule] = "This is unknown data type: '{$foundTypeRule}' in field '{$fullFieldName}'. Please tell the Developer about it since validation cannot continue without a valid data type provided!";
         $c['err']['UNKNOWN_VALIDATOR_DATA_TYPE_RULE'] = "Unknown Data Type Validation Rule: '{$foundTypeRule}' for field '{$fullFieldName}'.";
         $c['v_ok'] = false;
+
+        // MAYBE EXPERIMENTAL: Might not work as intended in all cases
+        // This is the "'<STOP_ALL_ON_FIRST_ERROR>' => true," root key!
+        if (
+            isset($c['v_config']['stop_all_on_first_error'])
+        ) {
+            $c['v_config']['stop_all_on_first_error'] = true;
+            return;
+        }
         return;
     }
 
@@ -371,11 +380,41 @@ function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array 
         // Dynamically call the validation function for this rule
         // Assuming your rule functions are named funk_validate_rule
         $validatorFn = 'funk_validate_' . $rule;
-        //echo "Running `$validatorFn` for field `$fullFieldName` with value `" . (is_string($inputValue) ? $inputValue : json_encode($inputValue)) . "`\n";
+        echo "RULE TO RUN: `$validatorFn`\n";
 
         if (function_exists($validatorFn)) {
-            // Pass current input value, rule value, and custom error
-            $error = $validatorFn($fullFieldName, $inputValue, $ruleValue, $customErr);
+            $error = null;
+
+            if ($validatorFn === 'funk_validate_password') {
+                $error = $validatorFn($fullFieldName, $inputValue, $ruleValue, $customErr);
+                $c['v_config']['passwords_to_match'][$fullFieldName] = is_string($inputValue) ? (string)$inputValue : null;
+            } elseif ($validatorFn === 'funk_validate_password_confirm') {
+                $passwordToMatch = $c['v_config']['passwords_to_match'][$ruleValue] ?? null;
+                $error = $validatorFn($fullFieldName, $inputValue, $passwordToMatch, $customErr);
+            } else {
+                $error = $validatorFn($fullFieldName, $inputValue, $ruleValue, $customErr);
+            }
+            // Rule is 'password'? Then we store its possible string value for
+            // the corresponding 'password_confirm' Rule to confirm against!
+            // if ($rule === 'password') {
+            //     echo "PASSWORD RULE RUNS!\n";
+            //     $error = $validatorFn($fullFieldName, $inputValue, $ruleValue, $customErr);
+            //     $c['v_config']['passwords_to_match'][$fullFieldName] = is_string($inputValue) ? (string)$inputValue : null;
+            // }
+            // Special case when "password_confirm" rule is used which takes the value stored by
+            // the 'password' rule above and checks if it matches (when not string sends "")
+            // if ($rule === 'password_confirm') {
+            //     echo "CONFIRM PASSWORD RULE RUNS!\n";
+            //     $error = $validatorFn(
+            //         $fullFieldName,
+            //         is_string($inputValue) ? (string)$inputValue : null,
+            //         ($c['v_config']['passwords_to_match'][$ruleValue]), // This is correct now!
+            //         $customErr
+            //     );
+            // }
+            // Default Validation Rule running & storing either error or null
+
+
 
             // Set the error message for this specific rule
             // if it is not null, meaning validation failed
@@ -385,7 +424,7 @@ function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array 
                 $currentErrPath[$errorKey] = $error;
                 $c['v_ok'] = false;
 
-                // TODO: EXPERIMENTAL: Might not work as intended in all cases
+                // MAYBE EXPERIMENTAL: Might not work as intended in all cases
                 // This is the "'<STOP_ALL_ON_FIRST_ERROR>' => true," root key!
                 // Stop ALL Validation if "stop_all_on_first_error" key exists
                 if (
@@ -404,7 +443,17 @@ function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array 
             $currentErrPath[$foundTypeRule] = "This is unknown data type: '{$foundTypeRule}' in field '{$fullFieldName}'. Please tell the Developer about it. Validation will continue though!";
             $c['err']["UNKNOWN_VALIDATOR_DATA_RULE-$foundTypeRule"] = "Unknown Data Validation Rule: '{$foundTypeRule}' for field '{$fullFieldName}'.";
             $c['v_ok'] = false;
+            // MAYBE EXPERIMENTAL: Might not work as intended in all cases
+            // This is the "'<STOP_ALL_ON_FIRST_ERROR>' => true," root key!
+            // Stop ALL Validation if "stop_all_on_first_error" key exists
+            if (
+                isset($c['v_config']['stop_all_on_first_error'])
+            ) {
+                $c['v_config']['stop_all_on_first_error'] = true;
+                return;
+            }
         }
+        // Next rule will be processed
     }
 };
 
@@ -431,13 +480,27 @@ function funk_validation_recursively_improved(
             }
             return;
         }
-        // Set "STOP_ALL_ON_FIRST_ERROR" key to true in $c['v_config']['stop_all_on_first_error']
-        // as a global configuration for the validation process (including if it is a nested field)
-        // Any error will check if this exists and set it to true and when true it all returns
+
+        // Here we initialize all the global configs (this is ALWAYS the first key)
         // TODO: EXPERIMENTAL: Might not work as intended in all cases
-        // This is the "'<STOP_ALL_ON_FIRST_ERROR>' => true," root key!
-        if ($DXKey === '<STOP_ALL_ON_FIRST_ERROR>') {
-            $c['v_config']['stop_all_on_first_error'] = false;
+        if ($DXKey === '<CONFIG>') {
+            // Set "STOP_ALL_ON_FIRST_ERROR" key to true in $c['v_config']['stop_all_on_first_error']
+            // as a global configuration for the validation process (including if it is a nested field)
+            // Any error will check if this exists and set it to true and when true it all returns
+            // This is the "'<STOP_ALL_ON_FIRST_ERROR>' => true," root key!
+            if (
+                isset($rulesOrNestedFields['stop_all_on_first_error'])
+                || isset($rulesOrNestedFields['stop_all_first'])
+            ) {
+                $c['v_config']['stop_all_on_first_error'] = false;
+            }
+            // This is used at the end of all validation and enables to ONLY
+            // show all v_data and only if all validation rules passed!
+            if (isset($rulesOrNestedFields['show_v_data_only_if_all_valid'])) {
+                $c['v_config']['show_v_data_only_if_all_valid'] = true;
+            }
+
+            // Finally delete the "<CONFIG>" key since it has been fully processed
             unset($validationRules[$DXKey]);
             continue;
         }
@@ -789,9 +852,12 @@ function funk_use_validation(&$c, $optimizedValidationArray, $source, $onlyDataI
         return true;
     }
 
-    // Clear Valid Data Array if Validation failed but
-    // only if "onlyDataIfAllValid" is set to true!
-    if ($onlyDataIfAllValid) {
+    // Clear Valid Data Array if Validation failed but only if
+    // "v_config" key "show_v_data_only_if_all_valid" is true
+    if (
+        isset($c['v_config']['show_v_data_only_if_all_valid'])
+        && $c['v_config']['show_v_data_only_if_all_valid'] === true
+    ) {
         $c['v_data'] = null;
     }
     return false;
@@ -1216,7 +1282,7 @@ function funk_validate_password($inputName, $inputData, $validationValues, $cust
     // Count the number of special characters next!
     // YOU CAN CHANGE THE SPECIAL CHARACTERS TO YOUR LIKING!
     // Change below what are considered default special characters!
-    $specialCharPattern = '/[!@#$%^&*()[\]\.,`?"\':{}|<>~]/';
+    $specialCharPattern = '/[!@#$%^&*(_)[\]\.,`?"\':{}|<>~]/';
 
     if ($specialCharCount > 0) {
         preg_match_all($specialCharPattern, $inputData, $matches);
@@ -1224,7 +1290,6 @@ function funk_validate_password($inputName, $inputData, $validationValues, $cust
             return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must have at least $specialCharCount special characters.";
         }
     }
-
     return null;
 }
 
@@ -1235,9 +1300,11 @@ function funk_validate_password_confirm($inputName, $inputData, $validationValue
     if (!is_string($inputData) || !is_string($validationValues)) {
         return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a valid password confirmation.";
     }
+    echo "Both string!";
     if ($inputData !== $validationValues) {
         return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must match the original password.";
     }
+    return null;
 }
 
 // Validate that Input Data is a valid password with custom validation where $validationValues
