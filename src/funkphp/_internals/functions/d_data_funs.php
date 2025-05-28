@@ -287,9 +287,9 @@ function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array 
         $ruleValue = $ruleConfig['value'] ?? null;
         $customErr = $ruleConfig['err_msg'] ?? null;
 
-        // SPECIAL EDGE-CASE for 'password' and 'password_confirm' where the first
-        // one is used to store the password for the second one to match against!
-        if ($foundTypeRule === 'password') {
+        // SPECIAL EDGE-CASE for 'password/password_custom' and 'password_confirm' where
+        // first one is used to store the password second one to match against!
+        if ($foundTypeRule === 'password' || 'password_custom' === $foundTypeRule) {
             $c['v_config']['passwords_to_match'][$fullFieldName] = is_string($inputValue) ? (string)$inputValue : null;
         } elseif ($foundTypeRule === 'password_confirm') {
             $ruleValue = $c['v_config']['passwords_to_match'][$ruleValue] ?? null;
