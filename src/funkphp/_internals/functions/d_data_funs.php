@@ -67,7 +67,7 @@ function funk_run_matched_data_handler(&$c)
 
 // Function that either gets a valid validation array from a given validation
 // file and then a given validation function name or returns null with error.
-function funk_use_validation_get_validation_array_or_err_out(&$c, $string)
+function funk_load_validation_file(&$c, $string)
 {
     $handlerFile = null;
     $fnName = null;
@@ -109,12 +109,7 @@ function funk_use_validation_get_validation_array_or_err_out(&$c, $string)
     if (file_exists_is_readable_writable($validationFile)) {
         $validationDataFromFile = include_once $validationFile;
         if (is_callable($validationDataFromFile)) {
-            $resultFromHandler = $validationDataFromFile($c, $fnName);
-            if ($resultFromHandler === null || $resultFromHandler === false) {
-                $c['err']['FAILED_TO_LOAD_VALIDATION_FILE'] = "Validation Handler File '{$handlerFile}.php' returned null instead of Validation Function Name \"$fnName\"!";
-                return null;
-            }
-            return $resultFromHandler;
+            return $validationDataFromFile;
         } else {
             $c['err']['FAILED_TO_LOAD_VALIDATION_FILE'] = "Validation Handler File '{$handlerFile}.php' did not return a callable function.";
             return null;
@@ -754,7 +749,7 @@ function funk_validation_recursively_improved(
 
 // The main validation function for validating data in FunkPHP
 // mapping to the "$_GET"/"$_POST" or "php://input" (JSON) variable ONLY!
-function funk_use_validation(&$c, $optimizedValidationArray, $source, $onlyDataIfAllValid = true)
+function funk_use_validation(&$c, $optimizedValidationArray, $source)
 {
     // Validation Error Array and its OK varaible must exist to run this function
     if (!array_key_exists('v', $c)) {
