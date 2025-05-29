@@ -37,7 +37,7 @@ function funk_run_matched_data_handler(&$c)
         $handler = key($c['req']['matched_data']);
         $handleString = $c['req']['matched_data'][$handler] ?? null;
     } else {
-        $c['err']['FAILED_TO_RUN_DATA_HANDLER'] = "Data Handler must be a string or an array!";
+        $c['err']['FAILED_TO_LOAD_DATA_HANDLER_FILE'] = "Data Handler must be a string or an array!";
         return;
     }
 
@@ -54,13 +54,13 @@ function funk_run_matched_data_handler(&$c)
         }
         // Handle error: not callable (or just use default below)
         else {
-            $c['err']['FAILED_TO_RUN_DATA_HANDLER'] = "Data Handler function is not callable!";
+            $c['err']['FAILED_TO_RUN_DATA_FUNCTION'] = "Data Handler function is not callable!";
             return;
         }
     }
     // Handle error: file not found or not readable  (or just use default below)
     else {
-        $c['err']['FAILED_TO_RUN_DATA_HANDLER'] = "Data Handler File '$handler.php' not found or not readable!";
+        $c['err']['FAILED_TO_LOAD_DATA_HANDLER_FILE'] = "Data Handler File '$handler.php' not found or not readable!";
         return;
     }
 }
@@ -120,7 +120,7 @@ function funk_use_validation_get_validation_array_or_err_out(&$c, $string)
             return null;
         }
     } else {
-        $c['err']['FAILED_TO_LOAD_VALIDATION_FILE'] = "Validation Handler File \"{$handlerFile}.php\" not found or not readable!";
+        $c['err']['FAILED_TO_LOAD_VALIDATION_FILE'] = "Validation Handler File \"{$handlerFile}.php\" not found or not readable! (Reminder: a single string is parsed as `v_file=>v_function`!)";
         return null;
     }
 }

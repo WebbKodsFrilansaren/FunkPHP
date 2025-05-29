@@ -14,6 +14,11 @@ $validArg1withArg2Values =  [
         'v',
         'validation',
     ],
+    'create' => [
+        'sql',
+        'v',
+        'validation',
+    ],
     'add' => [
         'r',
         'route',
@@ -32,8 +37,6 @@ $validArg1withArg2Values =  [
         'middleware',
         'table',
         'template',
-        'validation',
-        'v',
         'help'
     ],
     'change' => [
@@ -401,12 +404,6 @@ $commands = [
         'table' => function () {
             cli_parse_a_sql_table_file();
         },
-        'validation' => function () {
-            cli_add_a_data_or_a_validation_handler("v");
-        },
-        'v' => function () {
-            cli_add_a_data_or_a_validation_handler("v");
-        },
         'rdv' => function () {
             // $r_test = escapeshellcmd("php funkcli add r g/test2 test=>test2");
             // $d_test = escapeshellcmd("php funkcli add d g/test2 test=>test2");
@@ -414,6 +411,14 @@ $commands = [
             // echo shell_exec($r_test);
             // echo shell_exec($d_test);
             // echo shell_exec($v_test);
+        },
+    ],
+    'create' => [
+        'validation' => function () {
+            cli_create_validation_file_and_or_handler();
+        },
+        'v' => function () {
+            cli_create_validation_file_and_or_handler();
         },
     ],
     'change' => [

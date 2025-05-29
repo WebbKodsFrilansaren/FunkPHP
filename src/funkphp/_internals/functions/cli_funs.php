@@ -49,11 +49,11 @@ function get_match_all_functions_regex($handlerType)
 
 // Same as "get_match_all_functions_regex" but without
 // capture groups besides entire matches of functions.
-function get_match_all_functions_regex_without_capture_groups($handlerType)
+function get_match_all_functions_regex_without_capture_groups($handlerType, $sqlAndValidation = null)
 {
     // Check if the function name is valid
-    if ($handlerType !== "r" && $handlerType !== "d" && $handlerType !== "v") {
-        cli_err_syntax("[get_match_all_functions_regex] Handler type must be a non-empty string. Choose between: 'r','d', or 'v'");
+    if ($handlerType !== "r" && $handlerType !== "d" && $handlerType !== "v" && $handlerType !== "s") {
+        cli_err_syntax("[get_match_all_functions_regex] Handler type must be a non-empty string. Choose between: 'r','d', 's', or 'v'");
     }
 
     // Create regex pattern based on method and route
@@ -62,7 +62,14 @@ function get_match_all_functions_regex_without_capture_groups($handlerType)
     // {
     // };"
     // The matching is only valid if after "};" there is a new line otherwise it will be invalid!
-    $regex = '/^function ' . $handlerType . '_[a-z0-9_]+\(\&\$c\)\s*\/\/ <[A-Z]+\/[a-z0-9_:\-\/]*>\s*$.*?^};$/ims';
+    $regex = null;
+
+    // Different regex for different handler types
+    if ($handlerType === "v" || $handlerType === "s") {
+        $regex = '/^function ' . $handlerType . '_[a-z0-9_]+\(\&\$c\)\s*\/\/\s*<>\s*$.*?^};$/ims';
+    } else {
+        $regex = '/^function ' . $handlerType . '_[a-z0-9_]+\(\&\$c\)\s*\/\/ <[A-Z]+\/[a-z0-9_:\-\/]*>\s*$.*?^};$/ims';
+    }
     return $regex;
 }
 
@@ -2668,7 +2675,7 @@ function cli_compile_dx_validation_to_optimized_validation()
     }
 
     // Prepare regex and find the function name in the file
-    $fnNameRegex = get_match_function_regex($fnName);
+    $fnNameRegex = '/^function (' . $fnName . ')\(\&\$c\)\s*\/\/ <>\s*$.*?^};$/ims';
     $dxVarRegex = get_match_dx_function_regex();
     $dxReturnRegex = get_match_dx_return_regex();
     $fileContent = file_get_contents($handlerDir . $handlerFile . ".php");
@@ -3841,12 +3848,105 @@ function cli_add_a_route()
     cli_sort_build_routes_compile_and_output($singleRoutesRoute);
 }
 
-// Adds a 'data' OR 'validation' handler to an existing route (errors out on non-existing)
+// Create a Validation File and/or Handler (not Route-dependent!)
+function cli_create_validation_file_and_or_handler()
+{
+    // Get valid handlerFile=>fnName or error out
+    global $argv, $settings, $dirs, $exactFiles, $singleRoutesRoute;
+    [$handlerFile, $fnName] = get_handler_and_fn_from_argv4_or_err_out("v", 3);
+
+    // Prepare dirs and strings
+    $handlersDir =  $dirs['validations'];
+    $handlerDirPath = "validations";
+    $date = date("Y-m-d H:i:s");
+    $outputHandlerRoute = null;
+    $validationLimiterStrings = "// Created in FunkCLI on $date! Keep \"};\" on its\n// own new line without indentation no comment right after it!\n// Run the command `php funkcli compile v $handlerFile=>$fnName`\n// to get optimized version in return statement below it!\n\$DX = [];\n\n\nreturn array([]);\n";
+    $returnFunctionRegex = '/^(return function)\s*\(&\$c, \$handler\s*=\s*.+$.*?^};/ims';
+
+    // If dir not found or not readable/writable, we exit
+    if (!dir_exists_is_readable_writable($handlersDir)) {
+        cli_err("[cli_create_validation_file_and_or_handler]: \"$handlersDir\" not found or non-readable/writable!");
+    }
+
+    // When file does not exist we create it
+    if (!file_exists($handlersDir . $handlerFile . ".php")) {
+        $outputHandlerRoute = file_put_contents(
+            $handlersDir . $handlerFile . ".php",
+            "<?php\n// Validation Handler File - Created in FunkCLI on $date!\n// Write your Validation Rules in the\n// \$DX variable and then run the command\n// `php funkcli compile v $handlerFile=>\$function_name`\n// to get the optimized version below it!\n// IMPORTANT: CMD+S or CTRL+S to autoformat each time function is added!\n\nfunction $fnName(&\$c) // <>\n{\n$validationLimiterStrings\n};\n\nreturn function (&\$c, \$handler = \"$fnName\") {\nreturn \$handler(\$c);\n};"
+        );
+        if ($outputHandlerRoute) {
+            cli_success_without_exit("Added Validation Handler \"funkphp/$handlerDirPath/$handlerFile.php\" with Validation Function \"$fnName\" in \"funkphp/validations/$handlerFile.php\"!");
+            return;
+        } else {
+            cli_err("[cli_create_validation_file_and_or_handler]: FAILED to create Validation Handler \"funkphp/$handlerDirPath/$handlerFile.php\". File permissions issue?");
+        }
+    }
+
+    // When file does exist we check if the function name is already used
+    if (file_exists($handlersDir . $handlerFile . ".php")) {
+        // If file is NOT readable/writable, we exit
+        if (!file_exists_is_readable_writable($handlersDir . $handlerFile . ".php")) {
+            cli_err("[cli_create_validation_file_and_or_handler]: \"$handlersDir/$handlerFile.php\" not found or non-readable/writable!");
+        }
+        $fileContent = file_get_contents($handlersDir . $handlerFile . ".php");
+
+        // Now we check if the function name is already used
+        $matchFnRegex = get_match_function_regex($fnName);
+        if (preg_match($matchFnRegex, $fileContent, $matches)) {
+            cli_err("[cli_create_validation_file_and_or_handler]: \"$fnName\" - Function name already exists in \"funkphp/$handlerDirPath/$handlerFile.php\"!");
+        } else {
+            cli_info_without_exit("Function \"$fnName\" available in \"funkphp/$handlerDirPath/$handlerFile.php\"!");
+        }
+
+        // Here we match the return function block to insert the new function that is not already used
+        if (preg_match($returnFunctionRegex, $fileContent, $matches, PREG_OFFSET_CAPTURE)) {
+
+            // $matches[0] now contains an array: [matched string, offset]
+            $matchedString = $matches[0][0]; // The actual string that matched
+            $matchOffset = $matches[0][1];   // The byte offset of the match in $fileContent
+
+            // Construct the string for the *new* function definition only.
+            // DO NOT include $matches[0] in this string; we will insert it separately.
+            // Assuming $validationLimiterStrings and $date are defined elsewhere
+            $newFunctionString = "\nfunction {$fnName}(&\$c) // <>\n{\n{$validationLimiterStrings}\n};\n\n";
+
+            // --- Now, perform the insertion into $fileContent ---
+            // Use substr_replace to insert $newFunctionString at $matchOffset
+            // The length to replace is 0, which means insert without replacing anything.
+            $fileContent = substr_replace(
+                $fileContent,         // The original string
+                $newFunctionString,   // The string to insert
+                $matchOffset,         // The position to insert at
+                0                     // The number of characters to replace (0 means insert)
+            );
+
+            // Attempt outputting the modified content back to the file
+            $outputHandlerRoute = file_put_contents(
+                $handlersDir . $handlerFile . ".php",
+                $fileContent
+            );
+            if ($outputHandlerRoute) {
+                cli_success_without_exit("Added Validation Function \"$fnName\" to existing Validation Handler File \"funkphp/$handlerDirPath/$handlerFile.php\"!");
+                return;
+            } else {
+                cli_err("[cli_create_validation_file_and_or_handler]: FAILED to create Validation \"$fnName\" Function in \"funkphp/$handlerDirPath/$handlerFile.php\". File permissions issue?");
+            }
+        } else {
+            // The 'return function' block was not found - the file structure is invalid
+            cli_err_without_exit("[cli_create_validation_file_and_or_handler]: Invalid handler file structure.");
+            cli_err("Could not find the 'return function(...) {...};' block in \"funkphp/$handlerDirPath/$handlerFile.php\".");
+            return false; // Exit the function as the file structure is unexpected
+        }
+    }
+}
+
+// Adds a 'data' handler to an existing route (errors out on non-existing)
+// it will create the data handler + data handler function if it does not exist!
 function cli_add_a_data_or_a_validation_handler($handlerType)
 {
     // Load globals and check $handlerType is valid (a string that is either 'v' or 'd')
     global $argv, $settings, $dirs, $exactFiles, $singleRoutesRoute;
-    if (!is_string($handlerType) || empty($handlerType) || !in_array($handlerType, ['v', 'd'])) {
+    if (!is_string($handlerType) || empty($handlerType) || !in_array($handlerType, ['d'])) {
         cli_err_syntax("Handler Type must be a non-empty string that is either 'v' or 'd'!");
     }
 
@@ -3864,7 +3964,7 @@ function cli_add_a_data_or_a_validation_handler($handlerType)
 
     // Check that a data/validation handler does not already exist for the route
     if (isset($singleRoutesRoute['ROUTES'][$method][$validRoute][$handlersKeyPrefix]) && !empty($singleRoutesRoute['ROUTES'][$method][$validRoute][$handlersKeyPrefix])) {
-        cli_err_without_exit("A Data Handler for Route \"$method$validRoute\" already exists!");
+        cli_err_without_exit("A $handlersPrefix Handler for Route \"$method$validRoute\" already exists!");
         cli_info("Use command \"php funkcli delete $handlersKeyPrefix [method/route] [handlerFile[=>Function]]\" to delete it first!");
     }
 
@@ -5004,7 +5104,7 @@ function flatten_single_array_key_to_a_string($arrayKeyWithSingleStringValue)
 
 // Returns $handler $fnName from $argv[4] OR errors out
 // For (route) "handlers", "data" & "validations" handlers
-function get_handler_and_fn_from_argv4_or_err_out($handlerType)
+function get_handler_and_fn_from_argv4_or_err_out($handlerType, $argvNumber = 4)
 {
     global $argv,
         $settings,
@@ -5017,11 +5117,18 @@ function get_handler_and_fn_from_argv4_or_err_out($handlerType)
     if ($handlerType !== "r" && $handlerType !== "d" && $handlerType !== "v") {
         cli_err_syntax("[get_handler_and_fn_from_argv4_or_err_out] Handler type must be a non-empty string. Choose between: 'r','d', or 'v'");
     }
+    // Check that "$argvNumber" is a either a valid integer or a string that can be cast to an integer
+    if (!isset($argv[$argvNumber]) || !is_string($argv[$argvNumber]) || empty($argv[$argvNumber])) {
+        cli_err_syntax("[get_handler_and_fn_from_argv4_or_err_out] Should be at least four(4) non-empty string arguments!\nSyntax: php funkcli add [handlerType] [method/route] [handlerFile[=>handleFunction]]\nExample: 'php funkcli add $handlerType get/users/:id users=>getUser'\nIMPORTANT: Writing [handlerFile] is parsed as [handlerFile=>handlerFile]!");
+    } else if (!is_numeric($argvNumber) || (is_string($argvNumber) && !ctype_digit($argvNumber))) {
+        cli_err_syntax("[get_handler_and_fn_from_argv4_or_err_out] Argument number must be a valid integer or a string that can be cast to an integer!");
+    }
+
     $handlerPrefix = $handlerType === "r" ? "Route" : ($handlerType === "d" ? "Data" : "Validation");
     $handlerDir = $handlerType === "r" ? "handlers" : ($handlerType === "d" ? "data" : "validations");
 
-    if (!isset($argv[4]) || !is_string($argv[4]) || empty($argv[4])) {
-        cli_err_syntax("[get_handler_and_fn_from_argv4_or_err_out] Should be at least four(4) non-empty string arguments!\nSyntax: php funkcli add $handlerPrefix [method/route] [handlerFile[=>handleFunction]]\nExample: 'php funkcli add $handlerPrefix get/users/:id users=>getUser'\nIMPORTANT: Writing [handlerFile] is parsed as [handlerFile=>handlerFile]!");
+    if (!isset($argv[$argvNumber]) || !is_string($argv[$argvNumber]) || empty($argv[$argvNumber])) {
+        cli_err_syntax("[get_handler_and_fn_from_argv4_or_err_out] Should be at least four(4) non-empty string arguments!\nSyntax: php funkcli add Validation [method/route] [handlerFile[=>handleFunction]]\nExample: 'php funkcli add Validation get/users/:id users=>getUser'\nIMPORTANT: Writing [handlerFile] is parsed as [handlerFile=>handlerFile]!");
     }
 
     // Check if "$argv[4]" contains "=>" and split it into
@@ -5029,22 +5136,22 @@ function get_handler_and_fn_from_argv4_or_err_out($handlerType)
     $handlerFile = null;
     $fnName = null;
     $arrow = null;
-    if (strpos($argv[4], '=>') !== false) {
-        [$handlerFile, $fnName] = explode('=>', $argv[4]);
+    if (strpos($argv[$argvNumber], '=>') !== false) {
+        [$handlerFile, $fnName] = explode('=>', $argv[$argvNumber]);
         $handlerFile = trim($handlerFile);
         $fnName = trim($fnName);
         $arrow = true;
     } else {
-        $handlerFile = $argv[4];
+        $handlerFile = $argv[$argvNumber];
         $fnName = null;
     }
 
     // Preg_match both (unless null) handler file and function name
     if ($handlerFile !== null && !preg_match('/^[a-z_][a-z0-9_]+$/', $handlerFile)) {
-        cli_err_syntax("\"{$handlerFile}\" - $handlerPrefix Handler name must start with [a-z_] and then lowercase letters, numbers and underscores!");
+        cli_err_syntax("\"{$handlerFile}\" - Validation Handler name must start with [a-z_] and then lowercase letters, numbers and underscores!");
     }
     if ($fnName !== null && !preg_match('/^[a-z_][a-z0-9_]+$/', $fnName)) {
-        cli_err_syntax("\"{$fnName}\" - $handlerPrefix Function name must start with [a-z_] and then lowercase letters, numbers and underscores!");
+        cli_err_syntax("\"{$fnName}\" - Validation Function name must start with [a-z_] and then lowercase letters, numbers and underscores!");
     }
 
     // Check that both fnName and handlerFile are not reserved functions
@@ -5067,7 +5174,7 @@ function get_handler_and_fn_from_argv4_or_err_out($handlerType)
         $handlerFile = $handlerType . "_" . $handlerFile;
     }
     // Inform parsed handler and function name and return them
-    cli_info_without_exit("Parsed $handlerPrefix Handler: \"funkphp/$handlerDir/$handlerFile.php\" and $handlerPrefix Function: \"$fnName\"");
+    cli_info_without_exit("Parsed Validation Handler: \"funkphp/$handlerDir/$handlerFile.php\" and $handlerPrefix Function: \"$fnName\"");
     return [$handlerFile, $fnName, $arrow];
 }
 
@@ -5242,7 +5349,7 @@ function create_handler_file_with_fn_or_fn_or_err_out($handlerType, $handlersDir
             );
         }
         if ($outputHandlerRoute) {
-            cli_success_without_exit("Added $handlerPrefix Handler \"funkphp/$handlerDirPath/$handlerFile.php\" with $handlerPrefix Function \"$fnName\" in \"funkphp/data/$handlerFile.php\"!");
+            cli_success_without_exit("Added $handlerPrefix Handler \"funkphp/$handlerDirPath/$handlerFile.php\" with $handlerPrefix Function \"$fnName\" in \"funkphp/$handlerDirPath/$handlerFile.php\"!");
             if ($customCodeString !== "") {
                 cli_info_without_exit("Added custom code from \"templates/$customCode.php\" to the Handler File!");
             }
@@ -5265,7 +5372,7 @@ function create_handler_file_with_fn_or_fn_or_err_out($handlerType, $handlersDir
         if (preg_match($matchFnRegex, $fileContent, $matches)) {
             cli_err("[create_handler_file_with_fn_or_fn_or_err_out]: \"$fnName\" - Function name already exists in \"funkphp/$handlerDirPath/$handlerFile.php\"!");
         } else {
-            cli_info_without_exit("Function \"$fnName\" not already used in \"funkphp/$handlerDirPath/$handlerFile.php\"!");
+            cli_info_without_exit("Function \"$fnName\" available in \"funkphp/$handlerDirPath/$handlerFile.php\"!");
         }
 
         // Here we match the return function block to insert the new function that is not already used
@@ -5397,8 +5504,8 @@ function delete_handler_file_with_fn_or_just_fn_or_err_out($handlerType, $handle
     if (!is_string($handlerType) || empty($handlerType)) {
         cli_err_syntax("[create_handler_file_with_fn_or_fn_or_err_out] Handler type must be a non-empty string. Choose between: 'r','d', or 'v'");
     }
-    if ($handlerType !== "r" && $handlerType !== "d" && $handlerType !== "v") {
-        cli_err_syntax("[create_handler_file_with_fn_or_fn_or_err_out] Handler type must be a non-empty string. Choose between: 'r','d', or 'v'");
+    if ($handlerType !== "r" && $handlerType !== "d" && $handlerType !== "v" && $handlerType !== "s") {
+        cli_err_syntax("[create_handler_file_with_fn_or_fn_or_err_out] Handler type must be a non-empty string. Choose between: 'r','d', 'v' or 's'");
     }
     if (!is_string($handlerVar) && !is_array($handlerVar)) {
         cli_err_syntax("[create_handler_file_with_fn_or_fn_or_err_out] Handler variable must be a non-empty string or an array!");
@@ -5407,11 +5514,20 @@ function delete_handler_file_with_fn_or_just_fn_or_err_out($handlerType, $handle
     // Get valid handler file and function name
     [$handlerFile, $fnName] = get_valid_handlerVar_or_err_out($handlerVar, $handlerType);
 
-    // Prepare correct handler prefix, directory path
-    $handlerPrefix = $handlerType === "r" ? "Route" : ($handlerType === "d" ? "Data" : "Validation");
-    $handlerDirShort = $handlerType === "r" ? "handlers" : ($handlerType === "d" ? "data" : "validations");
-    $handlerDirPath = $handlerType === "r" ? $dirs['handlers'] : ($handlerType === "d" ? $dirs['data'] : $dirs['validations']);
-    $fnNameRegex = get_match_function_regex($fnName);
+    // Prepare correct handler prefix, directory path (r = route, d = data, v = validation, s = sql)
+    $handlerPrefix = $handlerType === "r" ? "Route" : ($handlerType === "d" ? "Data" : ($handlerType === "v" ? "Validation" : "SQL"));
+    $handlerDirShort = $handlerType === "r" ? "handlers" : ($handlerType === "d" ? "data" : ($handlerType === "v" ? "validations" : "sql"));
+    $handlerDirPath = $handlerType === "r" ? $dirs['handlers'] : ($handlerType === "d" ? $dirs['data'] : ($handlerType === "v" ? $dirs['validations'] : $dirs['sql']));
+    $fnNameRegex = null;
+
+    // Route & Data Handlers use a different regex for matching function names
+    if ($handlerType  !== 'v' && $handlerType !== 's') {
+        $fnNameRegex = get_match_function_regex($fnName);
+    }
+    //  Validation & SQL Handlers use a different regex for matching function names
+    else {
+        $fnNameRegex = '/^function (' . $fnName . ')\(\&\$c\)\s*\/\/\s*<>\s*$.*?^};$/ims';
+    }
 
     // If dir not found or not readable/writable, we exit
     if (!dir_exists_is_readable_writable($handlerDirPath)) {
@@ -5439,7 +5555,7 @@ function delete_handler_file_with_fn_or_just_fn_or_err_out($handlerType, $handle
         if (isset($matches2[0]) && count($matches2[0]) === 0) {
             // If no functions are left in the file, we delete the file
             unlink($handlerDirPath . $handlerFile . ".php");
-            cli_success_without_exit("Deleted $handlerPrefix Handler \"$handlerFile.php\" File \"funkphp/$handlerDirShort/$handlerFile.php\"!");
+            cli_success_without_exit("No Functions Left in File - Deleted $handlerPrefix Handler \"$handlerFile.php\" File \"funkphp/$handlerDirShort/$handlerFile.php\"!");
             return;
         }
         // Otherwise we just write the file content back to the file with the function removed
@@ -5447,6 +5563,6 @@ function delete_handler_file_with_fn_or_just_fn_or_err_out($handlerType, $handle
             file_put_contents($handlerDirPath . $handlerFile . ".php", $fileContent);
         }
     } else {
-        cli_err("[create_handler_file_with_fn_or_fn_or_err_out]: \"$fnName\" - Function name not found in \"funkphp/$handlerDirPath$handlerFile.php\"!");
+        cli_err("[create_handler_file_with_fn_or_fn_or_err_out]: \"$fnName\" - Function Name not found in \"funkphp/$handlerDirPath$handlerFile.php\"!");
     }
 }

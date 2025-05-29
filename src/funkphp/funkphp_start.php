@@ -100,8 +100,8 @@ $c['req']['current_step'] = $c['req']['next_step'];
 // This is the third step of the request, so we can run this step now!
 if ($c['req']['current_step'] === 3) {
     // Load URI Routes since we are at this step and need them!
-    // GOTO "funkphp/routes/route_single_routes.php" to Add Your Single Routes!
-    // GOTO "funkphp/routes/route_middleware_routes.php" to Add Your middlewares!
+    // Run `funkcli add r route_name METHOD/route_path/:optional_param`
+    // to start adding routes to your FunkPHP Web Application!
     $c['ROUTES'] = [
         'COMPILED' => include __DIR__ . '/_internals/compiled/troute_route.php',
         'SINGLES' => include __DIR__ . '/routes/route_single_routes.php',
@@ -118,7 +118,6 @@ if ($c['req']['current_step'] === 3) {
         $c['ROUTES']['SINGLES']['ROUTES'],
         $c['ROUTES']['SINGLES']['ROUTES'],
     );
-
     $c['req']['matched_method'] = $c['req']['method'];
     $c['req']['matched_route'] = $FPHP_MATCHED_ROUTE['route'];
     $c['req']['matched_handler'] = $FPHP_MATCHED_ROUTE['handler'];
@@ -129,8 +128,8 @@ if ($c['req']['current_step'] === 3) {
     $c['req']['no_matched_in'] = $FPHP_MATCHED_ROUTE['no_match_in'];
     unset($FPHP_MATCHED_ROUTE);
 
-    // GOTO: "funkphp/middlewares/" and copy&paste the "_TEMPLATE.php" file to create your own middlewares!
-    // OR use the FunkCLI "php funkcli add mw middleware_name METHOD/route_path"
+    // NOW WE RUN THE MIDDLEWARES BEFORE THE MATCHED ROUTE HANDLER!
+    // Run `php funkcli add mw middleware_name METHOD/route_path/:optional_param`
     // Check that middlewares array exists and is not empty in $c global variable
     // Then run each middleware in the order they are defined as long as keep_running_mws is true.
     // After each run, remove it from the array to avoid running it again.
@@ -153,9 +152,10 @@ if ($c['req']['current_step'] === 3) {
     // OPTIONAL Handling: Edit or just remove, doesn't matter!
     // matched_handler doesn't exist? What then or just move on?
     else {
+        $c['err']['FAILED_TO_MATCH_ROUTE_MAYBE'] = "No Route Handler Matched. If you expected a Route to match, check your Routes file and ensure the Route exists and that a Handler File with a Handler Function has been added to it under the key `handler`. For example: `['handler' => 'handler_file' => 'handler_function']`.";
     }
-    // matched_handler failed to run? What then or just move on?
-    if ($c['err']['FAILED_TO_RUN_ROUTE_HANDLER']) {
+    // Matched_handler failed to run? What then or just move on?
+    if ($c['err']['FAILED_TO_RUN_ROUTE_FUNCTION']) {
     }
 
 
@@ -175,7 +175,15 @@ if ($c['req']['current_step'] === 4) {
 
     // Run the matched data handler if it exists
     if ($c['req']['matched_data'] !== null) {
-        funk_run_matched_data_handler($c);
+        // Do not run Data Handler if the Route Handler failed to load or run!
+        if (
+            $c['err']['FAILED_TO_LOAD_ROUTE_HANDLER_FILE']
+            || $c['err']['FAILED_TO_RUN_ROUTE_FUNCTION']
+        ) {
+            $c['err']['FAILED_TO_RUN_DATA_FUNCTION'] = "Route Handler Failed to Load or Run, so Data Handler will not be run.";
+        } else {
+            funk_run_matched_data_handler($c);
+        }
     }
     // OPTIONAL Handling: Edit or just remove, doesn't matter!
     // matched_data doesn't exist? What then or just move on?
@@ -183,7 +191,7 @@ if ($c['req']['current_step'] === 4) {
     }
 
     // matched_data failed to run? What then or just move on?
-    if ($c['err']['FAILED_TO_RUN_DATA_HANDLER']) {
+    if ($c['err']['FAILED_TO_RUN_DATA_FUNCTION']) {
     }
 
     // You have all global (meta) data in $c variable, so you can use it as you please!
