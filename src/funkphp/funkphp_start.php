@@ -103,26 +103,58 @@ if ($c['req']['current_step'] === 3) {
     // Run `funkcli add r route_name METHOD/route_path/:optional_param`
     // to start adding routes to your FunkPHP Web Application!
     $c['ROUTES'] = [];
+
+    // When Routes or Trie Compiled Route File(s) not found/non-readable or empty/missing keys!
     if (!file_exists_is_readable_writable(__DIR__ . '/routes/route_single_routes.php')) {
-        $c['err']['FAILED_TO_LOAD_ROUTE_FILES'] = "Routes in File `funk/routes/route_single_routes.php` not found or non-readable!";
+        $c['err']['FAILED_TO_LOAD_ROUTE_FILES'] = "Routes in File `funkphp/routes/route_single_routes.php` not found or non-readable!";
+    } elseif (!file_exists_is_readable_writable(__DIR__ . '/_internals/compiled/troute_route.php')) {
+        $c['err']['FAILED_TO_LOAD_TROUTE_FILES'] = "Compiled Routes in File `funkphp/_internals/compiled/troute_route.php` not found or non-readable!";
+    } else {
+        $c['ROUTES'] = [
+            'COMPILED' => include __DIR__ . '/_internals/compiled/troute_route.php',
+            'SINGLES' => include __DIR__ . '/routes/route_single_routes.php',
+        ];
     }
-    $c['ROUTES'] = [
-        'COMPILED' => include __DIR__ . '/_internals/compiled/troute_route.php',
-        'SINGLES' => include __DIR__ . '/routes/route_single_routes.php',
-    ];
+    if (
+        empty($c['ROUTES'])
+        || !isset($c['ROUTES']['COMPILED'])
+        || empty($c['ROUTES']['COMPILED'])
+    ) {
+        $c['err']['FAILED_TO_LOAD_TROUTE_FILES'] = "Compiled Routes in File `funkphp/_internals/compiled/troute_route.php` seems empty, please check!";
+    }
+    if (
+        empty($c['ROUTES'])
+        || !isset($c['ROUTES']['SINGLES'])
+        || !is_array($c['ROUTES']['SINGLES'])
+        || empty($c['ROUTES']['SINGLES'])
+        || !isset($c['ROUTES']['SINGLES']['ROUTES'])
+        || !is_array($c['ROUTES']['SINGLES']['ROUTES'])
+        || empty($c['ROUTES']['SINGLES']['ROUTES'])
+    ) {
+        $c['err']['FAILED_TO_LOAD_ROUTE_FILES'] = "Routes in File `funkphp/routes/route_single_routes.php` seems empty, please check!";
+    }
 
     // Load the Route Configurations or set error if not found!
     if (
-        !isset($c['ROUTES']['<CONFIG>'])
-        || !is_array($c['ROUTES']['<CONFIG>']) || empty($c['ROUTES']['<CONFIG>'])
+        !isset($c['ROUTES']['SINGLES']['<CONFIG>'])
+        || !is_array($c['ROUTES']['SINGLES']['<CONFIG>']) || empty($c['ROUTES']['SINGLES']['<CONFIG>'])
     ) {
         $c['err']['FAILED_TO_LOAD_ROUTE_CONFIG'] = "Route Configurations Key (`'<CONFIG>'`) Not Found! Check your `funk/routes/route_single_routes.php` File!";
     } else {
-        $c['r_config'] = $c['ROUTES']['<CONFIG>'];
+        $c['r_config'] = $c['ROUTES']['SINGLES']['<CONFIG>'];
     }
-    var_dump($c);
-    exit;
+
     // BEFORE STEP 3: Do anything you want here before matching the route and middlewares!
+    // Here configured & existing middlewares are loaded and runs before route matching!
+    if (
+        isset($c['r_config']['middlewares_before_route_match']) &&
+        is_array($c['r_config']['middlewares_before_route_match']) &&
+        !empty($c['r_config']['middlewares_before_route_match'])
+    ) {
+        funk_run_middleware_before_matched_routing($c);
+    } else {
+        $c['err']['MAYBE']['FAILED_TO_LOAD_ROUTE_CONFIG_MIDDLEWARES_MAYBE'] = "No Configured Route Middlewares (`'<CONFIG>' => 'middlewares_before_route_match'`) to load and run before Route Matching. If you expected Middlewares to run before Route Matching, check the `<CONFIG>` key in the Route `funk/routes/route_single_routes.php` File!";
+    }
 
     // STEP 3: Match Route & Middlewares and then
     // store them in global $c(onfig) variable,
@@ -130,9 +162,9 @@ if ($c['req']['current_step'] === 3) {
     $FPHP_MATCHED_ROUTE = funk_match_developer_route(
         $c['req']['method'],
         $c['req']['uri'],
-        $c['ROUTES']['COMPILED'],
-        $c['ROUTES']['SINGLES']['ROUTES'],
-        $c['ROUTES']['SINGLES']['ROUTES'],
+        $c['ROUTES']['COMPILED'] ?? [],
+        $c['ROUTES']['SINGLES']['ROUTES'] ?? [],
+        $c['ROUTES']['SINGLES']['ROUTES'] ?? [],
     );
     $c['req']['matched_method'] = $c['req']['method'];
     $c['req']['matched_route'] = $FPHP_MATCHED_ROUTE['route'];
@@ -163,7 +195,15 @@ if ($c['req']['current_step'] === 3) {
     // Run the matched route handler if it exists and is not empty.
     // Even if not null, file may not exist; the function checks that.
     if ($c['req']['matched_handler'] !== null) {
-        funk_run_matched_route_handler($c);
+        // Do not run Data Handler if the Route Handler failed to load or run!
+        if (
+            $c['err']['FAILED_TO_LOAD_ROUTE_HANDLER_FILE']
+            || $c['err']['FAILED_TO_RUN_ROUTE_FUNCTION']
+        ) {
+            $c['err']['FAILED_TO_RUN_ROUTE_FUNCTION'] = "Route Handler Failed to Load or Run.";
+        } else {
+            funk_run_matched_route_handler($c);
+        }
     }
     // OPTIONAL Handling: Edit or just remove, doesn't matter!
     // matched_handler doesn't exist? What then or just move on?
@@ -233,3 +273,5 @@ if ($c['req']['current_step'] === 5) {
 // This part is only executed if the request was not properly handled by the pipeline!
 // Feel free to add your own error handling here and/or easter egg!
 //http_response_code(500);
+
+var_dump($c['err']);

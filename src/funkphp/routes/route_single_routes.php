@@ -2,10 +2,22 @@
 return  [
   '<CONFIG>' => [
     'middlewares_before_route_match' => [],
+    'no_middlewares_match' => [
+      'json' => [],
+      'page' => []
+    ],
     'no_route_match' => [
       'json' => [],
       'page' => []
-    ]
+    ],
+    'no_data_match' => [
+      'json' => [],
+      'page' => []
+    ],
+    'no_page_match' => [
+      'json' => [],
+      'page' => []
+    ],
   ],
   'ROUTES' =>
   [
@@ -27,8 +39,14 @@ return  [
     [
       '/test/:id' =>
       [
-        'handler' => 'r_test',
-        'data' => 'd_test',
+        'handler' =>
+        [
+          'r_test' => 'r_test2',
+        ],
+        'data' =>
+        [
+          'd_test' => 'd_test2',
+        ],
       ],
     ],
     'PUT' =>

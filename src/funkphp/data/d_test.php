@@ -2,7 +2,7 @@
 // Data Handler File - Created in FunkCLI on 2025-05-24 08:52:25!
 // IMPORTANT: CMD+S or CTRL+S to autoformat each time function is added!
 
-function d_test(&$c) // <POST/test/:id>
+function d_test2(&$c) // <POST/test/:id>
 {
     // Created in FunkCLI on 2025-05-24 08:52:25! Keep "};" on its
     // own new line without indentation no comment right after it!

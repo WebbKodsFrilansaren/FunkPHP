@@ -47,6 +47,10 @@ function funk_run_matched_data_handler(&$c)
         $runHandler = include_once "$handlerPath/$handler.php";
         if (is_callable($runHandler)) {
             if (!is_null($handleString)) {
+                if (!function_exists($handleString)) {
+                    $c['err']['FAILED_TO_RUN_DATA_FUNCTION'] = 'Data Handler function `' .  $handleString . '` in `' . $handler . '` does not exist!';
+                    return;
+                }
                 $runHandler($c, $handleString);
             } else {
                 $runHandler($c);
@@ -72,7 +76,7 @@ function funk_load_validation_file(&$c, $string)
     $handlerFile = null;
     $fnName = null;
     if (!is_string($string) && !is_array($string)) {
-        $c['err']['FAILED_TO_LOAD_VALIDATION_FILE'] = "Validation Handler File must be a string or an array!";
+        $c['err']['FAILED_TO_LOAD_VALIDATION_FILE'] = "Validation Handler File must be a String (`FileName`) or an Array (`FileName=>FunctionName`)!";
         return null;
     }
     if (is_string($string)) {
@@ -98,11 +102,11 @@ function funk_load_validation_file(&$c, $string)
         $handlerFile = substr($handlerFile, 0, -4);
     }
     if (!preg_match('/^[a-z0-9_]+$/', $handlerFile)) {
-        $c['err']['FAILED_TO_LOAD_VALIDATION_FILE'] = "Validation Handler File \"{$handlerFile}\" must be a lowercase string containing only letters, numbers and underscores!";
+        $c['err']['FAILED_TO_LOAD_VALIDATION_FILE'] = 'Validation Handler File `' . $handlerFile . '` must be a lowercase string containing only letters, numbers and underscores!';
         return null;
     }
     if (!preg_match('/^[a-z0-9_]+$/', $fnName)) {
-        $c['err']['FAILED_TO_LOAD_VALIDATION_FILE'] =  "Validation Function Name \"$fnName\" must be a lowercase string containing only letters, numbers and underscores!";
+        $c['err']['FAILED_TO_LOAD_VALIDATION_FILE'] =  'Validation Handler Function `' . $fnName . '` must be a lowercase string containing only letters, numbers and underscores!';
         return null;
     }
     $validationFile = dirname(dirname(__DIR__)) . '/validations/' . $handlerFile . '.php';
@@ -111,11 +115,11 @@ function funk_load_validation_file(&$c, $string)
         if (is_callable($validationDataFromFile)) {
             return $validationDataFromFile;
         } else {
-            $c['err']['FAILED_TO_LOAD_VALIDATION_FILE'] = "Validation Handler File '{$handlerFile}.php' did not return a callable function.";
+            $c['err']['FAILED_TO_LOAD_VALIDATION_FILE'] = 'Validation Handler File ``' . $handlerFile . '.php` did not return a callable function.';
             return null;
         }
     } else {
-        $c['err']['FAILED_TO_LOAD_VALIDATION_FILE'] = "Validation Handler File \"{$handlerFile}.php\" not found or not readable! (Reminder: a single string is parsed as `v_file=>v_function`!)";
+        $c['err']['FAILED_TO_LOAD_VALIDATION_FILE'] = 'Validation Handler File `' . $handlerFile . '.php` not found or not readable! (Reminder: a single string is parsed as `v_file=>v_function`!)';
         return null;
     }
 }

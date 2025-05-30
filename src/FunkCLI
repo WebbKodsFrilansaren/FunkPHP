@@ -406,7 +406,16 @@ $reserved_functions =  [
 cli_restore_default_folders_and_files();
 
 // Load current routes, data and pages before processing any commands
-$singleRoutesRoute = include __DIR__ . '/funkphp/routes/route_single_routes.php' ?? ['<CONFIG>' => ['middlewares_before_route_match' => [], 'no_route_match' => ['json' => [], 'page' => []]], 'ROUTES' => ['GET' => [], 'POST' => [], 'PUT' => [], 'DELETE' => [], 'PATCH' => []]];
+$singleRoutesRoute = include __DIR__ . '/funkphp/routes/route_single_routes.php' ?? [
+    '<CONFIG>' => [
+        'middlewares_before_route_match' => [],
+        'no_middlewares_match' => ['json' => [], 'page' => []],
+        'no_route_match' => ['json' => [], 'page' => []],
+        'no_data_match' => ['json' => [], 'page' => []],
+        'no_page_match' => ['json' => [], 'page' => []],
+    ],
+    'ROUTES' => ['GET' => [], 'POST' => [], 'PUT' => [], 'DELETE' => [], 'PATCH' => []]
+];
 $tablesAndRelationshipsFile = include __DIR__ . '/funkphp/config/tables.php' ?? ['tables' => [], 'relationships' => [], 'mappings' => [],];
 $mysqlDataTypesFile = include __DIR__ . '/funkphp/_internals/supported_mysql_data_types.php' ?? ['STRINGS' => [], 'NUMBERS' => [], 'INTS' => [], 'FLOATS' => [], 'DATETIMES' => [], 'BLOBS' => []];
 
