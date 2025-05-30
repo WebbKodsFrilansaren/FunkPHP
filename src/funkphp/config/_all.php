@@ -2,7 +2,7 @@
 // FunkPHP Global Configuration File
 // IMPORTANT: This file is used to set the global configuration for FunkPHP
 
-// CHANGE AS NEEDED BELOW SO IT WORKS OFFLINE & ONLINE!
+// CHANGE AS NEEDED BELOW SO IT WORKS OFFLINE & ONLINE FOR YOU!
 define('FUNKPHP_IS_LOCAL', (isset($_SERVER['SERVER_NAME'])
     && ($_SERVER['SERVER_NAME'] === 'localhost'
         || $_SERVER['SERVER_NAME'] === "127.0.0.1")));
