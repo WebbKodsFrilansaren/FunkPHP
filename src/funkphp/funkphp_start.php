@@ -4,7 +4,7 @@
 // OR DEFAULT HTML ERROR PAGE - YOU CAN CONFIGURE THIS RIGHT BELOW HERE!
 // - Default JSON Error Response
 $DEFAULT_JSON_ERROR = [
-    'error' => 'FunkPHP Framework - Internal Error: Important stuff could not be loaded, so please tell the Developer to fix the website or the Web Hosting Service to allow for reading the necessary files!',
+    'error' => 'FunkPHP Framework - Internal Error: Important files could not be loaded, so Please Tell the Developer to fix the website or the Web Hosting Service to allow for reading the necessary folders & files! If you are the Developer, please check your Configuration and File permissions where you Develop and/or Host this Website!Thanks in advance! You are Awesome, anyway! ^_^',
     'status' => 500,
 ];
 // - Default HTML Error Response
@@ -22,14 +22,14 @@ $DEFAULT_HTML_ERROR = <<<HTML
             min-height: 100vh; margin: 0;
         }
         .container {
-            max-width: 600px;
+            max-width: 350px;
             padding: 20px;
             background-color: #fff;
             border-radius: 5px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
         h1 { color: #e74c3c; }
-        p { font-size: 16px; }
+        p { font-size: 16px;  line-height: 1.5; }
         a { color: #3498db; text-decoration: none; }
         a:hover { text-decoration: underline; }
         .center-text {
@@ -40,9 +40,9 @@ $DEFAULT_HTML_ERROR = <<<HTML
     <body>
         <div class="container">
             <h1>FunkPHP Framework - Internal Error</h1>
-            <p>Important files could not be loaded, so Please Tell the Developer to fix the website or the Web Hosting Service to allow for reading the necessary files!</p>
+            <p>Important files could not be loaded, so Please Tell the Developer to fix the website or the Web Hosting Service to allow for reading the necessary folders & files!</p>
             <p>If you are the Developer, please check your Configuration and File permissions where you Develop and/or Host this Website!</p>
-            <p class="center-text">Thanks in advance! You are Awesome, anyway! ^_^</p>
+            <p class="center-text">Thanks in advance!<br>You are Awesome, anyway! ^_^</p>
         </div>
     </body>
 </html>
