@@ -1,5 +1,68 @@
 <?php // ENTRY POINT OF EACH HTTP(S) REQUEST thanks to ".htaccess" file
 
+// DEFAULT CHECK THAT ALL NEEDED FILES EXIST OR WE THROW DEFAULT JSON ERROR
+// OR DEFAULT HTML ERROR PAGE - YOU CAN CONFIGURE THIS RIGHT BELOW HERE!
+// - Default JSON Error Response
+$DEFAULT_JSON_ERROR = [
+    'error' => 'FunkPHP Framework - Internal Error: Important stuff could not be loaded, so please tell the Developer to fix the website or the Web Hosting Service to allow for reading the necessary files!',
+    'status' => 500,
+];
+// - Default HTML Error Response
+$DEFAULT_HTML_ERROR = <<<HTML
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FunkPHP Framework - Internal Error</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif; background-color: #f4f4f4;
+            color: #333; display: flex; justify-content: center; align-items: center;
+            min-height: 100vh; margin: 0;
+        }
+        .container {
+            max-width: 600px;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 { color: #e74c3c; }
+        p { font-size: 16px; }
+        a { color: #3498db; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .center-text {
+            text-align: center;
+        }
+    </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>FunkPHP Framework - Internal Error</h1>
+            <p>Important files could not be loaded, so Please Tell the Developer to fix the website or the Web Hosting Service to allow for reading the necessary files!</p>
+            <p>If you are the Developer, please check your Configuration and File permissions where you Develop and/or Host this Website!</p>
+            <p class="center-text">Thanks in advance! You are Awesome, anyway! ^_^</p>
+        </div>
+    </body>
+</html>
+HTML;
+
+
+echo $DEFAULT_HTML_ERROR;
+exit;
+
+// TODO: Add checks first for all the DIRS and then the FILES
+// OR error out based on request 'accept' headers such as:
+// ('accept': 'application/json' or we just assume text/html!)
+
+
+
+if (!file_exists(__DIR__ . '/config/_all.php')) {
+    http_response_code(500);
+    die(json_encode(['error' => 'Configuration file not found!']));
+}
+
 // Load all functions needed for the
 // FunkPHP Framework Web Application
 include_once __DIR__ . '/_internals/functions/_includeAllExceptCLI.php';
@@ -189,7 +252,11 @@ if ($c['req']['current_step'] === 3) {
     // One or more middlewares failed to run? What then or just move on?
     // IMPORTANT: This occurs after trying to run the middlewares, so if one of them fails, this will be true.
     // This means one or more middlewares might have run _before_ this error is handled!
-    if ($c['err']['FAILED_TO_RUN_MIDDLEWARE']) {
+    if (
+        $c['err']['FAILED_TO_LOAD_ROUTE_MIDDLEWARE'] ||
+        $c['err']['FAILED_TO_RUN_SINGLE_ROUTE_MIDDLEWARES'] ||
+        $c['err']['FAILED_TO_RUN_ROUTE_MIDDLEWARE']
+    ) {
     }
 
     // Run the matched route handler if it exists and is not empty.

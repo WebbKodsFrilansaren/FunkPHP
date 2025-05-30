@@ -170,12 +170,12 @@ function funk_run_middleware_after_matched_routing(&$c)
                     $RunMW($c);
                 } // CUSTOM ERROR HANDLING HERE! - not callable (or change below to whatever you like)
                 else {
-                    $c['err']['FAILED_TO_RUN_MIDDLEWARE'] = 'Middleware Function at index ' .   $i . ' is not callable!';
+                    $c['err']['FAILED_TO_RUN_ROUTE_MIDDLEWARE'] = 'Middleware Function at index ' .   $i . ' is not callable!';
                     $c['req']['current_middleware_running'] = null;
                 }
             } // CUSTOM ERROR HANDLING HERE! - no dir or file (or change below to whatever you like)
             else {
-                $c['err']['FAILED_TO_RUN_MIDDLEWARE'] = 'Middleware File  at index ' .  $i . ' does not exist or is not a directory!';
+                $c['err']['FAILED_TO_RUN_ROUTE_MIDDLEWARE'] = 'Middleware File  at index ' .  $i . ' does not exist or is not a directory!';
                 $c['req']['current_middleware_running'] = null;
             }
 
