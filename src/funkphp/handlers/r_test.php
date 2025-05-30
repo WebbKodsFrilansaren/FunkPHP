@@ -13,7 +13,6 @@ function r_test2(&$c) // <GET/test/:id>
 {
     // Created in FunkCLI on 2025-05-29 21:03:29! Keep "};" on its
     // own new line without indentation no comment right after it!
-    echo "YAY! You have reached the r_test2 handler!\n";
 };
 
 return function (&$c, $handler = "r_test") {

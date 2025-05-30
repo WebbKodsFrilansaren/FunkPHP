@@ -61,17 +61,33 @@ $CRITICAL_HTML_ERROR = <<<HTML
 </html>
 HTML;
 
-critical_err_html_or_json('json', $CRITICAL_JSON_ERROR, 500);
-
-// TODO: Add checks first for all the DIRS and then the FILES
-// OR error out based on request 'accept' headers such as:
-// ('accept': 'application/json' or we just assume text/html!)
-
-
-
-if (!file_exists(__DIR__ . '/config/_all.php')) {
-    http_response_code(500);
-    die(json_encode(['error' => 'Configuration file not found!']));
+// CHECK DEFAULT FOLDERS & FILES OR CRITICAL ERROR BASED 'ACCEPT' TPYE!
+if (
+    !file_exists(__DIR__ . '/config/_all.php')
+    || !is_readable(__DIR__ . '/config/_all.php')
+) {
+    // If the file does not exist or is not readable, we throw an error
+    // and exit the script with a JSON or HTML response based on the request
+    if (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false) {
+        critical_err_html_or_json('json', $CRITICAL_JSON_ERROR);
+    } else {
+        critical_err_html_or_json('html', $CRITICAL_HTML_ERROR);
+    }
+}
+if (
+    !is_dir(__DIR__ . '/_internals')
+    || !is_readable(__DIR__ . '/_internals')
+    || !is_dir(__DIR__ . '/_internals/functions')
+    || !is_readable(__DIR__ . '/_internals/functions')
+    || !file_exists(__DIR__ . '/_internals/functions/_includeAllExceptCLI.php')
+    || !is_readable(__DIR__ . '/_internals/functions/_includeAllExceptCLI.php')
+) {
+    // If the directory or file does not exist or is not readable, we throw an error
+    if (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false) {
+        critical_err_html_or_json('json', $CRITICAL_JSON_ERROR);
+    } else {
+        critical_err_html_or_json('html', $CRITICAL_HTML_ERROR);
+    }
 }
 
 // Load all functions needed for the
