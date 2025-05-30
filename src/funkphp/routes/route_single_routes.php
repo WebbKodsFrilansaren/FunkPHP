@@ -3,9 +3,7 @@ return  [
   '<CONFIG>' =>
   [
     'middlewares_before_route_match' =>
-    [
-      0 => 'test',
-    ],
+    [],
     'no_middlewares_match' =>
     [
       'json' =>
