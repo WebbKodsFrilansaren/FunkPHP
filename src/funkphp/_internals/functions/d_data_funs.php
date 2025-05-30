@@ -357,6 +357,30 @@ function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array 
         ],
     ];
 
+    // We check if $c_['v_config']['source'] is set to "GET" meaning we should
+    // try to convert $inputValue to numeric value if  $foundTypeRule is either
+    // digit, integer, float, or number. This is because GET variables are
+    // always strings and we need to convert them to the appropriate type!
+    if (
+        isset($c['v_config']['source']) &&
+        $c['v_config']['source'] === 'GET' &&
+        $foundTypeCat === 'number_types'
+    ) {
+        // Check if numeric then convert it to the appropriate type
+        // (digit|integer=intval,float=floatval,number=floatval)
+        if (is_numeric($inputValue)) {
+            if ($foundTypeRule === 'digit') {
+                $inputValue = (int)$inputValue ?? null;
+            } elseif ($foundTypeRule === 'integer') {
+                $inputValue = intval($inputValue) ?? null;
+            } elseif ($foundTypeRule === 'float') {
+                $inputValue = floatval($inputValue) ?? null;
+            } elseif ($foundTypeRule === 'number') {
+                $inputValue = floatval($inputValue) ?? null;
+            }
+        }
+    }
+
     // ITERATING THROUGH REMAINING RULES THIS INPUT FIELD
     foreach ($rules as $rule => $ruleConfig) {
         $ruleValue = $ruleConfig['value'];
@@ -770,17 +794,21 @@ function funk_use_validation(&$c, $optimizedValidationArray, $source)
 
     // Load input based on the source and make
     // sure it is a valid non-empty array!
+
     $inputData = null;
     if ($source === 'GET') {
         $inputData = $_GET ?? null;
+        $c['v_config']['source'] = "GET";
     } elseif ($source === 'POST') {
         $inputData = $_POST ?? null;
+        $c['v_config']['source'] = "POST";
     } elseif ($source === 'JSON') {
         $inputData = json_decode(file_get_contents('php://input'), true);
         if (json_last_error() !== JSON_ERROR_NONE) {
             $c['err']['FAILED_TO_RUN_VALIDATION_FUNCTION'] = "Validation Function needs a valid decoded JSON string for `\$source`!";
             return false;
         }
+        $c['v_config']['source'] = "JSON";
     }
     if (!is_array($inputData) || empty($inputData)) {
         $c['err']['FAILED_TO_RUN_VALIDATION_FUNCTION'] = "Validation Function needs a valid non-empty array for `\$inputData`!";

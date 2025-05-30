@@ -80,6 +80,7 @@ function v_test2(&$c) // <>
   // Run the command `php funkcli compile v v_test=>v_test3`
   // to get optimized version in return statement below it!
   $DX = [
+    'one_digit' => "required|digit",
     'user_password' => "required|password|between:5,10",
     'user_password_confirm' => "required|password_confirm:user_password",
   ];
@@ -91,6 +92,22 @@ function v_test2(&$c) // <>
       'passwords_to_match' =>
       array(
         'user_password' => 'user_password_confirm',
+      ),
+    ),
+    'one_digit' =>
+    array(
+      '<RULES>' =>
+      array(
+        'required' =>
+        array(
+          'value' => NULL,
+          'err_msg' => NULL,
+        ),
+        'digit' =>
+        array(
+          'value' => NULL,
+          'err_msg' => NULL,
+        ),
       ),
     ),
     'user_password' =>
@@ -111,8 +128,8 @@ function v_test2(&$c) // <>
         array(
           'value' =>
           array(
-            0 => 15,
-            1 => 20,
+            0 => 5,
+            1 => 10,
           ),
           'err_msg' => NULL,
         ),
