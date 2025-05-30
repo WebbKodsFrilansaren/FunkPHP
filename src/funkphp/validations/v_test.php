@@ -8,9 +8,6 @@ namespace FunkPHP\Validations\v_test;
 // to get the optimized version below it!
 // IMPORTANT: CMD+S or CTRL+S to autoformat each time function is added!
 
-
-// TODO: FIX "namespace" implementation in FunkPHP to use
-// TODO:
 // so same function can be used in different namespaces!!!
 function v_test3(&$c) // <>
 {
@@ -140,7 +137,6 @@ function v_test2(&$c) // <>
   );
 };
 
-// TODO: Include this default code for ALL kinds of Handlers file (route, data, etc.!!!)
 return function (&$c, $handler = "v_test3") {
   $base = is_string($handler) ? $handler : "";
   $full = __NAMESPACE__ . '\\' . $base;

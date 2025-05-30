@@ -1,22 +1,38 @@
-<?php // ROUTE_SINGLE_ROUTES.PHP - FunkPHP Framework | This File Was Modified In FunkCLI 2025-05-29 21:03:51
+<?php // ROUTE_SINGLE_ROUTES.PHP - FunkPHP Framework | This File Was Modified In FunkCLI 2025-05-30 22:41:43
 return  [
-  '<CONFIG>' => [
-    'middlewares_before_route_match' => [],
-    'no_middlewares_match' => [
-      'json' => [],
-      'page' => []
+  '<CONFIG>' =>
+  [
+    'middlewares_before_route_match' =>
+    [
+      0 => 'test',
     ],
-    'no_route_match' => [
-      'json' => [],
-      'page' => []
+    'no_middlewares_match' =>
+    [
+      'json' =>
+      [],
+      'page' =>
+      [],
     ],
-    'no_data_match' => [
-      'json' => [],
-      'page' => []
+    'no_route_match' =>
+    [
+      'json' =>
+      [],
+      'page' =>
+      [],
     ],
-    'no_page_match' => [
-      'json' => [],
-      'page' => []
+    'no_data_match' =>
+    [
+      'json' =>
+      [],
+      'page' =>
+      [],
+    ],
+    'no_page_match' =>
+    [
+      'json' =>
+      [],
+      'page' =>
+      [],
     ],
   ],
   'ROUTES' =>
@@ -33,6 +49,15 @@ return  [
         [
           'd_test' => 'd_test2',
         ],
+      ],
+      '/test2' =>
+      [
+        'handler' => 'r_test3',
+        'data' => 'd_test3',
+      ],
+      '/test3' =>
+      [
+        'handler' => 'r_test5',
       ],
     ],
     'POST' =>

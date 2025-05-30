@@ -75,38 +75,20 @@ function funk_load_validation_file(&$c, $string)
 {
     $handlerFile = null;
     $fnName = null;
-    if (!is_string($string) && !is_array($string)) {
-        $c['err']['FAILED_TO_LOAD_VALIDATION_FILE'] = "Validation Handler File must be a String (`FileName`) or an Array (`FileName=>FunctionName`)!";
+    if (!is_string($string)) {
+        $c['err']['FAILED_TO_LOAD_VALIDATION_FILE'] = "Validation Handler File must be a String (`FileName`) and WITHOUT the File Extension (`.php`)!";
         return null;
-    }
-    if (is_string($string)) {
-        if (strpos($string, '=>') !== false) {
-            [$handlerFile, $fnName] = explode('=>', $string);
-            $handlerFile = trim($handlerFile);
-            $fnName = trim($fnName);
-        } else {
-            $handlerFile = $string;
-            $fnName = $handlerFile;
-        }
-    } elseif (is_array($string)) {
-        $handlerFile = key($string);
-        $fnName = $string[$handlerFile];
+    } else {
+        $handlerFile = $string;
     }
     if (!str_starts_with($handlerFile, "v_")) {
         $handlerFile = "v_" . $handlerFile;
-    }
-    if (!str_starts_with($fnName, "v_")) {
-        $fnName = "v_" . $fnName;
     }
     if (str_ends_with($handlerFile, ".php")) {
         $handlerFile = substr($handlerFile, 0, -4);
     }
     if (!preg_match('/^[a-z0-9_]+$/', $handlerFile)) {
         $c['err']['FAILED_TO_LOAD_VALIDATION_FILE'] = 'Validation Handler File `' . $handlerFile . '` must be a lowercase string containing only letters, numbers and underscores!';
-        return null;
-    }
-    if (!preg_match('/^[a-z0-9_]+$/', $fnName)) {
-        $c['err']['FAILED_TO_LOAD_VALIDATION_FILE'] =  'Validation Handler Function `' . $fnName . '` must be a lowercase string containing only letters, numbers and underscores!';
         return null;
     }
     $validationFile = dirname(dirname(__DIR__)) . '/validations/' . $handlerFile . '.php';

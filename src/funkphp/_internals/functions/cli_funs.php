@@ -3855,8 +3855,20 @@ function cli_create_validation_file_and_or_handler()
     $handlerDirPath = "validations";
     $date = date("Y-m-d H:i:s");
     $outputHandlerRoute = null;
-    $handlerBaseFullString = "\n\$base = is_string(\$handler) ? \$handler : \"\";\n\$full = __NAMESPACE__ . '\\' . \$base; \nif (function_exists(\$full)) { return \$full(\$c); } else { \$c['err']['FAILED_TO_RUN_VALIDATION_FUNCTION-' . '$handlerFile'] = 'Validation function `' . \$full . '` not found in namespace `' . __NAMESPACE__ . '`!'; return null; }\n";
-
+    $handlerBaseFullStringRow1 = "\n\$base = is_string(\$handler) ? \$handler : \"\";";
+    $handlerBaseFullStringRow2 = "\n\$full = __NAMESPACE__ . '\\\\' . \$base;";
+    $handlerBaseFullStringRow3 = "\nif (function_exists(\$full)) {";
+    $handlerBaseFullStringRow4 = "\nreturn \$full(\$c);";
+    $handlerBaseFullStringRow5 = "\n} else {";
+    $handlerBaseFullStringRow6 = "\$c['err']['FAILED_TO_RUN_VALIDATION_FUNCTION-' . '$handlerFile'] = 'Validation function `' . \$full . '` not found in namespace `' . __NAMESPACE__ . '`!';";
+    $handlerBaseFullStringRow7 = "\nreturn null;";
+    $handlerBaseFullStringRow8 = "\n}";
+    $handlerBaseFullString =
+        $handlerBaseFullStringRow1
+        . $handlerBaseFullStringRow2 . $handlerBaseFullStringRow3
+        . $handlerBaseFullStringRow4 . $handlerBaseFullStringRow5
+        . $handlerBaseFullStringRow6 . $handlerBaseFullStringRow7
+        . $handlerBaseFullStringRow8;
 
     // TODO: Add dynamic creation of rules based on provided tables in argv4!
     $DXPART = "";
@@ -3874,7 +3886,7 @@ function cli_create_validation_file_and_or_handler()
     if (!file_exists($handlersDir . $handlerFile . ".php")) {
         $outputHandlerRoute = file_put_contents(
             $handlersDir . $handlerFile . ".php",
-            "<?php\n// Validation Handler File - Created in FunkCLI on $date!\n// Write your Validation Rules in the\n// \$DX variable and then run the command\n// `php funkcli compile v $handlerFile=>\$function_name`\n// to get the optimized version below it!\n// IMPORTANT: CMD+S or CTRL+S to autoformat each time function is added!\n\nfunction $fnName(&\$c) // <>\n{\n$validationLimiterStrings\n};\n\nreturn function (&\$c, \$handler = \"$fnName\") { $handlerBaseFullString };"
+            "<?php\nnamespace FunkPHP\Validations\\$handlerFile;\n// Validation Handler File - Created in FunkCLI on $date!\n// Write your Validation Rules in the\n// \$DX variable and then run the command\n// `php funkcli compile v $handlerFile=>\$function_name`\n// to get the optimized version below it!\n// IMPORTANT: CMD+S or CTRL+S to autoformat each time function is added!\n\nfunction $fnName(&\$c) // <>\n{\n$validationLimiterStrings\n};\n\nreturn function (&\$c, \$handler = \"$fnName\") { $handlerBaseFullString \n};"
         );
         if ($outputHandlerRoute) {
             cli_success_without_exit("Added Validation Handler \"funkphp/$handlerDirPath/$handlerFile.php\" with Validation Function \"$fnName\" in \"funkphp/validations/$handlerFile.php\"!");
@@ -5288,19 +5300,36 @@ function create_handler_file_with_fn_or_fn_or_err_out($handlerType, $handlersDir
     if (!is_string($handlerType) || empty($handlerType)) {
         cli_err_syntax("[create_handler_file_with_fn_or_fn_or_err_out] Handler type must be a non-empty string. Choose between: 'r','d', or 'v'");
     }
-    if ($handlerType !== "r" && $handlerType !== "d" && $handlerType !== "v") {
-        cli_err_syntax("[create_handler_file_with_fn_or_fn_or_err_out] Handler type must be a non-empty string. Choose between: 'r','d', or 'v'");
+    if ($handlerType !== "r" && $handlerType !== "d") {
+        cli_err_syntax("[create_handler_file_with_fn_or_fn_or_err_out] Handler type must be a non-empty string. Choose between: 'r', or 'd'");
     }
 
     // Prepare correct handler prefix and directory path and date for the file to either create or add to
-    $handlerPrefix = $handlerType === "r" ? "Route" : ($handlerType === "d" ? "Data" : "Validation");
-    $handlerDirPath = $handlerType === "r" ? "handlers" : ($handlerType === "d" ? "data" : "validations");
+    $handlerPrefix = $handlerType === "r" ? "Route" :  "Data";
+    $handlerDirPath = $handlerType === "r" ? "handlers" : "data";
+    $handlerDirPathFirstUC = ucfirst($handlerDirPath);
+    $handlerDirPathUPPERCASE = strtoupper($handlerDirPath);
     $templateDirs = $dirs['templates'];
     $date = date("Y-m-d H:i:s");
     $outputHandlerRoute = null;
     $validationLimiterStrings = $handlerType === 'v' ? "// Created in FunkCLI on $date! Keep \"};\" on its\n// own new line without indentation no comment right after it!\n// Run the command `php funkcli compile v $handlerFile=>$fnName`\n// to get optimized version in return statement below it!\n\$DX = [];\n\n\nreturn array([]);\n" : "";
     $customCodeString = "";
+    $failedToRunFunction = "FAILED_TO_RUN_" . $handlerDirPathUPPERCASE . "_FUNCTION-" . $handlerFile;
     $returnFunctionRegex = get_match_return_function_regex($fnName, $method, $validRoute) ?? "";
+    $handlerBaseFullStringRow1 = "\n\$base = is_string(\$handler) ? \$handler : \"\";";
+    $handlerBaseFullStringRow2 = "\n\$full = __NAMESPACE__ . '\\\\' . \$base;";
+    $handlerBaseFullStringRow3 = "\nif (function_exists(\$full)) {";
+    $handlerBaseFullStringRow4 = "\nreturn \$full(\$c);";
+    $handlerBaseFullStringRow5 = "\n} else {";
+    $handlerBaseFullStringRow6 = "\$c['err']['$failedToRunFunction'] = '$handlerPrefix Function `' . \$full . '` not found in namespace `' . __NAMESPACE__ . '`!';";
+    $handlerBaseFullStringRow7 = "\nreturn null;";
+    $handlerBaseFullStringRow8 = "\n}";
+    $handlerBaseFullString =
+        $handlerBaseFullStringRow1
+        . $handlerBaseFullStringRow2 . $handlerBaseFullStringRow3
+        . $handlerBaseFullStringRow4 . $handlerBaseFullStringRow5
+        . $handlerBaseFullStringRow6 . $handlerBaseFullStringRow7
+        . $handlerBaseFullStringRow8;
 
     // If $customCode not null, then we retrieve a valid string or array or error out
     // If $customCode now is a string we check if that file exists using
@@ -5335,21 +5364,12 @@ function create_handler_file_with_fn_or_fn_or_err_out($handlerType, $handlersDir
 
     // When file does not exist we create it
     if (!file_exists($handlersDir . $handlerFile . ".php")) {
-        // Special case 'v' for validation handlers, we also use the Validation string
-        if ($handlerType === 'v') {
-            $outputHandlerRoute = file_put_contents(
-                $handlersDir . $handlerFile . ".php",
-                "<?php\n// $handlerPrefix Handler File - Created in FunkCLI on $date!\n// Write your Validation Rules in the\n// \$DX variable and then run the command\n// `php funkcli compile v $handlerFile=>\$function_name`\n// to get the optimized version below it!\n// IMPORTANT: CMD+S or CTRL+S to autoformat each time function is added!\n\nfunction $fnName(&\$c) // <$method$validRoute>\n{\n$customCodeString\n$validationLimiterStrings\n};\n\nreturn function (&\$c, \$handler = \"$fnName\") {\nreturn \$handler(\$c);\n};"
-            );
-        }
-        // For "route" & "data" handlers, we just add the function name after file creation
-        else {
-            // Create the handler file with the function name and return a success message
-            $outputHandlerRoute = file_put_contents(
-                $handlersDir . $handlerFile . ".php",
-                "<?php\n// $handlerPrefix Handler File - Created in FunkCLI on $date!\n// IMPORTANT: CMD+S or CTRL+S to autoformat each time function is added!\n\nfunction $fnName(&\$c) // <$method$validRoute>\n{\n// Created in FunkCLI on $date! Keep \"};\" on its\n// own new line without indentation no comment right after it!\n$customCodeString\n};\n\nreturn function (&\$c, \$handler = \"$fnName\") {\nreturn \$handler(\$c);\n};\n"
-            );
-        }
+        // Create the handler file with the function name and return a success message
+        $outputHandlerRoute = file_put_contents(
+            $handlersDir . $handlerFile . ".php",
+            "<?php\nnamespace FunkPHP\\$handlerDirPathFirstUC\\$handlerFile;\n// $handlerPrefix Handler File - Created in FunkCLI on $date!\n// IMPORTANT: CMD+S or CTRL+S to autoformat each time function is added!\n\nfunction $fnName(&\$c) // <$method$validRoute>\n{\n// Created in FunkCLI on $date! Keep \"};\" on its\n// own new line without indentation no comment right after it!\n$customCodeString\n};\n\nreturn function (&\$c, \$handler = \"$fnName\") { $handlerBaseFullString };\n"
+        );
+
         if ($outputHandlerRoute) {
             cli_success_without_exit("Added $handlerPrefix Handler \"funkphp/$handlerDirPath/$handlerFile.php\" with $handlerPrefix Function \"$fnName\" in \"funkphp/$handlerDirPath/$handlerFile.php\"!");
             if ($customCodeString !== "") {
@@ -5387,12 +5407,8 @@ function create_handler_file_with_fn_or_fn_or_err_out($handlerType, $handlersDir
             // Construct the string for the *new* function definition only.
             // DO NOT include $matches[0] in this string; we will insert it separately.
             $newFunctionString = '';
-            // Assuming $validationLimiterStrings and $date are defined elsewhere
-            if ($handlerType === 'v') {
-                $newFunctionString = "\nfunction {$fnName}(&\$c) // <{$method}{$validRoute}>{\n{$validationLimiterStrings}\n$customCodeString\n};\n\n";
-            } else {
-                $newFunctionString = "\nfunction {$fnName}(&\$c) // <{$method}{$validRoute}>\n{\n// Created in FunkCLI on {$date}! Keep \"};\" on its\n// own new line without indentation no comment right after it!\n$customCodeString\n};\n\n";
-            }
+            $newFunctionString = "\nfunction {$fnName}(&\$c) // <{$method}{$validRoute}>\n{\n// Created in FunkCLI on {$date}! Keep \"};\" on its\n// own new line without indentation no comment right after it!\n$customCodeString\n};\n\n";
+
 
             // --- Now, perform the insertion into $fileContent ---
             // Use substr_replace to insert $newFunctionString at $matchOffset
