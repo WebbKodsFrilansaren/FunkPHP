@@ -1,93 +1,11 @@
 <?php // ENTRY POINT OF EACH HTTP(S) REQUEST thanks to ".htaccess" file
 
-// DEFAULT CHECK THAT ALL NEEDED FILES EXIST OR WE THROW DEFAULT JSON ERROR
-// OR DEFAULT HTML ERROR PAGE - YOU CAN CONFIGURE THIS RIGHT BELOW HERE!
-function critical_err_html_or_json($type = "html", $message, $status = 500)
-{
-    if ($type === "json") {
-        http_response_code($status);
-        header('Content-Type: application/json');
-        echo json_encode([["code" => $status], $message]);
-        exit;
-    } else {
-        http_response_code($status);
-        header('Content-Type: text/html');
-        echo $message;
-        exit;
-    }
-}
-// - Default JSON Error Response
-$CRITICAL_JSON_ERROR = [
-    'error' => 'FunkPHP Framework - Internal Error: Important files could not be loaded, so Please Tell the Developer to fix the website or the Web Hosting Service to allow for reading the necessary folders & files! If you are the Developer, please check your Configuration and File permissions where you Develop and/or Host this Website!Thanks in advance! You are Awesome, anyway! ^_^',
-];
-// - Default HTML Error Response
-$CRITICAL_HTML_ERROR = <<<HTML
-<!DOCTYPE html>
-<html lang="en">
-    <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FunkPHP Framework - Internal Error</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif; background-color: #f4f4f4;
-            color: #333; display: flex; justify-content: center; align-items: center;
-            min-height: 100vh; margin: 0;
-        }
-        .container {
-            max-width: 350px;
-            padding: 20px;
-            background-color: #fff;
-            border-radius: 5px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        h1 { color: #e74c3c; }
-        p { font-size: 16px;  line-height: 1.5; }
-        a { color: #3498db; text-decoration: none; }
-        a:hover { text-decoration: underline; }
-        .center-text {
-            text-align: center;
-        }
-    </style>
-    </head>
-    <body>
-        <div class="container">
-            <h1>FunkPHP Framework - Internal Error</h1>
-            <p>Important files could not be loaded, so Please Tell the Developer to fix the website or the Web Hosting Service to allow for reading the necessary folders & files!</p>
-            <p>If you are the Developer, please check your Configuration and File permissions where you Develop and/or Host this Website!</p>
-            <p class="center-text">Thanks in advance!<br>You are Awesome, anyway! ^_^</p>
-        </div>
-    </body>
-</html>
-HTML;
-
 // CHECK DEFAULT FOLDERS & FILES OR CRITICAL ERROR BASED 'ACCEPT' TPYE!
 if (
-    !file_exists(__DIR__ . '/config/_all.php')
-    || !is_readable(__DIR__ . '/config/_all.php')
-) {
-    // If the file does not exist or is not readable, we throw an error
-    // and exit the script with a JSON or HTML response based on the request
-    if (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false) {
-        critical_err_html_or_json('json', $CRITICAL_JSON_ERROR);
-    } else {
-        critical_err_html_or_json('html', $CRITICAL_HTML_ERROR);
-    }
-}
-if (
-    !is_dir(__DIR__ . '/_internals')
-    || !is_readable(__DIR__ . '/_internals')
-    || !is_dir(__DIR__ . '/_internals/functions')
-    || !is_readable(__DIR__ . '/_internals/functions')
-    || !file_exists(__DIR__ . '/_internals/functions/_includeAllExceptCLI.php')
+    !is_readable(__DIR__ . '/config/_all.php')
     || !is_readable(__DIR__ . '/_internals/functions/_includeAllExceptCLI.php')
 ) {
-    // If the directory or file does not exist or is not readable, we throw an error
-    if (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false) {
-        critical_err_html_or_json('json', $CRITICAL_JSON_ERROR);
-    } else {
-        critical_err_html_or_json('html', $CRITICAL_HTML_ERROR);
-    }
+    critical_err_json_or_html(500);
 }
 
 // Load all functions needed for the
@@ -121,21 +39,32 @@ if ($c['req']['current_step'] === 1) {
     ]);
 
     // See src/funkphp/config/db.php for the default database settings!
-    $c['db'] = funk_connect_db(DB_HOST, DB_USER, DB_PASSWORD, DB_NAME)['data'] ?? null;
+    $c['db'] = funk_connect_db(DB_HOST, DB_USER, DB_PASSWORD, DB_NAME) ?? null;
+    if ($c['db'] === null) {
+        $c['err']['FAILED_TO_LOAD_DB'] = 'Database Connection Failed. Please check your Database Connection Configuration in `funkphp/config/db_config.php`!';
+    }
+
+    // HANDLE Database Connection Error Before Proceeding?
+    if ($c['err']['FAILED_TO_LOAD_DB']) {
+    }
 
     // Headers to Set and Remove for each HTTP(S) Request
     funk_headers_set($c['HEADERS']['ADD']);
     funk_headers_remove($c['HEADERS']['REMOVE']);
 
     // Start the session (if not already started)
-    funk_start_session();
+    funk_start_session($c);
+
+    // HANDLE Session Start Error Before Proceeding?
+    if ($c['err']['FAILED_TO_START_SESSION']) {
+    }
 
     // Prepare the request URI for the FunkPHP Framework - Change
     // the function if you need to filter REQUEST_URI in more ways!
     $c['req']['uri'] = funk_prepare_uri($_SERVER['REQUEST_URI'], $c['BASEURLS']['BASEURL_URI']);
 
     // This is the end of Step 1, do anything more if you want to
-    $c['req']['next_step'] = 2; // Set next step to 2 (Step 2)
+    $c['req']['next_step'] = 2;
 }
 // This sets next step. If you wanna do something more before that, do that before this line!
 $c['req']['current_step'] = $c['req']['next_step'];
@@ -177,12 +106,8 @@ if ($c['req']['current_step'] === 2) {
     // This is the end of Step 2, you can freely add any other checks you want here!
     // You have all global (meta) data in $c variable, so you can use it as you please!
     // Maybe you want to globally block specific Content-Type headers or something else?
-
-
-    // Set next step to 3 (Step 3)
     $c['req']['next_step'] = 3;
 }
-// This sets next step. If you wanna do something more before that, do that before this line!
 $c['req']['current_step'] = $c['req']['next_step'];
 
 
@@ -197,8 +122,10 @@ if ($c['req']['current_step'] === 3) {
     // When Routes or Trie Compiled Route File(s) not found/non-readable or empty/missing keys!
     if (!file_exists_is_readable_writable(__DIR__ . '/routes/route_single_routes.php')) {
         $c['err']['FAILED_TO_LOAD_ROUTE_FILES'] = "Routes in File `funkphp/routes/route_single_routes.php` not found or non-readable!";
+        critical_err_json_or_html(500);
     } elseif (!file_exists_is_readable_writable(__DIR__ . '/_internals/compiled/troute_route.php')) {
         $c['err']['FAILED_TO_LOAD_TROUTE_FILES'] = "Compiled Routes in File `funkphp/_internals/compiled/troute_route.php` not found or non-readable!";
+        critical_err_json_or_html(500);
     } else {
         $c['ROUTES'] = [
             'COMPILED' => include __DIR__ . '/_internals/compiled/troute_route.php',
@@ -308,12 +235,10 @@ if ($c['req']['current_step'] === 3) {
     if ($c['err']['FAILED_TO_RUN_ROUTE_FUNCTION']) {
     }
 
-
     // This is the end of Step 3, you can freely add any other checks you want here!
     // You have all global (meta) data in $c variable, so you can use it as you please!
-    $c['req']['next_step'] = 4; // Set next step to 4 (Step 4)
+    $c['req']['next_step'] = 4;
 }
-// This sets next step. If you wanna do something more before that, do that before this line!
 $c['req']['current_step'] = $c['req']['next_step'];
 
 
@@ -366,6 +291,5 @@ if ($c['req']['current_step'] === 5) {
 
 // This part is only executed if the request was not properly handled by the pipeline!
 // Feel free to add your own error handling here and/or easter egg!
-//http_response_code(500);
 
 var_dump($c['err']);

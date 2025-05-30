@@ -1,10 +1,18 @@
 <?php // HELPER FUNCTIONS FOR FuncPHP
 
 // Data Dump ONLY $c['err'] array and die (stop execution)
-function derr()
+function dderr()
 {
     header('Content-Type: application/json', true, 200);
-    echo json_encode($GLOBALS['c']['err']);
+    echo json_encode($GLOBALS['c']['err'], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+// Data Dump ONLY $c array and die (stop execution)
+function ddc()
+{
+    header('Content-Type: application/json', true, 200);
+    echo json_encode($GLOBALS['c'], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     exit;
 }
 
@@ -22,30 +30,11 @@ function dd($data, $json = false)
 }
 
 // Data Dump function to dump data as JSON
-function dj($data, $json = false)
+function ddj($data, $json = false)
 {
     header('Content-Type: application/json', true, 200);
     echo json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     exit;
-}
-
-// The functions "ok" and "err" are used to check the result of a function call
-// whereas "fail" and "success" are used to return the result of a function call
-function ok($result)
-{
-    return !isset($result['err']) ? true : false;
-}
-function err($result)
-{
-    return isset($result['err']) ? true : false;
-}
-function fail($errMsg)
-{
-    return ['err' => $errMsg];
-}
-function success($data)
-{
-    return ['data' => $data];
 }
 
 // The functions "return_html", "return_json" and the like sets a specific
@@ -154,10 +143,15 @@ function funk_run_ini_sets(array $iniSets)
 }
 
 // Function to start session if not already started
-function funk_start_session()
+function funk_start_session(&$c)
 {
     if (!session_id() || session_status() === PHP_SESSION_NONE) {
-        session_start();
+        if (!session_start()) {
+            $c['err']['FAILED_TO_START_SESSION'] = 'Failed to start session.';
+        } else {
+            // If session started successfully, set a session variable
+            $_SESSION['FPFP_SESS_START'] = true;
+        }
     }
 }
 

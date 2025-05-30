@@ -18,7 +18,7 @@ function d_test2(&$c) // <POST/test/:id>
         'err' => $c['err'],
     ];
 
-    dj($test);
+    ddj($test);
 };
 
 

@@ -15,10 +15,10 @@ function funk_connect_db($dbHost, $dbUser, $dbPass, $dbName, $dbPort = 3306, $db
             mysqli_report(MYSQLI_REPORT_OFF); // No MySQL errors
             error_reporting(0);   // Also no PHP errors
         }
-        return success($conn);
+        return $conn;
     } catch (Exception $e) {
         // Return error message if connection fails
-        return fail("[d_connect_db]: DB Connection failed: " . $e->getMessage());
+        return null;
     }
 }
 

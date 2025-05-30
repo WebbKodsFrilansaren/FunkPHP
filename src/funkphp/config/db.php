@@ -1,6 +1,6 @@
 <?php
 // DEFAULT DB Connection local & online - Change as needed!
-if ($_SERVER['SERVER_NAME'] == "localhost" || $_SERVER['SERVER_NAME'] == "127.0.0.1") {
+if (FUNKPHP_IS_LOCAL) {
     return [
         define("DB_HOST", "localhost"),
         define("DB_USER", "root"),
