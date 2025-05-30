@@ -2,13 +2,26 @@
 
 // DEFAULT CHECK THAT ALL NEEDED FILES EXIST OR WE THROW DEFAULT JSON ERROR
 // OR DEFAULT HTML ERROR PAGE - YOU CAN CONFIGURE THIS RIGHT BELOW HERE!
+function critical_err_html_or_json($type = "html", $message, $status = 500)
+{
+    if ($type === "json") {
+        http_response_code($status);
+        header('Content-Type: application/json');
+        echo json_encode([["code" => $status], $message]);
+        exit;
+    } else {
+        http_response_code($status);
+        header('Content-Type: text/html');
+        echo $message;
+        exit;
+    }
+}
 // - Default JSON Error Response
-$DEFAULT_JSON_ERROR = [
+$CRITICAL_JSON_ERROR = [
     'error' => 'FunkPHP Framework - Internal Error: Important files could not be loaded, so Please Tell the Developer to fix the website or the Web Hosting Service to allow for reading the necessary folders & files! If you are the Developer, please check your Configuration and File permissions where you Develop and/or Host this Website!Thanks in advance! You are Awesome, anyway! ^_^',
-    'status' => 500,
 ];
 // - Default HTML Error Response
-$DEFAULT_HTML_ERROR = <<<HTML
+$CRITICAL_HTML_ERROR = <<<HTML
 <!DOCTYPE html>
 <html lang="en">
     <head>
@@ -48,9 +61,7 @@ $DEFAULT_HTML_ERROR = <<<HTML
 </html>
 HTML;
 
-
-echo $DEFAULT_HTML_ERROR;
-exit;
+critical_err_html_or_json('json', $CRITICAL_JSON_ERROR, 500);
 
 // TODO: Add checks first for all the DIRS and then the FILES
 // OR error out based on request 'accept' headers such as:
