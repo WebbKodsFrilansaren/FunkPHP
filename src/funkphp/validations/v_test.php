@@ -86,72 +86,72 @@ function v_test2(&$c) // <>
   ];
 
 
-  return array(
-    '<CONFIG>' =>
-    array(
-      'passwords_to_match' =>
-      array(
-        'user_password' => 'user_password_confirm',
+  return array (
+  '<CONFIG>' => 
+  array (
+    'passwords_to_match' => 
+    array (
+      'user_password' => 'user_password_confirm',
+    ),
+  ),
+  'one_digit' => 
+  array (
+    '<RULES>' => 
+    array (
+      'required' => 
+      array (
+        'value' => NULL,
+        'err_msg' => NULL,
+      ),
+      'digit' => 
+      array (
+        'value' => NULL,
+        'err_msg' => NULL,
       ),
     ),
-    'one_digit' =>
-    array(
-      '<RULES>' =>
-      array(
-        'required' =>
-        array(
-          'value' => NULL,
-          'err_msg' => NULL,
+  ),
+  'user_password' => 
+  array (
+    '<RULES>' => 
+    array (
+      'required' => 
+      array (
+        'value' => NULL,
+        'err_msg' => NULL,
+      ),
+      'password' => 
+      array (
+        'value' => NULL,
+        'err_msg' => NULL,
+      ),
+      'between' => 
+      array (
+        'value' => 
+        array (
+          0 => 5,
+          1 => 10,
         ),
-        'digit' =>
-        array(
-          'value' => NULL,
-          'err_msg' => NULL,
-        ),
+        'err_msg' => NULL,
       ),
     ),
-    'user_password' =>
-    array(
-      '<RULES>' =>
-      array(
-        'required' =>
-        array(
-          'value' => NULL,
-          'err_msg' => NULL,
-        ),
-        'password' =>
-        array(
-          'value' => NULL,
-          'err_msg' => NULL,
-        ),
-        'between' =>
-        array(
-          'value' =>
-          array(
-            0 => 5,
-            1 => 10,
-          ),
-          'err_msg' => NULL,
-        ),
+  ),
+  'user_password_confirm' => 
+  array (
+    '<RULES>' => 
+    array (
+      'required' => 
+      array (
+        'value' => NULL,
+        'err_msg' => NULL,
+      ),
+      'password_confirm' => 
+      array (
+        'value' => 'user_password',
+        'err_msg' => NULL,
       ),
     ),
-    'user_password_confirm' =>
-    array(
-      '<RULES>' =>
-      array(
-        'required' =>
-        array(
-          'value' => NULL,
-          'err_msg' => NULL,
-        ),
-        'password_confirm' =>
-        array(
-          'value' => 'user_password',
-          'err_msg' => NULL,
-        ),
-      ),
-    ),
-  );
+  ),
+);
 };
 
 return function (&$c, $handler = "v_test3") {

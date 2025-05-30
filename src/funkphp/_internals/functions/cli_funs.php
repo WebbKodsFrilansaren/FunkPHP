@@ -3177,10 +3177,6 @@ function cli_convert_array_to_simple_syntax(array $array): string | null | array
 // Restore essentially the "funkphp" folder and all its subfolders if they do not exist!
 function cli_restore_default_folders_and_files()
 {
-    if ($_SERVER['SCRIPT_NAME'] !== 'funkcli') {
-        exit;
-    }
-
     // Prepare what folders to loop through and create if they don't exist!
     $folderBase = dirname(dirname(__DIR__));
     $folders = [
@@ -3210,6 +3206,7 @@ function cli_restore_default_folders_and_files()
         "$folderBase/middlewares/",
         "$folderBase/pages/",
         "$folderBase/pages/complete/",
+        "$folderBase/pages/components/",
         "$folderBase/pages/parts/",
         "$folderBase/routes/",
         "$folderBase/tests/",
@@ -3847,7 +3844,7 @@ function cli_add_a_route()
 function cli_create_validation_file_and_or_handler()
 {
     // Get valid handlerFile=>fnName or error out
-    global $argv, $settings, $dirs, $exactFiles, $singleRoutesRoute;
+    global $argv, $settings, $dirs, $exactFiles, $singleRoutesRoute, $tablesAndRelationshipsFile;
     [$handlerFile, $fnName] = get_handler_and_fn_from_argv4_or_err_out("v", 3);
 
     // Prepare dirs and strings
@@ -3871,7 +3868,52 @@ function cli_create_validation_file_and_or_handler()
         . $handlerBaseFullStringRow8;
 
     // TODO: Add dynamic creation of rules based on provided tables in argv4!
+    $tables = null;
     $DXPART = "";
+    if (isset($argv[4])) {
+        if (!is_string($argv[4]) || empty($argv[4])) {
+            cli_err_syntax("Included Tables for the created Validation File=>Function must be a Non-Empty String!");
+        }
+        if (!preg_match('/([a-z_][a-z_0-9]+\*?[0-9]*,?)+$/i', $argv[4])) {
+            cli_err_syntax_without_exit("Included Tables for the created Validation File=>Function must be a valid String with Table Names and Optional Numbers (e.g. \"table1,table2*2,table3\").");
+            cli_info("Example: \"table1,table2*2,table3\" will create rules for `table1` as a single object, `table2` as an array with 2 elements, and `table3` as a single object just like `table1`!");
+        }
+
+        // Prepare the tables string for the
+        // DXPART. Split on "," if it exists
+        $times = [];
+        $processTables = str_contains($argv[4], ',') ? explode(',', $argv[4])  : [$argv[4]];
+
+        // Extract the number from "*" if it exists and add foreach table to the $times array
+        foreach ($processTables as $table) {
+            if (str_contains($table, '*')) {
+                $parts = explode('*', $table);
+                if (count($parts) !== 2 || !is_numeric($parts[1]) || (int)$parts[1] <= 0) {
+                    cli_err_syntax("Invalid table format: \"$table\". Use \"table_name*number\" or just \"table_name\".");
+                }
+                $times[$parts[0]] = (int)$parts[1];
+            } else {
+                $times[$table] = 1; // Default to 1 if no number is specified
+            }
+        }
+
+        // We now load the Tables.php file and grab the keys from $times
+        // to validate that all the tables exist in the Tables.php file!
+        $tables =  $tablesAndRelationshipsFile;
+        foreach ($times as $table => $count) {
+            if (!array_key_exists($table, $tables['tables'])) {
+                cli_err_syntax("Table \"$table\" not found in `funkphp/config/tables.php`! Available Tables: " . implode(', ', quotify_elements(array_keys($tables['tables']))));
+            }
+        }
+
+        // TODO: Complete the DXPART string with the tables and their rules based on what is stored in each table array where
+        // their subkeys are actual columns who contain info about what apprioriate rules they should have!
+        // Prepare the DXPART string for the validation limiter
+        $DXPART .= wrappify_arrowed_string("TEST", "required|string|between:1,5");
+        $DXPART .= ",";
+        var_dump($DXPART);
+        exit;
+    }
 
     // Prepare the validation limiter strings and return function regex
     $validationLimiterStrings = "// Created in FunkCLI on $date! Keep \"};\" on its\n// own new line without indentation no comment right after it!\n// Run the command `php funkcli compile v $handlerFile=>$fnName`\n// to get optimized version in return statement below it!\n\$DX = [$DXPART];\n\n\nreturn array([]);\n";
@@ -5027,22 +5069,6 @@ function cli_value_exists_as_string_or_in_array($valueThatExists, $existsInWhat)
     }
 }
 
-// Function takes a key and a value to add to it and then checks if referenced
-// &$addToWhat exists or not, and if does exist, then it checks if it is an array
-// otherwise it adds the key with value or it adds/pushes to the current array.
-function cli_add_value_as_string_or_to_array($keyToAdd, $valueToAdd, &$addToWhat)
-{
-    if (array_key_exists($keyToAdd, $addToWhat)) {
-        if (is_array($addToWhat[$keyToAdd])) {
-            $addToWhat[$keyToAdd][] = $valueToAdd;
-        } elseif (is_string($addToWhat[$keyToAdd])) {
-            $addToWhat[$keyToAdd] = [$addToWhat[$keyToAdd], $valueToAdd];
-        }
-    } else {
-        $addToWhat[$keyToAdd] = $valueToAdd;
-    }
-}
-
 // Shorthand Boolean functions to check combined
 // things for files, dirs and/or different data types
 function dir_exists_is_readable_writable($dirPath)
@@ -5073,6 +5099,22 @@ function quotify_string($string, $type = "`")
         cli_err_syntax("[quotify_string]: Type must be one of the following: ' (single quote), \" (double quote) or ` (backtick)!");
     }
     return $type . $string . $type;
+}
+
+// Function takes two strings and returns them in the format:
+// "'string1' => 'string2'" or ""string1" => "string2"" or "`string1` => `string2`"
+function wrappify_arrowed_string($string1, $string2, $type = "'")
+{
+    if (!is_string($string1) || empty($string1)) {
+        cli_err_syntax("[wrappify_arrowed_string]: First string must be a Non-Empty String!");
+    }
+    if (!is_string($string2) || empty($string2)) {
+        cli_err_syntax("[wrappify_arrowed_string]: Second string must be a Non-Empty String!");
+    }
+    if (!in_array($type, ["'", '"', '`'])) {
+        cli_err_syntax("[wrappify_arrowed_string]: Type must be one of the following: ' (single quote), \" (double quote) or ` (backtick)!");
+    }
+    return $type . $string1 . "$type => $type" . $string2 . $type;
 }
 
 // Function same above but for arrays, it takes an array and returns all its elements
