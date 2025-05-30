@@ -2902,9 +2902,6 @@ function cli_rebuild_single_routes_route_file($singleRouteRoutesFileArray): bool
 // Build Compiled Route from Developer's Defined Routes
 function cli_build_compiled_routes(array $developerSingleRoutes, array $developerMiddlewareRoutes)
 {
-    if ($_SERVER['SCRIPT_NAME'] !== 'funkcli') {
-        exit;
-    }
     // Only localhost can run this function (meaning you cannot run this in production!)
     // Both arrays must be non-empty arrays
     if (!is_array($developerSingleRoutes)) {
@@ -3062,9 +3059,6 @@ function cli_build_compiled_routes(array $developerSingleRoutes, array $develope
 // Output Compiled Route to File or Return as String
 function cli_output_compiled_routes(array $compiledTrie, string $outputFileNameFolderIsAlways_compiled_routes = "null")
 {
-    if ($_SERVER['SCRIPT_NAME'] !== 'funkcli') {
-        exit;
-    }
     // Check if the compiled route is empty
     if (!is_array($compiledTrie)) {
         cli_err_syntax("Compiled Routes Must Be A Non-Empty Array!");
@@ -3199,6 +3193,7 @@ function cli_restore_default_folders_and_files()
         "$folderBase/_BACKUPS/middlewares/",
         "$folderBase/_BACKUPS/pages/",
         "$folderBase/_BACKUPS/routes/",
+        "$folderBase/_BACKUPS/schemas/",
         "$folderBase/_BACKUPS/sql/",
         "$folderBase/_BACKUPS/templates/",
         "$folderBase/_BACKUPS/validations/",
@@ -3212,7 +3207,6 @@ function cli_restore_default_folders_and_files()
         "$folderBase/cached/files/",
         "$folderBase/config/",
         "$folderBase/data/",
-        "$folderBase/_dx_steps/",
         "$folderBase/middlewares/",
         "$folderBase/pages/",
         "$folderBase/pages/complete/",
@@ -3220,6 +3214,7 @@ function cli_restore_default_folders_and_files()
         "$folderBase/routes/",
         "$folderBase/tests/",
         "$folderBase/templates/",
+        "$folderBase/schemas/",
         "$folderBase/sql/",
         "$folderBase/validations/",
     ];

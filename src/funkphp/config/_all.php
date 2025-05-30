@@ -36,6 +36,10 @@ return [
     'v_config' => [],
     'v_data' => null,
 
+    // 'r' will store route-related data such as its '<CONFIG>' array
+    'r' => null,
+    'r_config' => null,
+
     // 'd' will ALWAYS store fetched database data (it does NOT store validation errors)
     'd' => null,
 
@@ -48,6 +52,8 @@ return [
     // 'err(ors)' is an array of errors that will be filled when errors occur in the application!
     // so they can optionally be handled later in the application flow!
     'err' => [
+        'FAILED_TO_LOAD_ROUTE_CONFIG' => false,
+        'FAILED_TO_RUN_ROUTE_CONFIG_MIDDLEWARES' => false,
         'FAILED_TO_LOAD_ROUTE_FILES' => false,
         'FAILED_TO_MATCH_ROUTE' => false,
         'FAILED_TO_LOAD_ROUTE_HANDLER_FILE' => false,

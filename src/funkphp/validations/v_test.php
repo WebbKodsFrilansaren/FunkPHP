@@ -12,7 +12,7 @@ namespace funkphp\validations\v_test;
 // TODO: FIX "namespace" implementation in FunkPHP to use
 // TODO:
 // so same function can be used in different namespaces!!!
-function v_test3a(&$c) // <>
+function v_test3(&$c) // <>
 {
   // Created in FunkCLI on 2025-05-29 21:02:46! Keep "};" on its
   // own new line without indentation no comment right after it!

@@ -106,6 +106,18 @@ if ($c['req']['current_step'] === 3) {
         'COMPILED' => include __DIR__ . '/_internals/compiled/troute_route.php',
         'SINGLES' => include __DIR__ . '/routes/route_single_routes.php',
     ];
+
+    // Load the Route Configurations or set error if not found!
+    if (
+        !isset($c['ROUTES']['<CONFIG>'])
+        || !is_array($c['ROUTES']['<CONFIG>']) || empty($c['ROUTES']['<CONFIG>'])
+    ) {
+        $c['err']['FAILED_TO_LOAD_ROUTE_CONFIG'] = "Route Configurations Key (`'<CONFIG>'`) Not Found! Check your `funk/routes/route_single_routes.php` File!";
+    } else {
+        $c['r_config'] = $c['ROUTES']['<CONFIG>'];
+    }
+    var_dump($c);
+    exit;
     // BEFORE STEP 3: Do anything you want here before matching the route and middlewares!
 
     // STEP 3: Match Route & Middlewares and then
