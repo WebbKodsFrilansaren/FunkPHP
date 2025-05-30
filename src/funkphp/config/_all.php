@@ -1,9 +1,16 @@
 <?php
-// GLOBAL CONFIGURATIONS in "$c" variable in "funkphp/funkphp_start.php"
-// Configure the included files below here separately as needed!
+// FunkPHP Global Configuration File
+// IMPORTANT: This file is used to set the global configuration for FunkPHP
+
+// CHANGE AS NEEDED BELOW SO IT WORKS OFFLINE & ONLINE!
 define('FUNKPHP_IS_LOCAL', (isset($_SERVER['SERVER_NAME'])
     && ($_SERVER['SERVER_NAME'] === 'localhost'
         || $_SERVER['SERVER_NAME'] === "127.0.0.1")));
+define('FUNKPHP_LOCAL', "http://localhost/funkphp/src/public_html/");
+define('FUNKPHP_ONLINE', "https://www.funkphp.com/");
+
+// GLOBAL CONFIGURATIONS in "$c" variable in "funkphp/funkphp_start.php"
+// Configure the included files below here separately as needed!
 return [
     'INI_SETS' => [
         // IMPORTANT: Change and/or add these as needed! For example, if you wanna use
@@ -22,14 +29,17 @@ return [
         'display_startup_errors' =>  FUNKPHP_IS_LOCAL ? 1 : 0,
         'error_reporting' =>  FUNKPHP_IS_LOCAL ? E_ALL : 0,
     ],
+
     // IMPORTANT: Change to your hardcoded online URL!
     'BASEURLS' => [
-        'LOCAL' => 'http://localhost/funkphp/src/public_html/',
-        'ONLINE' => 'https://www.funkphp.com/',
-        'BASEURL' =>  FUNKPHP_IS_LOCAL ? 'localhost' : 'https://www.funkphp.com',
-        // This changes to "/" in localhost to match online experience
+        'LOCAL' => FUNKPHP_LOCAL,
+        'ONLINE' => FUNKPHP_ONLINE,
+        'BASEURL' =>  FUNKPHP_IS_LOCAL ? 'localhost' :  FUNKPHP_ONLINE,
+        // This changes base to "/" during localhost
+        // development to match online experience!
         'BASEURL_URI' => '/funkphp/src/public_html/',
     ],
+
     // DEFAULT SESSION COOKIES SETTINGS - Change as needed!
     'COOKIES' => [
         'SESSION_NAME' => 'fphp_id',
@@ -41,11 +51,14 @@ return [
         'SESSION_HTTPONLY' => true,
         'SESSION_SAMESITE' => FUNKPHP_IS_LOCAL ? 'Lax' : 'Strict',
     ],
+
     // DEFAULT HEADERS That are Added & Removed For Each Request! - Change as needed!
     'HEADERS' => [
         // You might change these as needed per Matched Route in your Web App!
+        // The "ADD" & "REMOVE" headers below are for Maximum User Security!
+        // IMOPRTANT: Change the CSP Header below to match your needs!
         'ADD' => [
-            "Content-Type: text/html; charset=utf-8", // IMPORTANT: Change to "application/json" for API requests!
+            "Content-Type: text/html; charset=utf-8", // IMPORTANT: Change to "application/json" if you are primarily handling API!
             "Content-Security-Policy: default-src 'none'; img-src 'self'; script-src 'self'; connect-src 'none'; style-src 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; font-src 'self'; base-uri 'self';",
             "x-frame-options: DENY",
             "x-content-type-options: nosniff",
@@ -66,8 +79,9 @@ return [
             "X-AspNetMvc-Version"
         ]
     ],
+
     // DEFAULT INTERNAL PATHS for CSS, JS, Files, Fonts, Images, Temp, Videos, etc.
-    // (meaning those that are NOT in the public_html folder) - Change as needed!
+    // (meaning those that are NOT in the `public_html` folder) - Change as needed!
     'PATHS' => [
         "css" => ["css", "styles"],
         "js" => ["js", "javascript"],
@@ -77,9 +91,11 @@ return [
         "temp" => ["temp", "tmp"],
         "videos" => ["videos", "vids"],
     ],
-    // Route matching Loads first:"STEP 3: Match Single Route and its associated Middlewares"
-    // in "funkphp_start.php" file! Change their Loading Logic there if needed!
+
+    // ROUTES - The `funkphp/routes/route_single_routes.php` file (this is
+    // first populuated during STEP 3: Match Routing in `funkphp_start.php`)
     'ROUTES' => [],
+
     // 'TABLES' is the array of Processed SQL Tables ("schemas" folder) that
     // are used in tandem with Validation & SQL Handlers during DB CRUD!
     'TABLES' => include __DIR__ . '/tables.php',
@@ -160,6 +176,9 @@ return [
 
     // 'err(ors)' is an array of errors that will be filled when errors occur in the
     // application, so they can optionally be handled later in the application flow!
+    // "MAYBE" errors are always populated when some arrays are just empty in order
+    // to indicate that you might have missed populating them in your code! They are
+    // NEVER considered as errors, but rather like hints on what you might have missed!
     'err' => [
         'MAYBE' => [],
         'FAILED_TO_LOAD_DB' => false,
