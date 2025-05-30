@@ -3855,7 +3855,7 @@ function cli_create_validation_file_and_or_handler()
     $handlerDirPath = "validations";
     $date = date("Y-m-d H:i:s");
     $outputHandlerRoute = null;
-    $handlerBaseFullString = "\n\$base = is_string(\$handler) ? \$handler : \"\";\n\$full = __NAMESPACE__ . '\\' . \$base;\nif (function_exists(\$full)) { return \$full(\$c); } else { \$c['err']['FAILED_TO_RUN_VALIDATION_FUNCTION-' . '$handlerFile'] = 'Validation function `' . \$full . '` not found in namespace `' . __NAMESPACE__ . '`!'; return null;}\n";
+    $handlerBaseFullString = "\n\$base = is_string(\$handler) ? \$handler : \"\";\n\$full = __NAMESPACE__ . '\\' . \$base; \nif (function_exists(\$full)) { return \$full(\$c); } else { \$c['err']['FAILED_TO_RUN_VALIDATION_FUNCTION-' . '$handlerFile'] = 'Validation function `' . \$full . '` not found in namespace `' . __NAMESPACE__ . '`!'; return null; }\n";
 
 
     // TODO: Add dynamic creation of rules based on provided tables in argv4!
@@ -3874,7 +3874,7 @@ function cli_create_validation_file_and_or_handler()
     if (!file_exists($handlersDir . $handlerFile . ".php")) {
         $outputHandlerRoute = file_put_contents(
             $handlersDir . $handlerFile . ".php",
-            "<?php\n// Validation Handler File - Created in FunkCLI on $date!\n// Write your Validation Rules in the\n// \$DX variable and then run the command\n// `php funkcli compile v $handlerFile=>\$function_name`\n// to get the optimized version below it!\n// IMPORTANT: CMD+S or CTRL+S to autoformat each time function is added!\n\nfunction $fnName(&\$c) // <>\n{\n$validationLimiterStrings\n};\n\nreturn function (&\$c, \$handler = \"$fnName\") {$handlerBaseFullString};"
+            "<?php\n// Validation Handler File - Created in FunkCLI on $date!\n// Write your Validation Rules in the\n// \$DX variable and then run the command\n// `php funkcli compile v $handlerFile=>\$function_name`\n// to get the optimized version below it!\n// IMPORTANT: CMD+S or CTRL+S to autoformat each time function is added!\n\nfunction $fnName(&\$c) // <>\n{\n$validationLimiterStrings\n};\n\nreturn function (&\$c, \$handler = \"$fnName\") { $handlerBaseFullString };"
         );
         if ($outputHandlerRoute) {
             cli_success_without_exit("Added Validation Handler \"funkphp/$handlerDirPath/$handlerFile.php\" with Validation Function \"$fnName\" in \"funkphp/validations/$handlerFile.php\"!");
