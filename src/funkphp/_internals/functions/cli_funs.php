@@ -385,15 +385,15 @@ function cli_parse_a_sql_table_file()
 {
     // Load globals and verify $argv is not empty string and ends with .sql
     cli_info_without_exit("IMPORTANT #1: \"php funkcli add table\" command is NOT meant for actual Table Migration.");
-    cli_info_without_exit("It is ONLY meant for providing structure for more efficient Data Hydration!");
+    cli_info_without_exit("It is ONLY meant for providing structure for more efficient SQL Query Building & Data Hydration!");
     cli_info_without_exit("IMPORTANT #2: The function cli_convert_array_to_simple_syntax() in \"funkphp/_internals/functions/cli_funs.php\" which converts ");
     cli_info_without_exit("array() to array[] ignores quotes inside of other qoutes. For example, \"Yours' truly\" would become \"Yours truly\".");
-    cli_info_without_exit("KEEP THAT IN MIND: If you wanna use `DEFAULT \"Qouted Value with '\"Quotes\"' Inside\"` as it must be manually added inside \"config/Tables.php\"");
+    cli_info_without_exit("KEEP THAT IN MIND: If you wanna use `DEFAULT \"Qouted Value with '\"Quotes\"' Inside\"` it must be manually added inside \"config/Tables.php\"");
 
     global $argv, $dirs, $exactFiles, $settings, $tablesAndRelationshipsFile, $mysqlDataTypesFile;
     $sqlFile = null;
     if (!is_string_and_not_empty(trim($argv[3] ?? null))) {
-        cli_err_syntax("Provide a SQL file from \"funkphp/sql/\" folder as a string!");
+        cli_err_syntax("Provide a SQL File from \"funkphp/schemas/\" folder as a string!");
     }
 
     // Trim, add .sql extension if not already, and check that file exsts in /sql/ folder
@@ -401,10 +401,10 @@ function cli_parse_a_sql_table_file()
     if (!str_ends_with($argv[3], ".sql")) {
         $argv[3] .= ".sql";
     }
-    if (file_exists_is_readable_writable($dirs['sql'] . $argv[3])) {
-        $sqlFile = file_get_contents($dirs['sql'] . $argv[3]);
+    if (file_exists_is_readable_writable($dirs['schemas'] . $argv[3])) {
+        $sqlFile = file_get_contents($dirs['schemas'] . $argv[3]);
     } else {
-        cli_err_syntax("\"{$argv[3]}\" must must exist in\"funkphp/sql/\"!");
+        cli_err_syntax("\"{$argv[3]}\" must must exist in\"funkphp/schemas/\"!");
     }
 
     // Check that the tables.php file exists and is writable, then load it

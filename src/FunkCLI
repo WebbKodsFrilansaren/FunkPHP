@@ -160,6 +160,7 @@ $dirs = [
     "data" => __DIR__ . '/funkphp/data/',
     "pages" => __DIR__ . '/funkphp/pages/',
     "templates" => __DIR__ . '/funkphp/templates/',
+    "schemas" => __DIR__ . '/funkphp/schemas/',
     "sql" => __DIR__ . '/funkphp/sql/',
     'validations' => __DIR__ . '/funkphp/validations/',
     "backups_finals" => __DIR__ . '/funkphp/_BACKUPS/_FINAL_BACKUPS/',

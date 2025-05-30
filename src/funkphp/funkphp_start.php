@@ -102,6 +102,10 @@ if ($c['req']['current_step'] === 3) {
     // Load URI Routes since we are at this step and need them!
     // Run `funkcli add r route_name METHOD/route_path/:optional_param`
     // to start adding routes to your FunkPHP Web Application!
+    $c['ROUTES'] = [];
+    if (!file_exists_is_readable_writable(__DIR__ . '/routes/route_single_routes.php')) {
+        $c['err']['FAILED_TO_LOAD_ROUTE_FILES'] = "Routes in File `funk/routes/route_single_routes.php` not found or non-readable!";
+    }
     $c['ROUTES'] = [
         'COMPILED' => include __DIR__ . '/_internals/compiled/troute_route.php',
         'SINGLES' => include __DIR__ . '/routes/route_single_routes.php',
