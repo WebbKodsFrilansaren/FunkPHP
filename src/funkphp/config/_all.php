@@ -124,6 +124,7 @@ return [
         'cache_page_response' => null,
         'cache_json_response' => null,
         'code' => 418,
+        'time' => $_SERVER['REQUEST_TIME'] ?? time(),
         'ip' => $_SERVER['REMOTE_ADDR'] ?? null,
         'ua' => $_SERVER['HTTP_USER_AGENT'] ?? null,
         'content_type' => $_SERVER['CONTENT_TYPE'] ?? null,
