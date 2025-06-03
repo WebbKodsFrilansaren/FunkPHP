@@ -87,6 +87,7 @@ function v_test2(&$c) // <>
   ];
 };
 
+
 return function (&$c, $handler = "v_test3") {
   $base = is_string($handler) ? $handler : "";
   $full = __NAMESPACE__ . '\\' . $base;

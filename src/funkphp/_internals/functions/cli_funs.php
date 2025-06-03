@@ -3867,9 +3867,12 @@ function cli_create_validation_file_and_or_handler()
         . $handlerBaseFullStringRow6 . $handlerBaseFullStringRow7
         . $handlerBaseFullStringRow8;
 
+
+    // Default DXPart Value when no tables are provided
+    $DXPART = "'<CONFIG>' => '[]','table_col1_name' => 'string|required|nullable|between:3,50',\n'table_col2_email' => 'email|required|between:6,50',\n'table_col3_age' => 'integer|required|between:18,100',";
+
     // TODO: Add dynamic creation of rules based on provided tables in argv4!
-    $tables = null;
-    $DXPART = "";
+
     if (isset($argv[4])) {
         if (!is_string($argv[4]) || empty(trim($argv[4]))) {
             cli_err_syntax("Included Tables for the created Validation File=>Function must be a Non-Empty String!");
@@ -3883,6 +3886,7 @@ function cli_create_validation_file_and_or_handler()
         // Prepare the tables string for the
         // DXPART. Split on "," if it exists
         $times = [];
+        $tables = null;
         $processTables = str_contains($argv[4], ',') ? explode(',', $argv[4])  : [$argv[4]];
 
         // Extract the number from "*" if it exists and add foreach table to the $times array
@@ -3923,6 +3927,7 @@ function cli_create_validation_file_and_or_handler()
         // TODO: Complete the DXPART string with the tables and their rules based on what is stored in each table array where
         // their subkeys are actual columns who contain info about what apprioriate rules they should have!
         // Prepare the DXPART string for the validation limiter
+        $DXPART = "";
         $DXPART .= wrappify_arrowed_string("TEST", "required|string|between:1,5");
         $DXPART .= ",";
         var_dump($DXPART);
