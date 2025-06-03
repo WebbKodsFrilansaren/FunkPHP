@@ -3871,9 +3871,10 @@ function cli_create_validation_file_and_or_handler()
     $tables = null;
     $DXPART = "";
     if (isset($argv[4])) {
-        if (!is_string($argv[4]) || empty($argv[4])) {
+        if (!is_string($argv[4]) || empty(trim($argv[4]))) {
             cli_err_syntax("Included Tables for the created Validation File=>Function must be a Non-Empty String!");
         }
+        $argv[4] = strtolower($argv[4]);
         if (!preg_match('/([a-z_][a-z_0-9]+\*?[0-9]*,?)+$/i', $argv[4])) {
             cli_err_syntax_without_exit("Included Tables for the created Validation File=>Function must be a valid String with Table Names and Optional Numbers (e.g. \"table1,table2*2,table3\").");
             cli_info("Example: \"table1,table2*2,table3\" will create rules for `table1` as a single object, `table2` as an array with 2 elements, and `table3` as a single object just like `table1`!");
@@ -3889,17 +3890,30 @@ function cli_create_validation_file_and_or_handler()
             if (str_contains($table, '*')) {
                 $parts = explode('*', $table);
                 if (count($parts) !== 2 || !is_numeric($parts[1]) || (int)$parts[1] <= 0) {
-                    cli_err_syntax("Invalid table format: \"$table\". Use \"table_name*number\" or just \"table_name\".");
+                    cli_err_syntax_without_exit("Invalid Table Format: \"$table\". Use \"table_name*integer\" or just \"table_name\" for each Table!");
+                    cli_info("Even if you do not know the Array Number, just specify a very high integer to prevent infinite loops during Validation!");
+                }
+                // do not allow duplicates
+                if (array_key_exists($parts[0], $times)) {
+                    cli_err_syntax("Table \"$parts[0]\" already added. Only use one Table once!");
                 }
                 $times[$parts[0]] = (int)$parts[1];
-            } else {
-                $times[$table] = 1; // Default to 1 if no number is specified
+            }
+            // Default to 1 if no number is specified (as in:`table_name`)
+            else {
+                if (array_key_exists($table, $times)) {
+                    cli_err_syntax("Table \"$table\" already added. Only use one Table once!");
+                }
+                $times[$table] = 1;
             }
         }
 
         // We now load the Tables.php file and grab the keys from $times
         // to validate that all the tables exist in the Tables.php file!
-        $tables =  $tablesAndRelationshipsFile;
+        $tables =  $tablesAndRelationshipsFile ?? null;
+        if ($tables === null) {
+            cli_err_syntax("`Tables.php` File not found or is empty! Please check your `funkphp/config/tables.php` file!");
+        }
         foreach ($times as $table => $count) {
             if (!array_key_exists($table, $tables['tables'])) {
                 cli_err_syntax("Table \"$table\" not found in `funkphp/config/tables.php`! Available Tables: " . implode(', ', quotify_elements(array_keys($tables['tables']))));
