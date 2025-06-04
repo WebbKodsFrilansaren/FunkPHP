@@ -106,6 +106,34 @@ function funk_load_validation_file(&$c, $string)
     }
 }
 
+// Function that loads a single validation file and a function from it meaning it CANNOT
+// be called twice to the same file as that file would have to be loaded twice which is not
+// possible with include_once! So, this should ONLY be used when you know you only need to
+// validate using a single validation file and function from it. `$source` should be `POST`|`GET`|`JSON`!
+function funk_use_validation_on_single_validation_file_and_function(&$c, $validationFileName, $validationFunctionName, $source = null)
+{
+    // Check that all three are strings or return null and set error
+    if (
+        !is_string($validationFileName)
+        || !is_string($validationFunctionName)
+        || ($source !== null && !is_string($source))
+    ) {
+        $c['err']['FAILED_TO_LOAD_SINGLE_VALIDATION_FILE'] = 'Validation File Name, Function Name, and Source must be strings!';
+        return null;
+    }
+    // Load the validation file and get the function
+    // Any Error will be set by the funk_load_validation_file function
+    $validationFile = funk_load_validation_file($c, $validationFileName);
+    if ($validationFile === null) {
+        $c['err']['FAILED_TO_LOAD_SINGLE_VALIDATION_FILE'] = 'Failed to Load Single Validation File `' . $validationFileName . '`!';
+        return null;
+    }
+
+    // Run the provided Validation Function from the loaded file and return the Boolean Result
+    // When "null" is returned, it means no validation were run due to an error beforehand!
+    return funk_use_validation($c, $validationFile($c, $validationFunctionName), $source);
+}
+
 // Function that validates a set of rules for a given single input field/data
 function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array $rules, array &$currentErrPath): void
 {
@@ -794,7 +822,6 @@ function funk_use_validation(&$c, $optimizedValidationArray, $source)
 
     // Load input based on the source and make
     // sure it is a valid non-empty array!
-
     $inputData = null;
     if ($source === 'GET') {
         $inputData = $_GET ?? null;

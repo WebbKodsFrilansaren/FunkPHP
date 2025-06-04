@@ -15,6 +15,7 @@ $validArg1withArg2Values =  [
         'validation',
     ],
     'create' => [
+        's',
         'sql',
         'v',
         'validation',
@@ -186,7 +187,7 @@ $exactFiles = [
     "troute_route" => $dirs['compiled'] . "troute_route.php",
     "single_routes" => $dirs['routes'] . "route_single_routes.php",
     "tables" => $dirs['config'] . "tables.php",
-    "supported_mysql_data_types" => $dirs['_internals'] . "supported_mysql_data_types.php",
+    "supported_mysql_data_types" => $dirs['config'] . "VALID_MYSQL_DATATYPES.php",
 ];
 
 // List of all functions that are reserved for the framework and
@@ -418,7 +419,7 @@ $singleRoutesRoute = include __DIR__ . '/funkphp/routes/route_single_routes.php'
     'ROUTES' => ['GET' => [], 'POST' => [], 'PUT' => [], 'DELETE' => [], 'PATCH' => []]
 ];
 $tablesAndRelationshipsFile = include __DIR__ . '/funkphp/config/tables.php' ?? ['tables' => [], 'relationships' => [], 'mappings' => [],];
-$mysqlDataTypesFile = include __DIR__ . '/funkphp/_internals/supported_mysql_data_types.php' ?? ['STRINGS' => [], 'NUMBERS' => [], 'INTS' => [], 'FLOATS' => [], 'DATETIMES' => [], 'BLOBS' => []];
+$mysqlDataTypesFile = include __DIR__ . '/funkphp/config/VALID_MYSQL_DATATYPES.php' ?? ['STRINGS' => [], 'NUMBERS' => [], 'INTS' => [], 'FLOATS' => [], 'DATETIMES' => [], 'BLOBS' => []];
 
 // Compile only based on user input
 // Compile all routes

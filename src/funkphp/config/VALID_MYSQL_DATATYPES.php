@@ -1,7 +1,24 @@
 <?php return [
     // This file contains the supported MySQL data types and their properties.
     // It is used to validate the data types and their properties in the database.
-    /////////////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////////////'
+    // Valid Keys that Table Columns can have in the `funkphp/config/tables.php` File
+    "VALID_TABLE_COL_KEYS" => [
+        'auto_increment',
+        'default',
+        'foreign_key',
+        'joined_name',
+        'nullable',
+        'primary_key',
+        'references',
+        'references_column',
+        'references_joined',
+        'signed',
+        'type',
+        'unique',
+        'unsigned',
+        'value',
+    ],
     // CATEGORIES OF DATA TYPES
     // String types
     "STRINGS" => [

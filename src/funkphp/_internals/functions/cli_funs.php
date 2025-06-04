@@ -211,7 +211,7 @@ function cli_generate_a_validation_from_a_table($table = null)
         // We check that data type for current column is a valid one compared to
         // what is stored in "funkphp/_internals/supported_mysql_data_types.php"
         if (!isset($validSQLDataTypes[$colKeys['type']])) {
-            cli_err_syntax_without_exit("[cli_generate_a_validation_from_a_table] Data Type \"{$colKeys['type']}\" not found in \"funkphp/_internals/supported_mysql_data_types.php\" of valid MySQL Data Types.");
+            cli_err_syntax_without_exit("[cli_generate_a_validation_from_a_table] Data Type \"{$colKeys['type']}\" not found in \"funkphp/config/VALID_MYSQL_DATATYPES.php\" of valid MySQL Data Types!");
             cli_info("Please add its key if you believe it should be included, and then retry in FunkCLI!");
         }
 
@@ -3869,7 +3869,7 @@ function cli_create_validation_file_and_or_handler()
 
 
     // Default DXPart Value when no tables are provided
-    $DXPART = "'<CONFIG>' => '[]','table_col1_name' => 'string|required|nullable|between:3,50',\n'table_col2_email' => 'email|required|between:6,50',\n'table_col3_age' => 'integer|required|between:18,100',";
+    $DXPART = "'<CONFIG>' => '[]','table_col1_name' => 'string|required|nullable|between:3,50',\n'table_col2_email' => 'email|required|between:6,50',\n'table_col3_age' => 'integer|required|between:18,100',\n'table_col4_length' => 'float|nullable|decimals:2',";
 
     // TODO: Add dynamic creation of rules based on provided tables in argv4!
 
