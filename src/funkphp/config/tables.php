@@ -51,7 +51,7 @@ return  [
       [
         'joined_name' => 'authors_description',
         'type' => 'TINYTEXT',
-        'value' => NULL,
+        'value' => 300,
         'nullable' => false,
         'unique' => false,
         'unsigned' => false,

@@ -66,7 +66,7 @@ function get_match_all_functions_regex_without_capture_groups($handlerType, $sql
 
     // Different regex for different handler types
     if ($handlerType === "v" || $handlerType === "s") {
-        $regex = '/^function ' . $handlerType . '_[a-z0-9_]+\(\&\$c\)\s*\/\/\s*<>\s*$.*?^};$/ims';
+        $regex = '/^function ' . $handlerType . '_[a-z0-9_]+\(\&\$c\)\s*\/\/\s*<[a-z_,\-0-9\*]*>\s*$.*?^};$/ims';
     } else {
         $regex = '/^function ' . $handlerType . '_[a-z0-9_]+\(\&\$c\)\s*\/\/ <[A-Z]+\/[a-z0-9_:\-\/]*>\s*$.*?^};$/ims';
     }
@@ -1066,6 +1066,7 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         'enum',
         'set',
         'checked',
+        'unchecked',
         'file',
         'image',
         'video',
@@ -1170,6 +1171,7 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         'elements_all_unchecked',
         'elements_all_nulls',
         'elements_this_type_order',
+        'any_of_these_values',
         // Always last
         'exists',
         'unique',
@@ -1270,8 +1272,6 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
             }
         }
     }
-
-
 
     // Now we finally start converting the validation rules to optimized validation rules
     foreach ($validationArray as $DXkey => $Rules) {
@@ -1587,6 +1587,7 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
             'array_values',
             'array_keys_exact',
             'array_values_exact',
+            'any_of_these_values'
         ];
 
         // List of specific values for specific data types
@@ -1615,6 +1616,28 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
                 'between',
                 'regex',
                 'not_regex',
+                'unique',
+                'exists',
+            ],
+            'set' => [
+                'required',
+                'nullable',
+                'field',
+                'any_of_these_values',
+                'regex',
+                'not_regex',
+                'unique',
+                'exists',
+            ],
+            'enum' => [
+                'required',
+                'nullable',
+                'field',
+                'any_of_these_values',
+                'regex',
+                'not_regex',
+                'unique',
+                'exists',
             ],
         ];
 
@@ -1995,10 +2018,11 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
             if (
                 isset($sortedRulesForField['min']) || isset($sortedRulesForField['max'])
                 || isset($sortedRulesForField['size']) || isset($sortedRulesForField['exact'])
+                || isset($sortedRulesForField['any_of_these_values'])
             ) {
-                cli_err_syntax_without_exit("The `between` Rule does not work with `min`, `max`, `size`, or `exact`, Rules for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_err_syntax_without_exit("The `between` Rule does not work with `min`, `max`, `size`, `exact` or `any_of_these_values`, Rules for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
                 cli_info_without_exit("The `between` Rule is meant to be a range which conflicts with other 'exact'-like Rules or scalar-like Rules!");
-                cli_info("Remove `min`, `max`, `size`, `exact`, Rules to use the `between` Rule - or vice versa!");
+                cli_info("Remove `min`, `max`, `size`, `exact`, `any_of_these_values`, Rules to use the `between` Rule - or vice versa!");
             }
         }
 
@@ -2487,6 +2511,51 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
             }
         }
 
+        // Special case for "elements_any_of_these_values" Rule which checks
+        // if a specific value is one of the valid values for the field
+        if (isset($sortedRulesForField['any_of_these_values'])) {
+            // First check that it has values in its value key and that it must be an array
+            $values = $sortedRulesForField['any_of_these_values']['value'] ??  null;
+            if (!is_array($values) || empty($values)) {
+                cli_err_syntax_without_exit("Invalid `any_of_these_values` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                cli_info("Specify an Array of Primitive Values (strings, numbers, booleans, or nulls) as the value for the `any_of_these_values` rule!");
+            }
+            // Then we check that matching values are used based on what main data type it is!
+            // For example, if it is a "boolean", it should only have "true", "false", 0 or 1 as values
+            if (isset($sortedRulesForField['boolean'])) {
+                $validValues = [true, false, 0, 1];
+                foreach ($values as $value) {
+                    if (!in_array($value, $validValues, true)) {
+                        cli_err_syntax_without_exit("Invalid `any_of_these_values` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                        cli_info("Specify an Array of Valid Boolean Values (true, false, 0, 1) as the value for the `any_of_these_values` rule!");
+                    }
+                }
+            } elseif (isset($sortedRulesForField['null'])) {
+                // If it is a "null" data type, it should only have "null" as value
+                foreach ($values as $value) {
+                    if (!is_null($value)) {
+                        cli_err_syntax_without_exit("Invalid `any_of_these_values` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                        cli_info("Specify an Array with only `null` as the value for the `any_of_these_values` rule!");
+                    }
+                }
+            } elseif (isset($sortedRulesForField['string'])) {
+                // If it is a "string" data type, it should only have strings as values
+                foreach ($values as $value) {
+                    if (!is_string($value)) {
+                        cli_err_syntax_without_exit("Invalid `any_of_these_values` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                        cli_info("Specify an Array of Strings as the value for the `any_of_these_values` rule!");
+                    }
+                }
+            } elseif (isset($sortedRulesForField['number']) || isset($sortedRulesForField['float']) || isset($sortedRulesForField['integer'])) {
+                // If it is a "number", "float", or "integer" data type, it should only have numbers as values
+                foreach ($values as $value) {
+                    if (!is_numeric($value)) {
+                        cli_err_syntax_without_exit("Invalid `any_of_these_values` Rule Value for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                        cli_info("Specify an Array of Numbers (integers or floats) as the value for the `any_of_these_values` rule!");
+                    }
+                }
+            }
+        }
 
         // Special case for "elements_all_X" Rule which checks if all elements
         // in an array are of data type X, and if not, it errors out. This needs
@@ -2675,7 +2744,7 @@ function cli_compile_dx_validation_to_optimized_validation()
     }
 
     // Prepare regex and find the function name in the file
-    $fnNameRegex = '/^function (' . $fnName . ')\(\&\$c\)\s*\/\/ <>\s*$.*?^};$/ims';
+    $fnNameRegex = '/^function (' . $fnName . ')\(\&\$c\)\s*\/\/ <[a-z_,\-0-9\*]*>\s*$.*?^};$/ims';
     $dxVarRegex = get_match_dx_function_regex();
     $dxReturnRegex = get_match_dx_return_regex();
     $fileContent = file_get_contents($handlerDir . $handlerFile . ".php");
@@ -3844,7 +3913,7 @@ function cli_add_a_route()
 function cli_create_validation_file_and_or_handler()
 {
     // Get valid handlerFile=>fnName or error out
-    global $argv, $settings, $dirs, $exactFiles, $singleRoutesRoute, $tablesAndRelationshipsFile;
+    global $argv, $settings, $dirs, $exactFiles, $mysqlDataTypesFile, $tablesAndRelationshipsFile;
     [$handlerFile, $fnName] = get_handler_and_fn_from_argv4_or_err_out("v", 3);
 
     // Prepare dirs and strings
@@ -3869,10 +3938,10 @@ function cli_create_validation_file_and_or_handler()
 
 
     // Default DXPart Value when no tables are provided
-    $DXPART = "'<CONFIG>' => '[]','table_col1_name' => 'string|required|nullable|between:3,50',\n'table_col2_email' => 'email|required|between:6,50',\n'table_col3_age' => 'integer|required|between:18,100',\n'table_col4_length' => 'float|nullable|decimals:2',";
+    $DXPART = "'<CONFIG>' => '','table_col1_name' => 'string|required|nullable|between:3,50',\n'table_col2_email' => 'email|required|between:6,50',\n'table_col3_age' => 'integer|required|between:18,100',\n'table_col4_length' => 'float|nullable|decimals:2',";
 
-    // TODO: Add dynamic creation of rules based on provided tables in argv4!
-
+    // When tables ARE provided, we try to parse and use them instead as default $DXPART Value!
+    $usedTables = $argv[4] ?? "";
     if (isset($argv[4])) {
         if (!is_string($argv[4]) || empty(trim($argv[4]))) {
             cli_err_syntax("Included Tables for the created Validation File=>Function must be a Non-Empty String!");
@@ -3915,8 +3984,9 @@ function cli_create_validation_file_and_or_handler()
         // We now load the Tables.php file and grab the keys from $times
         // to validate that all the tables exist in the Tables.php file!
         $tables =  $tablesAndRelationshipsFile ?? null;
-        if ($tables === null) {
-            cli_err_syntax("`Tables.php` File not found or is empty! Please check your `funkphp/config/tables.php` file!");
+        $types = $mysqlDataTypesFile ?? null;
+        if ($tables === null || $types === null) {
+            cli_err_syntax("`Tables.php` or `MySQLDataTypes.php` File not found! Please check your `funkphp/config/tables.php` & `funkphp/config/VALID_MYSQL_DATATYPES.php` Files!");
         }
         foreach ($times as $table => $count) {
             if (!array_key_exists($table, $tables['tables'])) {
@@ -3924,14 +3994,153 @@ function cli_create_validation_file_and_or_handler()
             }
         }
 
-        // TODO: Complete the DXPART string with the tables and their rules based on what is stored in each table array where
-        // their subkeys are actual columns who contain info about what apprioriate rules they should have!
-        // Prepare the DXPART string for the validation limiter
-        $DXPART = "";
-        $DXPART .= wrappify_arrowed_string("TEST", "required|string|between:1,5");
-        $DXPART .= ",";
-        var_dump($DXPART);
-        exit;
+        // their subkeys are actual columns who contain info about what apprioriate rules
+        // they should have! Prepare the DXPART string for the validation limiter
+        $currDXPart = "";
+        $currTable = null;
+        $currTablePrefix = "";
+        $entireDXPART = "";
+
+        // We now iterate through each table and its count and we use $tbName to find
+        // the correct Table in the Tables.php file and the $tbCount to know whether it is
+        // an array (e.g. `table_name*2`) or a single object (e.g. `table_name`) of the table.
+        foreach ($times as $tbName => $tbCount) {
+            $passwordColNameTemp = "";
+            $currTable = $tables['tables'][$tbName] ?? null;
+            if ($currTable === null) {
+                cli_err_syntax("Table \"$tbName\" not found in `funkphp/config/tables.php`! Available Tables: " . implode(', ', quotify_elements(array_keys($tables['tables']))));
+            }
+            // Set correct prefix for the table based on its count. When array/list we also add the first
+            // part of the $DXPART which indicates it is a list of items with the table prefix with a
+            // specific count of elements that all other fields (keys) from the table must include!
+            if ($tbCount > 1) {
+                $currTablePrefix = $tbName . ".*.";
+                $entireDXPART .= wrappify_arrowed_string("$tbName.*",  "list|count:$tbCount|required");
+            } else {
+                $currTablePrefix = $tbName . ".";
+            }
+            // Now we loop through the selected Table and its keys where each key is the column name
+            // which is then the "fieldName" in the DXPART string.
+            foreach ($currTable as $key => $subKey) {
+                $currDXPart = "";
+                // We skip the primary key 'id' column so this must be added manually by Developer!
+                // If it s a Foreign Key or Primary Key, we skip it as well for now!
+                if ($key === 'id' && isset($subKey['primary_key'])) {
+                    continue;
+                }
+
+                // We set some possible default rules to insert into the current DXPART
+                $dataType = $subKey['type'] ?? null;
+                $nullable = isset($subKey['nullable']) && $subKey['nullable'] === true ?
+                    "required|nullable|" : "required|";
+                $between = isset($subKey['value']) && !is_array($subKey['value']) ? "between:1," . $subKey['value'] . "|" : "between:<MIN>,<MAX>|";
+                if (($dataType === 'SET' || $dataType === 'ENUM')) {
+                    $between = "";
+                }
+                $unique = isset($subKey['unique']) && $subKey['unique'] === true ?
+                    "unique:$tbName,$key|" : "";
+                $exists =  isset($subKey['references']) && isset($subKey['references_column']) ?
+                    "exists:" . $subKey['references'] . "," . $subKey['references_column'] . "|" : "";
+                $anyValues = "";
+
+                // First check is guessing the data type for the current column based on its 'type'
+                // and its key name. For example if it contains 'email' we assume it is an email if
+                // the 'type' is a string within the $types variable which contains all possible valid
+                // MySQL data types.
+                // It is considered valid `email` type if it s a string MySQL data type and
+                // the key name contains 'email' in it.
+                if (
+                    str_contains($key, "email")
+                    && isset($types['STRINGS'][$dataType])
+                ) {
+                    $currDXPart .= "email|";
+                }
+                // It is considered valid `password` if it is a string MySQL data type and
+                // the key name contains 'password' in it while NOT containing "confirm" since
+                // that should be handled separately ("password" "confirm" field that is).
+                elseif (
+                    str_contains($key, "password")
+                    && !str_contains($key, "confirm")
+                    && isset($types['STRINGS'][$dataType])
+                ) {
+                    $currDXPart .= "password|";
+                    // Store the password column name temporarily to be binded to the
+                    // possibly "confirm" field later on if they exist in same table.
+                    $passwordColNameTemp = $key;
+                }
+                // It is considered valid `password_confirm` if it is a string MySQL data
+                // typoe and the key name contains both 'password' and 'confirm' in it!
+                elseif (
+                    str_contains($key, "password")
+                    && str_contains($key, "confirm")
+                    && isset($types['STRINGS'][$dataType])
+                ) {
+                    if (!empty($passwordColNameTemp)) {
+                        $currDXPart .= "password_confirm:$passwordColNameTemp|";
+                    } else {
+                        $currDXPart .= "password_confirm:<UNKNOWN_PLEASE_USE_PASSWORD_COLUMN_NAME_HERE>|";
+                    }
+                }
+                // It is considered valid `string` if it is a string MySQL data type
+                elseif (isset($types['STRINGS'][$dataType])) {
+                    $currDXPart .= "string|";
+                }
+                // It is considered valid `integer`
+                elseif (isset($types['INTS'][$dataType])) {
+                    $currDXPart .= "integer|";
+                }
+                // It is considered valid `float`
+                elseif (isset($types['FLOATS'][$dataType])) {
+                    $currDXPart .= "float|";
+                }
+                // It is considered valid `datetimes` datatype
+                elseif (isset($types['DATETIMES'][$dataType])) {
+                    $currDXPart .= "date|";
+                }
+                // It is considered valid `blobs` datatype
+                elseif (isset($types['BLOBS'][$dataType])) {
+                    $currDXPart .= "string|";
+                }
+                // When it is boolean
+                elseif ($dataType === 'BOOLEAN') {
+                    $currDXPart .= "boolean|";
+                }
+                // When it is ENUM or SET
+                elseif ($dataType === 'SET' || $dataType === 'ENUM') {
+                    $currDXPart .= strtolower($dataType) . "|";
+                    $anyValues = is_array($subKey['value']) ?
+                        "any_of_these_values:" . implode(',', $subKey['value']) . "|" : "";
+                }
+                // UNKNOWN DATA TYPE
+                else {
+                    $currDXPart .= "<!UNKNOWN_DATA_TYPE_CHOOSE_ONE_FOR_THIS_TABLE_COLUMN!>|";
+                }
+
+                // We now add $nullable, $between and $unique to the current DXPart if they are not empty strings
+                $currDXPart .= $nullable;
+                if (!empty($between)) {
+                    $currDXPart .= $between;
+                }
+                if (!empty($unique)) {
+                    $currDXPart .= $unique;
+                }
+                if (!empty($exists)) {
+                    $currDXPart .= $exists;
+                }
+                if (!empty($anyValues)) {
+                    $currDXPart .= $anyValues;
+                }
+
+                // FINALLY FOR EACH ITERATION ADD THe $currDXPart to the $entireDXPART
+                // and then reset the $currDXPart to an empty string for the next iteration.
+                // But we remove the trailing "|" if it exists.
+                if (str_ends_with($currDXPart, "|")) {
+                    $currDXPart = substr($currDXPart, 0, -1);
+                }
+                $entireDXPART .= wrappify_arrowed_string($currTablePrefix . $key, $currDXPart);
+            }
+        }
+        $DXPART = "\n" . $entireDXPART;
     }
 
     // Prepare the validation limiter strings and return function regex
@@ -3947,7 +4156,7 @@ function cli_create_validation_file_and_or_handler()
     if (!file_exists($handlersDir . $handlerFile . ".php")) {
         $outputHandlerRoute = file_put_contents(
             $handlersDir . $handlerFile . ".php",
-            "<?php\nnamespace FunkPHP\Validations\\$handlerFile;\n// Validation Handler File - Created in FunkCLI on $date!\n// Write your Validation Rules in the\n// \$DX variable and then run the command\n// `php funkcli compile v $handlerFile=>\$function_name`\n// to get the optimized version below it!\n// IMPORTANT: CMD+S or CTRL+S to autoformat each time function is added!\n\nfunction $fnName(&\$c) // <>\n{\n$validationLimiterStrings\n};\n\nreturn function (&\$c, \$handler = \"$fnName\") { $handlerBaseFullString \n};"
+            "<?php\nnamespace FunkPHP\Validations\\$handlerFile;\n// Validation Handler File - Created in FunkCLI on $date!\n// Write your Validation Rules in the\n// \$DX variable and then run the command\n// `php funkcli compile v $handlerFile=>\$function_name`\n// to get the optimized version below it!\n// IMPORTANT: CMD+S or CTRL+S to autoformat each time function is added!\n\nfunction $fnName(&\$c) // <$usedTables>\n{\n$validationLimiterStrings\n};\n\nreturn function (&\$c, \$handler = \"$fnName\") { $handlerBaseFullString \n};"
         );
         if ($outputHandlerRoute) {
             cli_success_without_exit("Added Validation Handler \"funkphp/$handlerDirPath/$handlerFile.php\" with Validation Function \"$fnName\" in \"funkphp/validations/$handlerFile.php\"!");
@@ -3983,7 +4192,7 @@ function cli_create_validation_file_and_or_handler()
             // Construct the string for the *new* function definition only.
             // DO NOT include $matches[0] in this string; we will insert it separately.
             // Assuming $validationLimiterStrings and $date are defined elsewhere
-            $newFunctionString = "\nfunction {$fnName}(&\$c) // <>\n{\n{$validationLimiterStrings}\n};\n\n";
+            $newFunctionString = "\nfunction {$fnName}(&\$c) // <$usedTables>\n{\n{$validationLimiterStrings}\n};\n\n";
 
             // --- Now, perform the insertion into $fileContent ---
             // Use substr_replace to insert $newFunctionString at $matchOffset
@@ -5133,7 +5342,7 @@ function wrappify_arrowed_string($string1, $string2, $type = "'")
     if (!in_array($type, ["'", '"', '`'])) {
         cli_err_syntax("[wrappify_arrowed_string]: Type must be one of the following: ' (single quote), \" (double quote) or ` (backtick)!");
     }
-    return $type . $string1 . "$type => $type" . $string2 . $type;
+    return $type . $string1 . "$type => $type" . $string2 . $type . ",";
 }
 
 // Function same above but for arrays, it takes an array and returns all its elements
@@ -5605,7 +5814,7 @@ function delete_handler_file_with_fn_or_just_fn_or_err_out($handlerType, $handle
     }
     //  Validation & SQL Handlers use a different regex for matching function names
     else {
-        $fnNameRegex = '/^function (' . $fnName . ')\(\&\$c\)\s*\/\/\s*<>\s*$.*?^};$/ims';
+        $fnNameRegex = '/^function (' . $fnName . ')\(\&\$c\)\s*\/\/\s*<[a-z_,\-0-9\*]*>\s*$.*?^};$/ims';
     }
 
     // If dir not found or not readable/writable, we exit

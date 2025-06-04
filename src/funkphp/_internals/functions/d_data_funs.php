@@ -1055,12 +1055,20 @@ function funk_validate_list($inputName, $inputData, $validationValues, $customEr
     return null;
 }
 
-// Validate that Input Data is a valid set (an array with unique values)
+// CURRENTLY: Both "set" and "enum" are more about matching a specific value set by the
+// rule "any_of_these_values" and not about being an actual array with (unique) values!
 function funk_validate_set($inputName, $inputData, $validationValues, $customErr = null)
 {
-    if (!is_array($inputData) || (is_array($inputData) && count($inputData) !== count(array_unique($inputData)))) {
-        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a set (an array with unique values).";
-    }
+    // if (!is_array($inputData) || (is_array($inputData) && count($inputData) !== count(array_unique($inputData)))) {
+    //     return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a set (an array with unique values).";
+    // }
+    return null;
+}
+function funk_validate_enum($inputName, $inputData, $validationValues, $customErr = null)
+{
+    // if (!is_array($inputData) || (is_array($inputData) && count($inputData) !== count(array_unique($inputData)))) {
+    //     return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a set (an array with unique values).";
+    // }
     return null;
 }
 
@@ -2063,6 +2071,21 @@ function funk_validate_elements_this_type_order($inputName, $inputData, $validat
                 return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName has an invalid type '$expectedType' for element at index $key.";
         }
     }
+}
+
+// Validate that $inputData is any of the primitive values provided in $validationValues
+function funk_validate_any_of_these_values($inputName, $inputData, $validationValues, $customErr = null)
+{
+    // First check that it is a primitive value (string, number, boolean, null)
+    if (!is_scalar($inputData) && !is_null($inputData)) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a Primitive Value (string, number, boolean, or null)!";
+    }
+
+    // Now we check if the input data is in the validation values
+    if (!in_array($inputData, $validationValues, true)) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be one of the following values: " . implode(', ', $validationValues) . ".";
+    }
+    return null;
 }
 
 // TODO: Fix

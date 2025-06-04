@@ -73,11 +73,11 @@
     ],
     // Date and time types
     "DATETIMES" => [
-        "DATE",
-        "TIME",
-        "DATETIME",
-        "TIMESTAMP",
-        "YEAR",
+        "DATE" => 1,
+        "TIME"  => 2,
+        "DATETIME" => 3,
+        "TIMESTAMP" => 4,
+        "YEAR"  => 5,
     ],
     // Binary types
     "BLOBS" => [
