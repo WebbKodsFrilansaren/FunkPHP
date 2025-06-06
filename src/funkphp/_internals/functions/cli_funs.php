@@ -768,7 +768,8 @@ function cli_parse_a_sql_table_file()
 
     // Finally add the entire parsed table to the Tables.php file's array!
     $tablesFile['tables'][$tableName] = $parsedTable[$tableName];
-    cli_success_without_exit("Parsed Table \"$tableName\" from SQL file \"{$argv[3]}\"!");
+    cli_success_without_exit("Parsed Table \"$tableName\" from SQL File \"schemas/{$argv[3]}\"!");
+    cli_success_without_exit("You find it in `config/tables.php` => ['tables']['$tableName']!");
 
     // Now we add the table to the tables.php file and also pass it to the validation function which might fail
     // but the recompiling will still run first and if that fails then the validation won't run!
@@ -998,6 +999,20 @@ function cli_output_tables_file($array)
         || !isset($array['mappings']) || !is_array($array['mappings'])
     ) {
         cli_err_syntax("The \"funkphp/config/tables.php\" file must contain the three keys: \"tables\", \"relationships\" & \"mappings\" at root level!");
+    }
+    // TODO: Add new relationships when a new table is added - not 100 % implemented yet!
+    // (this is for the JOINS which are just arrays for each table
+    // that are used to join the tables together in the database)
+
+    // Loop through and add any missing keys to the relationships
+    // and mappings arrays based on the newly added Table!
+    foreach ($array['tables'] as $tableName => $tableData) {
+        if (!isset($array['relationships'][$tableName]) || !is_array($array['relationships'][$tableName])) {
+            $array['relationships'][$tableName] = [];
+        }
+        if (!isset($array['mappings'][$tableName]) || !is_array($array['mappings'][$tableName])) {
+            $array['mappings'][$tableName] = [];
+        }
     }
 
     // Attempt to write to the Tables.php file and check if it was successful
