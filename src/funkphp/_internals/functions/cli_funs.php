@@ -2927,9 +2927,14 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
     }
 
     // The next main key which is either
-    // "FROM" (=SELECT or DELETE) or "INTO" (=INSERT)
+    // "FROM" & "INTO"
     $fromKey = $sqlArray['FROM'] ?? null;
     $intoKey = $sqlArray['INTO'] ?? null;
+
+    // Other possible main keys which are
+    // "SET" & "VALUES" for INSERT/UPDATE queries
+    $setKey = $sqlArray['SET'] ?? null;
+    $valuesKey = $sqlArray['VALUES'] ?? null;
 
     // The next main key which is "JOINS"
     $joinsKey = $sqlArray['JOINS'] ?? null;
