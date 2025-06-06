@@ -389,9 +389,9 @@ function cli_parse_a_sql_table_file()
 {
     // Load globals and verify $argv is not empty string and ends with .sql
     cli_info_without_exit("IMPORTANT #1: \"php funkcli add table\" command is NOT meant for actual Table Migration.");
-    cli_info_without_exit("It is ONLY meant for providing structure for more efficient SQL Query Building & Data Hydration!");
+    cli_info_without_exit("It is ONLY meant for structuring efficient Data Validation, SQL Query Building & Data Hydration!");
     cli_info_without_exit("IMPORTANT #2: The function cli_convert_array_to_simple_syntax() in \"funkphp/_internals/functions/cli_funs.php\" which converts ");
-    cli_info_without_exit("array() to array[] ignores quotes inside of other qoutes. For example, \"Yours' truly\" would become \"Yours truly\".");
+    cli_info_without_exit("array() to array[] ignores quotes inside of other qoutes. For example, \"Yours' truly\" will become \"Yours truly\".");
     cli_info_without_exit("KEEP THAT IN MIND: If you wanna use `DEFAULT \"Qouted Value with '\"Quotes\"' Inside\"` it must be manually added inside \"config/Tables.php\"");
 
     global $argv, $dirs, $exactFiles, $settings, $tablesAndRelationshipsFile, $mysqlDataTypesFile;
@@ -436,11 +436,11 @@ function cli_parse_a_sql_table_file()
     }
 
     // Check that file starsts with "CREATE TABLE a-zA-Z0-9_\s+()" or error out
-    if (!preg_match("/^CREATE TABLE\s+([a-zA-Z0-9_]+)\s*\(/", $sqlFile, $matches)) {
+    if (!preg_match("/^CREATE TABLE\s+(IF NOT EXISTS\s*)*([a-zA-Z0-9_]+)\s*\(/i", $sqlFile, $matches)) {
         cli_err_syntax("\"{$argv[3]}\" must start with \"CREATE TABLE /[a-zA-Z0-9_]+/ (\"");
     }
     // Parse out the table name and check if it is valid
-    $tableName = $matches[1] ?? null;
+    $tableName = $matches[2] ?? null;
     if (!preg_match("/^[a-zA-Z0-9_]+$/", $tableName)) {
         cli_err_syntax("Invalid table name \"$tableName\". Should just be: \"[a-zA-Z0-9_]+\"");
     }
@@ -471,13 +471,21 @@ function cli_parse_a_sql_table_file()
     array_shift($sqlLines);
     $sqlLines = array_map('trim', $sqlLines);
     $sqlLines = array_filter($sqlLines, function ($line) {
-        return !empty($line) && $line !== ");";
+        return !empty($line)
+            && !str_starts_with($line, ")")
+            && !str_starts_with($line, "PRIMARY KEY")
+            && !str_starts_with($line, "CHECK")
+            && !str_starts_with($line, "CONSTRAINT");
     });
+    cli_warning_without_exit("DELETED ALL SQL LINES Starting with: \"PRIMARY KEY\", \"CHECK\", \"CONSTRAINT\" & \")\"!");
+    cli_info_without_exit("If you prefer `PRIMARY KEY`, `CHECK`, `CONSTRAINT` for PK & FK, please don't when adding `Tables` to the `funkphp/config/tables.php` File though!");
     $sqlLines = array_map(function ($line) {
         return rtrim($line, ",\r\n\t ");
     }, $sqlLines);
     if (!str_starts_with(strtolower($sqlLines[0]), "id ")) {
-        cli_err_syntax("First Table Column in the Table SQL File must be: \"id\"!");
+        cli_err_syntax_without_exit("First Table Column in the Table SQL File must be: `id`!");
+        cli_info_without_exit("Its syntax must be exactly: `id BIGINT AUTO_INCREMENT PRIMARY KEY,`!");
+        cli_info("Other tables referencing to this Table must reference to the `id` column!");
     }
     // Check for duplicates in the SQL lines and error out if found. In each line we
     // split on " " and check if the first element is already in a duplicate array.
@@ -758,6 +766,7 @@ function cli_parse_a_sql_table_file()
 
     // Finally add the entire parsed table to the Tables.php file's array!
     $tablesFile['tables'][$tableName] = $parsedTable[$tableName];
+    cli_success_without_exit("Parsed Table \"$tableName\" from SQL file \"{$argv[3]}\"!");
 
     // Now we add the table to the tables.php file and also pass it to the validation function which might fail
     // but the recompiling will still run first and if that fails then the validation won't run!
