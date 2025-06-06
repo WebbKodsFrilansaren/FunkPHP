@@ -527,6 +527,7 @@ function cli_parse_a_sql_table_file()
                     "joined_name" => $tableName . "_" . $lineParts[0],
                     "auto_increment" => true,
                     "type" => "BIGINT",
+                    'binding' => 'i',
                     "value" => null,
                     "primary_key" => true,
                     "nullable" => false,
@@ -639,6 +640,7 @@ function cli_parse_a_sql_table_file()
                     cli_info("Please add its key if you believe it should be included, and then retry in FunkCLI!");
                 } else {
                     $parsedTable[$tableName][$matches[1]]["type"] = $matches[3];
+                    $parsedTable[$tableName][$matches[1]]["binding"] = $mysqlDataTypes[$matches[3]]["BINDING"] ?? "<UNKNOWN_BINDING_PARAM_VALUE>";
                 }
             }
             // Insert optional value or just null
@@ -4443,20 +4445,41 @@ function cli_create_sql_file_and_or_handler()
     $subQueries = "'[SUBQUERIES]' => [\n'[subquery_example_1]' => 'SELECT COUNT(*)',\n'[subquery_example_2]' => '(WHERE SELECT *)']],";
     $DXPART = $chosenQueryType . $subQueries . "\n";
 
+    // TODO: Fix all below statements! - Remember that multiple tables when repeated in the same query
+    // will be joined with a comma and then the query will be executed on all of them! <-- Hm??? LLM.
+    // When 'INSERT'
+    if ($queryType === 'INSERT') {
+    }
+    // When 'UPDATE'
+    elseif ($queryType === 'UPDATE') {
+    }
+    // When 'DELETE'
+    elseif ($queryType === 'DELETE') {
+    }
+    // When regular 'SELECT'
+    elseif ($queryType === 'SELECT') {
+    }
+    // When 'SELECT_DISTINCT'
+    elseif ($queryType === 'SELECT_DISTINCT') {
+    }
+    // When 'SELECT_INTO'
+    elseif ($queryType === 'SELECT_INTO') {
+    }
+    // When 'SELECT_TOP'
+    elseif ($queryType === 'SELECT_TOP') {
+    } else {
+        $DXPART .= "'SELECT' => '',\n"; // Default to SELECT if no valid query type is provided
+    }
+
+
     // Default DXPart Value when no tables are provided
     // $DXPART = "'<CONFIG>' => [\n'[QUERY_TYPE]' => [\n// Choose ONLY ONE below for EACH\n// Single created SQL Query Function!\n'SELECT DISTINCT','SELECT INTO','SELECT TOP',
     //         'SELECT','INSERT','INSERT INTO','UPDATE','DELETE'],'[SUBQUERIES]' => [\n'[subquery1]' => 'SELECT COUNT(*)',\n'[subquery2]' => '(WHERE SELECT *)']],\n'SELECT/INSERT/UPDATE/DELETE(CHOOSE-ONE-PER-SQL-FUNCTION!)' => '',\n'FROM' => '',\n'INTO' => '',\n'JOINS' => '',\n'WHERE' => '',\n'GROUP_BY' => '',\n'HAVING' => '',\n'ORDER_BY' => '',\n'LIMIT' => '',\n'OFFSET' => '',\n'VALUES' => '',\n'?_BINDED_PARAMS' => '',\n'HYDRATE' => 'table1:cols|table2:cols|table1=>table2',";
 
-    // TODO: Fix later after main function is done
-    // When tables ARE provided, we try to parse and use them instead as default $DXPART Value!
-    $usedTables = $argv[4] ?? "";
-    $queryType = strtoupper($argv[5]) ?? "";
-    if (isset($argv[4])) {
-    }
-
     // Prepare the validation limiter strings and return function regex
     $sqlLimiterStrings = "// Created in FunkCLI on $date! Keep \"};\" on its\n// own new line without indentation no comment right after it!\n// Run the command `php funkcli compile s $handlerFile=>$fnName`\n// to get SQL, Hydration & Binded Params in return statement below it!\n\$DX = [$DXPART];\n\n\nreturn array([]);\n";
     $returnFunctionRegex = '/^(return function)\s*\(&\$c, \$handler\s*=\s*.+$.*?^};/ims';
+    $usedTables = $argv[4] ?? ""; // Inserted inbetween "<>" in the function name comment
 
     // If dir not found or not readable/writable, we exit
     if (!dir_exists_is_readable_writable($handlersDir)) {

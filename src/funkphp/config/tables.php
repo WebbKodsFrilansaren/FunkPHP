@@ -208,6 +208,7 @@ return  [
         'joined_name' => 'authors_id',
         'auto_increment' => true,
         'type' => 'BIGINT',
+        'binding' => 'i',
         'value' => NULL,
         'primary_key' => true,
         'nullable' => false,
@@ -217,6 +218,7 @@ return  [
       [
         'joined_name' => 'authors_name',
         'type' => 'VARCHAR',
+        'binding' => 's',
         'value' => 255,
         'nullable' => false,
         'unique' => false,
@@ -228,6 +230,7 @@ return  [
       [
         'joined_name' => 'authors_email',
         'type' => 'VARCHAR',
+        'binding' => 's',
         'value' => 128,
         'nullable' => true,
         'unique' => true,
@@ -239,6 +242,7 @@ return  [
       [
         'joined_name' => 'authors_description',
         'type' => 'TINYTEXT',
+        'binding' => 's',
         'value' => NULL,
         'nullable' => false,
         'unique' => false,
@@ -250,6 +254,7 @@ return  [
       [
         'joined_name' => 'authors_longer_description',
         'type' => 'TEXT',
+        'binding' => 's',
         'value' => NULL,
         'nullable' => false,
         'unique' => false,
@@ -261,6 +266,7 @@ return  [
       [
         'joined_name' => 'authors_age',
         'type' => 'INT',
+        'binding' => 'i',
         'value' => NULL,
         'nullable' => true,
         'unique' => false,
@@ -272,6 +278,7 @@ return  [
       [
         'joined_name' => 'authors_weight',
         'type' => 'FLOAT',
+        'binding' => 'd',
         'value' => NULL,
         'nullable' => false,
         'unique' => false,
@@ -283,6 +290,7 @@ return  [
       [
         'joined_name' => 'authors_nickname',
         'type' => 'VARCHAR',
+        'binding' => 's',
         'value' => 255,
         'nullable' => true,
         'unique' => false,
@@ -294,6 +302,7 @@ return  [
       [
         'joined_name' => 'authors_updated_at',
         'type' => 'TIME',
+        'binding' => 's',
         'value' => NULL,
         'nullable' => true,
         'unique' => false,

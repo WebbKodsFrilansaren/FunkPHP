@@ -136,7 +136,9 @@ return [
     ],
 
     // 'db' is the database object that will be used to handle the database connection & queries!
+    // 'db_lid' will always contain the last inserted ID from the last database query!
     'db' => include __DIR__ . '/db.php',
+    'db_lid' => null,
 
     // 'v' should be NULL but stores ANY founds errors during the validation process while
     // 'v_ok' will is true if not a single v['key']['optionalSubkey'] is set with error(s)!

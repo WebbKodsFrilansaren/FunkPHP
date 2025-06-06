@@ -137,6 +137,7 @@
     // Each data type with its min and max values (including in unsigned
     // where applicable) and optionally the number of digits
     "BIGINT" => [
+        "BINDING" => "i",
         "MIN_SIGNED" => -9223372036854775808,
         "MAX_SIGNED" => 9223372036854775807,
         "MIN_USIGNED" => 0,
@@ -147,6 +148,7 @@
         "CAN_BE_(UN)SIGNED" => true
     ],
     "BIGSERIAL" => [
+        "BINDING" => "i",
         "MIN" => 1,
         "MAX" => 9223372036854775807,
         "MIN_DIGITS" => 1,
@@ -154,11 +156,13 @@
         "TYPE" => "integer",
     ],
     "BINARY" => [
+        "BINDING" => "b",
         "MIN" => null,
         "MAX" => null,
         "TYPE" => "blob"
     ],
     "BIT" => [
+        "BINDING" => "i",
         "MIN" => 1,
         "MAX" => 64,
         "MIN_DIGITS" => 1,
@@ -166,11 +170,13 @@
         "TYPE" => "integer"
     ],
     "BLOB" => [
+        "BINDING" => "b",
         "MIN" => 0,
         "MAX" => 65535,
         "TYPE" => "blob"
     ],
     "BOOL" => [
+        "BINDING" => "i",
         "MIN" => 0,
         "MAX" => 1,
         "MIN_DIGITS" => 1,
@@ -178,6 +184,7 @@
         "TYPE" => "integer"
     ],
     "BOOLEAN" => [
+        "BINDING" => "i",
         "MIN" => 0,
         "MAX" => 1,
         "MIN_DIGITS" => 1,
@@ -185,11 +192,13 @@
         "TYPE" => "integer"
     ],
     "CHAR" => [
+        "BINDING" => "s",
         "MIN" => 1,
         "MAX" => 255,
         "TYPE" => "string"
     ],
     "DATE" => [
+        "BINDING" => "s",
         "MIN" => 10,
         "MAX" => 10,
         "MIN_DIGITS" => 8,
@@ -197,6 +206,7 @@
         "TYPE" => "date"
     ],
     "DATETIME" => [
+        "BINDING" => "s",
         "MIN" => 19,
         "MAX" => 19,
         "MIN_DIGITS" => 16,
@@ -204,6 +214,7 @@
         "TYPE" => "datetime"
     ],
     "DEC" => [
+        "BINDING" => "d",
         "MIN_SIZE" => 0,
         "MAX_SIZE" => 65,
         "MIN_D" => 0,
@@ -213,6 +224,7 @@
         "TYPE" => "float"
     ],
     "DECIMAL" => [
+        "BINDING" => "d",
         "MIN_SIZE" => 0,
         "MAX_SIZE" => 65,
         "MIN_D" => 0,
@@ -222,6 +234,7 @@
         "TYPE" => "float"
     ],
     "DOUBLE PRECISION" => [
+        "BINDING" => "d",
         "MIN_SIGNED" => -1.7976931348623157E+308,
         "MAX_SIGNED" => -2.2250738585072014E-308,
         "MIN_DIGITS" => 1,
@@ -232,6 +245,7 @@
         "CAN_BE_(UN)SIGNED" => true
     ],
     "DOUBLE" => [
+        "BINDING" => "d",
         "MIN_SIGNED" => -1.7976931348623157E+308,
         "MAX_SIGNED" => -2.2250738585072014E-308,
         "MIN_DIGITS" => 1,
@@ -242,6 +256,7 @@
         "CAN_BE_(UN)SIGNED" => true
     ],
     "ENUM" => [
+        "BINDING" => "s",
         "MIN" => null,
         "MAX" => null,
         "TYPE" => "string",
@@ -249,6 +264,7 @@
         "MAX_SIZE" => 65535,
     ],
     "FLOAT" => [
+        "BINDING" => "d",
         "MIN_SIGNED" => -3.402823466E+38,
         "MAX_SIGNED" => -1.175494351E-38,
         "MIN_DIGITS" => 1,
@@ -259,6 +275,7 @@
         "CAN_BE_(UN)SIGNED" => true
     ],
     "INT" => [
+        "BINDING" => "i",
         "MIN_SIGNED" => -2147483648,
         "MAX_SIGNED" => 2147483647,
         "MIN_DIGITS" => 1,
@@ -269,6 +286,7 @@
         "CAN_BE_(UN)SIGNED" => true
     ],
     "INTEGER" => [
+        "BINDING" => "i",
         "MIN_SIGNED" => -2147483648,
         "MAX_SIGNED" => 2147483647,
         "MIN_DIGITS" => 1,
@@ -279,6 +297,7 @@
         "CAN_BE_(UN)SIGNED" => true
     ],
     "JSON" => [
+        "BINDING" => "s",
         "MIN" => null,
         "MAX" => null,
         "MIN_SIZE" => 0,
@@ -286,21 +305,25 @@
         "TYPE" => "json"
     ],
     "LONGBLOB" => [
+        "BINDING" => "b",
         "MIN" => 0,
         "MAX" => 4294967295,
         "TYPE" => "blob"
     ],
     "LONGTEXT" => [
+        "BINDING" => "s",
         "MIN" => 1,
         "MAX" => 4294967295,
         "TYPE" => "string"
     ],
     "MEDIUMBLOB" => [
+        "BINDING" => "b",
         "MIN" => 0,
         "MAX" => 16777215,
         "TYPE" => "blob"
     ],
     "MEDIUMINT" => [
+        "BINDING" => "i",
         "MIN_SIGNED" => -8388608,
         "MAX_SIGNED" => 8388607,
         "MIN_UNSIGNED" => 0,
@@ -311,16 +334,19 @@
         "CAN_BE_(UN)SIGNED" => true
     ],
     "MEDIUMTEXT" => [
+        "BINDING" => "s",
         "MIN" => 1,
         "MAX" => 16777215,
         "TYPE" => "string"
     ],
     "NVARCHAR" => [
+        "BINDING" => "s",
         "MIN" => 1,
         "MAX" => 21845,
         "TYPE" => "string"
     ],
     "NUMERIC" => [
+        "BINDING" => "d",
         "MIN_SIZE" => 0,
         "MAX_SIZE" => 65,
         "MIN_D" => 0,
@@ -330,6 +356,7 @@
         "TYPE" => "float"
     ],
     "REAL" => [
+        "BINDING" => "d",
         "MIN_SIGNED" => -3.402823466E+38,
         "MAX_SIGNED" => -1.175494351E-38,
         "MIN_DIGITS" => 3, // 1 plus dot plus 1
@@ -340,6 +367,7 @@
         "CAN_BE_(UN)SIGNED" => true
     ],
     "SERIAL" => [
+        "BINDING" => "i",
         "MIN" => 1,
         "MAX" => 2147483647,
         "MIN_DIGITS" => 1,
@@ -347,6 +375,7 @@
         "TYPE" => "integer",
     ],
     "SET" => [
+        "BINDING" => "s",
         "MIN" => null,
         "MAX" => null,
         "MIN_SIZE" => 0,
@@ -354,6 +383,7 @@
         "TYPE" => "string"
     ],
     "SMALLINT" => [
+        "BINDING" => "i",
         "MIN_SIGNED" => -32768,
         "MAX_SIGNED" => 32767,
         "MIN_DIGITS" => 1,
@@ -364,6 +394,7 @@
         "CAN_BE_(UN)SIGNED" => true
     ],
     "SMALLSERIAL" => [
+        "BINDING" => "i",
         "MIN" => 1,
         "MAX" => 32767,
         "MIN_DIGITS" => 1,
@@ -371,11 +402,13 @@
         "TYPE" => "integer",
     ],
     "TEXT" => [
+        "BINDING" => "s",
         "MIN" => 1,
         "MAX" => 65535,
         "TYPE" => "string"
     ],
     "TIME" => [
+        "BINDING" => "s",
         "MIN" => 8,
         "MAX" => 8,
         "MIN_DIGITS" => 6,
@@ -383,6 +416,7 @@
         "TYPE" => "time"
     ],
     "TIMESTAMP" => [
+        "BINDING" => "s",
         "MIN" => 0,
         "MAX" => 2147483647,
         "MIN_DIGITS" => 1,
@@ -390,11 +424,13 @@
         "TYPE" => "timestamp",
     ],
     "TINYBLOB" => [
+        "BINDING" => "b",
         "MIN" => 0,
         "MAX" => 255,
         "TYPE" => "blob"
     ],
     "TINYINT" => [
+        "BINDING" => "i",
         "MIN_SIGNED" => -128,
         "MAX_SIGNED" => 127,
         "MIN_DIGITS" => 1,
@@ -405,21 +441,25 @@
         "CAN_BE_(UN)SIGNED" => true
     ],
     "TINYTEXT" => [
+        "BINDING" => "s",
         "MIN" => 1,
         "MAX" => 255,
         "TYPE" => "string"
     ],
     "VARBINARY" => [
+        "BINDING" => "b",
         "MIN" => 0,
         "MAX" => 255,
         "TYPE" => "blob"
     ],
     "VARCHAR" => [
+        "BINDING" => "s",
         "MIN" => 0,
         "MAX" => 65535,
         "TYPE" => "string"
     ],
     "YEAR" => [
+        "BINDING" => "i",
         "MIN" => 4,
         "MAX" => 4,
         "MIN_DIGITS" => 4,
