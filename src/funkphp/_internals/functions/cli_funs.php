@@ -4467,8 +4467,11 @@ function cli_create_sql_file_and_or_handler()
     }
     // When 'SELECT_TOP'
     elseif ($queryType === 'SELECT_TOP') {
-    } else {
-        $DXPART .= "'SELECT' => '',\n"; // Default to SELECT if no valid query type is provided
+    }
+    // When invalid Query Type which should not happen at this point
+    else {
+        cli_err_syntax_without_exit("Invalid Query Type: \"$queryType\". Available Query Types: " . implode(', ', quotify_elements($availableQueryTypes)) . ".");
+        cli_info("Pick one of those as the fith argument in the FunkCLI command to create a SQL Handler File and/or Function!");
     }
 
 
