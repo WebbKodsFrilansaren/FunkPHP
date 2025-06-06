@@ -2825,7 +2825,137 @@ function cli_compile_dx_validation_to_optimized_validation()
 // Compiles a $DX SQL [] to an optmized SQL array that is returned within the same
 // function that is used to validate the data. This is used to optimize the SQL process!
 // VERY IMPORTANT WARNING: This function calls a function which uses eval() to parse the SQL file!!!
-function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, $fnName) {}
+function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, $fnName)
+{
+    global $dirs, $exactFiles, $settings, $tablesAndRelationshipsFile;
+    // Validate it is an associative array - not a list
+    if (!is_array_and_not_empty($sqlArray)) {
+        cli_err_without_exit("[cli_convert_simple_sql_query_to_optimized_sql]: Expects a Non-Empty Associative Array as input for `\$sqlArray`!");
+        cli_info("This probably means that the \"\$DX\" variable is an Empty Array, or not an Array at all?");
+    }
+    if (array_is_list($sqlArray)) {
+        cli_err_without_exit("[cli_convert_simple_sql_query_to_optimized_sql]: Expects a Non-Empty Associative Array as input for `\$sqlArray`!");
+        cli_info("Here it probably means that the \"\$DX\" variable is a List Array, empty or not?");
+    }
+
+    // Both $handlerFile and $fnName must be non-empty strings
+    if (!is_string_and_not_empty($handlerFile)) {
+        cli_err_without_exit("[cli_convert_simple_sql_query_to_optimized_sql]: Expects a Non-Empty String as input for `\$handlerFile`!");
+        cli_info("This probably means that the \"\$DX\" variable is an Empty Array, or not an Array at all?");
+    }
+    if (!is_string_and_not_empty($fnName)) {
+        cli_err_without_exit("[cli_convert_simple_sql_query_to_optimized_sql]: Expects a Non-Empty String as input for `\$fnName`!");
+        cli_info("This probably means that the \"\$DX\" variable is an Empty Array, or not an Array at all?");
+    }
+
+    // Prepare variables to store the
+    // converted SQL Query Array
+    $convertedSQLArray = [];
+    $builtSQLString = "";
+    $builtHydrateArray = [];
+    $builtBindedParamsArray = [];
+    $currentSQLKey = null;
+    $currentSQLVal = null;
+    $tables = $tablesAndRelationshipsFile['tables'] ?? [];
+    $relationships = $tablesAndRelationshipsFile['relationships'] ?? [];
+
+    // List of available Global Config Rules - these will be checked against
+    $globalConfigRules = [
+        '[QUERY_TYPE]' => [
+            'SELECT DISTINCT',
+            'SELECT INTO',
+            'SELECT TOP',
+            'SELECT',
+            'INSERT',
+            'UPDATE',
+            'DELETE'
+        ],
+        '[SUBQUERIES]' => [],
+    ];
+
+    // "'<CONFIG>' key(s)
+    $configKey = $sqlArray['<CONFIG>'] ?? null;
+    $configQTKey = $configKey['<QUERY_TYPE>'] ?? null;
+    $configSubQsKey = $configKey['<SUBQUERIES>'] ?? null;
+
+    // If "$configKey" not null, we check it is an array and not empty
+    // and then we iterate through the keys to check for valid keys
+    if (is_array_and_not_empty($configKey)) {
+        // If "$configKey" is an array, we check for valid keys
+        foreach ($configKey as $key => $value) {
+            // If the key is not in the global config rules, we error out
+            if (!array_key_exists($key, $globalConfigRules)) {
+                cli_err_syntax_without_exit("Invalid Config Key `$key` in SQL Query `$handlerFile.php=>$fnName`!");
+                cli_info("Valid Config Keys are: " . implode(", ", array_keys($globalConfigRules)) . ".");
+            }
+            // If the value is not an array, we error out
+            if (!is_array_and_not_empty($value)) {
+                cli_err_syntax_without_exit("Invalid Config Value for Key `$key` in SQL Query `$handlerFile.php=>$fnName`!");
+                cli_info("The Config Value for Key `$key` must be a Non-Empty Array.");
+            }
+        }
+    } else {
+        cli_err_syntax("No Config Key `<CONFIG>` found in SQL Array Query `$handlerFile.php=>$fnName`. It and its `[QUERY_TYPE]` key must be set!");
+    }
+
+    // Validate that $configQTKey is set and is a valid query type
+    if (!isset($configQTKey) || !is_string_and_not_empty($configQTKey)) {
+        cli_err_syntax_without_exit("No Config Key `<QUERY_TYPE>` found in SQL Array Query `$handlerFile.php=>$fnName`!");
+        cli_info("Valid Query Types are: " . implode(", ", quotify_elements($globalConfigRules['[QUERY_TYPE]'])) . ".");
+    } elseif (!in_array(strtoupper($configQTKey), $globalConfigRules['[QUERY_TYPE]'], true)) {
+        cli_err_syntax_without_exit("Invalid Config Key `<QUERY_TYPE>` value `$configQTKey` in SQL Array Query `$handlerFile.php=>$fnName`!");
+        cli_info("Valid Query Types are: " . implode(", ", quotify_elements($globalConfigRules['[QUERY_TYPE]'])) . ".");
+    }
+
+    // The main key which is either "SELECT (DISTINCT)", "INSERT", "UPDATE"
+    // or "DELETE" and one must always be present in the SQL Array!
+    $mainSelectedKey = $configQTKey ?? null;
+    if ($mainSelectedKey === null) {
+        cli_err_syntax_without_exit("No Main SQL Query Key (the `Query Type`) found in SQL Array Query `$handlerFile.php=>$fnName`!");
+        cli_info("Valid Query Type Keys are: " . implode(", ", quotify_elements($globalConfigRules['[QUERY_TYPE]'])) . ".");
+    }
+
+    // The next main key which is either
+    // "FROM" (=SELECT or DELETE) or "INTO" (=INSERT)
+    $fromKey = $sqlArray['FROM'] ?? null;
+    $intoKey = $sqlArray['INTO'] ?? null;
+
+    // The next main key which is "JOINS"
+    $joinsKey = $sqlArray['JOINS'] ?? null;
+
+    // The next main key which is "WHERE"
+    $whereKey = $sqlArray['WHERE'] ?? null;
+
+    // The next main key which is
+    // "HAVING", "GROUP BY" & "ORDER BY"
+    $havingKey = $sqlArray['HAVING'] ?? null;
+    $groupByKey = $sqlArray['GROUP_BY'] ?? null;
+    $orderByKey = $sqlArray['ORDER_BY'] ?? null;
+
+    // The final main keys relevant for the
+    // SQL Query "LIMIT" and "OFFSET"
+    $limitKey = $sqlArray['LIMIT'] ?? null;
+    $offsetKey = $sqlArray['OFFSET'] ?? null;
+
+    // Binded Params & HYDRATE Keys which are optional
+    $bindedParamsKey = $sqlArray['?_BINDED_PARAMS'] ?? null;
+    $hydrateKey = $sqlArray['?_HYDRATE'] ?? null;
+
+    // Regex patterns to match different SQL parts and
+    // different ways of writing the different SQL parts
+    $regexType = [
+        'ONLY_TABLE_NAME' => '/^([a-z_][a-z_0-9]*)$/i',
+        'ONLY_TABLE_NAME_AND_COLS_AFTER_COLON' => '/^([a-z_][a-z_0-9]+):(.+)$/i',
+        'ONLY_TABLE_NAME_AND_ONLY_COLS_AFTER_COLON' => '/^([a-z_][a-z_0-9]+)\*only:(.+)$/i',
+        'ONLY_TABLE_NAME_AND_EXCEPT_COLS_AFTER_COLON' => '/^([a-z_][a-z_0-9]+)\*except:(.+)$/i',
+    ];
+
+
+
+    // TODO: Place this at the end!!!
+    // FINALLY AFTER ALL THAT: Return the converted SQL Array
+    return $convertedSQLArray;
+}
 
 // Compiles a $DX SQL [] to an optmized SQL array that is returned within the same
 // function that is used to validate the data. This is used to optimize the SQL process!
@@ -4228,13 +4358,90 @@ function cli_create_sql_file_and_or_handler()
         . $handlerBaseFullStringRow6 . $handlerBaseFullStringRow7
         . $handlerBaseFullStringRow8;
 
+    // Validate tables are provided and then lowercase them
+    if (!isset($argv[4]) || !is_string($argv[4]) || empty(trim($argv[4]))) {
+        cli_err_syntax_without_exit("Included Tables for the created SQL File=>Function must be a Non-Empty String!");
+        cli_info("Example: \"table1\" or \"table1,table2,table3\" first one will use only one table where the latter one will use all three provided tables!");
+    }
+    $argv[4] = strtolower($argv[4]);
+
+    // Load Tables.php file and validate that it exists, is array and
+    // its keys are valid ('tables', 'relationships' & 'mappings')!
+    // and then split $argv[4] on "," (if it exists) to get the tables
+    // and validate all the provided tables exist in the Tables.php file!
+    $tables = $tablesAndRelationshipsFile ?? null;
+    if ($tables === null || !is_array($tables)) {
+        cli_err_syntax_without_exit("`Tables.php` File not found! Please check your `funkphp/config/tables.php` File!");
+        cli_info("Make sure you have a valid `Tables.php` File in `funkphp/config/` directory!");
+    }
+    if (!isset($tables['tables']) || !is_array($tables['tables']) || empty($tables['tables'])) {
+        cli_err_syntax_without_exit("`Tables.php` File does not contain valid `tables` key! Please check your `funkphp/config/tables.php` File!");
+        cli_info("Your `tables` array key in your `Tables.php` File in `funkphp/config/` directory CANNOT be empty and should have at least one table!");
+    }
+    if (!isset($tables['relationships']) || !is_array($tables['relationships'])) {
+        cli_err_syntax_without_exit("`Tables.php` File does not contain valid `relationships` key! Please check your `funkphp/config/tables.php` File!");
+        cli_info("Your `relationships` array key in your `Tables.php` File in `funkphp/config/` directory must exist and CAN be empty!");
+    }
+    if (!isset($tables['mappings']) || !is_array($tables['mappings'])) {
+        cli_err_syntax_without_exit("`Tables.php` File does not contain valid `mappings` key! Please check your `funkphp/config/tables.php` File!");
+        cli_info("Your `mappings` array key in your `Tables.php` File in `funkphp/config/` directory must exist and CAN be empty!");
+    }
+    // Split on "," if it exists, otherwise just use the single table
+    $processTables = str_contains($argv[4], ',') ? explode(',', $argv[4])  : [$argv[4]];
+
+    // Validate that all the provided tables exist in the
+    // Tables.php file are valid named and not duplicates!
+    $times = [];
+    foreach ($processTables as $table) {
+        if (!preg_match('/^[a-z_][a-z_0-9]*$/i', $table)) {
+            cli_err_syntax_without_exit("Invalid Table Name: \"$table\". Use only alphanumeric characters and underscores!");
+            cli_info("Example: \"table1\" or \"table_1\" or \"table_1_2\" - do not use spaces or special characters!");
+        }
+        if (!array_key_exists($table, $tables['tables'])) {
+            cli_err_syntax_without_exit("Table \"$table\" not found in `funkphp/config/tables.php`! Available Tables: " . implode(', ', quotify_elements(array_keys($tables['tables']))));
+            cli_info("Make sure you have a valid `Tables.php` File in `funkphp/config/` directory with at least one table!");
+        }
+        if (array_key_exists($table, $times)) {
+            cli_err_syntax_without_exit("Table \"$table\" already added. Only use one Table once!");
+            cli_info("Make sure you have a valid `Tables.php` File in `funkphp/config/` directory with at least one table!");
+        }
+        $times[$table] = 1;
+    }
+
+    // Validate Query Type has been provided, then uppercase it
+    // & validate it that it is one of the available query types!
+    if (!isset($argv[5]) || !is_string($argv[5]) || empty(trim($argv[5]))) {
+        cli_err_syntax_without_exit("Query Type for the created SQL File=>Function must be a Non-Empty String!");
+        cli_info("Available Query Types (case-insensitive): 'SELECT', 'INSERT', 'UPDATE', 'DELETE', 'SELECT_DISTINCT', 'SELECT_INTO', or 'SELECT_TOP' - only provide ONE of these!");
+    }
+    $queryType = strtoupper($argv[5]);
+    $availableQueryTypes = [
+        'SELECT',
+        'INSERT',
+        'UPDATE',
+        'DELETE',
+        'SELECT_DISTINCT',
+        'SELECT_INTO',
+        'SELECT_TOP'
+    ];
+    if (!in_array($queryType, $availableQueryTypes)) {
+        cli_err_syntax_without_exit("Invalid Query Type: \"$queryType\". Available Query Types: " . implode(', ', quotify_elements($availableQueryTypes)) . ".");
+        cli_info("Pick one of those as the fith argument in the FunkCLI command to create a SQL Handler File and/or Function!");
+    }
+
+    // Default values added to the $DXPART variable
+    $chosenQueryType = "'<CONFIG>' =>[\n'[QUERY_TYPE]' => '$queryType',\n";
+    $subQueries = "'[SUBQUERIES]' => [\n'[subquery_example_1]' => 'SELECT COUNT(*)',\n'[subquery_example_2]' => '(WHERE SELECT *)']],";
+    $DXPART = $chosenQueryType . $subQueries . "\n";
 
     // Default DXPart Value when no tables are provided
-    $DXPART = "'<CONFIG>' => [\n'[SUBQUERIES]' => [\n'[subquery1]' => 'SELECT COUNT(*)',\n'[subquery2]' => '(WHERE SELECT *)']],\n'SELECT/INSERT/UPDATE/DELETE(CHOOSE-ONE-PER-SQL-FUNCTION!)' => '',\n'FROM/INTO(CHOOSE-ONE-PER-SQL-FUNCTION!)' => '',\n'JOINS' => '',\n'WHERE' => '',\n'GROUP_BY' => '',\n'ORDER_BY' => '',\n'LIMIT' => '',\n'OFFSET' => '',\n'?_BINDED_PARAMS' => '',\n'HYDRATE' => 'table1:cols|table2:cols|table1=>table2',";
+    // $DXPART = "'<CONFIG>' => [\n'[QUERY_TYPE]' => [\n// Choose ONLY ONE below for EACH\n// Single created SQL Query Function!\n'SELECT DISTINCT','SELECT INTO','SELECT TOP',
+    //         'SELECT','INSERT','INSERT INTO','UPDATE','DELETE'],'[SUBQUERIES]' => [\n'[subquery1]' => 'SELECT COUNT(*)',\n'[subquery2]' => '(WHERE SELECT *)']],\n'SELECT/INSERT/UPDATE/DELETE(CHOOSE-ONE-PER-SQL-FUNCTION!)' => '',\n'FROM' => '',\n'INTO' => '',\n'JOINS' => '',\n'WHERE' => '',\n'GROUP_BY' => '',\n'HAVING' => '',\n'ORDER_BY' => '',\n'LIMIT' => '',\n'OFFSET' => '',\n'VALUES' => '',\n'?_BINDED_PARAMS' => '',\n'HYDRATE' => 'table1:cols|table2:cols|table1=>table2',";
 
     // TODO: Fix later after main function is done
     // When tables ARE provided, we try to parse and use them instead as default $DXPART Value!
     $usedTables = $argv[4] ?? "";
+    $queryType = strtoupper($argv[5]) ?? "";
     if (isset($argv[4])) {
     }
 
@@ -4254,7 +4461,7 @@ function cli_create_sql_file_and_or_handler()
             "<?php\nnamespace FunkPHP\SQL\\$handlerFile;\n// SQL Handler File - Created in FunkCLI on $date!\n// Write your SQL Query, Hydration & optional Binded Params in the\n// \$DX variable and then run the command\n// `php funkcli compile s $handlerFile=>\$function_name`\n// to get an array with SQL Query, Hydration Array and optionally Binded Params below here!\n// IMPORTANT: CMD+S or CTRL+S to autoformat each time function is added!\n\nfunction $fnName(&\$c) // <$usedTables>\n{\n$sqlLimiterStrings\n};\n\nreturn function (&\$c, \$handler = \"$fnName\") { $handlerBaseFullString \n};"
         );
         if ($outputHandlerRoute) {
-            cli_success_without_exit("Added SQL Handler \"funkphp/$handlerDirPath/$handlerFile.php\" with SQL Function \"$fnName\" in \"funkphp/sql/$handlerFile.php\"!");
+            cli_success_without_exit("Added SQL Handler \"funkphp/$handlerDirPath/$handlerFile.php\" with SQL Function \"$fnName\" in \"funkphp/sql/$handlerFile.php\" with Query Type \"$queryType\" using Tables:\"$usedTables\"!");
             return;
         } else {
             cli_err("[cli_create_sql_file_and_or_handler]: FAILED to create SQL Handler \"funkphp/$handlerDirPath/$handlerFile.php\". File permissions issue?");
@@ -4305,7 +4512,7 @@ function cli_create_sql_file_and_or_handler()
                 $fileContent
             );
             if ($outputHandlerRoute) {
-                cli_success_without_exit("Added SQL Function \"$fnName\" to existing SQL Handler File \"funkphp/$handlerDirPath/$handlerFile.php\"!");
+                cli_success_without_exit("Added SQL Function \"$fnName\" to existing SQL Handler File \"funkphp/$handlerDirPath/$handlerFile.php\" with Query Type \"$queryType\" using Tables:\"$usedTables\"!");
                 return;
             } else {
                 cli_err("[cli_create_sql_file_and_or_handler]: FAILED to create SQL \"$fnName\" Function in \"funkphp/$handlerDirPath/$handlerFile.php\". File permissions issue?");
@@ -5409,7 +5616,7 @@ function is_array_and_not_empty($array)
 }
 function is_string_and_not_empty($string)
 {
-    return isset($string) && is_string($string) && mb_strlen($string) > 0;
+    return isset($string) && is_string($string) && mb_strlen(trim($string)) > 0;
 }
 
 // Function that takes a string and returns it with quotes such as (", ' or `) around it.
