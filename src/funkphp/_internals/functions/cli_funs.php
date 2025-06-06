@@ -33,8 +33,13 @@ function get_match_function_regex($fnName)
 function get_match_all_functions_regex($handlerType)
 {
     // Check if the function name is valid
-    if ($handlerType !== "r" && $handlerType !== "d" && $handlerType !== "v") {
-        cli_err_syntax("[get_match_all_functions_regex] Handler type must be a non-empty string. Choose between: 'r','d', or 'v'");
+    if (
+        $handlerType !== "r"
+        && $handlerType !== "d"
+        && $handlerType !== "v"
+        && $handlerType !== "s"
+    ) {
+        cli_err_syntax("[get_match_all_functions_regex] Handler type must be a non-empty string. Choose between: 'r', 'd', 's', or 'v'");
     }
 
     // Create regex pattern based on method and route
@@ -119,7 +124,6 @@ function get_match_dx_return_regex()
     // where it MUST end on ");\n" or it is considered not matched!
     return '/return\s*array\(.*?\);$\n/ims';
 }
-
 
 // Function takes a table which is an array of columns and then
 // generates a validation file based on the table structure where
@@ -2818,6 +2822,108 @@ function cli_compile_dx_validation_to_optimized_validation()
     }
 }
 
+// Compiles a $DX SQL [] to an optmized SQL array that is returned within the same
+// function that is used to validate the data. This is used to optimize the SQL process!
+// VERY IMPORTANT WARNING: This function calls a function which uses eval() to parse the SQL file!!!
+function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, $fnName) {}
+
+// Compiles a $DX SQL [] to an optmized SQL array that is returned within the same
+// function that is used to validate the data. This is used to optimize the SQL process!
+// VERY IMPORTANT WARNING: This function calls a function which uses eval() to parse the SQL file!!!
+function cli_compile_dx_sql_to_optimized_sql()
+{
+    // Load globals, check for the argv[3] argument and prepare valid HandlerFile=>HandlerFunctionName
+    global $dirs, $exactFiles, $settings, $delimiters, $argv, $dirs;
+    if (!isset($argv[3]) || !is_string_and_not_empty($argv[3])) {
+        cli_err("cli_compile_dx_sql_to_optimized_sql() expects a string as input for `\$argv[3]`!");
+    }
+    $handlerDir = $dirs['sql'] ?? "";
+    [$handlerFile, $fnName] = get_valid_handlerVar_or_err_out($argv[3], "s");
+
+    // Check that dir exists and is readable
+    if (!dir_exists_is_readable_writable($handlerDir)) {
+        cli_err("SQL Directory \"$handlerDir\" not found or non-readable/writable!");
+    }
+    // Then check file exists and is readable
+    if (!file_exists_is_readable_writable($handlerDir . $handlerFile . ".php")) {
+        cli_err("SQL Handler file \"$handlerFile.php\" not found in \"funkphp/sql/\" or not readable!");
+    }
+
+    // Prepare regex and find the function name in the file
+    $fnNameRegex = '/^function (' . $fnName . ')\(\&\$c\)\s*\/\/ <[a-z_,\-0-9\*]*>\s*$.*?^};$/ims';
+    $dxVarRegex = get_match_dx_function_regex();
+    $dxReturnRegex = get_match_dx_return_regex();
+    $fileContent = file_get_contents($handlerDir . $handlerFile . ".php");
+    $matchedFn = preg_match($fnNameRegex, $fileContent, $matches);
+
+    if (!$matchedFn) {
+        cli_err("SQL Function \"$fnName\" not found in SQL Handler File \"funkphp/sql/$handlerFile.php\". Check for mispellings or typos?");
+    }
+
+    // We store found match and now try find the $DX variable in that part
+    $matchedEntireFnName = $matches[0] ?? null;
+    $matchedEntireFnCopy = $matchedEntireFnName;
+    $matchedDX = preg_match($dxVarRegex, $matchedEntireFnName, $matches2);
+    if (!$matchedDX) {
+        cli_err_without_exit("The \"\$DX\" variable not found in SQL Function \"$fnName\" in SQL Handler File \"$handlerFile.php\".");
+        cli_info_without_exit("Make sure it is intended using CMD+S or CTRL+S to autoformat the SQL Handler File!");
+        cli_info("It must start as an array: `\$DX = ['<anything_inside_here>'];` or it will not be found. Only single quotes `['<DXarray>']` are allowed!");
+    }
+
+    // We store found match and now try find the return statement within "$matchedEntireFnName"
+    $matchedSimpleSyntax = $matches2[0] ?? null;
+
+    // We use eval() to try to parse the $matchedSimpleSyntax
+    // as a typical array and then check that it is an array
+    $evalCode = null;
+    try {
+        $evalCode = "\nreturn $matchedSimpleSyntax";
+        $evalCode = eval($evalCode);
+    } catch (Throwable $e) {
+        cli_err_without_exit("The \"\$DX\" variable was found but could not be parsed as a valid PHP Array!");
+        cli_info_without_exit("Make sure it is intended using CMD+S or CTRL+S to autoformat the SQL Handler File!");
+        cli_info("It must start as an array: `\$DX = ['<anything_inside_here>'];` or it will not be found.  Only single quotes `['<DXarray>']` are allowed!");
+    }
+    if ($evalCode === null) {
+        cli_err_without_exit("The \"\$DX\" variable was found but could not be parsed as a valid PHP Array!");
+        cli_info_without_exit("Make sure it is intended using CMD+S or CTRL+S to autoformat the SQL Handler File!");
+        cli_info("It must start as an array: `\$DX = ['<anything_inside_here>'];` or it will not be found.  Only single quotes `['<DXarray>']` are allowed!");
+    }
+    if (is_array($evalCode)) {
+        cli_info_without_exit("Found \"\$DX\" variable parsed as a valid PHP Array!");
+    }
+
+    $matchedReturn = preg_match($dxReturnRegex, $matchedEntireFnName, $matches3);
+    if (!$matchedReturn) {
+        cli_err_without_exit("The \"return array();\" statement not found in SQL Function \"$fnName\" in SQL Handler File \"$handlerFile.php\".");
+        cli_info_without_exit("Make sure it is intended using CMD+S or CTRL+S to autoformat the SQL Handler File!");
+        cli_info("The last part of the array() - `);` - must be indented to the same level as the \"return array (\" part!");
+    }
+    $matchedReturnStmt = $matches3[0] ?? null;
+
+    // This contains the optimized SQL Query which will then replace the "$matchedReturnStmt"
+    // The function can error out on its own so we do not need to check for the return value!
+    $optimizedSQLArray = cli_convert_simple_sql_query_to_optimized_sql($evalCode, $handlerFile, $fnName);
+
+    // Convert the optimized SQL array to a string with ";\n" at the end
+    $optimizedSQLArrayAsStringWithReturnStmt = "return " . var_export($optimizedSQLArray, true) . ";\n";
+
+    // We will now use "$matchedEntireFnName" and replace the "$matchedReturnStmt" with the optimized SQL array
+    $replaced = str_replace($matchedReturnStmt, $optimizedSQLArrayAsStringWithReturnStmt, $matchedEntireFnName);
+
+    // We now replace the "$matchedEntireFnCopy" part of the fileContent with the new $replaced string
+    $newFileContent = str_replace($matchedEntireFnCopy, $replaced, $fileContent);
+
+    // Output the file to replace the original file
+    $result = file_put_contents($handlerDir . $handlerFile . ".php", $newFileContent);
+    if ($result === false) {
+        cli_err("FAILED compiling SQL Query to Optimized SQL in SQL Function \"$fnName\" in \"$handlerFile.php\". Permissions issue?");
+    } else {
+        cli_success_without_exit("SUCCESSFULLY COMPILED SQL Query to Optimized SQL in SQL Function \"$fnName\" in \"funkphp/sql/$handlerFile.php\".");
+        cli_info("IMPORTANT: Open it in an IDE and press CMD+S or CTRL+S to autoformat the SQL Handler File again!");
+    }
+}
+
 // Match Compiled Route with URI Segments, used by "r_match_developer_route"
 function cli_match_compiled_route(string $requestUri, array $methodRootNode): ?array
 {
@@ -4047,7 +4153,7 @@ function cli_create_validation_file_and_or_handler()
         $fileContent = file_get_contents($handlersDir . $handlerFile . ".php");
 
         // Now we check if the function name is already used
-        $matchFnRegex = get_match_function_regex($fnName);
+        $matchFnRegex = '/^function (' . $fnName . ')\(\&\$c\)\s*\/\/\s*<[a-z_,\-0-9\*]*>\s*$.*?^};$/ims';
         if (preg_match($matchFnRegex, $fileContent, $matches)) {
             cli_err("[cli_create_validation_file_and_or_handler]: \"$fnName\" - Function name already exists in \"funkphp/$handlerDirPath/$handlerFile.php\"!");
         } else {
@@ -4090,6 +4196,123 @@ function cli_create_validation_file_and_or_handler()
         } else {
             // The 'return function' block was not found - the file structure is invalid
             cli_err_without_exit("[cli_create_validation_file_and_or_handler]: Invalid handler file structure.");
+            cli_err("Could not find the 'return function(...) {...};' block in \"funkphp/$handlerDirPath/$handlerFile.php\".");
+            return false; // Exit the function as the file structure is unexpected
+        }
+    }
+}
+
+// Create a SQL File and/or Handler (not Route-dependent!)
+function cli_create_sql_file_and_or_handler()
+{
+    // Get valid handlerFile=>fnName or error out
+    global $argv, $settings, $dirs, $exactFiles, $mysqlDataTypesFile, $tablesAndRelationshipsFile;
+    [$handlerFile, $fnName] = get_handler_and_fn_from_argv4_or_err_out("s", 3);
+    // Prepare dirs and strings
+    $handlersDir =  $dirs['sql'];
+    $handlerDirPath = "sql";
+    $date = date("Y-m-d H:i:s");
+    $outputHandlerRoute = null;
+    $handlerBaseFullStringRow1 = "\n\$base = is_string(\$handler) ? \$handler : \"\";";
+    $handlerBaseFullStringRow2 = "\n\$full = __NAMESPACE__ . '\\\\' . \$base;";
+    $handlerBaseFullStringRow3 = "\nif (function_exists(\$full)) {";
+    $handlerBaseFullStringRow4 = "\nreturn \$full(\$c);";
+    $handlerBaseFullStringRow5 = "\n} else {";
+    $handlerBaseFullStringRow6 = "\$c['err']['FAILED_TO_RUN_SQL_FUNCTION-' . '$handlerFile'] = 'SQL function `' . \$full . '` not found in namespace `' . __NAMESPACE__ . '`!';";
+    $handlerBaseFullStringRow7 = "\nreturn null;";
+    $handlerBaseFullStringRow8 = "\n}";
+    $handlerBaseFullString =
+        $handlerBaseFullStringRow1
+        . $handlerBaseFullStringRow2 . $handlerBaseFullStringRow3
+        . $handlerBaseFullStringRow4 . $handlerBaseFullStringRow5
+        . $handlerBaseFullStringRow6 . $handlerBaseFullStringRow7
+        . $handlerBaseFullStringRow8;
+
+
+    // Default DXPart Value when no tables are provided
+    $DXPART = "'<CONFIG>' => [\n'[SUBQUERIES]' => [\n'[subquery1]' => 'SELECT COUNT(*)',\n'[subquery2]' => '(WHERE SELECT *)']],\n'SELECT/INSERT/UPDATE/DELETE(CHOOSE-ONE-PER-SQL-FUNCTION!)' => '',\n'FROM/INTO(CHOOSE-ONE-PER-SQL-FUNCTION!)' => '',\n'JOINS' => '',\n'WHERE' => '',\n'GROUP_BY' => '',\n'ORDER_BY' => '',\n'LIMIT' => '',\n'OFFSET' => '',\n'?_BINDED_PARAMS' => '',\n'HYDRATE' => 'table1:cols|table2:cols|table1=>table2',";
+
+    // TODO: Fix later after main function is done
+    // When tables ARE provided, we try to parse and use them instead as default $DXPART Value!
+    $usedTables = $argv[4] ?? "";
+    if (isset($argv[4])) {
+    }
+
+    // Prepare the validation limiter strings and return function regex
+    $sqlLimiterStrings = "// Created in FunkCLI on $date! Keep \"};\" on its\n// own new line without indentation no comment right after it!\n// Run the command `php funkcli compile s $handlerFile=>$fnName`\n// to get SQL, Hydration & Binded Params in return statement below it!\n\$DX = [$DXPART];\n\n\nreturn array([]);\n";
+    $returnFunctionRegex = '/^(return function)\s*\(&\$c, \$handler\s*=\s*.+$.*?^};/ims';
+
+    // If dir not found or not readable/writable, we exit
+    if (!dir_exists_is_readable_writable($handlersDir)) {
+        cli_err("[cli_create_sql_file_and_or_handler]: \"$handlersDir\" not found or non-readable/writable!");
+    }
+
+    // When file does not exist we create it
+    if (!file_exists($handlersDir . $handlerFile . ".php")) {
+        $outputHandlerRoute = file_put_contents(
+            $handlersDir . $handlerFile . ".php",
+            "<?php\nnamespace FunkPHP\SQL\\$handlerFile;\n// SQL Handler File - Created in FunkCLI on $date!\n// Write your SQL Query, Hydration & optional Binded Params in the\n// \$DX variable and then run the command\n// `php funkcli compile s $handlerFile=>\$function_name`\n// to get an array with SQL Query, Hydration Array and optionally Binded Params below here!\n// IMPORTANT: CMD+S or CTRL+S to autoformat each time function is added!\n\nfunction $fnName(&\$c) // <$usedTables>\n{\n$sqlLimiterStrings\n};\n\nreturn function (&\$c, \$handler = \"$fnName\") { $handlerBaseFullString \n};"
+        );
+        if ($outputHandlerRoute) {
+            cli_success_without_exit("Added SQL Handler \"funkphp/$handlerDirPath/$handlerFile.php\" with SQL Function \"$fnName\" in \"funkphp/sql/$handlerFile.php\"!");
+            return;
+        } else {
+            cli_err("[cli_create_sql_file_and_or_handler]: FAILED to create SQL Handler \"funkphp/$handlerDirPath/$handlerFile.php\". File permissions issue?");
+        }
+    }
+
+    // When file does exist we check if the function name is already used
+    if (file_exists($handlersDir . $handlerFile . ".php")) {
+        // If file is NOT readable/writable, we exit
+        if (!file_exists_is_readable_writable($handlersDir . $handlerFile . ".php")) {
+            cli_err("[cli_create_sql_file_and_or_handler]: \"$handlersDir/$handlerFile.php\" not found or non-readable/writable!");
+        }
+        $fileContent = file_get_contents($handlersDir . $handlerFile . ".php");
+
+        // Now we check if the function name is already used
+        $matchFnRegex = '/^function (' . $fnName . ')\(\&\$c\)\s*\/\/\s*<[a-z_,\-0-9\*]*>\s*$.*?^};$/ims';
+        if (preg_match($matchFnRegex, $fileContent, $matches)) {
+            cli_err("[cli_create_sql_file_and_or_handler]: \"$fnName\" - Function name already exists in \"funkphp/$handlerDirPath/$handlerFile.php\"!");
+        } else {
+            cli_info_without_exit("Function \"$fnName\" available in \"funkphp/$handlerDirPath/$handlerFile.php\"!");
+        }
+
+        // Here we match the return function block to insert the new function that is not already used
+        if (preg_match($returnFunctionRegex, $fileContent, $matches, PREG_OFFSET_CAPTURE)) {
+
+            // $matches[0] now contains an array: [matched string, offset]
+            $matchedString = $matches[0][0]; // The actual string that matched
+            $matchOffset = $matches[0][1];   // The byte offset of the match in $fileContent
+
+            // Construct the string for the *new* function definition only.
+            // DO NOT include $matches[0] in this string; we will insert it separately.
+            // Assuming $validationLimiterStrings and $date are defined elsewhere
+            $newFunctionString = "\nfunction {$fnName}(&\$c) // <$usedTables>\n{\n{$sqlLimiterStrings}\n};\n\n";
+
+            // --- Now, perform the insertion into $fileContent ---
+            // Use substr_replace to insert $newFunctionString at $matchOffset
+            // The length to replace is 0, which means insert without replacing anything.
+            $fileContent = substr_replace(
+                $fileContent,         // The original string
+                $newFunctionString,   // The string to insert
+                $matchOffset,         // The position to insert at
+                0                     // The number of characters to replace (0 means insert)
+            );
+
+            // Attempt outputting the modified content back to the file
+            $outputHandlerRoute = file_put_contents(
+                $handlersDir . $handlerFile . ".php",
+                $fileContent
+            );
+            if ($outputHandlerRoute) {
+                cli_success_without_exit("Added SQL Function \"$fnName\" to existing SQL Handler File \"funkphp/$handlerDirPath/$handlerFile.php\"!");
+                return;
+            } else {
+                cli_err("[cli_create_sql_file_and_or_handler]: FAILED to create SQL \"$fnName\" Function in \"funkphp/$handlerDirPath/$handlerFile.php\". File permissions issue?");
+            }
+        } else {
+            // The 'return function' block was not found - the file structure is invalid
+            cli_err_without_exit("[cli_create_sql_file_and_or_handler]: Invalid Handler File structure.");
             cli_err("Could not find the 'return function(...) {...};' block in \"funkphp/$handlerDirPath/$handlerFile.php\".");
             return false; // Exit the function as the file structure is unexpected
         }
@@ -5055,6 +5278,10 @@ function cli_warning($string)
     echo "\033[33m[FunkCLI - WARNING]: $string\n\033[0m";
     exit;
 }
+function cli_warning_without_exit($string)
+{
+    echo "\033[33m[FunkCLI - WARNING]: $string\n\033[0m";
+}
 function cli_success_with_warning_same_line($string1, $string2)
 {
     echo "\033[32m[FunkCLI - SUCCESS + WARNING]: $string1\033[0m";
@@ -5099,10 +5326,7 @@ function cli_success_with_warning_same_line_without_exit($string1, $string2)
     echo "\033[32m[FunkCLI - SUCCESS]: $string1\033[0m";
     echo "\033[33m$string2\n\033[0m";
 }
-function cli_warning_without_exit($string)
-{
-    echo "\033[33m[FunkCLI - WARNING]: $string\n\033[0m";
-}
+
 
 // Function loops through all function files in funkphp/_internals/functions/
 // and preg matchdes "function ([a-zA-Z0-9_]+)" and then adds the function name to an
@@ -5270,8 +5494,13 @@ function get_handler_and_fn_from_argv4_or_err_out($handlerType, $argvNumber = 4)
     if (!is_string($handlerType) || empty($handlerType)) {
         cli_err_syntax("[get_handler_and_fn_from_argv4_or_err_out] Handler type must be a non-empty string. Choose between: 'r','d', or 'v'");
     }
-    if ($handlerType !== "r" && $handlerType !== "d" && $handlerType !== "v") {
-        cli_err_syntax("[get_handler_and_fn_from_argv4_or_err_out] Handler type must be a non-empty string. Choose between: 'r','d', or 'v'");
+    if (
+        $handlerType !== "r"
+        && $handlerType !== "d"
+        && $handlerType !== "v"
+        && $handlerType !== "s"
+    ) {
+        cli_err_syntax("[get_handler_and_fn_from_argv4_or_err_out] Handler type must be a non-empty string. Choose between: 'r','d','v' or 's'");
     }
     // Check that "$argvNumber" is a either a valid integer or a string that can be cast to an integer
     if (!isset($argv[$argvNumber]) || !is_string($argv[$argvNumber]) || empty($argv[$argvNumber])) {
@@ -5280,8 +5509,8 @@ function get_handler_and_fn_from_argv4_or_err_out($handlerType, $argvNumber = 4)
         cli_err_syntax("[get_handler_and_fn_from_argv4_or_err_out] Argument number must be a valid integer or a string that can be cast to an integer!");
     }
 
-    $handlerPrefix = $handlerType === "r" ? "Route" : ($handlerType === "d" ? "Data" : "Validation");
-    $handlerDir = $handlerType === "r" ? "handlers" : ($handlerType === "d" ? "data" : "validations");
+    $handlerPrefix = $handlerType === "r" ? "Route" : ($handlerType === "d" ? "Data" : ($handlerType === "v" ? "Validation" : "SQL"));
+    $handlerDir = $handlerType === "r" ? "handlers" : ($handlerType === "d" ? "data" : ($handlerType === "v" ? "validations" : "sql"));
 
     if (!isset($argv[$argvNumber]) || !is_string($argv[$argvNumber]) || empty($argv[$argvNumber])) {
         cli_err_syntax("[get_handler_and_fn_from_argv4_or_err_out] Should be at least four(4) non-empty string arguments!\nSyntax: php funkcli add Validation [method/route] [handlerFile[=>handleFunction]]\nExample: 'php funkcli add Validation get/users/:id users=>getUser'\nIMPORTANT: Writing [handlerFile] is parsed as [handlerFile=>handlerFile]!");
@@ -5592,8 +5821,11 @@ function get_valid_handlerVar_or_err_out($handlerVar, $handlerType)
     if (!is_string($handlerType) || empty($handlerType)) {
         cli_err_syntax("[get_valid_handlerVar_or_err_out] Handler type must be a non-empty string. Choose between: 'r','d', or 'v'");
     }
-    if ($handlerType !== "r" && $handlerType !== "d" && $handlerType !== "v") {
-        cli_err_syntax("[get_valid_handlerVar_or_err_out] Handler type must be a non-empty string. Choose between: 'r','d', or 'v'");
+    if (
+        $handlerType !== "r" && $handlerType !== "d"
+        && $handlerType !== "v" && $handlerType !== "s"
+    ) {
+        cli_err_syntax("[get_valid_handlerVar_or_err_out] Handler type must be a non-empty string. Choose between: 'r', 'd', 's', or 'v'");
     }
 
     // $handlerVar must either be a string or an array with a single string value!
@@ -5607,7 +5839,7 @@ function get_valid_handlerVar_or_err_out($handlerVar, $handlerType)
         cli_err_syntax("[get_valid_handlerVar_or_err_out]: \"$handlerVar\" must be a non-empty string!");
     }
 
-    $handlerTypeName = $handlerType === "r" ? "Route" : ($handlerType === "d" ? "Data" : "Validation");
+    $handlerTypeName = $handlerType === "r" ? "Route" : ($handlerType === "d" ? "Data" : ($handlerType === "v" ? "Validation" : "SQL"));
 
     // If it is a string, check for "=>" because this function is either called by deleting a route
     // or just by deleting a handler function directly meaning the handlerFile=>Function would be

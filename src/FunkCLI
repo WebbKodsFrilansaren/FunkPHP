@@ -13,6 +13,8 @@ $validArg1withArg2Values =  [
         'help',
         'v',
         'validation',
+        's',
+        'sql',
     ],
     'create' => [
         's',
@@ -55,6 +57,8 @@ $validArg1withArg2Values =  [
         'data',
         'v',
         'validation',
+        's',
+        'sql',
         'mw',
         'mw_file',
         'middleware',
@@ -445,13 +449,21 @@ $commands = [
             cli_compile_batch(["troutes"]);
             cli_success("Compiled Only Route routes!");
         },
-        // 'v' & 'validation' recompiles matched validation handler file!
+        // 'v' & 'validation' recompiles matched Validation Handler File Function!
         'v' => function () {
             cli_compile_dx_validation_to_optimized_validation();
         },
         'validation' => function () {
             cli_compile_dx_validation_to_optimized_validation();
         },
+        // 's' & 'SQL' recompiles matched SQL Handler File Function!
+        's' => function () {
+            cli_compile_dx_sql_to_optimized_sql();
+        },
+        'sql' => function () {
+            cli_compile_dx_sql_to_optimized_sql();
+        },
+
         // 'help' shows the help for the compile command
         'help' => function () {
             cli_info_multiline("FunkCLI - Compile Help");
@@ -514,6 +526,12 @@ $commands = [
         'v' => function () {
             cli_create_validation_file_and_or_handler();
         },
+        's' => function () {
+            cli_create_sql_file_and_or_handler();
+        },
+        'sql' => function () {
+            cli_create_sql_file_and_or_handler();
+        },
     ],
     'change' => [
         'route' => function () use ($argv, $settings) {
@@ -560,6 +578,12 @@ $commands = [
         },
         'validation' => function () use ($argv) {
             delete_handler_file_with_fn_or_just_fn_or_err_out("v", $argv[3] ?? null);
+        },
+        's' => function () use ($argv) {
+            delete_handler_file_with_fn_or_just_fn_or_err_out("s", $argv[3] ?? null);
+        },
+        'sql' => function () use ($argv) {
+            delete_handler_file_with_fn_or_just_fn_or_err_out("s", $argv[3] ?? null);
         },
         'mw' => function () {
             cli_delete_a_middleware();
