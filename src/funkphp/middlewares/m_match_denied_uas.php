@@ -1,0 +1,22 @@
+<?php
+return function (&$c) {
+    // Try parse UA and check if it is valid
+    $ua = $_SERVER['HTTP_USER_AGENT'] ?? null;
+    if ($ua === "" || $ua === null || !is_string($ua)) {
+        return true;
+    }
+    $ua = mb_strtolower($ua);
+
+    // Finally try load blocked UAs to match against
+    $uas = include dirname(dirname(__DIR__)) . '/config/BLOCKED_UAS.php';
+    if ($uas === false) {
+        $c['err']['FAILED_TO_RUN_MIDDLEWARE-m_match_denied_uas'] = 'Failed to Load List of Blocked User Agents!';
+        critical_err_json_or_html(500);
+    }
+    foreach (array_keys($uas) as $deniedUa) {
+        if (str_contains($ua, $deniedUa)) {
+            return true;
+        }
+    }
+    return false;
+};
