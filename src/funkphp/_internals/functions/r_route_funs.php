@@ -110,7 +110,7 @@ function funk_run_middleware_after_matched_routing(&$c)
                 }
             } // CUSTOM ERROR HANDLING HERE! - no dir or file (or change below to whatever you like)
             else {
-                $c['err']['FAILED_TO_RUN_ROUTE_MIDDLEWARE'] = 'Middleware File  at index ' .  $i . ' does not exist or is not a directory!';
+                $c['err']['FAILED_TO_RUN_ROUTE_MIDDLEWARE'] = 'Middleware File at index ' .  $i . ' does not exist or is not a directory!';
                 $c['req']['current_middleware_running'] = null;
             }
 
@@ -205,7 +205,7 @@ function funk_run_middleware_after_handled_request(&$c)
     // CUSTOM ERROR HANDLING HERE! - no matched middlewares (or change below to whatever you like)
     // IMPORTANT: No matched middlewares could mean misconfigured routes or no middlewares at all!
     else {
-        $c['err']['MAYBE']['FAILED_TO_RUN_ROUTE_CONFIG_MIDDLEWARES_MAYBE'] = "No Configured Route Middlewares (`'<CONFIG>' => 'middlewares_before_route_match'`) to run before Route Matching. If you expected Middlewares to run before Route Matching, check the `<CONFIG>` key in the Route `funk/routes/route_single_routes.php` File!";
+        $c['err']['MAYBE']['FAILED_TO_RUN_ROUTE_CONFIG_MIDDLEWARES_MAYBE'] = "No Configured Route Middlewares (`'<CONFIG>' => 'middlewares_after_handled_request'`) to run before After Handled Request. If you expected Middlewares to run After Handled Request, check the `<CONFIG>` key in the Route `funk/routes/route_single_routes.php` File!";
     }
 }
 
