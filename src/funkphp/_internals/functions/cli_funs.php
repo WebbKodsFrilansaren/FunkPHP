@@ -3586,7 +3586,7 @@ function cli_restore_default_folders_and_files()
         'middlewares_before_route_match' => [
             'm_https_redirect',
             'm_run_ini_sets',
-            'm_set_sessioon_cookie_params',
+            'm_set_session_cookie_params',
             'm_db_connect',
             'm_headers_set',
             'm_headers_remove',
