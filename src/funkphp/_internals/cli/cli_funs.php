@@ -5614,7 +5614,6 @@ function cli_success_with_warning_same_line_without_exit($string1, $string2)
     echo "\033[33m$string2\n\033[0m";
 }
 
-
 // Function loops through all function files in funkphp/_internals/functions/
 // and preg matchdes "function ([a-zA-Z0-9_]+)" and then adds the function name to an
 // array which is then converted to a [] array string using cli_convert_array_to_simple_syntax
