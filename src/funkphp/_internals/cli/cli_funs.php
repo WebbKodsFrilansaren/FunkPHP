@@ -3530,6 +3530,7 @@ function cli_restore_default_folders_and_files()
         "$folderBase/_BACKUPS/templates/",
         "$folderBase/_BACKUPS/validations/",
         "$folderBase/_internals/",
+        "$folderBase/_internals/cli/",
         "$folderBase/_internals/compiled/",
         "$folderBase/_internals/functions/",
         "$folderBase/_internals/templates/",

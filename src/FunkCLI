@@ -1,6 +1,6 @@
 #!/usr/bin/env php
 <?php // Include all CLI Functions needed to manage FunkPHP CLI!
-include __DIR__ . '/funkphp/_internals/functions/cli_funs.php';
+include __DIR__ . '/funkphp/_internals/cli/cli_funs.php';
 
 // Valid commands with valid sub-commands
 // Inspiration from Trie & Hashmaps!
