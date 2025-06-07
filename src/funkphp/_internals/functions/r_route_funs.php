@@ -418,7 +418,7 @@ function funk_run_matched_route_handler(&$c)
 }
 
 // Check if the request is from localhost or 127.0.0.1
-function is_localhost(): bool
+function funk_is_localhost(): bool
 {
     if (isset($_SERVER['REMOTE_ADDR']) && ($_SERVER['REMOTE_ADDR'] === "localhost" || $_SERVER['REMOTE_ADDR'] === "127.0.0.1")) {
         return true;

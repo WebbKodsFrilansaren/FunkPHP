@@ -18,7 +18,7 @@ $c = include_once __DIR__ . '/config/_all.php';
 
 // STEP 1: Run Middlewares BEFORE Matching Single Route, then Match Single Route
 // and then Run its associated Middlewares before its Handler(s) run!
-// This is the third step of the request, so we can run this step now!
+// This is the first step of the request, so we can run this step now!
 if ($c['req']['current_step'] === 1) {
     // Load URI Routes since we are at this step and need them!
     // Run `funkcli add r route_name METHOD/route_path/:optional_param`
@@ -151,7 +151,7 @@ $c['req']['current_step'] = $c['req']['next_step'];
 // STEP 2: Match, fetch, validate data from different sources
 // Only run this step if the current step is 2
 if ($c['req']['current_step'] === 2) {
-    // This is the fourth(4) step of the request, below you can do
+    // This is the second step of the request, below you can do
     // anything you want before running the matched data handler.
 
     // Run the matched data handler if it exists

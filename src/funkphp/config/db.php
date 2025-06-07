@@ -12,7 +12,7 @@ if (FUNKPHP_IS_LOCAL) {
 // This is your ONLINE Database connection settings!
 else {
     // Either include a file, or just hardcode your DB connection!
-    $dbFile = include __DIR__ . '/config/db_config.php';
+    $dbFile = include __DIR__ . '/config/db_config.php' ?? [];
     return [
         define("DB_HOST", $dbFile['DB_HOST'] ?? "localhost"),
         define("DB_USER", $dbFile['DB_USER'] ?? "root"),
