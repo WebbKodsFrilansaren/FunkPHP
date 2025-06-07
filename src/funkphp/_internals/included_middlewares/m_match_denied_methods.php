@@ -14,6 +14,8 @@ return function (&$c) {
 
     // Finally try load blocked methods to match against
     $methods = include dirname(dirname(__DIR__)) . '/config/BLOCKED_METHODS.php';
+
+    exit;
     if ($methods === false) {
         $c['err']['FAILED_TO_RUN_MIDDLEWARE-m_match_denied_methods'] = 'Failed to Load List of Blocked HTTP(S) Methods!';
         critical_err_json_or_html(500);

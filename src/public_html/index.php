@@ -18,7 +18,7 @@ function critical_err_json_or_html($status = 500)
         exit;
     } else {
         http_response_code($status);
-        header('Content-Type: text/html');
+        header('Content-Type: text/html; charset=utf-8');
         // - Default HTML Error Response - change as you wish!
 ?>
         <!DOCTYPE html>

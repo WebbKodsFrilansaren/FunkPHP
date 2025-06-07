@@ -429,7 +429,7 @@ $singleRoutesRoute = include __DIR__ . '/funkphp/routes/route_single_routes.php'
             'm_match_denied_methods',
             'm_match_denied_uas'
         ],
-        'middlewares_after_successful_request' => [],
+        'middlewares_after_handled_request' => [],
         'no_middlewares_match' => ['json' => [], 'page' => []],
         'no_route_match' => ['json' => [], 'page' => []],
         'no_data_match' => ['json' => [], 'page' => []],
