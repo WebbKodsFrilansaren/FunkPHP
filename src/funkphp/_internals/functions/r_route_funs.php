@@ -258,20 +258,6 @@ function funk_match_denied_uas_fast_test($ua = null)
     return false;
 }
 
-// Prepare $req['uri'] for consistent use in the app CHANGE and/or UPDATE
-// this function if you need to filter the REQUEST_URI in more ways!
-function funk_prepare_uri($uri, $fphp_BASEURL_URI)
-{
-    $uri = str_starts_with($_SERVER['REQUEST_URI'], $fphp_BASEURL_URI) ? "/" . ltrim(substr(strtok($_SERVER['REQUEST_URI'], "?"), strlen($fphp_BASEURL_URI)), '/') : strtok($_SERVER['REQUEST_URI'], "?");
-    if ($uri === "") {
-        $uri = "/";
-    }
-    if ((substr($uri, -1) == "/") && substr_count($uri, "/") > 1) {
-        $uri = substr($uri, 0, -1);
-    }
-    return $uri;
-}
-
 // Match Compiled Route with URI Segments, used by "r_match_developer_route"
 function funk_match_compiled_route(string $requestUri, array $methodRootNode): ?array
 {

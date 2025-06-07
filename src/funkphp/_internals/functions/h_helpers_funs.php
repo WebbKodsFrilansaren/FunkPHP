@@ -103,23 +103,6 @@ function funk_destroy_session($set_other_cookies_with_h_setcookie_as_array = [],
     }
 }
 
-// The function "h_headers_set" is used to set the headers for the HTTPS response
-// while the "h_headers_remove" is used to remove the headers for the HTTPS response
-function funk_headers_remove($headersToRemove)
-{
-    // Remove header(s) for the HTTPS reponse
-    foreach ($headersToRemove as $header) {
-        header_remove($header);
-    }
-}
-function funk_headers_set($headersToSet)
-{
-    // Set the header(s) for the HTTPS response
-    foreach ($headersToSet as $header) {
-        header($header);
-    }
-}
-
 // Function to set a cookie with the specified parameters
 function funk_headers_setcookie($name, $value, $expire = 0, $path = '/', $domain = '', $secure = false, $httponly = true, $samesite = 'strict')
 {
@@ -132,27 +115,6 @@ function funk_headers_setcookie($name, $value, $expire = 0, $path = '/', $domain
         'httponly' => $httponly,
         'samesite' => $samesite
     ]);
-}
-
-// Function to run an array of simple ini_sets(key,value)
-function funk_run_ini_sets(array $iniSets)
-{
-    foreach ($iniSets as $key => $value) {
-        ini_set($key, $value);
-    }
-}
-
-// Function to start session if not already started
-function funk_start_session(&$c)
-{
-    if (!session_id() || session_status() === PHP_SESSION_NONE) {
-        if (!session_start()) {
-            $c['err']['FAILED_TO_START_SESSION'] = 'Failed to start session.';
-        } else {
-            // If session started successfully, set a session variable
-            $_SESSION['FPFP_SESS_START'] = true;
-        }
-    }
 }
 
 // This function uses the "The Random\Randomizer class" to generate a unique password

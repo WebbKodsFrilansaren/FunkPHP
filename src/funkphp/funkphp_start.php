@@ -16,104 +16,10 @@ include_once __DIR__ . '/_internals/functions/_includeAllExceptCLI.php';
 // will be used throughout the application
 $c = include_once __DIR__ . '/config/_all.php';
 
-
-// STEP 1: LOAD & INITIALIZE GLOBAL CONFIGURATION FILES
-// This includes: Setting initial INI_SETS, Setting Sesssion Cookies Params,
-// Connecting to the Database, Setting Headers and Starting the Session.
-// Only Run Step 1 if the current step is 1 (the first step of the request)
-if ($c['req']['current_step'] === 1) {
-    // Redirect to HTTPS if not already on HTTPS (if needed)
-    funk_https_redirect();
-
-    // See src/funkphp/config/ini_sets.php for the default ini_sets() settings!
-    funk_run_ini_sets($c['INI_SETS'] ?? []);
-
-    // See src/funkphp/config/cookies.php for the default (session) cookie settings!
-    session_set_cookie_params([
-        'lifetime' => $c['COOKIES']['SESSION_LIFETIME'],
-        'path' => $c['COOKIES']['SESSION_PATH'],
-        'domain' => $c['BASEURLS']['BASEURL'],
-        'secure' => $c['COOKIES']['SESSION_SECURE'],
-        'httponly' => $c['COOKIES']['SESSION_HTTPONLY'],
-        'samesite' => $c['COOKIES']['SESSION_SAMESITE'],
-    ]);
-
-    // See src/funkphp/config/db.php for the default database settings!
-    $c['db'] = funk_connect_db(DB_HOST, DB_USER, DB_PASSWORD, DB_NAME) ?? null;
-    if ($c['db'] === null) {
-        $c['err']['FAILED_TO_LOAD_DB'] = 'Database Connection Failed. Please check your Database Connection Configuration in `funkphp/config/db_config.php`!';
-    }
-
-    // HANDLE Database Connection Error Before Proceeding?
-    if ($c['err']['FAILED_TO_LOAD_DB']) {
-    }
-
-    // Headers to Set and Remove for each HTTP(S) Request
-    funk_headers_set($c['HEADERS']['ADD']);
-    funk_headers_remove($c['HEADERS']['REMOVE']);
-
-    // Start the session (if not already started)
-    funk_start_session($c);
-
-    // HANDLE Session Start Error Before Proceeding?
-    if ($c['err']['FAILED_TO_START_SESSION']) {
-    }
-
-    // Prepare the request URI for the FunkPHP Framework - Change
-    // the function if you need to filter REQUEST_URI in more ways!
-    $c['req']['uri'] = funk_prepare_uri($_SERVER['REQUEST_URI'], $c['BASEURLS']['BASEURL_URI']);
-
-    // This is the end of Step 1, do anything more if you want to
-    $c['req']['next_step'] = 2;
-}
-// This sets next step. If you wanna do something more before that, do that before this line!
-$c['req']['current_step'] = $c['req']['next_step'];
-
-
-// STEP 2: Globally Filter Allowed Methods, IPs and User Agents (UAs)
-// Only Run Step 1 if the current step is 1 (the second step of the request)
-if ($c['req']['current_step'] === 2) {
-    // Match against denied and invalid methods | true = denied, false = allowed
-    $FPHP_INVALID_METHOD = funk_match_denied_methods();
-    if ($FPHP_INVALID_METHOD) {
-        // If desired, response behavior edit as you please!
-        echo "I'm a funky teapot!";
-        http_response_code(418);
-        exit;
-    }
-    unset($FPHP_INVALID_METHOD);
-
-    // Match against denied and invalid exact IPs | true = denied, false = allowed
-    $FPHP_INVALID_IP = funk_match_denied_exact_ips();
-    if ($FPHP_INVALID_IP) {
-        // If desired, response behavior edit as you please!
-        echo "I'm a funky teapot!";
-        http_response_code(418);
-        exit;
-    }
-    unset($FPHP_INVALID_IP);
-
-    // Match against denied UAs | true = denied, false = allowed
-    $FPHP_INVALID_UA = funk_match_denied_uas_fast();
-    if ($FPHP_INVALID_UA) {
-        // If desired, edit response behavior as you please!
-        echo "I'm a funky teapot!";
-        http_response_code(418);
-        exit;
-    }
-    unset($FPHP_INVALID_UA);
-
-    // This is the end of Step 2, you can freely add any other checks you want here!
-    // You have all global (meta) data in $c variable, so you can use it as you please!
-    // Maybe you want to globally block specific Content-Type headers or something else?
-    $c['req']['next_step'] = 3;
-}
-$c['req']['current_step'] = $c['req']['next_step'];
-
-
-// STEP 3: Match Single Route and its associated Middlewares
+// STEP 1: Run Middlewares BEFORE Matching Single Route, then Match Single Route
+// and then Run its associated Middlewares before its Handler(s) run!
 // This is the third step of the request, so we can run this step now!
-if ($c['req']['current_step'] === 3) {
+if ($c['req']['current_step'] === 1) {
     // Load URI Routes since we are at this step and need them!
     // Run `funkcli add r route_name METHOD/route_path/:optional_param`
     // to start adding routes to your FunkPHP Web Application!
@@ -161,7 +67,7 @@ if ($c['req']['current_step'] === 3) {
         $c['r_config'] = $c['ROUTES']['SINGLES']['<CONFIG>'];
     }
 
-    // BEFORE STEP 3: Do anything you want here before matching the route and middlewares!
+    // BEFORE STEP 1: Do anything you want here before matching the route and middlewares!
     // Here configured & existing middlewares are loaded and runs before route matching!
     if (
         isset($c['r_config']['middlewares_before_route_match']) &&
@@ -235,16 +141,16 @@ if ($c['req']['current_step'] === 3) {
     if ($c['err']['FAILED_TO_RUN_ROUTE_FUNCTION']) {
     }
 
-    // This is the end of Step 3, you can freely add any other checks you want here!
+    // This is the end of Step 1, you can freely add any other checks you want here!
     // You have all global (meta) data in $c variable, so you can use it as you please!
-    $c['req']['next_step'] = 4;
+    $c['req']['next_step'] = 2;
 }
 $c['req']['current_step'] = $c['req']['next_step'];
 
 
-// STEP 4: Match, fetch, validate data from different sources
-// Only run this step if the current step is 4
-if ($c['req']['current_step'] === 4) {
+// STEP 2: Match, fetch, validate data from different sources
+// Only run this step if the current step is 2
+if ($c['req']['current_step'] === 2) {
     // This is the fourth(4) step of the request, below you can do
     // anything you want before running the matched data handler.
 
@@ -270,15 +176,15 @@ if ($c['req']['current_step'] === 4) {
     }
 
     // You have all global (meta) data in $c variable, so you can use it as you please!
-    $c['req']['next_step'] = 5; // Set next step to 5 (Step 5)
+    $c['req']['next_step'] = 3; // Set next step to 3 (Step 3)
 
 }
 $c['req']['current_step'] = $c['req']['next_step'];
 
 
-// STEP 5: Return a matched page after route and data matching!
-// Only run this step if the current step is 5
-if ($c['req']['current_step'] === 5) {
+// STEP 3: Return a matched page after route and data matching!
+// Only run this step if the current step is 3
+if ($c['req']['current_step'] === 3) {
     // This is the last step of the request, so we can run this step now!
 
     // TODO: Add matching page step. Add running middleware step. Add the Template Engine function too!
@@ -292,4 +198,4 @@ if ($c['req']['current_step'] === 5) {
 // This part is only executed if the request was not properly handled by the pipeline!
 // Feel free to add your own error handling here and/or easter egg!
 
-var_dump($c['err']);
+ddj($c['err']);
