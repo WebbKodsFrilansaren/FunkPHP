@@ -2890,7 +2890,6 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         '[QUERY_TYPE]' => [
             'SELECT DISTINCT',
             'SELECT INTO',
-            'SELECT TOP',
             'SELECT',
             'INSERT',
             'UPDATE',
@@ -4478,7 +4477,6 @@ function cli_create_sql_file_and_or_handler()
         'DELETE',
         'SELECT_DISTINCT',
         'SELECT_INTO',
-        'SELECT_TOP'
     ];
     if (!in_array($queryType, $availableQueryTypes)) {
         cli_err_syntax_without_exit("Invalid Query Type: \"$queryType\". Available Query Types: " . implode(', ', quotify_elements($availableQueryTypes)) . ".");
@@ -4486,7 +4484,7 @@ function cli_create_sql_file_and_or_handler()
     }
 
     // Default values added to the $DXPART variable
-    $chosenQueryType = "'<CONFIG>' =>[\n'[QUERY_TYPE]' => '$queryType',\n";
+    $chosenQueryType = "'<CONFIG>' =>[\n'<QUERY_TYPE>' => '$queryType', '<TABLES>' => '" . implode(',', array_keys($times)) . "',\n";
     $subQueries = "'[SUBQUERIES]' => [\n'[subquery_example_1]' => 'SELECT COUNT(*)',\n'[subquery_example_2]' => '(WHERE SELECT *)']],";
     $DXPART = $chosenQueryType . $subQueries . "\n";
 
