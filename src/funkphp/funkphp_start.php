@@ -76,7 +76,7 @@ if ($c['req']['current_step'] === 1) {
     ) {
         funk_run_middleware_before_matched_routing($c);
     } else {
-        $c['err']['MAYBE']['FAILED_TO_LOAD_ROUTE_CONFIG_MIDDLEWARES_MAYBE'] = "No Configured Route Middlewares (`'<CONFIG>' => 'middlewares_before_route_match'`) to load and run before Route Matching. If you expected Middlewares to run before Route Matching, check the `<CONFIG>` key in the Route `funk/routes/route_single_routes.php` File!";
+        $c['err']['MAYBE']['FAILED_TO_LOAD_ROUTE_CONFIG_BEFORE_ROUTE_MATCHING_MIDDLEWARES_MAYBE'] = "No Configured Route Middlewares (`'<CONFIG>' => 'middlewares_before_route_match'`) to load and run before Route Matching. If you expected Middlewares to run before Route Matching, check the `<CONFIG>` key in the Route `funk/routes/route_single_routes.php` File!";
     }
 
     // STEP 3: Match Route & Middlewares and then
@@ -135,7 +135,7 @@ if ($c['req']['current_step'] === 1) {
     // OPTIONAL Handling: Edit or just remove, doesn't matter!
     // matched_handler doesn't exist? What then or just move on?
     else {
-        $c['err']['FAILED_TO_MATCH_ROUTE_MAYBE'] = "No Route Handler Matched. If you expected a Route to match, check your Routes file and ensure the Route exists and that a Handler File with a Handler Function has been added to it under the key `handler`. For example: `['handler' => 'handler_file' => 'handler_function']`.";
+        $c['err']['MAYBE']['FAILED_TO_MATCH_ROUTE_MAYBE'] = "No Route Handler Matched. If you expected a Route to match, check your Routes file and ensure the Route exists and that a Handler File with a Handler Function has been added to it under the key `handler`. For example: `['handler' => 'handler_file' => 'handler_function']`.";
     }
     // Matched_handler failed to run? What then or just move on?
     if ($c['err']['FAILED_TO_RUN_ROUTE_FUNCTION']) {
@@ -192,6 +192,17 @@ if ($c['req']['current_step'] === 3) {
     // This is the end of Step 5, you can freely add any final code here!
     // You have all global (meta) data in $c variable, so you can use it as you please!
 
+    // AFTER STEP 3: Do anything you want here after returning a page unless JSON was
+    // returned insterad. Here the final middlewares are run after everything else is done!
+    if (
+        isset($c['r_config']['middlewares_after_handled_request']) &&
+        is_array($c['r_config']['middlewares_after_handled_request']) &&
+        !empty($c['r_config']['middlewares_after_handled_request'])
+    ) {
+        funk_run_middleware_after_handled_request($c);
+    } else {
+        $c['err']['MAYBE']['FAILED_TO_LOAD_ROUTE_CONFIG_AFTER_REQUEST_MIDDLEWARES_MAYBE'] = "No Configured After Request Middlewares (`'<CONFIG>' => 'middlewares_after_handled_request'`) to load and run after handled request. If you expected Middlewares to run After Handled Request, check the `<CONFIG>` key in the Route `funk/routes/route_single_routes.php` File!";
+    }
 }
 // This is the end of the entire request process!
 

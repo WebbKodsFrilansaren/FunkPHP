@@ -1,70 +1,5 @@
 <?php // ROUTE-related FUNCTIONS FOR FunPHP
 
-// Redirect to HTTPS if the application is online (not localhost) and not secured yet
-function funk_https_redirect()
-{
-    try {
-        if (isset($_SERVER['SERVER_NAME']) && $_SERVER['SERVER_NAME'] !== "localhost" &&  $_SERVER['SERVER_NAME'] !== "127.0.0.1") {
-            if (!isset($_SERVER['HTTPS']) || $_SERVER['HTTPS'] !== 'on') {
-                global $c;
-                // We check if the url ended in "/" and if so we remove it
-                $onlineURL = $c['BASEURLS']['ONLINE'] ? rtrim($c['BASEURLS']['ONLINE'], "/") : $c['BASEURLS']['ONLINE'];
-                header("Location: $onlineURL" . $_SERVER['REQUEST_URI'], true, 301);
-                exit;
-            }
-        }
-    } catch (Exception $e) {
-        // Change this if you wanna redirect somewhere else or log the error!
-        echo "[funk_https_redirect-ERROR]: " . $e->getMessage();
-    }
-}
-
-// Try match against denied methods globally (or when just invalid)
-function funk_match_denied_methods()
-{
-    // Return null if $method is invalid method variable
-    $method = $_SERVER['REQUEST_METHOD'] ?? null;
-    if ($method === "" || $method === null || !is_string($method)) {
-        return true;
-    }
-    $method = strtoupper($method);
-
-    // Then check $method is a valid HTTP method
-    if (!in_array($method, ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"])) {
-        return true; // Invalid HTTP method, so deny access
-    }
-
-    // Finally try load blocked methods to match against
-    $methods = include dirname(dirname(__DIR__)) . '/config/BLOCKED_METHODS.php';
-    if ($methods === false) {
-        return ["err" =>  "[funk_match_denied_methods]: Failed to load compiled methods!"];
-    }
-    if (isset($methods[$method])) {
-        return true;
-    }
-    return false;
-}
-
-// Try match against denied IPs globally
-function funk_match_denied_exact_ips()
-{
-    // Try parse IP and check if it is valid
-    $ip = $_SERVER['REMOTE_ADDR'] ?? null;
-    if ($ip === "" || $ip === null || !is_string($ip) || !filter_var($ip, FILTER_VALIDATE_IP)) {
-        return true;
-    }
-
-    // Finally try load exact IPs to match against
-    $ips_exact = include dirname(dirname(__DIR__)) . '/config/BLOCKED_IPS.php';
-    if ($ips_exact === false) {
-        return ["err" =>  "[funk_match_denied_exact_ips]: Failed to load compiled IPs!"];
-    }
-    if (isset($ips_exact[$ip])) {
-        return true;
-    }
-    return false;
-}
-
 // Try run middlewares BEFORE matched routing (BEFORE step 1)
 // &$c is Global Config Variable with "everything"!
 function funk_run_middleware_before_matched_routing(&$c)
@@ -279,54 +214,6 @@ function funk_exit_middleware_running_early_matched_routing(&$c)
 {
     $c['req']['keep_running_middlewares'] === false;
     return;
-}
-
-// Try match against denied UAs globally (str_contains version, faster)
-function funk_match_denied_uas_fast()
-{
-    // Try parse UA and check if it is valid
-    $ua = $_SERVER['HTTP_USER_AGENT'] ?? null;
-    if ($ua === "" || $ua === null || !is_string($ua)) {
-        return true;
-    }
-    $ua = mb_strtolower($ua);
-
-    // Finally try load blocked UAs to match against
-    $uas = include dirname(dirname(__DIR__)) . '/config/BLOCKED_UAS.php';
-    if ($uas === false) {
-        return ["err" =>  "[funk_match_denied_uas]: Failed to load list of blocked UAs!"];
-    }
-    foreach (array_keys($uas) as $deniedUa) {
-        if (str_contains($ua, $deniedUa)) {
-            return true;
-        }
-    }
-    return false;
-}
-
-// Try match against denied UAs globally (str_contains version, faster - for testing purposes)
-function funk_match_denied_uas_fast_test($ua = null)
-{
-    // Try parse UA and check if it is valid
-    if ($ua === null) {
-        $ua = $_SERVER['HTTP_USER_AGENT'] ?? null;
-    }
-    if ($ua === "" || $ua === null || !is_string($ua)) {
-        return true;
-    }
-    $ua = mb_strtolower($ua);
-
-    // Finally try load blocked UAs to match against
-    $uas = include dirname(dirname(__DIR__)) . '/config/BLOCKED_UAS.php';
-    if ($uas === false) {
-        return ["err" =>  "[funk_match_denied_uas]: Failed to load list of blocked UAs!"];
-    }
-    foreach (array_keys($uas) as $deniedUa) {
-        if (str_contains($ua, $deniedUa)) {
-            return true;
-        }
-    }
-    return false;
 }
 
 // Match Compiled Route with URI Segments, used by "r_match_developer_route"

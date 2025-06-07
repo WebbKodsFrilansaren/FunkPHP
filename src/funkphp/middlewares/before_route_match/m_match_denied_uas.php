@@ -3,7 +3,7 @@ return function (&$c) {
     // Try parse UA and check if it is valid
     $ua = $_SERVER['HTTP_USER_AGENT'] ?? null;
     if ($ua === "" || $ua === null || !is_string($ua)) {
-        return true;
+        critical_err_json_or_html(500);
     }
     $ua = mb_strtolower($ua);
 
@@ -15,8 +15,8 @@ return function (&$c) {
     }
     foreach (array_keys($uas) as $deniedUa) {
         if (str_contains($ua, $deniedUa)) {
-            return true;
+            critical_err_json_or_html(500);
         }
     }
-    return false;
+    return;
 };

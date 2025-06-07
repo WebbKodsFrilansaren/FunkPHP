@@ -3,13 +3,13 @@ return function (&$c) {
     // Return null if $method is invalid method variable
     $method = $_SERVER['REQUEST_METHOD'] ?? null;
     if ($method === "" || $method === null || !is_string($method)) {
-        return true;
+        critical_err_json_or_html(500);
     }
     $method = strtoupper($method);
 
     // Then check $method is a valid HTTP method
     if (!in_array($method, ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"])) {
-        return true; // Invalid HTTP method, so deny access
+        critical_err_json_or_html(500); // Invalid HTTP method, so deny access
     }
 
     // Finally try load blocked methods to match against
@@ -19,7 +19,7 @@ return function (&$c) {
         critical_err_json_or_html(500);
     }
     if (isset($methods[$method])) {
-        return true;
+        critical_err_json_or_html(500);
     }
-    return false;
+    return;
 };
