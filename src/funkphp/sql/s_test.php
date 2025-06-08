@@ -16,7 +16,7 @@ function s_test2(&$c) // <authors>
     // to get SQL, Hydration & Binded Params in return statement below it!
     $DX = [
         '<CONFIG>' => [
-            '[QUERY_TYPE]' => 'SELECT',
+            '<QUERY_TYPE>' => 'SELECT',
             '[SUBQUERIES]' => [
                 '[subquery_example_1]' => 'SELECT COUNT(*)',
                 '[subquery_example_2]' => '(WHERE SELECT *)'

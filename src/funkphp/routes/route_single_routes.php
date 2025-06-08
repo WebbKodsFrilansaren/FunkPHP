@@ -16,7 +16,7 @@ return  [
       'm_match_denied_methods',
       'm_match_denied_uas'
     ],
-    'middlewares_after_successful_request' => [],
+    'middlewares_after_request' => [],
     'no_middlewares_match' =>
     [
       'json' =>
