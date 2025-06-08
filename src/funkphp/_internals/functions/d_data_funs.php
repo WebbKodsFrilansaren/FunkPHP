@@ -48,71 +48,6 @@ function funk_run_matched_data_handler(&$c)
     }
 }
 
-// Function that either gets a valid validation array from a given validation
-// file and then a given validation function name or returns null with error.
-function funk_load_validation_file(&$c, $string)
-{
-    $handlerFile = null;
-    $fnName = null;
-    if (!is_string($string)) {
-        $c['err']['FAILED_TO_LOAD_VALIDATION_FILE'] = "Validation Handler File must be a String (`FileName`) and WITHOUT the File Extension (`.php`)!";
-        return null;
-    } else {
-        $handlerFile = $string;
-    }
-    if (!str_starts_with($handlerFile, "v_")) {
-        $handlerFile = "v_" . $handlerFile;
-    }
-    if (str_ends_with($handlerFile, ".php")) {
-        $handlerFile = substr($handlerFile, 0, -4);
-    }
-    if (!preg_match('/^[a-z0-9_]+$/', $handlerFile)) {
-        $c['err']['FAILED_TO_LOAD_VALIDATION_FILE'] = 'Validation Handler File `' . $handlerFile . '` must be a lowercase string containing only letters, numbers and underscores!';
-        return null;
-    }
-    $validationFile = dirname(dirname(__DIR__)) . '/validations/' . $handlerFile . '.php';
-    if (file_exists_is_readable_writable($validationFile)) {
-        $validationDataFromFile = include_once $validationFile;
-        if (is_callable($validationDataFromFile)) {
-            return $validationDataFromFile;
-        } else {
-            $c['err']['FAILED_TO_LOAD_VALIDATION_FILE'] = 'Validation Handler File ``' . $handlerFile . '.php` did not return a callable function.';
-            return null;
-        }
-    } else {
-        $c['err']['FAILED_TO_LOAD_VALIDATION_FILE'] = 'Validation Handler File `' . $handlerFile . '.php` not found or not readable! (Reminder: a single string is parsed as `v_file=>v_function`!)';
-        return null;
-    }
-}
-
-// Function that loads a single validation file and a function from it meaning it CANNOT
-// be called twice to the same file as that file would have to be loaded twice which is not
-// possible with include_once! So, this should ONLY be used when you know you only need to
-// validate using a single validation file and function from it. `$source` should be `POST`|`GET`|`JSON`!
-function funk_use_validation_on_single_validation_file_and_function(&$c, $validationFileName, $validationFunctionName, $source = null)
-{
-    // Check that all three are strings or return null and set error
-    if (
-        !is_string($validationFileName)
-        || !is_string($validationFunctionName)
-        || ($source !== null && !is_string($source))
-    ) {
-        $c['err']['FAILED_TO_LOAD_SINGLE_VALIDATION_FILE'] = 'Validation File Name, Function Name, and Source must be strings!';
-        return null;
-    }
-    // Load the validation file and get the function
-    // Any Error will be set by the funk_load_validation_file function
-    $validationFile = funk_load_validation_file($c, $validationFileName);
-    if ($validationFile === null) {
-        $c['err']['FAILED_TO_LOAD_SINGLE_VALIDATION_FILE'] = 'Failed to Load Single Validation File `' . $validationFileName . '`!';
-        return null;
-    }
-
-    // Run the provided Validation Function from the loaded file and return the Boolean Result
-    // When "null" is returned, it means no validation were run due to an error beforehand!
-    return funk_use_validation($c, $validationFile($c, $validationFunctionName), $source);
-}
-
 // Function that validates a set of rules for a given single input field/data
 function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array $rules, array &$currentErrPath): void
 {
@@ -766,16 +701,38 @@ function funk_validation_recursively_improved(
 
 // The main validation function for validating data in FunkPHP
 // mapping to the "$_GET"/"$_POST" or "php://input" (JSON) variable ONLY!
-function funk_use_validation(&$c, $optimizedValidationArray, $source)
+function funk_use_validation(&$c, $validationHandler, $validationFunction, $source)
 {
-    // Validation Error Array and its OK varaible must exist to run this function
-    if (!array_key_exists('v', $c)) {
-        $c['err']['FAILED_TO_RUN_VALIDATION_FUNCTION'] = "Validation Function needs the Validation Error Array `\$c['v']`!";
+
+    // Check that both "$validationHandler, $validationFunction" are strings
+    if (!is_string($validationHandler) || !is_string($validationFunction)) {
+        $c['err']['FAILED_TO_RUN_VALIDATION_FUNCTION-funk_use_validation'] = "Validation Function needs a valid string for `\$validationHandler` and `\$validationFunction`!";
         return false;
     }
-    if (!array_key_exists('v_ok', $c)) {
-        $c['err']['FAILED_TO_RUN_VALIDATION_FUNCTION'] = "Validation Function needs the Validation Error Array `\$c['v_ok']`!";
-        return false;
+    // In "$optimizedValidationArray" we will store the retrieved VaLidation Array
+    // from a Validation Handler and one of its Validation Functions!
+    $optimizedValidationArray = null;
+    // If the Validation Handler exists in the $c['v_handlers'] we try call the Validation Function
+    // and store the result in $optimizedValidationArray which is then used for validation!
+    if (isset($c['v_handlers'][$validationHandler])) {
+        $optimizedValidationArray = $c['v_handlers'][$validationHandler]($c, $validationFunction) ?? null;
+    }
+    // If not set, we check if the file
+    else {
+        $validationFile = dirname(dirname(__DIR__)) . '/validations/' . $validationHandler . '.php';
+        if (file_exists_is_readable_writable($validationFile)) {
+            $validationDataFromFile = include_once $validationFile;
+            if (is_callable($validationDataFromFile)) {
+                $c['v_handlers'][$validationHandler] = $validationDataFromFile;
+                $optimizedValidationArray = $c['v_handlers'][$validationHandler]($c, $validationFunction) ?? null;
+            } else {
+                $c['err']['FAILED_TO_LOAD_VALIDATION_FILE-funk_use_validation'] = 'Validation Handler File ``' . $validationHandler . '.php` did not return a callable function.';
+                return false;
+            }
+        } else {
+            $c['err']['FAILED_TO_LOAD_VALIDATION_FILE-funk_use_validation'] = 'Validation Handler File `' . $validationHandler . '.php` not found or not readable! (Reminder: a single string is parsed as `v_file=>v_function`!)';
+            return false;
+        }
     }
 
     // Inform about the fact that this function is not

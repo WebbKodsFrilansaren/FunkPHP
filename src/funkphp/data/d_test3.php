@@ -8,9 +8,7 @@ function d_test3(&$c) // <GET/test2>
 {
     // Created in FunkCLI on 2025-05-30 22:34:02! Keep "};" on its
     // own new line without indentation no comment right after it!
-    $v_file = funk_load_validation_file($c, "v_test");
-    $v_test = funk_use_validation($c, $v_file($c, "v_test2"), "GET");
-    $v_test = funk_use_validation_on_single_validation_file_and_function($c, "v_test", "v_test2", "GET");
+    $v_test = funk_use_validation($c, "v_test", "v_test2", "GET");
 
     $test = [
         'v' => $c['v'],

@@ -142,6 +142,8 @@ return [
 
     // 'v' should be NULL but stores ANY founds errors during the validation process while
     // 'v_ok' will is true if not a single v['key']['optionalSubkey'] is set with error(s)!
+    // 'v_handlers' contains a unique array of validation handlers that are closures to functios
+    // where the Validation Arrays are stored (the funkphp/validations/ folder with its files!)
     // The 'v_ok_files' is boolean for validating files and works the same way as 'v_ok'!
     // 'v_config' is a global array of validation configurations that can be accessed
     // when validating no matter how nested or not the validation is! It stores "password"
@@ -151,6 +153,7 @@ return [
     // is valid. Set this to "false" if you want to for example repopulate incomplete
     // form data instead of Users having to re-enter everything because of a single error!
     'v' => null,
+    'v_handlers' => null,
     'v_ok' => null,
     'v_ok_files' => null,
     'v_config' => [],
