@@ -147,7 +147,6 @@ if ($c['req']['current_step'] === 1) {
 }
 $c['req']['current_step'] = $c['req']['next_step'];
 
-
 // STEP 2: Match, fetch, validate data from different sources
 // Only run this step if the current step is 2
 if ($c['req']['current_step'] === 2) {
@@ -180,7 +179,6 @@ if ($c['req']['current_step'] === 2) {
 
 }
 $c['req']['current_step'] = $c['req']['next_step'];
-
 
 // STEP 3: Return a matched page after route and data matching!
 // Only run this step if the current step is 3
