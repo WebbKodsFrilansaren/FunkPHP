@@ -2877,7 +2877,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
 
     // Prepare variables to store the
     // converted SQL Query Array
-    $convertedSQLArray = ["sql" => "", "hydrate" => [], "bind_params" => []];
+    $convertedSQLArray = ["sql" => "", "hydrate" => [], "bparam" => ""];
     $builtSQLString = "";
     $builtHydrateArray = [];
     $builtBindedParamsArray = [];
@@ -2900,6 +2900,83 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         '[SUBQUERIES]' => [],
     ];
 
+    // List of keys that are ignored based on query type (this is just to inform the Developer)
+    $ignoredKeysByQueryType = [
+        'SELECT_DISTINCT' => [
+            "INSERT",
+            "INTO",
+            "DELETE",
+            "UPDATE",
+            "SET",
+            "VALUES",
+        ],
+        'SELECT_INTO' => [
+            "INSERT",
+            "DELETE",
+            "UPDATE",
+            "SET",
+            "VALUES",
+        ],
+        'SELECT' => [
+            "INSERT",
+            "INTO",
+            "DELETE",
+            "UPDATE",
+            "SET",
+            "VALUES",
+        ],
+        'INSERT' => [
+            "INTO",
+            "JOIN",
+            "JOINS",
+            "ON",
+            "SELECT",
+            "DELETE",
+            "UPDATE",
+            "SET",
+            "FROM",
+            "VALUES",
+            "WHERE",
+            "ORDER BY",
+            "GROUP BY",
+            "HAVING",
+            "LIMIT",
+            "OFFSET"
+        ],
+        'UPDATE' => [
+            "INTO",
+            "JOIN",
+            "JOINS",
+            "ON",
+            "SELECT",
+            "DELETE",
+            "INSERT",
+            "FROM",
+            "VALUES",
+            "ORDER BY",
+            "GROUP BY",
+            "HAVING",
+            "LIMIT",
+            "OFFSET"
+        ],
+        'DELETE' => [
+            "INTO",
+            "JOIN",
+            "JOINS",
+            "ON",
+            "SELECT",
+            "INSERT",
+            "UPDATE",
+            "SET",
+            "VALUES",
+            "ORDER BY",
+            "GROUP BY",
+            "HAVING",
+            "LIMIT",
+            "OFFSET"
+        ]
+    ];
+
     // "'<CONFIG>' key(s)
     $configKey = $sqlArray['<CONFIG>'] ?? null;
     $configQTKey = $configKey['<QUERY_TYPE>'] ?? null;
@@ -2918,21 +2995,21 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
             }
         }
     } else {
-        cli_err_syntax("No Config Key `<CONFIG>` found in SQL Array Query `$handlerFile.php=>$fnName`. It and its `[QUERY_TYPE]` key must be set!");
+        cli_err_syntax("No Config Key `<CONFIG>` found in SQL Array `$handlerFile.php=>$fnName`. It and its `[QUERY_TYPE]` key must be set!");
     }
 
     // Validate that $configQTKey is set and is a valid query type
     if (!isset($configQTKey) || !is_string_and_not_empty($configQTKey)) {
-        cli_err_syntax_without_exit("No Config Key `<QUERY_TYPE>` found in SQL Array Query `$handlerFile.php=>$fnName`!");
+        cli_err_syntax_without_exit("No Config Key `<QUERY_TYPE>` found in SQL Array `$handlerFile.php=>$fnName`!");
         cli_info("Valid Query Types are: " . implode(", ", quotify_elements($globalConfigRules['[QUERY_TYPE]'])) . ".");
     } elseif (!in_array(strtoupper($configQTKey), $globalConfigRules['<QUERY_TYPE>'], true)) {
-        cli_err_syntax_without_exit("Invalid Config Key `<QUERY_TYPE>` value `$configQTKey` in SQL Array Query `$handlerFile.php=>$fnName`!");
+        cli_err_syntax_without_exit("Invalid Config Key `<QUERY_TYPE>` value `$configQTKey` in SQL Array `$handlerFile.php=>$fnName`!");
         cli_info("Valid Query Types are: " . implode(", ", quotify_elements($globalConfigRules['[QUERY_TYPE]'])) . ".");
     }
 
     // Validate that $configTBKey is set and is a valid table name
     if (!isset($configTBKey) || !is_array_and_not_empty($configTBKey)) {
-        cli_err_syntax_without_exit("Invalid Config Key `<TABLES>` value in SQL Array Query `$handlerFile.php=>$fnName`!");
+        cli_err_syntax_without_exit("Invalid Config Key `<TABLES>` value in SQL Array `$handlerFile.php=>$fnName`!");
         cli_info("The `<TABLES>` key must be a Non-Empty Array representing the Table name(s)!");
     }
     // Loop through all Tables and check if they are valid (and exist in $tables[] array!)
@@ -2940,12 +3017,12 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         foreach ($configTBKey as $tableName) {
             // If the table name is not a string or empty, we error out
             if (!is_string_and_not_empty($tableName)) {
-                cli_err_syntax_without_exit("Invalid Table Name `$tableName` in SQL Array Query `$handlerFile.php=>$fnName`!");
+                cli_err_syntax_without_exit("Invalid Table Name `$tableName` in SQL Array `$handlerFile.php=>$fnName`!");
                 cli_info("Table Names must be Non-Empty Strings!");
             }
             // If the table name is not in the $tables array, we error out
             if (!array_key_exists($tableName, $tables)) {
-                cli_err_syntax_without_exit("Table Name `$tableName` from SQL Array Query `$handlerFile.php=>$fnName` not found in `config/tables.php` File!");
+                cli_err_syntax_without_exit("Table Name `$tableName` from SQL Array `$handlerFile.php=>$fnName` not found in `config/tables.php` File!");
                 cli_info("Valid Table Names are: " . implode(", ", quotify_elements(array_keys($tables))) . ".");
             }
         }
@@ -2956,19 +3033,19 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
     if (isset($configSubQsKey) && is_array_and_not_empty($configSubQsKey)) {
         // If the configSubQsKey is not an array, we error out
         if (!is_array($configSubQsKey)) {
-            cli_err_syntax_without_exit("Invalid Config Key `[SUBQUERIES]` value in SQL Array Query `$handlerFile.php=>$fnName`!");
+            cli_err_syntax_without_exit("Invalid Config Key `[SUBQUERIES]` value in SQL Array `$handlerFile.php=>$fnName`!");
             cli_info("The `[SUBQUERIES]` key must be a Non-Empty Array representing the Subqueries!");
         }
         // If the configSubQsKey is an array, we check each key
         foreach ($configSubQsKey as $subQueryKey => $subQueryValue) {
             // If the subquery key does not start with "[" or end with "]", we error out
             if (!str_starts_with($subQueryKey, "[") || !str_ends_with($subQueryKey, "]")) {
-                cli_err_syntax_without_exit("Invalid Subquery Key `$subQueryKey` in SQL Array Query `$handlerFile.php=>$fnName`!");
+                cli_err_syntax_without_exit("Invalid Subquery Key `$subQueryKey` in SQL Array `$handlerFile.php=>$fnName`!");
                 cli_info("Subquery Keys must start with `[` and end with `]`!");
             }
             // If the subquery value is not a non-empty string, we error out
             if (!is_string_and_not_empty($subQueryValue)) {
-                cli_err_syntax_without_exit("Invalid Subquery Value `$subQueryValue` in SQL Array Query `$handlerFile.php=>$fnName`!");
+                cli_err_syntax_without_exit("Invalid Subquery Value `$subQueryValue` in SQL Array `$handlerFile.php=>$fnName`!");
                 cli_info("Subquery Values must be Non-Empty Strings (or just remove the key if not used)!");
             }
         }
@@ -2983,35 +3060,99 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         'ONLY_TABLE_NAME_AND_EXCEPT_COLS_AFTER_COLON' => '/^([a-z_][a-z_0-9]+)\*except:(.+)$/i',
     ];
 
-    // We now process based on $configQTKey value (the Query Type)
-    // before returning the finally converted SQL Array!
+    // We iterate through $ignoredKeysByQueryType to add what keys would be ignored based
+    // on query type ($configQTKey) and build and array and then we inform the Developer
+    // that these keys are ignored based on the query type.
+    $ignoredKeys = [];
+    foreach ($sqlArray as $key => $keys) {
+        // If the key is not in the ignored keys by query type, we skip it
+        if (!array_key_exists($configQTKey, $ignoredKeysByQueryType)) {
+            continue;
+        }
+        // If the key is in the ignored keys by query type, we add it to the ignored keys array
+        if (in_array($key, $ignoredKeysByQueryType[$configQTKey], true)) {
+            $ignoredKeys[] = $key;
+        }
+    }
+
+    // WE NOW PROCESS BASED ON $configQTKey VALUE (the Query Type)
+    // BEFORE RETURNING THE FINALLY CONVERT_SQL_ARRAY VARIABLE!!!
+    // THIS IS THE MAIN AND MOST IMPORTANT PART OF THE ENTIRE FUNCTION!!!
+
     // INSERT
     if ($configQTKey === 'INSERT') {
         $insertTb = $configTBKey[0] ?? null;
+        $insertCols = "";
+        $insertValues = "";
+        $insertBindedParams = "";
         if (!isset($insertTb) || !is_string_and_not_empty($insertTb)) {
-            cli_err_syntax_without_exit("No Table Name found in SQL Array Query `$handlerFile.php=>$fnName` for INSERT Query!");
+            cli_err_syntax_without_exit("No Table Name found in SQL Array `$handlerFile.php=>$fnName` for INSERT Query!");
             cli_info("The `<TABLES>` key must be a Non-Empty Array representing the Table name(s)!");
         }
-        $builtSQLString .= "INSERT INTO ";
+        $builtSQLString .= "INSERT INTO $insertTb ($insertCols) VALUES ($insertValues);";
+        $convertedSQLArray['sql'] = $builtSQLString;
+        if (is_array($ignoredKeys) && !empty($ignoredKeys)) {
+            cli_warning_without_exit("The Following Found Keys were IGNORED for the INSERT Query Type: " . implode(", ", quotify_elements($ignoredKeys)));
+            cli_info_without_exit("Feel free to remove them from the SQL Array to not confuse Yourself!");
+        }
+        cli_info_without_exit("Built SQL String for INSERT Query: `$builtSQLString`");
     }
     // UPDATE
     elseif ($configQTKey === 'UPDATE') {
+        $updateTb = $configTBKey[0] ?? null;
+        if (!isset($updateTb) || !is_string_and_not_empty($updateTb)) {
+            cli_err_syntax_without_exit("No Table Name found in SQL Array `$handlerFile.php=>$fnName` for UPDATE Query!");
+            cli_info("The `<TABLES>` key must be a Non-Empty Array representing the Table name(s)!");
+        }
+
+        if (is_array($ignoredKeys) && !empty($ignoredKeys)) {
+            cli_warning_without_exit("The Following Found Keys were IGNORED for the UPDATE Query Type: " . implode(", ", quotify_elements($ignoredKeys)));
+            cli_info_without_exit("Feel free to remove them from the SQL Array to not confuse Yourself!");
+        }
     }
     // DELETE
     elseif ($configQTKey === 'DELETE') {
+        $deleteTb = $configTBKey[0] ?? null;
+        if (!isset($deleteTb) || !is_string_and_not_empty($deleteTb)) {
+            cli_err_syntax_without_exit("No Table Name found in SQL Array `$handlerFile.php=>$fnName` for DELETE Query!");
+            cli_info("The `<TABLES>` key must be a Non-Empty Array representing the Table name(s)!");
+        }
+
+        if (is_array($ignoredKeys) && !empty($ignoredKeys)) {
+            cli_warning_without_exit("The Following Found Keys were IGNORED for the DELETE Query Type: " . implode(", ", quotify_elements($ignoredKeys)));
+            cli_info_without_exit("Feel free to remove them from the SQL Array to not confuse Yourself!");
+        }
     }
     // SELECT DISTINCT
     elseif ($configQTKey === 'SELECT_DISTINCT') {
+
+
+        if (is_array($ignoredKeys) && !empty($ignoredKeys)) {
+            cli_warning_without_exit("The Following Found Keys were IGNORED for the SELECT_DISTINCT Query Type: " . implode(", ", quotify_elements($ignoredKeys)));
+            cli_info_without_exit("Feel free to remove them from the SQL Array to not confuse Yourself!");
+        }
     }
     // SELECT INTO
     elseif ($configQTKey === 'SELECT_INTO') {
+
+
+        if (is_array($ignoredKeys) && !empty($ignoredKeys)) {
+            cli_warning_without_exit("The Following Found Keys were IGNORED for the SELECT_INTO Query Type: " . implode(", ", quotify_elements($ignoredKeys)));
+            cli_info_without_exit("Feel free to remove them from the SQL Array to not confuse Yourself!");
+        }
     }
     // SELECT
     elseif ($configQTKey === 'SELECT') {
+
+
+        if (is_array($ignoredKeys) && !empty($ignoredKeys)) {
+            cli_warning_without_exit("The Following Found Keys were IGNORED for the SELECT Query Type: " . implode(", ", quotify_elements($ignoredKeys)));
+            cli_info_without_exit("Feel free to remove them from the SQL Array to not confuse Yourself!");
+        }
     }
     // You should never reach this point, but if you do, we error out
     else {
-        cli_err_syntax_without_exit("Invalid Config Key `<QUERY_TYPE>` value `$configQTKey` in SQL Array Query `$handlerFile.php=>$fnName`!");
+        cli_err_syntax_without_exit("Invalid Config Key `<QUERY_TYPE>` value `$configQTKey` in SQL Array `$handlerFile.php=>$fnName`!");
         cli_info("Valid Query Types are: " . implode(", ", quotify_elements($globalConfigRules['<QUERY_TYPE>'])) . ".");
     }
 
@@ -4553,7 +4694,7 @@ function cli_create_sql_file_and_or_handler()
 
     // Default values added to the $DXPART variable
     $chosenQueryType = "'<CONFIG>' =>[\n\t\t\t'<QUERY_TYPE>' => '$queryType',\n\t\t\t'<TABLES>' => [\"" . implode('","', array_keys($tbs)) . "\"],";
-    $subQueries = "\n\t\t\t'[SUBQUERIES]' => [\n\t\t\t\t'[subquery_example_1]' => 'SELECT COUNT(*)',\n\t\t\t\t'[subquery_example_2]' => '(WHERE SELECT *)']],";
+    $subQueries = "\n\t\t\t'[SUBQUERIES]' => [ // /!\: Subqueries are IGNORED when Query Type is `INSERT|UPDATE|DELETE`!\n\t\t\t\t'[subquery_example_1]' => 'SELECT COUNT(*)',\n\t\t\t\t'[subquery_example_2]' => '(WHERE SELECT *)']],";
     $DXPART = $chosenQueryType . $subQueries;
     $queryTypePart = "";
 
@@ -4564,10 +4705,9 @@ function cli_create_sql_file_and_or_handler()
         // Remove the 'id' column from the array since that is auto-incremented
         $tbsColsExceptId = array_keys($tbs[array_key_first($tbs)]['cols']);
         array_shift($tbsColsExceptId);
-        $iC1 = "// Leave 'VALUES' empty or NULL unless you wanna set hardcoded values. Otherwise, split on:`|` (for example: `table_column1 = numericValue|table_column2 = \"stringValue\"`)!";
         $tbsColsExceptId = implode(',', $tbsColsExceptId);
         $tbsColsExceptId = key($tbs) . ':' . $tbsColsExceptId;
-        $queryTypePart .= "\n\t\t'INSERT_INTO' => '$tbsColsExceptId',\n\t\t$iC1\n\t\t'VALUES' => '',\n";
+        $queryTypePart .= "\n\t\t'INSERT_INTO' => '$tbsColsExceptId',\n";
         $DXPART .= $queryTypePart;
     }
     // When 'UPDATE'
