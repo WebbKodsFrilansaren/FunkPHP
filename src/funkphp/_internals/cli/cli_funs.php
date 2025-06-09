@@ -126,6 +126,7 @@ function get_match_dx_return_regex()
 }
 
 // Function to connect to local MySQL database!
+// Configure its connection: /funkphp/config/db_config.php
 function cli_db_connect()
 {
     global $exactFiles, $dirs, $settings;
