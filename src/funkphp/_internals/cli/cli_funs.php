@@ -129,10 +129,9 @@ function get_match_dx_return_regex()
 // Configure its connection: /funkphp/config/db_config.php
 function cli_db_connect()
 {
-    global $exactFiles, $dirs, $settings;
+    global $exactFiles;
     $dbConfig = include_once $exactFiles['db_local'];
     try {
-        // Create a new mysqli object with the provided parameters
         $conn = new mysqli($dbConfig['DB_HOST'], $dbConfig['DB_USER'], $dbConfig['DB_PASSWORD'], $dbConfig['DB_NAME'], $dbConfig['DB_PORT']);
         $conn->set_charset('utf8mb4');
     } catch (Exception $e) {
