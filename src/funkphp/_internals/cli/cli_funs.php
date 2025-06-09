@@ -2977,6 +2977,16 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         ]
     ];
 
+    // List of minimum required keys for each query type
+    $minimumRequiredKeysByQueryType = [
+        'SELECT_DISTINCT' => [],
+        'SELECT_INTO' => ['SELECT', 'INTO'],
+        'SELECT' => ['SELECT', 'FROM'],
+        'INSERT' => ['INSERT_INTO',],
+        'UPDATE' => ['UPDATE_SET', 'WHERE'],
+        'DELETE' => ['DELETE_FROM', 'WHERE']
+    ];
+
     // "'<CONFIG>' key(s)
     $configKey = $sqlArray['<CONFIG>'] ?? null;
     $configQTKey = $configKey['<QUERY_TYPE>'] ?? null;
@@ -3075,6 +3085,18 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         }
     }
 
+    // We iterate through $minimumRequiredKeysByQueryType and make sure the current
+    // query type ($configQTKey) has all the minimum required keys set in the SQL Array
+    if (isset($minimumRequiredKeysByQueryType[$configQTKey]) && is_array_and_not_empty($minimumRequiredKeysByQueryType[$configQTKey])) {
+        foreach ($minimumRequiredKeysByQueryType[$configQTKey] as $requiredKey) {
+            // If the required key is not in the SQL Array, we error out
+            if (!array_key_exists($requiredKey, $sqlArray)) {
+                cli_err_syntax_without_exit("Missing Required Key `$requiredKey` in SQL Array `$handlerFile.php=>$fnName` for Query Type `$configQTKey`!");
+                cli_info("The `$requiredKey` key must be set in the SQL Array for this Query Type!");
+            }
+        }
+    }
+
     // WE NOW PROCESS BASED ON $configQTKey VALUE (the Query Type)
     // BEFORE RETURNING THE FINALLY CONVERT_SQL_ARRAY VARIABLE!!!
     // THIS IS THE MAIN AND MOST IMPORTANT PART OF THE ENTIRE FUNCTION!!!
@@ -3086,9 +3108,13 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         $insertValues = "";
         $insertBindedParams = "";
         if (!isset($insertTb) || !is_string_and_not_empty($insertTb)) {
-            cli_err_syntax_without_exit("No Table Name found in SQL Array `$handlerFile.php=>$fnName` for INSERT Query!");
+            cli_err_syntax_without_exit("No Table Name found in SQL Array['<TABLES'>] `$handlerFile.php=>$fnName` for INSERT Query!");
             cli_info("The `<TABLES>` key must be a Non-Empty Array representing the Table name(s)!");
         }
+
+        // We will now
+
+
         $builtSQLString .= "INSERT INTO $insertTb ($insertCols) VALUES ($insertValues);";
         $convertedSQLArray['sql'] = $builtSQLString;
         if (is_array($ignoredKeys) && !empty($ignoredKeys)) {
@@ -3101,7 +3127,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
     elseif ($configQTKey === 'UPDATE') {
         $updateTb = $configTBKey[0] ?? null;
         if (!isset($updateTb) || !is_string_and_not_empty($updateTb)) {
-            cli_err_syntax_without_exit("No Table Name found in SQL Array `$handlerFile.php=>$fnName` for UPDATE Query!");
+            cli_err_syntax_without_exit("No Table Name found in SQL Array['<TABLES'>] `$handlerFile.php=>$fnName` for UPDATE Query!");
             cli_info("The `<TABLES>` key must be a Non-Empty Array representing the Table name(s)!");
         }
 
@@ -3114,7 +3140,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
     elseif ($configQTKey === 'DELETE') {
         $deleteTb = $configTBKey[0] ?? null;
         if (!isset($deleteTb) || !is_string_and_not_empty($deleteTb)) {
-            cli_err_syntax_without_exit("No Table Name found in SQL Array `$handlerFile.php=>$fnName` for DELETE Query!");
+            cli_err_syntax_without_exit("No Table Name found in SQL Array['<TABLES'>] `$handlerFile.php=>$fnName` for DELETE Query!");
             cli_info("The `<TABLES>` key must be a Non-Empty Array representing the Table name(s)!");
         }
 
@@ -4712,17 +4738,23 @@ function cli_create_sql_file_and_or_handler()
     }
     // When 'UPDATE'
     elseif ($queryType === 'UPDATE') {
-        $uC1 = "// ";
         // Remove the 'id' column from the array since that is auto-incremented
         $tbsColsExceptId = array_keys($tbs[array_key_first($tbs)]['cols']);
         array_shift($tbsColsExceptId);
         $tbsColsExceptId = implode('|', $tbsColsExceptId);
         $tbsColsExceptId = key($tbs) . ':' . $tbsColsExceptId;
-        $queryTypePart .= "'UPDATE' => '$tbsColsExceptId',\n\t\t'SET' => '', $uC1\n\t\t'WHERE' => '',\n";
+        $queryTypePart .= "'UPDATE_SET' => '$tbsColsExceptId',\n\t\t'WHERE' => '',\n";
         $DXPART .= $queryTypePart;
     }
     // When 'DELETE'
     elseif ($queryType === 'DELETE') {
+        // Remove the 'id' column from the array since that is auto-incremented
+        $tbsColsExceptId = array_keys($tbs[array_key_first($tbs)]['cols']);
+        array_shift($tbsColsExceptId);
+        $tbsColsExceptId = implode('|', $tbsColsExceptId);
+        $tbsColsExceptId = key($tbs) . ':' . $tbsColsExceptId;
+        $queryTypePart .= "'DELETE_FROM' => '$tbsColsExceptId',\n\t\t'WHERE' => '',\n";
+        $DXPART .= $queryTypePart;
     }
     // When regular 'SELECT'
     elseif ($queryType === 'SELECT') {
