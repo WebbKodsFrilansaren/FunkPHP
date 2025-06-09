@@ -2751,8 +2751,8 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         'SELECT_INTO' => ['SELECT', 'INTO'],
         'SELECT' => ['SELECT', 'FROM'],
         'INSERT' => ['INSERT_INTO',],
-        'UPDATE' => ['UPDATE_SET', 'WHERE'],
-        'DELETE' => ['DELETE_FROM', 'WHERE']
+        'UPDATE' => ['UPDATE_SET',],
+        'DELETE' => ['DELETE_FROM']
     ];
 
     // List of valid binding types (s,i, d, b)
@@ -3014,6 +3014,8 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
             cli_info("The `<TABLES>` key must be a Non-Empty Array representing the Table name(s)!");
         }
 
+        // Report success and inform about ignored keys
+        cli_success_without_exit("Built SQL String for UPDATE Query: `$builtSQLString`");
         if (is_array($ignoredKeys) && !empty($ignoredKeys)) {
             cli_warning_without_exit("The Following Found Keys were IGNORED for the UPDATE Query Type: " . implode(", ", quotify_elements($ignoredKeys)));
             cli_info_without_exit("Feel free to remove them from the SQL Array to not confuse Yourself!");
@@ -3027,6 +3029,8 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
             cli_info("The `<TABLES>` key must be a Non-Empty Array representing the Table name(s)!");
         }
 
+        // Report success and inform about ignored keys
+        cli_success_without_exit("Built SQL String for DELETE Query: `$builtSQLString`");
         if (is_array($ignoredKeys) && !empty($ignoredKeys)) {
             cli_warning_without_exit("The Following Found Keys were IGNORED for the DELETE Query Type: " . implode(", ", quotify_elements($ignoredKeys)));
             cli_info_without_exit("Feel free to remove them from the SQL Array to not confuse Yourself!");
@@ -3035,7 +3039,8 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
     // SELECT DISTINCT
     elseif ($configQTKey === 'SELECT_DISTINCT') {
 
-
+        // Report success and inform about ignored keys
+        cli_success_without_exit("Built SQL String for SELECT_DISTINCT Query: `$builtSQLString`");
         if (is_array($ignoredKeys) && !empty($ignoredKeys)) {
             cli_warning_without_exit("The Following Found Keys were IGNORED for the SELECT_DISTINCT Query Type: " . implode(", ", quotify_elements($ignoredKeys)));
             cli_info_without_exit("Feel free to remove them from the SQL Array to not confuse Yourself!");
@@ -3044,7 +3049,8 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
     // SELECT INTO
     elseif ($configQTKey === 'SELECT_INTO') {
 
-
+        // Report success and inform about ignored keys
+        cli_success_without_exit("Built SQL String for SELECT_INTO Query: `$builtSQLString`");
         if (is_array($ignoredKeys) && !empty($ignoredKeys)) {
             cli_warning_without_exit("The Following Found Keys were IGNORED for the SELECT_INTO Query Type: " . implode(", ", quotify_elements($ignoredKeys)));
             cli_info_without_exit("Feel free to remove them from the SQL Array to not confuse Yourself!");
@@ -3053,7 +3059,8 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
     // SELECT
     elseif ($configQTKey === 'SELECT') {
 
-
+        // Report success and inform about ignored keys
+        cli_success_without_exit("Built SQL String for SELECT Query: `$builtSQLString`");
         if (is_array($ignoredKeys) && !empty($ignoredKeys)) {
             cli_warning_without_exit("The Following Found Keys were IGNORED for the SELECT Query Type: " . implode(", ", quotify_elements($ignoredKeys)));
             cli_info_without_exit("Feel free to remove them from the SQL Array to not confuse Yourself!");
@@ -4594,8 +4601,6 @@ function cli_create_sql_file_and_or_handler()
         $queryType = 'SELECT_DISTINCT';
     } elseif (str_starts_with($queryType, 'SI')) {
         $queryType = 'SELECT_INTO';
-    } elseif (str_starts_with($queryType, 'ST')) {
-        $queryType = 'SELECT_TOP';
     }
     $availableQueryTypes = [
         'SELECT',
@@ -4694,9 +4699,6 @@ function cli_create_sql_file_and_or_handler()
     }
     // When 'SELECT_INTO'
     elseif ($queryType === 'SELECT_INTO') {
-    }
-    // When 'SELECT_TOP'
-    elseif ($queryType === 'SELECT_TOP') {
     }
     // When invalid Query Type which should not happen at this point
     else {
