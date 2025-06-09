@@ -3194,7 +3194,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                     cli_err_syntax_without_exit("Column Name `$col` from SQL Array `$handlerFile.php=>$fnName` is NOT in the <MATCHED_FIELDS> Array!");
                     cli_info("Valid Fields are: " . implode(", ", quotify_elements($validFieldsKey)) . ".");
                 } else {
-                    $builtFieldsArray[] = !empty($validFieldsKey[$col]) ? $validFieldsKey[$col] : $col;
+                    $builtFieldsArray[] = !empty($validFieldsKey[$col]) ? $validFieldsKey[$col] : $insertTb . '_' . $col;
                 }
             }
             $builtBindedParamsString .= $tables[$insertTb][$col]['binding'];
@@ -4819,7 +4819,8 @@ function cli_create_sql_file_and_or_handler()
 
     // Default values added to the $DXPART variable
     $chosenQueryType = "'<CONFIG>' =>[\n\t\t\t'<QUERY_TYPE>' => '$queryType',\n\t\t\t'<TABLES>' => [\"" . implode('","', array_keys($tbs)) . "\"],";
-    $subQueries = "\n\t\t\t'[SUBQUERIES]' => [ // /!\: Subqueries are IGNORED when Query Type is `INSERT|UPDATE|DELETE`!\n\t\t\t\t'[subquery_example_1]' => 'SELECT COUNT(*)',\n\t\t\t\t'[subquery_example_2]' => '(WHERE SELECT *)']],";
+    $subQueriesEmpty = ($queryType === 'INSERT' || $queryType === 'UPDATE' || $queryType === 'DELETE') ? "" : "\t\t\t\t'[subquery_example_1]' => 'SELECT COUNT(*)',\n\t\t\t\t'[subquery_example_2]' => '(WHERE SELECT *)'";
+    $subQueries = "\n\t\t\t'[SUBQUERIES]' => [ // /!\: Subqueries are IGNORED when Query Type is `INSERT|UPDATE|DELETE`!\n$subQueriesEmpty\t\t\t]\n\t\t],";
     $DXPART = $chosenQueryType . $subQueries;
     $queryTypePart = "";
 
@@ -4829,12 +4830,13 @@ function cli_create_sql_file_and_or_handler()
     if ($queryType === 'INSERT') {
         // Remove the 'id' column from the array since that is auto-incremented
         $tbsColsExceptId = array_keys($tbs[array_key_first($tbs)]['cols']);
+        $tbName = key($tbs);
         array_shift($tbsColsExceptId);
         $valCols = $tbsColsExceptId;
         $tbsColsExceptId = implode(',', $tbsColsExceptId);
         $tbsColsExceptId = key($tbs) . ':' . $tbsColsExceptId;
         $queryTypePart .= "\n\t\t'INSERT_INTO' => '$tbsColsExceptId',";
-        $bindedValidatedData = "\n\t\t\t'<MATCHED_FIELDS>' => [// What each Binded Param must match from a Validated Data Field Array (empty means same as key) \n\t\t\t\t'" . implode('\' => \'\',\'', $valCols) . "'=> '',],\n";
+        $bindedValidatedData = "\n\t\t\t'<MATCHED_FIELDS>' => [// What each Binded Param must match from a Validated Data Field Array (empty means same as TableName_ColumnKey) \n\t\t\t\t'" . implode('\' => \'\',\'', $valCols) . "'=> '',],\n";
         $queryTypePart .= $bindedValidatedData;
         $DXPART .= $queryTypePart;
     }
@@ -4842,20 +4844,26 @@ function cli_create_sql_file_and_or_handler()
     elseif ($queryType === 'UPDATE') {
         // Remove the 'id' column from the array since that is auto-incremented
         $tbsColsExceptId = array_keys($tbs[array_key_first($tbs)]['cols']);
+        $tbName = key($tbs);
         array_shift($tbsColsExceptId);
+        $valCols = $tbsColsExceptId;
         $tbsColsExceptId = implode('|', $tbsColsExceptId);
         $tbsColsExceptId = key($tbs) . ':' . $tbsColsExceptId;
         $queryTypePart .= "'UPDATE_SET' => '$tbsColsExceptId',\n\t\t'WHERE' => '',\n";
+        $bindedValidatedData = "\n\t\t\t'<MATCHED_FIELDS>' => [// What each Binded Param must match from a Validated Data Field Array (empty means same as TableName_ColumnKey) \n\t\t\t\t'" . implode('\' => \'\',\'', $valCols) . "'=> '',],\n";
         $DXPART .= $queryTypePart;
     }
     // When 'DELETE'
     elseif ($queryType === 'DELETE') {
         // Remove the 'id' column from the array since that is auto-incremented
         $tbsColsExceptId = array_keys($tbs[array_key_first($tbs)]['cols']);
+        $tbName = key($tbs);
         array_shift($tbsColsExceptId);
+        $valCols = $tbsColsExceptId;
         $tbsColsExceptId = implode('|', $tbsColsExceptId);
         $tbsColsExceptId = key($tbs) . ':' . $tbsColsExceptId;
         $queryTypePart .= "'DELETE_FROM' => '$tbsColsExceptId',\n\t\t'WHERE' => '',\n";
+        $bindedValidatedData = "\n\t\t\t'<MATCHED_FIELDS>' => [// What each Binded Param must match from a Validated Data Field Array (empty means same as TableName_ColumnKey) \n\t\t\t\t'" . implode('\' => \'\',\'', $valCols) . "'=> '',],\n";
         $DXPART .= $queryTypePart;
     }
     // When regular 'SELECT'

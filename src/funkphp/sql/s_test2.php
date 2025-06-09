@@ -1,7 +1,7 @@
 <?php
 
 namespace FunkPHP\SQL\s_test2;
-// SQL Handler File - Created in FunkCLI on 2025-06-09 16:29:22!
+// SQL Handler File - Created in FunkCLI on 2025-06-09 17:12:19!
 // Write your SQL Query, Hydration & optional Binded Params in the
 // $DX variable and then run the command
 // `php funkcli compile s s_test2=>$function_name`
@@ -10,7 +10,7 @@ namespace FunkPHP\SQL\s_test2;
 
 function s_test3(&$c) // <authors>
 {
-	// Created in FunkCLI on 2025-06-09 16:29:22! Keep "};" on its
+	// Created in FunkCLI on 2025-06-09 17:12:19! Keep "};" on its
 	// own new line without indentation no comment right after it!
 	// Run the command `php funkcli compile s s_test2=>s_test3`
 	// to get SQL, Hydration & Binded Params in return statement below it!
@@ -19,12 +19,10 @@ function s_test3(&$c) // <authors>
 			'<QUERY_TYPE>' => 'INSERT',
 			'<TABLES>' => ["authors"],
 			'[SUBQUERIES]' => [ // /!\: Subqueries are IGNORED when Query Type is `INSERT|UPDATE|DELETE`!
-				'[subquery_example_1]' => 'SELECT COUNT(*)',
-				'[subquery_example_2]' => '(WHERE SELECT *)'
 			]
 		],
 		'INSERT_INTO' => 'authors:name,email,description,longer_description,age,weight,nickname,updated_at',
-		'<MATCHED_FIELDS>' => [ // What each Binded Param must match from a Data Field Array (empty means same as key)
+		'<MATCHED_FIELDS>' => [ // What each Binded Param must match from a Validated Data Field Array (empty means same as key)
 			'name' => '',
 			'email' => '',
 			'description' => '',
@@ -43,14 +41,14 @@ function s_test3(&$c) // <authors>
 		'bparam' => 'ssssidss',
 		'fields' =>
 		array(
-			0 => 'name',
-			1 => 'email',
-			2 => 'description',
-			3 => 'longer_description',
-			4 => 'age',
-			5 => 'weight',
-			6 => 'nickname',
-			7 => 'updated_at',
+			0 => 'authors_name',
+			1 => 'authors_email',
+			2 => 'authors_description',
+			3 => 'authors_longer_description',
+			4 => 'authors_age',
+			5 => 'authors_weight',
+			6 => 'authors_nickname',
+			7 => 'authors_updated_at',
 		),
 	);
 };
