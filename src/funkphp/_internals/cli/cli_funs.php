@@ -4855,7 +4855,7 @@ function cli_create_sql_file_and_or_handler()
     // since this optional argument is used to allow for default values to be used instead of provided ones!
     // This only applies to Query Type 'INSERT' since it is the only one that allows for default values to be used!
     if (in_array($queryType, ['INSERT'])) {
-        if (isset($argv[6]) && is_string($argv[6]) || !empty(trim($argv[6])) && strtolower($argv[6]) === 'exclude_default') {
+        if (isset($argv[6]) && is_string($argv[6]) && !empty(trim($argv[6])) && strtolower($argv[6]) === 'exclude_default') {
             foreach ($tbs as $tbName => $tbData) {
                 foreach ($tbData['cols'] as $colName => $colData) {
                     // If the column has a default value that is not null or empty, we remove it from the array
