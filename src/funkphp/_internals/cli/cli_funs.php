@@ -2887,12 +2887,11 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
 
     // Prepare variables to store the
     // converted SQL Query Array
-    $convertedSQLArray = ["sql" => "", "hydrate" => [], "bparam" => ""];
+    $convertedSQLArray = ["sql" => "", "hydrate" => [], "bparam" => "", "fields" => []];
     $builtSQLString = "";
     $builtHydrateArray = [];
     $builtBindedParamsString = "";
-    $currentSQLKey = null;
-    $currentSQLVal = null;
+    $builtFieldsArray = [];
     $tables = $tablesAndRelationshipsFile['tables'] ?? [];
     $relationships = $tablesAndRelationshipsFile['relationships'] ?? [];
 
@@ -3010,6 +3009,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
     $configQTKey = $configKey['<QUERY_TYPE>'] ?? null;
     $configTBKey = $configKey['<TABLES>'] ?? null;
     $configSubQsKey = $configKey['[SUBQUERIES]'] ?? null;
+    $validFieldsKey = $sqlArray['<MATCHED_FIELDS>'] ?? null;
 
     // If "$configKey" not null, we check it is an array and not empty
     // and then we iterate through the keys to check for valid keys
@@ -3187,7 +3187,20 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                 cli_err_syntax_without_exit("Column Name `$col` from SQL Array `$handlerFile.php=>$fnName` does NOT have a VALID Binding defined in `config/tables.php` for Table `$insertTb`!");
                 cli_info("Make sure the Column `$col` has a binding ('s', 'd', 'i' or 'b') defined in the `config/tables.php` file for Table `$insertTb`!");
             }
+            // The "fields" key in the $convertedSQLArray is used to store matching fields
+            // so the Binded Params can use the correct values from a given array!
+            if (isset($validFieldsKey) && is_array_and_not_empty($validFieldsKey)) {
+                if (!isset($validFieldsKey[$col])) {
+                    cli_err_syntax_without_exit("Column Name `$col` from SQL Array `$handlerFile.php=>$fnName` is NOT in the <MATCHED_FIELDS> Array!");
+                    cli_info("Valid Fields are: " . implode(", ", quotify_elements($validFieldsKey)) . ".");
+                } else {
+                    $builtFieldsArray[] = !empty($validFieldsKey[$col]) ? $validFieldsKey[$col] : $col;
+                }
+            }
             $builtBindedParamsString .= $tables[$insertTb][$col]['binding'];
+            if (!empty($builtFieldsArray)) {
+                $convertedSQLArray['fields'] = $builtFieldsArray;
+            }
         }
 
         // We count the $insertCols and create equally many ? as $insertValues
@@ -3345,6 +3358,10 @@ function cli_compile_dx_sql_to_optimized_sql()
     // This contains the optimized SQL Query which will then replace the "$matchedReturnStmt"
     // The function can error out on its own so we do not need to check for the return value!
     $optimizedSQLArray = cli_convert_simple_sql_query_to_optimized_sql($evalCode, $handlerFile, $fnName);
+
+    // TODO: Add that it checks the sql key against DB with the prepared statement and check error level
+    // to either validate that it is a valid SQL Query or not (based on migrated tables), and then return the error message
+    // if it is not a valid SQL Query meaning the conversion failed despite actually being created correctly otherwise!
 
     // Convert the optimized SQL array to a string with ";\n" at the end
     $optimizedSQLArrayAsStringWithReturnStmt = "return " . var_export($optimizedSQLArray, true) . ";\n";
@@ -4679,14 +4696,14 @@ function cli_create_sql_file_and_or_handler()
     $handlerDirPath = "sql";
     $date = date("Y-m-d H:i:s");
     $outputHandlerRoute = null;
-    $handlerBaseFullStringRow1 = "\n\$base = is_string(\$handler) ? \$handler : \"\";";
-    $handlerBaseFullStringRow2 = "\n\$full = __NAMESPACE__ . '\\\\' . \$base;";
-    $handlerBaseFullStringRow3 = "\nif (function_exists(\$full)) {";
-    $handlerBaseFullStringRow4 = "\nreturn \$full(\$c);";
-    $handlerBaseFullStringRow5 = "\n} else {";
-    $handlerBaseFullStringRow6 = "\$c['err']['FAILED_TO_RUN_SQL_FUNCTION-' . '$handlerFile'] = 'SQL function `' . \$full . '` not found in namespace `' . __NAMESPACE__ . '`!';";
-    $handlerBaseFullStringRow7 = "\nreturn null;";
-    $handlerBaseFullStringRow8 = "\n}";
+    $handlerBaseFullStringRow1 = "\n\t\$base = is_string(\$handler) ? \$handler : \"\";";
+    $handlerBaseFullStringRow2 = "\n\t\$full = __NAMESPACE__ . '\\\\' . \$base;";
+    $handlerBaseFullStringRow3 = "\n\tif (function_exists(\$full)) {";
+    $handlerBaseFullStringRow4 = "\n\t\treturn \$full(\$c);";
+    $handlerBaseFullStringRow5 = "\n\t} else {";
+    $handlerBaseFullStringRow6 = "\n\t\t\$c['err']['FAILED_TO_RUN_SQL_FUNCTION-' . '$handlerFile'] = 'SQL function `' . \$full . '` not found in namespace `' . __NAMESPACE__ . '`!';";
+    $handlerBaseFullStringRow7 = "\n\t\treturn null;";
+    $handlerBaseFullStringRow8 = "\n\t}";
     $handlerBaseFullString =
         $handlerBaseFullStringRow1
         . $handlerBaseFullStringRow2 . $handlerBaseFullStringRow3
@@ -4813,9 +4830,12 @@ function cli_create_sql_file_and_or_handler()
         // Remove the 'id' column from the array since that is auto-incremented
         $tbsColsExceptId = array_keys($tbs[array_key_first($tbs)]['cols']);
         array_shift($tbsColsExceptId);
+        $valCols = $tbsColsExceptId;
         $tbsColsExceptId = implode(',', $tbsColsExceptId);
         $tbsColsExceptId = key($tbs) . ':' . $tbsColsExceptId;
-        $queryTypePart .= "\n\t\t'INSERT_INTO' => '$tbsColsExceptId',\n";
+        $queryTypePart .= "\n\t\t'INSERT_INTO' => '$tbsColsExceptId',";
+        $bindedValidatedData = "\n\t\t\t'<MATCHED_FIELDS>' => [// What each Binded Param must match from a Validated Data Field Array (empty means same as key) \n\t\t\t\t'" . implode('\' => \'\',\'', $valCols) . "'=> '',],\n";
+        $queryTypePart .= $bindedValidatedData;
         $DXPART .= $queryTypePart;
     }
     // When 'UPDATE'
@@ -4862,7 +4882,7 @@ function cli_create_sql_file_and_or_handler()
     //         'SELECT','INSERT','INSERT INTO','UPDATE','DELETE'],'[SUBQUERIES]' => [\n'[subquery1]' => 'SELECT COUNT(*)',\n'[subquery2]' => '(WHERE SELECT *)']],\n'SELECT/INSERT/UPDATE/DELETE(CHOOSE-ONE-PER-SQL-FUNCTION!)' => '',\n'FROM' => '',\n'INTO' => '',\n'JOINS' => '',\n'WHERE' => '',\n'GROUP_BY' => '',\n'HAVING' => '',\n'ORDER_BY' => '',\n'LIMIT' => '',\n'OFFSET' => '',\n'VALUES' => '',\n'?_BINDED_PARAMS' => '',\n'HYDRATE' => 'table1:cols|table2:cols|table1=>table2',";
 
     // Prepare the validation limiter strings and return function regex
-    $sqlLimiterStrings = "\t// Created in FunkCLI on $date! Keep \"};\" on its\n\t// own new line without indentation no comment right after it!\n\t// Run the command `php funkcli compile s $handlerFile=>$fnName`\n\t// to get SQL, Hydration & Binded Params in return statement below it!\n\t\$DX = [$DXPART\t];\n\n\n\treturn array([]);\n";
+    $sqlLimiterStrings = "\t// Created in FunkCLI on $date! Keep \"};\" on its\n\t// own new line without indentation no comment right after it!\n\t// Run the command `php funkcli compile s $handlerFile=>$fnName`\n\t// to get SQL, Hydration & Binded Params in return statement below it!\n\t\$DX = [$DXPART\t];\n\n\treturn array([]);\n";
     $returnFunctionRegex = '/^(return function)\s*\(&\$c, \$handler\s*=\s*.+$.*?^};/ims';
     $usedTables = implode(",", array_keys($tbs)) ?? ""; // Inserted inbetween "<>" in the function name comment
 
