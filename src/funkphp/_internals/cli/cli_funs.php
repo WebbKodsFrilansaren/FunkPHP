@@ -2875,12 +2875,22 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         cli_info("This probably means that the \"\$DX\" variable is an Empty Array, or not an Array at all?");
     }
 
+    // Anonymous Functions that are used repeatedly
+    $extractColsWithoutIdFromTable = function ($table, $tableString) {
+        $cols = (str_contains($tableString, ",")) ? explode(",", substr($tableString, strlen($table) + 1)) : [substr($tableString, strlen($table) + 1)];
+        $cols = array_map('trim', $cols);
+        $cols = array_filter($cols, function ($col) {
+            return $col !== 'id';
+        });
+        return array_values($cols);
+    };
+
     // Prepare variables to store the
     // converted SQL Query Array
     $convertedSQLArray = ["sql" => "", "hydrate" => [], "bparam" => ""];
     $builtSQLString = "";
     $builtHydrateArray = [];
-    $builtBindedParamsArray = [];
+    $builtBindedParamsString = "";
     $currentSQLKey = null;
     $currentSQLVal = null;
     $tables = $tablesAndRelationshipsFile['tables'] ?? [];
@@ -2979,12 +2989,20 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
 
     // List of minimum required keys for each query type
     $minimumRequiredKeysByQueryType = [
-        'SELECT_DISTINCT' => [],
+        'SELECT_DISTINCT' => ['SELECT', 'FROM', 'DISTINCT'],
         'SELECT_INTO' => ['SELECT', 'INTO'],
         'SELECT' => ['SELECT', 'FROM'],
         'INSERT' => ['INSERT_INTO',],
         'UPDATE' => ['UPDATE_SET', 'WHERE'],
         'DELETE' => ['DELETE_FROM', 'WHERE']
+    ];
+
+    // List of valid binding types (s,i, d, b)
+    $validBindingTypes = [
+        's' => [],
+        'i' => [],
+        'd' => [],
+        'b' => []
     ];
 
     // "'<CONFIG>' key(s)
@@ -3112,16 +3130,59 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
             cli_info("The `<TABLES>` key must be a Non-Empty Array representing the Table name(s)!");
         }
 
-        // We will now
+        // We will now check that "INSERT_INTO" key starts with "table_name:" since it must be the same table
+        // name as the one chosen in "<CONFIG>['<TABLES>']" !
+        $insertIntoKey = $sqlArray['INSERT_INTO'] ?? null;
+        if (!isset($insertIntoKey) || !is_string_and_not_empty($insertIntoKey)) {
+            cli_err_syntax_without_exit("No `INSERT_INTO` Key found in SQL Array `$handlerFile.php=>$fnName` for INSERT Query!");
+            cli_info("The `INSERT_INTO` key must be a Non-Empty String representing the Table name(s)!");
+        }
+        if (!str_starts_with($insertIntoKey, $insertTb . ":")) {
+            cli_err_syntax_without_exit("The `INSERT_INTO` Key in SQL Array `$handlerFile.php=>$fnName` does not start with the Table Name `$insertTb:`!");
+            cli_info("The `INSERT_INTO` key must start with the Table Name followed by a colon `:`!");
+        }
 
+        // We extract columns based on ":" and then on optional "," (if there are more than one column)
+        $insertCols = $extractColsWithoutIdFromTable($insertTb, $insertIntoKey);
 
+        // We check that the columns are valid (exists in $tables[$insertTb])
+        // and create the Binded Params String while we're at it!
+        foreach ($insertCols as $col) {
+            // If the column is not a string or empty, we error out
+            if (!is_string_and_not_empty($col)) {
+                cli_err_syntax_without_exit("Invalid Column Name in SQL Array `$handlerFile.php=>$fnName` for INSERT Query!");
+                cli_info("Column Names must be Non-Empty Strings!");
+            }
+            // If the column is not in the table, we error out
+            if (!array_key_exists($col, $tables[$insertTb])) {
+                cli_err_syntax_without_exit("Column Name `$col` from SQL Array `$handlerFile.php=>$fnName` not found in Table `$insertTb`!");
+                cli_info("Valid Column Names are: " . implode(", ", quotify_elements(array_keys($tables[$insertTb]))) . ".");
+            }
+            if (!isset($tables[$insertTb][$col]['binding'])) {
+                cli_err_syntax_without_exit("Column Name `$col` from SQL Array `$handlerFile.php=>$fnName` does NOT have a Binding defined in `config/tables.php` for Table `$insertTb`!");
+                cli_info("Make sure the Column `$col` has a binding ('s', 'd', 'i' or 'b') defined in the `config/tables.php` file for Table `$insertTb`!");
+            }
+            if (!isset($validBindingTypes[$tables[$insertTb][$col]['binding']])) {
+                cli_err_syntax_without_exit("Column Name `$col` from SQL Array `$handlerFile.php=>$fnName` does NOT have a VALID Binding defined in `config/tables.php` for Table `$insertTb`!");
+                cli_info("Make sure the Column `$col` has a binding ('s', 'd', 'i' or 'b') defined in the `config/tables.php` file for Table `$insertTb`!");
+            }
+            $builtBindedParamsString .= $tables[$insertTb][$col]['binding'];
+        }
+
+        // We count the $insertCols and create equally many ? as $insertValues
+        // Then we implode the $insertCols and create the final SQL string(s)
+        $insertValues = str_repeat("?,", count($insertCols) - 1) . "?";
+        $insertCols = implode(",", $insertCols);
         $builtSQLString .= "INSERT INTO $insertTb ($insertCols) VALUES ($insertValues);";
         $convertedSQLArray['sql'] = $builtSQLString;
+        $convertedSQLArray['bparam'] = $builtBindedParamsString;
+
+        // Report success and inform about ignored keys
+        cli_success_without_exit("Built SQL String for INSERT Query: `$builtSQLString`");
         if (is_array($ignoredKeys) && !empty($ignoredKeys)) {
             cli_warning_without_exit("The Following Found Keys were IGNORED for the INSERT Query Type: " . implode(", ", quotify_elements($ignoredKeys)));
             cli_info_without_exit("Feel free to remove them from the SQL Array to not confuse Yourself!");
         }
-        cli_info_without_exit("Built SQL String for INSERT Query: `$builtSQLString`");
     }
     // UPDATE
     elseif ($configQTKey === 'UPDATE') {

@@ -31,29 +31,30 @@ function s_test2(&$c) // <authors,comments>
 
 
 
-function s_test3(&$c) // <comments>
+function s_test3(&$c) // <authors>
 {
-    return array(
-        'sql' => 'INSERT INTO comments () VALUES ();',
-        'hydrate' =>
-        array(),
-        'bparam' => '',
-    );
-    // Created in FunkCLI on 2025-06-09 07:16:49! Keep "};" on its
+    // Created in FunkCLI on 2025-06-09 14:44:52! Keep "};" on its
     // own new line without indentation no comment right after it!
     // Run the command `php funkcli compile s s_test2=>s_test3`
     // to get SQL, Hydration & Binded Params in return statement below it!
     $DX = [
         '<CONFIG>' => [
             '<QUERY_TYPE>' => 'INSERT',
-            '<TABLES>' => ["comments"],
+            '<TABLES>' => ["authors"],
             '[SUBQUERIES]' => [ // /!\: Subqueries are IGNORED when Query Type is `INSERT|UPDATE|DELETE`!
                 '[subquery_example_1]' => 'SELECT COUNT(*)',
                 '[subquery_example_2]' => '(WHERE SELECT *)'
             ]
         ],
-        'INSERT_INTO' => 'comments:test_number_that_is_unsigned,test_number_that_is_signed,article_id,content,author_id,comment_status,comment_type,created_at',
+        'INSERT_INTO' => 'authors:name,email,description,longer_description,age,weight,nickname,updated_at',
     ];
+
+    return array(
+        'sql' => 'INSERT INTO authors (name,email,description,longer_description,age,weight,nickname,updated_at) VALUES (?,?,?,?,?,?,?,?);',
+        'hydrate' =>
+        array(),
+        'bparam' => 'ssssidss',
+    );
 };
 
 return function (&$c, $handler = "s_test2") {
