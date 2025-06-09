@@ -3145,6 +3145,27 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         // We extract columns based on ":" and then on optional "," (if there are more than one column)
         $insertCols = $extractColsWithoutIdFromTable($insertTb, $insertIntoKey);
 
+        // We iterate through the True Table Columns to check if any of those
+        // who are nullable === false are not in the $insertCols array and if so
+        // we error out since those columns must be set in the INSERT Query!
+        foreach ($tables[$insertTb] as $tKey => $tCol) {
+            // Skip the ID column since it is auto-incremented
+            if ($tKey === 'id') {
+                continue;
+            }
+            // If the column is not nullable, we check if it is in the $insertCols
+            // array and if it does not have a default value, we error out
+            if (
+                isset($tCol['nullable'])
+                && !$tCol['nullable']
+                && !in_array($tKey, $insertCols, true)
+                && !isset($tCol['default'])
+            ) {
+                cli_err_syntax_without_exit("Column `$tKey` in Table `$insertTb` is NOT nullable (and without a Default Value) and must be included in the INSERT Query!");
+                cli_info("Include the Column `$tKey` in the `INSERT_INTO` key of the SQL Array `$handlerFile.php=>$fnName`!");
+            }
+        }
+
         // We check that the columns are valid (exists in $tables[$insertTb])
         // and create the Binded Params String while we're at it!
         foreach ($insertCols as $col) {

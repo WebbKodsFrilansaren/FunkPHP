@@ -248,7 +248,7 @@ return  [
         'unique' => false,
         'unsigned' => false,
         'signed' => false,
-        'default' => 'No description',
+        'default' => "YAS!",
       ],
       'longer_description' =>
       [

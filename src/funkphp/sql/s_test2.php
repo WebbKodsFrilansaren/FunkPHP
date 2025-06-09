@@ -46,14 +46,14 @@ function s_test3(&$c) // <authors>
                 '[subquery_example_2]' => '(WHERE SELECT *)'
             ]
         ],
-        'INSERT_INTO' => 'authors:name,email,description,longer_description,age,weight,nickname,updated_at',
+        'INSERT_INTO' => 'authors:name,email,longer_description,weight,nickname,updated_at',
     ];
 
     return array(
-        'sql' => 'INSERT INTO authors (name,email,description,longer_description,age,weight,nickname,updated_at) VALUES (?,?,?,?,?,?,?,?);',
+        'sql' => 'INSERT INTO authors (name,email,longer_description,weight,nickname,updated_at) VALUES (?,?,?,?,?,?);',
         'hydrate' =>
         array(),
-        'bparam' => 'ssssidss',
+        'bparam' => 'sssdss',
     );
 };
 
