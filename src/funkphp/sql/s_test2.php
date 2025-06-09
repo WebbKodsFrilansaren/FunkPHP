@@ -29,6 +29,38 @@ function s_test2(&$c) // <authors,comments>
     return array([]);
 };
 
+
+
+function s_test3(&$c) // <comments>
+{
+    // Created in FunkCLI on 2025-06-09 07:00:55! Keep "};" on its
+    // own new line without indentation no comment right after it!
+    // Run the command `php funkcli compile s s_test2=>s_test3`
+    // to get SQL, Hydration & Binded Params in return statement below it!
+    $DX = [
+        '<CONFIG>' => [
+            '<QUERY_TYPE>' => 'INSERT',
+            '<TABLES>' => ["comments"],
+            '[SUBQUERIES]' => [
+                '[subquery_example_1]' => 'SELECT COUNT(*)',
+                '[subquery_example_2]' => '(WHERE SELECT *)'
+            ]
+        ],
+        'INSERT_INTO' => 'comments:test_number_that_is_unsigned,test_number_that_is_signed,article_id,content,author_id,comment_status,comment_type,created_at',
+        // Leave 'VALUES' empty or NULL unless you wanna set hardcoded values. Otherwise, split on:`|` (for example: `table_column1 = numericValue|table_column2 = "stringValue"`)!
+        'VALUES' => '',
+    ];
+
+
+    return array(
+        'sql' => '',
+        'hydrate' =>
+        array(),
+        'bind_params' =>
+        array(),
+    );
+};
+
 return function (&$c, $handler = "s_test2") {
     $base = is_string($handler) ? $handler : "";
     $full = __NAMESPACE__ . '\\' . $base;
