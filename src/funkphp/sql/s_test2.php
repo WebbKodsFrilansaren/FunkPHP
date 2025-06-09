@@ -1,7 +1,7 @@
 <?php
 
 namespace FunkPHP\SQL\s_test2;
-// SQL Handler File - Created in FunkCLI on 2025-06-09 18:07:54!
+// SQL Handler File - Created in FunkCLI on 2025-06-09 18:48:16!
 // Write your SQL Query, Hydration & optional Binded Params in the
 // $DX variable and then run the command
 // `php funkcli compile s s_test2=>$function_name`
@@ -10,14 +10,14 @@ namespace FunkPHP\SQL\s_test2;
 
 function s_test3(&$c) // <authors>
 {
-	// Created in FunkCLI on 2025-06-09 18:07:54! Keep "};" on its
+	// Created in FunkCLI on 2025-06-09 18:48:16! Keep "};" on its
 	// own new line without indentation no comment right after it!
 	// Run the command `php funkcli compile s s_test2=>s_test3`
 	// to get SQL, Hydration & Binded Params in return statement below it!
 	$DX = [
 		'<CONFIG>' => [
 			'<QUERY_TYPE>' => 'INSERT',
-			'<TABLES>' => ["authors"],
+			'<TABLES>' => "authors",
 			'[SUBQUERIES]' => [ // /!\: Subqueries are IGNORED when Query Type is `INSERT|UPDATE|DELETE`!
 			]
 		],

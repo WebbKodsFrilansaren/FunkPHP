@@ -2795,10 +2795,26 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
     }
 
     // Validate that $configTBKey is set and is a valid table name
-    if (!isset($configTBKey) || !is_array_and_not_empty($configTBKey)) {
+    if (!isset($configTBKey) || empty($configTBKey)) {
         cli_err_syntax_without_exit("Invalid Config Key `<TABLES>` value in SQL Array `$handlerFile.php=>$fnName`!");
-        cli_info("The `<TABLES>` key must be a Non-Empty Array representing the Table name(s)!");
+        cli_info("The `<TABLES>` key must be a Non-Empty String or Array representing the Table name(s)!");
     }
+    // If $configTBKey is a string, we convert it to an array meaning splitting on "," if it exists
+    // or just wrapping it in an array if it is a single table name
+    if (is_string($configTBKey) && is_string_and_not_empty($configTBKey)) {
+        // If it is a string, we split it by comma and trim each element
+        if (str_contains($configTBKey, ',')) {
+            $configTBKey = array_map('trim', explode(',', $configTBKey));
+        } elseif (str_contains($configTBKey, '|')) {
+            $configTBKey = array_map('trim', explode('|', $configTBKey));
+        } else {
+            $configTBKey = [trim($configTBKey)];
+        }
+    } elseif (!is_array($configTBKey)) {
+        cli_err_syntax_without_exit("Invalid Config Key `<TABLES>` value in SQL Array `$handlerFile.php=>$fnName`!");
+        cli_info("The `<TABLES>` key must be a Non-Empty String or Array representing the Table name(s)!");
+    }
+
     // Loop through all Tables and check if they are valid (and exist in $tables[] array!)
     if (isset($configTBKey) && is_array_and_not_empty($configTBKey)) {
         foreach ($configTBKey as $tableName) {
@@ -2877,6 +2893,16 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         }
     }
 
+    // If we have more than 1 tables when the query type is INSERT|UPDATE|DELETE, we error out
+    if (
+        in_array($configQTKey, ['INSERT', 'UPDATE', 'DELETE'], true)
+        && is_array_and_not_empty($configTBKey)
+        && count($configTBKey) > 1
+    ) {
+        cli_err_syntax_without_exit("Multiple Tables found in SQL Array `$handlerFile.php=>$fnName` for Query Type `$configQTKey`!");
+        cli_info("For `$configQTKey` queries, only one table can be specified in `<TABLES>` key!");
+    }
+
     // WE NOW PROCESS BASED ON $configQTKey VALUE (the Query Type)
     // BEFORE RETURNING THE FINALLY CONVERT_SQL_ARRAY VARIABLE!!!
     // THIS IS THE MAIN AND MOST IMPORTANT PART OF THE ENTIRE FUNCTION!!!
@@ -2892,8 +2918,8 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
             cli_info("The `<TABLES>` key must be a Non-Empty Array representing the Table name(s)!");
         }
 
-        // We will now check that "INSERT_INTO" key starts with "table_name:" since it must be the same table
-        // name as the one chosen in "<CONFIG>['<TABLES>']" !
+        // We will now check that "INSERT_INTO" key starts with "table_name:" since it
+        // must be the same table name as the one chosen in "<CONFIG>['<TABLES>']"!
         $insertIntoKey = $sqlArray['INSERT_INTO'] ?? null;
         if (!isset($insertIntoKey) || !is_string_and_not_empty($insertIntoKey)) {
             cli_err_syntax_without_exit("No `INSERT_INTO` Key found in SQL Array `$handlerFile.php=>$fnName` for INSERT Query!");
@@ -4160,14 +4186,14 @@ function cli_create_validation_file_and_or_handler()
     $handlerDirPath = "validations";
     $date = date("Y-m-d H:i:s");
     $outputHandlerRoute = null;
-    $handlerBaseFullStringRow1 = "\n\$base = is_string(\$handler) ? \$handler : \"\";";
-    $handlerBaseFullStringRow2 = "\n\$full = __NAMESPACE__ . '\\\\' . \$base;";
-    $handlerBaseFullStringRow3 = "\nif (function_exists(\$full)) {";
-    $handlerBaseFullStringRow4 = "\nreturn \$full(\$c);";
-    $handlerBaseFullStringRow5 = "\n} else {";
-    $handlerBaseFullStringRow6 = "\$c['err']['FAILED_TO_RUN_VALIDATION_FUNCTION-' . '$handlerFile'] = 'Validation function `' . \$full . '` not found in namespace `' . __NAMESPACE__ . '`!';";
-    $handlerBaseFullStringRow7 = "\nreturn null;";
-    $handlerBaseFullStringRow8 = "\n}";
+    $handlerBaseFullStringRow1 = "\n\t\$base = is_string(\$handler) ? \$handler : \"\";";
+    $handlerBaseFullStringRow2 = "\n\t\$full = __NAMESPACE__ . '\\\\' . \$base;";
+    $handlerBaseFullStringRow3 = "\n\tif (function_exists(\$full)) {";
+    $handlerBaseFullStringRow4 = "\n\t\treturn \$full(\$c);";
+    $handlerBaseFullStringRow5 = "\n\t} else {";
+    $handlerBaseFullStringRow6 = "\n\t\t\$c['err']['FAILED_TO_RUN_VALIDATION_FUNCTION-' . '$handlerFile'] = 'Validation function `' . \$full . '` not found in namespace `' . __NAMESPACE__ . '`!';";
+    $handlerBaseFullStringRow7 = "\n\t\treturn null;";
+    $handlerBaseFullStringRow8 = "\n\t}";
     $handlerBaseFullString =
         $handlerBaseFullStringRow1
         . $handlerBaseFullStringRow2 . $handlerBaseFullStringRow3
@@ -4177,7 +4203,7 @@ function cli_create_validation_file_and_or_handler()
 
 
     // Default DXPart Value when no tables are provided
-    $DXPART = "'<CONFIG>' => '','table_col1_name' => 'string|required|nullable|between:3,50',\n'table_col2_email' => 'email|required|between:6,50',\n'table_col3_age' => 'integer|required|between:18,100',\n'table_col4_length' => 'float|nullable|decimals:2',";
+    $DXPART = "\n\t\t'<CONFIG>' => '',\n\t\t'table_col1_name' => 'string|required|nullable|between:3,50',\n\t\t'table_col2_email' => 'email|required|between:6,50',\n\t\t'table_col3_age' => 'integer|required|between:18,100',\n\t\t'table_col4_length' => 'float|nullable|decimals:2',";
 
     // When tables ARE provided, we try to parse and use them instead as default $DXPART Value!
     $usedTables = $argv[4] ?? "";
@@ -4379,11 +4405,11 @@ function cli_create_validation_file_and_or_handler()
                 $entireDXPART .= wrappify_arrowed_string($currTablePrefix . $key, $currDXPart);
             }
         }
-        $DXPART = "\n" . $entireDXPART;
+        $DXPART = "\n\t\t'<CONFIG>' => '',\n\t\t" . $entireDXPART;
     }
 
     // Prepare the validation limiter strings and return function regex
-    $validationLimiterStrings = "// Created in FunkCLI on $date! Keep \"};\" on its\n// own new line without indentation no comment right after it!\n// Run the command `php funkcli compile v $handlerFile=>$fnName`\n// to get optimized version in return statement below it!\n\$DX = [$DXPART];\n\n\nreturn array([]);\n";
+    $validationLimiterStrings = "\t// Created in FunkCLI on $date! Keep \"};\" on its\n\t// own new line without indentation no comment right after it!\n\t// Run the command `php funkcli compile v $handlerFile=>$fnName`\n\t// to get optimized version in return statement below it!\n\t\$DX = [$DXPART\n\t];\n\n\treturn array([]);";
     $returnFunctionRegex = '/^(return function)\s*\(&\$c, \$handler\s*=\s*.+$.*?^};/ims';
 
     // If dir not found or not readable/writable, we exit
@@ -4395,7 +4421,7 @@ function cli_create_validation_file_and_or_handler()
     if (!file_exists($handlersDir . $handlerFile . ".php")) {
         $outputHandlerRoute = file_put_contents(
             $handlersDir . $handlerFile . ".php",
-            "<?php\nnamespace FunkPHP\Validations\\$handlerFile;\n// Validation Handler File - Created in FunkCLI on $date!\n// Write your Validation Rules in the\n// \$DX variable and then run the command\n// `php funkcli compile v $handlerFile=>\$function_name`\n// to get the optimized version below it!\n// IMPORTANT: CMD+S or CTRL+S to autoformat each time function is added!\n\nfunction $fnName(&\$c) // <$usedTables>\n{\n$validationLimiterStrings\n};\n\nreturn function (&\$c, \$handler = \"$fnName\") { $handlerBaseFullString \n};"
+            "<?php\n\nnamespace FunkPHP\Validations\\$handlerFile;\n// Validation Handler File - Created in FunkCLI on $date!\n// Write your Validation Rules in the\n// \$DX variable and then run the command\n// `php funkcli compile v $handlerFile=>\$function_name`\n// to get the optimized version below it!\n// IMPORTANT: CMD+S or CTRL+S to autoformat each time function is added!\n\nfunction $fnName(&\$c) // <$usedTables>\n{\n$validationLimiterStrings\n};\n\nreturn function (&\$c, \$handler = \"$fnName\") { $handlerBaseFullString \n};"
         );
         if ($outputHandlerRoute) {
             cli_success_without_exit("Added Validation Handler \"funkphp/$handlerDirPath/$handlerFile.php\" with Validation Function \"$fnName\" in \"funkphp/validations/$handlerFile.php\"!");
@@ -4458,7 +4484,6 @@ function cli_create_validation_file_and_or_handler()
             // The 'return function' block was not found - the file structure is invalid
             cli_err_without_exit("[cli_create_validation_file_and_or_handler]: Invalid handler file structure.");
             cli_err("Could not find the 'return function(...) {...};' block in \"funkphp/$handlerDirPath/$handlerFile.php\".");
-            return false; // Exit the function as the file structure is unexpected
         }
     }
 }
@@ -4631,7 +4656,7 @@ function cli_create_sql_file_and_or_handler()
         $tbsColsExceptId = implode(',', $tbsColsExceptId);
         $tbsColsExceptId = key($tbs) . ':' . $tbsColsExceptId;
         $queryTypePart .= "\n\t\t'INSERT_INTO' => '$tbsColsExceptId',";
-        $bindedValidatedData = "\n\t\t\t'<MATCHED_FIELDS>' => [// What each Binded Param must match from a Validated Data Field Array (empty means same as TableName_ColumnKey) \n\t\t\t\t'" . implode('\' => \'\',\'', $valCols) . "'=> '',],\n";
+        $bindedValidatedData = "\n\t\t'<MATCHED_FIELDS>' => [// What each Binded Param must match from a Validated Data Field Array (empty means same as TableName_ColumnKey) \n\t\t\t\t'" . implode('\' => \'\',\'', $valCols) . "'=> '',],\n";
         $queryTypePart .= $bindedValidatedData;
         $DXPART .= $queryTypePart;
     }
@@ -4685,7 +4710,7 @@ function cli_create_sql_file_and_or_handler()
     //         'SELECT','INSERT','INSERT INTO','UPDATE','DELETE'],'[SUBQUERIES]' => [\n'[subquery1]' => 'SELECT COUNT(*)',\n'[subquery2]' => '(WHERE SELECT *)']],\n'SELECT/INSERT/UPDATE/DELETE(CHOOSE-ONE-PER-SQL-FUNCTION!)' => '',\n'FROM' => '',\n'INTO' => '',\n'JOINS' => '',\n'WHERE' => '',\n'GROUP_BY' => '',\n'HAVING' => '',\n'ORDER_BY' => '',\n'LIMIT' => '',\n'OFFSET' => '',\n'VALUES' => '',\n'?_BINDED_PARAMS' => '',\n'HYDRATE' => 'table1:cols|table2:cols|table1=>table2',";
 
     // Prepare the validation limiter strings and return function regex
-    $sqlLimiterStrings = "\t// Created in FunkCLI on $date! Keep \"};\" on its\n\t// own new line without indentation no comment right after it!\n\t// Run the command `php funkcli compile s $handlerFile=>$fnName`\n\t// to get SQL, Hydration & Binded Params in return statement below it!\n\t\$DX = [$DXPART\t];\n\n\treturn array([]);\n";
+    $sqlLimiterStrings = "\t// Created in FunkCLI on $date! Keep \"};\" on its\n\t// own new line without indentation no comment right after it!\n\t// Run the command `php funkcli compile s $handlerFile=>$fnName`\n\t// to get SQL, Hydration & Binded Params in return statement below it!\n\t\$DX = [$DXPART\t];\n\n\treturn array([]);";
     $returnFunctionRegex = '/^(return function)\s*\(&\$c, \$handler\s*=\s*.+$.*?^};/ims';
     $usedTables = implode(",", array_keys($tbs)) ?? ""; // Inserted inbetween "<>" in the function name comment
 
@@ -5884,7 +5909,7 @@ function wrappify_arrowed_string($string1, $string2, $type = "'")
     if (!in_array($type, ["'", '"', '`'])) {
         cli_err_syntax("[wrappify_arrowed_string]: Type must be one of the following: ' (single quote), \" (double quote) or ` (backtick)!");
     }
-    return $type . $string1 . "$type => $type" . $string2 . $type . ",";
+    return $type . $string1 . "$type => $type" . $string2 . $type . ",\n\t\t";
 }
 
 // Function same above but for arrays, it takes an array and returns all its elements
