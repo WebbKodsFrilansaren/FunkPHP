@@ -3387,7 +3387,7 @@ function cli_compile_dx_sql_to_optimized_sql()
         cli_info("Check if indeed the `sql` key was provided from the returned Optimized SQL Array Variable?");
     }
     try {
-        cli_info_without_exit("Testing the Optimized SQL Query String: `$queryToTest` from SQL Function \"$fnName\" in \"$handlerFile.php\".");
+        cli_info_without_exit("Testing the Optimized SQL Query String from SQL Function \"$fnName\" in \"$handlerFile.php\".");
         $stmt = $dbConnect->prepare($queryToTest);
     } catch (mysqli_sql_exception $e) {
         cli_err_without_exit("The Optimized SQL Query String FAILED during Statement Preparing (from SQL Function \"$fnName\" in \"$handlerFile.php\").");
