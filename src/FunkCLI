@@ -191,6 +191,7 @@ $exactFiles = [
     "troute_route" => $dirs['compiled'] . "troute_route.php",
     "single_routes" => $dirs['routes'] . "route_single_routes.php",
     "tables" => $dirs['config'] . "tables.php",
+    "db_local" => $dirs['config'] . "db_config.php",
     "supported_mysql_data_types" => $dirs['config'] . "VALID_MYSQL_DATATYPES.php",
 ];
 

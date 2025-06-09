@@ -125,6 +125,23 @@ function get_match_dx_return_regex()
     return '/return\s*array\(.*?\);$\n/ims';
 }
 
+// Function to connect to local MySQL database!
+function cli_db_connect()
+{
+    global $exactFiles, $dirs, $settings;
+    $dbConfig = include_once $exactFiles['db_local'];
+    try {
+        // Create a new mysqli object with the provided parameters
+        $conn = new mysqli($dbConfig['DB_HOST'], $dbConfig['DB_USER'], $dbConfig['DB_PASSWORD'], $dbConfig['DB_NAME'], $dbConfig['DB_PORT']);
+        $conn->set_charset('utf8mb4');
+    } catch (Exception $e) {
+        if ($conn === null) {
+            cli_err_syntax("Database Connection Failed. Check Database Connection Configuration in \"funkphp/config/db_config.php\"!");
+        }
+    }
+    return $conn;
+}
+
 // Function takes a table which is an array of columns and then
 // generates a validation file based on the table structure where
 // it uses the values from the data type, default value, typical default
@@ -3359,10 +3376,26 @@ function cli_compile_dx_sql_to_optimized_sql()
     // The function can error out on its own so we do not need to check for the return value!
     $optimizedSQLArray = cli_convert_simple_sql_query_to_optimized_sql($evalCode, $handlerFile, $fnName);
 
-    // TODO: Add that it checks the sql key against DB with the prepared statement and check error level
-    // to either validate that it is a valid SQL Query or not (based on migrated tables), and then return the error message
-    // if it is not a valid SQL Query meaning the conversion failed despite actually being created correctly otherwise!
-
+    // We validate the optimized SQL Query String by using the Prepared Statement that should not fail
+    // If it fails, we will catch the exception and inform the Developer. It could fail due to actual
+    // invalid SQL String Syntax or because of a mismatch between the Table Configuration in `tables.php`
+    // and the actual Table in the MySQL DBMS (e.g. phpMyAdmin, Adminer, etc.) assuming it exists!
+    $dbConnect =  cli_db_connect();
+    $queryToTest = $optimizedSQLArray['sql'] ?? null;
+    if ($queryToTest === null || !is_string_and_not_empty($queryToTest)) {
+        cli_err_without_exit("The optimized SQL Query is Empty or NOT a Valid String in SQL Function \"$fnName\" in \"$handlerFile.php\".");
+        cli_info("Check if indeed the `sql` key was provided from the returned Optimized SQL Array Variable?");
+    }
+    try {
+        cli_info_without_exit("Testing the Optimized SQL Query String: `$queryToTest` from SQL Function \"$fnName\" in \"$handlerFile.php\".");
+        $stmt = $dbConnect->prepare($queryToTest);
+    } catch (mysqli_sql_exception $e) {
+        cli_err_without_exit("The Optimized SQL Query String FAILED during Statement Preparing (from SQL Function \"$fnName\" in \"$handlerFile.php\").");
+        cli_info_without_exit("This means either\n1) Actual invalid SQL String Syntax that somehow slipped through the Compilation Stage when it shouldn't have, or that \n2) The Table and its configuration added in `config/tables.php` DOES NOT MATCH the Table with the same name in your local MySQL DBMS (e.g. phpMyAdmin, Adminer, etc.) assuming it exists!");
+        cli_info("Internal MySQLi Error: \"" . $e->getMessage() . "\"");
+    }
+    cli_success_without_exit("The SQL Query String in SQL Function \"$fnName\" in \"$handlerFile.php\" was Successfully Validated with 0 Errors When Sending it Prepared to the local MySQL DBMS!");
+    cli_info_without_exit("Attempting adding the entire Optimized SQL Array as the returned value in SQL Function \"$fnName\" in \"$handlerFile.php\"!");
     // Convert the optimized SQL array to a string with ";\n" at the end
     $optimizedSQLArrayAsStringWithReturnStmt = "return " . var_export($optimizedSQLArray, true) . ";\n";
 

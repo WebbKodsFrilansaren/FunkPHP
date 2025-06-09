@@ -1,7 +1,7 @@
 <?php
 
 namespace FunkPHP\SQL\s_test2;
-// SQL Handler File - Created in FunkCLI on 2025-06-09 17:12:19!
+// SQL Handler File - Created in FunkCLI on 2025-06-09 17:17:58!
 // Write your SQL Query, Hydration & optional Binded Params in the
 // $DX variable and then run the command
 // `php funkcli compile s s_test2=>$function_name`
@@ -10,7 +10,7 @@ namespace FunkPHP\SQL\s_test2;
 
 function s_test3(&$c) // <authors>
 {
-	// Created in FunkCLI on 2025-06-09 17:12:19! Keep "};" on its
+	// Created in FunkCLI on 2025-06-09 17:17:58! Keep "};" on its
 	// own new line without indentation no comment right after it!
 	// Run the command `php funkcli compile s s_test2=>s_test3`
 	// to get SQL, Hydration & Binded Params in return statement below it!
@@ -22,7 +22,7 @@ function s_test3(&$c) // <authors>
 			]
 		],
 		'INSERT_INTO' => 'authors:name,email,description,longer_description,age,weight,nickname,updated_at',
-		'<MATCHED_FIELDS>' => [ // What each Binded Param must match from a Validated Data Field Array (empty means same as key)
+		'<MATCHED_FIELDS>' => [ // What each Binded Param must match from a Validated Data Field Array (empty means same as TableName_ColumnKey)
 			'name' => '',
 			'email' => '',
 			'description' => '',
