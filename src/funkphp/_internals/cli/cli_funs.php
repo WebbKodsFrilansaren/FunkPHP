@@ -4850,6 +4850,23 @@ function cli_create_sql_file_and_or_handler()
         }
     }
 
+    // If optional sixth argument is provided and it is a string with 'no_default', we will loop
+    // through the Table and remove any cols that has the default key that is NOT null and NOT empty.
+    // since this optional argument is used to allow for default values to be used instead of provided ones!
+    // This only applies to Query Types 'INSERT', 'UPDATE', 'DELETE'!
+    if (in_array($queryType, ['INSERT', 'UPDATE', 'DELETE'])) {
+        if (isset($argv[6]) && is_string($argv[6]) || !empty(trim($argv[6])) && strtolower($argv[6]) === 'no_default') {
+            foreach ($tbs as $tbName => $tbData) {
+                foreach ($tbData['cols'] as $colName => $colData) {
+                    // If the column has a default value that is not null or empty, we remove it from the array
+                    if (isset($colData['default']) && !is_null($colData['default']) && $colData['default'] !== '') {
+                        unset($tbs[$tbName]['cols'][$colName]);
+                    }
+                }
+            }
+        }
+    }
+
     // Default values added to the $DXPART variable
     $chosenQueryType = "'<CONFIG>' =>[\n\t\t\t'<QUERY_TYPE>' => '$queryType',\n\t\t\t'<TABLES>' => [\"" . implode('","', array_keys($tbs)) . "\"],";
     $subQueriesEmpty = ($queryType === 'INSERT' || $queryType === 'UPDATE' || $queryType === 'DELETE') ? "" : "\t\t\t\t'[subquery_example_1]' => 'SELECT COUNT(*)',\n\t\t\t\t'[subquery_example_2]' => '(WHERE SELECT *)'";
