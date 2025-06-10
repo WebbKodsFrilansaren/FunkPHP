@@ -36,24 +36,23 @@ function s_test3(&$c) // <authors>
 		],
 	];
 
-	return array (
-  'sql' => 'UPDATE authors SET name = ?, email = ?, description = ?, longer_description = ?, age = ?, weight = ?, nickname = ?, updated_at = ?;',
-  'hydrate' => 
-  array (
-  ),
-  'bparam' => 'ssssidss',
-  'fields' => 
-  array (
-    0 => 'authors_name',
-    1 => 'authors_email',
-    2 => 'authors_description',
-    3 => 'authors_longer_description',
-    4 => 'authors_age',
-    5 => 'authors_weight',
-    6 => 'authors_nickname',
-    7 => 'authors_updated_at',
-  ),
-);
+	return array(
+		'sql' => 'UPDATE authors SET name = ?, email = ?, description = ?, longer_description = ?, age = ?, weight = ?, nickname = ?, updated_at = ?;',
+		'hydrate' =>
+		array(),
+		'bparam' => 'ssssidss',
+		'fields' =>
+		array(
+			0 => 'authors_name',
+			1 => 'authors_email',
+			2 => 'authors_description',
+			3 => 'authors_longer_description',
+			4 => 'authors_age',
+			5 => 'authors_weight',
+			6 => 'authors_nickname',
+			7 => 'authors_updated_at',
+		),
+	);
 };
 
 return function (&$c, $handler = "s_test3") {
