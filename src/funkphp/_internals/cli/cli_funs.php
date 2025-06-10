@@ -2671,8 +2671,12 @@ function cli_parse_where_clause_sql($tbs, $where, $queryType, $sqlArray, &$built
     // PRIMAREY & FOREIGN KEYS ARE IGNORED HERE because you must specify them with
     // table:col_name so you always know which table it belongs to when using it!
     foreach ($allTbs as $tb => $colKey) {
+        // Skip tables not in the $tbs array
+        if (!in_array($tb, $tbs, true)) {
+            continue;
+        }
         foreach ($colKey as $k => $col) {
-            if ($col['primary_key'] || $col['foreign_key']) {
+            if (isset($col['primary_key']) || isset($col['foreign_key'])) {
                 continue;
             }
             if (!in_array($k, $uniqueCols, true)) {
