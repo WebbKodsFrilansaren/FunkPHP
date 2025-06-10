@@ -2612,18 +2612,22 @@ function cli_compile_dx_validation_to_optimized_validation()
 // &$builtBindedParamsString is to add the necessary
 // "?" placeholders based on how many are used within
 // the parsed Where clause that would be returned!
-function cli_parse_where_clause_sql($tables, $relations, $where, $queryType, $sqlArray, &$builtBindedParamsString)
+function cli_parse_where_clause_sql($tbs, $where, $queryType, $sqlArray, &$builtBindedParamsString)
 {
     // Prepare variables and also validate the input
+    global $tablesAndRelationshipsFile;
     $parsedWhere = "";
+    $allTbs = $tablesAndRelationshipsFile['tables'] ?? [];
+    $uniqueCols = [];
+    $relations = $tablesAndRelationshipsFile['relationships'] ?? [];
 
     // Keep track of even amount of left and right parentheses
     // to ensure they are balanced in the WHERE clause!
     $leftParenthesisCount = 0;
     $rightParenthesisCount = 0;
 
-    // $tables must be an array and not empty
-    if (!is_array_and_not_empty($tables)) {
+    // $tbs must be an array and not empty
+    if (!is_array_and_not_empty($tbs)) {
         cli_err_without_exit("[cli_parse_where_clause_sql]: Expects a Non-Empty Associative Array as input for `\$tables`!");
         cli_info("This might mean that the \"\$DX\" variable is an Empty Array, or not an Array at all?");
     }
@@ -2661,7 +2665,23 @@ function cli_parse_where_clause_sql($tables, $relations, $where, $queryType, $sq
         cli_info("This might mean that the \"\$DX\" variable is an Empty Array, or not an Array at all?");
     }
 
-
+    // We now loop through all $tbs to add each column name to the $uniqueCols array
+    // as long as it is not already in the array. This will be used to validate what
+    // columns are unique so you do not need table:col_name but can just use col_name!
+    // PRIMAREY & FOREIGN KEYS ARE IGNORED HERE because you must specify them with
+    // table:col_name so you always know which table it belongs to when using it!
+    foreach ($allTbs as $tb => $colKey) {
+        foreach ($colKey as $k => $col) {
+            if ($col['primary_key'] || $col['foreign_key']) {
+                continue;
+            }
+            if (!in_array($k, $uniqueCols, true)) {
+                $uniqueCols[] = $k;
+            }
+        }
+    }
+    var_dump($uniqueCols);
+    exit;
 
 
     // FINALLY RETURN THE PARSED 'WHERE' Key Clause!
@@ -3143,7 +3163,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         // We also pass the "$builtBindedParamsString" as reference to add the necessary
         // "?" placeholders based on how many are used within the Parsed Where Clause!
         if (isset($whereTb) && is_string_and_not_empty($whereTb)) {
-            $whereTb = cli_parse_where_clause_sql($tables, $relationships, $whereTb, "UPDATE", $convertedSQLArray, $builtBindedParamsString);
+            $whereTb = cli_parse_where_clause_sql($configTBKey, $whereTb, "UPDATE", $convertedSQLArray, $builtBindedParamsString);
             // If $whereTb is no longer a string after parsing, we error out
             if (!is_string_and_not_empty($whereTb)) {
                 cli_err_syntax_without_exit("Invalid `WHERE` Key String found in SQL Array `$handlerFile.php=>$fnName` for UPDATE Query after being processed by `cli_parse_where_clause_sql` Function!");

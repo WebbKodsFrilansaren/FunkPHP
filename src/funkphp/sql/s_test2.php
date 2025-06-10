@@ -17,12 +17,12 @@ function s_test3(&$c) // <authors>
 	$DX = [
 		'<CONFIG>' => [
 			'<QUERY_TYPE>' => 'UPDATE',
-			'<TABLES>' => ["authors"],
+			'<TABLES>' => "authors",
 			'[SUBQUERIES]' => [ // /!\: Subqueries are IGNORED when Query Type is `INSERT|UPDATE|DELETE`!
 			]
 		],
 		'UPDATE_SET' => 'authors:name,email,description,longer_description,age,weight,nickname,updated_at',
-		'WHERE' => '',
+		'WHERE' => 'id = ?',
 		'<MATCHED_FIELDS>' => [ // What each Binded Param must match from a Validated Data Field Array (empty means same as TableName_ColumnKey)
 			'name' => '',
 			'email' => '',
