@@ -2607,6 +2607,67 @@ function cli_compile_dx_validation_to_optimized_validation()
     }
 }
 
+// Function that parses the Where clause when converting
+// a Simple SQL Query to an Optimized SQL Array! The
+// &$builtBindedParamsString is to add the necessary
+// "?" placeholders based on how many are used within
+// the parsed Where clause that would be returned!
+function cli_parse_where_clause_sql($tables, $relations, $where, $queryType, $sqlArray, &$builtBindedParamsString)
+{
+    // Prepare variables and also validate the input
+    $parsedWhere = "";
+
+    // Keep track of even amount of left and right parentheses
+    // to ensure they are balanced in the WHERE clause!
+    $leftParenthesisCount = 0;
+    $rightParenthesisCount = 0;
+
+    // $tables must be an array and not empty
+    if (!is_array_and_not_empty($tables)) {
+        cli_err_without_exit("[cli_parse_where_clause_sql]: Expects a Non-Empty Associative Array as input for `\$tables`!");
+        cli_info("This might mean that the \"\$DX\" variable is an Empty Array, or not an Array at all?");
+    }
+    // $relations must be an array but can be empty
+    if (!is_array($relations)) {
+        cli_err_without_exit("[cli_parse_where_clause_sql]: Expects an Associative Array as input for `\$relations`!");
+        cli_info("This might mean that the \"\$DX\" variable is an Empty Array, or not an Array at all?");
+    }
+    // $where must be a string and not empty
+    if (!is_string_and_not_empty($where)) {
+        cli_err_without_exit("[cli_parse_where_clause_sql]: Expects a Non-Empty String as input for `\$where`!");
+        cli_info("This might mean that the \"\$DX\" variable is an Empty Array, or not an Array at all?");
+    }
+    // $queryType must be a string and not empty and be one of the allowed query types
+    $allowedQueryTypes = [
+        'SELECT_DISTINCT',
+        'SELECT_INTO',
+        'SELECT',
+        'INSERT',
+        'UPDATE',
+        'DELETE'
+    ];
+    if (!is_string_and_not_empty($queryType) || !in_array($queryType, $allowedQueryTypes, true)) {
+        cli_err_without_exit("[cli_parse_where_clause_sql]: Expects a Non-Empty String as input for `\$queryType` that is one of: " . implode(", ", $allowedQueryTypes) . "!");
+        cli_info("This might mean that the \"\$DX\" variable is an Empty Array, or not an Array at all?");
+    }
+    // $sqlArray must be an array and not empty and not a list!
+    if (!is_array_and_not_empty($sqlArray) || array_is_list($sqlArray)) {
+        cli_err_without_exit("[cli_parse_where_clause_sql]: Expects a Non-Empty Associative Array as input for `\$sqlArray`!");
+        cli_info("This might mean that the \"\$DX\" variable is an Empty Array, or not an Array at all?");
+    }
+    // $builtBindedParamsString must be a string but can be empty
+    if (!is_string($builtBindedParamsString)) {
+        cli_err_without_exit("[cli_parse_where_clause_sql]: Expects a String as input for `\$builtBindedParamsString`!");
+        cli_info("This might mean that the \"\$DX\" variable is an Empty Array, or not an Array at all?");
+    }
+
+
+
+
+    // FINALLY RETURN THE PARSED 'WHERE' Key Clause!
+    return $parsedWhere;
+}
+
 // Compiles a $DX SQL [] to an optmized SQL array that is returned within the same
 // function that is used to validate the data. This is used to optimize the SQL process!
 // VERY IMPORTANT WARNING: This function calls a function which uses eval() to parse the SQL file!!!
@@ -2640,6 +2701,14 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         $cols = array_map('trim', $cols);
         $cols = array_filter($cols, function ($col) {
             return $col !== 'id';
+        });
+        return array_values($cols);
+    };
+    $extractColsWithIdFromTable = function ($table, $tableString) {
+        $cols = (str_contains($tableString, ",")) ? explode(",", substr($tableString, strlen($table) + 1)) : [substr($tableString, strlen($table) + 1)];
+        $cols = array_map('trim', $cols);
+        $cols = array_filter($cols, function ($col) {
+            return $col !== '';
         });
         return array_values($cols);
     };
@@ -2912,7 +2981,6 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         $insertTb = $configTBKey[0] ?? null;
         $insertCols = "";
         $insertValues = "";
-        $insertBindedParams = "";
         if (!isset($insertTb) || !is_string_and_not_empty($insertTb)) {
             cli_err_syntax_without_exit("No Table Name found in SQL Array['<TABLES'>] `$handlerFile.php=>$fnName` for INSERT Query!");
             cli_info("The `<TABLES>` key must be a Non-Empty Array representing the Table name(s)!");
@@ -3009,9 +3077,95 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
     // UPDATE
     elseif ($configQTKey === 'UPDATE') {
         $updateTb = $configTBKey[0] ?? null;
+        $whereTb = $sqlArray['WHERE'] ?? null;
+        $updateCols = "";
+        $updateColsWithPlaceholders = [];
+        $whereWithPlaceholders = [];
+
         if (!isset($updateTb) || !is_string_and_not_empty($updateTb)) {
             cli_err_syntax_without_exit("No Table Name found in SQL Array['<TABLES'>] `$handlerFile.php=>$fnName` for UPDATE Query!");
             cli_info("The `<TABLES>` key must be a Non-Empty Array representing the Table name(s)!");
+        }
+        $updateIntoKey = $sqlArray['UPDATE_SET'] ?? null;
+        if (!isset($updateIntoKey) || !is_string_and_not_empty($updateIntoKey)) {
+            cli_err_syntax_without_exit("No `UPDATE_SET` Key found in SQL Array `$handlerFile.php=>$fnName` for update Query!");
+            cli_info("The `UPDATE_SET` key must be a Non-Empty String representing the Table name(s)!");
+        }
+        if (!str_starts_with($updateIntoKey, $updateTb . ":")) {
+            cli_err_syntax_without_exit("The `UPDATE_SET` Key in SQL Array `$handlerFile.php=>$fnName` does not start with the Table Name `$updateTb:`!");
+            cli_info("The `UPDATE_SET` key must start with the Table Name followed by a colon `:`!");
+        }
+        $updateCols = $extractColsWithIdFromTable($updateTb, $updateIntoKey);
+
+        // We check that the columns are valid (exists in $tables[$updateTb])
+        // and create the Binded Params String while we're at it!
+        foreach ($updateCols as $key => $col) {
+            // If the column is not a string or empty, we error out
+            if (!is_string_and_not_empty($col)) {
+                cli_err_syntax_without_exit("Invalid Column Name in SQL Array `$handlerFile.php=>$fnName` for update Query!");
+                cli_info("Column Names must be Non-Empty Strings!");
+            }
+            // If the column is not in the table, we error out
+            if (!array_key_exists($col, $tables[$updateTb])) {
+                cli_err_syntax_without_exit("Column Name `$col` from SQL Array `$handlerFile.php=>$fnName` not found in Table `$updateTb`!");
+                cli_info("Valid Column Names are: " . implode(", ", quotify_elements(array_keys($tables[$updateTb]))) . ".");
+            }
+            if (!isset($tables[$updateTb][$col]['binding'])) {
+                cli_err_syntax_without_exit("Column Name `$col` from SQL Array `$handlerFile.php=>$fnName` does NOT have a Binding defined in `config/tables.php` for Table `$updateTb`!");
+                cli_info("Make sure the Column `$col` has a binding ('s', 'd', 'i' or 'b') defined in the `config/tables.php` file for Table `$updateTb`!");
+            }
+            if (!isset($validBindingTypes[$tables[$updateTb][$col]['binding']])) {
+                cli_err_syntax_without_exit("Column Name `$col` from SQL Array `$handlerFile.php=>$fnName` does NOT have a VALID Binding defined in `config/tables.php` for Table `$updateTb`!");
+                cli_info("Make sure the Column `$col` has a binding ('s', 'd', 'i' or 'b') defined in the `config/tables.php` file for Table `$updateTb`!");
+            }
+            if ($col === 'id') {
+                cli_err_syntax_without_exit("Column Name `id` (Primary Key) from SQL Array `$handlerFile.php=>$fnName` is not allowed in the UPDATE_SET Key of UPDATE Query!");
+                cli_info("The `id` column is auto-incremented and should not be updated. It can however be used in the WHERE Key to indicate which rows should be affected by the UPDATE Query!");
+            }
+            // The "fields" key in the $convertedSQLArray is used to store matching fields
+            // so the Binded Params can use the correct values from a given array!
+            if (isset($validFieldsKey) && is_array_and_not_empty($validFieldsKey)) {
+                if (!isset($validFieldsKey[$col])) {
+                    cli_err_syntax_without_exit("Column Name `$col` from SQL Array `$handlerFile.php=>$fnName` is NOT in the <MATCHED_FIELDS> Array!");
+                    cli_info("Valid Fields are: " . implode(", ", quotify_elements($validFieldsKey)) . ".");
+                } else {
+                    $builtFieldsArray[] = !empty($validFieldsKey[$col]) ? $validFieldsKey[$col] : $updateTb . '_' . $col;
+                }
+            }
+            $updateColsWithPlaceholders[] = "$col = ?";
+            $builtBindedParamsString .= $tables[$updateTb][$col]['binding'];
+            if (!empty($builtFieldsArray)) {
+                $convertedSQLArray['fields'] = $builtFieldsArray;
+            }
+        }
+
+        // If the WHERE clause is set, we parse it and add it to the SQL Array
+        // We also pass the "$builtBindedParamsString" as reference to add the necessary
+        // "?" placeholders based on how many are used within the Parsed Where Clause!
+        if (isset($whereTb) && is_string_and_not_empty($whereTb)) {
+            $whereTb = cli_parse_where_clause_sql($tables, $relationships, $whereTb, "UPDATE", $convertedSQLArray, $builtBindedParamsString);
+            // If $whereTb is no longer a string after parsing, we error out
+            if (!is_string_and_not_empty($whereTb)) {
+                cli_err_syntax_without_exit("Invalid `WHERE` Key String found in SQL Array `$handlerFile.php=>$fnName` for UPDATE Query after being processed by `cli_parse_where_clause_sql` Function!");
+                cli_info("The `WHERE` Key must be a Non-Empty String representing the WHERE clause after being parsed by the `cli_parse_where_clause_sql` Function!");
+            }
+        }
+
+        // We count the $insertCols and create equally many ? as $insertValues
+        // Then we implode the $insertCols and create the final SQL string(s)
+        $updateCols = implode(", ", $updateColsWithPlaceholders);
+        $builtSQLString .= "UPDATE $updateTb SET $updateCols";
+        $builtSQLString .= (isset($whereTb) && is_string($whereTb) && !empty($whereTb)) ? " WHERE $whereTb" : "";
+        $builtSQLString .= ";";
+        $convertedSQLArray['sql'] = $builtSQLString;
+        $convertedSQLArray['bparam'] = $builtBindedParamsString;
+
+        // When the WHERE clause is missing we strongly warn about it to the Developer but still allow it.
+        // The warning is about that you would change ALL rows in the table if you do not specify a WHERE clause!
+        if (!isset($whereTb) || !is_string_and_not_empty($whereTb)) {
+            cli_warning_without_exit("No `WHERE` Key found in SQL Array `$handlerFile.php=>$fnName` for UPDATE Query:\n`$builtSQLString`!");
+            cli_warning_without_exit("This means that ALL Rows in the Table `$updateTb` will be Updated with the same provided values!");
+            cli_info_without_exit("If this is truly your intention, just ignore this warning above and continue as usual!");
         }
 
         // Report success and inform about ignored keys
@@ -3405,7 +3559,7 @@ function cli_build_compiled_routes(array $developerSingleRoutes, array $develope
                     if (!isset($currentNode[':'])) {
                         $currentNode[':'] = [];
                     }
-                    // And insert param as next nested key and/or move to next node
+                    // And update param as next nested key and/or move to next node
                     $paramName = substr($segment, 1);
                     if (!isset($currentNode[':'][$paramName])) {
                         $currentNode[':'][$paramName] = [];
@@ -4649,8 +4803,7 @@ function cli_create_sql_file_and_or_handler()
     $DXPART = $chosenQueryType . $subQueries;
     $queryTypePart = "";
 
-    // TODO: Fix all below statements! - Remember that multiple tables when repeated in the same query
-    // will be joined with a comma and then the query will be executed on all of them! <-- Hm??? LLM.
+    // TODO: Fix all below statements!
     // When 'INSERT'
     if ($queryType === 'INSERT') {
         // Remove the 'id' column from the array since that is auto-incremented
@@ -4672,10 +4825,11 @@ function cli_create_sql_file_and_or_handler()
         $tbName = key($tbs);
         array_shift($tbsColsExceptId);
         $valCols = $tbsColsExceptId;
-        $tbsColsExceptId = implode('|', $tbsColsExceptId);
+        $tbsColsExceptId = implode(',', $tbsColsExceptId);
         $tbsColsExceptId = key($tbs) . ':' . $tbsColsExceptId;
-        $queryTypePart .= "'UPDATE_SET' => '$tbsColsExceptId',\n\t\t'WHERE' => '',\n";
-        $bindedValidatedData = "\n\t\t\t'<MATCHED_FIELDS>' => [// What each Binded Param must match from a Validated Data Field Array (empty means same as TableName_ColumnKey) \n\t\t\t\t'" . implode('\' => \'\',\'', $valCols) . "'=> '',],\n";
+        $queryTypePart .= "'UPDATE_SET' => '$tbsColsExceptId',\n\t\t'WHERE' => '$tbName:id = ?',";
+        $bindedValidatedData = "\n\t\t\t'<MATCHED_FIELDS>' => [// What each Binded Param must match from a Validated Data Field Array (empty means same as TableName_ColumnKey) \n\t\t\t\t'" . implode('\' => \'\',\'', $valCols) . "'=> '','id' => ''],\n";
+        $queryTypePart .= $bindedValidatedData;
         $DXPART .= $queryTypePart;
     }
     // When 'DELETE'
@@ -4687,8 +4841,9 @@ function cli_create_sql_file_and_or_handler()
         $valCols = $tbsColsExceptId;
         $tbsColsExceptId = implode('|', $tbsColsExceptId);
         $tbsColsExceptId = key($tbs) . ':' . $tbsColsExceptId;
-        $queryTypePart .= "'DELETE_FROM' => '$tbsColsExceptId',\n\t\t'WHERE' => '',\n";
+        $queryTypePart .= "'DELETE_FROM' => '$tbsColsExceptId',\n\t\t'WHERE' => '',";
         $bindedValidatedData = "\n\t\t\t'<MATCHED_FIELDS>' => [// What each Binded Param must match from a Validated Data Field Array (empty means same as TableName_ColumnKey) \n\t\t\t\t'" . implode('\' => \'\',\'', $valCols) . "'=> '',],\n";
+        $queryTypePart .= $bindedValidatedData;
         $DXPART .= $queryTypePart;
     }
     // When regular 'SELECT'
