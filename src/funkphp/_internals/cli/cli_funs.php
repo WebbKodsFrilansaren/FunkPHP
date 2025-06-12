@@ -2731,7 +2731,6 @@ function cli_parse_where_clause_sql($tbs, $where, $queryType, $sqlArray, &$built
                 }
             }
         }
-        var_dump($wPart);
 
         // If it is ONLY  ")", we just add it and
         // increase the count of left or right parentheses

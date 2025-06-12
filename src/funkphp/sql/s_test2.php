@@ -37,7 +37,7 @@ function s_test3(&$c) // <authors>
 	];
 
 	return array(
-		'sql' => 'UPDATE authors SET name = ?, email = ? WHERE authors.id = 5  AND( authors.id > 5 OR authors.id < 10 ) AND( authors.name LIKE \'%test%\' OR authors.email LIKE \'%test%\' );',
+		'sql' => "UPDATE authors SET name = ?, email = ? WHERE authors.id = 5  AND( authors.id > 5 OR authors.id < 10 ) AND( authors.name LIKE '%test%' OR authors.email LIKE '%test%' );",
 		'hydrate' =>
 		array(),
 		'bparam' => 'ss',
