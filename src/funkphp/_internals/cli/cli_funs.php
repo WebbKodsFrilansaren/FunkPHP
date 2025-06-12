@@ -2632,18 +2632,16 @@ function cli_parse_where_clause_sql($tbs, $where, $queryType, $sqlArray, &$built
     $specialSyntaxStart = [
         'AND=',
         'AND(=',
-        'AND)=',
         'OR=',
         'OR(=',
-        'OR)=',
+        'NOT=',
         'NOT(=',
-        'NOT)=',
+        'EXISTS=',
         'EXISTS(=',
-        'EXISTS)=',
+        'IN=',
         'IN(=',
-        'IN)=',
+        'BETWEEN=',
         'BETWEEN(=',
-        'BETWEEN)=',
     ];
 
     // $tbs must be an array and not empty
@@ -2722,6 +2720,10 @@ function cli_parse_where_clause_sql($tbs, $where, $queryType, $sqlArray, &$built
     foreach ($where as $index => $wPart) {
         // WHERE Clause can't start with a special syntax start
         if ($index === 0) {
+            if (str_starts_with($wPart, ")") || str_starts_with($wPart, "(")) {
+                cli_err_without_exit("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to starting with a parenthesis '(' or ')'!");
+                cli_info("The first part of the WHERE clause cannot start with a parenthesis! It must start with a column name or tableName:columnName!");
+            }
             foreach ($specialSyntaxStart as $specialStart) {
                 if (str_starts_with($wPart, $specialStart)) {
                     cli_err_without_exit("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to starting with a special syntax start: \"$specialStart\"!");
@@ -2729,6 +2731,16 @@ function cli_parse_where_clause_sql($tbs, $where, $queryType, $sqlArray, &$built
                 }
             }
         }
+        var_dump($wPart);
+
+        // If it is ONLY  ")", we just add it and
+        // increase the count of left or right parentheses
+        if ($wPart === ')') {
+            $rightParenthesisCount++;
+            $parsedWhere .= $wPart;
+            continue;
+        }
+
         // $wPart starts with "[" we also check it ends with "]" and then we know it is a Subquery Syntax
         // which is handled at the end so we just push it to the $parsedWhere and continue
         if (str_ends_with($wPart, "]") && !str_starts_with($wPart, "[")) {
@@ -2773,8 +2785,6 @@ function cli_parse_where_clause_sql($tbs, $where, $queryType, $sqlArray, &$built
                 [$specialSyntax, $mCol] = explode("=", $mCol, 2);
                 if (str_contains($specialSyntax, "(")) {
                     $leftParenthesisCount++;
-                } elseif (str_contains($specialSyntax, ")")) {
-                    $rightParenthesisCount++;
                 }
                 break;
             }
@@ -2802,11 +2812,16 @@ function cli_parse_where_clause_sql($tbs, $where, $queryType, $sqlArray, &$built
 
         // Now we start adding to the $parsedWhere string. First we check if "$specialSyntax" is not empty
         // meaning we should add that before the column name/tableName:columnName Operator Value parts!
+        // TODO: Fix so ")" are added at the end of the $parsedWhere string if there are any since it does
+        // not work correctly now due to just being added despite ")" should be at the end of the WHERE clause!
         if (!empty($specialSyntax)) {
+            if ($parsedWhere !== ' ' && str_contains($specialSyntax, "(")) {
+                $parsedWhere .= " ";
+            }
             $parsedWhere .= $specialSyntax;
         }
 
-        // There are two cases now: Either we have a SIngle Table to
+        // There are two cases now: Either we have a Single Table to
         // check against and add based on or we have several ones.
         // SINGLE TABLE CASE:
         if ($singleTable) {
@@ -2985,7 +3000,6 @@ function cli_parse_where_clause_sql($tbs, $where, $queryType, $sqlArray, &$built
     // Add last closing parenthesis if we had any opening parentheses?
     if ($leftParenthesisCount === $rightParenthesisCount && $leftParenthesisCount > 0) {
         $parsedWhere = rtrim($parsedWhere);
-        $parsedWhere .= ")";
     }
 
     // FINALLY RETURN THE PARSED 'WHERE' Key Clause!
