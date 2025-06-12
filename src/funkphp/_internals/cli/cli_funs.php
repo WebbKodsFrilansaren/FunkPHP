@@ -2615,16 +2615,36 @@ function cli_compile_dx_validation_to_optimized_validation()
 function cli_parse_where_clause_sql($tbs, $where, $queryType, $sqlArray, &$builtBindedParamsString)
 {
     // Prepare variables and also validate the input
-    global $tablesAndRelationshipsFile;
+    global $tablesAndRelationshipsFile, $mysqlOperatorSyntax;
     $parsedWhere = "";
     $allTbs = $tablesAndRelationshipsFile['tables'] ?? [];
+    $singleTable = count($tbs) === 1;
     $uniqueCols = [];
+    $tbsWithCols  = [];
     $relations = $tablesAndRelationshipsFile['relationships'] ?? [];
 
     // Keep track of even amount of left and right parentheses
     // to ensure they are balanced in the WHERE clause!
     $leftParenthesisCount = 0;
     $rightParenthesisCount = 0;
+
+    // Special Starting Parts For Each $wPart when NOT ColName OR Table:ColName
+    $specialSyntaxStart = [
+        'AND=',
+        'AND(=',
+        'AND)=',
+        'OR=',
+        'OR(=',
+        'OR)=',
+        'NOT(=',
+        'NOT)=',
+        'EXISTS(=',
+        'EXISTS)=',
+        'IN(=',
+        'IN)=',
+        'BETWEEN(=',
+        'BETWEEN)=',
+    ];
 
     // $tbs must be an array and not empty
     if (!is_array_and_not_empty($tbs)) {
@@ -2670,6 +2690,7 @@ function cli_parse_where_clause_sql($tbs, $where, $queryType, $sqlArray, &$built
     // columns are unique so you do not need table:col_name but can just use col_name!
     // PRIMAREY & FOREIGN KEYS ARE IGNORED HERE because you must specify them with
     // table:col_name so you always know which table it belongs to when using it!
+    // We also store the "tableName:colName" in the $tbsWithCols array!
     foreach ($allTbs as $tb => $colKey) {
         // Only do this for the tables actually being processed!
         if (!in_array($tb, $tbs, true)) {
@@ -2677,18 +2698,143 @@ function cli_parse_where_clause_sql($tbs, $where, $queryType, $sqlArray, &$built
         }
         foreach ($colKey as $k => $col) {
             if (isset($col['primary_key']) || isset($col['foreign_key'])) {
+                $tbsWithCols[] = "$tb:$k";
+                // Special case for Single Table Queries (only 1 Table provided)
+                // Then we know PK and FK are Unique Columns in that table!
+                if ($singleTable) {
+                    $uniqueCols[] = $k;
+                }
                 continue;
             }
             if (!in_array($k, $uniqueCols, true)) {
                 $uniqueCols[] = $k;
+                $tbsWithCols[] = "$tb:$k";
             }
         }
     }
-    var_dump($uniqueCols);
-    exit;
 
+    // We split the $where on "|" string by spaces to get each part or turn the single string into an array
+    $where = str_contains(trim($where), "|") ? explode("|", $where) : [$where];
+    $wPartRegex = '/^([()=A-Za-z_\-0-9:]+)\s+([+\-*\/%=&|^!<>]+|ALL|AND|BETWEEN|EXISTS|IN|LIKE|NOT|SOME)\s+(.*)$/';
+
+    // We now iterate through each part and we use regex to parse the WHERE clause where it should
+    // begin with a column name/tableName:columnName, followed by an operator, and then a value.
+    foreach ($where as $index => $wPart) {
+        // WHERE Clause can't start with a special syntax start
+        if ($index === 0) {
+            foreach ($specialSyntaxStart as $specialStart) {
+                if (str_starts_with($wPart, $specialStart)) {
+                    cli_err_without_exit("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to starting with a special syntax start: \"$specialStart\"!");
+                    cli_info("The first part of the WHERE clause cannot start with a special syntax start like: " . implode(", ", quotify_elements($specialSyntaxStart)) . "!");
+                }
+            }
+        }
+        // $wPart starts with "[" we also check it ends with "]" and then we know it is a Subquery Syntax
+        // which is handled at the end so we just push it to the $parsedWhere and continue
+        if (str_ends_with($wPart, "]") && !str_starts_with($wPart, "[")) {
+            cli_err_without_exit("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to ending with a closing bracket ']' but not starting with a opening bracket '['!");
+            cli_info("Subquery Syntax must start with '[' and end with ']'!");
+        }
+        if (str_starts_with($wPart, "[")) {
+            if (!str_ends_with($wPart, "]")) {
+                cli_err_without_exit("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to not ending with a closing bracket ']'!");
+                cli_info("Subquery Syntax must start with '[' and end with ']'!");
+            }
+            if ($queryType === 'INSERT' || $queryType === 'UPDATE' || $queryType === 'DELETE') {
+                cli_warning_without_exit("[cli_parse_where_clause_sql]: Subqueries are ignored Query Type `$queryType`!");
+                cli_info_without_exit("Subquery Syntax is ONLY used for SELECT or SELECT_DISTINCT Queries!");
+                continue;
+            }
+            $parsedWhere .= $wPart . " ";
+            cli_info_without_exit("[cli_parse_where_clause_sql]: Found Subquery Syntax: \"$wPart\" in Query Type: \"$queryType\". This is handled outside of this Parsing Process. Continuing to next WHERE Clause Part...");
+            continue;
+        }
+
+        // Now we finally match the $wPart against the regex to parse it
+        $wMatch = preg_match($wPartRegex, trim($wPart), $wMatches);
+        if (!$wMatch) {
+            cli_err_without_exit("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to no match at all!");
+            cli_info("This might be due to a missing/invalid operator. Valid Operators:\n" . implode(", ", quotify_elements($mysqlOperatorSyntax['all'])) . "!");
+        }
+        if ($wMatches[1] === null || $wMatches[2] === null || $wMatches[3] === null) {
+            cli_err("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to one or more parts being null (table with column name or table column name, operator, and/or value)!");
+        }
+        $mCol = $wMatches[1] ?? null;
+        $mOperator = $wMatches[2] ?? null;
+        $mValue = $wMatches[3] ?? null;
+
+        // Check $mCol begins with any of the special syntax starts. If so we
+        // extract that and the $mCol separated by the special syntax start.
+        $specialSyntax = "";
+        foreach ($specialSyntaxStart as $specialStart) {
+            if (str_starts_with($mCol, $specialStart)) {
+            }
+            if (str_starts_with($mCol, $specialStart)) {
+                [$specialSyntax, $mCol] = explode("=", $mCol, 2);
+                if (str_contains($specialSyntax, "(")) {
+                    $leftParenthesisCount++;
+                } elseif (str_contains($specialSyntax, ")")) {
+                    $rightParenthesisCount++;
+                }
+                break;
+            }
+        }
+
+        var_dump($mCol, $mOperator, $mValue, $specialSyntax);
+
+        // Check $mCol is either in $uniqueCols or in $tbsWithCols
+        if (!in_array($mCol, $uniqueCols, true) && !in_array($mCol, $tbsWithCols, true)) {
+            cli_err("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to column name/tableName:columnName `$mCol` not being found in the Unique Columns or Table with Columns!");
+        }
+
+        // Check that $mOperator is a valid operator
+        if (!in_array($mOperator, $mysqlOperatorSyntax['all'], true)) {
+            cli_err("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to operator `$mOperator` not being a valid MySQL Operator!");
+        }
+
+        // Special Case where $mOperator is NOT "=" meaning it could affect more than
+        // one row table so we warn the Developer about it but still allow it. It applies
+        // to the Query Types DELETE and UPDATE where it could cause issues if not careful!
+        if ($mOperator !== '=' && ($queryType === 'DELETE' || $queryType === 'UPDATE')) {
+            cli_warning_without_exit("[cli_parse_where_clause_sql]: WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" has an Operator that is NOT `=`!");
+            cli_info_without_exit("This could lead to affecting more Table Rows than desired unless you really want that!");
+        }
+
+        // Now we start adding to the $parsedWhere string. First we check if "$specialSyntax" is not empty
+        // meaning we should add that before the column name/tableName:columnName Operator Value parts!
+        if (!empty($specialSyntax)) {
+            $parsedWhere .= $specialSyntax . " ";
+        }
+
+        // There are two cases now: Either we have a SIngle Table to
+        // check against and add based on or we have several ones.
+        // SINGLE TABLE CASE:
+        if ($singleTable) {
+            $singleTb = $tbs[0] ?? null;
+            if (!is_string_and_not_empty($singleTb)) {
+                cli_err("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to Single Table not being a valid string!");
+            }
+        }
+        // MULTIPLE TABLES CASE:
+        else {
+        }
+    } // END OF LOOP THROUGH EACH WHERE CLAUSE PART
+
+    // If not even amount of opening and closing () then we err out!
+    if ($leftParenthesisCount !== $rightParenthesisCount) {
+        cli_err_without_exit("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to unbalanced parentheses!");
+        cli_info("Match the number of left parentheses `(` with the number of right parentheses `)`!");
+    }
+
+    // TODO: Check & fix later if this is not the way to do it!
+    // Add last closing parenthesis if we had any opening parentheses?
+    if ($leftParenthesisCount === $rightParenthesisCount && $leftParenthesisCount > 0) {
+        $parsedWhere = rtrim($parsedWhere);
+        $parsedWhere .= ")";
+    }
 
     // FINALLY RETURN THE PARSED 'WHERE' Key Clause!
+    $parsedWhere = rtrim($parsedWhere);
     return $parsedWhere;
 }
 
@@ -3179,7 +3325,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         // Then we implode the $insertCols and create the final SQL string(s)
         $updateCols = implode(", ", $updateColsWithPlaceholders);
         $builtSQLString .= "UPDATE $updateTb SET $updateCols";
-        $builtSQLString .= (isset($whereTb) && is_string($whereTb) && !empty($whereTb)) ? " WHERE $whereTb" : "";
+        $builtSQLString .= (isset($whereTb) && is_string($whereTb) && !empty($whereTb)) ? " WHERE$whereTb" : "";
         $builtSQLString .= ";";
         $convertedSQLArray['sql'] = $builtSQLString;
         $convertedSQLArray['bparam'] = $builtBindedParamsString;

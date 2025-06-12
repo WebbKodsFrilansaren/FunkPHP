@@ -432,9 +432,65 @@ $singleRoutesRoute = include __DIR__ . '/funkphp/routes/route_single_routes.php'
     ],
     'ROUTES' => ['GET' => [], 'POST' => [], 'PUT' => [], 'DELETE' => [], 'PATCH' => []]
 ];
-$tablesAndRelationshipsFile = include __DIR__ . '/funkphp/config/tables.php' ?? ['tables' => [], 'relationships' => [], 'mappings' => [],];
-$mysqlDataTypesFile = include __DIR__ . '/funkphp/config/VALID_MYSQL_DATATYPES.php' ?? ['STRINGS' => [], 'NUMBERS' => [], 'INTS' => [], 'FLOATS' => [], 'DATETIMES' => [], 'BLOBS' => []];
-
+$tablesAndRelationshipsFile = include __DIR__ . '/funkphp/config/tables.php' ?? [
+    'tables' => [],
+    'relationships' => [],
+    'mappings' => [],
+];
+$mysqlDataTypesFile = include __DIR__ . '/funkphp/config/VALID_MYSQL_DATATYPES.php' ?? [
+    'STRINGS' => [],
+    'NUMBERS' => [],
+    'INTS' => [],
+    'FLOATS' => [],
+    'DATETIMES' => [],
+    'BLOBS' => []
+];
+$mysqlOperatorSyntax = include __DIR__ . '/funkphp/config/VALID_MYSQL_OPERATORS.php' ?? [
+    'arithmetic' => [
+        '+' => [],
+        '-' => [],
+        '*' => [],
+        '/' => [],
+        '%' => [],
+    ],
+    'bitwise' => [
+        '&' => [],
+        '|' => [],
+        '^' => [],
+    ],
+    'comparison' => [
+        '=' => [],
+        '!=' => [],
+        '<>' => [],
+        '>' => [],
+        '>=' => [],
+        '<' => [],
+        '<=' => [],
+        'IS' => [],
+    ],
+    'compound' => [
+        '+=' => [],
+        '-=' => [],
+        '*=' => [],
+        '/=' => [],
+        '%=' => [],
+        '&=' => [],
+        '^-=' => [],
+        '|*=' => [],
+    ],
+    'logical' => [
+        'ALL' => [],
+        'AND' => [],
+        'ANY' => [],
+        'BETWEEN' => [],
+        'EXISTS' => [],
+        'IN' => [],
+        'LIKE' => [],
+        'NOT' => [],
+        'OR' => [],
+        'SOME' => [],
+    ],
+];
 // Compile only based on user input
 // Compile all routes
 // Define the command actions map
