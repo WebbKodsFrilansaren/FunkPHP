@@ -2803,7 +2803,7 @@ function cli_parse_where_clause_sql($tbs, $where, $queryType, $sqlArray, &$built
         // Now we start adding to the $parsedWhere string. First we check if "$specialSyntax" is not empty
         // meaning we should add that before the column name/tableName:columnName Operator Value parts!
         if (!empty($specialSyntax)) {
-            $parsedWhere .= $specialSyntax . " ";
+            $parsedWhere .= $specialSyntax;
         }
 
         // There are two cases now: Either we have a SIngle Table to
@@ -2814,9 +2814,164 @@ function cli_parse_where_clause_sql($tbs, $where, $queryType, $sqlArray, &$built
             if (!is_string_and_not_empty($singleTb)) {
                 cli_err("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to Single Table not being a valid string!");
             }
+            $correctBinding = $allTbs[$singleTb][$mCol]['binding'] ?? null;
+            $expectedBinding = "";
+            if (!$correctBinding) {
+                cli_err("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to column `$mCol` in table `$singleTb` NOT having a Valid Binding Type!");
+            }
+            if ($correctBinding === 's') {
+                $expectedBinding = "String";
+            } elseif ($correctBinding === 'i') {
+                $expectedBinding = "Integer";
+            } elseif ($correctBinding === 'd') {
+                $expectedBinding = "Double";
+            } elseif ($correctBinding === 'b') {
+                $expectedBinding = "Blob";
+            } else {
+                cli_err("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to Column `$mCol` in Table `$singleTb` having an Invalid Binding Type!");
+            }
+
+            // Extract column from $mCol IF it contains a ":" and then add it
+            // with the already validated operator to the $parsedWhere string.
+            $mCol = str_contains($mCol, ":") ? explode(":", $mCol, 2)[1] : $mCol;
+            $parsedWhere .= " $singleTb.$mCol $mOperator ";
+
+            // Now we need to check if the $mValue is a valid type whether it is a
+            // a placeholder ? or an actual value. If it is a placeholder, we
+            // add it to the $builtBindedParamsString and if it is a value, we
+            // add it to the $parsedWhere string with proper escaping.
+            if ($mValue === '?') {
+                // If it is a placeholder, we add it to the $builtBindedParamsString
+                $builtBindedParamsString .= $correctBinding;
+                $parsedWhere .= "? ";
+            }
+            // It is a hardcoded provided Value
+            elseif (is_string($mValue) || is_numeric($mValue)) {
+                if (is_numeric($mValue)) {
+                    // It expects an Integer so we regex to validate it is ONLY integers without any decimals
+                    if ($correctBinding === 'i') {
+                        if (!preg_match('/^-?\d+$/', $mValue)) {
+                            cli_err("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to value provided. Column `$mCol` in Table `$singleTb` expects `$expectedBinding`!");
+                        }
+                    }
+                    // It expects a Double so we regex to validate it is a valid double with optional decimals
+                    elseif (($correctBinding === 'd')) {
+                        if (!preg_match('/^-?\d+(\.\d+)?$/', $mValue)) {
+                            cli_err("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to value provided. Column `$mCol` in Table `$singleTb` expects `$expectedBinding`!");
+                        }
+                    }
+                    // It expects either a String or Blob so we know the provided numeric value is invalid
+                    elseif (($correctBinding === 'b') || ($correctBinding === 's')) {
+                        cli_err("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to value provided. Column `$mCol` in Table `$singleTb` expects `$expectedBinding`!");
+                    }
+                } elseif (is_string($mValue)) {
+                    if ($correctBinding !== 's' && $correctBinding !== 'b') {
+                        cli_err("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to value `$mValue`. Column `$mCol` in Table `$singleTb` does NOT expect a String but `$expectedBinding`!");
+                    }
+                    $mValue = "'" . $mValue . "'";
+                }
+                $parsedWhere .= "$mValue ";
+            } else {
+                cli_err("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to the provided value NOT being a Valid String/Blob or Numeric Value!");
+            }
         }
+
+        // ? IMPORTANT: This might not work as intended with multiple tables yet, despite being pretty much
+        // the same as the single table case. It differs mainly from having to find the correct Table first
+        // based on the $mCol which might or might not already include the table name. It might include just a
+        // unique column meaning we must find it manually in the $allTbs array!
         // MULTIPLE TABLES CASE:
         else {
+            // We need to find the correct Table for the $mCol when ":" is missing
+            // because we now have multiple tables and the $mCol might just be
+            // a unique column name without the table name giving us no table!
+            $correctTb = null;
+
+            // ":" missing, so find correct Table manually
+            if (!str_contains($mCol, ":")) {
+                // We only loop through tables that are actually in the $tbs array
+                foreach ($allTbs as $tb => $colKey) {
+                    if (!in_array($tb, $tbs, true)) {
+                        continue;
+                    }
+                    foreach ($colKey as $k => $col) {
+                        if ($mCol === $k) {
+                            // We found the correct Table for the $mCol
+                            $correctTb = $tb;
+                            break 2; // Break out of both foreach loops
+                        }
+                    }
+                }
+            }
+            // We can just extract the correct Table from the $mCol when it contains a ":"
+            else {
+                $correctTb = explode(":", $mCol, 2)[0] ?? null;
+            }
+
+            // Now we finally process the $correctTb and $mCol as usual (just like with the single table case)
+            if (!is_string_and_not_empty($correctTb)) {
+                cli_err("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to correct Table not being a valid string!");
+            }
+            $correctBinding = $allTbs[$correctTb][$mCol]['binding'] ?? null;
+            $expectedBinding = "";
+            if (!$correctBinding) {
+                cli_err("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to column `$mCol` in table `$correctTb` NOT having a Valid Binding Type!");
+            }
+            if ($correctBinding === 's') {
+                $expectedBinding = "String";
+            } elseif ($correctBinding === 'i') {
+                $expectedBinding = "Integer";
+            } elseif ($correctBinding === 'd') {
+                $expectedBinding = "Double";
+            } elseif ($correctBinding === 'b') {
+                $expectedBinding = "Blob";
+            } else {
+                cli_err("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to Column `$mCol` in Table `$correctTb` having an Invalid Binding Type!");
+            }
+
+            // Extract column from $mCol IF it contains a ":" and then add it
+            // with the already validated operator to the $parsedWhere string.
+            $mCol = str_contains($mCol, ":") ? explode(":", $mCol, 2)[1] : $mCol;
+            $parsedWhere .= " $correctTb.$mCol $mOperator ";
+
+            // Now we need to check if the $mValue is a valid type whether it is a
+            // a placeholder ? or an actual value. If it is a placeholder, we
+            // add it to the $builtBindedParamsString and if it is a value, we
+            // add it to the $parsedWhere string with proper escaping.
+            if ($mValue === '?') {
+                // If it is a placeholder, we add it to the $builtBindedParamsString
+                $builtBindedParamsString .= $correctBinding;
+                $parsedWhere .= "? ";
+            }
+            // It is a hardcoded provided Value
+            elseif (is_string($mValue) || is_numeric($mValue)) {
+                if (is_numeric($mValue)) {
+                    // It expects an Integer so we regex to validate it is ONLY integers without any decimals
+                    if ($correctBinding === 'i') {
+                        if (!preg_match('/^-?\d+$/', $mValue)) {
+                            cli_err("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to value provided. Column `$mCol` in Table `$correctTb` expects `$expectedBinding`!");
+                        }
+                    }
+                    // It expects a Double so we regex to validate it is a valid double with optional decimals
+                    elseif (($correctBinding === 'd')) {
+                        if (!preg_match('/^-?\d+(\.\d+)?$/', $mValue)) {
+                            cli_err("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to value provided. Column `$mCol` in Table `$correctTb` expects `$expectedBinding`!");
+                        }
+                    }
+                    // It expects either a String or Blob so we know the provided numeric value is invalid
+                    elseif (($correctBinding === 'b') || ($correctBinding === 's')) {
+                        cli_err("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to value provided. Column `$mCol` in Table `$correctTb` expects `$expectedBinding`!");
+                    }
+                } elseif (is_string($mValue)) {
+                    if ($correctBinding !== 's' && $correctBinding !== 'b') {
+                        cli_err("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to value `$mValue`. Column `$mCol` in Table `$correctTb` does NOT expect a String but `$expectedBinding`!");
+                    }
+                    $mValue = "'" . $mValue . "'";
+                }
+                $parsedWhere .= "$mValue ";
+            } else {
+                cli_err("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to provided value NOT being a Valid String/Blob or Numeric Value!");
+            }
         }
     } // END OF LOOP THROUGH EACH WHERE CLAUSE PART
 
@@ -2994,7 +3149,8 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         'DELETE' => ['DELETE_FROM']
     ];
 
-    // List of valid binding types (s,i, d, b)
+    // List of valid binding types (s,i,d,b)
+    // s = string, i = integer, d = double, b = blob
     $validBindingTypes = [
         's' => [],
         'i' => [],

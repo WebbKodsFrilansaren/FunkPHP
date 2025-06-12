@@ -21,8 +21,8 @@ function s_test3(&$c) // <authors>
 			'[SUBQUERIES]' => [ // /!\: Subqueries are IGNORED when Query Type is `INSERT|UPDATE|DELETE`!
 			]
 		],
-		'UPDATE_SET' => 'authors:name,email,description,longer_description,age,weight,nickname,updated_at',
-		'WHERE' => 'authors:id = ?|AND=name = ?',
+		'UPDATE_SET' => 'authors:name,email',
+		'WHERE' => 'id = ?',
 		'<MATCHED_FIELDS>' => [ // What each Binded Param must match from a Validated Data Field Array (empty means same as TableName_ColumnKey)
 			'name' => '',
 			'email' => '',
@@ -37,20 +37,14 @@ function s_test3(&$c) // <authors>
 	];
 
 	return array(
-		'sql' => 'UPDATE authors SET name = ?, email = ?, description = ?, longer_description = ?, age = ?, weight = ?, nickname = ?, updated_at = ?;',
+		'sql' => 'UPDATE authors SET name = ?, email = ? WHERE authors.id = ?;',
 		'hydrate' =>
 		array(),
-		'bparam' => 'ssssidss',
+		'bparam' => 'ssi',
 		'fields' =>
 		array(
 			0 => 'authors_name',
 			1 => 'authors_email',
-			2 => 'authors_description',
-			3 => 'authors_longer_description',
-			4 => 'authors_age',
-			5 => 'authors_weight',
-			6 => 'authors_nickname',
-			7 => 'authors_updated_at',
 		),
 	);
 };
