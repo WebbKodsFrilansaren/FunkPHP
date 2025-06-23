@@ -2607,16 +2607,16 @@ function cli_compile_dx_validation_to_optimized_validation()
     }
 }
 
-// Function that parses the Where clause when converting
+// Function that parses the condition clauses such as WHERE
 // a Simple SQL Query to an Optimized SQL Array! The
 // &$builtBindedParamsString is to add the necessary
 // "?" placeholders based on how many are used within
 // the parsed Where clause that would be returned!
-function cli_parse_where_clause_sql($tbs, $where, $queryType, $sqlArray, &$builtBindedParamsString)
+function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, &$builtBindedParamsString)
 {
     // Prepare variables and also validate the input
     global $tablesAndRelationshipsFile, $mysqlOperatorSyntax;
-    $parsedWhere = "";
+    $parsedCondition = "";
     $allTbs = $tablesAndRelationshipsFile['tables'] ?? [];
     $singleTable = count($tbs) === 1;
     $uniqueCols = [];
@@ -2646,17 +2646,17 @@ function cli_parse_where_clause_sql($tbs, $where, $queryType, $sqlArray, &$built
 
     // $tbs must be an array and not empty
     if (!is_array_and_not_empty($tbs)) {
-        cli_err_without_exit("[cli_parse_where_clause_sql]: Expects a Non-Empty Associative Array as input for `\$tables`!");
+        cli_err_without_exit("[cli_parse_condition_clause_sql]: Expects a Non-Empty Associative Array as input for `\$tables`!");
         cli_info("This might mean that the \"\$DX\" variable is an Empty Array, or not an Array at all?");
     }
     // $relations must be an array but can be empty
     if (!is_array($relations)) {
-        cli_err_without_exit("[cli_parse_where_clause_sql]: Expects an Associative Array as input for `\$relations`!");
+        cli_err_without_exit("[cli_parse_condition_clause_sql]: Expects an Associative Array as input for `\$relations`!");
         cli_info("This might mean that the \"\$DX\" variable is an Empty Array, or not an Array at all?");
     }
     // $where must be a string and not empty
     if (!is_string_and_not_empty($where)) {
-        cli_err_without_exit("[cli_parse_where_clause_sql]: Expects a Non-Empty String as input for `\$where`!");
+        cli_err_without_exit("[cli_parse_condition_clause_sql]: Expects a Non-Empty String as input for `\$where`!");
         cli_info("This might mean that the \"\$DX\" variable is an Empty Array, or not an Array at all?");
     }
     // $queryType must be a string and not empty and be one of the allowed query types
@@ -2669,17 +2669,17 @@ function cli_parse_where_clause_sql($tbs, $where, $queryType, $sqlArray, &$built
         'DELETE'
     ];
     if (!is_string_and_not_empty($queryType) || !in_array($queryType, $allowedQueryTypes, true)) {
-        cli_err_without_exit("[cli_parse_where_clause_sql]: Expects a Non-Empty String as input for `\$queryType` that is one of: " . implode(", ", $allowedQueryTypes) . "!");
+        cli_err_without_exit("[cli_parse_condition_clause_sql]: Expects a Non-Empty String as input for `\$queryType` that is one of: " . implode(", ", $allowedQueryTypes) . "!");
         cli_info("This might mean that the \"\$DX\" variable is an Empty Array, or not an Array at all?");
     }
     // $sqlArray must be an array and not empty and not a list!
     if (!is_array_and_not_empty($sqlArray) || array_is_list($sqlArray)) {
-        cli_err_without_exit("[cli_parse_where_clause_sql]: Expects a Non-Empty Associative Array as input for `\$sqlArray`!");
+        cli_err_without_exit("[cli_parse_condition_clause_sql]: Expects a Non-Empty Associative Array as input for `\$sqlArray`!");
         cli_info("This might mean that the \"\$DX\" variable is an Empty Array, or not an Array at all?");
     }
     // $builtBindedParamsString must be a string but can be empty
     if (!is_string($builtBindedParamsString)) {
-        cli_err_without_exit("[cli_parse_where_clause_sql]: Expects a String as input for `\$builtBindedParamsString`!");
+        cli_err_without_exit("[cli_parse_condition_clause_sql]: Expects a String as input for `\$builtBindedParamsString`!");
         cli_info("This might mean that the \"\$DX\" variable is an Empty Array, or not an Array at all?");
     }
 
@@ -2715,19 +2715,19 @@ function cli_parse_where_clause_sql($tbs, $where, $queryType, $sqlArray, &$built
     $where = str_contains(trim($where), "|") ? explode("|", $where) : [$where];
     $wPartRegex = '/^([()=A-Za-z_\-0-9:]+)\s+([+\-*\/%=&|^!<>]+|ALL|AND|BETWEEN|EXISTS|IN|LIKE|NOT|SOME)\s+(.*)$/';
 
-    // We now iterate through each part and we use regex to parse the WHERE clause where it should
+    // We now iterate through each part and we use regex to parse the Condition clause where it should
     // begin with a column name/tableName:columnName, followed by an operator, and then a value.
     foreach ($where as $index => $wPart) {
         // WHERE Clause can't start with a special syntax start
         if ($index === 0) {
             if (str_starts_with($wPart, ")") || str_starts_with($wPart, "(")) {
-                cli_err_without_exit("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to starting with a parenthesis '(' or ')'!");
-                cli_info("The first part of the WHERE clause cannot start with a parenthesis! It must start with a column name or tableName:columnName!");
+                cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to starting with a parenthesis '(' or ')'!");
+                cli_info("The first part of the Condition clause cannot start with a parenthesis! It must start with a column name or tableName:columnName!");
             }
             foreach ($specialSyntaxStart as $specialStart) {
                 if (str_starts_with($wPart, $specialStart)) {
-                    cli_err_without_exit("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to starting with a special syntax start: \"$specialStart\"!");
-                    cli_info("The first part of the WHERE clause cannot start with a special syntax start like: " . implode(", ", quotify_elements($specialSyntaxStart)) . "!");
+                    cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to starting with a special syntax start: \"$specialStart\"!");
+                    cli_info("The first part of the Condition clause cannot start with a special syntax start like: " . implode(", ", quotify_elements($specialSyntaxStart)) . "!");
                 }
             }
         }
@@ -2736,39 +2736,39 @@ function cli_parse_where_clause_sql($tbs, $where, $queryType, $sqlArray, &$built
         // increase the count of left or right parentheses
         if ($wPart === ')') {
             $rightParenthesisCount++;
-            $parsedWhere .= $wPart;
+            $parsedCondition .= $wPart;
             continue;
         }
 
         // $wPart starts with "[" we also check it ends with "]" and then we know it is a Subquery Syntax
-        // which is handled at the end so we just push it to the $parsedWhere and continue
+        // which is handled at the end so we just push it to the $parsedCondition and continue
         if (str_ends_with($wPart, "]") && !str_starts_with($wPart, "[")) {
-            cli_err_without_exit("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to ending with a closing bracket ']' but not starting with a opening bracket '['!");
+            cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to ending with a closing bracket ']' but not starting with a opening bracket '['!");
             cli_info("Subquery Syntax must start with '[' and end with ']'!");
         }
         if (str_starts_with($wPart, "[")) {
             if (!str_ends_with($wPart, "]")) {
-                cli_err_without_exit("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to not ending with a closing bracket ']'!");
+                cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to not ending with a closing bracket ']'!");
                 cli_info("Subquery Syntax must start with '[' and end with ']'!");
             }
             if ($queryType === 'INSERT' || $queryType === 'UPDATE' || $queryType === 'DELETE') {
-                cli_warning_without_exit("[cli_parse_where_clause_sql]: Subqueries are ignored Query Type `$queryType`!");
+                cli_warning_without_exit("[cli_parse_condition_clause_sql]: Subqueries are ignored Query Type `$queryType`!");
                 cli_info_without_exit("Subquery Syntax is ONLY used for SELECT or SELECT_DISTINCT Queries!");
                 continue;
             }
-            $parsedWhere .= $wPart . " ";
-            cli_info_without_exit("[cli_parse_where_clause_sql]: Found Subquery Syntax: \"$wPart\" in Query Type: \"$queryType\". This is handled outside of this Parsing Process. Continuing to next WHERE Clause Part...");
+            $parsedCondition .= $wPart . " ";
+            cli_info_without_exit("[cli_parse_condition_clause_sql]: Found Subquery Syntax: \"$wPart\" in Query Type: \"$queryType\". This is handled outside of this Parsing Process. Continuing to next WHERE Clause Part...");
             continue;
         }
 
         // Now we finally match the $wPart against the regex to parse it
         $wMatch = preg_match($wPartRegex, trim($wPart), $wMatches);
         if (!$wMatch) {
-            cli_err_without_exit("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to no match at all!");
+            cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to no match at all!");
             cli_info("This might be due to a missing/invalid operator. Valid Operators:\n" . implode(", ", quotify_elements($mysqlOperatorSyntax['all'])) . "!");
         }
         if ($wMatches[1] === null || $wMatches[2] === null || $wMatches[3] === null) {
-            cli_err("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to one or more parts being null (table with column name or table column name, operator, and/or value)!");
+            cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to one or more parts being null (table with column name or table column name, operator, and/or value)!");
         }
         $mCol = $wMatches[1] ?? null;
         $mOperator = $wMatches[2] ?? null;
@@ -2778,8 +2778,6 @@ function cli_parse_where_clause_sql($tbs, $where, $queryType, $sqlArray, &$built
         // extract that and the $mCol separated by the special syntax start.
         $specialSyntax = "";
         foreach ($specialSyntaxStart as $specialStart) {
-            if (str_starts_with($mCol, $specialStart)) {
-            }
             if (str_starts_with($mCol, $specialStart)) {
                 [$specialSyntax, $mCol] = explode("=", $mCol, 2);
                 if (str_contains($specialSyntax, "(")) {
@@ -2793,7 +2791,7 @@ function cli_parse_where_clause_sql($tbs, $where, $queryType, $sqlArray, &$built
 
         // Check $mCol is either in $uniqueCols or in $tbsWithCols
         if (!in_array($mCol, $uniqueCols, true) && !in_array($mCol, $tbsWithCols, true)) {
-            cli_err("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to column name/tableName:columnName `$mCol` not being found in the Unique Columns or Table with Columns!");
+            cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to column name/tableName:columnName `$mCol` not being found in the Unique Columns or Table with Columns!");
         }
 
         // Check that $mOperator is a valid operator
@@ -2805,19 +2803,19 @@ function cli_parse_where_clause_sql($tbs, $where, $queryType, $sqlArray, &$built
         // one row table so we warn the Developer about it but still allow it. It applies
         // to the Query Types DELETE and UPDATE where it could cause issues if not careful!
         if ($mOperator !== '=' && ($queryType === 'DELETE' || $queryType === 'UPDATE')) {
-            cli_warning_without_exit("[cli_parse_where_clause_sql]: WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" has an Operator that is NOT `=`!");
+            cli_warning_without_exit("[cli_parse_condition_clause_sql]: Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" has an Operator that is NOT `=`!");
             cli_info_without_exit("This could lead to affecting more Table Rows than desired unless you really want that!");
         }
 
-        // Now we start adding to the $parsedWhere string. First we check if "$specialSyntax" is not empty
+        // Now we start adding to the $parsedCondition string. First we check if "$specialSyntax" is not empty
         // meaning we should add that before the column name/tableName:columnName Operator Value parts!
-        // TODO: Fix so ")" are added at the end of the $parsedWhere string if there are any since it does
+        // TODO: Fix so ")" are added at the end of the $parsedCondition string if there are any since it does
         // not work correctly now due to just being added despite ")" should be at the end of the WHERE clause!
         if (!empty($specialSyntax)) {
-            if ($parsedWhere !== ' ' && str_contains($specialSyntax, "(")) {
-                $parsedWhere .= " ";
+            if ($parsedCondition !== ' ' && str_contains($specialSyntax, "(")) {
+                $parsedCondition .= " ";
             }
-            $parsedWhere .= $specialSyntax;
+            $parsedCondition .= $specialSyntax;
         }
 
         // There are two cases now: Either we have a Single Table to
@@ -2831,7 +2829,7 @@ function cli_parse_where_clause_sql($tbs, $where, $queryType, $sqlArray, &$built
             $correctBinding = $allTbs[$singleTb][$mCol]['binding'] ?? null;
             $expectedBinding = "";
             if (!$correctBinding) {
-                cli_err("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to column `$mCol` in table `$singleTb` NOT having a Valid Binding Type!");
+                cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to column `$mCol` in table `$singleTb` NOT having a Valid Binding Type!");
             }
             if ($correctBinding === 's') {
                 $expectedBinding = "String";
@@ -2842,22 +2840,22 @@ function cli_parse_where_clause_sql($tbs, $where, $queryType, $sqlArray, &$built
             } elseif ($correctBinding === 'b') {
                 $expectedBinding = "Blob";
             } else {
-                cli_err("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to Column `$mCol` in Table `$singleTb` having an Invalid Binding Type!");
+                cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to Column `$mCol` in Table `$singleTb` having an Invalid Binding Type!");
             }
 
             // Extract column from $mCol IF it contains a ":" and then add it
-            // with the already validated operator to the $parsedWhere string.
+            // with the already validated operator to the $parsedCondition string.
             $mCol = str_contains($mCol, ":") ? explode(":", $mCol, 2)[1] : $mCol;
-            $parsedWhere .= " $singleTb.$mCol $mOperator ";
+            $parsedCondition .= " $singleTb.$mCol $mOperator ";
 
             // Now we need to check if the $mValue is a valid type whether it is a
             // a placeholder ? or an actual value. If it is a placeholder, we
             // add it to the $builtBindedParamsString and if it is a value, we
-            // add it to the $parsedWhere string with proper escaping.
+            // add it to the $parsedCondition string with proper escaping.
             if ($mValue === '?') {
                 // If it is a placeholder, we add it to the $builtBindedParamsString
                 $builtBindedParamsString .= $correctBinding;
-                $parsedWhere .= "? ";
+                $parsedCondition .= "? ";
             }
             // It is a hardcoded provided Value
             elseif (is_string($mValue) || is_numeric($mValue)) {
@@ -2865,28 +2863,28 @@ function cli_parse_where_clause_sql($tbs, $where, $queryType, $sqlArray, &$built
                     // It expects an Integer so we regex to validate it is ONLY integers without any decimals
                     if ($correctBinding === 'i') {
                         if (!preg_match('/^-?\d+$/', $mValue)) {
-                            cli_err("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to value provided. Column `$mCol` in Table `$singleTb` expects `$expectedBinding`!");
+                            cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to value provided. Column `$mCol` in Table `$singleTb` expects `$expectedBinding`!");
                         }
                     }
                     // It expects a Double so we regex to validate it is a valid double with optional decimals
                     elseif (($correctBinding === 'd')) {
                         if (!preg_match('/^-?\d+(\.\d+)?$/', $mValue)) {
-                            cli_err("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to value provided. Column `$mCol` in Table `$singleTb` expects `$expectedBinding`!");
+                            cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to value provided. Column `$mCol` in Table `$singleTb` expects `$expectedBinding`!");
                         }
                     }
                     // It expects either a String or Blob so we know the provided numeric value is invalid
                     elseif (($correctBinding === 'b') || ($correctBinding === 's')) {
-                        cli_err("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to value provided. Column `$mCol` in Table `$singleTb` expects `$expectedBinding`!");
+                        cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to value provided. Column `$mCol` in Table `$singleTb` expects `$expectedBinding`!");
                     }
                 } elseif (is_string($mValue)) {
                     if ($correctBinding !== 's' && $correctBinding !== 'b') {
-                        cli_err("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to value `$mValue`. Column `$mCol` in Table `$singleTb` does NOT expect a String but `$expectedBinding`!");
+                        cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to value `$mValue`. Column `$mCol` in Table `$singleTb` does NOT expect a String but `$expectedBinding`!");
                     }
                     $mValue = "'" . $mValue . "'";
                 }
-                $parsedWhere .= "$mValue ";
+                $parsedCondition .= "$mValue ";
             } else {
-                cli_err("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to the provided value NOT being a Valid String/Blob or Numeric Value!");
+                cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to the provided value NOT being a Valid String/Blob or Numeric Value!");
             }
         }
 
@@ -2924,12 +2922,12 @@ function cli_parse_where_clause_sql($tbs, $where, $queryType, $sqlArray, &$built
 
             // Now we finally process the $correctTb and $mCol as usual (just like with the single table case)
             if (!is_string_and_not_empty($correctTb)) {
-                cli_err("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to correct Table not being a valid string!");
+                cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to correct Table not being a valid string!");
             }
             $correctBinding = $allTbs[$correctTb][$mCol]['binding'] ?? null;
             $expectedBinding = "";
             if (!$correctBinding) {
-                cli_err("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to column `$mCol` in table `$correctTb` NOT having a Valid Binding Type!");
+                cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to column `$mCol` in table `$correctTb` NOT having a Valid Binding Type!");
             }
             if ($correctBinding === 's') {
                 $expectedBinding = "String";
@@ -2940,22 +2938,22 @@ function cli_parse_where_clause_sql($tbs, $where, $queryType, $sqlArray, &$built
             } elseif ($correctBinding === 'b') {
                 $expectedBinding = "Blob";
             } else {
-                cli_err("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to Column `$mCol` in Table `$correctTb` having an Invalid Binding Type!");
+                cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to Column `$mCol` in Table `$correctTb` having an Invalid Binding Type!");
             }
 
             // Extract column from $mCol IF it contains a ":" and then add it
-            // with the already validated operator to the $parsedWhere string.
+            // with the already validated operator to the $parsedCondition string.
             $mCol = str_contains($mCol, ":") ? explode(":", $mCol, 2)[1] : $mCol;
-            $parsedWhere .= " $correctTb.$mCol $mOperator ";
+            $parsedCondition .= " $correctTb.$mCol $mOperator ";
 
             // Now we need to check if the $mValue is a valid type whether it is a
             // a placeholder ? or an actual value. If it is a placeholder, we
             // add it to the $builtBindedParamsString and if it is a value, we
-            // add it to the $parsedWhere string with proper escaping.
+            // add it to the $parsedCondition string with proper escaping.
             if ($mValue === '?') {
                 // If it is a placeholder, we add it to the $builtBindedParamsString
                 $builtBindedParamsString .= $correctBinding;
-                $parsedWhere .= "? ";
+                $parsedCondition .= "? ";
             }
             // It is a hardcoded provided Value
             elseif (is_string($mValue) || is_numeric($mValue)) {
@@ -2963,47 +2961,47 @@ function cli_parse_where_clause_sql($tbs, $where, $queryType, $sqlArray, &$built
                     // It expects an Integer so we regex to validate it is ONLY integers without any decimals
                     if ($correctBinding === 'i') {
                         if (!preg_match('/^-?\d+$/', $mValue)) {
-                            cli_err("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to value provided. Column `$mCol` in Table `$correctTb` expects `$expectedBinding`!");
+                            cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to value provided. Column `$mCol` in Table `$correctTb` expects `$expectedBinding`!");
                         }
                     }
                     // It expects a Double so we regex to validate it is a valid double with optional decimals
                     elseif (($correctBinding === 'd')) {
                         if (!preg_match('/^-?\d+(\.\d+)?$/', $mValue)) {
-                            cli_err("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to value provided. Column `$mCol` in Table `$correctTb` expects `$expectedBinding`!");
+                            cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to value provided. Column `$mCol` in Table `$correctTb` expects `$expectedBinding`!");
                         }
                     }
                     // It expects either a String or Blob so we know the provided numeric value is invalid
                     elseif (($correctBinding === 'b') || ($correctBinding === 's')) {
-                        cli_err("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to value provided. Column `$mCol` in Table `$correctTb` expects `$expectedBinding`!");
+                        cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to value provided. Column `$mCol` in Table `$correctTb` expects `$expectedBinding`!");
                     }
                 } elseif (is_string($mValue)) {
                     if ($correctBinding !== 's' && $correctBinding !== 'b') {
-                        cli_err("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to value `$mValue`. Column `$mCol` in Table `$correctTb` does NOT expect a String but `$expectedBinding`!");
+                        cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to value `$mValue`. Column `$mCol` in Table `$correctTb` does NOT expect a String but `$expectedBinding`!");
                     }
                     $mValue = "'" . $mValue . "'";
                 }
-                $parsedWhere .= "$mValue ";
+                $parsedCondition .= "$mValue ";
             } else {
-                cli_err("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to provided value NOT being a Valid String/Blob or Numeric Value!");
+                cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to provided value NOT being a Valid String/Blob or Numeric Value!");
             }
         }
-    } // END OF LOOP THROUGH EACH WHERE CLAUSE PART
+    } // END OF LOOP THROUGH EACH CONDITION CLAUSE PART
 
     // If not even amount of opening and closing () then we err out!
     if ($leftParenthesisCount !== $rightParenthesisCount) {
-        cli_err_without_exit("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to unbalanced parentheses!");
+        cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to unbalanced parentheses!");
         cli_info("Match the number of left parentheses `(` with the number of right parentheses `)`!");
     }
 
     // TODO: Check & fix later if this is not the way to do it!
     // Add last closing parenthesis if we had any opening parentheses?
     if ($leftParenthesisCount === $rightParenthesisCount && $leftParenthesisCount > 0) {
-        $parsedWhere = rtrim($parsedWhere);
+        $parsedCondition = rtrim($parsedCondition);
     }
 
-    // FINALLY RETURN THE PARSED 'WHERE' Key Clause!
-    $parsedWhere = rtrim($parsedWhere);
-    return $parsedWhere;
+    // FINALLY RETURN THE PARSED Condition Clause!
+    $parsedCondition = rtrim($parsedCondition);
+    return $parsedCondition;
 }
 
 // Compiles a $DX SQL [] to an optmized SQL array that is returned within the same
@@ -3478,11 +3476,11 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
             }
         }
 
-        // If the WHERE clause is set, we parse it and add it to the SQL Array
+        // If the WHERE clause is set, we parse its condition and add it to the SQL Array
         // We also pass the "$builtBindedParamsString" as reference to add the necessary
         // "?" placeholders based on how many are used within the Parsed Where Clause!
         if (isset($whereTb) && is_string_and_not_empty($whereTb)) {
-            $whereTb = cli_parse_where_clause_sql($configTBKey, $whereTb, "UPDATE", $convertedSQLArray, $builtBindedParamsString);
+            $whereTb = cli_parse_condition_clause_sql($configTBKey, $whereTb, "UPDATE", $convertedSQLArray, $builtBindedParamsString);
             // If $whereTb is no longer a string after parsing, we error out
             if (!is_string_and_not_empty($whereTb)) {
                 cli_err_syntax_without_exit("Invalid `WHERE` Key String found in SQL Array `$handlerFile.php=>$fnName` for UPDATE Query after being processed by `cli_parse_where_clause_sql` Function!");

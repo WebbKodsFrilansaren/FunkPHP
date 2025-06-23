@@ -22,7 +22,7 @@ function s_test3(&$c) // <authors>
 			]
 		],
 		'UPDATE_SET' => 'authors:name,email',
-		'WHERE' => 'id = 5|AND(=id > 5|OR=id < 10|)|AND(=name LIKE %test%|OR=email LIKE %test%|)',
+		'WHERE' => 'id = 5|AND(=name > a|OR=id < 10|)|AND(=name LIKE %test%|OR=email LIKE %test%|)',
 		'<MATCHED_FIELDS>' => [ // What each Binded Param must match from a Validated Data Field Array (empty means same as TableName_ColumnKey)
 			'name' => '',
 			'email' => '',
@@ -37,7 +37,7 @@ function s_test3(&$c) // <authors>
 	];
 
 	return array(
-		'sql' => "UPDATE authors SET name = ?, email = ? WHERE authors.id = 5  AND( authors.id > 5 OR authors.id < 10 ) AND( authors.name LIKE '%test%' OR authors.email LIKE '%test%' );",
+		'sql' => 'UPDATE authors SET name = ?, email = ? WHERE authors.id = 5  AND( authors.name > \'a\' OR authors.id < 10 ) AND( authors.name LIKE \'%test%\' OR authors.email LIKE \'%test%\' );',
 		'hydrate' =>
 		array(),
 		'bparam' => 'ss',
