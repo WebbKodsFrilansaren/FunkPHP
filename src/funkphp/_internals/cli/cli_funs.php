@@ -2689,6 +2689,11 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, &$b
     // PRIMAREY & FOREIGN KEYS ARE IGNORED HERE because you must specify them with
     // table:col_name so you always know which table it belongs to when using it!
     // We also store the "tableName:colName" in the $tbsWithCols array!
+
+    // This stores any duplicate columns found which are
+    // removed after the processing meaning $uniqueCols could have non-unique cols but
+    // these will be removed by matching against the $removeDuplicateCols array!
+    $removeDuplicateCols = [];
     foreach ($allTbs as $tb => $colKey) {
         // Only do this for the tables actually being processed!
         if (!in_array($tb, $tbs, true)) {
@@ -2702,14 +2707,26 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, &$b
                 if ($singleTable) {
                     $uniqueCols[] = $k;
                 }
-                continue;
             }
-            if (!in_array($k, $uniqueCols, true)) {
+            // If it is in the array, we add it to the $removeDuplicateCols array
+            elseif (in_array($k, $uniqueCols, true)) {
+                if (!in_array($k, $removeDuplicateCols, true)) {
+                    $removeDuplicateCols[] = $k;
+                }
+                $tbsWithCols[] = "$tb:$k";
+            }
+            // If it is not in the array we add it to the $uniqueCols array
+            elseif (!in_array($k, $uniqueCols, true)) {
                 $uniqueCols[] = $k;
                 $tbsWithCols[] = "$tb:$k";
             }
+            continue;
         }
     }
+
+    // We now remove any duplicate columns from the $uniqueCols array
+    // by matching against the $removeDuplicateCols array.
+    $uniqueCols = array_diff($uniqueCols, $removeDuplicateCols);
 
     // We split the $where on "|" string by spaces to get each part or turn the single string into an array
     $where = str_contains(trim($where), "|") ? explode("|", $where) : [$where];
