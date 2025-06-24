@@ -2612,15 +2612,18 @@ function cli_compile_dx_validation_to_optimized_validation()
 // &$builtBindedParamsString is to add the necessary
 // "?" placeholders based on how many are used within
 // the parsed Where clause that would be returned!
-function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, &$builtBindedParamsString)
+function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $validCols, &$builtBindedParamsString)
 {
     // Prepare variables and also validate the input
+    // $where = The actual CONDITION String to parse.
+    // Since this function was first only for WHERE Conditions
+    // but it is now more generalized to handle any condition clause!
     global $tablesAndRelationshipsFile, $mysqlOperatorSyntax;
     $parsedCondition = "";
     $allTbs = $tablesAndRelationshipsFile['tables'] ?? [];
     $singleTable = count($tbs) === 1;
-    $uniqueCols = [];
-    $tbsWithCols  = [];
+    $uniqueCols = null;
+    $tbsWithCols  = null;
     $relations = $tablesAndRelationshipsFile['relationships'] ?? [];
 
     // Keep track of even amount of left and right parentheses
@@ -2677,56 +2680,19 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, &$b
         cli_err_without_exit("[cli_parse_condition_clause_sql]: Expects a Non-Empty Associative Array as input for `\$sqlArray`!");
         cli_info("This might mean that the \"\$DX\" variable is an Empty Array, or not an Array at all?");
     }
+    // $validCols must be an array and not empty and not a list!
+    // It must also contain the array keys "uniqueCols" and "table:col"
+    if (!is_array_and_not_empty($validCols) || array_is_list($validCols) || !isset($validCols['uniqueCols']) || !isset($validCols['table:col'])) {
+        cli_err_without_exit("[cli_parse_condition_clause_sql]: Expects a Non-Empty Associative Array as input for `\$validCols` that contains the keys: \"uniqueCols\" and \"table:col\"!");
+        cli_info("This might mean that the \"\$DX\" variable is an Empty Array, or not an Array at all?");
+    }
+    $uniqueCols = $validCols['uniqueCols'];
+    $tbsWithCols  = $validCols['table:col'];
     // $builtBindedParamsString must be a string but can be empty
     if (!is_string($builtBindedParamsString)) {
         cli_err_without_exit("[cli_parse_condition_clause_sql]: Expects a String as input for `\$builtBindedParamsString`!");
         cli_info("This might mean that the \"\$DX\" variable is an Empty Array, or not an Array at all?");
     }
-
-    // We now loop through all $tbs to add each column name to the $uniqueCols array
-    // as long as it is not already in the array. This will be used to validate what
-    // columns are unique so you do not need table:col_name but can just use col_name!
-    // PRIMAREY & FOREIGN KEYS ARE IGNORED HERE because you must specify them with
-    // table:col_name so you always know which table it belongs to when using it!
-    // We also store the "tableName:colName" in the $tbsWithCols array!
-
-    // This stores any duplicate columns found which are
-    // removed after the processing meaning $uniqueCols could have non-unique cols but
-    // these will be removed by matching against the $removeDuplicateCols array!
-    $removeDuplicateCols = [];
-    foreach ($allTbs as $tb => $colKey) {
-        // Only do this for the tables actually being processed!
-        if (!in_array($tb, $tbs, true)) {
-            continue;
-        }
-        foreach ($colKey as $k => $col) {
-            if (isset($col['primary_key']) || isset($col['foreign_key'])) {
-                $tbsWithCols[] = "$tb:$k";
-                // Special case for Single Table Queries (only 1 Table provided)
-                // Then we know PK and FK are Unique Columns in that table!
-                if ($singleTable) {
-                    $uniqueCols[] = $k;
-                }
-            }
-            // If it is in the array, we add it to the $removeDuplicateCols array
-            elseif (in_array($k, $uniqueCols, true)) {
-                if (!in_array($k, $removeDuplicateCols, true)) {
-                    $removeDuplicateCols[] = $k;
-                }
-                $tbsWithCols[] = "$tb:$k";
-            }
-            // If it is not in the array we add it to the $uniqueCols array
-            elseif (!in_array($k, $uniqueCols, true)) {
-                $uniqueCols[] = $k;
-                $tbsWithCols[] = "$tb:$k";
-            }
-            continue;
-        }
-    }
-
-    // We now remove any duplicate columns from the $uniqueCols array
-    // by matching against the $removeDuplicateCols array.
-    $uniqueCols = array_diff($uniqueCols, $removeDuplicateCols);
 
     // We split the $where on "|" string by spaces to get each part or turn the single string into an array
     $where = str_contains(trim($where), "|") ? explode("|", $where) : [$where];
@@ -2843,6 +2809,22 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, &$b
             if (!is_string_and_not_empty($singleTb)) {
                 cli_err("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to Single Table not being a valid string!");
             }
+
+            // If $mCol contains a ":", we know it is a tableName:columnName
+            // so we can extract the table name and column name from it. But
+            // we also make sure it exists in both unique columns and table with columns arrays!
+            // When $singleTable case, it should ALWAYS exist in both arrays!
+            if (str_contains($mCol, ":")) {
+                if (!in_array($mCol, $tbsWithCols, true)) {
+                    cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to column `$mCol` not being found in the Array of `Table:Column`!");
+                }
+                [$singleTb, $mCol] = explode(":", $mCol, 2);
+                if (!in_array($mCol, $uniqueCols, true)) {
+                    cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to column `$mCol` not being found in the Unique Columns Array!");
+                }
+            }
+
+            // Then we try find correct binding type for the column in the table
             $correctBinding = $allTbs[$singleTb][$mCol]['binding'] ?? null;
             $expectedBinding = "";
             if (!$correctBinding) {
@@ -2918,6 +2900,13 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, &$b
 
             // ":" missing, so find correct Table manually
             if (!str_contains($mCol, ":")) {
+                // Before we start looping through the tables, we check if the $mCol is in the unique columns
+                // because if it is not, then we can never know if we match a correct table since it could
+                // multiple tables have the same column name!
+                if (!in_array($mCol, $uniqueCols, true)) {
+                    cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to column `$mCol` not being found in the Unique Columns Array!");
+                    cli_info("Column `$mCol` might be in multiple tables at once making it impossible to find the correct one. Please use `table:column$mCol` syntax to specify the Table explicitly for this Column!");
+                }
                 // We only loop through tables that are actually in the $tbs array
                 foreach ($allTbs as $tb => $colKey) {
                     if (!in_array($tb, $tbs, true)) {
@@ -2934,6 +2923,9 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, &$b
             }
             // We can just extract the correct Table from the $mCol when it contains a ":"
             else {
+                if (!in_array($mCol, $tbsWithCols, true)) {
+                    cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to column `$mCol` not being found in the Array of `Table:Column`!");
+                }
                 $correctTb = explode(":", $mCol, 2)[0] ?? null;
             }
 
@@ -3074,6 +3066,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
     $builtBindedParamsString = "";
     $builtFieldsArray = [];
     $tables = $tablesAndRelationshipsFile['tables'] ?? [];
+    $cols = ['uniqueCols' => [], 'table:col' => []];
     $relationships = $tablesAndRelationshipsFile['relationships'] ?? [];
 
     // List of available Global Config Rules - these will be checked against
@@ -3253,6 +3246,42 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
             }
         }
     }
+
+    // $cols contains all unique columns and table:col pairs which are used to
+    // build the SQL Query by only checking against valid/existing table and columns
+    // from `tables.php` file and also by the tables being used ($configTBKey).
+    $singleTable = count($configTBKey) === 1;
+    $removeDuplicateCols = [];
+    foreach ($tables as $tb => $colKey) {
+        // Only do this for the tables actually being processed!
+        if (!in_array($tb, $configTBKey, true)) {
+            continue;
+        }
+        foreach ($colKey as $k => $col) {
+            if (isset($col['primary_key']) || isset($col['foreign_key'])) {
+                $cols['table:col'][] = "$tb:$k";
+                // Special case for Single Table Queries (only 1 Table provided)
+                // Then we know PK and FK are Unique Columns in that table!
+                if ($singleTable) {
+                    $cols['uniqueCols'][] = $k;
+                }
+            }
+            // If it is in the array, we add it to the $removeDuplicateCols array
+            elseif (in_array($k, $cols['uniqueCols'], true)) {
+                if (!in_array($k, $removeDuplicateCols, true)) {
+                    $removeDuplicateCols[] = $k;
+                }
+                $cols['table:col'][] = "$tb:$k";
+            }
+            // If it is not in the array we add it to the $uniqueCols array
+            elseif (!in_array($k, $cols['uniqueCols'], true)) {
+                $cols['uniqueCols'][] = $k;
+                $cols['table:col'][] = "$tb:$k";
+            }
+            continue;
+        }
+    }
+    $cols['uniqueCols'][] = array_diff($cols['uniqueCols'], $removeDuplicateCols);
 
     // If "$configSubQsKey" is not null (or empty), we make sure each array key
     // starts and ends with "[" and "]" and that its array element value is a non-empty string
@@ -3497,7 +3526,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         // We also pass the "$builtBindedParamsString" as reference to add the necessary
         // "?" placeholders based on how many are used within the Parsed Where Clause!
         if (isset($whereTb) && is_string_and_not_empty($whereTb)) {
-            $whereTb = cli_parse_condition_clause_sql($configTBKey, $whereTb, "UPDATE", $convertedSQLArray, $builtBindedParamsString);
+            $whereTb = cli_parse_condition_clause_sql($configTBKey, $whereTb, "UPDATE", $convertedSQLArray, $cols, $builtBindedParamsString);
             // If $whereTb is no longer a string after parsing, we error out
             if (!is_string_and_not_empty($whereTb)) {
                 cli_err_syntax_without_exit("Invalid `WHERE` Key String found in SQL Array `$handlerFile.php=>$fnName` for UPDATE Query after being processed by `cli_parse_where_clause_sql` Function!");
