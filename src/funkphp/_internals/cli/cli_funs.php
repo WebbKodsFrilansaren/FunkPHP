@@ -1328,6 +1328,71 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
             "RSS" => "D, d M Y H:i:s O",
             "W3C" => "Y-m-d\\TH:i:sP",
         ];
+        $validDateFormatCharacters = [
+            "d",
+            'D',
+            'j',
+            'l',
+            'N',
+            'S',
+            'w',
+            'z',
+            'W',
+            'F',
+            'm',
+            'M',
+            'n',
+            't',
+            'L',
+            'o',
+            'X',
+            'x',
+            'Y',
+            'y',
+            'a',
+            'A',
+            'B',
+            'g',
+            'G',
+            'h',
+            'H',
+            'i',
+            's',
+            'u',
+            'v',
+            'e',
+            'I',
+            'O',
+            'P',
+            'T',
+            'Z',
+            'c',
+            'r',
+            'U',
+            '.',
+            ':',
+            '-',
+            '+',
+            '/',
+            '\\',
+            ' ',
+        ];
+        $timezoneAwareFormats =  [
+            "ATOM",
+            "COOKIE",
+            "ISO8601",
+            "ISO8601_EXPANDED",
+            "RFC822",
+            "RFC850",
+            "RFC1036",
+            "RFC1123",
+            "RFC7231",
+            "RFC2822",
+            "RFC3339",
+            "RFC3339_EXTENDED",
+            "RSS",
+            "W3C"
+        ];
 
         // LIST OF RULES THAT SHOULD NOT HAVE A VALUE
         // AND THUS A WARNING WILL BE SHOWN IF THEY DO!
@@ -1628,6 +1693,31 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
                     }
                     // Reassign the possibly modified array back to the date value
                     $sortedRulesForField['date']['value'] = $dateValue;
+                }
+
+                // Get updated date value after checking against common formats
+                $dateValue = $sortedRulesForField['date']['value'];
+
+                // We now iterate through each character in the date value
+                // to check that it only uses any of the valid date format characters
+                if (is_string($dateValue)) {
+                    $dateChars = str_split($dateValue);
+                    foreach ($dateChars as $char) {
+                        if (!in_array($char, $validDateFormatCharacters)) {
+                            cli_err_syntax_without_exit("Invalid Date Format Character `$char` in `date` Rule for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                            cli_info("The `date` Rule Value must only use valid date format characters: " . implode(", ", quotify_elements($validDateFormatCharacters)) . ". Character list is based on: https://www.php.net/manual/en/datetime.format.php");
+                        }
+                    }
+                } elseif (is_array($dateValue)) {
+                    foreach ($dateValue as $subValue) {
+                        $subChars = str_split($subValue);
+                        foreach ($subChars as $char) {
+                            if (!in_array($char, $validDateFormatCharacters)) {
+                                cli_err_syntax_without_exit("Invalid Date Format Character `$char` in `date` Rule for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
+                                cli_info("The `date` Rule Value must only use valid date format characters: " . implode(", ", quotify_elements($validDateFormatCharacters)) . ". Character list is based on: https://www.php.net/manual/en/datetime.format.php");
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -2753,12 +2843,12 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
         if ($index === 0) {
             if (str_starts_with($wPart, ")") || str_starts_with($wPart, "(")) {
                 cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to starting with a parenthesis '(' or ')'!");
-                cli_info("The first part of the Condition clause cannot start with a parenthesis! It must start with a column name or tableName:columnName!");
+                cli_info("The first part of the Condition clause cannot start with a parenthesis! It must start with a column name or tableName:columnName UNLESS you wanna use a [SubQuery] which means you should start with `[` and end with `]`!");
             }
             foreach ($specialSyntaxStart as $specialStart) {
                 if (str_starts_with($wPart, $specialStart)) {
                     cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to starting with a special syntax start: \"$specialStart\"!");
-                    cli_info("The first part of the Condition clause cannot start with a special syntax start like: " . implode(", ", quotify_elements($specialSyntaxStart)) . "!");
+                    cli_info("The first part of the Condition clause cannot start with a special syntax start like: " . implode(", ", quotify_elements($specialSyntaxStart)) . "! If you wanna use a [SubQuery] you should start with `[` and end with `]`!");
                 }
             }
         }
@@ -2771,24 +2861,16 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
             continue;
         }
 
-        // $wPart starts with "[" we also check it ends with "]" and then we know it is a Subquery Syntax
-        // which is handled at the end so we just push it to the $parsedCondition and continue
-        if (str_ends_with($wPart, "]") && !str_starts_with($wPart, "[")) {
-            cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to ending with a closing bracket ']' but not starting with a opening bracket '['!");
-            cli_info("Subquery Syntax must start with '[' and end with ']'!");
-        }
-        if (str_starts_with($wPart, "[")) {
-            if (!str_ends_with($wPart, "]")) {
-                cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to not ending with a closing bracket ']'!");
-                cli_info("Subquery Syntax must start with '[' and end with ']'!");
-            }
-            if ($queryType === 'INSERT' || $queryType === 'UPDATE' || $queryType === 'DELETE') {
+        // $wPart might be an entire [SubQuery] so we check if it starts with "[" and ends with "]".
+        // It does NOT apply when Query Type is INSERT since Subqueries are not allowed there!
+        if (str_ends_with($wPart, "]") && str_starts_with($wPart, "[")) {
+            if ($queryType === 'INSERT') {
                 cli_warning_without_exit("[cli_parse_condition_clause_sql]: Subqueries are ignored Query Type `$queryType`!");
-                cli_info_without_exit("Subquery Syntax is ONLY used for SELECT or SELECT_DISTINCT Queries!");
+                cli_info_without_exit("Subquery Syntax is ONLY used for UPDATE, DELETE, SELECT or SELECT_DISTINCT Queries!");
                 continue;
             }
             $parsedCondition .= $wPart . " ";
-            cli_info_without_exit("[cli_parse_condition_clause_sql]: Found Subquery Syntax: \"$wPart\" in Query Type: \"$queryType\". This is handled outside of this Parsing Process. Continuing to next WHERE Clause Part...");
+            cli_info_without_exit("[cli_parse_condition_clause_sql]: Found Subquery Syntax: \"$wPart\" in Query Type: \"$queryType\". This is handled outside of this Parsing Process. Continuing to next Condition Clause Part...");
             continue;
         }
 
@@ -2827,7 +2909,7 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
 
         // Check that $mOperator is a valid operator
         if (!in_array($mOperator, $mysqlOperatorSyntax['all'], true)) {
-            cli_err("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to operator `$mOperator` not being a valid MySQL Operator!");
+            cli_err("[cli_parse_where_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to operator `$mOperator` not being a valid MySQL Operator!");
         }
 
         // Special Case where $mOperator is NOT "=" meaning it could affect more than
@@ -2855,7 +2937,7 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
         if ($singleTable) {
             $singleTb = $tbs[0] ?? null;
             if (!is_string_and_not_empty($singleTb)) {
-                cli_err("[cli_parse_where_clause_sql]: Invalid WHERE Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to Single Table not being a valid string!");
+                cli_err("[cli_parse_where_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to Single Table not being a valid string!");
             }
 
             // If $mCol contains a ":", we know it is a tableName:columnName
@@ -2903,6 +2985,15 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
                 // If it is a placeholder, we add it to the $builtBindedParamsString
                 $builtBindedParamsString .= $correctBinding;
                 $parsedCondition .= "? ";
+            }
+            // $mValue contains [SubQuery] meaning it starts with "[" and ends with "]"
+            elseif (str_ends_with($mValue, "]") && str_starts_with($mValue, "[")) {
+                // We check if the $mValue is a valid SubQuery and if it is, we add it to the $parsedCondition
+                // string as is. It is handled outside of this Parsing Process.
+                if ($queryType === 'INSERT') {
+                    cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to SubQueries not being allowed in INSERT Queries!");
+                }
+                $parsedCondition .= "$mValue ";
             }
             // It is a hardcoded provided Value
             elseif (is_string($mValue) || is_numeric($mValue)) {
@@ -3337,7 +3428,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         // If the configSubQsKey is not an array, we error out
         if (!is_array($configSubQsKey)) {
             cli_err_syntax_without_exit("Invalid Config Key `[SUBQUERIES]` value in SQL Array `$handlerFile.php=>$fnName`!");
-            cli_info("The `[SUBQUERIES]` key must be a Non-Empty Array representing the Subqueries!");
+            cli_info("The `[SUBQUERIES]` key must be an Array representing the Subqueries!");
         }
         // If the configSubQsKey is an array, we check each key
         foreach ($configSubQsKey as $subQueryKey => $subQueryValue) {
@@ -3586,10 +3677,28 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         // Then we implode the $insertCols and create the final SQL string(s)
         $updateCols = implode(", ", $updateColsWithPlaceholders);
         $builtSQLString .= "UPDATE $updateTb SET $updateCols";
-        $builtSQLString .= (isset($whereTb) && is_string($whereTb) && !empty($whereTb)) ? " WHERE$whereTb" : "";
+        $builtSQLString .= (isset($whereTb) && is_string($whereTb) && !empty($whereTb)) ? " WHERE $whereTb" : "";
         $builtSQLString .= ";";
-        $convertedSQLArray['sql'] = $builtSQLString;
         $convertedSQLArray['bparam'] = $builtBindedParamsString;
+
+        // We will now replace every [SubQuery] in the $builtSQLString by iterating
+        // through the $configSubQsKey array and replacing the [SubQuery] with the
+        // actual SubQuery string from the $configSubQsKey array.
+        if (isset($configSubQsKey) && is_array($configSubQsKey) && count($configSubQsKey) > 0) {
+            foreach ($configSubQsKey as $subQueryKey => $subQueryValue) {
+                // If the subquery value is not a string or empty, we error out
+                if (!is_string_and_not_empty($subQueryValue)) {
+                    cli_err_syntax_without_exit("Invalid SubQuery Value `$subQueryValue` in SQL Array `$handlerFile.php=>$fnName` for SubQuery Key `$subQueryKey`!");
+                    cli_info("The SubQuery Value must be a Non-Empty String representing the SubQuery!");
+                }
+                // Replace the [SubQuery] with the actual SubQuery string
+                $builtSQLString = str_replace($subQueryKey, $subQueryValue, $builtSQLString);
+            }
+        }
+        // We finally remove all extra spaces and newlines from the built SQL string
+        // and then add it to the converted SQL Array
+        $builtSQLString = preg_replace('/\s+/', ' ', $builtSQLString);
+        $convertedSQLArray['sql'] = $builtSQLString;
 
         // When the WHERE clause is missing we strongly warn about it to the Developer but still allow it.
         // The warning is about that you would change ALL rows in the table if you do not specify a WHERE clause!

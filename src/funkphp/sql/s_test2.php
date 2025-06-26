@@ -18,11 +18,12 @@ function s_test3(&$c) // <authors>
 		'<CONFIG>' => [
 			'<QUERY_TYPE>' => 'UPDATE',
 			'<TABLES>' => "authors",
-			'[SUBQUERIES]' => [ // /!\: Subqueries are IGNORED when Query Type is `INSERT|UPDATE|DELETE`!
+			'[SUBQUERIES]' => [
+				"[test]" => "(col1,col2) = (SELECT col3, col4 FROM t2 WHERE id = 10)",
 			]
 		],
 		'UPDATE_SET' => 'authors:name,email',
-		'WHERE' => 'id = 5|AND=authors:email = a',
+		'WHERE' => '[test]',
 		'<MATCHED_FIELDS>' => [ // What each Binded Param must match from a Validated Data Field Array (empty means same as TableName_ColumnKey)
 			'name' => '',
 			'email' => '',
