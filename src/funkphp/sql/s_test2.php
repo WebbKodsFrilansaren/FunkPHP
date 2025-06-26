@@ -23,7 +23,7 @@ function s_test3(&$c) // <authors>
 			]
 		],
 		'UPDATE_SET' => 'authors:name,email',
-		'WHERE' => 'id = ?',
+		'WHERE' => '(id = ?)',
 		'<MATCHED_FIELDS>' => [ // What each Binded Param must match from a Validated Data Field Array (empty means same as TableName_ColumnKey)
 			'name' => '',
 			'email' => '',

@@ -2843,7 +2843,9 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
         if ($index === 0) {
             if (str_starts_with($wPart, ")") || str_starts_with($wPart, "(")) {
                 cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to starting with a parenthesis '(' or ')'!");
-                cli_info("The first part of the Condition clause cannot start with a parenthesis! It must start with a column name or tableName:columnName UNLESS you wanna use a [SubQuery] which means you should start with `[` and end with `]`!");
+                cli_info_without_exit("Starting a Condition Clause using () to indicate a Tuple or Row Constructor is not supported as of yet in FunkPHP!");
+                cli_info_without_exit("If you wanna use a [SubQuery] means you should start with `[` and end with `]`. This allows you to use Tuples, Row Constructors and such.");
+                cli_info("IMPORTANT: Using [SubQuery] means you lose the Validation Parsing Logic and you must add the `?` Placeholders manually in the `bparam` Key! (in current version of FunkPHP)");
             }
             foreach ($specialSyntaxStart as $specialStart) {
                 if (str_starts_with($wPart, $specialStart)) {
