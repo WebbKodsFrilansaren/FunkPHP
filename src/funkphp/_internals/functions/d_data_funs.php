@@ -928,7 +928,11 @@ function funk_validate_char($inputName, $inputData, $validationValues, $customEr
 // any digit or based on validationValues)
 function funk_validate_digit($inputName, $inputData, $validationValues, $customErr = null)
 {
-    if (!preg_match('/^\d$/', $inputData)) {
+    if (
+        !isset($inputData)
+        || (!is_string($inputData) && !is_int($inputData))
+        || !preg_match('/^\d$/', $inputData)
+    ) {
         return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a single digit (0-9).";
     }
     if (isset($validationValues)) {
@@ -1068,20 +1072,37 @@ function funk_validate_unchecked($inputName, $inputData, $validationValues, $cus
 }
 
 // Validate that Input Data is a valid date in any provided format
-// This function uses PHP's strtotime to validate the date format
+// This function uses PHP's DateTime::createFromFormat and format
+// method so it can validate ANY provided date format. Default
+// format when no $validationValues are provided is 'Y-m-d H:i:s'.
 function funk_validate_date($inputName, $inputData, $validationValues, $customErr = null)
 {
     if (!is_string($inputData)) {
         return (isset($customErr) && is_string($customErr))
             ? $customErr
-            : "$inputName must be a date string.";
+            : "$inputName must be a valid date string.";
     }
-    if (strtotime($inputData) === false) {
-        return (isset($customErr) && is_string($customErr))
-            ? $customErr
-            : "$inputName must be a valid date in a recognizable format.";
+    // Default format if not provided or invalid data type
+    if (!isset($validationValues)) {
+        $validationValues = 'Y-m-d H:i:s';
     }
-    return null;
+    if (is_string($validationValues)) {
+        $validationValues = [$validationValues];
+    }
+    // We iterate through the validation values to see if any of the provided date formats
+    // match the input data. If none match, we return an error.
+    foreach ($validationValues as $format) {
+        // CREDITS TO "glavic at gmail dot com" at https://www.php.net/manual/en/function.checkdate.php
+        // For this very simple and elegant solution to Validate ANY Date Format!
+        $date = DateTime::createFromFormat($format, $inputData);
+        if ($date && $date->format($format) === $inputData) {
+            return null;
+        }
+    }
+    // If we reach here, it means no format matched the input data
+    return (isset($customErr) && is_string($customErr))
+        ? $customErr
+        : '$inputName must be a valid date using any of the following formats: ' . implode(', ', $validationValues) . '.';
 }
 
 // Validate that Input Data is a valid email address

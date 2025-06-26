@@ -1310,6 +1310,25 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
             }
         }
 
+        // LIST OF COMMON DATE FORMATS IN STRINGS THAT CAN
+        // BE CONVERTED TO THEIR FORMATTED DATE STRINGS
+        $commonDateFormats = [
+            "ATOM" => "Y-m-d\\TH:i:sP",
+            "COOKIE" => "l, d-M-Y H:i:s T",
+            "ISO8601" => "Y-m-d\\TH:i:sO",
+            "ISO8601_EXPANDED" => "X-m-d\\TH:i:sP",
+            "RFC822" => "D, d M y H:i:s O",
+            "RFC850" => "l, d-M-y H:i:s T",
+            "RFC1036" => "D, d M y H:i:s O",
+            "RFC1123" => "D, d M Y H:i:s O",
+            "RFC7231" => "D, d M Y H:i:s \\G\\M\\T",
+            "RFC2822" => "D, d M Y H:i:s O",
+            "RFC3339" => "Y-m-d\\TH:i:sP",
+            "RFC3339_EXTENDED" => "Y-m-d\\TH:i:s.vP",
+            "RSS" => "D, d M Y H:i:s O",
+            "W3C" => "Y-m-d\\TH:i:sP",
+        ];
+
         // LIST OF RULES THAT SHOULD NOT HAVE A VALUE
         // AND THUS A WARNING WILL BE SHOWN IF THEY DO!
         $theseRulesShouldHaveNoValue = [
@@ -1580,6 +1599,35 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
                 if (is_array($betweenValue) && isset($betweenValue[0]) && is_numeric($betweenValue[0]) && $betweenValue[0] < 6) {
                     cli_warning_without_exit("The `email` Rule for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` has a `between` Rule with a first value less than 6!");
                     cli_info_without_exit("This means the email would be too short to be valid. Consider increasing the first value to at least 6!");
+                }
+            }
+        }
+
+        // Special case for 'date' Rule
+        if (isset($sortedRulesForField['date'])) {
+            if (!isset($sortedRulesForField['date']['value'])) {
+                cli_warning_without_exit("The `date` Rule for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` does not have a date format value set!");
+                cli_info_without_exit("The `date` Rule will use the default date format of 'Y-m-d H:i:s' instead when being called!");
+            }
+            // If values exist for Date Rule then we iterate through each value
+            // to check if it exists in $commonDateFormats and thus we replace
+            // it with actual formatted date string. This is OPTIONAL though!
+            elseif (isset($sortedRulesForField['date']['value'])) {
+                $dateValue = $sortedRulesForField['date']['value'];
+                if (is_string($dateValue)) {
+                    if (array_key_exists($dateValue, $commonDateFormats)) {
+                        $sortedRulesForField['date']['value'] = $commonDateFormats[$dateValue];
+                    }
+                }
+                // If the date value is an array, we check each value against the common date formats
+                elseif (is_array($dateValue)) {
+                    foreach ($dateValue as $index => $subValue) {
+                        if (array_key_exists($subValue, $commonDateFormats)) {
+                            $dateValue[$index] = $commonDateFormats[$subValue];
+                        }
+                    }
+                    // Reassign the possibly modified array back to the date value
+                    $sortedRulesForField['date']['value'] = $dateValue;
                 }
             }
         }
