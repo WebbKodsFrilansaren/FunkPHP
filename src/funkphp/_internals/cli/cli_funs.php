@@ -2834,7 +2834,7 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
 
     // We split the $where on "|" string by spaces to get each part or turn the single string into an array
     $where = str_contains(trim($where), "|") ? explode("|", $where) : [$where];
-    $wPartRegex = '/^([()=A-Za-z_\-0-9:]+)\s+([+\-*\/%=&|^!<>]+|ALL|AND|BETWEEN|EXISTS|IN|LIKE|NOT|SOME)\s+(.*)$/';
+    $wPartRegex = '/^(\[[A-Za-z_\-0-9]+]|[()=A-Za-z_\-0-9:]+)\s+(\[[A-Za-z_\-0-9]+]|[+\-*\/%=&|^!<>]+|ALL|AND|BETWEEN|EXISTS|IN|LIKE|NOT|SOME)\s+(.*)$/';
 
     // We now iterate through each part and we use regex to parse the Condition clause where it should
     // begin with a column name/tableName:columnName, followed by an operator, and then a value.
@@ -2863,14 +2863,16 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
 
         // $wPart might be an entire [SubQuery] so we check if it starts with "[" and ends with "]".
         // It does NOT apply when Query Type is INSERT since Subqueries are not allowed there!
-        if (str_ends_with($wPart, "]") && str_starts_with($wPart, "[")) {
+        if (preg_match('/^\[[A-Za-z_\-0-9]+\]$/', $wPart)) {
             if ($queryType === 'INSERT') {
-                cli_warning_without_exit("[cli_parse_condition_clause_sql]: Subqueries are ignored Query Type `$queryType`!");
-                cli_info_without_exit("Subquery Syntax is ONLY used for UPDATE, DELETE, SELECT or SELECT_DISTINCT Queries!");
-                continue;
+                cli_err_syntax_without_exit("[cli_parse_condition_clause_sql]: Subqueries are NOT allowed for Query Type `$queryType`!");
+                cli_err_syntax("Subquery Syntax is ONLY used for UPDATE, DELETE, SELECT or SELECT_DISTINCT Queries!");
+            }
+            if (!isset($validCols['subqueries'][$wPart])) {
+                cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to SubQuery `$wPart` not being found in the SubQueries Array!");
             }
             $parsedCondition .= $wPart . " ";
-            cli_info_without_exit("[cli_parse_condition_clause_sql]: Found Subquery Syntax: \"$wPart\" in Query Type: \"$queryType\". This is handled outside of this Parsing Process. Continuing to next Condition Clause Part...");
+            cli_info_without_exit("[cli_parse_condition_clause_sql]: Found SINGLE AND ONLY A Subquery Syntax: \"$wPart\" in Query Type: \"$queryType\". This is handled outside of this Parsing Process. Continuing...");
             continue;
         }
 
@@ -2881,7 +2883,7 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
             cli_info("This might be due to a missing/invalid operator. Valid Operators:\n" . implode(", ", quotify_elements($mysqlOperatorSyntax['all'])) . "!");
         }
         if ($wMatches[1] === null || $wMatches[2] === null || $wMatches[3] === null) {
-            cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to one or more parts being null (table with column name or table column name, operator, and/or value)!");
+            cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to one or more parts being null (Table with Column Name or Table Column Name, Operator, and/or Value)!");
         }
         $mCol = $wMatches[1] ?? null;
         $mOperator = $wMatches[2] ?? null;
@@ -2903,19 +2905,41 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
         var_dump($mCol, $mOperator, $mValue, $specialSyntax);
 
         // Check $mCol is either in $uniqueCols or in $tbsWithCols
-        if (!in_array($mCol, $uniqueCols, true) && !in_array($mCol, $tbsWithCols, true)) {
+        // after first checking if it is just a [Subquery]
+        if (str_starts_with($mCol, '[') && str_ends_with($mCol, ']')) {
+            if ($queryType === 'INSERT') {
+                cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to SubQueries not being allowed in INSERT Queries!");
+            }
+            if (!isset($validCols['subqueries'][$mCol])) {
+                cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to SubQuery `$mCol` not being found in the SubQueries Array!");
+            }
+            $parsedCondition .= " $mCol ";
+            cli_info_without_exit("[cli_parse_condition_clause_sql]: Found a Subquery Syntax ($mCol) in \"$wPart\" in Query Type: \"$queryType\" where Table:Column otherwise would be. This is replaced later. Continuing...");
+        } elseif (!in_array($mCol, $uniqueCols, true) && !in_array($mCol, $tbsWithCols, true)) {
             cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to column name/tableName:columnName `$mCol` not being found in the Unique Columns or Table with Columns!");
         }
 
-        // Check that $mOperator is a valid operator
-        if (!in_array($mOperator, $mysqlOperatorSyntax['all'], true)) {
+        // Check that $mOperator is a valid operator after first checking if it is a [Subquery]
+        if (str_starts_with($mOperator, '[') && str_ends_with($mOperator, ']')) {
+            if ($queryType === 'INSERT') {
+                cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to SubQueries not being allowed in INSERT Queries!");
+            }
+            if (!isset($validCols['subqueries'][$mOperator])) {
+                cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to SubQuery `$mOperator` not being found in the SubQueries Array!");
+            }
+            $parsedCondition .= " $mOperator ";
+            cli_info_without_exit("[cli_parse_condition_clause_sql]: Found a Subquery Syntax ($mOperator) in \"$wPart\" in Query Type: \"$queryType\" where Operator otherwise would be. This is replaced later. Continuing...");
+        } elseif (!in_array($mOperator, $mysqlOperatorSyntax['all'], true)) {
             cli_err("[cli_parse_where_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to operator `$mOperator` not being a valid MySQL Operator!");
         }
 
         // Special Case where $mOperator is NOT "=" meaning it could affect more than
         // one row table so we warn the Developer about it but still allow it. It applies
         // to the Query Types DELETE and UPDATE where it could cause issues if not careful!
-        if ($mOperator !== '=' && ($queryType === 'DELETE' || $queryType === 'UPDATE')) {
+        if (
+            $mOperator !== '=' && ($queryType === 'DELETE' || $queryType === 'UPDATE')
+            && (!str_starts_with($mOperator, '[') && !str_ends_with($mOperator, ']'))
+        ) {
             cli_warning_without_exit("[cli_parse_condition_clause_sql]: Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" has an Operator that is NOT `=`!");
             cli_info_without_exit("This could lead to affecting more Table Rows than desired unless you really want that!");
         }
@@ -2935,6 +2959,22 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
         // check against and add based on or we have several ones.
         // SINGLE TABLE CASE:
         if ($singleTable) {
+            // $mValue contains [SubQuery] meaning it starts with "[" and ends with "]"
+            if (str_ends_with($mValue, "]") && str_starts_with($mValue, "[")) {
+                // We check if the $mValue is a valid SubQuery and if it is, we add it to the $parsedCondition
+                // string as is. It is handled outside of this Parsing Process.
+                if ($queryType === 'INSERT') {
+                    cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to SubQueries not being allowed in INSERT Queries!");
+                }
+                if (!isset($validCols['subqueries'][$mValue])) {
+                    cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to SubQuery `$mValue` not being found in the SubQueries Array!");
+                }
+                $parsedCondition .= " $mValue ";
+                cli_info_without_exit("[cli_parse_condition_clause_sql]: Found a Subquery Syntax ($mValue) in \"$wPart\" in Query Type: \"$queryType\" where a Value otherwise would be. This is replaced later. Continuing...");
+                continue;
+            }
+
+            // When $mValue is NOT a [SubQuery]
             $singleTb = $tbs[0] ?? null;
             if (!is_string_and_not_empty($singleTb)) {
                 cli_err("[cli_parse_where_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to Single Table not being a valid string!");
@@ -2986,15 +3026,6 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
                 $builtBindedParamsString .= $correctBinding;
                 $parsedCondition .= "? ";
             }
-            // $mValue contains [SubQuery] meaning it starts with "[" and ends with "]"
-            elseif (str_ends_with($mValue, "]") && str_starts_with($mValue, "[")) {
-                // We check if the $mValue is a valid SubQuery and if it is, we add it to the $parsedCondition
-                // string as is. It is handled outside of this Parsing Process.
-                if ($queryType === 'INSERT') {
-                    cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to SubQueries not being allowed in INSERT Queries!");
-                }
-                $parsedCondition .= "$mValue ";
-            }
             // It is a hardcoded provided Value
             elseif (is_string($mValue) || is_numeric($mValue)) {
                 if (is_numeric($mValue)) {
@@ -3032,6 +3063,20 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
         // unique column meaning we must find it manually in the $allTbs array!
         // MULTIPLE TABLES CASE:
         else {
+            // $mValue contains [SubQuery] meaning it starts with "[" and ends with "]"
+            if (str_ends_with($mValue, "]") && str_starts_with($mValue, "[")) {
+                // We check if the $mValue is a valid SubQuery and if it is, we add it to the $parsedCondition
+                // string as is. It is handled outside of this Parsing Process.
+                if ($queryType === 'INSERT') {
+                    cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to SubQueries not being allowed in INSERT Queries!");
+                }
+                if (!isset($validCols['subqueries'][$mValue])) {
+                    cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to SubQuery `$mValue` not being found in the SubQueries Array!");
+                }
+                $parsedCondition .= " $mOperator $mValue ";
+                cli_info_without_exit("[cli_parse_condition_clause_sql]: Found a Subquery Syntax ($mValue) in \"$wPart\" in Query Type: \"$queryType\" where a Value otherwise would be. This is replaced later. Continuing...");
+                continue;
+            }
             // We need to find the correct Table for the $mCol when ":" is missing
             // because we now have multiple tables and the $mCol might just be
             // a unique column name without the table name giving us no table!
@@ -3205,7 +3250,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
     $builtBindedParamsString = "";
     $builtFieldsArray = [];
     $tables = $tablesAndRelationshipsFile['tables'] ?? [];
-    $cols = ['uniqueCols' => [], 'table:col' => []];
+    $cols = ['uniqueCols' => [], 'table:col' => [], 'subqueries' => null];
     $relationships = $tablesAndRelationshipsFile['relationships'] ?? [];
 
     // List of available Global Config Rules - these will be checked against
@@ -3323,6 +3368,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
     $configQTKey = $configKey['<QUERY_TYPE>'] ?? null;
     $configTBKey = $configKey['<TABLES>'] ?? null;
     $configSubQsKey = $configKey['[SUBQUERIES]'] ?? null;
+    $cols['subqueries'] = $configSubQsKey ?? null;
     $validFieldsKey = $sqlArray['<MATCHED_FIELDS>'] ?? null;
 
     // If "$configKey" not null, we check it is an array and not empty

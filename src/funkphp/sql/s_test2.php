@@ -19,11 +19,11 @@ function s_test3(&$c) // <authors>
 			'<QUERY_TYPE>' => 'UPDATE',
 			'<TABLES>' => "authors",
 			'[SUBQUERIES]' => [
-				"[test]" => "(col1,col2) = (SELECT col3, col4 FROM t2 WHERE id = 10)",
+				"[test1]" => "(col1,col2) = (SELECT col3, col4 FROM t2 WHERE id = 15)",
 			]
 		],
 		'UPDATE_SET' => 'authors:name,email',
-		'WHERE' => '[test]',
+		'WHERE' => 'id = ?',
 		'<MATCHED_FIELDS>' => [ // What each Binded Param must match from a Validated Data Field Array (empty means same as TableName_ColumnKey)
 			'name' => '',
 			'email' => '',
@@ -38,10 +38,10 @@ function s_test3(&$c) // <authors>
 	];
 
 	return array(
-		'sql' => 'UPDATE authors SET name = ?, email = ? WHERE authors.id = 5 AND authors.email = \'a\';',
+		'sql' => 'UPDATE authors SET name = ?, email = ? WHERE authors.id = ?;',
 		'hydrate' =>
 		array(),
-		'bparam' => 'ss',
+		'bparam' => 'ssi',
 		'fields' =>
 		array(
 			0 => 'authors_name',
