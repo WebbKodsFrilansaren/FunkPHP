@@ -2841,7 +2841,7 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
     foreach ($where as $index => $wPart) {
         // WHERE Clause can't start with a special syntax start
         if ($index === 0) {
-            if (str_starts_with($wPart, ")") || str_starts_with($wPart, "(")) {
+            if (str_starts_with($wPart, "(") && str_ends_with($wPart, ")")) {
                 cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to starting with a parenthesis '(' or ')'!");
                 cli_info_without_exit("Starting a Condition Clause using () to indicate a Tuple or Row Constructor is not supported as of yet in FunkPHP!");
                 cli_info_without_exit("If you wanna use a [SubQuery] means you should start with `[` and end with `]`. This allows you to use Tuples, Row Constructors and such.");
@@ -2917,6 +2917,11 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
             }
             $parsedCondition .= " $mCol ";
             cli_info_without_exit("[cli_parse_condition_clause_sql]: Found a Subquery Syntax ($mCol) in \"$wPart\" in Query Type: \"$queryType\" where Table:Column otherwise would be. This is replaced later. Continuing...");
+        } elseif (str_starts_with($mCol, "(") && str_ends_with($mCol, ")")) {
+            cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$mCol\" in Query Type: \"$queryType\" due to using parenthesis '(' or ')' outside it!");
+            cli_info_without_exit("Using () to indicate a Tuple or Row Constructor is not supported as of yet in FunkPHP!");
+            cli_info_without_exit("If you wanna use a [SubQuery] means you should start with `[` and end with `]`. This allows you to use Tuples, Row Constructors and such.");
+            cli_info("IMPORTANT: Using [SubQuery] means you lose the Validation Parsing Logic and you must add the `?` Placeholders manually in the `bparam` Key! (in current version of FunkPHP)");
         } elseif (!in_array($mCol, $uniqueCols, true) && !in_array($mCol, $tbsWithCols, true)) {
             cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to column name/tableName:columnName `$mCol` not being found in the Unique Columns or Table with Columns!");
         }
@@ -2931,6 +2936,11 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
             }
             $parsedCondition .= " $mOperator ";
             cli_info_without_exit("[cli_parse_condition_clause_sql]: Found a Subquery Syntax ($mOperator) in \"$wPart\" in Query Type: \"$queryType\" where Operator otherwise would be. This is replaced later. Continuing...");
+        } elseif (str_starts_with($mOperator, "(") && str_ends_with($mOperator, ")")) {
+            cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$mOperator\" in Query Type: \"$queryType\" due to using parenthesis '(' or ')' outside it!");
+            cli_info_without_exit("Using () to indicate a Tuple or Row Constructor is not supported as of yet in FunkPHP!");
+            cli_info_without_exit("If you wanna use a [SubQuery] means you should start with `[` and end with `]`. This allows you to use Tuples, Row Constructors and such.");
+            cli_info("IMPORTANT: Using [SubQuery] means you lose the Validation Parsing Logic and you must add the `?` Placeholders manually in the `bparam` Key! (in current version of FunkPHP)");
         } elseif (!in_array($mOperator, $mysqlOperatorSyntax['all'], true)) {
             cli_err("[cli_parse_where_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to operator `$mOperator` not being a valid MySQL Operator!");
         }
