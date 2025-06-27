@@ -3199,7 +3199,6 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
         cli_info("You do this by adding `|)` at the end of the Condition Clause or where necessary to get the Priority Order as needed!");
     }
 
-    // TODO: Check & fix later if this is not the way to do it!
     // Add last closing parenthesis if we had any opening parentheses?
     if ($leftParenthesisCount === $rightParenthesisCount && $leftParenthesisCount > 0) {
         $parsedCondition = rtrim($parsedCondition);
