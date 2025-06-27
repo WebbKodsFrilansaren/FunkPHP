@@ -2750,7 +2750,7 @@ function cli_compile_dx_validation_to_optimized_validation()
 // &$builtBindedParamsString is to add the necessary
 // "?" placeholders based on how many are used within
 // the parsed Where clause that would be returned!
-function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $validCols, &$builtBindedParamsString)
+function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $validCols, &$builtBindedParamsString, &$builtFieldsArray)
 {
     // Prepare variables and also validate the input
     // $where = The actual CONDITION String to parse.
@@ -2831,6 +2831,11 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
         cli_err_without_exit("[cli_parse_condition_clause_sql]: Expects a String as input for `\$builtBindedParamsString`!");
         cli_info("This might mean that the \"\$DX\" variable is an Empty Array, or not an Array at all?");
     }
+    // $builtFieldsArray must be an array that is a list but can be empty
+    if (!is_array($builtFieldsArray) || !array_is_list($builtFieldsArray)) {
+        cli_err_without_exit("[cli_parse_condition_clause_sql]: Expects a List Array as input for `\$builtFieldsArray`!");
+        cli_info("This might mean that the \"\$DX\" variable is an Empty Array, or not an Array at all?");
+    }
 
     // We split the $where on "|" string by spaces to get each part or turn the single string into an array
     $where = str_contains(trim($where), "|") ? explode("|", $where) : [$where];
@@ -2845,7 +2850,7 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
                 cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to starting with a parenthesis '(' or ')'!");
                 cli_info_without_exit("Starting a Condition Clause using () to indicate a Tuple or Row Constructor is not supported as of yet in FunkPHP!");
                 cli_info_without_exit("If you wanna use a [SubQuery] means you should start with `[` and end with `]`. This allows you to use Tuples, Row Constructors and such.");
-                cli_info("IMPORTANT: Using [SubQuery] means you lose the Validation Parsing Logic and you must add the `?` Placeholders manually in the `bparam` Key! (in current version of FunkPHP)");
+                cli_info("IMPORTANT: Using [SubQuery] means you lose the Validation Parsing Logic and you must add the `?` Placeholders  in the `bparam` Key and the <MATCHED_FIELDS> keys in the `fields` Key manually after successfully compilation! (in current version of FunkPHP)");
             }
             foreach ($specialSyntaxStart as $specialStart) {
                 if (str_starts_with($wPart, $specialStart)) {
@@ -2921,7 +2926,7 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
             cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$mCol\" in Query Type: \"$queryType\" due to using parenthesis '(' or ')' outside it!");
             cli_info_without_exit("Using () to indicate a Tuple or Row Constructor is not supported as of yet in FunkPHP!");
             cli_info_without_exit("If you wanna use a [SubQuery] means you should start with `[` and end with `]`. This allows you to use Tuples, Row Constructors and such.");
-            cli_info("IMPORTANT: Using [SubQuery] means you lose the Validation Parsing Logic and you must add the `?` Placeholders manually in the `bparam` Key! (in current version of FunkPHP)");
+            cli_info("IMPORTANT: Using [SubQuery] means you lose the Validation Parsing Logic and you must add the `?` Placeholders  in the `bparam` Key and the <MATCHED_FIELDS> keys in the `fields` Key manually after successfully compilation! (in current version of FunkPHP)");
         } elseif (!in_array($mCol, $uniqueCols, true) && !in_array($mCol, $tbsWithCols, true)) {
             cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to column name/tableName:columnName `$mCol` not being found in the Unique Columns or Table with Columns!");
         }
@@ -2940,7 +2945,7 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
             cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$mOperator\" in Query Type: \"$queryType\" due to using parenthesis '(' or ')' outside it!");
             cli_info_without_exit("Using () to indicate a Tuple or Row Constructor is not supported as of yet in FunkPHP!");
             cli_info_without_exit("If you wanna use a [SubQuery] means you should start with `[` and end with `]`. This allows you to use Tuples, Row Constructors and such.");
-            cli_info("IMPORTANT: Using [SubQuery] means you lose the Validation Parsing Logic and you must add the `?` Placeholders manually in the `bparam` Key! (in current version of FunkPHP)");
+            cli_info("IMPORTANT: Using [SubQuery] means you lose the Validation Parsing Logic and you must add the `?` Placeholders  in the `bparam` Key and the <MATCHED_FIELDS> keys in the `fields` Key manually after successfully compilation! (in current version of FunkPHP)");
         } elseif (!in_array($mOperator, $mysqlOperatorSyntax['all'], true)) {
             cli_err("[cli_parse_where_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to operator `$mOperator` not being a valid MySQL Operator!");
         }
@@ -3036,6 +3041,26 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
                 // If it is a placeholder, we add it to the $builtBindedParamsString
                 $builtBindedParamsString .= $correctBinding;
                 $parsedCondition .= "? ";
+
+                // We also add the field to the builtFieldsArray based on either any provided
+                // <MATCHED_FIELDS> unique field name or just using default tableName_ColumnName
+                if (isset($builtFieldsArray)) {
+                    if (isset($validCols["matchedFields"][$mCol])) {
+                        if (is_string($validCols["matchedFields"][$mCol]) && !empty($validCols["matchedFields"][$mCol])) {
+                            $mCol = $validCols["matchedFields"][$mCol];
+                        }
+                    }
+                    if (!in_array($singleTb . "_" . $mCol, $builtFieldsArray)) {
+                        $builtFieldsArray[] = $singleTb . "_" . $mCol;
+                    } elseif (in_array($singleTb . "_" . $mCol, $builtFieldsArray)) {
+                        // We iterate adding +1 to the name until it is unique
+                        $i = 1;
+                        while (in_array($singleTb . "_" . $mCol . "_$i", $builtFieldsArray)) {
+                            $i++;
+                        }
+                        $builtFieldsArray[] = $singleTb . "_" . $mCol . "_$i";
+                    }
+                }
             }
             // It is a hardcoded provided Value
             elseif (is_string($mValue) || is_numeric($mValue)) {
@@ -3062,6 +3087,7 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
                     }
                     $mValue = "'" . $mValue . "'";
                 }
+                //$builtBindedParamsString .= $correctBinding; ?? Needed when it is hardcoded value?
                 $parsedCondition .= "$mValue ";
             } else {
                 cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to the provided value NOT being a Valid String/Blob or Numeric Value!");
@@ -3158,6 +3184,26 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
                 // If it is a placeholder, we add it to the $builtBindedParamsString
                 $builtBindedParamsString .= $correctBinding;
                 $parsedCondition .= "? ";
+
+                // We also add the field to the builtFieldsArray based on either any provided
+                // <MATCHED_FIELDS> unique field name or just using default tableName_ColumnName
+                if (isset($builtFieldsArray)) {
+                    if (isset($validCols["matchedFields"][$mCol])) {
+                        if (is_string($validCols["matchedFields"][$mCol]) && !empty($validCols["matchedFields"][$mCol])) {
+                            $mCol = $validCols["matchedFields"][$mCol];
+                        }
+                    }
+                    if (!in_array($correctTb . "_" . $mCol, $builtFieldsArray)) {
+                        $builtFieldsArray[] = $correctTb . "_" . $mCol;
+                    } elseif (in_array($correctTb . "_" . $mCol, $builtFieldsArray)) {
+                        // We iterate adding +1 to the name until it is unique
+                        $i = 1;
+                        while (in_array($correctTb . "_" . $mCol . "_$i", $builtFieldsArray)) {
+                            $i++;
+                        }
+                        $builtFieldsArray[] = $correctTb . "_" . $mCol . "_$i";
+                    }
+                }
             }
             // It is a hardcoded provided Value
             elseif (is_string($mValue) || is_numeric($mValue)) {
@@ -3382,6 +3428,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
     $configSubQsKey = $configKey['[SUBQUERIES]'] ?? null;
     $cols['subqueries'] = $configSubQsKey ?? null;
     $validFieldsKey = $sqlArray['<MATCHED_FIELDS>'] ?? null;
+    $cols['matchedFields'] = $validFieldsKey ?? null;
 
     // If "$configKey" not null, we check it is an array and not empty
     // and then we iterate through the keys to check for valid keys
@@ -3723,7 +3770,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         // We also pass the "$builtBindedParamsString" as reference to add the necessary
         // "?" placeholders based on how many are used within the Parsed Where Clause!
         if (isset($whereTb) && is_string_and_not_empty($whereTb)) {
-            $whereTb = cli_parse_condition_clause_sql($configTBKey, $whereTb, "UPDATE", $convertedSQLArray, $cols, $builtBindedParamsString);
+            $whereTb = cli_parse_condition_clause_sql($configTBKey, $whereTb, "UPDATE", $convertedSQLArray, $cols, $builtBindedParamsString, $builtFieldsArray);
             // If $whereTb is no longer a string after parsing, we error out
             if (!is_string_and_not_empty($whereTb)) {
                 cli_err_syntax_without_exit("Invalid `WHERE` Key String found in SQL Array `$handlerFile.php=>$fnName` for UPDATE Query after being processed by `cli_parse_where_clause_sql` Function!");
@@ -3757,6 +3804,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         // and then add it to the converted SQL Array
         $builtSQLString = preg_replace('/\s+/', ' ', $builtSQLString);
         $convertedSQLArray['sql'] = $builtSQLString;
+        $convertedSQLArray['fields'] = $builtFieldsArray;
 
         // When the WHERE clause is missing we strongly warn about it to the Developer but still allow it.
         // The warning is about that you would change ALL rows in the table if you do not specify a WHERE clause!
@@ -3776,9 +3824,86 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
     // DELETE
     elseif ($configQTKey === 'DELETE') {
         $deleteTb = $configTBKey[0] ?? null;
+        $whereTb = $sqlArray['WHERE'] ?? null;
+
         if (!isset($deleteTb) || !is_string_and_not_empty($deleteTb)) {
             cli_err_syntax_without_exit("No Table Name found in SQL Array['<TABLES'>] `$handlerFile.php=>$fnName` for DELETE Query!");
             cli_info("The `<TABLES>` key must be a Non-Empty Array representing the Table name(s)!");
+        }
+        $deleteIntoKey = $sqlArray['DELETE_FROM'] ?? null;
+        if (!isset($deleteIntoKey) || !is_string_and_not_empty($deleteIntoKey)) {
+            cli_err_syntax_without_exit("No `DELETE_FROM` Key found in SQL Array `$handlerFile.php=>$fnName` for update Query!");
+            cli_info("The `DELETE_FROM` key must be a Non-Empty String representing the Table name(s)!");
+        }
+        // We check that $deleteTB is the exact same as  $configTBKey since
+        // it should be ONLY one table name in the DELETE Query that you
+        // be able to delete from per SQL String!
+        if (
+            !is_string_and_not_empty($deleteTb)
+            || !is_string_and_not_empty($deleteIntoKey)
+            || ($deleteTb !== $deleteIntoKey)
+        ) {
+            cli_err_syntax_without_exit("The `DELETE_FROM` Key in SQL Array `$handlerFile.php=>$fnName` does not match the Table Name `$deleteTb`!");
+            cli_info("The `DELETE_FROM` key must match the Table Name in `<TABLES>` key since you should only delete from one Table per SQL String!");
+        }
+
+        // We check that $deleteTB is the exact same as  $configTBKey since
+        // it should be ONLY one table name in the DELETE Query that you
+        // be able to delete from per SQL String!
+        if (
+            !is_string_and_not_empty($deleteTb)
+            || !is_string_and_not_empty($deleteIntoKey)
+            || ($deleteTb !== $deleteIntoKey)
+        ) {
+            cli_err_syntax_without_exit("The `DELETE_FROM` Key in SQL Array `$handlerFile.php=>$fnName` does not match the Table Name `$deleteTb`!");
+            cli_info("The `DELETE_FROM` key must match the Table Name in `<TABLES>` key since you should only delete from one Table per SQL String!");
+        }
+
+        // If the WHERE clause is set, we parse its condition and add it to the SQL Array
+        // We also pass the "$builtBindedParamsString" as reference to add the necessary
+        // "?" placeholders based on how many are used within the Parsed Where Clause!
+        if (isset($whereTb) && is_string_and_not_empty($whereTb)) {
+            $whereTb = cli_parse_condition_clause_sql($configTBKey, $whereTb, "DELETE", $convertedSQLArray, $cols, $builtBindedParamsString, $builtFieldsArray);
+            // If $whereTb is no longer a string after parsing, we error out
+            if (!is_string_and_not_empty($whereTb)) {
+                cli_err_syntax_without_exit("Invalid `WHERE` Key String found in SQL Array `$handlerFile.php=>$fnName` for UPDATE Query after being processed by `cli_parse_where_clause_sql` Function!");
+                cli_info("The `WHERE` Key must be a Non-Empty String representing the WHERE clause after being parsed by the `cli_parse_where_clause_sql` Function!");
+            }
+        }
+
+        // We count the $insertCols and create equally many ? as $insertValues
+        // Then we implode the $insertCols and create the final SQL string(s)
+        $builtSQLString .= "DELETE FROM $deleteTb";
+        $builtSQLString .= (isset($whereTb) && is_string($whereTb) && !empty($whereTb)) ? " WHERE $whereTb" : "";
+        $builtSQLString .= ";";
+        $convertedSQLArray['bparam'] = $builtBindedParamsString;
+
+        // We will now replace every [SubQuery] in the $builtSQLString by iterating
+        // through the $configSubQsKey array and replacing the [SubQuery] with the
+        // actual SubQuery string from the $configSubQsKey array.
+        if (isset($configSubQsKey) && is_array($configSubQsKey) && count($configSubQsKey) > 0) {
+            foreach ($configSubQsKey as $subQueryKey => $subQueryValue) {
+                // If the subquery value is not a string or empty, we error out
+                if (!is_string_and_not_empty($subQueryValue)) {
+                    cli_err_syntax_without_exit("Invalid SubQuery Value `$subQueryValue` in SQL Array `$handlerFile.php=>$fnName` for SubQuery Key `$subQueryKey`!");
+                    cli_info("The SubQuery Value must be a Non-Empty String representing the SubQuery!");
+                }
+                // Replace the [SubQuery] with the actual SubQuery string
+                $builtSQLString = str_replace($subQueryKey, $subQueryValue, $builtSQLString);
+            }
+        }
+        // We finally remove all extra spaces and newlines from the built SQL string
+        // and then add it to the converted SQL Array
+        $builtSQLString = preg_replace('/\s+/', ' ', $builtSQLString);
+        $convertedSQLArray['sql'] = $builtSQLString;
+        $convertedSQLArray['fields'] = $builtFieldsArray;
+
+        // When the WHERE clause is missing we strongly warn about it to the Developer but still allow it.
+        // The warning is about that you would change ALL rows in the table if you do not specify a WHERE clause!
+        if (!isset($whereTb) || !is_string_and_not_empty($whereTb)) {
+            cli_warning_without_exit("No `WHERE` Key found in SQL Array `$handlerFile.php=>$fnName` for DELETE Query:\n`$builtSQLString`!");
+            cli_warning_without_exit("This means that ALL Rows in the Table `$deleteTb` will be DELETED that match the provided Condition(s)!");
+            cli_info_without_exit("If this is truly your intention, just ignore this warning above and continue as usual!");
         }
 
         // Report success and inform about ignored keys
@@ -5439,8 +5564,8 @@ function cli_create_sql_file_and_or_handler()
         $valCols = $tbsColsExceptId;
         $tbsColsExceptId = implode('|', $tbsColsExceptId);
         $tbsColsExceptId = key($tbs) . ':' . $tbsColsExceptId;
-        $queryTypePart .= "'DELETE_FROM' => '$tbsColsExceptId',\n\t\t'WHERE' => '',";
-        $bindedValidatedData = "\n\t\t\t'<MATCHED_FIELDS>' => [// What each Binded Param must match from a Validated Data Field Array (empty means same as TableName_ColumnKey) \n\t\t\t\t'" . implode('\' => \'\',\'', $valCols) . "'=> '',],\n";
+        $queryTypePart .= "'DELETE_FROM' => '$tbName',\n\t\t'WHERE' => '$tbName:id = ?',";
+        $bindedValidatedData = "\n\t\t\t'<MATCHED_FIELDS>' => [// What each Binded Param must match from a Validated Data Field Array (empty means same as TableName_ColumnKey) \n\t\t\t\t'" . implode('\' => \'\',\'', $valCols) . "'=> '','id' => ''],\n";
         $queryTypePart .= $bindedValidatedData;
         $DXPART .= $queryTypePart;
     }
