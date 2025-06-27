@@ -3935,6 +3935,17 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
     }
     // SELECT
     elseif ($configQTKey === 'SELECT') {
+        $selectTb = $configTBKey[0] ?? null;
+        $selectCols = "";
+        $fromTb = $sqlArray['FROM'] ?? null;
+        $whereTb = $sqlArray['WHERE'] ?? null;
+
+
+
+
+
+
+
 
         // Report success and inform about ignored keys
         cli_success_without_exit("Built SQL String for SELECT Query: `$builtSQLString`");
@@ -5571,6 +5582,13 @@ function cli_create_sql_file_and_or_handler()
     }
     // When regular 'SELECT'
     elseif ($queryType === 'SELECT') {
+        // We want 'id' this time around!
+        $tbsColsWithId = [];
+        foreach ($tbs as $tbName => $tbData) {
+            $tbsColsWithId[$tbName] = $tbData['cols'];
+        }
+        var_dump($tbsColsWithId);
+        exit;
     }
     // When 'SELECT_DISTINCT'
     elseif ($queryType === 'SELECT_DISTINCT') {
