@@ -2958,7 +2958,6 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
 
         // Now we start adding to the $parsedCondition string. First we check if "$specialSyntax" is not empty
         // meaning we should add that before the column name/tableName:columnName Operator Value parts!
-        // TODO: Fix so ")" are added at the end of the $parsedCondition string if there are any since it does
         // not work correctly now due to just being added despite ")" should be at the end of the WHERE clause!
         if (!empty($specialSyntax)) {
             if ($parsedCondition !== ' ' && str_contains($specialSyntax, "(")) {
@@ -3192,10 +3191,12 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
         }
     } // END OF LOOP THROUGH EACH CONDITION CLAUSE PART
 
-    // If not even amount of opening and closing () then we err out!
+    // If not even amount of opening and closing () then
+    // we err out and tell the Developer to fix it! ^_^
     if ($leftParenthesisCount !== $rightParenthesisCount) {
         cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to unbalanced parentheses!");
-        cli_info("Match the number of left parentheses `(` with the number of right parentheses `)`!");
+        cli_info_without_exit("Match the number of left parentheses `(` with the number of right parentheses `)`!");
+        cli_info("You do this by adding `|)` at the end of the Condition Clause or where necessary to get the Priority Order as needed!");
     }
 
     // TODO: Check & fix later if this is not the way to do it!
