@@ -3995,7 +3995,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         // We will check, validate & build the SELECT part of the SQL String based on
         // different cases:
         foreach ($selectTb as $selectTbName) {
-            // SPECIAL CASE: Only Table Name (no columns) is given so
+            // CASE 1: Only Table Name (no columns) is given so
             // add all columns from that table if it is valid table!
             if (
                 !str_contains($selectTbName, ":")
@@ -4017,7 +4017,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                 }
                 continue;
             }
-            // SPECIAL CASE: Table Name with "!" (excludes column) so kinda like above but
+            // CASE 2: Table Name with "!" (excludes column) so kinda like above but
             // but we exclude the .
             elseif (
                 str_contains($selectTbName, "!:")
@@ -4036,6 +4036,22 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
 
                 // Table exists, so we add all columns from that table.
                 if (isset($tables[$selectTbName]) && is_array_and_not_empty($tables[$selectTbName])) {
+
+                    // First we check that the excluded columns are valid meaning that they should exist
+                    // in table, we just do not wanna select/include them in the SQL String.
+                    foreach ($excludedCols as $excludedCol) {
+                        // If the excluded column is not a string or empty, we error out
+                        if (!is_string_and_not_empty($excludedCol)) {
+                            cli_err_syntax_without_exit("Invalid Excluded Column Name in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
+                            cli_info("Excluded Column Names must be Non-Empty Strings!");
+                        }
+                        // If the excluded column is not in the table, we error out
+                        if (!array_key_exists($excludedCol, $tables[$selectTbName])) {
+                            cli_err_syntax_without_exit("Excluded Column Name `$excludedCol` from SQL Array `$handlerFile.php=>$fnName` not found in Table `$selectTbName`!");
+                            cli_info("Valid Column Names for Table `$selectTbName` are: " . implode(", ", quotify_elements(array_keys($tables[$selectTbName]))) . ".");
+                        }
+                    }
+
                     foreach ($tables[$selectTbName] as $colKey => $singleTbCols) {
                         // Only add the column if it is NOT in the excluded columns array
                         if (!in_array($colKey, $excludedCols, true)) {
@@ -4047,6 +4063,55 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                     cli_info("Make sure the Table `$selectTbName` has columns defined in `config/tables.php` file!");
                 }
                 continue;
+            }
+            // CASE 3: Table Name with ":" (selects specific columns) so
+            elseif (
+                str_contains($selectTbName, ":")
+                && !str_contains($selectTbName, "!")
+                && !str_contains($selectTbName, "!:")
+            ) {
+                // If the string ends with ":" after removing all whitespace, we error out
+                if (str_ends_with(trim($selectTbName), ":")) {
+                    cli_err_syntax_without_exit("Invalid Table Name Format in `SELECT` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
+                    cli_info("Valid Table Name Formats are:\n`table_name` (this selects all columns!) OR\n`table_name:col1,col2,col3` (this selects only these 3 columns!) OR\n`table_name!:col1` (this selects all columns except `col1`!)");
+                }
+                // Split the Table Name and Column(s) by "!:"
+                [$selectTbName, $includedCols] = explode(":", $selectTbName, 2);
+
+                // We check if Table exists otherwise we error out
+                if (!in_array($selectTbName, $selectTbs, true)) {
+                    cli_err_syntax_without_exit("Table Name `$selectTbName` from `SELECT` Key in SQL Array `$handlerFile.php=>$fnName` not found in `<TABLES>` Key!");
+                    cli_info("Valid Table Names are: " . implode(", ", quotify_elements($selectTbs)) . ".");
+                }
+
+                // $includedCols becomes an array and is also split on "," if multiple columns are included
+                $includedCols = str_contains($includedCols, ",") ? explode(",", $includedCols) : [$includedCols];
+                if (isset($tables[$selectTbName]) && is_array_and_not_empty($tables[$selectTbName])) {
+                    foreach ($includedCols as $includedCol) {
+                        if (!is_string_and_not_empty($includedCol)) {
+                            cli_err_syntax_without_exit("Invalid Excluded Column Name in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
+                            cli_info("Excluded Column Names must be Non-Empty Strings!");
+                        }
+                        if (!array_key_exists($includedCol, $tables[$selectTbName])) {
+                            cli_err_syntax_without_exit("Excluded Column Name `$includedCol` from SQL Array `$handlerFile.php=>$fnName` not found in Table `$selectTbName`!");
+                            cli_info("Valid Column Names for Table `$selectTbName` are: " . implode(", ", quotify_elements(array_keys($tables[$selectTbName]))) . ".");
+                        }
+                    }
+                    foreach ($tables[$selectTbName] as $colKey => $singleTbCols) {
+                        if (in_array($colKey, $includedCols, true)) {
+                            $selectedTbsColsStr .= $selectTbName . ".$colKey AS " . $singleTbCols['joined_name'] . ",\n";
+                        }
+                    }
+                } else {
+                    cli_err_syntax_without_exit("Table Name `$selectTbName` from `SELECT` Key in SQL Array `$handlerFile.php=>$fnName` has no columns defined in `config/tables.php`!");
+                    cli_info("Make sure the Table `$selectTbName` has columns defined in `config/tables.php` file!");
+                }
+                continue;
+            }
+            // No valid Table Name Format found in `SELECT` Key so we error out
+            else {
+                cli_err_syntax_without_exit("Invalid Table Name Format in `SELECT` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
+                cli_info("Valid Table Name Formats are:\n`table_name` (this selects all columns!) OR\n`table_name:col1,col2,col3` (this selects only these 3 columns!) OR\n`table_name!:col1` (this selects all columns except `col1`!)");
             }
         }
 
@@ -4195,7 +4260,19 @@ function cli_compile_dx_sql_to_optimized_sql()
     } catch (mysqli_sql_exception $e) {
         cli_err_without_exit("The Optimized SQL Query String FAILED during Statement Preparing (from SQL Function \"$fnName\" in \"$handlerFile.php\").");
         cli_info_without_exit("This means either\n1) Actual invalid SQL String Syntax that somehow slipped through the Compilation Stage when it shouldn't have, or that \n2) The Table and its configuration added in `config/tables.php` DOES NOT MATCH the Table with the same name in your local MySQL DBMS (e.g. phpMyAdmin, Adminer, etc.) assuming it exists!");
-        cli_info("Internal MySQLi Error: \"" . $e->getMessage() . "\"");
+
+        // We show some guessing info based on what "$e->getMessage()" contains.
+
+        if (is_string($e->getMessage()) && str_contains($e->getMessage(), "Unknown column") && str_contains($e->getMessage(), "field list")) {
+            cli_info_without_exit("MAYBE: The MySQLi Error might indicate a missing/misspelled Column Name OR You might need a JOIN with the Table that contains that `unknown column`. Also check your `FROM` Key that it includes the Table you want queried!");
+        } elseif (is_string($e->getMessage()) && str_contains($e->getMessage(), "Table ")  && str_contains($e->getMessage(), "doesn't exist")) {
+            cli_info_without_exit("MAYBE: The MySQLi Error might indicate that the Table does not exist in your local MySQL DBMS (e.g. phpMyAdmin, Adminer, etc.) or that you have a typo in the Table Name in your SQL Array!");
+        } elseif (is_string($e->getMessage()) && str_contains($e->getMessage(), "Unknown column") && str_contains($e->getMessage(), "in 'where clause'")) {
+            cli_info_without_exit("MAYBE: The MySQLi Error might indicate a missing/misspelled Column Name in the `WHERE` Clause of your SQL Query String. Check your `WHERE` Key in the SQL Array!");
+        } elseif (is_string($e->getMessage()) && str_contains($e->getMessage(), "Unknown column")) {
+        }
+
+        cli_info("INTERNAL MySQLi ERROR: \"" . $e->getMessage() . "\"");
     }
     cli_success_without_exit("The SQL Query String in SQL Function \"$fnName\" in \"$handlerFile.php\" was Successfully Validated with 0 Errors When Sending it Prepared to the local MySQL DBMS!");
     cli_info_without_exit("Attempting adding the entire Optimized SQL Array as the returned value in SQL Function \"$fnName\" in \"$handlerFile.php\"!");

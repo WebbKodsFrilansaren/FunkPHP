@@ -25,11 +25,9 @@ function s_test5(&$c) // <authors,articles,comments>
 			]
 		],
 		'SELECT' => [
-			'authors',
-			'articles!:id',
-			'comments:id,article_id,content,author_id,created_at',
+			'articles!:title,content',
 		],
-		'FROM' => 'authors',
+		'FROM' => 'articles', // Optional, leave empty (or remove) if not used!
 		// 'JOINS_ON' Syntax: `join_type=table1,table1_id,table2_ref_id`
 		// Join Types: `inner|i|join|j|ij`,`left|l`,`right|r` (Full Join NOT Available yet!)
 		'JOINS_ON' => [ // Optional, make empty if not joining any tables!
@@ -68,7 +66,14 @@ function s_test5(&$c) // <authors,articles,comments>
 		],
 	];
 
-	return array([]);
+	return array(
+		'sql' => 'SELECT articles.id AS articles_id, articles.author_id AS articles_author_id, articles.published AS articles_published, articles.created_at AS articles_created_at, articles.updated_at AS articles_updated_at FROM articles;',
+		'hydrate' =>
+		array(),
+		'bparam' => '',
+		'fields' =>
+		array(),
+	);
 };
 
 return function (&$c, $handler = "s_test3") {
