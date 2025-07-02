@@ -5635,7 +5635,7 @@ function cli_create_sql_file_and_or_handler()
         $queryTypePart .= "',\n\t\t";
 
         // We now add the 'JOINS' which is OPTIONAL for every SELECT query!
-        $queryTypePart .= "// 'JOINS_ON' Syntax: `join_type=table1,table1_id,table2_ref_id`\n\t\t// Join Types: `inner|i`,`left|l`,`right|r` (Full Join NOT Available yet!)\n\t\t'JOINS_ON' => [// Optional, make empty if not joining any tables!";
+        $queryTypePart .= "// 'JOINS_ON' Syntax: `join_type=table1,table1_id,table2_ref_id`\n\t\t// Join Types: `inner|i|join|j|ij`,`left|l`,`right|r` (Full Join NOT Available yet!)\n\t\t'JOINS_ON' => [// Optional, make empty if not joining any tables!";
         $queryTypePart .= "\n\t\t\t\t";
 
         // We automatically generate all the possible JOINs (inner default) based
