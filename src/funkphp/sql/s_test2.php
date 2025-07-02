@@ -8,9 +8,10 @@ namespace FunkPHP\SQL\s_test2;
 // to get an array with SQL Query, Hydration Array and optionally Binded Params below here!
 // IMPORTANT: CMD+S or CTRL+S to autoformat each time function is added!
 
+
 function s_test5(&$c) // <authors,articles,comments>
 {
-	// Created in FunkCLI on 2025-07-02 22:58:12! Keep "};" on its
+	// Created in FunkCLI on 2025-07-03 00:20:51! Keep "};" on its
 	// own new line without indentation no comment right after it!
 	// Run the command `php funkcli compile s s_test2=>s_test5`
 	// to get SQL, Hydration & Binded Params in return statement below it!
@@ -25,8 +26,8 @@ function s_test5(&$c) // <authors,articles,comments>
 		],
 		'SELECT' => [
 			'authors',
-			'comments!:id',
-			'articles:id,author_id,title,content,published,created_at,updated_at',
+			'articles!:id',
+			'comments:id,article_id,content,author_id,created_at',
 		],
 		'FROM' => 'authors',
 		// 'JOINS_ON' Syntax: `join_type=table1,table1_id,table2_ref_id`
@@ -60,25 +61,14 @@ function s_test5(&$c) // <authors,articles,comments>
 			'articles_created_at' => '',
 			'articles_updated_at' => '',
 			'comments_id' => '',
-			'comments_test_number_that_is_unsigned' => '',
-			'comments_test_number_that_is_signed' => '',
 			'comments_article_id' => '',
 			'comments_content' => '',
 			'comments_author_id' => '',
-			'comments_comment_status' => '',
-			'comments_comment_type' => '',
 			'comments_created_at' => ''
 		],
 	];
 
-	return array(
-		'sql' => 'SELECT authors.id AS authors_id, authors.name AS authors_name, authors.email AS authors_email, authors.description AS authors_description, authors.longer_description AS authors_longer_description, authors.age AS authors_age, authors.weight AS authors_weight, authors.nickname AS authors_nickname, authors.updated_at AS authors_updated_at FROM authors;',
-		'hydrate' =>
-		array(),
-		'bparam' => '',
-		'fields' =>
-		array(),
-	);
+	return array([]);
 };
 
 return function (&$c, $handler = "s_test3") {
