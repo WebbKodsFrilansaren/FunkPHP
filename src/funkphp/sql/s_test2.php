@@ -8,54 +8,6 @@ namespace FunkPHP\SQL\s_test2;
 // to get an array with SQL Query, Hydration Array and optionally Binded Params below here!
 // IMPORTANT: CMD+S or CTRL+S to autoformat each time function is added!
 
-
-
-function s_test4(&$c) // <authors>
-{
-	// Created in FunkCLI on 2025-07-02 22:57:34! Keep "};" on its
-	// own new line without indentation no comment right after it!
-	// Run the command `php funkcli compile s s_test2=>s_test4`
-	// to get SQL, Hydration & Binded Params in return statement below it!
-	$DX = [
-		'<CONFIG>' => [
-			'<QUERY_TYPE>' => 'SELECT',
-			'<TABLES>' => ['authors'],
-			'[SUBQUERIES]' => [
-				'[subquery_example_1]' => 'SELECT COUNT(*)',
-				'[subquery_example_2]' => '(WHERE SELECT *)'
-			]
-		],
-		'SELECT' => [
-			'authors:id,name,email,description,longer_description,age,weight,nickname,updated_at',
-		],
-		'FROM' => 'authors',
-		// 'JOINS_ON' Syntax: `join_type=table1,table1_id,table2_ref_id`
-		// Join Types: `inner|i|join|j|ij`,`left|l`,`right|r` (Full Join NOT Available yet!)
-		'JOINS_ON' => [ // Optional, make empty if not joining any tables!
-		],
-		'WHERE' => '', // Optional, leave empty (or remove) if not used!
-		'GROUP BY' => '', // Optional, leave empty (or remove) if not used!
-		'HAVING' => '', // Optional, leave empty (or remove) if not used!
-		'ORDER BY' => '', // Optional, leave empty (or remove) if not used!
-		'LIMIT' => '', // Optional, leave empty (or remove) if not used!
-		'OFFSET' => '', // Optional, leave empty (or remove) if not used!
-		'<MATCHED_FIELDS>' => [ // What each Binded Param must match from a Validated Data Field Array (empty means same as TableName_ColumnKey)
-			'id' => '',
-			'name' => '',
-			'email' => '',
-			'description' => '',
-			'longer_description' => '',
-			'age' => '',
-			'weight' => '',
-			'nickname' => '',
-			'updated_at' => ''
-		],
-	];
-
-	return array([]);
-};
-
-
 function s_test5(&$c) // <authors,articles,comments>
 {
 	// Created in FunkCLI on 2025-07-02 22:58:12! Keep "};" on its
@@ -72,9 +24,9 @@ function s_test5(&$c) // <authors,articles,comments>
 			]
 		],
 		'SELECT' => [
-			'authors:id,name,email,description,longer_description,age,weight,nickname,updated_at',
+			'authors',
+			'comments!:id',
 			'articles:id,author_id,title,content,published,created_at,updated_at',
-			'comments:id,test_number_that_is_unsigned,test_number_that_is_signed,article_id,content,author_id,comment_status,comment_type,created_at',
 		],
 		'FROM' => 'authors',
 		// 'JOINS_ON' Syntax: `join_type=table1,table1_id,table2_ref_id`
@@ -119,7 +71,14 @@ function s_test5(&$c) // <authors,articles,comments>
 		],
 	];
 
-	return array([]);
+	return array(
+		'sql' => 'SELECT authors.id AS authors_id, authors.name AS authors_name, authors.email AS authors_email, authors.description AS authors_description, authors.longer_description AS authors_longer_description, authors.age AS authors_age, authors.weight AS authors_weight, authors.nickname AS authors_nickname, authors.updated_at AS authors_updated_at FROM authors;',
+		'hydrate' =>
+		array(),
+		'bparam' => '',
+		'fields' =>
+		array(),
+	);
 };
 
 return function (&$c, $handler = "s_test3") {

@@ -3299,6 +3299,9 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         });
         return array_values($cols);
     };
+    $addTableColAS = function ($table, $col) {
+        return "$table.$col AS $table" . "_$col";
+    };
 
     // Prepare variables to store the
     // converted SQL Query Array
@@ -3334,6 +3337,8 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
             "UPDATE",
             "SET",
             "VALUES",
+            "GROUP BY",
+            "HAVING",
         ],
         'SELECT_INTO' => [
             "INSERT",
@@ -3404,7 +3409,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
 
     // List of minimum required keys for each query type
     $minimumRequiredKeysByQueryType = [
-        'SELECT_DISTINCT' => ['SELECT', 'FROM', 'DISTINCT'],
+        'SELECT_DISTINCT' => ['SELECT_DISTINCT', 'FROM'],
         'SELECT_INTO' => ['SELECT', 'INTO'],
         'SELECT' => ['SELECT', 'FROM'],
         'INSERT' => ['INSERT_INTO',],
@@ -3549,15 +3554,6 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
             }
         }
     }
-
-    // Regex patterns to match different SQL parts and
-    // different ways of writing the different SQL parts
-    $regexType = [
-        'ONLY_TABLE_NAME' => '/^([a-z_][a-z_0-9]*)$/i',
-        'ONLY_TABLE_NAME_AND_COLS_AFTER_COLON' => '/^([a-z_][a-z_0-9]+):(.+)$/i',
-        'ONLY_TABLE_NAME_AND_ONLY_COLS_AFTER_COLON' => '/^([a-z_][a-z_0-9]+)\*only:(.+)$/i',
-        'ONLY_TABLE_NAME_AND_EXCEPT_COLS_AFTER_COLON' => '/^([a-z_][a-z_0-9]+)\*except:(.+)$/i',
-    ];
 
     // We iterate through $ignoredKeysByQueryType to add what keys would be ignored based
     // on query type ($configQTKey) and build and array and then we inform the Developer
@@ -3937,7 +3933,6 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
     elseif ($configQTKey === 'SELECT') {
         $selectTbs = $configTBKey ?? null;
         $selectedTbsColsStr = "";
-        $fromStr = "";
         $joinsStr = "";
         $whereStr = "";
         $groupByStr = "";
@@ -3961,10 +3956,18 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
             cli_info("The `<TABLES>` key must be a Non-Empty Array representing the Table name(s)!");
         }
 
-        // $selectTb cannot be null or empty string
-        if (!isset($selectTb) || !is_string_and_not_empty($selectTb)) {
+        // $selectTb cannot be null, an associative array or an empty list array
+        if (!isset($selectTb) || !array_is_list($selectTb) || empty($selectTb)) {
             cli_err_syntax_without_exit("No `SELECT` Key found in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
-            cli_info("The `SELECT` key must be a Non-Empty String representing the Table name(s)! For example:\n`table_name:col1,col2,col3` OR\n`table_name!:col1`\nSecond examples selects all columns except `col1`!");
+            cli_info("The `SELECT` key must be a Non-Empty List Array representing the Table name(s)! For example:\n`table_name:col1,col2,col3` OR\n`table_name!:col1`\nSecond examples selects all columns except `col1`!");
+        }
+
+        // $selectTb listed array must all be complete string (not empty strings)
+        foreach ($selectTb as $selectTbName) {
+            if (!is_string_and_not_empty($selectTbName)) {
+                cli_err_syntax_without_exit("Invalid Data Types found in `SELECT` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
+                cli_info("Each Array Element in the `SELECT` Key must be a Non-Empty String representing the Table Name and optionally Columns to select from that Table!\nSyntax Example: `table_name:col1,col2,col3` OR `table_name!:col1`.\nThe second example selects all columns except `col1`!");
+            }
         }
 
         // $fromTb cannot be null or empty string
@@ -3973,7 +3976,113 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
             cli_info("The `FROM` key must be a Non-Empty String representing the Primary Table (and ONLY a single one) to SELECT and/or JOIN from!");
         }
 
+        // We now loop through $selectTb and check whether the $fromTb table exists in at least one of the
+        // $selectTbs tables and if not, we error out since the FROM table must be one of the SELECT tables!
+        $tbFound = false;
+        foreach ($selectTbs as $selectTbName) {
+            if (str_starts_with($selectTbName, $fromTb)) {
+                $tbFound = true;
+                break;
+            }
+        }
+        if (!$tbFound) {
+            cli_err_syntax_without_exit("The `FROM` Key Table `$fromTb` was not found in the `SELECT` Key Tables in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
+            cli_info("The `FROM` Key must contain one of the Tables in the `SELECT` Key since you need a starting Table for your SELECT Query!");
+        }
 
+        // PARSING THE "SELECT" Key (all selected tables and columns)
+        // We loop through $selectTb which we know now are all valid non-empty strings.
+        // We will check, validate & build the SELECT part of the SQL String based on
+        // different cases:
+        foreach ($selectTb as $selectTbName) {
+            // SPECIAL CASE: Only Table Name (no columns) is given so
+            // add all columns from that table if it is valid table!
+            if (
+                !str_contains($selectTbName, ":")
+                && !str_contains($selectTbName, "!")
+                && !str_contains($selectTbName, ",")
+            ) {
+                if (!in_array($selectTbName, $selectTbs, true)) {
+                    cli_err_syntax_without_exit("Table Name `$selectTbName` from `SELECT` Key in SQL Array `$handlerFile.php=>$fnName` not found in `<TABLES>` Key!");
+                    cli_info("Valid Table Names are: " . implode(", ", quotify_elements($selectTbs)) . ".");
+                }
+                // Table exists, so we add all columns from that table.
+                if (isset($tables[$selectTbName]) && is_array_and_not_empty($tables[$selectTbName])) {
+                    foreach ($tables[$selectTbName] as $colKey => $singleTbCols) {
+                        $selectedTbsColsStr .= $selectTbName . ".$colKey AS " . $singleTbCols['joined_name'] . ",\n";
+                    }
+                } else {
+                    cli_err_syntax_without_exit("Table Name `$selectTbName` from `SELECT` Key in SQL Array `$handlerFile.php=>$fnName` has no columns defined in `config/tables.php`!");
+                    cli_info("Make sure the Table `$selectTbName` has columns defined in `config/tables.php` file!");
+                }
+                continue;
+            }
+            // SPECIAL CASE: Table Name with "!" (excludes column) so kinda like above but
+            // but we exclude the .
+            elseif (
+                str_contains($selectTbName, "!:")
+            ) {
+                // Split the Table Name and Column(s) by "!:"
+                [$selectTbName, $excludedCols] = explode("!:", $selectTbName, 2);
+
+                // We check if Table exists otherwise we error out
+                if (!in_array($selectTbName, $selectTbs, true)) {
+                    cli_err_syntax_without_exit("Table Name `$selectTbName` from `SELECT` Key in SQL Array `$handlerFile.php=>$fnName` not found in `<TABLES>` Key!");
+                    cli_info("Valid Table Names are: " . implode(", ", quotify_elements($selectTbs)) . ".");
+                }
+
+                // $excludedCols becomes an array and is also split on "," if multiple columns are excluded
+                $excludedCols = str_contains($excludedCols, ",") ? explode(",", $excludedCols) : [$excludedCols];
+
+                // Table exists, so we add all columns from that table.
+                if (isset($tables[$selectTbName]) && is_array_and_not_empty($tables[$selectTbName])) {
+                    foreach ($tables[$selectTbName] as $colKey => $singleTbCols) {
+                        // Only add the column if it is NOT in the excluded columns array
+                        if (!in_array($colKey, $excludedCols, true)) {
+                            $selectedTbsColsStr .= $selectTbName . ".$colKey AS " . $singleTbCols['joined_name'] . ",\n";
+                        }
+                    }
+                } else {
+                    cli_err_syntax_without_exit("Table Name `$selectTbName` from `SELECT` Key in SQL Array `$handlerFile.php=>$fnName` has no columns defined in `config/tables.php`!");
+                    cli_info("Make sure the Table `$selectTbName` has columns defined in `config/tables.php` file!");
+                }
+                continue;
+            }
+        }
+
+        // Remove last "," from the $selectedTbsColsStr if it exists
+        if (str_ends_with($selectedTbsColsStr, ",\n")) {
+            $selectedTbsColsStr = substr($selectedTbsColsStr, 0, -2);
+        }
+
+        // PARSING THE "FROM" Key (the primary table to select from/join/work with)
+
+        // This is where all parts of the SQL String are stitched together
+        // TODO: Here! Then end with ";"
+        $builtSQLString = "SELECT ";
+        $builtSQLString .= "$selectedTbsColsStr FROM $fromTb";
+        $builtSQLString .= ";";
+        $convertedSQLArray['bparam'] = $builtBindedParamsString;
+
+        // We will now replace every [SubQuery] in the $builtSQLString by iterating
+        // through the $configSubQsKey array and replacing the [SubQuery] with the
+        // actual SubQuery string from the $configSubQsKey array.
+        if (isset($configSubQsKey) && is_array($configSubQsKey) && count($configSubQsKey) > 0) {
+            foreach ($configSubQsKey as $subQueryKey => $subQueryValue) {
+                // If the subquery value is not a string or empty, we error out
+                if (!is_string_and_not_empty($subQueryValue)) {
+                    cli_err_syntax_without_exit("Invalid SubQuery Value `$subQueryValue` in SQL Array `$handlerFile.php=>$fnName` for SubQuery Key `$subQueryKey`!");
+                    cli_info("The SubQuery Value must be a Non-Empty String representing the SubQuery!");
+                }
+                // Replace the [SubQuery] with the actual SubQuery string
+                $builtSQLString = str_replace($subQueryKey, $subQueryValue, $builtSQLString);
+            }
+        }
+        // We finally remove all extra spaces and newlines from the built SQL string
+        // and then add it to the converted SQL Array
+        $builtSQLString = preg_replace('/\s+/', ' ', $builtSQLString);
+        $convertedSQLArray['sql'] = $builtSQLString;
+        $convertedSQLArray['fields'] = $builtFieldsArray;
 
         // Report success and inform about ignored keys
         cli_success_without_exit("Built SQL String for SELECT Query: `$builtSQLString`");

@@ -1,6 +1,6 @@
 CREATE TABLE articles (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    author_id INT NOT NULL,
+    author_id BIGINT NOT NULL,
     title VARCHAR(255) UNIQUE NOT NULL,
     content TEXT NOT NULL,
     published BOOLEAN DEFAULT FALSE,
