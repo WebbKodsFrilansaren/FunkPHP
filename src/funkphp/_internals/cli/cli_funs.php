@@ -3942,11 +3942,6 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
 
 
 
-
-
-
-
-
         // Report success and inform about ignored keys
         cli_success_without_exit("Built SQL String for SELECT Query: `$builtSQLString`");
         if (is_array($ignoredKeys) && !empty($ignoredKeys)) {
