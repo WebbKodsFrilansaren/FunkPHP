@@ -3935,10 +3935,43 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
     }
     // SELECT
     elseif ($configQTKey === 'SELECT') {
-        $selectTb = $configTBKey[0] ?? null;
-        $selectCols = "";
+        $selectTbs = $configTBKey ?? null;
+        $selectedTbsColsStr = "";
+        $fromStr = "";
+        $joinsStr = "";
+        $whereStr = "";
+        $groupByStr = "";
+        $havingStr = "";
+        $orderByStr = "";
+        $limitStr = "";
+        $offsetStr = "";
+        $selectTb = $sqlArray['SELECT'] ?? null;
         $fromTb = $sqlArray['FROM'] ?? null;
+        $joinsTb = $sqlArray['JOINS_ON'] ?? null;
         $whereTb = $sqlArray['WHERE'] ?? null;
+        $groupByTb = $sqlArray['GROUP BY'] ?? null;
+        $havingTb = $sqlArray['HAVING'] ?? null;
+        $orderByTb = $sqlArray['ORDER BY'] ?? null;
+        $limitTb = $sqlArray['LIMIT'] ?? null;
+        $offsetTb = $sqlArray['OFFSET'] ?? null;
+
+        // $selectTbs cannot be null or empty array/string
+        if (!isset($selectTbs) || empty($selectTbs)) {
+            cli_err_syntax_without_exit("No Table Name found in SQL Array['<TABLES'>] `$handlerFile.php=>$fnName` for SELECT Query!");
+            cli_info("The `<TABLES>` key must be a Non-Empty Array representing the Table name(s)!");
+        }
+
+        // $selectTb cannot be null or empty string
+        if (!isset($selectTb) || !is_string_and_not_empty($selectTb)) {
+            cli_err_syntax_without_exit("No `SELECT` Key found in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
+            cli_info("The `SELECT` key must be a Non-Empty String representing the Table name(s)! For example:\n`table_name:col1,col2,col3` OR\n`table_name!:col1`\nSecond examples selects all columns except `col1`!");
+        }
+
+        // $fromTb cannot be null or empty string
+        if (!isset($fromTb) || !is_string_and_not_empty($fromTb)) {
+            cli_err_syntax_without_exit("No `FROM` Key found in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
+            cli_info("The `FROM` key must be a Non-Empty String representing the Primary Table (and ONLY a single one) to SELECT and/or JOIN from!");
+        }
 
 
 
@@ -5526,9 +5559,9 @@ function cli_create_sql_file_and_or_handler()
     }
 
     // Default values added to the $DXPART variable
-    $chosenQueryType = "'<CONFIG>' =>[\n\t\t\t'<QUERY_TYPE>' => '$queryType',\n\t\t\t'<TABLES>' => [\"" . implode('","', array_keys($tbs)) . "\"],";
+    $chosenQueryType = "'<CONFIG>' =>[\n\t\t\t'<QUERY_TYPE>' => '$queryType',\n\t\t\t'<TABLES>' => ['" . implode('\',\'', array_keys($tbs)) . "'],";
     $subQueriesEmpty = ($queryType === 'INSERT' || $queryType === 'UPDATE' || $queryType === 'DELETE') ? "" : "\t\t\t\t'[subquery_example_1]' => 'SELECT COUNT(*)',\n\t\t\t\t'[subquery_example_2]' => '(WHERE SELECT *)'";
-    $subQueries = "\n\t\t\t'[SUBQUERIES]' => [ // /!\: Subqueries are IGNORED when Query Type is `INSERT|UPDATE|DELETE`!\n$subQueriesEmpty\t\t\t]\n\t\t],";
+    $subQueries = "\n\t\t\t'[SUBQUERIES]' => [\n$subQueriesEmpty\t\t\t]\n\t\t],";
     $DXPART = $chosenQueryType . $subQueries;
     $queryTypePart = "";
 
@@ -5557,7 +5590,7 @@ function cli_create_sql_file_and_or_handler()
         $tbsColsExceptId = implode(',', $tbsColsExceptId);
         $tbsColsExceptId = key($tbs) . ':' . $tbsColsExceptId;
         $queryTypePart .= "'UPDATE_SET' => '$tbsColsExceptId',\n\t\t'WHERE' => '$tbName:id = ?',";
-        $bindedValidatedData = "\n\t\t\t'<MATCHED_FIELDS>' => [// What each Binded Param must match from a Validated Data Field Array (empty means same as TableName_ColumnKey) \n\t\t\t\t'" . implode('\' => \'\',\'', $valCols) . "'=> '','id' => ''],\n";
+        $bindedValidatedData = "\n\t\t'<MATCHED_FIELDS>' => [// What each Binded Param must match from a Validated Data Field Array (empty means same as TableName_ColumnKey) \n\t\t\t\t'" . implode('\' => \'\',\'', $valCols) . "'=> '','id' => ''],\n";
         $queryTypePart .= $bindedValidatedData;
         $DXPART .= $queryTypePart;
     }
@@ -5571,7 +5604,7 @@ function cli_create_sql_file_and_or_handler()
         $tbsColsExceptId = implode('|', $tbsColsExceptId);
         $tbsColsExceptId = key($tbs) . ':' . $tbsColsExceptId;
         $queryTypePart .= "'DELETE_FROM' => '$tbName',\n\t\t'WHERE' => '$tbName:id = ?',";
-        $bindedValidatedData = "\n\t\t\t'<MATCHED_FIELDS>' => [// What each Binded Param must match from a Validated Data Field Array (empty means same as TableName_ColumnKey) \n\t\t\t\t'" . implode('\' => \'\',\'', $valCols) . "'=> '','id' => ''],\n";
+        $bindedValidatedData = "\n\t\t'<MATCHED_FIELDS>' => [// What each Binded Param must match from a Validated Data Field Array (empty means same as TableName_ColumnKey) \n\t\t\t\t'" . implode('\' => \'\',\'', $valCols) . "'=> '','id' => ''],\n";
         $queryTypePart .= $bindedValidatedData;
         $DXPART .= $queryTypePart;
     }
@@ -5579,11 +5612,112 @@ function cli_create_sql_file_and_or_handler()
     elseif ($queryType === 'SELECT') {
         // We want 'id' this time around!
         $tbsColsWithId = [];
+        $valCols = [];
         foreach ($tbs as $tbName => $tbData) {
             $tbsColsWithId[$tbName] = $tbData['cols'];
+            $valCols[$tbName] = array_keys($tbData['cols']);
         }
-        var_dump($tbsColsWithId);
-        exit;
+        // We add the 'SELECT' part to the $queryTypePart which is the first part of the DXPART
+        // and always a must for every SELECT query!
+        // We now add the tables with the columns to the $queryTypePart for each table
+        // which is inside of " $valCols" in the style: table => col1,col2,col3, we just
+        // create a string that is added like `table1:col1,col2,col3|table2:col1,col2,col3`
+        $queryTypePart .= "'SELECT' => ";
+        $queryTypePart .= "[";
+        foreach ($valCols as $tbName => $cols) {
+            $queryTypePart .= "'$tbName:" . implode(',', $cols) . "',\n";
+        }
+        $queryTypePart .= "],\n\t\t";
+
+        // We now add the 'FROM' which is always a must for every SELECT query!
+        $queryTypePart .= "'FROM' => '";
+        $queryTypePart .= array_key_first($tbs);
+        $queryTypePart .= "',\n\t\t";
+
+        // We now add the 'JOINS' which is OPTIONAL for every SELECT query!
+        $queryTypePart .= "// 'JOINS_ON' Syntax: `join_type=table1,table1_id,table2_ref_id`\n\t\t// Join Types: `inner|i`,`left|l`,`right|r` (Full Join NOT Available yet!)\n\t\t'JOINS_ON' => [// Optional, make empty if not joining any tables!";
+        $queryTypePart .= "\n\t\t\t\t";
+
+        // We automatically generate all the possible JOINs (inner default) based
+        // on what tables were provided in the $tbs array (the '<TABLES>' Key)!
+        $suggestedJoins = [];
+
+        // Get the tables involved in the current SELECT query (from $tbs)
+        $currentQueryTables = array_keys($tbs);
+
+        // Iterate through all defined tables in your full schema (from tables.php)
+        foreach ($tables['tables'] as $tableName => $tableData) {
+            if (!in_array($tableName, $currentQueryTables)) {
+                continue;
+            }
+            // Iterate through columns of the current table
+            foreach ($tableData as $columnName => $columnDetails) {
+                if (isset($columnDetails['foreign_key']) && $columnDetails['foreign_key'] === true) {
+                    $referencedTable = $columnDetails['references'];
+                    $referencedColumn = $columnDetails['references_column'];
+                    // Crucial check: Is the referenced table also part of the current SELECT query's <TABLES>?
+                    if (in_array($referencedTable, $currentQueryTables)) {
+                        // Construct the join string in the specified format:
+                        // 'join_type=TargetTable,JoiningTable_ForeignKeyColumn,TargetTable_PrimaryKeyColumn'
+                        // We default to 'inner' join type. The developer can change this manually.
+                        $joinString = sprintf(
+                            "'inner=%s,%s_%s,%s_%s'",
+                            $referencedTable,          // TargetTable (e.g., 'authors')
+                            $tableName,                 // Joining Table (e.g., 'articles')
+                            $columnName,                // Foreign Key Column in Joining Table (e.g., 'author_id')
+                            $referencedTable,           // TargetTable (e.g., 'authors')
+                            $referencedColumn           // Primary Key Column in TargetTable (e.g., 'id')
+                        );
+                        // Add to suggested joins if it's not already present (to avoid exact duplicates,
+                        // although direct FK relationships are usually one-way by definition)
+                        if (!in_array($joinString, $suggestedJoins)) {
+                            $suggestedJoins[] = $joinString;
+                        }
+                    }
+                }
+            }
+        }
+        // Format the suggested joins for output with proper indentation
+        if (!empty($suggestedJoins)) {
+            $queryTypePart .= implode(",\n\t\t\t\t", $suggestedJoins);
+        }
+        $queryTypePart .= "],\n\t\t"; // END OF 'JOINS_ON' Key!
+
+        // We now add the 'WHERE' which is OPTIONAL for every SELECT query!
+        $queryTypePart .= "'WHERE' => '', // Optional, leave empty (or remove) if not used!\n\t\t";
+
+        // We now add the 'GROUP BY' which is OPTIONAL for every SELECT query!
+        $queryTypePart .= "'GROUP BY' => '', // Optional, leave empty (or remove) if not used!\n\t\t";
+
+        // We now add the 'HAVING' which is OPTIONAL for every SELECT query!
+        $queryTypePart .= "'HAVING' => '', // Optional, leave empty (or remove) if not used!\n\t\t";
+
+        // We now add the 'ORDER BY' which is OPTIONAL for every SELECT query!
+        $queryTypePart .= "'ORDER BY' => '', // Optional, leave empty (or remove) if not used!\n\t\t";
+
+        // We now add the 'LIMIT' which is OPTIONAL for every SELECT query!
+        $queryTypePart .= "'LIMIT' => '', // Optional, leave empty (or remove) if not used!\n\t\t";
+
+        // We now add the 'OFFSET' which is OPTIONAL for every SELECT query!
+        $queryTypePart .= "'OFFSET' => '', // Optional, leave empty (or remove) if not used!\n\t\t";
+
+        // $allValCols will include all the columns from all the tables by concatenating
+        // the table name with the column name in the style: table1_col1, table1_col2, table2_col1, etc.
+        // When there is only 1 Table though, we just grab all colum nnamens without the table name!
+        $allValCols = [];
+        foreach ($valCols as $tbName => $cols) {
+            if (count($tbs) > 1) {
+                foreach ($cols as $col) {
+                    $allValCols[] = $tbName . '_' . $col;
+                }
+            } else {
+                $allValCols = array_merge($allValCols, $cols);
+            }
+        }
+
+        $bindedValidatedData = "'<MATCHED_FIELDS>' => [// What each Binded Param must match from a Validated Data Field Array (empty means same as TableName_ColumnKey) \n\t\t\t\t'" . implode('\' => \'\',\'', $allValCols) . "'=> ''],\n";
+        $queryTypePart .= $bindedValidatedData;
+        $DXPART .= $queryTypePart;
     }
     // When 'SELECT_DISTINCT'
     elseif ($queryType === 'SELECT_DISTINCT') {
