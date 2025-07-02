@@ -3932,6 +3932,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
     // SELECT
     elseif ($configQTKey === 'SELECT') {
         $selectTbs = $configTBKey ?? null;
+        $currentlySelectedTbs = [];
         $selectedTbsColsStr = "";
         $joinsStr = "";
         $whereStr = "";
@@ -3995,6 +3996,9 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         // We will check, validate & build the SELECT part of the SQL String based on
         // different cases:
         foreach ($selectTb as $selectTbName) {
+            // First add to $currentlySelectedTbs to keep track of which tables we have selected
+            // which is useful when validating against JOINs and WHERE clauses later on.
+            $currentlySelectedTbs[] = $selectTbName;
             // CASE 1: Only Table Name (no columns) is given so
             // add all columns from that table if it is valid table!
             if (
@@ -4114,7 +4118,6 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                 cli_info("Valid Table Name Formats are:\n`table_name` (this selects all columns!) OR\n`table_name:col1,col2,col3` (this selects only these 3 columns!) OR\n`table_name!:col1` (this selects all columns except `col1`!)");
             }
         }
-
         // Remove last "," from the $selectedTbsColsStr if it exists
         if (str_ends_with($selectedTbsColsStr, ",\n")) {
             $selectedTbsColsStr = substr($selectedTbsColsStr, 0, -2);
