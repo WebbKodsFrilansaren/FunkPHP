@@ -2826,8 +2826,7 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
     }
     $uniqueCols = $validCols['uniqueCols'];
     $tbsWithCols  = $validCols['table:col'];
-    var_dump($singleTable);
-    var_dump($uniqueCols);
+    var_dump("SINGLE TABLE?:", $singleTable);
     // $builtBindedParamsString must be a string but can be empty
     if (!is_string($builtBindedParamsString)) {
         cli_err_without_exit("[cli_parse_condition_clause_sql]: Expects a String as input for `\$builtBindedParamsString`!");
@@ -3005,11 +3004,12 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
             if (str_contains($mCol, ":")) {
                 if (!in_array($mCol, $tbsWithCols, true)) {
                     cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to column `$mCol` not being found in the Array of `Table:Column`!");
-                    cli_info("This means the Table");
+                    cli_info("A Table might be missing from `<TABLES>` Key OR it has too many Tables if you SUDDENLY changed to Only Query One! Available Tables: " . implode(", ", quotify_elements($tbs)) . "!");
                 }
                 [$singleTb, $mCol] = explode(":", $mCol, 2);
-                if (!in_array($mCol, $uniqueCols, true)) { // TODO: MIGHT NOT BE NEEDED ANYMORE IF we already know "table:col" exists?
-                    cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to column `$mCol` not being found in the Unique Columns Array!");
+                if (!in_array($mCol, $uniqueCols, true)) {
+                    cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to column `$mCol` not being found in the Unique Columns Array!");
+                    cli_info("A Table might be missing from `<TABLES>` Key OR it has too many Tables if you SUDDENLY changed to Only Query One! Available Tables: " . implode(", ", quotify_elements($tbs)) . "!");
                 }
             }
 
@@ -3148,19 +3148,20 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
             // We can just extract the correct Table from the $mCol when it contains a ":"
             else {
                 if (!in_array($mCol, $tbsWithCols, true)) {
-                    cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to column `$mCol` not being found in the Array of `Table:Column`!");
+                    cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to column `$mCol` not being found in the Array of `Table:Column`!");
+                    cli_info("A Table might be missing from `<TABLES>` Key OR it has too many Tables if you SUDDENLY changed to Only Query One! Available Tables: " . implode(", ", quotify_elements($tbs)) . "!");
                 }
-                $correctTb = explode(":", $mCol, 2)[0] ?? null;
+                [$correctTb, $mCol] = explode(":", $mCol, 2) ?? null;
             }
 
             // Now we finally process the $correctTb and $mCol as usual (just like with the single table case)
             if (!is_string_and_not_empty($correctTb)) {
-                cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to correct Table not being a valid string!");
+                cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to correct Table NOT being a Valid String!");
             }
             $correctBinding = $allTbs[$correctTb][$mCol]['binding'] ?? null;
             $expectedBinding = "";
             if (!$correctBinding) {
-                cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to column `$mCol` in table `$correctTb` NOT having a Valid Binding Type!");
+                cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to column `$mCol` in table `$correctTb` NOT having a Valid Binding Type. It was not found in the `tables.php` File!");
             }
             if ($correctBinding === 's') {
                 $expectedBinding = "String";
@@ -4145,7 +4146,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
 
 
         // PARSING THE "WHERE" Key (the WHERE clause to filter results)
-        $whereStr = cli_parse_condition_clause_sql($currentlySelectedTbs, $whereTb, "SELECT", $convertedSQLArray, $cols, $builtBindedParamsString, $builtFieldsArray);
+        $whereStr = cli_parse_condition_clause_sql($configTBKey, $whereTb, "SELECT", $convertedSQLArray, $cols, $builtBindedParamsString, $builtFieldsArray);
 
         // This is where all parts of the SQL String are stitched together
         $builtSQLString .= isset($selectedTbsColsStr) && is_string_and_not_empty($selectedTbsColsStr) ? "SELECT $selectedTbsColsStr" : "";
