@@ -5917,6 +5917,8 @@ function cli_create_sql_file_and_or_handler()
         $from_table = array_key_first($tbs);
 
         // Iterate through all defined tables in your full schema (from tables.php)
+        $tbRels = $tables['relationships'];
+        //exit;
         foreach ($tables['tables'] as $tableName => $tableData) {
             if (!in_array($tableName, $currentQueryTables)) {
                 continue;

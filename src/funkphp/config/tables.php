@@ -269,6 +269,65 @@ return  [
         'default' => 'CURRENT_TIMESTAMP',
       ],
     ],
+    'alones' =>
+    [
+      'id' =>
+      [
+        'joined_name' => 'alones_id',
+        'auto_increment' => true,
+        'type' => 'BIGINT',
+        'binding' => 'i',
+        'value' => NULL,
+        'primary_key' => true,
+        'nullable' => false,
+        'default' => NULL,
+      ],
+      'name' =>
+      [
+        'joined_name' => 'alones_name',
+        'type' => 'VARCHAR',
+        'binding' => 's',
+        'value' => 255,
+        'nullable' => false,
+        'unique' => false,
+        'unsigned' => false,
+        'signed' => false,
+        'default' => NULL,
+      ],
+      'description' =>
+      [
+        'joined_name' => 'alones_description',
+        'type' => 'TEXT',
+        'binding' => 's',
+        'value' => NULL,
+        'nullable' => true,
+        'unique' => false,
+      ],
+      'created_at' =>
+      [
+        'joined_name' => 'alones_created_at',
+        'type' => 'TIMESTAMP',
+        'binding' => 's',
+        'value' => NULL,
+        'nullable' => true,
+        'unique' => false,
+        'unsigned' => false,
+        'signed' => false,
+        'default' => 'CURRENT_TIMESTAMP',
+      ],
+      'updated_at' =>
+      [
+        'joined_name' => 'alones_updated_at',
+        'type' => 'TIMESTAMP',
+        'binding' => 's',
+        'value' => NULL,
+        'nullable' => true,
+        'unique' => false,
+        'unsigned' => false,
+        'signed' => false,
+        'default' => 'CURRENT_TIMESTAMP',
+      ],
+    ],
   ],
   'relationships' =>
   [
@@ -329,6 +388,8 @@ return  [
         'direction' => 'fk_to_pk',
       ],
     ],
+    'alones' =>
+    [],
   ],
   'mappings' =>
   [
@@ -465,6 +526,39 @@ return  [
         'json' => 'comments_created_at',
         'post' => 'comments_created_at',
         'get' => 'comments_created_at',
+      ],
+    ],
+    'alones' =>
+    [
+      'id' =>
+      [
+        'json' => 'alones_id',
+        'post' => 'alones_id',
+        'get' => 'alones_id',
+      ],
+      'name' =>
+      [
+        'json' => 'alones_name',
+        'post' => 'alones_name',
+        'get' => 'alones_name',
+      ],
+      'description' =>
+      [
+        'json' => 'alones_description',
+        'post' => 'alones_description',
+        'get' => 'alones_description',
+      ],
+      'created_at' =>
+      [
+        'json' => 'alones_created_at',
+        'post' => 'alones_created_at',
+        'get' => 'alones_created_at',
+      ],
+      'updated_at' =>
+      [
+        'json' => 'alones_updated_at',
+        'post' => 'alones_updated_at',
+        'get' => 'alones_updated_at',
       ],
     ],
   ],
