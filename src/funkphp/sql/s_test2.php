@@ -9,10 +9,9 @@ namespace FunkPHP\SQL\s_test2;
 // IMPORTANT: CMD+S or CTRL+S to autoformat each time function is added!
 
 
-
 function s_test5(&$c) // <authors,alones>
 {
-	// Created in FunkCLI on 2025-07-03 10:03:02! Keep "};" on its
+	// Created in FunkCLI on 2025-07-03 10:05:49! Keep "};" on its
 	// own new line without indentation no comment right after it!
 	// Run the command `php funkcli compile s s_test2=>s_test5`
 	// to get SQL, Hydration & Binded Params in return statement below it!
@@ -30,8 +29,8 @@ function s_test5(&$c) // <authors,alones>
 			'alones:id,name,description,created_at,updated_at',
 		],
 		'FROM' => 'authors',
-		// 'JOINS_ON' Syntax: `join_type=table1,table1_id,table2_ref_id`
-		// Join Types: `inner|i|join|j|ij`,`left|l`,`right|r` (Full Join NOT Available yet!)
+		// 'JOINS_ON' Syntax: `join_type=table2,table1_id,table2_ref_id`
+		// Available Join Types: `inner|i|join|j|ij`,`left|l`,`right|r`
 		'JOINS_ON' => [ // Optional, make empty if not joining any tables!
 		],
 		'WHERE' => '', // Optional, leave empty (or remove) if not used!
