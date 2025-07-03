@@ -5919,6 +5919,8 @@ function cli_create_sql_file_and_or_handler()
         // We now add the 'OFFSET' which is OPTIONAL for every SELECT query!
         $queryTypePart .= "'OFFSET' => '', // Optional, leave empty (or remove) if not used!\n\t\t";
 
+        $queryTypePart .= "'<HYDRATION>' => [], // Optional, leave empty if not used!\n\t\t";
+
         // $allValCols will include all the columns from all the tables by concatenating
         // the table name with the column name in the style: table1_col1, table1_col2, table2_col1, etc.
         // When there is only 1 Table though, we just grab all colum nnamens without the table name!
