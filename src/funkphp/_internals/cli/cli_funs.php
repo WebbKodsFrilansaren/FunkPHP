@@ -758,15 +758,35 @@ function cli_output_tables_file($array)
     ) {
         cli_err_syntax("The \"funkphp/config/tables.php\" file must contain the three keys: \"tables\", \"relationships\" & \"mappings\" at root level!");
     }
-    // TODO: Add new relationships when a new table is added - not 100 % implemented yet!
-    // (this is for the JOINS which are just arrays for each table
-    // that are used to join the tables together in the database)
 
     // Loop through and add any missing keys to the relationships
     // and mappings arrays based on the newly added Table!
     foreach ($array['tables'] as $tableName => $tableData) {
+        // Add relationships for the table if they do not exist and also update existing ones
         if (!isset($array['relationships'][$tableName]) || !is_array($array['relationships'][$tableName])) {
             $array['relationships'][$tableName] = [];
+            foreach ($tableData as $columnName => $columnData) {
+                if (isset($columnData['foreign_key']) && $columnData['foreign_key'] === true) {
+                    // If a FK, we create the relationship between FK Table and PK Table
+                    $array['relationships'][$tableName][$columnData['references']] = [
+                        'local_column' => $columnName,
+                        'foreign_column' => 'id',
+                        'local_table' => $tableName,
+                        'foreign_table' => $columnData['references_column'],
+                        'direction' => 'fk_to_pk',
+                    ];
+                    $array['relationships'][$columnData['references']][$tableName] = [
+                        'local_column' => 'id',
+                        'foreign_column' => $columnName,
+                        'local_table' => $columnData['references'],
+                        'foreign_table' => $tableName,
+                        'direction' => 'pk_to_fk',
+                    ];
+                } else {
+                    // If it is not a foreign key, we just skip it
+                    continue;
+                }
+            }
             cli_info_without_exit("Added Relationships for Table \"$tableName\" in \"funkphp/config/tables.php\"!");
         }
         // Add mappings for the table if they do not exist (for JSON, POST & GET for each Column!)
