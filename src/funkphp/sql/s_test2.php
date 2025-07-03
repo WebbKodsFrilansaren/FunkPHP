@@ -11,7 +11,7 @@ namespace FunkPHP\SQL\s_test2;
 
 function s_test5(&$c) // <authors,alones>
 {
-	// Created in FunkCLI on 2025-07-03 10:05:49! Keep "};" on its
+	// Created in FunkCLI on 2025-07-03 10:18:06! Keep "};" on its
 	// own new line without indentation no comment right after it!
 	// Run the command `php funkcli compile s s_test2=>s_test5`
 	// to get SQL, Hydration & Binded Params in return statement below it!
@@ -33,14 +33,18 @@ function s_test5(&$c) // <authors,alones>
 		// Available Join Types: `inner|i|join|j|ij`,`left|l`,`right|r`
 		'JOINS_ON' => [ // Optional, make empty if not joining any tables!
 		],
-		'WHERE' => '', // Optional, leave empty (or remove) if not used!
-		'GROUP BY' => '', // Optional, leave empty (or remove) if not used!
-		'HAVING' => '', // Optional, leave empty (or remove) if not used!
-		'ORDER BY' => '', // Optional, leave empty (or remove) if not used!
-		'LIMIT' => '', // Optional, leave empty (or remove) if not used!
-		'OFFSET' => '', // Optional, leave empty (or remove) if not used!
-		'<HYDRATION>' => [], // Optional, leave empty if not used!
-		'<MATCHED_FIELDS>' => [ // What each Binded Param must match from a Validated Data Field Array (empty means same as TableName_ColumnKey)
+		// Optional Keys, leave empty (or remove) if not used!
+		'WHERE' => '',
+		'GROUP BY' => '',
+		'HAVING' => '',
+		'ORDER BY' => '',
+		'LIMIT' => '',
+		'OFFSET' => '',
+		// Optional, leave empty if not used!
+		'<HYDRATION>' => [],
+		// What each Binded Param must match from a Validated Data
+		// Field Array (empty means same as TableName_ColumnKey)
+		'<MATCHED_FIELDS>' => [
 			'authors_id' => '',
 			'authors_name' => '',
 			'authors_email' => '',

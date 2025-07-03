@@ -5910,75 +5910,83 @@ function cli_create_sql_file_and_or_handler()
 
         // We automatically generate all the possible JOINs (inner default) based
         // on what tables were provided in the $tbs array (the '<TABLES>' Key)!
-        $suggestedJoins = [];
-
-        // Get the tables involved in the current SELECT query (from $tbs)
+        // Iterate through all defined tables in your full schema (from tables.php)
+        // TODO: Add algo to use Relationships to suggest joins where we start from "FROM table"
+        // and use the relationships for that first table and then their relationships' tables
+        // and so on until we have visited all possible relationships for the current query tables.
+        // We use a simple Stack algorithm to visit all relationships starting from the first table
+        // which is the "FROM table" in the SELECT query. If a relationship is already visited,
+        // we skip it to avoid infinite loops and duplicate joins. A relationship that exists
+        // means it is a subkey of the $tables['relationships'] array and its subkeys could
+        // be the table names that are related to the current query tables.
+        $tbRels = $tables['relationships'];
         $currentQueryTables = array_keys($tbs);
         $from_table = array_key_first($tbs);
+        $suggestedJoins = [];
+        $visitedRels = [];
+        $relsToVisit = [];
 
-        // Iterate through all defined tables in your full schema (from tables.php)
-        $tbRels = $tables['relationships'];
         //exit;
-        foreach ($tables['tables'] as $tableName => $tableData) {
-            if (!in_array($tableName, $currentQueryTables)) {
-                continue;
-            }
-            // Iterate through columns of the current table
-            foreach ($tableData as $columnName => $columnDetails) {
-                if (isset($columnDetails['foreign_key']) && $columnDetails['foreign_key'] === true) {
-                    $referencedTable = $columnDetails['references'];
-                    $referencedColumn = $columnDetails['references_column'];
-                    // Crucial check: Is the referenced table also part of the current SELECT query's <TABLES>?
-                    if (in_array($referencedTable, $currentQueryTables)) {
-                        // Construct the join string in the specified format:
-                        // 'join_type=TargetTable,JoiningTable_ForeignKeyColumn,TargetTable_PrimaryKeyColumn'
-                        // We default to 'inner' join type. The developer can change this manually.
+        // foreach ($tables['tables'] as $tableName => $tableData) {
+        //     if (!in_array($tableName, $currentQueryTables)) {
+        //         continue;
+        //     }
+        //     // Iterate through columns of the current table
+        //     foreach ($tableData as $columnName => $columnDetails) {
+        //         if (isset($columnDetails['foreign_key']) && $columnDetails['foreign_key'] === true) {
+        //             $referencedTable = $columnDetails['references'];
+        //             $referencedColumn = $columnDetails['references_column'];
+        //             // Crucial check: Is the referenced table also part of the current SELECT query's <TABLES>?
+        //             if (in_array($referencedTable, $currentQueryTables)) {
+        //                 // Construct the join string in the specified format:
+        //                 // 'join_type=TargetTable,JoiningTable_ForeignKeyColumn,TargetTable_PrimaryKeyColumn'
+        //                 // We default to 'inner' join type. The developer can change this manually.
 
-                        // $from_table can never be the same as $tableName1 since you cannot
-                        // FROM $tableName1 JOIN $tableName1 on $tableName1.id = $tableName2.id
-                        $finalTable = $from_table === $tableName ? $referencedTable : $tableName;
-                        $joinString = sprintf(
-                            "'inner=%s,%s_%s,%s_%s'",
-                            $finalTable,             // This is now the TargetTable (e.g., 'articles')
-                            $referencedTable,       // This is for the SourceTable_JoinColumn (e.g., 'authors')
-                            $referencedColumn,      // This is for the SourceTable_JoinColumn (e.g., 'id')
-                            $tableName,             // This is for the TargetTable_JoinColumn (e.g., 'articles')
-                            $columnName             // This is for the TargetTable_JoinColumn (e.g., 'author_id')
-                        );
-                        // Add to suggested joins if it's not already present (to avoid exact duplicates,
-                        // although direct FK relationships are usually one-way by definition)
-                        if (!in_array($joinString, $suggestedJoins)) {
-                            $suggestedJoins[] = $joinString;
-                        }
-                    }
-                }
-            }
-        }
+        //                 // $from_table can never be the same as $tableName1 since you cannot
+        //                 // FROM $tableName1 JOIN $tableName1 on $tableName1.id = $tableName2.id
+        //                 $finalTable = $from_table === $tableName ? $referencedTable : $tableName;
+        //                 $joinString = sprintf(
+        //                     "'inner=%s,%s_%s,%s_%s'",
+        //                     $finalTable,             // This is now the TargetTable (e.g., 'articles')
+        //                     $referencedTable,       // This is for the SourceTable_JoinColumn (e.g., 'authors')
+        //                     $referencedColumn,      // This is for the SourceTable_JoinColumn (e.g., 'id')
+        //                     $tableName,             // This is for the TargetTable_JoinColumn (e.g., 'articles')
+        //                     $columnName             // This is for the TargetTable_JoinColumn (e.g., 'author_id')
+        //                 );
+        //                 // Add to suggested joins if it's not already present (to avoid exact duplicates,
+        //                 // although direct FK relationships are usually one-way by definition)
+        //                 if (!in_array($joinString, $suggestedJoins)) {
+        //                     $suggestedJoins[] = $joinString;
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
         // Format the suggested joins for output with proper indentation
         if (!empty($suggestedJoins)) {
             $queryTypePart .= implode(",\n\t\t\t\t", $suggestedJoins);
         }
-        $queryTypePart .= "],\n\t\t"; // END OF 'JOINS_ON' Key!
+        $queryTypePart .= "],\n\t\t// Optional Keys, leave empty (or remove) if not used!\n\t\t"; // END OF 'JOINS_ON' Key!
 
         // We now add the 'WHERE' which is OPTIONAL for every SELECT query!
-        $queryTypePart .= "'WHERE' => '', // Optional, leave empty (or remove) if not used!\n\t\t";
+        $queryTypePart .= "'WHERE' => '', \n\t\t";
 
         // We now add the 'GROUP BY' which is OPTIONAL for every SELECT query!
-        $queryTypePart .= "'GROUP BY' => '', // Optional, leave empty (or remove) if not used!\n\t\t";
+        $queryTypePart .= "'GROUP BY' => '',\n\t\t";
 
         // We now add the 'HAVING' which is OPTIONAL for every SELECT query!
-        $queryTypePart .= "'HAVING' => '', // Optional, leave empty (or remove) if not used!\n\t\t";
+        $queryTypePart .= "'HAVING' => '',\n\t\t";
 
         // We now add the 'ORDER BY' which is OPTIONAL for every SELECT query!
-        $queryTypePart .= "'ORDER BY' => '', // Optional, leave empty (or remove) if not used!\n\t\t";
+        $queryTypePart .= "'ORDER BY' => '',\n\t\t";
 
         // We now add the 'LIMIT' which is OPTIONAL for every SELECT query!
-        $queryTypePart .= "'LIMIT' => '', // Optional, leave empty (or remove) if not used!\n\t\t";
+        $queryTypePart .= "'LIMIT' => '',\n\t\t";
 
         // We now add the 'OFFSET' which is OPTIONAL for every SELECT query!
-        $queryTypePart .= "'OFFSET' => '', // Optional, leave empty (or remove) if not used!\n\t\t";
+        $queryTypePart .= "'OFFSET' => '',\n\t\t// Optional, leave empty if not used!\n\t\t";
 
-        $queryTypePart .= "'<HYDRATION>' => [], // Optional, leave empty if not used!\n\t\t";
+        $queryTypePart .= "'<HYDRATION>' => [],\n\t\t";
 
         // $allValCols will include all the columns from all the tables by concatenating
         // the table name with the column name in the style: table1_col1, table1_col2, table2_col1, etc.
@@ -5994,7 +6002,7 @@ function cli_create_sql_file_and_or_handler()
             }
         }
 
-        $bindedValidatedData = "'<MATCHED_FIELDS>' => [// What each Binded Param must match from a Validated Data Field Array (empty means same as TableName_ColumnKey) \n\t\t\t\t'" . implode('\' => \'\',\'', $allValCols) . "'=> ''],\n";
+        $bindedValidatedData = "// What each Binded Param must match from a Validated Data\n\t\t\t\t// Field Array (empty means same as TableName_ColumnKey)\n\t\t\t\t'<MATCHED_FIELDS>' => [\n\t\t\t\t'" . implode('\' => \'\',\'', $allValCols) . "'=> ''],\n";
         $queryTypePart .= $bindedValidatedData;
         $DXPART .= $queryTypePart;
     }
