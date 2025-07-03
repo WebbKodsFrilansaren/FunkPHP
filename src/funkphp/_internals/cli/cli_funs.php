@@ -772,7 +772,7 @@ function cli_output_tables_file($array)
                         'local_column' => $columnName,
                         'foreign_column' => 'id',
                         'local_table' => $tableName,
-                        'foreign_table' => $columnData['references_column'],
+                        'foreign_table' => $columnData['references'],
                         'direction' => 'fk_to_pk',
                     ];
                     $array['relationships'][$columnData['references']][$tableName] = [

@@ -298,7 +298,7 @@ return  [
         'local_column' => 'author_id',
         'foreign_column' => 'id',
         'local_table' => 'articles',
-        'foreign_table' => 'id',
+        'foreign_table' => 'authors',
         'direction' => 'fk_to_pk',
       ],
       'comments' =>
@@ -317,7 +317,7 @@ return  [
         'local_column' => 'article_id',
         'foreign_column' => 'id',
         'local_table' => 'comments',
-        'foreign_table' => 'id',
+        'foreign_table' => 'articles',
         'direction' => 'fk_to_pk',
       ],
       'authors' =>
@@ -325,7 +325,7 @@ return  [
         'local_column' => 'author_id',
         'foreign_column' => 'id',
         'local_table' => 'comments',
-        'foreign_table' => 'id',
+        'foreign_table' => 'authors',
         'direction' => 'fk_to_pk',
       ],
     ],
