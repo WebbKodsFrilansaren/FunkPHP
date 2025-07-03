@@ -18,14 +18,14 @@ function s_test5(&$c) // <authors,articles,comments>
 	$DX = [
 		'<CONFIG>' => [
 			'<QUERY_TYPE>' => 'SELECT',
-			'<TABLES>' => ['authors', 'articles', 'comments'],
+			'<TABLES>' => ['articles', 'authors'],
 			'[SUBQUERIES]' => [
 				'[subquery_example_1]' => 'SELECT COUNT(*)',
 				'[subquery_example_2]' => '(WHERE SELECT *)'
 			]
 		],
 		'SELECT' => [
-			'articles!:title,content',
+			'articles',
 		],
 		'FROM' => 'articles', // Optional, leave empty (or remove) if not used!
 		// 'JOINS_ON' Syntax: `join_type=table1,table1_id,table2_ref_id`
@@ -35,7 +35,7 @@ function s_test5(&$c) // <authors,articles,comments>
 			'inner=articles,comments_article_id,articles_id',
 			'inner=authors,comments_author_id,authors_id'
 		],
-		'WHERE' => '', // Optional, leave empty (or remove) if not used!
+		'WHERE' => 'articles:id = 1', // Optional, leave empty (or remove) if not used!
 		'GROUP BY' => '', // Optional, leave empty (or remove) if not used!
 		'HAVING' => '', // Optional, leave empty (or remove) if not used!
 		'ORDER BY' => '', // Optional, leave empty (or remove) if not used!
@@ -67,7 +67,7 @@ function s_test5(&$c) // <authors,articles,comments>
 	];
 
 	return array(
-		'sql' => 'SELECT articles.id AS articles_id, articles.author_id AS articles_author_id, articles.published AS articles_published, articles.created_at AS articles_created_at, articles.updated_at AS articles_updated_at FROM articles;',
+		'sql' => 'SELECT articles.id AS articles_id, articles.author_id AS articles_author_id, articles.title AS articles_title, articles.content AS articles_content, articles.published AS articles_published, articles.created_at AS articles_created_at, articles.updated_at AS articles_updated_at FROM articles WHERE articles.id = 1;',
 		'hydrate' =>
 		array(),
 		'bparam' => '',

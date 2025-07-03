@@ -2826,6 +2826,8 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
     }
     $uniqueCols = $validCols['uniqueCols'];
     $tbsWithCols  = $validCols['table:col'];
+    var_dump($singleTable);
+    var_dump($uniqueCols);
     // $builtBindedParamsString must be a string but can be empty
     if (!is_string($builtBindedParamsString)) {
         cli_err_without_exit("[cli_parse_condition_clause_sql]: Expects a String as input for `\$builtBindedParamsString`!");
@@ -2928,7 +2930,7 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
             cli_info_without_exit("If you wanna use a [SubQuery] means you should start with `[` and end with `]`. This allows you to use Tuples, Row Constructors and such.");
             cli_info("IMPORTANT: Using [SubQuery] means you lose the Validation Parsing Logic and you must add the `?` Placeholders  in the `bparam` Key and the <MATCHED_FIELDS> keys in the `fields` Key manually after successfully compilation! (in current version of FunkPHP)");
         } elseif (!in_array($mCol, $uniqueCols, true) && !in_array($mCol, $tbsWithCols, true)) {
-            cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to column name/tableName:columnName `$mCol` not being found in the Unique Columns or Table with Columns!");
+            cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to columnName/tableName:columnName `$mCol` not being found in the Unique Columns or Table with Columns!");
         }
 
         // Check that $mOperator is a valid operator after first checking if it is a [Subquery]
@@ -3002,10 +3004,11 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
             // When $singleTable case, it should ALWAYS exist in both arrays!
             if (str_contains($mCol, ":")) {
                 if (!in_array($mCol, $tbsWithCols, true)) {
-                    cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to column `$mCol` not being found in the Array of `Table:Column`!");
+                    cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to column `$mCol` not being found in the Array of `Table:Column`!");
+                    cli_info("This means the Table");
                 }
                 [$singleTb, $mCol] = explode(":", $mCol, 2);
-                if (!in_array($mCol, $uniqueCols, true)) {
+                if (!in_array($mCol, $uniqueCols, true)) { // TODO: MIGHT NOT BE NEEDED ANYMORE IF we already know "table:col" exists?
                     cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to column `$mCol` not being found in the Unique Columns Array!");
                 }
             }
@@ -3996,9 +3999,6 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         // We will check, validate & build the SELECT part of the SQL String based on
         // different cases:
         foreach ($selectTb as $selectTbName) {
-            // First add to $currentlySelectedTbs to keep track of which tables we have selected
-            // which is useful when validating against JOINs and WHERE clauses later on.
-            $currentlySelectedTbs[] = $selectTbName;
             // CASE 1: Only Table Name (no columns) is given so
             // add all columns from that table if it is valid table!
             if (
@@ -4012,6 +4012,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                 }
                 // Table exists, so we add all columns from that table.
                 if (isset($tables[$selectTbName]) && is_array_and_not_empty($tables[$selectTbName])) {
+                    $currentlySelectedTbs[] = $selectTbName;
                     foreach ($tables[$selectTbName] as $colKey => $singleTbCols) {
                         $selectedTbsColsStr .= $selectTbName . ".$colKey AS " . $singleTbCols['joined_name'] . ",\n";
                     }
@@ -4040,7 +4041,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
 
                 // Table exists, so we add all columns from that table.
                 if (isset($tables[$selectTbName]) && is_array_and_not_empty($tables[$selectTbName])) {
-
+                    $currentlySelectedTbs[] = $selectTbName;
                     // First we check that the excluded columns are valid meaning that they should exist
                     // in table, we just do not wanna select/include them in the SQL String.
                     foreach ($excludedCols as $excludedCol) {
@@ -4091,6 +4092,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                 // $includedCols becomes an array and is also split on "," if multiple columns are included
                 $includedCols = str_contains($includedCols, ",") ? explode(",", $includedCols) : [$includedCols];
                 if (isset($tables[$selectTbName]) && is_array_and_not_empty($tables[$selectTbName])) {
+                    $currentlySelectedTbs[] = $selectTbName;
                     foreach ($includedCols as $includedCol) {
                         if (!is_string_and_not_empty($includedCol)) {
                             cli_err_syntax_without_exit("Invalid Excluded Column Name in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
@@ -4124,11 +4126,37 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         }
 
         // PARSING THE "FROM" Key (the primary table to select from/join/work with)
+        // We already know FROM Key is a valid string and not empty so now we check
+        // if the FROM table is in the SELECT tables and if it is not, we error out
+        if (!in_array($fromTb, $currentlySelectedTbs, true)) {
+            cli_err_syntax_without_exit("Table Name `$fromTb` from `FROM` Key in SQL Array `$handlerFile.php=>$fnName` not found in `SELECT` Key!");
+            cli_info("Currently SELECTed Tables are: " . implode(", ", quotify_elements($currentlySelectedTbs)) . ".");
+        }
+
+        // PARSING THE "JOINS_ON" Key (the JOINs to perform)
+        // We check if it is empty and if it is then $currentlySelectedTbs
+        // must only be 1 since you must use JOIN when selecting more
+        // than 1 Table in current version of FunkPHP!
+        if (isset($joinsTb) && empty($joinsTb) && count($currentlySelectedTbs) > 1) {
+            cli_err_syntax_without_exit("No `JOINS_ON` Key found in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
+            cli_info("The `JOINS_ON` key must be a Non-Empty Array representing the JOINs to perform between the Tables in the `SELECT` Key!");
+        }
+
+
+
+        // PARSING THE "WHERE" Key (the WHERE clause to filter results)
+        $whereStr = cli_parse_condition_clause_sql($currentlySelectedTbs, $whereTb, "SELECT", $convertedSQLArray, $cols, $builtBindedParamsString, $builtFieldsArray);
 
         // This is where all parts of the SQL String are stitched together
-        // TODO: Here! Then end with ";"
-        $builtSQLString = "SELECT ";
-        $builtSQLString .= "$selectedTbsColsStr FROM $fromTb";
+        $builtSQLString .= isset($selectedTbsColsStr) && is_string_and_not_empty($selectedTbsColsStr) ? "SELECT $selectedTbsColsStr" : "";
+        $builtSQLString .= isset($fromTb) && is_string_and_not_empty($fromTb) ? " FROM $fromTb" : "";
+        $builtSQLString .= isset($joinsStr) && is_string_and_not_empty($joinsStr) ? " $joinsStr" : "";
+        $builtSQLString .= isset($whereStr) && is_string_and_not_empty($whereStr) ? " WHERE $whereStr" : "";
+        $builtSQLString .= isset($groupByStr) && is_string_and_not_empty($groupByStr) ? " GROUP BY $groupByStr" : "";
+        $builtSQLString .= isset($havingStr) && is_string_and_not_empty($havingStr) ? " HAVING $havingStr" : "";
+        $builtSQLString .= isset($orderByStr) && is_string_and_not_empty($orderByStr) ? " ORDER BY $orderByStr" : "";
+        $builtSQLString .= isset($limitStr) && is_string_and_not_empty($limitStr) ? " LIMIT $limitStr" : "";
+        $builtSQLString .= isset($offsetStr) && is_string_and_not_empty($offsetStr) ? " OFFSET $offsetStr" : "";
         $builtSQLString .= ";";
         $convertedSQLArray['bparam'] = $builtBindedParamsString;
 
