@@ -9,71 +9,50 @@ namespace FunkPHP\SQL\s_test2;
 // IMPORTANT: CMD+S or CTRL+S to autoformat each time function is added!
 
 
-function s_test5(&$c) // <authors,articles,comments>
+function s_test5(&$c) // <authors>
 {
-	// Created in FunkCLI on 2025-07-03 00:20:51! Keep "};" on its
+	// Created in FunkCLI on 2025-07-03 04:51:08! Keep "};" on its
 	// own new line without indentation no comment right after it!
 	// Run the command `php funkcli compile s s_test2=>s_test5`
 	// to get SQL, Hydration & Binded Params in return statement below it!
 	$DX = [
 		'<CONFIG>' => [
 			'<QUERY_TYPE>' => 'SELECT',
-			'<TABLES>' => ['articles', 'authors'],
+			'<TABLES>' => ['authors'],
 			'[SUBQUERIES]' => [
 				'[subquery_example_1]' => 'SELECT COUNT(*)',
 				'[subquery_example_2]' => '(WHERE SELECT *)'
 			]
 		],
 		'SELECT' => [
-			'articles',
+			'authors:id,name,email,description,longer_description,age,weight,nickname,updated_at',
 		],
-		'FROM' => 'articles', // Optional, leave empty (or remove) if not used!
+		'FROM' => 'authors',
 		// 'JOINS_ON' Syntax: `join_type=table1,table1_id,table2_ref_id`
 		// Join Types: `inner|i|join|j|ij`,`left|l`,`right|r` (Full Join NOT Available yet!)
 		'JOINS_ON' => [ // Optional, make empty if not joining any tables!
-			'inner=authors,articles_author_id,authors_id',
-			'inner=articles,comments_article_id,articles_id',
-			'inner=authors,comments_author_id,authors_id'
 		],
-		'WHERE' => 'articles:id = 1', // Optional, leave empty (or remove) if not used!
+		'WHERE' => '', // Optional, leave empty (or remove) if not used!
 		'GROUP BY' => '', // Optional, leave empty (or remove) if not used!
 		'HAVING' => '', // Optional, leave empty (or remove) if not used!
 		'ORDER BY' => '', // Optional, leave empty (or remove) if not used!
 		'LIMIT' => '', // Optional, leave empty (or remove) if not used!
 		'OFFSET' => '', // Optional, leave empty (or remove) if not used!
+		'<HYDRATION>' => [], // Optional, leave empty if not used!
 		'<MATCHED_FIELDS>' => [ // What each Binded Param must match from a Validated Data Field Array (empty means same as TableName_ColumnKey)
-			'authors_id' => '',
-			'authors_name' => '',
-			'authors_email' => '',
-			'authors_description' => '',
-			'authors_longer_description' => '',
-			'authors_age' => '',
-			'authors_weight' => '',
-			'authors_nickname' => '',
-			'authors_updated_at' => '',
-			'articles_id' => '',
-			'articles_author_id' => '',
-			'articles_title' => '',
-			'articles_content' => '',
-			'articles_published' => '',
-			'articles_created_at' => '',
-			'articles_updated_at' => '',
-			'comments_id' => '',
-			'comments_article_id' => '',
-			'comments_content' => '',
-			'comments_author_id' => '',
-			'comments_created_at' => ''
+			'id' => '',
+			'name' => '',
+			'email' => '',
+			'description' => '',
+			'longer_description' => '',
+			'age' => '',
+			'weight' => '',
+			'nickname' => '',
+			'updated_at' => ''
 		],
 	];
 
-	return array(
-		'sql' => 'SELECT articles.id AS articles_id, articles.author_id AS articles_author_id, articles.title AS articles_title, articles.content AS articles_content, articles.published AS articles_published, articles.created_at AS articles_created_at, articles.updated_at AS articles_updated_at FROM articles WHERE articles.id = 1;',
-		'hydrate' =>
-		array(),
-		'bparam' => '',
-		'fields' =>
-		array(),
-	);
+	return array([]);
 };
 
 return function (&$c, $handler = "s_test3") {
