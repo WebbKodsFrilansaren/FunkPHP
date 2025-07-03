@@ -306,7 +306,7 @@ function cli_parse_a_sql_table_file()
         // Special Case #3: The $line starts with "FOREIGN KEY" meaning we need to parse it by getting the
         // regex that I wrote myself for once instead of help from LLMs. Kinda incredible, right?! ^_^
         if (str_starts_with($line, "FOREIGN KEY")) {
-            $foreignKeyRegex = "/FOREIGN KEY \(([a-zA-Z09_]+)\) REFERENCES ([a-zA-Z09_]+)\(([a-zA-Z09]+)\)/";
+            $foreignKeyRegex = "/FOREIGN KEY \(([a-zA-Z0-9_]+)\) REFERENCES ([a-zA-Z0-9_]+)\(([a-zA-Z0-9]+)\)/";
 
             // At match, grab variables and check all NOT being null first
             if (preg_match($foreignKeyRegex, $line, $matches)) {
@@ -341,7 +341,6 @@ function cli_parse_a_sql_table_file()
                             ];
                         }
                         cli_info_without_exit("Foreign Key \"{$thisTableFK}\" added to Table \"$tableName\" which references Table \"$otherTable\".");
-                        cli_info_without_exit("IMPORTANT: You must MANUALLY ADD the Relationship Between the Two Tables using \"php funkcli add relationship [$tableName=>$otherTable|$otherTable=>$tableName]\" command!");
                         continue;
                     }
                 }
@@ -768,9 +767,17 @@ function cli_output_tables_file($array)
     foreach ($array['tables'] as $tableName => $tableData) {
         if (!isset($array['relationships'][$tableName]) || !is_array($array['relationships'][$tableName])) {
             $array['relationships'][$tableName] = [];
+            cli_info_without_exit("Added Relationships for Table \"$tableName\" in \"funkphp/config/tables.php\"!");
         }
+        // Add mappings for the table if they do not exist (for JSON, POST & GET for each Column!)
         if (!isset($array['mappings'][$tableName]) || !is_array($array['mappings'][$tableName])) {
             $array['mappings'][$tableName] = [];
+            foreach ($tableData as $columnName => $columnData) {
+                $array['mappings'][$tableName][$columnName]['json'] = $columnData['joined_name'] ?? $tableName . "_" . $columnName;
+                $array['mappings'][$tableName][$columnName]['post'] = $columnData['joined_name'] ?? $tableName . "_" . $columnName;
+                $array['mappings'][$tableName][$columnName]['get'] = $columnData['joined_name'] ?? $tableName . "_" . $columnName;
+            }
+            cli_info_without_exit("Added Mappings for Table \"$tableName\" in \"funkphp/config/tables.php\"!");
         }
     }
 
@@ -2826,7 +2833,7 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
     }
     $uniqueCols = $validCols['uniqueCols'];
     $tbsWithCols  = $validCols['table:col'];
-    var_dump("SINGLE TABLE?:", $singleTable);
+
     // $builtBindedParamsString must be a string but can be empty
     if (!is_string($builtBindedParamsString)) {
         cli_err_without_exit("[cli_parse_condition_clause_sql]: Expects a String as input for `\$builtBindedParamsString`!");
@@ -3144,6 +3151,11 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
                         }
                     }
                 }
+                // If we did not find the correct Table, we error out
+                if (!$correctTb) {
+                    cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to Column `$mCol` not being found in any of the Tables!");
+                    cli_info("A Table might be missing from `tables.php` File. Checked Tables: " . implode(", ", quotify_elements($tbs)) . "!");
+                }
             }
             // We can just extract the correct Table from the $mCol when it contains a ":"
             else {
@@ -3428,6 +3440,17 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         'i' => [],
         'd' => [],
         'b' => []
+    ];
+
+    // List of shorthand names of valid JOIN Types
+    $validJoinTypes = [
+        'i' => 'INNER JOIN',
+        'inner' => 'INNER JOIN',
+        'ij' => 'INNER JOIN',
+        'l' => 'LEFT JOIN',
+        'left' => 'LEFT JOIN',
+        'r' => 'RIGHT JOIN',
+        'right' => 'RIGHT JOIN',
     ];
 
     // "'<CONFIG>' key(s)
@@ -4140,13 +4163,22 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         // than 1 Table in current version of FunkPHP!
         if (isset($joinsTb) && empty($joinsTb) && count($currentlySelectedTbs) > 1) {
             cli_err_syntax_without_exit("No `JOINS_ON` Key found in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
-            cli_info("The `JOINS_ON` key must be a Non-Empty Array representing the JOINs to perform between the Tables in the `SELECT` Key!");
+            cli_info("The `JOINS_ON` Key must be a Non-Empty Array and must be used when you are SELECTing more than 1 Table in the `SELECT` Key!");
+        }
+
+        // When we are SELECTing more than 1 Table, we must use JOINs to
+        // join them together so here we start parsing the JOINS_ON Key!
+        if (count($currentlySelectedTbs) > 1) {
+            if (!isset($joinsTb) || !is_array($joinsTb) || !array_is_list($joinsTb) || empty($joinsTb)) {
+                cli_err_syntax_without_exit("No `JOINS_ON` Key found in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
+                cli_info("The `JOINS_ON` Key must be a Non-Empty List Array representing the JOINs to perform between the Tables in the `SELECT` Key when more than one Table is being SELECTed!");
+            }
         }
 
 
 
-        // PARSING THE "WHERE" Key (the WHERE clause to filter results)
-        $whereStr = cli_parse_condition_clause_sql($configTBKey, $whereTb, "SELECT", $convertedSQLArray, $cols, $builtBindedParamsString, $builtFieldsArray);
+        // PARSING THE "WHERE" Key (the WHERE clause to filter results) using Condition Clause Function if the "WHERE" Key is a Non-Empty String!
+        $whereStr = isset($whereTb) && is_string($whereTb) && !empty($whereTb) ? cli_parse_condition_clause_sql($configTBKey, $whereTb, "SELECT", $convertedSQLArray, $cols, $builtBindedParamsString, $builtFieldsArray) : "";
 
         // This is where all parts of the SQL String are stitched together
         $builtSQLString .= isset($selectedTbsColsStr) && is_string_and_not_empty($selectedTbsColsStr) ? "SELECT $selectedTbsColsStr" : "";
@@ -5862,6 +5894,7 @@ function cli_create_sql_file_and_or_handler()
 
         // Get the tables involved in the current SELECT query (from $tbs)
         $currentQueryTables = array_keys($tbs);
+        $from_table = array_key_first($tbs);
 
         // Iterate through all defined tables in your full schema (from tables.php)
         foreach ($tables['tables'] as $tableName => $tableData) {
@@ -5878,13 +5911,17 @@ function cli_create_sql_file_and_or_handler()
                         // Construct the join string in the specified format:
                         // 'join_type=TargetTable,JoiningTable_ForeignKeyColumn,TargetTable_PrimaryKeyColumn'
                         // We default to 'inner' join type. The developer can change this manually.
+
+                        // $from_table can never be the same as $tableName1 since you cannot
+                        // FROM $tableName1 JOIN $tableName1 on $tableName1.id = $tableName2.id
+                        $finalTable = $from_table === $tableName ? $referencedTable : $tableName;
                         $joinString = sprintf(
                             "'inner=%s,%s_%s,%s_%s'",
-                            $referencedTable,          // TargetTable (e.g., 'authors')
-                            $tableName,                 // Joining Table (e.g., 'articles')
-                            $columnName,                // Foreign Key Column in Joining Table (e.g., 'author_id')
-                            $referencedTable,           // TargetTable (e.g., 'authors')
-                            $referencedColumn           // Primary Key Column in TargetTable (e.g., 'id')
+                            $finalTable,             // This is now the TargetTable (e.g., 'articles')
+                            $referencedTable,       // This is for the SourceTable_JoinColumn (e.g., 'authors')
+                            $referencedColumn,      // This is for the SourceTable_JoinColumn (e.g., 'id')
+                            $tableName,             // This is for the TargetTable_JoinColumn (e.g., 'articles')
+                            $columnName             // This is for the TargetTable_JoinColumn (e.g., 'author_id')
                         );
                         // Add to suggested joins if it's not already present (to avoid exact duplicates,
                         // although direct FK relationships are usually one-way by definition)

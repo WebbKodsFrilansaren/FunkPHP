@@ -112,180 +112,70 @@ return  [
         'default' => 'NOW()',
       ],
     ],
-    'articles' =>
-    [
-      'id' =>
-      [
-        'joined_name' => 'articles_id',
-        'auto_increment' => true,
-        'type' => 'BIGINT',
-        'binding' => 'i',
-        'value' => NULL,
-        'primary_key' => true,
-        'nullable' => false,
-        'default' => NULL,
-      ],
-      'author_id' =>
-      [
-        'joined_name' => 'articles_author_id',
-        'type' => 'BIGINT',
-        'binding' => 'i',
-        'value' => NULL,
-        'nullable' => false,
-        'unique' => false,
-        'unsigned' => false,
-        'signed' => false,
-        'default' => NULL,
-        'foreign_key' => true,
-        'references' => 'authors',
-        'references_column' => 'id',
-        'referenced_joined' => 'authors_id',
-      ],
-      'title' =>
-      [
-        'joined_name' => 'articles_title',
-        'type' => 'VARCHAR',
-        'binding' => 's',
-        'value' => 255,
-        'nullable' => false,
-        'unique' => true,
-        'unsigned' => false,
-        'signed' => false,
-        'default' => NULL,
-      ],
-      'content' =>
-      [
-        'joined_name' => 'articles_content',
-        'type' => 'TEXT',
-        'binding' => 's',
-        'value' => NULL,
-        'nullable' => false,
-        'unique' => false,
-        'unsigned' => false,
-        'signed' => false,
-        'default' => NULL,
-      ],
-      'published' =>
-      [
-        'joined_name' => 'articles_published',
-        'type' => 'BOOLEAN',
-        'binding' => 'i',
-        'value' => NULL,
-        'nullable' => true,
-        'unique' => false,
-        'unsigned' => false,
-        'signed' => false,
-        'default' => NULL,
-      ],
-      'created_at' =>
-      [
-        'joined_name' => 'articles_created_at',
-        'type' => 'TIMESTAMP',
-        'binding' => 's',
-        'value' => NULL,
-        'nullable' => true,
-        'unique' => false,
-        'unsigned' => false,
-        'signed' => false,
-        'default' => 'CURRENT_TIMESTAMP',
-      ],
-      'updated_at' =>
-      [
-        'joined_name' => 'articles_updated_at',
-        'type' => 'TIMESTAMP',
-        'binding' => 's',
-        'value' => NULL,
-        'nullable' => true,
-        'unique' => false,
-        'unsigned' => false,
-        'signed' => false,
-        'default' => 'CURRENT_TIMESTAMP',
-      ],
-    ],
-    'comments' =>
-    [
-      'id' =>
-      [
-        'joined_name' => 'comments_id',
-        'auto_increment' => true,
-        'type' => 'BIGINT',
-        'binding' => 'i',
-        'value' => NULL,
-        'primary_key' => true,
-        'nullable' => false,
-        'default' => NULL,
-      ],
-      'article_id' =>
-      [
-        'joined_name' => 'comments_article_id',
-        'type' => 'BIGINT',
-        'binding' => 'i',
-        'value' => NULL,
-        'nullable' => true,
-        'unique' => false,
-        'foreign_key' => true,
-        'references' => 'articles',
-        'references_column' => 'id',
-        'referenced_joined' => 'articles_id',
-      ],
-      'content' =>
-      [
-        'joined_name' => 'comments_content',
-        'type' => 'TEXT',
-        'binding' => 's',
-        'value' => NULL,
-        'nullable' => false,
-        'unique' => false,
-        'unsigned' => false,
-        'signed' => false,
-        'default' => '',
-      ],
-      'author_id' =>
-      [
-        'joined_name' => 'comments_author_id',
-        'type' => 'BIGINT',
-        'binding' => 'i',
-        'value' => NULL,
-        'nullable' => false,
-        'unique' => false,
-        'unsigned' => false,
-        'signed' => false,
-        'default' => NULL,
-        'foreign_key' => true,
-        'references' => 'authors',
-        'references_column' => 'id',
-        'referenced_joined' => 'authors_id',
-      ],
-      'created_at' =>
-      [
-        'joined_name' => 'comments_created_at',
-        'type' => 'TIMESTAMP',
-        'binding' => 's',
-        'value' => NULL,
-        'nullable' => true,
-        'unique' => false,
-        'unsigned' => false,
-        'signed' => false,
-        'default' => 'CURRENT_TIMESTAMP',
-      ],
-    ],
   ],
   'relationships' =>
   [
-    'articles' =>
-    [],
-    'comments' =>
-    [],
     'authors' =>
     [],
   ],
   'mappings' =>
   [
-    'articles' =>
-    [],
-    'comments' =>
-    [],
     'authors' =>
-    [],
+    [
+      'id' =>
+      [
+        'json' => 'authors_id',
+        'post' => 'authors_id',
+        'get' => 'authors_id',
+      ],
+      'name' =>
+      [
+        'json' => 'authors_name',
+        'post' => 'authors_name',
+        'get' => 'authors_name',
+      ],
+      'email' =>
+      [
+        'json' => 'authors_email',
+        'post' => 'authors_email',
+        'get' => 'authors_email',
+      ],
+      'description' =>
+      [
+        'json' => 'authors_description',
+        'post' => 'authors_description',
+        'get' => 'authors_description',
+      ],
+      'longer_description' =>
+      [
+        'json' => 'authors_longer_description',
+        'post' => 'authors_longer_description',
+        'get' => 'authors_longer_description',
+      ],
+      'age' =>
+      [
+        'json' => 'authors_age',
+        'post' => 'authors_age',
+        'get' => 'authors_age',
+      ],
+      'weight' =>
+      [
+        'json' => 'authors_weight',
+        'post' => 'authors_weight',
+        'get' => 'authors_weight',
+      ],
+      'nickname' =>
+      [
+        'json' => 'authors_nickname',
+        'post' => 'authors_nickname',
+        'get' => 'authors_nickname',
+      ],
+      'updated_at' =>
+      [
+        'json' => 'authors_updated_at',
+        'post' => 'authors_updated_at',
+        'get' => 'authors_updated_at',
+      ],
+    ],
   ],
 ];
