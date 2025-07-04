@@ -4410,7 +4410,12 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                 // Finally we build the JOIN String based on the joinType
                 // and the tables and columns we have validated above.
                 $joinType = $validJoinTypes[$joinType];
-                $joinsStr .= "$joinType $joinTable ON $table1.$table1Col = $table2.$table2Col,\n";
+                $joinsStr .= "$joinType $joinTable ON $table1.$table1Col = $table2.$table2Col ";
+            }
+
+            // Remove last ",\n" from the $joinsStr if it exists
+            if (str_ends_with($joinsStr, " ")) {
+                $joinsStr = substr($joinsStr, 0, -1);
             }
         }
 

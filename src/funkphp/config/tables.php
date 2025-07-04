@@ -355,7 +355,7 @@ return  [
       'authors' =>
       [
         'local_column' => 'author_id',
-        'foreign_column' => 'ida',
+        'foreign_column' => 'id',
         'local_table' => 'articles',
         'foreign_table' => 'authors',
         'direction' => 'fk_to_pk',

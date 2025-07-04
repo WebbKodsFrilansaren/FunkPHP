@@ -25,9 +25,9 @@ function s_test5(&$c) // <authors,articles,comments,alones>
 			]
 		],
 		'SELECT' => [
-			'authors:id,name,email,description,longer_description,age,weight,nickname,updated_at',
-			'articles:id,author_id,title,content,published,created_at,updated_at',
-			'comments:id,article_id,content,author_id,created_at',
+			'authors:id',
+			'articles:id',
+			'comments:id',
 		],
 		'FROM' => 'authors',
 		// 'JOINS_ON' Syntax: `join_type=table2,table1_id,table2_ref_id`
@@ -35,7 +35,6 @@ function s_test5(&$c) // <authors,articles,comments,alones>
 		'JOINS_ON' => [ // Optional, make empty if not joining any tables!
 			'inner=articles,authors(id),articles(author_id)',
 			'inner=comments,authors(id),comments(author_id)',
-			'inner=articles,comments(article_id),articles(id)'
 		],
 		// Optional Keys, leave empty (or remove) if not used!
 		'WHERE' => '',
@@ -78,7 +77,14 @@ function s_test5(&$c) // <authors,articles,comments,alones>
 		],
 	];
 
-	return array([]);
+	return array(
+		'sql' => 'SELECT authors.id AS authors_id, articles.id AS articles_id, comments.id AS comments_id FROM authors INNER JOIN articles ON authors.id = articles.author_id INNER JOIN comments ON authors.id = comments.author_id;',
+		'hydrate' =>
+		array(),
+		'bparam' => '',
+		'fields' =>
+		array(),
+	);
 };
 
 return function (&$c, $handler = "s_test3") {
