@@ -25,24 +25,20 @@ function s_test5(&$c) // <authors,articles,comments>
 			]
 		],
 		'SELECT' => [
-			'authors:id,name,email,description,longer_description,age,weight,nickname,updated_at',
-			'articles:id,author_id,title,content,published,created_at,updated_at',
-			'comments:id,article_id,content,author_id,created_at',
+			'articles',
 		],
-		'FROM' => 'authors',
+		'FROM' => 'articles',
 		// 'JOINS_ON' Syntax: `join_type=table2,table1_id,table2_ref_id`
 		// Available Join Types: `inner|i|join|j|ij`,`left|l`,`right|r`
 		'JOINS_ON' => [ // Optional, make empty if not joining any tables!
-			'inner=articles,authors(id),articles(author_id)',
-			'inner=comments,authors(id),comments(author_id)',
 		],
 		// Optional Keys, leave empty (or remove) if not used!
-		'WHERE' => '',
+		'WHERE' => 'articles:id = ?',
 		'GROUP BY' => '',
 		'HAVING' => '',
 		'ORDER BY' => '',
-		'LIMIT' => '',
-		'OFFSET' => '',
+		'LIMIT' => '1',
+		'OFFSET' => '1',
 		// Optional, leave empty if not used!
 		'<HYDRATION>' => [],
 		// What each Binded Param must match from a Validated Data
@@ -73,12 +69,14 @@ function s_test5(&$c) // <authors,articles,comments>
 	];
 
 	return array(
-		'sql' => 'SELECT authors.id AS authors_id, authors.name AS authors_name, authors.email AS authors_email, authors.description AS authors_description, authors.longer_description AS authors_longer_description, authors.age AS authors_age, authors.weight AS authors_weight, authors.nickname AS authors_nickname, authors.updated_at AS authors_updated_at, articles.id AS articles_id, articles.author_id AS articles_author_id, articles.title AS articles_title, articles.content AS articles_content, articles.published AS articles_published, articles.created_at AS articles_created_at, articles.updated_at AS articles_updated_at, comments.id AS comments_id, comments.article_id AS comments_article_id, comments.content AS comments_content, comments.author_id AS comments_author_id, comments.created_at AS comments_created_at FROM authors INNER JOIN articles ON authors.id = articles.author_id INNER JOIN comments ON authors.id = comments.author_id;',
+		'sql' => 'SELECT articles.id AS articles_id, articles.author_id AS articles_author_id, articles.title AS articles_title, articles.content AS articles_content, articles.published AS articles_published, articles.created_at AS articles_created_at, articles.updated_at AS articles_updated_at FROM articles WHERE articles.id = ? LIMIT 1 OFFSET 1;',
 		'hydrate' =>
 		array(),
-		'bparam' => '',
+		'bparam' => 'i',
 		'fields' =>
-		array(),
+		array(
+			0 => 'articles_id',
+		),
 	);
 };
 

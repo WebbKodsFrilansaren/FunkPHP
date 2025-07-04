@@ -2956,7 +2956,8 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
             cli_info_without_exit("If you wanna use a [SubQuery] means you should start with `[` and end with `]`. This allows you to use Tuples, Row Constructors and such.");
             cli_info("IMPORTANT: Using [SubQuery] means you lose the Validation Parsing Logic and you must add the `?` Placeholders  in the `bparam` Key and the <MATCHED_FIELDS> keys in the `fields` Key manually after successfully compilation! (in current version of FunkPHP)");
         } elseif (!in_array($mCol, $uniqueCols, true) && !in_array($mCol, $tbsWithCols, true)) {
-            cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to columnName/tableName:columnName `$mCol` not being found in the Unique Columns or Table with Columns!");
+            cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to columnName/tableName:columnName `$mCol` not being found in the Unique Columns or Table with Columns!");
+            cli_info("If you are only using on Table suddenly for your SQL Query, change your `<TABLES>` Key also to only have that one Table OR Write `correctTable:$mCol` exactly in the Condition Clause!");
         }
 
         // Check that $mOperator is a valid operator after first checking if it is a [Subquery]
@@ -4436,30 +4437,22 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
 
         // PARSING THE OPTIONAL Keys: "LIMIT" & "OFFSET" Key (LIMIT is number of rows, OFFSET is where you start from results)
         if (isset($limitTb)) {
-            // If value is provided, we check that it is a valid integer and larger than negative 0
-            if (is_string($limitTb) && !empty($limitTb)) {
-                if (!is_numeric($limitTb) || (int)$limitTb < 0) {
-                    cli_err_syntax_without_exit("Invalid `LIMIT` Key value `$limitTb` in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
-                    cli_info("The `LIMIT` Key must be a Non-Negative Integer representing the maximum number of rows to return!");
-                }
+            if (is_string($limitTb) && strlen($limitTb) === 0) {
+            } elseif (is_numeric($limitTb) && (int)$limitTb >= 0) {
                 $limitStr = (string)$limitTb;
             } else {
-                // If it is an array, we error out since LIMIT must be a single value
                 cli_err_syntax_without_exit("Invalid `LIMIT` Key value in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
-                cli_info("The `LIMIT` Key must be a Non-Empty String or a Non-Negative Integer representing the maximum number of rows to return!");
+                cli_info("The `LIMIT` Key must be a Non-Negative Integer, or an Empty String (`''`) to omit it. (or just remove the entire Key)");
             }
         }
         if (isset($offsetTb)) {
-            if (is_string($offsetTb) && !empty($offsetTb)) {
-                if (!is_numeric($offsetTb) || (int)$offsetTb < 0) {
-                    cli_err_syntax_without_exit("Invalid `OFFSET` Key value `$offsetTb` in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
-                    cli_info("The `OFFSET` Key must be a Non-Negative Integer representing the number of rows to skip before starting to return results!");
-                }
+            // Empty string, do nothing
+            if (is_string($offsetTb) && strlen($offsetTb) === 0) {
+            } elseif (is_numeric($offsetTb) && (int)$offsetTb >= 0) { // Check if it's a non-negative number
                 $offsetStr = (string)$offsetTb;
             } else {
-                // If it is an array, we error out since OFFSET must be a single value
                 cli_err_syntax_without_exit("Invalid `OFFSET` Key value in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
-                cli_info("The `OFFSET` Key must be a Non-Empty String or a Non-Negative Integer representing the number of rows to skip before starting to return results!");
+                cli_info("The `OFFSET` Key must be a Non-Negative Integer, or an Empty String (`''`) to omit it. (or just remove the entire Key)");
             }
         }
 
@@ -4497,7 +4490,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         $convertedSQLArray['fields'] = $builtFieldsArray;
 
         // Report success and inform about ignored keys
-        cli_success_without_exit("Built SQL String for SELECT Query: `$builtSQLString`");
+        cli_success_without_exit("Built SQL String: `$builtSQLString`");
         if (is_array($ignoredKeys) && !empty($ignoredKeys)) {
             cli_warning_without_exit("The Following Found Keys were IGNORED for the SELECT Query Type: " . implode(", ", quotify_elements($ignoredKeys)));
             cli_info_without_exit("Feel free to remove them from the SQL Array to not confuse Yourself!");
