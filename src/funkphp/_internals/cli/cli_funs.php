@@ -3336,7 +3336,7 @@ function cli_parse_joins_on_DFS($fromTb, $availableTableNames, $relationships)
 
             // Prepare and grab details for the (INNER) JOIN
             // $relatedTable is Table related with $currentTable
-            $joinString = "inner=$relatedTable,";
+            $joinString = "'inner=$relatedTable,";
             $table1 = $relationshipDetails['local_table'];
             $col1 = $relationshipDetails['local_column'];
             $table2 = $relationshipDetails['foreign_table'];
@@ -3357,7 +3357,7 @@ function cli_parse_joins_on_DFS($fromTb, $availableTableNames, $relationships)
 
             // Finalize the JOIN String and add it to the suggested JOINs Array
             // and the processed JOIN Pairs Array to avoid duplicates!
-            $joinString .= "$table1($col1),$table2($col2)";
+            $joinString .= "$table1($col1),$table2($col2)'";
             $suggestedJoins[] = $joinString;
             $processedJoinPairs[] = $joinIdentifier;
 
@@ -5683,7 +5683,7 @@ function cli_create_validation_file_and_or_handler()
     }
 
     // Prepare the validation limiter strings and return function regex
-    $validationLimiterStrings = "\t// Created in FunkCLI on $date! Keep \"};\" on its\n\t// own new line without indentation no comment right after it!\n\t// Run the command `php funkcli compile v $handlerFile=>$fnName`\n\t// to get optimized version in return statement below it!\n\t\$DX = [$DXPART\n\t];\n\n\treturn array([]);";
+    $validationLimiterStrings = "\t// FunkCLI created $date! Keep Closing Curly Bracket on its\n\t// own new line without indentation no comment right after it!\n\t// Run the command `php funkcli compile v $handlerFile=>$fnName`\n\t// to get optimized version in return statement below it!\n\t\$DX = [$DXPART\n\t];\n\n\treturn array([]);";
     $returnFunctionRegex = '/^(return function)\s*\(&\$c, \$handler\s*=\s*.+$.*?^};/ims';
 
     // If dir not found or not readable/writable, we exit
@@ -6062,7 +6062,7 @@ function cli_create_sql_file_and_or_handler()
     //         'SELECT','INSERT','INSERT INTO','UPDATE','DELETE'],'[SUBQUERIES]' => [\n'[subquery1]' => 'SELECT COUNT(*)',\n'[subquery2]' => '(WHERE SELECT *)']],\n'SELECT/INSERT/UPDATE/DELETE(CHOOSE-ONE-PER-SQL-FUNCTION!)' => '',\n'FROM' => '',\n'INTO' => '',\n'JOINS' => '',\n'WHERE' => '',\n'GROUP_BY' => '',\n'HAVING' => '',\n'ORDER_BY' => '',\n'LIMIT' => '',\n'OFFSET' => '',\n'VALUES' => '',\n'?_BINDED_PARAMS' => '',\n'HYDRATE' => 'table1:cols|table2:cols|table1=>table2',";
 
     // Prepare the validation limiter strings and return function regex
-    $sqlLimiterStrings = "\t// Created in FunkCLI on $date! Keep \"};\" on its\n\t// own new line without indentation no comment right after it!\n\t// Run the command `php funkcli compile s $handlerFile=>$fnName`\n\t// to get SQL, Hydration & Binded Params in return statement below it!\n\t\$DX = [$DXPART\t];\n\n\treturn array([]);";
+    $sqlLimiterStrings = "\t// FunkCLI created $date! Keep Closing Curly Bracket on its\n\t// own new line without indentation no comment right after it!\n\t// Run the command `php funkcli compile s $handlerFile=>$fnName`\n\t// to get SQL, Hydration & Binded Params in return statement below it!\n\t\$DX = [$DXPART\t];\n\n\treturn array([]);";
     $returnFunctionRegex = '/^(return function)\s*\(&\$c, \$handler\s*=\s*.+$.*?^};/ims';
     $usedTables = implode(",", array_keys($tbs)) ?? ""; // Inserted inbetween "<>" in the function name comment
 
@@ -7542,7 +7542,7 @@ function create_handler_file_with_fn_or_fn_or_err_out($handlerType, $handlersDir
     $templateDirs = $dirs['templates'];
     $date = date("Y-m-d H:i:s");
     $outputHandlerRoute = null;
-    $validationLimiterStrings = $handlerType === 'v' ? "// Created in FunkCLI on $date! Keep \"};\" on its\n// own new line without indentation no comment right after it!\n// Run the command `php funkcli compile v $handlerFile=>$fnName`\n// to get optimized version in return statement below it!\n\$DX = [];\n\n\nreturn array([]);\n" : "";
+    $validationLimiterStrings = $handlerType === 'v' ? "// FunkCLI created $date! Keep Closing Curly Bracket on its\n// own new line without indentation no comment right after it!\n// Run the command `php funkcli compile v $handlerFile=>$fnName`\n// to get optimized version in return statement below it!\n\$DX = [];\n\n\nreturn array([]);\n" : "";
     $customCodeString = "";
     $failedToRunFunction = "FAILED_TO_RUN_" . $handlerDirPathUPPERCASE . "_FUNCTION-" . $handlerFile;
     $returnFunctionRegex = get_match_return_function_regex($fnName, $method, $validRoute) ?? "";
@@ -7597,7 +7597,7 @@ function create_handler_file_with_fn_or_fn_or_err_out($handlerType, $handlersDir
         // Create the handler file with the function name and return a success message
         $outputHandlerRoute = file_put_contents(
             $handlersDir . $handlerFile . ".php",
-            "<?php\nnamespace FunkPHP\\$handlerDirPathFirstUC\\$handlerFile;\n// $handlerPrefix Handler File - Created in FunkCLI on $date!\n// IMPORTANT: CMD+S or CTRL+S to autoformat each time function is added!\n\nfunction $fnName(&\$c) // <$method$validRoute>\n{\n// Created in FunkCLI on $date! Keep \"};\" on its\n// own new line without indentation no comment right after it!\n$customCodeString\n};\n\nreturn function (&\$c, \$handler = \"$fnName\") { $handlerBaseFullString };\n"
+            "<?php\nnamespace FunkPHP\\$handlerDirPathFirstUC\\$handlerFile;\n// $handlerPrefix Handler File - Created in FunkCLI on $date!\n// IMPORTANT: CMD+S or CTRL+S to autoformat each time function is added!\n\nfunction $fnName(&\$c) // <$method$validRoute>\n{\n// FunkCLI created $date! Keep Closing Curly Bracket on its\n// own new line without indentation no comment right after it!\n$customCodeString\n};\n\nreturn function (&\$c, \$handler = \"$fnName\") { $handlerBaseFullString };\n"
         );
 
         if ($outputHandlerRoute) {
@@ -7637,7 +7637,7 @@ function create_handler_file_with_fn_or_fn_or_err_out($handlerType, $handlersDir
             // Construct the string for the *new* function definition only.
             // DO NOT include $matches[0] in this string; we will insert it separately.
             $newFunctionString = '';
-            $newFunctionString = "\nfunction {$fnName}(&\$c) // <{$method}{$validRoute}>\n{\n// Created in FunkCLI on {$date}! Keep \"};\" on its\n// own new line without indentation no comment right after it!\n$customCodeString\n};\n\n";
+            $newFunctionString = "\nfunction {$fnName}(&\$c) // <{$method}{$validRoute}>\n{\n// FunkCLI created $date! Keep Closing Curly Bracket on its\n// own new line without indentation no comment right after it!\n$customCodeString\n};\n\n";
 
 
             // --- Now, perform the insertion into $fileContent ---
