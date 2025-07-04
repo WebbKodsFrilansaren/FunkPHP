@@ -4309,8 +4309,6 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                 $table1Col = strtolower($table1Col);
                 $table2Col = strtolower($table2Col);
 
-                var_dump($joinType, $joinTable, $table1, $table1Col, $table2, $table2Col);
-
                 // We check if the joinType is valid based on list of valid join types
                 if (!isset($validJoinTypes[$joinType])) {
                     cli_err_syntax_without_exit("Invalid Join Type `$joinType` found in `JOINS_ON` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
@@ -4432,8 +4430,38 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
             }
         }
 
-        // PARSING THE "WHERE" Key (the WHERE clause to filter results) using Condition Clause Function if the "WHERE" Key is a Non-Empty String!
+        // PARSING THE OPTIONAL "WHERE" Key (the WHERE clause to filter results) using Condition Clause Function if the "WHERE" Key is a Non-Empty String!
         $whereStr = isset($whereTb) && is_string($whereTb) && !empty($whereTb) ? cli_parse_condition_clause_sql($configTBKey, $whereTb, "SELECT", $convertedSQLArray, $cols, $builtBindedParamsString, $builtFieldsArray) : "";
+
+
+        // PARSING THE OPTIONAL Keys: "LIMIT" & "OFFSET" Key (LIMIT is number of rows, OFFSET is where you start from results)
+        if (isset($limitTb)) {
+            // If value is provided, we check that it is a valid integer and larger than negative 0
+            if (is_string($limitTb) && !empty($limitTb)) {
+                if (!is_numeric($limitTb) || (int)$limitTb < 0) {
+                    cli_err_syntax_without_exit("Invalid `LIMIT` Key value `$limitTb` in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
+                    cli_info("The `LIMIT` Key must be a Non-Negative Integer representing the maximum number of rows to return!");
+                }
+                $limitStr = (string)$limitTb;
+            } else {
+                // If it is an array, we error out since LIMIT must be a single value
+                cli_err_syntax_without_exit("Invalid `LIMIT` Key value in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
+                cli_info("The `LIMIT` Key must be a Non-Empty String or a Non-Negative Integer representing the maximum number of rows to return!");
+            }
+        }
+        if (isset($offsetTb)) {
+            if (is_string($offsetTb) && !empty($offsetTb)) {
+                if (!is_numeric($offsetTb) || (int)$offsetTb < 0) {
+                    cli_err_syntax_without_exit("Invalid `OFFSET` Key value `$offsetTb` in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
+                    cli_info("The `OFFSET` Key must be a Non-Negative Integer representing the number of rows to skip before starting to return results!");
+                }
+                $offsetStr = (string)$offsetTb;
+            } else {
+                // If it is an array, we error out since OFFSET must be a single value
+                cli_err_syntax_without_exit("Invalid `OFFSET` Key value in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
+                cli_info("The `OFFSET` Key must be a Non-Empty String or a Non-Negative Integer representing the number of rows to skip before starting to return results!");
+            }
+        }
 
         // This is where all parts of the SQL String are stitched together
         $builtSQLString .= isset($selectedTbsColsStr) && is_string_and_not_empty($selectedTbsColsStr) ? "SELECT $selectedTbsColsStr" : "";

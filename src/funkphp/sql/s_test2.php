@@ -35,7 +35,6 @@ function s_test5(&$c) // <authors,articles,comments>
 		'JOINS_ON' => [ // Optional, make empty if not joining any tables!
 			'inner=articles,authors(id),articles(author_id)',
 			'inner=comments,authors(id),comments(author_id)',
-			'inner=articles,comments(article_id),articles(id)'
 		],
 		// Optional Keys, leave empty (or remove) if not used!
 		'WHERE' => '',
@@ -73,7 +72,14 @@ function s_test5(&$c) // <authors,articles,comments>
 		],
 	];
 
-	return array([]);
+	return array(
+		'sql' => 'SELECT authors.id AS authors_id, authors.name AS authors_name, authors.email AS authors_email, authors.description AS authors_description, authors.longer_description AS authors_longer_description, authors.age AS authors_age, authors.weight AS authors_weight, authors.nickname AS authors_nickname, authors.updated_at AS authors_updated_at, articles.id AS articles_id, articles.author_id AS articles_author_id, articles.title AS articles_title, articles.content AS articles_content, articles.published AS articles_published, articles.created_at AS articles_created_at, articles.updated_at AS articles_updated_at, comments.id AS comments_id, comments.article_id AS comments_article_id, comments.content AS comments_content, comments.author_id AS comments_author_id, comments.created_at AS comments_created_at FROM authors INNER JOIN articles ON authors.id = articles.author_id INNER JOIN comments ON authors.id = comments.author_id;',
+		'hydrate' =>
+		array(),
+		'bparam' => '',
+		'fields' =>
+		array(),
+	);
 };
 
 return function (&$c, $handler = "s_test3") {
