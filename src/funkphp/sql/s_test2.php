@@ -18,7 +18,7 @@ function s_test5(&$c) // <authors,articles,comments,alones>
 	$DX = [
 		'<CONFIG>' => [
 			'<QUERY_TYPE>' => 'SELECT',
-			'<TABLES>' => ['authors', 'articles', 'comments', 'alones'],
+			'<TABLES>' => ['authors', 'articles', 'comments'],
 			'[SUBQUERIES]' => [
 				'[subquery_example_1]' => 'SELECT COUNT(*)',
 				'[subquery_example_2]' => '(WHERE SELECT *)'
@@ -28,7 +28,6 @@ function s_test5(&$c) // <authors,articles,comments,alones>
 			'authors:id,name,email,description,longer_description,age,weight,nickname,updated_at',
 			'articles:id,author_id,title,content,published,created_at,updated_at',
 			'comments:id,article_id,content,author_id,created_at',
-			'alones:id,name,description,created_at,updated_at',
 		],
 		'FROM' => 'authors',
 		// 'JOINS_ON' Syntax: `join_type=table2,table1_id,table2_ref_id`

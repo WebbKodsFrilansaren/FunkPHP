@@ -4375,11 +4375,42 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                     cli_err_syntax_without_exit("Table `$table2` in `JOINS_ON` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query does not match Local Table (`{$relatedTable['local_table']}`) or Foreign Table (`{$relatedTable['foreign_table']}`) in the relationship with Table `$table1` defined in `config/relationships.php` File!");
                     cli_info("Provide a Table which `$table1` has a relationship with defined in `config/tables.php` File! ('relationships' Key)");
                 }
-                // Now we check
+                // We now have two possible cases and can check the rest based on whatever $table1 is the local or foreign table in the relationship
+                if ($table1 === $relatedTable['local_table']) {
+                    // This means $table1Col should be the local column
+                    // and $table2Col should be the foreign column
+                    // and $table2 should be the foreign table
+                    if (
+                        $table2 !== $relatedTable['foreign_table']
+                        || $table2Col !== $relatedTable['foreign_column']
+                        || $table1Col !== $relatedTable['local_column']
+                    ) {
+                        cli_err_syntax_without_exit("Table `$table1` in `JOINS_ON` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query does not match Local Column (`{$relatedTable['local_column']}`) or Foreign Column (`{$relatedTable['foreign_column']}`) in the Relationship with Table `$table2` defined in `config/relationships.php` File!");
+                        cli_info("Provide a Table which `$table2` has a relationship with defined in `config/tables.php` File! ('relationships' Key)");
+                    }
+                } elseif ($table1 === $relatedTable['foreign_table']) {
+                    // This means $table1Col should be the foreign column
+                    // and $table2Col should be the local column
+                    // and $table2 should be the local table
+                    if (
+                        $table2 !== $relatedTable['local_table']
+                        || $table2Col !== $relatedTable['local_column']
+                        || $table1Col !== $relatedTable['foreign_column']
+                    ) {
+                        cli_err_syntax_without_exit("Table `$table1` in `JOINS_ON` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query does not match Local Column (`{$relatedTable['local_column']}`) or Foreign Column (`{$relatedTable['foreign_column']}`) in the Relationship with Table `$table2` defined in `config/relationships.php` File!");
+                        cli_info("Provide a Table which `$table2` has a relationship with defined in `config/tables.php` File! ('relationships' Key)");
+                    }
+                }
+                // This means error out since $table1 is not a valid table in the relationship
+                else {
+                    cli_err_syntax_without_exit("Table `$table1` in `JOINS_ON` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query does not match Local Table (`{$relatedTable['local_table']}`) or Foreign Table (`{$relatedTable['foreign_table']}`) in the relationship with Table `$table2` defined in `config/relationships.php` File!");
+                    cli_info("Provide a Table which `$table2` has a relationship with defined in `config/tables.php` File! ('relationships' Key)");
+                }
 
-                var_dump($table1, $table2, $relatedTable);
-
-                exit;
+                // Finally we build the JOIN String based on the joinType
+                // and the tables and columns we have validated above.
+                $joinType = $validJoinTypes[$joinType];
+                $joinsStr .= "$joinType $joinTable ON $table1.$table1Col = $table2.$table2Col,\n";
             }
 
             var_dump($joinsTb);
