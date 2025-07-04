@@ -3291,6 +3291,16 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
     return $parsedCondition;
 }
 
+// Function that uses a Topological Sort to parse all possible JOINS_ON using
+// the $fromTb as the starting point. It returns an array of possible JOINS!
+function cli_parse_joins_on_topological_sort($fromTb, $tbs, $rels)
+{
+    $suggestedJoins = [];
+    $visitedRels = [];
+    $relsToVisit = [];
+    return $suggestedJoins;
+}
+
 // Compiles a $DX SQL [] to an optmized SQL array that is returned within the same
 // function that is used to validate the data. This is used to optimize the SQL process!
 // VERY IMPORTANT WARNING: This function calls a function which uses eval() to parse the SQL file!!!
@@ -5919,12 +5929,8 @@ function cli_create_sql_file_and_or_handler()
         // we skip it to avoid infinite loops and duplicate joins. A relationship that exists
         // means it is a subkey of the $tables['relationships'] array and its subkeys could
         // be the table names that are related to the current query tables.
-        $tbRels = $tables['relationships'];
-        $currentQueryTables = array_keys($tbs);
-        $from_table = array_key_first($tbs);
-        $suggestedJoins = [];
-        $visitedRels = [];
-        $relsToVisit = [];
+        $suggestedJoins = cli_parse_joins_on_topological_sort(array_key_first($tbs), array_keys($tbs), $tables['relationships']);
+
 
         //exit;
         // foreach ($tables['tables'] as $tableName => $tableData) {
