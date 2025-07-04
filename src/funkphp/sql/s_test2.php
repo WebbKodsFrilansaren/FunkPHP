@@ -9,9 +9,9 @@ namespace FunkPHP\SQL\s_test2;
 // IMPORTANT: CMD+S or CTRL+S to autoformat each time function is added!
 
 
-function s_test5(&$c) // <authors,articles,comments,alones>
+function s_test5(&$c) // <authors,articles,comments>
 {
-	// FunkCLI created 2025-07-04 07:20:59! Keep Closing Curly Bracket on its
+	// FunkCLI created 2025-07-04 09:28:20! Keep Closing Curly Bracket on its
 	// own new line without indentation no comment right after it!
 	// Run the command `php funkcli compile s s_test2=>s_test5`
 	// to get SQL, Hydration & Binded Params in return statement below it!
@@ -25,9 +25,9 @@ function s_test5(&$c) // <authors,articles,comments,alones>
 			]
 		],
 		'SELECT' => [
-			'authors:id',
-			'articles:id',
-			'comments:id',
+			'authors:id,name,email,description,longer_description,age,weight,nickname,updated_at',
+			'articles:id,author_id,title,content,published,created_at,updated_at',
+			'comments:id,article_id,content,author_id,created_at',
 		],
 		'FROM' => 'authors',
 		// 'JOINS_ON' Syntax: `join_type=table2,table1_id,table2_ref_id`
@@ -35,6 +35,7 @@ function s_test5(&$c) // <authors,articles,comments,alones>
 		'JOINS_ON' => [ // Optional, make empty if not joining any tables!
 			'inner=articles,authors(id),articles(author_id)',
 			'inner=comments,authors(id),comments(author_id)',
+			'inner=articles,comments(article_id),articles(id)'
 		],
 		// Optional Keys, leave empty (or remove) if not used!
 		'WHERE' => '',
@@ -68,23 +69,11 @@ function s_test5(&$c) // <authors,articles,comments,alones>
 			'comments_article_id' => '',
 			'comments_content' => '',
 			'comments_author_id' => '',
-			'comments_created_at' => '',
-			'alones_id' => '',
-			'alones_name' => '',
-			'alones_description' => '',
-			'alones_created_at' => '',
-			'alones_updated_at' => ''
+			'comments_created_at' => ''
 		],
 	];
 
-	return array(
-		'sql' => 'SELECT authors.id AS authors_id, articles.id AS articles_id, comments.id AS comments_id FROM authors INNER JOIN articles ON authors.id = articles.author_id INNER JOIN comments ON authors.id = comments.author_id;',
-		'hydrate' =>
-		array(),
-		'bparam' => '',
-		'fields' =>
-		array(),
-	);
+	return array([]);
 };
 
 return function (&$c, $handler = "s_test3") {

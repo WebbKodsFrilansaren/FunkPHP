@@ -4274,6 +4274,8 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                 cli_info("The `JOINS_ON` Key must be a Non-Empty List Array representing the JOINs to perform between the Tables in the `SELECT` Key when more than one Table is being SELECTed!");
             }
             $joinsREGEX = '/^([a-zA-Z]+)=([a-zA-Z_0-9]+),([a-zA-Z_0-9]+)\(([a-zA-Z_0-9]+)\),([a-zA-Z_0-9]+)\(([a-zA-Z_0-9]+)\)$/i';
+            $joinedTables = []; // Each table with a valid relationship can only be joined once!
+            $joinedTables[] = $fromTb; // We always join the FROM table first
 
             foreach ($joinsTb as $joinTb) {
                 // If the joinTb is not a string or empty, we error out
@@ -4320,6 +4322,17 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                     cli_err_syntax_without_exit("Invalid Join Table Name `$joinTable` found in `JOINS_ON` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
                     cli_info("Valid Table Names are: " . implode(", ", quotify_elements(array_keys($tables))) . "! (based on `tables.php` File)");
                 }
+
+                // We check that $joinTable is not already joined
+                // to avoid joining the same table multiple times
+                if (in_array($joinTable, $joinedTables, true)) {
+                    cli_err_syntax_without_exit("Table `$joinTable` is already marked as joined in `JOINS_ON` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
+                    cli_info_without_exit("You can only join a Table once in the `JOINS_ON` Key! (based on `tables.php` File)");
+                    cli_info_without_exit("Current Joined Tables are: " . implode("->", quotify_elements($joinedTables)) . "!");
+                    cli_info("IMPORTANT: During SQL Handler Function Generation, you ALWAYS get all possible Relationships (all Tables that can be joined), but You have to choose unique ones after each `Join Type=`!");
+                }
+                // Otherwise add it to the joined tables
+                $joinedTables[] = $joinTable;
 
                 // We check that $table2 and $table1 are valid tables
                 if (!array_key_exists($table2, $tables) || !array_key_exists($table1, $tables)) {
