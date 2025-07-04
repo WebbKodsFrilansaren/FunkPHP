@@ -4412,12 +4412,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                 $joinType = $validJoinTypes[$joinType];
                 $joinsStr .= "$joinType $joinTable ON $table1.$table1Col = $table2.$table2Col,\n";
             }
-
-            var_dump($joinsTb);
-            exit;
         }
-
-
 
         // PARSING THE "WHERE" Key (the WHERE clause to filter results) using Condition Clause Function if the "WHERE" Key is a Non-Empty String!
         $whereStr = isset($whereTb) && is_string($whereTb) && !empty($whereTb) ? cli_parse_condition_clause_sql($configTBKey, $whereTb, "SELECT", $convertedSQLArray, $cols, $builtBindedParamsString, $builtFieldsArray) : "";
