@@ -3416,9 +3416,6 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         });
         return array_values($cols);
     };
-    $addTableColAS = function ($table, $col) {
-        return "$table.$col AS $table" . "_$col";
-    };
 
     // Prepare variables to store the
     // converted SQL Query Array
@@ -3548,6 +3545,8 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         'i' => 'INNER JOIN',
         'inner' => 'INNER JOIN',
         'ij' => 'INNER JOIN',
+        'join' => 'INNER JOIN',
+        'j' => 'INNER JOIN',
         'l' => 'LEFT JOIN',
         'left' => 'LEFT JOIN',
         'r' => 'RIGHT JOIN',
@@ -4274,6 +4273,71 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                 cli_err_syntax_without_exit("No `JOINS_ON` Key found in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
                 cli_info("The `JOINS_ON` Key must be a Non-Empty List Array representing the JOINs to perform between the Tables in the `SELECT` Key when more than one Table is being SELECTed!");
             }
+            $joinsREGEX = '/^([a-zA-Z]+)=([a-zA-Z_0-9]+),([a-zA-Z_0-9]+)\(([a-zA-Z_0-9]+)\),([a-zA-Z_0-9]+)\(([a-zA-Z_0-9]+)\)$/i';
+
+            foreach ($joinsTb as $joinTb) {
+                // If the joinTb is not a string or empty, we error out
+                if (!is_string_and_not_empty($joinTb)) {
+                    cli_err_syntax_without_exit("Invalid Join Table String found in `JOINS_ON` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
+                    cli_info("Each Join Table String must be a Non-Empty String representing the JOIN condition between two Tables!");
+                }
+
+                // If the joinTb does not match the regex, we error out
+                if (!preg_match($joinsREGEX, $joinTb, $matches)) {
+                    cli_err_syntax_without_exit("Invalid Join Table String found in `JOINS_ON` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
+                    cli_info("Each Join Table Array Element String must match the following format:\n`join_type=table2(col2),table1(col1)`\nExample: `inner=articles,authors(id),articles(author_id)`");
+                }
+
+                // We extract Join Type, TB names
+                // and Columns from the matches
+                [
+                    $joinType,
+                    $table2,
+                    $col2,
+                    $table1,
+                    $col1
+                ] = array_slice($matches, 1);
+
+                // We lowercase all variables to ensure consistency
+                $joinType = strtolower($joinType);
+                $table2 = strtolower($table2);
+                $col2 = strtolower($col2);
+                $table1 = strtolower($table1);
+                $col1 = strtolower($col1);
+
+                // We check if the joinType is valid based on list of valid join types
+                if (!isset($validJoinTypes[$joinType])) {
+                    cli_err_syntax_without_exit("Invalid Join Type `$joinType` found in `JOINS_ON` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
+                    cli_info("Valid Join Types are: " . implode(", ", quotify_elements(array_keys($validJoinTypes))) . ".");
+                }
+
+                // We check that $table2 and $table1 are valid tables
+                if (!array_key_exists($table2, $tables) || !array_key_exists($table1, $tables)) {
+                    cli_err_syntax_without_exit("Invalid Table Name(s) found in `JOINS_ON` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
+                    cli_info("Valid Table Names are: " . implode(", ", quotify_elements(array_keys($tables))) . "! (based on `tables.php` File)");
+                }
+
+                // We check that $table2 actually has any relationships defined
+                if (!isset($relationships[$table2]) || !is_array($relationships[$table2]) || empty($relationships[$table2])) {
+                    cli_err_syntax_without_exit("Table `$table2` in `JOINS_ON` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query has no relationships defined in `config/tables.php` File! ('relationships' Key)");
+                    cli_info("Make sure the Table `$table2` has relationships defined in `config/relationships.php` file!");
+                }
+
+                // We check $table2 has a relationship with $table1
+                if (!array_key_exists($table1, $relationships[$table2])) {
+                    cli_err_syntax_without_exit("Table `$table2` in `JOINS_ON` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query has no relationship with Table `$table1` defined in `config/relationships.php` File!");
+                    cli_info("Provide a Table which `$table2` has a relationship with defined in `config/tables.php` File! ('relationships' Key)");
+                }
+
+                var_dump($relationships[$table2]);
+                exit;
+
+                var_dump($joinType, $table2, $col2, $table1, $col1);
+                exit;
+            }
+
+            var_dump($joinsTb);
+            exit;
         }
 
 
