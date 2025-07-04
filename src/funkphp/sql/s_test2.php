@@ -9,33 +9,32 @@ namespace FunkPHP\SQL\s_test2;
 // IMPORTANT: CMD+S or CTRL+S to autoformat each time function is added!
 
 
-function s_test5(&$c) // <authors,articles,comments>
+
+function s_test5(&$c) // <alones,authors,articles,comments>
 {
-	// Created in FunkCLI on 2025-07-04 07:14:12! Keep "};" on its
+	// FunkCLI created 2025-07-04 07:21:10! Keep Closing Curly Bracket on its
 	// own new line without indentation no comment right after it!
 	// Run the command `php funkcli compile s s_test2=>s_test5`
 	// to get SQL, Hydration & Binded Params in return statement below it!
 	$DX = [
 		'<CONFIG>' => [
 			'<QUERY_TYPE>' => 'SELECT',
-			'<TABLES>' => ['authors', 'articles', 'comments'],
+			'<TABLES>' => ['alones', 'authors', 'articles', 'comments'],
 			'[SUBQUERIES]' => [
 				'[subquery_example_1]' => 'SELECT COUNT(*)',
 				'[subquery_example_2]' => '(WHERE SELECT *)'
 			]
 		],
 		'SELECT' => [
+			'alones:id,name,description,created_at,updated_at',
 			'authors:id,name,email,description,longer_description,age,weight,nickname,updated_at',
 			'articles:id,author_id,title,content,published,created_at,updated_at',
 			'comments:id,article_id,content,author_id,created_at',
 		],
-		'FROM' => 'authors',
+		'FROM' => 'alones',
 		// 'JOINS_ON' Syntax: `join_type=table2,table1_id,table2_ref_id`
 		// Available Join Types: `inner|i|join|j|ij`,`left|l`,`right|r`
 		'JOINS_ON' => [ // Optional, make empty if not joining any tables!
-			'inner=articles,authors(id),articles(author_id)',
-			'inner=comments,authors(id),comments(author_id)',
-			'inner=articles,comments(article_id),articles(id)'
 		],
 		// Optional Keys, leave empty (or remove) if not used!
 		'WHERE' => '',
@@ -49,6 +48,11 @@ function s_test5(&$c) // <authors,articles,comments>
 		// What each Binded Param must match from a Validated Data
 		// Field Array (empty means same as TableName_ColumnKey)
 		'<MATCHED_FIELDS>' => [
+			'alones_id' => '',
+			'alones_name' => '',
+			'alones_description' => '',
+			'alones_created_at' => '',
+			'alones_updated_at' => '',
 			'authors_id' => '',
 			'authors_name' => '',
 			'authors_email' => '',
