@@ -3291,13 +3291,84 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
     return $parsedCondition;
 }
 
-// Function that uses a Topological Sort to parse all possible JOINS_ON using
+// Function that uses a DFS Algo to parse all possible JOINS_ON using
 // the $fromTb as the starting point. It returns an array of possible JOINS!
-function cli_parse_joins_on_topological_sort($fromTb, $tbs, $rels)
+function cli_parse_joins_on_DFS($fromTb, $availableTableNames, $relationships)
 {
+    $visitedTables = [];
     $suggestedJoins = [];
-    $visitedRels = [];
-    $relsToVisit = [];
+    $processedJoinPairs = [];
+    $stack = [$fromTb];
+
+    // Starting Table does not exist in the relationships or has no relationships
+    if (!isset($relationships[$fromTb]) || empty($relationships[$fromTb])) {
+        return [];
+    }
+
+    // Iterate while there are still Tables to process in the stack
+    // (tables with possible relationships to process)
+    while (!empty($stack)) {
+        // Grab the last Table from the stack
+        $currentTable = array_pop($stack);
+
+        // Skip already visited Tables to avoid cycles
+        if (in_array($currentTable, $visitedTables)) {
+            continue;
+        }
+        // Now it means we are visiting this one so mark it as visited
+        $visitedTables[] = $currentTable;
+
+        // When current Table has no relationships, continue
+        if (
+            !isset($relationships[$currentTable])
+            || !is_array($relationships[$currentTable])
+            || empty($relationships[$currentTable])
+        ) {
+            continue;
+        }
+
+        // Iterate through each related Table and its relationship details
+        foreach ($relationships[$currentTable] as $relatedTable => $relationshipDetails) {
+            // Skip those already visited to avoid cycles
+            if (!in_array($relatedTable, $availableTableNames)) {
+                continue;
+            }
+
+            // Prepare and grab details for the (INNER) JOIN
+            // $relatedTable is Table related with $currentTable
+            $joinString = "inner=$relatedTable,";
+            $table1 = $relationshipDetails['local_table'];
+            $col1 = $relationshipDetails['local_column'];
+            $table2 = $relationshipDetails['foreign_table'];
+            $col2 = $relationshipDetails['foreign_column'];
+
+            // We Pair, Sort & Create a Unique Identifier for the JOIN
+            // so we avoid duplicates in the JOINs Array!
+            $sortedPair = [$table1, $table2];
+            sort($sortedPair);
+            $joinIdentifier = implode('-', $sortedPair);
+
+            // Here we check if the JOIN Identifier is already processed
+            // to avoid duplicates in the suggested JOINs Array!
+            // So, continue to next if that is the case!
+            if (in_array($joinIdentifier, $processedJoinPairs)) {
+                continue;
+            }
+
+            // Finalize the JOIN String and add it to the suggested JOINs Array
+            // and the processed JOIN Pairs Array to avoid duplicates!
+            $joinString .= "$table1($col1),$table2($col2)";
+            $suggestedJoins[] = $joinString;
+            $processedJoinPairs[] = $joinIdentifier;
+
+            // Add the related Table to the stack for further processing if it has not
+            // been fully visited yet! Each Table can have multiple relationships!
+            if (!in_array($relatedTable, $visitedTables)) {
+                $stack[] = $relatedTable;
+            }
+        }
+    }
+    // Return any possible JOINs based on the relationships starting from the $fromTb
     return $suggestedJoins;
 }
 
@@ -5929,46 +6000,7 @@ function cli_create_sql_file_and_or_handler()
         // we skip it to avoid infinite loops and duplicate joins. A relationship that exists
         // means it is a subkey of the $tables['relationships'] array and its subkeys could
         // be the table names that are related to the current query tables.
-        $suggestedJoins = cli_parse_joins_on_topological_sort(array_key_first($tbs), array_keys($tbs), $tables['relationships']);
-
-
-        //exit;
-        // foreach ($tables['tables'] as $tableName => $tableData) {
-        //     if (!in_array($tableName, $currentQueryTables)) {
-        //         continue;
-        //     }
-        //     // Iterate through columns of the current table
-        //     foreach ($tableData as $columnName => $columnDetails) {
-        //         if (isset($columnDetails['foreign_key']) && $columnDetails['foreign_key'] === true) {
-        //             $referencedTable = $columnDetails['references'];
-        //             $referencedColumn = $columnDetails['references_column'];
-        //             // Crucial check: Is the referenced table also part of the current SELECT query's <TABLES>?
-        //             if (in_array($referencedTable, $currentQueryTables)) {
-        //                 // Construct the join string in the specified format:
-        //                 // 'join_type=TargetTable,JoiningTable_ForeignKeyColumn,TargetTable_PrimaryKeyColumn'
-        //                 // We default to 'inner' join type. The developer can change this manually.
-
-        //                 // $from_table can never be the same as $tableName1 since you cannot
-        //                 // FROM $tableName1 JOIN $tableName1 on $tableName1.id = $tableName2.id
-        //                 $finalTable = $from_table === $tableName ? $referencedTable : $tableName;
-        //                 $joinString = sprintf(
-        //                     "'inner=%s,%s_%s,%s_%s'",
-        //                     $finalTable,             // This is now the TargetTable (e.g., 'articles')
-        //                     $referencedTable,       // This is for the SourceTable_JoinColumn (e.g., 'authors')
-        //                     $referencedColumn,      // This is for the SourceTable_JoinColumn (e.g., 'id')
-        //                     $tableName,             // This is for the TargetTable_JoinColumn (e.g., 'articles')
-        //                     $columnName             // This is for the TargetTable_JoinColumn (e.g., 'author_id')
-        //                 );
-        //                 // Add to suggested joins if it's not already present (to avoid exact duplicates,
-        //                 // although direct FK relationships are usually one-way by definition)
-        //                 if (!in_array($joinString, $suggestedJoins)) {
-        //                     $suggestedJoins[] = $joinString;
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
-        // Format the suggested joins for output with proper indentation
+        $suggestedJoins = cli_parse_joins_on_DFS(array_key_first($tbs), array_keys($tbs), $tables['relationships']);
         if (!empty($suggestedJoins)) {
             $queryTypePart .= implode(",\n\t\t\t\t", $suggestedJoins);
         }
