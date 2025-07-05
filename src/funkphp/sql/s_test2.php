@@ -8,33 +8,31 @@ namespace FunkPHP\SQL\s_test2;
 // to get an array with SQL Query, Hydration Array and optionally Binded Params below here!
 // IMPORTANT: CMD+S or CTRL+S to autoformat each time function is added!
 
-
-function s_test5(&$c) // <authors,articles,comments>
+function s_test5(&$c) // <authors>
 {
-	// FunkCLI created 2025-07-04 09:28:20! Keep Closing Curly Bracket on its
+	// FunkCLI created 2025-07-05 08:55:40! Keep Closing Curly Bracket on its
 	// own new line without indentation no comment right after it!
 	// Run the command `php funkcli compile s s_test2=>s_test5`
 	// to get SQL, Hydration & Binded Params in return statement below it!
 	$DX = [
 		'<CONFIG>' => [
 			'<QUERY_TYPE>' => 'SELECT',
-			'<TABLES>' => ['authors', 'articles', 'comments'],
+			'<TABLES>' => ['authors'],
 			'[SUBQUERIES]' => [
 				'[subquery_example_1]' => 'SELECT COUNT(*)',
 				'[subquery_example_2]' => '(WHERE SELECT *)'
 			]
 		],
-		'SELECT' => [
-			'MIN(articles:id)',
-			'MIN(articles:id)',
-		],
-		'FROM' => 'articles',
+		'FROM' => 'authors',
 		// 'JOINS_ON' Syntax: `join_type=table2,table1_id,table2_ref_id`
 		// Available Join Types: `inner|i|join|j|ij`,`left|l`,`right|r`
 		'JOINS_ON' => [ // Optional, make empty if not joining any tables!
 		],
 		// Optional Keys, leave empty (or remove) if not used!
-		'WHERE' => '',
+		'SELECT' => [
+			'VERSION();authors:id,name,email,description,longer_description,age,weight,nickname,updated_at',
+		],
+		'WHERE' => '{id = 1}',
 		'GROUP BY' => '',
 		'HAVING' => '',
 		'ORDER BY' => '',
@@ -45,32 +43,20 @@ function s_test5(&$c) // <authors,articles,comments>
 		// What each Binded Param must match from a Validated Data
 		// Field Array (empty means same as TableName_ColumnKey)
 		'<MATCHED_FIELDS>' => [
-			'authors_id' => '',
-			'authors_name' => '',
-			'authors_email' => '',
-			'authors_description' => '',
-			'authors_longer_description' => '',
-			'authors_age' => '',
-			'authors_weight' => '',
-			'authors_nickname' => '',
-			'authors_updated_at' => '',
-			'articles_id' => '',
-			'articles_author_id' => '',
-			'articles_title' => '',
-			'articles_content' => '',
-			'articles_published' => '',
-			'articles_created_at' => '',
-			'articles_updated_at' => '',
-			'comments_id' => '',
-			'comments_article_id' => '',
-			'comments_content' => '',
-			'comments_author_id' => '',
-			'comments_created_at' => ''
+			'id' => '',
+			'name' => '',
+			'email' => '',
+			'description' => '',
+			'longer_description' => '',
+			'age' => '',
+			'weight' => '',
+			'nickname' => '',
+			'updated_at' => ''
 		],
 	];
 
 	return array(
-		'sql' => 'SELECT MIN(articles.id) AS min_articles_id, MIN(articles.id) AS min_articles_id_1 FROM articles;',
+		'sql' => 'SELECT authors.id AS authors_id, authors.name AS authors_name, authors.email AS authors_email, authors.description AS authors_description, authors.longer_description AS authors_longer_description, authors.age AS authors_age, authors.weight AS authors_weight, authors.nickname AS authors_nickname, authors.updated_at AS authors_updated_at FROM authors WHERE id = 1;',
 		'hydrate' =>
 		array(),
 		'bparam' => '',

@@ -2812,16 +2812,9 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
         'BETWEEN(=',
     ];
 
-    // Starting Parts for Aggregate Functions
-    $aggregateFunctionsStart = [
-        "COUNT(*)",
-        "COUNT(",
-        "COUNT(DISTINCT ",
-        "SUM(",
-        "AVG(",
-        "MIN(",
-        "MAX(",
-    ];
+    // Starting Parts for Aggregate Functions - but Agg Funcs are NOT allowed in WHERE clause!
+    // so we use this to check and then error out if they are used in the WHERE clause!
+    $aggregateFunctionsStart = "/^(COUNT\(DISTINCT[ |=]|COUNT\(\*\)|COUNT\(|SUM\(|AVG\(|MIN\(|MAX\()/i";
 
     // $tbs must be an array and not empty
     if (!is_array_and_not_empty($tbs)) {
@@ -2880,9 +2873,53 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
     $where = str_contains(trim($where), "|") ? explode("|", $where) : [$where];
     $wPartRegex = '/^(\[[A-Za-z_\-0-9]+]|[()=A-Za-z_\-0-9:]+)\s+(\[[A-Za-z_\-0-9]+]|[+\-*\/%=&|^!<>]+|ALL|AND|BETWEEN|EXISTS|IN|LIKE|NOT|SOME)\s+(.*)$/';
 
+    // SPECIAL REGEXES that always are ran before the main $wPartRegex!
+    $tableCol_BETWEEN_VAL1_AND_VAL2 = "/^([a-zA-Z0-9_:])+\s*(BETWEEN)\s*([a-zA-Z0-9]+)\s*(AND)\s*([a-zA-Z0-9]+)$/i";
+    $tableCol_NOT_BETWEEN_VAL1_AND_VAL2 = "/^([a-zA-Z0-9_:])+\s*(NOT BETWEEN)\s*([a-zA-Z0-9]+)\s*(AND)\s*([a-zA-Z0-9]+)$/i";
+    $tableCol_IN_VAL_ARRAY = "/^([a-zA-Z0-9_:]+)\s*(NOT IN)+\s*\((.*)\)$/i";
+    $tableCol_NOT_IN_VAL_ARRAY = "/^([a-zA-Z0-9_:]+)\s*(NOT IN)+\s*\((.*)\)$/i";
+    $tableCol_NOT_LIKE_VAL = "/^([a-zA-Z0-9_:]+)\s*(NOT LIKE)+\s*(.*)$/i";
+    $NOT_tableCol_OPERATOR_VAL = "/^(NOT)\s*([a-zA-Z0-9_:]+)\s*([+\-*\/%=&|^!<>])+\s*(.*)$/i";
+
+
     // We now iterate through each part and we use regex to parse the Condition clause where it should
     // begin with a column name/tableName:columnName, followed by an operator, and then a value.
     foreach ($where as $index => $wPart) {
+        // SPECIAL CASE: Escaping any parsing using {} meaning it will just be added as is
+        // This is useful when current Parsing Logic is not supported yet but the Developer
+        // knows what they are doing and just wanna add their Condition Clause Logic without
+        // having to wait for a new FunkPHP Version to be released! ;-P
+        if (str_starts_or_ends_not_with($wPart, "{", "}")) {
+            cli_err_syntax_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to Starting/Ending { or } but not the other way around!");
+            cli_info_without_exit("You need BOTH to Start and End with { respectively } to Escape the Condition Clause Logic!");
+            cli_info("When you use { and } you are telling FunkPHP to just add the Condition Clause Logic \"As Is\" WITHOUT any parsing! However, this does NOT allow You to DROP/ALTER/TRUNCATE Tables and/or entire Databases! (for obvious reasons)");
+        }
+        if (str_starts_ends_with($wPart, "{", "}")) {
+            if (str_contains(strtoupper($wPart), "DROP TABLE")) {
+                cli_err_syntax("[cli_parse_condition_clause_sql]: /!\ GOTTA STOP YOU RIGHT THERE! /!\ You are using a `DROP TABLE` Statement in the Condition Clause. This is where FunkPHP draws the line; that is something you gotta do manually as DB Admin instead!");
+            }
+            if (str_contains(strtoupper($wPart), "DROP DATABASE")) {
+                cli_err_syntax("[cli_parse_condition_clause_sql]: /!\ GOTTA STOP YOU RIGHT THERE! /!\ You are using a `DROP DATABASE` Statement in the Condition Clause. This is where FunkPHP draws the line; that is something you gotta do manually as DB Admin instead!");
+            }
+            if (str_contains(strtoupper($wPart), "ALTER TABLE")) {
+                cli_err_syntax("[cli_parse_condition_clause_sql]: /!\ GOTTA STOP YOU RIGHT THERE! /!\ You are using a `ALTER TABLE` Statement in the Condition Clause. This is where FunkPHP draws the line; that is something you gotta do manually as DB Admin instead!");
+            }
+            if (str_contains(strtoupper($wPart), "TRUNCATE TABLE")) {
+                cli_err_syntax("[cli_parse_condition_clause_sql]: /!\ GOTTA STOP YOU RIGHT THERE! /!\ You are using a `TRUNCATE TABLE` Statement in the Condition Clause. This is where FunkPHP draws the line; that is something you gotta do manually as DB Admin instead!");
+            }
+            // Remove the {}, add it "as is" to the parsed
+            // condition inform the Developer and continue!
+            $wPart = substr(trim($wPart), 1, -1);
+            $parsedCondition .= " " . trim($wPart);
+            cli_warning_without_exit("[cli_parse_condition_clause_sql]: Added \"As Is\" Escaped Condition Clause Logic: `$wPart` in Query Type: \"$queryType\". Hopefully it still works when sent as Prepared Statement!");
+            cli_info_without_exit("IMPORTANT: If you are using placeholders `?` in the `$wPart` you must add them to the `bparam` Key in the SQL Array and also add the `<MATCHED_FIELDS>` keys in the `fields` Key manually after successfully compilation! (in current version of FunkPHP)");
+            continue;
+        }
+        if (preg_match($aggregateFunctionsStart, $wPart)) {
+            cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to using an Aggregate Function in the WHERE clause!");
+            cli_info_without_exit("Aggregate Functions like COUNT(), SUM(), AVG(), MIN(), MAX() are NOT allowed in the Condition clause!");
+            cli_info("If you want to use Aggregate Functions, use them in the SELECT and/or GROUP BY Clauses instead!");
+        }
         // WHERE Clause can't start with a special syntax start
         if ($index === 0) {
             if (str_starts_with($wPart, "(") && str_ends_with($wPart, ")")) {
@@ -2934,6 +2971,17 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
         $mCol = $wMatches[1] ?? null;
         $mOperator = $wMatches[2] ?? null;
         $mValue = $wMatches[3] ?? null;
+
+        // None of the matched parts in the Condition Clause can be Aggregate Function!
+        if (
+            preg_match($aggregateFunctionsStart, $mCol)
+            || preg_match($aggregateFunctionsStart, $mOperator)
+            || preg_match($aggregateFunctionsStart, $mValue)
+        ) {
+            cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to using an Aggregate Function in the WHERE clause!");
+            cli_info_without_exit("Aggregate Functions like COUNT(), SUM(), AVG(), MIN(), MAX() are NOT allowed in the Condition clause!");
+            cli_info("If you want to use Aggregate Functions, use them in the SELECT and/or GROUP BY Clauses instead!");
+        }
 
         // Check $mCol begins with any of the special syntax starts. If so we
         // extract that and the $mCol separated by the special syntax start.
@@ -3008,7 +3056,7 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
             if ($parsedCondition !== ' ' && str_contains($specialSyntax, "(")) {
                 $parsedCondition .= " ";
             }
-            $parsedCondition .= $specialSyntax;
+            $parsedCondition .= " " . $specialSyntax;
         }
 
         // There are two cases now: Either we have a Single Table to
@@ -3937,6 +3985,8 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         }
         // We finally remove all extra spaces and newlines from the built SQL string
         // and then add it to the converted SQL Array
+        $builtSQLString = preg_replace('/\( /', '(', $builtSQLString);
+        $builtSQLString = preg_replace('/ \)/', ')', $builtSQLString);
         $builtSQLString = preg_replace('/\s+/', ' ', $builtSQLString);
         $convertedSQLArray['sql'] = $builtSQLString;
         $convertedSQLArray['fields'] = $builtFieldsArray;
@@ -4029,6 +4079,8 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         }
         // We finally remove all extra spaces and newlines from the built SQL string
         // and then add it to the converted SQL Array
+        $builtSQLString = preg_replace('/\( /', '(', $builtSQLString);
+        $builtSQLString = preg_replace('/ \)/', ')', $builtSQLString);
         $builtSQLString = preg_replace('/\s+/', ' ', $builtSQLString);
         $convertedSQLArray['sql'] = $builtSQLString;
         $convertedSQLArray['fields'] = $builtFieldsArray;
@@ -4132,10 +4184,12 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         // Regexes for Aggregate Functions. First to see if it starts with any of the aggregate functions
         // and the second to see if it is a complete aggregate function with a table and/or column name
         // and the special case of COUNT(*) which is a special case of the COUNT function!
-        $aggregateFunctionsStart = "/^(COUNT\(\*\)|COUNT\(|SUM\(|AVG\(|MIN\(|MAX\()/i";
-        $aggFuncRegex = "/^(COUNT\(\*\)|COUNT\(|SUM\(|AVG\(|MIN\(|MAX\()([a-zA-Z0-9_:\*]+)*\)$/i";
+        $aggregateFunctionsStart = "/^(COUNT\(DISTINCT[ |=]|COUNT\(\*\)|COUNT\(|SUM\(|AVG\(|MIN\(|MAX\()/i";
+        $aggFuncRegex = "/^(COUNT\(DISTINCT[ |=]|COUNT\(\*\)|COUNT\(|SUM\(|AVG\(|MIN\(|MAX\()([a-zA-Z0-9_:\*]+)*\)$/i";
         $aggTableColRegex = "/^([a-zA-Z0-9_]+):([a-zA-Z0-9_]+)$/i";
         $aggFuncValidStarts = [
+            'count(distinct=' => 'count_distinct_',
+            'count(distinct ' => 'count_distinct_',
             'count(' => 'count_',
             'count(*)' => 'count_all_',
             'sum(' => 'sum_',
@@ -4148,11 +4202,39 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         // could be used multiple times on the same table+column(s)!
         $aggAliases = [];
 
+        // Commands that You might wanna SELECT but are not allowed to do
+        // through FunkPHP so you get an error message about it!
+        $disallowedCommands = [
+            "BIN(",
+            "BINARY",
+            "CASE",
+            "CAST",
+            "COALESCE(",
+            "CONVERT(",
+            "CONV(",
+            "CONNECTION_ID()",
+            "CURRENT_USER",
+            "DATABASE()",
+            "IF(",
+            "IFNULL(",
+            "ISNULL(",
+            "LAST_INSERT_ID()",
+            "SESSION_USER()",
+            "SYSTEM_USER()",
+            "USER()",
+            "VERSION()",
+        ];
+
         // PARSING THE "SELECT" Key (all selected tables and columns)
         // We loop through $selectTb which we know now are all valid non-empty strings.
         // We will check, validate & build the SELECT part of the SQL String based on
         // different cases:
         foreach ($selectTb as $selectTbName) {
+            if (array_str_starts_with($disallowedCommands, strtoupper($selectTbName))) {
+                cli_err_syntax_without_exit("The `SELECT` Key in SQL Array `$handlerFile.php=>$fnName` contains a Disallowed Command: `$selectTbName`!");
+                cli_info_without_exit("The Following Commands are NOT allowed in the `SELECT` Key: " . implode(", ", quotify_elements($disallowedCommands)) . ".");
+                cli_info("You will have to MANUALLY write a SQL String that runs/SELECTs that specific Command or use some of the FunkPHP's in-built SQL Functions that run some of those specific Commands!");
+            }
             // Lowercase entire string to make it case-insensitive
             $selectTbName = strtolower($selectTbName);
             // CASE 1: Starts with any of the Aggregate Functions
@@ -4229,6 +4311,11 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                                 $as_name = $as_name . "_$i";
                             }
                             $aggAliases[] = $as_name;
+                            // We remove "=" if it is inside of $aggFunc
+                            // which is special case for COUNT(DISTINCT=)
+                            if (str_contains($aggFunc, '=')) {
+                                $aggFunc = str_replace('=', ' ', $aggFunc);
+                            }
                             $selectedTbsColsStr .= strtoupper($aggFunc) . "$aggTb.$aggCol) AS " . $as_name . ",\n";
                             continue;
                         } else {
@@ -4557,6 +4644,10 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         // PARSING THE OPTIONAL "WHERE" Key (the WHERE clause to filter results) using Condition Clause Function if the "WHERE" Key is a Non-Empty String!
         $whereStr = isset($whereTb) && is_string($whereTb) && !empty($whereTb) ? cli_parse_condition_clause_sql($configTBKey, $whereTb, "SELECT", $convertedSQLArray, $cols, $builtBindedParamsString, $builtFieldsArray) : "";
 
+        // PARSING THE OPTIONAL Keys "GROUP_BY" & "HAVING" (the GROUP BY clause
+        // to group results and HAVING clause to filter grouped results)
+
+        //
 
         // PARSING THE OPTIONAL Keys: "LIMIT" & "OFFSET" Key (LIMIT is number of rows, OFFSET is where you start from results)
         if (isset($limitTb)) {
@@ -4608,6 +4699,8 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         }
         // We finally remove all extra spaces and newlines from the built SQL string
         // and then add it to the converted SQL Array
+        $builtSQLString = preg_replace('/\( /', '(', $builtSQLString);
+        $builtSQLString = preg_replace('/ \)/', ')', $builtSQLString);
         $builtSQLString = preg_replace('/\s+/', ' ', $builtSQLString);
         $convertedSQLArray['sql'] = $builtSQLString;
         $convertedSQLArray['fields'] = $builtFieldsArray;
@@ -6266,17 +6359,6 @@ function cli_create_sql_file_and_or_handler()
             $tbsColsWithId[$tbName] = $tbData['cols'];
             $valCols[$tbName] = array_keys($tbData['cols']);
         }
-        // We add the 'SELECT' part to the $queryTypePart which is the first part of the DXPART
-        // and always a must for every SELECT query!
-        // We now add the tables with the columns to the $queryTypePart for each table
-        // which is inside of " $valCols" in the style: table => col1,col2,col3, we just
-        // create a string that is added like `table1:col1,col2,col3|table2:col1,col2,col3`
-        $queryTypePart .= "'SELECT' => ";
-        $queryTypePart .= "[";
-        foreach ($valCols as $tbName => $cols) {
-            $queryTypePart .= "'$tbName:" . implode(',', $cols) . "',\n";
-        }
-        $queryTypePart .= "],\n\t\t";
 
         // We now add the 'FROM' which is always a must for every SELECT query!
         $queryTypePart .= "'FROM' => '";
@@ -6303,6 +6385,18 @@ function cli_create_sql_file_and_or_handler()
             $queryTypePart .= implode(",\n\t\t\t\t", $suggestedJoins);
         }
         $queryTypePart .= "],\n\t\t// Optional Keys, leave empty (or remove) if not used!\n\t\t"; // END OF 'JOINS_ON' Key!
+
+        // We add the 'SELECT' part to the $queryTypePart which is the first part of the DXPART
+        // and always a must for every SELECT query!
+        // We now add the tables with the columns to the $queryTypePart for each table
+        // which is inside of " $valCols" in the style: table => col1,col2,col3, we just
+        // create a string that is added like `table1:col1,col2,col3|table2:col1,col2,col3`
+        $queryTypePart .= "'SELECT' => ";
+        $queryTypePart .= "[";
+        foreach ($valCols as $tbName => $cols) {
+            $queryTypePart .= "'$tbName:" . implode(',', $cols) . "',\n";
+        }
+        $queryTypePart .= "],\n\t\t";
 
         // We now add the 'WHERE' which is OPTIONAL for every SELECT query!
         $queryTypePart .= "'WHERE' => '', \n\t\t";
@@ -7583,6 +7677,59 @@ function quotify_elements($array, $type = "`")
         $quotedArray[] = quotify_string($element, $type);
     }
     return $quotedArray;
+}
+
+// Function returns true/false if String starts+ends with given strings
+function str_starts_ends_with($str, $start, $end)
+{
+    return str_starts_with($str, $start) && str_ends_with($str, $end);
+}
+
+// Function returns true/false if String does not start OR ends with given string
+function str_starts_or_ends_not_with($str, $start, $end)
+{
+    if (str_starts_with($str, $start) && !str_ends_with($str, $end)) {
+        return true;
+    } elseif (!str_starts_with($str, $start) && str_ends_with($str, $end)) {
+        return true;
+    }
+    return false;
+}
+
+// Function that returns true if any of the elements
+// get true for str_contains, otherwise returns false
+function array_str_contains($arr, $containValue)
+{
+    if (!is_array($arr) || empty($arr)) {
+        cli_err_syntax("[array_contains]: First argument must be a Non-Empty Array!");
+    }
+    if (!is_string($containValue) && !is_numeric($containValue) && !is_bool($containValue)) {
+        cli_err_syntax("[array_contains]: Second argument must be a String, Number or Boolean!");
+    }
+    foreach ($arr as $value) {
+        if (is_string($value) && str_contains((string)$containValue, $value)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Function that returns true if any of the elements
+// get true for str_starts_with, otherwise returns false
+function array_str_starts_with($arr, $startsWith)
+{
+    if (!is_array($arr) || empty($arr)) {
+        cli_err_syntax("[array_str_starts_with]: First argument must be a Non-Empty Array!");
+    }
+    if (!is_string($startsWith) && !is_numeric($startsWith) && !is_bool($startsWith)) {
+        cli_err_syntax("[array_str_starts_with]: Second argument must be a String, Number or Boolean!");
+    }
+    foreach ($arr as $value) {
+        if (is_string($value) && str_starts_with((string)$startsWith, $value)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 // Function takes a 'arrayKey' => 'singleStringvalue' and converts it to a
