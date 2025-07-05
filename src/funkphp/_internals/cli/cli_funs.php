@@ -2812,6 +2812,17 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
         'BETWEEN(=',
     ];
 
+    // Starting Parts for Aggregate Functions
+    $aggregateFunctionsStart = [
+        "COUNT(*)",
+        "COUNT(",
+        "COUNT(DISTINCT ",
+        "SUM(",
+        "AVG(",
+        "MIN(",
+        "MAX(",
+    ];
+
     // $tbs must be an array and not empty
     if (!is_array_and_not_empty($tbs)) {
         cli_err_without_exit("[cli_parse_condition_clause_sql]: Expects a Non-Empty Associative Array as input for `\$tables`!");
@@ -4118,15 +4129,127 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
             cli_err_syntax_without_exit("The `FROM` Key Table `$fromTb` was not found in the `SELECT` Key Tables in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
             cli_info("The `FROM` Key must contain one of the Tables in the `SELECT` Key since you need a starting Table for your SELECT Query!");
         }
+        // Regexes for Aggregate Functions. First to see if it starts with any of the aggregate functions
+        // and the second to see if it is a complete aggregate function with a table and/or column name
+        // and the special case of COUNT(*) which is a special case of the COUNT function!
+        $aggregateFunctionsStart = "/^(COUNT\(\*\)|COUNT\(|SUM\(|AVG\(|MIN\(|MAX\()/i";
+        $aggFuncRegex = "/^(COUNT\(\*\)|COUNT\(|SUM\(|AVG\(|MIN\(|MAX\()([a-zA-Z0-9_:\*]+)*\)$/i";
+        $aggTableColRegex = "/^([a-zA-Z0-9_]+):([a-zA-Z0-9_]+)$/i";
+        $aggFuncValidStarts = [
+            'count(' => 'count_',
+            'count(*)' => 'count_all_',
+            'sum(' => 'sum_',
+            'avg(' => 'avg_',
+            'min(' => 'min_',
+            'max(' => 'max_',
+        ];
+
+        // To check for duplicate aliases later since agg functions
+        // could be used multiple times on the same table+column(s)!
+        $aggAliases = [];
 
         // PARSING THE "SELECT" Key (all selected tables and columns)
         // We loop through $selectTb which we know now are all valid non-empty strings.
         // We will check, validate & build the SELECT part of the SQL String based on
         // different cases:
         foreach ($selectTb as $selectTbName) {
-            // CASE 1: Only Table Name (no columns) is given so
+            // Lowercase entire string to make it case-insensitive
+            $selectTbName = strtolower($selectTbName);
+            // CASE 1: Starts with any of the Aggregate Functions
+            if (preg_match($aggregateFunctionsStart, $selectTbName)) {
+                if (preg_match($aggFuncRegex, $selectTbName, $aggFuncMatches)) {
+                    $aggFunc = $aggFuncMatches[1];
+                    $aggTbWithCol = $aggFuncMatches[2];
+
+                    // Incorrect Aggregate Function Format despite matching
+                    if (!isset($aggFuncValidStarts[$aggFunc])) {
+                        cli_err_syntax_without_exit("Invalid Aggregate Function Format (`$selectTbName`) in `SELECT` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
+                        cli_info("The Aggregate Function must start with one of the following: " . implode(", ", quotify_elements(array_keys($aggFuncValidStarts))) . "!");
+                    }
+
+                    // SPECIAL CASE: COUNT(*) which is a special case of the COUNT function and thus we must get
+                    // the table name from the $fromTb variable since it does not have a table name!
+                    if ($aggFuncMatches[0] === 'count(*)') {
+                        if (!in_array($fromTb, $selectTbs, true)) {
+                            cli_err_syntax_without_exit("Table Name `$fromTb` from `FROM` Key in SQL Array `$handlerFile.php=>$fnName` not found in `<TABLES>` Key!");
+                            cli_info("Valid Table Names are: " . implode(", ", quotify_elements($selectTbs)) . ".");
+                        }
+                        // We add the COUNT(*) as a special case without table and column
+                        // Only add if not already in the currently selected tables and also
+                        // so you can use multiple agg functions on the same table without
+                        // JOINS_ON complaining about "mulitple tables selected"!
+                        if (!in_array($fromTb, $currentlySelectedTbs, true)) {
+                            $currentlySelectedTbs[] = $fromTb;
+                        }
+
+                        // Rename and add to the selectedTbsColsStr and the aggAliases
+                        // so you can reuse same aggregate function on the same table
+                        // without conflicting with the aliases!
+                        $as_name = $aggFuncValidStarts[$aggFunc] . $fromTb;
+                        $i = 0;
+                        while (in_array($as_name, $aggAliases, true)) {
+                            $i++;
+                            $as_name = $as_name . "_$i";
+                        }
+                        $aggAliases[] = $as_name;
+                        $selectedTbsColsStr .= strtoupper($aggFunc) . "*) AS " . $as_name . ",\n";
+                        continue;
+                    }
+
+                    // Incorrect Table/Column Format despite matching
+                    if (!preg_match($aggTableColRegex, $aggTbWithCol)) {
+                        cli_err_syntax_without_exit("Invalid Table/Column Format (`$aggTbWithCol`) in Aggregate Function `$aggFunc` in `SELECT` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
+                        cli_info("The Aggregate Function must follow the Format: `AGGREGATE_FUNC(tableName:colName)` or `AGGREGATE_FUNC(*)` for COUNT(*)!");
+                    }
+
+                    // Extract Table and Column from the Aggregate Function
+                    // to check against Valid Table & Column from `tables.php`!
+                    [$aggTb, $aggCol] = explode(":", $aggTbWithCol, 2);
+                    if (isset($tables[$aggTb]) && is_array_and_not_empty($tables[$aggTb])) {
+                        // Validate correct Table:Column Binding (d or i when SUM() or AVG() is used!)
+                        if (isset($tables[$aggTb][$aggCol]) && is_array_and_not_empty($tables[$aggTb][$aggCol])) {
+                            if (($aggFunc === 'sum(' || $aggFunc === 'avg(') &&
+                                ($tables[$aggTb][$aggCol]['binding'] !== 'd' &&
+                                    $tables[$aggTb][$aggCol]['binding'] !== 'i')
+                            ) {
+                                cli_err_syntax_without_exit("Column Name `$aggCol` from Aggregate Function `$aggFunc` in `SELECT` Key in SQL Array `$handlerFile.php=>$fnName` must have a Binding of 'd' or 'i' for Table `$aggTb`! (it has `{$tables[$aggTb][$aggCol]['binding']}`)");
+                                cli_info_without_exit("Valid Bindings for Column `$aggCol` are: 'd' (double) or 'i' (integer) for SUM and AVG Aggregate Functions!");
+                                cli_info("SUM() and AVG() Aggregate Functions can only be used on Numeric Columns ('d' or 'i' as binding)!");
+                            }
+                            // Only add if not already in the currently selected tables and also
+                            // so you can use multiple agg functions on the same table without
+                            // JOINS_ON complaining about "mulitple tables selected"!
+                            if (!in_array($aggTb, $currentlySelectedTbs, true)) {
+                                $currentlySelectedTbs[] = $aggTb;
+                            }
+                            $as_name = $aggFuncValidStarts[$aggFunc] . $tables[$aggTb][$aggCol]['joined_name'];
+                            $i = 0;
+                            while (in_array($as_name, $aggAliases, true)) {
+                                $i++;
+                                $as_name = $as_name . "_$i";
+                            }
+                            $aggAliases[] = $as_name;
+                            $selectedTbsColsStr .= strtoupper($aggFunc) . "$aggTb.$aggCol) AS " . $as_name . ",\n";
+                            continue;
+                        } else {
+                            cli_err_syntax_without_exit("Column Name `$aggCol` from Aggregate Function `$aggFunc` in `SELECT` Key in SQL Array `$handlerFile.php=>$fnName` not found in Table `$aggTb`!");
+                            cli_info("Valid Column Names for Table `$aggTb` are: " . implode(", ", quotify_elements(array_keys($tables[$aggTb]))) . ".");
+                        }
+                    } else {
+                        cli_err_syntax_without_exit("Table Name `$aggTb` from Aggregate Function `$aggFunc` in `SELECT` Key in SQL Array `$handlerFile.php=>$fnName` not found in `tables.php` File!");
+                        cli_info("Valid Table Names are: " . implode(", ", quotify_elements(array_keys($tables))) . ".");
+                    }
+                }
+                // When it failed to match despite matching the start regex, we error out
+                else {
+                    cli_err_syntax_without_exit("Invalid Aggregate Function Format (`$selectTbName`) in `SELECT` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
+                    cli_info_without_exit("The Aggregate Function must follow the Format: `AGGREGATE_FUNC(tableName:colName)` or `AGGREGATE_FUNC(*)` for COUNT(*)!");
+                    cli_info("Check for Correct Punctuation such as:`table:column` and NOT:`table.column`!");
+                }
+            }
+            // CASE 2: Only Table Name (no columns) is given so
             // add all columns from that table if it is valid table!
-            if (
+            elseif (
                 !str_contains($selectTbName, ":")
                 && !str_contains($selectTbName, "!")
                 && !str_contains($selectTbName, ",")
@@ -4147,7 +4270,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                 }
                 continue;
             }
-            // CASE 2: Table Name with "!" (excludes column) so kinda like above but
+            // CASE 3: Table Name with "!" (excludes column) so kinda like above but
             // but we exclude the .
             elseif (
                 str_contains($selectTbName, "!:")
@@ -4194,7 +4317,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                 }
                 continue;
             }
-            // CASE 3: Table Name with ":" (selects specific columns) so
+            // CASE 4: Table Name with ":" (selects specific columns) so
             elseif (
                 str_contains($selectTbName, ":")
                 && !str_contains($selectTbName, "!")

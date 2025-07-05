@@ -25,7 +25,8 @@ function s_test5(&$c) // <authors,articles,comments>
 			]
 		],
 		'SELECT' => [
-			'articles',
+			'MIN(articles:id)',
+			'MIN(articles:id)',
 		],
 		'FROM' => 'articles',
 		// 'JOINS_ON' Syntax: `join_type=table2,table1_id,table2_ref_id`
@@ -33,12 +34,12 @@ function s_test5(&$c) // <authors,articles,comments>
 		'JOINS_ON' => [ // Optional, make empty if not joining any tables!
 		],
 		// Optional Keys, leave empty (or remove) if not used!
-		'WHERE' => 'articles:id = ?',
+		'WHERE' => '',
 		'GROUP BY' => '',
 		'HAVING' => '',
 		'ORDER BY' => '',
-		'LIMIT' => '1',
-		'OFFSET' => '1',
+		'LIMIT' => '',
+		'OFFSET' => '',
 		// Optional, leave empty if not used!
 		'<HYDRATION>' => [],
 		// What each Binded Param must match from a Validated Data
@@ -69,14 +70,12 @@ function s_test5(&$c) // <authors,articles,comments>
 	];
 
 	return array(
-		'sql' => 'SELECT articles.id AS articles_id, articles.author_id AS articles_author_id, articles.title AS articles_title, articles.content AS articles_content, articles.published AS articles_published, articles.created_at AS articles_created_at, articles.updated_at AS articles_updated_at FROM articles WHERE articles.id = ? LIMIT 1 OFFSET 1;',
+		'sql' => 'SELECT MIN(articles.id) AS min_articles_id, MIN(articles.id) AS min_articles_id_1 FROM articles;',
 		'hydrate' =>
 		array(),
-		'bparam' => 'i',
+		'bparam' => '',
 		'fields' =>
-		array(
-			0 => 'articles_id',
-		),
+		array(),
 	);
 };
 
