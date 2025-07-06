@@ -34,11 +34,11 @@ function s_test5(&$c) // <authors>
 		],
 		// Optional Keys, leave empty (or remove) if not used!
 		'SELECT' => [
-			'authors:id,name,age',
+			'authors:id,name,AVG(age)',
 		],
 		'WHERE' => '',
 		'GROUP BY' => 'authors:age',
-		'HAVING' => '',
+		'HAVING' => 'AVG(age) > 30',
 		'ORDER BY' => '',
 		'LIMIT' => '',
 		'OFFSET' => '',
@@ -60,7 +60,7 @@ function s_test5(&$c) // <authors>
 	];
 
 	return array(
-		'sql' => 'SELECT authors.id AS authors_id, authors.name AS authors_name, authors.age AS authors_age FROM authors INNER JOIN articles ON authors.id = articles.author_id GROUP BY authors.age;',
+		'sql' => 'SELECT authors.id AS authors_id, authors.name AS authors_name, AVG(authors.age) AS avg_authors_age FROM authors INNER JOIN articles ON authors.id = articles.author_id GROUP BY authors.age;',
 		'hydrate' =>
 		array(),
 		'bparam' => '',

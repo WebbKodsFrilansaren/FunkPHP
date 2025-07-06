@@ -2777,7 +2777,7 @@ function cli_compile_dx_validation_to_optimized_validation()
 // &$builtBindedParamsString is to add the necessary
 // "?" placeholders based on how many are used within
 // the parsed Where clause that would be returned!
-function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $validCols, &$builtBindedParamsString, &$builtFieldsArray, &$allAliases, $whereOrHaving = null, $aggAliases = null)
+function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $validCols, &$builtBindedParamsString, &$builtFieldsArray, &$allAliases, $whereOrHaving = null, &$aggAliases)
 {
     // Prepare variables and also validate the input
     // $where = The actual CONDITION String to parse.
@@ -2889,7 +2889,9 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
     // Regexes for Aggregate Functions. First to see if it starts with any of the aggregate functions
     // and the second to see if it is a complete aggregate function with a table and/or column name
     // and the special case of COUNT(*) which is a special case of the COUNT function!
-    $aggTableColRegex = "/^([a-zA-Z0-9_]+):([a-zA-Z0-9_]+)$/i";
+    $aggregateFunctionsStart = "/^(COUNT\(DISTINCT[ |=]|COUNT\(\*\)|COUNT\(|SUM\(|AVG\(|MIN\(|MAX\()/i";
+    $aggFuncRegex = "/^(COUNT\(DISTINCT[ |=]|COUNT\(\*\)|COUNT\(|SUM\(|AVG\(|MIN\(|MAX\()([a-zA-Z0-9_:\*]+)*\)$/i";
+    $aggTableColOrColRegex = "/^([()a-zA-Z0-9:_]+)$/i";
     $aggFuncValidStarts = [
         'count(distinct=' => 'count_distinct_',
         'count(distinct ' => 'count_distinct_',
@@ -2971,7 +2973,7 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
             cli_info_without_exit("Aggregate Functions like COUNT(), SUM(), AVG(), MIN(), MAX() are NOT allowed in the Condition Clause for `WHERE` Key, only for `HAVING` Key!");
             cli_info("If you want to use Aggregate Functions, use them in the SELECT and/or GROUP BY Clauses instead!");
         }
-        // WHERE Clause can't start with a special syntax start
+        // Condition Clause can't start with a special syntax start
         if ($index === 0) {
             if (str_starts_with($wPart, "(") && str_ends_with($wPart, ")")) {
                 cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to starting with a parenthesis '(' or ')'!");
@@ -3008,11 +3010,6 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
             $parsedCondition .= $wPart . " ";
             cli_info_without_exit("[cli_parse_condition_clause_sql]: Found SINGLE AND ONLY A Subquery Syntax: \"$wPart\" in Query Type: \"$queryType\". This is handled outside of this Parsing Process. Continuing...");
             continue;
-        }
-
-        // SPECIAL CASE: If check if it is an Aggregate Function if it is
-        // "HAVING" Key that we are Conditionally Parsing!
-        if ($whereOrHaving === 'HAVING') {
         }
 
         // Now we finally match the $wPart against the regex to parse it
@@ -3057,6 +3054,29 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
 
         var_dump($mCol, $mOperator, $mValue, $specialSyntax);
 
+        // SPECIAL CASE: 'HAVING' Key called this Condition Clause Parser, so we
+        // will check if it is like when being used in `SELECT Key with Agg Funcs
+        // and all that!
+        if ($whereOrHaving === 'HAVING') {
+            if (preg_match($aggregateFunctionsStart, $mCol)) {
+            }
+            if (
+                !in_array($mCol, $uniqueCols, true)
+                && !in_array($mCol, $tbsWithCols, true)
+                && !in_array($mCol, $allAliases, true)
+            ) {
+                cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to columnName/tableName:columnName `$mCol` not being found in the Unique Columns Array, Table with Columns Array or Aliases Array!");
+                cli_info("If you are only using on Table suddenly for your SQL Query, change your `<TABLES>` Key also to only have that one Table OR Write `correctTable:$mCol` exactly in the Condition Clause!");
+            }
+        }
+
+
+
+
+
+
+
+
         // Check $mCol is either in $uniqueCols or in $tbsWithCols
         // after first checking if it is just a [Subquery]
         if (str_starts_with($mCol, '[') && str_ends_with($mCol, ']')) {
@@ -3080,22 +3100,10 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
                 !in_array($mCol, $uniqueCols, true)
                 && !in_array($mCol, $tbsWithCols, true)
             ) {
-                cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to columnName/tableName:columnName `$mCol` not being found in the Unique Columns or Table with Columns!");
+                cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to columnName/tableName:columnName `$mCol` not being found in the Unique Columns Array or Table with Columns Array!");
                 cli_info("If you are only using on Table suddenly for your SQL Query, change your `<TABLES>` Key also to only have that one Table OR Write `correctTable:$mCol` exactly in the Condition Clause!");
             }
         }
-        // For 'HAVING' Key
-        if ($whereOrHaving === 'HAVING') {
-            if (
-                !in_array($mCol, $uniqueCols, true)
-                && !in_array($mCol, $tbsWithCols, true)
-                && !in_array($mCol, $allAliases, true)
-            ) {
-                cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to columnName/tableName:columnName `$mCol` not being found in the Unique Columns or Table with Columns!");
-                cli_info("If you are only using on Table suddenly for your SQL Query, change your `<TABLES>` Key also to only have that one Table OR Write `correctTable:$mCol` exactly in the Condition Clause!");
-            }
-        }
-
 
         // Check that $mOperator is a valid operator after first checking if it is a [Subquery]
         if (str_starts_with($mOperator, '[') && str_ends_with($mOperator, ']')) {
@@ -4057,7 +4065,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         // We also pass the "$builtBindedParamsString" as reference to add the necessary
         // "?" placeholders based on how many are used within the Parsed Where Clause!
         if (isset($whereTb) && is_string_and_not_empty($whereTb)) {
-            $whereTb = cli_parse_condition_clause_sql($configTBKey, $whereTb, "UPDATE", $convertedSQLArray, $cols, $builtBindedParamsString, $builtFieldsArray, $allAliases);
+            $whereTb = cli_parse_condition_clause_sql($configTBKey, $whereTb, "UPDATE", $convertedSQLArray, $cols, $builtBindedParamsString, $builtFieldsArray, $allAliases, "WHERE", $aggAliases ?? []);
             // If $whereTb is no longer a string after parsing, we error out
             if (!is_string_and_not_empty($whereTb)) {
                 cli_err_syntax_without_exit("Invalid `WHERE` Key String found in SQL Array `$handlerFile.php=>$fnName` for UPDATE Query after being processed by `cli_parse_where_clause_sql` Function!");
@@ -4158,7 +4166,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         // We also pass the "$builtBindedParamsString" as reference to add the necessary
         // "?" placeholders based on how many are used within the Parsed Where Clause!
         if (isset($whereTb) && is_string_and_not_empty($whereTb)) {
-            $whereTb = cli_parse_condition_clause_sql($configTBKey, $whereTb, "DELETE", $convertedSQLArray, $cols, $builtBindedParamsString, $builtFieldsArray, $allAliases);
+            $whereTb = cli_parse_condition_clause_sql($configTBKey, $whereTb, "DELETE", $convertedSQLArray, $cols, $builtBindedParamsString, $builtFieldsArray, $allAliases, "WHERE", $aggAliases ?? []);
             // If $whereTb is no longer a string after parsing, we error out
             if (!is_string_and_not_empty($whereTb)) {
                 cli_err_syntax_without_exit("Invalid `WHERE` Key String found in SQL Array `$handlerFile.php=>$fnName` for UPDATE Query after being processed by `cli_parse_where_clause_sql` Function!");
@@ -4984,7 +4992,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                         }
                         // If the Column Name is not in the `uniqueCols` array that means they need to manually write `table:col`
                         if (!in_array($groupColName, $cols['uniqueCols'], true)) {
-                            cli_err_syntax_without_exit("Column Name `$groupColName` from `GROUP BY` Key in SQL Array `$handlerFile.php=>$fnName` not found in Unique Column Names Array!");
+                            cli_err_syntax_without_exit("Column Name `$groupColName` from `GROUP BY` Key in SQL Array `$handlerFile.php=>$fnName` not found in Unique Column Names Array! (making it ambiguous)");
                             cli_info_without_exit("Valid Unique Column Names are: " . implode(", ", quotify_elements($cols['uniqueCols'])) . ".");
                             cli_info("Alternatively, you can rewrite it as `table:col1,col2,etc` to Group one ore more Column(s) from a Specific Table!");
                         }
@@ -5054,7 +5062,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                 cli_err_syntax_without_exit("No `GROUP BY` Key found in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
                 cli_info("The `HAVING` Key must be used with a Non-Empty `GROUP BY` Key to Filter Grouped Results!");
             }
-            $havingStr = isset($havingTb) && is_string($havingTb) && !empty($havingTb) ? cli_parse_condition_clause_sql($configTBKey, $havingTb, "SELECT", $convertedSQLArray, $cols, $builtBindedParamsString, $builtFieldsArray, $allAliases, "HAVING") : "";
+            $havingStr = isset($havingTb) && is_string($havingTb) && !empty($havingTb) ? cli_parse_condition_clause_sql($configTBKey, $havingTb, "SELECT", $convertedSQLArray, $cols, $builtBindedParamsString, $builtFieldsArray, $allAliases, "HAVING", $aggAliases) : "";
         }
 
         // PARSING THE OPTIONAL "ORDER BY" Key (the ORDER BY clause to sort results)
