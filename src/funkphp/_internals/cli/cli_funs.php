@@ -4344,6 +4344,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         $aggregateFunctionsStart = "/^(COUNT\(DISTINCT[ |=]|COUNT\(\*\)|COUNT\(|SUM\(|AVG\(|MIN\(|MAX\()/i";
         $aggFuncRegex = "/^(COUNT\(DISTINCT[ |=]|COUNT\(\*\)|COUNT\(|SUM\(|AVG\(|MIN\(|MAX\()([a-zA-Z0-9_:\*]+)*\)$/i";
         $aggTableColRegex = "/^([a-zA-Z0-9_]+):([a-zA-Z0-9_]+)$/i";
+        $aggColRegex = "/^([a-zA-Z0-9_]+)$/i";
         $aggFuncValidStarts = [
             'count(distinct=' => 'count_distinct_',
             'count(distinct ' => 'count_distinct_',
@@ -4600,6 +4601,109 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                             cli_err_syntax_without_exit("Invalid Excluded Column Name in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
                             cli_info("Excluded Column Names must be Non-Empty Strings!");
                         }
+
+
+                        // SPECIAL CASE FOR EACH `col` in `table` that could have Agg Function as part of its name!
+                        // Like: `authors:id,AVG(age)`, so we need to handle that too!
+                        if (preg_match($aggregateFunctionsStart, $includedCol)) {
+                            if (preg_match($aggFuncRegex, $includedCol, $aggFuncMatches)) {
+                                $aggFunc = $aggFuncMatches[1];
+                                $aggTbWithCol = $aggFuncMatches[2];
+
+                                // Incorrect Aggregate Function Format despite matching
+                                if (!isset($aggFuncValidStarts[$aggFunc])) {
+                                    cli_err_syntax_without_exit("Invalid Aggregate Function Format (`$includedCol`) in `SELECT` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
+                                    cli_info("The Aggregate Function must start with one of the following: " . implode(", ", quotify_elements(array_keys($aggFuncValidStarts))) . "!");
+                                }
+
+                                // SPECIAL CASE: COUNT(*) which is a special case of the COUNT function and thus we must get
+                                // the table name from the $fromTb variable since it does not have a table name!
+                                if ($aggFuncMatches[0] === 'count(*)') {
+                                    if (!in_array($selectTbName, $selectTbs, true)) {
+                                        cli_err_syntax_without_exit("Table Name `$selectTbName` from `FROM` Key in SQL Array `$handlerFile.php=>$fnName` not found in `<TABLES>` Key!");
+                                        cli_info("Valid Table Names are: " . implode(", ", quotify_elements($selectTbs)) . " OR add it to the `<TABLES>` Key in SQL Array `$handlerFile.php=>$fnName` and recompile!");
+                                    }
+
+                                    // Rename and add to the selectedTbsColsStr and the aggAliases
+                                    // so you can reuse same aggregate function on the same table
+                                    // without conflicting with the aliases!
+                                    $as_name = $aggFuncValidStarts[$aggFunc] . $selectTbName;
+                                    $i = 0;
+                                    while (in_array($as_name, $aggAliases, true)) {
+                                        $i++;
+                                        $as_name = $as_name . "_$i";
+                                    }
+                                    $aggAliases[] = $as_name;
+                                    $allAliases[] = $as_name;
+                                    $selectedTbsColsStr .= strtoupper($aggFunc) . "*) AS " . $as_name . ",\n";
+                                    continue;
+                                }
+
+                                // Incorrect Column Format despite matching
+                                if (!preg_match($aggColRegex, $aggTbWithCol)) {
+                                    cli_err_syntax_without_exit("Invalid Table/Column Format (`$aggTbWithCol`) in Aggregate Function `$aggFunc` in `SELECT` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
+                                    cli_info("The Aggregate Function must follow the Format: `AGGREGATE_FUNC(tableName:colName)` or `AGGREGATE_FUNC(*)` for COUNT(*)!");
+                                }
+
+                                // We are reusing something that otherwise wouldn't know the table name
+                                // so we try rewrite as little as possible so just reassign the variables
+                                $aggCol = $aggTbWithCol;
+                                if (isset($tables[$selectTbName]) && is_array_and_not_empty($tables[$selectTbName])) {
+                                    // Validate correct Table:Column Binding (d or i when SUM() or AVG() is used!)
+                                    if (isset($tables[$selectTbName][$aggCol]) && is_array_and_not_empty($tables[$selectTbName][$aggCol])) {
+                                        if (($aggFunc === 'sum(' || $aggFunc === 'avg(') &&
+                                            ($tables[$selectTbName][$aggCol]['binding'] !== 'd' &&
+                                                $tables[$selectTbName][$aggCol]['binding'] !== 'i')
+                                        ) {
+                                            cli_err_syntax_without_exit("Column Name `$aggCol` from Aggregate Function `$aggFunc` in `SELECT` Key in SQL Array `$handlerFile.php=>$fnName` must have a Binding of 'd' or 'i' for Table `$selectTbName`! (it has `{$tables[$selectTbName][$aggCol]['binding']}`)");
+                                            cli_info_without_exit("Valid Bindings for Column `$aggCol` are: 'd' (double) or 'i' (integer) for SUM and AVG Aggregate Functions!");
+                                            cli_info("SUM() and AVG() Aggregate Functions can only be used on Numeric Columns ('d' or 'i' as binding)!");
+                                        }
+
+                                        // Prepare correct alias name for the aggregate function
+                                        $as_name = $aggFuncValidStarts[$aggFunc] . $tables[$selectTbName][$aggCol]['joined_name'];
+                                        $i = 0;
+                                        while (in_array($as_name, $aggAliases, true)) {
+                                            $i++;
+                                            $as_name = $as_name . "_$i";
+                                        }
+                                        $aggAliases[] = $as_name;
+                                        $allAliases[] = $as_name;
+                                        // We remove "=" if it is inside of $aggFunc
+                                        // which is special case for COUNT(DISTINCT=)
+                                        if (str_contains($aggFunc, '=')) {
+                                            $aggFunc = str_replace('=', ' ', $aggFunc);
+                                        }
+                                        $selectedTbsColsStr .= strtoupper($aggFunc) . "$selectTbName.$aggCol) AS " . $as_name . ",\n";
+                                        continue;
+                                    } else {
+                                        cli_err_syntax_without_exit("Column Name `$aggCol` from Aggregate Function `$aggFunc` in `SELECT` Key in SQL Array `$handlerFile.php=>$fnName` not found in Table `$selectTbName`!");
+                                        cli_info("Valid Column Names for Table `$selectTbName` are: " . implode(", ", quotify_elements(array_keys($tables[$selectTbName]))) . ".");
+                                    }
+                                }
+                            }
+                            // When it failed to match despite matching the start regex, we error out
+                            else {
+                                cli_err_syntax_without_exit("Invalid Aggregate Function Format in Column `$includedCol` for Table `$selectTbName` in `SELECT` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
+                                cli_info_without_exit("The Aggregate Function must follow the Format: `AGGREGATE_FUNC(tableName:colName)` or `AGGREGATE_FUNC(*)` for COUNT(*)!");
+                                cli_info("Check for Correct Punctuation such as:`table:column` and NOT:`table.column`!");
+                            }
+                        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                        // Otherwise, just check as regular Table Column!
                         if (!array_key_exists($includedCol, $tables[$selectTbName])) {
                             cli_err_syntax_without_exit("Excluded Column Name `$includedCol` from SQL Array `$handlerFile.php=>$fnName` not found in Table `$selectTbName`!");
                             cli_info("Valid Column Names for Table `$selectTbName` are: " . implode(", ", quotify_elements(array_keys($tables[$selectTbName]))) . ".");
