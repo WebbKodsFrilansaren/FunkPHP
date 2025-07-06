@@ -2985,15 +2985,18 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
         $mOperator = $wMatches[2] ?? null;
         $mValue = $wMatches[3] ?? null;
 
-        // None of the matched parts in the Condition Clause can be Aggregate Function!
-        if (
-            (preg_match($aggregateFunctionsStart, $mCol)
-                || preg_match($aggregateFunctionsStart, $mOperator)
-                || preg_match($aggregateFunctionsStart, $mValue)) && $whereOrHaving === 'WHERE'
-        ) {
-            cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to using an Aggregate Function in the WHERE clause!");
-            cli_info_without_exit("Aggregate Functions like COUNT(), SUM(), AVG(), MIN(), MAX() are NOT allowed in the Condition clause!");
-            cli_info("If you want to use Aggregate Functions, use them in the SELECT and/or GROUP BY Clauses instead!");
+        // None of the matched parts in the Condition Clause can be Aggregate Function
+        // for "WHERE" Key since Aggregate Functions are not allowed in the WHERE clause!
+        if ($whereOrHaving === 'WHERE') {
+            if (
+                (preg_match($aggregateFunctionsStart, $mCol)
+                    || preg_match($aggregateFunctionsStart, $mOperator)
+                    || preg_match($aggregateFunctionsStart, $mValue))
+            ) {
+                cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to using an Aggregate Function in the WHERE clause!");
+                cli_info_without_exit("Aggregate Functions like COUNT(), SUM(), AVG(), MIN(), MAX() are NOT allowed in the Condition clause!");
+                cli_info("If you want to use Aggregate Functions, use them in the SELECT and/or GROUP BY Clauses instead!");
+            }
         }
 
         // Check $mCol begins with any of the special syntax starts. If so we
@@ -3027,20 +3030,27 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
             cli_info_without_exit("Using () to indicate a Tuple or Row Constructor is not supported as of yet in FunkPHP!");
             cli_info_without_exit("If you wanna use a [SubQuery] means you should start with `[` and end with `]`. This allows you to use Tuples, Row Constructors and such.");
             cli_info("IMPORTANT: Using [SubQuery] means you lose the Validation Parsing Logic and you must add the `?` Placeholders  in the `bparam` Key and the <MATCHED_FIELDS> keys in the `fields` Key manually after successfully compilation! (in current version of FunkPHP)");
-        } elseif (
-            !in_array($mCol, $uniqueCols, true)
-            && !in_array($mCol, $tbsWithCols, true)
-            && $whereOrHaving === 'WHERE'
-        ) {
-            cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to columnName/tableName:columnName `$mCol` not being found in the Unique Columns or Table with Columns!");
-            cli_info("If you are only using on Table suddenly for your SQL Query, change your `<TABLES>` Key also to only have that one Table OR Write `correctTable:$mCol` exactly in the Condition Clause!");
-        } elseif (
-            !in_array($mCol, $uniqueCols, true)
-            && !in_array($mCol, $tbsWithCols, true)
-            && $whereOrHaving === 'HAVING'
-        ) {
-            cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to columnName/tableName:columnName `$mCol` not being found in the Unique Columns or Table with Columns!");
-            cli_info("If you are only using on Table suddenly for your SQL Query, change your `<TABLES>` Key also to only have that one Table OR Write `correctTable:$mCol` exactly in the Condition Clause!");
+        }
+        // For 'WHERE' Key
+        if ($whereOrHaving === 'WHERE') {
+            if (
+                !in_array($mCol, $uniqueCols, true)
+                && !in_array($mCol, $tbsWithCols, true)
+            ) {
+                cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to columnName/tableName:columnName `$mCol` not being found in the Unique Columns or Table with Columns!");
+                cli_info("If you are only using on Table suddenly for your SQL Query, change your `<TABLES>` Key also to only have that one Table OR Write `correctTable:$mCol` exactly in the Condition Clause!");
+            }
+        }
+        // For 'HAVING' Key
+        if ($whereOrHaving === 'HAVING') {
+            if (
+                !in_array($mCol, $uniqueCols, true)
+                && !in_array($mCol, $tbsWithCols, true)
+                && !in_array($mCol, $allAliases, true)
+            ) {
+                cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to columnName/tableName:columnName `$mCol` not being found in the Unique Columns or Table with Columns!");
+                cli_info("If you are only using on Table suddenly for your SQL Query, change your `<TABLES>` Key also to only have that one Table OR Write `correctTable:$mCol` exactly in the Condition Clause!");
+            }
         }
 
 

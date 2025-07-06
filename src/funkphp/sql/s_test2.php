@@ -35,10 +35,10 @@ function s_test5(&$c) // <authors>
 		'SELECT' => [
 			'authors:id,name,email,description,longer_description,age,weight,nickname,updated_at',
 		],
-		'WHERE' => '',
+		'WHERE' => 'authors:id = 1',
 		'GROUP BY' => '',
 		'HAVING' => '',
-		'ORDER BY' => 'id DESC|name ASC', // Example: `id DESC|title ASC`
+		'ORDER BY' => '', // Example: `id DESC|title ASC`
 		'LIMIT' => '',
 		'OFFSET' => '',
 		// Optional, leave empty if not used!
@@ -59,7 +59,7 @@ function s_test5(&$c) // <authors>
 	];
 
 	return array(
-		'sql' => 'SELECT authors.id AS authors_id, authors.name AS authors_name, authors.email AS authors_email, authors.description AS authors_description, authors.longer_description AS authors_longer_description, authors.age AS authors_age, authors.weight AS authors_weight, authors.nickname AS authors_nickname, authors.updated_at AS authors_updated_at FROM authors ORDER BY id DESC, name ASC;',
+		'sql' => 'SELECT authors.id AS authors_id, authors.name AS authors_name, authors.email AS authors_email, authors.description AS authors_description, authors.longer_description AS authors_longer_description, authors.age AS authors_age, authors.weight AS authors_weight, authors.nickname AS authors_nickname, authors.updated_at AS authors_updated_at FROM authors WHERE authors.id = 1;',
 		'hydrate' =>
 		array(),
 		'bparam' => '',
