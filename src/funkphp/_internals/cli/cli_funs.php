@@ -4995,8 +4995,12 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                 // CASE 2: Includes ":" so we split on ":"
                 elseif (str_contains($groupTB, ":")) {
                     [$groupTbName, $groupColNames] = explode(":", $groupTB, 2);
-                    // Validate $groupTbName exists in the currently selected tables
-                    if (!in_array($groupTbName, $currentlySelectedTbs, true)) {
+                    // Validate $groupTbName exists EITHER in the `SELECT` Key or in
+                    // the `JOINS_ON` Key. That is; it has been SELECTed or JOINed!
+                    if (
+                        !in_array($groupTbName, $currentlySelectedTbs, true)
+                        && !in_array($groupTbName, $joinedTables, true)
+                    ) {
                         cli_err_syntax_without_exit("Table Name `$groupTbName` from `GROUP BY` Key in SQL Array `$handlerFile.php=>$fnName` not found in `SELECT` Key!");
                         cli_info("Currently SELECTed Tables are: " . implode(", ", quotify_elements($currentlySelectedTbs)) . ".");
                     }
