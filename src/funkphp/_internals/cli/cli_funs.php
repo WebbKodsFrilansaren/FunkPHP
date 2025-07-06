@@ -4918,6 +4918,12 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                                 cli_info("Valid Column Names for Table `$groupTbName` are: " . implode(", ", quotify_elements(array_keys($tables[$groupTbName]))) . ".");
                             }
                         }
+                        // All Columns are VALID for this table, so let's build the GROUP BY String
+                        // by iterating through each again and adding `table.Col`
+                        foreach ($groupColNames as $groupColName) {
+                            $groupByStr .= "$groupTbName.$groupColName, ";
+                        }
+                        $groupByStr .= "\n";
                     }
                 }
             }
