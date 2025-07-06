@@ -3185,17 +3185,19 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
                         cli_info("Valid Aggregate Functions start with: " . strtoupper(implode(", ", quotify_elements(array_keys($aggFuncValidStarts)))) . "!");
                     }
 
-                    // There are 4 different cases now to handle in order to add the parsed Condition Clause String:
+                    // There are 4 different cases now to handle in following order to add the parsed Condition Clause String:
                     // 1. Aggregate Function with Table and/or Column Name (table:col)
-                    // 2. Aggregate Function with just Column Name (col)
-                    // 3. Aggregate Function with just table_col Alias Name
-                    // 4. Aggregate Function with just agg_func Alias Name (agg_func_table_col unless count(*), then count_table)
+                    // 2. Aggregate Function with just table_col Alias Name
+                    // 3. Aggregate Function with just agg_func Alias Name (agg_func_table_col unless count(*), then count_table)
+                    // 4. Aggregate Function with just Column Name (col)
 
                     // Case 1: Aggregate Function with Table and/or Column Name (table:col)
                     if (str_contains($aggTbAndOrCol, ':')) {
                         $existingTb = cli_find_valid_tb_col_and_binding_or_return_null($tbs, $aggTbAndOrCol);
                         var_dump($existingTb);
-                    } elseif (!str_contains($aggTbAndOrCol, ':')) {
+                    }
+                    // Case 2: Just Column Name (col)
+                    elseif (!str_contains($aggTbAndOrCol, ':')) {
                         $existingTb = cli_find_valid_tb_col_and_binding_or_return_null($tbs, $aggTbAndOrCol);
                         var_dump($existingTb);
                     }
