@@ -2777,7 +2777,7 @@ function cli_compile_dx_validation_to_optimized_validation()
 // &$builtBindedParamsString is to add the necessary
 // "?" placeholders based on how many are used within
 // the parsed Where clause that would be returned!
-function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $validCols, &$builtBindedParamsString, &$builtFieldsArray, &$allAliases, $whereOrHaving = null)
+function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $validCols, &$builtBindedParamsString, &$builtFieldsArray, &$allAliases, $whereOrHaving = null, $aggAliases = null)
 {
     // Prepare variables and also validate the input
     // $where = The actual CONDITION String to parse.
@@ -2886,7 +2886,48 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
     $where = str_contains(trim($where), "|") ? explode("|", $where) : [$where];
     $wPartRegex = '/^(\[[A-Za-z_\-0-9]+]|[()=A-Za-z_\-0-9:]+)\s+(\[[A-Za-z_\-0-9]+]|[+\-*\/%=&|^!<>]+|ALL|AND|BETWEEN|EXISTS|IN|LIKE|NOT|SOME)\s+(.*)$/';
 
+    // Regexes for Aggregate Functions. First to see if it starts with any of the aggregate functions
+    // and the second to see if it is a complete aggregate function with a table and/or column name
+    // and the special case of COUNT(*) which is a special case of the COUNT function!
+    $aggregateFunctionsStart = "/^(COUNT\(DISTINCT[ |=]|COUNT\(\*\)|COUNT\(|SUM\(|AVG\(|MIN\(|MAX\()/i";
+    $aggFuncRegex = "/^(COUNT\(DISTINCT[ |=]|COUNT\(\*\)|COUNT\(|SUM\(|AVG\(|MIN\(|MAX\()([a-zA-Z0-9_:\*]+)*\)$/i";
+    $aggTableColRegex = "/^([a-zA-Z0-9_]+):([a-zA-Z0-9_]+)$/i";
+    $aggFuncValidStarts = [
+        'count(distinct=' => 'count_distinct_',
+        'count(distinct ' => 'count_distinct_',
+        'count(' => 'count_',
+        'count(*)' => 'count_all_',
+        'sum(' => 'sum_',
+        'avg(' => 'avg_',
+        'min(' => 'min_',
+        'max(' => 'max_',
+    ];
+    // Commands that You might wanna SELECT but are not allowed to do
+    // through FunkPHP so you get an error message about it!
+    $disallowedCommands = [
+        "BIN(",
+        "BINARY",
+        "CASE",
+        "CAST",
+        "COALESCE(",
+        "CONVERT(",
+        "CONV(",
+        "CONNECTION_ID()",
+        "CURRENT_USER",
+        "DATABASE()",
+        "IF(",
+        "IFNULL(",
+        "ISNULL(",
+        "LAST_INSERT_ID()",
+        "SESSION_USER()",
+        "SYSTEM_USER()",
+        "USER()",
+        "VERSION()",
+    ];
+
+
     // SPECIAL REGEXES that always are ran before the main $wPartRegex!
+    // TODO: Might get implemented or not at a later stage!
     $tableCol_BETWEEN_VAL1_AND_VAL2 = "/^([a-zA-Z0-9_:])+\s*(BETWEEN)\s*([a-zA-Z0-9]+)\s*(AND)\s*([a-zA-Z0-9]+)$/i";
     $tableCol_NOT_BETWEEN_VAL1_AND_VAL2 = "/^([a-zA-Z0-9_:])+\s*(NOT BETWEEN)\s*([a-zA-Z0-9]+)\s*(AND)\s*([a-zA-Z0-9]+)$/i";
     $tableCol_IN_VAL_ARRAY = "/^([a-zA-Z0-9_:]+)\s*(NOT IN)+\s*\((.*)\)$/i";
@@ -4192,6 +4233,9 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         $selectTbs = $configTBKey ?? null;
         $currentlySelectedTbs = [];
         $allAliases = [];
+        // To check for duplicate aliases later since agg functions
+        // could be used multiple times on the same table+column(s)!
+        $aggAliases = [];
         $selectedTbsColsStr = "";
         $joinsStr = "";
         $whereStr = "";
@@ -4308,10 +4352,6 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
             'min(' => 'min_',
             'max(' => 'max_',
         ];
-
-        // To check for duplicate aliases later since agg functions
-        // could be used multiple times on the same table+column(s)!
-        $aggAliases = [];
 
         // Commands that You might wanna SELECT but are not allowed to do
         // through FunkPHP so you get an error message about it!
@@ -4778,7 +4818,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         }
 
         // PARSING THE OPTIONAL "WHERE" Key (the WHERE clause to filter results) using Condition Clause Function if the "WHERE" Key is a Non-Empty String!
-        $whereStr = isset($whereTb) && is_string($whereTb) && !empty($whereTb) ? cli_parse_condition_clause_sql($configTBKey, $whereTb, "SELECT", $convertedSQLArray, $cols, $builtBindedParamsString, $builtFieldsArray, $allAliases, "WHERE") : "";
+        $whereStr = isset($whereTb) && is_string($whereTb) && !empty($whereTb) ? cli_parse_condition_clause_sql($configTBKey, $whereTb, "SELECT", $convertedSQLArray, $cols, $builtBindedParamsString, $builtFieldsArray, $allAliases, "WHERE", $aggAliases) : "";
 
         // PARSING THE OPTIONAL Keys "GROUP_BY" & "HAVING" (the GROUP BY clause
         // to group results and HAVING clause to filter grouped results)
