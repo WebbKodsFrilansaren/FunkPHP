@@ -4697,8 +4697,8 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                         }
 
                         // Here we just add the column to the selectedTbsColsStr since we know it exists!
-                        $selectedTbsColsStr .= $selectTbName . ".$colKey AS " . $singleTbCols['joined_name'] . ",\n";
-                        $allAliases[] = $singleTbCols['joined_name'];
+                        $selectedTbsColsStr .= $selectTbName . ".$includedCol AS " . $tables[$selectTbName][$includedCol]['joined_name'] . ",\n";
+                        $allAliases[] = $tables[$selectTbName][$includedCol]['joined_name'];
                         continue;
                     }
                 } else {
