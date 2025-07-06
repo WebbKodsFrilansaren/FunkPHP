@@ -2884,13 +2884,11 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
 
     // We split the $where on "|" string by spaces to get each part or turn the single string into an array
     $where = str_contains(trim($where), "|") ? explode("|", $where) : [$where];
-    $wPartRegex = '/^(\[[A-Za-z_\-0-9]+]|[()=A-Za-z_\-0-9:]+)\s+(\[[A-Za-z_\-0-9]+]|[+\-*\/%=&|^!<>]+|ALL|AND|BETWEEN|EXISTS|IN|LIKE|NOT|SOME)\s+(.*)$/';
+    $wPartRegex = '/^(\[[A-Za-z_\-0-9]+]|[()=A-Za-z_\-0-9:\*]+)\s+(\[[A-Za-z_\-0-9]+]|[+\-*\/%=&|^!<>]+|ALL|AND|BETWEEN|EXISTS|IN|LIKE|NOT|SOME)\s+(.*)$/';
 
     // Regexes for Aggregate Functions. First to see if it starts with any of the aggregate functions
     // and the second to see if it is a complete aggregate function with a table and/or column name
     // and the special case of COUNT(*) which is a special case of the COUNT function!
-    $aggregateFunctionsStart = "/^(COUNT\(DISTINCT[ |=]|COUNT\(\*\)|COUNT\(|SUM\(|AVG\(|MIN\(|MAX\()/i";
-    $aggFuncRegex = "/^(COUNT\(DISTINCT[ |=]|COUNT\(\*\)|COUNT\(|SUM\(|AVG\(|MIN\(|MAX\()([a-zA-Z0-9_:\*]+)*\)$/i";
     $aggTableColRegex = "/^([a-zA-Z0-9_]+):([a-zA-Z0-9_]+)$/i";
     $aggFuncValidStarts = [
         'count(distinct=' => 'count_distinct_',
@@ -2924,7 +2922,6 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
         "USER()",
         "VERSION()",
     ];
-
 
     // SPECIAL REGEXES that always are ran before the main $wPartRegex!
     // TODO: Might get implemented or not at a later stage!
@@ -2971,7 +2968,7 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
         }
         if (preg_match($aggregateFunctionsStart, $wPart) && $whereOrHaving === 'WHERE') {
             cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to using an Aggregate Function in the WHERE clause!");
-            cli_info_without_exit("Aggregate Functions like COUNT(), SUM(), AVG(), MIN(), MAX() are NOT allowed in the Condition clause!");
+            cli_info_without_exit("Aggregate Functions like COUNT(), SUM(), AVG(), MIN(), MAX() are NOT allowed in the Condition Clause for `WHERE` Key, only for `HAVING` Key!");
             cli_info("If you want to use Aggregate Functions, use them in the SELECT and/or GROUP BY Clauses instead!");
         }
         // WHERE Clause can't start with a special syntax start
@@ -3011,6 +3008,11 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
             $parsedCondition .= $wPart . " ";
             cli_info_without_exit("[cli_parse_condition_clause_sql]: Found SINGLE AND ONLY A Subquery Syntax: \"$wPart\" in Query Type: \"$queryType\". This is handled outside of this Parsing Process. Continuing...");
             continue;
+        }
+
+        // SPECIAL CASE: If check if it is an Aggregate Function if it is
+        // "HAVING" Key that we are Conditionally Parsing!
+        if ($whereOrHaving === 'HAVING') {
         }
 
         // Now we finally match the $wPart against the regex to parse it
@@ -4645,12 +4647,12 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
 
         // When we are SELECTing more than 1 Table, we must use JOINs to
         // join them together so here we start parsing the JOINS_ON Key!
-        if (count($currentlySelectedTbs) > 1) {
+        if (isset($joinsTb)) {
             if (is_string($joinsTb) && str_starts_ends_with($joinsTb, "{", "}")) {
                 cli_err_syntax_without_exit("Escaped SQL Syntax (starting & ending with `{}`) is NOT supported in `JOINS_ON` Key!");
                 cli_info("Only `WHERE` & `HAVING` Keys in UPDATE, DELETE & SELECT Queries support Escaped SQL Syntax!");
             }
-            if (!isset($joinsTb) || !is_array($joinsTb) || !array_is_list($joinsTb) || empty($joinsTb)) {
+            if (!is_array($joinsTb) || !array_is_list($joinsTb) || empty($joinsTb)) {
                 cli_err_syntax_without_exit("No `JOINS_ON` Key found in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
                 cli_info("The `JOINS_ON` Key must be a Non-Empty List Array representing the JOINs to perform between the Tables in the `SELECT` Key when more than one Table is being SELECTed!");
             }
@@ -4817,6 +4819,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
             }
         }
 
+
         // PARSING THE OPTIONAL "WHERE" Key (the WHERE clause to filter results) using Condition Clause Function if the "WHERE" Key is a Non-Empty String!
         $whereStr = isset($whereTb) && is_string($whereTb) && !empty($whereTb) ? cli_parse_condition_clause_sql($configTBKey, $whereTb, "SELECT", $convertedSQLArray, $cols, $builtBindedParamsString, $builtFieldsArray, $allAliases, "WHERE", $aggAliases) : "";
 
@@ -4825,13 +4828,55 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         if (isset($groupByTb)) {
             if (!is_string($groupByTb)) {
                 cli_err_syntax_without_exit("Invalid `GROUP BY` Key value in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
-                cli_info("The `GROUP BY` Key must be a String representing the Columns to Group by! (leave empty or remove if not used)");
+                cli_info("The `GROUP BY` Key must be a String representing the Columns to Group by! (leave empty or remove if not used)\nSyntax Examples:\n`table:col1,col2`|`col1,col2` (to Group by Columns from a Single Table) OR\n`table1:col1|table2:col2` (to Group by Columns from Multiple Tables).");
             }
             // Escape hatched SQL Queries (starting & ending with "{}") are ONLY
             // for only "WHERE" Keys in UPDATE, DELETE & SELECT Query Types!
             if (str_starts_ends_with($groupByTb, "{", "}")) {
                 cli_err_syntax_without_exit("Escaped SQL Syntax (starting & ending with `{}`) is NOT supported in `GROUP BY` Key!");
                 cli_info("Only `WHERE` & `HAVING` Keys in UPDATE, DELETE & SELECT Queries support Escaped SQL Syntax!");
+            }
+            // We split $groupByTb on "|" if it exists
+            // or just turn single string into an array!
+            $groupByTb = trim($groupByTb);
+            if (str_contains($groupByTb, "|")) {
+                $groupByTb = explode("|", $groupByTb);
+            } else {
+                $groupByTb = [$groupByTb];
+            }
+
+            // Iterate through to validate that we can actually group by specific
+            // `table:col` OR `table:col` OR `col` (when single Table)!
+            foreach ($groupByTb as $groupTB) {
+                $groupTB = strtolower($groupTB); // Lowercase for consistency
+                // CASE 1: Does NOT include ":"
+                if (!str_contains($groupTB, ":")) {
+                }
+                // CASE 2: Includes ":" so we split on ":"
+                elseif (str_contains($groupTB, ":")) {
+                    [$groupTbName, $groupColNames] = explode(":", $groupTB, 2);
+                    // Validate $groupTbName exists in the currently selected tables
+                    if (!in_array($groupTbName, $currentlySelectedTbs, true)) {
+                        cli_err_syntax_without_exit("Table Name `$groupTbName` from `GROUP BY` Key in SQL Array `$handlerFile.php=>$fnName` not found in `SELECT` Key!");
+                        cli_info("Currently SELECTed Tables are: " . implode(", ", quotify_elements($currentlySelectedTbs)) . ".");
+                    }
+                    // Validate $groupColName exists in the table when it is a single column
+                    if (!str_contains($groupColNames, ",") && !array_key_exists($groupColNames, $tables[$groupTbName])) {
+                        cli_err_syntax_without_exit("Column Name `$groupColNames` from `GROUP BY` Key in SQL Array `$handlerFile.php=>$fnName` not found in Table `$groupTbName`!");
+                        cli_info("Valid Column Names for Table `$groupTbName` are: " . implode(", ", quotify_elements(array_keys($tables[$groupTbName]))) . ".");
+                    }
+                    // Validate $groupColNames exists in the table when it is multiple columns (so we split on ",")
+                    // and check every column name on the same table as with the single column case!
+                    if (str_contains($groupColNames, ",")) {
+                        $groupColNames = explode(",", $groupColNames);
+                        foreach ($groupColNames as $groupColName) {
+                            if (!array_key_exists($groupColName, $tables[$groupTbName])) {
+                                cli_err_syntax_without_exit("Column Name `$groupColName` from `GROUP BY` Key in SQL Array `$handlerFile.php=>$fnName` not found in Table `$groupTbName`!");
+                                cli_info("Valid Column Names for Table `$groupTbName` are: " . implode(", ", quotify_elements(array_keys($tables[$groupTbName]))) . ".");
+                            }
+                        }
+                    }
+                }
             }
         }
         if (isset($havingTb)) {
