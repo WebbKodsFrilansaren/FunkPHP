@@ -4810,7 +4810,6 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                     $obTable = isset($matches[2]) ? $matches[2] : ""; // Table Name if exists
                     $obCol = $matches[3] ?? null; // Column Name
                     $obOrder = $matches[4] ?? null; // Order (ASC or DESC)
-                    //  var_dump($obTable, $obCol, $obOrder, $allAliases, $cols['uniqueCols']); // Debugging
 
                     // If $obTable is empty we assume a unique column OR
                     // its possible alias from $allAliases Array!
