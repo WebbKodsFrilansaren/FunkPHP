@@ -30,7 +30,7 @@ function s_test5(&$c) // <authors>
 		],
 		// Optional Keys, leave empty (or remove) if not used!
 		'SELECT' => [
-			'VERSION();authors:id,name,email,description,longer_description,age,weight,nickname,updated_at',
+			'authors:id,name,email,description,longer_description,age,weight,nickname,updated_at',
 		],
 		'WHERE' => '{id = 1}',
 		'GROUP BY' => '',

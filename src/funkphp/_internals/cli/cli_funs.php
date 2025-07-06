@@ -3800,8 +3800,14 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         // must be the same table name as the one chosen in "<CONFIG>['<TABLES>']"!
         $insertIntoKey = $sqlArray['INSERT_INTO'] ?? null;
         if (!isset($insertIntoKey) || !is_string_and_not_empty($insertIntoKey)) {
-            cli_err_syntax_without_exit("No `INSERT_INTO` Key found in SQL Array `$handlerFile.php=>$fnName` for INSERT Query!");
+            cli_err_syntax_without_exit("No `INSERT_INTO` Key found in SQL Array `$handlerFile.php=>$fnName` for Query Type `$configQTKey`!");
             cli_info("The `INSERT_INTO` key must be a Non-Empty String representing the Table name(s)!");
+        }
+        // Escape hatched SQL Queries (starting & ending with "{}") are ONLY
+        // for only "WHERE" Keys in UPDATE, DELETE & SELECT Query Types!
+        if (str_starts_ends_with($insertIntoKey, "{", "}")) {
+            cli_err_syntax_without_exit("Escaped SQL Syntax (starting & ending with `{}`) is NOT supported in `$insertIntoKey` Key!");
+            cli_info("Only `WHERE` Keys in UPDATE, DELETE & SELECT Queries support Escaped SQL Syntax!");
         }
         if (!str_starts_with($insertIntoKey, $insertTb . ":")) {
             cli_err_syntax_without_exit("The `INSERT_INTO` Key in SQL Array `$handlerFile.php=>$fnName` does not start with the Table Name `$insertTb:`!");
@@ -3900,6 +3906,12 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         if (!isset($updateIntoKey) || !is_string_and_not_empty($updateIntoKey)) {
             cli_err_syntax_without_exit("No `UPDATE_SET` Key found in SQL Array `$handlerFile.php=>$fnName` for update Query!");
             cli_info("The `UPDATE_SET` key must be a Non-Empty String representing the Table name(s)!");
+        }
+        // Escape hatched SQL Queries (starting & ending with "{}") are ONLY
+        // for only "WHERE" Keys in UPDATE, DELETE & SELECT Query Types!
+        if (str_starts_ends_with($updateIntoKey, "{", "}")) {
+            cli_err_syntax_without_exit("Escaped SQL Syntax (starting & ending with `{}`) is NOT supported in `$updateIntoKey` Key!");
+            cli_info("Only `WHERE` Keys in UPDATE, DELETE & SELECT Queries support Escaped SQL Syntax!");
         }
         if (!str_starts_with($updateIntoKey, $updateTb . ":")) {
             cli_err_syntax_without_exit("The `UPDATE_SET` Key in SQL Array `$handlerFile.php=>$fnName` does not start with the Table Name `$updateTb:`!");
@@ -4019,6 +4031,12 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         if (!isset($deleteIntoKey) || !is_string_and_not_empty($deleteIntoKey)) {
             cli_err_syntax_without_exit("No `DELETE_FROM` Key found in SQL Array `$handlerFile.php=>$fnName` for update Query!");
             cli_info("The `DELETE_FROM` key must be a Non-Empty String representing the Table name(s)!");
+        }
+        // Escape hatched SQL Queries (starting & ending with "{}") are ONLY
+        // for only "WHERE" Keys in UPDATE, DELETE & SELECT Query Types!
+        if (str_starts_ends_with($deleteIntoKey, "{", "}")) {
+            cli_err_syntax_without_exit("Escaped SQL Syntax (starting & ending with `{}`) is NOT supported in `$deleteIntoKey` Key!");
+            cli_info("Only `WHERE` Keys in UPDATE, DELETE & SELECT Queries support Escaped SQL Syntax!");
         }
         // We check that $deleteTB is the exact same as  $configTBKey since
         // it should be ONLY one table name in the DELETE Query that you
@@ -4167,6 +4185,12 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
             cli_err_syntax_without_exit("No `FROM` Key found in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
             cli_info("The `FROM` key must be a Non-Empty String representing the Primary Table (and ONLY a single one) to SELECT and/or JOIN from!");
         }
+        // Escape hatched SQL Queries (starting & ending with "{}") are ONLY
+        // for only "WHERE" Keys in UPDATE, DELETE & SELECT Query Types!
+        if (str_starts_ends_with($fromTb, "{", "}")) {
+            cli_err_syntax_without_exit("Escaped SQL Syntax (starting & ending with `{}`) is NOT supported in `FROM` Key!");
+            cli_info("Only `WHERE` Keys in UPDATE, DELETE & SELECT Queries support Escaped SQL Syntax!");
+        }
 
         // We now loop through $selectTb and check whether the $fromTb table exists in at least one of the
         // $selectTbs tables and if not, we error out since the FROM table must be one of the SELECT tables!
@@ -4230,6 +4254,16 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         // We will check, validate & build the SELECT part of the SQL String based on
         // different cases:
         foreach ($selectTb as $selectTbName) {
+            if (!is_string_and_not_empty($selectTbName)) {
+                cli_err_syntax_without_exit("Invalid Data Type found in `SELECT` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
+                cli_info("Each Array Element in the `SELECT` Key must be a Non-Empty String representing the Table Name and optionally Columns to select from that Table!\nSyntax Example: `table_name:col1,col2,col3` OR `table_name!:col1`.\nThe second example selects all columns except `col1`!");
+            }
+            // Escape hatched SQL Queries (starting & ending with "{}") are ONLY
+            // for only "WHERE" Keys in UPDATE, DELETE & SELECT Query Types!
+            if (str_starts_ends_with($selectTbName, "{", "}")) {
+                cli_err_syntax_without_exit("Escaped SQL Syntax (starting & ending with `{}`) is NOT supported in `SELECT` Key!");
+                cli_info("Only `WHERE` Keys in UPDATE, DELETE & SELECT Queries support Escaped SQL Syntax!");
+            }
             if (array_str_starts_with($disallowedCommands, strtoupper($selectTbName))) {
                 cli_err_syntax_without_exit("The `SELECT` Key in SQL Array `$handlerFile.php=>$fnName` contains a Disallowed Command: `$selectTbName`!");
                 cli_info_without_exit("The Following Commands are NOT allowed in the `SELECT` Key: " . implode(", ", quotify_elements($disallowedCommands)) . ".");
@@ -4494,6 +4528,12 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                     cli_err_syntax_without_exit("Invalid Join Table String found in `JOINS_ON` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
                     cli_info("Each Join Table String must be a Non-Empty String representing the JOIN condition between two Tables!");
                 }
+                // Escape hatched SQL Queries (starting & ending with "{}") are ONLY
+                // for only "WHERE" Keys in UPDATE, DELETE & SELECT Query Types!
+                if (str_starts_ends_with($joinTb, "{", "}")) {
+                    cli_err_syntax_without_exit("Escaped SQL Syntax (starting & ending with `{}`) is NOT supported in `JOINS_ON` Key!");
+                    cli_info("Only `WHERE` Keys in UPDATE, DELETE & SELECT Queries support Escaped SQL Syntax!");
+                }
 
                 // If the joinTb does not match the regex, we error out
                 if (!preg_match($joinsREGEX, $joinTb, $matches)) {
@@ -4646,13 +4686,51 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
 
         // PARSING THE OPTIONAL Keys "GROUP_BY" & "HAVING" (the GROUP BY clause
         // to group results and HAVING clause to filter grouped results)
+        if (isset($groupByTb)) {
+            if (!is_string($groupByTb)) {
+                cli_err_syntax_without_exit("Invalid `GROUP BY` Key value in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
+                cli_info("The `GROUP BY` Key must be a String representing the Columns to Group by! (leave empty or remove if not used)");
+            }
+            // Escape hatched SQL Queries (starting & ending with "{}") are ONLY
+            // for only "WHERE" Keys in UPDATE, DELETE & SELECT Query Types!
+            if (str_starts_ends_with($groupByTb, "{", "}")) {
+                cli_err_syntax_without_exit("Escaped SQL Syntax (starting & ending with `{}`) is NOT supported in `GROUP BY` Key!");
+                cli_info("Only `WHERE` Keys in UPDATE, DELETE & SELECT Queries support Escaped SQL Syntax!");
+            }
+        }
+        if (isset($havingTb)) {
+            if (!is_string($havingTb)) {
+                cli_err_syntax_without_exit("Invalid `HAVING` Key value in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
+                cli_info("The `HAVING` Key must be a String representing the Condition(s) to Filter Grouped Results! (leave empty or remove if not used)");
+            }
+            // Escape hatched SQL Queries (starting & ending with "{}") are ONLY
+            // for only "WHERE" Keys in UPDATE, DELETE & SELECT Query Types!
+            if (str_starts_ends_with($havingTb, "{", "}")) {
+                cli_err_syntax_without_exit("Escaped SQL Syntax (starting & ending with `{}`) is NOT supported in `HAVING` Key!");
+                cli_info("Only `WHERE` Keys in UPDATE, DELETE & SELECT Queries support Escaped SQL Syntax!");
+            }
+        }
 
-        //
+        // PARSING THE OPTIONAL "ORDER BY" Key (the ORDER BY clause to sort results)
+        if (isset($orderByTb)) {
+            // Escape hatched SQL Queries (starting & ending with "{}") are ONLY
+            // for only "WHERE" Keys in UPDATE, DELETE & SELECT Query Types!
+            if (str_starts_ends_with($orderByTb, "{", "}")) {
+                cli_err_syntax_without_exit("Escaped SQL Syntax (starting & ending with `{}`) is NOT supported in `ORDER BY` Key!");
+                cli_info("Only `WHERE` Keys in UPDATE, DELETE & SELECT Queries support Escaped SQL Syntax!");
+            }
+        }
 
         // PARSING THE OPTIONAL Keys: "LIMIT" & "OFFSET" Key (LIMIT is number of rows, OFFSET is where you start from results)
         if (isset($limitTb)) {
-            if (is_string($limitTb) && strlen($limitTb) === 0) {
-            } elseif (is_numeric($limitTb) && (int)$limitTb >= 0) {
+            // Escape hatched SQL Queries (starting & ending with "{}") are ONLY
+            // for only "WHERE" Keys in UPDATE, DELETE & SELECT Query Types!
+            if (is_string($limitTb) && str_starts_ends_with($limitTb, "{", "}")) {
+                cli_err_syntax_without_exit("Escaped SQL Syntax (starting & ending with `{}`) is NOT supported in `LIMIT` Key!");
+                cli_info("Only `WHERE` Keys in UPDATE, DELETE & SELECT Queries support Escaped SQL Syntax!");
+            }
+            if (is_string($limitTb) && strlen($limitTb) === 0) { // This is not error out on an Allowed Empty String!
+            } elseif (is_numeric($limitTb) && (int)$limitTb >= 0) { // Must Be Positive Integer!
                 $limitStr = (string)$limitTb;
             } else {
                 cli_err_syntax_without_exit("Invalid `LIMIT` Key value in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
@@ -4660,9 +4738,14 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
             }
         }
         if (isset($offsetTb)) {
-            // Empty string, do nothing
-            if (is_string($offsetTb) && strlen($offsetTb) === 0) {
-            } elseif (is_numeric($offsetTb) && (int)$offsetTb >= 0) { // Check if it's a non-negative number
+            // Escape hatched SQL Queries (starting & ending with "{}") are ONLY
+            // for only "WHERE" Keys in UPDATE, DELETE & SELECT Query Types!
+            if (is_string($offsetTb) && str_starts_ends_with($offsetTb, "{", "}")) {
+                cli_err_syntax_without_exit("Escaped SQL Syntax (starting & ending with `{}`) is NOT supported in `OFFSET` Key!");
+                cli_info("Only `WHERE` Keys in UPDATE, DELETE & SELECT Queries support Escaped SQL Syntax!");
+            }
+            if (is_string($offsetTb) && strlen($offsetTb) === 0) { // This is not error out on an Allowed Empty String!
+            } elseif (is_numeric($offsetTb) && (int)$offsetTb >= 0) { // Must Be Positive Integer!
                 $offsetStr = (string)$offsetTb;
             } else {
                 cli_err_syntax_without_exit("Invalid `OFFSET` Key value in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
