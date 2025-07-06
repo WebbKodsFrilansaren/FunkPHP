@@ -4553,6 +4553,13 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                             cli_err_syntax_without_exit("Invalid Excluded Column Name in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
                             cli_info("Excluded Column Names must be Non-Empty Strings!");
                         }
+                        // You are NOT supposed to use Aggregate Functions here since
+                        // you are defining what columns to exclude from the table!
+                        if (preg_match($aggregateFunctionsStart, $excludedCol)) {
+                            cli_err_syntax_without_exit("Aggregate Functions (`$excludedCol`) are NOT allowed in Syntax `$selectTbName:" . implode(",", $excludedCols) .  "` in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
+                            cli_info_without_exit("You can ONLY Exclude Columns from the Table when using the Syntax `table!:col1,col2,etc`, NOT add Aggregate Functions to them! (like `SUM(col1)`, `AVG(col2)` etc.)");
+                            cli_info("To use Aggregate Functions, you must use the Syntax `table:AGG_FUNC(col1),col2,etc` OR `AGG_FUNC(table:col)` instead!");
+                        }
                         // If the excluded column is not in the table, we error out
                         if (!array_key_exists($excludedCol, $tables[$selectTbName])) {
                             cli_err_syntax_without_exit("Excluded Column Name `$excludedCol` from SQL Array `$handlerFile.php=>$fnName` not found in Table `$selectTbName`!");
@@ -6855,14 +6862,6 @@ function cli_create_sql_file_and_or_handler()
         // We automatically generate all the possible JOINs (inner default) based
         // on what tables were provided in the $tbs array (the '<TABLES>' Key)!
         // Iterate through all defined tables in your full schema (from tables.php)
-        // TODO: Add algo to use Relationships to suggest joins where we start from "FROM table"
-        // and use the relationships for that first table and then their relationships' tables
-        // and so on until we have visited all possible relationships for the current query tables.
-        // We use a simple Stack algorithm to visit all relationships starting from the first table
-        // which is the "FROM table" in the SELECT query. If a relationship is already visited,
-        // we skip it to avoid infinite loops and duplicate joins. A relationship that exists
-        // means it is a subkey of the $tables['relationships'] array and its subkeys could
-        // be the table names that are related to the current query tables.
         $suggestedJoins = cli_parse_joins_on_DFS(array_key_first($tbs), array_keys($tbs), $tables['relationships']);
         if (!empty($suggestedJoins)) {
             $queryTypePart .= implode(",\n\t\t\t\t", $suggestedJoins);
