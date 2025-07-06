@@ -35,10 +35,9 @@ function s_test5(&$c) // <authors>
 		// Optional Keys, leave empty (or remove) if not used!
 		'SELECT' => [
 			'authors:id,name',
-			'articles',
 		],
 		'WHERE' => '',
-		'GROUP BY' => '',
+		'GROUP BY' => 'name',
 		'HAVING' => '',
 		'ORDER BY' => '',
 		'LIMIT' => '',
@@ -61,7 +60,7 @@ function s_test5(&$c) // <authors>
 	];
 
 	return array(
-		'sql' => 'SELECT authors.id AS authors_id, authors.name AS authors_name, articles.id AS articles_id, articles.author_id AS articles_author_id, articles.title AS articles_title, articles.content AS articles_content, articles.published AS articles_published, articles.created_at AS articles_created_at, articles.updated_at AS articles_updated_at FROM authors INNER JOIN articles ON authors.id = articles.author_id;',
+		'sql' => 'SELECT authors.id AS authors_id, authors.name AS authors_name FROM authors INNER JOIN articles ON authors.id = articles.author_id GROUP BY name;',
 		'hydrate' =>
 		array(),
 		'bparam' => '',

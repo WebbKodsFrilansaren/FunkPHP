@@ -4868,6 +4868,28 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                 $groupTB = strtolower($groupTB); // Lowercase for consistency
                 // CASE 1: Does NOT include ":"
                 if (!str_contains($groupTB, ":")) {
+                    // We split on "," if it exists
+                    // or just turn single string into an array!
+                    if (str_contains($groupTB, ",")) {
+                        $groupColNames = explode(",", $groupTB);
+                    } else {
+                        $groupColNames = [$groupTB];
+                    }
+                    // Validate that the column names exist in the currently selected tables
+                    foreach ($groupColNames as $groupColName) {
+                        // If the column name is not a string or empty, we error out
+                        if (!is_string_and_not_empty($groupColName)) {
+                            cli_err_syntax_without_exit("Invalid Column Name in `GROUP BY` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
+                            cli_info("Column Names must be Non-Empty Strings!");
+                        }
+                        // If the Column Name is not in the `uniqueCols` array that means they need to manually write `table:col`
+                        if (!in_array($groupColName, $cols['uniqueCols'], true)) {
+                            cli_err_syntax_without_exit("Column Name `$groupColName` from `GROUP BY` Key in SQL Array `$handlerFile.php=>$fnName` not found in Unique Column Names Array!");
+                            cli_info("Valid Unique Column Names are: " . implode(", ", quotify_elements($cols['uniqueCols'])) . ".");
+                        }
+                    }
+                    $groupByStr .= implode(",", $groupColNames) . ",\n";
+                    continue;
                 }
                 // CASE 2: Includes ":" so we split on ":"
                 elseif (str_contains($groupTB, ":")) {
@@ -4887,6 +4909,10 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                     if (str_contains($groupColNames, ",")) {
                         $groupColNames = explode(",", $groupColNames);
                         foreach ($groupColNames as $groupColName) {
+                            if (!is_string_and_not_empty($groupColName)) {
+                                cli_err_syntax_without_exit("Invalid Column Name in `GROUP BY` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
+                                cli_info("Column Names must be Non-Empty Strings!");
+                            }
                             if (!array_key_exists($groupColName, $tables[$groupTbName])) {
                                 cli_err_syntax_without_exit("Column Name `$groupColName` from `GROUP BY` Key in SQL Array `$handlerFile.php=>$fnName` not found in Table `$groupTbName`!");
                                 cli_info("Valid Column Names for Table `$groupTbName` are: " . implode(", ", quotify_elements(array_keys($tables[$groupTbName]))) . ".");
@@ -4894,6 +4920,10 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                         }
                     }
                 }
+            }
+            // Remove ", " from the end of $groupByStr if it exists
+            if (str_ends_with($groupByStr, ",\n")) {
+                $groupByStr = substr($groupByStr, 0, -2);
             }
         }
         if (isset($havingTb)) {
