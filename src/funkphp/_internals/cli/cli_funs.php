@@ -2777,7 +2777,7 @@ function cli_compile_dx_validation_to_optimized_validation()
 // &$builtBindedParamsString is to add the necessary
 // "?" placeholders based on how many are used within
 // the parsed Where clause that would be returned!
-function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $validCols, &$builtBindedParamsString, &$builtFieldsArray)
+function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $validCols, &$builtBindedParamsString, &$builtFieldsArray, &$allAliases, $whereOrHaving = null)
 {
     // Prepare variables and also validate the input
     // $where = The actual CONDITION String to parse.
@@ -2869,6 +2869,19 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
         cli_info("This might mean that the \"\$DX\" variable is an Empty Array, or not an Array at all?");
     }
 
+    // $whereOrHaving must be a string and not empty (either "WHERE" or "HAVING")
+    if ($whereOrHaving === null) {
+        cli_err_without_exit("[cli_parse_condition_clause_sql]: Expects `WHERE` or `HAVING` for `\$whereOrHaving`!");
+        cli_info("This might mean that the \"\$DX\" variable is an Empty Array, or not an Array at all?");
+    }
+    if (!is_string_and_not_empty($whereOrHaving)) {
+        cli_err_without_exit("[cli_parse_condition_clause_sql]: Expects a Non-Empty String as input for `\$whereOrHaving` that is either `WHERE` or `HAVING`!");
+    }
+    if ($whereOrHaving !== 'WHERE' && $whereOrHaving !== 'HAVING') {
+        cli_err_without_exit("[cli_parse_condition_clause_sql]: Expects `WHERE` or `HAVING` for `\$whereOrHaving` but got: \"$whereOrHaving\"!");
+        cli_info("This might mean that the \"\$DX\" variable is an Empty Array, or not an Array at all?");
+    }
+
     // We split the $where on "|" string by spaces to get each part or turn the single string into an array
     $where = str_contains(trim($where), "|") ? explode("|", $where) : [$where];
     $wPartRegex = '/^(\[[A-Za-z_\-0-9]+]|[()=A-Za-z_\-0-9:]+)\s+(\[[A-Za-z_\-0-9]+]|[+\-*\/%=&|^!<>]+|ALL|AND|BETWEEN|EXISTS|IN|LIKE|NOT|SOME)\s+(.*)$/';
@@ -2915,7 +2928,7 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
             cli_info_without_exit("IMPORTANT: If you are using placeholders `?` in the `$wPart` you must add them to the `bparam` Key in the SQL Array and also add the `<MATCHED_FIELDS>` keys in the `fields` Key manually after successfully compilation! (in current version of FunkPHP)");
             continue;
         }
-        if (preg_match($aggregateFunctionsStart, $wPart)) {
+        if (preg_match($aggregateFunctionsStart, $wPart) && $whereOrHaving === 'WHERE') {
             cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to using an Aggregate Function in the WHERE clause!");
             cli_info_without_exit("Aggregate Functions like COUNT(), SUM(), AVG(), MIN(), MAX() are NOT allowed in the Condition clause!");
             cli_info("If you want to use Aggregate Functions, use them in the SELECT and/or GROUP BY Clauses instead!");
@@ -2974,9 +2987,9 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
 
         // None of the matched parts in the Condition Clause can be Aggregate Function!
         if (
-            preg_match($aggregateFunctionsStart, $mCol)
-            || preg_match($aggregateFunctionsStart, $mOperator)
-            || preg_match($aggregateFunctionsStart, $mValue)
+            (preg_match($aggregateFunctionsStart, $mCol)
+                || preg_match($aggregateFunctionsStart, $mOperator)
+                || preg_match($aggregateFunctionsStart, $mValue)) && $whereOrHaving === 'WHERE'
         ) {
             cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to using an Aggregate Function in the WHERE clause!");
             cli_info_without_exit("Aggregate Functions like COUNT(), SUM(), AVG(), MIN(), MAX() are NOT allowed in the Condition clause!");
@@ -3014,10 +3027,22 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
             cli_info_without_exit("Using () to indicate a Tuple or Row Constructor is not supported as of yet in FunkPHP!");
             cli_info_without_exit("If you wanna use a [SubQuery] means you should start with `[` and end with `]`. This allows you to use Tuples, Row Constructors and such.");
             cli_info("IMPORTANT: Using [SubQuery] means you lose the Validation Parsing Logic and you must add the `?` Placeholders  in the `bparam` Key and the <MATCHED_FIELDS> keys in the `fields` Key manually after successfully compilation! (in current version of FunkPHP)");
-        } elseif (!in_array($mCol, $uniqueCols, true) && !in_array($mCol, $tbsWithCols, true)) {
+        } elseif (
+            !in_array($mCol, $uniqueCols, true)
+            && !in_array($mCol, $tbsWithCols, true)
+            && $whereOrHaving === 'WHERE'
+        ) {
+            cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to columnName/tableName:columnName `$mCol` not being found in the Unique Columns or Table with Columns!");
+            cli_info("If you are only using on Table suddenly for your SQL Query, change your `<TABLES>` Key also to only have that one Table OR Write `correctTable:$mCol` exactly in the Condition Clause!");
+        } elseif (
+            !in_array($mCol, $uniqueCols, true)
+            && !in_array($mCol, $tbsWithCols, true)
+            && $whereOrHaving === 'HAVING'
+        ) {
             cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to columnName/tableName:columnName `$mCol` not being found in the Unique Columns or Table with Columns!");
             cli_info("If you are only using on Table suddenly for your SQL Query, change your `<TABLES>` Key also to only have that one Table OR Write `correctTable:$mCol` exactly in the Condition Clause!");
         }
+
 
         // Check that $mOperator is a valid operator after first checking if it is a [Subquery]
         if (str_starts_with($mOperator, '[') && str_ends_with($mOperator, ']')) {
@@ -3979,7 +4004,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         // We also pass the "$builtBindedParamsString" as reference to add the necessary
         // "?" placeholders based on how many are used within the Parsed Where Clause!
         if (isset($whereTb) && is_string_and_not_empty($whereTb)) {
-            $whereTb = cli_parse_condition_clause_sql($configTBKey, $whereTb, "UPDATE", $convertedSQLArray, $cols, $builtBindedParamsString, $builtFieldsArray);
+            $whereTb = cli_parse_condition_clause_sql($configTBKey, $whereTb, "UPDATE", $convertedSQLArray, $cols, $builtBindedParamsString, $builtFieldsArray, $allAliases);
             // If $whereTb is no longer a string after parsing, we error out
             if (!is_string_and_not_empty($whereTb)) {
                 cli_err_syntax_without_exit("Invalid `WHERE` Key String found in SQL Array `$handlerFile.php=>$fnName` for UPDATE Query after being processed by `cli_parse_where_clause_sql` Function!");
@@ -4080,7 +4105,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         // We also pass the "$builtBindedParamsString" as reference to add the necessary
         // "?" placeholders based on how many are used within the Parsed Where Clause!
         if (isset($whereTb) && is_string_and_not_empty($whereTb)) {
-            $whereTb = cli_parse_condition_clause_sql($configTBKey, $whereTb, "DELETE", $convertedSQLArray, $cols, $builtBindedParamsString, $builtFieldsArray);
+            $whereTb = cli_parse_condition_clause_sql($configTBKey, $whereTb, "DELETE", $convertedSQLArray, $cols, $builtBindedParamsString, $builtFieldsArray, $allAliases);
             // If $whereTb is no longer a string after parsing, we error out
             if (!is_string_and_not_empty($whereTb)) {
                 cli_err_syntax_without_exit("Invalid `WHERE` Key String found in SQL Array `$handlerFile.php=>$fnName` for UPDATE Query after being processed by `cli_parse_where_clause_sql` Function!");
@@ -4241,7 +4266,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         // for only "WHERE" Keys in UPDATE, DELETE & SELECT Query Types!
         if (str_starts_ends_with($fromTb, "{", "}")) {
             cli_err_syntax_without_exit("Escaped SQL Syntax (starting & ending with `{}`) is NOT supported in `FROM` Key!");
-            cli_info("Only `WHERE` Keys in UPDATE, DELETE & SELECT Queries support Escaped SQL Syntax!");
+            cli_info("Only `WHERE` & `HAVING` Keys in UPDATE, DELETE & SELECT Queries support Escaped SQL Syntax!");
         }
 
         // We now loop through $selectTb and check whether the $fromTb table exists in at least one of the
@@ -4571,6 +4596,10 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         // When we are SELECTing more than 1 Table, we must use JOINs to
         // join them together so here we start parsing the JOINS_ON Key!
         if (count($currentlySelectedTbs) > 1) {
+            if (is_string($joinsTb) && str_starts_ends_with($joinsTb, "{", "}")) {
+                cli_err_syntax_without_exit("Escaped SQL Syntax (starting & ending with `{}`) is NOT supported in `JOINS_ON` Key!");
+                cli_info("Only `WHERE` & `HAVING` Keys in UPDATE, DELETE & SELECT Queries support Escaped SQL Syntax!");
+            }
             if (!isset($joinsTb) || !is_array($joinsTb) || !array_is_list($joinsTb) || empty($joinsTb)) {
                 cli_err_syntax_without_exit("No `JOINS_ON` Key found in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
                 cli_info("The `JOINS_ON` Key must be a Non-Empty List Array representing the JOINs to perform between the Tables in the `SELECT` Key when more than one Table is being SELECTed!");
@@ -4589,7 +4618,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                 // for only "WHERE" Keys in UPDATE, DELETE & SELECT Query Types!
                 if (str_starts_ends_with($joinTb, "{", "}")) {
                     cli_err_syntax_without_exit("Escaped SQL Syntax (starting & ending with `{}`) is NOT supported in `JOINS_ON` Key!");
-                    cli_info("Only `WHERE` Keys in UPDATE, DELETE & SELECT Queries support Escaped SQL Syntax!");
+                    cli_info("Only `WHERE` & `HAVING` Keys in UPDATE, DELETE & SELECT Queries support Escaped SQL Syntax!");
                 }
 
                 // If the joinTb does not match the regex, we error out
@@ -4739,7 +4768,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         }
 
         // PARSING THE OPTIONAL "WHERE" Key (the WHERE clause to filter results) using Condition Clause Function if the "WHERE" Key is a Non-Empty String!
-        $whereStr = isset($whereTb) && is_string($whereTb) && !empty($whereTb) ? cli_parse_condition_clause_sql($configTBKey, $whereTb, "SELECT", $convertedSQLArray, $cols, $builtBindedParamsString, $builtFieldsArray) : "";
+        $whereStr = isset($whereTb) && is_string($whereTb) && !empty($whereTb) ? cli_parse_condition_clause_sql($configTBKey, $whereTb, "SELECT", $convertedSQLArray, $cols, $builtBindedParamsString, $builtFieldsArray, $allAliases, "WHERE") : "";
 
         // PARSING THE OPTIONAL Keys "GROUP_BY" & "HAVING" (the GROUP BY clause
         // to group results and HAVING clause to filter grouped results)
@@ -4752,7 +4781,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
             // for only "WHERE" Keys in UPDATE, DELETE & SELECT Query Types!
             if (str_starts_ends_with($groupByTb, "{", "}")) {
                 cli_err_syntax_without_exit("Escaped SQL Syntax (starting & ending with `{}`) is NOT supported in `GROUP BY` Key!");
-                cli_info("Only `WHERE` Keys in UPDATE, DELETE & SELECT Queries support Escaped SQL Syntax!");
+                cli_info("Only `WHERE` & `HAVING` Keys in UPDATE, DELETE & SELECT Queries support Escaped SQL Syntax!");
             }
         }
         if (isset($havingTb)) {
@@ -4760,12 +4789,13 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                 cli_err_syntax_without_exit("Invalid `HAVING` Key value in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
                 cli_info("The `HAVING` Key must be a String representing the Condition(s) to Filter Grouped Results! (leave empty or remove if not used)");
             }
-            // Escape hatched SQL Queries (starting & ending with "{}") are ONLY
-            // for only "WHERE" Keys in UPDATE, DELETE & SELECT Query Types!
-            if (str_starts_ends_with($havingTb, "{", "}")) {
-                cli_err_syntax_without_exit("Escaped SQL Syntax (starting & ending with `{}`) is NOT supported in `HAVING` Key!");
-                cli_info("Only `WHERE` Keys in UPDATE, DELETE & SELECT Queries support Escaped SQL Syntax!");
+            // If GROUP BY was never correctly parsed (or added at all) we error out since
+            // HAVING is dependent on GROUP BY being present!
+            if (is_string($havingTb) && !empty($havingTb) && empty($groupByStr)) {
+                cli_err_syntax_without_exit("No `GROUP BY` Key found in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
+                cli_info("The `HAVING` Key must be used with a Non-Empty `GROUP BY` Key to Filter Grouped Results!");
             }
+            $havingStr = isset($havingTb) && is_string($havingTb) && !empty($havingTb) ? cli_parse_condition_clause_sql($configTBKey, $havingTb, "SELECT", $convertedSQLArray, $cols, $builtBindedParamsString, $builtFieldsArray, $allAliases, "HAVING") : "";
         }
 
         // PARSING THE OPTIONAL "ORDER BY" Key (the ORDER BY clause to sort results)
@@ -4851,7 +4881,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
             // for only "WHERE" Keys in UPDATE, DELETE & SELECT Query Types!
             if (is_string($limitTb) && str_starts_ends_with($limitTb, "{", "}")) {
                 cli_err_syntax_without_exit("Escaped SQL Syntax (starting & ending with `{}`) is NOT supported in `LIMIT` Key!");
-                cli_info("Only `WHERE` Keys in UPDATE, DELETE & SELECT Queries support Escaped SQL Syntax!");
+                cli_info("Only `WHERE` & `HAVING` Keys in UPDATE, DELETE & SELECT Queries support Escaped SQL Syntax!");
             }
             if (is_string($limitTb) && strlen($limitTb) === 0) { // This is not error out on an Allowed Empty String!
             } elseif (is_numeric($limitTb) && (int)$limitTb >= 0) { // Must Be Positive Integer!
@@ -4866,7 +4896,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
             // for only "WHERE" Keys in UPDATE, DELETE & SELECT Query Types!
             if (is_string($offsetTb) && str_starts_ends_with($offsetTb, "{", "}")) {
                 cli_err_syntax_without_exit("Escaped SQL Syntax (starting & ending with `{}`) is NOT supported in `OFFSET` Key!");
-                cli_info("Only `WHERE` Keys in UPDATE, DELETE & SELECT Queries support Escaped SQL Syntax!");
+                cli_info("Only `WHERE` & `HAVING` Keys in UPDATE, DELETE & SELECT Queries support Escaped SQL Syntax!");
             }
             if (is_string($offsetTb) && strlen($offsetTb) === 0) { // This is not error out on an Allowed Empty String!
             } elseif (is_numeric($offsetTb) && (int)$offsetTb >= 0) { // Must Be Positive Integer!
