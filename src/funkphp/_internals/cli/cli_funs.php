@@ -4525,7 +4525,8 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                 continue;
             }
             // CASE 3: Table Name with "!" (excludes column) so kinda like above but
-            // but we exclude the .
+            // but we exclude the spelled out Columns and include the rest from Table.
+            // This means Aggregate Functions are not available to use here!
             elseif (
                 str_contains($selectTbName, "!:")
             ) {
@@ -4601,7 +4602,6 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                             cli_err_syntax_without_exit("Invalid Excluded Column Name in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
                             cli_info("Excluded Column Names must be Non-Empty Strings!");
                         }
-
 
                         // SPECIAL CASE FOR EACH `col` in `table` that could have Agg Function as part of its name!
                         // Like: `authors:id,AVG(age)`, so we need to handle that too!
@@ -4690,34 +4690,20 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                             }
                         }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
                         // Otherwise, just check as regular Table Column!
                         if (!array_key_exists($includedCol, $tables[$selectTbName])) {
                             cli_err_syntax_without_exit("Excluded Column Name `$includedCol` from SQL Array `$handlerFile.php=>$fnName` not found in Table `$selectTbName`!");
                             cli_info("Valid Column Names for Table `$selectTbName` are: " . implode(", ", quotify_elements(array_keys($tables[$selectTbName]))) . ".");
                         }
-                    }
-                    foreach ($tables[$selectTbName] as $colKey => $singleTbCols) {
-                        if (in_array($colKey, $includedCols, true)) {
-                            $selectedTbsColsStr .= $selectTbName . ".$colKey AS " . $singleTbCols['joined_name'] . ",\n";
-                            $allAliases[] = $singleTbCols['joined_name'];
-                        }
+
+                        // Here we just add the column to the selectedTbsColsStr since we know it exists!
+                        $selectedTbsColsStr .= $selectTbName . ".$colKey AS " . $singleTbCols['joined_name'] . ",\n";
+                        $allAliases[] = $singleTbCols['joined_name'];
+                        continue;
                     }
                 } else {
-                    cli_err_syntax_without_exit("Table Name `$selectTbName` from `SELECT` Key in SQL Array `$handlerFile.php=>$fnName` has no columns defined in `config/tables.php`!");
-                    cli_info("Make sure the Table `$selectTbName` has columns defined in `config/tables.php` file!");
+                    cli_err_syntax_without_exit("Table Name `$selectTbName` from `SELECT` Key in SQL Array `$handlerFile.php=>$fnName` has no Columns defined in the `tables.php` File!");
+                    cli_info("Make sure the Table `$selectTbName` has columns defined in `config/tables.php` File!");
                 }
                 continue;
             }
