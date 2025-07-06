@@ -2772,11 +2772,63 @@ function cli_compile_dx_validation_to_optimized_validation()
     }
 }
 
+
+// Simple Helper function that validates that a $binding (i, d, s or b)
+// is correct based on provided $value. Returns true or false.
+function cli_validate_correct_binding_with_provided_value($binding, $value)
+{
+    // Both variables must be non empty strings! However, we do cast $value to string
+    // to ensure that it is a string, even if it is a number or boolean. Since it is
+    // also meant to validate whole numbers such as (i) and decimals/floats such as (d)!
+    if (!is_string_and_not_empty($binding) || !is_string_and_not_empty((string)$value)) {
+        cli_err("[cli_validate_correct_binding_with_provided_value]: Expects Non-Empty Strings as input for `\$binding` and `\$value`!");
+        cli_info("This might mean that the \"\$DX\" variable is an Empty Array, or not a String at all?");
+    }
+    // $binding must be one of the following: i, d, s, b
+    // i = integer, d = double/float, s = string, b = blob
+    if (!in_array($binding, ['i', 'd', 's', 'b'], true)) {
+        cli_err("[cli_validate_correct_binding_with_provided_value]: Expects a valid binding type as input for `\$binding`! (i, d, s or b)");
+        cli_info("This might mean that the \"\$DX\" variable is an Empty Array, or not a String at all?");
+    }
+    // Validate binding types: String
+    if ($binding === 's') {
+        if (is_string($value)) {
+            return true;
+        }
+        return false;
+    }
+    // Validate binding types: Integers
+    elseif ($binding === "i") {
+        if (preg_match('/^-?\d+$/', $value)) {
+            return true;
+        }
+        return false;
+    }
+    // Validate binding types: Doubles/Floats
+    elseif ($binding === "d") {
+        if (preg_match('/^-?\d+(\.\d+)?$/', $value)) {
+            return true;
+        }
+        return false;
+    }
+    // Validate binding types: Blobs
+    elseif ($binding === 'b') {
+        if (is_string($value) && !empty($value)) {
+            return true;
+        }
+        return false;
+    }
+
+    cli_err_without_exit("[cli_validate_correct_binding_with_provided_value]: Despite impossible, reached the end of Function Call without return value?!");
+    cli_info("Check All References to this Function Call and ensure that the Binding Type is Correct!");
+    return false;
+}
+
 // Simple Helper Function that can check if a `table:col` exists in the `tables.php` file
 // and if it does it returns the binding type for that specific column. If it gets a string
 // without ":" then it assumes it is a unique col based that can be found within $allTbs
 // as long as that Table also exists in $tbs which is the currently tables being used.
-function cli_find_valid_tb_col_and_binding_or_return_null($tbs, $tbColToCheck, $currentUniqueCols)
+function cli_find_valid_tb_col_and_binding_or_return_null($tbs, $tbColToCheck)
 {
     if (!is_string_and_not_empty($tbColToCheck)) {
         cli_err_without_exit("[cli_find_valid_tb_col_and_binding_or_return_null]: Expects a Non-Empty String as input for `\$tbColToCheck`!");
@@ -2786,33 +2838,55 @@ function cli_find_valid_tb_col_and_binding_or_return_null($tbs, $tbColToCheck, $
         cli_err_without_exit("[cli_find_valid_tb_col_and_binding_or_return_null]: Expects a Non-Empty List Array as input for `\$tbs`!");
         cli_info("This might mean that the \"\$DX\" variable is an Empty Array, or not an Array at all?");
     }
-    if (!is_array($currentUniqueCols)) {
-        cli_err_without_exit("[cli_find_valid_tb_col_and_binding_or_return_null]: Expects a List Array as input for `\$currentUniqueCols`!");
-        cli_info("This might mean that the \"\$DX\" variable is an Empty Array, or not an Array at all?");
-    }
+    global $tablesAndRelationshipsFile;
     $allTbs = $tablesAndRelationshipsFile['tables'] ?? [];
     $binding = null;
-    $found = true;
+    $found = false;
     $foundTable = null;
 
     // If it contains ":", we assume it is a table:col format
     if (str_contains($tbColToCheck, ":")) {
         [$tableName, $colName] = explode(":", $tbColToCheck, 2);
         if (!in_array($tableName, $tbs) || !array_key_exists($tableName, $allTbs)) {
-            return ["found" => false, "binding" => null, "found_table" => null];
+            return ["found" => false, "binding" => null, "found_table" => null, "found_col" => $tbColToCheck];
         }
         if (!array_key_exists($colName, $allTbs[$tableName])) {
-            return ["found" => false, "binding" => null, "found_table" => null];
+            return ["found" => false, "binding" => null, "found_table" => null, "found_col" => $tbColToCheck];
         }
+        return [
+            "found" => true,
+            "binding" => $allTbs[$tableName][$colName]['binding'] ?? null,
+            "found_table" => $tableName,
+            "found_col" => $tbColToCheck
+        ];
     }
     // If it does not contain ":", we assume it is a unique column name
+    // because that should be checked before this function is called
     else if (!str_contains($tbColToCheck, ":")) {
-        if (!in_array($tbColToCheck, $currentUniqueCols)) {
-            return ["found" => false, "binding" => null, "found_table" => null];
+        // Iterate through all tables to find the column
+        foreach ($allTbs as $tb => $colKey) {
+            if (!in_array($tb, $tbs, true)) {
+                continue;
+            }
+            foreach ($colKey as $k => $col) {
+                if ($tbColToCheck === $k) {
+                    $foundTable = $tb;
+                    break 2; // Break out of both foreach loops
+                }
+            }
         }
+        if (!$foundTable) {
+            return ["found" => false, "binding" => null, "found_table" => null, "found_col" => $tbColToCheck];
+        }
+        // We found the table and column, now return the binding
+        $binding = $allTbs[$foundTable][$tbColToCheck]['binding'] ?? null;
+        if (!$binding) {
+            return ["found" => false, "binding" => null, "found_table" => $foundTable, "found_col" => $tbColToCheck];
+        }
+        $found = true;
+        return ["found" => $found, "binding" => $binding, "found_table" => $foundTable, "found_col" => $tbColToCheck];
     }
-
-    return ["found" => $found, "binding" => $binding, "found_table" => $foundTable];
+    return ["found" => $found, "binding" => $binding, "found_table" => $foundTable, "found_col" => $tbColToCheck];
 }
 
 // Function that parses the condition clauses such as WHERE
@@ -3119,10 +3193,12 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
 
                     // Case 1: Aggregate Function with Table and/or Column Name (table:col)
                     if (str_contains($aggTbAndOrCol, ':')) {
+                        $existingTb = cli_find_valid_tb_col_and_binding_or_return_null($tbs, $aggTbAndOrCol);
+                        var_dump($existingTb);
+                    } elseif (!str_contains($aggTbAndOrCol, ':')) {
+                        $existingTb = cli_find_valid_tb_col_and_binding_or_return_null($tbs, $aggTbAndOrCol);
+                        var_dump($existingTb);
                     }
-
-                    var_dump($tbs);
-                    exit;
                 } else {
                     cli_err("[cli_parse_condition_clause_sql - on HAVING Key]: Invalid Aggregate Function: \"$mCol\" in Query Type: \"$queryType\" due to not being a valid Aggregate Function!");
                 }

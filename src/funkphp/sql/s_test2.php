@@ -38,7 +38,7 @@ function s_test5(&$c) // <authors>
 		],
 		'WHERE' => '',
 		'GROUP BY' => 'authors:age',
-		'HAVING' => 'AVG(avg_authors_age) > 20',
+		'HAVING' => 'AVG(name) > 20',
 		'ORDER BY' => '',
 		'LIMIT' => '',
 		'OFFSET' => '',
