@@ -2772,6 +2772,49 @@ function cli_compile_dx_validation_to_optimized_validation()
     }
 }
 
+// Simple Helper Function that can check if a `table:col` exists in the `tables.php` file
+// and if it does it returns the binding type for that specific column. If it gets a string
+// without ":" then it assumes it is a unique col based that can be found within $allTbs
+// as long as that Table also exists in $tbs which is the currently tables being used.
+function cli_find_valid_tb_col_and_binding_or_return_null($tbs, $tbColToCheck, $currentUniqueCols)
+{
+    if (!is_string_and_not_empty($tbColToCheck)) {
+        cli_err_without_exit("[cli_find_valid_tb_col_and_binding_or_return_null]: Expects a Non-Empty String as input for `\$tbColToCheck`!");
+        cli_info("This might mean that the \"\$DX\" variable is an Empty Array, or not a String at all?");
+    }
+    if (!is_array_and_not_empty($tbs) || !array_is_list($tbs)) {
+        cli_err_without_exit("[cli_find_valid_tb_col_and_binding_or_return_null]: Expects a Non-Empty List Array as input for `\$tbs`!");
+        cli_info("This might mean that the \"\$DX\" variable is an Empty Array, or not an Array at all?");
+    }
+    if (!is_array($currentUniqueCols)) {
+        cli_err_without_exit("[cli_find_valid_tb_col_and_binding_or_return_null]: Expects a List Array as input for `\$currentUniqueCols`!");
+        cli_info("This might mean that the \"\$DX\" variable is an Empty Array, or not an Array at all?");
+    }
+    $allTbs = $tablesAndRelationshipsFile['tables'] ?? [];
+    $binding = null;
+    $found = true;
+    $foundTable = null;
+
+    // If it contains ":", we assume it is a table:col format
+    if (str_contains($tbColToCheck, ":")) {
+        [$tableName, $colName] = explode(":", $tbColToCheck, 2);
+        if (!in_array($tableName, $tbs) || !array_key_exists($tableName, $allTbs)) {
+            return ["found" => false, "binding" => null, "found_table" => null];
+        }
+        if (!array_key_exists($colName, $allTbs[$tableName])) {
+            return ["found" => false, "binding" => null, "found_table" => null];
+        }
+    }
+    // If it does not contain ":", we assume it is a unique column name
+    else if (!str_contains($tbColToCheck, ":")) {
+        if (!in_array($tbColToCheck, $currentUniqueCols)) {
+            return ["found" => false, "binding" => null, "found_table" => null];
+        }
+    }
+
+    return ["found" => $found, "binding" => $binding, "found_table" => $foundTable];
+}
+
 // Function that parses the condition clauses such as WHERE
 // a Simple SQL Query to an Optimized SQL Array! The
 // &$builtBindedParamsString is to add the necessary
@@ -2891,7 +2934,6 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
     // and the special case of COUNT(*) which is a special case of the COUNT function!
     $aggregateFunctionsStart = "/^(COUNT\(DISTINCT[ |=]|COUNT\(\*\)|COUNT\(|SUM\(|AVG\(|MIN\(|MAX\()/i";
     $aggFuncRegex = "/^(COUNT\(DISTINCT[ |=]|COUNT\(\*\)|COUNT\(|SUM\(|AVG\(|MIN\(|MAX\()([a-zA-Z0-9_:\*]+)*\)$/i";
-    $aggTableColOrColRegex = "/^([()a-zA-Z0-9:_]+)$/i";
     $aggFuncValidStarts = [
         'count(distinct=' => 'count_distinct_',
         'count(distinct ' => 'count_distinct_',
@@ -3060,22 +3102,29 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
         if ($whereOrHaving === 'HAVING') {
             if (preg_match($aggregateFunctionsStart, $mCol)) {
                 if (preg_match($aggFuncRegex, $mCol, $aggMatches)) {
-                    var_dump($aggMatches);
-
-
-
-
-
-                    if (
-                        !in_array($mCol, $uniqueCols, true)
-                        && !in_array($mCol, $tbsWithCols, true)
-                        && !in_array($mCol, $allAliases, true)
-                    ) {
-                        cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to columnName/tableName:columnName `$mCol` not being found in the Unique Columns Array, Table with Columns Array or Aliases Array!");
-                        cli_info("If you are only using on Table suddenly for your SQL Query, change your `<TABLES>` Key also to only have that one Table OR Write `correctTable:$mCol` exactly in the Condition Clause!");
+                    $aggName = strtolower($aggMatches[1]) ?? null;
+                    $aggTbAndOrCol = strtolower($aggMatches[2]) ?? null;
+                    // If the Aggregate Function is not in the valid starts
+                    // array then it is not a valid Aggregate Function!
+                    if (!isset($aggFuncValidStarts[$aggName])) {
+                        cli_err_without_exit("[cli_parse_condition_clause_sql - on HAVING Key]: Invalid Aggregate Function: \"$mCol\" in Query Type: \"$queryType\" due to not being a valid Aggregate Function!");
+                        cli_info("Valid Aggregate Functions start with: " . strtoupper(implode(", ", quotify_elements(array_keys($aggFuncValidStarts)))) . "!");
                     }
+
+                    // There are 4 different cases now to handle in order to add the parsed Condition Clause String:
+                    // 1. Aggregate Function with Table and/or Column Name (table:col)
+                    // 2. Aggregate Function with just Column Name (col)
+                    // 3. Aggregate Function with just table_col Alias Name
+                    // 4. Aggregate Function with just agg_func Alias Name (agg_func_table_col unless count(*), then count_table)
+
+                    // Case 1: Aggregate Function with Table and/or Column Name (table:col)
+                    if (str_contains($aggTbAndOrCol, ':')) {
+                    }
+
+                    var_dump($tbs);
+                    exit;
                 } else {
-                    cli_err("[cli_parse_condition_clause_sql]: Invalid Aggregate Function: \"$mCol\" in Query Type: \"$queryType\" due to not being a valid Aggregate Function!");
+                    cli_err("[cli_parse_condition_clause_sql - on HAVING Key]: Invalid Aggregate Function: \"$mCol\" in Query Type: \"$queryType\" due to not being a valid Aggregate Function!");
                 }
             }
         }
@@ -4223,7 +4272,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
     }
     // SELECT DISTINCT
     elseif ($configQTKey === 'SELECT_DISTINCT') {
-
+        cli_err("<NOT SUPPORTED/IMPLEMENTED YET IN FUNKPHP! SCRIPT STOPPED!>");
         // Report success and inform about ignored keys
         cli_success_without_exit("Built SQL String for SELECT_DISTINCT Query: `$builtSQLString`");
         if (is_array($ignoredKeys) && !empty($ignoredKeys)) {
@@ -4233,7 +4282,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
     }
     // SELECT INTO
     elseif ($configQTKey === 'SELECT_INTO') {
-
+        cli_err("<NOT SUPPORTED/IMPLEMENTED YET IN FUNKPHP! SCRIPT STOPPED!>");
         // Report success and inform about ignored keys
         cli_success_without_exit("Built SQL String for SELECT_INTO Query: `$builtSQLString`");
         if (is_array($ignoredKeys) && !empty($ignoredKeys)) {
