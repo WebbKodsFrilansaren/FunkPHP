@@ -18,7 +18,7 @@ function s_test5(&$c) // <authors>
 	$DX = [
 		'<CONFIG>' => [
 			'<QUERY_TYPE>' => 'SELECT',
-			'<TABLES>' => ['authors', 'articles'],
+			'<TABLES>' => ['authors', 'articles', 'comments'],
 			'<HYDRATION_MODE>' => 'simple|advanced', // Pick one or `simple` is used by default! (leave empty or remove line if not used!)
 			'<HYDRATION_TYPE>' => 'array|object', // Pick one or `array` is used by default! (leave empty or remove line if not used!)
 			'[SUBQUERIES]' => [
@@ -27,14 +27,15 @@ function s_test5(&$c) // <authors>
 			]
 		],
 		'FROM' => 'authors',
-		// 'JOINS_ON' Syntax: `join_type=table2,table1_id,table2_ref_id`
+		// 'JOINS_ON' Syntax: `join_type=join_table,table2(table2Col),table1(table1Col)`
 		// Available Join Types: `inner|i|join|j|ij`,`left|l`,`right|r`
 		'JOINS_ON' => [ // Optional, make empty if not joining any tables!
-			'inner=articles(author_id),authors(id)',
+			'inner=articles,authors(id),articles(author_id)',
 		],
 		// Optional Keys, leave empty (or remove) if not used!
 		'SELECT' => [
-			'authors',
+			'authors:id,name',
+			'articles',
 		],
 		'WHERE' => '',
 		'GROUP BY' => '',
@@ -60,7 +61,7 @@ function s_test5(&$c) // <authors>
 	];
 
 	return array(
-		'sql' => 'SELECT authors.id AS authors_id, authors.name AS authors_name, authors.email AS authors_email, authors.description AS authors_description, authors.longer_description AS authors_longer_description, authors.age AS authors_age, authors.weight AS authors_weight, authors.nickname AS authors_nickname, authors.updated_at AS authors_updated_at FROM authors;',
+		'sql' => 'SELECT authors.id AS authors_id, authors.name AS authors_name, articles.id AS articles_id, articles.author_id AS articles_author_id, articles.title AS articles_title, articles.content AS articles_content, articles.published AS articles_published, articles.created_at AS articles_created_at, articles.updated_at AS articles_updated_at FROM authors INNER JOIN articles ON authors.id = articles.author_id;',
 		'hydrate' =>
 		array(),
 		'bparam' => '',

@@ -4640,19 +4640,26 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         // We check if it is empty and if it is then $currentlySelectedTbs
         // must only be 1 since you must use JOIN when selecting more
         // than 1 Table in current version of FunkPHP!
-        if (isset($joinsTb) && empty($joinsTb) && count($currentlySelectedTbs) > 1) {
+        if (
+            count($currentlySelectedTbs) > 1
+            && (!isset($joinsTb)
+                || !is_array($joinsTb)
+                || !array_is_list($joinsTb)
+                || empty($joinsTb))
+        ) {
             cli_err_syntax_without_exit("No `JOINS_ON` Key found in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
-            cli_info("The `JOINS_ON` Key must be a Non-Empty Array and must be used when you are SELECTing more than 1 Table in the `SELECT` Key!");
+            cli_info_without_exit("The `JOINS_ON` Key must be a Non-Empty Array and must be used when you are SELECTing more than 1 Table in the `SELECT` Key!");
+            cli_info("IMPORTANT: You can use `JOINS_ON` Key to Join several Tables while still just SELECTing from 1 Table in the `SELECT` Key!");
         }
 
         // When we are SELECTing more than 1 Table, we must use JOINs to
         // join them together so here we start parsing the JOINS_ON Key!
-        if (isset($joinsTb)) {
+        if (isset($joinsTb) && !empty($joinsTb)) {
             if (is_string($joinsTb) && str_starts_ends_with($joinsTb, "{", "}")) {
                 cli_err_syntax_without_exit("Escaped SQL Syntax (starting & ending with `{}`) is NOT supported in `JOINS_ON` Key!");
                 cli_info("Only `WHERE` & `HAVING` Keys in UPDATE, DELETE & SELECT Queries support Escaped SQL Syntax!");
             }
-            if (!is_array($joinsTb) || !array_is_list($joinsTb) || empty($joinsTb)) {
+            if (!is_array($joinsTb) || !array_is_list($joinsTb)) {
                 cli_err_syntax_without_exit("No `JOINS_ON` Key found in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
                 cli_info("The `JOINS_ON` Key must be a Non-Empty List Array representing the JOINs to perform between the Tables in the `SELECT` Key when more than one Table is being SELECTed!");
             }
@@ -4660,6 +4667,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
             $joinedTables = []; // Each table with a valid relationship can only be joined once!
             $joinedTables[] = $fromTb; // We always join the FROM table first
 
+            // Iterate through each joinTb in the JOINS_ON Key
             foreach ($joinsTb as $joinTb) {
                 // If the joinTb is not a string or empty, we error out
                 if (!is_string_and_not_empty($joinTb)) {
@@ -4811,6 +4819,15 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                 // and the tables and columns we have validated above.
                 $joinType = $validJoinTypes[$joinType];
                 $joinsStr .= "$joinType $joinTable ON $table1.$table1Col = $table2.$table2Col ";
+            }
+
+            // You cannot SELECT more Tables than you have
+            // joined (but the reverse is possible!)
+            if (count($currentlySelectedTbs) > count($joinedTables)) {
+                cli_err_syntax_without_exit("You cannot SELECT more Tables than you have joined in `JOINS_ON` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
+                cli_info_without_exit("Currently Selected Tables are: " . implode(", ", quotify_elements($currentlySelectedTbs)) . ".");
+                cli_info_without_exit("Currently Joined Tables are: `" . implode("->", $joinedTables) . "`.");
+                cli_info("Following Tables must be joined in `JOINS_ON` Key: " . implode(", ", quotify_elements(array_diff($currentlySelectedTbs, $joinedTables))) . " OR remove them from the `SELECT` Key!");
             }
 
             // Remove last ",\n" from the $joinsStr if it exists
@@ -6700,7 +6717,7 @@ function cli_create_sql_file_and_or_handler()
         $queryTypePart .= "',\n\t\t";
 
         // We now add the 'JOINS' which is OPTIONAL for every SELECT query!
-        $queryTypePart .= "// 'JOINS_ON' Syntax: `join_type=table2,table1_id,table2_ref_id`\n\t\t// Available Join Types: `inner|i|join|j|ij`,`left|l`,`right|r`\n\t\t'JOINS_ON' => [// Optional, make empty if not joining any tables!";
+        $queryTypePart .= "// 'JOINS_ON' Syntax: `join_type=join_table,table2(table2Col),table1(table1Col)`\n\t\t// Available Join Types: `inner|i|join|j|ij`,`left|l`,`right|r`\n\t\t'JOINS_ON' => [// Optional, make empty if not joining any tables!";
         $queryTypePart .= "\n\t\t\t\t";
 
         // We automatically generate all the possible JOINs (inner default) based
