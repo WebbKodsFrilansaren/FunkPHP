@@ -37,7 +37,7 @@ function s_test5(&$c) // <authors>
 			'authors:id,name',
 		],
 		'WHERE' => '',
-		'GROUP BY' => 'authors:name',
+		'GROUP BY' => 'authors:age',
 		'HAVING' => '',
 		'ORDER BY' => '',
 		'LIMIT' => '',
@@ -60,7 +60,7 @@ function s_test5(&$c) // <authors>
 	];
 
 	return array(
-		'sql' => 'SELECT authors.id AS authors_id, authors.name AS authors_name FROM authors INNER JOIN articles ON authors.id = articles.author_id;',
+		'sql' => 'SELECT authors.id AS authors_id, authors.name AS authors_name FROM authors INNER JOIN articles ON authors.id = articles.author_id GROUP BY authors.age;',
 		'hydrate' =>
 		array(),
 		'bparam' => '',

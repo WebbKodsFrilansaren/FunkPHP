@@ -4924,7 +4924,13 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                             $groupByStr .= "$groupTbName.$groupColName, ";
                         }
                         $groupByStr .= "\n";
+                        continue;
                     }
+
+                    // We end up here when only a single column is specified
+                    // like `table:col` so we just add it directly!
+                    $groupByStr .= "$groupTbName.$groupColNames,\n";
+                    continue;
                 }
             }
             // Remove ", " from the end of $groupByStr if it exists
