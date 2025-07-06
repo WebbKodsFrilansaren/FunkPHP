@@ -34,11 +34,11 @@ function s_test5(&$c) // <authors>
 		],
 		// Optional Keys, leave empty (or remove) if not used!
 		'SELECT' => [
-			'authors:id,name,AVG(age)',
+			'authors:id,name,AVGA(age)',
 		],
 		'WHERE' => '',
 		'GROUP BY' => 'authors:age',
-		'HAVING' => 'AVG(age) > 30',
+		'HAVING' => '',
 		'ORDER BY' => '',
 		'LIMIT' => '',
 		'OFFSET' => '',

@@ -2884,7 +2884,7 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
 
     // We split the $where on "|" string by spaces to get each part or turn the single string into an array
     $where = str_contains(trim($where), "|") ? explode("|", $where) : [$where];
-    $wPartRegex = '/^(\[[A-Za-z_\-0-9]+]|[()=A-Za-z_\-0-9:\*]+)\s+(\[[A-Za-z_\-0-9]+]|[+\-*\/%=&|^!<>]+|ALL|AND|BETWEEN|EXISTS|IN|LIKE|NOT|SOME)\s+(.*)$/';
+    $wPartRegex = '/^(\[[A-Za-z_\-0-9]+]|COUNT\(DISTINCT [a-zA-Z0-9\-_:=]+\)|[()=A-Za-z_\-0-9:\*]+)\s+(\[[A-Za-z_\-0-9]+]|[+\-*\/%=&|^!<>]+|ALL|AND|BETWEEN|EXISTS|IN|LIKE|NOT|SOME)\s+(.*)$/i';
 
     // Regexes for Aggregate Functions. First to see if it starts with any of the aggregate functions
     // and the second to see if it is a complete aggregate function with a table and/or column name
@@ -3059,23 +3059,26 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
         // and all that!
         if ($whereOrHaving === 'HAVING') {
             if (preg_match($aggregateFunctionsStart, $mCol)) {
-            }
-            if (
-                !in_array($mCol, $uniqueCols, true)
-                && !in_array($mCol, $tbsWithCols, true)
-                && !in_array($mCol, $allAliases, true)
-            ) {
-                cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to columnName/tableName:columnName `$mCol` not being found in the Unique Columns Array, Table with Columns Array or Aliases Array!");
-                cli_info("If you are only using on Table suddenly for your SQL Query, change your `<TABLES>` Key also to only have that one Table OR Write `correctTable:$mCol` exactly in the Condition Clause!");
+                if (preg_match($aggFuncRegex, $mCol, $aggMatches)) {
+                    var_dump($aggMatches);
+
+
+
+
+
+                    if (
+                        !in_array($mCol, $uniqueCols, true)
+                        && !in_array($mCol, $tbsWithCols, true)
+                        && !in_array($mCol, $allAliases, true)
+                    ) {
+                        cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to columnName/tableName:columnName `$mCol` not being found in the Unique Columns Array, Table with Columns Array or Aliases Array!");
+                        cli_info("If you are only using on Table suddenly for your SQL Query, change your `<TABLES>` Key also to only have that one Table OR Write `correctTable:$mCol` exactly in the Condition Clause!");
+                    }
+                } else {
+                    cli_err("[cli_parse_condition_clause_sql]: Invalid Aggregate Function: \"$mCol\" in Query Type: \"$queryType\" due to not being a valid Aggregate Function!");
+                }
             }
         }
-
-
-
-
-
-
-
 
         // Check $mCol is either in $uniqueCols or in $tbsWithCols
         // after first checking if it is just a [Subquery]
@@ -4619,8 +4622,8 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                     $currentlySelectedTbs[] = $selectTbName;
                     foreach ($includedCols as $includedCol) {
                         if (!is_string_and_not_empty($includedCol)) {
-                            cli_err_syntax_without_exit("Invalid Excluded Column Name in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
-                            cli_info("Excluded Column Names must be Non-Empty Strings!");
+                            cli_err_syntax_without_exit("Invalid Included Column Name in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
+                            cli_info("Included Column Names must be Non-Empty Strings!");
                         }
 
                         // SPECIAL CASE FOR EACH `col` in `table` that could have Agg Function as part of its name!
@@ -4712,7 +4715,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
 
                         // Otherwise, just check as regular Table Column!
                         if (!array_key_exists($includedCol, $tables[$selectTbName])) {
-                            cli_err_syntax_without_exit("Excluded Column Name `$includedCol` from SQL Array `$handlerFile.php=>$fnName` not found in Table `$selectTbName`!");
+                            cli_err_syntax_without_exit("Included Column Name `$includedCol` from SQL Array `$handlerFile.php=>$fnName` not found in Table `$selectTbName`!");
                             cli_info("Valid Column Names for Table `$selectTbName` are: " . implode(", ", quotify_elements(array_keys($tables[$selectTbName]))) . ".");
                         }
 
