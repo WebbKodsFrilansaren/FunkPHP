@@ -27,14 +27,14 @@ function s_test5(&$c) // <authors>
 			]
 		],
 		'FROM' => 'authors',
-		// 'JOINS_ON' Syntax: `join_type=join_table,table2(table2Col),table1(table1Col)`
+		// 'JOINS_ON' Syntax: `join_type=table2,table1(table1Col),table2(table2Col)`
 		// Available Join Types: `inner|i|join|j|ij`,`left|l`,`right|r`
 		'JOINS_ON' => [ // Optional, make empty if not joining any tables!
 			'inner=articles,authors(id),articles(author_id)',
 		],
 		// Optional Keys, leave empty (or remove) if not used!
 		'SELECT' => [
-			'authors:id,age',
+			'comments',
 		],
 		'WHERE' => '',
 		'GROUP BY' => 'authors:age',
@@ -60,7 +60,7 @@ function s_test5(&$c) // <authors>
 	];
 
 	return array(
-		'sql' => 'SELECT authors.id AS authors_id, authors.age AS authors_age FROM authors INNER JOIN articles ON authors.id = articles.author_id GROUP BY authors.age;',
+		'sql' => 'SELECT authors.id AS authors_id, authors.name AS authors_name, authors.email AS authors_email, authors.description AS authors_description, authors.longer_description AS authors_longer_description, authors.age AS authors_age, authors.weight AS authors_weight, authors.nickname AS authors_nickname, authors.updated_at AS authors_updated_at FROM authors INNER JOIN articles ON authors.id = articles.author_id GROUP BY authors.age;',
 		'hydrate' =>
 		array(),
 		'bparam' => '',

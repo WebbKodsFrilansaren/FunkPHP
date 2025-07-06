@@ -4233,7 +4233,12 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
     // SELECT
     elseif ($configQTKey === 'SELECT') {
         $selectTbs = $configTBKey ?? null;
+        // SELECTed Tables!
         $currentlySelectedTbs = [];
+        // JOINS_ON-joined Tables which might be needed by
+        // GROUP BY Key to use. You can have more JOINed
+        // Tables than the ones SELECTed in the SELECT Key!
+        $joinedTables = [];
         $allAliases = [];
         // To check for duplicate aliases later since agg functions
         // could be used multiple times on the same table+column(s)!
@@ -4730,7 +4735,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         // if the FROM table is in the SELECT tables and if it is not, we error out
         if (!in_array($fromTb, $currentlySelectedTbs, true)) {
             cli_err_syntax_without_exit("Table Name `$fromTb` from `FROM` Key in SQL Array `$handlerFile.php=>$fnName` not found in `SELECT` Key!");
-            cli_info("Currently SELECTed Tables are: " . implode(", ", quotify_elements($currentlySelectedTbs)) . ".");
+            cli_info("Currently SELECTed Tables are: " . implode(", ", quotify_elements($currentlySelectedTbs)) . " and it needs the Table `$fromTb` included somewhere!");
         }
 
         // PARSING THE "JOINS_ON" Key (the JOINs to perform)
@@ -4761,7 +4766,6 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                 cli_info("The `JOINS_ON` Key must be a Non-Empty List Array representing the JOINs to perform between the Tables in the `SELECT` Key when more than one Table is being SELECTed!");
             }
             $joinsREGEX = '/^([a-zA-Z]+)=([a-zA-Z_0-9]+),([a-zA-Z_0-9]+)\(([a-zA-Z_0-9]+)\),([a-zA-Z_0-9]+)\(([a-zA-Z_0-9]+)\)$/i';
-            $joinedTables = []; // Each table with a valid relationship can only be joined once!
             $joinedTables[] = $fromTb; // We always join the FROM table first
 
             // Iterate through each joinTb in the JOINS_ON Key
@@ -4981,7 +4985,8 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                         // If the Column Name is not in the `uniqueCols` array that means they need to manually write `table:col`
                         if (!in_array($groupColName, $cols['uniqueCols'], true)) {
                             cli_err_syntax_without_exit("Column Name `$groupColName` from `GROUP BY` Key in SQL Array `$handlerFile.php=>$fnName` not found in Unique Column Names Array!");
-                            cli_info("Valid Unique Column Names are: " . implode(", ", quotify_elements($cols['uniqueCols'])) . ".");
+                            cli_info_without_exit("Valid Unique Column Names are: " . implode(", ", quotify_elements($cols['uniqueCols'])) . ".");
+                            cli_info("Alternatively, you can rewrite it as `table:col1,col2,etc` to Group one ore more Column(s) from a Specific Table!");
                         }
                     }
                     $groupByStr .= implode(",", $groupColNames) . ",\n";
@@ -6855,7 +6860,7 @@ function cli_create_sql_file_and_or_handler()
         $queryTypePart .= "',\n\t\t";
 
         // We now add the 'JOINS' which is OPTIONAL for every SELECT query!
-        $queryTypePart .= "// 'JOINS_ON' Syntax: `join_type=join_table,table2(table2Col),table1(table1Col)`\n\t\t// Available Join Types: `inner|i|join|j|ij`,`left|l`,`right|r`\n\t\t'JOINS_ON' => [// Optional, make empty if not joining any tables!";
+        $queryTypePart .= "// 'JOINS_ON' Syntax: `join_type=table2,table1(table1Col),table2(table2Col)`\n\t\t// Available Join Types: `inner|i|join|j|ij`,`left|l`,`right|r`\n\t\t// Example: `inner=books,authors(id),books(author_id)`\n\t\t'JOINS_ON' => [// Optional, make empty if not joining any tables!";
         $queryTypePart .= "\n\t\t\t\t";
 
         // We automatically generate all the possible JOINs (inner default) based
