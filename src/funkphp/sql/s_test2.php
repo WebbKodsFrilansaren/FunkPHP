@@ -8,9 +8,10 @@ namespace FunkPHP\SQL\s_test2;
 // to get an array with SQL Query, Hydration Array and optionally Binded Params below here!
 // IMPORTANT: CMD+S or CTRL+S to autoformat each time function is added!
 
+
 function s_test5(&$c) // <authors>
 {
-	// FunkCLI created 2025-07-05 08:55:40! Keep Closing Curly Bracket on its
+	// FunkCLI created 2025-07-06 08:54:14! Keep Closing Curly Bracket on its
 	// own new line without indentation no comment right after it!
 	// Run the command `php funkcli compile s s_test2=>s_test5`
 	// to get SQL, Hydration & Binded Params in return statement below it!
@@ -18,6 +19,8 @@ function s_test5(&$c) // <authors>
 		'<CONFIG>' => [
 			'<QUERY_TYPE>' => 'SELECT',
 			'<TABLES>' => ['authors'],
+			'<HYDRATION_MODE>' => 'simple|advanced', // Pick one or `simple` is used by default! (leave empty or remove line if not used!)
+			'<HYDRATION_TYPE>' => 'array|object', // Pick one or `array` is used by default! (leave empty or remove line if not used!)
 			'[SUBQUERIES]' => [
 				'[subquery_example_1]' => 'SELECT COUNT(*)',
 				'[subquery_example_2]' => '(WHERE SELECT *)'
@@ -32,7 +35,7 @@ function s_test5(&$c) // <authors>
 		'SELECT' => [
 			'authors:id,name,email,description,longer_description,age,weight,nickname,updated_at',
 		],
-		'WHERE' => '{id = 1}',
+		'WHERE' => '',
 		'GROUP BY' => '',
 		'HAVING' => '',
 		'ORDER BY' => '',
@@ -55,14 +58,7 @@ function s_test5(&$c) // <authors>
 		],
 	];
 
-	return array(
-		'sql' => 'SELECT authors.id AS authors_id, authors.name AS authors_name, authors.email AS authors_email, authors.description AS authors_description, authors.longer_description AS authors_longer_description, authors.age AS authors_age, authors.weight AS authors_weight, authors.nickname AS authors_nickname, authors.updated_at AS authors_updated_at FROM authors WHERE id = 1;',
-		'hydrate' =>
-		array(),
-		'bparam' => '',
-		'fields' =>
-		array(),
-	);
+	return array([]);
 };
 
 return function (&$c, $handler = "s_test3") {

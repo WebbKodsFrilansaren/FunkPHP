@@ -3500,6 +3500,8 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         ],
         '<TABLES>' => [], // The table name as a string
         '[SUBQUERIES]' => [],
+        '<HYDRATION_MODE>' => [],
+        '<HYDRATION_TYPE>' => [],
     ];
 
     // List of keys that are ignored based on query type (this is just to inform the Developer)
@@ -3617,6 +3619,8 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
     $configKey = $sqlArray['<CONFIG>'] ?? null;
     $configQTKey = $configKey['<QUERY_TYPE>'] ?? null;
     $configTBKey = $configKey['<TABLES>'] ?? null;
+    $hydrationKey = $configKey['<HYDRATION_MODE>'] ?? null;
+    $hydrationTypeKey = $configKey['<HYDRATION_TYPE>'] ?? null;
     $configSubQsKey = $configKey['[SUBQUERIES]'] ?? null;
     $cols['subqueries'] = $configSubQsKey ?? null;
     $validFieldsKey = $sqlArray['<MATCHED_FIELDS>'] ?? null;
@@ -3681,6 +3685,16 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                 cli_info("Valid Table Names are: " . implode(", ", quotify_elements(array_keys($tables))) . ".");
             }
         }
+    }
+
+    // <HYDRATION_MODE> & <HYDRATION_TYPE> Keys are only available for `SELECT` Queries!
+    if (isset($hydrationKey) && is_string_and_not_empty($hydrationKey) && $configQTKey !== 'SELECT') {
+        cli_err_syntax_without_exit("Invalid Config Key `<HYDRATION_MODE>` value `$hydrationKey` in SQL Array `$handlerFile.php=>$fnName`!");
+        cli_info("The `<HYDRATION_MODE>` Key is only available for `SELECT` Queries! Please remove it or change the `<QUERY_TYPE>` to `SELECT`.");
+    }
+    if (isset($hydrationTypeKey) && is_string_and_not_empty($hydrationTypeKey) && $configQTKey !== 'SELECT') {
+        cli_err_syntax_without_exit("Invalid Config Key `<HYDRATION_TYPE>` value `$hydrationTypeKey` in SQL Array `$handlerFile.php=>$fnName`!");
+        cli_info("The `<HYDRATION_TYPE>` Key is only available for `SELECT` Queries! Please remove it or change the `<QUERY_TYPE>` to `SELECT`.");
     }
 
     // $cols contains all unique columns and table:col pairs which are used to
@@ -4159,6 +4173,43 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         $orderByTb = $sqlArray['ORDER BY'] ?? null;
         $limitTb = $sqlArray['LIMIT'] ?? null;
         $offsetTb = $sqlArray['OFFSET'] ?? null;
+        $hydrationMode = "";
+        $hydrationType = "";
+
+        // If <HYDRATION_MODE> is set, it should be a string but can be empty or must be
+        // "simple", "advanded" or "simple|advanced" (simple is assumed as default then)
+        if (isset($hydrationKey) && !is_string($hydrationKey)) {
+            cli_err_syntax_without_exit("Invalid <HYDRATION_MODE> Key found in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
+            cli_info("The <HYDRATION_MODE> Key must be a String (leave empty or remove entirely if not used) representing the Hydration Mode!\nValid Values are: `simple`, `advanced` or `simple|advanced`! (here `simple` is assumed as default)");
+        }
+        if (isset($hydrationTypeKey) && !is_string($hydrationTypeKey)) {
+            cli_err_syntax_without_exit("Invalid <HYDRATION_TYPE> Key found in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
+            cli_info("The <HYDRATION_TYPE> Key must be a String (leave empty or remove entirely if not used) representing the Hydration Mode!\nValid Values are: `array`, `object` or `array|object`! (here `array` is assumed as default)");
+        }
+        if (is_string_and_not_empty($hydrationKey)) {
+            $hydrationKey = strtolower($hydrationKey);
+            if (!in_array($hydrationKey, ['simple', 'advanced', 'simple|advanced'], true)) {
+                cli_err_syntax_without_exit("Invalid <HYDRATION_MODE> Key Value found in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
+                cli_info("The <HYDRATION_MODE> Key must be a String (leave empty or remove entirely if not used) representing the Hydration Mode!\nValid Values are: `simple`, `advanced` or `simple|advanced`! (here `simple` is assumed as default)");
+            }
+            if ($hydrationKey === 'simple' || $hydrationKey === 'simple|advanced') {
+                $hydrationMode = "simple";
+            } else {
+                $hydrationMode = "advanced";
+            }
+        }
+        if (is_string_and_not_empty($hydrationTypeKey)) {
+            $hydrationTypeKey = strtolower($hydrationTypeKey);
+            if (!in_array($hydrationTypeKey, ['simple', 'advanced', 'simple|advanced'], true)) {
+                cli_err_syntax_without_exit("Invalid <HYDRATION_MODE> Key Value found in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
+                cli_info("The <HYDRATION_MODE> Key must be a String (leave empty or remove entirely if not used) representing the Hydration Mode!\nValid Values are: `array`, `object` or `array|object`! (here `array` is assumed as default)");
+            }
+            if ($hydrationTypeKey === 'array' || $hydrationTypeKey === 'array|object') {
+                $hydrationType = "array";
+            } else {
+                $hydrationType = "object";
+            }
+        }
 
         // $selectTbs cannot be null or empty array/string
         if (!isset($selectTbs) || empty($selectTbs)) {
@@ -6384,7 +6435,9 @@ function cli_create_sql_file_and_or_handler()
     }
 
     // Default values added to the $DXPART variable
-    $chosenQueryType = "'<CONFIG>' =>[\n\t\t\t'<QUERY_TYPE>' => '$queryType',\n\t\t\t'<TABLES>' => ['" . implode('\',\'', array_keys($tbs)) . "'],";
+    $hydrationModeStr = "\n\t\t\t'<HYDRATION_MODE>' => 'simple|advanced', // Pick one or `simple` is used by default! (leave empty or remove line if not used!)";
+    $hydrationTypeStr = "\n\t\t\t'<HYDRATION_TYPE>' => 'array|object', // Pick one or `array` is used by default! (leave empty or remove line if not used!)";
+    $chosenQueryType = "'<CONFIG>' =>[\n\t\t\t'<QUERY_TYPE>' => '$queryType',\n\t\t\t'<TABLES>' => ['" . implode('\',\'', array_keys($tbs)) . "']," . ($queryType === 'SELECT' ? $hydrationModeStr : "") . ($queryType === 'SELECT' ? $hydrationTypeStr : "");
     $subQueriesEmpty = ($queryType === 'INSERT' || $queryType === 'UPDATE' || $queryType === 'DELETE') ? "" : "\t\t\t\t'[subquery_example_1]' => 'SELECT COUNT(*)',\n\t\t\t\t'[subquery_example_2]' => '(WHERE SELECT *)'";
     $subQueries = "\n\t\t\t'[SUBQUERIES]' => [\n$subQueriesEmpty\t\t\t]\n\t\t],";
     $DXPART = $chosenQueryType . $subQueries;
