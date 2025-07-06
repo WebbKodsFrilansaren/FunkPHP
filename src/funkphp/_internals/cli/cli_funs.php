@@ -3619,7 +3619,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
     $configKey = $sqlArray['<CONFIG>'] ?? null;
     $configQTKey = $configKey['<QUERY_TYPE>'] ?? null;
     $configTBKey = $configKey['<TABLES>'] ?? null;
-    $hydrationKey = $configKey['<HYDRATION_MODE>'] ?? null;
+    $hydrationModeKey = $configKey['<HYDRATION_MODE>'] ?? null;
     $hydrationTypeKey = $configKey['<HYDRATION_TYPE>'] ?? null;
     $configSubQsKey = $configKey['[SUBQUERIES]'] ?? null;
     $cols['subqueries'] = $configSubQsKey ?? null;
@@ -3688,8 +3688,8 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
     }
 
     // <HYDRATION_MODE> & <HYDRATION_TYPE> Keys are only available for `SELECT` Queries!
-    if (isset($hydrationKey) && is_string_and_not_empty($hydrationKey) && $configQTKey !== 'SELECT') {
-        cli_err_syntax_without_exit("Invalid Config Key `<HYDRATION_MODE>` value `$hydrationKey` in SQL Array `$handlerFile.php=>$fnName`!");
+    if (isset($hydrationModeKey) && is_string_and_not_empty($hydrationModeKey) && $configQTKey !== 'SELECT') {
+        cli_err_syntax_without_exit("Invalid Config Key `<HYDRATION_MODE>` value `$hydrationModeKey` in SQL Array `$handlerFile.php=>$fnName`!");
         cli_info("The `<HYDRATION_MODE>` Key is only available for `SELECT` Queries! Please remove it or change the `<QUERY_TYPE>` to `SELECT`.");
     }
     if (isset($hydrationTypeKey) && is_string_and_not_empty($hydrationTypeKey) && $configQTKey !== 'SELECT') {
@@ -3731,7 +3731,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
             continue;
         }
     }
-    $cols['uniqueCols'][] = array_diff($cols['uniqueCols'], $removeDuplicateCols);
+    $cols['uniqueCols'] = array_diff($cols['uniqueCols'], $removeDuplicateCols);
 
     // If "$configSubQsKey" is not null (or empty), we make sure each array key
     // starts and ends with "[" and "]" and that its array element value is a non-empty string
@@ -4156,6 +4156,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
     elseif ($configQTKey === 'SELECT') {
         $selectTbs = $configTBKey ?? null;
         $currentlySelectedTbs = [];
+        $allAliases = [];
         $selectedTbsColsStr = "";
         $joinsStr = "";
         $whereStr = "";
@@ -4178,7 +4179,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
 
         // If <HYDRATION_MODE> is set, it should be a string but can be empty or must be
         // "simple", "advanded" or "simple|advanced" (simple is assumed as default then)
-        if (isset($hydrationKey) && !is_string($hydrationKey)) {
+        if (isset($hydrationModeKey) && !is_string($hydrationModeKey)) {
             cli_err_syntax_without_exit("Invalid <HYDRATION_MODE> Key found in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
             cli_info("The <HYDRATION_MODE> Key must be a String (leave empty or remove entirely if not used) representing the Hydration Mode!\nValid Values are: `simple`, `advanced` or `simple|advanced`! (here `simple` is assumed as default)");
         }
@@ -4186,13 +4187,13 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
             cli_err_syntax_without_exit("Invalid <HYDRATION_TYPE> Key found in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
             cli_info("The <HYDRATION_TYPE> Key must be a String (leave empty or remove entirely if not used) representing the Hydration Mode!\nValid Values are: `array`, `object` or `array|object`! (here `array` is assumed as default)");
         }
-        if (is_string_and_not_empty($hydrationKey)) {
-            $hydrationKey = strtolower($hydrationKey);
-            if (!in_array($hydrationKey, ['simple', 'advanced', 'simple|advanced'], true)) {
-                cli_err_syntax_without_exit("Invalid <HYDRATION_MODE> Key Value found in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
+        if (is_string_and_not_empty($hydrationModeKey)) {
+            $hydrationModeKey = strtolower($hydrationModeKey);
+            if (!in_array($hydrationModeKey, ['simple', 'advanced', 'simple|advanced'], true)) {
+                cli_err_syntax_without_exit("Invalid `<HYDRATION_MODE>` Key Value found in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
                 cli_info("The <HYDRATION_MODE> Key must be a String (leave empty or remove entirely if not used) representing the Hydration Mode!\nValid Values are: `simple`, `advanced` or `simple|advanced`! (here `simple` is assumed as default)");
             }
-            if ($hydrationKey === 'simple' || $hydrationKey === 'simple|advanced') {
+            if ($hydrationModeKey === 'simple' || $hydrationModeKey === 'simple|advanced') {
                 $hydrationMode = "simple";
             } else {
                 $hydrationMode = "advanced";
@@ -4200,8 +4201,8 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         }
         if (is_string_and_not_empty($hydrationTypeKey)) {
             $hydrationTypeKey = strtolower($hydrationTypeKey);
-            if (!in_array($hydrationTypeKey, ['simple', 'advanced', 'simple|advanced'], true)) {
-                cli_err_syntax_without_exit("Invalid <HYDRATION_MODE> Key Value found in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
+            if (!in_array($hydrationTypeKey, ['array', 'object', 'array|object'], true)) {
+                cli_err_syntax_without_exit("Invalid `<HYDRATION_MODE>` Key Value found in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
                 cli_info("The <HYDRATION_MODE> Key must be a String (leave empty or remove entirely if not used) representing the Hydration Mode!\nValid Values are: `array`, `object` or `array|object`! (here `array` is assumed as default)");
             }
             if ($hydrationTypeKey === 'array' || $hydrationTypeKey === 'array|object') {
@@ -4359,6 +4360,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                             $as_name = $as_name . "_$i";
                         }
                         $aggAliases[] = $as_name;
+                        $allAliases[] = $as_name;
                         $selectedTbsColsStr .= strtoupper($aggFunc) . "*) AS " . $as_name . ",\n";
                         continue;
                     }
@@ -4396,6 +4398,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                                 $as_name = $as_name . "_$i";
                             }
                             $aggAliases[] = $as_name;
+                            $allAliases[] = $as_name;
                             // We remove "=" if it is inside of $aggFunc
                             // which is special case for COUNT(DISTINCT=)
                             if (str_contains($aggFunc, '=')) {
@@ -4435,6 +4438,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                     $currentlySelectedTbs[] = $selectTbName;
                     foreach ($tables[$selectTbName] as $colKey => $singleTbCols) {
                         $selectedTbsColsStr .= $selectTbName . ".$colKey AS " . $singleTbCols['joined_name'] . ",\n";
+                        $allAliases[] = $singleTbCols['joined_name'];
                     }
                 } else {
                     cli_err_syntax_without_exit("Table Name `$selectTbName` from `SELECT` Key in SQL Array `$handlerFile.php=>$fnName` has no columns defined in `config/tables.php`!");
@@ -4481,6 +4485,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                         // Only add the column if it is NOT in the excluded columns array
                         if (!in_array($colKey, $excludedCols, true)) {
                             $selectedTbsColsStr .= $selectTbName . ".$colKey AS " . $singleTbCols['joined_name'] . ",\n";
+                            $allAliases[] = $singleTbCols['joined_name'];
                         }
                     }
                 } else {
@@ -4526,6 +4531,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                     foreach ($tables[$selectTbName] as $colKey => $singleTbCols) {
                         if (in_array($colKey, $includedCols, true)) {
                             $selectedTbsColsStr .= $selectTbName . ".$colKey AS " . $singleTbCols['joined_name'] . ",\n";
+                            $allAliases[] = $singleTbCols['joined_name'];
                         }
                     }
                 } else {
@@ -4769,6 +4775,74 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
             if (str_starts_ends_with($orderByTb, "{", "}")) {
                 cli_err_syntax_without_exit("Escaped SQL Syntax (starting & ending with `{}`) is NOT supported in `ORDER BY` Key!");
                 cli_info("Only `WHERE` Keys in UPDATE, DELETE & SELECT Queries support Escaped SQL Syntax!");
+            }
+            // Must be a string it if is set, otherwise we error out
+            if (!is_string($orderByTb)) {
+                cli_err_syntax_without_exit("Invalid `ORDER BY` Key value in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
+                cli_info("The `ORDER BY` Key must be a String representing the Columns to Order by! (leave empty or remove if not used)");
+            }
+            // Only start parsing when it is a Non-Empty String!
+            elseif (is_string($orderByTb) && !empty($orderByTb)) {
+                // Trim string, then split on "|" if it exists
+                // or just turn single string into an array!
+                $orderByTb = trim($orderByTb);
+                if (str_contains($orderByTb, "|")) {
+                    $orderByTb = explode("|", $orderByTb);
+                } else {
+                    $orderByTb = [$orderByTb];
+                }
+                // Iterate through to validate that we can actually order by specific
+                // `table:col,ASC|DESC` OR `table:col ASC|DESC` OR `col,ASC|DESC`!
+                // "NULLS FIRST" & "NULLS LAST" are not supported yet in FunkPHP!
+                $notSupportedYet = ["NULLS FIRST", "NULLS LAST"];
+                $orderByRegex = "/^(([a-zA-Z0-9_]+):)*([a-zA-Z0-9_]+)[ |,]{1}(ASC|DESC)$/";
+                foreach ($orderByTb as $obTB) {
+                    // If $notSupportedYet is found in current string, we error out
+                    if (str_contains($obTB, $notSupportedYet[0]) || str_contains($obTB, $notSupportedYet[1])) {
+                        cli_err_syntax_without_exit("`ORDER BY` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query contains Unsupported Syntax: `$obTB`!");
+                        cli_info("The `ORDER BY` Key does NOT yet support `NULLS FIRST` or `NULLS LAST` Syntax in FunkPHP!");
+                    }
+                    // Check preg_match for current $obTB against the regex
+                    if (!preg_match($orderByRegex, $obTB, $matches)) {
+                        cli_err_syntax_without_exit("Invalid `ORDER BY` Key value `$obTB` in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
+                        cli_info("The `ORDER BY` Key must be a String representing the Columns to Order by in the Format: `table:col ASC|DESC`, `table:col,ASC|DESC`, `col ASC|DESC` or `col,ASC|DESC`!");
+                    }
+                    $obTable = isset($matches[2]) ? $matches[2] : ""; // Table Name if exists
+                    $obCol = $matches[3] ?? null; // Column Name
+                    $obOrder = $matches[4] ?? null; // Order (ASC or DESC)
+                    //  var_dump($obTable, $obCol, $obOrder, $allAliases, $cols['uniqueCols']); // Debugging
+
+                    // If $obTable is empty we assume a unique column OR
+                    // its possible alias from $allAliases Array!
+                    if (empty($obTable)) {
+                        // If the column is not in the unique columns or aliases, we error out
+                        if (!in_array($obCol, $cols['uniqueCols'], true) && !in_array($obCol, $allAliases, true)) {
+                            cli_err_syntax_without_exit("Column `$obCol` from `ORDER BY` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query not found in Unique Columns or Aliases!");
+                            cli_info_without_exit("Valid Unique Columns are: " . implode(", ", quotify_elements($cols['uniqueCols'])) . ".");
+                            cli_info("Valid Unique Aliases are: " . implode(", ", quotify_elements($allAliases)) . ".");
+                        }
+                        // Otherwise we add it to the order by string
+                        $orderByStr .= "$obCol $obOrder, ";
+                    } else {
+                        // If the table is not in the currently selected tables, we error out
+                        if (!in_array($obTable, $currentlySelectedTbs, true)) {
+                            cli_err_syntax_without_exit("Table `$obTable` from `ORDER BY` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query not found in `SELECT` Key!");
+                            cli_info("Currently SELECTed Tables are: " . implode(", ", quotify_elements($currentlySelectedTbs)) . ".");
+                        }
+                        // If the column is not in the table columns, we error out
+                        if (!array_key_exists($obCol, $tables[$obTable])) {
+                            cli_err_syntax_without_exit("Column `$obCol` from `ORDER BY` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query not found in Table `$obTable`!");
+                            cli_info("Valid Columns for Table `$obTable` are: " . implode(", ", quotify_elements(array_keys($tables[$obTable]))) . ".");
+                        }
+                        // Otherwise we add it to the order by string
+                        $orderByStr .= "$obTable.$obCol $obOrder, ";
+                    }
+                }
+
+                // Remove ", " from the end of the $orderByStr if it exists
+                if (str_ends_with($orderByStr, ", ")) {
+                    $orderByStr = substr($orderByStr, 0, -2);
+                }
             }
         }
 

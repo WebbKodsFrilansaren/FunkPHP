@@ -38,7 +38,7 @@ function s_test5(&$c) // <authors>
 		'WHERE' => '',
 		'GROUP BY' => '',
 		'HAVING' => '',
-		'ORDER BY' => '',
+		'ORDER BY' => 'ida,ASC',
 		'LIMIT' => '',
 		'OFFSET' => '',
 		// Optional, leave empty if not used!
@@ -58,7 +58,14 @@ function s_test5(&$c) // <authors>
 		],
 	];
 
-	return array([]);
+	return array(
+		'sql' => 'SELECT authors.id AS authors_id, authors.name AS authors_name, authors.email AS authors_email, authors.description AS authors_description, authors.longer_description AS authors_longer_description, authors.age AS authors_age, authors.weight AS authors_weight, authors.nickname AS authors_nickname, authors.updated_at AS authors_updated_at FROM authors ORDER BY authors.id ASC;',
+		'hydrate' =>
+		array(),
+		'bparam' => '',
+		'fields' =>
+		array(),
+	);
 };
 
 return function (&$c, $handler = "s_test3") {
