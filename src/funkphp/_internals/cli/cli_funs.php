@@ -4545,6 +4545,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         $orderByTb = $sqlArray['ORDER BY'] ?? null;
         $limitTb = $sqlArray['LIMIT'] ?? null;
         $offsetTb = $sqlArray['OFFSET'] ?? null;
+        $hydrationKey = $sqlArray['<HYDRATION>'] ?? null;
         $hydrationMode = "";
         $hydrationType = "";
 
@@ -5565,9 +5566,32 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         // IMPORTANT: This step CAN fail and still generate the SQL String!
         // So, it just gives a strong warning that the hydration failed meaning
         // its value in 'key' will be an empty array instead of actual hydration!
+        $hydratedKey = null;
+        if (isset($hydrationKey)) {
+            // HERE PARSING ACTUALLY BEGINS WHEN IT IS A NON-EMPTY ARRAY!
+            if (is_array($hydrationKey) && !empty($hydrationKey)) {
+                // PARSE "SIMPLE" Hydration Mode
+                if ($hydrationMode === 'simple' || $hydrationMode === 'simple|advanced') {
+                }
+                // PARSE "ADVANCED" Hydration Mode
+                elseif ($hydrationMode === 'advanced') {
+                }
+                // This should not happen, but if it does, we error out without exit
+                else {
+                    cli_err_syntax_without_exit("Invalid Hydration Mode `$hydrationMode` in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
+                    cli_info_without_exit("Valid Hydration Modes are: `simple`, `advanced` or `simple` is used by default when `simple|advanced` is set!");
+                }
+            }
+            // If not array, empty or just invalid data type,
+            // we warn the user that no hydration parsing was made!
+            else {
+                cli_warning_without_exit("The `<HYDRATION>` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query Type was NOT set or is Empty! (or invalid Data Type - no attempt were made to parse it due to invalid Data Type; must be an Array)");
+                cli_info_without_exit("Hydration will not be applied to the results of this query!");
+            }
+        }
         $convertedSQLArray['hydrate']['mode'] = $hydrationMode;
         $convertedSQLArray['hydrate']['type'] = $hydrationType;
-        $convertedSQLArray['hydrate']['key'] = [];
+        $convertedSQLArray['hydrate']['key'] = $hydratedKey;
 
         // Report success and inform about ignored keys
         cli_success_without_exit("Built SQL String: `$builtSQLString`");

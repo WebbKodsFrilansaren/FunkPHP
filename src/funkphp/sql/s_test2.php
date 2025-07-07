@@ -65,8 +65,7 @@ function s_test5(&$c) // <authors>
 		array(
 			'mode' => 'simple',
 			'type' => 'array',
-			'key' =>
-			array(),
+			'key' => NULL,
 		),
 		'bparam' => '',
 		'fields' =>
