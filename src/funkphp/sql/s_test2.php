@@ -38,7 +38,7 @@ function s_test5(&$c) // <authors>
 		],
 		'WHERE' => '',
 		'GROUP BY' => 'authors:age',
-		'HAVING' => 'AVG(name) > 20',
+		'HAVING' => 'AVG(avg_authors_age) > 30.5',
 		'ORDER BY' => '',
 		'LIMIT' => '',
 		'OFFSET' => '',
@@ -59,14 +59,16 @@ function s_test5(&$c) // <authors>
 		],
 	];
 
-	return array(
-		'sql' => 'SELECT authors.id AS authors_id, authors.name AS authors_name, AVG(authors.age) AS avg_authors_age FROM authors INNER JOIN articles ON authors.id = articles.author_id GROUP BY authors.age HAVING authors.age > 20;',
-		'hydrate' =>
-		array(),
-		'bparam' => '',
-		'fields' =>
-		array(),
-	);
+	return array (
+  'sql' => 'SELECT authors.id AS authors_id, authors.name AS authors_name, AVG(authors.age) AS avg_authors_age FROM authors INNER JOIN articles ON authors.id = articles.author_id GROUP BY authors.age HAVING AVG(avg_authors_age) > 30.5;',
+  'hydrate' => 
+  array (
+  ),
+  'bparam' => '',
+  'fields' => 
+  array (
+  ),
+);
 };
 
 return function (&$c, $handler = "s_test3") {

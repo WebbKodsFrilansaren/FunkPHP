@@ -2774,7 +2774,8 @@ function cli_compile_dx_validation_to_optimized_validation()
 
 
 // Simple Helper function that validates that a $binding (i, d, s or b)
-// is correct based on provided $value. Returns true or false.
+// is correct based on provided $value. Returns true or false. Value
+// "?" is always true, meaning it is a placeholder for any value!
 function cli_validate_correct_binding_with_provided_value($binding, $value)
 {
     // Both variables must be non empty strings! However, we do cast $value to string
@@ -2786,10 +2787,14 @@ function cli_validate_correct_binding_with_provided_value($binding, $value)
     }
     // $binding must be one of the following: i, d, s, b
     // i = integer, d = double/float, s = string, b = blob
-    if (!in_array($binding, ['i', 'd', 's', 'b'], true)) {
+    // '?' is placeholder which means it is always true!
+    if (!in_array($binding, ['i', 'd', 's', 'b',], true)) {
         cli_err("[cli_validate_correct_binding_with_provided_value]: Expects a valid binding type as input for `\$binding`! (i, d, s or b)");
         cli_info("This might mean that the \"\$DX\" variable is an Empty Array, or not a String at all?");
     }
+    // If value is "?" then it is always true
+    if ($value === '?') return true;
+
     // Validate binding types: String
     if ($binding === 's') {
         if (is_string($value)) {
@@ -3180,6 +3185,11 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
         if ($whereOrHaving === 'HAVING') {
             if (preg_match($aggregateFunctionsStart, $mCol)) {
                 if (preg_match($aggFuncRegex, $mCol, $aggMatches)) {
+                    // There are 4 different cases now to handle in following order to add the parsed Condition Clause String:
+                    // 1. Aggregate Function with Table and/or Column Name (table:col)
+                    // 2. Aggregate Function with just table_col Alias Name
+                    // 3. Aggregate Function with just agg_func Alias Name (agg_func_table_col unless count(*), then count_table)
+                    // 4. Aggregate Function with just Column Name (col)
                     $aggName = strtolower($aggMatches[1]) ?? null;
                     $aggTbAndOrCol = strtolower($aggMatches[2]) ?? null;
                     // If the Aggregate Function is not in the valid starts
@@ -3188,23 +3198,57 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
                         cli_err_without_exit("[cli_parse_condition_clause_sql - on HAVING Key]: Invalid Aggregate Function: \"$mCol\" in Query Type: \"$queryType\" due to not being a valid Aggregate Function!");
                         cli_info("Valid Aggregate Functions start with: " . strtoupper(implode(", ", quotify_elements(array_keys($aggFuncValidStarts)))) . "!");
                     }
-
-                    // There are 4 different cases now to handle in following order to add the parsed Condition Clause String:
-                    // 1. Aggregate Function with Table and/or Column Name (table:col)
-                    // 2. Aggregate Function with just table_col Alias Name
-                    // 3. Aggregate Function with just agg_func Alias Name (agg_func_table_col unless count(*), then count_table)
-                    // 4. Aggregate Function with just Column Name (col)
-
-                    // Case 1: Aggregate Function with Table and/or Column Name (table:col)
-                    if (str_contains($aggTbAndOrCol, ':')) {
-                        $existingTb = cli_find_valid_tb_col_and_binding_or_return_null($tbs, $aggTbAndOrCol);
-                        var_dump($existingTb);
+                    // Validate its Table and Column exist in the global Aliases Table and Column Array
+                    // (it includes both regular aliases and aggregate function aliases!)
+                    if (!isset($aliasesTbCol[$aggTbAndOrCol])) {
+                        cli_err_without_exit("[cli_parse_condition_clause_sql - on HAVING Key]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to Aggregate Function: \"$aggName\" not having a valid Table|Table_Col|Alias Name: `$aggTbAndOrCol` in the Aliases Table & Column Array!");
+                        cli_info("Valid Aliases Array is: " . implode(", ", quotify_elements(array_keys($aliasesTbCol))) . "!");
                     }
-                    // Case 2: Just Column Name (col)
-                    elseif (!str_contains($aggTbAndOrCol, ':')) {
-                        $existingTb = cli_find_valid_tb_col_and_binding_or_return_null($tbs, $aggTbAndOrCol);
-                        var_dump($existingTb);
+                    // Aggregate Function is SUM or AVG meaning we need to check that $mValue is numerical OR ?
+                    if (str_starts_with($aggName, "avg(") || str_starts_with($aggName, "sum(")) {
+                        if (!is_numeric($mValue) && $mValue !== '?') {
+                            cli_err_without_exit("[cli_parse_condition_clause_sql - on HAVING Key]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to Aggregate Function: \"$aggName\" expecting a Numerical Value or '?' but got: \"$mValue\" for `$aggTbAndOrCol`!");
+                            cli_info("Either Change the Value to a Numerical Value or '?' or change the Aggregate Function to something else that does not require a Numerical Value!");
+                        }
                     }
+                    // Validate that $mOperator is a valid operator
+                    if (!in_array($mOperator, $mysqlOperatorSyntax['all_except_worded'])) {
+                        cli_err_without_exit("[cli_parse_condition_clause_sql - on HAVING Key]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to Aggregate Function: \"$aggName\" expecting a valid Operator but got: \"$mOperator\"!");
+                        cli_info("Valid Operators are: " . implode(", ", quotify_elements($mysqlOperatorSyntax['all'])) . "! (excluding the Worded Operators in the HAVING Key case!)");
+                    }
+                    $binding = cli_find_valid_tb_col_and_binding_or_return_null($tbs, ($aliasesTbCol[$aggTbAndOrCol]['tb'] ?? "<UNKNOWN_TABLE>") . ":" . ($aliasesTbCol[$aggTbAndOrCol]['col'] ?? "<UNKNOWN_COLUMN>"));
+                    if (!$binding['found']) {
+                        cli_err_without_exit("[cli_parse_condition_clause_sql - on HAVING Key]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to Aggregate Function: \"$aggName\" not having a valid Table|Table_Col|Alias Name: `$aggTbAndOrCol` in the Aliases Table & Column Array!");
+                        cli_info("Valid Aliases Array is: " . implode(", ", quotify_elements(array_keys($aliasesTbCol))) . "!");
+                    }
+                    // No binding found when it should though
+                    if (!isset($binding['binding'])) {
+                        cli_err_without_exit("[cli_parse_condition_clause_sql - on HAVING Key]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to Aggregate Function: \"$aggName\" not having a Valid Binding Type for Value: `$mValue` (binding type is missing/null)!");
+                        cli_info("Valid Binding Types are: " . implode(", ", quotify_elements(['i', 'd', 's', 'b'])) . "!");
+                    }
+
+                    // If TableCol's binding is numeric and its value is then we know it is valid binding type with value!
+                    if (($binding['binding'] === 'i' || $binding['binding'] === 'd') && is_numeric($mValue)) {
+                        // Empty so "else" does not execeute!
+                    }
+                    // Otherwise we check! (always returns true when $mValue is '?')
+                    else {
+                        $validValueBinding = cli_validate_correct_binding_with_provided_value($binding['binding'], $mValue);
+                        if (!$validValueBinding) {
+                            cli_err_without_exit("[cli_parse_condition_clause_sql - on HAVING Key]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to Aggregate Function: \"$aggName\" not having a Valid Binding Type for Value: `$mValue`!");
+                            cli_info("`$mValue` might be Blob or String when it should be Numeric or vice versa. Valid Binding Types are: " . implode(", ", quotify_elements(['i', 'd', 's', 'b'])) . "!");
+                        }
+                    }
+                    // Finally we can add to the parsed condition for HAVING Key!
+                    if (!empty($specialSyntax)) {
+                        if ($parsedCondition !== ' ' && str_contains($specialSyntax, "(")) {
+                            $parsedCondition .= " ";
+                        }
+                        $parsedCondition .= " " . $specialSyntax;
+                    }
+                    $aggName = strtoupper($aggName);
+                    $parsedCondition .= " $aggName$aggTbAndOrCol) $mOperator $mValue ";
+                    continue;
                 } else {
                     cli_err("[cli_parse_condition_clause_sql - on HAVING Key]: Invalid Aggregate Function: \"$mCol\" in Query Type: \"$queryType\" due to not being a valid Aggregate Function!");
                 }
@@ -4878,7 +4922,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                         // Here we just add the column to the selectedTbsColsStr since we know it exists!
                         $selectedTbsColsStr .= $selectTbName . ".$includedCol AS " . $tables[$selectTbName][$includedCol]['joined_name'] . ",\n";
                         $allAliases[] = $tables[$selectTbName][$includedCol]['joined_name'];
-                        $aliasesTbCol[$as_name] = [
+                        $aliasesTbCol[$tables[$selectTbName][$includedCol]['joined_name']] = [
                             'tb' => $selectTbName,
                             'col' => $includedCol,
                         ];
