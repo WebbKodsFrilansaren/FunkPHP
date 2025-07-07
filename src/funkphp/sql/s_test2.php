@@ -39,7 +39,7 @@ function s_test5(&$c) // <authors>
 		'WHERE' => 'authors:id > ?',
 		'GROUP BY' => '',
 		'HAVING' => '',
-		'ORDER BY' => '? ASC',
+		'ORDER BY' => '',
 		'LIMIT' => '',
 		'OFFSET' => '',
 		// Optional, leave empty if not used!
@@ -60,13 +60,14 @@ function s_test5(&$c) // <authors>
 	];
 
 	return array(
-		'sql' => 'SELECT authors.id AS authors_id, authors.name AS authors_name, AVG(authors.age) AS avg_authors_age FROM authors INNER JOIN articles ON authors.id = articles.author_id WHERE authors.id > ? ORDER BY name ASC;',
+		'sql' => 'SELECT authors.id AS authors_id, authors.name AS authors_name, AVG(authors.age) AS avg_authors_age FROM authors INNER JOIN articles ON authors.id = articles.author_id WHERE authors.id > ? AND authors.id < ?;',
 		'hydrate' =>
 		array(),
-		'bparam' => 'i',
+		'bparam' => 'ii',
 		'fields' =>
 		array(
 			0 => 'authors_id',
+			1 => 'authors_id_1',
 		),
 	);
 };
