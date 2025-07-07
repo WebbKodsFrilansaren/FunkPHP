@@ -2772,7 +2772,6 @@ function cli_compile_dx_validation_to_optimized_validation()
     }
 }
 
-
 // Simple Helper function that validates that a $binding (i, d, s or b)
 // is correct based on provided $value. Returns true or false. Value
 // "?" is always true, meaning it is a placeholder for any value!
@@ -5272,7 +5271,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
 
         // PARSING THE OPTIONAL Keys "GROUP_BY" & "HAVING" (the GROUP BY clause
         // to group results and HAVING clause to filter grouped results)
-        if (isset($groupByTb)) {
+        if (isset($groupByTb) && is_string($groupByTb) && !empty($groupByTb)) {
             if (!is_string($groupByTb)) {
                 cli_err_syntax_without_exit("Invalid `GROUP BY` Key value in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
                 cli_info("The `GROUP BY` Key must be a String representing the Columns to Group by! (leave empty or remove if not used)\nSyntax Examples:\n`table:col1,col2`|`col1,col2` (to Group by Columns from a Single Table) OR\n`table1:col1|table2:col2` (to Group by Columns from Multiple Tables).");
@@ -5414,8 +5413,13 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                 // `table:col,ASC|DESC` OR `table:col ASC|DESC` OR `col,ASC|DESC`!
                 // "NULLS FIRST" & "NULLS LAST" are not supported yet in FunkPHP!
                 $notSupportedYet = ["NULLS FIRST", "NULLS LAST"];
-                $orderByRegex = "/^(([a-zA-Z0-9_]+):)*([a-zA-Z0-9_]+)[ |,]{1}(ASC|DESC)$/";
+                $orderByRegex = "/^(([a-zA-Z0-9_]+):)*(\?|[a-zA-Z0-9_]+)[ |,]{1}(ASC|DESC)$/i";
                 foreach ($orderByTb as $obTB) {
+                    if (str_contains($obTB, "?")) {
+                        cli_err_syntax_without_exit("`ORDER BY` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query contains the `?` Placeholder!");
+                        cli_info_without_exit("The `ORDER BY` Key does NOT support `?` Placeholder Syntax!");
+                        cli_info("Following SQL Key(s) Support the Placeholder `?`:\n" . implode(",\n", quotify_elements(["WHERE", "HAVING", "SET", "VALUES"])) . ".");
+                    }
                     // If $notSupportedYet is found in current string, we error out
                     if (str_contains($obTB, $notSupportedYet[0]) || str_contains($obTB, $notSupportedYet[1])) {
                         cli_err_syntax_without_exit("`ORDER BY` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query contains Unsupported Syntax: `$obTB`!");
@@ -5435,7 +5439,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                     if (empty($obTable)) {
                         // If the column is not in the unique columns or aliases, we error out
                         if (!in_array($obCol, $cols['uniqueCols'], true) && !in_array($obCol, $allAliases, true)) {
-                            cli_err_syntax_without_exit("Column `$obCol` from `ORDER BY` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query not found in Unique Columns or Aliases!");
+                            cli_err_syntax_without_exit("Column `$obCol` from `ORDER BY` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query not found in Unique Columns or Aliases! (not being unique means it is ambiguous to what Table it belongs to)");
                             cli_info_without_exit("Valid Unique Columns are:\n" . implode(",\n", quotify_elements($cols['uniqueCols'])) . ".");
                             cli_info("Valid Unique Aliases are:\n" . implode(",\n", quotify_elements($allAliases)) . ".");
                         }
