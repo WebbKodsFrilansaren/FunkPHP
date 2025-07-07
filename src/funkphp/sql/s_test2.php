@@ -9,9 +9,11 @@ namespace FunkPHP\SQL\s_test2;
 // IMPORTANT: CMD+S or CTRL+S to autoformat each time function is added!
 
 
-function s_test5(&$c) // <authors>
+
+
+function s_test5(&$c) // <authors,articles,comments>
 {
-	// FunkCLI created 2025-07-06 08:54:14! Keep Closing Curly Bracket on its
+	// FunkCLI created 2025-07-07 18:06:23! Keep Closing Curly Bracket on its
 	// own new line without indentation no comment right after it!
 	// Run the command `php funkcli compile s s_test2=>s_test5`
 	// to get SQL, Hydration & Binded Params in return statement below it!
@@ -29,12 +31,16 @@ function s_test5(&$c) // <authors>
 		'FROM' => 'authors',
 		// 'JOINS_ON' Syntax: `join_type=table2,table1(table1Col),table2(table2Col)`
 		// Available Join Types: `inner|i|join|j|ij`,`left|l`,`right|r`
+		// Example: `inner=books,authors(id),books(author_id)`
 		'JOINS_ON' => [ // Optional, make empty if not joining any tables!
-			'inner=articles,authors(id),articles(author_id)',
+			'inner=comments,authors(id),comments(author_id)',
+			'inner=articles,comments(article_id),articles(id)',
 		],
 		// Optional Keys, leave empty (or remove) if not used!
 		'SELECT' => [
-			'authors:id,name,age',
+			'authors:id,name,email,description,longer_description,age,weight,nickname,updated_at',
+			'articles:id,author_id,title,content,published,created_at,updated_at',
+			'comments:id,article_id,content,author_id,created_at',
 		],
 		'WHERE' => '',
 		'GROUP BY' => '',
@@ -47,20 +53,32 @@ function s_test5(&$c) // <authors>
 		// What each Binded Param must match from a Validated Data
 		// Field Array (empty means same as TableName_ColumnKey)
 		'<MATCHED_FIELDS>' => [
-			'id' => '',
-			'name' => '',
-			'email' => '',
-			'description' => '',
-			'longer_description' => '',
-			'age' => '',
-			'weight' => '',
-			'nickname' => '',
-			'updated_at' => ''
+			'authors_id' => '',
+			'authors_name' => '',
+			'authors_email' => '',
+			'authors_description' => '',
+			'authors_longer_description' => '',
+			'authors_age' => '',
+			'authors_weight' => '',
+			'authors_nickname' => '',
+			'authors_updated_at' => '',
+			'articles_id' => '',
+			'articles_author_id' => '',
+			'articles_title' => '',
+			'articles_content' => '',
+			'articles_published' => '',
+			'articles_created_at' => '',
+			'articles_updated_at' => '',
+			'comments_id' => '',
+			'comments_article_id' => '',
+			'comments_content' => '',
+			'comments_author_id' => '',
+			'comments_created_at' => ''
 		],
 	];
 
 	return array(
-		'sql' => 'SELECT authors.id AS authors_id, authors.name AS authors_name, authors.age AS authors_age FROM authors INNER JOIN articles ON authors.id = articles.author_id;',
+		'sql' => 'SELECT authors.id AS authors_id, authors.name AS authors_name, authors.email AS authors_email, authors.description AS authors_description, authors.longer_description AS authors_longer_description, authors.age AS authors_age, authors.weight AS authors_weight, authors.nickname AS authors_nickname, authors.updated_at AS authors_updated_at, articles.id AS articles_id, articles.author_id AS articles_author_id, articles.title AS articles_title, articles.content AS articles_content, articles.published AS articles_published, articles.created_at AS articles_created_at, articles.updated_at AS articles_updated_at, comments.id AS comments_id, comments.article_id AS comments_article_id, comments.content AS comments_content, comments.author_id AS comments_author_id, comments.created_at AS comments_created_at FROM authors INNER JOIN comments ON authors.id = comments.author_id INNER JOIN articles ON comments.article_id = articles.id;',
 		'hydrate' =>
 		array(
 			'mode' => 'simple',

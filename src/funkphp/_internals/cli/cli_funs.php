@@ -7349,7 +7349,7 @@ function cli_create_sql_file_and_or_handler()
     if (!file_exists($handlersDir . $handlerFile . ".php")) {
         $outputHandlerRoute = file_put_contents(
             $handlersDir . $handlerFile . ".php",
-            "<?php\nnamespace FunkPHP\SQL\\$handlerFile;\n// SQL Handler File - Created in FunkCLI on $date!\n// Write your SQL Query, Hydration & optional Binded Params in the\n// \$DX variable and then run the command\n// `php funkcli compile s $handlerFile=>\$function_name`\n// to get an array with SQL Query, Hydration Array and optionally Binded Params below here!\n// IMPORTANT: CMD+S or CTRL+S to autoformat each time function is added!\n\nfunction $fnName(&\$c) // <$usedTables>\n{\n$sqlLimiterStrings\n};\n\nreturn function (&\$c, \$handler = \"$fnName\") { $handlerBaseFullString \n};"
+            "<?php\nnamespace FunkPHP\SQL\\$handlerFile;\n// SQL Handler File - Created in FunkCLI on $date!\n// Write your SQL Query, Hydration & optional Binded Params in the\n// \$DX variable and then run the command\n// `php funkcli compile s $handlerFile=>\$function_name`\n// to get an array with SQL Query, Hydration Array and optionally Binded Params below here!\n// IMPORTANT: CMD+S or CTRL+S to autoformat each time function is added!\nfunction $fnName(&\$c) // <$usedTables>\n{\n$sqlLimiterStrings\n};\n\nreturn function (&\$c, \$handler = \"$fnName\") { $handlerBaseFullString \n};"
         );
         if ($outputHandlerRoute) {
             cli_success_without_exit("Added SQL Handler \"funkphp/$handlerDirPath/$handlerFile.php\" with SQL Function \"$fnName\" in \"funkphp/sql/$handlerFile.php\" with Query Type \"$queryType\" using Tables:\"$usedTables\"!");
