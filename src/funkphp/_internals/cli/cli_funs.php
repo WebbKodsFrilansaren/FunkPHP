@@ -1032,7 +1032,7 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
                 // Check that config rule is valid ($globalConfigRules) or err out
                 if (!isset($globalConfigRules[$configKey])) {
                     cli_err_syntax_without_exit("Invalid Global Config Rule `$configKey` found in Validation `$handlerFile.php=>$fnName`!");
-                    cli_info("Use any - once - of the following available Global Config Rules: " . implode(", ", quotify_elements($globalConfigRules)) . "!");
+                    cli_info("Use any - once - of the following available Global Config Rules:\n" . implode(",\n", quotify_elements($globalConfigRules)) . "!");
                 }
 
                 // NOW WE ADD THE CONFIG RULES THAT EXIST!
@@ -1666,7 +1666,7 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
                     && !in_array($ruleName, $allowedOtherRulesForSpecificDataTypeRule['email'])
                 ) {
                     cli_err_syntax_without_exit("The `email` Rule for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` cannot have the `$ruleName` Rule!");
-                    cli_info("The `email` Rule can ONLY have the following additional Rules: " . implode(", ", quotify_elements($allowedOtherRulesForSpecificDataTypeRule['email'])) . "!");
+                    cli_info("The `email` Rule can ONLY have the following additional Rules:\n" . implode(",\n", quotify_elements($allowedOtherRulesForSpecificDataTypeRule['email'])) . "!");
                 }
             }
             // Check if the 'max' value is lower than 6 then we warn that the email would be
@@ -1732,7 +1732,7 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
                     foreach ($dateChars as $char) {
                         if (!in_array($char, $validDateFormatCharacters)) {
                             cli_err_syntax_without_exit("Invalid Date Format Character `$char` in `date` Rule for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
-                            cli_info("The `date` Rule Value must only use valid date format characters: " . implode(", ", quotify_elements($validDateFormatCharacters)) . ". Character list is based on: https://www.php.net/manual/en/datetime.format.php");
+                            cli_info("The `date` Rule Value must only use valid date format characters:\n" . implode(",\n", quotify_elements($validDateFormatCharacters)) . ". Character list is based on: https://www.php.net/manual/en/datetime.format.php");
                         }
                     }
                 } elseif (is_array($dateValue)) {
@@ -1741,7 +1741,7 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
                         foreach ($subChars as $char) {
                             if (!in_array($char, $validDateFormatCharacters)) {
                                 cli_err_syntax_without_exit("Invalid Date Format Character `$char` in `date` Rule for `$currentDXKey` in Validation `$handlerFile.php=>$fnName`!");
-                                cli_info("The `date` Rule Value must only use valid date format characters: " . implode(", ", quotify_elements($validDateFormatCharacters)) . ". Character list is based on: https://www.php.net/manual/en/datetime.format.php");
+                                cli_info("The `date` Rule Value must only use valid date format characters:\n" . implode(",\n", quotify_elements($validDateFormatCharacters)) . ". Character list is based on: https://www.php.net/manual/en/datetime.format.php");
                             }
                         }
                     }
@@ -1790,7 +1790,7 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
                     && !in_array($ruleName, $allowedOtherRulesForSpecificDataTypeRule['digit'])
                 ) {
                     cli_err_syntax_without_exit("The `digit` Rule for `$currentDXKey` in Validation `$handlerFile.php=>$fnName` cannot have the `$ruleName` Rule!");
-                    cli_info("The `digit` Rule can ONLY have the following additional Rules: " . implode(", ", quotify_elements($allowedOtherRulesForSpecificDataTypeRule['digit'])) . "!");
+                    cli_info("The `digit` Rule can ONLY have the following additional Rules:\n" . implode(",\n", quotify_elements($allowedOtherRulesForSpecificDataTypeRule['digit'])) . "!");
                 }
             }
         }
@@ -3110,7 +3110,7 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
             foreach ($specialSyntaxStart as $specialStart) {
                 if (str_starts_with($wPart, $specialStart)) {
                     cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to starting with a special syntax start: \"$specialStart\"!");
-                    cli_info("The first part of the Condition clause cannot start with a special syntax start like: " . implode(", ", quotify_elements($specialSyntaxStart)) . "! If you wanna use a [SubQuery] you should start with `[` and end with `]`!");
+                    cli_info("The first part of the Condition clause cannot start with a special syntax start like:\n" . implode(",\n", quotify_elements($specialSyntaxStart)) . "! If you wanna use a [SubQuery] you should start with `[` and end with `]`!");
                 }
             }
         }
@@ -3142,7 +3142,7 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
         $wMatch = preg_match($wPartRegex, trim($wPart), $wMatches);
         if (!$wMatch) {
             cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to no match at all!");
-            cli_info("This might be due to a missing/invalid operator. Valid Operators:\n" . implode(", ", quotify_elements($mysqlOperatorSyntax['all'])) . "!");
+            cli_info("This might be due to a missing/invalid operator. Valid Operators:\n" . implode(",\n", quotify_elements($mysqlOperatorSyntax['all'])) . "!");
         }
         if ($wMatches[1] === null || $wMatches[2] === null || $wMatches[3] === null) {
             cli_err("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to one or more parts being null (Table with Column Name or Table Column Name, Operator, and/or Value)!");
@@ -3199,14 +3199,14 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
                     // array then it is not a valid Aggregate Function!
                     if (!isset($aggFuncValidStarts[$aggName])) {
                         cli_err_without_exit("[cli_parse_condition_clause_sql - on HAVING Key]: Invalid Aggregate Function: \"$mCol\" in Query Type: \"$queryType\" due to not being a valid Aggregate Function!");
-                        cli_info("Valid Aggregate Functions start with: " . strtoupper(implode(", ", quotify_elements(array_keys($aggFuncValidStarts)))) . "!");
+                        cli_info("Valid Aggregate Functions start with:\n" . strtoupper(implode(",\n", quotify_elements(array_keys($aggFuncValidStarts)))) . "!");
                     }
                     // If it contains ":" we assume "table:col" so we just replace ":" with "_"
                     // and then check if it is a valid table:col or alias name!
                     if (str_contains($aggTbAndOrCol, ":")) {
                         if (!in_array($aggTbAndOrCol, $validCols['table:col'], true)) {
                             cli_err_without_exit("[cli_parse_condition_clause_sql - on HAVING Key]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to Aggregate Function: \"$aggName\" not having a valid Table:Col Name: `$aggTbAndOrCol` in the Table and Column Array!");
-                            cli_info("Valid Table and Column Array is: " . implode(", ", quotify_elements($validCols['table:col'])) . "!");
+                            cli_info("Valid Table and Column Array is:\n" . implode(",\n", quotify_elements($validCols['table:col'])) . "!");
                         }
                         $aggTbAndOrCol = str_replace(":", "_", $aggTbAndOrCol);
                         if (!isset($aliasesTbCol)) {
@@ -3226,12 +3226,12 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
                         if (isset($aggFuncAliasValidStarts)) {
                         } elseif (!in_array($aggTbAndOrCol, $validCols['uniqueCols'], true)) {
                             cli_err_without_exit("[cli_parse_condition_clause_sql - on HAVING Key]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to Aggregate Function: \"$aggName\" not having a valid Column Name: `$aggTbAndOrCol` in the Unique Columns Array!");
-                            cli_info("Valid Unique Columns Array is: " . implode(", ", quotify_elements($validCols['uniqueCols'])) . "! (`$aggTbAndOrCol` not being here means it could be ambigious to match Column to Table)");
+                            cli_info("Valid Unique Columns Array is:\n" . implode(",\n", quotify_elements($validCols['uniqueCols'])) . "! (`$aggTbAndOrCol` not being here means it could be ambigious to match Column to Table)");
                         }
                         $findTbToCol = cli_find_valid_tb_col_and_binding_or_return_null($tbs, $aggTbAndOrCol);
                         if (!$findTbToCol['found']) {
                             cli_err_without_exit("[cli_parse_condition_clause_sql - on HAVING Key]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to Aggregate Function: \"$aggName\" not having a valid Table|Table_Col|Alias Name: `$aggTbAndOrCol` in the Aliases Table & Column Array!");
-                            cli_info("Valid Aliases Array is: " . implode(", ", quotify_elements(array_keys($aliasesTbCol))) . "!");
+                            cli_info("Valid Aliases Array is:\n" . implode(",\n", quotify_elements(array_keys($aliasesTbCol))) . "!");
                         } else {
                             $aggTbAndOrCol = $findTbToCol['found_table'] . "_" . $findTbToCol['found_col'];
                             if (!isset($aliasesTbCol)) {
@@ -3247,7 +3247,7 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
                     // (it includes both regular aliases and aggregate function aliases!)
                     if (!isset($aliasesTbCol[$aggTbAndOrCol])) {
                         cli_err_without_exit("[cli_parse_condition_clause_sql - on HAVING Key]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to Aggregate Function: \"$aggName\" not having a valid Table|Table_Col|Alias Name: `$aggTbAndOrCol` in the Aliases Table & Column Array!");
-                        cli_info("Valid Aliases Array ais: " . implode(", ", quotify_elements(array_keys($aliasesTbCol))) . "!");
+                        cli_info("Valid Aliases Array ais:\n" . implode(",\n", quotify_elements(array_keys($aliasesTbCol))) . "!");
                     }
                     // Aggregate Function is SUM or AVG meaning we need to check that $mValue is numerical OR ?
                     if (str_starts_with($aggName, "avg(") || str_starts_with($aggName, "sum(")) {
@@ -3259,18 +3259,18 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
                     // Validate that $mOperator is a valid operator
                     if (!in_array($mOperator, $mysqlOperatorSyntax['all_except_worded'])) {
                         cli_err_without_exit("[cli_parse_condition_clause_sql - on HAVING Key]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to Aggregate Function: \"$aggName\" expecting a valid Operator but got: \"$mOperator\"!");
-                        cli_info("Valid Operators are: " . implode(", ", quotify_elements($mysqlOperatorSyntax['all'])) . "! (excluding the Worded Operators in the HAVING Key case!)");
+                        cli_info("Valid Operators are:\n" . implode(",\n", quotify_elements($mysqlOperatorSyntax['all'])) . "! (excluding the Worded Operators in the HAVING Key case!)");
                     }
                     $binding = cli_find_valid_tb_col_and_binding_or_return_null($tbs, ($aliasesTbCol[$aggTbAndOrCol]['tb'] ?? "<UNKNOWN_TABLE>") . ":" . ($aliasesTbCol[$aggTbAndOrCol]['col'] ?? "<UNKNOWN_COLUMN>"));
 
                     if (!$binding['found']) {
                         cli_err_without_exit("[cli_parse_condition_clause_sql - on HAVING Key]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to Aggregate Function: \"$aggName\" not having a valid Table|Table_Col|Alias Name: `$aggTbAndOrCol` in the Aliases Table & Column Array!");
-                        cli_info("Valid Aliases Array is: " . implode(", ", quotify_elements(array_keys($aliasesTbCol))) . "!");
+                        cli_info("Valid Aliases Array is:\n" . implode(",\n", quotify_elements(array_keys($aliasesTbCol))) . "!");
                     }
                     // No binding found when it should though
                     if (!isset($binding['binding'])) {
                         cli_err_without_exit("[cli_parse_condition_clause_sql - on HAVING Key]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to Aggregate Function: \"$aggName\" not having a Valid Binding Type for Value: `$mValue` (binding type is missing/null)!");
-                        cli_info("Valid Binding Types are: " . implode(", ", quotify_elements(['i', 'd', 's', 'b'])) . "!");
+                        cli_info("Valid Binding Types are:\n" . implode(",\n", quotify_elements(['i', 'd', 's', 'b'])) . "!");
                     }
 
                     // If TableCol's binding is numeric and its value is then we know it is valid binding type with value!
@@ -3282,7 +3282,7 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
                         $validValueBinding = cli_validate_correct_binding_with_provided_value($binding['binding'], $mValue);
                         if (!$validValueBinding) {
                             cli_err_without_exit("[cli_parse_condition_clause_sql - on HAVING Key]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to Aggregate Function: \"$aggName\" not having a Valid Binding Type for Value: `$mValue`!");
-                            cli_info("`$mValue` might be Blob or String when it should be Numeric or vice versa. Valid Binding Types are: " . implode(", ", quotify_elements(['i', 'd', 's', 'b'])) . "!");
+                            cli_info("`$mValue` might be Blob or String when it should be Numeric or vice versa. Valid Binding Types are:\n" . implode(",\n", quotify_elements(['i', 'd', 's', 'b'])) . "!");
                         }
                     }
                     // Finally we can add to the parsed condition for HAVING Key!
@@ -3366,10 +3366,18 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
         // For 'WHERE' Key
         if ($whereOrHaving === 'WHERE') {
             if (
-                !in_array($mCol, $uniqueCols, true)
-                && !in_array($mCol, $tbsWithCols, true)
+                !str_contains($mCol, ":") && !in_array($mCol, $uniqueCols, true)
             ) {
-                cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to columnName/tableName:columnName `$mCol` not being found in the Unique Columns Array or Table with Columns Array!");
+                cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to `$mCol` not being found in the Unique Columns (col1,col2,etc) Array!");
+                cli_info_without_exit("When not found in Unique Columns Array, it becomes ambigious which Table it belongs to!");
+                cli_info_without_exit("Valid Unique Columns Array is:\n" . implode(",\n", quotify_elements($uniqueCols)) . "!");
+                cli_info("If you are only using on Table suddenly for your SQL Query, change your `<TABLES>` Key also to only have that one Table OR Write `correctTable:$mCol` exactly in the Condition Clause!");
+            } elseif (
+                str_contains($mCol, ":") &&
+                !in_array($mCol, $tbsWithCols, true)
+            ) {
+                cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to `$mCol` not being found in the Table with Columns (table1:col1,table1:col2,etc2:etc1) Array!");
+                cli_info_without_exit("Valid Table with Columns Array is:\n" . implode(",\n", quotify_elements($tbsWithCols)) . "!");
                 cli_info("If you are only using on Table suddenly for your SQL Query, change your `<TABLES>` Key also to only have that one Table OR Write `correctTable:$mCol` exactly in the Condition Clause!");
             }
         }
@@ -3446,12 +3454,12 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
             if (str_contains($mCol, ":")) {
                 if (!in_array($mCol, $tbsWithCols, true)) {
                     cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to column `$mCol` not being found in the Array of `Table:Column`!");
-                    cli_info("A Table might be missing from `<TABLES>` Key OR it has too many Tables if you SUDDENLY changed to Only Query One! Available Tables: " . implode(", ", quotify_elements($tbs)) . "!");
+                    cli_info("A Table might be missing from `<TABLES>` Key OR it has too many Tables if you SUDDENLY changed to Only Query One! Available Tables:\n" . implode(",\n", quotify_elements($tbs)) . "!");
                 }
                 [$singleTb, $mCol] = explode(":", $mCol, 2);
                 if (!in_array($mCol, $uniqueCols, true)) {
                     cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to column `$mCol` not being found in the Unique Columns Array!");
-                    cli_info("A Table might be missing from `<TABLES>` Key OR it has too many Tables if you SUDDENLY changed to Only Query One! Available Tables: " . implode(", ", quotify_elements($tbs)) . "!");
+                    cli_info("A Table might be missing from `<TABLES>` Key OR it has too many Tables if you SUDDENLY changed to Only Query One! Available Tables:\n" . implode(",\n", quotify_elements($tbs)) . "!");
                 }
             }
 
@@ -3589,14 +3597,14 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
                 // If we did not find the correct Table, we error out
                 if (!$correctTb) {
                     cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to Column `$mCol` not being found in any of the Tables!");
-                    cli_info("A Table might be missing from `tables.php` File. Checked Tables: " . implode(", ", quotify_elements($tbs)) . "!");
+                    cli_info("A Table might be missing from `tables.php` File. Checked Tables:\n" . implode(",\n", quotify_elements($tbs)) . "!");
                 }
             }
             // We can just extract the correct Table from the $mCol when it contains a ":"
             else {
                 if (!in_array($mCol, $tbsWithCols, true)) {
                     cli_err_without_exit("[cli_parse_condition_clause_sql]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to column `$mCol` not being found in the Array of `Table:Column`!");
-                    cli_info("A Table might be missing from `<TABLES>` Key OR it has too many Tables if you SUDDENLY changed to Only Query One! Available Tables: " . implode(", ", quotify_elements($tbs)) . "!");
+                    cli_info("A Table might be missing from `<TABLES>` Key OR it has too many Tables if you SUDDENLY changed to Only Query One! Available Tables:\n" . implode(",\n", quotify_elements($tbs)) . "!");
                 }
                 [$correctTb, $mCol] = explode(":", $mCol, 2) ?? null;
             }
@@ -3999,10 +4007,10 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
     // Validate that $configQTKey is set and is a valid query type
     if (!isset($configQTKey) || !is_string_and_not_empty($configQTKey)) {
         cli_err_syntax_without_exit("No Config Key `<QUERY_TYPE>` found in SQL Array `$handlerFile.php=>$fnName`!");
-        cli_info("Valid Query Types are: " . implode(", ", quotify_elements($globalConfigRules['[QUERY_TYPE]'])) . ".");
+        cli_info("Valid Query Types are:\n" . implode(",\n", quotify_elements($globalConfigRules['[QUERY_TYPE]'])) . ".");
     } elseif (!in_array(strtoupper($configQTKey), $globalConfigRules['<QUERY_TYPE>'], true)) {
         cli_err_syntax_without_exit("Invalid Config Key `<QUERY_TYPE>` value `$configQTKey` in SQL Array `$handlerFile.php=>$fnName`!");
-        cli_info("Valid Query Types are: " . implode(", ", quotify_elements($globalConfigRules['[QUERY_TYPE]'])) . ".");
+        cli_info("Valid Query Types are:\n" . implode(",\n", quotify_elements($globalConfigRules['[QUERY_TYPE]'])) . ".");
     }
 
     // Validate that $configTBKey is set and is a valid table name
@@ -4037,7 +4045,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
             // If the table name is not in the $tables array, we error out
             if (!array_key_exists($tableName, $tables)) {
                 cli_err_syntax_without_exit("Table Name `$tableName` from SQL Array `$handlerFile.php=>$fnName` not found in `config/tables.php` File!");
-                cli_info("Valid Table Names are: " . implode(", ", quotify_elements(array_keys($tables))) . ".");
+                cli_info("Valid Table Names are:\n" . implode(",\n", quotify_elements(array_keys($tables))) . ".");
             }
         }
     }
@@ -4218,7 +4226,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
             // If the column is not in the table, we error out
             if (!array_key_exists($col, $tables[$insertTb])) {
                 cli_err_syntax_without_exit("Column Name `$col` from SQL Array `$handlerFile.php=>$fnName` not found in Table `$insertTb`!");
-                cli_info("Valid Column Names are: " . implode(", ", quotify_elements(array_keys($tables[$insertTb]))) . ".");
+                cli_info("Valid Column Names are:\n" . implode(",\n", quotify_elements(array_keys($tables[$insertTb]))) . ".");
             }
             if (!isset($tables[$insertTb][$col]['binding'])) {
                 cli_err_syntax_without_exit("Column Name `$col` from SQL Array `$handlerFile.php=>$fnName` does NOT have a Binding defined in `config/tables.php` for Table `$insertTb`!");
@@ -4233,7 +4241,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
             if (isset($validFieldsKey) && is_array_and_not_empty($validFieldsKey)) {
                 if (!isset($validFieldsKey[$col])) {
                     cli_err_syntax_without_exit("Column Name `$col` from SQL Array `$handlerFile.php=>$fnName` is NOT in the <MATCHED_FIELDS> Array!");
-                    cli_info("Valid Fields are: " . implode(", ", quotify_elements($validFieldsKey)) . ".");
+                    cli_info("Valid Fields are:\n" . implode(",\n", quotify_elements($validFieldsKey)) . ".");
                 } else {
                     $builtFieldsArray[] = !empty($validFieldsKey[$col]) ? $validFieldsKey[$col] : $insertTb . '_' . $col;
                 }
@@ -4255,7 +4263,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         // Report success and inform about ignored keys
         cli_success_without_exit("Built SQL String for INSERT Query: `$builtSQLString`");
         if (is_array($ignoredKeys) && !empty($ignoredKeys)) {
-            cli_warning_without_exit("The Following Found Keys were IGNORED for the INSERT Query Type: " . implode(", ", quotify_elements($ignoredKeys)));
+            cli_warning_without_exit("The Following Found Keys were IGNORED for the INSERT Query Type:\n" . implode(",\n", quotify_elements($ignoredKeys)));
             cli_info_without_exit("Feel free to remove them from the SQL Array to not confuse Yourself!");
         }
     }
@@ -4299,7 +4307,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
             // If the column is not in the table, we error out
             if (!array_key_exists($col, $tables[$updateTb])) {
                 cli_err_syntax_without_exit("Column Name `$col` from SQL Array `$handlerFile.php=>$fnName` not found in Table `$updateTb`!");
-                cli_info("Valid Column Names are: " . implode(", ", quotify_elements(array_keys($tables[$updateTb]))) . ".");
+                cli_info("Valid Column Names are:\n" . implode(",\n", quotify_elements(array_keys($tables[$updateTb]))) . ".");
             }
             if (!isset($tables[$updateTb][$col]['binding'])) {
                 cli_err_syntax_without_exit("Column Name `$col` from SQL Array `$handlerFile.php=>$fnName` does NOT have a Binding defined in `config/tables.php` for Table `$updateTb`!");
@@ -4318,7 +4326,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
             if (isset($validFieldsKey) && is_array_and_not_empty($validFieldsKey)) {
                 if (!isset($validFieldsKey[$col])) {
                     cli_err_syntax_without_exit("Column Name `$col` from SQL Array `$handlerFile.php=>$fnName` is NOT in the <MATCHED_FIELDS> Array!");
-                    cli_info("Valid Fields are: " . implode(", ", quotify_elements($validFieldsKey)) . ".");
+                    cli_info("Valid Fields are:\n" . implode(",\n", quotify_elements($validFieldsKey)) . ".");
                 } else {
                     $builtFieldsArray[] = !empty($validFieldsKey[$col]) ? $validFieldsKey[$col] : $updateTb . '_' . $col;
                 }
@@ -4383,7 +4391,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         // Report success and inform about ignored keys
         cli_success_without_exit("Built SQL String for UPDATE Query: `$builtSQLString`");
         if (is_array($ignoredKeys) && !empty($ignoredKeys)) {
-            cli_warning_without_exit("The Following Found Keys were IGNORED for the UPDATE Query Type: " . implode(", ", quotify_elements($ignoredKeys)));
+            cli_warning_without_exit("The Following Found Keys were IGNORED for the UPDATE Query Type:\n" . implode(",\n", quotify_elements($ignoredKeys)));
             cli_info_without_exit("Feel free to remove them from the SQL Array to not confuse Yourself!");
         }
     }
@@ -4483,7 +4491,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         // Report success and inform about ignored keys
         cli_success_without_exit("Built SQL String for DELETE Query: `$builtSQLString`");
         if (is_array($ignoredKeys) && !empty($ignoredKeys)) {
-            cli_warning_without_exit("The Following Found Keys were IGNORED for the DELETE Query Type: " . implode(", ", quotify_elements($ignoredKeys)));
+            cli_warning_without_exit("The Following Found Keys were IGNORED for the DELETE Query Type:\n" . implode(",\n", quotify_elements($ignoredKeys)));
             cli_info_without_exit("Feel free to remove them from the SQL Array to not confuse Yourself!");
         }
     }
@@ -4493,7 +4501,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         // Report success and inform about ignored keys
         cli_success_without_exit("Built SQL String for SELECT_DISTINCT Query: `$builtSQLString`");
         if (is_array($ignoredKeys) && !empty($ignoredKeys)) {
-            cli_warning_without_exit("The Following Found Keys were IGNORED for the SELECT_DISTINCT Query Type: " . implode(", ", quotify_elements($ignoredKeys)));
+            cli_warning_without_exit("The Following Found Keys were IGNORED for the SELECT_DISTINCT Query Type:\n" . implode(",\n", quotify_elements($ignoredKeys)));
             cli_info_without_exit("Feel free to remove them from the SQL Array to not confuse Yourself!");
         }
     }
@@ -4503,7 +4511,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         // Report success and inform about ignored keys
         cli_success_without_exit("Built SQL String for SELECT_INTO Query: `$builtSQLString`");
         if (is_array($ignoredKeys) && !empty($ignoredKeys)) {
-            cli_warning_without_exit("The Following Found Keys were IGNORED for the SELECT_INTO Query Type: " . implode(", ", quotify_elements($ignoredKeys)));
+            cli_warning_without_exit("The Following Found Keys were IGNORED for the SELECT_INTO Query Type:\n" . implode(",\n", quotify_elements($ignoredKeys)));
             cli_info_without_exit("Feel free to remove them from the SQL Array to not confuse Yourself!");
         }
     }
@@ -4679,7 +4687,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
             }
             if (array_str_starts_with($disallowedCommands, strtoupper($selectTbName))) {
                 cli_err_syntax_without_exit("The `SELECT` Key in SQL Array `$handlerFile.php=>$fnName` contains a Disallowed Command: `$selectTbName`!");
-                cli_info_without_exit("The Following Commands are NOT allowed in the `SELECT` Key: " . implode(", ", quotify_elements($disallowedCommands)) . ".");
+                cli_info_without_exit("The Following Commands are NOT allowed in the `SELECT` Key:\n" . implode(",\n", quotify_elements($disallowedCommands)) . ".");
                 cli_info("You will have to MANUALLY write a SQL String that runs/SELECTs that specific Command or use some of the FunkPHP's in-built SQL Functions that run some of those specific Commands!");
             }
             // Lowercase entire string to make it case-insensitive
@@ -4693,7 +4701,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                     // Incorrect Aggregate Function Format despite matching
                     if (!isset($aggFuncValidStarts[$aggFunc])) {
                         cli_err_syntax_without_exit("Invalid Aggregate Function Format (`$selectTbName`) in `SELECT` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
-                        cli_info("The Aggregate Function must start with one of the following: " . implode(", ", quotify_elements(array_keys($aggFuncValidStarts))) . "!");
+                        cli_info("The Aggregate Function must start with one of the following:\n" . implode(",\n", quotify_elements(array_keys($aggFuncValidStarts))) . "!");
                     }
 
                     // SPECIAL CASE: COUNT(*) which is a special case of the COUNT function and thus we must get
@@ -4701,7 +4709,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                     if ($aggFuncMatches[0] === 'count(*)') {
                         if (!in_array($fromTb, $selectTbs, true)) {
                             cli_err_syntax_without_exit("Table Name `$fromTb` from `FROM` Key in SQL Array `$handlerFile.php=>$fnName` not found in `<TABLES>` Key!");
-                            cli_info("Valid Table Names are: " . implode(", ", quotify_elements($selectTbs)) . ".");
+                            cli_info("Valid Table Names are:\n" . implode(",\n", quotify_elements($selectTbs)) . ".");
                         }
                         // We add the COUNT(*) as a special case without table and column
                         // Only add if not already in the currently selected tables and also
@@ -4781,11 +4789,11 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                             continue;
                         } else {
                             cli_err_syntax_without_exit("Column Name `$aggCol` from Aggregate Function `$aggFunc` in `SELECT` Key in SQL Array `$handlerFile.php=>$fnName` not found in Table `$aggTb`!");
-                            cli_info("Valid Column Names for Table `$aggTb` are: " . implode(", ", quotify_elements(array_keys($tables[$aggTb]))) . ".");
+                            cli_info("Valid Column Names for Table `$aggTb` are:\n" . implode(",\n", quotify_elements(array_keys($tables[$aggTb]))) . ".");
                         }
                     } else {
                         cli_err_syntax_without_exit("Table Name `$aggTb` from Aggregate Function `$aggFunc` in `SELECT` Key in SQL Array `$handlerFile.php=>$fnName` not found in `tables.php` File!");
-                        cli_info("Valid Table Names are: " . implode(", ", quotify_elements(array_keys($tables))) . ".");
+                        cli_info("Valid Table Names are:\n" . implode(",\n", quotify_elements(array_keys($tables))) . ".");
                     }
                 }
                 // When it failed to match despite matching the start regex, we error out
@@ -4804,7 +4812,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
             ) {
                 if (!in_array($selectTbName, $selectTbs, true)) {
                     cli_err_syntax_without_exit("Table Name `$selectTbName` from `SELECT` Key in SQL Array `$handlerFile.php=>$fnName` not found in `<TABLES>` Key!");
-                    cli_info("Valid Table Names are: " . implode(", ", quotify_elements($selectTbs)) . ".");
+                    cli_info("Valid Table Names are:\n" . implode(",\n", quotify_elements($selectTbs)) . ".");
                 }
                 // Table exists, so we add all columns from that table.
                 if (isset($tables[$selectTbName]) && is_array_and_not_empty($tables[$selectTbName])) {
@@ -4839,7 +4847,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                 // We check if Table exists otherwise we error out
                 if (!in_array($selectTbName, $selectTbs, true)) {
                     cli_err_syntax_without_exit("Table Name `$selectTbName` from `SELECT` Key in SQL Array `$handlerFile.php=>$fnName` not found in `<TABLES>` Key!");
-                    cli_info("Valid Table Names are: " . implode(", ", quotify_elements($selectTbs)) . ".");
+                    cli_info("Valid Table Names are:\n" . implode(",\n", quotify_elements($selectTbs)) . ".");
                 }
 
                 // $excludedCols becomes an array and is also split on "," if multiple columns are excluded
@@ -4866,7 +4874,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                         // If the excluded column is not in the table, we error out
                         if (!array_key_exists($excludedCol, $tables[$selectTbName])) {
                             cli_err_syntax_without_exit("Excluded Column Name `$excludedCol` from SQL Array `$handlerFile.php=>$fnName` not found in Table `$selectTbName`!");
-                            cli_info("Valid Column Names for Table `$selectTbName` are: " . implode(", ", quotify_elements(array_keys($tables[$selectTbName]))) . ".");
+                            cli_info("Valid Column Names for Table `$selectTbName` are:\n" . implode(",\n", quotify_elements(array_keys($tables[$selectTbName]))) . ".");
                         }
                     }
 
@@ -4908,7 +4916,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                 // We check if Table exists otherwise we error out
                 if (!in_array($selectTbName, $selectTbs, true)) {
                     cli_err_syntax_without_exit("Table Name `$selectTbName` from `SELECT` Key in SQL Array `$handlerFile.php=>$fnName` not found in `<TABLES>` Key!");
-                    cli_info("Valid Table Names are: " . implode(", ", quotify_elements($selectTbs)) . ".");
+                    cli_info("Valid Table Names are:\n" . implode(",\n", quotify_elements($selectTbs)) . ".");
                 }
 
                 // $includedCols becomes an array and is also split on "," if multiple columns are included
@@ -4931,7 +4939,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                                 // Incorrect Aggregate Function Format despite matching
                                 if (!isset($aggFuncValidStarts[$aggFunc])) {
                                     cli_err_syntax_without_exit("Invalid Aggregate Function Format (`$includedCol`) in `SELECT` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
-                                    cli_info("The Aggregate Function must start with one of the following: " . implode(", ", quotify_elements(array_keys($aggFuncValidStarts))) . "!");
+                                    cli_info("The Aggregate Function must start with one of the following:\n" . implode(",\n", quotify_elements(array_keys($aggFuncValidStarts))) . "!");
                                 }
 
                                 // SPECIAL CASE: COUNT(*) which is a special case of the COUNT function and thus we must get
@@ -4939,7 +4947,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                                 if ($aggFuncMatches[0] === 'count(*)') {
                                     if (!in_array($selectTbName, $selectTbs, true)) {
                                         cli_err_syntax_without_exit("Table Name `$selectTbName` from `FROM` Key in SQL Array `$handlerFile.php=>$fnName` not found in `<TABLES>` Key!");
-                                        cli_info("Valid Table Names are: " . implode(", ", quotify_elements($selectTbs)) . " OR add it to the `<TABLES>` Key in SQL Array `$handlerFile.php=>$fnName` and recompile!");
+                                        cli_info("Valid Table Names are:\n" . implode(",\n", quotify_elements($selectTbs)) . " OR add it to the `<TABLES>` Key in SQL Array `$handlerFile.php=>$fnName` and recompile!");
                                     }
 
                                     // Rename and add to the selectedTbsColsStr and the aggAliases
@@ -5008,7 +5016,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                                         continue;
                                     } else {
                                         cli_err_syntax_without_exit("Column Name `$aggCol` from Aggregate Function `$aggFunc` in `SELECT` Key in SQL Array `$handlerFile.php=>$fnName` not found in Table `$selectTbName`!");
-                                        cli_info("Valid Column Names for Table `$selectTbName` are: " . implode(", ", quotify_elements(array_keys($tables[$selectTbName]))) . ".");
+                                        cli_info("Valid Column Names for Table `$selectTbName` are:\n" . implode(",\n", quotify_elements(array_keys($tables[$selectTbName]))) . ".");
                                     }
                                 }
                             }
@@ -5023,7 +5031,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                         // Otherwise, just check as regular Table Column!
                         if (!array_key_exists($includedCol, $tables[$selectTbName])) {
                             cli_err_syntax_without_exit("Included Column Name `$includedCol` from SQL Array `$handlerFile.php=>$fnName` not found in Table `$selectTbName`!");
-                            cli_info("Valid Column Names for Table `$selectTbName` are: " . implode(", ", quotify_elements(array_keys($tables[$selectTbName]))) . ".");
+                            cli_info("Valid Column Names for Table `$selectTbName` are:\n" . implode(",\n", quotify_elements(array_keys($tables[$selectTbName]))) . ".");
                         }
 
                         // Here we just add the column to the selectedTbsColsStr since we know it exists!
@@ -5057,7 +5065,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         // if the FROM table is in the SELECT tables and if it is not, we error out
         if (!in_array($fromTb, $currentlySelectedTbs, true)) {
             cli_err_syntax_without_exit("Table Name `$fromTb` from `FROM` Key in SQL Array `$handlerFile.php=>$fnName` not found in `SELECT` Key!");
-            cli_info("Currently SELECTed Tables are: " . implode(", ", quotify_elements($currentlySelectedTbs)) . " and it needs the Table `$fromTb` included somewhere!");
+            cli_info("Currently SELECTed Tables are:\n" . implode(",\n", quotify_elements($currentlySelectedTbs)) . " and it needs the Table `$fromTb` included somewhere!");
         }
 
         // PARSING THE "JOINS_ON" Key (the JOINs to perform)
@@ -5132,13 +5140,13 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                 // We check if the joinType is valid based on list of valid join types
                 if (!isset($validJoinTypes[$joinType])) {
                     cli_err_syntax_without_exit("Invalid Join Type `$joinType` found in `JOINS_ON` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
-                    cli_info("Valid Join Types are: " . implode(", ", quotify_elements(array_keys($validJoinTypes))) . "! (based on \$validJoinTypes)");
+                    cli_info("Valid Join Types are:\n" . implode(",\n", quotify_elements(array_keys($validJoinTypes))) . "! (based on \$validJoinTypes)");
                 }
 
                 // We check that $joinTable is a valid table name
                 if (!array_key_exists($joinTable, $tables)) {
                     cli_err_syntax_without_exit("Invalid Join Table Name `$joinTable` found in `JOINS_ON` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
-                    cli_info("Valid Table Names are: " . implode(", ", quotify_elements(array_keys($tables))) . "! (based on `tables.php` File)");
+                    cli_info("Valid Table Names are:\n" . implode(",\n", quotify_elements(array_keys($tables))) . "! (based on `tables.php` File)");
                 }
 
                 // We check that $joinTable is not already joined
@@ -5155,7 +5163,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                 // We check that $table2 and $table1 are valid tables
                 if (!array_key_exists($table2, $tables) || !array_key_exists($table1, $tables)) {
                     cli_err_syntax_without_exit("Invalid Table Name(s) (`$table2` or `$table1`) found in `JOINS_ON` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
-                    cli_info("Valid Table Names are: " . implode(", ", quotify_elements(array_keys($tables))) . "! (based on `tables.php` File)");
+                    cli_info("Valid Table Names are:\n" . implode(",\n", quotify_elements(array_keys($tables))) . "! (based on `tables.php` File)");
                 }
 
                 // We check that $table2 actually has any relationships defined
@@ -5248,9 +5256,9 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
             // joined (but the reverse is possible!)
             if (count($currentlySelectedTbs) > count($joinedTables)) {
                 cli_err_syntax_without_exit("You cannot SELECT more Tables than you have joined in `JOINS_ON` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
-                cli_info_without_exit("Currently Selected Tables are: " . implode(", ", quotify_elements($currentlySelectedTbs)) . ".");
+                cli_info_without_exit("Currently Selected Tables are:\n" . implode(",\n", quotify_elements($currentlySelectedTbs)) . ".");
                 cli_info_without_exit("Currently Joined Tables are: `" . implode("->", $joinedTables) . "`.");
-                cli_info("Following Tables must be joined in `JOINS_ON` Key: " . implode(", ", quotify_elements(array_diff($currentlySelectedTbs, $joinedTables))) . " OR remove them from the `SELECT` Key!");
+                cli_info("Following Tables must be joined in `JOINS_ON` Key:\n" . implode(",\n", quotify_elements(array_diff($currentlySelectedTbs, $joinedTables))) . " OR remove them from the `SELECT` Key!");
             }
 
             // Remove last ",\n" from the $joinsStr if it exists
@@ -5307,7 +5315,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                         // If the Column Name is not in the `uniqueCols` array that means they need to manually write `table:col`
                         if (!in_array($groupColName, $cols['uniqueCols'], true)) {
                             cli_err_syntax_without_exit("Column Name `$groupColName` from `GROUP BY` Key in SQL Array `$handlerFile.php=>$fnName` not found in Unique Column Names Array! (making it ambiguous)");
-                            cli_info_without_exit("Valid Unique Column Names are: " . implode(", ", quotify_elements($cols['uniqueCols'])) . ".");
+                            cli_info_without_exit("Valid Unique Column Names are:\n" . implode(",\n", quotify_elements($cols['uniqueCols'])) . ".");
                             cli_info("Alternatively, you can rewrite it as `table:col1,col2,etc` to Group one ore more Column(s) from a Specific Table!");
                         }
                     }
@@ -5324,12 +5332,12 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                         && !in_array($groupTbName, $joinedTables, true)
                     ) {
                         cli_err_syntax_without_exit("Table Name `$groupTbName` from `GROUP BY` Key in SQL Array `$handlerFile.php=>$fnName` not found in `SELECT` Key!");
-                        cli_info("Currently SELECTed Tables are: " . implode(", ", quotify_elements($currentlySelectedTbs)) . ".");
+                        cli_info("Currently SELECTed Tables are:\n" . implode(",\n", quotify_elements($currentlySelectedTbs)) . ".");
                     }
                     // Validate $groupColName exists in the table when it is a single column
                     if (!str_contains($groupColNames, ",") && !array_key_exists($groupColNames, $tables[$groupTbName])) {
                         cli_err_syntax_without_exit("Column Name `$groupColNames` from `GROUP BY` Key in SQL Array `$handlerFile.php=>$fnName` not found in Table `$groupTbName`!");
-                        cli_info("Valid Column Names for Table `$groupTbName` are: " . implode(", ", quotify_elements(array_keys($tables[$groupTbName]))) . ".");
+                        cli_info("Valid Column Names for Table `$groupTbName` are:\n" . implode(",\n", quotify_elements(array_keys($tables[$groupTbName]))) . ".");
                     }
                     // Validate $groupColNames exists in the table when it is multiple columns (so we split on ",")
                     // and check every column name on the same table as with the single column case!
@@ -5342,7 +5350,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                             }
                             if (!array_key_exists($groupColName, $tables[$groupTbName])) {
                                 cli_err_syntax_without_exit("Column Name `$groupColName` from `GROUP BY` Key in SQL Array `$handlerFile.php=>$fnName` not found in Table `$groupTbName`!");
-                                cli_info("Valid Column Names for Table `$groupTbName` are: " . implode(", ", quotify_elements(array_keys($tables[$groupTbName]))) . ".");
+                                cli_info("Valid Column Names for Table `$groupTbName` are:\n" . implode(",\n", quotify_elements(array_keys($tables[$groupTbName]))) . ".");
                             }
                         }
                         // All Columns are VALID for this table, so let's build the GROUP BY String
@@ -5428,8 +5436,8 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                         // If the column is not in the unique columns or aliases, we error out
                         if (!in_array($obCol, $cols['uniqueCols'], true) && !in_array($obCol, $allAliases, true)) {
                             cli_err_syntax_without_exit("Column `$obCol` from `ORDER BY` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query not found in Unique Columns or Aliases!");
-                            cli_info_without_exit("Valid Unique Columns are: " . implode(", ", quotify_elements($cols['uniqueCols'])) . ".");
-                            cli_info("Valid Unique Aliases are: " . implode(", ", quotify_elements($allAliases)) . ".");
+                            cli_info_without_exit("Valid Unique Columns are:\n" . implode(",\n", quotify_elements($cols['uniqueCols'])) . ".");
+                            cli_info("Valid Unique Aliases are:\n" . implode(",\n", quotify_elements($allAliases)) . ".");
                         }
                         // Otherwise we add it to the order by string
                         $orderByStr .= "$obCol $obOrder, ";
@@ -5437,12 +5445,12 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                         // If the table is not in the currently selected tables, we error out
                         if (!in_array($obTable, $currentlySelectedTbs, true)) {
                             cli_err_syntax_without_exit("Table `$obTable` from `ORDER BY` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query not found in `SELECT` Key!");
-                            cli_info("Currently SELECTed Tables are: " . implode(", ", quotify_elements($currentlySelectedTbs)) . ".");
+                            cli_info("Currently SELECTed Tables are:\n" . implode(",\n", quotify_elements($currentlySelectedTbs)) . ".");
                         }
                         // If the column is not in the table columns, we error out
                         if (!array_key_exists($obCol, $tables[$obTable])) {
                             cli_err_syntax_without_exit("Column `$obCol` from `ORDER BY` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query not found in Table `$obTable`!");
-                            cli_info("Valid Columns for Table `$obTable` are: " . implode(", ", quotify_elements(array_keys($tables[$obTable]))) . ".");
+                            cli_info("Valid Columns for Table `$obTable` are:\n" . implode(",\n", quotify_elements(array_keys($tables[$obTable]))) . ".");
                         }
                         // Otherwise we add it to the order by string
                         $orderByStr .= "$obTable.$obCol $obOrder, ";
@@ -5526,14 +5534,14 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         // Report success and inform about ignored keys
         cli_success_without_exit("Built SQL String: `$builtSQLString`");
         if (is_array($ignoredKeys) && !empty($ignoredKeys)) {
-            cli_warning_without_exit("The Following Found Keys were IGNORED for the SELECT Query Type: " . implode(", ", quotify_elements($ignoredKeys)));
+            cli_warning_without_exit("The Following Found Keys were IGNORED for the SELECT Query Type:\n" . implode(",\n", quotify_elements($ignoredKeys)));
             cli_info_without_exit("Feel free to remove them from the SQL Array to not confuse Yourself!");
         }
     }
     // You should never reach this point, but if you do, we error out
     else {
         cli_err_syntax_without_exit("Invalid Config Key `<QUERY_TYPE>` value `$configQTKey` in SQL Array `$handlerFile.php=>$fnName`!");
-        cli_info("Valid Query Types are: " . implode(", ", quotify_elements($globalConfigRules['<QUERY_TYPE>'])) . ".");
+        cli_info("Valid Query Types are:\n" . implode(",\n", quotify_elements($globalConfigRules['<QUERY_TYPE>'])) . ".");
     }
 
     // FINALLY AFTER ALL THAT: Return the converted SQL Array

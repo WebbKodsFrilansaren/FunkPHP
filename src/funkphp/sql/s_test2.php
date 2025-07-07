@@ -36,7 +36,7 @@ function s_test5(&$c) // <authors>
 		'SELECT' => [
 			'authors:id,name,AVG(age)',
 		],
-		'WHERE' => 'id > 5',
+		'WHERE' => 'ahtoirsid > 5',
 		'GROUP BY' => 'authors:age',
 		'HAVING' => '',
 		'ORDER BY' => '',
