@@ -62,7 +62,12 @@ function s_test5(&$c) // <authors>
 	return array(
 		'sql' => 'SELECT authors.id AS authors_id, authors.name AS authors_name, AVG(authors.age) AS avg_authors_age FROM authors INNER JOIN articles ON authors.id = articles.author_id WHERE authors.id > ? LIMIT 5 OFFSET 5;',
 		'hydrate' =>
-		array(),
+		array(
+			'mode' => 'simple',
+			'type' => 'array',
+			'key' =>
+			array(),
+		),
 		'bparam' => 'i',
 		'fields' =>
 		array(

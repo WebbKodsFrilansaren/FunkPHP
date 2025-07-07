@@ -5561,6 +5561,10 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         $convertedSQLArray['sql'] = $builtSQLString;
         $convertedSQLArray['fields'] = $builtFieldsArray;
 
+        $convertedSQLArray['hydrate']['mode'] = $hydrationMode;
+        $convertedSQLArray['hydrate']['type'] = $hydrationType;
+        $convertedSQLArray['hydrate']['key'] = [];
+
         // Report success and inform about ignored keys
         cli_success_without_exit("Built SQL String: `$builtSQLString`");
         if (is_array($ignoredKeys) && !empty($ignoredKeys)) {
