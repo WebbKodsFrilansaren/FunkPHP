@@ -5476,7 +5476,20 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                 cli_err_syntax_without_exit("Escaped SQL Syntax (starting & ending with `{}`) is NOT supported in `LIMIT` Key!");
                 cli_info("Only `WHERE` & `HAVING` Keys in UPDATE, DELETE & SELECT Queries support Escaped SQL Syntax!");
             }
-            if (is_string($limitTb) && strlen($limitTb) === 0) { // This is not error out on an Allowed Empty String!
+            // 'LIMIT' key does allow a '?' as a placeholder for the limit value
+            if ($limitTb === '?') {
+                $limitStr = '?';
+                $builtBindedParamsString .= "i";
+                if (!in_array("limit", $builtFieldsArray, true)) {
+                    $builtFieldsArray[] = "limit";
+                } else {
+                    $i = 1;
+                    while (in_array("limit_$i", $builtFieldsArray, true)) {
+                        $i++;
+                    }
+                    $builtFieldsArray[] = "limit_$i";
+                }
+            } elseif (is_string($limitTb) && strlen($limitTb) === 0) { // This is not error out on an Allowed Empty String!
             } elseif (is_numeric($limitTb) && (int)$limitTb >= 0) { // Must Be Positive Integer!
                 $limitStr = (string)$limitTb;
             } else {
@@ -5491,7 +5504,20 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                 cli_err_syntax_without_exit("Escaped SQL Syntax (starting & ending with `{}`) is NOT supported in `OFFSET` Key!");
                 cli_info("Only `WHERE` & `HAVING` Keys in UPDATE, DELETE & SELECT Queries support Escaped SQL Syntax!");
             }
-            if (is_string($offsetTb) && strlen($offsetTb) === 0) { // This is not error out on an Allowed Empty String!
+            // 'LIMIT' key does allow a '?' as a placeholder for the limit value
+            if ($offsetTb === '?') {
+                $offsetStr = '?';
+                $builtBindedParamsString .= "i";
+                if (!in_array("offset", $builtFieldsArray, true)) {
+                    $builtFieldsArray[] = "offset";
+                } else {
+                    $i = 1;
+                    while (in_array("offset_$i", $builtFieldsArray, true)) {
+                        $i++;
+                    }
+                    $builtFieldsArray[] = "offset_$i";
+                }
+            } elseif (is_string($offsetTb) && strlen($offsetTb) === 0) { // This is not error out on an Allowed Empty String!
             } elseif (is_numeric($offsetTb) && (int)$offsetTb >= 0) { // Must Be Positive Integer!
                 $offsetStr = (string)$offsetTb;
             } else {

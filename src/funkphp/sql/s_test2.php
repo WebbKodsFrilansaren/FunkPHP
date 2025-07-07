@@ -40,8 +40,8 @@ function s_test5(&$c) // <authors>
 		'GROUP BY' => '',
 		'HAVING' => '',
 		'ORDER BY' => '',
-		'LIMIT' => '',
-		'OFFSET' => '',
+		'LIMIT' => '5',
+		'OFFSET' => '5',
 		// Optional, leave empty if not used!
 		'<HYDRATION>' => [],
 		// What each Binded Param must match from a Validated Data
@@ -60,14 +60,13 @@ function s_test5(&$c) // <authors>
 	];
 
 	return array(
-		'sql' => 'SELECT authors.id AS authors_id, authors.name AS authors_name, AVG(authors.age) AS avg_authors_age FROM authors INNER JOIN articles ON authors.id = articles.author_id WHERE authors.id > ? AND authors.id < ?;',
+		'sql' => 'SELECT authors.id AS authors_id, authors.name AS authors_name, AVG(authors.age) AS avg_authors_age FROM authors INNER JOIN articles ON authors.id = articles.author_id WHERE authors.id > ? LIMIT 5 OFFSET 5;',
 		'hydrate' =>
 		array(),
-		'bparam' => 'ii',
+		'bparam' => 'i',
 		'fields' =>
 		array(
 			0 => 'authors_id',
-			1 => 'authors_id_1',
 		),
 	);
 };
