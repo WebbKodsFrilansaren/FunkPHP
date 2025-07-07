@@ -5561,6 +5561,10 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         $convertedSQLArray['sql'] = $builtSQLString;
         $convertedSQLArray['fields'] = $builtFieldsArray;
 
+        // TODO: PARSING The <HYDRATION> Key and then setting final values!
+        // IMPORTANT: This step CAN fail and still generate the SQL String!
+        // So, it just gives a strong warning that the hydration failed meaning
+        // its value in 'key' will be an empty array instead of actual hydration!
         $convertedSQLArray['hydrate']['mode'] = $hydrationMode;
         $convertedSQLArray['hydrate']['type'] = $hydrationType;
         $convertedSQLArray['hydrate']['key'] = [];
