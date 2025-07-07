@@ -2843,21 +2843,23 @@ function cli_find_valid_tb_col_and_binding_or_return_null($tbs, $tbColToCheck)
     $binding = null;
     $found = false;
     $foundTable = null;
+    $foundCol = null;
 
     // If it contains ":", we assume it is a table:col format
     if (str_contains($tbColToCheck, ":")) {
         [$tableName, $colName] = explode(":", $tbColToCheck, 2);
         if (!in_array($tableName, $tbs) || !array_key_exists($tableName, $allTbs)) {
-            return ["found" => false, "binding" => null, "found_table" => null, "found_col" => $tbColToCheck];
+            return ["checked_col" => strtolower($tbColToCheck), "found" => false, "binding" => null, "found_table" => null, "found_col" => null, "tbs_checked" => array_map('strtolower', $tbs)];
         }
         if (!array_key_exists($colName, $allTbs[$tableName])) {
-            return ["found" => false, "binding" => null, "found_table" => null, "found_col" => $tbColToCheck];
+            return ["checked_col" => strtolower($tbColToCheck), "found" => false, "binding" => null, "found_table" => null, "found_col" => null, "tbs_checked" => array_map('strtolower', $tbs)];
         }
+        $foundCol = $colName;
         return [
             "found" => true,
             "binding" => $allTbs[$tableName][$colName]['binding'] ?? null,
             "found_table" => $tableName,
-            "found_col" => $tbColToCheck
+            "found_col" => $foundCol
         ];
     }
     // If it does not contain ":", we assume it is a unique column name
@@ -2876,17 +2878,19 @@ function cli_find_valid_tb_col_and_binding_or_return_null($tbs, $tbColToCheck)
             }
         }
         if (!$foundTable) {
-            return ["found" => false, "binding" => null, "found_table" => null, "found_col" => $tbColToCheck];
+            return ["checked_col" => strtolower($tbColToCheck), "found" => false, "binding" => null, "found_table" => null, "found_col" => null, "tbs_checked" => array_map('strtolower', $tbs)];
         }
         // We found the table and column, now return the binding
         $binding = $allTbs[$foundTable][$tbColToCheck]['binding'] ?? null;
         if (!$binding) {
-            return ["found" => false, "binding" => null, "found_table" => $foundTable, "found_col" => $tbColToCheck];
+            return ["checked_col" => strtolower($tbColToCheck), "found" => false, "binding" => null, "found_table" => $foundTable, "found_col" => null, "tbs_checked" => array_map('strtolower', $tbs)];
         }
         $found = true;
-        return ["found" => $found, "binding" => $binding, "found_table" => $foundTable, "found_col" => $tbColToCheck];
+        $foundCol = $tbColToCheck;
+        return ["checked_col" => strtolower($tbColToCheck), "found" => $found, "binding" => $binding, "found_table" => $foundTable, "found_col" => $foundCol, "tbs_checked" => array_map('strtolower', $tbs)];
     }
-    return ["found" => $found, "binding" => $binding, "found_table" => $foundTable, "found_col" => $tbColToCheck];
+    cli_err_without_exit("[cli_find_valid_tb_col_and_binding_or_return_null]: Reached the end of Function Call without return value?!");
+    cli_info("Check All References to this Function Call and ensure that the `Col`|`Table:Col` Argument is Correct!");
 }
 
 // Function that parses the condition clauses such as WHERE
@@ -2894,7 +2898,7 @@ function cli_find_valid_tb_col_and_binding_or_return_null($tbs, $tbColToCheck)
 // &$builtBindedParamsString is to add the necessary
 // "?" placeholders based on how many are used within
 // the parsed Where clause that would be returned!
-function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $validCols, &$builtBindedParamsString, &$builtFieldsArray, &$allAliases, $whereOrHaving = null, &$aggAliases)
+function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $validCols, &$builtBindedParamsString, &$builtFieldsArray, &$allAliases, $whereOrHaving = null, &$aggAliases,  &$aliasesTbCol = null)
 {
     // Prepare variables and also validate the input
     // $where = The actual CONDITION String to parse.
@@ -4378,6 +4382,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         // Tables than the ones SELECTed in the SELECT Key!
         $joinedTables = [];
         $allAliases = [];
+        $aliasesTbCol = [];
         // To check for duplicate aliases later since agg functions
         // could be used multiple times on the same table+column(s)!
         $aggAliases = [];
@@ -4582,6 +4587,10 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                         }
                         $aggAliases[] = $as_name;
                         $allAliases[] = $as_name;
+                        $aliasesTbCol[$as_name] = [
+                            'tb' => $fromTb,
+                            'col' => '*',
+                        ];
                         $selectedTbsColsStr .= strtoupper($aggFunc) . "*) AS " . $as_name . ",\n";
                         continue;
                     }
@@ -4620,6 +4629,10 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                             }
                             $aggAliases[] = $as_name;
                             $allAliases[] = $as_name;
+                            $aliasesTbCol[$as_name] = [
+                                'tb' => $aggTb,
+                                'col' => $aggCol,
+                            ];
                             // We remove "=" if it is inside of $aggFunc
                             // which is special case for COUNT(DISTINCT=)
                             if (str_contains($aggFunc, '=')) {
@@ -4660,6 +4673,10 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                     foreach ($tables[$selectTbName] as $colKey => $singleTbCols) {
                         $selectedTbsColsStr .= $selectTbName . ".$colKey AS " . $singleTbCols['joined_name'] . ",\n";
                         $allAliases[] = $singleTbCols['joined_name'];
+                        $aliasesTbCol[$as_name] = [
+                            'tb' => $selectTbName,
+                            'col' => $colKey,
+                        ];
                     }
                 } else {
                     cli_err_syntax_without_exit("Table Name `$selectTbName` from `SELECT` Key in SQL Array `$handlerFile.php=>$fnName` has no columns defined in `config/tables.php`!");
@@ -4715,6 +4732,10 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                         if (!in_array($colKey, $excludedCols, true)) {
                             $selectedTbsColsStr .= $selectTbName . ".$colKey AS " . $singleTbCols['joined_name'] . ",\n";
                             $allAliases[] = $singleTbCols['joined_name'];
+                            $aliasesTbCol[$as_name] = [
+                                'tb' => $selectTbName,
+                                'col' => $colKey,
+                            ];
                         }
                     }
                 } else {
@@ -4785,6 +4806,10 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                                     }
                                     $aggAliases[] = $as_name;
                                     $allAliases[] = $as_name;
+                                    $aliasesTbCol[$as_name] = [
+                                        'tb' => $selectTbName,
+                                        'col' => '*',
+                                    ];
                                     $selectedTbsColsStr .= strtoupper($aggFunc) . "*) AS " . $as_name . ",\n";
                                     continue;
                                 }
@@ -4819,6 +4844,10 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                                         }
                                         $aggAliases[] = $as_name;
                                         $allAliases[] = $as_name;
+                                        $aliasesTbCol[$as_name] = [
+                                            'tb' => $selectTbName,
+                                            'col' => $aggCol,
+                                        ];
                                         // We remove "=" if it is inside of $aggFunc
                                         // which is special case for COUNT(DISTINCT=)
                                         if (str_contains($aggFunc, '=')) {
@@ -4849,6 +4878,10 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                         // Here we just add the column to the selectedTbsColsStr since we know it exists!
                         $selectedTbsColsStr .= $selectTbName . ".$includedCol AS " . $tables[$selectTbName][$includedCol]['joined_name'] . ",\n";
                         $allAliases[] = $tables[$selectTbName][$includedCol]['joined_name'];
+                        $aliasesTbCol[$as_name] = [
+                            'tb' => $selectTbName,
+                            'col' => $includedCol,
+                        ];
                         continue;
                     }
                 } else {
@@ -5192,7 +5225,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                 cli_err_syntax_without_exit("No `GROUP BY` Key found in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
                 cli_info("The `HAVING` Key must be used with a Non-Empty `GROUP BY` Key to Filter Grouped Results!");
             }
-            $havingStr = isset($havingTb) && is_string($havingTb) && !empty($havingTb) ? cli_parse_condition_clause_sql($configTBKey, $havingTb, "SELECT", $convertedSQLArray, $cols, $builtBindedParamsString, $builtFieldsArray, $allAliases, "HAVING", $aggAliases) : "";
+            $havingStr = isset($havingTb) && is_string($havingTb) && !empty($havingTb) ? cli_parse_condition_clause_sql($configTBKey, $havingTb, "SELECT", $convertedSQLArray, $cols, $builtBindedParamsString, $builtFieldsArray, $allAliases, "HAVING", $aggAliases, $aliasesTbCol) : "";
         }
 
         // PARSING THE OPTIONAL "ORDER BY" Key (the ORDER BY clause to sort results)
