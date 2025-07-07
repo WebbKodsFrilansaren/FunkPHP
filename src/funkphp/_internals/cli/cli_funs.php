@@ -3027,6 +3027,7 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
         'min(' => 'min_',
         'max(' => 'max_',
     ];
+    $aggFuncAliasValidStartRegex = "/^(avg_|sum_|min_|max_|count_|count_all|count_distinct_)([a-zA-Z0-9_]+)$/i";
     // Commands that You might wanna SELECT but are not allowed to do
     // through FunkPHP so you get an error message about it!
     $disallowedCommands = [
@@ -3177,7 +3178,7 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
             }
         }
 
-        var_dump($mCol, $mOperator, $mValue, $specialSyntax);
+        //var_dump($mCol, $mOperator, $mValue, $specialSyntax);
 
         // SPECIAL CASE: 'HAVING' Key called this Condition Clause Parser, so we
         // will check if it is like when being used in `SELECT Key with Agg Funcs
@@ -3192,17 +3193,61 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
                     // 4. Aggregate Function with just Column Name (col)
                     $aggName = strtolower($aggMatches[1]) ?? null;
                     $aggTbAndOrCol = strtolower($aggMatches[2]) ?? null;
+                    $aggAliasOrTbDotCol = true; // True = it is a Agg Func Alias Name, False = it is Table:Col after Col => Table:Col or already Table:Col
+                    var_dump($aggName, $aggTbAndOrCol);
                     // If the Aggregate Function is not in the valid starts
                     // array then it is not a valid Aggregate Function!
                     if (!isset($aggFuncValidStarts[$aggName])) {
                         cli_err_without_exit("[cli_parse_condition_clause_sql - on HAVING Key]: Invalid Aggregate Function: \"$mCol\" in Query Type: \"$queryType\" due to not being a valid Aggregate Function!");
                         cli_info("Valid Aggregate Functions start with: " . strtoupper(implode(", ", quotify_elements(array_keys($aggFuncValidStarts)))) . "!");
                     }
+                    // If it contains ":" we assume "table:col" so we just replace ":" with "_"
+                    // and then check if it is a valid table:col or alias name!
+                    if (str_contains($aggTbAndOrCol, ":")) {
+                        if (!in_array($aggTbAndOrCol, $validCols['table:col'], true)) {
+                            cli_err_without_exit("[cli_parse_condition_clause_sql - on HAVING Key]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to Aggregate Function: \"$aggName\" not having a valid Table:Col Name: `$aggTbAndOrCol` in the Table and Column Array!");
+                            cli_info("Valid Table and Column Array is: " . implode(", ", quotify_elements($validCols['table:col'])) . "!");
+                        }
+                        $aggTbAndOrCol = str_replace(":", "_", $aggTbAndOrCol);
+                        if (!isset($aliasesTbCol)) {
+                            $aliasesTbCol[$aggTbAndOrCol] = [
+                                'tb' => explode("_", $aggTbAndOrCol)[0] ?? "<UNKNOWN_TABLE>",
+                                'col' => explode("_", $aggTbAndOrCol)[1] ?? "<UNKNOWN_COLUMN>",
+                            ];
+                        }
+                        $aggAliasOrTbDotCol = false;
+                    }
+                    // If it starts with any of the valid starts "avg_,"sum_", "min_", "max_", etc.
+                    elseif (preg_match($aggFuncAliasValidStartRegex, $aggTbAndOrCol)) {
+                        // No need to do anything here, we check valid Aggregate Function Alias Names later down!
+                    }
+                    // Else we assume it is a column
+                    else {
+                        if (isset($aggFuncAliasValidStarts)) {
+                        } elseif (!in_array($aggTbAndOrCol, $validCols['uniqueCols'], true)) {
+                            cli_err_without_exit("[cli_parse_condition_clause_sql - on HAVING Key]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to Aggregate Function: \"$aggName\" not having a valid Column Name: `$aggTbAndOrCol` in the Unique Columns Array!");
+                            cli_info("Valid Unique Columns Array is: " . implode(", ", quotify_elements($validCols['uniqueCols'])) . "! (`$aggTbAndOrCol` not being here means it could be ambigious to match Column to Table)");
+                        }
+                        $findTbToCol = cli_find_valid_tb_col_and_binding_or_return_null($tbs, $aggTbAndOrCol);
+                        if (!$findTbToCol['found']) {
+                            cli_err_without_exit("[cli_parse_condition_clause_sql - on HAVING Key]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to Aggregate Function: \"$aggName\" not having a valid Table|Table_Col|Alias Name: `$aggTbAndOrCol` in the Aliases Table & Column Array!");
+                            cli_info("Valid Aliases Array is: " . implode(", ", quotify_elements(array_keys($aliasesTbCol))) . "!");
+                        } else {
+                            $aggTbAndOrCol = $findTbToCol['found_table'] . "_" . $findTbToCol['found_col'];
+                            if (!isset($aliasesTbCol)) {
+                                $aliasesTbCol[$aggTbAndOrCol] = [
+                                    'tb' => $findTbToCol['found_table'],
+                                    'col' => $findTbToCol['found_col'],
+                                ];
+                            }
+                            $aggAliasOrTbDotCol = false;
+                        }
+                    }
                     // Validate its Table and Column exist in the global Aliases Table and Column Array
                     // (it includes both regular aliases and aggregate function aliases!)
                     if (!isset($aliasesTbCol[$aggTbAndOrCol])) {
                         cli_err_without_exit("[cli_parse_condition_clause_sql - on HAVING Key]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to Aggregate Function: \"$aggName\" not having a valid Table|Table_Col|Alias Name: `$aggTbAndOrCol` in the Aliases Table & Column Array!");
-                        cli_info("Valid Aliases Array is: " . implode(", ", quotify_elements(array_keys($aliasesTbCol))) . "!");
+                        cli_info("Valid Aliases Array ais: " . implode(", ", quotify_elements(array_keys($aliasesTbCol))) . "!");
                     }
                     // Aggregate Function is SUM or AVG meaning we need to check that $mValue is numerical OR ?
                     if (str_starts_with($aggName, "avg(") || str_starts_with($aggName, "sum(")) {
@@ -3217,7 +3262,7 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
                         cli_info("Valid Operators are: " . implode(", ", quotify_elements($mysqlOperatorSyntax['all'])) . "! (excluding the Worded Operators in the HAVING Key case!)");
                     }
                     $binding = cli_find_valid_tb_col_and_binding_or_return_null($tbs, ($aliasesTbCol[$aggTbAndOrCol]['tb'] ?? "<UNKNOWN_TABLE>") . ":" . ($aliasesTbCol[$aggTbAndOrCol]['col'] ?? "<UNKNOWN_COLUMN>"));
-                    var_dump($binding);
+
                     if (!$binding['found']) {
                         cli_err_without_exit("[cli_parse_condition_clause_sql - on HAVING Key]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to Aggregate Function: \"$aggName\" not having a valid Table|Table_Col|Alias Name: `$aggTbAndOrCol` in the Aliases Table & Column Array!");
                         cli_info("Valid Aliases Array is: " . implode(", ", quotify_elements(array_keys($aliasesTbCol))) . "!");
@@ -3241,6 +3286,7 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
                         }
                     }
                     // Finally we can add to the parsed condition for HAVING Key!
+                    // and additional ? placeholder to `fields` if applying!
                     if (!empty($specialSyntax)) {
                         if ($parsedCondition !== ' ' && str_contains($specialSyntax, "(")) {
                             $parsedCondition .= " ";
@@ -3248,6 +3294,8 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
                         $parsedCondition .= " " . $specialSyntax;
                     }
                     $aggName = strtoupper($aggName);
+                    if ($aggAliasOrTbDotCol) {
+                    }
                     $parsedCondition .= " $aggName$aggTbAndOrCol) $mOperator $mValue ";
 
                     $mCol = $binding['found_col'] ?? null;
@@ -3256,28 +3304,35 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
                         cli_err("[cli_parse_condition_clause_sql - on HAVING Key]: Huh? Added Parsed HAVING Condition but could then not add to `fields` Key in return() Array?! Due to `cli_find_valid_tb_col_and_binding_or_return_null` returning null for Table or Column Name!?");
                     }
 
-                    if (isset($builtFieldsArray)) {
-                        if (isset($validCols["matchedFields"][$mCol])) {
-                            if (is_string($validCols["matchedFields"][$mCol]) && !empty($validCols["matchedFields"][$mCol])) {
-                                $mCol = $validCols["matchedFields"][$mCol];
+                    // Add to `builtFieldsArray` if it is not already there when ? Placeholder since that means
+                    // we need to grab that value from some validated input field (as defined in `fields` Key!)
+                    $singleTb = $singleTb . "_" . $aggFuncValidStarts[strtolower($aggName)];
+                    // Remove trailing "_" if it exists in $singleTb now!
+                    if (str_ends_with($singleTb, "_")) {
+                        $singleTb = substr($singleTb, 0, -1);
+                    }
+                    if ($mValue === '?') {
+                        if (isset($builtFieldsArray)) {
+                            if (isset($validCols["matchedFields"][$mCol])) {
+                                if (is_string($validCols["matchedFields"][$mCol]) && !empty($validCols["matchedFields"][$mCol])) {
+                                    $mCol = $validCols["matchedFields"][$mCol];
+                                }
                             }
-                        }
-                        if (!in_array($singleTb . "_" . $mCol, $builtFieldsArray)) {
-                            $builtFieldsArray[] = $singleTb . "_" . $mCol;
-                        } elseif (in_array($singleTb . "_" . $mCol, $builtFieldsArray)) {
-                            // We iterate adding +1 to the name until it is unique
-                            $i = 1;
-                            while (in_array($singleTb . "_" . $mCol . "_$i", $builtFieldsArray)) {
-                                $i++;
+
+                            if (!in_array($singleTb . "_" . $mCol, $builtFieldsArray)) {
+                                $builtFieldsArray[] = $singleTb . "_" . $mCol;
+                            } elseif (in_array($singleTb . "_" . $mCol, $builtFieldsArray)) {
+                                // We iterate adding +1 to the name until it is unique
+                                $i = 1;
+                                while (in_array($singleTb . "_" . $mCol . "_$i", $builtFieldsArray)) {
+                                    $i++;
+                                }
+                                $builtFieldsArray[] = $singleTb . "_" . $mCol . "_$i";
                             }
-                            $builtFieldsArray[] = $singleTb . "_" . $mCol . "_$i";
                         }
                     }
 
-
-
-
-
+                    // Continue to next array element of the Condition Clause
                     continue;
                 } else {
                     cli_err("[cli_parse_condition_clause_sql - on HAVING Key]: Invalid Aggregate Function: \"$mCol\" in Query Type: \"$queryType\" due to not being a valid Aggregate Function!");
@@ -4707,6 +4762,10 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                                 'tb' => $aggTb,
                                 'col' => $aggCol,
                             ];
+                            $aliasesTbCol[$tables[$aggTb][$aggCol]['joined_name']] = [
+                                'tb' => $aggTb,
+                                'col' => $aggCol,
+                            ];
                             // We remove "=" if it is inside of $aggFunc
                             // which is special case for COUNT(DISTINCT=)
                             if (str_contains($aggFunc, '=')) {
@@ -4748,6 +4807,10 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                         $selectedTbsColsStr .= $selectTbName . ".$colKey AS " . $singleTbCols['joined_name'] . ",\n";
                         $allAliases[] = $singleTbCols['joined_name'];
                         $aliasesTbCol[$as_name] = [
+                            'tb' => $selectTbName,
+                            'col' => $colKey,
+                        ];
+                        $aliasesTbCol[$singleTbCols['joined_name']] = [
                             'tb' => $selectTbName,
                             'col' => $colKey,
                         ];
@@ -4807,6 +4870,10 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                             $selectedTbsColsStr .= $selectTbName . ".$colKey AS " . $singleTbCols['joined_name'] . ",\n";
                             $allAliases[] = $singleTbCols['joined_name'];
                             $aliasesTbCol[$as_name] = [
+                                'tb' => $selectTbName,
+                                'col' => $colKey,
+                            ];
+                            $aliasesTbCol[$singleTbCols['joined_name']] = [
                                 'tb' => $selectTbName,
                                 'col' => $colKey,
                             ];
@@ -4919,6 +4986,10 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                                         $aggAliases[] = $as_name;
                                         $allAliases[] = $as_name;
                                         $aliasesTbCol[$as_name] = [
+                                            'tb' => $selectTbName,
+                                            'col' => $aggCol,
+                                        ];
+                                        $aliasesTbCol[$tables[$selectTbName][$aggCol]['joined_name']] = [
                                             'tb' => $selectTbName,
                                             'col' => $aggCol,
                                         ];
