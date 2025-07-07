@@ -3217,6 +3217,7 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
                         cli_info("Valid Operators are: " . implode(", ", quotify_elements($mysqlOperatorSyntax['all'])) . "! (excluding the Worded Operators in the HAVING Key case!)");
                     }
                     $binding = cli_find_valid_tb_col_and_binding_or_return_null($tbs, ($aliasesTbCol[$aggTbAndOrCol]['tb'] ?? "<UNKNOWN_TABLE>") . ":" . ($aliasesTbCol[$aggTbAndOrCol]['col'] ?? "<UNKNOWN_COLUMN>"));
+                    var_dump($binding);
                     if (!$binding['found']) {
                         cli_err_without_exit("[cli_parse_condition_clause_sql - on HAVING Key]: Invalid Condition Clause Part: \"$wPart\" in Query Type: \"$queryType\" due to Aggregate Function: \"$aggName\" not having a valid Table|Table_Col|Alias Name: `$aggTbAndOrCol` in the Aliases Table & Column Array!");
                         cli_info("Valid Aliases Array is: " . implode(", ", quotify_elements(array_keys($aliasesTbCol))) . "!");
@@ -3248,6 +3249,35 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
                     }
                     $aggName = strtoupper($aggName);
                     $parsedCondition .= " $aggName$aggTbAndOrCol) $mOperator $mValue ";
+
+                    $mCol = $binding['found_col'] ?? null;
+                    $singleTb = $binding['found_table'] ?? null;
+                    if (!isset($singleTb) || !isset($mCol)) {
+                        cli_err("[cli_parse_condition_clause_sql - on HAVING Key]: Huh? Added Parsed HAVING Condition but could then not add to `fields` Key in return() Array?! Due to `cli_find_valid_tb_col_and_binding_or_return_null` returning null for Table or Column Name!?");
+                    }
+
+                    if (isset($builtFieldsArray)) {
+                        if (isset($validCols["matchedFields"][$mCol])) {
+                            if (is_string($validCols["matchedFields"][$mCol]) && !empty($validCols["matchedFields"][$mCol])) {
+                                $mCol = $validCols["matchedFields"][$mCol];
+                            }
+                        }
+                        if (!in_array($singleTb . "_" . $mCol, $builtFieldsArray)) {
+                            $builtFieldsArray[] = $singleTb . "_" . $mCol;
+                        } elseif (in_array($singleTb . "_" . $mCol, $builtFieldsArray)) {
+                            // We iterate adding +1 to the name until it is unique
+                            $i = 1;
+                            while (in_array($singleTb . "_" . $mCol . "_$i", $builtFieldsArray)) {
+                                $i++;
+                            }
+                            $builtFieldsArray[] = $singleTb . "_" . $mCol . "_$i";
+                        }
+                    }
+
+
+
+
+
                     continue;
                 } else {
                     cli_err("[cli_parse_condition_clause_sql - on HAVING Key]: Invalid Aggregate Function: \"$mCol\" in Query Type: \"$queryType\" due to not being a valid Aggregate Function!");
