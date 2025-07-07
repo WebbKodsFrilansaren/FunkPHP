@@ -3294,8 +3294,14 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
                         $parsedCondition .= " " . $specialSyntax;
                     }
                     $aggName = strtoupper($aggName);
-                    if ($aggAliasOrTbDotCol) {
+
+                    // True = it is a Agg Func Alias Name, False = it is Table:Col after Col => Table:Col or already Table:Col
+                    if (!$aggAliasOrTbDotCol) {
+                        // We preg_replace ONLY the first "_" with "." to make it table.col
+                        $aggTbAndOrCol = preg_replace('/_/', '.', $aggTbAndOrCol, 1);
                     }
+
+                    // Add parsed condition for HAVING Key
                     $parsedCondition .= " $aggName$aggTbAndOrCol) $mOperator $mValue ";
 
                     $mCol = $binding['found_col'] ?? null;
