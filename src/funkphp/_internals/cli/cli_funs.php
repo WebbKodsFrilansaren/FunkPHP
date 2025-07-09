@@ -5758,49 +5758,49 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                                 $hydratedKey = [];
                                 echo "WE REACH EHERE WITH: " . implode(", ", $hydrationKey) . "\n";
 
-                                // $currentParentRef = &$hydratedKey; // Use a reference to build the nested structure
-                                // foreach ($hydrationKey as $index => $tableName) {
-                                //     $entityDef = [
-                                //         'pk'       => null,
-                                //         'cols'  => [],
-                                //         'with' => []
-                                //     ];
-                                //     // Populate PK and other columns
-                                //     foreach ($selectedCols[$tableName] as $originalCol => $aliasCol) {
-                                //         var_dump($originalCol);
-                                //         if ($originalCol === $tableName . '_id') {
-                                //             $entityDef['pk'] = $originalCol;
-                                //         } elseif (!isset($joinedTablesWithRef[$tableName]) || $originalCol !== $joinedTablesWithRef[$tableName]) {
-                                //             // Only add non-PK and non-FK-to-parent columns to 'columns'
-                                //             $entityDef['cols'][] = $originalCol;
-                                //         }
-                                //     }
-                                //     // Add FK for child tables
-                                //     if ($index > 0) { // If it's a child table
-                                //         $parentTableName = $hydrationKey[$index - 1];
-                                //         // You need a way to look up the FK linking $tableName to $parentTableName
-                                //         // This is where $joinedTablesWithRef is crucial, but you need to derive the *alias* of the FK
-                                //         if (isset($joinedTablesWithRef[$tableName])) { // Check if this table has an FK defined
-                                //             $originalFkCol = $joinedTablesWithRef[$tableName];
-                                //             // Find the alias for this original FK column within the current table's selectedCols
-                                //             foreach ($selectedCols[$tableName] as $orig => $alias) {
-                                //                 if ($orig === $originalFkCol) {
-                                //                     $entityDef['fk_to_parent'] = $alias;
-                                //                     break;
-                                //                 }
-                                //             }
-                                //         }
-                                //     }
-                                //     if ($index === 0) {
-                                //         // First table is the root
-                                //         $hydratedKey[$tableName] = $entityDef;
-                                //         $currentParentRef = &$hydratedKey[$tableName];
-                                //     } else {
-                                //         // Subsequent tables are children of the previous one in the chain
-                                //         $currentParentRef['with'][$tableName] = $entityDef;
-                                //         $currentParentRef = &$currentParentRef['with'][$tableName];
-                                //     }
-                                // }
+                                $currentParentRef = &$hydratedKey; // Use a reference to build the nested structure
+                                foreach ($hydrationKey as $index => $tableName) {
+                                    $entityDef = [
+                                        'pk'       => null,
+                                        'cols'  => [],
+                                        'with' => []
+                                    ];
+                                    // Populate PK and other columns
+                                    foreach ($selectedCols[$tableName] as $originalCol => $aliasCol) {
+                                        var_dump($originalCol);
+                                        if ($originalCol === $tableName . '_id') {
+                                            $entityDef['pk'] = $originalCol;
+                                        } elseif (!isset($joinedTablesWithRef[$tableName]) || $originalCol !== $joinedTablesWithRef[$tableName]) {
+                                            // Only add non-PK and non-FK-to-parent columns to 'columns'
+                                            $entityDef['cols'][] = $originalCol;
+                                        }
+                                    }
+                                    // Add FK for child tables
+                                    if ($index > 0) { // If it's a child table
+                                        $parentTableName = $hydrationKey[$index - 1];
+                                        // You need a way to look up the FK linking $tableName to $parentTableName
+                                        // This is where $joinedTablesWithRef is crucial, but you need to derive the *alias* of the FK
+                                        if (isset($joinedTablesWithRef[$tableName])) { // Check if this table has an FK defined
+                                            $originalFkCol = $joinedTablesWithRef[$tableName];
+                                            // Find the alias for this original FK column within the current table's selectedCols
+                                            foreach ($selectedCols[$tableName] as $orig => $alias) {
+                                                if ($orig === $originalFkCol) {
+                                                    $entityDef['fk_to_parent'] = $alias;
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    }
+                                    if ($index === 0) {
+                                        // First table is the root
+                                        $hydratedKey[$tableName] = $entityDef;
+                                        $currentParentRef = &$hydratedKey[$tableName];
+                                    } else {
+                                        // Subsequent tables are children of the previous one in the chain
+                                        $currentParentRef['with'][$tableName] = $entityDef;
+                                        $currentParentRef = &$currentParentRef['with'][$tableName];
+                                    }
+                                }
                             }
                         }
                     }

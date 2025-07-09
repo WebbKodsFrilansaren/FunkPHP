@@ -81,7 +81,40 @@ function s_test5(&$c) // <authors,articles,comments>
 		array(
 			'mode' => 'simple',
 			'type' => 'array',
-			'key' => NULL,
+			'key' =>
+			array(
+				'authors' =>
+				array(
+					'pk' => 'authors_id',
+					'cols' =>
+					array(
+						0 => 'authors_name',
+						1 => 'authors_email',
+						2 => 'authors_description',
+						3 => 'authors_longer_description',
+						4 => 'authors_age',
+						5 => 'authors_weight',
+						6 => 'authors_nickname',
+						7 => 'authors_updated_at',
+					),
+					'with' =>
+					array(
+						'comments' =>
+						array(
+							'pk' => 'comments_id',
+							'cols' =>
+							array(
+								0 => 'comments_article_id',
+								1 => 'comments_content',
+								2 => 'comments_author_id',
+								3 => 'comments_created_at',
+							),
+							'with' =>
+							array(),
+						),
+					),
+				),
+			),
 		),
 		'bparam' => '',
 		'fields' =>
