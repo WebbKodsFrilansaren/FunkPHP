@@ -4734,7 +4734,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                         }
                         $aggAliases[] = $as_name;
                         $allAliases[] = $as_name;
-                        $selectedCols[$fromTb][] = [$fromTb => $as_name];
+                        $selectedCols[$fromTb][] = $as_name;
                         $aliasesTbCol[$as_name] = [
                             'tb' => $fromTb,
                             'col' => '*',
@@ -4777,8 +4777,8 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                             }
                             $aggAliases[] = $as_name;
                             $allAliases[] = $as_name;
-                            $selectedCols[$aggTb][] = [$as_name => $aggCol];
-                            $selectedCols[$aggTb][] = [$tables[$aggTb][$aggCol]['joined_name'] => $aggCol];
+                            $selectedCols[$aggTb][$as_name] = $aggCol;
+                            $selectedCols[$aggTb][$tables[$aggTb][$aggCol]['joined_name']] = $aggCol;
                             $aliasesTbCol[$as_name] = [
                                 'tb' => $aggTb,
                                 'col' => $aggCol,
@@ -4827,7 +4827,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                     foreach ($tables[$selectTbName] as $colKey => $singleTbCols) {
                         $selectedTbsColsStr .= $selectTbName . ".$colKey AS " . $singleTbCols['joined_name'] . ",\n";
                         $allAliases[] = $singleTbCols['joined_name'];
-                        $selectedCols[$selectTbName][] = [$singleTbCols['joined_name'] => $colKey];
+                        $selectedCols[$selectTbName][$singleTbCols['joined_name']] = $colKey;
                         // $aliasesTbCol[$as_name] = [ // DO I REALLY NEED THIS? Since $as_name is for agg Funcs?
                         //     'tb' => $selectTbName,
                         //     'col' => $colKey,
@@ -4891,7 +4891,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                         if (!in_array($colKey, $excludedCols, true)) {
                             $selectedTbsColsStr .= $selectTbName . ".$colKey AS " . $singleTbCols['joined_name'] . ",\n";
                             $allAliases[] = $singleTbCols['joined_name'];
-                            $selectedCols[$selectTbName][] = [$singleTbCols['joined_name'] => $colKey];
+                            $selectedCols[$selectTbName][$singleTbCols['joined_name']] =  $colKey;
                             // $aliasesTbCol[$as_name] = [ // DO I REALLY NEED THIS? Since $as_name is for agg Funcs?
                             //     'tb' => $selectTbName,
                             //     'col' => $colKey,
@@ -4970,7 +4970,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                                     }
                                     $aggAliases[] = $as_name;
                                     $allAliases[] = $as_name;
-                                    $selectedCols[$selectTbName][] = [$as_name => $selectTbName];
+                                    $selectedCols[$selectTbName][$as_name] = $selectTbName;
                                     $aliasesTbCol[$as_name] = [
                                         'tb' => $selectTbName,
                                         'col' => '*',
@@ -5009,7 +5009,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                                         }
                                         $aggAliases[] = $as_name;
                                         $allAliases[] = $as_name;
-                                        $selectedCols[$selectTbName][] = [$as_name => $aggCol];
+                                        $selectedCols[$selectTbName][$as_name] = $aggCol;
                                         $aliasesTbCol[$as_name] = [
                                             'tb' => $selectTbName,
                                             'col' => $aggCol,
@@ -5048,7 +5048,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                         // Here we just add the column to the selectedTbsColsStr since we know it exists!
                         $selectedTbsColsStr .= $selectTbName . ".$includedCol AS " . $tables[$selectTbName][$includedCol]['joined_name'] . ",\n";
                         $allAliases[] = $tables[$selectTbName][$includedCol]['joined_name'];
-                        $selectedCols[$selectTbName][] = [$tables[$selectTbName][$includedCol]['joined_name'] => $includedCol];
+                        $selectedCols[$selectTbName][$tables[$selectTbName][$includedCol]['joined_name']] = $includedCol;
                         $aliasesTbCol[$tables[$selectTbName][$includedCol]['joined_name']] = [
                             'tb' => $selectTbName,
                             'col' => $includedCol,
@@ -5098,6 +5098,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
 
         // When we are SELECTing more than 1 Table, we must use JOINs to
         // join them together so here we start parsing the JOINS_ON Key!
+        $tables_were_joined = false;
         if (isset($joinsTb) && !empty($joinsTb)) {
             if (is_string($joinsTb) && str_starts_ends_with($joinsTb, "{", "}")) {
                 cli_err_syntax_without_exit("Escaped SQL Syntax (starting & ending with `{}`) is NOT supported in `JOINS_ON` Key!");
@@ -5277,6 +5278,9 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
             if (str_ends_with($joinsStr, " ")) {
                 $joinsStr = substr($joinsStr, 0, -1);
             }
+            // If we reached here we can set tables_were_joined to true
+            // so hydration parsing can know this at the end!
+            $tables_were_joined = true;
         }
 
         // PARSING THE OPTIONAL "WHERE" Key (the WHERE clause to filter results) using Condition Clause Function if the "WHERE" Key is a Non-Empty String!
@@ -5585,6 +5589,89 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
             if (is_array($hydrationKey) && !empty($hydrationKey)) {
                 // PARSE "SIMPLE" Hydration Mode
                 if ($hydrationMode === 'simple' || $hydrationMode === 'simple|advanced') {
+                    // IN "SIMPLE" Mode it is a single string so we try get it or throw
+                    // warning+info but do NOT exit since it is not critical!
+                    if (isset($hydrationKey)) {
+                        // This is checked for each step so we can exit early
+                        // and without having mass-use if / else everywhere!
+                        $keepGoing = true;
+                        $hydrationKey = $hydrationKey[0] ?? null;
+                        if (!is_string_and_not_empty($hydrationKey)) {
+                            $keepGoing = false;
+                            cli_warning_without_exit("The `<HYDRATION>` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query Type is set to an Empty String or Invalid Data Type! (must be a Non-Empty String)");
+                            cli_info_without_exit("Hydration will not be applied to the results of this query!");
+                        }
+                        // Validate correct syntax to hydrate one or more tables
+                        if ($keepGoing) {
+                            if (!preg_match('/^([a-zA-Z0-9_]+)((=>){1}([a-zA-Z0-9_]+))*$/i', $hydrationKey)) {
+                                $keepGoing = false;
+                                cli_warning_without_exit("Invalid Hydration Key `$hydrationKey` in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
+                                cli_info_without_exit("The Hydration Key must be a Non-Empty String representing the Hydration Key in the Format:\n`table` to Hydrate a Single Table OR\n`table=>table2` to Hydrate Two(2) Tables based on valid JOINING between them OR\n`table=>table2=>table3` to Hydrate Three(3) Tables based on valid JOINING between them\n(and so on to hydrate multiple joined tables)");
+                                cli_info_without_exit("Hydration will not be applied to the results of this query!");
+                            }
+                        }
+                        // Split on "=>" if it exists or just use the
+                        // single table name as a single element array
+                        if ($keepGoing) {
+                            $hydrationKey = str_contains($hydrationKey, "=>") ? explode("=>", $hydrationKey) : [$hydrationKey];
+                        }
+                        // Check if fewer tables were selected than should be hydrated
+                        // since "$tables_were_joined" = true means we have joined tables
+                        // meaning we might have a valid case for "=>" aving been used!
+                        if ($keepGoing) {
+                            var_dump($hydrationKey, $joinedTables);
+                            if (count($hydrationKey) > 1 && count($hydrationKey) !== count($joinedTables)) {
+                                $keepGoing = false;
+                                cli_warning_without_exit("The `<HYDRATION>` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query Type is set to Hydrate Fewer/More Tables:\n" . implode(",", quotify_elements($hydrationKey)) . " than were Joined using the `JOINS_ON` Key: " . implode(",", quotify_elements((!empty($joinedTables) ? $joinedTables : ["<No Joined Tables>"]))) . "!");
+                                cli_info_without_exit("You have Joined Tables in the `JOINS_ON` Key but the Hydration Key More/Fewer Table(s) Hydrate!");
+                                cli_info_without_exit("Make sure You have same Number of Tables to Hydrate as in the `JOINS_ON` Key UNLESS you are just Hydrating A Single Table!");
+                            }
+                        }
+                        // Check that the tables to hydrate are actually valid ones
+                        // by comparing against the keys in the array $selectedCols!
+                        if ($keepGoing) {
+                            // Check for the Tables Joined if they were!
+                            if ($tables_were_joined) {
+                                foreach ($joinedTables as $joined) {
+                                    if (!array_key_exists($joined, $selectedCols)) {
+                                        $keepGoing = false;
+                                        cli_warning_without_exit("The `<HYDRATION>` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query Type is set to Hydrate Table `$joined` which was NOT Selected in the `SELECT` Key!");
+                                        cli_info_without_exit("Make sure You have Selected the Table(s) to Hydrate in the `SELECT` Key!");
+                                        cli_info_without_exit("Valid Tables to Hydrate are:\n" . implode(",\n", quotify_elements(array_keys($selectedCols))) . ".");
+                                    }
+                                    foreach ($hydrationKey as $hydTb) {
+                                        if (!array_key_exists($hydTb, $selectedCols)) {
+                                            $keepGoing = false;
+                                            cli_warning_without_exit("The `<HYDRATION>` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query Type is set to Hydrate Table `$hydTb` which was NOT Selected in the `SELECT` Key!");
+                                            cli_info_without_exit("Make sure You have Selected the Table(s) to Hydrate in the `SELECT` Key!");
+                                            cli_info_without_exit("Valid Tables to Hydrate are:\n" . implode(",\n", quotify_elements(array_keys($selectedCols))) . ".");
+                                        }
+                                    }
+                                }
+                            }
+                            // Otherwise just check the "=>"-splitted Tables in <HYDRATION> Key!
+                            else {
+                                foreach ($hydrationKey as $hydTb) {
+                                    if (!array_key_exists($hydTb, $selectedCols)) {
+                                        $keepGoing = false;
+                                        cli_warning_without_exit("The `<HYDRATION>` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query Type is set to Hydrate Table `$hydTb` which was NOT Selected in the `SELECT` Key!");
+                                        cli_info_without_exit("Make sure You have Selected the Table(s) to Hydrate in the `SELECT` Key!");
+                                        cli_info_without_exit("Valid Tables to Hydrate are:\n" . implode(",\n", quotify_elements(array_keys($selectedCols))) . ".");
+                                    }
+                                }
+                            }
+                        }
+                        // SPECIAL CASE CHECK: If Tables were Joined, we check that all
+                        // tables in the $selectedCols have an `id` column AND a `OtherTable_id`
+                        // meaning the secondary/foreign key since they should be included if you
+                        // wanna hydrate two or more tables, otherwise the hydration will be harder
+                        // than necessary and might not work at all at special cases!
+                        if ($keepGoing) {
+                            if ($tables_were_joined) {
+                            } else {
+                            }
+                        }
+                    }
                 }
                 // PARSE "ADVANCED" Hydration Mode
                 elseif ($hydrationMode === 'advanced') {

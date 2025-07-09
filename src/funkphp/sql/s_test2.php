@@ -33,12 +33,10 @@ function s_test5(&$c) // <authors,articles,comments>
 		// Available Join Types: `inner|i|join|j|ij`,`left|l`,`right|r`
 		// Example: `inner=books,authors(id),books(author_id)`
 		'JOINS_ON' => [ // Optional, make empty if not joining any tables!
-			'inner=comments,authors(id),comments(author_id)',
 		],
 		// Optional Keys, leave empty (or remove) if not used!
 		'SELECT' => [
-			'authors:id,name,AVG(age),age',
-			'comments:id,content',
+			'authors:name,age',
 		],
 		'WHERE' => '',
 		'GROUP BY' => '',
@@ -47,7 +45,7 @@ function s_test5(&$c) // <authors,articles,comments>
 		'LIMIT' => '',
 		'OFFSET' => '',
 		// Optional, leave empty if not used!
-		'<HYDRATION>' => [],
+		'<HYDRATION>' => ["authors"],
 		// What each Binded Param must match from a Validated Data
 		// Field Array (empty means same as TableName_ColumnKey)
 		'<MATCHED_FIELDS>' => [
@@ -76,7 +74,7 @@ function s_test5(&$c) // <authors,articles,comments>
 	];
 
 	return array(
-		'sql' => 'SELECT authors.id AS authors_id, authors.name AS authors_name, AVG(authors.age) AS avg_authors_age, authors.age AS authors_age, comments.id AS comments_id, comments.content AS comments_content FROM authors INNER JOIN comments ON authors.id = comments.author_id;',
+		'sql' => 'SELECT authors.name AS authors_name, authors.age AS authors_age FROM authors;',
 		'hydrate' =>
 		array(
 			'mode' => 'simple',
