@@ -3801,35 +3801,158 @@ function cli_parse_joins_on_DFS($fromTb, $availableTableNames, $relationships)
 // $keepGoing is a reference to a boolean that indicates whether to keep going
 // or not during the Hydration Compilation Process that starts with the following:
 // `$hydratedKey = null;\n if (isset($hydrationKey))){...}`
-function cli_parse_joined_tables_order($tablesString, &$currentFinalHydrateKey, &$keepGoing)
+function cli_parse_joined_tables_order($tablesString, &$currentFinalHydrateKey, &$keepGoing, $selectedCols)
 {
     global $tablesAndRelationshipsFile;
+    $tables = $tablesAndRelationshipsFile['tables'] ?? [];
     $relationships = $tablesAndRelationshipsFile['relationships'] ?? [];
 
     // Validate the input parameters before anything else!
-    if (!isset($relationships) || empty($relationships)) {
+    if (!isset($relationships) || !is_array($relationships) || empty($relationships)) {
         $keepGoing = false;
-        cli_err_without_exit("[cli_parse_joined]: No Relationships found in the `tablesAndRelationships.php` File!");
-        cli_info_without_exit("Please ensure that the file is properly configured with relationships between tables.");
+        cli_warning_without_exit("[cli_parse_joined_tables_order]: No Relationships found in the `tablesAndRelationships.php` File!");
+        cli_info_without_exit("Please ensure that the file is properly Configured with Relationships between Tables.");
+        cli_info_without_exit("IMPORTANT: The Hydration Compilation Will Stop Here - But the SQL String Compiling will continue...!");
         return;
     }
-    if (!is_string_and_not_empty($tablesString)) {
+    if (!is_string_and_not_empty($tablesString) || !preg_match('/^([a-zA-Z0-9_]+)((=>){1}([a-zA-Z0-9_]+))*$/i', $tablesString)) {
         $keepGoing = false;
-        cli_err_without_exit("[cli_parse_joined]: Expects a Non-Empty String as input for `\$tablesString`!");
-        cli_info_without_exit("This probably means that the `tablesString` is not a string or that it is empty.");
+        cli_warning_without_exit("[cli_parse_joined_tables_order]: Expects a Non-Empty String as input for `\$tablesString`!");
+        cli_info_without_exit("This probably means that the `tablesString` is NOT a String or that it IS Empty.");
+        cli_info_without_exit("The Hydration Key must be a Non-Empty String representing the Hydration Key in the Format:\n`table` to Hydrate a Single Table OR\n`table=>table2` to Hydrate Two(2) Tables based on valid JOINING between them OR\n`table=>table2=>table3` to Hydrate Three(3) Tables based on valid JOINING between them\n(and so on to hydrate multiple joined tables)");
+        cli_info_without_exit("IMPORTANT: The Hydration Compilation Will Stop Here - But the SQL String Compiling will continue...!");
         return;
     }
     if (!is_array($currentFinalHydrateKey)) {
         $keepGoing = false;
-        cli_err_without_exit("[cli_parse_joined]: Expects a Non-Empty Array as input for `\$currentFinalHydrateKey`!");
-        cli_info_without_exit("This probably means that the `currentFinalHydrateKey` is not an array. (It CAN be Empty!)");
+        cli_warning_without_exit("[cli_parse_joined_tables_order]: Expects a Non-Empty Array as input for `\$currentFinalHydrateKey`!");
+        cli_info_without_exit("This probably means that the `currentFinalHydrateKey` is NOT an Array. (It CAN be Empty!)");
+        cli_info_without_exit("IMPORTANT: The Hydration Compilation Will Stop Here - But the SQL String Compiling will continue...!");
+        return;
+    }
+    if (!is_array_and_not_empty($selectedCols)) {
+        $keepGoing = false;
+        cli_warning_without_exit("[cli_parse_joined_tables_order]: Expects a Non-Empty Array as input for `\$selectedCols`!");
+        cli_info_without_exit("This probably means that the `selectedCols` is NOT an Array or that it IS Empty.");
+        cli_info_without_exit("IMPORTANT: The Hydration Compilation Will Stop Here - But the SQL String Compiling will continue...!");
         return;
     }
     if (!is_bool($keepGoing)) {
         $keepGoing = false;
-        cli_err_without_exit("[cli_parse_joined]: Expects a Boolean as input for `\$keepGoing`!");
+        cli_warning_without_exit("[cli_parse_joined_tables_order]: Expects a Boolean as input for `\$keepGoing`!");
         cli_info_without_exit("This probably means that the `keepGoing` is NOT a boolean or that it is not set.\nIMPORTANT: It has now been set to false which probably means the remaining code for Hydration Compilation will NOT be executed.");
+        cli_info_without_exit("IMPORTANT: The Hydration Compilation Will Stop Here - But the SQL String Compiling will continue...!");
         return;
+    }
+    // Turn into an array by either splitting by "=>" or just using it as a single array element
+    $tablesString = str_contains($tablesString, "=>") ? explode("=>", $tablesString) : [$tablesString];
+
+
+    // Single Table Case: It is NOT needed to have a relationship but the tables must exists of course!
+    if (count($tablesString) === 1) {
+        if (!isset($tables[$tablesString[0]]) || !is_array($tables[$tablesString[0]]) || empty($tables[$tablesString[0]])) {
+            $keepGoing = false;
+            cli_warning_without_exit("[cli_parse_joined_tables_order]: Invalid Table Name: `{$tablesString[0]}` in the `tables.php` File!");
+            cli_info_without_exit("Verify that the `{$tablesString[0]}` Table exists in the `tables` Key in the `tables.php` File!.");
+            cli_info_without_exit("IMPORTANT: The Hydration Compilation Will Stop Here - But the SQL String Compiling will continue...!");
+            return;
+        }
+        if (!isset($currentFinalHydrateKey[$tablesString[0]])) {
+            $currentFinalHydrateKey[$tablesString[0]] = [
+                'pk' => $tablesString[0] . "_id",
+                'cols' => array_keys($selectedCols[$tablesString[0]]),
+                'with' => [],
+            ];
+        }
+    }
+    // Multiple Tables Case: For each table in the string we will add a table and then check the relationship
+    // from previous table since the idea is that you should chain correctly ("table1=>table2=>table3") so we
+    // only need to check relationships from the previous table to the next one. And if a table already exists
+    // we adjust the position for the $currentFinalHydrateKey[$table] so we do not accidentally overwrite it!
+    elseif (count($tablesString) > 1) {
+        $maxIdx = count($tablesString) - 1; // Maximum Index of the Tables String
+        $prevTB = ""; // Previous Table to use for the next table
+        $prevPK = ""; // Previous Primary Key to use for the next table
+        $nextFK  = ""; // Next Foreign Key to use for the next table
+        $nextLevel = &$currentFinalHydrateKey; // Reference to the current level of the $currentFinalHydrateKey
+
+        foreach ($tablesString as $idx => $tbStr) {
+            if (!isset($tables[$tbStr]) || !is_array($tables[$tbStr]) || empty($tables[$tbStr])) {
+                $keepGoing = false;
+                cli_warning_without_exit("[cli_parse_joined_tables_order]: Invalid Table Name: `{$tbStr}` in the `tables.php` File!");
+                cli_info_without_exit("Verify that the `{$tbStr}` Table exists in the `tables` Key in the `tables.php` File!.");
+                cli_info_without_exit("IMPORTANT: The Hydration Compilation Will Stop Here - But the SQL String Compiling will continue...!");
+                return;
+            }
+
+            var_dump("INDEX: {$idx} - TABLE: {$tbStr}");
+
+            // First Table level (index 0)
+            if ($idx === 0) {
+                // First Table already exists, so we just adjust the position
+                // and store previous Table & Primary Key & next Foreign Key
+                if (isset($nextLevel[$tbStr])) {
+                    $prevTB = $tbStr;
+                    $prevPK = $nextLevel[$tbStr]['pk'];
+                    $nextFK = $tablesString[$idx + 1] . "_" . substr($tbStr, 0, -1) . "_id";
+                    $nextLevel = &$nextLevel[$tbStr]['with']; // Adjust the next level to the current table's 'with' array
+                }
+                // First Table does not exist, so we create it
+                elseif (!isset($nextLevel[$tbStr])) {
+                    $nextLevel[$tbStr] = [
+                        'pk' => $tbStr . "_id",
+                        'cols' => array_keys($selectedCols[$tbStr]),
+                        'with' => [],
+                    ];
+                    // Then we store the previous Table and Primary Key
+                    // and readjust the position of the $nextLevel
+                    $prevTB = $tbStr;
+                    $prevPK = $nextLevel[$tbStr]['pk'];
+                    $nextFK = $tablesString[$idx + 1] . "_" . substr($tbStr, 0, -1) . "_id";
+                    $nextLevel = &$nextLevel[$tbStr]['with']; // Adjust the next level to the current table's 'with' array
+                }
+            }
+            // All other levels of Tables (index > 1)
+            elseif ($idx > 0) {
+                if (!isset($tables[$tbStr]) || !is_array($tables[$tbStr]) || empty($tables[$tbStr])) {
+                    $keepGoing = false;
+                    cli_warning_without_exit("[cli_parse_joined_tables_order]: Invalid Table Name: `{$tbStr}` in the `tables.php` File!");
+                    cli_info_without_exit("Verify that the `{$tbStr}` Table exists in the `tables` Key in the `tables.php` File!.");
+                    cli_info_without_exit("IMPORTANT: The Hydration Compilation Will Stop Here - But the SQL String Compiling will continue...!");
+                    return;
+                }
+                if (!isset($relationships[$tbStr][$prevTB]) || !is_array($relationships[$tbStr][$prevTB]) || empty($relationships[$tbStr][$prevTB])) {
+                    $keepGoing = false;
+                    cli_warning_without_exit("[cli_parse_joined_tables_order]: Invalid Relationship between Tables: `{$prevTB}` and `{$tbStr}` in the `tablesAndRelationships.php` File!");
+                    cli_info_without_exit("Verify that the `{$prevTB}` and `{$tbStr}` Tables have a valid Relationship in the `relationships` Key in the `tablesAndRelationships.php` File!");
+                    cli_info_without_exit("IMPORTANT: The Hydration Compilation Will Stop Here - But the SQL String Compiling will continue...!");
+                    return;
+                }
+                // Next Table already exists, so we just adjust the position
+                if (isset($nextLevel[$tbStr])) {
+                    $prevTB = $tbStr;
+                    $prevPK = $currentFinalHydrateKey[$tbStr]['pk'];
+                    $nextFK = $idx !== $maxIdx ? $tablesString[$idx + 1] . "_" . substr($tbStr, 0, -1) . "_id" : null; // If not last table, set nextFK
+                    $nextLevel = &$currentFinalHydrateKey[$tbStr]['with']; // Adjust the next level to the current table's 'with' array
+                }
+                // Next Table does not exist, so we create it and since this is larger than 0 index,
+                // we also add the 'fk' which we know from $nextFK which is the previous table's
+                elseif (!isset($nextLevel[$tbStr])) {
+                    $nextLevel[$tbStr] = [
+                        'fk' => $nextFK, // Foreign Key from the previous table
+                        'pk' => $tbStr . "_id",
+                        'cols' => array_keys($selectedCols[$tbStr]),
+                        'with' => [],
+                    ];
+                    // Then we store the previous Table and Primary Key
+                    // and readjust the position of the $nextLevel
+                    $prevTB = $tbStr;
+                    $prevPK = $nextLevel[$tbStr]['pk'];
+                    $nextFK = $idx !== $maxIdx ? $tablesString[$idx + 1] . "_" . substr($tbStr, 0, -1) . "_id" : null; // If not last table, set nextFK
+                    $nextLevel = &$nextLevel[$tbStr]['with']; // Adjust the next level to the current table's 'with' array
+                }
+            }
+        }
     }
 }
 
@@ -5633,7 +5756,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         // IMPORTANT: This step CAN fail and still generate the SQL String!
         // So, it just gives a strong warning that the hydration failed meaning
         // its value in 'key' will be an empty array instead of actual hydration!
-        $hydratedKey = null;
+        $hydratedKey = [];
         if (isset($hydrationKey)) {
             // HERE PARSING ACTUALLY BEGINS WHEN IT IS A NON-EMPTY ARRAY!
             if (is_array($hydrationKey) && !empty($hydrationKey)) {
@@ -5644,7 +5767,6 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                     if (isset($hydrationKey)) {
                         // This is checked for each step so we can exit early
                         // and without having mass-use if / else everywhere!
-
                         $hydrationKeys = $hydrationKey ?? [];
                         $keepGoing = true;
                         $uniqueTbs = [];
@@ -5666,12 +5788,16 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                                 }
                             }
                         }
+                        //, , $hydrationKey, $joinedTables, $joinedTablesWithRef
+                        var_dump($uniqueTbs, $selectedCols);
                         // Here we do the main parsing/compiling of each Hydration Key Array Element!
                         // and finally adding it to the 'hydrate' => 'key' Key!
                         if ($keepGoing) {
                             foreach ($hydrationKeys as $hydrationKey) {
                                 // Split on "=>" if it exists or just use the
                                 // single table name as a single element array
+                                cli_parse_joined_tables_order(strtolower(trim($hydrationKey)), $hydratedKey, $keepGoing, $selectedCols);
+
                                 if ($keepGoing) {
                                     $hydrationKey = str_contains($hydrationKey, "=>") ? explode("=>", $hydrationKey) : [$hydrationKey];
                                 }
@@ -5679,7 +5805,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                                 // since "$tables_were_joined" = true means we have joined tables
                                 // meaning we might have a valid case for "=>" aving been used!
                                 if ($keepGoing) {
-                                    var_dump($selectedCols, $hydrationKey, $joinedTables, $joinedTablesWithRef);
+
                                     // if ($tables_were_joined) {
                                     //     if (count($hydrationKey) !== count($joinedTables)) {
                                     //         $keepGoing = false;
@@ -5801,52 +5927,50 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                                 // FINALLY: We can start generating the Hydration Key that will
                                 // be stored in 'hydrate' => 'key' in the converted SQL Array!
                                 if ($keepGoing) {
-                                    $hydratedKey = [];
                                     echo "WE REACH EHERE WITH: " . implode(", ", $hydrationKey) . "\n";
 
-                                    $currentParentRef = &$hydratedKey; // Use a reference to build the nested structure
-                                    foreach ($hydrationKey as $index => $tableName) {
-                                        $entityDef = [
-                                            'pk'       => null,
-                                            'cols'  => [],
-                                            'with' => []
-                                        ];
-                                        // Populate PK and other columns
-                                        foreach ($selectedCols[$tableName] as $originalCol => $aliasCol) {
-                                            var_dump($originalCol);
-                                            if ($originalCol === $tableName . '_id') {
-                                                $entityDef['pk'] = $originalCol;
-                                            } elseif (!isset($joinedTablesWithRef[$tableName]) || $originalCol !== $joinedTablesWithRef[$tableName]) {
-                                                // Only add non-PK and non-FK-to-parent columns to 'columns'
-                                                $entityDef['cols'][] = $originalCol;
-                                            }
-                                        }
-                                        // Add FK for child tables
-                                        if ($index > 0) { // If it's a child table
-                                            $parentTableName = $hydrationKey[$index - 1];
-                                            // You need a way to look up the FK linking $tableName to $parentTableName
-                                            // This is where $joinedTablesWithRef is crucial, but you need to derive the *alias* of the FK
-                                            if (isset($joinedTablesWithRef[$tableName])) { // Check if this table has an FK defined
-                                                $originalFkCol = $joinedTablesWithRef[$tableName];
-                                                // Find the alias for this original FK column within the current table's selectedCols
-                                                foreach ($selectedCols[$tableName] as $orig => $alias) {
-                                                    if ($orig === $originalFkCol) {
-                                                        $entityDef['fk_to_parent'] = $alias;
-                                                        break;
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        if ($index === 0) {
-                                            // First table is the root
-                                            $hydratedKey[$tableName] = $entityDef;
-                                            $currentParentRef = &$hydratedKey[$tableName];
-                                        } else {
-                                            // Subsequent tables are children of the previous one in the chain
-                                            $currentParentRef['with'][$tableName] = $entityDef;
-                                            $currentParentRef = &$currentParentRef['with'][$tableName];
-                                        }
-                                    }
+                                    // Use a reference to build the nested structure
+                                    // foreach ($hydrationKey as $index => $tableName) {
+                                    //     $entityDef = [
+                                    //         'pk'       => null,
+                                    //         'cols'  => [],
+                                    //         'with' => []
+                                    //     ];
+                                    //     // Populate PK and other columns
+                                    //     foreach ($selectedCols[$tableName] as $originalCol => $aliasCol) {
+                                    //         if ($originalCol === $tableName . '_id') {
+                                    //             $entityDef['pk'] = $originalCol;
+                                    //         } elseif (!isset($joinedTablesWithRef[$tableName]) || $originalCol !== $joinedTablesWithRef[$tableName]) {
+                                    //             // Only add non-PK and non-FK-to-parent columns to 'columns'
+                                    //             $entityDef['cols'][] = $originalCol;
+                                    //         }
+                                    //     }
+                                    //     // Add FK for child tables
+                                    //     if ($index > 0) { // If it's a child table
+                                    //         $parentTableName = $hydrationKey[$index - 1];
+                                    //         // You need a way to look up the FK linking $tableName to $parentTableName
+                                    //         // This is where $joinedTablesWithRef is crucial, but you need to derive the *alias* of the FK
+                                    //         if (isset($joinedTablesWithRef[$tableName])) { // Check if this table has an FK defined
+                                    //             $originalFkCol = $joinedTablesWithRef[$tableName];
+                                    //             // Find the alias for this original FK column within the current table's selectedCols
+                                    //             foreach ($selectedCols[$tableName] as $orig => $alias) {
+                                    //                 if ($orig === $originalFkCol) {
+                                    //                     $entityDef['fk_to_parent'] = $alias;
+                                    //                     break;
+                                    //                 }
+                                    //             }
+                                    //         }
+                                    //     }
+                                    //     if ($index === 0) {
+                                    //         // First table is the root
+                                    //         $hydratedKey[$tableName] = $entityDef;
+                                    //         $currentParentRef = &$hydratedKey[$tableName];
+                                    //     } else {
+                                    //         // Subsequent tables are children of the previous one in the chain
+                                    //         $currentParentRef['with'][$tableName] = $entityDef;
+                                    //         $currentParentRef = &$currentParentRef['with'][$tableName];
+                                    //     }
+                                    // }
                                 }
                             }
                         }
