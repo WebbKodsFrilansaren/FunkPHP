@@ -47,7 +47,7 @@ function s_test5(&$c) // <authors,articles,comments>
 		'LIMIT' => '',
 		'OFFSET' => '',
 		// Optional, leave empty if not used!
-		'<HYDRATION>' => ["authors=>articles=>comments"],
+		'<HYDRATION>' => ["authors=>articles", "authors=>comments"],
 		// What each Binded Param must match from a Validated Data
 		// Field Array (empty means same as TableName_ColumnKey)
 		'<MATCHED_FIELDS>' => [
@@ -81,8 +81,7 @@ function s_test5(&$c) // <authors,articles,comments>
 		array(
 			'mode' => 'simple',
 			'type' => 'array',
-			'key' =>
-			array(),
+			'key' => NULL,
 		),
 		'bparam' => '',
 		'fields' =>
