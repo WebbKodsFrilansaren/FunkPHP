@@ -5755,7 +5755,6 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                         if ($keepGoing) {
                             $hydratedKey = [];
 
-
                             $finalHydrationStructure = ['key' => $hydratedKey]; // Initialize the 'key'
                             $currentLevelRefs = [&$finalHydrationStructure['key']]; // Array to manage references for nesting
 
@@ -5797,7 +5796,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                                         } else {
                                             // Error handling: FK column not selected or not found in relationships
                                             cli_err_syntax_without_exit("Foreign key column for relationship between `$currentTableName` (child) and `$parentTableName` (parent) not found or not selected for hydration.");
-                                            cli_info("Expected FK original column: $fkOriginalCol. Selected columns for $currentTableName: " . implode(', ', array_keys($selectedCols[$currentTableName])));
+                                            cli_info_without_exit("Expected FK original column: $fkOriginalCol. Selected columns for $currentTableName: " . implode(', ', array_keys($selectedCols[$currentTableName])));
                                             // Consider how to handle this gracefully or exit
                                         }
                                     } else {
@@ -5820,15 +5819,10 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                                 // Determine where to place this entityDef in the nested structure
                                 // This part assumes a linear array for $hydrationKey like ['authors', 'articles', 'comments']
                                 // And builds the nested structure like authors => { articles => { comments => {}}}
-
                                 $currentParentRef = &$currentLevelRefs[count($currentLevelRefs) - 1]; // Get reference to the 'with' array of the previous level
-
                                 $currentParentRef[$currentTableName] = $entityDef;
                                 $currentLevelRefs[] = &$currentParentRef[$currentTableName]['with']; // Add reference to the new 'with' array for next iteration
                             }
-
-
-
 
                             // $currentParentRef = &$hydratedKey; // Use a reference to build the nested structure
                             // foreach ($hydrationKey as $index => $tableName) {
