@@ -3805,10 +3805,31 @@ function cli_parse_joined_tables_order($tablesString, &$currentFinalHydrateKey, 
 {
     global $tablesAndRelationshipsFile;
     $relationships = $tablesAndRelationshipsFile['relationships'] ?? [];
+
+    // Validate the input parameters before anything else!
     if (!isset($relationships) || empty($relationships)) {
+        $keepGoing = false;
         cli_err_without_exit("[cli_parse_joined]: No Relationships found in the `tablesAndRelationships.php` File!");
         cli_info_without_exit("Please ensure that the file is properly configured with relationships between tables.");
-        return null;
+        return;
+    }
+    if (!is_string_and_not_empty($tablesString)) {
+        $keepGoing = false;
+        cli_err_without_exit("[cli_parse_joined]: Expects a Non-Empty String as input for `\$tablesString`!");
+        cli_info_without_exit("This probably means that the `tablesString` is not a string or that it is empty.");
+        return;
+    }
+    if (!is_array($currentFinalHydrateKey)) {
+        $keepGoing = false;
+        cli_err_without_exit("[cli_parse_joined]: Expects a Non-Empty Array as input for `\$currentFinalHydrateKey`!");
+        cli_info_without_exit("This probably means that the `currentFinalHydrateKey` is not an array. (It CAN be Empty!)");
+        return;
+    }
+    if (!is_bool($keepGoing)) {
+        $keepGoing = false;
+        cli_err_without_exit("[cli_parse_joined]: Expects a Boolean as input for `\$keepGoing`!");
+        cli_info_without_exit("This probably means that the `keepGoing` is NOT a boolean or that it is not set.\nIMPORTANT: It has now been set to false which probably means the remaining code for Hydration Compilation will NOT be executed.");
+        return;
     }
 }
 
