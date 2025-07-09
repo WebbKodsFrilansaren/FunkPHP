@@ -328,6 +328,78 @@ return  [
         'default' => 'CURRENT_TIMESTAMP',
       ],
     ],
+    'tags' =>
+    [
+      'id' =>
+      [
+        'joined_name' => 'tags_id',
+        'auto_increment' => true,
+        'type' => 'BIGINT',
+        'binding' => 'i',
+        'value' => NULL,
+        'primary_key' => true,
+        'nullable' => false,
+        'default' => NULL,
+      ],
+      'name' =>
+      [
+        'joined_name' => 'tags_name',
+        'type' => 'VARCHAR',
+        'binding' => 's',
+        'value' => 255,
+        'nullable' => false,
+        'unique' => true,
+        'unsigned' => false,
+        'signed' => false,
+        'default' => NULL,
+      ],
+    ],
+    'authors_tags' =>
+    [
+      'id' =>
+      [
+        'joined_name' => 'authors_tags_id',
+        'auto_increment' => true,
+        'type' => 'BIGINT',
+        'binding' => 'i',
+        'value' => NULL,
+        'primary_key' => true,
+        'nullable' => false,
+        'default' => NULL,
+      ],
+      'author_id' =>
+      [
+        'joined_name' => 'authors_tags_author_id',
+        'type' => 'BIGINT',
+        'binding' => 'i',
+        'value' => NULL,
+        'nullable' => false,
+        'unique' => false,
+        'unsigned' => false,
+        'signed' => false,
+        'default' => NULL,
+        'foreign_key' => true,
+        'references' => 'authors',
+        'references_column' => 'id',
+        'referenced_joined' => 'authors_id',
+      ],
+      'tag_id' =>
+      [
+        'joined_name' => 'authors_tags_tag_id',
+        'type' => 'BIGINT',
+        'binding' => 'i',
+        'value' => NULL,
+        'nullable' => false,
+        'unique' => false,
+        'unsigned' => false,
+        'signed' => false,
+        'default' => NULL,
+        'foreign_key' => true,
+        'references' => 'tags',
+        'references_column' => 'id',
+        'referenced_joined' => 'tags_id',
+      ],
+    ],
   ],
   'relationships' =>
   [
@@ -347,6 +419,14 @@ return  [
         'foreign_column' => 'author_id',
         'local_table' => 'authors',
         'foreign_table' => 'comments',
+        'direction' => 'pk_to_fk',
+      ],
+      'authors_tags' =>
+      [
+        'local_column' => 'id',
+        'foreign_column' => 'author_id',
+        'local_table' => 'authors',
+        'foreign_table' => 'authors_tags',
         'direction' => 'pk_to_fk',
       ],
     ],
@@ -390,6 +470,36 @@ return  [
     ],
     'alones' =>
     [],
+    'tags' =>
+    [
+      'authors_tags' =>
+      [
+        'local_column' => 'id',
+        'foreign_column' => 'tag_id',
+        'local_table' => 'tags',
+        'foreign_table' => 'authors_tags',
+        'direction' => 'pk_to_fk',
+      ],
+    ],
+    'authors_tags' =>
+    [
+      'authors' =>
+      [
+        'local_column' => 'author_id',
+        'foreign_column' => 'id',
+        'local_table' => 'authors_tags',
+        'foreign_table' => 'authors',
+        'direction' => 'fk_to_pk',
+      ],
+      'tags' =>
+      [
+        'local_column' => 'tag_id',
+        'foreign_column' => 'id',
+        'local_table' => 'authors_tags',
+        'foreign_table' => 'tags',
+        'direction' => 'fk_to_pk',
+      ],
+    ],
   ],
   'mappings' =>
   [
@@ -559,6 +669,42 @@ return  [
         'json' => 'alones_updated_at',
         'post' => 'alones_updated_at',
         'get' => 'alones_updated_at',
+      ],
+    ],
+    'tags' =>
+    [
+      'id' =>
+      [
+        'json' => 'tags_id',
+        'post' => 'tags_id',
+        'get' => 'tags_id',
+      ],
+      'name' =>
+      [
+        'json' => 'tags_name',
+        'post' => 'tags_name',
+        'get' => 'tags_name',
+      ],
+    ],
+    'authors_tags' =>
+    [
+      'id' =>
+      [
+        'json' => 'authors_tags_id',
+        'post' => 'authors_tags_id',
+        'get' => 'authors_tags_id',
+      ],
+      'author_id' =>
+      [
+        'json' => 'authors_tags_author_id',
+        'post' => 'authors_tags_author_id',
+        'get' => 'authors_tags_author_id',
+      ],
+      'tag_id' =>
+      [
+        'json' => 'authors_tags_tag_id',
+        'post' => 'authors_tags_tag_id',
+        'get' => 'authors_tags_tag_id',
       ],
     ],
   ],
