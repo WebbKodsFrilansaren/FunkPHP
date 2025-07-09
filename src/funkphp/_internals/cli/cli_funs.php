@@ -3925,8 +3925,6 @@ function cli_parse_joined_tables_order($tablesString, &$currentFinalHydrateKey, 
                     cli_info_without_exit("IMPORTANT: The Hydration Compilation Will Stop Here - But the SQL String Compiling will continue...!");
                     return;
                 }
-                echo "OK HERE!";
-                exit;
             }
             if (!isset($tables[$tbStr]) || !is_array($tables[$tbStr]) || empty($tables[$tbStr])) {
                 $keepGoing = false;
