@@ -3909,7 +3909,8 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
             "GROUP BY",
             "HAVING",
             "LIMIT",
-            "OFFSET"
+            "OFFSET",
+            "<HYDRATION>"
         ],
         'UPDATE' => [
             "INTO",
@@ -3925,7 +3926,8 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
             "GROUP BY",
             "HAVING",
             "LIMIT",
-            "OFFSET"
+            "OFFSET",
+            "<HYDRATION>"
         ],
         'DELETE' => [
             "INTO",
@@ -3941,7 +3943,8 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
             "GROUP BY",
             "HAVING",
             "LIMIT",
-            "OFFSET"
+            "OFFSET",
+            "<HYDRATION>"
         ]
     ];
 
@@ -4525,6 +4528,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         $joinedTables = [];
         $allAliases = [];
         $aliasesTbCol = [];
+        $selectedCols = []; // This is used by "<HYDRATION>" to know which columns are selected (using AS/aliases)
         // To check for duplicate aliases later since agg functions
         // could be used multiple times on the same table+column(s)!
         $aggAliases = [];
@@ -4724,12 +4728,13 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                         // without conflicting with the aliases!
                         $as_name = $aggFuncValidStarts[$aggFunc] . $fromTb;
                         $i = 0;
-                        while (in_array($as_name, $aggAliases, true)) {
+                        while (in_array($as_name, $aggAliases, true) || in_array($as_name, $allAliases, true)) {
                             $i++;
                             $as_name = $as_name . "_$i";
                         }
                         $aggAliases[] = $as_name;
                         $allAliases[] = $as_name;
+                        $selectedCols[$fromTb][] = [$fromTb => $as_name];
                         $aliasesTbCol[$as_name] = [
                             'tb' => $fromTb,
                             'col' => '*',
@@ -4766,12 +4771,14 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                             }
                             $as_name = $aggFuncValidStarts[$aggFunc] . $tables[$aggTb][$aggCol]['joined_name'];
                             $i = 0;
-                            while (in_array($as_name, $aggAliases, true)) {
+                            while (in_array($as_name, $aggAliases, true) || in_array($as_name, $allAliases, true)) {
                                 $i++;
                                 $as_name = $as_name . "_$i";
                             }
                             $aggAliases[] = $as_name;
                             $allAliases[] = $as_name;
+                            $selectedCols[$aggTb][] = [$as_name => $aggCol];
+                            $selectedCols[$aggTb][] = [$tables[$aggTb][$aggCol]['joined_name'] => $aggCol];
                             $aliasesTbCol[$as_name] = [
                                 'tb' => $aggTb,
                                 'col' => $aggCol,
@@ -4820,10 +4827,11 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                     foreach ($tables[$selectTbName] as $colKey => $singleTbCols) {
                         $selectedTbsColsStr .= $selectTbName . ".$colKey AS " . $singleTbCols['joined_name'] . ",\n";
                         $allAliases[] = $singleTbCols['joined_name'];
-                        $aliasesTbCol[$as_name] = [
-                            'tb' => $selectTbName,
-                            'col' => $colKey,
-                        ];
+                        $selectedCols[$selectTbName][] = [$singleTbCols['joined_name'] => $colKey];
+                        // $aliasesTbCol[$as_name] = [ // DO I REALLY NEED THIS? Since $as_name is for agg Funcs?
+                        //     'tb' => $selectTbName,
+                        //     'col' => $colKey,
+                        // ];
                         $aliasesTbCol[$singleTbCols['joined_name']] = [
                             'tb' => $selectTbName,
                             'col' => $colKey,
@@ -4883,10 +4891,11 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                         if (!in_array($colKey, $excludedCols, true)) {
                             $selectedTbsColsStr .= $selectTbName . ".$colKey AS " . $singleTbCols['joined_name'] . ",\n";
                             $allAliases[] = $singleTbCols['joined_name'];
-                            $aliasesTbCol[$as_name] = [
-                                'tb' => $selectTbName,
-                                'col' => $colKey,
-                            ];
+                            $selectedCols[$selectTbName][] = [$singleTbCols['joined_name'] => $colKey];
+                            // $aliasesTbCol[$as_name] = [ // DO I REALLY NEED THIS? Since $as_name is for agg Funcs?
+                            //     'tb' => $selectTbName,
+                            //     'col' => $colKey,
+                            // ];
                             $aliasesTbCol[$singleTbCols['joined_name']] = [
                                 'tb' => $selectTbName,
                                 'col' => $colKey,
@@ -4955,12 +4964,13 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                                     // without conflicting with the aliases!
                                     $as_name = $aggFuncValidStarts[$aggFunc] . $selectTbName;
                                     $i = 0;
-                                    while (in_array($as_name, $aggAliases, true)) {
+                                    while (in_array($as_name, $aggAliases, true) || in_array($as_name, $allAliases, true)) {
                                         $i++;
                                         $as_name = $as_name . "_$i";
                                     }
                                     $aggAliases[] = $as_name;
                                     $allAliases[] = $as_name;
+                                    $selectedCols[$selectTbName][] = [$as_name => $selectTbName];
                                     $aliasesTbCol[$as_name] = [
                                         'tb' => $selectTbName,
                                         'col' => '*',
@@ -4993,12 +5003,13 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                                         // Prepare correct alias name for the aggregate function
                                         $as_name = $aggFuncValidStarts[$aggFunc] . $tables[$selectTbName][$aggCol]['joined_name'];
                                         $i = 0;
-                                        while (in_array($as_name, $aggAliases, true)) {
+                                        while (in_array($as_name, $aggAliases, true) || in_array($as_name, $allAliases, true)) {
                                             $i++;
                                             $as_name = $as_name . "_$i";
                                         }
                                         $aggAliases[] = $as_name;
                                         $allAliases[] = $as_name;
+                                        $selectedCols[$selectTbName][] = [$as_name => $aggCol];
                                         $aliasesTbCol[$as_name] = [
                                             'tb' => $selectTbName,
                                             'col' => $aggCol,
@@ -5037,6 +5048,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                         // Here we just add the column to the selectedTbsColsStr since we know it exists!
                         $selectedTbsColsStr .= $selectTbName . ".$includedCol AS " . $tables[$selectTbName][$includedCol]['joined_name'] . ",\n";
                         $allAliases[] = $tables[$selectTbName][$includedCol]['joined_name'];
+                        $selectedCols[$selectTbName][] = [$tables[$selectTbName][$includedCol]['joined_name'] => $includedCol];
                         $aliasesTbCol[$tables[$selectTbName][$includedCol]['joined_name']] = [
                             'tb' => $selectTbName,
                             'col' => $includedCol,
@@ -5563,6 +5575,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         $convertedSQLArray['fields'] = $builtFieldsArray;
 
         // TODO: PARSING The <HYDRATION> Key and then setting final values!
+        var_dump($selectedCols);
         // IMPORTANT: This step CAN fail and still generate the SQL String!
         // So, it just gives a strong warning that the hydration failed meaning
         // its value in 'key' will be an empty array instead of actual hydration!
