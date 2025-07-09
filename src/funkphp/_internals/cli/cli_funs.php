@@ -5579,7 +5579,6 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         $convertedSQLArray['fields'] = $builtFieldsArray;
 
         // TODO: PARSING The <HYDRATION> Key and then setting final values!
-        var_dump($selectedCols);
         // IMPORTANT: This step CAN fail and still generate the SQL String!
         // So, it just gives a strong warning that the hydration failed meaning
         // its value in 'key' will be an empty array instead of actual hydration!
@@ -5619,8 +5618,15 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                         // since "$tables_were_joined" = true means we have joined tables
                         // meaning we might have a valid case for "=>" aving been used!
                         if ($keepGoing) {
-                            var_dump($hydrationKey, $joinedTables);
-                            if (count($hydrationKey) > 1 && count($hydrationKey) !== count($joinedTables)) {
+                            var_dump($selectedCols, $hydrationKey, $joinedTables);
+                            if ($tables_were_joined) {
+                                if (count($hydrationKey) !== count($joinedTables)) {
+                                    $keepGoing = false;
+                                    cli_warning_without_exit("The `<HYDRATION>` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query Type is set to Hydrate Fewer/More Tables:\n" . implode(",", quotify_elements($hydrationKey)) . " than were Joined using the `JOINS_ON` Key: " . implode(",", quotify_elements((!empty($joinedTables) ? $joinedTables : ["<No Joined Tables>"]))) . "!");
+                                    cli_info_without_exit("You have Joined Tables in the `JOINS_ON` Key but the Hydration Key More/Fewer Table(s) Hydrate!");
+                                    cli_info_without_exit("Make sure You have same Number of Tables to Hydrate as in the `JOINS_ON` Key UNLESS you are just Hydrating A Single Table!");
+                                }
+                            } elseif (count($hydrationKey) > 1 && count($hydrationKey) !== count($joinedTables)) {
                                 $keepGoing = false;
                                 cli_warning_without_exit("The `<HYDRATION>` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query Type is set to Hydrate Fewer/More Tables:\n" . implode(",", quotify_elements($hydrationKey)) . " than were Joined using the `JOINS_ON` Key: " . implode(",", quotify_elements((!empty($joinedTables) ? $joinedTables : ["<No Joined Tables>"]))) . "!");
                                 cli_info_without_exit("You have Joined Tables in the `JOINS_ON` Key but the Hydration Key More/Fewer Table(s) Hydrate!");
@@ -5661,14 +5667,60 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                                 }
                             }
                         }
-                        // SPECIAL CASE CHECK: If Tables were Joined, we check that all
-                        // tables in the $selectedCols have an `id` column AND a `OtherTable_id`
-                        // meaning the secondary/foreign key since they should be included if you
-                        // wanna hydrate two or more tables, otherwise the hydration will be harder
-                        // than necessary and might not work at all at special cases!
+                        // Check that all tables to be hydrated have the "id" column
+                        // by checking the $selectedCols array for the "id" key and in
+                        // the case of joined tables, the "referencesTable_id" key!
+                        // Since we have already validated all tables exist,
+                        // we can directly iterate through $selectedCols starting
+                        // with the first table and check if it has the "id" column!
+                        // in any of its string values (the keys)
                         if ($keepGoing) {
                             if ($tables_were_joined) {
+                                foreach ($joinedTables as $joined) {
+                                    $foundRef = false; // Reset for each table so all must pass!
+                                    foreach ($tables[$joined] as $jTb) {
+                                    }
+                                }
+                                // One or more `referencesTable_id` NOT found so we "warn out"
+                                if (!$foundRef) {
+                                    $keepGoing = false;
+                                    cli_warning_without_exit("The `<HYDRATION>` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query Type is set to Hydrate Joined Tables without the necessary `OtherTableNameInPlural_id` Column!");
+                                    cli_info_without_exit("Make sure You have Selected the Table(s) to Hydrate in the `SELECT` Key and that they have the `referencesTable_id` Column!");
+                                    cli_info_without_exit("Valid & JOINED Tables to Hydrate are:\n" . implode(",\n", quotify_elements(array_keys($selectedCols))) . ".");
+                                }
+                                foreach ($hydrationKey as $hydTb) {
+                                    $foundId = false; // Reset for each table so all must pass!
+                                    foreach ($selectedCols[$hydTb] as $colName => $colValue) {
+                                        if ($colValue === 'id') {
+                                            $foundId = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                                // One or more `id` NOT found so we "warn out"
+                                if (!$foundId) {
+                                    $keepGoing = false;
+                                    cli_warning_without_exit("The `<HYDRATION>` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query Type is set to Hydrate Table(s) without the `id` Column!");
+                                    cli_info_without_exit("Make sure You have Selected the Table(s) to Hydrate in the `SELECT` Key and that they have the `id` Column!");
+                                    cli_info_without_exit("Valid Tables to Hydrate are:\n" . implode(",\n", quotify_elements(array_keys($selectedCols))) . ".");
+                                }
                             } else {
+                                $foundId = false;
+                                foreach ($hydrationKey as $hydTb) {
+                                    foreach ($selectedCols[$hydTb] as $colName => $colValue) {
+                                        if ($colValue === 'id') {
+                                            $foundId = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                                // No `id` found so we warn and set $keepGoing to false
+                                if (!$foundId) {
+                                    $keepGoing = false;
+                                    cli_warning_without_exit("The `<HYDRATION>` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query Type is set to Hydrate Table(s) without the `id` Column!");
+                                    cli_info_without_exit("Make sure You have Selected the Table(s) to Hydrate in the `SELECT` Key and that they have the `id` Column!");
+                                    cli_info_without_exit("Valid Tables to Hydrate are:\n" . implode(",\n", quotify_elements(array_keys($selectedCols))) . ".");
+                                }
                             }
                         }
                     }
