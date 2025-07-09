@@ -31,13 +31,12 @@ function s_test5(&$c) // <authors,articles,comments>
 		// Available Join Types: `inner|i|join|j|ij`,`left|l`,`right|r`
 		// Example: `inner=books,authors(id),books(author_id)`
 		'JOINS_ON' => [ // Optional, make empty if not joining any tables!
-			'inner=articles,articles(author_id),authors(id)',
-			'inner=comments,comments(article_id),articles(id)',
+			'inner=articles,authors(id),articles(author_id)',
 		],
 		// Optional Keys, leave empty (or remove) if not used!
 		'SELECT' => [
 			'authors:id,name',
-			'articles:id,author_id,title',
+			'articles:id,author_id,title,content',
 		],
 		'WHERE' => '',
 		'GROUP BY' => '',
@@ -46,7 +45,7 @@ function s_test5(&$c) // <authors,articles,comments>
 		'LIMIT' => '',
 		'OFFSET' => '',
 		// Optional, leave empty if not used!
-		'<HYDRATION>' => ["authors=>articles", "authors=>comments"],
+		'<HYDRATION>' => [],
 		// What each Binded Param must match from a Validated Data
 		// Field Array (empty means same as TableName_ColumnKey)
 		'<MATCHED_FIELDS>' => [
@@ -74,45 +73,21 @@ function s_test5(&$c) // <authors,articles,comments>
 		],
 	];
 
-	return array(
-		'sql' => 'SELECT authors.id AS authors_id, authors.name AS authors_name, articles.id AS articles_id, articles.author_id AS articles_author_id, articles.title AS articles_title FROM authors INNER JOIN articles ON articles.author_id = authors.id;',
-		'hydrate' =>
-		array(
-			'mode' => 'simple',
-			'type' => 'array',
-			'key' =>
-			array(
-				'articles' =>
-				array(
-					'pk' => 'articles_id',
-					'cols' =>
-					array(
-						0 => 'articles_id',
-						1 => 'articles_author_id',
-						2 => 'articles_title',
-					),
-					'with' =>
-					array(
-						'authors' =>
-						array(
-							'fk' => 'articles_author_id',
-							'pk' => 'authors_id',
-							'cols' =>
-							array(
-								0 => 'authors_id',
-								1 => 'authors_name',
-							),
-							'with' =>
-							array(),
-						),
-					),
-				),
-			),
-		),
-		'bparam' => '',
-		'fields' =>
-		array(),
-	);
+	return array (
+  'sql' => 'SELECT authors.id AS authors_id, authors.name AS authors_name, articles.id AS articles_id, articles.author_id AS articles_author_id, articles.title AS articles_title, articles.content AS articles_content FROM authors INNER JOIN articles ON authors.id = articles.author_id;',
+  'hydrate' => 
+  array (
+    'mode' => 'simple',
+    'type' => 'array',
+    'key' => 
+    array (
+    ),
+  ),
+  'bparam' => '',
+  'fields' => 
+  array (
+  ),
+);
 };
 
 return function (&$c, $handler = "s_test3") {
