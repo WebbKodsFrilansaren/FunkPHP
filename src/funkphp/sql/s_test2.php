@@ -49,7 +49,7 @@ function s_test5(&$c) // <authors,articles,comments>
 		'LIMIT' => '',
 		'OFFSET' => '',
 		// Optional, leave empty if not used!
-		'<HYDRATION>' => ["authors=>articles", "authors=>authors_tags=>tags"],
+		'<HYDRATION>' => ["authors=>articles", "authors=>tags(via:authors_tags)"],
 		// What each Binded Param must match from a Validated Data
 		// Field Array (empty means same as TableName_ColumnKey)
 		'<MATCHED_FIELDS>' => [
@@ -108,32 +108,6 @@ function s_test5(&$c) // <authors,articles,comments>
 							),
 							'with' =>
 							array(),
-						),
-						'authors_tags' =>
-						array(
-							'fk' => 'authors_tags_author_id',
-							'pk' => 'authors_tags_id',
-							'cols' =>
-							array(
-								0 => 'authors_tags_id',
-								1 => 'authors_tags_author_id',
-								2 => 'authors_tags_tag_id',
-							),
-							'with' =>
-							array(
-								'tags' =>
-								array(
-									'fk' => 'authors_tags_tag_id',
-									'pk' => 'tags_id',
-									'cols' =>
-									array(
-										0 => 'tags_id',
-										1 => 'tags_name',
-									),
-									'with' =>
-									array(),
-								),
-							),
 						),
 					),
 				),

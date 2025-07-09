@@ -3815,7 +3815,7 @@ function cli_parse_joined_tables_order($tablesString, &$currentFinalHydrateKey, 
         cli_info_without_exit("IMPORTANT: The Hydration Compilation Will Stop Here - But the SQL String Compiling will continue...!");
         return;
     }
-    if (!is_string_and_not_empty($tablesString) || !preg_match('/^([a-zA-Z0-9_]+)((=>){1}([a-zA-Z0-9_]+))*$/i', $tablesString)) {
+    if (!is_string_and_not_empty($tablesString) || !preg_match('/^([a-zA-Z0-9_]+)((=>){1}([a-zA-Z0-9_]+)(\(via:[a-zA-Z0-9_]+\))*)*$/i', $tablesString)) {
         $keepGoing = false;
         cli_warning_without_exit("[cli_parse_joined_tables_order]: Expects a Non-Empty String as input for `\$tablesString`!");
         cli_info_without_exit("This probably means that the `tablesString` is NOT a String or that it IS Empty.");
@@ -3849,6 +3849,10 @@ function cli_parse_joined_tables_order($tablesString, &$currentFinalHydrateKey, 
 
     // Single Table Case: It is NOT needed to have a relationship but the tables must exists of course!
     if (count($tablesString) === 1) {
+        if (preg_match('/^([a-zA-Z0-9_]+){1}(\(via:([a-z-A-Z-0-9_]+)\)){1}$/i', $tablesString[0], $matches)) {
+            $tb1 = $matches[1];
+            $viaTb = $matches[3];
+        }
         if (!isset($tables[$tablesString[0]]) || !is_array($tables[$tablesString[0]]) || empty($tables[$tablesString[0]])) {
             $keepGoing = false;
             cli_warning_without_exit("[cli_parse_joined_tables_order]: Invalid Table Name: `{$tablesString[0]}` in the `tables.php` File!");
@@ -3870,12 +3874,17 @@ function cli_parse_joined_tables_order($tablesString, &$currentFinalHydrateKey, 
     // we adjust the position for the $currentFinalHydrateKey[$table] so we do not accidentally overwrite it!
     elseif (count($tablesString) > 1) {
         $maxIdx = count($tablesString) - 1; // Maximum Index of the Tables String
-        $prevTB = ""; // Previous Table to use for the next table
-        $prevPK = ""; // Previous Primary Key to use for the next table
-        $nextFK  = ""; // Next Foreign Key to use for the next table
+        $prevTB = null; // Previous Table to use for the next table
+        $prevPK = null; // Previous Primary Key to use for the next table
+        $nextFK  = null; // Next Foreign Key to use for the next table
         $nextLevel = &$currentFinalHydrateKey; // Reference to the current level of the $currentFinalHydrateKey
 
         foreach ($tablesString as $idx => $tbStr) {
+            if (preg_match('/^([a-zA-Z0-9_]+){1}(\(via:([a-z-A-Z-0-9_]+)\)){1}$/i', $tbStr, $matches)) {
+                $tb1 = $matches[1];
+                $viaTb = $matches[3];
+                var_dump($tb1, $viaTb);
+            }
             if (!isset($tables[$tbStr]) || !is_array($tables[$tbStr]) || empty($tables[$tbStr])) {
                 $keepGoing = false;
                 cli_warning_without_exit("[cli_parse_joined_tables_order]: Invalid Table Name: `{$tbStr}` in the `tables.php` File!");
@@ -5780,7 +5789,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                         $uniqueTbs = [];
                         foreach ($hydrationKeys as $hydrationKey) {
                             if ($keepGoing) {
-                                if (!is_string_and_not_empty($hydrationKey) || !preg_match('/^([a-zA-Z0-9_]+)((=>){1}([a-zA-Z0-9_]+))*$/i', $hydrationKey)) {
+                                if (!is_string_and_not_empty($hydrationKey) || !preg_match('/^([a-zA-Z0-9_]+)((=>){1}([a-zA-Z0-9_]+)(\(via:[a-zA-Z0-9_]+\))*)*$/i', $hydrationKey)) {
                                     $keepGoing = false;
                                     cli_warning_without_exit("Invalid Hydration Key `$hydrationKey` in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
                                     cli_info_without_exit("The Hydration Key must be a Non-Empty String representing the Hydration Key in the Format:\n`table` to Hydrate a Single Table OR\n`table=>table2` to Hydrate Two(2) Tables based on valid JOINING between them OR\n`table=>table2=>table3` to Hydrate Three(3) Tables based on valid JOINING between them\n(and so on to hydrate multiple joined tables)");
@@ -5790,7 +5799,18 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                             if ($keepGoing) {
                                 $hydrationKey = str_contains($hydrationKey, "=>") ? explode("=>", $hydrationKey) : [$hydrationKey];
                                 foreach ($hydrationKey as $hydrationTb) {
-                                    if (!in_array($hydrationTb, $uniqueTbs, true)) {
+                                    // Check for special case: `table(via:table2)` which is
+                                    // used for pivoting tables in the hydration process!
+                                    if (preg_match('/^([a-zA-Z0-9_]+){1}(\(via:([a-z-A-Z-0-9_]+)\)){1}$/i', $hydrationTb, $matches)) {
+                                        $tb1 = $matches[1];
+                                        $viaTb = $matches[3];
+                                        if (!in_array($tb1, $uniqueTbs, true)) {
+                                            $uniqueTbs[] = $tb1;
+                                        }
+                                        if (!in_array($viaTb, $uniqueTbs, true)) {
+                                            $uniqueTbs[] = $viaTb;
+                                        }
+                                    } elseif (!in_array($hydrationTb, $uniqueTbs, true)) {
                                         $uniqueTbs[] = $hydrationTb; // Add to unique tables
                                     }
                                 }
@@ -5811,10 +5831,9 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                         // and finally adding it to the 'hydrate' => 'key' Key!
                         if ($keepGoing) {
                             foreach ($hydrationKeys as $hydrationKey) {
-                                // Split on "=>" if it exists or just use the
-                                // single table name as a single element array
-                                // This function does the main "hardwork" of adding tables correctly
-                                // for the current "table1=>table2=>etc" Hydration Key Array String Element!
+                                // We send the hydrationKey to the cli_parse_joined_tables_order function
+                                // to parse the hydration key and get the hydrated key array. It will split
+                                // on "=>" and also on special case of "table(via:table2)" to add to 'hydrate' => 'key'!
                                 cli_parse_joined_tables_order(strtolower(trim($hydrationKey)), $hydratedKey, $keepGoing, $selectedCols);
 
                                 // Then we perform tons of other checks to make sure no needed
