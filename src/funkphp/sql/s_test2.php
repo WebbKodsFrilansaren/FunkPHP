@@ -18,7 +18,7 @@ function s_test5(&$c) // <authors,articles,comments>
 	$DX = [
 		'<CONFIG>' => [
 			'<QUERY_TYPE>' => 'SELECT',
-			'<TABLES>' => ['authors', 'articles', 'comments'],
+			'<TABLES>' => ['authors', 'articles', 'comments', 'authors_tags', 'tags'],
 			'<HYDRATION_MODE>' => 'simple|advanced', // Pick one or `simple` is used by default! (leave empty or remove line if not used!)
 			'<HYDRATION_TYPE>' => 'array|object', // Pick one or `array` is used by default! (leave empty or remove line if not used!)
 			'[SUBQUERIES]' => [
@@ -32,10 +32,14 @@ function s_test5(&$c) // <authors,articles,comments>
 		// Example: `inner=books,authors(id),books(author_id)`
 		'JOINS_ON' => [ // Optional, make empty if not joining any tables!
 			'inner=articles,authors(id),articles(author_id)',
+			'inner=authors_tags,authors(id),authors_tags(author_id)',
+			'inner=tags,authors_tags(tag_id),tags(id)',
 		],
 		// Optional Keys, leave empty (or remove) if not used!
 		'SELECT' => [
 			'authors:id,name',
+			'authors_tags:id,author_id,tag_id',
+			'tags:id,name',
 			'articles:id,author_id,title,content',
 		],
 		'WHERE' => '',
@@ -45,7 +49,7 @@ function s_test5(&$c) // <authors,articles,comments>
 		'LIMIT' => '',
 		'OFFSET' => '',
 		// Optional, leave empty if not used!
-		'<HYDRATION>' => ["authors=>articles"],
+		'<HYDRATION>' => ["authors=>articles", "authors=>authors_tags=>tags"],
 		// What each Binded Param must match from a Validated Data
 		// Field Array (empty means same as TableName_ColumnKey)
 		'<MATCHED_FIELDS>' => [
@@ -74,7 +78,7 @@ function s_test5(&$c) // <authors,articles,comments>
 	];
 
 	return array(
-		'sql' => 'SELECT authors.id AS authors_id, authors.name AS authors_name, articles.id AS articles_id, articles.author_id AS articles_author_id, articles.title AS articles_title, articles.content AS articles_content FROM authors INNER JOIN articles ON authors.id = articles.author_id;',
+		'sql' => 'SELECT authors.id AS authors_id, authors.name AS authors_name, authors_tags.id AS authors_tags_id, authors_tags.author_id AS authors_tags_author_id, authors_tags.tag_id AS authors_tags_tag_id, tags.id AS tags_id, tags.name AS tags_name, articles.id AS articles_id, articles.author_id AS articles_author_id, articles.title AS articles_title, articles.content AS articles_content FROM authors INNER JOIN articles ON authors.id = articles.author_id INNER JOIN authors_tags ON authors.id = authors_tags.author_id INNER JOIN tags ON authors_tags.tag_id = tags.id;',
 		'hydrate' =>
 		array(
 			'mode' => 'simple',
@@ -104,6 +108,32 @@ function s_test5(&$c) // <authors,articles,comments>
 							),
 							'with' =>
 							array(),
+						),
+						'authors_tags' =>
+						array(
+							'fk' => 'authors_tags_author_id',
+							'pk' => 'authors_tags_id',
+							'cols' =>
+							array(
+								0 => 'authors_tags_id',
+								1 => 'authors_tags_author_id',
+								2 => 'authors_tags_tag_id',
+							),
+							'with' =>
+							array(
+								'tags' =>
+								array(
+									'fk' => 'authors_tags_tag_id',
+									'pk' => 'tags_id',
+									'cols' =>
+									array(
+										0 => 'tags_id',
+										1 => 'tags_name',
+									),
+									'with' =>
+									array(),
+								),
+							),
 						),
 					),
 				),

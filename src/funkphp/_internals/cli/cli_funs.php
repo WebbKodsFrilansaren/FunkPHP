@@ -5954,11 +5954,15 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                 }
                 // PARSE "ADVANCED" Hydration Mode
                 elseif ($hydrationMode === 'advanced') {
+                    cli_warning_without_exit("<CURRENTLY NOT IMPLEMENTED YET IN FUNKPHP!>");
+                    cli_info_without_exit("The `advanced` Hydration Mode is currently not implemented in FunkPHP!");
+                    cli_info_without_exit("Hydration Will NOT be Compiled During This SELECT Query Compilation!");
                 }
                 // This should not happen, but if it does, we error out without exit
                 else {
                     cli_err_syntax_without_exit("Invalid Hydration Mode `$hydrationMode` in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
                     cli_info_without_exit("Valid Hydration Modes are: `simple`, `advanced` or `simple` is used by default when `simple|advanced` is set!");
+                    cli_info_without_exit("Hydration Will NOT be Compiled During This SELECT Query Compilation!");
                 }
             }
             // If not array, empty or just invalid data type,
