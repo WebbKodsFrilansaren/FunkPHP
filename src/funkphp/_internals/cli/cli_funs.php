@@ -6097,7 +6097,7 @@ function cli_compile_dx_sql_to_optimized_sql()
 
         cli_info("INTERNAL MySQLi ERROR: \"" . $e->getMessage() . "\"");
     }
-    cli_success_without_exit("The SQL Query String in SQL Function \"$fnName\" in \"$handlerFile.php\" was Successfully Validated with 0 Errors When Sending it Prepared to the local MySQL DBMS!");
+    cli_success_without_exit("[COMPILED SQL STRING VALIDATED IN DBMS] The SQL Query String in SQL Function \"$fnName\" in \"$handlerFile.php\" was Successfully Validated with 0 Errors When Sending it Prepared to the local MySQL DBMS!");
     cli_info_without_exit("Attempting adding the entire Optimized SQL Array as the returned value in SQL Function \"$fnName\" in \"$handlerFile.php\"!");
     // Convert the optimized SQL array to a string with ";\n" at the end
     $optimizedSQLArrayAsStringWithReturnStmt = "return " . var_export($optimizedSQLArray, true) . ";\n";
@@ -6113,7 +6113,7 @@ function cli_compile_dx_sql_to_optimized_sql()
     if ($result === false) {
         cli_err("FAILED compiling SQL Query to Optimized SQL in SQL Function \"$fnName\" in \"$handlerFile.php\". Permissions issue?");
     } else {
-        cli_success_without_exit("SUCCESSFULLY COMPILED SQL Query to Optimized SQL in SQL Function \"$fnName\" in \"funkphp/sql/$handlerFile.php\".");
+        cli_success_without_exit("[ENTIRE SQL ARRAY COMPILED] SUCCESSFULLY COMPILED SQL Query to Optimized SQL in SQL Function \"$fnName\" in \"funkphp/sql/$handlerFile.php\".");
         cli_info("IMPORTANT: Open it in an IDE and press CMD+S or CTRL+S to autoformat the SQL Handler File again!");
     }
 }
