@@ -3921,25 +3921,65 @@ function cli_parse_joined_tables_order($tablesString, &$currentFinalHydrateKey, 
                     cli_info_without_exit("IMPORTANT: The Hydration Compilation Will Stop Here - But the SQL String Compiling will continue...!");
                     return;
                 }
-                if (!isset($relationships[$tbStr][$prevTB]) || !is_array($relationships[$tbStr][$prevTB]) || empty($relationships[$tbStr][$prevTB])) {
+                $foundRelationshipDefinition = null;
+                if (!isset($relationships[$prevTB][$tbStr]) || !is_array($relationships[$prevTB][$tbStr]) || empty($relationships[$prevTB][$tbStr])) {
                     $keepGoing = false;
-                    cli_warning_without_exit("[cli_parse_joined_tables_order]: Invalid Relationship between Tables: `{$prevTB}` and `{$tbStr}` in the `tablesAndRelationships.php` File!");
-                    cli_info_without_exit("Verify that the `{$prevTB}` and `{$tbStr}` Tables have a valid Relationship in the `relationships` Key in the `tablesAndRelationships.php` File!");
+                    cli_warning_without_exit("[cli_parse_joined_tables_order]: Invalid Relationship between Tables: `{$prevTB}` and `{$tbStr}` in the `tables.php` File!");
+                    cli_info_without_exit("Verify that the `{$prevTB}` and `{$tbStr}` Tables have a valid Relationship in the `relationships` Key in the `tables.php` File!");
                     cli_info_without_exit("IMPORTANT: The Hydration Compilation Will Stop Here - But the SQL String Compiling will continue...!");
                     return;
                 }
+
+                // Check if the relationship is defined as $prevTB => $tbStr (Parent has children)
+                if (isset($relationships[$prevTB][$tbStr]) && is_array($relationships[$prevTB][$tbStr]) && !empty($relationships[$prevTB][$tbStr])) {
+                    $foundRelationshipDefinition = $relationships[$prevTB][$tbStr];
+                }
+                // Check if the relationship is defined as $tbStr => $prevTB (Child belongs to parent)
+                elseif (isset($relationships[$tbStr][$prevTB]) && is_array($relationships[$tbStr][$prevTB]) && !empty($relationships[$tbStr][$prevTB])) {
+                    $foundRelationshipDefinition = $relationships[$tbStr][$prevTB];
+                }
+
+                if ($foundRelationshipDefinition === null) {
+                    $keepGoing = false;
+                    cli_warning_without_exit("[cli_parse_joined_tables_order]: No valid Relationship found between `{$prevTB}` and `{$tbStr}` in the `tables.php` File!");
+                    cli_info_without_exit("Verify that a valid Relationship exists in the `relationships` Key in the `tables.php` File!");
+                    cli_info_without_exit("IMPORTANT: The Hydration Compilation Will Stop Here - But the SQL String Compiling will continue...!");
+                    return;
+                }
+                // --- Determine and assign 'fk_to_parent' ---
+                $fkInCurrentTB = null;
+
+                // Scenario 1: The current table ($tbStr) is the 'local_table' and has the foreign key
+                // Example: articles => authors (articles is local_table, author_id is local_column, authors is foreign_table)
+                if ($foundRelationshipDefinition['local_table'] === $tbStr && $foundRelationshipDefinition['foreign_table'] === $prevTB && $foundRelationshipDefinition['direction'] === 'fk_to_pk') {
+                    $fkInCurrentTB = $foundRelationshipDefinition['local_column'];
+                }
+                // Scenario 2: The previous table ($prevTB) is the 'local_table' and the current table ($tbStr) is the 'foreign_table'
+                // This means the foreign key is in the current table ($tbStr) which is the 'many' side.
+                // Example: authors => articles (authors is local_table, id is local_column, articles is foreign_table, author_id is foreign_column)
+                elseif ($foundRelationshipDefinition['local_table'] === $prevTB && $foundRelationshipDefinition['foreign_table'] === $tbStr && $foundRelationshipDefinition['direction'] === 'pk_to_fk') {
+                    $fkInCurrentTB = $foundRelationshipDefinition['foreign_column'];
+                }
+                if ($fkInCurrentTB === null || !isset($selectedCols[$tbStr][$fkInCurrentTB])) {
+                    $keepGoing = false;
+                    cli_warning_without_exit("[cli_parse_joined_tables_order]: Foreign key column for table `{$tbStr}` to parent `{$prevTB}` could not be determined from Relationships or was not selected!");
+                    cli_info_without_exit("Expected FK column: '{$fkInCurrentTB}' (or could not determine from Relationship rules).");
+                    cli_info_without_exit("Verify relationship configuration and that the foreign key column is selected for `{$tbStr}`.");
+                    cli_info_without_exit("IMPORTANT: The Hydration Compilation Will Stop Here - But the SQL String Compiling will continue...!");
+                    return;
+                }
+
                 // Next Table already exists, so we just adjust the position
                 if (isset($nextLevel[$tbStr])) {
                     $prevTB = $tbStr;
                     $prevPK = $currentFinalHydrateKey[$tbStr]['pk'];
-                    $nextFK = $idx !== $maxIdx ? $tablesString[$idx + 1] . "_" . substr($tbStr, 0, -1) . "_id" : null; // If not last table, set nextFK
                     $nextLevel = &$currentFinalHydrateKey[$tbStr]['with']; // Adjust the next level to the current table's 'with' array
                 }
                 // Next Table does not exist, so we create it and since this is larger than 0 index,
                 // we also add the 'fk' which we know from $nextFK which is the previous table's
                 elseif (!isset($nextLevel[$tbStr])) {
                     $nextLevel[$tbStr] = [
-                        'fk' => $nextFK, // Foreign Key from the previous table
+                        'fk' => $fkInCurrentTB, // Foreign Key from the previous table
                         'pk' => $tbStr . "_id",
                         'cols' => array_keys($selectedCols[$tbStr]),
                         'with' => [],
@@ -3948,7 +3988,6 @@ function cli_parse_joined_tables_order($tablesString, &$currentFinalHydrateKey, 
                     // and readjust the position of the $nextLevel
                     $prevTB = $tbStr;
                     $prevPK = $nextLevel[$tbStr]['pk'];
-                    $nextFK = $idx !== $maxIdx ? $tablesString[$idx + 1] . "_" . substr($tbStr, 0, -1) . "_id" : null; // If not last table, set nextFK
                     $nextLevel = &$nextLevel[$tbStr]['with']; // Adjust the next level to the current table's 'with' array
                 }
             }
