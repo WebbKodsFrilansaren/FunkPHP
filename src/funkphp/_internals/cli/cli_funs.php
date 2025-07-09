@@ -5753,6 +5753,126 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                         // FINALLY: We can start generating the Hydration Key that will
                         // be stored in 'hydrate' => 'key' in the converted SQL Array!
                         if ($keepGoing) {
+                            $hydratedKey = [];
+
+
+                            $finalHydrationStructure = ['key' => $hydratedKey]; // Initialize the 'key'
+                            $currentLevelRefs = [&$finalHydrationStructure['key']]; // Array to manage references for nesting
+
+                            foreach ($hydrationKey as $index => $currentTableName) {
+                                $parentTableName = ($index > 0) ? $hydrationKey[$index - 1] : null;
+
+                                $entityDef = [
+                                    'pk'           => $currentTableName . '_id', // Assuming PK convention tableName_id
+                                    'fk_to_parent' => null,
+                                    'cols'         => [],
+                                    'with'         => []
+                                ];
+
+                                // Determine the fk_to_parent for the current child table
+                                if ($parentTableName !== null) {
+                                    // We need to find the relationship between $currentTableName (child) and $parentTableName
+                                    // It could be relationships[$currentTableName][$parentTableName] or relationships[$parentTableName][$currentTableName]
+                                    $relationshipInfo = null;
+
+                                    if (isset($relationships[$currentTableName][$parentTableName])) {
+                                        $relationshipInfo = $relationships[$currentTableName][$parentTableName];
+                                    } elseif (isset($relationships[$parentTableName][$currentTableName])) {
+                                        $relationshipInfo = $relationships[$parentTableName][$currentTableName];
+                                    }
+
+                                    if ($relationshipInfo) {
+                                        $fkOriginalCol = null;
+                                        // Determine which column in $currentTableName is the foreign key to $parentTableName
+                                        if ($relationshipInfo['local_table'] === $currentTableName && $relationshipInfo['direction'] === 'fk_to_pk') {
+                                            $fkOriginalCol = $relationshipInfo['local_column'];
+                                        } elseif ($relationshipInfo['foreign_table'] === $currentTableName && $relationshipInfo['direction'] === 'pk_to_fk') {
+                                            $fkOriginalCol = $relationshipInfo['foreign_column'];
+                                        }
+                                        // Add a check for the reverse direction if needed, though pk_to_fk/fk_to_pk typically covers it from the child's perspective
+
+                                        if ($fkOriginalCol !== null && isset($selectedCols[$currentTableName][$fkOriginalCol])) {
+                                            // Assign the ALIAS of the foreign key column to fk_to_parent
+                                            $entityDef['fk_to_parent'] = $selectedCols[$currentTableName][$fkOriginalCol];
+                                        } else {
+                                            // Error handling: FK column not selected or not found in relationships
+                                            cli_err_syntax_without_exit("Foreign key column for relationship between `$currentTableName` (child) and `$parentTableName` (parent) not found or not selected for hydration.");
+                                            cli_info("Expected FK original column: $fkOriginalCol. Selected columns for $currentTableName: " . implode(', ', array_keys($selectedCols[$currentTableName])));
+                                            // Consider how to handle this gracefully or exit
+                                        }
+                                    } else {
+                                        // Error handling: No direct relationship found for this hydration path segment
+                                        cli_err_syntax_without_exit("No direct relationship defined between `$currentTableName` and its parent `$parentTableName` in the hydration path in `config/relationships.php`.");
+                                        // Consider how to handle this gracefully or exit
+                                    }
+                                }
+
+                                // Populate 'cols'
+                                if (isset($selectedCols[$currentTableName])) {
+                                    foreach ($selectedCols[$currentTableName] as $originalColName => $aliasColName) {
+                                        // Do not add the PK or the FK to 'cols' (as they are separate properties)
+                                        if ($aliasColName !== $entityDef['pk'] && $aliasColName !== $entityDef['fk_to_parent']) {
+                                            $entityDef['cols'][] = $aliasColName;
+                                        }
+                                    }
+                                }
+
+                                // Determine where to place this entityDef in the nested structure
+                                // This part assumes a linear array for $hydrationKey like ['authors', 'articles', 'comments']
+                                // And builds the nested structure like authors => { articles => { comments => {}}}
+
+                                $currentParentRef = &$currentLevelRefs[count($currentLevelRefs) - 1]; // Get reference to the 'with' array of the previous level
+
+                                $currentParentRef[$currentTableName] = $entityDef;
+                                $currentLevelRefs[] = &$currentParentRef[$currentTableName]['with']; // Add reference to the new 'with' array for next iteration
+                            }
+
+
+
+
+                            // $currentParentRef = &$hydratedKey; // Use a reference to build the nested structure
+                            // foreach ($hydrationKey as $index => $tableName) {
+                            //     $entityDef = [
+                            //         'pk'       => null,
+                            //         'cols'  => [],
+                            //         'with' => []
+                            //     ];
+                            //     // Populate PK and other columns
+                            //     foreach ($selectedCols[$tableName] as $originalCol => $aliasCol) {
+                            //         var_dump($originalCol);
+                            //         if ($originalCol === $tableName . '_id') {
+                            //             $entityDef['pk'] = $originalCol;
+                            //         } elseif (!isset($joinedTablesWithRef[$tableName]) || $originalCol !== $joinedTablesWithRef[$tableName]) {
+                            //             // Only add non-PK and non-FK-to-parent columns to 'columns'
+                            //             $entityDef['cols'][] = $originalCol;
+                            //         }
+                            //     }
+                            //     // Add FK for child tables
+                            //     if ($index > 0) { // If it's a child table
+                            //         $parentTableName = $hydrationKey[$index - 1];
+                            //         // You need a way to look up the FK linking $tableName to $parentTableName
+                            //         // This is where $joinedTablesWithRef is crucial, but you need to derive the *alias* of the FK
+                            //         if (isset($joinedTablesWithRef[$tableName])) { // Check if this table has an FK defined
+                            //             $originalFkCol = $joinedTablesWithRef[$tableName];
+                            //             // Find the alias for this original FK column within the current table's selectedCols
+                            //             foreach ($selectedCols[$tableName] as $orig => $alias) {
+                            //                 if ($orig === $originalFkCol) {
+                            //                     $entityDef['fk_to_parent'] = $alias;
+                            //                     break;
+                            //                 }
+                            //             }
+                            //         }
+                            //     }
+                            //     if ($index === 0) {
+                            //         // First table is the root
+                            //         $hydratedKey[$tableName] = $entityDef;
+                            //         $currentParentRef = &$hydratedKey[$tableName];
+                            //     } else {
+                            //         // Subsequent tables are children of the previous one in the chain
+                            //         $currentParentRef['with'][$tableName] = $entityDef;
+                            //         $currentParentRef = &$currentParentRef['with'][$tableName];
+                            //     }
+                            // }
                         }
                     }
                 }

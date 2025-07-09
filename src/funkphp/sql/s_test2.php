@@ -9,11 +9,9 @@ namespace FunkPHP\SQL\s_test2;
 // IMPORTANT: CMD+S or CTRL+S to autoformat each time function is added!
 
 
-
-
 function s_test5(&$c) // <authors,articles,comments>
 {
-	// FunkCLI created 2025-07-07 18:06:23! Keep Closing Curly Bracket on its
+	// FunkCLI created 2025-07-09 20:10:51! Keep Closing Curly Bracket on its
 	// own new line without indentation no comment right after it!
 	// Run the command `php funkcli compile s s_test2=>s_test5`
 	// to get SQL, Hydration & Binded Params in return statement below it!
@@ -33,12 +31,14 @@ function s_test5(&$c) // <authors,articles,comments>
 		// Available Join Types: `inner|i|join|j|ij`,`left|l`,`right|r`
 		// Example: `inner=books,authors(id),books(author_id)`
 		'JOINS_ON' => [ // Optional, make empty if not joining any tables!
-			//'inner=comments,comments(author_id),authors(id)',
+			'inner=articles,authors(id),articles(author_id)',
+			'inner=comments,authors(id),comments(author_id)',
 		],
 		// Optional Keys, leave empty (or remove) if not used!
 		'SELECT' => [
-			'authors:id,name',
-			//'comments:id,content,author_id',
+			'authors:id,name,email,description,longer_description,age,weight,nickname,updated_at',
+			'articles:id,author_id,title,content,published,created_at,updated_at',
+			'comments:id,article_id,content,author_id,created_at',
 		],
 		'WHERE' => '',
 		'GROUP BY' => '',
@@ -47,7 +47,7 @@ function s_test5(&$c) // <authors,articles,comments>
 		'LIMIT' => '',
 		'OFFSET' => '',
 		// Optional, leave empty if not used!
-		'<HYDRATION>' => ["authors"],
+		'<HYDRATION>' => ["authors=>articles=>comments"],
 		// What each Binded Param must match from a Validated Data
 		// Field Array (empty means same as TableName_ColumnKey)
 		'<MATCHED_FIELDS>' => [
@@ -76,12 +76,61 @@ function s_test5(&$c) // <authors,articles,comments>
 	];
 
 	return array(
-		'sql' => 'SELECT authors.id AS authors_id, authors.name AS authors_name FROM authors;',
+		'sql' => 'SELECT authors.id AS authors_id, authors.name AS authors_name, authors.email AS authors_email, authors.description AS authors_description, authors.longer_description AS authors_longer_description, authors.age AS authors_age, authors.weight AS authors_weight, authors.nickname AS authors_nickname, authors.updated_at AS authors_updated_at, articles.id AS articles_id, articles.author_id AS articles_author_id, articles.title AS articles_title, articles.content AS articles_content, articles.published AS articles_published, articles.created_at AS articles_created_at, articles.updated_at AS articles_updated_at, comments.id AS comments_id, comments.article_id AS comments_article_id, comments.content AS comments_content, comments.author_id AS comments_author_id, comments.created_at AS comments_created_at FROM authors INNER JOIN articles ON authors.id = articles.author_id INNER JOIN comments ON authors.id = comments.author_id;',
 		'hydrate' =>
 		array(
 			'mode' => 'simple',
 			'type' => 'array',
-			'key' => NULL,
+			'key' =>
+			array(
+				'authors' =>
+				array(
+					'pk' => 'authors_id',
+					'cols' =>
+					array(
+						0 => 'authors_name',
+						1 => 'authors_email',
+						2 => 'authors_description',
+						3 => 'authors_longer_description',
+						4 => 'authors_age',
+						5 => 'authors_weight',
+						6 => 'authors_nickname',
+						7 => 'authors_updated_at',
+					),
+					'with' =>
+					array(
+						'articles' =>
+						array(
+							'pk' => 'articles_id',
+							'cols' =>
+							array(
+								0 => 'articles_author_id',
+								1 => 'articles_title',
+								2 => 'articles_content',
+								3 => 'articles_published',
+								4 => 'articles_created_at',
+								5 => 'articles_updated_at',
+							),
+							'with' =>
+							array(
+								'comments' =>
+								array(
+									'pk' => 'comments_id',
+									'cols' =>
+									array(
+										0 => 'comments_article_id',
+										1 => 'comments_content',
+										2 => 'comments_author_id',
+										3 => 'comments_created_at',
+									),
+									'with' =>
+									array(),
+								),
+							),
+						),
+					),
+				),
+			),
 		),
 		'bparam' => '',
 		'fields' =>
