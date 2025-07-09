@@ -5697,7 +5697,6 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                                         $foundRef = false; // Reset for each table so all must pass!
                                         foreach ($selectedCols[$joined] as $refCol => $refVal) {
                                             if ($refVal === $refTbCol) {
-                                                echo "FOUND REF: $refCol => $refVal\n";
                                                 $foundRef = true; // Found the referencesTable_id Column!
                                                 break;
                                             }
@@ -5712,6 +5711,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                                     }
                                 }
 
+                                // We also check all Tables to Hydrate all have the `id` Column
                                 foreach ($hydrationKey as $hydTb) {
                                     $foundId = false; // Reset for each table so all must pass!
                                     foreach ($selectedCols[$hydTb] as $colName => $colValue) {
@@ -5728,7 +5728,9 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                                     cli_info_without_exit("Make sure You have Selected the Table(s) to Hydrate in the `SELECT` Key and that they have the `id` Column!");
                                     cli_info_without_exit("Valid Tables to Hydrate are:\n" . implode(",\n", quotify_elements(array_keys($selectedCols))) . ".");
                                 }
-                            } else {
+                            }
+                            // Otherwise, we only need to check the `id` column for all the single Table!
+                            else {
                                 $foundId = false;
                                 foreach ($hydrationKey as $hydTb) {
                                     foreach ($selectedCols[$hydTb] as $colName => $colValue) {
@@ -5746,6 +5748,11 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                                     cli_info_without_exit("Valid Tables to Hydrate are:\n" . implode(",\n", quotify_elements(array_keys($selectedCols))) . ".");
                                 }
                             }
+                        }
+
+                        // FINALLY: We can start generating the Hydration Key that will
+                        // be stored in 'hydrate' => 'key' in the converted SQL Array!
+                        if ($keepGoing) {
                         }
                     }
                 }
