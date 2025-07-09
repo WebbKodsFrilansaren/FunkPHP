@@ -45,7 +45,7 @@ function s_test5(&$c) // <authors,articles,comments>
 		'LIMIT' => '',
 		'OFFSET' => '',
 		// Optional, leave empty if not used!
-		'<HYDRATION>' => [],
+		'<HYDRATION>' => ["authors=>articles"],
 		// What each Binded Param must match from a Validated Data
 		// Field Array (empty means same as TableName_ColumnKey)
 		'<MATCHED_FIELDS>' => [
@@ -73,21 +73,46 @@ function s_test5(&$c) // <authors,articles,comments>
 		],
 	];
 
-	return array (
-  'sql' => 'SELECT authors.id AS authors_id, authors.name AS authors_name, articles.id AS articles_id, articles.author_id AS articles_author_id, articles.title AS articles_title, articles.content AS articles_content FROM authors INNER JOIN articles ON authors.id = articles.author_id;',
-  'hydrate' => 
-  array (
-    'mode' => 'simple',
-    'type' => 'array',
-    'key' => 
-    array (
-    ),
-  ),
-  'bparam' => '',
-  'fields' => 
-  array (
-  ),
-);
+	return array(
+		'sql' => 'SELECT authors.id AS authors_id, authors.name AS authors_name, articles.id AS articles_id, articles.author_id AS articles_author_id, articles.title AS articles_title, articles.content AS articles_content FROM authors INNER JOIN articles ON authors.id = articles.author_id;',
+		'hydrate' =>
+		array(
+			'mode' => 'simple',
+			'type' => 'array',
+			'key' =>
+			array(
+				'authors' =>
+				array(
+					'pk' => 'authors_id',
+					'cols' =>
+					array(
+						0 => 'authors_id',
+						1 => 'authors_name',
+					),
+					'with' =>
+					array(
+						'articles' =>
+						array(
+							'fk' => 'articles_author_id',
+							'pk' => 'articles_id',
+							'cols' =>
+							array(
+								0 => 'articles_id',
+								1 => 'articles_author_id',
+								2 => 'articles_title',
+								3 => 'articles_content',
+							),
+							'with' =>
+							array(),
+						),
+					),
+				),
+			),
+		),
+		'bparam' => '',
+		'fields' =>
+		array(),
+	);
 };
 
 return function (&$c, $handler = "s_test3") {

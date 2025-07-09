@@ -5813,8 +5813,12 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                             foreach ($hydrationKeys as $hydrationKey) {
                                 // Split on "=>" if it exists or just use the
                                 // single table name as a single element array
+                                // This function does the main "hardwork" of adding tables correctly
+                                // for the current "table1=>table2=>etc" Hydration Key Array String Element!
                                 cli_parse_joined_tables_order(strtolower(trim($hydrationKey)), $hydratedKey, $keepGoing, $selectedCols);
 
+                                // Then we perform tons of other checks to make sure no needed
+                                // primary+forieng columns are missing so it can actually be used!
                                 if ($keepGoing) {
                                     $hydrationKey = str_contains($hydrationKey, "=>") ? explode("=>", $hydrationKey) : [$hydrationKey];
                                 }
@@ -5940,13 +5944,11 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                                         }
                                     }
                                 }
-
-                                // FINALLY: We can start generating the Hydration Key that will
-                                // be stored in 'hydrate' => 'key' in the converted SQL Array!
-                                if ($keepGoing) {
-                                    echo "WE REACH EHERE WITH: " . implode(", ", $hydrationKey) . "\n";
-                                }
                             }
+                        }
+                        // Here it means we are all 100 % done with 0 errors!
+                        if ($keepGoing) {
+                            cli_success_without_exit("[HYDRATION COMPILATION SUCCEEDED] Hydration Key(s) Parsed Successfully in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
                         }
                     }
                 }
@@ -5971,7 +5973,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         $convertedSQLArray['hydrate']['key'] = $hydratedKey;
 
         // Report success and inform about ignored keys
-        cli_success_without_exit("Built SQL String: `$builtSQLString`");
+        cli_success_without_exit("[SQL STRING BUILT] Built SQL String: `$builtSQLString`");
         if (is_array($ignoredKeys) && !empty($ignoredKeys)) {
             cli_warning_without_exit("The Following Found Keys were IGNORED for the SELECT Query Type:\n" . implode(",\n", quotify_elements($ignoredKeys)));
             cli_info_without_exit("Feel free to remove them from the SQL Array to not confuse Yourself!");
