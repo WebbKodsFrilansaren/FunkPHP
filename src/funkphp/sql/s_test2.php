@@ -33,7 +33,7 @@ function s_test5(&$c) // <authors,articles,comments>
 		// Available Join Types: `inner|i|join|j|ij`,`left|l`,`right|r`
 		// Example: `inner=books,authors(id),books(author_id)`
 		'JOINS_ON' => [ // Optional, make empty if not joining any tables!
-			'inner=comments,authors(id),comments(author_id)',
+			'inner=comments,comments(author_id),authors(id)',
 		],
 		// Optional Keys, leave empty (or remove) if not used!
 		'SELECT' => [
@@ -76,7 +76,7 @@ function s_test5(&$c) // <authors,articles,comments>
 	];
 
 	return array(
-		'sql' => 'SELECT authors.id AS authors_id, authors.name AS authors_name, comments.id AS comments_id, comments.content AS comments_content, comments.author_id AS comments_author_id FROM authors INNER JOIN comments ON authors.id = comments.author_id;',
+		'sql' => 'SELECT authors.id AS authors_id, authors.name AS authors_name, comments.id AS comments_id, comments.content AS comments_content, comments.author_id AS comments_author_id FROM authors INNER JOIN comments ON comments.author_id = authors.id;',
 		'hydrate' =>
 		array(
 			'mode' => 'simple',

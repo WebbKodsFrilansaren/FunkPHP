@@ -4526,6 +4526,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         // GROUP BY Key to use. You can have more JOINed
         // Tables than the ones SELECTed in the SELECT Key!
         $joinedTables = [];
+        $joinedTablesWithRef = [];
         $allAliases = [];
         $aliasesTbCol = [];
         $selectedCols = []; // This is used by "<HYDRATION>" to know which columns are selected (using AS/aliases)
@@ -5173,6 +5174,18 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                 // Otherwise add it to the joined tables
                 $joinedTables[] = $joinTable;
 
+                // We add tables and their references that can be used by <Hydration> Key later!
+                if ($table1Col === substr($table1, 0, -1) . "_id") {
+                    $joinedTablesWithRef[$table1] = substr($table1, 0, -1) . "_id";
+                } elseif ($table1Col === substr($table2, 0, -1) . "_id") {
+                    $joinedTablesWithRef[$table1] = substr($table2, 0, -1) . "_id";
+                } elseif ($table2Col === substr($table2, 0, -1) . "_id") {
+                    $joinedTablesWithRef[$table2] = substr($table2, 0, -1) . "_id";
+                } elseif ($table2Col === substr($table1, 0, -1) . "_id") {
+                    $joinedTablesWithRef[$table2] = substr($table1, 0, -1) . "_id";
+                }
+
+
                 // We check that $table2 and $table1 are valid tables
                 if (!array_key_exists($table2, $tables) || !array_key_exists($table1, $tables)) {
                     cli_err_syntax_without_exit("Invalid Table Name(s) (`$table2` or `$table1`) found in `JOINS_ON` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
@@ -5618,7 +5631,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                         // since "$tables_were_joined" = true means we have joined tables
                         // meaning we might have a valid case for "=>" aving been used!
                         if ($keepGoing) {
-                            var_dump($selectedCols, $hydrationKey, $joinedTables);
+                            var_dump($selectedCols, $hydrationKey, $joinedTables, $joinedTablesWithRef);
                             if ($tables_were_joined) {
                                 if (count($hydrationKey) !== count($joinedTables)) {
                                     $keepGoing = false;
@@ -5677,17 +5690,28 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                         if ($keepGoing) {
                             if ($tables_were_joined) {
                                 foreach ($joinedTables as $joined) {
-                                    $foundRef = false; // Reset for each table so all must pass!
-                                    foreach ($tables[$joined] as $jTb) {
+                                    if (!isset($joinedTablesWithRef[$joined])) {
+                                        continue; // Skipping tables we know cannot have the ref key we are looking for!
+                                    } else {
+                                        $refTbCol = $joinedTablesWithRef[$joined];
+                                        $foundRef = false; // Reset for each table so all must pass!
+                                        foreach ($selectedCols[$joined] as $refCol => $refVal) {
+                                            if ($refVal === $refTbCol) {
+                                                echo "FOUND REF: $refCol => $refVal\n";
+                                                $foundRef = true; // Found the referencesTable_id Column!
+                                                break;
+                                            }
+                                        }
+                                        // One or more `referencesTable_id` NOT found so we "warn out"
+                                        if (!$foundRef) {
+                                            $keepGoing = false;
+                                            cli_warning_without_exit("The `<HYDRATION>` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query Type is set to Hydrate Joined Tables without the necessary `OtherTableNameInPlural_id` Column!");
+                                            cli_info_without_exit("Make sure You have Selected the Table(s) to Hydrate in the `SELECT` Key and that they have the `referencesTable_id` Column!");
+                                            cli_info_without_exit("Valid & JOINED Tables to Hydrate are:\n" . implode(",\n", quotify_elements(array_keys($selectedCols))) . ".");
+                                        }
                                     }
                                 }
-                                // One or more `referencesTable_id` NOT found so we "warn out"
-                                if (!$foundRef) {
-                                    $keepGoing = false;
-                                    cli_warning_without_exit("The `<HYDRATION>` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query Type is set to Hydrate Joined Tables without the necessary `OtherTableNameInPlural_id` Column!");
-                                    cli_info_without_exit("Make sure You have Selected the Table(s) to Hydrate in the `SELECT` Key and that they have the `referencesTable_id` Column!");
-                                    cli_info_without_exit("Valid & JOINED Tables to Hydrate are:\n" . implode(",\n", quotify_elements(array_keys($selectedCols))) . ".");
-                                }
+
                                 foreach ($hydrationKey as $hydTb) {
                                     $foundId = false; // Reset for each table so all must pass!
                                     foreach ($selectedCols[$hydTb] as $colName => $colValue) {
