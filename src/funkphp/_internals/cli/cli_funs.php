@@ -3874,9 +3874,9 @@ function cli_parse_joined_tables_order($tablesString, &$currentFinalHydrateKey, 
     // we adjust the position for the $currentFinalHydrateKey[$table] so we do not accidentally overwrite it!
     elseif (count($tablesString) > 1) {
         $maxIdx = count($tablesString) - 1; // Maximum Index of the Tables String
-        $prevTB = null; // Previous Table to use for the next table
-        $prevPK = null; // Previous Primary Key to use for the next table
-        $nextFK  = null; // Next Foreign Key to use for the next table
+        $prevTB = ""; // Previous Table to use for the next table
+        $prevPK = ""; // Previous Primary Key to use for the next table
+        $nextFK  = ""; // Next Foreign Key to use for the next table
         $nextLevel = &$currentFinalHydrateKey; // Reference to the current level of the $currentFinalHydrateKey
 
         foreach ($tablesString as $idx => $tbStr) {
@@ -3884,6 +3884,47 @@ function cli_parse_joined_tables_order($tablesString, &$currentFinalHydrateKey, 
                 $tb1 = $matches[1];
                 $viaTb = $matches[3];
                 var_dump($tb1, $viaTb);
+
+                // Validate both Tables exist
+                if (!isset($tables[$tb1]) || !is_array($tables[$tb1]) || empty($tables[$tb1])) {
+                    $keepGoing = false;
+                    cli_warning_without_exit("[cli_parse_joined_tables_order]: Invalid Table Name: `{$tb1}` in the `tables.php` File!");
+                    cli_info_without_exit("Verify that the `{$tb1}` Table exists in the `tables` Key in the `tables.php` File!.");
+                    cli_info_without_exit("IMPORTANT: The Hydration Compilation Will Stop Here - But the SQL String Compiling will continue...!");
+                    return;
+                }
+                if (!isset($tables[$viaTb]) || !is_array($tables[$viaTb]) || empty($tables[$viaTb])) {
+                    $keepGoing = false;
+                    cli_warning_without_exit("[cli_parse_joined_tables_order]: Invalid Table Name: `{$viaTb}` in the `tables.php` File!");
+                    cli_info_without_exit("Verify that the `{$viaTb}` Table exists in the `tables` Key in the `tables.php` File!.");
+                    cli_info_without_exit("IMPORTANT: The Hydration Compilation Will Stop Here - But the SQL String Compiling will continue...!");
+                    return;
+                }
+                // Check that intermediate Table (viaTb) has a valid relationship with the previous Table (prevTB)
+                // since it is the intermediate Table that connects the previous Table (prevTB) with the current Table (tbStr)
+                if (!isset($relationships[$prevTB][$viaTb]) || !is_array($relationships[$prevTB][$viaTb]) || empty($relationships[$prevTB][$viaTb])) {
+                    $keepGoing = false;
+                    cli_warning_without_exit("[cli_parse_joined_tables_order]: Invalid Relationship between Tables: `{$prevTB}` and `{$viaTb}` in the `tables.php` File!");
+                    cli_info_without_exit("Verify that the `{$prevTB}` and `{$viaTb}` Tables have a valid Relationship in the `relationships` Key in the `tables.php` File!");
+                    cli_info_without_exit("IMPORTANT: The Hydration Compilation Will Stop Here - But the SQL String Compiling will continue...!");
+                    return;
+                }
+                // Check that intermediate Table (viaTb) has a valid relationship with the current Table (tb1) that is
+                // supposed to connect directly to the previous Table (prevTB) via the intermediate Table (viaTb)
+                if (
+                    !isset($relationships[$viaTb][$tb1])
+                    || !is_array($relationships[$viaTb][$tb1])
+                    || empty($relationships[$viaTb][$tb1])
+                    || !isset($relationships[$tb1][$viaTb])
+                    || !is_array($relationships[$tb1][$viaTb])
+                    || empty($relationships[$tb1][$viaTb])
+                ) {
+                    $keepGoing = false;
+                    cli_warning_without_exit("[cli_parse_joined_tables_order]: Invalid Relationship between Tables: `{$prevTB}` and `{$viaTb}` in the `tables.php` File!");
+                    cli_info_without_exit("Verify that the `{$prevTB}` and `{$viaTb}` Tables have a valid Relationship in the `relationships` Key in the `tables.php` File!");
+                    cli_info_without_exit("IMPORTANT: The Hydration Compilation Will Stop Here - But the SQL String Compiling will continue...!");
+                    return;
+                }
             }
             if (!isset($tables[$tbStr]) || !is_array($tables[$tbStr]) || empty($tables[$tbStr])) {
                 $keepGoing = false;
