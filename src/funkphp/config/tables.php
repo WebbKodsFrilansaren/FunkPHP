@@ -429,6 +429,15 @@ return  [
         'foreign_table' => 'authors_tags',
         'direction' => 'pk_to_fk',
       ],
+      'tags' =>
+      [
+        'direction' => 'm_to_m',
+        'local_table' => 'authors',
+        'foreign_table' => 'tags',
+        'pivot_table' => 'authors_tags',
+        'pivot_local_key' => 'author_id',
+        'pivot_foreign_key' => 'tag_id',
+      ],
     ],
     'articles' =>
     [
@@ -479,6 +488,15 @@ return  [
         'local_table' => 'tags',
         'foreign_table' => 'authors_tags',
         'direction' => 'pk_to_fk',
+      ],
+      'authors' =>
+      [
+        'direction' => 'm_to_m',
+        'local_table' => 'tags',
+        'foreign_table' => 'authors',
+        'pivot_table' => 'authors_tags',
+        'pivot_local_key' => 'tag_id',
+        'pivot_foreign_key' => 'author_id',
       ],
     ],
     'authors_tags' =>

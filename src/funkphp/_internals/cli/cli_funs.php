@@ -801,6 +801,79 @@ function cli_output_tables_file($array)
         }
     }
 
+    // --- (FROM LLM!!!) NEW LOGIC FOR AUTOMATIC MANY-TO-MANY RELATIONSHIP DETECTION ---
+    // This loop runs after all direct 1:M/M:1 relationships have been set up.
+    cli_info_without_exit("Analyzing for `Many-to-Many (m_to_m) Relationships` by splitting Table Names on `_` and Checking for Pivot Tables...");
+    foreach ($array['tables'] as $tableName => $tableData) {
+        // Heuristic: Check if the table name looks like a pivot table (e.g., 'table1_table2')
+        if (strpos($tableName, '_') !== false) {
+            $parts = explode('_', $tableName);
+            // We expect pivot tables to typically join two main tables
+            if (count($parts) === 2) {
+                $table1 = $parts[0]; // e.g., 'authors'
+                $table2 = $parts[1]; // e.g., 'tags'
+                // Ensure both parsed table names actually exist as main tables
+                if (isset($array['tables'][$table1]) && isset($array['tables'][$table2])) {
+                    $pivotLocalKey = null; // Column in pivot table linking to $table1 (e.g., 'author_id')
+                    $pivotForeignKey = null; // Column in pivot table linking to $table2 (e.g., 'tag_id')
+                    // Iterate through the pivot table's columns to find its foreign keys
+                    // and identify which main table each FK references.
+                    foreach ($tableData as $columnName => $columnDef) {
+                        if (isset($columnDef['foreign_key']) && $columnDef['foreign_key'] === true) {
+                            if ($columnDef['references'] === $table1) {
+                                $pivotLocalKey = $columnName;
+                            } elseif ($columnDef['references'] === $table2) {
+                                $pivotForeignKey = $columnName;
+                            }
+                        }
+                    }
+                    // If both required foreign keys were found in the pivot table's definition,
+                    // then we can confidently define a many-to-many relationship.
+                    if ($pivotLocalKey !== null && $pivotForeignKey !== null) {
+                        // Define Many-to-Many from $table1 to $table2
+                        // Only add if it doesn't already exist or if it's not already a many_to_many
+                        if (
+                            !isset($array['relationships'][$table1][$table2])
+                            || !is_array($array['relationships'][$table1][$table2])
+                            || (isset($array['relationships'][$table1][$table2]['type'])
+                                && $array['relationships'][$table1][$table2]['type'] !== 'many_to_many')
+                        ) {
+                            $array['relationships'][$table1][$table2] = [
+                                'direction' => 'm_to_m',
+                                'local_table' => $table1,
+                                'foreign_table' => $table2,
+                                'pivot_table' => $tableName,         // The current pivot table name (e.g., 'authors_tags')
+                                'pivot_local_key' => $pivotLocalKey, // FK in pivot pointing to 'local_table' (e.g., 'author_id')
+                                'pivot_foreign_key' => $pivotForeignKey, // FK in pivot pointing to 'foreign_table' (e.g., 'tag_id')
+                            ];
+                            cli_info_without_exit("Automatically added Many-to-Many Relationship: `{$table1}=>{$table2}(via:{$tableName})`.");
+                        }
+
+                        // Define Many-to-Many from $table2 to $table1 (inverse direction)
+                        // This allows hydration like tags=>authors(via:authors_tags)
+                        if (
+                            !isset($array['relationships'][$table2][$table1])
+                            || !is_array($array['relationships'][$table2][$table1])
+                            || (isset($array['relationships'][$table2][$table1]['type'])
+                                && $array['relationships'][$table2][$table1]['type'] !== 'many_to_many')
+                        ) {
+                            $array['relationships'][$table2][$table1] = [
+                                'direction' => 'm_to_m',
+                                'local_table' => $table2,
+                                'foreign_table' => $table1,
+                                'pivot_table' => $tableName,
+                                'pivot_local_key' => $pivotForeignKey, // Swapped for inverse direction
+                                'pivot_foreign_key' => $pivotLocalKey,  // Swapped for inverse direction
+                            ];
+                            cli_info_without_exit("Automatically added Many-to-Many Relationship (Inverse): `{$table2}=>{$table1}(via:{$tableName})`.");
+                        }
+                    }
+                }
+            }
+        }
+    }
+    // --- (FROM LLM!!!) END NEW LOGIC ---
+
     // Attempt to write to the Tables.php file and check if it was successful
     $result = file_put_contents($exactFiles['tables'], "<?php\nreturn " . cli_convert_array_to_simple_syntax($array));
     if ($result === false) {

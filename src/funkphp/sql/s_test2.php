@@ -81,8 +81,6 @@ function s_test5(&$c) // <authors,articles,comments>
 		'sql' => 'SELECT authors.id AS authors_id, authors.name AS authors_name, authors_tags.id AS authors_tags_id, authors_tags.author_id AS authors_tags_author_id, authors_tags.tag_id AS authors_tags_tag_id, tags.id AS tags_id, tags.name AS tags_name, articles.id AS articles_id, articles.author_id AS articles_author_id, articles.title AS articles_title, articles.content AS articles_content FROM authors INNER JOIN articles ON authors.id = articles.author_id INNER JOIN authors_tags ON authors.id = authors_tags.author_id INNER JOIN tags ON authors_tags.tag_id = tags.id;',
 		'hydrate' =>
 		array(
-			'mode' => 'simple',
-			'type' => 'array',
 			'key' =>
 			array(
 				'authors' =>
@@ -129,6 +127,8 @@ function s_test5(&$c) // <authors,articles,comments>
 					),
 				),
 			),
+			'mode' => 'simple',
+			'type' => 'array',
 		),
 		'bparam' => '',
 		'fields' =>
