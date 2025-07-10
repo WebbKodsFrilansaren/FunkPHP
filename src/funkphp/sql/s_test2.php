@@ -73,6 +73,7 @@ function s_test5(&$c) // <authors,articles,comments>
 	];
 
 	return array(
+		'qtype' => 'SELECT',
 		'sql' => 'SELECT comments.id AS comments_id, authors.id AS authors_id, authors.name AS authors_name, authors.age AS authors_age, comments.id AS comments_id, comments.content AS comments_content, comments.author_id AS comments_author_id FROM authors INNER JOIN comments ON authors.id = comments.author_id;',
 		'hydrate' =>
 		array(

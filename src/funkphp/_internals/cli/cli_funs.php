@@ -4211,7 +4211,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
 
     // Prepare variables to store the
     // converted SQL Query Array
-    $convertedSQLArray = ["sql" => "", "hydrate" => [], "bparam" => "", "fields" => []];
+    $convertedSQLArray = ["qtype" => "", "sql" => "", "hydrate" => [], "bparam" => "", "fields" => [],];
     $builtSQLString = "";
     $builtHydrateArray = [];
     $builtBindedParamsString = "";
@@ -4377,6 +4377,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
     }
 
     // Validate that $configQTKey is set and is a valid query type
+    // then store it in the convertedSQLArray['qtype']!
     if (!isset($configQTKey) || !is_string_and_not_empty($configQTKey)) {
         cli_err_syntax_without_exit("No Config Key `<QUERY_TYPE>` found in SQL Array `$handlerFile.php=>$fnName`!");
         cli_info("Valid Query Types are:\n" . implode(",\n", quotify_elements($globalConfigRules['[QUERY_TYPE]'])) . ".");
@@ -4384,6 +4385,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         cli_err_syntax_without_exit("Invalid Config Key `<QUERY_TYPE>` value `$configQTKey` in SQL Array `$handlerFile.php=>$fnName`!");
         cli_info("Valid Query Types are:\n" . implode(",\n", quotify_elements($globalConfigRules['[QUERY_TYPE]'])) . ".");
     }
+    $convertedSQLArray['qtype'] = strtoupper($configQTKey);
 
     // Validate that $configTBKey is set and is a valid table name
     if (!isset($configTBKey) || empty($configTBKey)) {

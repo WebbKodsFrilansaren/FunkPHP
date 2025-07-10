@@ -738,6 +738,7 @@ function funk_load_sql(&$c, $sqlHandler, $sqlFunction)
     }
 }
 
+// Function that actually EXECUTES SQL Queries using
 function funk_use_sql(&$c, $sqlHandler, $sqlFunction)
 {
     // Call the funk_load_sql function to load the SQL Handler and Function
@@ -750,6 +751,9 @@ function funk_use_sql(&$c, $sqlHandler, $sqlFunction)
     // If it returned a valid SQL Function, we can return it
     return $sqlFunk;
 }
+
+
+function funk_use_hydrate(&$c, $hydrateKey, $fetchedData) {}
 
 // The main validation function for validating data in FunkPHP
 // mapping to the "$_GET"/"$_POST" or "php://input" (JSON) variable ONLY!
