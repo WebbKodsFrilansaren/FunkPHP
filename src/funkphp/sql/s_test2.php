@@ -49,7 +49,7 @@ function s_test5(&$c) // <authors,articles,comments>
 		'LIMIT' => '',
 		'OFFSET' => '',
 		// Optional, leave empty if not used!
-		'<HYDRATION>' => ["authors=>articles", "authors=>tags(via:authors_tags)"],
+		'<HYDRATION>' => ["authors=>articles", "tags=>authors(via:authors_tags)"],
 		// What each Binded Param must match from a Validated Data
 		// Field Array (empty means same as TableName_ColumnKey)
 		'<MATCHED_FIELDS>' => [
@@ -107,19 +107,31 @@ function s_test5(&$c) // <authors,articles,comments>
 							'with' =>
 							array(),
 						),
-						'tags' =>
+					),
+				),
+				'tags' =>
+				array(
+					'pk' => 'tags_id',
+					'cols' =>
+					array(
+						0 => 'tags_id',
+						1 => 'tags_name',
+					),
+					'with' =>
+					array(
+						'authors' =>
 						array(
-							'pk' => 'tags_id',
+							'pk' => 'authors_id',
 							'fk' => NULL,
 							'pivot' =>
 							array(
 								'table' => 'authors_tags',
-								'fk_to_parent_pivot_col' => 'authors_tags_author_id',
-								'fk_to_child_pivot_col' => 'authors_tags_tag_id',
+								'fk_to_parent_pivot_col' => 'authors_tags_tag_id',
+								'fk_to_child_pivot_col' => 'authors_tags_author_id',
 							),
 							'cols' =>
 							array(
-								0 => 'tags_name',
+								0 => 'authors_name',
 							),
 							'with' =>
 							array(),

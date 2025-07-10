@@ -3958,7 +3958,14 @@ function cli_parse_joined_tables_order($tablesString, &$currentFinalHydrateKey, 
                 $tb1 = $matches[1];
                 $viaTb = $matches[3];
 
-                // Validate both Tables exist
+                // Validate all 3 Tables exist
+                if (!isset($tables[$prevTB]) || !is_array($tables[$prevTB]) || empty($tables[$prevTB])) {
+                    $keepGoing = false;
+                    cli_warning_without_exit("[cli_parse_joined_tables_order]: Invalid Table Name: `{$prevTB}` in the `tables.php` File!");
+                    cli_info_without_exit("Verify that the `{$prevTB}` Table exists in the `tables` Key in the `tables.php` File!.");
+                    cli_info_without_exit("IMPORTANT: The Hydration Compilation Will Stop Here - But the SQL String Compiling will continue...!");
+                    return;
+                }
                 if (!isset($tables[$tb1]) || !is_array($tables[$tb1]) || empty($tables[$tb1])) {
                     $keepGoing = false;
                     cli_warning_without_exit("[cli_parse_joined_tables_order]: Invalid Table Name: `{$tb1}` in the `tables.php` File!");
@@ -3998,6 +4005,19 @@ function cli_parse_joined_tables_order($tablesString, &$currentFinalHydrateKey, 
                     cli_info_without_exit("IMPORTANT: The Hydration Compilation Will Stop Here - But the SQL String Compiling will continue...!");
                     return;
                 }
+
+                // Check that the previous Table (prevTB) has a valid relationship with the current Table (tb1)
+                // which is a Many-to-Many relationship via the intermediate Table (viaTb)
+                if (!isset($relationships[$prevTB][$tb1]) || !is_array($relationships[$prevTB][$tb1]) || empty($relationships[$prevTB][$tb1])) {
+                    $keepGoing = false;
+                    cli_warning_without_exit("[cli_parse_joined_tables_order]: Invalid Relationship between Tables: `{$prevTB}` and `{$tb1}` in the `tables.php` File!");
+                    cli_info_without_exit("Verify that the `{$prevTB}` and `{$tb1}` Tables have a valid Relationship in the `relationships` Key in the `tables.php` File!");
+                    cli_info_without_exit("IMPORTANT: The Hydration Compilation Will Stop Here - But the SQL String Compiling will continue...!");
+                    return;
+                }
+                $mmRel = $relationships[$prevTB][$tb1];
+                var_dump($mmRel);
+                exit(1);
                 // Table already exists, so we just adjust the position
                 if (isset($nextLevel[$tb1])) {
                     $prevTB = $tb1;
