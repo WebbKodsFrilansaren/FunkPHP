@@ -21,7 +21,7 @@ function funk_run_middleware_before_matched_routing(&$c)
             if ($current_mw === null || !is_string($current_mw)) {
                 unset($c['r_config']['middlewares_before_route_match'][$i]);
                 $c['req']['number_of_deleted_middlewares']++;
-                $c['err']['FAILED_TO_RUN_SINGLE_ROUTE_CONFIG_MIDDLEWARES'] = 'Middleware at index ' .  $i . ' is not a valid string or is null!';
+                $c['err']['CONFIG'][] = 'Middleware at index ' .  $i . ' is not a valid string or is null!';
                 continue;
             }
 
@@ -38,12 +38,12 @@ function funk_run_middleware_before_matched_routing(&$c)
                     $RunMW($c);
                 } // CUSTOM ERROR HANDLING HERE! - not callable (or change below to whatever you like)
                 else {
-                    $c['err']['FAILED_TO_RUN_ROUTE_CONFIG_MIDDLEWARES'] = 'Middleware Function at index ' .  $i . ' is not callable!';
+                    $c['err']['CONFIG'][] = 'Middleware Function at index ' .  $i . ' is not callable!';
                     $c['req']['current_middleware_running'] = null;
                 }
             } // CUSTOM ERROR HANDLING HERE! - no dir or file (or change below to whatever you like)
             else {
-                $c['err']['FAILED_TO_RUN_ROUTE_CONFIG_MIDDLEWARES'] = 'Middleware File at index '  .  $i . ' does not exist or is not a directory!';
+                $c['err']['CONFIG'][] = 'Middleware File at index '  .  $i . ' does not exist or is not a directory!';
                 $c['req']['current_middleware_running'] = null;
             }
 
@@ -67,7 +67,7 @@ function funk_run_middleware_before_matched_routing(&$c)
     // CUSTOM ERROR HANDLING HERE! - no matched middlewares (or change below to whatever you like)
     // IMPORTANT: No matched middlewares could mean misconfigured routes or no middlewares at all!
     else {
-        $c['err']['MAYBE']['FAILED_TO_RUN_ROUTE_CONFIG_MIDDLEWARES_MAYBE'] = "No Configured Route Middlewares (`'<CONFIG>' => 'middlewares_before_route_match'`) to run before Route Matching. If you expected Middlewares to run before Route Matching, check the `<CONFIG>` key in the Route `funk/routes/route_single_routes.php` File!";
+        $c['err']['MAYBE']['CONFIG'][] = "No Configured Route Middlewares (`'<CONFIG>' => 'middlewares_before_route_match'`) to run before Route Matching. If you expected Middlewares to run before Route Matching, check the `<CONFIG>` key in the Route `funk/routes/route_single_routes.php` File!";
     }
 }
 
@@ -88,7 +88,7 @@ function funk_run_middleware_after_matched_routing(&$c)
             if ($current_mw === null || !is_string($current_mw)) {
                 unset($c['req']['matched_middlewares'][$i]);
                 $c['req']['number_of_deleted_middlewares']++;
-                $c['err']['FAILED_TO_RUN_SINGLE_ROUTE_MIDDLEWARES'] = 'Middleware at index ' .  $i . ' is not a valid string or is null!';
+                $c['err']['MIDDLEWARES'][] = 'Middleware at index ' .  $i . ' is not a valid string or is null!';
                 continue;
             }
 
@@ -105,12 +105,12 @@ function funk_run_middleware_after_matched_routing(&$c)
                     $RunMW($c);
                 } // CUSTOM ERROR HANDLING HERE! - not callable (or change below to whatever you like)
                 else {
-                    $c['err']['FAILED_TO_RUN_ROUTE_MIDDLEWARE'] = 'Middleware Function at index ' .   $i . ' is not callable!';
+                    $c['err']['MIDDLEWARES'][] = 'Middleware Function at index ' .   $i . ' is not callable!';
                     $c['req']['current_middleware_running'] = null;
                 }
             } // CUSTOM ERROR HANDLING HERE! - no dir or file (or change below to whatever you like)
             else {
-                $c['err']['FAILED_TO_RUN_ROUTE_MIDDLEWARE'] = 'Middleware File at index ' .  $i . ' does not exist or is not a directory!';
+                $c['err']['MIDDLEWARES'][] = 'Middleware File at index ' .  $i . ' does not exist or is not a directory!';
                 $c['req']['current_middleware_running'] = null;
             }
 
@@ -134,7 +134,7 @@ function funk_run_middleware_after_matched_routing(&$c)
     // CUSTOM ERROR HANDLING HERE! - no matched middlewares (or change below to whatever you like)
     // IMPORTANT: No matched middlewares could mean misconfigured routes or no middlewares at all!
     else {
-        $c['err']['MAYBE']['FAILED_TO_RUN_MIDDLEWARE_MAYBE'] = 'No matched Middlewares to run after Route Matching. If you expected some, check the Route `funk/routes/route_single_routes.php` File for the matched Route: `' . ($c['req']['matched_route'] ?? '') . '`!';
+        $c['err']['MAYBE']['MIDDLEWARES'][] = 'No matched Middlewares to run after Route Matching. If you expected some, check the Route `funk/routes/route_single_routes.php` File for the matched Route: `' . ($c['req']['matched_route'] ?? '') . '`!';
     }
 }
 
@@ -159,7 +159,7 @@ function funk_run_middleware_after_handled_request(&$c)
             if ($current_mw === null || !is_string($current_mw)) {
                 unset($c['r_config']['middlewares_after_handled_request'][$i]);
                 $c['req']['number_of_deleted_middlewares']++;
-                $c['err']['FAILED_TO_RUN_SINGLE_ROUTE_CONFIG_MIDDLEWARES'] = 'Middleware at index ' .  $i . ' is not a valid string or is null!';
+                $c['err']['MIDDLEWARES'][] = 'Middleware at index ' .  $i . ' is not a valid string or is null!';
                 continue;
             }
 
@@ -176,12 +176,12 @@ function funk_run_middleware_after_handled_request(&$c)
                     $RunMW($c);
                 } // CUSTOM ERROR HANDLING HERE! - not callable (or change below to whatever you like)
                 else {
-                    $c['err']['FAILED_TO_RUN_ROUTE_CONFIG_MIDDLEWARES'] = 'Middleware Function at index ' .  $i . ' is not callable!';
+                    $c['err']['MIDDLEWARES'][] = 'Middleware Function at index ' .  $i . ' is not callable!';
                     $c['req']['current_middleware_running'] = null;
                 }
             } // CUSTOM ERROR HANDLING HERE! - no dir or file (or change below to whatever you like)
             else {
-                $c['err']['FAILED_TO_RUN_ROUTE_CONFIG_MIDDLEWARES'] = 'Middleware File at index '  .  $i . ' does not exist or is not a directory!';
+                $c['err']['MIDDLEWARES'][] = 'Middleware File at index '  .  $i . ' does not exist or is not a directory!';
                 $c['req']['current_middleware_running'] = null;
             }
 
@@ -205,7 +205,7 @@ function funk_run_middleware_after_handled_request(&$c)
     // CUSTOM ERROR HANDLING HERE! - no matched middlewares (or change below to whatever you like)
     // IMPORTANT: No matched middlewares could mean misconfigured routes or no middlewares at all!
     else {
-        $c['err']['MAYBE']['FAILED_TO_RUN_ROUTE_CONFIG_MIDDLEWARES_MAYBE'] = "No Configured Route Middlewares (`'<CONFIG>' => 'middlewares_after_handled_request'`) to run before After Handled Request. If you expected Middlewares to run After Handled Request, check the `<CONFIG>` key in the Route `funk/routes/route_single_routes.php` File!";
+        $c['err']['MAYBE']['MIDDLEWARES'][] = "No Configured Route Middlewares (`'<CONFIG>' => 'middlewares_after_handled_request'`) to run before After Handled Request. If you expected Middlewares to run After Handled Request, check the `<CONFIG>` key in the Route `funk/routes/route_single_routes.php` File!";
     }
 }
 
@@ -385,7 +385,7 @@ function funk_run_matched_route_handler(&$c)
         $handler = key($c['req']['matched_handler']);
         $handleString = $c['req']['matched_handler'][$handler] ?? null;
     } else {
-        $c['err']['FAILED_TO_LOAD_ROUTE_HANDLER_FILE'] = "Route Handler must be a string or an array!";
+        $c['err']['ROUTES'][] = "Route Handler must be a string or an array!";
         return;
     }
 
@@ -396,7 +396,7 @@ function funk_run_matched_route_handler(&$c)
         if (is_callable($runHandler)) {
             if (!is_null($handleString)) {
                 if (!function_exists($handleString)) {
-                    $c['err']['FAILED_TO_RUN_ROUTE_FUNCTION'] = 'Route Handler function `' .  $handleString . '` in `' . $handler . '` does not exist!';
+                    $c['err']['ROUTES'][] = 'Route Handler function `' .  $handleString . '` in `' . $handler . '` does not exist!';
                     return;
                 }
                 $runHandler($c, $handleString);
@@ -406,13 +406,13 @@ function funk_run_matched_route_handler(&$c)
         }
         // Handle error: not callable (or just use default below)
         else {
-            $c['err']['FAILED_TO_RUN_ROUTE_FUNCTION'] = "Data Handler function is not callable!";
+            $c['err']['ROUTES'][] = "Data Handler function is not callable!";
             return;
         }
     }
     // Handle error: file not found or not readable  (or just use default below)
     else {
-        $c['err']['FAILED_TO_LOAD_ROUTE_HANDLER_FILE'] = "Route Handler File not found or not readable!";
+        $c['err']['ROUTES'][] = "Route Handler File not found or not readable!";
         return;
     }
 }
