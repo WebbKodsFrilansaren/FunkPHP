@@ -3880,6 +3880,7 @@ function cli_parse_joined_tables_order($tablesString, &$currentFinalHydrateKey, 
         $nextLevel = &$currentFinalHydrateKey; // Reference to the current level of the $currentFinalHydrateKey
 
         foreach ($tablesString as $idx => $tbStr) {
+            // SPECIAL CASE: If the Table String contains a "via:" then we need to
             if (preg_match('/^([a-zA-Z0-9_]+){1}(\(via:([a-z-A-Z-0-9_]+)\)){1}$/i', $tbStr, $matches)) {
                 $tb1 = $matches[1];
                 $viaTb = $matches[3];
@@ -3925,7 +3926,19 @@ function cli_parse_joined_tables_order($tablesString, &$currentFinalHydrateKey, 
                     cli_info_without_exit("IMPORTANT: The Hydration Compilation Will Stop Here - But the SQL String Compiling will continue...!");
                     return;
                 }
+                // Table already exists, so we just adjust the position
+                if (isset($nextLevel[$tb1])) {
+                    $prevTB = $tb1;
+                    $nextLevel = &$nextLevel[$tb1]['with'];
+                }
+                // Table does not exist, so we create it and since this is larger than 0 index,
+                elseif (!isset($nextLevel[$tbStr])) {
+                    $nextLevel[$tb1] = [];
+                }
+                // Continue to next Table level, cause we either fail before we reach this or we succeed
+                continue;
             }
+            // OTHERWISE CHECK AS NORMAL
             if (!isset($tables[$tbStr]) || !is_array($tables[$tbStr]) || empty($tables[$tbStr])) {
                 $keepGoing = false;
                 cli_warning_without_exit("[cli_parse_joined_tables_order]: Invalid Table Name: `{$tbStr}` in the `tables.php` File!");

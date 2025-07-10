@@ -32,14 +32,14 @@ function s_test5(&$c) // <authors,articles,comments>
 		// Example: `inner=books,authors(id),books(author_id)`
 		'JOINS_ON' => [ // Optional, make empty if not joining any tables!
 			'inner=articles,authors(id),articles(author_id)',
-			//'inner=authors_tags,authors(id),authors_tags(author_id)',
-			//'inner=tags,authors_tags(tag_id),tags(id)',
+			'inner=authors_tags,authors(id),authors_tags(author_id)',
+			'inner=tags,authors_tags(tag_id),tags(id)',
 		],
 		// Optional Keys, leave empty (or remove) if not used!
 		'SELECT' => [
 			'authors:id,name',
-			//'authors_tags:id,author_id,tag_id',
-			//'tags:id,name',
+			'authors_tags:id,author_id,tag_id',
+			'tags:id,name',
 			'articles:id,author_id,title,content',
 		],
 		'WHERE' => '',
@@ -49,7 +49,7 @@ function s_test5(&$c) // <authors,articles,comments>
 		'LIMIT' => '',
 		'OFFSET' => '',
 		// Optional, leave empty if not used!
-		'<HYDRATION>' => ["authors=>articles"],
+		'<HYDRATION>' => ["authors=>articles", "authors=>tags(via:authors_tags)"],
 		// What each Binded Param must match from a Validated Data
 		// Field Array (empty means same as TableName_ColumnKey)
 		'<MATCHED_FIELDS>' => [
