@@ -3884,7 +3884,6 @@ function cli_parse_joined_tables_order($tablesString, &$currentFinalHydrateKey, 
             if (preg_match('/^([a-zA-Z0-9_]+){1}(\(via:([a-z-A-Z-0-9_]+)\)){1}$/i', $tbStr, $matches)) {
                 $tb1 = $matches[1];
                 $viaTb = $matches[3];
-                var_dump($tb1, $viaTb);
 
                 // Validate both Tables exist
                 if (!isset($tables[$tb1]) || !is_array($tables[$tb1]) || empty($tables[$tb1])) {
@@ -3932,8 +3931,21 @@ function cli_parse_joined_tables_order($tablesString, &$currentFinalHydrateKey, 
                     $nextLevel = &$nextLevel[$tb1]['with'];
                 }
                 // Table does not exist, so we create it and since this is larger than 0 index,
-                elseif (!isset($nextLevel[$tbStr])) {
-                    $nextLevel[$tb1] = [];
+                elseif (!isset($nextLevel[$tb1])) {
+                    // We delete PK from the 'cols' array since it is not needed
+                    // and we will use the PK as the primary key for the Table.
+                    unset($selectedCols[$tb1][$tb1 . "_id"]);
+                    $nextLevel[$tb1] = [
+                        'pk' => $tb1 . "_id",
+                        'fk' => null,
+                        'pivot' => [
+                            'table' => $viaTb,
+                            'fk_to_parent_pivot_col' => $relationships[$viaTb][$prevTB]['local_table'] . "_" . $relationships[$viaTb][$prevTB]['local_column'],
+                            'fk_to_child_pivot_col' => $relationships[$viaTb][$tb1]['local_table'] . "_" . $relationships[$viaTb][$tb1]['local_column'],
+                        ],
+                        'cols' => array_keys($selectedCols[$tb1]),
+                        'with' => [],
+                    ];
                 }
                 // Continue to next Table level, cause we either fail before we reach this or we succeed
                 continue;
@@ -5872,7 +5884,6 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                         }
                         // Must be same number of uniquely hydrated tables as
                         // selected tables so we can hydrate them properly!
-                        var_dump($uniqueTbs, $selectedCols);
                         if (count($uniqueTbs) !== 0 && count($selectedCols)) {
                             if (count($uniqueTbs) !== count($selectedCols)) {
                                 $keepGoing = false;
@@ -5899,7 +5910,6 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                                 // since "$tables_were_joined" = true means we have joined tables
                                 // meaning we might have a valid case for "=>" aving been used!
                                 if ($keepGoing) {
-
                                     // if ($tables_were_joined) {
                                     //     if (count($hydrationKey) !== count($joinedTables)) {
                                     //         $keepGoing = false;
@@ -5927,7 +5937,22 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                                                 cli_info_without_exit("Valid Tables to Hydrate are:\n" . implode(",\n", quotify_elements(array_keys($selectedCols))) . ".");
                                             }
                                             foreach ($hydrationKey as $hydTb) {
-                                                if (!array_key_exists($hydTb, $selectedCols)) {
+                                                // Check for special case: `table(via:table2)` which means checking two tables!
+                                                if (preg_match('/^([a-zA-Z0-9_]+){1}(\(via:([a-z-A-Z-0-9_]+)\)){1}$/i', $hydTb, $matches)) {
+                                                    $tb1 = $matches[1];
+                                                    $viaTb = $matches[3];
+                                                    if (!array_key_exists($tb1, $selectedCols)) {
+                                                        $keepGoing = false;
+                                                        cli_warning_without_exit("The `<HYDRATION>` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query Type is set to Hydrate Table `$tb1` which was NOT Selected in the `SELECT` Key!");
+                                                        cli_info_without_exit("Make sure You have Selected the Table(s) to Hydrate in the `SELECT` Key!");
+                                                        cli_info_without_exit("Valid Tables to Hydrate are:\n" . implode(",\n", quotify_elements(array_keys($selectedCols))) . ".");
+                                                    } elseif (!array_key_exists($viaTb, $selectedCols)) {
+                                                        $keepGoing = false;
+                                                        cli_warning_without_exit("The `<HYDRATION>` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query Type is set to Hydrate Table `$viaTb` which was NOT Selected in the `SELECT` Key!");
+                                                        cli_info_without_exit("Make sure You have Selected the Table(s) to Hydrate in the `SELECT` Key!");
+                                                        cli_info_without_exit("Valid Tables to Hydrate are:\n" . implode(",\n", quotify_elements(array_keys($selectedCols))) . ".");
+                                                    }
+                                                } elseif (!array_key_exists($hydTb, $selectedCols)) {
                                                     $keepGoing = false;
                                                     cli_warning_without_exit("The `<HYDRATION>` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query Type is set to Hydrate Table `$hydTb` which was NOT Selected in the `SELECT` Key!");
                                                     cli_info_without_exit("Make sure You have Selected the Table(s) to Hydrate in the `SELECT` Key!");
@@ -5939,7 +5964,22 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                                     // Otherwise just check the "=>"-splitted Tables in <HYDRATION> Key!
                                     else {
                                         foreach ($hydrationKey as $hydTb) {
-                                            if (!array_key_exists($hydTb, $selectedCols)) {
+                                            // Check for special case: `table(via:table2)` which means checking two tables!
+                                            if (preg_match('/^([a-zA-Z0-9_]+){1}(\(via:([a-z-A-Z-0-9_]+)\)){1}$/i', $hydTb, $matches)) {
+                                                $tb1 = $matches[1];
+                                                $viaTb = $matches[3];
+                                                if (!array_key_exists($tb1, $selectedCols)) {
+                                                    $keepGoing = false;
+                                                    cli_warning_without_exit("The `<HYDRATION>` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query Type is set to Hydrate Table `$tb1` which was NOT Selected in the `SELECT` Key!");
+                                                    cli_info_without_exit("Make sure You have Selected the Table(s) to Hydrate in the `SELECT` Key!");
+                                                    cli_info_without_exit("Valid Tables to Hydrate are:\n" . implode(",\n", quotify_elements(array_keys($selectedCols))) . ".");
+                                                } elseif (!array_key_exists($viaTb, $selectedCols)) {
+                                                    $keepGoing = false;
+                                                    cli_warning_without_exit("The `<HYDRATION>` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query Type is set to Hydrate Table `$viaTb` which was NOT Selected in the `SELECT` Key!");
+                                                    cli_info_without_exit("Make sure You have Selected the Table(s) to Hydrate in the `SELECT` Key!");
+                                                    cli_info_without_exit("Valid Tables to Hydrate are:\n" . implode(",\n", quotify_elements(array_keys($selectedCols))) . ".");
+                                                }
+                                            } elseif (!array_key_exists($hydTb, $selectedCols)) {
                                                 $keepGoing = false;
                                                 cli_warning_without_exit("The `<HYDRATION>` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query Type is set to Hydrate Table `$hydTb` which was NOT Selected in the `SELECT` Key!");
                                                 cli_info_without_exit("Make sure You have Selected the Table(s) to Hydrate in the `SELECT` Key!");
@@ -5982,10 +6022,28 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                                         // We also check all Tables to Hydrate all have the `id` Column
                                         foreach ($hydrationKey as $hydTb) {
                                             $foundId = false; // Reset for each table so all must pass!
-                                            foreach ($selectedCols[$hydTb] as $colName => $colValue) {
-                                                if ($colValue === 'id') {
-                                                    $foundId = true;
-                                                    break;
+                                            if (preg_match('/^([a-zA-Z0-9_]+){1}(\(via:([a-z-A-Z-0-9_]+)\)){1}$/i', $hydTb, $matches)) {
+                                                $tb1 = $matches[1];
+                                                $viaTb = $matches[3];
+                                                foreach ($selectedCols[$tb1] as $colName => $colValue) {
+                                                    if ($colValue === 'id') {
+                                                        $foundId = true;
+                                                        break;
+                                                    }
+                                                }
+                                                $foundId = false;
+                                                foreach ($selectedCols[$viaTb] as $colName => $colValue) {
+                                                    if ($colValue === 'id') {
+                                                        $foundId = true;
+                                                        break;
+                                                    }
+                                                }
+                                            } else {
+                                                foreach ($selectedCols[$hydTb] as $colName => $colValue) {
+                                                    if ($colValue === 'id') {
+                                                        $foundId = true;
+                                                        break;
+                                                    }
                                                 }
                                             }
                                         }
@@ -6001,10 +6059,15 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                                     else {
                                         $foundId = false;
                                         foreach ($hydrationKey as $hydTb) {
-                                            foreach ($selectedCols[$hydTb] as $colName => $colValue) {
-                                                if ($colValue === 'id') {
-                                                    $foundId = true;
-                                                    break;
+                                            if (preg_match('/^([a-zA-Z0-9_]+){1}(\(via:([a-z-A-Z-0-9_]+)\)){1}$/i', $hydTb, $matches)) {
+                                                $tb1 = $matches[1];
+                                                $viaTb = $matches[3];
+                                            } else {
+                                                foreach ($selectedCols[$hydTb] as $colName => $colValue) {
+                                                    if ($colValue === 'id') {
+                                                        $foundId = true;
+                                                        break;
+                                                    }
                                                 }
                                             }
                                         }

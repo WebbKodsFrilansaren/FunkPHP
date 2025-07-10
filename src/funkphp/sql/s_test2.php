@@ -78,7 +78,7 @@ function s_test5(&$c) // <authors,articles,comments>
 	];
 
 	return array(
-		'sql' => 'SELECT authors.id AS authors_id, authors.name AS authors_name, articles.id AS articles_id, articles.author_id AS articles_author_id, articles.title AS articles_title, articles.content AS articles_content FROM authors INNER JOIN articles ON authors.id = articles.author_id;',
+		'sql' => 'SELECT authors.id AS authors_id, authors.name AS authors_name, authors_tags.id AS authors_tags_id, authors_tags.author_id AS authors_tags_author_id, authors_tags.tag_id AS authors_tags_tag_id, tags.id AS tags_id, tags.name AS tags_name, articles.id AS articles_id, articles.author_id AS articles_author_id, articles.title AS articles_title, articles.content AS articles_content FROM authors INNER JOIN articles ON authors.id = articles.author_id INNER JOIN authors_tags ON authors.id = authors_tags.author_id INNER JOIN tags ON authors_tags.tag_id = tags.id;',
 		'hydrate' =>
 		array(
 			'mode' => 'simple',
@@ -105,6 +105,23 @@ function s_test5(&$c) // <authors,articles,comments>
 								1 => 'articles_author_id',
 								2 => 'articles_title',
 								3 => 'articles_content',
+							),
+							'with' =>
+							array(),
+						),
+						'tags' =>
+						array(
+							'pk' => 'tags_id',
+							'fk' => NULL,
+							'pivot' =>
+							array(
+								'table' => 'authors_tags',
+								'fk_to_parent_pivot_col' => 'authors_tags_author_id',
+								'fk_to_child_pivot_col' => 'authors_tags_tag_id',
+							),
+							'cols' =>
+							array(
+								0 => 'tags_name',
 							),
 							'with' =>
 							array(),
