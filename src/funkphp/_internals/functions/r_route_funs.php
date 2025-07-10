@@ -391,7 +391,7 @@ function funk_run_matched_route_handler(&$c)
 
     // Finally check if the file exists and is readable, and then include it
     // and run the handler function with the $c variable as argument
-    if (file_exists($handlerPath . '/' . $handler . 'php') && is_readable($handlerPath . '/' . $handler . 'php')) {
+    if (file_exists($handlerPath . '/' . $handler . '.php') && is_readable($handlerPath . '/' . $handler . '.php')) {
         $runHandler = include_once "$handlerPath/$handler.php";
         if (is_callable($runHandler)) {
             if (!is_null($handleString)) {

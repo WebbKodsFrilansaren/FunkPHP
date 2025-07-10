@@ -22,7 +22,7 @@ function funk_run_matched_data_handler(&$c)
 
     // Finally check if the file exists and is readable, and then include it
     // and run the handler function with the $c variable as argument
-    if (file_exists($handlerPath . '/' . $handler . 'php') && is_readable($handlerPath . '/' . $handler . 'php')) {
+    if (file_exists($handlerPath . '/' . $handler . '.php') && is_readable($handlerPath . '/' . $handler . '.php')) {
         $runHandler = include_once "$handlerPath/$handler.php";
         if (is_callable($runHandler)) {
             if (!is_null($handleString)) {
@@ -790,20 +790,20 @@ function funk_use_validation(&$c, $validationHandler, $validationFunction, $sour
     // used for validating $_FILES variables and that
     // a different function should be used for that!
     if ($source === "FILES") {
-        $c['err']['VALIDATIONS']['funk_use_validation'][] = "Use Validation Function `funk_use_validation_files(&\$c, \$optimizedValidationArray)` instead to validate `\$_FILES`!";
+        $c['err']['VALIDATIONS']['funk_use_validation'][] = 'Use Validation Function `funk_use_validation_files(&\$c, \$optimizedValidationArray)` instead to validate `\$_FILES`!';
         return false;
     }
 
     // Check that $optimizedValidationArray is a valid array
     if (!is_array($optimizedValidationArray) || empty($optimizedValidationArray)) {
-        $c['err']['VALIDATIONS']['funk_use_validation'][] = "Validation Function needs a non-empty array for `\$optimizedValidationArray`!";
+        $c['err']['VALIDATIONS']['funk_use_validation'][] = 'Validation Function needs a non-empty array for `\$optimizedValidationArray`!';
         return false;
     }
 
     // Check that $source is a valid string and is either "GET", "POST" or "JSON" (must be exact)
     $allowedSources = ['GET' => [], 'POST' => [], 'JSON' => []];
     if (!is_string($source) || !isset($allowedSources[$source])) {
-        $c['err']['VALIDATIONS']['funk_use_validation'][] = "Validation Function needs a valid string for `\$source` (\"GET\", \"POST\" or \"JSON\" - uppercase only)!";
+        $c['err']['VALIDATIONS']['funk_use_validation'][] = 'Validation Function needs a valid string for `\$source` (\"GET\", \"POST\" or \"JSON\" - uppercase only)!';
         return false;
     }
 
@@ -819,19 +819,19 @@ function funk_use_validation(&$c, $validationHandler, $validationFunction, $sour
     } elseif ($source === 'JSON') {
         $inputData = json_decode(file_get_contents('php://input'), true);
         if (json_last_error() !== JSON_ERROR_NONE) {
-            $c['err']['VALIDATIONS']['funk_use_validation'][] = "Validation Function needs a valid decoded JSON string for `\$source`!";
+            $c['err']['VALIDATIONS']['funk_use_validation'][] = 'Validation Function needs a valid decoded JSON string for `\$source`!';
             return false;
         }
         $c['v_config']['source'] = "JSON";
     }
     if (!is_array($inputData) || empty($inputData)) {
-        $c['err']['VALIDATIONS']['funk_use_validation'][] = "Validation Function needs a valid non-empty array for `\$inputData`!";
+        $c['err']['VALIDATIONS']['funk_use_validation'][] = 'Validation Function needs a valid non-empty array for `\$inputData`!';
         return false;
     }
 
     // TODO: REMOVE THIS LINE WHEN DONE TESTING
     // This is just for testing purposes to see the input data
-    var_dump("TEST DATA(GET/POST/JSON):", $inputData);
+    var_dump('TEST DATA(GET/POST/JSON):', $inputData);
 
     // Now we can run the validation recursively and
     $c['v_ok'] = true;

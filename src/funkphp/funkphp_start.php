@@ -167,7 +167,5 @@ if ($c['req']['current_step'] === 3) {
 }
 // This is the end of the entire request process!
 
-dd($c['err']); // Debugging: Dump and Die the $c variable to see the entire request data!
-
 // This part is only executed if the request was not properly handled by the pipeline!
 // Feel free to add your own error handling here and/or easter egg!
