@@ -6,19 +6,22 @@ namespace FunkPHP\Data\d_test3;
 
 function d_test3(&$c) // <GET/test2>
 {
+    $test = funk_load_sql($c, "s_test2", "s_test5");
+    var_dump($c['err']);
+    //ddj($c['err']);
     // Created in FunkCLI on 2025-05-30 22:34:02! Keep "};" on its
     // own new line without indentation no comment right after it!
-    $v_test = funk_use_validation($c, "v_test", "v_test2", "GET");
+    //$v_test = funk_use_validation($c, "v_test", "v_test2", "GET");
 
-    $test = [
-        'v' => $c['v'],
-        'v_ok' => $c['v_ok'],
-        'v_data' => $c['v_data'],
-        'v_config' => $c['v_config'],
-        'err' => $c['err'],
-    ];
+    // $test = [
+    //     'v' => $c['v'],
+    //     'v_ok' => $c['v_ok'],
+    //     'v_data' => $c['v_data'],
+    //     'v_config' => $c['v_config'],
+    //     'err' => $c['err'],
+    // ];
 
-    ddj($test);
+    // ddj($test);
 };
 
 return function (&$c, $handler = "d_test3") {

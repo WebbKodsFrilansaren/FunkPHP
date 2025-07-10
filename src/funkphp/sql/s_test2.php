@@ -114,7 +114,7 @@ function s_test5(&$c) // <authors,articles,comments>
 	);
 };
 
-return function (&$c, $handler = "s_test3") {
+return function (&$c, $handler = "s_test5") {
 	$base = is_string($handler) ? $handler : "";
 	$full = __NAMESPACE__ . '\\' . $base;
 	if (function_exists($full)) {

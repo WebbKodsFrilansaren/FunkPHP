@@ -206,5 +206,3 @@ if ($c['req']['current_step'] === 3) {
 
 // This part is only executed if the request was not properly handled by the pipeline!
 // Feel free to add your own error handling here and/or easter egg!
-
-ddj($c['err']);

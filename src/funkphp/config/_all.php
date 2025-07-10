@@ -169,6 +169,9 @@ return [
     // data (it does NOT store validation errors)
     'd' => null,
 
+    // 's_handlers' is the array of SQL Handlers that are closures to functions
+    's_handlers' => null, // SQL Handlers (the funkphp/sql/ folder with its files)
+
     // 'p' is the page object that will be used to handle the
     // page rendering and output (not needed for API requests)!
     // 'p_config' is the array of configurations to be applied
@@ -180,6 +183,11 @@ return [
     // that will be used to handle the file uploads!
     'files' => null,
 
+    // 'current' is collection of running File Handlers and/or their Handler Functions!
+    // This is used to keep track of them and also to include correct one during errors!
+    // Each key is the  "FileHandlerName" => "HandlerFunction" Pair!
+    'current' => ['MIDDLEWARES' => [], 'HANDLERS' => [], 'DATA' => [], 'VALIDATIONS' => [], 'SQL' => [], 'PAGES' => []],
+
     // 'err(ors)' is an array of errors that will be filled when errors occur in the
     // application, so they can optionally be handled later in the application flow!
     // "MAYBE" errors are always populated when some arrays are just empty in order
@@ -187,41 +195,15 @@ return [
     // NEVER considered as errors, but rather like hints on what you might have missed!
     'err' => [
         'MAYBE' => [],
-        'FAILED_TO_LOAD_DB' => false,
-        'FAILED_TO_PREPARE_DB_STATEMENT' => false,
-        'FAILED_TO_EXECUTE_DB_STATEMENT' => false,
-        'FAILED_TO_START_SESSION' => false,
-        'FAILED_TO_LOAD_TROUTE_FILES' => false,
-        'FAILED_TO_LOAD_ROUTE_FILES' => false,
-        'FAILED_TO_LOAD_ROUTE_CONFIG' => false,
-        'FAILED_TO_LOAD_ROUTE_CONFIG_MIDDLEWARES' => false,
-        'FAILED_TO_RUN_SINGLE_ROUTE_CONFIG_MIDDLEWARES' => false,
-        'FAILED_TO_RUN_ROUTE_CONFIG_MIDDLEWARES' => false,
-        'FAILED_TO_MATCH_ROUTE' => false,
-        'FAILED_TO_LOAD_ROUTE_HANDLER_FILE' => false,
-        'FAILED_TO_RUN_ROUTE_FUNCTION' => false,
-        'FAILED_TO_LOAD_ROUTE_MIDDLEWARE' => false,
-        'FAILED_TO_RUN_SINGLE_ROUTE_MIDDLEWARES' => false,
-        'FAILED_TO_RUN_ROUTE_MIDDLEWARE' => false,
-        'FAILED_TO_LOAD_DATA_HANDLER_FILE' => false,
-        'FAILED_TO_RUN_DATA_FUNCTION' => false,
-        'FAILED_TO_LOAD_SINGLE_VALIDATION_FILE' => false,
-        'FAILED_TO_RUN_SINGLE_VALIDATION_FUNCTION' => false,
-        'FAILED_TO_LOAD_VALIDATION_FILE' => false,
-        'FAILED_TO_RUN_VALIDATION_FUNCTION' => false,
-        'FAILED_TO_LOAD_SQL_FILE' => false,
-        'FAILED_TO_RUN_SQL_FUNCTION' => false,
-        'FAILED_TO_RUN_PAGE_HANDLER' => false,
-        'FAILED_TO_RENDER_PAGE_FILE' => false,
-        'FAILED_TO_LOAD_PAGE_COMPONENTS' => false,
-        'FAILED_TO_LOAD_PAGE_PARTS' => false,
-        'FAILED_TO_RUN_JSON' => false,
-        'FAILED_TO_RUN_API' => false,
-        'FAILED_TO_RUN_DB' => false,
-        'FAILED_TO_RUN_CACHE' => false,
-        'FAILED_TO_RUN_SESSION' => false,
-        'FAILED_TO_RUN_COOKIE' => false,
-        'FAILED_TO_RUN_HEADER' => false,
+        'CONFIG' => [],
+        'CACHED' => [],
+        'MIDDLEWARES' => [],
+        'ROUTES' => [],
+        'HANDLERS' => [],
+        'DATA' => [],
+        'VALIDATIONS' => [],
+        'SQL' => [],
+        'PAGES' => [],
     ],
 
 ];

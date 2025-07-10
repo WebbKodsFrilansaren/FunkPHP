@@ -16,7 +16,7 @@ function funk_run_matched_data_handler(&$c)
         $handler = key($c['req']['matched_data']);
         $handleString = $c['req']['matched_data'][$handler] ?? null;
     } else {
-        $c['err']['FAILED_TO_LOAD_DATA_HANDLER_FILE'] = "Data Handler must be a string or an array!";
+        $c['err']['MIDDLEWARES']['funk_run_matched_data_handler'] = "Data Handler must be a string or an array!";
         return;
     }
 
@@ -27,7 +27,7 @@ function funk_run_matched_data_handler(&$c)
         if (is_callable($runHandler)) {
             if (!is_null($handleString)) {
                 if (!function_exists($handleString)) {
-                    $c['err']['FAILED_TO_RUN_DATA_FUNCTION'] = 'Data Handler function `' .  $handleString . '` in `' . $handler . '` does not exist!';
+                    $c['err']['MIDDLEWARES']['funk_run_matched_data_handler'] = 'Data Handler function `' .  $handleString . '` in `' . $handler . '` does not exist!';
                     return;
                 }
                 $runHandler($c, $handleString);
@@ -37,13 +37,13 @@ function funk_run_matched_data_handler(&$c)
         }
         // Handle error: not callable (or just use default below)
         else {
-            $c['err']['FAILED_TO_RUN_DATA_FUNCTION'] = "Data Handler function is not callable!";
+            $c['err']['MIDDLEWARES']['funk_run_matched_data_handler'] = "Data Handler function is not callable!";
             return;
         }
     }
     // Handle error: file not found or not readable  (or just use default below)
     else {
-        $c['err']['FAILED_TO_LOAD_DATA_HANDLER_FILE'] = "Data Handler File '$handler.php' not found or not readable!";
+        $c['err']['MIDDLEWARES']['funk_run_matched_data_handler'] = "Data Handler File '$handler.php' not found or not readable!";
         return;
     }
 }
@@ -368,7 +368,7 @@ function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array 
         } else {
             // Handle unknown validator functions (e.g., log, add to $c['err'])
             $currentErrPath[$foundTypeRule] = "This is unknown data type: '{$foundTypeRule}' in field '{$fullFieldName}'. Please tell the Developer about it. Validation will continue though!";
-            $c['err']["UNKNOWN_VALIDATOR_DATA_RULE-$foundTypeRule"] = "Unknown Data Validation Rule: '{$foundTypeRule}' for field '{$fullFieldName}'.";
+            $c['err']["VALIDATIONS"]['funk_validation_validate_rules'] = "Unknown Data Validation Rule: '{$foundTypeRule}' for field '{$fullFieldName}'.";
             $c['v_ok'] = false;
             // MAYBE EXPERIMENTAL: Might not work as intended in all cases
             // This is the "'<STOP_ALL_ON_FIRST_ERROR>' => true," root key!
@@ -526,7 +526,6 @@ function funk_validation_recursively_improved(
 
                     // Only if it is empty do we actually iterate
                     if (empty($currentErrPath[$DXKey])) {
-                        echo "No errors found for `$DXKey` with Wildcard Rules!\n";
                         unset($currentErrPath[$DXKey]);
                         unset($rulesOrNestedFields['*']["<RULES>"]);
 
@@ -552,9 +551,6 @@ function funk_validation_recursively_improved(
                         // we can set it to the actual count so we do not
                         // iterate more than the actual number of elements
                         $iterations = ($iterations > 0) ? min($iterations, $actualCount) : $actualCount;
-
-                        // REMOVE LATER
-                        echo "SET ARR COUNT TO: $iterations\n";
 
                         // Now we can recurse into the validation function for this
                         // numbered array element when iterations is greater than 0!
@@ -595,7 +591,7 @@ function funk_validation_recursively_improved(
                 // We found Wildcard * Indicator but not the Rules
                 // so throw possible misconfiguration error!
                 else {
-                    $c['err']['FAILED_TO_RUN_VALIDATION_FUNCTION-NUMBERED-ARRAY-' . $DXKey] = "Validation Function for `$DXKey` with Wildcard * found but no Rules were defined for it!";
+                    $c['err']['VALIDATIONS']['funk_validation_recursively_improved'] = "Validation Function for `$DXKey` with Wildcard * found but no Rules were defined for it!";
                     $currentErrPath[$DXKey] = "Failed to Validate Numbered Array in `$DXKey`. Tell the Developer about it since this is possibly a misconfiguration in the so called `returned validation array()`!";
                 }
             }
@@ -629,7 +625,6 @@ function funk_validation_recursively_improved(
 
                 // Only if it is empty do we actually iterate
                 if (empty($currentErrPath[$DXKey])) {
-                    echo "[* as ROOT] No errors found for `$DXKey` with Wildcard Rules!\n";
                     unset($currentErrPath[$DXKey]);
                     unset($rulesOrNestedFields["<RULES>"]);
                     unset($currentValidData[$DXKey]); // Delete "$c['v_data']['*'] = null"
@@ -692,9 +687,44 @@ function funk_validation_recursively_improved(
             // We found Wildcard * Indicator but not the Rules
             // so throw possible misconfiguration error!
             else {
-                $c['err']['FAILED_TO_RUN_VALIDATION_FUNCTION-NUMBERED-ARRAY-' . $DXKey] = "Validation Function for `$DXKey` with Wildcard * found but no Rules were defined for it!";
+                $c['err']['VALIDATIONS']['funk_validation_recursively_improved'] = "Validation Function for `$DXKey` with Wildcard * found but no Rules were defined for it!";
                 $currentErrPath[$DXKey] = "Failed to Validate Numbered Array in `$DXKey`. Tell the Developer about it since this is possibly a misconfiguration in the so called `returned validation array()`!";
             }
+        }
+    }
+}
+
+// Load a specific SQL Handler and its SQL Function (s_fileName.php => s_functionName)
+// to load its SQL String, Hydration Array, Matched Validation Fields, etc. This is
+// used to run SQL queries and hydrate the data from the database. This is NOT the function
+// that actually runs the SQL query, but rather prepares the necessary data for it!
+function funk_load_sql(&$c, $sqlHandler, $sqlFunction)
+{
+    // Check that both "$validationHandler, $validationFunction" are strings
+    if (!is_string($sqlHandler) || !is_string($sqlFunction)) {
+        $c['err']['SQL']['funk_use_sql'] = "funk_use_sql() needs Valid Strings for `\$sqlHandler` and `\$sqlFunction`!";
+        return false;
+    }
+    $sqlFunk = null;
+    // Return SQL Handler=>Function if it exists or try to load
+    // it from the file or return false and set an error!
+    if (isset($c['s_handlers'][$sqlHandler])) {
+        $sqlFunk = $c['v_handlers'][$sqlHandler]($c, $sqlFunction) ?? null;
+    } else {
+        if (!file_exists(dirname(dirname(__DIR__)) . '/sql/' . $sqlHandler . '.php')) {
+            $c['err']['SQL']['funk_use_sql'] = 'SQL Handler File `' . $sqlHandler . '.php` not found or not readable! (Reminder: a single string is parsed as `s_file=>s_function`!)';
+            return false;
+        }
+        $sqlFile = include_once dirname(dirname(__DIR__)) . '/sql/' . $sqlHandler . '.php';
+        if (!is_callable($sqlFile)) {
+            $c['err']['SQL']['funk_use_sql'] = 'SQL Handler File `' . $sqlHandler . '.php` did not return a callable function.';
+            return false;
+        }
+        $c['s_handlers'][$sqlHandler] = $sqlFile;
+        $sqlFunk = $c['s_handlers'][$sqlHandler]($c, $sqlFunction) ?? null;
+        if ($sqlFunk === null) {
+            $c['err']['SQL']['funk_use_sql'] = 'SQL Handler File `' . $sqlHandler . '.php` did not return a valid SQL Function.';
+            return false;
         }
     }
 }
@@ -706,7 +736,7 @@ function funk_use_validation(&$c, $validationHandler, $validationFunction, $sour
 
     // Check that both "$validationHandler, $validationFunction" are strings
     if (!is_string($validationHandler) || !is_string($validationFunction)) {
-        $c['err']['FAILED_TO_RUN_VALIDATION_FUNCTION-funk_use_validation'] = "Validation Function needs a valid string for `\$validationHandler` and `\$validationFunction`!";
+        $c['err']['VALIDATIONS']['funk_use_validation'] = "Validation Function needs a valid string for `\$validationHandler` and `\$validationFunction`!";
         return false;
     }
     // In "$optimizedValidationArray" we will store the retrieved VaLidation Array
@@ -726,11 +756,11 @@ function funk_use_validation(&$c, $validationHandler, $validationFunction, $sour
                 $c['v_handlers'][$validationHandler] = $validationDataFromFile;
                 $optimizedValidationArray = $c['v_handlers'][$validationHandler]($c, $validationFunction) ?? null;
             } else {
-                $c['err']['FAILED_TO_LOAD_VALIDATION_FILE-funk_use_validation'] = 'Validation Handler File ``' . $validationHandler . '.php` did not return a callable function.';
+                $c['err']['VALIDATIONS']['funk_use_validation'] = 'Validation Handler File ``' . $validationHandler . '.php` did not return a callable function.';
                 return false;
             }
         } else {
-            $c['err']['FAILED_TO_LOAD_VALIDATION_FILE-funk_use_validation'] = 'Validation Handler File `' . $validationHandler . '.php` not found or not readable! (Reminder: a single string is parsed as `v_file=>v_function`!)';
+            $c['err']['VALIDATIONS']['funk_use_validation'] = 'Validation Handler File `' . $validationHandler . '.php` not found or not readable! (Reminder: a single string is parsed as `v_file=>v_function`!)';
             return false;
         }
     }
@@ -739,20 +769,20 @@ function funk_use_validation(&$c, $validationHandler, $validationFunction, $sour
     // used for validating $_FILES variables and that
     // a different function should be used for that!
     if ($source === "FILES") {
-        $c['err']['FAILED_TO_RUN_VALIDATION_FUNCTION'] = "Use Validation Function `funk_use_validation_files(&\$c, \$optimizedValidationArray)` instead to validate `\$_FILES`!";
+        $c['err']['VALIDATIONS']['funk_use_validation'] = "Use Validation Function `funk_use_validation_files(&\$c, \$optimizedValidationArray)` instead to validate `\$_FILES`!";
         return false;
     }
 
     // Check that $optimizedValidationArray is a valid array
     if (!is_array($optimizedValidationArray) || empty($optimizedValidationArray)) {
-        $c['err']['FAILED_TO_RUN_VALIDATION_FUNCTION'] = "Validation Function needs a non-empty array for `\$optimizedValidationArray`!";
+        $c['err']['VALIDATIONS']['funk_use_validation'] = "Validation Function needs a non-empty array for `\$optimizedValidationArray`!";
         return false;
     }
 
     // Check that $source is a valid string and is either "GET", "POST" or "JSON" (must be exact)
     $allowedSources = ['GET' => [], 'POST' => [], 'JSON' => []];
     if (!is_string($source) || !isset($allowedSources[$source])) {
-        $c['err']['FAILED_TO_RUN_VALIDATION_FUNCTION'] = "Validation Function needs a valid string for `\$source` (\"GET\", \"POST\" or \"JSON\" - uppercase only)!";
+        $c['err']['VALIDATIONS']['funk_use_validation'] = "Validation Function needs a valid string for `\$source` (\"GET\", \"POST\" or \"JSON\" - uppercase only)!";
         return false;
     }
 
@@ -774,7 +804,7 @@ function funk_use_validation(&$c, $validationHandler, $validationFunction, $sour
         $c['v_config']['source'] = "JSON";
     }
     if (!is_array($inputData) || empty($inputData)) {
-        $c['err']['FAILED_TO_RUN_VALIDATION_FUNCTION'] = "Validation Function needs a valid non-empty array for `\$inputData`!";
+        $c['err']['VALIDATIONS']['funk_use_validation'] = "Validation Function needs a valid non-empty array for `\$inputData`!";
         return false;
     }
 
@@ -821,13 +851,13 @@ function funk_use_validation_files(&$c, $optimizedValidationArray)
 {
     // Check that $optimizedValidationArray is a valid array
     if (!is_array($optimizedValidationArray) || empty($optimizedValidationArray)) {
-        $c['err']['FAILED_TO_RUN_VALIDATION_FUNCTION_FILES'] = "Files Validation Function must receive a non-empty array for `\$optimizedValidationArray`!";
+        $c['err']['VALIDATIONS']['funk_use_validation_files'] = "Files Validation Function must receive a non-empty array for `\$optimizedValidationArray`!";
         return false;
     }
 
     // Check that $_FILES is a valid array and is not empty
     if (!is_array($_FILES) || empty($_FILES)) {
-        $c['err']['FAILED_TO_RUN_VALIDATION_FUNCTION_FILES'] = "Files Validation Function must receive a non-empty array for `\$_FILES`!";
+        $c['err']['VALIDATIONS']['funk_use_validation_files'] = "Files Validation Function must receive a non-empty array for `\$_FILES`!";
         return false;
     }
 
