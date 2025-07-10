@@ -3934,6 +3934,8 @@ function cli_parse_joined_tables_order($tablesString, &$currentFinalHydrateKey, 
             return;
         }
         if (!isset($currentFinalHydrateKey[$tablesString[0]])) {
+            // Remove `id` since we already have it as the Primary Key ('pk')
+            unset($selectedCols[$tablesString[0]][$tablesString[0] . "_id"]);
             $currentFinalHydrateKey[$tablesString[0]] = [
                 'pk' => $tablesString[0] . "_id",
                 'cols' => array_keys($selectedCols[$tablesString[0]]),
@@ -4091,6 +4093,7 @@ function cli_parse_joined_tables_order($tablesString, &$currentFinalHydrateKey, 
                 }
                 // First Table does not exist, so we create it
                 elseif (!isset($nextLevel[$tbStr])) {
+                    unset($selectedCols[$tbStr][$tbStr . "_id"]);
                     $nextLevel[$tbStr] = [
                         'pk' => $tbStr . "_id",
                         'cols' => array_keys($selectedCols[$tbStr]),
@@ -4145,6 +4148,7 @@ function cli_parse_joined_tables_order($tablesString, &$currentFinalHydrateKey, 
                 // Next Table does not exist, so we create it and since this is larger than 0 index,
                 // we also add the 'fk' which we know from $nextFK which is the previous table's
                 elseif (!isset($nextLevel[$tbStr])) {
+                    unset($selectedCols[$tbStr][$tbStr . "_id"]);
                     $nextLevel[$tbStr] = [
                         'fk' => $correctFK,
                         'pk' => $tbStr . "_id",

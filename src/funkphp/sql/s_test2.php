@@ -30,14 +30,12 @@ function s_test5(&$c) // <authors,articles,comments>
 		// Available Join Types: `inner|i|join|j|ij`,`left|l`,`right|r`
 		// Example: `inner=books,authors(id),books(author_id)`
 		'JOINS_ON' => [ // Optional, make empty if not joining any tables!
-			'inner=authors_tags,authors(id),authors_tags(author_id)',
-			'inner=tags,authors_tags(tag_id),tags(id)',
+			'inner=comments,authors(id),comments(author_id)',
 		],
 		// Optional Keys, leave empty (or remove) if not used!
 		'SELECT' => [
-			'authors:id,name',
-			'authors_tags:id,author_id,tag_id',
-			'tags:id,name',
+			'authors:id,name,age',
+			'comments:id,content,author_id'
 		],
 		'WHERE' => '',
 		'GROUP BY' => '',
@@ -46,7 +44,7 @@ function s_test5(&$c) // <authors,articles,comments>
 		'LIMIT' => '',
 		'OFFSET' => '',
 		// Optional, leave empty if not used!
-		'<HYDRATION>' => ["authors=>tags(via:authors_tags)"],
+		'<HYDRATION>' => ["authors=>comments"],
 		// What each Binded Param must match from a Validated Data
 		// Field Array (empty means same as TableName_ColumnKey)
 		'<MATCHED_FIELDS>' => [
@@ -75,7 +73,7 @@ function s_test5(&$c) // <authors,articles,comments>
 	];
 
 	return array(
-		'sql' => 'SELECT authors.id AS authors_id, authors.name AS authors_name, authors_tags.id AS authors_tags_id, authors_tags.author_id AS authors_tags_author_id, authors_tags.tag_id AS authors_tags_tag_id, tags.id AS tags_id, tags.name AS tags_name FROM authors INNER JOIN authors_tags ON authors.id = authors_tags.author_id INNER JOIN tags ON authors_tags.tag_id = tags.id;',
+		'sql' => 'SELECT authors.id AS authors_id, authors.name AS authors_name, authors.age AS authors_age, comments.id AS comments_id, comments.content AS comments_content, comments.author_id AS comments_author_id FROM authors INNER JOIN comments ON authors.id = comments.author_id;',
 		'hydrate' =>
 		array(
 			'key' =>
@@ -85,24 +83,19 @@ function s_test5(&$c) // <authors,articles,comments>
 					'pk' => 'authors_id',
 					'cols' =>
 					array(
-						0 => 'authors_id',
-						1 => 'authors_name',
+						0 => 'authors_name',
+						1 => 'authors_age',
 					),
 					'with' =>
 					array(
-						'tags' =>
+						'comments' =>
 						array(
-							'pk' => 'tags_id',
-							'fk' => NULL,
-							'pivot' =>
-							array(
-								'table' => 'authors_tags',
-								'fk_to_parent_pivot_col' => 'authors_author_id',
-								'fk_to_child_pivot_col' => 'tags_tag_id',
-							),
+							'fk' => 'comments_author_id',
+							'pk' => 'comments_id',
 							'cols' =>
 							array(
-								0 => 'tags_name',
+								0 => 'comments_content',
+								1 => 'comments_author_id',
 							),
 							'with' =>
 							array(),
