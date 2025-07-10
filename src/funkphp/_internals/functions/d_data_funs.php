@@ -16,20 +16,16 @@ function funk_run_matched_data_handler(&$c)
         $handler = key($c['req']['matched_data']);
         $handleString = $c['req']['matched_data'][$handler] ?? null;
     } else {
-        $c['err']['DATA']['funk_run_matched_data_handler'][] = "Data Handler must be a String or an Array. No attempt to find a Data Handler File was made!";
+        $c['err']['DATA']['funk_run_matched_data_handler'][] = 'Data Handler must be a String or an Array. No attempt to find a Data Handler File was made!';
         return;
     }
 
     // Finally check if the file exists and is readable, and then include it
     // and run the handler function with the $c variable as argument
-    if (file_exists("$handlerPath/$handler.php") && is_readable("$handlerPath/$handler.php")) {
+    if (file_exists($handlerPath . '/' . $handler . 'php') && is_readable($handlerPath . '/' . $handler . 'php')) {
         $runHandler = include_once "$handlerPath/$handler.php";
         if (is_callable($runHandler)) {
             if (!is_null($handleString)) {
-                if (!function_exists($handleString)) {
-                    $c['err']['DATA']['funk_run_matched_data_handler'][] = 'Data Handler function `' .  $handleString . '` in `' . $handler . '` does not exist!';
-                    return;
-                }
                 $runHandler($c, $handleString);
             } else {
                 $runHandler($c);
@@ -37,13 +33,13 @@ function funk_run_matched_data_handler(&$c)
         }
         // Handle error: not callable (or just use default below)
         else {
-            $c['err']['DATA']['funk_run_matched_data_handler'][] = "Data Handler function is not callable!";
+            $c['err']['DATA']['funk_run_matched_data_handler'][] = 'Data Handler Function is not callable!';
             return;
         }
     }
     // Handle error: file not found or not readable  (or just use default below)
     else {
-        $c['err']['DATA']['funk_run_matched_data_handler'][] = "Data Handler File '$handler.php' not found or not readable!";
+        $c['err']['DATA']['funk_run_matched_data_handler'][] = 'Data Handler File data/' . $handler . '.php not found or not readable!';
         return;
     }
 }

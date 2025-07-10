@@ -130,11 +130,11 @@ if ($c['req']['current_step'] === 2) {
     // anything you want before running the matched data handler.
 
     // Run the matched data handler if it exists
-    if ($c['req']['matched_data'] === null) {
+    if ($c['req']['matched_data'] !== null) {
+        funk_run_matched_data_handler($c);
+    } else {
         $c['err']['DATA'][] = "Route Handler Failed to Load or Run, so Data Handler will not be run.";
         $c['err']['MAYBE']['DATA'][] = "No Data Handler Matched. If you expected a Data Handler to match, check your Routes file and ensure the Route exists and that a Data Handler File with a Data Handler Function has been added to it under the key `data`. For example: `['data' => 'd_data_file' => 'd_data_function']`.";
-    } else {
-        funk_run_matched_data_handler($c);
     }
 
     // You have all global (meta) data in $c variable, so you can use it as you please!
@@ -167,7 +167,7 @@ if ($c['req']['current_step'] === 3) {
 }
 // This is the end of the entire request process!
 
-ddj($c['err']); // Debugging: Dump and Die the $c variable to see the entire request data!
+dd($c['err']); // Debugging: Dump and Die the $c variable to see the entire request data!
 
 // This part is only executed if the request was not properly handled by the pipeline!
 // Feel free to add your own error handling here and/or easter egg!

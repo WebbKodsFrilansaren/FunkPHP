@@ -388,18 +388,13 @@ function funk_run_matched_route_handler(&$c)
         $c['err']['ROUTES']['funk_run_matched_route_handler'][] = 'Route Handler must be a String or an Array. No attempt to find a Handler File was made!';
         return;
     }
-    var_dump($handler, $handleString); // Debugging line, can be removed later
 
     // Finally check if the file exists and is readable, and then include it
     // and run the handler function with the $c variable as argument
-    if (file_exists("$handlerPath/$handler.php") && is_readable("$handlerPath/$handler.php")) {
+    if (file_exists($handlerPath . '/' . $handler . 'php') && is_readable($handlerPath . '/' . $handler . 'php')) {
         $runHandler = include_once "$handlerPath/$handler.php";
         if (is_callable($runHandler)) {
             if (!is_null($handleString)) {
-                if (!function_exists($handleString)) {
-                    $c['err']['ROUTES']['funk_run_matched_route_handler'][] = 'Route Handler function `' .  $handleString . '` in `handlers/' . $handler . '.php` does not exist!';
-                    return;
-                }
                 $runHandler($c, $handleString);
             } else {
                 $runHandler($c);

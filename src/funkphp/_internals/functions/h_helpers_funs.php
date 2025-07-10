@@ -16,6 +16,14 @@ function ddc()
     exit;
 }
 
+// Var_dump shorthand, doe NOT exit
+function vd($data)
+{
+    echo '<pre>';
+    var_dump($data);
+    echo '</pre>';
+}
+
 // Data Dump function to dump data and optionally return it as JSON
 function dd($data, $json = false)
 {
