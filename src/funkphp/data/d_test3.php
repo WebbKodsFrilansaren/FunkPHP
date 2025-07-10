@@ -7,7 +7,7 @@ namespace FunkPHP\Data\d_test3;
 function d_test3(&$c) // <GET/test2>
 {
     $test = funk_load_sql($c, "s_test2", "s_test5");
-    var_dump($c['err']);
+    ddj($test);
     //ddj($c['err']);
     // Created in FunkCLI on 2025-05-30 22:34:02! Keep "};" on its
     // own new line without indentation no comment right after it!
@@ -30,7 +30,7 @@ return function (&$c, $handler = "d_test3") {
     if (function_exists($full)) {
         return $full($c);
     } else {
-        $c['err']['FAILED_TO_RUN_DATA_FUNCTION-d_test3'] = 'Data Function `' . $full . '` not found in namespace `' . __NAMESPACE__ . '`!';
+        $c['err']['DATA'][] = 'Data Function `' . $full . '` not found in namespace `' . __NAMESPACE__ . '`!';
         return null;
     }
 };

@@ -8,6 +8,11 @@ namespace FunkPHP\SQL\s_test2;
 // to get an array with SQL Query, Hydration Array and optionally Binded Params below here!
 // IMPORTANT: CMD+S or CTRL+S to autoformat each time function is added!
 
+function s_test1(&$c) // <authors,articles,comments>
+{
+	return array("TEST" => "s_test1");
+}
+
 function s_test5(&$c) // <authors,articles,comments>
 {
 	// FunkCLI created 2025-07-09 20:10:51! Keep Closing Curly Bracket on its
@@ -120,7 +125,7 @@ return function (&$c, $handler = "s_test5") {
 	if (function_exists($full)) {
 		return $full($c);
 	} else {
-		$c['err']['FAILED_TO_RUN_SQL_FUNCTION-' . 's_test2'] = 'SQL function `' . $full . '` not found in namespace `' . __NAMESPACE__ . '`!';
+		$c['err']['SQL'][] = 'SQL function `' . $full . '` not found in namespace `' . __NAMESPACE__ . '`!';
 		return null;
 	}
 };

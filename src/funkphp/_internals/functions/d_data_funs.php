@@ -709,8 +709,20 @@ function funk_load_sql(&$c, $sqlHandler, $sqlFunction)
     // Return SQL Handler=>Function if it exists or try to load
     // it from the file or return false and set an error!
     if (isset($c['s_handlers'][$sqlHandler])) {
-        $sqlFunk = $c['v_handlers'][$sqlHandler]($c, $sqlFunction) ?? null;
-    } else {
+        if (!is_callable($c['s_handlers'][$sqlHandler])) {
+            $c['err']['SQL']['funk_use_sql'][] = 'Already Loaded SQL Handler `' . $sqlHandler . '` is not callable!';
+            return false;
+        }
+        $sqlFunk = $c['s_handlers'][$sqlHandler]($c, $sqlFunction) ?? null;
+        if ($sqlFunk === null) {
+            $c['err']['SQL']['funk_use_sql'][] = 'SQL Handler File `' . $sqlHandler . '.php` did not return the SQL Handler Function `' . $sqlFunction . '`.';
+            return false;
+        } else {
+            return $sqlFunk;
+        }
+    }
+    // When SQL Handler not found in $c['s_handlers'] array
+    else {
         if (!file_exists(dirname(dirname(__DIR__)) . '/sql/' . $sqlHandler . '.php')) {
             $c['err']['SQL']['funk_use_sql'][] = 'SQL Handler File `' . $sqlHandler . '.php` not found or not readable!';
             return false;
@@ -723,17 +735,30 @@ function funk_load_sql(&$c, $sqlHandler, $sqlFunction)
         $c['s_handlers'][$sqlHandler] = $sqlFile;
         $sqlFunk = $c['s_handlers'][$sqlHandler]($c, $sqlFunction) ?? null;
         if ($sqlFunk === null) {
-            $c['err']['SQL']['funk_use_sql'][] = 'SQL Handler File `' . $sqlHandler . '.php` did not return a valid SQL Function.';
+            $c['err']['SQL']['funk_use_sql'][] = 'SQL Handler File `' . $sqlHandler . '.php` did not return the SQL Handler Function `' . $sqlFunction . '`.';
             return false;
         }
+        return $sqlFunk;
     }
+}
+
+function funk_use_sql(&$c, $sqlHandler, $sqlFunction)
+{
+    // Call the funk_load_sql function to load the SQL Handler and Function
+    $sqlFunk = funk_load_sql($c, $sqlHandler, $sqlFunction);
+    // If it returned false, we can assume an error was set
+    if ($sqlFunk === null) {
+        $c['err']['SQL']['funk_use_sql'][] = 'SQL Handler Function `' . $sqlFunction . '` could not be loaded from `' . $sqlHandler . '.php`!';
+        return false;
+    }
+    // If it returned a valid SQL Function, we can return it
+    return $sqlFunk;
 }
 
 // The main validation function for validating data in FunkPHP
 // mapping to the "$_GET"/"$_POST" or "php://input" (JSON) variable ONLY!
 function funk_use_validation(&$c, $validationHandler, $validationFunction, $source)
 {
-
     // Check that both "$validationHandler, $validationFunction" are strings
     if (!is_string($validationHandler) || !is_string($validationFunction)) {
         $c['err']['VALIDATIONS']['funk_use_validation'][] = "Validation Function needs a valid string for `\$validationHandler` and `\$validationFunction`!";
