@@ -1,6 +1,11 @@
 #!/usr/bin/env php
 <?php // Include all CLI Functions needed to manage FunkPHP CLI!
+if (!file_exists(__DIR__ . '/funkphp/_internals/cli/cli_funs.php') || !file_exists(__DIR__ . '/funkphp/_internals/cli/cli_funs2.php')) {
+    echo "/!\ FunkPHP CLI Functions File(s) not found in `src/funkphp/_internals/cli`\nPlease make sure you have the correct FunkPHP installation and try again! /!\\";
+    exit(1);
+}
 include __DIR__ . '/funkphp/_internals/cli/cli_funs.php';
+include __DIR__ . '/funkphp/_internals/cli/cli_funs2.php';
 
 // Valid commands with valid sub-commands
 // Inspiration from Trie & Hashmaps!

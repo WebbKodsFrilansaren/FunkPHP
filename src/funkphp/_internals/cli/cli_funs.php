@@ -1,5 +1,4 @@
-<?php
-
+<?php // FIRST CLI FUNCTIONS FILE
 // Function that creates a regex pattern to match a function name
 // inside of a typical handler file with a handler function name!
 // Such as:
