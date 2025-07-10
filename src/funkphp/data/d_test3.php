@@ -6,9 +6,8 @@ namespace FunkPHP\Data\d_test3;
 
 function d_test3(&$c) // <GET/test2>
 {
-    $test = funk_load_sql($c, "s_test2", "s_test5");
-    ddj($test);
-    //ddj($c['err']);
+    $test = funk_load_sql($c, "s_test2", "");
+    ddj($c['err']);
     // Created in FunkCLI on 2025-05-30 22:34:02! Keep "};" on its
     // own new line without indentation no comment right after it!
     //$v_test = funk_use_validation($c, "v_test", "v_test2", "GET");

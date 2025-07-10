@@ -702,7 +702,7 @@ function funk_load_sql(&$c, $sqlHandler, $sqlFunction)
 {
     // Check that both "$validationHandler, $validationFunction" are strings
     if (!is_string($sqlHandler) || !is_string($sqlFunction)) {
-        $c['err']['SQL']['funk_use_sql'][] = "funk_use_sql() needs Valid Strings for `\$sqlHandler` and `\$sqlFunction`!";
+        $c['err']['SQL']['funk_use_sql'][] = 'funk_use_sql() needs Valid Strings for `\$sqlHandler` and `\$sqlFunction`. First is the SQL Handler File Name `s_FileName` without extension and second is the SQL Function Name `s_FunctionName`!';
         return false;
     }
     $sqlFunk = null;
@@ -710,12 +710,12 @@ function funk_load_sql(&$c, $sqlHandler, $sqlFunction)
     // it from the file or return false and set an error!
     if (isset($c['s_handlers'][$sqlHandler])) {
         if (!is_callable($c['s_handlers'][$sqlHandler])) {
-            $c['err']['SQL']['funk_use_sql'][] = 'Already Loaded SQL Handler `' . $sqlHandler . '` is not callable!';
+            $c['err']['SQL']['funk_use_sql'][] = 'Already Loaded SQL Handler `' . $sqlHandler . '` is not callable. Has it been mutated after first loading/use?';
             return false;
         }
         $sqlFunk = $c['s_handlers'][$sqlHandler]($c, $sqlFunction) ?? null;
         if ($sqlFunk === null) {
-            $c['err']['SQL']['funk_use_sql'][] = 'SQL Handler File `' . $sqlHandler . '.php` did not return the SQL Handler Function `' . $sqlFunction . '`.';
+            $c['err']['SQL']['funk_use_sql'][] = 'SQL Handler File `' . $sqlHandler . '.php` did not return the SQL Handler Function `' . $sqlFunction . '`. Does it exist in the File as a callable function with the correct name?';
             return false;
         } else {
             return $sqlFunk;
@@ -724,18 +724,18 @@ function funk_load_sql(&$c, $sqlHandler, $sqlFunction)
     // When SQL Handler not found in $c['s_handlers'] array
     else {
         if (!file_exists(dirname(dirname(__DIR__)) . '/sql/' . $sqlHandler . '.php')) {
-            $c['err']['SQL']['funk_use_sql'][] = 'SQL Handler File `' . $sqlHandler . '.php` not found or not readable!';
+            $c['err']['SQL']['funk_use_sql'][] = 'SQL Handler File `' . $sqlHandler . '.php` not found or not readable. Does the file exist in the `sql` directory and/or is it forbidden to read/access?';
             return false;
         }
         $sqlFile = include_once dirname(dirname(__DIR__)) . '/sql/' . $sqlHandler . '.php';
         if (!is_callable($sqlFile)) {
-            $c['err']['SQL']['funk_use_sql'][] = 'SQL Handler File `' . $sqlHandler . '.php` did not return a callable function.';
+            $c['err']['SQL']['funk_use_sql'][] = 'SQL Handler File `' . $sqlHandler . '.php` was loaded but did not return a callable function. It should return a function that accepts `$c` and `$sqlFunction` as parameters which it then checks if it exists in current scope and then calls and returns its return value!';
             return false;
         }
         $c['s_handlers'][$sqlHandler] = $sqlFile;
         $sqlFunk = $c['s_handlers'][$sqlHandler]($c, $sqlFunction) ?? null;
         if ($sqlFunk === null) {
-            $c['err']['SQL']['funk_use_sql'][] = 'SQL Handler File `' . $sqlHandler . '.php` did not return the SQL Handler Function `' . $sqlFunction . '`.';
+            $c['err']['SQL']['funk_use_sql'][] = 'SQL Handler File `' . $sqlHandler . '.php` was loaded and is callable but did not return the SQL Handler Function `' . $sqlFunction . '`. Does it exist in the File as a callable function with the correct name?';
             return false;
         }
         return $sqlFunk;
@@ -761,7 +761,7 @@ function funk_use_validation(&$c, $validationHandler, $validationFunction, $sour
 {
     // Check that both "$validationHandler, $validationFunction" are strings
     if (!is_string($validationHandler) || !is_string($validationFunction)) {
-        $c['err']['VALIDATIONS']['funk_use_validation'][] = "Validation Function needs a valid string for `\$validationHandler` and `\$validationFunction`!";
+        $c['err']['VALIDATIONS']['funk_use_validation'][] = 'Validation Function needs a valid string for `\$validationHandler` and `\$validationFunction`. First is the Validation Handler File Name `v_FileName` without extension and second is the Validation Function Name `v_FunctionName`!';
         return false;
     }
     // In "$optimizedValidationArray" we will store the retrieved VaLidation Array

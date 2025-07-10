@@ -7400,7 +7400,7 @@ function cli_create_validation_file_and_or_handler()
     $handlerBaseFullStringRow3 = "\n\tif (function_exists(\$full)) {";
     $handlerBaseFullStringRow4 = "\n\t\treturn \$full(\$c);";
     $handlerBaseFullStringRow5 = "\n\t} else {";
-    $handlerBaseFullStringRow6 = "\n\t\t\$c['err']['FAILED_TO_RUN_VALIDATION_FUNCTION-' . '$handlerFile'] = 'Validation function `' . \$full . '` not found in namespace `' . __NAMESPACE__ . '`!';";
+    $handlerBaseFullStringRow6 = "\n\t\t\$c['err']['VALIDATIONS'][] = 'Validation Function `' . \$full . '` not found in namespace `' . __NAMESPACE__ . '`. Does it exist as a callable function in the Validation Handler File?';";
     $handlerBaseFullStringRow7 = "\n\t\treturn null;";
     $handlerBaseFullStringRow8 = "\n\t}";
     $handlerBaseFullString =
@@ -7713,7 +7713,7 @@ function cli_create_sql_file_and_or_handler()
     $handlerBaseFullStringRow3 = "\n\tif (function_exists(\$full)) {";
     $handlerBaseFullStringRow4 = "\n\t\treturn \$full(\$c);";
     $handlerBaseFullStringRow5 = "\n\t} else {";
-    $handlerBaseFullStringRow6 = "\n\t\t\$c['err']['FAILED_TO_RUN_SQL_FUNCTION-' . '$handlerFile'] = 'SQL function `' . \$full . '` not found in namespace `' . __NAMESPACE__ . '`!';";
+    $handlerBaseFullStringRow6 = "\n\t\t\$c['err']['SQL']['$handlerFile'][] = 'SQL Handler Function `' . \$full . '` not found in namespace `' . __NAMESPACE__ . '`. Does it exist in the File as callable function?';";
     $handlerBaseFullStringRow7 = "\n\t\treturn null;";
     $handlerBaseFullStringRow8 = "\n\t}";
     $handlerBaseFullString =
@@ -9520,6 +9520,7 @@ function create_handler_file_with_fn_or_fn_or_err_out($handlerType, $handlersDir
     // Prepare correct handler prefix and directory path and date for the file to either create or add to
     $handlerPrefix = $handlerType === "r" ? "Route" :  "Data";
     $handlerDirPath = $handlerType === "r" ? "handlers" : "data";
+    $upperCaseHDP = strtoupper($handlerDirPath);
     $handlerDirPathFirstUC = ucfirst($handlerDirPath);
     $handlerDirPathUPPERCASE = strtoupper($handlerDirPath);
     $templateDirs = $dirs['templates'];
@@ -9534,7 +9535,7 @@ function create_handler_file_with_fn_or_fn_or_err_out($handlerType, $handlersDir
     $handlerBaseFullStringRow3 = "\nif (function_exists(\$full)) {";
     $handlerBaseFullStringRow4 = "\nreturn \$full(\$c);";
     $handlerBaseFullStringRow5 = "\n} else {";
-    $handlerBaseFullStringRow6 = "\$c['err']['$failedToRunFunction'] = '$handlerPrefix Function `' . \$full . '` not found in namespace `' . __NAMESPACE__ . '`!';";
+    $handlerBaseFullStringRow6 = "\$c['err']['$upperCaseHDP'][] = '$handlerPrefix Function `' . \$full . '` not found in namespace `' . __NAMESPACE__ . '`. Does it exist as a callable function in the File?';";
     $handlerBaseFullStringRow7 = "\nreturn null;";
     $handlerBaseFullStringRow8 = "\n}";
     $handlerBaseFullString =
