@@ -4005,6 +4005,20 @@ function cli_parse_joined_tables_order($tablesString, &$currentFinalHydrateKey, 
                 }
                 // Table does not exist, so we create it and since this is larger than 0 index,
                 elseif (!isset($nextLevel[$tb1])) {
+                    // Validate all necessary relationships keys exist first!
+                    if (
+                        !isset($relationships[$viaTb][$prevTB]['local_table'])
+                        || !isset($relationships[$viaTb][$prevTB]['local_column'])
+                        || !isset($relationships[$viaTb][$tb1]['local_table'])
+                        || !isset($relationships[$viaTb][$tb1]['local_column'])
+                    ) {
+                        $keepGoing = false;
+                        cli_warning_without_exit("[cli_parse_joined_tables_order]: Necessary Relationships Keys for the Tables `{$viaTb}` and/or `{$prevTB}` are missing in the `relationships` Key in the `tables.php` File!");
+                        cli_info_without_exit("Verify that necessary Many-to-Many Relationships for the Tables `{$viaTb}` and/or `{$prevTB}` exist in the `relationships` Key in the `tables.php` File!.");
+                        cli_info_without_exit("IMPORTANT: The Hydration Compilation Will Stop Here - But the SQL String Compiling will continue...!");
+                        return;
+                    }
+
                     // We delete PK from the 'cols' array since it is not needed
                     // and we will use the PK as the primary key for the Table.
                     unset($selectedCols[$tb1][$tb1 . "_id"]);
