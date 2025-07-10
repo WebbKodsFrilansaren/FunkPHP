@@ -170,7 +170,9 @@ return [
     'd' => null,
 
     // 's_handlers' is the array of SQL Handlers that are closures to functions
+    // 's_data' contains fetched SQL Data for a given SQL Query
     's_handlers' => null, // SQL Handlers (the funkphp/sql/ folder with its files)
+    's_data' => null,
 
     // 'p' is the page object that will be used to handle the
     // page rendering and output (not needed for API requests)!
