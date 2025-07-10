@@ -1,22 +1,23 @@
-<?php // ROUTE_SINGLE_ROUTES.PHP - FunkPHP Framework | This File Was Modified In FunkCLI 2025-05-30 22:41:43
+<?php // ROUTE_SINGLE_ROUTES.PHP - FunkPHP Framework | This File Was Modified In FunkCLI 2025-07-10 21:34:42
 return  [
   '<CONFIG>' =>
   [
     'middlewares_before_route_match' =>
     [
-      'm_https_redirect',
-      'm_run_ini_sets',
-      'm_set_session_cookie_params',
-      'm_db_connect',
-      'm_headers_set',
-      'm_headers_remove',
-      'm_start_session',
-      'm_prepare_uri',
-      'm_match_denied_exact_ips',
-      'm_match_denied_methods',
-      'm_match_denied_uas'
+      0 => 'm_https_redirect',
+      1 => 'm_run_ini_sets',
+      2 => 'm_set_session_cookie_params',
+      3 => 'm_db_connect',
+      4 => 'm_headers_set',
+      5 => 'm_headers_remove',
+      6 => 'm_start_session',
+      7 => 'm_prepare_uri',
+      8 => 'm_match_denied_exact_ips',
+      9 => 'm_match_denied_methods',
+      10 => 'm_match_denied_uas',
     ],
-    'middlewares_after_request' => [],
+    'middlewares_after_request' =>
+    [],
     'no_middlewares_match' =>
     [
       'json' =>
@@ -45,47 +46,25 @@ return  [
       'page' =>
       [],
     ],
-
   ],
   'ROUTES' =>
   [
     'GET' =>
     [
-      '/test/:id' =>
+      '/authors/:id' =>
       [
         'handler' =>
         [
-          'r_test' => 'r_test2',
+          'r_authors' => 'r_by_id',
         ],
         'data' =>
         [
-          'd_test' => 'd_test2',
+          'd_authors' => 'd_by_id',
         ],
-      ],
-      '/test2' =>
-      [
-        'handler' => 'r_test3',
-        'data' => 'd_test3',
-      ],
-      '/test3' =>
-      [
-        'handler' => 'r_test5',
       ],
     ],
     'POST' =>
-    [
-      '/test/:id' =>
-      [
-        'handler' =>
-        [
-          'r_test' => 'r_test2',
-        ],
-        'data' =>
-        [
-          'd_test' => 'd_test2',
-        ],
-      ],
-    ],
+    [],
     'PUT' =>
     [],
     'DELETE' =>
