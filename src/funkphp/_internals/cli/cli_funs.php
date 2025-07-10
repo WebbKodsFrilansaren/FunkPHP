@@ -5443,6 +5443,17 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         if (str_ends_with($selectedTbsColsStr, ",\n")) {
             $selectedTbsColsStr = substr($selectedTbsColsStr, 0, -2);
         }
+        // Iterate through Table ($selTb) and if we do NOT find `id` Column in it, we just
+        // add it to the selectedCols $selectedCols[$selTb][] = 'id'; and to the start of
+        // the $selectedTbsColsStr so it is always selected by default! We also write WARNING
+        // that it has been added because it was not since it is really NOT useful to NOT use it!
+        foreach ($selectedCols as $selTb => $selCol) {
+            if (!array_key_exists('id', $selCol)) {
+                $selectedCols[$selTb]['id'] = 'id'; // Add 'id' Column to the selectedCols
+                $selectedTbsColsStr = "$selTb.id AS $selTb" . "_id,\n" . $selectedTbsColsStr; // Add it to the start of the selectedTbsColsStr
+                cli_warning_without_exit("Table `$selTb` in `SELECT` Key in SQL Array `$handlerFile.php=>$fnName` did not have `id` Column so it was added by default! (`$selTb.id AS $selTb`)");
+            }
+        }
 
         // PARSING THE "FROM" Key (the primary table to select from/join/work with)
         // We already know FROM Key is a valid string and not empty so now we check

@@ -34,7 +34,7 @@ function s_test5(&$c) // <authors,articles,comments>
 		],
 		// Optional Keys, leave empty (or remove) if not used!
 		'SELECT' => [
-			'authors:id,name,age',
+			'authors:name,age',
 			'comments:id,content,author_id'
 		],
 		'WHERE' => '',
@@ -73,7 +73,7 @@ function s_test5(&$c) // <authors,articles,comments>
 	];
 
 	return array(
-		'sql' => 'SELECT authors.id AS authors_id, authors.name AS authors_name, authors.age AS authors_age, comments.id AS comments_id, comments.content AS comments_content, comments.author_id AS comments_author_id FROM authors INNER JOIN comments ON authors.id = comments.author_id;',
+		'sql' => 'SELECT comments.id AS comments_id, authors.id AS authors_id, authors.name AS authors_name, authors.age AS authors_age, comments.id AS comments_id, comments.content AS comments_content, comments.author_id AS comments_author_id FROM authors INNER JOIN comments ON authors.id = comments.author_id;',
 		'hydrate' =>
 		array(
 			'key' =>
@@ -85,6 +85,7 @@ function s_test5(&$c) // <authors,articles,comments>
 					array(
 						0 => 'authors_name',
 						1 => 'authors_age',
+						2 => 'id',
 					),
 					'with' =>
 					array(
@@ -96,6 +97,7 @@ function s_test5(&$c) // <authors,articles,comments>
 							array(
 								0 => 'comments_content',
 								1 => 'comments_author_id',
+								2 => 'id',
 							),
 							'with' =>
 							array(),
