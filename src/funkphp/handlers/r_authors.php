@@ -9,7 +9,7 @@ function r_by_id(&$c) // <GET/authors/:id>
     // FunkCLI created 2025-07-10 21:34:26! Keep Closing Curly Bracket on its
     // own new line without indentation no comment right after it!
     $test = funk_load_sql($c, 's_test2', 's_test5');
-    vd($c['db']);
+    vd($c['req']);
 };
 
 return function (&$c, $handler = "r_by_id") {
