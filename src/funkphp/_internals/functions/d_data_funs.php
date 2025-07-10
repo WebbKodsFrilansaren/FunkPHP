@@ -738,21 +738,63 @@ function funk_load_sql(&$c, $sqlHandler, $sqlFunction)
     }
 }
 
-// Function that actually EXECUTES SQL Queries using
-function funk_use_sql(&$c, $sqlHandler, $sqlFunction)
+// Function that actually EXECUTES SQL Queries using provided `$sqlArrayKey`
+// which should contain the following keys: 'qtype', 'sql', 'hydrate', 'bparam' & 'fields'.
+// 'qtype' is the SQL Query Type (e.g., SELECT, INSERT, UPDATE, DELETE),
+// 'sql' is the SQL Query String, 'hydrate' is the Hydration Array Key
+// 'bparam' is the Bind Parameters Array Key and 'fields' is the Matching Validated
+// Data Input Fields Array Key. It returns true if the SQL Query executed successfully, else false.
+// $inputData is optional and can be used to pass additional data to the SQL Query whose keys should
+// match those defined in the `fields` array. $hydrateDataAfter is a boolean that indicates whether
+// to hydrate the data after executing the SQL Query. That means it calls `funk_use_hydrate` function
+// after a successful SQL Query execution assuming it was `SELECT` Query Type. Otherwise it ignores it.
+function funk_use_sql(&$c, $sqlArrayKey, $inputData = null, $hydrateDataAfter = false)
 {
-    // Call the funk_load_sql function to load the SQL Handler and Function
-    $sqlFunk = funk_load_sql($c, $sqlHandler, $sqlFunction);
-    // If it returned false, we can assume an error was set
-    if ($sqlFunk === null) {
-        $c['err']['SQL']['funk_use_sql'][] = 'SQL Handler Function `' . $sqlFunction . '` could not be loaded from `' . $sqlHandler . '.php`!';
+    // Validate `$sqlArrayKey` which should contain the following keys:
+    // 'qtype', 'sql', 'hydrate','bparam' & 'fields'. Only 'qtype' and 'sql'
+    // are required keys, the rest are optional in whether they have values but
+    // they must exist as keys though.
+    $longDefaultErr = 'The `\$sqlArrayKey` must be a Valid Array containing the following keys: `qtype`, `sql`, `hydrate`, `bparam` and `fields`. `qtype` is the SQL Query Type (e.g., SELECT, INSERT, UPDATE, DELETE), `sql` is the SQL Query String, `hydrate` is the Hydration Array Key, `bparam` is the Bind Parameters Array Key and `fields` is the Matching Validated Data Input Fields Array Key. Only `qtype` and `sql` must contain actual values that would be used whereas the rest are optional meaning they must exist as array keys but can be empty or null!';
+    if (!is_array($sqlArrayKey)) {
+        $c['err']['SQL']['funk_use_sql'][] = $longDefaultErr;
         return false;
     }
-    // If it returned a valid SQL Function, we can return it
-    return $sqlFunk;
+    if (
+        !array_key_exists('qtype', $sqlArrayKey)
+        || !array_key_exists('sql', $sqlArrayKey)
+        || !array_key_exists('hydrate', $sqlArrayKey)
+        || !array_key_exists('bparam', $sqlArrayKey)
+        || !array_key_exists('fields', $sqlArrayKey)
+    ) {
+        $c['err']['SQL']['funk_use_sql'][] = $longDefaultErr;
+        return false;
+    }
+
+    // Validate $c['db'] (MySQL database connection) is NOT null
+    if (!isset($c['db']) || $c['db'] === null) {
+        $c['err']['SQL']['funk_use_sql'][] = 'Database Connection `$c[\'db\']` is NOT Set or IS NULL. Connect to the Datbase before calling this Function!';
+        return false;
+    }
+
+    // Valid Query Types Hashed Key Array:
+    $validQueryTypes = [
+        'SELECT' => true,
+        'INSERT' => true,
+        'UPDATE' => true,
+        'DELETE' => true,
+    ];
+    if (!isset($validQueryTypes[$sqlArrayKey['qtype']])) {
+        $c['err']['SQL']['funk_use_sql'][] = 'Invalid SQL Query Type `' . $sqlArrayKey['qtype'] . '`. Valid Query Types are: `SELECT`,`UPDATE`,`INSERT` & `DELETE` in current version of FunkPHP!';
+        return false;
+    }
+
+    // Return True when everything succeeded!
+    return true;
 }
 
-
+// Function that hydrates data using the `hydrate` Key, is recommended
+// to be used after a successful SQL Query execution using `funk_use_sql`
+// but it is NOT a requirement! It is ALWAYS your Choice whether to use it!
 function funk_use_hydrate(&$c, $hydrateKey, $fetchedData) {}
 
 // The main validation function for validating data in FunkPHP
