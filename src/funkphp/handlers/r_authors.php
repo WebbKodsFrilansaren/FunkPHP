@@ -8,6 +8,11 @@ function r_by_id(&$c) // <GET/authors/:id>
 {
     // FunkCLI created 2025-07-10 21:34:26! Keep Closing Curly Bracket on its
     // own new line without indentation no comment right after it!
+    if (funk_param_is_string($c, 'id')) {
+        echo "IS STRING!";
+    } else {
+        echo "IS NOT STRING!";
+    }
     $test = funk_load_sql($c, 's_test2', 's_test5');
     vd($c['req']);
 };
