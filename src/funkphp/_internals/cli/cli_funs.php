@@ -6084,6 +6084,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                         }
                         // Here it means we are all 100 % done with 0 errors!
                         if ($keepGoing) {
+                            $convertedSQLArray['hydrate']['key'] = $hydratedKey;
                             cli_success_without_exit("[HYDRATION COMPILATION SUCCEEDED] Hydration Key(s) Parsed Successfully in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
                         }
                     }
@@ -6110,7 +6111,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         }
         $convertedSQLArray['hydrate']['mode'] = $hydrationMode;
         $convertedSQLArray['hydrate']['type'] = $hydrationType;
-        $convertedSQLArray['hydrate']['key'] = $hydratedKey;
+
 
         // Report success and inform about ignored keys
         cli_success_without_exit("[SQL STRING BUILT] Built SQL String: `$builtSQLString`");
