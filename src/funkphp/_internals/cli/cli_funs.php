@@ -6211,7 +6211,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                         }
                     }
                 }
-                // PARSE "ADVANCED" Hydration Mode
+                // PARSE "ADVANCED" Hydration Mode - Would probably support M:M:M:and_so_on?
                 elseif ($hydrationMode === 'advanced') {
                     cli_warning_without_exit("<CURRENTLY NOT IMPLEMENTED YET IN FUNKPHP!>");
                     cli_info_without_exit("The `advanced` Hydration Mode is currently not implemented in FunkPHP!");

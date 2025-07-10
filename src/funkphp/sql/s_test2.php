@@ -8,7 +8,6 @@ namespace FunkPHP\SQL\s_test2;
 // to get an array with SQL Query, Hydration Array and optionally Binded Params below here!
 // IMPORTANT: CMD+S or CTRL+S to autoformat each time function is added!
 
-
 function s_test5(&$c) // <authors,articles,comments>
 {
 	// FunkCLI created 2025-07-09 20:10:51! Keep Closing Curly Bracket on its
