@@ -385,9 +385,10 @@ function funk_run_matched_route_handler(&$c)
         $handler = key($c['req']['matched_handler']);
         $handleString = $c['req']['matched_handler'][$handler] ?? null;
     } else {
-        $c['err']['ROUTES'][] = "Route Handler must be a string or an array!";
+        $c['err']['ROUTES']['funk_run_matched_route_handler'][] = 'Route Handler must be a String or an Array. No attempt to find a Handler File was made!';
         return;
     }
+    var_dump($handler, $handleString); // Debugging line, can be removed later
 
     // Finally check if the file exists and is readable, and then include it
     // and run the handler function with the $c variable as argument
@@ -396,7 +397,7 @@ function funk_run_matched_route_handler(&$c)
         if (is_callable($runHandler)) {
             if (!is_null($handleString)) {
                 if (!function_exists($handleString)) {
-                    $c['err']['ROUTES'][] = 'Route Handler function `' .  $handleString . '` in `' . $handler . '` does not exist!';
+                    $c['err']['ROUTES']['funk_run_matched_route_handler'][] = 'Route Handler function `' .  $handleString . '` in `handlers/' . $handler . '.php` does not exist!';
                     return;
                 }
                 $runHandler($c, $handleString);
@@ -406,13 +407,13 @@ function funk_run_matched_route_handler(&$c)
         }
         // Handle error: not callable (or just use default below)
         else {
-            $c['err']['ROUTES'][] = "Data Handler function is not callable!";
+            $c['err']['ROUTES']['funk_run_matched_route_handler'][] = 'Route Handler Function `' . $handleString . '` is not callable!';
             return;
         }
     }
     // Handle error: file not found or not readable  (or just use default below)
     else {
-        $c['err']['ROUTES'][] = "Route Handler File not found or not readable!";
+        $c['err']['ROUTES']['funk_run_matched_route_handler'][] = 'Route Handler File not found or not readable!';
         return;
     }
 }

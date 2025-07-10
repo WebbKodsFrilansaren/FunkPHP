@@ -110,11 +110,11 @@ if ($c['req']['current_step'] === 1) {
 
     // Run the matched route handler if it exists and is not empty.
     // Even if not null, file may not exist; the function checks that.
-    if ($c['req']['matched_handler'] === null) {
-        $c['err']['ROUTES'][] = "Route Handler Failed to Load or Run.";
-        $c['err']['MAYBE']['ROUTES'][] = "No Route Handler Matched. If you expected a Route to match, check your Routes file and ensure the Route exists and that a Handler File with a Handler Function has been added to it under the key `handler`. For example: `['handler' => 'r_handler_file' => 'r_handler_function']`.";
-    } else {
+    if ($c['req']['matched_handler'] !== null) {
         funk_run_matched_route_handler($c);
+    } else {
+        $c['err']['ROUTES'][] = "No Route Handler Matched or it Failed to Run!";
+        $c['err']['MAYBE']['ROUTES'][] = "No Route Handler Matched. If you expected a Route to match, check your Routes file and ensure the Route exists and that a Handler File with a Handler Function has been added to it under the key `handler`. For example: `['handler' => 'r_handler_file' => 'r_handler_function']`.";
     }
 
     // This is the end of Step 1, you can freely add any other checks you want here!
@@ -166,6 +166,8 @@ if ($c['req']['current_step'] === 3) {
     }
 }
 // This is the end of the entire request process!
+
+ddj($c['err']); // Debugging: Dump and Die the $c variable to see the entire request data!
 
 // This part is only executed if the request was not properly handled by the pipeline!
 // Feel free to add your own error handling here and/or easter egg!

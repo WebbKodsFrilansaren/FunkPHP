@@ -16,7 +16,7 @@ function funk_run_matched_data_handler(&$c)
         $handler = key($c['req']['matched_data']);
         $handleString = $c['req']['matched_data'][$handler] ?? null;
     } else {
-        $c['err']['MIDDLEWARES']['funk_run_matched_data_handler'][] = "Data Handler must be a string or an array!";
+        $c['err']['DATA']['funk_run_matched_data_handler'][] = "Data Handler must be a String or an Array. No attempt to find a Data Handler File was made!";
         return;
     }
 
@@ -27,7 +27,7 @@ function funk_run_matched_data_handler(&$c)
         if (is_callable($runHandler)) {
             if (!is_null($handleString)) {
                 if (!function_exists($handleString)) {
-                    $c['err']['MIDDLEWARES']['funk_run_matched_data_handler'][] = 'Data Handler function `' .  $handleString . '` in `' . $handler . '` does not exist!';
+                    $c['err']['DATA']['funk_run_matched_data_handler'][] = 'Data Handler function `' .  $handleString . '` in `' . $handler . '` does not exist!';
                     return;
                 }
                 $runHandler($c, $handleString);
@@ -37,13 +37,13 @@ function funk_run_matched_data_handler(&$c)
         }
         // Handle error: not callable (or just use default below)
         else {
-            $c['err']['MIDDLEWARES']['funk_run_matched_data_handler'][] = "Data Handler function is not callable!";
+            $c['err']['DATA']['funk_run_matched_data_handler'][] = "Data Handler function is not callable!";
             return;
         }
     }
     // Handle error: file not found or not readable  (or just use default below)
     else {
-        $c['err']['MIDDLEWARES']['funk_run_matched_data_handler'][] = "Data Handler File '$handler.php' not found or not readable!";
+        $c['err']['DATA']['funk_run_matched_data_handler'][] = "Data Handler File '$handler.php' not found or not readable!";
         return;
     }
 }
