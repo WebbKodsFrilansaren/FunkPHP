@@ -4015,9 +4015,7 @@ function cli_parse_joined_tables_order($tablesString, &$currentFinalHydrateKey, 
                     cli_info_without_exit("IMPORTANT: The Hydration Compilation Will Stop Here - But the SQL String Compiling will continue...!");
                     return;
                 }
-                $mmRel = $relationships[$prevTB][$tb1];
-                var_dump($mmRel);
-                exit(1);
+
                 // Table already exists, so we just adjust the position
                 if (isset($nextLevel[$tb1])) {
                     $prevTB = $tb1;
@@ -4039,6 +4037,10 @@ function cli_parse_joined_tables_order($tablesString, &$currentFinalHydrateKey, 
                         return;
                     }
 
+                    // Grab the Many-to-Many relationship between the previous Table (prevTB) and the current Table (tb1)
+                    // via the intermediate Table (viaTb) to use it for the pivot table and foreign keys.
+                    $mmRel = $relationships[$prevTB][$tb1];
+
                     // We delete PK from the 'cols' array since it is not needed
                     // and we will use the PK as the primary key for the Table.
                     unset($selectedCols[$tb1][$tb1 . "_id"]);
@@ -4046,13 +4048,26 @@ function cli_parse_joined_tables_order($tablesString, &$currentFinalHydrateKey, 
                         'pk' => $tb1 . "_id",
                         'fk' => null,
                         'pivot' => [
-                            'table' => $viaTb,
-                            'fk_to_parent_pivot_col' => $relationships[$viaTb][$prevTB]['local_table'] . "_" . $relationships[$viaTb][$prevTB]['local_column'],
-                            'fk_to_child_pivot_col' => $relationships[$viaTb][$tb1]['local_table'] . "_" . $relationships[$viaTb][$tb1]['local_column'],
+                            'table' => $mmRel['pivot_table'],
+                            'fk_to_parent_pivot_col' => $mmRel['local_table'] . "_" . $mmRel['pivot_local_key'],
+                            'fk_to_child_pivot_col' => $mmRel['foreign_table'] . "_" . $mmRel['pivot_foreign_key'],
                         ],
                         'cols' => array_keys($selectedCols[$tb1]),
                         'with' => [],
                     ];
+                    // KEEPING THIS FOR FUTURE USE IF NEEDED
+                    // IF THE ABOVE VERSION DOES NOT WORK AS INTENDED!
+                    // $nextLevel[$tb1] = [
+                    //     'pk' => $tb1 . "_id",
+                    //     'fk' => null,
+                    //     'pivot' => [
+                    //         'table' => $viaTb,
+                    //         'fk_to_parent_pivot_col' => $relationships[$viaTb][$prevTB]['local_table'] . "_" . $relationships[$viaTb][$prevTB]['local_column'],
+                    //         'fk_to_child_pivot_col' => $relationships[$viaTb][$tb1]['local_table'] . "_" . $relationships[$viaTb][$tb1]['local_column'],
+                    //     ],
+                    //     'cols' => array_keys($selectedCols[$tb1]),
+                    //     'with' => [],
+                    // ];
                 }
                 // Continue to next Table level, cause we either fail before we reach this or we succeed
                 continue;
