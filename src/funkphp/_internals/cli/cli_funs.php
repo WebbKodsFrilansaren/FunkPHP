@@ -1,4 +1,15 @@
 <?php // FIRST CLI FUNCTIONS FILE
+
+//
+function get_match_function_regex_new($fnName)
+{
+    // Check if the function name is valid
+    if (!is_string_and_not_empty($fnName) || !preg_match("/^[a-z_][a-z0-9_]+$/", $fnName)) {
+        cli_err_syntax("[get_match_function_regex_new] Function name must be a Non-Empty String using the Regex Syntax `^[a-z_][a-z0-9_]+$`!");
+    }
+    $regex = '/^function (' . $fnName . ')\s*\(&\$c\)\s*\/\/\s*<(GET|POST|PATCH|DELETE|PUT)\/([a-zA-Z_0-9:\/]+)+>([^\n]+)*\n{((\s\S*)*\n)};$/img';
+    return $regex;
+}
 // Function that creates a regex pattern to match a function name
 // inside of a typical handler file with a handler function name!
 // Such as:
