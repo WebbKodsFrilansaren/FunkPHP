@@ -19,6 +19,7 @@ return  [
       12 => 'm_run_matched_route_middlewares',
       13 => 'm_run_matched_route_handler',
       14 => 'm_run_matched_data_handler',
+      15 => '<LAST_STEP>',
     ],
     'middlewares_after_request' =>
     [],
