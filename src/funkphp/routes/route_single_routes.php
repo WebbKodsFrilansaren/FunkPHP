@@ -2,7 +2,7 @@
 return  [
   '<CONFIG>' =>
   [
-    'middlewares_before_route_match' =>
+    'pipeline' =>
     [
       0 => 'm_https_redirect',
       1 => 'm_run_ini_sets',

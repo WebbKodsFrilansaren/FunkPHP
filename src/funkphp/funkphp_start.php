@@ -63,14 +63,16 @@ if (
 // BEFORE STEP 1: Do anything you want here before matching the route and middlewares!
 // Here configured & existing middlewares are loaded and runs before route matching!
 if (
-    isset($c['r_config']['middlewares_before_route_match']) &&
-    is_array($c['r_config']['middlewares_before_route_match']) &&
-    !empty($c['r_config']['middlewares_before_route_match'])
+    isset($c['r_config']['pipeline']) &&
+    is_array($c['r_config']['pipeline']) &&
+    !empty($c['r_config']['pipeline'])
 ) {
-    funk_run_middleware_before_matched_routing($c);
+    funk_run_pipeline($c);
 } else {
     $c['err']['MAYBE']['CONFIG'][] = "No Configured Route Middlewares (`'<CONFIG>' => 'middlewares_before_route_match'`) to load and run before Route Matching. If you expected Middlewares to run before Route Matching, check the `<CONFIG>` key in the Route `funk/routes/route_single_routes.php` File!";
 }
+
+vd($c['err']);
 
 // STEP 3: Return a matched page after route and data matching!
 // Only run this step if the current step is 3

@@ -8,7 +8,7 @@ return function (&$c) {
     $ua = mb_strtolower($ua);
 
     // Finally try load blocked UAs to match against
-    $uas = include dirname(dirname(__DIR__)) . '/config/BLOCKED_UAS.php';
+    $uas = include dirname(__DIR__) . '/config/BLOCKED_UAS.php';
     if ($uas === false) {
         $c['err']['FAILED_TO_RUN_MIDDLEWARE-m_match_denied_uas'] = 'Failed to Load List of Blocked User Agents!';
         critical_err_json_or_html(500);

@@ -1,15 +1,16 @@
 <?php // ROUTE-related FUNCTIONS FOR FunPHP
 
-// Try run middlewares BEFORE matched routing (BEFORE step 1)
+// `pipeline` is the list of functions to always run for each request (unless any
+// of the functions terminates it early!) This is the main entry point for each request!
 // &$c is Global Config Variable with "everything"!
-function funk_run_middleware_before_matched_routing(&$c)
+function funk_run_pipeline(&$c)
 {
     if (
-        isset($c['r_config']['middlewares_before_route_match'])
-        && is_array($c['r_config']['middlewares_before_route_match'])
-        && count($c['r_config']['middlewares_before_route_match']) > 0
+        isset($c['r_config']['pipeline'])
+        && is_array($c['r_config']['pipeline'])
+        && count($c['r_config']['pipeline']) > 0
     ) {
-        $count = count($c['r_config']['middlewares_before_route_match']);
+        $count = count($c['r_config']['pipeline']);
         $c['req']['keep_running_middlewares'] = true;
         for ($i = 0; $i < $count; $i++) {
             if ($c['req']['keep_running_middlewares'] === false) {
@@ -17,9 +18,9 @@ function funk_run_middleware_before_matched_routing(&$c)
             }
 
             // Check that it is a string and not null
-            $current_mw = $c['r_config']['middlewares_before_route_match'][$i] ?? null;
+            $current_mw = $c['r_config']['pipeline'][$i] ?? null;
             if ($current_mw === null || !is_string($current_mw)) {
-                unset($c['r_config']['middlewares_before_route_match'][$i]);
+                unset($c['r_config']['pipeline'][$i]);
                 $c['req']['number_of_deleted_middlewares']++;
                 $c['err']['CONFIG'][] = 'Middleware at index ' .  $i . ' is not a valid string or is null!';
                 continue;
@@ -27,14 +28,14 @@ function funk_run_middleware_before_matched_routing(&$c)
 
             // Only run middleware if dir, file and callable,
             // then run it and increment the number of ran middlewares
-            $mwDir = dirname(dirname(__DIR__)) . '/middlewares/before_route_match/';
+            $mwDir = dirname(dirname(__DIR__)) . '/pipeline/';
             $mwToRun = $mwDir . $current_mw . '.php';
             if (is_dir($mwDir) && file_exists($mwToRun)) {
                 $RunMW = include $mwToRun;
                 if (is_callable($RunMW)) {
                     $c['req']['current_middleware_running'] = $current_mw;
                     $c['req']['number_of_ran_middlewares']++;
-                    $c['req']['next_middleware_to_run'] = $c['r_config']['middlewares_before_route_match'][$i + 1] ?? null;
+                    $c['req']['next_middleware_to_run'] = $c['r_config']['pipeline'][$i + 1] ?? null;
                     $RunMW($c);
                 } // CUSTOM ERROR HANDLING HERE! - not callable (or change below to whatever you like)
                 else {
@@ -50,24 +51,24 @@ function funk_run_middleware_before_matched_routing(&$c)
             // Remove middleware[$i] from the array after trying to run
             // it (it is removed even if it was not callable/existed!)
             $c['req']['deleted_middlewares'][] = $current_mw;
-            unset($c['r_config']['middlewares_before_route_match'][$i]);
+            unset($c['r_config']['pipeline'][$i]);
             $c['req']['number_of_deleted_middlewares']++;
         }
         // Set default settings for the next middleware run
         $c['req']['current_middleware_running'] = null;
         if (
-            isset($c['r_config']['middlewares_before_route_match'])
-            && is_array($c['r_config']['middlewares_before_route_match'])
-            && count($c['r_config']['middlewares_before_route_match']) === 0
+            isset($c['r_config']['pipeline'])
+            && is_array($c['r_config']['pipeline'])
+            && count($c['r_config']['pipeline']) === 0
         ) {
-            $c['r_config']['middlewares_before_route_match'] = null;
+            $c['r_config']['pipeline'] = null;
         }
         $c['req']['keep_running_middlewares'] = false;
     }
     // CUSTOM ERROR HANDLING HERE! - no matched middlewares (or change below to whatever you like)
     // IMPORTANT: No matched middlewares could mean misconfigured routes or no middlewares at all!
     else {
-        $c['err']['MAYBE']['CONFIG'][] = 'No Configured Route Middlewares (`"<CONFIG>" => "middlewares_before_route_match"`) to run before Route Matching. If you expected Middlewares to run before Route Matching, check the `<CONFIG>` key in the Route `funk/routes/route_single_routes.php` File!';
+        $c['err']['MAYBE']['CONFIG'][] = 'No Configured Route Middlewares (`"<CONFIG>" => "pipeline"`) to run before Route Matching. If you expected Middlewares to run before Route Matching, check the `<CONFIG>` key in the Route `funk/routes/route_single_routes.php` File!';
     }
 }
 

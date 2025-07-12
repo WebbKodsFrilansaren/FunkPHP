@@ -7,7 +7,7 @@ return function (&$c) {
     }
 
     // Finally try load exact IPs to match against
-    $ips_exact = include dirname(dirname(__DIR__)) . '/config/BLOCKED_IPS.php';
+    $ips_exact = include dirname(__DIR__) . '/config/BLOCKED_IPS.php';
     if ($ips_exact === false) {
         $c['err']['FAILED_TO_RUN_MIDDLEWARE-m_match_denied_exact_ips'] = 'Failed to Load List of Blocked IPs!';
         critical_err_json_or_html(500);
