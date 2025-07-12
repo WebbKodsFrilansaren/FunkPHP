@@ -198,6 +198,7 @@ return [
     'err' => [
         'MAYBE' => [],
         'CONFIG' => [],
+        'PIPELINE' => [],
         'CACHED' => [],
         'MIDDLEWARES' => [],
         'ROUTES' => [],

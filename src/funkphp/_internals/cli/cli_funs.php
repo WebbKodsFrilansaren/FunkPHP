@@ -6871,7 +6871,7 @@ function cli_restore_default_folders_and_files()
         "$folderBase/pages/",
         "$folderBase/pages/complete/",
         "$folderBase/pages/components/",
-        "$folderBase/pages/parts/",
+        "$folderBase/pages/partials/",
         "$folderBase/routes/",
         "$folderBase/tests/",
         "$folderBase/templates/",

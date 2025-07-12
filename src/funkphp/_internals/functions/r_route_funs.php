@@ -166,7 +166,7 @@ function funk_run_middleware_after_handled_request(&$c)
 
             // Only run middleware if dir, file and callable,
             // then run it and increment the number of ran middlewares
-            $mwDir = dirname(dirname(__DIR__)) . '/middlewares/after_handled_request/';
+            $mwDir = dirname(dirname(__DIR__)) . '/middlewares/';
             $mwToRun = $mwDir . $current_mw . '.php';
             if (is_dir($mwDir) && file_exists($mwToRun)) {
                 $RunMW = include $mwToRun;
