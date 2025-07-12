@@ -67,7 +67,7 @@ function funk_run_middleware_before_matched_routing(&$c)
     // CUSTOM ERROR HANDLING HERE! - no matched middlewares (or change below to whatever you like)
     // IMPORTANT: No matched middlewares could mean misconfigured routes or no middlewares at all!
     else {
-        $c['err']['MAYBE']['CONFIG'][] = "No Configured Route Middlewares (`'<CONFIG>' => 'middlewares_before_route_match'`) to run before Route Matching. If you expected Middlewares to run before Route Matching, check the `<CONFIG>` key in the Route `funk/routes/route_single_routes.php` File!";
+        $c['err']['MAYBE']['CONFIG'][] = 'No Configured Route Middlewares (`"<CONFIG>" => "middlewares_before_route_match"`) to run before Route Matching. If you expected Middlewares to run before Route Matching, check the `<CONFIG>` key in the Route `funk/routes/route_single_routes.php` File!';
     }
 }
 
