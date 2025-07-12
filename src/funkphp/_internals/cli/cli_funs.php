@@ -6868,6 +6868,8 @@ function cli_restore_default_folders_and_files()
         "$folderBase/data/",
         "$folderBase/middlewares/",
         "$folderBase/middlewares/routes/",
+        "$folderBase/pipeline/",
+        "$folderBase/exit/",
         "$folderBase/pages/",
         "$folderBase/pages/complete/",
         "$folderBase/pages/components/",

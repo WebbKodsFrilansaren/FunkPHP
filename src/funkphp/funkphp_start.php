@@ -12,8 +12,19 @@ include_once __DIR__ . '/_internals/functions/_includeAllExceptCLI.php';
 // $c is the global configuration array that
 // will be used throughout the application
 $c = include_once __DIR__ . '/config/_all.php';
-$c['ROUTES'] = [];
+// Prepare what to run after each request is handled
+// and/or exit() is used prematurely by the application
+register_shutdown_function(function () use (&$c) {
+    if (
+        isset($c['r_config']['exit'])
+        && is_array($c['r_config']['exit'])
+        && !empty($c['r_config']['exit'])
+    ) {
+        funk_run_middleware_after_handled_request($c);
+    }
+});
 // When Routes or Trie Compiled Route File(s) not found/non-readable or empty/missing keys!
+$c['ROUTES'] = [];
 if (!file_exists_is_readable_writable(__DIR__ . '/routes/route_single_routes.php')) {
     $c['err']['ROUTES'][] = "Routes in File `funkphp/routes/route_single_routes.php` not found or non-readable!";
     critical_err_json_or_html(500);
@@ -63,17 +74,7 @@ if (
 } else {
     $c['err']['MAYBE']['CONFIG'][] = "No Configured Route Middlewares (`'<CONFIG>' => 'middlewares_before_route_match'`) to load and run before Route Matching. If you expected Middlewares to run before Route Matching, check the `<CONFIG>` key in the Route `funk/routes/route_single_routes.php` File!";
 }
+// The registered shutdown callback function will be executed after pipeline
+// has run (unless the script is exited prematurely by the application)!
+exit;
 // TODO: Add matching page step. Add running middleware step. Add the Template Engine function too!
-// This is the end of Step 5, you can freely add any final code here!
-// You have all global (meta) data in $c variable, so you can use it as you please!
-// AFTER STEP 3: Do anything you want here after returning a page unless JSON was
-// returned insterad. Here the final middlewares are run after everything else is done!
-// if (
-//     isset($c['r_config']['middlewares_after_handled_request']) &&
-//     is_array($c['r_config']['middlewares_after_handled_request']) &&
-//     !empty($c['r_config']['middlewares_after_handled_request'])
-// ) {
-//     funk_run_middleware_after_handled_request($c);
-// } else {
-//     $c['err']['MAYBE']['PAGES'][] = "No Configured After Request Middlewares (`'<CONFIG>' => 'middlewares_after_handled_request'`) to load and run after handled request. If you expected Middlewares to run After Handled Request, check the `<CONFIG>` key in the Route `funk/routes/route_single_routes.php` File!";
-// }
