@@ -140,8 +140,6 @@ function funk_run_middleware_after_handled_request(&$c)
             $c['r_config']['exit'] = null;
         }
     } else {
-        // --- !!! CORRECTION HERE !!! ---
-        // Error message still refers to "After Handled Request" which is now "exit".
         $c['err']['MAYBE']['MIDDLEWARES'][] = "No Configured Exit Middlewares (`'<CONFIG>' => 'exit'`) to run after Request Handling. If you expected some, check the `<CONFIG>` key in the Route `funk/routes/route_single_routes.php` File!";
     }
 }
