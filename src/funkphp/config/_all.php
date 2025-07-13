@@ -1,7 +1,5 @@
-<?php
-// FunkPHP Global Configuration File
+<?php // FunkPHP Global Configuration File (The `$c` Variable)
 // IMPORTANT: This file is used to set the global configuration for FunkPHP
-
 // CHANGE AS NEEDED BELOW SO IT WORKS OFFLINE & ONLINE FOR YOU!
 define('FUNKPHP_IS_LOCAL', (isset($_SERVER['SERVER_NAME'])
     && ($_SERVER['SERVER_NAME'] === 'localhost'
@@ -102,7 +100,7 @@ return [
 
     // 'TABLES' is the array of Processed SQL Tables ("schemas" folder) that
     // are used in tandem with Validation & SQL Handlers during DB CRUD!
-    'TABLES' => include __DIR__ . '/tables.php',
+    'TABLES' => include_once __DIR__ . '/tables.php',
 
     // 'req' is the array of request data which will also include changed data based
     // on matched route, middlewares (if any), data (if any) and page (if any), etc.
@@ -118,13 +116,19 @@ return [
         'matched_data' => null,
         'matched_page' => null,
         'deleted_middlewares' => null,
+        'deleted_pipeline' => null,
         'keep_running_middlewares' => null,
+        'keep_running_pipeline' => null,
         'current_middleware_running' => null,
+        'current_pipeline_running' => null,
         'next_middleware_to_run' => null,
+        'next_pipeline_to_run' => null,
         'matched_auth' => null,
         'matched_csrf' => null,
         'number_of_ran_middlewares' => 0,
+        'number_of_ran_pipeline' => 0,
         'number_of_deleted_middlewares' => 0,
+        'number_of_deleted_pipeline' => 0,
         'cache_page_response' => null,
         'cache_json_response' => null,
         'code' => 418,
@@ -141,7 +145,7 @@ return [
 
     // 'db' is the database object that will be used to handle the database connection & queries!
     // 'db_lid' will always contain the last inserted ID from the last database query!
-    'db' => include __DIR__ . '/db.php',
+    'db' => include_once __DIR__ . '/db.php',
     'db_lid' => null,
 
     // 'v' should be NULL but stores ANY founds errors during the validation process while

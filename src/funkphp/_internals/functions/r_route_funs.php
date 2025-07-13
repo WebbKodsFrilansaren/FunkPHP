@@ -6,23 +6,23 @@
 function funk_run_pipeline(&$c)
 {
     if (
-        isset($c['r_config']['pipeline'])
-        && is_array($c['r_config']['pipeline'])
-        && count($c['r_config']['pipeline']) > 0
+        isset($c['<ENTRY>']['pipeline'])
+        && is_array($c['<ENTRY>']['pipeline'])
+        && count($c['<ENTRY>']['pipeline']) > 0
     ) {
-        $count = count($c['r_config']['pipeline']);
-        $c['req']['keep_running_middlewares'] = true;
+        $count = count($c['<ENTRY>']['pipeline']);
+        $c['req']['keep_running_pipeline'] = true;
         for ($i = 0; $i < $count; $i++) {
-            if ($c['req']['keep_running_middlewares'] === false) {
+            if ($c['req']['keep_running_pipeline'] === false) {
                 break;
             }
 
             // Check that it is a string and not null
-            $current_mw = $c['r_config']['pipeline'][$i] ?? null;
+            $current_mw = $c['<ENTRY>']['pipeline'][$i] ?? null;
             if ($current_mw === null || !is_string($current_mw)) {
-                unset($c['r_config']['pipeline'][$i]);
-                $c['req']['number_of_deleted_middlewares']++;
-                $c['err']['CONFIG'][] = 'Middleware at index ' .  $i . ' is not a valid string or is null!';
+                unset($c['<ENTRY>']['pipeline'][$i]);
+                $c['req']['number_of_deleted_pipeline']++;
+                $c['err']['CONFIG'][] = 'Pipeline Function at index ' .  $i . ' is not a valid string or is null!';
                 continue;
             }
 
@@ -30,45 +30,45 @@ function funk_run_pipeline(&$c)
             // then run it and increment the number of ran middlewares
             $mwDir = dirname(dirname(__DIR__)) . '/pipeline/';
             $mwToRun = $mwDir . $current_mw . '.php';
-            if (is_dir($mwDir) && file_exists($mwToRun)) {
+            if (file_exists($mwToRun)) {
                 $RunMW = include $mwToRun;
                 if (is_callable($RunMW)) {
-                    $c['req']['current_middleware_running'] = $current_mw;
-                    $c['req']['number_of_ran_middlewares']++;
-                    $c['req']['next_middleware_to_run'] = $c['r_config']['pipeline'][$i + 1] ?? null;
+                    $c['req']['current_pipeline_running'] = $current_mw;
+                    $c['req']['number_of_ran_pipeline']++;
+                    $c['req']['next_pipeline_to_run'] = $c['<ENTRY>']['pipeline'][$i + 1] ?? null;
                     $RunMW($c);
                 } // CUSTOM ERROR HANDLING HERE! - not callable (or change below to whatever you like)
                 else {
-                    $c['err']['CONFIG'][] = 'Middleware Function at index ' .  $i . ' is not callable!';
-                    $c['req']['current_middleware_running'] = null;
+                    $c['err']['CONFIG'][] = 'Pipeline Function at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`';
+                    $c['req']['current_pipeline_running'] = null;
                 }
             } // CUSTOM ERROR HANDLING HERE! - no dir or file (or change below to whatever you like)
             else {
-                $c['err']['CONFIG'][] = 'Middleware File at index '  .  $i . ' does not exist or is not a directory!';
-                $c['req']['current_middleware_running'] = null;
+                $c['err']['CONFIG'][] = 'Pipeline Function at index '  .  $i . ' does NOT EXIST in `funkphp/config/pipeline/` Directory!';
+                $c['req']['current_pipeline_running'] = null;
             }
 
-            // Remove middleware[$i] from the array after trying to run
+            // Remove pipeline[$i] from the array after trying to run
             // it (it is removed even if it was not callable/existed!)
-            $c['req']['deleted_middlewares'][] = $current_mw;
-            unset($c['r_config']['pipeline'][$i]);
-            $c['req']['number_of_deleted_middlewares']++;
+            $c['req']['deleted_pipeline'][] = $current_mw;
+            unset($c['<ENTRY>']['pipeline'][$i]);
+            $c['req']['number_of_deleted_pipeline']++;
         }
-        // Set default settings for the next middleware run
-        $c['req']['current_middleware_running'] = null;
+        // Set default settings for the next pipeline run
+        $c['req']['current_pipeline_running'] = null;
         if (
-            isset($c['r_config']['pipeline'])
-            && is_array($c['r_config']['pipeline'])
-            && count($c['r_config']['pipeline']) === 0
+            isset($c['<ENTRY>']['pipeline'])
+            && is_array($c['<ENTRY>']['pipeline'])
+            && count($c['<ENTRY>']['pipeline']) === 0
         ) {
-            $c['r_config']['pipeline'] = null;
+            $c['<ENTRY>']['pipeline'] = null;
         }
-        $c['req']['keep_running_middlewares'] = false;
+        $c['req']['keep_running_pipeline'] = false;
     }
     // CUSTOM ERROR HANDLING HERE! - no matched middlewares (or change below to whatever you like)
     // IMPORTANT: No matched middlewares could mean misconfigured routes or no middlewares at all!
     else {
-        $c['err']['MAYBE']['CONFIG'][] = 'No Configured Route Middlewares (`"<CONFIG>" => "pipeline"`) to run before Route Matching. If you expected Middlewares to run before Route Matching, check the `<CONFIG>` key in the Route `funk/routes/route_single_routes.php` File!';
+        $c['err']['MAYBE']['CONFIG'][] = 'No Configured Pipeline Functions (`"<ENTRY>" => "pipeline"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\']` Key in the Pipeline Configuration File `funkphp/config/pipeline.php` File!';
     }
 }
 
