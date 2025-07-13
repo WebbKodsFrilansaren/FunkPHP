@@ -1,6 +1,6 @@
 <?php return function (&$c) {
     $c['ROUTES'] = [];
-    if (!is_readable(dirname(__DIR__) . '/config/routesa.php')) {
+    if (!is_readable(dirname(__DIR__) . '/config/routes.php')) {
         $c['err']['ROUTES'][] = "Routes in File `funkphp/config/routes.php` not found or non-readable!";
         critical_err_json_or_html(500, "Routes File Not Found OR it is not Readable/Writable!");
     } elseif (!is_readable(dirname(__DIR__) . '/_internals/compiled/troute_route.php')) {
