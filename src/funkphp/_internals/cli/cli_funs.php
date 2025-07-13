@@ -6847,7 +6847,7 @@ function cli_restore_default_folders_and_files()
         "$folderBase/_BACKUPS/handlers/",
         "$folderBase/_BACKUPS/middlewares/",
         "$folderBase/_BACKUPS/pages/",
-        "$folderBase/_BACKUPS/routes/",
+        "$folderBase/_BACKUPS/config/",
         "$folderBase/_BACKUPS/schemas/",
         "$folderBase/_BACKUPS/sql/",
         "$folderBase/_BACKUPS/templates/",
@@ -6867,14 +6867,12 @@ function cli_restore_default_folders_and_files()
         "$folderBase/config/",
         "$folderBase/data/",
         "$folderBase/middlewares/",
-        "$folderBase/middlewares/routes/",
         "$folderBase/pipeline/",
         "$folderBase/exit/",
         "$folderBase/pages/",
         "$folderBase/pages/complete/",
         "$folderBase/pages/components/",
         "$folderBase/pages/partials/",
-        "$folderBase/routes/",
         "$folderBase/tests/",
         "$folderBase/templates/",
         "$folderBase/schemas/",
@@ -6885,7 +6883,6 @@ function cli_restore_default_folders_and_files()
     // Prepare default files that doesn't exist if certain folders don't exist
     $defaultFiles = [
         "$folderBase/_internals/compiled/troute_route.php",
-        "$folderBase/routes/route_single_routes.php",
     ];
 
     // Create folderBase if it does not exist
@@ -6903,7 +6900,7 @@ function cli_restore_default_folders_and_files()
     foreach ($defaultFiles as $file) {
         if (!file_exists($file)) {
             // Recreate default files based on type ("troute", "middleware routes" or "single routes")
-            if (str_contains($file, "troute")) {
+            if (str_contains($file, "troute_route")) {
                 file_put_contents($file, "<?php\n// This file was recreated by FunkCLI!\nreturn [];\n?>");
                 echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
                 continue;
