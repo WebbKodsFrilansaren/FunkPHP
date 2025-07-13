@@ -14,6 +14,11 @@ return  [
         [
           'd_authors' => 'd_by_id',
         ],
+        'middlewares' =>
+        [
+          'm_test' => 'm_by_id',
+          'm_test2' => 'm_by_id',
+        ],
       ],
     ],
     'POST' =>
