@@ -39,9 +39,11 @@
         $c['ROUTES']['DEVELOPER']['ROUTES'] ?? [],
         $c['ROUTES']['DEVELOPER']['ROUTES'] ?? [],
     );
-
-    $c['req']['matched_method'] = $c['req']['method'];
-    // We iterate through the keys of "$FPHP_MATCHED_ROUTE" and set $c['req']['matched_' . $key] accordingly
+    // First set some hardcoded vaues and then we
+    // iterate through the keys of "$FPHP_MATCHED_ROUTE"
+    // and set $c['req']['matched_' . $key] accordingly
+    $c['req']['matched_method'] = $c['req']['method'] ?? null;
+    $c['req']['matched_uri'] = $c['req']['uri'] ?? null;
     foreach ($FPHP_MATCHED_ROUTE as $key => $value) {
         if (is_array($value)) {
             $c['req']['matched_' . $key] = $value;
@@ -49,12 +51,4 @@
             $c['req']['matched_' . $key] = $value ?? null;
         }
     }
-    // $c['req']['matched_route'] = $FPHP_MATCHED_ROUTE['route'] ?? null;
-    // $c['req']['matched_handler'] = $FPHP_MATCHED_ROUTE['handler'] ?? null;
-    // $c['req']['matched_data'] = $FPHP_MATCHED_ROUTE['data'] ?? null;
-    // $c['req']['matched_page'] = $FPHP_MATCHED_ROUTE['page'] ?? null;
-    // $c['req']['matched_params'] = $FPHP_MATCHED_ROUTE['params'] ?? null;
-    // $c['req']['matched_middlewares'] = $FPHP_MATCHED_ROUTE['middlewares'] ?? null;
-    // $c['req']['no_match_in'] = $FPHP_MATCHED_ROUTE['no_match_in'] ?? null;
-    unset($FPHP_MATCHED_ROUTE);
 };

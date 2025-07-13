@@ -309,30 +309,22 @@ function funk_match_developer_route(string $method, string $uri, array $compiled
     $matchedMiddlewareHandlers = [];
     $routeDefinition = null;
     $noMatchIn = ''; // Use as debug value
-
     // Try match HTTP Method Key in Compiled Routes
     if (isset($compiledRouteTrie[$method])) {
         $routeDefinition = funk_match_compiled_route($uri, $compiledRouteTrie[$method]);
     } else {
         $noMatchIn = 'COMPILED_ROUTE_KEY (' . mb_strtoupper($method) . ') & ';
     }
-
     // When Matched Compiled Route, try match Developer's defined route
     if ($routeDefinition !== null) {
         $matchedRoute = $routeDefinition["route"];
         $matchedPathSegments = $routeDefinition["segments"] ?? [];
         $matchedRouteParams = $routeDefinition["params"] ?? null;
-
         // If Compiled Route Matches Developers Defined Route!
         if (isset($developerSingleRoutes[$method][$routeDefinition["route"]])) {
             $routeInfo = $developerSingleRoutes[$method][$routeDefinition["route"]];
             $noMatchIn = 'ROUTE_MATCHED_BOTH';
-
-            // Add Any Matched Middlewares Handlers Defined By Developer
-            // It loops through and only adds those that are non-empty strings
-            // It does loop through arrays of non-empty strings! All values must
-            // belong to the $mHandler key in the $developerMiddlewareRoutes array
-            // or they will be ignored!
+            // Add Any Matched Middlewares Defined By Developer as the $mHandler key
             if (
                 isset($routeDefinition["middlewares"]) && !empty($routeDefinition["middlewares"] && is_array($routeDefinition["middlewares"]))
             ) {
@@ -346,7 +338,7 @@ function funk_match_developer_route(string $method, string $uri, array $compiled
                             }
                         } elseif (is_string($developerMiddlewareRoutes[$method][$middleware][$mHandlerKey]) && !empty($developerMiddlewareRoutes[$method][$middleware][$mHandlerKey])) {
                             $matchedMiddlewareHandlers[] = $developerMiddlewareRoutes[$method][$middleware][$mHandlerKey];
-                        } // If not array or non-empty string, skip
+                        }
                     }
                 }
             }

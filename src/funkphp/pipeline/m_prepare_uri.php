@@ -6,7 +6,7 @@ return function (&$c) {
     if ($uri === "") {
         $uri = "/";
     }
-    if ((substr($uri, -1) == "/") && substr_count($uri, "/") > 1) {
+    if ((substr($uri, -1) === "/") && substr_count($uri, "/") > 1) {
         $uri = substr($uri, 0, -1);
     }
     $c['req']['uri'] = $uri;
