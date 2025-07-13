@@ -326,17 +326,25 @@ function funk_match_developer_route(string $method, string $uri, array $compiled
             $noMatchIn = 'ROUTE_MATCHED_BOTH';
             // Add Any Matched Middlewares Defined By Developer as the $mHandler key
             if (
-                isset($routeDefinition["middlewares"]) && !empty($routeDefinition["middlewares"] && is_array($routeDefinition["middlewares"]))
+                isset($routeDefinition["middlewares"])
+                && is_array($routeDefinition["middlewares"])
+                && !empty($routeDefinition["middlewares"])
             ) {
                 foreach ($routeDefinition["middlewares"] as $middleware) {
-                    if (isset($developerMiddlewareRoutes[$method][$middleware]) && isset($developerMiddlewareRoutes[$method][$middleware][$mHandlerKey])) {
+                    if (
+                        isset($developerMiddlewareRoutes[$method][$middleware])
+                        && isset($developerMiddlewareRoutes[$method][$middleware][$mHandlerKey])
+                    ) {
                         if (is_array($developerMiddlewareRoutes[$method][$middleware][$mHandlerKey])) {
                             foreach ($developerMiddlewareRoutes[$method][$middleware][$mHandlerKey] as $mHandler) {
                                 if (is_string($mHandler) && !empty($mHandler)) {
                                     $matchedMiddlewareHandlers[] = $mHandler;
                                 }
                             }
-                        } elseif (is_string($developerMiddlewareRoutes[$method][$middleware][$mHandlerKey]) && !empty($developerMiddlewareRoutes[$method][$middleware][$mHandlerKey])) {
+                        } elseif (
+                            is_string($developerMiddlewareRoutes[$method][$middleware][$mHandlerKey])
+                            && !empty($developerMiddlewareRoutes[$method][$middleware][$mHandlerKey])
+                        ) {
                             $matchedMiddlewareHandlers[] = $developerMiddlewareRoutes[$method][$middleware][$mHandlerKey];
                         }
                     }

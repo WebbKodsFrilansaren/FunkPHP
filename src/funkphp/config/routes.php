@@ -16,8 +16,8 @@ return  [
         ],
         'middlewares' =>
         [
-          'm_test' => 'm_by_id',
-          'm_test2' => 'm_by_id',
+          'm_test',
+          'm_test2',
         ],
       ],
     ],
