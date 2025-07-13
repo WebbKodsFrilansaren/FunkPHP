@@ -92,8 +92,12 @@ return [
         "videos" => ["videos", "vids"],
     ],
 
-    // ROUTES - The `funkphp/routes/route_single_routes.php` file (this is
-    // first populuated during STEP 3: Match Routing in `funkphp_start.php`)
+    // '<ENTRY>' - This is where `pipeline`, `exit` & and `no_match` keys are stored
+    // in the `funkphp/config/pipeline.php` file and used to run the pipeline!
+    '<ENTRY>' => [],
+
+    // ROUTES - The `funkphp/config/routes.php` file (this is first populated
+    // when `m_match_route` is ran during `pipeline` in `funkphp_start.php`)
     'ROUTES' => [],
 
     // 'TABLES' is the array of Processed SQL Tables ("schemas" folder) that

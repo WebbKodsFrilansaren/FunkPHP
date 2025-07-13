@@ -160,12 +160,15 @@ $settings = include __DIR__ . '/FunkCLI_Settings' ?? [
 // All available dirs to use for the CLI
 $dirs = [
     "config" => __DIR__ . '/funkphp/config/',
+    "config_blocked" => __DIR__ . '/funkphp/config/blocked/',
+    "config_valid" => __DIR__ . '/funkphp/config/valid/',
     "_internals" => __DIR__ . '/funkphp/_internals/',
     "compiled" => __DIR__ . '/funkphp/_internals/compiled/',
     "functions" => __DIR__ . '/funkphp/_internals/functions/',
     "_BACKUPS" => __DIR__ . '/funkphp/_BACKUPS/',
     "pipeline" => __DIR__ . '/funkphp/pipeline/',
-    "routes" => __DIR__ . '/funkphp/routes/',
+    "pipelines" => __DIR__ . '/funkphp/pipeline/',
+    "routes" => __DIR__ . '/funkphp/config/',
     "handlers" => __DIR__ . '/funkphp/handlers/',
     "middlewares" => __DIR__ . '/funkphp/middlewares/',
     "data" => __DIR__ . '/funkphp/data/',
@@ -188,6 +191,7 @@ $dirs = [
     "backups_templates" => __DIR__ . '/funkphp/_BACKUPS/templates/',
     "backups_cached" => __DIR__ . '/funkphp/_BACKUPS/cached/',
     "backups_config" => __DIR__ . '/funkphp/_BACKUPS/config/',
+    "backups_pipeline" => __DIR__ . '/funkphp/_BACKUPS/pipeline/',
     "backups_sql" => __DIR__ . '/funkphp/_BACKUPS/sql/',
     "backups_tests" => __DIR__ . '/funkphp/_BACKUPS/tests/',
     "backups_validations" => __DIR__ . '/funkphp/_BACKUPS/validations/',
@@ -196,10 +200,11 @@ $dirs = [
 // Exact file paths to use for the CLI
 $exactFiles = [
     "troute_route" => $dirs['compiled'] . "troute_route.php",
-    "single_routes" => $dirs['routes'] . "route_single_routes.php",
+    "single_pipeline" => $dirs['config'] . "pipeline.php",
+    "single_routes" => $dirs['config'] . "route.php",
     "tables" => $dirs['config'] . "tables.php",
     "db_local" => $dirs['config'] . "db_config.php",
-    "supported_mysql_data_types" => $dirs['config'] . "VALID_MYSQL_DATATYPES.php",
+    "supported_mysql_data_types" => $dirs['config_valid'] . "valid_mysql_datatypes.php",
 ];
 
 // List of all functions that are reserved for the framework and
@@ -415,33 +420,55 @@ $reserved_functions =  [
 // First restore the folders if they don't exist
 cli_restore_default_folders_and_files();
 
-// Load current routes, data and pages before processing any commands
-$singleRoutesRoute = include __DIR__ . '/funkphp/routes/route_single_routes.php' ?? [
-    '<CONFIG>' => [
-        'pipeline' => [
-            0 => 'm_https_redirect',
-            1 => 'm_run_ini_sets',
-            2 => 'm_set_session_cookie_params',
-            3 => 'm_db_connect',
-            4 => 'm_headers_set',
-            5 => 'm_headers_remove',
-            6 => 'm_start_session',
-            7 => 'm_prepare_uri',
-            8 => 'm_match_denied_exact_ips',
-            9 => 'm_match_denied_methods',
-            10 => 'm_match_denied_uas',
-            11 => 'm_match_route',
-            12 => 'm_run_matched_route_middlewares',
-            13 => 'm_run_matched_route_handler',
-            14 => 'm_run_matched_data_handler',
-        ],
-        'exit' => [],
-        'no_route_match' => ['json' => [], 'page' => []],
-        'no_middlewares_match' => ['json' => [], 'page' => []],
-        'no_handler_match' => ['json' => [], 'page' => []],
-        'no_data_match' => ['json' => [], 'page' => []],
-        'no_page_match' => ['json' => [], 'page' => []],
+// Load current pipeline, routes, data and pages before processing any commands
+$singlePipeline = include __DIR__ . '/funkphp/config/pipeline.php' ?? [
+    'pipeline' => [
+        0 => 'm_https_redirect',
+        1 => 'm_run_ini_sets',
+        2 => 'm_set_session_cookie_params',
+        3 => 'm_db_connect',
+        4 => 'm_headers_set',
+        5 => 'm_headers_remove',
+        6 => 'm_start_session',
+        7 => 'm_prepare_uri',
+        8 => 'm_match_denied_exact_ips',
+        9 => 'm_match_denied_methods',
+        10 => 'm_match_denied_uas',
+        11 => 'm_match_route',
+        12 => 'm_run_matched_route_middlewares',
+        13 => 'm_run_matched_route_handler',
+        14 => 'm_run_matched_data_handler',
     ],
+    'exit' => [],
+    'no_match' =>
+    [
+        'handler' => [
+            'json' =>
+            [],
+            'page' =>
+            [],
+        ],
+        'middlewares' => [
+            'json' =>
+            [],
+            'page' =>
+            [],
+        ],
+        'data' => [
+            'json' =>
+            [],
+            'page' =>
+            [],
+        ],
+        'page' => [
+            'json' =>
+            [],
+            'page' =>
+            [],
+        ],
+    ],
+];
+$singleRoutesRoute = include __DIR__ . '/funkphp/config/routes.php' ?? [
     'ROUTES' => ['GET' => [], 'POST' => [], 'PUT' => [], 'DELETE' => [], 'PATCH' => []]
 ];
 $tablesAndRelationshipsFile = include __DIR__ . '/funkphp/config/tables.php' ?? [
@@ -449,7 +476,7 @@ $tablesAndRelationshipsFile = include __DIR__ . '/funkphp/config/tables.php' ?? 
     'relationships' => [],
     'mappings' => [],
 ];
-$mysqlDataTypesFile = include __DIR__ . '/funkphp/config/VALID_MYSQL_DATATYPES.php' ?? [
+$mysqlDataTypesFile = include __DIR__ . '/funkphp/config/valid/valid_mysql_datatypes.php' ?? [
     'STRINGS' => [],
     'NUMBERS' => [],
     'INTS' => [],
@@ -457,7 +484,7 @@ $mysqlDataTypesFile = include __DIR__ . '/funkphp/config/VALID_MYSQL_DATATYPES.p
     'DATETIMES' => [],
     'BLOBS' => []
 ];
-$mysqlOperatorSyntax = include __DIR__ . '/funkphp/config/VALID_MYSQL_OPERATORS.php' ?? [
+$mysqlOperatorSyntax = include __DIR__ . '/funkphp/config/valid/valid_mysql_operators.php' ?? [
     'arithmetic' => [
         '+' => [],
         '-' => [],
