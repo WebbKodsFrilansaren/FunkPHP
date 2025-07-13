@@ -285,7 +285,7 @@ function funk_match_compiled_route(string $requestUri, array $methodRootNode): ?
     // if all consumed segments matched
     if ($segmentsConsumed === $uriSegmentCount) {
         if (!empty($matchedPathSegments)) {
-            return ["route" => '/' . implode('/', $matchedPathSegments), "params" => $matchedParams, "middlewares" => $matchedMiddlewares];
+            return ["route" => '/' . implode('/', $matchedPathSegments), "segments" => $matchedPathSegments, "params" => $matchedParams, "middlewares" => $matchedMiddlewares];
         }
         // EDGE-CASE: 0 consumed segments,
         // return null instead of matched
@@ -304,10 +304,7 @@ function funk_match_compiled_route(string $requestUri, array $methodRootNode): ?
 function funk_match_developer_route(string $method, string $uri, array $compiledRouteTrie, array $developerSingleRoutes, array $developerMiddlewareRoutes, string $mHandlerKey = "middlewares")
 {
     // Prepare return values
-    $matchedData = null;
-    $matchedPage = null;
     $matchedRoute = null;
-    $matchedRouteHandler = null;
     $matchedRouteParams = null;
     $matchedMiddlewareHandlers = [];
     $routeDefinition = null;
@@ -323,6 +320,7 @@ function funk_match_developer_route(string $method, string $uri, array $compiled
     // When Matched Compiled Route, try match Developer's defined route
     if ($routeDefinition !== null) {
         $matchedRoute = $routeDefinition["route"];
+        $matchedPathSegments = $routeDefinition["segments"] ?? [];
         $matchedRouteParams = $routeDefinition["params"] ?? null;
 
         // If Compiled Route Matches Developers Defined Route!
@@ -362,9 +360,10 @@ function funk_match_developer_route(string $method, string $uri, array $compiled
     return [
         ...$routeInfo ?? [],
         'route' => $matchedRoute,
+        'segments' => $matchedPathSegments,
         'params' => $matchedRouteParams,
         'middlewares' => $matchedMiddlewareHandlers,
-        'no_match_in' => $noMatchIn,
+        'in' => $noMatchIn,
     ];
 }
 
