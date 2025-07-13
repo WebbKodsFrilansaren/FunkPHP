@@ -9,7 +9,7 @@
     } else {
         $c['ROUTES'] = [
             'COMPILED' => include dirname(__DIR__) . '/_internals/compiled/troute_route.php',
-            'SINGLES' => include dirname(__DIR__) . '/config/routes.php',
+            'DEVELOPER' => include dirname(__DIR__) . '/config/routes.php',
         ];
     }
     if (
@@ -22,12 +22,12 @@
     }
     if (
         empty($c['ROUTES'])
-        || !isset($c['ROUTES']['SINGLES'])
-        || !is_array($c['ROUTES']['SINGLES'])
-        || empty($c['ROUTES']['SINGLES'])
-        || !isset($c['ROUTES']['SINGLES']['ROUTES'])
-        || !is_array($c['ROUTES']['SINGLES']['ROUTES'])
-        || empty($c['ROUTES']['SINGLES']['ROUTES'])
+        || !isset($c['ROUTES']['DEVELOPER'])
+        || !is_array($c['ROUTES']['DEVELOPER'])
+        || empty($c['ROUTES']['DEVELOPER'])
+        || !isset($c['ROUTES']['DEVELOPER']['ROUTES'])
+        || !is_array($c['ROUTES']['DEVELOPER']['ROUTES'])
+        || empty($c['ROUTES']['DEVELOPER']['ROUTES'])
     ) {
         $c['err']['ROUTES'][] = "Routes in File `funkphp/config/routes.php` seems empty, please check!";
         critical_err_json_or_html(500, "Routes File loaded but is Empty OR not properly formatted?!");
@@ -36,8 +36,8 @@
         $c['req']['method'],
         $c['req']['uri'],
         $c['ROUTES']['COMPILED'] ?? [],
-        $c['ROUTES']['SINGLES']['ROUTES'] ?? [],
-        $c['ROUTES']['SINGLES']['ROUTES'] ?? [],
+        $c['ROUTES']['DEVELOPER']['ROUTES'] ?? [],
+        $c['ROUTES']['DEVELOPER']['ROUTES'] ?? [],
     );
     $c['req']['matched_method'] = $c['req']['method'];
     $c['req']['matched_route'] = $FPHP_MATCHED_ROUTE['route'] ?? null;
@@ -46,6 +46,6 @@
     $c['req']['matched_page'] = $FPHP_MATCHED_ROUTE['page'] ?? null;
     $c['req']['matched_params'] = $FPHP_MATCHED_ROUTE['params'] ?? null;
     $c['req']['matched_middlewares'] = $FPHP_MATCHED_ROUTE['middlewares'] ?? null;
-    $c['req']['no_matched_in'] = $FPHP_MATCHED_ROUTE['no_match_in'] ?? null;
+    $c['req']['no_match_in'] = $FPHP_MATCHED_ROUTE['no_match_in'] ?? null;
     unset($FPHP_MATCHED_ROUTE);
 };

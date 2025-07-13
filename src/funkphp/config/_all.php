@@ -105,8 +105,6 @@ return [
     // 'req' is the array of request data which will also include changed data based
     // on matched route, middlewares (if any), data (if any) and page (if any), etc.
     'req' => [
-        'current_step' => 1,
-        'next_step' => 1,
         'no_match_in' => null,
         'matched_method' => null,
         'matched_handler' => null,
@@ -115,6 +113,8 @@ return [
         'matched_middlewares' => null,
         'matched_data' => null,
         'matched_page' => null,
+        'matched_auth' => null,
+        'matched_csrf' => null,
         'deleted_pipeline' => null,
         'deleted_middlewares' => null,
         'deleted_exit' => null,
@@ -127,8 +127,6 @@ return [
         'next_pipeline_to_run' => null,
         'next_middleware_to_run' => null,
         'next_exit_to_run' => null,
-        'matched_auth' => null,
-        'matched_csrf' => null,
         'number_of_ran_pipeline' => 0,
         'number_of_ran_middlewares' => 0,
         'number_of_ran_exit' => 0,

@@ -203,11 +203,17 @@ function funk_run_exit(&$c)
     }
 }
 
-
-// Exit funk_run_middleware_after_matched_routing
-function funk_exit_middleware_running_early_matched_routing(&$c)
+// Exit the Pipeline and stop running any further pipeline functions
+// This is useful when you want to stop the pipeline early
+function funk_abort_pipeline(&$c)
 {
-    $c['req']['keep_running_middlewares'] === false;
+    // TODO:
+    return;
+}
+// Same as above but used for the exit functions instead of the pipeline
+function funk_exit_pipeline(&$c)
+{
+    // TODO:
     return;
 }
 
@@ -295,7 +301,7 @@ function funk_match_compiled_route(string $requestUri, array $methodRootNode): ?
 }
 
 // TRIE ROUTER STARTING POINT: Match Returned Matched Compiled Route With Developer's Defined Route
-function funk_match_developer_route(string $method, string $uri, array $compiledRouteTrie, array $developerSingleRoutes, array $developerMiddlewareRoutes, string $handlerKey = "handler", string $mHandlerKey = "middlewares")
+function funk_match_developer_route(string $method, string $uri, array $compiledRouteTrie, array $developerSingleRoutes, array $developerMiddlewareRoutes, string $mHandlerKey = "middlewares")
 {
     // Prepare return values
     $matchedData = null;
@@ -305,13 +311,13 @@ function funk_match_developer_route(string $method, string $uri, array $compiled
     $matchedRouteParams = null;
     $matchedMiddlewareHandlers = [];
     $routeDefinition = null;
-    $noMatchIn = ""; // Use as debug value
+    $noMatchIn = ''; // Use as debug value
 
     // Try match HTTP Method Key in Compiled Routes
     if (isset($compiledRouteTrie[$method])) {
         $routeDefinition = funk_match_compiled_route($uri, $compiledRouteTrie[$method]);
     } else {
-        $noMatchIn = "COMPILED_ROUTE_KEY (" . mb_strtoupper($method) . ") & ";
+        $noMatchIn = 'COMPILED_ROUTE_KEY (' . mb_strtoupper($method) . ') & ';
     }
 
     // When Matched Compiled Route, try match Developer's defined route
@@ -322,10 +328,7 @@ function funk_match_developer_route(string $method, string $uri, array $compiled
         // If Compiled Route Matches Developers Defined Route!
         if (isset($developerSingleRoutes[$method][$routeDefinition["route"]])) {
             $routeInfo = $developerSingleRoutes[$method][$routeDefinition["route"]];
-            $matchedRouteHandler = $routeInfo[$handlerKey] ?? null;
-            $noMatchIn = "ROUTE_MATCHED_BOTH";
-            $matchedData = $routeInfo["data"] ?? null;
-            $matchedPage = $routeInfo["page"] ?? null;
+            $noMatchIn = 'ROUTE_MATCHED_BOTH';
 
             // Add Any Matched Middlewares Handlers Defined By Developer
             // It loops through and only adds those that are non-empty strings
@@ -350,19 +353,18 @@ function funk_match_developer_route(string $method, string $uri, array $compiled
                 }
             }
         } else {
-            $noMatchIn .= "DEVELOPER_ROUTES(route_single_routes.php)";
+            $noMatchIn .= 'DEVELOPER_ROUTES(funkphp/config/routes.php)';
         }
     } else {
-        $noMatchIn .= "COMPILED_ROUTES(troute_route.php)";
+        $noMatchIn .= 'COMPILED_ROUTES(funkphp/_internals/compiled/troute_route.php)';
     }
+    // Return all Keys in matched Route and then overwrite some keys that are "hardcoded"
     return [
-        "route" => $matchedRoute,
-        'data' => $matchedData,
-        'page' => $matchedPage,
-        "$handlerKey" => $matchedRouteHandler,
-        "params" => $matchedRouteParams,
-        "middlewares" => $matchedMiddlewareHandlers,
-        "no_match_in" => $noMatchIn, // Use as debug value
+        ...$routeInfo ?? [],
+        'route' => $matchedRoute,
+        'params' => $matchedRouteParams,
+        'middlewares' => $matchedMiddlewareHandlers,
+        'no_match_in' => $noMatchIn,
     ];
 }
 
