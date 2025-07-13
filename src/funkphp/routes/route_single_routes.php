@@ -22,6 +22,13 @@ return  [
     ],
     'exit' =>
     [],
+    'no_route_match' =>
+    [
+      'json' =>
+      [],
+      'page' =>
+      [],
+    ],
     'no_middlewares_match' =>
     [
       'json' =>
@@ -29,7 +36,7 @@ return  [
       'page' =>
       [],
     ],
-    'no_route_match' =>
+    'no_handler_match' =>
     [
       'json' =>
       [],
