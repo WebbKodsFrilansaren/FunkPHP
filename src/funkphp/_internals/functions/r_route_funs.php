@@ -74,7 +74,7 @@ function funk_run_pipeline(&$c)
 
 // Try run middlewares (recommended to do after matched routing)
 // &$c is Global Config Variable with "everything"!
-function funk_run_middleware_after_matched_routing(&$c)
+function funk_run_matched_route_middleware(&$c)
 {
     if (isset($c['req']['matched_middlewares']) && is_array($c['req']['matched_middlewares']) && count($c['req']['matched_middlewares']) > 0) {
         $count = count($c['req']['matched_middlewares']);
@@ -89,7 +89,7 @@ function funk_run_middleware_after_matched_routing(&$c)
             if ($current_mw === null || !is_string($current_mw)) {
                 unset($c['req']['matched_middlewares'][$i]);
                 $c['req']['number_of_deleted_middlewares']++;
-                $c['err']['MIDDLEWARES'][] = 'Middleware at index ' .  $i . ' is not a valid string or is null!';
+                $c['err']['MIDDLEWARES'][] = 'Middleware at index ' .  $i . ' is NOT a Valid String or Is Null!';
                 continue;
             }
 
@@ -106,12 +106,12 @@ function funk_run_middleware_after_matched_routing(&$c)
                     $RunMW($c);
                 } // CUSTOM ERROR HANDLING HERE! - not callable (or change below to whatever you like)
                 else {
-                    $c['err']['MIDDLEWARES'][] = 'Middleware Function at index ' .   $i . ' is not callable!';
+                    $c['err']['MIDDLEWARES'][] = 'Middleware Function at index ' .   $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`';
                     $c['req']['current_middleware_running'] = null;
                 }
             } // CUSTOM ERROR HANDLING HERE! - no dir or file (or change below to whatever you like)
             else {
-                $c['err']['MIDDLEWARES'][] = 'Middleware File at index ' .  $i . ' does not exist or is not a directory!';
+                $c['err']['MIDDLEWARES'][] = 'Middleware File at index ' .  $i . ' does NOT EXIST in `funkphp/middlewares/` Directory!';
                 $c['req']['current_middleware_running'] = null;
             }
 
@@ -135,7 +135,71 @@ function funk_run_middleware_after_matched_routing(&$c)
     // CUSTOM ERROR HANDLING HERE! - no matched middlewares (or change below to whatever you like)
     // IMPORTANT: No matched middlewares could mean misconfigured routes or no middlewares at all!
     else {
-        $c['err']['MAYBE']['MIDDLEWARES'][] = 'No matched Middlewares to run after Route Matching. If you expected some, check the Route `funk/routes/route_single_routes.php` File for the matched Route: `' . ($c['req']['matched_route'] ?? '') . '`!';
+        $c['err']['MAYBE']['MIDDLEWARES'][] = 'No matched Middlewares to run after Route Matching. If you expected some, check the `middlewares` Key in the `funkphp/config/routes.php` File for the Matched Route: `' . ($c['req']['matched_route'] ?? '<No Route Matched>') . '`!';
+    }
+}
+
+// Try run middlewares AFTER handled request (and this can
+// also be due to being exited prematurely by the application)
+// &$c is Global Config Variable with "everything"!
+function funk_run_exit(&$c)
+{
+    if (
+        isset($c['<ENTRY>']['exit'])
+        && is_array($c['<ENTRY>']['exit'])
+        && count($c['<ENTRY>']['exit']) > 0
+    ) {
+        $count = count($c['<ENTRY>']['exit']);
+        for ($i = 0; $i < $count; $i++) {
+
+            // Check that it is a string and not null
+            $current_mw = $c['<ENTRY>']['exit'][$i] ?? null;
+            if ($current_mw === null || !is_string($current_mw)) {
+                unset($c['<ENTRY>']['exit'][$i]);
+                $c['req']['number_of_deleted_exit']++;
+                $c['err']['<ENTRY>']['EXIT'][] = 'Exit Function at index ' .  $i . ' is not a valid string or is null!';
+                continue;
+            }
+
+            // Only run middleware if dir, file and callable,
+            // then run it and increment the number of ran middlewares
+            $mwDir = dirname(dirname(__DIR__)) . '/exit/';
+            $mwToRun = $mwDir . $current_mw . '.php';
+            if (file_exists($mwToRun)) {
+                $RunMW = include $mwToRun;
+                if (is_callable($RunMW)) {
+                    $c['req']['current_exit_running'] = $current_mw;
+                    $c['req']['number_of_ran_exit']++;
+                    $c['req']['next_exit_to_run'] = $c['<ENTRY>']['exit'][$i + 1] ?? null;
+                    $RunMW($c);
+                } // CUSTOM ERROR HANDLING HERE! - not callable (or change below to whatever you like)
+                else {
+                    $c['err']['<ENTRY>']['EXIT'][] = 'Exit Function at index ' .  $i . ' is not callable!';
+                    $c['req']['current_exit_running'] = null;
+                }
+            } // CUSTOM ERROR HANDLING HERE! - no dir or file (or change below to whatever you like)
+            else {
+                $c['err']['<ENTRY>']['EXIT'][] = 'Exit File at index '  .  $i . ' does not exist or is not a directory!';
+                $c['req']['current_exit_running'] = null;
+            }
+
+            // Remove middleware[$i] from the array after trying to run
+            // it (it is removed even if it was not callable/existed!)
+            $c['req']['deleted_exit'][] = $current_mw;
+            unset($c['<ENTRY>']['exit'][$i]);
+            $c['req']['number_of_deleted_exit']++;
+        }
+        // Set default settings for the next middleware run
+        $c['req']['current_exit_running'] = null;
+        if (
+            isset($c['<ENTRY>']['exit'])
+            && is_array($c['<ENTRY>']['exit'])
+            && count($c['<ENTRY>']['exit']) === 0
+        ) {
+            $c['<ENTRY>']['exit'] = null;
+        }
+    } else {
+        $c['err']['MAYBE']['<ENTRY>']['EXIT'][] = 'No Configured Exit Functions (`"<ENTRY>"" => "exit"` Key) to run after Request Handling. If you expected some, check the `[\'<ENTRY>\'][\'exit\']` Key in the Pipeline Configuration `funkphp/config/pipeline.php` File!';
     }
 }
 

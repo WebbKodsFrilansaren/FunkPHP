@@ -14,7 +14,7 @@ function critical_err_json_or_html($status = 500, $customMessage = "<No Custom M
             // - Default JSON Error Response - change as you wish!
             'status' => $status,
             'error' => 'FunkPHP Framework - Internal Error: Important Files could not be Loaded and/or Executed, so Please Tell the Developer to fix the website or the Web Hosting Service to allow for reading the necessary folders & files! If you are the Developer, please check your Configuration and File permissions where you Develop and/or Host this Website!Thanks in advance! You are Awesome, anyway! ^_^',
-            'message_to_developer' => $customMessage,
+            'message_to_developer_for_debugging' => $customMessage,
         ]);
         exit;
     } else {
@@ -78,7 +78,7 @@ function critical_err_json_or_html($status = 500, $customMessage = "<No Custom M
             <div class="container">
                 <h1>FunkPHP Framework - Internal Error</h1>
                 <p>Important files could not be loaded, so Please Tell the Developer to fix the website or the Web Hosting Service to allow for reading the necessary folders & files!</p>
-                <p><strong>Message to Developer for Debugging:</strong> <?= $customMessage ?? "<No Custom Message Included OR `\$customMessage` Variable is NOT Available for some reason?!>" ?></p>
+                <p><strong>Message to Developer for Debugging:</strong> `<?= $customMessage ?? "<No Custom Message Included OR `\$customMessage` Variable is NOT Available for some reason?!>" ?>`</p>
                 <p>If you are the Developer, please check your Configuration and File permissions where you Develop and/or Host this Website!</p>
                 <p class="center-text">Thanks in advance!<br>You are Awesome, anyway! ^_^</p>
             </div>

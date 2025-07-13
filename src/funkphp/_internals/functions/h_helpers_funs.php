@@ -80,69 +80,6 @@ function return_download($filePath, $fileName = null, $statusCode = 200)
     exit;
 }
 
-// Try run middlewares AFTER handled request (and this can
-// also be due to being exited prematurely by the application)
-// &$c is Global Config Variable with "everything"!
-function funk_run_middleware_after_handled_request(&$c)
-{
-    if (
-        isset($c['r_config']['exit'])
-        && is_array($c['r_config']['exit'])
-        && count($c['r_config']['exit']) > 0
-    ) {
-        $count = count($c['r_config']['exit']);
-        for ($i = 0; $i < $count; $i++) {
-
-            // Check that it is a string and not null
-            $current_mw = $c['r_config']['exit'][$i] ?? null;
-            if ($current_mw === null || !is_string($current_mw)) {
-                unset($c['r_config']['exit'][$i]);
-                $c['req']['number_of_deleted_middlewares']++;
-                $c['err']['MIDDLEWARES'][] = 'Middleware at index ' .  $i . ' is not a valid string or is null!';
-                continue;
-            }
-
-            // Only run middleware if dir, file and callable,
-            // then run it and increment the number of ran middlewares
-            $mwDir = dirname(dirname(__DIR__)) . '/exit/';
-            $mwToRun = $mwDir . $current_mw . '.php';
-            if (file_exists($mwToRun)) {
-                $RunMW = include $mwToRun;
-                if (is_callable($RunMW)) {
-                    $c['req']['current_middleware_running'] = $current_mw;
-                    $c['req']['number_of_ran_middlewares']++;
-                    $c['req']['next_middleware_to_run'] = $c['r_config']['exit'][$i + 1] ?? null;
-                    $RunMW($c);
-                } // CUSTOM ERROR HANDLING HERE! - not callable (or change below to whatever you like)
-                else {
-                    $c['err']['MIDDLEWARES'][] = 'Middleware Function at index ' .  $i . ' is not callable!';
-                    $c['req']['current_middleware_running'] = null;
-                }
-            } // CUSTOM ERROR HANDLING HERE! - no dir or file (or change below to whatever you like)
-            else {
-                $c['err']['MIDDLEWARES'][] = 'Middleware File at index '  .  $i . ' does not exist or is not a directory!';
-                $c['req']['current_middleware_running'] = null;
-            }
-
-            // Remove middleware[$i] from the array after trying to run
-            // it (it is removed even if it was not callable/existed!)
-            $c['req']['deleted_middlewares'][] = $current_mw;
-            unset($c['r_config']['exit'][$i]);
-            $c['req']['number_of_deleted_middlewares']++;
-        }
-        // Set default settings for the next middleware run
-        $c['req']['current_middleware_running'] = null;
-        if (
-            isset($c['r_config']['exit'])
-            && is_array($c['r_config']['exit'])
-            && count($c['r_config']['exit']) === 0
-        ) {
-            $c['r_config']['exit'] = null;
-        }
-    } else {
-        $c['err']['MAYBE']['MIDDLEWARES'][] = "No Configured Exit Middlewares (`'<CONFIG>' => 'exit'`) to run after Request Handling. If you expected some, check the `<CONFIG>` key in the Route `funk/routes/route_single_routes.php` File!";
-    }
-}
 
 // The function "h_destroy_session" is used to destroy the session and optionally redirect to a specified URI
 function funk_destroy_session($set_other_cookies_with_h_setcookie_as_array = [], $redirect = null)

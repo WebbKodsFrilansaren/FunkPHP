@@ -21,7 +21,7 @@ register_shutdown_function(function () use (&$c) {
         && is_array($c['<ENTRY>']['exit'])
         && !empty($c['<ENTRY>']['exit'])
     ) {
-        funk_run_middleware_after_handled_request($c);
+        funk_run_exit($c);
     }
 });
 // MAIN STEP: Run the Pipeline of Anonymous Functions that control the flow of the request!
@@ -32,10 +32,7 @@ if (
 ) {
     funk_run_pipeline($c);
 } else {
-    $c['err']['MAYBE']['CONFIG'][] = "No Configured Route Middlewares (`'<CONFIG>' => 'middlewares_before_route_match'`) to load and run before Route Matching. If you expected Middlewares to run before Route Matching, check the `<CONFIG>` key in the Route `funk/config/routes.php` File!";
+    $c['err']['MAYBE']['CONFIG'][] = 'No Configured Pipeline Functions (`"<ENTRY>" => "pipeline"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\']` Key in the Pipeline Configuration File `funkphp/config/pipeline.php` File!';
 }
 // The registered shutdown callback function will be executed after pipeline
 // has run (unless the script is exited prematurely by the application)!
-echo "Hey, the request has been handled successfully!";
-exit;
-// TODO: Add matching page step. Add running middleware step. Add the Template Engine function too!
