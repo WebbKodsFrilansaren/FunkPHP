@@ -6426,6 +6426,11 @@ function cli_match_compiled_route(string $requestUri, array $methodRootNode): ?a
 
     // EDGE-CASE: '/' and include middleware at root node if it exists
     if ($uriSegmentCount === 0) {
+        // When no match for root node
+        if (!isset($currentNode['/'])) {
+            $matchedPathSegments[] = '/';
+            return null;
+        }
         if (isset($currentNode['|'])) {
             array_push($matchedMiddlewares, "/" . implode('/', $matchedPathSegments));
         }
@@ -6519,10 +6524,10 @@ function cli_match_developer_route(string $method, string $uri, array $compiledR
             $matchedRouteHandler = $routeInfo[$handlerKey] ?? null;
             $noMatchIn = "ROUTE_MATCHED_BOTH";
         } else {
-            $noMatchIn .= "DEVELOPER_ROUTES(route_single_routes.php)";
+            $noMatchIn .= "DEVELOPER_ROUTES(funkphp/config/routes.php)";
         }
     } else {
-        $noMatchIn .= "COMPILED_ROUTES(troute_route.php)";
+        $noMatchIn .= "COMPILED_ROUTES(funkphp/_internals/compiled/troute_route.php)";
     }
     return [
         "method" => $method,
@@ -6538,18 +6543,18 @@ function cli_rebuild_single_routes_route_file($singleRouteRoutesFileArray): bool
 {
     global $exactFiles, $dirs, $settings;
     if (!is_array($singleRouteRoutesFileArray) || empty($singleRouteRoutesFileArray)) {
-        cli_err_syntax("[cli_rebuild_single_routes_file] Single Route Routes File Array (funkphp/routes/route_single_routes.php) must be a non-empty array!");
+        cli_err_syntax("[cli_rebuild_single_routes_file] Single Route Routes File Array (funkphp/config/routes.php) must be a non-empty array!");
     }
     if (!isset($singleRouteRoutesFileArray['ROUTES'])) {
-        cli_err_syntax("[cli_rebuild_single_routes_file] Single Route Routes File Array (funkphp/routes/route_single_routes.php) must start with a 'ROUTES' key!");
+        cli_err_syntax("[cli_rebuild_single_routes_file] Single Route Routes File Array (funkphp/config/routes.php) must start with a 'ROUTES' key!");
     }
     // Check that dir exist, is writable and is a directory
     if (!is_dir($dirs['routes']) || !is_writable($dirs['routes'])) {
-        cli_err("[cli_rebuild_single_routes_file] Routes directory (funkphp/routes/) must be a valid directory and writable!");
+        cli_err("[cli_rebuild_single_routes_file] Directory for `routes.php` (funkphp/config/) must be a Writable Directory. Check it exists and/or its File Permission!");
     }
     // Check that if file exists, it can be overwritten
     if (file_exists($exactFiles['single_routes']) && !is_writable($exactFiles['single_routes'])) {
-        cli_err("[cli_rebuild_single_routes_file] Routes file (funkphp/routes/route_single_routes.php) must be writable. It is not!");
+        cli_err("[cli_rebuild_single_routes_file] Routes file (funkphp/config/routes.php) must be writable. It is not!");
     }
     return file_put_contents(
         $exactFiles['single_routes'],
@@ -7339,9 +7344,9 @@ function cli_sort_build_routes_compile_and_output($singleRoutesRootArray)
     // Then we rebuild and recompile Routes
     $rebuild = cli_rebuild_single_routes_route_file($singleRoutesRootArray);
     if ($rebuild) {
-        cli_success_without_exit("Rebuilt Route file \"funkphp/routes/route_single_routes.php\"!");
+        cli_success_without_exit("Rebuilt Route file \"funkphp/config/routes.php\"!");
     } else {
-        cli_err("FAILED to rebuild Route file \"funkphp/routes/route_single_routes.php\". File permissions issue?");
+        cli_err("FAILED to rebuild Route file \"funkphp/config/routes.php\". File permissions issue?");
     }
     $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRootArray['ROUTES'], $singleRoutesRootArray['ROUTES']);
     cli_output_compiled_routes($compiledRouteRoutes, "troute_route");
@@ -7364,11 +7369,13 @@ function cli_add_a_route()
 
     // Check if the exact route already exists in the route file
     if (isset($singleRoutesRoute['ROUTES'][$method][$validRoute]) ?? null) {
-        cli_err("\"$method$validRoute\" already exists in Routes!");
+        cli_err("\"$method$validRoute\" already exists in Routes! (`funkphp/config/routes.php`)");
     }
 
-    // Now we check against conflicting routes (dynamic routes) and if it exists, we error
-    $findDynamicRoute = cli_match_developer_route($method, $validRoute, include_once $exactFiles['troute_route'], $singleRoutesRoute['ROUTES'], $singleRoutesRoute['ROUTES']);
+    // Check against conflicting Dynamic Routes when they are on the same URI Segment level at the end
+    // For example: `GET/users/:id` and `GET/users/:id2` because they are on the same level at the end
+    $troute = include_once $exactFiles['troute_route'];
+    $findDynamicRoute = cli_match_developer_route($method, $validRoute, $troute, $singleRoutesRoute['ROUTES'], $singleRoutesRoute['ROUTES']);
     if ($findDynamicRoute['route'] !== null) {
         cli_err_without_exit("Found Dynamic Route \"{$findDynamicRoute['method']}{$findDynamicRoute['route']}\" in Trie Routes would conflict with \"$method$validRoute\".");
         cli_info("Run `php funkcli compile r` to rebuild Trie Routes if you manually removed that Route you want to add again!");
@@ -7391,7 +7398,7 @@ function cli_add_a_route()
         ];
     }
     // Show success message and then sort, build, compile and output the routes
-    cli_success_without_exit("Added Route \"$method$validRoute\" to \"funkphp/routes/route_single_routes.php\" with Handler \"$handlerFile\" and Function \"$fnName\"!");
+    cli_success_without_exit("Added Route \"$method$validRoute\" to \"funkphp/routes.php\" with Handler \"$handlerFile\" and Function \"$fnName\"!");
     cli_sort_build_routes_compile_and_output($singleRoutesRoute);
 }
 
@@ -8602,12 +8609,7 @@ function cli_get_prefix_code($keyString)
 {
     $currDate = date("Y-m-d H:i:s");
     $prefixCode = [
-        "route_singles_routes_start" => "<?php // ROUTE_SINGLE_ROUTES.PHP - FunkPHP Framework | This File Was Modified In FunkCLI $currDate\nreturn ",
-        "route_middleware_routes_start" => "<?php // ROUTE_Middleware_ROUTES.PHP - FunkPHP Framework | This File Was Modified In FunkCLI $currDate\n return ",
-        "data_middleware_routes_start" => "<?php // DATA_Middleware_ROUTES.PHP - FunkPHP Framework | This File Was Modified In FunkCLI $currDate\n return ",
-        "page_middleware_routes_start" => "<?php // PAGES_Middleware_ROUTES.PHP - FunkPHP Framework | This File Was Modified In FunkCLI $currDate\n return ",
-        "data_singles_routes_start" => "<?php // DATA_SINGLE_ROUTES.PHP - FunkPHP Framework | This File Was Modified In FunkCLI $currDate\n return ",
-        "page_singles_routes_start" => "<?php // PAGE_SINGLE_ROUTES.PHP - FunkPHP Framework | This File Was Modified In FunkCLI $currDate\n return",
+        "route_singles_routes_start" => "<?php // Routes.php - FunkPHP Framework | FunkCLI Modified it $currDate\nreturn ",
     ];
 
     return $prefixCode[$keyString] ?? null;
@@ -9538,18 +9540,17 @@ function create_handler_file_with_fn_or_fn_or_err_out($handlerType, $handlersDir
     $templateDirs = $dirs['templates'];
     $date = date("Y-m-d H:i:s");
     $outputHandlerRoute = null;
-    $validationLimiterStrings = $handlerType === 'v' ? "// FunkCLI created $date! Keep Closing Curly Bracket on its\n// own new line without indentation no comment right after it!\n// Run the command `php funkcli compile v $handlerFile=>$fnName`\n// to get optimized version in return statement below it!\n\$DX = [];\n\n\nreturn array([]);\n" : "";
     $customCodeString = "";
     $failedToRunFunction = "FAILED_TO_RUN_" . $handlerDirPathUPPERCASE . "_FUNCTION-" . $handlerFile;
     $returnFunctionRegex = get_match_return_function_regex($fnName, $method, $validRoute) ?? "";
-    $handlerBaseFullStringRow1 = "\n\$base = is_string(\$handler) ? \$handler : \"\";";
-    $handlerBaseFullStringRow2 = "\n\$full = __NAMESPACE__ . '\\\\' . \$base;";
-    $handlerBaseFullStringRow3 = "\nif (function_exists(\$full)) {";
-    $handlerBaseFullStringRow4 = "\nreturn \$full(\$c);";
-    $handlerBaseFullStringRow5 = "\n} else {";
-    $handlerBaseFullStringRow6 = "\$c['err']['$upperCaseHDP'][] = '$handlerPrefix Function `' . \$full . '` not found in namespace `' . __NAMESPACE__ . '`. Does it exist as a callable function in the File?';";
-    $handlerBaseFullStringRow7 = "\nreturn null;";
-    $handlerBaseFullStringRow8 = "\n}";
+    $handlerBaseFullStringRow1 = "\n\t\$base = is_string(\$handler) ? \$handler : \"\";";
+    $handlerBaseFullStringRow2 = "\n\t\$full = __NAMESPACE__ . '\\\\' . \$base;";
+    $handlerBaseFullStringRow3 = "\n\tif (function_exists(\$full)) {";
+    $handlerBaseFullStringRow4 = "\n\t\treturn \$full(\$c);";
+    $handlerBaseFullStringRow5 = "\n\t} else {";
+    $handlerBaseFullStringRow6 = "\n\t\t\$c['err']['$upperCaseHDP'][] = '$handlerPrefix Function `' . \$full . '` not found in namespace `' . __NAMESPACE__ . '`. Does it exist as a callable function in the File?';";
+    $handlerBaseFullStringRow7 = "\n\t\treturn null;";
+    $handlerBaseFullStringRow8 = "\n\t}";
     $handlerBaseFullString =
         $handlerBaseFullStringRow1
         . $handlerBaseFullStringRow2 . $handlerBaseFullStringRow3
@@ -9593,7 +9594,7 @@ function create_handler_file_with_fn_or_fn_or_err_out($handlerType, $handlersDir
         // Create the handler file with the function name and return a success message
         $outputHandlerRoute = file_put_contents(
             $handlersDir . $handlerFile . ".php",
-            "<?php\nnamespace FunkPHP\\$handlerDirPathFirstUC\\$handlerFile;\n// $handlerPrefix Handler File - Created in FunkCLI on $date!\n// IMPORTANT: CMD+S or CTRL+S to autoformat each time function is added!\n\nfunction $fnName(&\$c) // <$method$validRoute>\n{\n// FunkCLI created $date! Keep Closing Curly Bracket on its\n// own new line without indentation no comment right after it!\n$customCodeString\n};\n\nreturn function (&\$c, \$handler = \"$fnName\") { $handlerBaseFullString };\n"
+            "<?php\nnamespace FunkPHP\\$handlerDirPathFirstUC\\$handlerFile;\n// $handlerPrefix Handler File - Created in FunkCLI on $date!\n// IMPORTANT: CMD+S or CTRL+S to autoformat each time function is added!\n\nfunction $fnName(&\$c) // <$method$validRoute>\n{\n// FunkCLI created $date! Keep Closing Curly Bracket on its\n// own new line without indentation no comment right after it!\n$customCodeString\n};\n\nreturn function (&\$c, \$handler = \"$fnName\") { $handlerBaseFullString \n};\n"
         );
 
         if ($outputHandlerRoute) {
@@ -9662,8 +9663,8 @@ function create_handler_file_with_fn_or_fn_or_err_out($handlerType, $handlersDir
             }
         } else {
             // The 'return function' block was not found - the file structure is invalid
-            cli_err_without_exit("[create_handler_file_with_fn_or_fn_or_err_out]: Invalid handler file structure.");
-            cli_err("Could not find the 'return function(...) {...};' block in \"funkphp/{$handlerDirPath}/{$handlerFile}.php\".");
+            cli_err_without_exit("[create_handler_file_with_fn_or_fn_or_err_out]: Invalid handler file structure.\nHave You Saved the File since last time Added Function to it?\nOtherwise, the `return function(...) {...};` block ends up not being found by the regex due to not being intended correctly!");
+            cli_err("Could not find the 'return function(...) {...};' block in \"funkphp/{$handlerDirPath}/{$handlerFile}.php\". Try saving the file first to ensure the structure is correct.\nIf you have not saved the file, the regex will not match the expected structure, and this function will not be able to add the new function.");
             return false; // Exit the function as the file structure is unexpected
         }
     }

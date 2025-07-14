@@ -1,23 +1,21 @@
-<?php // routes.PHP - FunkPHP Framework | This File Was Modified In FunkCLI 2025-07-10 21:34:42
+<?php // Routes.php - FunkPHP Framework | FunkCLI Modified it 2025-07-14 04:29:24
 return  [
   'ROUTES' =>
   [
     'GET' =>
     [
-      '/authors/:id' =>
+      '/' =>
       [
         'handler' =>
         [
-          'r_authors' => 'r_by_id',
+          'r_test' => 'r_test1',
         ],
-        'data' =>
+      ],
+      '/:id' =>
+      [
+        'handler' =>
         [
-          'd_authors' => 'd_by_id',
-        ],
-        'middlewares' =>
-        [
-          'm_test',
-          'm_test2',
+          'r_test' => 'r_test2',
         ],
       ],
     ],
