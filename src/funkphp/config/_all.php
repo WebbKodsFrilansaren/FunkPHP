@@ -89,6 +89,21 @@ return [
         "temp" => ["temp", "tmp"],
         "videos" => ["videos", "vids"],
     ],
+    // 'ROUTE_KEYS' are the folder paths for different Route Keys (Handlers, Data, Pages, etc.)
+    // that are used to find, load and try to execute different kinds of functions based on the
+    // matched Route Key (e.g. 'handlers', 'data', 'page', etc.)!
+    'ROUTE_KEYS' => [
+        'handlers' =>
+        ['dir' => 'handlers', 'prefix' => 'r_'],
+        'middlewares' =>
+        ['dir' => 'middlewares', 'prefix' => 'm_'],
+        'data' =>
+        ['dir' => 'data', 'prefix' => 'd_'],
+        'sql' =>
+        ['dir' => 'sql', 'prefix' => 's_'],
+        'page' =>
+        ['dir' => 'pages', 'prefix' => 'p_'],
+    ],
 
     // '<ENTRY>' - This is where `pipeline`, `exit` & and `no_match` keys are stored
     // in the `funkphp/config/pipeline.php` file and used to run the pipeline!
@@ -117,6 +132,13 @@ return [
         'matched_page' => null,
         'matched_auth' => null,
         'matched_csrf' => null,
+        'current_passed_value' => [
+            'pipeline' => [],
+            'handlers' => [],
+            'middlewares' => [],
+            'data' => [],
+            'page' => []
+        ],
         'deleted_pipeline' => null,
         'deleted_middlewares' => null,
         'deleted_exit' => null,

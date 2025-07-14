@@ -1,5 +1,11 @@
 <?php // ROUTE-related FUNCTIONS FOR FunPHP
 
+// Function that returns a stored value in $c['req']['current_passed_value']["pipeline" is default!]
+function funk_current_value(&$c, $currentStoredPassedValueForDefaultPipelineOrOtherKey = "pipeline")
+{
+    return $c['req']['current_passed_value'][$currentStoredPassedValueForDefaultPipelineOrOtherKey] ?? null;
+}
+
 // `pipeline` is the list of functions to always run for each request (unless any
 // of the functions terminates it early!) This is the main entry point for each request!
 // &$c is Global Config Variable with "everything"!
@@ -17,26 +23,41 @@ function funk_run_pipeline(&$c)
                 break;
             }
 
-            // Check that it is a string and not null
-            $current_mw = $c['<ENTRY>']['pipeline'][$i] ?? null;
-            if ($current_mw === null || !is_string($current_mw)) {
+            // Must not be null and either a String or an Array Key with a Value!
+            // We use $pipeValueExists so we also can pass "null" as a value!
+            $fnToRun = "";
+            $current_pipe = $c['<ENTRY>']['pipeline'][$i] ?? null;
+            if (
+                $current_pipe === null ||
+                (!is_string($current_pipe) && !is_array($current_pipe))
+            ) {
                 unset($c['<ENTRY>']['pipeline'][$i]);
                 $c['req']['number_of_deleted_pipeline']++;
-                $c['err']['CONFIG'][] = 'Pipeline Function at index ' .  $i . ' is not a valid string or is null!';
+                $c['err']['CONFIG'][] = 'Pipeline Function at index ' .  $i . ' is either NULL or NOT a Valid Data Type. It must be a String or An Associative Array Key with a Value! (Value can be null, but that is probably not useful in most cases)';
                 continue;
             }
+            // Extract Function Name from the Array Key or String and store the value
+            // in $c['req']['pipeline'] so it can be accessed anywhere during the request
+            elseif (is_array($current_pipe)) {
+                $fnToRun = key($current_pipe);
+                $c['req']['current_passed_values']['pipeline'][$fnToRun] = $current_pipe[$fnToRun] ?? null;
+                $c['req']['current_passed_value']['pipeline'] = $current_pipe[$fnToRun] ?? null;
+            } // "else" means it is a String so it has no value to store/pass on!
+            else {
+                $fnToRun = $current_pipe;
+            }
 
-            // Only run middleware if dir, file and callable,
-            // then run it and increment the number of ran middlewares
-            $mwDir = dirname(dirname(__DIR__)) . '/pipeline/';
-            $mwToRun = $mwDir . $current_mw . '.php';
-            if (file_exists($mwToRun)) {
-                $RunMW = include $mwToRun;
-                if (is_callable($RunMW)) {
-                    $c['req']['current_pipeline_running'] = $current_mw;
+            // Only run Pipeline Function if dir, file and callable, then
+            // run it and increment the number of ran pipeline functions
+            $pipeDir = dirname(dirname(__DIR__)) . '/pipeline/';
+            $pipeToRun = $pipeDir . $fnToRun . '.php';
+            if (file_exists($pipeToRun)) {
+                $runPipe = include $pipeToRun;
+                if (is_callable($runPipe)) {
+                    $c['req']['current_pipeline_running'] = $current_pipe;
                     $c['req']['number_of_ran_pipeline']++;
                     $c['req']['next_pipeline_to_run'] = $c['<ENTRY>']['pipeline'][$i + 1] ?? null;
-                    $RunMW($c);
+                    $runPipe($c);
                 } // CUSTOM ERROR HANDLING HERE! - not callable (or change below to whatever you like)
                 else {
                     $c['err']['CONFIG'][] = 'Pipeline Function at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`';
@@ -50,8 +71,10 @@ function funk_run_pipeline(&$c)
 
             // Remove pipeline[$i] from the array after trying to run
             // it (it is removed even if it was not callable/existed!)
-            $c['req']['deleted_pipeline'][] = $current_mw;
+            $c['req']['deleted_pipeline'][] = $current_pipe;
             unset($c['<ENTRY>']['pipeline'][$i]);
+            unset($c['req']['current_passed_values']['pipeline'][$fnToRun]);
+            unset($c['req']['current_passed_value']['pipeline']);
             $c['req']['number_of_deleted_pipeline']++;
         }
         // Set default settings for the next pipeline run
@@ -211,7 +234,7 @@ function funk_abort_pipeline(&$c)
     return;
 }
 // Same as above but used for the exit functions instead of the pipeline
-function funk_exit_pipeline(&$c)
+function funk_about_exit(&$c)
 {
     // TODO:
     return;
@@ -305,6 +328,7 @@ function funk_match_developer_route(string $method, string $uri, array $compiled
 {
     // Prepare return values
     $matchedRoute = null;
+    $matchedPathSegments = null;
     $matchedRouteParams = null;
     $matchedMiddlewareHandlers = [];
     $routeDefinition = null;

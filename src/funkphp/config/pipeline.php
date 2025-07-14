@@ -15,7 +15,7 @@ return  [
         10 => 'm_match_denied_uas',
         11 => 'm_match_route',
         12 => 'm_run_matched_route_middlewares',
-        13 => 'm_run_matched_route_handler',
+        13 => ['m_run_matched_route_handler' => "test"],
         14 => 'm_run_matched_data_handler',
     ],
     'exit' =>

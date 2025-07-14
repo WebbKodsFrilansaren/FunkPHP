@@ -6847,6 +6847,7 @@ function cli_restore_default_folders_and_files()
         "$folderBase/_BACKUPS/",
         "$folderBase/_BACKUPS/_FINAL_BACKUPS/",
         "$folderBase/_BACKUPS/compiled/",
+        "$folderBase/_BACKUPS/pipeline/",
         "$folderBase/_BACKUPS/data/",
         "$folderBase/_BACKUPS/handlers/",
         "$folderBase/_BACKUPS/middlewares/",
