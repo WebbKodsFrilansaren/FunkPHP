@@ -6428,7 +6428,6 @@ function cli_match_compiled_route(string $requestUri, array $methodRootNode): ?a
     if ($uriSegmentCount === 0) {
         // When no match for root node
         if (!isset($currentNode['/'])) {
-            $matchedPathSegments[] = '/';
             return null;
         }
         if (isset($currentNode['|'])) {
