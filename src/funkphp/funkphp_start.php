@@ -2,14 +2,14 @@
 // CHECK DEFAULT FOLDERS & FILES OR CRITICAL ERROR BASED 'ACCEPT' TPYE!
 if (
     !is_readable(__DIR__ . '/config/_all.php')
-    || !is_readable(__DIR__ . '/_internals/functions/_includeAllExceptCLI.php')
+    || !is_readable(__DIR__ . '/_internals/functions/_all.php')
     || !is_readable(__DIR__ . '/config/pipeline.php')
 ) {
     critical_err_json_or_html(500, "The Global Configuration Variable `\$c` could not be loaded and/or all the necessary Function Files!");
 }
 // Load all functions needed for the FunkPHP Framework Web Application
 // $c is the global configuration array that is used throughout the application
-include_once __DIR__ . '/_internals/functions/_includeAllExceptCLI.php';
+include_once __DIR__ . '/_internals/functions/_all.php';
 $c = include_once __DIR__ . '/config/_all.php';
 $c['<ENTRY>'] = include_once __DIR__ . '/config/pipeline.php';
 

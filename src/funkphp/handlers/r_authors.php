@@ -14,7 +14,7 @@ function r_by_id(&$c) // <GET/authors/:id>
         echo "IS NOT NUMBER!";
     }
     //$test = funk_load_sql($c, 's_test2', 's_test5');
-    vd($c['req']);
+    vd($c['err']);
 };
 
 return function (&$c, $handler = "r_by_id") {
