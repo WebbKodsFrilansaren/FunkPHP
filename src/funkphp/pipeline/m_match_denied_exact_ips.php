@@ -1,8 +1,11 @@
 <?php
 return function (&$c) {
-    // Try parse IP and check if it is valid
+    // Try parse (possibly proxy) IP and check if it is valid
     $ip = $_SERVER['REMOTE_ADDR'] ?? null;
-    if ($ip === "" || $ip === null || !is_string($ip) || !filter_var($ip, FILTER_VALIDATE_IP)) {
+    if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+        $ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
+    }
+    if ($ip === null || !is_string($ip) || !filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 | FILTER_FLAG_IPV6)) {
         critical_err_json_or_html(500);
     }
 
