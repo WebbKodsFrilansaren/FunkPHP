@@ -151,12 +151,19 @@ function funk_run_matched_route_middleware(&$c)
             // then run it and increment the number of ran middlewares
             $mwDir = dirname(dirname(__DIR__)) . '/middlewares/';
             $mwFileToRun = $mwDir . $mwToRun . '.php';
-            if (file_exists($mwFileToRun)) {
+            // We check if it already exists in $c['m_handlers'] so we can reuse it
+            if (isset($c['m_handlers'][$mwToRun]) && is_callable($c['m_handlers'][$mwToRun])) {
+                $RunMW = $c['m_handlers'][$mwToRun];
+                $RunMW($c, $mwValue);
+            }
+            // Otherwise check if the file exists and is readable, and then include it
+            elseif (file_exists($mwFileToRun)) {
                 $RunMW = include_once $mwFileToRun;
                 if (is_callable($RunMW)) {
                     $c['req']['current_middleware_running'] = $current_mw;
                     $c['req']['number_of_ran_middlewares']++;
                     $c['req']['next_middleware_to_run'] = $c['req']['matched_middlewares'][$i + 1] ?? null;
+                    $c['m_handlers'][$mwToRun] = $RunMW; // Store the callable middleware function
                     $RunMW($c, $mwValue);
                 } // CUSTOM ERROR HANDLING HERE! - not callable (or change below to whatever you like)
                 else {
@@ -220,7 +227,7 @@ function funk_run_exit(&$c)
             $mwDir = dirname(dirname(__DIR__)) . '/exit/';
             $mwToRun = $mwDir . $current_mw . '.php';
             if (file_exists($mwToRun)) {
-                $RunMW = include $mwToRun;
+                $RunMW = include_once $mwToRun;
                 if (is_callable($RunMW)) {
                     $c['req']['current_exit_running'] = $current_mw;
                     $c['req']['number_of_ran_exit']++;
