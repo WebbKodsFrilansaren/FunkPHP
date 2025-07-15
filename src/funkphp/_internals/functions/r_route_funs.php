@@ -5,6 +5,24 @@ function funk_current_value(&$c, $currentStoredPassedValueForDefaultPipelineOrOt
 {
     return $c['req']['current_passed_value'][$currentStoredPassedValueForDefaultPipelineOrOtherKey] ?? null;
 }
+// Shorthand version of funk_current_value() that uses the default "pipeline" key
+function funk_cv(&$c, $currentStoredPassedValueForDefaultPipelineOrOtherKey = "pipeline")
+{
+    return $c['req']['current_passed_value'][$currentStoredPassedValueForDefaultPipelineOrOtherKey] ?? null;
+}
+function funk_current_fn_value(&$c, $key, $fnName)
+{
+    // Store error in $c['err'] if no key or fnName is provided (null or empty strings or not strings at all!)
+    if (!isset($key) || !is_string($key) || empty($key)) {
+        $c['err']['MAYBE']['funk_current_fn_value'][] = 'No Key provided to get Current Function Value!';
+        return null;
+    }
+    if (!isset($fnName) || !is_string($fnName) || empty($fnName)) {
+        $c['err']['MAYBE']['funk_current_fn_value'][] = 'No Function Name provided to get Current Function Value!';
+        return null;
+    }
+    return $c['req']['current_passed_values'][$key][$fnName] ?? null;
+}
 
 // `pipeline` is the list of functions to always run for each request (unless any
 // of the functions terminates it early!) This is the main entry point for each request!
@@ -26,6 +44,7 @@ function funk_run_pipeline(&$c)
             // Must not be null and either a String or an Array Key with a Value!
             // We use $pipeValueExists so we also can pass "null" as a value!
             $fnToRun = "";
+            $pipeValue = null;
             $current_pipe = $c['<ENTRY>']['pipeline'][$i] ?? null;
             if (
                 $current_pipe === null ||
@@ -40,6 +59,7 @@ function funk_run_pipeline(&$c)
             // in $c['req']['pipeline'] so it can be accessed anywhere during the request
             elseif (is_array($current_pipe)) {
                 $fnToRun = key($current_pipe);
+                $pipeValue = $current_pipe[$fnToRun] ?? null;
                 $c['req']['current_passed_values']['pipeline'][$fnToRun] = $current_pipe[$fnToRun] ?? null;
                 $c['req']['current_passed_value']['pipeline'] = $current_pipe[$fnToRun] ?? null;
             } // "else" means it is a String so it has no value to store/pass on!
@@ -52,12 +72,12 @@ function funk_run_pipeline(&$c)
             $pipeDir = dirname(dirname(__DIR__)) . '/pipeline/';
             $pipeToRun = $pipeDir . $fnToRun . '.php';
             if (file_exists($pipeToRun)) {
-                $runPipe = include $pipeToRun;
+                $runPipe = include_once $pipeToRun;
                 if (is_callable($runPipe)) {
                     $c['req']['current_pipeline_running'] = $current_pipe;
                     $c['req']['number_of_ran_pipeline']++;
                     $c['req']['next_pipeline_to_run'] = $c['<ENTRY>']['pipeline'][$i + 1] ?? null;
-                    $runPipe($c);
+                    $runPipe($c, $pipeValue);
                 } // CUSTOM ERROR HANDLING HERE! - not callable (or change below to whatever you like)
                 else {
                     $c['err']['CONFIG'][] = 'Pipeline Function at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`';
@@ -73,7 +93,6 @@ function funk_run_pipeline(&$c)
             // it (it is removed even if it was not callable/existed!)
             $c['req']['deleted_pipeline'][] = $current_pipe;
             unset($c['<ENTRY>']['pipeline'][$i]);
-            unset($c['req']['current_passed_values']['pipeline'][$fnToRun]);
             unset($c['req']['current_passed_value']['pipeline']);
             $c['req']['number_of_deleted_pipeline']++;
         }
@@ -108,33 +127,45 @@ function funk_run_matched_route_middleware(&$c)
             }
 
             // Check that it is a string and not null
+            $mwToRun = "";
+            $mwValue = null;
             $current_mw = $c['req']['matched_middlewares'][$i] ?? null;
-            if ($current_mw === null || !is_string($current_mw)) {
+            if (
+                $current_mw === null ||
+                (!is_string($current_mw) && !is_array($current_mw))
+            ) {
                 unset($c['req']['matched_middlewares'][$i]);
                 $c['req']['number_of_deleted_middlewares']++;
-                $c['err']['MIDDLEWARES'][] = 'Middleware at index ' .  $i . ' is NOT a Valid String or Is Null!';
+                $c['err']['MIDDLEWARES'][] = 'Middleware at index ' .  $i . ' is either NULL or NOT a Valid Data Type. It must be a String or An Associative Array Key with a Value! (Value can be null, but that is probably not useful in most cases)';
                 continue;
+            } elseif (is_array($current_mw)) {
+                $mwToRun = key($current_mw);
+                $mwValue = $current_mw[$mwToRun] ?? null;
+                $c['req']['current_passed_values']['middlewares'][$mwToRun] = $current_mw[$mwToRun] ?? null;
+                $c['req']['current_passed_value']['middlewares'] = $current_mw[$mwToRun] ?? null;
+            } else {
+                $mwToRun = $current_mw;
             }
 
             // Only run middleware if dir, file and callable,
             // then run it and increment the number of ran middlewares
             $mwDir = dirname(dirname(__DIR__)) . '/middlewares/';
-            $mwToRun = $mwDir . $current_mw . '.php';
-            if (file_exists($mwToRun)) {
-                $RunMW = include $mwToRun;
+            $mwFileToRun = $mwDir . $mwToRun . '.php';
+            if (file_exists($mwFileToRun)) {
+                $RunMW = include_once $mwFileToRun;
                 if (is_callable($RunMW)) {
                     $c['req']['current_middleware_running'] = $current_mw;
                     $c['req']['number_of_ran_middlewares']++;
                     $c['req']['next_middleware_to_run'] = $c['req']['matched_middlewares'][$i + 1] ?? null;
-                    $RunMW($c);
+                    $RunMW($c, $mwValue);
                 } // CUSTOM ERROR HANDLING HERE! - not callable (or change below to whatever you like)
                 else {
-                    $c['err']['MIDDLEWARES'][] = 'Middleware Function at index ' .   $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`';
+                    $c['err']['MIDDLEWARES'][] = 'Middleware File (`' . $mwToRun . '.php`) at index '  .   $i . ' is NOT CALLABLE for some reason. The Function File must start with: `&lt;?php return function (&$c) { ... };`';
                     $c['req']['current_middleware_running'] = null;
                 }
             } // CUSTOM ERROR HANDLING HERE! - no dir or file (or change below to whatever you like)
             else {
-                $c['err']['MIDDLEWARES'][] = 'Middleware File at index ' .  $i . ' does NOT EXIST in `funkphp/middlewares/` Directory!';
+                $c['err']['MIDDLEWARES'][] = 'Middleware File (`' . $mwToRun . '.php`) at index ' .  $i . ' does NOT EXIST in `funkphp/middlewares/` Directory!';
                 $c['req']['current_middleware_running'] = null;
             }
 
@@ -234,7 +265,13 @@ function funk_abort_pipeline(&$c)
     return;
 }
 // Same as above but used for the exit functions instead of the pipeline
-function funk_about_exit(&$c)
+function funk_abort_exit(&$c)
+{
+    // TODO:
+    return;
+}
+// Abort the middlewares and stop running any further middlewares
+function funk_abort_middlewares(&$c)
 {
     // TODO:
     return;
@@ -360,9 +397,13 @@ function funk_match_developer_route(string $method, string $uri, array $compiled
                         && isset($developerMiddlewareRoutes[$method][$middleware][$mHandlerKey])
                     ) {
                         if (is_array($developerMiddlewareRoutes[$method][$middleware][$mHandlerKey])) {
-                            foreach ($developerMiddlewareRoutes[$method][$middleware][$mHandlerKey] as $mHandler) {
-                                if (is_string($mHandler) && !empty($mHandler)) {
-                                    $matchedMiddlewareHandlers[] = $mHandler;
+                            foreach ($developerMiddlewareRoutes[$method][$middleware][$mHandlerKey] as $mHandler => $val) {
+                                if (is_string($mHandler)) {
+                                    $matchedMiddlewareHandlers[] = [$mHandler => $val];
+                                } elseif (is_int($mHandler)) {
+                                    $matchedMiddlewareHandlers[] = $val;
+                                } else {
+                                    $c['err']['ROUTES']['funk_match_developer_route'][] = 'Invalid Middleware Handler Type `' . gettype($mHandler) . '` for Route `' .  $matchedRoute . '`. Each Middleware should be a String=>String or Integer=>String. Latter one means you do NOT wanna pass any value to the Middleware Function!';
                                 }
                             }
                         } elseif (

@@ -139,6 +139,7 @@ return [
             'data' => [],
             'page' => []
         ],
+        'current_passed_values' => [],
         'deleted_pipeline' => null,
         'deleted_middlewares' => null,
         'deleted_exit' => null,
@@ -176,6 +177,18 @@ return [
     'db' => include_once __DIR__ . '/db.php',
     'db_lid' => null,
 
+    // 'r' will store route-related data
+    'r' => null,
+    'r_handlers' => null,
+
+    // 'm_handlers' is the array of called Middlewares functions so they can be reused
+    'm_handlers' => null,
+
+    // 'd' will ALWAYS store fetched database
+    // data (it does NOT store validation errors)
+    'd' => null,
+    'd_handlers' => null,
+
     // 'v' should be NULL but stores ANY founds errors during the validation process while
     // 'v_ok' will is true if not a single v['key']['optionalSubkey'] is set with error(s)!
     // 'v_handlers' contains a unique array of validation handlers that are closures to functios
@@ -195,15 +208,6 @@ return [
     'v_config' => [],
     'v_data' => null,
 
-    // 'r' will store route-related data
-    // 'r_config' is the array of route configurations ('<CONFIG'>)
-    // that will be used to handle the route configurations!
-    'r' => null,
-    'r_config' => null,
-
-    // 'd' will ALWAYS store fetched database
-    // data (it does NOT store validation errors)
-    'd' => null,
 
     // 's_handlers' is the array of SQL Handlers that are closures to functions
     // 's_data' contains fetched SQL Data for a given SQL Query
