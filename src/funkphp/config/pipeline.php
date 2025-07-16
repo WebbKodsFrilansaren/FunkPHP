@@ -30,18 +30,6 @@ return  [
             'page' =>
             [],
         ],
-        'middlewares' => [
-            'json' =>
-            [],
-            'page' =>
-            [],
-        ],
-        'data' => [
-            'json' =>
-            [],
-            'page' =>
-            [],
-        ],
         'page' => [
             'json' =>
             [],

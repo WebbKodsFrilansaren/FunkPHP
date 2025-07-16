@@ -492,11 +492,11 @@ function funk_params_are(&$c, $args)
         $c['err']['ROUTES']['funk_param_are'][] = 'No Parameters provided (by the Developer) to Validate for Current Route!';
         return null;
     }
-    if (!isset($c['req']['matched_params']) || !is_array($c['req']['matched_params'])) {
+    if (!isset($c['req']['params']) || !is_array($c['req']['params'])) {
         $c['err']['ROUTES']['funk_param_is'][] = 'No matched Dynamic Parameters (from the Visitor) to Validate for Current Route!';
         return null;
     }
-    $params = $c['req']['matched_params'];
+    $params = $c['req']['params'];
 
     // When all parameters are valid, return true
     return true;
@@ -506,11 +506,11 @@ function funk_params_are(&$c, $args)
 // when incorrectly used or no matched parameters.
 function funk_param_is(&$c, $param_key, $validation)
 {
-    if (!isset($c['req']['matched_params']) || !is_array($c['req']['matched_params'])) {
+    if (!isset($c['req']['params']) || !is_array($c['req']['params'])) {
         $c['err']['ROUTES']['funk_param_is'][] = 'No matched Dynamic Parameters to Validate for Current Route!';
         return null;
     }
-    $param = $c['req']['matched_params'][$param_key] ?? null;
+    $param = $c['req']['params'][$param_key] ?? null;
     if ($param === null) {
         $c['err']['ROUTES']['funk_param_is'][] = 'No matched Dynamic Parameter with Key `' . $param_key . '` to Validate for Current Route!';
         return null;
@@ -520,7 +520,7 @@ function funk_param_is(&$c, $param_key, $validation)
     return true;
 }
 
-// Quick Validate a $c['matched_params'][$param_key] is one of many types:
+// Quick Validate a $c['params'][$param_key] is one of many types:
 function funk_param_is_string(&$c, $param_key)
 {
     if (!isset($param_key)) {
@@ -528,7 +528,7 @@ function funk_param_is_string(&$c, $param_key)
         return null;
     }
     // When provided parameter is a string, return true
-    $param = $c['req']['matched_params'][$param_key] ?? null;
+    $param = $c['req']['params'][$param_key] ?? null;
     return is_string($param) && !empty($param);
 }
 function funk_param_is_number(&$c, $param_key)
@@ -538,7 +538,7 @@ function funk_param_is_number(&$c, $param_key)
         return null;
     }
     // When provided parameter is a string, return true
-    $param = $c['req']['matched_params'][$param_key] ?? null;
+    $param = $c['req']['params'][$param_key] ?? null;
     return is_numeric($param);
 }
 function funk_param_is_integer(&$c, $param_key)
@@ -548,7 +548,7 @@ function funk_param_is_integer(&$c, $param_key)
         return null;
     }
     // When provided parameter is an integer, return true
-    $param = $c['req']['matched_params'][$param_key] ?? null;
+    $param = $c['req']['params'][$param_key] ?? null;
     return is_int($param) || intval($param) == $param;
 }
 function funk_param_is_float(&$c, $param_key)
@@ -558,7 +558,7 @@ function funk_param_is_float(&$c, $param_key)
         return null;
     }
     // When provided parameter is a float, return true
-    $param = $c['req']['matched_params'][$param_key] ?? null;
+    $param = $c['req']['params'][$param_key] ?? null;
     return is_float($param) || (is_numeric($param) && strpos($param, '.') !== false && floatval($param) == $param);
 }
 function funk_param_is_regex(&$c, $param_key, $regexStr)
@@ -572,7 +572,7 @@ function funk_param_is_regex(&$c, $param_key, $regexStr)
         return null;
     }
     // When provided parameter matches the regex, return true
-    $param = $c['req']['matched_params'][$param_key] ?? "";
+    $param = $c['req']['params'][$param_key] ?? "";
     return preg_match($regexStr, $param) === 1;
 }
 

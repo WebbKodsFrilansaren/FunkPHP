@@ -6848,6 +6848,8 @@ function cli_restore_default_folders_and_files()
         "$folderBase/_BACKUPS/_FINAL_BACKUPS/",
         "$folderBase/_BACKUPS/compiled/",
         "$folderBase/_BACKUPS/pipeline/",
+        "$folderBase/_BACKUPS/pipeline/request",
+        "$folderBase/_BACKUPS/pipeline/post-request",
         "$folderBase/_BACKUPS/data/",
         "$folderBase/_BACKUPS/handlers/",
         "$folderBase/_BACKUPS/middlewares/",
@@ -6873,6 +6875,8 @@ function cli_restore_default_folders_and_files()
         "$folderBase/data/",
         "$folderBase/middlewares/",
         "$folderBase/pipeline/",
+        "$folderBase/pipeline/request",
+        "$folderBase/pipeline/post-request",
         "$folderBase/exit/",
         "$folderBase/pages/",
         "$folderBase/pages/complete/",
@@ -6888,6 +6892,8 @@ function cli_restore_default_folders_and_files()
     // Prepare default files that doesn't exist if certain folders don't exist
     $defaultFiles = [
         "$folderBase/_internals/compiled/troute_route.php",
+        "$folderBase/config/pipeline.php",
+        "$folderBase/config/routes.php",
     ];
 
     // Create folderBase if it does not exist
@@ -6902,6 +6908,7 @@ function cli_restore_default_folders_and_files()
         }
     }
     // Loop through files, and create them if they don't exist
+    $date = date("Y-m-d H:i:s");
     foreach ($defaultFiles as $file) {
         if (!file_exists($file)) {
             // Recreate default files based on type ("troute", "middleware routes" or "single routes")
@@ -6909,30 +6916,30 @@ function cli_restore_default_folders_and_files()
                 file_put_contents($file, "<?php\n// This file was recreated by FunkCLI!\nreturn [];\n?>");
                 echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
                 continue;
-            } elseif (str_contains($file, "single")) {
-                file_put_contents($file, "<?php\n// This file was recreated by FunkCLI!\nreturn '<CONFIG>' => [\n
-        'middlewares_before_route_match' => [
-            'm_https_redirect',
-            'm_run_ini_sets',
-            'm_set_session_cookie_params',
-            'm_db_connect',
-            'm_headers_set',
-            'm_headers_remove',
-            'm_start_session',
-            'm_prepare_uri',
-            'm_match_denied_exact_ips',
-            'm_match_denied_methods',
-            'm_match_denied_uas',
-        ],
-        'middlewares_after_handled_request' => [],
-        'no_middlewares_match' => ['json' => [], 'page' => []],
-        'no_route_match' => ['json' => [], 'page' => []],
-        'no_data_match' => ['json' => [], 'page' => []],
-        'no_page_match' => ['json' => [], 'page' => []],
-    ],\n
-    'ROUTES' => [\n'GET' => [], 'POST' => [], 'PUT' => [], 'DELETE' => [], 'PATCH' => []]?>");
+            } elseif (str_contains($file, "routes")) {
+                file_put_contents($file, "<?php\n// Routes.php - FunkPHP Framework | FunkCLI recreated it $date\nreturn [
+            'ROUTES' => ['GET' =>[],'POST' =>[],'PUT' =>[],'DELETE' =>[],'PATCH' =>[],],];?>");
                 echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
                 continue;
+            } else if (str_contains($file, "pipeline")) {
+                file_put_contents($file, "<?php\n// Pipeline.php - FunkPHP Framework | FunkCLI recreated it $date\nreturn  [
+            'pipeline' =>['request' => [
+            0 => 'm_https_redirect',
+            1 => 'm_run_ini_sets',
+            2 => 'm_set_session_cookie_params',
+            3 => 'm_db_connect',
+            4 => 'm_headers_set',
+            5 => 'm_headers_remove',
+            6 => 'm_start_session',
+            7 => 'm_prepare_uri',
+            8 => 'm_match_denied_exact_ips',
+            9 => 'm_match_denied_methods',
+            10 => 'm_match_denied_uas',
+            11 => 'm_match_route',
+            12 => 'm_run_matched_route_middlewares',
+            13 => 'm_run_matched_route_handler',
+            14 => 'm_run_matched_data_handler',
+            ],'post-request' => [],],'no_match' => [],];");
             }
         }
     }

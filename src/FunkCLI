@@ -167,6 +167,13 @@ $dirs = [
     "functions" => __DIR__ . '/funkphp/_internals/functions/',
     "_BACKUPS" => __DIR__ . '/funkphp/_BACKUPS/',
     "pipeline" => __DIR__ . '/funkphp/pipeline/',
+    "request" => __DIR__ . '/funkphp/pipeline/request/',
+    "pipelinerequest" => __DIR__ . '/funkphp/pipeline/request/',
+    "pipeline-request" => __DIR__ . '/funkphp/pipeline/request/',
+    "pipeline_request" => __DIR__ . '/funkphp/pipeline/request/',
+    "post-request" => __DIR__ . '/funkphp/pipeline/post-request/',
+    "postrequest" => __DIR__ . '/funkphp/pipeline/post-request/',
+    "post_request" => __DIR__ . '/funkphp/pipeline/post-request/',
     "pipelines" => __DIR__ . '/funkphp/pipeline/',
     "routes" => __DIR__ . '/funkphp/config/',
     "handlers" => __DIR__ . '/funkphp/handlers/',
@@ -444,22 +451,9 @@ $singlePipeline = include __DIR__ . '/funkphp/config/pipeline.php' ?? [
         ],
         'post-request' => [],
     ],
-    'exit' => [],
     'no_match' =>
     [
         'handler' => [
-            'json' =>
-            [],
-            'page' =>
-            [],
-        ],
-        'middlewares' => [
-            'json' =>
-            [],
-            'page' =>
-            [],
-        ],
-        'data' => [
             'json' =>
             [],
             'page' =>
