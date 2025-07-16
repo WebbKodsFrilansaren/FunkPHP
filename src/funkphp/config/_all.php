@@ -162,7 +162,7 @@ return [
     // 'm_handlers' is the array of called Middlewares functions so they can be reused
     'm_handlers' => null,
 
-    // 'd' will ALWAYS store fetched database
+    // 'd' will ALWAYS store hydrated database data!
     // data (it does NOT store validation errors)
     'd' => null,
 
@@ -187,7 +187,8 @@ return [
 
 
     // 's_handlers' is the array of SQL Handlers that are closures to functions
-    // 's_data' contains fetched SQL Data for a given SQL Query
+    // 's_data' contains fetched SQL Data for a given SQL Query (and is BEFORE
+    // any hydration is done) so you can use it to hydrate the data later!
     's_handlers' => null, // SQL Handlers (the funkphp/sql/ folder with its files)
     's_data' => null,
 
