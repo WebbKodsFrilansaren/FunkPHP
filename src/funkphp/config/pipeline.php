@@ -16,6 +16,8 @@ return  [
             9 => 'pl_match_denied_methods',
             10 => 'pl_match_denied_uas',
             11 => 'pl_match_route',
+            12 => ['pl_run_matched_route_key' => 'handler'],
+            13 => ['pl_run_matched_route_key' => 'data'],
         ],
         'post-request' => [],
     ],

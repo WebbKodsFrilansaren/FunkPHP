@@ -52,7 +52,7 @@ function funk_run_pipeline_request(&$c)
             ) {
                 unset($c['<ENTRY>']['pipeline']['request'][$i]);
                 $c['req']['number_of_deleted_pipeline']++;
-                $c['err']['PIPELINE']['funk_run_pipeline'][] = 'Pipeline Request Function at index ' .  $i . ' is either NULL or NOT a Valid Data Type. It must be a String or An Associative Array Key with a Value! (Value can be null, but that is probably not useful in most cases)';
+                $c['err']['PIPELINE']['REQUEST']['funk_run_pipeline'][] = 'Pipeline Request Function at index ' .  $i . ' is either NULL or NOT a Valid Data Type. It must be a String or An Associative Array Key with a Value! (Value can be null, but that is probably not useful in most cases)';
                 continue;
             }
             // Extract Function Name from the Array Key or String and store the value
@@ -66,27 +66,37 @@ function funk_run_pipeline_request(&$c)
             else {
                 $fnToRun = $current_pipe;
             }
-
-            // Only run Pipeline Function if dir, file and callable, then
-            // run it and increment the number of ran pipeline functions
-            $pipeDir = ROOT_FOLDER . '/pipeline/request/';
-            $pipeToRun = $pipeDir . $fnToRun . '.php';
-            if (file_exists($pipeToRun)) {
-                $runPipe = include_once $pipeToRun;
-                if (is_callable($runPipe)) {
+            // First check if function already exists in $c['dispatchers']['pipeline']['request'] array!
+            // If it exists and is callable,
+            if (isset($c['dispatchers']['pipeline']['request'][$fnToRun])) {
+                if (is_callable($c['dispatchers']['pipeline']['request'][$fnToRun])) {
+                    $runPipe = $c['dispatchers']['pipeline']['request'][$fnToRun];
                     $c['req']['current_pipeline_running'] = $current_pipe;
                     $c['req']['number_of_ran_pipeline']++;
                     $c['req']['next_pipeline_to_run'] = $c['<ENTRY>']['pipeline'][$i + 1] ?? null;
                     $runPipe($c, $pipeValue);
-                } // CUSTOM ERROR HANDLING HERE! - not callable (or change below to whatever you like)
-                else {
-                    $c['err']['PIPELINE']['funk_run_pipeline'][] = 'Pipeline Request Function at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`';
+                }
+            } else {
+                // Only run Pipeline Function if dir, file and callable, then
+                // run it and increment the number of ran pipeline functions
+                $pipeDir = ROOT_FOLDER . '/pipeline/request/';
+                $pipeToRun = $pipeDir . $fnToRun . '.php';
+                if (file_exists($pipeToRun)) {
+                    $runPipe = include_once $pipeToRun;
+                    if (is_callable($runPipe)) {
+                        $c['req']['current_pipeline_running'] = $current_pipe;
+                        $c['req']['number_of_ran_pipeline']++;
+                        $c['req']['next_pipeline_to_run'] = $c['<ENTRY>']['pipeline'][$i + 1] ?? null;
+                        $c['dispatchers']['pipeline']['request'][$fnToRun] = $runPipe;
+                        $runPipe($c, $pipeValue);
+                    } else {
+                        $c['err']['PIPELINE']['funk_run_pipeline'][] = 'Pipeline Request Function at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`';
+                        $c['req']['current_pipeline_running'] = null;
+                    }
+                } else {
+                    $c['err']['PIPELINE']['REQUEST']['funk_run_pipeline'][] = 'Pipeline Request Function at index '  .  $i . ' does NOT EXIST in `funkphp/config/pipeline/` Directory!';
                     $c['req']['current_pipeline_running'] = null;
                 }
-            } // CUSTOM ERROR HANDLING HERE! - no dir or file (or change below to whatever you like)
-            else {
-                $c['err']['PIPELINE']['funk_run_pipeline'][] = 'Pipeline Request Function at index '  .  $i . ' does NOT EXIST in `funkphp/config/pipeline/` Directory!';
-                $c['req']['current_pipeline_running'] = null;
             }
 
             // Remove pipeline[$i] from the array after trying to run
@@ -110,7 +120,7 @@ function funk_run_pipeline_request(&$c)
     // CUSTOM ERROR HANDLING HERE! - no matched middlewares (or change below to whatever you like)
     // IMPORTANT: No matched middlewares could mean misconfigured routes or no middlewares at all!
     else {
-        $c['err']['MAYBE']['PIPELINE']['funk_run_pipeline'][] = 'No Configured Pipeline Request Functions (`"<ENTRY>" => "pipeline"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\']` Key in the Pipeline Configuration File `funkphp/config/pipeline.php` File!';
+        $c['err']['MAYBE']['PIPELINE']['REQUEST']['funk_run_pipeline'][] = 'No Configured Pipeline Request Functions (`"<ENTRY>" => "pipeline"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\']` Key in the Pipeline Configuration File `funkphp/config/pipeline.php` File!';
     }
 }
 
@@ -239,7 +249,7 @@ function funk_run_matched_route_key(&$c, $key = null)
         // Check if it is callable, and if i tis NOT callable,
         // we log an error since we ONLY store callables here!
         if (is_callable($c['dispatchers'][$key][$keyFile])) {
-            return $c['dispatchers'][$key][$keyFile]($c, $keyFn);
+            $c['dispatchers'][$key][$keyFile]($c, $keyFn);
         } else {
             $c['err']['PIPELINE']['REQUEST']['funk_run_matched_route_key'][] = 'Route Key `' . $key . '` File `' . $keyFile . '` is NOT a Callable Function. Please check your Route Key File in `funkphp/config/routes.php` for the Route `' . ($c['req']['route'] ?? '<No Route Matched>') . '`!';
             return;
@@ -253,7 +263,7 @@ function funk_run_matched_route_key(&$c, $key = null)
             return;
         }
         $c['dispatchers'][$key][$keyFile] = include_once $pathToInclude;
-        return $c['dispatchers'][$key][$keyFile]($c, $keyFn);
+        $c['dispatchers'][$key][$keyFile]($c, $keyFn);
     }
 };
 
@@ -549,6 +559,7 @@ function funk_match_developer_route(&$c, string $method, string $uri, array $com
     $c['req']['segments'] = $matchedPathSegments;
     $c['req']['params'] = $matchedRouteParams;
     $c['req']['matched_in'] = $noMatchIn;
+    $c['req']['route_keys'] = [...$routeInfo ?? []];
     return [
         ...$routeInfo ?? [],
         'middlewares' => $matchedMiddlewareHandlers,

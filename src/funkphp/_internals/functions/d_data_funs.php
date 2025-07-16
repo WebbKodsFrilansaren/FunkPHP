@@ -1,8 +1,6 @@
 <?php // DATABASE FUNCTIONS FOR FuncPHP
 // This file contains functions related to database operations and/or configurations.
 
-
-
 // Run the matched data handler (Step 4 after matched routing in Routes,
 // then running Middlewares and then the Route Handler)
 function funk_run_matched_data_handler(&$c)
@@ -721,11 +719,11 @@ function funk_load_sql(&$c, $sqlHandler, $sqlFunction)
     }
     // When SQL Handler not found in $c['s_handlers'] array
     else {
-        if (!file_exists(dirname(dirname(__DIR__)) . '/sql/' . $sqlHandler . '.php')) {
+        if (!file_exists(ROOT_FOLDER . '/sql/' . $sqlHandler . '.php')) {
             $c['err']['SQL']['funk_use_sql'][] = 'SQL Handler File `' . $sqlHandler . '.php` not found or not readable. Does the file exist in the `sql` directory and/or is it forbidden to read/access?';
             return false;
         }
-        $sqlFile = include_once dirname(dirname(__DIR__)) . '/sql/' . $sqlHandler . '.php';
+        $sqlFile = include_once ROOT_FOLDER . '/sql/' . $sqlHandler . '.php';
         if (!is_callable($sqlFile)) {
             $c['err']['SQL']['funk_use_sql'][] = 'SQL Handler File `' . $sqlHandler . '.php` was loaded but did not return a callable function. It should return a function that accepts `$c` and `$sqlFunction` as parameters which it then checks if it exists in current scope and then calls and returns its return value!';
             return false;
@@ -818,7 +816,7 @@ function funk_use_validation(&$c, $validationHandler, $validationFunction, $sour
     }
     // If not set, we check if the file
     else {
-        $validationFile = dirname(dirname(__DIR__)) . '/validations/' . $validationHandler . '.php';
+        $validationFile = ROOT_FOLDER . '/validations/' . $validationHandler . '.php';
         if (file_exists_is_readable_writable($validationFile)) {
             $validationDataFromFile = include_once $validationFile;
             if (is_callable($validationDataFromFile)) {

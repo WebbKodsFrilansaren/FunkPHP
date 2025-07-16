@@ -6,6 +6,7 @@ return  [
         [
             "/" => [
                 'handler' => ['test' => 'test'],
+                'data' => 'test',
             ],
         ],
         'POST' =>
