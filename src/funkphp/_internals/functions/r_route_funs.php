@@ -27,7 +27,7 @@ function funk_current_fn_value(&$c, $key, $fnName)
 // `pipeline` is the list of functions to always run for each request (unless any
 // of the functions terminates it early!) This is the main entry point for each request!
 // &$c is Global Config Variable with "everything"!
-function funk_run_pipeline(&$c)
+function funk_run_pipeline_request(&$c)
 {
     if (
         isset($c['<ENTRY>']['pipeline']['request'])
@@ -200,10 +200,126 @@ function funk_run_matched_route_middleware(&$c)
     }
 }
 
+// Run ANY matched Route Key Handler by providing a string which is the name
+// of the current key inside of that key
+function funk_run_matched_route_key(&$c, $key = null)
+{
+    // $key must be a non-empty string
+    if (!isset($key) || !is_string($key) || empty($key)) {
+        $c['err']['PIPELINE']['REQUEST']['funk_run_matched_route_key'][] = 'No Route Key provided to run. Please provide a valid Route Key!';
+        return;
+    }
+    // It must also exist in currently matched route
+    if (!isset($c['req']['matched_' . $key])) {
+        $c['err']['PIPELINE']['REQUEST']['funk_run_matched_route_key'][] = 'Route Key `' . $key . '` NOT found for the Route `' . ($c['req']['route'] ?? '<No Route Matched>') . '`. Please check your Route Keys in `funkphp/config/routes.php` for the Route `' . ($c['req']['route'] ?? '<No Route Matched>') . '`!';
+        return;
+    }
+
+    // We extract folder name, file name and function name based on whether
+    // 'folder' => 'fileName' (here functionName becomes same as fileName) OR
+    // 'folder' => ['fileName' => 'functionName']
+    $matchKey = $c['req']['matched_' . $key];
+    $keyFolder = $key;
+    $keyFile = '';
+    $keyFn = '';
+    if (is_string($matchKey)) {
+        $keyFile = $matchKey;
+        $keyFn = $matchKey;
+    } elseif (is_array($matchKey)) {
+        $keyFile = key($matchKey);
+        $keyFn = $matchKey[$keyFile] ?? '';
+    } else {
+        $c['err']['PIPELINE']['REQUEST']['funk_run_matched_route_key'][] = 'Route Key `' . $key . '` must be a String or an Array with a Non-Empty String Value. No attempt to find a Route Key File was made!';
+        return;
+    }
+    // We check whether a returned anonymous function
+    // already exists in $c['dispatchers'][$key][$keyFile]
+    // otherwise we add it and call it!
+    if (isset($c['dispatchers'][$key][$keyFile])) {
+        // Check if it is callable, and if i tis NOT callable,
+        // we log an error since we ONLY store callables here!
+        if (is_callable($c['dispatchers'][$key][$keyFile])) {
+            return $c['dispatchers'][$key][$keyFile]($c, $keyFn);
+        } else {
+            $c['err']['PIPELINE']['REQUEST']['funk_run_matched_route_key'][] = 'Route Key `' . $key . '` File `' . $keyFile . '` is NOT a Callable Function. Please check your Route Key File in `funkphp/config/routes.php` for the Route `' . ($c['req']['route'] ?? '<No Route Matched>') . '`!';
+            return;
+        }
+    }
+    // Not added yet so add if it exists and call it with the $keyFn!
+    else {
+        $pathToInclude = ROOT_FOLDER . '/' . $keyFolder . '/' . $keyFile . '.php';
+        if (!is_readable($pathToInclude)) {
+            $c['err']['PIPELINE']['REQUEST']['funk_run_matched_route_key'][] = 'Route Key `' . $key . '` File `' . $keyFile . '` does NOT EXIST in `' . $keyFolder . '/` Directory! Please check your Route Key File in `funkphp/config/routes.php` for the Route `' . ($c['req']['route'] ?? '<No Route Matched>') . '`!';
+            return;
+        }
+        $c['dispatchers'][$key][$keyFile] = include_once $pathToInclude;
+        return $c['dispatchers'][$key][$keyFile]($c, $keyFn);
+    }
+};
+
+// Same as above but now it just iterates through all keys
+function funk_run_matched_route_keys(&$c, $keys = null)
+{
+    foreach ($keys as $key) {
+        funk_run_matched_route_key($c, $key);
+    }
+    // $key must be a non-empty string
+    if (!isset($key) || !is_string($key) || empty($key)) {
+        $c['err']['PIPELINE']['REQUEST']['funk_run_matched_route_key'][] = 'No Route Key provided to run. Please provide a valid Route Key!';
+        return;
+    }
+    // It must also exist in currently matched route
+    if (!isset($c['req']['matched_' . $key])) {
+        $c['err']['PIPELINE']['REQUEST']['funk_run_matched_route_key'][] = 'Route Key `' . $key . '` NOT found for the Route `' . ($c['req']['route'] ?? '<No Route Matched>') . '`. Please check your Route Keys in `funkphp/config/routes.php` for the Route `' . ($c['req']['route'] ?? '<No Route Matched>') . '`!';
+        return;
+    }
+
+    // We extract folder name, file name and function name based on whether
+    // 'folder' => 'fileName' (here functionName becomes same as fileName) OR
+    // 'folder' => ['fileName' => 'functionName']
+    $matchKey = $c['req']['matched_' . $key];
+    $keyFolder = $key;
+    $keyFile = '';
+    $keyFn = '';
+    if (is_string($matchKey)) {
+        $keyFile = $matchKey;
+        $keyFn = $matchKey;
+    } elseif (is_array($matchKey)) {
+        $keyFile = key($matchKey);
+        $keyFn = $matchKey[$keyFile] ?? '';
+    } else {
+        $c['err']['PIPELINE']['REQUEST']['funk_run_matched_route_key'][] = 'Route Key `' . $key . '` must be a String or an Array with a Non-Empty String Value. No attempt to find a Route Key File was made!';
+        return;
+    }
+    // We check whether a returned anonymous function
+    // already exists in $c['dispatchers'][$key][$keyFile]
+    // otherwise we add it and call it!
+    if (isset($c['dispatchers'][$key][$keyFile])) {
+        // Check if it is callable, and if i tis NOT callable,
+        // we log an error since we ONLY store callables here!
+        if (is_callable($c['dispatchers'][$key][$keyFile])) {
+            return $c['dispatchers'][$key][$keyFile]($c, $keyFn);
+        } else {
+            $c['err']['PIPELINE']['REQUEST']['funk_run_matched_route_key'][] = 'Route Key `' . $key . '` File `' . $keyFile . '` is NOT a Callable Function. Please check your Route Key File in `funkphp/config/routes.php` for the Route `' . ($c['req']['route'] ?? '<No Route Matched>') . '`!';
+            return;
+        }
+    }
+    // Not added yet so add if it exists and call it with the $keyFn!
+    else {
+        $pathToInclude = ROOT_FOLDER . '/' . $keyFolder . '/' . $keyFile . '.php';
+        if (!is_readable($pathToInclude)) {
+            $c['err']['PIPELINE']['REQUEST']['funk_run_matched_route_key'][] = 'Route Key `' . $key . '` File `' . $keyFile . '` does NOT EXIST in `' . $keyFolder . '/` Directory! Please check your Route Key File in `funkphp/config/routes.php` for the Route `' . ($c['req']['route'] ?? '<No Route Matched>') . '`!';
+            return;
+        }
+        $c['dispatchers'][$key][$keyFile] = include_once $pathToInclude;
+        return $c['dispatchers'][$key][$keyFile]($c, $keyFn);
+    }
+};
+
 // Try run middlewares AFTER handled request (and this can
 // also be due to being exited prematurely by the application)
 // &$c is Global Config Variable with "everything"!
-function funk_run_post_request(&$c)
+function funk_run_pipeline_post_request(&$c)
 {
     if (
         isset($c['<ENTRY>']['pipeline']['post-request'])

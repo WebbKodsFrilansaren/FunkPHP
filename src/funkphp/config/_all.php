@@ -124,22 +124,11 @@ return [
         'uri' => null,
         'matched_in' => null,
         'route' => null,
+        'route_keys' => null,
         'params' => null,
         'segments' => null,
-        'middlewares' => null,
-        'matched_handler' => null,
         'matched_middlewares' => null,
-        'matched_data' => null,
-        'matched_page' => null,
-        'matched_auth' => null,
-        'matched_csrf' => null,
-        'current_passed_value' => [
-            'pipeline' => [],
-            'handlers' => [],
-            'middlewares' => [],
-            'data' => [],
-            'page' => []
-        ],
+        'current_passed_value' => [],
         'current_passed_values' => [],
         'deleted_pipeline' => null,
         'deleted_middlewares' => null,
@@ -184,7 +173,6 @@ return [
 
     // 'r' will store route-related data
     'r' => null,
-    'r_handlers' => null,
 
     // 'm_handlers' is the array of called Middlewares functions so they can be reused
     'm_handlers' => null,
@@ -192,7 +180,6 @@ return [
     // 'd' will ALWAYS store fetched database
     // data (it does NOT store validation errors)
     'd' => null,
-    'd_handlers' => null,
 
     // 'v' should be NULL but stores ANY founds errors during the validation process while
     // 'v_ok' will is true if not a single v['key']['optionalSubkey'] is set with error(s)!
