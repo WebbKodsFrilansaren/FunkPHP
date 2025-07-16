@@ -1,49 +1,6 @@
 <?php // DATABASE FUNCTIONS FOR FuncPHP
 // This file contains functions related to database operations and/or configurations.
 
-// Run the matched data handler (Step 4 after matched routing in Routes,
-// then running Middlewares and then the Route Handler)
-function funk_run_matched_data_handler(&$c)
-{
-    // Grab Data Handler Path and prepare whether it is a string
-    // or array to match "handler" or ["handler" => "fn"]
-    $handlerPath = dirname(dirname(__DIR__)) . '/data/';
-    $handler = "";
-    $handleString = null;
-    if (is_string($c['req']['matched_data'])) {
-        $handler = $c['req']['matched_data'];
-    } elseif (is_array($c['req']['matched_data'])) {
-        $handler = key($c['req']['matched_data']);
-        $handleString = $c['req']['matched_data'][$handler] ?? null;
-    } else {
-        $c['err']['DATA']['funk_run_matched_data_handler'][] = 'Data Handler must be a String or an Array. No attempt to find a Data Handler File was made!';
-        return;
-    }
-
-    // Finally check if the file exists and is readable, and then include it
-    // and run the handler function with the $c variable as argument
-    if (file_exists($handlerPath . '/' . $handler . '.php') && is_readable($handlerPath . '/' . $handler . '.php')) {
-        $runHandler = include_once "$handlerPath/$handler.php";
-        if (is_callable($runHandler)) {
-            if (!is_null($handleString)) {
-                $runHandler($c, $handleString);
-            } else {
-                $runHandler($c);
-            }
-        }
-        // Handle error: not callable (or just use default below)
-        else {
-            $c['err']['DATA']['funk_run_matched_data_handler'][] = 'Data Handler Function is not callable!';
-            return;
-        }
-    }
-    // Handle error: file not found or not readable  (or just use default below)
-    else {
-        $c['err']['DATA']['funk_run_matched_data_handler'][] = 'Data Handler File data/' . $handler . '.php not found or not readable!';
-        return;
-    }
-}
-
 // Function that validates a set of rules for a given single input field/data
 function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array $rules, array &$currentErrPath): void
 {

@@ -8,8 +8,7 @@ function test(&$c) // <GET/>
 {
 	// FunkCLI created 2025-07-16 04:37:24! Keep Closing Curly Bracket on its
 	// own new line without indentation no comment right after it!
-	echo "Hello, this is a test ROUTE handler!<br>";
-	vd($c['req']);
+	echo "Hello, this is a test ROUTE handle AAAAAAAAAA!<br>";
 };
 
 return function (&$c, $handler = "test") {

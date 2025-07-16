@@ -40,13 +40,4 @@
         $c['ROUTES']['DEVELOPER']['ROUTES'] ?? [],
         $c['ROUTES']['DEVELOPER']['ROUTES'] ?? [],
     );
-    // Iterate through the keys of "$FPHP_MATCHED_ROUTE"
-    // and set $c['req']['matched_' . $key] accordingly
-    foreach ($FPHP_MATCHED_ROUTE as $key => $value) {
-        if (is_array($value)) {
-            $c['req']['matched_' . $key] = $value;
-        } else {
-            $c['req']['matched_' . $key] = $value ?? null;
-        }
-    }
 };
