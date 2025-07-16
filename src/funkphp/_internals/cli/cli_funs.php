@@ -6877,7 +6877,6 @@ function cli_restore_default_folders_and_files()
         "$folderBase/pipeline/",
         "$folderBase/pipeline/request",
         "$folderBase/pipeline/post-request",
-        "$folderBase/exit/",
         "$folderBase/pages/",
         "$folderBase/pages/complete/",
         "$folderBase/pages/components/",
