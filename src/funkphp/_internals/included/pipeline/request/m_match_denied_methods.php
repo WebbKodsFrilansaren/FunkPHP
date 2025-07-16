@@ -2,7 +2,7 @@
 return function (&$c) {
     // Return null if $method is invalid method variable
     $method = $_SERVER['REQUEST_METHOD'] ?? null;
-    if ($method === "" || $method === null || !is_string($method)) {
+    if ($method === null || !is_string($method)) {
         critical_err_json_or_html(500);
     }
     $method = strtoupper($method);
