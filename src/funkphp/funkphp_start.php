@@ -23,7 +23,7 @@ register_shutdown_function(function () use (&$c) {
     ) {
         funk_run_post_request($c);
     } else {
-        $c['err']['MAYBE']['PIPELINE'][] = 'No Configured Post-Request Pipeline Functions (`"<ENTRY>" => "pipeline" => "post-request"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\'][\'post-request\']` Key in the Pipeline Configuration File `funkphp/config/pipeline.php` File!';
+        $c['err']['MAYBE']['PIPELINE']['funk_run_post_request'][] = 'No Configured Post-Request Pipeline Functions (`"<ENTRY>" => "pipeline" => "post-request"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\'][\'post-request\']` Key in the Pipeline Configuration File `funkphp/config/pipeline.php` File!';
     }
 });
 // MAIN STEP: Run the Pipeline of Anonymous Functions that control the flow of the request!
@@ -34,7 +34,7 @@ if (
 ) {
     funk_run_pipeline($c);
 } else {
-    $c['err']['MAYBE']['PIPELINE'][] = 'No Configured Pipeline Functions (`"<ENTRY>" => "pipeline" => "request"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\']` Key in the Pipeline Configuration File `funkphp/config/pipeline.php` File!';
+    $c['err']['MAYBE']['PIPELINE']['funk_run_pipeline'][] = 'No Configured Pipeline Functions (`"<ENTRY>" => "pipeline" => "request"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\']` Key in the Pipeline Configuration File `funkphp/config/pipeline.php` File!';
     critical_err_json_or_html(500, 'No Pipeline Functions to run? Please check the `[\'pipeline\'][\'request\']` Key in the `funkphp/config/pipeline.php` File!');
 }
 // The registered shutdown callback function will be executed after pipeline

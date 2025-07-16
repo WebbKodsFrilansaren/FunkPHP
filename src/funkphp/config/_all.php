@@ -6,7 +6,7 @@ define('FUNKPHP_IS_LOCAL', (isset($_SERVER['SERVER_NAME'])
         || $_SERVER['SERVER_NAME'] === "127.0.0.1")));
 define('FUNKPHP_LOCAL', "http://localhost/funkphp/src/public_html/");
 define('FUNKPHP_ONLINE', "https://www.funkphp.com/");
-
+define("ROOT_FOLDER", dirname(__DIR__, 1));
 // GLOBAL CONFIGURATIONS in "$c" variable in "funkphp/funkphp_start.php"
 // Configure the included files below here separately as needed!
 return [
@@ -120,9 +120,9 @@ return [
     // 'req' is the array of request data which will also include changed data based
     // on matched route, middlewares (if any), data (if any) and page (if any), etc.
     'req' => [
+        'method' => $_SERVER['REQUEST_METHOD'] ?? null,
         'uri' => null,
         'matched_in' => null,
-        'method' => null,
         'route' => null,
         'params' => null,
         'segments' => null,
@@ -167,8 +167,6 @@ return [
         'ua' => $_SERVER['HTTP_USER_AGENT'] ?? null,
         'content_type' => $_SERVER['CONTENT_TYPE'] ?? null,
         'accept' => $_SERVER['HTTP_ACCEPT'] ?? null,
-        'uri' => null,
-        'method' => $_SERVER['REQUEST_METHOD'] ?? null,
         'protocol' => $_SERVER['SERVER_PROTOCOL'] ?? null,
         'query' => $_SERVER['QUERY_STRING'] ?? null,
     ],

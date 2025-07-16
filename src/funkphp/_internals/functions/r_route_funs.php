@@ -69,7 +69,7 @@ function funk_run_pipeline(&$c)
 
             // Only run Pipeline Function if dir, file and callable, then
             // run it and increment the number of ran pipeline functions
-            $pipeDir = dirname(dirname(__DIR__)) . '/pipeline/request/';
+            $pipeDir = ROOT_FOLDER . '/pipeline/request/';
             $pipeToRun = $pipeDir . $fnToRun . '.php';
             if (file_exists($pipeToRun)) {
                 $runPipe = include_once $pipeToRun;
@@ -218,7 +218,7 @@ function funk_run_post_request(&$c)
             if ($current_mw === null || !is_string($current_mw)) {
                 unset($c['<ENTRY>']['pipeline']['post-request'][$i]);
                 $c['req']['number_of_deleted_exit']++;
-                $c['err']['PIPELINE']['funk_run_post_request'][] = 'Exit Function at index ' .  $i . ' is not a valid string or is null!';
+                $c['err']['PIPELINE']['funk_run_post_request'][] = 'Post-Request Function at index ' .  $i . ' is not a valid string or is null!';
                 continue;
             }
 
@@ -235,12 +235,12 @@ function funk_run_post_request(&$c)
                     $RunMW($c);
                 } // CUSTOM ERROR HANDLING HERE! - not callable (or change below to whatever you like)
                 else {
-                    $c['err']['PIPELINE']['funk_run_post_request'][] = 'Exit Function at index ' .  $i . ' is not callable!';
+                    $c['err']['PIPELINE']['funk_run_post_request'][] = 'Post-Request Function at index ' .  $i . ' is not callable!';
                     $c['req']['current_exit_running'] = null;
                 }
             } // CUSTOM ERROR HANDLING HERE! - no dir or file (or change below to whatever you like)
             else {
-                $c['err']['PIPELINE']['funk_run_post_request'][] = 'Exit File at index '  .  $i . ' does not exist or is not a directory!';
+                $c['err']['PIPELINE']['funk_run_post_request'][] = 'Post-Request File at index '  .  $i . ' does not exist or is not a directory!';
                 $c['req']['current_exit_running'] = null;
             }
 
@@ -260,7 +260,7 @@ function funk_run_post_request(&$c)
             $c['<ENTRY>']['pipeline']['post-request'] = null;
         }
     } else {
-        $c['err']['MAYBE']['PIPELINE']['funk_run_post_request'][] = 'No Configured Exit Functions (`"<ENTRY>"" => "exit"` Key) to run after Request Handling. If you expected some, check the `[\'<ENTRY>\'][\'exit\']` Key in the Pipeline Configuration `funkphp/config/pipeline.php` File!';
+        $c['err']['MAYBE']['PIPELINE']['funk_run_post_request'][] = 'No Configured Post-Request Functions (`"<ENTRY>"" => "exit"` Key) to run after Request Handling. If you expected some, check the `[\'<ENTRY>\'][\'exit\']` Key in the Pipeline Configuration `funkphp/config/pipeline.php` File!';
     }
 }
 
@@ -285,7 +285,7 @@ function funk_abort_middlewares(&$c)
 }
 
 // Match Compiled Route with URI Segments, used by "r_match_developer_route"
-function funk_match_compiled_route(string $requestUri, array $methodRootNode): ?array
+function funk_match_compiled_route(&$c, string $requestUri, array $methodRootNode): ?array
 {
     // Prepare & and extract URI Segments and remove empty segments
     $path = trim(strtolower($requestUri), '/');
@@ -368,7 +368,7 @@ function funk_match_compiled_route(string $requestUri, array $methodRootNode): ?
 }
 
 // TRIE ROUTER STARTING POINT: Match Returned Matched Compiled Route With Developer's Defined Route
-function funk_match_developer_route(string $method, string $uri, array $compiledRouteTrie, array $developerSingleRoutes, array $developerMiddlewareRoutes, string $mHandlerKey = "middlewares")
+function funk_match_developer_route(&$c, string $method, string $uri, array $compiledRouteTrie, array $developerSingleRoutes, array $developerMiddlewareRoutes, string $mHandlerKey = "middlewares")
 {
     // Prepare return values
     $matchedRoute = null;
@@ -379,9 +379,9 @@ function funk_match_developer_route(string $method, string $uri, array $compiled
     $noMatchIn = ''; // Use as debug value
     // Try match HTTP Method Key in Compiled Routes
     if (isset($compiledRouteTrie[$method])) {
-        $routeDefinition = funk_match_compiled_route($uri, $compiledRouteTrie[$method]);
+        $routeDefinition = funk_match_compiled_route($c, $uri, $compiledRouteTrie[$method]);
     } else {
-        $noMatchIn = 'COMPILED_ROUTE_KEY (' . mb_strtoupper($method) . ') & ';
+        $noMatchIn = 'NO MATCH FOR COMPILED_ROUTE_KEY (' . mb_strtoupper($method) . ') & ';
     }
     // When Matched Compiled Route, try match Developer's defined route
     if ($routeDefinition !== null) {
@@ -423,19 +423,19 @@ function funk_match_developer_route(string $method, string $uri, array $compiled
                 }
             }
         } else {
-            $noMatchIn .= 'DEVELOPER_ROUTES(funkphp/config/routes.php)';
+            $noMatchIn .= 'NO MATCH IN DEVELOPER_ROUTES(funkphp/config/routes.php)';
         }
     } else {
-        $noMatchIn .= 'COMPILED_ROUTES(funkphp/_internals/compiled/troute_route.php)';
+        $noMatchIn .= 'NO MATCH IN COMPILED_ROUTES(funkphp/_internals/compiled/troute_route.php)';
     }
     // Return all Keys in matched Route and then overwrite some keys that are "hardcoded"
+    $c['req']['route'] = $matchedRoute;
+    $c['req']['segments'] = $matchedPathSegments;
+    $c['req']['params'] = $matchedRouteParams;
+    $c['req']['matched_in'] = $noMatchIn;
     return [
         ...$routeInfo ?? [],
-        'route' => $matchedRoute,
-        'segments' => $matchedPathSegments,
-        'params' => $matchedRouteParams,
         'middlewares' => $matchedMiddlewareHandlers,
-        'in' => $noMatchIn,
     ];
 }
 
@@ -444,7 +444,7 @@ function funk_run_matched_route_handler(&$c)
 {
     // Grab Route Handler Path and prepare whether it is a string
     // or array to match "handler" or ["handler" => "fn"]
-    $handlerPath = dirname(dirname(__DIR__)) . '/handlers/';
+    $handlerPath = ROOT_FOLDER . '/handlers/';
     $handler = "";
     $handleString = null;
     if (is_string($c['req']['matched_handler'])) {
