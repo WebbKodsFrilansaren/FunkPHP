@@ -52,7 +52,7 @@ function funk_run_pipeline(&$c)
             ) {
                 unset($c['<ENTRY>']['pipeline']['request'][$i]);
                 $c['req']['number_of_deleted_pipeline']++;
-                $c['err']['PIPELINE'][] = 'Pipeline Request Function at index ' .  $i . ' is either NULL or NOT a Valid Data Type. It must be a String or An Associative Array Key with a Value! (Value can be null, but that is probably not useful in most cases)';
+                $c['err']['PIPELINE']['funk_run_pipeline'][] = 'Pipeline Request Function at index ' .  $i . ' is either NULL or NOT a Valid Data Type. It must be a String or An Associative Array Key with a Value! (Value can be null, but that is probably not useful in most cases)';
                 continue;
             }
             // Extract Function Name from the Array Key or String and store the value
@@ -80,12 +80,12 @@ function funk_run_pipeline(&$c)
                     $runPipe($c, $pipeValue);
                 } // CUSTOM ERROR HANDLING HERE! - not callable (or change below to whatever you like)
                 else {
-                    $c['err']['PIPELINE'][] = 'Pipeline Request Function at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`';
+                    $c['err']['PIPELINE']['funk_run_pipeline'][] = 'Pipeline Request Function at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`';
                     $c['req']['current_pipeline_running'] = null;
                 }
             } // CUSTOM ERROR HANDLING HERE! - no dir or file (or change below to whatever you like)
             else {
-                $c['err']['PIPELINE'][] = 'Pipeline Request Function at index '  .  $i . ' does NOT EXIST in `funkphp/config/pipeline/` Directory!';
+                $c['err']['PIPELINE']['funk_run_pipeline'][] = 'Pipeline Request Function at index '  .  $i . ' does NOT EXIST in `funkphp/config/pipeline/` Directory!';
                 $c['req']['current_pipeline_running'] = null;
             }
 
@@ -110,7 +110,7 @@ function funk_run_pipeline(&$c)
     // CUSTOM ERROR HANDLING HERE! - no matched middlewares (or change below to whatever you like)
     // IMPORTANT: No matched middlewares could mean misconfigured routes or no middlewares at all!
     else {
-        $c['err']['MAYBE']['PIPELINE'][] = 'No Configured Pipeline Request Functions (`"<ENTRY>" => "pipeline"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\']` Key in the Pipeline Configuration File `funkphp/config/pipeline.php` File!';
+        $c['err']['MAYBE']['PIPELINE']['funk_run_pipeline'][] = 'No Configured Pipeline Request Functions (`"<ENTRY>" => "pipeline"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\']` Key in the Pipeline Configuration File `funkphp/config/pipeline.php` File!';
     }
 }
 
@@ -218,7 +218,7 @@ function funk_run_post_request(&$c)
             if ($current_mw === null || !is_string($current_mw)) {
                 unset($c['<ENTRY>']['pipeline']['post-request'][$i]);
                 $c['req']['number_of_deleted_exit']++;
-                $c['err']['PIPELINE'][] = 'Exit Function at index ' .  $i . ' is not a valid string or is null!';
+                $c['err']['PIPELINE']['funk_run_post_request'][] = 'Exit Function at index ' .  $i . ' is not a valid string or is null!';
                 continue;
             }
 
@@ -235,12 +235,12 @@ function funk_run_post_request(&$c)
                     $RunMW($c);
                 } // CUSTOM ERROR HANDLING HERE! - not callable (or change below to whatever you like)
                 else {
-                    $c['err']['PIPELINE'][] = 'Exit Function at index ' .  $i . ' is not callable!';
+                    $c['err']['PIPELINE']['funk_run_post_request'][] = 'Exit Function at index ' .  $i . ' is not callable!';
                     $c['req']['current_exit_running'] = null;
                 }
             } // CUSTOM ERROR HANDLING HERE! - no dir or file (or change below to whatever you like)
             else {
-                $c['err']['PIPELINE'][] = 'Exit File at index '  .  $i . ' does not exist or is not a directory!';
+                $c['err']['PIPELINE']['funk_run_post_request'][] = 'Exit File at index '  .  $i . ' does not exist or is not a directory!';
                 $c['req']['current_exit_running'] = null;
             }
 
@@ -260,7 +260,7 @@ function funk_run_post_request(&$c)
             $c['<ENTRY>']['pipeline']['post-request'] = null;
         }
     } else {
-        $c['err']['MAYBE']['PIPELINE'][] = 'No Configured Exit Functions (`"<ENTRY>"" => "exit"` Key) to run after Request Handling. If you expected some, check the `[\'<ENTRY>\'][\'exit\']` Key in the Pipeline Configuration `funkphp/config/pipeline.php` File!';
+        $c['err']['MAYBE']['PIPELINE']['funk_run_post_request'][] = 'No Configured Exit Functions (`"<ENTRY>"" => "exit"` Key) to run after Request Handling. If you expected some, check the `[\'<ENTRY>\'][\'exit\']` Key in the Pipeline Configuration `funkphp/config/pipeline.php` File!';
     }
 }
 
