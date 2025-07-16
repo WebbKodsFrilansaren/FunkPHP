@@ -217,12 +217,11 @@ return [
         'PIPELINE' => [],
         'CACHED' => [],
         'MIDDLEWARES' => [],
-        'ROUTES' => [],
-        'HANDLERS' => [],
+        'HANDLER' => [],
         'DATA' => [],
-        'VALIDATIONS' => [],
+        'PAGE' => [],
+        'VALIDATION' => [],
         'SQL' => [],
-        'PAGES' => [],
     ],
 
 ];
