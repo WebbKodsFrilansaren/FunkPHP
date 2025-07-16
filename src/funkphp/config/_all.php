@@ -133,8 +133,6 @@ return [
         'number_of_deleted_pipeline' => 0,
         'number_of_deleted_middlewares' => 0,
         'number_of_deleted_exit' => 0,
-        'cache_page_response' => null,
-        'cache_json_response' => null,
         'code' => 418,
         'time' => $_SERVER['REQUEST_TIME'] ?? time() ?? null,
         'ip' => $_SERVER['REMOTE_ADDR'] ?? null,
