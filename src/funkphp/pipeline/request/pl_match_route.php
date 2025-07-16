@@ -17,7 +17,7 @@
         || !isset($c['ROUTES']['COMPILED'])
         || empty($c['ROUTES']['COMPILED'])
     ) {
-        $c['err']['ROUTES'][] = "Compiled Routes in File `funkphp/_internals/compiled/troute_route.php` seems empty, please check!";
+        $c['err']['PIPELINE']['REQUEST']['pl_match_route'][] = "Compiled Routes in File `funkphp/_internals/compiled/troute_route.php` seems empty, please check!";
         critical_err_json_or_html(500, "Compiled Routes File loaded but is Empty OR not properly formatted?!");
     }
     if (
@@ -29,7 +29,7 @@
         || !is_array($c['ROUTES']['DEVELOPER']['ROUTES'])
         || empty($c['ROUTES']['DEVELOPER']['ROUTES'])
     ) {
-        $c['err']['ROUTES'][] = "Routes in File `funkphp/config/routes.php` seems empty, please check!";
+        $c['err']['PIPELINE']['REQUEST']['pl_match_route'][] = "Routes in File `funkphp/config/routes.php` seems empty, please check!";
         critical_err_json_or_html(500, "Routes File loaded but is Empty OR not properly formatted?!");
     }
     $FPHP_MATCHED_ROUTE = funk_match_developer_route(

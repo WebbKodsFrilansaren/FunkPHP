@@ -11,7 +11,7 @@ return function (&$c) {
             }
         }
     } catch (Exception $e) {
-        $c['err']['FAILED_TO_RUN_MIDDLEWARE-m_https_redirect'] = 'Failed to Redirect to HTTPS! ' . $e->getMessage();
+        $c['err']['PIPELINE']['REQUEST']['pl_https_redirect'][] = 'Failed to Redirect to HTTPS! ' . $e->getMessage();
         critical_err_json_or_html(500);
     }
 };
