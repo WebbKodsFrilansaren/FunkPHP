@@ -1,6 +1,6 @@
 <?php
 
-namespace FunkPHP\Data\d_test;
+namespace FunkPHP\Data\test;
 // Data Handler File - Created in FunkCLI on 2025-07-16 04:39:17!
 // IMPORTANT: CMD+S or CTRL+S to autoformat each time function is added!
 

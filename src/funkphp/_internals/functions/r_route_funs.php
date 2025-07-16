@@ -136,7 +136,7 @@ function funk_run_matched_route_middleware(&$c)
             ) {
                 unset($c['req']['matched_middlewares'][$i]);
                 $c['req']['number_of_deleted_middlewares']++;
-                $c['err']['MIDDLEWARES'][] = 'Middleware at index ' .  $i . ' is either NULL or NOT a Valid Data Type. It must be a String or An Associative Array Key with a Value! (Value can be null, but that is probably not useful in most cases)';
+                $c['err']['MIDDLEWARES']['funk_run_matched_route_middleware'][] = 'Middleware at index ' .  $i . ' is either NULL or NOT a Valid Data Type. It must be a String or An Associative Array Key with a Value! (Value can be null, but that is probably not useful in most cases)';
                 continue;
             } elseif (is_array($current_mw)) {
                 $mwToRun = key($current_mw);
@@ -149,7 +149,7 @@ function funk_run_matched_route_middleware(&$c)
 
             // Only run middleware if dir, file and callable,
             // then run it and increment the number of ran middlewares
-            $mwDir = dirname(dirname(__DIR__)) . '/middlewares/';
+            $mwDir = ROOT_FOLDER . '/middlewares/';
             $mwFileToRun = $mwDir . $mwToRun . '.php';
             // We check if it already exists in $c['m_handlers'] so we can reuse it
             if (isset($c['m_handlers'][$mwToRun]) && is_callable($c['m_handlers'][$mwToRun])) {
@@ -167,7 +167,7 @@ function funk_run_matched_route_middleware(&$c)
                     $RunMW($c, $mwValue);
                 } // CUSTOM ERROR HANDLING HERE! - not callable (or change below to whatever you like)
                 else {
-                    $c['err']['MIDDLEWARES'][] = 'Middleware File (`' . $mwToRun . '.php`) at index '  .   $i . ' is NOT CALLABLE for some reason. The Function File must start with: `&lt;?php return function (&$c) { ... };`';
+                    $c['err']['MIDDLEWARES']['funk_run_matched_route_middleware'][] = 'Middleware File (`' . $mwToRun . '.php`) at index '  .   $i . ' is NOT CALLABLE for some reason. The Function File must start with: `&lt;?php return function (&$c) { ... };`';
                     $c['req']['current_middleware_running'] = null;
                 }
             } // CUSTOM ERROR HANDLING HERE! - no dir or file (or change below to whatever you like)
@@ -196,7 +196,7 @@ function funk_run_matched_route_middleware(&$c)
     // CUSTOM ERROR HANDLING HERE! - no matched middlewares (or change below to whatever you like)
     // IMPORTANT: No matched middlewares could mean misconfigured routes or no middlewares at all!
     else {
-        $c['err']['MAYBE']['MIDDLEWARES'][] = 'No matched Middlewares to run after Route Matching. If you expected some, check the `middlewares` Key in the `funkphp/config/routes.php` File for the Matched Route: `' . ($c['req']['matched_route'] ?? '<No Route Matched>') . '`!';
+        $c['err']['MAYBE']['MIDDLEWARES']['funk_run_matched_route_middleware'][] = 'No matched Middlewares to run after Route Matching. If you expected some, check the `middlewares` Key in the `funkphp/config/routes.php` File for the Matched Route: `' . ($c['req']['matched_route'] ?? '<No Route Matched>') . '`!';
     }
 }
 

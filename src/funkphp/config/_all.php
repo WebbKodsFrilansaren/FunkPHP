@@ -171,6 +171,12 @@ return [
         'query' => $_SERVER['QUERY_STRING'] ?? null,
     ],
 
+    // 'dispatchers' is the array of functio closures that are the loaded
+    // anoynmous function files that then contain namespaces with all the
+    // other functions that are called based on folder name, file name
+    // and function name in the file! This is used during Route Key Running!
+    'dispatchers' => [],
+
     // 'db' is the database object that will be used to handle the database connection & queries!
     // 'db_lid' will always contain the last inserted ID from the last database query!
     'db' => include_once __DIR__ . '/db.php',
