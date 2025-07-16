@@ -120,13 +120,14 @@ return [
     // 'req' is the array of request data which will also include changed data based
     // on matched route, middlewares (if any), data (if any) and page (if any), etc.
     'req' => [
-        'matched_uri' => null,
+        'uri' => null,
         'matched_in' => null,
-        'matched_method' => null,
-        'matched_route' => null,
-        'matched_segments' => null,
+        'method' => null,
+        'route' => null,
+        'params' => null,
+        'segments' => null,
+        'middlewares' => null,
         'matched_handler' => null,
-        'matched_params' => null,
         'matched_middlewares' => null,
         'matched_data' => null,
         'matched_page' => null,

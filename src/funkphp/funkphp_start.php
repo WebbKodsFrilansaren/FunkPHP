@@ -5,7 +5,7 @@ if (
     || !is_readable(__DIR__ . '/_internals/functions/_all.php')
     || !is_readable(__DIR__ . '/config/pipeline.php')
 ) {
-    critical_err_json_or_html(500, "The Global Configuration Variable `\$c` could not be loaded and/or all the necessary Function Files!");
+    critical_err_json_or_html(500, 'The Global Configuration Variable `\$c` could not be loaded and/or all the necessary Function Files!');
 }
 // Load all functions needed for the FunkPHP Framework Web Application
 // $c is the global configuration array that is used throughout the application
@@ -17,22 +17,25 @@ $c['<ENTRY>'] = include_once __DIR__ . '/config/pipeline.php';
 // and/or exit() is used prematurely by the application
 register_shutdown_function(function () use (&$c) {
     if (
-        isset($c['<ENTRY>']['exit'])
-        && is_array($c['<ENTRY>']['exit'])
-        && !empty($c['<ENTRY>']['exit'])
+        isset($c['<ENTRY>']['pipeline']['post-request'])
+        && is_array($c['<ENTRY>']['pipeline']['post-request'])
+        && !empty($c['<ENTRY>']['pipeline']['post-request'])
     ) {
-        funk_run_exit($c);
+        funk_run_post_request($c);
+    } else {
+        $c['err']['MAYBE']['PIPELINE'][] = 'No Configured Post-Request Pipeline Functions (`"<ENTRY>" => "pipeline" => "post-request"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\'][\'post-request\']` Key in the Pipeline Configuration File `funkphp/config/pipeline.php` File!';
     }
 });
 // MAIN STEP: Run the Pipeline of Anonymous Functions that control the flow of the request!
 if (
-    isset($c['<ENTRY>']['pipeline']) &&
-    is_array($c['<ENTRY>']['pipeline']) &&
-    !empty($c['<ENTRY>']['pipeline'])
+    isset($c['<ENTRY>']['pipeline']['request']) &&
+    is_array($c['<ENTRY>']['pipeline']['request']) &&
+    !empty($c['<ENTRY>']['pipeline']['request'])
 ) {
     funk_run_pipeline($c);
 } else {
-    $c['err']['MAYBE']['CONFIG'][] = 'No Configured Pipeline Functions (`"<ENTRY>" => "pipeline"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\']` Key in the Pipeline Configuration File `funkphp/config/pipeline.php` File!';
+    $c['err']['MAYBE']['PIPELINE'][] = 'No Configured Pipeline Functions (`"<ENTRY>" => "pipeline" => "request"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\']` Key in the Pipeline Configuration File `funkphp/config/pipeline.php` File!';
+    critical_err_json_or_html(500, 'No Pipeline Functions to run? Please check the `[\'pipeline\'][\'request\']` Key in the `funkphp/config/pipeline.php` File!');
 }
 // The registered shutdown callback function will be executed after pipeline
 // has run (unless the script is exited prematurely by the application)!
