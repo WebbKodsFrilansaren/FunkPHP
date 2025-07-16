@@ -2777,7 +2777,7 @@ function cli_compile_dx_validation_to_optimized_validation()
     }
     // Then check file exists and is readable
     if (!file_exists_is_readable_writable($handlerDir . $handlerFile . ".php")) {
-        cli_err("Validation Handler file \"$handlerFile.php\" not found in \"funkphp/validations/\" or not readable!");
+        cli_err("Validation Handler file \"$handlerFile.php\" not found in \"funkphp/validation/\" or not readable!");
     }
 
     // Prepare regex and find the function name in the file
@@ -2788,7 +2788,7 @@ function cli_compile_dx_validation_to_optimized_validation()
     $matchedFn = preg_match($fnNameRegex, $fileContent, $matches);
 
     if (!$matchedFn) {
-        cli_err("Validation Function \"$fnName\" not found in Validation Handler File \"funkphp/validations/$handlerFile.php\". Check for mispellings or typos?");
+        cli_err("Validation Function \"$fnName\" not found in Validation Handler File \"funkphp/validation/$handlerFile.php\". Check for mispellings or typos?");
     }
 
     // We store found match and now try find the $DX variable in that part
@@ -2850,7 +2850,7 @@ function cli_compile_dx_validation_to_optimized_validation()
     if ($result === false) {
         cli_err("FAILED compiling Validation Rules to Optimized Rules in Validation Function \"$fnName\" in \"$handlerFile.php\". Permissions issue?");
     } else {
-        cli_success_without_exit("SUCCESSFULLY COMPILED Validation Rules to Optimized Rules in Validation Function \"$fnName\" in \"funkphp/validations/$handlerFile.php\".");
+        cli_success_without_exit("SUCCESSFULLY COMPILED Validation Rules to Optimized Rules in Validation Function \"$fnName\" in \"funkphp/validation/$handlerFile.php\".");
         cli_info("IMPORTANT: Open it in an IDE and press CMD+S or CTRL+S to autoformat the Validation File again!");
     }
 }
@@ -6851,41 +6851,45 @@ function cli_restore_default_folders_and_files()
         "$folderBase/_BACKUPS/pipeline/request",
         "$folderBase/_BACKUPS/pipeline/post-request",
         "$folderBase/_BACKUPS/data/",
-        "$folderBase/_BACKUPS/handlers/",
+        "$folderBase/_BACKUPS/handler/",
         "$folderBase/_BACKUPS/middlewares/",
-        "$folderBase/_BACKUPS/pages/",
+        "$folderBase/_BACKUPS/page/",
         "$folderBase/_BACKUPS/config/",
-        "$folderBase/_BACKUPS/schemas/",
+        "$folderBase/_BACKUPS/schema/",
         "$folderBase/_BACKUPS/sql/",
-        "$folderBase/_BACKUPS/templates/",
-        "$folderBase/_BACKUPS/validations/",
+        "$folderBase/_BACKUPS/template/",
+        "$folderBase/_BACKUPS/test/",
+        "$folderBase/_BACKUPS/validation/",
         "$folderBase/_internals/",
         "$folderBase/_internals/cli/",
         "$folderBase/_internals/compiled/",
         "$folderBase/_internals/functions/",
         "$folderBase/_internals/templates/",
-        "$folderBase/_internals/included/",
-        "$folderBase/_internals/included/middlewares/",
-        "$folderBase/_internals/included/pipeline/",
+        "$folderBase/_internals/batteries/",
+        "$folderBase/_internals/batteries/middlewares/",
+        "$folderBase/_internals/batteries/pipeline/",
+        "$folderBase/_internals/batteries/pipeline/request/",
+        "$folderBase/_internals/batteries/pipeline/post-request/",
         "$folderBase/cached/",
         "$folderBase/cached/pages/",
         "$folderBase/cached/json/",
         "$folderBase/cached/files/",
         "$folderBase/config/",
         "$folderBase/data/",
+        "$folderBase/handler/",
         "$folderBase/middlewares/",
         "$folderBase/pipeline/",
         "$folderBase/pipeline/request",
         "$folderBase/pipeline/post-request",
-        "$folderBase/pages/",
-        "$folderBase/pages/complete/",
-        "$folderBase/pages/components/",
-        "$folderBase/pages/partials/",
-        "$folderBase/tests/",
-        "$folderBase/templates/",
-        "$folderBase/schemas/",
+        "$folderBase/page/",
+        "$folderBase/page/complete/",
+        "$folderBase/page/components/",
+        "$folderBase/page/partials/",
+        "$folderBase/test/",
+        "$folderBase/template/",
+        "$folderBase/schema/",
         "$folderBase/sql/",
-        "$folderBase/validations/",
+        "$folderBase/validation/",
     ];
 
     // Prepare default files that doesn't exist if certain folders don't exist
@@ -6936,8 +6940,7 @@ function cli_restore_default_folders_and_files()
             10 => 'pl_match_denied_uas',
             11 => 'pl_match_route',
             12 => 'pl_run_matched_route_middlewares',
-            13 => 'pl_run_matched_route_handler',
-            14 => 'pl_run_matched_data_handler',
+            12 => 'pl_run_matched_route_keys',
             ],'post-request' => [],],'no_match' => [],];");
             }
         }
@@ -7160,14 +7163,14 @@ function cli_backup_batch($arrayOfFilesToBackup)
             }
             continue;
         }
-        if ($fileString === "pages") {
+        if ($fileString === "page") {
             if ($settings['ALWAYS_BACKUP_IN']['PAGES_IN_BACKUPS']) {
             }
             if ($settings['ALWAYS_BACKUP_IN']['PAGES_IN_FINAL_BACKUPS']) {
             }
             continue;
         }
-        if ($fileString === "handlers") {
+        if ($fileString === "handler") {
             if ($settings['ALWAYS_BACKUP_IN']['HANDLERS_IN_BACKUPS']) {
             }
             if ($settings['ALWAYS_BACKUP_IN']['HANDLERS_IN_FINAL_BACKUPS']) {
@@ -7181,7 +7184,7 @@ function cli_backup_batch($arrayOfFilesToBackup)
             }
             continue;
         }
-        if ($fileString === "templates") {
+        if ($fileString === "template") {
             if ($settings['ALWAYS_BACKUP_IN']['TEMPLATES_IN_BACKUPS']) {
             }
             if ($settings['ALWAYS_BACKUP_IN']['TEMPLATES_IN_FINAL_BACKUPS']) {
@@ -7195,7 +7198,7 @@ function cli_backup_batch($arrayOfFilesToBackup)
             }
             continue;
         }
-        if ($fileString === "tests") {
+        if ($fileString === "test") {
             if ($settings['ALWAYS_BACKUP_IN']['TESTS_IN_BACKUPS']) {
             }
             if ($settings['ALWAYS_BACKUP_IN']['TESTS_IN_FINAL_BACKUPS']) {
@@ -7216,7 +7219,7 @@ function cli_backup_batch($arrayOfFilesToBackup)
             }
             continue;
         }
-        if ($fileString === "validations") {
+        if ($fileString === "validation") {
             if ($settings['ALWAYS_BACKUP_IN']['VALIDATIONS_IN_BACKUPS']) {
             }
             if ($settings['ALWAYS_BACKUP_IN']['VALIDATIONS_IN_FINAL_BACKUPS']) {
@@ -7417,7 +7420,7 @@ function cli_create_validation_file_and_or_handler()
 
     // Prepare dirs and strings
     $handlersDir =  $dirs['validations'];
-    $handlerDirPath = "validations";
+    $handlerDirPath = "validation";
     $date = date("Y-m-d H:i:s");
     $outputHandlerRoute = null;
     $handlerBaseFullStringRow1 = "\n\t\$base = is_string(\$handler) ? \$handler : \"\";";
@@ -7425,7 +7428,7 @@ function cli_create_validation_file_and_or_handler()
     $handlerBaseFullStringRow3 = "\n\tif (function_exists(\$full)) {";
     $handlerBaseFullStringRow4 = "\n\t\treturn \$full(\$c);";
     $handlerBaseFullStringRow5 = "\n\t} else {";
-    $handlerBaseFullStringRow6 = "\n\t\t\$c['err']['VALIDATIONS'][] = 'Validation Function `' . \$full . '` not found in namespace `' . __NAMESPACE__ . '`. Does it exist as a callable function in the Validation Handler File?';";
+    $handlerBaseFullStringRow6 = "\n\t\t\$c['err']['VALIDATION'][] = 'Validation Function `' . \$full . '` not found in namespace `' . __NAMESPACE__ . '`. Does it exist as a callable function in the Validation Handler File?';";
     $handlerBaseFullStringRow7 = "\n\t\treturn null;";
     $handlerBaseFullStringRow8 = "\n\t}";
     $handlerBaseFullString =
@@ -7655,10 +7658,10 @@ function cli_create_validation_file_and_or_handler()
     if (!file_exists($handlersDir . $handlerFile . ".php")) {
         $outputHandlerRoute = file_put_contents(
             $handlersDir . $handlerFile . ".php",
-            "<?php\n\nnamespace FunkPHP\Validations\\$handlerFile;\n// Validation Handler File - Created in FunkCLI on $date!\n// Write your Validation Rules in the\n// \$DX variable and then run the command\n// `php funkcli compile v $handlerFile=>\$function_name`\n// to get the optimized version below it!\n// IMPORTANT: CMD+S or CTRL+S to autoformat each time function is added!\n\nfunction $fnName(&\$c) // <$usedTables>\n{\n$validationLimiterStrings\n};\n\nreturn function (&\$c, \$handler = \"$fnName\") { $handlerBaseFullString \n};"
+            "<?php\n\nnamespace FunkPHP\Validation\\$handlerFile;\n// Validation Handler File - Created in FunkCLI on $date!\n// Write your Validation Rules in the\n// \$DX variable and then run the command\n// `php funkcli compile v $handlerFile=>\$function_name`\n// to get the optimized version below it!\n// IMPORTANT: CMD+S or CTRL+S to autoformat each time function is added!\n\nfunction $fnName(&\$c) // <$usedTables>\n{\n$validationLimiterStrings\n};\n\nreturn function (&\$c, \$handler = \"$fnName\") { $handlerBaseFullString \n};"
         );
         if ($outputHandlerRoute) {
-            cli_success_without_exit("Added Validation Handler \"funkphp/$handlerDirPath/$handlerFile.php\" with Validation Function \"$fnName\" in \"funkphp/validations/$handlerFile.php\"!");
+            cli_success_without_exit("Added Validation Handler \"funkphp/$handlerDirPath/$handlerFile.php\" with Validation Function \"$fnName\" in \"funkphp/validation/$handlerFile.php\"!");
             return;
         } else {
             cli_err("[cli_create_validation_file_and_or_handler]: FAILED to create Validation Handler \"funkphp/$handlerDirPath/$handlerFile.php\". File permissions issue?");
@@ -9348,7 +9351,7 @@ function get_handler_and_fn_from_argv4_or_err_out($handlerType, $argvNumber = 4,
     }
 
     $handlerPrefix = $handlerType === "r" ? "Route" : ($handlerType === "d" ? "Data" : ($handlerType === "v" ? "Validation" : "SQL"));
-    $handlerDir = $handlerType === "r" ? "handlers" : ($handlerType === "d" ? "data" : ($handlerType === "v" ? "validations" : "sql"));
+    $handlerDir = $handlerType === "r" ? "handler" : ($handlerType === "d" ? "data" : ($handlerType === "v" ? "validation" : "sql"));
 
     if (!isset($argv[$argvNumber]) || !is_string($argv[$argvNumber]) || empty($argv[$argvNumber])) {
         if (is_string($defaultSyntax) && !empty($defaultSyntax)) {
@@ -9770,7 +9773,7 @@ function delete_handler_file_with_fn_or_just_fn_or_err_out($handlerType, $handle
 
     // Prepare correct handler prefix, directory path (r = route, d = data, v = validation, s = sql)
     $handlerPrefix = $handlerType === "r" ? "Route" : ($handlerType === "d" ? "Data" : ($handlerType === "v" ? "Validation" : "SQL"));
-    $handlerDirShort = $handlerType === "r" ? "handlers" : ($handlerType === "d" ? "data" : ($handlerType === "v" ? "validations" : "sql"));
+    $handlerDirShort = $handlerType === "r" ? "handler" : ($handlerType === "d" ? "data" : ($handlerType === "v" ? "validation" : "sql"));
     $handlerDirPath = $handlerType === "r" ? $dirs['handlers'] : ($handlerType === "d" ? $dirs['data'] : ($handlerType === "v" ? $dirs['validations'] : $dirs['sql']));
     $fnNameRegex = null;
 

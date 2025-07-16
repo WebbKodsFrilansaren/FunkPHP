@@ -111,8 +111,8 @@ return [
         'route' => null,
         'params' => null,
         'segments' => null,
-        'route_keys' => null,
-        'matched_middlewares' => null,
+        'route_keys' => [],
+        'matched_middlewares' => [],
         'current_passed_value' => [],
         'current_passed_values' => [],
         'deleted_pipeline' => null,
@@ -214,7 +214,6 @@ return [
     // NEVER considered as errors, but rather like hints on what you might have missed!
     'err' => [
         'MAYBE' => [],
-        '<ENTRY>' => [],
         'PIPELINE' => [],
         'CACHED' => [],
         'MIDDLEWARES' => [],

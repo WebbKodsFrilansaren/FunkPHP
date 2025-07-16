@@ -22,7 +22,7 @@ return  [
     ],
     'no_match' =>
     [
-        'handler' => [
+        'route' => [
             'json' =>
             [],
             'page' =>
