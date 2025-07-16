@@ -9,7 +9,6 @@ function r_test(&$c) // <GET/t>
 	// FunkCLI created 2025-07-16 08:12:52! Keep Closing Curly Bracket on its
 	// own new line without indentation no comment right after it!
 	echo "NEW TEST!";
-	vd($c['req']);
 };
 
 return function (&$c, $handler = "r_test") {
