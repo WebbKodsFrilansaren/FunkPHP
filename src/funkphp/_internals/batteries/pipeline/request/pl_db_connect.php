@@ -14,7 +14,7 @@ return function (&$c) {
         $c['db'] = $conn;
     } catch (Exception $e) {
         if ($c['db'] === null) {
-            $c['err']['FAILED_TO_LOAD_DB'] = 'Database Connection Failed. Please check your Database Connection Configuration in `funkphp/config/db_config.php`!';
+            $c['err']['PIPELINE']['REQUEST']['pl_db_connect'][] = 'Database Connection Failed. Please check your Database Connection Configuration in `funkphp/config/db_config.php`!';
         }
     }
 };

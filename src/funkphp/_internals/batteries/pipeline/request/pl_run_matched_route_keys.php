@@ -2,7 +2,7 @@
     foreach ($c['req']['route_keys'] as $key => $_) {
         // $key must be a non-empty string
         if (!is_string($key)) {
-            $c['err']['PIPELINE']['REQUEST']['funk_run_matched_route_keys'][] = 'No Route Key provided to run. Please provide a valid Route Key!';
+            $c['err']['PIPELINE']['REQUEST']['funk_run_matched_route_keys'][] = 'Route Key must be a String corresponding to the Folder where the Function File with corresponding Function Name would be inside of!';
             return;
         }
         // It must also exist in currently matched route

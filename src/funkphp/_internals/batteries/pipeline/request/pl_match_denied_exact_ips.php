@@ -12,7 +12,7 @@ return function (&$c) {
     // Finally try load exact IPs to match against
     $ips_exact = include ROOT_FOLDER . '/config/blocked/blocked_ips.php';
     if ($ips_exact === false) {
-        $c['err']['PIPELINE']['m_match_denied_exact_ips'][] = 'Failed to Load List of Blocked IPs!';
+        $c['err']['PIPELINE']['REQUEST']['m_match_denied_exact_ips'][] = 'Failed to Load List of Blocked IPs!';
         critical_err_json_or_html(500);
     }
     if (isset($ips_exact[$ip])) {

@@ -15,7 +15,7 @@ return function (&$c) {
     // Finally try load blocked methods to match against
     $methods = include ROOT_FOLDER  . '/config/blocked/blocked_methods.php';
     if ($methods === false) {
-        $c['err']['PIPELINE']['m_match_denied_methods'][] = 'Failed to Load List of Blocked HTTP(S) Methods!';
+        $c['err']['PIPELINE']['REQUEST']['m_match_denied_methods'][] = 'Failed to Load List of Blocked HTTP(S) Methods!';
         critical_err_json_or_html(500);
     }
     if (isset($methods[$method])) {
