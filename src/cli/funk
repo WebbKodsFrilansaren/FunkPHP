@@ -299,149 +299,45 @@ if (!isset($command)) {
         cli_info("Type a Command and then up to 5 arguments, like this: `funk <command> <arg1> <arg2> <arg3> <arg4> <arg5>`");
     }
 }
+if (!is_string($command) || empty($command)) {
+    cli_err_syntax_without_exit("FunkCLI - Command must be a Non-Empty String! Please provide a valid Command.");
+    if (JSON_MODE) {
+        cli_info("Use the following JSON format: `{ \"command\": \"<command>\", \"arg1\": \"<arg1>\", \"arg2\": \"<arg2>\", \"arg3\": \"<arg3>\", \"arg4\": \"<arg4>\", \"arg5\": \"<arg5>\" }`");
+    } else {
+        cli_info("Type a Command and then up to 5 arguments, like this: `funk <command> <arg1> <arg2> <arg3> <arg4> <arg5>`");
+    }
+}
+
+if (isset($command) && $command === 'test_mr') {
+    [$method, $route] = cli_return_valid_method_n_route_or_err_out($arg1);
+    var_dump($method, $route);
+    exit;
+}
+if (isset($command) && $command === 'test_ff') {
+    [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg1, $arg2);
+    var_dump($file, $fn);
+    exit;
+}
 
 if (isset($command) && $command === 'compile') {
     cli_update_reserved_functions_list();
     cli_success("FunkCLI - Reserved Functions List Updated!");
 }
 
-// Compile only based on user input
-// Compile all routes
-// Define the command actions map
-// $commands = [
-//     'compile' => [
-//         'r' & 'routes' recompiles the Troute & Single Route files!
-//         'r' => function () {
-//             Backup the old route file first (troute and single_routes)
-//             cli_backup_batch(["troutes", "routes"]);
-
-//             Then build and output new route file
-//             cli_compile_batch(["troutes"]);
-//             cli_success("Recompiling means any manually (not through FunkCLI) added middlewares or routing should work now!");
-//         },
-//         'routes' => function () {
-//             Backup the old route file first (troute and single_routes)
-//             cli_backup_batch(["troutes", "routes"]);
-
-//             Then build and output new route file
-//             cli_compile_batch(["troutes"]);
-//             cli_success("Compiled Only Route routes!");
-//         },
-//         'v' & 'validation' recompiles matched Validation Handler File Function!
-//         'v' => function () {
-//             cli_compile_dx_validation_to_optimized_validation();
-//         },
-//         'validation' => function () {
-//             cli_compile_dx_validation_to_optimized_validation();
-//         },
-//         's' & 'SQL' recompiles matched SQL Handler File Function!
-//         's' => function () {
-//             cli_compile_dx_sql_to_optimized_sql();
-//         },
-//         'sql' => function () {
-//             cli_compile_dx_sql_to_optimized_sql();
-//         },
-
-//         'help' shows the help for the compile command
-//         'help' => function () {
-//             cli_info_multiline("FunkCLI - Compile Help");
-//             cli_info_multiline("Usage: funkcli compile [all_routes|only_[route|page|data]]");
-//             cli_info_multiline("The different values:");
-//             cli_info_multiline("  all_routes - Compiles all routes");
-//             cli_info_multiline("  only_route - Compiles only route routes");
-//             cli_info_multiline("  only_page - Compiles only page routes");
-//             cli_info_multiline("  only_data - Compiles only data routes");
-//             cli_info_multiline("  These files end up in: funkphp/_internals/compiled/");
-//             cli_info_multiline("***IMPORTANT 1*** This overwrites the current Troute Files!!!");
-//             cli_info_multiline("***IMPORTANT 2*** Files are Backed Up in _funkphp/_BACKUPS/compiled/ & _BACKUPS/_FINAL_BACKUPS/!!!");
-//             exit;
-//         },
-//         'reserved_list' recompiles the $$reserved_functions variable inside of the FunkCLI File!
-//         'reserved_list' => function () {
-//             cli_update_reserved_functions_list();
-//         },
-//     ],
-//     'add' => [
-//         Adding to ALL Routes at the same time (Route, Data, Page)
-//         Adding Route to only Route Routes
-//         'route' => function () {
-//             cli_add_a_route();
-//         },
-//         'r' => function () {
-//             cli_add_a_route();
-//         },
-//         'page' => function () {
-
-//         },
-//         'mw' => function () {
-//             cli_add_a_middleware();
-//         },
-//         'middleware' => function () {
-//             cli_add_a_middleware();
-//         },
-//         'table' => function () {
-//             cli_parse_a_sql_table_file();
-//         },
-//     ],
-//     'create' => [
-//         'validation' => function () {
-//             cli_create_validation_file_and_or_handler();
-//         },
-//         'v' => function () {
-//             cli_create_validation_file_and_or_handler();
-//         },
-//         's' => function () {
-//             cli_create_sql_file_and_or_handler();
-//         },
-//         'sql' => function () {
-//             cli_create_sql_file_and_or_handler();
-//         },
-//     ],
-//     'delete' => [
-//         Delete a single route for /routes/ folder only
-//         'route' => function () {
-//             cli_delete_a_route();
-//         },
-//         'r' => function () {
-//             cli_delete_a_route();
-//         },
-//         'v' => function () {
-//             delete_handler_file_with_fn_or_just_fn_or_err_out("v", "PLACEHOLDER" ?? null);
-//         },
-//         'validation' => function () {
-//             delete_handler_file_with_fn_or_just_fn_or_err_out("v", "PLACEHOLDER" ?? null);
-//         },
-//         's' => function () {
-//             delete_handler_file_with_fn_or_just_fn_or_err_out("s", "PLACEHOLDER" ?? null);
-//         },
-//         'sql' => function () {
-//             delete_handler_file_with_fn_or_just_fn_or_err_out("s", "PLACEHOLDER" ?? null);
-//         },
-//         'mw' => function () {
-//             cli_delete_a_middleware();
-//         },
-//         'mw_file' => function () {
-//             cli_delete_a_middleware_file();
-//         },
-//         'middleware_file' => function () {
-//             cli_delete_a_middleware_file();
-//         },
-//         'middleware' => function () {
-//             cli_delete_a_middleware();
-//         },
-//         'mw_from_all_routes' => function () {
-//             cli_delete_a_middleware_from_all_routes();
-//         },
-//         'middleware_from_all_routes' => function () {
-//             cli_delete_a_middleware_from_all_routes();
-//         },
-//     ],
-// ];
-
-// Catch-All for Non-Existing Commands
-cli_err_syntax_without_exit("That FunkCLI Command doesn't exist! Enter `funk help` for More Information!");
-if (JSON_MODE) {
-    cli_info("Use the following JSON format: `{ \"command\": \"<command>\", \"arg1\": \"<arg1>\", \"arg2\": \"<arg2>\", \"arg3\": \"<arg3>\", \"arg4\": \"<arg4>\", \"arg5\": \"<arg5>\" }`");
-} else {
-    cli_info("Type a Valid Existing Command and then up to 5 arguments, like this: `funk <command> <arg1> <arg2> <arg3> <arg4> <arg5>`");
+// Catch-All for Non-Existing Commands and when Command is not a String
+if (isset($command) && is_string($command) && !empty($command)) {
+    cli_err_syntax_without_exit("FunkCLI Command `$command` doesn't exist! Enter `funk help` for More Information!");
+    if (JSON_MODE) {
+        cli_info("Use the following JSON format: `{ \"command\": \"<command>\", \"arg1\": \"<arg1>\", \"arg2\": \"<arg2>\", \"arg3\": \"<arg3>\", \"arg4\": \"<arg4>\", \"arg5\": \"<arg5>\" }`");
+    } else {
+        cli_info("Type a Valid Existing Command and then up to 5 arguments, like this: `funk <command> <arg1> <arg2> <arg3> <arg4> <arg5>`");
+    }
+}
+if (isset($command) && (!is_string($command) || empty($command))) {
+    cli_err_syntax_without_exit("FunkCLI - Command must be a Non-Empty String! Please provide A Valid Command.");
+    if (JSON_MODE) {
+        cli_info("Use the following JSON format: `{ \"command\": \"<command>\", \"arg1\": \"<arg1>\", \"arg2\": \"<arg2>\", \"arg3\": \"<arg3>\", \"arg4\": \"<arg4>\", \"arg5\": \"<arg5>\" }`");
+    } else {
+        cli_info("Type a Command and then up to 5 arguments, like this: `funk <command> <arg1> <arg2> <arg3> <arg4> <arg5>`");
+    }
 }
