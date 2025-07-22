@@ -101,9 +101,6 @@ $settings = include CLI_DIR . '/funksettings' ?? [
     ],
 ];
 
-echo "FunkPHP CLI Functions + Settings Loaded!\n";
-exit;
-
 // All available dirs to use for the CLI
 $dirs = [
     "config" => FUNKPHP_DIR . '/config/',
