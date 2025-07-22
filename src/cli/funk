@@ -176,8 +176,15 @@ $exactFiles = [
 
 // List of all functions that are reserved for the framework and
 // should not be used in the application code. They are checked against
-// when adding a new function as a result of a route/data/page/mw handler.
-$reserved_functions = include_once CLI_DIR . '/reserved_functions.php' ?? cli_update_reserved_functions_list_and_return_as_array();
+// when adding any new kind of function that is already reserved.
+$reserved_functions = [];
+if (file_exists_is_readable_writable(CLI_DIR . '/cli_reserved.php')) {
+    $reserved_functions = include_once CLI_DIR . '/cli_reserved.php';
+} else {
+    cli_info_without_exit("Reserved Functions List File `cli_reserved.php` NOT FOUND! Attempting to generate a new one...");
+    $reserved_functions = cli_update_reserved_functions_list_and_return_as_array();
+    cli_success_without_exit("Reserved Functions List File `cli_reserved.php` Generated Successfully. Continuing...");
+}
 
 // First restore the folders if they don't exist
 cli_restore_default_folders_and_files();

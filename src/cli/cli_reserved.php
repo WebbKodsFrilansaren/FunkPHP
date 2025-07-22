@@ -1,5 +1,5 @@
 <?php
-// FunkPHP Framework - FunkCLI Created it 2025-07-22 11:15:38
+// FunkPHP Framework - FunkCLI Created it 2025-07-22 11:25:50
 // This file contains all reserved functions in the FunkPHP Framework and FunkCLI.
 // It is used to check if a function is reserved (used by FunkPHP/FunkCLI) or not.
 return
@@ -214,6 +214,7 @@ return
         'cli_success_with_info_same_line_without_exit',
         'cli_success_with_warning_same_line_without_exit',
         'cli_update_reserved_functions_list',
+        'cli_update_reserved_functions_list_and_return_as_array',
         'cli_value_exists_as_string_or_in_array',
         'dir_exists_is_readable_writable',
         'file_exists_is_readable_writable',
@@ -234,4 +235,4 @@ return
         'create_handler_file_with_fn_or_fn_or_err_out',
         'get_valid_handlerVar_or_err_out',
         'delete_handler_file_with_fn_or_just_fn_or_err_out',
-    ]; // Functions Count: 230
+    ]; // Functions Count: 231
