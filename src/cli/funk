@@ -1,12 +1,12 @@
 <?php // Define default directories and check whether CLI or
 // in Web Browser mode (only JSON is allowed in Browser mode)
 // After that we set the default values for command and arguments
-define('ROOT_DIR', dirname(__DIR__));
-define('BACKUPS_DIR', ROOT_DIR . '/backups');
+define('PROJECT_DIR', dirname(__DIR__));
+define('BACKUPS_DIR', PROJECT_DIR . '/backups');
 define('CLI_DIR', __DIR__);
-define('FUNKPHP_DIR', ROOT_DIR . '/funkphp');
-define('GUI_DIR', ROOT_DIR . '/gui');
-define('PUBLIC_DIR', ROOT_DIR . '/public_html');
+define('FUNKPHP_DIR', PROJECT_DIR . '/funkphp');
+define('GUI_DIR', PROJECT_DIR . '/gui');
+define('PUBLIC_DIR', PROJECT_DIR . '/public_html');
 $JSON = false;
 $command = null;
 $arg1 = null;
@@ -37,7 +37,6 @@ else {
     $arg5 = $payload['arg5'] ?? null;
 }
 define("JSON_MODE", $JSON);
-
 // If we are in JSON_MODE We then check that the REMOTE_ADDR is set and is either
 // localhost or 127.0.0.1 since this should ONLY be ran in local development
 if (JSON_MODE) {
@@ -53,6 +52,7 @@ if (JSON_MODE) {
     }
 }
 
+// Try including files or throw an error if they are not found
 if (
     !file_exists(CLI_DIR . '/cli_funs.php')
     || !file_exists(CLI_DIR . '/cli_funs2.php')
@@ -63,134 +63,14 @@ if (
         exit;
     } else {
         echo "\033[31m[FunkCLI - ERROR]: FunkPHP CLI Functions File(s) - either `cli_funs.php`, `cli_funs2.php` or both - NOT FOUND in `src/cli` Directory!\n\033[0m";
-        exit(1);
+        exit;
     }
 }
 include CLI_DIR . '/cli_funs.php';
 include CLI_DIR . '/cli_funs2.php';
-echo "FunkPHP CLI Functions Loaded!\n";
-exit;
-
-// Valid commands with valid sub-commands
-// Inspiration from Trie & Hashmaps!
-$validArg1withArg2Values =  [
-    'help' => [],
-    'compile' => [
-        'r',
-        'routes',
-        'reserved_list',
-        'help',
-        'v',
-        'validation',
-        's',
-        'sql',
-    ],
-    'create' => [
-        's',
-        'sql',
-        'v',
-        'validation',
-    ],
-    'add' => [
-        'r',
-        'route',
-        'middleware',
-        'mw',
-        'mws',
-        'middlewares',
-        'd',
-        'data',
-        'page',
-        'rdv',
-        'mw_all',
-        'mw_route',
-        'mw_data',
-        'mw_page',
-        'middleware',
-        'table',
-        'template',
-        'help'
-    ],
-    'change' => [
-        'route',
-        'data',
-        'page',
-        'help'
-    ],
-    'delete' => [
-        'r',
-        'route',
-        'h',
-        'handler',
-        'd',
-        'data',
-        'v',
-        'validation',
-        's',
-        'sql',
-        'mw',
-        'mw_file',
-        'middleware',
-        'middleware_file',
-        'middleware_from_all_routes',
-        'mw_from_all_routes',
-        'data',
-        'page',
-        'all_route_compiled_singles_middlewares_and_all_their_handlers_files_i_know_files_will_be_hard_to_get_back',
-        'all_route_compiled_and_singles_files_except_handlers_i_know_files_will_be_hard_to_get_back',
-        'all_backups_compiled_and_single_files_i_know_files_will_be_hard_to_get_back',
-        'all_backups_finals_files_i_know_files_will_be_hard_to_get_back',
-        'all_all_backups_files_i_know_files_will_be_hard_to_get_back_and_i_will_cry',
-        'help',
-    ],
-    'find' => [
-        'any',
-        'a',
-        'route',
-        'r',
-        'data',
-        'd',
-        'page',
-        'p',
-        'handler',
-        'h',
-        'middleware',
-        'mw',
-        'mws',
-        'validation',
-        'v',
-        'help'
-    ],
-    'restore' => [
-        'all_routes_compiled_and_singles_files',
-        'route_compiled_and_singles_files',
-        'handlers',
-        'data_handlers',
-        'pages',
-        'templates',
-        'sql',
-        'validations',
-        'help'
-    ],
-];
-
-// No command
-if (!isset($argv[1])) {
-    cli_err_syntax("No FunkPHP Command was given?!\nShould be at least two arguments!");
-}
-// Non-existing command
-if (!array_key_exists($argv[1], $validArg1withArg2Values)) {
-    cli_err_syntax("That FunkCLI Command doesn't exist!");
-    exit;
-}
-// No sub-command
-if ($argv[1] !== "help" && !in_array($argv[2] ?? "", $validArg1withArg2Values[$argv[1]])) {
-    cli_err_syntax("FunkCLI Command exist, but not that sub-command!");
-    exit;
-}
 
 // Load the settings file if it exists, otherwise use default settings
-$settings = include __DIR__ . '/funksettings' ?? [
+$settings = include CLI_DIR . '/funksettings' ?? [
     // Default settings for FunkCLI. "ALWAYS_BACKUP_IN" is a list of all the backup settings for the CLI.
     // It is used to determine which files should be backed up when the CLI runs backup-related commands.
     // DO NOT DELETE THIS PART. IT IS REQUIRED FOR THE CLI TO WORK PROPERLY. Change values to true or false.
@@ -221,52 +101,55 @@ $settings = include __DIR__ . '/funksettings' ?? [
     ],
 ];
 
+echo "FunkPHP CLI Functions + Settings Loaded!\n";
+exit;
+
 // All available dirs to use for the CLI
 $dirs = [
-    "config" => __DIR__ . '/funkphp/config/',
-    "config_blocked" => __DIR__ . '/funkphp/config/blocked/',
-    "config_valid" => __DIR__ . '/funkphp/config/valid/',
-    "_internals" => __DIR__ . '/funkphp/_internals/',
-    "batteries" => __DIR__ . '/funkphp/_internals/batteries/',
-    "compiled" => __DIR__ . '/funkphp/_internals/compiled/',
-    "functions" => __DIR__ . '/funkphp/_internals/functions/',
-    "_BACKUPS" => __DIR__ . '/funkphp/_BACKUPS/',
-    "pipeline" => __DIR__ . '/funkphp/pipeline/',
-    "request" => __DIR__ . '/funkphp/pipeline/request/',
-    "pipelinerequest" => __DIR__ . '/funkphp/pipeline/request/',
-    "pipeline-request" => __DIR__ . '/funkphp/pipeline/request/',
-    "pipeline_request" => __DIR__ . '/funkphp/pipeline/request/',
-    "post-request" => __DIR__ . '/funkphp/pipeline/post-request/',
-    "postrequest" => __DIR__ . '/funkphp/pipeline/post-request/',
-    "post_request" => __DIR__ . '/funkphp/pipeline/post-request/',
-    "pipelines" => __DIR__ . '/funkphp/pipeline/',
-    "routes" => __DIR__ . '/funkphp/config/',
-    "handlers" => __DIR__ . '/funkphp/handler/',
-    "middlewares" => __DIR__ . '/funkphp/middlewares/',
-    "data" => __DIR__ . '/funkphp/data/',
-    "pages" => __DIR__ . '/funkphp/page/',
-    "p_parts" => __DIR__ . '/funkphp/pages/partials/',
-    "p_components" => __DIR__ . '/funkphp/page/components/',
-    "p_complete" => __DIR__ . '/funkphp/page/complete/',
-    "templates" => __DIR__ . '/funkphp/template/',
-    "schemas" => __DIR__ . '/funkphp/schema/',
-    "sql" => __DIR__ . '/funkphp/sql/',
-    'validations' => __DIR__ . '/funkphp/validation/',
-    "exit" => __DIR__ . '/funkphp/exit/',
-    "backups_finals" => __DIR__ . '/funkphp/_BACKUPS/_FINAL_BACKUPS/',
-    "backups_compiled" => __DIR__ . '/funkphp/_BACKUPS/compiled/',
-    "backups_routes" => __DIR__ . '/funkphp/_BACKUPS/config/',
-    "backups_data" => __DIR__ . '/funkphp/_BACKUPS/data/',
-    "backups_pages" => __DIR__ . '/funkphp/_BACKUPS/page/',
-    "backups_handlers" => __DIR__ . '/funkphp/_BACKUPS/handler/',
-    "backups_middlewares" => __DIR__ . '/funkphp/_BACKUPS/middlewares/',
-    "backups_templates" => __DIR__ . '/funkphp/_BACKUPS/template/',
-    "backups_cached" => __DIR__ . '/funkphp/_BACKUPS/cached/',
-    "backups_config" => __DIR__ . '/funkphp/_BACKUPS/config/',
-    "backups_pipeline" => __DIR__ . '/funkphp/_BACKUPS/pipeline/',
-    "backups_sql" => __DIR__ . '/funkphp/_BACKUPS/sql/',
-    "backups_tests" => __DIR__ . '/funkphp/_BACKUPS/test/',
-    "backups_validations" => __DIR__ . '/funkphp/_BACKUPS/validation/',
+    "config" => __DIR__ . '/config/',
+    "config_blocked" => __DIR__ . '/config/blocked/',
+    "config_valid" => __DIR__ . '/config/valid/',
+    "_internals" => __DIR__ . '/_internals/',
+    "batteries" => __DIR__ . '/_internals/batteries/',
+    "compiled" => __DIR__ . '/_internals/compiled/',
+    "functions" => __DIR__ . '/_internals/functions/',
+    "_BACKUPS" => __DIR__ . '/_BACKUPS/',
+    "pipeline" => __DIR__ . '/pipeline/',
+    "request" => __DIR__ . '/pipeline/request/',
+    "pipelinerequest" => __DIR__ . '/pipeline/request/',
+    "pipeline-request" => __DIR__ . '/pipeline/request/',
+    "pipeline_request" => __DIR__ . '/pipeline/request/',
+    "post-request" => __DIR__ . '/pipeline/post-request/',
+    "postrequest" => __DIR__ . '/pipeline/post-request/',
+    "post_request" => __DIR__ . '/pipeline/post-request/',
+    "pipelines" => __DIR__ . '/pipeline/',
+    "routes" => __DIR__ . '/config/',
+    "handlers" => __DIR__ . '/handler/',
+    "middlewares" => __DIR__ . '/middlewares/',
+    "data" => __DIR__ . '/data/',
+    "pages" => __DIR__ . '/page/',
+    "p_parts" => __DIR__ . '/pages/partials/',
+    "p_components" => __DIR__ . '/page/components/',
+    "p_complete" => __DIR__ . '/page/complete/',
+    "templates" => __DIR__ . '/template/',
+    "schemas" => __DIR__ . '/schema/',
+    "sql" => __DIR__ . '/sql/',
+    'validations' => __DIR__ . '/validation/',
+    "exit" => __DIR__ . '/exit/',
+    "backups_finals" => __DIR__ . '/_BACKUPS/_FINAL_BACKUPS/',
+    "backups_compiled" => __DIR__ . '/_BACKUPS/compiled/',
+    "backups_routes" => __DIR__ . '/_BACKUPS/config/',
+    "backups_data" => __DIR__ . '/_BACKUPS/data/',
+    "backups_pages" => __DIR__ . '/_BACKUPS/page/',
+    "backups_handlers" => __DIR__ . '/_BACKUPS/handler/',
+    "backups_middlewares" => __DIR__ . '/_BACKUPS/middlewares/',
+    "backups_templates" => __DIR__ . '/_BACKUPS/template/',
+    "backups_cached" => __DIR__ . '/_BACKUPS/cached/',
+    "backups_config" => __DIR__ . '/_BACKUPS/config/',
+    "backups_pipeline" => __DIR__ . '/_BACKUPS/pipeline/',
+    "backups_sql" => __DIR__ . '/_BACKUPS/sql/',
+    "backups_tests" => __DIR__ . '/_BACKUPS/test/',
+    "backups_validations" => __DIR__ . '/_BACKUPS/validation/',
 ];
 
 // Exact file paths to use for the CLI
