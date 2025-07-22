@@ -6873,8 +6873,6 @@ function cli_restore_default_folders_and_files()
         "$folderBase/funkphp/cached/json/",
         "$folderBase/funkphp/cached/files/",
         "$folderBase/funkphp/config/",
-        "$folderBase/funkphp/data/",
-        "$folderBase/funkphp/handler/",
         "$folderBase/funkphp/middlewares/",
         "$folderBase/funkphp/pipeline/",
         "$folderBase/funkphp/pipeline/request",
