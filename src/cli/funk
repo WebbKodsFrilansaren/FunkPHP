@@ -372,7 +372,7 @@ $reserved_functions =  [
 cli_restore_default_folders_and_files();
 
 // Load current pipeline, routes, data and pages before processing any commands
-$singlePipeline = include __DIR__ . '/funkphp/config/pipeline.php' ?? [
+$singlePipeline = include FUNKPHP_DIR . '/config/pipeline.php' ?? [
     'pipeline' =>
     [
         'request' =>
@@ -411,15 +411,15 @@ $singlePipeline = include __DIR__ . '/funkphp/config/pipeline.php' ?? [
         ],
     ],
 ];
-$singleRoutesRoute = include __DIR__ . '/funkphp/config/routes.php' ?? [
+$singleRoutesRoute = include FUNKPHP_DIR . '/config/routes.php' ?? [
     'ROUTES' => ['GET' => [], 'POST' => [], 'PUT' => [], 'DELETE' => [], 'PATCH' => []]
 ];
-$tablesAndRelationshipsFile = include __DIR__ . '/funkphp/config/tables.php' ?? [
+$tablesAndRelationshipsFile = include FUNKPHP_DIR . '/config/tables.php' ?? [
     'tables' => [],
     'relationships' => [],
     'mappings' => [],
 ];
-$mysqlDataTypesFile = include __DIR__ . '/funkphp/config/valid/valid_mysql_datatypes.php' ?? [
+$mysqlDataTypesFile = include FUNKPHP_DIR . '/config/valid/valid_mysql_datatypes.php' ?? [
     'STRINGS' => [],
     'NUMBERS' => [],
     'INTS' => [],
@@ -427,7 +427,7 @@ $mysqlDataTypesFile = include __DIR__ . '/funkphp/config/valid/valid_mysql_datat
     'DATETIMES' => [],
     'BLOBS' => []
 ];
-$mysqlOperatorSyntax = include __DIR__ . '/funkphp/config/valid/valid_mysql_operators.php' ?? [
+$mysqlOperatorSyntax = include FUNKPHP_DIR . '/config/valid/valid_mysql_operators.php' ?? [
     'arithmetic' => [
         '+' => [],
         '-' => [],
