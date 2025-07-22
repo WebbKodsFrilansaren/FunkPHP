@@ -1,11 +1,68 @@
-#!/usr/bin/env php
-<?php // Include all CLI Functions needed to manage FunkPHP CLI!
-if (!file_exists(__DIR__ . '/cli_funs.php') || !file_exists(__DIR__ . '/cli_funs2.php')) {
+<?php // Define default directories and check whether CLI or
+// in Web Browser mode (only JSON is allowed in Browser mode)
+// After that we set the default values for command and arguments
+define('ROOT_DIR', dirname(__DIR__));
+define('BACKUPS_DIR', ROOT_DIR . '/backups');
+define('CLI_DIR', __DIR__);
+define('FUNKPHP_DIR', ROOT_DIR . '/funkphp');
+define('GUI_DIR', ROOT_DIR . '/gui');
+define('PUBLIC_DIR', ROOT_DIR . '/public_html');
+$JSON = false;
+$command = null;
+$arg1 = null;
+$arg2 = null;
+$arg3 = null;
+$arg4 = null;
+$arg5 = null;
+
+// CLI Mode
+if (php_sapi_name() === 'cli') {
+    $command = $argv[1] ?? null;
+    $arg1 = $argv[2] ?? null;
+    $arg2 = $argv[3] ?? null;
+    $arg3 = $argv[4] ?? null;
+    $arg4 = $argv[5] ?? null;
+    $arg5 = $argv[6] ?? null;
+    var_dump($command, $arg1, $arg2, $arg3, $arg4, $arg5);
+}
+// JSON Mode
+else {
+    $JSON = true;
+    header('Content-Type: application/json');
+    $payload = json_decode(file_get_contents('php://input'), true) ?? [];
+    $command = $payload['command'] ?? null;
+    $arg1 = $payload['arg1'] ?? null;
+    $arg2 = $payload['arg2'] ?? null;
+    $arg3 = $payload['arg3'] ?? null;
+    $arg4 = $payload['arg4'] ?? null;
+    $arg5 = $payload['arg5'] ?? null;
+    echo json_encode([
+        'command' => $command,
+        'arg1' => $arg1,
+        'arg2' => $arg2,
+        'arg3' => $arg3,
+        'arg4' => $arg4,
+        'arg5' => $arg5,
+        'root_dir' => ROOT_DIR,
+        'cli_dir' => CLI_DIR,
+        'funkphp_dir' => FUNKPHP_DIR,
+        'gui_dir' => GUI_DIR,
+        'public_dir' => PUBLIC_DIR
+    ]);
+}
+define("JSON_MODE", $JSON);
+
+if (
+    !file_exists(__DIR__ . '/cli_funs.php')
+    || !file_exists(__DIR__ . '/cli_funs2.php')
+) {
     echo "/!\ FunkPHP CLI Functions File(s) not found in `src/cli`\nPlease make sure you have the correct FunkPHP installation and try again! /!\\";
     exit(1);
 }
 include __DIR__ . '/cli_funs.php';
 include __DIR__ . '/cli_funs2.php';
+echo "FunkPHP CLI Functions Loaded!\n";
+exit;
 
 // Valid commands with valid sub-commands
 // Inspiration from Trie & Hashmaps!
@@ -853,19 +910,6 @@ $commands = [
     },
 ];
 
-// Execute the command with the action if it exists
-$command = $argv[1] ?? null;
-$action = $argv[2] ?? null;
-if (isset($commands[$command]) && $action == null) {
-    $commands[$command]();
-    exit;
-}
-if (isset($commands[$command][$action])) {
-    $commands[$command][$action]();
-    exit;
-}
-
 // Catch-all for non-existing commands or actions (or invalid processing of commands)
 cli_err_syntax("That FunkCLI Command doesn't exist! Enter ``funkcli help`` for more information!");
 exit;
-?>

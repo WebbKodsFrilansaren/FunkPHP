@@ -1,0 +1,3 @@
+<Files "funk">
+SetHandler application/x-httpd-php
+</Files>
