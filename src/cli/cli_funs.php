@@ -39,8 +39,9 @@ function cli_output(string $type, string $message, bool $do_exit = false, int $e
     }
 
     // Check if we are in JSON_MODE (web browser access)
-    // We use `defined('JSON_MODE') && JSON_MODE` to
-    // safely check if the constant exists and is true
+    // If not JSON_MODE, we assume & output to CLI!
+    // Any message that includes $do_exit true will
+    // return built JSON response & exit or just exit CLI
     if (defined('JSON_MODE') && JSON_MODE) {
         $funk_response_messages[] = [
             'type' => $type,
@@ -52,7 +53,7 @@ function cli_output(string $type, string $message, bool $do_exit = false, int $e
     } else {
         echo $color . $prefix . $message . ANSI_RESET . "\n";
         if ($do_exit) {
-            exit($exit_code); // Exit with the specified code
+            exit($exit_code);
         }
     }
 }
