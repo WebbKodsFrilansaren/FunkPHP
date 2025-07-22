@@ -9015,101 +9015,135 @@ function cli_parse_rest_of_valid_route_syntax_better($routeString)
 // CLI Functions to show errors and success messages with colors
 function cli_err_syntax($string)
 {
-    echo "\033[31m[FunkCLI - SYNTAX ERROR]: $string\n\033[0m";
-    exit;
+    cli_output(MSG_TYPE_SYNTAX_ERROR, $string, true, 1);
 }
 function cli_err($string)
 {
-    echo "\033[31m[FunkCLI - ERROR]: $string\n\033[0m";
-    exit;
+    cli_output(MSG_TYPE_ERROR, $string, true, 1);
 }
 function cli_err_without_exit($string)
 {
-    echo "\033[31m[FunkCLI - ERROR]: $string\n\033[0m";
+    cli_output(MSG_TYPE_ERROR, $string, false);
 }
 function cli_err_syntax_without_exit($string)
 {
-    echo "\033[31m[FunkCLI - SYNTAX ERROR]: $string\n\033[0m";
+    cli_output(MSG_TYPE_SYNTAX_ERROR, $string, false);
 }
 function cli_err_command($string)
 {
-    echo "\033[31m[FunkCLI - COMMAND ERROR]: $string\n\033[0m";
-    exit;
+    cli_output(MSG_TYPE_ERROR, $string, true, 1);
 }
 function cli_success($string)
 {
-    echo "\033[32m[FunkCLI - SUCCESS]: $string\n\033[0m";
-    exit;
+    cli_output(MSG_TYPE_SUCCESS, $string, true, 0);
 }
 function cli_info($string)
 {
-    echo "\033[34m[FunkCLI - INFO]: $string\n\033[0m";
-    exit;
+    cli_output(MSG_TYPE_INFO, $string, true, 0);
 }
 function cli_success_without_exit($string)
 {
-    echo "\033[32m[FunkCLI - SUCCESS]: $string\n\033[0m";
+    cli_output(MSG_TYPE_SUCCESS, $string, false);
 }
 function cli_info_without_exit($string)
 {
-    echo "\033[34m[FunkCLI - INFO]: $string\n\033[0m";
+    cli_output(MSG_TYPE_INFO, $string, false);
 }
 function cli_info_multiline($string)
 {
-    echo "\033[34m[FunkCLI - INFO]: $string\n\033[0m";
+    cli_output(MSG_TYPE_INFO, $string, false);
 }
 function cli_warning($string)
 {
-    echo "\033[33m[FunkCLI - WARNING]: $string\n\033[0m";
-    exit;
+    cli_output(MSG_TYPE_WARNING, $string, true, 0);
 }
 function cli_warning_without_exit($string)
 {
-    echo "\033[33m[FunkCLI - WARNING]: $string\n\033[0m";
+    cli_output(MSG_TYPE_WARNING, $string, false);
 }
 function cli_success_with_warning_same_line($string1, $string2)
 {
-    echo "\033[32m[FunkCLI - SUCCESS + WARNING]: $string1\033[0m";
-    echo "\033[33m$string2\n\033[0m";
-    exit;
+    if (defined('JSON_MODE') && JSON_MODE) {
+        cli_output(MSG_TYPE_SUCCESS, $string1, false);
+        cli_output(MSG_TYPE_WARNING, $string2, true);
+    } else {
+        echo ANSI_GREEN . "[FunkCLI - SUCCESS + WARNING]: " . $string1 . ANSI_RESET;
+        echo ANSI_YELLOW . $string2 . ANSI_RESET . "\n";
+        exit(0);
+    }
 }
 function cli_err_with_info_same_line($string1, $string2)
 {
-    echo "\033[31m[FunkCLI - ERROR + INFO]: $string1\033[0m";
-    echo "\033[34m$string2\n\033[0m";
-    exit;
+    if (defined('JSON_MODE') && JSON_MODE) {
+        cli_output(MSG_TYPE_ERROR, $string1, false);
+        cli_output(MSG_TYPE_INFO, $string2, true, 1); // Exit after info in this case
+    } else {
+        echo ANSI_RED . "[FunkCLI - ERROR + INFO]: " . $string1 . ANSI_RESET;
+        echo ANSI_BLUE . $string2 . ANSI_RESET . "\n";
+        exit(1);
+    }
 }
 function cli_err_with_info_same_line_without_exit($string1, $string2)
 {
-    echo "\033[31m[FunkCLI - ERROR + INFO]: $string1\033[0m";
-    echo "\033[34m$string2\n\033[0m";
+    if (defined('JSON_MODE') && JSON_MODE) {
+        cli_output(MSG_TYPE_ERROR, $string1, false);
+        cli_output(MSG_TYPE_INFO, $string2, false);
+    } else {
+        echo ANSI_RED . "[FunkCLI - ERROR + INFO]: " . $string1 . ANSI_RESET;
+        echo ANSI_BLUE . $string2 . ANSI_RESET . "\n";
+    }
 }
 function cli_err_with_warning_same_line($string1, $string2)
 {
-    echo "\033[31m[FunkCLI - ERROR + WARNING]: $string1\033[0m";
-    echo "\033[33m$string2\n\033[0m";
-    exit;
+    if (defined('JSON_MODE') && JSON_MODE) {
+        cli_output(MSG_TYPE_ERROR, $string1, false);
+        cli_output(MSG_TYPE_WARNING, $string2, true, 1);
+    } else {
+        echo ANSI_RED . "[FunkCLI - ERROR + WARNING]: " . $string1 . ANSI_RESET;
+        echo ANSI_YELLOW . $string2 . ANSI_RESET . "\n";
+        exit(1);
+    }
 }
 function cli_err_with_warning_same_line_without_exit($string1, $string2)
 {
-    echo "\033[31m[FunkCLI - ERROR + WARNING]: $string1\033[0m";
-    echo "\033[33m$string2\n\033[0m";
+    if (defined('JSON_MODE') && JSON_MODE) {
+        cli_output(MSG_TYPE_ERROR, $string1, false);
+        cli_output(MSG_TYPE_WARNING, $string2, false);
+    } else {
+        echo ANSI_RED . "[FunkCLI - ERROR + WARNING]: " . $string1 . ANSI_RESET;
+        echo ANSI_YELLOW . $string2 . ANSI_RESET . "\n";
+    }
 }
 function cli_success_with_info_same_line($string1, $string2)
 {
-    echo "\033[32m[FunkCLI - SUCCESS + INFO]: $string1\033[0m";
-    echo "\033[34m$string2\n\033[0m";
-    exit;
+    if (defined('JSON_MODE') && JSON_MODE) {
+        cli_output(MSG_TYPE_SUCCESS, $string1, false);
+        cli_output(MSG_TYPE_INFO, $string2, true, 0);
+    } else {
+        echo ANSI_GREEN . "[FunkCLI - SUCCESS + INFO]: " . $string1 . ANSI_RESET;
+        echo ANSI_BLUE . $string2 . ANSI_RESET . "\n";
+        exit(0);
+    }
 }
 function cli_success_with_info_same_line_without_exit($string1, $string2)
 {
-    echo "\033[32m[FunkCLI - SUCCESS]: $string1\033[0m";
-    echo "\033[34m$string2\n\033[0m";
+    if (defined('JSON_MODE') && JSON_MODE) {
+        cli_output(MSG_TYPE_SUCCESS, $string1, false);
+        cli_output(MSG_TYPE_INFO, $string2, false);
+    } else {
+        echo ANSI_GREEN . "[FunkCLI - SUCCESS]: " . $string1 . ANSI_RESET; // Note: original prefix might be different here
+        echo ANSI_BLUE . $string2 . ANSI_RESET . "\n";
+    }
 }
 function cli_success_with_warning_same_line_without_exit($string1, $string2)
 {
-    echo "\033[32m[FunkCLI - SUCCESS]: $string1\033[0m";
-    echo "\033[33m$string2\n\033[0m";
+    if (defined('JSON_MODE') && JSON_MODE) {
+        cli_output(MSG_TYPE_SUCCESS, $string1, false);
+        cli_output(MSG_TYPE_WARNING, $string2, false);
+    } else {
+        echo ANSI_GREEN . "[FunkCLI - SUCCESS]: " . $string1 . ANSI_RESET; // Note: original prefix might be different here
+        echo ANSI_YELLOW . $string2 . ANSI_RESET . "\n";
+    }
 }
 
 // Function loops through all function files in funkphp/_internals/functions/

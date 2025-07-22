@@ -15,6 +15,20 @@ $arg3 = null;
 $arg4 = null;
 $arg5 = null;
 
+// Define message types and ANSI colors for CLI output
+// but that can also be parsed by returned JSON Response
+define('MSG_TYPE_ERROR', 'ERROR');
+define('MSG_TYPE_SUCCESS', 'SUCCESS');
+define('MSG_TYPE_INFO', 'INFO');
+define('MSG_TYPE_WARNING', 'WARNING');
+define('MSG_TYPE_SYNTAX_ERROR', 'SYNTAX_ERROR');
+define('ANSI_RED', "\033[31m");
+define('ANSI_GREEN', "\033[32m");
+define('ANSI_YELLOW', "\033[33m");
+define('ANSI_BLUE', "\033[34m");
+define('ANSI_RESET', "\033[0m");
+global $funk_response_messages;
+
 // CLI Mode
 if (php_sapi_name() === 'cli') {
     $command = $argv[1] ?? null;
@@ -102,6 +116,7 @@ $settings = include CLI_DIR . '/funksettings' ?? [
 ];
 
 // All available dirs to use for the CLI
+// & exact file paths to use for the CLI
 $dirs = [
     "config" => FUNKPHP_DIR . '/config/',
     "config_blocked" => FUNKPHP_DIR . '/config/blocked/',
@@ -144,8 +159,6 @@ $dirs = [
     "backups_tests" => BACKUPS_DIR . '/test/',
     "backups_validations" => BACKUPS_DIR . '/validation/',
 ];
-
-// Exact file paths to use for the CLI
 $exactFiles = [
     "troute_route" => $dirs['compiled'] . "troute_route.php",
     "single_pipeline" => $dirs['config'] . "pipeline.php",
@@ -473,326 +486,136 @@ $mysqlOperatorSyntax = include FUNKPHP_DIR . '/config/valid/valid_mysql_operator
 // Compile only based on user input
 // Compile all routes
 // Define the command actions map
-$commands = [
-    'compile' => [
-        // 'r' & 'routes' recompiles the Troute & Single Route files!
-        'r' => function () {
-            // Backup the old route file first (troute and single_routes)
-            cli_backup_batch(["troutes", "routes"]);
+// $commands = [
+//     'compile' => [
+//         'r' & 'routes' recompiles the Troute & Single Route files!
+//         'r' => function () {
+//             Backup the old route file first (troute and single_routes)
+//             cli_backup_batch(["troutes", "routes"]);
 
-            // Then build and output new route file
-            cli_compile_batch(["troutes"]);
-            cli_success("Recompiling means any manually (not through FunkCLI) added middlewares or routing should work now!");
-        },
-        'routes' => function () {
-            // Backup the old route file first (troute and single_routes)
-            cli_backup_batch(["troutes", "routes"]);
+//             Then build and output new route file
+//             cli_compile_batch(["troutes"]);
+//             cli_success("Recompiling means any manually (not through FunkCLI) added middlewares or routing should work now!");
+//         },
+//         'routes' => function () {
+//             Backup the old route file first (troute and single_routes)
+//             cli_backup_batch(["troutes", "routes"]);
 
-            // Then build and output new route file
-            cli_compile_batch(["troutes"]);
-            cli_success("Compiled Only Route routes!");
-        },
-        // 'v' & 'validation' recompiles matched Validation Handler File Function!
-        'v' => function () {
-            cli_compile_dx_validation_to_optimized_validation();
-        },
-        'validation' => function () {
-            cli_compile_dx_validation_to_optimized_validation();
-        },
-        // 's' & 'SQL' recompiles matched SQL Handler File Function!
-        's' => function () {
-            cli_compile_dx_sql_to_optimized_sql();
-        },
-        'sql' => function () {
-            cli_compile_dx_sql_to_optimized_sql();
-        },
+//             Then build and output new route file
+//             cli_compile_batch(["troutes"]);
+//             cli_success("Compiled Only Route routes!");
+//         },
+//         'v' & 'validation' recompiles matched Validation Handler File Function!
+//         'v' => function () {
+//             cli_compile_dx_validation_to_optimized_validation();
+//         },
+//         'validation' => function () {
+//             cli_compile_dx_validation_to_optimized_validation();
+//         },
+//         's' & 'SQL' recompiles matched SQL Handler File Function!
+//         's' => function () {
+//             cli_compile_dx_sql_to_optimized_sql();
+//         },
+//         'sql' => function () {
+//             cli_compile_dx_sql_to_optimized_sql();
+//         },
 
-        // 'help' shows the help for the compile command
-        'help' => function () {
-            cli_info_multiline("FunkCLI - Compile Help");
-            cli_info_multiline("Usage: funkcli compile [all_routes|only_[route|page|data]]");
-            cli_info_multiline("The different values:");
-            cli_info_multiline("  all_routes - Compiles all routes");
-            cli_info_multiline("  only_route - Compiles only route routes");
-            cli_info_multiline("  only_page - Compiles only page routes");
-            cli_info_multiline("  only_data - Compiles only data routes");
-            cli_info_multiline("  These files end up in: funkphp/_internals/compiled/");
-            cli_info_multiline("***IMPORTANT 1*** This overwrites the current Troute Files!!!");
-            cli_info_multiline("***IMPORTANT 2*** Files are Backed Up in _funkphp/_BACKUPS/compiled/ & _BACKUPS/_FINAL_BACKUPS/!!!");
-            exit;
-        },
-        // 'reserved_list' recompiles the $$reserved_functions variable inside of the FunkCLI File!
-        'reserved_list' => function () {
-            cli_update_reserved_functions_list();
-        },
-    ],
-    'add' => [
-        // Adding to ALL Routes at the same time (Route, Data, Page)
-        // Adding Route to only Route Routes
-        'route' => function () {
-            cli_add_a_route();
-        },
-        'r' => function () {
-            cli_add_a_route();
-        },
-        'data' => function () {
-            cli_add_a_data_or_a_validation_handler("d");
-        },
-        'd' => function () {
-            cli_add_a_data_or_a_validation_handler("d");
-        },
-        'page' => function () {
-            //
-        },
-        'mw' => function () {
-            cli_add_a_middleware();
-        },
-        'middleware' => function () {
-            cli_add_a_middleware();
-        },
-        'table' => function () {
-            cli_parse_a_sql_table_file();
-        },
-        'rdv' => function () {
-            // $r_test = escapeshellcmd("php funkcli add r g/test2 test=>test2");
-            // $d_test = escapeshellcmd("php funkcli add d g/test2 test=>test2");
-            // $v_test = escapeshellcmd("php funkcli add v g/test2 test=>test2");
-            // echo shell_exec($r_test);
-            // echo shell_exec($d_test);
-            // echo shell_exec($v_test);
-        },
-    ],
-    'create' => [
-        'validation' => function () {
-            cli_create_validation_file_and_or_handler();
-        },
-        'v' => function () {
-            cli_create_validation_file_and_or_handler();
-        },
-        's' => function () {
-            cli_create_sql_file_and_or_handler();
-        },
-        'sql' => function () {
-            cli_create_sql_file_and_or_handler();
-        },
-    ],
-    'change' => [
-        'route' => function () use ($argv, $settings) {
-            if (!isset($argv[3])) {
-                cli_err_syntax("No FunkPHP Command was given?!\nShould be at least three arguments!");
-            }
-            cli_info("[INFO]: Changing route routes (not implemented yet)");
-        },
-        'page' => function () use ($argv, $settings) {
-            if (!isset($argv[3])) {
-                cli_err_syntax("No FunkPHP Command was given?!\nShould be at least three arguments!");
-            }
-            cli_info("[INFO]: Changing page routes (not implemented yet)");
-        },
-        'data' => function () use ($argv, $settings) {
-            if (!isset($argv[3])) {
-                cli_err_syntax("No FunkPHP Command was given?!\nShould be at least three arguments!");
-            }
-            cli_info("[INFO]: Changing data routes (not implemented yet)");
-        },
-    ],
-    'delete' => [
-        // Delete a single route for /routes/ folder only
-        'route' => function () {
-            cli_delete_a_route();
-        },
-        'r' => function () {
-            cli_delete_a_route();
-        },
-        'handler' => function () use ($argv) {
-            delete_handler_file_with_fn_or_just_fn_or_err_out("r", $argv[3] ?? null);
-        },
-        'h' => function () use ($argv) {
-            delete_handler_file_with_fn_or_just_fn_or_err_out("r", $argv[3] ?? null);
-        },
-        'd' => function () use ($argv) {
-            delete_handler_file_with_fn_or_just_fn_or_err_out("d", $argv[3] ?? null);
-        },
-        'data' => function () use ($argv) {
-            delete_handler_file_with_fn_or_just_fn_or_err_out("d", $argv[3] ?? null);
-        },
-        'v' => function () use ($argv) {
-            delete_handler_file_with_fn_or_just_fn_or_err_out("v", $argv[3] ?? null);
-        },
-        'validation' => function () use ($argv) {
-            delete_handler_file_with_fn_or_just_fn_or_err_out("v", $argv[3] ?? null);
-        },
-        's' => function () use ($argv) {
-            delete_handler_file_with_fn_or_just_fn_or_err_out("s", $argv[3] ?? null);
-        },
-        'sql' => function () use ($argv) {
-            delete_handler_file_with_fn_or_just_fn_or_err_out("s", $argv[3] ?? null);
-        },
-        'mw' => function () {
-            cli_delete_a_middleware();
-        },
-        'mw_file' => function () {
-            cli_delete_a_middleware_file();
-        },
-        'middleware_file' => function () {
-            cli_delete_a_middleware_file();
-        },
-        'middleware' => function () {
-            cli_delete_a_middleware();
-        },
-        'mw_from_all_routes' => function () {
-            cli_delete_a_middleware_from_all_routes();
-        },
-        'middleware_from_all_routes' => function () {
-            cli_delete_a_middleware_from_all_routes();
-        },
-        // THESE DELETING FUNCTIONS ARE TO DELETE ACTUALLY MOST FILES IN MOST FOLDERS. FUNCTION ABOVE HERE ARE FOR DELETING INSIDE
-        // OF FILES SUCH AS ROUTES, MIDDLEWARE, HANDLERS AND SO ON. PROCEED WITH CAUTION USING ANY OF THE FOLLOWING FUNCTIONS!!!
-        'all_route_compiled_singles_middlewares_and_all_their_handlers_files_i_know_files_will_be_hard_to_get_back' => function () {
-            global $dirs, $settings;
-            cli_delete_all_files_in_directory_except_other_directories($dirs['compiled']);
-            cli_delete_all_files_in_directory_except_other_directories($dirs['routes']);
-            cli_delete_all_files_in_directory_except_other_directories($dirs['data']);
-            cli_delete_all_files_in_directory_except_other_directories($dirs['pages']);
-            cli_delete_all_files_in_directory_except_other_directories($dirs['handlers']);
-            cli_delete_all_files_in_directory_except_other_directories($dirs['middlewares']);
-        },
-        'all_route_compiled_and_singles_files_except_handlers_i_know_files_will_be_hard_to_get_back' => function () {
-            global $dirs, $settings;
-            cli_delete_all_files_in_directory_except_other_directories($dirs['compiled']);
-            cli_delete_all_files_in_directory_except_other_directories($dirs['routes']);
-            cli_delete_all_files_in_directory_except_other_directories($dirs['data']);
-            cli_delete_all_files_in_directory_except_other_directories($dirs['pages']);
-        },
-        // This deletes all backups in the _BACKUPS/compiled, _BACKUPS/data, _BACKUPS/pages
-        // & _BACKUPS/routes Subfolders are not deleted such as _BACKUPS/routes/MW/ etc.
-        'all_backups_compiled_and_single_files_i_know_files_will_be_hard_to_get_back' => function () {
-            global $dirs, $settings;
-            $backupCompiledPath = $dirs['backups_compiled'];
-            $backupRoutePath = $dirs['backups_routes'];
-            $backupDataPath = $dirs['backups_data'];
-            $backupPagePath = $dirs['backups_pages'];
-            cli_delete_all_files_in_directory_except_other_directories($backupCompiledPath);
-            cli_delete_all_files_in_directory_except_other_directories($backupRoutePath);
-            cli_delete_all_files_in_directory_except_other_directories($backupDataPath);
-            cli_delete_all_files_in_directory_except_other_directories($backupPagePath);
-        },
-        // This deletes all final backups in the _BACKUPS/_FINAL_BACKUPS ONLY!
-        // So, it does NOT delete any other (sub)folders with files in _BACKUPS/
-        'all_backups_finals_files_i_know_files_will_be_hard_to_get_back' => function () {
-            global $dirs, $settings;
-            $backupFinalsPath = $dirs['backups_finals'];
-            cli_delete_all_files_in_directory_except_other_directories($backupFinalsPath);
-        },
-        // Yes, this deletes EVERYTHING BACKUPED. So, think twice before using it!!!
-        'all_all_backups_files_i_know_files_will_be_hard_to_get_back_and_i_will_cry' => function () {
-            global $dirs, $settings;
-            if ($settings['ALLOW_COMPLETE_BACKUP_DELETION'] == false) {
-                cli_err_syntax("By default, you are not allowed to delete all backups including final backups! First set ALLOW_COMPLETE_BACKUP_DELETION to true in the settings file (\"src/FunkCLI_Settings\")!");
-                exit;
-            }
-            $backupCompiledPath = $dirs['backups_compiled'];
-            $backupRoutePath = $dirs['backups_routes'];
-            $backupDataPath = $dirs['backups_data'];
-            $backupPagePath = $dirs['backups_pages'];
-            $backupFinalsPath = $dirs['backups_finals'];
-            cli_delete_all_files_in_directory_except_other_directories($backupCompiledPath);
-            cli_delete_all_files_in_directory_except_other_directories($backupRoutePath);
-            cli_delete_all_files_in_directory_except_other_directories($backupDataPath);
-            cli_delete_all_files_in_directory_except_other_directories($backupPagePath);
-            cli_delete_all_files_in_directory_except_other_directories($backupFinalsPath);
-        },
-    ],
-    'find' => [
-        'any' => function () {
-            cli_info("[INFO]: Finding any routes (not implemented yet)");
-        },
-        'route' => function () {
-            cli_info("[INFO]: Finding route routes (not implemented yet)");
-        },
-        'page' => function () {
-            cli_info("[INFO]: Finding page routes (not implemented yet)");
-        },
-        'handler' => function () use ($argv) {
-            if (isset($argv[3]) && is_string($argv[3]) && !empty($argv[3])) {
-                // Check if the handler is a route, data or page handler
-                // by checking if it starts with "h:", "d:" or "v:"
-                if (strpos($argv[3], 'h:') === 0) {
-                    $argv[3] = substr($argv[3], 2);
-                    //cli_route_handler_exists($argv[3], true);
-                } elseif (strpos($argv[3], 'd:') === 0) {
-                    $argv[3] = substr($argv[3], 2);
-                    //cli_data_handler_exists($argv[3], true);
-                } elseif (strpos($argv[3], 'v:') === 0) {
-                    $argv[3] = substr($argv[3], 2);
-                    //cli_validation_handler_exists($argv[3], true);
-                }
-            } else {
-                cli_err_syntax_without_exit("No FunkPHP Command was given?!\nShould be at least three arguments!");
-                cli_err_syntax_without_exit("Syntax: 'php funkcli find handler h|d|v:[handler_name=>[optionalFunctionName]]'");
-                cli_err_syntax_without_exit("Example 1: 'php funkcli find handler h:handlerFileName=>handlerFunctionName'");
-                cli_err_syntax_without_exit("Example 2: 'php funkcli find handler d:dataHandlerFileName=>dataHandlerFunctionName'");
-                cli_err_syntax("Example 3: 'php funkcli find handler v:validationFileName=>validationFunctionName'");
-            }
-        },
-        'middleware' => function () {
-            cli_info("[INFO]: Finding middleware routes (not implemented yet)");
-        },
-    ],
-    'restore' => [
-        'route_compiled_and_singles_files' => function () {
-            global $argv, $dirs, $exactFiles, $settings;
-            // Grab backup dir and restore exact file path
-            $oldRouteFileDir = $dirs['backups_compiled'];
-            $oldSingleRouteFileDir = $dirs['backups_routes'];
-            $exactRestorePathTroute = $exactFiles['troute_route'];
-            $exactRestorePathSingleRoute = $exactFiles['single_routes'];
-            cli_restore_file($oldRouteFileDir, $exactRestorePathTroute, "troute_route");
-            cli_restore_file($oldSingleRouteFileDir, $exactRestorePathSingleRoute, "route_single_routes");
-        },
-        'data_compiled_and_singles_files' => function () {
-            global $argv, $dirs, $exactFiles, $settings;
-            // Grab backup dir and restore exact file path
-            $oldRouteFileDir = $dirs['backups_compiled'];
-            $oldSingleRouteFileDir = $dirs['backups_data'];
-        },
-        'page_compiled_and_singles_files' => function () {
-            global $argv, $dirs, $exactFiles, $settings;
-            // Grab backup dir and restore exact file path
-            $oldRouteFileDir = $dirs['backups_compiled'];
-            $oldSingleRouteFileDir = $dirs['backups_pages'];
-        },
-        'help' => function () {
-            cli_info_multiline("FunkCLI - Restore Help");
-            cli_info_multiline("Usage: funkcli restore [route_compiled_and_singles_files|data_compiled_and_singles|page_compiled_and_singles]");
-            cli_info_multiline("------------------------------------------");
-            cli_info_multiline("The different values:");
-            cli_info_multiline("  route_compiled_and_singles_files - Restores Compiled & Single Route (including Middlewares) routes from backup (earliest version)");
-            cli_info_multiline("  data_compiled_and_singles_files - Restores Compiled & Single Data (including Middlewares) routes from backup (earliest version)");
-            cli_info_multiline("  page_compiled_and_singles_files - Restores Compiled & Single Page (including Middlewares) routes from backup (earliest version)");
-            cli_info_multiline("  The Troute files end up in: funkphp/_internals/compiled/");
-            cli_info_multiline("  The Single Route (& Middleware) files end up in: funkphp/routes/");
-            cli_info_multiline("  The Single Data (& Middleware) files end up in: funkphp/data/");
-            cli_info_multiline("  The Single Page (& Middleware) files end up in: funkphp/pages/");
-            cli_info_multiline("It uses Backup Paths: 'funkphp/_BACKUPS/compiled/', 'funkphp/_BACKUPS/routes/', 'funkphp/_BACKUPS/data/' & 'funkphp/_BACKUPS/pages/'");
-            cli_info_multiline("***IMPORTANT 1*** This overwrites the current Troute, Single & Middleware Files!!!");
-            cli_info_multiline("***IMPORTANT 2*** The Same Files In _FINAL_BACKUPS Are NOT Removed After Restoration!!!");
-            exit;
-        },
-    ],
-    'help' => function () {
-        global $argv;
-        cli_info_multiline("FunkPHP CLI - Help");
-        cli_info_multiline("Usage: funkcli [command] [action] [value]");
-        cli_info_multiline("Commands:");
-        cli_info_multiline("  compile [all_routes|only_[route|page_route|data_route]] - Compile routes");
-        cli_info_multiline("  add [all_routes|only_[route|page_route|data_route]] [value] - Add new routes");
-        cli_info_multiline("  change [route|page|data] [oldValue] [newValue]  - Change existing routes");
-        cli_info_multiline("  delete [route|page|data] [value] - Delete existing routes");
-        exit;
-    },
-];
+//         'help' shows the help for the compile command
+//         'help' => function () {
+//             cli_info_multiline("FunkCLI - Compile Help");
+//             cli_info_multiline("Usage: funkcli compile [all_routes|only_[route|page|data]]");
+//             cli_info_multiline("The different values:");
+//             cli_info_multiline("  all_routes - Compiles all routes");
+//             cli_info_multiline("  only_route - Compiles only route routes");
+//             cli_info_multiline("  only_page - Compiles only page routes");
+//             cli_info_multiline("  only_data - Compiles only data routes");
+//             cli_info_multiline("  These files end up in: funkphp/_internals/compiled/");
+//             cli_info_multiline("***IMPORTANT 1*** This overwrites the current Troute Files!!!");
+//             cli_info_multiline("***IMPORTANT 2*** Files are Backed Up in _funkphp/_BACKUPS/compiled/ & _BACKUPS/_FINAL_BACKUPS/!!!");
+//             exit;
+//         },
+//         'reserved_list' recompiles the $$reserved_functions variable inside of the FunkCLI File!
+//         'reserved_list' => function () {
+//             cli_update_reserved_functions_list();
+//         },
+//     ],
+//     'add' => [
+//         Adding to ALL Routes at the same time (Route, Data, Page)
+//         Adding Route to only Route Routes
+//         'route' => function () {
+//             cli_add_a_route();
+//         },
+//         'r' => function () {
+//             cli_add_a_route();
+//         },
+//         'page' => function () {
+
+//         },
+//         'mw' => function () {
+//             cli_add_a_middleware();
+//         },
+//         'middleware' => function () {
+//             cli_add_a_middleware();
+//         },
+//         'table' => function () {
+//             cli_parse_a_sql_table_file();
+//         },
+//     ],
+//     'create' => [
+//         'validation' => function () {
+//             cli_create_validation_file_and_or_handler();
+//         },
+//         'v' => function () {
+//             cli_create_validation_file_and_or_handler();
+//         },
+//         's' => function () {
+//             cli_create_sql_file_and_or_handler();
+//         },
+//         'sql' => function () {
+//             cli_create_sql_file_and_or_handler();
+//         },
+//     ],
+//     'delete' => [
+//         Delete a single route for /routes/ folder only
+//         'route' => function () {
+//             cli_delete_a_route();
+//         },
+//         'r' => function () {
+//             cli_delete_a_route();
+//         },
+//         'v' => function () {
+//             delete_handler_file_with_fn_or_just_fn_or_err_out("v", "PLACEHOLDER" ?? null);
+//         },
+//         'validation' => function () {
+//             delete_handler_file_with_fn_or_just_fn_or_err_out("v", "PLACEHOLDER" ?? null);
+//         },
+//         's' => function () {
+//             delete_handler_file_with_fn_or_just_fn_or_err_out("s", "PLACEHOLDER" ?? null);
+//         },
+//         'sql' => function () {
+//             delete_handler_file_with_fn_or_just_fn_or_err_out("s", "PLACEHOLDER" ?? null);
+//         },
+//         'mw' => function () {
+//             cli_delete_a_middleware();
+//         },
+//         'mw_file' => function () {
+//             cli_delete_a_middleware_file();
+//         },
+//         'middleware_file' => function () {
+//             cli_delete_a_middleware_file();
+//         },
+//         'middleware' => function () {
+//             cli_delete_a_middleware();
+//         },
+//         'mw_from_all_routes' => function () {
+//             cli_delete_a_middleware_from_all_routes();
+//         },
+//         'middleware_from_all_routes' => function () {
+//             cli_delete_a_middleware_from_all_routes();
+//         },
+//     ],
+// ];
 
 // Catch-all for non-existing commands or actions (or invalid processing of commands)
-cli_err_syntax("That FunkCLI Command doesn't exist! Enter `funk help` for more information!");
-exit;
+cli_err_syntax_without_exit("That FunkCLI Command doesn't exist! Enter `funk help` for more information!");
+cli_info("Type a Command and then up to 5 arguments, like this: `funkcli <command> <arg1> <arg2> <arg3> <arg4> <arg5>`");
