@@ -1,3 +1,6 @@
 /node_modules/
 .env
 /src/funkphp/config/db_config.php
+/src/backups/
+/src/cli/
+/src/gui/
