@@ -7,7 +7,7 @@
         }
         // It must also exist in currently matched route
         if (!isset($c['req']['route_keys'][$key])) {
-            $c['err']['PIPELINE']['REQUEST']['funk_run_matched_route_keys'][] = 'Route Key `' . $key . '` NOT found for the Route `' . ($c['req']['route'] ?? '<No Route Matched>') . '`. Please check your Route Keys in `funkphp/config/routes.php` for the Route `' . ($c['req']['route'] ?? '<No Route Matched>') . '`!';
+            $c['err']['PIPELINE']['REQUEST']['funk_run_matched_route_keys'][] = 'Route Key `' . $key . '` NOT found for the Route `' . ($c['req']['route'] ?? '<No Route Matched>') . '`. Please check your Route Keys in `funkphp/routes/routes.php` for the Route `' . ($c['req']['method'] ?? '<No HTTP(S) Method Matched>') . ($c['req']['route'] ?? '<No Route Matched>') . '`!';
             return;
         }
 
@@ -37,7 +37,7 @@
             if (is_callable($c['dispatchers'][$key][$keyFile])) {
                 $c['dispatchers'][$key][$keyFile]($c, $keyFn);
             } else {
-                $c['err']['PIPELINE']['REQUEST']['funk_run_matched_route_keys'][] = 'Route Key `' . $key . '` File `' . $keyFile . '` is NOT a Callable Function. Please check your Route Key File in `funkphp/config/routes.php` for the Route `' . ($c['req']['route'] ?? '<No Route Matched>') . '`!';
+                $c['err']['PIPELINE']['REQUEST']['funk_run_matched_route_keys'][] = 'Route Key `' . $key . '` File `' . $keyFile . '` is NOT a Callable Function. Please check your Route Key File in `funkphp/routes/routes.php` for the Route `' . ($c['req']['method'] ?? '<No HTTP(S) Method Matched>') . ($c['req']['route'] ?? '<No Route Matched>') . '`!';
                 return;
             }
         }
@@ -45,7 +45,7 @@
         else {
             $pathToInclude = ROOT_FOLDER . '/routes/' . $keyFolder . '/' . $keyFile . '.php';
             if (!is_readable($pathToInclude)) {
-                $c['err']['PIPELINE']['REQUEST']['funk_run_matched_route_keys'][] = 'Route Key `' . $key . '` File `' . $keyFile . '` does NOT EXIST in `' . $keyFolder . '/` Directory! Please check your Route Key File in `funkphp/config/routes.php` for the Route `' . ($c['req']['route'] ?? '<No Route Matched>') . '`!';
+                $c['err']['PIPELINE']['REQUEST']['funk_run_matched_route_keys'][] = 'Route Key `' . $key . '` File `' . $keyFile . '` does NOT EXIST in `funkphp/routes/' . $keyFolder . '/` Directory! Please check your Route Key File in `funkphp/routes/routes.php` for the Route `' . ($c['req']['method'] ?? '<No HTTP(S) Method Matched>') . ($c['req']['route'] ?? '<No Route Matched>') . '`!';
                 return;
             }
             $c['dispatchers'][$key][$keyFile] = include_once $pathToInclude;

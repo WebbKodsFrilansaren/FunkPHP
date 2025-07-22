@@ -90,11 +90,11 @@ function funk_run_pipeline_request(&$c)
                         $c['dispatchers']['pipeline']['request'][$fnToRun] = $runPipe;
                         $runPipe($c, $pipeValue);
                     } else {
-                        $c['err']['PIPELINE']['REQUEST']['funk_run_pipeline_request'][] = 'Pipeline Request Function at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`';
+                        $c['err']['PIPELINE']['REQUEST']['funk_run_pipeline_request'][] = 'Pipeline Request Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`';
                         $c['req']['current_pipeline_running'] = null;
                     }
                 } else {
-                    $c['err']['PIPELINE']['REQUEST']['funk_run_pipeline_request'][] = 'Pipeline Request Function at index '  .  $i . ' does NOT EXIST in `funkphp/config/pipeline/` Directory!';
+                    $c['err']['PIPELINE']['REQUEST']['funk_run_pipeline_request'][] = 'Pipeline Request Function (`' . $fnToRun . '`) at index '  .  $i . ' does NOT EXIST in `funkphp/pipeline/request/` Directory!';
                     $c['req']['current_pipeline_running'] = null;
                 }
             }
@@ -120,7 +120,7 @@ function funk_run_pipeline_request(&$c)
     // CUSTOM ERROR HANDLING HERE! - no matched middlewares (or change below to whatever you like)
     // IMPORTANT: No matched middlewares could mean misconfigured routes or no middlewares at all!
     else {
-        $c['err']['MAYBE']['PIPELINE']['REQUEST']['funk_run_pipeline_request'][] = 'No Configured Pipeline Request Functions (`"<ENTRY>" => "pipeline"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\']` Key in the Pipeline Configuration File `funkphp/config/pipeline.php` File!';
+        $c['err']['MAYBE']['PIPELINE']['REQUEST']['funk_run_pipeline_request'][] = 'No Configured Pipeline Request Functions (`"<ENTRY>" => "pipeline"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\']` Key in the Pipeline Configuration File `funkphp/pipeline/pipeline.php` File!';
     }
 }
 
@@ -391,11 +391,11 @@ function funk_run_pipeline_post_request(&$c)
                         $c['dispatchers']['pipeline']['post-request'][$fnToRun] = $runPipe;
                         $runPipe($c, $pipeValue);
                     } else {
-                        $c['err']['PIPELINE']['POST-REQUEST']['funk_run_pipeline_post_request'][] = 'Pipeline Post-Request Function at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`';
+                        $c['err']['PIPELINE']['POST-REQUEST']['funk_run_pipeline_post_request'][] = 'Pipeline Post-Request Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`';
                         $c['req']['current_pipeline_running'] = null;
                     }
                 } else {
-                    $c['err']['PIPELINE']['POST-REQUEST']['funk_run_pipeline_post_request'][] = 'Pipeline Post-Request Function at index '  .  $i . ' does NOT EXIST in `funkphp/config/pipeline/` Directory!';
+                    $c['err']['PIPELINE']['POST-REQUEST']['funk_run_pipeline_post_request'][] = 'Pipeline Post-Request Function (`' . $fnToRun . '`) at index '  .  $i . ' does NOT EXIST in `funkphp/pipeline/pipeline/post-request/` Directory!';
                     $c['req']['current_pipeline_running'] = null;
                 }
             }
@@ -421,7 +421,7 @@ function funk_run_pipeline_post_request(&$c)
     // CUSTOM ERROR HANDLING HERE! - no matched middlewares (or change below to whatever you like)
     // IMPORTANT: No matched middlewares could mean misconfigured routes or no middlewares at all!
     else {
-        $c['err']['MAYBE']['PIPELINE']['POST-REQUEST']['funk_run_pipeline_post_request'][] = 'No Configured Pipeline Post-Request Functions (`"<ENTRY>" => "pipeline"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\']` Key in the Pipeline Configuration File `funkphp/config/pipeline.php` File!';
+        $c['err']['MAYBE']['PIPELINE']['POST-REQUEST']['funk_run_pipeline_post_request'][] = 'No Configured Pipeline Post-Request Functions (`"<ENTRY>" => "pipeline"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\']` Key in the Pipeline Configuration File `funkphp/pipeline/pipeline.php` File!';
     }
 }
 
