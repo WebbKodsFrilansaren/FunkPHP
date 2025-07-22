@@ -9061,6 +9061,14 @@ function cli_warning_without_exit($string)
 {
     cli_output(MSG_TYPE_WARNING, $string, false);
 }
+function cli_important($string)
+{
+    cli_output(MSG_TYPE_IMPORTANT, $string, true, 0);
+}
+function cli_important_without_exit($string)
+{
+    cli_output(MSG_TYPE_IMPORTANT, $string, false);
+}
 function cli_success_with_warning_same_line($string1, $string2)
 {
     if (defined('JSON_MODE') && JSON_MODE) {

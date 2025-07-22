@@ -1,6 +1,6 @@
 <?php // Define default directories and check whether CLI or
 // in Web Browser mode (only JSON is allowed in Browser mode)
-// After that we set the default values for command and arguments
+// After that we set the default values for command & arguments
 define('PROJECT_DIR', dirname(__DIR__));
 define('BACKUPS_DIR', PROJECT_DIR . '/backups');
 define('CLI_DIR', __DIR__);
@@ -21,6 +21,7 @@ define('MSG_TYPE_ERROR', 'ERROR');
 define('MSG_TYPE_SUCCESS', 'SUCCESS');
 define('MSG_TYPE_INFO', 'INFO');
 define('MSG_TYPE_WARNING', 'WARNING');
+define('MSG_TYPE_IMPORTANT', 'IMPORTANT');
 define('MSG_TYPE_SYNTAX_ERROR', 'SYNTAX_ERROR');
 define('ANSI_RED', "\033[31m");
 define('ANSI_GREEN', "\033[32m");
@@ -28,6 +29,7 @@ define('ANSI_YELLOW', "\033[33m");
 define('ANSI_BLUE', "\033[34m");
 define('ANSI_RESET', "\033[0m");
 global $funk_response_messages;
+$funk_response_messages = [];
 
 // CLI Mode
 if (php_sapi_name() === 'cli') {
@@ -73,10 +75,13 @@ if (
 ) {
     if (JSON_MODE) {
         http_response_code(500);
-        echo json_encode(['error' => 'FunkPHP CLI Functions File(s) - either `cli_funs.php`, `cli_funs2.php` or both - NOT FOUND in `src/cli` Directory!']);
+        echo json_encode([
+            'type' => 'ERROR',
+            'message' => 'FunkPHP CLI Function File(s) - either `cli_funs.php`, `cli_funs2.php` or both - NOT FOUND in `src/cli` Directory!'
+        ]);
         exit;
     } else {
-        echo "\033[31m[FunkCLI - ERROR]: FunkPHP CLI Functions File(s) - either `cli_funs.php`, `cli_funs2.php` or both - NOT FOUND in `src/cli` Directory!\n\033[0m";
+        echo "\033[31m[FunkCLI - ERROR]: FunkPHP CLI Function File(s) - either `cli_funs.php`, `cli_funs2.php` or both - NOT FOUND in `src/cli` Directory!\n\033[0m";
         exit;
     }
 }

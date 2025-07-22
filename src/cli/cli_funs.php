@@ -13,7 +13,7 @@ function cli_output(string $type, string $message, bool $do_exit = false, int $e
         case MSG_TYPE_ERROR:
             $prefix = '[FunkCLI - ERROR]: ';
             $color = ANSI_RED;
-            $exit_code = ($exit_code === 0) ? 1 : $exit_code; // Default error exit code is 1
+            $exit_code = ($exit_code === 0) ? 1 : $exit_code;
             break;
         case MSG_TYPE_SYNTAX_ERROR:
             $prefix = '[FunkCLI - SYNTAX ERROR]: ';
@@ -32,8 +32,13 @@ function cli_output(string $type, string $message, bool $do_exit = false, int $e
             $prefix = '[FunkCLI - WARNING]: ';
             $color = ANSI_YELLOW;
             break;
+        case MSG_TYPE_IMPORTANT:
+            $prefix = '[FunkCLI - IMPORTANT]: ';
+            $color = ANSI_YELLOW;
+            break;
         default:
-            $prefix = '[FunkCLI]: '; // Fallback for unknown types
+            $type = 'UNKOWN';
+            $prefix = '[FunkCLI - UNKOWN MESSAGE TYPE]: '; // Fallback for unknown types
             $color = ANSI_RESET;
             break;
     }
@@ -60,9 +65,34 @@ function cli_output(string $type, string $message, bool $do_exit = false, int $e
 function cli_send_json_response(): void
 {
     global $funk_response_messages;
-    http_response_code(200);
+    $overall_json_status = 'success';
+    foreach ($funk_response_messages as $msg) {
+        if ($msg['type'] === MSG_TYPE_ERROR || $msg['type'] === MSG_TYPE_SYNTAX_ERROR) {
+            $overall_json_status = 'error(s)';
+            break;
+        }
+    }
+    if ($overall_json_status === 'success') {
+        http_response_code(200);
+        foreach ($funk_response_messages as $msg) {
+            if ($msg['type'] === MSG_TYPE_WARNING) {
+                $overall_json_status .= ' with warning(s)';
+                break;
+            }
+        }
+    } else {
+        http_response_code(400);
+        foreach ($funk_response_messages as $msg) {
+            if ($msg['type'] === MSG_TYPE_INFO) {
+                $overall_json_status .= ' with info';
+                break;
+            }
+        }
+    }
     $response = [
+        'status' => $overall_json_status,
         'messages' => $funk_response_messages,
+        'data' => []
     ];
     echo json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
     exit();
