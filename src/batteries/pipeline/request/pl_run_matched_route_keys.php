@@ -43,7 +43,7 @@
         }
         // Not added yet so add if it exists and call it with the $keyFn!
         else {
-            $pathToInclude = ROOT_FOLDER . '/' . $keyFolder . '/' . $keyFile . '.php';
+            $pathToInclude = ROOT_FOLDER . '/routes/' . $keyFolder . '/' . $keyFile . '.php';
             if (!is_readable($pathToInclude)) {
                 $c['err']['PIPELINE']['REQUEST']['funk_run_matched_route_keys'][] = 'Route Key `' . $key . '` File `' . $keyFile . '` does NOT EXIST in `' . $keyFolder . '/` Directory! Please check your Route Key File in `funkphp/config/routes.php` for the Route `' . ($c['req']['route'] ?? '<No Route Matched>') . '`!';
                 return;

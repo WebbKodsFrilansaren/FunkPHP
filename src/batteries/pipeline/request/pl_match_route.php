@@ -1,6 +1,6 @@
 <?php return function (&$c) {
     $c['ROUTES'] = [];
-    if (!is_readable(ROOT_FOLDER . '/config/routes.php')) {
+    if (!is_readable(ROOT_FOLDER . '/routes/routes.php')) {
         $c['err']['ROUTES'][] = "Routes in File `funkphp/config/routes.php` not found or non-readable!";
         critical_err_json_or_html(500, "Routes File Not Found OR it is not Readable/Writable!");
     } elseif (!is_readable(ROOT_FOLDER . '/_internals/compiled/troute_route.php')) {
@@ -9,7 +9,7 @@
     } else {
         $c['ROUTES'] = [
             'COMPILED' => include_once ROOT_FOLDER . '/_internals/compiled/troute_route.php',
-            'DEVELOPER' => include_once ROOT_FOLDER . '/config/routes.php',
+            'DEVELOPER' => include_once ROOT_FOLDER . '/routes/routes.php',
         ];
     }
     if (

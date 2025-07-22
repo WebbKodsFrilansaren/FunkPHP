@@ -216,8 +216,6 @@ return [
         'PIPELINE' => [],
         'CACHED' => [],
         'MIDDLEWARES' => [],
-        'HANDLER' => [],
-        'DATA' => [],
         'PAGE' => [],
         'VALIDATION' => [],
         'SQL' => [],
