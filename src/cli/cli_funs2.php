@@ -6860,7 +6860,6 @@ function cli_restore_default_folders_and_files()
         "$folderBase/BACKUPS/validation/",
         "$folderBase/funkphp/",
         "$folderBase/funkphp/_internals/",
-        "$folderBase/funkphp/_internals/cli/",
         "$folderBase/funkphp/_internals/compiled/",
         "$folderBase/funkphp/_internals/functions/",
         "$folderBase/funkphp/_internals/batteries/",
