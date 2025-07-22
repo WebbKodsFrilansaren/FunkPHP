@@ -6865,7 +6865,6 @@ function cli_restore_default_folders_and_files()
         "$folderBase/funkphp/_internals/cli/",
         "$folderBase/funkphp/_internals/compiled/",
         "$folderBase/funkphp/_internals/functions/",
-        "$folderBase/funkphp/_internals/templates/",
         "$folderBase/funkphp/_internals/batteries/",
         "$folderBase/funkphp/_internals/batteries/middlewares/",
         "$folderBase/funkphp/_internals/batteries/pipeline/",
