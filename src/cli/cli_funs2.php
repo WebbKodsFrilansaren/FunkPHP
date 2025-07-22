@@ -9162,12 +9162,17 @@ function cli_update_reserved_functions_list()
 {
     global $dirs;
     $dir = $dirs['functions'];
+    $dir2 = $dirs['cli'];
     if (!dir_exists_is_readable_writable($dir)) {
         cli_err("Directory $dir does not exist or is not readable/writable!");
+    }
+    if (!dir_exists_is_readable_writable($dir2)) {
+        cli_err("Directory $dir2 does not exist or is not readable/writable!");
     }
 
     // Get all files in the directory
     $files = scandir($dir);
+    $files2 = scandir($dir2);
     $reserved_functions = [];
 
     // Loop through all files and check if they are PHP files
@@ -9175,11 +9180,28 @@ function cli_update_reserved_functions_list()
         if (pathinfo($file, PATHINFO_EXTENSION) === "php") {
             // Check that file name ends with "_funs.php" or exit
             if (!str_ends_with($file, "_funs.php")) {
-                cli_info_without_exit("File $file not valid function file! Skipping it...");
+                cli_info_without_exit("File `$file` not valid function file! Skipping it...");
                 continue;
             }
             // Get the contents of the file
             $contents = file_get_contents($dir . $file);
+            // Use preg_match to find all function names in the file
+            // The line MUST begin with "function " and then a space and then the function name
+            preg_match_all("/^function\s+([a-zA-Z0-9_]+)\(/m", $contents, $matches);
+            // Add the function names to the reserved_functions array
+            foreach ($matches[1] as $function_name) {
+                $reserved_functions[] = $function_name;
+            }
+        }
+    }
+    foreach ($files2 as $file2) {
+        if (pathinfo($file2, PATHINFO_EXTENSION) === "php") {
+            if (!str_starts_with($file2, "cli_funs")) {
+                cli_info_without_exit("File `$file2` not valid function file! Skipping it...");
+                continue;
+            }
+            // Get the contents of the file
+            $contents = file_get_contents($dir2 . $file2);
             // Use preg_match to find all function names in the file
             // The line MUST begin with "function " and then a space and then the function name
             preg_match_all("/^function\s+([a-zA-Z0-9_]+)\(/m", $contents, $matches);
@@ -9198,7 +9220,97 @@ function cli_update_reserved_functions_list()
     $reserved_functions_string = preg_replace("/\d+\s*=>\s*/", "", $reserved_functions_string);
     $reserved_functions_string = preg_replace("/\n/", "", $reserved_functions_string);
     $reserved_functions_string = preg_replace("/\',/", "',\n", $reserved_functions_string, 1);
-    echo "RESULT: $count Functions total!\nCOPY & PASTE THIS INTO FunkCLI at the \"\$reserved_functions = [...];\" lines!\n---------------------------------------------------------------------------\n\$reserved_functions = $reserved_functions_string\n---------------------------------------------------------------------------";
+    // We now save an array of those functions in cli_reserved.php which is in the cli folder!
+    $output = file_put_contents(
+        $dir2 . "cli_reserved.php",
+        "<?php\n// FunkPHP Framework - FunkCLI Created it " . date("Y-m-d H:i:s") . "\n" .
+            "// This file contains all reserved functions in the FunkPHP Framework and FunkCLI.\n" .
+            "// It is used to check if a function is reserved (used by FunkPHP/FunkCLI) or not.\n" .
+            "return \n" . $reserved_functions_string . " // Functions Count: $count"
+    );
+    if ($output === false) {
+        cli_err("FAILED to Write to File `$dir2" . "cli_reserved.php`! Check File Permissions?");
+    } else {
+        cli_success("Reserved Functions List Updated! Total Functions: $count");
+    }
+}
+// Same as above but also returns the newly generated file as an array
+function cli_update_reserved_functions_list_and_return_as_array()
+{
+    global $dirs;
+    $dir = $dirs['functions'];
+    $dir2 = $dirs['cli'];
+    if (!dir_exists_is_readable_writable($dir)) {
+        cli_err("Directory $dir does not exist or is not readable/writable!");
+    }
+    if (!dir_exists_is_readable_writable($dir2)) {
+        cli_err("Directory $dir2 does not exist or is not readable/writable!");
+    }
+
+    // Get all files in the directory
+    $files = scandir($dir);
+    $files2 = scandir($dir2);
+    $reserved_functions = [];
+
+    // Loop through all files and check if they are PHP files
+    foreach ($files as $file) {
+        if (pathinfo($file, PATHINFO_EXTENSION) === "php") {
+            // Check that file name ends with "_funs.php" or exit
+            if (!str_ends_with($file, "_funs.php")) {
+                cli_info_without_exit("File `$file` not valid function file! Skipping it...");
+                continue;
+            }
+            // Get the contents of the file
+            $contents = file_get_contents($dir . $file);
+            // Use preg_match to find all function names in the file
+            // The line MUST begin with "function " and then a space and then the function name
+            preg_match_all("/^function\s+([a-zA-Z0-9_]+)\(/m", $contents, $matches);
+            // Add the function names to the reserved_functions array
+            foreach ($matches[1] as $function_name) {
+                $reserved_functions[] = $function_name;
+            }
+        }
+    }
+    foreach ($files2 as $file2) {
+        if (pathinfo($file2, PATHINFO_EXTENSION) === "php") {
+            if (!str_starts_with($file2, "cli_funs")) {
+                cli_info_without_exit("File `$file2` not valid function file! Skipping it...");
+                continue;
+            }
+            // Get the contents of the file
+            $contents = file_get_contents($dir2 . $file2);
+            // Use preg_match to find all function names in the file
+            // The line MUST begin with "function " and then a space and then the function name
+            preg_match_all("/^function\s+([a-zA-Z0-9_]+)\(/m", $contents, $matches);
+            // Add the function names to the reserved_functions array
+            foreach ($matches[1] as $function_name) {
+                $reserved_functions[] = $function_name;
+            }
+        }
+    }
+
+    // Convert the array to a string using cli_convert_array_to_simple_syntax
+    $reserved_functions_string = cli_convert_array_to_simple_syntax($reserved_functions);
+    $count = count($reserved_functions);
+
+    // Replace all /\d+ => / with "" to remove the array keys
+    $reserved_functions_string = preg_replace("/\d+\s*=>\s*/", "", $reserved_functions_string);
+    $reserved_functions_string = preg_replace("/\n/", "", $reserved_functions_string);
+    $reserved_functions_string = preg_replace("/\',/", "',\n", $reserved_functions_string, 1);
+    // We now save an array of those functions in cli_reserved.php which is in the cli folder!
+    $output = file_put_contents(
+        $dir2 . "cli_reserved.php",
+        "<?php\n// FunkPHP Framework - FunkCLI Created it " . date("Y-m-d H:i:s") . "\n" .
+            "// This file contains all reserved functions in the FunkPHP Framework and FunkCLI.\n" .
+            "// It is used to check if a function is reserved (used by FunkPHP/FunkCLI) or not.\n" .
+            "return \n" . $reserved_functions_string . " // Functions Count: $count"
+    );
+    if ($output === false) {
+        cli_warning_without_exit("FAILED to Write to File `$dir2" . "cli_reserved.php`! Check File Permissions? ZERO Functions Included as a Result!");
+        return [];
+    } else {
+        return include_once $dir2 . "cli_reserved.php";
+    }
 }
 
 // Function that takes a variable ($existsInWhat) and then checks if a given value
