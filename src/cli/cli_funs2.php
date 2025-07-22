@@ -6858,6 +6858,7 @@ function cli_restore_default_folders_and_files()
         "$folderBase/BACKUPS/template/",
         "$folderBase/BACKUPS/test/",
         "$folderBase/BACKUPS/validation/",
+        "$folderBase/cli/",
         "$folderBase/funkphp/",
         "$folderBase/funkphp/_internals/",
         "$folderBase/funkphp/_internals/compiled/",
@@ -6899,6 +6900,7 @@ function cli_restore_default_folders_and_files()
         "$folderBase/funkphp/config/pipeline.php",
         "$folderBase/funkphp/config/routes.php",
         "$folderBase/public_html/.htaccess",
+        "$folderBase/cli/.htaccess",
     ];
 
     // Create folderBase if it does not exist
@@ -6946,8 +6948,12 @@ function cli_restore_default_folders_and_files()
             ],'post-request' => [],],'no_match' => [],];");
                 echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
                 continue;
-            } else if (str_contains($file, ".htaccess")) {
+            } else if (str_contains($file, "public_html/.htaccess")) {
                 file_put_contents($file, "# This file was recreated by FunkCLI!\nRewriteEngine On\nRewriteRule ^([^\.]+)$ $1.php [NC]\nRewriteRule ^.*$ index.php [L,QSA]");
+                echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
+                continue;
+            } else if (str_contains($file, "cli/.htaccess")) {
+                file_put_contents($file, "<Files \"funk\">\nSetHandler application/x-httpd-php\n</Files>");
                 echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
                 continue;
             }
