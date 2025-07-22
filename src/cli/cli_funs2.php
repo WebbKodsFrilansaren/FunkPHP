@@ -6850,8 +6850,6 @@ function cli_restore_default_folders_and_files()
         "$folderBase/BACKUPS/pipeline/",
         "$folderBase/BACKUPS/pipeline/request",
         "$folderBase/BACKUPS/pipeline/post-request",
-        "$folderBase/BACKUPS/data/",
-        "$folderBase/BACKUPS/handler/",
         "$folderBase/BACKUPS/middlewares/",
         "$folderBase/BACKUPS/page/",
         "$folderBase/BACKUPS/config/",
