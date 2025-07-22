@@ -116,12 +116,9 @@ $dirs = [
     "_BACKUPS" => BACKUPS_DIR . '/',
     "pipeline" => FUNKPHP_DIR . '/pipeline/',
     "request" => FUNKPHP_DIR . '/pipeline/request/',
-    "pipelinerequest" => FUNKPHP_DIR . '/pipeline/request/',
     "pipeline-request" => FUNKPHP_DIR . '/pipeline/request/',
-    "pipeline_request" => FUNKPHP_DIR . '/pipeline/request/',
     "post-request" => FUNKPHP_DIR . '/pipeline/post-request/',
-    "postrequest" => FUNKPHP_DIR . '/pipeline/post-request/',
-    "post_request" => FUNKPHP_DIR . '/pipeline/post-request/',
+    "pipeline-post-request" => FUNKPHP_DIR . '/pipeline/post-request/',
     "pipelines" => FUNKPHP_DIR . '/pipeline/',
     "routes" => FUNKPHP_DIR . '/config/',
     "handlers" => FUNKPHP_DIR . '/handler/',
@@ -800,5 +797,5 @@ $commands = [
 ];
 
 // Catch-all for non-existing commands or actions (or invalid processing of commands)
-cli_err_syntax("That FunkCLI Command doesn't exist! Enter ``funkcli help`` for more information!");
+cli_err_syntax("That FunkCLI Command doesn't exist! Enter `funk help` for more information!");
 exit;
