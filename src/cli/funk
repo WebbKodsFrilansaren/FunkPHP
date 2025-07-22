@@ -23,7 +23,6 @@ if (php_sapi_name() === 'cli') {
     $arg3 = $argv[4] ?? null;
     $arg4 = $argv[5] ?? null;
     $arg5 = $argv[6] ?? null;
-    var_dump($command, $arg1, $arg2, $arg3, $arg4, $arg5);
 }
 // JSON Mode
 else {
@@ -36,31 +35,39 @@ else {
     $arg3 = $payload['arg3'] ?? null;
     $arg4 = $payload['arg4'] ?? null;
     $arg5 = $payload['arg5'] ?? null;
-    echo json_encode([
-        'command' => $command,
-        'arg1' => $arg1,
-        'arg2' => $arg2,
-        'arg3' => $arg3,
-        'arg4' => $arg4,
-        'arg5' => $arg5,
-        'root_dir' => ROOT_DIR,
-        'cli_dir' => CLI_DIR,
-        'funkphp_dir' => FUNKPHP_DIR,
-        'gui_dir' => GUI_DIR,
-        'public_dir' => PUBLIC_DIR
-    ]);
 }
 define("JSON_MODE", $JSON);
 
-if (
-    !file_exists(__DIR__ . '/cli_funs.php')
-    || !file_exists(__DIR__ . '/cli_funs2.php')
-) {
-    echo "/!\ FunkPHP CLI Functions File(s) not found in `src/cli`\nPlease make sure you have the correct FunkPHP installation and try again! /!\\";
-    exit(1);
+// If we are in JSON_MODE We then check that the REMOTE_ADDR is set and is either
+// localhost or 127.0.0.1 since this should ONLY be ran in local development
+if (JSON_MODE) {
+    if (!isset($_SERVER['REMOTE_ADDR']) || !in_array($_SERVER['REMOTE_ADDR'], ['127.0.0.1', 'localhost'])) {
+        http_response_code(403);
+        echo json_encode(['error' => 'FunkCLI will ONLY accept using `127.0.0.1` or `localhost` as your Local IP!']);
+        exit;
+    }
+    if (!isset($_SERVER['HTTP_ACCEPT']) || $_SERVER['HTTP_ACCEPT'] !== 'application/json') {
+        http_response_code(406);
+        echo json_encode(['error' => 'FunkCLI will ONLY accept `application/json` as value for the `Accept` Header!']);
+        exit;
+    }
 }
-include __DIR__ . '/cli_funs.php';
-include __DIR__ . '/cli_funs2.php';
+
+if (
+    !file_exists(CLI_DIR . '/cli_funs.php')
+    || !file_exists(CLI_DIR . '/cli_funs2.php')
+) {
+    if (JSON_MODE) {
+        http_response_code(500);
+        echo json_encode(['error' => 'FunkPHP CLI Functions File(s) - either `cli_funs.php`, `cli_funs2.php` or both - NOT FOUND in `src/cli` Directory!']);
+        exit;
+    } else {
+        echo "\033[31m[FunkCLI - ERROR]: FunkPHP CLI Functions File(s) - either `cli_funs.php`, `cli_funs2.php` or both - NOT FOUND in `src/cli` Directory!\n\033[0m";
+        exit(1);
+    }
+}
+include CLI_DIR . '/cli_funs.php';
+include CLI_DIR . '/cli_funs2.php';
 echo "FunkPHP CLI Functions Loaded!\n";
 exit;
 
