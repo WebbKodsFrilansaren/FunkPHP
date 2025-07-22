@@ -65,14 +65,14 @@ function cli_output(string $type, string $message, bool $do_exit = false, int $e
 function cli_send_json_response(): void
 {
     global $funk_response_messages;
-    $overall_json_status = 'success';
+    $overall_json_status = 'Success';
     foreach ($funk_response_messages as $msg) {
         if ($msg['type'] === MSG_TYPE_ERROR || $msg['type'] === MSG_TYPE_SYNTAX_ERROR) {
-            $overall_json_status = 'error(s)';
+            $overall_json_status = 'Error';
             break;
         }
     }
-    if ($overall_json_status === 'success') {
+    if ($overall_json_status === 'Success') {
         http_response_code(200);
         foreach ($funk_response_messages as $msg) {
             if ($msg['type'] === MSG_TYPE_WARNING) {

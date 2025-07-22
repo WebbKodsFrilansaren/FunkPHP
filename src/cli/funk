@@ -292,6 +292,15 @@ $mysqlOperatorSyntax = include FUNKPHP_DIR . '/config/valid/valid_mysql_operator
     ],
 ];
 
+if (!isset($command)) {
+    cli_err_syntax_without_exit("FunkCLI - No command provided! Please provide a Command to execute.");
+    if (JSON_MODE) {
+        cli_info("Use the following JSON format: `{ \"command\": \"<command>\", \"arg1\": \"<arg1>\", \"arg2\": \"<arg2>\", \"arg3\": \"<arg3>\", \"arg4\": \"<arg4>\", \"arg5\": \"<arg5>\" }`");
+    } else {
+        cli_info("Type a Command and then up to 5 arguments, like this: `funk <command> <arg1> <arg2> <arg3> <arg4> <arg5>`");
+    }
+}
+
 if (isset($command) && $command === 'compile') {
     cli_update_reserved_functions_list();
     cli_success("FunkCLI - Reserved Functions List Updated!");
@@ -430,6 +439,10 @@ if (isset($command) && $command === 'compile') {
 //     ],
 // ];
 
-// Catch-all for non-existing commands or actions (or invalid processing of commands)
-cli_err_syntax_without_exit("That FunkCLI Command doesn't exist! Enter `funk help` for more information!");
-cli_info("Type a Command and then up to 5 arguments, like this: `funkcli <command> <arg1> <arg2> <arg3> <arg4> <arg5>`");
+// Catch-All for Non-Existing Commands
+cli_err_syntax_without_exit("That FunkCLI Command doesn't exist! Enter `funk help` for More Information!");
+if (JSON_MODE) {
+    cli_info("Use the following JSON format: `{ \"command\": \"<command>\", \"arg1\": \"<arg1>\", \"arg2\": \"<arg2>\", \"arg3\": \"<arg3>\", \"arg4\": \"<arg4>\", \"arg5\": \"<arg5>\" }`");
+} else {
+    cli_info("Type a Valid Existing Command and then up to 5 arguments, like this: `funk <command> <arg1> <arg2> <arg3> <arg4> <arg5>`");
+}
