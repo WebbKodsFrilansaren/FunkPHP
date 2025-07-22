@@ -3,7 +3,7 @@
 if (
     !is_readable(__DIR__ . '/config/_all.php')
     || !is_readable(__DIR__ . '/_internals/functions/_all.php')
-    || !is_readable(__DIR__ . '/config/pipeline.php')
+    || !is_readable(__DIR__ . '/pipeline/pipeline.php')
 ) {
     critical_err_json_or_html(500, 'The Global Configuration Variable `\$c` could not be loaded and/or all the necessary Function Files!');
 }
@@ -11,7 +11,7 @@ if (
 // $c is the global configuration array that is used throughout the application
 include_once __DIR__ . '/_internals/functions/_all.php';
 $c = include_once __DIR__ . '/config/_all.php';
-$c['<ENTRY>'] = include_once __DIR__ . '/config/pipeline.php';
+$c['<ENTRY>'] = include_once __DIR__ . '/pipeline/pipeline.php';
 
 // Prepare what to run after each request is handled
 // and/or exit() is used prematurely by the application

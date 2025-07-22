@@ -6881,6 +6881,7 @@ function cli_restore_default_folders_and_files()
         "$folderBase/funkphp/page/complete/",
         "$folderBase/funkphp/page/components/",
         "$folderBase/funkphp/page/partials/",
+        "$folderBase/funkphp/routes/",
         "$folderBase/funkphp/sql/",
         "$folderBase/funkphp/validation/",
         "$folderBase/gui/",
@@ -6897,8 +6898,8 @@ function cli_restore_default_folders_and_files()
     // Prepare default files that doesn't exist if certain folders don't exist
     $defaultFiles = [
         "$folderBase/funkphp/_internals/compiled/troute_route.php",
-        "$folderBase/funkphp/config/pipeline.php",
-        "$folderBase/funkphp/config/routes.php",
+        "$folderBase/funkphp/pipeline/pipeline.php",
+        "$folderBase/funkphp/routes/routes.php",
         "$folderBase/public_html/.htaccess",
         "$folderBase/cli/.htaccess",
     ];

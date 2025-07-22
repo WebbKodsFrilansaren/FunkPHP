@@ -138,7 +138,7 @@ $dirs = [
     "post-request" => FUNKPHP_DIR . '/pipeline/post-request/',
     "pipeline-post-request" => FUNKPHP_DIR . '/pipeline/post-request/',
     "pipelines" => FUNKPHP_DIR . '/pipeline/',
-    "routes" => FUNKPHP_DIR . '/config/',
+    "routes" => FUNKPHP_DIR . '/routes/',
     "handlers" => FUNKPHP_DIR . '/handler/',
     "middlewares" => FUNKPHP_DIR . '/middlewares/',
     "data" => FUNKPHP_DIR . '/data/',
@@ -167,8 +167,8 @@ $dirs = [
 ];
 $exactFiles = [
     "troute_route" => $dirs['compiled'] . "troute_route.php",
-    "single_pipeline" => $dirs['config'] . "pipeline.php",
-    "single_routes" => $dirs['config'] . "routes.php",
+    "single_pipeline" => $dirs['pipeline'] . "pipeline.php",
+    "single_routes" => $dirs['routes'] . "routes.php",
     "tables" => $dirs['config'] . "tables.php",
     "db_local" => $dirs['config'] . "db_config.php",
     "supported_mysql_data_types" => $dirs['config_valid'] . "valid_mysql_datatypes.php",
@@ -190,7 +190,7 @@ if (file_exists_is_readable_writable(CLI_DIR . '/cli_reserved.php')) {
 cli_restore_default_folders_and_files();
 
 // Load current pipeline, routes, data and pages before processing any commands
-$singlePipeline = include FUNKPHP_DIR . '/config/pipeline.php' ?? [
+$singlePipeline = include FUNKPHP_DIR . '/pipeline/pipeline.php' ?? [
     'pipeline' =>
     [
         'request' =>
@@ -229,7 +229,7 @@ $singlePipeline = include FUNKPHP_DIR . '/config/pipeline.php' ?? [
         ],
     ],
 ];
-$singleRoutesRoute = include FUNKPHP_DIR . '/config/routes.php' ?? [
+$singleRoutesRoute = include FUNKPHP_DIR . '/routes/routes.php' ?? [
     'ROUTES' => ['GET' => [], 'POST' => [], 'PUT' => [], 'DELETE' => [], 'PATCH' => []]
 ];
 $tablesAndRelationshipsFile = include FUNKPHP_DIR . '/config/tables.php' ?? [
