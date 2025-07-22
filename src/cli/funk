@@ -1,11 +1,11 @@
 #!/usr/bin/env php
 <?php // Include all CLI Functions needed to manage FunkPHP CLI!
-if (!file_exists(__DIR__ . '/funkphp/_internals/cli/cli_funs.php') || !file_exists(__DIR__ . '/funkphp/_internals/cli/cli_funs2.php')) {
-    echo "/!\ FunkPHP CLI Functions File(s) not found in `src/funkphp/_internals/cli`\nPlease make sure you have the correct FunkPHP installation and try again! /!\\";
+if (!file_exists(__DIR__ . '/cli_funs.php') || !file_exists(__DIR__ . '/cli_funs2.php')) {
+    echo "/!\ FunkPHP CLI Functions File(s) not found in `src/cli`\nPlease make sure you have the correct FunkPHP installation and try again! /!\\";
     exit(1);
 }
-include __DIR__ . '/funkphp/_internals/cli/cli_funs.php';
-include __DIR__ . '/funkphp/_internals/cli/cli_funs2.php';
+include __DIR__ . '/cli_funs.php';
+include __DIR__ . '/cli_funs2.php';
 
 // Valid commands with valid sub-commands
 // Inspiration from Trie & Hashmaps!
@@ -126,7 +126,7 @@ if ($argv[1] !== "help" && !in_array($argv[2] ?? "", $validArg1withArg2Values[$a
 }
 
 // Load the settings file if it exists, otherwise use default settings
-$settings = include __DIR__ . '/FunkCLI_Settings' ?? [
+$settings = include __DIR__ . '/funksettings' ?? [
     // Default settings for FunkCLI. "ALWAYS_BACKUP_IN" is a list of all the backup settings for the CLI.
     // It is used to determine which files should be backed up when the CLI runs backup-related commands.
     // DO NOT DELETE THIS PART. IT IS REQUIRED FOR THE CLI TO WORK PROPERLY. Change values to true or false.
