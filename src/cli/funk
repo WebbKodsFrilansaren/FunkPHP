@@ -3,10 +3,37 @@
 // After that we set the default values for command & arguments
 define('PROJECT_DIR', dirname(__DIR__));
 define('BACKUPS_DIR', PROJECT_DIR . '/backups');
+define('BATTERIES_DIR', PROJECT_DIR . '/batteries');
+define('BATTERIES_MIDDLEWARES_DIR', BATTERIES_DIR . '/middlewares');
+define('BATTERIES_PIPELINE_DIR', BATTERIES_DIR . '/pipeline');
+define('BATTERIES_PIPELINE_REQUEST_DIR', BATTERIES_PIPELINE_DIR . '/request');
+define('BATTERIES_PIPELINE_POST_REQUEST_DIR', BATTERIES_PIPELINE_DIR . '/post-request');
 define('CLI_DIR', __DIR__);
 define('FUNKPHP_DIR', PROJECT_DIR . '/funkphp');
+define('FUNKPHP_INTERNALS_DIR', FUNKPHP_DIR . '/_internals');
+define('FUNKPHP_CACHED_DIR', FUNKPHP_DIR . '/_cached');
+define('FUNKPHP_CACHED_FILES_DIR', FUNKPHP_CACHED_DIR . '/files');
+define('FUNKPHP_CACHED_JSON_DIR', FUNKPHP_CACHED_DIR . '/json');
+define('FUNKPHP_CACHED_PAGES_DIR', FUNKPHP_CACHED_DIR . '/pages');
+define('FUNKPHP_CONFIG_DIR', FUNKPHP_DIR . '/config');
+define('FUNKPHP_CONFIG_BLOCKED_DIR', FUNKPHP_CONFIG_DIR . '/blocked');
+define('FUNKPHP_CONFIG_VALID_DIR', FUNKPHP_CONFIG_DIR . '/valid');
+define('FUNKPHP_MIDDLEWARES_DIR', FUNKPHP_DIR . '/middlewares');
+define('FUNKPHP_PAGE_DIR', FUNKPHP_DIR . '/page');
+define('FUNKPHP_PAGE_COMPLETE_DIR', FUNKPHP_PAGE_DIR . '/complete');
+define('FUNKPHP_PAGE_COMPONENTS_DIR', FUNKPHP_PAGE_DIR . '/components');
+define('FUNKPHP_PAGE_PARTIALS_DIR', FUNKPHP_PAGE_DIR . '/partials');
+define('FUNKPHP_PIPELINE_DIR', FUNKPHP_DIR . '/pipeline');
+define('FUNKPHP_PIPELINE_REQUEST_DIR', FUNKPHP_PIPELINE_DIR . '/request');
+define('FUNKPHP_PIPELINE_POST_REQUEST_DIR', FUNKPHP_PIPELINE_DIR . '/post-request');
+define('FUNKPHP_ROUTES_DIR', FUNKPHP_DIR . '/routes');
+define('FUNKPHP_SQL_DIR', FUNKPHP_DIR . '/sql');
+define('FUNKPHP_VALIDATION_DIR', FUNKPHP_DIR . '/validation');
 define('GUI_DIR', PROJECT_DIR . '/gui');
 define('PUBLIC_DIR', PROJECT_DIR . '/public_html');
+define('SCHEMA_DIR', PROJECT_DIR . '/schema');
+define('TEMPLATE_DIR', PROJECT_DIR . '/template');
+define('TEST_DIR', PROJECT_DIR . '/test');
 $JSON = false;
 $command = null;
 $arg1 = null;
@@ -306,6 +333,12 @@ if (!is_string($command) || empty($command)) {
     } else {
         cli_info("Type a Command and then up to 5 arguments, like this: `funk <command> <arg1> <arg2> <arg3> <arg4> <arg5>`");
     }
+}
+
+if (isset($command) && $command === 'test_fn') {
+    var_dump($arg1, $arg2, $arg3, $arg4, $arg5);
+    var_dump(cli_folder_and_php_file_status($arg1, $arg2, $arg3));
+    exit;
 }
 
 if (isset($command) && $command === 'test_mr') {

@@ -213,3 +213,159 @@ function cli_return_valid_method_n_route_or_err_out($string)
     cli_info_without_exit("Parsed Method/Route:`$method$route`");
     return [$method, $route];
 }
+
+// Boolean whether a folder inside of "funkphp/routes" exists or not
+function cli_routes_subfolder_exists($string)
+{
+    $exists = true;
+    if (!isset($string) || !is_string($string) || empty($string) || !preg_match('/^[a-z_][a-z_0-9]*$/i', $string)) {
+        cli_err_without_exit('[cli_route_key_folder_exists()]: $string must be A Valid Non-Empty String!');
+        cli_info('[cli_route_key_folder_exists()]: Use the following Directory Syntax (Regex):`[a-z_][a-z_0-9]*)`! (you do NOT need to add a leading slash `/` to the string)');
+    }
+    // Lowercase the string
+    $string = strtolower(trim($string));
+    // Add "/" to string's start if not present
+    if (!str_starts_with($string, '/')) {
+        $string = '/' . $string;
+    }
+    if (is_dir(FUNKPHP_ROUTES_DIR . $string)) {
+        $exists = true;
+    } else {
+        $exists = false;
+    }
+    return $exists;
+}
+// Boolean whether a folder inside of "funkphp/routes" is readable & writable
+function cli_routes_subfolder_readable_n_writable($string)
+{
+    $both = false;
+    if (!isset($string) || !is_string($string) || empty($string) || !preg_match('/^[a-z_][a-z_0-9]*$/i', $string)) {
+        cli_err_without_exit('[cli_routes_subfolder_readable_n_writable()]: $string must be A Valid Non-Empty String!');
+        cli_info('[cli_routes_subfolder_readable_n_writable()]: Use the following Directory Syntax (Regex):`[a-z_][a-z_0-9]*)`! (you do NOT need to add a leading slash `/` to the string)');
+    }
+    // Lowercase the string
+    $string = strtolower(trim($string));
+    // Add "/" to string's start if not present
+    if (!str_starts_with($string, '/')) {
+        $string = '/' . $string;
+    }
+    if (is_readable(FUNKPHP_ROUTES_DIR . $string) && is_writable(FUNKPHP_ROUTES_DIR . $string)) {
+        $both = true;
+    }
+    return $both;
+}
+// Boolean whether $file inside of "funkphp/routes/$subfolder" exists or not
+function cli_routes_subfolder_file_exists($subfolder, $file)
+{
+    $exists = true;
+    if (!isset($subfolder) || !is_string($subfolder) || empty($subfolder) || !preg_match('/^[a-z_][a-z_0-9]*$/i', $subfolder)) {
+        cli_err_without_exit('[cli_routes_subfolder_file_exists()]: $subfolder must be A Valid Non-Empty String!');
+        cli_info('[cli_routes_subfolder_file_exists()]: Use the following Directory Syntax (Regex):`[a-z_][a-z_0-9]*)`! (you do NOT need to add a leading slash `/` to the string)');
+    }
+    if (!isset($file) || !is_string($file) || empty($file) || !preg_match('/^[a-z_][a-z_0-9\.]*$/i', $file)) {
+        cli_err_without_exit('[cli_routes_subfolder_file_exists()]: $file must be A Valid Non-Empty String!');
+        cli_info('[cli_routes_subfolder_file_exists()]: Use the following Directory Syntax (Regex):`[a-z_][a-z_0-9]*)`! (you do NOT need to add a leading slash `/` to the string and NOT `.php` File Extension)');
+    }
+    // Lowercase both variables
+    $subfolder = strtolower(trim($subfolder));
+    $file = strtolower(trim($file));
+    // Add "/" to string's start if not present
+    if (!str_starts_with($subfolder, '/')) {
+        $subfolder = '/' . $subfolder;
+    }
+    // Add ".php" to file's end if not present
+    if (!str_ends_with($file, '.php')) {
+        $file .= '.php';
+    }
+    if (is_readable(FUNKPHP_ROUTES_DIR . $subfolder . '/' . $file)) {
+        $exists = true;
+    } else {
+        $exists = false;
+    }
+    return $exists;
+}
+// Boolean whether "funkphp/routes/$subfolder/$file.php" is readable & writable
+function cli_routes_subfolder_file_readable_n_writable($subfolder, $file)
+{
+    $both = false;
+    if (!isset($subfolder) || !is_string($subfolder) || empty($subfolder) || !preg_match('/^[a-z_][a-z_0-9]*$/i', $subfolder)) {
+        cli_err_without_exit('[cli_routes_subfolder_file_readable_n_writable()]: $subfolder must be A Valid Non-Empty String!');
+        cli_info('[cli_routes_subfolder_file_readable_n_writable()]: Use the following Directory Syntax (Regex):`[a-z_][a-z_0-9]*)`! (you do NOT need to add a leading slash `/` to the string)');
+    }
+    if (!isset($file) || !is_string($file) || empty($file) || !preg_match('/^[a-z_][a-z_0-9\.]*$/i', $file)) {
+        cli_err_without_exit('[cli_routes_subfolder_file_readable_n_writable()]: $file must be A Valid Non-Empty String!');
+        cli_info('[cli_routes_subfolder_file_readable_n_writable()]: Use the following Directory Syntax (Regex):`[a-z_][a-z_0-9]*)`! (you do NOT need to add a leading slash `/` to the string and NOT `.php` File Extension)');
+    }
+    // Lowercase both variables
+    $subfolder = strtolower(trim($subfolder));
+    $file = strtolower(trim($file));
+    // Add "/" to string's start if not present
+    if (!str_starts_with($subfolder, '/')) {
+        $subfolder = '/' . $subfolder;
+    }
+    // Add ".php" to file's end if not present
+    if (!str_ends_with($file, '.php')) {
+        $file .= '.php';
+    }
+    if (is_readable(FUNKPHP_ROUTES_DIR . $subfolder . '/' . $file) && is_writable(FUNKPHP_ROUTES_DIR . $subfolder . '/' . $file)) {
+        $both = true;
+    }
+    return $both;
+}
+
+// Returns an array of status of $folder & $file and whether they:
+// - exist, - are readable, - are writable. A single array with
+// keys: `folder_exists`, `folder_readable`, `folder_writable`,
+// `file_exists`, `file_readable`, `file_writable` are returned.
+// Optionally return also whether a $fn (function name) exists in the file
+function cli_folder_and_php_file_status($folder, $file)
+{
+    // Validate both are non-empty strings and match the regex
+    if (!isset($folder) || !is_string($folder) || empty($folder) || !preg_match('/^[a-z_][a-z_0-9\/]*$/i', $folder)) {
+        cli_err_without_exit('[cli_folder_and_php_file_status()]: $folder must be A Valid Non-Empty String!');
+        cli_info('[cli_folder_and_php_file_status()]: Use the following Directory Syntax (Regex):`[a-z_][a-z_0-9\/]*)`! (you do NOT need to add a leading slash `/` to the string)');
+    }
+    if (!isset($file) || !is_string($file) || empty($file) || !preg_match('/^[a-z_][a-z_0-9\.]*$/i', $file)) {
+        cli_err_without_exit('[cli_folder_and_php_file_status()]: $file must be A Valid Non-Empty String!');
+        cli_info('[cli_folder_and_php_file_status()]: Use the following File Syntax (Regex):`[a-z_][a-z_0-9\.]*)`! (you do NOT need to add a leading slash `/` to the string and NOT `.php` File Extension)');
+    }
+    // Consistently get '$folder' . '/' . $file . '.php' always!
+    $folder = trim($folder);
+    $file = trim($file);
+    if (str_ends_with($folder, '/')) {
+        $folder = rtrim($folder, '/');
+    }
+    if (!str_ends_with($file, '.php')) {
+        $file .= '.php';
+    }
+    if (str_starts_with($file, '/')) {
+        $file = ltrim($file, '/');
+    }
+    $folder = PROJECT_DIR . '/' . $folder;
+    $file = $folder . '/' . $file;
+
+    // If file exists and is readable, check if function exists
+    // by first reading the file and then checking if
+    // the function name is in the file content using regex!
+    $fns = null;
+    if (is_file($file) && is_readable($file)) {
+        $fileCnt = file_get_contents($file);
+        if (!$fileCnt) { // We error out because if we asked for $fn then we should actually get its content or err out!
+            cli_warning_without_exit('[cli_folder_and_php_file_status()]: Could NOT Read the File `' . $file . '` when it SHOUD have been Readable. This means it CANNOT retrieve the Named Functions in the File!');
+        } else {
+            $fnRegex = '/^function\s+([a-zA-Z0-9][a-zA-Z0-9_]*)\(&\$[^)]*\)(.*?^};)?$/ims';
+            if (preg_match_all($fnRegex, $fileCnt, $fns)) {
+                var_dump($fns);
+            }
+        }
+    }
+    return [
+        'folder_exists' => is_dir($folder),
+        'folder_readable' => is_readable($folder),
+        'folder_writable' => is_writable($folder),
+        'file_exists' => is_file($file),
+        'file_readable' => is_readable($file),
+        'file_writable' => is_writable($file),
+        'functions' => (isset($fns) ? (array_flip([...$fns[1]])) : null),
+    ];
+}
