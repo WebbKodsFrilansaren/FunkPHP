@@ -317,7 +317,8 @@ function cli_routes_subfolder_file_readable_n_writable($subfolder, $file)
 // - exist, - are readable, - are writable, - the number of functions
 // and each function its $DX and/or return array(). Also the entire file
 // is read into a raw string and each function is as well so CRUD can
-// be done for that file assuming its a PHP file with functions.
+// be done for that file assuming its a PHP file with functions. If
+// `return function` exists in it (like middlewares), it's included.
 function cli_folder_and_php_file_status($folder, $file)
 {
     // Validate both are non-empty strings and match the regex
