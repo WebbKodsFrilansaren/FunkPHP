@@ -314,10 +314,10 @@ function cli_routes_subfolder_file_readable_n_writable($subfolder, $file)
 }
 
 // Returns an array of status of $folder & $file and whether they:
-// - exist, - are readable, - are writable. A single array with
-// keys: `folder_exists`, `folder_readable`, `folder_writable`,
-// `file_exists`, `file_readable`, `file_writable` are returned.
-// Optionally return also whether a $fn (function name) exists in the file
+// - exist, - are readable, - are writable, - the number of functions
+// and each function its $DX and/or return array(). Also the entire file
+// is read into a raw string and each function is as well so CRUD can
+// be done for that file assuming its a PHP file with functions.
 function cli_folder_and_php_file_status($folder, $file)
 {
     // Validate both are non-empty strings and match the regex
@@ -347,15 +347,39 @@ function cli_folder_and_php_file_status($folder, $file)
     // If file exists and is readable, check if function exists
     // by first reading the file and then checking if
     // the function name is in the file content using regex!
+    $fnRegex = '/^function\s+([a-zA-Z_][a-zA-Z0-9_]*)\(&\$[^)]*\)(.*?^};)?$/ims';
+    $dxRegex = '/\$DX\s*=\s*\[\s*\'.*?];$/ims';
+    $returnRegex = '/return\s*array\(.*?\);$\n/ims';
+    $returnFnRegex = '/^(?:(<\?php\s*))?(return function)\s*\(&\$c\s*.+$.*?^};/ims';
     $fns = null;
+    $fileRaw = null;
+    $fileReturnRaw = null;
     if (is_file($file) && is_readable($file)) {
         $fileCnt = file_get_contents($file);
-        if (!$fileCnt) { // We error out because if we asked for $fn then we should actually get its content or err out!
-            cli_warning_without_exit('[cli_folder_and_php_file_status()]: Could NOT Read the File `' . $file . '` when it SHOUD have been Readable. This means it CANNOT retrieve the Named Functions in the File!');
+        if (!$fileCnt) {
+            cli_warning_without_exit('[cli_folder_and_php_file_status()]: Could NOT Read the File `' . $file . '` when it SHOUD have been Readable. This means that Named Functions, their $DX and/or Return arrays() CANNOT be retrieved for use!');
         } else {
-            $fnRegex = '/^function\s+([a-zA-Z0-9][a-zA-Z0-9_]*)\(&\$[^)]*\)(.*?^};)?$/ims';
-            if (preg_match_all($fnRegex, $fileCnt, $fns)) {
-                var_dump($fns);
+            $fileRaw = $fileCnt;
+            if (preg_match($returnFnRegex, $fileRaw, $fileReturnMatch)) {
+                $fileReturnRaw = trim($fileReturnMatch[0] ?? "") ?? null;
+            } else {
+                cli_warning_without_exit('[cli_folder_and_php_file_status()]: Could NOT find the Expected Anoynmous `return function` in the File `' . $file . '` when it SHOUD have been Found. This means it will NOT be possible to add any new Functions to this File since it needs that match to add upon!');
+            }
+            if (preg_match_all($fnRegex, $fileCnt, $fnsMatches)) {
+                foreach ($fnsMatches[1] as $idx => $fn) {
+                    $fns[$fn] = [
+                        'fn_raw' => $fnsMatches[0][$idx] ?? null,
+                        'dx_raw' => null,
+                        'return_raw' => null
+                    ];
+                    // We now use the index to match for $DX and return arrays
+                    if (preg_match($dxRegex, $fnsMatches[0][$idx], $dxMatch)) {
+                        $fns[$fn]['dx_raw'] = trim($dxMatch[0] ?? "") ?? null;
+                    }
+                    if (preg_match($returnRegex, $fnsMatches[0][$idx], $returnMatch)) {
+                        $fns[$fn]['return_raw'] = trim($returnMatch[0] ?? "") ?? null;
+                    }
+                }
             }
         }
     }
@@ -366,6 +390,10 @@ function cli_folder_and_php_file_status($folder, $file)
         'file_exists' => is_file($file),
         'file_readable' => is_readable($file),
         'file_writable' => is_writable($file),
-        'functions' => (isset($fns) ? (array_flip([...$fns[1]])) : null),
+        'file_path' => ((is_file($file) && is_readable($file) && is_writable($file)) ? $file : null),
+        'folder_path' => ((is_string($folder) && is_dir($folder) && is_readable($folder) && is_writable($folder)) ? $folder : null),
+        'functions' => (isset($fns) ? $fns : []),
+        'file_raw' => ['entire' => $fileRaw ?? null, 'return function' => $fileReturnRaw ?? null],
+
     ];
 }
