@@ -361,9 +361,9 @@ function cli_folder_and_php_file_status($folder, $file)
         } else {
             $fileRaw = $fileCnt;
             if (preg_match($returnFnRegex, $fileRaw, $fileReturnMatch)) {
-                $fileReturnRaw = trim($fileReturnMatch[0] ?? "") ?? null;
+                $fileReturnRaw = $fileReturnMatch[0] ?? null;
             } else {
-                cli_warning_without_exit('[cli_folder_and_php_file_status()]: Could NOT find the Expected Anoynmous `return function` in the File `' . $file . '` when it SHOUD have been Found. This means it will NOT be possible to add any new Functions to this File since it needs that match to add upon!');
+                cli_warning_without_exit('[cli_folder_and_php_file_status()]: Could NOT find the Expected Anoynmous `return function` in the File `' . $file . '` when it SHOUD have been Found. This means it will NOT be possible to add any new Functions to this File since it needs that matched part to add new functions from!');
             }
             if (preg_match_all($fnRegex, $fileCnt, $fnsMatches)) {
                 foreach ($fnsMatches[1] as $idx => $fn) {
@@ -374,10 +374,10 @@ function cli_folder_and_php_file_status($folder, $file)
                     ];
                     // We now use the index to match for $DX and return arrays
                     if (preg_match($dxRegex, $fnsMatches[0][$idx], $dxMatch)) {
-                        $fns[$fn]['dx_raw'] = trim($dxMatch[0] ?? "") ?? null;
+                        $fns[$fn]['dx_raw'] = $dxMatch[0] ?? null;
                     }
                     if (preg_match($returnRegex, $fnsMatches[0][$idx], $returnMatch)) {
-                        $fns[$fn]['return_raw'] = trim($returnMatch[0] ?? "") ?? null;
+                        $fns[$fn]['return_raw'] = $returnMatch[0] ?? null;
                     }
                 }
             }
