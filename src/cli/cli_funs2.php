@@ -1,6 +1,4 @@
 <?php // FIRST CLI FUNCTIONS FILE
-
-
 function get_match_function_regex_new($fnName)
 {
     // Check if the function name is valid
