@@ -24,6 +24,12 @@ function funk_current_fn_value(&$c, $key, $fnName)
     return $c['req']['current_passed_values'][$key][$fnName] ?? null;
 }
 
+// Function to skip the post-request pipeline
+function funk_skip_post_request(&$c)
+{
+    $c['req']['skip_post-request'] = true;
+}
+
 // `pipeline` is the list of functions to always run for each request (unless any
 // of the functions terminates it early!) This is the main entry point for each request!
 // &$c is Global Config Variable with "everything"!
@@ -330,6 +336,10 @@ function funk_run_matched_route_keys(&$c)
 // &$c is Global Config Variable with "everything"!
 function funk_run_pipeline_post_request(&$c)
 {
+    if ($c['req']['skip_post-request']) {
+        $c['err']['MAYBE']['PIPELINE']['POST-REQUEST']['funk_run_pipeline_post_request'][] = 'Post-Request Pipeline was skipped by the Application for HTTP(S) Request:' . (isset($c['req']['method']) && is_string($c['req']['method']) && !empty($c['req']['method'])) ?: "<UNKNOWN_METHOD>" . (isset($c['req']['route']) && is_string($c['req']['route']) && !empty($c['req']['route'])) ?: "<UNKNOWN_ROUTE>" . '. No Post-Request Pipeline Functions were run. If you expected some, check where the Function `funk_skip_post_request(&$c)` could have been ran for your HTTP(S) Request!';
+        return;
+    }
     if (
         isset($c['<ENTRY>']['pipeline']['post-request'])
         && is_array($c['<ENTRY>']['pipeline']['post-request'])

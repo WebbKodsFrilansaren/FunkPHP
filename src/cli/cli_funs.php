@@ -447,6 +447,7 @@ function cli_folder_and_php_file_status($folder, $file)
 // "funkphp/sql" AND "funkphp/validation" folders!
 function cli_crud_folder_and_php_file($statusArray, $crudType, $file, $fn = null, $arg5 = null)
 {
+    global $reserved_functions; // List of reserved functions meaning $fn CANNOT be one of them!
     // Assume success is true, if any error occurs we just set it to false
     $success = true;
     // $statusArray must be an array with the structure
@@ -496,9 +497,14 @@ function cli_crud_folder_and_php_file($statusArray, $crudType, $file, $fn = null
     if (str_starts_with($file, '/')) {
         $file = ltrim($file, '/');
     }
-    // If $fn is set it must be a string and match the regex
-    if (isset($fn) && (!is_string($fn) || empty($fn) || !preg_match('/^[a-z_][a-z_0-9]*$/i', $fn))) {
+    // If $fn is set it must be a string and match
+    // the regex and not in reserved functions
+    if (isset($fn) && (!is_string($fn)
+        || empty($fn)
+        || !preg_match('/^[a-z_][a-z_0-9]*$/i', $fn)
+        || in_array($fn, $reserved_functions))) {
         cli_err_without_exit('[cli_crud_folder_and_php_file()]: $fn must be A Valid Non-Empty String! (any whitespace is NOT allowed)');
+        cli_info_without_exit('[cli_crud_folder_and_php_file()]: The Function Name cannot be a Reserved Function Name which is usually prefixed with "funk_" or "cli_"!');
         cli_info('[cli_crud_folder_and_php_file()]: Use the following Function Syntax (Regex):`[a-z_][a-z_0-9]*)`! (you do NOT need to add a leading slash `/` to the string)');
         return null;
     }
@@ -538,20 +544,38 @@ function cli_crud_folder_and_php_file($statusArray, $crudType, $file, $fn = null
     // "create" CRUD Type which either creates a new folder+new file if not
     // existing OR updates the existing file by adding a new function to it
     if ($crudType === 'create') {
+        // SPECIAL CASES TO CHECK AGAINST: 1) Folders
+        // like "funkphp/middlewares" or "funkphp/pipeline"
+        // ONLY allow Single Anonymous Function so if we find
+        // that "$folder_provided_path" contains one of those
+        // paths AND $fn is set, we error out
+        if (
+            str_contains($folder_provided_path, 'funkphp/middlewares')
+            || str_contains($folder_provided_path, 'funkphp/pipeline')
+        ) {
+            if (isset($fn) && is_string($fn) && !empty($fn)) {
+                cli_err_without_exit('[cli_crud_folder_and_php_file()]: Cannot create a Named Function in the Folder `' . $folder_name . '` since it is meant for Single Anonymous Function Files Only!');
+                cli_info_without_exit('[cli_crud_folder_and_php_file()]: Folder Paths such as `funkphp/middlewares` (in CLI: `funk make:middlewares`) and `funkphp/pipeline` (in CLI: `funk make:pipeline`) are reserved for Single Anonymous Function Files Only!');
+                return false;
+            }
+        }
+
         // LOGIC WHEN FOLDER DOES NOT EXIST - Meaning
         // we create it and its file+optional function
         if (!$folder_exists) {
             if (mkdir($folder_path, 0755, true)) {
                 cli_success_without_exit('[cli_crud_folder_and_php_file()]: Folder `' . $folder_name . '` Created SUCCESSFULLY since it did not exist!');
                 cli_info_without_exit('[cli_crud_folder_and_php_file()]: Now trying to create the File `' . $file_name . '` in the Folder `' . $folder_name . '`!');
-            } else {
+            } // If FAILED creating folder, we end function here.
+            else {
                 cli_err_without_exit('[cli_crud_folder_and_php_file()]: FAILED to Create the Folder `' . $folder_name . '`!');
                 cli_info_without_exit('[cli_crud_folder_and_php_file()]: Please check the Folder Path `' . $folder_path . '` and ensure it exists AND is readable/writable.');
                 return false;
             }
+            // Here we assume folder was created successfully
         }
         // LOGIC WHEN FOLDER DOES EXIST - Meaning we
-        // will check if the file exists if we a $fn
+        // will check if the file exists if we have $fn
         // because that means we should update/add a
         // $fn to it. If $fn is not set, we assume
         // we want to create a new file with a single
@@ -561,6 +585,7 @@ function cli_crud_folder_and_php_file($statusArray, $crudType, $file, $fn = null
                 cli_err_without_exit('[cli_crud_folder_and_php_file()]: Folder `' . $folder_name . '` is NOT readable/writable!');
                 return false;
             }
+            $newFile = null;
         }
     }
     // "delete" CRUD Type which deletes a named function from the file

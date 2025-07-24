@@ -112,6 +112,7 @@ return [
         'params' => null,
         'segments' => null,
         'route_keys' => [],
+        'skip_post-request' => false,
         'matched_middlewares' => [],
         'current_passed_value' => [],
         'current_passed_values' => [],

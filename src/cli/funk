@@ -320,60 +320,83 @@ $mysqlOperatorSyntax = include FUNKPHP_DIR . '/config/valid/valid_mysql_operator
 ];
 
 if (!isset($command)) {
-    cli_err_syntax_without_exit("FunkCLI - No command provided! Please provide a Command to execute.");
+    cli_err_syntax_without_exit("FunkCLI - No command provided! Please provide a Command to execute with up to 6 arguments!");
     if (JSON_MODE) {
-        cli_info("Use the following JSON format: `{ \"command\": \"<command>\", \"arg1\": \"<arg1>\", \"arg2\": \"<arg2>\", \"arg3\": \"<arg3>\", \"arg4\": \"<arg4>\", \"arg5\": \"<arg5>\" }`");
+        cli_info("Use the following JSON format: `{ \"command\": \"<command>:<first_param>\", \"arg1\": \"<arg1>\", \"arg2\": \"<arg2>\", \"arg3\": \"<arg3>\", \"arg4\": \"<arg4>\", \"arg5\": \"<arg5>\", \"arg6\": \"<arg6>\" }`");
     } else {
-        cli_info("Type a Command and then up to 5 arguments, like this: `funk <command> <arg1> <arg2> <arg3> <arg4> <arg5>`");
+        cli_info("Type a Command and then up to 6 arguments, like this: `funk <command:first_param> <arg1> <arg2> <arg3> <arg4> <arg5> <arg6>`");
     }
 }
 if (!is_string($command) || empty($command)) {
-    cli_err_syntax_without_exit("FunkCLI - Command must be a Non-Empty String! Please provide a valid Command.");
+    cli_err_syntax_without_exit("FunkCLI - Command must be a Non-Empty String! Please provide a valid Command with up to 6 arguments!");
     if (JSON_MODE) {
-        cli_info("Use the following JSON format: `{ \"command\": \"<command>\", \"arg1\": \"<arg1>\", \"arg2\": \"<arg2>\", \"arg3\": \"<arg3>\", \"arg4\": \"<arg4>\", \"arg5\": \"<arg5>\" }`");
+        cli_info("Use the following JSON format: `{ \"command\": \"<command>:<first_param>\", \"arg1\": \"<arg1>\", \"arg2\": \"<arg2>\", \"arg3\": \"<arg3>\", \"arg4\": \"<arg4>\", \"arg5\": \"<arg5>\" }`");
     } else {
-        cli_info("Type a Command and then up to 5 arguments, like this: `funk <command> <arg1> <arg2> <arg3> <arg4> <arg5>`");
+        cli_info("Type a Command and then up to 6 arguments, like this: `funk <command:first_param> <arg1> <arg2> <arg3> <arg4> <arg5> <arg6>`");
     }
 }
 
-if (isset($command) && $command === 'test_fn') {
-    var_dump($arg1, $arg2, $arg3, $arg4, $arg5);
-    $statusArray = cli_folder_and_php_file_status($arg1, $arg2);
-    var_dump(cli_crud_folder_and_php_file($statusArray, $arg3, $arg2, $arg4));
-    cli_info("Force JSON Response!");
-    exit;
-}
-
-if (isset($command) && $command === 'test_mr') {
-    [$method, $route] = cli_return_valid_method_n_route_or_err_out($arg1);
-    var_dump($method, $route);
-    exit;
-}
-if (isset($command) && $command === 'test_ff') {
-    [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg1, $arg2);
-    var_dump($file, $fn);
-    exit;
-}
-
-if (isset($command) && $command === 'compile') {
-    cli_update_reserved_functions_list();
-    cli_success("FunkCLI - Reserved Functions List Updated!");
-}
-
-// Catch-All for Non-Existing Commands and when Command is not a String
-if (isset($command) && is_string($command) && !empty($command)) {
-    cli_err_syntax_without_exit("FunkCLI Command `$command` doesn't exist! Enter `funk help` for More Information!");
+//------ Entry point for the CLI commands where one of the commands are "make:" that is ------
+// used to CREATE Function Files (either single anonymous ones or files with named functions).
+// Begin by getting a valid command structure by "command:first_param"
+// and split it into parts that can then be used to determine next step
+$cmd = '';
+$firstParam = '';
+if (!preg_match('/([a-z]+):([a-z0-9_-]+)/i', $command, $matches)) {
+    cli_err_syntax("FunkCLI - Invalid command format! Please use the format `command:first_param` with up to 6 arguments!");
     if (JSON_MODE) {
-        cli_info("Use the following JSON format: `{ \"command\": \"<command>\", \"arg1\": \"<arg1>\", \"arg2\": \"<arg2>\", \"arg3\": \"<arg3>\", \"arg4\": \"<arg4>\", \"arg5\": \"<arg5>\" }`");
+        cli_info("Use the following JSON format: `{ \"command\": \"<command>:<first_param>\", \"arg1\": \"<arg1>\", \"arg2\": \"<arg2>\", \"arg3\": \"<arg3>\", \"arg4\": \"<arg4>\", \"arg5\": \"<arg5>\", \"arg6\": \"<arg6>\" }`");
     } else {
-        cli_info("Type a Valid Existing Command and then up to 5 arguments, like this: `funk <command> <arg1> <arg2> <arg3> <arg4> <arg5>`");
+        cli_info("Type a Command and then up to 6 arguments, like this: `funk <command:first_param> <arg1> <arg2> <arg3> <arg4> <arg5> <arg6>`");
+    }
+} else {
+    $cmd = $matches[1] ?? null;
+    $firstParam = $matches[2] ?? null;
+}
+
+// Safety-check again for $cmd and $firstParam which should be non-empty strings
+if (!isset($cmd) || !is_string($cmd) || empty($cmd)) {
+    cli_err_syntax_without_exit("FunkCLI - Command must be a Non-Empty String! Please provide a valid Command with up to 6 arguments!");
+    if (JSON_MODE) {
+        cli_info("Use the following JSON format: `{ \"command\": \"<command>:<first_param>\", \"arg1\": \"<arg1>\", \"arg2\": \"<arg2>\", \"arg3\": \"<arg3>\", \"arg4\": \"<arg4>\", \"arg5\": \"<arg5>\", \"arg6\": \"<arg6>\" }`");
+    } else {
+        cli_info("Type a Command and then up to 6 arguments, like this: `funk <command:first_param> <arg1> <arg2> <arg3> <arg4> <arg5> <arg6>`");
     }
 }
-if (isset($command) && (!is_string($command) || empty($command))) {
-    cli_err_syntax_without_exit("FunkCLI - Command must be a Non-Empty String! Please provide A Valid Command.");
+if (!isset($firstParam) || !is_string($firstParam) || empty($firstParam)) {
+    cli_err_syntax_without_exit("FunkCLI - First Parameter must be a Non-Empty String! Please provide a valid First Parameter.");
     if (JSON_MODE) {
-        cli_info("Use the following JSON format: `{ \"command\": \"<command>\", \"arg1\": \"<arg1>\", \"arg2\": \"<arg2>\", \"arg3\": \"<arg3>\", \"arg4\": \"<arg4>\", \"arg5\": \"<arg5>\" }`");
+        cli_info("Use the following JSON format: `{ \"command\": \"<command>:<first_param>\", \"arg1\": \"<arg1>\", \"arg2\": \"<arg2>\", \"arg3\": \"<arg3>\", \"arg4\": \"<arg4>\", \"arg5\": \"<arg5>\", \"arg6\": \"<arg6>\" }`");
     } else {
-        cli_info("Type a Command and then up to 5 arguments, like this: `funk <command> <arg1> <arg2> <arg3> <arg4> <arg5>`");
+        cli_info("Type a Command and then up to 6 arguments, like this: `funk <command:first_param> <arg1> <arg2> <arg3> <arg4> <arg5> <arg6>`");
+    }
+}
+
+// MAKE: Create something new WITHOUT adding it to a specific Method/Route
+if ($cmd === "make") {
+    $singleAnonymousFunctionlist = ["middlewares", "pipeline"];
+}
+// ADD: Attach something that already exists to a specific Method/Route
+elseif ($cmd === "add") {
+}
+// REMOVE: Remove an added Route_Key from a specific Method/Route
+// found in "/funkphp/routes" OR in "/funkphp/middlewares".
+elseif ($cmd === "remove") {
+}
+// DELETE: Delete something that exists which is either a Function File,
+// or a Specific Function from a Specific File. NEVER deletes Method/Route!
+elseif ($cmd === "delete") {
+}
+// COMPILE: Compiles a Validation OR SQL File by using its $DX variable
+// and (re)genereating a new return (); in the same Validation/SQL File.
+elseif ($cmd === "compile") {
+}
+// Catch any invalid commands that are not recognized
+else {
+    cli_err_syntax_without_exit("FunkCLI - Invalid command! Please provide a valid command with up to 6 arguments!");
+    if (JSON_MODE) {
+        cli_info("Use the following JSON format: `{ \"command\": \"<command>:<first_param>\", \"arg1\": \"<arg1>\", \"arg2\": \"<arg2>\", \"arg3\": \"<arg3>\", \"arg4\": \"<arg4>\", \"arg5\": \"<arg5>\", \"arg6\": \"<arg6>\" }`");
+    } else {
+        cli_info("Type a Command and then up to 6 arguments, like this: `funk <command:first_param> <arg1> <arg2> <arg3> <arg4> <arg5> <arg6>`");
     }
 }
