@@ -6279,9 +6279,11 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
     return $convertedSQLArray;
 }
 
+// PROBABLY DEPRECATED NOW
 // Compiles a $DX SQL [] to an optmized SQL array that is returned within the same
 // function that is used to validate the data. This is used to optimize the SQL process!
 // VERY IMPORTANT WARNING: This function calls a function which uses eval() to parse the SQL file!!!
+// PROBABLY DEPRECATED NOW
 function cli_compile_dx_sql_to_optimized_sql()
 {
     // Load globals, check for the argv[3] argument and prepare valid HandlerFile=>HandlerFunctionName

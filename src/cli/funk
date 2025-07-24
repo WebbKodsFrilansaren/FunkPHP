@@ -771,13 +771,16 @@ elseif ($cmd === "compile") {
             cli_info("Type a Command and then up to 6 arguments, like this: `funk compile:<first_param> <arg1>`");
         }
     }
-    [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg1, "v_");
-
-    // Compile based on Validation OR SQL File, also handle impossible edge-case
+    if (str_starts_with($firstParam, "v")) {
+        [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg1, "v_");
+    } elseif (str_starts_with($firstParam, "s")) {
+        [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg1, "s_");
+    }
+    // Compile based on Validation OR SQL File,
+    // also handle impossible edge-case!
     // IF Compile VALIDATION
     if (in_array($firstParam, $validationAliases)) {
         $statusArray = cli_folder_and_php_file_status("funkphp/validation", $file);
-        var_dump(array_keys($statusArray));
         // File_path must exist, otherwise we cannot write
         // to it as part of the completed compile process
         if (!$statusArray['file_path']) {
@@ -798,10 +801,12 @@ elseif ($cmd === "compile") {
             cli_err("Validation File `funkphp/validation/$file.php` does NOT contain a Function named `$fn`! Please provide a Valid Function Name inside `$file.php` to Compile!");
         }
         if (!isset($statusArray["functions"][$fn]['dx_raw'])) {
-            cli_err("Validation Function `$fn` inside File `funkphp/validation/$file.php` does NOT contain a \$DX Variable which should be an Array! Please provide a Valid \$DX Variable inside the Function `$fn` to Compile!");
+            cli_err_without_exit("Validation Function `$fn` inside File `funkphp/validation/$file.php` does NOT contain a \$DX Variable which should be an Array! Please provide a Valid \$DX Variable inside the Function `$fn` to Compile!");
+            cli_info("Make sure it is indented using CMD+S or CTRL+S to autoformat the Validation File!");
         }
         if (!isset($statusArray["functions"][$fn]['return_raw'])) {
-            cli_err("Validation Function `$fn` inside File `funkphp/validation/$file.php` does NOT contain the needed return array()! Please provide a Valid return Array inside the Function `$fn` to Compile!");
+            cli_err_without_exit("Validation Function `$fn` inside File `funkphp/validation/$file.php` does NOT contain the needed return array()! Please provide a Valid return Array inside the Function `$fn` to Compile!");
+            cli_info("Make sure it is indented using CMD+S or CTRL+S to autoformat the Validation File!");
         }
 
         // Attempt using eval() to extract the $DX variable which should be parsed as a valid PHP Array
@@ -855,7 +860,7 @@ elseif ($cmd === "compile") {
         }
     }
     // IF Compile SQL
-    elseif (!in_array($firstParam, $validationAliases)) {
+    elseif (in_array($firstParam, $sqlAliases)) {
         $statusArray = cli_folder_and_php_file_status("funkphp/sql", $file);
         var_dump(array_keys($statusArray));
         // File_path must exist, otherwise we cannot write
@@ -866,7 +871,7 @@ elseif ($cmd === "compile") {
         // Validate file exists, is readable, writable, and contains the correct function
         // and that its $DX variable is set and also its return array is set so both can be used!
         if (!$statusArray['file_exists']) {
-            cli_err("SQL File `funkphp/sql/$file.php` does NOT Exist in `funkphp/validation`! Provide a valid SQL File=>Function to Compile!");
+            cli_err("SQL File `funkphp/sql/$file.php` does NOT Exist in `funkphp/sql`! Provide a valid SQL File=>Function to Compile!");
         }
         if (!$statusArray['file_readable']) {
             cli_err("SQL File `funkphp/sql/$file.php` is NOT Readable! Please check the File Permissions and try again!");
@@ -878,10 +883,12 @@ elseif ($cmd === "compile") {
             cli_err("SQL File `funkphp/sql/$file.php` does NOT contain a Function named `$fn`! Please provide a Valid Function Name inside `$file.php` to Compile!");
         }
         if (!isset($statusArray["functions"][$fn]['dx_raw'])) {
-            cli_err("SQL Function `$fn` inside File `funkphp/sql/$file.php` does NOT contain a \$DX Variable which should be an Array! Please provide a Valid \$DX Variable inside the Function `$fn` to Compile!");
+            cli_err_without_exit("SQL Function `$fn` inside File `funkphp/sql/$file.php` does NOT contain a \$DX Variable which should be an Array! Please provide a Valid \$DX Variable inside the Function `$fn` to Compile!");
+            cli_info("Make sure it is indented using CMD+S or CTRL+S to autoformat the SQL File!");
         }
         if (!isset($statusArray["functions"][$fn]['return_raw'])) {
-            cli_err("SQL Function `$fn` inside File `funkphp/sql/$file.php` does NOT contain the needed return array()! Please provide a Valid return Array inside the Function `$fn` to Compile!");
+            cli_err_without_exit("SQL Function `$fn` inside File `funkphp/sql/$file.php` does NOT contain the needed return array()! Please provide a Valid return Array inside the Function `$fn` to Compile!");
+            cli_info("Make sure it is indented using CMD+S or CTRL+S to autoformat the SQL File!");
         }
 
         // Attempt using eval() to extract the $DX variable which should be parsed as a valid PHP Array
@@ -949,7 +956,7 @@ elseif ($cmd === "compile") {
         $fnReturnCopy = $statusArray["functions"][$fn]['return_raw'];
         $replaced = str_replace(
             $matchedReturnStmt,
-            $optimizedRuleArrayAsStringWithReturnStmt,
+            $optimizedSQLArrayAsStringWithReturnStmt,
             $fnCopy
         );
         $newFileRaw = str_replace(
@@ -964,9 +971,14 @@ elseif ($cmd === "compile") {
             cli_success_without_exit("[ENTIRE SQL ARRAY COMPILED] SUCCESSFULLY COMPILED SQL Query to Optimized SQL in SQL Function \"$fn\" in \"funkphp/sql/$file.php\".");
             cli_info("IMPORTANT: Open it in an IDE and press CMD+S or CTRL+S to autoformat the SQL Handler File again!");
         }
-    } else {
-        cli_err("Impossible Edge-Case where \$firstParam is NOT a valid Validation OR SQL File Type! Please provide a valid first parameter for the `compile` command, either `validation`, `v`, `sql`, or `s`!");
     }
+    // ELSE IMPOSSIBLE EDGE-CASE
+    else {
+        cli_err("Impossible Edge-Case where \$firstParam is NOT a Valid Validation OR SQL File Type! Please provide a valid first parameter for the `compile` command, either `validation`, `v`, `sql`, or `s`!");
+    }
+}
+// RECOMPILE: Routes & Trie-Route-based Files ONLY!
+elseif ($cmd === "recompile") {
 }
 // Catch any invalid commands that are not recognized
 else {
