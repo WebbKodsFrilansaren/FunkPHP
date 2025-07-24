@@ -527,47 +527,34 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
     // but it can also be manually set to null (not provided)
     $createStatus = null;
     if (!$method && !$route) {
-        // A Single Anonymous Function File
-        if ($anonymousFile) {
-            if ($folderType === 'pipeline') {
-                $createStatus = cli_crud_folder_and_php_file($statusArray, "create_new_anonymous_file", $file, null, "pipeline");
-                if ($createStatus) {
-                    cli_success_without_exit("SUCCESSFULLY Created Single Anonymous Function File `$file.php` in Folder `$folder`!");
-                    cli_info("The Pipeline File `$file.php` is now ready to be used in your Pipeline - place it first either in `funkphp/pipeline/request/` OR `funkphp/pipeline/post-request/` and then add it to the corresponding Pipeline Sub-Array! (`pipeline['request']` or `pipeline['post-request']`)");
-                } else {
-                    cli_err("FAILED to Create Single Anonymous Function File `$file.php` in Folder `$folder`!");
-                }
-            } elseif ($folderType === 'middlewares') {
-                $createStatus = cli_crud_folder_and_php_file($statusArray, "create_new_anonymous_file", $file, null, "middlewares");
-                if ($createStatus) {
-                    cli_success_without_exit("SUCCESSFULLY Created Single Anonymous Function File `$file.php` in Folder `$folder`!");
-                    cli_info_without_exit("The Middlewares File `$file.php` is now ready to be used in your Routes. You did not provide a Method/Route so it will not be automatically added to any Route. You can add it manually later on!");
-                    if (JSON_MODE) {
-                        cli_info("Add it manually with the following JSON Syntax: `{ \"command\": \"add:middlewares\", \"arg1\": \"$file\", \"arg2\": \"<method/route>\" }`");
-                    } else {
-                        cli_info("Add it manually in the CLI by typing `funk add:middlewares $file <method/route>`!");
-                    }
-                } else {
-                    cli_err("FAILED to Create Single Anonymous Function File `$file.php` in Folder `$folder`!");
-                }
+        if ($folderType === 'pipeline') {
+            $createStatus = cli_crud_folder_and_php_file($statusArray, "create_new_anonymous_file", $file, null, "pipeline");
+            if ($createStatus) {
+                cli_success_without_exit("SUCCESSFULLY Created Single Anonymous Function File `$file.php` in Folder `$folder`!");
+                cli_info("The Pipeline File `$file.php` is now ready to be used in your Pipeline - place it first either in `funkphp/pipeline/request/` OR `funkphp/pipeline/post-request/` and then add it to the corresponding Pipeline Sub-Array! (`pipeline['request']` or `pipeline['post-request']`)");
+            } else {
+                cli_err("FAILED to Create Single Anonymous Function File `$file.php` in Folder `$folder`!");
             }
-            // Impossible edge-case
-            else {
-                cli_err("You are trying to create a Single Anonymous Function File in a Folder Type that is NOT supported!");
+        } elseif ($folderType === 'middlewares') {
+            $createStatus = cli_crud_folder_and_php_file($statusArray, "create_new_anonymous_file", $file, null, "middlewares");
+            if ($createStatus) {
+                cli_success_without_exit("SUCCESSFULLY Created Single Anonymous Function File `$file.php` in Folder `$folder`!");
+                cli_info_without_exit("The Middlewares File `$file.php` is now ready to be used in your Routes. You did not provide a Method/Route so it will not be automatically added to any Route. You can add it manually later on!");
+                if (JSON_MODE) {
+                    cli_info("Add it manually with the following JSON Syntax: `{ \"command\": \"add:middlewares\", \"arg1\": \"$file\", \"arg2\": \"<method/route>\" }`");
+                } else {
+                    cli_info("Add it manually in the CLI by typing `funk add:middlewares $file <method/route>`!");
+                }
+            } else {
+                cli_err("FAILED to Create Single Anonymous Function File `$file.php` in Folder `$folder`!");
             }
+        } elseif ($folderType === 'routes') {
+        } elseif ($folderType === 'validation') {
+        } elseif ($folderType === 'sql') {
         }
-        // A File Name With a Function Name (here middlewares also applies)
-        // Here Method/Route was NOT provided so just create file and/or function
+        // Impossible edge-case
         else {
-            if ($folderType === 'routes') {
-            } elseif ($folderType === 'middlewares') {
-            } elseif ($folderType === 'validation') {
-            } elseif ($folderType === 'sql') {
-            }
-            // Impossible edge-case
-            else {
-                cli_err("You are trying to create a File Name with a Function Name in a Folder Type that is NOT supported!");
-            }
+            cli_err("You are trying to create a File Name with a Function Name in a Folder Type that is NOT supported!");
         }
     }
     // A VALID METHOD & ROUTE WAS PROVIDED - This means we might need to add it to
@@ -576,8 +563,6 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
     elseif ($method && $route) {
         if ($folderType === 'routes') {
         } elseif ($folderType === 'middlewares') {
-        } elseif ($folderType === 'validation') {
-        } elseif ($folderType === 'sql') {
         } else {
             cli_err("You are trying to create a File Name with a Function Name in a Folder Type that is NOT supported!");
         }
@@ -862,7 +847,6 @@ elseif ($cmd === "compile") {
     // IF Compile SQL
     elseif (in_array($firstParam, $sqlAliases)) {
         $statusArray = cli_folder_and_php_file_status("funkphp/sql", $file);
-        var_dump(array_keys($statusArray));
         // File_path must exist, otherwise we cannot write
         // to it as part of the completed compile process
         if (!$statusArray['file_path']) {
