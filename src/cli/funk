@@ -856,6 +856,83 @@ elseif ($cmd === "compile") {
     }
     // IF Compile SQL
     elseif (!in_array($firstParam, $validationAliases)) {
+        $statusArray = cli_folder_and_php_file_status("funkphp/sql", $file);
+        var_dump(array_keys($statusArray));
+        // File_path must exist, otherwise we cannot write
+        // to it as part of the completed compile process
+        if (!$statusArray['file_path']) {
+            cli_err("SQL File Path `funkphp/sql/$file.php` does NOT Exist! Provide a Valid SQL File=>Function to Compile where the Exact File Path also exists!");
+        }
+        // Validate file exists, is readable, writable, and contains the correct function
+        // and that its $DX variable is set and also its return array is set so both can be used!
+        if (!$statusArray['file_exists']) {
+            cli_err("SQL File `funkphp/sql/$file.php` does NOT Exist in `funkphp/validation`! Provide a valid SQL File=>Function to Compile!");
+        }
+        if (!$statusArray['file_readable']) {
+            cli_err("SQL File `funkphp/sql/$file.php` is NOT Readable! Please check the File Permissions and try again!");
+        }
+        if (!$statusArray['file_writable']) {
+            cli_err("SQL File `funkphp/sql/$file.php` is NOT Writable! Please check the File Permissions and try again!");
+        }
+        if (!isset($statusArray["functions"][$fn])) {
+            cli_err("SQL File `funkphp/sql/$file.php` does NOT contain a Function named `$fn`! Please provide a Valid Function Name inside `$file.php` to Compile!");
+        }
+        if (!isset($statusArray["functions"][$fn]['dx_raw'])) {
+            cli_err("SQL Function `$fn` inside File `funkphp/sql/$file.php` does NOT contain a \$DX Variable which should be an Array! Please provide a Valid \$DX Variable inside the Function `$fn` to Compile!");
+        }
+        if (!isset($statusArray["functions"][$fn]['return_raw'])) {
+            cli_err("SQL Function `$fn` inside File `funkphp/sql/$file.php` does NOT contain the needed return array()! Please provide a Valid return Array inside the Function `$fn` to Compile!");
+        }
+
+        // Attempt using eval() to extract the $DX variable which should be parsed as a valid PHP Array
+        $matchedSimpleSyntax = $statusArray["functions"][$fn]['dx_raw'];
+        $matchedReturnStmt = $statusArray["functions"][$fn]['return_raw'];
+        $evalCode = null;
+        try {
+            $evalCode = "\nreturn $matchedSimpleSyntax";
+            $evalCode = eval($evalCode);
+        } catch (Throwable $e) {
+            cli_err_without_exit("The \"\$DX\" variable was found but could not be parsed as a valid PHP Array!");
+            cli_info_without_exit("Make sure it is intended using CMD+S or CTRL+S to autoformat the SQL Handler File!");
+            cli_info("It must start as an array: `\$DX = ['<anything_inside_here>'];` or it will not be found.  Only single quotes `['<DXarray>']` are allowed!");
+        }
+        if ($evalCode === null) {
+            cli_err_without_exit("The \"\$DX\" variable was found but could not be parsed as a valid PHP Array!");
+            cli_info_without_exit("Make sure it is intended using CMD+S or CTRL+S to autoformat the SQL Handler File!");
+            cli_info("It must start as an array: `\$DX = ['<anything_inside_here>'];` or it will not be found.  Only single quotes `['<DXarray>']` are allowed!");
+        }
+        if (is_array($evalCode)) {
+            cli_info_without_exit("Found \"\$DX\" Variable Parsed as a Valid PHP Array!");
+        }
+
+        // This contains the optimized validation rules which will then replace the "$matchedReturnStmt"
+        // The function can error out on its own so we do not need to check for the return value!
+        $optimizedSQLArray = cli_convert_simple_sql_query_to_optimized_sql($evalCode, $file, $fn);
+
+        // Convert the optimized rule array to a string with ";\n" at the end
+        $optimizedRuleArrayAsStringWithReturnStmt = "return " . var_export($optimizedRuleArray, true) . ";\n";
+
+        // Copy of the Entire Function which contains BOTH the $DX and the return array
+        $fileRawCopy = $statusArray["file_raw"]["entire"];
+        $fnCopy = $statusArray["functions"][$fn]['fn_raw'];
+        $fnReturnCopy = $statusArray["functions"][$fn]['return_raw'];
+        $replaced = str_replace(
+            $matchedReturnStmt,
+            $optimizedRuleArrayAsStringWithReturnStmt,
+            $fnCopy
+        );
+        $newFileRaw = str_replace(
+            $fnCopy,
+            $replaced,
+            $fileRawCopy
+        );
+        $result = file_put_contents($statusArray['file_path'], $newFileRaw);
+        if ($result === false) {
+            cli_err("FAILED to Write the Compiled Optimized Validation Rules to the File `funkphp/validation/$file.php`! Verify File Permissions and try again!");
+        } else {
+            cli_success_without_exit("SUCCESSFULLY COMPILED Validation Rules to Optimized Rules in Validation Function \"$fn\" in \"funkphp/validation/$file.php\".");
+            cli_info("IMPORTANT: Open it in an IDE and press CMD+S or CTRL+S to autoformat the Validation File again!");
+        }
     } else {
         cli_err("Impossible Edge-Case where \$firstParam is NOT a valid Validation OR SQL File Type! Please provide a valid first parameter for the `compile` command, either `validation`, `v`, `sql`, or `s`!");
     }

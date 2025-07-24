@@ -15,13 +15,13 @@ function v_test(&$c) // <>
   // Run the command `php funkcli compile v v_test=>v_test3`
   // to get optimized version in return statement below it!
   $DX = [
-    'test' => "required|date:Y-m-d",
-
+    'date_test' => "required|date:Y-m-d",
+    'one_digit' => "required|digit",
   ];
 
   return array(
     '<CONFIG>' => NULL,
-    'test' =>
+    'date_test' =>
     array(
       '<RULES>' =>
       array(
@@ -33,6 +33,22 @@ function v_test(&$c) // <>
         'date' =>
         array(
           'value' => 'Y-m-d',
+          'err_msg' => NULL,
+        ),
+      ),
+    ),
+    'one_digit' =>
+    array(
+      '<RULES>' =>
+      array(
+        'required' =>
+        array(
+          'value' => NULL,
+          'err_msg' => NULL,
+        ),
+        'digit' =>
+        array(
+          'value' => NULL,
           'err_msg' => NULL,
         ),
       ),
