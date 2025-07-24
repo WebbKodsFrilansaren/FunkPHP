@@ -446,7 +446,8 @@ function cli_crud_folder_and_php_file($statusArray, $crudType, $file, $fn = null
                 if (count($functions) === 1) {
                     // If it is the last named function, we delete the file
                     if (unlink($file_path)) {
-                        cli_success_without_exit('[cli_crud_folder_and_php_file()]: File `' . $file_nane . '` Deleted SUCCESSFULLY!');
+                        cli_success_without_exit('[cli_crud_folder_and_php_file()]: Function `' . $fn . '` Deleted SUCCESSFULLY from the File `' . $file_nane . '`!');
+                        cli_success_without_exit('[cli_crud_folder_and_php_file()]: File `' . $file_nane . '` Deleted SUCCESSFULLY due to no more Named Functions in it!');
                     } else {
                         cli_err_without_exit('[cli_crud_folder_and_php_file()]: FAILED to Delete the File `' . $file_nane . '`!');
                         return false;
