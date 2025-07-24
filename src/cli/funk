@@ -510,7 +510,7 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
     // Grab status for the folder and file so we can check whether
     // we can even access it, if it exists, is writable, etc.
     $statusArray = cli_folder_and_php_file_status($folder, $file);
-    var_dump($file, $fn, $method, $route, $folder, $routeKey, $statusArray, $singleRoutesRoute);
+    var_dump($file, $fn, $method, $route, $folder, $routeKey);
 
     // NO METHOD & ROUTE WAS PROVIDED
     if (!$method && !$route) {
@@ -523,11 +523,11 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
     // for "funkphp/middlewares" "funkphp/pipeline" meaning
     // we ONLY pass the folder and file (file name that is)
     if ($anonymousFile) {
-        $createStatus = cli_crud_folder_and_php_file($statusArray, "create", $folder, $file);
+        $createStatus = cli_crud_folder_and_php_file($statusArray, "create", $file);
         if ($createStatus) {
-            cli_success("SUCCESSFULLY Created Single Anonymous Function File `$file` in Folder `$folder`!");
+            cli_success("SUCCESSFULLY Created Single Anonymous Function File `$file.php` in Folder `$folder`!");
         } else {
-            cli_err("FAILED to Create Single Anonymous Function File `$file` in Folder `$folder`!");
+            cli_err("FAILED to Create Single Anonymous Function File `$file.php` in Folder `$folder`!");
         }
     }
     // "else" means it is a File Name($file) with a Named Function($fn) in the folder ($folder)

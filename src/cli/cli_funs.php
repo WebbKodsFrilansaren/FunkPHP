@@ -586,6 +586,7 @@ function cli_crud_folder_and_php_file($statusArray, $crudType, $file, $fn = null
                 return false;
             }
             $newFile = null;
+            var_dump($statusArray);
         }
     }
     // "delete" CRUD Type which deletes a named function from the file
