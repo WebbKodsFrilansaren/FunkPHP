@@ -2756,9 +2756,11 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
     return $convertedValidationArray;
 }
 
+// PROBABLY DEPRECATED NOW
 // Compiles a $DX Validation [] to an optmized validation array that is returned within the same
 // function that is used to validate the data. This is used to optimize the validation process!
 // VERY IMPORTANT WARNING: This function calls a function which uses eval() to parse the validation file!!!
+// PROBABLY DEPRECATED NOW
 function cli_compile_dx_validation_to_optimized_validation()
 {
     // Load globals, check for the argv[3] argument and prepare valid HandlerFile=>HandlerFunctionName
