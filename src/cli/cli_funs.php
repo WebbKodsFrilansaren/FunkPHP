@@ -375,7 +375,7 @@ function cli_crud_folder_and_php_file($statusArray, $crudType, $file, $fn = null
     }
     // If $fn is set it must be a string and match the regex
     if (isset($fn) && (!is_string($fn) || empty($fn) || !preg_match('/^[a-z_][a-z_0-9]*$/i', $fn))) {
-        cli_err_without_exit('[cli_crud_folder_and_php_file()]: $fn must be A Valid Non-Empty String! (whitespace is NOT allowed)');
+        cli_err_without_exit('[cli_crud_folder_and_php_file()]: $fn must be A Valid Non-Empty String! (any whitespace is NOT allowed)');
         cli_info('[cli_crud_folder_and_php_file()]: Use the following Function Syntax (Regex):`[a-z_][a-z_0-9]*)`! (you do NOT need to add a leading slash `/` to the string)');
         return null;
     }
@@ -443,8 +443,6 @@ function cli_crud_folder_and_php_file($statusArray, $crudType, $file, $fn = null
             }
             // $fn DOES exist in the file, so we check if it is the last named function
             else {
-                var_dump($functions);
-                exit;
                 if (count($functions) === 1) {
                     // If it is the last named function, we delete the file
                     if (unlink($file_path)) {
