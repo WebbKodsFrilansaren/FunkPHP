@@ -271,6 +271,7 @@ function cli_default_created_fn_files($type, $methodAndRoute = "<N/A>", $folder,
     // after each slash. This is to ensure that the namespace is correct
     $folder = str_replace('/', '\\', $folder);
     $folder = ucwords($folder, '\\');
+    $folderUPPER = strtoupper($folder);
 
     // Remove ".php" from the $file if it exists and then
     if (str_ends_with($file, '.php')) {
@@ -303,14 +304,16 @@ function cli_default_created_fn_files($type, $methodAndRoute = "<N/A>", $folder,
     elseif ($type === 'named_and_new_file') {
         $typePartString .= "function $fn(&\$c, \$passedValue = null) //<$methodAndRoute>\n";
         $typePartString .= "{\n\n};\n\n";
-        $typePartString .= "";
-        $typePartString .= "";
-        $typePartString .= "";
-        $typePartString .= "";
-        $typePartString .= "";
-        $typePartString .= "";
-        $typePartString .= "";
-        $typePartString .= "";
+        $typePartString .= "return function (&\$c, \$handler = \"$fn\", \$passedValue = null) {\n";
+        $typePartString .= "\n\t\$base = is_string(\$handler) ? \$handler : \"\";";
+        $typePartString .= "\n\t\$full = __NAMESPACE__ . '\\\\' . \$base;";
+        $typePartString .= "\n\tif (function_exists(\$full)) {";
+        $typePartString .= "\n\t\treturn \$full(\$c, \$passedValue);";
+        $typePartString .= "\n\t} else {";
+        $typePartString .= "\n\t\t\$c['err']['ROUTES']['$folderUPPER'][] = '$folderUPPER Function `' . \$full . '` not found in namespace `' . __NAMESPACE__ . '`. Does it exist as a callable function in the File?';";
+        $typePartString .= "\n\t\treturn null;";
+        $typePartString .= "\n\t}\n};\n";
+        $entireCreatedString .= $newFilesString . $typePartString;
     }
     // Special-case #1: "funkphp/sql" folder
     // TODO:
