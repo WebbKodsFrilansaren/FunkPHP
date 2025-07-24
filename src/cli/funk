@@ -390,7 +390,7 @@ $fileWithOptionalFnRegex = '/^([a-z][a-z0-9_]+)(=>([a-z0-9_.]+))?$/i';
 
 // SPECIAL-CASE: Command to Recompile
 // Routes File & Trie-based Route File
-if ($command === 'recompile') {
+if ($command === 'recompile' || $command === 'rc') {
     cli_sort_build_routes_compile_and_output($singleRoutesRoute);
     return;
 }
