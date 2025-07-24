@@ -310,3 +310,92 @@ function cli_folder_and_php_file_status($folder, $file)
 
     ];
 }
+
+// Function that expects and uses the array from the function above
+// "cli_folder_and_php_file_status()" to either Create a new Folder
+// with a PHP File that is just Anoymous Function (middlewares &
+// pipeline functions) OR to Create a new Folder with a PHP File
+// that has a Named Function (like route handlers, etc.) meaning it
+// has a return function at the end of the file and named functions
+// inside it. $crudType is = "create" or "delete" where "create" will
+// also act as "update" if the file already exists and it just adds
+// a new function to the file. If $crudType is "delete" it deletes
+// a named function from the file and if that is the last named
+// function, it deletes the file as well so it counts the named functions
+// first because count(1) means it can just delete the file instead.
+function cli_crud_folder_and_php_file($statusArray, $crudType, $file, $fn = null)
+{
+    // Assume success is true, if any error occurs we just set it to false
+    $success = true;
+    // $statusArray must be an array with the structure
+    // returned by "cli_folder_and_php_file_status()"
+    if (!isset($statusArray) || !is_array($statusArray) || empty($statusArray)) {
+        cli_err_without_exit('[cli_crud_folder_and_php_file()]: $statusArray must be a Non-Empty Array returned by "cli_folder_and_php_file_status()"!');
+        cli_info("It needs the following Keys: 'folder_name', 'folder_path', 'folder_exists', 'folder_readable', 'folder_writable', 'file_name', 'file_path', 'file_exists', 'file_readable', 'file_writable', 'functions' and 'file_raw'!");
+        return null;
+    }
+    $requiredKeys = [
+        'folder_name',
+        'folder_path',
+        'folder_exists',
+        'folder_readable',
+        'folder_writable',
+        'file_name',
+        'file_path',
+        'file_exists',
+        'file_readable',
+        'file_writable',
+        'functions',
+        'file_raw'
+    ];
+    foreach ($requiredKeys as $key) {
+        if (!array_key_exists($key, $statusArray)) {
+            cli_err_without_exit('[cli_crud_folder_and_php_file()]: $statusArray must contain the Key: `' . $key . '`!');
+            cli_info("It needs the following Keys: 'folder_name', 'folder_path', 'folder_exists', 'folder_readable', 'folder_writable', 'file_name', 'file_path', 'file_exists', 'file_readable', 'file_writable', 'functions' and 'file_raw'!");
+            return null;
+        }
+    }
+    // $crudType must be a string and either "create" or "delete"
+    if (!isset($crudType) || !is_string($crudType) || empty($crudType) || !in_array($crudType, ['create', 'delete'])) {
+        cli_err_without_exit('[cli_crud_folder_and_php_file()]: $crudType must be a Non-Empty String!');
+        cli_info('[cli_crud_folder_and_php_file()]: Use either "create" or "delete" as the $crudType!');
+        return null;
+    }
+    // $file must be a string and match the regex, we also perform some QoL fixes
+    if (!isset($file) || !is_string($file) || empty($file) || !preg_match('/^[a-z_][a-z_0-9\.]*$/i', $file)) {
+        cli_err_without_exit('[cli_crud_folder_and_php_file()]: $file must be A Valid Non-Empty String! (whitespace is NOT allowed)');
+        cli_info('[cli_crud_folder_and_php_file()]: Use the following File Syntax (Regex):`[a-z_][a-z_0-9\.]*)`! (you do NOT need to add a leading slash `/` to the string and NOT `.php` File Extension)');
+        return null;
+    }
+    if (!str_ends_with($file, '.php')) {
+        $file .= '.php';
+    }
+    if (str_starts_with($file, '/')) {
+        $file = ltrim($file, '/');
+    }
+    // If $fn is set it must be a string and match the regex
+    if (isset($fn) && (!is_string($fn) || empty($fn) || !preg_match('/^[a-z_][a-z_0-9]*$/i', $fn))) {
+        cli_err_without_exit('[cli_crud_folder_and_php_file()]: $fn must be A Valid Non-Empty String! (whitespace is NOT allowed)');
+        cli_info('[cli_crud_folder_and_php_file()]: Use the following Function Syntax (Regex):`[a-z_][a-z_0-9]*)`! (you do NOT need to add a leading slash `/` to the string)');
+        return null;
+    }
+
+    // Extract data from the $statusArray for
+    // easier flow of the function from here on
+    $folder_path = $statusArray['folder_path'];
+    $file_path = $statusArray['file_path'];
+    $folder_exists = $statusArray['folder_exists'];
+    $folder_writable = $statusArray['folder_writable'];
+    $file_exists = $statusArray['file_exists'];
+    $file_writable = $statusArray['file_writable'];
+    $functions = $statusArray['functions'];
+    $file_raw_entire = $statusArray['file_raw']['entire'];
+    $file_raw_return_fn = $statusArray['file_raw']['return function'];
+
+    if ($crudType === 'create') {
+    } elseif (($crudType === 'delete')) {
+    }
+
+    // Return the boolean value of $success (false means failed)
+    return $success;
+}
