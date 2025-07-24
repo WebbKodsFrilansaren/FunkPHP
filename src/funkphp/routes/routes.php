@@ -1,28 +1,28 @@
-<?php // Routes.php - FunkPHP Framework | FunkCLI Modified it 2025-07-16 08:13:39
+<?php // Routes.php - FunkPHP Framework | FunkCLI Modified it 2025-07-24 14:35:47
 return  [
-    'ROUTES' =>
+  'ROUTES' =>
+  [
+    'GET' =>
     [
-        'GET' =>
+      '/t' =>
+      [
+        'handler' =>
         [
-            '/t' =>
-            [
-                'handler' =>
-                [
-                    'r_test' => 'r_test',
-                ],
-                'data' =>
-                [
-                    'd_test' => 'd_test',
-                ],
-            ],
+          'r_test' => 'r_test',
         ],
-        'POST' =>
-        [],
-        'PUT' =>
-        [],
-        'DELETE' =>
-        [],
-        'PATCH' =>
-        [],
+        'data' =>
+        [
+          'd_test' => 'd_test',
+        ],
+      ],
     ],
+    'POST' =>
+    [],
+    'PUT' =>
+    [],
+    'DELETE' =>
+    [],
+    'PATCH' =>
+    [],
+  ],
 ];

@@ -6731,21 +6731,12 @@ function cli_output_compiled_routes(array $compiledTrie, string $outputFileNameF
     if (empty($compiledTrie)) {
         cli_err_syntax("Compiled Routes Must Be A Non-Empty Array!");
     }
-
-    // Output either to file destiation or in current folder as datetime in file name
-    $datetime = date("Y-m-d_H-i-s");
-    $outputDestination = $outputFileNameFolderIsAlways_compiled_routes === "null" ? dirname(__DIR__) . "/compiled/troute_" . $datetime . ".php" : dirname(__DIR__) . "/compiled/" . $outputFileNameFolderIsAlways_compiled_routes . ".php";
-
     $result = null;
-    if ($outputFileNameFolderIsAlways_compiled_routes !== "null") {
-        $result = file_put_contents(dirname(__DIR__) . "/compiled/" . $outputFileNameFolderIsAlways_compiled_routes . ".php", "<?php\nreturn " . cli_convert_array_to_simple_syntax($compiledTrie));
-    } else {
-        $result = file_put_contents($outputDestination, "<?php\nreturn " . cli_convert_array_to_simple_syntax($compiledTrie));
-    }
+    $result = file_put_contents(FUNKPHP_INTERNALS_COMPILED_DIR .  "/troute_route.php", "<?php\nreturn " . cli_convert_array_to_simple_syntax($compiledTrie));
     if ($result === false) {
-        echo "\033[31m[FunkCLI - ERROR]: FAILED to Recompile Trie Route: \"funkphp/_internals/compiled/troute_route.php\"!\n\033[0m";
+        cli_err("[cli_output_compiled_routes] Failed to write Compiled Routes to file: \"funkphp/_internals/compiled/troute_route.php\". Check File Permissions?");
     } else {
-        echo "\033[32m[FunkCLI - SUCCESS]: Recompiled Trie Route: \"funkphp/_internals/compiled/troute_route.php\"!\n\033[0m";
+        cli_success_without_exit("[cli_output_compiled_routes] Successfully wrote Compiled Routes to file: \"funkphp/_internals/compiled/troute_route.php\"!");
     }
 }
 
@@ -7370,9 +7361,9 @@ function cli_sort_build_routes_compile_and_output($singleRoutesRootArray)
     // Then we rebuild and recompile Routes
     $rebuild = cli_rebuild_single_routes_route_file($singleRoutesRootArray);
     if ($rebuild) {
-        cli_success_without_exit("Rebuilt Route file \"funkphp/config/routes.php\"!");
+        cli_success_without_exit("Rebuilt Route file \"funkphp/routes/routes.php\"!");
     } else {
-        cli_err("FAILED to rebuild Route file \"funkphp/config/routes.php\". File permissions issue?");
+        cli_err("FAILED to rebuild Route file \"funkphp/routes/routes.php\". File permissions issue?");
     }
     $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRootArray['ROUTES'], $singleRoutesRootArray['ROUTES']);
     cli_output_compiled_routes($compiledRouteRoutes, "troute_route");

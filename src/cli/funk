@@ -11,6 +11,7 @@ define('BATTERIES_PIPELINE_POST_REQUEST_DIR', BATTERIES_PIPELINE_DIR . '/post-re
 define('CLI_DIR', __DIR__);
 define('FUNKPHP_DIR', PROJECT_DIR . '/funkphp');
 define('FUNKPHP_INTERNALS_DIR', FUNKPHP_DIR . '/_internals');
+define('FUNKPHP_INTERNALS_COMPILED_DIR', FUNKPHP_INTERNALS_DIR . '/compiled');
 define('FUNKPHP_CACHED_DIR', FUNKPHP_DIR . '/_cached');
 define('FUNKPHP_CACHED_FILES_DIR', FUNKPHP_CACHED_DIR . '/files');
 define('FUNKPHP_CACHED_JSON_DIR', FUNKPHP_CACHED_DIR . '/json');
@@ -387,9 +388,16 @@ $cmd = '';
 $firstParam = '';
 $fileWithOptionalFnRegex = '/^([a-z][a-z0-9_]+)(=>([a-z0-9_.]+))?$/i';
 
+// SPECIAL-CASE: Command to Recompile
+// Routes File & Trie-based Route File
+if ($command === 'recompile') {
+    cli_sort_build_routes_compile_and_output($singleRoutesRoute);
+    return;
+}
+
 // Validate correct command and first param format
 // Then extract them and just safety-check them again
-if (!preg_match('/([a-z]+):([a-z0-9_-]+)/i', $command, $matches)) {
+if (!preg_match('/^([a-z]+):([a-z0-9_-]+)$/i', $command, $matches)) {
     cli_err_syntax("Invalid command format! Please use the format `command:first_param` with up to 6 arguments!");
     if (JSON_MODE) {
         cli_info("Use the following JSON format: `{ \"command\": \"<command>:<first_param>\", \"arg1\": \"<arg1>\", \"arg2\": \"<arg2>\", \"arg3\": \"<arg3>\", \"arg4\": \"<arg4>\", \"arg5\": \"<arg5>\", \"arg6\": \"<arg6>\" }`");
@@ -960,9 +968,6 @@ elseif ($cmd === "compile") {
     else {
         cli_err("Impossible Edge-Case where \$firstParam is NOT a Valid Validation OR SQL File Type! Please provide a valid first parameter for the `compile` command, either `validation`, `v`, `sql`, or `s`!");
     }
-}
-// RECOMPILE: Routes & Trie-Route-based Files ONLY!
-elseif ($cmd === "recompile") {
 }
 // Catch any invalid commands that are not recognized
 else {
