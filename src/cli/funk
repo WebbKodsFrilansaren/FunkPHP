@@ -909,8 +909,39 @@ elseif ($cmd === "compile") {
         // The function can error out on its own so we do not need to check for the return value!
         $optimizedSQLArray = cli_convert_simple_sql_query_to_optimized_sql($evalCode, $file, $fn);
 
-        // Convert the optimized rule array to a string with ";\n" at the end
-        $optimizedRuleArrayAsStringWithReturnStmt = "return " . var_export($optimizedRuleArray, true) . ";\n";
+        // We validate the optimized SQL Query String by using the Prepared Statement that should not fail
+        // If it fails, we will catch the exception and inform the Developer. It could fail due to actual
+        // invalid SQL String Syntax or because of a mismatch between the Table Configuration in `tables.php`
+        // and the actual Table in the MySQL DBMS (e.g. phpMyAdmin, Adminer, etc.) assuming it exists!
+        $dbConnect =  cli_db_connect();
+        $queryToTest = $optimizedSQLArray['sql'] ?? null;
+        if ($queryToTest === null || !is_string_and_not_empty($queryToTest)) {
+            cli_err_without_exit("The optimized SQL Query is Empty or NOT a Valid String in SQL Function \"$fn\" in \"$file.php\".");
+            cli_info("Check if indeed the `sql` key was provided from the returned Optimized SQL Array Variable?");
+        }
+        try {
+            cli_info_without_exit("Testing the Optimized SQL Query String from SQL Function \"$fn\" in \"$file.php\".");
+            $stmt = $dbConnect->prepare($queryToTest);
+        } catch (mysqli_sql_exception $e) {
+            cli_err_without_exit("The Optimized SQL Query String FAILED during Statement Preparing (from SQL Function \"$fn\" in \"$file.php\").");
+            cli_info_without_exit("This means either\n1) Actual invalid SQL String Syntax that somehow slipped through the Compilation Stage when it shouldn't have, or that \n2) The Table and its configuration added in `config/tables.php` DOES NOT MATCH the Table with the same name in your local MySQL DBMS (e.g. phpMyAdmin, Adminer, etc.) assuming it exists!");
+
+            // We show some guessing info based on what "$e->getMessage()" contains.
+            if (is_string($e->getMessage()) && str_contains($e->getMessage(), "Unknown column") && str_contains($e->getMessage(), "field list")) {
+                cli_info_without_exit("MAYBE: The MySQLi Error might indicate a missing/misspelled Column Name OR You might need a JOIN with the Table that contains that `unknown column`. Also check your `FROM` Key that it includes the Table you want queried!");
+            } elseif (is_string($e->getMessage()) && str_contains($e->getMessage(), "Table ")  && str_contains($e->getMessage(), "doesn't exist")) {
+                cli_info_without_exit("MAYBE: The MySQLi Error might indicate that the Table does not exist in your local MySQL DBMS (e.g. phpMyAdmin, Adminer, etc.) or that you have a typo in the Table Name in your SQL Array!");
+            } elseif (is_string($e->getMessage()) && str_contains($e->getMessage(), "Unknown column") && str_contains($e->getMessage(), "in 'where clause'")) {
+                cli_info_without_exit("MAYBE: The MySQLi Error might indicate a missing/misspelled Column Name in the `WHERE` Clause of your SQL Query String. Check your `WHERE` Key in the SQL Array!");
+            } elseif (is_string($e->getMessage()) && str_contains($e->getMessage(), "Unknown column")) {
+            }
+
+            cli_info("INTERNAL MySQLi ERROR: \"" . $e->getMessage() . "\"");
+        }
+        cli_success_without_exit("[COMPILED SQL STRING VALIDATED IN DBMS] The SQL Query String in SQL Function \"$fn\" in \"$file.php\" was Successfully Validated with 0 Errors When Sending it Prepared to the local MySQL DBMS!");
+        cli_info_without_exit("Attempting adding the entire Optimized SQL Array as the returned value in SQL Function \"$fn\" in \"$file.php\"!");
+        // Convert the optimized SQL array to a string with ";\n" at the end
+        $optimizedSQLArrayAsStringWithReturnStmt = "return " . var_export($optimizedSQLArray, true) . ";\n";
 
         // Copy of the Entire Function which contains BOTH the $DX and the return array
         $fileRawCopy = $statusArray["file_raw"]["entire"];
@@ -928,10 +959,10 @@ elseif ($cmd === "compile") {
         );
         $result = file_put_contents($statusArray['file_path'], $newFileRaw);
         if ($result === false) {
-            cli_err("FAILED to Write the Compiled Optimized Validation Rules to the File `funkphp/validation/$file.php`! Verify File Permissions and try again!");
+            cli_err("FAILED compiling SQL Query to Optimized SQL in SQL Function \"$fn\" in \"$file.php\". Verify File Permissions and try again!");
         } else {
-            cli_success_without_exit("SUCCESSFULLY COMPILED Validation Rules to Optimized Rules in Validation Function \"$fn\" in \"funkphp/validation/$file.php\".");
-            cli_info("IMPORTANT: Open it in an IDE and press CMD+S or CTRL+S to autoformat the Validation File again!");
+            cli_success_without_exit("[ENTIRE SQL ARRAY COMPILED] SUCCESSFULLY COMPILED SQL Query to Optimized SQL in SQL Function \"$fn\" in \"funkphp/sql/$file.php\".");
+            cli_info("IMPORTANT: Open it in an IDE and press CMD+S or CTRL+S to autoformat the SQL Handler File again!");
         }
     } else {
         cli_err("Impossible Edge-Case where \$firstParam is NOT a valid Validation OR SQL File Type! Please provide a valid first parameter for the `compile` command, either `validation`, `v`, `sql`, or `s`!");
