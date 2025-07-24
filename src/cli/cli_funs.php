@@ -390,7 +390,7 @@ function cli_folder_and_php_file_status($folder, $file)
     if (is_file($file) && is_readable($file)) {
         $fileCnt = file_get_contents($file);
         if (!$fileCnt) {
-            cli_warning_without_exit('[cli_folder_and_php_file_status()]: Could NOT Read the File `' . $file . '` when it SHOULD have been Readable. This means that Named Functions, their $DX and/or Return arrays() CANNOT be retrieved for use!');
+            cli_warning_without_exit('[cli_folder_and_php_file_status()]: Could NOT Read the File `' . $file . '` when it SHOULD have been Readable. This means that Named Functions, their $DX and/or Return arrays(), OR Anonymous Function Files CANNOT be retrieved for use!');
         } else {
             $fileRaw = $fileCnt;
             if (preg_match($returnFnRegex, $fileRaw, $fileReturnMatch)) {
@@ -557,8 +557,9 @@ function cli_crud_folder_and_php_file($statusArray, $crudType, $file, $fn = null
         return null;
     }
 
-    // "create" CRUD Type which either creates a new folder+new file if not
+    // "create_XYZ" CRUD Type which either creates a new folder+new file if not
     // existing OR updates the existing file by adding a new function to it
+    // ONLY Single Anonymous Function File is created
     if ($crudType === 'create_new_anonymous_file') {
         // SPECIAL-CASE: 'pipeline' Folder Type can have their files
         // either in "pipeline/post-request" OR "pipeline/request"
@@ -606,9 +607,12 @@ function cli_crud_folder_and_php_file($statusArray, $crudType, $file, $fn = null
         } else {
             return true; // Success, file created successfully
         }
-    } elseif ($crudType === 'create_new_file_and_fn') {
-    } elseif ($crudType === 'create_only_new_fn_in_file') {
-    } elseif ($crudType === 'create') {
+    }
+    // A NEW FILE WITH A NAMED FUNCTION is created!
+    elseif ($crudType === 'create_new_file_and_fn') {
+    }
+    // A NEW FUNCTION is created in an EXISTING FILE
+    elseif ($crudType === 'create_only_new_fn_in_file') {
     }
     // "delete" CRUD Type which deletes a named function from the file
     // and if that was the last named function, it deletes the file as well
@@ -681,6 +685,12 @@ function cli_crud_folder_and_php_file($statusArray, $crudType, $file, $fn = null
                 }
             }
         }
+    }
+    // Impossible edge-case, we should never reach here
+    else {
+        cli_err_without_exit('[cli_crud_folder_and_php_file()]: Invalid $crudType provided! Use either "create_new_anonymous_file", "create_new_file_and_fn", "create_only_new_fn_in_file" or "delete" as the $crudType!');
+        cli_info('[cli_crud_folder_and_php_file()]: The fact You are seeing this strongly suggests you have called the function directly instead of letting other functions calling it indirectly and you have probably removed the first safety-check at the top of the function!');
+        return false;
     }
 
     // Return the boolean value of $success (false means failed)

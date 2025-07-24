@@ -419,8 +419,8 @@ if (!isset($firstParam) || !is_string($firstParam) || empty($firstParam)) {
 
 // MAKE: Create something new and OPTIONALLY adding it to a specific Method/Route
 if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
-    $middlewaresAliases = ['mw', 'mws', 'middlewares'];
-    $singlePipelineAliases = ['pl', 'pls', 'pipeline'];
+    $middlewaresAliases = ['mw', 'mws', 'middlewares', 'middleware'];
+    $singlePipelineAliases = ['pl', 'pls', 'pipeline', 'pipelines'];
     $validationAliases = ['v', 'validation'];
     $sqlAliases = ['sql', 's'];
     $folderListThatNeedsTables = ['sql', 'validation', 'v', 's'];
@@ -449,6 +449,7 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
         'schema',
         'schemas',
     ];
+    $ROUTES = $singleRoutesRoute['ROUTES'];
 
     // Issue a warning but still continue if the first parameter is in the list of folders that will cause a warning
     // because these folders are already being used for other purposes but they could be used inside of "funkphp/routes/"
@@ -510,7 +511,7 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
         }
     }
 
-    // $folderType "validatioN" & "sql" demands $arg3 with a string of "tables"
+    // $folderType "validation" & "sql" demands $arg3 with a string of "tables"
     if ($folderType === 'validation' || $folderType === 'sql') {
         if (!isset($arg3) || !is_string($arg3) && !empty($arg3)) {
             cli_err("For File Type `$folderType` you MUST provide a third argument (\$arg3 OR \"arg3\": \"table1,table2,etc3\"). Provide at least 1 table or several separated by commas!");
@@ -550,22 +551,41 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
                     cli_err("FAILED to Create Single Anonymous Function File `$file.php` in Folder `$folder`!");
                 }
             }
+            // Impossible edge-case
+            else {
+                cli_err("You are trying to create a Single Anonymous Function File in a Folder Type that is NOT supported!");
+            }
         }
-        // A File Name With a Function Name
+        // A File Name With a Function Name (here middlewares also applies)
+        // Here Method/Route was NOT provided so just create file and/or function
         else {
+            if ($folderType === 'routes') {
+            } elseif ($folderType === 'middlewares') {
+            } elseif ($folderType === 'validation') {
+            } elseif ($folderType === 'sql') {
+            }
+            // Impossible edge-case
+            else {
+                cli_err("You are trying to create a File Name with a Function Name in a Folder Type that is NOT supported!");
+            }
         }
     }
     // A VALID METHOD & ROUTE WAS PROVIDED - This means we might need to add it to
     // a matched Method/Route in the Routes File unless it already exists there!
+    // Anonymous Function "pipeline" Files does not apply, but "middlewares" does
     elseif ($method && $route) {
+        if ($folderType === 'routes') {
+        } elseif ($folderType === 'middlewares') {
+        } elseif ($folderType === 'validation') {
+        } elseif ($folderType === 'sql') {
+        } else {
+            cli_err("You are trying to create a File Name with a Function Name in a Folder Type that is NOT supported!");
+        }
     }
-
-    // When true, it is a single anonymous function file
-    // for "funkphp/middlewares" "funkphp/pipeline" meaning
-    // we ONLY pass the folder and file (file name that is)
-
-    // "else" means it is a File Name($file) with a Named Function($fn) in the folder ($folder)
+    // Impossible edge-case where either $method or $route
+    // is not set when both should be either set or not set
     else {
+        cli_err("Impossible Edge-Case where either \$method OR \$route is NOT SET when both either should be set or both should be null!");
     }
 }
 // ADD: Attach a Route_Key that already exists to a specific Method/Route
