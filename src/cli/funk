@@ -750,7 +750,7 @@ elseif ($cmd === "delete" || $cmd === "del" || $cmd === "destroy") {
 // and (re)genereating a new return (); in the same Validation/SQL File.
 // "_eval" is included so the Developer realizes that the eval() function
 // will be used as part of this command to compile the file!
-elseif ($cmd === "compile") {
+elseif ($cmd === "compile" || $cmd === "comp" || $cmd === "cp") {
     $validFirstParams = ['validation_eval', 'v_eval', 'sql_eval', 's_eval'];
     $validationAliases = ['v_eval', 'validation_eval'];
     $sqlAliases = ['sql_eval', 's_eval'];
