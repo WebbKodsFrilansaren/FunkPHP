@@ -445,7 +445,7 @@ function cli_folder_and_php_file_status($folder, $file)
 // first because count(1) means it can just delete the file instead.
 // $arg5 is for "tables" or other special cases that are ONLY for
 // "funkphp/sql" AND "funkphp/validation" folders!
-function cli_crud_folder_and_php_file($statusArray, $crudType, $file, $fn = null, $arg5 = null)
+function cli_crud_folder_and_php_file($statusArray, $crudType, $file, $fn = null, $folderType = null, $table = null)
 {
     global $reserved_functions; // List of reserved functions meaning $fn CANNOT be one of them!
     // Assume success is true, if any error occurs we just set it to false
@@ -480,9 +480,19 @@ function cli_crud_folder_and_php_file($statusArray, $crudType, $file, $fn = null
         }
     }
     // $crudType must be a string and either "create" or "delete"
-    if (!isset($crudType) || !is_string($crudType) || empty($crudType) || !in_array($crudType, ['create', 'delete'])) {
-        cli_err_without_exit('[cli_crud_folder_and_php_file()]: $crudType must be a Non-Empty String!');
-        cli_info('[cli_crud_folder_and_php_file()]: Use either "create" or "delete" as the $crudType!');
+    if (
+        !isset($crudType)
+        || !is_string($crudType)
+        || empty($crudType)
+        || !in_array($crudType, [
+            'create_new_anonymous_file',
+            'create_new_file_and_fn',
+            'create_only_new_fn_in_file',
+            'delete'
+        ])
+    ) {
+        cli_err_without_exit('[cli_crud_folder_and_php_file()]: $crudType must be a Non-Empty String using one of the following Valid String Values! (see INFO next below)');
+        cli_info('[cli_crud_folder_and_php_file()]: Valid String Values: "create_new_anonymous_file", "create_new_file_and_fn", "create_only_new_fn" OR "delete" as the $crudType!');
         return null;
     }
     // $file must be a string and match the regex, we also perform some QoL fixes
@@ -526,68 +536,27 @@ function cli_crud_folder_and_php_file($statusArray, $crudType, $file, $fn = null
     $file_raw_entire = $statusArray['file_raw']['entire'];
     $file_raw_return_fn = $statusArray['file_raw']['return function'];
 
-    // $arg5 is optional and if set, it must be a string and match the regex
+    // $table is optional and if set, it must be a string and match the regex
     // for special cases for the folders "funkphp/sql" or "funkphp/validation"
     if (
-        isset($arg5) &&
-        (!is_string($arg5)
-            || empty($arg5)
-            || !preg_match('/^[a-z_][a-z_0-9,]*$/i', $arg5)
+        isset($table) &&
+        (!is_string($table)
+            || empty($table)
+            || !preg_match('/^[a-z_][a-z_0-9,]*$/i', $table)
             || (!str_contains($folder_provided_path, "funkphp/sql")
                 && !str_contains($folder_provided_path, "funkphp/validation")))
     ) {
-        cli_err_without_exit('[cli_crud_folder_and_php_file()]: $arg5 must be A Valid Non-Empty String! (any whitespace is NOT allowed)');
+        cli_err_without_exit('[cli_crud_folder_and_php_file()]: $table (or "arg3") must be A Valid Non-Empty String with at least 1 table or several separated by commas! (NO Whitespace is allowed)');
         cli_info('[cli_crud_folder_and_php_file()]: It is meant ONLY for `funkphp/sql` AND `funkphp/validation`!');
         return null;
     }
 
     // "create" CRUD Type which either creates a new folder+new file if not
     // existing OR updates the existing file by adding a new function to it
-    if ($crudType === 'create') {
-        // SPECIAL CASES TO CHECK AGAINST: 1) Folders
-        // like "funkphp/middlewares" or "funkphp/pipeline"
-        // ONLY allow Single Anonymous Function so if we find
-        // that "$folder_provided_path" contains one of those
-        // paths AND $fn is set, we error out
-        if (
-            str_contains($folder_provided_path, 'funkphp/middlewares')
-            || str_contains($folder_provided_path, 'funkphp/pipeline')
-        ) {
-            if (isset($fn) && is_string($fn) && !empty($fn)) {
-                cli_err_without_exit('[cli_crud_folder_and_php_file()]: Cannot create a Named Function in the Folder `' . $folder_name . '` since it is meant for Single Anonymous Function Files Only!');
-                cli_info_without_exit('[cli_crud_folder_and_php_file()]: Folder Paths such as `funkphp/middlewares` (in CLI: `funk make:middlewares`) and `funkphp/pipeline` (in CLI: `funk make:pipeline`) are reserved for Single Anonymous Function Files Only!');
-                return false;
-            }
-        }
-
-        // LOGIC WHEN FOLDER DOES NOT EXIST - Meaning
-        // we create it and its file+optional function
-        if (!$folder_exists) {
-            if (mkdir($folder_path, 0755, true)) {
-                cli_success_without_exit('[cli_crud_folder_and_php_file()]: Folder `' . $folder_name . '` Created SUCCESSFULLY since it did not exist!');
-                cli_info_without_exit('[cli_crud_folder_and_php_file()]: Now trying to create the File `' . $file_name . '` in the Folder `' . $folder_name . '`!');
-            } // If FAILED creating folder, we end function here.
-            else {
-                cli_err_without_exit('[cli_crud_folder_and_php_file()]: FAILED to Create the Folder `' . $folder_name . '`!');
-                cli_info_without_exit('[cli_crud_folder_and_php_file()]: Please check the Folder Path `' . $folder_path . '` and ensure it exists AND is readable/writable.');
-                return false;
-            }
-            // Here we assume folder was created successfully
-        }
-        // LOGIC WHEN FOLDER DOES EXIST - Meaning we
-        // will check if the file exists if we have $fn
-        // because that means we should update/add a
-        // $fn to it. If $fn is not set, we assume
-        // we want to create a new file with a single
-        // anonymous function! `else` = folder exists
-        else {
-            if (!$folder_readable || !$folder_writable) {
-                cli_err_without_exit('[cli_crud_folder_and_php_file()]: Folder `' . $folder_name . '` is NOT readable/writable!');
-                return false;
-            }
-            $newFile = null;
-            var_dump($statusArray);
-        }
+    if ($crudType === 'create_new_anonymous_file') {
+    } elseif ($crudType === 'create_new_file_and_fn') {
+    } elseif ($crudType === 'create_only_new_fn_in_file') {
+    } elseif ($crudType === 'create') {
     }
     // "delete" CRUD Type which deletes a named function from the file
     // and if that was the last named function, it deletes the file as well

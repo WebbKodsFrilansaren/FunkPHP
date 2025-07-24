@@ -507,34 +507,67 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
     } else {
         cli_info_without_exit("No Method/Route provided! Created File and/or Function inside of `/funkphp/routes` OR `funkphp/middlewares` will NOT be attached to a Method/Route!");
     }
+
+    // $folderType "validatioN" & "sql" demands $arg3 with a string of "tables"
+    if ($folderType === 'validation' || $folderType === 'sql') {
+        if (!isset($arg3) || !is_string($arg3) && !empty($arg3)) {
+            cli_err("For File Type `$folderType` you MUST provide a third argument (\$arg3 OR \"arg3\": \"table1,table2,etc3\"). Provide at least 1 table or several separated by commas!");
+        }
+    }
     // Grab status for the folder and file so we can check whether
     // we can even access it, if it exists, is writable, etc.
     $statusArray = cli_folder_and_php_file_status($folder, $file);
     var_dump($file, $fn, $method, $route, $folder, $routeKey);
 
-    // NO METHOD & ROUTE WAS PROVIDED
+    // NO METHOD & ROUTE WAS PROVIDED - This is automatically
+    // forced when making/creating "pipeline"/"sql"/"validation"
+    // but it can also be manually set to null (not provided)
+    $createStatus = null;
     if (!$method && !$route) {
+        // A Single Anonymous Function File
+        if ($anonymousFile) {
+            if ($folderType === 'pipeline') {
+                $createStatus = cli_crud_folder_and_php_file($statusArray, "create_new_anonymous_file", $file, null, "pipeline");
+                if ($createStatus) {
+                    cli_success_without_exit("SUCCESSFULLY Created Single Anonymous Function File `$file.php` in Folder `$folder`!");
+                    cli_info("The Pipeline File `$file.php` is now ready to be used in your Pipeline - place it first either in `funkphp/pipeline/request/` OR `funkphp/pipeline/post-request/` and then add it to the corresponding Pipeline Sub-Array! (`pipeline['request']` or `pipeline['post-request']`)");
+                } else {
+                    cli_err("FAILED to Create Single Anonymous Function File `$file.php` in Folder `$folder`!");
+                }
+            } elseif ($folderType === 'middlewares') {
+                $createStatus = cli_crud_folder_and_php_file($statusArray, "create_new_anonymous_file", $file, null, "middlewares");
+                if ($createStatus) {
+                    cli_success_without_exit("SUCCESSFULLY Created Single Anonymous Function File `$file.php` in Folder `$folder`!");
+                    cli_info_without_exit("The Middlewares File `$file.php` is now ready to be used in your Routes. You did not provide a Method/Route so it will not be automatically added to any Route. You can add it manually later on!");
+                    if (JSON_MODE) {
+                        cli_info("Add it manually with the following JSON Syntax: `{ \"command\": \"add:middlewares\", \"arg1\": \"$file\", \"arg2\": \"<method/route>\" }`");
+                    } else {
+                        cli_info("Add it manually in the CLI by typing `funk add:middlewares $file <method/route>`!");
+                    }
+                } else {
+                    cli_err("FAILED to Create Single Anonymous Function File `$file.php` in Folder `$folder`!");
+                }
+            }
+        }
+        // A File Name With a Function Name
+        else {
+        }
     }
-    // A VALID METHOD & ROUTE WAS PROVIDED
+    // A VALID METHOD & ROUTE WAS PROVIDED - This means we might need to add it to
+    // a matched Method/Route in the Routes File unless it already exists there!
     elseif ($method && $route) {
     }
 
     // When true, it is a single anonymous function file
     // for "funkphp/middlewares" "funkphp/pipeline" meaning
     // we ONLY pass the folder and file (file name that is)
-    if ($anonymousFile) {
-        $createStatus = cli_crud_folder_and_php_file($statusArray, "create", $file);
-        if ($createStatus) {
-            cli_success("SUCCESSFULLY Created Single Anonymous Function File `$file.php` in Folder `$folder`!");
-        } else {
-            cli_err("FAILED to Create Single Anonymous Function File `$file.php` in Folder `$folder`!");
-        }
-    }
+
     // "else" means it is a File Name($file) with a Named Function($fn) in the folder ($folder)
     else {
     }
 }
-// ADD: Attach something that already exists to a specific Method/Route
+// ADD: Attach a Route_Key that already exists to a specific Method/Route
+// assuming the Method/Route and/or the File+Function already exists
 elseif ($cmd === "add" || $cmd === "attach" || $cmd === "link") {
     $middlewaresAliases = ['mw', 'mws', 'middlewares'];
     $singlePipelineAliases = ['pl', 'pls', 'pipeline'];
