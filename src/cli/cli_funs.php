@@ -214,8 +214,121 @@ function cli_return_valid_method_n_route_or_err_out($string)
     return [$method, $route];
 }
 
-// Returns string
-function cli_default_created_files($type, $fn, $folder) {}
+// Returns a generated $DX Part based on provided $arg5
+// which should contain "table1,table2,etc3" or just "table1"
+// TODO:
+function cli_created_sql_or_validation_fn($arg5) {}
+
+// Returns default created function files (a single anoynomous function file
+// OR a named function file with a return function at the end). Also handles
+// special cases using $arg5 which are for "funkphp/sql" and "funkphp/validation"
+function cli_default_created_fn_files($type, $methodAndRoute = "<N/A>", $folder, $file, $fn = null, $arg5 = null)
+{
+    // Validate $type is a non-empty string and either "named" or "anonymous"
+    if (!isset($type) || !is_string($type) || empty($type) || !in_array($type, ['named_not_new_file', 'named_and_new_file', 'anonymous', 'sql', 'validation'])) {
+        cli_err_without_exit('[cli_default_created_fn_files()]: $type must be a Non-Empty String!');
+        cli_info('[cli_default_created_fn_files()]: Use either "named_not_new_file", "named_and_new_file", "anonymous", "sql" OR "validation as the $type!');
+        return null;
+    }
+    // Validate $methodAndRoute is a non-empty string which can be any characters except whitespaces or new lines
+    if (!isset($methodAndRoute) || !is_string($methodAndRoute) || empty($methodAndRoute) || preg_match('/\s/', $methodAndRoute)) {
+        cli_err_without_exit('[cli_default_created_fn_files()]: $methodAndRoute must be A Valid Non-Empty String! (whitespace is NOT allowed)');
+        cli_info('[cli_default_created_fn_files()]: Use ANY Characters EXCEPT Whitespaces or New Lines!');
+        return null;
+    }
+    // Validate that $folder is a non-empty string and matches the regex
+    if (!isset($folder) || !is_string($folder) || empty($folder) || !preg_match('/^[a-z_][a-z_0-9\/-]*$/i', $folder)) {
+        cli_err_without_exit('[cli_default_created_fn_files()]: $folder must be A Valid Non-Empty String! (whitespace is NOT allowed)');
+        cli_info('[cli_default_created_fn_files()]: Use the following Directory Syntax (Regex):`[a-z_][a-z_0-9\/-]*)`! (you do NOT need to add a leading slash `/` to the string)');
+        return null;
+    }
+    // Validate that $file is a non-empty string and matches the regex
+    if (!isset($file) || !is_string($file) || empty($file) || !preg_match('/^[a-z_][a-z_0-9\.]*$/i', $file)) {
+        cli_err_without_exit('[cli_default_created_fn_files()]: $file must be A Valid Non-Empty String! (whitespace is NOT allowed)');
+        cli_info('[cli_default_created_fn_files()]: Use the following File Syntax (Regex):`[a-z_][a-z_0-9\.]*)`! (you do NOT need to add a leading slash `/` to the string and NOT `.php` File Extension)');
+        return null;
+    }
+    // Validate that if set, $fn is a non-empty string matching a regex
+    if (isset($fn) && (!is_string($fn) || empty($fn) || !preg_match('/^[a-z_][a-z_0-9]*$/i', $fn))) {
+        cli_err_without_exit('[cli_default_created_fn_files()]: $fn must be A Valid Non-Empty String! (any whitespace is NOT allowed)');
+        cli_info('[cli_default_created_fn_files()]: Use the following Function Syntax (Regex):`[a-z_][a-z_0-9]*)`!');
+        return null;
+    }
+    // Validate that if set, $arg5 is a non-empty string matching a regex
+    if (
+        isset($arg5) &&
+        (!is_string($arg5)
+            || empty($arg5)
+            || !preg_match('/^[a-z_][a-z_0-9,]*$/i', $arg5)
+            || (!str_contains($folder, "funkphp/sql")
+                && !str_contains($folder, "funkphp/validation")))
+    ) {
+        cli_err_without_exit('[cli_default_created_fn_files()]: $arg5 must be A Valid Non-Empty String! (any whitespace is NOT allowed)');
+        cli_info('[cli_default_created_fn_files()]: It is meant ONLY for `funkphp/sql` AND `funkphp/validation`!');
+        return null;
+    }
+    // Replace the "/" to "\" in the $folder and then uppercase each first letter
+    // after each slash. This is to ensure that the namespace is correct
+    $folder = str_replace('/', '\\', $folder);
+    $folder = ucwords($folder, '\\');
+
+    // Remove ".php" from the $file if it exists and then
+    if (str_ends_with($file, '.php')) {
+        $file = substr($file, 0, -4);
+    }
+    // String parts of default created Files:
+    $entireCreatedString = '';
+    $newFilesString = '';
+    $typePartString = '';
+
+    // Parts belonging to new files created like namespace & some comments
+    $namespaceString = "<?php\n\nnamespace FunkPHP\\$folder\\$file;\n";
+    $newFilesString .= $namespaceString;
+    $createdOnCommentString = "// FunkCLI Created on " . date('Y-m-d H:i:s') . "!\n\n";
+    $newFilesString .= $createdOnCommentString;
+
+    // Based on $type, we create the necessary File (or just updated File!)
+    // When just anonmyous function is needed (usually for middlewares & pipeline functions)
+    if ($type === 'anonymous') {
+        $typePartString .= "return function (&\$c, \$passedValue = null) {\n\n};\n";
+        $entireCreatedString .= $newFilesString . $typePartString;
+    }
+    // When a named function is needed but file ALREADY EXISTS
+    elseif ($type === 'named_not_new_file') {
+        $typePartString .= "function $fn(&\$c, \$passedValue = null) //<$methodAndRoute>\n";
+        $typePartString .= "{\n\n};\n\n";
+        $entireCreatedString .= $typePartString;
+    }
+    // When a named function is needed and file DOES NOT EXIST
+    elseif ($type === 'named_and_new_file') {
+        $typePartString .= "function $fn(&\$c, \$passedValue = null) //<$methodAndRoute>\n";
+        $typePartString .= "{\n\n};\n\n";
+        $typePartString .= "";
+        $typePartString .= "";
+        $typePartString .= "";
+        $typePartString .= "";
+        $typePartString .= "";
+        $typePartString .= "";
+        $typePartString .= "";
+        $typePartString .= "";
+    }
+    // Special-case #1: "funkphp/sql" folder
+    // TODO:
+    elseif ($type === 'sql') {
+    }
+    // Special-case #2: "funkphp/validation" folder
+    // TODO:
+    elseif ($type === 'validation') {
+    }
+    // Catch the IMPOSSIBLE edge-case!
+    else {
+        cli_err_without_exit('[cli_default_created_fn_files()]: Invalid $type provided! Use either "named_not_new_file", "named_and_new_file", "anonymous", "sql" or "validation"!');
+        cli_info('[cli_default_created_fn_files()]: The fact You are seeing this strongly suggests you have called the function directly instead of letting other functions calling it indirectly and you have probably removed the first safety-check at the top of the function!');
+        return null;
+    }
+
+    return $entireCreatedString;
+}
 
 // Returns an array of status of $folder & $file and whether they:
 // - exist, - are readable, - are writable, - the number of functions
@@ -327,7 +440,9 @@ function cli_folder_and_php_file_status($folder, $file)
 // a named function from the file and if that is the last named
 // function, it deletes the file as well so it counts the named functions
 // first because count(1) means it can just delete the file instead.
-function cli_crud_folder_and_php_file($statusArray, $crudType, $file, $fn = null)
+// $arg5 is for "tables" or other special cases that are ONLY for
+// "funkphp/sql" AND "funkphp/validation" folders!
+function cli_crud_folder_and_php_file($statusArray, $crudType, $file, $fn = null, $arg5 = null)
 {
     // Assume success is true, if any error occurs we just set it to false
     $success = true;
@@ -402,6 +517,21 @@ function cli_crud_folder_and_php_file($statusArray, $crudType, $file, $fn = null
     $file_raw_entire = $statusArray['file_raw']['entire'];
     $file_raw_return_fn = $statusArray['file_raw']['return function'];
 
+    // $arg5 is optional and if set, it must be a string and match the regex
+    // for special cases for the folders "funkphp/sql" or "funkphp/validation"
+    if (
+        isset($arg5) &&
+        (!is_string($arg5)
+            || empty($arg5)
+            || !preg_match('/^[a-z_][a-z_0-9,]*$/i', $arg5)
+            || (!str_contains($folder_provided_path, "funkphp/sql")
+                && !str_contains($folder_provided_path, "funkphp/validation")))
+    ) {
+        cli_err_without_exit('[cli_crud_folder_and_php_file()]: $arg5 must be A Valid Non-Empty String! (any whitespace is NOT allowed)');
+        cli_info('[cli_crud_folder_and_php_file()]: It is meant ONLY for `funkphp/sql` AND `funkphp/validation`!');
+        return null;
+    }
+
     // "create" CRUD Type which either creates a new folder+new file if not
     // existing OR updates the existing file by adding a new function to it
     if ($crudType === 'create') {
@@ -422,10 +552,12 @@ function cli_crud_folder_and_php_file($statusArray, $crudType, $file, $fn = null
         // because that means we should update/add a
         // $fn to it. If $fn is not set, we assume
         // we want to create a new file with a single
-        // anonymous function!
-        elseif (!$folder_readable || !$folder_writable) {
-            cli_err_without_exit('[cli_crud_folder_and_php_file()]: Folder `' . $folder_name . '` is NOT readable/writable!');
-            return false;
+        // anonymous function! `else` = folder exists
+        else {
+            if (!$folder_readable || !$folder_writable) {
+                cli_err_without_exit('[cli_crud_folder_and_php_file()]: Folder `' . $folder_name . '` is NOT readable/writable!');
+                return false;
+            }
         }
     }
     // "delete" CRUD Type which deletes a named function from the file

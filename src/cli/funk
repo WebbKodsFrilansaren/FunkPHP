@@ -66,6 +66,7 @@ if (php_sapi_name() === 'cli') {
     $arg3 = $argv[4] ?? null;
     $arg4 = $argv[5] ?? null;
     $arg5 = $argv[6] ?? null;
+    $arg6 = $argv[7] ?? null;
 }
 // JSON Mode
 else {
@@ -78,6 +79,7 @@ else {
     $arg3 = $payload['arg3'] ?? null;
     $arg4 = $payload['arg4'] ?? null;
     $arg5 = $payload['arg5'] ?? null;
+    $arg6 = $payload['arg6'] ?? null;
 }
 define("JSON_MODE", $JSON);
 // If we are in JSON_MODE We then check that the REMOTE_ADDR is set and is either
