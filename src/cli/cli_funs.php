@@ -105,13 +105,14 @@ function cli_return_valid_file_n_fn_or_err_out($string, $prefix = null)
     global $reserved_functions;
     // $string must be a non-empty string, then we lowercase it
     if (!isset($string) || !is_string($string) || empty($string)) {
-        cli_err_without_exit('[cli_match_file_and_fn()]: \$string must be a Non-Empty String!');
-        cli_info('[cli_match_file_and_fn()]: Use either "fileName" (Regex: [a-z_][a-z_0-9]*) OR "fileName=>functionName" (Regex: [a-z_][a-z_0-9]*=>[a-z_][a-z_0-9]*)!');
+        cli_err_without_exit('[cli_match_file_and_fn()]: This function expects a Non-Empty String (probably missing in $arg1) where the first part is the FileName and optionally you add =>FunctionName after it!');
+        cli_info_without_exit('[cli_match_file_and_fn()]: Use either "fileName" (Regex: [a-z_][a-z_0-9]*) OR "fileName=>functionName" (Regex: [a-z_][a-z_0-9]*=>[a-z_][a-z_0-9.]*)!');
+        cli_info('[cli_match_file_and_fn()]: IMPORTANT: Your provided String will ALWAYS be lowercased automatically before any further processing!');
     }
     $string = strtolower(trim($string));
     // Matches a string like "fileName" or "fileName=>functionName"
     // If only "fileName" is provided, it will use the same name for the function
-    $regex = '/^([a-z_][a-z_0-9]*)(?:=>([a-z_][a-z_0-9]*))?$/i';
+    $regex = '/^([a-z_][a-z_0-9]*)(?:=>([a-z_][a-z_0-9.]*))?$/i';
     $file = '';
     $fn = '';
     // Preg_match to find the file and function names
@@ -119,8 +120,9 @@ function cli_return_valid_file_n_fn_or_err_out($string, $prefix = null)
         $file = $matches[1];
         $fn = isset($matches[2]) ? $matches[2] : $file;
     } else {
-        cli_err_without_exit('[cli_match_file_and_fn()]: Invalid Syntax for File and/or Function Name!');
-        cli_info('[cli_match_file_and_fn()]: Use either "fileName" (Regex: [a-z_][a-z_0-9]*) OR "fileName=>functionName" (Regex: [a-z_][a-z_0-9]*=>[a-z_][a-z_0-9]*)!');
+        cli_err_without_exit('[cli_match_file_and_fn()]: Invalid Syntax for File and/or Function Name! (probably in $arg1)');
+        cli_info_without_exit('[cli_match_file_and_fn()]: Use either "fileName" (Regex: [a-z_][a-z_0-9]*) OR "fileName=>functionName" (Regex: [a-z_][a-z_0-9]*=>[a-z_][a-z_0-9.]*)!');
+        cli_info('[cli_match_file_and_fn()]: IMPORTANT: Your provided String will ALWAYS be lowercased automatically before any further processing!');
     }
     // Add prefix to both variables if provided
     // and then check against reserved functions
@@ -129,16 +131,14 @@ function cli_return_valid_file_n_fn_or_err_out($string, $prefix = null)
         $fn = $prefix . $fn;
     }
     if (in_array($file, $reserved_functions)) {
-        cli_err_without_exit('[cli_match_file_and_fn()]: File Name `' . $file . '` is a Reserved Function Name. Please choose a different name!');
+        cli_err_without_exit('[cli_match_file_and_fn()]: File Name `' . $file . '` is a Reserved Function Name. Please choose a different name! (probably see $arg1)');
         cli_info('[cli_match_file_and_fn()]: The majority of Reserved Function Names usually start with "funk_" or "cli_" prefix, so please avoid using those prefixes for Your Custom Functions!');
     }
     if (in_array($fn, $reserved_functions)) {
-        cli_err_without_exit('[cli_match_file_and_fn()]: Function Name `' . $fn . '` is a Reserved Function Name. Please choose a different name!');
+        cli_err_without_exit('[cli_match_file_and_fn()]: Function Name `' . $fn . '` is a Reserved Function Name. Please choose a different name! (probably see $arg1)');
         cli_info('[cli_match_file_and_fn()]: The majority of Reserved Function Names usually start with "funk_" or "cli_" prefix, so please avoid using those prefixes for Your Custom Functions!');
     }
-    if (!isset($matches[2])) {
-        cli_info_without_exit('No Function Name provided, thus parsing as: `' . $file . '=>' . $fn . '`!');
-    }
+    cli_info_without_exit('OK! Parsed File => Function: `' . $file . '=>' . $fn . '` (Function is ignored for Folders such as `middlewares` & `pipeline`!)');
     return [$file, $fn];
 }
 
@@ -146,7 +146,7 @@ function cli_return_valid_file_n_fn_or_err_out($string, $prefix = null)
 function cli_return_valid_method_n_route_or_err_out($string)
 {
     if (!isset($string) || !is_string($string) || empty($string)) {
-        cli_err_without_exit('[cli_return_valid_method_and_route_or_err_out()]: $string must be a Non-Empty String using the following Syntax: `method/route/segments/with/optional/:params`!');
+        cli_err_without_exit('[cli_return_valid_method_and_route_or_err_out()]: $string (probably $arg2) must be a Non-Empty String using the following Syntax: `method/route/segments/with/optional/:params`!');
         cli_info_without_exit('[cli_return_valid_method_and_route_or_err_out()]: For the Method, use one of the following: "get", "post", "put", "delete", "patch"');
         cli_info_without_exit('[cli_return_valid_method_and_route_or_err_out()]: OR Use any of its shorthand versions: "g", "po", "pu", "d" OR "del", "pa"');
         cli_info_without_exit('[cli_return_valid_method_and_route_or_err_out()]: For the Route, write either "/route/segments" or "/route/segments/with/:params" (where :params is a Dynamic URI Segment of the Route)');
@@ -174,14 +174,14 @@ function cli_return_valid_method_n_route_or_err_out($string)
     $routeParams = [];
     // First we check that $methodRegex matches the start of $string
     if (!preg_match($methodRegex, $string, $methodMatches)) {
-        cli_err_without_exit('[cli_return_valid_method_and_route_or_err_out()]: Invalid Method Syntax! Use one of the following: "get", "post", "put", "delete", "patch"');
+        cli_err_without_exit('[cli_return_valid_method_and_route_or_err_out()]: Invalid Method Syntax! (probably in $arg2) Use one of the following: "get", "post", "put", "delete", "patch"');
         cli_info_without_exit('[cli_return_valid_method_and_route_or_err_out()]: OR Use any of its shorthand versions: "g" or "ge", "po", "pu", "d" OR "del", "pa"');
         cli_info('[cli_return_valid_method_and_route_or_err_out()]: A Single `/` is needed if you mean the Root Route `/` of that Method!');
     }
     $extractedMethod = $methodMatches[1];
     $method = $methodConvert[$methodMatches[1]] ?? '';
     if ($method === '') {
-        cli_err_without_exit('[cli_return_valid_method_and_route_or_err_out()]: Invalid Method Syntax! Use one of the following: "get", "post", "put", "delete", "patch"');
+        cli_err_without_exit('[cli_return_valid_method_and_route_or_err_out()]: Invalid Method Syntax! (probably in $arg2) Use one of the following: "get", "post", "put", "delete", "patch"');
         cli_info('[cli_return_valid_method_and_route_or_err_out()]: OR Use any of its shorthand versions: "g" or "ge", "po", "pu", "d" OR "del", "pa"');
     }
     // We separate the method from the route to validate route
@@ -193,7 +193,7 @@ function cli_return_valid_method_n_route_or_err_out($string)
     // Filter out leading slashes and ensure no double (or more) slashes
     $routeString = preg_replace('/\/+/', '/', $routeString);
     if (!preg_match_all($routeRegex,  $routeString, $routeMatches)) {
-        cli_err_without_exit('[cli_return_valid_method_and_route_or_err_out()]: Invalid Route Syntax! Use either "/route/segments" or "/route/segments/with/:params" (where :params is a Dynamic URI Segment of the Route)');
+        cli_err_without_exit('[cli_return_valid_method_and_route_or_err_out()]: Invalid Route Syntax! (probably in $arg2) Use either "/route/segments" or "/route/segments/with/:params" (where :params is a Dynamic URI Segment of the Route)');
         cli_info('[cli_return_valid_method_and_route_or_err_out()]: A Single `/` is needed if you mean the Root Route `/` of that Method as in `get/` OR `g/` and so on!');
     }
     // We iterate through $routeMatches[0] to error
@@ -202,7 +202,7 @@ function cli_return_valid_method_n_route_or_err_out($string)
     foreach ($routeMatches[0] as $match) {
         if (str_starts_with($match, '/:')) {
             if (in_array($match, $routeParams)) {
-                cli_err_without_exit('[cli_return_valid_method_and_route_or_err_out()]: Duplicate Route Parameter `' .  $match . '` found in the Route `' .  $method . $routeString . '`!');
+                cli_err_without_exit('[cli_return_valid_method_and_route_or_err_out()]: Duplicate Route Parameter (probably in $arg2) `' .  $match . '` found in the Route `' .  $method . $routeString . '`!');
                 cli_info('[cli_return_valid_method_and_route_or_err_out()]: Fix so each Route Parameter (`/:param`) is unique and does not repeat in the Route Definition!');
             } else {
                 $routeParams[] = $match;
@@ -210,7 +210,7 @@ function cli_return_valid_method_n_route_or_err_out($string)
         }
         $route .= $match;
     }
-    cli_info_without_exit("Parsed Method/Route:`$method$route`");
+    cli_info_without_exit("OK! Parsed Method & Route: `$method$route` (it is ONLY used where applicable!)");
     return [$method, $route];
 }
 

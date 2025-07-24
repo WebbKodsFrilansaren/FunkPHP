@@ -67,6 +67,27 @@ if (php_sapi_name() === 'cli') {
     $arg4 = $argv[5] ?? null;
     $arg5 = $argv[6] ?? null;
     $arg6 = $argv[7] ?? null;
+    if (is_string($command)) {
+        $command = strtolower($command);
+    }
+    if (is_string($arg1)) {
+        $arg1 = strtolower($arg1);
+    }
+    if (is_string($arg2)) {
+        $arg2 = strtolower($arg2);
+    }
+    if (is_string($arg3)) {
+        $arg3 = strtolower($arg3);
+    }
+    if (is_string($arg4)) {
+        $arg4 = strtolower($arg4);
+    }
+    if (is_string($arg5)) {
+        $arg5 = strtolower($arg5);
+    }
+    if (is_string($arg6)) {
+        $arg6 = strtolower($arg6);
+    }
 }
 // JSON Mode
 else {
@@ -80,6 +101,27 @@ else {
     $arg4 = $payload['arg4'] ?? null;
     $arg5 = $payload['arg5'] ?? null;
     $arg6 = $payload['arg6'] ?? null;
+    if (is_string($command)) {
+        $command = strtolower($command);
+    }
+    if (is_string($arg1)) {
+        $arg1 = strtolower($arg1);
+    }
+    if (is_string($arg2)) {
+        $arg2 = strtolower($arg2);
+    }
+    if (is_string($arg3)) {
+        $arg3 = strtolower($arg3);
+    }
+    if (is_string($arg4)) {
+        $arg4 = strtolower($arg4);
+    }
+    if (is_string($arg5)) {
+        $arg5 = strtolower($arg5);
+    }
+    if (is_string($arg6)) {
+        $arg6 = strtolower($arg6);
+    }
 }
 define("JSON_MODE", $JSON);
 // If we are in JSON_MODE We then check that the REMOTE_ADDR is set and is either
@@ -319,8 +361,9 @@ $mysqlOperatorSyntax = include FUNKPHP_DIR . '/config/valid/valid_mysql_operator
     ],
 ];
 
+// Catch when no command is provided or is not a non-empty string
 if (!isset($command)) {
-    cli_err_syntax_without_exit("FunkCLI - No command provided! Please provide a Command to execute with up to 6 arguments!");
+    cli_err_syntax_without_exit("No command provided! Please provide a Command to execute with up to 6 arguments!");
     if (JSON_MODE) {
         cli_info("Use the following JSON format: `{ \"command\": \"<command>:<first_param>\", \"arg1\": \"<arg1>\", \"arg2\": \"<arg2>\", \"arg3\": \"<arg3>\", \"arg4\": \"<arg4>\", \"arg5\": \"<arg5>\", \"arg6\": \"<arg6>\" }`");
     } else {
@@ -328,7 +371,7 @@ if (!isset($command)) {
     }
 }
 if (!is_string($command) || empty($command)) {
-    cli_err_syntax_without_exit("FunkCLI - Command must be a Non-Empty String! Please provide a valid Command with up to 6 arguments!");
+    cli_err_syntax_without_exit("Command must be a Non-Empty String! Please provide a valid Command with up to 6 arguments!");
     if (JSON_MODE) {
         cli_info("Use the following JSON format: `{ \"command\": \"<command>:<first_param>\", \"arg1\": \"<arg1>\", \"arg2\": \"<arg2>\", \"arg3\": \"<arg3>\", \"arg4\": \"<arg4>\", \"arg5\": \"<arg5>\" }`");
     } else {
@@ -342,8 +385,12 @@ if (!is_string($command) || empty($command)) {
 // and split it into parts that can then be used to determine next step
 $cmd = '';
 $firstParam = '';
+$fileWithOptionalFnRegex = '/^([a-z][a-z0-9_]+)(=>([a-z0-9_.]+))?$/i';
+
+// Validate correct command and first param format
+// Then extract them and just safety-check them again
 if (!preg_match('/([a-z]+):([a-z0-9_-]+)/i', $command, $matches)) {
-    cli_err_syntax("FunkCLI - Invalid command format! Please use the format `command:first_param` with up to 6 arguments!");
+    cli_err_syntax("Invalid command format! Please use the format `command:first_param` with up to 6 arguments!");
     if (JSON_MODE) {
         cli_info("Use the following JSON format: `{ \"command\": \"<command>:<first_param>\", \"arg1\": \"<arg1>\", \"arg2\": \"<arg2>\", \"arg3\": \"<arg3>\", \"arg4\": \"<arg4>\", \"arg5\": \"<arg5>\", \"arg6\": \"<arg6>\" }`");
     } else {
@@ -353,10 +400,8 @@ if (!preg_match('/([a-z]+):([a-z0-9_-]+)/i', $command, $matches)) {
     $cmd = $matches[1] ?? null;
     $firstParam = $matches[2] ?? null;
 }
-
-// Safety-check again for $cmd and $firstParam which should be non-empty strings
 if (!isset($cmd) || !is_string($cmd) || empty($cmd)) {
-    cli_err_syntax_without_exit("FunkCLI - Command must be a Non-Empty String! Please provide a valid Command with up to 6 arguments!");
+    cli_err_syntax_without_exit("Command must be a Non-Empty String! Please provide a valid Command with up to 6 arguments!");
     if (JSON_MODE) {
         cli_info("Use the following JSON format: `{ \"command\": \"<command>:<first_param>\", \"arg1\": \"<arg1>\", \"arg2\": \"<arg2>\", \"arg3\": \"<arg3>\", \"arg4\": \"<arg4>\", \"arg5\": \"<arg5>\", \"arg6\": \"<arg6>\" }`");
     } else {
@@ -364,7 +409,7 @@ if (!isset($cmd) || !is_string($cmd) || empty($cmd)) {
     }
 }
 if (!isset($firstParam) || !is_string($firstParam) || empty($firstParam)) {
-    cli_err_syntax_without_exit("FunkCLI - First Parameter must be a Non-Empty String! Please provide a valid First Parameter.");
+    cli_err_syntax_without_exit("First Parameter must be a Non-Empty String! Please provide a valid First Parameter.");
     if (JSON_MODE) {
         cli_info("Use the following JSON format: `{ \"command\": \"<command>:<first_param>\", \"arg1\": \"<arg1>\", \"arg2\": \"<arg2>\", \"arg3\": \"<arg3>\", \"arg4\": \"<arg4>\", \"arg5\": \"<arg5>\", \"arg6\": \"<arg6>\" }`");
     } else {
@@ -372,20 +417,286 @@ if (!isset($firstParam) || !is_string($firstParam) || empty($firstParam)) {
     }
 }
 
-// MAKE: Create something new WITHOUT adding it to a specific Method/Route
-if ($cmd === "make") {
-    $singleAnonymousFunctionlist = ["middlewares", "pipeline"];
+// MAKE: Create something new and OPTIONALLY adding it to a specific Method/Route
+if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
+    $middlewaresAliases = ['mw', 'mws', 'middlewares'];
+    $singlePipelineAliases = ['pl', 'pls', 'pipeline'];
+    $validationAliases = ['v', 'validation'];
+    $sqlAliases = ['sql', 's'];
+    $folderListThatNeedsTables = ['sql', 'validation', 'v', 's'];
+    $folderListThatWillCauseWarning = [
+        'routes',
+        'cached',
+        'backups',
+        '_final_backups',
+        'valid',
+        'complete',
+        'functions',
+        'compiled',
+        'components',
+        'partials',
+        'blocked',
+        'config',
+        '_internals',
+        'batteries',
+        'post-request',
+        'request',
+        'gui',
+        'public_html',
+        'cli',
+        'test',
+        'tests',
+        'schema',
+        'schemas',
+    ];
+
+    // Issue a warning but still continue if the first parameter is in the list of folders that will cause a warning
+    // because these folders are already being used for other purposes but they could be used inside of "funkphp/routes/"
+    // which is where they will be put!
+    if (in_array($firstParam, $folderListThatWillCauseWarning)) {
+        cli_warning_without_exit("The first parameter `$firstParam` is in the list of Folders that are already being used by FunkPHP. Despite this, `$firstParam` will be used as a subfolder in `funkphp/routes/`!");
+        cli_info_without_exit("This is just a heads-up so you are not confused by seeing a folder with the same name in several places inside of FunkPHP!");
+    }
+
+    // Structure the correct folder name based on the first parameter,
+    // $folderType based on first parameter, and also initial $routeKey
+    // $routeKey is only applicable to "routes" and "middlewares"!
+    $folder = null;
+    $routeKey = null;
+    $anonymousFile = false;
+    $folderType = null;
+    $file = null;
+    $fn = null;
+    if (in_array($firstParam, $middlewaresAliases)) {
+        $folder = "funkphp/middlewares";
+        $folderType = "middlewares";
+        $routeKey = ["middlewares" => null];
+        $anonymousFile = true; // Middlewares are always single anonymous function files
+        [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg1, "m_");
+        $routeKey[key($routeKey)] = $file;
+    } elseif (in_array($firstParam, $singlePipelineAliases)) {
+        $folderType = "pipeline";
+        $folder = "funkphp/pipeline";
+        $anonymousFile = true; // Pipeline functions are always single anonymous function files
+        [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg1, "pl_");
+    } elseif (in_array($firstParam, $validationAliases)) {
+        $folderType = "validation";
+        $folder = "funkphp/validation";
+        [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg1, "v_");
+    } elseif (in_array($firstParam, $sqlAliases)) {
+        $folderType = "sql";
+        $folder = "funkphp/sql";
+        [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg1, "s_");
+    } else {
+        $folderType = "routes";
+        $folder = "funkphp/routes" . '/' . $firstParam;
+        $routeKey = [$firstParam => null];
+        [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg1);
+        $routeKey[key($routeKey)] = [$file => $fn];
+    }
+
+    // Passing $arg2 for Method/Route is optional so we check if it is set
+    $method = null;
+    $route = null;
+    if (isset($arg2) && is_string($arg2) && !empty($arg2)) {
+        if ($folderType !== "middlewares" && $folderType !== "routes") {
+            cli_warning_without_exit("$folder does NOT use Method/Route so `$arg2` Is Ignored!");
+        } else {
+            [$method, $route] =  cli_return_valid_method_n_route_or_err_out($arg2);
+        }
+    } else {
+        cli_info_without_exit("No Method/Route provided! Created File and/or Function inside of `/funkphp/routes` OR `funkphp/middlewares` will NOT be attached to a Method/Route!");
+    }
+    // Grab status for the folder and file so we can check whether
+    // we can even access it, if it exists, is writable, etc.
+    $statusArray = cli_folder_and_php_file_status($folder, $file);
+    var_dump($file, $fn, $method, $route, $folder, $routeKey, $statusArray, $singleRoutesRoute);
+
+    // NO METHOD & ROUTE WAS PROVIDED
+    if (!$method && !$route) {
+    }
+    // A VALID METHOD & ROUTE WAS PROVIDED
+    elseif ($method && $route) {
+    }
+
+    // When true, it is a single anonymous function file
+    // for "funkphp/middlewares" "funkphp/pipeline" meaning
+    // we ONLY pass the folder and file (file name that is)
+    if ($anonymousFile) {
+        $createStatus = cli_crud_folder_and_php_file($statusArray, "create", $folder, $file);
+        if ($createStatus) {
+            cli_success("SUCCESSFULLY Created Single Anonymous Function File `$file` in Folder `$folder`!");
+        } else {
+            cli_err("FAILED to Create Single Anonymous Function File `$file` in Folder `$folder`!");
+        }
+    }
+    // "else" means it is a File Name($file) with a Named Function($fn) in the folder ($folder)
+    else {
+    }
 }
 // ADD: Attach something that already exists to a specific Method/Route
-elseif ($cmd === "add") {
+elseif ($cmd === "add" || $cmd === "attach" || $cmd === "link") {
+    $middlewaresAliases = ['mw', 'mws', 'middlewares'];
+    $singlePipelineAliases = ['pl', 'pls', 'pipeline'];
+    $singleAnonymousFolderlist = ["middlewares", "mw", "mws", "pls", "pl", "pipeline"];
+    $folderListThatNeedsTables = ['sql', 'validation', 'validation', 'v', 's'];
+    $folderListThatWillCauseWarning = [
+        'routes',
+        'cached',
+        'backups',
+        '_final_backups',
+        'valid',
+        'complete',
+        'functions',
+        'compiled',
+        'components',
+        'partials',
+        'blocked',
+        'config',
+        '_internals',
+        'batteries',
+        'post-request',
+        'request',
+        'gui',
+        'public_html',
+        'cli',
+        'test',
+        'tests',
+        'schema',
+        'schemas',
+    ];
+
+    // Issue a warning but still continue if the first parameter is in the list of folders that will cause a warning
+    // because these folders are already being used for other purposes but they could be used inside of "funkphp/routes/"
+    // which is where they will be put!
+    if (in_array($firstParam, $folderListThatWillCauseWarning)) {
+        cli_warning_without_exit("The first parameter `$firstParam` is in the list of Folders that are already being used by FunkPHP. It will now be used as a subfolder in `funkphp/routes/`!");
+        cli_info_without_exit("This is just a heads-up so you are not confused by seeing a folder with the same name in several places inside of FunkPHP!");
+    }
+
+    // Extract valid $file and $fn from $arg1
+    [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg1);
+    $method = null;
+    $route = null;
+    // Passing $arg2 for Method/Route is optional so we check if it is set
+    if (isset($arg2) && is_string($arg2) && !empty($arg2)) {
+        [$method, $route] =  cli_return_valid_method_n_route_or_err_out($arg2);
+    } else {
+        cli_info_without_exit("No Method/Route provided! This means any created Function File and/or Function Name inside of /funkphp/routes/ will NOT be attached to any Method/Route!");
+    }
+    var_dump($file, $fn, $method, $route);
+
+    exit;
 }
 // REMOVE: Remove an added Route_Key from a specific Method/Route
 // found in "/funkphp/routes" OR in "/funkphp/middlewares".
-elseif ($cmd === "remove") {
+elseif ($cmd === "remove"  || $cmd === "rm" || $cmd === "detach") {
+    $middlewaresAliases = ['mw', 'mws', 'middlewares'];
+    $singlePipelineAliases = ['pl', 'pls', 'pipeline'];
+    $singleAnonymousFolderlist = ["middlewares", "mw", "mws", "pls", "pl", "pipeline"];
+    $folderListThatNeedsTables = ['sql', 'validation', 'validation', 'v', 's'];
+    $folderListThatWillCauseWarning = [
+        'routes',
+        'cached',
+        'backups',
+        '_final_backups',
+        'valid',
+        'complete',
+        'functions',
+        'compiled',
+        'components',
+        'partials',
+        'blocked',
+        'config',
+        '_internals',
+        'batteries',
+        'post-request',
+        'request',
+        'gui',
+        'public_html',
+        'cli',
+        'test',
+        'tests',
+        'schema',
+        'schemas',
+    ];
+
+    // Issue a warning but still continue if the first parameter is in the list of folders that will cause a warning
+    // because these folders are already being used for other purposes but they could be used inside of "funkphp/routes/"
+    // which is where they will be put!
+    if (in_array($firstParam, $folderListThatWillCauseWarning)) {
+        cli_warning_without_exit("The first parameter `$firstParam` is in the list of Folders that are already being used by FunkPHP. It will now be used as a subfolder in `funkphp/routes/`!");
+        cli_info_without_exit("This is just a heads-up so you are not confused by seeing a folder with the same name in several places inside of FunkPHP!");
+    }
+
+    // Extract valid $file and $fn from $arg1
+    [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg1);
+    $method = null;
+    $route = null;
+    // Passing $arg2 for Method/Route is optional so we check if it is set
+    if (isset($arg2) && is_string($arg2) && !empty($arg2)) {
+        [$method, $route] =  cli_return_valid_method_n_route_or_err_out($arg2);
+    } else {
+        cli_info_without_exit("No Method/Route provided! This means any created Function File and/or Function Name inside of /funkphp/routes/ will NOT be attached to any Method/Route!");
+    }
+    var_dump($file, $fn, $method, $route);
+
+    exit;
 }
 // DELETE: Delete something that exists which is either a Function File,
 // or a Specific Function from a Specific File. NEVER deletes Method/Route!
-elseif ($cmd === "delete") {
+elseif ($cmd === "delete" || $cmd === "del" || $cmd === "destroy") {
+    $middlewaresAliases = ['mw', 'mws', 'middlewares'];
+    $singlePipelineAliases = ['pl', 'pls', 'pipeline'];
+    $singleAnonymousFolderlist = ["middlewares", "mw", "mws", "pls", "pl", "pipeline"];
+    $folderListThatNeedsTables = ['sql', 'validation', 'validation', 'v', 's'];
+    $folderListThatWillCauseWarning = [
+        'routes',
+        'cached',
+        'backups',
+        '_final_backups',
+        'valid',
+        'complete',
+        'functions',
+        'compiled',
+        'components',
+        'partials',
+        'blocked',
+        'config',
+        '_internals',
+        'batteries',
+        'post-request',
+        'request',
+        'gui',
+        'public_html',
+        'cli',
+        'test',
+        'tests',
+        'schema',
+        'schemas',
+    ];
+
+    // Issue a warning but still continue if the first parameter is in the list of folders that will cause a warning
+    // because these folders are already being used for other purposes but they could be used inside of "funkphp/routes/"
+    // which is where they will be put!
+    if (in_array($firstParam, $folderListThatWillCauseWarning)) {
+        cli_warning_without_exit("The first parameter `$firstParam` is in the list of Folders that are already being used by FunkPHP. It will now be used as a subfolder in `funkphp/routes/`!");
+        cli_info_without_exit("This is just a heads-up so you are not confused by seeing a folder with the same name in several places inside of FunkPHP!");
+    }
+
+    // Extract valid $file and $fn from $arg1
+    [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg1);
+    $method = null;
+    $route = null;
+    // Passing $arg2 for Method/Route is optional so we check if it is set
+    if (isset($arg2) && is_string($arg2) && !empty($arg2)) {
+        [$method, $route] =  cli_return_valid_method_n_route_or_err_out($arg2);
+    } else {
+        cli_info_without_exit("No Method/Route provided! This means any created Function File and/or Function Name inside of /funkphp/routes/ will NOT be attached to any Method/Route!");
+    }
+    var_dump($file, $fn, $method, $route);
+
+    exit;
 }
 // COMPILE: Compiles a Validation OR SQL File by using its $DX variable
 // and (re)genereating a new return (); in the same Validation/SQL File.
@@ -393,7 +704,7 @@ elseif ($cmd === "compile") {
 }
 // Catch any invalid commands that are not recognized
 else {
-    cli_err_syntax_without_exit("FunkCLI - Invalid command! Please provide a valid command with up to 6 arguments!");
+    cli_err_syntax_without_exit("Invalid command! Please provide a valid command with up to 6 arguments!");
     if (JSON_MODE) {
         cli_info("Use the following JSON format: `{ \"command\": \"<command>:<first_param>\", \"arg1\": \"<arg1>\", \"arg2\": \"<arg2>\", \"arg3\": \"<arg3>\", \"arg4\": \"<arg4>\", \"arg5\": \"<arg5>\", \"arg6\": \"<arg6>\" }`");
     } else {
