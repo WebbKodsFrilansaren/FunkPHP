@@ -505,7 +505,9 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
             [$method, $route] =  cli_return_valid_method_n_route_or_err_out($arg2);
         }
     } else {
-        cli_info_without_exit("No Method/Route provided! Created File and/or Function inside of `/funkphp/routes` OR `funkphp/middlewares` will NOT be attached to a Method/Route!");
+        if ($folderType === "middlewares" || $folderType === "routes") {
+            cli_info_without_exit("No Method/Route provided! Created File and/or Function inside of `/funkphp/routes` OR `funkphp/middlewares` will NOT be attached to a Method/Route!");
+        }
     }
 
     // $folderType "validatioN" & "sql" demands $arg3 with a string of "tables"
@@ -517,7 +519,7 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
     // Grab status for the folder and file so we can check whether
     // we can even access it, if it exists, is writable, etc.
     $statusArray = cli_folder_and_php_file_status($folder, $file);
-    var_dump($file, $fn, $method, $route, $folder, $routeKey);
+    //var_dump($file, $fn, $method, $route, $folder, $routeKey,  $statusArray);
 
     // NO METHOD & ROUTE WAS PROVIDED - This is automatically
     // forced when making/creating "pipeline"/"sql"/"validation"

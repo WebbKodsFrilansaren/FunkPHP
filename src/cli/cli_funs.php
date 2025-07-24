@@ -291,19 +291,19 @@ function cli_default_created_fn_files($type, $methodAndRoute = "<N/A>", $folder,
     // Based on $type, we create the necessary File (or just updated File!)
     // When just anonmyous function is needed (usually for middlewares & pipeline functions)
     if ($type === 'anonymous') {
-        $typePartString .= "return function (&\$c, \$passedValue = null) {\n\n};\n";
+        $typePartString .= "return function (&\$c, \$passedValue = null) {\n\t// Placeholder Comment so Regex works - Remove & Add Real Code!\n};\n";
         $entireCreatedString .= $newFilesString . $typePartString;
     }
     // When a named function is needed but file ALREADY EXISTS
     elseif ($type === 'named_not_new_file') {
         $typePartString .= "function $fn(&\$c, \$passedValue = null) //<$methodAndRoute>\n";
-        $typePartString .= "{\n\n};\n\n";
+        $typePartString .= "{\n\t// Placeholder Comment so Regex works - Remove & Add Real Code!\n};\n\n";
         $entireCreatedString .= $typePartString;
     }
     // When a named function is needed and file DOES NOT EXIST
     elseif ($type === 'named_and_new_file') {
         $typePartString .= "function $fn(&\$c, \$passedValue = null) //<$methodAndRoute>\n";
-        $typePartString .= "{\n\n};\n\n";
+        $typePartString .= "{\n\t// Placeholder Comment so Regex works - Remove & Add Real Code!\n};\n\n";
         $typePartString .= "return function (&\$c, \$handler = \"$fn\", \$passedValue = null) {\n";
         $typePartString .= "\n\t\$base = is_string(\$handler) ? \$handler : \"\";";
         $typePartString .= "\n\t\$full = __NAMESPACE__ . '\\\\' . \$base;";
@@ -317,11 +317,13 @@ function cli_default_created_fn_files($type, $methodAndRoute = "<N/A>", $folder,
     }
     // Special-case #1: "funkphp/sql" folder
     // TODO:
-    elseif ($type === 'sql') {
+    elseif ($type === 'sql_new_file_and_fn') {
+    } elseif ($type === 'sql_only_new_fn') {
     }
     // Special-case #2: "funkphp/validation" folder
     // TODO:
-    elseif ($type === 'validation') {
+    elseif ($type === 'validation_new_file_and_fn') {
+    } elseif ($type === 'validation_only_new_fn') {
     }
     // Catch the IMPOSSIBLE edge-case!
     else {
@@ -388,13 +390,13 @@ function cli_folder_and_php_file_status($folder, $file)
     if (is_file($file) && is_readable($file)) {
         $fileCnt = file_get_contents($file);
         if (!$fileCnt) {
-            cli_warning_without_exit('[cli_folder_and_php_file_status()]: Could NOT Read the File `' . $file . '` when it SHOUD have been Readable. This means that Named Functions, their $DX and/or Return arrays() CANNOT be retrieved for use!');
+            cli_warning_without_exit('[cli_folder_and_php_file_status()]: Could NOT Read the File `' . $file . '` when it SHOULD have been Readable. This means that Named Functions, their $DX and/or Return arrays() CANNOT be retrieved for use!');
         } else {
             $fileRaw = $fileCnt;
             if (preg_match($returnFnRegex, $fileRaw, $fileReturnMatch)) {
                 $fileReturnRaw = $fileReturnMatch[0] ?? null;
             } else {
-                cli_warning_without_exit('[cli_folder_and_php_file_status()]: Could NOT find the Expected Anoynmous `return function` in the File `' . $file . '` when it SHOUD have been Found. This means it will NOT be possible to add any new Functions to this File since it needs that matched part to add new functions from!');
+                cli_warning_without_exit('[cli_folder_and_php_file_status()]: Could NOT find the Expected Anoynmous `return function` in the File `' . $file . '` when it SHOULD have been Found. This means it will NOT be possible to add any new Functions to this File (unless it is a Single Anonymous Function File) since it needs that matched part to add new functions from. This is due to the Regex: `/^(?:(<\?php\s*))?(return function)\s*\(&\$c\s*.+$.*?^};/ims` that cannot match `return function(&$c){};`!');
             }
             if (preg_match_all($fnRegex, $fileCnt, $fnsMatches)) {
                 foreach ($fnsMatches[1] as $idx => $fn) {
@@ -445,7 +447,7 @@ function cli_folder_and_php_file_status($folder, $file)
 // first because count(1) means it can just delete the file instead.
 // $arg5 is for "tables" or other special cases that are ONLY for
 // "funkphp/sql" AND "funkphp/validation" folders!
-function cli_crud_folder_and_php_file($statusArray, $crudType, $file, $fn = null, $folderType = null, $table = null)
+function cli_crud_folder_and_php_file($statusArray, $crudType, $file, $fn = null, $folderType = null, $methodAndRoute = null, $table = null)
 {
     global $reserved_functions; // List of reserved functions meaning $fn CANNOT be one of them!
     // Assume success is true, if any error occurs we just set it to false
@@ -536,6 +538,10 @@ function cli_crud_folder_and_php_file($statusArray, $crudType, $file, $fn = null
     $file_raw_entire = $statusArray['file_raw']['entire'];
     $file_raw_return_fn = $statusArray['file_raw']['return function'];
 
+    // This is the assumed full path if a file
+    // does not exist and must be created
+    $outputNewFile = $folder_path . '/' . $file_name;
+
     // $table is optional and if set, it must be a string and match the regex
     // for special cases for the folders "funkphp/sql" or "funkphp/validation"
     if (
@@ -554,6 +560,52 @@ function cli_crud_folder_and_php_file($statusArray, $crudType, $file, $fn = null
     // "create" CRUD Type which either creates a new folder+new file if not
     // existing OR updates the existing file by adding a new function to it
     if ($crudType === 'create_new_anonymous_file') {
+        // SPECIAL-CASE: 'pipeline' Folder Type can have their files
+        // either in "pipeline/post-request" OR "pipeline/request"
+        // so we check if the file already exists in either of those and
+        // error out if it does! Since these should not exist if being created!
+        if ($folderType === 'pipeline') {
+            if ($file_exists) {
+                cli_err_without_exit('Pipeline Function File `' . $file_name . '` already exists in the `funkphp/pipeline` Folder!');
+                return false;
+            } elseif (file_exists($folder_path . '/post-request' . '/' . $file)) {
+                cli_err_without_exit('Pipeline Function File `' . $file_name . '` already exists in the `funkphp/pipeline/post-request` Folder!');
+                return false;
+            } elseif (file_exists($folder_path . '/request' . '/' . $file)) {
+                cli_err_without_exit('Pipeline Function File `' . $file_name . '` already exists in the `funkphp/pipeline/request` Folder!');
+                return false;
+            }
+        }
+        // Not Special-case but middlewares are also anonymous functions
+        // meaning they should not exist in the folder if they should be created!
+        elseif ($folderType === 'middlewares') {
+            if ($file_exists) {
+                cli_err_without_exit('Middleware Function File `' . $file_name . '` already exists in the `funkphp/middlewares` Folder!');
+                return false;
+            }
+        }
+        $newFile = cli_default_created_fn_files('anonymous', "<N/A>", $folder_name, $file_name, null, null);
+
+        // If $newFile is not a string, we error out
+        if (!is_string($newFile) || empty($newFile)) {
+            cli_err_without_exit('[cli_crud_folder_and_php_file()]: FAILED to create a new Anonymous Function File for Folder `' . $folder_name . '` and File `' . $file_name . '`!');
+            cli_info_without_exit('[cli_crud_folder_and_php_file()]: Verify that Folder Path `' . $folder_path . '` exists AND is Readable/Writable!');
+            return false;
+        }
+        // It worked, so we now output it in the folder path with the file name
+        if (!$folder_exists || !$folder_readable || !$folder_writable) {
+            cli_err_without_exit('[cli_crud_folder_and_php_file()]: Folder `' . $folder_name . '` does NOT exist or is NOT Readable/Writable!');
+            cli_info_without_exit('[cli_crud_folder_and_php_file()]: Verify Folder Path `' . $folder_path . '` exists AND is Readable/Writable.');
+            return false;
+        }
+        $tryOuput = file_put_contents($outputNewFile, $newFile);
+        if (!$tryOuput) {
+            cli_err_without_exit('[cli_crud_folder_and_php_file()]: FAILED to Create a New Anonymous Function File `' . $file_name . '` in Folder `' . $folder_name . '`!');
+            cli_info_without_exit('[cli_crud_folder_and_php_file()]: Verify that Folder Path `' . $folder_path . '` exists AND is Readable/Writable!');
+            return false;
+        } else {
+            return true; // Success, file created successfully
+        }
     } elseif ($crudType === 'create_new_file_and_fn') {
     } elseif ($crudType === 'create_only_new_fn_in_file') {
     } elseif ($crudType === 'create') {
