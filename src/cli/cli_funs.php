@@ -222,18 +222,24 @@ function cli_return_valid_method_n_route_or_err_out($string)
 // `return function` exists in it (like middlewares), it's included.
 function cli_folder_and_php_file_status($folder, $file)
 {
+    // QoL fix for $folder if it is a string and starts with a slash
+    if (is_string($folder) && str_starts_with(trim($folder), "/")) {
+        $folder = substr(trim($folder), 1);
+    }
     // Validate both are non-empty strings and match the regex
-    if (!isset($folder) || !is_string($folder) || empty($folder) || !preg_match('/^[a-z_][a-z_0-9\/]*$/i', $folder)) {
-        cli_err_without_exit('[cli_folder_and_php_file_status()]: $folder must be A Valid Non-Empty String!');
-        cli_info('[cli_folder_and_php_file_status()]: Use the following Directory Syntax (Regex):`[a-z_][a-z_0-9\/]*)`! (you do NOT need to add a leading slash `/` to the string)');
+    if (!isset($folder) || !is_string($folder) || empty($folder) || !preg_match('/^[a-z_][a-z_0-9\/-]*$/i', $folder)) {
+        cli_err_without_exit('[cli_folder_and_php_file_status()]: $folder must be A Valid Non-Empty String! (whitespace is NOT allowed)');
+        cli_info('[cli_folder_and_php_file_status()]: Use the following Directory Syntax (Regex):`[a-z_][a-z_0-9\/-]*)`! (you do NOT need to add a leading slash `/` to the string)');
     }
     if (!isset($file) || !is_string($file) || empty($file) || !preg_match('/^[a-z_][a-z_0-9\.]*$/i', $file)) {
-        cli_err_without_exit('[cli_folder_and_php_file_status()]: $file must be A Valid Non-Empty String!');
+        cli_err_without_exit('[cli_folder_and_php_file_status()]: $file must be A Valid Non-Empty String! (whitespace is NOT allowed)');
         cli_info('[cli_folder_and_php_file_status()]: Use the following File Syntax (Regex):`[a-z_][a-z_0-9\.]*)`! (you do NOT need to add a leading slash `/` to the string and NOT `.php` File Extension)');
     }
     // Consistently get '$folder' . '/' . $file . '.php' always!
     $folder = trim($folder);
     $file = trim($file);
+    $filename = '<UNKNOWN>';
+    $singleFolder = '<UNKNOWN>';
     if (str_ends_with($folder, '/')) {
         $folder = rtrim($folder, '/');
     }
@@ -244,6 +250,9 @@ function cli_folder_and_php_file_status($folder, $file)
         $file = ltrim($file, '/');
     }
     $folder = PROJECT_DIR . '/' . $folder;
+    // $singleFolder is the last part of the folder path
+    $singleFolder = basename($folder);
+    $filename = $file;
     $file = $folder . '/' . $file;
 
     // If file exists and is readable, check if function exists
@@ -286,14 +295,16 @@ function cli_folder_and_php_file_status($folder, $file)
         }
     }
     return [
+        'folder_name' => $singleFolder,
+        'folder_path' => ((is_string($folder) && is_dir($folder) && is_readable($folder) && is_writable($folder)) ? $folder : null),
         'folder_exists' => is_dir($folder),
         'folder_readable' => is_readable($folder),
         'folder_writable' => is_writable($folder),
+        'file_name' => $filename,
+        'file_path' => ((is_file($file) && is_readable($file) && is_writable($file)) ? $file : null),
         'file_exists' => is_file($file),
         'file_readable' => is_readable($file),
         'file_writable' => is_writable($file),
-        'file_path' => ((is_file($file) && is_readable($file) && is_writable($file)) ? $file : null),
-        'folder_path' => ((is_string($folder) && is_dir($folder) && is_readable($folder) && is_writable($folder)) ? $folder : null),
         'functions' => (isset($fns) ? $fns : []),
         'file_raw' => ['entire' => $fileRaw ?? null, 'return function' => $fileReturnRaw ?? null],
 
