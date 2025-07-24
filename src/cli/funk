@@ -211,7 +211,6 @@ if (file_exists_is_readable_writable(CLI_DIR . '/cli_reserved.php')) {
     $reserved_functions = cli_update_reserved_functions_list_and_return_as_array();
     cli_success_without_exit("Reserved Functions List File `cli_reserved.php` Generated Successfully. Continuing...");
 }
-
 // First restore the folders if they don't exist
 cli_restore_default_folders_and_files();
 
@@ -337,7 +336,9 @@ if (!is_string($command) || empty($command)) {
 
 if (isset($command) && $command === 'test_fn') {
     var_dump($arg1, $arg2, $arg3, $arg4, $arg5);
-    var_dump(cli_folder_and_php_file_status($arg1, $arg2, $arg3));
+    $statusArray = cli_folder_and_php_file_status($arg1, $arg2);
+    var_dump(cli_crud_folder_and_php_file($statusArray, $arg3, $arg2, $arg4));
+    cli_info("Force JSON Response!");
     exit;
 }
 

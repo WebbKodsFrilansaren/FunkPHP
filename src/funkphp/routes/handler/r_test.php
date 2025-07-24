@@ -18,7 +18,6 @@ function r_test2(&$c, $d) // <GET/t>
 	echo "NEW TEST!";
 };
 
-
 return function (&$c, $handler = "r_test") {
 	$base = is_string($handler) ? $handler : "";
 	$full = __NAMESPACE__ . '\\' . $base;

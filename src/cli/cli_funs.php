@@ -76,7 +76,7 @@ function cli_send_json_response(): void
         http_response_code(200);
         foreach ($funk_response_messages as $msg) {
             if ($msg['type'] === MSG_TYPE_WARNING) {
-                $overall_json_status .= ' with warning(s)';
+                $overall_json_status .= ' with Warning(s)';
                 break;
             }
         }
@@ -84,7 +84,7 @@ function cli_send_json_response(): void
         http_response_code(400);
         foreach ($funk_response_messages as $msg) {
             if ($msg['type'] === MSG_TYPE_INFO) {
-                $overall_json_status .= ' with info';
+                $overall_json_status .= ' with (Important) Info';
                 break;
             }
         }
@@ -382,18 +382,95 @@ function cli_crud_folder_and_php_file($statusArray, $crudType, $file, $fn = null
 
     // Extract data from the $statusArray for
     // easier flow of the function from here on
+    $folder_name = $statusArray['folder_name'];
     $folder_path = $statusArray['folder_path'];
-    $file_path = $statusArray['file_path'];
     $folder_exists = $statusArray['folder_exists'];
+    $folder_readable = $statusArray['folder_readable'];
     $folder_writable = $statusArray['folder_writable'];
+    $file_nane = $statusArray['file_name'];
+    $file_path = $statusArray['file_path'];
     $file_exists = $statusArray['file_exists'];
+    $file_readable = $statusArray['file_readable'];
     $file_writable = $statusArray['file_writable'];
     $functions = $statusArray['functions'];
     $file_raw_entire = $statusArray['file_raw']['entire'];
     $file_raw_return_fn = $statusArray['file_raw']['return function'];
 
+    // "create" CRUD Type which either creates a new folder+new file if not
+    // existing OR updates the existing file by adding a new function to it
     if ($crudType === 'create') {
-    } elseif (($crudType === 'delete')) {
+    }
+    // "delete" CRUD Type which deletes a named function from the file
+    // and if that was the last named function, it deletes the file as well
+    // meaning for just an anonymous function file, it deletes the file
+    elseif (($crudType === 'delete')) {
+        // First we check that the folder AND file exist, are readable & writable
+        if (!$folder_exists || !$folder_readable || !$folder_writable) {
+            cli_err_without_exit('[cli_crud_folder_and_php_file()]: Folder `' . $folder_name . '` does NOT exist or is NOT readable/writable!');
+            cli_info_without_exit('[cli_crud_folder_and_php_file()]: Please check the Folder Path `' . $folder_path . '` and ensure it exists AND is readable/writable.');
+            cli_info_without_exit('[cli_crud_folder_and_php_file()]: Because of this, it has not been determined whether the intended File actually exists in the possibly correct folder!');
+            return false;
+        }
+        if (!$file_exists || !$file_readable || !$file_writable) {
+            cli_err_without_exit('[cli_crud_folder_and_php_file()]: File `' . $file_nane . '` does NOT exist or is NOT readable/writable!');
+            return false;
+        }
+        // If $fn is not set, we assume we want to delete the entire file
+        if (!isset($fn) || empty($fn)) {
+            // Safety-check, $functions should be an empty array now if we assumed
+            // this was a file with just a single anonymous function!
+            if (is_array($functions) && !empty($functions)) {
+                cli_err_without_exit('[cli_crud_folder_and_php_file()]: Function(s) FOUND in the File `' . $file_nane . '` when trying to Delete it as a File with a Single Anonymous Function!');
+                cli_important_without_exit('[cli_crud_folder_and_php_file()]: Manually VALIDATE that the File `' . $file_nane . '` is indeed a File with ONLY a Single Anonymous Function!');
+                return false;
+            }
+            if (unlink($file_path)) {
+                cli_success_without_exit('[cli_crud_folder_and_php_file()]: File `' . $file_nane . '` Deleted SUCCESSFULLY!');
+            } else {
+                cli_err_without_exit('[cli_crud_folder_and_php_file()]: FAILED to Delete the File `' . $file_nane . '`!');
+                return false;
+            }
+        }
+        // If $fn IS set, we must check if it exists in the file first and then
+        // we check if it is the last named function in the file because then
+        // we can just delete file instead of just the named function
+        elseif (isset($fn) && is_string($fn) && !empty($fn)) {
+            // $fn does NOT exist in the file, so we error out
+            if (!array_key_exists($fn, $functions)) {
+                cli_err_without_exit('[cli_crud_folder_and_php_file()]: Function `' . $fn . '` does NOT exist in the File `' . $file_nane . '`!');
+                cli_info_without_exit('[cli_crud_folder_and_php_file()]: Please check the File `' . $file_nane . '` and ensure the Function `' . $fn . '` exists in it!');
+                return false;
+            }
+            // $fn DOES exist in the file, so we check if it is the last named function
+            else {
+                var_dump($functions);
+                exit;
+                if (count($functions) === 1) {
+                    // If it is the last named function, we delete the file
+                    if (unlink($file_path)) {
+                        cli_success_without_exit('[cli_crud_folder_and_php_file()]: File `' . $file_nane . '` Deleted SUCCESSFULLY!');
+                    } else {
+                        cli_err_without_exit('[cli_crud_folder_and_php_file()]: FAILED to Delete the File `' . $file_nane . '`!');
+                        return false;
+                    }
+                } else {
+                    // If it is NOT the last named function, we just remove it from the file
+                    $fnRaw = $functions[$fn]['fn_raw'] ?? null;
+                    if ($fnRaw) {
+                        $fileRaw = str_replace($fnRaw, '', $file_raw_entire);
+                        if (file_put_contents($file_path, $fileRaw) !== false) {
+                            cli_success_without_exit('[cli_crud_folder_and_php_file()]: Function `' . $fn . '` Deleted SUCCESSFULLY from the File `' . $file_nane . '`!');
+                        } else {
+                            cli_err_without_exit('[cli_crud_folder_and_php_file()]: FAILED to Delete the Function `' . $fn . '` from the File `' . $file_nane . '`!');
+                            return false;
+                        }
+                    } else {
+                        cli_err_without_exit('[cli_crud_folder_and_php_file()]: Function `' . $fn . '` does NOT exist in the File `' . $file_nane . '`!');
+                        return false;
+                    }
+                }
+            }
+        }
     }
 
     // Return the boolean value of $success (false means failed)
