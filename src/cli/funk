@@ -574,8 +574,7 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
             }
         }
     } // END OF SPECIAL_CASE: Only adding a Route to `funkphp/routes/routes.php`
-    var_dump($arg1, $method, $route);
-    exit;
+
     if (isset($arg2) && is_string($arg2) && !empty($arg2) && preg_match($methodRouteRegex, $arg2)) {
         if ($folderType !== "middlewares" && $folderType !== "routes") {
             cli_warning_without_exit("$folder does NOT use Method/Route so `$arg2` Is Ignored!");

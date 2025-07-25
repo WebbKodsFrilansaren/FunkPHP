@@ -7956,61 +7956,6 @@ function cli_create_sql_file_and_or_handler()
     }
 }
 
-// Adds a 'data' handler to an existing route (errors out on non-existing)
-// it will create the data handler + data handler function if it does not exist!
-function cli_add_a_data_or_a_validation_handler($handlerType)
-{
-    // Load globals and check $handlerType is valid (a string that is either 'v' or 'd')
-    global $argv, $settings, $dirs, $exactFiles, $singleRoutesRoute;
-    if (!is_string($handlerType) || empty($handlerType) || !in_array($handlerType, ['d'])) {
-        cli_err_syntax("Handler Type must be a non-empty string that is either 'v' or 'd'!");
-    }
-
-    // Get Handler File, Function Name & Arrow and parsed Route
-    [$handlerFile, $fnName, $arrow] =  get_handler_and_fn_from_argv4_or_err_out($handlerType);
-    [$method, $validRoute] = get_matched_route_from_argv3_or_err_out($handlerType);
-    $handlersPrefix = $handlerType === 'v' ? "Validation" : "Data";
-    $handlersKeyPrefix = $handlerType === 'v' ? "validation" : "data";
-
-    // Check if the exact route does not exist the route file
-    if (!isset($singleRoutesRoute['ROUTES'][$method][$validRoute]) ?? null) {
-        cli_err_without_exit("Route \"$method$validRoute\" not found in Routes. Add it first before adding a $handlersPrefix Handler!");
-        cli_info("You can only add a $handlersPrefix Handler to an existing Route to not cause any undesired inconsistent behaviors!");
-    }
-
-    // Check that a data/validation handler does not already exist for the route
-    if (isset($singleRoutesRoute['ROUTES'][$method][$validRoute][$handlersKeyPrefix]) && !empty($singleRoutesRoute['ROUTES'][$method][$validRoute][$handlersKeyPrefix])) {
-        cli_err_without_exit("A $handlersPrefix Handler for Route \"$method$validRoute\" already exists!");
-        cli_info("Use command \"php funkcli delete $handlersKeyPrefix [method/route] [handlerFile[=>Function]]\" to delete it first!");
-    }
-
-    // When data/validation handler is empty which it should not be so we error out
-    if (isset($singleRoutesRoute['ROUTES'][$method][$validRoute][$handlersKeyPrefix]) && empty($singleRoutesRoute['ROUTES'][$method][$validRoute][$handlersKeyPrefix])) {
-        cli_err("$handlersPrefix Handler for Route \"$method$validRoute\" is empty. Consider deleting it OR manually adding a $handlersPrefix Handler to it!");
-    }
-
-    // If we are here, that means we managed to add a data/validation handler with a function
-    // name to a file so now we add route to the route file and then compile it!
-    $handlersDir = $handlerType === 'v' ? $dirs['validations'] : $dirs['data'];
-    create_handler_file_with_fn_or_fn_or_err_out($handlerType, $handlersDir, $handlerFile, $fnName, $method, $validRoute, $argv[5] ?? null);
-
-    // If we are here, that means we managed to add a data/validation handler with a function
-    // name to a file so now we add route to the route file and then compile it!
-    if ($arrow) {
-        $singleRoutesRoute['ROUTES'][$method][$validRoute] = array_merge($singleRoutesRoute['ROUTES'][$method][$validRoute], [
-            $handlersKeyPrefix => [$handlerFile => $fnName],
-        ]);
-    } else {
-        $singleRoutesRoute['ROUTES'][$method][$validRoute] = array_merge($singleRoutesRoute['ROUTES'][$method][$validRoute], [
-            $handlersKeyPrefix => $handlerFile,
-        ]);
-    }
-
-    // Show success message and then sort, build, compile and output the routes
-    cli_success_without_exit("Added $handlersPrefix Handler \"$handlerFile\" and $handlersPrefix Function \"$fnName\" to Route \"$method$validRoute\" in the Routes File!");
-    cli_sort_build_routes_compile_and_output($singleRoutesRoute);
-}
-
 // Add a single Middleware file to middleware folder (funkphp/middlewares/)
 function cli_add_a_middleware()
 {

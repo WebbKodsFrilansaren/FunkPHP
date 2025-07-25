@@ -225,12 +225,12 @@ function cli_return_valid_method_n_route_or_err_out($string)
 // Returns a generated $DX Part based on provided $arg5
 // which should contain "table1,table2,etc3" or just "table1"
 // TODO:
-function cli_created_sql_or_validation_fn($arg5) {}
+function cli_created_sql_or_validation_fn($sqlOrValidation, $tables) {}
 
 // Returns default created function files (a single anoynomous function file
 // OR a named function file with a return function at the end). Also handles
 // special cases using $arg5 which are for "funkphp/sql" and "funkphp/validation"
-function cli_default_created_fn_files($type, $methodAndRoute, $folder, $file, $fn = null, $arg5 = null)
+function cli_default_created_fn_files($type, $methodAndRoute, $folder, $file, $fn = null, $tables = null)
 {
     // Validate $type is a non-empty string and either "named" or "anonymous"
     if (!isset($type) || !is_string($type) || empty($type) || !in_array($type, ['named_not_new_file', 'named_and_new_file', 'anonymous', 'sql', 'validation'])) {
@@ -265,12 +265,12 @@ function cli_default_created_fn_files($type, $methodAndRoute, $folder, $file, $f
         cli_info('[cli_default_created_fn_files()]: Use the following Function Syntax (Regex):`[a-z_][a-z_0-9]*)`!');
         return null;
     }
-    // Validate that if set, $arg5 is a non-empty string matching a regex
+    // Validate that if set, $tables is a non-empty string matching a regex
     if (
-        isset($arg5) &&
-        (!is_string($arg5)
-            || empty($arg5)
-            || !preg_match('/^[a-z_][a-z_0-9,]*$/i', $arg5)
+        isset($tables) &&
+        (!is_string($tables)
+            || empty($tables)
+            || !preg_match('/^[a-z_][a-z_0-9,]*$/i', $tables)
             || (!str_contains($folder, "funkphp/sql")
                 && !str_contains($folder, "funkphp/validation")))
     ) {
