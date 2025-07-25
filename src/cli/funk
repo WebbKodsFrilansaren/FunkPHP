@@ -433,6 +433,7 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
     $singlePipelineAliases = ['pl', 'pls', 'pipeline', 'pipelines'];
     $validationAliases = ['v', 'validation'];
     $sqlAliases = ['sql', 's'];
+    $routeAliases = ['route', 'r', 'rutt']; // "rutt" Swedish Easter Egg for "Route" in Swedish
     $folderListThatNeedsTables = ['sql', 'validation', 'v', 's'];
     $folderListThatWillCauseWarning = [
         'routes',
@@ -479,6 +480,7 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
     $tablesProvided = null;
     $file = null;
     $fn = null;
+    $routeOnly = false;
     if (in_array($firstParam, $middlewaresAliases)) {
         $folder = "funkphp/middlewares";
         $folderType = "middlewares";
@@ -503,6 +505,12 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
         $folder = "funkphp/sql";
         [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg1, "s_");
         cli_info_without_exit("OK! SQL File and/or SQL Function. These are recommended to be used by first calling `funk_load_sql(&\$c,\$file_name,\$file_fn)` and then `funk_use_sql(&\$c,\$loadedSQLArray,\$optionalInputData,\$hydrateAfterQuery)` inside an Anonymous Function OR a File=>Function File!");
+    }
+    // This is a special case where we only create
+    // a Route for `funkphp/routes/routes.php`!
+    elseif (in_array($firstParam, $routeAliases)) {
+        $routeOnly = true;
+        cli_info_without_exit("OK! Creating a Route to `funkphp/routes/routes.php` unless it already exists. After this, you can add Route Keys to that created Route!");
     } else {
         $folderType = "routes";
         $folder = "funkphp/routes" . '/' . $firstParam;
@@ -515,6 +523,33 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
     // Passing $arg2 for Method/Route is optional so we check if it is set
     $method = null;
     $route = null;
+    // SPECIAL_CASE: Only adding a Route to `funkphp/routes/routes.php`, so this
+    // part will run and either Fail or Succeed and then exit the script!
+    if ($routeOnly) {
+        if (!isset($arg1) || !is_string($arg1) || empty($arg1) || !preg_match($methodRouteRegex, $arg1)) {
+            cli_err_without_exit("No Valid Method/Route provided when wanting to only Create a New Route! `($cmd:$firstParam)`");
+            cli_info_without_exit("Syntax is: `funk make:r method/route` like `funk make:r g/users` OR `funk make:r post/users`!");
+            cli_info("Notice the support for shorthand versions \"g\", \"po\", \"pu\", \"d\" OR \"del\", \"pa\" for GET, POST, PUT, DELETE and PATCH respectively!");
+        }
+        [$method, $route] =  cli_return_valid_method_n_route_or_err_out($arg1);
+
+        // If Method is not set, we create it even though it should actually exist
+        // and then we can also just add the Route to it and be done with it!
+        if (!array_key_exists($method, $ROUTES)) {
+            $ROUTES[$method] = [];
+            $ROUTES[$method][$route] = [];
+            cli_info_without_exit("Added New Method and New Route to it... Attempting to rebuild the Trie & Route File Now... If it fails, the Route will NOT have been added and you will have to try again!");
+            cli_sort_build_routes_compile_and_output(["ROUTES" => $ROUTES]);
+            cli_success_without_exit("Created New Valid Method `$method` in `funkphp/routes/routes.php`!");
+            cli_success_without_exit("Created Method/Route `$method$route` in `funkphp/routes/routes.php`!");
+            cli_info("You can now add Route Keys to this Route by running `funk add:subfolder_in_funkphp File=>Function $method$route`!");
+        }
+        // "else" means Method exist, but we do not know if Route exists in that Method
+        else {
+        }
+    } // END OF SPECIAL_CASE: Only adding a Route to `funkphp/routes/routes.php`
+    var_dump($arg1, $method, $route);
+    exit;
     if (isset($arg2) && is_string($arg2) && !empty($arg2) && preg_match($methodRouteRegex, $arg2)) {
         if ($folderType !== "middlewares" && $folderType !== "routes") {
             cli_warning_without_exit("$folder does NOT use Method/Route so `$arg2` Is Ignored!");
@@ -648,12 +683,10 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
                 cli_info("Verify File Permissions for Subfolders in `funkphp/` and try again since this Folder should be recreated each time your run a Command to the FunkCLI!");
             }
         }
-
         // Impossible edge-case
         else {
             cli_err("You are trying to create a File Name with a Function Name in a Folder Type that is NOT supported!");
         }
-        exit;
     }
     // A VALID METHOD & ROUTE WAS PROVIDED - This means we might need to add it to
     // a matched Method/Route in the Routes File unless it already exists there!

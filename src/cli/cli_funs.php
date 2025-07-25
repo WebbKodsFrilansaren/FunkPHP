@@ -154,10 +154,10 @@ function cli_return_valid_file_n_fn_or_err_out($string, $prefix = null)
 function cli_return_valid_method_n_route_or_err_out($string)
 {
     if (!isset($string) || !is_string($string) || empty($string)) {
-        cli_err_without_exit('[cli_return_valid_method_and_route_or_err_out()]: $string (probably $arg2) must be a Non-Empty String using the following Syntax: `method/route/segments/with/optional/:params`!');
-        cli_info_without_exit('[cli_return_valid_method_and_route_or_err_out()]: For the Method, use one of the following: "get", "post", "put", "delete", "patch"');
-        cli_info_without_exit('[cli_return_valid_method_and_route_or_err_out()]: OR Use any of its shorthand versions: "g", "po", "pu", "d" OR "del", "pa"');
-        cli_info_without_exit('[cli_return_valid_method_and_route_or_err_out()]: For the Route, write either "/route/segments" or "/route/segments/with/:params" (where :params is a Dynamic URI Segment of the Route)');
+        cli_err_without_exit('Method/Route String must be a Non-Empty String using the following Syntax: `method/route/segments/with/optional/:params`!');
+        cli_info_without_exit('For the Method, use one of the following: "get", "post", "put", "delete", "patch"');
+        cli_info_without_exit('OR Use any of its shorthand versions: "g", "po", "pu", "d" OR "del", "pa"');
+        cli_info_without_exit('For the Route, write either "/route/segments" or "/route/segments/with/:params" (where :params is a Dynamic URI Segment of the Route)');
     }
     $string = trim(strtolower($string));
     $method = '';
@@ -182,15 +182,15 @@ function cli_return_valid_method_n_route_or_err_out($string)
     $routeParams = [];
     // First we check that $methodRegex matches the start of $string
     if (!preg_match($methodRegex, $string, $methodMatches)) {
-        cli_err_without_exit('[cli_return_valid_method_and_route_or_err_out()]: Invalid Method Syntax! (probably in $arg2) Use one of the following: "get", "post", "put", "delete", "patch"');
-        cli_info_without_exit('[cli_return_valid_method_and_route_or_err_out()]: OR Use any of its shorthand versions: "g" or "ge", "po", "pu", "d" OR "del", "pa"');
-        cli_info('[cli_return_valid_method_and_route_or_err_out()]: A Single `/` is needed if you mean the Root Route `/` of that Method!');
+        cli_err_without_exit('Invalid Method Syntax! Use one of the following: "get", "post", "put", "delete", "patch"');
+        cli_info_without_exit('OR Use any of its shorthand versions: "g" or "ge", "po", "pu", "d" OR "del", "pa"');
+        cli_info('A Single `/` is needed if you mean the Root Route `/` of that Method!');
     }
     $extractedMethod = $methodMatches[1];
     $method = $methodConvert[$methodMatches[1]] ?? '';
     if ($method === '') {
-        cli_err_without_exit('[cli_return_valid_method_and_route_or_err_out()]: Invalid Method Syntax! (probably in $arg2) Use one of the following: "get", "post", "put", "delete", "patch"');
-        cli_info('[cli_return_valid_method_and_route_or_err_out()]: OR Use any of its shorthand versions: "g" or "ge", "po", "pu", "d" OR "del", "pa"');
+        cli_err_without_exit('Invalid Method Syntax! Use one of the following: "get", "post", "put", "delete", "patch"');
+        cli_info('OR Use any of its shorthand versions: "g" or "ge", "po", "pu", "d" OR "del", "pa"');
     }
     // We separate the method from the route to validate route
     $routeString = substr($string, strlen($extractedMethod));
@@ -201,8 +201,8 @@ function cli_return_valid_method_n_route_or_err_out($string)
     // Filter out leading slashes and ensure no double (or more) slashes
     $routeString = preg_replace('/\/+/', '/', $routeString);
     if (!preg_match_all($routeRegex,  $routeString, $routeMatches)) {
-        cli_err_without_exit('[cli_return_valid_method_and_route_or_err_out()]: Invalid Route Syntax! (probably in $arg2) Use either "/route/segments" or "/route/segments/with/:params" (where :params is a Dynamic URI Segment of the Route)');
-        cli_info('[cli_return_valid_method_and_route_or_err_out()]: A Single `/` is needed if you mean the Root Route `/` of that Method as in `get/` OR `g/` and so on!');
+        cli_err_without_exit('Invalid Route Syntax! Use either "/route/segments" or "/route/segments/with/:params" (where :params is a Dynamic URI Segment of the Route)');
+        cli_info('A Single `/` is needed if you mean the Root Route `/` of that Method as in `get/` OR `g/` and so on!');
     }
     // We iterate through $routeMatches[0] to error
     // out on duplicate route parameters. Otherwise
@@ -210,8 +210,8 @@ function cli_return_valid_method_n_route_or_err_out($string)
     foreach ($routeMatches[0] as $match) {
         if (str_starts_with($match, '/:')) {
             if (in_array($match, $routeParams)) {
-                cli_err_without_exit('[cli_return_valid_method_and_route_or_err_out()]: Duplicate Route Parameter (probably in $arg2) `' .  $match . '` found in the Route `' .  $method . $routeString . '`!');
-                cli_info('[cli_return_valid_method_and_route_or_err_out()]: Fix so each Route Parameter (`/:param`) is unique and does not repeat in the Route Definition!');
+                cli_err_without_exit('Duplicate Route Parameter `' .  $match . '` found in the Route `' .  $method . $routeString . '`!');
+                cli_info('Fix so each Route Parameter (`/:param`) is unique and does not repeat in the Route Definition!');
             } else {
                 $routeParams[] = $match;
             }

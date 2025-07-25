@@ -8,7 +8,10 @@ return  [
   'POST' =>
   [],
   'PUT' =>
-  [],
+  [
+    't' =>
+    [],
+  ],
   'DELETE' =>
   [],
   'PATCH' =>

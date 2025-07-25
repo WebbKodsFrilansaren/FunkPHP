@@ -6734,9 +6734,9 @@ function cli_output_compiled_routes(array $compiledTrie, string $outputFileNameF
     $result = null;
     $result = file_put_contents(FUNKPHP_INTERNALS_COMPILED_DIR .  "/troute_route.php", "<?php\nreturn " . cli_convert_array_to_simple_syntax($compiledTrie));
     if ($result === false) {
-        cli_err("[cli_output_compiled_routes] Failed to write Compiled Routes to file: \"funkphp/_internals/compiled/troute_route.php\". Check File Permissions?");
+        cli_err("Failed to write Compiled Routes to file: \"funkphp/_internals/compiled/troute_route.php\". Check File Permissions?");
     } else {
-        cli_success_without_exit("[cli_output_compiled_routes] Successfully wrote Compiled Routes to file: \"funkphp/_internals/compiled/troute_route.php\"!");
+        cli_success_without_exit("Successfully wrote Compiled Routes to file: \"funkphp/_internals/compiled/troute_route.php\"!");
     }
 }
 
