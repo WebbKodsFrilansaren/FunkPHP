@@ -386,6 +386,7 @@ if (!is_string($command) || empty($command)) {
 // and split it into parts that can then be used to determine next step
 $cmd = '';
 $firstParam = '';
+$tableRegex = '/^([a-z][a-z0-9_]*)(,[a-z][a-z0-9_]*)*$/i';
 $fileWithOptionalFnRegex = '/^([a-z][a-z0-9_]+)(=>([a-z0-9_.]+))?$/i';
 
 // SPECIAL-CASE: Command to Recompile
@@ -521,9 +522,11 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
         }
     }
 
-    // $folderType "validation" & "sql" demands $arg3 with a string of "tables"
+    // $folderType "validation" & "sql" demands $arg2 OR $arg3 to be a string of "tables"
     if ($folderType === 'validation' || $folderType === 'sql') {
-        if (!isset($arg3) || !is_string($arg3) && !empty($arg3)) {
+        if (!isset($arg2) && !is_string($arg2) && !empty($arg2) && !preg_match($tableRegex, $arg2)) {
+            cli_err("For File Type `$folderType` you MUST provide a third argument (\$arg2 OR \"arg2\": \"table1,table2,etc3\"). Provide at least 1 table or several separated by commas!");
+        } elseif (!isset($arg3) && !is_string($arg3) && !empty($arg3) && !preg_match($tableRegex, $arg3)) {
             cli_err("For File Type `$folderType` you MUST provide a third argument (\$arg3 OR \"arg3\": \"table1,table2,etc3\"). Provide at least 1 table or several separated by commas!");
         }
     }
@@ -531,7 +534,6 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
     // we can even access it, if it exists, is writable, etc.
     $statusArray = cli_folder_and_php_file_status($folder, $file);
     var_dump($file, $fn, $method, $route, $folder, $routeKey,  $statusArray);
-    exit;
 
     // NO METHOD & ROUTE WAS PROVIDED - This is automatically
     // forced when making/creating "pipeline"/"sql"/"validation"
@@ -561,13 +563,29 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
             }
         } // TODO: Fix next - REMEMBER that there is NO METHOD/ROUTE provided here!
         elseif ($folderType === 'routes') {
+            // If folder path does not exist, we attempt creating it
+            if (!$statusArray['folder_path']) {
+                if (!mkdir(PROJECT_DIR . '/' . $folder, 0755, true)) {
+                    cli_err("FAILED to Create Folder `$folder`! Verify File Permissions and try again.");
+                }
+            }
         } elseif ($folderType === 'validation') {
+            if (!$statusArray['folder_path']) {
+                cli_err_without_exit("This Folder SHOULD Always Exist due to the nature of FunkPHP!");
+                cli_info("Verify File Permissions and try again since this Folder should be recreated each time your run a Command to the FunkCLI!");
+            }
         } elseif ($folderType === 'sql') {
+            if (!$statusArray['folder_path']) {
+                cli_err_without_exit("This Folder SHOULD Always Exist due to the nature of FunkPHP!");
+                cli_info("Verify File Permissions and try again since this Folder should be recreated each time your run a Command to the FunkCLI!");
+            }
         }
+
         // Impossible edge-case
         else {
             cli_err("You are trying to create a File Name with a Function Name in a Folder Type that is NOT supported!");
         }
+        exit;
     }
     // A VALID METHOD & ROUTE WAS PROVIDED - This means we might need to add it to
     // a matched Method/Route in the Routes File unless it already exists there!
