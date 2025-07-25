@@ -546,6 +546,26 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
         }
         // "else" means Method exist, but we do not know if Route exists in that Method
         else {
+            if (array_key_exists($route, $ROUTES[$method])) {
+                cli_err_without_exit("Route `$method$route` already exists in `funkphp/routes/routes.php`! Please provide a different Route OR Method/Route!");
+                cli_info("You can add Route Keys to this Route by running `funk add:subfolder_in_funkphp File=>Function $method$route`!");
+            } else {
+                // Check against conflicting Dynamic Routes when they are on the same URI Segment level at the end
+                // For example: `GET/users/:id` and `GET/users/:id2` because they are on the same level at the end
+                $troute = include_once $exactFiles['troute_route'];
+                $findDynamicRoute = cli_match_developer_route($method, $route, $troute, $ROUTES, $ROUTES);
+                if ($findDynamicRoute['route'] !== null) {
+                    cli_err_without_exit("Found Dynamic Route \"{$findDynamicRoute['method']}{$findDynamicRoute['route']}\" in Trie Routes would conflict with \"$method$route\".");
+                    cli_info("Run `php funk recompile|rc` to rebuild Trie Routes if you manually removed that Route you want to add again!");
+                }
+
+                // Here a new Route is added to the Method because it does not already exist
+                $ROUTES[$method][$route] = [];
+                cli_info_without_exit("Added New Route `$route` to Method `$method` in `funkphp/routes/routes.php`... Attempting to rebuild the Trie & Route File Now... If it fails, the Route will NOT have been added and you will have to try again!");
+                cli_sort_build_routes_compile_and_output(["ROUTES" => $ROUTES]);
+                cli_success_without_exit("Created Method/Route `$method$route` in `funkphp/routes/routes.php`!");
+                cli_info("You can now add Route Keys to this Route by running `funk add:subfolder_in_funkphp File=>Function $method$route`!");
+            }
         }
     } // END OF SPECIAL_CASE: Only adding a Route to `funkphp/routes/routes.php`
     var_dump($arg1, $method, $route);
