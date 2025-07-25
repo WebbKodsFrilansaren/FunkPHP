@@ -387,6 +387,7 @@ if (!is_string($command) || empty($command)) {
 $cmd = '';
 $firstParam = '';
 $tableRegex = '/^([a-z][a-z0-9_]*)(,[a-z][a-z0-9_]*)*$/i';
+$methodRouteRegex = '/^(([a-z]+\/)|([a-z]+(\/[:]?[a-zA-Z0-9]+)+))$/i';
 $fileWithOptionalFnRegex = '/^([a-z][a-z0-9_]+)(=>([a-z0-9_.]+))?$/i';
 
 // SPECIAL-CASE: Command to Recompile
@@ -475,6 +476,7 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
     $routeKey = null;
     $anonymousFile = false;
     $folderType = null;
+    $tablesProvided = null;
     $file = null;
     $fn = null;
     if (in_array($firstParam, $middlewaresAliases)) {
@@ -483,34 +485,37 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
         $routeKey = ["middlewares" => null];
         $anonymousFile = true; // Middlewares are always single anonymous function files
         [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg1, "m_");
-        cli_info_without_exit("Middleware Functions are recommended to be reused in different projects, so the File Name is suffixed with `_v1` indicating a versioned file. Change this later if needed.");
+        cli_info_without_exit("OK! Middleware Files. Middleware Functions are recommended to be reused in different projects, so the File Name is suffixed with `_v1` indicating a versioned file. Change this later if needed. Run `funk recompile|rc` if you have manually added the Middleware Function File to a `Middlewares` Route Key to a given Route!");
         $routeKey[key($routeKey)] = $file;
     } elseif (in_array($firstParam, $singlePipelineAliases)) {
         $folderType = "pipeline";
         $folder = "funkphp/pipeline";
         $anonymousFile = true; // Pipeline functions are always single anonymous function files
         [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg1, "pl_");
-        cli_info_without_exit("Pipeline Functions are recommended to be reused in different projects, so the File Name is suffixed with `_v1` indicating a versioned file. Change this later if needed.");
+        cli_info_without_exit("OK! Pipeline File. Pipeline Functions are recommended to be reused in different projects, so the File Name is suffixed with `_v1` indicating a versioned file. Change this later if needed. Drag this Function File into either `funkphp/pipeline/request/` OR `funkphp/pipeline/post-request/` and then add it manually to the corresponding Pipeline Sub-Array! (`pipeline['request']` or `pipeline['post-request']`)");
     } elseif (in_array($firstParam, $validationAliases)) {
         $folderType = "validation";
         $folder = "funkphp/validation";
         [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg1, "v_");
+        cli_info_without_exit("OK! Validation File and/or Validation Function. These are recommended to be used by calling `funk_use_valdation(&\$c,\$file_name,\$file_fn)` inside an Anonymous Function OR a File=>Function File!");
     } elseif (in_array($firstParam, $sqlAliases)) {
         $folderType = "sql";
         $folder = "funkphp/sql";
         [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg1, "s_");
+        cli_info_without_exit("OK! SQL File and/or SQL Function. These are recommended to be used by first calling `funk_load_sql(&\$c,\$file_name,\$file_fn)` and then `funk_use_sql(&\$c,\$loadedSQLArray,\$optionalInputData,\$hydrateAfterQuery)` inside an Anonymous Function OR a File=>Function File!");
     } else {
         $folderType = "routes";
         $folder = "funkphp/routes" . '/' . $firstParam;
         $routeKey = [$firstParam => null];
         [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg1);
         $routeKey[key($routeKey)] = [$file => $fn];
+        cli_info_without_exit("OK! A Route File and/or Route Function that will be placed inside:`$folder`. If you provided a Method/Route it will be automatically added IF it is sucessfully created! Otherwise, you will have to manually add it to a Route Key of a Route manually or by running `funk add:$firstParam $file=>$fn <method/route>`!");
     }
 
     // Passing $arg2 for Method/Route is optional so we check if it is set
     $method = null;
     $route = null;
-    if (isset($arg2) && is_string($arg2) && !empty($arg2)) {
+    if (isset($arg2) && is_string($arg2) && !empty($arg2) && preg_match($methodRouteRegex, $arg2)) {
         if ($folderType !== "middlewares" && $folderType !== "routes") {
             cli_warning_without_exit("$folder does NOT use Method/Route so `$arg2` Is Ignored!");
         } else {
@@ -524,10 +529,18 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
 
     // $folderType "validation" & "sql" demands $arg2 OR $arg3 to be a string of "tables"
     if ($folderType === 'validation' || $folderType === 'sql') {
-        if (!isset($arg2) && !is_string($arg2) && !empty($arg2) && !preg_match($tableRegex, $arg2)) {
-            cli_err("For File Type `$folderType` you MUST provide a third argument (\$arg2 OR \"arg2\": \"table1,table2,etc3\"). Provide at least 1 table or several separated by commas!");
-        } elseif (!isset($arg3) && !is_string($arg3) && !empty($arg3) && !preg_match($tableRegex, $arg3)) {
-            cli_err("For File Type `$folderType` you MUST provide a third argument (\$arg3 OR \"arg3\": \"table1,table2,etc3\"). Provide at least 1 table or several separated by commas!");
+        if (
+            isset($arg2) && is_string($arg2) && !empty($arg2) && preg_match($tableRegex, $arg2)
+        ) {
+            $tablesProvided = $arg2;
+        } elseif (
+            isset($arg3) && is_string($arg3) && !empty($arg3) && preg_match($tableRegex, $arg3)
+        ) {
+            $tablesProvided = $arg3;
+        } else {
+            cli_err_syntax_without_exit("Provide Valid Table Name(s) as second (\"arg2\") or third (\"arg3\") argument for `$folderType` Folder Type!");
+            cli_info_without_exit("Use either Format:`table1` for Single Table OR:`table1,table2,etc3` for Multiple Tables!");
+            cli_info("Regex for Valid Table Names: `/^([a-z][a-z0-9_]*)(,[a-z][a-z0-9_]*)*$/i`!");
         }
     }
     // Grab status for the folder and file so we can check whether
@@ -563,21 +576,76 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
             }
         } // TODO: Fix next - REMEMBER that there is NO METHOD/ROUTE provided here!
         elseif ($folderType === 'routes') {
-            // If folder path does not exist, we attempt creating it
+            // If folder path does not exist, we attempt creating it which also means
+            // that file and its fn does NOT exist so we will pass crudType "create_new_file_and_fn"
             if (!$statusArray['folder_path']) {
                 if (!mkdir(PROJECT_DIR . '/' . $folder, 0755, true)) {
                     cli_err("FAILED to Create Folder `$folder`! Verify File Permissions and try again.");
                 }
+                $createStatus = cli_crud_folder_and_php_file($statusArray, "create_new_file_and_fn", $file, $fn, "routes");
+                if ($createStatus) {
+                    cli_success_without_exit("SUCCESSFULLY Created File `$file.php` with Function `$fn` in Folder `$folder`!");
+                    cli_info_without_exit("The Route File `$file.php` is now ready to be used in your Routes. You did not provide a Method/Route so it will not be automatically added to any Route. You can add it manually later on!");
+                    if (JSON_MODE) {
+                        cli_info("Add it manually with the following JSON Syntax: `{ \"command\": \"add:$firstParam\", \"arg1\": \"$file=>$fn\", \"arg2\": \"<method/route>\" }`");
+                    } else {
+                        cli_info("Add it manually in the CLI by typing `funk add:$firstParam $file=>$fn <method/route>`!");
+                    }
+                } else {
+                    cli_err("FAILED to Create File `$file.php` with Function `$fn` in Folder `$folder`!");
+                }
+            }  // Here crudType is "create_only_new_fn_in_file" unless the file does not exist
+            else {
+                // File does not exist meaning crudType "create_new_file_and_fn"
+                if (!$statusArray['file_exists']) {
+                    $createStatus = cli_crud_folder_and_php_file($statusArray, "create_new_file_and_fn", $file, $fn, "routes");
+                    if ($createStatus) {
+                        cli_success_without_exit("SUCCESSFULLY Created File `$file.php` with Function `$fn` in Folder `$folder`!");
+                        cli_info_without_exit("The Route File `$file.php` is now ready to be used in your Routes. You did not provide a Method/Route so it will not be automatically added to any Route. You can add it manually later on!");
+                        if (JSON_MODE) {
+                            cli_info("Add it manually with the following JSON Syntax: `{ \"command\": \"add:$firstParam\", \"arg1\": \"$file=>$fn\", \"arg2\": \"<method/route>\" }`");
+                        } else {
+                            cli_info("Add it manually in the CLI by typing `funk add:$firstParam $file=>$fn <method/route>`!");
+                        }
+                    } else {
+                        cli_err("FAILED to Create File `$file.php` with Function `$fn` in Folder `$folder`!");
+                    }
+                }
+                // crudType is now "create_only_new_fn_in_file" since file exists
+                // unless function already exists in the file!
+                else {
+                    // Function already exists in the file
+                    if (isset($statusArray['functions'][$fn])) {
+                        cli_err_without_exit("Function `$fn` already exists in File `$file.php` in Folder `$folder`!");
+                        cli_info("Change File and/or Function Name and try again for `$folder`!");
+                    }
+                    // Function does not exist in the file so
+                    // crudType "create_only_new_fn_in_file"
+                    else {
+                        $createStatus = cli_crud_folder_and_php_file($statusArray, "create_only_new_fn_in_file", $file, $fn, "routes");
+                        if ($createStatus) {
+                            cli_success_without_exit("SUCCESSFULLY Created Function `$fn` in File `$file.php` in Folder `$folder`!");
+                            cli_info_without_exit("The Route File `$file.php` is now ready to be used in your Routes. You did not provide a Method/Route so it will not be automatically added to any Route. You can add it manually later on!");
+                            if (JSON_MODE) {
+                                cli_info("Add it manually with the following JSON Syntax: `{ \"command\": \"add:$firstParam\", \"arg1\": \"$file=>$fn\", \"arg2\": \"<method/route>\" }`");
+                            } else {
+                                cli_info("Add it manually in the CLI by typing `funk add:$firstParam $file=>$fn <method/route>`!");
+                            }
+                        } else {
+                            cli_err("FAILED to Create Function `$fn` in File `$file.php` in Folder `$folder`!");
+                        }
+                    }
+                }
             }
         } elseif ($folderType === 'validation') {
             if (!$statusArray['folder_path']) {
-                cli_err_without_exit("This Folder SHOULD Always Exist due to the nature of FunkPHP!");
-                cli_info("Verify File Permissions and try again since this Folder should be recreated each time your run a Command to the FunkCLI!");
+                cli_err_without_exit("This Folder SHOULD ALWAYS EXIST due to the nature of FunkPHP and its FunkCLI which auto-generates Default Folder on each Command!!");
+                cli_info("Verify File Permissions for Subfolders in `funkphp/` and try again since this Folder should be recreated each time your run a Command to the FunkCLI!");
             }
         } elseif ($folderType === 'sql') {
             if (!$statusArray['folder_path']) {
-                cli_err_without_exit("This Folder SHOULD Always Exist due to the nature of FunkPHP!");
-                cli_info("Verify File Permissions and try again since this Folder should be recreated each time your run a Command to the FunkCLI!");
+                cli_err_without_exit("This Folder SHOULD ALWAYS EXIST due to the nature of FunkPHP and its FunkCLI which auto-generates Default Folder on each Command!");
+                cli_info("Verify File Permissions for Subfolders in `funkphp/` and try again since this Folder should be recreated each time your run a Command to the FunkCLI!");
             }
         }
 

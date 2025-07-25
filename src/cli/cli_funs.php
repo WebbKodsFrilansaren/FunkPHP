@@ -230,7 +230,7 @@ function cli_created_sql_or_validation_fn($arg5) {}
 // Returns default created function files (a single anoynomous function file
 // OR a named function file with a return function at the end). Also handles
 // special cases using $arg5 which are for "funkphp/sql" and "funkphp/validation"
-function cli_default_created_fn_files($type, $methodAndRoute = "<N/A>", $folder, $file, $fn = null, $arg5 = null)
+function cli_default_created_fn_files($type, $methodAndRoute, $folder, $file, $fn = null, $arg5 = null)
 {
     // Validate $type is a non-empty string and either "named" or "anonymous"
     if (!isset($type) || !is_string($type) || empty($type) || !in_array($type, ['named_not_new_file', 'named_and_new_file', 'anonymous', 'sql', 'validation'])) {
@@ -239,9 +239,12 @@ function cli_default_created_fn_files($type, $methodAndRoute = "<N/A>", $folder,
         return null;
     }
     // Validate $methodAndRoute is a non-empty string which can be any characters except whitespaces or new lines
-    if (!isset($methodAndRoute) || !is_string($methodAndRoute) || empty($methodAndRoute) || preg_match('/\s/', $methodAndRoute)) {
-        cli_err_without_exit('[cli_default_created_fn_files()]: $methodAndRoute must be A Valid Non-Empty String! (whitespace is NOT allowed)');
-        cli_info('[cli_default_created_fn_files()]: Use ANY Characters EXCEPT Whitespaces or New Lines!');
+    if ($methodAndRoute === null) {
+        $methodAndRoute = "N/A";
+    }
+    if (!isset($methodAndRoute) || !is_string($methodAndRoute) || empty($methodAndRoute) || !preg_match('/^(([a-zA-Z]+\/)|([a-zA-Z]+(\/[:]?[a-zA-Z0-9]+)+))$/i', $methodAndRoute)) {
+        cli_err_without_exit('$methodAndRoute must be A Valid Non-Empty String! (whitespace is NOT allowed)');
+        cli_info("The Regex Syntax for Method/Route:`/^(([a-zA-Z]+\/)|([a-zA-Z]+(\/[:]?[a-zA-Z0-9]+)+))$/i`!");
         return null;
     }
     // Validate that $folder is a non-empty string and matches the regex
@@ -304,13 +307,13 @@ function cli_default_created_fn_files($type, $methodAndRoute = "<N/A>", $folder,
     }
     // When a named function is needed but file ALREADY EXISTS
     elseif ($type === 'named_not_new_file') {
-        $typePartString .= "function $fn(&\$c, \$passedValue = null) //<$methodAndRoute>\n";
+        $typePartString .= "function $fn(&\$c, \$passedValue = null) // <$methodAndRoute>\n";
         $typePartString .= "{\n\t// Placeholder Comment so Regex works - Remove & Add Real Code!\n};\n\n";
         $entireCreatedString .= $typePartString;
     }
     // When a named function is needed and file DOES NOT EXIST
     elseif ($type === 'named_and_new_file') {
-        $typePartString .= "function $fn(&\$c, \$passedValue = null) //<$methodAndRoute>\n";
+        $typePartString .= "function $fn(&\$c, \$passedValue = null) // <$methodAndRoute>\n";
         $typePartString .= "{\n\t// Placeholder Comment so Regex works - Remove & Add Real Code!\n};\n\n";
         $typePartString .= "return function (&\$c, \$handler = \"$fn\", \$passedValue = null) {\n";
         $typePartString .= "\n\t\$base = is_string(\$handler) ? \$handler : \"\";";
@@ -619,6 +622,23 @@ function cli_crud_folder_and_php_file($statusArray, $crudType, $file, $fn = null
     // A NEW FILE WITH A NAMED FUNCTION is created!
     elseif ($crudType === 'create_new_file_and_fn') {
         if ($folderType === 'routes') {
+            echo "<CREATING NEW FILE & FN!>";
+            $newFile = cli_default_created_fn_files('named_and_new_file', $methodAndRoute, $folder_name, $file_name, $fn);
+            // If $newFile is not a string, we error out
+            if (!is_string($newFile) || empty($newFile)) {
+                cli_err_without_exit('[cli_crud_folder_and_php_file()]: FAILED to create a New Named Function File for Folder `' . $folder_name . '` and File `' . $file_name . '`!');
+                cli_info_without_exit('[cli_crud_folder_and_php_file()]: Verify that Folder Path `' . $folder_path . '` exists AND is Readable/Writable!');
+                return false;
+            }
+            // Folder has already been created so we just try output file
+            $tryOuput = file_put_contents($outputNewFile, $newFile);
+            if (!$tryOuput) {
+                cli_err_without_exit('FAILED to Create a New Anonymous Function File `' . $file_name . '` in Folder `' . $folder_name . '`!');
+                cli_info_without_exit('Verify that Folder Path `' . $folder_path . '` exists AND is Readable/Writable!');
+                return false;
+            } else {
+                return true; // Success, file created successfully
+            }
         } elseif ($folderType === 'sql') {
         } elseif ($folderType === 'validation') {
         }
@@ -626,6 +646,7 @@ function cli_crud_folder_and_php_file($statusArray, $crudType, $file, $fn = null
     // A NEW FUNCTION is created in an EXISTING FILE
     elseif ($crudType === 'create_only_new_fn_in_file') {
         if ($folderType === 'routes') {
+            echo "<JUST ADDING A NEW FUNCTION TO AN EXISTING FILE!>";
         } elseif ($folderType === 'sql') {
         } elseif ($folderType === 'validation') {
         }
