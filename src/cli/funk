@@ -392,7 +392,7 @@ $fileWithOptionalFnRegex = '/^([a-z][a-z0-9_]+)(=>([a-z0-9_.]+))?$/i';
 // Routes File & Trie-based Route File
 if ($command === 'recompile' || $command === 'rc') {
     cli_sort_build_routes_compile_and_output($singleRoutesRoute);
-    return;
+    return; // Needed since function NEVER exits script on success!
 }
 
 // Validate correct command and first param format
@@ -530,7 +530,8 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
     // Grab status for the folder and file so we can check whether
     // we can even access it, if it exists, is writable, etc.
     $statusArray = cli_folder_and_php_file_status($folder, $file);
-    //var_dump($file, $fn, $method, $route, $folder, $routeKey,  $statusArray);
+    var_dump($file, $fn, $method, $route, $folder, $routeKey,  $statusArray);
+    exit;
 
     // NO METHOD & ROUTE WAS PROVIDED - This is automatically
     // forced when making/creating "pipeline"/"sql"/"validation"

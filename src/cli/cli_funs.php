@@ -597,20 +597,20 @@ function cli_crud_folder_and_php_file($statusArray, $crudType, $file, $fn = null
 
         // If $newFile is not a string, we error out
         if (!is_string($newFile) || empty($newFile)) {
-            cli_err_without_exit('[cli_crud_folder_and_php_file()]: FAILED to create a new Anonymous Function File for Folder `' . $folder_name . '` and File `' . $file_name . '`!');
-            cli_info_without_exit('[cli_crud_folder_and_php_file()]: Verify that Folder Path `' . $folder_path . '` exists AND is Readable/Writable!');
+            cli_err_without_exit('FAILED to create a New Anonymous Function File for Folder `' . $folder_name . '` and File `' . $file_name . '`!');
+            cli_info_without_exit('Verify that Folder Path `' . $folder_path . '` exists AND is Readable/Writable!');
             return false;
         }
         // It worked, so we now output it in the folder path with the file name
         if (!$folder_exists || !$folder_readable || !$folder_writable) {
-            cli_err_without_exit('[cli_crud_folder_and_php_file()]: Folder `' . $folder_name . '` does NOT exist or is NOT Readable/Writable!');
-            cli_info_without_exit('[cli_crud_folder_and_php_file()]: Verify Folder Path `' . $folder_path . '` exists AND is Readable/Writable.');
+            cli_err_without_exit('Folder `' . $folder_name . '` does NOT exist or is NOT Readable/Writable!');
+            cli_info_without_exit('Verify Folder Path `' . $folder_path . '` exists AND is Readable/Writable.');
             return false;
         }
         $tryOuput = file_put_contents($outputNewFile, $newFile);
         if (!$tryOuput) {
-            cli_err_without_exit('[cli_crud_folder_and_php_file()]: FAILED to Create a New Anonymous Function File `' . $file_name . '` in Folder `' . $folder_name . '`!');
-            cli_info_without_exit('[cli_crud_folder_and_php_file()]: Verify that Folder Path `' . $folder_path . '` exists AND is Readable/Writable!');
+            cli_err_without_exit('FAILED to Create a New Anonymous Function File `' . $file_name . '` in Folder `' . $folder_name . '`!');
+            cli_info_without_exit('Verify that Folder Path `' . $folder_path . '` exists AND is Readable/Writable!');
             return false;
         } else {
             return true; // Success, file created successfully
