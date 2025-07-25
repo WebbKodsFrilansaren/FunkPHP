@@ -482,12 +482,14 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
         $routeKey = ["middlewares" => null];
         $anonymousFile = true; // Middlewares are always single anonymous function files
         [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg1, "m_");
+        cli_info_without_exit("Middleware Functions are recommended to be reused in different projects, so the File Name is suffixed with `_v1` indicating a versioned file. Change this later if needed.");
         $routeKey[key($routeKey)] = $file;
     } elseif (in_array($firstParam, $singlePipelineAliases)) {
         $folderType = "pipeline";
         $folder = "funkphp/pipeline";
         $anonymousFile = true; // Pipeline functions are always single anonymous function files
         [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg1, "pl_");
+        cli_info_without_exit("Pipeline Functions are recommended to be reused in different projects, so the File Name is suffixed with `_v1` indicating a versioned file. Change this later if needed.");
     } elseif (in_array($firstParam, $validationAliases)) {
         $folderType = "validation";
         $folder = "funkphp/validation";
@@ -556,8 +558,8 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
             } else {
                 cli_err("FAILED to Create Single Anonymous Function File `$file.php` in Folder `$folder`!");
             }
-        } elseif ($folderType === 'routes') {
-            // TODO: Fix next - REMEMBER that there is NO METHOD/ROUTE provided here!
+        } // TODO: Fix next - REMEMBER that there is NO METHOD/ROUTE provided here!
+        elseif ($folderType === 'routes') {
         } elseif ($folderType === 'validation') {
         } elseif ($folderType === 'sql') {
         }

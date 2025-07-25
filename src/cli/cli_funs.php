@@ -126,9 +126,17 @@ function cli_return_valid_file_n_fn_or_err_out($string, $prefix = null)
     }
     // Add prefix to both variables if provided
     // and then check against reserved functions
+    // Add _v1 to middlewares and pipelines since they
+    // can come in different versions and are meant to
+    // be reused in different projects whereas the rest
+    // are supposed to be project-specific and not reused
     if (isset($prefix) && is_string($prefix) && !empty($prefix)) {
         $file = $prefix . $file;
         $fn = $prefix . $fn;
+        if ($prefix === 'pl_' || $prefix === 'm_') {
+            $file .= '_v1';
+            $fn .= '_v1';
+        }
     }
     if (in_array($file, $reserved_functions)) {
         cli_err_without_exit('[cli_match_file_and_fn()]: File Name `' . $file . '` is a Reserved Function Name. Please choose a different name! (probably see $arg1)');
@@ -610,9 +618,17 @@ function cli_crud_folder_and_php_file($statusArray, $crudType, $file, $fn = null
     }
     // A NEW FILE WITH A NAMED FUNCTION is created!
     elseif ($crudType === 'create_new_file_and_fn') {
+        if ($folderType === 'routes') {
+        } elseif ($folderType === 'sql') {
+        } elseif ($folderType === 'validation') {
+        }
     }
     // A NEW FUNCTION is created in an EXISTING FILE
     elseif ($crudType === 'create_only_new_fn_in_file') {
+        if ($folderType === 'routes') {
+        } elseif ($folderType === 'sql') {
+        } elseif ($folderType === 'validation') {
+        }
     }
     // "delete" CRUD Type which deletes a named function from the file
     // and if that was the last named function, it deletes the file as well
