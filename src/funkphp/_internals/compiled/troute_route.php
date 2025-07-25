@@ -1,12 +1,7 @@
 <?php
 return  [
   'GET' =>
-  [
-    't' =>
-    [],
-    'testar' =>
-    [],
-  ],
+  [],
   'POST' =>
   [
     'test' =>

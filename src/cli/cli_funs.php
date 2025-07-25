@@ -773,3 +773,34 @@ function cli_crud_folder_php_file_atomic_write($fileContent, $file_path)
     }
     return true;
 }
+
+// Function that adds Method/Route with its File=>Fn unless Method/Route already
+// exists, then it checks if the File=>Fn Key exists for that Method/Route and it
+// adds if not. Otherwise it just returns from function. It NEVER exits script!
+// IMPORTANT: When successfully adding it does NOT rebuild the Route Files!!!
+function cli_add_route_with_file_n_fn_or_return(&$currentRoutes, $method, $route, $file, $fn)
+{
+    // $currentRoutes must be an array (it can be empty)
+    if (!isset($currentRoutes) || !is_array($currentRoutes)) {
+        cli_err_without_exit('$currentRoutes must be a Non-Empty Array! NO ROUTE WITH FILE=>FN ADDED!');
+        return false;
+    }
+    // $method, $route, $file and $fn must all be non-empty strings
+    if (!isset($method) || !is_string($method) || empty($method)) {
+        cli_err_without_exit('$method must be A Valid Non-Empty String! NO ROUTE WITH FILE=>FN ADDED!');
+        return false;
+    }
+    if (!isset($route) || !is_string($route) || empty($route)) {
+        cli_err_without_exit('$route must be A Valid Non-Empty String! NO ROUTE WITH FILE=>FN ADDED!');
+        return false;
+    }
+    if (!isset($file) || !is_string($file) || empty($file)) {
+        cli_err_without_exit('$file must be A Valid Non-Empty String! NO ROUTE WITH FILE=>FN ADDED!');
+        return false;
+    }
+    if (!isset($fn) || !is_string($fn) || empty($fn)) {
+        cli_err_without_exit('$fn must be A Valid Non-Empty String! NO ROUTE WITH FILE=>FN ADDED!');
+        return false;
+    }
+    global $singleTroute;
+}

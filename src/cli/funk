@@ -260,7 +260,7 @@ if (file_exists_is_readable_writable(CLI_DIR . '/cli_reserved.php')) {
 cli_restore_default_folders_and_files();
 
 // Load current pipeline, routes, data and pages before processing any commands
-$singlePipeline = include FUNKPHP_DIR . '/pipeline/pipeline.php' ?? [
+$singlePipeline = include_once FUNKPHP_DIR . '/pipeline/pipeline.php' ?? [
     'pipeline' =>
     [
         'request' =>
@@ -299,15 +299,27 @@ $singlePipeline = include FUNKPHP_DIR . '/pipeline/pipeline.php' ?? [
         ],
     ],
 ];
-$singleRoutesRoute = include FUNKPHP_DIR . '/routes/routes.php' ?? [
+$singleRoutesRoute = include_once FUNKPHP_DIR . '/routes/routes.php' ?? [
     'ROUTES' => ['GET' => [], 'POST' => [], 'PUT' => [], 'DELETE' => [], 'PATCH' => []]
 ];
-$tablesAndRelationshipsFile = include FUNKPHP_DIR . '/config/tables.php' ?? [
+$singleTroute = include_once $exactFiles['troute_route'] ?? [
+    'GET' =>
+    [],
+    'POST' =>
+    [],
+    'PUT' =>
+    [],
+    'DELETE' =>
+    [],
+    'PATCH' =>
+    [],
+];
+$tablesAndRelationshipsFile = include_once FUNKPHP_DIR . '/config/tables.php' ?? [
     'tables' => [],
     'relationships' => [],
     'mappings' => [],
 ];
-$mysqlDataTypesFile = include FUNKPHP_DIR . '/config/valid/valid_mysql_datatypes.php' ?? [
+$mysqlDataTypesFile = include_once FUNKPHP_DIR . '/config/valid/valid_mysql_datatypes.php' ?? [
     'STRINGS' => [],
     'NUMBERS' => [],
     'INTS' => [],
@@ -315,7 +327,7 @@ $mysqlDataTypesFile = include FUNKPHP_DIR . '/config/valid/valid_mysql_datatypes
     'DATETIMES' => [],
     'BLOBS' => []
 ];
-$mysqlOperatorSyntax = include FUNKPHP_DIR . '/config/valid/valid_mysql_operators.php' ?? [
+$mysqlOperatorSyntax = include_once FUNKPHP_DIR . '/config/valid/valid_mysql_operators.php' ?? [
     'arithmetic' => [
         '+' => [],
         '-' => [],
@@ -558,7 +570,7 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
             } else {
                 // Check against conflicting Dynamic Routes when they are on the same URI Segment level at the end
                 // For example: `GET/users/:id` and `GET/users/:id2` because they are on the same level at the end
-                $troute = include_once $exactFiles['troute_route'];
+                $troute = $singleTroute;
                 $findDynamicRoute = cli_match_developer_route($method, $route, $troute, $ROUTES, $ROUTES);
                 if ($findDynamicRoute['route'] !== null) {
                     cli_err_without_exit("Found Dynamic Route \"{$findDynamicRoute['method']}{$findDynamicRoute['route']}\" in Trie Routes would conflict with \"$method$route\".");
@@ -575,6 +587,7 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
         }
     } // END OF SPECIAL_CASE: Only adding a Route to `funkphp/routes/routes.php`
 
+    // continue with the rest of the command when NOT only adding a Route to `funkphp/routes/routes.php`
     if (isset($arg2) && is_string($arg2) && !empty($arg2) && preg_match($methodRouteRegex, $arg2)) {
         if ($folderType !== "middlewares" && $folderType !== "routes") {
             cli_warning_without_exit("$folder does NOT use Method/Route so `$arg2` Is Ignored!");
@@ -634,8 +647,7 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
             } else {
                 cli_err("FAILED to Create Single Anonymous Function File `$file.php` in Folder `$folder`!");
             }
-        } // TODO: Fix next - REMEMBER that there is NO METHOD/ROUTE provided here!
-        elseif ($folderType === 'routes') {
+        } elseif ($folderType === 'routes') {
             // If folder path does not exist, we attempt creating it which also means
             // that file and its fn does NOT exist so we will pass crudType "create_new_file_and_fn"
             if (!$statusArray['folder_path']) {
@@ -697,7 +709,8 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
                     }
                 }
             }
-        } elseif ($folderType === 'validation') {
+        }  // TODO: Fix when SQL + Validation Files+Fns can be created in crud Function!
+        elseif ($folderType === 'validation') {
             if (!$statusArray['folder_path']) {
                 cli_err_without_exit("This Folder SHOULD ALWAYS EXIST due to the nature of FunkPHP and its FunkCLI which auto-generates Default Folder on each Command!!");
                 cli_info("Verify File Permissions for Subfolders in `funkphp/` and try again since this Folder should be recreated each time your run a Command to the FunkCLI!");
