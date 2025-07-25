@@ -533,6 +533,12 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
         }
         [$method, $route] =  cli_return_valid_method_n_route_or_err_out($arg1);
 
+        // We tell that other arguments will be ignored since we
+        // are only adding a Route to `funkphp/routes/routes.php`
+        if (isset($arg2) || isset($arg3) || isset($arg4) || isset($arg5) || isset($arg6)) {
+            cli_warning_without_exit("Ignoring other arguments (\$'arg2' to \$'arg6') since this Command ONLY adds a New Route to `funkphp/routes/routes.php`!");
+        }
+
         // If Method is not set, we create it even though it should actually exist
         // and then we can also just add the Route to it and be done with it!
         if (!array_key_exists($method, $ROUTES)) {
