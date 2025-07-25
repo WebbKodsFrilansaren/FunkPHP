@@ -7266,56 +7266,6 @@ function cli_sort_build_routes_compile_and_output($singleRoutesRootArray)
     cli_output_compiled_routes($compiledRouteRoutes, "troute_route");
 }
 
-// Add a Route to the Route file (funkphp/routes/) WITH
-// a [RouteHandlerFile[=>RouteHandlerFunctionName]] too!
-function cli_add_a_route()
-{
-    // Load globals and validate input
-    global $argv,
-        $settings,
-        $dirs,
-        $exactFiles,
-        $singleRoutesRoute;
-
-    // Get Handler File, Function Name & Arrow and parsed Route
-    [$handlerFile, $fnName, $arrow] =  get_handler_and_fn_from_argv4_or_err_out("r");
-    [$method, $validRoute] = get_matched_route_from_argv3_or_err_out("r");
-
-    // Check if the exact route already exists in the route file
-    if (isset($singleRoutesRoute['ROUTES'][$method][$validRoute]) ?? null) {
-        cli_err("\"$method$validRoute\" already exists in Routes! (`funkphp/config/routes.php`)");
-    }
-
-    // Check against conflicting Dynamic Routes when they are on the same URI Segment level at the end
-    // For example: `GET/users/:id` and `GET/users/:id2` because they are on the same level at the end
-    $troute = include_once $exactFiles['troute_route'];
-    $findDynamicRoute = cli_match_developer_route($method, $validRoute, $troute, $singleRoutesRoute['ROUTES'], $singleRoutesRoute['ROUTES']);
-    if ($findDynamicRoute['route'] !== null) {
-        cli_err_without_exit("Found Dynamic Route \"{$findDynamicRoute['method']}{$findDynamicRoute['route']}\" in Trie Routes would conflict with \"$method$validRoute\".");
-        cli_info("Run `php funkcli compile r` to rebuild Trie Routes if you manually removed that Route you want to add again!");
-    }
-
-    // Prepare handlers folders and then attempt to create the handler
-    // file with a function (or just a function in existing one)
-    $handlersDir = $dirs['handlers'];
-    create_handler_file_with_fn_or_fn_or_err_out("r", $handlersDir, $handlerFile, $fnName, $method, $validRoute, $argv[5] ?? null);
-
-    // If we are here, that means we managed to add a handler with a function
-    // name to a file so now we add route to the route file and then compile it!
-    if ($arrow) {
-        $singleRoutesRoute['ROUTES'][$method][$validRoute] = [
-            'handler' => [$handlerFile => $fnName],
-        ];
-    } else {
-        $singleRoutesRoute['ROUTES'][$method][$validRoute] = [
-            'handler' => $handlerFile,
-        ];
-    }
-    // Show success message and then sort, build, compile and output the routes
-    cli_success_without_exit("Added Route \"$method$validRoute\" to \"funkphp/routes.php\" with Handler \"$handlerFile\" and Function \"$fnName\"!");
-    cli_sort_build_routes_compile_and_output($singleRoutesRoute);
-}
-
 // Create a Validation File and/or Handler (not Route-dependent!)
 function cli_create_validation_file_and_or_handler()
 {
