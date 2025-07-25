@@ -546,7 +546,7 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
     // Grab status for the folder and file so we can check whether
     // we can even access it, if it exists, is writable, etc.
     $statusArray = cli_folder_and_php_file_status($folder, $file);
-    var_dump($file, $fn, $method, $route, $folder, $routeKey,  $statusArray);
+    var_dump($file, $fn, $method, $route, $folder, $routeKey);
 
     // NO METHOD & ROUTE WAS PROVIDED - This is automatically
     // forced when making/creating "pipeline"/"sql"/"validation"

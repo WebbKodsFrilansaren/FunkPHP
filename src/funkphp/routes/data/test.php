@@ -8,6 +8,17 @@ function test(&$c, $passedValue = null) // <N/A>
 	// Placeholder Comment so Regex works - Remove & Add Real Code!
 };
 
+function test2(&$c, $passedValue = null) // <N/A>
+{
+	// Placeholder Comment so Regex works - Remove & Add Real Code!
+};
+
+
+function test3(&$c, $passedValue = null) // <N/A>
+{
+	// Placeholder Comment so Regex works - Remove & Add Real Code!
+};
+
 return function (&$c, $handler = "test", $passedValue = null) {
 
 	$base = is_string($handler) ? $handler : "";
