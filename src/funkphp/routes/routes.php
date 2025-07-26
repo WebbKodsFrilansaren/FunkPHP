@@ -7,7 +7,12 @@ return  [
     'POST' =>
     [
       '/test' =>
-      [],
+      [
+        'middlewares' => ["auth", "log"],
+        'handler' => ["test" => "test"],
+        'data' => ["test" => "test"],
+        'page' => 'test',
+      ],
     ],
     'DELETE' =>
     [],
