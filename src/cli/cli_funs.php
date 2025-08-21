@@ -225,9 +225,259 @@ function cli_return_valid_method_n_route_or_err_out($string)
 // Returns a generated $DX Part based on provided $arg5
 // which should contain "table1,table2,etc3" or just "table1"
 // TODO:
-function cli_created_sql_or_validation_fn($sqlOrValidation, $tables)
+function cli_created_sql_or_validation_fn($sqlOrValidation, $sv_tables)
 {
-    $finalString = '<TEST>';
+    global $dirs, $tablesAndRelationshipsFile;
+    $tables = $tablesAndRelationshipsFile ?? null;
+    $date = date("Y-m-d H:i:s");
+    $finalString = '';
+
+    if ($tables === null || !is_array($tables)) {
+        cli_err_syntax_without_exit("`Tables.php` File not found! Please check your `funkphp/config/tables.php` File!");
+        cli_info("Make sure you have a valid `tables.php` File in `funkphp/config/` directory!");
+    }
+    if (!isset($tables['tables']) || !is_array($tables['tables']) || empty($tables['tables'])) {
+        cli_err_syntax_without_exit("`Tables.php` File does not contain valid `tables` key! Please check your `funkphp/config/tables.php` File!");
+        cli_info("Your `tables` array key in your `tables.php` File in `funkphp/config/` directory CANNOT be empty and should Have At Least One Table!");
+    }
+    if (!isset($tables['relationships']) || !is_array($tables['relationships'])) {
+        cli_err_syntax_without_exit("`tables.php` File does not contain valid `relationships` key! Please check your `funkphp/config/tables.php` File!");
+        cli_info("Your `relationships` array key in your `Tables.php` File in `funkphp/config/` directory must exist and CAN be empty!");
+    }
+    if (!isset($tables['mappings']) || !is_array($tables['mappings'])) {
+        cli_err_syntax_without_exit("`tables.php` File does not contain valid `mappings` key! Please check your `funkphp/config/tables.php` File!");
+        cli_info("Your `mappings` array key in your `Tables.php` File in `funkphp/config/` directory must exist and CAN be empty!");
+    }
+
+    // Prepare SQL String based on Tables
+    if ($sqlOrValidation === 'sql') {
+        $tbs = [];
+        $queryType = null;
+        $availableQueryTypes = [
+            'SELECT',
+            'INSERT',
+            'UPDATE',
+            'DELETE',
+            'SELECT_DISTINCT',
+            'SELECT_INTO',
+        ];
+        $processTables = null;
+        // SQL Tables must start with "sd=", "si=", "s=", "i=", "u=", or "d="
+        if (!preg_match('/^((sd|si|s|i|u|d)=[a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]*(\*[0-9]+)?)*$/', $sv_tables)) {
+            cli_err_without_exit('[cli_created_sql_or_validation_fn()]: Invalid SQL Tables Syntax! Use either "sd=table1,table2,etc3" or just "s=table1" with optional numbers with * at the end of each table name like "s=table1*2"!');
+            cli_info('[cli_created_sql_or_validation_fn()]: The Regex Syntax for SQL Tables: `/^((sd|si|s|i|u|d)=[a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]*(\*[0-9]+)?)*$/`!');
+        }
+        // Extract the "sd=", "si=", "s=", "i=", "u=", or "d=" part from the "table1,table2,etc3" part of the string
+        // Uppercase the query type and validate it against the available query types after transoforming shorthands
+        // to full query types (s=SELECT, i=INSERT, u=UPDATE, d=DELETE, sd=SELECT_DISTINCT, si=SELECT_INTO, st=SELECT_TOP)
+        $queryType = strtoupper(substr($sv_tables, 0, strpos($sv_tables, '=')));
+        $processTables = str_contains(substr($sv_tables, strpos($sv_tables, '=') + 1), ",")
+            ? explode(',', substr($sv_tables, strpos($sv_tables, '=') + 1))
+            : [substr($sv_tables, strpos($sv_tables, '=') + 1)];
+        if (str_starts_with($queryType, 'S')) {
+            $queryType = 'SELECT';
+        } elseif (str_starts_with($queryType, 'I')) {
+            $queryType = 'INSERT';
+        } elseif (str_starts_with($queryType, 'U')) {
+            $queryType = 'UPDATE';
+        } elseif (str_starts_with($queryType, 'D')) {
+            $queryType = 'DELETE';
+        } elseif (str_starts_with($queryType, 'SD')) {
+            $queryType = 'SELECT_DISTINCT';
+        } elseif (str_starts_with($queryType, 'SI')) {
+            $queryType = 'SELECT_INTO';
+        }
+        if (!in_array($queryType, $availableQueryTypes)) {
+            cli_err_syntax_without_exit("Invalid Query Type: \"$queryType\". Available Query Types: " . implode(', ', quotify_elements($availableQueryTypes)) . ".");
+            cli_err_without_exit('[cli_created_sql_or_validation_fn()]: Invalid SQL Tables Syntax! Use either "sd=table1,table2,etc3" or just "s=table1" with optional numbers with * at the end of each table name like "s=table1*2"!');
+            cli_info('[cli_created_sql_or_validation_fn()]: The Regex Syntax for SQL Tables: `/^((sd|si|s|i|u|d)=[a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]*(\*[0-9]+)?)*$/`!');
+        }
+
+        // Validate that all the provided tables exist in the
+        // Tables.php file are valid named and not duplicates!
+        foreach ($processTables as $table) {
+            if (!preg_match('/^[a-z_][a-z_0-9]*$/i', $table)) {
+                cli_err_syntax_without_exit("Invalid Table Name: \"$table\". Use only alphanumeric characters and underscores!");
+                cli_info("Example: \"table1\" or \"table_1\" or \"table_1_2\" - do not use spaces or special characters!");
+            }
+            if (!array_key_exists($table, $tables['tables'])) {
+                cli_err_syntax_without_exit("Table \"$table\" not found in `funkphp/config/tables.php`! Available Tables: " . implode(', ', quotify_elements(array_keys($tables['tables']))));
+                cli_info("Make sure you have a valid `tables.php` File in `funkphp/config/` directory with at least one table in the ['tables'] Array!");
+            }
+            if (array_key_exists($table, $tbs)) {
+                cli_err_syntax_without_exit("Table \"$table\" already added. Only use one Table once!");
+                cli_info("Make sure you have a valid `tables.php` File in `funkphp/config/` directory with at least one table in the ['tables'] Array!");
+            }
+            $tbs[$table]['cols'] = $tables['tables'][$table];
+        }
+        // For queryType "INSERT", "UPDATE", "DELETE" we ONLY allow one table to be provided!
+        if (count($tbs) > 1) {
+            if (in_array($queryType, ['INSERT', 'UPDATE', 'DELETE'])) {
+                cli_err_syntax_without_exit("For Query Type \"$queryType\" you can ONLY provide ONE Table! Provided Tables: " . implode(', ', quotify_elements(array_keys($tbs))));
+                cli_info_without_exit("Please provide ONLY ONE Table for Query Types `INSERT`, `UPDATE` or `DELETE` in the FunkCLI command!");
+                cli_info("Syntax Example: `php funkcli create s handlerFile=>fnName queryType table1` (at least one Table must be provided)!");
+            }
+        }
+        // Default values added to the $DXPART variable
+        $hydrationModeStr = "\n\t\t\t'<HYDRATION_MODE>' => 'simple|advanced', // Pick one or `simple` is used by default! (leave empty or remove line if not used!)";
+        $hydrationTypeStr = "\n\t\t\t'<HYDRATION_TYPE>' => 'array|object', // Pick one or `array` is used by default! (leave empty or remove line if not used!)";
+        $chosenQueryType = "'<CONFIG>' =>[\n\t\t\t'<QUERY_TYPE>' => '$queryType',\n\t\t\t'<TABLES>' => ['" . implode('\',\'', array_keys($tbs)) . "']," . ($queryType === 'SELECT' ? $hydrationModeStr : "") . ($queryType === 'SELECT' ? $hydrationTypeStr : "");
+        $subQueriesEmpty = ($queryType === 'INSERT' || $queryType === 'UPDATE' || $queryType === 'DELETE') ? "" : "\t\t\t\t'[subquery_example_1]' => 'SELECT COUNT(*)',\n\t\t\t\t'[subquery_example_2]' => '(WHERE SELECT *)'";
+        $subQueries = "\n\t\t\t'[SUBQUERIES]' => [\n$subQueriesEmpty\t\t\t]\n\t\t],";
+        $DXPART = $chosenQueryType . $subQueries;
+        $queryTypePart = "";
+
+        // TODO: Fix all below statements!
+        // When 'INSERT'
+        if ($queryType === 'INSERT') {
+            // Remove the 'id' column from the array since that is auto-incremented
+            $tbsColsExceptId = array_keys($tbs[array_key_first($tbs)]['cols']);
+            $tbName = key($tbs);
+            array_shift($tbsColsExceptId);
+            $valCols = $tbsColsExceptId;
+            $tbsColsExceptId = implode(',', $tbsColsExceptId);
+            $tbsColsExceptId = key($tbs) . ':' . $tbsColsExceptId;
+            $queryTypePart .= "\n\t\t'INSERT_INTO' => '$tbsColsExceptId',";
+            $bindedValidatedData = "\n\t\t'<MATCHED_FIELDS>' => [// What each Binded Param must match from a Validated Data Field Array (empty means same as TableName_ColumnKey) \n\t\t\t\t'" . implode('\' => \'\',\'', $valCols) . "'=> '',],\n";
+            $queryTypePart .= $bindedValidatedData;
+            $DXPART .= $queryTypePart;
+        }
+        // When 'UPDATE'
+        elseif ($queryType === 'UPDATE') {
+            // Remove the 'id' column from the array since that is auto-incremented
+            $tbsColsExceptId = array_keys($tbs[array_key_first($tbs)]['cols']);
+            $tbName = key($tbs);
+            array_shift($tbsColsExceptId);
+            $valCols = $tbsColsExceptId;
+            $tbsColsExceptId = implode(',', $tbsColsExceptId);
+            $tbsColsExceptId = key($tbs) . ':' . $tbsColsExceptId;
+            $queryTypePart .= "'UPDATE_SET' => '$tbsColsExceptId',\n\t\t'WHERE' => '$tbName:id = ?',";
+            $bindedValidatedData = "\n\t\t'<MATCHED_FIELDS>' => [// What each Binded Param must match from a Validated Data Field Array (empty means same as TableName_ColumnKey) \n\t\t\t\t'" . implode('\' => \'\',\'', $valCols) . "'=> '','id' => ''],\n";
+            $queryTypePart .= $bindedValidatedData;
+            $DXPART .= $queryTypePart;
+        }
+        // When 'DELETE'
+        elseif ($queryType === 'DELETE') {
+            // Remove the 'id' column from the array since that is auto-incremented
+            $tbsColsExceptId = array_keys($tbs[array_key_first($tbs)]['cols']);
+            $tbName = key($tbs);
+            array_shift($tbsColsExceptId);
+            $valCols = $tbsColsExceptId;
+            $tbsColsExceptId = implode('|', $tbsColsExceptId);
+            $tbsColsExceptId = key($tbs) . ':' . $tbsColsExceptId;
+            $queryTypePart .= "'DELETE_FROM' => '$tbName',\n\t\t'WHERE' => '$tbName:id = ?',";
+            $bindedValidatedData = "\n\t\t'<MATCHED_FIELDS>' => [// What each Binded Param must match from a Validated Data Field Array (empty means same as TableName_ColumnKey) \n\t\t\t\t'" . implode('\' => \'\',\'', $valCols) . "'=> '','id' => ''],\n";
+            $queryTypePart .= $bindedValidatedData;
+            $DXPART .= $queryTypePart;
+        }
+        // When regular 'SELECT'
+        elseif ($queryType === 'SELECT') {
+            // We want 'id' this time around!
+            $tbsColsWithId = [];
+            $valCols = [];
+            foreach ($tbs as $tbName => $tbData) {
+                $tbsColsWithId[$tbName] = $tbData['cols'];
+                $valCols[$tbName] = array_keys($tbData['cols']);
+            }
+
+            // We now add the 'FROM' which is always a must for every SELECT query!
+            $queryTypePart .= "'FROM' => '";
+            $queryTypePart .= array_key_first($tbs);
+            $queryTypePart .= "',\n\t\t";
+
+            // We now add the 'JOINS' which is OPTIONAL for every SELECT query!
+            $queryTypePart .= "// 'JOINS_ON' Syntax: `join_type=table2,table1(table1Col),table2(table2Col)`\n\t\t// Available Join Types: `inner|i|join|j|ij`,`left|l`,`right|r`\n\t\t// Example: `inner=books,authors(id),books(author_id)`\n\t\t'JOINS_ON' => [// Optional, make empty if not joining any tables!";
+            $queryTypePart .= "\n\t\t\t\t";
+
+            // We automatically generate all the possible JOINs (inner default) based
+            // on what tables were provided in the $tbs array (the '<TABLES>' Key)!
+            // Iterate through all defined tables in your full schema (from tables.php)
+            $suggestedJoins = cli_parse_joins_on_DFS(array_key_first($tbs), array_keys($tbs), $tables['relationships']);
+            if (!empty($suggestedJoins)) {
+                $queryTypePart .= implode(",\n\t\t\t\t", $suggestedJoins);
+            }
+            $queryTypePart .= "],\n\t\t// Optional Keys, leave empty (or remove) if not used!\n\t\t"; // END OF 'JOINS_ON' Key!
+
+            // We add the 'SELECT' part to the $queryTypePart which is the first part of the DXPART
+            // and always a must for every SELECT query!
+            // We now add the tables with the columns to the $queryTypePart for each table
+            // which is inside of " $valCols" in the style: table => col1,col2,col3, we just
+            // create a string that is added like `table1:col1,col2,col3|table2:col1,col2,col3`
+            $queryTypePart .= "'SELECT' => ";
+            $queryTypePart .= "[";
+            foreach ($valCols as $tbName => $cols) {
+                $queryTypePart .= "'$tbName:" . implode(',', $cols) . "',\n";
+            }
+            $queryTypePart .= "],\n\t\t";
+
+            // We now add the 'WHERE' which is OPTIONAL for every SELECT query!
+            $queryTypePart .= "'WHERE' => '', \n\t\t";
+
+            // We now add the 'GROUP BY' which is OPTIONAL for every SELECT query!
+            $queryTypePart .= "'GROUP BY' => '',\n\t\t";
+
+            // We now add the 'HAVING' which is OPTIONAL for every SELECT query!
+            $queryTypePart .= "'HAVING' => '',\n\t\t";
+
+            // We now add the 'ORDER BY' which is OPTIONAL for every SELECT query!
+            $queryTypePart .= "'ORDER BY' => '',\n\t\t";
+
+            // We now add the 'LIMIT' which is OPTIONAL for every SELECT query!
+            $queryTypePart .= "'LIMIT' => '',\n\t\t";
+
+            // We now add the 'OFFSET' which is OPTIONAL for every SELECT query!
+            $queryTypePart .= "'OFFSET' => '',\n\t\t// Optional, leave empty if not used!\n\t\t";
+
+            $queryTypePart .= "'<HYDRATION>' => [],\n\t\t";
+
+            // $allValCols will include all the columns from all the tables by concatenating
+            // the table name with the column name in the style: table1_col1, table1_col2, table2_col1, etc.
+            // When there is only 1 Table though, we just grab all colum nnamens without the table name!
+            $allValCols = [];
+            foreach ($valCols as $tbName => $cols) {
+                if (count($tbs) > 1) {
+                    foreach ($cols as $col) {
+                        $allValCols[] = $tbName . '_' . $col;
+                    }
+                } else {
+                    $allValCols = array_merge($allValCols, $cols);
+                }
+            }
+
+            $bindedValidatedData = "// What each Binded Param must match from a Validated Data\n\t\t\t\t// Field Array (empty means same as TableName_ColumnKey)\n\t\t\t\t'<MATCHED_FIELDS>' => [\n\t\t\t\t'" . implode('\' => \'\',\'', $allValCols) . "'=> ''],\n";
+            $queryTypePart .= $bindedValidatedData;
+            $DXPART .= $queryTypePart;
+        }
+        // When 'SELECT_DISTINCT'
+        elseif ($queryType === 'SELECT_DISTINCT') {
+        }
+        // When 'SELECT_INTO'
+        elseif ($queryType === 'SELECT_INTO') {
+        }
+        // When invalid Query Type which should not happen at this point
+        else {
+            cli_err_syntax_without_exit("Invalid Query Type: \"$queryType\". Available Query Types: " . implode(', ', quotify_elements($availableQueryTypes)) . ".");
+            cli_info("Pick one of those as the fith argument in the FunkCLI command to create a SQL Handler File and/or Function!");
+        }
+        $finalString = "\t// FunkCLI created $date! Keep Closing Curly Bracket on its\n\t// own new line without indentation no comment right after it!\n\t// Run the command `php funk compile:s_eval s_file=>s_fn`\n\t// to get SQL, Hydration & Binded Params in return statement below it!\n\t\$DX = [$DXPART\t];\n\n\treturn array([]);";
+    } // END OF SQL TABLES PROCESSING
+
+
+    // Prepare Validation String based on Tables
+    elseif ($sqlOrValidation === 'validation') {
+        // Validation Tables can only include "table1,table2,etc3" or just "table1"
+        // with optional numbers with * at the end of each table name like "table1*2"
+        if (!preg_match('/^([a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]*(\*[0-9]+)?)*$/', $sv_tables)) {
+            cli_err_without_exit('[cli_created_sql_or_validation_fn()]: Invalid Validation Tables Syntax! Use either "table1,table2,etc3" or just "table1" with optional numbers with * at the end of each table name like "table1*2"!');
+            cli_info('[cli_created_sql_or_validation_fn()]: The Regex Syntax for Validation Tables: `/^([a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]*(\*[0-9]+)?)*$/`!');
+        }
+    } // END OF VALIDATION TABLES PROCESSING
+    // UNEXPECTED CASE: If $sqlOrValidation is neither "sql" nor "validation", not allowed!
+    else {
+        cli_err_without_exit('[cli_created_sql_or_validation_fn()]: $sqlOrValidation must be either "sql" or "validation"!');
+        cli_info('[cli_created_sql_or_validation_fn()]: Use either "sql" for SQL Functions or "validation" for Validation Functions!');
+    }
+
 
     return $finalString;
 }
@@ -279,15 +529,17 @@ function cli_default_created_fn_files($type, $methodAndRoute, $folder, $file, $f
         return null;
     }
     // Validate that if set, $tables is a non-empty string matching a regex
+    var_dump($tables);
     if (
         isset($tables) &&
         (!is_string($tables)
             || empty($tables)
-            || !preg_match('/^([a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]*(\*[0-9]+)?)*$/i', $tables)
+            || !preg_match('/^(((sd|si|s|i|u|d)=)?[a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]*(\*[0-9]+)?)*$/i', $tables)
             || (!str_contains($folder, "sql")
                 && !str_contains($folder, "validation")))
     ) {
         cli_err_without_exit('[cli_default_created_fn_files()]: $arg5 (tables) must be A Valid Non-Empty String! (any whitespace is NOT allowed)');
+        cli_info_without_exit("Regex Used For SQL+Validation Tables: `/^(((sd|si|s|i|u|d)=)?[a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]*(\*[0-9]+)?)*$/i`!");
         cli_info('[cli_default_created_fn_files()]: It is ONLY for `funkphp/sql` AND `funkphp/validation`, so `$folder` must be `sql` OR `validation`!');
         return null;
     }
@@ -340,7 +592,6 @@ function cli_default_created_fn_files($type, $methodAndRoute, $folder, $file, $f
         $entireCreatedString .= $newFilesString . $typePartString;
     }
     // Special-case #1: "funkphp/sql" folder
-    // TODO:
     // New SQL FILE
     elseif ($type === 'sql_new_file_and_fn') {
         $typePartString .= "function $fn(&\$c, \$passedValue = null) // <$tables>\n";
@@ -366,7 +617,6 @@ function cli_default_created_fn_files($type, $methodAndRoute, $folder, $file, $f
         $entireCreatedString .= $typePartString;
     }
     // Special-case #2: "funkphp/validation" folder
-    // TODO:
     // New Validation FILE
     elseif ($type === 'validation_new_file_and_fn') {
         $typePartString .= "function $fn(&\$c, \$passedValue = null) // <$tables>\n";
@@ -615,7 +865,7 @@ function cli_crud_folder_and_php_file($statusArray, $crudType, $file, $fn = null
         isset($table) &&
         (!is_string($table)
             || empty($table)
-            || !preg_match('/^[a-z_][a-z_0-9,]*$/i', $table)
+            || !preg_match('/^(((sd|si|s|i|u|d)=)?[a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]*(\*[0-9]+)?)*$/i', $table)
             || (!str_contains($folder_provided_path, "funkphp/sql")
                 && !str_contains($folder_provided_path, "funkphp/validation")))
     ) {

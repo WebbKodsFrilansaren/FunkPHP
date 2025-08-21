@@ -398,7 +398,7 @@ if (!is_string($command) || empty($command)) {
 // and split it into parts that can then be used to determine next step
 $cmd = '';
 $firstParam = '';
-$tableRegex = '/^([a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]*(\*[0-9]+)?)*$/i';
+$tableRegex = '/^(((sd|si|s|i|u|d)=)?[a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]*(\*[0-9]+)?)*$/i';
 $methodRouteRegex = '/^(([a-z]+\/)|([a-z]+(\/[:]?[a-zA-Z0-9]+)+))$/i';
 $fileWithOptionalFnRegex = '/^([a-z][a-z0-9_]+)(=>([a-z0-9_.]+))?$/i';
 
@@ -612,8 +612,11 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
             $tablesProvided = $arg3;
         } else {
             cli_err_syntax_without_exit("Provide Valid Table Name(s) as second (\"arg2\") or third (\"arg3\") argument for `$folderType` Folder Type!");
-            cli_info_without_exit("Use either Format:`table1` for Single Table OR:`table1,table2,etc3` for Multiple Tables!");
-            cli_info("Regex for Valid Table Names: `/^([a-z][a-z0-9_]*)(,[a-z][a-z0-9_]*)*$/i`!");
+            cli_info_without_exit("(For SQL) Use either Format:`sd|si|s|i|u|d=table1` for Single Table and its SQL Query Type OR:`s=table1,table2,etc3` for Multiple Tables for same SQL Query Type!");
+            cli_info_without_exit("(For VALIDATION) Use either Format:`table1` for Single Table OR:`table1,table2,etc3` for Multiple Tables to Prepare Default Validation for!");
+            cli_info_without_exit("(For SQL) sd|si|s|i|u|d: `sd`=SELECT_DISTINCT, `si`=SELECT_INTO, `s`=SELECT, `i`=INSERT, `u`=UPDATE, and `d`=DELETE");
+            cli_info_without_exit("(For SQL) For example: `s=authors` for SELECT on Table `authors` assuming it exists. At least one Existing Table is ALWAYS required in current version of FunkPHP!");
+            cli_info("Regex Used For SQL+Validation Tables: `/^(((sd|si|s|i|u|d)=)?[a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]*(\*[0-9]+)?)*$/i`!");
         }
     }
     // Grab status for the folder and file so we can check whether
@@ -722,9 +725,9 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
                     cli_success_without_exit("SUCCESSFULLY Created File `$file.php` with Function `$fn` in `funkphp/$folderType`!");
                     cli_info_without_exit("The $folderType File `$file.php` is now ready to be used in `funkphp/$folderType`.");
                     if ($folderType === 'sql') {
-                        cli_info("Use it in your Route Function Files in `funkphp/routes/` by calling `funk_load_sql(&\$c, '$file', '$fn')` and then `funk_use_sql(&\$c, \$loadedSQLArray, \$optionalInputData, \$hydrateAfterQuery)`!");
+                        cli_info("Use it in your Route Function Files in `funkphp/routes/{SubFolder}` by calling `funk_load_sql(&\$c, '$file', '$fn')` and then `funk_use_sql(&\$c, \$loadedSQLArray, \$optionalInputData, \$hydrateAfterQuery)`!");
                     } elseif ($folderType === 'validation') {
-                        cli_info("Use it in your Route Function Files in `funkphp/routes/` by calling `funk_use_validation(&\$c, '$file', '$fn')`!");
+                        cli_info("Use it in your Route Function Files in `funkphp/routes/{SubFolder}` by calling `funk_use_validation(&\$c, '$file', '$fn')`!");
                     }
                     // IMPOSSIBLE EDGE-CASE
                     else {
@@ -749,9 +752,9 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
                         cli_success_without_exit("SUCCESSFULLY Created Function `$fn` in File `$file.php` in `funkphp/$folderType`!");
                         cli_info_without_exit("The $folderType File `$file.php` is now ready to be used in `funkphp/$folderType`.");
                         if ($folderType === 'sql') {
-                            cli_info("Use it in your Route Function Files in `funkphp/routes/` by calling `funk_load_sql(&\$c, '$file', '$fn')` and then `funk_use_sql(&\$c, \$loadedSQLArray, \$optionalInputData, \$hydrateAfterQuery)`!");
+                            cli_info("Use it in your Route Function Files in `funkphp/routes/{SubFolder}` by calling `funk_load_sql(&\$c, '$file', '$fn')` and then `funk_use_sql(&\$c, \$loadedSQLArray, \$optionalInputData, \$hydrateAfterQuery)`!");
                         } elseif ($folderType === 'validation') {
-                            cli_info("Use it in your Route Function Files in `funkphp/routes/` by calling `funk_use_validation(&\$c, '$file', '$fn')`!");
+                            cli_info("Use it in your Route Function Files in `funkphp/routes/{SubFolder}` by calling `funk_use_validation(&\$c, '$file', '$fn')`!");
                         }
                         // IMPOSSIBLE EDGE-CASE
                         else {
