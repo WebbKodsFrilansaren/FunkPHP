@@ -224,15 +224,14 @@ function cli_return_valid_method_n_route_or_err_out($string)
 
 // Returns a generated $DX Part based on provided $arg5
 // which should contain "table1,table2,etc3" or just "table1"
-// TODO:
 function cli_created_sql_or_validation_fn($sqlOrValidation, $sv_tables)
 {
+    // Prepare general variables for either SQL or Validation
     global $dirs, $tablesAndRelationshipsFile, $mysqlDataTypesFile;
     $tables = $tablesAndRelationshipsFile ?? null;
     $types = $mysqlDataTypesFile ?? null;
     $date = date("Y-m-d H:i:s");
     $finalString = '';
-
     if ($tables === null || !is_array($tables)) {
         cli_err_syntax_without_exit("`Tables.php` File not found! Please check your `funkphp/config/tables.php` File!");
         cli_info("Make sure you have a valid `tables.php` File in `funkphp/config/` directory!");
@@ -460,9 +459,8 @@ function cli_created_sql_or_validation_fn($sqlOrValidation, $sv_tables)
             cli_err_syntax_without_exit("Invalid Query Type: \"$queryType\". Available Query Types: " . implode(', ', quotify_elements($availableQueryTypes)) . ".");
             cli_info("Pick one of those as the fith argument in the FunkCLI command to create a SQL Handler File and/or Function!");
         }
-        $finalString = "\t// FunkCLI created $date! Keep Closing Curly Bracket on its\n\t// own new line without indentation no comment right after it!\n\t// Run the command `php funk compile:s_eval s_file=>s_fn`\n\t// to get SQL, Hydration & Binded Params in return statement below it!\n\t\$DX = [$DXPART\t];\n\n\treturn array([]);";
+        $finalString = "\t// FunkCLI created $date! Keep Closing Curly Bracket on its\n\t// own new line without indentation and no comment right after it!\n\t// Run the command `php funk compile:s_eval s_file=>s_fn`\n\t// to get SQL, Hydration & Binded Params in return statement below it!\n\t\$DX = [$DXPART\t];\n\n\treturn array([]);";
     } // END OF SQL TABLES PROCESSING
-
 
     // Prepare Validation String based on Tables
     elseif ($sqlOrValidation === 'validation') {
@@ -479,6 +477,29 @@ function cli_created_sql_or_validation_fn($sqlOrValidation, $sv_tables)
         $processTables = str_contains($sv_tables, ",")
             ? explode(',', $sv_tables)
             : [$sv_tables];
+
+        // Extract the number from "*" if it exists and add foreach table to the $times array
+        foreach ($processTables as $table) {
+            if (str_contains($table, '*')) {
+                $parts = explode('*', $table);
+                if (count($parts) !== 2 || !is_numeric($parts[1]) || (int)$parts[1] <= 0) {
+                    cli_err_syntax_without_exit("Invalid Table Format: \"$table\". Use \"table_name*integer\" or just \"table_name\" for each Table!");
+                    cli_info("Even if you do not know the Array Number, just specify a very high integer to prevent infinite loops during Validation!");
+                }
+                // do not allow duplicates
+                if (array_key_exists($parts[0], $times)) {
+                    cli_err_syntax("Table \"$parts[0]\" already added. Only use one Table once!");
+                }
+                $times[$parts[0]] = (int)$parts[1];
+            }
+            // Default to 1 if no number is specified (as in:`table_name`)
+            else {
+                if (array_key_exists($table, $times)) {
+                    cli_err_syntax("Table \"$table\" already added. Only use one Table once!");
+                }
+                $times[$table] = 1;
+            }
+        }
 
         // We now load the Tables.php file and grab the keys from $times
         // to validate that all the tables exist in the Tables.php file!
@@ -638,15 +659,16 @@ function cli_created_sql_or_validation_fn($sqlOrValidation, $sv_tables)
             }
         }
         $DXPART = "\n\t\t'<CONFIG>' => '',\n\t\t" . $entireDXPART;
-        $finalString = "\t// FunkCLI created $date! Keep Closing Curly Bracket on its\n\t// own new line without indentation no comment right after it!\n\t// Run the command `php funkcli compile v file=>fn`\n\t// to get optimized version in return statement below it!\n\t\$DX = [$DXPART\n\t];\n\n\treturn array([]);";
+        $finalString = "\t// FunkCLI created $date! Keep Closing Curly Bracket on its\n\t// own new line without indentation and no comment right after it!\n\t// Run the command `php funkcli compile v file=>fn`\n\t// to get optimized version in return statement below it!\n\t\$DX = [$DXPART\n\t];\n\n\treturn array([]);";
     } // END OF VALIDATION TABLES PROCESSING
-    // UNEXPECTED CASE: If $sqlOrValidation is neither "sql" nor "validation", not allowed!
+
+    // UNEXPECTED CASE: If $sqlOrValidation is neither "sql" nor "validation" - not allowed!
     else {
         cli_err_without_exit('[cli_created_sql_or_validation_fn()]: $sqlOrValidation must be either "sql" or "validation"!');
         cli_info('[cli_created_sql_or_validation_fn()]: Use either "sql" for SQL Functions or "validation" for Validation Functions!');
     }
 
-
+    // Return the final string which is the DXPART with the return statement at the end
     return $finalString;
 }
 
