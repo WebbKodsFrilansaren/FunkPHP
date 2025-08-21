@@ -227,8 +227,9 @@ function cli_return_valid_method_n_route_or_err_out($string)
 // TODO:
 function cli_created_sql_or_validation_fn($sqlOrValidation, $sv_tables)
 {
-    global $dirs, $tablesAndRelationshipsFile;
+    global $dirs, $tablesAndRelationshipsFile, $mysqlDataTypesFile;
     $tables = $tablesAndRelationshipsFile ?? null;
+    $types = $mysqlDataTypesFile ?? null;
     $date = date("Y-m-d H:i:s");
     $finalString = '';
 
@@ -471,6 +472,173 @@ function cli_created_sql_or_validation_fn($sqlOrValidation, $sv_tables)
             cli_err_without_exit('[cli_created_sql_or_validation_fn()]: Invalid Validation Tables Syntax! Use either "table1,table2,etc3" or just "table1" with optional numbers with * at the end of each table name like "table1*2"!');
             cli_info('[cli_created_sql_or_validation_fn()]: The Regex Syntax for Validation Tables: `/^([a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]*(\*[0-9]+)?)*$/`!');
         }
+
+        // Prepare the tables string for the
+        // DXPART. Split on "," if it exists
+        $times = [];
+        $processTables = str_contains($sv_tables, ",")
+            ? explode(',', $sv_tables)
+            : [$sv_tables];
+
+        // We now load the Tables.php file and grab the keys from $times
+        // to validate that all the tables exist in the Tables.php file!
+        if ($tables === null || $types === null) {
+            cli_err_syntax("`Tables.php` or `MySQLDataTypes.php` File not found! Please check your `funkphp/config/tables.php` & `funkphp/config/VALID_MYSQL_DATATYPES.php` Files!");
+        }
+        foreach ($times as $table => $count) {
+            if (!array_key_exists($table, $tables['tables'])) {
+                cli_err_syntax("Table \"$table\" not found in `funkphp/config/tables.php`! Available Tables: " . implode(', ', quotify_elements(array_keys($tables['tables']))));
+            }
+        }
+
+        // their subkeys are actual columns who contain info about what apprioriate rules
+        // they should have! Prepare the DXPART string for the validation limiter
+        $currDXPart = "";
+        $currTable = null;
+        $currTablePrefix = "";
+        $entireDXPART = "";
+
+        // We now iterate through each table and its count and we use $tbName to find
+        // the correct Table in the Tables.php file and the $tbCount to know whether it is
+        // an array (e.g. `table_name*2`) or a single object (e.g. `table_name`) of the table.
+        foreach ($times as $tbName => $tbCount) {
+            $passwordColNameTemp = "";
+            $currTable = $tables['tables'][$tbName] ?? null;
+            if ($currTable === null) {
+                cli_err_syntax("Table \"$tbName\" not found in `funkphp/config/tables.php`! Available Tables: " . implode(', ', quotify_elements(array_keys($tables['tables']))));
+            }
+            // Set correct prefix for the table based on its count. When array/list we also add the first
+            // part of the $DXPART which indicates it is a list of items with the table prefix with a
+            // specific count of elements that all other fields (keys) from the table must include!
+            if ($tbCount > 1) {
+                $currTablePrefix = $tbName . ".*.";
+                $entireDXPART .= wrappify_arrowed_string("$tbName.*",  "list|count:$tbCount|required");
+            } else {
+                $currTablePrefix = $tbName . ".";
+            }
+            // Now we loop through the selected Table and its keys where each key is the column name
+            // which is then the "fieldName" in the DXPART string.
+            foreach ($currTable as $key => $subKey) {
+                $currDXPart = "";
+                // We skip the primary key 'id' column so this must be added manually by Developer!
+                // If it s a Foreign Key or Primary Key, we skip it as well for now!
+                if ($key === 'id' && isset($subKey['primary_key'])) {
+                    continue;
+                }
+
+                // We set some possible default rules to insert into the current DXPART
+                $dataType = $subKey['type'] ?? null;
+                $nullable = isset($subKey['nullable']) && $subKey['nullable'] === true ?
+                    "required|nullable|" : "required|";
+                $between = isset($subKey['value']) && !is_array($subKey['value']) ? "between:1," . $subKey['value'] . "|" : "between:<MIN>,<MAX>|";
+                if (($dataType === 'SET' || $dataType === 'ENUM')) {
+                    $between = "";
+                }
+                $unique = isset($subKey['unique']) && $subKey['unique'] === true ?
+                    "unique:$tbName,$key|" : "";
+                $exists =  isset($subKey['references']) && isset($subKey['references_column']) ?
+                    "exists:" . $subKey['references'] . "," . $subKey['references_column'] . "|" : "";
+                $anyValues = "";
+
+                // First check is guessing the data type for the current column based on its 'type'
+                // and its key name. For example if it contains 'email' we assume it is an email if
+                // the 'type' is a string within the $types variable which contains all possible valid
+                // MySQL data types.
+                // It is considered valid `email` type if it s a string MySQL data type and
+                // the key name contains 'email' in it.
+                if (
+                    str_contains($key, "email")
+                    && isset($types['STRINGS'][$dataType])
+                ) {
+                    $currDXPart .= "email|";
+                }
+                // It is considered valid `password` if it is a string MySQL data type and
+                // the key name contains 'password' in it while NOT containing "confirm" since
+                // that should be handled separately ("password" "confirm" field that is).
+                elseif (
+                    str_contains($key, "password")
+                    && !str_contains($key, "confirm")
+                    && isset($types['STRINGS'][$dataType])
+                ) {
+                    $currDXPart .= "password|";
+                    // Store the password column name temporarily to be binded to the
+                    // possibly "confirm" field later on if they exist in same table.
+                    $passwordColNameTemp = $key;
+                }
+                // It is considered valid `password_confirm` if it is a string MySQL data
+                // typoe and the key name contains both 'password' and 'confirm' in it!
+                elseif (
+                    str_contains($key, "password")
+                    && str_contains($key, "confirm")
+                    && isset($types['STRINGS'][$dataType])
+                ) {
+                    if (!empty($passwordColNameTemp)) {
+                        $currDXPart .= "password_confirm:$passwordColNameTemp|";
+                    } else {
+                        $currDXPart .= "password_confirm:<UNKNOWN_PLEASE_USE_PASSWORD_COLUMN_NAME_HERE>|";
+                    }
+                }
+                // It is considered valid `string` if it is a string MySQL data type
+                elseif (isset($types['STRINGS'][$dataType])) {
+                    $currDXPart .= "string|";
+                }
+                // It is considered valid `integer`
+                elseif (isset($types['INTS'][$dataType])) {
+                    $currDXPart .= "integer|";
+                }
+                // It is considered valid `float`
+                elseif (isset($types['FLOATS'][$dataType])) {
+                    $currDXPart .= "float|";
+                }
+                // It is considered valid `datetimes` datatype
+                elseif (isset($types['DATETIMES'][$dataType])) {
+                    $currDXPart .= "date|";
+                }
+                // It is considered valid `blobs` datatype
+                elseif (isset($types['BLOBS'][$dataType])) {
+                    $currDXPart .= "string|";
+                }
+                // When it is boolean
+                elseif ($dataType === 'BOOLEAN') {
+                    $currDXPart .= "boolean|";
+                }
+                // When it is ENUM or SET
+                elseif ($dataType === 'SET' || $dataType === 'ENUM') {
+                    $currDXPart .= strtolower($dataType) . "|";
+                    $anyValues = is_array($subKey['value']) ?
+                        "any_of_these_values:" . implode(',', $subKey['value']) . "|" : "";
+                }
+                // UNKNOWN DATA TYPE
+                else {
+                    $currDXPart .= "<!UNKNOWN_DATA_TYPE_CHOOSE_ONE_FOR_THIS_TABLE_COLUMN!>|";
+                }
+
+                // We now add $nullable, $between and $unique to the current DXPart if they are not empty strings
+                $currDXPart .= $nullable;
+                if (!empty($between)) {
+                    $currDXPart .= $between;
+                }
+                if (!empty($unique)) {
+                    $currDXPart .= $unique;
+                }
+                if (!empty($exists)) {
+                    $currDXPart .= $exists;
+                }
+                if (!empty($anyValues)) {
+                    $currDXPart .= $anyValues;
+                }
+
+                // FINALLY FOR EACH ITERATION ADD THe $currDXPart to the $entireDXPART
+                // and then reset the $currDXPart to an empty string for the next iteration.
+                // But we remove the trailing "|" if it exists.
+                if (str_ends_with($currDXPart, "|")) {
+                    $currDXPart = substr($currDXPart, 0, -1);
+                }
+                $entireDXPART .= wrappify_arrowed_string($currTablePrefix . $key, $currDXPart);
+            }
+        }
+        $DXPART = "\n\t\t'<CONFIG>' => '',\n\t\t" . $entireDXPART;
+        $finalString = "\t// FunkCLI created $date! Keep Closing Curly Bracket on its\n\t// own new line without indentation no comment right after it!\n\t// Run the command `php funkcli compile v file=>fn`\n\t// to get optimized version in return statement below it!\n\t\$DX = [$DXPART\n\t];\n\n\treturn array([]);";
     } // END OF VALIDATION TABLES PROCESSING
     // UNEXPECTED CASE: If $sqlOrValidation is neither "sql" nor "validation", not allowed!
     else {
