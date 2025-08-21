@@ -727,18 +727,18 @@ function funk_use_sql(&$c, $sqlArrayKey, $inputData = null, $hydrateDataAfter = 
         return false;
     }
 
-    // Validate $c['db'] (MySQL database connection) is NOT null
-    if (!isset($c['db']) || $c['db'] === null) {
-        $c['err']['SQL']['funk_use_sql'][] = 'Database Connection `$c[\'db\']` is NOT Set or IS NULL. Connect to the Datbase before calling this Function!';
+    // Validate $c['db'] is a valid MySQLi Connection Object
+    if (!isset($c['db']) || $c['db'] === null || !($c['db'] instanceof mysqli)) {
+        $c['err']['SQL']['funk_use_sql'][] = 'Database Connection `$c[\'db\']` is NOT Set, IS NULL or NOT a Valid MySQLi Object Instance. Connect to the Database before calling this Function!';
         return false;
     }
 
     // Valid Query Types Hashed Key Array:
     $validQueryTypes = [
-        'SELECT' => true,
-        'INSERT' => true,
-        'UPDATE' => true,
-        'DELETE' => true,
+        'SELECT' => [],
+        'INSERT' => [],
+        'UPDATE' => [],
+        'DELETE' => [],
     ];
     if (!isset($validQueryTypes[$sqlArrayKey['qtype']])) {
         $c['err']['SQL']['funk_use_sql'][] = 'Invalid SQL Query Type `' . $sqlArrayKey['qtype'] . '`. Valid Query Types are: `SELECT`,`UPDATE`,`INSERT` & `DELETE` in current version of FunkPHP!';

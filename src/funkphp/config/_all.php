@@ -163,7 +163,10 @@ return [
 
     // 'd' will ALWAYS store hydrated database data!
     // data (it does NOT store validation errors)
+    // 'd_temp' is where data is temporarily stored after SQL SELECT Query
+    // you have not chosen a specific place inside of $c['d']['subkey']!
     'd' => null,
+    'd_temp' => null,
 
     // 'v' should be NULL but stores ANY founds errors during the validation process while
     // 'v_ok' will is true if not a single v['key']['optionalSubkey'] is set with error(s)!

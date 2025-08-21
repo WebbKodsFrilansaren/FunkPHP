@@ -105,7 +105,7 @@ function cli_return_valid_file_n_fn_or_err_out($string, $prefix = null)
     global $reserved_functions;
     // $string must be a non-empty string, then we lowercase it
     if (!isset($string) || !is_string($string) || empty($string)) {
-        cli_err_without_exit('[cli_match_file_and_fn()]: This function expects a Non-Empty String (probably missing in $arg1) where the first part is the FileName and optionally you add =>FunctionName after it!');
+        cli_err_without_exit('[cli_match_file_and_fn()]: This function expects a Non-Empty String (probably missing in $arg1) | $arg2 is the optional Method/Route part!');
         cli_info_without_exit('[cli_match_file_and_fn()]: Use either "fileName" (Regex: [a-z_][a-z_0-9]*) OR "fileName=>functionName" (Regex: [a-z_][a-z_0-9]*=>[a-z_][a-z_0-9.]*)!');
         cli_info('[cli_match_file_and_fn()]: IMPORTANT: Your provided String will ALWAYS be lowercased automatically before any further processing!');
     }
@@ -120,7 +120,7 @@ function cli_return_valid_file_n_fn_or_err_out($string, $prefix = null)
         $file = $matches[1];
         $fn = isset($matches[2]) ? $matches[2] : $file;
     } else {
-        cli_err_without_exit('[cli_match_file_and_fn()]: Invalid Syntax for File and/or Function Name! (probably in $arg1)');
+        cli_err_without_exit('[cli_match_file_and_fn()]: Invalid Syntax for File and/or Function Name! (probably in $arg1) | $arg2 is the optional Method/Route part!');
         cli_info_without_exit('[cli_match_file_and_fn()]: Use either "fileName" (Regex: [a-z_][a-z_0-9]*) OR "fileName=>functionName" (Regex: [a-z_][a-z_0-9]*=>[a-z_][a-z_0-9.]*)!');
         cli_info('[cli_match_file_and_fn()]: IMPORTANT: Your provided String will ALWAYS be lowercased automatically before any further processing!');
     }
