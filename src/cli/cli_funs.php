@@ -328,13 +328,30 @@ function cli_default_created_fn_files($type, $methodAndRoute, $folder, $file, $f
     }
     // Special-case #1: "funkphp/sql" folder
     // TODO:
+    // New SQL FILE
     elseif ($type === 'sql_new_file_and_fn') {
-    } elseif ($type === 'sql_only_new_fn') {
+        $typePartString .= "";
+
+        $entireCreatedString .= $newFilesString . $typePartString;
+    } // Only NEW SQL FUNCTION in existing file
+    elseif ($type === 'sql_only_new_fn') {
+        $typePartString .= "";
+
+        $entireCreatedString .= $newFilesString . $typePartString;
     }
     // Special-case #2: "funkphp/validation" folder
     // TODO:
+    // New Validation FILE
     elseif ($type === 'validation_new_file_and_fn') {
-    } elseif ($type === 'validation_only_new_fn') {
+        $typePartString .= "";
+
+        $entireCreatedString .= $newFilesString . $typePartString;
+    }
+    // Only NEW Validation FUNCTION in existing file
+    elseif ($type === 'validation_only_new_fn') {
+        $typePartString .= "";
+
+        $entireCreatedString .= $newFilesString . $typePartString;
     }
     // Catch the IMPOSSIBLE edge-case!
     else {
@@ -621,6 +638,7 @@ function cli_crud_folder_and_php_file($statusArray, $crudType, $file, $fn = null
     }
     // A NEW FILE WITH A NAMED FUNCTION is created!
     elseif ($crudType === 'create_new_file_and_fn') {
+        // NEW ROUTE SubFolder With New File & Fn
         if ($folderType === 'routes') {
             $newFile = cli_default_created_fn_files('named_and_new_file', $methodAndRoute, $folder_name, $file_name, $fn);
             // If $newFile is not a string, we error out
@@ -638,12 +656,47 @@ function cli_crud_folder_and_php_file($statusArray, $crudType, $file, $fn = null
             } else {
                 return true; // Success, file created successfully
             }
-        } elseif ($folderType === 'sql') {
-        } elseif ($folderType === 'validation') {
+        }
+        // NEW FILE WITH A NAMED FUNCTION in "funkphp/sql"
+        elseif ($folderType === 'sql') {
+            $newFile = cli_default_created_fn_files('sql_new_file_and_fn', $table, $folder_name, $file_name, $fn, $table);
+            // If $newFile is not a string, we error out
+            if (!is_string($newFile) || empty($newFile)) {
+                cli_err_without_exit('FAILED to create a SQL Handler File `' . $file_name . '` with Function Name `' . $fn .  '` in `' . $folder_name . '`!');
+                cli_info_without_exit('This is because an Invalid String (or not a String at all) was provided!');
+                return false;
+            }
+            $tryOuput = cli_crud_folder_php_file_atomic_write($newFile, $outputNewFile);
+            if (!$tryOuput) {
+                cli_err_without_exit('FAILED to create a SQL Handler File `' . $file_name . '` with Function Name `' . $fn .  '` in `' . $folder_name . '`!');
+                cli_info_without_exit('Verify that Folder Path `' . $folder_path . '` exists AND is Readable/Writable!');
+                return false;
+            } else {
+                return true; // Success, file created successfully
+            }
+        }
+        // NEW FILE WITH A NAMED FUNCTION in "funkphp/validation"
+        elseif ($folderType === 'validation') {
+            $newFile = cli_default_created_fn_files('validation_new_file_and_fn', $table, $folder_name, $file_name, $fn, $table);
+            // If $newFile is not a string, we error out
+            if (!is_string($newFile) || empty($newFile)) {
+                cli_err_without_exit('FAILED to create a Validation Handler File `' . $file_name . '` with Function Name `' . $fn .  '` in `' . $folder_name . '`!');
+                cli_info_without_exit('This is because an Invalid String (or not a String at all) was provided!');
+                return false;
+            }
+            $tryOuput = cli_crud_folder_php_file_atomic_write($newFile, $outputNewFile);
+            if (!$tryOuput) {
+                cli_err_without_exit('FAILED to create a Validation Handler File `' . $file_name . '` with Function Name `' . $fn .  '` in `' . $folder_name . '`!');
+                cli_info_without_exit('Verify that Folder Path `' . $folder_path . '` exists AND is Readable/Writable!');
+                return false;
+            } else {
+                return true; // Success, file created successfully
+            }
         }
     }
     // A NEW FUNCTION is created in an EXISTING FILE
     elseif ($crudType === 'create_only_new_fn_in_file') {
+        // NEW FUNCTION in EXISTING ROUTE SubFolder With Existing File & Fn
         if ($folderType === 'routes') {
             $newFile = cli_default_created_fn_files('named_not_new_file', $methodAndRoute, $folder_name, $file_name, $fn);
             if (!is_string($newFile) || empty($newFile)) {
@@ -666,8 +719,28 @@ function cli_crud_folder_and_php_file($statusArray, $crudType, $file, $fn = null
             } else {
                 return true; // Success, file updated successfully
             }
-        } elseif ($folderType === 'sql') {
-        } elseif ($folderType === 'validation') {
+        }
+        // NEW FUNCTION in EXISTING "funkphp/sql" File
+        elseif ($folderType === 'sql') {
+            $newFile = cli_default_created_fn_files('validation_new_file_and_fn', $table, $folder_name, $file_name, $fn, $table);
+
+
+            $tryOuput = cli_crud_folder_php_file_atomic_write($newFile, $outputNewFile);
+            if (!$tryOuput) {
+            } else {
+                return true; // Success, file created successfully
+            }
+        }
+        // NEW FUNCTION in EXISTING "funkphp/validation" File
+        elseif ($folderType === 'validation') {
+            $newFile = cli_default_created_fn_files('validation_only_new_fn', $table, $folder_name, $file_name, $fn, $table);
+
+
+            $tryOuput = cli_crud_folder_php_file_atomic_write($newFile, $outputNewFile);
+            if (!$tryOuput) {
+            } else {
+                return true; // Success, file created successfully
+            }
         }
     }
     // "delete" CRUD Type which deletes a named function from the file
