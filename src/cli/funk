@@ -717,7 +717,7 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
             }
             // Create new file when it does not exist
             if (!$statusArray['file_exists']) {
-                $createStatus = cli_crud_folder_and_php_file($statusArray, "create_new_file_and_fn", $file, $fn, $folderType);
+                $createStatus = cli_crud_folder_and_php_file($statusArray, "create_new_file_and_fn", $file, $fn, $folderType, null, $tablesProvided);
                 if ($createStatus) {
                     cli_success_without_exit("SUCCESSFULLY Created File `$file.php` with Function `$fn` in `funkphp/$folderType`!");
                     cli_info_without_exit("The $folderType File `$file.php` is now ready to be used in `funkphp/$folderType`.");
@@ -744,7 +744,7 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
                 // Function does not exist in the file so
                 // crudType "create_only_new_fn_in_file"
                 else {
-                    $createStatus = cli_crud_folder_and_php_file($statusArray, "create_only_new_fn_in_file", $file, $fn, $folderType);
+                    $createStatus = cli_crud_folder_and_php_file($statusArray, "create_only_new_fn_in_file", $file, $fn, $folderType, null, $tablesProvided);
                     if ($createStatus) {
                         cli_success_without_exit("SUCCESSFULLY Created Function `$fn` in File `$file.php` in `funkphp/$folderType`!");
                         cli_info_without_exit("The $folderType File `$file.php` is now ready to be used in `funkphp/$folderType`.");
