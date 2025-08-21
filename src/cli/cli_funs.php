@@ -270,7 +270,7 @@ function cli_default_created_fn_files($type, $methodAndRoute, $folder, $file, $f
         isset($tables) &&
         (!is_string($tables)
             || empty($tables)
-            || !preg_match('/^[a-z_][a-z_0-9,]*$/i', $tables)
+            || !preg_match('/^([a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]*(\*[0-9]+)?)*$/i', $tables)
             || (!str_contains($folder, "funkphp/sql")
                 && !str_contains($folder, "funkphp/validation")))
     ) {

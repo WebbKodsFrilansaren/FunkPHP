@@ -710,15 +710,57 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
                 }
             }
         }  // TODO: Fix when SQL + Validation Files+Fns can be created in crud Function!
-        elseif ($folderType === 'validation') {
+        elseif ($folderType === 'validation' || $folderType === 'sql') {
             if (!$statusArray['folder_path']) {
                 cli_err_without_exit("This Folder SHOULD ALWAYS EXIST due to the nature of FunkPHP and its FunkCLI which auto-generates Default Folder on each Command!!");
                 cli_info("Verify File Permissions for Subfolders in `funkphp/` and try again since this Folder should be recreated each time your run a Command to the FunkCLI!");
             }
-        } elseif ($folderType === 'sql') {
-            if (!$statusArray['folder_path']) {
-                cli_err_without_exit("This Folder SHOULD ALWAYS EXIST due to the nature of FunkPHP and its FunkCLI which auto-generates Default Folder on each Command!");
-                cli_info("Verify File Permissions for Subfolders in `funkphp/` and try again since this Folder should be recreated each time your run a Command to the FunkCLI!");
+            // Create new file when it does not exist
+            if (!$statusArray['file_exists']) {
+                $createStatus = cli_crud_folder_and_php_file($statusArray, "create_new_file_and_fn", $file, $fn, $folderType);
+                if ($createStatus) {
+                    cli_success_without_exit("SUCCESSFULLY Created File `$file.php` with Function `$fn` in `funkphp/$folderType`!");
+                    cli_info_without_exit("The $folderType File `$file.php` is now ready to be used in `funkphp/$folderType`.");
+                    if ($folderType === 'sql') {
+                        cli_info("Use it in your Route Function Files in `funkphp/routes/` by calling `funk_load_sql(&\$c, '$file', '$fn')` and then `funk_use_sql(&\$c, \$loadedSQLArray, \$optionalInputData, \$hydrateAfterQuery)`!");
+                    } elseif ($folderType === 'validation') {
+                        cli_info("Use it in your Route Function Files in `funkphp/routes/` by calling `funk_use_validation(&\$c, '$file', '$fn')`!");
+                    }
+                    // IMPOSSIBLE EDGE-CASE
+                    else {
+                        cli_warning("Somehow you created a File in a Folder Type that is NOT supported! Please report this as a Bug at `https://www.GitHub/WebbKodsFrilansaren/FunkPHP`!");
+                    }
+                } else {
+                    cli_err("FAILED to Create File `$file.php` with Function `$fn` in `funkphp/$folderType`!");
+                }
+            }
+            // Or try to create a new function in existing file
+            else {
+                // Function already exists in the file
+                if (isset($statusArray['functions'][$fn])) {
+                    cli_err_without_exit("Function `$fn` already exists in File `$file.php` in `funkphp/$folderType`!");
+                    cli_info("Change File and/or Function Name and try again for `funkphp/$folderType`!");
+                }
+                // Function does not exist in the file so
+                // crudType "create_only_new_fn_in_file"
+                else {
+                    $createStatus = cli_crud_folder_and_php_file($statusArray, "create_only_new_fn_in_file", $file, $fn, $folderType);
+                    if ($createStatus) {
+                        cli_success_without_exit("SUCCESSFULLY Created Function `$fn` in File `$file.php` in `funkphp/$folderType`!");
+                        cli_info_without_exit("The $folderType File `$file.php` is now ready to be used in `funkphp/$folderType`.");
+                        if ($folderType === 'sql') {
+                            cli_info("Use it in your Route Function Files in `funkphp/routes/` by calling `funk_load_sql(&\$c, '$file', '$fn')` and then `funk_use_sql(&\$c, \$loadedSQLArray, \$optionalInputData, \$hydrateAfterQuery)`!");
+                        } elseif ($folderType === 'validation') {
+                            cli_info("Use it in your Route Function Files in `funkphp/routes/` by calling `funk_use_validation(&\$c, '$file', '$fn')`!");
+                        }
+                        // IMPOSSIBLE EDGE-CASE
+                        else {
+                            cli_warning("Somehow you created a File in a Folder Type that is NOT supported! Please report this as a Bug at `https://www.GitHub/WebbKodsFrilansaren/FunkPHP`!");
+                        }
+                    } else {
+                        cli_err("FAILED to Create Function `$fn` in File `$file.php` in `funkphp/$folderType`!");
+                    }
+                }
             }
         }
         // Impossible edge-case
