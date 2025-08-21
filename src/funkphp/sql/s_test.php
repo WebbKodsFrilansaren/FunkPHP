@@ -37,7 +37,7 @@ function s_test(&$c, $passedValue = null) // <s=authors>
 		'LIMIT' => '',
 		'OFFSET' => '',
 		// Optional, leave empty if not used!
-		'<HYDRATION>' => [],
+		'<HYDRATION>' => ["authors"],
 		// What each Binded Param must match from a Validated Data
 		// Field Array (empty means same as TableName_ColumnKey)
 		'<MATCHED_FIELDS>' => [
@@ -58,6 +58,27 @@ function s_test(&$c, $passedValue = null) // <s=authors>
 		'sql' => 'SELECT authors.id AS authors_id, authors.id AS authors_id, authors.name AS authors_name, authors.email AS authors_email, authors.description AS authors_description, authors.longer_description AS authors_longer_description, authors.age AS authors_age, authors.weight AS authors_weight, authors.nickname AS authors_nickname, authors.updated_at AS authors_updated_at FROM authors;',
 		'hydrate' =>
 		array(
+			'key' =>
+			array(
+				'authors' =>
+				array(
+					'pk' => 'authors_id',
+					'cols' =>
+					array(
+						0 => 'authors_name',
+						1 => 'authors_email',
+						2 => 'authors_description',
+						3 => 'authors_longer_description',
+						4 => 'authors_age',
+						5 => 'authors_weight',
+						6 => 'authors_nickname',
+						7 => 'authors_updated_at',
+						8 => 'id',
+					),
+					'with' =>
+					array(),
+				),
+			),
 			'mode' => 'simple',
 			'type' => 'array',
 		),

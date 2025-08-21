@@ -975,6 +975,7 @@ elseif ($cmd === "compile" || $cmd === "comp" || $cmd === "cp") {
     } elseif (str_starts_with($firstParam, "s")) {
         [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg1, "s_");
     }
+
     // Compile based on Validation OR SQL File,
     // also handle impossible edge-case!
     // IF Compile VALIDATION
