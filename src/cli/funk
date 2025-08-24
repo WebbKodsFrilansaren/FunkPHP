@@ -712,8 +712,7 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
                     }
                 }
             }
-        }  // TODO: Fix when SQL + Validation Files+Fns can be created in crud Function!
-        elseif ($folderType === 'validation' || $folderType === 'sql') {
+        } elseif ($folderType === 'validation' || $folderType === 'sql') {
             if (!$statusArray['folder_path']) {
                 cli_err_without_exit("This Folder SHOULD ALWAYS EXIST due to the nature of FunkPHP and its FunkCLI which auto-generates Default Folder on each Command!!");
                 cli_info("Verify File Permissions for Subfolders in `funkphp/` and try again since this Folder should be recreated each time your run a Command to the FunkCLI!");
@@ -790,8 +789,8 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
 // ADD: Attach a Route_Key that already exists to a specific Method/Route
 // assuming the Method/Route and/or the File+Function already exists
 elseif ($cmd === "add" || $cmd === "attach" || $cmd === "link") {
-    $middlewaresAliases = ['mw', 'mws', 'middlewares'];
-    $singlePipelineAliases = ['pl', 'pls', 'pipeline'];
+    $middlewaresAliases = ['mw', 'middleware'];
+    $singlePipelineAliases = ['pl', 'pipeline'];
     $singleAnonymousFolderlist = ["middlewares", "mw", "mws", "pls", "pl", "pipeline"];
     $folderListThatNeedsTables = ['sql', 'validation', 'validation', 'v', 's'];
     $folderListThatWillCauseWarning = [

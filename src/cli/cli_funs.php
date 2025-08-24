@@ -719,7 +719,6 @@ function cli_default_created_fn_files($type, $methodAndRoute, $folder, $file, $f
         return null;
     }
     // Validate that if set, $tables is a non-empty string matching a regex
-    var_dump($tables);
     if (
         isset($tables) &&
         (!is_string($tables)

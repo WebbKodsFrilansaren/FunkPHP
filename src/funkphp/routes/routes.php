@@ -1,10 +1,12 @@
-<?php // Routes.php - FunkPHP Framework | FunkCLI Modified it 2025-08-21 20:21:19
+<?php // Routes.php - FunkPHP Framework | FunkCLI Modified it 2025-08-24 20:21:11
 return  [
   'ROUTES' =>
   [
     'GET' =>
     [
-      '/test2' =>
+      '/users/' =>
+      [],
+      '/users/:id' =>
       [],
     ],
     'POST' =>
@@ -13,7 +15,10 @@ return  [
       [
         'middlewares' =>
         [
-          0 => 'auth',
+          0 =>
+          [
+            'auth' => 'jwt',
+          ],
           1 => 'log',
         ],
         'handler' =>
