@@ -806,9 +806,8 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
                     $routeExistsInROUTES = false;
                 }
             }
+            // Here we now know if Method/Route exists or not
         }
-        // Here we now know if Method/Route exists or not
-
 
         // NEW middlewares/function_file.php for method/route (unless it already exists which is OK)
         elseif ($folderType === 'middlewares') {
@@ -818,6 +817,29 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
                 cli_info("Notice the support for shorthand versions \"g\", \"po\", \"pu\", \"d\" OR \"del\", \"pa\" for GET, POST, PUT, DELETE and PATCH respectively!");
             }
             [$method, $route] =  cli_return_valid_method_n_route_or_err_out($arg1);
+            // We first check if $method exists even in $ROUTES because if it does not then we also know route neither does!
+            if (!array_key_exists($method, $ROUTES)) {
+                $methodExistsInROUTES = false;
+                $routeExistsInROUTES = false;
+            } // Method exist, so check that Route exists in that Method, even dynamic ones
+            else if (array_key_exists($method, $ROUTES)) {
+                $methodExistsInROUTES = true;
+                if (array_key_exists($route, $ROUTES[$method])) {
+                    $routeExistsInROUTES = true;
+                } else {
+                    // Check against conflicting Dynamic Routes when they are on the same URI Segment level at the end
+                    // For example: `GET/users/:id` and `GET/users/:id2` because they are on the same level at the end
+                    // We error out because we do not want two conflicting dynamic routes on the same level at the end
+                    $troute = $singleTroute;
+                    $findDynamicRoute = cli_match_developer_route($method, $route, $troute, $ROUTES, $ROUTES);
+                    if ($findDynamicRoute['route'] !== null) {
+                        cli_err_without_exit("Found Dynamic Route \"{$findDynamicRoute['method']}{$findDynamicRoute['route']}\" in Trie Routes would conflict with \"$method$route\".");
+                        cli_info("Run `php funk recompile|rc` to rebuild Trie Routes if You Manually Removed that Route from `funkphp/routes/routes.php` you want to add again!");
+                    }
+                    $routeExistsInROUTES = false;
+                }
+            }
+            // Here we now know if Method/Route exists or not
         }
         // UNEXECPTED AND IMPOSSIBLE EDGE-CASE
         else {
