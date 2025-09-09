@@ -10,7 +10,14 @@ return  [
         [
           'auth' => NULL,
         ],
-        'try' =>
+        'handler' =>
+        [
+          'test' =>
+          [
+            'test' => NULL,
+          ],
+        ],
+        'data' =>
         [
           'test' =>
           [
