@@ -21,6 +21,7 @@ register_shutdown_function(function () use (&$c) {
         && is_array($c['<ENTRY>']['pipeline']['post-request'])
         && !empty($c['<ENTRY>']['pipeline']['post-request'])
     ) {
+        vd($c['<ENTRY>']['pipeline']['post-request']);
         funk_run_pipeline_post_request($c);
     } else {
         $c['err']['MAYBE']['PIPELINE']['funk_run_post_request'][] = 'No Configured Post-Request Pipeline Functions (`"<ENTRY>" => "pipeline" => "post-request"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\'][\'post-request\']` Key in the Pipeline Configuration File `funkphp/config/pipeline.php` File!';

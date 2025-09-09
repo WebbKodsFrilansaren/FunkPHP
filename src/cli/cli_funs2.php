@@ -6562,21 +6562,20 @@ function cli_restore_default_folders_and_files()
             } else if (str_contains($file, "pipeline")) {
                 file_put_contents($file, "<?php\n// Pipeline.php - FunkPHP Framework | FunkCLI recreated it $date\nreturn  [
             'pipeline' =>['request' => [
-            0 => 'pl_https_redirect',
-            1 => 'pl_run_ini_sets',
-            2 => 'pl_set_session_cookie_params',
-            3 => 'pl_db_connect',
-            4 => 'pl_headers_set',
-            5 => 'pl_headers_remove',
-            6 => 'pl_start_session',
-            7 => 'pl_prepare_uri',
-            8 => 'pl_match_denied_exact_ips',
-            9 => 'pl_match_denied_methods',
-            10 => 'pl_match_denied_uas',
-            11 => 'pl_match_route',
-            12 => 'pl_run_matched_route_middlewares',
-            12 => 'pl_run_matched_route_keys',
-            ],'post-request' => [],],'no_match' => [],];");
+            0 => ['pl_https_redirect' => null],
+            1 => ['pl_run_ini_sets' => null],
+            2 => ['pl_set_session_cookie_params' => null],
+            3 => ['pl_db_connect' => null],
+            4 => ['pl_headers_set' => null],
+            5 => ['pl_headers_remove' => null],
+            6 => ['pl_start_session' => null],
+            7 => ['pl_prepare_uri' => null],
+            8 => ['pl_match_denied_exact_ips' => null],
+            9 => ['pl_match_denied_methods' => null],
+            10 => ['pl_match_denied_uas' => null],
+            11 => ['pl_match_route' => null],
+            12 => ['pl_run_matched_route_keys' => null],
+            ],'post-request' => [0 => [],],'no_match' => [],];");
                 echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
                 continue;
             } else if (str_contains($file, "public_html/.htaccess")) {
