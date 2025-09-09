@@ -1,4 +1,4 @@
-<?php // Routes.php - FunkPHP Framework | FunkCLI Modified it 2025-09-09 05:15:20
+<?php // Routes.php - FunkPHP Framework | FunkCLI Modified it 2025-09-09 05:20:25
 return  [
   'ROUTES' =>
   [
@@ -8,28 +8,7 @@ return  [
       [],
     ],
     'POST' =>
-    [
-      '/test' =>
-      [
-        'middlewares' =>
-        [
-          0 =>
-          [
-            'auth' => 'jwt',
-          ],
-          1 => 'log',
-        ],
-        'handler' =>
-        [
-          'test' => 'test',
-        ],
-        'data' =>
-        [
-          'test' => 'test',
-        ],
-        'page' => 'test',
-      ],
-    ],
+    [],
     'DELETE' =>
     [],
     'PATCH' =>
