@@ -628,7 +628,7 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
     // Grab status for the folder and file so we can check whether
     // we can even access it, if it exists, is writable, etc.
     $statusArray = cli_folder_and_php_file_status($folder, $file);
-    var_dump("File: " . $file, "Fn: " . $fn, "Method: " . $method, "Route: " . $route, "Folder: " . $folder, "RouteKey: " . $routeKey, $statusArray);
+    var_dump("File: " . $file, "Fn: " . $fn, "Method: " . $method, "Route: " . $route, "Folder: " . $folder, "RouteKey: ", $routeKey, "StatusArray:", $statusArray);
 
     // NO METHOD & ROUTE WAS PROVIDED - This is automatically
     // forced when making/creating "pipeline"/"sql"/"validation"
@@ -799,6 +799,7 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
             else if (array_key_exists($method, $ROUTES)) {
                 $methodExistsInROUTES = true;
                 if (array_key_exists($route, $ROUTES[$method])) {
+                    cli_info_without_exit("Method/Route `$method$route` already exists in `funkphp/routes/routes.php`! Will NOT create it again, but will attempt adding Route Key to it if applicable!");
                     $routeExistsInROUTES = true;
                 } else {
                     // Check against conflicting Dynamic Routes when they are on the same URI Segment level at the end
@@ -896,7 +897,7 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
                 cli_sort_build_routes_compile_and_output(["ROUTES" => $ROUTES]);
                 cli_success("Successfully Added Route Key `$file=>$fn` to Method/Route `$method$route` in `funkphp/routes/routes.php`!");
             } else {
-                cli_info("Route Key `$file=>$fn` already exists in Method/Route `$method$route` in `funkphp/routes/routes.php`! Nothing more to do!");
+                cli_success("Route Key `$file=>$fn` already exists in Method/Route `$method$route` in `funkphp/routes/routes.php`! Nothing more to do!");
             }
         }
 
