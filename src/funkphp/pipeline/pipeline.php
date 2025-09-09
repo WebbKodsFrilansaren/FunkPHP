@@ -19,7 +19,7 @@ return  [
             12 => ['pl_run_matched_route_keys' => null],
             13 => ['pl_run_matched_route_data' => null],
         ],
-        'post-request' => ['pl_debug'],
+        'post-request' => ['pl_debug'  => null],
     ],
     'no_match' =>
     [
