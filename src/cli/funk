@@ -908,7 +908,7 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
                 cli_success_without_exit("SUCCESSFULLY Created Single Anonymous Function File `$file.php` in Folder `$folder`!");
                 cli_info_without_exit("The Middlewares File `$file.php` is now ready to be used in your Routes. You did not provide a Method/Route so it will not be automatically added to any Route. You can add it manually later on!");
             } else {
-                cli_err("FAILED to Create Single Anonymous Function File `$file.php` in Folder `$folder`!");
+                cli_err("FAILED to Create Single Anonymous Function File `$file.php` in Folder `$folder`. `$method$route` remains created and added to `Routes` though!");
             }
         }
         // UNEXECPTED AND IMPOSSIBLE EDGE-CASE

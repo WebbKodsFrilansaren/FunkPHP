@@ -1321,3 +1321,32 @@ function cli_crud_folder_php_file_atomic_write($fileContent, $file_path)
     }
     return true;
 }
+
+
+// Function to check if a middleware exists in a given method/route which
+// can either be just a 'middlewares' => 'm_name' or 'middlewares' => ['m_name1', 'm_name2']
+// or 'middlewares' => ['m_name1' => 'passedValue', 'm_name2'] meaning we
+// must check for three different cases of existence of the middleware
+function cli_mw_exists_in_route(&$ROUTES, $method, $route, $mw_name)
+{
+    // Check $method, $route and $mw_name are non-empty strings
+    if (
+        !isset($method)
+        || !is_string($method)
+        || empty($method)
+        || !isset($route)
+        || !is_string($route)
+        || empty($route)
+        || !isset($mw_name)
+        || !is_string($mw_name)
+        || empty($mw_name)
+    ) {
+        cli_err_without_exit('[cli_mw_exists_in_route()]: $method, $route and $mw_name must be Non-Empty Strings!');
+        return false;
+    }
+    // Check that $ROUTES an array and has the method and route
+    if (!is_array($ROUTES) || !array_key_exists($method, $ROUTES) || !array_key_exists($route, $ROUTES[$method])) {
+        cli_err_without_exit('[cli_mw_exists_in_route()]: $ROUTES must be an Array and must contain the provided $method and $route!');
+        return false;
+    }
+}
