@@ -168,7 +168,7 @@ function cli_return_valid_method_n_route_or_err_out($string)
         'patch' => 'PATCH',
         'post' => 'POST',
         'put' => 'PUT',
-        'get' => 'DELETE',
+        'get' => 'GET',
         'del' => 'DELETE',
         'pa' => 'PATCH',
         'po' => 'POST',

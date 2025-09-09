@@ -440,6 +440,7 @@ if (!isset($firstParam) || !is_string($firstParam) || empty($firstParam)) {
 }
 
 // MAKE: Create something new and OPTIONALLY adding it to a specific Method/Route
+// SYNTAX: funk make|create|new:<first_param> <file_name>[=>function_name] [method/route]
 if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
     $middlewaresAliases = ['mw', 'mws', 'middlewares', 'middleware'];
     $singlePipelineAliases = ['pl', 'pls', 'pipeline', 'pipelines'];
@@ -493,6 +494,9 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
     $file = null;
     $fn = null;
     $routeOnly = false;
+
+    // DEBUG
+    echo "Command: $command\nArg1: $arg1\nArg2: $arg2\nArg3: $arg3\nArg4: $arg4\nArg5: $arg5\nArg6: $arg6\n";
     if (in_array($firstParam, $middlewaresAliases)) {
         $folder = "funkphp/middlewares";
         $folderType = "middlewares";
@@ -531,6 +535,8 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
         $routeKey[key($routeKey)] = [$file => $fn];
         cli_info_without_exit("OK! A Route File and/or Route Function that will be placed inside:`$folder`. If you provided a Method/Route it will be automatically added IF it is sucessfully created! Otherwise, you will have to manually add it to a Route Key of a Route manually or by running `funk add:$firstParam $file=>$fn <method/route>`!");
     }
+
+    echo "\$routeOnly is now: " . ($routeOnly ? 'true' : 'false') . "\n";
 
     // Passing $arg2 for Method/Route is optional so we check if it is set
     $method = null;
@@ -879,6 +885,14 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
             // If File=>Fn failed (even if it existed already) then we error out, else we continue!
             if (!$routeFileAndKeyCreated) {
                 cli_err("Could NOT add Route Key `$file=>$fn` to Method/Route `$method$route` since File and/or Function failed to be created. `$method$route` remains created and added to `Routes` though!");
+            }
+            if (!array_key_exists($file, $ROUTES[$method][$route])) {
+                $ROUTES[$method][$route][$file] = $fn;
+                cli_info_without_exit("Added Route Key `$file=>$fn` to Method/Route `$method$route`... Attempting to rebuild the Trie & Route File Now... If it fails, the Route Key will NOT have been added and you will have to try again!");
+                cli_sort_build_routes_compile_and_output(["ROUTES" => $ROUTES]);
+                cli_success("Successfully Added Route Key `$file=>$fn` to Method/Route `$method$route` in `funkphp/routes/routes.php`!");
+            } else {
+                cli_info("Route Key `$file=>$fn` already exists in Method/Route `$method$route` in `funkphp/routes/routes.php`! Nothing more to do!");
             }
         }
 
