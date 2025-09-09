@@ -806,7 +806,16 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
                     $routeExistsInROUTES = false;
                 }
             }
-            // Here we now know if Method/Route exists or not
+            // Here we now know if Method and/or Route exists or not
+            // CASE 1: Method does not exist, thus Route neither does
+            if (!$methodExistsInROUTES) {
+                $ROUTES[$method] = [];
+                $ROUTES[$method][$route] = [];
+                cli_info_without_exit("Added New Method and New Route to it... Attempting to rebuild the Trie & Route File Now... If it fails, the Route will NOT have been added and you will have to try again!");
+                cli_sort_build_routes_compile_and_output(["ROUTES" => $ROUTES]);
+                cli_success_without_exit("Created New Valid Method `$method` in `funkphp/routes/routes.php`!");
+                cli_success_without_exit("Created Method/Route `$method$route` in `funkphp/routes/routes.php`!");
+            }
         }
 
         // NEW middlewares/function_file.php for method/route (unless it already exists which is OK)
@@ -839,7 +848,16 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
                     $routeExistsInROUTES = false;
                 }
             }
-            // Here we now know if Method/Route exists or not
+            // Here we now know if Method and/or Route exists or not
+            // CASE 1: Method does not exist, thus Route neither does
+            if (!$methodExistsInROUTES) {
+                $ROUTES[$method] = [];
+                $ROUTES[$method][$route] = [];
+                cli_info_without_exit("Added New Method and New Route to it... Attempting to rebuild the Trie & Route File Now... If it fails, the Route will NOT have been added and you will have to try again!");
+                cli_sort_build_routes_compile_and_output(["ROUTES" => $ROUTES]);
+                cli_success_without_exit("Created New Valid Method `$method` in `funkphp/routes/routes.php`!");
+                cli_success_without_exit("Created Method/Route `$method$route` in `funkphp/routes/routes.php`!");
+            }
         }
         // UNEXECPTED AND IMPOSSIBLE EDGE-CASE
         else {
