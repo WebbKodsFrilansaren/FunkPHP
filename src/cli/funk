@@ -505,14 +505,14 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
         $routeKey = ["middlewares" => null];
         $anonymousFile = true; // Middlewares are always single anonymous function files
         [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg1, "m_");
-        cli_info_without_exit("OK! Middleware Files. Middleware Functions are recommended to be reused in different projects, so the File Name is suffixed with `_v1` indicating a versioned file. Change this later if needed. Run `funk recompile|rc` if you have manually added the Middleware Function File to a `Middlewares` Route Key to a given Route!");
+        cli_info_without_exit("OK! Middleware Files. Middleware Functions are recommended to be reused in different projects, consider versioning their name endings. Run `funk recompile|rc` if you have manually added the Middleware Function File to a `middlewares` Route Key to a given Route!");
         $routeKey[key($routeKey)] = $file;
     } elseif (in_array($firstParam, $singlePipelineAliases)) {
         $folderType = "pipeline";
         $folder = "funkphp/pipeline";
         $anonymousFile = true; // Pipeline functions are always single anonymous function files
         [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg1, "pl_");
-        cli_info_without_exit("OK! Pipeline File. Pipeline Functions are recommended to be reused in different projects, so the File Name is suffixed with `_v1` indicating a versioned file. Change this later if needed. Drag this Function File into either `funkphp/pipeline/request/` OR `funkphp/pipeline/post-request/` and then add it manually to the corresponding Pipeline Sub-Array! (`pipeline['request']` or `pipeline['post-request']`)");
+        cli_info_without_exit("OK! Pipeline File. Pipeline Functions are recommended to be reused in different projects, consider versioning their name endings. Drag this Function File into either `funkphp/pipeline/request/` OR `funkphp/pipeline/post-request/` and then add it manually to the corresponding Pipeline Sub-Array! (`pipeline['request']` or `pipeline['post-request']`)");
     } elseif (in_array($firstParam, $validationAliases)) {
         $folderType = "validation";
         $folder = "funkphp/validation";
@@ -528,7 +528,7 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
     // a Route for `funkphp/routes/routes.php`!
     elseif (in_array($firstParam, $routeAliases)) {
         $routeOnly = true;
-        cli_info_without_exit("OK! Creating a Route to `funkphp/routes/routes.php` unless it already exists. After this, you can add Route Keys to that created Route!");
+        cli_info_without_exit("OK! ONLY a Route to `funkphp/routes/routes.php` unless it already exists. After this, you can add `Route Keys` to that created Route!");
     } else {
         $folderType = "routes";
         $folder = "funkphp/routes" . '/' . $firstParam;
