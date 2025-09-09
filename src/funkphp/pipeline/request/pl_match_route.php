@@ -1,4 +1,4 @@
-<?php return function (&$c) {
+<?php return function (&$c, $passedValue = null) {
     $c['ROUTES'] = [];
     if (!is_readable(ROOT_FOLDER . '/routes/routes.php')) {
         $c['err']['ROUTES'][] = "Routes in File `funkphp/config/routes.php` not found or non-readable!";

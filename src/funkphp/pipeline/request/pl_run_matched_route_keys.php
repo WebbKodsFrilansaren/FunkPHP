@@ -1,4 +1,4 @@
-<?php return function (&$c) {
+<?php return function (&$c, $passedValue = null) {
     foreach ($c['req']['route_keys'] as $key => $_) {
         // $key must be a non-empty string
         if (!is_string($key)) {

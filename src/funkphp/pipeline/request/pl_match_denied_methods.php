@@ -1,5 +1,5 @@
 <?php // IN-BUILT MIDDLEWARE: Deny Any Matched HTTP(S) Methods From Config File!
-return function (&$c) {
+return function (&$c, $passedValue = null) {
     // Return null if $method is invalid method variable
     $method = $_SERVER['REQUEST_METHOD'] ?? null;
     if ($method === null || !is_string($method)) {
