@@ -9,6 +9,7 @@ return  [
         'middlewares' =>
         [
           'auth' => NULL,
+          '$onFail' => "do_something"
         ],
         'handler' =>
         [
@@ -25,8 +26,28 @@ return  [
           ],
         ],
       ],
-      '/users/:id' =>
-      [],
+      '/users_v2' =>
+      [
+        'middlewares' =>
+        [
+          'auth' => NULL,
+        ],
+        '$start' => [
+          'handler' => [
+            'test' => [
+              'test' => NULL,
+              '$next' => [
+                'data' => [
+                  'test' => [
+                    'test' => NULL
+                  ]
+                ]
+              ]
+            ]
+          ],
+
+        ],
+      ],
     ],
     'POST' =>
     [],
