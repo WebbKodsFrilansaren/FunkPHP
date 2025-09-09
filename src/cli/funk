@@ -784,12 +784,12 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
         $methodExistsInROUTES = false;
         $routeExistsInROUTES = false;
         if ($folderType === 'routes' || $folderType === 'middlewares') {
-            if (!isset($arg1) || !is_string($arg1) || empty($arg1) || !preg_match($methodRouteRegex, $arg1)) {
+            if (!isset($arg2) || !is_string($arg2) || empty($arg2) || !preg_match($methodRouteRegex, $arg2)) {
                 cli_err_without_exit("No Valid Method/Route provided when wanting to only Create a New Route! `($cmd:$firstParam)`");
                 cli_info_without_exit("Syntax is: `funk make:r method/route` like `funk make:r g/users` OR `funk make:r post/users`!");
                 cli_info("Notice the support for shorthand versions \"g\", \"po\", \"pu\", \"d\" OR \"del\", \"pa\" for GET, POST, PUT, DELETE and PATCH respectively!");
             }
-            [$method, $route] =  cli_return_valid_method_n_route_or_err_out($arg1);
+            [$method, $route] =  cli_return_valid_method_n_route_or_err_out($arg2);
             // We first check if $method exists even in $ROUTES because if it does not then we also know route neither does!
             if (!array_key_exists($method, $ROUTES)) {
                 $methodExistsInROUTES = false;

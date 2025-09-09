@@ -4,7 +4,7 @@ return  [
   [
     'GET' =>
     [
-      '/users/' =>
+      '/users' =>
       [],
       '/users/:id' =>
       [],
