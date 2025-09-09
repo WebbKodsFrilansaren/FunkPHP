@@ -497,6 +497,7 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
 
     // DEBUG
     echo "Command: $command\nArg1: $arg1\nArg2: $arg2\nArg3: $arg3\nArg4: $arg4\nArg5: $arg5\nArg6: $arg6\n";
+
     if (in_array($firstParam, $middlewaresAliases)) {
         $folder = "funkphp/middlewares";
         $folderType = "middlewares";
@@ -535,9 +536,6 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
         $routeKey[key($routeKey)] = [$file => $fn];
         cli_info_without_exit("OK! A Route File and/or Route Function that will be placed inside:`$folder`. If you provided a Method/Route it will be automatically added IF it is sucessfully created! Otherwise, you will have to manually add it to a Route Key of a Route manually or by running `funk add:$firstParam $file=>$fn <method/route>`!");
     }
-
-    echo "\$routeOnly is now: " . ($routeOnly ? 'true' : 'false') . "\n";
-
     // Passing $arg2 for Method/Route is optional so we check if it is set
     $method = null;
     $route = null;

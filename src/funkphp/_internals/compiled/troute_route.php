@@ -26,9 +26,6 @@ return  [
   ],
   'DELETE' => 
    [
-    'users' => 
-     [
-    ],
   ],
   'PATCH' => 
    [

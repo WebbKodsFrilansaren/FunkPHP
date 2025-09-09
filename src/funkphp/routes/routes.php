@@ -1,11 +1,9 @@
-<?php // Routes.php - FunkPHP Framework | FunkCLI Modified it 2025-09-09 04:26:15
+<?php // Routes.php - FunkPHP Framework | FunkCLI Modified it 2025-09-09 05:15:20
 return  [
   'ROUTES' =>
   [
     'GET' =>
     [
-      '/users' =>
-      [],
       '/users/:id' =>
       [],
     ],
