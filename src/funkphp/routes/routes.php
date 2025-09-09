@@ -1,4 +1,4 @@
-<?php // Routes.php - FunkPHP Framework | FunkCLI Modified it 2025-09-09 06:59:25
+<?php // Routes.php - FunkPHP Framework | FunkCLI Modified it 2025-09-09 07:38:05
 return  [
   'ROUTES' =>
   [
@@ -6,7 +6,17 @@ return  [
     [
       '/users' =>
       [
-        'middlewares' => ['m_auth_v1'],
+        'middlewares' =>
+        [
+          'auth' => NULL,
+        ],
+        'try' =>
+        [
+          'test' =>
+          [
+            'test' => NULL,
+          ],
+        ],
       ],
       '/users/:id' =>
       [],
