@@ -774,10 +774,10 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
     // a matched Method/Route in the Routes File unless it already exists there!
     // Anonymous Function "pipeline" Files does not apply, but "middlewares" does
     elseif ($method && $route) {
-        // NEW route/{subfolder}/file.php=>function for method/route (unless it already exists which is OK)
+        // Create a new Method and/or Route depending on if it exists or not
         $methodExistsInROUTES = false;
         $routeExistsInROUTES = false;
-        if ($folderType === 'routes') {
+        if ($folderType === 'routes' || $folderType === 'middlewares') {
             if (!isset($arg1) || !is_string($arg1) || empty($arg1) || !preg_match($methodRouteRegex, $arg1)) {
                 cli_err_without_exit("No Valid Method/Route provided when wanting to only Create a New Route! `($cmd:$firstParam)`");
                 cli_info_without_exit("Syntax is: `funk make:r method/route` like `funk make:r g/users` OR `funk make:r post/users`!");
@@ -823,57 +823,76 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
                 cli_sort_build_routes_compile_and_output(["ROUTES" => $ROUTES]);
                 cli_success_without_exit("Created Method/Route `$method$route` in `funkphp/routes/routes.php`!");
             }
-            // Method + Route has now been created if they did not exist before
+        }
+        // Method + Route has now been created if they did not exist before (unless error before this)
+
+        // NEW route/{subfolder}/file.php=>function for method/route (unless it already exists which is OK)
+        if ($folderType === 'routes') {
+            // If folder path does not exist, we attempt creating it which also means
+            // that file and its fn does NOT exist so we will pass crudType "create_new_file_and_fn"
+            if (!$statusArray['folder_path']) {
+                if (!mkdir(PROJECT_DIR . '/' . $folder, 0755, true)) {
+                    cli_err("FAILED to Create Folder `$folder`! Verify File Permissions and try again.");
+                }
+                $createStatus = cli_crud_folder_and_php_file($statusArray, "create_new_file_and_fn", $file, $fn, "routes");
+                if ($createStatus) {
+                    cli_success_without_exit("SUCCESSFULLY Created File `$file.php` with Function `$fn` in Folder `$folder`!");
+                    cli_info_without_exit("The Route File `$file.php` is now ready to be used in your Routes. You did not provide a Method/Route so it will not be automatically added to any Route. You can add it manually later on!");
+                    if (JSON_MODE) {
+                        cli_info("Add it manually with the following JSON Syntax: `{ \"command\": \"add:$firstParam\", \"arg1\": \"$file=>$fn\", \"arg2\": \"<method/route>\" }`");
+                    } else {
+                        cli_info("Add it manually in the CLI by typing `funk add:$firstParam $file=>$fn <method/route>`!");
+                    }
+                } else {
+                    cli_err("FAILED to Create File `$file.php` with Function `$fn` in Folder `$folder`!");
+                }
+            }  // Here crudType is "create_only_new_fn_in_file" unless the file does not exist
+            else {
+                // File does not exist meaning crudType "create_new_file_and_fn"
+                if (!$statusArray['file_exists']) {
+                    $createStatus = cli_crud_folder_and_php_file($statusArray, "create_new_file_and_fn", $file, $fn, "routes");
+                    if ($createStatus) {
+                        cli_success_without_exit("SUCCESSFULLY Created File `$file.php` with Function `$fn` in Folder `$folder`!");
+                        cli_info_without_exit("The Route File `$file.php` is now ready to be used in your Routes. You did not provide a Method/Route so it will not be automatically added to any Route. You can add it manually later on!");
+                        if (JSON_MODE) {
+                            cli_info("Add it manually with the following JSON Syntax: `{ \"command\": \"add:$firstParam\", \"arg1\": \"$file=>$fn\", \"arg2\": \"<method/route>\" }`");
+                        } else {
+                            cli_info("Add it manually in the CLI by typing `funk add:$firstParam $file=>$fn <method/route>`!");
+                        }
+                    } else {
+                        cli_err("FAILED to Create File `$file.php` with Function `$fn` in Folder `$folder`!");
+                    }
+                }
+                // crudType is now "create_only_new_fn_in_file" since file exists
+                // unless function already exists in the file!
+                else {
+                    // Function already exists in the file
+                    if (isset($statusArray['functions'][$fn])) {
+                        cli_err_without_exit("Function `$fn` already exists in File `$file.php` in Folder `$folder`!");
+                        cli_info("Change File and/or Function Name and try again for `$folder`!");
+                    }
+                    // Function does not exist in the file so
+                    // crudType "create_only_new_fn_in_file"
+                    else {
+                        $createStatus = cli_crud_folder_and_php_file($statusArray, "create_only_new_fn_in_file", $file, $fn, "routes");
+                        if ($createStatus) {
+                            cli_success_without_exit("SUCCESSFULLY Created Function `$fn` in File `$file.php` in Folder `$folder`!");
+                            cli_info_without_exit("The Route File `$file.php` is now ready to be used in your Routes. You did not provide a Method/Route so it will not be automatically added to any Route. You can add it manually later on!");
+                            if (JSON_MODE) {
+                                cli_info("Add it manually with the following JSON Syntax: `{ \"command\": \"add:$firstParam\", \"arg1\": \"$file=>$fn\", \"arg2\": \"<method/route>\" }`");
+                            } else {
+                                cli_info("Add it manually in the CLI by typing `funk add:$firstParam $file=>$fn <method/route>`!");
+                            }
+                        } else {
+                            cli_err("FAILED to Create Function `$fn` in File `$file.php` in Folder `$folder`!");
+                        }
+                    }
+                }
+            }
         }
 
         // NEW middlewares/function_file.php for method/route (unless it already exists which is OK)
         elseif ($folderType === 'middlewares') {
-            if (!isset($arg1) || !is_string($arg1) || empty($arg1) || !preg_match($methodRouteRegex, $arg1)) {
-                cli_err_without_exit("No Valid Method/Route provided when wanting to only Create a New Route! `($cmd:$firstParam)`");
-                cli_info_without_exit("Syntax is: `funk make:r method/route` like `funk make:r g/users` OR `funk make:r post/users`!");
-                cli_info("Notice the support for shorthand versions \"g\", \"po\", \"pu\", \"d\" OR \"del\", \"pa\" for GET, POST, PUT, DELETE and PATCH respectively!");
-            }
-            [$method, $route] =  cli_return_valid_method_n_route_or_err_out($arg1);
-            // We first check if $method exists even in $ROUTES because if it does not then we also know route neither does!
-            if (!array_key_exists($method, $ROUTES)) {
-                $methodExistsInROUTES = false;
-                $routeExistsInROUTES = false;
-            } // Method exist, so check that Route exists in that Method, even dynamic ones
-            else if (array_key_exists($method, $ROUTES)) {
-                $methodExistsInROUTES = true;
-                if (array_key_exists($route, $ROUTES[$method])) {
-                    $routeExistsInROUTES = true;
-                } else {
-                    // Check against conflicting Dynamic Routes when they are on the same URI Segment level at the end
-                    // For example: `GET/users/:id` and `GET/users/:id2` because they are on the same level at the end
-                    // We error out because we do not want two conflicting dynamic routes on the same level at the end
-                    $troute = $singleTroute;
-                    $findDynamicRoute = cli_match_developer_route($method, $route, $troute, $ROUTES, $ROUTES);
-                    if ($findDynamicRoute['route'] !== null) {
-                        cli_err_without_exit("Found Dynamic Route \"{$findDynamicRoute['method']}{$findDynamicRoute['route']}\" in Trie Routes would conflict with \"$method$route\".");
-                        cli_info("Run `php funk recompile|rc` to rebuild Trie Routes if You Manually Removed that Route from `funkphp/routes/routes.php` you want to add again!");
-                    }
-                    $routeExistsInROUTES = false;
-                }
-            }
-            // Here we now know if Method and/or Route exists or not
-            // CASE 1: Method does not exist, thus Route neither does
-            if (!$methodExistsInROUTES) {
-                $ROUTES[$method] = [];
-                $ROUTES[$method][$route] = [];
-                cli_info_without_exit("Added New Method and New Route to it... Attempting to rebuild the Trie & Route File Now... If it fails, the Route will NOT have been added and you will have to try again!");
-                cli_sort_build_routes_compile_and_output(["ROUTES" => $ROUTES]);
-                cli_success_without_exit("Created New Valid Method `$method` in `funkphp/routes/routes.php`!");
-                cli_success_without_exit("Created Method/Route `$method$route` in `funkphp/routes/routes.php`!");
-            }
-            // CASE 2: Method exists but not Route
-            else if (!$routeExistsInROUTES) {
-                $ROUTES[$method][$route] = [];
-                cli_info_without_exit("Added New Route to it... Attempting to rebuild the Trie & Route File Now... If it fails, the Route will NOT have been added and you will have to try again!");
-                cli_sort_build_routes_compile_and_output(["ROUTES" => $ROUTES]);
-                cli_success_without_exit("Created Method/Route `$method$route` in `funkphp/routes/routes.php`!");
-            }
-            // Method + Route has now been created if they did not exist before
         }
         // UNEXECPTED AND IMPOSSIBLE EDGE-CASE
         else {
