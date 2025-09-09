@@ -400,6 +400,7 @@ $cmd = '';
 $firstParam = '';
 $tableRegex = '/^(((sd|si|s|i|u|d)=)?[a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]*(\*[0-9]+)?)*$/i';
 $methodRouteRegex = '/^(([a-z]+\/)|([a-z]+(\/[:]?[a-zA-Z0-9]+)+))$/i';
+$routeDynamicEndRegex = '/\/:[a-zA-Z-_0-9]+$/i'; // check if route ends with "/:something" meaning it is dynamic
 $fileWithOptionalFnRegex = '/^([a-z][a-z0-9_]+)(=>([a-z0-9_.]+))?$/i';
 
 // SPECIAL-CASE: Command to Recompile
@@ -572,13 +573,14 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
                 cli_err_without_exit("Route `$method$route` already exists in `funkphp/routes/routes.php`! Please provide a different Route OR Method/Route!");
                 cli_info("You can add Route Keys to this Route by running `funk add:subfolder_in_funkphp File=>Function $method$route`!");
             } else {
-                // Check against conflicting Dynamic Routes when they are on the same URI Segment level at the end
-                // For example: `GET/users/:id` and `GET/users/:id2` because they are on the same level at the end
-                $troute = $singleTroute;
-                $findDynamicRoute = cli_match_developer_route($method, $route, $troute, $ROUTES, $ROUTES);
-                if ($findDynamicRoute['route'] !== null) {
-                    cli_err_without_exit("Found Dynamic Route \"{$findDynamicRoute['method']}{$findDynamicRoute['route']}\" in Trie Routes would conflict with \"$method$route\".");
-                    cli_info("Run `php funk recompile|rc` to rebuild Trie Routes if You Manually Removed that Route from `funkphp/routes/routes.php` you want to add again!");
+                // Check for dynamic conflicting routes in Trie Routes if the new route ends with a dynamic part like "/:something"
+                if (preg_match($routeDynamicEndRegex, $route)) {
+                    $troute = $singleTroute;
+                    $findDynamicRoute = cli_match_developer_route($method, $route, $troute, $ROUTES, $ROUTES);
+                    if ($findDynamicRoute['route'] !== null) {
+                        cli_err_without_exit("Found Dynamic Route \"{$findDynamicRoute['method']}{$findDynamicRoute['route']}\" in Trie Routes would conflict with \"$method$route\".");
+                        cli_info("Run `php funk recompile|rc` to rebuild Trie Routes if You Manually Removed that Route from `funkphp/routes/routes.php` you want to add again!");
+                    }
                 }
 
                 // Here a new Route is added to the Method because it does not already exist
@@ -626,7 +628,7 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
     // Grab status for the folder and file so we can check whether
     // we can even access it, if it exists, is writable, etc.
     $statusArray = cli_folder_and_php_file_status($folder, $file);
-    var_dump($file, $fn, $method, $route, $folder, $routeKey);
+    var_dump("File: " . $file, "Fn: " . $fn, "Method: " . $method, "Route: " . $route, "Folder: " . $folder, "RouteKey: " . $routeKey, $statusArray);
 
     // NO METHOD & ROUTE WAS PROVIDED - This is automatically
     // forced when making/creating "pipeline"/"sql"/"validation"
@@ -661,6 +663,7 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
                 if (!mkdir(PROJECT_DIR . '/' . $folder, 0755, true)) {
                     cli_err("FAILED to Create Folder `$folder`! Verify File Permissions and try again.");
                 }
+                $statusArray = cli_folder_and_php_file_status($folder, $file);
                 $createStatus = cli_crud_folder_and_php_file($statusArray, "create_new_file_and_fn", $file, $fn, "routes");
                 if ($createStatus) {
                     cli_success_without_exit("SUCCESSFULLY Created File `$file.php` with Function `$fn` in Folder `$folder`!");
@@ -801,11 +804,13 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
                     // Check against conflicting Dynamic Routes when they are on the same URI Segment level at the end
                     // For example: `GET/users/:id` and `GET/users/:id2` because they are on the same level at the end
                     // We error out because we do not want two conflicting dynamic routes on the same level at the end
-                    $troute = $singleTroute;
-                    $findDynamicRoute = cli_match_developer_route($method, $route, $troute, $ROUTES, $ROUTES);
-                    if ($findDynamicRoute['route'] !== null) {
-                        cli_err_without_exit("Found Dynamic Route \"{$findDynamicRoute['method']}{$findDynamicRoute['route']}\" in Trie Routes would conflict with \"$method$route\".");
-                        cli_info("Run `php funk recompile|rc` to rebuild Trie Routes if You Manually Removed that Route from `funkphp/routes/routes.php` you want to add again!");
+                    if (preg_match($routeDynamicEndRegex, $route)) {
+                        $troute = $singleTroute;
+                        $findDynamicRoute = cli_match_developer_route($method, $route, $troute, $ROUTES, $ROUTES);
+                        if ($findDynamicRoute['route'] !== null) {
+                            cli_err_without_exit("Found Dynamic Route \"{$findDynamicRoute['method']}{$findDynamicRoute['route']}\" in Trie Routes would conflict with \"$method$route\".");
+                            cli_info("Run `php funk recompile|rc` to rebuild Trie Routes if You Manually Removed that Route from `funkphp/routes/routes.php` you want to add again!");
+                        }
                     }
                     $routeExistsInROUTES = false;
                 }
@@ -839,6 +844,7 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
                 if (!mkdir(PROJECT_DIR . '/' . $folder, 0755, true)) {
                     cli_err("FAILED to Create Folder `$folder`! Verify File Permissions and try again.");
                 }
+                $statusArray = cli_folder_and_php_file_status($folder, $file);
                 $createStatus = cli_crud_folder_and_php_file($statusArray, "create_new_file_and_fn", $file, $fn, "routes");
                 if ($createStatus) {
                     cli_success_without_exit("SUCCESSFULLY Created File `$file.php` with Function `$fn` in Folder `$folder`. Adding `$fn=>$fn` as Route Key to Method/Route `$method$route` now...");
@@ -896,6 +902,13 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
 
         // NEW middlewares/function_file.php for method/route (unless it already exists which is OK)
         elseif ($folderType === 'middlewares') {
+            $createStatus = cli_crud_folder_and_php_file($statusArray, "create_new_anonymous_file", $file, null, "middlewares");
+            if ($createStatus) {
+                cli_success_without_exit("SUCCESSFULLY Created Single Anonymous Function File `$file.php` in Folder `$folder`!");
+                cli_info_without_exit("The Middlewares File `$file.php` is now ready to be used in your Routes. You did not provide a Method/Route so it will not be automatically added to any Route. You can add it manually later on!");
+            } else {
+                cli_err("FAILED to Create Single Anonymous Function File `$file.php` in Folder `$folder`!");
+            }
         }
         // UNEXECPTED AND IMPOSSIBLE EDGE-CASE
         else {
