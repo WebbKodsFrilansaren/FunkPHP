@@ -825,6 +825,7 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
             }
         }
         // Method + Route has now been created if they did not exist before (unless error before this)
+        $routeFileAndKeyCreated = false;
 
         // NEW route/{subfolder}/file.php=>function for method/route (unless it already exists which is OK)
         if ($folderType === 'routes') {
@@ -836,15 +837,10 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
                 }
                 $createStatus = cli_crud_folder_and_php_file($statusArray, "create_new_file_and_fn", $file, $fn, "routes");
                 if ($createStatus) {
-                    cli_success_without_exit("SUCCESSFULLY Created File `$file.php` with Function `$fn` in Folder `$folder`!");
-                    cli_info_without_exit("The Route File `$file.php` is now ready to be used in your Routes. You did not provide a Method/Route so it will not be automatically added to any Route. You can add it manually later on!");
-                    if (JSON_MODE) {
-                        cli_info("Add it manually with the following JSON Syntax: `{ \"command\": \"add:$firstParam\", \"arg1\": \"$file=>$fn\", \"arg2\": \"<method/route>\" }`");
-                    } else {
-                        cli_info("Add it manually in the CLI by typing `funk add:$firstParam $file=>$fn <method/route>`!");
-                    }
+                    cli_success_without_exit("SUCCESSFULLY Created File `$file.php` with Function `$fn` in Folder `$folder`. Adding `$fn=>$fn` as Route Key to Method/Route `$method$route` now...");
+                    $routeFileAndKeyCreated = true;
                 } else {
-                    cli_err("FAILED to Create File `$file.php` with Function `$fn` in Folder `$folder`!");
+                    cli_err("FAILED to Create File `$file.php` with Function `$fn` in Folder `$folder`.  Method/Route `$method$route` was created but no Route Key was added to it!");
                 }
             }  // Here crudType is "create_only_new_fn_in_file" unless the file does not exist
             else {
@@ -852,15 +848,10 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
                 if (!$statusArray['file_exists']) {
                     $createStatus = cli_crud_folder_and_php_file($statusArray, "create_new_file_and_fn", $file, $fn, "routes");
                     if ($createStatus) {
-                        cli_success_without_exit("SUCCESSFULLY Created File `$file.php` with Function `$fn` in Folder `$folder`!");
-                        cli_info_without_exit("The Route File `$file.php` is now ready to be used in your Routes. You did not provide a Method/Route so it will not be automatically added to any Route. You can add it manually later on!");
-                        if (JSON_MODE) {
-                            cli_info("Add it manually with the following JSON Syntax: `{ \"command\": \"add:$firstParam\", \"arg1\": \"$file=>$fn\", \"arg2\": \"<method/route>\" }`");
-                        } else {
-                            cli_info("Add it manually in the CLI by typing `funk add:$firstParam $file=>$fn <method/route>`!");
-                        }
+                        cli_success_without_exit("SUCCESSFULLY Created File `$file.php` with Function `$fn` in Folder `$folder`. Adding `$fn=>$fn` as Route Key to Method/Route `$method$route` now...");
+                        $routeFileAndKeyCreated = true;
                     } else {
-                        cli_err("FAILED to Create File `$file.php` with Function `$fn` in Folder `$folder`!");
+                        cli_err("FAILED to Create File `$file.php` with Function `$fn` in Folder `$folder`. Method/Route `$method$route` was created but no Route Key was added to it!");
                     }
                 }
                 // crudType is now "create_only_new_fn_in_file" since file exists
@@ -868,26 +859,26 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
                 else {
                     // Function already exists in the file
                     if (isset($statusArray['functions'][$fn])) {
-                        cli_err_without_exit("Function `$fn` already exists in File `$file.php` in Folder `$folder`!");
-                        cli_info("Change File and/or Function Name and try again for `$folder`!");
+                        cli_info_without_exit("Function `$fn` already exists in File `$file.php` in Folder `$folder`. Adding `$fn=>$fn` as Route Key to Method/Route `$method$route` now...");
+                        $routeFileAndKeyCreated = true;
                     }
                     // Function does not exist in the file so
                     // crudType "create_only_new_fn_in_file"
                     else {
                         $createStatus = cli_crud_folder_and_php_file($statusArray, "create_only_new_fn_in_file", $file, $fn, "routes");
                         if ($createStatus) {
-                            cli_success_without_exit("SUCCESSFULLY Created Function `$fn` in File `$file.php` in Folder `$folder`!");
-                            cli_info_without_exit("The Route File `$file.php` is now ready to be used in your Routes. You did not provide a Method/Route so it will not be automatically added to any Route. You can add it manually later on!");
-                            if (JSON_MODE) {
-                                cli_info("Add it manually with the following JSON Syntax: `{ \"command\": \"add:$firstParam\", \"arg1\": \"$file=>$fn\", \"arg2\": \"<method/route>\" }`");
-                            } else {
-                                cli_info("Add it manually in the CLI by typing `funk add:$firstParam $file=>$fn <method/route>`!");
-                            }
+                            cli_success_without_exit("SUCCESSFULLY Created Function `$fn` in File `$file.php` in Folder `$folder`. Adding `$fn=>$fn` as Route Key to Method/Route `$method$route` now...");
+                            $routeFileAndKeyCreated = true;
                         } else {
-                            cli_err("FAILED to Create Function `$fn` in File `$file.php` in Folder `$folder`!");
+                            cli_err("FAILED to Create Function `$fn` in File `$file.php` in Folder `$folder`.  Method/Route `$method$route` was created but no Route Key was added to it!");
                         }
                     }
                 }
+            }
+
+            // If File=>Fn failed (even if it existed already) then we error out, else we continue!
+            if (!$routeFileAndKeyCreated) {
+                cli_err("Could NOT add Route Key `$file=>$fn` to Method/Route `$method$route` since File and/or Function failed to be created. `$method$route` remains created and added to `Routes` though!");
             }
         }
 
