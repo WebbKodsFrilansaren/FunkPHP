@@ -15,23 +15,30 @@ function array_key_exists_in_list($key, $listArray, $returnIndex = false)
     return false;
 }
 
-// Helper that checks that an array key is a single associative array
-// like "Key" => ["subkey" => <value>] meaning one subkey with one value (which can be any datatype)
-function array_key_is_single_associative($array_key)
+/**
+ * Checks if a given array has the exact 'subfolder => file => function => value' structure.
+ * This function validates that each level is a single-key associative array.
+ * WRITTEN BY: LLMs!
+ * @param array $array The route key array to validate.
+ * @return bool True if the structure is valid, false otherwise.
+ */
+function is_valid_route_key_structure($array): bool
 {
-    if (!is_array($array_key) || empty($array_key) || array_is_list($array_key)) {
+    // Check level 1: The outer array must be a single-key associative array.
+    if (!is_array($array) || count($array) !== 1 || array_is_list($array)) {
         return false;
     }
-    if (count($array_key) !== 1) {
+    $fileArray = reset($array);
+    // Check level 2: The value of the first key must be a single-key associative array.
+    if (!is_array($fileArray) || count($fileArray) !== 1 || array_is_list($fileArray)) {
         return false;
     }
-    $firstValue = reset($array_key);
-    if (!is_array($firstValue) || empty($firstValue) || array_is_list($firstValue)) {
+    $functionArray = reset($fileArray);
+    // Check level 3: The value of the second key must be a single-key associative array.
+    if (!is_array($functionArray) || count($functionArray) !== 1 || array_is_list($functionArray)) {
         return false;
     }
-    if (count($firstValue) !== 1) {
-        return false;
-    }
+    // As long as the structure is met, return true.
     return true;
 }
 
