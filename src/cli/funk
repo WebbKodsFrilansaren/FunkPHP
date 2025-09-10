@@ -397,7 +397,7 @@ if (!is_string($command) || empty($command)) {
 $cmd = '';
 $firstParam = '';
 $tableRegex = '/^(((sd|si|s|i|u|d)=)?[a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]*(\*[0-9]+)?)*$/i';
-$methodRouteRegex = '/^(([a-z]+\/)|([a-z]+(\/[:]?[a-zA-Z0-9]+)+))$/i';
+$methodRouteRegex = '/^(([a-z]+\/)|([a-z]+(\/[:]?[a-zA-Z0-9_-]+)+))$/i';
 $routeDynamicEndRegex = '/\/:[a-zA-Z-_0-9]+$/i'; // check if route ends with "/:something" meaning it is dynamic
 $fileWithOptionalFnRegex = '/^([a-z][a-z0-9_]+)(=>([a-z0-9_.]+))?$/i';
 
@@ -567,8 +567,10 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
         // "else" means Method exist, but we do not know if Route exists in that Method
         else {
             if (array_key_exists($route, $ROUTES[$method])) {
-                cli_err_without_exit("Route `$method$route` already exists in `funkphp/routes/routes.php`! Please provide a different Route OR Method/Route!");
-                cli_info("You can add Route Keys to this Route by running `funk add:subfolder_in_funkphp File=>Function $method$route`!");
+                cli_err_without_exit("Route `$method$route` already exists in `funkphp/routes/routes.php`! Please provide a different Route OR Method/Route. Here is Status of that Method/Route:");
+                $routeStatus = cli_route_status($ROUTES, $method, $route);
+                var_dump($routeStatus);
+                cli_info("You can add (additional) Route Keys to this Route by running `php funk make:subfolder_in_funkphp_routes_folder File=>Function $method$route`!");
             } else {
                 // Check for dynamic conflicting routes in Trie Routes if the new route ends with a dynamic part like "/:something"
                 if (preg_match($routeDynamicEndRegex, $route)) {
@@ -585,7 +587,7 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
                 cli_info_without_exit("Added New Route `$route` to Method `$method` in `funkphp/routes/routes.php`... Attempting to rebuild the Trie & Route File Now... If it fails, the Route will NOT have been added and you will have to try again!");
                 cli_sort_build_routes_compile_and_output(["ROUTES" => $ROUTES]);
                 cli_success_without_exit("Created Method/Route `$method$route` in `funkphp/routes/routes.php`!");
-                cli_info("You can now add Route Keys to this Route by running `funk add:subfolder_in_funkphp File=>Function $method$route`!");
+                cli_info("You can now add  Route Keys to this Route by running `php funk make:subfolder_in_funkphp_routes_folder File=>Function $method$route`!");
             }
         }
     } // END OF SPECIAL_CASE: Only adding a Route to `funkphp/routes/routes.php`

@@ -1,10 +1,14 @@
 <?php // SECOND CLI FUNCTIONS FILE SINCE SECOND ONE STARTED TO BECOME TOO LARGE!
 
 // Helper that checks if a key exists in a list of associative arrays
-function array_key_exists_in_list($key, $listArray)
+// Can also return the index of the first occurrence if $returnIndex is true
+function array_key_exists_in_list($key, $listArray, $returnIndex = false)
 {
-    foreach ($listArray as $item) {
+    foreach ($listArray as $idx => $item) {
         if (array_key_exists($key, $item)) {
+            if ($returnIndex) {
+                return $idx;
+            }
             return true;
         }
     }
@@ -847,6 +851,157 @@ function cli_default_created_fn_files($type, $methodAndRoute, $folder, $file, $f
     }
 
     return $entireCreatedString;
+}
+
+// Returns the status of a method/route in the routes.php file
+function cli_route_status(&$ROUTES, $method, $route)
+{
+    // Validate that &$ROUTES is an associative array
+    if (!isset($ROUTES) || !is_array($ROUTES) || !array_is_list($ROUTES)) {
+        cli_err_without_exit('[cli_route_status()]: &$ROUTES must be An Associative Array! (passed by reference)');
+        cli_info('[cli_route_status()]: Use the `$ROUTES` variable from `funkphp/routes.php` file which is an Associative Array passed by reference as the first argument!');
+    }
+
+    // Validate that $method is a non-empty string that starts with
+    // either "GET", "POST", "PUT", "DELETE", or "PATCH",
+    if (!isset($method) || !is_string($method) || empty($method) || !in_array(strtoupper($method), ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'])) {
+        cli_err_without_exit('[cli_route_status()]: $method must be A Valid Non-Empty String! (whitespace is NOT allowed)');
+        cli_info('[cli_route_status()]: Use either "GET", "POST", "PUT", "DELETE", or "PATCH" as the `$method`! (first arg)');
+    }
+    // Validate that $route is a non-empty string which can be any characters except whitespaces or new lines
+    if (!isset($route) || !is_string($route) || empty($route) || !preg_match('/^((\/)|((\/[:]?[a-zA-Z0-9_-]+)+))$/i', strtolower($route))) {
+        cli_err_without_exit('[cli_route_status()]: $route must be A Valid Non-Empty String! (whitespace is NOT allowed)');
+        cli_info("[cli_route_status()]: The Regex Syntax for Route:`/^((\/)|((\/[:]?[a-zA-Z0-9_-]+)+))$/i`!");
+    }
+    // Default values until proven otherwise
+    $routeExists = false;
+    $methodExists = false;
+
+    // Middlewares related
+    $middlewaresExist = false;
+    $middlewares = [];
+    $inheritedMiddlewares = [];
+
+    // Route keys related
+    $routeKeysExist = false;
+    $routeKeys = [];
+
+    // This will include warnings about route when it exists but has potential issues
+    // However, it will NOT provide any warnings, instead check for the count!
+    $WARNINGS = [
+        'ROUTE_NOT_LIST_ARRAY' => 'Route is NOT a Numbererd Array!',
+        'NO_ROUTE_KEYS' => 'Route has NO Route Keys defined!',
+        'DUPLICATE_ROUTE_KEYS' => 'Route has DUPLICATE Route Keys: ',
+        'MIDDLEWARES_ONLY_EXIST' => 'Route has ONLY Middlewares and no other Route Keys!',
+        'MIDDLEWARES_NOT_LIST_ARRAY' => 'Route Middlewares is NOT a Numbered Array!',
+        'MIDDLEWARES_NOT_FIRST_POSITION' => 'Route Middlewares is NOT at the First Position [0] of the Route Array!',
+        'ROUTE_KEYS_NOT_LIST_ARRAY' => 'Route Keys is NOT a Numbered Array!',
+        'ROUTE_KEY_NOT_ARRAY' => 'Route Key is NOT an Associative Array!',
+    ];
+    $routeWarnings = [];
+
+    // Method & Route exists?
+    if (isset($ROUTES[$method])) {
+        // Route in that Method exists?
+        if (isset($ROUTES[$method][$route])) {
+            // Existing Route in existing Method is numbered array?
+            if (is_array($ROUTES[$method][$route]) && array_is_list($ROUTES[$method][$route])) {
+                $routeExists = true;
+                $methodExists = true;
+            }
+            // Invalid Route in existing Method - not a numbered array
+            else {
+                $routeWarnings[] = $WARNINGS['ROUTE_NOT_LIST_ARRAY'];
+                $methodExists = true;
+            }
+        }
+        // Method exist but not Route
+        else {
+            $methodExists = true;
+        }
+    }
+    // here "else" just means method does not exist
+    else {
+    }
+
+    // Now we check inside of $route that DOES exist
+    if ($routeExists) {
+        $foundRoute = $ROUTES[$method][$route];
+
+        // No Route Keys?
+        if (empty($foundRoute)) {
+            $routeWarnings[] = $WARNINGS['NO_ROUTE_KEYS'];
+        }
+        // OK, Route Keys exist, let's examine more
+        else {
+            $routeKeysExist = true;
+            // Check for middlewares at the first position [0]
+            if (isset($foundRoute[0]) && is_array($foundRoute[0]) && array_key_exists('middlewares', $foundRoute[0])) {
+                $middlewaresExist = true;
+                $middlewares = $foundRoute[0]['middlewares'];
+
+                // Check if middlewares is a numbered array (important for order)
+                if (!is_array($middlewares) || !array_is_list($middlewares)) {
+                    $routeWarnings[] = $WARNINGS['MIDDLEWARES_NOT_LIST_ARRAY'];
+                }
+            }
+            // Special case:  $middlewaresExist is true and no other route keys exist
+            if ($middlewaresExist && count($foundRoute) === 1) {
+                $routeWarnings[] = $WARNINGS['MIDDLEWARES_ONLY_EXIST'];
+            }
+
+            // Iterate through all other route keys (excluding the first if it's middlewares)
+            foreach ($foundRoute as $key => $routeKeyArray) {
+                // Skip the middlewares key if it was the first element
+                if ($key === 0 && array_key_exists('middlewares', $routeKeyArray)) {
+                    continue;
+                }
+                // Special warning case: if middlewares found but not at first position
+                if (!$middlewaresExist && $key > 0 && array_key_exists('middlewares', $routeKeyArray)) {
+                    $routeWarnings[] = $WARNINGS['MIDDLEWARES_NOT_FIRST_POSITION'];
+                    $middlewaresExist = true;
+                    $middlewares = $routeKeyArray['middlewares'];
+                    // Check if middlewares is a numbered array (important for order)
+                    if (!is_array($middlewares) || !array_is_list($middlewares)) {
+                        $routeWarnings[] = $WARNINGS['MIDDLEWARES_NOT_LIST_ARRAY'];
+                    }
+                    continue;
+                }
+                // Special warning case: if middlewares found but not at first position and we already found
+                // it somewhere else also wrong so now we also found a duplicate (or we found it at first position)
+                // but now a duplicate somewhere else
+                if ($middlewaresExist && $key > 0 && array_key_exists('middlewares', $routeKeyArray)) {
+                    $routeWarnings[] = $WARNINGS['DUPLICATE_ROUTE_KEYS'] . "'middlewares'";
+                    continue;
+                }
+
+                // Extract and store all other route keys
+                if (is_array($routeKeyArray)) {
+                    $routeKeyName = key($routeKeyArray);
+                    if (array_key_exists_in_list($routeKeyName, $routeKeys)) {
+                        $routeWarnings[] = $WARNINGS['DUPLICATE_ROUTE_KEYS'] . "'$routeKeyName'";
+                    }
+                    $routeKeys[] = [$routeKeyName => $routeKeyArray[$routeKeyName]];
+                } else {
+                    $routeWarnings[] = $WARNINGS['ROUTE_KEY_NOT_ARRAY'];
+                }
+            }
+        }
+    }
+
+    return [
+        "method_provided" => strtoupper($method),
+        "route_provided" => strtolower($route),
+        "method_exists" => $methodExists,
+        "route_exists" => $routeExists,
+        "method_route_exists" => ($methodExists && $routeExists),
+        "middlewares_exist" => $middlewaresExist,
+        "middlewares_in_route" => $middlewares,
+        "middlewares_inherited" => $inheritedMiddlewares,
+        "route_keys_exist" => $routeKeysExist,
+        "route_keys" => $routeKeys,
+        "possible_issues" => $routeWarnings,
+    ];
 }
 
 // Returns an array of status of $folder & $file and whether they:

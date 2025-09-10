@@ -16,6 +16,13 @@ return  [
             ],
           ],
         ],
+        1 =>
+        [
+          'middlewares' =>
+          [
+            0 => ['auth' => NULL],
+          ],
+        ]
       ],
       '/users/:id' =>
       [
