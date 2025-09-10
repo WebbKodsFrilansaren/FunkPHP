@@ -888,13 +888,16 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
             if (!$routeFileAndKeyCreated) {
                 cli_err("Could NOT add Route Key `$file=>$fn` to Method/Route `$method$route` since File and/or Function failed to be created. `$method$route` remains created and added to `Routes` though!");
             }
-            if (!array_key_exists($routeKey, $ROUTES[$method][$route])) {
-                $ROUTES[$method][$route][$routeKey][$file][$fn] = null;
-                cli_info_without_exit("Added Route Key `$file=>$fn` to Method/Route `$method$route`... Attempting to rebuild the Trie & Route File Now... If it fails, the Route Key will NOT have been added and you will have to try again!");
+
+            // If the route key does not exist, add it
+            // Else the route key already exists, inform the user
+            if (!array_key_exists_in_list($routeKey, $ROUTES[$method][$route])) {
+                $ROUTES[$method][$route][] = [$routeKey => [$file => [$fn => null]]];
+                cli_info_without_exit("Added Route Key `$file=>$fn` to Method/Route `$method$route`... Attempting to rebuild the Trie & Route File Now...");
                 cli_sort_build_routes_compile_and_output(["ROUTES" => $ROUTES]);
                 cli_success("Successfully Added Route Key `$file=>$fn` to Method/Route `$method$route` in `funkphp/routes/routes.php`!");
             } else {
-                cli_success("Routes Folder=>File=>Function `$routeKey=>$file=>$fn` already exists in Method/Route `$method$route` in `funkphp/routes/routes.php`! Nothing more to do!");
+                cli_success("***NO ROUTE KEY ADDED!*** Routes Folder=>File=>Function `$routeKey=>$file=>$fn` already exists in Method/Route `$method$route` in `funkphp/routes/routes.php`! Nothing more to do!");
             }
         }
 

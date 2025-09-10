@@ -1,5 +1,16 @@
 <?php // SECOND CLI FUNCTIONS FILE SINCE SECOND ONE STARTED TO BECOME TOO LARGE!
 
+// Helper that checks if a key exists in a list of associative arrays
+function array_key_exists_in_list($key, $listArray)
+{
+    foreach ($listArray as $item) {
+        if (array_key_exists($key, $item)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 // Two functions that are used to output messages in the CLI
 // and to send JSON responses when in JSON_MODE (web browser access)
 function cli_output(string $type, string $message, bool $do_exit = false, int $exit_code = 0): void
