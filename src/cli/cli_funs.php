@@ -138,8 +138,13 @@ function cli_return_valid_file_n_fn_or_err_out($string, $prefix = null)
     // Add prefix to both variables if provided
     // and then check against reserved functions
     if (isset($prefix) && is_string($prefix) && !empty($prefix)) {
-        $file = $prefix . $file;
-        $fn = $prefix . $fn;
+        // Check if file and/or function already starts with the prefix
+        if (!str_starts_with($file, $prefix)) {
+            $file = $prefix . $file;
+        }
+        if (!str_starts_with($fn, $prefix)) {
+            $fn = $prefix . $fn;
+        }
     }
     if (in_array($file, $reserved_functions)) {
         cli_err_without_exit('[cli_match_file_and_fn()]: File Name `' . $file . '` is a Reserved Function Name. Please choose a different name! (probably see $arg1)');

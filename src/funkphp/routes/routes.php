@@ -1,4 +1,4 @@
-<?php // Routes.php - FunkPHP Framework | FunkCLI Modified it 2025-09-10 09:40:12
+<?php // Routes.php - FunkPHP Framework | FunkCLI Modified it 2025-09-10 10:24:49
 return  [
   'ROUTES' =>
   [
@@ -13,6 +13,19 @@ return  [
             'test' =>
             [
               'test' => NULL,
+            ],
+          ],
+        ],
+      ],
+      '/users/:id' =>
+      [
+        0 =>
+        [
+          'try' =>
+          [
+            'test' =>
+            [
+              'test2' => NULL,
             ],
           ],
         ],
