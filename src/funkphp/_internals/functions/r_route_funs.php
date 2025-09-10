@@ -33,7 +33,7 @@ function funk_skip_post_request(&$c)
 // `pipeline` is the list of functions to always run for each request (unless any
 // of the functions terminates it early!) This is the main entry point for each request!
 // &$c is Global Config Variable with "everything"!
-function funk_run_pipeline_request(&$c)
+function funk_run_pipeline_request(&$c, $passedValue = null)
 {
     if (
         isset($c['<ENTRY>']['pipeline']['request'])
@@ -130,9 +130,26 @@ function funk_run_pipeline_request(&$c)
     }
 }
 
+// The "happy" version of `pipeline` meaning no checks are made for a
+// few bytecode instructions faster - maybe - so, use at own risk!!!
+function funk_run_pipeline_request_happy(&$c, $passedValue = null) {}
+
+// The "happy" version of `post-request` meaning no checks are made for a
+// few bytecode instructions faster - maybe - so, use at own risk!!!
+function funk_run_pipeline_post_request_happy(&$c, $passedValue = null) {}
+
+
+// The "happy" version of `middlewares` meaning no checks are made for a
+// few bytecode instructions faster - maybe - so, use at own risk!!!
+function funk_run_matched_route_middleware_happy(&$c, $passedValue = null) {}
+
+// The "happy" version of `route keys` meaning no checks are made for a
+// few bytecode instructions faster - maybe - so, use at own risk!!!
+function funk_run_matched_route_keys_happy(&$c, $passedValue = null) {}
+
 // Try run middlewares (recommended to do after matched routing)
 // &$c is Global Config Variable with "everything"!
-function funk_run_matched_route_middleware(&$c)
+function funk_run_matched_route_middleware(&$c, $passedValue = null)
 {
     if (isset($c['req']['matched_middlewares']) && is_array($c['req']['matched_middlewares']) && count($c['req']['matched_middlewares']) > 0) {
         $count = count($c['req']['matched_middlewares']);
@@ -274,7 +291,7 @@ function funk_run_matched_route_key(&$c, $key = null)
 };
 
 // Same as above but now it just iterates through all keys
-function funk_run_matched_route_keys(&$c)
+function funk_run_matched_route_keys(&$c, $passedValue = null)
 {
     foreach ($c['req']['route_keys'] as $key => $_) {
         // $key must be a non-empty string
@@ -334,7 +351,7 @@ function funk_run_matched_route_keys(&$c)
 // Try run middlewares AFTER handled request (and this can
 // also be due to being exited prematurely by the application)
 // &$c is Global Config Variable with "everything"!
-function funk_run_pipeline_post_request(&$c)
+function funk_run_pipeline_post_request(&$c, $passedValue = null)
 {
     if ($c['req']['skip_post-request']) {
         $c['err']['MAYBE']['PIPELINE']['POST-REQUEST']['funk_run_pipeline_post_request'][] = 'Post-Request Pipeline was skipped by the Application for HTTP(S) Request:' . (isset($c['req']['method']) && is_string($c['req']['method']) && !empty($c['req']['method'])) ?: "<UNKNOWN_METHOD>" . (isset($c['req']['route']) && is_string($c['req']['route']) && !empty($c['req']['route'])) ?: "<UNKNOWN_ROUTE>" . '. No Post-Request Pipeline Functions were run. If you expected some, check where the Function `funk_skip_post_request(&$c)` could have been ran for your HTTP(S) Request!';
