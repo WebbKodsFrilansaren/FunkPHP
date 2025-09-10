@@ -1,5 +1,5 @@
 <?php
-return function (&$c) {
+return function (&$c, $passedValue = null) {
     try {
         if (isset($_SERVER['SERVER_NAME']) && $_SERVER['SERVER_NAME'] !== "localhost" &&  $_SERVER['SERVER_NAME'] !== "127.0.0.1") {
             if (!isset($_SERVER['HTTPS']) || $_SERVER['HTTPS'] !== 'on') {

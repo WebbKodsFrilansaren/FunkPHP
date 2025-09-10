@@ -1,5 +1,5 @@
 <?php
-return function (&$c) {
+return function (&$c, $passedValue = null) {
     session_set_cookie_params([
         'lifetime' => $c['COOKIES']['SESSION_LIFETIME'],
         'path' => $c['COOKIES']['SESSION_PATH'],

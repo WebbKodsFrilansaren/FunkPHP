@@ -1,5 +1,5 @@
 <?php
-return function (&$c) {
+return function (&$c, $passedValue = null) {
     // Try parse (possibly proxy) IP and check if it is valid
     $ip = $_SERVER['REMOTE_ADDR'] ?? null;
     if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {

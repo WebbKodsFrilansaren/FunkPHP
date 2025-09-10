@@ -1,5 +1,5 @@
 <?php
-return function (&$c) {
+return function (&$c, $passedValue = null) {
     // Try parse UA and check if it is valid
     $ua = $_SERVER['HTTP_USER_AGENT'] ?? null;
     if ($ua === "" || $ua === null || !is_string($ua)) {

@@ -1,5 +1,5 @@
 <?php
-return function (&$c) {
+return function (&$c, $passedValue = null) {
     // Attempt connecting to the database creating a new mysqli object
     try {
         // Create a new mysqli object with the provided parameters

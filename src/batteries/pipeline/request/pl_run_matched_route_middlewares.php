@@ -1,4 +1,4 @@
-<?php return function (&$c) {
+<?php return function (&$c, $passedValue = null) {
     if ($c['req']['matched_middlewares'] !== null) {
         funk_run_matched_route_middleware($c);
     } else {
