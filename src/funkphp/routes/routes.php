@@ -8,6 +8,13 @@ return  [
       [
         0 =>
         [
+          'middlewares' =>
+          [
+            0 => ['auth' => NULL],
+          ],
+        ],
+        1 =>
+        [
           'try' =>
           [
             'test' =>
@@ -16,13 +23,6 @@ return  [
             ],
           ],
         ],
-        1 =>
-        [
-          'middlewares' =>
-          [
-            0 => ['auth' => NULL],
-          ],
-        ]
       ],
       '/users/:id' =>
       [

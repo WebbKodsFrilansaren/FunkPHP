@@ -15,6 +15,26 @@ function array_key_exists_in_list($key, $listArray, $returnIndex = false)
     return false;
 }
 
+// Helper that checks that an array key is a single associative array
+// like "Key" => ["subkey" => <value>] meaning one subkey with one value (which can be any datatype)
+function array_key_is_single_associative($array_key)
+{
+    if (!is_array($array_key) || empty($array_key) || array_is_list($array_key)) {
+        return false;
+    }
+    if (count($array_key) !== 1) {
+        return false;
+    }
+    $firstValue = reset($array_key);
+    if (!is_array($firstValue) || empty($firstValue) || array_is_list($firstValue)) {
+        return false;
+    }
+    if (count($firstValue) !== 1) {
+        return false;
+    }
+    return true;
+}
+
 // Two functions that are used to output messages in the CLI
 // and to send JSON responses when in JSON_MODE (web browser access)
 function cli_output(string $type, string $message, bool $do_exit = false, int $exit_code = 0): void
@@ -857,7 +877,7 @@ function cli_default_created_fn_files($type, $methodAndRoute, $folder, $file, $f
 function cli_route_status(&$ROUTES, $method, $route)
 {
     // Validate that &$ROUTES is an associative array
-    if (!isset($ROUTES) || !is_array($ROUTES) || !array_is_list($ROUTES)) {
+    if (!isset($ROUTES) || !is_array($ROUTES) || array_is_list($ROUTES)) {
         cli_err_without_exit('[cli_route_status()]: &$ROUTES must be An Associative Array! (passed by reference)');
         cli_info('[cli_route_status()]: Use the `$ROUTES` variable from `funkphp/routes.php` file which is an Associative Array passed by reference as the first argument!');
     }
@@ -889,14 +909,14 @@ function cli_route_status(&$ROUTES, $method, $route)
     // This will include warnings about route when it exists but has potential issues
     // However, it will NOT provide any warnings, instead check for the count!
     $WARNINGS = [
-        'ROUTE_NOT_LIST_ARRAY' => 'Route is NOT a Numbererd Array!',
-        'NO_ROUTE_KEYS' => 'Route has NO Route Keys defined!',
+        'ROUTE_NOT_LIST_ARRAY' => 'Route is NOT a Numbererd Array! No Iteration Done on Its Keys Thus! (This means one or more of its keys are NOT numeric)',
+        'NO_ROUTE_KEYS' => 'Route has NO Route Keys defined! (Consider adding one or more Route Keys OR delete the Method/Route!)',
         'DUPLICATE_ROUTE_KEYS' => 'Route has DUPLICATE Route Keys: ',
         'MIDDLEWARES_ONLY_EXIST' => 'Route has ONLY Middlewares and no other Route Keys!',
-        'MIDDLEWARES_NOT_LIST_ARRAY' => 'Route Middlewares is NOT a Numbered Array!',
+        'MIDDLEWARES_NOT_LIST_ARRAY' => 'Route Middlewares is NOT a Numbered Array! (This means one or more of its keys are NOT numeric)',
         'MIDDLEWARES_NOT_FIRST_POSITION' => 'Route Middlewares is NOT at the First Position [0] of the Route Array!',
-        'ROUTE_KEYS_NOT_LIST_ARRAY' => 'Route Keys is NOT a Numbered Array!',
-        'ROUTE_KEY_NOT_ARRAY' => 'Route Key is NOT an Associative Array!',
+        'ROUTE_KEYS_NOT_LIST_ARRAY' => 'Route Keys is NOT a Numbered Array! (This means one or more of its keys are NOT numeric)',
+        'ROUTE_KEY_NOT_ARRAY' => 'Route Key is NOT an Associative Array! (For some reason it is a different datatype?)',
     ];
     $routeWarnings = [];
 
@@ -976,7 +996,7 @@ function cli_route_status(&$ROUTES, $method, $route)
                 }
 
                 // Extract and store all other route keys
-                if (is_array($routeKeyArray)) {
+                if (is_array($routeKeyArray) && !empty($routeKeyArray) && array_is_list([$routeKeyArray]) === false) {
                     $routeKeyName = key($routeKeyArray);
                     if (array_key_exists_in_list($routeKeyName, $routeKeys)) {
                         $routeWarnings[] = $WARNINGS['DUPLICATE_ROUTE_KEYS'] . "'$routeKeyName'";
