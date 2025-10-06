@@ -1733,6 +1733,24 @@ function funk_validate_specials($inputName, $inputData, $validationValues, $cust
     return null;
 }
 
+// Validate that Input Data is a valid base64 string
+function funk_validate_base64($inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (!isset($inputData) || !is_string($inputData) || !preg_match('/([A-Z][a-z][0-9]\-_)*/', $inputData)) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName does not match the required pattern of a base64 string - only A-Z, a-z, 0-9, - and _ are allowed.";
+    }
+    return null;
+}
+
+// Validate that Input Data is NOT a base64 string but a string nonetheless
+function funk_validate_not_base64($inputName, $inputData, $validationValues, $customErr = null)
+{
+    if (!isset($inputData) || !is_string($inputData) || preg_match('/([A-Z][a-z][0-9]\-_)*/', $inputData)) {
+        return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must NOT be a base64 string.";
+    }
+    return null;
+}
+
 // Validate that Input Data matches a specific regex pattern provided in $validationValues
 // This can be used for validating strings, numbers, etc., if it can be regex-expressed!
 function funk_validate_regex($inputName, $inputData, $validationValues, $customErr = null)
