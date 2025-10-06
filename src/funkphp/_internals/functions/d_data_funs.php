@@ -1745,7 +1745,7 @@ function funk_validate_base64($inputName, $inputData, $validationValues, $custom
 // Validate that Input Data is NOT a base64 string but a string nonetheless
 function funk_validate_not_base64($inputName, $inputData, $validationValues, $customErr = null)
 {
-    if (!isset($inputData) || !is_string($inputData) || preg_match('/([A-Z][a-z][0-9]\-_)*/', $inputData)) {
+    if (isset($inputData) && is_string($inputData) && preg_match('/([A-Z][a-z][0-9]\-_)*/', $inputData)) {
         return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must NOT be a base64 string.";
     }
     return null;
