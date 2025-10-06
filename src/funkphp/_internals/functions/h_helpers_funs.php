@@ -517,10 +517,6 @@ function funk_cbor_decode_simplified_for_passkeys($data, &$offset = 0)
         if (!mb_check_encoding($str, 'UTF-8')) {
             throw new Exception("Invalid UTF-8 sequence in CBOR text string");
         }
-        // Reject control chars for strictness
-        if (preg_match('/[\p{C}&&[^\n]]/u', $str)) {
-            throw new Exception("Control characters not allowed in CBOR text string");
-        }
     };
     // Prepare and starting very simplified CBOR decoding
     $initialByte = ord($data[$offset++]);
