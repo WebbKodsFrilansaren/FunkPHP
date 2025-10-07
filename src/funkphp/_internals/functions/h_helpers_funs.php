@@ -503,7 +503,7 @@ function is_string_and_not_empty($string)
     return isset($string) && is_string($string) && !empty($string);
 }
 
-
+// TODO: Maybe. So, still WIP!
 // A Super-Simplified CBOR decoder that can decode only the types we need for passkeys
 // This is NOT a full CBOR decoder, just a simplified version for our needs
 function funk_cbor_decode_simplified_for_passkeys($data, &$offset = 0)
