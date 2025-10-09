@@ -556,7 +556,7 @@ function funk_match_compiled_route(&$c, string $requestUri, array $methodRootNod
 }
 
 // TRIE ROUTER STARTING POINT: Match Returned Matched Compiled Route With Developer's Defined Route
-function funk_match_developer_route(&$c, string $method, string $uri, array $compiledRouteTrie, array $developerSingleRoutes, array $developerMiddlewareRoutes, string $mHandlerKey = "middlewares")
+function funk_match_developer_route(&$c, string $method, string $uri, array $compiledRouteTrie, array $developerSingleRoutes)
 {
     // Prepare return values
     $matchedRoute = null;
@@ -568,6 +568,7 @@ function funk_match_developer_route(&$c, string $method, string $uri, array $com
     // Try match HTTP Method Key in Compiled Routes
     if (isset($compiledRouteTrie[$method])) {
         $routeDefinition = funk_match_compiled_route($c, $uri, $compiledRouteTrie[$method]);
+        vd($routeDefinition);
     } else {
         $noMatchIn = 'NO MATCH FOR COMPILED_ROUTE_KEY (' . mb_strtoupper($method) . ') & ';
         return false;
@@ -585,34 +586,26 @@ function funk_match_developer_route(&$c, string $method, string $uri, array $com
             $c['req']['segments'] = $matchedPathSegments;
             $c['req']['params'] = $matchedRouteParams;
             $c['req']['matched_in'] = $noMatchIn;
+            // We remove 'middlewares' from the matched route since it will
+            // be array merged with all middleware-matched URI segments!
+            if (isset($routeInfo[0]['middlewares'])) {
+                $routeInfo = array_splice($routeInfo, 1, null, true);
+            }
             $c['req']['route_keys'] = [...$routeInfo ?? []];
-            // Add Any Matched Middlewares Defined By Developer as the $mHandler key
+            // Add Any Matched Middlewares
             if (
                 isset($routeDefinition["middlewares"])
                 && is_array($routeDefinition["middlewares"])
                 && !empty($routeDefinition["middlewares"])
             ) {
+                // Each 'middlewares' key is an numbered array so
+                // we can use array_merge so always keep the order
                 foreach ($routeDefinition["middlewares"] as $middleware) {
                     if (
-                        isset($developerMiddlewareRoutes[$method][$middleware])
-                        && isset($developerMiddlewareRoutes[$method][$middleware][$mHandlerKey])
+                        isset($developerSingleRoutes[$method][$middleware])
+                        && isset($developerSingleRoutes[$method][$middleware][0]['middlewares'])
                     ) {
-                        if (is_array($developerMiddlewareRoutes[$method][$middleware][$mHandlerKey])) {
-                            foreach ($developerMiddlewareRoutes[$method][$middleware][$mHandlerKey] as $mHandler => $val) {
-                                if (is_string($mHandler)) {
-                                    $matchedMiddlewareHandlers[] = [$mHandler => $val];
-                                } elseif (is_int($mHandler)) {
-                                    $matchedMiddlewareHandlers[] = $val;
-                                } else {
-                                    $c['err']['ROUTES']['funk_match_developer_route'][] = 'Invalid Middleware Handler Type `' . gettype($mHandler) . '` for Route `' .  $matchedRoute . '`. Each Middleware should be a String=>String or Integer=>String. Latter one means you do NOT wanna pass any value to the Middleware Function!';
-                                }
-                            }
-                        } elseif (
-                            is_string($developerMiddlewareRoutes[$method][$middleware][$mHandlerKey])
-                            && !empty($developerMiddlewareRoutes[$method][$middleware][$mHandlerKey])
-                        ) {
-                            $matchedMiddlewareHandlers[] = $developerMiddlewareRoutes[$method][$middleware][$mHandlerKey];
-                        }
+                        $matchedMiddlewareHandlers = array_merge($matchedMiddlewareHandlers, $developerSingleRoutes[$method][$middleware][0]['middlewares']);
                     }
                 }
             }

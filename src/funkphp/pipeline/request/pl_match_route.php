@@ -39,7 +39,6 @@
         $c['req']['uri'],
         $c['ROUTES']['COMPILED'] ?? [],
         $c['ROUTES']['DEVELOPER']['ROUTES'] ?? [],
-        $c['ROUTES']['DEVELOPER']['ROUTES'] ?? [],
     );
     if (!$FPHP_MATCHED_ROUTE) {
         $c['err']['MAYBE']['PIPELINE']['REQUEST']['pl_match_route'][] = 'If You ARE Expecting a Route Match for`' . $c['req']['method'] . $c['req']['uri'] . '` please check that it uses correct HTTPS Method and/or Routing in the `funkphp/config/routes.php` File!';

@@ -6445,11 +6445,12 @@ function cli_build_compiled_routes(array $developerSingleRoutes, array $develope
         // The way we insert "|" to signify a middleware is to just go through all segments for each key
         // and when we are at the last segment that is the node we insert "|" and then we move on to key.
         foreach ($keys as $key => $value) {
+            var_dump($key, $value[0]);
             // Ignore empty keys or null values & handle special case for "/"
             if ($key === "" || $key === null || $key === false || $key === "") {
                 continue;
             }
-            if ($key === "/" && isset($value['middlewares']) && !empty($value['middlewares'])) {
+            if ($key === "/" && isset($value[0]['middlewares']) && !empty($value[0]['middlewares'])) {
                 $compiledTrie["|"] = [];
                 continue;
             }
@@ -6486,7 +6487,7 @@ function cli_build_compiled_routes(array $developerSingleRoutes, array $develope
 
             // Now we are at the last segment, we just add the middleware node "|"
             // and then we add the middleware route to it.
-            if (!isset($currentNode['|']) && isset($value['middlewares']) && !empty($value['middlewares'])) {
+            if (!isset($currentNode['|']) && isset($value[0]['middlewares']) && !empty($value[0]['middlewares'])) {
                 $currentNode['|'] = [];
             }
         }
