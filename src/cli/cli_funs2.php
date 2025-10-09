@@ -4951,8 +4951,10 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                         $selectedCols[$firstTb][$tables[$firstTb][$firstCol]['joined_name']] = $firstCol;
                         $selectedCols[$secondTb][$tables[$secondTb][$secondCol]['joined_name']] = $secondCol;
                         $aliasesTbCol[$as_name] = [
-                            'tb' => $firstTb,
-                            'col' => $firstCol,
+                            'tb' => $firstTb,    // Table used in the COUNT(tb.col) part
+                            'col' => $firstCol,  // Column used in the COUNT(tb.col) part
+                            'tb2' => $secondTb,  // Table used in the PARTITION BY tb2.col2 part
+                            'col2' => $secondCol, // Column used in the PARTITION BY tb2.col2 part
                         ];
                         $aliasesTbCol[$tables[$firstTb][$firstCol]['joined_name']] = [
                             'tb' => $firstTb,
