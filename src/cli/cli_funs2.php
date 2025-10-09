@@ -4896,7 +4896,8 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                         continue;
                     }
                     // SPECIAL CASE 2: COUNT_OPB() which is a special case of the COUNT function that
-                    // also uses two table:col in order to build its SQL string part.
+                    // also uses two table:col in order to build its SQL string part:
+                    // "COUNT(tb1.col1) OVER (PARTITION BY tb2.col2)"
                     else if ($aggFuncMatches[0] === 'count_opb(') {
                         // This one needs two table:col parts separated by a comma so check for it
                         if (!preg_match('/^[a-zA-Z0-9_-]+:[a-zA-Z0-9_-]+,[a-zA-Z0-9_-]+:[a-zA-Z0-9_-]+$/i', $aggFuncMatches[1])) {
