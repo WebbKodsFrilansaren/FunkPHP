@@ -4788,8 +4788,8 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         // Regexes for Aggregate Functions. First to see if it starts with any of the aggregate functions
         // and the second to see if it is a complete aggregate function with a table and/or column name
         // and the special case of COUNT(*) which is a special case of the COUNT function!
-        $aggregateFunctionsStart = "/^(COUNT\(DISTINCT[ |=]|COUNT\(\*\)|COUNT\(|SUM\(|AVG\(|MIN\(|MAX\(|COUNT_OPB\()/i";
-        $aggFuncRegex = "/^(COUNT\(DISTINCT[ |=]|COUNT\(\*\)|COUNT\(|SUM\(|AVG\(|MIN\(|MAX\(|COUNT_OPB\()([a-zA-Z0-9_,:\*]+)*\)$/i";
+        $aggregateFunctionsStart = "/^(COUNT\(DISTINCT[ |=]|COUNT\(\*\)|COUNT\(|SUM\(|AVG\(|MIN\(|MAX\(|COUNT_OPB\(|RANK\()/i";
+        $aggFuncRegex = "/^(COUNT\(DISTINCT[ |=]|COUNT\(\*\)|COUNT\(|SUM\(|AVG\(|MIN\(|MAX\(|COUNT_OPB\(|RANK\()([a-zA-Z0-9_,:\*]+)*\)$/i";
         $aggTableColRegex = "/^([a-zA-Z0-9_]+):([a-zA-Z0-9_]+)$/i";
         $aggColRegex = "/^([a-zA-Z0-9_]+)$/i";
         $aggFuncValidStarts = [
@@ -4798,6 +4798,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
             'count(' => 'count_',
             'count(*)' => 'count_all_',
             'count_opb(' => 'count_over_partition_by_',
+            'rank(' => 'rank_over_',
             'sum(' => 'sum_',
             'avg(' => 'avg_',
             'min(' => 'min_',
@@ -4861,7 +4862,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                         cli_info("The Aggregate Function must start with one of the following:\n" . implode(",\n", quotify_elements(array_keys($aggFuncValidStarts))) . "!");
                     }
 
-                    // SPECIAL CASE: COUNT(*) which is a special case of the COUNT function and thus we must get
+                    // SPECIAL CASE 1: COUNT(*) which is a special case of the COUNT function and thus we must get
                     // the table name from the $fromTb variable since it does not have a table name!
                     if ($aggFuncMatches[0] === 'count(*)') {
                         if (!in_array($fromTb, $selectTbs, true)) {
@@ -4965,6 +4966,83 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
                         $selectedTbsColsStr .= "COUNT(" . $firstTb . "." . $firstCol . ") OVER (PARTITION BY " . $secondTb . "." . $secondCol . ") AS " . $as_name . ",\n";
 
                         // Now continue to the next SELECTed part unless error occured before this point!
+                        continue;
+                    }
+                    // SPECIAL CASE 3: RANK() which is when RANK() is used which needs at least
+                    // one table:col but can also take two meaning you apply PARTIION BY, otherwise
+                    // only the ORDER BY
+                    else if ($aggFuncMatches[0] === 'rank(') {
+                        // This one can either take one tb1:col1 OR two tb1:col1,tb2:col2
+                        if (!preg_match('/^[a-zA-Z0-9_-]+:[a-zA-Z0-9_-]+(,[a-zA-Z0-9_-]+:[a-zA-Z0-9_-]+)?$/i', $aggFuncMatches[1])) {
+                            cli_err_syntax_without_exit("Invalid Table/Column Format (`$aggTbWithCol`) in Aggregate Function `$aggFunc` in `SELECT` Key in SQL Array `$handlerFile.php=>$fnName` for SELECT Query!");
+                            cli_info("The Aggregate Function must follow the Format: `RANK(tableName1:colName1)` or `RANK(tableName1:colName1,tableName2:colName2)`. Using Two Tables and Columns means you apply PARTITION BY to the First Table:Column. Sorting is DESC by default and if you want to change this, you will have to do so manually to the finally generated SQL String:`\$convertedSQLArray['sql']`!");
+                        }
+                        // Extract either one or two tables based on "," exists in the string
+                        [$firstTbCol, $secondTbCol] = str_contains($aggFuncMatches[1], ',') ? explode(",", $aggFuncMatches[1], 2) : [$aggFuncMatches[1], null];
+                        [$firstTb, $firstCol] = explode(":", $firstTbCol, 2);
+                        [$secondTb, $secondCol] = $secondTbCol !== null ? explode(":", $secondTbCol, 2) : [null, null];
+
+                        // Validate both tables exist
+                        if (!isset($tables[$firstTb]) || !is_array_and_not_empty($tables[$firstTb])) {
+                            cli_err_syntax_without_exit("Table Name `$firstTb` from Aggregate Function `$aggFunc` in `SELECT` Key in SQL Array `$handlerFile.php=>$fnName` not found in `tables.php` File!");
+                            cli_info("Valid Table Names are:\n" . implode(",\n", quotify_elements(array_keys($tables))) . ".");
+                        }
+                        if (!isset($tables[$secondTb]) || !is_array_and_not_empty($tables[$secondTb])) {
+                            cli_err_syntax_without_exit("Table Name `$secondTb` from Aggregate Function `$aggFunc` in `SELECT` Key in SQL Array `$handlerFile.php=>$fnName` not found in `tables.php` File!");
+                            cli_info("Valid Table Names are:\n" . implode(",\n", quotify_elements(array_keys($tables))) . ".");
+                        }
+
+                        // Validate both tables picked columns exist in their respective tables
+                        if (!isset($tables[$firstTb][$firstCol]) || !is_array_and_not_empty($tables[$firstTb][$firstCol])) {
+                            cli_err_syntax_without_exit("Column Name `$firstCol` from Aggregate Function `$aggFunc` in `SELECT` Key in SQL Array `$handlerFile.php=>$fnName` not found in Table `$firstTb`!");
+                            cli_info("Valid Column Names for Table `$firstTb` are:\n" . implode(",\n", quotify_elements(array_keys($tables[$firstTb]))) . ".");
+                        }
+                        if (!isset($tables[$secondTb][$secondCol]) || !is_array_and_not_empty($tables[$secondTb][$secondCol])) {
+                            cli_err_syntax_without_exit("Column Name `$secondCol` from Aggregate Function `$aggFunc` in `SELECT` Key in SQL Array `$handlerFile.php=>$fnName` not found in Table `$secondTb`!");
+                            cli_info("Valid Column Names for Table `$secondTb` are:\n" . implode(",\n", quotify_elements(array_keys($tables[$secondTb]))) . ".");
+                        }
+
+                        // Add both tables to the currently selected tables. Only add if not already in the currently selected tables and also
+                        // so you can use multiple agg functions on the same table without JOINS_ON complaining about "mulitple tables selected"!
+                        if (!in_array($firstTb, $currentlySelectedTbs, true)) {
+                            $currentlySelectedTbs[] = $firstTb;
+                        }
+                        if ($secondTb !== null && !in_array($secondTb, $currentlySelectedTbs, true)) {
+                            $currentlySelectedTbs[] = $secondTb;
+                        }
+
+                        // Prepare alias name and optionally add second table and column name where needed
+                        $as_name = $aggFuncValidStarts[$aggFunc] . $tables[$firstTb][$firstCol]['joined_name'];
+                        if ($secondTb !== null) {
+                            $as_name .= "_" . $tables[$secondTb][$secondCol]['joined_name'];
+                        }
+                        $i = 0;
+                        while (in_array($as_name, $aggAliases, true) || in_array($as_name, $allAliases, true)) {
+                            $i++;
+                            $as_name = $as_name . "_$i";
+                        }
+                        $aggAliases[] = $as_name;
+                        $allAliases[] = $as_name;
+                        $selectedCols[$firstTb][$as_name] = $firstCol;
+                        $selectedCols[$firstTb][$tables[$firstTb][$firstCol]['joined_name']] = $firstCol;
+                        if ($secondTb !== null) {
+                            $selectedCols[$secondTb][$tables[$secondTb][$secondCol]['joined_name']] = $secondCol;
+                        }
+                        $aliasesTbCol[$as_name] = [
+                            'tb' => $firstTb,    // Table used in the RANK() part
+                            'col' => $firstCol,  // Column used in the RANK() part
+                        ];
+                        if ($secondTb !== null) {
+                            $aliasesTbCol[$as_name]['tb2'] = $secondTb;  // Table used in the PARTITION BY tb2.col2 part
+                            $aliasesTbCol[$as_name]['col2'] = $secondCol; // Column used in the PARTITION BY tb2.col2 part
+                        }
+                        // Finally add the bult string part based on whether second table:col was given or not
+                        if ($secondTb !== null) {
+                            $selectedTbsColsStr .= "RANK() OVER (PARTITION BY " . $firstTb . "." . $firstCol . " ORDER BY " . $secondTb . "." . $secondCol . " DESC) AS " . $as_name . ",\n";
+                        } else {
+                            $selectedTbsColsStr .= "RANK() OVER (ORDER BY " . $firstTb . "." . $firstCol . " DESC) AS " . $as_name . ",\n";
+                        }
+                        // Continue to next SELECTed part unless error occured before this point!
                         continue;
                     }
 
