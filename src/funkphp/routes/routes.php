@@ -25,11 +25,11 @@ return  [
           [
             0 =>
             [
-              'm_test' => NULL,
+              'm_test' => "passed valiue from M-test",
             ],
             1 =>
             [
-              'm_test2' => NULL,
+              'm_test2' => "passed value test2",
             ]
           ],
         ],
@@ -39,7 +39,7 @@ return  [
           [
             'test' =>
             [
-              'test2' => NULL,
+              'test2' => "passed value from try=>test=>test2",
             ],
           ],
         ],
