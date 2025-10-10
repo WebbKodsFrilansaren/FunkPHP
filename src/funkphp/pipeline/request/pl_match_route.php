@@ -42,7 +42,7 @@
     );
     if (!$FPHP_MATCHED_ROUTE) {
         $c['err']['MAYBE']['PIPELINE']['REQUEST']['pl_match_route'][] = 'If You ARE Expecting a Route Match for`' . $c['req']['method'] . $c['req']['uri'] . '` please check that it uses correct HTTPS Method and/or Routing in the `funkphp/config/routes.php` File!';
-        echo 'NO ROUTE MATCHED?!<br>Here is a Var_dump of possible errors until this logical part of the function has been handled: ';
+        echo 'NO ROUTE MATCHED?! <br>Here is a Var_dump of possible errors until this logical part of the function has been handled: ';
         vd($c['err']);
     }
 };

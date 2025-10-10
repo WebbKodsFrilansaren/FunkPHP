@@ -116,24 +116,24 @@ return [
         'matched_middlewares' => [],
         'current_passed_value' => [],
         'current_passed_values' => [],
-        'deleted_pipeline' => null,
-        'deleted_middlewares' => null,
+        'current_pipeline' => null,
+        'next_pipeline' => null,
+        'deleted_pipeline' => [],
+        'deleted_pipeline#' => 0,
+        'completed_pipeline#' => 0,
+        'current_middleware' => null,
+        'next_middleware' => null,
+        'deleted_middlewares' => [],
+        'deleted_middlewares#' => 0,
+        'completed_middlewares#' => 0,
+        'current_exit' => null,
+        'next_exit' => null,
         'deleted_exit' => null,
+        'completed_exit' => 0,
+        'deleted_exit#' => 0,
         'keep_running_pipeline' => null,
         'keep_running_middlewares' => null,
         'keep_running_exit' => null,
-        'current_pipeline_running' => null,
-        'current_middleware_running' => null,
-        'current_exit_running' => null,
-        'next_pipeline_to_run' => null,
-        'next_middleware_to_run' => null,
-        'next_exit_to_run' => null,
-        'number_of_ran_pipeline' => 0,
-        'number_of_ran_middlewares' => 0,
-        'number_of_ran_exit' => 0,
-        'number_of_deleted_pipeline' => 0,
-        'number_of_deleted_middlewares' => 0,
-        'number_of_deleted_exit' => 0,
         'code' => 418,
         'time' => $_SERVER['REQUEST_TIME'] ?? time() ?? null,
         'ip' => $_SERVER['REMOTE_ADDR'] ?? null,
@@ -144,7 +144,7 @@ return [
         'query' => $_SERVER['QUERY_STRING'] ?? null,
     ],
 
-    // 'dispatchers' is the array of functio closures that are the loaded
+    // 'dispatchers' is the array of function closures that are the loaded
     // anoynmous function files that then contain namespaces with all the
     // other functions that are called based on folder name, file name
     // and function name in the file! This is used during Route Key Running!
@@ -157,9 +157,6 @@ return [
 
     // 'r' will store route-related data
     'r' => null,
-
-    // 'm_handlers' is the array of called Middlewares functions so they can be reused
-    'm_handlers' => null,
 
     // 'd' will ALWAYS store hydrated database data!
     // data (it does NOT store validation errors)

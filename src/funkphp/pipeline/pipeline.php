@@ -16,9 +16,12 @@ return  [
             9 => ['pl_match_denied_methods' => null],
             10 => ['pl_match_denied_uas' => null],
             11 => ['pl_match_route' => null],
-            12 => ['pl_run_matched_route_keys' => null],
+            12 => ['pl_run_matched_route_middlewares' => null],
+            13 => ['pl_run_matched_route_keys' => null],
         ],
-        'post-request' => [0 => ['pl_debug' => null]],
+        'post-request' => [
+            0 => ['pl_debug' => null]
+        ],
     ],
     'no_match' =>
     [

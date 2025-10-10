@@ -19,7 +19,8 @@ function ddc()
 // Var_dump shorthand, doe NOT exit
 function vd($data)
 {
-    echo '<pre>';
+    // Apply CSS to force word wrap and limit width
+    echo '<pre style="max-width: 1337px; padding:20px; border-radius:4px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; margin-left:auto; margin-right:auto;">';
     var_dump($data);
     echo '</pre>';
 }

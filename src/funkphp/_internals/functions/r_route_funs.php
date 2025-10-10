@@ -41,6 +41,7 @@ function funk_run_pipeline_request(&$c, $passedValue = null)
         && count($c['<ENTRY>']['pipeline']['request']) > 0
     ) {
         $count = count($c['<ENTRY>']['pipeline']['request']);
+        $pipeDir = ROOT_FOLDER . '/pipeline/request/';
         $c['req']['keep_running_pipeline'] = true;
         for ($i = 0; $i < $count; $i++) {
             if ($c['req']['keep_running_pipeline'] === false) {
@@ -57,7 +58,7 @@ function funk_run_pipeline_request(&$c, $passedValue = null)
                 (!is_string($current_pipe) && !is_array($current_pipe))
             ) {
                 unset($c['<ENTRY>']['pipeline']['request'][$i]);
-                $c['req']['number_of_deleted_pipeline']++;
+                $c['req']['deleted_pipeline']++;
                 $c['err']['PIPELINE']['REQUEST']['funk_run_pipeline_request'][] = 'Pipeline Request Function at index ' .  $i . ' is either NULL or NOT a Valid Data Type. It must be a String or An Associative Array Key with a Value! (Value can be null, but that is probably not useful in most cases)';
                 continue;
             }
@@ -77,31 +78,30 @@ function funk_run_pipeline_request(&$c, $passedValue = null)
             if (isset($c['dispatchers']['pipeline']['request'][$fnToRun])) {
                 if (is_callable($c['dispatchers']['pipeline']['request'][$fnToRun])) {
                     $runPipe = $c['dispatchers']['pipeline']['request'][$fnToRun];
-                    $c['req']['current_pipeline_running'] = $current_pipe;
-                    $c['req']['number_of_ran_pipeline']++;
-                    $c['req']['next_pipeline_to_run'] = $c['<ENTRY>']['pipeline']['request'][$i + 1] ?? null;
+                    $c['req']['current_pipeline'] = $current_pipe;
+                    $c['req']['pipeline#']++;
+                    $c['req']['next_pipeline'] = $c['<ENTRY>']['pipeline']['request'][$i + 1] ?? null;
                     $runPipe($c, $pipeValue);
                 }
             } else {
                 // Only run Pipeline Function if dir, file and callable, then
                 // run it and increment the number of ran pipeline functions
-                $pipeDir = ROOT_FOLDER . '/pipeline/request/';
                 $pipeToRun = $pipeDir . $fnToRun . '.php';
                 if (file_exists($pipeToRun)) {
                     $runPipe = include_once $pipeToRun;
                     if (is_callable($runPipe)) {
-                        $c['req']['current_pipeline_running'] = $current_pipe;
-                        $c['req']['number_of_ran_pipeline']++;
-                        $c['req']['next_pipeline_to_run'] = $c['<ENTRY>']['pipeline']['request'][$i + 1] ?? null;
+                        $c['req']['current_pipeline'] = $current_pipe;
+                        $c['req']['completed_pipeline#']++;
+                        $c['req']['next_pipeline'] = $c['<ENTRY>']['pipeline']['request'][$i + 1] ?? null;
                         $c['dispatchers']['pipeline']['request'][$fnToRun] = $runPipe;
                         $runPipe($c, $pipeValue);
                     } else {
                         $c['err']['PIPELINE']['REQUEST']['funk_run_pipeline_request'][] = 'Pipeline Request Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`';
-                        $c['req']['current_pipeline_running'] = null;
+                        $c['req']['current_pipeline'] = null;
                     }
                 } else {
                     $c['err']['PIPELINE']['REQUEST']['funk_run_pipeline_request'][] = 'Pipeline Request Function (`' . $fnToRun . '`) at index '  .  $i . ' does NOT EXIST in `funkphp/pipeline/request/` Directory!';
-                    $c['req']['current_pipeline_running'] = null;
+                    $c['req']['current_pipeline'] = null;
                 }
             }
 
@@ -110,10 +110,10 @@ function funk_run_pipeline_request(&$c, $passedValue = null)
             $c['req']['deleted_pipeline']['request'][] = $current_pipe;
             unset($c['<ENTRY>']['pipeline']['request'][$i]);
             unset($c['req']['current_passed_value']['pipeline']);
-            $c['req']['number_of_deleted_pipeline']++;
+            $c['req']['deleted_pipeline#']++;
         }
         // Set default settings for the next pipeline run
-        $c['req']['current_pipeline_running'] = null;
+        $c['req']['current_pipeline'] = null;
         if (
             isset($c['<ENTRY>']['pipeline']['request'])
             && is_array($c['<ENTRY>']['pipeline']['request'])
@@ -379,7 +379,7 @@ function funk_run_pipeline_post_request(&$c, $passedValue = null)
                 (!is_string($current_pipe) && !is_array($current_pipe))
             ) {
                 unset($c['<ENTRY>']['pipeline']['post-request'][$i]);
-                $c['req']['number_of_deleted_pipeline']++;
+                $c['req']['deleted_pipeline#']++;
                 $c['err']['PIPELINE']['POST-REQUEST']['funk_run_pipeline_post_request'][] = 'Pipeline Request Function at index ' .  $i . ' is either NULL or NOT a Valid Data Type. It must be a String or An Associative Array Key with a Value! (Value can be null, but that is probably not useful in most cases)';
                 continue;
             }
@@ -399,9 +399,9 @@ function funk_run_pipeline_post_request(&$c, $passedValue = null)
             if (isset($c['dispatchers']['pipeline']['post-request'][$fnToRun])) {
                 if (is_callable($c['dispatchers']['pipeline']['post-request'][$fnToRun])) {
                     $runPipe = $c['dispatchers']['pipeline']['post-request'][$fnToRun];
-                    $c['req']['current_pipeline_running'] = $current_pipe;
-                    $c['req']['number_of_ran_pipeline']++;
-                    $c['req']['next_pipeline_to_run'] = $c['<ENTRY>']['pipeline']['post-request'][$i + 1] ?? null;
+                    $c['req']['current_pipeline'] = $current_pipe;
+                    $c['req']['completed_pipeline#']++;
+                    $c['req']['next_pipeline'] = $c['<ENTRY>']['pipeline']['post-request'][$i + 1] ?? null;
                     $runPipe($c, $pipeValue);
                 }
             } else {
@@ -412,18 +412,18 @@ function funk_run_pipeline_post_request(&$c, $passedValue = null)
                 if (file_exists($pipeToRun)) {
                     $runPipe = include_once $pipeToRun;
                     if (is_callable($runPipe)) {
-                        $c['req']['current_pipeline_running'] = $current_pipe;
-                        $c['req']['number_of_ran_pipeline']++;
-                        $c['req']['next_pipeline_to_run'] = $c['<ENTRY>']['pipeline']['post-request'][$i + 1] ?? null;
+                        $c['req']['current_pipeline'] = $current_pipe;
+                        $c['req']['completed_pipeline#']++;
+                        $c['req']['next_pipeline'] = $c['<ENTRY>']['pipeline']['post-request'][$i + 1] ?? null;
                         $c['dispatchers']['pipeline']['post-request'][$fnToRun] = $runPipe;
                         $runPipe($c, $pipeValue);
                     } else {
                         $c['err']['PIPELINE']['POST-REQUEST']['funk_run_pipeline_post_request'][] = 'Pipeline Post-Request Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`';
-                        $c['req']['current_pipeline_running'] = null;
+                        $c['req']['current_pipeline'] = null;
                     }
                 } else {
                     $c['err']['PIPELINE']['POST-REQUEST']['funk_run_pipeline_post_request'][] = 'Pipeline Post-Request Function (`' . $fnToRun . '`) at index '  .  $i . ' does NOT EXIST in `funkphp/pipeline/pipeline/post-request/` Directory!';
-                    $c['req']['current_pipeline_running'] = null;
+                    $c['req']['current_pipeline'] = null;
                 }
             }
 
@@ -432,10 +432,10 @@ function funk_run_pipeline_post_request(&$c, $passedValue = null)
             $c['req']['deleted_pipeline']['post-request'][] = $current_pipe;
             unset($c['<ENTRY>']['pipeline']['post-request'][$i]);
             unset($c['req']['current_passed_value']['pipeline']);
-            $c['req']['number_of_deleted_pipeline']++;
+            $c['req']['deleted_pipeline#']++;
         }
         // Set default settings for the next pipeline run
-        $c['req']['current_pipeline_running'] = null;
+        $c['req']['current_pipeline'] = null;
         if (
             isset($c['<ENTRY>']['pipeline']['post-request'])
             && is_array($c['<ENTRY>']['pipeline']['post-request'])
@@ -517,7 +517,6 @@ function funk_match_compiled_route(&$c, string $requestUri, array $methodRootNod
         // only store param and matched URI segment if not null
         if (isset($currentNode[':'])) {
             $placeholderKey = key($currentNode[':']);
-
             if ($placeholderKey !== null && isset($currentNode[':'][$placeholderKey])) {
                 $matchedParams[$placeholderKey] = $currentUriSegment;
                 $matchedPathSegments[] = ":" . $placeholderKey;
@@ -568,7 +567,6 @@ function funk_match_developer_route(&$c, string $method, string $uri, array $com
     // Try match HTTP Method Key in Compiled Routes
     if (isset($compiledRouteTrie[$method])) {
         $routeDefinition = funk_match_compiled_route($c, $uri, $compiledRouteTrie[$method]);
-        vd($routeDefinition);
     } else {
         $noMatchIn = 'NO MATCH FOR COMPILED_ROUTE_KEY (' . mb_strtoupper($method) . ') & ';
         return false;

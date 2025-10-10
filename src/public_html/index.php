@@ -35,23 +35,42 @@ function critical_err_json_or_html($status = 500, $customMessage = "<No Custom M
                     font-family: Arial, sans-serif;
                     background-color: #f4f4f4;
                     color: #333;
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
                     min-height: 100vh;
                     margin: 0;
                 }
 
+                body pre {
+                    justify-self: end;
+                    align-self: flex-end;
+                    align-content: end;
+                    background-color: #eee;
+                    padding: 10px;
+                    white-space: pre-wrap;
+                    white-space: -moz-pre-wrap;
+                    white-space: -pre-wrap;
+                    white-space: -o-pre-wrap;
+                    word-wrap: break-word;
+                }
+
                 .container {
-                    max-width: 350px;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                    align-items: center;
+                    max-width: 420px;
+                    margin-top: 50px;
+                    margin-left: auto;
+                    margin-right: auto;
+                    margin-bottom: 50px;
                     padding: 20px;
                     background-color: #fff;
                     border-radius: 5px;
-                    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+                    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
                 }
 
                 h1 {
                     color: #e74c3c;
+                    text-align: center;
                 }
 
                 p {
@@ -77,9 +96,9 @@ function critical_err_json_or_html($status = 500, $customMessage = "<No Custom M
         <body>
             <div class="container">
                 <h1>FunkPHP Framework - Internal Error</h1>
-                <p>Important files could not be loaded, so Please Tell the Developer to fix the website or the Web Hosting Service to allow for reading the necessary folders & files!</p>
+                <p>Important files could not be loaded, so Please Tell the Developer to fix the website or the Web Hosting Service to Allow Reading the Necessary Folders &amp; Files!</p>
                 <p><strong>Message to Developer for Debugging:</strong> `<?= $customMessage ?? "<No Custom Message Included OR `\$customMessage` Variable is NOT Available for some reason?!>" ?>`</p>
-                <p>If you are the Developer, please check your Configuration and File permissions where you Develop and/or Host this Website!</p>
+                <p>The Developer? Please check your Configuration and File permissions where you Develop and/or Host this Website!</p>
                 <p class="center-text">Thanks in advance!<br>You are Awesome, anyway! ^_^</p>
             </div>
         </body>
