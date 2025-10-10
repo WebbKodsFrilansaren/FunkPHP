@@ -55,14 +55,14 @@
                 critical_err_json_or_html(500, 'Tell the Developer: The Middlewares Pipeline Function ran but WITHOUT a Valid Middleware Structure - A Middleware File was not found in the `funkphp/middlewares/` Folder or it was not properly loaded in the Config File `funkphp/config/_all.php` under the `dispatchers` Key!');
             }
 
-            // Here a Middleware was successfully ran (and also added to dispatchers if it was included from file)
-            // so we add some stats to the request info and also reset things
+            // Here a Middleware was successfully ran (and also added to dispatchers if it was
+            // included from file) so we add some stats to the request info and also reset things
             $c['req']['completed_middlewares#']++;
             $c['req']['deleted_middlewares'][] = $mwToRun;
             unset($c['req']['matched_middlewares'][$i]);
             $c['req']['deleted_middlewares#']++;
             $c['req']['current_middleware'] = null;
-            $c['req']['next_middleware'] = array_key_first($c['req']['matched_middlewares'][$i + 1]) ?? null;
+            $c['req']['next_middleware'] = isset($c['req']['matched_middlewares'][$i + 1]) && is_array($c['req']['matched_middlewares'][$i + 1]) ? array_key_first($c['req']['matched_middlewares'][$i + 1]) : null;
         }
 
         // After MWs Loop, we set so MW Pipeline cannot run again

@@ -5,4 +5,5 @@ namespace FunkPHP\Middlewares\m_test;
 
 return function (&$c, $passedValue = null) {
 	// Placeholder Comment so Regex works - Remove & Add Real Code!
+	echo "HELLO from m_test Middleware!<br>";
 };

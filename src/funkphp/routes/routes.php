@@ -8,20 +8,6 @@ return  [
       [
         0 =>
         [
-          'middlewares' =>
-          [
-            0 =>
-            [
-              'test1_mw_users' => NULL,
-            ],
-            1 =>
-            [
-              'test2_mw_users' => NULL,
-            ],
-          ],
-        ],
-        1 =>
-        [
           'try' =>
           [
             'test' =>
@@ -39,11 +25,11 @@ return  [
           [
             0 =>
             [
-              'test2_mw_user_id' => NULL,
+              'm_test' => NULL,
             ],
             1 =>
             [
-              'test1_mw_user_id' => NULL,
+              'm_test2' => NULL,
             ]
           ],
         ],

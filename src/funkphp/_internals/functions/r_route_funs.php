@@ -483,7 +483,7 @@ function funk_match_compiled_route(&$c, string $requestUri, array $methodRootNod
     // Prepare variables to store the current node,
     // matched segments, parameters, and middlewares
     $currentNode = $methodRootNode;
-    $matchedPathSegments = [];
+    $matchedPathSegments = ['uri' => $uriSegments, 'route' => []]; // Start with empty string to make implode work correctly
     $matchedParams = [];
     $matchedMiddlewares = [];
     $segmentsConsumed = 0;
@@ -491,7 +491,7 @@ function funk_match_compiled_route(&$c, string $requestUri, array $methodRootNod
     // EDGE-CASE: '/' and include middleware at root node if it exists
     if ($uriSegmentCount === 0) {
         if (isset($currentNode['|'])) {
-            array_push($matchedMiddlewares, "/" . implode('/', $matchedPathSegments));
+            array_push($matchedMiddlewares, "/" . implode('/', $matchedPathSegments['route']));
         }
         return ["route" => '/', "params" => $matchedParams, "middlewares" => $matchedMiddlewares];
     }
@@ -502,12 +502,12 @@ function funk_match_compiled_route(&$c, string $requestUri, array $methodRootNod
 
         /// First try match "|" middleware node
         if (isset($currentNode['|'])) {
-            array_push($matchedMiddlewares, "/" . implode('/', $matchedPathSegments));
+            array_push($matchedMiddlewares, "/" . implode('/', $matchedPathSegments['route']));
         }
 
         // Then try match literal route
         if (isset($currentNode[$currentUriSegment])) {
-            $matchedPathSegments[] = $currentUriSegment;
+            $matchedPathSegments['route'][] = $currentUriSegment;
             $currentNode = $currentNode[$currentUriSegment];
             $segmentsConsumed++;
             continue;
@@ -519,7 +519,7 @@ function funk_match_compiled_route(&$c, string $requestUri, array $methodRootNod
             $placeholderKey = key($currentNode[':']);
             if ($placeholderKey !== null && isset($currentNode[':'][$placeholderKey])) {
                 $matchedParams[$placeholderKey] = $currentUriSegment;
-                $matchedPathSegments[] = ":" . $placeholderKey;
+                $matchedPathSegments['route'][] = ":" . $placeholderKey;
                 $currentNode = $currentNode[':'][$placeholderKey];
                 $segmentsConsumed++;
                 continue;
@@ -532,14 +532,14 @@ function funk_match_compiled_route(&$c, string $requestUri, array $methodRootNod
 
     // EDGE-CASE: Add middleware at last node if it exists
     if (isset($currentNode['|'])) {
-        array_push($matchedMiddlewares, "/" . implode('/', $matchedPathSegments));
+        array_push($matchedMiddlewares, "/" . implode('/', $matchedPathSegments['route']));
     }
 
     // Return matched route, params & middlewares
     // if all consumed segments matched
     if ($segmentsConsumed === $uriSegmentCount) {
-        if (!empty($matchedPathSegments)) {
-            return ["route" => '/' . implode('/', $matchedPathSegments), "segments" => $matchedPathSegments, "params" => $matchedParams, "middlewares" => $matchedMiddlewares];
+        if (!empty($matchedPathSegments['route'])) {
+            return ["route" => '/' . implode('/', $matchedPathSegments['route']), "segments" => $matchedPathSegments, "params" => $matchedParams, "middlewares" => $matchedMiddlewares];
         }
         // EDGE-CASE: 0 consumed segments,
         // return null instead of matched
