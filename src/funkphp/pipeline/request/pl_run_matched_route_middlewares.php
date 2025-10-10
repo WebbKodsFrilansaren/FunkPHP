@@ -40,6 +40,8 @@
                 // stored in the $c['dispatchers'] or include the file and run it!
                 $mwToRun = array_key_first($current_mw);
                 $passedValue = $c['req']['matched_middlewares'][$i][$mwToRun] ?? null;
+                $c['req']['current_passed_value']['middlewares'][$mwToRun] = $passedValue;
+                $c['req']['current_passed_values']['middlewares'][] = [$mwToRun => $passedValue];
                 $c['req']['current_middleware'] = $mwToRun;
                 $mwFileToRun = $mwDir . $mwToRun . '.php';
                 if ( // if = run already loaded middleware from dispatchers
@@ -47,13 +49,23 @@
                     && is_callable($c['dispatchers']['middlewares'][$mwToRun])
                 ) {
                     $RunMW = $c['dispatchers']['middlewares'][$mwToRun];
-                    $c['req']['last_returned_middleware_value'] = $RunMW($c, $passedValue);
+                    $rawRun = $RunMW($c, $passedValue);
+                    if (is_array($rawRun) && count($rawRun) === 1) {
+                        $c['req']['last_returned_middleware_value'] = $rawRun;
+                    } else {
+                        $c['req']['last_returned_middleware_value'] = FUNKPHP_NO_VALUE;
+                    }
                 }  // else if = include the file from middlewares folder and add it to dispatchers
                 elseif (is_readable($mwFileToRun)) {
                     $RunMW = include_once $mwFileToRun;
                     if (is_callable($RunMW)) {
                         $c['dispatchers']['middlewares'][$mwToRun] = $RunMW; // Store for possible reuse
-                        $c['req']['last_returned_middleware_value'] = $RunMW($c, $passedValue);
+                        $rawRun = $RunMW($c, $passedValue);
+                        if (is_array($rawRun) && count($rawRun) === 1) {
+                            $c['req']['last_returned_middleware_value'] = $rawRun;
+                        } else {
+                            $c['req']['last_returned_middleware_value'] = FUNKPHP_NO_VALUE;
+                        }
                     }
                     // ERROR: Middleware found in middlewares folder but it is not callable!
                     else {
@@ -101,29 +113,42 @@
             $current_mw = $c['req']['matched_middlewares'][$i];
             $mwToRun = array_key_first($current_mw);
             $passedValue = $c['req']['matched_middlewares'][$i][$mwToRun] ?? null;
+            $c['req']['current_passed_value']['middlewares'][$mwToRun] = $passedValue;
+            $c['req']['current_passed_values']['middlewares'][] = [$mwToRun => $passedValue];
             // Set context (useful even in 'happy' mode)
             $c['req']['current_middleware'] = $mwToRun;
             // 1. Run already loaded middleware from dispatchers
             if (isset($c['dispatchers']['middlewares'][$mwToRun])) {
                 $RunMW = $c['dispatchers']['middlewares'][$mwToRun];
-                $c['req']['last_returned_middleware_value'] = $RunMW($c, $passedValue);
-                continue;
+                $rawRun = $RunMW($c, $passedValue);
+                if (is_array($rawRun) && count($rawRun) === 1) {
+                    $c['req']['last_returned_middleware_value'] = $rawRun;
+                } else {
+                    $c['req']['last_returned_middleware_value'] = FUNKPHP_NO_VALUE;
+                }
             }
             // 2. Include file, store, and run (assume callable and readable)
-            // NOTE: We rely on PHP's internal errors (or production error handling)
-            // if the file is missing or if the included value is not callable.
-            $RunMW = include_once $mwDir . $mwToRun . '.php';
-            // We must still check if it's callable for safety before running and storing
-            // since a non-callable would cause a fatal error.
-            if (is_callable($RunMW)) {
-                $c['dispatchers']['middlewares'][$mwToRun] = $RunMW;
-                $c['req']['last_returned_middleware_value'] = $RunMW($c, $passedValue);
-            }
-            // This is the ONLY hard error here because we do not
-            // wanna accidentally skip possible auth-checks!
             else {
-                $c['err']['MIDDLEWARES'][] = 'Configured Matched Route Middlewares (`"ROUTES" => "GET|POST|PUT|DELETE|PATCH" => "/route" => "middlewares" Key`) to load and run after Possibly Matched Route: `' . ($c['req']['route'] !== null ? $c['req']['method'] . '/' . $c['req']['route'] : '<No Route Matched>') . '` Route Matching. But the Middleware `' . $mwToRun . '` was found in the `funkphp/middlewares/` Folder but it is not a valid callable function closure, please check the `funkphp/middlewares/' . $mwToRun . '.php` File!';
-                critical_err_json_or_html(500, 'Tell the Developer: The Middlewares Pipeline Function ran but WITHOUT a Valid Middleware Structure - A Middleware File Was Found in the `funkphp/middlewares/` Folder but it is Not A Valid Callable Function Closure. IMPORTANT: This happened in `happy` Mode!');
+                // NOTE: We rely on PHP's internal errors (or production error handling)
+                // if the file is missing or if the included value is not callable.
+                // We must still check if it's callable for safety before running
+                // and storing since a non-callable would cause a fatal error.
+                $RunMW = include_once $mwDir . $mwToRun . '.php';
+                if (is_callable($RunMW)) {
+                    $c['dispatchers']['middlewares'][$mwToRun] = $RunMW;
+                    $rawRun = $RunMW($c, $passedValue);
+                    if (is_array($rawRun) && count($rawRun) === 1) {
+                        $c['req']['last_returned_middleware_value'] = $rawRun;
+                    } else {
+                        $c['req']['last_returned_middleware_value'] = FUNKPHP_NO_VALUE;
+                    }
+                }
+                // This is the ONLY hard error here because we do not
+                // wanna accidentally skip possible auth-checks!
+                else {
+                    $c['err']['MIDDLEWARES'][] = 'Configured Matched Route Middlewares (`"ROUTES" => "GET|POST|PUT|DELETE|PATCH" => "/route" => "middlewares" Key`) to load and run after Possibly Matched Route: `' . ($c['req']['route'] !== null ? $c['req']['method'] . '/' . $c['req']['route'] : '<No Route Matched>') . '` Route Matching. But the Middleware `' . $mwToRun . '` was found in the `funkphp/middlewares/` Folder but it is not a valid callable function closure, please check the `funkphp/middlewares/' . $mwToRun . '.php` File!';
+                    critical_err_json_or_html(500, 'Tell the Developer: The Middlewares Pipeline Function ran but WITHOUT a Valid Middleware Structure - A Middleware File Was Found in the `funkphp/middlewares/` Folder but it is Not A Valid Callable Function Closure. IMPORTANT: This happened in `happy` Mode!');
+                }
             }
             // In a true 'happy' path, if it fails here, you might intentionally let PHP throw a fatal error
             // to avoid the overhead of the detailed error logging/exit in the 'defensive' mode.

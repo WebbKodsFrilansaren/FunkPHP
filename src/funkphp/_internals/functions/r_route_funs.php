@@ -366,6 +366,24 @@ function funk_run_pipeline_post_request(&$c, $passedValue = null)
     }
 }
 
+// Three functions that just returned the last stored value
+// for middleware, pipeline and route key handlers. It returns
+// `FUNK_NO_VALUE` when there was no last stored value.
+// IMPORTANT: Not passing a value also stores thus
+// the FUNK_NO_VALUE and overwrites any previous value!
+function funk_last_return_middleware_value(&$c)
+{
+    return $c['req']['last_returned_middleware_value'];
+}
+function funk_last_return_pipeline_value(&$c)
+{
+    return $c['req']['last_returned_pipeline_value'];
+}
+function funk_last_return_route_key_value(&$c)
+{
+    return $c['req']['last_returned_route_key_value'];
+}
+
 // Exit the Pipeline and stop running any further pipeline functions
 // This is useful when you want to stop the pipeline early
 function funk_abort_pipeline(&$c)

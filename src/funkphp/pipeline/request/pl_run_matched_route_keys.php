@@ -56,6 +56,8 @@
             // otherwise we include_once it and store the returned anonymous function in $c['dispatchers
             $fnName = key($dirFileFn[$folder][$fileName]);
             $passedValue = $dirFileFn[$folder][$fileName][$fnName] ?? null;
+            $c['req']['current_passed_value']['routes'][$folder][$fileName][$fnName] = $passedValue;
+            $c['req']['current_passed_values']['routes'][] = [$folder => [$fileName => [$fnName => $passedValue]]];
             $folderFile = $routesDir . $folder . '/' . $fileName . '.php';
 
             if ( // if = run already exists in $c['dispatchers'] so can reuse
@@ -63,7 +65,12 @@
                 && is_callable($c['dispatchers']['routes'][$folder][$fileName])
             ) {
                 $runRouteKey = $c['dispatchers']['routes'][$folder][$fileName];
-                $runRouteKey($c, $fnName, $passedValue);
+                $rawRun = $runRouteKey($c, $fnName, $passedValue);
+                if (is_array($rawRun) && count($rawRun) === 1) {
+                    $c['req']['last_returned_route_key_value'] = $rawRun;
+                } else {
+                    $c['req']['last_returned_route_key_value'] = FUNKPHP_NO_VALUE;
+                }
                 continue;
             } // else if = not stored in $c['dispatchers'] yet so we add it if we can
             else if (is_readable($folderFile)) {
@@ -72,7 +79,12 @@
                     // If fnName is not found inside of file,
                     // it will throw its own critical error!
                     $c['dispatchers']['routes'][$folder][$fileName] = $runRouteKey;
-                    $runRouteKey($c, $fnName, $passedValue);
+                    $rawRun = $runRouteKey($c, $fnName, $passedValue);
+                    if (is_array($rawRun) && count($rawRun) === 1) {
+                        $c['req']['last_returned_route_key_value'] = $rawRun;
+                    } else {
+                        $c['req']['last_returned_route_key_value'] = FUNKPHP_NO_VALUE;
+                    }
                     continue;
                 } // ERROR: File found but not function inside of it
                 else {
@@ -98,16 +110,28 @@
             $fnName = key($dirFileFn[$folder][$fileName]);
             $passedValue = $dirFileFn[$folder][$fileName][$fnName] ?? null;
             $folderFile = $routesDir . $folder . '/' . $fileName . '.php';
+            $c['req']['current_passed_value']['routes'][$folder][$fileName][$fnName] = $passedValue;
+            $c['req']['current_passed_values']['routes'][] = [$folder => [$fileName => [$fnName => $passedValue]]];
             // if = Run already dispatched function, otherwise reuse OR error out
             if (isset($c['dispatchers'][$folder][$fileName])) {
                 $runRouteKey = $c['dispatchers'][$folder][$fileName];
-                $runRouteKey($c, $fnName, $passedValue); // Pass the inner handler name
+                $rawRun = $runRouteKey($c, $fnName, $passedValue);
+                if (is_array($rawRun) && count($rawRun) === 1) {
+                    $c['req']['last_returned_route_key_value'] = $rawRun;
+                } else {
+                    $c['req']['last_returned_route_key_value'] = FUNKPHP_NO_VALUE;
+                }
                 continue;
             }
             $runRouteKey = include_once $folderFile;
             if (is_callable($runRouteKey)) {
                 $c['dispatchers'][$folder][$fileName] = $runRouteKey;
-                $runRouteKey($c, $fnName, $passedValue);
+                $rawRun = $runRouteKey($c, $fnName, $passedValue);
+                if (is_array($rawRun) && count($rawRun) === 1) {
+                    $c['req']['last_returned_route_key_value'] = $rawRun;
+                } else {
+                    $c['req']['last_returned_route_key_value'] = FUNKPHP_NO_VALUE;
+                }
                 continue;
             }
             $c['err']['PIPELINE']['REQUEST']['funk_run_matched_route_keys'][] = 'Route Key at Index `' . $idx . '` must be an Array with a Non-Empty String Key corresponding to the Folder where the Function File with corresponding Function Name would be inside of! The Folder/Function File `' . $folder . '/' . $fileName . '.php` does NOT RETURN a Callable Function in `funkphp/routes/` Directory! Please check your Route Keys in `funkphp/routes/routes.php` for the Route `' . (is_string($c['req']['method']) ? $c['req']['method'] : '<No HTTP(S) Method Matched>') . '/' . (is_string($c['req']['route']) ? $c['req']['route'] : '<No Route Matched>') . '`!';

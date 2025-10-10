@@ -7,6 +7,7 @@ define('FUNKPHP_IS_LOCAL', (isset($_SERVER['SERVER_NAME'])
 define('FUNKPHP_LOCAL', "http://localhost/funkphp/src/public_html/");
 define('FUNKPHP_ONLINE', "https://www.funkphp.com/");
 define("ROOT_FOLDER", dirname(__DIR__, 1));
+define("FUNKPHP_NO_VALUE", new stdClass()); // A Singleton Object that indicates "no value"!
 // GLOBAL CONFIGURATIONS in "$c" variable in "funkphp/funkphp_start.php"
 // Configure the included files below here separately as needed!
 return [
@@ -126,9 +127,9 @@ return [
         'deleted_middlewares' => [],
         'deleted_middlewares#' => 0,
         'completed_middlewares#' => 0,
-        'last_returned_pipeline_value' => null,
-        'last_returned_middleware_value' => '',
-        'last_returned_route_key_value' => null,
+        'last_returned_pipeline_value' => FUNKPHP_NO_VALUE,
+        'last_returned_middleware_value' => FUNKPHP_NO_VALUE,
+        'last_returned_route_key_value' => FUNKPHP_NO_VALUE,
         'current_exit' => null,
         'next_exit' => null,
         'deleted_exit' => null,
