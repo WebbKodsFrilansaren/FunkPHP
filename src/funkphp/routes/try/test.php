@@ -23,6 +23,6 @@ return function (&$c, $handler = "test2", $passedValue = null) {
 		return $full($c, $passedValue);
 	} else {
 		$c['err']['ROUTES']['TRY'][] = 'TRY Function `' . $full . '` not found in namespace `' . __NAMESPACE__ . '`. Does it exist as a callable function in the File?';
-		return null;
+		critical_err_json_or_html(500, 'Tell the Developer: The TRY Function `' . $full . '` could not be found! Please check the Function exists in the File and is in the correct Namespace!');
 	}
 };

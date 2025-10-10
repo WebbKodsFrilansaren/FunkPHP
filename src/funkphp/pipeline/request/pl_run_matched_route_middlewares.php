@@ -8,7 +8,7 @@
         critical_err_json_or_html(500, 'Tell the Developer: The Middlewares Pipeline Function ran but WITHOUT a Valid Passed Value - Must be either `defensive` or `happy`!');
     }
 
-    // 'defensive' = we check everything and output error to user if something gets wrong
+    // 'defensive' = we check almost everything and output error to user if something gets wrong
     if ($passedValue === 'defensive') {
         if (isset($c['req']['matched_middlewares'])) {
             // Must be a numbered array
@@ -84,8 +84,7 @@
             $c['err']['MAYBE']['CONFIG'][] = 'No Configured Matched Route Middlewares (`"ROUTES" => "GET|POST|PUT|DELETE|PATCH" => "/route" => "middlewares" Key`) to load and run after Possibly Matched Route: ' . ($c['req']['route'] !== null ? $c['req']['method'] . '/' . $c['req']['route'] : '<No Route Matched>') . 'Route Matching. If you expected Middlewares to run after Route Matching, check for the Route in the `funkphp/config/routes.php` File!';
         }
     }
-    // 'happy' = we assume everything is correct and just run the middlewares
-    // TODO: Write the 'happy' version (should go much faster!)
+    // 'happy' = we assume almost everything is correct and just run the middlewares
     else if ($passedValue === 'happy') {
         // Assume $c['req']['matched_middlewares'] exists, is a numbered array, and is correctly structured.
         if (isset($c['req']['matched_middlewares'])) {
