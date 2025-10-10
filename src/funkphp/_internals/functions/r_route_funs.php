@@ -10,19 +10,6 @@ function funk_cv(&$c, $currentStoredPassedValueForDefaultPipelineOrOtherKey = "p
 {
     return $c['req']['current_passed_value'][$currentStoredPassedValueForDefaultPipelineOrOtherKey] ?? null;
 }
-function funk_current_fn_value(&$c, $key, $fnName)
-{
-    // Store error in $c['err'] if no key or fnName is provided (null or empty strings or not strings at all!)
-    if (!isset($key) || !is_string($key) || empty($key)) {
-        $c['err']['MAYBE']['funk_current_fn_value'][] = 'No Key provided to get Current Function Value!';
-        return null;
-    }
-    if (!isset($fnName) || !is_string($fnName) || empty($fnName)) {
-        $c['err']['MAYBE']['funk_current_fn_value'][] = 'No Function Name provided to get Current Function Value!';
-        return null;
-    }
-    return $c['req']['current_passed_values'][$key][$fnName] ?? null;
-}
 
 // Function to skip the post-request pipeline
 function funk_skip_post_request(&$c)
@@ -36,10 +23,28 @@ function funk_skip_post_request(&$c)
 function funk_run_pipeline_request(&$c, $passedValue = null)
 {
     if (
-        isset($c['<ENTRY>']['pipeline']['request'])
-        && is_array($c['<ENTRY>']['pipeline']['request'])
-        && count($c['<ENTRY>']['pipeline']['request']) > 0
+        $passedValue === null
+        || !is_string($passedValue)
+        || !in_array($passedValue, ['defensive', 'happy'])
     ) {
+        $c['err']['PIPELINE']['function funk_run_pipeline_request'][] = 'Passed Value for funk_run_pipeline_request() must be either `defensive` or `happy`!';
+        critical_err_json_or_html(500, 'Tell the Developer: Invalid Pipeline Mode Passed Value (to run all Request Pipeline Functions) - should be either `defensive` or `happy`!');
+    }
+
+    // 'defensive' = we check almost everything and output error to user if something gets wrong
+    if ($passedValue === 'defensive') {
+        // Must be a non-empty numbered array
+        if (
+            !isset($c['<ENTRY>']['pipeline']['request'])
+            || !is_array($c['<ENTRY>']['pipeline']['request'])
+            || !array_is_list($c['<ENTRY>']['pipeline']['request'])
+            || count($c['<ENTRY>']['pipeline']['request']) === 0
+        ) {
+            $c['err']['PIPELINE']['funk_run_pipeline_request'][] = 'No Configured Pipeline Functions (`"<ENTRY>" => "pipeline" => "request"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\'][\'request\']` Key in the Pipeline Configuration File `funkphp/config/pipeline.php` File!';
+            critical_err_json_or_html(500, 'Tell the Developer: No Pipeline Functions to run? Please check the `[\'pipeline\'][\'request\']` Key in the `funkphp/config/pipeline.php` File!');
+        }
+
+        // Prepare for main loop to run each pipeline function
         $count = count($c['<ENTRY>']['pipeline']['request']);
         $pipeDir = ROOT_FOLDER . '/pipeline/request/';
         $c['req']['keep_running_pipeline'] = true;
@@ -48,322 +53,347 @@ function funk_run_pipeline_request(&$c, $passedValue = null)
                 break;
             }
 
-            // Must not be null and either a String or an Array Key with a Value!
-            // We use $pipeValueExists so we also can pass "null" as a value!
-            $fnToRun = "";
-            $pipeValue = null;
+            // $current pipeline function should be a single associative array with a single value (which can be null)
             $current_pipe = $c['<ENTRY>']['pipeline']['request'][$i] ?? null;
             if (
-                $current_pipe === null ||
-                (!is_string($current_pipe) && !is_array($current_pipe))
+                !isset($current_pipe)
+                || !is_array($current_pipe)
+                || array_is_list($current_pipe)
+                || count($current_pipe) !== 1
             ) {
-                unset($c['<ENTRY>']['pipeline']['request'][$i]);
-                $c['req']['deleted_pipeline']++;
-                $c['err']['PIPELINE']['REQUEST']['funk_run_pipeline_request'][] = 'Pipeline Request Function at index ' .  $i . ' is either NULL or NOT a Valid Data Type. It must be a String or An Associative Array Key with a Value! (Value can be null, but that is probably not useful in most cases)';
-                continue;
+                $c['err']['PIPELINE']['funk_run_pipeline_request'][] = 'Pipeline Request Function at index ' .  $i . ' is either NULL or NOT a Valid Data Type. It must be an Associative Array Key (single element) with a Value! (Value can be null, to omit passing any values)';
+                critical_err_json_or_html(500, 'Tell the Developer: Pipeline Request Function at index ' .  $i . ' is either NULL or NOT a Valid Data Type. It must be an Associative Array Key (single element) with a Value! (Value can be null to omit passing any values)');
             }
-            // Extract Function Name from the Array Key or String and store the value
-            // in $c['req']['pipeline'] so it can be accessed anywhere during the request
-            elseif (is_array($current_pipe)) {
-                $fnToRun = key($current_pipe);
-                $pipeValue = $current_pipe[$fnToRun] ?? null;
-                $c['req']['current_passed_values']['pipeline']['request'][$fnToRun] = $current_pipe[$fnToRun] ?? null;
-                $c['req']['current_passed_value']['pipeline'] = $current_pipe[$fnToRun] ?? null;
-            } // "else" means it is a String so it has no value to store/pass on!
-            else {
-                $fnToRun = $current_pipe;
-            }
-            // First check if function already exists in $c['dispatchers']['pipeline']['request'] array!
-            // If it exists and is callable,
+            $fnToRun = key($current_pipe);
+            $pipeToRun = $pipeDir . $fnToRun . '.php';
+            $pipeValue = $current_pipe[$fnToRun] ?? null;
+            $c['req']['current_passed_value']['pipeline']['request'][$fnToRun] = $pipeValue;
+            $c['req']['current_passed_values']['pipeline']['request'][] = [$fnToRun => $pipeValue];
+
+            // if = pipeline already exists in dispatchers, so reuse it but with newly passed value!
             if (isset($c['dispatchers']['pipeline']['request'][$fnToRun])) {
                 if (is_callable($c['dispatchers']['pipeline']['request'][$fnToRun])) {
-                    $runPipe = $c['dispatchers']['pipeline']['request'][$fnToRun];
-                    $c['req']['current_pipeline'] = $current_pipe;
-                    $c['req']['pipeline#']++;
-                    $c['req']['next_pipeline'] = $c['<ENTRY>']['pipeline']['request'][$i + 1] ?? null;
-                    $runPipe($c, $pipeValue);
-                }
-            } else {
-                // Only run Pipeline Function if dir, file and callable, then
-                // run it and increment the number of ran pipeline functions
-                $pipeToRun = $pipeDir . $fnToRun . '.php';
-                if (file_exists($pipeToRun)) {
-                    $runPipe = include_once $pipeToRun;
-                    if (is_callable($runPipe)) {
-                        $c['req']['current_pipeline'] = $current_pipe;
-                        $c['req']['completed_pipeline#']++;
-                        $c['req']['next_pipeline'] = $c['<ENTRY>']['pipeline']['request'][$i + 1] ?? null;
-                        $c['dispatchers']['pipeline']['request'][$fnToRun] = $runPipe;
-                        $runPipe($c, $pipeValue);
+                    $runPipeKey = $c['dispatchers']['pipeline']['request'][$fnToRun];
+                    $rawRun = $runPipeKey($c, $pipeValue);
+                    if (is_array($rawRun) && count($rawRun) === 1) {
+                        $c['req']['last_returned_pipeline_value'] = $rawRun;
                     } else {
-                        $c['err']['PIPELINE']['REQUEST']['funk_run_pipeline_request'][] = 'Pipeline Request Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`';
-                        $c['req']['current_pipeline'] = null;
+                        $c['req']['last_returned_pipeline_value'] = FUNKPHP_NO_VALUE;
                     }
-                } else {
-                    $c['err']['PIPELINE']['REQUEST']['funk_run_pipeline_request'][] = 'Pipeline Request Function (`' . $fnToRun . '`) at index '  .  $i . ' does NOT EXIST in `funkphp/pipeline/request/` Directory!';
-                    $c['req']['current_pipeline'] = null;
+                }
+                // HARD ERROR to not allow to pass security checks
+                else {
+                    $c['err']['PIPELINE']['function funk_run_pipeline_request'][] = 'Pipeline Request Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`';
+                    critical_err_json_or_html(500, 'Tell the Developer: Pipeline Request Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`');
+                }
+            }
+            // else = pipeline does not exist yet, so include, store and run it with passed value!
+            else {
+                if (!is_readable($pipeToRun)) {
+                    $c['err']['PIPELINE']['function funk_run_pipeline_request'][] = 'Pipeline Request Function (`' . $fnToRun . '`) at index '  .  $i . ' does NOT EXIST (or is NOT READABLE) in `funkphp/pipeline/request/` Directory!';
+                    critical_err_json_or_html(500, 'Tell the Developer: Pipeline Request Function (`' . $fnToRun . '`) at index '  .  $i . ' does NOT EXIST (or is NOT READABLE) in `funkphp/pipeline/request/` Directory!');
+                }
+                $runPipe = include_once $pipeToRun;
+                if (is_callable($runPipe)) {
+                    $c['dispatchers']['pipeline']['request'][$fnToRun] = $runPipe;
+                    $rawRun = $runPipe($c, $pipeValue);
+                    if (is_array($rawRun) && count($rawRun) === 1) {
+                        $c['req']['last_returned_pipeline_value'] = $rawRun;
+                    } else {
+                        $c['req']['last_returned_pipeline_value'] = FUNKPHP_NO_VALUE;
+                    }
+                }
+                // HARD ERROR to not allow to pass security checks
+                else {
+                    $c['err']['PIPELINE']['function funk_run_pipeline_request'][] = 'Pipeline Request Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`';
+                    critical_err_json_or_html(500, 'Tell the Developer: Pipeline Request Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`');
                 }
             }
 
-            // Remove pipeline[$i] from the array after trying to run
-            // it (it is removed even if it was not callable/existed!)
-            $c['req']['deleted_pipeline']['request'][] = $current_pipe;
+            // Clean up before running the next pipeline function
+            $c['req']['current_pipeline'] = $current_pipe;
             unset($c['<ENTRY>']['pipeline']['request'][$i]);
-            unset($c['req']['current_passed_value']['pipeline']);
             $c['req']['deleted_pipeline#']++;
-        }
-        // Set default settings for the next pipeline run
-        $c['req']['current_pipeline'] = null;
-        if (
-            isset($c['<ENTRY>']['pipeline']['request'])
-            && is_array($c['<ENTRY>']['pipeline']['request'])
-            && count($c['<ENTRY>']['pipeline']['request']) === 0
-        ) {
-            $c['<ENTRY>']['pipeline']['request'] = null;
-        }
-        $c['req']['keep_running_pipeline'] = false;
-    }
-    // CUSTOM ERROR HANDLING HERE! - no matched middlewares (or change below to whatever you like)
-    // IMPORTANT: No matched middlewares could mean misconfigured routes or no middlewares at all!
-    else {
-        $c['err']['MAYBE']['PIPELINE']['REQUEST']['funk_run_pipeline_request'][] = 'No Configured Pipeline Request Functions (`"<ENTRY>" => "pipeline"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\']` Key in the Pipeline Configuration File `funkphp/pipeline/pipeline.php` File!';
-    }
-}
-
-// The "happy" version of `pipeline` meaning no checks are made for a
-// few bytecode instructions faster - maybe - so, use at own risk!!!
-function funk_run_pipeline_request_happy(&$c, $passedValue = null) {}
-
-// The "happy" version of `post-request` meaning no checks are made for a
-// few bytecode instructions faster - maybe - so, use at own risk!!!
-function funk_run_pipeline_post_request_happy(&$c, $passedValue = null) {}
-
-
-// The "happy" version of `middlewares` meaning no checks are made for a
-// few bytecode instructions faster - maybe - so, use at own risk!!!
-function funk_run_matched_route_middleware_happy(&$c, $passedValue = null) {}
-
-// The "happy" version of `route keys` meaning no checks are made for a
-// few bytecode instructions faster - maybe - so, use at own risk!!!
-function funk_run_matched_route_keys_happy(&$c, $passedValue = null) {}
-
-// Run ANY matched Route Key Handler by providing a string
-// which is the name of the current key inside of that key
-function funk_run_matched_route_key(&$c, $key = null)
-{
-    // $key must be a non-empty string
-    if (!isset($key) || !is_string($key) || empty($key)) {
-        $c['err']['PIPELINE']['REQUEST']['funk_run_matched_route_key'][] = 'No Route Key provided to run. Please provide a valid Route Key!';
-        return;
-    }
-    // It must also exist in currently matched route
-    if (!isset($c['req']['route_keys'][$key])) {
-        $c['err']['PIPELINE']['REQUEST']['funk_run_matched_route_key'][] = 'Route Key `' . $key . '` NOT found for the Route `' . ($c['req']['route'] ?? '<No Route Matched>') . '`. Please check your Route Keys in `funkphp/config/routes.php` for the Route `' . ($c['req']['route'] ?? '<No Route Matched>') . '`!';
-        return;
-    }
-
-    // We extract folder name, file name and function name based on whether
-    // 'folder' => 'fileName' (here functionName becomes same as fileName) OR
-    // 'folder' => ['fileName' => 'functionName']
-    $matchKey = $c['req']['route_keys'][$key];
-    $keyFolder = $key;
-    $keyFile = '';
-    $keyFn = '';
-    if (is_string($matchKey)) {
-        $keyFile = $matchKey;
-        $keyFn = $matchKey;
-    } elseif (is_array($matchKey)) {
-        $keyFile = key($matchKey);
-        $keyFn = $matchKey[$keyFile] ?? '';
-    } else {
-        $c['err']['PIPELINE']['REQUEST']['funk_run_matched_route_key'][] = 'Route Key `' . $key . '` must be a String or an Array with a Non-Empty String Value. No attempt to find a Route Key File was made!';
-        return;
-    }
-    // We check whether a returned anonymous function
-    // already exists in $c['dispatchers'][$key][$keyFile]
-    // otherwise we add it and call it!
-    if (isset($c['dispatchers'][$key][$keyFile])) {
-        // Check if it is callable, and if i tis NOT callable,
-        // we log an error since we ONLY store callables here!
-        if (is_callable($c['dispatchers'][$key][$keyFile])) {
-            return $c['dispatchers'][$key][$keyFile]($c, $keyFn);
-        } else {
-            $c['err']['PIPELINE']['REQUEST']['funk_run_matched_route_key'][] = 'Route Key `' . $key . '` File `' . $keyFile . '` is NOT a Callable Function. Please check your Route Key File in `funkphp/config/routes.php` for the Route `' . ($c['req']['route'] ?? '<No Route Matched>') . '`!';
-            return;
+            $c['req']['completed_pipeline#']++;
+            $c['req']['deleted_pipeline'][] = $fnToRun;
+            $c['req']['next_pipeline'] = isset($c['<ENTRY>']['pipeline']['request'][$i + 1])
+                && is_array($c['<ENTRY>']['pipeline']['request'][$i + 1])
+                ? array_key_first($c['<ENTRY>']['pipeline']['request'][$i + 1])
+                : null;
         }
     }
-    // Not added yet so add if it exists and call it with the $keyFn!
-    else {
-        $pathToInclude = ROOT_FOLDER . '/' . $keyFolder . '/' . $keyFile . '.php';
-        if (!is_readable($pathToInclude)) {
-            $c['err']['PIPELINE']['REQUEST']['funk_run_matched_route_key'][] = 'Route Key `' . $key . '` File `' . $keyFile . '` does NOT EXIST in `' . $keyFolder . '/` Directory! Please check your Route Key File in `funkphp/config/routes.php` for the Route `' . ($c['req']['route'] ?? '<No Route Matched>') . '`!';
-            return;
-        }
-        $c['dispatchers'][$key][$keyFile] = include_once $pathToInclude;
-        return $c['dispatchers'][$key][$keyFile]($c, $keyFn);
-    }
-};
-
-// Same as above but now it just iterates through all keys
-function funk_run_matched_route_keys(&$c, $passedValue = null)
-{
-    foreach ($c['req']['route_keys'] as $key => $_) {
-        // $key must be a non-empty string
-        if (!is_string($key)) {
-            $c['err']['PIPELINE']['REQUEST']['funk_run_matched_route_keys'][] = 'No Route Key provided to run. Please provide a valid Route Key!';
-            return;
-        }
-        // It must also exist in currently matched route
-        if (!isset($c['req']['route_keys'][$key])) {
-            $c['err']['PIPELINE']['REQUEST']['funk_run_matched_route_keys'][] = 'Route Key `' . $key . '` NOT found for the Route `' . ($c['req']['route'] ?? '<No Route Matched>') . '`. Please check your Route Keys in `funkphp/config/routes.php` for the Route `' . ($c['req']['route'] ?? '<No Route Matched>') . '`!';
-            return;
-        }
-
-        // We extract folder name, file name and function name based on whether
-        // 'folder' => 'fileName' (here functionName becomes same as fileName) OR
-        // 'folder' => ['fileName' => 'functionName']
-        $matchKey = $c['req']['route_keys'][$key];
-        $keyFolder = $key;
-        $keyFile = '';
-        $keyFn = '';
-        if (is_string($matchKey)) {
-            $keyFile = $matchKey;
-            $keyFn = $matchKey;
-        } elseif (is_array($matchKey)) {
-            $keyFile = key($matchKey);
-            $keyFn = $matchKey[$keyFile] ?? '';
-        } else {
-            $c['err']['PIPELINE']['REQUEST']['funk_run_matched_route_keys'][] = 'Route Key `' . $key . '` must be a String or an Array with a Non-Empty String Value. No attempt to find a Route Key File was made!';
-            return;
-        }
-        // We check whether a returned anonymous function
-        // already exists in $c['dispatchers'][$key][$keyFile]
-        // otherwise we add it and call it!
-        if (isset($c['dispatchers'][$key][$keyFile])) {
-            // Check if it is callable, and if i tis NOT callable,
-            // we log an error since we ONLY store callables here!
-            if (is_callable($c['dispatchers'][$key][$keyFile])) {
-                $c['dispatchers'][$key][$keyFile]($c, $keyFn);
-            } else {
-                $c['err']['PIPELINE']['REQUEST']['funk_run_matched_route_keys'][] = 'Route Key `' . $key . '` File `' . $keyFile . '` is NOT a Callable Function. Please check your Route Key File in `funkphp/config/routes.php` for the Route `' . ($c['req']['route'] ?? '<No Route Matched>') . '`!';
-                return;
-            }
-        }
-        // Not added yet so add if it exists and call it with the $keyFn!
-        else {
-            $pathToInclude = ROOT_FOLDER . '/' . $keyFolder . '/' . $keyFile . '.php';
-            if (!is_readable($pathToInclude)) {
-                $c['err']['PIPELINE']['REQUEST']['funk_run_matched_route_keys'][] = 'Route Key `' . $key . '` File `' . $keyFile . '` does NOT EXIST in `' . $keyFolder . '/` Directory! Please check your Route Key File in `funkphp/config/routes.php` for the Route `' . ($c['req']['route'] ?? '<No Route Matched>') . '`!';
-                return;
-            }
-            $c['dispatchers'][$key][$keyFile] = include_once $pathToInclude;
-            $c['dispatchers'][$key][$keyFile]($c, $keyFn);
-        }
-    }
-};
-
-// Try run middlewares AFTER handled request (and this can
-// also be due to being exited prematurely by the application)
-// &$c is Global Config Variable with "everything"!
-function funk_run_pipeline_post_request(&$c, $passedValue = null)
-{
-    if ($c['req']['skip_post-request']) {
-        $c['err']['MAYBE']['PIPELINE']['POST-REQUEST']['funk_run_pipeline_post_request'][] = 'Post-Request Pipeline was skipped by the Application for HTTP(S) Request:' . (isset($c['req']['method']) && is_string($c['req']['method']) && !empty($c['req']['method'])) ?: "<UNKNOWN_METHOD>" . (isset($c['req']['route']) && is_string($c['req']['route']) && !empty($c['req']['route'])) ?: "<UNKNOWN_ROUTE>" . '. No Post-Request Pipeline Functions were run. If you expected some, check where the Function `funk_skip_post_request(&$c)` could have been ran for your HTTP(S) Request!';
-        return;
-    }
-    if (
-        isset($c['<ENTRY>']['pipeline']['post-request'])
-        && is_array($c['<ENTRY>']['pipeline']['post-request'])
-        && count($c['<ENTRY>']['pipeline']['post-request']) > 0
-    ) {
-        $count = count($c['<ENTRY>']['pipeline']['post-request']);
+    // 'happy' = we assume almost everything is correct and just run the pipeline functions
+    else if ($passedValue === 'happy') {
+        $count = count($c['<ENTRY>']['pipeline']['request']);
+        $pipeDir = ROOT_FOLDER . '/pipeline/request/';
         $c['req']['keep_running_pipeline'] = true;
         for ($i = 0; $i < $count; $i++) {
             if ($c['req']['keep_running_pipeline'] === false) {
                 break;
             }
 
-            // Must not be null and either a String or an Array Key with a Value!
-            // We use $pipeValueExists so we also can pass "null" as a value!
-            $fnToRun = "";
-            $pipeValue = null;
-            $current_pipe = $c['<ENTRY>']['pipeline']['post-request'][$i] ?? null;
-            if (
-                $current_pipe === null ||
-                (!is_string($current_pipe) && !is_array($current_pipe))
-            ) {
-                unset($c['<ENTRY>']['pipeline']['post-request'][$i]);
-                $c['req']['deleted_pipeline#']++;
-                $c['err']['PIPELINE']['POST-REQUEST']['funk_run_pipeline_post_request'][] = 'Pipeline Request Function at index ' .  $i . ' is either NULL or NOT a Valid Data Type. It must be a String or An Associative Array Key with a Value! (Value can be null, but that is probably not useful in most cases)';
-                continue;
-            }
-            // Extract Function Name from the Array Key or String and store the value
-            // in $c['req']['pipeline'] so it can be accessed anywhere during the request
-            elseif (is_array($current_pipe)) {
-                $fnToRun = key($current_pipe);
-                $pipeValue = $current_pipe[$fnToRun] ?? null;
-                $c['req']['current_passed_values']['pipeline']['post-request'][$fnToRun] = $current_pipe[$fnToRun] ?? null;
-                $c['req']['current_passed_value']['pipeline'] = $current_pipe[$fnToRun] ?? null;
-            } // "else" means it is a String so it has no value to store/pass on!
-            else {
-                $fnToRun = $current_pipe;
-            }
-            // First check if function already exists in $c['dispatchers']['pipeline']['request'] array!
-            // If it exists and is callable,
-            if (isset($c['dispatchers']['pipeline']['post-request'][$fnToRun])) {
-                if (is_callable($c['dispatchers']['pipeline']['post-request'][$fnToRun])) {
-                    $runPipe = $c['dispatchers']['pipeline']['post-request'][$fnToRun];
-                    $c['req']['current_pipeline'] = $current_pipe;
-                    $c['req']['completed_pipeline#']++;
-                    $c['req']['next_pipeline'] = $c['<ENTRY>']['pipeline']['post-request'][$i + 1] ?? null;
-                    $runPipe($c, $pipeValue);
-                }
-            } else {
-                // Only run Pipeline Function if dir, file and callable, then
-                // run it and increment the number of ran pipeline functions
-                $pipeDir = ROOT_FOLDER . '/pipeline/post-request/';
-                $pipeToRun = $pipeDir . $fnToRun . '.php';
-                if (file_exists($pipeToRun)) {
-                    $runPipe = include_once $pipeToRun;
-                    if (is_callable($runPipe)) {
-                        $c['req']['current_pipeline'] = $current_pipe;
-                        $c['req']['completed_pipeline#']++;
-                        $c['req']['next_pipeline'] = $c['<ENTRY>']['pipeline']['post-request'][$i + 1] ?? null;
-                        $c['dispatchers']['pipeline']['post-request'][$fnToRun] = $runPipe;
-                        $runPipe($c, $pipeValue);
-                    } else {
-                        $c['err']['PIPELINE']['POST-REQUEST']['funk_run_pipeline_post_request'][] = 'Pipeline Post-Request Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`';
-                        $c['req']['current_pipeline'] = null;
-                    }
-                } else {
-                    $c['err']['PIPELINE']['POST-REQUEST']['funk_run_pipeline_post_request'][] = 'Pipeline Post-Request Function (`' . $fnToRun . '`) at index '  .  $i . ' does NOT EXIST in `funkphp/pipeline/pipeline/post-request/` Directory!';
-                    $c['req']['current_pipeline'] = null;
-                }
-            }
+            // Initialize current pipeline function to run without any checks in 'happy' mode
+            $current_pipe = $c['<ENTRY>']['pipeline']['request'][$i] ?? null;
+            $fnToRun = key($current_pipe);
+            $pipeValue = $current_pipe[$fnToRun] ?? null;
+            $c['req']['current_passed_value']['pipeline']['request'][$fnToRun] = $pipeValue;
+            $c['req']['current_passed_values']['pipeline']['request'][] = [$fnToRun => $pipeValue];
 
-            // Remove pipeline[$i] from the array after trying to run
-            // it (it is removed even if it was not callable/existed!)
-            $c['req']['deleted_pipeline']['post-request'][] = $current_pipe;
-            unset($c['<ENTRY>']['pipeline']['post-request'][$i]);
-            unset($c['req']['current_passed_value']['pipeline']);
+            // if = run already loaded middleware from dispatchers
+            if (isset($c['dispatchers']['pipeline']['request'][$fnToRun])) {
+                if (is_callable($c['dispatchers']['pipeline']['request'][$fnToRun])) {
+                    $runPipeKey = $c['dispatchers']['pipeline']['request'][$fnToRun];
+                    $rawRun = $runPipeKey($c, $pipeValue);
+                    if (is_array($rawRun) && count($rawRun) === 1) {
+                        $c['req']['last_returned_pipeline_value'] = $rawRun;
+                    } else {
+                        $c['req']['last_returned_pipeline_value'] = FUNKPHP_NO_VALUE;
+                    }
+                }
+                // HARD ERROR to not allow to pass security checks
+                else {
+                    $c['err']['PIPELINE']['function funk_run_pipeline_request'][] = 'Pipeline Request Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`';
+                    critical_err_json_or_html(500, 'Tell the Developer: Pipeline Request Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`');
+                }
+            }
+            // else = include, store and run pipeline function
+            else {
+                $pipeToRun = $pipeDir . $fnToRun . '.php';
+                $runPipe = include_once $pipeToRun;
+                if (is_callable($runPipe)) {
+                    $c['dispatchers']['pipeline']['request'][$fnToRun] = $runPipe;
+                    $rawRun = $runPipe($c, $pipeValue);
+                    if (is_array($rawRun) && count($rawRun) === 1) {
+                        $c['req']['last_returned_pipeline_value'] = $rawRun;
+                    } else {
+                        $c['req']['last_returned_pipeline_value'] = FUNKPHP_NO_VALUE;
+                    }
+                }
+                // HARD ERROR to not allow to pass security checks
+                else {
+                    $c['err']['PIPELINE']['function funk_run_pipeline_request'][] = 'Pipeline Request Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`';
+                    critical_err_json_or_html(500, 'Tell the Developer: Pipeline Request Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`');
+                }
+            }
+            // Clean up before running the next pipeline function
+            $c['req']['current_pipeline'] = $current_pipe;
+            unset($c['<ENTRY>']['pipeline']['request'][$i]);
             $c['req']['deleted_pipeline#']++;
+            $c['req']['completed_pipeline#']++;
+            $c['req']['deleted_pipeline'][] = $fnToRun;
+            $c['req']['next_pipeline'] = isset($c['<ENTRY>']['pipeline']['request'][$i + 1])
+                && is_array($c['<ENTRY>']['pipeline']['request'][$i + 1])
+                ? array_key_first($c['<ENTRY>']['pipeline']['request'][$i + 1])
+                : null;
         }
-        // Set default settings for the next pipeline run
-        $c['req']['current_pipeline'] = null;
+    }
+
+    // Default values after either 'defensive' or 'happy' mode has run
+    $c['req']['current_pipeline'] = null;
+    $c['req']['keep_running_pipeline'] = false;
+    $c['<ENTRY>']['pipeline']['request'] = null;
+}
+
+// Try run middlewares AFTER handled request (and this can
+// also be due to being exited prematurely by the application)
+// &$c is Global Config Variable with "everything"!
+function funk_run_pipeline_post_request(&$c, $passedValue = null)
+{
+    // We only run post-request pipelines if not skipped by the application!
+    // and they are also optional, so it can be skipped if not configured!
+    if ($c['req']['skip_post-request']) {
+        $c['err']['MAYBE']['PIPELINE']['POST-REQUEST']['funk_run_pipeline_post_request'][] = 'Post-Request Pipeline was skipped by the Application for HTTP(S) Request:' . (isset($c['req']['method']) && is_string($c['req']['method']) && !empty($c['req']['method'])) ?: "<UNKNOWN_METHOD>" . (isset($c['req']['route']) && is_string($c['req']['route']) && !empty($c['req']['route'])) ?: "<UNKNOWN_ROUTE>" . '. No Post-Request Pipeline Functions were run. If you expected some, check where the Function `funk_skip_post_request(&$c)` could have been ran for your HTTP(S) Request!';
+        return;
+    }
+    if (
+        $passedValue === null
+        || !is_string($passedValue)
+        || !in_array($passedValue, ['defensive', 'happy'])
+    ) {
+        $c['err']['PIPELINE']['function funk_run_pipeline_post_request'][] = 'Passed Value for funk_run_pipeline_post_request() must be either `defensive` or `happy`!';
+        critical_err_json_or_html(500, 'Tell the Developer: Invalid Pipeline Mode Passed Value (to run all Post-Request Pipeline Functions) - should be either `defensive` or `happy`!');
+    }
+    // 'defensive' = we check almost everything and output error to user if something gets wrong
+    if ($passedValue === 'defensive') {
+        // Must be a non-empty numbered array if it is set
         if (
             isset($c['<ENTRY>']['pipeline']['post-request'])
-            && is_array($c['<ENTRY>']['pipeline']['post-request'])
-            && count($c['<ENTRY>']['pipeline']['post-request']) === 0
         ) {
-            $c['<ENTRY>']['pipeline']['post-request'] = null;
+            if (
+                !is_array($c['<ENTRY>']['pipeline']['post-request'])
+                || !array_is_list($c['<ENTRY>']['pipeline']['post-request'])
+                || count($c['<ENTRY>']['pipeline']['post-request']) === 0
+            ) {
+                $c['err']['PIPELINE']['funk_run_pipeline_post_request'][] = 'No Configured Pipeline Functions (`"<ENTRY>" => "pipeline" => "post-request"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\'][\'post-request\']` Key in the Pipeline Configuration File `funkphp/config/pipeline.php` File!';
+                critical_err_json_or_html(500, 'Tell the Developer: No Pipeline Functions to run? Please check the `[\'pipeline\'][\'post-request\']` Key in the `funkphp/config/pipeline.php` File!');
+            }
+            // Prepare for main loop to run each pipeline function
+            $count = count($c['<ENTRY>']['pipeline']['post-request']);
+            $pipeDir = ROOT_FOLDER . '/pipeline/post-request/';
+            $c['req']['keep_running_pipeline'] = true;
+            for ($i = 0; $i < $count; $i++) {
+                if ($c['req']['keep_running_pipeline'] === false) {
+                    break;
+                }
+                // $current pipeline function should be a single associative array with a single value (which can be null)
+                $current_pipe = $c['<ENTRY>']['pipeline']['post-request'][$i] ?? null;
+                if (
+                    !isset($current_pipe)
+                    || !is_array($current_pipe)
+                    || array_is_list($current_pipe)
+                    || count($current_pipe) !== 1
+                ) {
+                    $c['err']['PIPELINE']['funk_run_pipeline_post_request'][] = 'Pipeline Post-Request Function at index ' .  $i . ' is either NULL or NOT a Valid Data Type. It must be an Associative Array Key (single element) with a Value! (Value can be null, to omit passing any values)';
+                    critical_err_json_or_html(500, 'Tell the Developer: Pipeline Post-Request Function at index ' .  $i . ' is either NULL or NOT a Valid Data Type. It must be an Associative Array Key (single element) with a Value! (Value can be null to omit passing any values)');
+                }
+                $fnToRun = key($current_pipe);
+                $pipeToRun = $pipeDir . $fnToRun . '.php';
+                $pipeValue = $current_pipe[$fnToRun] ?? null;
+                $c['req']['current_passed_value']['pipeline']['post-request'][$fnToRun] = $pipeValue;
+                $c['req']['current_passed_values']['pipeline']['post-request'][] = [$fnToRun => $pipeValue];
+                // if = pipeline already exists in dispatchers, so reuse it but with newly passed value!
+                if (isset($c['dispatchers']['pipeline']['post-request'][$fnToRun])) {
+                    if (is_callable($c['dispatchers']['pipeline']['post-request'][$fnToRun])) {
+                        $runPipeKey = $c['dispatchers']['pipeline']['post-request'][$fnToRun];
+                        // Clean up before running the next pipeline function
+                        $c['req']['current_pipeline'] = $current_pipe;
+                        unset($c['<ENTRY>']['pipeline']['post-request'][$i]);
+                        $c['req']['deleted_pipeline#']++;
+                        $c['req']['completed_pipeline#']++;
+                        $c['req']['deleted_pipeline'][] = $fnToRun;
+                        $c['req']['next_pipeline'] = isset($c['<ENTRY>']['pipeline']['post-request'][$i + 1])
+                            && is_array($c['<ENTRY>']['pipeline']['post-request'][$i + 1])
+                            ? array_key_first($c['<ENTRY>']['pipeline']['post-request'][$i + 1])
+                            : null;
+                        $rawRun = $runPipeKey($c, $pipeValue);
+                        if (is_array($rawRun) && count($rawRun) === 1) {
+                            $c['req']['last_returned_pipeline_value'] = $rawRun;
+                        } else {
+                            $c['req']['last_returned_pipeline_value'] = FUNKPHP_NO_VALUE;
+                        }
+                    }
+                    // HARD ERROR to not allow to pass security checks
+                    else {
+                        $c['err']['PIPELINE']['function funk_run_pipeline_post_request'][] = 'Pipeline Post-Request Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`';
+                        critical_err_json_or_html(500, 'Tell the Developer: Pipeline Post-Request Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`');
+                    }
+                }
+                // else = pipeline does not exist yet, so include, store and run it with passed value!
+                else {
+                    if (!is_readable($pipeToRun)) {
+                        $c['err']['PIPELINE']['function funk_run_pipeline_post_request'][] = 'Pipeline Post-Request Function (`' . $fnToRun . '`) at index '  .  $i . ' does NOT EXIST (or is NOT READABLE) in `funkphp/pipeline/request/` Directory!';
+                        critical_err_json_or_html(500, 'Tell the Developer: Pipeline Post-Request Function (`' . $fnToRun . '`) at index '  .  $i . ' does NOT EXIST (or is NOT READABLE) in `funkphp/pipeline/request/` Directory!');
+                    }
+                    $runPipe = include_once $pipeToRun;
+                    if (is_callable($runPipe)) {
+                        $c['dispatchers']['pipeline']['post-request'][$fnToRun] = $runPipe;
+                        // Clean up before running the next pipeline function
+                        $c['req']['current_pipeline'] = $current_pipe;
+                        unset($c['<ENTRY>']['pipeline']['post-request'][$i]);
+                        $c['req']['deleted_pipeline#']++;
+                        $c['req']['completed_pipeline#']++;
+                        $c['req']['deleted_pipeline'][] = $fnToRun;
+                        $c['req']['next_pipeline'] = isset($c['<ENTRY>']['pipeline']['post-request'][$i + 1])
+                            && is_array($c['<ENTRY>']['pipeline']['post-request'][$i + 1])
+                            ? array_key_first($c['<ENTRY>']['pipeline']['post-request'][$i + 1])
+                            : null;
+                        $rawRun = $runPipe($c, $pipeValue);
+                        if (is_array($rawRun) && count($rawRun) === 1) {
+                            $c['req']['last_returned_pipeline_value'] = $rawRun;
+                        } else {
+                            $c['req']['last_returned_pipeline_value'] = FUNKPHP_NO_VALUE;
+                        }
+                    }
+                    // HARD ERROR to not allow to pass security checks
+                    else {
+                        $c['err']['PIPELINE']['function funk_run_pipeline_post_request'][] = 'Pipeline Post-Request Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`';
+                        critical_err_json_or_html(500, 'Tell the Developer: Pipeline Post-Request Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`');
+                    }
+                }
+            }
         }
-        $c['req']['keep_running_pipeline'] = false;
     }
-    // CUSTOM ERROR HANDLING HERE! - no matched middlewares (or change below to whatever you like)
-    // IMPORTANT: No matched middlewares could mean misconfigured routes or no middlewares at all!
-    else {
-        $c['err']['MAYBE']['PIPELINE']['POST-REQUEST']['funk_run_pipeline_post_request'][] = 'No Configured Pipeline Post-Request Functions (`"<ENTRY>" => "pipeline"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\']` Key in the Pipeline Configuration File `funkphp/pipeline/pipeline.php` File!';
+    // 'happy' = we assume almost everything is correct and just run the pipeline functions
+    else if ($passedValue === 'happy') {
+        if (
+            isset($c['<ENTRY>']['pipeline']['post-request'])
+        ) {
+            $count = count($c['<ENTRY>']['pipeline']['post-request']);
+            $pipeDir = ROOT_FOLDER . '/pipeline/post-request/';
+            $c['req']['keep_running_pipeline'] = true;
+            for ($i = 0; $i < $count; $i++) {
+                if ($c['req']['keep_running_pipeline'] === false) {
+                    break;
+                }
+                // Initialize current pipeline function to run without any checks in 'happy' mode
+                $current_pipe = $c['<ENTRY>']['pipeline']['post-request'][$i] ?? null;
+                $fnToRun = key($current_pipe);
+                $pipeValue = $current_pipe[$fnToRun] ?? null;
+                $c['req']['current_passed_value']['pipeline']['post-request'][$fnToRun] = $pipeValue;
+                $c['req']['current_passed_values']['pipeline']['post-request'][] = [$fnToRun => $pipeValue];
+                // if = run already loaded middleware from dispatchers
+                if (isset($c['dispatchers']['pipeline']['post-request'][$fnToRun])) {
+                    if (is_callable($c['dispatchers']['pipeline']['post-request'][$fnToRun])) {
+                        $runPipeKey = $c['dispatchers']['pipeline']['post-request'][$fnToRun];
+                        // Clean up before running the next pipeline function
+                        $c['req']['current_pipeline'] = $current_pipe;
+                        unset($c['<ENTRY>']['pipeline']['post-request'][$i]);
+                        $c['req']['deleted_pipeline#']++;
+                        $c['req']['completed_pipeline#']++;
+                        $c['req']['deleted_pipeline'][] = $fnToRun;
+                        $c['req']['next_pipeline'] = isset($c['<ENTRY>']['pipeline']['post-request'][$i + 1])
+                            && is_array($c['<ENTRY>']['pipeline']['post-request'][$i + 1])
+                            ? array_key_first($c['<ENTRY>']['pipeline']['post-request'][$i + 1])
+                            : null;
+                        $rawRun = $runPipeKey($c, $pipeValue);
+                        if (is_array($rawRun) && count($rawRun) === 1) {
+                            $c['req']['last_returned_pipeline_value'] = $rawRun;
+                        } else {
+                            $c['req']['last_returned_pipeline_value'] = FUNKPHP_NO_VALUE;
+                        }
+                    }
+                    // HARD ERROR to not allow to pass security checks
+                    else {
+                        $c['err']['PIPELINE']['function funk_run_pipeline_post_request'][] = 'Pipeline Post-Request Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`';
+                        critical_err_json_or_html(500, 'Tell the Developer: Pipeline Post-Request Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`');
+                    }
+                }
+                // else = include, store and run pipeline function
+                else {
+                    $pipeToRun = $pipeDir . $fnToRun . '.php';
+                    $runPipe = include_once $pipeToRun;
+                    if (is_callable($runPipe)) {
+                        $c['dispatchers']['pipeline']['post-request'][$fnToRun] = $runPipe;
+                        // Clean up before running the next pipeline function
+                        $c['req']['current_pipeline'] = $current_pipe;
+                        unset($c['<ENTRY>']['pipeline']['post-request'][$i]);
+                        $c['req']['deleted_pipeline#']++;
+                        $c['req']['completed_pipeline#']++;
+                        $c['req']['deleted_pipeline'][] = $fnToRun;
+                        $c['req']['next_pipeline'] = isset($c['<ENTRY>']['pipeline']['post-request'][$i + 1])
+                            && is_array($c['<ENTRY>']['pipeline']['post-request'][$i + 1])
+                            ? array_key_first($c['<ENTRY>']['pipeline']['post-request'][$i + 1])
+                            : null;
+                        $rawRun = $runPipe($c, $pipeValue);
+                        if (is_array($rawRun) && count($rawRun) === 1) {
+                            $c['req']['last_returned_pipeline_value'] = $rawRun;
+                        } else {
+                            $c['req']['last_returned_pipeline_value'] = FUNKPHP_NO_VALUE;
+                        }
+                    }
+                    // HARD ERROR to not allow to pass security checks
+                    else {
+                        $c['err']['PIPELINE']['function funk_run_pipeline_post_request'][] = 'Pipeline Post-Request Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`';
+                        critical_err_json_or_html(500, 'Tell the Developer: Pipeline Post-Request Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`');
+                    }
+                }
+            }
+        }
     }
+    // Default values after either 'defensive' or 'happy' mode has run
+    $c['req']['current_pipeline'] = null;
+    $c['req']['keep_running_pipeline'] = false;
+    $c['<ENTRY>']['pipeline']['post-request'] = null;
 }
 
 // Three functions that just returned the last stored value

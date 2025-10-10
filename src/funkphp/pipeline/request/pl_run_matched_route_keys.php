@@ -10,12 +10,15 @@
 
     // 'defensive' = we check almost everything and output error to user if something gets wrong
     if ($passedValue === 'defensive') {
-        if (isset($c['req']['route_keys'])) {
-            // Must be a numbered array
-            if (!is_array($c['req']['route_keys']) || array_values($c['req']['route_keys']) !== $c['req']['route_keys']) {
-                $c['err']['PIPELINE']['REQUEST']['funk_run_matched_route_keys'][] = 'Route Keys for the Matched Route must be a Numbered Array! Please check your Route Keys in `funkphp/routes/routes.php` for the Route `' . (is_string($c['req']['method']) ? $c['req']['method'] : '<No HTTP(S) Method Matched>') . '/' . (is_string($c['req']['route']) ? $c['req']['route'] : '<No Route Matched>') . '`!';
-                critical_err_json_or_html(500, 'Tell the Developer: The Route Keys for the Matched Route must be a Numbered Array! Please check your Route Keys in `funkphp/routes/routes.php` for the Route `' . (is_string($c['req']['method']) ? $c['req']['method'] : '<No HTTP(S) Method Matched>') . '/' . (is_string($c['req']['route']) ? $c['req']['route'] : '<No Route Matched>') . '`!');
-            }
+        // Must be a non-empty numbered array
+        if (
+            !isset($c['req']['route_keys'])
+            || !is_array($c['req']['route_keys'])
+            || !array_is_list($c['req']['route_keys'])
+            || count($c['req']['route_keys']) === 0
+        ) {
+            $c['err']['PIPELINE']['REQUEST']['funk_run_matched_route_keys'][] = 'Route Keys for the Matched Route must be a Numbered Array! Please check your Route Keys in `funkphp/routes/routes.php` for the Route `' . (is_string($c['req']['method']) ? $c['req']['method'] : '<No HTTP(S) Method Matched>') . '/' . (is_string($c['req']['route']) ? $c['req']['route'] : '<No Route Matched>') . '`!';
+            critical_err_json_or_html(500, 'Tell the Developer: The Route Keys for the Matched Route must be a Numbered Array! Please check your Route Keys in `funkphp/routes/routes.php` for the Route `' . (is_string($c['req']['method']) ? $c['req']['method'] : '<No HTTP(S) Method Matched>') . '/' . (is_string($c['req']['route']) ? $c['req']['route'] : '<No Route Matched>') . '`!');
         }
 
         // Main Loop - each value is `Routes/folder=>FileName=>FunctionName=>$passedValue`
