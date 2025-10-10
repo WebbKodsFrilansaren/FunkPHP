@@ -1,16 +1,5 @@
 <?php // ROUTE-related FUNCTIONS FOR FunPHP
 
-// Function that returns a stored value in $c['req']['current_passed_value']["pipeline" is default!]
-function funk_current_value(&$c, $currentStoredPassedValueForDefaultPipelineOrOtherKey = "pipeline")
-{
-    return $c['req']['current_passed_value'][$currentStoredPassedValueForDefaultPipelineOrOtherKey] ?? null;
-}
-// Shorthand version of funk_current_value() that uses the default "pipeline" key
-function funk_cv(&$c, $currentStoredPassedValueForDefaultPipelineOrOtherKey = "pipeline")
-{
-    return $c['req']['current_passed_value'][$currentStoredPassedValueForDefaultPipelineOrOtherKey] ?? null;
-}
-
 // Function to skip the post-request pipeline
 function funk_skip_post_request(&$c)
 {
