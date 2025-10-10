@@ -92,20 +92,17 @@
             $count = count($c['req']['matched_middlewares']);
             $mwDir = ROOT_FOLDER . '/middlewares/';
             $c['req']['keep_running_middlewares'] = true;
-
             // Main MWs Loop
             for ($i = 0; $i < $count; $i++) {
                 // Short-circuit check is still necessary for middleware control
+                // as middlewares can interupt the flow if so desired.
                 if ($c['req']['keep_running_middlewares'] === false) {
                     break;
                 }
-
                 $current_mw = $c['req']['matched_middlewares'][$i];
                 $mwToRun = array_key_first($current_mw);
-
                 // Set context (useful even in 'happy' mode)
                 $c['req']['current_middleware'] = $mwToRun;
-
                 // 1. Run already loaded middleware from dispatchers
                 if (isset($c['dispatchers']['middlewares'][$mwToRun])) {
                     $RunMW = $c['dispatchers']['middlewares'][$mwToRun];
@@ -113,10 +110,9 @@
                 }
                 // 2. Include file, store, and run (assume callable and readable)
                 else {
-                    // NOTE: We rely on PHP's internal errors (or production error handling) if the file is missing
-                    // or if the included value is not callable.
+                    // NOTE: We rely on PHP's internal errors (or production error handling)
+                    // if the file is missing or if the included value is not callable.
                     $RunMW = include_once $mwDir . $mwToRun . '.php';
-
                     // We must still check if it's callable for safety before running and storing
                     // since a non-callable would cause a fatal error.
                     if (is_callable($RunMW)) {
@@ -127,7 +123,6 @@
                     // to avoid the overhead of the detailed error logging/exit in the 'defensive' mode.
                     // For now, we'll continue with cleanup, assuming a developer error or misconfiguration.
                 }
-
                 // Cleanup and Stats - This is standard procedure, keep it.
                 $c['req']['completed_middlewares#']++;
                 $c['req']['deleted_middlewares'][] = $mwToRun;
@@ -140,7 +135,6 @@
                     ? array_key_first($c['req']['matched_middlewares'][$i + 1])
                     : null;
             }
-
             // After MWs Loop, finalize state
             $c['req']['keep_running_middlewares'] = false;
             $c['req']['current_middleware'] = null;
