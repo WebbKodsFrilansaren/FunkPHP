@@ -47,13 +47,13 @@
                     && is_callable($c['dispatchers']['middlewares'][$mwToRun])
                 ) {
                     $RunMW = $c['dispatchers']['middlewares'][$mwToRun];
-                    $RunMW($c, $passedValue);
+                    $c['req']['last_returned_middleware_value'] = $RunMW($c, $passedValue);
                 }  // else if = include the file from middlewares folder and add it to dispatchers
                 elseif (is_readable($mwFileToRun)) {
                     $RunMW = include_once $mwFileToRun;
                     if (is_callable($RunMW)) {
                         $c['dispatchers']['middlewares'][$mwToRun] = $RunMW; // Store for possible reuse
-                        $RunMW($c, $passedValue);
+                        $c['req']['last_returned_middleware_value'] = $RunMW($c, $passedValue);
                     }
                     // ERROR: Middleware found in middlewares folder but it is not callable!
                     else {
@@ -106,7 +106,7 @@
             // 1. Run already loaded middleware from dispatchers
             if (isset($c['dispatchers']['middlewares'][$mwToRun])) {
                 $RunMW = $c['dispatchers']['middlewares'][$mwToRun];
-                $RunMW($c, $passedValue);
+                $c['req']['last_returned_middleware_value'] = $RunMW($c, $passedValue);
                 continue;
             }
             // 2. Include file, store, and run (assume callable and readable)
@@ -117,7 +117,7 @@
             // since a non-callable would cause a fatal error.
             if (is_callable($RunMW)) {
                 $c['dispatchers']['middlewares'][$mwToRun] = $RunMW;
-                $RunMW($c, $passedValue);
+                $c['req']['last_returned_middleware_value'] = $RunMW($c, $passedValue);
             }
             // This is the ONLY hard error here because we do not
             // wanna accidentally skip possible auth-checks!
