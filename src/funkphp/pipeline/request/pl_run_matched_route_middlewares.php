@@ -95,7 +95,7 @@
             // Main MWs Loop
             for ($i = 0; $i < $count; $i++) {
                 // Short-circuit check is still necessary for middleware control
-                // as middlewares can interupt the flow if so desired.
+                // as middlewares can be interrupted by setting this flag to false.
                 if ($c['req']['keep_running_middlewares'] === false) {
                     break;
                 }
