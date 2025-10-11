@@ -84,6 +84,21 @@ function funk_handle_custom_error(&$c, $errorKey, $errorType, $errorCode = 500, 
     }  // Handle Page Type
     else if ($handleType === 'page') {
         // TODO: Later when 'page' has been implemented in the entire FunkPHP framework! - not far from now!
+        // handleData must be a non empty string (the path to the page to load)
+        if (
+            !isset($handleData)
+            || !is_string($handleData)
+            || empty($handleData)
+        ) {
+            critical_err_json_or_html(500, 'Tell the Developer: No Valid Handle Data Provided to funk_handle_custom_error() Function for `page` Type. This should be a non-empty string!');
+        }
+        $pageToInclude = ROOT_FOLDER . 'page/completed/' . $handleData . '.php';
+        if (!is_readable($pageToInclude)) {
+            critical_err_json_or_html(500, 'Tell the Developer: The Provided Page to Load inside funk_handle_custom_error() Function for `page` Type does NOT EXIST or is NOT READABLE! Please check the path: `' . $pageToInclude . '`');
+        } else {
+            header('Content-Type: text/html; charset=utf-8');
+            include_once $pageToInclude;
+        }
     }  // Handle JSON Or Page Type (based on 'accept' header)
     else if ($handleType === 'json_or_page') {
         // We want JSON
@@ -105,6 +120,20 @@ function funk_handle_custom_error(&$c, $errorKey, $errorType, $errorCode = 500, 
         } // We want Page
         else {
             // TODO: Later when 'page' has been implemented in the entire FunkPHP framework! - not far from now!
+            if (
+                !isset($handleData)
+                || !is_string($handleData)
+                || empty($handleData)
+            ) {
+                critical_err_json_or_html(500, 'Tell the Developer: No Valid Handle Data Provided to funk_handle_custom_error() Function for `page` Type. This should be a non-empty string!');
+            }
+            $pageToInclude = ROOT_FOLDER . 'page/completed/' . $handleData . '.php';
+            if (!is_readable($pageToInclude)) {
+                critical_err_json_or_html(500, 'Tell the Developer: The Provided Page to Load inside funk_handle_custom_error() Function for `page` Type does NOT EXIST or is NOT READABLE! Please check the path: `' . $pageToInclude . '`');
+            } else {
+                header('Content-Type: text/html; charset=utf-8');
+                include_once $pageToInclude;
+            }
         }
     }  // Handle Callback Type
     else if ($handleType === 'callback') {
