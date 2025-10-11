@@ -231,5 +231,5 @@ return [
     // When you add a pipeline function, a middleware, a route key, or whatever that could
     // throw an error you really wanna do something about, you just add its key in the
     // `error_customs.php` file and then create the custom json/page/callback to handle it!
-    'error_custom' => include_once __DIR__ . '/error_custom.php',
+    'errors_custom' => include_once __DIR__ . '/errors_custom.php',
 ];
