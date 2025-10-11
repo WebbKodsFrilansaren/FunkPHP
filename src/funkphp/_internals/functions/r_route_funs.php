@@ -70,7 +70,6 @@ function funk_handle_custom_error(&$c, $errorKey, $errorType, $errorCode = 500, 
     // Now, we attempt using the different handleTypes and this is where we could get critical error if maybe JSON is not
     // provided when asked to use JSON etc.
     http_response_code($errorCode);
-
     // Handle JSON Handle Type
     if ($handleType === 'json') {
         if (!isset($handleData) || (!is_array($handleData) && !is_object($handleData)) || empty($handleData)) {

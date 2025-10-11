@@ -10,7 +10,7 @@ return [
     'pl_match_route' => [],
     'pl_prepare_uri' => [],
     'pl_run_ini_sets' => [],
-    'pl_run_matched_route_keys' => [],
+    'pl_run_matched_route_key' => [],
     'pl_run_matched_route_keys' => [],
     'pl_run_matched_route_middlewares' => [],
     'pl_set_session_cookie_params' => [],
