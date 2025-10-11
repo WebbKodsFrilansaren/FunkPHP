@@ -30,11 +30,15 @@ return  [
             [],
             'page' =>
             [],
+            'callback' =>
+            [],
         ],
         'page' => [
             'json' =>
             [],
             'page' =>
+            [],
+            'callback' =>
             [],
         ],
     ],

@@ -1,5 +1,161 @@
 <?php // ROUTE-related FUNCTIONS FOR FunPHP
 
+// Function calls `funkphp/config/errors_custom.php` to handle errors in a custom way or it
+// defaults to `critical_err_json_or_html()` if no matching custom error handler is found!
+function funk_handle_custom_error(&$c, $errorKey, $errorType, $errorCode = 500, $handleType, $handleData, $skipPostRequest = true)
+{
+    // Available error types it can handle as of now! - more can be added as needed!
+    $availableHandleTypes = ['json', 'page', 'json_or_page', 'callback', 'html', 'text', 'xml'];
+    // When no valid handleData provided (it cannot be null or empty, that's really all)
+    if (
+        !isset($handleData)
+        || empty($handleData)
+    ) {
+        critical_err_json_or_html(500, 'Tell the Developer: No Valid Handle Data Provided to funk_handle_custom_error() Function. This should be either a string (for json/html/page types) or an array/object (for callback type)!');
+    }
+    // When error code is NOT integer or within wrong range
+    if (
+        !isset($errorCode)
+        || !is_int($errorCode)
+        || $errorCode < 100
+        || $errorCode > 599
+    ) {
+        critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to funk_handle_custom_error() Function. This should be an integer between 100 and 599!');
+    }
+    // When handleType is not a string and not in the available types
+    if (
+        !isset($handleType)
+        || !is_string($handleType)
+        || empty($handleType)
+        || !in_array($handleType, $availableHandleTypes)
+    ) {
+        critical_err_json_or_html(500, 'Tell the Developer: No Valid Handle Type Provided to funk_handle_custom_error() Function. This should be one of the following:`' . implode(', ', $availableHandleTypes) . '`!');
+    }
+    // Check if we have a valid error key to handle
+    // Default to critical when error key not found in $c!
+    if (!isset($c['errors_custom']) || !is_array($c['errors_custom'])) {
+        critical_err_json_or_html(500, 'Tell the Developer: No Custom Error Handlers Configured in `$c[\'errors_custom\']` Key! Please check the `funkphp/config/error_custom.php` File!');
+    }
+    // When no valid function to target handling an error for
+    if (
+        !isset($errorKey)
+        || !is_string($errorKey)
+        || empty($errorKey)
+        || !isset($c['errors_custom'][$errorKey])
+    ) {
+        critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Key Provided to funk_handle_custom_error() Function. This is usually the name of the function where an error occurred, e.g. `pl_db_connect` or `m_middleware` etc. Please check the `funkphp/config/error_custom.php` File!');
+    }
+    // When no valid error type for existing valid function to error handle
+    if (
+        !isset($errorType)
+        || !is_string($errorType)
+        || empty($errorType)
+        || !isset($c['errors_custom'][$errorKey][$errorType])
+    ) {
+        critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Type Provided to funk_handle_custom_error() Function. This is usually the type of error that occurred, e.g. `NO_DATABASE_CONNECTION`, `NO_MIDDLEWARE_FOUND` etc. Please check the `funkphp/config/error_custom.php` File!');
+    }
+    // When handlerType (which is valid now) is NOT in the array of the $errorType for the $errorKey
+    if (
+        !isset($c['errors_custom'][$errorKey][$errorType])
+        || !is_array($c['errors_custom'][$errorKey][$errorType])
+        || !isset($c['errors_custom'][$errorKey][$errorType][$handleType])
+    ) {
+        critical_err_json_or_html(500, 'Tell the Developer: No Valid Handler Type Found for the Existing ErrorKey and its Existing ErrorType! Please check the `funkphp/config/error_custom.php` File!');
+    }
+    // HERE WE HAVE VALIDATED: [FunctionName][ErrorType][HandleType] exists in $c['errors_custom'] and that it is valid
+    // Now, we attempt using the different handleTypes and this is where we could get critical error if maybe JSON is not
+    // provided when asked to use JSON etc.
+    http_response_code($errorCode);
+
+    // Handle JSON Handle Type
+    if ($handleType === 'json') {
+        if (!isset($handleData) || (!is_array($handleData) && !is_object($handleData)) || empty($handleData)) {
+            critical_err_json_or_html(500, 'Tell the Developer: No Valid Handle Data Provided to funk_handle_custom_error() Function for `json` Type. This should be a non-empty array!');
+        }
+        try {
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode($handleData, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        } catch (\JsonException $e) {
+            critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred While Encoding the Provided Data to JSON (`' . $e->getMessage() . '`) inside funk_handle_custom_error() Function for `json` Type!');
+        }
+    }  // Handle Page Type
+    else if ($handleType === 'page') {
+        // TODO: Later when 'page' has been implemented in the entire FunkPHP framework! - not far from now!
+    }  // Handle JSON Or Page Type (based on 'accept' header)
+    else if ($handleType === 'json_or_page') {
+        // We want JSON
+        if (
+            isset($c['req']['accept'])
+            && is_string($c['req']['accept'])
+            && !empty($c['req']['accept'])
+            && in_array($c['req']['accept'], ['application/json', 'text/json'])
+        ) {
+            if (!isset($handleData) || (!is_array($handleData) && !is_object($handleData)) || empty($handleData)) {
+                critical_err_json_or_html(500, 'Tell the Developer: No Valid Handle Data Provided to funk_handle_custom_error() Function for `json_or_page` Type when `Accept` Header indicates JSON is wanted. This should be a non-empty array!');
+            }
+            try {
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode($handleData, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            } catch (\JsonException $e) {
+                critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred While Encoding the Provided Data to JSON (`' . $e->getMessage() . '`) inside funk_handle_custom_error() Function for `json` Type!');
+            }
+        } // We want Page
+        else {
+            // TODO: Later when 'page' has been implemented in the entire FunkPHP framework! - not far from now!
+        }
+    }  // Handle Callback Type
+    else if ($handleType === 'callback') {
+        if (!isset($handleData) || !is_callable($handleData)) {
+            critical_err_json_or_html(500, 'Tell the Developer: Invalid Callback Handle Data Provided to funk_handle_custom_error() Function. This should be a valid callable (e.g., \'MyClass::myMethod\' or [new MyClass(), \'myMethod\'])!');
+        }
+        try {
+            call_user_func($c, ['handleData' => $handleData, 'error' => $errorKey, 'type' => $errorType, 'code' => $errorCode]);
+        } catch (\Throwable $e) {
+            critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the Custom Error Callback (`' . $e->getMessage() . '`) the Developer had Configured!');
+        }
+    }  // Handle HTML Type
+    else if ($handleType === 'html') {
+        // Validate that handleData is a string and NOT empty
+        if (
+            !isset($handleData)
+            || !is_string($handleData)
+            || empty($handleData)
+        ) {
+            critical_err_json_or_html(500, 'Tell the Developer: No Valid Handle Data Provided to funk_handle_custom_error() Function for `html` Type. This should be a non-empty string!');
+        }
+        header('Content-Type: text/html; charset=utf-8');
+        echo $handleData;
+    }  // Handle Text Type
+    else if ($handleType === 'text') {
+        // Validate that handleData is a string and NOT empty
+        if (
+            !isset($handleData)
+            || !is_string($handleData)
+            || empty($handleData)
+        ) {
+            critical_err_json_or_html(500, 'Tell the Developer: No Valid Handle Data Provided to funk_handle_custom_error() Function for `text` Type. This should be a non-empty string!');
+        }
+        header('Content-Type: text/plain; charset=utf-8');
+        echo $handleData;
+    }  // Handle XML Type
+    else if ($handleType === 'xml') {
+        // Validate that handleData is a string and NOT empty
+        if (
+            !isset($handleData)
+            || !is_string($handleData)
+            || empty($handleData)
+        ) {
+            critical_err_json_or_html(500, 'Tell the Developer: No Valid Handle Data Provided to funk_handle_custom_error() Function for `xml` Type. This should be a non-empty string!');
+        }
+        header('Content-Type: application/xml; charset=utf-8');
+        echo $handleData;
+    }
+    // Check if $skipPostRequest is true, if so, skip post-request pipeline
+    if ($skipPostRequest === true) {
+        funk_skip_post_request($c);
+    }
+}
+
 // Function to skip the post-request pipeline
 function funk_skip_post_request(&$c)
 {
@@ -405,21 +561,35 @@ function funk_last_return_route_key_value(&$c)
 
 // Exit the Pipeline and stop running any further pipeline functions
 // This is useful when you want to stop the pipeline early
-function funk_abort_pipeline(&$c)
+// IMPORTANT: As you can see, it will remove all remaining
+// pipeline functions, so use with care!
+function funk_abort_pipeline_request(&$c)
 {
-    // TODO:
+    $c['req']['current_pipeline'] = null;
+    $c['req']['keep_running_pipeline'] = false;
+    $c['<ENTRY>']['pipeline']['request'] = null;
     return;
 }
 // Same as above but used for the exit functions instead of the pipeline
-function funk_abort_exit(&$c)
+// IMPORTANT: As you can see, it will remove all remaining
+// pipeline functions, so use with care!
+function funk_abort_pipeline_post_requset(&$c)
 {
-    // TODO:
+    $c['req']['current_pipeline'] = null;
+    $c['req']['keep_running_pipeline'] = false;
+    $c['<ENTRY>']['pipeline']['post-request'] = null;
     return;
 }
 // Abort the middlewares and stop running any further middlewares
+// IMPORTANT: As you can see, it will remove all
+// remaining middleware functions, so use with care!
+// WARNING: Careful with aborting middlewares, particularly if
+// any kind of authentication/authorization is used for the route!
 function funk_abort_middlewares(&$c)
 {
-    // TODO:
+    $c['req']['current_middleware'] = null;
+    $c['req']['keep_running_middlewares'] = false;
+    $c['req']['matched_middlewares'] = null;
     return;
 }
 
@@ -665,14 +835,13 @@ function funk_param_is_regex(&$c, $param_key, $regexStr)
     return preg_match($regexStr, $param) === 1;
 }
 
-
-
-// Check if the request is from localhost or 127.0.0.1
-function funk_is_localhost(): bool
+function funk_param_is_email(&$c, $param_key)
 {
-    if (isset($_SERVER['REMOTE_ADDR']) && ($_SERVER['REMOTE_ADDR'] === "localhost" || $_SERVER['REMOTE_ADDR'] === "127.0.0.1")) {
-        return true;
-    } else {
-        return false;
+    if (!isset($param_key)) {
+        $c['err']['ROUTES']['funk_param_is_email'][] = 'No Parameter Key provided to Validate for Current Route!';
+        return null;
     }
+    // When provided parameter is a valid email, return true
+    $param = $c['req']['params'][$param_key] ?? null;
+    return filter_var($param, FILTER_VALIDATE_EMAIL) !== false;
 }

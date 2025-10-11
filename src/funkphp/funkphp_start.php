@@ -19,6 +19,7 @@ register_shutdown_function(function () use (&$c) {
     if (
         isset($c['<ENTRY>']['pipeline']['post-request'])
         && is_array($c['<ENTRY>']['pipeline']['post-request'])
+        && array_is_list($c['<ENTRY>']['pipeline']['post-request'])
         && !empty($c['<ENTRY>']['pipeline']['post-request'])
     ) {
         funk_run_pipeline_post_request($c, 'happy');
@@ -30,6 +31,7 @@ register_shutdown_function(function () use (&$c) {
 if (
     isset($c['<ENTRY>']['pipeline']['request']) &&
     is_array($c['<ENTRY>']['pipeline']['request']) &&
+    array_is_list($c['<ENTRY>']['pipeline']['request']) &&
     !empty($c['<ENTRY>']['pipeline']['request'])
 ) {
     funk_run_pipeline_request($c, 'defensive');
