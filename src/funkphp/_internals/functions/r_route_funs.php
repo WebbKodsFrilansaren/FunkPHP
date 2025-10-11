@@ -2,8 +2,12 @@
 
 // Function calls `funkphp/config/errors_custom.php` to handle errors in a custom way or it
 // defaults to `critical_err_json_or_html()` if no matching custom error handler is found!
-function funk_handle_custom_error(&$c, $errorKey, $errorType, $errorCode = 500, $handleType, $handleData, $skipPostRequest = true)
+function funk_handle_custom_error(&$c, $errorKey, $errorType, $errorCode = 500, $handleType, $handleData, $callbackData = null, $skipPostRequest = true)
 {
+    // Check if $skipPostRequest is true, if so, skip post-request pipeline
+    if ($skipPostRequest === true) {
+        funk_skip_post_request($c);
+    }
     // Available error types it can handle as of now! - more can be added as needed!
     $availableHandleTypes = ['json', 'page', 'json_or_page', 'callback', 'html', 'text', 'xml'];
     // When no valid handleData provided (it cannot be null or empty, that's really all)
@@ -105,11 +109,15 @@ function funk_handle_custom_error(&$c, $errorKey, $errorType, $errorCode = 500, 
         }
     }  // Handle Callback Type
     else if ($handleType === 'callback') {
+        // $callBack data should not be null if this is the case
+        if (!isset($callbackData) || empty($callbackData)) {
+            critical_err_json_or_html(500, 'Tell the Developer: No Callback Data Provided to funk_handle_custom_error() Function. This should be some value else besides `null` or `empty` that is passed to the Callable Function Name!');
+        }
         if (!isset($handleData) || !is_callable($handleData)) {
-            critical_err_json_or_html(500, 'Tell the Developer: Invalid Callback Handle Data Provided to funk_handle_custom_error() Function. This should be a valid callable (e.g., \'MyClass::myMethod\' or [new MyClass(), \'myMethod\'])!');
+            critical_err_json_or_html(500, 'Tell the Developer: Invalid Callback Handle Type Provided to funk_handle_custom_error() Function. This should be a Valid Callable Function Name within the Available Scope of this Custom Error Handling Function!!');
         }
         try {
-            call_user_func($c, ['handleData' => $handleData, 'error' => $errorKey, 'type' => $errorType, 'code' => $errorCode]);
+            $handleData($c, $callbackData);
         } catch (\Throwable $e) {
             critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the Custom Error Callback (`' . $e->getMessage() . '`) the Developer had Configured!');
         }
@@ -150,10 +158,7 @@ function funk_handle_custom_error(&$c, $errorKey, $errorType, $errorCode = 500, 
         header('Content-Type: application/xml; charset=utf-8');
         echo $handleData;
     }
-    // Check if $skipPostRequest is true, if so, skip post-request pipeline
-    if ($skipPostRequest === true) {
-        funk_skip_post_request($c);
-    }
+    exit();
 }
 
 // Function to skip the post-request pipeline
