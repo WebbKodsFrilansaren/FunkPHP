@@ -215,6 +215,50 @@ function funk_use_custom_error(&$c, $handleTypeAndDataOptionalCBData, $errorCode
     exit();
 }
 
+// Function stores a user-focused message that is meant to be used in the final output (HTML page or JSON output)
+function funk_collect_output_message(&$c, $level, $key, $message)
+{
+    // All three variables must be non-empty strings!
+    if (
+        !isset($level)
+        || !is_string($level)
+        || empty($level)
+        || !in_array(strtolower($level), [ // Add more below in array as needed
+            'info',
+            'warning',
+            'error',
+            'debug',
+            'critical',
+            'notice',
+            'alert',
+            'emergency'
+        ])
+        || !isset($key)
+        || !is_string($key)
+        || empty($key)
+        || !isset($message)
+        || !is_string($message)
+        || empty($message)
+    ) {
+        error_log('FunkPHP: Invalid Parameters Passed to funk_collect_output_message() Function. All three parameters must be non-empty strings and level must be one of the following: ' . implode(', ', [
+            'info',
+            'warning',
+            'error',
+            'debug',
+            'critical',
+            'notice',
+            'alert',
+            'emergency'
+        ]));
+        return;
+    }
+    $c['req']['user_messages'][] = [
+        'level'   => strtolower($level),
+        'key'     => mb_strtoupper($key),
+        'message' => $message,
+    ];
+}
+
 // Function to skip the post-request pipeline
 function funk_skip_post_request(&$c)
 {
