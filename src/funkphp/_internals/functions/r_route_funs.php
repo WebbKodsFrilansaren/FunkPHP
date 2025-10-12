@@ -240,16 +240,7 @@ function funk_collect_output_message(&$c, $level, $key, $message)
         || !is_string($message)
         || empty($message)
     ) {
-        error_log('FunkPHP: Invalid Parameters Passed to funk_collect_output_message() Function. All three parameters must be non-empty strings and level must be one of the following: ' . implode(', ', [
-            'info',
-            'warning',
-            'error',
-            'debug',
-            'critical',
-            'notice',
-            'alert',
-            'emergency'
-        ]));
+        error_log('FunkPHP: Invalid Parameters Passed to funk_collect_output_message() Function. Expected 3 Non-Empty String:s: [Level, Key, Message]!');
         return;
     }
     $c['req']['user_messages'][] = [
