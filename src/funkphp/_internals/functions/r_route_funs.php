@@ -7,6 +7,10 @@ function funk_use_custom_error(&$c, $handleTypeAndDataOptionalCBData, $errorCode
 {
     // Available error types it can handle as of now! - more can be added as needed!
     $availableHandleTypes = ['json', 'page', 'json_or_page', 'callback', 'html', 'text', 'xml', 'throw'];
+    // $skipPostRequest must be a boolean
+    if (!is_bool($skipPostRequest)) {
+        critical_err_json_or_html(500, 'Tell the Developer: Invalid Skip Post-Request Pipeline Flag Passed to funk_handle_custom_error() Function. This should be a boolean (true|false)!');
+    }
     // $$handleTypeAndDataOptionalCBData must be an array of at least two items!
     if (
         !isset($handleTypeAndDataOptionalCBData)
@@ -28,7 +32,6 @@ function funk_use_custom_error(&$c, $handleTypeAndDataOptionalCBData, $errorCode
     if (!isset($handleTypeAndDataOptionalCBData[1]) || empty($handleTypeAndDataOptionalCBData[1])) {
         critical_err_json_or_html(500, 'Tell the Developer: No Valid Handle Data Provided to funk_handle_custom_error() Function. This should be an array with at least two items: `[HandleType, HandleData, (Optional) CallbackData]`!');
     }
-
     // When error code is NOT integer or within wrong range
     if (
         !isset($errorCode)
@@ -38,10 +41,8 @@ function funk_use_custom_error(&$c, $handleTypeAndDataOptionalCBData, $errorCode
     ) {
         critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to funk_handle_custom_error() Function. This should be an integer between 100 and 599!');
     }
-    // HERE WE HAVE VALIDATED: [FunctionName][ErrorType][HandleType] exists in $c['errors_custom'] and that it is valid
-    // Now, we attempt using the different handleTypes and this is where we could get critical error if maybe JSON is not
-    // provided when asked to use JSON etc.
 
+    // HERE WE HAVE VALIDATED: Valid existing Handle Type, Valid existing Handle Data, Valid existing Error Code, Valid existing Skip Post-Request Pipeline Flag
     // Handle JSON Handle Type
     if ($handleTypeAndDataOptionalCBData[0] === 'json') {
         // Check if $skipPostRequest is true, if so, skip post-request pipeline
