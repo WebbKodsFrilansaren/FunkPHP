@@ -4,12 +4,9 @@
 // defaults to `critical_err_json_or_html()` if no matching custom error handler is found!
 function funk_handle_custom_error(&$c, $errorKey, $errorType, $errorCode = 500, $handleType, $handleData, $callbackData = null, $skipPostRequest = true)
 {
-    // Check if $skipPostRequest is true, if so, skip post-request pipeline
-    if ($skipPostRequest === true) {
-        funk_skip_post_request($c);
-    }
+
     // Available error types it can handle as of now! - more can be added as needed!
-    $availableHandleTypes = ['json', 'page', 'json_or_page', 'callback', 'html', 'text', 'xml'];
+    $availableHandleTypes = ['json', 'page', 'json_or_page', 'callback', 'html', 'text', 'xml', 'throw'];
     // When no valid handleData provided (it cannot be null or empty, that's really all)
     if (
         !isset($handleData)
@@ -69,9 +66,14 @@ function funk_handle_custom_error(&$c, $errorKey, $errorType, $errorCode = 500, 
     // HERE WE HAVE VALIDATED: [FunctionName][ErrorType][HandleType] exists in $c['errors_custom'] and that it is valid
     // Now, we attempt using the different handleTypes and this is where we could get critical error if maybe JSON is not
     // provided when asked to use JSON etc.
-    http_response_code($errorCode);
+
     // Handle JSON Handle Type
     if ($handleType === 'json') {
+        // Check if $skipPostRequest is true, if so, skip post-request pipeline
+        if ($skipPostRequest === true) {
+            funk_skip_post_request($c);
+        }
+        http_response_code($errorCode);
         if (!isset($handleData) || (!is_array($handleData) && !is_object($handleData)) || empty($handleData)) {
             critical_err_json_or_html(500, 'Tell the Developer: No Valid Handle Data Provided to funk_handle_custom_error() Function for `json` Type. This should be a non-empty array!');
         }
@@ -83,6 +85,11 @@ function funk_handle_custom_error(&$c, $errorKey, $errorType, $errorCode = 500, 
         }
     }  // Handle Page Type
     else if ($handleType === 'page') {
+        // Check if $skipPostRequest is true, if so, skip post-request pipeline
+        if ($skipPostRequest === true) {
+            funk_skip_post_request($c);
+        }
+        http_response_code($errorCode);
         // TODO: Later when 'page' has been implemented in the entire FunkPHP framework! - not far from now!
         // handleData must be a non empty string (the path to the page to load)
         if (
@@ -101,6 +108,11 @@ function funk_handle_custom_error(&$c, $errorKey, $errorType, $errorCode = 500, 
         }
     }  // Handle JSON Or Page Type (based on 'accept' header)
     else if ($handleType === 'json_or_page') {
+        // Check if $skipPostRequest is true, if so, skip post-request pipeline
+        if ($skipPostRequest === true) {
+            funk_skip_post_request($c);
+        }
+        http_response_code($errorCode);
         // We want JSON
         if (
             isset($c['req']['accept'])
@@ -135,8 +147,27 @@ function funk_handle_custom_error(&$c, $errorKey, $errorType, $errorCode = 500, 
                 include_once $pageToInclude;
             }
         }
-    }  // Handle Callback Type
+    }  // Handle Throw Type
+    else if ($handleType === 'throw') {
+        // Validation: handleData must be a non-empty string (the exception message)
+        if (
+            !isset($handleData)
+            || !is_string($handleData)
+            || empty($handleData)
+        ) {
+            // Throwing is the error-handling mechanism itself, so if the data
+            // is invalid, we must fall back to the critical error handler.
+            critical_err_json_or_html(500, 'Tell the Developer: No Valid Handle Data Provided to funk_handle_custom_error() Function for `throw` Type. This should be a non-empty string for the exception message!');
+        }
+        // Just throw and trust the Developer to catch it somewhere else!
+        throw new Exception($handleData);
+    }
+    // Handle Callback Type
     else if ($handleType === 'callback') {
+        // Check if $skipPostRequest is true, if so, skip post-request pipeline
+        if ($skipPostRequest === true) {
+            funk_skip_post_request($c);
+        }
         // $callBack data should not be null if this is the case
         if (!isset($callbackData) || empty($callbackData)) {
             critical_err_json_or_html(500, 'Tell the Developer: No Callback Data Provided to funk_handle_custom_error() Function. This should be some value else besides `null` or `empty` that is passed to the Callable Function Name!');
@@ -151,6 +182,11 @@ function funk_handle_custom_error(&$c, $errorKey, $errorType, $errorCode = 500, 
         }
     }  // Handle HTML Type
     else if ($handleType === 'html') {
+        // Check if $skipPostRequest is true, if so, skip post-request pipeline
+        if ($skipPostRequest === true) {
+            funk_skip_post_request($c);
+        }
+        http_response_code($errorCode);
         // Validate that handleData is a string and NOT empty
         if (
             !isset($handleData)
@@ -163,6 +199,11 @@ function funk_handle_custom_error(&$c, $errorKey, $errorType, $errorCode = 500, 
         echo $handleData;
     }  // Handle Text Type
     else if ($handleType === 'text') {
+        // Check if $skipPostRequest is true, if so, skip post-request pipeline
+        if ($skipPostRequest === true) {
+            funk_skip_post_request($c);
+        }
+        http_response_code($errorCode);
         // Validate that handleData is a string and NOT empty
         if (
             !isset($handleData)
@@ -175,6 +216,11 @@ function funk_handle_custom_error(&$c, $errorKey, $errorType, $errorCode = 500, 
         echo $handleData;
     }  // Handle XML Type
     else if ($handleType === 'xml') {
+        // Check if $skipPostRequest is true, if so, skip post-request pipeline
+        if ($skipPostRequest === true) {
+            funk_skip_post_request($c);
+        }
+        http_response_code($errorCode);
         // Validate that handleData is a string and NOT empty
         if (
             !isset($handleData)
