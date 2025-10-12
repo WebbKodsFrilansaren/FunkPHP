@@ -1,19 +1,34 @@
 <?php // ROUTE-related FUNCTIONS FOR FunPHP
 
-// Function calls `funkphp/config/errors_custom.php` to handle errors in a custom way or it
-// defaults to `critical_err_json_or_html()` if no matching custom error handler is found!
-function funk_handle_custom_error(&$c, $errorKey, $errorType, $errorCode = 500, $handleType, $handleData, $callbackData = null, $skipPostRequest = true)
+// Function allows for custom error such as returning `json`,`page`,`xml`, ``text``, `html`, a `throw` exception
+// or running a custom `callback` function. Defaults to `critical_err_json_or_html()` when used the wrong way!
+// IMPORTANT: Notice how default behavior is to SKIP the post-request pipeline functions unless specified otherwise!
+function funk_use_custom_error(&$c, $handleTypeAndDataOptionalCBData, $errorCode = 500, $skipPostRequest = true)
 {
-
     // Available error types it can handle as of now! - more can be added as needed!
     $availableHandleTypes = ['json', 'page', 'json_or_page', 'callback', 'html', 'text', 'xml', 'throw'];
-    // When no valid handleData provided (it cannot be null or empty, that's really all)
+    // $$handleTypeAndDataOptionalCBData must be an array of at least two items!
     if (
-        !isset($handleData)
-        || empty($handleData)
+        !isset($handleTypeAndDataOptionalCBData)
+        || !is_array($handleTypeAndDataOptionalCBData)
+        || count($handleTypeAndDataOptionalCBData) < 2
     ) {
-        critical_err_json_or_html(500, 'Tell the Developer: No Valid Handle Data Provided to funk_handle_custom_error() Function. This should be either a string (for json/html/page types) or an array/object (for callback type)!');
+        critical_err_json_or_html(500, 'Tell the Developer: No Valid Handle Type and Data Provided to funk_handle_custom_error() Function. This should be an array with at least two items: `[HandleType, HandleData, (Optional) CallbackData]`!');
     }
+    // When handleType is not a string and not in the available types
+    if (
+        !isset($handleTypeAndDataOptionalCBData[0])
+        || !is_string($handleTypeAndDataOptionalCBData[0])
+        || empty($handleTypeAndDataOptionalCBData[0])
+        || !in_array($handleTypeAndDataOptionalCBData[0], $availableHandleTypes)
+    ) {
+        critical_err_json_or_html(500, 'Tell the Developer: No Valid Handle Type Provided to funk_handle_custom_error() Function. This should be a string and one of the following: `' . implode('`, `', $availableHandleTypes) . '`!');
+    }
+    // $$handleTypeAndDataOptionalCBData[1] must be set and not null|empty
+    if (!isset($handleTypeAndDataOptionalCBData[1]) || empty($handleTypeAndDataOptionalCBData[1])) {
+        critical_err_json_or_html(500, 'Tell the Developer: No Valid Handle Data Provided to funk_handle_custom_error() Function. This should be an array with at least two items: `[HandleType, HandleData, (Optional) CallbackData]`!');
+    }
+
     // When error code is NOT integer or within wrong range
     if (
         !isset($errorCode)
@@ -23,68 +38,28 @@ function funk_handle_custom_error(&$c, $errorKey, $errorType, $errorCode = 500, 
     ) {
         critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to funk_handle_custom_error() Function. This should be an integer between 100 and 599!');
     }
-    // When handleType is not a string and not in the available types
-    if (
-        !isset($handleType)
-        || !is_string($handleType)
-        || empty($handleType)
-        || !in_array($handleType, $availableHandleTypes)
-    ) {
-        critical_err_json_or_html(500, 'Tell the Developer: No Valid Handle Type Provided to funk_handle_custom_error() Function. This should be one of the following:`' . implode(', ', $availableHandleTypes) . '`!');
-    }
-    // Check if we have a valid error key to handle
-    // Default to critical when error key not found in $c!
-    if (!isset($c['errors_custom']) || !is_array($c['errors_custom'])) {
-        critical_err_json_or_html(500, 'Tell the Developer: No Custom Error Handlers Configured in `$c[\'errors_custom\']` Key! Please check the `funkphp/config/error_custom.php` File!');
-    }
-    // When no valid function to target handling an error for
-    if (
-        !isset($errorKey)
-        || !is_string($errorKey)
-        || empty($errorKey)
-        || !isset($c['errors_custom'][$errorKey])
-    ) {
-        critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Key Provided to funk_handle_custom_error() Function. This is usually the name of the function where an error occurred, e.g. `pl_db_connect` or `m_middleware` etc. Please check the `funkphp/config/error_custom.php` File!');
-    }
-    // When no valid error type for existing valid function to error handle
-    if (
-        !isset($errorType)
-        || !is_string($errorType)
-        || empty($errorType)
-        || !isset($c['errors_custom'][$errorKey][$errorType])
-    ) {
-        critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Type Provided to funk_handle_custom_error() Function. This is usually the type of error that occurred, e.g. `NO_DATABASE_CONNECTION`, `NO_MIDDLEWARE_FOUND` etc. Please check the `funkphp/config/error_custom.php` File!');
-    }
-    // When handlerType (which is valid now) is NOT in the array of the $errorType for the $errorKey
-    if (
-        !isset($c['errors_custom'][$errorKey][$errorType])
-        || !is_array($c['errors_custom'][$errorKey][$errorType])
-        || !isset($c['errors_custom'][$errorKey][$errorType][$handleType])
-    ) {
-        critical_err_json_or_html(500, 'Tell the Developer: No Valid Handler Type Found for the Existing ErrorKey and its Existing ErrorType! Please check the `funkphp/config/error_custom.php` File!');
-    }
     // HERE WE HAVE VALIDATED: [FunctionName][ErrorType][HandleType] exists in $c['errors_custom'] and that it is valid
     // Now, we attempt using the different handleTypes and this is where we could get critical error if maybe JSON is not
     // provided when asked to use JSON etc.
 
     // Handle JSON Handle Type
-    if ($handleType === 'json') {
+    if ($handleTypeAndDataOptionalCBData[0] === 'json') {
         // Check if $skipPostRequest is true, if so, skip post-request pipeline
         if ($skipPostRequest === true) {
             funk_skip_post_request($c);
         }
         http_response_code($errorCode);
-        if (!isset($handleData) || (!is_array($handleData) && !is_object($handleData)) || empty($handleData)) {
+        if (!isset($handleTypeAndDataOptionalCBData[1]) || (!is_array($handleTypeAndDataOptionalCBData[1]) && !is_object($handleTypeAndDataOptionalCBData[1])) || empty($handleTypeAndDataOptionalCBData[1])) {
             critical_err_json_or_html(500, 'Tell the Developer: No Valid Handle Data Provided to funk_handle_custom_error() Function for `json` Type. This should be a non-empty array!');
         }
         try {
             header('Content-Type: application/json; charset=utf-8');
-            echo json_encode($handleData, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            echo json_encode($handleTypeAndDataOptionalCBData[1], JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         } catch (\JsonException $e) {
             critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred While Encoding the Provided Data to JSON (`' . $e->getMessage() . '`) inside funk_handle_custom_error() Function for `json` Type!');
         }
     }  // Handle Page Type
-    else if ($handleType === 'page') {
+    else if ($handleTypeAndDataOptionalCBData[0] === 'page') {
         // Check if $skipPostRequest is true, if so, skip post-request pipeline
         if ($skipPostRequest === true) {
             funk_skip_post_request($c);
@@ -93,13 +68,13 @@ function funk_handle_custom_error(&$c, $errorKey, $errorType, $errorCode = 500, 
         // TODO: Later when 'page' has been implemented in the entire FunkPHP framework! - not far from now!
         // handleData must be a non empty string (the path to the page to load)
         if (
-            !isset($handleData)
-            || !is_string($handleData)
-            || empty($handleData)
+            !isset($handleTypeAndDataOptionalCBData[1])
+            || !is_string($handleTypeAndDataOptionalCBData[1])
+            || empty($handleTypeAndDataOptionalCBData[1])
         ) {
             critical_err_json_or_html(500, 'Tell the Developer: No Valid Handle Data Provided to funk_handle_custom_error() Function for `page` Type. This should be a non-empty string!');
         }
-        $pageToInclude = ROOT_FOLDER . 'page/completed/' . $handleData . '.php';
+        $pageToInclude = ROOT_FOLDER . 'page/completed/' . $handleTypeAndDataOptionalCBData[1] . '.php';
         if (!is_readable($pageToInclude)) {
             critical_err_json_or_html(500, 'Tell the Developer: The Provided Page to Load inside funk_handle_custom_error() Function for `page` Type does NOT EXIST or is NOT READABLE! Please check the path: `' . $pageToInclude . '`');
         } else {
@@ -107,7 +82,7 @@ function funk_handle_custom_error(&$c, $errorKey, $errorType, $errorCode = 500, 
             include_once $pageToInclude;
         }
     }  // Handle JSON Or Page Type (based on 'accept' header)
-    else if ($handleType === 'json_or_page') {
+    else if ($handleTypeAndDataOptionalCBData[0] === 'json_or_page') {
         // Check if $skipPostRequest is true, if so, skip post-request pipeline
         if ($skipPostRequest === true) {
             funk_skip_post_request($c);
@@ -120,12 +95,17 @@ function funk_handle_custom_error(&$c, $errorKey, $errorType, $errorCode = 500, 
             && !empty($c['req']['accept'])
             && in_array($c['req']['accept'], ['application/json', 'text/json'])
         ) {
-            if (!isset($handleData) || (!is_array($handleData) && !is_object($handleData)) || empty($handleData)) {
+            if (
+                !isset($handleTypeAndDataOptionalCBData[1])
+                || (!is_array($handleTypeAndDataOptionalCBData[1])
+                    && !is_object($handleTypeAndDataOptionalCBData[1]))
+                || empty($handleTypeAndDataOptionalCBData[1])
+            ) {
                 critical_err_json_or_html(500, 'Tell the Developer: No Valid Handle Data Provided to funk_handle_custom_error() Function for `json_or_page` Type when `Accept` Header indicates JSON is wanted. This should be a non-empty array!');
             }
             try {
                 header('Content-Type: application/json; charset=utf-8');
-                echo json_encode($handleData, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                echo json_encode($handleTypeAndDataOptionalCBData[1], JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
             } catch (\JsonException $e) {
                 critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred While Encoding the Provided Data to JSON (`' . $e->getMessage() . '`) inside funk_handle_custom_error() Function for `json` Type!');
             }
@@ -133,13 +113,13 @@ function funk_handle_custom_error(&$c, $errorKey, $errorType, $errorCode = 500, 
         else {
             // TODO: Later when 'page' has been implemented in the entire FunkPHP framework! - not far from now!
             if (
-                !isset($handleData)
-                || !is_string($handleData)
-                || empty($handleData)
+                !isset($handleTypeAndDataOptionalCBData[1])
+                || !is_string($handleTypeAndDataOptionalCBData[1])
+                || empty($handleTypeAndDataOptionalCBData[1])
             ) {
                 critical_err_json_or_html(500, 'Tell the Developer: No Valid Handle Data Provided to funk_handle_custom_error() Function for `page` Type. This should be a non-empty string!');
             }
-            $pageToInclude = ROOT_FOLDER . 'page/completed/' . $handleData . '.php';
+            $pageToInclude = ROOT_FOLDER . 'page/completed/' . $handleTypeAndDataOptionalCBData[1] . '.php';
             if (!is_readable($pageToInclude)) {
                 critical_err_json_or_html(500, 'Tell the Developer: The Provided Page to Load inside funk_handle_custom_error() Function for `page` Type does NOT EXIST or is NOT READABLE! Please check the path: `' . $pageToInclude . '`');
             } else {
@@ -148,40 +128,40 @@ function funk_handle_custom_error(&$c, $errorKey, $errorType, $errorCode = 500, 
             }
         }
     }  // Handle Throw Type
-    else if ($handleType === 'throw') {
+    else if ($handleTypeAndDataOptionalCBData[0] === 'throw') {
         // Validation: handleData must be a non-empty string (the exception message)
         if (
-            !isset($handleData)
-            || !is_string($handleData)
-            || empty($handleData)
+            !isset($handleTypeAndDataOptionalCBData[1])
+            || !is_string($handleTypeAndDataOptionalCBData[1])
+            || empty($handleTypeAndDataOptionalCBData[1])
         ) {
             // Throwing is the error-handling mechanism itself, so if the data
             // is invalid, we must fall back to the critical error handler.
             critical_err_json_or_html(500, 'Tell the Developer: No Valid Handle Data Provided to funk_handle_custom_error() Function for `throw` Type. This should be a non-empty string for the exception message!');
         }
         // Just throw and trust the Developer to catch it somewhere else!
-        throw new Exception($handleData);
+        throw new Exception($handleTypeAndDataOptionalCBData[1]);
     }
     // Handle Callback Type
-    else if ($handleType === 'callback') {
+    else if ($handleTypeAndDataOptionalCBData[0] === 'callback') {
         // Check if $skipPostRequest is true, if so, skip post-request pipeline
         if ($skipPostRequest === true) {
             funk_skip_post_request($c);
         }
-        // $callBack data should not be null if this is the case
-        if (!isset($callbackData) || empty($callbackData)) {
-            critical_err_json_or_html(500, 'Tell the Developer: No Callback Data Provided to funk_handle_custom_error() Function. This should be some value else besides `null` or `empty` that is passed to the Callable Function Name!');
+        // callBack data at [2] should not be null if this is the case
+        if (!isset($handleTypeAndDataOptionalCBData[2]) || empty($handleTypeAndDataOptionalCBData[2])) {
+            critical_err_json_or_html(500, 'Tell the Developer: No Valid Callback Data Provided to funk_handle_custom_error() Function for `callback` Type. This should be an array with at least a Callable Function Name and (Optional) Callback Data to pass to the function!');
         }
-        if (!isset($handleData) || !is_callable($handleData)) {
-            critical_err_json_or_html(500, 'Tell the Developer: Invalid Callback Handle Type Provided to funk_handle_custom_error() Function. This should be a Valid Callable Function Name within the Available Scope of this Custom Error Handling Function!!');
+        if (!isset($handleTypeAndDataOptionalCBData[1]) || !is_callable($handleTypeAndDataOptionalCBData[1])) {
+            critical_err_json_or_html(500, 'Tell the Developer: No Valid Callback Function Provided to funk_handle_custom_error() Function for `callback` Type. This should be a Callable Function!');
         }
         try {
-            $handleData($c, $callbackData);
+            $handleTypeAndDataOptionalCBData[1]($c, $handleTypeAndDataOptionalCBData[2]);
         } catch (\Throwable $e) {
             critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the Custom Error Callback (`' . $e->getMessage() . '`) the Developer had Configured!');
         }
     }  // Handle HTML Type
-    else if ($handleType === 'html') {
+    else if ($handleTypeAndDataOptionalCBData[0] === 'html') {
         // Check if $skipPostRequest is true, if so, skip post-request pipeline
         if ($skipPostRequest === true) {
             funk_skip_post_request($c);
@@ -189,16 +169,16 @@ function funk_handle_custom_error(&$c, $errorKey, $errorType, $errorCode = 500, 
         http_response_code($errorCode);
         // Validate that handleData is a string and NOT empty
         if (
-            !isset($handleData)
-            || !is_string($handleData)
-            || empty($handleData)
+            !isset($handleTypeAndDataOptionalCBData[1])
+            || !is_string($handleTypeAndDataOptionalCBData[1])
+            || empty($handleTypeAndDataOptionalCBData[1])
         ) {
             critical_err_json_or_html(500, 'Tell the Developer: No Valid Handle Data Provided to funk_handle_custom_error() Function for `html` Type. This should be a non-empty string!');
         }
         header('Content-Type: text/html; charset=utf-8');
-        echo $handleData;
+        echo $handleTypeAndDataOptionalCBData[1];
     }  // Handle Text Type
-    else if ($handleType === 'text') {
+    else if ($handleTypeAndDataOptionalCBData[0] === 'text') {
         // Check if $skipPostRequest is true, if so, skip post-request pipeline
         if ($skipPostRequest === true) {
             funk_skip_post_request($c);
@@ -206,16 +186,16 @@ function funk_handle_custom_error(&$c, $errorKey, $errorType, $errorCode = 500, 
         http_response_code($errorCode);
         // Validate that handleData is a string and NOT empty
         if (
-            !isset($handleData)
-            || !is_string($handleData)
-            || empty($handleData)
+            !isset($handleTypeAndDataOptionalCBData[1])
+            || !is_string($handleTypeAndDataOptionalCBData[1])
+            || empty($handleTypeAndDataOptionalCBData[1])
         ) {
             critical_err_json_or_html(500, 'Tell the Developer: No Valid Handle Data Provided to funk_handle_custom_error() Function for `text` Type. This should be a non-empty string!');
         }
         header('Content-Type: text/plain; charset=utf-8');
-        echo $handleData;
+        echo $handleTypeAndDataOptionalCBData[1];
     }  // Handle XML Type
-    else if ($handleType === 'xml') {
+    else if ($handleTypeAndDataOptionalCBData[0] === 'xml') {
         // Check if $skipPostRequest is true, if so, skip post-request pipeline
         if ($skipPostRequest === true) {
             funk_skip_post_request($c);
@@ -223,14 +203,14 @@ function funk_handle_custom_error(&$c, $errorKey, $errorType, $errorCode = 500, 
         http_response_code($errorCode);
         // Validate that handleData is a string and NOT empty
         if (
-            !isset($handleData)
-            || !is_string($handleData)
-            || empty($handleData)
+            !isset($handleTypeAndDataOptionalCBData[1])
+            || !is_string($handleTypeAndDataOptionalCBData[1])
+            || empty($handleTypeAndDataOptionalCBData[1])
         ) {
             critical_err_json_or_html(500, 'Tell the Developer: No Valid Handle Data Provided to funk_handle_custom_error() Function for `xml` Type. This should be a non-empty string!');
         }
         header('Content-Type: application/xml; charset=utf-8');
-        echo $handleData;
+        echo $handleTypeAndDataOptionalCBData[1];
     }
     exit();
 }

@@ -225,11 +225,4 @@ return [
         'VALIDATION' => [],
         'SQL' => [],
     ],
-    // 'error_customs' is the array of custom error handlers that You create detailed
-    // error handlers (return JSON a compiled Page and/or run a custom Callback function)
-    // meaning you have 100 % control AND responsibility over what happens during errors.
-    // When you add a pipeline function, a middleware, a route key, or whatever that could
-    // throw an error you really wanna do something about, you just add its key in the
-    // `error_customs.php` file and then create the custom json/page/callback to handle it!
-    'errors_custom' => include_once __DIR__ . '/errors_custom.php',
 ];
