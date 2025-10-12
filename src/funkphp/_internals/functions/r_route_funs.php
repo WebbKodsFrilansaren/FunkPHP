@@ -78,6 +78,8 @@ function funk_use_custom_error(&$c, $handleTypeAndDataOptionalCBData, $errorCode
         if (!is_readable($pageToInclude)) {
             critical_err_json_or_html(500, 'Tell the Developer: The Provided Page to Load inside funk_handle_custom_error() Function for `page` Type does NOT EXIST or is NOT READABLE! Please check the path: `' . $pageToInclude . '`');
         } else {
+            // Use the same "$custom_error_message" inside the included file to show custom error message!
+            $custom_error_message = $handleTypeAndDataOptionalCBData[2] ?? "";
             header('Content-Type: text/html; charset=utf-8');
             include_once $pageToInclude;
         }
@@ -123,6 +125,8 @@ function funk_use_custom_error(&$c, $handleTypeAndDataOptionalCBData, $errorCode
             if (!is_readable($pageToInclude)) {
                 critical_err_json_or_html(500, 'Tell the Developer: The Provided Page to Load inside funk_handle_custom_error() Function for `page` Type does NOT EXIST or is NOT READABLE! Please check the path: `' . $pageToInclude . '`');
             } else {
+                // Use the same "$custom_error_message" inside the included file to show custom error message!
+                $custom_error_message = $handleTypeAndDataOptionalCBData[2] ?? "";
                 header('Content-Type: text/html; charset=utf-8');
                 include_once $pageToInclude;
             }
