@@ -231,7 +231,9 @@ function funk_collect_output_message(&$c, $level, $key, $message)
             'critical',
             'notice',
             'alert',
-            'emergency'
+            'emergency',
+            'success',
+            'failure',
         ])
         || !isset($key)
         || !is_string($key)
