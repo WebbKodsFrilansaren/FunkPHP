@@ -5,7 +5,8 @@
         || !in_array($passedValue, ['defensive', 'happy'])
     ) {
         $c['err']['PIPELINE']['REQUEST']['funk_run_matched_route_middlewares'][] = 'Passed Value to `funk_run_matched_route_middlewares` Pipeline Function must be either `defensive` or `happy` or `null` (default). No attempt to run any Matched Route Middlewares was made!';
-        funk_use_custom_error($c, ['json_or_page', '500', 'Tell the Developer: The Middlewares Pipeline Function ran but WITHOUT a Valid Passed Value - Must be either `defensive` or `happy`!'], 500);
+        $err = 'Tell the Developer: The Middlewares Pipeline Function ran but WITHOUT a Valid Passed Value - Must be either `defensive` or `happy`!';
+        funk_use_custom_error($c, ['json_or_page', ["custom_error" => $err, '500'], $err], 500);
     }
 
     // 'defensive' = we check almost everything and output error to user if something gets wrong
