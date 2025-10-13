@@ -12,7 +12,7 @@
             && !isset($passedValue['no_match']['page'])
             && !isset($passedValue['no_match']['callback']))
     ) {
-        $err = 'Tell The Developer: The Pipepline `pl_match_route` Function needs a default Configured JSON Response OR Page to return OR a Callback Functoin to run in the case of No Matched Route. For example: `11 => ["pl_match_route" => ["no_match" => ["json" => "null", "page" => "404", "callback" => "null"]]]`. If the `json` key is a string, it will look for a function called that and use its return value as the JSON Encoded. If the `json` key is an array, it will be JSON Encoded as is. The `page` key must be a valid path or the default internal 404 Page will be used if not found. ONLY use the `callback` key if you need more things to do before returning any kind of response. Its string value is the function it will look for and execute. After any of these keys are ran exit() will be ran and `post-request` will run unless disabled before this pipeline function ran.';
+        $err = 'Tell The Developer: The Pipepline `pl_match_route` Function needs a default Configured JSON Response OR Page to return OR a Callback Function to run in the case of No Matched Route. For example: `11 => ["pl_match_route" => ["no_match" => ["json" => "null", "page" => "404", "callback" => "null"]]]`. If the `json` key is a string, it will look for a function called that and use its return value as the JSON Encoded. If the `json` key is an array, it will be JSON Encoded as is. The `page` key must be a valid path or the default internal 404 Page will be used if not found. ONLY use the `callback` key if you need more things to do before returning any kind of response. Its string value is the function it will look for and execute. After any of these keys are ran exit() will be ran and `post-request` will run unless disabled before this pipeline function ran.';
         funk_use_custom_error($c, ['json_or_page', ['json' => ["custom_error" => $err], 'page' => '500'], $err], 500);
     }
     $c['ROUTES'] = [];
@@ -58,10 +58,163 @@
         $c['ROUTES']['COMPILED'] ?? [],
         $c['ROUTES']['DEVELOPER']['ROUTES'] ?? [],
     );
-    // HM: What to do when NOT MATCHED? Allow for setting default non-found json/page/callback ?
+    // Return JSON/Page or Other kind of data (callback) based on configured $passedValue - already validated above!
     if (!$FPHP_MATCHED_ROUTE) {
-        // Case 1: Only 1 key
+        http_response_code(404); // This can be changed throughout the function here below if needed
+        // Case 1: Exact 1 key - here we force the header(content type) because this is the only key
         if (count($passedValue['no_match']) === 1) {
+            if (isset($passedValue['no_match']['json'])) {
+                header('Content-Type: application/json; charset=utf-8');
+                $jsonData = $passedValue['no_match']['json'];
+                if (
+                    is_string($passedValue['no_match']['json'])
+                    && function_exists($passedValue['no_match']['json'])
+                    && is_callable($passedValue['no_match']['json'])
+                ) {
+                    $jsonData = $passedValue['no_match']['json']($c) ?? null;
+                }
+                try { // Assume it is valid JSON data if not a function
+                    header('Content-Type: application/json; charset=utf-8');
+                    echo json_encode($jsonData, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                    exit(); // Exit if json doesn't do it and let post-request run unless disabled before this pipeline function ran
+                } catch (\JsonException $e) {
+                    $err = 'No Route Matched (JSON Encoding Error Thrown) - Tell The Developer: The Pipepline `pl_match_route` Function needs a default Configured JSON Response OR Page to return OR a Callback Function to run in the case of No Matched Route. For example: `11 => ["pl_match_route" => ["no_match" => ["json" => "null", "page" => "404", "callback" => "null"]]]`. If the `json` key is a string, it will look for a function called that and use its return value as the JSON Encoded. If the `json` key is an array, it will be JSON Encoded as is. The `page` key must be a valid path or the default internal 404 Page will be used if not found. ONLY use the `callback` key if you need more things to do before returning any kind of response. Its string value is the function it will look for and execute. After any of these keys are ran exit() will be ran and `post-request` will run unless disabled before this pipeline function ran.';
+                    funk_use_custom_error($c, ['json_or_page', ['json' => ["custom_error" => $err], 'page' => '500'], $err], 500);
+                }
+            }
+            // One Key - Page
+            else if (isset($passedValue['no_match']['page'])) {
+                header('Content-Type: text/html; charset=utf-8');
+                header("Content-Security-Policy: default-src 'none'; img-src 'self'; script-src 'self'; connect-src 'none'; style-src 'self' 'unsafe-inline'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; font-src 'self'; base-uri 'self';");
+                if (
+                    is_string($passedValue['no_match']['page'])
+                ) {
+                    $page = ROOT_FOLDER . '/page/complete/' . $passedValue['no_match']['page'] . '.php';
+                    if (!is_readable($page)) {
+                        $err = 'No Route Matched (configured page not found or not readable - if you wanna Use the Default Error Pages you must specify "/[errors]/{HttpErrorResponseCode}" - for example: `["page" => "/[errors]/404"]`) - Tell The Developer: The Pipepline `pl_match_route` Function needs a default Configured JSON Response OR Page to return OR a Callback Function to run in the case of No Matched Route. For example: `11 => ["pl_match_route" => ["no_match" => ["json" => "null", "page" => "404", "callback" => "null"]]]`. If the `json` key is a string, it will look for a function called that and use its return value as the JSON Encoded. If the `json` key is an array, it will be JSON Encoded as is. The `page` key must be a valid path or the default internal 404 Page will be used if not found. ONLY use the `callback` key if you need more things to do before returning any kind of response. Its string value is the function it will look for and execute. After any of these keys are ran exit() will be ran and `post-request` will run unless disabled before this pipeline function ran.';
+                        funk_use_custom_error($c, ['json_or_page', ['json' => ["custom_error" => $err], 'page' => '500'], $err], 500);
+                    }
+                    include_once $page;
+                    exit(); // Exit if page doesn't do it and let post-request run unless disabled before this pipeline function ran
+                } else {
+                    $err = 'No Route Matched (configured page not a string?!) - Tell The Developer: The Pipepline `pl_match_route` Function needs a default Configured JSON Response OR Page to return OR a Callback Function to run in the case of No Matched Route. For example: `11 => ["pl_match_route" => ["no_match" => ["json" => "null", "page" => "404", "callback" => "null"]]]`. If the `json` key is a string, it will look for a function called that and use its return value as the JSON Encoded. If the `json` key is an array, it will be JSON Encoded as is. The `page` key must be a valid path or the default internal 404 Page will be used if not found. ONLY use the `callback` key if you need more things to do before returning any kind of response. Its string value is the function it will look for and execute. After any of these keys are ran exit() will be ran and `post-request` will run unless disabled before this pipeline function ran.';
+                    funk_use_custom_error($c, ['json_or_page', ['json' => ["custom_error" => $err], 'page' => '500'], $err], 500);
+                }
+            }
+            // One Key - Callback
+            else if (isset($passedValue['no_match']['callback'])) {
+                // Check if function exists and is callable and run it
+                if (
+                    is_string($passedValue['no_match']['callback'])
+                    && function_exists($passedValue['no_match']['callback'])
+                    && is_callable($passedValue['no_match']['callback'])
+                ) {
+                    $cb = $passedValue['no_match']['callback'];
+                    $cb($c);
+                    exit(); // Exit if callback doesn't do it and let post-request run unless disabled before this pipeline function ran
+                } else {
+                    $err = 'No Route Matched (configured callback function not found or not callable) - Tell The Developer: The Pipepline `pl_match_route` Function needs a default Configured JSON Response OR Page to return OR a Callback Function to run in the case of No Matched Route. For example: `11 => ["pl_match_route" => ["no_match" => ["json" => "null", "page" => "404", "callback" => "null"]]]`. If the `json` key is a string, it will look for a function called that and use its return value as the JSON Encoded. If the `json` key is an array, it will be JSON Encoded as is. The `page` key must be a valid path or the default internal 404 Page will be used if not found. ONLY use the `callback` key if you need more things to do before returning any kind of response. Its string value is the function it will look for and execute. After any of these keys are ran exit() will be ran and `post-request` will run unless disabled before this pipeline function ran.';
+                    funk_use_custom_error($c, ['json_or_page', ['json' => ["custom_error" => $err], 'page' => '500'], $err], 500);
+                }
+            } // IPOSSIBLE State but let's handle it:
+            else {
+                $err = 'No Route Matched (more than 3 keys in `no_match` key?!) - Tell The Developer: The Pipepline `pl_match_route` Function needs a default Configured JSON Response OR Page to return OR a Callback Function to run in the case of No Matched Route. For example: `11 => ["pl_match_route" => ["no_match" => ["json" => "null", "page" => "404", "callback" => "null"]]]`. If the `json` key is a string, it will look for a function called that and use its return value as the JSON Encoded. If the `json` key is an array, it will be JSON Encoded as is. The `page` key must be a valid path or the default internal 404 Page will be used if not found. ONLY use the `callback` key if you need more things to do before returning any kind of response. Its string value is the function it will look for and execute. After any of these keys are ran exit() will be ran and `post-request` will run unless disabled before this pipeline function ran.';
+                funk_use_custom_error($c, ['json_or_page', ['json' => ["custom_error" => $err], 'page' => '500'], $err], 500);
+            }
+        }
+        // Case 2: Exact 2 keys - here we check if we can match header (content type) to decide which one to use
+        else if (count($passedValue['no_match']) === 2) {
+            // Check if 'accept' is json or html/page (only use callback if it is NOT json or html/page)
+            $accept = $c['req']['accept'] ?? null;
+
+            header("Content-Security-Policy: default-src 'none'; img-src 'self'; script-src 'self'; connect-src 'none'; style-src 'self' 'unsafe-inline'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; font-src 'self'; base-uri 'self';");
+        }
+        // Case 3: Exact All 3 keys - here we check if we can match header (content type) to decide which one to use
+        else if (count($passedValue['no_match']) === 3) {
+            // Check if 'accept' is json or html/page (only use callback if it is NOT json or html/page)
+            $accept = $c['req']['accept'] ?? null;
+
+            // Accept is JSON
+            if (str_contains($accept, 'json')) {
+                if (isset($passedValue['no_match']['json'])) {
+                    header('Content-Type: application/json; charset=utf-8');
+                    $jsonData = $passedValue['no_match']['json'];
+                    if (
+                        is_string($passedValue['no_match']['json'])
+                        && function_exists($passedValue['no_match']['json'])
+                        && is_callable($passedValue['no_match']['json'])
+                    ) {
+                        $jsonData = $passedValue['no_match']['json']($c) ?? null;
+                    }
+                    try { // Assume it is valid JSON data if not a function
+                        header('Content-Type: application/json; charset=utf-8');
+                        echo json_encode($jsonData, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                        exit(); // Exit if json doesn't do it and let post-request run unless disabled before this pipeline function ran
+                    } catch (\JsonException $e) {
+                        $err = 'No Route Matched (JSON Encoding Error Thrown) - Tell The Developer: The Pipepline `pl_match_route` Function needs a default Configured JSON Response OR Page to return OR a Callback Function to run in the case of No Matched Route. For example: `11 => ["pl_match_route" => ["no_match" => ["json" => "null", "page" => "404", "callback" => "null"]]]`. If the `json` key is a string, it will look for a function called that and use its return value as the JSON Encoded. If the `json` key is an array, it will be JSON Encoded as is. The `page` key must be a valid path or the default internal 404 Page will be used if not found. ONLY use the `callback` key if you need more things to do before returning any kind of response. Its string value is the function it will look for and execute. After any of these keys are ran exit() will be ran and `post-request` will run unless disabled before this pipeline function ran.';
+                        funk_use_custom_error($c, ['json_or_page', ['json' => ["custom_error" => $err], 'page' => '500'], $err], 500);
+                    }
+                }
+                // Expected 'json' when 3 keys exists
+                else {
+                    $err = 'No Route Matched (expected `json` key as one of the 3 keys in `no_match` key when `accept` Request Header is application/json?!) - Tell The Developer: The Pipepline `pl_match_route` Function needs a default Configured JSON Response OR Page to return OR a Callback Function to run in the case of No Matched Route. For example: `11 => ["pl_match_route" => ["no_match" => ["json" => "null", "page" => "404", "callback" => "null"]]]`. If the `json` key is a string, it will look for a function called that and use its return value as the JSON Encoded. If the `json` key is an array, it will be JSON Encoded as is. The `page` key must be a valid path or the default internal 404 Page will be used if not found. ONLY use the `callback` key if you need more things to do before returning any kind of response. Its string value is the function it will look for and execute. After any of these keys are ran exit() will be ran and `post-request` will run unless disabled before this pipeline function ran.';
+                    funk_use_custom_error($c, ['json_or_page', ['json' => ["custom_error" => $err], 'page' => '500'], $err], 500);
+                }
+            }
+            // Accept is HTML
+            else if (str_contains($accept, 'text/html')) {
+                if (isset($passedValue['no_match']['page'])) {
+                    header('Content-Type: text/html; charset=utf-8');
+                    header("Content-Security-Policy: default-src 'none'; img-src 'self'; script-src 'self'; connect-src 'none'; style-src 'self' 'unsafe-inline'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; font-src 'self'; base-uri 'self';");
+                    if (
+                        is_string($passedValue['no_match']['page'])
+                    ) {
+                        $page = ROOT_FOLDER . '/page/complete/' . $passedValue['no_match']['page'] . '.php';
+                        if (!is_readable($page)) {
+                            $err = 'No Route Matched (configured page not found or not readable - if you wanna Use the Default Error Pages you must specify "/[errors]/{HttpErrorResponseCode}" - for example: `["page" => "/[errors]/404"]`) - Tell The Developer: The Pipepline `pl_match_route` Function needs a default Configured JSON Response OR Page to return OR a Callback Function to run in the case of No Matched Route. For example: `11 => ["pl_match_route" => ["no_match" => ["json" => "null", "page" => "404", "callback" => "null"]]]`. If the `json` key is a string, it will look for a function called that and use its return value as the JSON Encoded. If the `json` key is an array, it will be JSON Encoded as is. The `page` key must be a valid path or the default internal 404 Page will be used if not found. ONLY use the `callback` key if you need more things to do before returning any kind of response. Its string value is the function it will look for and execute. After any of these keys are ran exit() will be ran and `post-request` will run unless disabled before this pipeline function ran.';
+                            funk_use_custom_error($c, ['json_or_page', ['json' => ["custom_error" => $err], 'page' => '500'], $err], 500);
+                        }
+                        include_once $page;
+                        exit(); // Exit if page doesn't do it and let post-request run unless disabled before this pipeline function ran
+                    } else {
+                        $err = 'No Route Matched (configured page not a string?!) - Tell The Developer: The Pipepline `pl_match_route` Function needs a default Configured JSON Response OR Page to return OR a Callback Function to run in the case of No Matched Route. For example: `11 => ["pl_match_route" => ["no_match" => ["json" => "null", "page" => "404", "callback" => "null"]]]`. If the `json` key is a string, it will look for a function called that and use its return value as the JSON Encoded. If the `json` key is an array, it will be JSON Encoded as is. The `page` key must be a valid path or the default internal 404 Page will be used if not found. ONLY use the `callback` key if you need more things to do before returning any kind of response. Its string value is the function it will look for and execute. After any of these keys are ran exit() will be ran and `post-request` will run unless disabled before this pipeline function ran.';
+                        funk_use_custom_error($c, ['json_or_page', ['json' => ["custom_error" => $err], 'page' => '500'], $err], 500);
+                    }
+                }
+                // When 3 keys exists we expect 'page' when accept is html
+                else {
+                    $err = 'No Route Matched (expected `page` key as one of the 3 keys in `no_match` key when `accept` Request Header is text/html?!) - Tell The Developer: The Pipepline `pl_match_route` Function needs a default Configured JSON Response OR Page to return OR a Callback Function to run in the case of No Matched Route. For example: `11 => ["pl_match_route" => ["no_match" => ["json" => "null", "page" => "404", "callback" => "null"]]]`. If the `json` key is a string, it will look for a function called that and use its return value as the JSON Encoded. If the `json` key is an array, it will be JSON Encoded as is. The `page` key must be a valid path or the default internal 404 Page will be used if not found. ONLY use the `callback` key if you need more things to do before returning any kind of response. Its string value is the function it will look for and execute. After any of these keys are ran exit() will be ran and `post-request` will run unless disabled before this pipeline function ran.';
+                    funk_use_custom_error($c, ['json_or_page', ['json' => ["custom_error" => $err], 'page' => '500'], $err], 500);
+                }
+            }
+            // Here we look for callback if not json or html/page
+            else if (isset($passedValue['no_match']['callback'])) {
+                // Check if function exists and is callable and run it
+                if (
+                    is_string($passedValue['no_match']['callback'])
+                    && function_exists($passedValue['no_match']['callback'])
+                    && is_callable($passedValue['no_match']['callback'])
+                ) {
+                    $cb = $passedValue['no_match']['callback'];
+                    $cb($c);
+                    exit(); // Exit if callback doesn't do it and let post-request run unless disabled before this pipeline function ran
+                } else {
+                    $err = 'No Route Matched (configured callback function not found or not callable) - Tell The Developer: The Pipepline `pl_match_route` Function needs a default Configured JSON Response OR Page to return OR a Callback Function to run in the case of No Matched Route. For example: `11 => ["pl_match_route" => ["no_match" => ["json" => "null", "page" => "404", "callback" => "null"]]]`. If the `json` key is a string, it will look for a function called that and use its return value as the JSON Encoded. If the `json` key is an array, it will be JSON Encoded as is. The `page` key must be a valid path or the default internal 404 Page will be used if not found. ONLY use the `callback` key if you need more things to do before returning any kind of response. Its string value is the function it will look for and execute. After any of these keys are ran exit() will be ran and `post-request` will run unless disabled before this pipeline function ran.';
+                    funk_use_custom_error($c, ['json_or_page', ['json' => ["custom_error" => $err], 'page' => '500'], $err], 500);
+                }
+            }
+            // Expected at least callback out of the 3 keys
+            else {
+                $err = 'No Route Matched (expected at least `callback` key out of the 3 keys in `no_match` key when neither JSON nor HTML was in Accept Request Header?!) - Tell The Developer: The Pipepline `pl_match_route` Function needs a default Configured JSON Response OR Page to return OR a Callback Function to run in the case of No Matched Route. For example: `11 => ["pl_match_route" => ["no_match" => ["json" => "null", "page" => "404", "callback" => "null"]]]`. If the `json` key is a string, it will look for a function called that and use its return value as the JSON Encoded. If the `json` key is an array, it will be JSON Encoded as is. The `page` key must be a valid path or the default internal 404 Page will be used if not found. ONLY use the `callback` key if you need more things to do before returning any kind of response. Its string value is the function it will look for and execute. After any of these keys are ran exit() will be ran and `post-request` will run unless disabled before this pipeline function ran.';
+                funk_use_custom_error($c, ['json_or_page', ['json' => ["custom_error" => $err], 'page' => '500'], $err], 500);
+            }
+
+            header("Content-Security-Policy: default-src 'none'; img-src 'self'; script-src 'self'; connect-src 'none'; style-src 'self' 'unsafe-inline'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; font-src 'self'; base-uri 'self';");
+        }
+        // IPOSSIBLE State but let's handle it:
+        else {
+            $err = 'No Route Matched - Tell The Developer: The Pipepline `pl_match_route` Function needs a default Configured JSON Response OR Page to return OR a Callback Function to run in the case of No Matched Route. For example: `11 => ["pl_match_route" => ["no_match" => ["json" => "null", "page" => "404", "callback" => "null"]]]`. If the `json` key is a string, it will look for a function called that and use its return value as the JSON Encoded. If the `json` key is an array, it will be JSON Encoded as is. The `page` key must be a valid path or the default internal 404 Page will be used if not found. ONLY use the `callback` key if you need more things to do before returning any kind of response. Its string value is the function it will look for and execute. After any of these keys are ran exit() will be ran and `post-request` will run unless disabled before this pipeline function ran.';
+            funk_use_custom_error($c, ['json_or_page', ['json' => ["custom_error" => $err], 'page' => '500'], $err], 500);
         }
     }
     // When matched, data is stored in $c['req'] and it is up to the Developer to do whatever they want with it!

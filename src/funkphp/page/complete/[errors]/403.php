@@ -3,11 +3,7 @@
 // The variable $custom_error_message is automatically available here.
 
 // Ensure $custom_error_message is a string, defaulting to a generic message if not set.
-$display_message = $custom_error_message ?? "The requested action is forbidden by server configuration.";
-$http_code = http_response_code(); // Will be 403, set by funk_use_custom_error
-
-// Set the title based on the error code
-$page_title = "Error " . $http_code . " - Forbidden";
+$display_message = $custom_error_message ?? 'The requested action is forbidden by server configuration.';
 
 // Basic HTML structure for the error page
 ?>
@@ -17,7 +13,7 @@ $page_title = "Error " . $http_code . " - Forbidden";
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo htmlspecialchars($page_title); ?></title>
+    <title>Error 403 Forbidden</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
@@ -71,7 +67,7 @@ $page_title = "Error " . $http_code . " - Forbidden";
 
 <body>
     <div class="container-403">
-        <div class="code"><?php echo htmlspecialchars($http_code); ?></div>
+        <div class="code">403</div>
         <div class="title">Access Forbidden</div>
         <p class="message">
             <?php echo htmlspecialchars($display_message); ?>

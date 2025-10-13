@@ -17,9 +17,8 @@ return  [
             10 => ['pl_match_denied_uas' => null],
             11 => ['pl_match_route' => [
                 'no_match' => [
-                    'json' => null,
-                    'page' => '404',
-                    'callback' => null
+                    'json' => ["err" => "something happened"],
+                    'page' => '/[errors]/404',
                 ]
             ]],
             12 => ['pl_run_matched_route_middlewares' => 'defensive'],
