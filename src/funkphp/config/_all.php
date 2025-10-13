@@ -46,7 +46,6 @@ class FunkDBConfig
         self::$credentials = [];
     }
 }
-var_dump(FunkDBConfig::getCredentials('mysql1')); // For debugging purposes only, remove in production!
 // GLOBAL CONFIGURATIONS in "$c" variable in "funkphp/funkphp_start.php"
 // Configure the included files below here separately as needed!
 // IMPORTANT: Do NOT store sensitive data here (e.g passwords/API-keys)

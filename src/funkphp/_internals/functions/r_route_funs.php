@@ -24,6 +24,7 @@ function funk_use_custom_error(&$c, $handleTypeAndDataOptionalCBData, $errorCode
     // $handleTypeAndDataOptionalCBData[2]  = (optional) callbackData (mixed, depends on handleType)
     // Available error types it can handle as of now! - more can be added as needed!
     $availableHandleTypes = ['json', 'page', 'json_or_page', 'callback', 'html', 'text', 'xml', 'throw'];
+
     // $skipPostRequest must be a boolean
     if (!is_bool($skipPostRequest)) {
         critical_err_json_or_html(500, 'Tell the Developer: Invalid Skip Post-Request Pipeline Flag Passed to funk_handle_custom_error() Function. This should be a boolean (true|false)!');
@@ -57,6 +58,17 @@ function funk_use_custom_error(&$c, $handleTypeAndDataOptionalCBData, $errorCode
         || $errorCode > 599
     ) {
         critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to funk_handle_custom_error() Function. This should be an integer between 100 and 599!');
+    }
+
+    // Clear any DB connections before handling the error
+    // unless the handle type is 'throw' since that could
+    // be caught and maybe DB is used after that!
+    if (
+        isset($handleTypeAndDataOptionalCBData[0])
+        && is_string($handleTypeAndDataOptionalCBData[0])
+        && $handleTypeAndDataOptionalCBData[0] !== 'throw'
+    ) {
+        FunkDBConfig::clearCredentials();
     }
 
     // HERE WE HAVE VALIDATED: Valid existing Handle Type, Valid existing Handle Data, Valid existing Error Code, Valid existing Skip Post-Request Pipeline Flag
