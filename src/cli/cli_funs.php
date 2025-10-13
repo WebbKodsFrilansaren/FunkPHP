@@ -1,5 +1,18 @@
 <?php // SECOND CLI FUNCTIONS FILE SINCE SECOND ONE STARTED TO BECOME TOO LARGE!
 
+// Helper Function
+function array_get_nested(array $array, array $keys, $default = null)
+{
+    $temp = $array;
+    foreach ($keys as $key) {
+        if (!is_array($temp) || !array_key_exists($key, $temp)) {
+            return $default;
+        }
+        $temp = $temp[$key];
+    }
+    return $temp;
+}
+
 // Helper that checks if a key exists in a list of associative arrays
 // Can also return the index of the first occurrence if $returnIndex is true
 function array_key_exists_in_list($key, $listArray, $returnIndex = false)
@@ -13,33 +26,6 @@ function array_key_exists_in_list($key, $listArray, $returnIndex = false)
         }
     }
     return false;
-}
-
-/**
- * Checks if a given array has the exact 'subfolder => file => function => value' structure.
- * This function validates that each level is a single-key associative array.
- * WRITTEN BY: LLMs!
- * @param array $array The route key array to validate.
- * @return bool True if the structure is valid, false otherwise.
- */
-function is_valid_route_key_structure($array): bool
-{
-    // Check level 1: The outer array must be a single-key associative array.
-    if (!is_array($array) || count($array) !== 1 || array_is_list($array)) {
-        return false;
-    }
-    $fileArray = reset($array);
-    // Check level 2: The value of the first key must be a single-key associative array.
-    if (!is_array($fileArray) || count($fileArray) !== 1 || array_is_list($fileArray)) {
-        return false;
-    }
-    $functionArray = reset($fileArray);
-    // Check level 3: The value of the second key must be a single-key associative array.
-    if (!is_array($functionArray) || count($functionArray) !== 1 || array_is_list($functionArray)) {
-        return false;
-    }
-    // As long as the structure is met, return true.
-    return true;
 }
 
 // Two functions that are used to output messages in the CLI
@@ -147,9 +133,9 @@ function cli_return_valid_file_n_fn_or_err_out($string, $prefix = null)
     global $reserved_functions;
     // $string must be a non-empty string, then we lowercase it
     if (!isset($string) || !is_string($string) || empty($string)) {
-        cli_err_without_exit('[cli_match_file_and_fn()]: This function expects a Non-Empty String (probably missing in $arg1) | $arg2 is the optional Method/Route part!');
-        cli_info_without_exit('[cli_match_file_and_fn()]: Use either "fileName" (Regex: [a-z_][a-z_0-9]*) OR "fileName=>functionName" (Regex: [a-z_][a-z_0-9]*=>[a-z_][a-z_0-9.]*)!');
-        cli_info('[cli_match_file_and_fn()]: IMPORTANT: Your provided String will ALWAYS be lowercased automatically before any further processing!');
+        cli_err_without_exit('[cli_return_valid_file_n_fn_or_err_out]: This function expects a Non-Empty String (probably missing in $arg1) | $arg2 is the optional Method/Route part!');
+        cli_info_without_exit('[cli_return_valid_file_n_fn_or_err_out]: Use either "fileName" (Regex: [a-z_][a-z_0-9]*) OR "fileName=>functionName" (Regex: [a-z_][a-z_0-9]*=>[a-z_][a-z_0-9.]*)!');
+        cli_info('[cli_return_valid_file_n_fn_or_err_out]: IMPORTANT: Your provided String will ALWAYS be lowercased automatically before any further processing!');
     }
     $string = strtolower(trim($string));
     // Matches a string like "fileName" or "fileName=>functionName"
@@ -162,9 +148,9 @@ function cli_return_valid_file_n_fn_or_err_out($string, $prefix = null)
         $file = $matches[1];
         $fn = isset($matches[2]) ? $matches[2] : $file;
     } else {
-        cli_err_without_exit('[cli_match_file_and_fn()]: Invalid Syntax for File and/or Function Name! (probably in $arg1) | $arg2 is the optional Method/Route part!');
-        cli_info_without_exit('[cli_match_file_and_fn()]: Use either "fileName" (Regex: [a-z_][a-z_0-9]*) OR "fileName=>functionName" (Regex: [a-z_][a-z_0-9]*=>[a-z_][a-z_0-9.]*)!');
-        cli_info('[cli_match_file_and_fn()]: IMPORTANT: Your provided String will ALWAYS be lowercased automatically before any further processing!');
+        cli_err_without_exit('[cli_return_valid_file_n_fn_or_err_out]: Invalid Syntax for File and/or Function Name! (probably in $arg1) | $arg2 is the optional Method/Route part!');
+        cli_info_without_exit('[cli_return_valid_file_n_fn_or_err_out]: Use either "fileName" (Regex: [a-z_][a-z_0-9]*) OR "fileName=>functionName" (Regex: [a-z_][a-z_0-9]*=>[a-z_][a-z_0-9.]*)!');
+        cli_info('[cli_return_valid_file_n_fn_or_err_out]: IMPORTANT: Your provided String will ALWAYS be lowercased automatically before any further processing!');
     }
     // Add prefix to both variables if provided
     // and then check against reserved functions
@@ -178,12 +164,12 @@ function cli_return_valid_file_n_fn_or_err_out($string, $prefix = null)
         }
     }
     if (in_array($file, $reserved_functions)) {
-        cli_err_without_exit('[cli_match_file_and_fn()]: File Name `' . $file . '` is a Reserved Function Name. Please choose a different name! (probably see $arg1)');
-        cli_info('[cli_match_file_and_fn()]: The majority of Reserved Function Names usually start with "funk_" or "cli_" prefix, so please avoid using those prefixes for Your Custom Functions!');
+        cli_err_without_exit('[cli_return_valid_file_n_fn_or_err_out]: File Name `' . $file . '` is a Reserved Function Name. Please choose a different name! (probably see $arg1)');
+        cli_info('[cli_return_valid_file_n_fn_or_err_out]: The majority of Reserved Function Names usually start with "funk_" or "cli_" prefix, so please avoid using those prefixes for Your Custom Functions!');
     }
     if (in_array($fn, $reserved_functions)) {
-        cli_err_without_exit('[cli_match_file_and_fn()]: Function Name `' . $fn . '` is a Reserved Function Name. Please choose a different name! (probably see $arg1)');
-        cli_info('[cli_match_file_and_fn()]: The majority of Reserved Function Names usually start with "funk_" or "cli_" prefix, so please avoid using those prefixes for Your Custom Functions!');
+        cli_err_without_exit('[cli_return_valid_file_n_fn_or_err_out]: Function Name `' . $fn . '` is a Reserved Function Name. Please choose a different name! (probably see $arg1)');
+        cli_info('[cli_return_valid_file_n_fn_or_err_out]: The majority of Reserved Function Names usually start with "funk_" or "cli_" prefix, so please avoid using those prefixes for Your Custom Functions!');
     }
     cli_info_without_exit('OK! Parsed File => Function: `' . $file . '=>' . $fn . '` (Function is ignored for Folders such as `middlewares` & `pipeline`!)');
     return [$file, $fn];
@@ -924,6 +910,8 @@ function cli_route_status(&$ROUTES, $method, $route)
         'MIDDLEWARES_NOT_FIRST_POSITION' => 'Route Middlewares is NOT at the First Position [0] of the Route Array!',
         'ROUTE_KEYS_NOT_LIST_ARRAY' => 'Route Keys is NOT a Numbered Array! (This means one or more of its keys are NOT numeric)',
         'ROUTE_KEY_NOT_ARRAY' => 'Route Key is NOT an Associative Array! (For some reason it is a different datatype?)',
+        'ROUTE_KEYS_FILE_NOT_EXIST' => 'Route Key\'s File does NOT exist! (Check the path and filename)',
+        'ROUTE_KEYS_FILE_FUNCTION_NOT_EXIST' => 'Route Key\'s File\'s Function does NOT exist! (Check the function name in the file)',
     ];
     $routeWarnings = [];
 
@@ -978,7 +966,9 @@ function cli_route_status(&$ROUTES, $method, $route)
             }
 
             // Iterate through all other route keys (excluding the first if it's middlewares)
+            var_dump($foundRoute);
             foreach ($foundRoute as $key => $routeKeyArray) {
+
                 // Skip the middlewares key if it was the first element
                 if ($key === 0 && array_key_exists('middlewares', $routeKeyArray)) {
                     continue;
@@ -1003,8 +993,13 @@ function cli_route_status(&$ROUTES, $method, $route)
                 }
 
                 // Extract and store all other route keys
-                if (is_array($routeKeyArray) && !empty($routeKeyArray) && array_is_list([$routeKeyArray]) === false) {
-                    $routeKeyName = key($routeKeyArray);
+                if (is_array($routeKeyArray) && !empty($routeKeyArray) && !array_is_list($routeKeyArray)) {
+                    $routeKeyName = key($routeKeyArray) ?? null;
+                    $routeKeyFile = (key($routeKeyArray[$routeKeyName])) ?? null;
+                    $routeKeyFn = (key($routeKeyArray[$routeKeyName][$routeKeyFile])) ?? null;
+                    $routeKeyPassedvalue = (gettype($routeKeyArray[$routeKeyName][$routeKeyFile][$routeKeyFn])) ?? null;
+
+                    var_dump($routeKeyName, $routeKeyFile, $routeKeyFn, $routeKeyPassedvalue);
                     if (array_key_exists_in_list($routeKeyName, $routeKeys)) {
                         $routeWarnings[] = $WARNINGS['DUPLICATE_ROUTE_KEYS'] . "'$routeKeyName'";
                     }

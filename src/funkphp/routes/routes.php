@@ -1,4 +1,4 @@
-<?php // Routes.php - FunkPHP Framework | FunkCLI Modified it 2025-10-10 00:13:35
+<?php // Routes.php - FunkPHP Framework | FunkCLI Modified it 2025-10-13 14:30:39
 return  [
   'ROUTES' =>
   [
@@ -25,12 +25,12 @@ return  [
           [
             0 =>
             [
-              'm_test' => "passed valiue from M-test",
+              'm_test' => 'passed valiue from M-test',
             ],
             1 =>
             [
-              'm_test2' => "passed value test2",
-            ]
+              'm_test2' => 'passed value test2',
+            ],
           ],
         ],
         1 =>
@@ -39,7 +39,22 @@ return  [
           [
             'test' =>
             [
-              'test2' => "passed value from try=>test=>test2",
+              // 'test2' => 'passed value from try=>test=>test2',
+            ],
+          ],
+        ],
+      ],
+      '/users2' =>
+      [],
+      '/users3' =>
+      [
+        0 =>
+        [
+          'try' =>
+          [
+            'testar' =>
+            [
+              'testar' => NULL,
             ],
           ],
         ],

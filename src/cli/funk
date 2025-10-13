@@ -241,7 +241,7 @@ $exactFiles = [
     "single_pipeline" => $dirs['pipeline'] . "pipeline.php",
     "single_routes" => $dirs['routes'] . "routes.php",
     "tables" => $dirs['config'] . "tables.php",
-    "db_local" => $dirs['config'] . "db_config.php",
+    "db_local" => $dirs['config'] . "db.php",
     "supported_mysql_data_types" => $dirs['config_valid'] . "valid_mysql_datatypes.php",
 ];
 
@@ -632,7 +632,7 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
             $createStatus = cli_crud_folder_and_php_file($statusArray, "create_new_anonymous_file", $file, null, "pipeline");
             if ($createStatus) {
                 cli_success_without_exit("SUCCESSFULLY Created Single Anonymous Function File `$file.php` in Folder `$folder`!");
-                cli_info("The Pipeline File `$file.php` is now ready to be used in your Pipeline - place it first either in `funkphp/pipeline/request/` OR `funkphp/pipeline/post-request/` and then add it to the corresponding Pipeline Sub-Array! (`pipeline['request']` or `pipeline['post-request']`)");
+                cli_info("The Pipeline File `$file.php` is now ready to be used in your Pipeline - place it first either in `funkphp/pipeline/request/` OR `funkphp/pipeline/post-request/` and then add it to the corresponding Pipeline Sub-Array! (`pipeline['request']` or `pipeline['post-request']`. For example `pipeline['request'][{NEXT_ARRAY_INDEX}]['$file' => null]` where null could be any other data that is allowed to be passed to that Pipeline Function!");
             } else {
                 cli_err("FAILED to Create Single Anonymous Function File `$file.php` in Folder `$folder`!");
             }
@@ -640,7 +640,7 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
             $createStatus = cli_crud_folder_and_php_file($statusArray, "create_new_anonymous_file", $file, null, "middlewares");
             if ($createStatus) {
                 cli_success_without_exit("SUCCESSFULLY Created Single Anonymous Function File `$file.php` in Folder `$folder`!");
-                cli_info_without_exit("The Middlewares File `$file.php` is now ready to be used in your Routes. You did not provide a Method/Route so it will not be automatically added to any Route. You can add it manually later on!");
+                cli_info_without_exit("The Middlewares File `$file.php` is now ready to be used in your Routes. You did not provide a Method/Route so it will not be automatically added to any Route. You can add it manually later on. Remember that it MUST be the first Route Key in the Route's Array of Numbered Route Keys. For example: `'GET' => [ '/example' => [ 0 => ['middlewares' => [0 => ['mw_filename_without_php_extension' => null]]], 1 => ['callback' => 'file=>function'], ], ],` where null is the optional passed data that can be passed to the Middleware Function!");
                 if (JSON_MODE) {
                     cli_info("Add it manually with the following JSON Syntax: `{ \"command\": \"add:middlewares\", \"arg1\": \"$file\", \"arg2\": \"<method/route>\" }`");
                 } else {
@@ -882,7 +882,7 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
 
             // If File=>Fn failed (even if it existed already) then we error out, else we continue!
             if (!$routeFileAndKeyCreated) {
-                cli_err("Could NOT add Route Key `$file=>$fn` to Method/Route `$method$route` since File and/or Function failed to be created. `$method$route` remains created and added to `Routes` though!");
+                cli_err("Could NOT add Route Key `$file=>$fn` to Method/Route `$method$route` since File and/or Function failed to be created. `$method$route` remains Created and Added to `Routes` though!");
             }
 
             // If the route key does not exist, add it

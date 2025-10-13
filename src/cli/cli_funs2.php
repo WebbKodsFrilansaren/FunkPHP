@@ -6,12 +6,13 @@ function cli_db_connect()
 {
     global $exactFiles;
     $dbConfig = include_once $exactFiles['db_local'];
+    $dbConfig = $dbConfig['mysql1'] ?? null;
     try {
-        $conn = new mysqli($dbConfig['DB_HOST'], $dbConfig['DB_USER'], $dbConfig['DB_PASSWORD'], $dbConfig['DB_NAME'], $dbConfig['DB_PORT']);
-        $conn->set_charset('utf8mb4');
+        $conn = new mysqli($dbConfig['host'], $dbConfig['user'], $dbConfig['password'], $dbConfig['database'], $dbConfig['port']);
+        $conn->set_charset($dbConfig['charset'] ?? 'utf8mb4');
     } catch (Exception $e) {
         if ($conn === null) {
-            cli_err_syntax("Database Connection Failed. Check Database Connection Configuration in \"funkphp/config/db_config.php\"!");
+            cli_err_syntax("Database Connection Failed. Check Database Connection Configuration in \"funkphp/config/db_config.php\". Error Message: `" . $e->getMessage() . "`");
         }
     }
     return $conn;
@@ -3028,8 +3029,6 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
             }
         }
 
-        //var_dump($mCol, $mOperator, $mValue, $specialSyntax);
-
         // SPECIAL CASE: 'HAVING' Key called this Condition Clause Parser, so we
         // will check if it is like when being used in `SELECT Key with Agg Funcs
         // and all that!
@@ -3044,7 +3043,7 @@ function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $va
                     $aggName = strtolower($aggMatches[1]) ?? null;
                     $aggTbAndOrCol = strtolower($aggMatches[2]) ?? null;
                     $aggAliasOrTbDotCol = true; // True = it is a Agg Func Alias Name, False = it is Table:Col after Col => Table:Col or already Table:Col
-                    var_dump($aggName, $aggTbAndOrCol);
+
                     // If the Aggregate Function is not in the valid starts
                     // array then it is not a valid Aggregate Function!
                     if (!isset($aggFuncValidStarts[$aggName])) {
@@ -6445,7 +6444,6 @@ function cli_build_compiled_routes(array $developerSingleRoutes, array $develope
         // The way we insert "|" to signify a middleware is to just go through all segments for each key
         // and when we are at the last segment that is the node we insert "|" and then we move on to key.
         foreach ($keys as $key => $value) {
-            var_dump($key, $value[0]);
             // Ignore empty keys or null values & handle special case for "/"
             if ($key === "" || $key === null || $key === false || $key === "") {
                 continue;

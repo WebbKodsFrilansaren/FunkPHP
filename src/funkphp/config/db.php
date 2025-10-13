@@ -27,7 +27,7 @@ if (FUNKPHP_IS_LOCAL) {
             'host'     => 'localhost',
             'user'     => 'root',
             'password' => '', // Local password
-            'database' => 'fphp_dev',
+            'database' => 'fphp',
             'port'     => 3306,
             'charset'  => 'utf8mb4',
         ],
