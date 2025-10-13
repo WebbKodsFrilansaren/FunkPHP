@@ -1,7 +1,10 @@
 <?php
 return function (&$c, $passedValue = null) {
-    // The $passedValue is a must for this function and is the path to where the file is
-    if (!isset($passedValue) || !is_string($passedValue)) {
+    // $passedValue is optional but must be a string otherwise
+    if (!isset($passedValue)) {
+        return; // All good, continue request processing!
+    }
+    if (!is_string($passedValue)) {
         $err = 'Tell The Developer: The "pl_match_denied_exact_ips" Pipeline Function requires a valid STRING as $passedValue that is the PATH to the "<path/to/blocked_ips_list.php>" file. It concatenates it with constant `ROOT_FOLDER` which is the root of the FunkPHP installation. For example: `ROOT_FOLDER . "/config/blocked/blocked_ips.php"`';
         funk_use_custom_error($c, ['json_or_page', ['json' => ["custom_error" => $err], 'page' => '500'], $err], 500);
     }

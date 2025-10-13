@@ -7,8 +7,8 @@ function funk_use_custom_error(&$c, $handleTypeAndDataOptionalCBData, $errorCode
 {
     // $handleTypeAndDataOptionalCBData[0]  = handleType (string)
     // $handleTypeAndDataOptionalCBData[1]  = handleData (mixed, depends on handleType)
-    // $handleTypeAndDataOptionalCBData[1][0]  = JSON handleType for handleType = 'json_or_page'
-    // $handleTypeAndDataOptionalCBData[1][1]  = Page handleType for handleType = 'json_or_page'
+    // $handleTypeAndDataOptionalCBData[1]['json']  = JSON handleType for handleType = 'json_or_page'
+    // $handleTypeAndDataOptionalCBData[1]['page']  = Page handleType for handleType = 'json_or_page'
     // $handleTypeAndDataOptionalCBData[2]  = (optional) callbackData (mixed, depends on handleType)
     // Available error types it can handle as of now! - more can be added as needed!
     $availableHandleTypes = ['json', 'page', 'json_or_page', 'callback', 'html', 'text', 'xml', 'throw'];
