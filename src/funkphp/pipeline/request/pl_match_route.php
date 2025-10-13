@@ -74,7 +74,6 @@
                     $jsonData = $passedValue['no_match']['json']($c) ?? null;
                 }
                 try { // Assume it is valid JSON data if not a function
-                    header('Content-Type: application/json; charset=utf-8');
                     echo json_encode($jsonData, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
                     exit(); // Exit if json doesn't do it and let post-request run unless disabled before this pipeline function ran
                 } catch (\JsonException $e) {
@@ -139,7 +138,6 @@
                     $jsonData = $passedValue['no_match']['json']($c) ?? null;
                 }
                 try { // Assume it is valid JSON data if not a function
-                    header('Content-Type: application/json; charset=utf-8');
                     echo json_encode($jsonData, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
                     exit(); // Exit if json doesn't do it and let post-request run unless disabled before this pipeline function ran
                 } catch (\JsonException $e) {
@@ -206,7 +204,6 @@
                         $jsonData = $passedValue['no_match']['json']($c) ?? null;
                     }
                     try { // Assume it is valid JSON data if not a function
-                        header('Content-Type: application/json; charset=utf-8');
                         echo json_encode($jsonData, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
                         exit(); // Exit if json doesn't do it and let post-request run unless disabled before this pipeline function ran
                     } catch (\JsonException $e) {
