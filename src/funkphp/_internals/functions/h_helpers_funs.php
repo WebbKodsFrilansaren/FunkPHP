@@ -58,7 +58,7 @@ function return_download($filePath, $fileName = null, $statusCode = 200)
 // Function that either creates and returns a new Composer object instance or returns
 // an already existing one in $c['composer'][<$objKey>] if it exists.
 // TODO: Check, test and improve this function as needed!
-function funk_composer_obj(&$c, $objClass, $objInstance)
+function funk_composer_obj(&$c, $objClass, $objInstance, $instanceArgs = [])
 {
     // 1. Validate Input
     if (
@@ -80,7 +80,15 @@ function funk_composer_obj(&$c, $objClass, $objInstance)
         return null;
     }
     $className = $config['class'];
-    $args = $config['args'] ?? [];
+    $defaultArgs = $config['args'] ?? []; // Arguments from config
+
+    // --- CRITICAL IMPROVEMENT ---
+    // 4. Determine final arguments: use $instanceArgs if provided, otherwise use $defaultArgs.
+    // NOTE: You could also use array_merge here if you want to mix them,
+    // but typically a user either supplies ALL args via the function call,
+    // or relies on ALL args from the config. Using $instanceArgs takes precedence.
+    $finalArgs = !empty($instanceArgs) ? $instanceArgs : $defaultArgs;
+
     // 4. Check if the class exists (Composer autoloading must be set up)
     if (!class_exists($className)) {
         $c['err']['COMPOSER']['funk_composer_obj'][] = "Class '$className' not found. Did you run composer install?";
@@ -89,7 +97,7 @@ function funk_composer_obj(&$c, $objClass, $objInstance)
     // 5. Instantiate the class using Reflection (allows dynamic passing of arguments)
     try {
         $reflector = new ReflectionClass($className);
-        $instance = $reflector->newInstanceArgs($args);
+        $instance = $reflector->newInstanceArgs($finalArgs);
         // 6. Store and return the new instance by reference
         $c['composer'][$objClass][$objInstance] = $instance;
         return $c['composer'][$objClass][$objInstance];

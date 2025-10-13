@@ -143,6 +143,14 @@ return [
     // are used in tandem with Validation & SQL Handlers during DB CRUD!
     'TABLES' => include_once __DIR__ . '/tables.php',
 
+
+    // 'COMPOSER_CLASSES' is the array of Composer Class Configurations
+    // that are used by the `funk_composer_obj()` function inside the
+    // `funkphp/_internals/functions/h_helpers_funs.php` to instantiate
+    // and return the object instance by reference in `$c['composer']` array!
+    // SYNTAX: ['folder_name_in_vendor' =>'Full\Namespace\ClassName']
+    'COMPOSER_CLASSES' => [],
+
     // 'DATABASES' is the array of multiple database connections that you can
     // use and can be SQL, MongoDB, PostgreSQL, etc. - Change as needed!
     // For example: `$c['DATABASES']['mysql_main'] = new mysqli/PDO(...);
