@@ -15,7 +15,13 @@ return  [
             8 => ['pl_match_denied_exact_ips' => null],
             9 => ['pl_match_denied_methods' => null],
             10 => ['pl_match_denied_uas' => null],
-            11 => ['pl_match_route' => null],
+            11 => ['pl_match_route' => [
+                'no_match' => [
+                    'json' => null,
+                    'page' => '404',
+                    'callback' => null
+                ]
+            ]],
             12 => ['pl_run_matched_route_middlewares' => 'defensive'],
             13 => ['pl_run_matched_route_keys' => 'defensive'],
         ],

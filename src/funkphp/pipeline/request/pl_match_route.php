@@ -7,9 +7,12 @@
         !isset($passedValue)
         || !isset($passedValue['no_match'])
         || !is_array($passedValue['no_match'])
-        || count($passedValue['no_match']) >= 1
+        || (count($passedValue['no_match']) < 1 || count($passedValue['no_match']) > 3)
+        || (!isset($passedValue['no_match']['json'])
+            && !isset($passedValue['no_match']['page'])
+            && !isset($passedValue['no_match']['callback']))
     ) {
-        $err = 'Tell The Developer: The Pipepline `pl_match_route` Function needs a default configured Page/JSON Response or a Callback Function to call when no route is matched! Either validate correct Route is configured in the Routes `funkphp/routes/routes.php` File and/or add a default Page/JSON Response or Callback Function to call when no Route is matched! IMPORTANT: You only return a Comipled Page File or a JSON response, so any Route Keys of the Route you might actually choose will NOT be ran. It is HIGHLY RECOMMENDED that you configure BOTH a JSON Response and Page so default Internal Error Page is not shown because it was never configured.';
+        $err = 'Tell The Developer: The Pipepline `pl_match_route` Function needs a default Configured JSON Response OR Page to return OR a Callback Functoin to run in the case of No Matched Route. For example: `11 => ["pl_match_route" => ["no_match" => ["json" => "null", "page" => "404", "callback" => "null"]]]`. If the `json` key is a string, it will look for a function called that and use its return value as the JSON Encoded. If the `json` key is an array, it will be JSON Encoded as is. The `page` key must be a valid path or the default internal 404 Page will be used if not found. ONLY use the `callback` key if you need more things to do before returning any kind of response. Its string value is the function it will look for and execute. After any of these keys are ran exit() will be ran and `post-request` will run unless disabled before this pipeline function ran.';
         funk_use_custom_error($c, ['json_or_page', ['json' => ["custom_error" => $err], 'page' => '500'], $err], 500);
     }
     $c['ROUTES'] = [];
@@ -57,14 +60,6 @@
     );
     // HM: What to do when NOT MATCHED? Allow for setting default non-found json/page/callback ?
     if (!$FPHP_MATCHED_ROUTE) {
-        if (
-            !isset($passedValue['no_match'])
-            || !is_array($passedValue['no_match'])
-            || count($passedValue['no_match']) >= 1
-        ) {
-            $err = 'Tell The Developer: The Pipepline `pl_match_route` Function needs a default configured Page/JSON Response or a Callback Function to call when no route is matched! Either validate correct Route is configured in the Routes `funkphp/routes/routes.php` File and/or add a default Page/JSON Response or Callback Function to call when no Route is matched! IMPORTANT: You only return a Comipled Page File or a JSON response, so any Route Keys of the Route you might actually choose will NOT be ran. It is HIGHLY RECOMMENDED that you configure BOTH a JSON Response and Page so default Internal Error Page is not shown because it was never configured.';
-            funk_use_custom_error($c, ['json_or_page', ['json' => ["custom_error" => $err], 'page' => '404'], $err], 404);
-        }
         // Case 1: Only 1 key
         if (count($passedValue['no_match']) === 1) {
         }
