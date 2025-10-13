@@ -13,12 +13,12 @@ function cli_folder_file_fn_value_exist_or_null($routeKey)
         || array_is_list($routeKey)
         || count($routeKey) !== 1
     ) {
-        return ['valid' => false, 'dir' => null, 'file' => null, 'fn' => null, 'value' => null];
+        return ['valid' => false, 'dir' => null, 'file' => null, 'fn' => null, 'value' => null, 'original' => $routeKey];
     }
     // level 1 = Folder
     $level1 = key($routeKey) ?? null;
     if ($level1 === null || !is_string($level1) || empty($level1)) {
-        return ['valid' => false, 'dir' => null, 'file' => null, 'fn' => null, 'value' => null];
+        return ['valid' => false, 'dir' => null, 'file' => null, 'fn' => null, 'value' => null, 'original' => $routeKey];
     }
     $validStructure[$level1] = null;
 
@@ -29,7 +29,7 @@ function cli_folder_file_fn_value_exist_or_null($routeKey)
         && count($routeKey[$level1]) === 1)
         ? key($routeKey[$level1]) : null;
     if ($level2 === null || !is_string($level2) || empty($level2)) {
-        return ['valid' => false, 'dir' => $level1, 'file' => null, 'fn' => null, 'value' => null];
+        return ['valid' => false, 'dir' => $level1, 'file' => null, 'fn' => null, 'value' => null, 'original' => $routeKey];
     }
     $validStructure[$level1][$level2] = null;
 
@@ -40,14 +40,14 @@ function cli_folder_file_fn_value_exist_or_null($routeKey)
         && count($routeKey[$level1][$level2]) === 1)
         ? key($routeKey[$level1][$level2]) : null;
     if ($level3 === null || !is_string($level3) || empty($level3)) {
-        return ['valid' => false, 'dir' => $level1, 'file' => $level2, 'fn' => null, 'value' => null];
+        return ['valid' => false, 'dir' => $level1, 'file' => $level2, 'fn' => null, 'value' => null, 'original' => $routeKey];
     }
     $validStructure[$level1][$level2][$level3] = null;
 
     // level 4 = Folder => File => Function => <AnyValue_Even_Empty_Or_Null>
     $level4 = $routeKey[$level1][$level2][$level3] ?? null;
     $validStructure[$level1][$level2][$level3] = $level4;
-    return ['valid' => true, 'dir' => $level1, 'file' => $level2, 'fn' => $level3, 'value' => $level4];
+    return ['valid' => true, 'dir' => $level1, 'file' => $level2, 'fn' => $level3, 'value' => $level4, 'original' => $routeKey];
 }
 
 // Helper that checks if a key exists in a list of associative arrays
@@ -935,6 +935,7 @@ function cli_route_status(&$ROUTES, $method, $route)
     // Route keys related
     $routeKeysExist = false;
     $routeKeys = [];
+    $invalidRouteKeys = [];
 
     // This will include warnings about route when it exists but has potential issues
     // However, it will NOT provide any warnings, instead check for the count!
@@ -947,8 +948,9 @@ function cli_route_status(&$ROUTES, $method, $route)
         'MIDDLEWARES_NOT_FIRST_POSITION' => 'Route Middlewares is NOT at the First Position [0] of the Route Array!',
         'ROUTE_KEYS_NOT_LIST_ARRAY' => 'Route Keys is NOT a Numbered Array! (This means one or more of its keys are NOT numeric)',
         'ROUTE_KEY_NOT_ARRAY' => 'Route Key is NOT an Associative Array! (For some reason it is a different datatype?)',
-        'ROUTE_KEYS_FILE_NOT_EXIST' => 'Route Key\'s File does NOT exist! (Check the path and filename)',
-        'ROUTE_KEYS_FILE_FUNCTION_NOT_EXIST' => 'Route Key\'s File\'s Function does NOT exist! (Check the function name in the file)',
+        'ROUTE_KEYS_DIR_NOT_EXIST' => 'Route Key\'s Folder does NOT exist! (Check the Dir in the Routes)',
+        'ROUTE_KEYS_FILE_NOT_EXIST' => 'Route Key\'s Folder\'s File does NOT exist! (Check the File in the Routes/Dir)',
+        'ROUTE_KEYS_FUNCTION_NOT_EXIST' => 'Route Key\'s Folder\'s File\'s Function does NOT exist! (Check the Function Name in the Routes/Dir/File)',
     ];
     $routeWarnings = [];
 
@@ -1003,7 +1005,6 @@ function cli_route_status(&$ROUTES, $method, $route)
             }
 
             // Iterate through all other route keys (excluding the first if it's middlewares)
-            var_dump($foundRoute);
             foreach ($foundRoute as $key => $routeKeyArray) {
 
                 // Skip the middlewares key if it was the first element
@@ -1032,12 +1033,18 @@ function cli_route_status(&$ROUTES, $method, $route)
                 // Extract and store all other route keys
                 if (is_array($routeKeyArray) && !empty($routeKeyArray) && !array_is_list($routeKeyArray)) {
                     $validStructure = cli_folder_file_fn_value_exist_or_null($routeKeyArray);
-                    var_dump("STRUCTURE OR JUST NULL:", $validStructure);
-                    exit;
-                    if (array_key_exists_in_list($routeKeyName, $routeKeys)) {
-                        $routeWarnings[] = $WARNINGS['DUPLICATE_ROUTE_KEYS'] . "'$routeKeyName'";
+                    if ($validStructure['valid']) {
+                        $routeKeys[] = $routeKeyArray;
+                    } else {
+                        $invalidRouteKeys[] = $validStructure;
+                        if (!$validStructure['dir']) {
+                            $routeWarnings[] = $WARNINGS['ROUTE_KEYS_DIR_NOT_EXIST'];
+                        } elseif (!$validStructure['file']) {
+                            $routeWarnings[] = $WARNINGS['ROUTE_KEYS_FILE_NOT_EXIST'] . " (Dir: " . ($validStructure['dir'] ?? '<UNKNOWN>') . ")";
+                        } elseif (!$validStructure['fn']) {
+                            $routeWarnings[] = $WARNINGS['ROUTE_KEYS_FUNCTION_NOT_EXIST'] . " (Dir: " . ($validStructure['dir'] ?? '<UNKNOWN>') . ", File: " . ($validStructure['file'] ?? '<UNKNOWN>') . ")";
+                        }
                     }
-                    $routeKeys[] = [$routeKeyName => $routeKeyArray[$routeKeyName]];
                 } else {
                     $routeWarnings[] = $WARNINGS['ROUTE_KEY_NOT_ARRAY'];
                 }
@@ -1055,7 +1062,8 @@ function cli_route_status(&$ROUTES, $method, $route)
         "middlewares_in_route" => $middlewares,
         "middlewares_inherited" => $inheritedMiddlewares,
         "route_keys_exist" => $routeKeysExist,
-        "route_keys" => $routeKeys,
+        "valid_route_keys" => $routeKeys,
+        "invalid_route_keys" => $invalidRouteKeys,
         "possible_issues" => $routeWarnings,
     ];
 }
