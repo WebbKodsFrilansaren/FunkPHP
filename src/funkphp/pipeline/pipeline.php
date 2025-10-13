@@ -17,6 +17,8 @@ return  [
             10 => ['pl_match_denied_uas' => null],
             11 => ['pl_match_route' => [
                 'no_match' => [
+                    'json' => ["custom_error" => "404 Not Found: The requested resource could not be found on this server."],
+                    'page' => '/[errors]/404',
                     'callback' => 'TEST_FUNCTION_REMOVE_LATER',
                 ]
             ]],
@@ -24,7 +26,7 @@ return  [
             13 => ['pl_run_matched_route_keys' => 'defensive'],
         ],
         'post-request' => [
-            0 => ['pl_debug' => null]
+            //0 => ['pl_debug' => null]
         ],
     ],
 ];
