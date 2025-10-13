@@ -6,7 +6,7 @@ define('FUNKPHP_IS_LOCAL', (isset($_SERVER['SERVER_NAME'])
         || $_SERVER['SERVER_NAME'] === "127.0.0.1")));
 define('FUNKPHP_LOCAL', "http://localhost/funkphp/src/public_html/");
 define('FUNKPHP_ONLINE', "https://www.funkphp.com/");
-define("ROOT_FOLDER", dirname(__DIR__, 1));
+define("ROOT_FOLDER", dirname(__DIR__, 1)); // The root folder of FunkPHP
 define("FUNKPHP_NO_VALUE", new stdClass()); // A Singleton Object that indicates "no value"!
 // GLOBAL CONFIGURATIONS in "$c" variable in "funkphp/funkphp_start.php"
 // Configure the included files below here separately as needed!

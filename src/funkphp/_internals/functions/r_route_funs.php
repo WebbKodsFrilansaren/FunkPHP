@@ -5,6 +5,11 @@
 // IMPORTANT: Notice how default behavior is to SKIP the post-request pipeline functions unless specified otherwise!
 function funk_use_custom_error(&$c, $handleTypeAndDataOptionalCBData, $errorCode = 500, $skipPostRequest = true)
 {
+    // $handleTypeAndDataOptionalCBData[0]  = handleType (string)
+    // $handleTypeAndDataOptionalCBData[1]  = handleData (mixed, depends on handleType)
+    // $handleTypeAndDataOptionalCBData[1][0]  = JSON handleType for handleType = 'json_or_page'
+    // $handleTypeAndDataOptionalCBData[1][1]  = Page handleType for handleType = 'json_or_page'
+    // $handleTypeAndDataOptionalCBData[2]  = (optional) callbackData (mixed, depends on handleType)
     // Available error types it can handle as of now! - more can be added as needed!
     $availableHandleTypes = ['json', 'page', 'json_or_page', 'callback', 'html', 'text', 'xml', 'throw'];
     // $skipPostRequest must be a boolean
@@ -80,13 +85,14 @@ function funk_use_custom_error(&$c, $handleTypeAndDataOptionalCBData, $errorCode
         ) {
             critical_err_json_or_html(500, 'Tell the Developer: No Valid Handle Data Provided to funk_handle_custom_error() Function for `page` Type. This should be a non-empty string!');
         }
-        $pageToInclude = ROOT_FOLDER . 'page/completed/' . $handleTypeAndDataOptionalCBData[1] . '.php';
+        $pageToInclude = ROOT_FOLDER . '/page/complete/' . $handleTypeAndDataOptionalCBData[1] . '.php';
         if (!is_readable($pageToInclude)) {
             critical_err_json_or_html(500, 'Tell the Developer: The Provided Page to Load inside funk_handle_custom_error() Function for `page` Type does NOT EXIST or is NOT READABLE! Please check the path: `' . $pageToInclude . '`');
         } else {
             // Use the same "$custom_error_message" inside the included file to show custom error message!
             $custom_error_message = $handleTypeAndDataOptionalCBData[2] ?? "";
             header('Content-Type: text/html; charset=utf-8');
+            header("Content-Security-Policy: default-src 'none'; img-src 'self'; script-src 'self'; connect-src 'none'; style-src 'self' 'unsafe-inline'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; font-src 'self'; base-uri 'self';");
             include_once $pageToInclude;
         }
     }  // Handle JSON Or Page Type (based on 'accept' header)
@@ -102,7 +108,7 @@ function funk_use_custom_error(&$c, $handleTypeAndDataOptionalCBData, $errorCode
             || !is_array($handleTypeAndDataOptionalCBData[1])
             || count($handleTypeAndDataOptionalCBData[1]) < 2
         ) {
-            critical_err_json_or_html(500, 'Tell the Developer: Invalid Handle Data structure for `json_or_page`. Expected an array with at least two elements: `[JSON_Data_Array, Page_File_Name_String]`!');
+            critical_err_json_or_html(500, 'Tell the Developer: No Valid Handle Data Provided to funk_handle_custom_error() Function for `json_or_page` Type. This should be an array with at least two items: `["json" => [JSON_Data], "page" => "Page_File_Name"]`!');
         }
         // We want JSON
         if (
@@ -112,36 +118,37 @@ function funk_use_custom_error(&$c, $handleTypeAndDataOptionalCBData, $errorCode
             && in_array($c['req']['accept'], ['application/json', 'text/json'])
         ) {
             if (
-                !isset($handleTypeAndDataOptionalCBData[1][0])
-                || (!is_array($handleTypeAndDataOptionalCBData[1][0])
-                    && !is_object($handleTypeAndDataOptionalCBData[1][0]))
-                || empty($handleTypeAndDataOptionalCBData[1][0])
+                !isset($handleTypeAndDataOptionalCBData[1]['json'])
+                || (!is_array($handleTypeAndDataOptionalCBData[1]['json'])
+                    && !is_object($handleTypeAndDataOptionalCBData[1]['json']))
+                || empty($handleTypeAndDataOptionalCBData[1]['json'])
             ) {
-                critical_err_json_or_html(500, 'Tell the Developer: Invalid Handle Data Provided to funk_handle_custom_error() Function for `json` Type inside `json_or_page`. This should be a non-empty array. For Handle Type `json_or_page` the `HandleData` is an array: `[JSON_Data, Page_File_Name]`!');
+                critical_err_json_or_html(500, 'Tell the Developer: Invalid Handle Data Provided to funk_handle_custom_error() Function for `json` Type inside `json_or_page`. This should be a non-empty array. For Handle Type `json_or_page` the `HandleData` is an array: `["json" => [JSON_Data], "page" => "Page_File_Name"]`!');
             }
             try {
                 header('Content-Type: application/json; charset=utf-8');
-                echo json_encode($handleTypeAndDataOptionalCBData[1][0], JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                echo json_encode($handleTypeAndDataOptionalCBData[1]['json'], JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
             } catch (\JsonException $e) {
-                critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred While Encoding the Provided Data to JSON (`' . $e->getMessage() . '`) inside funk_handle_custom_error() Function for `json` Type!');
+                critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred While Encoding the Provided Data to JSON (`' . $e->getMessage() . '`) inside funk_handle_custom_error() Function for `json` Type. Expected to find JSON data at: `$handleTypeAndDataOptionalCBData[1][\'json\']`!');
             }
         } // We want Page
         else {
             // TODO: Later when 'page' has been implemented in the entire FunkPHP framework! - not far from now!
             if (
-                !isset($handleTypeAndDataOptionalCBData[1][1])
-                || !is_string($handleTypeAndDataOptionalCBData[1][1])
-                || empty($handleTypeAndDataOptionalCBData[1][1])
+                !isset($handleTypeAndDataOptionalCBData[1]['page'])
+                || !is_string($handleTypeAndDataOptionalCBData[1]['page'])
+                || empty($handleTypeAndDataOptionalCBData[1]['page'])
             ) {
-                critical_err_json_or_html(500, 'Tell the Developer: Invalid Handle Data Provided to funk_handle_custom_error() Function for `page` Type inside `json_or_page`. This should be a non-empty array. For Handle Type `json_or_page` the `HandleData` is an array: `[JSON_Data, Page_File_Name]`!');
+                critical_err_json_or_html(500, 'Tell the Developer: Invalid Handle Data Provided to funk_handle_custom_error() Function for `page` Type inside `json_or_page`. This should be a non-empty array. For Handle Type `json_or_page` the `HandleData` is an array: `["json" => [JSON_Data], "page" => "Page_File_Name"]`!');
             }
-            $pageToInclude = ROOT_FOLDER . 'page/completed/' . $handleTypeAndDataOptionalCBData[1][1] . '.php';
+            $pageToInclude = ROOT_FOLDER . '/page/complete/' . $handleTypeAndDataOptionalCBData[1]['page'] . '.php';
             if (!is_readable($pageToInclude)) {
                 critical_err_json_or_html(500, 'Tell the Developer: The Provided Page to Load inside funk_handle_custom_error() Function for `page` Type does NOT EXIST or is NOT READABLE! Please check the path: `' . $pageToInclude . '`');
             } else {
                 // Use the same "$custom_error_message" inside the included file to show custom error message!
                 $custom_error_message = $handleTypeAndDataOptionalCBData[2] ?? "";
                 header('Content-Type: text/html; charset=utf-8');
+                header("Content-Security-Policy: default-src 'none'; img-src 'self'; script-src 'self'; connect-src 'none'; style-src 'self' 'unsafe-inline'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; font-src 'self'; base-uri 'self';");
                 include_once $pageToInclude;
             }
         }
