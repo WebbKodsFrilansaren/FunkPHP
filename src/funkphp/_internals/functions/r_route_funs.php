@@ -1,5 +1,17 @@
 <?php // ROUTE-related FUNCTIONS FOR FunPHP
 
+// TEST FUNCTION - REMOVE LATER OR JUST IGNORE IN PROD!
+// Mainly used to test 'callback' keys at various places!
+function TEST_FUNCTION_REMOVE_LATER(&$c)
+{
+    $accept = $c['req']['accept'] ?? null;
+    if ($accept === null) {
+        echo "No Accept Header Found!";
+    } else {
+        echo "Accept Header Found: " . htmlspecialchars($accept);
+    }
+}
+
 // Function allows for custom error such as returning `json`,`page`,`xml`, ``text``, `html`, a `throw` exception
 // or running a custom `callback` function. Defaults to `critical_err_json_or_html()` when used the wrong way!
 // IMPORTANT: Notice how default behavior is to SKIP the post-request pipeline functions unless specified otherwise!

@@ -17,8 +17,7 @@ return  [
             10 => ['pl_match_denied_uas' => null],
             11 => ['pl_match_route' => [
                 'no_match' => [
-                    'json' => ["err" => "something happened"],
-                    'page' => '/[errors]/404',
+                    'callback' => 'TEST_FUNCTION_REMOVE_LATER',
                 ]
             ]],
             12 => ['pl_run_matched_route_middlewares' => 'defensive'],
