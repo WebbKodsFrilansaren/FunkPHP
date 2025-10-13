@@ -85,7 +85,7 @@ function funk_use_custom_error(&$c, $handleTypeAndDataOptionalCBData, $errorCode
         ) {
             critical_err_json_or_html(500, 'Tell the Developer: No Valid Handle Data Provided to funk_handle_custom_error() Function for `page` Type. This should be a non-empty string!');
         }
-        $pageToInclude = ROOT_FOLDER . '/page/complete/' . $handleTypeAndDataOptionalCBData[1] . '.php';
+        $pageToInclude = ROOT_FOLDER . '/page/complete/[errors]/' . $handleTypeAndDataOptionalCBData[1] . '.php';
         if (!is_readable($pageToInclude)) {
             critical_err_json_or_html(500, 'Tell the Developer: The Provided Page to Load inside funk_handle_custom_error() Function for `page` Type does NOT EXIST or is NOT READABLE! Please check the path: `' . $pageToInclude . '`');
         } else {
@@ -141,7 +141,7 @@ function funk_use_custom_error(&$c, $handleTypeAndDataOptionalCBData, $errorCode
             ) {
                 critical_err_json_or_html(500, 'Tell the Developer: Invalid Handle Data Provided to funk_handle_custom_error() Function for `page` Type inside `json_or_page`. This should be a non-empty array. For Handle Type `json_or_page` the `HandleData` is an array: `["json" => [JSON_Data], "page" => "Page_File_Name"]`!');
             }
-            $pageToInclude = ROOT_FOLDER . '/page/complete/' . $handleTypeAndDataOptionalCBData[1]['page'] . '.php';
+            $pageToInclude = ROOT_FOLDER . '/page/complete/[errors]/' . $handleTypeAndDataOptionalCBData[1]['page'] . '.php';
             if (!is_readable($pageToInclude)) {
                 critical_err_json_or_html(500, 'Tell the Developer: The Provided Page to Load inside funk_handle_custom_error() Function for `page` Type does NOT EXIST or is NOT READABLE! Please check the path: `' . $pageToInclude . '`');
             } else {
