@@ -14,7 +14,7 @@ return  [
             7 => ['pl_prepare_uri' => null],
             8 => ['pl_match_denied_exact_ips' => null],
             9 => ['pl_match_denied_methods' => null],
-            10 => ['pl_match_denied_uas' => null],
+            10 => ['pl_match_denied_uas' => '/config/blocked/blocked_uas.php'],
             11 => ['pl_match_route' => null],
             12 => ['pl_run_matched_route_middlewares' => 'defensive'],
             13 => ['pl_run_matched_route_keys' => 'defensive'],
