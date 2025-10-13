@@ -11,11 +11,13 @@ define("FUNKPHP_NO_VALUE", new stdClass()); // A Singleton Object that indicates
 // YUP! Unfortunately ONE SINGLE CLASS needed for the sake of SECURITY.
 // "FunkDBConfig" is a Class used to handle the database connections
 // only that are stored by reference in $c['DATABASES'] array below!
+// Inside of `db.php` you can change where your version of "db_config.php"
+// resides that is GITIGNORED and contains your sensitive credentials.
 class FunkDBConfig
 {
     private static $credentials = [];
     private static $initialized = false;
-    private static $configFilePath =  __DIR__ . '/db_config.php';
+    private static $configFilePath =  __DIR__ . '/db.php';
     public static function setConfigPath(string $path)
     {
         self::$configFilePath = $path;
@@ -44,6 +46,7 @@ class FunkDBConfig
         self::$credentials = [];
     }
 }
+var_dump(FunkDBConfig::getCredentials('mysql1')); // For debugging purposes only, remove in production!
 // GLOBAL CONFIGURATIONS in "$c" variable in "funkphp/funkphp_start.php"
 // Configure the included files below here separately as needed!
 // IMPORTANT: Do NOT store sensitive data here (e.g passwords/API-keys)
