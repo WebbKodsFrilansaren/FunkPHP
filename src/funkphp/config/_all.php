@@ -8,8 +8,14 @@ define('FUNKPHP_LOCAL', "http://localhost/funkphp/src/public_html/");
 define('FUNKPHP_ONLINE', "https://www.funkphp.com/");
 define("ROOT_FOLDER", dirname(__DIR__, 1)); // The root folder of FunkPHP
 define("FUNKPHP_NO_VALUE", new stdClass()); // A Singleton Object that indicates "no value"!
+
+// IMPORTANT: This is the sensitive Database Config File used by the
+// $c['DATABASES'] Array below to create multiple database connections!
+include_once __DIR__ . '/db_config.php';
+
 // GLOBAL CONFIGURATIONS in "$c" variable in "funkphp/funkphp_start.php"
 // Configure the included files below here separately as needed!
+// IMPORTANT: Do NOT store sensitive data here (e.g passwords/API-keys)
 return [
     'INI_SETS' => [
         // IMPORTANT: Change and/or add these as needed! For example, if you wanna use
@@ -106,7 +112,8 @@ return [
 
     // 'DATABASES' is the array of multiple database connections that you can
     // use and can be SQL, MongoDB, PostgreSQL, etc. - Change as needed!
-    'DATABASES' => [],
+    // For example: `$c['DATABASES']['mysql_main'] = new mysqli/PDO(...);
+    'DATABASES' => include_once __DIR__ . '/databases.php',
 
     // 'req' is the array of request data which will also include changed data based
     // on matched route, middlewares (if any), data (if any) and page (if any), etc.
@@ -158,11 +165,6 @@ return [
     // other functions that are called based on folder name, file name
     // and function name in the file! This is used during Route Key Running!
     'dispatchers' => [],
-
-    // 'db' is the database object that will be used to handle the database connection & queries!
-    // 'db_lid' will always contain the last inserted ID from the last database query!
-    'db' => include_once __DIR__ . '/db.php',
-    'db_lid' => null,
 
     // 'r' will store route-related data
     'r' => null,

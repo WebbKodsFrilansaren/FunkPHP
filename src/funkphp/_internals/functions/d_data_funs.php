@@ -752,7 +752,7 @@ function funk_use_sql(&$c, $sqlArrayKey, $inputData = null, $hydrateDataAfter = 
 // Function that hydrates data using the `hydrate` Key, is recommended
 // to be used after a successful SQL Query execution using `funk_use_sql`
 // but it is NOT a requirement! It is ALWAYS your Choice whether to use it!
-function funk_use_hydrate(&$c, $hydrateKey, $fetchedData) {}
+function funk_use_hydrate_sql(&$c, $hydrateKey, $fetchedData) {}
 
 // The main validation function for validating data in FunkPHP
 // mapping to the "$_GET"/"$_POST" or "php://input" (JSON) variable ONLY!
