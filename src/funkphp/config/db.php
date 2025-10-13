@@ -41,6 +41,18 @@ if (FUNKPHP_IS_LOCAL) {
             'port'     => 3306,
             'charset'  => 'utf8mb4',
         ],
+        'redis1' => [
+            'driver'   => 'redis',
+            'host'     => '127.0.0.1',
+            'port'     => 6379,
+            'password' => 'optional_password', // Redis password
+            'database' => 0, // Redis database index (0-15)
+        ],
+        'memcached1' => [
+            'driver'   => 'memcached',
+            'host'     => '127.0.0.1',
+            'port'     => 11211, // Default Memcached port
+        ],
     ];
 }  // else = PRODUCTION - INCLUDE YOUR NECESSARY DB CONFIG FILE
 else {

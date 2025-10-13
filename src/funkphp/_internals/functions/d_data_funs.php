@@ -115,6 +115,83 @@ function funk_db_conn(&$c, $dbKey)
             return null;
         }
     }
+    // 'driver' = redis
+    elseif ($credentials['driver'] === 'redis') {
+        $host = $credentials['host'] ?? '127.0.0.1';
+        $port = $credentials['port'] ?? 6379;
+        $password = $credentials['password'] ?? null;
+        $database = $credentials['database'] ?? 0;
+        // Attempt creating a new Redis connection
+        try {
+            // Ensure the Redis extension is loaded
+            if (!class_exists('\Redis')) {
+                $c['err']['DATABASES']['funk_db_conn'][] = 'Redis extension is not installed or enabled.';
+                return null;
+            }
+            $redis = new \Redis();
+            // 1. Connect
+            if (!$redis->connect($host, $port)) {
+                $c['err']['DATABASES']['funk_db_conn'][] = 'Redis connection failed for ' . $dbKey;
+                return null;
+            }
+            // 2. Authenticate (if password provided)
+            if ($password !== null && !$redis->auth($password)) {
+                $c['err']['DATABASES']['funk_db_conn'][] = 'Redis authentication failed for ' . $dbKey;
+                $redis->close(); // Important to close a failed connection
+                return null;
+            }
+            // 3. Select Database
+            if (!$redis->select($database)) {
+                $c['err']['DATABASES']['funk_db_conn'][] = 'Redis database selection failed for ' . $dbKey . ' (DB: ' . $database . ')';
+                $redis->close();
+                return null;
+            }
+            // Store the connection object
+            $c['DATABASES'][$dbKey] = $redis;
+            return $c['DATABASES'][$dbKey];
+        }
+        // Or return null when failed
+        catch (\Exception $ex) {
+            $c['err']['DATABASES']['funk_db_conn'][] = 'Exception occurred while connecting to ' . $dbKey . ': `' . $ex->getMessage() . '`';
+            return null;
+        }
+    }
+    // 'driver' = memcached
+    elseif ($credentials['driver'] === 'memcached') {
+        $host = $credentials['host'] ?? '127.0.0.1';
+        $port = $credentials['port'] ?? 11211;
+        // Attempt creating a new Memcached connection
+        try {
+            // Ensure the Memcached extension is loaded
+            // Note: Use '\Memcached' (modern) over '\Memcache' (legacy)
+            if (!class_exists('\Memcached')) {
+                $c['err']['DATABASES']['funk_db_conn'][] = 'Memcached extension is not installed or enabled.';
+                return null;
+            }
+            $memcached = new \Memcached();
+            // Memcached uses addServer to connect. It returns true/false on success.
+            if (!$memcached->addServer($host, $port)) {
+                $c['err']['DATABASES']['funk_db_conn'][] = 'Memcached failed to add server for ' . $dbKey . '.';
+                return null;
+            }
+            // Optional: Check if the server is actually available (e.g., ping)
+            // Note: Memcached connections are often "lazy," but we can check the status.
+            $stats = $memcached->getStats();
+            if (empty($stats) || !isset($stats["$host:$port"]) || $stats["$host:$port"]['pid'] === -1) {
+                $c['err']['DATABASES']['funk_db_conn'][] = 'Memcached server ' . $host . ':' . $port . ' is unavailable.';
+                return null;
+            }
+            // Store the connection object
+            $c['DATABASES'][$dbKey] = $memcached;
+            return $c['DATABASES'][$dbKey];
+        }
+        // Or return null when failed
+        catch (\Exception $ex) {
+            $c['err']['DATABASES']['funk_db_conn'][] = 'Exception occurred while connecting to ' . $dbKey . ': `' . $ex->getMessage() . '`';
+            return null;
+        }
+    }
+
     // TODO: Add more here later
     // DRIVER NOT SUPPORTED YET - this is always the last one
     else {
