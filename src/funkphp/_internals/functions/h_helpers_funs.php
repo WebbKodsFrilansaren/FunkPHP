@@ -31,9 +31,11 @@ function dd($data, $json = false)
     // Dump the data and die (stop execution)
     if ($json) {
         header('Content-Type: application/json', true, 200);
-        echo json_encode($data);
+        echo json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     } else {
-        echo var_export($data, true);
+        echo '<pre>';
+        var_dump($data);
+        echo '</pre>';
     }
     exit;
 }
