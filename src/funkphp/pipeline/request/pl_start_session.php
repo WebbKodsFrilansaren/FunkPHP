@@ -2,7 +2,7 @@
 return function (&$c, $passedValue = null) {
     // This pipeline function does NOt accept any $passedValue arguments!
     if (isset($passedValue)) {
-        $err = 'Tell The Developer: The `pl_start_session` Pipeline Function does NOT accept any $passedValue arguments. Its sole purpose is Session Initiation, and passing data here Risks Overwriting Resumed Session Data!';
+        $err = 'Tell The Developer: The `pl_start_session` Pipeline Function does NOT accept any $passedValue arguments. Its sole purpose is Session Initiation, and passing data here Risks Overwriting Resumed Session Data. Kindly change back to: `$passedValue => null`!';
         funk_use_custom_error($c, ['json_or_page', ['json' => ["custom_error" => $err], 'page' => '500'], $err], 500);
         return; // Halt execution after error
     }
