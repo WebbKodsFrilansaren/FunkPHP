@@ -70,5 +70,6 @@
     "zlib",
     "mongodb",
     "mongo"
-  ]
+  ],
+  "intelephense.diagnostics.undefinedTypes": false
 }
