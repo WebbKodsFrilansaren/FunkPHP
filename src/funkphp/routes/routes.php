@@ -39,22 +39,7 @@ return  [
           [
             'test' =>
             [
-              // 'test2' => 'passed value from try=>test=>test2',
-            ],
-          ],
-        ],
-      ],
-      '/users2' =>
-      [],
-      '/users3' =>
-      [
-        0 =>
-        [
-          'try' =>
-          [
-            'testar' =>
-            [
-              'testar' => NULL,
+              'test2' => NULL,
             ],
           ],
         ],

@@ -1,16 +1,53 @@
 <?php // SECOND CLI FUNCTIONS FILE SINCE SECOND ONE STARTED TO BECOME TOO LARGE!
 
-// Helper Function
-function array_get_nested(array $array, array $keys, $default = null)
+// Helper function that checks if a given $routeKey has the structure
+// "Folder" => "FileName" => "FunctionName" => <Anyvalue> and returns
+// that array structure or null if not found or not valid structure
+function cli_folder_file_fn_value_exist_or_null($routeKey)
 {
-    $temp = $array;
-    foreach ($keys as $key) {
-        if (!is_array($temp) || !array_key_exists($key, $temp)) {
-            return $default;
-        }
-        $temp = $temp[$key];
+    $validStructure = null;
+    if (
+        $routeKey === null
+        || !is_array($routeKey)
+        || empty($routeKey)
+        || array_is_list($routeKey)
+        || count($routeKey) !== 1
+    ) {
+        return ['valid' => false, 'dir' => null, 'file' => null, 'fn' => null, 'value' => null];
     }
-    return $temp;
+    // level 1 = Folder
+    $level1 = key($routeKey) ?? null;
+    if ($level1 === null || !is_string($level1) || empty($level1)) {
+        return ['valid' => false, 'dir' => null, 'file' => null, 'fn' => null, 'value' => null];
+    }
+    $validStructure[$level1] = null;
+
+    // level 2 = Folder => File
+    $level2 = (is_array($routeKey[$level1])
+        && !empty($routeKey[$level1])
+        && !array_is_list($routeKey[$level1])
+        && count($routeKey[$level1]) === 1)
+        ? key($routeKey[$level1]) : null;
+    if ($level2 === null || !is_string($level2) || empty($level2)) {
+        return ['valid' => false, 'dir' => $level1, 'file' => null, 'fn' => null, 'value' => null];
+    }
+    $validStructure[$level1][$level2] = null;
+
+    // level 3 = Folder => File => Function
+    $level3 = (is_array($routeKey[$level1][$level2])
+        && !empty($routeKey[$level1][$level2])
+        && !array_is_list($routeKey[$level1][$level2])
+        && count($routeKey[$level1][$level2]) === 1)
+        ? key($routeKey[$level1][$level2]) : null;
+    if ($level3 === null || !is_string($level3) || empty($level3)) {
+        return ['valid' => false, 'dir' => $level1, 'file' => $level2, 'fn' => null, 'value' => null];
+    }
+    $validStructure[$level1][$level2][$level3] = null;
+
+    // level 4 = Folder => File => Function => <AnyValue_Even_Empty_Or_Null>
+    $level4 = $routeKey[$level1][$level2][$level3] ?? null;
+    $validStructure[$level1][$level2][$level3] = $level4;
+    return ['valid' => true, 'dir' => $level1, 'file' => $level2, 'fn' => $level3, 'value' => $level4];
 }
 
 // Helper that checks if a key exists in a list of associative arrays
@@ -994,12 +1031,9 @@ function cli_route_status(&$ROUTES, $method, $route)
 
                 // Extract and store all other route keys
                 if (is_array($routeKeyArray) && !empty($routeKeyArray) && !array_is_list($routeKeyArray)) {
-                    $routeKeyName = key($routeKeyArray) ?? null;
-                    $routeKeyFile = (key($routeKeyArray[$routeKeyName])) ?? null;
-                    $routeKeyFn = (key($routeKeyArray[$routeKeyName][$routeKeyFile])) ?? null;
-                    $routeKeyPassedvalue = (gettype($routeKeyArray[$routeKeyName][$routeKeyFile][$routeKeyFn])) ?? null;
-
-                    var_dump($routeKeyName, $routeKeyFile, $routeKeyFn, $routeKeyPassedvalue);
+                    $validStructure = cli_folder_file_fn_value_exist_or_null($routeKeyArray);
+                    var_dump("STRUCTURE OR JUST NULL:", $validStructure);
+                    exit;
                     if (array_key_exists_in_list($routeKeyName, $routeKeys)) {
                         $routeWarnings[] = $WARNINGS['DUPLICATE_ROUTE_KEYS'] . "'$routeKeyName'";
                     }
