@@ -15,31 +15,12 @@ return  [
             8 => ['pl_match_denied_exact_ips' => null],
             9 => ['pl_match_denied_methods' => null],
             10 => ['pl_match_denied_uas' => null],
-            11 => ['pl_match_route' => 'null'],
+            11 => ['pl_match_route' => null],
             12 => ['pl_run_matched_route_middlewares' => 'defensive'],
             13 => ['pl_run_matched_route_keys' => 'defensive'],
         ],
         'post-request' => [
             0 => ['pl_debug' => null]
-        ],
-    ],
-    'no_match' =>
-    [
-        'route' => [
-            'json' =>
-            [],
-            'page' =>
-            [],
-            'callback' =>
-            [],
-        ],
-        'page' => [
-            'json' =>
-            [],
-            'page' =>
-            [],
-            'callback' =>
-            [],
         ],
     ],
 ];

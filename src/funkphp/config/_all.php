@@ -115,7 +115,7 @@ return [
         'segments' => null,
         'route_keys' => [],
         'skip_post-request' => false,
-        'matched_middlewares' => [],
+        'matched_middlewares' => null,
         'current_passed_value' => [],
         'current_passed_values' => [],
         'current_pipeline' => null,
@@ -183,7 +183,7 @@ return [
     // is valid. Set this to "false" if you want to for example repopulate incomplete
     // form data instead of Users having to re-enter everything because of a single error!
     'v' => null,
-    'v_handlers' => null,
+    // 'v_handlers' => null, - put in $c['dispatchers'] instead
     'v_ok' => null,
     'v_ok_files' => null,
     'v_config' => [],
@@ -193,7 +193,7 @@ return [
     // 's_handlers' is the array of SQL Handlers that are closures to functions
     // 's_data' contains fetched SQL Data for a given SQL Query (and is BEFORE
     // any hydration is done) so you can use it to hydrate the data later!
-    's_handlers' => null, // SQL Handlers (the funkphp/sql/ folder with its files)
+    // 's_handlers' => null, // SQL Handlers (the funkphp/sql/ folder with its files) , - put in $c['dispatchers'] instead
     's_data' => null,
 
     // 'p' is the page object that will be used to handle the

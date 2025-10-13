@@ -39,7 +39,7 @@ if (
 else {
     $c['err']['MAYBE']['PIPELINE']['funk_run_pipeline'][] = 'No Configured Pipeline Functions (`"<ENTRY>" => "pipeline" => "request"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\']` Key in the Pipeline Configuration File `funkphp/config/pipeline.php` File!';
     $err = 'Tell the Developer: No Pipeline Functions to run? Please check the `[\'pipeline\'][\'request\']` Key in the `funkphp/config/pipeline.php` File!';
-    funk_use_custom_error($c, ['json_or_page', ["custom_error" => $err, '500'], $err], 500);
+    funk_use_custom_error($c, ['json_or_page', ['json' => ["custom_error" => $err], 'page' => '500'], $err], 500);
 }
 // The registered shutdown callback function will be executed after pipeline
 // has run (unless the script is exited prematurely by the application)!
