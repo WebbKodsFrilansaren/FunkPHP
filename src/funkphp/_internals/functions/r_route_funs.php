@@ -76,7 +76,7 @@ function funk_use_custom_error(&$c, $handleTypeAndDataOptionalCBData, $errorCode
             funk_skip_post_request($c);
         }
         http_response_code($errorCode);
-        // TODO: Later when 'page' has been implemented in the entire FunkPHP framework! - not far from now!
+        // TODO: MAYBE Change later when 'part' part of FunkPHP has been 100 % fully realized. For example, maybe compile on call, etc?
         // handleData must be a non empty string (the path to the page to load)
         if (
             !isset($handleTypeAndDataOptionalCBData[1])
@@ -133,7 +133,7 @@ function funk_use_custom_error(&$c, $handleTypeAndDataOptionalCBData, $errorCode
             }
         } // We want Page
         else {
-            // TODO: Later when 'page' has been implemented in the entire FunkPHP framework! - not far from now!
+            // TODO: MAYBE Change later when 'part' part of FunkPHP has been 100 % fully realized. For example, maybe compile on call, etc?
             if (
                 !isset($handleTypeAndDataOptionalCBData[1]['page'])
                 || !is_string($handleTypeAndDataOptionalCBData[1]['page'])
