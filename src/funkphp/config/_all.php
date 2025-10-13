@@ -104,6 +104,10 @@ return [
     // are used in tandem with Validation & SQL Handlers during DB CRUD!
     'TABLES' => include_once __DIR__ . '/tables.php',
 
+    // 'DATABASES' is the array of multiple database connections that you can
+    // use and can be SQL, MongoDB, PostgreSQL, etc. - Change as needed!
+    'DATABASES' => [],
+
     // 'req' is the array of request data which will also include changed data based
     // on matched route, middlewares (if any), data (if any) and page (if any), etc.
     'req' => [
@@ -172,8 +176,6 @@ return [
 
     // 'v' should be NULL but stores ANY founds errors during the validation process while
     // 'v_ok' will is true if not a single v['key']['optionalSubkey'] is set with error(s)!
-    // 'v_handlers' contains a unique array of validation handlers that are closures to functios
-    // where the Validation Arrays are stored (the funkphp/validations/ folder with its files!)
     // The 'v_ok_files' is boolean for validating files and works the same way as 'v_ok'!
     // 'v_config' is a global array of validation configurations that can be accessed
     // when validating no matter how nested or not the validation is! It stores "password"
@@ -183,17 +185,13 @@ return [
     // is valid. Set this to "false" if you want to for example repopulate incomplete
     // form data instead of Users having to re-enter everything because of a single error!
     'v' => null,
-    // 'v_handlers' => null, - put in $c['dispatchers'] instead
     'v_ok' => null,
     'v_ok_files' => null,
     'v_config' => [],
     'v_data' => null,
 
-
-    // 's_handlers' is the array of SQL Handlers that are closures to functions
     // 's_data' contains fetched SQL Data for a given SQL Query (and is BEFORE
     // any hydration is done) so you can use it to hydrate the data later!
-    // 's_handlers' => null, // SQL Handlers (the funkphp/sql/ folder with its files) , - put in $c['dispatchers'] instead
     's_data' => null,
 
     // 'p' is the page object that will be used to handle the

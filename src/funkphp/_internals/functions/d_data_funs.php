@@ -661,12 +661,12 @@ function funk_load_sql(&$c, $sqlHandler, $sqlFunction)
     $sqlFunk = null;
     // Return SQL Handler=>Function if it exists or try to load
     // it from the file or return false and set an error!
-    if (isset($c['s_handlers'][$sqlHandler])) {
-        if (!is_callable($c['s_handlers'][$sqlHandler])) {
+    if (isset($c['dispatchers']['sql'][$sqlHandler])) {
+        if (!is_callable($c['dispatchers']['sql'][$sqlHandler])) {
             $c['err']['SQL']['funk_use_sql'][] = 'Already Loaded SQL Handler `' . $sqlHandler . '` is not callable. Has it been mutated after first loading/use?';
             return false;
         }
-        $sqlFunk = $c['s_handlers'][$sqlHandler]($c, $sqlFunction) ?? null;
+        $sqlFunk = $c['dispatchers']['sql'][$sqlHandler]($c, $sqlFunction) ?? null;
         if ($sqlFunk === null) {
             $c['err']['SQL']['funk_use_sql'][] = 'SQL Handler File `' . $sqlHandler . '.php` did not return the SQL Handler Function `' . $sqlFunction . '`. Does it exist in the File as a callable function with the correct name?';
             return false;
@@ -674,9 +674,9 @@ function funk_load_sql(&$c, $sqlHandler, $sqlFunction)
             return $sqlFunk;
         }
     }
-    // When SQL Handler not found in $c['s_handlers'] array
+    // When SQL Handler not found in $c['dispatchers']['sql'] array
     else {
-        if (!file_exists(ROOT_FOLDER . '/sql/' . $sqlHandler . '.php')) {
+        if (!is_readable(ROOT_FOLDER . '/sql/' . $sqlHandler . '.php')) {
             $c['err']['SQL']['funk_use_sql'][] = 'SQL Handler File `' . $sqlHandler . '.php` not found or not readable. Does the file exist in the `sql` directory and/or is it forbidden to read/access?';
             return false;
         }
@@ -685,8 +685,8 @@ function funk_load_sql(&$c, $sqlHandler, $sqlFunction)
             $c['err']['SQL']['funk_use_sql'][] = 'SQL Handler File `' . $sqlHandler . '.php` was loaded but did not return a callable function. It should return a function that accepts `$c` and `$sqlFunction` as parameters which it then checks if it exists in current scope and then calls and returns its return value!';
             return false;
         }
-        $c['s_handlers'][$sqlHandler] = $sqlFile;
-        $sqlFunk = $c['s_handlers'][$sqlHandler]($c, $sqlFunction) ?? null;
+        $c['dispatchers']['sql'][$sqlHandler] = $sqlFile;
+        $sqlFunk = $c['dispatchers']['sql'][$sqlHandler]($c, $sqlFunction) ?? null;
         if ($sqlFunk === null) {
             $c['err']['SQL']['funk_use_sql'][] = 'SQL Handler File `' . $sqlHandler . '.php` was loaded and is callable but did not return the SQL Handler Function `' . $sqlFunction . '`. Does it exist in the File as a callable function with the correct name?';
             return false;
@@ -741,7 +741,7 @@ function funk_use_sql(&$c, $sqlArrayKey, $inputData = null, $hydrateDataAfter = 
         'DELETE' => [],
     ];
     if (!isset($validQueryTypes[$sqlArrayKey['qtype']])) {
-        $c['err']['SQL']['funk_use_sql'][] = 'Invalid SQL Query Type `' . $sqlArrayKey['qtype'] . '`. Valid Query Types are: `SELECT`,`UPDATE`,`INSERT` & `DELETE` in current version of FunkPHP!';
+        $c['err']['SQL']['funk_use_sql'][] = 'Invalid SQL Query Type Provided. Valid Query Types are: `SELECT`,`UPDATE`,`INSERT` & `DELETE` in current version of FunkPHP!';
         return false;
     }
 
@@ -768,17 +768,17 @@ function funk_use_validation(&$c, $validationHandler, $validationFunction, $sour
     $optimizedValidationArray = null;
     // If the Validation Handler exists in the $c['v_handlers'] we try call the Validation Function
     // and store the result in $optimizedValidationArray which is then used for validation!
-    if (isset($c['v_handlers'][$validationHandler])) {
-        $optimizedValidationArray = $c['v_handlers'][$validationHandler]($c, $validationFunction) ?? null;
+    if (isset($c['dispatchers']['validation'][$validationHandler])) {
+        $optimizedValidationArray = $c['dispatchers']['validation'][$validationHandler]($c, $validationFunction) ?? null;
     }
     // If not set, we check if the file
     else {
         $validationFile = ROOT_FOLDER . '/validations/' . $validationHandler . '.php';
-        if (file_exists_is_readable_writable($validationFile)) {
+        if (is_readable($validationFile)) {
             $validationDataFromFile = include_once $validationFile;
             if (is_callable($validationDataFromFile)) {
-                $c['v_handlers'][$validationHandler] = $validationDataFromFile;
-                $optimizedValidationArray = $c['v_handlers'][$validationHandler]($c, $validationFunction) ?? null;
+                $c['dispatchers']['validation'][$validationHandler] = $validationDataFromFile;
+                $optimizedValidationArray = $c['dispatchers']['validation'][$validationHandler]($c, $validationFunction) ?? null;
             } else {
                 $c['err']['VALIDATIONS']['funk_use_validation'][] = 'Validation Handler File ``' . $validationHandler . '.php` did not return a callable function.';
                 return false;

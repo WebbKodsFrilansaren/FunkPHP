@@ -967,14 +967,3 @@ function funk_param_is_regex(&$c, $param_key, $regexStr)
     $param = $c['req']['params'][$param_key] ?? "";
     return preg_match($regexStr, $param) === 1;
 }
-
-function funk_param_is_email(&$c, $param_key)
-{
-    if (!isset($param_key)) {
-        $c['err']['ROUTES']['funk_param_is_email'][] = 'No Parameter Key provided to Validate for Current Route!';
-        return null;
-    }
-    // When provided parameter is a valid email, return true
-    $param = $c['req']['params'][$param_key] ?? null;
-    return filter_var($param, FILTER_VALIDATE_EMAIL) !== false;
-}
