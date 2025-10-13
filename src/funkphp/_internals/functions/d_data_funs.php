@@ -1,6 +1,21 @@
 <?php // DATABASE FUNCTIONS FOR FuncPHP
 // This file contains functions related to database operations and/or configurations.
 
+// Function that either creates and returns a new database connection or returns
+// an already existing one in $c['DATABASES'][<$dbKey>] if it exists
+function funk_db_conn(&$c, $dbKey)
+{
+    // Set error and return null if no dbKey provided
+    if (!isset($dbKey) || !is_string($dbKey)) {
+        $c['err']['DATABASES']['funk_db_conn'][] = 'Invalid or missing $dbKey passed to funk_db_conn().';
+        return null;
+    }
+    // First check if the connection already exists and thus just return it by reference
+    if (isset($c['DATABASES'][$dbKey])) {
+        return $c['DATABASES'][$dbKey];
+    }
+}
+
 // Function that validates a set of rules for a given single input field/data
 function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array $rules, array &$currentErrPath): void
 {

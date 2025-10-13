@@ -8,11 +8,42 @@ define('FUNKPHP_LOCAL', "http://localhost/funkphp/src/public_html/");
 define('FUNKPHP_ONLINE', "https://www.funkphp.com/");
 define("ROOT_FOLDER", dirname(__DIR__, 1)); // The root folder of FunkPHP
 define("FUNKPHP_NO_VALUE", new stdClass()); // A Singleton Object that indicates "no value"!
-
-// IMPORTANT: This is the sensitive Database Config File used by the
-// $c['DATABASES'] Array below to create multiple database connections!
-include_once __DIR__ . '/db_config.php';
-
+// YUP! Unfortunately ONE SINGLE CLASS needed for the sake of SECURITY.
+// "FunkDBConfig" is a Class used to handle the database connections
+// only that are stored by reference in $c['DATABASES'] array below!
+class FunkDBConfig
+{
+    private static $credentials = [];
+    private static $initialized = false;
+    private static $configFilePath =  __DIR__ . '/db_config.php';
+    public static function setConfigPath(string $path)
+    {
+        self::$configFilePath = $path;
+    }
+    public static function initialize()
+    {
+        if (self::$initialized) {
+            return;
+        }
+        // Lazy load the sensitive credentials file
+        if (is_readable(self::$configFilePath)) {
+            self::$credentials = include self::$configFilePath;
+        }
+        // Load the general profiles (assuming they are now loaded elsewhere or hardcoded)
+        // For simplicity, we assume the credentials array contains everything needed.
+        self::$initialized = true;
+    }
+    // Get a specific connection
+    public static function getCredentials(string $key): ?array
+    {
+        self::initialize(); // Ensure the file has been loaded
+        return self::$credentials[$key] ?? null;
+    }
+    public static function clearCredentials()
+    {
+        self::$credentials = [];
+    }
+}
 // GLOBAL CONFIGURATIONS in "$c" variable in "funkphp/funkphp_start.php"
 // Configure the included files below here separately as needed!
 // IMPORTANT: Do NOT store sensitive data here (e.g passwords/API-keys)
@@ -113,7 +144,7 @@ return [
     // 'DATABASES' is the array of multiple database connections that you can
     // use and can be SQL, MongoDB, PostgreSQL, etc. - Change as needed!
     // For example: `$c['DATABASES']['mysql_main'] = new mysqli/PDO(...);
-    'DATABASES' => include_once __DIR__ . '/databases.php',
+    'DATABASES' => [],
 
     // 'req' is the array of request data which will also include changed data based
     // on matched route, middlewares (if any), data (if any) and page (if any), etc.
@@ -219,6 +250,7 @@ return [
     // NEVER considered as errors, but rather like hints on what you might have missed!
     'err' => [
         'MAYBE' => [],
+        'DATABASES' => [],
         'PIPELINE' => [],
         'CACHED' => [],
         'MIDDLEWARES' => [],
