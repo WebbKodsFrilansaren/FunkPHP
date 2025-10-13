@@ -195,7 +195,7 @@ function funk_db_conn(&$c, $dbKey)
     // TODO: Add more here later
     // DRIVER NOT SUPPORTED YET - this is always the last one
     else {
-        $c['err']['DATABASES']['funk_db_conn'][] = 'Database driver "' . $credentials['driver'] . '" for key `' . $dbKey . '` is not supported yet.';
+        $c['err']['DATABASES']['funk_db_conn'][] = 'Database driver "' . $credentials['driver'] . '" for key `' . $dbKey . '` is not supported in current version of FunkPHP.';
         return null;
     }
 }
