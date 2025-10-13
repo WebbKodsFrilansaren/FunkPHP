@@ -40,6 +40,7 @@ return [
     ],
 
     // DEFAULT SESSION COOKIES SETTINGS - Change as needed!
+    // IMPORTANT: They are used by `pl_set_session_cookie_params`!
     'COOKIES' => [
         'SESSION_NAME' => 'fphp_id',
         'SESSION_LIFETIME' => 28800, // 28800 = 8 hours
