@@ -3,7 +3,7 @@ return function (&$c, $passedValue = null) {
 
     // The $passedValue is a must for this function and is the path to where the file is
     if (!isset($passedValue) || !is_string($passedValue)) {
-        $err = 'Tell The Developer: The "pl_match_denied_uas" Pipeline Function requires a valid STRING as $passedValue that is the PATH to the "<path/to/blocked_uas_list.php>" file. It concatenates it with constant `ROOT_FOLDER` which is the root of the FunkPHP installation. For example: `ROOT_FOLDER . "/config/blocked/blocked_uas_list.php"`';
+        $err = 'Tell The Developer: The "pl_match_denied_uas" Pipeline Function requires a valid STRING as $passedValue that is the PATH to the "<path/to/blocked_uas_list.php>" file. It concatenates it with constant `ROOT_FOLDER` which is the root of the FunkPHP installation. For example: `ROOT_FOLDER . "/config/blocked/blocked_uas.php"`';
         funk_use_custom_error($c, ['json_or_page', ['json' => ["custom_error" => $err], 'page' => '500'], $err], 500);
     }
 
@@ -28,7 +28,7 @@ return function (&$c, $passedValue = null) {
         || empty($uas_path)
         || array_is_list($uas_path)
     ) {
-        $err = 'Tell The Developer: The "config/blocked/blocked_uas.php" File must return a valid NON-EMPTY ASSOCIATIVE ARRAY of BLOCKED User Agents, where each key is a part of the User Agent (UA) string to BLOCK. For example: ["badbot" => [], "evilscanner" => [], "maliciousua" => [], "and_so_on" => []]. This is because it iterates through each key (`"unique_ua_key" => []`) and uses "str_contains()" to check if the UA contains any of the BLOCKED parts.';
+        $err = 'Tell The Developer: The "<Path To Blocked User Agents>" File must return a valid NON-EMPTY ASSOCIATIVE ARRAY of BLOCKED User Agents, where each key is a part of the User Agent (UA) string to BLOCK. For example: ["badbot" => [], "evilscanner" => [], "maliciousua" => [], "and_so_on" => []]. This is because it iterates through each key (`"unique_ua_key" => []`) and uses "str_contains()" to check if the UA contains any of the BLOCKED parts.';
         funk_use_custom_error($c, ['json_or_page', ['json' => ["custom_error" => $err], 'page' => '500'], $err], 500);
     }
 

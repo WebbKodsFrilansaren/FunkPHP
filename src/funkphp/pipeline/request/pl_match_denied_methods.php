@@ -10,12 +10,12 @@ return function (&$c, $passedValue = null) {
             // is a non-empty string and a valid HTTP method
             foreach ($passedValue as $pm) {
                 if (!is_string($pm) || empty($pm) || !in_array($pm, $validMethods)) {
-                    $err = 'Tell the Developer: The Match Denied Methods Pipeline Function ran but WITHOUT a Valid Passed Value - Should Be A Non-Empty Numbered Array of Valid HTTP(S) Methods! (They must manually be uppercased!)';
+                    $err = 'Tell the Developer: The Match Denied Methods Pipeline Function ran but WITHOUT a Valid Passed Value - Should Be A Non-Empty Numbered Array of Valid HTTP(S) Methods! (They must manually be uppercased). For example: [3 => "pl_match_denied_methods" => "["GET","POST]"] means it will block GET & POST Methods of EVERY Request!';
                     funk_use_custom_error($c, ['json_or_page', ['json' => ["custom_error" => $err], 'page' => '500'], $err], 500);
                 }
             }
         } else {
-            $err = 'Tell the Developer: The Match Denied Methods Pipeline Function ran but WITHOUT a Valid Passed Value - Should Be A Non-Empty Numbered Array of Valid HTTP(S) Methods! (They must manually be uppercased!)';
+            $err = 'Tell the Developer: The Match Denied Methods Pipeline Function ran but WITHOUT a Valid Passed Value - Should Be A Non-Empty Numbered Array of Valid HTTP(S) Methods! (They must manually be uppercased). For example: [3 => "pl_match_denied_methods" => "["GET","POST]"] means it will block GET & POST Methods of EVERY Request!';
             funk_use_custom_error($c, ['json_or_page', ['json' => ["custom_error" => $err], 'page' => '500'], $err], 500);
         }
     }
