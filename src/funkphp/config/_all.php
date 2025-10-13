@@ -46,7 +46,6 @@ class FunkDBConfig
         self::$credentials = [];
     }
 }
-vd(spl_classes());
 // GLOBAL CONFIGURATIONS in "$c" variable in "funkphp/funkphp_start.php"
 // Configure the included files below here separately as needed!
 // IMPORTANT: Do NOT store sensitive data here (e.g passwords/API-keys)
