@@ -16,7 +16,7 @@ return [
         // Redis or Memcached, you can add those configurations here as this INI_SET
         // array is used in "funkphp_start.php" to set the starting PHP INI settings!
         'session.cache_limiter' => 'public',
-        'session.use_strict_mode' => 1,
+        'session.use_strict_mode' => 8,
         'session.use_only_cookies' => 1,
         'session.cache_expire' => 30,
         'session.cookie_lifetime' => 0, // 0 = until browser is closed
