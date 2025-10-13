@@ -14,6 +14,113 @@ function funk_db_conn(&$c, $dbKey)
     if (isset($c['DATABASES'][$dbKey])) {
         return $c['DATABASES'][$dbKey];
     }
+    // Can be used for all if/else statements below
+    $credentials = FunkDBConfig::getCredentials($dbKey);
+    if ($credentials === null) {
+        $c['err']['DATABASES']['funk_db_conn'][] = "No database configuration found for key '$dbKey'.";
+        return null;
+    }
+    // 'driver' = mysqli
+    if ($credentials['driver'] === 'mysqli') {
+        $host = $credentials['host'] ?? 'localhost';
+        $user = $credentials['user'] ?? 'root';
+        $password = $credentials['password'] ?? '';
+        $database = $credentials['database'] ?? '';
+        $port = $credentials['port'] ?? 3306;
+        $charset = $credentials['charset'] ?? 'utf8mb4';
+
+        // Attempt creating a new mysqli connection
+        try {
+            $mysqli = new mysqli($host, $user, $password, $database, $port);
+            // Check for connection errors
+            if ($mysqli->connect_error) {
+                $c['err']['DATABASES']['funk_db_conn'][] = 'Connection failed for ' . $dbKey . ': ' . $mysqli->connect_error;
+                return null;
+            }
+
+            // Set the charset
+            if (!$mysqli->set_charset($charset)) {
+                $c['err']['DATABASES']['funk_db_conn'][] = 'Error loading character set ' . $charset . ' for ' . $dbKey . ': ' . $mysqli->error;
+                // Not returning null here since connection is still valid
+            }
+
+            // Store the connection in the global array by reference
+            $c['DATABASES'][$dbKey] = $mysqli;
+
+            return $c['DATABASES'][$dbKey];
+        }
+        // Or return null when failed
+        catch (Exception $ex) {
+            $c['err']['DATABASES']['funk_db_conn'][] = 'Exception occurred while connecting to ' . $dbKey . ': `' . $ex->getMessage() . '`';
+            return null;
+        }
+    }
+    // 'driver' = pgsql
+    else if ($credentials['driver'] === 'pgsql') {
+        $host = $credentials['host'] ?? 'localhost';
+        $user = $credentials['user'] ?? 'postgres';
+        $password = $credentials['password'] ?? '';
+        $database = $credentials['database'] ?? '';
+        $port = $credentials['port'] ?? 5432;
+        $charset = $credentials['charset'] ?? 'utf8';
+        $connString = "host=$host port=$port dbname=$database user=$user password=$password options='--client_encoding=$charset'";
+
+        // Attempt creating a new pgsql connection
+        try {
+            $pgsql = pg_connect($connString);
+            // Check for connection errors
+            if ($pgsql === false) {
+                $c['err']['DATABASES']['funk_db_conn'][] = 'Connection failed for ' . $dbKey . ': ' . pg_last_error();
+                return null;
+            }
+            // Store the connection in the global array by reference
+            $c['DATABASES'][$dbKey] = $pgsql;
+            return $c['DATABASES'][$dbKey];
+        }
+        // Or return null when failed
+        catch (Exception $ex) {
+            $c['err']['DATABASES']['funk_db_conn'][] = 'Exception occurred while connecting to ' . $dbKey . ': `' . $ex->getMessage() . '`';
+            return null;
+        }
+    }
+    // 'driver' = mongodb
+    elseif ($credentials['driver'] === 'mongodb') {
+        $host = $credentials['host'] ?? 'localhost';
+        $user = $credentials['user'] ?? '';
+        $password = $credentials['password'] ?? '';
+        $database = $credentials['database'] ?? '';
+        $port = $credentials['port'] ?? 27017;
+        $charset = $credentials['charset'] ?? 'utf8';
+        // Build the MongoDB connection URI
+        $authPart = ($user && $password) ? $user . ':' . $password . '@' : '';
+        $uri = 'mongodb://' . $authPart . $host . ':' . $port;
+        // Attempt creating a new MongoDB connection
+        try {
+            // Ensure the MongoDB extension is loaded
+            if (!class_exists('MongoDB\Client')) {
+                $c['err']['DATABASES']['funk_db_conn'][] = 'MongoDB extension is not installed or enabled.';
+                return null;
+            }
+            // Create a new MongoDB client
+            $mongoClient = new \MongoDB\Client($uri);
+            // Select the database
+            $mongoDB = $mongoClient->selectDatabase($database);
+            // Store the connection in the global array by reference
+            $c['DATABASES'][$dbKey] = $mongoDB;
+            return $c['DATABASES'][$dbKey];
+        }
+        // Or return null when failed
+        catch (Exception $ex) {
+            $c['err']['DATABASES']['funk_db_conn'][] = 'Exception occurred while connecting to ' . $dbKey . ': `' . $ex->getMessage() . '`';
+            return null;
+        }
+    }
+    // TODO: Add more here later
+    // DRIVER NOT SUPPORTED YET - this is always the last one
+    else {
+        $c['err']['DATABASES']['funk_db_conn'][] = 'Database driver "' . $credentials['driver'] . '" for key `' . $dbKey . '` is not supported yet.';
+        return null;
+    }
 }
 
 // Function that validates a set of rules for a given single input field/data
