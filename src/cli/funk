@@ -13,6 +13,7 @@ define('FUNKPHP_DIR', PROJECT_DIR . '/funkphp');
 define('FUNKPHP_INTERNALS_DIR', FUNKPHP_DIR . '/_internals');
 define('FUNKPHP_INTERNALS_COMPILED_DIR', FUNKPHP_INTERNALS_DIR . '/compiled');
 define('FUNKPHP_CACHED_DIR', FUNKPHP_DIR . '/_cached');
+define('FUNKPHP_CLASSES_DIR', FUNKPHP_DIR . '/classes');
 define('FUNKPHP_CACHED_FILES_DIR', FUNKPHP_CACHED_DIR . '/files');
 define('FUNKPHP_CACHED_JSON_DIR', FUNKPHP_CACHED_DIR . '/json');
 define('FUNKPHP_CACHED_PAGES_DIR', FUNKPHP_CACHED_DIR . '/pages');
@@ -444,6 +445,7 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
     $folderListThatWillCauseWarning = [
         'routes',
         'cached',
+        'classes',
         'backups',
         '_final_backups',
         'valid',
@@ -928,6 +930,7 @@ elseif ($cmd === "add" || $cmd === "attach" || $cmd === "link") {
     $folderListThatWillCauseWarning = [
         'routes',
         'cached',
+        'classes',
         'backups',
         '_final_backups',
         'valid',
@@ -983,6 +986,7 @@ elseif ($cmd === "remove"  || $cmd === "rm" || $cmd === "detach") {
     $folderListThatWillCauseWarning = [
         'routes',
         'cached',
+        'classes',
         'backups',
         '_final_backups',
         'valid',
