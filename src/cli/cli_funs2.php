@@ -6,7 +6,7 @@ function cli_db_connect()
 {
     global $exactFiles;
     $dbConfig = include_once $exactFiles['db_local'];
-    $dbConfig = $dbConfig['mysql1'] ?? null;
+    $dbConfig = $dbConfig['funkphp_dev'] ?? null;
     try {
         $conn = new mysqli($dbConfig['host'], $dbConfig['user'], $dbConfig['password'], $dbConfig['database'], $dbConfig['port']);
         $conn->set_charset($dbConfig['charset'] ?? 'utf8mb4');
