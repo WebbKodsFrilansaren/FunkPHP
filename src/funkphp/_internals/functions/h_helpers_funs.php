@@ -57,31 +57,36 @@ function return_download($filePath, $fileName = null, $statusCode = 200)
     exit;
 }
 
-// Function that either creates and returns a new Composer object instance or returns
-// an already existing one in $c['composer'][<$objKey>] if it exists.
+// Function that returns either a Composer or Custom class instance by reference
+// $objClassType = 'composer' or 'custom', $objClass = 'phpmailer (for example),
+// $objInstance = 'phpmailer' (for example), $instanceArgs = [] (optional array of arguments
+// to pass to the class constructor (must always be an array as that is passed to ReflectionClass)
 // TODO: Check, test and improve this function as needed!
-function funk_composer_obj(&$c, $objClass, $objInstance, $instanceArgs = [])
+function funk_use_class(&$c,  $objClassType, $objClass, $objInstance, $instanceArgs = [])
 {
     // 1. Validate Input
     if (
-        !isset($objClass) || !is_string($objClass)
+        !isset($c['CLASSES']) || !is_array($c['CLASSES'])
+        || empty($c['CLASSES']) || !isset($objClassType)
+        || !isset($objClass) || !is_string($objClass)
         || empty($objClass) || !isset($objInstance)
         || !is_string($objInstance) || empty($objInstance)
+        || !in_array($objClassType, ['composer', 'custom'])
     ) {
-        $c['err']['COMPOSER']['funk_composer_obj'][] = 'Invalid or missing $objClass and/or $objInstance passed to funk_composer_obj().';
+        $c['err']['CLASSES']['funk_use_class'][] = 'Invalid parameters passed to funk_use_class function. It needs $objClassType (\'composer\' or \'custom\'), $objClass (string), $objInstance (string).';
         return null;
     }
-    // 2. Check if the object already exists
-    if (isset($c['composer'][$objClass][$objInstance])) {
-        return $c['composer'][$objClass][$objInstance];
+    // 2. Check if the object already exists (either in composer or custom)
+    if (isset($c['CLASSES'][$objClassType][$objClass]['instances'][$objInstance])) {
+        return $c['CLASSES'][$objClassType][$objClass]['instances'][$objInstance];
     }
     // 3. Load configuration for the class
-    $config = $c['COMPOSER_CLASSES'][$objClass] ?? null;
-    if ($config === null || !is_array($config) || empty($config['class'])) {
-        $c['err']['COMPOSER']['funk_composer_obj'][] = "No valid configuration found for Composer Class '$objClass'.";
+    $config = $c['CLASSES'][$objClassType][$objClass]['config'] ?? null;
+    if ($config === null || !is_array($config) || empty($config['fqcn'])) {
+        $c['err']['CLASSES']['funk_use_class'][] = "No valid configuration found for Composer Class '$objClass'.";
         return null;
     }
-    $className = $config['class'];
+    $classFQCN = $config['fqcn']; // Fully Qualified Class Name
     $defaultArgs = $config['args'] ?? []; // Arguments from config
 
     // --- CRITICAL IMPROVEMENT ---
@@ -92,22 +97,22 @@ function funk_composer_obj(&$c, $objClass, $objInstance, $instanceArgs = [])
     $finalArgs = !empty($instanceArgs) ? $instanceArgs : $defaultArgs;
 
     // 4. Check if the class exists (Composer autoloading must be set up)
-    if (!class_exists($className)) {
-        $c['err']['COMPOSER']['funk_composer_obj'][] = "Class '$className' not found. Did you run composer install?";
+    if (!class_exists($classFQCN)) {
+        $c['err']['CLASSES']['funk_use_class'][] = "Class '$classFQCN' not found. Did you run composer install?";
         return null;
     }
     // 5. Instantiate the class using Reflection (allows dynamic passing of arguments)
     try {
-        $reflector = new ReflectionClass($className);
+        $reflector = new ReflectionClass($classFQCN);
         $instance = $reflector->newInstanceArgs($finalArgs);
         // 6. Store and return the new instance by reference
-        $c['composer'][$objClass][$objInstance] = $instance;
-        return $c['composer'][$objClass][$objInstance];
+        $c['CLASSES'][$objClassType][$objClass]['instances'][$objInstance] = $instance;
+        return $c['CLASSES'][$objClassType][$objClass]['instances'][$objInstance];
     } catch (\ReflectionException $ex) {
-        $c['err']['COMPOSER']['funk_composer_obj'][] = "Reflection error for '$className' (" . $objClass . "): `" . $ex->getMessage() . '`';
+        $c['err']['CLASSES']['funk_use_class'][] = "Reflection error for '$classFQCN' (" . $objClass . "): `" . $ex->getMessage() . '`';
         return null;
     } catch (\Exception $ex) {
-        $c['err']['COMPOSER']['funk_composer_obj'][] = "Instantiation error for '$className' (" . $objClass . "): `" . $ex->getMessage() . '`';
+        $c['err']['CLASSES']['funk_use_class'][] = "Instantiation error for '$classFQCN' (" . $objClass . "): `" . $ex->getMessage() . '`';
         return null;
     }
 }

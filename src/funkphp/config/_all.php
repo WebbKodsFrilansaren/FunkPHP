@@ -144,12 +144,12 @@ return [
     'TABLES' => include_once __DIR__ . '/tables.php',
 
 
-    // 'COMPOSER_CLASSES' is the array of Composer Class Configurations
-    // that are used by the `funk_composer_obj()` function inside the
+    // 'CLASSES' is the array of Composer Class Configurations (and your own)
+    // that are used by the `funk_use_class` function inside the
     // `funkphp/_internals/functions/h_helpers_funs.php` to instantiate
     // and return the object instance by reference in `$c['composer']` array!
     // SYNTAX: ['folder_name_in_vendor' =>'Full\Namespace\ClassName']
-    'COMPOSER_CLASSES' => [],
+    'CLASSES' => include_once __DIR__ . '/classes.php',
 
     // 'DATABASES' is the array of multiple database connections that you can
     // use and can be SQL, MongoDB, PostgreSQL, etc. - Change as needed!
@@ -260,8 +260,9 @@ return [
     // to indicate that you might have missed populating them in your code! They are
     // NEVER considered as errors, but rather like hints on what you might have missed!
     'err' => [
-        'FUNCTIONS' => [],
         'MAYBE' => [],
+        'FUNCTIONS' => [],
+        'CLASSES' => [],
         'DATABASES' => [],
         'PIPELINE' => [],
         'CACHED' => [],
