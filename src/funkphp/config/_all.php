@@ -144,12 +144,16 @@ return [
     'TABLES' => include_once __DIR__ . '/tables.php',
 
 
-    // 'CLASSES' is the array of Composer Class Configurations (and your own)
-    // that are used by the `funk_use_class` function inside the
-    // `funkphp/_internals/functions/h_helpers_funs.php` to instantiate
-    // and return the object instance by reference in `$c['composer']` array!
-    // SYNTAX: ['folder_name_in_vendor' =>'Full\Namespace\ClassName']
-    'CLASSES' => include_once __DIR__ . '/classes.php',
+    // 'INSTANCES' is the array of instantiated objects of any classes
+    // from either "vendor" (composer) or "classes" (your own classes)
+    // folder that you want to be globally available via `$c`!
+    // IMPORTANT: It ALWAYS run the Constructor even if an instance with
+    // the same key already exists! use the "define()" below whether you
+    // want funk_use_custom_error() to run then or if you are OK with overwrite
+    'INSTANCES' => ['vendor' => [], 'classes' => []],
+    define('FUNKPHP_ALLOW_INSTANCE_OVERWRITE', true),
+    //^Change to "true" to allow overwriting existing instances!
+
 
     // 'DATABASES' is the array of multiple database connections that you can
     // use and can be SQL, MongoDB, PostgreSQL, etc. - Change as needed!

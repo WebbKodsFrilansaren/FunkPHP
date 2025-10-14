@@ -57,60 +57,54 @@ function return_download($filePath, $fileName = null, $statusCode = 200)
     exit;
 }
 
-// Function that returns either a Composer or Custom class instance by reference
-// $objClassType = 'composer' or 'custom', $objClass = 'phpmailer (for example),
-// $objInstance = 'phpmailer' (for example), $instanceArgs = [] (optional array of arguments
-// to pass to the class constructor (must always be an array as that is passed to ReflectionClass)
-// TODO: Check, test and improve this function as needed!
-function funk_use_class(&$c,  $objClassType, $objClass, $objInstance, $instanceArgs = [])
+// Function either sets and/or gets (if it sets, then it also returns that instance)
+// It uses $c['INSTANCES'] array from config/_all.php
+function funk_use_class(&$c, $objClassFolder, $newObjectOrExistingObject, $instanceKey = null)
 {
-    // 1. Validate Input
-    if (
-        !isset($c['CLASSES']) || !is_array($c['CLASSES'])
-        || empty($c['CLASSES']) || !isset($objClassType)
-        || !isset($objClass) || !is_string($objClass)
-        || empty($objClass) || !isset($objInstance)
-        || !is_string($objInstance) || empty($objInstance)
-        || !in_array($objClassType, ['composer', 'custom'])
-    ) {
-        $c['err']['CLASSES']['funk_use_class'][] = 'Invalid parameters passed to funk_use_class function. It needs $objClassType (\'composer\' or \'custom\'), $objClass (string), $objInstance (string).';
+    // $objClassFolder is either "vendor" (composer) or "classes" (custom classes)
+    if (!in_array($objClassFolder, ['vendor', 'classes'])) {
+        $c['err']['CLASSES']['funk_use_class()'][] = 'The `funk_use_class()` received invalid $objClassFolder Value. Must be STRING (either "vendor" or "classes").';
         return null;
     }
-    // 2. Check if the object already exists (either in composer or custom)
-    if (isset($c['CLASSES'][$objClassType][$objClass]['instances'][$objInstance])) {
-        return $c['CLASSES'][$objClassType][$objClass]['instances'][$objInstance];
-    }
-    // 3. Load configuration for the class
-    $config = $c['CLASSES'][$objClassType][$objClass]['config'] ?? null;
-    if ($config === null || !is_array($config) || empty($config['fqcn'])) {
-        $c['err']['CLASSES']['funk_use_class'][] = "No valid configuration found for Composer Class '$objClass'.";
+    // $newObjectOrExistingObject is either a new object instance to SET, or an empty array to GET
+    if (!is_object($newObjectOrExistingObject) && !is_string($newObjectOrExistingObject)) {
+        $c['err']['CLASSES']['funk_use_class()'][] = 'The `funk_use_class()` received invalid $newObjectOrExistingObject Value. Must be STRING (object to GET) or OBJECT (to SET).';
         return null;
     }
-    $classFQCN = $config['fqcn']; // Fully Qualified Class Name
-    $defaultArgs = $config['args'] ?? []; // Arguments from config
-
-    // --- CRITICAL IMPROVEMENT ---
-    // 4. Determine final arguments: use $instanceArgs if provided, otherwise use $defaultArgs.
-    // NOTE: You could also use array_merge here if you want to mix them,
-    // but typically a user either supplies ALL args via the function call,
-    // or relies on ALL args from the config. Using $instanceArgs takes precedence.
-    $finalArgs = !empty($instanceArgs) ? $instanceArgs : $defaultArgs;
-
-    // 4. Check if the class exists (Composer autoloading must be set up)
-    if (!class_exists($classFQCN)) {
-        $c['err']['CLASSES']['funk_use_class'][] = "Class '$classFQCN' not found. Did you run composer install?";
-        return null;
+    // If it is a string, we check if it exists within the INSTANCES array and return it
+    if (is_string($newObjectOrExistingObject)) {
+        if (isset($c['INSTANCES'][$objClassFolder][$newObjectOrExistingObject])) {
+            return $c['INSTANCES'][$objClassFolder][$newObjectOrExistingObject];
+        } else {
+            $c['err']['CLASSES']['funk_use_class()'][] = 'The `funk_use_class()` did not find the requested instance `' . $newObjectOrExistingObject . '` in the `' . $objClassFolder . '` Folder. Typo and/or not set first?';
+            return null;
+        }
     }
-    // 5. Instantiate the class using spreaded arguments. It can throw if the constructor fails.
-    try {
-        $instance = new $classFQCN(...$finalArgs);
-        // 6. Store and return the new instance by reference
-        $c['CLASSES'][$objClassType][$objClass]['instances'][$objInstance] = $instance;
-        return $c['CLASSES'][$objClassType][$objClass]['instances'][$objInstance];
-    } catch (\Throwable $ex) {
-        $c['err']['CLASSES']['funk_use_class'][] = "Instantiation error for '$classFQCN' (" . $objClass . "): `" . $ex->getMessage() . '`';
-        return null;
+    // If object, we first check that the instanceKey is a valid string
+    else if (is_object($newObjectOrExistingObject)) {
+        if (!is_string($instanceKey) || empty($instanceKey)) {
+            $c['err']['CLASSES']['funk_use_class()'][] = 'The `funk_use_class()` received invalid $instanceKey Value. Must be NON-EMPTY STRING when setting a new object instance.';
+            return null;
+        }
+        // then check if it already exists for the given key in the given folder
+        // which is NOT allowed as it is like overwriting an existing instance!
+        if (isset($c['INSTANCES'][$objClassFolder][$instanceKey])) {
+            // Hard-error if overwrite is not allowed
+            if (!FUNKPHP_ALLOW_INSTANCE_OVERWRITE) {
+                $c['err']['CLASSES']['funk_use_class()'][] = 'The `funk_use_class()` cannot set the instance for key `' . $instanceKey . '` in the `' . $objClassFolder . '` Folder as it already exists! Overwriting existing instances is not allowed.';
+                $err = 'The `funk_use_class()` cannot set the instance for key `' . $instanceKey . '` in the `' . $objClassFolder . '` Folder as it already exists! Overwriting existing instances is not allowed. Change to: `define("FUNKPHP_ALLOW_INSTANCE_OVERWRITE",true)` in `config/_all.php` (below $c["INSTANCES"] to `true` if you want to allow overwriting existing instances!';
+                funk_use_custom_error($c, ['json_or_page', ['json' => ["error" => $err], 'page' => '500'], $err], 500);
+            } else {
+                $c['INSTANCES'][$objClassFolder][$instanceKey] = $newObjectOrExistingObject;
+                return $c['INSTANCES'][$objClassFolder][$instanceKey];
+            }
+        } else {
+            // Finally, we set the new object instance and return it
+            $c['INSTANCES'][$objClassFolder][$instanceKey] = $newObjectOrExistingObject;
+            return $c['INSTANCES'][$objClassFolder][$instanceKey];
+        }
     }
+    return null;
 }
 
 // The function "h_destroy_session" is used to destroy the session and optionally redirect to a specified URI

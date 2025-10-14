@@ -2,8 +2,7 @@
 
 namespace FunkPHP\Try\test;
 
-use PHPMailer\PHPMailer\PHPMailer;
-
+use FunkPHP\Classes\Test;
 // FunkCLI Created on 2025-09-10 10:23:15!
 
 function test2(&$c, $passedValue = null) // <N/A>
@@ -14,8 +13,7 @@ function test2(&$c, $passedValue = null) // <N/A>
 	if (funk_last_return_middleware_value($c) === FUNKPHP_NO_VALUE) {
 		echo "There was no last returned middleware value!<br/>\n";
 	}
-	$test = new PHPMailer(true); // Just testing if we can use vendor stuff now
-	var_dump($test);
+	$test = funk_use_class($c, 'classes', (new Test()), 'testClassInstance');
 };
 
 function test(&$c, $passedValue = null) // <N/A>
