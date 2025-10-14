@@ -1,5 +1,61 @@
 <?php // SECOND CLI FUNCTIONS FILE SINCE SECOND ONE STARTED TO BECOME TOO LARGE!
 
+/**
+ * Recursively checks and extracts keys from a deeply nested associative array,
+ * enforcing a single-key associative array structure at each level.
+ *
+ * @param array $array The input array (e.g., a single route key structure).
+ * @param int $expectedDepth The number of nested levels (keys) to find.
+ * @param bool $enforceExact If true, fails if the array depth is more or less than $expectedDepth.
+ * @return array An array containing 'valid' status and a list of found keys, or a failure state.
+ */
+function cli_array_key_depth($array, $expectedDepth, $enforceExact = true): array
+{
+    $keys = [];
+    $currentLevel = $array;
+    $currentDepth = 0;
+    $failState = ['valid' => false, 'keys' => []];
+    // Basic Validation
+    if ($expectedDepth < 1) {
+        return $failState;
+    }
+    // 1. Loop through the expected depth levels
+    for ($i = 0; $i < $expectedDepth; $i++) {
+        // Ensure the current level is an associative array with exactly one key
+        if (!is_array($currentLevel) || array_is_list($currentLevel) || count($currentLevel) !== 1) {
+            // Failure: Structure is invalid or key count is wrong at this level
+            return $failState;
+        }
+        $key = key($currentLevel) ?? null;
+        // Ensure the key exists and is a non-empty string (for folder/file/fn names)
+        if ($key === null || !is_string($key) || empty($key)) {
+            return $failState;
+        }
+        $keys[] = $key;
+        $currentDepth++;
+        // Move to the next nested array for the next iteration
+        $currentLevel = $currentLevel[$key];
+    }
+    // 2. Final Depth Check (After reaching the expected depth)
+    // If exact depth is required, check if the value at the final level is NOT an array
+    if ($enforceExact) {
+        // If the final element is an array (meaning there is another level),
+        // OR if the final element is an associative array with keys, then the depth is exceeded.
+        // We use is_array() and check if it has keys/elements to determine if it goes deeper.
+        if (is_array($currentLevel) && !empty($currentLevel)) {
+            // Depth exceeded because the expected final element is another array
+            return $failState;
+        }
+    }
+    // 3. Success
+    return [
+        'valid' => true,
+        'keys' => $keys,
+        'value' => $currentLevel, // The value at the final depth
+        'actual_depth' => $currentDepth
+    ];
+}
+
 // Helper function that checks if a given $routeKey has the structure
 // "Folder" => "FileName" => "FunctionName" => <Anyvalue> and returns
 // that array structure or null if not found or not valid structure
