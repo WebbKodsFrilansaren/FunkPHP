@@ -6725,9 +6725,18 @@ function cli_restore_default_folders_and_files()
             8 => ['pl_match_denied_exact_ips' => null],
             9 => ['pl_match_denied_methods' => null],
             10 => ['pl_match_denied_uas' => null],
-            11 => ['pl_match_route' => null],
-            12 => ['pl_run_matched_route_keys' => null],
-            ],'post-request' => [0 => [],],'no_match' => [],];");
+            11 => ['pl_match_route' => [
+                'no_match' => [
+                    'json' => null,
+                    'page' => '404',
+                    'callback' => null
+                ]
+            ]],
+            12 => ['pl_run_matched_route_middlewares' => 'defensive'],
+            13 => ['pl_run_matched_route_keys' => 'defensive'],
+            ],
+            11 => ['pl_run_matched_route_keys' => null],
+            ],'post-response' => [0 => [],],];");
                 echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
                 continue;
             } else if (str_contains($file, "public_html/.htaccess")) {

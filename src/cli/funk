@@ -7,7 +7,7 @@ define('BATTERIES_DIR', PROJECT_DIR . '/batteries');
 define('BATTERIES_MIDDLEWARES_DIR', BATTERIES_DIR . '/middlewares');
 define('BATTERIES_PIPELINE_DIR', BATTERIES_DIR . '/pipeline');
 define('BATTERIES_PIPELINE_REQUEST_DIR', BATTERIES_PIPELINE_DIR . '/request');
-define('BATTERIES_PIPELINE_POST_REQUEST_DIR', BATTERIES_PIPELINE_DIR . '/post-request');
+define('BATTERIES_PIPELINE_POST_RESPONSE_DIR', BATTERIES_PIPELINE_DIR . '/post-response');
 define('CLI_DIR', __DIR__);
 define('FUNKPHP_DIR', PROJECT_DIR . '/funkphp');
 define('FUNKPHP_INTERNALS_DIR', FUNKPHP_DIR . '/_internals');
@@ -286,7 +286,7 @@ $singlePipeline = include_once FUNKPHP_DIR . '/pipeline/pipeline.php' ?? [
             12 => ['pl_run_matched_route_middlewares' => 'defensive'],
             13 => ['pl_run_matched_route_keys' => 'defensive'],
         ],
-        'post-request' => [
+        'post-response' => [
             0 => ['pl_debug' => null]
         ],
     ],
@@ -456,7 +456,7 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
         'config',
         '_internals',
         'batteries',
-        'post-request',
+        'post-response',
         'request',
         'gui',
         'public_html',
@@ -504,7 +504,7 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
         $folder = "funkphp/pipeline";
         $anonymousFile = true; // Pipeline functions are always single anonymous function files
         [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg1, "pl_");
-        cli_info_without_exit("OK! Pipeline File. Pipeline Functions are recommended to be reused in different projects, consider versioning their name endings. Drag this Function File into either `funkphp/pipeline/request/` OR `funkphp/pipeline/post-request/` and then add it manually to the corresponding Pipeline Sub-Array! (`pipeline['request']` or `pipeline['post-request']`)");
+        cli_info_without_exit("OK! Pipeline File. Pipeline Functions are recommended to be reused in different projects, consider versioning their name endings. Drag this Function File into either `funkphp/pipeline/request/` OR `funkphp/pipeline/post-response/` and then add it manually to the corresponding Pipeline Sub-Array! (`pipeline['request']` or `pipeline['post-response']`)");
     } elseif (in_array($firstParam, $validationAliases)) {
         $folderType = "validation";
         $folder = "funkphp/validation";
@@ -632,7 +632,7 @@ if ($cmd === "make" || $cmd === "create" || $cmd === "new") {
             $createStatus = cli_crud_folder_and_php_file($statusArray, "create_new_anonymous_file", $file, null, "pipeline");
             if ($createStatus) {
                 cli_success_without_exit("SUCCESSFULLY Created Single Anonymous Function File `$file.php` in Folder `$folder`!");
-                cli_info("The Pipeline File `$file.php` is now ready to be used in your Pipeline - place it first either in `funkphp/pipeline/request/` OR `funkphp/pipeline/post-request/` and then add it to the corresponding Pipeline Sub-Array! (`pipeline['request']` or `pipeline['post-request']`. For example `pipeline['request'][{NEXT_ARRAY_INDEX}]['$file' => null]` where null could be any other data that is allowed to be passed to that Pipeline Function!");
+                cli_info("The Pipeline File `$file.php` is now ready to be used in your Pipeline - place it first either in `funkphp/pipeline/request/` OR `funkphp/pipeline/post-response/` and then add it to the corresponding Pipeline Sub-Array! (`pipeline['request']` or `pipeline['post-response']`. For example `pipeline['request'][{NEXT_ARRAY_INDEX}]['$file' => null]` where null could be any other data that is allowed to be passed to that Pipeline Function!");
             } else {
                 cli_err("FAILED to Create Single Anonymous Function File `$file.php` in Folder `$folder`!");
             }
@@ -940,7 +940,7 @@ elseif ($cmd === "add" || $cmd === "attach" || $cmd === "link") {
         'config',
         '_internals',
         'batteries',
-        'post-request',
+        'post-response',
         'request',
         'gui',
         'public_html',
@@ -995,7 +995,7 @@ elseif ($cmd === "remove"  || $cmd === "rm" || $cmd === "detach") {
         'config',
         '_internals',
         'batteries',
-        'post-request',
+        'post-response',
         'request',
         'gui',
         'public_html',
@@ -1050,7 +1050,7 @@ elseif ($cmd === "delete" || $cmd === "del" || $cmd === "destroy") {
         'config',
         '_internals',
         'batteries',
-        'post-request',
+        'post-response',
         'request',
         'gui',
         'public_html',

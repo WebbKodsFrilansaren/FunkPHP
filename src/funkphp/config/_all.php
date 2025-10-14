@@ -166,7 +166,7 @@ return [
         'params' => null,
         'segments' => null,
         'route_keys' => [],
-        'skip_post-request' => false,
+        'skip_post-response' => false,
         'matched_middlewares' => null,
         'current_passed_value' => [],
         'current_passed_values' => [],

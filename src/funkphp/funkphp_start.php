@@ -17,14 +17,15 @@ $c['<ENTRY>'] = include_once __DIR__ . '/pipeline/pipeline.php';
 // and/or exit() is used prematurely by the application
 register_shutdown_function(function () use (&$c) {
     if (
-        isset($c['<ENTRY>']['pipeline']['post-request'])
-        && is_array($c['<ENTRY>']['pipeline']['post-request'])
-        && array_is_list($c['<ENTRY>']['pipeline']['post-request'])
-        && !empty($c['<ENTRY>']['pipeline']['post-request'])
+        isset($c['<ENTRY>']['pipeline']['post-response'])
+        && is_array($c['<ENTRY>']['pipeline']['post-response'])
+        && array_is_list($c['<ENTRY>']['pipeline']['post-response'])
+        && !empty($c['<ENTRY>']['pipeline']['post-response'])
     ) {
-        funk_run_pipeline_post_request($c, 'happy'); // Choose between 'happy' or 'defensive' mode
+        funk_run_pipeline_post_response($c, 'happy'); // Choose between 'happy' or 'defensive' mode
     } else {
         $c['err']['MAYBE']['PIPELINE']['funk_run_post_request'][] = 'No Configured Post-Request Pipeline Functions (`"<ENTRY>" => "pipeline" => "post-request"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\'][\'post-request\']` Key in the Pipeline Configuration File `funkphp/config/pipeline.php` File!';
+        funk_use_log($c, 'No Configured Post-Request Pipeline Functions (`"<ENTRY>" => "pipeline" => "post-request"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\'][\'post-request\']` Key in the Pipeline Configuration File `funkphp/config/pipeline.php` File!', 'WARN');
     }
 });
 // MAIN STEP: Run the Pipeline of Anonymous Functions that control the flow of the request!

@@ -24,6 +24,12 @@ function funk_use_custom_error(&$c, $handleTypeAndDataOptionalCBData, $errorCode
     // Available error types it can handle as of now! - more can be added as needed!
     $availableHandleTypes = ['json', 'page', 'json_or_page', 'callback', 'html', 'text', 'xml', 'throw'];
 
+    // Clear any previous use of output buffering - although the Framework should not really use ob_start
+    // during request pipeline, only during post-response pipeline since all data there is only for server
+    if (ob_get_level() > 0) {
+        ob_clean();
+    }
+
     // $$handleTypeAndDataOptionalCBData must be an array of at least two items!
     if (
         !isset($handleTypeAndDataOptionalCBData)
@@ -66,7 +72,8 @@ function funk_use_custom_error(&$c, $handleTypeAndDataOptionalCBData, $errorCode
         FunkDBConfig::clearCredentials();
     }
 
-    // HERE WE HAVE VALIDATED: Valid existing Handle Type, Valid existing Handle Data, Valid existing Error Code, Valid existing Skip Post-Request Pipeline Flag
+    // HERE WE HAVE VALIDATED: Valid existing Handle Type,
+    // Valid existing Handle Data, Valid existing Error Code
     // Handle JSON Handle Type
     if ($handleTypeAndDataOptionalCBData[0] === 'json') {
         http_response_code($errorCode);
@@ -190,10 +197,6 @@ function funk_use_custom_error(&$c, $handleTypeAndDataOptionalCBData, $errorCode
         }
     }  // Handle HTML Type
     else if ($handleTypeAndDataOptionalCBData[0] === 'html') {
-        // Check if $skipPostRequest is true, if so, skip post-request pipeline
-        if ($skipPostRequest === true) {
-            funk_skip_post_request($c);
-        }
         http_response_code($errorCode);
         // Validate that handleData is a string and NOT empty
         if (
@@ -279,7 +282,7 @@ function funk_collect_output_message(&$c, $level, $key, $message)
  *
  * @param array $c The global configuration array, passed by reference.
  * @param string $logMessage The message to log.
- * @param string $logType Optional type identifier (e.g., 'FATAL', 'WARN', 'INFO').
+ * @param string $logType Optional type identifier (e.g., 'CRITICAL','FATAL', 'WARN','INFO' - these are just examples, and You decide what to use!).
  * @return void
  */
 function funk_use_log(&$c, string $logMessage, string $logType = 'WARN'): void
@@ -311,6 +314,7 @@ function funk_use_log(&$c, string $logMessage, string $logType = 'WARN'): void
  */
 function funk_save_log(&$c): void
 {
+    // TODO: Add support later for different ways of saving (file, db, etc.)
     // Implementation needed here to serialize and write $c['req']['log']
     // to a persistent location (e.g., a file or database).
     // For now, we will simply log to the PHP error log for visibility.
@@ -335,10 +339,10 @@ function funk_clear_log(&$c, $saveFirst = false)
     }
 }
 
-// Function to skip the post-request pipeline
-function funk_skip_post_request(&$c)
+// Function to skip the post-response pipeline
+function funk_skip_post_response(&$c)
 {
-    $c['req']['skip_post-request'] = true;
+    $c['req']['skip_post-response'] = true;
 }
 
 // `pipeline` is the list of functions to always run for each request (unless any
@@ -523,10 +527,20 @@ function funk_run_pipeline_request(&$c, $passedValue = null)
 // &$c is Global Config Variable with "everything"!
 function funk_run_pipeline_post_response(&$c, $passedValue = null)
 {
-    // We only run post-request pipelines if not skipped by the application!
+    // Use ob_start() to "swallow" any possibly unwanted output to the client
+    // but before starting, check if it already exists and clear its previous
+    // contents if it does!
+    if (ob_get_level() === 0) {
+        ob_start();
+    } else {
+        ob_clean();
+    }
+
+    // We only run post-response pipelines if not skipped by the application!
     // and they are also optional, so it can be skipped if not configured!
-    if ($c['req']['skip_post-request']) {
-        $c['err']['MAYBE']['PIPELINE']['POST-RESPONSE']['funk_run_pipeline_post_request'][] = 'Post-Request Pipeline was skipped by the Application for HTTP(S) Request:' . (isset($c['req']['method']) && is_string($c['req']['method']) && !empty($c['req']['method'])) ?: "<UNKNOWN_METHOD>" . (isset($c['req']['route']) && is_string($c['req']['route']) && !empty($c['req']['route'])) ?: "<UNKNOWN_ROUTE>" . '. No Post-Request Pipeline Functions were run. If you expected some, check where the Function `funk_skip_post_request(&$c)` could have been ran for your HTTP(S) Request!';
+    if ($c['req']['skip_post-response']) {
+        $c['err']['MAYBE']['PIPELINE']['POST-RESPONSE']['funk_run_pipeline_post_response'][] = 'Post-Response Pipeline was skipped by the Application for HTTP(S) Request:' . (isset($c['req']['method']) && is_string($c['req']['method']) && !empty($c['req']['method'])) ?: "<UNKNOWN_METHOD>" . (isset($c['req']['route']) && is_string($c['req']['route']) && !empty($c['req']['route'])) ?: "<UNKNOWN_ROUTE>" . '. No Post-Response Pipeline Functions were run. If you expected some, check where the Function `funk_skip_post_response(&$c)` could have been ran for your HTTP(S) Request!';
+        funk_use_log($c, 'Post-Response Pipeline was skipped by the Application for HTTP(S) Request:' . (isset($c['req']['method']) && is_string($c['req']['method']) && !empty($c['req']['method'])) ?: "<UNKNOWN_METHOD>" . (isset($c['req']['route']) && is_string($c['req']['route']) && !empty($c['req']['route'])) ?: "<UNKNOWN_ROUTE>" . '. No Post-Response Pipeline Functions were run. If you expected some, check where the Function `funk_skip_post_response(&$c)` could have been ran for your HTTP(S) Request!', 'INFO');
         return;
     }
     if (
@@ -534,8 +548,8 @@ function funk_run_pipeline_post_response(&$c, $passedValue = null)
         || !is_string($passedValue)
         || !in_array($passedValue, ['defensive', 'happy'])
     ) {
-        $c['err']['PIPELINE']['function funk_run_pipeline_post_request'][] = 'Passed Value for funk_run_pipeline_post_request() must be either `defensive` or `happy`!';
-        critical_err_json_or_html(500, 'Tell the Developer: Invalid Pipeline Mode Passed Value (to run all Post-Request Pipeline Functions) - should be either `defensive` or `happy`!');
+        $c['err']['PIPELINE']['function funk_run_pipeline_post_response'][] = 'Passed Value for funk_run_pipeline_post_response() must be either `defensive` or `happy`!';
+        funk_use_log($c, 'Invalid Pipeline Mode Passed Value (to run all Post-Response Pipeline Functions) - should be either `defensive` or `happy`! - No Post-Response Pipeline Functions were ran as a result.', 'CRITICAL');
     }
     // 'defensive' = we check almost everything and output error to user if something gets wrong
     if ($passedValue === 'defensive') {
@@ -549,7 +563,7 @@ function funk_run_pipeline_post_response(&$c, $passedValue = null)
                 || count($c['<ENTRY>']['pipeline']['post-response']) === 0
             ) {
                 $c['err']['PIPELINE']['funk_run_pipeline_post_response'][] = 'No Configured Pipeline Functions (`"<ENTRY>" => "pipeline" => "post-response"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\'][\'post-response\']` Key in the Pipeline Configuration File `funkphp/config/pipeline.php` File!';
-                critical_err_json_or_html(500, 'Tell the Developer: No Pipeline Functions to run? Please check the `[\'pipeline\'][\'post-response\']` Key in the `funkphp/config/pipeline.php` File!');
+                funk_use_log($c, 'No Configured Pipeline Functions (`"<ENTRY>" => "pipeline" => "post-response"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\'][\'post-response\']` Key in the Pipeline Configuration File `funkphp/config/pipeline.php` File!', 'CRITICAL');
             }
             // Prepare for main loop to run each pipeline function
             $count = count($c['<ENTRY>']['pipeline']['post-response']);
@@ -568,7 +582,7 @@ function funk_run_pipeline_post_response(&$c, $passedValue = null)
                     || count($current_pipe) !== 1
                 ) {
                     $c['err']['PIPELINE']['funk_run_pipeline_post_response'][] = 'Pipeline Post-Response Function at index ' .  $i . ' is either NULL or NOT a Valid Data Type. It must be an Associative Array Key (single element) with a Value! (Value can be null, to omit passing any values)';
-                    critical_err_json_or_html(500, 'Tell the Developer: Pipeline Post-Response Function at index ' .  $i . ' is either NULL or NOT a Valid Data Type. It must be an Associative Array Key (single element) with a Value! (Value can be null to omit passing any values)');
+                    funk_use_log($c, 'Pipeline Post-Response Function at index ' .  $i . ' is either NULL or NOT a Valid Data Type. It must be an Associative Array Key (single element) with a Value! (Value can be null, to omit passing any values)', 'CRITICAL');
                 }
                 $fnToRun = key($current_pipe);
                 $pipeToRun = $pipeDir . $fnToRun . '.php';
@@ -599,14 +613,14 @@ function funk_run_pipeline_post_response(&$c, $passedValue = null)
                     // HARD ERROR to not allow to pass security checks
                     else {
                         $c['err']['PIPELINE']['function funk_run_pipeline_post_response'][] = 'Pipeline Post-Response Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`';
-                        critical_err_json_or_html(500, 'Tell the Developer: Pipeline Post-Response Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`');
+                        funk_use_log($c, 'Pipeline Post-Response Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`', 'CRITICAL');
                     }
                 }
                 // else = pipeline does not exist yet, so include, store and run it with passed value!
                 else {
                     if (!is_readable($pipeToRun)) {
                         $c['err']['PIPELINE']['function funk_run_pipeline_post_response'][] = 'Pipeline Post-Response Function (`' . $fnToRun . '`) at index '  .  $i . ' does NOT EXIST (or is NOT READABLE) in `funkphp/pipeline/request/` Directory!';
-                        critical_err_json_or_html(500, 'Tell the Developer: Pipeline Post-Response Function (`' . $fnToRun . '`) at index '  .  $i . ' does NOT EXIST (or is NOT READABLE) in `funkphp/pipeline/request/` Directory!');
+                        funk_use_log($c, 'Pipeline Post-Response Function (`' . $fnToRun . '`) at index '  .  $i . ' does NOT EXIST (or is NOT READABLE) in `funkphp/pipeline/request/` Directory!', 'CRITICAL');
                     }
                     $runPipe = include_once $pipeToRun;
                     if (is_callable($runPipe)) {
@@ -631,7 +645,7 @@ function funk_run_pipeline_post_response(&$c, $passedValue = null)
                     // HARD ERROR to not allow to pass security checks
                     else {
                         $c['err']['PIPELINE']['function funk_run_pipeline_post_response'][] = 'Pipeline Post-Response Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`';
-                        critical_err_json_or_html(500, 'Tell the Developer: Pipeline Post-Response Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`');
+                        funk_use_log($c, 'Pipeline Post-Response Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`', 'CRITICAL');
                     }
                 }
             }
@@ -679,7 +693,7 @@ function funk_run_pipeline_post_response(&$c, $passedValue = null)
                     // HARD ERROR to not allow to pass security checks
                     else {
                         $c['err']['PIPELINE']['function funk_run_pipeline_post_response'][] = 'Pipeline Post-Response Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`';
-                        critical_err_json_or_html(500, 'Tell the Developer: Pipeline Post-Response Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`');
+                        funk_use_log($c, 'Pipeline Post-Response Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`', 'CRITICAL');
                     }
                 }
                 // else = include, store and run pipeline function
@@ -708,7 +722,7 @@ function funk_run_pipeline_post_response(&$c, $passedValue = null)
                     // HARD ERROR to not allow to pass security checks
                     else {
                         $c['err']['PIPELINE']['function funk_run_pipeline_post_response'][] = 'Pipeline Post-Response Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`';
-                        critical_err_json_or_html(500, 'Tell the Developer: Pipeline Post-Response Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`');
+                        funk_use_log($c, 'Pipeline Post-Response Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`', 'CRITICAL');
                     }
                 }
             }
@@ -717,7 +731,7 @@ function funk_run_pipeline_post_response(&$c, $passedValue = null)
     // Default values after either 'defensive' or 'happy' mode has run
     $c['req']['current_pipeline'] = null;
     $c['req']['keep_running_pipeline'] = false;
-    $c['<ENTRY>']['pipeline']['post-request'] = null;
+    $c['<ENTRY>']['pipeline']['post-response'] = null;
 }
 
 // Three functions that just returned the last stored value
@@ -752,11 +766,11 @@ function funk_abort_pipeline_request(&$c)
 // Same as above but used for the exit functions instead of the pipeline
 // IMPORTANT: As you can see, it will remove all remaining
 // pipeline functions, so use with care!
-function funk_abort_pipeline_post_requset(&$c)
+function funk_abort_pipeline_post_response(&$c)
 {
     $c['req']['current_pipeline'] = null;
     $c['req']['keep_running_pipeline'] = false;
-    $c['<ENTRY>']['pipeline']['post-request'] = null;
+    $c['<ENTRY>']['pipeline']['post-response'] = null;
     return;
 }
 // Abort the middlewares and stop running any further middlewares
