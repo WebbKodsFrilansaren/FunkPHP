@@ -101,17 +101,13 @@ function funk_use_class(&$c,  $objClassType, $objClass, $objInstance, $instanceA
         $c['err']['CLASSES']['funk_use_class'][] = "Class '$classFQCN' not found. Did you run composer install?";
         return null;
     }
-    // 5. Instantiate the class using Reflection (allows dynamic passing of arguments)
+    // 5. Instantiate the class using spreaded arguments. It can throw if the constructor fails.
     try {
-        $reflector = new ReflectionClass($classFQCN);
-        $instance = $reflector->newInstanceArgs($finalArgs);
+        $instance = new $classFQCN(...$finalArgs);
         // 6. Store and return the new instance by reference
         $c['CLASSES'][$objClassType][$objClass]['instances'][$objInstance] = $instance;
         return $c['CLASSES'][$objClassType][$objClass]['instances'][$objInstance];
-    } catch (\ReflectionException $ex) {
-        $c['err']['CLASSES']['funk_use_class'][] = "Reflection error for '$classFQCN' (" . $objClass . "): `" . $ex->getMessage() . '`';
-        return null;
-    } catch (\Exception $ex) {
+    } catch (\Throwable $ex) {
         $c['err']['CLASSES']['funk_use_class'][] = "Instantiation error for '$classFQCN' (" . $objClass . "): `" . $ex->getMessage() . '`';
         return null;
     }

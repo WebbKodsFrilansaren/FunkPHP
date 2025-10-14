@@ -13,6 +13,9 @@ include_once __DIR__ . '/_internals/functions/_all.php';
 $c = include_once __DIR__ . '/config/_all.php';
 $c['<ENTRY>'] = include_once __DIR__ . '/pipeline/pipeline.php';
 
+// Load Composer Autoloader so that any Composer installed packages can be used
+require_once __DIR__ . '/vendor/autoload.php';
+
 // Prepare what to run after each request is handled
 // and/or exit() is used prematurely by the application
 register_shutdown_function(function () use (&$c) {
