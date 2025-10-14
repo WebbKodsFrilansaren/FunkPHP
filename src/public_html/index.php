@@ -111,8 +111,8 @@ function critical_err_json_or_html($status = 500, $customMessage = "<No Custom M
 // Include the file inside of "FunkPHP" folder
 // which is outside of public_html folder
 if (
-    !is_readable(__DIR__ . '/../funkphp/funkphp_start.php')
+    !is_readable(__DIR__ . '/../funkphp/funkphp.php')
 ) {
-    critical_err_json_or_html(500, "FunkPHP Framework Start File Not Found or Not Readable. Please check your Installation and/or File Permissions!");
+    critical_err_json_or_html(500, "Tell The Developer - FunkPHP Framework Start File Not Found or Not Readable. Please check your Installation and/or File Permissions!");
 }
-require_once __DIR__ . '/../funkphp/funkphp_start.php';
+require_once __DIR__ . '/../funkphp/funkphp.php';
