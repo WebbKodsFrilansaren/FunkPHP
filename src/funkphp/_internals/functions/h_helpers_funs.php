@@ -48,7 +48,7 @@ function ddj($data, $json = false)
     exit;
 }
 
-function return_download($filePath, $fileName = null, $statusCode = 200)
+function funk_return_download($filePath, $fileName = null, $statusCode = 200)
 {
     // Set the content type to application/octet-stream and the status code, then return the file response
     header('Content-Type: application/octet-stream', true, $statusCode);
