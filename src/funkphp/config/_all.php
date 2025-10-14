@@ -192,6 +192,7 @@ return [
         'keep_running_middlewares' => null,
         'keep_running_exit' => null,
         'code' => 418,
+        'log' => [],
         'time' => $_SERVER['REQUEST_TIME'] ?? time() ?? null,
         'ip' => $_SERVER['REMOTE_ADDR'] ?? null,
         'ua' => $_SERVER['HTTP_USER_AGENT'] ?? null,
@@ -259,6 +260,7 @@ return [
     // to indicate that you might have missed populating them in your code! They are
     // NEVER considered as errors, but rather like hints on what you might have missed!
     'err' => [
+        'FUNCTIONS' => [],
         'MAYBE' => [],
         'DATABASES' => [],
         'PIPELINE' => [],

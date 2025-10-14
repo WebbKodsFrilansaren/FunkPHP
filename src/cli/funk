@@ -26,7 +26,7 @@ define('FUNKPHP_PAGE_COMPONENTS_DIR', FUNKPHP_PAGE_DIR . '/components');
 define('FUNKPHP_PAGE_PARTIALS_DIR', FUNKPHP_PAGE_DIR . '/partials');
 define('FUNKPHP_PIPELINE_DIR', FUNKPHP_DIR . '/pipeline');
 define('FUNKPHP_PIPELINE_REQUEST_DIR', FUNKPHP_PIPELINE_DIR . '/request');
-define('FUNKPHP_PIPELINE_POST_REQUEST_DIR', FUNKPHP_PIPELINE_DIR . '/post-request');
+define('FUNKPHP_PIPELINE_POST_RESPONSE_DIR', FUNKPHP_PIPELINE_DIR . '/post-response');
 define('FUNKPHP_ROUTES_DIR', FUNKPHP_DIR . '/routes');
 define('FUNKPHP_SQL_DIR', FUNKPHP_DIR . '/sql');
 define('FUNKPHP_VALIDATION_DIR', FUNKPHP_DIR . '/validation');
@@ -207,8 +207,8 @@ $dirs = [
     "pipeline" => FUNKPHP_DIR . '/pipeline/',
     "request" => FUNKPHP_DIR . '/pipeline/request/',
     "pipeline-request" => FUNKPHP_DIR . '/pipeline/request/',
-    "post-request" => FUNKPHP_DIR . '/pipeline/post-request/',
-    "pipeline-post-request" => FUNKPHP_DIR . '/pipeline/post-request/',
+    "post-response" => FUNKPHP_DIR . '/pipeline/post-response/',
+    "pipeline-post-response" => FUNKPHP_DIR . '/pipeline/post-response/',
     "pipelines" => FUNKPHP_DIR . '/pipeline/',
     "routes" => FUNKPHP_DIR . '/routes/',
     "middlewares" => FUNKPHP_DIR . '/middlewares/',

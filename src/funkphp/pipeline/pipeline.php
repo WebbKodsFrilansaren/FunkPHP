@@ -24,7 +24,7 @@ return  [
             11 => ['pl_run_matched_route_middlewares' => 'defensive'],
             12 => ['pl_run_matched_route_keys' => 'defensive'],
         ],
-        'post-request' => [
+        'post-response' => [
             //0 => ['pl_debug' => null]
         ],
     ],
