@@ -1311,12 +1311,26 @@ elseif ($cmd === "compile" || $cmd === "comp" || $cmd === "cp") {
         cli_err("Impossible Edge-Case where \$firstParam is NOT a Valid Validation OR SQL File Type! Please provide a valid first parameter for the `compile` command, either `validation`, `v`, `sql`, or `s`!");
     }
 }
-// Catch any invalid commands that are not recognized
-else {
-    cli_err_syntax_without_exit("Invalid command! Please provide a valid command with up to 6 arguments!");
-    if (JSON_MODE) {
-        cli_info("Use the following JSON format: `{ \"command\": \"<command>:<first_param>\", \"arg1\": \"<arg1>\", \"arg2\": \"<arg2>\", \"arg3\": \"<arg3>\", \"arg4\": \"<arg4>\", \"arg5\": \"<arg5>\", \"arg6\": \"<arg6>\" }`");
-    } else {
-        cli_info("Type a Command and then up to 6 arguments, like this: `funk <command:first_param> <arg1> <arg2> <arg3> <arg4> <arg5> <arg6>`");
-    }
+// Add any more elseif($cmd==="commands") here that would support both CLI & JSON!
+
+
+/****************************************************************************/
+/* HERE ARE ONLY JSON-BASED COMMANDS, ONLY USED BY THE FunkGUI (gui-folder) */
+/****************************************************************************/
+if (!JSON_MODE) {
+    cli_info("Either that Command does NOT exist or it is limited to JSON Responses Only. Use the following JSON format: `{ \"command\": \"<command>:<first_param>\", \"arg1\": \"<arg1>\", \"arg2\": \"<arg2>\", \"arg3\": \"<arg3>\", \"arg4\": \"<arg4>\", \"arg5\": \"<arg5>\", \"arg6\": \"<arg6>\" }`");
 }
+
+
+/*******************/
+/* FINAL CATCH-ALL */
+/*******************/
+cli_err_syntax_without_exit("Invalid command! Please provide a Valid Command with up to 6 arguments!");
+if (JSON_MODE) {
+    cli_info("Use the following JSON format: `{ \"command\": \"<command>:<first_param>\", \"arg1\": \"<arg1>\", \"arg2\": \"<arg2>\", \"arg3\": \"<arg3>\", \"arg4\": \"<arg4>\", \"arg5\": \"<arg5>\", \"arg6\": \"<arg6>\" }`");
+} else {
+    cli_info("Type a Command and then up to 6 arguments, like this: `funk <command:first_param> <arg1> <arg2> <arg3> <arg4> <arg5> <arg6>`");
+}
+/*******************/
+/* FINAL CATCH-ALL */
+/*******************/
