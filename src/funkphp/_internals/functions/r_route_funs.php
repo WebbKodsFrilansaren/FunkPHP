@@ -730,6 +730,28 @@ function funk_use_safe_mutate(&$c, $mainKeyAndOptionalSubKeys, $callable, $calla
         ]
         // 'unknown type' and 'null' should generally not have range checks applied
     ];
+    // Mapping the opposote for fast O(1) lookups
+    $rangeToTypeMap = [
+        'exact_length' => ['string', 'array'],
+        'min_length' => ['string', 'array'],
+        'max_length' => ['string', 'array'],
+        'array_count_exact' => ['array'],
+        'array_count_min' => ['array'],
+        'array_count_max' => ['array'],
+        'exact_value' => ['string', 'integer', 'double', 'boolean', 'NULL'],
+        'allowed_values' => ['string', 'integer', 'double', 'boolean'],
+        'disallowed_values' => ['string', 'integer', 'double', 'boolean'],
+        'min_value' => ['integer', 'double'],
+        'max_value' => ['integer', 'double'],
+        'matches_regex' => ['string'],
+        'is_json_string' => ['string'],
+        'numeric_string' => ['string'],
+        'array_keys_only' => ['array'],
+        'object_instanceof' => ['object'],
+        'is_resource_type' => ['resource'],
+        'is_falsey' => ['string', 'integer', 'double', 'boolean', 'array', 'object', 'NULL', 'resource'],
+        'is_truthy' => ['string', 'integer', 'double', 'boolean', 'array', 'object', 'NULL', 'resource']
+    ];
 
     // Validate that $callable is a valid callable function
     if (!is_string($callable) || !is_callable($callable)) {
@@ -839,7 +861,8 @@ function funk_use_safe_mutate(&$c, $mainKeyAndOptionalSubKeys, $callable, $calla
             }
             // If we looped through all expected types and found no match, trigger a developer error.
             if (!$isCompatibleWithAnyExpectedType) {
-                $err = 'Developer Error: The Value Range Check Rule `' . $key . '` in $expectedValueRanges is **incompatible** with ALL of the Allowed Expected Types: `' . $expectedTypesList . '`. Check the $typeToRangeMap or remove the invalid constraint.';
+                $compatibleTypes = implode('`, `', $rangeToTypeMap[$key] ?? []);
+                $err = 'Developer Error in `funk_use_safe_mutate()` Function: The Value Range Check Rule `' . $key . '` in $expectedValueRanges is **incompatible** with ALL of the Allowed Expected Types: `' . $expectedTypesList . '`. Remove the invalid constraint or use it only with compatible types: `' . $compatibleTypes . '`.';
                 $c['err']['FUNCTIONS']['funk_use_safe_mutate'][] = $err;
                 // Fail fast before calling the callable
                 funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
