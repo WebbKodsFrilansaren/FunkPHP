@@ -19,230 +19,6 @@ function TEST_2()
     return rand(0, 1) === 0 ? "A String" : 12345;
 }
 
-// FunkPHP Complex Custom Error Function - use the more single purpose ones if possible!
-function funk_use_error(&$c, int $errCode, string $errMsg, string $handleType, $optionalJSONData = null, $optionalCallbackData = null, $optionalPageName = null) {} {
-    // $handleTypeAndDataOptionalCBData[0]  = handleType (string)
-    // $handleTypeAndDataOptionalCBData[1]  = handleData (mixed, depends on handleType)
-    // $handleTypeAndDataOptionalCBData[1]['json']  = JSON handleType for handleType = 'json_or_page'
-    // $handleTypeAndDataOptionalCBData[1]['page']  = Page handleType for handleType = 'json_or_page'
-    // $handleTypeAndDataOptionalCBData[2]  = (optional) callbackData (mixed, depends on handleType)
-    // Available error types it can handle as of now! - more can be added as needed!
-    $availableHandleTypes = ['json', 'page', 'json_or_page', 'callback', 'html', 'text', 'xml', 'throw'];
-
-    // Clear any previous use of output buffering - although the Framework should not really use ob_start
-    // during request pipeline, only during post-response pipeline since all data there is only for server
-    if (ob_get_level() > 0) {
-        ob_clean();
-    }
-
-    // $$handleTypeAndDataOptionalCBData must be an array of at least two items!
-    if (
-        !isset($handleTypeAndDataOptionalCBData)
-        || !is_array($handleTypeAndDataOptionalCBData)
-        || count($handleTypeAndDataOptionalCBData) < 2
-    ) {
-        critical_err_json_or_html(500, 'Tell the Developer: No Valid Handle Type and Data Provided to funk_handle_custom_error() Function. This should be an array with at least two items: `[HandleType, HandleData, (Optional) CallbackData]`!');
-    }
-    // When handleType is not a string and not in the available types
-    if (
-        !isset($handleTypeAndDataOptionalCBData[0])
-        || !is_string($handleTypeAndDataOptionalCBData[0])
-        || empty($handleTypeAndDataOptionalCBData[0])
-        || !in_array($handleTypeAndDataOptionalCBData[0], $availableHandleTypes)
-    ) {
-        critical_err_json_or_html(500, 'Tell the Developer: No Valid Handle Type Provided to funk_handle_custom_error() Function. This should be a string and one of the following: `' . implode('`, `', $availableHandleTypes) . '`!');
-    }
-    // $$handleTypeAndDataOptionalCBData[1] must be set and not null|empty
-    if (!isset($handleTypeAndDataOptionalCBData[1]) || empty($handleTypeAndDataOptionalCBData[1])) {
-        critical_err_json_or_html(500, 'Tell the Developer: No Valid Handle Data Provided to funk_handle_custom_error() Function. This should be an array with at least two items: `[HandleType, HandleData, (Optional) CallbackData]`!');
-    }
-    // When error code is NOT integer or within wrong range
-    if (
-        !isset($errorCode)
-        || !is_int($errorCode)
-        || $errorCode < 100
-        || $errorCode > 599
-    ) {
-        critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to funk_handle_custom_error() Function. This should be an integer between 100 and 599!');
-    }
-
-    // Clear any DB connections before handling the error
-    // unless the handle type is 'throw' since that could
-    // be caught and maybe DB is used after that!
-    if (
-        isset($handleTypeAndDataOptionalCBData[0])
-        && is_string($handleTypeAndDataOptionalCBData[0])
-        && $handleTypeAndDataOptionalCBData[0] !== 'throw'
-    ) {
-        FunkDBConfig::clearCredentials();
-    }
-
-    // HERE WE HAVE VALIDATED: Valid existing Handle Type,
-    // Valid existing Handle Data, Valid existing Error Code
-    // Handle JSON Handle Type
-    if ($handleTypeAndDataOptionalCBData[0] === 'json') {
-        http_response_code($errorCode);
-        if (
-            !isset($handleTypeAndDataOptionalCBData[1])
-            || (!is_array($handleTypeAndDataOptionalCBData[1])
-                && !is_object($handleTypeAndDataOptionalCBData[1]))
-            || empty($handleTypeAndDataOptionalCBData[1])
-        ) {
-            critical_err_json_or_html(500, 'Tell the Developer: No Valid Handle Data Provided to funk_handle_custom_error() Function for `json` Type. This should be a non-empty array!');
-        }
-        try {
-            header('Content-Type: application/json; charset=utf-8');
-            echo json_encode($handleTypeAndDataOptionalCBData[1], JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-        } catch (\JsonException $e) {
-            critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred While Encoding the Provided Data to JSON (`' . $e->getMessage() . '`) inside funk_handle_custom_error() Function for `json` Type!');
-        }
-    }  // Handle Page Type
-    else if ($handleTypeAndDataOptionalCBData[0] === 'page') {
-        http_response_code($errorCode);
-        // TODO: MAYBE Change later when 'part' part of FunkPHP has been 100 % fully realized. For example, maybe compile on call, etc?
-        // handleData must be a non empty string (the path to the page to load)
-        if (
-            !isset($handleTypeAndDataOptionalCBData[1])
-            || !is_string($handleTypeAndDataOptionalCBData[1])
-            || empty($handleTypeAndDataOptionalCBData[1])
-        ) {
-            critical_err_json_or_html(500, 'Tell the Developer: No Valid Handle Data Provided to funk_handle_custom_error() Function for `page` Type. This should be a non-empty string!');
-        }
-        $pageToInclude = ROOT_FOLDER . '/page/complete/[errors]/' . $handleTypeAndDataOptionalCBData[1] . '.php';
-        if (!is_readable($pageToInclude)) {
-            critical_err_json_or_html(500, 'Tell the Developer: The Provided Page to Load inside funk_handle_custom_error() Function for `page` Type does NOT EXIST or is NOT READABLE! Please check the path: `' . $pageToInclude . '`');
-        } else {
-            // Use the same "$custom_error_message" inside the included file to show custom error message!
-            $custom_error_message = $handleTypeAndDataOptionalCBData[2] ?? "";
-            header('Content-Type: text/html; charset=utf-8');
-            header("Content-Security-Policy: default-src 'none'; img-src 'self'; script-src 'self'; connect-src 'none'; style-src 'self' 'unsafe-inline'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; font-src 'self'; base-uri 'self';");
-            include_once $pageToInclude;
-        }
-    }  // Handle JSON Or Page Type (based on 'accept' header)
-    else if ($handleTypeAndDataOptionalCBData[0] === 'json_or_page') {
-        http_response_code($errorCode);
-        // Check if HandleData [1] is at least an array with two elements
-        if (
-            !isset($handleTypeAndDataOptionalCBData[1])
-            || !is_array($handleTypeAndDataOptionalCBData[1])
-            || count($handleTypeAndDataOptionalCBData[1]) < 2
-        ) {
-            critical_err_json_or_html(500, 'Tell the Developer: No Valid Handle Data Provided to funk_handle_custom_error() Function for `json_or_page` Type. This should be an array with at least two items: `["json" => [JSON_Data], "page" => "Page_File_Name"]`!');
-        }
-        // We want JSON
-        if (
-            isset($c['req']['accept'])
-            && is_string($c['req']['accept'])
-            && !empty($c['req']['accept'])
-            && in_array($c['req']['accept'], ['application/json', 'text/json'])
-        ) {
-            if (
-                !isset($handleTypeAndDataOptionalCBData[1]['json'])
-                || (!is_array($handleTypeAndDataOptionalCBData[1]['json'])
-                    && !is_object($handleTypeAndDataOptionalCBData[1]['json']))
-                || empty($handleTypeAndDataOptionalCBData[1]['json'])
-            ) {
-                critical_err_json_or_html(500, 'Tell the Developer: Invalid Handle Data Provided to funk_handle_custom_error() Function for `json` Type inside `json_or_page`. This should be a non-empty array. For Handle Type `json_or_page` the `HandleData` is an array: `["json" => [JSON_Data], "page" => "Page_File_Name"]`!');
-            }
-            try {
-                header('Content-Type: application/json; charset=utf-8');
-                echo json_encode($handleTypeAndDataOptionalCBData[1]['json'], JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-            } catch (\JsonException $e) {
-                critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred While Encoding the Provided Data to JSON (`' . $e->getMessage() . '`) inside funk_handle_custom_error() Function for `json` Type. Expected to find JSON data at: `$handleTypeAndDataOptionalCBData[1][\'json\']`!');
-            }
-        } // We want Page
-        else {
-            // TODO: MAYBE Change later when 'part' part of FunkPHP has been 100 % fully realized. For example, maybe compile on call, etc?
-            if (
-                !isset($handleTypeAndDataOptionalCBData[1]['page'])
-                || !is_string($handleTypeAndDataOptionalCBData[1]['page'])
-                || empty($handleTypeAndDataOptionalCBData[1]['page'])
-            ) {
-                critical_err_json_or_html(500, 'Tell the Developer: Invalid Handle Data Provided to funk_handle_custom_error() Function for `page` Type inside `json_or_page`. This should be a non-empty array. For Handle Type `json_or_page` the `HandleData` is an array: `["json" => [JSON_Data], "page" => "Page_File_Name"]`!');
-            }
-            $pageToInclude = ROOT_FOLDER . '/page/complete/[errors]/' . $handleTypeAndDataOptionalCBData[1]['page'] . '.php';
-            if (!is_readable($pageToInclude)) {
-                critical_err_json_or_html(500, 'Tell the Developer: The Provided Page to Load inside funk_handle_custom_error() Function for `page` Type does NOT EXIST or is NOT READABLE! Please check the path: `' . $pageToInclude . '`');
-            } else {
-                // Use the same "$custom_error_message" inside the included file to show custom error message!
-                $custom_error_message = $handleTypeAndDataOptionalCBData[2] ?? "";
-                header('Content-Type: text/html; charset=utf-8');
-                header("Content-Security-Policy: default-src 'none'; img-src 'self'; script-src 'self'; connect-src 'none'; style-src 'self' 'unsafe-inline'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; font-src 'self'; base-uri 'self';");
-                include_once $pageToInclude;
-            }
-        }
-    }  // Handle Throw Type
-    else if ($handleTypeAndDataOptionalCBData[0] === 'throw') {
-        // Validation: handleData must be a non-empty string (the exception message)
-        if (
-            !isset($handleTypeAndDataOptionalCBData[1])
-            || !is_string($handleTypeAndDataOptionalCBData[1])
-            || empty($handleTypeAndDataOptionalCBData[1])
-        ) {
-            // Throwing is the error-handling mechanism itself, so if the data
-            // is invalid, we must fall back to the critical error handler.
-            critical_err_json_or_html(500, 'Tell the Developer: No Valid Handle Data Provided to funk_handle_custom_error() Function for `throw` Type. This should be a non-empty string for the exception message!');
-        }
-        // Just throw and trust the Developer to catch it somewhere else!
-        throw new Exception($handleTypeAndDataOptionalCBData[1]);
-    }
-    // Handle Callback Type
-    else if ($handleTypeAndDataOptionalCBData[0] === 'callback') {
-        // callBack data at [2] should not be null if this is the case
-        if (!isset($handleTypeAndDataOptionalCBData[2]) || empty($handleTypeAndDataOptionalCBData[2])) {
-            critical_err_json_or_html(500, 'Tell the Developer: No Valid Callback Data Provided to funk_handle_custom_error() Function for `callback` Type. This should be an array with at least a Callable Function Name and (Optional) Callback Data to pass to the function!');
-        }
-        if (!isset($handleTypeAndDataOptionalCBData[1]) || !is_callable($handleTypeAndDataOptionalCBData[1])) {
-            critical_err_json_or_html(500, 'Tell the Developer: No Valid Callback Function Provided to funk_handle_custom_error() Function for `callback` Type. This should be a Callable Function!');
-        }
-        try {
-            $handleTypeAndDataOptionalCBData[1]($c, $handleTypeAndDataOptionalCBData[2]);
-        } catch (\Throwable $e) {
-            critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the Custom Error Callback (`' . $e->getMessage() . '`) the Developer had Configured!');
-        }
-    }  // Handle HTML Type
-    else if ($handleTypeAndDataOptionalCBData[0] === 'html') {
-        http_response_code($errorCode);
-        // Validate that handleData is a string and NOT empty
-        if (
-            !isset($handleTypeAndDataOptionalCBData[1])
-            || !is_string($handleTypeAndDataOptionalCBData[1])
-            || empty($handleTypeAndDataOptionalCBData[1])
-        ) {
-            critical_err_json_or_html(500, 'Tell the Developer: No Valid Handle Data Provided to funk_handle_custom_error() Function for `html` Type. This should be a non-empty string!');
-        }
-        header('Content-Type: text/html; charset=utf-8');
-        echo $handleTypeAndDataOptionalCBData[1];
-    }  // Handle Text Type
-    else if ($handleTypeAndDataOptionalCBData[0] === 'text') {
-        http_response_code($errorCode);
-        // Validate that handleData is a string and NOT empty
-        if (
-            !isset($handleTypeAndDataOptionalCBData[1])
-            || !is_string($handleTypeAndDataOptionalCBData[1])
-            || empty($handleTypeAndDataOptionalCBData[1])
-        ) {
-            critical_err_json_or_html(500, 'Tell the Developer: No Valid Handle Data Provided to funk_handle_custom_error() Function for `text` Type. This should be a non-empty string!');
-        }
-        header('Content-Type: text/plain; charset=utf-8');
-        echo $handleTypeAndDataOptionalCBData[1];
-    }  // Handle XML Type
-    else if ($handleTypeAndDataOptionalCBData[0] === 'xml') {
-        http_response_code($errorCode);
-        // Validate that handleData is a string and NOT empty
-        if (
-            !isset($handleTypeAndDataOptionalCBData[1])
-            || !is_string($handleTypeAndDataOptionalCBData[1])
-            || empty($handleTypeAndDataOptionalCBData[1])
-        ) {
-            critical_err_json_or_html(500, 'Tell the Developer: No Valid Handle Data Provided to funk_handle_custom_error() Function for `xml` Type. This should be a non-empty string!');
-        }
-        header('Content-Type: application/xml; charset=utf-8');
-        echo $handleTypeAndDataOptionalCBData[1];
-    }
-    exit();
-}
-
 /**
  * CUSTOM ERROR HANDLER: Outputs a raw HTML string directly to the client.
  *
@@ -751,7 +527,7 @@ function funk_use_error_json_or_page_or_callback(&$c, int $errCode, string $errM
         || $errCode < 100
         || $errCode > 599
     ) {
-        critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_use_custom_error_json_or_page_or_callback()` Function. This should be an integer between 100 and 599!');
+        critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_use_error_json_or_page_or_callback()` Function. This should be an integer between 100 and 599!');
     }
     // When $errMsgForPageAndCallback is not a string or empty
     if (
@@ -759,7 +535,7 @@ function funk_use_error_json_or_page_or_callback(&$c, int $errCode, string $errM
         || !is_string($errMsgForPageAndCallback)
         || empty($errMsgForPageAndCallback)
     ) {
-        critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_use_custom_error_json_or_page_or_callback()` Function. This should be a Non-Empty String!');
+        critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_use_error_json_or_page_or_callback()` Function. This should be a Non-Empty String!');
     }
     // When $pageName is not a string or empty or the file does not exist in the expected folder
     if (
@@ -768,7 +544,7 @@ function funk_use_error_json_or_page_or_callback(&$c, int $errCode, string $errM
         || empty($pageName)
         || !is_readable(ROOT_FOLDER . '/page/complete/[errors]/' . $pageName . '.php')
     ) {
-        critical_err_json_or_html(500, 'Tell the Developer: No Valid Page Filename Provided to `funk_use_custom_error_json_or_page_or_callback()` Function. This should be a Non-Empty String!');
+        critical_err_json_or_html(500, 'Tell the Developer: No Valid Page Filename Provided to `funk_use_error_json_or_page_or_callback()` Function. This should be a Non-Empty String!');
     }
     // $callableName is not a string or empty or not callable
     if (
@@ -777,7 +553,7 @@ function funk_use_error_json_or_page_or_callback(&$c, int $errCode, string $errM
         || empty($callableName)
         || !is_callable($callableName)
     ) {
-        critical_err_json_or_html(500, 'Tell the Developer: No Valid Callback Name Provided to `funk_use_custom_error_json_or_page_or_callback()` Function. This should be a Non-Empty String that is also Callable!');
+        critical_err_json_or_html(500, 'Tell the Developer: No Valid Callback Name Provided to `funk_use_error_json_or_page_or_callback()` Function. This should be a Non-Empty String that is also Callable!');
     }
     // When $jsonObjectOrStringThatReturnsJSON is not an Object/Array, nor a String that is also Callable
     if (
@@ -789,7 +565,7 @@ function funk_use_error_json_or_page_or_callback(&$c, int $errCode, string $errM
             )
         )
     ) {
-        critical_err_json_or_html(500, 'Tell the Developer: No Valid JSON Data or Callable Provided to `funk_use_custom_error_json_or_page_or_callback()` Function. This should be either a Non-Empty Array/Object OR a Non-Empty String that is also Callable which returns a Valid JSON Payload!');
+        critical_err_json_or_html(500, 'Tell the Developer: No Valid JSON Data or Callable Provided to `funk_use_error_json_or_page_or_callback()` Function. This should be either a Non-Empty Array/Object OR a Non-Empty String that is also Callable which returns a Valid JSON Payload!');
     }
     // Set response code and check if Accept header contains text/html, application/json or text/json
     // If none of those headers then we call the callback function. We always exit nonetheless!
@@ -896,44 +672,34 @@ function funk_use_safe_mutate(&$c, $mainKeyAndOptionalSubKeys, $callable, $calla
 
     // Validate that $callable is a valid callable function
     if (!is_string($callable) || !is_callable($callable)) {
-        $c['err']['FUNCTIONS']['funk_use_safe_mutate'][] = 'Invalid Second Parameter Passed to funk_use_safe_mutate() Function. This should be the string to an existing and Callable Function within the scope the function is used. It should also return a value to be validated!';
+        $c['err']['FUNCTIONS']['funk_use_safe_mutate'][] = 'Invalid Second Parameter Passed to `funk_use_safe_mutate()` Function. This should be the string to an existing and Callable Function within the scope the function is used. It should also return a value to be validated!';
         $err = 'Tell the Developer: Invalid Second Parameter Passed to `funk_use_safe_mutate()` Function that is meant to mutate a value in the $c Global Configuration Variable. This should be the string to an existing and Callable Function within the scope the function is used. It should also return a value to be validated!';
-        funk_use_custom_error($c, ['json_or_page', [
-            'json' => ['error' => $err],
-            'page' => '500'
-        ], $err], 500);
+        funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+        return;
     }
     // Validate "$mainKeyAndOptionalSubKeys" is either a string (just the first key level in $c)
     // or an array of array meaning each level is the next level in $c. For example:
     // "mainKey" or "mainKey" => ["subKey1", => ["subKey2"], =>[=>...]]
     if (!is_string($mainKeyAndOptionalSubKeys) && !is_array($mainKeyAndOptionalSubKeys)) {
-        $c['err']['FUNCTIONS']['funk_use_safe_mutate'][] = 'Invalid First Parameter Passed to funk_use_safe_mutate() Function. Parameter should be either a Single String or An array of Strings where Each String Element is the next array key level in the $c. For example: `"mainKey"` or `["mainKey", "subKey1", "subKey2"]`. The first one accesses `$c["mainKey"]`, the second one accesses `$c["mainKey"]["subKey1"]["subKey2"]`.';
+        $c['err']['FUNCTIONS']['funk_use_safe_mutate'][] = 'Invalid First Parameter Passed to `funk_use_safe_mutate()` Function. Parameter should be either a Single String or An array of Strings where Each String Element is the next array key level in the $c. For example: `"mainKey"` or `["mainKey", "subKey1", "subKey2"]`. The first one accesses `$c["mainKey"]`, the second one accesses `$c["mainKey"]["subKey1"]["subKey2"]`.';
         $err = 'Tell the Developer: Invalid First Parameter Passed to `funk_use_safe_mutate()` Function that is meant to mutate a value in the $c Global Configuration Variable. Parameter should be either a Single String or An array of Strings where Each String Element is the next array key level in the $c. For example: `"mainKey"` or `["mainKey", "subKey1", "subKey2"]`. The first one accesses `$c["mainKey"]`, the second one accesses `$c["mainKey"]["subKey1"]["subKey2"]`.';
-        funk_use_custom_error($c, ['json_or_page', [
-            'json' => ['error' => $err],
-            'page' => '500'
-        ], $err], 500);
+        funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
         return;
     }
     // Validate $expectedTypes is an array even if it's single element value is null.
     if (isset($expectedTypes) && !is_array($expectedTypes)) {
-        $c['err']['FUNCTIONS']['funk_use_safe_mutate'][] = 'Invalid Fifth Parameter Passed to funk_use_safe_mutate() Function. This should be an Array of Expected Types the Callable is allowed to return. This includes if you only want null returned meaning you set it to `[null]`. Set this Argument to just `null` if you want to Allow Any Value to be Returned from the Callable.';
+        $c['err']['FUNCTIONS']['funk_use_safe_mutate'][] = 'Invalid Fifth Parameter Passed to `funk_use_safe_mutate()` Function. This should be an Array of Expected Types the Callable is allowed to return. This includes if you only want null returned meaning you set it to `[null]`. Set this Argument to just `null` if you want to Allow Any Value to be Returned from the Callable.';
         $err = 'Tell the Developer: Invalid Fifth Parameter Passed to `funk_use_safe_mutate()` Function that is meant to mutate a value in the $c Global Configuration Variable. This should be an Array of Expected Types the Callable is allowed to return. This includes if you only want null returned meaning you set it to `[null]`. Set this Argument to just `null` if you want to Allow Any Value to be Returned from the Callable.';
-        funk_use_custom_error($c, ['json_or_page', [
-            'json' => ['error' => $err],
-            'page' => '500'
-        ], $err], 500);
+        funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
         return;
     }
     // Validate $expectedTypes are all string values that exist in the $validGetTypes array
     if (is_array($expectedTypes)) {
         foreach ($expectedTypes as $expectedType) {
             if (!is_string($expectedType) || !in_array($expectedType, $validGetTypes)) {
-                $c['err']['FUNCTIONS']['funk_use_safe_mutate'][] = 'Invalid Value in the Fifth Parameter Passed to funk_use_safe_mutate() Function. This should be an Array of Expected Types the Callable is allowed to return. Each Value in the Array should be a String and one of the following: `' . implode('`, `', $validGetTypes) . '`';
-                funk_use_custom_error($c, ['json_or_page', [
-                    'json' => ['error' => 'Tell the Developer: Invalid Value in the Fifth Parameter Passed to `funk_use_safe_mutate()` Function that is meant to mutate a value in the $c Global Configuration Variable. This should be an Array of Expected Types the Callable is allowed to return. Each Value in the Array should be a String and one of the following: `' . implode('`, `', $validGetTypes) . '`'],
-                    'page' => '500'
-                ]], 500);
+                $c['err']['FUNCTIONS']['funk_use_safe_mutate'][] = 'Invalid Value in the Fifth Parameter Passed to `funk_use_safe_mutate()` Function. This should be an Array of Expected Types the Callable is allowed to return. Each Value in the Array should be a String and one of the following: `' . implode('`, `', $validGetTypes) . '`';
+                $err = 'Tell the Developer: Invalid Value in the Fifth Parameter Passed to `funk_use_safe_mutate()` Function that is meant to mutate a value in the $c Global Configuration Variable. This should be an Array of Expected Types the Callable is allowed to return. Each Value in the Array should be a String and one of the following: `' . implode('`, `', $validGetTypes) . '`';
+                funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
                 return;
             }
         }
@@ -942,21 +708,17 @@ function funk_use_safe_mutate(&$c, $mainKeyAndOptionalSubKeys, $callable, $calla
     // Validate $expectedValueRanges if set (not null and must be an array),
     if (isset($expectedValueRanges)) {
         if (!is_array($expectedValueRanges) || empty($expectedValueRanges)) {
-            $c['err']['FUNCTIONS']['funk_use_safe_mutate'][] = 'Invalid Sixth Parameter Passed to funk_use_safe_mutate() Function. This should be an Array of Expected Value Ranges the Callable is allowed to return. Each Key in the Array should be one of the following: `' . implode('`, `', $validValueRangeKeys) . '`. Set this Argument to just `null` if you do NOT want to validate value ranges.';
-            funk_use_custom_error($c, ['json_or_page', [
-                'json' => ['error' => 'Tell the Developer: Invalid Sixth Parameter Passed to `funk_use_safe_mutate()` Function that is meant to mutate a value in the $c Global Configuration Variable. This should be an Array of Expected Value Ranges the Callable is allowed to return. Each Key in the Array should be one of the following: `' . implode('`, `', $validValueRangeKeys) . '`. Set this Argument to just `null` if you do NOT want to validate value ranges.'],
-                'page' => '500'
-            ]], 500);
+            $c['err']['FUNCTIONS']['funk_use_safe_mutate'][] = 'Invalid Sixth Parameter Passed to `funk_use_safe_mutate()` Function. This should be an Array of Expected Value Ranges the Callable is allowed to return. Each Key in the Array should be one of the following: `' . implode('`, `', $validValueRangeKeys) . '`. Set this Argument to just `null` if you do NOT want to validate value ranges.';
+            $err = 'Tell the Developer: Invalid Sixth Parameter Passed to `funk_use_safe_mutate()` Function that is meant to mutate a value in the $c Global Configuration Variable. This should be an Array of Expected Value Ranges the Callable is allowed to return. Each Key in the Array should be one of the following: `' . implode('`, `', $validValueRangeKeys) . '`. Set this Argument to just `null` if you do NOT want to validate value ranges.';
+            funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
             return;
         }
         // Each element in $expectedValueRanges should be a key that matches the valid keys
         foreach ($expectedValueRanges as $key => $value) {
             if (!is_string($key) || !in_array($key, $validValueRangeKeys)) {
-                $c['err']['FUNCTIONS']['funk_use_safe_mutate'][] = 'Invalid Key in the Sixth Parameter Passed to funk_use_safe_mutate() Function. This should be an Array of Expected Value Ranges the Callable is allowed to return. Each Key in the Array should be one of the following: `' . implode('`, `', $validValueRangeKeys) . '`. Set this Argument to just `null` if you do NOT want to validate value ranges.';
-                funk_use_custom_error($c, ['json_or_page', [
-                    'json' => ['error' => 'Tell the Developer: Invalid Key in the Sixth Parameter Passed to `funk_use_safe_mutate()` Function that is meant to mutate a value in the $c Global Configuration Variable. This should be an Array of Expected Value Ranges the Callable is allowed to return. Each Key in the Array should be one of the following: `' . implode('`, `', $validValueRangeKeys) . '`. Set this Argument to just `null` if you do NOT want to validate value ranges.'],
-                    'page' => '500'
-                ]], 500);
+                $c['err']['FUNCTIONS']['funk_use_safe_mutate'][] = 'Invalid Key in the Sixth Parameter Passed to `funk_use_safe_mutate()` Function. This should be an Array of Expected Value Ranges the Callable is allowed to return. Each Key in the Array should be one of the following: `' . implode('`, `', $validValueRangeKeys) . '`. Set this Argument to just `null` if you do NOT want to validate value ranges.';
+                $err = 'Tell the Developer: Invalid Key in the Sixth Parameter Passed to `funk_use_safe_mutate()` Function that is meant to mutate a value in the $c Global Configuration Variable. This should be an Array of Expected Value Ranges the Callable is allowed to return. Each Key in the Array should be one of the following: `' . implode('`, `', $validValueRangeKeys) . '`. Set this Argument to just `null` if you do NOT want to validate value ranges.';
+                funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
                 return;
             }
         }
@@ -973,28 +735,21 @@ function funk_use_safe_mutate(&$c, $mainKeyAndOptionalSubKeys, $callable, $calla
             // 1. Validate the Subkey is a non-empty string
             if (!is_string($subKey) || empty($subKey)) {
                 $c['err']['FUNCTIONS']['funk_use_safe_mutate'][] = 'Invalid or Empty Subkey provided in Path at Current Depth: ' .  $currentPath;
-                funk_use_custom_error($c, ['json_or_page', [
-                    'json' => ['error' => 'Tell the Developer: Invalid or Empty Subkey provided in Path at Current Depth: ' . $currentPath . '.'],
-                    'page' => '500'
-                ]], 500);
+                $err = 'Tell the Developer: Invalid or Empty Subkey provided in Path at Current Depth: ' . $currentPath . ' inside `funk_use_safe_mutate()` Function.';
+                funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
                 return;
             }
             // 2. Validate the Current Depth is an array so we can traverse it
             if (!is_array($cRef)) {
                 $c['err']['FUNCTIONS']['funk_use_safe_mutate'][] = 'Cannot Traverse Path. Expected Array at ' . $currentPath . ', but found a Non-Array Value.';
-                funk_use_custom_error($c, ['json_or_page', [
-                    'json' => ['error' => 'Tell the Developer: Cannot Traverse Path. Expected Array at: ' . $currentPath . ', but found a Non-Array Value.'],
-                    'page' => '500'
-                ]], 500);
+                $err = 'Tell the Developer: Cannot Traverse Path. Expected Array at: ' . $currentPath . ', but found a Non-Array Value inside `funk_use_safe_mutate()` Function.';
+                funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
                 return;
             }
             // 3. Check for Key Existence at current depth
             if (!array_key_exists($subKey, $cRef)) {
                 $c['err']['FUNCTIONS']['funk_use_safe_mutate'][] = 'Key `' . $subKey . '` does NOT exist at Path: `' . $currentPath . '`. Cannot mutate Non-existing Path!';
-                funk_use_custom_error($c, ['json_or_page', [
-                    'json' => ['error' => 'Tell the Developer: Key `' . $subKey . '` does NOT exist at Path: `' . $currentPath . '`. Cannot mutate Non-existing Path!'],
-                    'page' => '500'
-                ]], 500);
+                $err = 'Tell the Developer: Key `' . $subKey . '` does NOT exist at Path: `' . $currentPath . '`. Cannot mutate Non-existing Path inside `funk_use_safe_mutate()` Function.';
                 return;
             }
             // 4. Move&Update the Reference Pointer to next possible subKey or Final Value
@@ -1008,9 +763,9 @@ function funk_use_safe_mutate(&$c, $mainKeyAndOptionalSubKeys, $callable, $calla
     try {
         $returnedValuesFromCallable = call_user_func_array($callable, $callableArgs);
     } catch (\Throwable $e) {
-        $err = 'Tell the Developer: An Exception or Error occurred while executing the Callable (`' . $callable . '`) for Path `' . $currentPath . '`. Error: `' . $e->getMessage() . '`';
+        $err = 'Tell the Developer: An Exception or Error occurred while executing the Callable (`' . $callable . '`) for Path `' . $currentPath . '`. Error: `' . $e->getMessage() . '` called inside `funk_use_safe_mutate()` Function.';
         $c['err']['FUNCTIONS']['funk_use_safe_mutate'][] = $err;
-        funk_use_custom_error($c, ['json_or_page', ['json' => ['error' => $err], 'page' => '500']], 500);
+        funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
         return;
     }
 
@@ -1018,9 +773,9 @@ function funk_use_safe_mutate(&$c, $mainKeyAndOptionalSubKeys, $callable, $calla
     // OPTIONAL: Validate Expected Types (Specific Types: string, integer, boolean, null, array, object, resource)
     if (is_array($expectedTypes)) {
         if (!in_array($returnedType, $expectedTypes, true)) {
-            $err = 'Callable (`' . $callable . '`) returned Unexpected Value Type for Path `' . $currentPath . '`. Returned Value Type was NOT the Expected Type. Expected one of: `' . implode('`, `', $expectedTypes) . '`. Returned Value was: `' . var_export($returnedValuesFromCallable, true) . '`. Set the $expectedTypes Argument to null to allow Any Return Type. Use the $expectedValueRanges Argument to Validate Value Ranges which only takes place after the Type Validation has passed.';
+            $err = 'Callable (`' . $callable . '`) called by `funk_use_safe_mutate()` Function returned Unexpected Value Type for Path `' . $currentPath . '`. Returned Value Type was NOT the Expected Type. Expected one of: `' . implode('`, `', $expectedTypes) . '`. Returned Value was: `' . var_export($returnedValuesFromCallable, true) . '`. Set the $expectedTypes Argument to null to allow Any Return Type. Use the $expectedValueRanges Argument to Validate Value Ranges which only takes place after the Type Validation has passed.';
             $c['err']['FUNCTIONS']['funk_use_safe_mutate'][] = $err;
-            funk_use_custom_error($c, ['json_or_page', ['json' => ['error' => $err], 'page' => '500']], 500);
+            funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
             return;
         }
     }
@@ -1097,7 +852,7 @@ function funk_use_safe_mutate(&$c, $mainKeyAndOptionalSubKeys, $callable, $calla
             if (!in_array($key, $compatibleKeys)) {
                 $err = 'Value Range Check Failed for Path `' . $currentPath . '`. The provided constraint `' . $key . '` is **incompatible** with the actual returned type: `' . $returnedType . '`. The return value was: `' . var_export($returnedValue, true) . '`.';
                 $c['err']['FUNCTIONS']['funk_use_safe_mutate'][] = $err;
-                funk_use_custom_error($c, ['json_or_page', ['json' => ['error' => $err], 'page' => '500']], 500);
+                funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
                 return;
             }
 
@@ -1108,7 +863,7 @@ function funk_use_safe_mutate(&$c, $mainKeyAndOptionalSubKeys, $callable, $calla
                     if ($returnedValue < $value) {
                         $err = 'Value Range Check Failed for Path `' . $currentPath . '`. Value `' . $returnedValue . '` is below required minimum of `' . $value . '`.';
                         $c['err']['FUNCTIONS']['funk_use_safe_mutate'][] = $err;
-                        funk_use_custom_error($c, ['json_or_page', ['json' => ['error' => $err], 'page' => '500']], 500);
+                        funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
                         return;
                     }
                     break;
@@ -1116,7 +871,7 @@ function funk_use_safe_mutate(&$c, $mainKeyAndOptionalSubKeys, $callable, $calla
                     if ($returnedValue > $value) {
                         $err = 'Value Range Check Failed for Path `' . $currentPath . '`. Value `' . $returnedValue . '` is above required maximum of `' . $value . '`.';
                         $c['err']['FUNCTIONS']['funk_use_safe_mutate'][] = $err;
-                        funk_use_custom_error($c, ['json_or_page', ['json' => ['error' => $err], 'page' => '500']], 500);
+                        funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
                         return;
                     }
                     break;
@@ -1134,7 +889,7 @@ function funk_use_safe_mutate(&$c, $mainKeyAndOptionalSubKeys, $callable, $calla
                         // Note: exact_length used for both string/array exact count
                         $err = 'Value Range Check Failed for Path `' . $currentPath . '`. ' . ucfirst($checkName) . ' (' . $length . ') is not exactly `' . $value . '`.';
                         $c['err']['FUNCTIONS']['funk_use_safe_mutate'][] = $err;
-                        funk_use_custom_error($c, ['json_or_page', ['json' => ['error' => $err], 'page' => '500']], 500);
+                        funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
                         return;
                     }
                     // Handle min/max length/count... (similar error logic)
@@ -1145,7 +900,7 @@ function funk_use_safe_mutate(&$c, $mainKeyAndOptionalSubKeys, $callable, $calla
                     if ($returnedValue !== $value) { // Use strict comparison
                         $err = 'Value Range Check Failed for Path `' . $currentPath . '`. Value is not exactly the required literal value.';
                         $c['err']['FUNCTIONS']['funk_use_safe_mutate'][] = $err;
-                        funk_use_custom_error($c, ['json_or_page', ['json' => ['error' => $err], 'page' => '500']], 500);
+                        funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
                         return;
                     }
                     break;
@@ -1282,10 +1037,7 @@ function funk_run_pipeline_request(&$c, $passedValue = null)
     ) {
         $c['err']['PIPELINE']['function funk_run_pipeline_request'][] = 'Passed Value for funk_run_pipeline_request() must be either `defensive` or `happy`!';
         $err = 'Tell the Developer: Passed Value for funk_run_pipeline_request() must be either `defensive` or `happy`!';
-        funk_use_custom_error($c, ['json_or_page', [
-            'json' => ['error' => $err],
-            'page' => '500'
-        ]], 500);
+        funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
     }
 
     // 'defensive' = we check almost everything and output error to user if something gets wrong
@@ -1299,10 +1051,7 @@ function funk_run_pipeline_request(&$c, $passedValue = null)
         ) {
             $c['err']['PIPELINE']['funk_run_pipeline_request'][] = 'No Configured Pipeline Functions (`"<ENTRY>" => "pipeline" => "request"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\'][\'request\']` Key in the Pipeline Configuration File `funkphp/config/pipeline.php` File!';
             $err = 'Tell the Developer: No Pipeline Functions to run? Please check the `[\'pipeline\'][\'request\']` Key in the `funkphp/config/pipeline.php` File!';
-            funk_use_custom_error($c, ['json_or_page', [
-                'json' => ['error' => $err],
-                'page' => '500'
-            ]], 500);
+            funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
         }
 
         // Prepare for main loop to run each pipeline function
@@ -1324,10 +1073,7 @@ function funk_run_pipeline_request(&$c, $passedValue = null)
             ) {
                 $c['err']['PIPELINE']['funk_run_pipeline_request'][] = 'Pipeline Request Function at index ' .  $i . ' is either NULL or NOT a Valid Data Type. It must be an Associative Array Key (single element) with a Value! (Value can be null, to omit passing any values)';
                 $err = 'Tell the Developer: Pipeline Request Function at index ' .  $i . ' is either NULL or NOT a Valid Data Type. It must be an Associative Array Key (single element) with a Value! (Value can be null to omit passing any values)';
-                funk_use_custom_error($c, ['json_or_page', [
-                    'json' => ['error' => $err],
-                    'page' => '500'
-                ]], 500);
+                funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
             }
             $fnToRun = key($current_pipe);
             $pipeToRun = $pipeDir . $fnToRun . '.php';
@@ -1350,10 +1096,7 @@ function funk_run_pipeline_request(&$c, $passedValue = null)
                 else {
                     $c['err']['PIPELINE']['function funk_run_pipeline_request'][] = 'Pipeline Request Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`';
                     $err = 'Tell the Developer: Pipeline Request Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`';
-                    funk_use_custom_error($c, ['json_or_page', [
-                        'json' => ['error' => $err],
-                        'page' => '500'
-                    ]], 500);
+                    funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
                 }
             }
             // else = pipeline does not exist yet, so include, store and run it with passed value!
@@ -1361,10 +1104,7 @@ function funk_run_pipeline_request(&$c, $passedValue = null)
                 if (!is_readable($pipeToRun)) {
                     $c['err']['PIPELINE']['function funk_run_pipeline_request'][] = 'Pipeline Request Function (`' . $fnToRun . '`) at index '  .  $i . ' does NOT EXIST (or is NOT READABLE) in `funkphp/pipeline/request/` Directory!';
                     $err = 'Tell the Developer: Pipeline Request Function (`' . $fnToRun . '`) at index '  .  $i . ' does NOT EXIST (or is NOT READABLE) in `funkphp/pipeline/request/` Directory!';
-                    funk_use_custom_error($c, ['json_or_page', [
-                        'json' => ['error' => $err],
-                        'page' => '500'
-                    ]], 500);
+                    funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
                 }
                 $runPipe = include_once $pipeToRun;
                 if (is_callable($runPipe)) {
@@ -1380,10 +1120,7 @@ function funk_run_pipeline_request(&$c, $passedValue = null)
                 else {
                     $c['err']['PIPELINE']['function funk_run_pipeline_request'][] = 'Pipeline Request Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`';
                     $err = 'Tell the Developer: Pipeline Request Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`';
-                    funk_use_custom_error($c, ['json_or_page', [
-                        'json' => ['error' => $err],
-                        'page' => '500'
-                    ]], 500);
+                    funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
                 }
             }
 
@@ -1431,10 +1168,7 @@ function funk_run_pipeline_request(&$c, $passedValue = null)
                 else {
                     $c['err']['PIPELINE']['function funk_run_pipeline_request'][] = 'Pipeline Request Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`';
                     $err = 'Tell the Developer: Pipeline Request Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`';
-                    funk_use_custom_error($c, ['json_or_page', [
-                        'json' => ['error' => $err],
-                        'page' => '500'
-                    ]], 500);
+                    funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
                 }
             }
             // else = include, store and run pipeline function
@@ -1454,10 +1188,7 @@ function funk_run_pipeline_request(&$c, $passedValue = null)
                 else {
                     $c['err']['PIPELINE']['function funk_run_pipeline_request'][] = 'Pipeline Request Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`';
                     $err = 'Tell the Developer: Pipeline Request Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`';
-                    funk_use_custom_error($c, ['json_or_page', [
-                        'json' => ['error' => $err],
-                        'page' => '500'
-                    ]], 500);
+                    funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
                 }
             }
             // Clean up before running the next pipeline function

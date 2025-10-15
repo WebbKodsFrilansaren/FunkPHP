@@ -93,7 +93,7 @@ function funk_use_class(&$c, $objClassFolder, $newObjectOrExistingObject, $insta
             if (!FUNKPHP_ALLOW_INSTANCE_OVERWRITE) {
                 $c['err']['CLASSES']['funk_use_class()'][] = 'The `funk_use_class()` cannot set the instance for key `' . $instanceKey . '` in the `' . $objClassFolder . '` Folder as it already exists! Overwriting existing instances is not allowed.';
                 $err = 'The `funk_use_class()` cannot set the instance for key `' . $instanceKey . '` in the `' . $objClassFolder . '` Folder as it already exists! Overwriting existing instances is not allowed. Change to: `define("FUNKPHP_ALLOW_INSTANCE_OVERWRITE",true)` in `config/_all.php` (below $c["INSTANCES"] to `true` if you want to allow overwriting existing instances!';
-                funk_use_custom_error($c, ['json_or_page', ['json' => ["error" => $err], 'page' => '500'], $err], 500);
+                funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
             } else {
                 $c['INSTANCES'][$objClassFolder][$instanceKey] = $newObjectOrExistingObject;
                 return $c['INSTANCES'][$objClassFolder][$instanceKey];

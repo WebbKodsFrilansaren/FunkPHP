@@ -15,6 +15,6 @@ return function (&$c, $passedValue = null) {
         }
     } catch (Exception $e) {
         $err = 'Tell the Developer: The HTTPS Redirect Pipeline Function failed to Redirect to HTTPS!';
-        funk_use_custom_error($c, ['json_or_page', ['json' => ["custom_error" => $err], 'page' => '500'], $err], 500);
+        funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
     }
 };

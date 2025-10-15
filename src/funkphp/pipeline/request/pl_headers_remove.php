@@ -13,7 +13,7 @@ return function (&$c, $passedValue = null) {
                 header_remove($header);
             } else {
                 $err = 'Tell the Developer: The Headers Pipeline Function ran but WITHOUT a Valid Header Structure - Each Header must be a Non-Empty String!';
-                funk_use_custom_error($c, ['json_or_page', ['json' => ["custom_error" => $err], 'page' => '500'], $err], 500);
+                funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
             }
         }
     }

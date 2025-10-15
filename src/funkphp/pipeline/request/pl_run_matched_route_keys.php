@@ -6,7 +6,7 @@
     ) {
         $c['err']['PIPELINE']['REQUEST']['funk_run_matched_route_keys'][] = 'Passed Value to `funk_run_matched_route_middlewares` Pipeline Function must be either `defensive` or `happy` or `null` (default). No attempt to run any Matched Route Keys for Matched Route was made!';
         $err = 'Tell the Developer: The Run Matched Route Keys Pipeline Function ran but WITHOUT a Valid Passed Value - Must be either `defensive` or `happy`!';
-        funk_use_custom_error($c, ['json_or_page', ['json' => ["custom_error" => $err], 'page' => '500'], $err], 500);
+        funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
     }
 
     // 'defensive' = we check almost everything and output error to user if something gets wrong
@@ -20,7 +20,7 @@
         ) {
             $c['err']['PIPELINE']['REQUEST']['funk_run_matched_route_keys'][] = 'Route Keys for the Matched Route must be a Numbered Array! Please check your Route Keys in `funkphp/routes/routes.php` for the Route `' . (is_string($c['req']['method']) ? $c['req']['method'] : '<No HTTP(S) Method Matched>') . '/' . (is_string($c['req']['route']) ? $c['req']['route'] : '<No Route Matched>') . '`!';
             $err = 'Tell the Developer: The Route Keys for the Matched Route must be a Numbered Array! Please check your Route Keys in `funkphp/routes/routes.php` for the Route `' . (is_string($c['req']['method']) ? $c['req']['method'] : '<No HTTP(S) Method Matched>') . '/' . (is_string($c['req']['route']) ? $c['req']['route'] : '<No Route Matched>') . '`!';
-            funk_use_custom_error($c, ['json_or_page', ['json' => ["custom_error" => $err], 'page' => '500'], $err], 500);
+            funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
         }
 
         // Main Loop - each value is `Routes/folder=>FileName=>FunctionName=>$passedValue`
@@ -35,7 +35,7 @@
             ) {
                 $c['err']['PIPELINE']['REQUEST']['funk_run_matched_route_keys'][] = 'Route Key at Index `' . $idx . '` must be an Array with a Non-Empty String Key corresponding to the Folder where the Function File with corresponding Function Name would be inside of! Please check your Route Keys in `funkphp/routes/routes.php` for the Route `' . (is_string($c['req']['method']) ? $c['req']['method'] : '<No HTTP(S) Method Matched>') . '/' . (is_string($c['req']['route']) ? $c['req']['route'] : '<No Route Matched>') . '`!';
                 $err = 'Tell the Developer: The Route Key at Index `' . $idx . '` must be an Array with a Non-Empty String Key corresponding to the Folder where the Function File with corresponding Function Name would be inside of! Please check your Route Keys in `funkphp/routes/routes.php` for the Route `' . (is_string($c['req']['method']) ? $c['req']['method'] : '<No HTTP(S) Method Matched>') . '/' . (is_string($c['req']['route']) ? $c['req']['route'] : '<No Route Matched>') . '`!';
-                funk_use_custom_error($c, ['json_or_page', ['json' => ["custom_error" => $err], 'page' => '500'], $err], 500);
+                funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
             }
             // Ok folder is associative array, we get its key and check that its value (filename) is also an associative array
             $folder = key($dirFileFn);
@@ -46,7 +46,7 @@
             ) {
                 $c['err']['PIPELINE']['REQUEST']['funk_run_matched_route_keys'][] = 'Route Key at Index `' . $idx . '` must be an Array with a Non-Empty String Key corresponding to the Folder where the Function File with corresponding Function Name would be inside of! Please check your Route Keys in `funkphp/routes/routes.php` for the Route `' . (is_string($c['req']['method']) ? $c['req']['method'] : '<No HTTP(S) Method Matched>') . '/' . (is_string($c['req']['route']) ? $c['req']['route'] : '<No Route Matched>') . '`!';
                 $err = 'Tell the Developer: The Route Key at Index `' . $idx . '` must be an Array with a Non-Empty String Key corresponding to the Folder where the Function File with corresponding Function Name would be inside of! Please check your Route Keys in `funkphp/routes/routes.php` for the Route `' . (is_string($c['req']['method']) ? $c['req']['method'] : '<No HTTP(S) Method Matched>') . '/' . (is_string($c['req']['route']) ? $c['req']['route'] : '<No Route Matched>') . '`!';
-                funk_use_custom_error($c, ['json_or_page', ['json' => ["custom_error" => $err], 'page' => '500'], $err], 500);
+                funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
             }
             // Ok filename is also associative array, we get its key and check that its value (function name) is also an associative array
             $fileName = key($dirFileFn[$folder]);
@@ -57,7 +57,7 @@
             ) {
                 $c['err']['PIPELINE']['REQUEST']['funk_run_matched_route_keys'][] = 'Route Key at Index `' . $idx . '` must be an Array with a Non-Empty String Key corresponding to the Folder where the Function File with corresponding Function Name would be inside of! Please check your Route Keys in `funkphp/routes/routes.php` for the Route `' . (is_string($c['req']['method']) ? $c['req']['method'] : '<No HTTP(S) Method Matched>') . '/' . (is_string($c['req']['route']) ? $c['req']['route'] : '<No Route Matched>') . '`!';
                 $err = 'Tell the Developer: The Route Key at Index `' . $idx . '` must be an Array with a Non-Empty String Key corresponding to the Folder where the Function File with corresponding Function Name would be inside of! Please check your Route Keys in `funkphp/routes/routes.php` for the Route `' . (is_string($c['req']['method']) ? $c['req']['method'] : '<No HTTP(S) Method Matched>') . '/' . (is_string($c['req']['route']) ? $c['req']['route'] : '<No Route Matched>') . '`!';
-                funk_use_custom_error($c, ['json_or_page', ['json' => ["custom_error" => $err], 'page' => '500'], $err], 500);
+                funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
             }
             // Ok all three are associative arrays, so we can now check that the folder=>filename actually exists
             // after we first have checked if it already exists in the $c['dispatchers'] array
@@ -98,13 +98,13 @@
                 else {
                     $c['err']['PIPELINE']['REQUEST']['funk_run_matched_route_keys'][] = 'Route Key at Index `' . $idx . '` must be an Array with a Non-Empty String Key corresponding to the Folder where the Function File with corresponding Function Name would be inside of! The Folder/Function File `' . $folder . '/' . $fileName . '.php` does NOT RETURN a Callable Function in `funkphp/routes/` Directory! Please check your Route Keys in `funkphp/routes/routes.php` for the Route `' . (is_string($c['req']['method']) ? $c['req']['method'] : '<No HTTP(S) Method Matched>') . '/' . (is_string($c['req']['route']) ? $c['req']['route'] : '<No Route Matched>') . '`!';
                     $err = 'Tell the Developer: The Route Key at Index `' . $idx . '` must be an Array with a Non-Empty String Key corresponding to the Folder where the Function File with corresponding Function Name would be inside of! The Folder/Function File `' . $folder . '/' . $fileName . '.php` does NOT RETURN a Callable Function in `funkphp/routes/` Directory! Please check your Route Keys in `funkphp/routes/routes.php` for the Route `' . (is_string($c['req']['method']) ? $c['req']['method'] : '<No HTTP(S) Method Matched>') . '/' . (is_string($c['req']['route']) ? $c['req']['route'] : '<No Route Matched>') . '`!';
-                    funk_use_custom_error($c, ['json_or_page', ['json' => ["custom_error" => $err], 'page' => '500'], $err], 500);
+                    funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
                 }
             } // ERROR: File not found or not readable so hard error
             else {
                 $c['err']['PIPELINE']['REQUEST']['funk_run_matched_route_keys'][] = 'Route Key at Index `' . $idx . '` must be an Array with a Non-Empty String Key corresponding to the Folder where the Function File with corresponding Function Name would be inside of! The Folder/Function File `' . $folder . '/' . $fileName . '.php` does NOT EXIST in `funkphp/routes/` Directory! Please check your Route Keys in `funkphp/routes/routes.php` for the Route `' . (is_string($c['req']['method']) ? $c['req']['method'] : '<No HTTP(S) Method Matched>') . '/' . (is_string($c['req']['route']) ? $c['req']['route'] : '<No Route Matched>') . '`!';
                 $err = 'Tell the Developer: The Route Key at Index `' . $idx . '` must be an Array with a Non-Empty String Key corresponding to the Folder where the Function File with corresponding Function Name would be inside of! The Folder/Function File `' . $folder . '/' . $fileName . '.php` does NOT EXIST/IS NOT READABLE in `funkphp/routes/` Directory! Please check your Route Keys in `funkphp/routes/routes.php` for the Route `' . (is_string($c['req']['method']) ? $c['req']['method'] : '<No HTTP(S) Method Matched>') . '/' . (is_string($c['req']['route']) ? $c['req']['route'] : '<No Route Matched>') . '`!';
-                funk_use_custom_error($c, ['json_or_page', ['json' => ["custom_error" => $err], 'page' => '500'], $err], 500);
+                funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
             }
         }
     }
@@ -146,7 +146,7 @@
             }
             $c['err']['PIPELINE']['REQUEST']['funk_run_matched_route_keys'][] = 'Route Key at Index `' . $idx . '` must be an Array with a Non-Empty String Key corresponding to the Folder where the Function File with corresponding Function Name would be inside of! The Folder/Function File `' . $folder . '/' . $fileName . '.php` does NOT RETURN a Callable Function in `funkphp/routes/` Directory! Please check your Route Keys in `funkphp/routes/routes.php` for the Route `' . (is_string($c['req']['method']) ? $c['req']['method'] : '<No HTTP(S) Method Matched>') . '/' . (is_string($c['req']['route']) ? $c['req']['route'] : '<No Route Matched>') . '`!';
             $err = 'Tell the Developer: The Route Key at Index `' . $idx . '` must be an Array with a Non-Empty String Key corresponding to the Folder where the Function File with corresponding Function Name would be inside of! The Folder/Function File `' . $folder . '/' . $fileName . '.php` does NOT RETURN a Callable Function in `funkphp/routes/` Directory! Please check your Route Keys in `funkphp/routes/routes.php` for the Route `' . (is_string($c['req']['method']) ? $c['req']['method'] : '<No HTTP(S) Method Matched>') . '/' . (is_string($c['req']['route']) ? $c['req']['route'] : '<No Route Matched>') . '`. This happened in `happy` mode, so no further checks were made!';
-            funk_use_custom_error($c, ['json_or_page', ['json' => ["custom_error" => $err], 'page' => '500'], $err], 500);
+            funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
         }
     }
 };
