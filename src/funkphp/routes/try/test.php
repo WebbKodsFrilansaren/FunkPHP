@@ -9,7 +9,8 @@ function test2(&$c, $passedValue = null) // <N/A>
 {
 	// Placeholder Comment so Regex works - Remove & Add Real Code!
 	echo "HI FROM TRY TEST2 FUNCTION! Should run for GET/users/:id\n";
-	$test = funk_use_safe_mutate($c, ["req", "auth"], TEST_2(), [], ["boolean", "integer"], null);
+	$test = funk_use_safe_mutate($c, ["req", "auth"], "TEST_2", [], ["string", "integer"], ['min_value' => 0, 'min_length' => 1, 'is_resource_type' => false]);
+	vd($c['req']);
 	echo "Returned value Using TEST_2() is: " . print_r($test, true) . "\n";
 };
 

@@ -12,13 +12,6 @@ function TEST_FUNCTION_REMOVE_LATER(&$c)
     }
 }
 
-// TEST FUNCTION - either returns a string or a integer
-function TEST_2()
-{
-    // use random to return either string or integer
-    return rand(0, 1) === 0 ? "A String" : 12345;
-}
-
 /**
  * CUSTOM ERROR HANDLER: Outputs a raw HTML string directly to the client.
  *
@@ -619,6 +612,13 @@ function funk_use_error_json_or_page_or_callback(&$c, int $errCode, string $errM
     exit();
 }
 
+// TEST FUNCTION (testing funk_use_safe_mutate()) - either returns a string or a integer
+function TEST_2()
+{
+    // use random to return either string or integer
+    return rand(0, 1) === 0 ? "A String" : 12345;
+}
+
 /**
  **
  **
@@ -669,6 +669,67 @@ function funk_use_safe_mutate(&$c, $mainKeyAndOptionalSubKeys, $callable, $calla
         'is_falsey',
         'is_truthy'
     ];
+    // Mapping of types to applicable range checks
+    $typeToRangeMap = [
+        'string' => [
+            'exact_length',
+            'min_length',
+            'max_length',
+            'exact_value',
+            'allowed_values',
+            'disallowed_values',
+            'matches_regex',
+            'is_json_string',
+            'numeric_string',
+            'is_falsey',
+            'is_truthy'
+        ],
+        'integer' => [
+            'exact_value',
+            'min_value',
+            'max_value',
+            'allowed_values',
+            'disallowed_values',
+            'is_falsey',
+            'is_truthy'
+        ],
+        'double' => [ // Doubles/floats use numeric range checks
+            'exact_value',
+            'min_value',
+            'max_value',
+            'allowed_values',
+            'disallowed_values',
+            'is_falsey',
+            'is_truthy'
+        ],
+        'boolean' => [ // Only simple value checks apply
+            'exact_value',
+            'is_falsey',
+            'is_truthy'
+        ],
+        'array' => [
+            'exact_length',
+            'min_length',
+            'max_length',
+            'array_count_min',
+            'array_count_max',
+            'array_keys_only',
+            'is_falsey',
+            'is_truthy'
+        ],
+        'object' => [
+            'object_instanceof',
+            'is_falsey',
+            'is_truthy'
+        ],
+        'resource' => [ // Includes 'resource (closed)'
+            'is_resource_type'
+        ],
+        'NULL' => [
+            'exact_value' // Only checks for exact 'NULL' value
+        ]
+        // 'unknown type' and 'null' should generally not have range checks applied
+    ];
 
     // Validate that $callable is a valid callable function
     if (!is_string($callable) || !is_callable($callable)) {
@@ -704,7 +765,6 @@ function funk_use_safe_mutate(&$c, $mainKeyAndOptionalSubKeys, $callable, $calla
             }
         }
     }
-
     // Validate $expectedValueRanges if set (not null and must be an array),
     if (isset($expectedValueRanges)) {
         if (!is_array($expectedValueRanges) || empty($expectedValueRanges)) {
@@ -723,10 +783,14 @@ function funk_use_safe_mutate(&$c, $mainKeyAndOptionalSubKeys, $callable, $calla
             }
         }
     }
-
     // If string, we turn it to an array with one element so we can iterate through it below
     if (is_string($mainKeyAndOptionalSubKeys)) {
-        $mainKeyAndOptionalSubKeys = [$mainKeyAndOptionalSubKeys];
+        // We split on "." if they used a dot notation to specify subkeys
+        if (str_contains($mainKeyAndOptionalSubKeys, ".")) {
+            $mainKeyAndOptionalSubKeys = explode(".", $mainKeyAndOptionalSubKeys);
+        } else {
+            $mainKeyAndOptionalSubKeys = [$mainKeyAndOptionalSubKeys];
+        }
     }
     // If array, we iterate through it and build the reference to $c that we
     // want to mutate checking that its subkey actually exists first.
@@ -758,6 +822,31 @@ function funk_use_safe_mutate(&$c, $mainKeyAndOptionalSubKeys, $callable, $calla
         }
     }
 
+    // This check ensures every constraint provided by the developer is valid
+    // for AT LEAST ONE of the types they listed in $expectedTypes.
+    if (!empty($expectedValueRanges) && is_array($expectedTypes)) {
+        $expectedTypesList = implode('`, `', $expectedTypes);
+        foreach ($expectedValueRanges as $key => $value) {
+            $isCompatibleWithAnyExpectedType = false;
+            // Check this constraint ($key) against EVERY type the developer allows
+            foreach ($expectedTypes as $expectedType) {
+                // Get the allowed constraint keys for this single expected type from your map
+                $allowedConstraintsForType = $typeToRangeMap[$expectedType] ?? [];
+                if (in_array($key, $allowedConstraintsForType)) {
+                    $isCompatibleWithAnyExpectedType = true;
+                    break; // Found one compatible type, constraint is okay, move to next constraint key
+                }
+            }
+            // If we looped through all expected types and found no match, trigger a developer error.
+            if (!$isCompatibleWithAnyExpectedType) {
+                $err = 'Developer Error: The Value Range Check Rule `' . $key . '` in $expectedValueRanges is **incompatible** with ALL of the Allowed Expected Types: `' . $expectedTypesList . '`. Check the $typeToRangeMap or remove the invalid constraint.';
+                $c['err']['FUNCTIONS']['funk_use_safe_mutate'][] = $err;
+                // Fail fast before calling the callable
+                funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+                return;
+            }
+        }
+    }
     // We now have a valid reference to the target value in $c that we want to mutate
     $returnedValuesFromCallable = FUNKPHP_NO_VALUE;
     try {
@@ -769,8 +858,8 @@ function funk_use_safe_mutate(&$c, $mainKeyAndOptionalSubKeys, $callable, $calla
         return;
     }
 
-    $returnedType = gettype($returnedValuesFromCallable);
     // OPTIONAL: Validate Expected Types (Specific Types: string, integer, boolean, null, array, object, resource)
+    $returnedType = gettype($returnedValuesFromCallable);
     if (is_array($expectedTypes)) {
         if (!in_array($returnedType, $expectedTypes, true)) {
             $err = 'Callable (`' . $callable . '`) called by `funk_use_safe_mutate()` Function returned Unexpected Value Type for Path `' . $currentPath . '`. Returned Value Type was NOT the Expected Type. Expected one of: `' . implode('`, `', $expectedTypes) . '`. Returned Value was: `' . var_export($returnedValuesFromCallable, true) . '`. Set the $expectedTypes Argument to null to allow Any Return Type. Use the $expectedValueRanges Argument to Validate Value Ranges which only takes place after the Type Validation has passed.';
@@ -780,80 +869,17 @@ function funk_use_safe_mutate(&$c, $mainKeyAndOptionalSubKeys, $callable, $calla
         }
     }
 
-    // TODO: Validate value ranges based on returned type and the provided expectedValueRanges
+    // TODO: Add More Validate value ranges based on returned type and the provided expectedValueRanges
     if (isset($expectedValueRanges)) {
-        // Mapping of types to applicable range checks
-        $typeToRangeMap = [
-            'string' => [
-                'exact_length',
-                'min_length',
-                'max_length',
-                'exact_value',
-                'allowed_values',
-                'disallowed_values',
-                'matches_regex',
-                'is_json_string',
-                'numeric_string',
-                'is_falsey',
-                'is_truthy'
-            ],
-            'integer' => [
-                'exact_value',
-                'min_value',
-                'max_value',
-                'allowed_values',
-                'disallowed_values',
-                'is_falsey',
-                'is_truthy'
-            ],
-            'double' => [ // Doubles/floats use numeric range checks
-                'exact_value',
-                'min_value',
-                'max_value',
-                'allowed_values',
-                'disallowed_values',
-                'is_falsey',
-                'is_truthy'
-            ],
-            'boolean' => [ // Only simple value checks apply
-                'exact_value',
-                'is_falsey',
-                'is_truthy'
-            ],
-            'array' => [
-                'exact_length',
-                'min_length',
-                'max_length',
-                'array_count_min',
-                'array_count_max',
-                'array_keys_only',
-                'is_falsey',
-                'is_truthy'
-            ],
-            'object' => [
-                'object_instanceof',
-                'is_falsey',
-                'is_truthy'
-            ],
-            'resource' => [ // Includes 'resource (closed)'
-                'is_resource_type'
-            ],
-            'NULL' => [
-                'exact_value' // Only checks for exact 'NULL' value
-            ]
-            // 'unknown type' and 'null' should generally not have range checks applied
-        ];
         // Get the keys compatible with the ACTUAL returned type
         $compatibleKeys = $typeToRangeMap[$returnedType] ?? [];
         $returnedValue = $returnedValuesFromCallable; // Shorthand
 
         foreach ($expectedValueRanges as $key => $value) {
-            // 1. INCOMPATIBILITY CHECK (Must be first)
+            // We skip keys that are not relevant to the returned type. We have already validated that
+            // all provided validation rules are compatible with at least one of the expected types!
             if (!in_array($key, $compatibleKeys)) {
-                $err = 'Value Range Check Failed for Path `' . $currentPath . '`. The provided constraint `' . $key . '` is **incompatible** with the actual returned type: `' . $returnedType . '`. The return value was: `' . var_export($returnedValue, true) . '`.';
-                $c['err']['FUNCTIONS']['funk_use_safe_mutate'][] = $err;
-                funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
-                return;
+                continue; // Skip incompatible keys for valid returned type
             }
 
             // 2. EXECUTE VALIDATION LOGIC
