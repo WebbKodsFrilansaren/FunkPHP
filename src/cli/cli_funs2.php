@@ -40,15 +40,15 @@ function cli_parse_a_sql_table_file()
     if (!str_ends_with($argv[3], ".sql")) {
         $argv[3] .= ".sql";
     }
-    if (file_exists_is_readable_writable($dirs['schemas'] . $argv[3])) {
+    if (is_readable($dirs['schemas'] . $argv[3])) {
         $sqlFile = file_get_contents($dirs['schemas'] . $argv[3]);
     } else {
         cli_err_syntax("\"{$argv[3]}\" must must exist in\"funkphp/schemas/\"!");
     }
 
     // Check that the tables.php file exists and is writable, then load it
-    if (!file_exists_is_readable_writable($exactFiles['tables'])) {
-        cli_err_syntax("The \"funkphp/config/tables.php\" file must exist and be writable!");
+    if (!is_readable($exactFiles['tables']) || !is_writable($exactFiles['tables'])) {
+        cli_err_syntax("The \"funkphp/config/tables.php\" File must exist and be writable!");
     }
 
     // Prepare variables to store the tables.php file and parsed table

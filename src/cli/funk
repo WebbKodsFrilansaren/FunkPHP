@@ -250,7 +250,7 @@ $exactFiles = [
 // should not be used in the application code. They are checked against
 // when adding any new kind of function that is already reserved.
 $reserved_functions = [];
-if (file_exists_is_readable_writable(CLI_DIR . '/cli_reserved.php')) {
+if (is_readable(CLI_DIR . '/cli_reserved.php')) {
     $reserved_functions = include_once CLI_DIR . '/cli_reserved.php';
 } else {
     cli_info_without_exit("Reserved Functions List File `cli_reserved.php` NOT FOUND! Attempting to generate a new one...");

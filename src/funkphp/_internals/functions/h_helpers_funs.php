@@ -108,7 +108,7 @@ function funk_use_class(&$c, $objClassFolder, $newObjectOrExistingObject, $insta
 }
 
 // The function "h_destroy_session" is used to destroy the session and optionally redirect to a specified URI
-function funk_destroy_session($set_other_cookies_with_h_setcookie_as_array = [], $redirect = null)
+function funk_destroy_session(&$c, $set_other_cookies_with_h_setcookie_as_array = [], $redirect = null)
 {
     // If session is active, destroy it
     if (session_id() || session_status() === PHP_SESSION_ACTIVE) {
@@ -133,7 +133,7 @@ function funk_destroy_session($set_other_cookies_with_h_setcookie_as_array = [],
 }
 
 // Function to set a cookie with the specified parameters
-function funk_headers_setcookie($name, $value, $expire = 0, $path = '/', $domain = '', $secure = false, $httponly = true, $samesite = 'strict')
+function funk_headers_setcookie(&$c, $name, $value, $expire = 0, $path = '/', $domain = '', $secure = false, $httponly = true, $samesite = 'strict')
 {
     // Set the cookie with the specified parameters
     setcookie($name, $value, [
@@ -147,7 +147,7 @@ function funk_headers_setcookie($name, $value, $expire = 0, $path = '/', $domain
 }
 
 // This function uses the "The Random\Randomizer class" to generate a unique password
-function funk_generate_random_password($length = 20, $returnHashed = false)
+function funk_generate_random_password(&$c, $length = 20, $returnHashed = false)
 {
     // Create a new Randomizer object
     $randomizer = new Random\Randomizer();
@@ -282,7 +282,7 @@ function funk_generate_random_password($length = 20, $returnHashed = false)
 }
 
 // This function uses the "The Random\Randomizer class" to generate a unique number
-function funk_generate_random_number($length = 10)
+function funk_generate_random_number(&$c, $length = 10)
 {
     // Create a new Randomizer object
     $randomizer = new Random\Randomizer();
@@ -320,7 +320,7 @@ function funk_generate_random_number($length = 10)
 }
 
 // This function uses the "The Random\Randomizer class" to generate a unique user_id
-function funk_generate_random_user_id($length = 96)
+function funk_generate_random_user_id(&$c, $length = 96)
 {
     // Create a new Randomizer object
     $randomizer = new Random\Randomizer();
@@ -416,7 +416,7 @@ function funk_generate_random_user_id($length = 96)
 }
 
 // This function uses the "The Random\Randomizer class" to generate a unique CSRF
-function funk_generate_random_csrf($length = 384)
+function funk_generate_random_csrf(&$c, $length = 384)
 {
     // Create a new Randomizer object
     $randomizer = new Random\Randomizer();
