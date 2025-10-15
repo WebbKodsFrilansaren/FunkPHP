@@ -9,11 +9,8 @@ function test2(&$c, $passedValue = null) // <N/A>
 {
 	// Placeholder Comment so Regex works - Remove & Add Real Code!
 	echo "HI FROM TRY TEST2 FUNCTION! Should run for GET/users/:id\n";
-	echo "Here is passed value from `try=>test=>test2`Route Key: " . ($passedValue !== null && is_string($passedValue) ? $passedValue : '<NULL OR NOT STRING>') . "<br/>\n";
-	if (funk_last_return_middleware_value($c) === FUNKPHP_NO_VALUE) {
-		echo "There was no last returned middleware value!<br/>\n";
-	}
-	$test = funk_use_class($c, 'classes', (new Test()), 'testClassInstance');
+	$test = funk_use_safe_mutate($c, ["req", "auth"], TEST_2(), [], ["boolean", "integer"], null);
+	echo "Returned value Using TEST_2() is: " . print_r($test, true) . "\n";
 };
 
 function test(&$c, $passedValue = null) // <N/A>

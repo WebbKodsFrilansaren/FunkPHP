@@ -6,12 +6,7 @@ namespace FunkPHP\Data\test;
 function test(&$c, $passedValue = null) // <N/A>
 {
 	// Placeholder Comment so Regex works - Remove & Add Real Code!
-	echo "HI FROM DATA TEST FUNCTION! Should run for GET/users<br>";
-	$reuseClass = funk_use_class($c, 'classes', 'testClassInstance');
-	$reuseClass->hello();
-	$test2 = funk_use_class($c, 'classes', (new \FunkPHP\Classes\Test()), 'testClassInstance');
-	vd($c['err']);
-	vd($c['INSTANCES']);
+	echo "<br/>HI FROM DATA TEST FUNCTION! Should run for GET/users<br>";
 };
 
 function test2(&$c, $passedValue = null) // <N/A>

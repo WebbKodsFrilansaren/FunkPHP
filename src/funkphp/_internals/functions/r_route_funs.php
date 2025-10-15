@@ -12,6 +12,13 @@ function TEST_FUNCTION_REMOVE_LATER(&$c)
     }
 }
 
+// TEST FUNCTION - either returns a string or a integer
+function TEST_2()
+{
+    // use random to return either string or integer
+    return rand(0, 1) === 0 ? "A String" : 12345;
+}
+
 // Function allows for custom error such as returning `json`,`page`,`xml`, ``text``, `html`, a `throw` exception
 // or running a custom `callback` function. Defaults to `critical_err_json_or_html()` when used the wrong way!
 function funk_use_custom_error(&$c, $handleTypeAndDataOptionalCBData, $errorCode = 500)
@@ -237,6 +244,324 @@ function funk_use_custom_error(&$c, $handleTypeAndDataOptionalCBData, $errorCode
     }
     exit();
 }
+
+/**
+ **
+ **
+ **/
+function funk_use_safe_mutate(&$c, $mainKeyAndOptionalSubKeys, $callable, $callableArgs = [], $expectedTypes, $expectedValueRanges = null)
+{
+    // The main reference to $c that we will traverse and possibly mutate
+    $cRef = &$c;
+    $currentPath = '$c';
+    $validGetTypes = [
+        'string',
+        'integer',
+        'double',
+        'boolean',
+        'NULL',
+        'null',
+        'array',
+        'object',
+        'resource',
+        'resource (closed)',
+        'unknown type'
+    ];
+    $validValueRangeKeys = [
+        // Length Checks (Mostly for string/array count)
+        'exact_length',
+        'min_length',
+        'max_length',
+        'array_count_exact',
+        'array_count_min',
+        'array_count_max',
+        // Literal Value Checks
+        'exact_value',
+        'allowed_values',
+        'disallowed_values',
+        // Numeric Range Checks (For integer/double)
+        'min_value',
+        'max_value',
+        // String Pattern Checks
+        'matches_regex',
+        'is_json_string',
+        'numeric_string',
+        // Array Structure Checks
+        'array_keys_only',
+        // Object/Resource Checks
+        'object_instanceof',
+        'is_resource_type',
+        // Truthiness Checks
+        'is_falsey',
+        'is_truthy'
+    ];
+
+    // Validate that $callable is a valid callable function
+    if (!is_string($callable) || !is_callable($callable)) {
+        $c['err']['FUNCTIONS']['funk_use_safe_mutate'][] = 'Invalid Second Parameter Passed to funk_use_safe_mutate() Function. This should be the string to an existing and Callable Function within the scope the function is used. It should also return a value to be validated!';
+        $err = 'Tell the Developer: Invalid Second Parameter Passed to `funk_use_safe_mutate()` Function that is meant to mutate a value in the $c Global Configuration Variable. This should be the string to an existing and Callable Function within the scope the function is used. It should also return a value to be validated!';
+        funk_use_custom_error($c, ['json_or_page', [
+            'json' => ['error' => $err],
+            'page' => '500'
+        ], $err], 500);
+    }
+    // Validate "$mainKeyAndOptionalSubKeys" is either a string (just the first key level in $c)
+    // or an array of array meaning each level is the next level in $c. For example:
+    // "mainKey" or "mainKey" => ["subKey1", => ["subKey2"], =>[=>...]]
+    if (!is_string($mainKeyAndOptionalSubKeys) && !is_array($mainKeyAndOptionalSubKeys)) {
+        $c['err']['FUNCTIONS']['funk_use_safe_mutate'][] = 'Invalid First Parameter Passed to funk_use_safe_mutate() Function. Parameter should be either a Single String or An array of Strings where Each String Element is the next array key level in the $c. For example: `"mainKey"` or `["mainKey", "subKey1", "subKey2"]`. The first one accesses `$c["mainKey"]`, the second one accesses `$c["mainKey"]["subKey1"]["subKey2"]`.';
+        $err = 'Tell the Developer: Invalid First Parameter Passed to `funk_use_safe_mutate()` Function that is meant to mutate a value in the $c Global Configuration Variable. Parameter should be either a Single String or An array of Strings where Each String Element is the next array key level in the $c. For example: `"mainKey"` or `["mainKey", "subKey1", "subKey2"]`. The first one accesses `$c["mainKey"]`, the second one accesses `$c["mainKey"]["subKey1"]["subKey2"]`.';
+        funk_use_custom_error($c, ['json_or_page', [
+            'json' => ['error' => $err],
+            'page' => '500'
+        ], $err], 500);
+        return;
+    }
+    // Validate $expectedTypes is an array even if it's single element value is null.
+    if (isset($expectedTypes) && !is_array($expectedTypes)) {
+        $c['err']['FUNCTIONS']['funk_use_safe_mutate'][] = 'Invalid Fifth Parameter Passed to funk_use_safe_mutate() Function. This should be an Array of Expected Types the Callable is allowed to return. This includes if you only want null returned meaning you set it to `[null]`. Set this Argument to just `null` if you want to Allow Any Value to be Returned from the Callable.';
+        $err = 'Tell the Developer: Invalid Fifth Parameter Passed to `funk_use_safe_mutate()` Function that is meant to mutate a value in the $c Global Configuration Variable. This should be an Array of Expected Types the Callable is allowed to return. This includes if you only want null returned meaning you set it to `[null]`. Set this Argument to just `null` if you want to Allow Any Value to be Returned from the Callable.';
+        funk_use_custom_error($c, ['json_or_page', [
+            'json' => ['error' => $err],
+            'page' => '500'
+        ], $err], 500);
+        return;
+    }
+    // Validate $expectedTypes are all string values that exist in the $validGetTypes array
+    if (is_array($expectedTypes)) {
+        foreach ($expectedTypes as $expectedType) {
+            if (!is_string($expectedType) || !in_array($expectedType, $validGetTypes)) {
+                $c['err']['FUNCTIONS']['funk_use_safe_mutate'][] = 'Invalid Value in the Fifth Parameter Passed to funk_use_safe_mutate() Function. This should be an Array of Expected Types the Callable is allowed to return. Each Value in the Array should be a String and one of the following: `' . implode('`, `', $validGetTypes) . '`';
+                funk_use_custom_error($c, ['json_or_page', [
+                    'json' => ['error' => 'Tell the Developer: Invalid Value in the Fifth Parameter Passed to `funk_use_safe_mutate()` Function that is meant to mutate a value in the $c Global Configuration Variable. This should be an Array of Expected Types the Callable is allowed to return. Each Value in the Array should be a String and one of the following: `' . implode('`, `', $validGetTypes) . '`'],
+                    'page' => '500'
+                ]], 500);
+                return;
+            }
+        }
+    }
+
+    // Validate $expectedValueRanges if set (not null and must be an array),
+    if (isset($expectedValueRanges)) {
+        if (!is_array($expectedValueRanges) || empty($expectedValueRanges)) {
+            $c['err']['FUNCTIONS']['funk_use_safe_mutate'][] = 'Invalid Sixth Parameter Passed to funk_use_safe_mutate() Function. This should be an Array of Expected Value Ranges the Callable is allowed to return. Each Key in the Array should be one of the following: `' . implode('`, `', $validValueRangeKeys) . '`. Set this Argument to just `null` if you do NOT want to validate value ranges.';
+            funk_use_custom_error($c, ['json_or_page', [
+                'json' => ['error' => 'Tell the Developer: Invalid Sixth Parameter Passed to `funk_use_safe_mutate()` Function that is meant to mutate a value in the $c Global Configuration Variable. This should be an Array of Expected Value Ranges the Callable is allowed to return. Each Key in the Array should be one of the following: `' . implode('`, `', $validValueRangeKeys) . '`. Set this Argument to just `null` if you do NOT want to validate value ranges.'],
+                'page' => '500'
+            ]], 500);
+            return;
+        }
+        // Each element in $expectedValueRanges should be a key that matches the valid keys
+        foreach ($expectedValueRanges as $key => $value) {
+            if (!is_string($key) || !in_array($key, $validValueRangeKeys)) {
+                $c['err']['FUNCTIONS']['funk_use_safe_mutate'][] = 'Invalid Key in the Sixth Parameter Passed to funk_use_safe_mutate() Function. This should be an Array of Expected Value Ranges the Callable is allowed to return. Each Key in the Array should be one of the following: `' . implode('`, `', $validValueRangeKeys) . '`. Set this Argument to just `null` if you do NOT want to validate value ranges.';
+                funk_use_custom_error($c, ['json_or_page', [
+                    'json' => ['error' => 'Tell the Developer: Invalid Key in the Sixth Parameter Passed to `funk_use_safe_mutate()` Function that is meant to mutate a value in the $c Global Configuration Variable. This should be an Array of Expected Value Ranges the Callable is allowed to return. Each Key in the Array should be one of the following: `' . implode('`, `', $validValueRangeKeys) . '`. Set this Argument to just `null` if you do NOT want to validate value ranges.'],
+                    'page' => '500'
+                ]], 500);
+                return;
+            }
+        }
+    }
+
+    // If string, we turn it to an array with one element so we can iterate through it below
+    if (is_string($mainKeyAndOptionalSubKeys)) {
+        $mainKeyAndOptionalSubKeys = [$mainKeyAndOptionalSubKeys];
+    }
+    // If array, we iterate through it and build the reference to $c that we
+    // want to mutate checking that its subkey actually exists first.
+    if (is_array($mainKeyAndOptionalSubKeys)) {
+        foreach ($mainKeyAndOptionalSubKeys as $subKey) {
+            // 1. Validate the Subkey is a non-empty string
+            if (!is_string($subKey) || empty($subKey)) {
+                $c['err']['FUNCTIONS']['funk_use_safe_mutate'][] = 'Invalid or Empty Subkey provided in Path at Current Depth: ' .  $currentPath;
+                funk_use_custom_error($c, ['json_or_page', [
+                    'json' => ['error' => 'Tell the Developer: Invalid or Empty Subkey provided in Path at Current Depth: ' . $currentPath . '.'],
+                    'page' => '500'
+                ]], 500);
+                return;
+            }
+            // 2. Validate the Current Depth is an array so we can traverse it
+            if (!is_array($cRef)) {
+                $c['err']['FUNCTIONS']['funk_use_safe_mutate'][] = 'Cannot Traverse Path. Expected Array at ' . $currentPath . ', but found a Non-Array Value.';
+                funk_use_custom_error($c, ['json_or_page', [
+                    'json' => ['error' => 'Tell the Developer: Cannot Traverse Path. Expected Array at: ' . $currentPath . ', but found a Non-Array Value.'],
+                    'page' => '500'
+                ]], 500);
+                return;
+            }
+            // 3. Check for Key Existence at current depth
+            if (!array_key_exists($subKey, $cRef)) {
+                $c['err']['FUNCTIONS']['funk_use_safe_mutate'][] = 'Key `' . $subKey . '` does NOT exist at Path: `' . $currentPath . '`. Cannot mutate Non-existing Path!';
+                funk_use_custom_error($c, ['json_or_page', [
+                    'json' => ['error' => 'Tell the Developer: Key `' . $subKey . '` does NOT exist at Path: `' . $currentPath . '`. Cannot mutate Non-existing Path!'],
+                    'page' => '500'
+                ]], 500);
+                return;
+            }
+            // 4. Move&Update the Reference Pointer to next possible subKey or Final Value
+            $cRef = &$cRef[$subKey];
+            $currentPath .= '[\'' . $subKey . '\']'; // Update path for next error message
+        }
+    }
+
+    // We now have a valid reference to the target value in $c that we want to mutate
+    $returnedValuesFromCallable = FUNKPHP_NO_VALUE;
+    try {
+        $returnedValuesFromCallable = call_user_func_array($callable, $callableArgs);
+    } catch (\Throwable $e) {
+        $err = 'Tell the Developer: An Exception or Error occurred while executing the Callable (`' . $callable . '`) for Path `' . $currentPath . '`. Error: `' . $e->getMessage() . '`';
+        $c['err']['FUNCTIONS']['funk_use_safe_mutate'][] = $err;
+        funk_use_custom_error($c, ['json_or_page', ['json' => ['error' => $err], 'page' => '500']], 500);
+        return;
+    }
+
+    $returnedType = gettype($returnedValuesFromCallable);
+    // OPTIONAL: Validate Expected Types (Specific Types: string, integer, boolean, null, array, object, resource)
+    if (is_array($expectedTypes)) {
+        if (!in_array($returnedType, $expectedTypes, true)) {
+            $err = 'Callable (`' . $callable . '`) returned Unexpected Value Type for Path `' . $currentPath . '`. Returned Value Type was NOT the Expected Type. Expected one of: `' . implode('`, `', $expectedTypes) . '`. Returned Value was: `' . var_export($returnedValuesFromCallable, true) . '`. Set the $expectedTypes Argument to null to allow Any Return Type. Use the $expectedValueRanges Argument to Validate Value Ranges which only takes place after the Type Validation has passed.';
+            $c['err']['FUNCTIONS']['funk_use_safe_mutate'][] = $err;
+            funk_use_custom_error($c, ['json_or_page', ['json' => ['error' => $err], 'page' => '500']], 500);
+            return;
+        }
+    }
+
+    // TODO: Validate value ranges based on returned type and the provided expectedValueRanges
+    if (isset($expectedValueRanges)) {
+        // Mapping of types to applicable range checks
+        $typeToRangeMap = [
+            'string' => [
+                'exact_length',
+                'min_length',
+                'max_length',
+                'exact_value',
+                'allowed_values',
+                'disallowed_values',
+                'matches_regex',
+                'is_json_string',
+                'numeric_string',
+                'is_falsey',
+                'is_truthy'
+            ],
+            'integer' => [
+                'exact_value',
+                'min_value',
+                'max_value',
+                'allowed_values',
+                'disallowed_values',
+                'is_falsey',
+                'is_truthy'
+            ],
+            'double' => [ // Doubles/floats use numeric range checks
+                'exact_value',
+                'min_value',
+                'max_value',
+                'allowed_values',
+                'disallowed_values',
+                'is_falsey',
+                'is_truthy'
+            ],
+            'boolean' => [ // Only simple value checks apply
+                'exact_value',
+                'is_falsey',
+                'is_truthy'
+            ],
+            'array' => [
+                'exact_length',
+                'min_length',
+                'max_length',
+                'array_count_min',
+                'array_count_max',
+                'array_keys_only',
+                'is_falsey',
+                'is_truthy'
+            ],
+            'object' => [
+                'object_instanceof',
+                'is_falsey',
+                'is_truthy'
+            ],
+            'resource' => [ // Includes 'resource (closed)'
+                'is_resource_type'
+            ],
+            'NULL' => [
+                'exact_value' // Only checks for exact 'NULL' value
+            ]
+            // 'unknown type' and 'null' should generally not have range checks applied
+        ];
+        // Get the keys compatible with the ACTUAL returned type
+        $compatibleKeys = $typeToRangeMap[$returnedType] ?? [];
+        $returnedValue = $returnedValuesFromCallable; // Shorthand
+
+        foreach ($expectedValueRanges as $key => $value) {
+            // 1. INCOMPATIBILITY CHECK (Must be first)
+            if (!in_array($key, $compatibleKeys)) {
+                $err = 'Value Range Check Failed for Path `' . $currentPath . '`. The provided constraint `' . $key . '` is **incompatible** with the actual returned type: `' . $returnedType . '`. The return value was: `' . var_export($returnedValue, true) . '`.';
+                $c['err']['FUNCTIONS']['funk_use_safe_mutate'][] = $err;
+                funk_use_custom_error($c, ['json_or_page', ['json' => ['error' => $err], 'page' => '500']], 500);
+                return;
+            }
+
+            // 2. EXECUTE VALIDATION LOGIC
+            switch ($key) {
+                // --- Numeric Checks (for 'integer', 'double') ---
+                case 'min_value':
+                    if ($returnedValue < $value) {
+                        $err = 'Value Range Check Failed for Path `' . $currentPath . '`. Value `' . $returnedValue . '` is below required minimum of `' . $value . '`.';
+                        $c['err']['FUNCTIONS']['funk_use_safe_mutate'][] = $err;
+                        funk_use_custom_error($c, ['json_or_page', ['json' => ['error' => $err], 'page' => '500']], 500);
+                        return;
+                    }
+                    break;
+                case 'max_value':
+                    if ($returnedValue > $value) {
+                        $err = 'Value Range Check Failed for Path `' . $currentPath . '`. Value `' . $returnedValue . '` is above required maximum of `' . $value . '`.';
+                        $c['err']['FUNCTIONS']['funk_use_safe_mutate'][] = $err;
+                        funk_use_custom_error($c, ['json_or_page', ['json' => ['error' => $err], 'page' => '500']], 500);
+                        return;
+                    }
+                    break;
+                // --- Length/Count Checks (for 'string', 'array') ---
+                case 'exact_length':
+                case 'min_length':
+                case 'max_length':
+                case 'array_count_min':
+                case 'array_count_max':
+                    // Normalize length/count logic
+                    $length = ($returnedType === 'string') ? strlen($returnedValue) : count($returnedValue);
+                    $checkName = ($returnedType === 'string') ? 'length' : 'count';
+
+                    if (($key === 'exact_length' || $key === 'array_count_max') && $length !== $value) {
+                        // Note: exact_length used for both string/array exact count
+                        $err = 'Value Range Check Failed for Path `' . $currentPath . '`. ' . ucfirst($checkName) . ' (' . $length . ') is not exactly `' . $value . '`.';
+                        $c['err']['FUNCTIONS']['funk_use_safe_mutate'][] = $err;
+                        funk_use_custom_error($c, ['json_or_page', ['json' => ['error' => $err], 'page' => '500']], 500);
+                        return;
+                    }
+                    // Handle min/max length/count... (similar error logic)
+                    break;
+
+                // --- Literal Value Checks (for all types) ---
+                case 'exact_value':
+                    if ($returnedValue !== $value) { // Use strict comparison
+                        $err = 'Value Range Check Failed for Path `' . $currentPath . '`. Value is not exactly the required literal value.';
+                        $c['err']['FUNCTIONS']['funk_use_safe_mutate'][] = $err;
+                        funk_use_custom_error($c, ['json_or_page', ['json' => ['error' => $err], 'page' => '500']], 500);
+                        return;
+                    }
+                    break;
+                    // ... (Continue for all other $validValueRangeKeys) ...
+            }
+        }
+    }
+
+    // All ok, so mutate and return the mutated value back
+    $cRef = $returnedValuesFromCallable;
+    return $cRef;
+}
+
+
 
 // Function stores a user-focused message that is meant to be used in the final output (HTML page or JSON output)
 function funk_collect_output_message(&$c, $level, $key, $message)
@@ -813,7 +1138,7 @@ function funk_abort_pipeline_request(&$c)
     $c['<ENTRY>']['pipeline']['request'] = null;
     return;
 }
-// Same as above but used for the exit functions instead of the pipeline
+// Same as above but used for the post response functions
 // IMPORTANT: As you can see, it will remove all remaining
 // pipeline functions, so use with care!
 function funk_abort_pipeline_post_response(&$c)
