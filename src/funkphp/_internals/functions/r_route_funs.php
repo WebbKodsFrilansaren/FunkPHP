@@ -19,10 +19,8 @@ function TEST_2()
     return rand(0, 1) === 0 ? "A String" : 12345;
 }
 
-// Function allows for custom error such as returning `json`,`page`,`xml`, ``text``, `html`, a `throw` exception
-// or running a custom `callback` function. Defaults to `critical_err_json_or_html()` when used the wrong way!
-function funk_use_custom_error(&$c, $handleTypeAndDataOptionalCBData, $errorCode = 500)
-{
+// FunkPHP Complex Custom Error Function - use the more single purpose ones if possible!
+function funk_use_error(&$c, int $errCode, string $errMsg, string $handleType, $optionalJSONData = null, $optionalCallbackData = null, $optionalPageName = null) {} {
     // $handleTypeAndDataOptionalCBData[0]  = handleType (string)
     // $handleTypeAndDataOptionalCBData[1]  = handleData (mixed, depends on handleType)
     // $handleTypeAndDataOptionalCBData[1]['json']  = JSON handleType for handleType = 'json_or_page'
@@ -241,6 +239,606 @@ function funk_use_custom_error(&$c, $handleTypeAndDataOptionalCBData, $errorCode
         }
         header('Content-Type: application/xml; charset=utf-8');
         echo $handleTypeAndDataOptionalCBData[1];
+    }
+    exit();
+}
+
+/**
+ * CUSTOM ERROR HANDLER: Outputs a raw HTML string directly to the client.
+ *
+ * This is used for simple, non-templated HTML error responses.
+ *
+ * SECURITY NOTE: Clears database credentials (FunkDBConfig::clearCredentials())
+ * to prevent accidental database usage in subsequent request pipeline functions.
+ * Existing database connections stored in $c['DATABASES'] remain active.
+ *
+ * @param array $c           The global context array (passed by reference).
+ * @param int $errCode       The HTTP status code associated with the error (100-599).
+ * @param string $errMsg     The raw HTML string to be echoed as the response body.
+ * @return void              Sends the HTML response and terminates execution via `exit()`.
+ */
+function funk_use_error_raw_html(&$c, int $errCode, string $errMsg)
+{
+    // Clears any DB connections before handling the error so they cannot accidentally be used inside the error page
+    FunkDBConfig::clearCredentials();
+    // Clear any previous use of output buffering - although the Framework should not really use ob_start
+    // during request pipeline, only during post-response pipeline since all data there is only for server
+    if (ob_get_level() > 0) {
+        ob_clean();
+    }
+    // When error code is NOT integer or within wrong range
+    if (
+        !isset($erCode)
+        || !is_int($erCode)
+        || $erCode < 100
+        || $erCode > 599
+    ) {
+        critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_handle_error_html_string()` Function. This should be an integer between 100 and 599!');
+    }
+    // When $errMsg is not a string or empty
+    if (
+        !isset($errMsg)
+        || !is_string($errMsg)
+        || empty($errMsg)
+    ) {
+        critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_handle_error_html_string()` Function. This should be a non-empty string!');
+    }
+    // Set the response code & header for HTML and output the message
+    http_response_code($errCode);
+    header('Content-Type: text/html; charset=utf-8');
+    echo $errMsg;
+    exit();
+}
+
+/**
+ * CUSTOM ERROR HANDLER: Outputs a raw plain text string directly to the client.
+ *
+ * This is typically used for simple API errors or basic, non-formatted text responses.
+ *
+ * SECURITY NOTE: Clears database credentials (FunkDBConfig::clearCredentials())
+ * to prevent accidental database usage in subsequent request pipeline functions.
+ * Existing database connections stored in $c['DATABASES'] remain active.
+ *
+ * @param array $c           The global context array (passed by reference).
+ * @param int $errCode       The HTTP status code associated with the error (100-599).
+ * @param string $errMsg     The raw plain text string to be echoed as the response body.
+ * @return void              Sends the plain text response and terminates execution via `exit()`.
+ */
+function funk_use_error_raw_plain(&$c, int $errCode, string $errMsg)
+{
+    // Clears any DB connections before handling the error so they cannot accidentally be used inside the error page
+    FunkDBConfig::clearCredentials();
+    // Clear any previous use of output buffering - although the Framework should not really use ob_start
+    // during request pipeline, only during post-response pipeline since all data there is only for server
+    if (ob_get_level() > 0) {
+        ob_clean();
+    }
+    // When error code is NOT integer or within wrong range
+    if (
+        !isset($errCode)
+        || !is_int($errCode)
+        || $errCode < 100
+        || $errCode > 599
+    ) {
+        critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_handle_error_plain_text()` Function. This should be an integer between 100 and 599!');
+    }
+    // When $errMsg is not a string or empty
+    if (
+        !isset($errMsg)
+        || !is_string($errMsg)
+        || empty($errMsg)
+    ) {
+        critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_handle_error_plain_text()` Function. This should be a non-empty string!');
+    }
+    // Set response code & header for plain text and output the message
+    http_response_code($errCode);
+    header('Content-Type: text/plain; charset=utf-8');
+    echo $errMsg;
+    exit();
+}
+
+/**
+ * CUSTOM ERROR HANDLER: Outputs a raw XML string directly to the client.
+ *
+ * This is used for providing error responses compatible with older SOAP/XML-based APIs.
+ *
+ * SECURITY NOTE: Clears database credentials (FunkDBConfig::clearCredentials())
+ * to prevent accidental database usage in subsequent request pipeline functions.
+ * Existing database connections stored in $c['DATABASES'] remain active.
+ *
+ * @param array $c           The global context array (passed by reference).
+ * @param int $errCode       The HTTP status code associated with the error (100-599).
+ * @param string $errMsg     The raw XML string to be echoed as the response body.
+ * @return void              Sends the XML response and terminates execution via `exit()`.
+ */
+function funk_use_error_xml(&$c, int $errCode, string $errMsg)
+{
+    // Clears any DB connections before handling the error so they cannot accidentally be used inside the error
+    FunkDBConfig::clearCredentials();
+    // Clear any previous use of output buffering - although the Framework should not really use ob_start
+    // during request pipeline, only during post-response pipeline since all data there is only for server
+    if (ob_get_level() > 0) {
+        ob_clean();
+    }
+    // When error code is NOT integer or within wrong range
+    if (
+        !isset($errCode)
+        || !is_int($errCode)
+        || $errCode < 100
+        || $errCode > 599
+    ) {
+        critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_handle_error_xml()` Function. This should be an integer between 100 and 599!');
+    }
+    // When $errMsg is not a string or empty
+    if (
+        !isset($errMsg)
+        || !is_string($errMsg)
+        || empty($errMsg)
+    ) {
+        critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_handle_error_xml()` Function. This should be a non-empty string!');
+    }
+    // Set response code & header for XML and output the message
+    http_response_code($errCode);
+    header('Content-Type: application/xml; charset=utf-8');
+    echo $errMsg;
+    exit();
+}
+
+/**
+ * CUSTOM ERROR HANDLER: Displays a user-friendly error by including a specified HTML error page.
+ *
+ * This function clears output buffering, performs validation, sets appropriate security headers,
+ * and includes the target error page file. It then terminates execution.
+ *
+ * NOTE ON HTML PAGE: The provided error message ($errMsg) is injected into the local scope
+ * of the included error page file using the variable **$custom_error_message**.
+ *
+ * @param array $c           The global context array (passed by reference).
+ * @param int $errCode       The HTTP status code associated with the error (100-599).
+ * @param string $errMsg      The human-readable error message. This message is accessible inside
+ * the included page file via the variable **$custom_error_message**.
+ * @param string $pageName    The filename (without '.php' extension) of the custom error page
+ * located in the 'ROOT_FOLDER/page/complete/[errors]/' directory. Must be a readable file.
+ * @return void              Sends the HTML response and terminates execution via `exit()`.
+ */
+function funk_use_error_page(&$c, int $errCode, string $errMsg, string $pageName)
+{
+    // Clears any DB connections before handling the error so they cannot accidentally be used inside the error page
+    FunkDBConfig::clearCredentials();
+    // Clear any previous use of output buffering - although the Framework should not really use ob_start
+    // during request pipeline, only during post-response pipeline since all data there is only for server
+    if (ob_get_level() > 0) {
+        ob_clean();
+    }
+    // When error code is NOT integer or within wrong range
+    if (
+        !isset($errCode)
+        || !is_int($errCode)
+        || $errCode < 100
+        || $errCode > 599
+    ) {
+        critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_handle_error_page()` Function. This should be an integer between 100 and 599!');
+    }
+    // When $errMsg is not a string or empty
+    if (
+        !isset($errMsg)
+        || !is_string($errMsg)
+        || empty($errMsg)
+    ) {
+        critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_handle_error_page()` Function. This should be a non-empty string!');
+    }
+    // When $pageName is not a string or empty or file not readable
+    if (
+        !isset($pageName)
+        || !is_string($pageName)
+        || empty($pageName)
+        || !is_readable(ROOT_FOLDER . '/page/complete/[errors]/' . $pageName . '.php')
+    ) {
+        critical_err_json_or_html(500, 'Tell the Developer: No Valid Page Filename Provided to `funk_handle_error_page()` Function. This should be a non-empty string that is also a readable file inside `/page/complete/[errors]/` folder!');
+    }
+    // Headers that also support <styles> tag inline
+    header('Content-Type: text/html; charset=utf-8');
+    header("Content-Security-Policy: default-src 'none'; img-src 'self'; script-src 'self'; connect-src 'none'; style-src 'self' 'unsafe-inline'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; font-src 'self'; base-uri 'self';");
+    // Use the same "$custom_error_message" inside the included file to show custom error message!
+    $custom_error_message = $errMsg;
+    include_once ROOT_FOLDER . '/page/complete/[errors]/' . $pageName . '.php';
+    exit();
+}
+
+/**
+ * CUSTOM ERROR HANDLER: Executes a user-defined callback function to handle an error.
+ *
+ * This function clears the output buffer, performs validation on the error code
+ * and callback, and then executes the callback, passing the global context ($c)
+ * and optional custom data to it. The function exits execution after the callback
+ * runs successfully or fails critically.
+ *
+ * IMPORTANT: Database Credentials are cleared before calling the callback function so they need to be set again if needed!
+ *
+ * @param array $c                     The global context array (passed by reference). 1st Argument passed to the Callback.
+ * @param int $errCode                 The HTTP status code associated with the error (100-599).
+ * @param string $errMsg               The Primary Error Message passed as the 2nd Argument after $c.
+ * @param string $callbackName         The String name of the Callable Function or method to execute.
+ * @param mixed $optionalCallbackData  Optional Data passed as the 3rd Argument to the Callback Function.
+ * @return void                        Sends response and exits execution via `exit()`.
+ */
+function funk_use_error_callback(&$c, int $errCode, string $errMsg, string $callbackName, $optionalCallbackData = null)
+{
+    // Clears any DB connections before handling the error so they cannot accidentally be used inside the callback
+    FunkDBConfig::clearCredentials();
+    // Clear any previous use of output buffering - although the Framework should not really use ob_start
+    // during request pipeline, only during post-response pipeline since all data there is only for server
+    if (ob_get_level() > 0) {
+        ob_clean();
+    }
+    // When error code is NOT integer or within wrong range
+    if (
+        !isset($errCode)
+        || !is_int($errCode)
+        || $errCode < 100
+        || $errCode > 599
+    ) {
+        critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_handle_error_callback()` Function. This should be an integer between 100 and 599!');
+    }
+    // When $errMsg is not a string or empty
+    if (
+        !isset($errMsg)
+        || !is_string($errMsg)
+        || empty($errMsg)
+    ) {
+        critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_handle_error_callback()` Function. This should be a non-empty string!');
+    }
+    // When $callbackName is not a string or empty or not callable
+    if (
+        !isset($callbackName)
+        || !is_string($callbackName)
+        || empty($callbackName)
+        || !is_callable($callbackName)
+    ) {
+        critical_err_json_or_html(500, 'Tell the Developer: No Valid Callback Name Provided to `funk_handle_error_callback()` Function. This should be a non-empty string that is also callable!');
+    }
+    // Set response code, call function and exit
+    http_response_code($errCode);
+    try {
+        $callbackName($c, $errMsg, $optionalCallbackData);
+    } catch (\Throwable $e) {
+        critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the `funk_handle_error_callback()` Function with the following Error Message:`' . $e->getMessage() . '`.');
+    }
+    exit();
+}
+
+/**
+ * CUSTOM ERROR HANDLER: Throws a standard PHP Exception to halt execution and be caught by a global handler.
+ *
+ * This function is intended for internal flow control where the error handling logic
+ * is implemented higher up in the call stack (e.g., a global exception handler).
+ * It does not set an HTTP status code or clear output buffering.
+ *
+ * @param array $c                 The global context array (passed by reference).
+ * @param string $exceptionErrMsg  The message to be included in the new \Exception object.
+ * @return void
+ * @throws \Exception              Always throws a new \Exception with the provided message.
+ */
+function funk_use_error_throw(&$c, string $exceptionErrMsg)
+{
+    // The `funk_use_error_throw()` does not set any HTTP status code
+    // OR "eating" output buffering since it just throws an exception
+    // When $exceptionErrMsg is not a string or empty
+    if (
+        !isset($exceptionErrMsg)
+        || !is_string($exceptionErrMsg)
+        || empty($exceptionErrMsg)
+    ) {
+        critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_handle_error_throw()` Function. This should be a non-empty string!');
+    }
+    throw new Exception($exceptionErrMsg);
+}
+
+/**
+ * CUSTOM ERROR HANDLER: Returns a JSON response. Accepts either a Direct Data Structure
+ * or a Callable (string/closure) that must return the Data Structure when invoked.
+ *
+ * IMPORTANT: Database Credentials are cleared before calling the callable function
+ * (the one optionally used for JSON Generation) so they need to be set again if needed!
+ *
+ * @param array $c      Global context array (by reference).
+ * @param int $errCode  The HTTP status code.
+ * @param mixed $jsonObjectOrCallableThatReturnsJSON The JSON data (array/object) OR a string/callable that returns JSON Data.
+ * @return void         Sends response and exits.
+ */
+function funk_use_error_json(&$c, int $errCode, $jsonObjectOrStringThatReturnsJSON)
+{
+    // Clears any DB connections before handling the error so they cannot accidentally be used inside the JSON generation
+    FunkDBConfig::clearCredentials();
+    // Clear any previous use of output buffering - although the Framework should not really use ob_start
+    // during request pipeline, only during post-response pipeline since all data there is only for server
+    if (ob_get_level() > 0) {
+        ob_clean();
+    }
+    // When error code is NOT integer or within wrong range
+    if (
+        !isset($errCode)
+        || !is_int($errCode)
+        || $errCode < 100
+        || $errCode > 599
+    ) {
+        critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_handle_error_json()` Function. This should be an integer between 100 and 599!');
+    }
+    // When $jsonObjectOrStringThatReturnsJSON is not an Object/Array, nor a String that is also Callable
+    if (
+        !isset($jsonObjectOrStringThatReturnsJSON)
+        || (
+            !is_array($jsonObjectOrStringThatReturnsJSON) && !is_object($jsonObjectOrStringThatReturnsJSON)
+            && (
+                !is_string($jsonObjectOrStringThatReturnsJSON) || !is_callable($jsonObjectOrStringThatReturnsJSON)
+            )
+        )
+    ) {
+        critical_err_json_or_html(500, 'Tell the Developer: No Valid JSON Data or Callable Provided to `funk_handle_error_json()` Function. This should be either a Non-Empty Array/Object OR a Non-Empty String that is also Callable which returns a Valid JSON Payload!');
+    }
+    // Set the response code for both JSON
+    http_response_code($errCode);
+    // Retrieve JSON Payload either directly or by verified callable
+    $jsonData = $jsonObjectOrStringThatReturnsJSON;
+    if (is_string($jsonData) && is_callable($jsonData)) {
+        try {
+            $jsonData = $jsonData($c);
+        } catch (\Throwable $e) {
+            critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the JSON Callable:`' . $e->getMessage() . '` that was called using the `funk_use_error_json_or_page_or_callback()` Function!');
+        }
+    }
+    // Now $jsonData is guaranteed to be the final data structure (or null/invalid)
+    header('Content-Type: application/json; charset=utf-8');
+    try {
+        echo json_encode($jsonData, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    } catch (\JsonException $e) {
+        critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the `funk_handle_error_json()` While Encoding the Provided Data to JSON:`' . $e->getMessage() . '`');
+    }
+    exit();
+}
+
+/**
+ * CUSTOM ERROR HANDLER: Determines error response based on the client's Accept header,
+ * choosing between JSON (for APIs) or a dedicated HTML error page (as the universal fallback).
+ *
+ * Execution Logic:
+ * 1. If the client accepts 'application/json' or 'text/json', a JSON response is generated.
+ * 2. If JSON is NOT accepted (i.e., any other Accept header, or none at all), the specified
+ * HTML error page is served as the guaranteed fallback.
+ *
+ * NOTE ON HTML PAGES: For the HTML error page, the custom message (passed in **$pageErrMsg**) is made
+ * available to the included file via the variable **$custom_error_message**.
+ *
+ * IMPORTANT: Database Credentials are cleared before calling the callable function
+ * (the one optionally used for JSON Generation) so they need to be set again if needed!
+ *
+ * @param array $c                                The global context array (passed by reference).
+ * @param int $errCode                            The HTTP status code associated with the error (100-599).
+ * @param mixed $jsonObjectOrStringThatReturnsJSON The source of the JSON payload. This must be an array, object,
+ * or a string/callable that returns an array/object.
+ * @param string $pageName                        The filename (without '.php') of the custom error page in the
+ * 'ROOT_FOLDER/page/complete/[errors]/' directory. Must be a readable file.
+ * @param string $pageErrMsg                      The human-readable message used exclusively for:
+ * - The custom message on the HTML error page (**$custom_error_message**).
+ * @return void                                   Sends the appropriate response headers/content and terminates execution via `exit()`.
+ */
+function funk_use_error_json_or_page(&$c, int $errCode, $jsonObjectOrStringThatReturnsJSON, string $pageName, string $pageErrMsg)
+{
+    // Clears any DB connections before handling the error so they cannot accidentally be used inside the JSON generation or the error page
+    FunkDBConfig::clearCredentials();
+    // Clear any previous use of output buffering - although the Framework should not really use ob_start
+    // during request pipeline, only during post-response pipeline since all data there is only for server
+    if (ob_get_level() > 0) {
+        ob_clean();
+    }
+    // When error code is NOT integer or within wrong range
+    if (
+        !isset($errCode)
+        || !is_int($errCode)
+        || $errCode < 100
+        || $errCode > 599
+    ) {
+        critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_use_error_json_or_page()` Function. This should be an Integer between 100 and 599!');
+    }
+    // When $pageErrMsg is not a string or empty
+    if (
+        !isset($pageErrMsg)
+        || !is_string($pageErrMsg)
+        || empty($pageErrMsg)
+    ) {
+        critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_use_error_json_or_page()` Function. This should be a Non-Empty String!');
+    }
+    // When $jsonObjectOrStringThatReturnsJSON is not an Object/Array, nor a String that is also Callable
+    if (
+        !isset($jsonObjectOrStringThatReturnsJSON)
+        || (
+            !is_array($jsonObjectOrStringThatReturnsJSON) && !is_object($jsonObjectOrStringThatReturnsJSON)
+            && (
+                !is_string($jsonObjectOrStringThatReturnsJSON) || !is_callable($jsonObjectOrStringThatReturnsJSON)
+            )
+        )
+    ) {
+        critical_err_json_or_html(500, 'Tell the Developer: No Valid JSON Data or Callable Provided to `funk_use_error_json_or_page()` Function. This should be either a Non-Empty Array/Object OR a Non-Empty String that is also Callable which returns a Valid JSON Payload!');
+    }
+    // When $pageName is not a string or empty or the file does not exist in the expected folder
+    if (
+        !isset($pageName)
+        || !is_string($pageName)
+        || empty($pageName)
+        || !is_readable(ROOT_FOLDER . '/page/complete/[errors]/' . $pageName . '.php')
+    ) {
+        critical_err_json_or_html(500, 'Tell the Developer: No Valid Page Filename Provided to `funk_use_error_json_or_page()` Function. This should be a Non-Empty String!');
+    }
+    // Set the response code for both JSON and Page
+    http_response_code($errCode);
+    // JSON Response
+    if (
+        isset($c['req']['accept'])
+        && is_string($c['req']['accept'])
+        && !empty($c['req']['accept'])
+        && (str_contains($c['req']['accept'], 'application/json') || str_contains($c['req']['accept'], 'text/json'))
+    ) {
+        // Retrieve JSON Payload either directly or by verified callable
+        $jsonData = $jsonObjectOrStringThatReturnsJSON;
+        if (is_string($jsonData) && is_callable($jsonData)) {
+            try {
+                $jsonData = $jsonData($c);
+            } catch (\Throwable $e) {
+                critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the JSON Callable:`' . $e->getMessage() . '` that was called using the `funk_use_error_json_or_page_or_callback()` Function!');
+            }
+        }
+        // Now $jsonData is guaranteed to be the final data structure (or null/invalid)
+        header('Content-Type: application/json; charset=utf-8');
+        try {
+            echo json_encode($jsonData, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        } catch (\JsonException $e) {
+            critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the `funk_use_error_json_or_page_or_callback()` While Encoding the Provided Data to JSON:`' . $e->getMessage() . '`');
+        }
+    }
+    // Otherwise we return a Page even if that was not explicitly requested
+    else {
+        // Headers that also support <styles> tag inline
+        header('Content-Type: text/html; charset=utf-8');
+        header("Content-Security-Policy: default-src 'none'; img-src 'self'; script-src 'self'; connect-src 'none'; style-src 'self' 'unsafe-inline'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; font-src 'self'; base-uri 'self';");
+        // Use the same "$custom_error_message" inside the included file to show custom error message!
+        $custom_error_message = $pageErrMsg;
+        include_once ROOT_FOLDER . '/page/complete/[errors]/' . $pageName . '.php';
+    }
+    exit();
+}
+
+/**
+ * CUSTOM ERROR HANDLER: Provides flexible error handling based on the client's Accept header.
+ *
+ * This function attempts to handle the error in the following order:
+ * 1. **HTML:** If the client accepts 'text/html', it includes the specified error page.
+ * 2. **JSON:** If the client accepts 'application/json' or 'text/json', it encodes and returns the provided JSON data/callable result.
+ * 3. **CALLBACK:** If neither HTML nor JSON is accepted, it executes the specified user-defined callback function.
+ *
+ * IMPORTANT ABOUT CALLBACK: Database Credentials are cleared before calling the callback function so they need to be set again if needed!
+ *
+ * NOTE ON HTML PAGES: For HTML error pages, the custom message is made available to the included file
+ * via the variable **$custom_error_message**.
+ *
+ * @param array $c                               The global context array (passed by reference).
+ * @param int $errCode                           The HTTP status code associated with the error (100-599).
+ * @param string $errMsgForPageAndCallback       The human-readable message used for:
+ * - The custom message on the HTML error page ($custom_error_message).
+ * - The second argument passed to the callable function.
+ * @param mixed $jsonObjectOrStringThatReturnsJSON The source of the JSON payload. This must be an array, object,
+ * or a string/callable that returns an array/object.
+ * @param string $pageName                       The filename (without '.php') of the custom error page in the
+ * 'ROOT_FOLDER/page/complete/[errors]/' directory.
+ * @param string $callableName                   The string name of the callable function to execute if neither
+ * HTML nor JSON is accepted.
+ * @param mixed $optionalCallbackData            Optional data passed as the third argument to the callback function.
+ * @return void                                  Sends response headers/content and terminates execution via `exit()`.
+ */
+function funk_use_error_json_or_page_or_callback(&$c, int $errCode, string $errMsgForPageAndCallback, $jsonObjectOrStringThatReturnsJSON, string $pageName, string $callableName, $optionalCallbackData = null)
+{
+    // Clears any DB connections before handling the error so they cannot accidentally be used inside the JSON generation or the error page
+    FunkDBConfig::clearCredentials();
+
+    // Clear any previous use of output buffering - although the Framework should not really use ob_start
+    // during request pipeline, only during post-response pipeline since all data there is only for server
+    if (ob_get_level() > 0) {
+        ob_clean();
+    }
+    // When error code is NOT integer or within wrong range
+    if (
+        !isset($errCode)
+        || !is_int($errCode)
+        || $errCode < 100
+        || $errCode > 599
+    ) {
+        critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_use_custom_error_json_or_page_or_callback()` Function. This should be an integer between 100 and 599!');
+    }
+    // When $errMsgForPageAndCallback is not a string or empty
+    if (
+        !isset($errMsgForPageAndCallback)
+        || !is_string($errMsgForPageAndCallback)
+        || empty($errMsgForPageAndCallback)
+    ) {
+        critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_use_custom_error_json_or_page_or_callback()` Function. This should be a Non-Empty String!');
+    }
+    // When $pageName is not a string or empty or the file does not exist in the expected folder
+    if (
+        !isset($pageName)
+        || !is_string($pageName)
+        || empty($pageName)
+        || !is_readable(ROOT_FOLDER . '/page/complete/[errors]/' . $pageName . '.php')
+    ) {
+        critical_err_json_or_html(500, 'Tell the Developer: No Valid Page Filename Provided to `funk_use_custom_error_json_or_page_or_callback()` Function. This should be a Non-Empty String!');
+    }
+    // $callableName is not a string or empty or not callable
+    if (
+        !isset($callableName)
+        || !is_string($callableName)
+        || empty($callableName)
+        || !is_callable($callableName)
+    ) {
+        critical_err_json_or_html(500, 'Tell the Developer: No Valid Callback Name Provided to `funk_use_custom_error_json_or_page_or_callback()` Function. This should be a Non-Empty String that is also Callable!');
+    }
+    // When $jsonObjectOrStringThatReturnsJSON is not an Object/Array, nor a String that is also Callable
+    if (
+        !isset($jsonObjectOrStringThatReturnsJSON)
+        || (
+            !is_array($jsonObjectOrStringThatReturnsJSON) && !is_object($jsonObjectOrStringThatReturnsJSON)
+            && (
+                !is_string($jsonObjectOrStringThatReturnsJSON) || !is_callable($jsonObjectOrStringThatReturnsJSON)
+            )
+        )
+    ) {
+        critical_err_json_or_html(500, 'Tell the Developer: No Valid JSON Data or Callable Provided to `funk_use_custom_error_json_or_page_or_callback()` Function. This should be either a Non-Empty Array/Object OR a Non-Empty String that is also Callable which returns a Valid JSON Payload!');
+    }
+    // Set response code and check if Accept header contains text/html, application/json or text/json
+    // If none of those headers then we call the callback function. We always exit nonetheless!
+    http_response_code($errCode);
+    // HTML Response
+    if (
+        isset($c['req']['accept'])
+        && is_string($c['req']['accept'])
+        && !empty($c['req']['accept'])
+        && str_contains($c['req']['accept'], 'text/html')
+    ) {
+        // Headers that also support <styles> tag inline
+        header('Content-Type: text/html; charset=utf-8');
+        header("Content-Security-Policy: default-src 'none'; img-src 'self'; script-src 'self'; connect-src 'none'; style-src 'self' 'unsafe-inline'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; font-src 'self'; base-uri 'self';");
+        // Use the same "$custom_error_message" inside the included file to show custom error message!
+        $custom_error_message = $errMsgForPageAndCallback;
+        include_once ROOT_FOLDER . '/page/complete/[errors]/' . $pageName . '.php';
+    }
+    // JSON Response
+    else if (
+        isset($c['req']['accept'])
+        && is_string($c['req']['accept'])
+        && !empty($c['req']['accept'])
+        && (str_contains($c['req']['accept'], 'application/json') || str_contains($c['req']['accept'], 'text/json'))
+    ) {
+        // Retrieve JSON Payload either directly or by verified callable
+        $jsonData = $jsonObjectOrStringThatReturnsJSON;
+        if (is_string($jsonData) && is_callable($jsonData)) {
+            try {
+                $jsonData = $jsonData($c);
+            } catch (\Throwable $e) {
+                critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the JSON Callable:`' . $e->getMessage() . '` that was called using the `funk_use_error_json_or_page_or_callback()` Function!');
+            }
+        }
+        // Now $jsonData is guaranteed to be the final data structure (or null/invalid)
+        header('Content-Type: application/json; charset=utf-8');
+        try {
+            echo json_encode($jsonData, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        } catch (\JsonException $e) {
+            critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the `funk_use_error_json_or_page_or_callback()` While Encoding the Provided Data to JSON:`' . $e->getMessage() . '`');
+        }
+    }
+    // CALLBACK Response
+    else {
+        try {
+            $callableName($c, $errMsgForPageAndCallback, $optionalCallbackData);
+        } catch (\Throwable $e) {
+            critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the `funk_use_error_json_or_page_or_callback()` Function with the following Error Message:`' . $e->getMessage() . '`');
+        }
     }
     exit();
 }
@@ -560,8 +1158,6 @@ function funk_use_safe_mutate(&$c, $mainKeyAndOptionalSubKeys, $callable, $calla
     $cRef = $returnedValuesFromCallable;
     return $cRef;
 }
-
-
 
 // Function stores a user-focused message that is meant to be used in the final output (HTML page or JSON output)
 function funk_collect_output_message(&$c, $level, $key, $message)
