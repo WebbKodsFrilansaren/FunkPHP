@@ -312,6 +312,7 @@ $tablesAndRelationshipsFile = include_once FUNKPHP_DIR . '/config/tables.php' ??
     'tables' => [],
     'relationships' => [],
     'mappings' => [],
+    'dependencies' => []
 ];
 $mysqlDataTypesFile = include_once FUNKPHP_DIR . '/config/valid/valid_mysql_datatypes.php' ?? [
     'STRINGS' => [],

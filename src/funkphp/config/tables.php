@@ -726,4 +726,5 @@ return  [
       ],
     ],
   ],
+  'dependencies' => []
 ];
