@@ -84,18 +84,19 @@ $arg_fileAndFn = cli_get_arg_string_or_null($args, $cliRegex['fileWithOptionalFn
 $arg_folderAndFileAndFn = cli_get_arg_string_or_null($args, $cliRegex['folderFileOptionalFnRegex']);
 // 4. Find the Tables Validation argument (e.g., "t:table1,table2" or even "t:table1*2")
 $arg_tables_validation = cli_get_arg_string_or_null($args, $cliRegex['tableRegexValidation']);
+// 5. Find Tables SQL argument (e.g, "t:s=table1,tables2")
+$arg_tables_sql = cli_get_arg_string_or_null($args, $cliRegex['tableRegexSQL']);
+// 6. Find the Name argument for Middleware or Pipeline (e.g., "n:middleware_name" or "name:pipeline_name")
+$arg_fileAnonymous = cli_get_arg_string_or_null($args, $cliRegex['nameOnlyRegex']);
+
 if (isset($commandConfigMappings['config'][$subCommand]['tables_required_validation']) && !isset($arg_tables_validation)) {
     // error out since tables are required for this sub-command
     cli_err("The Sub-Command `$subCommand` requires at least one Table Name to be provided. For example `t:table1` OR `t:table1*2` OR `t:table1*2,table2`. Regex is `/^t:([a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]*(\*[0-9]+)?)*$/i`.");
 }
-// 5. Find Tables SQL argument (e.g, "t:s=table1,tables2")
-$arg_tables_sql = cli_get_arg_string_or_null($args, $cliRegex['tableRegexSQL']);
 if (isset($commandConfigMappings['config'][$subCommand]['tables_required_sql']) && !isset($arg_tables_sql)) {
     // error out since tables are required for this sub-command
     cli_err("The Sub-Command `$subCommand` requires at least one Table Name to be provided. For example `t:table1` OR `t:table1,table2` OR `t:table1,table2`. Regex is `/^t:(((sd|si|s|i|u|d)=))([a-z_][a-z0-9_]*)(,[a-z_][a-z0-9_]*)*/i`.");
 }
-// 5. Find the Name argument for Middleware or Pipeline (e.g., "n:middleware_name" or "name:pipeline_name")
-$arg_fileAnonymous = cli_get_arg_string_or_null($args, $cliRegex['nameOnlyRegex']);
 
 var_dump("First Param: " . $subCommand, "Arg Method/Route: " . $arg_methodAndRoute, "Arg File/Function: " . $arg_fileAndFn, "Arg Folder/File/Function: " . $arg_folderAndFileAndFn, "Arg Tables Validation: " . $arg_tables_validation, "Arg Tables SQL: " . $arg_tables_sql, "Arg Name: " . $arg_fileAnonymous);
 
