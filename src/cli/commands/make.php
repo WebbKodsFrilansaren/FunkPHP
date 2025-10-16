@@ -1,11 +1,6 @@
 <?php // FunkCLI COMMAND "php funk make|create|new" - creates a new file and optionally adds a function to a specific Method/Route
 // MAKE: Create something new and OPTIONALLY adding it to a specific Method/Route
 // SYNTAX: funk make|create|new:<first_param> <file_name>[=>function_name] [method/route]
-$middlewaresAliases = ['mw', 'mws', 'middlewares', 'middleware'];
-$singlePipelineAliases = ['pl', 'pipeline',];
-$validationAliases = ['v', 'validation'];
-$sqlAliases = ['sql', 's'];
-$routeAliases = ['route', 'r', 'rutt']; // "rutt" Swedish Easter Egg for "Route" in Swedish
 $folderListThatNeedsTables = ['sql', 'validation', 'v', 's'];
 $folderListThatWillCauseWarning = [
     'routes',
@@ -23,6 +18,7 @@ $folderListThatWillCauseWarning = [
     'config',
     '_internals',
     'batteries',
+    'funkeries',
     'post-response',
     'request',
     'gui',
@@ -34,6 +30,16 @@ $folderListThatWillCauseWarning = [
     'schemas',
 ];
 $ROUTES = $singleRoutesRoute['ROUTES'];
+
+// Validate that the first parameter is a valid sub-command (valid alias)
+// Then normalize its value so it is used correctly from here on
+if (!isset($commandConfigMappings['aliasesMap'][$subCommand])) {
+    cli_err("First Parameter `$subCommand` is not a valid Sub-Command for `php funk make`! Valid Sub-Commands are: `" . implode('`, `', array_keys($commandConfigMappings['aliasesMap'])) . "`");
+} else {
+    $subCommand = $commandConfigMappings['aliasesMap'][$subCommand];
+}
+
+
 
 // Issue a warning but still continue if the first parameter is in the list of folders that will cause a warning
 // because these folders are already being used for other purposes but they could be used inside of "funkphp/routes/"
@@ -63,7 +69,8 @@ $arg_methodAndRoute = null;
 $arg_fileAndFn = null;
 $arg_fileAnonymous = null;
 $arg_folderAndFileAndFn = null;
-$arg_tables = null;
+$arg_tables_validation = null;
+$arg_tables_sql = null;
 $folder = null;
 $file = null;
 $fn = null;
@@ -75,25 +82,29 @@ $routeOnly = false;
 
 // 1. Find the Method/Route argument (e.g., "r:get/users")
 $arg_methodAndRoute = cli_get_arg_string_or_null($args, $cliRegex['methodRouteRegex']);
-
 // 2. Find the File and optional Function argument (e.g., "ff:users=>by_id")
 $arg_fileAndFn = cli_get_arg_string_or_null($args, $cliRegex['fileWithOptionalFnRegex']);
-
 // 3. Find the Folder, File, and optional Function argument (e.g., "fff:users=>user_file=>func")
 $arg_folderAndFileAndFn = cli_get_arg_string_or_null($args, $cliRegex['folderFileOptionalFnRegex']);
-
-// 4. Find the Tables argument (e.g., "t:table1,table2" or even "t:table1*2")
-$arg_tables = cli_get_arg_string_or_null($args, $cliRegex['tableRegex']);
-
+// 4. Find the Tables Validation argument (e.g., "t:table1,table2" or even "t:table1*2")
+$arg_tables_validation = cli_get_arg_string_or_null($args, $cliRegex['tableRegexValidation']);
+if (isset($commandConfigMappings['config'][$subCommand]['tables_required_validation']) && !isset($arg_tables_validation)) {
+    // error out since tables are required for this sub-command
+    cli_err("The Sub-Command `$subCommand` requires at least one Table Name to be provided. For example `t:table1` OR `t:table1*2` OR `t:table1*2,table2`. Regex is `/^t:([a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]*(\*[0-9]+)?)*$/i`. You provided: " . var_export($arg_tables_validation, true));
+}
+// 5. Find Tables SQL argument (e.g, "t:s=table1,tables2")
+$arg_tables_sql = cli_get_arg_string_or_null($args, $cliRegex['tableRegexSQL']);
+if (isset($commandConfigMappings['config'][$subCommand]['tables_required_sql']) && !isset($arg_tables_sql)) {
+    // error out since tables are required for this sub-command
+    cli_err("The Sub-Command `$subCommand` requires at least one Table Name to be provided. For example `t:table1` OR `t:table1,table2` OR `t:table1,table2`. Regex is `/^t:(((sd|si|s|i|u|d)=))([a-z_][a-z0-9_]*)(,[a-z_][a-z0-9_]*)*/i`. You provided: " . var_export($arg_tables_sql, true));
+}
 // 5. Find the Name argument for Middleware or Pipeline (e.g., "n:middleware_name" or "name:pipeline_name")
 $arg_fileAnonymous = cli_get_arg_string_or_null($args, $cliRegex['nameOnlyRegex']);
 
-var_dump("First Param: " . $subCommand, "Arg Method/Route: " . $arg_methodAndRoute, "Arg File/Function: " . $arg_fileAndFn, "Arg Folder/File/Function: " . $arg_folderAndFileAndFn, "Arg Tables: " . $arg_tables, "Arg Name: " . $arg_fileNameAnonymous);
+var_dump("First Param: " . $subCommand, "Arg Method/Route: " . $arg_methodAndRoute, "Arg File/Function: " . $arg_fileAndFn, "Arg Folder/File/Function: " . $arg_folderAndFileAndFn, "Arg Tables Validation: " . $arg_tables_validation, "Arg Tables SQL: " . $arg_tables_sql, "Arg Name: " . $arg_fileAnonymous);
 
 
-
-
-if (in_array($subCommand, $middlewaresAliases)) {
+if (in_array($subCommand, $commandConfigMappings['config']['middleware']['aliases'])) {
     $folder = "funkphp/middlewares";
     $folderType = "middlewares";
     $routeKey = ["middlewares" => null];
@@ -101,18 +112,18 @@ if (in_array($subCommand, $middlewaresAliases)) {
     [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg_fileAnonymous, "m_");
     cli_info_without_exit("OK! Middleware Files. Middleware Functions are recommended to be reused in different projects, consider versioning their name endings. Run `funk recompile|rc` if you have manually added the Middleware Function File to a `middlewares` Route Key to a given Route!");
     $routeKey[key($routeKey)] = $file;
-} elseif (in_array($subCommand, $singlePipelineAliases)) {
+} elseif (in_array($subCommand, $commandConfigMappings['config']['pipeline']['aliases'])) {
     $folderType = "pipeline";
     $folder = "funkphp/pipeline";
     $anonymousFile = true; // Pipeline functions are always single anonymous function files
     [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg_fileAnonymous, "pl_");
     cli_info_without_exit("OK! Pipeline File. Pipeline Functions are recommended to be reused in different projects, consider versioning their name endings. Drag this Function File into either `funkphp/pipeline/request/` OR `funkphp/pipeline/post-response/` and then add it manually to the corresponding Pipeline Sub-Array! (`pipeline['request']` or `pipeline['post-response']`)");
-} elseif (in_array($subCommand, $validationAliases)) {
+} elseif (in_array($subCommand, $commandConfigMappings['config']['validation']['aliases'])) {
     $folderType = "validation";
     $folder = "funkphp/validation";
     [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg_fileAndFn, "v_");
     cli_info_without_exit("OK! Validation File and/or Validation Function. These are recommended to be used by calling `funk_use_valdation(&\$c,\$file_name,\$file_fn)` inside an Anonymous Function OR a File=>Function File!");
-} elseif (in_array($subCommand, $sqlAliases)) {
+} elseif (in_array($subCommand, $commandConfigMappings['config']['sql']['aliases'])) {
     $folderType = "sql";
     $folder = "funkphp/sql";
     [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg_fileAndFn, "s_");
@@ -120,14 +131,14 @@ if (in_array($subCommand, $middlewaresAliases)) {
 }
 // This is a special case where we only create
 // a Route for `funkphp/routes/routes.php`!
-elseif (in_array($subCommand, $routeAliases)) {
+elseif (in_array($subCommand, $commandConfigMappings['config']['route']['aliases'])) {
     $routeOnly = true;
     cli_info_without_exit("OK! ONLY a Route to `funkphp/routes/routes.php` unless it already exists. After this, you can add `Route Keys` to that created Route!");
 } else {
     $folderType = "routes";
     $folder = "funkphp/routes" . '/' . $subCommand;
     $routeKey = $subCommand;
-    [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg1);
+    [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg_folderAndFileAndFn);
     cli_info_without_exit("OK! A Route File and/or Route Function that will be placed inside:`$folder`. If you provided a Method/Route it will be automatically added IF it is sucessfully created! Otherwise, you will have to manually add it to a Route Key of a Route manually or by running `funk add:$subCommand $file=>$fn <method/route>`!");
 }
 
