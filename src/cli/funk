@@ -427,8 +427,7 @@ $mysqlOperatorSyntax = include_once FUNKPHP_DIR . '/config/valid/valid_mysql_ope
 // used to CREATE Function Files (either single anonymous ones or files with named functions).
 // Begin by getting a valid command structure by "command:first_param"
 // and split it into parts that can then be used to determine next step
-$cmd = '';
-$firstParam = '';
+$firstParam = $subCommand ?? null;
 $tableRegex = '/^(((sd|si|s|i|u|d)=)?[a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]*(\*[0-9]+)?)*$/i';
 $methodRouteRegex = '/^(([a-z]+\/)|([a-z]+(\/[:]?[a-zA-Z0-9_-]+)+))$/i';
 $routeDynamicEndRegex = '/\/:[a-zA-Z-_0-9]+$/i'; // check if route ends with "/:something" meaning it is dynamic
