@@ -135,7 +135,7 @@ $commandConfigMappings = [
     'config' => [
         // config for m/mw/middleware aliases
         'middleware' => [
-            'aliases' => ['mw', 'mws', 'middlewares'],
+            'aliases' => ['m', 'mw', 'middleware'],
             'folder' => 'funkphp/middlewares',
             'type' => 'middlewares',
             'file_prefix' => 'm_',
@@ -144,7 +144,7 @@ $commandConfigMappings = [
         ],
         // config for pl/pipeline aliases
         'pipeline' => [
-            'aliases' => ['pl', 'pls', 'pipelines'],
+            'aliases' => ['pl', 'pipeline'],
             'folder' => 'funkphp/pipeline',
             'type' => 'pipeline',
             'file_prefix' => 'pl_',
@@ -152,7 +152,7 @@ $commandConfigMappings = [
         ],
         // config for v/validation aliases
         'validation' => [
-            'aliases' => ['v'],
+            'aliases' => ['v', 'validation'],
             'folder' => 'funkphp/validation',
             'type' => 'validation',
             'file_prefix' => 'v_',
@@ -160,7 +160,7 @@ $commandConfigMappings = [
         ],
         // config for s/sql aliases
         'sql' => [
-            'aliases' => ['s'],
+            'aliases' => ['s', 'sql'],
             'folder' => 'funkphp/sql',
             'type' => 'sql',
             'file_prefix' => 's_',
@@ -168,7 +168,7 @@ $commandConfigMappings = [
         ],
         // config for r/route/rutt aliases
         'route' => [ // Special case
-            'aliases' => ['r', 'rutt'],
+            'aliases' => ['r', 'rutt', 'route'],
             'route_only' => true, // Flag for special route-only logic
         ],
     ],
@@ -192,7 +192,6 @@ if (php_sapi_name() === 'cli') {
         echo "\033[31m[FunkCLI - ERROR]: FunkPHP CLI did not receive any arguments in `\$argv` Variable! Please check your Installation and/or File Permissions where the FunkCLI is deployed locally!\n\033[0m";
         exit;
     }
-
     // The command is always the first argument
     // and verify it is a non-empty string since
     // that is what the $command must be. After
@@ -207,15 +206,13 @@ if (php_sapi_name() === 'cli') {
         exit;
     }
     $command = strtolower($command);
-    $subCommand = str_contains($command, ':') ? explode(':', $command, 2)[1] : null;
+    $subCommand = str_contains($command, ':') ? explode(':', $command, 2)[1] : '';
     $command = str_contains($command, ':') ? explode(':', $command, 2)[0] : $command;
-
     // The remaining arguments start from index 2
     $argLength = count($rawArgs);
     for ($i = 2; $i < $argLength; $i++) {
         $args[] = $rawArgs[$i];
     }
-
     // We iterate through all args and lowercase althose that are strings,
     // otherwise just continue since we allow also for more complex args
     foreach ($args as $index => $value) {
@@ -228,9 +225,8 @@ if (php_sapi_name() === 'cli') {
             $args[$index] = strtolower($value);
         }
     }
-
     // TESTING DEBUGGING RIGHT NOW - REMOVE LATER
-    var_dump("\nCOMMAND: `" . $command . "`\nARGS:`" . print_r($args, true) . "`\n");
+    var_dump("\nCOMMAND:`" . $command . "`\nSUBBCOMMAND:`" . $subCommand . "`\nARGS:`" . print_r($args, true) . "`\n");
 }
 // JSON Mode: REVISED VERSION
 else {
@@ -239,7 +235,6 @@ else {
     $payload = json_decode(file_get_contents('php://input'), true) ?? [];
     var_dump($payload);
     $command = $payload['command'] ?? null;
-
     // Verify $command is a non-empty string after trimming whitespace
     if (
         !isset($command) || !is_string($command)
@@ -252,10 +247,9 @@ else {
     }  // Extract optionalSubCommand if it exists
     else {
         $command = strtolower($command);
-        $subCommand = str_contains($command, ':') ? explode(':', $command, 2)[1] : null;
+        $subCommand = str_contains($command, ':') ? explode(':', $command, 2)[1] : '';
         $command = str_contains($command, ':') ? explode(':', $command, 2)[0] : $command;
     }
-
     // We now iterate through all (skipping 'command' key) and store those that has the key name
     // "arg1", "arg2" and so on. We also lowercase those that are strings afterwards! We store in $args
     foreach ($payload as $key => $value) {
@@ -520,16 +514,6 @@ $mysqlOperatorSyntax = include_once FUNKPHP_DIR . '/config/valid/valid_mysql_ope
         'SOME' => [],
     ],
 ];
-
-//------ Entry point for the CLI commands where one of the commands are "make:" that is ------
-// used to CREATE Function Files (either single anonymous ones or files with named functions).
-// Begin by getting a valid command structure by "command:first_param"
-// and split it into parts that can then be used to determine next step
-$firstParam = $subCommand ?? null;
-$tableRegex = '/^(((sd|si|s|i|u|d)=)?[a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]*(\*[0-9]+)?)*$/i';
-$methodRouteRegex = '/^(([a-z]+\/)|([a-z]+(\/[:]?[a-zA-Z0-9_-]+)+))$/i';
-$routeDynamicEndRegex = '/\/:[a-zA-Z-_0-9]+$/i'; // check if route ends with "/:something" meaning it is dynamic
-$fileWithOptionalFnRegex = '/^([a-z][a-z0-9_]+)(=>([a-z0-9_.]+))?$/i';
 
 // --------------------------------------------------------------------------------
 // DYNAMIC COMMAND FILE LOADER - Loads based on "command-commandaliases1-alias2.php"

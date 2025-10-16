@@ -38,11 +38,22 @@ $ROUTES = $singleRoutesRoute['ROUTES'];
 // Issue a warning but still continue if the first parameter is in the list of folders that will cause a warning
 // because these folders are already being used for other purposes but they could be used inside of "funkphp/routes/"
 // which is where they will be put!
-if (in_array($firstParam, $folderListThatWillCauseWarning)) {
-    cli_warning_without_exit("The First Parameter `$firstParam` is in the list of Folders that are already being used by FunkPHP. Despite this, `$firstParam` will be used as a subfolder in `funkphp/routes/`!");
+if (in_array($subCommand, $folderListThatWillCauseWarning)) {
+    cli_warning_without_exit("The First Parameter `$subCommand` is in the list of Folders that are already being used by FunkPHP. Despite this, `$subCommand` will be used as a subfolder in `funkphp/routes/`!");
     cli_info_without_exit("This is just a heads-up so you are not confused by seeing a folder with the same name in several places inside of FunkPHP!");
 }
 
+
+
+// REMOVE LATER BELOW, JUST SO FILE DOES NOT EXIT IMMEDIATELY OR IDE COMPLAINS ABOUT VARIABLES!
+//------ Entry point for the CLI commands where one of the commands are "make:" that is ------
+// used to CREATE Function Files (either single anonymous ones or files with named functions).
+// Begin by getting a valid command structure by "command:first_param"
+// and split it into parts that can then be used to determine next step
+$tableRegex = '/^(((sd|si|s|i|u|d)=)?[a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]*(\*[0-9]+)?)*$/i';
+$methodRouteRegex = '/^(([a-z]+\/)|([a-z]+(\/[:]?[a-zA-Z0-9_-]+)+))$/i';
+$routeDynamicEndRegex = '/\/:[a-zA-Z-_0-9]+$/i'; // check if route ends with "/:something" meaning it is dynamic
+$fileWithOptionalFnRegex = '/^([a-z][a-z0-9_]+)(=>([a-z0-9_.]+))?$/i';
 
 
 // Structure the correct folder name based on the first parameter,
@@ -50,16 +61,16 @@ if (in_array($firstParam, $folderListThatWillCauseWarning)) {
 // $routeKey is only applicable to "routes" and "middlewares"!
 $arg_methodAndRoute = null;
 $arg_fileAndFn = null;
-$arg_fileNameAnonymous = null; // for middleware & pipeline since they are anonymous function files
+$arg_fileAnonymous = null;
 $arg_folderAndFileAndFn = null;
 $arg_tables = null;
 $folder = null;
+$file = null;
+$fn = null;
 $routeKey = null;
 $anonymousFile = false;
 $folderType = null;
 $tablesProvided = null;
-$file = null;
-$fn = null;
 $routeOnly = false;
 
 // 1. Find the Method/Route argument (e.g., "r:get/users")
@@ -75,33 +86,33 @@ $arg_folderAndFileAndFn = cli_get_arg_string_or_null($args, $cliRegex['folderFil
 $arg_tables = cli_get_arg_string_or_null($args, $cliRegex['tableRegex']);
 
 // 5. Find the Name argument for Middleware or Pipeline (e.g., "n:middleware_name" or "name:pipeline_name")
-$arg_fileNameAnonymous = cli_get_arg_string_or_null($args, $cliRegex['nameOnlyRegex']);
+$arg_fileAnonymous = cli_get_arg_string_or_null($args, $cliRegex['nameOnlyRegex']);
 
-var_dump("First Param: " . $firstParam, "Arg Method/Route: " . $arg_methodAndRoute, "Arg File/Function: " . $arg_fileAndFn, "Arg Folder/File/Function: " . $arg_folderAndFileAndFn, "Arg Tables: " . $arg_tables, "Arg Name: " . $arg_fileNameAnonymous);
-
-
+var_dump("First Param: " . $subCommand, "Arg Method/Route: " . $arg_methodAndRoute, "Arg File/Function: " . $arg_fileAndFn, "Arg Folder/File/Function: " . $arg_folderAndFileAndFn, "Arg Tables: " . $arg_tables, "Arg Name: " . $arg_fileNameAnonymous);
 
 
-if (in_array($firstParam, $middlewaresAliases)) {
+
+
+if (in_array($subCommand, $middlewaresAliases)) {
     $folder = "funkphp/middlewares";
     $folderType = "middlewares";
     $routeKey = ["middlewares" => null];
     $anonymousFile = true; // Middlewares are always single anonymous function files
-    [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg_fileNameAnonymous, "m_");
+    [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg_fileAnonymous, "m_");
     cli_info_without_exit("OK! Middleware Files. Middleware Functions are recommended to be reused in different projects, consider versioning their name endings. Run `funk recompile|rc` if you have manually added the Middleware Function File to a `middlewares` Route Key to a given Route!");
     $routeKey[key($routeKey)] = $file;
-} elseif (in_array($firstParam, $singlePipelineAliases)) {
+} elseif (in_array($subCommand, $singlePipelineAliases)) {
     $folderType = "pipeline";
     $folder = "funkphp/pipeline";
     $anonymousFile = true; // Pipeline functions are always single anonymous function files
-    [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg_fileNameAnonymous, "pl_");
+    [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg_fileAnonymous, "pl_");
     cli_info_without_exit("OK! Pipeline File. Pipeline Functions are recommended to be reused in different projects, consider versioning their name endings. Drag this Function File into either `funkphp/pipeline/request/` OR `funkphp/pipeline/post-response/` and then add it manually to the corresponding Pipeline Sub-Array! (`pipeline['request']` or `pipeline['post-response']`)");
-} elseif (in_array($firstParam, $validationAliases)) {
+} elseif (in_array($subCommand, $validationAliases)) {
     $folderType = "validation";
     $folder = "funkphp/validation";
     [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg_fileAndFn, "v_");
     cli_info_without_exit("OK! Validation File and/or Validation Function. These are recommended to be used by calling `funk_use_valdation(&\$c,\$file_name,\$file_fn)` inside an Anonymous Function OR a File=>Function File!");
-} elseif (in_array($firstParam, $sqlAliases)) {
+} elseif (in_array($subCommand, $sqlAliases)) {
     $folderType = "sql";
     $folder = "funkphp/sql";
     [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg_fileAndFn, "s_");
@@ -109,15 +120,15 @@ if (in_array($firstParam, $middlewaresAliases)) {
 }
 // This is a special case where we only create
 // a Route for `funkphp/routes/routes.php`!
-elseif (in_array($firstParam, $routeAliases)) {
+elseif (in_array($subCommand, $routeAliases)) {
     $routeOnly = true;
     cli_info_without_exit("OK! ONLY a Route to `funkphp/routes/routes.php` unless it already exists. After this, you can add `Route Keys` to that created Route!");
 } else {
     $folderType = "routes";
-    $folder = "funkphp/routes" . '/' . $firstParam;
-    $routeKey = $firstParam;
+    $folder = "funkphp/routes" . '/' . $subCommand;
+    $routeKey = $subCommand;
     [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg1);
-    cli_info_without_exit("OK! A Route File and/or Route Function that will be placed inside:`$folder`. If you provided a Method/Route it will be automatically added IF it is sucessfully created! Otherwise, you will have to manually add it to a Route Key of a Route manually or by running `funk add:$firstParam $file=>$fn <method/route>`!");
+    cli_info_without_exit("OK! A Route File and/or Route Function that will be placed inside:`$folder`. If you provided a Method/Route it will be automatically added IF it is sucessfully created! Otherwise, you will have to manually add it to a Route Key of a Route manually or by running `funk add:$subCommand $file=>$fn <method/route>`!");
 }
 
 
@@ -131,7 +142,7 @@ $route = null;
 // part will run and either Fail or Succeed and then exit the script!
 if ($routeOnly) {
     if (!isset($arg1) || !is_string($arg1) || empty($arg1) || !preg_match($methodRouteRegex, $arg1)) {
-        cli_err_without_exit("No Valid Method/Route provided when wanting to only Create a New Route! `($cmd:$firstParam)`");
+        cli_err_without_exit("No Valid Method/Route provided when wanting to only Create a New Route! `($cmd:$subCommand)`");
         cli_info_without_exit("Syntax is: `funk make:r method/route` like `funk make:r g/users` OR `funk make:r post/users`!");
         cli_info("Notice the support for shorthand versions \"g\", \"po\", \"pu\", \"d\" OR \"del\", \"pa\" for GET, POST, PUT, DELETE and PATCH respectively!");
     }
@@ -258,9 +269,9 @@ if (!$method && !$route) {
                 cli_success_without_exit("SUCCESSFULLY Created File `$file.php` with Function `$fn` in Folder `$folder`!");
                 cli_info_without_exit("The Route File `$file.php` is now ready to be used in your Routes. You did not provide a Method/Route so it will not be automatically added to any Route. You can add it manually later on!");
                 if (JSON_MODE) {
-                    cli_info("Add it manually with the following JSON Syntax: `{ \"command\": \"add:$firstParam\", \"arg1\": \"$file=>$fn\", \"arg2\": \"<method/route>\" }`");
+                    cli_info("Add it manually with the following JSON Syntax: `{ \"command\": \"add:$subCommand\", \"arg1\": \"$file=>$fn\", \"arg2\": \"<method/route>\" }`");
                 } else {
-                    cli_info("Add it manually in the CLI by typing `funk add:$firstParam $file=>$fn <method/route>`!");
+                    cli_info("Add it manually in the CLI by typing `funk add:$subCommand $file=>$fn <method/route>`!");
                 }
             } else {
                 cli_err("FAILED to Create File `$file.php` with Function `$fn` in Folder `$folder`!");
@@ -274,9 +285,9 @@ if (!$method && !$route) {
                     cli_success_without_exit("SUCCESSFULLY Created File `$file.php` with Function `$fn` in Folder `$folder`!");
                     cli_info_without_exit("The Route File `$file.php` is now ready to be used in your Routes. You did not provide a Method/Route so it will not be automatically added to any Route. You can add it manually later on!");
                     if (JSON_MODE) {
-                        cli_info("Add it manually with the following JSON Syntax: `{ \"command\": \"add:$firstParam\", \"arg1\": \"$file=>$fn\", \"arg2\": \"<method/route>\" }`");
+                        cli_info("Add it manually with the following JSON Syntax: `{ \"command\": \"add:$subCommand\", \"arg1\": \"$file=>$fn\", \"arg2\": \"<method/route>\" }`");
                     } else {
-                        cli_info("Add it manually in the CLI by typing `funk add:$firstParam $file=>$fn <method/route>`!");
+                        cli_info("Add it manually in the CLI by typing `funk add:$subCommand $file=>$fn <method/route>`!");
                     }
                 } else {
                     cli_err("FAILED to Create File `$file.php` with Function `$fn` in Folder `$folder`!");
@@ -298,9 +309,9 @@ if (!$method && !$route) {
                         cli_success_without_exit("SUCCESSFULLY Created Function `$fn` in File `$file.php` in Folder `$folder`!");
                         cli_info_without_exit("The Route File `$file.php` is now ready to be used in your Routes. You did not provide a Method/Route so it will not be automatically added to any Route. You can add it manually later on!");
                         if (JSON_MODE) {
-                            cli_info("Add it manually with the following JSON Syntax: `{ \"command\": \"add:$firstParam\", \"arg1\": \"$file=>$fn\", \"arg2\": \"<method/route>\" }`");
+                            cli_info("Add it manually with the following JSON Syntax: `{ \"command\": \"add:$subCommand\", \"arg1\": \"$file=>$fn\", \"arg2\": \"<method/route>\" }`");
                         } else {
-                            cli_info("Add it manually in the CLI by typing `funk add:$firstParam $file=>$fn <method/route>`!");
+                            cli_info("Add it manually in the CLI by typing `funk add:$subCommand $file=>$fn <method/route>`!");
                         }
                     } else {
                         cli_err("FAILED to Create Function `$fn` in File `$file.php` in Folder `$folder`!");
@@ -375,7 +386,7 @@ elseif ($method && $route) {
     $routeExistsInROUTES = false;
     if ($folderType === 'routes' || $folderType === 'middlewares') {
         if (!isset($arg2) || !is_string($arg2) || empty($arg2) || !preg_match($methodRouteRegex, $arg2)) {
-            cli_err_without_exit("No Valid Method/Route provided when wanting to only Create a New Route! `($cmd:$firstParam)`");
+            cli_err_without_exit("No Valid Method/Route provided when wanting to only Create a New Route! `($cmd:$subCommand)`");
             cli_info_without_exit("Syntax is: `funk make:r method/route` like `funk make:r g/users` OR `funk make:r post/users`!");
             cli_info("Notice the support for shorthand versions \"g\", \"po\", \"pu\", \"d\" OR \"del\", \"pa\" for GET, POST, PUT, DELETE and PATCH respectively!");
         }
