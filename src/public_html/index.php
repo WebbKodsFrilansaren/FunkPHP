@@ -130,6 +130,6 @@ function critical_err_json_or_html($status = 500, $customMessage = "<No Custom M
 if (
     !is_readable(__DIR__ . '/../funkphp/FunkPHP.php')
 ) {
-    critical_err_json_or_html(500, "Tell The Developer - FunkPHP Framework Start File Not Found or Not Readable. Please check your Installation and/or File Permissions!");
+    critical_err_json_or_html(500, "Tell The Developer - FunkPHP Framework Startup File `src/funkphp/FunkPHP.php` Was NOT FOUND or Is NOT READABLE. Please check your Installation, Filenames, and/or File Permissions where the Website is deployed!");
 }
 require_once __DIR__ . '/../funkphp/FunkPHP.php';
