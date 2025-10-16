@@ -20,6 +20,22 @@ function cli_commands_duplicates_check()
         // 2. Split the name into individual command keywords
         // 3. Loop through all keywords in the current file
         $fileName = basename($filePath, '.php');
+        // If filename includes whitespace, then we error out hard
+        if (preg_match('/\s/', $fileName)) {
+            $errorMessage = 'FunkPHP CLI Command File Verification Error: The Command File `' . $fileName . '.php` contains whitespace in its name. Please remove any spaces or tabs from the Filename to ensure it is a Valid Command Keyword.';
+            // Output the error based on mode and exit
+            if (defined('JSON_MODE') && JSON_MODE) {
+                http_response_code(500);
+                echo json_encode([
+                    'type' => 'ERROR',
+                    'message' => $errorMessage
+                ]);
+                exit;
+            } else {
+                echo "\033[31m[FunkCLI - ERROR]: " . $errorMessage . "\n\033[0m";
+                exit;
+            }
+        }
         $keywords = explode('-', $fileName);
         foreach ($keywords as $keyword) {
             // If the keyword has already been seen...
