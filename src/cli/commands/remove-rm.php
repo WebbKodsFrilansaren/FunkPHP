@@ -1,6 +1,7 @@
 <?php // FunkCLI COMMAND `php funk remove|rm|detach`
 // REMOVE: Remove an added Route_Key from a specific Method/Route
 // found in "/funkphp/routes" OR in "/funkphp/middlewares".
+// TODO: It should ONLY allow a Route_Key/Config removal when there is more than 1 Route_Key left. Otherwise it will throw error and say "use delete" instead. And Vice versa!
 $middlewaresAliases = ['mw', 'mws', 'middlewares'];
 $singlePipelineAliases = ['pl', 'pls', 'pipeline'];
 $singleAnonymousFolderlist = ["middlewares", "mw", "mws", "pls", "pl", "pipeline"];

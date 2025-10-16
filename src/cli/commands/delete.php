@@ -1,6 +1,7 @@
 <?php
 // DELETE: Delete something that exists which is either a Function File,
 // or a Specific Function from a Specific File. NEVER deletes Method/Route!
+// TODO: It should ONLY allow a File Deletion when there is only 1 Function left. Otherwise it will throw error and say "use remove|rm" instead. And Vice versa!
 $middlewaresAliases = ['mw', 'mws', 'middlewares'];
 $singlePipelineAliases = ['pl', 'pls', 'pipeline'];
 $singleAnonymousFolderlist = ["middlewares", "mw", "mws", "pls", "pl", "pipeline"];

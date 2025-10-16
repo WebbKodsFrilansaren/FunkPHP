@@ -2,7 +2,7 @@
 // MAKE: Create something new and OPTIONALLY adding it to a specific Method/Route
 // SYNTAX: funk make|create|new:<first_param> <file_name>[=>function_name] [method/route]
 $middlewaresAliases = ['mw', 'mws', 'middlewares', 'middleware'];
-$singlePipelineAliases = ['pl', 'pls', 'pipeline', 'pipelines'];
+$singlePipelineAliases = ['pl', 'pipeline',];
 $validationAliases = ['v', 'validation'];
 $sqlAliases = ['sql', 's'];
 $routeAliases = ['route', 'r', 'rutt']; // "rutt" Swedish Easter Egg for "Route" in Swedish
@@ -48,6 +48,11 @@ if (in_array($firstParam, $folderListThatWillCauseWarning)) {
 // Structure the correct folder name based on the first parameter,
 // $folderType based on first parameter, and also initial $routeKey
 // $routeKey is only applicable to "routes" and "middlewares"!
+$arg_methodAndRoute = null;
+$arg_fileAndFn = null;
+$arg_fileNameAnonymous = null; // for middleware & pipeline since they are anonymous function files
+$arg_folderAndFileAndFn = null;
+$arg_tables = null;
 $folder = null;
 $routeKey = null;
 $anonymousFile = false;
@@ -57,32 +62,49 @@ $file = null;
 $fn = null;
 $routeOnly = false;
 
-// DEBUG
-echo "Command: $command\nArg1: $arg1\nArg2: $arg2\nArg3: $arg3\nArg4: $arg4\nArg5: $arg5\nArg6: $arg6\n";
+// 1. Find the Method/Route argument (e.g., "r:get/users")
+$arg_methodAndRoute = cli_get_arg_string_or_null($args, $cliRegex['methodRouteRegex']);
+
+// 2. Find the File and optional Function argument (e.g., "ff:users=>by_id")
+$arg_fileAndFn = cli_get_arg_string_or_null($args, $cliRegex['fileWithOptionalFnRegex']);
+
+// 3. Find the Folder, File, and optional Function argument (e.g., "fff:users=>user_file=>func")
+$arg_folderAndFileAndFn = cli_get_arg_string_or_null($args, $cliRegex['folderFileOptionalFnRegex']);
+
+// 4. Find the Tables argument (e.g., "t:table1,table2" or even "t:table1*2")
+$arg_tables = cli_get_arg_string_or_null($args, $cliRegex['tableRegex']);
+
+// 5. Find the Name argument for Middleware or Pipeline (e.g., "n:middleware_name" or "name:pipeline_name")
+$arg_fileNameAnonymous = cli_get_arg_string_or_null($args, $cliRegex['nameOnlyRegex']);
+
+var_dump("First Param: " . $firstParam, "Arg Method/Route: " . $arg_methodAndRoute, "Arg File/Function: " . $arg_fileAndFn, "Arg Folder/File/Function: " . $arg_folderAndFileAndFn, "Arg Tables: " . $arg_tables, "Arg Name: " . $arg_fileNameAnonymous);
+
+
+
 
 if (in_array($firstParam, $middlewaresAliases)) {
     $folder = "funkphp/middlewares";
     $folderType = "middlewares";
     $routeKey = ["middlewares" => null];
     $anonymousFile = true; // Middlewares are always single anonymous function files
-    [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg1, "m_");
+    [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg_fileNameAnonymous, "m_");
     cli_info_without_exit("OK! Middleware Files. Middleware Functions are recommended to be reused in different projects, consider versioning their name endings. Run `funk recompile|rc` if you have manually added the Middleware Function File to a `middlewares` Route Key to a given Route!");
     $routeKey[key($routeKey)] = $file;
 } elseif (in_array($firstParam, $singlePipelineAliases)) {
     $folderType = "pipeline";
     $folder = "funkphp/pipeline";
     $anonymousFile = true; // Pipeline functions are always single anonymous function files
-    [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg1, "pl_");
+    [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg_fileNameAnonymous, "pl_");
     cli_info_without_exit("OK! Pipeline File. Pipeline Functions are recommended to be reused in different projects, consider versioning their name endings. Drag this Function File into either `funkphp/pipeline/request/` OR `funkphp/pipeline/post-response/` and then add it manually to the corresponding Pipeline Sub-Array! (`pipeline['request']` or `pipeline['post-response']`)");
 } elseif (in_array($firstParam, $validationAliases)) {
     $folderType = "validation";
     $folder = "funkphp/validation";
-    [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg1, "v_");
+    [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg_fileAndFn, "v_");
     cli_info_without_exit("OK! Validation File and/or Validation Function. These are recommended to be used by calling `funk_use_valdation(&\$c,\$file_name,\$file_fn)` inside an Anonymous Function OR a File=>Function File!");
 } elseif (in_array($firstParam, $sqlAliases)) {
     $folderType = "sql";
     $folder = "funkphp/sql";
-    [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg1, "s_");
+    [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg_fileAndFn, "s_");
     cli_info_without_exit("OK! SQL File and/or SQL Function. These are recommended to be used by first calling `funk_load_sql(&\$c,\$file_name,\$file_fn)` and then `funk_use_sql(&\$c,\$loadedSQLArray,\$optionalInputData,\$hydrateAfterQuery)` inside an Anonymous Function OR a File=>Function File!");
 }
 // This is a special case where we only create
@@ -97,6 +119,11 @@ elseif (in_array($firstParam, $routeAliases)) {
     [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg1);
     cli_info_without_exit("OK! A Route File and/or Route Function that will be placed inside:`$folder`. If you provided a Method/Route it will be automatically added IF it is sucessfully created! Otherwise, you will have to manually add it to a Route Key of a Route manually or by running `funk add:$firstParam $file=>$fn <method/route>`!");
 }
+
+
+// DEBUGGING
+exit;
+
 // Passing $arg2 for Method/Route is optional so we check if it is set
 $method = null;
 $route = null;

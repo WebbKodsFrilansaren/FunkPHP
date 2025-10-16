@@ -1691,7 +1691,6 @@ function cli_crud_folder_php_file_atomic_write($fileContent, $file_path)
     return true;
 }
 
-
 // Function to check if a middleware exists in a given method/route which
 // can either be just a 'middlewares' => 'm_name' or 'middlewares' => ['m_name1', 'm_name2']
 // or 'middlewares' => ['m_name1' => 'passedValue', 'm_name2'] meaning we
@@ -1718,4 +1717,42 @@ function cli_mw_exists_in_route(&$ROUTES, $method, $route, $mw_name)
         cli_err_without_exit('[cli_mw_exists_in_route()]: $ROUTES must be an Array and must contain the provided $method and $route!');
         return false;
     }
+}
+
+// Function returns Regex-matched strings without prefix (default) or just the value
+// as it is if no regex is provided. If no match is found, it returns null meaning no
+// actual string value was found in the $args array.
+function cli_get_arg_string_or_null($args, $regexToMatch = null, $keepPrefix = false)
+{
+    // Iterate through $args which if it is an array and
+    // match regex to it if $regexToMatch is not null
+    $finalValue = null;
+    foreach ($args as $arg) {
+        // Only apply to non-empty strings in $args array
+        if (is_string($arg) && !empty(trim($arg))) {
+            // Only apply if a Regex is provided
+            if (
+                isset($regexToMatch)
+                && is_string($regexToMatch)
+                && !empty($regexToMatch)
+            ) {
+                if (preg_match($regexToMatch, $arg)) {
+                    $finalValue = $arg;
+                    // remove prefix as default unless $keepPrefix is true
+                    if (!$keepPrefix) {
+                        $finalValue = explode(":", $finalValue, 2)[1] ?? $finalValue;
+                    }
+                    break;
+                } else {
+                    continue;
+                }
+            }
+            // Otherwise we take the non-empty string value as is
+            else {
+                $finalValue = $arg;
+                break;
+            }
+        }
+    }
+    return $finalValue;
 }

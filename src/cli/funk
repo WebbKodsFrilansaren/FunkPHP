@@ -68,15 +68,111 @@ $cliRegex = [
     // `ff:users` OR `ff:users=>by_id` (first one is parsed as `ff:users=>users` internally)
     'fileWithOptionalFnRegex' => '/^ff:([a-z][a-z0-9_]+)(=>([a-z0-9_.]+))?$/i',
 
+    // `funkphp/routes/users/users.php with `update_user` Function inside
+    // `fff:users=>users=>update_user` OR `fff:users=>users` (last part is
+    // optional and is parsed as `fff:users=>users=>users` internally)
+    'folderFileOptionalFnRegex' => '/^fff:([a-z][a-z0-9_]+)(=>([a-z0-9_.]+))(=>([a-z0-9_.]+))?$/i',
+
     // `t:table1` OR `t:table1,table2` OR `t:table1*2` OR `t:table1*2,table2` (\*\d+) part is optional!
     'tableRegex' => '/^t:(((sd|si|s|i|u|d)=)?[a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]*(\*[0-9]+)?)*$/i',
 
     // `get/:user` OR `get/users/:by_id` | Check if route ends with "/:something" meaning it is dynamic
     // This is not a (sub)command or argument regex but used by some commands to validate route syntax!
     'routeDynamicEndRegex' => '/\/:[a-zA-Z-_0-9]+$/i',
+
+    // `n:middlewareName` or `name:pipeline_name` | For Middlewares & Pipeline Anonymous Function Files
+    'nameOnlyRegex' => '/^(name|n):([a-zA-Z_0-9]+)$/i',
     '' => '',
     '' => '',
-    '' => '',
+];
+
+// Map different aliases (different $subCommand for the same $command
+// and other info that some src/cli/commands-Files. Extend as needed!
+$commandConfigMappings = [
+    // Map $subCommand so it can check against the keys below
+    'aliasesMap' => [
+        's' => 'sql',
+        'sql' => 'sql',
+        'v' => 'validation',
+        'validation' => 'validation',
+        'm' => 'middleware',
+        'mw' => 'middleware',
+        'middleware' => 'middleware',
+        'pl' => 'pipeline',
+        'pipeline' => 'pipeline',
+        'r' => 'route',
+        'route' => 'route',
+        'rutt' => 'route'
+    ],
+    // Any string in this array will cause a non-stopping warning!
+    'folder_list_that_warns' => [
+        'routes',
+        'cached',
+        'classes',
+        'backups',
+        '_final_backups',
+        'valid',
+        'complete',
+        'functions',
+        'compiled',
+        'components',
+        'partials',
+        'blocked',
+        'config',
+        '_internals',
+        'batteries',
+        'post-response',
+        'request',
+        'gui',
+        'public_html',
+        'cli',
+        'test',
+        'tests',
+        'schema',
+        'schemas',
+    ],
+    // Config for matched $subCommand based on matched `aliasesMap` above
+    'config' => [
+        // config for m/mw/middleware aliases
+        'middleware' => [
+            'aliases' => ['mw', 'mws', 'middlewares'],
+            'folder' => 'funkphp/middlewares',
+            'type' => 'middlewares',
+            'file_prefix' => 'm_',
+            'anonymous' => true,
+            'route_key' => ['middlewares' => null],
+        ],
+        // config for pl/pipeline aliases
+        'pipeline' => [
+            'aliases' => ['pl', 'pls', 'pipelines'],
+            'folder' => 'funkphp/pipeline',
+            'type' => 'pipeline',
+            'file_prefix' => 'pl_',
+            'anonymous' => true,
+        ],
+        // config for v/validation aliases
+        'validation' => [
+            'aliases' => ['v'],
+            'folder' => 'funkphp/validation',
+            'type' => 'validation',
+            'file_prefix' => 'v_',
+            'needs_tables' => true, // Use boolean flags for special logic
+        ],
+        // config for s/sql aliases
+        'sql' => [
+            'aliases' => ['s'],
+            'folder' => 'funkphp/sql',
+            'type' => 'sql',
+            'file_prefix' => 's_',
+            'needs_tables' => true,
+        ],
+        // config for r/route/rutt aliases
+        'route' => [ // Special case
+            'aliases' => ['r', 'rutt'],
+            'route_only' => true, // Flag for special route-only logic
+        ],
+    ],
+    // Add other command types here...
 ];
 
 // Store whether we are in JSON mode or CLI mode and the
@@ -112,6 +208,7 @@ if (php_sapi_name() === 'cli') {
     }
     $command = strtolower($command);
     $subCommand = str_contains($command, ':') ? explode(':', $command, 2)[1] : null;
+    $command = str_contains($command, ':') ? explode(':', $command, 2)[0] : $command;
 
     // The remaining arguments start from index 2
     $argLength = count($rawArgs);
@@ -156,6 +253,7 @@ else {
     else {
         $command = strtolower($command);
         $subCommand = str_contains($command, ':') ? explode(':', $command, 2)[1] : null;
+        $command = str_contains($command, ':') ? explode(':', $command, 2)[0] : $command;
     }
 
     // We now iterate through all (skipping 'command' key) and store those that has the key name
@@ -444,7 +542,7 @@ foreach ($commandFiles as $filepath) {
     // 2. Split into individual supported command words
     // 3. Check if the root command ($cmd) is in the list
     $commandListStr = basename($filepath, '.php');
-    $supportedCommands = explode('-', $commandListStr);
+    $supportedCommands = str_contains($commandListStr, "-") ? explode('-', $commandListStr) : [$commandListStr];
     if (in_array($command, $supportedCommands)) {
         include_once $filepath;
         $commandFileFound = true;
@@ -452,7 +550,6 @@ foreach ($commandFiles as $filepath) {
         return;
     }
 }
-
 /****************************************************************************/
 /* HERE ARE ONLY JSON-BASED COMMANDS, ONLY USED BY THE FunkGUI (gui-folder) */
 /****************************************************************************/
