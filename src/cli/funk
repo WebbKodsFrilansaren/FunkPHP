@@ -79,12 +79,14 @@ $cliRegex = [
     '' => '',
 ];
 
-// Store whether we are in JSON mode or CLI mode and
-// the `command:optionalSubCommand` and its `arg1`,`arg2`...etc array!
+// Store whether we are in JSON mode or CLI mode and the
+// `command:optionalSubCommand` and its `arg1`,`arg2`...etc array!
 $JSON = false;
 $command = null;
 $subCommand = '';
 $args = [];
+
+// CLI & JSON_MODE will validate that `command:optionalSubcommand` is provided!
 // CLI MODE: REVISED VERSION
 if (php_sapi_name() === 'cli') {
     // 1. Get all arguments from argv (skip the script name at index 0)
@@ -242,6 +244,10 @@ $settings = include CLI_DIR . '/funksettings' ?? [
         "ALLOW_COMPLETE_BACKUP_DELETION" => false,
     ],
 ];
+
+// Check for duplicate command keywords in the `commands` folder
+// since you can use aliases for each file separated by "-"
+$commandFiles = cli_commands_duplicates_check();
 
 // All available dirs to use for the CLI
 // & exact file paths to use for the CLI
@@ -417,24 +423,6 @@ $mysqlOperatorSyntax = include_once FUNKPHP_DIR . '/config/valid/valid_mysql_ope
     ],
 ];
 
-// Catch when no command is provided or is not a non-empty string
-if (!isset($command)) {
-    cli_err_syntax_without_exit("No command provided! Please provide a Command to execute with up to 6 arguments!");
-    if (JSON_MODE) {
-        cli_info("Use the following JSON format: `{ \"command\": \"<command>:<first_param>\", \"arg1\": \"<arg1>\", \"arg2\": \"<arg2>\", \"arg3\": \"<arg3>\", \"arg4\": \"<arg4>\", \"arg5\": \"<arg5>\", \"arg6\": \"<arg6>\" }`");
-    } else {
-        cli_info("Type a Command and then up to 6 arguments, like this: `funk <command:first_param> <arg1> <arg2> <arg3> <arg4> <arg5> <arg6>`");
-    }
-}
-if (!is_string($command) || empty($command)) {
-    cli_err_syntax_without_exit("Command must be a Non-Empty String! Please provide a valid Command with up to 6 arguments!");
-    if (JSON_MODE) {
-        cli_info("Use the following JSON format: `{ \"command\": \"<command>:<first_param>\", \"arg1\": \"<arg1>\", \"arg2\": \"<arg2>\", \"arg3\": \"<arg3>\", \"arg4\": \"<arg4>\", \"arg5\": \"<arg5>\" }`");
-    } else {
-        cli_info("Type a Command and then up to 6 arguments, like this: `funk <command:first_param> <arg1> <arg2> <arg3> <arg4> <arg5> <arg6>`");
-    }
-}
-
 //------ Entry point for the CLI commands where one of the commands are "make:" that is ------
 // used to CREATE Function Files (either single anonymous ones or files with named functions).
 // Begin by getting a valid command structure by "command:first_param"
@@ -445,6 +433,35 @@ $tableRegex = '/^(((sd|si|s|i|u|d)=)?[a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]
 $methodRouteRegex = '/^(([a-z]+\/)|([a-z]+(\/[:]?[a-zA-Z0-9_-]+)+))$/i';
 $routeDynamicEndRegex = '/\/:[a-zA-Z-_0-9]+$/i'; // check if route ends with "/:something" meaning it is dynamic
 $fileWithOptionalFnRegex = '/^([a-z][a-z0-9_]+)(=>([a-z0-9_.]+))?$/i';
+
+
+// --------------------------------------------------------------------------------
+// DYNAMIC COMMAND FILE LOADER (Entry point for all commands)
+// --------------------------------------------------------------------------------
+var_dump($commandFiles);
+$commandFileFound = false;
+
+// We use the root command ($cmd) to match against file names like 'make-create-new.php'
+foreach ($commandFiles as $filepath) {
+    if ($commandFileFound) break; // If we already found a command file, break the loop
+    // 1. Get the command list string (e.g., 'make-create-new')
+    // 2. Split into individual supported command words
+    // 3. Check if the root command ($cmd) is in the list
+    $commandListStr = basename($filepath, '.php');
+    $supportedCommands = explode('-', $commandListStr);
+    if (in_array($command, $supportedCommands)) {
+        include_once $filepath;
+        $commandFileFound = true;
+        // Break the loop and return from the main script execution.
+        return;
+    }
+}
+
+// --------------------------------------------------------------------------------
+// END DYNAMIC COMMAND FILE LOADER
+// --------------------------------------------------------------------------------
+
+exit;
 
 // SPECIAL-CASE: Command to Recompile
 // Routes File & Trie-based Route File

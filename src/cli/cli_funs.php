@@ -1,5 +1,67 @@
 <?php // SECOND CLI FUNCTIONS FILE SINCE SECOND ONE STARTED TO BECOME TOO LARGE!
 
+
+/**
+ * Checks all `commands` files in `src/cli/commands` whether they contain duplicate
+ * command keywords (e.g. `recompile-rc` and `rc-recompile` both contain `recompile` and `rc`)
+ * and outputs errors if duplicates are found.
+ *
+ * You should ONLY use `One Unique Keyword Per File`!
+ * @return array List of all Command Files if no duplicates found.
+ */
+function cli_commands_duplicates_check()
+{
+    // We scan all the files in the `commands` folder and collect all keywords.
+    $commandFiles = glob(CLI_COMMANDS_DIR . '/*.php');
+    $seenCommands = [];
+    $conflicts = [];
+    foreach ($commandFiles as $filePath) {
+        // 1. Get the base file name (e.g., "recompile-rc" or "new-create-make")
+        // 2. Split the name into individual command keywords
+        // 3. Loop through all keywords in the current file
+        $fileName = basename($filePath, '.php');
+        $keywords = explode('-', $fileName);
+        foreach ($keywords as $keyword) {
+            // If the keyword has already been seen...
+            if (isset($seenCommands[$keyword])) {
+                // ... and it belongs to a different file, we have a conflict.
+                if ($seenCommands[$keyword] !== $fileName) {
+                    // Record the conflict: the conflicting keyword, the current file, and the previously seen file.
+                    $conflicts[] = [
+                        'keyword' => $keyword,
+                        'file1' => $seenCommands[$keyword] . '.php',
+                        'file2' => $fileName . '.php',
+                    ];
+                }
+            }
+            // Mark the keyword as seen and record which file it belongs to.
+            $seenCommands[$keyword] = $fileName;
+        }
+    }
+    // Check if any conflicts were found
+    if (!empty($conflicts)) {
+        // Build a detailed error message
+        $conflictMessages = [];
+        foreach ($conflicts as $c) {
+            $conflictMessages[] = "Keyword `{$c['keyword']}` found in both `{$c['file1']}` and `{$c['file2']}`.";
+        }
+        $fullErrorMessage = 'FunkPHP CLI Command File Conflict: Multiple files are using the same command keyword(s): ' . implode(' | ', $conflictMessages) . ' Please ensure all keywords in file names are unique across the entire commands directory.';
+        // Output the error based on mode and exit
+        if (defined('JSON_MODE') && JSON_MODE) {
+            http_response_code(500);
+            echo json_encode([
+                'type' => 'ERROR',
+                'message' => $fullErrorMessage
+            ]);
+            exit;
+        } else {
+            echo "\033[31m[FunkCLI - ERROR]: " . $fullErrorMessage . "\n\033[0m";
+            exit;
+        }
+    }
+    return $commandFiles;
+}
+
 /**
  * Recursively checks and extracts keys from a deeply nested associative array,
  * enforcing a single-key associative array structure at each level.
