@@ -13,6 +13,17 @@ include_once __DIR__ . '/_internals/functions/_all.php';
 $c = include_once __DIR__ . '/config/_all.php';
 $c['<ENTRY>'] = include_once __DIR__ . '/pipeline/pipeline.php';
 
+// Prepare a global exception handler to catch any uncaught exceptions
+// even though the Developer is advised to use `funk_use_error_throw` to
+// intentionally throw exceptions that the Developer then catches later!
+set_exception_handler(function (\Throwable $e) use (&$c) {
+    // $c and all functions should be available by now
+    $c['err']['UNCAUGHT_EXCEPTION'] = $e;
+    funk_use_log($c, "UNCAUGHT EXCEPTION BY DEVELOPER: " . $e->getMessage(), 'CRIT');
+    $err = 'Tell the Developer: An Uncaught Exception Occurred: `' . $e->getMessage() . '` Please check the Logs for more details.';
+    funk_use_error_json_or_page($c, 500, ["internal_error" => $err], '500', $err);
+});
+
 // Load Composer Autoloader so that any Composer installed packages can be used
 require_once __DIR__ . '/vendor/autoload.php';
 
@@ -31,19 +42,30 @@ register_shutdown_function(function () use (&$c) {
         funk_use_log($c, 'No Configured Post-Request Pipeline Functions (`"<ENTRY>" => "pipeline" => "post-response"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\'][\'post-responset\']` Key in the Pipeline Configuration File `funkphp/config/pipeline.php` File!', 'WARN');
     }
 });
-// MAIN STEP: Run the Pipeline of Anonymous Functions that control the flow of the request!
-if (
-    isset($c['<ENTRY>']['pipeline']['request']) &&
-    is_array($c['<ENTRY>']['pipeline']['request']) &&
-    array_is_list($c['<ENTRY>']['pipeline']['request']) &&
-    !empty($c['<ENTRY>']['pipeline']['request'])
-) {
-    funk_run_pipeline_request($c, 'defensive'); // Choose between 'happy' or 'defensive' mode
-}  // "funk_use_custom_error" can now be used thanks to all functions successfully loaded
-else {
-    $c['err']['MAYBE']['PIPELINE']['funk_run_pipeline'][] = 'No Configured Pipeline Functions (`"<ENTRY>" => "pipeline" => "request"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\']` Key in the Pipeline Configuration File `funkphp/config/pipeline.php` File!';
-    $err = 'Tell the Developer: No Pipeline Functions to run? Please check the `[\'pipeline\'][\'request\']` Key in the `funkphp/config/pipeline.php` File!';
-    funk_use_custom_error($c, ['json_or_page', ['json' => ["custom_error" => $err], 'page' => '500'], $err], 500);
+// MAIN STEP (inside of a try-catch block): Run the Pipeline of
+// Anonymous Functions that control the flow of the request!
+try {
+    if (
+        isset($c['<ENTRY>']['pipeline']['request']) &&
+        is_array($c['<ENTRY>']['pipeline']['request']) &&
+        array_is_list($c['<ENTRY>']['pipeline']['request']) &&
+        !empty($c['<ENTRY>']['pipeline']['request'])
+    ) {
+        funk_run_pipeline_request($c, 'defensive'); // Choose between 'happy' or 'defensive' mode
+    } else {
+        $c['err']['MAYBE']['PIPELINE']['funk_run_pipeline'][] = 'No (Valid) Configured Pipeline Functions (`"<ENTRY>" => "pipeline" => "request"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\']` Key in the Pipeline Configuration File `funkphp/config/pipeline.php` File. A Valid Configured Pipeline Function Is: ``[\'pipeline\'][\'request\'] => [0 => [\'pl_https_redirect\' => null], 1 => [\'pl_run_ini_sets\' => null], ...]` where it starts as a numbered array of associative arrays where each associative array has exactly one key-value pair where the Key is the Function Filename and the Value is either `null` OR an Array of Passed Parameters to the Pipeline Function!';
+        $err = 'Tell the Developer: No Pipeline Functions to run or misconfigured? Please check the `[\'pipeline\'][\'request\']` Key in the `funkphp/config/pipeline.php` File. A Valid Configured Pipeline Function Is: ``[\'pipeline\'][\'request\'] => [0 => [\'pl_https_redirect\' => null], 1 => [\'pl_run_ini_sets\' => null], ...]` where it starts as a numbered array of associative arrays where each associative array has exactly one key-value pair where the Key is the Function Filename and the Value is either `null` OR an Array of Passed Parameters to the Pipeline Function!';
+        funk_use_error_json_or_page($c, 500, ["internal_error" => $err], '500', $err);
+    }
+}
+// The MAIN STEP failed with an Exception that might
+// not be needed due to set_exception_handler?
+catch (\Throwable $e) {
+    $c['err']['PIPELINE_CATCH'] = $e;
+    // Call your global handler logic directly here if you prefer not to rely on set_exception_handler.
+    $err = 'Tell the Developer: Fatal Error in Pipeline Execution: ' . $e->getMessage();
+    funk_use_log($c, "FATAL ERROR IN PIPELINE: " . $e->getMessage(), 'CRIT');
+    funk_use_error_json_or_page($c, 500, ["internal_error" => $err], '500', $err);
 }
 // The registered shutdown callback function will be executed after pipeline
 // has run (unless the script is exited prematurely by the application)!
