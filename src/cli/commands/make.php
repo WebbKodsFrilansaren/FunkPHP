@@ -39,8 +39,6 @@ if (!isset($commandConfigMappings['aliasesMap'][$subCommand])) {
     $subCommand = $commandConfigMappings['aliasesMap'][$subCommand];
 }
 
-
-
 // Issue a warning but still continue if the first parameter is in the list of folders that will cause a warning
 // because these folders are already being used for other purposes but they could be used inside of "funkphp/routes/"
 // which is where they will be put!
@@ -48,8 +46,6 @@ if (in_array($subCommand, $folderListThatWillCauseWarning)) {
     cli_warning_without_exit("The First Parameter `$subCommand` is in the list of Folders that are already being used by FunkPHP. Despite this, `$subCommand` will be used as a subfolder in `funkphp/routes/`!");
     cli_info_without_exit("This is just a heads-up so you are not confused by seeing a folder with the same name in several places inside of FunkPHP!");
 }
-
-
 
 // REMOVE LATER BELOW, JUST SO FILE DOES NOT EXIT IMMEDIATELY OR IDE COMPLAINS ABOUT VARIABLES!
 //------ Entry point for the CLI commands where one of the commands are "make:" that is ------
