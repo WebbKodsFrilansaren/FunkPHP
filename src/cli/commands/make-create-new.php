@@ -43,6 +43,8 @@ if (in_array($firstParam, $folderListThatWillCauseWarning)) {
     cli_info_without_exit("This is just a heads-up so you are not confused by seeing a folder with the same name in several places inside of FunkPHP!");
 }
 
+
+
 // Structure the correct folder name based on the first parameter,
 // $folderType based on first parameter, and also initial $routeKey
 // $routeKey is only applicable to "routes" and "middlewares"!
@@ -484,3 +486,6 @@ elseif ($method && $route) {
 else {
     cli_err("Impossible Edge-Case where either \$method OR \$route is NOT SET when both either should be set or both should be null!");
 }
+
+// Catch outside of all possible if/else/switch statements. Could happen during Refactoring this Command File!
+cli_err("Impossible Edge-Case where You are outside of the `make` Command when it should have been caught before ending up here. As a result it will terminate here now! Please report this as a Bug at `https://www.GitHub/WebbKodsFrilansaren/FunkPHP`!");
