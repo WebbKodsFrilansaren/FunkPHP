@@ -1,4 +1,4 @@
-<?php // Routes.php - FunkPHP Framework | FunkCLI Modified it 2025-10-16 12:00:03
+<?php // Routes.php - FunkPHP Framework | FunkCLI Modified it 2025-10-16 12:08:16
 return  [
   'ROUTES' => 
    [

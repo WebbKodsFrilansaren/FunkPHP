@@ -82,6 +82,7 @@ $cliRegex = [
 // the `command:optionalSubCommand` and its `arg1`,`arg2`...etc array!
 $JSON = false;
 $command = null;
+$subCommand = '';
 $args = [];
 // CLI MODE: REVISED VERSION
 if (php_sapi_name() === 'cli') {
@@ -96,7 +97,8 @@ if (php_sapi_name() === 'cli') {
     // The command is always the first argument
     // and verify it is a non-empty string since
     // that is what the $command must be. After
-    // that we lowercase it for consistency.
+    // that we lowercase it for consistency. We
+    // also extract optional sub-command if it exists
     $command = $rawArgs[1] ?? null;
     if (
         !isset($command) || !is_string($command) || trim($command) === ''
@@ -106,13 +108,14 @@ if (php_sapi_name() === 'cli') {
         exit;
     }
     $command = strtolower($command);
+    $subCommand = str_contains($command, ':') ? explode(':', $command, 2)[1] : null;
 
     // The remaining arguments start from index 2
     $argLength = count($rawArgs);
     for ($i = 2; $i < $argLength; $i++) {
         $args[] = $rawArgs[$i];
     }
-    var_dump("\nCOMMAND: `" . $command . "`\nARGS:`" . print_r($args, true) . "`\n");
+
     // We iterate through all args and lowercase althose that are strings,
     // otherwise just continue since we allow also for more complex args
     foreach ($args as $index => $value) {
@@ -125,6 +128,9 @@ if (php_sapi_name() === 'cli') {
             $args[$index] = strtolower($value);
         }
     }
+
+    // TESTING DEBUGGING RIGHT NOW - REMOVE LATER
+    var_dump("\nCOMMAND: `" . $command . "`\nARGS:`" . print_r($args, true) . "`\n");
 }
 // JSON Mode: REVISED VERSION
 else {
@@ -143,6 +149,10 @@ else {
         http_response_code(400);
         echo json_encode(['error' => 'FunkPHP CLI (JSON Mode) did not receive a Valid Command expected in the `command` Key. The Regex Syntax for `Command:OptionalSubcommand` is: `/^([a-zA-Z0-9_]+)(:[a-zA-Z_0-9]+)?$/i`. For example: `{"command": "recompile"}` OR `{"command":"new:r"}` where latter one has support for sub-commands. Remember that in JSON Mode, the arguments in `{"arg1":<value1>,"arg2":<value2>,...}` can be of different data types, not just strings where applicable for a given command:optionalSubcommand. `{"command":"<command:optionalSubCommand>"}` must alwahys be a string though!']);
         exit;
+    }  // Extract optionalSubCommand if it exists
+    else {
+        $command = strtolower($command);
+        $subCommand = str_contains($command, ':') ? explode(':', $command, 2)[1] : null;
     }
 
     // We now iterate through all (skipping 'command' key) and store those that has the key name
@@ -308,23 +318,22 @@ $singlePipeline = include_once FUNKPHP_DIR . '/pipeline/pipeline.php' ?? [
             0 => ['pl_https_redirect' => null],
             1 => ['pl_run_ini_sets' => null],
             2 => ['pl_set_session_cookie_params' => null],
-            3 => ['pl_db_connect' => null],
-            4 => ['pl_headers_set' => null],
-            5 => ['pl_headers_remove' => null],
-            6 => ['pl_start_session' => null],
-            7 => ['pl_prepare_uri' => null],
-            8 => ['pl_match_denied_exact_ips' => null],
-            9 => ['pl_match_denied_methods' => null],
-            10 => ['pl_match_denied_uas' => null],
-            11 => ['pl_match_route' => [
+            3 => ['pl_headers_set' => null],
+            4 => ['pl_headers_remove' => null],
+            5 => ['pl_start_session' => null],
+            6 => ['pl_prepare_uri' => null],
+            7 => ['pl_match_denied_exact_ips' => null],
+            8 => ['pl_match_denied_methods' => null],
+            9 => ['pl_match_denied_uas' => null],
+            10 => ['pl_match_route' => [
                 'no_match' => [
                     'json' => null,
                     'page' => '404',
                     'callback' => null
                 ]
             ]],
-            12 => ['pl_run_matched_route_middlewares' => 'defensive'],
-            13 => ['pl_run_matched_route_keys' => 'defensive'],
+            11 => ['pl_run_matched_route_middlewares' => 'defensive'],
+            12 => ['pl_run_matched_route_keys' => 'defensive'],
         ],
         'post-response' => [
             0 => ['pl_debug' => null]
@@ -440,6 +449,7 @@ $fileWithOptionalFnRegex = '/^([a-z][a-z0-9_]+)(=>([a-z0-9_.]+))?$/i';
 // Routes File & Trie-based Route File
 if ($command === 'recompile' || $command === 'rc') {
     include_once CLI_DIR . '/commands/recompile-rc.php';
+    // `exit` is called inside of that file after finishing
 }
 
 // TESTING DEBUGGING RIGHT NOW - REMOVE LATER

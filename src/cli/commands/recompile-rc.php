@@ -4,5 +4,6 @@ cli_sort_build_routes_compile_and_output($singleRoutesRoute);
 // Exists script on success unless stopped by function beforehand!
 if (JSON_MODE) {
     cli_send_json_response();
+} else {
+    exit;
 }
-return; // Needed in CLI-Mode since function NEVER exits script on success!
