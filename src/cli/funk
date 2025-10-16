@@ -62,16 +62,17 @@ $cliRegex = [
     // `arg1`, `arg2`, ... etc
     'argRegex' => '/^(arg[0-9]+)$/',
 
-    // `get/`, "get/users", "get/users/:id", "post/data", "delete/item/:item_id" etc
-    'methodRouteRegex' => '/^(([a-z]+\/)|([a-z]+(\/[:]?[a-zA-Z0-9_-]+)+))$/i',
+    // `r:get/`, "r:get/users", "r:get/users/:id", "r:post/data", "r:delete/item/:item_id" etc
+    'methodRouteRegex' => '/^r:(([a-z]+\/)|([a-z]+(\/[:]?[a-zA-Z0-9_-]+)+))$/i',
 
-    // `users` OR `users=>by_id` (first one is parsed as `users=>users` internally)
-    'fileWithOptionalFnRegex' => '/^([a-z][a-z0-9_]+)(=>([a-z0-9_.]+))?$/i',
+    // `ff:users` OR `ff:users=>by_id` (first one is parsed as `ff:users=>users` internally)
+    'fileWithOptionalFnRegex' => '/^ff:([a-z][a-z0-9_]+)(=>([a-z0-9_.]+))?$/i',
 
-    // `table1` OR `table1,table2` OR `table1*2` OR `table1*2,table2` (\*\d+) part is optional!
-    'tableRegex' => '/^(((sd|si|s|i|u|d)=)?[a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]*(\*[0-9]+)?)*$/i',
+    // `t:table1` OR `t:table1,table2` OR `t:table1*2` OR `t:table1*2,table2` (\*\d+) part is optional!
+    'tableRegex' => '/^t:(((sd|si|s|i|u|d)=)?[a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]*(\*[0-9]+)?)*$/i',
 
     // `get/:user` OR `get/users/:by_id` | Check if route ends with "/:something" meaning it is dynamic
+    // This is not a (sub)command or argument regex but used by some commands to validate route syntax!
     'routeDynamicEndRegex' => '/\/:[a-zA-Z-_0-9]+$/i',
     '' => '',
     '' => '',
