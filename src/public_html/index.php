@@ -13,7 +13,7 @@ function critical_err_json_or_html($status = 500, $customMessage = "<No Custom M
         http_response_code($status);
         header('Content-Type: application/json');
         try {
-            echo json_encode(require_once '/critical_err_json.php', JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            echo json_encode(require_once __DIR__ . '/critical_err_json.php', JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         } catch (\JsonException $e) {
             echo json_encode([
                 'status' => $status,
@@ -27,19 +27,19 @@ function critical_err_json_or_html($status = 500, $customMessage = "<No Custom M
         http_response_code($status);
         header('Content-Type: text/html; charset=utf-8');
         header("Content-Security-Policy: default-src 'none'; img-src 'self'; script-src 'self'; connect-src 'none'; style-src 'self' 'unsafe-inline'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; font-src 'self'; base-uri 'self';");
-        $htmlFilePath = '/critical_err_html.php';
-    // If the custom file is unreadable, fall through to the hardcoded default HTML below
-    if (!is_readable($htmlFilePath)) {
-        $e = new \Exception("Required HTML error file not readable at: " . $htmlFilePath);
-    } else {
-        try {
-            echo require_once $htmlFilePath;
-            exit;
+        $htmlFilePath = __DIR__ . '/critical_err_html.php';
+        // If the custom file is unreadable, fall through to the hardcoded default HTML below
+        if (!is_readable($htmlFilePath)) {
+            $e = new \Exception("Required HTML error file not readable at: " . $htmlFilePath);
+        } else {
+            try {
+                echo require_once $htmlFilePath;
+                exit;
+            }
+            // This 'catch' will just fall through to the hardcoded default HTML below
+            catch (\Throwable $e) {
+            }
         }
-        // This 'catch' will just fall through to the hardcoded default HTML below
-        catch (\Throwable $e) {
-        }
-    }
 ?>
         <!DOCTYPE html>
         <html lang="en">
@@ -114,7 +114,7 @@ function critical_err_json_or_html($status = 500, $customMessage = "<No Custom M
         <body>
             <div class="container">
                 <h1>FunkPHP Framework - Internal Error</h1>
-                <p><strong>Tell The Developer:</strong> Tell The Developer - Not Only Did FunkPHP Framework Catch A Critical Error, It Also Failed To Include The Necessary Custom-Made HTML Response in `/critical_err_html.php` File. Please check your Installation, Filenames, and/or File Permissions!</p>
+                <p><strong>Tell The Developer:</strong> Not Only Did FunkPHP Framework Catch A Critical Error, It Also Failed To Include The Necessary Custom-Made HTML Response in `/critical_err_html.php` File. Please check your Installation, Filenames, and/or File Permissions!</p>
                 <p>Are You The Developer? Verify Installation Paths, Filenames, File Permissions and/or Global Configuration of the FunkPHP Framework where This Website Is Deployed!</p>
                 <p class="center-text">Thanks in advance!<br>You are Always Awesome! ^_^</p>
             </div>
@@ -123,7 +123,7 @@ function critical_err_json_or_html($status = 500, $customMessage = "<No Custom M
         </html>
 <?php
         exit;
-    }}
+    }
 }
 // Include the file inside of "FunkPHP" folder
 // which is outside of public_html folder

@@ -201,16 +201,19 @@ function funk_use_error_page(&$c, int $errCode, string $errMsg, string $pageName
         !isset($pageName)
         || !is_string($pageName)
         || empty($pageName)
-        || !is_readable(ROOT_FOLDER . '/page/complete/[errors]/' . $pageName . '.php')
+        || !is_readable(ROOT_PAGES_ERRORS . '/' . $pageName . '.php')
     ) {
-        critical_err_json_or_html(500, 'Tell the Developer: No Valid Page Filename Provided to `funk_handle_error_page()` Function. This should be a non-empty string that is also a readable file inside `/page/complete/[errors]/` folder!');
+        critical_err_json_or_html(500, 'Tell the Developer: No Valid Page Filename Provided to `funk_handle_error_page()` Function. This should be a non-empty string that is also a readable file inside `/pages/compiled/[errors]/` directory!');
     }
     // Headers that also support <styles> tag inline
     header('Content-Type: text/html; charset=utf-8');
     header("Content-Security-Policy: default-src 'none'; img-src 'self'; script-src 'self'; connect-src 'none'; style-src 'self' 'unsafe-inline'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; font-src 'self'; base-uri 'self';");
-    // Use the same "$custom_error_message" inside the included file to show custom error message!
-    $custom_error_message = $errMsg;
-    include_once ROOT_FOLDER . '/page/complete/[errors]/' . $pageName . '.php';
+    try {
+        $custom_error_message = $errMsg;
+        include_once ROOT_PAGES_ERRORS . '/' . $pageName . '.php';
+    } catch (\Throwable $e) {
+        critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the `funk_use_error_page()` Function while trying to return a Custom Error Page. Yes, an error to show an error occured:`' . $e->getMessage() . '`.');
+    }
     exit();
 }
 
@@ -434,9 +437,9 @@ function funk_use_error_json_or_page(&$c, int $errCode, $jsonObjectOrStringThatR
         !isset($pageName)
         || !is_string($pageName)
         || empty($pageName)
-        || !is_readable(ROOT_FOLDER . '/page/complete/[errors]/' . $pageName . '.php')
+        || !is_readable(ROOT_PAGES_ERRORS . '/' . $pageName . '.php')
     ) {
-        critical_err_json_or_html(500, 'Tell the Developer: No Valid Page Filename Provided to `funk_use_error_json_or_page()` Function. This should be a Non-Empty String!');
+        critical_err_json_or_html(500, 'Tell the Developer: No Valid Page Filename Provided to `funk_use_error_json_or_page()` Function. This should be a Non-Empty String and it must exist as a file in the `src/funkphp/pages/compiled/[errors]` directory!');
     }
     // Set the response code for both JSON and Page
     http_response_code($errCode);
@@ -469,9 +472,12 @@ function funk_use_error_json_or_page(&$c, int $errCode, $jsonObjectOrStringThatR
         // Headers that also support <styles> tag inline
         header('Content-Type: text/html; charset=utf-8');
         header("Content-Security-Policy: default-src 'none'; img-src 'self'; script-src 'self'; connect-src 'none'; style-src 'self' 'unsafe-inline'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; font-src 'self'; base-uri 'self';");
-        // Use the same "$custom_error_message" inside the included file to show custom error message!
-        $custom_error_message = $pageErrMsg;
-        include_once ROOT_FOLDER . '/page/complete/[errors]/' . $pageName . '.php';
+        try {
+            $custom_error_message = $pageErrMsg;
+            include_once ROOT_PAGES_ERRORS . '/' . $pageName . '.php';
+        } catch (\Throwable $e) {
+            critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the `funk_use_error_json_or_page()` Function while trying to return a Custom Error Page. Yes, an error to show an error occured:`' . $e->getMessage() . '`.');
+        }
     }
     exit();
 }
@@ -535,9 +541,9 @@ function funk_use_error_json_or_page_or_callback(&$c, int $errCode, string $errM
         !isset($pageName)
         || !is_string($pageName)
         || empty($pageName)
-        || !is_readable(ROOT_FOLDER . '/page/complete/[errors]/' . $pageName . '.php')
+        || !is_readable(ROOT_PAGES_ERRORS . '/' . $pageName . '.php')
     ) {
-        critical_err_json_or_html(500, 'Tell the Developer: No Valid Page Filename Provided to `funk_use_error_json_or_page_or_callback()` Function. This should be a Non-Empty String!');
+        critical_err_json_or_html(500, 'Tell the Developer: No Valid Page Filename Provided to `funk_use_error_json_or_page_or_callback()` Function. This should be a Non-Empty String and it must exist as a file in the `src/funkphp/pages/compiled/[errors]` directory!');
     }
     // $callableName is not a string or empty or not callable
     if (
@@ -573,9 +579,12 @@ function funk_use_error_json_or_page_or_callback(&$c, int $errCode, string $errM
         // Headers that also support <styles> tag inline
         header('Content-Type: text/html; charset=utf-8');
         header("Content-Security-Policy: default-src 'none'; img-src 'self'; script-src 'self'; connect-src 'none'; style-src 'self' 'unsafe-inline'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; font-src 'self'; base-uri 'self';");
-        // Use the same "$custom_error_message" inside the included file to show custom error message!
-        $custom_error_message = $errMsgForPageAndCallback;
-        include_once ROOT_FOLDER . '/page/complete/[errors]/' . $pageName . '.php';
+        try {
+            $custom_error_message = $errMsgForPageAndCallback;
+            include_once ROOT_PAGES_ERRORS . '/' . $pageName . '.php';
+        } catch (\Throwable $e) {
+            critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the `funk_use_error_json_or_page_or_callback()` Function while trying to return a Custom Error Page. Yes, an error to show an error occured:`' . $e->getMessage() . '`.');
+        }
     }
     // JSON Response
     else if (
