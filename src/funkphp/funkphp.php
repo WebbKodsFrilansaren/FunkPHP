@@ -42,29 +42,20 @@ register_shutdown_function(function () use (&$c) {
         funk_use_log($c, 'No Configured Post-Request Pipeline Functions (`"<ENTRY>" => "pipeline" => "post-response"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\'][\'post-responset\']` Key in the Pipeline Configuration File `funkphp/config/pipeline.php` File!', 'WARN');
     }
 });
-// MAIN STEP (inside of a try-catch block): Run the Pipeline of
-// Anonymous Functions that control the flow of the request!
-try {
-    if (
-        isset($c['<ENTRY>']['pipeline']['request']) &&
-        is_array($c['<ENTRY>']['pipeline']['request']) &&
-        array_is_list($c['<ENTRY>']['pipeline']['request']) &&
-        !empty($c['<ENTRY>']['pipeline']['request'])
-    ) {
-        funk_run_pipeline_request($c, 'defensive'); // Choose between 'happy' or 'defensive' mode
-    } else {
-        $c['err']['MAYBE']['PIPELINE']['funk_run_pipeline'][] = 'No (Valid) Configured Pipeline Functions (`"<ENTRY>" => "pipeline" => "request"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\']` Key in the Pipeline Configuration File `funkphp/config/pipeline.php` File. A Valid Configured Pipeline Function Is: ``[\'pipeline\'][\'request\'] => [0 => [\'pl_https_redirect\' => null], 1 => [\'pl_run_ini_sets\' => null], ...]` where it starts as a numbered array of associative arrays where each associative array has exactly one key-value pair where the Key is the Function Filename and the Value is either `null` OR an Array of Passed Parameters to the Pipeline Function!';
-        $err = 'Tell the Developer: No Pipeline Functions to run or misconfigured? Please check the `[\'pipeline\'][\'request\']` Key in the `funkphp/config/pipeline.php` File. A Valid Configured Pipeline Function Is: ``[\'pipeline\'][\'request\'] => [0 => [\'pl_https_redirect\' => null], 1 => [\'pl_run_ini_sets\' => null], ...]` where it starts as a numbered array of associative arrays where each associative array has exactly one key-value pair where the Key is the Function Filename and the Value is either `null` OR an Array of Passed Parameters to the Pipeline Function!';
-        funk_use_error_json_or_page($c, 500, ["internal_error" => $err], '500', $err);
-    }
-}
-// The MAIN STEP failed with an Exception that might
-// not be needed due to set_exception_handler?
-catch (\Throwable $e) {
-    $c['err']['PIPELINE_CATCH'] = $e;
-    // Call your global handler logic directly here if you prefer not to rely on set_exception_handler.
-    $err = 'Tell the Developer: Fatal Error in Pipeline Execution: ' . $e->getMessage();
-    funk_use_log($c, "FATAL ERROR IN PIPELINE: " . $e->getMessage(), 'CRIT');
+// The MAIN "KERNEL" STEP: Run the Pipeline of Anonymous
+// Functions that control the flow of the request. It will
+// be caught by the Global Exception Handler if any uncaught
+// exceptions occur during the Pipeline execution!
+if (
+    isset($c['<ENTRY>']['pipeline']['request']) &&
+    is_array($c['<ENTRY>']['pipeline']['request']) &&
+    array_is_list($c['<ENTRY>']['pipeline']['request']) &&
+    !empty($c['<ENTRY>']['pipeline']['request'])
+) {
+    funk_run_pipeline_request($c, 'defensive'); // Choose between 'happy' or 'defensive' mode
+} else {
+    $c['err']['MAYBE']['PIPELINE']['funk_run_pipeline'][] = 'No (Valid) Configured Pipeline Functions (`"<ENTRY>" => "pipeline" => "request"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\']` Key in the Pipeline Configuration File `funkphp/config/pipeline.php` File. A Valid Configured Pipeline Function Is: ``[\'pipeline\'][\'request\'] => [0 => [\'pl_https_redirect\' => null], 1 => [\'pl_run_ini_sets\' => null], ...]` where it starts as a numbered array of associative arrays where each associative array has exactly one key-value pair where the Key is the Function Filename and the Value is either `null` OR an Array of Passed Parameters to the Pipeline Function!';
+    $err = 'Tell the Developer: No Pipeline Functions to run or misconfigured? Please check the `[\'pipeline\'][\'request\']` Key in the `funkphp/config/pipeline.php` File. A Valid Configured Pipeline Function Is: ``[\'pipeline\'][\'request\'] => [0 => [\'pl_https_redirect\' => null], 1 => [\'pl_run_ini_sets\' => null], ...]` where it starts as a numbered array of associative arrays where each associative array has exactly one key-value pair where the Key is the Function Filename and the Value is either `null` OR an Array of Passed Parameters to the Pipeline Function!';
     funk_use_error_json_or_page($c, 500, ["internal_error" => $err], '500', $err);
 }
 // The registered shutdown callback function will be executed after pipeline

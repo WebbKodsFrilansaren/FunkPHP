@@ -37,13 +37,6 @@ define('PUBLIC_DIR', PROJECT_DIR . '/public_html');
 define('SCHEMA_DIR', PROJECT_DIR . '/schema');
 define('TEMPLATE_DIR', PROJECT_DIR . '/template');
 define('TEST_DIR', PROJECT_DIR . '/test');
-$JSON = false;
-$command = null;
-$arg1 = null;
-$arg2 = null;
-$arg3 = null;
-$arg4 = null;
-$arg5 = null;
 
 // Define message types and ANSI colors for CLI output
 // but that can also be parsed by returned JSON Response
@@ -61,71 +54,116 @@ define('ANSI_RESET', "\033[0m");
 global $funk_response_messages;
 $funk_response_messages = [];
 
-// CLI Mode
+// Define used Regexes in an aarray
+$cliRegex = [
+    // `command` OR `command:subcommand`
+    'commandRegex' => '/^([a-zA-Z0-9_]+)(:[a-zA-Z_0-9]+)?$/i',
+
+    // `arg1`, `arg2`, ... etc
+    'argRegex' => '/^(arg[0-9]+)$/',
+
+    // `get/`, "get/users", "get/users/:id", "post/data", "delete/item/:item_id" etc
+    'methodRouteRegex' => '/^(([a-z]+\/)|([a-z]+(\/[:]?[a-zA-Z0-9_-]+)+))$/i',
+
+    // `users` OR `users=>by_id` (first one is parsed as `users=>users` internally)
+    'fileWithOptionalFnRegex' => '/^([a-z][a-z0-9_]+)(=>([a-z0-9_.]+))?$/i',
+
+    // `table1` OR `table1,table2` OR `table1*2` OR `table1*2,table2` (\*\d+) part is optional!
+    'tableRegex' => '/^(((sd|si|s|i|u|d)=)?[a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]*(\*[0-9]+)?)*$/i',
+
+    // `get/:user` OR `get/users/:by_id` | Check if route ends with "/:something" meaning it is dynamic
+    'routeDynamicEndRegex' => '/\/:[a-zA-Z-_0-9]+$/i',
+    '' => '',
+    '' => '',
+    '' => '',
+];
+
+// Store whether we are in JSON mode or CLI mode and
+// the `command:optionalSubCommand` and its `arg1`,`arg2`...etc array!
+$JSON = false;
+$command = null;
+$args = [];
+// CLI MODE: REVISED VERSION
 if (php_sapi_name() === 'cli') {
-    $command = $argv[1] ?? null;
-    $arg1 = $argv[2] ?? null;
-    $arg2 = $argv[3] ?? null;
-    $arg3 = $argv[4] ?? null;
-    $arg4 = $argv[5] ?? null;
-    $arg5 = $argv[6] ?? null;
-    $arg6 = $argv[7] ?? null;
-    if (is_string($command)) {
-        $command = strtolower($command);
+    // 1. Get all arguments from argv (skip the script name at index 0)
+    // and verify that it actually exists
+    $rawArgs = $_SERVER['argv'] ?? null;
+    if (!isset($rawArgs)) {
+        echo "\033[31m[FunkCLI - ERROR]: FunkPHP CLI did not receive any arguments in `\$argv` Variable! Please check your Installation and/or File Permissions where the FunkCLI is deployed locally!\n\033[0m";
+        exit;
     }
-    if (is_string($arg1)) {
-        $arg1 = strtolower($arg1);
+
+    // The command is always the first argument
+    // and verify it is a non-empty string since
+    // that is what the $command must be. After
+    // that we lowercase it for consistency.
+    $command = $rawArgs[1] ?? null;
+    if (
+        !isset($command) || !is_string($command) || trim($command) === ''
+        || !preg_match($cliRegex['commandRegex'], $command)
+    ) {
+        echo "\033[31m[FunkCLI - ERROR]: FunkPHP CLI did not receive a Valid Command:OptionalSubcommand as the First Argument: (`\$_SERVER['argv'][1]`). This means you MUST use the `php` before the `funk` as in:`php funk`. The Regex Syntax for `Command:OptionalSubcommand` is: `/^([a-zA-Z0-9_]+)(:[a-zA-Z_0-9]+)?$/i`. For example: `recompile` OR `new:r` where latter one has support for sub-commands.\n\033[0m";
+        exit;
     }
-    if (is_string($arg2)) {
-        $arg2 = strtolower($arg2);
+    $command = strtolower($command);
+
+    // The remaining arguments start from index 2
+    $argLength = count($rawArgs);
+    for ($i = 2; $i < $argLength; $i++) {
+        $args[] = $rawArgs[$i];
     }
-    if (is_string($arg3)) {
-        $arg3 = strtolower($arg3);
-    }
-    if (is_string($arg4)) {
-        $arg4 = strtolower($arg4);
-    }
-    if (is_string($arg5)) {
-        $arg5 = strtolower($arg5);
-    }
-    if (is_string($arg6)) {
-        $arg6 = strtolower($arg6);
+    var_dump("\nCOMMAND: `" . $command . "`\nARGS:`" . print_r($args, true) . "`\n");
+    // We iterate through all args and lowercase althose that are strings,
+    // otherwise just continue since we allow also for more complex args
+    foreach ($args as $index => $value) {
+        if (is_string($value)) {
+            // See if length is 0 after trimming whitespace and if so error out
+            if (trim($value) === '') {
+                echo "\033[31m[FunkCLI - ERROR]: FunkPHP CLI received an Empty Argument at Position " . ($index + 1) . "! Please provide Valid Non-Empty Arguments!\n\033[0m";
+                exit;
+            }
+            $args[$index] = strtolower($value);
+        }
     }
 }
-// JSON Mode
+// JSON Mode: REVISED VERSION
 else {
     $JSON = true;
     header('Content-Type: application/json');
     $payload = json_decode(file_get_contents('php://input'), true) ?? [];
+    var_dump($payload);
     $command = $payload['command'] ?? null;
-    $arg1 = $payload['arg1'] ?? null;
-    $arg2 = $payload['arg2'] ?? null;
-    $arg3 = $payload['arg3'] ?? null;
-    $arg4 = $payload['arg4'] ?? null;
-    $arg5 = $payload['arg5'] ?? null;
-    $arg6 = $payload['arg6'] ?? null;
-    if (is_string($command)) {
-        $command = strtolower($command);
+
+    // Verify $command is a non-empty string after trimming whitespace
+    if (
+        !isset($command) || !is_string($command)
+        || trim($command) === ''
+        || !preg_match($cliRegex['commandRegex'], $command)
+    ) {
+        http_response_code(400);
+        echo json_encode(['error' => 'FunkPHP CLI (JSON Mode) did not receive a Valid Command expected in the `command` Key. The Regex Syntax for `Command:OptionalSubcommand` is: `/^([a-zA-Z0-9_]+)(:[a-zA-Z_0-9]+)?$/i`. For example: `{"command": "recompile"}` OR `{"command":"new:r"}` where latter one has support for sub-commands. Remember that in JSON Mode, the arguments in `{"arg1":<value1>,"arg2":<value2>,...}` can be of different data types, not just strings where applicable for a given command:optionalSubcommand. `{"command":"<command:optionalSubCommand>"}` must alwahys be a string though!']);
+        exit;
     }
-    if (is_string($arg1)) {
-        $arg1 = strtolower($arg1);
-    }
-    if (is_string($arg2)) {
-        $arg2 = strtolower($arg2);
-    }
-    if (is_string($arg3)) {
-        $arg3 = strtolower($arg3);
-    }
-    if (is_string($arg4)) {
-        $arg4 = strtolower($arg4);
-    }
-    if (is_string($arg5)) {
-        $arg5 = strtolower($arg5);
-    }
-    if (is_string($arg6)) {
-        $arg6 = strtolower($arg6);
+
+    // We now iterate through all (skipping 'command' key) and store those that has the key name
+    // "arg1", "arg2" and so on. We also lowercase those that are strings afterwards! We store in $args
+    foreach ($payload as $key => $value) {
+        if (preg_match($cliRegex['argRegex'], $key)) {
+            if (is_string($value)) {
+                // See if length is 0 after trimming whitespace and if so error out
+                if (trim($value) === '') {
+                    http_response_code(400);
+                    echo json_encode(['error' => 'FunkPHP CLI (JSON Mode) received an Empty Argument for Key `' . $key . '`! Please provide Valid Non-Empty Arguments. Remember that FunkCLI JSON Mode can support more data types than just Strings where applicable!']);
+                    exit;
+                }
+                $args[] = strtolower($value);
+            } else {
+                $args[] = $value;
+            }
+        }
     }
 }
+
 define("JSON_MODE", $JSON);
 // If we are in JSON_MODE We then check that the REMOTE_ADDR is set and is either
 // localhost or 127.0.0.1 since this should ONLY be ran in local development
@@ -144,8 +182,8 @@ if (JSON_MODE) {
 
 // Try including files or throw an error if they are not found
 if (
-    !file_exists(CLI_DIR . '/cli_funs.php')
-    || !file_exists(CLI_DIR . '/cli_funs2.php')
+    !is_readable(CLI_DIR . '/cli_funs.php')
+    || !is_readable(CLI_DIR . '/cli_funs2.php')
 ) {
     if (JSON_MODE) {
         http_response_code(500);
@@ -401,9 +439,11 @@ $fileWithOptionalFnRegex = '/^([a-z][a-z0-9_]+)(=>([a-z0-9_.]+))?$/i';
 // SPECIAL-CASE: Command to Recompile
 // Routes File & Trie-based Route File
 if ($command === 'recompile' || $command === 'rc') {
-    cli_sort_build_routes_compile_and_output($singleRoutesRoute);
-    return; // Needed since function NEVER exits script on success!
+    include_once CLI_DIR . '/commands/recompile-rc.php';
 }
+
+// TESTING DEBUGGING RIGHT NOW - REMOVE LATER
+
 
 // Validate correct command and first param format
 // Then extract them and just safety-check them again
