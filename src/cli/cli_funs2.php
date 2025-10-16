@@ -6631,12 +6631,17 @@ function cli_restore_default_folders_and_files()
         "$folderBase/BACKUPS/pipeline/request/",
         "$folderBase/BACKUPS/pipeline/post-response/",
         "$folderBase/BACKUPS/middlewares/",
-        "$folderBase/BACKUPS/page/",
+        "$folderBase/BACKUPS/pages/",
+        "$folderBase/BACKUPS/pages/compiled/",
+        "$folderBase/BACKUPS/pages/compiled/[errors]/",
+        "$folderBase/BACKUPS/pages/components/",
+        "$folderBase/BACKUPS/pages/layouts/",
+        "$folderBase/BACKUPS/pages/partials/",
         "$folderBase/BACKUPS/config/",
         "$folderBase/BACKUPS/schema/",
         "$folderBase/BACKUPS/sql/",
-        "$folderBase/BACKUPS/template/",
-        "$folderBase/BACKUPS/test/",
+        "$folderBase/BACKUPS/snippets/",
+        "$folderBase/BACKUPS/tests/",
         "$folderBase/BACKUPS/validation/",
         "$folderBase/batteries/",
         "$folderBase/batteries/middlewares/",
@@ -6644,6 +6649,7 @@ function cli_restore_default_folders_and_files()
         "$folderBase/batteries/pipeline/post-response/",
         "$folderBase/batteries/pipeline/request/",
         "$folderBase/cli/",
+        "$folderBase/cli/commands/",
         "$folderBase/funkphp/",
         "$folderBase/funkphp/_internals/",
         "$folderBase/funkphp/_internals/compiled/",
@@ -6658,15 +6664,16 @@ function cli_restore_default_folders_and_files()
         "$folderBase/funkphp/pipeline/",
         "$folderBase/funkphp/pipeline/request/",
         "$folderBase/funkphp/pipeline/post-response/",
-        "$folderBase/funkphp/page/",
-        "$folderBase/funkphp/page/complete/",
-        "$folderBase/funkphp/page/complete/[errors]/",
-        "$folderBase/funkphp/page/components/",
-        "$folderBase/funkphp/page/layouts/",
-        "$folderBase/funkphp/page/partials/",
+        "$folderBase/funkphp/pages/",
+        "$folderBase/funkphp/pages/compiled/",
+        "$folderBase/funkphp/pages/compiled/[errors]/",
+        "$folderBase/funkphp/pages/components/",
+        "$folderBase/funkphp/pages/layouts/",
+        "$folderBase/funkphp/pages/partials/",
         "$folderBase/funkphp/routes/",
         "$folderBase/funkphp/sql/",
         "$folderBase/funkphp/validation/",
+        "$folderBase/funkphp/vendor/",
         "$folderBase/gui/",
         "$folderBase/public_html/",
         "$folderBase/public_html/css/",
@@ -6674,8 +6681,8 @@ function cli_restore_default_folders_and_files()
         "$folderBase/public_html/images/",
         "$folderBase/public_html/js/",
         "$folderBase/schema/",
-        "$folderBase/template/",
-        "$folderBase/test/",
+        "$folderBase/snippets/",
+        "$folderBase/tests/",
     ];
 
     // Prepare default files that doesn't exist if certain folders don't exist
@@ -6736,7 +6743,6 @@ function cli_restore_default_folders_and_files()
             12 => ['pl_run_matched_route_middlewares' => 'defensive'],
             13 => ['pl_run_matched_route_keys' => 'defensive'],
             ],
-            11 => ['pl_run_matched_route_keys' => null],
             ],'post-response' => [0 => [],],];");
                 echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
                 continue;
@@ -6745,7 +6751,7 @@ function cli_restore_default_folders_and_files()
                 echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
                 continue;
             } else if (str_contains($file, "cli/.htaccess")) {
-                file_put_contents($file, "<Files \"funk\">\nSetHandler application/x-httpd-php\n</Files>");
+                file_put_contents($file, "# This file was recreated by FunkCLI!\n<Files \"funk\">\nSetHandler application/x-httpd-php\n</Files>");
                 echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
                 continue;
             }
