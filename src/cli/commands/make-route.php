@@ -2,8 +2,8 @@
 // MAKE: Create something new and OPTIONALLY adding it to a specific Method/Route
 // SYNTAX: funk make|create|new:<first_param> <file_name>[=>function_name] [method/route]
 
-
-
+// Disallow interactivity with JSON MODE
+cli_check_interactive_mode($CLI, $args);
 
 
 
