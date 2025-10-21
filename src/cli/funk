@@ -187,7 +187,8 @@ $commandConfigMappings = [
 // Store whether we are in JSON mode or CLI mode and the
 // `command:optionalSubCommand` and its `arg1`,`arg2`...etc array!
 $JSON = false;
-$command = null;
+$CLI = false;
+$command = '';
 $subCommand = '';
 $args = [];
 
@@ -196,6 +197,7 @@ $args = [];
 if (php_sapi_name() === 'cli') {
     // 1. Get all arguments from argv (skip the script name at index 0)
     // and verify that it actually exists
+    $CLI = true;
     $rawArgs = $_SERVER['argv'] ?? null;
     if (!isset($rawArgs)) {
         echo "\033[31m[FunkCLI - ERROR]: FunkPHP CLI did not receive any arguments in `\$argv` Variable! Please check your Installation and/or File Permissions where the FunkCLI is deployed locally!\n\033[0m";
@@ -279,6 +281,8 @@ else {
 }
 
 define("JSON_MODE", $JSON);
+define("CLI_MODE", $CLI);
+
 // If we are in JSON_MODE We then check that the REMOTE_ADDR is set and is either
 // localhost or 127.0.0.1 since this should ONLY be ran in local development
 if (JSON_MODE) {
@@ -345,10 +349,6 @@ $settings = include CLI_DIR . '/funksettings' ?? [
         "ALLOW_COMPLETE_BACKUP_DELETION" => false,
     ],
 ];
-
-// Check for duplicate command keywords in the `commands` folder
-// since you can use aliases for each file separated by "-"
-$commandFiles = cli_commands_duplicates_check();
 
 // All available dirs to use for the CLI
 // & exact file paths to use for the CLI
@@ -525,36 +525,23 @@ $mysqlOperatorSyntax = include_once FUNKPHP_DIR . '/config/valid/valid_mysql_ope
 ];
 
 // --------------------------------------------------------------------------------
-// DYNAMIC COMMAND FILE LOADER - Loads based on "command-commandaliases1-alias2.php"
-// in the `src/cli/commands` folder.
+// DYNAMIC COMMAND FILE LOADER - Loads based on "$command-$subCommand.php" where
+// $subCommand is optional (the use of ":"). Commands are in `src/cli/commands`.
 // --------------------------------------------------------------------------------
-$commandFileFound = false;
-foreach ($commandFiles as $filepath) {
-    if ($commandFileFound) break;
-    $commandListStr = basename($filepath, '.php');
-    $supportedCommands = str_contains($commandListStr, "-") ? explode('-', $commandListStr) : [$commandListStr];
-    if (in_array($command, $supportedCommands)) {
-        include_once $filepath;
-        $commandFileFound = true;
-        return;
-    }
-}
-/****************************************************************************/
-/* HERE ARE ONLY JSON-BASED COMMANDS, ONLY USED BY THE FunkGUI (gui-folder) */
-/****************************************************************************/
-if (!JSON_MODE) {
-    cli_info("Either that Command does NOT exist or it is limited to JSON Responses Only. Use the following JSON format: `{ \"command\": \"<command>:<first_param>\", \"arg1\": \"<arg1>\", \"arg2\": \"<arg2>\", \"arg3\": \"<arg3>\", \"arg4\": \"<arg4>\", \"arg5\": \"<arg5>\", \"arg6\": \"<arg6>\" }`");
-}
-
-/*******************/
-/* FINAL CATCH-ALL */
-/*******************/
-cli_err_syntax_without_exit("Invalid command! Please provide a Valid Command with up to 6 arguments!");
-if (JSON_MODE) {
+//  `php funk $command:$subCommand`
+if(is_readable(CLI_COMMANDS_DIR . '/' . $command . '-' . str_replace('_', '-', $subCommand) . '.php')) {
+    include CLI_COMMANDS_DIR . '/' . $command . '-' . str_replace('_', '-', $subCommand) . '.php';
+    exit;
+} 
+// `php funk $command`
+elseif(is_readable(CLI_COMMANDS_DIR . '/' . $command . '.php')) {
+    include CLI_COMMANDS_DIR . '/' . $command . '.php';
+    exit;
+} 
+// Command file NOT found, we handle this below - this is the "catch-all" case
+else {
+    cli_err_syntax_without_exit("Command `$command" . (!empty($subCommand) ? ":$subCommand" : "") . "` not found or is using invalid syntax. Expected `command-optionalSubcommand` which starts up an interactive input session to get more details if needed OR `command-optionalSubcommand param1 param2 etc3` if you know all parameters upfront. IMPORTANT: Interactive input session is NOT supported in JSON Mode!");
     cli_info("Use the following JSON format: `{ \"command\": \"<command>:<first_param>\", \"arg1\": \"<arg1>\", \"arg2\": \"<arg2>\", \"arg3\": \"<arg3>\", \"arg4\": \"<arg4>\", \"arg5\": \"<arg5>\", \"arg6\": \"<arg6>\" }`");
-} else {
-    cli_info("Type a Command and then up to 6 arguments, like this: `funk <command:first_param> <arg1> <arg2> <arg3> <arg4> <arg5> <arg6>`");
 }
-/*******************/
-/* FINAL CATCH-ALL */
-/*******************/
+cli_warning("This should not be seen as it should have exit above. Please report the bug to FunkPHP GitHub Issues at `https://github.com/WebbKodsFrilansaren/FunkPHP`!");
+exit;

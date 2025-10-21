@@ -1,6 +1,13 @@
 <?php // FunkCLI COMMAND "php funk make|create|new" - creates a new file and optionally adds a function to a specific Method/Route
 // MAKE: Create something new and OPTIONALLY adding it to a specific Method/Route
 // SYNTAX: funk make|create|new:<first_param> <file_name>[=>function_name] [method/route]
+
+
+
+
+
+
+///
 $folderListThatNeedsTables = ['sql', 'validation', 'v', 's'];
 $folderListThatWillCauseWarning = [
     'routes',

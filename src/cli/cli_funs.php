@@ -1,137 +1,17 @@
 <?php // SECOND CLI FUNCTIONS FILE SINCE SECOND ONE STARTED TO BECOME TOO LARGE!
 
-
 /**
- * Checks all `commands` files in `src/cli/commands` whether they contain duplicate
- * command keywords (e.g. `recompile-rc` and `rc-recompile` both contain `recompile` and `rc`)
- * and outputs errors if duplicates are found.
+ * Checks if the current context is valid for Interactive Mode (must be CLI mode AND no arguments).
+ * * If the criteria are not met, it immediately calls the error function and exits the script.
  *
- * You should ONLY use `One Unique Keyword Per File`!
- * @return array List of all Command Files if no duplicates found.
+ * @param bool $CLI A boolean indicating if the script is running in SAPI CLI mode.
+ * @param array $args The array of arguments provided by the user.
  */
-function cli_commands_duplicates_check()
+function cli_check_interactive_mode(bool $CLI, array $args)
 {
-    // We scan all the files in the `commands` folder and collect all keywords.
-    $commandFiles = glob(CLI_COMMANDS_DIR . '/*.php');
-    $seenCommands = [];
-    $conflicts = [];
-    foreach ($commandFiles as $filePath) {
-        // 1. Get the base file name (e.g., "recompile-rc" or "new-create-make")
-        // 2. Split the name into individual command keywords
-        // 3. Loop through all keywords in the current file
-        $fileName = basename($filePath, '.php');
-        // If filename includes whitespace, then we error out hard
-        if (preg_match('/\s/', $fileName)) {
-            $errorMessage = 'FunkPHP CLI Command File Verification Error: The Command File `' . $fileName . '.php` contains whitespace in its name. Please remove any spaces or tabs from the Filename to ensure it is a Valid Command Keyword.';
-            // Output the error based on mode and exit
-            if (defined('JSON_MODE') && JSON_MODE) {
-                http_response_code(500);
-                echo json_encode([
-                    'type' => 'ERROR',
-                    'message' => $errorMessage
-                ]);
-                exit;
-            } else {
-                echo "\033[31m[FunkCLI - ERROR]: " . $errorMessage . "\n\033[0m";
-                exit;
-            }
-        }
-        $keywords = explode('-', $fileName);
-        foreach ($keywords as $keyword) {
-            // If the keyword has already been seen...
-            if (isset($seenCommands[$keyword])) {
-                // ... and it belongs to a different file, we have a conflict.
-                if ($seenCommands[$keyword] !== $fileName) {
-                    // Record the conflict: the conflicting keyword, the current file, and the previously seen file.
-                    $conflicts[] = [
-                        'keyword' => $keyword,
-                        'file1' => $seenCommands[$keyword] . '.php',
-                        'file2' => $fileName . '.php',
-                    ];
-                }
-            }
-            // Mark the keyword as seen and record which file it belongs to.
-            $seenCommands[$keyword] = $fileName;
-        }
-    }
-    // Check if any conflicts were found
-    if (!empty($conflicts)) {
-        // Build a detailed error message
-        $conflictMessages = [];
-        foreach ($conflicts as $c) {
-            $conflictMessages[] = "Keyword `{$c['keyword']}` found in both `{$c['file1']}` and `{$c['file2']}`.";
-        }
-        $fullErrorMessage = 'FunkPHP CLI Command File Conflict: Multiple files are using the same command keyword(s): ' . implode(' | ', $conflictMessages) . ' Please ensure all keywords in file names are unique across the entire commands directory.';
-        // Output the error based on mode and exit
-        if (defined('JSON_MODE') && JSON_MODE) {
-            http_response_code(500);
-            echo json_encode([
-                'type' => 'ERROR',
-                'message' => $fullErrorMessage
-            ]);
-            exit;
-        } else {
-            echo "\033[31m[FunkCLI - ERROR]: " . $fullErrorMessage . "\n\033[0m";
-            exit;
-        }
-    }
-    return $commandFiles;
-}
-
-/**
- * Recursively checks and extracts keys from a deeply nested associative array,
- * enforcing a single-key associative array structure at each level.
- *
- * @param array $array The input array (e.g., a single route key structure).
- * @param int $expectedDepth The number of nested levels (keys) to find.
- * @param bool $enforceExact If true, fails if the array depth is more or less than $expectedDepth.
- * @return array An array containing 'valid' status and a list of found keys, or a failure state.
- */
-function cli_array_key_depth($array, $expectedDepth, $enforceExact = true): array
-{
-    $keys = [];
-    $currentLevel = $array;
-    $currentDepth = 0;
-    $failState = ['valid' => false, 'keys' => []];
-    // Basic Validation
-    if ($expectedDepth < 1) {
-        return $failState;
-    }
-    // 1. Loop through the expected depth levels
-    for ($i = 0; $i < $expectedDepth; $i++) {
-        // Ensure the current level is an associative array with exactly one key
-        if (!is_array($currentLevel) || array_is_list($currentLevel) || count($currentLevel) !== 1) {
-            // Failure: Structure is invalid or key count is wrong at this level
-            return $failState;
-        }
-        $key = key($currentLevel) ?? null;
-        // Ensure the key exists and is a non-empty string (for folder/file/fn names)
-        if ($key === null || !is_string($key) || empty($key)) {
-            return $failState;
-        }
-        $keys[] = $key;
-        $currentDepth++;
-        // Move to the next nested array for the next iteration
-        $currentLevel = $currentLevel[$key];
-    }
-    // 2. Final Depth Check (After reaching the expected depth)
-    // If exact depth is required, check if the value at the final level is NOT an array
-    if ($enforceExact) {
-        // If the final element is an array (meaning there is another level),
-        // OR if the final element is an associative array with keys, then the depth is exceeded.
-        // We use is_array() and check if it has keys/elements to determine if it goes deeper.
-        if (is_array($currentLevel) && !empty($currentLevel)) {
-            // Depth exceeded because the expected final element is another array
-            return $failState;
-        }
-    }
-    // 3. Success
-    return [
-        'valid' => true,
-        'keys' => $keys,
-        'value' => $currentLevel, // The value at the final depth
-        'actual_depth' => $currentDepth
-    ];
+    // If NOT CLI mode OR if arguments are present, the interactive path is invalid. 
+    // In this case, execute cli_err (which handles JSON/CLI output and exits).
+    (!$CLI || !empty($args)) && cli_err('Interactive Mode is NOT supported with JSON Data!');
 }
 
 // Helper function that checks if a given $routeKey has the structure
