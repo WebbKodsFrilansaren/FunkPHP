@@ -529,18 +529,18 @@ $mysqlOperatorSyntax = include_once FUNKPHP_DIR . '/config/valid/valid_mysql_ope
 // $subCommand is optional (the use of ":"). Commands are in `src/cli/commands`.
 // --------------------------------------------------------------------------------
 //  `php funk $command:$subCommand`
-if(is_readable(CLI_COMMANDS_DIR . '/' . $command . '-' . str_replace('_', '-', $subCommand) . '.php')) {
+if (is_readable(CLI_COMMANDS_DIR . '/' . $command . '-' . str_replace('_', '-', $subCommand) . '.php')) {
     include CLI_COMMANDS_DIR . '/' . $command . '-' . str_replace('_', '-', $subCommand) . '.php';
     exit;
-} 
+}
 // `php funk $command`
-elseif(is_readable(CLI_COMMANDS_DIR . '/' . $command . '.php')) {
+elseif (is_readable(CLI_COMMANDS_DIR . '/' . $command . '.php')) {
     include CLI_COMMANDS_DIR . '/' . $command . '.php';
     exit;
-} 
+}
 // Command file NOT found, we handle this below - this is the "catch-all" case
 else {
-    cli_err_syntax_without_exit("Command `$command" . (!empty($subCommand) ? ":$subCommand" : "") . "` not found or is using invalid syntax. Expected `command-optionalSubcommand` which starts up an interactive input session to get more details if needed OR `command-optionalSubcommand param1 param2 etc3` if you know all parameters upfront. IMPORTANT: Interactive input session is NOT supported in JSON Mode!");
+    cli_err_syntax_without_exit("Command `$command" . (!empty($subCommand) ? ":$subCommand" : "") . "` not found or is using invalid syntax. Expected `command:optionalSubcommand` which starts up an interactive input session to get more details if needed OR `command:optionalSubcommand prefix1:param1 prefix2:param2 prefixetc:etc3` if you know all parameters upfront. IMPORTANT: Interactive input session is NOT supported in JSON Mode!");
     cli_info("Use the following JSON format: `{ \"command\": \"<command>:<first_param>\", \"arg1\": \"<arg1>\", \"arg2\": \"<arg2>\", \"arg3\": \"<arg3>\", \"arg4\": \"<arg4>\", \"arg5\": \"<arg5>\", \"arg6\": \"<arg6>\" }`");
 }
 cli_warning("This should not be seen as it should have exit above. Please report the bug to FunkPHP GitHub Issues at `https://github.com/WebbKodsFrilansaren/FunkPHP`!");
