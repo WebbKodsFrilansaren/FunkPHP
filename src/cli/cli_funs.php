@@ -1,23 +1,5 @@
 <?php // SECOND CLI FUNCTIONS FILE SINCE SECOND ONE STARTED TO BECOME TOO LARGE!
 
-/**
- * Checks if the current context is attempting an invalid interactive session.
- * * * It triggers an error and exits if JSON Mode is detected AND no arguments were passed (a silent attempt at interactivity).
- * * It allows execution to proceed for all other cases (Power User CLI, Interactive CLI, or JSON with args).
- *
- * @param bool $CLI A boolean indicating if the script is running in SAPI CLI mode.
- * @param array $args The array of arguments provided by the user (from argv or JSON payload).
- */
-function cli_check_interactive_mode(bool $CLI, array $args)
-{
-    // Check for the specific condition: NOT CLI (i.e., JSON mode) AND NO arguments.
-    // This is the only scenario that MUST result in a hard failure,
-    // as it represents a request for interactivity over a non-interactive protocol.
-    if (!$CLI && empty($args)) {
-        cli_err('Interactive Mode is NOT supported with JSON Data! You must provide arguments using "arg1", "arg2", etc., keys in the JSON payload.');
-    }
-}
-
 // Helper function that checks if a given $routeKey has the structure
 // "Folder" => "FileName" => "FunctionName" => <Anyvalue> and returns
 // that array structure or null if not found or not valid structure
