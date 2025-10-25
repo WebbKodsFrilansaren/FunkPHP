@@ -524,6 +524,13 @@ $mysqlOperatorSyntax = include_once FUNKPHP_DIR . '/config/valid/valid_mysql_ope
     ],
 ];
 
+
+// --------------------------------------------------------------------------------
+// GLOBAL INTERACTIVE MODE GUARD
+// This prevents JSON mode from ever attempting a command with zero arguments.
+// --------------------------------------------------------------------------------
+cli_check_interactive_mode($CLI, $args);
+
 // --------------------------------------------------------------------------------
 // DYNAMIC COMMAND FILE LOADER - Loads based on "$command-$subCommand.php" where
 // $subCommand is optional (the use of ":"). Commands are in `src/cli/commands`.
