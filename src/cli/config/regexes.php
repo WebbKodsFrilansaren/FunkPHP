@@ -17,9 +17,8 @@ return [
     'fileWithOptionalFnRegex' => '/^ff:([a-z][a-z0-9_]+)(=>([a-z0-9_.]+))?$/i',
 
     // `funkphp/routes/users/users.php with `update_user` Function inside
-    // `fff:users=>users=>update_user` OR `fff:users=>users` (last part is
-    // optional and is parsed as `fff:users=>users=>users` internally)
-    'folderFileOptionalFnRegex' => '/^fff:([a-z][a-z0-9_]+)(=>([a-z0-9_.]+))(=>([a-z0-9_.]+))?$/i',
+    //`fff:users=>users=>update_user`
+    'folderFileFnRegex' => '/^fff:([a-z][a-z0-9_]+)=>([a-z0-9_-]+)=>([a-z0-9_]+)$/i',
 
     // `t:table1` OR `t:table1,table2` OR `t:table1*2` OR `t:table1*2,table2` (\*\d+) part is optional!
     'tableRegexValidation' => '/^t:([a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]*(\*[0-9]+)?)*$/i',

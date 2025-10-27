@@ -1808,7 +1808,7 @@ function cli_get_cli_input_from_interactive_or_regular($args, $command, $argumen
         || !is_array($commandConfigMappings['commands'])
         || !array_key_exists($command, $commandConfigMappings['commands'])
     ) {
-        cli_err("Interactive configuration error: Command '{$command}' not found in Command Configuration Map. Check your `cli/commands.php`. This might mean that Interactive CLI Mode for a given Command:SubCommand in FunkCLI was not started and thus the command stopped early! This error probably means that the Command File has stopped running before receiving any remaining CLI inputs! This error occured calling `cli_get_cli_input_from_interactive_or_regular(\$args,'$command','$argument');`");
+        cli_err("Interactive configuration error: Command '{$command}' not found in Command Configuration Map. Check your `cli/config/commands.php`. This might mean that Interactive CLI Mode for a given Command:SubCommand in FunkCLI was not started and thus the command stopped early! This error probably means that the Command File has stopped running before receiving any remaining CLI inputs! This error occured calling `cli_get_cli_input_from_interactive_or_regular(\$args,'$command','$argument');`");
     }
     $configMap = $commandConfigMappings['commands'][$command];
     // Check that 'args' key first exist and is an array and then that any of its subkeys
@@ -1819,7 +1819,7 @@ function cli_get_cli_input_from_interactive_or_regular($args, $command, $argumen
         || !array_key_exists($argument, $configMap['args'])
         || !is_array($configMap['args'][$argument])
     ) {
-        cli_err("Interactive configuration error: Argument '{$argument}' not found in Command Configuration Map for Command '{$command}'. Check your `cli/commands.php`. This might mean that Interactive CLI Mode for a given Command:SubCommand in FunkCLI was not started and thus the command stopped early! This error probably means that the Command File has stopped running before receiving any remaining CLI inputs! This error occured calling `cli_get_cli_input_from_interactive_or_regular(\$args,'$command','$argument');`");
+        cli_err("Interactive configuration error: Argument '{$argument}' not found in Command Configuration Map for Command '{$command}'. Check your `cli/config/commands.php`. This might mean that Interactive CLI Mode for a given Command:SubCommand in FunkCLI was not started and thus the command stopped early! This error probably means that the Command File has stopped running before receiving any remaining CLI inputs! This error occured calling `cli_get_cli_input_from_interactive_or_regular(\$args,'$command','$argument');`");
     }
     // Throw error if any duplicate prefixes found
     cli_validate_command_prefixes($command);
@@ -1830,34 +1830,34 @@ function cli_get_cli_input_from_interactive_or_regular($args, $command, $argumen
     foreach ($keys as $key) {
         // Hard check for required keys (prompt, regex, required, default, help)
         if (!array_key_exists($key, $configMap)) {
-            cli_err("Interactive configuration error: Missing required key '{$key}' in Command Configuration Map. Check your `cli/commands.php`. This might mean that Interactive CLI Mode for a given Command:SubCommand in FunkCLI was not started and thus the command stopped early! This error probably means that the Command File has stopped running before receiving any remaining CLI inputs! This error occured calling `cli_get_cli_input_from_interactive_or_regular(\$args,'$command','$argument');`");
+            cli_err("Interactive configuration error: Missing required key '{$key}' in Command Configuration Map. Check your `cli/config/commands.php`. This might mean that Interactive CLI Mode for a given Command:SubCommand in FunkCLI was not started and thus the command stopped early! This error probably means that the Command File has stopped running before receiving any remaining CLI inputs! This error occured calling `cli_get_cli_input_from_interactive_or_regular(\$args,'$command','$argument');`");
         }
         // Hard check for non-empty strings for 'prompt' and 'regex' keys that they are
         // in fact non-empty strings otherwise we hard error out here since misconfiguration!
         if (in_array($key, ['prompt', 'regex']) && (!is_string($configMap[$key]) || empty(trim($configMap[$key])))) {
-            cli_err("Interactive configuration error: Key '{$key}' must be a Non-Empty String in Command Configuration Map. Check your  Check your `cli/commands.php`. This might mean that Interactive CLI Mode for a given Command:SubCommand in FunkCLI was not started and thus the command stopped early! This error probably means that the Command File has stopped running before receiving any remaining CLI inputs! This error occured calling `cli_get_cli_input_from_interactive_or_regular(\$args,'$command','$argument');`");
+            cli_err("Interactive configuration error: Key '{$key}' must be a Non-Empty String in Command Configuration Map. Check your  Check your `cli/config/commands.php` and maybe `cli/config/regexes.php` if it was the `regex` key - check for typos. This means that Interactive CLI Mode for a given Command:SubCommand in FunkCLI was not started and thus the command stopped early! This error probably means that the Command File has stopped running before receiving any remaining CLI inputs! This error occured calling `cli_get_cli_input_from_interactive_or_regular(\$args,'$command','$argument');`");
         }
         // 'required' key must always be a boolean (true|false)
         // and using null is not allowed as a "pseudo-false"
         if ($key === 'required' && !is_bool($configMap[$key])) {
-            cli_err("Interactive configuration error: Key '{$key}' must be a Boolean (true|false) in Command Configuration Map. Using 'null' as 'pseudo-false' is NOT allowed in current version of FunkPHP. Check your `cli/commands.php`. This might mean that Interactive CLI Mode for a given Command:SubCommand in FunkCLI was not started and thus the command stopped early! This error probably means that the Command File has stopped running before receiving any remaining CLI inputs! This error occured calling `cli_get_cli_input_from_interactive_or_regular(\$args,'$command','$argument');`");
+            cli_err("Interactive configuration error: Key '{$key}' must be a Boolean (true|false) in Command Configuration Map. Using 'null' as 'pseudo-false' is NOT allowed in current version of FunkPHP. Check your `cli/commands.php`. This means that Interactive CLI Mode for a given Command:SubCommand in FunkCLI was not started and thus the command stopped early! This error probably means that the Command File has stopped running before receiving any remaining CLI inputs! This error occured calling `cli_get_cli_input_from_interactive_or_regular(\$args,'$command','$argument');`");
         }
         // 'default' key must be a string (can be empty) or just null to omit it
         if ($key === 'default' && isset($configMap[$key]) && !is_string($configMap[$key]) && $configMap[$key] !== null) {
-            cli_err("Interactive configuration error: Key '{$key}' must be a String (can be empty!) - or null to omit it - in Command Configuration Map. Check your `cli/commands.php`. This might mean that Interactive CLI Mode for a given Command:SubCommand in FunkCLI was not started and thus the command stopped early! This error probably means that the Command File has stopped running before receiving any remaining CLI inputs! This error occured calling `cli_get_cli_input_from_interactive_or_regular(\$args,'$command','$argument');`");
+            cli_err("Interactive configuration error: Key '{$key}' must be a String (can be empty!) - or null to omit it - in Command Configuration Map. Check your `cli/config/commands.php`. This means that Interactive CLI Mode for a given Command:SubCommand in FunkCLI was not started and thus the command stopped early! This error probably means that the Command File has stopped running before receiving any remaining CLI inputs! This error occured calling `cli_get_cli_input_from_interactive_or_regular(\$args,'$command','$argument');`");
         }
         // 'help' key must be a non-empty string or just null to omit it
         if (
             $key === 'help' && $configMap[$key] !== null
             && (!is_string($configMap[$key]) || empty(trim($configMap[$key])))
         ) {
-            cli_err("Interactive configuration error: Key '{$key}' must be a Non-Empty String - or null to omit it - in Command Configuration Map. Check your `cli/commands.php`. This might mean that Interactive CLI Mode for a given Command:SubCommand in FunkCLI was not started and thus the command stopped early! This error probably means that the Command File has stopped running before receiving any remaining CLI inputs! This error occured calling `cli_get_cli_input_from_interactive_or_regular(\$args,'$command','$argument');`");
+            cli_err("Interactive configuration error: Key '{$key}' must be a Non-Empty String - or null to omit it - in Command Configuration Map. Check your `cli/config/commands.php`. This means that Interactive CLI Mode for a given Command:SubCommand in FunkCLI was not started and thus the command stopped early! This error probably means that the Command File has stopped running before receiving any remaining CLI inputs! This error occured calling `cli_get_cli_input_from_interactive_or_regular(\$args,'$command','$argument');`");
         }
         // 'prefix' key must be a string (can be empty) but it cannot be null or any other value. Just a string, empty or not.
         if (
             $key === 'prefix' && (!is_string($configMap[$key]) && !preg_match('/^([a-z]+:)?$/', $configMap[$key]))
         ) {
-            cli_err("Interactive configuration error: Key '{$key}' must be a String (can be empty!) in Command Configuration Map. Check your `cli/commands.php`. This might mean that Interactive CLI Mode for a given Command:SubCommand in FunkCLI was not started and thus the command stopped early! This error probably means that the Command File has stopped running before receiving any remaining CLI inputs! This error occured calling `cli_get_cli_input_from_interactive_or_regular(\$args,'$command','$argument');`");
+            cli_err("Interactive configuration error: Key '{$key}' must be a String (can be empty!) in Command Configuration Map. Check your `cli/config/commands.php`. This means that Interactive CLI Mode for a given Command:SubCommand in FunkCLI was not started and thus the command stopped early! This error probably means that the Command File has stopped running before receiving any remaining CLI inputs! This error occured calling `cli_get_cli_input_from_interactive_or_regular(\$args,'$command','$argument');`");
         }
         // Add the value to the ordered array
         $orderedParams[] = $configMap[$key];
