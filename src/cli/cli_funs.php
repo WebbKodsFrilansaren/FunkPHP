@@ -1632,10 +1632,16 @@ function cli_get_arg_string_or_null($args, $regexToMatch = null, $keepPrefix = f
  * @param bool $required       If true, input must not be empty (and cannot use default value).
  * @param string|null $default The default value to use if input is empty and not required.
  * @param string|null $helpText Optional help text to display on validation errors.
+ * @param string $prefix Optional prefix to add to the input value (before validation).
  * @return string|null         The validated and trimmed user input (or the default value).
  */
-function cli_get_valid_cli_input($prompt, $regex, $required = true, $default = null, $helpText = null)
+function cli_get_valid_cli_input($prompt, $regex, $required = true, $default = null, $helpText = null, $prefix = '')
 {
+
+    // $prefix must be a string if set
+    if (isset($prefix) && !is_string($prefix)) {
+        cli_err('Provided $prefix value for cli_get_valid_cli_input() is NOT a String which it must be if you wanna use a prefix that is added to the input value before validation. This error means that the Command File has stopped running before receiving any remaining CLI inputs!');
+    }
     // $prompt must be a non-empty string
     if (!isset($prompt) || !is_string($prompt) || empty($prompt)) {
         cli_err('Provided $prompt value for cli_get_valid_cli_input() is NOT a Non-Empty String which it must be! This error means that the Command File has stopped running before receiving any remaining CLI inputs!');
@@ -1678,6 +1684,11 @@ function cli_get_valid_cli_input($prompt, $regex, $required = true, $default = n
                 return $default;
             }
             return null;
+        }
+        // Add prefix to input value if set so it will work
+        // with the regex but without user having to type it
+        if (isset($prefix) && is_string($prefix) && !empty($prefix)) {
+            $input = $prefix . $input;
         }
         // 3. Validation against Regex and either return valid input or continue loop
         if (!preg_match($regex, $input)) {
@@ -1739,7 +1750,7 @@ function cli_get_cli_input_from_interactive_or_regular($args, $command, $argumen
     }
     $configMap = $configMap['args'][$argument];
     // Define the required key names in the order they must appear
-    $keys = ['prompt', 'regex', 'required', 'default', 'help'];
+    $keys = ['prompt', 'regex', 'required', 'default', 'help', 'prefix'];
     $orderedParams = [];
     foreach ($keys as $key) {
         // Hard check for required keys (prompt, regex, required, default, help)
@@ -1766,6 +1777,12 @@ function cli_get_cli_input_from_interactive_or_regular($args, $command, $argumen
             && (!is_string($configMap[$key]) || empty(trim($configMap[$key])))
         ) {
             cli_err("Interactive configuration error: Key '{$key}' must be a Non-Empty String - or null to omit it - in Command Configuration Map. Check your `cli/commands.php`. This might mean that Interactive CLI Mode for a given Command:SubCommand in FunkCLI was not started and thus the command stopped early! This error probably means that the Command File has stopped running before receiving any remaining CLI inputs!");
+        }
+        // 'prefix' key must be a string (can be empty) but it cannot be null or any other value. Just a string, empty or not.
+        if (
+            $key === 'prefix' && (!is_string($configMap[$key]) || !preg_match('/^([a-z]+:)?$/', $configMap[$key]))
+        ) {
+            cli_err("Interactive configuration error: Key '{$key}' must be a String (can be empty!) in Command Configuration Map. Check your `cli/commands.php`. This might mean that Interactive CLI Mode for a given Command:SubCommand in FunkCLI was not started and thus the command stopped early! This error probably means that the Command File has stopped running before receiving any remaining CLI inputs!");
         }
         // Add the value to the ordered array
         $orderedParams[] = $configMap[$key];
