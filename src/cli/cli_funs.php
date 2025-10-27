@@ -1865,6 +1865,7 @@ function cli_get_cli_input_from_interactive_or_regular($args, $command, $argumen
     $regexToMatch = $orderedParams[1];
     $required = $orderedParams[2];
     $help = $orderedParams[4];
+    $prefix = $orderedParams[5] ?? '';
     // If true, it means no arguments were provided and we are in Interactive CLI Mode
     if (NO_ARGS_CLI) {
         return cli_get_valid_cli_input(...$orderedParams);
@@ -1904,10 +1905,10 @@ function cli_get_cli_input_from_interactive_or_regular($args, $command, $argumen
         }
         if ($finalValue === null && $required) {
             if ($help) {
-                cli_err_without_exit("Required argument '{$argument}' for Command '{$command}' did NOT match with any of the provided CLI Arguments for Regex:`$regexToMatch`. The Command File has stopped running before processing any remaining CLI Arguments!");
+                cli_err_without_exit("Required Argument '$prefix{$argument}' for Command '{$command}' did NOT match with any of the provided CLI Arguments for Regex:`$regexToMatch`. The Command File has stopped running before processing any remaining CLI Arguments!");
                 cli_info($help);
             } else {
-                cli_err("Required argument '{$argument}' for Command '{$command}' did NOT match with any of the provided CLI Arguments for Regex:`$regexToMatch`. The Command File has stopped running before processing any remaining CLI Arguments!");
+                cli_err("Required Argument '{$argument}' for Command '{$command}' did NOT match with any of the provided CLI Arguments for Regex:`$regexToMatch`. The Command File has stopped running before processing any remaining CLI Arguments!");
             }
         }
         return $finalValue;
