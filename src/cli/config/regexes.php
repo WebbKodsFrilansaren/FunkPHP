@@ -14,11 +14,11 @@ return [
     'methodRouteRegex' => '/^r:(([a-z]+\/)|([a-z]+(\/[:]?[a-zA-Z0-9_-]+)+))$/i',
 
     // `ff:users` OR `ff:users=>by_id` (first one is parsed as `ff:users=>users` internally)
-    'fileWithOptionalFnRegex' => '/^ff:([a-z][a-z0-9_]+)(=>([a-z0-9_.]+))?$/i',
+    'fileWithOptionalFnRegex' => '/^ff:([a-z][a-z0-9_]+)(=>([a-z_][a-z0-9_.]+))?$/i',
 
     // `funkphp/routes/users/users.php with `update_user` Function inside
     //`fff:users=>users=>update_user`
-    'folderFileFnRegex' => '/^fff:([a-z][a-z0-9_]+)=>([a-z0-9_-]+)=>([a-z0-9_]+)$/i',
+    'folderFileFnRegex' => '/^fff:([a-z][a-z0-9_]+)=>([a-z0-9_-]+)=>([a-z_][a-z0-9_]+)$/i',
 
     // `t:table1` OR `t:table1,table2` OR `t:table1*2` OR `t:table1*2,table2` (\*\d+) part is optional!
     'tableRegexValidation' => '/^t:([a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]*(\*[0-9]+)?)*$/i',
