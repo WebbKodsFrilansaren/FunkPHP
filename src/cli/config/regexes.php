@@ -7,14 +7,17 @@ return [
     // `command` OR `command:subcommand`
     'commandRegex' => '/^([a-zA-Z0-9_]+)(:[a-zA-Z_0-9]+)?$/i',
 
-    // `arg1`, `arg2`, ... etc
+    // `arg1`, `arg2`, ... etc - used to establish JSON_MODE
+    // (do NOT change without knowing exactly what happens!)
     'argRegex' => '/^(arg[0-9]+)$/',
 
     // `r:get/`, "r:get/users", "r:get/users/:id", "r:post/data", "r:delete/item/:item_id" etc
     'methodRouteRegex' => '/^r:(([a-z]+\/)|([a-z]+(\/[:]?[a-zA-Z0-9_-]+)+))$/i',
 
-    // `ff:users` OR `ff:users=>by_id` (first one is parsed as `ff:users=>users` internally)
-    'fileWithOptionalFnRegex' => '/^ff:([a-z][a-z0-9_]+)(=>([a-z_][a-z0-9_.]+))?$/i',
+    // targets file `users.php` with `by_id` Function inside
+    //`ff:users=>by_id` This function is used when folder are
+    // already known and cannot be changed as with Validation & SQL!
+    'fileFnRegex' => '/^ff:([a-z0-9_-]+)=>([a-z_][a-z0-9_]+)$/i',
 
     // `funkphp/routes/users/users.php with `update_user` Function inside
     //`fff:users=>users=>update_user`
