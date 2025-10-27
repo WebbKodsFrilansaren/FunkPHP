@@ -34,6 +34,8 @@ $routeOnly = false;
 // 1. Find the Method/Route argument (e.g., "r:get/users")
 $arg_methodAndRoute = cli_get_cli_input_from_interactive_or_regular($args, 'make:route', 'method/route');
 // 2. Find the File and optional Function argument (e.g., "ff:users=>by_id")
+
+exit;
 $arg_fileAndFn = cli_get_arg_string_or_null($args, $cliRegex['fileWithOptionalFnRegex']);
 // 3. Find the Folder, File, and optional Function argument (e.g., "fff:users=>user_file=>func")
 $arg_folderAndFileAndFn = cli_get_arg_string_or_null($args, $cliRegex['folderFileOptionalFnRegex']);
