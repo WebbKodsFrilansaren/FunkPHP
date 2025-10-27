@@ -1,7 +1,8 @@
 <?php // src/cli/regexes.php - FunkCLI Command Regexes Configurations File
 // These are used by the different Command Files inside of src/cli/commands/
-// but it is mainly used by the src/cli/commands.php's different commands's arguments
-// under the key `regex`. For example: `make:route` => `args` => `method/route` => `regex`
+// but it is mainly used by the src/cli/commands.php's different Commands's Arguments
+// under the key `regex`. For example: `make:route` => `args` => `method/route` => `regex`.
+// Use these for your Command File via $cliRegex['YOUR_CHOSEN_KEY_STRING_NAME'] etc.
 return [
     // `command` OR `command:subcommand`
     'commandRegex' => '/^([a-zA-Z0-9_]+)(:[a-zA-Z_0-9]+)?$/i',
