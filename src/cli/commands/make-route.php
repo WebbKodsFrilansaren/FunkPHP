@@ -1,54 +1,7 @@
-<?php // FunkCLI COMMAND "php funk make|create|new" - creates a new file and optionally adds a function to a specific Method/Route
+<?php // FunkCLI COMMAND "php funk make:route" - creates a new file and optionally adds a function to a specific Method/Route
 // MAKE: Create something new and OPTIONALLY adding it to a specific Method/Route
 // SYNTAX: funk make|create|new:<first_param> <file_name>[=>function_name] [method/route]
-
-
-///
-$folderListThatNeedsTables = ['sql', 'validation', 'v', 's'];
-$folderListThatWillCauseWarning = [
-    'routes',
-    'cached',
-    'classes',
-    'backups',
-    '_final_backups',
-    'valid',
-    'complete',
-    'functions',
-    'compiled',
-    'components',
-    'partials',
-    'blocked',
-    'config',
-    '_internals',
-    'batteries',
-    'funkeries',
-    'post-response',
-    'request',
-    'gui',
-    'public_html',
-    'cli',
-    'test',
-    'tests',
-    'schema',
-    'schemas',
-];
 $ROUTES = $singleRoutesRoute['ROUTES'];
-
-// Validate that the first parameter is a valid sub-command (valid alias)
-// Then normalize its value so it is used correctly from here on
-if (!isset($commandConfigMappings['aliasesMap'][$subCommand])) {
-    cli_err("First Parameter `$subCommand` is not a valid Sub-Command for `php funk make`! Valid Sub-Commands are: `" . implode('`, `', array_keys($commandConfigMappings['aliasesMap'])) . "`");
-} else {
-    $subCommand = $commandConfigMappings['aliasesMap'][$subCommand];
-}
-
-// Issue a warning but still continue if the first parameter is in the list of folders that will cause a warning
-// because these folders are already being used for other purposes but they could be used inside of "funkphp/routes/"
-// which is where they will be put!
-if (in_array($subCommand, $folderListThatWillCauseWarning)) {
-    cli_warning_without_exit("The First Parameter `$subCommand` is in the list of Folders that are already being used by FunkPHP. Despite this, `$subCommand` will be used as a subfolder in `funkphp/routes/`!");
-    cli_info_without_exit("This is just a heads-up so you are not confused by seeing a folder with the same name in several places inside of FunkPHP!");
-}
 
 // REMOVE LATER BELOW, JUST SO FILE DOES NOT EXIT IMMEDIATELY OR IDE COMPLAINS ABOUT VARIABLES!
 //------ Entry point for the CLI commands where one of the commands are "make:" that is ------
@@ -59,7 +12,6 @@ $tableRegex = '/^(((sd|si|s|i|u|d)=)?[a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]
 $methodRouteRegex = '/^(([a-z]+\/)|([a-z]+(\/[:]?[a-zA-Z0-9_-]+)+))$/i';
 $routeDynamicEndRegex = '/\/:[a-zA-Z-_0-9]+$/i'; // check if route ends with "/:something" meaning it is dynamic
 $fileWithOptionalFnRegex = '/^([a-z][a-z0-9_]+)(=>([a-z0-9_.]+))?$/i';
-
 
 // Structure the correct folder name based on the first parameter,
 // $folderType based on first parameter, and also initial $routeKey

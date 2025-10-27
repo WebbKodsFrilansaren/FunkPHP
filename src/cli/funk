@@ -92,23 +92,9 @@ $cliRegex = [
 // Map different aliases (different $subCommand for the same $command
 // and other info that some src/cli/commands-Files. Extend as needed!
 $commandConfigMappings = [
-    // Map $subCommand so it can check against the keys below
-    'aliasesMap' => [
-        's' => 'sql',
-        'sql' => 'sql',
-        'v' => 'validation',
-        'validation' => 'validation',
-        'm' => 'middleware',
-        'mw' => 'middleware',
-        'middleware' => 'middleware',
-        'pl' => 'pipeline',
-        'pipeline' => 'pipeline',
-        'r' => 'route',
-        'route' => 'route',
-        'rutt' => 'route',
-        'h' => 'handler',
-        'handler' => 'handler',
-    ],
+    // Configure your own CLI Commands in the `src/cli/commands.php` file
+    // after you have created a Command File that oyu put in `src/cli/commands/`
+    'commands' => include_once CLI_DIR . '/commands.php',
     // Any string in this array will cause a non-stopping warning!
     'folder_list_that_warns' => [
         'routes',
@@ -282,6 +268,7 @@ else {
 
 define("JSON_MODE", $JSON);
 define("CLI_MODE", $CLI);
+define("NO_ARGS_CLI", ($CLI === true && count($args) === 0));
 
 // If we are in JSON_MODE We then check that the REMOTE_ADDR is set and is either
 // localhost or 127.0.0.1 since this should ONLY be ran in local development
