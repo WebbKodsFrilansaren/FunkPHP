@@ -27,11 +27,11 @@ return [
     'make:route' => [
         'args' => [
             'method/route' => [
-                'prompt' => 'Enter method/route for the new route (e.g., "get/users" or "post/users/:id")',
+                'prompt' => 'Enter method/route for the new route (e.g., "get/" (this creates the root), "get/users", "post/users/:id" etc.):',
                 'regex' => $cliRegex['methodRouteRegex'],
                 'required' => true,
-                'default' => false,
-                'help' => null,
+                'default' => null,
+                'help' => 'If you want the root of a HTTPS Method, just use the method followed by a slash (e.g., "get/" or "post/").Notice otherwise that you NEVER end with the slash unless it is the root route for that method. OK:`get/users`. NOT OK:`get/users/`. You also have shorthands for the different HTTPS METHODS: "g|ge" for "get", "po|pos" for "post", "pu|put" for "put", "d|del" for "delete", "pa|pat" for "patch". Remember that you cannot use the same ":dynamic_param" parameter(s) more than once in the same route! OK:`get/users/:id/posts/:post_id`. NOT OK:`get/users/:id/posts/:id`.',
                 'prefix' => 'r:'
             ]
         ]
