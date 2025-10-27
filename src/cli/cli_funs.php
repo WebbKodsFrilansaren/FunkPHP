@@ -1648,12 +1648,10 @@ function cli_get_valid_cli_input($prompt, $regex, $required = true, $default = n
     if (!is_bool($required)) {
         cli_err('Provided $required value for cli_get_valid_cli_input() is NOT a Boolean(false|true) which it must be! Using "nulL" as "pseudo-false" is not possible in current version of FunkPHP. This error means that the Command File has stopped running before receiving any remaining CLI inputs!');
     }
-
     // $default must be a string if set
     if (isset(($default)) && !is_string($default)) {
         cli_err('Provided $default value for cli_get_valid_cli_input() is NOT a String which it must be if you wanna use a default value that is used when skipping CLI input. This error means that the Command File has stopped running before receiving any remaining CLI inputs!');
     }
-
     // Display default value if used
     $defaultDisplay = '';
     if ($default !== null) {
