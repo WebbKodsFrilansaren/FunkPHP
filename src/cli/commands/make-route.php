@@ -44,7 +44,7 @@ $arg_tables_sql = cli_get_arg_string_or_null($args, $cliRegex['tableRegexSQL']);
 // 6. Find the Name argument for Middleware or Pipeline (e.g., "n:middleware_name" or "name:pipeline_name")
 $arg_fileAnonymous = cli_get_arg_string_or_null($args, $cliRegex['nameOnlyRegex']);
 
-var_dump("First Param: " . $subCommand, "Arg Method/Route: " . $arg_methodAndRoute, "Arg File/Function: " . $arg_fileAndFn, "Arg Folder/File/Function: " . $arg_folderAndFileAndFn, "Arg Tables Validation: " . $arg_tables_validation, "Arg Tables SQL: " . $arg_tables_sql, "Arg Name: " . $arg_fileAnonymous);
+var_dump("Arg Method/Route: " . $arg_methodAndRoute, "Arg File/Function: " . $arg_fileAndFn, "Arg Folder/File/Function: " . $arg_folderAndFileAndFn, "Arg Tables Validation: " . $arg_tables_validation, "Arg Tables SQL: " . $arg_tables_sql, "Arg Name: " . $arg_fileAnonymous);
 
 
 if (in_array($subCommand, $commandConfigMappings['config']['middleware']['aliases'])) {
