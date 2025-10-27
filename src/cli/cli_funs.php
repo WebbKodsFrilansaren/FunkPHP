@@ -1624,6 +1624,57 @@ function cli_get_arg_string_or_null($args, $regexToMatch = null, $keepPrefix = f
 }
 
 /**
+ * Validates that all non-empty prefixes across a command's arguments are unique.
+ * Exits with a fatal error if duplicate non-empty prefixes are found.
+ *
+ * @param string $command The command name (e.g., 'make:route') to look up configuration.
+ * @return void
+ */
+function cli_validate_command_prefixes(string $command): void
+{
+    global $commandConfigMappings;
+    // We assume the caller (cli_get_cli_input_from_interactive_or_regular)
+    // has already validated $command and the map structure.
+    $configMap = $commandConfigMappings['commands'][$command];
+    // Safety check for args container, although cli_get_cli_input_from_interactive_or_regular handles the fatal error.
+    if (!isset($configMap['args']) || !is_array($configMap['args'])) {
+        return;
+    }
+    $prefixMap = [];
+    $duplicates = [];
+    foreach ($configMap['args'] as $argName => $argConfig) {
+        // Assume 'prefix' key exists due to validation in cli_get_cli_input_from_interactive_or_regular,
+        // but we'll use null-coalescing just in case we call this function independently.
+        $prefix = $argConfig['prefix'] ?? '';
+        // Only check non-empty prefixes
+        if (!empty($prefix)) {
+            // Check if this prefix has already been mapped to a different argument
+            if (isset($prefixMap[$prefix])) {
+                // If the mapped argument name is NOT the current argument name, it's a true duplicate clash.
+                if ($prefixMap[$prefix] !== $argName) {
+                    $duplicates[] = [
+                        'prefix' => $prefix,
+                        'arg1'   => $prefixMap[$prefix],
+                        'arg2'   => $argName,
+                    ];
+                }
+            } else {
+                // Register the prefix with the argument name
+                $prefixMap[$prefix] = $argName;
+            }
+        }
+    }
+    if (!empty($duplicates)) {
+        $errorDetails = [];
+        foreach ($duplicates as $d) {
+            $errorDetails[] = "Prefix '{$d['prefix']}' used by both argument '{$d['arg1']}' and '{$d['arg2']}'.";
+        }
+        $errorMsg = "Configuration Error: Command '{$command}' has conflicting argument prefixes. Duplicate prefixes prevent the Standard CLI Mode from reliably identifying which argument a user is providing.";
+        $errorMsg .= "\nDetails:\n" . implode("\n", $errorDetails);
+        cli_err($errorMsg);
+    }
+}
+/**
  * Prompts the user for input, validates it against a regex, and handles optional/default values.
  * Loops until a valid non-empty value (if required) or a skippable value is provided.
  *
@@ -1770,6 +1821,8 @@ function cli_get_cli_input_from_interactive_or_regular($args, $command, $argumen
     ) {
         cli_err("Interactive configuration error: Argument '{$argument}' not found in Command Configuration Map for Command '{$command}'. Check your `cli/commands.php`. This might mean that Interactive CLI Mode for a given Command:SubCommand in FunkCLI was not started and thus the command stopped early! This error probably means that the Command File has stopped running before receiving any remaining CLI inputs! This error occured calling `cli_get_cli_input_from_interactive_or_regular(\$args,'$command','$argument');`");
     }
+    // Throw error if any duplicate prefixes found
+    cli_validate_command_prefixes($command);
     $configMap = $configMap['args'][$argument];
     // Define the required key names in the order they must appear
     $keys = ['prompt', 'regex', 'required', 'default', 'help', 'prefix'];
