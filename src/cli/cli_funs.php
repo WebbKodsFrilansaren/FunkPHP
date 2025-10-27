@@ -1703,7 +1703,26 @@ function cli_get_valid_cli_input($prompt, $regex, $required = true, $default = n
 }
 
 /**
-
+ * Retrieves a CLI argument value, handling both Interactive Mode (prompting the user)
+ * and Standard/Power User Mode (matching against provided CLI arguments).
+ *
+ * This function uses the argument configuration (prompt, regex, required, default, help, prefix)
+ * retrieved via $command and $argument keys from the global $commandConfigMappings.
+ *
+ * In Standard CLI Mode (NO_ARGS_CLI is false):
+ * - It iterates through $args, returning the first value that successfully matches the configured regex.
+ * - If $keepPrefix is false (default), the argument prefix (e.g., 'r:') is removed from the returned value.
+ * - If the argument is 'required' and no matching argument is found in $args, the script exits with an error.
+ *
+ * In Interactive CLI Mode (NO_ARGS_CLI is true):
+ * - It delegates to cli_get_valid_cli_input() to prompt the user, automatically prepending the
+ * configured 'prefix' to the user's input before validation.
+ *
+ * @param array $args The array of raw CLI arguments provided by the user.
+ * @param string $command The main command name (e.g., 'make:route') to look up configuration.
+ * @param string $argument The specific argument key (e.g., 'method/route') to look up configuration.
+ * @param bool $keepPrefix Controls whether the prefix (e.g., 'r:') should be preserved if the argument is found via $args. Defaults to false (prefix removed).
+ * @return string|null The validated argument value, or null if optional and no value was provided/matched.
  */
 function cli_get_cli_input_from_interactive_or_regular($args, $command, $argument, $keepPrefix = false)
 {
@@ -1791,11 +1810,16 @@ function cli_get_cli_input_from_interactive_or_regular($args, $command, $argumen
         $orderedParams[] = $configMap[$key];
     }
     $regexToMatch = $orderedParams[1];
+    $required = $orderedParams[2];
+    $help = $orderedParams[4];
     // If true, it means no arguments were provided and we are in Interactive CLI Mode
     if (NO_ARGS_CLI) {
         return cli_get_valid_cli_input(...$orderedParams);
     }
     // Otherwise we are in Standard CLI Mode with arguments provided
+    // where we try to match a regex ($regexToMatch) to the provided $args
+    // where at least one must match if $required is true. We show optional
+    // help text if provided in $help variable (configured in commands.php).
     else {
         $finalValue = null;
         foreach ($args as $arg) {
@@ -1823,6 +1847,14 @@ function cli_get_cli_input_from_interactive_or_regular($args, $command, $argumen
                     $finalValue = $arg;
                     break;
                 }
+            }
+        }
+        if ($finalValue === null && $required) {
+            if ($help) {
+                cli_err_without_exit("Required argument '{$argument}' for Command '{$command}' did NOT match with any of the provided CLI Arguments for Regex:`$regexToMatch`. The Command File has stopped running before processing any remaining CLI Arguments!");
+                cli_info($help);
+            } else {
+                cli_err("Required argument '{$argument}' for Command '{$command}' did NOT match with any of the provided CLI Arguments for Regex:`$regexToMatch`. The Command File has stopped running before processing any remaining CLI Arguments!");
             }
         }
         return $finalValue;
