@@ -27,7 +27,7 @@ return [
     'make:route' => [
         'args' => [
             'method/route' => [
-                'prompt' => 'Enter `method/route` for the new route (e.g., "get/" (this creates the root), "get/users", "post/users/:id" etc.):',
+                'prompt' => 'Enter `method/route` to create or target an existing METHOD/Route (e.g., "get/" (this creates the root), "get/users", "post/users/:id" where `:id` is a dynamic param, etc.):',
                 'regex' => $cliRegex['methodRouteRegex'],
                 'required' => true,
                 'default' => null,
@@ -35,11 +35,11 @@ return [
                 'prefix' => 'r:'
             ],
             'folder/file/fn' => [
-                'prompt' => 'Enter `Folder=>File=>Function` for the new route (e.g., "fff:users=>user_file=>func" OR "fff:users=>by_id". Last one is parsed as "fff:users=>by_id=>by_id"):',
+                'prompt' => 'Enter `Folder=>File=>Function` to create a folder with a file inside of it with a new function inside of it (e.g., "fff:users=>user_file=>func" meaning `src/funkphp/routes/users/user_file.php` would be created with the named function `func(&$c, $passedValue = null){}` inside of it):',
                 'regex' => $cliRegex['folderFileFnRegex'],
                 'required' => false,
                 'default' => null,
-                'help' => 'The `Folder` is the folder in src/funkphp/routes/{folder} whereas the `File` is the file inside of that folder (without the .php extension). The optional `Function` is the function inside of that file that will be called for this route. If you do not provide a `Function`, the `File` name will be used as the function name. If you do not provide a `Folder`, the file will be created in src/funkphp/routes/ (the root routes folder). Example 1: "fff:users=>user_file=>func" creates src/funkphp/routes/users/user_file.php with function func(). Example 2: "fff:users=>by_id" creates src/funkphp/routes/users/by_id.php with function by_id(). If something already exists and/or is already added to possibly already existing `method/route`, then nothing is done. If files already existed but were not added to the `method/route`, it will be added now. If the file already exists but the function does not exist inside of that file, the function will be added to the file.',
+                'help' => 'The `Folder` is the folder in src/funkphp/routes/{folder} whereas the `File` is the file inside of that folder (without the .php extension). The optional `Function` is the function inside of that file that will be called for this route. If you do not provide a `Function`, the `File` name will be used as the function name. If you do not provide a `Folder`, the file will be created in src/funkphp/routes/ (the root routes folder). Example 1: "fff:users=>user_file=>func" creates src/funkphp/routes/users/user_file.php with function func().',
                 'prefix' => 'fff:'
             ],
         ],

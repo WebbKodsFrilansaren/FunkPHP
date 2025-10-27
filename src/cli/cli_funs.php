@@ -1715,7 +1715,7 @@ function cli_get_valid_cli_input($prompt, $regex, $required = true, $default = n
     }
     while (true) {
         // 1. Display prompt with required/optional context & read input using STDIN
-        $requiredText = $required ? "\033[36m[REQUIRED]\033[0m" : "\033[36m[OPTIONAL]\033[0m";
+        $requiredText = $required ? "\033[36m[FunkCLI - REQUIRED]\033[0m" : "\033[36m[FunkCLI - OPTIONAL]\033[0m";
         echo $requiredText . "\033[36m " . $prompt . $defaultDisplay . "\033[0m\n";
         $input = trim(fgets(STDIN));
         // 2. Handle Empty Input (The core logic addition)
@@ -1748,6 +1748,10 @@ function cli_get_valid_cli_input($prompt, $regex, $required = true, $default = n
                 cli_info_without_exit($helpText);
             }
             continue;
+        }
+        // Remove prefix from the now validated input value before returning it
+        if (isset($prefix) && is_string($prefix) && !empty($prefix)) {
+            $input = explode(":", $input, 2)[1] ?? $input;
         }
         return $input;
     }
@@ -1913,86 +1917,4 @@ function cli_get_cli_input_from_interactive_or_regular($args, $command, $argumen
         }
         return $finalValue;
     }
-}
-
-/**
- * Takes an associative array of argument configuration and returns a numerically
- * indexed array suitable for use with the PHP spread operator (...)
- * for the cli_get_valid_cli_input function. It assumes command to exist
- * in the global $commandConfigMappings variable which gets its 'commands'.
- * keys from the `src/cli/commands.php` file.
- * @param string $command The command name to fetch configuration for.
- * @return array The numerically indexed array for spread operator use.
- */
-function cli_get_interactive_params($command, $argument): array
-{
-    // Error out on $command ont being a non-empty string
-    if (!isset($command) || !is_string($command) || empty(trim($command))) {
-        cli_err("Provided value to \$command was NOT a Non-Empty String. This might mean that Interactive CLI Mode for a given Command:SubCommand in FunkCLI was not started and thus the command stopped early! This error probably means that the Command File has stopped running before receiving any remaining CLI inputs!");
-    }
-    // error out on $argument ont being a non-empty string
-    if (!isset($argument) || !is_string($argument) || empty(trim($argument))) {
-        cli_err("Provided value to \$argument was NOT a Non-Empty String. This might mean that Interactive CLI Mode for a given Command:SubCommand in FunkCLI was not started and thus the command stopped early! This error probably means that the Command File has stopped running before receiving any remaining CLI inputs!");
-    }
-
-    // Global and check that $command is set in the
-    // $commandConfigMappings['commands'][$command]
-    // oterhwise error out
-    global $commandConfigMappings;
-    if (
-        !isset($commandConfigMappings)
-        || !is_array($commandConfigMappings)
-        || !isset($commandConfigMappings['commands'])
-        || !is_array($commandConfigMappings['commands'])
-        || !array_key_exists($command, $commandConfigMappings['commands'])
-    ) {
-        cli_err("Interactive configuration error: Command '{$command}' not found in Command Configuration Map. Check your `cli/commands.php`. This might mean that Interactive CLI Mode for a given Command:SubCommand in FunkCLI was not started and thus the command stopped early! This error probably means that the Command File has stopped running before receiving any remaining CLI inputs!");
-    }
-    $configMap = $commandConfigMappings['commands'][$command];
-
-    // Check that 'args' key first exist and is an array and then that any of its subkeys
-    // is the $argument we are looking for
-    if (
-        !isset($configMap['args'])
-        || !is_array($configMap['args'])
-        || !array_key_exists($argument, $configMap['args'])
-        || !is_array($configMap['args'][$argument])
-    ) {
-        cli_err("Interactive configuration error: Argument '{$argument}' not found in Command Configuration Map for Command '{$command}'. Check your `cli/commands.php`. This might mean that Interactive CLI Mode for a given Command:SubCommand in FunkCLI was not started and thus the command stopped early! This error probably means that the Command File has stopped running before receiving any remaining CLI inputs!");
-    }
-    $configMap = $configMap['args'][$argument];
-
-    // Define the required key names in the order they must appear
-    $keys = ['prompt', 'regex', 'required', 'default', 'help'];
-    $orderedParams = [];
-    foreach ($keys as $key) {
-        // Hard check for required keys (prompt, regex, required, default, help)
-        if (!array_key_exists($key, $configMap)) {
-            cli_err("Interactive configuration error: Missing required key '{$key}' in Command Configuration Map. Check your `cli/commands.php`. This might mean that Interactive CLI Mode for a given Command:SubCommand in FunkCLI was not started and thus the command stopped early! This error probably means that the Command File has stopped running before receiving any remaining CLI inputs!");
-        }
-        // Hard check for non-empty strings for 'prompt' and 'regex' keys that they are
-        // in fact non-empty strings otherwise we hard error out here since misconfiguration!
-        if (in_array($key, ['prompt', 'regex']) && (!is_string($configMap[$key]) || empty(trim($configMap[$key])))) {
-            cli_err("Interactive configuration error: Key '{$key}' must be a Non-Empty String in Command Configuration Map. Check your  Check your `cli/commands.php`. This might mean that Interactive CLI Mode for a given Command:SubCommand in FunkCLI was not started and thus the command stopped early! This error probably means that the Command File has stopped running before receiving any remaining CLI inputs!");
-        }
-        // 'required' key must always be a boolean (true|false)
-        // and using null is not allowed as a "pseudo-false"
-        if ($key === 'required' && !is_bool($configMap[$key])) {
-            cli_err("Interactive configuration error: Key '{$key}' must be a Boolean (true|false) in Command Configuration Map. Using 'null' as 'pseudo-false' is NOT allowed in current version of FunkPHP. Check your `cli/commands.php`. This might mean that Interactive CLI Mode for a given Command:SubCommand in FunkCLI was not started and thus the command stopped early! This error probably means that the Command File has stopped running before receiving any remaining CLI inputs!");
-        }
-        // 'default' key must be a string (can be empty) or just null to omit it
-        if ($key === 'default' && isset($configMap[$key]) && !is_string($configMap[$key]) && $configMap[$key] !== null) {
-            cli_err("Interactive configuration error: Key '{$key}' must be a String (can be empty!) - or null to omit it - in Command Configuration Map. Check your `cli/commands.php`. This might mean that Interactive CLI Mode for a given Command:SubCommand in FunkCLI was not started and thus the command stopped early! This error probably means that the Command File has stopped running before receiving any remaining CLI inputs!");
-        }
-        // 'help' key must be a non-empty string or just null to omit it
-        if (
-            $key === 'help' && $configMap[$key] !== null
-            && (!is_string($configMap[$key]) || empty(trim($configMap[$key])))
-        ) {
-            cli_err("Interactive configuration error: Key '{$key}' must be a Non-Empty String - or null to omit it - in Command Configuration Map. Check your `cli/commands.php`. This might mean that Interactive CLI Mode for a given Command:SubCommand in FunkCLI was not started and thus the command stopped early! This error probably means that the Command File has stopped running before receiving any remaining CLI inputs!");
-        }
-        // Add the value to the ordered array
-        $orderedParams[] = $configMap[$key];
-    }
-    return $orderedParams;
 }
