@@ -1622,3 +1622,74 @@ function cli_get_arg_string_or_null($args, $regexToMatch = null, $keepPrefix = f
     }
     return $finalValue;
 }
+
+/**
+ * Prompts the user for input, validates it against a regex, and handles optional/default values.
+ * Loops until a valid non-empty value (if required) or a skippable value is provided.
+ *
+ * @param string $prompt       The question/prompt to display to the user.
+ * @param string $regex        The PCRE regex pattern to validate the input against.
+ * @param bool $required       If true, input must not be empty (and cannot use default value).
+ * @param string|null $default The default value to use if input is empty and not required.
+ * @param string|null $helpText Optional help text to display on validation errors.
+ * @return string|null         The validated and trimmed user input (or the default value).
+ */
+function cli_get_valid_cli_input($prompt, $regex, $required = true, $default = null, $helpText = null)
+{
+    // $prompt must be a non-empty string
+    if (!isset($prompt) || !is_string($prompt) || empty($prompt)) {
+        cli_err('Provided $prompt value for cli_get_valid_cli_input() is NOT a Non-Empty String which it must be! This error means that the Command File has stopped running before receiving any remaining CLI inputs!');
+    }
+    // $regex must be a non-empty string
+    if (!isset($regex) || !is_string($regex) || empty($regex)) {
+        cli_err('Provided $regex value for cli_get_valid_cli_input() is NOT a Non-Empty String which it must be! This error means that the Command File has stopped running before receiving any remaining CLI inputs!');
+    }
+    // $required must be a boolean (so null is not allowed as "pseudo-false")
+    if (!is_bool($required)) {
+        cli_err('Provided $required value for cli_get_valid_cli_input() is NOT a Boolean(false|true) which it must be! Using "nulL" as "pseudo-false" is not possible in current version of FunkPHP. This error means that the Command File has stopped running before receiving any remaining CLI inputs!');
+    }
+
+    // $default must be a string if set
+    if (isset(($default)) && !is_string($default)) {
+        cli_err('Provided $default value for cli_get_valid_cli_input() is NOT a String which it must be if you wanna use a default value that is used when skipping CLI input. This error means that the Command File has stopped running before receiving any remaining CLI inputs!');
+    }
+
+    // Display default value if used
+    $defaultDisplay = '';
+    if ($default !== null) {
+        $defaultDisplay = " \033[36m[$default]\033[0m";
+    }
+    while (true) {
+        // 1. Display prompt with required/optional context & read input using STDIN
+        $requiredText = $required ? "\033[36m[REQUIRED]\033[0m" : "\033[36m[OPTIONAL]\033[0m";
+        echo $requiredText . "\033[36m " . $prompt . $defaultDisplay . "\033[0m\n";
+        $input = trim(fgets(STDIN));
+        // 2. Handle Empty Input (The core logic addition)
+        if (empty($input)) {
+            // A. If required, error out.
+            // B. If not required and a default exists, use the default.
+            // C. If not required and NO default, return null (skippable).
+            if ($required) {
+                cli_err_without_exit('Required input and must Match Regex Pattern:`' . $regex . '`.');
+                if (isset($helpText) && is_string($helpText) && !empty($helpText)) {
+                    cli_info_without_exit($helpText);
+                }
+                continue;
+            }
+            if ($default !== null) {
+                return $default;
+            }
+            return null;
+        }
+        // 3. Validation against Regex and either return valid input or continue loop
+        if (!preg_match($regex, $input)) {
+            // Note: Fixed your string concatenation error here:
+            cli_err_without_exit('Invalid input format - must Match Regex Pattern:`' . $regex . '`.');
+            if (isset($helpText) && is_string($helpText) && !empty($helpText)) {
+                cli_info_without_exit($helpText);
+            }
+            continue;
+        }
+        return $input;
+    }
+}

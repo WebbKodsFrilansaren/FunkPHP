@@ -537,8 +537,8 @@ if (!$CLI && empty($args)) {
 // $subCommand is optional (the use of ":"). Commands are in `src/cli/commands`.
 // --------------------------------------------------------------------------------
 //  `php funk $command:$subCommand`
-if (is_readable(CLI_COMMANDS_DIR . '/' . $command . '-' . str_replace('_', '-', $subCommand) . '.php')) {
-    include CLI_COMMANDS_DIR . '/' . $command . '-' . str_replace('_', '-', $subCommand) . '.php';
+if (is_readable(CLI_COMMANDS_DIR . '/' . $command . '-' . $subCommand . '.php')) {
+    include CLI_COMMANDS_DIR . '/' . $command . '-' . $subCommand . '.php';
     exit;
 }
 // `php funk $command`
