@@ -1,5 +1,78 @@
 <?php // SECOND CLI FUNCTIONS FILE SINCE SECOND ONE STARTED TO BECOME TOO LARGE!
 
+/**
+ * Recursively checks for the existence and strict single-subkey structure of a path
+ * within a starting array.
+ *
+ * NOTE: The lookup chain will only break if a key is missing or the value is not
+ * an array, allowing traversal to continue past arrays that violate the
+ * 'valid_single_key' constraint (like the HTTP Method level in a routing array).
+ * The 'valid_single_key' flag will still report the structural violation.
+ *
+ * @param array $startingArray The array to traverse.
+ * @param string ...$subkeys A list of keys to look up sequentially (e.g., 'GET', '/users').
+ * @return array A numerically indexed array of results, where each element contains:
+ * 'key' (the subkey checked), 'exists' (bool), and 'valid_single_key' (bool).
+ */
+function array_subkeys_single(array &$startingArray, string ...$subkeys): array
+{
+    // Validate startingArray is indeed an array
+    if (!is_array($startingArray)) {
+        cli_err('[array_subkeys_single]: The `$startingArray` Parameter must be an Array!');
+    }
+    // Validate $subkeys that must be either non-empty trimmed strings OR just integers for index access
+    foreach ($subkeys as $key) {
+        if (is_string($key)) {
+            if (empty(trim($key))) {
+                cli_err('[array_subkeys_single]: Strings in $subkeys must be Non-Empty!');
+            }
+        } elseif (!is_int($key)) { // Only allow string (non-empty) or integer
+            cli_err('[array_subkeys_single]: Each Subkey must be a Non-Empty String or an Integer for Index Access!');
+        }
+    }
+    $currentLevel = $startingArray;
+    $results = [];
+    $isChainBroken = false;
+    foreach ($subkeys as $key) {
+        $exists = isset($currentLevel[$key]) || array_key_exists($key, $currentLevel);
+        // --- 1. Handle Broken Chain or Non-Existence ---
+        if ($isChainBroken || !$exists) {
+            $isChainBroken = true;
+            $results[] = [
+                'key' => $key,
+                'exists' => false,
+                'valid_single_key' => false
+            ];
+            continue;
+        }
+        // --- 2. Check for strict single-subkey structure (Reporting Only) ---
+        // This check reports if the structure is strictly single-keyed, but does NOT break traversal.
+        $isSingleKeyValid = (
+            is_array($currentLevel) &&              // Current level must be an array
+            !empty($currentLevel) &&                // Must not be empty
+            !array_is_list($currentLevel) &&        // Must not be a numerically indexed list
+            count($currentLevel) === 1 &&           // Must have exactly one key
+            key($currentLevel) === $key             // That single key must be the key we are currently checking
+        );
+        // Record the result for this key
+        $results[] = [
+            'key' => $key,
+            'exists' => true,
+            'valid_single_key' => $isSingleKeyValid
+        ];
+        // Prepare for the next loop iteration
+        $value = $currentLevel[$key];
+        // --- 3. Update Traversal: ONLY break the chain if the next value is NOT an array ---
+        if (!is_array($value)) {
+            $isChainBroken = true;
+            continue;
+        }
+        // Move to the next level (the array held in $value)
+        $currentLevel = $value;
+    }
+    return $results;
+}
+
 // Helper function that checks if a given $routeKey has the structure
 // "Folder" => "FileName" => "FunctionName" => <Anyvalue> and returns
 // that array structure or null if not found or not valid structure

@@ -3,29 +3,48 @@
 // SYNTAX: funk make|create|new:<first_param> <file_name>[=>function_name] [method/route]
 $ROUTES = $singleRoutesRoute['ROUTES'];
 
+// REMOVE LATER BELOW, JUST SO FILE DOES NOT EXIT IMMEDIATELY OR IDE COMPLAINS ABOUT VARIABLES!
+//------ Entry point for the CLI commands where one of the commands are "make:" that is ------
+// used to CREATE Function Files (either single anonymous ones or files with named functions).
+// Begin by getting a valid command structure by "command:first_param"
+// and split it into parts that can then be used to determine next step
+$tableRegex = '/^(((sd|si|s|i|u|d)=)?[a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]*(\*[0-9]+)?)*$/i';
+$methodRouteRegex = '/^(([a-z]+\/)|([a-z]+(\/[:]?[a-zA-Z0-9_-]+)+))$/i';
+$routeDynamicEndRegex = '/\/:[a-zA-Z-_0-9]+$/i'; // check if route ends with "/:something" meaning it is dynamic
+$fileWithOptionalFnRegex = '/^([a-z][a-z0-9_]+)(=>([a-z0-9_.]+))?$/i';
+
 // Structure the correct folder name based on the first parameter,
 // $folderType based on first parameter, and also initial $routeKey
 // $routeKey is only applicable to "routes" and "middlewares"!
-$arg_methodRoute = null;
-$arg_folderFileAndFn = null;
-$method = null;
-$route = null;
-$routeKey = null;
-$routeOnly = false;
-$folderType = "routes";
-$folder = "funkphp/routes/";
+$arg_methodAndRoute = null;
+$arg_fileAndFn = null;
+$arg_fileAnonymous = null;
+$arg_folderAndFileAndFn = null;
+$arg_tables_validation = null;
+$arg_tables_sql = null;
+$folder = null;
 $file = null;
 $fn = null;
-
-
-var_dump(array_subkeys_single($ROUTES, "GET", "/users/:id", 0, 'middlewares'));
-exit;
+$routeKey = null;
+$anonymousFile = false;
+$folderType = null;
+$tablesProvided = null;
+$routeOnly = false;
 
 // 1. Find the Method/Route argument (e.g., "r:get/users")
-$arg_methodRoute = cli_get_cli_input_from_interactive_or_regular($args, 'make:route', 'method/route');
-$arg_folderFileAndFn = cli_get_cli_input_from_interactive_or_regular($args, 'make:route', 'folder/file/fn');
+$arg_methodAndRoute = cli_get_cli_input_from_interactive_or_regular($args, 'make:route', 'method/route');
+// 2. Find the File and optional Function argument (e.g., "ff:users=>by_id")
+$arg_fileAndFn = cli_get_arg_string_or_null($args, $cliRegex['fileWithOptionalFnRegex']);
+// 3. Find the Folder, File, and optional Function argument (e.g., "fff:users=>user_file=>func")
+$arg_folderAndFileAndFn = cli_get_cli_input_from_interactive_or_regular($args, 'make:route', 'folder/file/fn');
+// 4. Find the Tables Validation argument (e.g., "t:table1,table2" or even "t:table1*2")
+$arg_tables_validation = cli_get_arg_string_or_null($args, $cliRegex['tableRegexValidation']);
+// 5. Find Tables SQL argument (e.g, "t:s=table1,tables2")
+$arg_tables_sql = cli_get_arg_string_or_null($args, $cliRegex['tableRegexSQL']);
+// 6. Find the Name argument for Middleware or Pipeline (e.g., "n:middleware_name" or "name:pipeline_name")
+$arg_fileAnonymous = cli_get_arg_string_or_null($args, $cliRegex['nameOnlyRegex']);
 
-var_dump("Arg Method/Route: " . $arg_methodRoute, "Arg Folder/File/Function: " . $arg_folderFileAndFn,);
+var_dump("Arg Method/Route: " . $arg_methodAndRoute, "Arg File/Function: " . $arg_fileAndFn, "Arg Folder/File/Function: " . $arg_folderAndFileAndFn, "Arg Tables Validation: " . $arg_tables_validation, "Arg Tables SQL: " . $arg_tables_sql, "Arg Name: " . $arg_fileAnonymous);
 
 
 if (in_array($subCommand, $commandConfigMappings['config']['middleware']['aliases'])) {
