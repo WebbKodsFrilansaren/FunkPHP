@@ -13,20 +13,26 @@ $route = null;
 $routeKey = null;
 $routeOnly = false;
 $folderType = "routes";
-$folder = "funkphp/routes/";
+$folderBase = "funkphp/routes/";
+$folder = null;
 $file = null;
 $fn = null;
 
-
-var_dump(array_subkeys_single($ROUTES, "GET", "/users/:id", 0, 'middlewares'));
-exit;
-
 // 1. Find the Method/Route argument (e.g., "r:get/users")
 $arg_methodRoute = cli_get_cli_input_from_interactive_or_regular($args, 'make:route', 'method/route');
+[$method, $route] = cli_extract_method_route_or_return_null($arg_methodRoute);
+
+// 2. Find optional Folder/File/Function argument (e.g., "fff:usersFolder=>userFile=>FunctionInsideFile")
 $arg_folderFileAndFn = cli_get_cli_input_from_interactive_or_regular($args, 'make:route', 'folder/file/fn');
+if ($arg_folderFileAndFn) {
+    [$folder, $file, $fn] =  cli_extract_folder_file_fn_or_return_null($arg_folderFileAndFn);
+    $folder = $folderBase . $folder . '/';
+}
 
-var_dump("Arg Method/Route: " . $arg_methodRoute, "Arg Folder/File/Function: " . $arg_folderFileAndFn,);
 
+var_dump("Arg Method/Route: " . $arg_methodRoute, "Arg Folder/File/Function: " . $arg_folderFileAndFn, "Extracted Method: " . $method, "Extracted Route: " . $route, "Extracted Folder: " . $folder, "Extracted File: " . $file, "Extracted Function: " . $fn);
+
+exit;
 
 if (in_array($subCommand, $commandConfigMappings['config']['middleware']['aliases'])) {
     $folder = "funkphp/middlewares";

@@ -13,6 +13,7 @@
                 'default' => false,
                 'help' => null,
                 'prefix' => 'r:'
+                'external_callable_validator' => null,
             ]
         ]
     ],
@@ -32,7 +33,8 @@ return [
                 'required' => true,
                 'default' => null,
                 'help' => 'If you want the root of a HTTPS Method, just use the method followed by a slash (e.g., "get/" or "post/").Notice otherwise that you NEVER end with the slash unless it is the root route for that method. OK:`get/users`. NOT OK:`get/users/`. You also have shorthands for the different HTTPS METHODS: "g|ge" for "get", "po|pos" for "post", "pu|put" for "put", "d|del" for "delete", "pa|pat" for "patch". Remember that you cannot use the same ":dynamic_param" parameter(s) more than once in the same route! OK:`get/users/:id/posts/:post_id`. NOT OK:`get/users/:id/posts/:id`.',
-                'prefix' => 'r:'
+                'prefix' => 'r:',
+                'external_callable_validator' => null,
             ],
             'folder/file/fn' => [
                 'prompt' => 'Enter `Folder=>File=>Function` to create a folder with a file inside of it with a new function inside of it (e.g., "fff:users=>user_file=>func" meaning `src/funkphp/routes/users/user_file.php` would be created with the named function `func(&$c, $passedValue = null){}` inside of it):',
@@ -40,7 +42,8 @@ return [
                 'required' => false,
                 'default' => null,
                 'help' => 'The `Folder` is the folder in src/funkphp/routes/{folder} whereas the `File` is the file inside of that folder (without the .php extension). The optional `Function` is the function inside of that file that will be called for this route. If you do not provide a `Function`, the `File` name will be used as the function name. If you do not provide a `Folder`, the file will be created in src/funkphp/routes/ (the root routes folder). Example 1: "fff:users=>user_file=>func" creates src/funkphp/routes/users/user_file.php with function func().',
-                'prefix' => 'fff:'
+                'prefix' => 'fff:',
+                'external_callable_validator' => null,
             ],
         ],
         'config' => [

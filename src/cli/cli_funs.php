@@ -73,6 +73,125 @@ function array_subkeys_single(array &$startingArray, string ...$subkeys): array
     return $results;
 }
 
+/**
+ * Extracts the folder, file, and function parts from a strict 'folder=>file=>function' string.
+ *
+ * Enforces single-depth folder, file names without extension punctuation, and
+ * valid PHP function naming conventions (no hyphens in function name).
+ *
+ * @param string $matchedRegexFolderFileFnString The input string (e.g., 'users=>users_file=>get_user').
+ * @return array|null Returns an array [$folder, $file, $fn] on success, or null on validation failure.
+ */
+function cli_extract_folder_file_fn_or_return_null($matchedRegexFolderFileFnString)
+{
+    if (!is_string($matchedRegexFolderFileFnString) || empty(trim($matchedRegexFolderFileFnString))) {
+        cli_err_without_exit('The Provided Folder=>File=>Fn String must be a Non-Empty String. Function returned `null` as a result!');
+        return null;
+    }
+    $regex = '/^([a-z][a-z0-9_]+)=>([a-z0-9_-]+)=>([a-z_][a-z0-9_]+)$/i';
+    if (!preg_match($regex, $matchedRegexFolderFileFnString, $matches)) {
+        cli_err_without_exit('The Provided Folder=>File=>Fn String does not match the expected Folder=>File=>Function Syntax. You can omit the PHP Extension for the `File` as no punctuation is allowed. Also, only a single Folder Depth is allowed, so no `/` to add sub-folders in current version of FunkPHP are possible! Function returned `null` as a result!');
+        return null;
+    }
+    $folder = $matches[1];
+    $file = $matches[2];
+    $fn = $matches[3];
+    return [$folder, $file, $fn];
+}
+
+/**
+ * Extracts and normalizes the HTTPS method and route path from a combined string.
+ *
+ * Validates the method against allowed short/long forms, validates the route syntax,
+ * and checks for duplicate dynamic parameters (e.g., /users/:id/posts/:id).
+ *
+ * @param string $matchedRegexMethodRouteString The input string (e.g., 'get/users', 'del/users/:id').
+ * @return array|null Returns an array [$method, $route] on success, where $method is
+ * normalized to its full uppercase form (e.g., 'GET'), or null on failure.
+ */
+function cli_extract_method_route_or_return_null($matchedRegexMethodRouteString)
+{
+    if (!is_string($matchedRegexMethodRouteString) || empty(trim($matchedRegexMethodRouteString))) {
+        cli_err_without_exit('The Provided Method/Route String must be a Non-Empty String. Function returned `null` as a result!');
+        return null;
+    }
+
+    // Valid method/route string to start with?
+    $regex = '/^(([a-z]+\/)|([a-z]+(\/[:]?[a-zA-Z0-9_-]+)+))$/i';
+    if (!preg_match($regex, $matchedRegexMethodRouteString)) {
+        cli_err_without_exit('The Provided Method/Route String does not match the expected Method/Route Syntax. Function returned `null` as a result!');
+        return null;
+    }
+
+    // Valid method start? (GET, POST, DELETE, PUT, PATCH or their shorthands)
+    $methodRegex = '/^((delete|patch|post|put|del|get|pa|po|pu|ge|g|d)(\/.*))$/i';
+    if (!preg_match($methodRegex, $matchedRegexMethodRouteString)) {
+        cli_err_without_exit('The Provided Method/Route String does not start with a valid HTTPS Method. Function returned `null` as a result!');
+        return null;
+    }
+    // We split on the first "/" to get the method and route parts. There is a special case
+    // where it is the root (get/) which means route is just "/".
+    $firstSlashPos = strpos($matchedRegexMethodRouteString, '/');
+    $methodPart = '';
+    $routePart = '';
+    $method = null;
+    $route = null;
+    if ($firstSlashPos !== false) {
+        $methodPart = substr($matchedRegexMethodRouteString, 0, $firstSlashPos);
+        $routePart = substr($matchedRegexMethodRouteString, $firstSlashPos);
+        // Handle root route case and
+        // normalize method to full name
+        if ($routePart === '/') {
+            $routePart = '/';
+        }
+        $methodMap = [
+            'g' => 'GET',
+            'ge' => 'GET',
+            'get' => 'GET',
+            'po' => 'POST',
+            'pos' => 'POST',
+            'post' => 'POST',
+            'd' => 'DELETE',
+            'del' => 'DELETE',
+            'delete' => 'DELETE',
+            'pu' => 'PUT',
+            'put' => 'PUT',
+            'pa' => 'PATCH',
+            'patch' => 'PATCH'
+        ];
+        // If provided method does not exist in $methodMap we error
+        if (array_key_exists($methodPart, $methodMap)) {
+            $method = $methodMap[$methodPart];
+        } else {
+            cli_err_without_exit('The Provided Method in the Method/Route String is not a recognized HTTPS Method. Use these ones only:`' . implode(', ', array_keys($methodMap)) . '`. Function returned `null` as a result!');
+            return null;
+        }
+        // We match all /:dynamic_params in the route part (if any) and error out on
+        // any duplicates (e.g., /users/:id/posts/:id is invalid since :id is used twice)
+        $paramsRegex = '/(\/:[a-zA-Z0-9_-]+)/i';
+        $paramsMatches = preg_match_all($paramsRegex, $routePart, $paramsFound);
+        var_dump($paramsFound);
+        if ($paramsMatches && !empty($paramsFound) && isset($paramsFound[0])) {
+            $foundParams = $paramsFound[0];
+            $uniqueParams = array_unique($foundParams);
+            if (count($foundParams) !== count($uniqueParams)) {
+                cli_err_without_exit('The Provided Route in the Method/Route String contains duplicate dynamic parameters. Check your `/:dynamic_route_param` for:`' . $routePart . '`. Function returned `null` as a result!');
+                return null;
+            }
+        }
+        $route = $routePart;
+    }  // Handle impossible case
+    else {
+        cli_err_without_exit('Unexpected Error while extracting `$method` & `$route` out of Method/Route String. Function returned `null` as a result!');
+        return null;
+    }
+
+    cli_info_without_exit("OK! Parsed Method & Route:`$method$route`.");
+    return [$method, $route];
+}
+
+
+
 // Helper function that checks if a given $routeKey has the structure
 // "Folder" => "FileName" => "FunctionName" => <Anyvalue> and returns
 // that array structure or null if not found or not valid structure
@@ -1756,10 +1875,11 @@ function cli_validate_command_prefixes(string $command): void
  * @param bool $required       If true, input must not be empty (and cannot use default value).
  * @param string|null $default The default value to use if input is empty and not required.
  * @param string|null $helpText Optional help text to display on validation errors.
+ * @param callable|null $externalCallableValidator Optional external callable for additional validation (not implemented yet).
  * @param string $prefix Optional prefix to add to the input value (before validation).
  * @return string|null         The validated and trimmed user input (or the default value).
  */
-function cli_get_valid_cli_input($prompt, $regex, $required = true, $default = null, $helpText = null, $prefix = '')
+function cli_get_valid_cli_input($prompt, $regex, $required = true, $default = null, $helpText = null, $externalCallableValidator = null, $prefix = '')
 {
     // $prefix must be a string if set
     if (isset($prefix) && !is_string($prefix)) {
@@ -1780,6 +1900,14 @@ function cli_get_valid_cli_input($prompt, $regex, $required = true, $default = n
     // $default must be a string if set
     if (isset(($default)) && !is_string($default)) {
         cli_err('Provided $default value for cli_get_valid_cli_input() is NOT a String which it must be if you wanna use a default value that is used when skipping CLI input. This error means that the Command File has stopped running before receiving any remaining CLI inputs!');
+    }
+    // $helpText must be a non-empty string if set
+    if (isset($helpText) && (!is_string($helpText) || empty($helpText))) {
+        cli_err('Provided $helpText value for cli_get_valid_cli_input() is NOT a Non-Empty String which it must be if you wanna use help text that is displayed on validation errors. This error means that the Command File has stopped running before receiving any remaining CLI inputs!');
+    }
+    // $externalCallableValidator must be an existing callable if set
+    if (isset($externalCallableValidator) && !is_callable($externalCallableValidator)) {
+        cli_err('Provided $externalCallableValidator value for cli_get_valid_cli_input() is NOT a Callable which it must be if you wanna use an external callable function for additional validation. This error means that the Command File has stopped running before receiving any remaining CLI inputs!');
     }
     // Display default value if used
     $defaultDisplay = '';
@@ -1822,6 +1950,15 @@ function cli_get_valid_cli_input($prompt, $regex, $required = true, $default = n
             }
             continue;
         }
+        // OPTIONAL: External Callable Validation if provided which then expects true
+        // or false return value to determine validity
+        if (isset($externalCallableValidator) && is_callable($externalCallableValidator)) {
+            $isValid = call_user_func($externalCallableValidator, $input);
+            if ($isValid !== true) {
+                cli_err_without_exit('Input Failed External Validation. Read its possibly provided Error Message Above this one!');
+                continue;
+            }
+        }
         // Remove prefix from the now validated input value before returning it
         if (isset($prefix) && is_string($prefix) && !empty($prefix)) {
             $input = explode(":", $input, 2)[1] ?? $input;
@@ -1849,10 +1986,18 @@ function cli_get_valid_cli_input($prompt, $regex, $required = true, $default = n
  * @param array $args The array of raw CLI arguments provided by the user.
  * @param string $command The main command name (e.g., 'make:route') to look up configuration.
  * @param string $argument The specific argument key (e.g., 'method/route') to look up configuration.
+ * @param callable|null $externalCallableValidator An optional external callable function for additional validation.
+                        If provided, it will be called with the validated input value and should return true if valid, false otherwise.
+                        If validation fails, the user will be re-prompted in Interactive Mode or an error will be thrown in Standard Mode.
+                        The callable should have the signature: function(string $input): bool
+                        Example:
+                        function my_custom_validator($input) {
+                        // Custom validation logic here
+                        return true; // or false if invalid}
  * @param bool $keepPrefix Controls whether the prefix (e.g., 'r:') should be preserved if the argument is found via $args. Defaults to false (prefix removed).
  * @return string|null The validated argument value, or null if optional and no value was provided/matched.
  */
-function cli_get_cli_input_from_interactive_or_regular($args, $command, $argument, $keepPrefix = false)
+function cli_get_cli_input_from_interactive_or_regular($args, $command, $argument, $externalCallableValidator = null, $keepPrefix = false)
 {
     // Constant: NO_ARGS_CLI must exist and be a boolean (false|true) before we even procede!
     if (!defined('NO_ARGS_CLI') || !is_bool(NO_ARGS_CLI)) {
@@ -1902,7 +2047,7 @@ function cli_get_cli_input_from_interactive_or_regular($args, $command, $argumen
     cli_validate_command_prefixes($command);
     $configMap = $configMap['args'][$argument];
     // Define the required key names in the order they must appear
-    $keys = ['prompt', 'regex', 'required', 'default', 'help', 'prefix'];
+    $keys = ['prompt', 'regex', 'required', 'default', 'help', 'external_callable_validator', 'prefix'];
     $orderedParams = [];
     foreach ($keys as $key) {
         // Hard check for required keys (prompt, regex, required, default, help)
@@ -1936,13 +2081,23 @@ function cli_get_cli_input_from_interactive_or_regular($args, $command, $argumen
         ) {
             cli_err("Interactive configuration error: Key '{$key}' must be a String (can be empty!) in Command Configuration Map. Check your `cli/config/commands.php`. This means that Interactive CLI Mode for a given Command:SubCommand in FunkCLI was not started and thus the command stopped early! This error probably means that the Command File has stopped running before receiving any remaining CLI inputs! This error occured calling `cli_get_cli_input_from_interactive_or_regular(\$args,'$command','$argument');`");
         }
+        // 'external_callable_validator' key must be a string function that is callable when this code part runs or null to omit it
+        if (
+            $key === 'external_callable_validator'
+            && $configMap[$key] !== null
+            && (!is_string($configMap[$key]) || !is_callable($configMap[$key]))
+        ) {
+            cli_err("Interactive configuration error: Key '{$key}' must be a String Function Name that is Callable - or null to omit it - in Command Configuration Map. Check your `cli/config/commands.php`. This means that Interactive CLI Mode for a given Command:SubCommand in FunkCLI was not started and thus the command stopped early! This error probably means that the Command File has stopped running before receiving any remaining CLI inputs! This error occured calling `cli_get_cli_input_from_interactive_or_regular(\$args,'$command','$argument');`");
+        }
         // Add the value to the ordered array
         $orderedParams[] = $configMap[$key];
     }
     $regexToMatch = $orderedParams[1];
     $required = $orderedParams[2];
     $help = $orderedParams[4];
-    $prefix = $orderedParams[5] ?? '';
+    $callableValidator = $orderedParams[5];
+    $prefix = $orderedParams[6];
+
     // If true, it means no arguments were provided and we are in Interactive CLI Mode
     if (NO_ARGS_CLI) {
         return cli_get_valid_cli_input(...$orderedParams);
@@ -1963,6 +2118,15 @@ function cli_get_cli_input_from_interactive_or_regular($args, $command, $argumen
                     && !empty($regexToMatch)
                 ) {
                     if (preg_match($regexToMatch, $arg)) {
+                        // Before setting finalValue we also pass it to the optional external callable validator
+                        // which should return true if it all passed otherwise false if validation failed
+                        if (isset($callableValidator) && is_string($callableValidator) && is_callable($callableValidator)) {
+                            $isValid = call_user_func($callableValidator, $arg);
+                            if (!$isValid) {
+                                // If validation failed, we continue to next arg without setting finalValue
+                                continue;
+                            }
+                        }
                         $finalValue = $arg;
                         // remove prefix as default unless $keepPrefix is true
                         if (!$keepPrefix) {

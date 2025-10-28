@@ -10,6 +10,7 @@ define('BATTERIES_PIPELINE_REQUEST_DIR', BATTERIES_PIPELINE_DIR . '/request');
 define('BATTERIES_PIPELINE_POST_RESPONSE_DIR', BATTERIES_PIPELINE_DIR . '/post-response');
 define('CLI_DIR', __DIR__);
 define('CLI_COMMANDS_DIR', __DIR__ . '/commands');
+define('CLI_CONFIG_DIR', __DIR__ . '/config');
 define('FUNKPHP_DIR', PROJECT_DIR . '/funkphp');
 define('FUNKPHP_INTERNALS_DIR', FUNKPHP_DIR . '/_internals');
 define('FUNKPHP_INTERNALS_COMPILED_DIR', FUNKPHP_INTERNALS_DIR . '/compiled');
@@ -257,6 +258,7 @@ if (JSON_MODE) {
 if (
     !is_readable(CLI_DIR . '/cli_funs.php')
     || !is_readable(CLI_DIR . '/cli_funs2.php')
+    || !is_readable(CLI_CONFIG_DIR . '/external_callable_validators.php')
 ) {
     if (JSON_MODE) {
         http_response_code(500);
@@ -270,8 +272,9 @@ if (
         exit;
     }
 }
-include CLI_DIR . '/cli_funs.php';
-include CLI_DIR . '/cli_funs2.php';
+include_once CLI_DIR . '/cli_funs.php';
+include_once CLI_DIR . '/cli_funs2.php';
+include_once CLI_CONFIG_DIR . '/external_callable_validators.php';
 
 // Load the settings file if it exists, otherwise use default settings
 $settings = include CLI_DIR . '/funksettings' ?? [
