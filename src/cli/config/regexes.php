@@ -4,6 +4,10 @@
 // under the key `regex`. For example: `make:route` => `args` => `method/route` => `regex`.
 // Use these for your Command File via $cliRegex['YOUR_CHOSEN_KEY_STRING_NAME'] etc.
 return [
+    // Allows to match anything - use with extreme caution! ONLY use to skip the regex
+    // check so you can jump directly to an external callable validator if needed!
+    'catchAllRegex' => '/^(.+)$/i',
+
     // `command` OR `command:subcommand`
     'commandRegex' => '/^([a-zA-Z0-9_]+)(:[a-zA-Z_0-9]+)?$/i',
 

@@ -13,7 +13,7 @@
                 'default' => false,
                 'help' => null,
                 'prefix' => 'r:'
-                'external_callable_validator' => null,
+                'external_callable_validator' => 'method_route', // Name of the function in external_callable_validators.php
             ]
         ]
     ],
@@ -34,10 +34,10 @@ return [
                 'default' => null,
                 'help' => 'If you want the root of a HTTPS Method, just use the method followed by a slash (e.g., "get/" or "post/").Notice otherwise that you NEVER end with the slash unless it is the root route for that method. OK:`get/users`. NOT OK:`get/users/`. You also have shorthands for the different HTTPS METHODS: "g|ge" for "get", "po|pos" for "post", "pu|put" for "put", "d|del" for "delete", "pa|pat" for "patch". Remember that you cannot use the same ":dynamic_param" parameter(s) more than once in the same route! OK:`get/users/:id/posts/:post_id`. NOT OK:`get/users/:id/posts/:id`.',
                 'prefix' => 'r:',
-                'external_callable_validator' => null,
+                'external_callable_validator' => 'method_route',
             ],
             'folder/file/fn' => [
-                'prompt' => 'Enter `Folder=>File=>Function` to create a folder with a file inside of it with a new function inside of it (e.g., "fff:users=>user_file=>func" meaning `src/funkphp/routes/users/user_file.php` would be created with the named function `func(&$c, $passedValue = null){}` inside of it):',
+                'prompt' => 'Enter `Folder=>File=>Function` to create a folder with a file inside of it with a new function inside of it (e.g., "users=>user_file=>func" meaning `src/funkphp/routes/users/user_file.php` would be created with the named function `func(&$c, $passedValue = null){}` inside of it):',
                 'regex' => $cliRegex['folderFileFnRegex'],
                 'required' => false,
                 'default' => null,

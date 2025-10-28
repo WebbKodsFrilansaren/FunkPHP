@@ -20,12 +20,12 @@ $fn = null;
 
 // 1. Find the Method/Route argument (e.g., "r:get/users")
 $arg_methodRoute = cli_get_cli_input_from_interactive_or_regular($args, 'make:route', 'method/route');
-[$method, $route] = cli_extract_method_route_or_return_null($arg_methodRoute);
+[$method, $route] = cli_extract_method_route($arg_methodRoute);
 
 // 2. Find optional Folder/File/Function argument (e.g., "fff:usersFolder=>userFile=>FunctionInsideFile")
 $arg_folderFileAndFn = cli_get_cli_input_from_interactive_or_regular($args, 'make:route', 'folder/file/fn');
 if ($arg_folderFileAndFn) {
-    [$folder, $file, $fn] =  cli_extract_folder_file_fn_or_return_null($arg_folderFileAndFn);
+    [$folder, $file, $fn] =  cli_extract_folder_file_fn($arg_folderFileAndFn);
     $folder = $folderBase . $folder . '/';
 }
 
