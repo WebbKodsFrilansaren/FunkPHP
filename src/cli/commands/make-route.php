@@ -28,73 +28,16 @@ if ($arg_folderFileAndFn) {
     [$folder, $file, $fn] =  cli_extract_folder_file_fn($arg_folderFileAndFn);
     $folder = $folderBase . $folder . '/';
 }
-
-
 var_dump("Arg Method/Route: " . $arg_methodRoute, "Arg Folder/File/Function: " . $arg_folderFileAndFn, "Extracted Method: " . $method, "Extracted Route: " . $route, "Extracted Folder: " . $folder, "Extracted File: " . $file, "Extracted Function: " . $fn);
 
-exit;
-
-if (in_array($subCommand, $commandConfigMappings['config']['middleware']['aliases'])) {
-    $folder = "funkphp/middlewares";
-    $folderType = "middlewares";
-    $routeKey = ["middlewares" => null];
-    $anonymousFile = true; // Middlewares are always single anonymous function files
-    [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg_fileAnonymous, "m_");
-    cli_info_without_exit("OK! Middleware Files. Middleware Functions are recommended to be reused in different projects, consider versioning their name endings. Run `funk recompile|rc` if you have manually added the Middleware Function File to a `middlewares` Route Key to a given Route!");
-    $routeKey[key($routeKey)] = $file;
-} elseif (in_array($subCommand, $commandConfigMappings['config']['pipeline']['aliases'])) {
-    $folderType = "pipeline";
-    $folder = "funkphp/pipeline";
-    $anonymousFile = true; // Pipeline functions are always single anonymous function files
-    [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg_fileAnonymous, "pl_");
-    cli_info_without_exit("OK! Pipeline File. Pipeline Functions are recommended to be reused in different projects, consider versioning their name endings. Drag this Function File into either `funkphp/pipeline/request/` OR `funkphp/pipeline/post-response/` and then add it manually to the corresponding Pipeline Sub-Array! (`pipeline['request']` or `pipeline['post-response']`)");
-} elseif (in_array($subCommand, $commandConfigMappings['config']['validation']['aliases'])) {
-    $folderType = "validation";
-    $folder = "funkphp/validation";
-    [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg_fileAndFn, "v_");
-    cli_info_without_exit("OK! Validation File and/or Validation Function. These are recommended to be used by calling `funk_use_valdation(&\$c,\$file_name,\$file_fn)` inside an Anonymous Function OR a File=>Function File!");
-} elseif (in_array($subCommand, $commandConfigMappings['config']['sql']['aliases'])) {
-    $folderType = "sql";
-    $folder = "funkphp/sql";
-    [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg_fileAndFn, "s_");
-    cli_info_without_exit("OK! SQL File and/or SQL Function. These are recommended to be used by first calling `funk_load_sql(&\$c,\$file_name,\$file_fn)` and then `funk_use_sql(&\$c,\$loadedSQLArray,\$optionalInputData,\$hydrateAfterQuery)` inside an Anonymous Function OR a File=>Function File!");
-}
-// This is a special case where we only create
-// a Route for `funkphp/routes/routes.php`!
-elseif (in_array($subCommand, $commandConfigMappings['config']['route']['aliases'])) {
+// SPECIAL CASE: Only trying adding a Route to `funkphp/routes/routes.php`
+if (!$arg_folderFileAndFn) {
     $routeOnly = true;
-    cli_info_without_exit("OK! ONLY a Route to `funkphp/routes/routes.php` unless it already exists. After this, you can add `Route Keys` to that created Route!");
-} else {
-    $folderType = "routes";
-    $folder = "funkphp/routes" . '/' . $subCommand;
-    $routeKey = $subCommand;
-    [$file, $fn] = cli_return_valid_file_n_fn_or_err_out($arg_folderAndFileAndFn);
-    cli_info_without_exit("OK! A Route File and/or Route Function that will be placed inside:`$folder`. If you provided a Method/Route it will be automatically added IF it is sucessfully created! Otherwise, you will have to manually add it to a Route Key of a Route manually or by running `funk add:$subCommand $file=>$fn <method/route>`!");
 }
 
-
-// DEBUGGING
-exit;
-
-// Passing $arg2 for Method/Route is optional so we check if it is set
-$method = null;
-$route = null;
 // SPECIAL_CASE: Only adding a Route to `funkphp/routes/routes.php`, so this
 // part will run and either Fail or Succeed and then exit the script!
 if ($routeOnly) {
-    if (!isset($arg1) || !is_string($arg1) || empty($arg1) || !preg_match($methodRouteRegex, $arg1)) {
-        cli_err_without_exit("No Valid Method/Route provided when wanting to only Create a New Route! `($cmd:$subCommand)`");
-        cli_info_without_exit("Syntax is: `funk make:r method/route` like `funk make:r g/users` OR `funk make:r post/users`!");
-        cli_info("Notice the support for shorthand versions \"g\", \"po\", \"pu\", \"d\" OR \"del\", \"pa\" for GET, POST, PUT, DELETE and PATCH respectively!");
-    }
-    [$method, $route] =  cli_return_valid_method_n_route_or_err_out($arg1);
-
-    // We tell that other arguments will be ignored since we
-    // are only adding a Route to `funkphp/routes/routes.php`
-    if (isset($arg2) || isset($arg3) || isset($arg4) || isset($arg5) || isset($arg6)) {
-        cli_warning_without_exit("Ignoring other arguments (\$'arg2' to \$'arg6') since this Command ONLY adds a New Route to `funkphp/routes/routes.php`!");
-    }
-
     // If Method is not set, we create it even though it should actually exist
     // and then we can also just add the Route to it and be done with it!
     if (!array_key_exists($method, $ROUTES)) {
@@ -111,11 +54,11 @@ if ($routeOnly) {
         if (array_key_exists($route, $ROUTES[$method])) {
             cli_err_without_exit("Route `$method$route` already exists in `funkphp/routes/routes.php`! Please provide a different Route OR Method/Route. Here is Status of that Method/Route:");
             $routeStatus = cli_route_status($ROUTES, $method, $route);
-            var_dump($routeStatus);
+            cli_info_without_exit(var_export($routeStatus, true));
             cli_info("You can add (additional) Route Keys to this Route by running `php funk make:subfolder_in_funkphp_routes_folder File=>Function $method$route`!");
         } else {
             // Check for dynamic conflicting routes in Trie Routes if the new route ends with a dynamic part like "/:something"
-            if (preg_match($routeDynamicEndRegex, $route)) {
+            if (preg_match($cliRegex['routeDynamicEndRegex'], $route)) {
                 $troute = $singleTroute;
                 $findDynamicRoute = cli_match_developer_route($method, $route, $troute, $ROUTES, $ROUTES);
                 if ($findDynamicRoute['route'] !== null) {
@@ -134,38 +77,7 @@ if ($routeOnly) {
     }
 } // END OF SPECIAL_CASE: Only adding a Route to `funkphp/routes/routes.php`
 
-// continue with the rest of the command when NOT only adding a Route to `funkphp/routes/routes.php`
-if (isset($arg2) && is_string($arg2) && !empty($arg2) && preg_match($methodRouteRegex, $arg2)) {
-    if ($folderType !== "middlewares" && $folderType !== "routes") {
-        cli_warning_without_exit("$folder does NOT use Method/Route so `$arg2` Is Ignored!");
-    } else {
-        [$method, $route] =  cli_return_valid_method_n_route_or_err_out($arg2);
-    }
-} else {
-    if ($folderType === "middlewares" || $folderType === "routes") {
-        cli_info_without_exit("No Method/Route provided! Created File and/or Function inside of `/funkphp/routes` OR `funkphp/middlewares` will NOT be attached to a Method/Route!");
-    }
-}
 
-// $folderType "validation" & "sql" demands $arg2 OR $arg3 to be a string of "tables"
-if ($folderType === 'validation' || $folderType === 'sql') {
-    if (
-        isset($arg2) && is_string($arg2) && !empty($arg2) && preg_match($tableRegex, $arg2)
-    ) {
-        $tablesProvided = $arg2;
-    } elseif (
-        isset($arg3) && is_string($arg3) && !empty($arg3) && preg_match($tableRegex, $arg3)
-    ) {
-        $tablesProvided = $arg3;
-    } else {
-        cli_err_syntax_without_exit("Provide Valid Table Name(s) as second (\"arg2\") or third (\"arg3\") argument for `$folderType` Folder Type!");
-        cli_info_without_exit("(For SQL) Use either Format:`sd|si|s|i|u|d=table1` for Single Table and its SQL Query Type OR:`s=table1,table2,etc3` for Multiple Tables for same SQL Query Type!");
-        cli_info_without_exit("(For VALIDATION) Use either Format:`table1` for Single Table OR:`table1,table2,etc3` for Multiple Tables to Prepare Default Validation for!");
-        cli_info_without_exit("(For SQL) sd|si|s|i|u|d: `sd`=SELECT_DISTINCT, `si`=SELECT_INTO, `s`=SELECT, `i`=INSERT, `u`=UPDATE, and `d`=DELETE");
-        cli_info_without_exit("(For SQL) For example: `s=authors` for SELECT on Table `authors` assuming it exists. At least one Existing Table is ALWAYS required in current version of FunkPHP!");
-        cli_info("Regex Used For SQL+Validation Tables: `/^(((sd|si|s|i|u|d)=)?[a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]*(\*[0-9]+)?)*$/i`!");
-    }
-}
 // Grab status for the folder and file so we can check whether
 // we can even access it, if it exists, is writable, etc.
 $statusArray = cli_folder_and_php_file_status($folder, $file);
@@ -257,58 +169,6 @@ if (!$method && !$route) {
                     } else {
                         cli_err("FAILED to Create Function `$fn` in File `$file.php` in Folder `$folder`!");
                     }
-                }
-            }
-        }
-    } elseif ($folderType === 'validation' || $folderType === 'sql') {
-        if (!$statusArray['folder_path']) {
-            cli_err_without_exit("This Folder SHOULD ALWAYS EXIST due to the nature of FunkPHP and its FunkCLI which auto-generates Default Folder on each Command!!");
-            cli_info("Verify File Permissions for Subfolders in `funkphp/` and try again since this Folder should be recreated each time your run a Command to the FunkCLI!");
-        }
-        // Create new file when it does not exist
-        if (!$statusArray['file_exists']) {
-            $createStatus = cli_crud_folder_and_php_file($statusArray, "create_new_file_and_fn", $file, $fn, $folderType, null, $tablesProvided);
-            if ($createStatus) {
-                cli_success_without_exit("SUCCESSFULLY Created File `$file.php` with Function `$fn` in `funkphp/$folderType`!");
-                cli_info_without_exit("The $folderType File `$file.php` is now ready to be used in `funkphp/$folderType`.");
-                if ($folderType === 'sql') {
-                    cli_info("Use it in your Route Function Files in `funkphp/routes/{SubFolder}` by calling `funk_load_sql(&\$c, '$file', '$fn')` and then `funk_use_sql(&\$c, \$loadedSQLArray, \$optionalInputData, \$hydrateAfterQuery)`!");
-                } elseif ($folderType === 'validation') {
-                    cli_info("Use it in your Route Function Files in `funkphp/routes/{SubFolder}` by calling `funk_use_validation(&\$c, '$file', '$fn')`!");
-                }
-                // IMPOSSIBLE EDGE-CASE
-                else {
-                    cli_warning("Somehow you created a File in a Folder Type that is NOT supported! Please report this as a Bug at `https://www.GitHub/WebbKodsFrilansaren/FunkPHP`!");
-                }
-            } else {
-                cli_err("FAILED to Create File `$file.php` with Function `$fn` in `funkphp/$folderType`!");
-            }
-        }
-        // Or try to create a new function in existing file
-        else {
-            // Function already exists in the file
-            if (isset($statusArray['functions'][$fn])) {
-                cli_err_without_exit("Function `$fn` already exists in File `$file.php` in `funkphp/$folderType`!");
-                cli_info("Change File and/or Function Name and try again for `funkphp/$folderType`!");
-            }
-            // Function does not exist in the file so
-            // crudType "create_only_new_fn_in_file"
-            else {
-                $createStatus = cli_crud_folder_and_php_file($statusArray, "create_only_new_fn_in_file", $file, $fn, $folderType, null, $tablesProvided);
-                if ($createStatus) {
-                    cli_success_without_exit("SUCCESSFULLY Created Function `$fn` in File `$file.php` in `funkphp/$folderType`!");
-                    cli_info_without_exit("The $folderType File `$file.php` is now ready to be used in `funkphp/$folderType`.");
-                    if ($folderType === 'sql') {
-                        cli_info("Use it in your Route Function Files in `funkphp/routes/{SubFolder}` by calling `funk_load_sql(&\$c, '$file', '$fn')` and then `funk_use_sql(&\$c, \$loadedSQLArray, \$optionalInputData, \$hydrateAfterQuery)`!");
-                    } elseif ($folderType === 'validation') {
-                        cli_info("Use it in your Route Function Files in `funkphp/routes/{SubFolder}` by calling `funk_use_validation(&\$c, '$file', '$fn')`!");
-                    }
-                    // IMPOSSIBLE EDGE-CASE
-                    else {
-                        cli_warning("Somehow you created a File in a Folder Type that is NOT supported! Please report this as a Bug at `https://www.GitHub/WebbKodsFrilansaren/FunkPHP`!");
-                    }
-                } else {
-                    cli_err("FAILED to Create Function `$fn` in File `$file.php` in `funkphp/$folderType`!");
                 }
             }
         }
