@@ -28,7 +28,6 @@ if ($arg_folderFileAndFn) {
     [$folder, $file, $fn] =  cli_extract_folder_file_fn($arg_folderFileAndFn);
     $folder = $folderBase . $folder . '/';
 }
-var_dump("Arg Method/Route: " . $arg_methodRoute, "Arg Folder/File/Function: " . $arg_folderFileAndFn, "Extracted Method: " . $method, "Extracted Route: " . $route, "Extracted Folder: " . $folder, "Extracted File: " . $file, "Extracted Function: " . $fn);
 
 // SPECIAL CASE: Only trying adding a Route to `funkphp/routes/routes.php`
 if (!$arg_folderFileAndFn) {
