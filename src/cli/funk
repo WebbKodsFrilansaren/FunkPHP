@@ -41,6 +41,7 @@ define('TEMPLATE_DIR', PROJECT_DIR . '/template');
 define('TEST_DIR', PROJECT_DIR . '/test');
 
 // Default exact file path used by FunkCLI
+define("FUNKPHP_FILE_PATH_CLI_RESERVED", CLI_DIR . '/cli_reserved.php');
 define("FUNKPHP_FILE_PATH_CLI_FUNS", CLI_DIR . '/cli_funs.php');
 define("FUNKPHP_FILE_PATH_CLI_FUNS2", CLI_DIR . '/cli_funs2.php');
 define("FUNKPHP_FILE_PATH_CLI_CONFIG_REGEX", CLI_CONFIG_DIR . '/regexes.php');
@@ -378,8 +379,8 @@ $exactFiles = [
 // should not be used in the application code. They are checked against
 // when adding any new kind of function that is already reserved.
 $reserved_functions = [];
-if (is_readable(CLI_DIR . '/cli_reserved.php')) {
-    $reserved_functions = include_once CLI_DIR . '/cli_reserved.php';
+if (is_readable(FUNKPHP_FILE_PATH_CLI_RESERVED)) {
+    $reserved_functions = include_once FUNKPHP_FILE_PATH_CLI_RESERVED;
 } else {
     cli_info_without_exit("Reserved Functions List File `cli_reserved.php` NOT FOUND! Attempting to generate a new one...");
     $reserved_functions = cli_update_reserved_functions_list_and_return_as_array();

@@ -4,8 +4,7 @@
 // Configure its connection: /funkphp/config/db_config.php
 function cli_db_connect()
 {
-    global $exactFiles;
-    $dbConfig = include_once $exactFiles['db_local'];
+    $dbConfig = include_once FUNKPHP_FILE_PATH_DB_LOCAL ?? [];
     $dbConfig = $dbConfig['funkphp_dev'] ?? null;
     try {
         $conn = new mysqli($dbConfig['host'], $dbConfig['user'], $dbConfig['password'], $dbConfig['database'], $dbConfig['port']);
@@ -20,7 +19,7 @@ function cli_db_connect()
 
 // Function takes a SQL file and parses the CREATE TABLE(); statement
 // and then stores it in funkphp/config/tables.php file as a PHP array
-function cli_parse_a_sql_table_file()
+function cli_parse_a_sql_table_file($tableFileName)
 {
     // Load globals and verify $argv is not empty string and ends with .sql
     cli_info_without_exit("IMPORTANT #1: \"php funkcli add table\" command is NOT meant for actual Table Migration.");
@@ -29,26 +28,26 @@ function cli_parse_a_sql_table_file()
     cli_info_without_exit("array() to array[] ignores quotes inside of other qoutes. For example, \"Yours' truly\" will become \"Yours truly\".");
     cli_info_without_exit("KEEP THAT IN MIND: If you wanna use `DEFAULT \"Qouted Value with '\"Quotes\"' Inside\"` it must be manually added inside \"config/Tables.php\"");
 
-    global $argv, $dirs, $exactFiles, $settings, $tablesAndRelationshipsFile, $mysqlDataTypesFile;
+    global $exactFiles, $settings, $tablesAndRelationshipsFile, $mysqlDataTypesFile;
     $sqlFile = null;
-    if (!is_string_and_not_empty(trim($argv[3] ?? null))) {
+    if (!is_string_and_not_empty(trim($tableFileName ?? null))) {
         cli_err_syntax("Provide a SQL File from \"funkphp/schemas/\" folder as a string!");
     }
 
     // Trim, add .sql extension if not already, and check that file exsts in /sql/ folder
-    $argv[3] = strtolower(trim($argv[3]));
-    if (!str_ends_with($argv[3], ".sql")) {
-        $argv[3] .= ".sql";
+    $tableFileName = strtolower(trim($tableFileName));
+    if (!str_ends_with($tableFileName, ".sql")) {
+        $tableFileName .= ".sql";
     }
-    if (is_readable($dirs['schemas'] . $argv[3])) {
-        $sqlFile = file_get_contents($dirs['schemas'] . $argv[3]);
+    if (is_readable(SCHEMA_DIR . '/' . $tableFileName)) {
+        $sqlFile = file_get_contents(SCHEMA_DIR . '/' . $tableFileName);
     } else {
-        cli_err_syntax("\"{$argv[3]}\" must must exist in\"funkphp/schemas/\"!");
+        cli_err_syntax("\"{$tableFileName}\" must must exist in\"funkphp/schemas/\"!");
     }
 
     // Check that the tables.php file exists and is writable, then load it
-    if (!is_readable($exactFiles['tables']) || !is_writable($exactFiles['tables'])) {
-        cli_err_syntax("The \"funkphp/config/tables.php\" File must exist and be writable!");
+    if (!is_readable(FUNKPHP_FILE_PATH_TABLES) || !is_writable(FUNKPHP_FILE_PATH_TABLES)) {
+        cli_err_syntax("The `" . FUNKPHP_FILE_PATH_TABLES . "` File must exist and be writable!");
     }
 
     // Prepare variables to store the tables.php file and parsed table
@@ -62,7 +61,7 @@ function cli_parse_a_sql_table_file()
         || !isset($tablesFile['relationships']) || !is_array($tablesFile['relationships'])
         || !isset($tablesFile['mappings']) || !is_array($tablesFile['mappings'])
     ) {
-        cli_err_syntax("The \"funkphp/config/tables.php\" file must contain the three keys: \"tables\", \"relationships\" & \"mappings\" at root level!");
+        cli_err_syntax("The `" . FUNKPHP_FILE_PATH_TABLES . "` File must contain the three keys: \"tables\", \"relationships\" & \"mappings\" at root level!");
     }
 
     // Inform but continue that "CREATE TABLE AS" (using other tables) is not supported
@@ -72,7 +71,7 @@ function cli_parse_a_sql_table_file()
 
     // Check that file starsts with "CREATE TABLE a-zA-Z0-9_\s+()" or error out
     if (!preg_match("/^CREATE TABLE\s+(IF NOT EXISTS\s*)*([a-zA-Z0-9_]+)\s*\(/i", $sqlFile, $matches)) {
-        cli_err_syntax("\"{$argv[3]}\" must start with \"CREATE TABLE /[a-zA-Z0-9_]+/ (\"");
+        cli_err_syntax("\"{$tableFileName}\" must start with \"CREATE TABLE /[a-zA-Z0-9_]+/ (\"");
     }
     // Parse out the table name and check if it is valid
     $tableName = $matches[2] ?? null;
@@ -137,7 +136,7 @@ function cli_parse_a_sql_table_file()
         }
         $lineParts = explode(" ", $line);
         if (isset($duplicates[$lineParts[0]])) {
-            cli_err_syntax("Duplicate Column Name \"{$lineParts[0]}\". Please fix \"sql/{$argv[3]}\" and retry!");
+            cli_err_syntax("Duplicate Column Name \"{$lineParts[0]}\". Please fix \"sql/{$tableFileName}\" and retry!");
         } else {
             $duplicates[$lineParts[0]] = true;
         }
@@ -156,7 +155,7 @@ function cli_parse_a_sql_table_file()
         // for consistency reasons. We check if it is the first element and if it is not we error out.
         if ($index === 0) {
             if ($line !== "id BIGINT AUTO_INCREMENT PRIMARY KEY") {
-                cli_err_syntax("First Column \"{$lineParts[0]}\" must be \"id BIGINT AUTO_INCREMENT PRIMARY KEY\". Please fix \"sql/{$argv[3]}\" and try again!");
+                cli_err_syntax("First Column \"{$lineParts[0]}\" must be \"id BIGINT AUTO_INCREMENT PRIMARY KEY\". Please fix \"sql/{$tableFileName}\" and try again!");
             } else {
                 $parsedTable[$tableName][$lineParts[0]] = [
                     "joined_name" => $tableName . "_" . $lineParts[0],
@@ -190,11 +189,11 @@ function cli_parse_a_sql_table_file()
                 $otherTable = $matches[2] ?? null;
                 $otherTablePK = $matches[3] ?? null;
                 if (!isset($thisTableFK) || !isset($otherTable) || !isset($otherTablePK)) {
-                    cli_err_syntax("Foreign Key \"{$line}\" is missing one or more of the following: \"this_table_column\", \"other_table_name\" or \"other_table_primary_key\". Please fix \"sql/{$argv[3]}\" and try again!");
+                    cli_err_syntax("Foreign Key \"{$line}\" is missing one or more of the following: \"this_table_column\", \"other_table_name\" or \"other_table_primary_key\". Please fix \"sql/{$tableFileName}\" and try again!");
                 } else {
                     // Check if the other table exists in the tables.php file
                     if (!isset($tablesFile['tables'][$otherTable])) {
-                        cli_err_syntax("Foreign Key \"{$thisTableFK}\" references Table \"$otherTable\" not found in \"funkphp/config/tables.php\". First add Table \"$otherTable\", or fix \"sql/{$argv[3]}\" and try again!");
+                        cli_err_syntax("Foreign Key \"{$thisTableFK}\" references Table \"$otherTable\" not found in \"funkphp/config/tables.php\". First add Table \"$otherTable\", or fix \"sql/{$tableFileName}\" and try again!");
                     } else {
                         // Add the foreign key to the parsed table array and merge it with the existing one...
                         if (isset($parsedTable[$tableName][$thisTableFK])) {
@@ -223,7 +222,7 @@ function cli_parse_a_sql_table_file()
             }
             // Line started with "FOREIGN KEY" but no match found so we error out
             else {
-                cli_err_syntax_without_exit("\"$line\" started with \"FOREIGN KEY\" but failed to match. Please fix \"sql/{$argv[3]}\" and try again!");
+                cli_err_syntax_without_exit("\"$line\" started with \"FOREIGN KEY\" but failed to match. Please fix \"sql/{$tableFileName}\" and try again!");
                 cli_info_without_exit("Expected Syntax:\"FOREIGN KEY (existing_column_name_in_this_table) REFERENCES other_existing_referenced_table(id)\"");
                 cli_info("Anything after is not matched so you can include things such as \"ON DELETE CASCADE\", \"ON UPDATE CASCADE\", etc.");
             }
@@ -285,12 +284,12 @@ function cli_parse_a_sql_table_file()
                     // Error out if the array is empty or not valid (too long)
                     if (is_array($parsedArray) && count($parsedArray) > 0) {
                         if ($matches[3] === "ENUM" && count($parsedArray) > 65535) {
-                            cli_err_syntax("ENUM value \"{$matches[5]}\" is too long. Please fix \"sql/{$argv[3]}\" and try again!");
+                            cli_err_syntax("ENUM value \"{$matches[5]}\" is too long. Please fix \"sql/{$tableFileName}\" and try again!");
                         } elseif ($matches[3] === "SET" && count($parsedArray) > 64) {
-                            cli_err_syntax("SET value \"{$matches[5]}\" is too long. Please fix \"sql/{$argv[3]}\" and try again!");
+                            cli_err_syntax("SET value \"{$matches[5]}\" is too long. Please fix \"sql/{$tableFileName}\" and try again!");
                         }
                     } else {
-                        cli_warning_without_exit("ENUM/SET value \"{$matches[5]}\" is not valid. Please fix \"sql/{$argv[3]}\" after this!");
+                        cli_warning_without_exit("ENUM/SET value \"{$matches[5]}\" is not valid. Please fix \"sql/{$tableFileName}\" after this!");
                     }
                     $parsedTable[$tableName][$matches[1]]["value"] = $parsedArray;
                 }
@@ -402,7 +401,7 @@ function cli_parse_a_sql_table_file()
 
     // Finally add the entire parsed table to the Tables.php file's array!
     $tablesFile['tables'][$tableName] = $parsedTable[$tableName];
-    cli_success_without_exit("Parsed Table \"$tableName\" from SQL File \"schemas/{$argv[3]}\"!");
+    cli_success_without_exit("Parsed Table \"$tableName\" from SQL File \"schemas/{$tableFileName}\"!");
     cli_success_without_exit("You find it in `config/tables.php` => ['tables']['$tableName']!");
 
     // Now we add the table to the tables.php file and also pass it to the validation function which might fail
@@ -619,12 +618,11 @@ function cli_find_string_outside_quotes_improved($needle, $haystack)
 function cli_output_tables_file($array)
 {
     // Load globals and verify non-empty array and that file exists to written to
-    global $dirs, $exactFiles, $settings;
     if (!is_array_and_not_empty($array)) {
-        cli_err_syntax("The provided array must be a non-empty array!");
+        cli_err_syntax("The provided Array must be a Non-Empty Array!");
     }
-    if (!file_exists_is_readable_writable($exactFiles['tables'])) {
-        cli_err_syntax("The \"funkphp/config/tables.php\" file must exist and be writable!");
+    if (!file_exists_is_readable_writable(FUNKPHP_FILE_PATH_TABLES)) {
+        cli_err_syntax("The `" . FUNKPHP_FILE_PATH_TABLES . "` File must exist and be writable!");
     }
     // Check for the keys "tables" and "relationships" in the array at the root level
     if (
@@ -632,7 +630,7 @@ function cli_output_tables_file($array)
         || !isset($array['relationships']) || !is_array($array['relationships'])
         || !isset($array['mappings']) || !is_array($array['mappings'])
     ) {
-        cli_err_syntax("The \"funkphp/config/tables.php\" file must contain the three keys: \"tables\", \"relationships\" & \"mappings\" at root level!");
+        cli_err_syntax("The `" . FUNKPHP_FILE_PATH_TABLES . "` File must contain the three keys: \"tables\", \"relationships\" & \"mappings\" at root level!");
     }
 
     // Loop through and add any missing keys to the relationships
@@ -751,11 +749,10 @@ function cli_output_tables_file($array)
     // --- (FROM LLM!!!) END NEW LOGIC ---
 
     // Attempt to write to the Tables.php file and check if it was successful
-    $result = file_put_contents($exactFiles['tables'], "<?php\nreturn " . cli_convert_array_to_simple_syntax($array));
-    if ($result === false) {
-        cli_err_syntax("FAILED recompiling Tables in \"funkphp/config/tables.php\"!");
+    if (!cli_crud_folder_php_file_atomic_write("<?php\nreturn " . cli_convert_array_to_simple_syntax($array), FUNKPHP_FILE_PATH_TABLES)) {
+        cli_err_syntax("FAILED recompiling Tables in `" . FUNKPHP_FILE_PATH_TABLES . "`!");
     } else {
-        cli_success_without_exit("Recompiled Tables in \"funkphp/config/tables.php\"!");
+        cli_success_without_exit("Recompiled Tables in `" . FUNKPHP_FILE_PATH_TABLES . "`!");
     }
 }
 
