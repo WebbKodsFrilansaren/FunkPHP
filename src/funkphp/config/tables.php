@@ -341,6 +341,65 @@ return  [
         'referenced_joined' => 'tags_id',
       ],
     ],
+    'alones' =>
+    [
+      'id' =>
+      [
+        'joined_name' => 'alones_id',
+        'auto_increment' => true,
+        'type' => 'BIGINT',
+        'binding' => 'i',
+        'value' => NULL,
+        'primary_key' => true,
+        'nullable' => false,
+        'default' => NULL,
+      ],
+      'name' =>
+      [
+        'joined_name' => 'alones_name',
+        'type' => 'VARCHAR',
+        'binding' => 's',
+        'value' => 255,
+        'nullable' => false,
+        'unique' => false,
+        'unsigned' => false,
+        'signed' => false,
+        'default' => NULL,
+      ],
+      'description' =>
+      [
+        'joined_name' => 'alones_description',
+        'type' => 'TEXT',
+        'binding' => 's',
+        'value' => NULL,
+        'nullable' => true,
+        'unique' => false,
+      ],
+      'created_at' =>
+      [
+        'joined_name' => 'alones_created_at',
+        'type' => 'TIMESTAMP',
+        'binding' => 's',
+        'value' => NULL,
+        'nullable' => true,
+        'unique' => false,
+        'unsigned' => false,
+        'signed' => false,
+        'default' => 'CURRENT_TIMESTAMP',
+      ],
+      'updated_at' =>
+      [
+        'joined_name' => 'alones_updated_at',
+        'type' => 'TIMESTAMP',
+        'binding' => 's',
+        'value' => NULL,
+        'nullable' => true,
+        'unique' => false,
+        'unsigned' => false,
+        'signed' => false,
+        'default' => 'CURRENT_TIMESTAMP',
+      ],
+    ],
   ],
   'relationships' =>
   [

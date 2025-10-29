@@ -9,6 +9,7 @@ define('BATTERIES_PIPELINE_DIR', BATTERIES_DIR . '/pipeline');
 define('BATTERIES_PIPELINE_REQUEST_DIR', BATTERIES_PIPELINE_DIR . '/request');
 define('BATTERIES_PIPELINE_POST_RESPONSE_DIR', BATTERIES_PIPELINE_DIR . '/post-response');
 define('CLI_DIR', __DIR__);
+define('CLI_CORE_DIR', CLI_DIR . '/core');
 define('CLI_COMMANDS_DIR', __DIR__ . '/commands');
 define('CLI_CONFIG_DIR', __DIR__ . '/config');
 define('FUNKPHP_DIR', PROJECT_DIR . '/funkphp');
@@ -41,9 +42,9 @@ define('TEMPLATE_DIR', PROJECT_DIR . '/template');
 define('TEST_DIR', PROJECT_DIR . '/test');
 
 // Default exact file path used by FunkCLI
-define("FUNKPHP_FILE_PATH_CLI_RESERVED", CLI_DIR . '/cli_reserved.php');
-define("FUNKPHP_FILE_PATH_CLI_FUNS", CLI_DIR . '/cli_funs.php');
-define("FUNKPHP_FILE_PATH_CLI_FUNS2", CLI_DIR . '/cli_funs2.php');
+define("FUNKPHP_FILE_PATH_CLI_RESERVED", CLI_CORE_DIR . '/cli_reserved.php');
+define("FUNKPHP_FILE_PATH_CLI_FUNS", CLI_CORE_DIR . '/cli_funs.php');
+define("FUNKPHP_FILE_PATH_CLI_FUNS2", CLI_CORE_DIR . '/cli_funs2.php');
 define("FUNKPHP_FILE_PATH_CLI_CONFIG_REGEX", CLI_CONFIG_DIR . '/regexes.php');
 define("FUNKPHP_FILE_PATH_CLI_CONFIG_COMMANDS", CLI_CONFIG_DIR . '/commands.php');
 define("FUNKPHP_FILE_PATH_CLI_CONFIG_EXTERNAL_CALLABLE_VALIDATORS", CLI_CONFIG_DIR . '/external_callable_validators.php');

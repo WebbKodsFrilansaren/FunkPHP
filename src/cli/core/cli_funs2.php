@@ -6657,6 +6657,9 @@ function cli_restore_default_folders_and_files()
         "$folderBase/BACKUPS/pages/layouts/",
         "$folderBase/BACKUPS/pages/partials/",
         "$folderBase/BACKUPS/config/",
+        "$folderBase/BACKUPS/cli/",
+        "$folderBase/BACKUPS/cli/config/",
+        "$folderBase/BACKUPS/cli/commands/",
         "$folderBase/BACKUPS/schema/",
         "$folderBase/BACKUPS/sql/",
         "$folderBase/BACKUPS/snippets/",
@@ -6669,6 +6672,8 @@ function cli_restore_default_folders_and_files()
         "$folderBase/batteries/pipeline/request/",
         "$folderBase/cli/",
         "$folderBase/cli/commands/",
+        "$folderBase/cli/config/",
+        "$folderBase/cli/core/",
         "$folderBase/funkphp/",
         "$folderBase/funkphp/_internals/",
         "$folderBase/funkphp/_internals/compiled/",
@@ -7778,12 +7783,12 @@ function cli_update_reserved_functions_list_and_return_as_array()
     if (!dir_exists_is_readable_writable($dir2)) {
         cli_err("Directory $dir2 does not exist or is not readable/writable!");
     }
-    $files = scandir($dir);
-    $files2 = scandir($dir2);
+    $files = scandir($dir); // funkphp/_internals/functions/
+    $files2 = scandir($dir2); // src/cli/core/
     $reserved_functions = [];
     foreach ($files as $file) {
         if (pathinfo($file, PATHINFO_EXTENSION) === "php") {
-            // Check that file name ends with "_funs.php" or exit
+            // Check that file name ends with "_funs.php" inside of funkphp/_internals/functions/
             if (!str_ends_with($file, "_funs.php")) {
                 cli_info_without_exit("File `$file` not valid function file! Skipping it...");
                 continue;
@@ -7801,6 +7806,7 @@ function cli_update_reserved_functions_list_and_return_as_array()
     }
     foreach ($files2 as $file2) {
         if (pathinfo($file2, PATHINFO_EXTENSION) === "php") {
+            // Check that file name starts with "cli_funs" inside of src/cli/core/
             if (!str_starts_with($file2, "cli_funs")) {
                 cli_info_without_exit("File `$file2` not valid function file! Skipping it...");
                 continue;
@@ -7817,19 +7823,17 @@ function cli_update_reserved_functions_list_and_return_as_array()
     $reserved_functions_string = preg_replace("/\d+\s*=>\s*/", "", $reserved_functions_string);
     $reserved_functions_string = preg_replace("/\n/", "", $reserved_functions_string);
     $reserved_functions_string = preg_replace("/\',/", "',\n", $reserved_functions_string, 1);
-    $output = file_put_contents(
-        $dir2 . "cli_reserved.php",
+    $output =
         "<?php\n// FunkPHP Framework - FunkCLI Created it " . date("Y-m-d H:i:s") . "\n" .
-            "// This file contains all reserved functions in the FunkPHP Framework and FunkCLI.\n" .
-            "// It is used to check if a function is reserved (used by FunkPHP/FunkCLI) or not.\n" .
-            "return \n" . $reserved_functions_string . " // Functions Count: $count"
-    );
-    if ($output === false) {
-        cli_warning_without_exit("FAILED to Write to File `$dir2" . "cli_reserved.php`! Check File Permissions? ZERO Functions Included as a result!");
+        "// This file contains all reserved functions in the FunkPHP Framework and FunkCLI.\n" .
+        "// It is used to check if a function is reserved (used by FunkPHP/FunkCLI) or not.\n" .
+        "return \n" . $reserved_functions_string . " // Functions Count: $count";
+    if (!cli_crud_folder_php_file_atomic_write($output, FUNKPHP_FILE_PATH_CLI_RESERVED)) {
+        cli_warning_without_exit("FAILED to Write to File `"  . FUNKPHP_FILE_PATH_CLI_RESERVED .   "`! Check File Permissions? ZERO Functions Included as a result!");
         cli_info_without_exit("This means a Function that is already being used by a globally included FunkPHP Function could be added and causing function redeclaration(s) as a result!");
         return [];
     } else {
-        return include_once $dir2 . "cli_reserved.php";
+        return include_once FUNKPHP_FILE_PATH_CLI_RESERVED;
     }
 }
 
