@@ -28,7 +28,7 @@ function cli_parse_a_sql_table_file($tableFileName)
     cli_info_without_exit("array() to array[] ignores quotes inside of other qoutes. For example, \"Yours' truly\" will become \"Yours truly\".");
     cli_info_without_exit("KEEP THAT IN MIND: If you wanna use `DEFAULT \"Qouted Value with '\"Quotes\"' Inside\"` it must be manually added inside \"config/Tables.php\"");
 
-    global $settings, $tablesAndRelationshipsFile, $mysqlDataTypesFile;
+    global $tablesAndRelationshipsFile, $mysqlDataTypesFile;
     $sqlFile = null;
     if (!is_string_and_not_empty(trim($tableFileName ?? null))) {
         cli_err_syntax("Provide a SQL File from \"funkphp/schemas/\" folder as a string!");
@@ -3943,7 +3943,7 @@ function cli_parse_joined_tables_order($tablesString, &$currentFinalHydrateKey, 
 // VERY IMPORTANT WARNING: This function calls a function which uses eval() to parse the SQL file!!!
 function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, $fnName)
 {
-    global $settings, $tablesAndRelationshipsFile;
+    global $tablesAndRelationshipsFile;
 
     // Validate it is an associative array - not a list
     if (!is_array_and_not_empty($sqlArray)) {
@@ -6964,7 +6964,6 @@ function cli_delete_a_route()
     // Load globals and validate input
     global
         $argv,
-        $settings,
         $singleRoutesRoute;
     if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3])) {
         cli_err_syntax_without_exit("Provide a valid Route to delete from the Route file!\nExample: \"php funkcli delete [route|r] [method/route_name]\"");
