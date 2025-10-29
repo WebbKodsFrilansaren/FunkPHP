@@ -6365,14 +6365,12 @@ function cli_rebuild_single_routes_route_file($singleRouteRoutesFileArray): bool
         cli_err("[cli_rebuild_single_routes_file] Directory for `routes.php` (funkphp/config/) must be a Writable Directory. Check it exists and/or its File Permission!");
     }
     // Check that if file exists, it can be overwritten
-    if (file_exists($exactFiles['single_routes']) && !is_writable($exactFiles['single_routes'])) {
+    if (file_exists(FUNKPHP_FILE_PATH_ROUTES) && !is_writable(FUNKPHP_FILE_PATH_ROUTES)) {
         cli_err("[cli_rebuild_single_routes_file] Routes file (funkphp/config/routes.php) must be writable. It is not!");
     }
-    return file_put_contents(
-        $exactFiles['single_routes'],
-        cli_get_prefix_code("route_singles_routes_start")
-            . cli_convert_array_to_simple_syntax($singleRouteRoutesFileArray)
-    );
+    // Use Atomic File Write to prevent corruption while outputting the newly compiled Routes file
+    return (cli_crud_folder_php_file_atomic_write((cli_get_prefix_code("route_singles_routes_start")
+        . cli_convert_array_to_simple_syntax($singleRouteRoutesFileArray)), FUNKPHP_FILE_PATH_ROUTES));
 }
 
 // Build Compiled Route from Developer's Defined Routes
@@ -6533,7 +6531,7 @@ function cli_build_compiled_routes(array $developerSingleRoutes, array $develope
 }
 
 // Output Compiled Route to File or Return as String
-function cli_output_compiled_routes(array $compiledTrie, string $outputFileNameFolderIsAlways_compiled_routes = "null")
+function cli_output_compiled_routes(array $compiledTrie)
 {
     // Check if the compiled route is empty
     if (!is_array($compiledTrie)) {
@@ -6542,12 +6540,12 @@ function cli_output_compiled_routes(array $compiledTrie, string $outputFileNameF
     if (empty($compiledTrie)) {
         cli_err_syntax("Compiled Routes Must Be A Non-Empty Array!");
     }
-    $result = null;
-    $result = file_put_contents(FUNKPHP_INTERNALS_COMPILED_DIR .  "/troute_route.php", "<?php\nreturn " . cli_convert_array_to_simple_syntax($compiledTrie));
-    if ($result === false) {
-        cli_err("Failed to write Compiled Routes to file: \"funkphp/_internals/compiled/troute_route.php\". Check File Permissions?");
+
+    //$result = file_put_contents(FUNKPHP_INTERNALS_COMPILED_DIR .  "/troute_route.php", "<?php\nreturn " . cli_convert_array_to_simple_syntax($compiledTrie));
+    if (!cli_crud_folder_php_file_atomic_write("<?php\nreturn " . cli_convert_array_to_simple_syntax($compiledTrie), FUNKPHP_FILE_PATH_TROUTES)) {
+        cli_err("Failed to write Compiled Routes to file: `" .  FUNKPHP_FILE_PATH_TROUTES . "`! Check File Permissions?");
     } else {
-        cli_success_without_exit("Successfully wrote Compiled Routes to file: \"funkphp/_internals/compiled/troute_route.php\"!");
+        cli_success_without_exit("Successfully wrote Compiled Routes to file: `" . FUNKPHP_FILE_PATH_TROUTES . "`!");
     }
 }
 
@@ -7014,7 +7012,7 @@ function cli_delete_a_route()
     // Then we rebuild and recompile Routes
     cli_rebuild_single_routes_route_file($singleRoutesRoute);
     $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRoute['ROUTES'], $singleRoutesRoute['ROUTES']);
-    cli_output_compiled_routes($compiledRouteRoutes, "troute_route");
+    cli_output_compiled_routes($compiledRouteRoutes);
 
     // Send the handler variable to delete it (this will
     // also delete file if it's the last function in it!)
@@ -7091,7 +7089,7 @@ function cli_sort_build_routes_compile_and_output($singleRoutesRootArray)
         cli_err("FAILED to rebuild Route file \"funkphp/routes/routes.php\". File permissions issue?");
     }
     $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRootArray['ROUTES'], $singleRoutesRootArray['ROUTES']);
-    cli_output_compiled_routes($compiledRouteRoutes, "troute_route");
+    cli_output_compiled_routes($compiledRouteRoutes);
 }
 
 // Add a single Middleware file to middleware folder (funkphp/middlewares/)
@@ -7399,7 +7397,7 @@ function cli_compile_batch($arrayOfRoutesToCompileAndOutput)
     foreach ($arrayOfRoutesToCompileAndOutput as $routeString) {
         if ($routeString === "troutes") {
             $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRoute['ROUTES'], $singleRoutesRoute['ROUTES']);
-            cli_output_compiled_routes($compiledRouteRoutes, "troute_route");
+            cli_output_compiled_routes($compiledRouteRoutes);
             continue;
         }
     }
