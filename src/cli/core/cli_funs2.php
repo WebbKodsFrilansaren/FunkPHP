@@ -3943,7 +3943,7 @@ function cli_parse_joined_tables_order($tablesString, &$currentFinalHydrateKey, 
 // VERY IMPORTANT WARNING: This function calls a function which uses eval() to parse the SQL file!!!
 function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, $fnName)
 {
-    global $dirs, $exactFiles, $settings, $tablesAndRelationshipsFile;
+    global $settings, $tablesAndRelationshipsFile;
 
     // Validate it is an associative array - not a list
     if (!is_array_and_not_empty($sqlArray)) {
@@ -6349,7 +6349,6 @@ function cli_match_developer_route(string $method, string $uri, array $compiledR
 // Rebuilds the Single Routes Route file (funkphp/routes/route_single_routes.php) based on valid array
 function cli_rebuild_single_routes_route_file($singleRouteRoutesFileArray): bool
 {
-    global $exactFiles, $dirs, $settings;
     if (!is_array($singleRouteRoutesFileArray) || empty($singleRouteRoutesFileArray)) {
         cli_err_syntax("[cli_rebuild_single_routes_file] Single Route Routes File Array (funkphp/config/routes.php) must be a non-empty array!");
     }
@@ -6357,7 +6356,7 @@ function cli_rebuild_single_routes_route_file($singleRouteRoutesFileArray): bool
         cli_err_syntax("[cli_rebuild_single_routes_file] Single Route Routes File Array (funkphp/config/routes.php) must start with a 'ROUTES' key!");
     }
     // Check that dir exist, is writable and is a directory
-    if (!is_dir($dirs['routes']) || !is_writable($dirs['routes'])) {
+    if (!is_dir(FUNKPHP_ROUTES_DIR) || !is_writable(FUNKPHP_ROUTES_DIR)) {
         cli_err("[cli_rebuild_single_routes_file] Directory for `routes.php` (funkphp/config/) must be a Writable Directory. Check it exists and/or its File Permission!");
     }
     // Check that if file exists, it can be overwritten
@@ -6849,21 +6848,17 @@ function cli_backup_batch($arrayOfFilesToBackup)
     if (!is_array($arrayOfFilesToBackup) || empty($arrayOfFilesToBackup)) {
         cli_err_syntax("Array of files to backup must be a non-empty array!");
     }
-
-    // Load $dirs, $exactFiles as globals
-    global $dirs, $exactFiles, $settings;
+    global $settings;
 
     // Prepare paths for all possible that could be backed up
     // Backup paths
-    $backupFinalsPath = $dirs['backups_finals'];
-    $backupCompiledPath = $dirs['backups_compiled'];
-    $backupRouteRoutePath = $dirs['backups_routes'];
-    $backupDataRoutePath = $dirs['backups_data'];
-    $backupPageRoutePath = $dirs['backups_pages'];
+    $backupFinalsPath = BACKUPS_FINAL_DIR;
+    $backupCompiledPath = BACKUPS_COMPILED_DIR;
+    $backupRouteRoutePath = BACKUPS_ROUTES_DIR;
 
     // Single Route Routes (including Middlewares)
-    $oldTrouteRouteFile = $exactFiles['troute_route'];
-    $oldSingleRouteRouteFile = $exactFiles['single_routes'];
+    $oldTrouteRouteFile = FUNKPHP_FILE_PATH_TROUTES;
+    $oldSingleRouteRouteFile = FUNKPHP_FILE_PATH_ROUTES;
 
     // Now backup the old route files based on provided $filesString
     // Loop through each file in the array and backup it
@@ -6968,7 +6963,7 @@ function cli_delete_a_route()
 {
     // Load globals and validate input
     global
-        $argv, $dirs, $exactFiles,
+        $argv,
         $settings,
         $singleRoutesRoute;
     if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3])) {
@@ -7098,9 +7093,6 @@ function cli_add_a_middleware()
 {
     // Load globals and validate input
     global $argv,
-        $settings,
-        $dirs,
-        $exactFiles,
         $singleRoutesRoute;
 
     // Retrieve valid middleware name & the method and route from the arguments
@@ -7147,7 +7139,7 @@ function cli_add_a_middleware()
 
     // Here we know the middleware can be added to the
     // current Route so prepare middleware folder & file name
-    $mwDir = $dirs['middlewares'];
+    $mwDir = FUNKPHP_MIDDLEWARES_DIR . '/';
     $mwName = str_ends_with($argv[4], ".php") ? $argv[4] : $argv[4] . ".php";
 
     // We check if file exists already because then we do not need to create it.
@@ -7182,9 +7174,6 @@ function cli_delete_a_middleware()
 {
     // Load globals and validate input
     global $argv,
-        $settings,
-        $dirs,
-        $exactFiles,
         $singleRoutesRoute;
     if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3]) || !isset($argv[4]) || !is_string($argv[4]) || empty($argv[4])) {
         cli_err_syntax("Should be at least four(4) non-empty string arguments!\nfunkcli delete [mw|middleware] [method/route] [Middleware_name]\nExample: 'php funkcli delete mw GET/users/:id validateUserId'");
@@ -7203,7 +7192,7 @@ function cli_delete_a_middleware()
 
     // Grab middlewares folder and file name with .php extension
     // and then check if the file exists in the middlewares folder
-    $mwFolder = $dirs['middlewares'];
+    $mwFolder = FUNKPHP_MIDDLEWARES_DIR . '/';
     $mwName = str_ends_with($argv[4], ".php") ? $argv[4] : $argv[4] . ".php";
     if (file_exists($mwFolder . $mwName)) {
         cli_info_without_exit("Middleware \"$argv[4].php\" exists in \"funkphp/middlewares/$mwName\"!");
@@ -7253,9 +7242,6 @@ function cli_delete_a_middleware_from_all_routes()
 {
     // Load globals and validate input
     global $argv,
-        $settings,
-        $dirs,
-        $exactFiles,
         $singleRoutesRoute;
     if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3])) {
         cli_err_syntax("Should be at least three(3) non-empty string arguments!\nphp funkcli delete [mw_from_all_routes|middleware_from_all_routes] [method/route] [Middleware_name]\nExample: 'php funkcli delete mw_from_all_routes validateUserId'");
@@ -7274,7 +7260,7 @@ function cli_delete_a_middleware_from_all_routes()
 
     // Grab middlewares folder and file name with .php extension
     // and then check if the file exists in the middlewares folder
-    $mwFolder = $dirs['middlewares'];
+    $mwFolder = FUNKPHP_MIDDLEWARES_DIR . '/';
     $mwName = str_ends_with($argv[3], ".php") ? $argv[3] : $argv[3] . ".php";
     if (file_exists($mwFolder . $mwName)) {
         cli_info_without_exit("Middleware \"$argv[3].php\" exists in \"funkphp/middlewares/$mwName\"!");
@@ -7317,9 +7303,6 @@ function cli_delete_a_middleware_file()
 {
     // Load globals and validate input
     global $argv,
-        $settings,
-        $dirs,
-        $exactFiles,
         $singleRoutesRoute;
     if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3])) {
         cli_err_syntax("Should be at least three(3) non-empty string arguments!\nphp funkcli delete [mw_from_all_routes|middleware_from_all_routes] [method/route] [Middleware_name]\nExample: 'php funkcli delete mw_from_all_routes validateUserId'");
@@ -7338,7 +7321,7 @@ function cli_delete_a_middleware_file()
 
     // Grab middlewares folder and file name with .php extension
     // and then check if the file exists in the middlewares folder
-    $mwFolder = $dirs['middlewares'];
+    $mwFolder = FUNKPHP_MIDDLEWARES_DIR . '/';
     $mwName = str_ends_with($argv[3], ".php") ? $argv[3] : $argv[3] . ".php";
     if (file_exists($mwFolder . $mwName)) {
         cli_info_without_exit("Middleware \"$argv[3].php\" exists in \"funkphp/middlewares/$mwName\"!");

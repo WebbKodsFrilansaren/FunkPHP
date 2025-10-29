@@ -425,7 +425,7 @@ function cli_return_valid_method_n_route_or_err_out($string)
 function cli_created_sql_or_validation_fn($sqlOrValidation, $sv_tables)
 {
     // Prepare general variables for either SQL or Validation
-    global $dirs, $tablesAndRelationshipsFile, $mysqlDataTypesFile;
+    global $tablesAndRelationshipsFile, $mysqlDataTypesFile;
     $tables = $tablesAndRelationshipsFile ?? null;
     $types = $mysqlDataTypesFile ?? null;
     $date = date("Y-m-d H:i:s");

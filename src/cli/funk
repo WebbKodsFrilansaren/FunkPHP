@@ -3,6 +3,26 @@
 // After that we set the default values for command & arguments
 define('PROJECT_DIR', dirname(__DIR__));
 define('BACKUPS_DIR', PROJECT_DIR . '/backups');
+define('BACKUPS_FINAL_DIR', BACKUPS_DIR . '/_final_backups');
+define('BACKUPS_CACHED_DIR', BACKUPS_DIR . '/cached');
+define('BACKUPS_CLI_DIR', BACKUPS_DIR . '/cli');
+define('BACKUPS_CLI_COMMANDS_DIR', BACKUPS_CLI_DIR . '/commands');
+define('BACKUPS_CLI_CONFIG_DIR', BACKUPS_CLI_DIR . '/config');
+define('BACKUPS_COMPILED_DIR', BACKUPS_DIR . '/compiled');
+define('BACKUPS_CONFIG_DIR', BACKUPS_DIR . '/config');
+define('BACKUPS_MIDDLEWARES_DIR', BACKUPS_DIR . '/middlewares');
+define('BACKUPS_PAGES_DIR', BACKUPS_DIR . '/pages');
+define('BACKUPS_PAGES_COMPILED_DIR', BACKUPS_PAGES_DIR . '/compiled');
+define('BACKUPS_PAGES_COMPONENTS_DIR', BACKUPS_PAGES_DIR . '/components');
+define('BACKUPS_PAGES_LAYOUTS_DIR', BACKUPS_PAGES_DIR . '/layouts');
+define('BACKUPS_PAGES_PARTIALS_DIR', BACKUPS_PAGES_DIR . '/partials');
+define('BACKUPS_PIPELINE_DIR', BACKUPS_DIR . '/pipeline');
+define('BACKUPS_ROUTES_DIR', BACKUPS_DIR . '/routes');
+define('BACKUPS_SCHEMA_DIR', BACKUPS_DIR . '/schema');
+define('BACKUPS_SNIPPETS_DIR', BACKUPS_DIR . '/snippets');
+define('BACKUPS_SQL_DIR', BACKUPS_DIR . '/sql');
+define('BACKUPS_TESTS_DIR', BACKUPS_DIR . '/tests');
+define('BACKUPS_VALIDATION_DIR', BACKUPS_DIR . '/validation');
 define('BATTERIES_DIR', PROJECT_DIR . '/batteries');
 define('BATTERIES_MIDDLEWARES_DIR', BATTERIES_DIR . '/middlewares');
 define('BATTERIES_PIPELINE_DIR', BATTERIES_DIR . '/pipeline');
@@ -54,6 +74,7 @@ define("FUNKPHP_FILE_PATH_PIPELINE", FUNKPHP_PIPELINE_DIR . '/pipeline.php');
 define("FUNKPHP_FILE_PATH_TABLES", FUNKPHP_CONFIG_DIR . '/tables.php');
 define("FUNKPHP_FILE_PATH_DB_LOCAL", FUNKPHP_CONFIG_DIR . '/db.php');
 define("FUNKPHP_FILE_PATH_SUPPORTED_MYSQL_DATA_TYPES", FUNKPHP_CONFIG_VALID_DIR . '/valid_mysql_datatypes.php');
+define("FUNKPHP_FILE_PATH_SUPPORTED_MYSQL_OPERATORS", FUNKPHP_CONFIG_VALID_DIR . '/valid_mysql_operators.php');
 
 // Define message types and ANSI colors for CLI output
 // but that can also be parsed by returned JSON Response
@@ -323,59 +344,6 @@ $settings = include CLI_DIR . '/funksettings' ?? [
     ],
 ];
 
-// All available dirs to use for the CLI
-// & exact file paths to use for the CLI
-$dirs = [
-    "cli" => CLI_DIR . '/',
-    "config" => FUNKPHP_DIR . '/config/',
-    "config_blocked" => FUNKPHP_DIR . '/config/blocked/',
-    "config_valid" => FUNKPHP_DIR . '/config/valid/',
-    "_internals" => FUNKPHP_DIR . '/_internals/',
-    "batteries" => FUNKPHP_DIR . '/_internals/batteries/',
-    "compiled" => FUNKPHP_DIR . '/_internals/compiled/',
-    "functions" => FUNKPHP_DIR . '/_internals/functions/',
-    "_BACKUPS" => BACKUPS_DIR . '/',
-    "pipeline" => FUNKPHP_DIR . '/pipeline/',
-    "request" => FUNKPHP_DIR . '/pipeline/request/',
-    "pipeline-request" => FUNKPHP_DIR . '/pipeline/request/',
-    "post-response" => FUNKPHP_DIR . '/pipeline/post-response/',
-    "pipeline-post-response" => FUNKPHP_DIR . '/pipeline/post-response/',
-    "pipelines" => FUNKPHP_DIR . '/pipeline/',
-    "routes" => FUNKPHP_DIR . '/routes/',
-    "middlewares" => FUNKPHP_DIR . '/middlewares/',
-    "pages" => FUNKPHP_DIR . '/page/',
-    "p_parts" => FUNKPHP_DIR . '/pages/partials/',
-    "p_components" => FUNKPHP_DIR . '/page/components/',
-    "p_complete" => FUNKPHP_DIR . '/page/complete/',
-    "templates" => PROJECT_DIR . '/template/',
-    "tests" => PROJECT_DIR . '/test/',
-    "schemas" => PROJECT_DIR . '/schema/',
-    "sql" => FUNKPHP_DIR . '/sql/',
-    'validations' => FUNKPHP_DIR . '/validation/',
-    "backups_finals" => BACKUPS_DIR . '/_FINAL_BACKUPS/',
-    "backups_compiled" => BACKUPS_DIR . '/compiled/',
-    "backups_routes" => BACKUPS_DIR . '/config/',
-    "backups_data" => BACKUPS_DIR . '/data/',
-    "backups_pages" => BACKUPS_DIR . '/page/',
-    "backups_handlers" => BACKUPS_DIR . '/handler/',
-    "backups_middlewares" => BACKUPS_DIR . '/middlewares/',
-    "backups_templates" => BACKUPS_DIR . '/template/',
-    "backups_cached" => BACKUPS_DIR . '/cached/',
-    "backups_config" => BACKUPS_DIR . '/config/',
-    "backups_pipeline" => BACKUPS_DIR . '/pipeline/',
-    "backups_sql" => BACKUPS_DIR . '/sql/',
-    "backups_tests" => BACKUPS_DIR . '/test/',
-    "backups_validations" => BACKUPS_DIR . '/validation/',
-];
-$exactFiles = [
-    "troute_route" => $dirs['compiled'] . "troute_route.php",
-    "single_pipeline" => $dirs['pipeline'] . "pipeline.php",
-    "single_routes" => $dirs['routes'] . "routes.php",
-    "tables" => $dirs['config'] . "tables.php",
-    "db_local" => $dirs['config'] . "db.php",
-    "supported_mysql_data_types" => $dirs['config_valid'] . "valid_mysql_datatypes.php",
-];
-
 // List of all functions that are reserved for the framework and
 // should not be used in the application code. They are checked against
 // when adding any new kind of function that is already reserved.
@@ -391,7 +359,7 @@ if (is_readable(FUNKPHP_FILE_PATH_CLI_RESERVED)) {
 cli_restore_default_folders_and_files();
 
 // Load current pipeline, routes, data and pages before processing any commands
-$singlePipeline = include_once FUNKPHP_DIR . '/pipeline/pipeline.php' ?? [
+$singlePipeline = include_once FUNKPHP_FILE_PATH_PIPELINE ?? [
     'pipeline' =>
     [
         'request' =>
@@ -421,10 +389,10 @@ $singlePipeline = include_once FUNKPHP_DIR . '/pipeline/pipeline.php' ?? [
         ],
     ],
 ];
-$singleRoutesRoute = include_once FUNKPHP_DIR . '/routes/routes.php' ?? [
+$singleRoutesRoute = include_once FUNKPHP_FILE_PATH_ROUTES ?? [
     'ROUTES' => ['GET' => [], 'POST' => [], 'PUT' => [], 'DELETE' => [], 'PATCH' => []]
 ];
-$singleTroute = include_once $exactFiles['troute_route'] ?? [
+$singleTroute = include_once FUNKPHP_FILE_PATH_TROUTES ?? [
     'GET' =>
     [],
     'POST' =>
@@ -436,21 +404,479 @@ $singleTroute = include_once $exactFiles['troute_route'] ?? [
     'PATCH' =>
     [],
 ];
-$tablesAndRelationshipsFile = include_once FUNKPHP_DIR . '/config/tables.php' ?? [
+$tablesAndRelationshipsFile = include_once FUNKPHP_FILE_PATH_TABLES ?? [
     'tables' => [],
     'relationships' => [],
     'mappings' => [],
     'dependencies' => []
 ];
-$mysqlDataTypesFile = include_once FUNKPHP_DIR . '/config/valid/valid_mysql_datatypes.php' ?? [
-    'STRINGS' => [],
-    'NUMBERS' => [],
-    'INTS' => [],
-    'FLOATS' => [],
-    'DATETIMES' => [],
-    'BLOBS' => []
+$mysqlDataTypesFile = include_once FUNKPHP_FILE_PATH_SUPPORTED_MYSQL_DATA_TYPES ?? [
+    // Valid Keys that Table Columns can have in the `funkphp/config/tables.php` File
+    "VALID_TABLE_COL_KEYS" => [
+        'auto_increment',
+        'default',
+        'foreign_key',
+        'joined_name',
+        'nullable',
+        'primary_key',
+        'references',
+        'references_column',
+        'references_joined',
+        'signed',
+        'type',
+        'unique',
+        'unsigned',
+        'value',
+    ],
+    // CATEGORIES OF DATA TYPES
+    // String types
+    "STRINGS" => [
+        "CHAR" => 1,
+        "VARCHAR" => 2,
+        "BINARY" => 3,
+        "VARBINARY" => 4,
+        "TINYBLOB" => 5,
+        "BLOB" => 6,
+        "MEDIUMBLOB" => 7,
+        "LONGBLOB" => 8,
+        "TINYTEXT" => 9,
+        "TEXT" => 10,
+        "MEDIUMTEXT" => 11,
+        "LONGTEXT" => 12,
+        "NVARCHAR" => 13
+    ],
+    // Numeric types
+    "NUMBERS" => [
+        "TINYINT" => 1,
+        "SMALLINT" => 2,
+        "MEDIUMINT" => 3,
+        "INT" => 4,
+        "BIGINT" => 5,
+        "FLOAT" => 6,
+        "DOUBLE" => 7,
+        "DECIMAL" => 8,
+        "NUMERIC" => 9,
+        "DOUBLE PRECISION" => 10,
+        "BIT" => 11,
+        "DEC" => 12,
+        "BOOLEAN" => 13,
+    ],
+    "INTS" => [
+        "TINYINT" => 1,
+        "SMALLINT" => 2,
+        "MEDIUMINT" => 3,
+        "INT" => 4,
+        "BIGINT" => 5,
+        "SMALLSERIAL" => 6,
+        "SERIAL" => 7,
+        "BIGSERIAL" => 8,
+    ],
+    "FLOATS" => [
+        "FLOAT" => 1,
+        "DOUBLE" => 2,
+        "DECIMAL" => 3,
+        "DEC" => 4,
+        "DOUBLE PRECISION" => 5,
+        "NUMERIC" => 6,
+        "REAL" => 7,
+    ],
+    // Date and time types
+    "DATETIMES" => [
+        "DATE" => 1,
+        "TIME"  => 2,
+        "DATETIME" => 3,
+        "TIMESTAMP" => 4,
+        "YEAR"  => 5,
+    ],
+    // Binary types
+    "BLOBS" => [
+        "TINYBLOB" => 1,
+        "BLOB" => 2,
+        "MEDIUMBLOB" => 3,
+        "LONGBLOB" => 4
+    ],
+    // Text types
+    "TEXTS" => [
+        "TINYTEXT" => 1,
+        "TEXT" => 2,
+        "MEDIUMTEXT" => 3,
+        "LONGTEXT" => 4
+    ],
+    // These data types cannot have any values assigned to them when
+    // creating the table. For example "NVARCHAR" can have that to its
+    // "value" key and also VARCHAR, but not "BLOB" or "TEXT" since they
+    // already have fixed sizes. And also "ENUM" and "SET" types and all
+    // integer and float types since they have max and min values, either
+    // signed or unsigned.
+    "INVALID_VALUES_FOR_NUMBER_TYPES" => [
+        "TINYINT",
+        "SMALLINT",
+        "MEDIUMINT",
+        "INT",
+        "BIGINT",
+        "FLOAT",
+        "DOUBLE",
+        "DECIMAL",
+        "NUMERIC",
+        "DOUBLE PRECISION",
+        "BIT",
+        "DEC",
+        "BOOLEAN",
+        "TINYBLOB",
+        "BLOB",
+        "MEDIUMBLOB",
+        "LONGBLOB",
+        "TINYTEXT",
+        "TEXT",
+        "MEDIUMTEXT",
+        "LONGTEXT",
+        "ENUM",
+        "SET",
+        "SERIAL",
+        "BIGSERIAL",
+        "SMALLSERIAL",
+        "REAL",
+        "DATE",
+        "TIME",
+        "DATETIME",
+        "TIMESTAMP",
+        "YEAR",
+    ],
+    ////////////////////////////////////////////////////////////////////
+    // Each data type with its min and max values (including in unsigned
+    // where applicable) and optionally the number of digits
+    "BIGINT" => [
+        "BINDING" => "i",
+        "MIN_SIGNED" => -9223372036854775808,
+        "MAX_SIGNED" => 9223372036854775807,
+        "MIN_USIGNED" => 0,
+        "MAX_UNSIGNED" => 18446744073709551615,
+        "MIN_DIGITS" => 1,
+        "MAX_DIGITS" => 20,
+        "TYPE" => "integer",
+        "CAN_BE_(UN)SIGNED" => true
+    ],
+    "BIGSERIAL" => [
+        "BINDING" => "i",
+        "MIN" => 1,
+        "MAX" => 9223372036854775807,
+        "MIN_DIGITS" => 1,
+        "MAX_DIGITS" => 19,
+        "TYPE" => "integer",
+    ],
+    "BINARY" => [
+        "BINDING" => "b",
+        "MIN" => null,
+        "MAX" => null,
+        "TYPE" => "blob"
+    ],
+    "BIT" => [
+        "BINDING" => "i",
+        "MIN" => 1,
+        "MAX" => 64,
+        "MIN_DIGITS" => 1,
+        "MAX_DIGITS" => 1,
+        "TYPE" => "integer"
+    ],
+    "BLOB" => [
+        "BINDING" => "b",
+        "MIN" => 0,
+        "MAX" => 65535,
+        "TYPE" => "blob"
+    ],
+    "BOOL" => [
+        "BINDING" => "i",
+        "MIN" => 0,
+        "MAX" => 1,
+        "MIN_DIGITS" => 1,
+        "MAX_DIGITS" => 1,
+        "TYPE" => "integer"
+    ],
+    "BOOLEAN" => [
+        "BINDING" => "i",
+        "MIN" => 0,
+        "MAX" => 1,
+        "MIN_DIGITS" => 1,
+        "MAX_DIGITS" => 1,
+        "TYPE" => "integer"
+    ],
+    "CHAR" => [
+        "BINDING" => "s",
+        "MIN" => 1,
+        "MAX" => 255,
+        "TYPE" => "string"
+    ],
+    "DATE" => [
+        "BINDING" => "s",
+        "MIN" => 10,
+        "MAX" => 10,
+        "MIN_DIGITS" => 8,
+        "MAX_DIGITS" => 8,
+        "TYPE" => "date"
+    ],
+    "DATETIME" => [
+        "BINDING" => "s",
+        "MIN" => 19,
+        "MAX" => 19,
+        "MIN_DIGITS" => 16,
+        "MAX_DIGITS" => 16,
+        "TYPE" => "datetime"
+    ],
+    "DEC" => [
+        "BINDING" => "d",
+        "MIN_SIZE" => 0,
+        "MAX_SIZE" => 65,
+        "MIN_D" => 0,
+        "MAX_D" => 30,
+        "MIN_DIGITS" => 3, // 1 plus dot plus 1
+        "MAX_DIGITS" => 96, // 65 plus dot plus 30
+        "TYPE" => "float"
+    ],
+    "DECIMAL" => [
+        "BINDING" => "d",
+        "MIN_SIZE" => 0,
+        "MAX_SIZE" => 65,
+        "MIN_D" => 0,
+        "MAX_D" => 30,
+        "MIN_DIGITS" => 3, // 1 plus dot plus 1
+        "MAX_DIGITS" => 96, // 65 plus dot plus 30
+        "TYPE" => "float"
+    ],
+    "DOUBLE PRECISION" => [
+        "BINDING" => "d",
+        "MIN_SIGNED" => -1.7976931348623157E+308,
+        "MAX_SIGNED" => -2.2250738585072014E-308,
+        "MIN_DIGITS" => 1,
+        "MAX_DIGITS" => 15,
+        "MIN_UNSIGNED" =>  2.2250738585072014E-308,
+        "MAX_UNSIGNED" => 1.7976931348623157E+308,
+        "TYPE" => "float",
+        "CAN_BE_(UN)SIGNED" => true
+    ],
+    "DOUBLE" => [
+        "BINDING" => "d",
+        "MIN_SIGNED" => -1.7976931348623157E+308,
+        "MAX_SIGNED" => -2.2250738585072014E-308,
+        "MIN_DIGITS" => 1,
+        "MAX_DIGITS" => 15,
+        "MIN_UNSIGNED" =>  2.2250738585072014E-308,
+        "MAX_UNSIGNED" => 1.7976931348623157E+308,
+        "TYPE" => "float",
+        "CAN_BE_(UN)SIGNED" => true
+    ],
+    "ENUM" => [
+        "BINDING" => "s",
+        "MIN" => null,
+        "MAX" => null,
+        "TYPE" => "string",
+        "MIN_SIZE" => 0,
+        "MAX_SIZE" => 65535,
+    ],
+    "FLOAT" => [
+        "BINDING" => "d",
+        "MIN_SIGNED" => -3.402823466E+38,
+        "MAX_SIGNED" => -1.175494351E-38,
+        "MIN_DIGITS" => 1,
+        "MAX_DIGITS" => 7,
+        "MIN_UNSIGNED" =>  1.175494351E-38,
+        "MAX_UNSIGNED" => 3.402823466E+38,
+        "TYPE" => "float",
+        "CAN_BE_(UN)SIGNED" => true
+    ],
+    "INT" => [
+        "BINDING" => "i",
+        "MIN_SIGNED" => -2147483648,
+        "MAX_SIGNED" => 2147483647,
+        "MIN_DIGITS" => 1,
+        "MAX_DIGITS" => 11,
+        "MIN_UNSIGNED" => 0,
+        "MAX_UNSIGNED" => 4294967295,
+        "TYPE" => "integer",
+        "CAN_BE_(UN)SIGNED" => true
+    ],
+    "INTEGER" => [
+        "BINDING" => "i",
+        "MIN_SIGNED" => -2147483648,
+        "MAX_SIGNED" => 2147483647,
+        "MIN_DIGITS" => 1,
+        "MAX_DIGITS" => 11,
+        "MIN_UNSIGNED" => 0,
+        "MAX_UNSIGNED" => 4294967295,
+        "TYPE" => "integer",
+        "CAN_BE_(UN)SIGNED" => true
+    ],
+    "JSON" => [
+        "BINDING" => "s",
+        "MIN" => null,
+        "MAX" => null,
+        "MIN_SIZE" => 0,
+        "MAX_SIZE" => 18446744073709551616,
+        "TYPE" => "json"
+    ],
+    "LONGBLOB" => [
+        "BINDING" => "b",
+        "MIN" => 0,
+        "MAX" => 4294967295,
+        "TYPE" => "blob"
+    ],
+    "LONGTEXT" => [
+        "BINDING" => "s",
+        "MIN" => 1,
+        "MAX" => 4294967295,
+        "TYPE" => "string"
+    ],
+    "MEDIUMBLOB" => [
+        "BINDING" => "b",
+        "MIN" => 0,
+        "MAX" => 16777215,
+        "TYPE" => "blob"
+    ],
+    "MEDIUMINT" => [
+        "BINDING" => "i",
+        "MIN_SIGNED" => -8388608,
+        "MAX_SIGNED" => 8388607,
+        "MIN_UNSIGNED" => 0,
+        "MAX_UNSIGNED" => 16777215,
+        "MIN_DIGITS" => 1,
+        "MAX_DIGITS" => 8,
+        "TYPE" => "integer",
+        "CAN_BE_(UN)SIGNED" => true
+    ],
+    "MEDIUMTEXT" => [
+        "BINDING" => "s",
+        "MIN" => 1,
+        "MAX" => 16777215,
+        "TYPE" => "string"
+    ],
+    "NVARCHAR" => [
+        "BINDING" => "s",
+        "MIN" => 1,
+        "MAX" => 21845,
+        "TYPE" => "string"
+    ],
+    "NUMERIC" => [
+        "BINDING" => "d",
+        "MIN_SIZE" => 0,
+        "MAX_SIZE" => 65,
+        "MIN_D" => 0,
+        "MAX_D" => 30,
+        "MIN_DIGITS" => 3, // 1 plus dot plus 1
+        "MAX_DIGITS" => 96, // 65 plus dot plus 30
+        "TYPE" => "float"
+    ],
+    "REAL" => [
+        "BINDING" => "d",
+        "MIN_SIGNED" => -3.402823466E+38,
+        "MAX_SIGNED" => -1.175494351E-38,
+        "MIN_DIGITS" => 3, // 1 plus dot plus 1
+        "MAX_DIGITS" => 8, // 6 plus dot plus 1
+        "MIN_UNSIGNED" =>  1.175494351E-38,
+        "MAX_UNSIGNED" => 3.402823466E+38,
+        "TYPE" => "float",
+        "CAN_BE_(UN)SIGNED" => true
+    ],
+    "SERIAL" => [
+        "BINDING" => "i",
+        "MIN" => 1,
+        "MAX" => 2147483647,
+        "MIN_DIGITS" => 1,
+        "MAX_DIGITS" => 10,
+        "TYPE" => "integer",
+    ],
+    "SET" => [
+        "BINDING" => "s",
+        "MIN" => null,
+        "MAX" => null,
+        "MIN_SIZE" => 0,
+        "MAX_SIZE" => 64,
+        "TYPE" => "string"
+    ],
+    "SMALLINT" => [
+        "BINDING" => "i",
+        "MIN_SIGNED" => -32768,
+        "MAX_SIGNED" => 32767,
+        "MIN_DIGITS" => 1,
+        "MAX_DIGITS" => 5,
+        "MIN_UNSIGNED" => 0,
+        "MAX_UNSIGNED" => 65535,
+        "TYPE" => "integer",
+        "CAN_BE_(UN)SIGNED" => true
+    ],
+    "SMALLSERIAL" => [
+        "BINDING" => "i",
+        "MIN" => 1,
+        "MAX" => 32767,
+        "MIN_DIGITS" => 1,
+        "MAX_DIGITS" => 5,
+        "TYPE" => "integer",
+    ],
+    "TEXT" => [
+        "BINDING" => "s",
+        "MIN" => 1,
+        "MAX" => 65535,
+        "TYPE" => "string"
+    ],
+    "TIME" => [
+        "BINDING" => "s",
+        "MIN" => 8,
+        "MAX" => 8,
+        "MIN_DIGITS" => 6,
+        "MAX_DIGITS" => 6,
+        "TYPE" => "time"
+    ],
+    "TIMESTAMP" => [
+        "BINDING" => "s",
+        "MIN" => 0,
+        "MAX" => 2147483647,
+        "MIN_DIGITS" => 1,
+        "MAX_DIGITS" => 10,
+        "TYPE" => "timestamp",
+    ],
+    "TINYBLOB" => [
+        "BINDING" => "b",
+        "MIN" => 0,
+        "MAX" => 255,
+        "TYPE" => "blob"
+    ],
+    "TINYINT" => [
+        "BINDING" => "i",
+        "MIN_SIGNED" => -128,
+        "MAX_SIGNED" => 127,
+        "MIN_DIGITS" => 1,
+        "MAX_DIGITS" => 3,
+        "MIN_UNSIGNED" => 0,
+        "MAX_UNSIGNED" => 255,
+        "TYPE" => "integer",
+        "CAN_BE_(UN)SIGNED" => true
+    ],
+    "TINYTEXT" => [
+        "BINDING" => "s",
+        "MIN" => 1,
+        "MAX" => 255,
+        "TYPE" => "string"
+    ],
+    "VARBINARY" => [
+        "BINDING" => "b",
+        "MIN" => 0,
+        "MAX" => 255,
+        "TYPE" => "blob"
+    ],
+    "VARCHAR" => [
+        "BINDING" => "s",
+        "MIN" => 0,
+        "MAX" => 65535,
+        "TYPE" => "string"
+    ],
+    "YEAR" => [
+        "BINDING" => "i",
+        "MIN" => 4,
+        "MAX" => 4,
+        "MIN_DIGITS" => 4,
+        "MAX_DIGITS" => 4,
+        "TYPE" => "year"
+    ],
 ];
-$mysqlOperatorSyntax = include_once FUNKPHP_DIR . '/config/valid/valid_mysql_operators.php' ?? [
+$mysqlOperatorSyntax = include_once FUNKPHP_FILE_PATH_SUPPORTED_MYSQL_OPERATORS ?? [
     'arithmetic' => [
         '+' => [],
         '-' => [],
@@ -496,7 +922,6 @@ $mysqlOperatorSyntax = include_once FUNKPHP_DIR . '/config/valid/valid_mysql_ope
         'SOME' => [],
     ],
 ];
-
 
 // --------------------------------------------------------------------------------
 // GLOBAL INTERACTIVE MODE GUARD
