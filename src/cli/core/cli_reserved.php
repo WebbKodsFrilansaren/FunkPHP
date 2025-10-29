@@ -1,5 +1,5 @@
 <?php
-// FunkPHP Framework - FunkCLI Created it 2025-10-14 12:14:29
+// FunkPHP Framework - FunkCLI Created it 2025-10-29 05:02:37
 // This file contains all reserved functions in the FunkPHP Framework and FunkCLI.
 // It is used to check if a function is reserved (used by FunkPHP/FunkCLI) or not.
 return
@@ -113,7 +113,17 @@ return
         'is_array_and_not_empty',
         'is_string_and_not_empty',
         'TEST_FUNCTION_REMOVE_LATER',
-        'funk_use_custom_error',
+        'funk_use_error_raw_html',
+        'funk_use_error_raw_plain',
+        'funk_use_error_xml',
+        'funk_use_error_page',
+        'funk_use_error_callback',
+        'funk_use_error_throw',
+        'funk_use_error_json',
+        'funk_use_error_json_or_page',
+        'funk_use_error_json_or_page_or_callback',
+        'TEST_2',
+        'funk_use_safe_mutate',
         'funk_collect_output_message',
         'funk_use_log',
         'funk_save_log',
@@ -136,7 +146,9 @@ return
         'funk_param_is_integer',
         'funk_param_is_float',
         'funk_param_is_regex',
-        'cli_array_key_depth',
+        'array_subkeys_single',
+        'cli_extract_folder_file_fn',
+        'cli_extract_method_route',
         'cli_folder_file_fn_value_exist_or_null',
         'array_key_exists_in_list',
         'cli_output',
@@ -150,6 +162,10 @@ return
         'cli_crud_folder_and_php_file',
         'cli_crud_folder_php_file_atomic_write',
         'cli_mw_exists_in_route',
+        'cli_get_arg_string_or_null',
+        'cli_validate_command_prefixes',
+        'cli_get_valid_cli_input',
+        'cli_get_cli_input_from_interactive_or_regular',
         'cli_db_connect',
         'cli_parse_a_sql_table_file',
         'cli_try_parse_number',
@@ -220,4 +236,4 @@ return
         'str_starts_or_ends_not_with',
         'array_str_contains',
         'array_str_starts_with',
-    ]; // Functions Count: 216
+    ]; // Functions Count: 232

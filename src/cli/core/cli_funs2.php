@@ -28,7 +28,7 @@ function cli_parse_a_sql_table_file($tableFileName)
     cli_info_without_exit("array() to array[] ignores quotes inside of other qoutes. For example, \"Yours' truly\" will become \"Yours truly\".");
     cli_info_without_exit("KEEP THAT IN MIND: If you wanna use `DEFAULT \"Qouted Value with '\"Quotes\"' Inside\"` it must be manually added inside \"config/Tables.php\"");
 
-    global $exactFiles, $settings, $tablesAndRelationshipsFile, $mysqlDataTypesFile;
+    global $settings, $tablesAndRelationshipsFile, $mysqlDataTypesFile;
     $sqlFile = null;
     if (!is_string_and_not_empty(trim($tableFileName ?? null))) {
         cli_err_syntax("Provide a SQL File from \"funkphp/schemas/\" folder as a string!");
@@ -760,7 +760,6 @@ function cli_output_tables_file($array)
 // it to highly optimized validation rules that are then returned as an array
 function cli_convert_simple_validation_rules_to_optimized_validation($validationArray, $handlerFile, $fnName)
 {
-    global $dirs, $exactFiles, $settings;
     // Validate it is an associative array - not a list
     if (!is_array_and_not_empty($validationArray)) {
         cli_err_without_exit("[cli_convert_simple_validation_rules_to_optimized_validation]: Expects a Non-Empty Associative Array as input for `\$validationArray`!");
@@ -939,7 +938,7 @@ function cli_convert_simple_validation_rules_to_optimized_validation($validation
         'unique',
         'password_hash',
     ];
-    include_once($dirs['functions'] . "d_data_funs.php");
+    include_once(FUNKPHP_INTERNALS_FUNCTIONS_DIR . "/d_data_funs.php");
 
     // We first verify for any duplicates in the array keys.
     // This should be impossible since same key name would just
@@ -7697,9 +7696,8 @@ function cli_success_with_warning_same_line_without_exit($string1, $string2)
 // and then the FunkCLI file is open and the line "$reserved_functions = [...];" is replaced with the new array string
 function cli_update_reserved_functions_list()
 {
-    global $dirs;
-    $dir = $dirs['functions'];
-    $dir2 = $dirs['cli'];
+    $dir = FUNKPHP_INTERNALS_FUNCTIONS_DIR . '/';
+    $dir2 = CLI_CORE_DIR . '/';
     if (!dir_exists_is_readable_writable($dir)) {
         cli_err("Directory $dir does not exist or is not readable/writable!");
     }
@@ -7774,9 +7772,8 @@ function cli_update_reserved_functions_list()
 // Same as above but also returns the newly generated file as an array
 function cli_update_reserved_functions_list_and_return_as_array()
 {
-    global $dirs;
-    $dir = $dirs['functions'];
-    $dir2 = $dirs['cli'];
+    $dir = FUNKPHP_INTERNALS_FUNCTIONS_DIR . '/';
+    $dir2 = CLI_CORE_DIR . '/';
     if (!dir_exists_is_readable_writable($dir)) {
         cli_err("Directory $dir does not exist or is not readable/writable!");
     }
