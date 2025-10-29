@@ -14,6 +14,7 @@ define('CLI_CONFIG_DIR', __DIR__ . '/config');
 define('FUNKPHP_DIR', PROJECT_DIR . '/funkphp');
 define('FUNKPHP_INTERNALS_DIR', FUNKPHP_DIR . '/_internals');
 define('FUNKPHP_INTERNALS_COMPILED_DIR', FUNKPHP_INTERNALS_DIR . '/compiled');
+define('FUNKPHP_INTERNALS_FUNCTIONS_DIR', FUNKPHP_INTERNALS_DIR . '/functions');
 define('FUNKPHP_CACHED_DIR', FUNKPHP_DIR . '/_cached');
 define('FUNKPHP_CLASSES_DIR', FUNKPHP_DIR . '/classes');
 define('FUNKPHP_CACHED_FILES_DIR', FUNKPHP_CACHED_DIR . '/files');
@@ -40,6 +41,11 @@ define('TEMPLATE_DIR', PROJECT_DIR . '/template');
 define('TEST_DIR', PROJECT_DIR . '/test');
 
 // Default exact file path used by FunkCLI
+define("FUNKPHP_FILE_PATH_CLI_FUNS", CLI_DIR . '/cli_funs.php');
+define("FUNKPHP_FILE_PATH_CLI_FUNS2", CLI_DIR . '/cli_funs2.php');
+define("FUNKPHP_FILE_PATH_CLI_CONFIG_REGEX", CLI_CONFIG_DIR . '/regexes.php');
+define("FUNKPHP_FILE_PATH_CLI_CONFIG_COMMANDS", CLI_CONFIG_DIR . '/commands.php');
+define("FUNKPHP_FILE_PATH_CLI_CONFIG_EXTERNAL_CALLABLE_VALIDATORS", CLI_CONFIG_DIR . '/external_callable_validators.php');
 define("FUNKPHP_FILE_PATH_TROUTES", FUNKPHP_INTERNALS_COMPILED_DIR . '/troute_route.php');
 define("FUNKPHP_FILE_PATH_ROUTES", FUNKPHP_ROUTES_DIR . '/routes.php');
 define("FUNKPHP_FILE_PATH_PIPELINE", FUNKPHP_PIPELINE_DIR . '/pipeline.php');
@@ -64,7 +70,7 @@ global $funk_response_messages;
 $funk_response_messages = [];
 
 // Define used Regexes in an array
-$cliRegex = include_once CLI_DIR . '/config/regexes.php' ?? [];
+$cliRegex = include_once FUNKPHP_FILE_PATH_CLI_CONFIG_REGEX ?? [];
 
 // Map different aliases (different $subCommand for the same $command
 // and other info that some src/cli/commands-Files. Extend as needed!
@@ -263,9 +269,9 @@ if (JSON_MODE) {
 
 // Try including files or throw an error if they are not found
 if (
-    !is_readable(CLI_DIR . '/cli_funs.php')
-    || !is_readable(CLI_DIR . '/cli_funs2.php')
-    || !is_readable(CLI_CONFIG_DIR . '/external_callable_validators.php')
+    !is_readable(FUNKPHP_FILE_PATH_CLI_FUNS)
+    || !is_readable(FUNKPHP_FILE_PATH_CLI_FUNS2)
+    || !is_readable(FUNKPHP_FILE_PATH_CLI_CONFIG_EXTERNAL_CALLABLE_VALIDATORS)
 ) {
     if (JSON_MODE) {
         http_response_code(500);
@@ -279,9 +285,9 @@ if (
         exit;
     }
 }
-include_once CLI_DIR . '/cli_funs.php';
-include_once CLI_DIR . '/cli_funs2.php';
-include_once CLI_CONFIG_DIR . '/external_callable_validators.php';
+include_once FUNKPHP_FILE_PATH_CLI_FUNS;
+include_once FUNKPHP_FILE_PATH_CLI_FUNS2;
+include_once FUNKPHP_FILE_PATH_CLI_CONFIG_EXTERNAL_CALLABLE_VALIDATORS;
 
 // Load the settings file if it exists, otherwise use default settings
 $settings = include CLI_DIR . '/funksettings' ?? [
