@@ -60,6 +60,7 @@ if ($routeOnly) {
             if (preg_match($cliRegex['routeDynamicEndRegex'], $route)) {
                 $troute = $singleTroute;
                 $findDynamicRoute = cli_match_developer_route($method, $route, $troute, $ROUTES, $ROUTES);
+                var_dump($findDynamicRoute);
                 if ($findDynamicRoute['route'] !== null) {
                     cli_err_without_exit("Found Dynamic Route \"{$findDynamicRoute['method']}{$findDynamicRoute['route']}\" in Trie Routes would conflict with \"$method$route\".");
                     cli_info("Run `php funk recompile|rc` to rebuild Trie Routes if You Manually Removed that Route from `funkphp/routes/routes.php` you want to add again!");

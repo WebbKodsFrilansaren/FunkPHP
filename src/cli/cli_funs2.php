@@ -6197,7 +6197,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
     return $convertedSQLArray;
 }
 
-// Match Compiled Route with URI Segments, used by "r_match_developer_route"
+// Match Compiled Route with URI Segments, used by "cli_match_developer_route"
 function cli_match_compiled_route(string $requestUri, array $methodRootNode): ?array
 {
     // Prepare & and extract URI Segments and remove empty segments
@@ -6208,7 +6208,7 @@ function cli_match_compiled_route(string $requestUri, array $methodRootNode): ?a
     // Prepare variables to store the current node,
     // matched segments, parameters, and middlewares
     $currentNode = $methodRootNode;
-    $matchedPathSegments = [];
+    $matchedPathSegments = ['uri' => $uriSegments, 'route' => []]; // Start with empty string to make implode work correctly
     $matchedParams = [];
     $matchedMiddlewares = [];
     $segmentsConsumed = 0;
@@ -6220,7 +6220,7 @@ function cli_match_compiled_route(string $requestUri, array $methodRootNode): ?a
             return null;
         }
         if (isset($currentNode['|'])) {
-            array_push($matchedMiddlewares, "/" . implode('/', $matchedPathSegments));
+            array_push($matchedMiddlewares, "/" . implode('/', $matchedPathSegments['route']));
         }
         return ["route" => '/', "params" => $matchedParams, "middlewares" => $matchedMiddlewares];
     }
@@ -6231,12 +6231,12 @@ function cli_match_compiled_route(string $requestUri, array $methodRootNode): ?a
 
         /// First try match "|" middleware node
         if (isset($currentNode['|'])) {
-            array_push($matchedMiddlewares, "/" . implode('/', $matchedPathSegments));
+            array_push($matchedMiddlewares, "/" . implode('/', $matchedPathSegments['route']));
         }
 
         // Then try match literal route
         if (isset($currentNode[$currentUriSegment])) {
-            $matchedPathSegments[] = $currentUriSegment;
+            $matchedPathSegments['route'][] = $currentUriSegment;
             $currentNode = $currentNode[$currentUriSegment];
             $segmentsConsumed++;
             continue;
@@ -6246,10 +6246,9 @@ function cli_match_compiled_route(string $requestUri, array $methodRootNode): ?a
         // only store param and matched URI segment if not null
         if (isset($currentNode[':'])) {
             $placeholderKey = key($currentNode[':']);
-
             if ($placeholderKey !== null && isset($currentNode[':'][$placeholderKey])) {
                 $matchedParams[$placeholderKey] = $currentUriSegment;
-                $matchedPathSegments[] = ":" . $placeholderKey;
+                $matchedPathSegments['route'][] = ":" . $placeholderKey;
                 $currentNode = $currentNode[':'][$placeholderKey];
                 $segmentsConsumed++;
                 continue;
@@ -6262,14 +6261,14 @@ function cli_match_compiled_route(string $requestUri, array $methodRootNode): ?a
 
     // EDGE-CASE: Add middleware at last node if it exists
     if (isset($currentNode['|'])) {
-        array_push($matchedMiddlewares, "/" . implode('/', $matchedPathSegments));
+        array_push($matchedMiddlewares, "/" . implode('/', $matchedPathSegments['route']));
     }
 
     // Return matched route, params & middlewares
     // if all consumed segments matched
     if ($segmentsConsumed === $uriSegmentCount) {
-        if (!empty($matchedPathSegments)) {
-            return ["route" => '/' . implode('/', $matchedPathSegments), "params" => $matchedParams, "middlewares" => $matchedMiddlewares];
+        if (!empty($matchedPathSegments['route'])) {
+            return ["route" => '/' . implode('/', $matchedPathSegments['route']), "segments" => $matchedPathSegments, "params" => $matchedParams, "middlewares" => $matchedMiddlewares];
         }
         // EDGE-CASE: 0 consumed segments,
         // return null instead of matched
@@ -6285,12 +6284,13 @@ function cli_match_compiled_route(string $requestUri, array $methodRootNode): ?a
 }
 
 // TRIE ROUTER STARTING POINT: Match Returned Matched Compiled Route With Developer's Defined Route
-function cli_match_developer_route(string $method, string $uri, array $compiledRouteTrie, array $developerSingleRoutes, array $developerMiddlewareRoutes, string $handlerKey = "handler", string $mHandlerKey = "middlewares")
+function cli_match_developer_route(string $method, string $uri, array $compiledRouteTrie, array $developerSingleRoutes)
 {
     // Prepare return values
     $matchedRoute = null;
-    $matchedRouteHandler = null;
+    $matchedPathSegments = null;
     $matchedRouteParams = null;
+    $matchedMiddlewareHandlers = [];
     $routeDefinition = null;
     $noMatchIn = ""; // Use as debug value
 
@@ -6304,13 +6304,35 @@ function cli_match_developer_route(string $method, string $uri, array $compiledR
     // When Matched Compiled Route, try match Developer's defined route
     if ($routeDefinition !== null) {
         $matchedRoute = $routeDefinition["route"];
+        $matchedPathSegments = $routeDefinition["segments"] ?? [];
         $matchedRouteParams = $routeDefinition["params"] ?? null;
 
         // If Compiled Route Matches Developers Defined Route!
         if (isset($developerSingleRoutes[$method][$routeDefinition["route"]])) {
             $routeInfo = $developerSingleRoutes[$method][$routeDefinition["route"]];
-            $matchedRouteHandler = $routeInfo[$handlerKey] ?? null;
             $noMatchIn = "ROUTE_MATCHED_BOTH";
+            // We remove 'middlewares' from the matched route since it will
+            // be array merged with all middleware-matched URI segments!
+            if (isset($routeInfo[0]['middlewares'])) {
+                $routeInfo = array_splice($routeInfo, 1, null, true);
+            }
+            // Add Any Matched Middlewares
+            if (
+                isset($routeDefinition["middlewares"])
+                && is_array($routeDefinition["middlewares"])
+                && !empty($routeDefinition["middlewares"])
+            ) {
+                // Each 'middlewares' key is an numbered array so
+                // we can use array_merge so always keep the order
+                foreach ($routeDefinition["middlewares"] as $middleware) {
+                    if (
+                        isset($developerSingleRoutes[$method][$middleware])
+                        && isset($developerSingleRoutes[$method][$middleware][0]['middlewares'])
+                    ) {
+                        $matchedMiddlewareHandlers = array_merge($matchedMiddlewareHandlers, $developerSingleRoutes[$method][$middleware][0]['middlewares']);
+                    }
+                }
+            }
         } else {
             $noMatchIn .= "DEVELOPER_ROUTES(funkphp/config/routes.php)";
         }
@@ -6320,8 +6342,10 @@ function cli_match_developer_route(string $method, string $uri, array $compiledR
     return [
         "method" => $method,
         "route" => $matchedRoute,
-        "$handlerKey" => $matchedRouteHandler,
+        "segments" => $matchedPathSegments,
         "params" => $matchedRouteParams,
+        "matched_middlewares" =>  $matchedMiddlewareHandlers ?? [],
+        "route_keys" => [...$routeInfo ?? []],
         "no_match_in" => $noMatchIn, // Use as debug value
     ];
 }

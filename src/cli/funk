@@ -39,6 +39,14 @@ define('SCHEMA_DIR', PROJECT_DIR . '/schema');
 define('TEMPLATE_DIR', PROJECT_DIR . '/template');
 define('TEST_DIR', PROJECT_DIR . '/test');
 
+// Default exact file path used by FunkCLI
+define("FUNKPHP_FILE_PATH_TROUTES", FUNKPHP_INTERNALS_COMPILED_DIR . '/troute_route.php');
+define("FUNKPHP_FILE_PATH_ROUTES", FUNKPHP_ROUTES_DIR . '/routes.php');
+define("FUNKPHP_FILE_PATH_PIPELINE", FUNKPHP_PIPELINE_DIR . '/pipeline.php');
+define("FUNKPHP_FILE_PATH_TABLES", FUNKPHP_CONFIG_DIR . '/tables.php');
+define("FUNKPHP_FILE_PATH_DB_LOCAL", FUNKPHP_CONFIG_DIR . '/db.php');
+define("FUNKPHP_FILE_PATH_SUPPORTED_MYSQL_DATA_TYPES", FUNKPHP_CONFIG_VALID_DIR . '/valid_mysql_datatypes.php');
+
 // Define message types and ANSI colors for CLI output
 // but that can also be parsed by returned JSON Response
 define('MSG_TYPE_ERROR', 'ERROR');
@@ -136,7 +144,6 @@ $commandConfigMappings = [
             'aliases' => ['h', 'handler'],
         ]
     ],
-    // Add other command types here...
 ];
 
 // Store whether we are in JSON mode or CLI mode and the

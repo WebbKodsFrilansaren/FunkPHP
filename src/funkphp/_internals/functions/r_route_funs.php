@@ -1564,6 +1564,10 @@ function funk_match_compiled_route(&$c, string $requestUri, array $methodRootNod
 
     // EDGE-CASE: '/' and include middleware at root node if it exists
     if ($uriSegmentCount === 0) {
+        // When no match for root node
+        if (!isset($currentNode['/'])) {
+            return null;
+        }
         if (isset($currentNode['|'])) {
             array_push($matchedMiddlewares, "/" . implode('/', $matchedPathSegments['route']));
         }
