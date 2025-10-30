@@ -73,6 +73,47 @@ function array_subkeys_single(array &$startingArray, string ...$subkeys): array
     return $results;
 }
 
+function cli_duplicate_folder_file_fn_route_key($matchedRoute, $folder, $file, $fn): bool
+{
+    // $matchedRoute must be a numbered array that is NOT empty!
+    if (
+        !is_array($matchedRoute)
+        || empty($matchedRoute)
+        || !array_is_list($matchedRoute)
+    ) {
+        cli_err('[cli_duplicate_folder_file_fn_route_key]: The Provided $matchedRoute must be a Non-Empty Numerically Indexed Array. Function expects a Matched Route with a Numbered Array of Route Keys with `[index] => Folder => File => Function => {optionalValue}` Structure to check against!');
+    }
+    // $folder, $file & $fn must be non-empty strings
+    if (
+        !is_string($folder)
+        || empty(trim($folder))
+        || !is_string($file)
+        || empty(trim($file))
+        || !is_string($fn)
+        || empty(trim($fn))
+    ) {
+        cli_err('[cli_duplicate_folder_file_fn_route_key]: The Provided $folder, $file & $fn must be Non-Empty Strings. Function expects a Matched Route with a Numbered Array of Route Keys with `[index] => Folder => File => Function => {optionalValue}` Structure to check against!');
+    }
+    // We now iterate over $matchedRoute keys using the array_subkeys_single() helper function
+    // passing the matched Route array and the three strings provided by "$folder", "$file","$fn"
+    foreach ($matchedRoute as $idx => $routeKey) {
+        $checkResult = array_subkeys_single($routeKey, $folder, $file, $fn);
+        // If all three subkeys exist and are valid single-key structures, we have a duplicate
+        if (
+            count($checkResult) === 3
+            && $checkResult[0]['exists'] === true
+            && $checkResult[1]['exists'] === true
+            && $checkResult[2]['exists'] === true
+        ) {
+            cli_warning_without_exit("Found Duplicate Route Key at Index [$idx] with Structure: `$folder=>$file=>$fn` in the Matched Route Array!");
+            cli_info_without_exit("Folder : `$folder` | File: `$file` | Function: `$fn` will be created in that order unless already existing as folder, file and/or function, and then it will be added as the next Route Key to the Matched Route!");
+            return true;
+        }
+    }
+    return false;
+}
+
+
 /**
  * Extracts the folder, file, and function parts from a validated 'folder=>file=>function' string.
  * SUPER IMPORTANT: This function ASSUMES the input has already been successfully validated.
