@@ -88,7 +88,7 @@ function array_subkeys_single(array &$startingArray, string ...$subkeys): array
  * it returns false. It is used by `make-route`, `make-handler` Command FIles and their aliases
  * to either warn or hard-error out when trying to create a route key that already exists.
  */
-function cli_duplicate_folder_file_fn_route_key($matchedRoute, $folder, $file, $fn): bool
+function cli_duplicate_folder_file_fn_route_key($matchedRoute, $folder, $file, $fn, $methodroute): bool
 {
     // $matchedRoute must be a numbered array that is NOT empty!
     if (
@@ -98,7 +98,7 @@ function cli_duplicate_folder_file_fn_route_key($matchedRoute, $folder, $file, $
     ) {
         cli_err('[cli_duplicate_folder_file_fn_route_key]: The Provided $matchedRoute must be a Non-Empty Numerically Indexed Array. Function expects a Matched Route with a Numbered Array of Route Keys with `[index] => Folder => File => Function => {optionalValue}` Structure to check against!');
     }
-    // $folder, $file & $fn must be non-empty strings
+    // $folder, $file, $fn & $methodroute must be non-empty strings
     if (
         !is_string($folder)
         || empty(trim($folder))
@@ -106,8 +106,10 @@ function cli_duplicate_folder_file_fn_route_key($matchedRoute, $folder, $file, $
         || empty(trim($file))
         || !is_string($fn)
         || empty(trim($fn))
+        || !is_string($methodroute)
+        || empty(trim($methodroute))
     ) {
-        cli_err('[cli_duplicate_folder_file_fn_route_key]: The Provided $folder, $file & $fn must be Non-Empty Strings. Function expects a Matched Route with a Numbered Array of Route Keys with `[index] => Folder => File => Function => {optionalValue}` Structure to check against!');
+        cli_err('[cli_duplicate_folder_file_fn_route_key]: The Provided $folder, $file, $fn, $methodroute must be Non-Empty Strings. Function expects a Matched Route with a Numbered Array of Route Keys with `[index] => Folder => File => Function => {optionalValue}` Structure to check against!');
     }
     // We now iterate over $matchedRoute keys using the array_subkeys_single() helper function
     // passing the matched Route array and the three strings provided by "$folder", "$file","$fn"
@@ -120,8 +122,7 @@ function cli_duplicate_folder_file_fn_route_key($matchedRoute, $folder, $file, $
             && $checkResult[1]['exists'] === true
             && $checkResult[2]['exists'] === true
         ) {
-            cli_warning_without_exit("Found Duplicate Route Key at Index [$idx] with Structure: `$folder=>$file=>$fn` in the Matched Route Array!");
-            cli_info_without_exit("Folder : `$folder` | File: `$file` | Function: `$fn` will be created in that order unless already existing as folder, file and/or function, and then it will be added as the next Route Key to the Matched Route!");
+            cli_warning_without_exit("Duplicate Route Key at Index [$idx] with Structure:`$folder=>$file=>$fn` in `$methodroute`!");
             return true;
         }
     }
