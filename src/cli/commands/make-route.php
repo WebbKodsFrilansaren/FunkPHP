@@ -101,7 +101,6 @@ $ROUTES[$method][$route][] = $routeKey;
 // Grab status for the folder and file so we can check whether
 // we can even access it, if it exists, is writable, etc.
 $statusArray = cli_folder_and_php_file_status($folder, $file);
-var_dump("File: " . $file, "Fn: " . $fn, "Method: " . $method, "Route: " . $route, "Folder: " . $folder, "RouteKey: ", $routeKey, "StatusArray:", $statusArray);
 
 // If folder path does not exist, we attempt creating it which also means
 // that file and its fn does NOT exist so we will pass crudType "create_new_file_and_fn"
