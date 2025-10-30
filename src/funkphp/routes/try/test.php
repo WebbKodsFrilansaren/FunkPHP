@@ -20,6 +20,11 @@ function test(&$c, $passedValue = null) // <N/A>
 	echo "HI FROM TRY TEST FUNCTION! Should run for GET/users\n";
 };
 
+function test3(&$c, $passedValue = null) // <N/A>
+{
+	// Placeholder Comment so Regex works - Remove & Add Real Code!
+};
+
 return function (&$c, $handler = "test2", $passedValue = null) {
 
 	$base = is_string($handler) ? $handler : "";

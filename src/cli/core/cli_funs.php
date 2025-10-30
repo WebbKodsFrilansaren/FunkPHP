@@ -98,6 +98,7 @@ function cli_duplicate_folder_file_fn_route_key($matchedRoute, $folder, $file, $
     // passing the matched Route array and the three strings provided by "$folder", "$file","$fn"
     foreach ($matchedRoute as $idx => $routeKey) {
         $checkResult = array_subkeys_single($routeKey, $folder, $file, $fn);
+        var_dump($checkResult);
         // If all three subkeys exist and are valid single-key structures, we have a duplicate
         if (
             count($checkResult) === 3
