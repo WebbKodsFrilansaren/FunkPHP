@@ -1,90 +1,104 @@
-<?php // Routes.php - FunkPHP Framework | FunkCLI Modified it 2025-10-30 08:50:07
+<?php // Routes.php - FunkPHP Framework | FunkCLI Modified it 2025-10-30 09:36:13
 return  [
-  'ROUTES' =>
-  [
-    'GET' =>
-    [
-      '/test' =>
-      [
-        0 =>
-        [
-          'try' =>
-          [
-            'test' =>
-            [
+  'ROUTES' => 
+   [
+    'GET' => 
+     [
+      '/test' => 
+       [
+        0 => 
+         [
+          'try' => 
+           [
+            'test' => 
+             [
               'test3' => NULL,
             ],
           ],
         ],
-        1 =>
-        [
-          'try' =>
-          [
-            'test' =>
-            [
+        1 => 
+         [
+          'try' => 
+           [
+            'test' => 
+             [
+              'test3' => NULL,
+            ],
+          ],
+        ],
+        2 => 
+         [
+          'try' => 
+           [
+            'test' => 
+             [
               'test3' => NULL,
             ],
           ],
         ],
       ],
-      '/users' =>
-      [
-        0 =>
-        [
-          'try' =>
-          [
-            'test' =>
-            [
+      '/users' => 
+       [
+        0 => 
+         [
+          'try' => 
+           [
+            'test' => 
+             [
               'test2' => NULL,
             ],
           ],
         ],
-        1 =>
-        [
-          'data' =>
-          [
-            'test' =>
-            [
+        1 => 
+         [
+          'data' => 
+           [
+            'test' => 
+             [
               'test' => NULL,
             ],
           ],
         ],
       ],
-      '/users/:id' =>
-      [
-        0 =>
-        [
-          'middlewares' =>
-          [
-            0 =>
-            [
+      '/users/:id' => 
+       [
+        0 => 
+         [
+          'middlewares' => 
+           [
+            0 => 
+             [
               'm_test' => 'passed valiue from M-test',
             ],
-            1 =>
-            [
+            1 => 
+             [
               'm_test2' => 'passed value test2',
             ],
           ],
         ],
-        1 =>
-        [
-          'try' =>
-          [
-            'test' =>
-            [
+        1 => 
+         [
+          'try' => 
+           [
+            'test' => 
+             [
               'test2' => NULL,
             ],
           ],
         ],
       ],
     ],
-    'POST' =>
-    [],
-    'DELETE' =>
-    [],
-    'PATCH' =>
-    [],
-    'PUT' =>
-    [],
+    'POST' => 
+     [
+    ],
+    'DELETE' => 
+     [
+    ],
+    'PATCH' => 
+     [
+    ],
+    'PUT' => 
+     [
+    ],
   ],
 ];
