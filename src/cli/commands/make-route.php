@@ -16,11 +16,9 @@ $createStatus = null;
 $folderType = "routes";
 $folderBase = "funkphp/routes/";
 $folder = null;
+$singleFolder = null;
 $file = null;
 $fn = null;
-$folderCreated = false;
-$fileCreated = false;
-$fnCreated = false;
 
 // 1. Find the Method/Route argument (e.g., "r:get/users")
 $arg_methodRoute = cli_get_cli_input_from_interactive_or_regular($args, 'make:route', 'method/route');
@@ -30,7 +28,8 @@ $arg_methodRoute = cli_get_cli_input_from_interactive_or_regular($args, 'make:ro
 $arg_folderFileAndFn = cli_get_cli_input_from_interactive_or_regular($args, 'make:route', 'folder/file/fn');
 if ($arg_folderFileAndFn) {
     [$folder, $file, $fn] =  cli_extract_folder_file_fn($arg_folderFileAndFn);
-    $routeKey = [$folder => [$file => $fn]];
+    $routeKey = [$folder => [$file => [$fn => null]]];
+    $singleFolder = $folder;
     $folder = $folderBase . $folder . '/';
 }
 
@@ -72,7 +71,6 @@ else {
 // We exit if no optional Folder/File/Function argument was provided
 if (!$arg_folderFileAndFn) {
     cli_info("No Folder/File/Function argument was provided so only Method/Route creation was attempted. Exiting Command Now.");
-    exit;
 }
 ////////////////////////////////////////////////////////////////////
 // Here we have a valid Folder, File and Function to create but we
@@ -90,7 +88,7 @@ if (!is_array($ROUTES[$method][$route]) || !array_is_list($ROUTES[$method][$rout
 // the provided Route Key already exists or not to warn about
 // duplicates but we still allow adding duplicates if wanted.
 if (count($ROUTES[$method][$route]) > 0) {
-    if (!cli_duplicate_folder_file_fn_route_key($ROUTES[$method][$route], $folder, $file, $fn)) {
+    if (!cli_duplicate_folder_file_fn_route_key($ROUTES[$method][$route], $singleFolder, $file, $fn)) {
         cli_info_without_exit("The Provided Route Key `$folder=>$file=>$fn` does NOT exists in `$method$route` in `funkphp/routes/routes.php`. Folder : `$folder` | File: `$file` | Function: `$fn` will be created in that order unless already existing as folder, file and/or function, and then it will be added as the next Route Key to the Matched Route if everything went OK!");
     }
 } else {
@@ -119,6 +117,7 @@ if (!$statusArray['folder_path']) {
         cli_success_without_exit("SUCCESSFULLY Created File `$file.php` with Function `$fn` in Folder `$folder`!");
         cli_info_without_exit("The Route File `$file.php` is now ready to be used in your Routes. You did not provide a Method/Route so it will not be automatically added to any Route. You can add it manually later on!");
         cli_sort_build_routes_compile_and_output(["ROUTES" => $ROUTES]);
+        cli_success("`$method$route` was SUCCESSFULLY created/used in `funkphp/routes/routes.php` with the Folder=>File=>Function `$folder=>$file=>$fn` added as its first or last Route Key!");
     } else {
         array_pop($ROUTES[$method][$route]);
         cli_sort_build_routes_compile_and_output(["ROUTES" => $ROUTES]);
