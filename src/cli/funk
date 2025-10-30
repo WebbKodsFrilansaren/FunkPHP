@@ -924,11 +924,23 @@ $mysqlOperatorSyntax = include_once FUNKPHP_FILE_PATH_SUPPORTED_MYSQL_OPERATORS 
 ];
 
 // --------------------------------------------------------------------------------
-// GLOBAL INTERACTIVE MODE GUARD
+// GLOBAL INTERACTIVE MODE GUARD & JSON Only Command Files Check!
 // This prevents JSON mode from ever attempting a command with zero arguments.
+// The other check is that $command that starts with "json" must then be called
+// with 'Accept' Header set to 'application/json'
 // --------------------------------------------------------------------------------
 if (!$CLI && empty($args)) {
     cli_err('Interactive Mode is NOT supported with JSON Data! You must provide arguments using "arg1", "arg2", etc., keys in the JSON payload.');
+}
+if (str_starts_with($command, 'json')) {
+    if (
+        !isset($_SERVER['HTTP_ACCEPT'])
+        || !is_string($_SERVER['HTTP_ACCEPT'])
+        || str_contains($_SERVER['HTTP_ACCEPT'], 'application/json')
+    ) {
+        cli_err('Commands starting with "json" are ONLY supported in JSON Mode with `Accept: application/json` Header set and are meant to be used only by browsers/servers making JSON-based API Calls!');
+        exit;
+    }
 }
 // --------------------------------------------------------------------------------
 // DYNAMIC COMMAND FILE LOADER - Loads based on "$command-$subCommand.php" where
