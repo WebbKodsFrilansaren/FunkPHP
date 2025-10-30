@@ -1002,9 +1002,9 @@ function cli_default_created_fn_files($type, $methodAndRoute, $folder, $file, $f
     $typePartString = '';
 
     // Parts belonging to new files created like namespace & some comments
-    if ($methodAndRoute !== "N/A") {
+    if ($type === "named_not_new_file" || $type === "named_and_new_file") {
         $namespaceString = "<?php\n\nnamespace FunkPHP\\Routes\\$folder\\$file;\n";
-    } else {
+    } else { // "Routes" folder is always used for those $type values!
         $namespaceString = "<?php\n\nnamespace FunkPHP\\$folder\\$file;\n";
     }
     $newFilesString .= $namespaceString;
@@ -1017,13 +1017,13 @@ function cli_default_created_fn_files($type, $methodAndRoute, $folder, $file, $f
         $typePartString .= "return function (&\$c, \$passedValue = null) {\n\t// Placeholder Comment so Regex works - Remove & Add Real Code!\n};\n";
         $entireCreatedString .= $newFilesString . $typePartString;
     }
-    // When a named function is needed but file ALREADY EXISTS
+    // When a named function is needed but file ALREADY EXISTS - Funk\Routes\<FOLDER>\<FILE>.php
     elseif ($type === 'named_not_new_file') {
         $typePartString .= "function $fn(&\$c, \$passedValue = null) // <$methodAndRoute>\n";
         $typePartString .= "{\n\t// Placeholder Comment so Regex works - Remove & Add Real Code!\n};\n\n";
         $entireCreatedString .= $typePartString;
     }
-    // When a named function is needed and file DOES NOT EXIST
+    // When a named function is needed and file DOES NOT EXIST - Funk\Routes\<FOLDER>\<FILE>.php
     elseif ($type === 'named_and_new_file') {
         $typePartString .= "function $fn(&\$c, \$passedValue = null) // <$methodAndRoute>\n";
         $typePartString .= "{\n\t// Placeholder Comment so Regex works - Remove & Add Real Code!\n};\n\n";

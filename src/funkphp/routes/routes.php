@@ -1,4 +1,4 @@
-<?php // Routes.php - FunkPHP Framework | FunkCLI Modified it 2025-10-30 08:26:12
+<?php // Routes.php - FunkPHP Framework | FunkCLI Modified it 2025-10-30 08:34:19
 return  [
   'ROUTES' =>
   [
@@ -7,6 +7,20 @@ return  [
       '/test' =>
       [
         0 =>
+        [
+          'try' =>
+          [
+            'test' => 'test3',
+          ],
+        ],
+        1 =>
+        [
+          'try2' =>
+          [
+            'test' => 'test3',
+          ],
+        ],
+        2 =>
         [
           'try' =>
           [

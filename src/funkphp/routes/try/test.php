@@ -1,31 +1,14 @@
 <?php
 
-namespace FunkPHP\Try\test;
+namespace FunkPHP\Routes\Try\test;
+// FunkCLI Created on 2025-10-30 08:34:19!
 
-use FunkPHP\Classes\Test;
-// FunkCLI Created on 2025-09-10 10:23:15!
-
-function test2(&$c, $passedValue = null) // <N/A>
-{
-	// Placeholder Comment so Regex works - Remove & Add Real Code!
-	echo "HI FROM TRY TEST2 FUNCTION! Should run for GET/users/:id\n";
-	$test = funk_use_safe_mutate($c, ["req", "auth"], "TEST_2", [], ["string", "integer"], ['min_value' => 0, 'min_length' => 1, 'is_resource_type' => false]);
-	vd($c['req']);
-	echo "Returned value Using TEST_2() is: " . print_r($test, true) . "\n";
-};
-
-function test(&$c, $passedValue = null) // <N/A>
-{
-	// Placeholder Comment so Regex works - Remove & Add Real Code!
-	echo "HI FROM TRY TEST FUNCTION! Should run for GET/users\n";
-};
-
-function test3(&$c, $passedValue = null) // <N/A>
+function test3(&$c, $passedValue = null) // <GET/test>
 {
 	// Placeholder Comment so Regex works - Remove & Add Real Code!
 };
 
-return function (&$c, $handler = "test2", $passedValue = null) {
+return function (&$c, $handler = "test3", $passedValue = null) {
 
 	$base = is_string($handler) ? $handler : "";
 	$full = __NAMESPACE__ . '\\' . $base;
@@ -33,6 +16,6 @@ return function (&$c, $handler = "test2", $passedValue = null) {
 		return $full($c, $passedValue);
 	} else {
 		$c['err']['ROUTES']['TRY'][] = 'TRY Function `' . $full . '` not found in namespace `' . __NAMESPACE__ . '`. Does it exist as a callable function in the File?';
-		critical_err_json_or_html(500, 'Tell the Developer: The TRY Function `' . $full . '` could not be found! Please check the Function exists in the File and is in the correct Namespace!');
+		return null;
 	}
 };
