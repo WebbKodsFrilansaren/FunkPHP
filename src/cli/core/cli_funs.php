@@ -73,6 +73,21 @@ function array_subkeys_single(array &$startingArray, string ...$subkeys): array
     return $results;
 }
 
+/**
+ * Checks for duplicate Folder=>File=>Function route keys in a matched route array.
+ * @param array $matchedRoute The matched route array to check.
+ * @param string $folder The folder name to check for.
+ * @param string $file The file name to check for.
+ * @param string $fn The function name to check for.
+ * @return bool Returns true if a duplicate is found, false otherwise.
+ *
+ * The function expects $matchedRoute to be a numerically indexed array of route keys,
+ * each structured as Folder => File => Function => {optionalValue}. It checks each route key
+ * to see if the specified folder, file, and function combination already exists.
+ * If a duplicate is found, it logs a warning and returns true. If no duplicates are found,
+ * it returns false. It is used by `make-route`, `make-handler` Command FIles and their aliases
+ * to either warn or hard-error out when trying to create a route key that already exists.
+ */
 function cli_duplicate_folder_file_fn_route_key($matchedRoute, $folder, $file, $fn): bool
 {
     // $matchedRoute must be a numbered array that is NOT empty!
@@ -98,7 +113,6 @@ function cli_duplicate_folder_file_fn_route_key($matchedRoute, $folder, $file, $
     // passing the matched Route array and the three strings provided by "$folder", "$file","$fn"
     foreach ($matchedRoute as $idx => $routeKey) {
         $checkResult = array_subkeys_single($routeKey, $folder, $file, $fn);
-        var_dump($checkResult);
         // If all three subkeys exist and are valid single-key structures, we have a duplicate
         if (
             count($checkResult) === 3
@@ -988,7 +1002,11 @@ function cli_default_created_fn_files($type, $methodAndRoute, $folder, $file, $f
     $typePartString = '';
 
     // Parts belonging to new files created like namespace & some comments
-    $namespaceString = "<?php\n\nnamespace FunkPHP\\$folder\\$file;\n";
+    if ($methodAndRoute !== "N/A") {
+        $namespaceString = "<?php\n\nnamespace FunkPHP\\Routes\\$folder\\$file;\n";
+    } else {
+        $namespaceString = "<?php\n\nnamespace FunkPHP\\$folder\\$file;\n";
+    }
     $newFilesString .= $namespaceString;
     $createdOnCommentString = "// FunkCLI Created on " . date('Y-m-d H:i:s') . "!\n\n";
     $newFilesString .= $createdOnCommentString;
@@ -1761,44 +1779,6 @@ function cli_mw_exists_in_route(&$ROUTES, $method, $route, $mw_name)
         cli_err_without_exit('[cli_mw_exists_in_route()]: $ROUTES must be an Array and must contain the provided $method and $route!');
         return false;
     }
-}
-
-// Function returns Regex-matched strings without prefix (default) or just the value
-// as it is if no regex is provided. If no match is found, it returns null meaning no
-// actual string value was found in the $args array.
-function cli_get_arg_string_or_null($args, $regexToMatch = null, $keepPrefix = false)
-{
-    // Iterate through $args which if it is an array and
-    // match regex to it if $regexToMatch is not null
-    $finalValue = null;
-    foreach ($args as $arg) {
-        // Only apply to non-empty strings in $args array
-        if (is_string($arg) && !empty(trim($arg))) {
-            // Only apply if a Regex is provided
-            if (
-                isset($regexToMatch)
-                && is_string($regexToMatch)
-                && !empty($regexToMatch)
-            ) {
-                if (preg_match($regexToMatch, $arg)) {
-                    $finalValue = $arg;
-                    // remove prefix as default unless $keepPrefix is true
-                    if (!$keepPrefix) {
-                        $finalValue = explode(":", $finalValue, 2)[1] ?? $finalValue;
-                    }
-                    break;
-                } else {
-                    continue;
-                }
-            }
-            // Otherwise we take the non-empty string value as is
-            else {
-                $finalValue = $arg;
-                break;
-            }
-        }
-    }
-    return $finalValue;
 }
 
 /**

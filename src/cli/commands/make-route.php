@@ -114,7 +114,7 @@ if (!$statusArray['folder_path']) {
         cli_err("FAILED to Create Folder `$folder`! Verify File Permissions and try again. Creating Folder : `$folder` | File: `$file` | Function: `$fn` did NOT complete for `$method$route`!");
     }
     $statusArray = cli_folder_and_php_file_status($folder, $file);
-    $createStatus = cli_crud_folder_and_php_file($statusArray, "create_new_file_and_fn", $file, $fn, "routes");
+    $createStatus = cli_crud_folder_and_php_file($statusArray, "create_new_file_and_fn", $file, $fn, "routes", $method . $route);
     if ($createStatus) {
         cli_success_without_exit("SUCCESSFULLY Created File `$file.php` with Function `$fn` in Folder `$folder`!");
         cli_info_without_exit("The Route File `$file.php` is now ready to be used in your Routes. You did not provide a Method/Route so it will not be automatically added to any Route. You can add it manually later on!");
@@ -128,7 +128,7 @@ if (!$statusArray['folder_path']) {
 else {
     // File does not exist meaning crudType "create_new_file_and_fn"
     if (!$statusArray['file_exists']) {
-        $createStatus = cli_crud_folder_and_php_file($statusArray, "create_new_file_and_fn", $file, $fn, "routes");
+        $createStatus = cli_crud_folder_and_php_file($statusArray, "create_new_file_and_fn", $file, $fn, "routes", $method . $route);
         if ($createStatus) {
             cli_success_without_exit("SUCCESSFULLY Created File `$file.php` with Function `$fn` in Folder `$folder`!");
             cli_info_without_exit("The Route File `$file.php` is now ready to be used in your Routes other than just `$method$route` where it has already been added to!");
@@ -153,7 +153,7 @@ else {
         // Function does not exist in the file so
         // crudType "create_only_new_fn_in_file"
         else {
-            $createStatus = cli_crud_folder_and_php_file($statusArray, "create_only_new_fn_in_file", $file, $fn, "routes");
+            $createStatus = cli_crud_folder_and_php_file($statusArray, "create_only_new_fn_in_file", $file, $fn, "routes", $method . $route);
             if ($createStatus) {
                 cli_success_without_exit("SUCCESSFULLY Created Function `$fn` in File `$file.php` in Folder `$folder`!");
                 cli_info_without_exit("The Route File `$file.php` is now ready to be used in your Routes other than just `$method$route` where it has already been added to!");

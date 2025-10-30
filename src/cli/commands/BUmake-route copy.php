@@ -31,19 +31,6 @@ $folderType = null;
 $tablesProvided = null;
 $routeOnly = false;
 
-// 1. Find the Method/Route argument (e.g., "r:get/users")
-$arg_methodAndRoute = cli_get_cli_input_from_interactive_or_regular($args, 'make:route', 'method/route');
-// 2. Find the File and optional Function argument (e.g., "ff:users=>by_id")
-$arg_fileAndFn = cli_get_arg_string_or_null($args, $cliRegex['fileWithOptionalFnRegex']);
-// 3. Find the Folder, File, and optional Function argument (e.g., "fff:users=>user_file=>func")
-$arg_folderAndFileAndFn = cli_get_cli_input_from_interactive_or_regular($args, 'make:route', 'folder/file/fn');
-// 4. Find the Tables Validation argument (e.g., "t:table1,table2" or even "t:table1*2")
-$arg_tables_validation = cli_get_arg_string_or_null($args, $cliRegex['tableRegexValidation']);
-// 5. Find Tables SQL argument (e.g, "t:s=table1,tables2")
-$arg_tables_sql = cli_get_arg_string_or_null($args, $cliRegex['tableRegexSQL']);
-// 6. Find the Name argument for Middleware or Pipeline (e.g., "n:middleware_name" or "name:pipeline_name")
-$arg_fileAnonymous = cli_get_arg_string_or_null($args, $cliRegex['nameOnlyRegex']);
-
 var_dump("Arg Method/Route: " . $arg_methodAndRoute, "Arg File/Function: " . $arg_fileAndFn, "Arg Folder/File/Function: " . $arg_folderAndFileAndFn, "Arg Tables Validation: " . $arg_tables_validation, "Arg Tables SQL: " . $arg_tables_sql, "Arg Name: " . $arg_fileAnonymous);
 
 
