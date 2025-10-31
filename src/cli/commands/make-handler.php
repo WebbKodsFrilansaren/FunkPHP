@@ -98,7 +98,7 @@ if (!$arg_methodRoute) {
 /////////////////////////////////////////////////////////
 if (!array_key_exists($method, $ROUTES)) {
     $ROUTES[$method] = [];
-    $ROUTES[$method][$route] = $routeKey;
+    $ROUTES[$method][$route][] = $routeKey;
     cli_info_without_exit("Added New Method and New Route to it... Attempting to rebuild the Trie & Route File Now... If it fails, the Route will NOT have been added and you will have to retry. The created/found `$singleFolder=>$file=>$fn` Handler will still exist though!");
     cli_sort_build_routes_compile_and_output(["ROUTES" => $ROUTES]);
     cli_success_without_exit("Created New Valid Method `$method` in `funkphp/routes/routes.php`!");
