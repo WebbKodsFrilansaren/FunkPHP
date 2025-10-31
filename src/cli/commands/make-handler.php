@@ -1,4 +1,4 @@
-<?php // FunkCLI COMMAND "php funk make:route" - creates a new route & optionally adds a folder=>file=>function to it
+<?php // FunkCLI COMMAND "php funk make:handler" - creates a new file and optionally adds a function to a specific Method/Route
 $ROUTES = $singleRoutesRoute['ROUTES'];
 
 // Structure the correct folder name based on the first parameter,
@@ -19,19 +19,17 @@ $file = null;
 $fn = null;
 $createdFFF = "<N/A>";
 
-// 1. Find/create the Method/Route argument (e.g., "r:get/users")
-$arg_methodRoute = cli_get_cli_input_from_interactive_or_regular($args, 'make:route', 'method/route');
-[$method, $route] = cli_extract_method_route($arg_methodRoute);
+//1. Find & extract Folder/File/Function argument (e.g., "fff:usersFolder=>userFile=>FunctionInsideFile")
+$arg_folderFileAndFn = cli_get_cli_input_from_interactive_or_regular($args, 'make:handler', 'folder/file/fn');
+[$folder, $file, $fn] =  cli_extract_folder_file_fn($arg_folderFileAndFn);
+$routeKey = [$folder => [$file => [$fn => null]]];
+$singleFolder = $folder;
+$folder = $folderBase . $folder . '/';
+$createdFFF = "Folder/File:`routes/$singleFolder/$file.php` with Function:`function $fn(){};`";
 
-// 2. Find/create optional Folder/File/Function argument (e.g., "fff:usersFolder=>userFile=>FunctionInsideFile")
-$arg_folderFileAndFn = cli_get_cli_input_from_interactive_or_regular($args, 'make:route', 'folder/file/fn');
-if ($arg_folderFileAndFn) {
-    [$folder, $file, $fn] =  cli_extract_folder_file_fn($arg_folderFileAndFn);
-    $routeKey = [$folder => [$file => [$fn => null]]];
-    $singleFolder = $folder;
-    $folder = $folderBase . $folder . '/';
-    $createdFFF = "Folder/File:`routes/$singleFolder/$file.php` with Function:`function $fn(){};`";
-}
+// 2. Find/create optional the Method/Route argument (e.g., "r:get/users")
+$arg_methodRoute = cli_get_cli_input_from_interactive_or_regular($args, 'make:handler', 'method/route');
+[$method, $route] = cli_extract_method_route($arg_methodRoute);
 
 ////////////////////////////////////////////////////////////////////////////
 // ALWAYS MANDATORY: Creating a Route unless it already exists!
