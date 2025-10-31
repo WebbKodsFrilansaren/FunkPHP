@@ -151,6 +151,7 @@ function cli_extract_folder_file_fn(string $validatedFolderFileFnString): array
     $file = $parts[1];
     $fn = $parts[2];
 
+    cli_info_without_exit("OK! Parsed Folder: `funkphp/routes/$folder`, File: `funkphp/routes/$folder/$file.php`, Function: `function $fn(&\$c, \$passedValue = null){};`");
     return [$folder, $file, $fn];
 }
 

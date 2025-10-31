@@ -22,6 +22,7 @@ $createdFFF = "<N/A>";
 //1. Find & extract Folder/File/Function argument (e.g., "fff:usersFolder=>userFile=>FunctionInsideFile")
 $arg_folderFileAndFn = cli_get_cli_input_from_interactive_or_regular($args, 'make:handler', 'folder/file/fn');
 [$folder, $file, $fn] =  cli_extract_folder_file_fn($arg_folderFileAndFn);
+$routeKey = [$folder => [$file => [$fn => null]]];
 $singleFolder = $folder;
 $folder = $folderBase . $folder . '/';
 $createdFFF = "Folder/File:`routes/$singleFolder/$file.php` with Function:`function $fn(){};`";
@@ -30,7 +31,6 @@ $createdFFF = "Folder/File:`routes/$singleFolder/$file.php` with Function:`funct
 $arg_methodRoute = cli_get_cli_input_from_interactive_or_regular($args, 'make:handler', 'method/route');
 if ($arg_methodRoute) {
     [$method, $route] = cli_extract_method_route($arg_methodRoute);
-    $routeKey = [$folder => [$file => [$fn => null]]];
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
