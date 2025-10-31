@@ -37,7 +37,7 @@ return [
                 'external_callable_validator' => 'method_route',
             ],
             'folder/file/fn' => [
-                'prompt' => 'Enter `Folder=>File=>Function` to create a folder with a file inside of it with a new function inside of it (e.g., "users=>user_file=>func" meaning `src/funkphp/routes/users/user_file.php` would be created with the named function `func(&$c, $passedValue = null){}` inside of it):',
+                'prompt' => 'Enter `Folder=>File=>Function` to create a folder with a file inside of it with a new function inside of it (e.g., "users=>user_file=>func" meaning `src/funkphp/routes/users/user_file.php` would be created with the named function `func(&$c, $passedValue = null){}` inside of it - it will be added to the created/target method/route if it all went OK!):',
                 'regex' => $cliRegex['folderFileFnRegex'],
                 'required' => false,
                 'default' => null,
@@ -53,7 +53,7 @@ return [
     'make:handler' => [
         'args' => [
             'method/route' => [
-                'prompt' => 'Enter `method/route` to create or target an existing METHOD/Route (e.g., "get/" (this creates the root), "get/users", "post/users/:id" where `:id` is a dynamic param, etc.):',
+                'prompt' => 'Enter `method/route` to create or target an existing METHOD/Route (e.g., "get/" (this creates the root), "get/users", "post/users/:id" where `:id` is a dynamic param, etc. - the provided `Folder=>File=>Function` will be added to it if it was successfully created!):',
                 'regex' => $cliRegex['methodRouteRegex'],
                 'required' => false,
                 'default' => null,
