@@ -122,7 +122,7 @@ function cli_duplicate_folder_file_fn_route_key($matchedRoute, $folder, $file, $
             && $checkResult[1]['exists'] === true
             && $checkResult[2]['exists'] === true
         ) {
-            cli_warning_without_exit("Duplicate Route Key at Index [$idx] with Structure:`$folder=>$file=>$fn` in `$methodroute`!");
+            cli_warning_without_exit("Duplicate Route Key `$folder=>$file=>$fn` at Index:[$idx] in:`$methodroute`!");
             return true;
         }
     }
