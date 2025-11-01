@@ -1,5 +1,5 @@
 <?php
-// FunkPHP Framework - FunkCLI Created it 2025-10-29 05:02:37
+// FunkPHP Framework - FunkCLI Created it 2025-11-01 15:10:30
 // This file contains all reserved functions in the FunkPHP Framework and FunkCLI.
 // It is used to check if a function is reserved (used by FunkPHP/FunkCLI) or not.
 return
@@ -147,8 +147,16 @@ return
         'funk_param_is_float',
         'funk_param_is_regex',
         'array_subkeys_single',
+        'cli_create_pipeline_file',
+        'cli_create_middleware_file',
+        'cli_middleware_file_status',
+        'cli_pipeline_file_status',
+        'cli_duplicate_folder_file_fn_route_key',
         'cli_extract_folder_file_fn',
         'cli_extract_method_route',
+        'cli_extract_middleware',
+        'cli_extract_pipeline',
+        'cli_extract_pipeline_type',
         'cli_folder_file_fn_value_exist_or_null',
         'array_key_exists_in_list',
         'cli_output',
@@ -162,7 +170,6 @@ return
         'cli_crud_folder_and_php_file',
         'cli_crud_folder_php_file_atomic_write',
         'cli_mw_exists_in_route',
-        'cli_get_arg_string_or_null',
         'cli_validate_command_prefixes',
         'cli_get_valid_cli_input',
         'cli_get_cli_input_from_interactive_or_regular',
@@ -191,10 +198,6 @@ return
         'cli_backup_batch',
         'cli_delete_a_route',
         'cli_sort_build_routes_compile_and_output',
-        'cli_add_a_middleware',
-        'cli_delete_a_middleware',
-        'cli_delete_a_middleware_from_all_routes',
-        'cli_delete_a_middleware_file',
         'cli_compile_batch',
         'cli_backup_all_files_in_folder_to_another_folder',
         'cli_backup_file_until_success',
@@ -236,4 +239,4 @@ return
         'str_starts_or_ends_not_with',
         'array_str_contains',
         'array_str_starts_with',
-    ]; // Functions Count: 232
+    ]; // Functions Count: 235
