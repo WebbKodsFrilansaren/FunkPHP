@@ -2446,7 +2446,7 @@ function cli_get_cli_input_from_interactive_or_regular($args, $command, $argumen
             }
         }
         // Return default if no match found but default is set and required is true
-        if ($finalValue === null && $required && $default) {
+        if ($finalValue === null && !$required && $default !== null) {
             return $default;
         }
         // If there is no default and no match found but required is true, we error out
