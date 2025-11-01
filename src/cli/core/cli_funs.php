@@ -73,6 +73,177 @@ function array_subkeys_single(array &$startingArray, string ...$subkeys): array
     return $results;
 }
 
+
+
+function cli_create_middleware_file($middlewareNameString, $mwStatusArray): bool
+{
+    // $middlewareNameString must be non-empty string or hard error
+    if (!is_string($middlewareNameString) || empty(trim($middlewareNameString))) {
+        cli_err('[cli_create_middleware_file()]: The Provided Middleware Name String (middlewareNameString) must be a Non-Empty String in order to continue creating the new Middleware File. If a Command File called this function, this error now stopped the command execution!');
+    }
+    // $mwStatusArray must be an array with the following keys existing: exists, has_valid_prefix, is_anonymous, middleware_is_valid
+    $requiredKeys = [
+        'exists',
+        'has_valid_prefix',
+        'is_anonymous',
+        'middleware_is_valid',
+        'middleware_dir_exists',
+        'middleware_dir_readable',
+        'middleware_dir_writable'
+    ];
+    foreach ($requiredKeys as $key) {
+        if (!array_key_exists($key, $mwStatusArray)) {
+            cli_err('[cli_create_middleware_file()]: The Provided Middleware Status Array ($mwStatusArray) is missing the required key `' . $key . '` neeeded to safely create a new Middleware File without accidentally overwriting existing ones. If a Command File called this function, this error now stopped the command execution!');
+        }
+    }
+    // Just an extra check that files does not already exists and that the folder can be written to
+    if ($mwStatusArray['exists']) {
+        cli_err('[cli_create_middleware_file()]: The Provided Middleware Status Array ($mwStatusArray) indicates that the Middleware File already exists so cannot create it again. If a Command File called this function, this error now stopped the command execution!');
+    }
+
+    // Now check that folder exists, is readable and writable
+    if (
+        !$mwStatusArray['middleware_dir_exists']
+        || !$mwStatusArray['middleware_dir_readable']
+        || !$mwStatusArray['middleware_dir_writable']
+    ) {
+        cli_err('[cli_create_middleware_file()]: The Provided Middleware Status Array ($mwStatusArray) indicates that the Middleware Directory is either missing or not Readable/Writable so cannot create the Middleware File. If a Command File called this function, this error now stopped the command execution!');
+    }
+
+    // Prepare Default Middleware File String Content and return the boolean value of the creation/write operation
+    $mwString = "<?php\n\nnamespace FunkPHP\\Middlewares\\$middlewareNameString;\n// FunkCLI Created on " . date('Y-m-d H:i:s') . "!\n\nreturn function (&\$c, \$passedValue = null) {\n\t// Placeholder Comment so Regex works - Remove & Add Your Own Code!\n};\n";
+    return cli_crud_folder_php_file_atomic_write($mwString, $mwStatusArray['full_file_path']);
+}
+
+
+/**
+ * Checks the existence and validity status of a Middleware file based on strict FunkPHP criteria.
+ *
+ * It checks if the file exists, if the file name has the mandatory 'mw_' prefix, and if the file
+ * correctly returns a PHP Closure (anonymous function) upon inclusion.
+ *
+ * @param string $validatedMiddlewareString The Middleware file name (e.g., "mw_auth_check"). MUST be a non-empty string.
+ * @return array A status array containing detailed checks:
+ * - 'exists': (bool) True if the file exists at FUNKPHP_MIDDLEWARES_DIR.
+ * - 'has_valid_prefix': (bool) True if the string starts with 'mw_'.
+ * - 'is_anonymous': (bool) True if the included file returns an instanceof Closure.
+ * - 'middleware_is_valid': (bool) True only if (exists AND has_valid_prefix AND is_anonymous).
+ */
+function cli_middleware_file_status($validatedMiddlewareString): array
+{
+    // Constant must exist and provided argument must be a non-empty string
+    if (!defined('FUNKPHP_MIDDLEWARES_DIR')) {
+        cli_err('[cli_middleware_file_exists()]: FUNKPHP_MIDDLEWARES_DIR Constant is not defined. Cannot check for Middleware existence. If a Command File called this function, this error now stopped the command execution!');
+    }
+    if (!is_string($validatedMiddlewareString) || empty(trim($validatedMiddlewareString))) {
+        cli_err('[cli_middleware_file_exists()]: The Provided Middleware String must be a Non-Empty String.  If a Command File called this function, this error now stopped the command execution!');
+    }
+    // Variables that are returned with default values that change after checks
+    $mwExists = false;
+    $mwPrefix = false;
+    $mwAnonymous = false;
+    // Check if the exact string exists in the middlewares directory (constant)
+    // then try include it to check if it is an anonymous function.
+    // Finally check if it has the correct "mw_" prefix. If file exists and the prefix is "mw_"
+    $middlewareDir = FUNKPHP_MIDDLEWARES_DIR;
+    $middlewareFilePath = FUNKPHP_MIDDLEWARES_DIR . '/' . $validatedMiddlewareString . '.php';
+    if (file_exists($middlewareFilePath) && is_file($middlewareFilePath)) {
+        $mwExists = true;
+        $included = include_once $middlewareFilePath;
+        if (is_callable($included) && ($included instanceof Closure)) {
+            $mwAnonymous = true;
+        }
+    }
+    if (str_starts_with($validatedMiddlewareString, 'mw_')) {
+        $mwPrefix = true;
+    }
+    return [
+        'exists' => $mwExists,
+        'has_valid_prefix' => $mwPrefix,
+        'is_anonymous' => $mwAnonymous,
+        'middleware_is_valid' => ($mwExists && $mwPrefix && $mwAnonymous),
+        'full_file_path' => $middlewareFilePath,
+        'middleware_dir_exists' => is_dir($middlewareDir),
+        'middleware_dir_readable' => is_readable($middlewareDir),
+        'middleware_dir_writable' => is_writable($middlewareDir),
+    ];
+}
+
+/**
+ * Checks the existence and validity status of a Pipeline file across request and post-response directories.
+ *
+ * It checks for file existence in either pipeline directory, prefix, Closure return, and ensures
+ * the file name is NOT used in both pipeline directories to prevent ambiguity.
+ *
+ * @param string $validatedPipelineString The Pipeline file name (e.g., "pl_logging"). MUST be a non-empty string.
+ * @return array A status array containing detailed checks:
+ * - 'exists': (bool) True if the file exists in EITHER directory.
+ * - 'has_valid_prefix': (bool) True if the string starts with 'pl_'.
+ * - 'is_anonymous': (bool) True if the included file returns an instanceof Closure.
+ * - 'exists_in_request_dir': (bool) True if the file exists in the request pipeline directory.
+ * - 'exists_in_post_response_dir': (bool) True if the file exists in the post-response pipeline directory.
+ * - 'exists_in_both_dirs': (bool) True if the file exists in BOTH directories.
+ * - 'pipeline_is_valid': (bool) True only if (exists AND has_valid_prefix AND is_anonymous AND NOT exists_in_both_dirs).
+ */
+function cli_pipeline_file_status($validatedPipelineString): array
+{
+    // Constant must exist and provided argument must be a non-empty string
+    if (!defined('FUNKPHP_PIPELINE_REQUEST_DIR') || !defined('FUNKPHP_PIPELINE_POST_RESPONSE_DIR')) {
+        cli_err('[cli_pipeline_file_status()]: FUNKPHP_PIPELINE_REQUEST_DIR or FUNKPHP_PIPELINE_POST_RESPONSE_DIR Constant(s) is/are not defined. Cannot check for Pipeline existence. If a Command File called this function, this error now stopped the command execution!');
+    }
+    if (!is_string($validatedPipelineString) || empty(trim($validatedPipelineString))) {
+        cli_err('[cli_pipeline_file_status()]: The Provided Pipeline String must be a Non-Empty String.  If a Command File called this function, this error now stopped the command execution!');
+    }
+    // Variables that are returned with default values that change after checks
+    $plExists = false;
+    $plPrefix = false;
+    $plAnonymous = false;
+    $plExistsInRequestDir = false;
+    $plExistsInPostResponseDir = false;
+    $plExistsInBothDirs = false;
+    // We start by trying to find in both directories based on constants and see if files exist in either
+    // and change the variables accordingly
+    $pipelineRequestFilePath = FUNKPHP_PIPELINE_REQUEST_DIR . '/' . $validatedPipelineString . '.php';
+    $pipelinePostResponseFilePath = FUNKPHP_PIPELINE_POST_RESPONSE_DIR . '/' . $validatedPipelineString . '.php';
+    if (file_exists($pipelineRequestFilePath) && is_file($pipelineRequestFilePath)) {
+        $plExistsInRequestDir = true;
+        $included = include_once $pipelineRequestFilePath;
+        if (is_callable($included) && ($included instanceof Closure)) {
+            $plAnonymous = true;
+        }
+    }
+    if (file_exists($pipelinePostResponseFilePath) && is_file($pipelinePostResponseFilePath)) {
+        $plExistsInPostResponseDir = true;
+        $included = include_once $pipelinePostResponseFilePath;
+        if (is_callable($included) && ($included instanceof Closure)) {
+            $plAnonymous = true;
+        }
+    }
+    // Finally check "pl_" prefix and set other variables based on checks
+    if (str_starts_with($validatedPipelineString, 'pl_')) {
+        $plPrefix = true;
+    }
+    $plExists = ($plExistsInRequestDir || $plExistsInPostResponseDir);
+    $plExistsInBothDirs = ($plExistsInRequestDir && $plExistsInPostResponseDir);
+    return [
+        'exists' => $plExists,
+        'has_valid_prefix' => $plPrefix,
+        'is_anonymous' => $plAnonymous,
+        'exists_in_request_dir' => $plExistsInRequestDir,
+        'exists_in_post_response_dir' => $plExistsInPostResponseDir,
+        'exists_in_both_dirs' => ($plExistsInRequestDir && $plExistsInPostResponseDir),
+        'pipeline_is_valid' => ($plExists && $plPrefix && $plAnonymous && !$plExistsInBothDirs),
+        'full_file_path_request' => $pipelineRequestFilePath,
+        'full_file_path_post_response' => $pipelinePostResponseFilePath,
+        'pipeline_request_dir_exists' => is_dir(FUNKPHP_PIPELINE_REQUEST_DIR),
+        'pipeline_request_dir_readable' => is_readable(FUNKPHP_PIPELINE_REQUEST_DIR),
+        'pipeline_request_dir_writable' => is_writable(FUNKPHP_PIPELINE_REQUEST_DIR),
+        'pipeline_post_response_dir_exists' => is_dir(FUNKPHP_PIPELINE_POST_RESPONSE_DIR),
+        'pipeline_post_response_dir_readable' => is_readable(FUNKPHP_PIPELINE_POST_RESPONSE_DIR),
+        'pipeline_post_response_dir_writable' => is_writable(FUNKPHP_PIPELINE_POST_RESPONSE_DIR),
+    ];
+}
+
 /**
  * Checks for duplicate Folder=>File=>Function route keys in a matched route array.
  * @param array $matchedRoute The matched route array to check.
@@ -192,6 +363,52 @@ function cli_extract_method_route($validatedMethodRouteString)
     $route = $routePart;
     cli_info_without_exit("OK! Parsed Method & Route:`$method$route`");
     return [$method, $route];
+}
+
+/**
+ * Extracts and normalizes the Middleware file name, ensuring the 'mw_' prefix is present.
+ *
+ * NOTE: ASSUMES the input string has been previously validated and is non-empty.
+ *
+ * @param string $validatedMiddlewareString The validated input string (e.g., "n:auth_check" or "auth_check").
+ * @return string The normalized file name, guaranteed to start with 'mw_' (e.g., "mw_auth_check").
+ */
+function cli_extract_middleware($validatedMiddlewareString)
+{
+    // 1. Remove any prefix (e.g., n:), if this is still attached to the string
+    $prefixRegex = '/^([a-z]+:)/i';
+    $sanitizedString = preg_replace($prefixRegex, '', $validatedMiddlewareString, 1);
+
+    // 2. Add hte "mw_" prefix if not already present and return string
+    if (str_starts_with($sanitizedString, 'mw_')) {
+        cli_info_without_exit("OK! Parsed Middleware Name:`$sanitizedString`");
+        return $sanitizedString;
+    }
+    cli_info_without_exit("OK! Parsed Middleware Name:`mw_$sanitizedString`");
+    return 'mw_' . $sanitizedString;
+}
+
+/**
+ * Extracts and normalizes the Pipeline file name, ensuring the 'pl_' prefix is present.
+ *
+ * NOTE: ASSUMES the input string has been previously validated and is non-empty.
+ *
+ * @param string $validatedPipelineString The validated input string (e.g., "name:logging" or "pl_logging").
+ * @return string The normalized file name, guaranteed to start with 'pl_' (e.g., "pl_logging").
+ */
+function cli_extract_pipeline($validatedPipelineString)
+{
+    // 1. Remove any prefix (e.g., n:), if this is still attached to the string
+    $prefixRegex = '/^([a-z]+:)/i';
+    $sanitizedString = preg_replace($prefixRegex, '', $validatedPipelineString, 1);
+
+    // 2. Add hte "pl_" prefix if not already present and return string
+    if (str_starts_with($sanitizedString, 'pl_')) {
+        cli_info_without_exit("OK! Parsed Pipeline Name:`$sanitizedString`");
+        return $sanitizedString;
+    }
+    cli_info_without_exit("OK! Parsed Pipeline Name:`pl_$sanitizedString`");
+    return 'pl_' . $sanitizedString;
 }
 
 // Helper function that checks if a given $routeKey has the structure
@@ -1097,7 +1314,7 @@ function cli_default_created_fn_files($type, $methodAndRoute, $folder, $file, $f
         cli_info('[cli_default_created_fn_files()]: The fact You are seeing this strongly suggests you have called the function directly instead of letting other functions calling it indirectly and you have probably removed the first safety-check at the top of the function!');
         return null;
     }
-
+    // Return finalized created string
     return $entireCreatedString;
 }
 

@@ -37,8 +37,11 @@ return [
     // This is not a (sub)command or argument regex but used by some commands to validate route syntax!
     'routeDynamicEndRegex' => '/\/:[a-zA-Z-_0-9]+$/i',
 
-    // `n:middlewareName` or `name:pipeline_name` | For Middlewares & Pipeline Anonymous Function Files
-    'nameOnlyRegex' => '/^(name|n):([a-zA-Z_0-9]+)$/i',
+    // `n:middlewareName` or `n:pipeline_name` | For Middlewares & Pipeline Anonymous Function Files
+    'nameOnlyRegex' => '/^(n):([a-z_][a-zA-Z_0-9]+)$/i',
+
+    // plt:request OR plt:post
+    'plTypeRegex' => '/^plt:(request|post)$/i',
 
     // Add more regexes as needed in the future!
     '' => '',
