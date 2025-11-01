@@ -406,6 +406,7 @@ function cli_extract_folder_file_fn(string $validatedFolderFileFnString): array
  */
 function cli_extract_method_route($validatedMethodRouteString)
 {
+    $validatedMethodRouteString = mb_strtolower($validatedMethodRouteString);
     // 1. Remove any prefix (e.g., r:), if this is still attached to the string
     $prefixRegex = '/^([a-z]+:)/i';
     $sanitizedString = preg_replace($prefixRegex, '', $validatedMethodRouteString, 1);
@@ -445,6 +446,7 @@ function cli_extract_method_route($validatedMethodRouteString)
  */
 function cli_extract_middleware($validatedMiddlewareString)
 {
+    $validatedMiddlewareString = mb_strtolower($validatedMiddlewareString);
     // 1. Remove any prefix (e.g., n:), if this is still attached to the string
     $prefixRegex = '/^([a-z]+:)/i';
     $sanitizedString = preg_replace($prefixRegex, '', $validatedMiddlewareString, 1);
@@ -467,6 +469,7 @@ function cli_extract_middleware($validatedMiddlewareString)
  */
 function cli_extract_pipeline($validatedPipelineString)
 {
+    $validatedPipelineString = mb_strtolower($validatedPipelineString);
     // 1. Remove any prefix (e.g., n:), if this is still attached to the string
     $prefixRegex = '/^([a-z]+:)/i';
     $sanitizedString = preg_replace($prefixRegex, '', $validatedPipelineString, 1);
@@ -479,19 +482,26 @@ function cli_extract_pipeline($validatedPipelineString)
     cli_info_without_exit("OK! Parsed Pipeline Name:`pl_$sanitizedString`");
     return 'pl_' . $sanitizedString;
 }
+/**
+ * Extracts and normalizes the Pipeline type from a validated string.
+ * SUPER IMPORTANT: ASSUMES the input string has been previously validated and is non-empty.
+ *
+ * @param string $validatedPipelineString
+ * @return string The normalized Pipeline type (e.g., "request" or "post-response").
+ */
 function cli_extract_pipeline_type($validatedPipelineString)
 {
+    $validatedPipelineString = mb_strtolower($validatedPipelineString);
     // 1. Remove any prefix (e.g., n:), if this is still attached to the string
     $prefixRegex = '/^([a-z]+:)/i';
     $sanitizedString = preg_replace($prefixRegex, '', $validatedPipelineString, 1);
-
     // 2. If it's "post" we rename it to "post-response" for clarity
-    if (strtolower($sanitizedString) === 'post') {
+    if ($sanitizedString === 'post') {
         cli_info_without_exit("OK! Parsed Pipeline Type:`post-response`");
         return 'post-response';
     }
-    cli_info_without_exit("OK! Parsed Pipeline Type:`$sanitizedString`");
-    return $sanitizedString;
+    cli_info_without_exit("OK! Parsed Pipeline Type:`request`");
+    return "request";
 }
 
 // Helper function that checks if a given $routeKey has the structure
@@ -2167,7 +2177,7 @@ function cli_get_valid_cli_input($prompt, $regex, $required = true, $default = n
     }
     // $default must be a string if set
     if (isset(($default)) && !is_string($default)) {
-        cli_err('Provided $default value for cli_get_valid_cli_input() is NOT a String which it must be if you wanna use a default value that is used when skipping CLI input. This error means that the Command File has stopped running before receiving any remaining CLI inputs!');
+        cli_err('Provided $default value for cli_get_valid_cli_input() is NOT a String which it must be if you wanna use a default value that is used when skipping CLI input. Set it to `null` to omit it. This error means that the Command File has stopped running before receiving any remaining CLI inputs!');
     }
     // $helpText must be a non-empty string if set
     if (isset($helpText) && (!is_string($helpText) || empty($helpText))) {
@@ -2189,9 +2199,11 @@ function cli_get_valid_cli_input($prompt, $regex, $required = true, $default = n
         $input = trim(fgets(STDIN));
         // 2. Handle Empty Input (The core logic addition)
         if (empty($input)) {
-            // A. If required, error out.
-            // B. If not required and a default exists, use the default.
-            // C. If not required and NO default, return null (skippable).
+            // Check and use default value if provided
+            if ($default !== null) {
+                return $default;
+            }
+            // If required, display error and continue loop
             if ($required) {
                 cli_err_without_exit('Required input and must Match Regex Pattern:`' . $regex . '`. (You can omit the prefix if any)');
                 if (isset($helpText) && is_string($helpText) && !empty($helpText)) {
@@ -2199,9 +2211,7 @@ function cli_get_valid_cli_input($prompt, $regex, $required = true, $default = n
                 }
                 continue;
             }
-            if ($default !== null) {
-                return $default;
-            }
+            // No default and not required, so we return null
             return null;
         }
         // Add prefix to input value if set so it will work
@@ -2367,6 +2377,7 @@ function cli_get_cli_input_from_interactive_or_regular($args, $command, $argumen
     }
     $regexToMatch = $orderedParams[1];
     $required = $orderedParams[2];
+    $default = $orderedParams[3];
     $help = $orderedParams[4];
     $callableValidator = $orderedParams[5];
     $prefix = $orderedParams[6];
@@ -2417,6 +2428,11 @@ function cli_get_cli_input_from_interactive_or_regular($args, $command, $argumen
                 }
             }
         }
+        // Return default if no match found but default is set and required is true
+        if ($finalValue === null && $required && $default) {
+            return $default;
+        }
+        // If there is no default and no match found but required is true, we error out
         if ($finalValue === null && $required) {
             if ($help) {
                 cli_err_without_exit("Required Argument '$prefix{$argument}' for Command '{$command}' did NOT match with any of the provided CLI Arguments for Regex:`$regexToMatch`. The Command File has stopped running before processing any remaining CLI Arguments!");

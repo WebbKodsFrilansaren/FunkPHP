@@ -117,7 +117,7 @@ return [
         'make:pipeline' => [
             'args' => [
                 'pipeline_name' => [
-                    'prompt' => 'Enter the name of the Pipeline file (e.g., "pl_json_api", "json_api", or "security_flow"):',
+                    'prompt' => 'Enter Pipeline Name (e.g., "pl_json_api", "json_api", or "security_flow";  `pl_` is added automatically as prefix):',
                     'regex' => $cliRegex['nameOnlyRegex'],
                     'required' => true,
                     'default' => null,
@@ -126,7 +126,7 @@ return [
                     'external_callable_validator' => null,
                 ],
                 'pipeline_type' => [
-                    'prompt' => 'Enter Pipeline Type (req|post) where `req` means `request` and `post` means `post-response`. This is needed to place it in correct Pipeline Subdirectory:',
+                    'prompt' => 'Enter Pipeline Type (req|post) where `req` means `request` and `post` means `post-response`. This is needed to place it in correct Pipeline Subdirectory. Default is',
                     'regex' => $cliRegex['plTypeRegex'],
                     'required' => true,
                     'default' => 'req',
