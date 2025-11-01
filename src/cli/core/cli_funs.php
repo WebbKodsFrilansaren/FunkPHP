@@ -90,7 +90,7 @@ function array_subkeys_single(array &$startingArray, string ...$subkeys): array
  * 'middleware_dir_readable', 'middleware_dir_writable',
  * and 'full_file_path'.
  * @return bool True on successful atomic creation/write of the file, false on failure.
- * @throws Exception/cli_err Stops command execution if $middlewareNameString is invalid,
+ * @throws cli_err Stops command execution if $middlewareNameString is invalid,
  * $mwStatusArray is missing required keys, file already exists,
  * or directory permissions are insufficient.
  */
@@ -318,7 +318,6 @@ function cli_duplicate_folder_file_fn_route_key($matchedRoute, $folder, $file, $
     return false;
 }
 
-
 /**
  * Extracts the folder, file, and function parts from a validated 'folder=>file=>function' string.
  * SUPER IMPORTANT: This function ASSUMES the input has already been successfully validated.
@@ -385,8 +384,7 @@ function cli_extract_method_route($validatedMethodRouteString)
 
 /**
  * Extracts and normalizes the Middleware file name, ensuring the 'mw_' prefix is present.
- *
- * NOTE: ASSUMES the input string has been previously validated and is non-empty.
+ * SUPER IMPORTANT: ASSUMES the input string has been previously validated and is non-empty.
  *
  * @param string $validatedMiddlewareString The validated input string (e.g., "n:auth_check" or "auth_check").
  * @return string The normalized file name, guaranteed to start with 'mw_' (e.g., "mw_auth_check").
@@ -408,8 +406,7 @@ function cli_extract_middleware($validatedMiddlewareString)
 
 /**
  * Extracts and normalizes the Pipeline file name, ensuring the 'pl_' prefix is present.
- *
- * NOTE: ASSUMES the input string has been previously validated and is non-empty.
+ * SUPER IMPORTANT: ASSUMES the input string has been previously validated and is non-empty.
  *
  * @param string $validatedPipelineString The validated input string (e.g., "name:logging" or "pl_logging").
  * @return string The normalized file name, guaranteed to start with 'pl_' (e.g., "pl_logging").

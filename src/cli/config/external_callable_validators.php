@@ -10,7 +10,8 @@
 // would be "cli_external_validator_method_route" and you would use 'method_route' in the Command File
 // under the key 'external_callable_validator' for the given argument you want to validate with this function!
 
-// Used by "make:route" command's "method/route" argument
+// Used by "make:route" command's "method/route" argument in src/cli/config/commands.php
+// Prefix `cli_external_validator_` is REQUIRED for all external callable validators!
 function cli_external_validator_method_route($matchedRegexMethodRouteString)
 {
     if (!is_string($matchedRegexMethodRouteString) || empty(trim($matchedRegexMethodRouteString))) {

@@ -1,5 +1,5 @@
 <?php // FunkCLI COMMAND "php funk make:middleware" - creates a new Middleware File with a skeleton Middleware Anonymous Function inside of it
-// it can also attach to an optionally - but must exist - Method/Route!
+// it can also attach to an optionally provided - only existing - Method/Route. Does NOT create Method/Route!
 $ROUTES = $singleRoutesRoute['ROUTES'];
 
 // Structure the correct folder name based on the first parameter,
@@ -76,56 +76,72 @@ if (!$arg_methodRoute) {
 }
 
 /////////////////////////////////////////////////////////
-// OPTIONAL: Creating the Method/Route if it does not
-// exist yet AND add the found/created Route Key to it!
+// OPTIONAL: Adding Created/Found Middleware to the
+// Method/Route if it exists, otherwise it will say it
+// does not and say that only the Middleware was created!
 /////////////////////////////////////////////////////////
-if (!array_key_exists($method, $ROUTES)) {
-    $ROUTES[$method] = [];
-    $ROUTES[$method][$route][] = $routeKey;
-    cli_info_without_exit("Added New Method and New Route to it... Attempting to rebuild the Trie & Route File Now... If it fails, the Route will NOT have been added and you will have to retry. The created/found `$singleFolder=>$file=>$fn` Handler will still exist though!");
-    cli_sort_build_routes_compile_and_output(["ROUTES" => $ROUTES]);
-    cli_success_without_exit("Created New Valid Method `$method` in `funkphp/routes/routes.php`!");
-    cli_success_without_exit("Created Method/Route `$method$route` in `funkphp/routes/routes.php`!");
-    cli_success("Found/Created `$singleFolder=>$file=>$fn` Handler and then added it to Created `$method$route` in `funkphp/routes/routes.php`!");
+if (!isset($ROUTES[$method][$route])) {
+    cli_warning_without_exit("The optionally provided Method/Route:`$method$route` does NOT exist in `funkphp/routes/routes.php` so could NOT add the Middleware to it.");
+    cli_info("Middleware File `$middleware` was Created/Found but the optionally provided Method/Route:`$method$route` does NOT exist in `funkphp/routes/routes.php` so could NOT add the Middleware to it. Command Done!");
+} elseif (!is_array($ROUTES[$method][$route]) || !array_is_list($ROUTES[$method][$route])) {
+    cli_warning_without_exit("The optionally provided Method/Route:`$method$route` does exist in `funkphp/routes/routes.php` but was NOT a valid Numbered Array so could NOT add the Middleware to it. Verify it is a Numbered Array Starting at Index 0!");
+    cli_info("Middleware File `$middleware` was Created/Found WITHOUT adding it to the optionally provided Method/Route:`$method$route` in `funkphp/routes/routes.php` due to its invalid Array Structure (not a numbered list). Command Done!");
 }
 
-// Here the Method exists already so we check if the Route exists and is a numbered array (valid structure)
-if (array_key_exists($route, $ROUTES[$method])) {
-    cli_info_without_exit("`$method$route` already exists in `funkphp/routes/routes.php`. Attempting Adding `$folder=>$file=>$fn` to it and then rebuilding Routes!");
-} else {
-    // Check for dynamic conflicting routes in Trie Routes if the new route ends with a dynamic part like "/:something"
-    if (preg_match($cliRegex['routeDynamicEndRegex'], $route)) {
-        $troute = $singleTroute;
-        $findDynamicRoute = cli_match_developer_route($method, $route, $troute, $ROUTES, $ROUTES);
-        if ($findDynamicRoute['route'] !== null) {
-            cli_err_without_exit("Found Dynamic Route \"{$findDynamicRoute['method']}{$findDynamicRoute['route']}\" in Trie Routes would conflict with \"$method$route\".");
-            cli_info("Run `php funk recompile|rc` to rebuild Trie Routes if You Manually Removed that Route from `funkphp/routes/routes.php` you want to add again. Command stopped due to this and adding found/created `$folder=>$file=>$fn` to `$method$route` did NOT happen as a result!");
+// Middlewares key not added yet, so we add it to the top of the numbered array meaning we need to reshift
+// all existing numbered array items down by one to make room for the new first item! Because it has not
+// been created yet we do not need to verify its valid structure as this is the first item being added!
+if (!isset($ROUTES[$method][$route][0]['middlewares'])) {
+    array_unshift($ROUTES[$method][$route], []);
+    $ROUTES[$method][$route][0]['middlewares'][] = [$middleware => null];
+    cli_sort_build_routes_compile_and_output(["ROUTES" => $ROUTES]);
+    cli_success("Found/Created Middleware File AND Added it as the First Key to `$method$route` with the Single Middleware `$middleware`. Command Completed Successfully!");
+}
+// Here we must validate the middlewares structure before proceeding to add the new Middleware. We do not
+// add a new middleware if it is invalid structure due to risk of breaking the Route and we also inform
+// the developer to fix the issue first before retrying this Command!
+elseif (isset($ROUTES[$method][$route][0]['middlewares'])) {
+    // First we iterate through $ROUTES[$method][$route] to see if
+    // the "middlewares" main mkey is at any other index than 0 which
+    // is NOT allowed  so we error out and warn the developer to remove
+    // or move that key to the top only index 0!
+    $foundDuplicateMiddlewareMainkey = false;
+    foreach ($ROUTES[$method][$route] as $indexKey => $routeKeyItem) {
+        if ($indexKey === 0) {
+            continue;
+        }
+        if (isset($routeKeyItem['middlewares'])) {
+            $foundDuplicateMiddlewareMainkey = true;
+            break;
         }
     }
-    // Here a new Route is added to the Method because it does not already exist
-    $ROUTES[$method][$route] = [];
-    cli_success_without_exit("`$method$route` CREATED in `funkphp/routes/routes.php`. Attempting Adding `$folder=>$file=>$fn` to it and then rebuilding Routes!");
-}
-
-// Created/Found the Method/Route must be a numbered array (even if empty)
-if (!array_is_list($ROUTES[$method][$route])) {
-    cli_err("`$method$route` in `funkphp/routes/routes.php` is NOT a Numbered Array even though it should be. Command stopped without adding the created/found Route Key `$singleFolder=>$file=>$fn` to `$method$route`!");
-}
-// If there are already Route Keys in the Method/Route, we check and warn for duplicates
-if (count($ROUTES[$method][$route]) > 0) {
-    if (!cli_duplicate_folder_file_fn_route_key($ROUTES[$method][$route], $singleFolder, $file, $fn, $method . $route)) {
-        cli_info_without_exit("Created/Found `$singleFolder=>$file=>$fn` does NOT exists in found/created `$method$route` in `funkphp/routes/routes.php`. Adding $createdFFF to it and then rebuilding Routes!");
-    } else {
-        cli_info_without_exit("Adding $createdFFF as the last Route Key to `$method$route` and then rebuilding Routes!");
+    if ($foundDuplicateMiddlewareMainkey) {
+        cli_err_without_exit("The optionally provided Method/Route:`$method$route` does exist in `funkphp/routes/routes.php` but has more than one `middlewares` Main Key at different Indexes so could NOT add the Middleware to it. Command Stopped to prevent breaking the Route!");
+        cli_warning_without_exit("The `middlewares` Main Key MUST ONLY exist at Index 0 of the Method/Route's Numbered Array. At any other indexes it will be considered as a `folder=>file=function` and you run the risk of thinking you are doing important Middleware additions but in reality you are just adding more Route Keys that do NOT function as Middlewares at all!");
+        cli_info("Please fix the `middlewares` Main Key in `$method$route` in `funkphp/routes/routes.php` so it ONLY exists at Index 0 like this:`[0] => ['middlewares' => [0 => ['mw_yourmiddleware' => null], 1 => ['mw_anothermiddleware' => null]]]`. Then retry this Command!");
     }
-} else {
-    cli_info_without_exit("Created/Found `$method$route` has NO Route Keys yet. Adding $createdFFF to it and then rebuilding Routes!");
-}
 
-// We now add it and then rebuild the Routes
-$ROUTES[$method][$route][] = $routeKey;
-cli_sort_build_routes_compile_and_output(["ROUTES" => $ROUTES]);
-cli_success("Found/Created `$singleFolder=>$file=>$fn` Handler and then added it to Created `$method$route` in `funkphp/routes/routes.php`!");
+    // 'middlewares' key found but is NOT a valid numbered array so we error out
+    if (!is_array($ROUTES[$method][$route][0]['middlewares']) || !array_is_list($ROUTES[$method][$route][0]['middlewares'])) {
+        cli_err_without_exit("The optionally provided Method/Route:`$method$route` does exist in `funkphp/routes/routes.php` but its `middlewares` Key was NOT a valid Numbered Array so could NOT add the Middleware to it. Command Stopped to prevent breaking the Route!");
+        cli_info("Please fix the `middlewares` Key in `$method$route` in `funkphp/routes/routes.php` so it is a valid Numbered Array like this:`'middlewares' => [0 => ['mw_yourmiddleware' => null], 1 => ['mw_anothermiddleware' => null]]; Then retry this Command!");
+    }
+    // Iterate through middlewares array and check that all keys are associative arrays (meanign they are like mw_name => null/whatever)
+    foreach ($ROUTES[$method][$route][0]['middlewares'] as $mwKeyItem) {
+        if (!is_array($mwKeyItem) || array_is_list($mwKeyItem)) {
+            cli_err_without_exit("The optionally provided Method/Route:`$method$route` does exist in `funkphp/routes/routes.php` but one or more of its `middlewares` Key Items was NOT a valid Associative Array so could NOT add the Middleware to it. Command Stopped to prevent breaking the Route!");
+            cli_info("Please fix the `middlewares` Key Items in `$method$route` in `funkphp/routes/routes.php` so ALL its Items are valid Associative Arrays like this:`['middlewares'] => [0] => ['mw_yourmiddleware' => null], [1] => ['and_so_on' => null]`. Then retry this Command!");
+        }
+        // If middleware is assopciative and has same name then we warn about duplicate but still add it again as last item
+        if (array_key_exists($middleware, $mwKeyItem)) {
+            cli_warning_without_exit("Duplicate Middleware Key - `$middleware` - in `$method$route`. However, will still add it AGAIN as the Last Middleware Key if Middleware Structure is ALL Valid!");
+        }
+    }
+    // Finally just add it to the end
+    $ROUTES[$method][$route][0]['middlewares'][] = [$middleware => null];
+    cli_sort_build_routes_compile_and_output(["ROUTES" => $ROUTES]);
+    cli_success("Found/Created Middleware File AND Added it as the Last Added Middleware to `$method$route`. Command Completed Successfully!");
+}
 
 // Catch outside of all possible if/else/switch statements. Could happen during Refactoring this Command File!
-cli_err("You are outside of the `make:handler` Command when it should have been caught/handled before ending up here. As a result it will terminate here now! Please report this as a Bug at `https://www.GitHub/WebbKodsFrilansaren/FunkPHP`!");
+cli_err("You are outside of the `make:middleware` Command when it should have been caught/handled before ending up here. As a result it will terminate here now! Please report this as a Bug at `https://www.GitHub/WebbKodsFrilansaren/FunkPHP`!");
