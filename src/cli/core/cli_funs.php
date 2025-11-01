@@ -73,8 +73,27 @@ function array_subkeys_single(array &$startingArray, string ...$subkeys): array
     return $results;
 }
 
-
-
+/**
+ * Creates a new Middleware file with a skeleton anonymous function, ensuring all
+ * necessary status checks have passed before writing to disk.
+ *
+ * This function enforces a strict contract: the status array MUST confirm the file
+ * does not already exist and the target directory is writable. It constructs
+ * the standard Middleware file content, including the required 'mw_' namespace,
+ * and uses atomic write for safety.
+ *
+ * @param string $middlewareNameString The validated name of the middleware (e.g., "mw_auth_check").
+ * @param array $mwStatusArray The status array returned by cli_middleware_file_status()
+ * which guarantees the file does not exist and the directory is valid.
+ * Requires keys: 'exists', 'has_valid_prefix', 'is_anonymous',
+ * 'middleware_is_valid', 'middleware_dir_exists',
+ * 'middleware_dir_readable', 'middleware_dir_writable',
+ * and 'full_file_path'.
+ * @return bool True on successful atomic creation/write of the file, false on failure.
+ * @throws Exception/cli_err Stops command execution if $middlewareNameString is invalid,
+ * $mwStatusArray is missing required keys, file already exists,
+ * or directory permissions are insufficient.
+ */
 function cli_create_middleware_file($middlewareNameString, $mwStatusArray): bool
 {
     // $middlewareNameString must be non-empty string or hard error
@@ -114,7 +133,6 @@ function cli_create_middleware_file($middlewareNameString, $mwStatusArray): bool
     $mwString = "<?php\n\nnamespace FunkPHP\\Middlewares\\$middlewareNameString;\n// FunkCLI Created on " . date('Y-m-d H:i:s') . "!\n\nreturn function (&\$c, \$passedValue = null) {\n\t// Placeholder Comment so Regex works - Remove & Add Your Own Code!\n};\n";
     return cli_crud_folder_php_file_atomic_write($mwString, $mwStatusArray['full_file_path']);
 }
-
 
 /**
  * Checks the existence and validity status of a Middleware file based on strict FunkPHP criteria.
