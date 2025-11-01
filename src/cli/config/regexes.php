@@ -40,8 +40,8 @@ return [
     // `n:middlewareName` or `n:pipeline_name` | For Middlewares & Pipeline Anonymous Function Files
     'nameOnlyRegex' => '/^(n):([a-z_][a-zA-Z_0-9]+)$/i',
 
-    // plt:request OR plt:post
-    'plTypeRegex' => '/^plt:(request|post)$/i',
+    // plt:req OR plt:post (post = post-request, runs after response sent and thus after request pipeline)
+    'plTypeRegex' => '/^plt:(req|post)$/i',
 
     // Add more regexes as needed in the future!
     '' => '',

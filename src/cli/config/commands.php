@@ -126,11 +126,11 @@ return [
                     'external_callable_validator' => null,
                 ],
                 'pipeline_type' => [
-                    'prompt' => 'Enter Pipeline Type (request|post) to place it in correct Pipeline Subdirectory:',
+                    'prompt' => 'Enter Pipeline Type (req|post) where `req` means `request` and `post` means `post-response`. This is needed to place it in correct Pipeline Subdirectory:',
                     'regex' => $cliRegex['plTypeRegex'],
                     'required' => true,
-                    'default' => 'request',
-                    'help' => 'The pipeline type determines which folder the file is created in: "request" for `src/funkphp/pipeline/request/` or "post" for `src/funkphp/pipeline/post-response/`. Defaults to "request".',
+                    'default' => 'req',
+                    'help' => 'The pipeline type determines which folder the file is created in: "req" for `src/funkphp/pipeline/request/` or "post" for `src/funkphp/pipeline/post-response/`. Defaults to "req".',
                     'prefix' => 'plt:',
                     'external_callable_validator' => null,
                 ]

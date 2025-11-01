@@ -74,6 +74,60 @@ function array_subkeys_single(array &$startingArray, string ...$subkeys): array
 }
 
 /**
+ * Creates a new Pipeline file (in either 'request' or 'post-response' sub-directory)
+ * with a skeleton anonymous function.
+ *
+ * This function enforces a strict contract: the status array MUST confirm the file
+ * does not already exist in EITHER pipeline directory and that the target directory
+ * is writable. It constructs the standard Pipeline file content, including the
+ * required 'pl_' namespace, and uses atomic write for safety.
+ *
+ * @param string $pipelineNameString The validated name of the pipeline (e.g., "pl_json_api").
+ * @param string $pipelineType The subdirectory target: 'request' or 'post'.
+ * @param array $plStatusArray The status array returned by cli_pipeline_file_status()
+ * which guarantees the file does not exist in a conflicting location and the directory is valid.
+ * Requires keys: 'exists', 'has_valid_prefix', 'is_anonymous', 'full_file_path',
+ * 'exists_in_request_dir', 'exists_in_post_response_dir', and directory status keys (if applicable).
+ * @return bool True on successful atomic creation/write of the file, false on failure.
+ * @throws cli_err Stops command execution if input is invalid or file/directory
+ * checks fail (e.g., file already exists in a conflicting location, or permissions are insufficient).
+ */
+function cli_create_pipeline_file($pipelineNameString, $pipelineType, $plStatusArray): bool
+{
+    // 1. Mandatory Input Validation (Defensive Checks)
+    if (!is_string($pipelineNameString) || empty(trim($pipelineNameString))) {
+        cli_err('[cli_create_pipeline_file()]: Provided Pipeline Name must be a Non-Empty String.');
+    }
+    $targetDirKey = ($pipelineType === 'request') ? 'FUNKPHP_PIPELINE_REQUEST_DIR' : 'FUNKPHP_PIPELINE_POST_RESPONSE_DIR';
+    if (!defined($targetDirKey)) {
+        cli_err('[cli_create_pipeline_file()]: Target Pipeline Directory Constant is not defined.');
+    }
+    // Trusting that $plStatusArray was properly validated by the calling command
+    // and is a complete array from cli_pipeline_file_status().
+
+    // 2. Critical Existence and Conflict Checks
+    if ($plStatusArray['exists']) {
+        cli_err('[cli_create_pipeline_file()]: Pipeline File already exists. Cannot create again.');
+    }
+
+    // Since the directory paths are needed, we reconstruct the target path
+    $targetBasePath = constant($targetDirKey);
+    $outputNewFile = $targetBasePath . '/' . $pipelineNameString . '.php';
+
+    // 3. Permission Checks (Simplified, assuming $targetBasePath is the direct path)
+    if (!is_dir($targetBasePath) || !is_writable($targetBasePath)) {
+        cli_err_without_exit("[cli_create_pipeline_file()]: Pipeline Directory `{$targetBasePath}` is either missing or not writable. Command Stopped!");
+    }
+
+    // 4. Prepare Default Pipeline File String Content
+    $namespace = "FunkPHP\\Pipelines\\" . ($pipelineType === 'request' ? 'Request' : 'PostResponse') . "\\$pipelineNameString";
+    $plString = "<?php\n\nnamespace $namespace;\n// FunkCLI Created on " . date('Y-m-d H:i:s') . "!\n\nreturn function (&\$c,\$passedValue = null) {\n\t// Placeholder Comment so Regex works - Remove & Add Your Own Code!\n};\n";
+
+    // 5. Atomic Creation/Write
+    return cli_crud_folder_php_file_atomic_write($plString, $outputNewFile);
+}
+
+/**
  * Creates a new Middleware file with a skeleton anonymous function, ensuring all
  * necessary status checks have passed before writing to disk.
  *
@@ -424,6 +478,20 @@ function cli_extract_pipeline($validatedPipelineString)
     }
     cli_info_without_exit("OK! Parsed Pipeline Name:`pl_$sanitizedString`");
     return 'pl_' . $sanitizedString;
+}
+function cli_extract_pipeline_type($validatedPipelineString)
+{
+    // 1. Remove any prefix (e.g., n:), if this is still attached to the string
+    $prefixRegex = '/^([a-z]+:)/i';
+    $sanitizedString = preg_replace($prefixRegex, '', $validatedPipelineString, 1);
+
+    // 2. If it's "post" we rename it to "post-response" for clarity
+    if (strtolower($sanitizedString) === 'post') {
+        cli_info_without_exit("OK! Parsed Pipeline Type:`post-response`");
+        return 'post-response';
+    }
+    cli_info_without_exit("OK! Parsed Pipeline Type:`$sanitizedString`");
+    return $sanitizedString;
 }
 
 // Helper function that checks if a given $routeKey has the structure

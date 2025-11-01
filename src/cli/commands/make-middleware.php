@@ -12,9 +12,7 @@ $method = null;
 $route = null;
 $matchedRoute = null;
 $createStatus = null;
-$folderTypeMW = "middlewares";
 $folderBaseMW = FUNKPHP_MIDDLEWARES_DIR . "/";
-$folderTypeRoutes = "routes";
 $folder = null;
 // 1. Find/create the Middleware Name argument (e.g., "n:auth" -> mw_auth)
 $arg_middleware = cli_get_cli_input_from_interactive_or_regular($args, 'make:middleware', 'middleware_name');
