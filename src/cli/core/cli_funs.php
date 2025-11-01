@@ -1792,10 +1792,10 @@ function cli_mw_exists_in_route(&$ROUTES, $method, $route, $mw_name)
  */
 function cli_validate_command_prefixes(string $command): void
 {
-    global $commandConfigMappings;
+    global $cliCommands;
     // We assume the caller (cli_get_cli_input_from_interactive_or_regular)
     // has already validated $command and the map structure.
-    $configMap = $commandConfigMappings['commands'][$command];
+    $configMap = $cliCommands['commands'][$command];
     // Safety check for args container, although cli_get_cli_input_from_interactive_or_regular handles the fatal error.
     if (!isset($configMap['args']) || !is_array($configMap['args'])) {
         return;
@@ -1993,19 +1993,19 @@ function cli_get_cli_input_from_interactive_or_regular($args, $command, $argumen
         cli_err("Provided value to \$keepPrefix was NOT a Boolean (false|true). Using 'null' as 'pseudo-false' is NOT allowed in current version of FunkPHP. This might mean that Interactive CLI Mode for a given Command:SubCommand in FunkCLI was not started and thus the command stopped early! This error probably means that the Command File has stopped running before receiving any remaining CLI inputs!");
     }
     // Global and check that $command is set in the
-    // $commandConfigMappings['commands'][$command]
+    // $cliCommands
     // oterhwise error out
-    global $commandConfigMappings;
+    global $cliCommands;
     if (
-        !isset($commandConfigMappings)
-        || !is_array($commandConfigMappings)
-        || !isset($commandConfigMappings['commands'])
-        || !is_array($commandConfigMappings['commands'])
-        || !array_key_exists($command, $commandConfigMappings['commands'])
+        !isset($cliCommands)
+        || !is_array($cliCommands)
+        || !isset($cliCommands['commands'])
+        || !is_array($cliCommands['commands'])
+        || !array_key_exists($command, $cliCommands['commands'])
     ) {
         cli_err("Interactive configuration error: Command '{$command}' not found in Command Configuration Map. Check your `cli/config/commands.php`. This might mean that Interactive CLI Mode for a given Command:SubCommand in FunkCLI was not started and thus the command stopped early! This error probably means that the Command File has stopped running before receiving any remaining CLI inputs! This error occured calling `cli_get_cli_input_from_interactive_or_regular(\$args,'$command','$argument');`");
     }
-    $configMap = $commandConfigMappings['commands'][$command];
+    $configMap = $cliCommands['commands'][$command];
     // Check that 'args' key first exist and is an array and then that any of its subkeys
     // is the $argument we are looking for
     if (

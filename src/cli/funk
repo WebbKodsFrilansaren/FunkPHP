@@ -92,89 +92,22 @@ define('ANSI_RESET', "\033[0m");
 global $funk_response_messages;
 $funk_response_messages = [];
 
-// Define used Regexes in an array
+// Check /config/cli_regexes.php and /config/cli_commands.php files
+// exist or error out, otherwise include them for later use
+if (
+    !is_readable(FUNKPHP_FILE_PATH_CLI_CONFIG_REGEX)
+    || !is_readable(FUNKPHP_FILE_PATH_CLI_CONFIG_COMMANDS)
+    || !is_readable(FUNKPHP_FILE_PATH_CLI_CONFIG_EXTERNAL_CALLABLE_VALIDATORS)
+) {
+    echo "\033[31m[FunkCLI - ERROR]: FunkPHP CLI Configuration File(s) - either `regexes.php`, `commands.php`, and/or `external_callable_validators.php`  - NOT FOUND in `src/cli/config` Directory. All 3 are REQUIRED by FunkCLI!\n\033[0m";
+    exit;
+}
 $cliRegex = include_once FUNKPHP_FILE_PATH_CLI_CONFIG_REGEX ?? [];
-
-// Map different aliases (different $subCommand for the same $command
-// and other info that some src/cli/commands-Files. Extend as needed!
-$commandConfigMappings = [
-    // Configure your own CLI Commands in the `src/cli/commands.php` file
-    // after you have created a Command File that oyu put in `src/cli/commands/`
-    'commands' => include_once CLI_DIR . '/config/commands.php' ?? [],
-    // Any string in this array will cause a non-stopping warning!
-    'folder_list_that_warns' => [
-        'routes',
-        'cached',
-        'classes',
-        'backups',
-        '_final_backups',
-        'valid',
-        'complete',
-        'functions',
-        'compiled',
-        'components',
-        'partials',
-        'blocked',
-        'config',
-        '_internals',
-        'batteries',
-        'funkeries',
-        'post-response',
-        'request',
-        'gui',
-        'public_html',
-        'cli',
-        'test',
-        'tests',
-        'schema',
-        'schemas',
-    ],
-    // Config for matched $subCommand based on matched `aliasesMap` above
-    'config' => [
-        // config for m/mw/middleware aliases
-        'middleware' => [
-            'aliases' => ['m', 'mw', 'middleware'],
-            'folder' => 'funkphp/middlewares',
-            'type' => 'middlewares',
-            'file_prefix' => 'm_',
-            'anonymous' => true,
-            'route_key' => ['middlewares' => null],
-        ],
-        // config for pl/pipeline aliases
-        'pipeline' => [
-            'aliases' => ['pl', 'pipeline'],
-            'folder' => 'funkphp/pipeline',
-            'type' => 'pipeline',
-            'file_prefix' => 'pl_',
-            'anonymous' => true,
-        ],
-        // config for v/validation aliases
-        'validation' => [
-            'aliases' => ['v', 'validation'],
-            'folder' => 'funkphp/validation',
-            'type' => 'validation',
-            'file_prefix' => 'v_',
-            'tables_required_validation' => true, // Use boolean flags for special logic
-        ],
-        // config for s/sql aliases
-        'sql' => [
-            'aliases' => ['s', 'sql'],
-            'folder' => 'funkphp/sql',
-            'type' => 'sql',
-            'file_prefix' => 's_',
-            'tables_required_sql' => true,
-        ],
-        // config for r/route/rutt aliases (only creating routes, no Route_Keys)
-        'route' => [
-            'aliases' => ['r', 'rutt', 'route'],
-        ],
-        // config for h/handler aliases (folder=>file=>fn creation)
-        'handler' => [
-            'aliases' => ['h', 'handler'],
-        ]
-    ],
-];
-
+$cliCommands = include_once FUNKPHP_FILE_PATH_CLI_CONFIG_COMMANDS ?? [];
+if (!isset($cliCommands['aliases']) || !is_array($cliCommands['aliases'])) {
+    echo "\033[31m[FunkCLI - ERROR]: FunkPHP CLI Configuration File `src/cli/config/commands.php` does NOT have the required `aliases` Key defined as an Array. This Key is REQUIRED by FunkCLI, leave it as an empty array if not used!\n\033[0m";
+    exit;
+}
 // Store whether we are in JSON mode or CLI mode and the
 // `command:optionalSubCommand` and its `arg1`,`arg2`...etc array!
 $JSON = false;
@@ -927,7 +860,8 @@ $mysqlOperatorSyntax = include_once FUNKPHP_FILE_PATH_SUPPORTED_MYSQL_OPERATORS 
 // GLOBAL INTERACTIVE MODE GUARD & JSON Only Command Files Check!
 // This prevents JSON mode from ever attempting a command with zero arguments.
 // The other check is that $command that starts with "json" must then be called
-// with 'Accept' Header set to 'application/json'
+// with 'Accept' Header set to 'application/json'. We also disallow the use "aliases"
+// as a single command (no subcommand) no matter what mode since it is a reserved keywortd.
 // --------------------------------------------------------------------------------
 if (!$CLI && empty($args)) {
     cli_err('Interactive Mode is NOT supported with JSON Data! You must provide arguments using "arg1", "arg2", etc., keys in the JSON payload.');
@@ -939,13 +873,39 @@ if (str_starts_with($command, 'json')) {
         || str_contains($_SERVER['HTTP_ACCEPT'], 'application/json')
     ) {
         cli_err('Commands starting with "json" are ONLY supported in JSON Mode with `Accept: application/json` Header set and are meant to be used only by browsers/servers making JSON-based API Calls!');
-        exit;
     }
+}
+if ($command === 'aliases' && empty($subCommand)) {
+    cli_err('The Command Name "aliases" is a Reserved Keyword in FunkCLI used for aliases for created commands in `src/cli/config/commands.php` (return [\'aliases\' => [...]]). You cannot use it as a Command without a Subcommand. It is also not allowed to delete that key but you can make it an empty array!');
 }
 // --------------------------------------------------------------------------------
 // DYNAMIC COMMAND FILE LOADER - Loads based on "$command-$subCommand.php" where
 // $subCommand is optional (the use of ":"). Commands are in `src/cli/commands`.
+// But first we check if it exists as an alias in the `config/commands.php` file!
 // --------------------------------------------------------------------------------
+if (!empty($command) && empty($subCommand)) {
+    if (isset($cliCommands['aliases'][$command])) {
+        $fullAliasCommand = $cliCommands['aliases'][$command];
+        if (str_contains($fullAliasCommand, ':')) {
+            $command = explode(':', $fullAliasCommand, 2)[0];
+            $subCommand = explode(':', $fullAliasCommand, 2)[1];
+        } else {
+            $command = $fullAliasCommand;
+            $subCommand = '';
+        }
+    }
+} else if (!empty($command) && !empty($subCommand)) {
+    if (isset($cliCommands['aliases'][$command . ':' . $subCommand])) {
+        $fullAliasCommand = $cliCommands['aliases'][$command . ':' . $subCommand];
+        if (str_contains($fullAliasCommand, ':')) {
+            $command = explode(':', $fullAliasCommand, 2)[0];
+            $subCommand = explode(':', $fullAliasCommand, 2)[1];
+        } else {
+            $command = $fullAliasCommand;
+            $subCommand = '';
+        }
+    }
+}
 //  `php funk $command:$subCommand`
 if (is_readable(CLI_COMMANDS_DIR . '/' . $command . '-' . $subCommand . '.php')) {
     include CLI_COMMANDS_DIR . '/' . $command . '-' . $subCommand . '.php';
@@ -958,7 +918,7 @@ elseif (is_readable(CLI_COMMANDS_DIR . '/' . $command . '.php')) {
 }
 // Command file NOT found (or maybe typo), we handle this below - this is the "catch-all" case
 else {
-    cli_err_syntax_without_exit("Command `$command" . (!empty($subCommand) ? ":$subCommand" : "") . "` not found or is using invalid syntax. Expected `command:optionalSubcommand` which starts up an interactive input session to get more details if needed OR `command:optionalSubcommand prefix1:param1 prefix2:param2 prefixetc:etc3` if you know all parameters upfront.");
+    cli_err_syntax_without_exit("Command File `$command" . (!empty($subCommand) ? ":$subCommand" : "") . "` not found or is using invalid syntax. Expected `command:optionalSubcommand` which starts up an interactive input session to get more details if needed OR `command:optionalSubcommand prefix1:param1 prefix2:param2 prefixetc:etc3` if you know all parameters upfront.");
     cli_info_without_exit("IMPORTANT: Interactive Input Session is NOT supported in JSON Mode! Also: File names should be using ONLY \":\" to separate command and subcommand, underscores `_` or any other kind of separator is NOT SUPPORTED in current version of FunkCLI in the FunkPHP Framework!");
     cli_info("Use the following JSON format: `{ \"command\": \"<command>:<first_param>\", \"arg1\": \"<arg1>\", \"arg2\": \"<arg2>\", \"arg3\": \"<arg3>\", \"arg4\": \"<arg4>\", \"arg5\": \"<arg5>\", \"arg6\": \"<arg6>\" }`");
 }
