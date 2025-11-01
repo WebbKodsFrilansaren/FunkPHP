@@ -102,25 +102,42 @@ function cli_create_pipeline_file($pipelineNameString, $pipelineType, $plStatusA
     if (!defined($targetDirKey)) {
         cli_err('[cli_create_pipeline_file()]: Target Pipeline Directory Constant is not defined.');
     }
-    // Trusting that $plStatusArray was properly validated by the calling command
-    // and is a complete array from cli_pipeline_file_status().
-
+    // Validate $plStatusArray has required keys
+    $requiredKeys = [
+        'exists',
+        'has_valid_prefix',
+        'is_anonymous',
+        'exists_in_request_dir',
+        'exists_in_post_response_dir',
+        'exists_in_both_dirs',
+        'pipeline_is_valid',
+        'full_file_path_request',
+        'full_file_path_post_response',
+        'pipeline_request_dir_exists',
+        'pipeline_request_dir_readable',
+        'pipeline_request_dir_writable',
+        'pipeline_post_response_dir_exists',
+        'pipeline_post_response_dir_readable',
+        'pipeline_post_response_dir_writable'
+    ];
+    foreach ($requiredKeys as $key) {
+        if (!array_key_exists($key, $plStatusArray)) {
+            cli_err('[cli_create_pipeline_file()]: The Provided Middleware Status Array ($plStatusArray) is missing the required key `' . $key . '` neeeded to safely create a new Pipeline File without accidentally overwriting existing ones in either Pipeline Subdirectories. If a Command File called this function, this error now stopped the command execution!');
+        }
+    }
     // 2. Critical Existence and Conflict Checks
     if ($plStatusArray['exists']) {
         cli_err('[cli_create_pipeline_file()]: Pipeline File already exists. Cannot create again.');
     }
-
     // Since the directory paths are needed, we reconstruct the target path
     $targetBasePath = constant($targetDirKey);
     $outputNewFile = $targetBasePath . '/' . $pipelineNameString . '.php';
-
     // 3. Permission Checks (Simplified, assuming $targetBasePath is the direct path)
     if (!is_dir($targetBasePath) || !is_writable($targetBasePath)) {
         cli_err_without_exit("[cli_create_pipeline_file()]: Pipeline Directory `{$targetBasePath}` is either missing or not writable. Command Stopped!");
     }
-
     // 4. Prepare Default Pipeline File String Content
-    $namespace = "FunkPHP\\Pipelines\\" . ($pipelineType === 'request' ? 'Request' : 'PostResponse') . "\\$pipelineNameString";
+    $namespace = "FunkPHP\\Pipeline\\" . ($pipelineType === 'request' ? 'Request' : 'PostResponse') . "\\$pipelineNameString";
     $plString = "<?php\n\nnamespace $namespace;\n// FunkCLI Created on " . date('Y-m-d H:i:s') . "!\n\nreturn function (&\$c,\$passedValue = null) {\n\t// Placeholder Comment so Regex works - Remove & Add Your Own Code!\n};\n";
 
     // 5. Atomic Creation/Write
