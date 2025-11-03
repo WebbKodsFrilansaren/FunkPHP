@@ -1,4 +1,4 @@
-<?php // Routes.php - FunkPHP Framework | FunkCLI Modified it 2025-11-01 15:10:30
+<?php // Routes.php - FunkPHP Framework | FunkCLI Modified it 2025-11-03 14:23:00
 return  [
   'ROUTES' =>
   [
@@ -11,6 +11,10 @@ return  [
           'middlewares' =>
           [
             0 =>
+            [
+              'mw_test3' => NULL,
+            ],
+            1 =>
             [
               'mw_test3' => NULL,
             ],
