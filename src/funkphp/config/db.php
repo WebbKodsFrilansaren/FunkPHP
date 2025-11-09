@@ -22,7 +22,7 @@ if (FUNKPHP_IS_LOCAL) {
     // --- LOCAL/DEVELOPMENT CREDENTIALS ---
     $credentials = [
         // IMPORTANT: Used by `cli_db_connect()` to connect to MySQL/MariaDB in CLI mode
-        'fuknphp_dev' => [
+        'funkphp_dev' => [
             'driver'   => 'mysqli',
             'host'     => 'localhost',
             'user'     => 'root',

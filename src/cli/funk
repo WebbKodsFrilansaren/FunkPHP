@@ -1,4 +1,9 @@
-<?php // Define default directories and check whether CLI or
+<?php
+// "FUNKPHP_IS_LOCAL" is needed by the /config/db.php file this constant is first in FunkPHP.php file
+// for the actual website and not the FunkCLI so this is where we use it to say it is all local now!
+define('FUNKPHP_IS_LOCAL', true);
+
+// Define default directories and check whether CLI or
 // in Web Browser mode (only JSON is allowed in Browser mode)
 // After that we set the default values for command & arguments
 define('PROJECT_DIR', dirname(__DIR__));

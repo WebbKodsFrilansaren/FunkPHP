@@ -37,6 +37,15 @@ return [
         'make:h' => 'make:handler',
         'make:mw' => 'make:middleware',
         'make:pl' => 'make:pipeline',
+        'compile:validation' => 'compile:validation',
+        'compile:v' => 'compile:validation',
+        'c:v' => 'compile:validation',
+        'compile:sql' => 'compile:sql',
+        'compile:s' => 'compile:sql',
+        'c:s' => 'compile:sql',
+        'compile:page' => 'compile:page',
+        'compile:p' => 'compile:page',
+        'c:p' => 'compile:page',
     ],
     'commands' => [
         'make:route' => [
@@ -132,6 +141,58 @@ return [
                     'default' => 'req',
                     'help' => 'The pipeline type determines which folder the file is created in: "req" for `src/funkphp/pipeline/request/` or "post" for `src/funkphp/pipeline/post-response/`. Defaults to "req".',
                     'prefix' => 'plt:',
+                    'external_callable_validator' => null,
+                ]
+
+            ],
+            'config' => [
+                // Add any special config for this command or its sub-commands here!
+            ],
+        ],
+        'compile:validation' => [
+            'args' => [
+                'validationFileFn' => [
+                    'prompt' => 'Enter Validation File and Function to Compile that Function inside of that File. For example:"users=>by_id" compiles the `by_id` Function inside of `src/funkphp/validation/v_users.php` assuming it already exists:',
+                    'regex' => $cliRegex['fileFnRegex'],
+                    'required' => true,
+                    'default' => null,
+                    'help' => 'Enter Validation File & Function using the Regex `/^([a-z0-9_-]+)=>([a-z_][a-z0-9_]+)$/i`. For example:"users=>by_id" compiles the `by_id` Function inside of `src/funkphp/validation/v_users.php` assuming it already exists (notice the added "v_" to the File automatically):',
+                    'prefix' => 'ff:',
+                    'external_callable_validator' => null,
+                ],
+                'confirmEvalRegex' => [
+                    'prompt' => 'Enter exactly `confirm:eval` (without grave accents) to Confirm that you want to Compile the Validation Function that will use the in-built PHP Function `eval` (this is a safety mechanism to avoid accidental overwrites of existing compiled Validation Functions AND also to confirm that You will be using a possibly "dangerous" PHP Function to achieve it):',
+                    'regex' => $cliRegex['confirmEvalRegex'],
+                    'required' => true,
+                    'default' => null,
+                    'help' => 'Enter exactly `confirm:eval` (without grave accents) to Confirm that you want to Compile the Validation Function that will use the in-built PHP Function `eval` (this is a safety mechanism to avoid accidental overwrites of existing compiled Validation Functions AND also to confirm that You will be using a possibly "dangerous" PHP Function to achieve it):',
+                    'prefix' => null,
+                    'external_callable_validator' => null,
+                ]
+
+            ],
+            'config' => [
+                // Add any special config for this command or its sub-commands here!
+            ],
+        ],
+        'compile:sql' => [
+            'args' => [
+                'sqlFileFn' => [
+                    'prompt' => 'Enter SQL File and Function to Compile that Function inside of that File. For example:"users=>by_id" compiles the `by_id` Function inside of `src/funkphp/sql/v_users.php` assuming it already exists:',
+                    'regex' => $cliRegex['fileFnRegex'],
+                    'required' => true,
+                    'default' => null,
+                    'help' => 'Enter SQL File & Function using the Regex `/^([a-z0-9_-]+)=>([a-z_][a-z0-9_]+)$/i`. For example:"users=>by_id" compiles the `by_id` Function inside of `src/funkphp/sql/v_users.php` assuming it already exists (notice the added "s_" to the File automatically):',
+                    'prefix' => 'ff:',
+                    'external_callable_validator' => null,
+                ],
+                'confirmEvalRegex' => [
+                    'prompt' => 'Enter exactly `confirm:eval` (without grave accents) to Confirm that you want to Compile the SQL Function that will use the in-built PHP Function `eval` (this is a safety mechanism to avoid accidental overwrites of existing compiled SQL Functions AND also to confirm that You will be using a possibly "dangerous" PHP Function to achieve it):',
+                    'regex' => $cliRegex['confirmEvalRegex'],
+                    'required' => true,
+                    'default' => null,
+                    'help' => 'Enter exactly `confirm:eval` (without grave accents) to Confirm that you want to Compile the SQL Function that will use the in-built PHP Function `eval` (this is a safety mechanism to avoid accidental overwrites of existing compiled SQL Functions AND also to confirm that You will be using a possibly "dangerous" PHP Function to achieve it):',
+                    'prefix' => null,
                     'external_callable_validator' => null,
                 ]
 

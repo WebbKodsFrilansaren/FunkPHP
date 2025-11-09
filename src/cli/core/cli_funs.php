@@ -415,6 +415,39 @@ function cli_extract_folder_file_fn(string $validatedFolderFileFnString): array
 }
 
 /**
+ * Extracts File and Function parts from a validated 'file=>function' string,
+ * with optional prefix handling for 'v_' (validation) or 's_' (SQL).
+ * SUPER IMPORTANT: This function ASSUMES the input has already been successfully validated.
+ *
+ * @param string $validatedFileFnString (e.g., 'ff:users=>validate_user' or 'ff:users=>all_users').
+ * @param string $prefix (currently supports 'v_' for validation or 's_' for SQL)
+ * @return array {0: string, 1: string} Returns an array [$file, $fn] with optional prefix applied.
+ */
+function cli_extract_folder_file($validatedFileFnString, $prefix = null): array
+{
+    $file = null;
+    $fn = null;
+    $pre = '';
+    // 1. Remove any argument prefix (e.g., fff:). We assume it exists if the input is valid.
+    $prefixRegex = '/^([a-z]+:)/i';
+    $sanitizedString = preg_replace($prefixRegex, '', $validatedFileFnString, 1);
+    // 2. Split the parts using the '=>' delimiter
+    $parts = explode('=>', $sanitizedString);
+    $file = $parts[0];
+    $fn = $parts[1];
+    // 3. Add optional prefix if provided and then return results
+    if (isset($prefix) && is_string($prefix) && !empty(trim($prefix))) {
+        $pre = mb_strtolower($prefix);
+    }
+    if (isset($pre) && is_string($pre) && $pre === 'v_') {
+        cli_info_without_exit("OK! Parsed Validation File:`src/FunkPHP/sql/$file.php` with Function:`function $pre$fn(&\$c, \$passedValue = null){};`");
+    } else if (isset($pre) && is_string($pre) && $pre === 's_') {
+        cli_info_without_exit("OK! Parsed SQL File:`src/FunkPHP/sql/$file.php` with Function:`function $pre$fn(&\$c, \$passedValue = null){};`");
+    }
+    return [$pre . $file, $pre . $fn];
+}
+
+/**
  * Extracts and normalizes the HTTP method and route path from a validated string.
  * SUPER IMPORTANT: This function ASSUMES the input has already been successfully validated.
  *

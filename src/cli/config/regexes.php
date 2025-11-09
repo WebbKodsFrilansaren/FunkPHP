@@ -43,6 +43,9 @@ return [
     // plt:req OR plt:post (post = post-request, runs after response sent and thus after request pipeline)
     'plTypeRegex' => '/^plt:(req|post)$/i',
 
+    // confirm:eval, write to confirm dangerous actions using a given command
+    'confirmEvalRegex' => '/^confirm:eval$/i',
+
     // Add more regexes as needed in the future!
     '' => '',
     '' => '',
