@@ -1,5 +1,5 @@
 <?php
-// "FUNKPHP_IS_LOCAL" is needed by the /config/db.php file this constant is first in FunkPHP.php file
+// "FUNKPHP_IS_LOCAL" is needed by the /config/db.php file. This constant is first in FunkPHP.php file
 // for the actual website and not the FunkCLI so this is where we use it to say it is all local now!
 define('FUNKPHP_IS_LOCAL', true);
 
@@ -166,7 +166,7 @@ if (php_sapi_name() === 'cli') {
         }
     }
     // TESTING DEBUGGING RIGHT NOW - REMOVE LATER
-    var_dump("\nCOMMAND:`" . $command . "`\nSUBBCOMMAND:`" . $subCommand . "`\nARGS:`" . print_r($args, true) . "`\n");
+    var_dump("\nCOMMAND:`" . $command . " | `SUBBCOMMAND:`" . $subCommand . "`\nARGS:`" . print_r($args, true) . "`\n");
 }
 // JSON Mode: REVISED VERSION
 else {
@@ -923,9 +923,10 @@ elseif (is_readable(CLI_COMMANDS_DIR . '/' . $command . '.php')) {
 }
 // Command file NOT found (or maybe typo), we handle this below - this is the "catch-all" case
 else {
-    cli_err_syntax_without_exit("Command File `$command" . (!empty($subCommand) ? ":$subCommand" : "") . "` not found or is using invalid syntax. Expected `command:optionalSubcommand` which starts up an interactive input session to get more details if needed OR `command:optionalSubcommand prefix1:param1 prefix2:param2 prefixetc:etc3` if you know all parameters upfront.");
-    cli_info_without_exit("IMPORTANT: Interactive Input Session is NOT supported in JSON Mode! Also: File names should be using ONLY \":\" to separate command and subcommand, underscores `_` or any other kind of separator is NOT SUPPORTED in current version of FunkCLI in the FunkPHP Framework!");
-    cli_info("Use the following JSON format: `{ \"command\": \"<command>:<first_param>\", \"arg1\": \"<arg1>\", \"arg2\": \"<arg2>\", \"arg3\": \"<arg3>\", \"arg4\": \"<arg4>\", \"arg5\": \"<arg5>\", \"arg6\": \"<arg6>\" }`");
+    cli_err_syntax_without_exit("Command File `$command" . (!empty($subCommand) ? ":$subCommand" : "") . "` not found as `src/cli/commands/$command-$subCommand.php` or invalid syntax was used. Expects `command:optionalSubcommand` which starts up an Interactive Input Session to get more details if needed OR `command:optionalSubcommand prefix1:param1 prefix2:param2 prefixetc:etc3` if you know all parameters upfront.");
+    cli_info_without_exit("IMPORTANT: Interactive Input Session is NOT supported in JSON Mode! Also: File names should be using ONLY \"-\" to separate command and subcommand, underscores `_` or any other kind of separator is NOT SUPPORTED in current version of FunkCLI in the FunkPHP Framework!");
+    cli_info("JSON format for FunkCLI: `{ \"command\": \"<command>:<subCommand>\", \"arg1\": \"<arg1>\", \"arg2\": \"<arg2>\", \"arg3\": \"<arg3>\", \"arg3+X\": \"<arg3+X>\"}` and so on...");
 }
+// Catch-all exit
 cli_warning("This Warning should not be seen as it should have exit above. Please report the Bug to FunkPHP GitHub Issues at `https://github.com/WebbKodsFrilansaren/FunkPHP`!");
 exit;

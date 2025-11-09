@@ -6,6 +6,10 @@ function cli_db_connect()
 {
     $dbConfig = include_once FUNKPHP_FILE_PATH_DB_LOCAL ?? [];
     $dbConfig = $dbConfig['funkphp_dev'] ?? null;
+    // Err out if no config found
+    if (!$dbConfig) {
+        cli_err_syntax("No Local Database Configuration found for 'funkphp_dev' in \"src/funkphp/config/db.php\". Please add your local DB connection settings there under:`\$credentials = ['YourNewDBConnectionArray' => 'SETTINGS_HERE', ...];`. If a Command called this Function, this error has now stopped that Command from completing successfully!");
+    }
     try {
         $conn = new mysqli($dbConfig['host'], $dbConfig['user'], $dbConfig['password'], $dbConfig['database'], $dbConfig['port']);
         $conn->set_charset($dbConfig['charset'] ?? 'utf8mb4');

@@ -6,14 +6,12 @@
 // This Command requires confirmation via the `confirm:eval` argument to ensure that the user is aware that the `eval`
 // PHP function will be used to parse the $DX variable as a PHP Array. This is a safety mechanism to avoid accidental overwrites
 // of existing compiled Validation Functions AND also to confirm that the user is aware of the possible dangers of using `eval`.
-
 // Find & Extract Folder=>File and then the Confirm:eval Argument
 $file = null;
 $fn = null;
 $arg_FolderFile = cli_get_cli_input_from_interactive_or_regular($args, 'compile:validation', 'validationFileFn');
 [$file, $fn] = cli_extract_folder_file($arg_FolderFile, 'v_');
 $arg_confirmEval = cli_get_cli_input_from_interactive_or_regular($args, 'compile:validation', 'confirmEvalRegex');
-
 // Then go ahead try to compile the Validation Function inside of the Validation File
 $statusArray = cli_folder_and_php_file_status("funkphp/validation", $file);
 // File_path must exist, otherwise we cannot write
@@ -43,7 +41,6 @@ if (!isset($statusArray["functions"][$fn]['return_raw'])) {
     cli_err_without_exit("Validation Function `$fn` inside File `funkphp/validation/$file.php` does NOT contain the needed return array()! Please provide a Valid return Array inside the Function `$fn` to Compile!");
     cli_info("Make sure it is indented using CMD+S or CTRL+S to autoformat the Validation File!");
 }
-
 // Attempt using eval() to extract the $DX variable which should be parsed as a valid PHP Array
 $matchedSimpleSyntax = $statusArray["functions"][$fn]['dx_raw'];
 $matchedReturnStmt = $statusArray["functions"][$fn]['return_raw'];
@@ -64,14 +61,11 @@ if ($evalCode === null) {
 if (is_array($evalCode)) {
     cli_info_without_exit("Found \"\$DX\" Variable Parsed as a Valid PHP Array!");
 }
-
 // This contains the optimized validation rules which will then replace the "$matchedReturnStmt"
 // The function can error out on its own so we do not need to check for the return value!
 $optimizedRuleArray = cli_convert_simple_validation_rules_to_optimized_validation($evalCode, $file, $fn);
-
 // Convert the optimized rule array to a string with ";\n" at the end
 $optimizedRuleArrayAsStringWithReturnStmt = "return " . var_export($optimizedRuleArray, true) . ";\n";
-
 // Copy of the Entire Function which contains BOTH the $DX and the return array
 $fileRawCopy = $statusArray["file_raw"]["entire"];
 $fnCopy = $statusArray["functions"][$fn]['fn_raw'];
@@ -93,6 +87,5 @@ if ($result === false) {
     cli_success_without_exit("SUCCESSFULLY COMPILED Validation Rules to Optimized Rules in Validation Function \"$fn\" in \"funkphp/validation/$file.php\".");
     cli_info("IMPORTANT: Open it in an IDE and press CMD+S or CTRL+S to autoformat the Validation File again!");
 }
-
 // Catch outside of all possible if/else/switch statements. Could happen during Refactoring this Command File!
 cli_err("You are outside of the `compile:validation` Command when it should have been caught/handled before ending up here. As a result it will terminate here now! Please report this as a Bug at `https://www.GitHub/WebbKodsFrilansaren/FunkPHP`!");
