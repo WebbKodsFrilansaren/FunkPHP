@@ -1339,7 +1339,7 @@ function cli_default_created_fn_files($type, $methodAndRoute, $folder, $file, $f
         isset($tables) &&
         (!is_string($tables)
             || empty($tables)
-            || !preg_match('/^((select|delete|insert|update|sel|del|ins|upd|s|d|i|u)=[a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]*(\*[0-9]+)?)*$/', $tables)
+            || !preg_match('/^(((select|delete|insert|update|sel|del|ins|upd|s|d|i|u)=)?[a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]*(\*[0-9]+)?)*$/', $tables)
             || (!str_contains($folder, "sql")
                 && !str_contains($folder, "validation")))
     ) {
@@ -1839,7 +1839,7 @@ function cli_crud_folder_and_php_file($statusArray, $crudType, $file, $fn = null
         isset($table) &&
         (!is_string($table)
             || empty($table)
-            || !preg_match('/^((select|delete|insert|update|sel|del|ins|upd|s|d|i|u)=[a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]*(\*[0-9]+)?)*$/', $table)
+            || !preg_match('/^(((select|delete|insert|update|sel|del|ins|upd|s|d|i|u)=)?[a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]*(\*[0-9]+)?)*$/', $table)
             || (!str_contains($folder_provided_path, "funkphp/sql")
                 && !str_contains($folder_provided_path, "funkphp/validation")))
     ) {

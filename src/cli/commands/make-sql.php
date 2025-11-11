@@ -21,6 +21,7 @@ if (!$statusArray['folder_path']) {
 }
 // Create new file when it does not exist
 if (!$statusArray['file_exists']) {
+    cli_info_without_exit("SQL File `$file.php` does not exist in `funkphp/sql`, it will be created along with SQL Function `$fn` inside of it...");
     $createStatus = cli_crud_folder_and_php_file($statusArray, "create_new_file_and_fn", $file, $fn, "sql", null, $tablesProvided);
     if ($createStatus) {
         cli_success_without_exit("SUCCESSFULLY Created SQL File `$file.php` with SQL Function `$fn` in `funkphp/sql`!");

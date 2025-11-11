@@ -159,6 +159,15 @@ return [
                     'prefix' => 'ff:',
                     'external_callable_validator' => null,
                 ],
+                'validationTables' => [
+                    'prompt' => 'Enter Tables to use for the possibly Created Validation File=>Function. For example:`table1` or `table1*2` where the latter one means you want to validate using "table1" as an array with two(2) elements. Minimum one table:',
+                    'regex' => $cliRegex['tableRegexSQL'],
+                    'required' => false,
+                    'default' => null,
+                    'help' => 'Enter Tables to use for the possibly Created Validation File=>Function using the Regex:`/^([a-z_][a-z0-9_]*)(,[a-z_][a-z0-9_]*)*$/i`. For example:`table1` or `table1*2` where the latter one means you want to validate using "table1" as an array with two(2) elements. Minimum one table:',
+                    'prefix' => 'tb:',
+                    'external_callable_validator' => null,
+                ],
             ],
             'config' => [
                 // Add any special config for this command or its sub-commands here!
