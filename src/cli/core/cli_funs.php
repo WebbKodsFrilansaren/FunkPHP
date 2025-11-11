@@ -879,7 +879,7 @@ function cli_created_sql_or_validation_fn($sqlOrValidation, $sv_tables)
         ];
         $processTables = null;
         // SQL Tables must start with "sd=", "si=", "s=", "i=", "u=", or "d="
-        if (!preg_match('/^((sd|si|s|i|u|d)=[a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]*(\*[0-9]+)?)*$/', $sv_tables)) {
+        if (!preg_match('/^((select|delete|insert|update|sel|del|ins|upd|s|d|i|u)=[a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]*(\*[0-9]+)?)*$/', $sv_tables)) {
             cli_err_without_exit('[cli_created_sql_or_validation_fn()]: Invalid SQL Tables Syntax! Use either "sd=table1,table2,etc3" or just "s=table1" with optional numbers with * at the end of each table name like "s=table1*2"!');
             cli_info('[cli_created_sql_or_validation_fn()]: The Regex Syntax for SQL Tables: `/^((sd|si|s|i|u|d)=[a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]*(\*[0-9]+)?)*$/`!');
         }
@@ -1339,7 +1339,7 @@ function cli_default_created_fn_files($type, $methodAndRoute, $folder, $file, $f
         isset($tables) &&
         (!is_string($tables)
             || empty($tables)
-            || !preg_match('/^(((sd|si|s|i|u|d)=)?[a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]*(\*[0-9]+)?)*$/i', $tables)
+            || !preg_match('/^((select|delete|insert|update|sel|del|ins|upd|s|d|i|u)=[a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]*(\*[0-9]+)?)*$/', $tables)
             || (!str_contains($folder, "sql")
                 && !str_contains($folder, "validation")))
     ) {
@@ -1839,7 +1839,7 @@ function cli_crud_folder_and_php_file($statusArray, $crudType, $file, $fn = null
         isset($table) &&
         (!is_string($table)
             || empty($table)
-            || !preg_match('/^(((sd|si|s|i|u|d)=)?[a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]*(\*[0-9]+)?)*$/i', $table)
+            || !preg_match('/^((select|delete|insert|update|sel|del|ins|upd|s|d|i|u)=[a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]*(\*[0-9]+)?)*$/', $table)
             || (!str_contains($folder_provided_path, "funkphp/sql")
                 && !str_contains($folder_provided_path, "funkphp/validation")))
     ) {

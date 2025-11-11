@@ -148,6 +148,56 @@ return [
                 // Add any special config for this command or its sub-commands here!
             ],
         ],
+        'make:validation' => [
+            'args' => [
+                'validationFileFn' => [
+                    'prompt' => 'Enter Validation File=>Function to Create File and/or Function if it does not already exist. For example:"users=>by_id" creates `src/funkphp/validation/v_users.php` if it does not already exists and then the Function `v_by_id` inside of it unless it already exists:',
+                    'regex' => $cliRegex['fileFnRegex'],
+                    'required' => true,
+                    'default' => null,
+                    'help' => 'Enter Validation File=>Function to Create using the Regex `/^([a-z0-9_-]+)=>([a-z_][a-z0-9_]+)$/i`. For example:"users=>by_id" creates `src/funkphp/validation/v_users.php` if it does not already exists and then the Function `s_by_id` inside of it unless it already exists (notice the added "v_" to the File automatically):',
+                    'prefix' => 'ff:',
+                    'external_callable_validator' => null,
+                ],
+            ],
+            'config' => [
+                // Add any special config for this command or its sub-commands here!
+            ],
+        ],
+        'make:sql' => [
+            'args' => [
+                'sqlFileFn' => [
+                    'prompt' => 'Enter SQL File=>Function to Create File and/or Function if it does not already exist. For example:"users=>by_id" creates `src/funkphp/sql/s_users.php` if it does not already exists and then the Function `s_by_id` inside of it unless it already exists:',
+                    'regex' => $cliRegex['fileFnRegex'],
+                    'required' => true,
+                    'default' => null,
+                    'help' => 'Enter SQL File=>Function to Create using the Regex `/^([a-z0-9_-]+)=>([a-z_][a-z0-9_]+)$/i`. For example:"users=>by_id" creates `src/funkphp/sql/s_users.php` if it does not already exists and then the Function `s_by_id` inside of it unless it already exists (notice the added "s_" to the File automatically):',
+                    'prefix' => 'ff:',
+                    'external_callable_validator' => null,
+                ],
+                'sqlQType' => [
+                    'prompt' => 'Enter SQL Query Type to create the SQL Function for (`select|insert|update|delete` or shorthands:`sel|del|ins|upd|s|d|i|u` - SELECT is default):',
+                    'regex' => $cliRegex['tableRegexSQLType'],
+                    'required' => true,
+                    'default' => "select",
+                    'help' => 'Enter SQL Query Type to create the SQL Function for using the Regex:`/^type:(select|delete|insert|update|sel|del|ins|upd|s|d|i|u)$/i` meaning `select|insert|update|delete` or shorthands:`sel|del|ins|upd|s|d|i|u` (SELECT is default):',
+                    'prefix' => 'type:',
+                    'external_callable_validator' => null,
+                ],
+                'sqlTables' => [
+                    'prompt' => 'Enter Tables to use for the chosen SQL Query. For example:`table1,table2,table3`. Minimum one table:',
+                    'regex' => $cliRegex['tableRegexSQL'],
+                    'required' => true,
+                    'default' => null,
+                    'help' => 'Enter Tables to use for the chosen SQL Query using the Regex:`/^([a-z_][a-z0-9_]*)(,[a-z_][a-z0-9_]*)*$/i`. For example:`table1,table2,table3`. Minimum one table:',
+                    'prefix' => 'tb:',
+                    'external_callable_validator' => null,
+                ],
+            ],
+            'config' => [
+                // Add any special config for this command or its sub-commands here!
+            ],
+        ],
         'compile:validation' => [
             'args' => [
                 'validationFileFn' => [

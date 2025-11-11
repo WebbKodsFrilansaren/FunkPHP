@@ -27,11 +27,14 @@ return [
     //`fff:users=>users=>update_user`
     'folderFileFnRegex' => '/^fff:([a-z][a-z0-9_]+)=>([a-z0-9_-]+)=>([a-z_][a-z0-9_]+)$/i',
 
-    // `t:table1` OR `t:table1,table2` OR `t:table1*2` OR `t:table1*2,table2` (\*\d+) part is optional!
-    'tableRegexValidation' => '/^t:([a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]*(\*[0-9]+)?)*$/i',
+    // `tb:table1` OR `tb:table1,table2` OR `tb:table1*2` OR `tb:table1*2,table2` (\*\d+) part is optional!
+    'tableRegexValidation' => '/^tb:([a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]*(\*[0-9]+)?)*$/i',
 
-    // `t:s=table1` OR `t:s=table1,table2` OR `t:i=table1` OR `t:sd=table1,table2`. No (*\d+) part!
-    'tableRegexSQL' => '/^t:(((sd|si|s|i|u|d)=))([a-z_][a-z0-9_]*)(,[a-z_][a-z0-9_]*)*$/i',
+    // `tb:table1` OR `tb:table1,table2` OR `tb:table1` OR `tb:table1,table2`. No (*\d+) part!
+    'tableRegexSQL' => '/^tb:([a-z_][a-z0-9_]*)(,[a-z_][a-z0-9_]*)*$/i',
+
+    // `type:select` OR `type:insert` OR `type:delete` OR `type:update`
+    'tableRegexSQLType' => '/^type:(select|delete|insert|update|sel|del|ins|upd|s|d|i|u)$/i',
 
     // `get/:user` OR `get/users/:by_id` | Check if route ends with "/:something" meaning it is dynamic
     // This is not a (sub)command or argument regex but used by some commands to validate route syntax!
