@@ -34,7 +34,7 @@ return [
     'tableRegexSQL' => '/^tb:([a-z_][a-z0-9_]*)(,[a-z_][a-z0-9_]*)*$/i',
 
     // `type:select` OR `type:insert` OR `type:delete` OR `type:update`
-    'tableRegexSQLType' => '/^type:(select|delete|insert|update|sel|del|ins|upd|s|d|i|u)$/i',
+    'tableRegexSQLType' => '/^q:(select|delete|insert|update|sel|del|ins|upd|s|d|i|u)$/i',
 
     // `get/:user` OR `get/users/:by_id` | Check if route ends with "/:something" meaning it is dynamic
     // This is not a (sub)command or argument regex but used by some commands to validate route syntax!

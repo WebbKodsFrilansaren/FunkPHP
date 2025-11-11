@@ -181,7 +181,7 @@ return [
                     'required' => true,
                     'default' => "select",
                     'help' => 'Enter SQL Query Type to create the SQL Function for using the Regex:`/^type:(select|delete|insert|update|sel|del|ins|upd|s|d|i|u)$/i` meaning `select|insert|update|delete` or shorthands:`sel|del|ins|upd|s|d|i|u` (SELECT is default):',
-                    'prefix' => 'type:',
+                    'prefix' => 'q:',
                     'external_callable_validator' => null,
                 ],
                 'sqlTables' => [
