@@ -33,6 +33,13 @@ return  [
             ],
           ],
         ],
+        2 => 
+         [
+          'final' => 
+           [
+            'test_final' => NULL,
+          ],
+        ],
       ],
     ],
     'DELETE' => 
