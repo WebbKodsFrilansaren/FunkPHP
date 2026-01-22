@@ -1,9 +1,12 @@
-<?php // Routes.php - FunkPHP Framework | FunkCLI Modified it 2025-12-18 09:25:28
+<?php // Routes.php - FunkPHP Framework | FunkCLI Modified it 2026-01-22 03:44:37
 return  [
   'ROUTES' => 
    [
     'GET' => 
      [
+      '/user' => 
+       [
+      ],
       '/users' => 
        [
       ],
@@ -40,6 +43,9 @@ return  [
             'test_final' => NULL,
           ],
         ],
+      ],
+      '/usersy' => 
+       [
       ],
     ],
     'DELETE' => 

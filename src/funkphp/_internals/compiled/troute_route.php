@@ -2,6 +2,9 @@
 return  [
   'GET' => 
    [
+    'user' => 
+     [
+    ],
     'users' => 
      [
       ':' => 
@@ -13,6 +16,9 @@ return  [
           ],
         ],
       ],
+    ],
+    'usersy' => 
+     [
     ],
   ],
   'POST' => 
