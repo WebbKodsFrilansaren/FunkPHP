@@ -9,9 +9,9 @@ if (
 }
 // Load all functions needed for the FunkPHP Framework Web Application
 // $c is the global configuration array that is used throughout the application
-include_once __DIR__ . '/_internals/functions/_all.php';
-$c = include_once __DIR__ . '/config/_all.php';
-$c['<ENTRY>'] = include_once __DIR__ . '/pipeline/pipeline.php';
+require_once __DIR__ . '/_internals/functions/_all.php';
+$c = require_once __DIR__ . '/config/_all.php';
+$c['<ENTRY>'] = require_once __DIR__ . '/pipeline/pipeline.php';
 
 // Prepare a global exception handler to catch any uncaught exceptions
 // even though the Developer is advised to use `funk_use_error_throw` to
@@ -31,6 +31,7 @@ require_once __DIR__ . '/vendor/autoload.php';
 // and/or exit() is used prematurely by the application
 register_shutdown_function(function () use (&$c) {
     if (
+
         isset($c['<ENTRY>']['pipeline']['post-response'])
         && is_array($c['<ENTRY>']['pipeline']['post-response'])
         && array_is_list($c['<ENTRY>']['pipeline']['post-response'])
