@@ -1,12 +1,12 @@
 <?php // ENTRY POINT OF EACH HTTP(S) REQUEST thanks to ".htaccess" file
 // CHECK DEFAULT FOLDERS & FILES OR CRITICAL ERROR BASED 'ACCEPT' TPYE!
-if (
-    !is_readable(__DIR__ . '/config/_all.php')
-    || !is_readable(__DIR__ . '/_internals/functions/_all.php')
-    || !is_readable(__DIR__ . '/pipeline/pipeline.php')
-) {
-    critical_err_json_or_html(500, 'Tell the Developer: The Global Configuration Variable `\$c` could not be loaded and/or all the necessary Function Files!');
-}
+// if (
+//     !is_readable(__DIR__ . '/config/_all.php')
+//     || !is_readable(__DIR__ . '/_internals/functions/_all.php')
+//     || !is_readable(__DIR__ . '/pipeline/pipeline.php')
+// ) {
+//     critical_err_json_or_html(500, 'Tell the Developer: The Global Configuration Variable `\$c` could not be loaded and/or all the necessary Function Files!');
+// }
 // Load all functions needed for the FunkPHP Framework Web Application
 // $c is the global configuration array that is used throughout the application
 require_once __DIR__ . '/_internals/functions/_all.php';
