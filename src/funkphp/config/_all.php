@@ -10,9 +10,12 @@
 define("FUNKPHP_NO_VALUE", new stdClass());
 
 // Constants for Localhost vs Online Usage AND Default URLs (Change to your own!)
+// "localhost" & "127.0.0.1" is typical for local deployment
+// "_" is typical for nginx in default!
 define('FUNKPHP_IS_LOCAL', (isset($_SERVER['SERVER_NAME'])
     && ($_SERVER['SERVER_NAME'] === 'localhost'
-        || $_SERVER['SERVER_NAME'] === "127.0.0.1")));
+        || $_SERVER['SERVER_NAME'] === "127.0.0.1"
+        || $_SERVER['SERVER_NAME'] === "_")));
 define('FUNKPHP_LOCAL', "http://localhost/funkphp/src/public_html/");
 define('FUNKPHP_ONLINE', "https://www.funkphp.com/");
 
