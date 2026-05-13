@@ -13,6 +13,8 @@ require_once __DIR__ . '/_internals/functions/_all.php';
 $c = require_once __DIR__ . '/config/_all.php';
 $c['<ENTRY>'] = require_once __DIR__ . '/pipeline/pipeline.php';
 
+// test line
+
 // Prepare a global exception handler to catch any uncaught exceptions
 // even though the Developer is advised to use `funk_use_error_throw` to
 // intentionally throw exceptions that the Developer then catches later!
