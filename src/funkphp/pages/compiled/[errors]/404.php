@@ -74,6 +74,7 @@ $display_message = $custom_error_message ?? 'The requested Route was NOT FOUND o
         <div class="developer-note">
             If you are the Developer, this means that the requested route was not found in your routes configuration.
         </div>
+                <?php var_dump($_SERVER);?>
     </div>
 </body>
 
