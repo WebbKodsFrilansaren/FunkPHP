@@ -71,5 +71,5 @@
     "mongodb",
     "mongo"
   ],
-  "intelephense.diagnostics.undefinedTypes": false
+  "intelephense.diagnostics.undefinedTypes": false,
 }

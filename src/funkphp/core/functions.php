@@ -548,7 +548,8 @@ function TEST_FUNCTION_REMOVE_LATER(&$c)
 // a JSON or HTML error response depending on the Accept Header of the request. It is
 // used unless a user-defined Exception Handler is set by the Developer creating one
 // own using the "funk_handle_uncaught_exception()" in "/src/funkphp/config/functions.php" file.
-function funk_default_exception_handler(&$c, $e){
+function funk_default_exception_handler(&$c, $e)
+{
     $c['err']['UNCAUGHT_EXCEPTION'] = $e;
     funk_use_log($c, "UNCAUGHT EXCEPTION BY DEVELOPER: " . $e->getMessage(), 'CRIT');
     $err = 'Tell the Developer: An Uncaught Exception Occurred: `' . $e->getMessage() . '` Please check the Logs for more details.';
@@ -559,8 +560,9 @@ function funk_default_exception_handler(&$c, $e){
 // handled. It is used unless a user-defined register_shutdown_function is set by
 // the Developer creating one own using the "funk_set_register_shutdown_function()"
 // in the "/src/funkphp/config/functions.php" file.
-function funk_default_register_shutdown_function(&$c){
-if (
+function funk_default_register_shutdown_function(&$c)
+{
+    if (
 
         isset($c['<ENTRY>']['pipeline']['post-response'])
         && is_array($c['<ENTRY>']['pipeline']['post-response'])
