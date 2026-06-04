@@ -19,12 +19,12 @@
     if (!is_readable(ROOT_FOLDER . '/routes/routes.php')) {
         $err = 'Tell The Developer: The Developer Routes in File `funkphp/routes/routes.php` not found or is not readable!';
         funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
-    } elseif (!is_readable(ROOT_FOLDER . '/_internals/compiled/troute_route.php')) {
-        $err = 'Tell The Developer: The Compiled Routes in File `funkphp/_internals/compiled/troute_route.php` not found or is not readable!';
+    } elseif (!is_readable(ROOT_FOLDER . '/core/compiled_routes.php')) {
+        $err = 'Tell The Developer: The Compiled Routes in File `funkphp/core/compiled_routes.php` not found or is not readable!';
         funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
     } else {
         $c['ROUTES'] = [
-            'COMPILED' => include_once ROOT_FOLDER . '/_internals/compiled/troute_route.php',
+            'COMPILED' => include_once ROOT_FOLDER . '/core/compiled_routes.php',
             'DEVELOPER' => include_once ROOT_FOLDER . '/routes/routes.php',
         ];
     }
@@ -36,7 +36,7 @@
         || !is_array($c['ROUTES']['COMPILED'])
         || empty($c['ROUTES']['COMPILED'])
     ) {
-        $err = 'Tell The Developer: The Compiled Routes in File `funkphp/_internals/compiled/troute_route.php` seems empty, please check!';
+        $err = 'Tell The Developer: The Compiled Routes in File `funkphp/core/compiled_routes.php` seems empty, please check!';
         funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
     }
     if (

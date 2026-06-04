@@ -1,36 +1,36 @@
 <?php
 return  [
-  'GET' => 
+  'GET' =>
    [
-    'user' => 
+    'user' =>
      [
     ],
-    'users' => 
+    'users' =>
      [
-      ':' => 
+      ':' =>
        [
-        'id' => 
+        'id' =>
          [
-          '|' => 
+          '|' =>
            [
           ],
         ],
       ],
     ],
-    'usersy' => 
+    'usersy' =>
      [
     ],
   ],
-  'POST' => 
+  'POST' =>
    [
   ],
-  'PUT' => 
+  'PUT' =>
    [
   ],
-  'DELETE' => 
+  'DELETE' =>
    [
   ],
-  'PATCH' => 
+  'PATCH' =>
    [
   ],
 ];

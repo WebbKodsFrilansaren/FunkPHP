@@ -18,9 +18,11 @@ define('FUNKPHP_IS_LOCAL', (isset($_SERVER['SERVER_NAME'])
         || $_SERVER['SERVER_NAME'] === "_")));
 define('FUNKPHP_LOCAL', "http://localhost/funkphp/src/public_html/");
 define('FUNKPHP_ONLINE', "https://www.funkphp.com/");
+define('FUNKPHP_PIPLINE_REQUEST_ENTRY', 'defensive'); // Choose between 'happy' or 'defensive' mode for pipeline request entry point!
 
 // Default Constants for Root Folder and its subfolders used by FunkPHP
 define("ROOT_FOLDER", dirname(__DIR__, 1)); // src/funkphp/
+define("ROOT_CORE", ROOT_FOLDER . '/core'); // src/funkphp/core
 define("ROOT_CACHED", ROOT_FOLDER . '/cached'); // src/funkphp/cached
 define("ROOT_CLASSES", ROOT_FOLDER . '/classes'); // src/funkphp/classes
 define("ROOT_CONFIG", ROOT_FOLDER . '/config'); // src/funkphp/config
@@ -31,7 +33,7 @@ define("ROOT_PAGES_ERRORS", ROOT_FOLDER . '/pages/compiled/[errors]'); // src/fu
 define("ROOT_PIPELINE", ROOT_FOLDER . '/pipeline'); // src/funkphp/pipeline
 define("ROOT_PIPELINE_REQUEST", ROOT_FOLDER . '/pipeline/request'); // src/funkphp/pipeline/request
 define("ROOT_PIPELINE_POST_RESPONSE", ROOT_FOLDER . '/pipeline/post-response'); // src/funkphp/pipeline/post-response
-define("ROOT_ROUTES", ROOT_FOLDER . '/pages'); // src/funkphp/routes
+define("ROOT_ROUTES", ROOT_FOLDER . '/routes'); // src/funkphp/routes
 define("ROOT_SQL", ROOT_FOLDER . '/sql'); // src/funkphp/sql
 define("ROOT_VALIDATION", ROOT_FOLDER . '/validation'); // src/funkphp/validation
 

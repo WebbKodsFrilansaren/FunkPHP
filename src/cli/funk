@@ -38,9 +38,7 @@ define('CLI_CORE_DIR', CLI_DIR . '/core');
 define('CLI_COMMANDS_DIR', __DIR__ . '/commands');
 define('CLI_CONFIG_DIR', __DIR__ . '/config');
 define('FUNKPHP_DIR', PROJECT_DIR . '/funkphp');
-define('FUNKPHP_INTERNALS_DIR', FUNKPHP_DIR . '/_internals');
-define('FUNKPHP_INTERNALS_COMPILED_DIR', FUNKPHP_INTERNALS_DIR . '/compiled');
-define('FUNKPHP_INTERNALS_FUNCTIONS_DIR', FUNKPHP_INTERNALS_DIR . '/functions');
+define('FUNKPHP_CORE_DIR', FUNKPHP_DIR . '/core');
 define('FUNKPHP_CACHED_DIR', FUNKPHP_DIR . '/_cached');
 define('FUNKPHP_CLASSES_DIR', FUNKPHP_DIR . '/classes');
 define('FUNKPHP_CACHED_FILES_DIR', FUNKPHP_CACHED_DIR . '/files');
@@ -70,10 +68,11 @@ define('TEST_DIR', PROJECT_DIR . '/test');
 define("FUNKPHP_FILE_PATH_CLI_RESERVED", CLI_CORE_DIR . '/cli_reserved.php');
 define("FUNKPHP_FILE_PATH_CLI_FUNS", CLI_CORE_DIR . '/cli_funs.php');
 define("FUNKPHP_FILE_PATH_CLI_FUNS2", CLI_CORE_DIR . '/cli_funs2.php');
+define("FUNKPHP_FILE_PATH_CLI_FUNCTIONS", CLI_CORE_DIR . '/cli_functions.php');
 define("FUNKPHP_FILE_PATH_CLI_CONFIG_REGEX", CLI_CONFIG_DIR . '/regexes.php');
 define("FUNKPHP_FILE_PATH_CLI_CONFIG_COMMANDS", CLI_CONFIG_DIR . '/commands.php');
 define("FUNKPHP_FILE_PATH_CLI_CONFIG_EXTERNAL_CALLABLE_VALIDATORS", CLI_CONFIG_DIR . '/external_callable_validators.php');
-define("FUNKPHP_FILE_PATH_TROUTES", FUNKPHP_INTERNALS_COMPILED_DIR . '/troute_route.php');
+define("FUNKPHP_FILE_PATH_TROUTES", FUNKPHP_CORE_DIR . '/compiled_routes.php');
 define("FUNKPHP_FILE_PATH_ROUTES", FUNKPHP_ROUTES_DIR . '/routes.php');
 define("FUNKPHP_FILE_PATH_PIPELINE", FUNKPHP_PIPELINE_DIR . '/pipeline.php');
 define("FUNKPHP_FILE_PATH_TABLES", FUNKPHP_CONFIG_DIR . '/tables.php');
@@ -230,24 +229,26 @@ if (JSON_MODE) {
 
 // Try including files or throw an error if they are not found
 if (
-    !is_readable(FUNKPHP_FILE_PATH_CLI_FUNS)
-    || !is_readable(FUNKPHP_FILE_PATH_CLI_FUNS2)
-    || !is_readable(FUNKPHP_FILE_PATH_CLI_CONFIG_EXTERNAL_CALLABLE_VALIDATORS)
+        // !is_readable(FUNKPHP_FILE_PATH_CLI_FUNS)
+        // || !is_readable(FUNKPHP_FILE_PATH_CLI_FUNS2)
+        // || !is_readable(FUNKPHP_FILE_PATH_CLI_CONFIG_EXTERNAL_CALLABLE_VALIDATORS)
+        !is_readable(FUNKPHP_FILE_PATH_CLI_FUNCTIONS)
 ) {
     if (JSON_MODE) {
         http_response_code(500);
         echo json_encode([
             'type' => 'ERROR',
-            'message' => 'FunkPHP CLI Function File(s) - either `cli_funs.php`, `cli_funs2.php` or both - NOT FOUND in `src/cli` Directory!'
+            'message' => 'FunkPHP CLI Functions File (cli_functions.php) - NOT FOUND in `src/cli` Directory!'
         ]);
         exit;
     } else {
-        echo "\033[31m[FunkCLI - ERROR]: FunkPHP CLI Function File(s) - either `cli_funs.php`, `cli_funs2.php` or both - NOT FOUND in `src/cli` Directory!\n\033[0m";
+        echo "\033[31m[FunkCLI - ERROR]: FunkPHP CLI Functions File (cli_functions.php) - NOT FOUND in `src/cli` Directory!\n\033[0m";
         exit;
     }
 }
-include_once FUNKPHP_FILE_PATH_CLI_FUNS;
-include_once FUNKPHP_FILE_PATH_CLI_FUNS2;
+//include_once FUNKPHP_FILE_PATH_CLI_FUNS;
+//include_once FUNKPHP_FILE_PATH_CLI_FUNS2;
+include_once FUNKPHP_FILE_PATH_CLI_FUNCTIONS;
 include_once FUNKPHP_FILE_PATH_CLI_CONFIG_EXTERNAL_CALLABLE_VALIDATORS;
 
 // Load the settings file if it exists, otherwise use default settings
