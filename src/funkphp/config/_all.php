@@ -19,6 +19,7 @@ define('FUNKPHP_IS_LOCAL', (isset($_SERVER['SERVER_NAME'])
 define('FUNKPHP_LOCAL', "http://localhost/funkphp/src/public_html/");
 define('FUNKPHP_ONLINE', "https://www.funkphp.com/");
 define('FUNKPHP_PIPLINE_REQUEST_ENTRY', 'defensive'); // Choose between 'happy' or 'defensive' mode for pipeline request entry point!
+define('FUNKPHP_USE_VENDOR', true); // Change to "false" if you intend to not use any Composer packages and want to remove the Composer autoloader from "FunkPHP.php" for better performance!
 
 // Default Constants for Root Folder and its subfolders used by FunkPHP
 define("ROOT_FOLDER", dirname(__DIR__, 1)); // src/funkphp/

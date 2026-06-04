@@ -15,8 +15,10 @@ set_exception_handler(function (\Throwable $e) use (&$c) {
     }
 });
 // Load Composer Autoloader so that any Composer installed packages can be used
-if (file_exists(__DIR__ . '/vendor/autoload.php')) {
-    require_once __DIR__ . '/vendor/autoload.php';
+if (FUNKPHP_USE_VENDOR) {
+    if (file_exists(__DIR__ . '/vendor/autoload.php')) {
+        require_once __DIR__ . '/vendor/autoload.php';
+    }
 }
 // Prepare what to run after each request is handled
 // and/or exit() is used prematurely by the application
