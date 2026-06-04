@@ -4,6 +4,8 @@ return  [
   [
     'user' =>
     [],
+    'usera' =>
+    [],
     'users' =>
     [
       ':' =>

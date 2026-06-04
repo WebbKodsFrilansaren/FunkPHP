@@ -9058,7 +9058,7 @@ function cli_convert_array_to_simple_syntax(array $array): string | null | array
     }
 
     // Prepare array and parse state variables
-    $str = mb_str_split(var_export($array, true));
+    $str = function_exists('mb_str_split') ? mb_str_split(var_export($array, true)) : str_split(var_export($array, true));
     $arrStack = [];
     $arrayLetters = ["a", "r", "r", "a", "y", " "];
     $quotes = ["'", '"'];
