@@ -1,6 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: ["./src/funphp/**/*.{php,html}", "./src/gui/**/*.{php,html}"],
+  content: ["./src/funphp/pages/*.{php,html}", "./src/gui/**/*.{php,html}"],
   theme: {
     extend: {},
   },
