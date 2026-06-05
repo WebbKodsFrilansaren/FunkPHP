@@ -6,6 +6,9 @@
             margin: 0;
         }
 
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
         .container {
             max-width: 800px;
             margin: 40px auto;

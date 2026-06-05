@@ -39,11 +39,11 @@ foreach ($requiredWritablePaths as $name => $path) {
     // Realpath checks through any symlinks, just in case
     $realPath = realpath($path);
     if (!$realPath) {
-        $permissionErrors[] = "<strong>{$name}:</strong> Target path at '<code>{$path}</code>' does NOT EXIST.";
+        $permissionErrors[] = "<strong>{$name}:</strong> Target path at '<code>{$path}</code>' does NOT EXIST. Please make sure it is created and accessible by the Web Server.";
         continue;
     }
     if (!is_dir($realPath)) {
-        $permissionErrors[] = "<strong>{$name}:</strong> Target path at'<code>{$realPath}</code>' is NOT A DIRECTORY.";
+        $permissionErrors[] = "<strong>{$name}:</strong> Target path at'<code>{$realPath}</code>' is NOT A DIRECTORY. Please make sure it is a folder and accessible by the Web Server.";
         continue;
     }
     if (!is_readable($realPath)) {
@@ -69,63 +69,10 @@ if (!empty($permissionErrors) && ($_SERVER['HTTP_ACCEPT'] ?? '') !== 'applicatio
 
     <head>
         <meta charset="UTF-8">
-        <title>🛑 FunkPHP / FunkGUI - Environment Setup Required</title>
-        <style>
-            body {
-                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-                background: #1a1b26;
-                color: #a9b1d6;
-                padding: 40px;
-            }
-
-            .card {
-                max-width: 700px;
-                margin: 0 auto;
-                background: #24283b;
-                padding: 30px;
-                border-radius: 8px;
-                border: 1px solid #f7768e;
-                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-            }
-
-            h1 {
-                color: #f7768e;
-                margin-top: 0;
-                font-size: 24px;
-                display: flex;
-                align-items: center;
-                gap: 10px;
-            }
-
-            ul {
-                background: #1a1b26;
-                padding: 15px 20px 15px 35px;
-                border-radius: 6px;
-                border-left: 4px solid #f7768e;
-                color: #ff9e64;
-            }
-
-            li {
-                margin-bottom: 8px;
-                font-family: monospace;
-            }
-
-            pre {
-                background: #15161e;
-                padding: 15px;
-                border-radius: 6px;
-                color: #73daca;
-                overflow-x: auto;
-                font-family: "Fira Code", monospace;
-                border: 1px solid #414868;
-            }
-
-            .hint {
-                color: #565f89;
-                font-size: 14px;
-                margin-top: 20px;
-            }
-        </style>
+        <title>🛑 FunkGUI in FunkPHP Framework - Permissions in Environment Setup Required</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <link rel="stylesheet" href="./core/permissions.css">
     </head>
 
     <body>
@@ -203,71 +150,52 @@ if (strpos($acceptHeader, 'application/json') !== false) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" href="./core/styles.css">
+    <link rel="stylesheet" href="./core/gui.css">
     <script src="./core/funk.js" defer></script>
     <title>FunkGUI - Local GUI Panel for FunkPHP Framework</title>
 </head>
 
 <body>
     <div class="container">
-        <h1>🛠️ FunkPHP Framework Local GUI</h1>
-        <p>This web interface securely relays parameters to the underlying <code>src/cli/funk</code> compiler architecture.</p>
-        <?= "The browser is running PHP as user: " . posix_getpwuid(posix_geteuid())['name']; ?>
-        <div class="btn-group">
-            <button class="btn" onclick="executeCliCommand('recompile')">Recompile Framework</button>
-            <button class="btn" onclick="executeCliCommand('new:r', 'api/v1/users')">Create New Route</button>
-            <button class="btn btn-danger" onclick="executeCliCommand('aliases')">Test Reserved Constraint</button>
+        <h1>FunkGUI - Local FunkPHP Framework Utility</h1>
+        <p>FunkGUI makes JSON requests to FunkCLI via <code>src/cli/funk</code> that then does the work and returns JSON formatted responses with Info, Warnings, Errors and/or Successes (see in Terminal).</p>
+        <small class="user-badge">Running PHP as user: <?= htmlspecialchars(posix_getpwuid(posix_geteuid())['name']); ?></small>
+
+        <div class="tab-menu">
+            <button class="tab-btn active" data-target="tab-dashboard">Dashboard</button>
+            <button class="tab-btn" data-target="tab-routes">Route Studio</button>
+            <button class="tab-btn" data-target="tab-config">Project Config</button>
+        </div>
+
+        <hr class="divider">
+
+        <div class="tab-container">
+
+            <div id="tab-dashboard" class="tab-content active">
+                <h3>Quick Actions</h3>
+                <div class="btn-group">
+                    <button class="btn" onclick="executeCliCommand('recompile')">Recompile Framework</button>
+                    <button class="btn btn-danger" onclick="executeCliCommand('aliases')">Test Reserved Constraint</button>
+                </div>
+            </div>
+
+            <div id="tab-routes" class="tab-content">
+                <h3>Interactive Route Studio</h3>
+                <p>Manage and map your architectural endpoints visually without touching structural files directly.</p>
+                <div class="btn-group">
+                    <button class="btn" onclick="executeCliCommand('new:r', 'api/v1/users')">Quick Create Default Users Route</button>
+                </div>
+            </div>
+
+            <div id="tab-config" class="tab-content">
+                <h3>Global Project Configuration</h3>
+                <p>Manage environmental variables, database arrays, and local routing contexts.</p>
+            </div>
+
         </div>
 
         <h3>Terminal/API Output Response:</h3>
         <pre id="terminal-console">Awaiting local directive...</pre>
     </div>
-
-    <script>
-        async function executeCliCommand(commandString, argument1 = null) {
-            const consoleBox = document.getElementById('terminal-console');
-            consoleBox.innerText = "Dispatching command payload to FunkCLI context...";
-
-            // Match payload layout expected by src/cli/funk regexes
-            const payload = {
-                command: commandString,
-                arg1: null,
-                arg2: null,
-                arg3: null,
-                arg4: null,
-                arg5: null,
-                arg6: null
-            };
-            console.log("Constructed payload for CLI command:", payload);
-
-            try {
-                // Request points directly to this file, but specifies JSON intent
-                console.log("Sending payload to FunkPHP GUI Gateway:", payload);
-                const response = await fetch('/funkgui/', {
-                    method: 'POST',
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(payload)
-                });
-
-                const rawText = await response.text();
-
-                try {
-                    // Prettify the output if it's structural valid JSON
-                    const parsedJson = JSON.parse(rawText);
-                    consoleBox.innerText = JSON.stringify(parsedJson, null, 4);
-                } catch {
-                    // Fall back to displaying raw string output if text/formatting bled through
-                    consoleBox.innerText = rawText;
-                }
-
-            } catch (err) {
-                consoleBox.innerText = "Network Gateway Communication Error: " + err.message;
-            }
-        }
-    </script>
-</body>
 
 </html>
