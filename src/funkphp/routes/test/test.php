@@ -6,6 +6,7 @@ namespace FunkPHP\Routes\Test\test;
 function test(&$c, $passedValue = null) // <GET/users>
 {
 	// Placeholder Comment so Regex works - Remove & Add Real Code!
+	echo "THIS IS A TEST FUNCTION! You can replace this with your own code to handle the route. The passed value is: " . $passedValue;
 };
 
 return function (&$c, $handler = "test", $passedValue = null) {

@@ -33,7 +33,7 @@ function critical_err_json_or_html($status = 500, $customMessage = "<No Custom M
             $e = new \Exception("Required HTML error file not readable at: " . $htmlFilePath);
         } else {
             try {
-                echo require_once $htmlFilePath;
+                require_once $htmlFilePath;
                 exit;
             }
             // This 'catch' will just fall through to the hardcoded default HTML below

@@ -40,7 +40,7 @@
             justify-content: center;
             align-items: center;
             max-width: 420px;
-            margin-top: 50px;
+            <p class="center-text"><i>(Did you manually navigate to `/public_html/critical_err_html.php`? Well, you can include to ignore that specific file in your .htaccess OR nginx Configuration File, dear Developer !)</i></p>margin-top: 50px;
             margin-left: auto;
             margin-right: auto;
             margin-bottom: 50px;
@@ -72,6 +72,10 @@
         .center-text {
             text-align: center;
         }
+
+        .cursive-text {
+            text-decoration: underline;
+        }
     </style>
 </head>
 
@@ -82,6 +86,9 @@
         <p><strong>Message to Developer for Debugging:</strong> `<?= $customMessage ?? "<No Custom Message Included OR `\$customMessage` Variable is NOT Available for some reason?!>" ?>`</p>
         <p>The Developer? Please check your Configuration and File permissions where you Develop and/or Host this Website!</p>
         <p class="center-text">Thanks in advance!<br>You are Awesome, anyway! ^_^</p>
+        <?php if (!$customMessage): ?>
+            <p class="center-text"><i>(It also appears that the `/public_html/critical_err_html.php` file was accessed manually in the Web Browser. Well, you can include to ignore that specific file in your .htaccess OR nginx Configuration File, dear Developer!)</i></p>
+        <?php endif; ?>
     </div>
 </body>
 
