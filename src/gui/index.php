@@ -202,77 +202,10 @@ if (strpos($acceptHeader, 'application/json') !== false) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FunkPHP Framework - Local GUI Panel</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #1e1e2e;
-            color: #cdd6f4;
-            padding: 20px;
-            margin: 0;
-        }
-
-        .container {
-            max-width: 800px;
-            margin: 40px auto;
-            background: #252538;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        }
-
-        h1 {
-            color: #89b4fa;
-            border-bottom: 2px solid #45475a;
-            padding-bottom: 10px;
-            margin-top: 0;
-        }
-
-        .btn-group {
-            margin: 20px 0;
-            display: flex;
-            gap: 10px;
-        }
-
-        .btn {
-            background: #a6e3a1;
-            color: #11111b;
-            border: none;
-            padding: 12px 20px;
-            cursor: pointer;
-            border-radius: 4px;
-            font-weight: bold;
-            font-size: 14px;
-        }
-
-        .btn:hover {
-            background: #94e2d5;
-        }
-
-        .btn-danger {
-            background: #f38ba8;
-        }
-
-        .btn-danger:hover {
-            background: #eba0b3;
-        }
-
-        h3 {
-            color: #cdd6f4;
-            margin-top: 30px;
-        }
-
-        pre {
-            background: #11111b;
-            padding: 15px;
-            border-radius: 6px;
-            border: 1px solid #45475a;
-            overflow-x: auto;
-            color: #f5e0dc;
-            font-family: monospace;
-            min-height: 100px;
-        }
-    </style>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <link rel="stylesheet" href="./core/styles.css">
+    <script src="./core/funk.js" defer></script>
+    <title>FunkGUI - Local GUI Panel for FunkPHP Framework</title>
 </head>
 
 <body>

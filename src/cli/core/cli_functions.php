@@ -2112,7 +2112,7 @@ function cli_crud_folder_php_file_atomic_write($fileContent, $file_path)
         cli_err_without_exit('FAILED to Rename Temporary File `' . $tempFilePath . '` back to Correct File Path `' . $file_path . '`!');
         return false;
     }
-    // 🚀 THE CROSS-PLATFORM BRIDGE:
+    // THE CROSS-PLATFORM BRIDGE:
     // Linux/Mac: Makes it globally modifiable so VS Code and Web users don't conflict.
     // Windows: Unchecks the "Read-Only" file attribute box cleanly.
     // @ ensures no system warnings leak out if the OS environment is strictly locked down.
@@ -2120,7 +2120,7 @@ function cli_crud_folder_php_file_atomic_write($fileContent, $file_path)
     // that code users can modify the file without permission issues since they usually have a different user
     // than the one running the CLI commands. It also ensures that there are no permission issues for users in
     // general when trying to modify the file after it is created by the CLI.
-    @chmod($file_path, 0666);
+    @chmod($file_path, 0666); // 0 = no special permissions, 6 = read/write for owner, group, and others
     return true;
 }
 
