@@ -29,7 +29,7 @@ $requiredWritablePaths = [
     'FunkPHP Vendor Directory'    => __DIR__ . '/../funkphp/vendor',
     'FunkGUI Main Directory'    => __DIR__ . '/../gui',
     'Public_HTML Main Directory'    => __DIR__ . '/../public_html',
-    'Schemas Main Directory'    => __DIR__ . '/../schemas',
+    'Schema Main Directory'    => __DIR__ . '/../schema',
     'Snippets Main Directory'    => __DIR__ . '/../snippets',
     'Tests Main Directory'    => __DIR__ . '/../tests',
 ];
@@ -57,13 +57,19 @@ foreach ($requiredWritablePaths as $name => $path) {
 // HTML: If errors exist, HALT everything and show a gorgeous recovery screen
 if (!empty($permissionErrors) && ($_SERVER['HTTP_ACCEPT'] ?? '') !== 'application/json') {
     $currentUser = posix_getpwuid(posix_geteuid())['name'] ?? 'unknown_web_user';
+    // Calculate the parent root directory that needs the permission fix
+    $projectRoot = realpath(dirname(__DIR__));
+    // Fetch the current system permissions of the root directory
+    $rootPerms = fileperms($projectRoot);
+    // Mask out the file type data and convert the integer to a clean octal string (e.g., "755")
+    $defaultPermsOctal = $rootPerms ? sprintf('%o', $rootPerms & 0777) : '755';
 ?>
     <!DOCTYPE html>
     <html lang="en">
 
     <head>
         <meta charset="UTF-8">
-        <title>🛑 FunkPHP - Environment Setup Required</title>
+        <title>🛑 FunkPHP / FunkGUI - Environment Setup Required</title>
         <style>
             body {
                 font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -124,12 +130,10 @@ if (!empty($permissionErrors) && ($_SERVER['HTTP_ACCEPT'] ?? '') !== 'applicatio
 
     <body>
         <div class="card">
-            <h1>🛑 FunkPHP Permission Engine Check (for FunkGUI)</h1>
-            <p>You must allow certain folders in your FunkPHP project to be accessible and writable in order to use FunkGUI.</p>
-            <p>The Browser is currently running PHP as User: `<strong><?= htmlspecialchars($currentUser); ?>`</strong></p>
-            <p>Don't worry about the possibly large number. It is usually just a simple fix about Reading+Writing Permissions!</p>
-            <p>Just scroll to the bottom to see the 99,9 % One-Liner Simple Fix!</p>
-
+            <h1>🛑 FunkPHP / FunkGUI Permission Check</h1>
+            <p>You must Allow certain Folders in your FunkPHP Project to be Accessible+Writable in order to use FunkGUI.</p>
+            <p>The Browser is currently running PHP as Web User: `<strong><?= htmlspecialchars($currentUser); ?>`</strong>.</p>
+            <p>Don't worry about the number of possible issues. Just scroll to the bottom to see the 99,9 % One-Liner Simple Fix!</p>
             <h3>Issues Detected (<?= count($permissionErrors) ?? 'Unknown number?'; ?>):</h3>
             <ul>
                 <?php foreach ($permissionErrors as $error): ?>
@@ -138,9 +142,11 @@ if (!empty($permissionErrors) && ($_SERVER['HTTP_ACCEPT'] ?? '') !== 'applicatio
             </ul>
             <h3>💡 Quick Fix (Copy & Paste into Terminal):</h3>
             <p>Run This Command inside Your Terminal to Grant the Web Server Permission for FunkGUI to work:</p>
-            <pre>chmod -R 777 <?= htmlspecialchars(dirname(__DIR__) . '/funkphp'); ?></pre>
+            <pre>chmod -R 777 <?= htmlspecialchars($projectRoot); ?></pre>
+            <p>You can Reset Permissions Back to Your Environment Default (<strong><?= htmlspecialchars($defaultPermsOctal); ?></strong>) by running this command:</p>
+            <pre>chmod -R <?= htmlspecialchars($defaultPermsOctal); ?> <?= htmlspecialchars($projectRoot); ?></pre>
             <div class="hint">
-                <em>IMPORTANT: Using 777 is ONLY recommended for Local Web Development Environments!</em>
+                <em><strong>IMPORTANT:</strong> Using 777 is ONLY recommended for Local Web Development Environments! (remember to reset back to default if you stop using FunkGUI and/or for best practice!)</em>
             </div>
         </div>
     </body>
