@@ -8,26 +8,6 @@ define('FUNKPHP_IS_LOCAL', true);
 // After that we set the default values for command & arguments
 define('PROJECT_DIR', dirname(__DIR__));
 define('BACKUPS_DIR', PROJECT_DIR . '/backups');
-define('BACKUPS_FINAL_DIR', BACKUPS_DIR . '/_final_backups');
-define('BACKUPS_CACHED_DIR', BACKUPS_DIR . '/cached');
-define('BACKUPS_CLI_DIR', BACKUPS_DIR . '/cli');
-define('BACKUPS_CLI_COMMANDS_DIR', BACKUPS_CLI_DIR . '/commands');
-define('BACKUPS_CLI_CONFIG_DIR', BACKUPS_CLI_DIR . '/config');
-define('BACKUPS_COMPILED_DIR', BACKUPS_DIR . '/compiled');
-define('BACKUPS_CONFIG_DIR', BACKUPS_DIR . '/config');
-define('BACKUPS_MIDDLEWARES_DIR', BACKUPS_DIR . '/middlewares');
-define('BACKUPS_PAGES_DIR', BACKUPS_DIR . '/pages');
-define('BACKUPS_PAGES_COMPILED_DIR', BACKUPS_PAGES_DIR . '/compiled');
-define('BACKUPS_PAGES_COMPONENTS_DIR', BACKUPS_PAGES_DIR . '/components');
-define('BACKUPS_PAGES_LAYOUTS_DIR', BACKUPS_PAGES_DIR . '/layouts');
-define('BACKUPS_PAGES_PARTIALS_DIR', BACKUPS_PAGES_DIR . '/partials');
-define('BACKUPS_PIPELINE_DIR', BACKUPS_DIR . '/pipeline');
-define('BACKUPS_ROUTES_DIR', BACKUPS_DIR . '/routes');
-define('BACKUPS_SCHEMA_DIR', BACKUPS_DIR . '/schema');
-define('BACKUPS_SNIPPETS_DIR', BACKUPS_DIR . '/snippets');
-define('BACKUPS_SQL_DIR', BACKUPS_DIR . '/sql');
-define('BACKUPS_TESTS_DIR', BACKUPS_DIR . '/tests');
-define('BACKUPS_VALIDATION_DIR', BACKUPS_DIR . '/validation');
 define('BATTERIES_DIR', PROJECT_DIR . '/batteries');
 define('BATTERIES_MIDDLEWARES_DIR', BATTERIES_DIR . '/middlewares');
 define('BATTERIES_PIPELINE_DIR', BATTERIES_DIR . '/pipeline');
@@ -96,6 +76,58 @@ define('ANSI_RESET', "\033[0m");
 global $funk_response_messages;
 $funk_response_messages = [];
 
+// Catch FunkCLI errors that are usually shown in the Terminal but not in JSON!
+register_shutdown_function(function () {
+    // Catch and then check if last error should be sent as part of JSON!
+    $error = error_get_last();
+    if (
+        $error && isset($_SERVER['HTTP_ACCEPT'])
+        && $_SERVER['HTTP_ACCEPT'] === 'application/json'
+    ) {
+        http_response_code(500);
+        header('Content-Type: application/json; charset=utf-8');
+        global $funk_response_messages;
+        $overall_json_status = 'Success';
+        $funk_response_messages[] = [
+            'type' => MSG_TYPE_ERROR,
+            'message' => 'FunkCLI encountered a Fatal Error: `' . $error['message'] . '`'
+        ];
+        $funk_response_messages[] = [
+            'type' => MSG_TYPE_ERROR,
+            'message' => 'File: `' . $error['file'] . '` (Line:' . $error['line'] . ')'
+        ];
+        foreach ($funk_response_messages as $msg) {
+            if ($msg['type'] === MSG_TYPE_ERROR || $msg['type'] === MSG_TYPE_SYNTAX_ERROR) {
+                $overall_json_status = 'Error';
+                break;
+            }
+        }
+        if ($overall_json_status === 'Success') {
+            http_response_code(200);
+            foreach ($funk_response_messages as $msg) {
+                if ($msg['type'] === MSG_TYPE_WARNING) {
+                    $overall_json_status .= ' with Warning(s)';
+                    break;
+                }
+            }
+        } else {
+            http_response_code(400);
+            foreach ($funk_response_messages as $msg) {
+                if ($msg['type'] === MSG_TYPE_INFO) {
+                    $overall_json_status .= ' with (Important) Info';
+                    break;
+                }
+            }
+        }
+        $response = [
+            'status' => $overall_json_status,
+            'messages' => $funk_response_messages,
+            'data' => []
+        ];
+        echo json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    }
+});
+
 // Load the settings file if it exists, otherwise use default settings
 // PLEASE ONLY EDIT THE ACTUAL "src/cli/funksettings" file and NOT below here!!!
 $settingsPath = CLI_DIR . '/funksettings';
@@ -103,29 +135,7 @@ $settings = is_readable($settingsPath)
     ? include $settingsPath
     : [
         "ALLOWED_IPS" => ["127.0.0.1", "localhost", "192.168.122.1"],
-        "ALWAYS_BACKUP_IN" => [
-            "COMPILED_IN_BACKUPS" => false,
-            "COMPILED_IN_FINAL_BACKUPS" => false,
-            "DATA_IN_BACKUPS" => false,
-            "DATA_IN_FINAL_BACKUPS" => false,
-            "DATA_HANDLERS_IN_BACKUPS" => false,
-            "DATA_HANDLERS_IN_FINAL_BACKUPS" => false,
-            "DATA_MWS_IN_BACKUPS" => false,
-            "DATA_MWS_IN_FINAL_BACKUPS" => false,
-            "PAGES_IN_BACKUPS" => false,
-            "PAGES_IN_FINAL_BACKUPS" => false,
-            "PAGES_HANDLERS_IN_BACKUPS" => false,
-            "PAGES_HANDLERS_IN_FINAL_BACKUPS" => false,
-            "PAGES_MWS_IN_BACKUPS" => false,
-            "PAGES_MWS_IN_FINAL_BACKUPS" => false,
-            "ROUTES_IN_BACKUPS" => false,
-            "ROUTES_IN_FINAL_BACKUPS" => false,
-            "ROUTES_HANDLERS_IN_BACKUPS" => false,
-            "ROUTES_HANDLERS_IN_FINAL_BACKUPS" => false,
-            "ROUTES_MWS_IN_BACKUPS" => false,
-            "ROUTES_MWS_IN_FINAL_BACKUPS" => false,
-            "ALLOW_COMPLETE_BACKUP_DELETION" => false,
-        ],
+        "ALWAYS_BACKUP_IN" => [],
     ];
 
 // Check /config/cli_regexes.php and /config/cli_commands.php files

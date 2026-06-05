@@ -2550,7 +2550,7 @@ function cli_parse_a_sql_table_file($tableFileName)
     if (is_readable(SCHEMA_DIR . '/' . $tableFileName)) {
         $sqlFile = file_get_contents(SCHEMA_DIR . '/' . $tableFileName);
     } else {
-        cli_err_syntax("\"{$tableFileName}\" must must exist in\"funkphp/schemas/\"!");
+        cli_err_syntax("\"{$tableFileName}\" must must exist in\"funkphp/schema/\"!");
     }
 
     // Check that the tables.php file exists and is writable, then load it
@@ -2594,7 +2594,7 @@ function cli_parse_a_sql_table_file($tableFileName)
     }
     // Check if the table name already exists in the tables.php file (as a key under "tables")
     if (isset($tablesFile['tables'][$tableName])) {
-        cli_err_syntax("Table \"$tableName\" already exists in \"funkphp/config/tables.php\"!");
+        cli_err("Table \"$tableName\" already exists in \"funkphp/config/tables.php\"!");
     }
 
     // Prepare the parsed table array with the table name
@@ -9149,27 +9149,6 @@ function cli_restore_default_folders_and_files()
     $folders = [
         "$folderBase",
         "$folderBase/backups/",
-        "$folderBase/backups/_FINAL_BACKUPS/",
-        "$folderBase/backups/compiled/",
-        "$folderBase/backups/pipeline/",
-        "$folderBase/backups/pipeline/request/",
-        "$folderBase/backups/pipeline/post-response/",
-        "$folderBase/backups/middlewares/",
-        "$folderBase/backups/pages/",
-        "$folderBase/backups/pages/compiled/",
-        "$folderBase/backups/pages/compiled/[errors]/",
-        "$folderBase/backups/pages/components/",
-        "$folderBase/backups/pages/layouts/",
-        "$folderBase/backups/pages/partials/",
-        "$folderBase/backups/config/",
-        "$folderBase/backups/cli/",
-        "$folderBase/backups/cli/config/",
-        "$folderBase/backups/cli/commands/",
-        "$folderBase/backups/schema/",
-        "$folderBase/backups/sql/",
-        "$folderBase/backups/snippets/",
-        "$folderBase/backups/tests/",
-        "$folderBase/backups/validation/",
         "$folderBase/batteries/",
         "$folderBase/batteries/middlewares/",
         "$folderBase/batteries/pipeline/",
@@ -9347,6 +9326,7 @@ function cli_output_file_until_success($outputPathWithoutExtension, $extension, 
 
 // Backup batch of files based on the array of files (string values) to backup
 // Function uses "cli_backup_file_until_success"!
+// TODO: Fix actual backup functionality
 function cli_backup_batch($arrayOfFilesToBackup)
 {
     // Check if the array is a non-empty array
@@ -9354,111 +9334,7 @@ function cli_backup_batch($arrayOfFilesToBackup)
         cli_err_syntax("Array of files to backup must be a non-empty array!");
     }
     global $settings;
-
-    // Prepare paths for all possible that could be backed up
-    // Backup paths
-    $backupFinalsPath = BACKUPS_FINAL_DIR;
-    $backupCompiledPath = BACKUPS_COMPILED_DIR;
-    $backupRouteRoutePath = BACKUPS_ROUTES_DIR;
-
-    // Single Route Routes (including Middlewares)
-    $oldTrouteRouteFile = FUNKPHP_FILE_PATH_TROUTES;
-    $oldSingleRouteRouteFile = FUNKPHP_FILE_PATH_ROUTES;
-
-    // Now backup the old route files based on provided $filesString
-    // Loop through each file in the array and backup it
-    foreach ($arrayOfFilesToBackup as $fileString) {
-        if ($fileString === "troutes") {
-            // Routes
-            if ($settings['ALWAYS_BACKUP_IN']['COMPILED_IN_BACKUPS']) {
-                cli_backup_file_until_success($backupCompiledPath . "troute_route", ".php", $oldTrouteRouteFile);
-            }
-            if ($settings['ALWAYS_BACKUP_IN']['COMPILED_IN_FINAL_BACKUPS']) {
-                cli_backup_file_until_success($backupFinalsPath . "troute_route", ".php", $oldTrouteRouteFile);
-            }
-            continue;
-        }
-        if ($fileString === "routes") {
-            // Single Route Routes & Middlewares
-            if ($settings['ALWAYS_BACKUP_IN']['ROUTES_IN_BACKUPS']) {
-                cli_backup_file_until_success($backupRouteRoutePath . "route_single_routes", ".php", $oldSingleRouteRouteFile);
-            }
-            if ($settings['ALWAYS_BACKUP_IN']['ROUTES_IN_FINAL_BACKUPS']) {
-                cli_backup_file_until_success($backupFinalsPath . "route_single_routes", ".php", $oldSingleRouteRouteFile);
-            }
-            continue;
-        }
-        if ($fileString === "data") {
-            if ($settings['ALWAYS_BACKUP_IN']['DATA_IN_BACKUPS']) {
-            }
-            if ($settings['ALWAYS_BACKUP_IN']['DATA_IN_FINAL_BACKUPS']) {
-            }
-            continue;
-        }
-        if ($fileString === "page") {
-            if ($settings['ALWAYS_BACKUP_IN']['PAGES_IN_BACKUPS']) {
-            }
-            if ($settings['ALWAYS_BACKUP_IN']['PAGES_IN_FINAL_BACKUPS']) {
-            }
-            continue;
-        }
-        if ($fileString === "handler") {
-            if ($settings['ALWAYS_BACKUP_IN']['HANDLERS_IN_BACKUPS']) {
-            }
-            if ($settings['ALWAYS_BACKUP_IN']['HANDLERS_IN_FINAL_BACKUPS']) {
-            }
-            continue;
-        }
-        if ($fileString === "middlewares") {
-            if ($settings['ALWAYS_BACKUP_IN']['MIDDLEWARES_IN_BACKUPS']) {
-            }
-            if ($settings['ALWAYS_BACKUP_IN']['MIDDLEWARES_IN_FINAL_BACKUPS']) {
-            }
-            continue;
-        }
-        if ($fileString === "template") {
-            if ($settings['ALWAYS_BACKUP_IN']['TEMPLATES_IN_BACKUPS']) {
-            }
-            if ($settings['ALWAYS_BACKUP_IN']['TEMPLATES_IN_FINAL_BACKUPS']) {
-            }
-            continue;
-        }
-        if ($fileString === "sql") {
-            if ($settings['ALWAYS_BACKUP_IN']['SQL_IN_BACKUPS']) {
-            }
-            if ($settings['ALWAYS_BACKUP_IN']['SQL_IN_FINAL_BACKUPS']) {
-            }
-            continue;
-        }
-        if ($fileString === "test") {
-            if ($settings['ALWAYS_BACKUP_IN']['TESTS_IN_BACKUPS']) {
-            }
-            if ($settings['ALWAYS_BACKUP_IN']['TESTS_IN_FINAL_BACKUPS']) {
-            }
-            continue;
-        }
-        if ($fileString === "config") {
-            if ($settings['ALWAYS_BACKUP_IN']['CONFIG_IN_BACKUPS']) {
-            }
-            if ($settings['ALWAYS_BACKUP_IN']['CONFIG_IN_FINAL_BACKUPS']) {
-            }
-            continue;
-        }
-        if ($fileString === "cached") {
-            if ($settings['ALWAYS_BACKUP_IN']['CACHED_IN_BACKUPS']) {
-            }
-            if ($settings['ALWAYS_BACKUP_IN']['CACHED_IN_FINAL_BACKUPS']) {
-            }
-            continue;
-        }
-        if ($fileString === "validation") {
-            if ($settings['ALWAYS_BACKUP_IN']['VALIDATIONS_IN_BACKUPS']) {
-            }
-            if ($settings['ALWAYS_BACKUP_IN']['VALIDATIONS_IN_FINAL_BACKUPS']) {
-            }
-            continue;
-        }
-    }
+    cli_info_without_exit("`cli_backup_batch` will be implemented another time! For now, it just simulates the backup process by waiting 1 second for each file and then reporting success!");
 }
 
 // Delete a Single Route from the Route file (funkphp/routes/route_single_routes.php)
@@ -9491,14 +9367,15 @@ function cli_delete_a_route()
         cli_err("Route: \"$method$validRoute\" does not exist. Another HTTP Method or was it deleted already?");
     }
 
+    // TODO: Fix later when cli_backup_batch is also fixed!
     // HERE we found the route so we can delete it
     // First backup all associated route files if settings allow it
-    cli_backup_batch(
-        [
-            "troutes",
-            "routes",
-        ]
-    );
+    // cli_backup_batch(
+    //     [
+    //         "troutes",
+    //         "routes",
+    //     ]
+    // );
     // Grab handlers for 'handler' and 'data' from the route array
     $middlewares = $singleRoutesRoute['ROUTES'][$method][$validRoute]['middlewares'] ?? null;
     $handler = $singleRoutesRoute['ROUTES'][$method][$validRoute]['handler'] ?? null;
@@ -9573,13 +9450,14 @@ function cli_sort_build_routes_compile_and_output($singleRoutesRootArray)
         }
     }
 
+    // TODO: Fix later when cli_backup_batch is fixed!
     // First backup all associated route files if settings allow it
-    cli_backup_batch(
-        [
-            "troutes",
-            "routes",
-        ]
-    );
+    // cli_backup_batch(
+    //     [
+    //         "troutes",
+    //         "routes",
+    //     ]
+    // );
 
     // Then we rebuild and recompile Routes
     $rebuild = cli_rebuild_single_routes_route_file($singleRoutesRootArray);

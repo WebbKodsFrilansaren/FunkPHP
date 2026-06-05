@@ -194,8 +194,9 @@ if (strpos($acceptHeader, 'application/json') !== false) {
 
         </div>
 
-        <h3>Terminal/API Output Response:</h3>
-        <pre id="terminal-console">Awaiting local directive...</pre>
+        <h3>FunkCLI Terminal/API Output Response:</h3>
+        <input /* type="text" id="cli-command-input" placeholder="Type a FunkCLI command here and press Enter..." onkeydown="handleCommandInput(event)" * />
+        <div id="terminal-console">FunkCLI output will show up here...</div>
     </div>
 
 </html>
