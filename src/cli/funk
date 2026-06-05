@@ -96,6 +96,38 @@ define('ANSI_RESET', "\033[0m");
 global $funk_response_messages;
 $funk_response_messages = [];
 
+// Load the settings file if it exists, otherwise use default settings
+// PLEASE ONLY EDIT THE ACTUAL "src/cli/funksettings" file and NOT below here!!!
+$settingsPath = CLI_DIR . '/funksettings';
+$settings = is_readable($settingsPath)
+    ? include $settingsPath
+    : [
+        "ALLOWED_IPS" => ["127.0.0.1", "localhost", "192.168.122.1"],
+        "ALWAYS_BACKUP_IN" => [
+            "COMPILED_IN_BACKUPS" => false,
+            "COMPILED_IN_FINAL_BACKUPS" => false,
+            "DATA_IN_BACKUPS" => false,
+            "DATA_IN_FINAL_BACKUPS" => false,
+            "DATA_HANDLERS_IN_BACKUPS" => false,
+            "DATA_HANDLERS_IN_FINAL_BACKUPS" => false,
+            "DATA_MWS_IN_BACKUPS" => false,
+            "DATA_MWS_IN_FINAL_BACKUPS" => false,
+            "PAGES_IN_BACKUPS" => false,
+            "PAGES_IN_FINAL_BACKUPS" => false,
+            "PAGES_HANDLERS_IN_BACKUPS" => false,
+            "PAGES_HANDLERS_IN_FINAL_BACKUPS" => false,
+            "PAGES_MWS_IN_BACKUPS" => false,
+            "PAGES_MWS_IN_FINAL_BACKUPS" => false,
+            "ROUTES_IN_BACKUPS" => false,
+            "ROUTES_IN_FINAL_BACKUPS" => false,
+            "ROUTES_HANDLERS_IN_BACKUPS" => false,
+            "ROUTES_HANDLERS_IN_FINAL_BACKUPS" => false,
+            "ROUTES_MWS_IN_BACKUPS" => false,
+            "ROUTES_MWS_IN_FINAL_BACKUPS" => false,
+            "ALLOW_COMPLETE_BACKUP_DELETION" => false,
+        ],
+    ];
+
 // Check /config/cli_regexes.php and /config/cli_commands.php files
 // exist or error out, otherwise include them for later use
 if (
@@ -165,14 +197,14 @@ if (php_sapi_name() === 'cli') {
         }
     }
     // TESTING DEBUGGING RIGHT NOW - REMOVE LATER
-    var_dump("\nCOMMAND:`" . $command . " | `SUBBCOMMAND:`" . $subCommand . "`\nARGS:`" . print_r($args, true) . "`\n");
+    //var_dump("\nCOMMAND:`" . $command . " | `SUBBCOMMAND:`" . $subCommand . "`\nARGS:`" . print_r($args, true) . "`\n");
 }
 // JSON Mode: REVISED VERSION
 else {
     $JSON = true;
     header('Content-Type: application/json');
     $payload = json_decode(file_get_contents('php://input'), true) ?? [];
-    var_dump($payload);
+    //var_dump($payload);
     $command = $payload['command'] ?? null;
     // Verify $command is a non-empty string after trimming whitespace
     if (
@@ -215,9 +247,9 @@ define("NO_ARGS_CLI", ($CLI === true && count($args) === 0));
 // If we are in JSON_MODE We then check that the REMOTE_ADDR is set and is either
 // localhost or 127.0.0.1 since this should ONLY be ran in local development
 if (JSON_MODE) {
-    if (!isset($_SERVER['REMOTE_ADDR']) || !in_array($_SERVER['REMOTE_ADDR'], ['127.0.0.1', 'localhost'])) {
+    if (!isset($_SERVER['REMOTE_ADDR']) || !in_array($_SERVER['REMOTE_ADDR'], $settings['ALLOWED_IPS'])) {
         http_response_code(403);
-        echo json_encode(['error' => 'FunkCLI will ONLY accept using `127.0.0.1` or `localhost` as your Local IP!']);
+        echo json_encode(['error' => 'FunkCLI will ONLY accept using: ' . implode(', ', $settings['ALLOWED_IPS']) . ' as value for the `REMOTE_ADDR` Server Variable!' . 'Your current `REMOTE_ADDR/IP` is: ' . ($_SERVER['REMOTE_ADDR'] ?? 'NOT SET OR UNKNOWN')]);
         exit;
     }
     if (!isset($_SERVER['HTTP_ACCEPT']) || $_SERVER['HTTP_ACCEPT'] !== 'application/json') {
@@ -229,59 +261,23 @@ if (JSON_MODE) {
 
 // Try including files or throw an error if they are not found
 if (
-    // !is_readable(FUNKPHP_FILE_PATH_CLI_FUNS)
-    // || !is_readable(FUNKPHP_FILE_PATH_CLI_FUNS2)
-    // || !is_readable(FUNKPHP_FILE_PATH_CLI_CONFIG_EXTERNAL_CALLABLE_VALIDATORS)
-    !is_readable(FUNKPHP_FILE_PATH_CLI_FUNCTIONS)
+    !is_readable(FUNKPHP_FILE_PATH_CLI_CONFIG_EXTERNAL_CALLABLE_VALIDATORS)
+    || !is_readable(FUNKPHP_FILE_PATH_CLI_FUNCTIONS)
 ) {
     if (JSON_MODE) {
         http_response_code(500);
         echo json_encode([
             'type' => 'ERROR',
-            'message' => 'FunkPHP CLI Functions File (cli_functions.php) - NOT FOUND in `src/cli` Directory!'
+            'message' => 'FunkPHP CLI Functions File (cli_functions.php) - NOT FOUND in `src/cli/core` Directory! OR the FunkPHP CLI Configuration File for External Callable Validators (external_callable_validators.php) - NOT FOUND in `src/cli/config` Directory! Both of these files are REQUIRED by FunkCLI to work properly!'
         ]);
         exit;
     } else {
-        echo "\033[31m[FunkCLI - ERROR]: FunkPHP CLI Functions File (cli_functions.php) - NOT FOUND in `src/cli` Directory!\n\033[0m";
+        echo "\033[31m[FunkCLI - ERROR]: FunkPHP CLI Functions File (cli_functions.php) - NOT FOUND in `src/cli/core` Directory! OR the FunkPHP CLI Configuration File for External Callable Validators (external_callable_validators.php) - NOT FOUND in `src/cli/config` Directory! Both of these files are REQUIRED by FunkCLI to work properly!\n\033[0m";
         exit;
     }
 }
-//include_once FUNKPHP_FILE_PATH_CLI_FUNS;
-//include_once FUNKPHP_FILE_PATH_CLI_FUNS2;
 include_once FUNKPHP_FILE_PATH_CLI_FUNCTIONS;
 include_once FUNKPHP_FILE_PATH_CLI_CONFIG_EXTERNAL_CALLABLE_VALIDATORS;
-
-// Load the settings file if it exists, otherwise use default settings
-$settings = include CLI_DIR . '/funksettings' ?? [
-    // Default settings for FunkCLI. "ALWAYS_BACKUP_IN" is a list of all the backup settings for the CLI.
-    // It is used to determine which files should be backed up when the CLI runs backup-related commands.
-    // DO NOT DELETE THIS PART. IT IS REQUIRED FOR THE CLI TO WORK PROPERLY. Change values to true or false.
-    // Default is to always backup everything except the actual data handler files and middleware files as of now.
-    "ALWAYS_BACKUP_IN" =>
-    [
-        "COMPILED_IN_BACKUPS" => false,
-        "COMPILED_IN_FINAL_BACKUPS" => false,
-        "DATA_IN_BACKUPS" => false,
-        "DATA_IN_FINAL_BACKUPS" => false,
-        "DATA_HANDLERS_IN_BACKUPS" => false,
-        "DATA_HANDLERS_IN_FINAL_BACKUPS" => false,
-        "DATA_MWS_IN_BACKUPS" => false,
-        "DATA_MWS_IN_FINAL_BACKUPS" => false,
-        "PAGES_IN_BACKUPS" => false,
-        "PAGES_IN_FINAL_BACKUPS" => false,
-        "PAGES_HANDLERS_IN_BACKUPS" => false,
-        "PAGES_HANDLERS_IN_FINAL_BACKUPS" => false,
-        "PAGES_MWS_IN_BACKUPS" => false,
-        "PAGES_MWS_IN_FINAL_BACKUPS" => false,
-        "ROUTES_IN_BACKUPS" => false,
-        "ROUTES_IN_FINAL_BACKUPS" => false,
-        "ROUTES_HANDLERS_IN_BACKUPS" => false,
-        "ROUTES_HANDLERS_IN_FINAL_BACKUPS" => false,
-        "ROUTES_MWS_IN_BACKUPS" => false,
-        "ROUTES_MWS_IN_FINAL_BACKUPS" => false,
-        "ALLOW_COMPLETE_BACKUP_DELETION" => false,
-    ],
-];
 
 // List of all functions that are reserved for the framework and
 // should not be used in the application code. They are checked against

@@ -40,7 +40,6 @@
             justify-content: center;
             align-items: center;
             max-width: 420px;
-            <p class="center-text"><i>(Did you manually navigate to `/public_html/critical_err_html.php`? Well, you can include to ignore that specific file in your .htaccess OR nginx Configuration File, dear Developer !)</i></p>margin-top: 50px;
             margin-left: auto;
             margin-right: auto;
             margin-bottom: 50px;
@@ -83,10 +82,10 @@
     <div class="container">
         <h1>FunkPHP Framework - Internal Error</h1>
         <p>Important files could not be loaded, so Please Tell the Developer to fix the website or the Web Hosting Service to Allow Reading the Necessary Folders &amp; Files!</p>
-        <p><strong>Message to Developer for Debugging:</strong> `<?= $customMessage ?? "<No Custom Message Included OR `\$customMessage` Variable is NOT Available for some reason?!>" ?>`</p>
+        <p><strong>Message to Developer for Debugging:</strong> `<?= (isset($customMessage) && is_string($customMessage) && !empty($customMessage)) ? $customMessage : "&lt;No Custom Message Included OR `\$customMessage` Variable is NOT Available for some reason?!&gt;"; ?>`</p>
         <p>The Developer? Please check your Configuration and File permissions where you Develop and/or Host this Website!</p>
         <p class="center-text">Thanks in advance!<br>You are Awesome, anyway! ^_^</p>
-        <?php if (!$customMessage): ?>
+        <?php if (empty($customMessage)): ?>
             <p class="center-text"><i>(It also appears that the `/public_html/critical_err_html.php` file was accessed manually in the Web Browser. Well, you can include to ignore that specific file in your .htaccess OR nginx Configuration File, dear Developer!)</i></p>
         <?php endif; ?>
     </div>

@@ -1,7 +1,7 @@
 <?php
 // DEFAULT CHECK THAT ALL NEEDED FILES EXIST OR WE THROW DEFAULT JSON ERROR
 // OR DEFAULT HTML ERROR PAGE - YOU CAN CONFIGURE THIS RIGHT BELOW HERE!
-function critical_err_json_or_html($status = 500, $customMessage = "<No Custom Message Included!>")
+function critical_err_json_or_html($status = 500, $customMessage = "&gt;No Custom Message Included!&lt;")
 {
     // Return JSON if 'Accept' Header includes 'application/json', otherwise always
     // return HTML Error Page (unless You modify inside the `critical_err_html.php`

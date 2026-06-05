@@ -8849,14 +8849,14 @@ function cli_match_developer_route(string $method, string $uri, array $compiledR
 function cli_rebuild_single_routes_route_file($singleRouteRoutesFileArray): bool
 {
     if (!is_array($singleRouteRoutesFileArray) || empty($singleRouteRoutesFileArray)) {
-        cli_err_syntax("[cli_rebuild_single_routes_file] Single Route Routes File Array (funkphp/config/routes.php) must be a non-empty array!");
+        cli_err_syntax("[cli_rebuild_single_routes_file] Single Route Routes File Array (funkphp/routes/routes.php) must be a non-empty array!");
     }
     if (!isset($singleRouteRoutesFileArray['ROUTES'])) {
-        cli_err_syntax("[cli_rebuild_single_routes_file] Single Route Routes File Array (funkphp/config/routes.php) must start with a 'ROUTES' key!");
+        cli_err_syntax("[cli_rebuild_single_routes_file] Single Route Routes File Array (funkphp/routes/routes.php) must start with a 'ROUTES' key!");
     }
     // Check that dir exist, is writable and is a directory
     if (!is_dir(FUNKPHP_ROUTES_DIR) || !is_writable(FUNKPHP_ROUTES_DIR)) {
-        cli_err("[cli_rebuild_single_routes_file] Directory for `routes.php` (funkphp/config/) must be a Writable Directory. Check it exists and/or its File Permission!");
+        cli_err("[cli_rebuild_single_routes_file] Directory for `routes.php` (" . FUNKPHP_ROUTES_DIR . ") must be a Writable Directory. Check it exists and/or its File Permission!");
     }
     // Check that if file exists, it can be overwritten
     if (file_exists(FUNKPHP_FILE_PATH_ROUTES) && !is_writable(FUNKPHP_FILE_PATH_ROUTES)) {
@@ -9139,28 +9139,28 @@ function cli_restore_default_folders_and_files()
     $folderBase = PROJECT_DIR;
     $folders = [
         "$folderBase",
-        "$folderBase/BACKUPS/",
-        "$folderBase/BACKUPS/_FINAL_BACKUPS/",
-        "$folderBase/BACKUPS/compiled/",
-        "$folderBase/BACKUPS/pipeline/",
-        "$folderBase/BACKUPS/pipeline/request/",
-        "$folderBase/BACKUPS/pipeline/post-response/",
-        "$folderBase/BACKUPS/middlewares/",
-        "$folderBase/BACKUPS/pages/",
-        "$folderBase/BACKUPS/pages/compiled/",
-        "$folderBase/BACKUPS/pages/compiled/[errors]/",
-        "$folderBase/BACKUPS/pages/components/",
-        "$folderBase/BACKUPS/pages/layouts/",
-        "$folderBase/BACKUPS/pages/partials/",
-        "$folderBase/BACKUPS/config/",
-        "$folderBase/BACKUPS/cli/",
-        "$folderBase/BACKUPS/cli/config/",
-        "$folderBase/BACKUPS/cli/commands/",
-        "$folderBase/BACKUPS/schema/",
-        "$folderBase/BACKUPS/sql/",
-        "$folderBase/BACKUPS/snippets/",
-        "$folderBase/BACKUPS/tests/",
-        "$folderBase/BACKUPS/validation/",
+        "$folderBase/backups/",
+        "$folderBase/backups/_FINAL_BACKUPS/",
+        "$folderBase/backups/compiled/",
+        "$folderBase/backups/pipeline/",
+        "$folderBase/backups/pipeline/request/",
+        "$folderBase/backups/pipeline/post-response/",
+        "$folderBase/backups/middlewares/",
+        "$folderBase/backups/pages/",
+        "$folderBase/backups/pages/compiled/",
+        "$folderBase/backups/pages/compiled/[errors]/",
+        "$folderBase/backups/pages/components/",
+        "$folderBase/backups/pages/layouts/",
+        "$folderBase/backups/pages/partials/",
+        "$folderBase/backups/config/",
+        "$folderBase/backups/cli/",
+        "$folderBase/backups/cli/config/",
+        "$folderBase/backups/cli/commands/",
+        "$folderBase/backups/schema/",
+        "$folderBase/backups/sql/",
+        "$folderBase/backups/snippets/",
+        "$folderBase/backups/tests/",
+        "$folderBase/backups/validation/",
         "$folderBase/batteries/",
         "$folderBase/batteries/middlewares/",
         "$folderBase/batteries/pipeline/",
