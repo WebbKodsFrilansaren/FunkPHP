@@ -1,3 +1,14 @@
+# 1. Fire up the rewrite engine
 RewriteEngine On
-RewriteRule ^([^\.]+)$ $1.php [NC]
-RewriteRule ^.*$ index.php [L,QSA]
+
+# 2. THE STATIC ASSET GUARD: If the requested URI is an actual physical file on disk...
+RewriteCond %{REQUEST_FILENAME} -f
+# ...or if it's an actual physical directory folder on disk...
+RewriteCond %{REQUEST_FILENAME} -d
+# ...then STOP completely [L] and just serve that file/folder as-is (e.g., css/style.css)
+RewriteRule ^ - [L]
+
+# 3. THE FRAMEWORK ROUTER: If it wasn't a real file or folder, pass the entire URI
+# down to your FunkPHP index.php entry point file.
+# [L] means Last rule, [QSA] means Query String Append (keeps things like ?id=5 intact)
+RewriteRule ^(.*)$ index.php [L,QSA]
