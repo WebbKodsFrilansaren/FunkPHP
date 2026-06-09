@@ -13,6 +13,11 @@ if (file_exists('/usr/bin/apt')) {
     $pkgManager = 'dnf';     // Fedora, RedHat, CentOS, Rocky Linux
 } elseif (file_exists('/usr/bin/pacman')) {
     $pkgManager = 'pacman';  // Arch Linux, Manjaro
+}  // Check if Windows or MacOS instead
+elseif (strncasecmp(PHP_OS, 'WIN', 3) === 0) {
+    $pkgManager = 'windows';
+} elseif (strncasecmp(PHP_OS, 'DAR', 3) === 0) {
+    $pkgManager = 'macos';
 }
 $ver = PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION;
 # =========================================================================
@@ -21,23 +26,23 @@ $ver = PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION;
 $minimumPhpVersion = '8.3.0';
 // Structured metadata mapping modules directly to target environment package states
 $requiredExtensions = [
-    'posix'     => ['purpose' => 'Required for Web User identity mapping.', 'apt' => 'common', 'dnf' => 'common'],
-    'ctype'     => ['purpose' => 'Required for character type check loops.', 'apt' => 'common', 'dnf' => 'common'],
-    'curl'      => ['purpose' => 'Required for internal API networking and package calls.', 'apt' => 'curl', 'dnf' => 'curl'],
-    'dom'       => ['purpose' => 'Required for advanced XML/HTML DOM node compiling.', 'apt' => 'xml', 'dnf' => 'xml'],
-    'fileinfo'  => ['purpose' => 'Required for secure asset upload profiling.', 'apt' => 'common', 'dnf' => 'common'],
-    'filter'    => ['purpose' => 'Required for framework-wide input validation.', 'apt' => null, 'dnf' => null], // Natively core
-    'hash'      => ['purpose' => 'Required for data encryption and routing hashes.', 'apt' => null, 'dnf' => null],   // Natively core
-    'mbstring'  => ['purpose' => 'Required for safe multi-byte UTF-8 strings.', 'apt' => 'mbstring', 'dnf' => 'mbstring'],
-    'openssl'   => ['purpose' => 'Required for cryptographically secure tokens.', 'apt' => null, 'dnf' => null], // Natively core
-    'pcre'      => ['purpose' => 'Required for core framework regex route matching.', 'apt' => null, 'dnf' => null], // Natively core
-    'pdo'       => ['purpose' => 'Required for secure database operations.', 'apt' => 'common', 'dnf' => 'pdo'],
-    'session'   => ['purpose' => 'Required for cross-request state and tab logic.', 'apt' => null, 'dnf' => null], // Natively core
-    'tokenizer' => ['purpose' => 'Required for deep structural code compilation.', 'apt' => 'common', 'dnf' => 'common'],
-    'xml'       => ['purpose' => 'Required for handling structured config nodes.', 'apt' => 'xml', 'dnf' => 'xml'],
+    'posix'     => ['purpose' => 'Required for Linux Web User identity mapping.', 'apt' => 'common', 'dnf' => 'common', 'win_supported' => false],
+    'ctype'     => ['purpose' => 'Required for character type check loops.', 'apt' => 'common', 'dnf' => 'common', 'win_supported' => true],
+    'curl'      => ['purpose' => 'Required for internal API networking and package calls.', 'apt' => 'curl', 'dnf' => 'curl', 'win_supported' => true],
+    'dom'       => ['purpose' => 'Required for advanced XML/HTML DOM node compiling.', 'apt' => 'xml', 'dnf' => 'xml', 'win_supported' => true],
+    'fileinfo'  => ['purpose' => 'Required for secure asset upload profiling.', 'apt' => 'common', 'dnf' => 'common', 'win_supported' => true],
+    'filter'    => ['purpose' => 'Required for framework-wide input validation.', 'apt' => null, 'dnf' => null, 'win_supported' => true],
+    'hash'      => ['purpose' => 'Required for data encryption and routing hashes.', 'apt' => null, 'dnf' => null, 'win_supported' => true],
+    'mbstring'  => ['purpose' => 'Required for safe multi-byte UTF-8 strings.', 'apt' => 'mbstring', 'dnf' => 'mbstring', 'win_supported' => true],
+    'openssl'   => ['purpose' => 'Required for cryptographically secure tokens.', 'apt' => null, 'dnf' => null, 'win_supported' => true],
+    'pcre'      => ['purpose' => 'Required for core framework regex route matching.', 'apt' => null, 'dnf' => null, 'win_supported' => true],
+    'pdo'       => ['purpose' => 'Required for secure database operations.', 'apt' => 'common', 'dnf' => 'pdo', 'win_supported' => true],
+    'session'   => ['purpose' => 'Required for cross-request state and tab logic.', 'apt' => null, 'dnf' => null, 'win_supported' => true],
+    'tokenizer' => ['purpose' => 'Required for deep structural code compilation.', 'apt' => 'common', 'dnf' => 'common', 'win_supported' => true],
+    'xml'       => ['purpose' => 'Required for handling structured config nodes.', 'apt' => 'xml', 'dnf' => 'xml', 'win_supported' => true],
 ];
 $requiredWritablePaths = [
-    'Backups Main Directory'    => __DIR__ . '/../backups',
+    'Backups Main Directory'    => __DIR__ . '/../backupsa',
     'Batteries Main Directory'    => __DIR__ . '/../batteries',
     'Batteries Middlewares Directory'    => __DIR__ . '/../batteries/middlewares',
     'Batteries Pipeline Main Directory'    => __DIR__ . '/../batteries/pipeline',
@@ -79,6 +84,12 @@ if (version_compare(PHP_VERSION, $minimumPhpVersion, '<')) {
 // Phase B: Module Assessment & Fix Construction
 foreach ($requiredExtensions as $ext => $meta) {
     if (!extension_loaded($ext)) {
+        // Handle special case: Extension is completely unsupported natively on this OS
+        if ($pkgManager === 'windows' && $meta['win_supported'] === false) {
+            // Skip blocking the developer entirely on Windows for Linux-only extensions,
+            // or choose to treat it as a non-blocking environment warning.
+            continue;
+        }
         $fixInstruction = "";
         if ($pkgManager === 'apt' && !empty($meta['apt'])) {
             $pkgName = "php{$ver}-" . $meta['apt'];
@@ -89,9 +100,13 @@ foreach ($requiredExtensions as $ext => $meta) {
             $missingPackagesQueue[] = $pkgName;
             $fixInstruction = "[Fix: Run `sudo dnf install {$pkgName}`]";
         } elseif ($pkgManager === 'pacman') {
-            $fixInstruction = "[Fix: Uncomment `extension={$ext}` in `/etc/php/php.ini`]";
+            $fixInstruction = "[Fix: Uncomment `extension={$ext}` in your `/etc/php/php.ini` file]";
+        } elseif ($pkgManager === 'windows') {
+            $fixInstruction = "[Fix: Open your active `php.ini` configuration (via WAMP/XAMPP control panel) and uncomment the line: `extension={$ext}` (delete the leading semicolon `;`)]";
+        } elseif ($pkgManager === 'macos') {
+            $fixInstruction = "[Fix: Open your active `php.ini` configuration (MAMP template or Laravel Herd settings) and ensure `extension={$ext}.so` is active]";
         } else {
-            $fixInstruction = "[Fix: Enable module inside your environment's active `php.ini` setup]";
+            $fixInstruction = "[Fix: Enable module inside your environment's active `php.ini` setup or however it is done on your system]";
         }
         $compatibilityErrors[] = "<strong>PHP Extension [{$ext}]:</strong> The module is missing or disabled. (Purpose: {$meta['purpose']} {$fixInstruction})";
     }
@@ -103,6 +118,9 @@ foreach ($requiredWritablePaths as $name => $path) {
         $compatibilityErrors[] = "<strong>{$name}:</strong> Target path at '<code>{$path}</code>' does NOT EXIST.";
         continue;
     }
+    if (!is_readable($realPath)) {
+        $compatibilityErrors[] = "<strong>{$name}:</strong> The folder at '<code>{$realPath}</code>' is NOT READABLE by the Web Server.";
+    }
     if (!is_writable($realPath)) {
         $compatibilityErrors[] = "<strong>{$name}:</strong> The folder at '<code>{$realPath}</code>' is NOT WRITABLE by the Web Server.";
     }
@@ -111,6 +129,7 @@ foreach ($requiredWritablePaths as $name => $path) {
 # 4. COMPREHENSIVE RECOVERY VIEW INTERPOLATION
 # =========================================================================
 if (!empty($compatibilityErrors) && ($_SERVER['HTTP_ACCEPT'] ?? '') !== 'application/json') {
+    $server = isset($_SERVER['SERVER_SOFTWARE']) ? explode('/', $_SERVER['SERVER_SOFTWARE'])[0] : 'unknown_server';
     $currentUser = extension_loaded('posix') ? (posix_getpwuid(posix_geteuid())['name'] ?? 'unknown_user') : 'unknown_user';
     $projectRoot = realpath(dirname(__DIR__));
     $rootPerms = fileperms($projectRoot);
@@ -125,6 +144,15 @@ if (!empty($compatibilityErrors) && ($_SERVER['HTTP_ACCEPT'] ?? '') !== 'applica
             $unifiedExtensionCommand = "sudo dnf install -y " . implode(' ', $uniquePackages) . " && sudo systemctl restart php-fpm";
         } elseif ($pkgManager === 'pacman') {
             $unifiedExtensionCommand = "# On Arch Linux, uncomment these extensions inside your /etc/php/php.ini configuration file, then run:\nsudo systemctl restart php-fpm";
+        } elseif ($pkgManager === 'windows') {
+            $isCliFix = false;
+            $unifiedExtensionCommand = "1. Click your WAMP/XAMPP system tray icon.\n2. Navigate to the PHP Extensions menu selection panel.\n3. Click on the inactive modules to toggle them on instantly, then restart your web services.";
+        } elseif ($pkgManager === 'macos') {
+            $isCliFix = false;
+            $unifiedExtensionCommand = "# If using MAMP: Toggle extensions via MAMP PRO Interface -> PHP Settings tab.\n# If using Laravel Herd: Navigate to Herd Preferences -> Extensions and check the boxes.";
+        } else {
+            $isCliFix = false;
+            $unifiedExtensionCommand = "You are running an unrecognized or custom environment. Please enable the missing extensions manually via your active php.ini configuration file or however it is done on your system!";
         }
     }
 ?>
@@ -142,7 +170,7 @@ if (!empty($compatibilityErrors) && ($_SERVER['HTTP_ACCEPT'] ?? '') !== 'applica
         <div style="max-width: 800px; margin: 0 auto; background: #252538; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); border: 1px solid #45475a;">
             <h1 style="color: #f38ba8; border-b: 2px solid #45475a; padding-bottom: 10px; margin-top: 0;">FunkPHP Framework Environment Check</h1>
             <p style="font-size: 1em; color: #a6adc8;">The following must be fixed in order to use FunkGUI, FunkCLI and FunkPHP as a whole.</p>
-            <p style="font-size: 1em; color: #a6adc8;">The FunkGUI seems to run PHP <?= $ver; ?> as `<code><?= htmlspecialchars($currentUser); ?></code>` on platform `<strong><?= strtoupper($pkgManager); ?></strong> Package Manager`</p>
+            <p style="font-size: 1em; color: #a6adc8;">The FunkGUI seems to run <strong><?= PHP_OS ?> PHP <?= $ver; ?></strong> on server <strong><?= $server ?></strong> via process <strong><?= htmlspecialchars($currentUser); ?></strong> as user <strong><?= get_current_user(); ?></strong> with Package Manager <strong><?= strtoupper($pkgManager); ?></strong>.</p>
 
             <h3 style="color: #f9e2af; margin-top: 25px;">Issues Detected (<?= count($compatibilityErrors); ?>):</h3>
             <ul style="background: #11111b; padding: 20px; border-radius: 6px; list-style-type: none; border: 1px solid #45475a;">
@@ -153,16 +181,18 @@ if (!empty($compatibilityErrors) && ($_SERVER['HTTP_ACCEPT'] ?? '') !== 'applica
 
             <?php if (!empty($unifiedExtensionCommand)): ?>
                 <h3 style="color: #a6e3a1; margin-top: 25px;">Quick Fix: Install Missing Modules</h3>
-                <p style="font-size: 1em; color: #a6adc8;">Run this combined command sequence inside your terminal to install all missing dependencies at once (and to also restart your current PHP version):</p>
+                <p style="font-size: 1em; color: #a6adc8;"><?= $isCliFix ? 'Run this combined command sequence inside your terminal to install all missing dependencies at once (and to also restart your current PHP version):' : 'Follow these environmental instructions to enable your missing extensions:' ?></p>
                 <pre style="background: #11111b; padding: 15px; border-radius: 4px; border: 1px solid #a6e3a1/50; color: #a6e3a1; font-family: monospace; overflow-x: auto; font-size: 1.1em; white-space: pre-wrap; word-break: break-all;"><?= htmlspecialchars($unifiedExtensionCommand); ?></pre>
             <?php endif; ?>
 
-            <h3 style="color: #89b4fa; margin-top: 25px;">Quick Fix: Storage Permissions</h3>
-            <p style="font-size: 1em; color: #a6adc8;">Run this command line to open up your storage components framework path access rules securely for local evaluation:</p>
-            <pre style="background: #11111b; padding: 15px; border-radius: 4px; border: 1px solid #45475a; color: #89b4fa; font-family: monospace; overflow-x: auto; font-size: 1.1em;">chmod -R 777 <?= htmlspecialchars($projectRoot); ?></pre>
+            <?php if ($pkgManager !== 'windows' && $pkgManager !== 'unknown'): ?>
+                <h3 style="color: #89b4fa; margin-top: 25px;">Quick Fix: Storage Permissions</h3>
+                <p style="font-size: 1em; color: #a6adc8;">Run this command line to open up your storage components framework path access rules securely for local evaluation:</p>
+                <pre style="background: #11111b; padding: 15px; border-radius: 4px; border: 1px solid #45475a; color: #89b4fa; font-family: monospace; overflow-x: auto; font-size: 1.1em;">chmod -R 777 <?= htmlspecialchars($projectRoot); ?></pre>
 
-            <p style="font-size: 1em; color: #a6adc8;">You can reset storage paths back to environment defaults later via:</p>
-            <pre style="background: #11111b; padding: 15px; border-radius: 4px; border: 1px solid #45475a; color: #89b4fa; font-family: monospace; overflow-x: auto; font-size: 1.1em;">chmod -R <?= htmlspecialchars($defaultPermsOctal); ?> <?= htmlspecialchars($projectRoot); ?></pre>
+                <p style="font-size: 1em; color: #a6adc8;">You can reset storage paths back to environment defaults later via:</p>
+                <pre style="background: #11111b; padding: 15px; border-radius: 4px; border: 1px solid #45475a; color: #89b4fa; font-family: monospace; overflow-x: auto; font-size: 1.1em;">chmod -R <?= htmlspecialchars($defaultPermsOctal); ?> <?= htmlspecialchars($projectRoot); ?></pre>
+            <?php endif; ?>
         </div>
     </body>
 
@@ -281,8 +311,8 @@ if (strpos($acceptHeader, 'application/json') !== false) {
             onkeydown="handleCommandInput(event)"
             class="w-full p-3 mb-4 rounded border border-[#45475a] bg-[#11111b] text-[#f5e0dc] font-mono text-sm focus:outline-none focus:border-[#89b4fa] transition-colors placeholder-slate-600" />
 
-        <div id="terminal-console" class="w-full p-4 rounded border border-[#45475a] bg-[#11111b] text-[#f5e0dc] font-mono text-sm min-h-[120px] overflow-x-auto box-border">
-            FunkCLI output will show up here...
+        <div id="terminal-console" class="w-full p-4 rounded border border-[#45475a] bg-[#11111b] text-[#f5e0dc] font-mono text-sm min-h-[120px] overflow-x-auto box-border flex flex-col gap-3">
+            FunkCLI output shows up here...
         </div>
 
     </div>

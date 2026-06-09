@@ -89,7 +89,7 @@ function buildFormattedOutputTerminalBox(parsedJson) {
         <p style="background: ${badgeBg}; color: ${badgeText}; padding: 8px 8px; border-radius: 4px; font-weight: bold; font-size: 0.85em; margin-right: 12px; min-width: 169px; text-align: center; align-self:flex-start;">
             [FunkCLI - ${msg.type}]
         </p>
-        <p style="word-break: break-word; text-align: left; padding-top: 8px; padding-bottom: 8px; margin: 0;">
+        <p style="word-break: break-word; text-align: left; margin: 0;">
             ${msg.message}
         </p>
     </div>
