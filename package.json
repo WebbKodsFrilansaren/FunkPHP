@@ -1,16 +1,16 @@
 {
-  "name": "funkphp",
-  "version": "1.0.0",
-  "description": "FunkPHP - The 99 % Function-based PHP Framework by WebbKodsFrilansaren",
-  "main": "index.js",
-  "scripts": {
-    "tww_pub": "npx tailwindcss -i .src/funkphp/public_html/css/input.css -o ./src/funkphp/public_html/css/styles.css --watch",
-    "tww_gui": "npx tailwindcss -i ./src/gui/core/input.css -o ./src/gui/core/styles.css --watch",
-    "tww_all": "npm run tww_pub & npm run tww_gui"
-  },
-  "author": "WebbKodsFrilansaren (WebbKodsFrilansaren at GitHub)",
-  "license": "ISC",
-  "devDependencies": {
-    "tailwindcss": "^3.4.4"
-  }
+	"name": "funkphp",
+	"version": "1.0.0",
+	"description": "FunkPHP - The 99 % Function-based PHP Framework by WebbKodsFrilansaren",
+	"main": "index.js",
+	"scripts": {
+		"tww_pub": "npx tailwindcss -i .src/funkphp/public_html/css/input.css -o ./src/funkphp/public_html/css/styles.css --watch",
+		"tww_gui": "npx tailwindcss -i ./src/gui/core/input.css -o ./src/gui/core/gui.css --watch",
+		"tww_all": "npm run tww_pub & npm run tww_gui"
+	},
+	"author": "WebbKodsFrilansaren (WebbKodsFrilansaren at GitHub)",
+	"license": "ISC",
+	"devDependencies": {
+		"tailwindcss": "^3.4.4"
+	}
 }

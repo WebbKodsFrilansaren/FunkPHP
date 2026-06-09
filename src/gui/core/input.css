@@ -1,3 +1,32 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer components {
+	/* Safe state visibility rules for the JavaScript Tab controller */
+	.tab-content {
+		@apply hidden;
+	}
+	.tab-content.active {
+		@apply block;
+	}
+
+	/* Common Button Base Components */
+	.btn {
+		@apply px-5 py-2.5 text-sm font-bold text-[#11111b] rounded transition-colors cursor-pointer duration-150 active:scale-[0.98];
+	}
+	.btn-success {
+		@apply bg-[#a6e3a1] hover:bg-[#94e2d5];
+	}
+	.btn-danger {
+		@apply bg-[#f38ba8] hover:bg-[#eba0b3];
+	}
+
+	/* Tab Layout Components with state triggers */
+	.tab-btn {
+		@apply px-4 py-2 text-sm font-semibold text-slate-400 rounded-t-md border-b-2 border-transparent transition-all duration-150 hover:bg-[#45475a]/30 hover:text-slate-200 cursor-pointer;
+	}
+	.tab-btn.active {
+		@apply border-[#89b4fa] text-[#89b4fa] bg-[#45475a]/40;
+	}
+}
