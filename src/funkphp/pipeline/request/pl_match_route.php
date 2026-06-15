@@ -1,23 +1,8 @@
 <?php return function (&$c, $passedValue = null) {
-    // `pl_match_route` - Match the Request URI & Method to a Route configured in `funkphp/routes/routes.php`
-    // It needs a $passedValue of what "no_match" to do when no route is matched, even though it does not do
-    // anything during a match besides setting values for other Pipeline Functions to use that would actually
-    // return JSON or a Complied Page File!
-    if (
-        !isset($passedValue)
-        || !isset($passedValue['no_match'])
-        || !is_array($passedValue['no_match'])
-        || (count($passedValue['no_match']) < 1 || count($passedValue['no_match']) > 3)
-        || (!isset($passedValue['no_match']['json'])
-            && !isset($passedValue['no_match']['page'])
-            && !isset($passedValue['no_match']['callback']))
-    ) {
-        $err = 'Tell The Developer: The Pipepline `pl_match_route` Function needs a 1) Aefault Configured JSON Response OR 2) Page to return OR 3) a Callback Function to run in the case of No Matched Route. For example: `11 => ["pl_match_route" => ["no_match" => ["json" => "null", "page" => "404", "callback" => "null"]]]`. If the `json` key is a string, it will look for a function called that and use its return value as the JSON Encoded. If the `json` key is an array, it will be JSON Encoded as is. The `page` key must be a valid path or the default internal 404 Page will be used if not found. ONLY use the `callback` key if you need more things to do before returning any kind of response. Its string value is the function it will look for and execute. After any of these keys are ran exit() will be ran and `post-request` will run unless disabled before this pipeline function ran.';
-        funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
-    }
+    // `pl_match_route` - Match the Request URI & Method to a Route configured in `funkphp/pipeline/routes/routes.php`
     $c['ROUTES'] = [];
-    if (!is_readable(ROOT_FOLDER . '/routes/routes.php')) {
-        $err = 'Tell The Developer: The Developer Routes in File `funkphp/routes/routes.php` not found or is not readable!';
+    if (!is_readable(ROOT_PIPELINE . '/pipeline_routes.php')) {
+        $err = 'Tell The Developer: The Developer Routes in File `funkphp/pipeline/pipeline_routes.php` not found or is not readable!';
         funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
     } elseif (!is_readable(ROOT_FOLDER . '/core/compiled_routes.php')) {
         $err = 'Tell The Developer: The Compiled Routes in File `funkphp/core/compiled_routes.php` not found or is not readable!';
@@ -25,7 +10,7 @@
     } else {
         $c['ROUTES'] = [
             'COMPILED' => include_once ROOT_FOLDER . '/core/compiled_routes.php',
-            'DEVELOPER' => include_once ROOT_FOLDER . '/routes/routes.php',
+            'DEVELOPER' => include_once ROOT_PIPELINE . '/pipeline_routes.php',
         ];
     }
     if (
@@ -47,7 +32,7 @@
         || !is_array($c['ROUTES']['DEVELOPER']['ROUTES'])
         || empty($c['ROUTES']['DEVELOPER']['ROUTES'])
     ) {
-        $err = 'Tell The Developer: The Developer Routes in File `funkphp/routes/routes.php` seems empty, please check!';
+        $err = 'Tell The Developer: The Developer Routes in File `funkphp/pipeline/routes/pipeline_routes.php` seems empty, please check!';
         funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
     }
     // Try match route and if it fails, we check if we should

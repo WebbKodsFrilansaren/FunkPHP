@@ -24,58 +24,19 @@ define('FUNKPHP_USE_VENDOR', true); // Change to "false" if you intend to not us
 // Default Constants for Root Folder and its subfolders used by FunkPHP
 define("ROOT_FOLDER", dirname(__DIR__, 1)); // src/funkphp/
 define("ROOT_CORE", ROOT_FOLDER . '/core'); // src/funkphp/core
-define("ROOT_CACHED", ROOT_FOLDER . '/cached'); // src/funkphp/cached
 define("ROOT_CLASSES", ROOT_FOLDER . '/classes'); // src/funkphp/classes
 define("ROOT_CONFIG", ROOT_FOLDER . '/config'); // src/funkphp/config
-define("ROOT_MIDDLEWARES", ROOT_FOLDER . '/middlewares'); // src/funkphp/FunkPHP
+define("ROOT_MIDDLEWARES", ROOT_FOLDER . '/pipeline/middlewares'); // src/funkphp/FunkPHP
 define("ROOT_PAGES", ROOT_FOLDER . '/pages'); // src/funkphp/pages
 define("ROOT_PAGES_COMPILED", ROOT_FOLDER . '/pages/compiled'); // src/funkphp/pages/compiled
 define("ROOT_PAGES_ERRORS", ROOT_FOLDER . '/pages/compiled/[errors]'); // src/funkphp/pages/compiled/[errors]
 define("ROOT_PIPELINE", ROOT_FOLDER . '/pipeline'); // src/funkphp/pipeline
 define("ROOT_PIPELINE_REQUEST", ROOT_FOLDER . '/pipeline/request'); // src/funkphp/pipeline/request
 define("ROOT_PIPELINE_POST_RESPONSE", ROOT_FOLDER . '/pipeline/post-response'); // src/funkphp/pipeline/post-response
-define("ROOT_ROUTES", ROOT_FOLDER . '/routes'); // src/funkphp/routes
-define("ROOT_SQL", ROOT_FOLDER . '/sql'); // src/funkphp/sql
-define("ROOT_VALIDATION", ROOT_FOLDER . '/validation'); // src/funkphp/validation
+define("ROOT_ROUTES", ROOT_FOLDER . '/pipeline/routes'); // src/funkphp/pipeline/routes
+define("ROOT_SQL", ROOT_FOLDER . '/data/sql'); // src/funkphp/data/sql
+define("ROOT_VALIDATION", ROOT_FOLDER . '/data/validation'); // src/funkphp/data/validation
 
-// YUP! Unfortunately ONE SINGLE CLASS needed for the sake of SECURITY.
-// "FunkDBConfig" is a Class used to handle the database connections
-// only that are stored by reference in $c['DATABASES'] array below!
-// Inside of `db.php` you can change where your version of "db_config.php"
-// resides that is GITIGNORED and contains your sensitive credentials.
-class FunkDBConfig
-{
-    private static $credentials = [];
-    private static $initialized = false;
-    private static $configFilePath =  __DIR__ . '/db.php';
-    public static function setConfigPath(string $path)
-    {
-        self::$configFilePath = $path;
-    }
-    public static function initialize()
-    {
-        if (self::$initialized) {
-            return;
-        }
-        // Lazy load the sensitive credentials file
-        if (is_readable(self::$configFilePath)) {
-            self::$credentials = include self::$configFilePath;
-        }
-        // Load the general profiles (assuming they are now loaded elsewhere or hardcoded)
-        // For simplicity, we assume the credentials array contains everything needed.
-        self::$initialized = true;
-    }
-    // Get a specific connection
-    public static function getCredentials(string $key): ?array
-    {
-        self::initialize(); // Ensure the file has been loaded
-        return self::$credentials[$key] ?? null;
-    }
-    public static function clearCredentials()
-    {
-        self::$credentials = [];
-    }
-}
 // GLOBAL CONFIGURATIONS in "$c" variable in "funkphp/funkphp_start.php"
 // Configure the included files below here separately as needed!
 // IMPORTANT: Do NOT store sensitive data here (e.g passwords/API-keys)

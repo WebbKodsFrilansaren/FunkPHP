@@ -571,8 +571,8 @@ function funk_default_register_shutdown_function(&$c)
     ) {
         funk_run_pipeline_post_response($c, 'happy'); // Choose between 'happy' or 'defensive' mode
     } else {
-        $c['err']['MAYBE']['PIPELINE']['funk_run_post_request'][] = 'No Configured Post-Response Pipeline Functions (`"<ENTRY>" => "pipeline" => "post-response"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\'][\'post-response\']` Key in the Pipeline Configuration File `funkphp/config/pipeline.php` File!';
-        funk_use_log($c, 'No Configured Post-Request Pipeline Functions (`"<ENTRY>" => "pipeline" => "post-response"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\'][\'post-responset\']` Key in the Pipeline Configuration File `funkphp/config/pipeline.php` File!', 'WARN');
+        $c['err']['MAYBE']['PIPELINE']['funk_run_post_request'][] = 'No Configured Post-Response Pipeline Functions (`"<ENTRY>" => "pipeline" => "post-response"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\'][\'post-response\']` Key in the Pipeline Configuration File `funkphp/pipeline/pipeline_request.php` File!';
+        funk_use_log($c, 'No Configured Post-Request Pipeline Functions (`"<ENTRY>" => "pipeline" => "post-response"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\'][\'post-responset\']` Key in the Pipeline Configuration File `funkphp/pipeline/pipeline_request.php` File!', 'WARN');
     }
 }
 
@@ -581,9 +581,6 @@ function funk_default_register_shutdown_function(&$c)
  *
  * This is used for simple, non-templated HTML error responses.
  *
- * SECURITY NOTE: Clears database credentials (FunkDBConfig::clearCredentials())
- * to prevent accidental database usage in subsequent request pipeline functions.
- * Existing database connections stored in $c['DATABASES'] remain active.
  *
  * @param array $c           The global context array (passed by reference).
  * @param int $errCode       The HTTP status code associated with the error (100-599).
@@ -592,8 +589,6 @@ function funk_default_register_shutdown_function(&$c)
  */
 function funk_use_error_raw_html(&$c, int $errCode, string $errMsg)
 {
-    // Clears any DB connections before handling the error so they cannot accidentally be used inside the error page
-    FunkDBConfig::clearCredentials();
     // Clear any previous use of output buffering - although the Framework should not really use ob_start
     // during request pipeline, only during post-response pipeline since all data there is only for server
     if (ob_get_level() > 0) {
@@ -628,9 +623,6 @@ function funk_use_error_raw_html(&$c, int $errCode, string $errMsg)
  *
  * This is typically used for simple API errors or basic, non-formatted text responses.
  *
- * SECURITY NOTE: Clears database credentials (FunkDBConfig::clearCredentials())
- * to prevent accidental database usage in subsequent request pipeline functions.
- * Existing database connections stored in $c['DATABASES'] remain active.
  *
  * @param array $c           The global context array (passed by reference).
  * @param int $errCode       The HTTP status code associated with the error (100-599).
@@ -639,8 +631,6 @@ function funk_use_error_raw_html(&$c, int $errCode, string $errMsg)
  */
 function funk_use_error_raw_plain(&$c, int $errCode, string $errMsg)
 {
-    // Clears any DB connections before handling the error so they cannot accidentally be used inside the error page
-    FunkDBConfig::clearCredentials();
     // Clear any previous use of output buffering - although the Framework should not really use ob_start
     // during request pipeline, only during post-response pipeline since all data there is only for server
     if (ob_get_level() > 0) {
@@ -675,9 +665,6 @@ function funk_use_error_raw_plain(&$c, int $errCode, string $errMsg)
  *
  * This is used for providing error responses compatible with older SOAP/XML-based APIs.
  *
- * SECURITY NOTE: Clears database credentials (FunkDBConfig::clearCredentials())
- * to prevent accidental database usage in subsequent request pipeline functions.
- * Existing database connections stored in $c['DATABASES'] remain active.
  *
  * @param array $c           The global context array (passed by reference).
  * @param int $errCode       The HTTP status code associated with the error (100-599).
@@ -686,8 +673,6 @@ function funk_use_error_raw_plain(&$c, int $errCode, string $errMsg)
  */
 function funk_use_error_xml(&$c, int $errCode, string $errMsg)
 {
-    // Clears any DB connections before handling the error so they cannot accidentally be used inside the error
-    FunkDBConfig::clearCredentials();
     // Clear any previous use of output buffering - although the Framework should not really use ob_start
     // during request pipeline, only during post-response pipeline since all data there is only for server
     if (ob_get_level() > 0) {
@@ -736,8 +721,6 @@ function funk_use_error_xml(&$c, int $errCode, string $errMsg)
  */
 function funk_use_error_page(&$c, int $errCode, string $errMsg, string $pageName)
 {
-    // Clears any DB connections before handling the error so they cannot accidentally be used inside the error page
-    FunkDBConfig::clearCredentials();
     // Clear any previous use of output buffering - although the Framework should not really use ob_start
     // during request pipeline, only during post-response pipeline since all data there is only for server
     if (ob_get_level() > 0) {
@@ -800,8 +783,6 @@ function funk_use_error_page(&$c, int $errCode, string $errMsg, string $pageName
  */
 function funk_use_error_callback(&$c, int $errCode, string $errMsg, string $callbackName, $optionalCallbackData = null)
 {
-    // Clears any DB connections before handling the error so they cannot accidentally be used inside the callback
-    FunkDBConfig::clearCredentials();
     // Clear any previous use of output buffering - although the Framework should not really use ob_start
     // during request pipeline, only during post-response pipeline since all data there is only for server
     if (ob_get_level() > 0) {
@@ -884,8 +865,6 @@ function funk_use_error_throw(&$c, string $exceptionErrMsg)
  */
 function funk_use_error_json(&$c, int $errCode, $jsonObjectOrStringThatReturnsJSON)
 {
-    // Clears any DB connections before handling the error so they cannot accidentally be used inside the JSON generation
-    FunkDBConfig::clearCredentials();
     // Clear any previous use of output buffering - although the Framework should not really use ob_start
     // during request pipeline, only during post-response pipeline since all data there is only for server
     if (ob_get_level() > 0) {
@@ -960,8 +939,6 @@ function funk_use_error_json(&$c, int $errCode, $jsonObjectOrStringThatReturnsJS
  */
 function funk_use_error_json_or_page(&$c, int $errCode, $jsonObjectOrStringThatReturnsJSON, string $pageName, string $pageErrMsg)
 {
-    // Clears any DB connections before handling the error so they cannot accidentally be used inside the JSON generation or the error page
-    FunkDBConfig::clearCredentials();
     // Clear any previous use of output buffering - although the Framework should not really use ob_start
     // during request pipeline, only during post-response pipeline since all data there is only for server
     if (ob_get_level() > 0) {
@@ -1075,9 +1052,6 @@ function funk_use_error_json_or_page(&$c, int $errCode, $jsonObjectOrStringThatR
  */
 function funk_use_error_json_or_page_or_callback(&$c, int $errCode, string $errMsgForPageAndCallback, $jsonObjectOrStringThatReturnsJSON, string $pageName, string $callableName, $optionalCallbackData = null)
 {
-    // Clears any DB connections before handling the error so they cannot accidentally be used inside the JSON generation or the error page
-    FunkDBConfig::clearCredentials();
-
     // Clear any previous use of output buffering - although the Framework should not really use ob_start
     // during request pipeline, only during post-response pipeline since all data there is only for server
     if (ob_get_level() > 0) {
@@ -1604,8 +1578,6 @@ function funk_use_log(&$c, string $logMessage, string $logType = 'WARN'): void
 /**
  * Placeholder for the final function that saves the log array to a file.
  * This function should be called within the application's shutdown handler.
- * NOTE: The implementation details of file saving (FunkDBConfig::clearCredentials() etc.)
- * are omitted here, but this is where it would happen.
  *
  * @param array $c The global configuration array, passed by reference.
  * @return void
@@ -1671,8 +1643,8 @@ function funk_run_pipeline_request(&$c, $passedValue = null)
             || !array_is_list($c['<ENTRY>']['pipeline']['request'])
             || count($c['<ENTRY>']['pipeline']['request']) === 0
         ) {
-            $c['err']['PIPELINE']['funk_run_pipeline_request'][] = 'No Configured Pipeline Functions (`"<ENTRY>" => "pipeline" => "request"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\'][\'request\']` Key in the Pipeline Configuration File `funkphp/config/pipeline.php` File!';
-            $err = 'Tell the Developer: No Pipeline Functions to run? Please check the `[\'pipeline\'][\'request\']` Key in the `funkphp/config/pipeline.php` File!';
+            $c['err']['PIPELINE']['funk_run_pipeline_request'][] = 'No Configured Pipeline Functions (`"<ENTRY>" => "pipeline" => "request"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\'][\'request\']` Key in the Pipeline Configuration File `funkphp/pipeline/pipeline_request.php` File!';
+            $err = 'Tell the Developer: No Pipeline Functions to run? Please check the `[\'pipeline\'][\'request\']` Key in the `funkphp/pipeline/pipeline_request.php` File!';
             funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
         }
 
@@ -1871,8 +1843,8 @@ function funk_run_pipeline_post_response(&$c, $passedValue = null)
                 || !array_is_list($c['<ENTRY>']['pipeline']['post-response'])
                 || count($c['<ENTRY>']['pipeline']['post-response']) === 0
             ) {
-                $c['err']['PIPELINE']['funk_run_pipeline_post_response'][] = 'No Configured Pipeline Functions (`"<ENTRY>" => "pipeline" => "post-response"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\'][\'post-response\']` Key in the Pipeline Configuration File `funkphp/config/pipeline.php` File!';
-                funk_use_log($c, 'No Configured Pipeline Functions (`"<ENTRY>" => "pipeline" => "post-response"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\'][\'post-response\']` Key in the Pipeline Configuration File `funkphp/config/pipeline.php` File! - Function stops here!', 'CRITICAL');
+                $c['err']['PIPELINE']['funk_run_pipeline_post_response'][] = 'No Configured Pipeline Functions (`"<ENTRY>" => "pipeline" => "post-response"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\'][\'post-response\']` Key in the Pipeline Configuration File `funkphp/pipeline/pipeline_request.php` File!';
+                funk_use_log($c, 'No Configured Pipeline Functions (`"<ENTRY>" => "pipeline" => "post-response"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\'][\'post-response\']` Key in the Pipeline Configuration File `funkphp/pipeline/pipeline_request.php` File! - Function stops here!', 'CRITICAL');
                 ob_end_clean();
                 return;
             }
@@ -2252,7 +2224,7 @@ function funk_match_developer_route(&$c, string $method, string $uri, array $com
             $c['req']['matched_middlewares'] = $matchedMiddlewareHandlers;
             return true;
         } else {
-            $noMatchIn .= 'NO MATCH IN DEVELOPER_ROUTES(funkphp/config/routes.php)';
+            $noMatchIn .= 'NO MATCH IN DEVELOPER_ROUTES(funkphp/pipeline/pipeline_routes.php)';
         }
     } else {
         $noMatchIn .= 'NO MATCH IN COMPILED_ROUTES(funkphp/core/compiled_routes.php)';
@@ -2372,7 +2344,8 @@ function funk_db_conn(&$c, $dbKey)
         return $c['DATABASES'][$dbKey];
     }
     // Can be used for all if/else statements below
-    $credentials = FunkDBConfig::getCredentials($dbKey);
+    // TODO: Change $credentials source to $c['CONNECTIONS'] later!
+    $credentials = null; // "null" for now!
     if ($credentials === null) {
         $c['err']['DATABASES']['funk_db_conn'][] = "No database configuration found for key '$dbKey'.";
         return null;

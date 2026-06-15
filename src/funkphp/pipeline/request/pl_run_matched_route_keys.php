@@ -24,7 +24,7 @@
         }
 
         // Main Loop - each value is `Routes/folder=>FileName=>FunctionName=>$passedValue`
-        $routesDir = ROOT_FOLDER . '/routes/';
+        $routesDir = ROOT_FOLDER . '/pipeline/routes/';
         foreach ($c['req']['route_keys'] as $idx => $dirFileFn) {
             // $dirFileFn must be an array since its main structure is 'folder' => 'fileName' => 'functionName' => $passedValue
             // so it is array=>array=>array=>$optionalValue so we just check 3 arrays otherwise hard error!
