@@ -1,11 +1,11 @@
 <?php
 
-namespace FunkPHP\Sql\s_testar;
-// FunkCLI Created on 2025-11-11 06:04:26!
+namespace funkphp\data\sql\s_paj;
+// FunkCLI Created on 2026-06-15 17:53:17!
 
-function s_testar(&$c, $passedValue = null) // <s=alones>
+function s_najs(&$c)
 {
-	// FunkCLI created 2025-11-11 06:04:26! Keep Closing Curly Bracket on its
+	// FunkCLI created 2026-06-15 17:53:17! Keep Closing Curly Bracket on its
 	// own new line without indentation and no comment right after it!
 	// Run the command `php funk compile:s_eval s_file=>s_fn`
 	// to get SQL, Hydration & Binded Params in return statement below it!
@@ -49,28 +49,5 @@ function s_testar(&$c, $passedValue = null) // <s=alones>
 		],
 	];
 
-	return array(
-		'qtype' => 'SELECT',
-		'sql' => 'SELECT alones.id AS alones_id, alones.id AS alones_id, alones.name AS alones_name, alones.description AS alones_description, alones.created_at AS alones_created_at, alones.updated_at AS alones_updated_at FROM alones;',
-		'hydrate' =>
-		array(
-			'mode' => 'simple',
-			'type' => 'array',
-		),
-		'bparam' => '',
-		'fields' =>
-		array(),
-	);
-};
-
-return function (&$c, $handler = "s_testar", $passedValue = null) {
-
-	$base = is_string($handler) ? $handler : "";
-	$full = __NAMESPACE__ . '\\' . $base;
-	if (function_exists($full)) {
-		return $full($c, $passedValue);
-	} else {
-		$c['err']['ROUTES']['SQL'][] = 'SQL Function `' . $full . '` not found in namespace `' . __NAMESPACE__ . '`. Does it exist as a callable function in the File?';
-		return null;
-	}
+	return array([]);
 };

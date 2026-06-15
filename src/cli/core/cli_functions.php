@@ -1503,7 +1503,6 @@ function cli_default_created_fn_files($type, $methodAndRoute, $folder, $file, $f
     // Replace the "/" to "\" in the $folder and then uppercase each first letter
     // after each slash. This is to ensure that the namespace is correct
     $folder = str_replace('/', '\\', $folder);
-    $folder = ucwords($folder, '\\');
     $folderUPPER = strtoupper($folder);
 
     // Remove ".php" from the $file if it exists and then
@@ -1526,30 +1525,16 @@ function cli_default_created_fn_files($type, $methodAndRoute, $folder, $file, $f
     $newFilesString .= $createdOnCommentString;
 
     // Based on $type, we create the necessary File (or just updated File!)
-    // When just anonmyous function is needed (usually for middlewares & pipeline functions)
-    if ($type === 'anonymous') {
-        $typePartString .= "return function (&\$c, \$passedValue = null) {\n\t// Placeholder Comment so Regex works - Remove & Add Real Code!\n};\n";
-        $entireCreatedString .= $newFilesString . $typePartString;
-    }
     // When a named function is needed but file ALREADY EXISTS - Funk\Routes\<FOLDER>\<FILE>.php
-    elseif ($type === 'named_not_new_file') {
-        $typePartString .= "function $fn(&\$c, \$passedValue = null)\n";
+    if ($type === 'named_not_new_file') {
+        $typePartString .= "function $fn(&\$c)\n";
         $typePartString .= "{\n\t// Placeholder Comment so Regex works - Remove & Add Real Code!\n};\n\n";
         $entireCreatedString .= $typePartString;
     }
     // When a named function is needed and file DOES NOT EXIST - Funk\Routes\<FOLDER>\<FILE>.php
     elseif ($type === 'named_and_new_file') {
-        $typePartString .= "function $fn(&\$c, \$passedValue = null)\n";
+        $typePartString .= "function $fn(&\$c)\n";
         $typePartString .= "{\n\t// Placeholder Comment so Regex works - Remove & Add Real Code!\n};\n\n";
-        // $typePartString .= "return function (&\$c, \$handler = \"$fn\", \$passedValue = null) {\n";
-        // $typePartString .= "\n\t\$base = is_string(\$handler) ? \$handler : \"\";";
-        // $typePartString .= "\n\t\$full = __NAMESPACE__ . '\\\\' . \$base;";
-        // $typePartString .= "\n\tif (function_exists(\$full)) {";
-        // $typePartString .= "\n\t\treturn \$full(\$c, \$passedValue);";
-        // $typePartString .= "\n\t} else {";
-        // $typePartString .= "\n\t\t\$c['err']['ROUTES']['$folderUPPER'][] = '$folderUPPER Function `' . \$full . '` not found in namespace `' . __NAMESPACE__ . '`. Does it exist as a callable function in the File?';";
-        // $typePartString .= "\n\t\treturn null;";
-        // $typePartString .= "\n\t}\n};\n";
         $entireCreatedString .= $newFilesString . $typePartString;
     }
     // Special-case #1: "funkphp/sql" folder

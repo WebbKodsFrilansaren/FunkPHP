@@ -194,7 +194,7 @@ return [
                     'external_callable_validator' => null,
                 ],
                 'sqlTables' => [
-                    'prompt' => 'Enter Tables to use for the chosen SQL Query. For example:`table1,table2,table3`. Minimum one table:',
+                    'prompt' => 'Enter Tables to use for the chosen SQL Query. You can find them under "Config" => "Tables" in FunkGUI. For example:`table1,table2,table3`. Minimum one table:',
                     'regex' => $cliRegex['tableRegexSQL'],
                     'required' => true,
                     'default' => null,
