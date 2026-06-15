@@ -1,5 +1,73 @@
 <?php
 // src/gui/index.php
+
+// =============================================================================================================
+// 0. EARLY INTERCEPTION LAYER (API ROUTING) - Whe sending a HTTP(S) "test" from FunkGUI => Config => Tests Tab
+// =============================================================================================================
+// Handle "Test" request from the FunkGUI (and you would have to passed compability check to even
+// make the "Test" request in the first place which does check for cURL support first which is needed!)
+if (
+    $_SERVER['REQUEST_METHOD'] === 'POST'
+    && ($_SERVER['HTTP_X_FUNK_INTENT'] ?? '') === 'gui_test_runner' // Strict unique signature check!
+) {
+    // Grab the raw JSON payload sent by JS fetch()
+    $rawInput = file_get_contents('php://input');
+    $requestData = json_decode($rawInput, true) ?? [];
+
+    $testMethod  = strtoupper($requestData['method'] ?? 'GET');
+    $testHeaders = $requestData['headers'] ?? [];
+    $targetRoute = $requestData['url'] ?? '';      // e.g., "http://webdev.local:81/funkphp/user"
+    $testPayload = $requestData['payload'] ?? null;
+
+    // -------------------------------------------------------------------------
+    // INLINE BARE-METAL cURL ENGINE
+    // -------------------------------------------------------------------------
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $targetRoute);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HEADER, true);
+    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $testMethod);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+    if (!empty($testHeaders)) {
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $testHeaders);
+    }
+    if (in_array($testMethod, ['POST', 'PUT', 'PATCH', 'DELETE']) && $testPayload !== null) {
+        curl_setopt($ch, CURLOPT_POSTFIELDS, is_array($testPayload) ? http_build_query($testPayload) : $testPayload);
+    }
+    $rawResponse = curl_exec($ch);
+    if (curl_errno($ch)) {
+        $response = [
+            'status'  => 0,
+            'headers' => [],
+            'body'    => 'cURL Execution Error: ' . curl_error($ch)
+        ];
+    } else {
+        $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $headerSize = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+        $rawResponseHeaders = substr($rawResponse, 0, $headerSize);
+        $responseBody       = substr($rawResponse, $headerSize);
+        $parsedHeaders = [];
+        foreach (explode("\r\n", trim($rawResponseHeaders)) as $line) {
+            if (str_contains($line, ':')) {
+                list($key, $value) = explode(':', $line, 2);
+                $parsedHeaders[trim($key)] = trim($value);
+            } else if (!empty($line)) {
+                $parsedHeaders['Status-Line'] = $line;
+            }
+        }
+        $response = [
+            'testHeaders' => $testHeaders,
+            'status'  => $statusCode,
+            'headers' => $parsedHeaders,
+            'body'    => $responseBody
+        ];
+    }
+    curl_close($ch);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode($response);
+    exit;
+}
+
 # =========================================================================
 # SYSTEM COMPATIBILITY CONFIGURATION
 # =========================================================================
@@ -42,7 +110,7 @@ $requiredExtensions = [
     'xml'       => ['purpose' => 'Required for handling structured config nodes.', 'apt' => 'xml', 'dnf' => 'xml', 'win_supported' => true],
 ];
 $requiredWritablePaths = [
-    'Backups Main Directory'    => __DIR__ . '/../backupsa',
+    'Backups Main Directory'    => __DIR__ . '/../backups',
     'Batteries Main Directory'    => __DIR__ . '/../batteries',
     'Batteries Middlewares Directory'    => __DIR__ . '/../batteries/middlewares',
     'Batteries Pipeline Main Directory'    => __DIR__ . '/../batteries/pipeline',
@@ -278,11 +346,7 @@ if (strpos($acceptHeader, 'application/json') !== false) {
         <div class="my-6">
 
             <div id="tab-dashboard" class="tab-content active">
-                <h3 class="text-base font-bold text-slate-200 mb-3">Quick Actions</h3>
-                <div class="flex gap-3">
-                    <button class="btn btn-success" onclick="executeCliCommand('recompile')">Recompile Framework</button>
-                    <button class="btn btn-danger" onclick="executeCliCommand('aliases')">Test Reserved Constraint</button>
-                </div>
+
             </div>
 
             <div id="tab-routes" class="tab-content">
@@ -300,19 +364,83 @@ if (strpos($acceptHeader, 'application/json') !== false) {
 
         </div>
 
+        <div id="tests-div" class="mb-6 p-4 rounded border border-[#45475a]/40 bg-[#1e1e2e]/50">
+            <h3 class="text-base font-bold text-[#89b4fa] mb-3 flex items-center gap-2">
+                <span>🧪 Inline API Test Engine</span>
+            </h3>
+
+            <?php
+            // Smart-guess host parsing
+            $currentHost = $_SERVER['HTTP_HOST'] ?? 'localhost';
+            // If running via standard proxy, infer /funkphp/ path context; fallback cleanly to port structures
+            $guessedUrl = (str_contains($currentHost, 'localhost:'))
+                ? "http://localhost:8081/"
+                : "http://{$currentHost}/funkphp/";
+            ?>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
+                <div>
+                    <label class="block text-xs font-mono text-slate-400 mb-1">Method</label>
+                    <select id="curl-method" onchange="togglePayloadVisibility()" class="w-full p-2.5 rounded border border-[#45475a] bg-[#11111b] text-[#f5e0dc] text-sm focus:outline-none focus:border-[#89b4fa] font-mono">
+                        <option value="GET" selected>GET</option>
+                        <option value="POST">POST</option>
+                        <option value="PUT">PUT</option>
+                        <option value="PATCH">PATCH</option>
+                        <option value="DELETE">DELETE</option>
+                    </select>
+                </div>
+
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-mono text-slate-400 mb-1">Target Endpoint URL</label>
+                    <input type="text" id="curl-url" value="<?= $guessedUrl; ?>" placeholder="http://127.0.0.1:81/" class="w-full p-2.5 rounded border border-[#45475a] bg-[#11111b] text-[#f5e0dc] text-sm focus:outline-none focus:border-[#89b4fa] font-mono" />
+                </div>
+
+                <div>
+                    <label class="block text-xs font-mono text-slate-400 mb-1">Host (Optional)</label>
+                    <input type="text" id="curl-host-override" value="" placeholder=" e.g., webdev.local" class="w-full p-2.5 rounded border border-[#45475a] bg-[#11111b] text-[#f5e0dc] text-sm focus:outline-none focus:border-[#89b4fa] font-mono" />
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="block text-xs font-mono text-slate-400 mb-1">HTTP Headers (One per line)</label>
+                <textarea id="curl-headers" rows="2" placeholder="" class="w-full p-2.5 rounded border border-[#45475a] bg-[#11111b] text-[#f5e0dc] text-xs font-mono focus:outline-none focus:border-[#89b4fa] resize-y"></textarea>
+            </div>
+
+            <div id="payload-container" class="mb-4 hidden">
+                <label class="block text-xs font-mono text-slate-400 mb-1">JSON Payload Body</label>
+                <textarea id="curl-payload" rows="3" placeholder='' class="w-full p-2.5 rounded border border-[#45475a] bg-[#11111b] text-[#f5e0dc] text-xs font-mono focus:outline-none focus:border-[#89b4fa] resize-y"></textarea>
+            </div>
+
+            <div id="test-results" class="w-full p-4 rounded border border-[#45475a] bg-[#11111b] text-[#f5e0dc] font-mono text-sm min-h-[120px] overflow-x-auto box-border flex flex-col gap-3">
+                Test results from cURL Request is shown here.
+            </div>
+
+            <div class="flex justify-end">
+                <button class="btn btn-danger text-xs px-4 py-2 bg-[#f38ba8] hover:bg-[#f38ba8]/80 text-[#11111b] font-bold rounded transition-colors" onclick="testFunkGUIcURL()">
+                    Fire cURL Request
+                </button>
+            </div>
+        </div>
+
         <hr class="border-[#45475a] my-6">
 
+        <h3 class="text-base font-bold text-slate-200 mb-3">Quick Actions</h3>
+        <div class="flex gap-3">
+            <button class="btn btn-success" onclick="executeCliCommand('recompile')">Recompile Framework</button>
+        </div>
         <h3 class="text-base font-bold text-slate-300 mb-2">FunkCLI Terminal/API Output Response:</h3>
 
-        <input
-            type="text"
-            id="cli-command-input"
-            placeholder="Type a FunkCLI command here and press Enter..."
-            onkeydown="handleCommandInput(event)"
-            class="w-full p-3 mb-4 rounded border border-[#45475a] bg-[#11111b] text-[#f5e0dc] font-mono text-sm focus:outline-none focus:border-[#89b4fa] transition-colors placeholder-slate-600" />
-
+        <div class="flex gap-1 mb-4 font-mono">
+            <input
+                type="text"
+                id="cli-command-input"
+                placeholder="Type a FunkCLI command here and press Enter..."
+                onkeydown="handleCommandInput(event)"
+                class="w-full p-3 mb-4 rounded border border-[#45475a] bg-[#11111b] text-[#f5e0dc] font-mono text-sm focus:outline-none focus:border-[#89b4fa] transition-colors placeholder-slate-600" />
+            <button class="btn btn-danger" onclick="clearCLI()">Clear CLI</button>
+        </div>
         <div id="terminal-console" class="w-full p-4 rounded border border-[#45475a] bg-[#11111b] text-[#f5e0dc] font-mono text-sm min-h-[120px] overflow-x-auto box-border flex flex-col gap-3">
-            FunkCLI output shows up here...
+            FunkCLI Output is shown here...
         </div>
 
     </div>
