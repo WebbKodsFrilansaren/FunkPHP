@@ -1,11 +1,7 @@
 RewriteEngine On
-# Tell Apache that rewrites happen relative to the /funkphp/ URL path
 RewriteBase /funkphp/
 
-# The static asset guardrail
-RewriteCond %{REQUEST_FILENAME} -f
-RewriteCond %{REQUEST_FILENAME} -d
-RewriteRule ^ - [L]
-
-# Route everything else safely to index.php
+# Standard Industry Guardrail: If NOT a file AND NOT a directory, route to index.php
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^(.*)$ index.php [L,QSA]

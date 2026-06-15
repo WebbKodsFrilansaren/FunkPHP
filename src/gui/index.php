@@ -309,6 +309,7 @@ if (strpos($acceptHeader, 'application/json') !== false) {
 # PIPELINE 2: TEXT/HTML (Dashboard Render)
 # =========================================================================
 ?>
+
 <!DOCTYPE html>
 <html lang="en" class="h-full">
 
