@@ -54,35 +54,33 @@ async function executeCliCommand(
 }
 
 /**
- * Automatically handles the visibility states of the JSON payload entry window
- */
-function togglePayloadVisibility() {
-	const method = document.getElementById('curl-method').value;
-	const container = document.getElementById('payload-container');
-
-	// Read-only operations generally shouldn't pass an inbound payload body segment
-	if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
-		container.classList.remove('hidden');
-	} else {
-		container.classList.add('hidden');
-	}
-}
-
-/**
  * Extracts and normalizes data configurations across current UI input values
  */
 function grabcURLTestDataFromUI() {
 	const method = document.getElementById('curl-method').value;
 	const url = document.getElementById('curl-url').value.trim();
 	const rawHeaders = document.getElementById('curl-headers').value;
+	const contentTypeHeader = document.getElementById('curl-content-type').value;
+	const acceptHeader = document.getElementById('curl-accept').value;
 	const hostOverride = document.getElementById('curl-host-override').value.trim();
 	const rawPayload = document.getElementById('curl-payload').value.trim();
 
-	// Split the headers text block line by line, dropping empty strings
+	// 1. Process manually typed headers from the textarea
 	let headersArray = rawHeaders
 		.split('\n')
 		.map((line) => line.trim())
 		.filter((line) => line.length > 0);
+
+	// 2. Safety Layer: Strip manual duplicates to let dropdown definitions win
+	if (contentTypeHeader) {
+		headersArray = headersArray.filter((h) => !h.toLowerCase().startsWith('content-type:'));
+		headersArray.push(`Content-Type: ${contentTypeHeader}`);
+	}
+
+	if (acceptHeader) {
+		headersArray = headersArray.filter((h) => !h.toLowerCase().startsWith('accept:'));
+		headersArray.push(`Accept: ${acceptHeader}`);
+	}
 
 	// SMART INJECTION: If the developer filled out the Host Override field,
 	// push it directly into the headers array seamlessly!
@@ -103,6 +101,8 @@ function grabcURLTestDataFromUI() {
 			payload = rawPayload;
 		}
 	}
+
+	console.log({ method: method, headers: headersArray, url: url, payload: payload });
 
 	return {
 		method: method,

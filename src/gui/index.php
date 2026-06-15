@@ -376,12 +376,15 @@ if (strpos($acceptHeader, 'application/json') !== false) {
             $guessedUrl = (str_contains($currentHost, 'localhost:'))
                 ? "http://localhost:8081/"
                 : "http://{$currentHost}/funkphp/";
+            if ($currentHost === 'webdev.local') {
+                $guessedUrl = "http://127.0.0.1/";
+            }
             ?>
 
             <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
                 <div>
                     <label class="block text-xs font-mono text-slate-400 mb-1">Method</label>
-                    <select id="curl-method" onchange="togglePayloadVisibility()" class="w-full p-2.5 rounded border border-[#45475a] bg-[#11111b] text-[#f5e0dc] text-sm focus:outline-none focus:border-[#89b4fa] font-mono">
+                    <select id="curl-method" class="w-full p-2.5 rounded border border-[#45475a] bg-[#11111b] text-[#f5e0dc] text-sm focus:outline-none focus:border-[#89b4fa] font-mono">
                         <option value="GET" selected>GET</option>
                         <option value="POST">POST</option>
                         <option value="PUT">PUT</option>
@@ -401,12 +404,37 @@ if (strpos($acceptHeader, 'application/json') !== false) {
                 </div>
             </div>
 
-            <div class="mb-3">
-                <label class="block text-xs font-mono text-slate-400 mb-1">HTTP Headers (One per line)</label>
-                <textarea id="curl-headers" rows="2" placeholder="" class="w-full p-2.5 rounded border border-[#45475a] bg-[#11111b] text-[#f5e0dc] text-xs font-mono focus:outline-none focus:border-[#89b4fa] resize-y"></textarea>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                <div>
+                    <label class="block text-xs font-mono text-slate-400 mb-1">Content-Type Header</label>
+                    <select id="curl-content-type" class="w-full p-2.5 rounded border border-[#45475a] bg-[#11111b] text-[#f5e0dc] text-sm focus:outline-none focus:border-[#89b4fa] font-mono">
+                        <option value="">-- None / Auto --</option>
+                        <option value="application/json" selected>application/json</option>
+                        <option value="application/x-www-form-urlencoded">application/x-www-form-urlencoded</option>
+                        <option value="multipart/form-data">multipart/form-data</option>
+                        <option value="text/plain">text/plain</option>
+                        <option value="text/html">text/html</option>
+                        <option value="application/xml">application/xml</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-mono text-slate-400 mb-1">Accept Header</label>
+                    <select id="curl-accept" class="w-full p-2.5 rounded border border-[#45475a] bg-[#11111b] text-[#f5e0dc] text-sm focus:outline-none focus:border-[#89b4fa] font-mono">
+                        <option value="application/json" selected>application/json (API Engine)</option>
+                        <option value="text/html,application/xhtml+xml,application/xml">text/html, application/xhtml+xml</option>
+                        <option value="text/plain">text/plain (Raw Strings)</option>
+                        <option value="*/*">*/* (Catch All)</option>
+                    </select>
+                </div>
             </div>
 
-            <div id="payload-container" class="mb-4 hidden">
+            <div class="mb-3">
+                <label class="block text-xs font-mono text-slate-400 mb-1">Additional HTTP Headers (One per line)</label>
+                <textarea id="curl-headers" rows="2" placeholder="Authorization: Bearer token123&#10;X-Custom-Header: custom_value" class="w-full p-2.5 rounded border border-[#45475a] bg-[#11111b] text-[#f5e0dc] text-xs font-mono focus:outline-none focus:border-[#89b4fa] resize-y placeholder-slate-600"></textarea>
+            </div>
+
+            <div id="payload-container" class="mb-4">
                 <label class="block text-xs font-mono text-slate-400 mb-1">JSON Payload Body</label>
                 <textarea id="curl-payload" rows="3" placeholder='' class="w-full p-2.5 rounded border border-[#45475a] bg-[#11111b] text-[#f5e0dc] text-xs font-mono focus:outline-none focus:border-[#89b4fa] resize-y"></textarea>
             </div>
