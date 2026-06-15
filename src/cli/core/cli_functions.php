@@ -293,7 +293,7 @@ function cli_create_pipeline_file($pipelineNameString, $pipelineType, $plStatusA
         cli_err_without_exit("[cli_create_pipeline_file()]: Pipeline Directory `{$targetBasePath}` is either missing or not writable. Command Stopped!");
     }
     // 4. Prepare Default Pipeline File String Content
-    $namespace = "funkphp\\pipeline\\" . ($pipelineType === 'request' ? 'Request' : 'PostResponse') . "\\$pipelineNameString";
+    $namespace = "funkphp\\pipeline\\" . ($pipelineType === 'request' ? 'request' : 'post_response') . "\\$pipelineNameString";
     $plString = "<?php\n\nnamespace $namespace;\n// FunkCLI Created on " . date('Y-m-d H:i:s') . "!\n\nfunction $pipelineNameString(&\$c)\n{\n\t// Placeholder Comment so Regex works - Remove & Add Your Own Code!\n$optionalCodeSnippets\n};\n";
 
     // 5. Atomic Creation/Write
