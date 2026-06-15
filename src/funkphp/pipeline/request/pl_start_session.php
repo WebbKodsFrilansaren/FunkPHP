@@ -1,5 +1,9 @@
 <?php
-return function (&$c, $passedValue = null) {
+
+namespace funkphp\pipeline\request\pl_start_session;
+
+function pl_start_session(&$c, $passedValue = null)
+{
     // This pipeline function does NOt accept any $passedValue arguments!
     if (isset($passedValue)) {
         $err = 'Tell The Developer: The `pl_start_session` Pipeline Function does NOT accept any $passedValue arguments. Its sole purpose is Session Initiation, and passing data here Risks Overwriting Resumed Session Data. Kindly change back to: `$passedValue => null`!';

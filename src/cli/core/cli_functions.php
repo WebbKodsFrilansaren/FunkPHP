@@ -231,7 +231,7 @@ function array_subkeys_single(array &$startingArray, string ...$subkeys): array
 }
 
 /**
- * Creates a new Pipeline file (in either 'request' or 'post-response' sub-directory)
+ * Creates a new Pipeline file (in either 'request' or 'post_response' sub-directory)
  * with a skeleton anonymous function.
  *
  * This function enforces a strict contract: the status array MUST confirm the file
@@ -249,7 +249,7 @@ function array_subkeys_single(array &$startingArray, string ...$subkeys): array
  * @throws cli_err Stops command execution if input is invalid or file/directory
  * checks fail (e.g., file already exists in a conflicting location, or permissions are insufficient).
  */
-function cli_create_pipeline_file($pipelineNameString, $pipelineType, $plStatusArray): bool
+function cli_create_pipeline_file($pipelineNameString, $pipelineType, $plStatusArray, $optionalCodeSnippets = ''): bool
 {
     // 1. Mandatory Input Validation (Defensive Checks)
     if (!is_string($pipelineNameString) || empty(trim($pipelineNameString))) {
@@ -263,7 +263,6 @@ function cli_create_pipeline_file($pipelineNameString, $pipelineType, $plStatusA
     $requiredKeys = [
         'exists',
         'has_valid_prefix',
-        'is_anonymous',
         'exists_in_request_dir',
         'exists_in_post_response_dir',
         'exists_in_both_dirs',
@@ -294,8 +293,8 @@ function cli_create_pipeline_file($pipelineNameString, $pipelineType, $plStatusA
         cli_err_without_exit("[cli_create_pipeline_file()]: Pipeline Directory `{$targetBasePath}` is either missing or not writable. Command Stopped!");
     }
     // 4. Prepare Default Pipeline File String Content
-    $namespace = "FunkPHP\\Pipeline\\" . ($pipelineType === 'request' ? 'Request' : 'PostResponse') . "\\$pipelineNameString";
-    $plString = "<?php\n\nnamespace $namespace;\n// FunkCLI Created on " . date('Y-m-d H:i:s') . "!\n\nreturn function (&\$c,\$passedValue = null) {\n\t// Placeholder Comment so Regex works - Remove & Add Your Own Code!\n};\n";
+    $namespace = "funkphp\\pipeline\\" . ($pipelineType === 'request' ? 'Request' : 'PostResponse') . "\\$pipelineNameString";
+    $plString = "<?php\n\nnamespace $namespace;\n// FunkCLI Created on " . date('Y-m-d H:i:s') . "!\n\nfunction $pipelineNameString(&\$c)\n{\n\t// Placeholder Comment so Regex works - Remove & Add Your Own Code!\n$optionalCodeSnippets\n};\n";
 
     // 5. Atomic Creation/Write
     return cli_crud_folder_php_file_atomic_write($plString, $outputNewFile);
@@ -322,7 +321,7 @@ function cli_create_pipeline_file($pipelineNameString, $pipelineType, $plStatusA
  * $mwStatusArray is missing required keys, file already exists,
  * or directory permissions are insufficient.
  */
-function cli_create_middleware_file($middlewareNameString, $mwStatusArray): bool
+function cli_create_middleware_file($middlewareNameString, $mwStatusArray, $optionalCodeSnippets = ''): bool
 {
     // $middlewareNameString must be non-empty string or hard error
     if (!is_string($middlewareNameString) || empty(trim($middlewareNameString))) {
@@ -332,7 +331,6 @@ function cli_create_middleware_file($middlewareNameString, $mwStatusArray): bool
     $requiredKeys = [
         'exists',
         'has_valid_prefix',
-        'is_anonymous',
         'middleware_is_valid',
         'middleware_dir_exists',
         'middleware_dir_readable',
@@ -358,7 +356,7 @@ function cli_create_middleware_file($middlewareNameString, $mwStatusArray): bool
     }
 
     // Prepare Default Middleware File String Content and return the boolean value of the creation/write operation
-    $mwString = "<?php\n\nnamespace FunkPHP\\Middlewares\\$middlewareNameString;\n// FunkCLI Created on " . date('Y-m-d H:i:s') . "!\n\nreturn function (&\$c, \$passedValue = null) {\n\t// Placeholder Comment so Regex works - Remove & Add Your Own Code!\n};\n";
+    $mwString = "<?php\n\nnamespace funkphp\\pipeline\\middlewares\\$middlewareNameString;\n// FunkCLI Created on " . date('Y-m-d H:i:s') . "!\n\nfunction $middlewareNameString(&\$c)\n{\n\t// Placeholder Comment so Regex works - Remove & Add Your Own Code!\n$optionalCodeSnippets\n};\n";
     return cli_crud_folder_php_file_atomic_write($mwString, $mwStatusArray['full_file_path']);
 }
 
@@ -416,7 +414,7 @@ function cli_middleware_file_status($validatedMiddlewareString): array
 }
 
 /**
- * Checks the existence and validity status of a Pipeline file across request and post-response directories.
+ * Checks the existence and validity status of a Pipeline file across request and post_response directories.
  *
  * It checks for file existence in either pipeline directory, prefix, Closure return, and ensures
  * the file name is NOT used in both pipeline directories to prevent ambiguity.
@@ -427,7 +425,7 @@ function cli_middleware_file_status($validatedMiddlewareString): array
  * - 'has_valid_prefix': (bool) True if the string starts with 'pl_'.
  * - 'is_anonymous': (bool) True if the included file returns an instanceof Closure.
  * - 'exists_in_request_dir': (bool) True if the file exists in the request pipeline directory.
- * - 'exists_in_post_response_dir': (bool) True if the file exists in the post-response pipeline directory.
+ * - 'exists_in_post_response_dir': (bool) True if the file exists in the post_response pipeline directory.
  * - 'exists_in_both_dirs': (bool) True if the file exists in BOTH directories.
  * - 'pipeline_is_valid': (bool) True only if (exists AND has_valid_prefix AND is_anonymous AND NOT exists_in_both_dirs).
  */
@@ -694,7 +692,7 @@ function cli_extract_pipeline($validatedPipelineString)
  * SUPER IMPORTANT: ASSUMES the input string has been previously validated and is non-empty.
  *
  * @param string $validatedPipelineString
- * @return string The normalized Pipeline type (e.g., "request" or "post-response").
+ * @return string The normalized Pipeline type (e.g., "request" or "post_response").
  */
 function cli_extract_pipeline_type($validatedPipelineString)
 {
@@ -702,10 +700,10 @@ function cli_extract_pipeline_type($validatedPipelineString)
     // 1. Remove any prefix (e.g., n:), if this is still attached to the string
     $prefixRegex = '/^([a-z]+:)/i';
     $sanitizedString = preg_replace($prefixRegex, '', $validatedPipelineString, 1);
-    // 2. If it's "post" we rename it to "post-response" for clarity
+    // 2. If it's "post" we rename it to "post_response" for clarity
     if ($sanitizedString === 'post') {
-        cli_info_without_exit("OK! Parsed Pipeline Type:`post-response`");
-        return 'post-response';
+        cli_info_without_exit("OK! Parsed Pipeline Type:`post_response`");
+        return 'post_response';
     }
     cli_info_without_exit("OK! Parsed Pipeline Type:`request`");
     return "request";
@@ -1522,9 +1520,9 @@ function cli_default_created_fn_files($type, $methodAndRoute, $folder, $file, $f
 
     // Parts belonging to new files created like namespace & some comments
     if ($type === "named_not_new_file" || $type === "named_and_new_file") {
-        $namespaceString = "<?php\n\nnamespace FunkPHP\\Routes\\$folder\\$file;\n";
+        $namespaceString = "<?php\n\nnamespace funkphp\\pipeline\\routes\\$file;\n";
     } else { // "Routes" folder is always used for those $type values!
-        $namespaceString = "<?php\n\nnamespace FunkPHP\\$folder\\$file;\n";
+        $namespaceString = "<?php\n\nnamespace funkphp\\data\\$folder\\$file;\n";
     }
     $newFilesString .= $namespaceString;
     $createdOnCommentString = "// FunkCLI Created on " . date('Y-m-d H:i:s') . "!\n\n";
@@ -1546,15 +1544,15 @@ function cli_default_created_fn_files($type, $methodAndRoute, $folder, $file, $f
     elseif ($type === 'named_and_new_file') {
         $typePartString .= "function $fn(&\$c, \$passedValue = null) // <$methodAndRoute>\n";
         $typePartString .= "{\n\t// Placeholder Comment so Regex works - Remove & Add Real Code!\n};\n\n";
-        $typePartString .= "return function (&\$c, \$handler = \"$fn\", \$passedValue = null) {\n";
-        $typePartString .= "\n\t\$base = is_string(\$handler) ? \$handler : \"\";";
-        $typePartString .= "\n\t\$full = __NAMESPACE__ . '\\\\' . \$base;";
-        $typePartString .= "\n\tif (function_exists(\$full)) {";
-        $typePartString .= "\n\t\treturn \$full(\$c, \$passedValue);";
-        $typePartString .= "\n\t} else {";
-        $typePartString .= "\n\t\t\$c['err']['ROUTES']['$folderUPPER'][] = '$folderUPPER Function `' . \$full . '` not found in namespace `' . __NAMESPACE__ . '`. Does it exist as a callable function in the File?';";
-        $typePartString .= "\n\t\treturn null;";
-        $typePartString .= "\n\t}\n};\n";
+        // $typePartString .= "return function (&\$c, \$handler = \"$fn\", \$passedValue = null) {\n";
+        // $typePartString .= "\n\t\$base = is_string(\$handler) ? \$handler : \"\";";
+        // $typePartString .= "\n\t\$full = __NAMESPACE__ . '\\\\' . \$base;";
+        // $typePartString .= "\n\tif (function_exists(\$full)) {";
+        // $typePartString .= "\n\t\treturn \$full(\$c, \$passedValue);";
+        // $typePartString .= "\n\t} else {";
+        // $typePartString .= "\n\t\t\$c['err']['ROUTES']['$folderUPPER'][] = '$folderUPPER Function `' . \$full . '` not found in namespace `' . __NAMESPACE__ . '`. Does it exist as a callable function in the File?';";
+        // $typePartString .= "\n\t\treturn null;";
+        // $typePartString .= "\n\t}\n};\n";
         $entireCreatedString .= $newFilesString . $typePartString;
     }
     // Special-case #1: "funkphp/sql" folder
@@ -1564,15 +1562,15 @@ function cli_default_created_fn_files($type, $methodAndRoute, $folder, $file, $f
         $typePartString .= "{\n\t";
         $typePartString .= cli_created_sql_or_validation_fn("sql", $tables);
         $typePartString .= "\n};\n\n";
-        $typePartString .= "return function (&\$c, \$handler = \"$fn\", \$passedValue = null) {\n";
-        $typePartString .= "\n\t\$base = is_string(\$handler) ? \$handler : \"\";";
-        $typePartString .= "\n\t\$full = __NAMESPACE__ . '\\\\' . \$base;";
-        $typePartString .= "\n\tif (function_exists(\$full)) {";
-        $typePartString .= "\n\t\treturn \$full(\$c, \$passedValue);";
-        $typePartString .= "\n\t} else {";
-        $typePartString .= "\n\t\t\$c['err']['ROUTES']['$folderUPPER'][] = '$folderUPPER Function `' . \$full . '` not found in namespace `' . __NAMESPACE__ . '`. Does it exist as a callable function in the File?';";
-        $typePartString .= "\n\t\treturn null;";
-        $typePartString .= "\n\t}\n};\n";
+        // $typePartString .= "return function (&\$c, \$handler = \"$fn\", \$passedValue = null) {\n";
+        // $typePartString .= "\n\t\$base = is_string(\$handler) ? \$handler : \"\";";
+        // $typePartString .= "\n\t\$full = __NAMESPACE__ . '\\\\' . \$base;";
+        // $typePartString .= "\n\tif (function_exists(\$full)) {";
+        // $typePartString .= "\n\t\treturn \$full(\$c, \$passedValue);";
+        // $typePartString .= "\n\t} else {";
+        // $typePartString .= "\n\t\t\$c['err']['ROUTES']['$folderUPPER'][] = '$folderUPPER Function `' . \$full . '` not found in namespace `' . __NAMESPACE__ . '`. Does it exist as a callable function in the File?';";
+        // $typePartString .= "\n\t\treturn null;";
+        // $typePartString .= "\n\t}\n};\n";
         $entireCreatedString .= $newFilesString . $typePartString;
     } // Only NEW SQL FUNCTION in existing file
     elseif ($type === 'sql_only_new_fn') {
@@ -1589,15 +1587,15 @@ function cli_default_created_fn_files($type, $methodAndRoute, $folder, $file, $f
         $typePartString .= "{\n\t";
         $typePartString .= cli_created_sql_or_validation_fn("validation", $tables);
         $typePartString .= "\n};\n\n";
-        $typePartString .= "return function (&\$c, \$handler = \"$fn\", \$passedValue = null) {\n";
-        $typePartString .= "\n\t\$base = is_string(\$handler) ? \$handler : \"\";";
-        $typePartString .= "\n\t\$full = __NAMESPACE__ . '\\\\' . \$base;";
-        $typePartString .= "\n\tif (function_exists(\$full)) {";
-        $typePartString .= "\n\t\treturn \$full(\$c, \$passedValue);";
-        $typePartString .= "\n\t} else {";
-        $typePartString .= "\n\t\t\$c['err']['ROUTES']['$folderUPPER'][] = '$folderUPPER Function `' . \$full . '` not found in namespace `' . __NAMESPACE__ . '`. Does it exist as a callable function in the File?';";
-        $typePartString .= "\n\t\treturn null;";
-        $typePartString .= "\n\t}\n};\n";
+        // $typePartString .= "return function (&\$c, \$handler = \"$fn\", \$passedValue = null) {\n";
+        // $typePartString .= "\n\t\$base = is_string(\$handler) ? \$handler : \"\";";
+        // $typePartString .= "\n\t\$full = __NAMESPACE__ . '\\\\' . \$base;";
+        // $typePartString .= "\n\tif (function_exists(\$full)) {";
+        // $typePartString .= "\n\t\treturn \$full(\$c, \$passedValue);";
+        // $typePartString .= "\n\t} else {";
+        // $typePartString .= "\n\t\t\$c['err']['ROUTES']['$folderUPPER'][] = '$folderUPPER Function `' . \$full . '` not found in namespace `' . __NAMESPACE__ . '`. Does it exist as a callable function in the File?';";
+        // $typePartString .= "\n\t\treturn null;";
+        // $typePartString .= "\n\t}\n};\n";
         $entireCreatedString .= $newFilesString . $typePartString;
     }
     // Only NEW Validation FUNCTION in existing file
@@ -9309,7 +9307,7 @@ function cli_restore_default_folders_and_files()
         "$folderBase/batteries/",
         "$folderBase/batteries/pipeline/",
         "$folderBase/batteries/pipeline/middlewares",
-        "$folderBase/batteries/pipeline/post-response/",
+        "$folderBase/batteries/pipeline/post_response/",
         "$folderBase/batteries/pipeline/request/",
         "$folderBase/cli/",
         "$folderBase/cli/commands/",
@@ -9321,7 +9319,7 @@ function cli_restore_default_folders_and_files()
         "$folderBase/funkphp/config/",
         "$folderBase/funkphp/pipeline/",
         "$folderBase/funkphp/pipeline/request/",
-        "$folderBase/funkphp/pipeline/post-response/",
+        "$folderBase/funkphp/pipeline/post_response/",
         "$folderBase/funkphp/pipeline/middlewares",
         "$folderBase/funkphp/pipeline/routes",
         "$folderBase/funkphp/pages/",
@@ -9385,16 +9383,16 @@ function cli_restore_default_folders_and_files()
         [
             'request' =>
             [
-            0 => ['pl_https_redirect' => null],
-            1 => ['pl_prepare_uri' => null],
-            2 => ['pl_run_ini_sets' => null],
-            3 => ['pl_match_denied_exact_ips' => null],
-            4 => ['pl_match_denied_methods' => null],
-            5 => ['pl_match_denied_uas' => null],
-            6 => ['pl_match_route' => null],
-            7 => ['pl_run_matched_route_middlewares' => null],
-            8 => ['pl_run_matched_route_keys' => null],
-            ],'post-response' => [0 => [],],];");
+            0 => 'pl_https_redirect',
+            1 => 'pl_prepare_uri',
+            2 => 'pl_run_ini_sets',
+            3 => 'pl_match_denied_exact_ips',
+            4 => 'pl_match_denied_methods',
+            5 => 'pl_match_denied_uas',
+            6 => 'pl_match_route',
+            7 => 'pl_run_matched_route_middlewares',
+            8 => 'pl_run_matched_route_keys',
+            ],'post_response' => [0 => [],],];");
                 echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
                 continue;
             } else if (str_contains($file, "public_html/.htaccess")) {

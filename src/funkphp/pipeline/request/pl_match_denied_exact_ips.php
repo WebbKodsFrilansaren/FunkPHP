@@ -1,5 +1,9 @@
 <?php
-return function (&$c, $passedValue = null) {
+
+namespace funkphp\pipeline\request\pl_match_denied_exact_ips;
+
+function pl_match_denied_exact_ips(&$c, $passedValue = null)
+{
     // $passedValue is optional but must be a string otherwise
     if (!isset($passedValue)) {
         return; // All good, continue request processing!

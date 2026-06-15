@@ -1,5 +1,9 @@
 <?php
-return function (&$c, $passedValue = null) {
+
+namespace funkphp\pipeline\request\pl_run_ini_sets;
+
+function pl_run_ini_sets(&$c, $passedValue = null)
+{
     $iniSets = $c['INI_SETS'] ?? [];
     foreach ($iniSets as $key => $value) {
         // Hard error on invalid configured $c['INI_SETS'] data

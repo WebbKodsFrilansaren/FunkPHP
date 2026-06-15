@@ -1,5 +1,9 @@
 <?php
-return function (&$c, $passedValue = null) {
+
+namespace funkphp\pipeline\request\pl_https_redirect;
+
+function pl_https_redirect(&$c)
+{
     try {
         if (
             defined("FUNKPHP_LOCAL") &&

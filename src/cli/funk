@@ -12,7 +12,7 @@ define('BATTERIES_DIR', PROJECT_DIR . '/batteries');
 define('BATTERIES_MIDDLEWARES_DIR', BATTERIES_DIR . '/middlewares');
 define('BATTERIES_PIPELINE_DIR', BATTERIES_DIR . '/pipeline');
 define('BATTERIES_PIPELINE_REQUEST_DIR', BATTERIES_PIPELINE_DIR . '/request');
-define('BATTERIES_PIPELINE_POST_RESPONSE_DIR', BATTERIES_PIPELINE_DIR . '/post-response');
+define('BATTERIES_PIPELINE_POST_RESPONSE_DIR', BATTERIES_PIPELINE_DIR . '/post_response');
 define('CLI_DIR', __DIR__);
 define('CLI_CORE_DIR', CLI_DIR . '/core');
 define('CLI_COMMANDS_DIR', __DIR__ . '/commands');
@@ -30,7 +30,7 @@ define('FUNKPHP_PAGE_COMPONENTS_DIR', FUNKPHP_PAGE_DIR . '/components');
 define('FUNKPHP_PAGE_PARTIALS_DIR', FUNKPHP_PAGE_DIR . '/partials');
 define('FUNKPHP_PIPELINE_DIR', FUNKPHP_DIR . '/pipeline');
 define('FUNKPHP_PIPELINE_REQUEST_DIR', FUNKPHP_PIPELINE_DIR . '/request');
-define('FUNKPHP_PIPELINE_POST_RESPONSE_DIR', FUNKPHP_PIPELINE_DIR . '/post-response');
+define('FUNKPHP_PIPELINE_POST_RESPONSE_DIR', FUNKPHP_PIPELINE_DIR . '/post_response');
 define('FUNKPHP_ROUTES_DIR', FUNKPHP_DIR . '/pipeline/routes');
 define('FUNKPHP_SQL_DIR', FUNKPHP_DIR . '/data/sql');
 define('FUNKPHP_VALIDATION_DIR', FUNKPHP_DIR . '/data/validation');
@@ -126,7 +126,7 @@ register_shutdown_function(function () {
 
 // Load the settings file if it exists, otherwise use default settings
 // PLEASE ONLY EDIT THE ACTUAL "src/cli/funksettings" file and NOT below here!!!
-$settingsPath = CLI_DIR . '/funksettings';
+$settingsPath = CLI_DIR . '/funksettings.php';
 $settings = is_readable($settingsPath)
     ? include $settingsPath
     : [
@@ -305,18 +305,18 @@ $singlePipeline = include_once FUNKPHP_FILE_PATH_PIPELINE ?? [
     [
         'request' =>
         [
-            0 => ['pl_https_redirect' => null],
-            1 => ['pl_prepare_uri' => null],
-            2 => ['pl_run_ini_sets' => null],
-            3 => ['pl_match_denied_exact_ips' => null],
-            4 => ['pl_match_denied_methods' => null],
-            5 => ['pl_match_denied_uas' => null],
-            6 => ['pl_match_route' => null],
-            7 => ['pl_run_matched_route_middlewares' => null],
-            8 => ['pl_run_matched_route_keys' => null],
+            0 => 'pl_https_redirect',
+            1 => 'pl_prepare_uri',
+            2 => 'pl_run_ini_sets',
+            3 => 'pl_match_denied_exact_ips',
+            4 => 'pl_match_denied_methods',
+            5 => 'pl_match_denied_uas',
+            6 => 'pl_match_route',
+            7 => 'pl_run_matched_route_middlewares',
+            8 => 'pl_run_matched_route_keys',
         ],
-        'post-response' => [
-            //0 => ['pl_debug' => null]
+        'post_response' => [
+            //0 => 'pl_debug'
         ],
     ],
 ];

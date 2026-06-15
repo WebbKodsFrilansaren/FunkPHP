@@ -1,5 +1,9 @@
 <?php
-return function (&$c, $passedValue = null) {
+
+namespace funkphp\pipeline\request\pl_match_denied_uas;
+
+function pl_match_denied_uas(&$c, $passedValue = null)
+{
     // $passedValue is optional but must be a string otherwise
     if (!isset($passedValue)) {
         return; // All good, continue request processing!

@@ -69,11 +69,11 @@ if (!$arg_methodRoute) {
 // does not and say that only the Middleware was created!
 /////////////////////////////////////////////////////////
 if (!isset($ROUTES[$method][$route])) {
-    cli_warning_without_exit("The optionally provided Method/Route:`$method$route` does NOT exist in `funkphp/routes/routes.php` so could NOT add the Middleware to it.");
-    cli_info("Middleware File `$middleware` was Created/Found but the optionally provided Method/Route:`$method$route` does NOT exist in `funkphp/routes/routes.php` so could NOT add the Middleware to it. Command Done!");
+    cli_warning_without_exit("The optionally provided Method/Route:`$method$route` does NOT exist in `funkphp/pipeline/pipeline_routes.php` so could NOT add the Middleware to it.");
+    cli_info("Middleware File `$middleware` was Created/Found but the optionally provided Method/Route:`$method$route` does NOT exist in `funkphp/pipeline/pipeline_routes.php` so could NOT add the Middleware to it. Command Done!");
 } elseif (!is_array($ROUTES[$method][$route]) || !array_is_list($ROUTES[$method][$route])) {
-    cli_warning_without_exit("The optionally provided Method/Route:`$method$route` does exist in `funkphp/routes/routes.php` but was NOT a valid Numbered Array so could NOT add the Middleware to it. Verify it is a Numbered Array Starting at Index 0!");
-    cli_info("Middleware File `$middleware` was Created/Found WITHOUT adding it to the optionally provided Method/Route:`$method$route` in `funkphp/routes/routes.php` due to its invalid Array Structure (not a numbered list). Command Done!");
+    cli_warning_without_exit("The optionally provided Method/Route:`$method$route` does exist in `funkphp/pipeline/pipeline_routes.php` but was NOT a valid Numbered Array so could NOT add the Middleware to it. Verify it is a Numbered Array Starting at Index 0!");
+    cli_info("Middleware File `$middleware` was Created/Found WITHOUT adding it to the optionally provided Method/Route:`$method$route` in `funkphp/pipeline/pipeline_routes.php` due to its invalid Array Structure (not a numbered list). Command Done!");
 }
 // Middlewares key not added yet, so we add it to the top of the numbered array meaning we need to reshift
 // all existing numbered array items down by one to make room for the new first item! Because it has not
@@ -103,20 +103,20 @@ elseif (isset($ROUTES[$method][$route][0]['middlewares'])) {
         }
     }
     if ($foundDuplicateMiddlewareMainkey) {
-        cli_err_without_exit("The optionally provided Method/Route:`$method$route` does exist in `funkphp/routes/routes.php` but has more than one `middlewares` Main Key at different Indexes so could NOT add the Middleware to it. Command Stopped to prevent breaking the Route!");
+        cli_err_without_exit("The optionally provided Method/Route:`$method$route` does exist in `funkphp/pipeline/pipeline_routes.php` but has more than one `middlewares` Main Key at different Indexes so could NOT add the Middleware to it. Command Stopped to prevent breaking the Route!");
         cli_warning_without_exit("The `middlewares` Main Key MUST ONLY exist at Index 0 of the Method/Route's Numbered Array. At any other indexes it will be considered as a `folder=>file=function` and you run the risk of thinking you are doing important Middleware additions but in reality you are just adding more Route Keys that do NOT function as Middlewares at all!");
-        cli_info("Please fix the `middlewares` Main Key in `$method$route` in `funkphp/routes/routes.php` so it ONLY exists at Index 0 like this:`[0] => ['middlewares' => [0 => ['mw_yourmiddleware' => null], 1 => ['mw_anothermiddleware' => null]]]`. Then retry this Command!");
+        cli_info("Please fix the `middlewares` Main Key in `$method$route` in `funkphp/pipeline/pipeline_routes.php` so it ONLY exists at Index 0 like this:`[0] => ['middlewares' => [0 => ['mw_yourmiddleware' => null], 1 => ['mw_anothermiddleware' => null]]]`. Then retry this Command!");
     }
     // 'middlewares' key found but is NOT a valid numbered array so we error out
     if (!is_array($ROUTES[$method][$route][0]['middlewares']) || !array_is_list($ROUTES[$method][$route][0]['middlewares'])) {
-        cli_err_without_exit("The optionally provided Method/Route:`$method$route` does exist in `funkphp/routes/routes.php` but its `middlewares` Key was NOT a valid Numbered Array so could NOT add the Middleware to it. Command Stopped to prevent breaking the Route!");
-        cli_info("Please fix the `middlewares` Key in `$method$route` in `funkphp/routes/routes.php` so it is a valid Numbered Array like this:`'middlewares' => [0 => ['mw_yourmiddleware' => null], 1 => ['mw_anothermiddleware' => null]]; Then retry this Command!");
+        cli_err_without_exit("The optionally provided Method/Route:`$method$route` does exist in `funkphp/pipeline/pipeline_routes.php` but its `middlewares` Key was NOT a valid Numbered Array so could NOT add the Middleware to it. Command Stopped to prevent breaking the Route!");
+        cli_info("Please fix the `middlewares` Key in `$method$route` in `funkphp/pipeline/pipeline_routes.php` so it is a valid Numbered Array like this:`'middlewares' => [0 => ['mw_yourmiddleware' => null], 1 => ['mw_anothermiddleware' => null]]; Then retry this Command!");
     }
     // Iterate through middlewares array and check that all keys are associative arrays (meanign they are like mw_name => null/whatever)
     foreach ($ROUTES[$method][$route][0]['middlewares'] as $mwKeyItem) {
         if (!is_array($mwKeyItem) || array_is_list($mwKeyItem)) {
-            cli_err_without_exit("The optionally provided Method/Route:`$method$route` does exist in `funkphp/routes/routes.php` but one or more of its `middlewares` Key Items was NOT a valid Associative Array so could NOT add the Middleware to it. Command Stopped to prevent breaking the Route!");
-            cli_info("Please fix the `middlewares` Key Items in `$method$route` in `funkphp/routes/routes.php` so ALL its Items are valid Associative Arrays like this:`['middlewares'] => [0] => ['mw_yourmiddleware' => null], [1] => ['and_so_on' => null]`. Then retry this Command!");
+            cli_err_without_exit("The optionally provided Method/Route:`$method$route` does exist in `funkphp/pipeline/pipeline_routes.php` but one or more of its `middlewares` Key Items was NOT a valid Associative Array so could NOT add the Middleware to it. Command Stopped to prevent breaking the Route!");
+            cli_info("Please fix the `middlewares` Key Items in `$method$route` in `funkphp/pipeline/pipeline_routes.php` so ALL its Items are valid Associative Arrays like this:`['middlewares'] => [0] => ['mw_yourmiddleware' => null], [1] => ['and_so_on' => null]`. Then retry this Command!");
         }
         // If middleware is assopciative and has same name then we warn about duplicate but still add it again as last item
         if (array_key_exists($middleware, $mwKeyItem)) {

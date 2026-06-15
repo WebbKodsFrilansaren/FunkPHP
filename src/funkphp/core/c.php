@@ -25,9 +25,9 @@ return [
         'session.sid_length' => 192,
         'session.sid_bits_per_character' => 6,
         // IMPORTANT: Remove these configs for PRODUCTION to improve performance?
-        //'display_errors' => FUNKPHP_IS_LOCAL ? 1 : 0,
-        //'display_startup_errors' =>  FUNKPHP_IS_LOCAL ? 1 : 0,
-        //'error_reporting' =>  FUNKPHP_IS_LOCAL ? E_ALL : 0,
+        'display_errors' => FUNKPHP_IS_LOCAL ? 1 : 0,
+        'display_startup_errors' =>  FUNKPHP_IS_LOCAL ? 1 : 0,
+        'error_reporting' =>  FUNKPHP_IS_LOCAL ? E_ALL : 0,
     ],
 
     // IMPORTANT: Change to your hardcoded online URL!
@@ -122,21 +122,10 @@ return [
         'route_keys' => [],
         'skip_post-response' => false,
         'matched_middlewares' => null,
-        'current_passed_value' => [],
-        'current_passed_values' => [],
         'current_pipeline' => null,
         'next_pipeline' => null,
-        'deleted_pipeline' => [],
-        'deleted_pipeline#' => 0,
-        'completed_pipeline#' => 0,
         'current_middleware' => null,
         'next_middleware' => null,
-        'deleted_middlewares' => [],
-        'deleted_middlewares#' => 0,
-        'completed_middlewares#' => 0,
-        'last_returned_pipeline_value' => FUNKPHP_NO_VALUE,
-        'last_returned_middleware_value' => FUNKPHP_NO_VALUE,
-        'last_returned_route_key_value' => FUNKPHP_NO_VALUE,
         'keep_running_pipeline' => null,
         'keep_running_middlewares' => null,
         'keep_running_exit' => null,
@@ -150,12 +139,6 @@ return [
         'protocol' => $_SERVER['SERVER_PROTOCOL'] ?? null,
         'query' => $_SERVER['QUERY_STRING'] ?? null,
     ],
-
-    // 'dispatchers' is the array of function closures that are the loaded
-    // anoynmous function files that then contain namespaces with all the
-    // other functions that are called based on folder name, file name
-    // and function name in the file! This is used during Route Key Running!
-    'dispatchers' => [],
 
     // 'r' will store route-related data
     'r' => null,

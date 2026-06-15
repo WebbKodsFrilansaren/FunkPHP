@@ -1,4 +1,9 @@
-<?php return function (&$c, $passedValue = null) {
+<?php
+
+namespace funkphp\pipeline\request\pl_run_matched_route_middlewares;
+
+function pl_run_matched_route_middlewares(&$c)
+{
     // 'defensive' = we check almost everything and output error to user if something gets wrong
     if (isset($c['req']['matched_middlewares'])) {
         // Must be a numbered array
@@ -22,42 +27,22 @@
             // Current Middleware must be an associative array!
             $mwToRun = "";
             $current_mw = $c['req']['matched_middlewares'][$i] ?? null;
-            if (!is_array($current_mw) || array_is_list($current_mw) || empty($current_mw) || count($current_mw) !== 1) {
-                $c['err']['MIDDLEWARES'][] = 'Configured Matched Route Middlewares (`"ROUTES" => "GET|POST|PUT|DELETE|PATCH" => "/route" => "middlewares" Key`) to load and run after Possibly Matched Route: ' . ($c['req']['route'] !== null ? $c['req']['method'] . $c['req']['route'] : '<No Route Matched>') . 'Route Matching. But one of the `middlewares` Key items is not an associative array with only one key (the Middleware Handler Name), please check the `funkphp/config/routes.php` File!';
+            if (!is_string($current_mw)) {
+                $c['err']['MIDDLEWARES'][] = 'Configured Matched Route Middlewares (`"ROUTES" => "GET|POST|PUT|DELETE|PATCH" => "/route" => "middlewares" Key`) to load and run after Possibly Matched Route: ' . ($c['req']['route'] !== null ? $c['req']['method'] . $c['req']['route'] : '<No Route Matched>') . 'Route Matching. But one of the `middlewares` Key items is NOT a String (the Middleware Handler Name). Please see `funkphp/core/pipeline_routes.php` File OR by using the FunkGUI!';
                 $err = 'Tell the Developer: The Middlewares Pipeline Function ran but WITHOUT a Valid Middleware Structure - Each Middleware must be an Associative Array with Only One key (the Middleware File Name)!';
                 funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
             }
 
             // Prepare Middleware to Run and either run if it already exists
             // stored in the $c['dispatchers'] or include the file and run it!
-            $mwToRun = array_key_first($current_mw);
-            $passedValue = $c['req']['matched_middlewares'][$i][$mwToRun] ?? null;
-            $c['req']['current_passed_value']['middlewares'][$mwToRun] = $passedValue;
-            $c['req']['current_passed_values']['middlewares'][] = [$mwToRun => $passedValue];
+            $mwToRun = $current_mw;
             $c['req']['current_middleware'] = $mwToRun;
             $mwFileToRun = $mwDir . $mwToRun . '.php';
-            if ( // if = run already loaded middleware from dispatchers
-                isset($c['dispatchers']['middlewares'][$mwToRun])
-                && is_callable($c['dispatchers']['middlewares'][$mwToRun])
-            ) {
-                $RunMW = $c['dispatchers']['middlewares'][$mwToRun];
-                $rawRun = $RunMW($c, $passedValue);
-                if (is_array($rawRun) && count($rawRun) === 1) {
-                    $c['req']['last_returned_middleware_value'] = $rawRun;
-                } else {
-                    $c['req']['last_returned_middleware_value'] = FUNKPHP_NO_VALUE;
-                }
-            }  // else if = include the file from middlewares folder and add it to dispatchers
-            elseif (is_readable($mwFileToRun)) {
-                $RunMW = include_once $mwFileToRun;
-                if (is_callable($RunMW)) {
-                    $c['dispatchers']['middlewares'][$mwToRun] = $RunMW; // Store for possible reuse
-                    $rawRun = $RunMW($c, $passedValue);
-                    if (is_array($rawRun) && count($rawRun) === 1) {
-                        $c['req']['last_returned_middleware_value'] = $rawRun;
-                    } else {
-                        $c['req']['last_returned_middleware_value'] = FUNKPHP_NO_VALUE;
-                    }
+            if (is_readable($mwFileToRun)) {
+                include_once $mwFileToRun;
+                $mwFnToRun = NAMESPACE_PIPELINE_MIDDLEWARES . $mwToRun . '\\' . $mwToRun;
+                if (is_callable($mwFnToRun)) {
+                    $rawRun = $mwFnToRun($c);
                 }
                 // ERROR: Middleware found in middlewares folder but it is not callable!
                 else {
@@ -75,10 +60,7 @@
 
             // Here a Middleware was successfully ran (and also added to dispatchers if it was
             // included from file) so we add some stats to the request info and also reset things
-            $c['req']['completed_middlewares#']++;
-            $c['req']['deleted_middlewares'][] = $mwToRun;
             unset($c['req']['matched_middlewares'][$i]);
-            $c['req']['deleted_middlewares#']++;
             $c['req']['current_middleware'] = null;
             $c['req']['next_middleware'] = isset($c['req']['matched_middlewares'][$i + 1]) && is_array($c['req']['matched_middlewares'][$i + 1]) ? array_key_first($c['req']['matched_middlewares'][$i + 1]) : null;
         }

@@ -1,5 +1,9 @@
 <?php
-return function (&$c, $passedValue = null) {
+
+namespace funkphp\pipeline\request\pl_prepare_uri;
+
+function pl_prepare_uri(&$c, $passedValue = null)
+{
     // $passedValues i not supported for this pipeline function as of yet
     if (isset($passedValue)) {
         $err = 'Tell The Developer - The Pipeline Function `pl_prepare_uri` does not support passed values ($passedValue) as of yet. Please change it back to: `{INT} => ["pl_prepare_uri" => null]` in the Pipeline Configuration.';
