@@ -21,8 +21,8 @@ define('FUNKPHP_DIR', PROJECT_DIR . '/funkphp');
 define('FUNKPHP_CORE_DIR', FUNKPHP_DIR . '/core');
 define('FUNKPHP_CLASSES_DIR', FUNKPHP_DIR . '/classes');
 define('FUNKPHP_CONFIG_DIR', FUNKPHP_DIR . '/config');
-define('FUNKPHP_CONFIG_BLOCKED_DIR', FUNKPHP_CONFIG_DIR . '/blocked');
-define('FUNKPHP_CONFIG_VALID_DIR', FUNKPHP_CONFIG_DIR . '/valid');
+define('FUNKPHP_CONFIG_BLOCKED_DIR', FUNKPHP_CONFIG_DIR . '/blacklists');
+define('FUNKPHP_CONFIG_VALID_DIR', FUNKPHP_CONFIG_DIR . '/whitelists');
 define('FUNKPHP_MIDDLEWARES_DIR', FUNKPHP_DIR . '/pipeline/middlewares');
 define('FUNKPHP_PAGE_DIR', FUNKPHP_DIR . '/pages');
 define('FUNKPHP_PAGE_COMPILED_DIR', FUNKPHP_PAGE_DIR . '/compiled');
@@ -306,27 +306,17 @@ $singlePipeline = include_once FUNKPHP_FILE_PATH_PIPELINE ?? [
         'request' =>
         [
             0 => ['pl_https_redirect' => null],
-            1 => ['pl_run_ini_sets' => null],
-            2 => ['pl_set_session_cookie_params' => null],
-            3 => ['pl_headers_set' => null],
-            4 => ['pl_headers_remove' => null],
-            5 => ['pl_start_session' => null],
-            6 => ['pl_prepare_uri' => null],
-            7 => ['pl_match_denied_exact_ips' => null],
-            8 => ['pl_match_denied_methods' => null],
-            9 => ['pl_match_denied_uas' => null],
-            10 => ['pl_match_route' => [
-                'no_match' => [
-                    'json' => null,
-                    'page' => '404',
-                    'callback' => null
-                ]
-            ]],
-            11 => ['pl_run_matched_route_middlewares' => 'defensive'],
-            12 => ['pl_run_matched_route_keys' => 'defensive'],
+            1 => ['pl_prepare_uri' => null],
+            2 => ['pl_run_ini_sets' => null],
+            3 => ['pl_match_denied_exact_ips' => null],
+            4 => ['pl_match_denied_methods' => null],
+            5 => ['pl_match_denied_uas' => null],
+            6 => ['pl_match_route' => null],
+            7 => ['pl_run_matched_route_middlewares' => null],
+            8 => ['pl_run_matched_route_keys' => null],
         ],
         'post-response' => [
-            0 => ['pl_debug' => null]
+            //0 => ['pl_debug' => null]
         ],
     ],
 ];

@@ -2,9 +2,8 @@
 return function (&$c, $passedValue = null) {
     try {
         if (
-            isset($_SERVER['SERVER_NAME'])
-            && $_SERVER['SERVER_NAME'] !== "localhost"
-            &&  $_SERVER['SERVER_NAME'] !== "127.0.0.1"
+            defined("FUNKPHP_LOCAL") &&
+            !FUNKPHP_LOCAL
         ) {
             if (!isset($_SERVER['HTTPS']) || $_SERVER['HTTPS'] !== 'on') {
                 // We check if the url ended in "/" and if so we remove it

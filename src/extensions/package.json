@@ -1,0 +1,25 @@
+{
+	"name": "funkphp-intellisense",
+	"displayName": "FunkPHP Intellisense",
+	"version": "0.1.0",
+	"engines": {
+		"vscode": "^1.80.0"
+	},
+	"categories": [
+		"Other"
+	],
+	"main": "./extension.js",
+	"activationEvents": [
+		"onLanguage:php"
+	],
+	"contributes": {
+		"completionItemProvider": [
+			{
+				"language": "php",
+				"triggerCharacters": [
+					"."
+				]
+			}
+		]
+	}
+}

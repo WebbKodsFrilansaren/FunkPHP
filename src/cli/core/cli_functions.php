@@ -1,4 +1,161 @@
-<?php // SECOND CLI FUNCTIONS FILE SINCE SECOND ONE STARTED TO BECOME TOO LARGE!
+<?php // ALL CLI FUNCTIONS
+
+// Compile "pipeline_routes.php" (via trie routes files "compiled_routes.php") into an
+// optimized flat Route matcher using GOTO labels: everywhere! IMPORTANT: Might not work,
+// still working progress function and might NOT be final thing to use!
+function cli_compile_trie_node(array $node, array $currentPath = [], int $depth = 0): string
+{
+    $code = "";
+
+    foreach ($node as $key => $subNode) {
+        // Skip middleware or metadata flags
+        if ($key === '|' || $key === '<CONFIG>') continue;
+
+        $newPath = array_merge($currentPath, [$key]);
+        $labelName = "branch_GET_" . implode('_', str_replace(':', 'param_', $newPath));
+
+        if ($depth === 0) {
+            // First level creates the initial entry routing
+            $code .= "    if (\$uriSegments[0] === '{$key}') goto {$labelName};\n";
+        }
+
+        // Open the label block
+        $labelCode = "\n    {$labelName}:\n";
+
+        // If this node represents a valid complete route destination
+        if (isset($subNode[0]) || is_null($subNode)) {
+            $routePath = '/' . implode('/', $newPath);
+            $labelCode .= "    if (\$uriSegmentCount === " . ($depth + 1) . ") {\n";
+            $labelCode .= "        \$c['req']['route'] = '{$routePath}';\n";
+            // Hardcode fully resolved handlers & middlewares extracted from your routes.php!
+            $labelCode .= "        return true;\n";
+            $labelCode .= "    }\n";
+        }
+
+        // Recursively handle children if they exist
+        if (is_array($subNode) && !empty($subNode)) {
+            // Write look-ahead for the next segment index
+            $nextIndex = $depth + 1;
+            foreach ($subNode as $subKey => $childNode) {
+                if ($subKey === 0 || $subKey === '|' || $subKey === '<CONFIG>') continue;
+
+                $nextLabel = "branch_GET_" . implode('_', str_replace(':', 'param_', array_merge($newPath, [$subKey])));
+
+                if ($subKey === ':') {
+                    // It's a wildcard dynamic parameter node! It consumes whatever string is there.
+                    $labelCode .= "    if (isset(\$uriSegments[{$nextIndex}])) goto {$nextLabel};\n";
+                } else {
+                    // It's a static string literal node
+                    $labelCode .= "    if ((\$uriSegments[{$nextIndex}] ?? null) === '{$subKey}') goto {$nextLabel};\n";
+                }
+            }
+        }
+
+        // If no look-aheads match and the segment count wasn't an exact match, drop to 404
+        $labelCode .= "    goto route_404;\n";
+
+        // Append this whole block to our main generation system
+        // (You might want to sort static literals before wildcards here!)
+        $code .= $labelCode;
+    }
+
+    return $code;
+}
+
+// Get inherited middlewares (might not work yet, still work in progress) from route
+function cli_resolve_inherited_middlewares(string $routePath, array $developerRoutes, string $method): array
+{
+    $segments = array_filter(explode('/', trim($routePath, '/')));
+    $compiledMiddlewares = [];
+    $currentPath = '';
+
+    // Gradually build the path up step-by-step: /users -> /users/:id -> /users/:id/posts
+    foreach ($segments as $segment) {
+        $currentPath .= '/' . $segment;
+
+        // Check if the developer defined middleware at this specific parent tier
+        if (isset($developerRoutes[$method][$currentPath][0]['middlewares'])) {
+            $compiledMiddlewares = array_merge(
+                $compiledMiddlewares,
+                $developerRoutes[$method][$currentPath][0]['middlewares']
+            );
+        }
+    }
+
+    return $compiledMiddlewares;
+}
+
+// Sort the developer-defined single routes with parameters in a way that ensures more specific routes
+// are matched before more general ones (e.g., /users/:id before /users/:id/posts). This is crucial
+// for correct route matching when using a flat array of routes. The sorting logic ensures that
+// routes with more segments and fewer wildcards come first, while routes with wildcards
+// (parameters) are pushed down the order. IMPORTANT: might not work yet; WiP!
+function cli_uksort_on_routes_with_params($developerSingleRoutes)
+{
+    uksort($developerSingleRoutes, function ($routeA, $routeB) {
+        $segA = explode('/', trim($routeA, '/'));
+        $segB = explode('/', trim($routeB, '/'));
+
+        $countA = count($segA);
+        $countB = count($segB);
+        $max = max($countA, $countB);
+
+        for ($i = 0; $i < $max; $i++) {
+            $a = $segA[$i] ?? null;
+            $b = $segB[$i] ?? null;
+
+            // If one route runs out of segments first, the shorter route comes first
+            if ($a === null) return -1;
+            if ($b === null) return 1;
+
+            // If they are identical at this level, keep checking deeper
+            if ($a === $b) continue;
+
+            // 🔥 THE MAGIC RULE: Wildcards (starting with :) always lose!
+            if (str_starts_with($a, ':') && !str_starts_with($b, ':')) return 1;  // A moves down
+            if (!str_starts_with($a, ':') && str_starts_with($b, ':')) return -1; // A moves up
+
+            // Otherwise, do a standard alphabetical check for literals
+            return strcmp($a, $b);
+        }
+        return 0;
+    });
+}
+
+// Meant to create super fast hydration code on compiled SQL Query results with nested relations
+// hydration via GOTO labels and direct array access without function calls or loops!
+// IMPORTANT: might not work yet, still work in progress!
+function cli_compile_hydration_node(array $node, string $parentPath = '$results[$pKey]')
+{
+    $code = "";
+    foreach ($node['with'] as $relationName => $childNode) {
+        $childPk = $childNode['pk'];
+
+        // Generate the nested conditional check string
+        $code .= "if (isset(\$row['{$childPk}']) && \$row['{$childPk}'] !== null) {\n";
+        $code .= "    \$cKey = \$row['{$childPk}'];\n";
+        $code .= "    if (!isset({$parentPath}['{$relationName}'][\$cKey])) {\n";
+        $code .= "        {$parentPath}['{$relationName}'][\$cKey] = [\n";
+
+        // Loop columns for this entity
+        foreach ($childNode['cols'] as $col) {
+            // Map table names clean or preserve names clean
+            $shortName = str_replace($relationName . '_', '', $col);
+            $code .= "            '{$shortName}' => \$row['{$col}'],\n";
+        }
+
+        $code .= "        ];\n";
+        $code .= "    }\n";
+
+        // Recursively compile deeper nesting if relations go further down!
+        if (!empty($childNode['with'])) {
+            $code .= compile_hydration_node($childNode, "{$parentPath}['{$relationName}'][\$cKey]");
+        }
+
+        $code .= "}\n";
+    }
+    return $code;
+}
 
 /**
  * Recursively checks for the existence and strict single-subkey structure of a path
@@ -2512,14 +2669,14 @@ function cli_db_connect()
     $dbConfig = $dbConfig['funkphp_dev'] ?? null;
     // Err out if no config found
     if (!$dbConfig) {
-        cli_err_syntax("No Local Database Configuration found for 'funkphp_dev' in \"src/funkphp/config/db.php\". Please add your local DB connection settings there under:`\$credentials = ['YourNewDBConnectionArray' => 'SETTINGS_HERE', ...];`. If a Command called this Function, this error has now stopped that Command from completing successfully!");
+        cli_err("No Local Database Configuration found for 'funkphp_dev' in \"src/funkphp/config/db.php\". Please add your local DB connection settings there under:`\$credentials = ['YourNewDBConnectionArray' => 'SETTINGS_HERE', ...];`. If a Command called this Function, this error has now stopped that Command from completing successfully!");
     }
     try {
         $conn = new mysqli($dbConfig['host'], $dbConfig['user'], $dbConfig['password'], $dbConfig['database'], $dbConfig['port']);
         $conn->set_charset($dbConfig['charset'] ?? 'utf8mb4');
     } catch (Exception $e) {
         if ($conn === null) {
-            cli_err_syntax("Database Connection Failed. Check Database Connection Configuration in \"funkphp/config/db_config.php\". Error Message: `" . $e->getMessage() . "`");
+            cli_err("Database Connection Failed. Check Database Connection Configuration in \"funkphp/config/db_config.php\". Error Message: `" . $e->getMessage() . "`");
         }
     }
     return $conn;

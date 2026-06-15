@@ -6,12 +6,13 @@ return  [
         [
             0 => ['pl_https_redirect' => null],
             1 => ['pl_prepare_uri' => null],
-            2 => ['pl_match_denied_exact_ips' => null],
-            3 => ['pl_match_denied_methods' => null],
-            4 => ['pl_match_denied_uas' => null],
-            5 => ['pl_match_route' => null],
-            6 => ['pl_run_matched_route_middlewares' => 'defensive'],
-            7 => ['pl_run_matched_route_keys' => 'defensive'],
+            2 => ['pl_run_ini_sets' => null],
+            3 => ['pl_match_denied_exact_ips' => null],
+            4 => ['pl_match_denied_methods' => null],
+            5 => ['pl_match_denied_uas' => null],
+            6 => ['pl_match_route' => null],
+            7 => ['pl_run_matched_route_middlewares' => null],
+            8 => ['pl_run_matched_route_keys' => null],
         ],
         'post-response' => [
             //0 => ['pl_debug' => null]

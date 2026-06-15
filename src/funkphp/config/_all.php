@@ -6,36 +6,7 @@
 * MAIN CONSTANTS USED BY THE FUNKPHP FRAMEWORK - Change as needed
 * WHEN YOU ARE COMFORTABLE ENOUGH TO WORK GRANULARLY WITH THE FRAMEWORK!
 */
-// Singleton Object Constant that indicates "no value"!
-define("FUNKPHP_NO_VALUE", new stdClass());
-
-// Constants for Localhost vs Online Usage AND Default URLs (Change to your own!)
-// "localhost" & "127.0.0.1" is typical for local deployment
-// "_" is typical for nginx in default!
-define('FUNKPHP_IS_LOCAL', (isset($_SERVER['SERVER_NAME'])
-    && ($_SERVER['SERVER_NAME'] === 'localhost'
-        || $_SERVER['SERVER_NAME'] === "127.0.0.1"
-        || $_SERVER['SERVER_NAME'] === "_")));
-define('FUNKPHP_LOCAL', "http://localhost/funkphp/src/public_html/");
-define('FUNKPHP_ONLINE', "https://www.funkphp.com/");
-define('FUNKPHP_PIPLINE_REQUEST_ENTRY', 'defensive'); // Choose between 'happy' or 'defensive' mode for pipeline request entry point!
-define('FUNKPHP_USE_VENDOR', true); // Change to "false" if you intend to not use any Composer packages and want to remove the Composer autoloader from "FunkPHP.php" for better performance!
-
-// Default Constants for Root Folder and its subfolders used by FunkPHP
-define("ROOT_FOLDER", dirname(__DIR__, 1)); // src/funkphp/
-define("ROOT_CORE", ROOT_FOLDER . '/core'); // src/funkphp/core
-define("ROOT_CLASSES", ROOT_FOLDER . '/classes'); // src/funkphp/classes
-define("ROOT_CONFIG", ROOT_FOLDER . '/config'); // src/funkphp/config
-define("ROOT_MIDDLEWARES", ROOT_FOLDER . '/pipeline/middlewares'); // src/funkphp/FunkPHP
-define("ROOT_PAGES", ROOT_FOLDER . '/pages'); // src/funkphp/pages
-define("ROOT_PAGES_COMPILED", ROOT_FOLDER . '/pages/compiled'); // src/funkphp/pages/compiled
-define("ROOT_PAGES_ERRORS", ROOT_FOLDER . '/pages/compiled/[errors]'); // src/funkphp/pages/compiled/[errors]
-define("ROOT_PIPELINE", ROOT_FOLDER . '/pipeline'); // src/funkphp/pipeline
-define("ROOT_PIPELINE_REQUEST", ROOT_FOLDER . '/pipeline/request'); // src/funkphp/pipeline/request
-define("ROOT_PIPELINE_POST_RESPONSE", ROOT_FOLDER . '/pipeline/post-response'); // src/funkphp/pipeline/post-response
-define("ROOT_ROUTES", ROOT_FOLDER . '/pipeline/routes'); // src/funkphp/pipeline/routes
-define("ROOT_SQL", ROOT_FOLDER . '/data/sql'); // src/funkphp/data/sql
-define("ROOT_VALIDATION", ROOT_FOLDER . '/data/validation'); // src/funkphp/data/validation
+require_once __DIR__ . '/CONSTANTS.php';
 
 // GLOBAL CONFIGURATIONS in "$c" variable in "funkphp/funkphp_start.php"
 // Configure the included files below here separately as needed!
@@ -110,18 +81,6 @@ return [
         ]
     ],
 
-    // DEFAULT INTERNAL PATHS for CSS, JS, Files, Fonts, Images, Temp, Videos, etc.
-    // (meaning those that are NOT in the `public_html` folder) - Change as needed!
-    'PATHS' => [
-        "css" => ["css", "styles"],
-        "js" => ["js", "javascript"],
-        "files" => ["files", "fls"],
-        "fonts" => ["fonts", "fnt"],
-        "images" => ["images", "img"],
-        "temp" => ["temp", "tmp"],
-        "videos" => ["videos", "vids"],
-    ],
-
     // '<ENTRY>' - This is where `pipeline`, `exit` & and `no_match` keys are stored
     // in the `funkphp/config/pipeline.php` file and used to run the pipeline!
     '<ENTRY>' => [],
@@ -132,7 +91,8 @@ return [
 
     // 'TABLES' is the array of Processed SQL Tables ("schemas" folder) that
     // are used in tandem with Validation & SQL Handlers during DB CRUD!
-    'TABLES' => include_once __DIR__ . '/tables.php',
+    // This probably not need at all, commented out for now!
+    //'TABLES' => include_once __DIR__ . '/tables.php',
 
 
     // 'INSTANCES' is the array of instantiated objects of any classes
@@ -142,8 +102,7 @@ return [
     // the same key already exists! use the "define()" below whether you
     // want funk_use_custom_error() to run then or if you are OK with overwrite
     'INSTANCES' => ['vendor' => [], 'classes' => []],
-    define('FUNKPHP_ALLOW_INSTANCE_OVERWRITE', true),
-    //^Change to "true" to allow overwriting existing instances!
+
 
     // 'DATABASES' is the array of multiple database connections that you can
     // use and can be SQL, MongoDB, PostgreSQL, etc. - Change as needed!
