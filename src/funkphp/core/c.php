@@ -25,9 +25,9 @@ return [
         'session.sid_length' => 192,
         'session.sid_bits_per_character' => 6,
         // IMPORTANT: Remove these configs for PRODUCTION to improve performance?
-        'display_errors' => FUNKPHP_IS_LOCAL ? 1 : 0,
-        'display_startup_errors' =>  FUNKPHP_IS_LOCAL ? 1 : 0,
-        'error_reporting' =>  FUNKPHP_IS_LOCAL ? E_ALL : 0,
+        //'display_errors' => FUNKPHP_IS_LOCAL ? 1 : 0,
+        //'display_startup_errors' =>  FUNKPHP_IS_LOCAL ? 1 : 0,
+        //'error_reporting' =>  FUNKPHP_IS_LOCAL ? E_ALL : 0,
     ],
 
     // IMPORTANT: Change to your hardcoded online URL!

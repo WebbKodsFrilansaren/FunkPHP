@@ -2,8 +2,8 @@
 // Load all functions needed for the FunkPHP Framework Web Application
 // $c is the global configuration array that is used throughout the application
 require_once __DIR__ . '/core/functions.php';
-$c = require_once __DIR__ . '/config/_all.php';
-$c['<ENTRY>'] = require_once __DIR__ . '/pipeline/pipeline_request.php';
+$c = require_once __DIR__ . '/core/c.php';
+$c['<ENTRY>'] = require_once __DIR__ . '/core/pipeline_request.php';
 // Use either Custom Exception Handler by Developer OR Default one!
 // Developer is advised to use `funk_use_error_throw` to intentionally
 // throw exceptions that are caught the Developer then catches later!

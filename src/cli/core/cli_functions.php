@@ -62,7 +62,7 @@ function cli_compile_trie_node(array $node, array $currentPath = [], int $depth 
     return $code;
 }
 
-// Get inherited middlewares (might not work yet, still work in progress) from route
+// Get inherited middlewares (IMPORTANT: might not work yet, still work in progress) from route
 function cli_resolve_inherited_middlewares(string $routePath, array $developerRoutes, string $method): array
 {
     $segments = array_filter(explode('/', trim($routePath, '/')));
@@ -1624,7 +1624,7 @@ function cli_route_status(&$ROUTES, $method, $route)
     // Validate that &$ROUTES is an associative array
     if (!isset($ROUTES) || !is_array($ROUTES) || array_is_list($ROUTES)) {
         cli_err_without_exit('[cli_route_status()]: &$ROUTES must be An Associative Array! (passed by reference)');
-        cli_info('[cli_route_status()]: Use the `$ROUTES` variable from `funkphp/pipeline/pipeline_routes.php` file which is an Associative Array passed by reference as the first argument!');
+        cli_info('[cli_route_status()]: Use the `$ROUTES` variable from `funkphp/core/pipeline_routes.php` file which is an Associative Array passed by reference as the first argument!');
     }
 
     // Validate that $method is a non-empty string that starts with
@@ -8995,7 +8995,7 @@ function cli_match_developer_route(string $method, string $uri, array $compiledR
                 }
             }
         } else {
-            $noMatchIn .= "DEVELOPER_ROUTES(funkphp/pipeline/pipeline_routes.php)";
+            $noMatchIn .= "DEVELOPER_ROUTES(funkphp/core/pipeline_routes.php)";
         }
     } else {
         $noMatchIn .= "COMPILED_ROUTES(funkphp/core/compiled_routes.php)";
@@ -9015,10 +9015,10 @@ function cli_match_developer_route(string $method, string $uri, array $compiledR
 function cli_rebuild_single_routes_route_file($singleRouteRoutesFileArray): bool
 {
     if (!is_array($singleRouteRoutesFileArray) || empty($singleRouteRoutesFileArray)) {
-        cli_err_syntax("[cli_rebuild_single_routes_file] Single Route Routes File Array (funkphp/pipeline/pipeline_routes.php) must be a non-empty array!");
+        cli_err_syntax("[cli_rebuild_single_routes_file] Single Route Routes File Array (funkphp/core/pipeline_routes.php) must be a non-empty array!");
     }
     if (!isset($singleRouteRoutesFileArray['ROUTES'])) {
-        cli_err_syntax("[cli_rebuild_single_routes_file] Single Route Routes File Array (funkphp/pipeline/pipeline_routes.php) must start with a 'ROUTES' key!");
+        cli_err_syntax("[cli_rebuild_single_routes_file] Single Route Routes File Array (funkphp/core/pipeline_routes.php) must start with a 'ROUTES' key!");
     }
     // Check that dir exist, is writable and is a directory
     if (!is_dir(FUNKPHP_ROUTES_DIR) || !is_writable(FUNKPHP_ROUTES_DIR)) {
@@ -9026,7 +9026,7 @@ function cli_rebuild_single_routes_route_file($singleRouteRoutesFileArray): bool
     }
     // Check that if file exists, it can be overwritten
     if (file_exists(FUNKPHP_FILE_PATH_ROUTES) && !is_writable(FUNKPHP_FILE_PATH_ROUTES)) {
-        cli_err("[cli_rebuild_single_routes_file] Routes file (funkphp/pipeline/pipeline_routes.php) must be writable. It is not!");
+        cli_err("[cli_rebuild_single_routes_file] Routes file (funkphp/core/pipeline_routes.php) must be writable. It is not!");
     }
     // Use Atomic File Write to prevent corruption while outputting the newly compiled Routes file
     return (cli_crud_folder_php_file_atomic_write((cli_get_prefix_code("route_singles_routes_start")
@@ -9348,8 +9348,8 @@ function cli_restore_default_folders_and_files()
     // Prepare default files that doesn't exist if certain folders don't exist
     $defaultFiles = [
         "$folderBase/funkphp/core/compiled_routes.php",
-        "$folderBase/funkphp/pipeline/pipeline_request.php",
-        "$folderBase/funkphp/pipeline/pipeline_routes.php",
+        "$folderBase/funkphp/core/pipeline_request.php",
+        "$folderBase/funkphp/core/pipeline_routes.php",
         //"$folderBase/public_html/.htaccess",
         "$folderBase/cli/.htaccess",
     ];
@@ -9381,28 +9381,19 @@ function cli_restore_default_folders_and_files()
                 continue;
             } else if (str_contains($file, "pipeline")) {
                 file_put_contents($file, "<?php\n// Pipeline.php - FunkPHP Framework | FunkCLI recreated it $date\nreturn  [
-            'pipeline' =>['request' => [
+            'pipeline' =>
+        [
+            'request' =>
+            [
             0 => ['pl_https_redirect' => null],
-            1 => ['pl_run_ini_sets' => null],
-            2 => ['pl_set_session_cookie_params' => null],
-            3 => ['pl_db_connect' => null],
-            4 => ['pl_headers_set' => null],
-            5 => ['pl_headers_remove' => null],
-            6 => ['pl_start_session' => null],
-            7 => ['pl_prepare_uri' => null],
-            8 => ['pl_match_denied_exact_ips' => null],
-            9 => ['pl_match_denied_methods' => null],
-            10 => ['pl_match_denied_uas' => null],
-            11 => ['pl_match_route' => [
-                'no_match' => [
-                    'json' => null,
-                    'page' => '404',
-                    'callback' => null
-                ]
-            ]],
-            12 => ['pl_run_matched_route_middlewares' => 'defensive'],
-            13 => ['pl_run_matched_route_keys' => 'defensive'],
-            ],
+            1 => ['pl_prepare_uri' => null],
+            2 => ['pl_run_ini_sets' => null],
+            3 => ['pl_match_denied_exact_ips' => null],
+            4 => ['pl_match_denied_methods' => null],
+            5 => ['pl_match_denied_uas' => null],
+            6 => ['pl_match_route' => null],
+            7 => ['pl_run_matched_route_middlewares' => null],
+            8 => ['pl_run_matched_route_keys' => null],
             ],'post-response' => [0 => [],],];");
                 echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
                 continue;
@@ -9616,9 +9607,9 @@ function cli_sort_build_routes_compile_and_output($singleRoutesRootArray)
     // Then we rebuild and recompile Routes
     $rebuild = cli_rebuild_single_routes_route_file($singleRoutesRootArray);
     if ($rebuild) {
-        cli_success_without_exit("Rebuilt Route file \"funkphp/pipeline/pipeline_routes.php\"!");
+        cli_success_without_exit("Rebuilt Route file \"" . FUNKPHP_FILE_PATH_ROUTES . "\"!");
     } else {
-        cli_err("FAILED to rebuild Route file \"funkphp/pipeline/pipeline_routes.php\". File permissions issue?");
+        cli_err("FAILED to rebuild Route file \"" . FUNKPHP_FILE_PATH_ROUTES . "\". File permissions issues?");
     }
     $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRootArray['ROUTES'], $singleRoutesRootArray['ROUTES']);
     cli_output_compiled_routes($compiledRouteRoutes);

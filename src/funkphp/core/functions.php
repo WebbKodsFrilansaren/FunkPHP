@@ -590,8 +590,8 @@ function funk_default_register_shutdown_function(&$c)
     ) {
         funk_run_pipeline_post_response($c);
     } else {
-        $c['err']['MAYBE']['PIPELINE']['funk_run_post_request'][] = 'No Configured Post-Response Pipeline Functions (`"<ENTRY>" => "pipeline" => "post-response"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\'][\'post-response\']` Key in the Pipeline Configuration File `funkphp/pipeline/pipeline_request.php` File!';
-        funk_use_log($c, 'No Configured Post-Request Pipeline Functions (`"<ENTRY>" => "pipeline" => "post-response"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\'][\'post-responset\']` Key in the Pipeline Configuration File `funkphp/pipeline/pipeline_request.php` File!', 'WARN');
+        $c['err']['MAYBE']['PIPELINE']['funk_run_post_request'][] = 'No Configured Post-Response Pipeline Functions (`"<ENTRY>" => "pipeline" => "post-response"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\'][\'post-response\']` Key in the Pipeline Configuration File `funkphp/core/pipeline_request.php` File!';
+        funk_use_log($c, 'No Configured Post-Request Pipeline Functions (`"<ENTRY>" => "pipeline" => "post-response"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\'][\'post-responset\']` Key in the Pipeline Configuration File `funkphp/core/pipeline_request.php` File!', 'WARN');
     }
 }
 
@@ -1651,8 +1651,8 @@ function funk_run_pipeline_request(&$c, $passedValue = null)
         || !array_is_list($c['<ENTRY>']['pipeline']['request'])
         || count($c['<ENTRY>']['pipeline']['request']) === 0
     ) {
-        $c['err']['PIPELINE']['funk_run_pipeline_request'][] = 'No Configured Pipeline Functions (`"<ENTRY>" => "pipeline" => "request"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\'][\'request\']` Key in the Pipeline Configuration File `funkphp/pipeline/pipeline_request.php` File!';
-        $err = 'Tell the Developer: No Pipeline Functions to run? Please check the `[\'pipeline\'][\'request\']` Key in the `funkphp/pipeline/pipeline_request.php` File!';
+        $c['err']['PIPELINE']['funk_run_pipeline_request'][] = 'No Configured Pipeline Functions (`"<ENTRY>" => "pipeline" => "request"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\'][\'request\']` Key in the Pipeline Configuration File `funkphp/core/pipeline_request.php` File!';
+        $err = 'Tell the Developer: No Pipeline Functions to run? Please check the `[\'pipeline\'][\'request\']` Key in the `funkphp/core/pipeline_request.php` File!';
         funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
     }
 
@@ -1782,8 +1782,8 @@ function funk_run_pipeline_post_response(&$c, $passedValue = null)
             || !array_is_list($c['<ENTRY>']['pipeline']['post-response'])
             || count($c['<ENTRY>']['pipeline']['post-response']) === 0
         ) {
-            $c['err']['PIPELINE']['funk_run_pipeline_post_response'][] = 'No Configured Pipeline Functions (`"<ENTRY>" => "pipeline" => "post-response"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\'][\'post-response\']` Key in the Pipeline Configuration File `funkphp/pipeline/pipeline_request.php` File!';
-            funk_use_log($c, 'No Configured Pipeline Functions (`"<ENTRY>" => "pipeline" => "post-response"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\'][\'post-response\']` Key in the Pipeline Configuration File `funkphp/pipeline/pipeline_request.php` File! - Function stops here!', 'CRITICAL');
+            $c['err']['PIPELINE']['funk_run_pipeline_post_response'][] = 'No Configured Pipeline Functions (`"<ENTRY>" => "pipeline" => "post-response"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\'][\'post-response\']` Key in the Pipeline Configuration File `funkphp/core/pipeline_request.php` File!';
+            funk_use_log($c, 'No Configured Pipeline Functions (`"<ENTRY>" => "pipeline" => "post-response"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\'][\'post-response\']` Key in the Pipeline Configuration File `funkphp/core/pipeline_request.php` File! - Function stops here!', 'CRITICAL');
             ob_end_clean();
             return;
         }
@@ -2063,7 +2063,7 @@ function funk_match_developer_route(&$c, string $method, string $uri, array $com
             $c['req']['matched_middlewares'] = $matchedMiddlewareHandlers;
             return true;
         } else {
-            $noMatchIn .= 'NO MATCH IN DEVELOPER_ROUTES(funkphp/pipeline/pipeline_routes.php)';
+            $noMatchIn .= 'NO MATCH IN DEVELOPER_ROUTES(funkphp/core/pipeline_routes.php)';
         }
     } else {
         $noMatchIn .= 'NO MATCH IN COMPILED_ROUTES(funkphp/core/compiled_routes.php)';
