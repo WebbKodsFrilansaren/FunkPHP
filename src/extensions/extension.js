@@ -17,6 +17,7 @@ function activate(context) {
 
 				// --- CONTEXT GUARD 1: VALIDATION FOLDER ---
 				if (normalizedPath.includes('/src/funkphp/data/validation/')) {
+					vscode.window.showInformationMessage('Visiting Validations in FunkPHP?');
 					const linePrefix = document.lineAt(position).text.substr(0, position.character);
 					if (!linePrefix.includes('|') && !linePrefix.includes('"')) return undefined;
 
@@ -26,12 +27,14 @@ function activate(context) {
 
 				// --- CONTEXT GUARD 2: SQL QUERY FOLDER ---
 				if (normalizedPath.includes('/src/funkphp/data/sql/')) {
+					vscode.window.showInformationMessage('Visiting SQL in FunkPHP?');
 					// Return ONLY SQL tables and JOIN configuration syntax suggestions
 					return getSqlSchemaSuggestions();
 				}
 
 				// --- CONTEXT GUARD 3: TEMPLATE ENGINE / PAGES ---
 				if (normalizedPath.includes('/src/funkphp/pages/')) {
+					vscode.window.showInformationMessage('Visiting Pages in FunkPHP?');
 					const linePrefix = document.lineAt(position).text.substr(0, position.character);
 
 					// Only autocomplete if they specifically typed "{{vd." or "{{d."

@@ -49,7 +49,7 @@ define("FUNKPHP_FILE_PATH_CLI_CONFIG_REGEX", CLI_CONFIG_DIR . '/regexes.php');
 define("FUNKPHP_FILE_PATH_CLI_CONFIG_COMMANDS", CLI_CONFIG_DIR . '/commands.php');
 define("FUNKPHP_FILE_PATH_CLI_CONFIG_EXTERNAL_CALLABLE_VALIDATORS", CLI_CONFIG_DIR . '/external_callable_validators.php');
 define("FUNKPHP_FILE_PATH_TROUTES", FUNKPHP_CORE_DIR . '/compiled_routes.php');
-define("FUNKPHP_FILE_PATH_ROUTES", FUNKPHP_ROUTES_DIR . '/pipeline_routes.php');
+define("FUNKPHP_FILE_PATH_ROUTES", FUNKPHP_PIPELINE_DIR . '/pipeline_routes.php');
 define("FUNKPHP_FILE_PATH_PIPELINE", FUNKPHP_PIPELINE_DIR . '/pipeline_request.php');
 define("FUNKPHP_FILE_PATH_TABLES", FUNKPHP_CONFIG_DIR . '/tables.php');
 define("FUNKPHP_FILE_PATH_DB_LOCAL", FUNKPHP_CONFIG_DIR . '/db.php');

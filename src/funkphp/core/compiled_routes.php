@@ -2,6 +2,9 @@
 return  [
   'GET' => 
    [
+    'all' => 
+     [
+    ],
     'user' => 
      [
     ],

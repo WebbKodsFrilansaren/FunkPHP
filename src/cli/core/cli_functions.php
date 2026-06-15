@@ -9348,7 +9348,7 @@ function cli_restore_default_folders_and_files()
     // Prepare default files that doesn't exist if certain folders don't exist
     $defaultFiles = [
         "$folderBase/funkphp/core/compiled_routes.php",
-        "$folderBase/funkphp/pipeline/pipeline_main.php",
+        "$folderBase/funkphp/pipeline/pipeline_request.php",
         "$folderBase/funkphp/pipeline/pipeline_routes.php",
         //"$folderBase/public_html/.htaccess",
         "$folderBase/cli/.htaccess",

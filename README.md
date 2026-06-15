@@ -1,4 +1,4 @@
-# FunkPHP😎🕺🎶🌈 - The 99 % Funktion-based PHP Framework by WebbKodsFrilansaren at GitHub
+# FunkPHP😎🕺🎶🌈 - The 99 % Funktion-based PHP Framework by WebbKodsFrilansaren
 
 - This is a ~99 % function-based PHP framework meaning there are almost no classes used besides using objects for accessing some data because that is more convenient at some times.
 

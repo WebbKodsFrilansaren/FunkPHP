@@ -12,7 +12,7 @@ $matchedRoute = null;
 $routeKey = null;
 $createStatus = null;
 $folderType = "routes";
-$folderBase = "funkphp/routes/";
+$folderBase = "funkphp/pipeline/routes/";
 $folder = null;
 $singleFolder = null;
 $file = null;
@@ -101,14 +101,14 @@ if (!array_key_exists($method, $ROUTES)) {
     $ROUTES[$method][$route][] = $routeKey;
     cli_info_without_exit("Added New Method and New Route to it... Attempting to rebuild the Trie & Route File Now... If it fails, the Route will NOT have been added and you will have to retry. The created/found `$singleFolder=>$file=>$fn` Handler will still exist though!");
     cli_sort_build_routes_compile_and_output(["ROUTES" => $ROUTES]);
-    cli_success_without_exit("Created New Valid Method `$method` in `funkphp/routes/routes.php`!");
-    cli_success_without_exit("Created Method/Route `$method$route` in `funkphp/routes/routes.php`!");
-    cli_success("Found/Created `$singleFolder=>$file=>$fn` Handler and then added it to Created `$method$route` in `funkphp/routes/routes.php`!");
+    cli_success_without_exit("Created New Valid Method `$method` in `funkphp/pipeline/pipeline_routes.php`!");
+    cli_success_without_exit("Created Method/Route `$method$route` in `funkphp/pipeline/pipeline_routes.php`!");
+    cli_success("Found/Created `$singleFolder=>$file=>$fn` Handler and then added it to Created `$method$route` in `funkphp/pipeline/pipeline_routes.php`!");
 }
 
 // Here the Method exists already so we check if the Route exists and is a numbered array (valid structure)
 if (array_key_exists($route, $ROUTES[$method])) {
-    cli_info_without_exit("`$method$route` already exists in `funkphp/routes/routes.php`. Attempting Adding `$folder=>$file=>$fn` to it and then rebuilding Routes!");
+    cli_info_without_exit("`$method$route` already exists in `funkphp/pipeline/pipeline_routes.php`. Attempting Adding `$folder=>$file=>$fn` to it and then rebuilding Routes!");
 } else {
     // Check for dynamic conflicting routes in Trie Routes if the new route ends with a dynamic part like "/:something"
     if (preg_match($cliRegex['routeDynamicEndRegex'], $route)) {
@@ -116,22 +116,22 @@ if (array_key_exists($route, $ROUTES[$method])) {
         $findDynamicRoute = cli_match_developer_route($method, $route, $troute, $ROUTES, $ROUTES);
         if ($findDynamicRoute['route'] !== null) {
             cli_err_without_exit("Found Dynamic Route \"{$findDynamicRoute['method']}{$findDynamicRoute['route']}\" in Trie Routes would conflict with \"$method$route\".");
-            cli_info("Run `php funk recompile|rc` to rebuild Trie Routes if You Manually Removed that Route from `funkphp/routes/routes.php` you want to add again. Command stopped due to this and adding found/created `$folder=>$file=>$fn` to `$method$route` did NOT happen as a result!");
+            cli_info("Run `php funk recompile|rc` to rebuild Trie Routes if You Manually Removed that Route from `funkphp/pipeline/pipeline_routes.php` you want to add again. Command stopped due to this and adding found/created `$folder=>$file=>$fn` to `$method$route` did NOT happen as a result!");
         }
     }
     // Here a new Route is added to the Method because it does not already exist
     $ROUTES[$method][$route] = [];
-    cli_success_without_exit("`$method$route` CREATED in `funkphp/routes/routes.php`. Attempting Adding `$folder=>$file=>$fn` to it and then rebuilding Routes!");
+    cli_success_without_exit("`$method$route` CREATED in `funkphp/pipeline/pipeline_routes.php`. Attempting Adding `$folder=>$file=>$fn` to it and then rebuilding Routes!");
 }
 
 // Created/Found the Method/Route must be a numbered array (even if empty)
 if (!array_is_list($ROUTES[$method][$route])) {
-    cli_err("`$method$route` in `funkphp/routes/routes.php` is NOT a Numbered Array even though it should be. Command stopped without adding the created/found Route Key `$singleFolder=>$file=>$fn` to `$method$route`!");
+    cli_err("`$method$route` in `funkphp/pipeline/pipeline_routes.php` is NOT a Numbered Array even though it should be. Command stopped without adding the created/found Route Key `$singleFolder=>$file=>$fn` to `$method$route`!");
 }
 // If there are already Route Keys in the Method/Route, we check and warn for duplicates
 if (count($ROUTES[$method][$route]) > 0) {
     if (!cli_duplicate_folder_file_fn_route_key($ROUTES[$method][$route], $singleFolder, $file, $fn, $method . $route)) {
-        cli_info_without_exit("Created/Found `$singleFolder=>$file=>$fn` does NOT exists in found/created `$method$route` in `funkphp/routes/routes.php`. Adding $createdFFF to it and then rebuilding Routes!");
+        cli_info_without_exit("Created/Found `$singleFolder=>$file=>$fn` does NOT exists in found/created `$method$route` in `funkphp/pipeline/pipeline_routes.php`. Adding $createdFFF to it and then rebuilding Routes!");
     } else {
         cli_info_without_exit("Adding $createdFFF as the last Route Key to `$method$route` and then rebuilding Routes!");
     }
@@ -142,7 +142,7 @@ if (count($ROUTES[$method][$route]) > 0) {
 // We now add it and then rebuild the Routes
 $ROUTES[$method][$route][] = $routeKey;
 cli_sort_build_routes_compile_and_output(["ROUTES" => $ROUTES]);
-cli_success("Found/Created `$singleFolder=>$file=>$fn` Handler and then added it to Created `$method$route` in `funkphp/routes/routes.php`!");
+cli_success("Found/Created `$singleFolder=>$file=>$fn` Handler and then added it to Created `$method$route` in `funkphp/pipeline/pipeline_routes.php`!");
 
 // Catch outside of all possible if/else/switch statements. Could happen during Refactoring this Command File!
 cli_err("You are outside of the `make:handler` Command when it should have been caught/handled before ending up here. As a result it will terminate here now! Please report this as a Bug at `https://www.GitHub/WebbKodsFrilansaren/FunkPHP`!");

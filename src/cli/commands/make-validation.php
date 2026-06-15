@@ -11,7 +11,7 @@ $arg_FolderFile = cli_get_cli_input_from_interactive_or_regular($args, 'make:val
 [$file, $fn] = cli_extract_folder_file($arg_FolderFile, 's_');
 $arg_tables = cli_get_cli_input_from_interactive_or_regular($args, 'make:validation', 'validationTables');
 $tablesProvided = $arg_tables ? strtolower($arg_tables) : null;
-$statusArray = cli_folder_and_php_file_status("funkphp/validation", $file);
+$statusArray = cli_folder_and_php_file_status("funkphp/data/validation", $file);
 
 // Folder must always exist or error out hard
 if (!$statusArray['folder_path']) {
