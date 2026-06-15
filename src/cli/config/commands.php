@@ -58,13 +58,13 @@ return [
                     'prefix' => 'r:',
                     'external_callable_validator' => 'method_route',
                 ],
-                'folder/file/fn' => [
-                    'prompt' => 'Enter `Folder=>File=>Function` to create a folder with a file inside of it with a new function inside of it (e.g., "users=>user_file=>func" meaning `src/funkphp/routes/users/user_file.php` would be created with the named function `func(&$c, $passedValue = null){}` inside of it - it will be added to the created/target method/route if it all went OK!):',
-                    'regex' => $cliRegex['folderFileFnRegex'],
+                'file/fn' => [
+                    'prompt' => 'Enter `File=>Function` to create a folder with a file inside of it with a new function inside of it (e.g., "users=>user_file=>func" meaning `src/funkphp/routes/users/user_file.php` would be created with the named function `func(&$c, $passedValue = null){}` inside of it):',
+                    'regex' => $cliRegex['fileFnRegex'],
                     'required' => false,
                     'default' => null,
-                    'help' => 'The `Folder` is the folder in src/funkphp/routes/{folder} whereas the `File` is the file inside of that folder (without the .php extension). The optional `Function` is the function inside of that file that will be called for this route. If you do not provide a `Function`, the `File` name will be used as the function name. If you do not provide a `Folder`, the file will be created in src/funkphp/routes/ (the root routes folder). Example 1: "fff:users=>user_file=>func" creates src/funkphp/routes/users/user_file.php with function func().',
-                    'prefix' => 'fff:',
+                    'help' => 'The `File` will be in src/funkphp/pipeline/routes/{File}.php (without the .php extension). The optional `Function` is the function inside of that file that will be called for this route. If you do not provide a `Function`, the `File` name will be used as the function name. . Example 1: "ff:users=>user_func=" creates src/funkphp/pipeline/routes/users.php with function users_func().',
+                    'prefix' => 'ff:',
                     'external_callable_validator' => null,
                 ],
             ],
@@ -83,13 +83,13 @@ return [
                     'prefix' => 'r:',
                     'external_callable_validator' => 'method_route',
                 ],
-                'folder/file/fn' => [
-                    'prompt' => 'Enter `Folder=>File=>Function` to create a folder with a file inside of it with a new function inside of it (e.g., "users=>user_file=>func" meaning `src/funkphp/routes/users/user_file.php` would be created with the named function `func(&$c, $passedValue = null){}` inside of it):',
-                    'regex' => $cliRegex['folderFileFnRegex'],
+                'file/fn' => [
+                    'prompt' => 'Enter `File=>Function` to create a folder with a file inside of it with a new function inside of it (e.g., "users=>user_file=>func" meaning `src/funkphp/routes/users/user_file.php` would be created with the named function `func(&$c, $passedValue = null){}` inside of it):',
+                    'regex' => $cliRegex['fileFnRegex'],
                     'required' => true,
                     'default' => null,
-                    'help' => 'The `Folder` is the folder in src/funkphp/routes/{folder} whereas the `File` is the file inside of that folder (without the .php extension). The optional `Function` is the function inside of that file that will be called for this route. If you do not provide a `Function`, the `File` name will be used as the function name. If you do not provide a `Folder`, the file will be created in src/funkphp/routes/ (the root routes folder). Example 1: "fff:users=>user_file=>func" creates src/funkphp/routes/users/user_file.php with function func().',
-                    'prefix' => 'fff:',
+                    'help' => 'The `File` will be in src/funkphp/pipeline/routes/{File}.php (without the .php extension). The optional `Function` is the function inside of that file that will be called for this route. If you do not provide a `Function`, the `File` name will be used as the function name. . Example 1: "ff:users=>user_func=" creates src/funkphp/pipeline/routes/users.php with function users_func().',
+                    'prefix' => 'ff:',
                     'external_callable_validator' => null,
                 ],
             ],
@@ -100,11 +100,11 @@ return [
         'make:middleware' => [
             'args' => [
                 'middleware_name' => [
-                    'prompt' => 'Enter Middleware Name (you can omit the automatically added `mw_` prefix - e.g., "auth" creates `mw_auth` Middleware in `src/funkphp/middlewares/mw_auth.php`):',
+                    'prompt' => 'Enter Middleware Name (you can omit the automatically added `mw_` prefix - e.g., "auth" creates `mw_auth` Middleware in `src/funkphp/pipeline/middlewares/mw_auth.php`):',
                     'regex' => $cliRegex['nameOnlyRegex'],
                     'required' => true,
                     'default' => null,
-                    'help' => 'The Middleware Name must start with the Regex:`[a-z_]`. After that the only valid characters to use are the following Regex:`[a-z0-9_]`. The actual Middleware File created will be prefixed with `mw_` automatically - unless you provide mw_ - so if you provide "auth" as the name, the created file will be `mw_auth.php` in `src/funkphp/middlewares/` Folder with a skeleton Middleware Anonymous Function inside of it:`return function(&$c, $passedValue = null){}`. You can also skip File Extension since it will be added automatically.',
+                    'help' => 'The Middleware Name must start with the Regex:`[a-z_]`. After that the only valid characters to use are the following Regex:`[a-z0-9_]`. The actual Middleware File created will be prefixed with `mw_` automatically - unless you provide mw_ - so if you provide "auth" as the name, the created file will be `mw_auth.php` in `src/funkphp/pipeline/middlewares/` Folder with a skeleton Middleware Anonymous Function inside of it:`return function(&$c, $passedValue = null){}`. You can also skip File Extension since it will be added automatically.',
                     'prefix' => 'n:',
                     'external_callable_validator' => null,
                 ],
@@ -176,11 +176,11 @@ return [
         'make:sql' => [
             'args' => [
                 'sqlFileFn' => [
-                    'prompt' => 'Enter SQL File=>Function to Create File and/or Function if it does not already exist. For example:"users=>by_id" creates `src/funkphp/sql/s_users.php` if it does not already exists and then the Function `s_by_id` inside of it unless it already exists:',
+                    'prompt' => 'Enter SQL File=>Function to Create File and/or Function if it does not already exist. For example:"users=>by_id" creates `src/funkphp/data/sql/s_users.php` if it does not already exists and then the Function `s_by_id` inside of it unless it already exists:',
                     'regex' => $cliRegex['fileFnRegex'],
                     'required' => true,
                     'default' => null,
-                    'help' => 'Enter SQL File=>Function to Create using the Regex `/^([a-z0-9_-]+)=>([a-z_][a-z0-9_]+)$/i`. For example:"users=>by_id" creates `src/funkphp/sql/s_users.php` if it does not already exists and then the Function `s_by_id` inside of it unless it already exists (notice the added "s_" to the File automatically):',
+                    'help' => 'Enter SQL File=>Function to Create using the Regex `/^([a-z0-9_-]+)=>([a-z_][a-z0-9_]+)$/i`. For example:"users=>by_id" creates `src/funkphp/data/sql/s_users.php` if it does not already exists and then the Function `s_by_id` inside of it unless it already exists (notice the added "s_" to the File automatically):',
                     'prefix' => 'ff:',
                     'external_callable_validator' => null,
                 ],
@@ -210,11 +210,11 @@ return [
         'compile:validation' => [
             'args' => [
                 'validationFileFn' => [
-                    'prompt' => 'Enter Validation File and Function to Compile that Function inside of that File. For example:"users=>by_id" compiles the `by_id` Function inside of `src/funkphp/validation/v_users.php` assuming it already exists:',
+                    'prompt' => 'Enter Validation File and Function to Compile that Function inside of that File. For example:"users=>by_id" compiles the `by_id` Function inside of `src/funkphp/data/validation/v_users.php` assuming it already exists:',
                     'regex' => $cliRegex['fileFnRegex'],
                     'required' => true,
                     'default' => null,
-                    'help' => 'Enter Validation File & Function using the Regex `/^([a-z0-9_-]+)=>([a-z_][a-z0-9_]+)$/i`. For example:"users=>by_id" compiles the `by_id` Function inside of `src/funkphp/validation/v_users.php` assuming it already exists (notice the added "v_" to the File automatically):',
+                    'help' => 'Enter Validation File & Function using the Regex `/^([a-z0-9_-]+)=>([a-z_][a-z0-9_]+)$/i`. For example:"users=>by_id" compiles the `by_id` Function inside of `src/funkphp/data/validation/v_users.php` assuming it already exists (notice the added "v_" to the File automatically):',
                     'prefix' => 'ff:',
                     'external_callable_validator' => null,
                 ],

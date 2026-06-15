@@ -14,7 +14,7 @@ $createStatus = null;
 $folderType = "routes";
 $folderBase = "funkphp/pipeline/routes/";
 $folder = null;
-$singleFolder = null;
+$singleFolder = 'funkphp/pipeline/routes/';
 $file = null;
 $fn = null;
 $createdFFF = "<N/A>";
@@ -24,13 +24,13 @@ $arg_methodRoute = cli_get_cli_input_from_interactive_or_regular($args, 'make:ro
 [$method, $route] = cli_extract_method_route($arg_methodRoute);
 
 // 2. Find/create optional Folder/File/Function argument (e.g., "fff:usersFolder=>userFile=>FunctionInsideFile")
-$arg_folderFileAndFn = cli_get_cli_input_from_interactive_or_regular($args, 'make:route', 'folder/file/fn');
+$arg_folderFileAndFn = cli_get_cli_input_from_interactive_or_regular($args, 'make:route', 'file/fn');
 if ($arg_folderFileAndFn) {
-    [$folder, $file, $fn] =  cli_extract_folder_file_fn($arg_folderFileAndFn);
-    $routeKey = [$folder => [$file => [$fn => null]]];
+    [$file, $fn] =  cli_extract_folder_file($arg_folderFileAndFn);
+    $routeKey = [$file => $fn];
     $singleFolder = $folder;
-    $folder = $folderBase . $folder . '/';
-    $createdFFF = "Folder/File:`routes/$singleFolder/$file.php` with Function:`function $fn(){};`";
+    $folder = $folderBase;
+    $createdFFF = "File:`src/funkphp/pipeline/routes/$file.php` with Function:`function $fn(){};`";
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -56,7 +56,7 @@ else {
             $findDynamicRoute = cli_match_developer_route($method, $route, $troute, $ROUTES, $ROUTES);
             if ($findDynamicRoute['route'] !== null) {
                 cli_err_without_exit("Found Dynamic Route \"{$findDynamicRoute['method']}{$findDynamicRoute['route']}\" in Trie Routes would conflict with \"$method$route\".");
-                cli_info("Run `php funk recompile|rc` to rebuild Trie Routes if You Manually Removed that Route from `funkphp/routes/routes.php` you want to add again. Command stopped due to this and any optionally provided `Folder=>File=>Function` was NOT created as a result!");
+                cli_info("Run `php funk recompile|rc` to rebuild Trie Routes if You Manually Removed that Route from `funkphp/routes/routes.php` you want to add again. Command stopped due to this and any optionally provided `File=>Function` was NOT created as a result!");
             }
         }
         // Here a new Route is added to the Method because it does not already exist
@@ -69,7 +69,7 @@ else {
 
 // We exit if no optional Folder/File/Function argument was provided
 if (!$arg_folderFileAndFn) {
-    cli_info("No Folder=>File=>Function argument was provided so only `$method$route` was created. Command Done!");
+    cli_info("No File=>Function argument was provided so only `$method$route` was created. Command Done!");
 }
 ////////////////////////////////////////////////////////////////////
 // Here we have a valid Folder, File and Function to create but we
@@ -87,8 +87,8 @@ if (!is_array($ROUTES[$method][$route]) || !array_is_list($ROUTES[$method][$rout
 // the provided Route Key already exists or not to warn about
 // duplicates but we still allow adding duplicates if wanted.
 if (count($ROUTES[$method][$route]) > 0) {
-    if (!cli_duplicate_folder_file_fn_route_key($ROUTES[$method][$route], $singleFolder, $file, $fn, $method . $route)) {
-        cli_info_without_exit("The Provided Route Key `$singleFolder=>$file=>$fn` does NOT exists in `$method$route` in `funkphp/core/pipeline_routes.php`. $createdFFF will be created in that order unless already existing as folder, file and/or function, and then it will be added as the next Route Key to `$method$route` if everything went OK!");
+    if (!cli_duplicate_folder_file_fn_route_key($ROUTES[$method][$route], $file, $fn, $method . $route)) {
+        cli_info_without_exit("The Provided Route Key `$file=>$fn` does NOT exists in `$method$route` in `funkphp/core/pipeline_routes.php`. $createdFFF will be created in that order unless already existing as file and/or function, and then it will be added as the next Route Key to `$method$route` if everything went OK!");
     } else {
         cli_info_without_exit("$createdFFF will be created in that order unless already existing as folder, file and/or function, and then it will be added as the last Route Key to `$method$route` if everything went OK!");
     }

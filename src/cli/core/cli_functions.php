@@ -503,7 +503,7 @@ function cli_pipeline_file_status($validatedPipelineString): array
  * it returns false. It is used by `make-route`, `make-handler` Command FIles and their aliases
  * to either warn or hard-error out when trying to create a route key that already exists.
  */
-function cli_duplicate_folder_file_fn_route_key($matchedRoute, $folder, $file, $fn, $methodroute): bool
+function cli_duplicate_folder_file_fn_route_key($matchedRoute, $file, $fn, $methodroute): bool
 {
     // $matchedRoute must be a numbered array that is NOT empty!
     if (
@@ -515,29 +515,26 @@ function cli_duplicate_folder_file_fn_route_key($matchedRoute, $folder, $file, $
     }
     // $folder, $file, $fn & $methodroute must be non-empty strings
     if (
-        !is_string($folder)
-        || empty(trim($folder))
-        || !is_string($file)
+        !is_string($file)
         || empty(trim($file))
         || !is_string($fn)
         || empty(trim($fn))
         || !is_string($methodroute)
         || empty(trim($methodroute))
     ) {
-        cli_err('[cli_duplicate_folder_file_fn_route_key]: The Provided $folder, $file, $fn, $methodroute must be Non-Empty Strings. Function expects a Matched Route with a Numbered Array of Route Keys with `[index] => Folder => File => Function => {optionalValue}` Structure to check against!');
+        cli_err('[cli_duplicate_folder_file_fn_route_key]: The Provided $file, $fn, $methodroute must be Non-Empty Strings. Function expects a Matched Route with a Numbered Array of Route Keys with `[index] => File => Function Structure to check against!');
     }
     // We now iterate over $matchedRoute keys using the array_subkeys_single() helper function
     // passing the matched Route array and the three strings provided by "$folder", "$file","$fn"
     foreach ($matchedRoute as $idx => $routeKey) {
         // If all three subkeys exist and are valid single-key structures, we have a duplicate
-        $checkResult = array_subkeys_single($routeKey, $folder, $file, $fn);
+        $checkResult = array_subkeys_single($routeKey, $file, $fn);
         if (
-            count($checkResult) === 3
+            count($checkResult) === 2
             && $checkResult[0]['exists'] === true
             && $checkResult[1]['exists'] === true
-            && $checkResult[2]['exists'] === true
         ) {
-            cli_warning_without_exit("Duplicate Route Key `$folder=>$file=>$fn` at Index:[$idx] in:`$methodroute`!");
+            cli_warning_without_exit("Duplicate Route Key `$file=>$fn` at Index:[$idx] in:`$methodroute`!");
             return true;
         }
     }
@@ -1828,9 +1825,15 @@ function cli_folder_and_php_file_status($folder, $file)
     // the function name is in the file content using regex!
     $fnRegex = '/^function\s+([a-zA-Z_][a-zA-Z0-9_]*)\(&\$[^)]*\)(.*?^};)?$/ims';
     $dxRegex = '/\$DX\s*=\s*\[\s*\'.*?];$/ims';
+    $namespaceRegex = '/^namespace\s*(.*?)[;\n]$/ims';
+    $classRegex = '/^class\s+[a-z_A-Z][a-zA-Z0-9_]*\s*{(.*?)}$/ims';
     $returnRegex = '/return\s*array\(.*?\);$\n/ims';
     $returnFnRegex = '/^(?:(<\?php\s*))?(return function)\s*\(&\$c\s*.+$.*?^};/ims';
     $fns = null;
+    $classExists = false;
+    $classes = [];
+    $namespaceExists = false;
+    $namespaceParts = null;
     $fileRaw = null;
     $fileReturnRaw = null;
     if (is_file($file) && is_readable($file)) {
@@ -1839,11 +1842,17 @@ function cli_folder_and_php_file_status($folder, $file)
             cli_warning_without_exit('[cli_folder_and_php_file_status()]: Could NOT Read the File `' . $file . '` when it SHOULD have been Readable. This means that Named Functions, their $DX and/or Return arrays(), OR Anonymous Function Files CANNOT be retrieved for use!');
         } else {
             $fileRaw = $fileCnt;
-            if (preg_match($returnFnRegex, $fileRaw, $fileReturnMatch)) {
-                $fileReturnRaw = $fileReturnMatch[0] ?? null;
-            } else {
-                cli_warning_without_exit('[cli_folder_and_php_file_status()]: Could NOT find the Expected Anoynmous `return function` in the File `' . $file . '` when it SHOULD have been Found. This means it will NOT be possible to add any new Functions to this File (unless it is a Single Anonymous Function File) since it needs that matched part to add new functions from. This is due to the Regex: `/^(?:(<\?php\s*))?(return function)\s*\(&\$c\s*.+$.*?^};/ims` that cannot match `return function(&$c){};`!');
+            // Check if namespace exists which should start on a new line and end with ;
+            if (preg_match($namespaceRegex, $fileCnt, $namespaceMatch)) {
+                $namespaceExists = true;
+                // we split on namespace parts and also remove last ;
+                $namespaceParts = explode('\\', rtrim($namespaceMatch[1] ?? '', ';'));
             }
+            // if (preg_match($returnFnRegex, $fileRaw, $fileReturnMatch)) {
+            //     $fileReturnRaw = $fileReturnMatch[0] ?? null;
+            // } else {
+            //     cli_warning_without_exit('[cli_folder_and_php_file_status()]: Could NOT find the Expected Anoynmous `return function` in the File `' . $file . '` when it SHOULD have been Found. This means it will NOT be possible to add any new Functions to this File (unless it is a Single Anonymous Function File) since it needs that matched part to add new functions from. This is due to the Regex: `/^(?:(<\?php\s*))?(return function)\s*\(&\$c\s*.+$.*?^};/ims` that cannot match `return function(&$c){};`!');
+            // }
             if (preg_match_all($fnRegex, $fileCnt, $fnsMatches)) {
                 foreach ($fnsMatches[1] as $idx => $fn) {
                     $fns[$fn] = [
@@ -1860,9 +1869,29 @@ function cli_folder_and_php_file_status($folder, $file)
                     }
                 }
             }
+            // Check first if any class exist and then push all those
+            // that exists to the "classes" subkey array in return []
+            if (preg_match_all($classRegex, $fileCnt, $classMatches)) {
+                $classExists = true;
+                foreach ($classMatches[0] as $idx => $class) {
+                    $classes[] = [
+                        'class_raw' => $class,
+                        'class_name' => null
+                    ];
+                    // We now use the index to match for class name
+                    if (preg_match('/^class\s+([a-z_A-Z][a-zA-Z0-9_]*)\s*{/', $classMatches[0][$idx], $classNameMatch)) {
+                        $classes[count($classes) - 1]['class_name'] = $classNameMatch[1] ?? null;
+                    }
+                }
+            }
         }
     }
     return [
+        'class_exists' => $classExists,
+        'classes' => $classes,
+        'namespace_exists' => $namespaceExists,
+        'namespace_name' => ($namespaceExists ? $namespaceMatch[1] ?? null : null),
+        'namespace_parts' => $namespaceParts,
         'folder_provided_path' => $providedFolder ?? null,
         'folder_name' => $singleFolder ?? null,
         'folder_path' => ((is_string($folder) && is_dir($folder) && is_readable($folder) && is_writable($folder)) ? $folder : null),
@@ -1906,6 +1935,9 @@ function cli_crud_folder_and_php_file($statusArray, $crudType, $file, $fn = null
         return null;
     }
     $requiredKeys = [
+        'classes',
+        'class_exists',
+        'namespace_exists',
         'folder_provided_path',
         'folder_name',
         'folder_path',
@@ -1923,7 +1955,7 @@ function cli_crud_folder_and_php_file($statusArray, $crudType, $file, $fn = null
     foreach ($requiredKeys as $key) {
         if (!array_key_exists($key, $statusArray)) {
             cli_err_without_exit('[cli_crud_folder_and_php_file()]: $statusArray must contain the Key: `' . $key . '`!');
-            cli_info("It needs the following Keys: 'folder_name', 'folder_path', 'folder_exists', 'folder_readable', 'folder_writable', 'file_name', 'file_path', 'file_exists', 'file_readable', 'file_writable', 'functions' and 'file_raw'!");
+            cli_info("It needs the following Keys: `" . implode(', ', $requiredKeys) . "`!");
             return null;
         }
     }
@@ -1995,8 +2027,8 @@ function cli_crud_folder_and_php_file($statusArray, $crudType, $file, $fn = null
         (!is_string($table)
             || empty($table)
             || !preg_match('/^(((select|delete|insert|update|sel|del|ins|upd|s|d|i|u)=)?[a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]*(\*[0-9]+)?)*$/', $table)
-            || (!str_contains($folder_provided_path, "funkphp/sql")
-                && !str_contains($folder_provided_path, "funkphp/validation")))
+            || (!str_contains($folder_provided_path, "funkphp/data/sql")
+                && !str_contains($folder_provided_path, "funkphp/data/validation")))
     ) {
         cli_err_without_exit('[cli_crud_folder_and_php_file()]: $table (or "arg3") must be A Valid Non-Empty String with at least 1 table or several separated by commas! (NO Whitespace is allowed)');
         cli_info('[cli_crud_folder_and_php_file()]: It is meant ONLY for `funkphp/sql` AND `funkphp/validation`!');
@@ -2015,8 +2047,8 @@ function cli_crud_folder_and_php_file($statusArray, $crudType, $file, $fn = null
             if ($file_exists) {
                 cli_err_without_exit('Pipeline Function File `' . $file_name . '` already exists in the `funkphp/pipeline` Folder!');
                 return false;
-            } elseif (file_exists($folder_path . '/post-request' . '/' . $file)) {
-                cli_err_without_exit('Pipeline Function File `' . $file_name . '` already exists in the `funkphp/pipeline/post-request` Folder!');
+            } elseif (file_exists($folder_path . '/post_request' . '/' . $file)) {
+                cli_err_without_exit('Pipeline Function File `' . $file_name . '` already exists in the `funkphp/pipeline/post_request` Folder!');
                 return false;
             } elseif (file_exists($folder_path . '/request' . '/' . $file)) {
                 cli_err_without_exit('Pipeline Function File `' . $file_name . '` already exists in the `funkphp/pipeline/request` Folder!');
@@ -2027,7 +2059,7 @@ function cli_crud_folder_and_php_file($statusArray, $crudType, $file, $fn = null
         // meaning they should not exist in the folder if they should be created!
         elseif ($folderType === 'middlewares') {
             if ($file_exists) {
-                cli_err_without_exit('Middleware Function File `' . $file_name . '` already exists in the `funkphp/middlewares` Folder!');
+                cli_err_without_exit('Middleware Function File `' . $file_name . '` already exists in the `funkphp/pipeline/middlewares` Folder!');
                 return false;
             }
         }
