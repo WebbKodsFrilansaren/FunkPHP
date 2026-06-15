@@ -16,7 +16,7 @@ function activate(context) {
 				const normalizedPath = absoluteFilePath.split(path.sep).join('/');
 
 				// --- CONTEXT GUARD 1: VALIDATION FOLDER ---
-				if (normalizedPath.includes('/src/funkphp/validation/')) {
+				if (normalizedPath.includes('/src/funkphp/data/validation/')) {
 					const linePrefix = document.lineAt(position).text.substr(0, position.character);
 					if (!linePrefix.includes('|') && !linePrefix.includes('"')) return undefined;
 
@@ -25,7 +25,7 @@ function activate(context) {
 				}
 
 				// --- CONTEXT GUARD 2: SQL QUERY FOLDER ---
-				if (normalizedPath.includes('/src/funkphp/sql/')) {
+				if (normalizedPath.includes('/src/funkphp/data/sql/')) {
 					// Return ONLY SQL tables and JOIN configuration syntax suggestions
 					return getSqlSchemaSuggestions();
 				}
