@@ -960,9 +960,9 @@ function funk_use_error_json_or_page(&$c, int $errCode, $jsonObjectOrStringThatR
 {
     // Clear any previous use of output buffering - although the Framework should not really use ob_start
     // during request pipeline, only during post_response pipeline since all data there is only for server
-    if (ob_get_level() > 0) {
-        ob_clean();
-    }
+    // if (ob_get_level() > 0) {
+    //     ob_clean();
+    // }
     // When error code is NOT integer or within wrong range
     if (
         !isset($errCode)
@@ -1974,12 +1974,9 @@ function funk_match_developer_route(&$c, string $method, string $uri, array $com
             $c['req']['segments'] = $matchedPathSegments;
             $c['req']['params'] = $matchedRouteParams;
             $c['req']['matched_in'] = $noMatchIn;
-            // We remove 'middlewares' from the matched route since it will
-            // be array merged with all middleware-matched URI segments!
-            if (isset($routeInfo[0]['middlewares'])) {
-                $routeInfo = array_splice($routeInfo, 1, null, true);
-            }
-            $c['req']['route_keys'] = [...$routeInfo ?? []];
+            $c['req']['matched_config'] = $routeInfo['config'] ?? [];
+            $c['req']['matched_pipeline'] = $routeInfo['pipeline'] ?? [];
+
             // Add Any Matched Middlewares
             if (
                 isset($routeDefinition["middlewares"])
@@ -1991,9 +1988,9 @@ function funk_match_developer_route(&$c, string $method, string $uri, array $com
                 foreach ($routeDefinition["middlewares"] as $middleware) {
                     if (
                         isset($developerSingleRoutes[$method][$middleware])
-                        && isset($developerSingleRoutes[$method][$middleware][0]['middlewares'])
+                        && isset($developerSingleRoutes[$method][$middleware]['middlewares'])
                     ) {
-                        $matchedMiddlewareHandlers = array_merge($matchedMiddlewareHandlers, $developerSingleRoutes[$method][$middleware][0]['middlewares']);
+                        $matchedMiddlewareHandlers = array_merge($matchedMiddlewareHandlers, $developerSingleRoutes[$method][$middleware]['middlewares']);
                     }
                 }
             }

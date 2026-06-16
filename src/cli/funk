@@ -2,6 +2,33 @@
 // "FUNKPHP_IS_LOCAL" is needed by the /config/db.php file. This constant is first in FunkPHP.php file
 // for the actual website and not the FunkCLI so this is where we use it to say it is all local now!
 define('FUNKPHP_IS_LOCAL', true);
+define(
+    'FUNKPHP_DEFAULT_GLOBAL_CONFIG_KEY_AND_ITS_KEYS',
+    ['<CONFIG_GLOBAL>' => [
+        'global_headers' => [],
+        'global_rate_limiting' => null,
+        'global_param_rules' => [],
+    ]]
+);
+define(
+    'FUNKPHP_DEFAULT_METHOD_CONFIG_KEY_AND_ITS_KEYS',
+    ['<CONFIG_METHOD>' => [
+        'method_headers' => [],
+        'method_rate_limiting' => null,
+        'method_param_rules' => [],
+    ]]
+);
+define('FUNKPHP_DEFAULT_ROUTE_KEYS', [
+    'config' => [
+        'route_alias' => '',
+        'route_headers' => [],
+        'route_rate_limiting' => null,
+        'route_cache' => null,
+        'route_param_rules' => [],
+    ],
+    'middlewares' => [],
+    'pipeline' => [],
+]);
 
 // Define default directories and check whether CLI or
 // in Web Browser mode (only JSON is allowed in Browser mode)

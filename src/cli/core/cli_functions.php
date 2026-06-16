@@ -1737,36 +1737,128 @@ function cli_route_and_method_is_valid_string_VF($methodAndRouteString)
 // which also checks against duplicated "/:paramsegments" on same levels
 // like "/:route1" compared to "/:route2" which collide due to being
 // an exact match if you would replace all ":paramsegment" with a placeholder.
-// VF = Validate First meaning you make sure you provide a String
+// VF = Validate First meaning you make sure you provide a String + a String
 // before calling this function!!
 function cli_route_is_same_as_another_route_VF($route, $anotherRoute)
 {
     // IMPORTANT: Function really assumes both are pure strings larger than 1 so
     // use the OTHER functions to validate both are valid strings before using this one!
-
     // First we find out if they have ":" or not because that will matter for first
     // length test which is only valid if BOTH do NOT have the ":"!
     $routeHasParamSegment = str_contains($route, ':');
     $anotherRouteHasParamSegment = str_contains($anotherRoute, ':');
-
     // Now we check if BOTH do NOT have the ":" because then we can safely
     // check length (=static routes comparisons)
     if (!$routeHasParamSegment && !$anotherRouteHasParamSegment) {
         return $route === $anotherRoute;
     }
-
     // If one of them does NOT have the ":" but other one does then we now
     // they cannot be equal
     if ($routeHasParamSegment !== $anotherRouteHasParamSegment) {
         return false;
     }
-
     // Here both seem to have ":" so now we replace all ":paramsegment" with a
     // placeholder and then check if they are equal
     $placeholder = 'PLACEHOLDER';
-    $normalizedRoute = preg_replace('/:[a-zA-Z0-9_]+/', $placeholder, $route);
-    $normalizedAnotherRoute = preg_replace('/:[a-zA-Z0-9_]+/', $placeholder, $anotherRoute);
+    $normalizedRoute = preg_replace('/:[a-zA-Z0-9_-]+/', $placeholder, $route);
+    $normalizedAnotherRoute = preg_replace('/:[a-zA-Z0-9_-]+/', $placeholder, $anotherRoute);
     return $normalizedRoute === $normalizedAnotherRoute;
+}
+// Checks if a new provided route (that should be validated before being used here)
+// is not colliding in a given method group with any other existing route in that method group.
+// For example "/:users" is considered the same as "/:users2" due to being the :params segments
+// on the same URI levels! So "/:users/:id" is also colliding with "/:id/:users"!
+// VF = Validate First meaning you make sure you provide an Array + a String
+// before calling this function!!
+function cli_new_route_is_unique_in_its_method_group_VF($ROUTESSource, $newRoute)
+{
+    // EDGE CASE: if there are no existing routes in the method group,
+    // then the new route is automatically unique so we return true without doing any checks!
+    if (empty($ROUTESSource)) {
+        return true;
+    }
+    // First transform $newRoute if it has any ":" so they are just ":PLACEHOLDERS"
+    if (str_contains($newRoute, ":")) {
+        $newRoute = preg_replace('/:[a-zA-Z0-9_-]+/', ':PLACEHOLDER', $newRoute);
+    }
+    // Iterate through the &$ROUTESSource and then transform its each key first if
+    // it has any ":" so they could match and then check if they are the same as
+    // the transformed $newRoute using the function cli_route_is_same_as_another_route_VF which also checks for the same ":paramsegment" collisions on same levels!
+    foreach ($ROUTESSource as $existingRoute => $routeConfig) {
+        // Ignore global config variable for the method group if it exists, since it does
+        // not represent an actual route and should not be compared to the new route!
+        if ($existingRoute === '<CONFIG>') {
+            continue;
+        }
+        $transformedExistingRoute = str_contains($existingRoute, ":") ?
+            preg_replace('/:[a-zA-Z0-9_-]+/', ':PLACEHOLDER', $existingRoute) : $existingRoute;
+        if (cli_route_is_same_as_another_route_VF($newRoute, $transformedExistingRoute)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// Checks so $existingRoute key has the ['config' => [], ['middlewares' => [], 'pipeline' => []]]
+// where either are empty OR the 'middlewares' AND 'pipeline' both are numbered arrays, but where
+// the 'config' array is just an associatiev array, empty or not!
+// VF = Validate First meaning you make sure you provide a Route Key String
+// before calling this function!!
+function cli_existing_route_has_valid_key_structure_VF($existingRoute)
+{
+    if (!is_array($existingRoute)) {
+        return false;
+    }
+    $config = $existingRoute['config'] ?? null;
+    $middlewares = $existingRoute['middlewares'] ?? null;
+    $pipeline = $existingRoute['pipeline'] ?? null;
+
+    if ($config === null || !is_array($config) || array_is_list($config)) {
+        return false;
+    }
+    if ($middlewares !== null && (!is_array($middlewares) || !array_is_list($middlewares))) {
+        return false;
+    }
+    if ($pipeline !== null && (!is_array($pipeline) || !array_is_list($pipeline))) {
+        return false;
+    }
+    return true;
+}
+
+// Checks $existingRoute and its _assumed_ 'pipeline' array has no duplicate keys
+// meaning like 0 => 'key1' => 'test", 1 => 'key1' => 'test2' which is allowed but
+// will issue a warning by the make-route.php CLI Command though. This function only
+// returns true though on first instance, meaning it at least 1 to be true.
+// IMPORTANT: only checks for structure not whether 0 => 'FileName' => 'Fn' actually exists!
+// VF = Validate First meaning you make sure you provide a Route Key String + a String + a String
+// before calling this function!!
+function cli_existing_route_has_duplicate_pipeline_fns_VF($existingRoute, $file, $fn)
+{
+    foreach ($existingRoute['pipeline'] as $fileKey => $fnP) {
+        if (strtolower($fileKey) === strtolower($file) && strtolower($fn) === strtolower($fnP)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Checks if $existingRoute and its _assumed_ 'middlewares' array has no duplicate keys
+// 'middlewares' is only a numbered array with string value compared to 'pipeline' which
+// has 0 => 'FileName' => 'Fn' structure, but this function only checks for duplicate
+// string values in the 'middlewares' array, meaning like 0 => 'middleware1', 1 => 'middleware1'
+// which is allowed but will issue a warning by the make-route.php CLI Command though.
+// This function only returns true though on first instance, meaning it at least 1 to be true.
+// IMPORTANT: only checks for structure not whether 0 => 'Fn' actually exists!
+// VF = Validate First meaning you make sure you provide Route Key String + a String
+// before calling this function!!
+function cli_existing_route_has_duplicate_middleware_fns_VF($existingRoute, $fn)
+{
+    foreach ($existingRoute['middlewares'] as $middlewareFn) {
+        if (strtolower($middlewareFn) === strtolower($fn)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 // Returns the status of a method/route in the routes.php file
@@ -9158,7 +9250,7 @@ function cli_match_developer_route(string $method, string $uri, array $compiledR
             $noMatchIn = "ROUTE_MATCHED_BOTH";
             // We remove 'middlewares' from the matched route since it will
             // be array merged with all middleware-matched URI segments!
-            if (isset($routeInfo[0]['middlewares'])) {
+            if (isset($routeInfo['middlewares'])) {
                 $routeInfo = array_splice($routeInfo, 1, null, true);
             }
             // Add Any Matched Middlewares
@@ -9172,9 +9264,9 @@ function cli_match_developer_route(string $method, string $uri, array $compiledR
                 foreach ($routeDefinition["middlewares"] as $middleware) {
                     if (
                         isset($developerSingleRoutes[$method][$middleware])
-                        && isset($developerSingleRoutes[$method][$middleware][0]['middlewares'])
+                        && isset($developerSingleRoutes[$method][$middleware]['middlewares'])
                     ) {
-                        $matchedMiddlewareHandlers = array_merge($matchedMiddlewareHandlers, $developerSingleRoutes[$method][$middleware][0]['middlewares']);
+                        $matchedMiddlewareHandlers = array_merge($matchedMiddlewareHandlers, $developerSingleRoutes[$method][$middleware]['middlewares']);
                     }
                 }
             }
@@ -9240,10 +9332,15 @@ function cli_build_compiled_routes(array $developerSingleRoutes, array $develope
     // Prepare compiled route array to return and other variables
     $compiledTrie = [];
     $GETSingles = $developerSingleRoutes["GET"] ?? [];
+    $GETConfig = $developerSingleRoutes["GET"]['<CONFIG_METHOD>'] ?? FUNKPHP_DEFAULT_METHOD_CONFIG_KEY_AND_ITS_KEYS;
     $POSTSingles = $developerSingleRoutes["POST"] ?? [];
+    $POSTConfig = $developerSingleRoutes["POST"]['<CONFIG_METHOD>'] ?? FUNKPHP_DEFAULT_METHOD_CONFIG_KEY_AND_ITS_KEYS;
     $PUTSingles = $developerSingleRoutes["PUT"] ?? [];
+    $PUTConfig = $developerSingleRoutes["POST"]['<CONFIG_METHOD>'] ?? FUNKPHP_DEFAULT_METHOD_CONFIG_KEY_AND_ITS_KEYS;
     $DELETESingles = $developerSingleRoutes["DELETE"] ?? [];
+    $DELETEConfig = $developerSingleRoutes["POST"]['<CONFIG_METHOD>'] ?? FUNKPHP_DEFAULT_METHOD_CONFIG_KEY_AND_ITS_KEYS;
     $PATCHSingles = $developerSingleRoutes["PATCH"] ?? [];
+    $PATCHConfig = $developerSingleRoutes["PATCH"]['<CONFIG_METHOD>'] ?? FUNKPHP_DEFAULT_METHOD_CONFIG_KEY_AND_ITS_KEYS;
 
     // Using method below, iterate through each HttpMethod and then add it to the $compiledTrie array
     $addMethods = function ($singleRoutes) {
@@ -9314,7 +9411,7 @@ function cli_build_compiled_routes(array $developerSingleRoutes, array $develope
             if ($key === "" || $key === null || $key === false || $key === "") {
                 continue;
             }
-            if ($key === "/" && isset($value[0]['middlewares']) && !empty($value[0]['middlewares'])) {
+            if ($key === "/" && isset($value['middlewares']) && !empty($value['middlewares'])) {
                 $compiledTrie["|"] = [];
                 continue;
             }
@@ -9351,7 +9448,7 @@ function cli_build_compiled_routes(array $developerSingleRoutes, array $develope
 
             // Now we are at the last segment, we just add the middleware node "|"
             // and then we add the middleware route to it.
-            if (!isset($currentNode['|']) && isset($value[0]['middlewares']) && !empty($value[0]['middlewares'])) {
+            if (!isset($currentNode['|']) && isset($value['middlewares']) && !empty($value['middlewares'])) {
                 $currentNode['|'] = [];
             }
         }
@@ -9774,6 +9871,11 @@ function cli_sort_build_routes_compile_and_output($singleRoutesRootArray)
     // Loop through each key below ROUTES and sort the keys
     // and values in the array by the key name (route name)
     foreach ($singleRoutesRootArray['ROUTES'] as $key => $value) {
+        // Skip the <CONFIG_GLOBAL> key since it is not a
+        // route and does not have route keys to sort
+        if ($key === '<CONFIG_GLOBAL>') {
+            continue;
+        }
         if (is_array($value)) {
             ksort($singleRoutesRootArray['ROUTES'][$key]);
         }
@@ -9916,7 +10018,7 @@ function cli_get_prefix_code($keyString)
 {
     $currDate = date("Y-m-d H:i:s");
     $prefixCode = [
-        "route_singles_routes_start" => "<?php // Routes.php - FunkPHP Framework | FunkCLI Modified it $currDate\nreturn ",
+        "route_singles_routes_start" => "<?php // pipeline_routes.php - FunkPHP | FunkCLI Modified it $currDate\nreturn ",
     ];
 
     return $prefixCode[$keyString] ?? null;

@@ -1,74 +1,41 @@
-<?php // Routes.php - FunkPHP Framework | FunkCLI Modified it 2026-06-16 08:52:00
+<?php // pipeline_routes.php - FunkPHP | FunkCLI Modified it 2026-06-16 10:47:52
 return  [
-  'ROUTES' => 
-   [
-    'GET' => 
-     [
-      '/all' => 
-       [
-        0 => 
-         [
-          'middlewares' => 
-           [
-            0 => 'mw_test2',
-          ],
+  'ROUTES' =>
+  [
+    'GET' =>
+    [
+      '/all' =>
+      [
+        'config' =>
+        [
+          'route_alias' => '',
+          'route_headers' =>
+          [],
+          'route_rate_limiting' => NULL,
+          'route_cache' => NULL,
+          'route_param_rules' =>
+          [],
         ],
-        1 => 
-         [
-          'test' => 
-           [
-            'test' => 
-             [
-              'test' => NULL,
-            ],
+        'middlewares' =>
+        [
+          0 => 'mw_test2',
+        ],
+        'pipeline' =>
+        [
+          0 =>
+          [
+            'test' => 'test',
           ],
         ],
       ],
-      '/all2' => 
-       [
-        0 => 
-         [
-          'middlewares' => 
-           [
-            0 => 'mw_test2',
-          ],
-        ],
-        1 => 
-         [
-          'test' => 'test',
-        ],
-      ],
-      '/all4' => 
-       [
-        0 => 
-         [
-          'najs' => 'paj',
-        ],
-        1 => 
-         [
-          'najs' => 'paj2',
-        ],
-        2 => 
-         [
-          'najs' => 'paj2',
-        ],
-        3 => 
-         [
-          'najs' => 'paj3',
-        ],
-      ],
     ],
-    'DELETE' => 
-     [
-    ],
-    'PATCH' => 
-     [
-    ],
-    'PUT' => 
-     [
-    ],
-    'POST' => 
-     [
-    ],
+    'DELETE' =>
+    [],
+    'PATCH' =>
+    [],
+    'PUT' =>
+    [],
+    'POST' =>
+    [],
   ],
 ];

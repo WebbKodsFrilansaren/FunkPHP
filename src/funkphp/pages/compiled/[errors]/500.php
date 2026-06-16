@@ -72,7 +72,8 @@ $display_message = $custom_error_message ?? 'The server encountered an internal 
             <?php echo htmlspecialchars($display_message); ?>
         </p>
         <div class="developer-note">
-            If you are the developer, this error might indicate a server misconfiguration or an issue with the application code. Please check the server logs for more details.
+            If you are the developer, this error might indicate a server misconfiguration or an issue with the application code. Please check the server logs for more details.<br /><br /> If this is running in FUNKPHP_IS_LOCAL set to True you should see a var_dump right now!<br /><br />
+            <?= FUNKPHP_IS_LOCAL ? var_dump($c['req']) : "Make FunKPHP Local to see dumped \$c-req key!" ?>
         </div>
     </div>
 </body>

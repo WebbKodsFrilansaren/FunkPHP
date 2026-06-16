@@ -114,14 +114,16 @@ return [
     'req' => [
         'method' => $_SERVER['REQUEST_METHOD'] ?? null,
         'uri' => null,
+        'query' => $_SERVER['QUERY_STRING'] ?? null,
         'matched_in' => null,
         'route' => null,
         'params' => null,
         'segments' => null,
         'auth' => null,
-        'route_keys' => [],
-        'skip_post-response' => false,
+        'matched_config' => null,
+        'matched_pipeline' => [],
         'matched_middlewares' => null,
+        'skip_post-response' => false,
         'current_pipeline' => null,
         'next_pipeline' => null,
         'current_middleware' => null,
@@ -137,18 +139,11 @@ return [
         'content_type' => $_SERVER['CONTENT_TYPE'] ?? null,
         'accept' => $_SERVER['HTTP_ACCEPT'] ?? null,
         'protocol' => $_SERVER['SERVER_PROTOCOL'] ?? null,
-        'query' => $_SERVER['QUERY_STRING'] ?? null,
+
     ],
-
-    // 'r' will store route-related data
-    'r' => null,
-
     // 'd' will ALWAYS store hydrated database data!
     // data (it does NOT store validation errors)
-    // 'd_temp' is where data is temporarily stored after SQL SELECT Query
-    // you have not chosen a specific place inside of $c['d']['subkey']!
     'd' => null,
-    'd_temp' => null,
 
     // 'v' should be NULL but stores ANY founds errors during the validation process while
     // 'v_ok' will is true if not a single v['key']['optionalSubkey'] is set with error(s)!
