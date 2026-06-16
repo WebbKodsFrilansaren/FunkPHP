@@ -1,5 +1,65 @@
 <?php // ALL CLI FUNCTIONS
 
+/* FunkRouter Compiler Relationed Functions! */
+// Function takes an array of routes (without method since they are divided by method when matching so)
+// and calculate their "Binary Specificity Score" based on how many "/:param" vs "/static" segments they
+// have so it can always prioritize more specific routes (with more static segments)
+// over less specific ones (with more parameter segments). This is crucial for correct
+// route matching when using a flat array of routes.
+function cli_prepare_binary_specificity_score(array $RoutesArray): array
+{
+    $processed = [];
+    foreach ($RoutesArray as $routeStr => $routeConfig) {
+        // Clean edge cases like accidental double slashes or trailing slashes
+        $trimmed = trim($routeStr, '/');
+        // If it's the root domain route "/"
+        if ($trimmed === '') {
+            $segments = [];
+            $segmentCount = 0;
+            $binaryMask = '1'; // Root is absolute static
+            $score = 1;
+        } else {
+            $segments = explode('/', $trimmed);
+            $segmentCount = count($segments);
+            // Build the binary mask string
+            $binaryMask = '';
+            foreach ($segments as $segment) {
+                // If segment starts with ":", it's a dynamic parameter (0), otherwise static (1)
+                $binaryMask .= (str_starts_with($segment, ':')) ? '0' : '1';
+            }
+            // Convert binary string (e.g., "1110") to a base-10 integer
+            $score = bindec($binaryMask);
+        }
+        // Keep all original metadata intact, but attach the score properties
+        $processed[] = [
+            'original_route' => $routeStr,
+            'segment_count'  => $segmentCount,
+            'binary_mask'    => $binaryMask,
+            'binary_score'   => $score,
+            'config'         => $routeConfig['config'] ?? [],
+            'middlewares'    => $routeConfig['middlewares'] ?? [],
+            'pipeline'       => $routeConfig['pipeline'] ?? [],
+        ];
+    }
+    // Sort execution block: Tie-breaker sorting
+    usort($processed, function ($a, $b) {
+        // Rule 1: Always sort by segment count descending first (e.g., get_segs_4 before get_segs_3)
+        if ($a['segment_count'] !== $b['segment_count']) {
+            return $b['segment_count'] <=> $a['segment_count'];
+        }
+
+        // Rule 2: Within identical lengths, sort by binary score descending (static priority)
+        return $b['binary_score'] <=> $a['binary_score'];
+    });
+    return $processed;
+}
+// Function takes an array of prepared routes (without method since they are divided
+// by method when matching so) and compiles them into a single flat array of routes
+// with their full path as the key and their config, middlewares and pipeline as the value.
+// This is crucial for correct route matching when using a flat array of routes.
+// IMPORTANT: might not work yet, still work in progress!
+function cli_build_flattened_routing_start($RoutesArray) {}
+
 // Compile "pipeline_routes.php" (via trie routes files "compiled_routes.php") into an
 // optimized flat Route matcher using GOTO labels: everywhere! IMPORTANT: Might not work,
 // still working progress function and might NOT be final thing to use!
@@ -74,10 +134,10 @@ function cli_resolve_inherited_middlewares(string $routePath, array $developerRo
         $currentPath .= '/' . $segment;
 
         // Check if the developer defined middleware at this specific parent tier
-        if (isset($developerRoutes[$method][$currentPath][0]['middlewares'])) {
+        if (isset($developerRoutes[$method][$currentPath]['middlewares'])) {
             $compiledMiddlewares = array_merge(
                 $compiledMiddlewares,
-                $developerRoutes[$method][$currentPath][0]['middlewares']
+                $developerRoutes[$method][$currentPath]['middlewares']
             );
         }
     }
