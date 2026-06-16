@@ -123,7 +123,7 @@ return [
         'matched_config' => null,
         'matched_pipeline' => [],
         'matched_middlewares' => null,
-        'skip_post-response' => false,
+        'skip_post_response' => false,
         'current_pipeline' => null,
         'next_pipeline' => null,
         'current_middleware' => null,

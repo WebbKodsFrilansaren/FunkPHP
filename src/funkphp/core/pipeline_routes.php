@@ -1,4 +1,4 @@
-<?php // pipeline_routes.php - FunkPHP | FunkCLI Modified it 2026-06-16 10:47:52
+<?php // pipeline_routes.php - FunkPHP | FunkCLI Modified it 2026-06-16 11:23:30
 return  [
   'ROUTES' =>
   [
@@ -28,6 +28,8 @@ return  [
           ],
         ],
       ],
+      '<CONFIG_METHOD>' =>
+      [],
     ],
     'DELETE' =>
     [],

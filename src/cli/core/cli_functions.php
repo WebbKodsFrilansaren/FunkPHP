@@ -9348,13 +9348,16 @@ function cli_build_compiled_routes(array $developerSingleRoutes, array $develope
         // For example:  '/users' => ['handler' => 'USERS_PAGE', /*...*/], only gets the '/users' key name
         // and not the value inside of it. This is done by using array_keys() to get the keys of the array.
         $keys = array_keys($singleRoutes) ?? [];
+        var_dump($keys);
         $compiledTrie = [];
 
         // Iterate through each key in the array and add it to the $compiledTrie array
         foreach ($keys as $key) {
-
             // Ignore empty keys or null values & handle special case for "/"
-            if ($key === "" || $key === null || $key === false || $key === "") {
+            if (
+                $key === "" || $key === null
+                || $key === false || $key === '<CONFIG_METHOD>'
+            ) {
                 continue;
             }
             if ($key === "/") {
@@ -9403,12 +9406,11 @@ function cli_build_compiled_routes(array $developerSingleRoutes, array $develope
         //$keys = array_keys($middlewareRoutes) ?? [];
         $keys = $middlewareRoutes ?? [];
 
-
         // The way we insert "|" to signify a middleware is to just go through all segments for each key
         // and when we are at the last segment that is the node we insert "|" and then we move on to key.
         foreach ($keys as $key => $value) {
             // Ignore empty keys or null values & handle special case for "/"
-            if ($key === "" || $key === null || $key === false || $key === "") {
+            if ($key === "" || $key === null || $key === false || $key === '<CONFIG_METHOD>') {
                 continue;
             }
             if ($key === "/" && isset($value['middlewares']) && !empty($value['middlewares'])) {
@@ -9485,7 +9487,7 @@ function cli_output_compiled_routes(array $compiledTrie)
     if (!cli_crud_folder_php_file_atomic_write("<?php\nreturn " . cli_convert_array_to_simple_syntax($compiledTrie), FUNKPHP_FILE_PATH_TROUTES)) {
         cli_err("Failed to write Compiled Routes to file: `" .  FUNKPHP_FILE_PATH_TROUTES . "`! Check File Permissions?");
     } else {
-        cli_success_without_exit("Successfully wrote Compiled Routes to file: `" . FUNKPHP_FILE_PATH_TROUTES . "`!");
+        cli_success_without_exit("SUCCESSFULLY Wrote Compiled Routes to file: `" . FUNKPHP_FILE_PATH_TROUTES . "`!");
     }
 }
 
