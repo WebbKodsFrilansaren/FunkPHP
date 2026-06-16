@@ -1,70 +1,74 @@
-<?php // Routes.php - FunkPHP Framework | FunkCLI Modified it 2026-06-15 17:43:44
+<?php // Routes.php - FunkPHP Framework | FunkCLI Modified it 2026-06-16 08:52:00
 return  [
-  'ROUTES' =>
-  [
-    'GET' =>
-    [
-      '/all' =>
-      [
-        0 =>
-        [
-          'middlewares' =>
-          [
+  'ROUTES' => 
+   [
+    'GET' => 
+     [
+      '/all' => 
+       [
+        0 => 
+         [
+          'middlewares' => 
+           [
             0 => 'mw_test2',
           ],
         ],
-        1 =>
-        [
-          'test' =>
-          [
-            'test' =>
-            [
+        1 => 
+         [
+          'test' => 
+           [
+            'test' => 
+             [
               'test' => NULL,
             ],
           ],
         ],
       ],
-      '/all2' =>
-      [
-        0 =>
-        [
-          'middlewares' =>
-          [
+      '/all2' => 
+       [
+        0 => 
+         [
+          'middlewares' => 
+           [
             0 => 'mw_test2',
           ],
         ],
-        1 =>
-        [
+        1 => 
+         [
           'test' => 'test',
         ],
       ],
-      '/all4' =>
-      [
-        0 =>
-        [
+      '/all4' => 
+       [
+        0 => 
+         [
           'najs' => 'paj',
         ],
-        1 =>
-        [
+        1 => 
+         [
           'najs' => 'paj2',
         ],
-        2 =>
-        [
+        2 => 
+         [
           'najs' => 'paj2',
         ],
-        3 =>
-        [
+        3 => 
+         [
           'najs' => 'paj3',
         ],
       ],
     ],
-    'DELETE' =>
-    [],
-    'PATCH' =>
-    [],
-    'PUT' =>
-    [],
-    'POST' =>
-    [],
+    'DELETE' => 
+     [
+    ],
+    'PATCH' => 
+     [
+    ],
+    'PUT' => 
+     [
+    ],
+    'POST' => 
+     [
+    ],
   ],
 ];

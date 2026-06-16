@@ -1580,6 +1580,195 @@ function cli_default_created_fn_files($type, $methodAndRoute, $folder, $file, $f
     return $entireCreatedString;
 }
 
+// CLI Test function, by GPT Free-use, might change later.
+// Provide Stringed Name of test, then function name, then the tests in an array like
+// [['testvalue1' => 'value', 'expected' =>  'expectedValue', 'args' => [arg1, arg2, ...]], ...]
+// and optionally the inputKey which is the key in the test array that should be used as input
+// for the function (if not using multi-args mode with 'args' key)
+function cli_run_tests(string $title, callable $fn, array $tests, string|array|null $inputKey = null)
+{
+    echo "\n=== {$title} ===\n";
+    foreach ($tests as $i => $test) {
+        $expected = $test['expected'] ?? null;
+        $actual = null;
+        // -------------------------
+        // CASE 1: multi-args mode
+        // -------------------------
+        if (isset($test['args']) && is_array($test['args'])) {
+            $actual = $fn(...$test['args']);
+        }
+        // -------------------------
+        // CASE 2: named keys mode (route/method/etc)
+        // -------------------------
+        elseif (is_string($inputKey)) {
+            if (!isset($test[$inputKey])) {
+                echo "❌ INVALID TEST STRUCTURE at #{$i}\n";
+                continue;
+            }
+            $actual = $fn($test[$inputKey]);
+        }
+        // -------------------------
+        // CASE 3: multiple named inputs (route1, route2)
+        // -------------------------
+        elseif (is_array($inputKey)) {
+            $args = [];
+            foreach ($inputKey as $key) {
+                if (!isset($test[$key])) {
+                    echo "❌ INVALID TEST STRUCTURE at #{$i} (missing {$key})\n";
+                    continue 2;
+                }
+                $args[] = $test[$key];
+            }
+            $actual = $fn(...$args);
+        }
+        // -------------------------
+        // fallback failure
+        // -------------------------
+        else {
+            echo "❌ INVALID CONFIG at #{$i}\n";
+            continue;
+        }
+        $passed = ($actual === $expected);
+        echo sprintf(
+            "TEST %d (%s)\n→ Expected: %s | Got: %s\n→ %s\n\n",
+            $i + 1,
+            json_encode($test),
+            json_encode($expected),
+            json_encode($actual),
+            $passed ? "✅ PASS" : "❌ FAIL"
+        );
+    }
+}
+
+// Checks if a provided String is of typical "/route/:valid/format"
+// VF = Validate First meaning you make sure you provide a String
+// before calling this function!!
+function cli_route_is_valid_string_VF($routeString)
+{
+    global $cliRegex;
+    $routeRegex = $cliRegex['routeRegex'];
+    if (
+        !isset($routeString)
+        || !is_string($routeString)
+        || empty($routeString)
+        || !preg_match($routeRegex, $routeString)
+    ) {
+        return false;
+    }
+    // Cannot start/end with - or _
+    $segments = explode('/', trim($routeString, '/'));
+    foreach ($segments as $segment) {
+        if ($segment === '') {
+            continue;
+        }
+        if (
+            str_starts_with($segment, '-') ||
+            str_starts_with($segment, '_') ||
+            str_ends_with($segment, '-') ||
+            str_ends_with($segment, '_')
+        ) {
+            return false;
+        }
+        // No consecutive separators
+        if (preg_match('/[-_]{2}|-_|_-/', $segment)) {
+            return false;
+        }
+    }
+    // segments with ":" cannot have same param names like (":param/:param")
+    // so we filter out those with ":" and check if there are duplicates in the remaining array
+    $paramSegments = array_filter($segments, fn($seg) => str_starts_with($seg, ':'));
+    $paramNames = array_map(fn($seg) => ltrim($seg, ':'), $paramSegments);
+    if (count($paramNames) !== count(array_unique($paramNames))) {
+        return false;
+    }
+    return true;
+}
+
+// Checks if a provided String is a valid method type, either its full version or
+// any of its shorthands: like "GET/", "post/", "g/" and so on. Notice it MUST
+// have the '/' at the end or it does not count as a valid method string!
+// where method always is uppercase and then route is essentially like
+// function "cli_route_is_valid_string_VF".
+// VF = Validate First meaning you make sure you provide a String
+// before calling this function!!
+function cli_route_method_is_valid_string_VF($methodString)
+{
+    global $cliRegex;
+    $routeRegex = $cliRegex['methodSegment'];
+    if (
+        !isset($methodString)
+        || !is_string($methodString)
+        || empty($methodString)
+        || !preg_match($routeRegex, $methodString)
+    ) {
+        return false;
+    }
+    return true;
+}
+
+// Checks for valid "METHOD/route/:subroute" string where method is either
+// "GET", "POST", "PUT", "DELETE" or "PATCH" (or their shorthands) and
+// route is essentially like function "cli_route_is_valid_string_VF".
+// VF = Validate First meaning you make sure you provide a String
+// before calling this function!!
+function cli_route_and_method_is_valid_string_VF($methodAndRouteString)
+{
+    if (
+        !isset($methodAndRouteString)
+        || !is_string($methodAndRouteString)
+        || empty($methodAndRouteString)
+    ) {
+        return false;
+    }
+    // explode on first "/" to separate method from route and the count
+    // should be now 2 and none empty. Then add a "/" to the first exploded
+    // to check valid method and a "/" to the start of the second exploded
+    // element and send it to check for valid route string!
+    $exploded = explode('/', $methodAndRouteString, 2);
+    if (count($exploded) !== 2 || empty($exploded[0]) || empty($exploded[1])) {
+        return false;
+    }
+    $methodPart = $exploded[0] . '/';
+    $routePart = '/' . $exploded[1];
+    return cli_route_method_is_valid_string_VF($methodPart) && cli_route_is_valid_string_VF($routePart);
+}
+
+// Checks if route (without method part) "/route1" is same as "/route2"
+// which also checks against duplicated "/:paramsegments" on same levels
+// like "/:route1" compared to "/:route2" which collide due to being
+// an exact match if you would replace all ":paramsegment" with a placeholder.
+// VF = Validate First meaning you make sure you provide a String
+// before calling this function!!
+function cli_route_is_same_as_another_route_VF($route, $anotherRoute)
+{
+    // IMPORTANT: Function really assumes both are pure strings larger than 1 so
+    // use the OTHER functions to validate both are valid strings before using this one!
+
+    // First we find out if they have ":" or not because that will matter for first
+    // length test which is only valid if BOTH do NOT have the ":"!
+    $routeHasParamSegment = str_contains($route, ':');
+    $anotherRouteHasParamSegment = str_contains($anotherRoute, ':');
+
+    // Now we check if BOTH do NOT have the ":" because then we can safely
+    // check length (=static routes comparisons)
+    if (!$routeHasParamSegment && !$anotherRouteHasParamSegment) {
+        return $route === $anotherRoute;
+    }
+
+    // If one of them does NOT have the ":" but other one does then we now
+    // they cannot be equal
+    if ($routeHasParamSegment !== $anotherRouteHasParamSegment) {
+        return false;
+    }
+
+    // Here both seem to have ":" so now we replace all ":paramsegment" with a
+    // placeholder and then check if they are equal
+    $placeholder = 'PLACEHOLDER';
+    $normalizedRoute = preg_replace('/:[a-zA-Z0-9_]+/', $placeholder, $route);
+    $normalizedAnotherRoute = preg_replace('/:[a-zA-Z0-9_]+/', $placeholder, $anotherRoute);
+    return $normalizedRoute === $normalizedAnotherRoute;
+}
+
 // Returns the status of a method/route in the routes.php file
 function cli_route_status(&$ROUTES, $method, $route)
 {
@@ -5408,7 +5597,9 @@ function cli_find_valid_tb_col_and_binding_or_return_null($tbs, $tbColToCheck)
 // &$builtBindedParamsString is to add the necessary
 // "?" placeholders based on how many are used within
 // the parsed Where clause that would be returned!
-function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $validCols, &$builtBindedParamsString, &$builtFieldsArray, &$allAliases, $whereOrHaving = null, &$aggAliases,  &$aliasesTbCol = null)
+// IMPORTANT: Changed "$whereHaving" argument from "=null" in argument list below
+// to none at all since PHP parser seems to complain.
+function cli_parse_condition_clause_sql($tbs, $where, $queryType, $sqlArray, $validCols, &$builtBindedParamsString, &$builtFieldsArray, &$allAliases, $whereOrHaving, &$aggAliases,  &$aliasesTbCol = null)
 {
     // Prepare variables and also validate the input
     // $where = The actual CONDITION String to parse.

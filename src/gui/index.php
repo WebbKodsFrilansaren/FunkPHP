@@ -114,8 +114,7 @@ $requiredWritablePaths = [
     'Batteries Main Directory'    => __DIR__ . '/../batteries',
     'Batteries Middlewares Directory'    => __DIR__ . '/../batteries/middlewares',
     'Batteries Pipeline Main Directory'    => __DIR__ . '/../batteries/pipeline',
-    'Batteries Pipeline Post-Response Directory'    => __DIR__ . '/../batteries/pipeline/post-response',
-    'Batteries Pipeline Post-Request Directory'    => __DIR__ . '/../batteries/pipeline/post-request',
+    'Batteries Pipeline Post-Response Directory'    => __DIR__ . '/../batteries/pipeline/post_response',
     'Batteries Pipeline Request Directory'    => __DIR__ . '/../batteries/pipeline/request',
     'CLI Main Directory'    => __DIR__ . '/../cli',
     'CLI Commands Directory'    => __DIR__ . '/../cli/commands',
@@ -129,7 +128,7 @@ $requiredWritablePaths = [
     'FunkPHP Pages Layouts Directory'    => __DIR__ . '/../funkphp/pages/layouts',
     'FunkPHP Pages Partials Directory'    => __DIR__ . '/../funkphp/pages/partials',
     'FunkPHP Pipeline Main Directory'    => __DIR__ . '/../funkphp/pipeline',
-    'FunkPHP Pipeline Post-Response Directory'    => __DIR__ . '/../funkphp/pipeline/post-response',
+    'FunkPHP Pipeline Post-Response Directory'    => __DIR__ . '/../funkphp/pipeline/post_response',
     'FunkPHP Pipeline Request Directory'    => __DIR__ . '/../funkphp/pipeline/request',
     'FunkPHP Routes Directory'    => __DIR__ . '/../funkphp/pipeline/routes',
     'FunkPHP SQL Directory'    => __DIR__ . '/../funkphp/data/sql',
@@ -325,7 +324,7 @@ if (strpos($acceptHeader, 'application/json') !== false) {
 
 <body class="bg-[#1e1e2e] text-[#cdd6f4] p-5 min-h-full font-sans antialiased">
 
-    <div class="max-w-3xl mx-auto my-10 bg-[#252538] p-8 rounded-lg shadow-2xl border border-[#45475a]/30">
+    <div class="max-w-4xl mx-auto my-10 bg-[#252538] p-8 rounded-lg shadow-2xl border border-[#45475a]/30">
 
         <h1 class="text-2xl font-bold text-[#89b4fa] border-b border-[#45475a] pb-3 m-0">
             FunkGUI - Local FunkPHP Framework Utility

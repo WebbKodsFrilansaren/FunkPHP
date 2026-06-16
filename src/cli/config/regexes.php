@@ -18,6 +18,11 @@ return [
     // `r:get/`, "r:get/users", "r:get/users/:id", "r:post/data", "r:delete/item/:item_id" etc
     'methodRouteRegex' => '/^r:(([a-z]+\/)|([a-z]+(\/[:]?[a-zA-Z0-9_-]+)+))$/i',
 
+    // `/`, "/users/", "/users/:id", "/users/:id/details" etc - used to validate route syntax in some commands
+    'routeRegex' => '/^((\/)?|(\/[:]?[a-z0-9_-]+)+)?$/',
+    'routeSegment' => '/^(:)?[a-z_-]+$/',
+    'methodSegment' => '/^(delete|patch|post|put|get|del|pa|po|pu|ge|g|d)\/$/i',
+
     // targets file `users.php` with `by_id` Function inside
     //`ff:users=>by_id` This function is used when folder are
     // already known and cannot be changed as with Validation & SQL!
