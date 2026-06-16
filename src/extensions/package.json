@@ -1,7 +1,7 @@
 {
-	"name": "funkphp-intellisense",
-	"displayName": "FunkPHP Intellisense",
-	"version": "0.1.0",
+	"name": "funkphp-funksense",
+	"displayName": "FunkSense",
+	"version": "1.0.0",
 	"publisher": "FunkPHP",
 	"icon": "logo.png",
 	"engines": {
@@ -20,7 +20,7 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/yourusername/funkphp.git"
+		"url": "https://github.com/WebbKodsFrilansaren/funkphp.git"
 	},
 	"license": "MIT",
 	"files": [
