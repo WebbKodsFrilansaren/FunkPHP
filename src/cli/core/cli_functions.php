@@ -6,8 +6,13 @@
 // have so it can always prioritize more specific routes (with more static segments)
 // over less specific ones (with more parameter segments). This is crucial for correct
 // route matching when using a flat array of routes.
-function cli_prepare_binary_specificity_score(array $RoutesArray): array
+// IMPORTANT: "VF" stands for Validate First so you should guarantee an array correctly structured is passed!
+function cli_prepare_binary_specificity_score_VF(array $RoutesArray): array
 {
+    if (!empty(cli_routes_in_a_method_are_all_unique($RoutesArray))) {
+        cli_err_without_exit('[cli_prepare_binary_specificity_score_VF()]: The provided Routes Array contains DUPLICATE Route Paths which would lead to ambiguous route matching. Please provide only Unique Routes for the given HTTP(S) Method before Compiling the Routes. If a Command File called this function, this error now stopped the command execution!');
+        cli_info("You can run `cli_routes_in_a_method_are_all_unique()` on the same array to get a list of duplicates to fix before Compiling the Routes!");
+    }
     $processed = [];
     foreach ($RoutesArray as $routeStr => $routeConfig) {
         // Clean edge cases like accidental double slashes or trailing slashes
@@ -36,9 +41,6 @@ function cli_prepare_binary_specificity_score(array $RoutesArray): array
             'segment_count'  => $segmentCount,
             'binary_mask'    => $binaryMask,
             'binary_score'   => $score,
-            'config'         => $routeConfig['config'] ?? [],
-            'middlewares'    => $routeConfig['middlewares'] ?? [],
-            'pipeline'       => $routeConfig['pipeline'] ?? [],
         ];
     }
     // Sort execution block: Tie-breaker sorting
@@ -58,70 +60,130 @@ function cli_prepare_binary_specificity_score(array $RoutesArray): array
 // with their full path as the key and their config, middlewares and pipeline as the value.
 // This is crucial for correct route matching when using a flat array of routes.
 // IMPORTANT: might not work yet, still work in progress!
-function cli_build_flattened_routing_start($RoutesArray) {}
+/**
+ * Takes the prepared, sorted routes array (for a single HTTP method)
+ * and builds a highly structured Intermediate Representation (Tree/AST)
+ * grouped by segment count.
+ * IMPORTANT: "VF" stands for Validate First so you should
+ * guarantee an array+string correctly structured is passed!
+ */
+function cli_build_flattened_routing_start_VF(array $PreparedRoutesArray, string $method): array
+{
+    $ast = [];
+    $method = strtoupper($method);
 
-// Compile "pipeline_routes.php" (via trie routes files "compiled_routes.php") into an
-// optimized flat Route matcher using GOTO labels: everywhere! IMPORTANT: Might not work,
-// still working progress function and might NOT be final thing to use!
-function cli_compile_trie_node(array $node, array $currentPath = [], int $depth = 0): string
+    foreach ($PreparedRoutesArray as $routeData) {
+        $segCount   = $routeData['segment_count'];
+        $routeStr   = $routeData['original_route'];
+        $trimmed    = trim($routeStr, '/');
+
+        // --- Fix Edge-Case: Root Domain "/" ---
+        if ($trimmed === '' && $segCount === 0) {
+            $ast[0]['/'] = [
+                'segment_value' => '/',
+                'is_parameter'  => false,
+                'route_target'  => '/',
+                'route_comment' => "//$method/",
+                'children'      => []
+            ];
+            continue;
+        }
+
+        $segments = explode('/', $trimmed);
+
+        if (!isset($ast[$segCount])) {
+            $ast[$segCount] = [];
+        }
+
+        $currentNode = &$ast[$segCount];
+        foreach ($segments as $index => $segment) {
+            $isParam = str_starts_with($segment, ':');
+            $nodeKey = $segment;
+
+            if (!isset($currentNode[$nodeKey])) {
+                $currentNode[$nodeKey] = [
+                    'segment_value' => $segment,
+                    'is_parameter'  => $isParam,
+                    'route_target'  => null,
+                    'children'      => []
+                ];
+            }
+
+            if ($index === ($segCount - 1)) {
+                $currentNode[$nodeKey]['route_target'] = $routeStr;
+                $currentNode[$nodeKey]['route_comment'] = "//$method$routeStr";
+            }
+
+            $currentNode = &$currentNode[$nodeKey]['children'];
+        }
+        unset($currentNode);
+    }
+    return $ast;
+}
+
+/*
+ * Takes the flattened AST built by cli_build_flattened_routing_start_VF() and compiles it into
+ * a single flat PHP file with optimized route matching logic using if statements and GOTO labels.
+ * IMPORTANT: "VF" stands for Validate First so you should
+ * guarantee an array+string correctly structured is passed!
+*/
+function cli_compile_flattened_AST_VF(array $nodes, int $depth = 0): string
 {
     $code = "";
-
-    foreach ($node as $key => $subNode) {
-        // Skip middleware or metadata flags
-        if ($key === '|' || $key === '<CONFIG>') continue;
-
-        $newPath = array_merge($currentPath, [$key]);
-        $labelName = "branch_GET_" . implode('_', str_replace(':', 'param_', $newPath));
-
-        if ($depth === 0) {
-            // First level creates the initial entry routing
-            $code .= "    if (\$uriSegments[0] === '{$key}') goto {$labelName};\n";
-        }
-
-        // Open the label block
-        $labelCode = "\n    {$labelName}:\n";
-
-        // If this node represents a valid complete route destination
-        if (isset($subNode[0]) || is_null($subNode)) {
-            $routePath = '/' . implode('/', $newPath);
-            $labelCode .= "    if (\$uriSegmentCount === " . ($depth + 1) . ") {\n";
-            $labelCode .= "        \$c['req']['route'] = '{$routePath}';\n";
-            // Hardcode fully resolved handlers & middlewares extracted from your routes.php!
-            $labelCode .= "        return true;\n";
-            $labelCode .= "    }\n";
-        }
-
-        // Recursively handle children if they exist
-        if (is_array($subNode) && !empty($subNode)) {
-            // Write look-ahead for the next segment index
-            $nextIndex = $depth + 1;
-            foreach ($subNode as $subKey => $childNode) {
-                if ($subKey === 0 || $subKey === '|' || $subKey === '<CONFIG>') continue;
-
-                $nextLabel = "branch_GET_" . implode('_', str_replace(':', 'param_', array_merge($newPath, [$subKey])));
-
-                if ($subKey === ':') {
-                    // It's a wildcard dynamic parameter node! It consumes whatever string is there.
-                    $labelCode .= "    if (isset(\$uriSegments[{$nextIndex}])) goto {$nextLabel};\n";
-                } else {
-                    // It's a static string literal node
-                    $labelCode .= "    if ((\$uriSegments[{$nextIndex}] ?? null) === '{$subKey}') goto {$nextLabel};\n";
-                }
+    $indent = str_repeat("    ", $depth + 1); // Dynamically adds tabs for clean output
+    foreach ($nodes as $key => $node) {
+        if ($node['is_parameter']) {
+            // Clean the parameter key (e.g., ":companyId" becomes "companyId")
+            $paramName = ltrim($node['segment_value'], ':');
+            if ($node['route_target']) {
+                $code .= "{$indent}// MATCHED_ROUTE:{$node['route_comment']}\n";
+                $code .= "{$indent}return true;\n";
             }
+            // Continue stepping down the branch
+            $code .= cli_compile_flattened_AST_VF($node['children'], $depth + 1);
+        } else {
+            // Static string evaluation gate
+            $code .= "{$indent}if (\\strcasecmp(\$segs[{$depth}], '{$node['segment_value']}') === 0) {\n";
+            if ($node['route_target']) {
+                $code .= "{$indent}    // MATCHED_ROUTE:{$node['route_comment']}\n";
+                $code .= "{$indent}    return true;\n";
+            }
+            // Recurse down to child segments
+            $code .= cli_compile_flattened_AST_VF($node['children'], $depth + 1);
+            $code .= "{$indent}}\n";
         }
-
-        // If no look-aheads match and the segment count wasn't an exact match, drop to 404
-        $labelCode .= "    goto route_404;\n";
-
-        // Append this whole block to our main generation system
-        // (You might want to sort static literals before wildcards here!)
-        $code .= $labelCode;
     }
-
     return $code;
 }
 
+/**
+ * Master orchestration function to compile the full routing tree.
+ */
+function cli_compile_router_file_VF(array $ast, string $method): string
+{
+    $code = "<?php\n// Compiled Route Gate File via FunkCLI\n\n";
+
+    // Process segment counts from highest to lowest
+    foreach ($ast as $segCount => $nodes) {
+        $code .= $method . "_segs_{$segCount}:\n";
+
+        if ($segCount === 0) {
+            // Instant execution return block for root domain "/"
+            $code .= "    if (empty(\$segs)) {\n";
+            $code .= "        // MATCHED_ROUTE:{$nodes['/']['route_comment']}\n";
+            $code .= "        return true;\n";
+            $code .= "    }\n\n";
+            continue;
+        }
+
+        // Pass the actual nodes group to the recursive compiler
+        $code .= cli_compile_flattened_AST_VF($nodes, 0);
+        $code .= "\n";
+    }
+
+    $code .= "return null; // Global Fallback\n";
+    return $code;
+}
 // Get inherited middlewares (IMPORTANT: might not work yet, still work in progress) from route
 function cli_resolve_inherited_middlewares(string $routePath, array $developerRoutes, string $method): array
 {
@@ -1639,6 +1701,29 @@ function cli_default_created_fn_files($type, $methodAndRoute, $folder, $file, $f
     // Return finalized created string
     return $entireCreatedString;
 }
+// A string version of "php_strip_whitespace" to get the optimized version of a PHP code string by removing comments and collapsing whitespace
+function cli_php_strip_whitespace_string(string $code): string
+{
+    $tokens = token_get_all($code);
+    $output = '';
+    foreach ($tokens as $token) {
+        if (is_array($token)) {
+            // Drop structural and doc comments completely
+            if ($token[0] === T_COMMENT || $token[0] === T_DOC_COMMENT) {
+                continue;
+            }
+            // Sanitize and collapse whitespace chunks
+            if ($token[0] === T_WHITESPACE) {
+                $output .= ' ';
+                continue;
+            }
+            $output .= $token[1];
+        } else {
+            $output .= $token;
+        }
+    }
+    return trim($output);
+}
 
 // CLI Test function, by GPT Free-use, might change later.
 // Provide Stringed Name of test, then function name, then the tests in an array like
@@ -1651,26 +1736,15 @@ function cli_run_tests(string $title, callable $fn, array $tests, string|array|n
     foreach ($tests as $i => $test) {
         $expected = $test['expected'] ?? null;
         $actual = null;
-        // -------------------------
-        // CASE 1: multi-args mode
-        // -------------------------
         if (isset($test['args']) && is_array($test['args'])) {
             $actual = $fn(...$test['args']);
-        }
-        // -------------------------
-        // CASE 2: named keys mode (route/method/etc)
-        // -------------------------
-        elseif (is_string($inputKey)) {
+        } elseif (is_string($inputKey)) {
             if (!isset($test[$inputKey])) {
                 echo "❌ INVALID TEST STRUCTURE at #{$i}\n";
                 continue;
             }
             $actual = $fn($test[$inputKey]);
-        }
-        // -------------------------
-        // CASE 3: multiple named inputs (route1, route2)
-        // -------------------------
-        elseif (is_array($inputKey)) {
+        } elseif (is_array($inputKey)) {
             $args = [];
             foreach ($inputKey as $key) {
                 if (!isset($test[$key])) {
@@ -1680,11 +1754,7 @@ function cli_run_tests(string $title, callable $fn, array $tests, string|array|n
                 $args[] = $test[$key];
             }
             $actual = $fn(...$args);
-        }
-        // -------------------------
-        // fallback failure
-        // -------------------------
-        else {
+        } else {
             echo "❌ INVALID CONFIG at #{$i}\n";
             continue;
         }
@@ -1858,7 +1928,47 @@ function cli_new_route_is_unique_in_its_method_group_VF($ROUTESSource, $newRoute
     }
     return true;
 }
-
+/**
+ * Scans an entire method group array, normalizes paths to parameter-blind shapes,
+ * and groups structural collisions together for clean CLI diagnostic reporting.
+ *
+ * @param array $methodRoutes Array of Routes of a Method (e.g., $ROUTES['GET'])
+ * @return array An array of collision groups found. Empty if all routes are unique.
+ */
+function cli_routes_in_a_method_are_all_unique(array $methodRoutes): array
+{
+    $structuralBucket = [];
+    $collisionReport  = [];
+    foreach ($methodRoutes as $routeStr => $config) {
+        // Skip special configuration blocks inside the route file
+        if ($routeStr === '<CONFIG>') {
+            continue;
+        }
+        // 1. Normalize slashes to ensure uniform matching shapes
+        $trimmed = trim($routeStr, '/');
+        // 2. Transform all dynamic parameters into uniform placeholder strings
+        if ($trimmed === '') {
+            $normalizedKey = '[ROOT]';
+        } else {
+            // Replaces patterns like :id, :userId, :slug with :PARAM
+            $normalizedKey = preg_replace('/:[a-zA-Z0-9_-]+/', ':PARAM', $trimmed);
+        }
+        // 3. Collect the original un-mutilated route name under its structural shape
+        $structuralBucket[$normalizedKey][] = $routeStr;
+    }
+    // 4. Filter the bucket: Any structural shape with more than 1 route is a collision!
+    foreach ($structuralBucket as $shape => $clashingRoutes) {
+        if (count($clashingRoutes) > 1) {
+            $collisionReport[$shape] = $clashingRoutes;
+        }
+    }
+    return $collisionReport;
+}
+// Better name if wanting to use the "boolean" check instead of report
+function cli_route_method_has_collisions(array $routes): bool
+{
+    return !empty(cli_routes_in_a_method_are_all_unique($routes));
+}
 // Checks so $existingRoute key has the ['config' => [], ['middlewares' => [], 'pipeline' => []]]
 // where either are empty OR the 'middlewares' AND 'pipeline' both are numbered arrays, but where
 // the 'config' array is just an associatiev array, empty or not!
