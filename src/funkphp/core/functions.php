@@ -591,7 +591,6 @@ function funk_default_register_shutdown_function(&$c)
         funk_run_pipeline_post_response($c);
     } else {
         $c['err']['MAYBE']['PIPELINE']['funk_run_post_request'][] = 'No Configured Post-Response Pipeline Functions (`"<ENTRY>" => "pipeline" => "post_response"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\'][\'post_response\']` Key in the Pipeline Configuration File `funkphp/core/pipeline_request.php` File!';
-        funk_use_log($c, 'No Configured Post-Request Pipeline Functions (`"<ENTRY>" => "pipeline" => "post_response"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\'][\'post_responset\']` Key in the Pipeline Configuration File `funkphp/core/pipeline_request.php` File!', 'WARN');
     }
 }
 

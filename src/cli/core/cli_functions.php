@@ -3688,7 +3688,7 @@ function cli_output_tables_file($array)
     // --- (FROM LLM!!!) END NEW LOGIC ---
 
     // Attempt to write to the Tables.php file and check if it was successful
-    if (!cli_crud_folder_php_file_atomic_write("<?php\nreturn " . cli_convert_array_to_simple_syntax($array), FUNKPHP_FILE_PATH_TABLES)) {
+    if (!cli_crud_folder_php_file_atomic_write("<?php\nreturn " . var_export($array, true) . ";\n", FUNKPHP_FILE_PATH_TABLES)) {
         cli_err_syntax("FAILED recompiling Tables in `" . FUNKPHP_FILE_PATH_TABLES . "`!");
     } else {
         cli_success_without_exit("Recompiled Tables in `" . FUNKPHP_FILE_PATH_TABLES . "`!");
@@ -9306,7 +9306,7 @@ function cli_rebuild_single_routes_route_file($singleRouteRoutesFileArray): bool
     }
     // Use Atomic File Write to prevent corruption while outputting the newly compiled Routes file
     return (cli_crud_folder_php_file_atomic_write((cli_get_prefix_code("route_singles_routes_start")
-        . cli_convert_array_to_simple_syntax($singleRouteRoutesFileArray)), FUNKPHP_FILE_PATH_ROUTES));
+        . var_export($singleRouteRoutesFileArray, true) . ";\n"), FUNKPHP_FILE_PATH_ROUTES));
 }
 
 // Build Compiled Route from Developer's Defined Routes
@@ -9483,14 +9483,14 @@ function cli_output_compiled_routes(array $compiledTrie)
         cli_err_syntax("Compiled Routes Must Be A Non-Empty Array!");
     }
     // Try output ocmpiled route to file and report success or failure
-    if (!cli_crud_folder_php_file_atomic_write("<?php\nreturn " . cli_convert_array_to_simple_syntax($compiledTrie), FUNKPHP_FILE_PATH_TROUTES)) {
+    if (!cli_crud_folder_php_file_atomic_write("<?php\nreturn " . var_export($compiledTrie, true) . ";\n", FUNKPHP_FILE_PATH_TROUTES)) {
         cli_err("Failed to write Compiled Routes to file: `" .  FUNKPHP_FILE_PATH_TROUTES . "`! Check File Permissions?");
     } else {
         cli_success_without_exit("SUCCESSFULLY Wrote Compiled Routes to file: `" . FUNKPHP_FILE_PATH_TROUTES . "`!");
     }
 }
 
-// Convert PHP array() syntax to simplified [] syntax
+// Convert PHP array() syntax to simplified [] syntax | ONLY USED FOR "reserved_list" output, nothing else!
 function cli_convert_array_to_simple_syntax(array $array): string | null | array
 {
     // Must be non-empty array
@@ -9905,15 +9905,6 @@ function cli_sort_build_routes_compile_and_output($singleRoutesRootArray)
         }
     }
 
-    // TODO: Fix later when cli_backup_batch is fixed!
-    // First backup all associated route files if settings allow it
-    // cli_backup_batch(
-    //     [
-    //         "troutes",
-    //         "routes",
-    //     ]
-    // );
-
     // Then we rebuild and recompile Routes
     $rebuild = cli_rebuild_single_routes_route_file($singleRoutesRootArray);
     if ($rebuild) {
@@ -9943,98 +9934,6 @@ function cli_compile_batch($arrayOfRoutesToCompileAndOutput)
             continue;
         }
     }
-}
-
-// Backup all files in a folder to another folder
-function cli_backup_all_files_in_folder_to_another_folder($backupFolderDestinationWithoutExtension, $ext, $backupFolder)
-{
-    // Check that all three arguments are non-empty strings!
-    if (
-        !is_string($backupFolderDestinationWithoutExtension) ||  !is_string($ext) || !is_string($backupFolder)
-        || $backupFolderDestinationWithoutExtension === "" || $ext === "" || $backupFolder === ""
-    ) {
-        cli_err_syntax("[cli_backup_all_files_in_folder_to_another_folder] Backup folder destination, file extension and backup folder must be non-empty strings!");
-    }
-
-    // Check that both dirs exist, are readable and writable
-    if (!is_dir($backupFolderDestinationWithoutExtension)) {
-        cli_err_syntax("[cli_backup_all_files_in_folder_to_another_folder] Backup folder destination must be a valid directory. Path: $backupFolderDestinationWithoutExtension is not!");
-    }
-    if (!is_writable($backupFolderDestinationWithoutExtension)) {
-        cli_err_syntax("[cli_backup_all_files_in_folder_to_another_folder] Backup folder destination must be writable! Path: $backupFolderDestinationWithoutExtension is not!");
-    }
-    if (!is_dir($backupFolder)) {
-        cli_err_syntax("[cli_backup_all_files_in_folder_to_another_folder] Backup folder must be a valid directory. Path: $backupFolder is not!");
-    }
-    if (!is_readable($backupFolder)) {
-        cli_err_syntax("[cli_backup_all_files_in_folder_to_another_folder] Backup folder must be readable! Path: $backupFolder is not!");
-    }
-    // We will now loop through the $backupFolder and call the cli_backup_file_until_success() function for each file in the folder
-    // and that is not a folder itself. Those are just ignored (continue;)
-    $files = scandir($backupFolder);
-    $countOfCopiedFiles = 0;
-    foreach ($files as $file) {
-        if (is_dir($backupFolder . "/" . $file)) {
-            continue;
-        }
-        // Check if the file ends with the extension
-        if (str_ends_with($file, $ext)) {
-            // Call the cli_backup_file_until_success() function for each file in the folder
-            cli_backup_file_until_success($backupFolderDestinationWithoutExtension, $ext, $backupFolder . "/" . $file);
-            $countOfCopiedFiles++;
-        }
-    }
-    // Check if we copied any files
-    if ($countOfCopiedFiles === 0) {
-        cli_info("No files copied from $backupFolder to $backupFolderDestinationWithoutExtension!");
-    } else {
-        cli_success_without_exit("Copied $countOfCopiedFiles files from $backupFolder to $backupFolderDestinationWithoutExtension!");
-    }
-}
-
-// Output backup file until success (by waiting one second and retrying with new file name that is the file name + new datetime and extension    )
-function cli_backup_file_until_success($backupDestinationWithoutExtension, $extension, $backupData)
-{
-    // Check non-empty strings in all three variables
-    if (
-        !is_string($backupDestinationWithoutExtension) ||  !is_string($extension) || !is_string($backupData)
-        || $backupDestinationWithoutExtension === "" || $extension === "" || $backupData === ""
-    ) {
-        cli_err_syntax("Backup destination, extension and exact backup data must be non-empty strings!");
-    }
-
-    // Check extension is valid (starting with ".") and ending with only characters
-    if (!str_starts_with($extension, ".")) {
-        cli_err_syntax("Backup extension must start with '.' and only contain characters!");
-    }
-
-    // Check preg_match for extension which is (.[a-zA-Z0-9-_]+$)
-    if (!preg_match("/\.[a-zA-Z0-9-_]+$/", $extension)) {
-        cli_err_syntax("Backup extension must start with '.' and only contain characters (a-zA-Z0-9-_)!");
-    }
-
-    // Check that backup destination exists (each folder in the path must exist)
-    $backupDestination = dirname($backupDestinationWithoutExtension);
-    if (!is_dir($backupDestination)) {
-        cli_err_syntax("Backup destination must be a valid directory. Path: $backupDestination is not!");
-    }
-    if (!is_writable($backupDestination)) {
-        cli_err_syntax("Backup destination must be writable! Path: $backupDestination is not!");
-    }
-
-    // Check that backup data file exists (each folder in the path must exist)
-    if (!is_file($backupData)) {
-        cli_err_syntax("Backup data file must be a valid file. Path: $backupData is not!");
-    }
-    if (!is_readable($backupData)) {
-        cli_err_syntax("Backup data file must be readable! Path: $backupData is not!");
-    }
-
-    // Get the contents from the $backupData file before we write it to the backup file
-    $backupData = file_get_contents($backupData);
-
-    // Now we use the cli_backup_file_until_success function to create the backup file
-    cli_output_file_until_success($backupDestinationWithoutExtension, $extension, $backupData, "Backup file written successfully: $backupDestinationWithoutExtension!");
 }
 
 // Retrieve starting code for files created by the CLI
