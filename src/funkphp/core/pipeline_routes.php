@@ -1,4 +1,4 @@
-<?php // pipeline_routes.php - FunkPHP | FunkCLI Modified it 2026-06-16 11:23:30
+<?php // pipeline_routes.php - FunkPHP | FunkCLI Modified it 2026-06-16 11:34:04
 return  [
   'ROUTES' =>
   [
@@ -17,9 +17,7 @@ return  [
           [],
         ],
         'middlewares' =>
-        [
-          0 => 'mw_test2',
-        ],
+        [],
         'pipeline' =>
         [
           0 =>
@@ -29,15 +27,57 @@ return  [
         ],
       ],
       '<CONFIG_METHOD>' =>
-      [],
+      [
+        'method_headers' =>
+        [],
+        'method_rate_limiting' => NULL,
+        'method_param_rules' =>
+        [],
+      ],
+    ],
+    'POST' =>
+    [
+      '<CONFIG_METHOD>' =>
+      [
+        'method_headers' =>
+        [],
+        'method_rate_limiting' => NULL,
+        'method_param_rules' =>
+        [],
+      ],
+    ],
+    'PUT' =>
+    [
+      '<CONFIG_METHOD>' =>
+      [
+        'method_headers' =>
+        [],
+        'method_rate_limiting' => NULL,
+        'method_param_rules' =>
+        [],
+      ],
     ],
     'DELETE' =>
-    [],
+    [
+      '<CONFIG_METHOD>' =>
+      [
+        'method_headers' =>
+        [],
+        'method_rate_limiting' => NULL,
+        'method_param_rules' =>
+        [],
+      ],
+    ],
     'PATCH' =>
-    [],
-    'PUT' =>
-    [],
-    'POST' =>
-    [],
+    [
+      '<CONFIG_METHOD>' =>
+      [
+        'method_headers' =>
+        [],
+        'method_rate_limiting' => NULL,
+        'method_param_rules' =>
+        [],
+      ],
+    ],
   ],
 ];

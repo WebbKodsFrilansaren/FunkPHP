@@ -2,6 +2,11 @@
 return  [
     'pipeline' =>
     [
+        '<CONFIG_GLOBAL>' => [
+            'global_headers' => [],
+            'global_rate_limiting' => null,
+            'global_param_rules' => [],
+        ],
         'request' =>
         [
             0 => 'pl_https_redirect',

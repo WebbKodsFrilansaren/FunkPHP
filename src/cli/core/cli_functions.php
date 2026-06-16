@@ -9348,7 +9348,6 @@ function cli_build_compiled_routes(array $developerSingleRoutes, array $develope
         // For example:  '/users' => ['handler' => 'USERS_PAGE', /*...*/], only gets the '/users' key name
         // and not the value inside of it. This is done by using array_keys() to get the keys of the array.
         $keys = array_keys($singleRoutes) ?? [];
-        var_dump($keys);
         $compiledTrie = [];
 
         // Iterate through each key in the array and add it to the $compiledTrie array
@@ -9653,19 +9652,44 @@ function cli_restore_default_folders_and_files()
     foreach ($defaultFiles as $file) {
         if (!file_exists($file)) {
             // Recreate default files based on type ("troute", "middleware routes" or "single routes")
-            if (str_contains($file, "troute_route")) {
+            if (str_contains($file, "compiled_routes")) {
                 file_put_contents($file, "<?php\n// This file was recreated by FunkCLI!\nreturn [];\n?>");
                 echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
                 continue;
-            } elseif (str_contains($file, "routes")) {
-                file_put_contents($file, "<?php\n// compiled_routes.php - FunkPHP Framework | FunkCLI recreated it $date\nreturn [
-            'ROUTES' => ['GET' =>[],'POST' =>[],'PUT' =>[],'DELETE' =>[],'PATCH' =>[],],];?>");
+            } elseif (str_contains($file, "pipeline_routes")) {
+                file_put_contents($file, "<?php\n// pipeline_routes.php - FunkPHP Framework | FunkCLI recreated it $date\nreturn [
+            'ROUTES' => ['GET' =>['<CONFIG_METHOD>' => [
+        'method_headers' => [],
+        'method_rate_limiting' => null,
+        'method_param_rules' => [],
+    ]],'POST' =>['<CONFIG_METHOD>' => [
+        'method_headers' => [],
+        'method_rate_limiting' => null,
+        'method_param_rules' => [],
+    ]],'PUT' =>['<CONFIG_METHOD>' => [
+        'method_headers' => [],
+        'method_rate_limiting' => null,
+        'method_param_rules' => [],
+    ]],'DELETE' =>['<CONFIG_METHOD>' => [
+        'method_headers' => [],
+        'method_rate_limiting' => null,
+        'method_param_rules' => [],
+    ]],'PATCH' =>['<CONFIG_METHOD>' => [
+        'method_headers' => [],
+        'method_rate_limiting' => null,
+        'method_param_rules' => [],
+    ]],],];?>");
                 echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
                 continue;
-            } else if (str_contains($file, "pipeline")) {
-                file_put_contents($file, "<?php\n// Pipeline.php - FunkPHP Framework | FunkCLI recreated it $date\nreturn  [
+            } else if (str_contains($file, "pipeline_request")) {
+                file_put_contents($file, "<?php\n// pipeline_request.php - FunkPHP Framework | FunkCLI recreated it $date\nreturn  [
             'pipeline' =>
-        [
+            [
+            '<CONFIG_GLOBAL>' => [
+            'global_headers' => [],
+            'global_rate_limiting' => null,
+            'global_param_rules' => [],
+            ],
             'request' =>
             [
             0 => 'pl_https_redirect',
@@ -9674,9 +9698,7 @@ function cli_restore_default_folders_and_files()
             3 => 'pl_match_denied_exact_ips',
             4 => 'pl_match_denied_methods',
             5 => 'pl_match_denied_uas',
-            6 => 'pl_match_route',
-            7 => 'pl_run_matched_route_middlewares',
-            8 => 'pl_run_matched_route_keys',
+            6 => 'pl_match_route_then_run_matched_middlewares_and_pipeline',
             ],'post_response' => [0 => [],],];");
                 echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
                 continue;

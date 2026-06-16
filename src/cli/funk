@@ -330,6 +330,7 @@ cli_restore_default_folders_and_files();
 $singlePipeline = include_once FUNKPHP_FILE_PATH_PIPELINE ?? [
     'pipeline' =>
     [
+        FUNKPHP_DEFAULT_GLOBAL_CONFIG_KEY_AND_ITS_KEYS,
         'request' =>
         [
             0 => 'pl_https_redirect',
@@ -348,7 +349,17 @@ $singlePipeline = include_once FUNKPHP_FILE_PATH_PIPELINE ?? [
     ],
 ];
 $singleRoutesRoute = include_once FUNKPHP_FILE_PATH_ROUTES ?? [
-    'ROUTES' => ['GET' => [], 'POST' => [], 'PUT' => [], 'DELETE' => [], 'PATCH' => []]
+    'ROUTES' => ['GET' => [
+        FUNKPHP_DEFAULT_METHOD_CONFIG_KEY_AND_ITS_KEYS,
+    ], 'POST' => [
+        FUNKPHP_DEFAULT_METHOD_CONFIG_KEY_AND_ITS_KEYS
+    ], 'PUT' => [
+        FUNKPHP_DEFAULT_METHOD_CONFIG_KEY_AND_ITS_KEYS
+    ], 'DELETE' => [
+        FUNKPHP_DEFAULT_METHOD_CONFIG_KEY_AND_ITS_KEYS
+    ], 'PATCH' => [
+        FUNKPHP_DEFAULT_METHOD_CONFIG_KEY_AND_ITS_KEYS
+    ]]
 ];
 $singleTroute = include_once FUNKPHP_FILE_PATH_TROUTES ?? [
     'GET' =>
