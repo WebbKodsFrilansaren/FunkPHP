@@ -6,11 +6,6 @@ return array(
     array(
       '/' =>
       array(),
-      'test' =>
-      array(
-        '|' =>
-        array(),
-      ),
     ),
     'POST' =>
     array(),
@@ -28,24 +23,21 @@ return array(
       'allRoutes' =>
       array(
         '/' => 1,
-        '/test' => 1,
       ),
       'staticRoutes' =>
       array(
         '/' => 1,
-        '/test' => 1,
       ),
       'dynamicRoutes' =>
       array(),
       'minURICount' => 0,
-      'maxURICount' => 1,
+      'maxURICount' => 0,
       'URICountExistsForNumber' =>
       array(
         0 => 1,
-        1 => 1,
       ),
-      'allRoutesCount' => 2,
-      'staticRoutesCount' => 2,
+      'allRoutesCount' => 1,
+      'staticRoutesCount' => 1,
       'dynamicRoutesCount' => 0,
     ),
     'PATCH' =>
