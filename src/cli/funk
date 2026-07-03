@@ -70,6 +70,7 @@ define('FUNKPHP_PIPELINE_REQUEST_DIR', FUNKPHP_PIPELINE_DIR . '/request');
 define('FUNKPHP_PIPELINE_POST_RESPONSE_DIR', FUNKPHP_PIPELINE_DIR . '/post_response');
 define('FUNKPHP_ROUTES_DIR', FUNKPHP_DIR . '/pipeline/routes');
 define('FUNKPHP_QUERY_DIR', FUNKPHP_DIR . '/data/query');
+define('FUNKPHP_SQL_DIR', FUNKPHP_DIR . '/data/sql');
 define('FUNKPHP_VALIDATION_DIR', FUNKPHP_DIR . '/data/validation');
 define('GUI_DIR', PROJECT_DIR . '/gui');
 define('PUBLIC_DIR', PROJECT_DIR . '/public_html');

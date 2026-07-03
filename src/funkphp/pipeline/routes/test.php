@@ -28,3 +28,9 @@ function test2(&$c)
 {
 	// Placeholder Comment so Regex works - Remove & Add Real Code!
 };
+
+function test3(&$c)
+{
+	// Placeholder Comment so Regex works - Remove & Add Your Own Code!
+
+};

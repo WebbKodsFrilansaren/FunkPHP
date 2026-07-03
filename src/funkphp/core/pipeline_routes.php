@@ -1,9 +1,33 @@
-<?php // pipeline_routes.php - FunkPHP | FunkCLI Modified it 2026-07-03 09:43:06
+<?php // pipeline_routes.php - FunkPHP | FunkCLI Modified it 2026-07-03 11:30:48
 return array(
   'ROUTES' =>
   array(
     'GET' =>
     array(
+      '/' =>
+      array(
+        'config' =>
+        array(
+          'route_alias' => '',
+          'route_param_rules' =>
+          array(),
+          'route_run_middlewares_before_pipeline' => true,
+          'route_headers' =>
+          array(),
+          'route_rate_limiting' => NULL,
+          'route_cache' => NULL,
+          'route_sris' =>
+          array(),
+          'route_nonces' =>
+          array(),
+          'route_csp' =>
+          array(),
+        ),
+        'middlewares' =>
+        array(),
+        'pipeline' =>
+        array(),
+      ),
       '/test' =>
       array(
         'config' =>
@@ -26,40 +50,22 @@ return array(
         'middlewares' =>
         array(
           0 => 'mw_auth',
-          1 => 'mw_auth',
-          2 => 'mw_auth2',
         ),
         'pipeline' =>
         array(
           0 =>
           array(
-            'test' => 'test2',
+            'test' => 'test3',
+          ),
+          1 =>
+          array(
+            'test2' => 'test2',
+          ),
+          2 =>
+          array(
+            'test2' => 'test12',
           ),
         ),
-      ),
-      '/test/test' =>
-      array(
-        'config' =>
-        array(
-          'route_alias' => '',
-          'route_param_rules' =>
-          array(),
-          'route_run_middlewares_before_pipeline' => true,
-          'route_headers' =>
-          array(),
-          'route_rate_limiting' => NULL,
-          'route_cache' => NULL,
-          'route_sris' =>
-          array(),
-          'route_nonces' =>
-          array(),
-          'route_csp' =>
-          array(),
-        ),
-        'middlewares' =>
-        array(),
-        'pipeline' =>
-        array(),
       ),
       '<CONFIG_METHOD>' =>
       array(

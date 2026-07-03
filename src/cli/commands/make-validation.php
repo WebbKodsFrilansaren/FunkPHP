@@ -20,34 +20,34 @@ if (!$statusArray['folder_path']) {
 }
 // Create new file when it does not exist
 if (!$statusArray['file_exists']) {
-    cli_info_without_exit("Validation File `$file.php` does not exist in `funkphp/validation`, it will be created along with Validation Function `$fn` inside of it...");
+    cli_info_without_exit("Validation File `$file.php` does not exist in `funkphp/data/validation`, it will be created along with Validation Function `$fn` inside of it...");
     $createStatus = cli_crud_folder_and_php_file($statusArray, "create_new_file_and_fn", $file, $fn, "validation", null, $tablesProvided);
     if ($createStatus) {
-        cli_success_without_exit("SUCCESSFULLY Created Validation File `$file.php` with Validation Function `$fn` in `funkphp/validation`!");
-        cli_info_without_exit("The Validation File `$file.php` is now ready to be used in `funkphp/validation`.");
-        cli_info("Use it in your Route Function Files in `funkphp/routes/{SubFolder}` by calling `funk_use_validation(&\$c, '$file', '$fn')`!");
+        cli_success_without_exit("SUCCESSFULLY Created Validation File `$file.php` with Validation Function `$fn` in `funkphp/data/validation`!");
+        cli_info_without_exit("The Validation File `$file.php` is now ready to be used in `funkphp/data/validation`.");
+        cli_info("Use it in your Route Function Files in `funkphp/pipeline/routes/{SubFolder}` by calling `funk_use_validation(&\$c, '$file', '$fn')`!");
     } else {
-        cli_err("FAILED to Create Validation File `$file.php` with Validation Function `$fn` in `funkphp/validation`!");
+        cli_err("FAILED to Create Validation File `$file.php` with Validation Function `$fn` in `funkphp/data/validation`!");
     }
 }
 // Or try to create a new function in existing file
 else {
     // Function already exists in the file
-    cli_info_without_exit("Validation File `$file.php` already exists in `funkphp/validation`, Validation Function `$fn` will be created inside of it unless it already exists...");
+    cli_info_without_exit("Validation File `$file.php` already exists in `funkphp/data/validation`, Validation Function `$fn` will be created inside of it unless it already exists...");
     if (isset($statusArray['functions'][$fn])) {
-        cli_err_without_exit("Validation Function `$fn` already exists in Validation File `$file.php` in `funkphp/validation`!");
-        cli_info("Change Validation File and/or Validation Function Name and try again for `funkphp/validation`!");
+        cli_err_without_exit("Validation Function `$fn` already exists in Validation File `$file.php` in `funkphp/data/validation`!");
+        cli_info("Change Validation File and/or Validation Function Name and try again for `funkphp/data/validation`!");
     }
     // Function does not exist in the file so
     // crudType "create_only_new_fn_in_file"
     else {
         $createStatus = cli_crud_folder_and_php_file($statusArray, "create_only_new_fn_in_file", $file, $fn, "validation", null, $tablesProvided);
         if ($createStatus) {
-            cli_success_without_exit("SUCCESSFULLY Created Validation Function `$fn` in Validation File `$file.php` in `funkphp/validation`!");
-            cli_info_without_exit("The Validation File `$file.php` is now ready to be used in `funkphp/validation`.");
-            cli_info("Use it in your Route Function Files in `funkphp/routes/{SubFolder}` by calling `funk_use_validation(&\$c, '$file', '$fn')`!");
+            cli_success_without_exit("SUCCESSFULLY Created Validation Function `$fn` in Validation File `$file.php` in `funkphp/data/validation`!");
+            cli_info_without_exit("The Validation File `$file.php` is now ready to be used in `funkphp/data/validation`.");
+            cli_info("Use it in your Route Function Files in `funkphp/pipeline/routes/{SubFolder}` by calling `funk_use_validation(&\$c, '$file', '$fn')`!");
         } else {
-            cli_err("FAILED to Create Validation Function `$fn` in Validation File `$file.php` in `funkphp/validation`!");
+            cli_err("FAILED to Create Validation Function `$fn` in Validation File `$file.php` in `funkphp/data/validation`!");
         }
     }
 }
