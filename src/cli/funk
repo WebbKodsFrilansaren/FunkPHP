@@ -285,8 +285,6 @@ else {
     }
 }
 
-var_dump($args);
-
 define("JSON_MODE", $JSON);
 define("CLI_MODE", $CLI);
 define("NO_ARGS_CLI", ($CLI === true && count($args) === 0));
