@@ -46,7 +46,7 @@ function pl_match_route_then_run_matched_middlewares_and_pipeline(&$c)
         $c,
         $c['req']['method'],
         $c['req']['uri'],
-        $c['ROUTES']['COMPILED'] ?? [],
+        $c['ROUTES']['COMPILED']['TRIE'] ?? [],
         $c['ROUTES']['DEVELOPER']['ROUTES'] ?? [],
     );
     // Return JSON/Page when no match!
@@ -86,12 +86,13 @@ function pl_match_route_then_run_matched_middlewares_and_pipeline(&$c)
         }
     }
     // When matched, data is stored in $c['req'] and it is up to the Developer to do whatever they want with it!
-    // Recommended is to first use `pl_run_matched_route_middlewares` to run any matched middlewares and then
-    // use the `pl_run_matched_route_keys` to run the matched Route Keys that has been stored after the match!
-
     /* RUN MATCHED MIDDLEWARES IF ANY */
     // 'defensive' = we check almost everything and output error to user if something gets wrong
-    if (isset($c['req']['matched_middlewares'])) {
+    if (
+        isset($c['req']['matched_middlewares'])
+        && (isset($c['req']['matched_config']['route_run_middlewares_before_pipeline'])
+            && $c['req']['matched_config']['route_run_middlewares_before_pipeline'] === true)
+    ) {
         // Must be a numbered array
         if (!is_array($c['req']['matched_middlewares']) || !array_is_list($c['req']['matched_middlewares'])) {
             $c['err']['MIDDLEWARES'][] = 'Configured Matched Route Middlewares (`"ROUTES" => "GET|POST|PUT|DELETE|PATCH" => "/route" => "middlewares" Key`) to load and run after Possibly Matched Route: `' . ($c['req']['route'] !== null ? $c['req']['method'] . $c['req']['route'] : '<No Route Matched>') . '` Route Matching. But the `middlewares` Key is not a numbered array, please check the `funkphp/config/routes.php` File!';

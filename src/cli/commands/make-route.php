@@ -47,9 +47,27 @@ if (!array_key_exists($method, $ROUTES)) {
 }
 // "else" means Method exist, but we do not know if Route exists in that Method
 else {
-    if (!cli_new_route_is_unique_in_its_method_group_VF($ROUTES[$method], $route)) {
-        cli_info_without_exit("`$method$route` already exists in `funkphp/core/pipeline_routes.php`. Any optionally provided `Folder=>File=>Function` will be added as a Route Pipeline Key to it!");
-    } else {
+    // CONDITION 1: Check for an EXACT string match first (Handles static and exact matching dynamic parameters)
+    if (isset($ROUTES[$method][$route])) {
+        cli_info_without_exit("`$method$route` already exists exactly in `funkphp/core/pipeline_routes.php`. Any optionally provided `File=>Function` will be added as a Route Pipeline Key to it!");
+    }
+    // CONDITION 2: Not an exact match, but structurally collides (The Parameter Name Clash Edge Case!)
+    else if (!cli_new_route_is_unique_in_its_method_group_VF($ROUTES[$method], $route)) {
+        // Find which specific route in the array is causing the collision to give great developer feedback
+        $clashingRoute = '[Unknown Path]';
+        foreach (array_keys($ROUTES[$method]) as $existingKey) {
+            if ($existingKey === '<CONFIG_METHOD>') continue;
+            // Pass a single-item array to isolate the clash check
+            if (!cli_new_route_is_unique_in_its_method_group_VF([$existingKey => []], $route)) {
+                $clashingRoute = $existingKey;
+                break;
+            }
+        }
+        cli_err_syntax_without_exit("Route Collision Between Input:`$method$route` and Already Existing:`$method$clashingRoute`!");
+        cli_info("If You meant to Target:`$method$clashingRoute`, please try again with that or Provide a Unique METHOD/ROUTE instead!");
+    }
+    // CONDITION 3: Completely unique new route structure
+    else {
         // Here a new Route is added to the Method because it does not already exist
         $ROUTES[$method][$route] = FUNKPHP_DEFAULT_ROUTE_KEYS;
         cli_info_without_exit("Added New Route `$route` to Method `$method` in `funkphp/core/pipeline_routes.php`... Attempting to rebuild the Trie & Route File Now... If it fails, the Method/Route will NOT have been added and you will have to retry!");
@@ -60,7 +78,7 @@ else {
 
 // We exit if no optional Folder/File/Function argument was provided
 if (!$arg_folderFileAndFn) {
-    cli_info("No File=>Function argument was provided so only `$method$route` was created. Command Done!");
+    cli_success("No File=>Function argument was provided so only `$method$route` was created. Command Done!");
 }
 ////////////////////////////////////////////////////////////////////
 // Here we have a valid Folder, File and Function to create but we

@@ -1,32 +1,32 @@
-<?php // pipeline_routes.php - FunkPHP | FunkCLI Modified it 2026-06-16 11:49:06
+<?php // pipeline_routes.php - FunkPHP | FunkCLI Modified it 2026-07-03 07:53:39
 return array(
   'ROUTES' =>
   array(
     'GET' =>
     array(
-      '/all' =>
+      '/test/test' =>
       array(
         'config' =>
         array(
           'route_alias' => '',
+          'route_param_rules' =>
+          array(),
+          'route_run_middlewares_before_pipeline' => true,
           'route_headers' =>
           array(),
           'route_rate_limiting' => NULL,
           'route_cache' => NULL,
-          'route_param_rules' =>
+          'route_sris' =>
+          array(),
+          'route_nonces' =>
+          array(),
+          'route_csp' =>
           array(),
         ),
         'middlewares' =>
-        array(
-          0 => 'mw_test2',
-        ),
+        array(),
         'pipeline' =>
-        array(
-          0 =>
-          array(
-            'test' => 'test',
-          ),
-        ),
+        array(),
       ),
       '<CONFIG_METHOD>' =>
       array(

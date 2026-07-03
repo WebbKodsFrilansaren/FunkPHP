@@ -1,5 +1,30 @@
 <?php // ALL CLI FUNCTIONS
 
+
+/*
+ * Function that collects the cli_warning, cli_err, cli_err_syntax messages
+ * in a single referenced array that should be 0 if a process should be considered
+ * to be fault/error free. Should be used by long running processes that need to report multiple warnings/errors
+*/
+function cli_build_warning_err_list(&$listArr, $warnErrType, $msg)
+{
+    // First check that &$listArr is an array or make it an empty array to start with
+    // then we check that warnErrType is either "cli_err", "cli_warning", "cli_err_syntax" or "cli_info"
+    // and if not we throw a hard error since this is a programming error. $msg should also be a non-empty string.
+    if (!is_array($listArr)) {
+        $listArr = [];
+    }
+    $validTypes = ['cli_err', 'cli_warning', 'cli_err_syntax', 'cli_info'];
+    if (!in_array($warnErrType, $validTypes)) {
+        cli_err("[cli_build_warning_err_list()]: Invalid Message Type (\$warnErrType) provided. Must be one of: `" . implode(', ', $validTypes) . "`!");
+    }
+    if (!is_string($msg) || empty(trim($msg))) {
+        cli_err("[cli_build_warning_err_list()]: The provided Message (\$msg) must be a Non-Empty String!");
+    }
+    // Now we just add to it
+    $listArr[] = [$warnErrType => $msg];
+}
+
 /* FunkRouter Compiler Relationed Functions! */
 // Function takes an array of routes (without method since they are divided by method when matching so)
 // and calculate their "Binary Specificity Score" based on how many "/:param" vs "/static" segments they
@@ -714,9 +739,9 @@ function cli_extract_folder_file($validatedFileFnString, $prefix = null): array
         $pre = mb_strtolower($prefix);
     }
     if (isset($pre) && is_string($pre) && $pre === 'v_') {
-        cli_info_without_exit("OK! Parsed Validation File:`src/FunkPHP/sql/$file.php` with Function:`function $pre$fn(&\$c, \$passedValue = null){};`");
+        cli_info_without_exit("OK! Parsed Validation File:`src/FunkPHP/data/validation/$file.php` with Function:`function $pre$fn(&\$c){};`");
     } else if (isset($pre) && is_string($pre) && $pre === 's_') {
-        cli_info_without_exit("OK! Parsed SQL File:`src/FunkPHP/sql/$file.php` with Function:`function $pre$fn(&\$c, \$passedValue = null){};`");
+        cli_info_without_exit("OK! Parsed Query File:`src/FunkPHP/data/query/$file.php` with Function:`function $pre$fn(&\$c){};`");
     }
     return [$pre . $file, $pre . $fn];
 }
@@ -1619,7 +1644,7 @@ function cli_default_created_fn_files($type, $methodAndRoute, $folder, $file, $f
     ) {
         cli_err_without_exit('[cli_default_created_fn_files()]: $arg5 (tables) must be A Valid Non-Empty String! (any whitespace is NOT allowed)');
         cli_info_without_exit("Regex Used For SQL+Validation Tables: `/^(((sd|si|s|i|u|d)=)?[a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]*(\*[0-9]+)?)*$/i`!");
-        cli_info('[cli_default_created_fn_files()]: It is ONLY for `funkphp/sql` AND `funkphp/validation`, so `$folder` must be `sql` OR `validation`!');
+        cli_info('[cli_default_created_fn_files()]: It is ONLY for `funkphp/data/query` AND `funkphp/data/validation`, so `$folder` must be `sql` OR `validation`!');
         return null;
     }
     // Replace the "/" to "\" in the $folder and then uppercase each first letter
@@ -1889,7 +1914,7 @@ function cli_route_is_same_as_another_route_VF($route, $anotherRoute)
     }
     // Here both seem to have ":" so now we replace all ":paramsegment" with a
     // placeholder and then check if they are equal
-    $placeholder = 'PLACEHOLDER';
+    $placeholder = ':PLACEHOLDER';
     $normalizedRoute = preg_replace('/:[a-zA-Z0-9_-]+/', $placeholder, $route);
     $normalizedAnotherRoute = preg_replace('/:[a-zA-Z0-9_-]+/', $placeholder, $anotherRoute);
     return $normalizedRoute === $normalizedAnotherRoute;
@@ -1917,7 +1942,7 @@ function cli_new_route_is_unique_in_its_method_group_VF($ROUTESSource, $newRoute
     foreach ($ROUTESSource as $existingRoute => $routeConfig) {
         // Ignore global config variable for the method group if it exists, since it does
         // not represent an actual route and should not be compared to the new route!
-        if ($existingRoute === '<CONFIG>') {
+        if ($existingRoute === '<CONFIG_METHOD>') {
             continue;
         }
         $transformedExistingRoute = str_contains($existingRoute, ":") ?
@@ -1941,7 +1966,7 @@ function cli_routes_in_a_method_are_all_unique(array $methodRoutes): array
     $collisionReport  = [];
     foreach ($methodRoutes as $routeStr => $config) {
         // Skip special configuration blocks inside the route file
-        if ($routeStr === '<CONFIG>') {
+        if ($routeStr === '<CONFIG_METHOD>') {
             continue;
         }
         // 1. Normalize slashes to ensure uniform matching shapes
@@ -9480,27 +9505,76 @@ function cli_rebuild_single_routes_route_file($singleRouteRoutesFileArray): bool
 }
 
 // Build Compiled Route from Developer's Defined Routes
-function cli_build_compiled_routes(array $developerSingleRoutes, array $developerMiddlewareRoutes)
+function cli_build_compiled_routes(array $developerSingleRoutes)
 {
     // Only localhost can run this function (meaning you cannot run this in production!)
     // Both arrays must be non-empty arrays
-    if (!is_array($developerSingleRoutes)) {
-        echo "[ERROR]: '\$developerSingleRoutes' Must be a non-empty array!\n";
-        exit;
-    } elseif (!is_array($developerMiddlewareRoutes)) {
-        echo "[ERROR]: '\$developerMiddlewareRoutes' Must be a non-empty array!\n";
-        exit;
-    }
-    if (empty($developerSingleRoutes)) {
-        echo "[ERROR]: Must '\$developerSingleRoutes' be a non-empty array!\n";
-        exit;
-    } else if (empty($developerMiddlewareRoutes)) {
-        echo "[ERROR]: Must '\$developerMiddlewareRoutes' be a non-empty array!\n";
+    if (!is_array($developerSingleRoutes) || empty($developerSingleRoutes)) {
+        echo "[ERROR]: '\$developerSingleRoutes' Must be a Non-Empty Array!\n";
         exit;
     }
 
     // Prepare compiled route array to return and other variables
     $compiledTrie = [];
+    $metadata = [
+        'GET' => [
+            'allRoutes' => [],
+            'staticRoutes' => [],
+            'dynamicRoutes' => [],
+            'minURICount' => 0,
+            'maxURICount' => 0,
+            'URICountExistsForNumber' => [],
+            'allRoutesCount' => 0,
+            'staticRoutesCount' => 0,
+            'dynamicRoutesCount' => 0
+        ],
+        'PATCH' => [
+            'allRoutes' => [],
+            'staticRoutes' => [],
+            'dynamicRoutes' => [],
+            'minURICount' => 0,
+            'maxURICount' => 0,
+            'URICountExistsForNumber' => [],
+            'allRoutesCount' => 0,
+            'staticRoutesCount' => 0,
+            'dynamicRoutesCount' => 0
+        ],
+        'POST' => [
+            'allRoutes' => [],
+            'staticRoutes' => [],
+            'dynamicRoutes' => [],
+            'minURICount' => 0,
+            'maxURICount' => 0,
+            'URICountExistsForNumber' => [],
+            'allRoutesCount' => 0,
+            'staticRoutesCount' => 0,
+            'dynamicRoutesCount' => 0
+        ],
+        'PUT' => [
+            'allRoutes' => [],
+            'staticRoutes' => [],
+            'dynamicRoutes' => [],
+            'minURICount' => 0,
+            'maxURICount' => 0,
+            'URICountExistsForNumber' => [],
+            'allRoutesCount' => 0,
+            'staticRoutesCount' => 0,
+            'dynamicRoutesCount' => 0
+        ],
+        'DELETE' => [
+            'allRoutes' => [],
+            'staticRoutes' => [],
+            'dynamicRoutes' => [],
+            'minURICount' => 0,
+            'maxURICount' => 0,
+            'URICountExistsForNumber' => [],
+            'allRoutesCount' => 0,
+            'staticRoutesCount' => 0,
+            'dynamicRoutesCount' => 0
+        ]
+    ];
+
+    $methods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
     $GETSingles = $developerSingleRoutes["GET"] ?? [];
     $GETConfig = $developerSingleRoutes["GET"]['<CONFIG_METHOD>'] ?? FUNKPHP_DEFAULT_METHOD_CONFIG_KEY_AND_ITS_KEYS;
     $POSTSingles = $developerSingleRoutes["POST"] ?? [];
@@ -9548,7 +9622,7 @@ function cli_build_compiled_routes(array $developerSingleRoutes, array $develope
                     if (!isset($currentNode[':'])) {
                         $currentNode[':'] = [];
                     }
-                    // And update param as next nested key and/or move to next node
+                    // And update param as next nested key and/compile_or move to next node
                     $paramName = substr($segment, 1);
                     if (!isset($currentNode[':'][$paramName])) {
                         $currentNode[':'][$paramName] = [];
@@ -9633,13 +9707,61 @@ function cli_build_compiled_routes(array $developerSingleRoutes, array $develope
     $compiledTrie['PATCH'] = $addMethods($PATCHSingles);
 
     // Then add the middlewares to the compiled trie and return it
-    $addMiddlewareRoutes($developerMiddlewareRoutes["GET"] ?? [], $compiledTrie['GET']);
-    $addMiddlewareRoutes($developerMiddlewareRoutes["POST"] ?? [], $compiledTrie['POST']);
-    $addMiddlewareRoutes($developerMiddlewareRoutes["PUT"] ?? [], $compiledTrie['PUT']);
-    $addMiddlewareRoutes($developerMiddlewareRoutes["DELETE"] ?? [], $compiledTrie['DELETE']);
-    $addMiddlewareRoutes($developerMiddlewareRoutes["PATCH"] ?? [], $compiledTrie['PATCH']);
+    $addMiddlewareRoutes($developerSingleRoutes["GET"] ?? [], $compiledTrie['GET']);
+    $addMiddlewareRoutes($developerSingleRoutes["POST"] ?? [], $compiledTrie['POST']);
+    $addMiddlewareRoutes($developerSingleRoutes["PUT"] ?? [], $compiledTrie['PUT']);
+    $addMiddlewareRoutes($developerSingleRoutes["DELETE"] ?? [], $compiledTrie['DELETE']);
+    $addMiddlewareRoutes($developerSingleRoutes["PATCH"] ?? [], $compiledTrie['PATCH']);
 
-    return $compiledTrie;
+    // Add metadata
+    $validMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
+    foreach ($validMethods as $method) {
+        $methodRoutes = $developerSingleRoutes[$method] ?? [];
+        $segmentCountsCollected = [];
+        foreach ($methodRoutes as $routeStr => $routeConfig) {
+            // Ignore special method configuration blocks
+            if ($routeStr === '<CONFIG_METHOD>') {
+                continue;
+            }
+            // 1. Compute explicit URI Segment Count
+            // Root "/" counts as exactly 0 segments based on your design signature
+            if ($routeStr === '/') {
+                $segmentCount = 0;
+            } else {
+                $trimmedRoute = trim($routeStr, '/');
+                $segmentCount = substr_count($trimmedRoute, '/') + 1;
+            }
+            // Track this specific length to safely parse min/max constraints later
+            $segmentCountsCollected[] = $segmentCount;
+            // 2. Build the structural boolean lookup hash table for production routing pre-flights
+            $metadata[$method]['URICountExistsForNumber'][$segmentCount] = 1;
+            // 3. Document the route layout matching strings
+            $metadata[$method]['allRoutes'][$routeStr] = 1;
+            // 4. Distinguish between Dynamic (containing parameters beginning with ":") and Pure Static Paths
+            if (str_contains($routeStr, ':')) {
+                $metadata[$method]['dynamicRoutes'][$routeStr] = 1;
+            } else {
+                $metadata[$method]['staticRoutes'][$routeStr] = 1;
+            }
+        }
+        // 5. Populate absolute counts metrics for this method map
+        $metadata[$method]['allRoutesCount']     = count($metadata[$method]['allRoutes']);
+        $metadata[$method]['staticRoutesCount']  = count($metadata[$method]['staticRoutes']);
+        $metadata[$method]['dynamicRoutesCount'] = count($metadata[$method]['dynamicRoutes']);
+        // 6. Compute exact maximum and minimum boundaries if this method is actively utilized
+        if (!empty($segmentCountsCollected)) {
+            $metadata[$method]['minURICount'] = min($segmentCountsCollected);
+            $metadata[$method]['maxURICount'] = max($segmentCountsCollected);
+        } else {
+            $metadata[$method]['minURICount'] = 0;
+            $metadata[$method]['maxURICount'] = 0;
+        }
+    }
+    // Returns both entities wrapped safely under distinct identifiers
+    return [
+        'TRIE'     => $compiledTrie,
+        'METADATA' => $metadata
+    ];
 }
 
 // Output Compiled Route to File or Return as String
@@ -9783,7 +9905,7 @@ function cli_restore_default_folders_and_files()
         "$folderBase/funkphp/pages/layouts/",
         "$folderBase/funkphp/pages/partials/",
         "$folderBase/funkphp/data/",
-        "$folderBase/funkphp/data/sql/",
+        "$folderBase/funkphp/data/query/",
         "$folderBase/funkphp/data/validation/",
         "$folderBase/funkphp/vendor/",
         "$folderBase/gui/",
@@ -10057,11 +10179,11 @@ function cli_delete_a_route()
 // All-in-one function to Sort all keys in ROUTES, build Route file, recompile and output them!
 function cli_sort_build_routes_compile_and_output($singleRoutesRootArray)
 {
+    cli_info_without_exit("Validating, then building and finally outputting the Pipeline Routes in optimal format!");
     // Validate input
     if (!is_array($singleRoutesRootArray) || empty($singleRoutesRootArray) || !isset($singleRoutesRootArray['ROUTES'])) {
         cli_err_syntax("The Routes Array must be a non-empty array starting with the ROUTES key!");
     }
-
     // Loop through each key below ROUTES and sort the keys
     // and values in the array by the key name (route name)
     foreach ($singleRoutesRootArray['ROUTES'] as $key => $value) {
@@ -10074,15 +10196,96 @@ function cli_sort_build_routes_compile_and_output($singleRoutesRootArray)
             ksort($singleRoutesRootArray['ROUTES'][$key]);
         }
     }
-
+    // Reference array with collected warnings and warnings for methods
+    // and routes to validate now before even processing them!
+    $developerSingleRoutes = $singleRoutesRootArray['ROUTES'];
+    $issueList = [];
+    $validMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
+    // 1. Verify structural presence of HTTP Methods
+    foreach ($validMethods as $method) {
+        if (!isset($developerSingleRoutes[$method])) {
+            cli_build_warning_err_list($issueList, 'cli_warning', "Method Group '$method' (must be all uppercased) is missing from `pipeline_routes.php` and must be an Empty Array even if not used!");
+            continue;
+        }
+        if (!is_array($developerSingleRoutes[$method])) {
+            cli_build_warning_err_list($issueList, 'cli_err', "Method Group '$method' must be an Associative Array and should be an Empty Array if not used!");
+            continue;
+        }
+        // 2. Check for Path Structure Collisions inside this specific method
+        $collisions = cli_routes_in_a_method_are_all_unique($developerSingleRoutes[$method]);
+        foreach ($collisions as $shape => $clashingRoutes) {
+            $routeList = implode(', ', $clashingRoutes);
+            cli_build_warning_err_list(
+                $issueList,
+                'cli_err_syntax',
+                "Ambiguous Route Collision found under shape '$shape'. The Routes [ $routeList ] conflict structurally!"
+            );
+        }
+        // 3. Check individual route string safety formatting
+        foreach ($developerSingleRoutes[$method] as $routeStr => $routeConfig) {
+            if ($routeStr === '<CONFIG_METHOD>') continue;
+            if (!cli_route_is_valid_string_VF($routeStr)) {
+                cli_build_warning_err_list(
+                    $issueList,
+                    'cli_err_syntax',
+                    "Invalid Route Format or Duplicate Param naming in: [$method] -> '$routeStr'"
+                );
+            }
+            // We check that route has 'config', 'middlewares' and 'pipeline' keys and that they are arrays (if they exist)
+            // and the 'middlewares' & 'pipeline' arrays both should be empty arrays or numbered arrays but not associative!
+            if (!isset($routeConfig['middlewares']) || !is_array($routeConfig['middlewares']) || !array_is_list($routeConfig['middlewares'])) {
+                cli_build_warning_err_list(
+                    $issueList,
+                    'cli_err_syntax',
+                    "Invalid Route Config for: [$method] -> '$routeStr'. The 'middlewares' Key must exist as a Numbered Array, and at least empty. Each index points to a string which is the name of a Middleware Function File in the `funkphp/pipeline/middlewares/` Folder!"
+                );
+            }
+            if (!isset($routeConfig['pipeline']) || !is_array($routeConfig['pipeline']) || !array_is_list($routeConfig['pipeline'])) {
+                cli_build_warning_err_list(
+                    $issueList,
+                    'cli_err_syntax',
+                    "Invalid Route Config for: [$method] -> '$routeStr'. The 'pipeline' Key must exist as a Numbered Array, and at least empty.  Each index points to a string which is the name of a Pipeline Function File in the `funkphp/pipeline/request/` Folder"
+                );
+            }
+            if (!isset($routeConfig['config']) || !is_array($routeConfig['config']) || empty($routeConfig['config']) || array_is_list($routeConfig['config'])) {
+                cli_build_warning_err_list(
+                    $issueList,
+                    'cli_err_syntax',
+                    "Invalid Route Config for: [$method] -> '$routeStr'. The 'config' Key must exist as an Associative Array!"
+                );
+            }
+        }
+    }
+    // If we accumulated any syntax or structural errors, halt execution and report all at once
+    if (!empty($issueList)) {
+        $msgCount = 1;
+        foreach ($issueList as $issue) {
+            $type = key($issue);
+            $msg = current($issue);
+            // Dynamic call to your non-exiting printers (e.g., cli_err_syntax_without_exit)
+            $printerFunction = $type . '_without_exit';
+            if (function_exists($printerFunction)) {
+                $printerFunction($msgCount . ". $msg");
+            } else {
+                echo "[$type]: $msg\n";
+            }
+            $msgCount++;
+        }
+        cli_info("Please Review Warnings and/or Errors above in order to move on with the Router Compilation Step!");
+        exit();
+    } else {
+        cli_success_without_exit("All Methods & Routes are considered Valid in this version of FunkPHP!");
+        cli_info_without_exit("Proceeding to Rebuild Sorted Pipeline Routes...");
+    }
     // Then we rebuild and recompile Routes
     $rebuild = cli_rebuild_single_routes_route_file($singleRoutesRootArray);
     if ($rebuild) {
-        cli_success_without_exit("Rebuilt Route file \"" . FUNKPHP_FILE_PATH_ROUTES . "\"!");
+        cli_success_without_exit("Rebuilt Pipeline Routes File \"" . FUNKPHP_FILE_PATH_ROUTES . "\"!");
     } else {
-        cli_err("FAILED to rebuild Route file \"" . FUNKPHP_FILE_PATH_ROUTES . "\". File permissions issues?");
+        cli_err("FAILED to rebuild Pipeline Routes File \"" . FUNKPHP_FILE_PATH_ROUTES . "\". File permissions issues?");
     }
-    $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRootArray['ROUTES'], $singleRoutesRootArray['ROUTES']);
+    cli_info_without_exit("Now Compiling and Outputting the Compiled Routes to \"" . FUNKPHP_FILE_PATH_TROUTES . "\"...");
+    $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRootArray['ROUTES']);
     cli_output_compiled_routes($compiledRouteRoutes);
 }
 

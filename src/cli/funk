@@ -6,6 +6,9 @@ define(
     'FUNKPHP_DEFAULT_GLOBAL_CONFIG_KEY_AND_ITS_KEYS',
     ['<CONFIG_GLOBAL>' => [
         'global_headers' => [],
+        'global_sris' => [],
+        'global_nonces' => [],
+        'global_csp' => [],
         'global_rate_limiting' => null,
         'global_param_rules' => [],
     ]]
@@ -14,6 +17,9 @@ define(
     'FUNKPHP_DEFAULT_METHOD_CONFIG_KEY_AND_ITS_KEYS',
     ['<CONFIG_METHOD>' => [
         'method_headers' => [],
+        'method_sris' => [],
+        'method_nonces' => [],
+        'method_csp' => [],
         'method_rate_limiting' => null,
         'method_param_rules' => [],
     ]]
@@ -21,10 +27,14 @@ define(
 define('FUNKPHP_DEFAULT_ROUTE_KEYS', [
     'config' => [
         'route_alias' => '',
+        'route_param_rules' => [],
+        'route_run_middlewares_before_pipeline' => true,
         'route_headers' => [],
         'route_rate_limiting' => null,
         'route_cache' => null,
-        'route_param_rules' => [],
+        'route_sris' => [],
+        'route_nonces' => [],
+        'route_csp' => [],
     ],
     'middlewares' => [],
     'pipeline' => [],
@@ -59,7 +69,7 @@ define('FUNKPHP_PIPELINE_DIR', FUNKPHP_DIR . '/pipeline');
 define('FUNKPHP_PIPELINE_REQUEST_DIR', FUNKPHP_PIPELINE_DIR . '/request');
 define('FUNKPHP_PIPELINE_POST_RESPONSE_DIR', FUNKPHP_PIPELINE_DIR . '/post_response');
 define('FUNKPHP_ROUTES_DIR', FUNKPHP_DIR . '/pipeline/routes');
-define('FUNKPHP_SQL_DIR', FUNKPHP_DIR . '/data/sql');
+define('FUNKPHP_QUERY_DIR', FUNKPHP_DIR . '/data/query');
 define('FUNKPHP_VALIDATION_DIR', FUNKPHP_DIR . '/data/validation');
 define('GUI_DIR', PROJECT_DIR . '/gui');
 define('PUBLIC_DIR', PROJECT_DIR . '/public_html');
@@ -361,18 +371,104 @@ $singleRoutesRoute = include_once FUNKPHP_FILE_PATH_ROUTES ?? [
         FUNKPHP_DEFAULT_METHOD_CONFIG_KEY_AND_ITS_KEYS
     ]]
 ];
-$singleTroute = include_once FUNKPHP_FILE_PATH_TROUTES ?? [
-    'GET' =>
-    [],
-    'POST' =>
-    [],
-    'PUT' =>
-    [],
-    'DELETE' =>
-    [],
-    'PATCH' =>
-    [],
-];
+$singleTroute = include_once FUNKPHP_FILE_PATH_TROUTES ?? array(
+    'TRIE' =>
+    array(
+        'GET' =>
+        array(),
+        'POST' =>
+        array(),
+        'PUT' =>
+        array(),
+        'DELETE' =>
+        array(),
+        'PATCH' =>
+        array(),
+    ),
+    'METADATA' =>
+    array(
+        'GET' =>
+        array(
+            'allRoutes' =>
+            array(),
+            'staticRoutes' =>
+            array(),
+            'dynamicRoutes' =>
+            array(),
+            'minURICount' => 0,
+            'maxURICount' => 0,
+            'URICountExistsForNumber' =>
+            array(),
+            'allRoutesCount' => 0,
+            'staticRoutesCount' => 0,
+            'dynamicRoutesCount' => 0,
+        ),
+        'PATCH' =>
+        array(
+            'allRoutes' =>
+            array(),
+            'staticRoutes' =>
+            array(),
+            'dynamicRoutes' =>
+            array(),
+            'minURICount' => 0,
+            'maxURICount' => 0,
+            'URICountExistsForNumber' =>
+            array(),
+            'allRoutesCount' => 0,
+            'staticRoutesCount' => 0,
+            'dynamicRoutesCount' => 0,
+        ),
+        'POST' =>
+        array(
+            'allRoutes' =>
+            array(),
+            'staticRoutes' =>
+            array(),
+            'dynamicRoutes' =>
+            array(),
+            'minURICount' => 0,
+            'maxURICount' => 0,
+            'URICountExistsForNumber' =>
+            array(),
+            'allRoutesCount' => 0,
+            'staticRoutesCount' => 0,
+            'dynamicRoutesCount' => 0,
+        ),
+        'PUT' =>
+        array(
+            'allRoutes' =>
+            array(),
+            'staticRoutes' =>
+            array(),
+            'dynamicRoutes' =>
+            array(),
+            'minURICount' => 0,
+            'maxURICount' => 0,
+            'URICountExistsForNumber' =>
+            array(),
+            'allRoutesCount' => 0,
+            'staticRoutesCount' => 0,
+            'dynamicRoutesCount' => 0,
+        ),
+        'DELETE' =>
+        array(
+            'allRoutes' =>
+            array(),
+            'staticRoutes' =>
+            array(),
+            'dynamicRoutes' =>
+            array(),
+            'minURICount' => 0,
+            'maxURICount' => 0,
+            'URICountExistsForNumber' =>
+            array(),
+            'allRoutesCount' => 0,
+            'staticRoutesCount' => 0,
+            'dynamicRoutesCount' => 0,
+        ),
+    )
+);
 $tablesAndRelationshipsFile = include_once FUNKPHP_FILE_PATH_TABLES ?? [
     'tables' => [],
     'relationships' => [],
