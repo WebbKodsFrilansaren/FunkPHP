@@ -38,7 +38,6 @@ function cli_snippets_load($snippets)
     return implode("\n\n", $snippArrayCode);
 }
 
-
 /*
  * Function that collects the cli_warning, cli_err, cli_err_syntax messages
  * in a single referenced array that should be 0 if a process should be considered
