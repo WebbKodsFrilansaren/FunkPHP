@@ -33,9 +33,9 @@ if ($arg_methodRoute) {
     [$method, $route] = cli_extract_method_route($arg_methodRoute);
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////
-// ALWAYS MANDATORY: Creating a Handler (Folder=>File=>Function) unless it already exists!
-///////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////
+// ALWAYS MANDATORY: Creating a Handler (File=>Function) unless it already exists!
+//////////////////////////////////////////////////////////////////////////////////
 // Grab status for the folder and file so we can check whether
 // we can even access it, if it exists, is writable, etc.
 $statusArray = cli_folder_and_php_file_status($folder, $file);
@@ -89,7 +89,7 @@ else {
 }
 // We exit if no optional Method/Route argument was provided
 if (!$arg_methodRoute) {
-    cli_info("No `Method/Route` Argument was provided so only the `$folder=>$file=>$fn` Handler was created. Command Done!");
+    cli_info("No `Method/Route` Argument was provided so only the `$file=>$fn` Handler was created. Command Done!");
 }
 
 /////////////////////////////////////////////////////////

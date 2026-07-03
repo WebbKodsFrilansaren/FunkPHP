@@ -448,119 +448,6 @@ function cli_create_pipeline_file($pipelineNameString, $pipelineType, $plStatusA
 }
 
 /**
- * Creates a new Middleware file with a skeleton anonymous function, ensuring all
- * necessary status checks have passed before writing to disk.
- *
- * This function enforces a strict contract: the status array MUST confirm the file
- * does not already exist and the target directory is writable. It constructs
- * the standard Middleware file content, including the required 'mw_' namespace,
- * and uses atomic write for safety.
- *
- * @param string $middlewareNameString The validated name of the middleware (e.g., "mw_auth_check").
- * @param array $mwStatusArray The status array returned by cli_middleware_file_status()
- * which guarantees the file does not exist and the directory is valid.
- * Requires keys: 'exists', 'has_valid_prefix', 'is_anonymous',
- * 'middleware_is_valid', 'middleware_dir_exists',
- * 'middleware_dir_readable', 'middleware_dir_writable',
- * and 'full_file_path'.
- * @return bool True on successful atomic creation/write of the file, false on failure.
- * @throws cli_err Stops command execution if $middlewareNameString is invalid,
- * $mwStatusArray is missing required keys, file already exists,
- * or directory permissions are insufficient.
- */
-function cli_create_middleware_file($middlewareNameString, $mwStatusArray, $optionalCodeSnippets = ''): bool
-{
-    // $middlewareNameString must be non-empty string or hard error
-    if (!is_string($middlewareNameString) || empty(trim($middlewareNameString))) {
-        cli_err('[cli_create_middleware_file()]: The Provided Middleware Name String (middlewareNameString) must be a Non-Empty String in order to continue creating the new Middleware File. If a Command File called this function, this error now stopped the command execution!');
-    }
-    // $mwStatusArray must be an array with the following keys existing: exists, has_valid_prefix, is_anonymous, middleware_is_valid
-    $requiredKeys = [
-        'exists',
-        'has_valid_prefix',
-        'middleware_is_valid',
-        'middleware_dir_exists',
-        'middleware_dir_readable',
-        'middleware_dir_writable'
-    ];
-    foreach ($requiredKeys as $key) {
-        if (!array_key_exists($key, $mwStatusArray)) {
-            cli_err('[cli_create_middleware_file()]: The Provided Middleware Status Array ($mwStatusArray) is missing the required key `' . $key . '` neeeded to safely create a new Middleware File without accidentally overwriting existing ones. If a Command File called this function, this error now stopped the command execution!');
-        }
-    }
-    // Just an extra check that files does not already exists and that the folder can be written to
-    if ($mwStatusArray['exists']) {
-        cli_err('[cli_create_middleware_file()]: The Provided Middleware Status Array ($mwStatusArray) indicates that the Middleware File already exists so cannot create it again. If a Command File called this function, this error now stopped the command execution!');
-    }
-
-    // Now check that folder exists, is readable and writable
-    if (
-        !$mwStatusArray['middleware_dir_exists']
-        || !$mwStatusArray['middleware_dir_readable']
-        || !$mwStatusArray['middleware_dir_writable']
-    ) {
-        cli_err('[cli_create_middleware_file()]: The Provided Middleware Status Array ($mwStatusArray) indicates that the Middleware Directory is either missing or not Readable/Writable so cannot create the Middleware File. If a Command File called this function, this error now stopped the command execution!');
-    }
-
-    // Prepare Default Middleware File String Content and return the boolean value of the creation/write operation
-    $mwString = "<?php\n\nnamespace funkphp\\pipeline\\middlewares\\$middlewareNameString;\n// FunkCLI Created on " . date('Y-m-d H:i:s') . "!\n\nfunction $middlewareNameString(&\$c)\n{\n\t// Placeholder Comment so Regex works - Remove & Add Your Own Code!\n$optionalCodeSnippets\n};\n";
-    return cli_crud_folder_php_file_atomic_write($mwString, $mwStatusArray['full_file_path']);
-}
-
-/**
- * Checks the existence and validity status of a Middleware file based on strict FunkPHP criteria.
- *
- * It checks if the file exists, if the file name has the mandatory 'mw_' prefix, and if the file
- * correctly returns a PHP Closure (anonymous function) upon inclusion.
- *
- * @param string $validatedMiddlewareString The Middleware file name (e.g., "mw_auth_check"). MUST be a non-empty string.
- * @return array A status array containing detailed checks:
- * - 'exists': (bool) True if the file exists at FUNKPHP_MIDDLEWARES_DIR.
- * - 'has_valid_prefix': (bool) True if the string starts with 'mw_'.
- * - 'is_anonymous': (bool) True if the included file returns an instanceof Closure.
- * - 'middleware_is_valid': (bool) True only if (exists AND has_valid_prefix AND is_anonymous).
- */
-function cli_middleware_file_status($validatedMiddlewareString): array
-{
-    // Constant must exist and provided argument must be a non-empty string
-    if (!defined('FUNKPHP_MIDDLEWARES_DIR')) {
-        cli_err('[cli_middleware_file_exists()]: FUNKPHP_MIDDLEWARES_DIR Constant is not defined. Cannot check for Middleware existence. If a Command File called this function, this error now stopped the command execution!');
-    }
-    if (!is_string($validatedMiddlewareString) || empty(trim($validatedMiddlewareString))) {
-        cli_err('[cli_middleware_file_exists()]: The Provided Middleware String must be a Non-Empty String.  If a Command File called this function, this error now stopped the command execution!');
-    }
-    // Variables that are returned with default values that change after checks
-    $mwExists = false;
-    $mwPrefix = false;
-    $mwAnonymous = false;
-    // Check if the exact string exists in the middlewares directory (constant)
-    // then try include it to check if it is an anonymous function.
-    // Finally check if it has the correct "mw_" prefix. If file exists and the prefix is "mw_"
-    $middlewareDir = FUNKPHP_MIDDLEWARES_DIR;
-    $middlewareFilePath = FUNKPHP_MIDDLEWARES_DIR . '/' . $validatedMiddlewareString . '.php';
-    if (file_exists($middlewareFilePath) && is_file($middlewareFilePath)) {
-        $mwExists = true;
-        $included = include_once $middlewareFilePath;
-        if (is_callable($included) && ($included instanceof Closure)) {
-            $mwAnonymous = true;
-        }
-    }
-    if (str_starts_with($validatedMiddlewareString, 'mw_')) {
-        $mwPrefix = true;
-    }
-    return [
-        'exists' => $mwExists,
-        'has_valid_prefix' => $mwPrefix,
-        'is_anonymous' => $mwAnonymous,
-        'middleware_is_valid' => ($mwExists && $mwPrefix && $mwAnonymous),
-        'full_file_path' => $middlewareFilePath,
-        'middleware_dir_exists' => is_dir($middlewareDir),
-        'middleware_dir_readable' => is_readable($middlewareDir),
-        'middleware_dir_writable' => is_writable($middlewareDir),
-    ];
-}
-
-/**
  * Checks the existence and validity status of a Pipeline file across request and post_response directories.
  *
  * It checks for file existence in either pipeline directory, prefix, Closure return, and ensures
@@ -2271,7 +2158,6 @@ function cli_folder_and_php_file_status($folder, $file)
     $namespaceRegex = '/^namespace\s*(.*?)[;\n]$/ims';
     $classRegex = '/^class\s+[a-z_A-Z][a-zA-Z0-9_]*\s*{(.*?)}$/ims';
     $returnRegex = '/return\s*array\(.*?\);$\n/ims';
-    $returnFnRegex = '/^(?:(<\?php\s*))?(return function)\s*\(&\$c\s*.+$.*?^};/ims';
     $fns = null;
     $classExists = false;
     $classes = [];
@@ -2337,6 +2223,7 @@ function cli_folder_and_php_file_status($folder, $file)
         'namespace_parts' => $namespaceParts,
         'folder_provided_path' => $providedFolder ?? null,
         'folder_name' => $singleFolder ?? null,
+        'folder_path_attempted' => $folder ?? "<Invalid String>",
         'folder_path' => ((is_string($folder) && is_dir($folder) && is_readable($folder) && is_writable($folder)) ? $folder : null),
         'folder_exists' => is_dir($folder),
         'folder_readable' => is_readable($folder),
@@ -2347,7 +2234,7 @@ function cli_folder_and_php_file_status($folder, $file)
         'file_readable' => is_readable($file),
         'file_writable' => is_writable($file),
         'functions' => (isset($fns) ? $fns : []),
-        'file_raw' => ['entire' => $fileRaw ?? null, 'return function' => $fileReturnRaw ?? null],
+        'file_raw' => $fileRaw,
     ];
 }
 
@@ -2456,9 +2343,7 @@ function cli_crud_folder_and_php_file($statusArray, $crudType, $file, $fn = null
     $file_readable = $statusArray['file_readable'];
     $file_writable = $statusArray['file_writable'];
     $functions = $statusArray['functions'];
-    $file_raw_entire = $statusArray['file_raw']['entire'];
-    $file_raw_return_fn = $statusArray['file_raw']['return function'];
-
+    $file_raw_entire = $statusArray['file_raw'];
     // This is the assumed full path if a file
     // does not exist and must be created
     $outputNewFile = $folder_path . '/' . $file_name;
@@ -9778,7 +9663,7 @@ function cli_output_compiled_routes(array $compiledTrie)
     if (!cli_crud_folder_php_file_atomic_write("<?php\nreturn " . var_export($compiledTrie, true) . ";\n", FUNKPHP_FILE_PATH_TROUTES)) {
         cli_err("Failed to write Compiled Routes to file: `" .  FUNKPHP_FILE_PATH_TROUTES . "`! Check File Permissions?");
     } else {
-        cli_success_without_exit("SUCCESSFULLY Wrote Compiled Routes to file: `" . FUNKPHP_FILE_PATH_TROUTES . "`!");
+        cli_success_without_exit("SUCCESSFULLY Compiled Routes to file: `" . FUNKPHP_FILE_PATH_TROUTES . "`!");
     }
 }
 

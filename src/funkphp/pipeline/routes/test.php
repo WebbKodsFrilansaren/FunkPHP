@@ -23,3 +23,8 @@ function test(&$c)
 
 	var_dump($c['req']);
 };
+
+function test2(&$c)
+{
+	// Placeholder Comment so Regex works - Remove & Add Real Code!
+};
