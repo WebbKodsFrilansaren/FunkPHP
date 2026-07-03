@@ -1,5 +1,43 @@
 <?php // ALL CLI FUNCTIONS
 
+/*
+ * Function that loads a number of snippets file from the src/snippets folder and also
+ * normalizes them by removing <?php in the beginning. the $snippets is expected to be a
+ * string separated with single commas for each file in the src/snippets folder.
+*/
+function cli_snippets_load($snippets)
+{
+    if (!is_string($snippets) || empty(trim($snippets))) {
+        cli_err("[cli_snippets_load()]: The provided \$snippets parameter must be a Non-Empty String with Comma-Separated Snippet File Names to Load! You can omit the `.php` extension since it is automatically added!");
+    }
+    $snippArrayCode = [];
+    // We look for a comma in $snippets and then explode by it or turn the single string into an array!
+    if (str_contains($snippets, ',')) {
+        $snippArray = array_map('trim', explode(',', $snippets));
+    } else {
+        $snippArray = [trim($snippets)];
+    }
+    // the define SNIPPETS_DIR variable is the main folder to snippet so now we iterate
+    // through the snippArray and for each file we include we strip of the starting <?php if it exists.
+    // If a file does not exist we error out hard. We also remove .php and add it manually!
+    foreach ($snippArray as $snippFile) {
+        $snippFile = strtolower($snippFile);
+        $snippFile = preg_replace('/\.php$/', '', $snippFile);
+        $snippPath = SNIPPETS_DIR . '/' . $snippFile . '.php';
+        if (!file_exists($snippPath)) {
+            cli_err("[cli_snippets_load()]: The Snippet File `$snippFile.php` does NOT exist in the `src/snippets` folder. Please check your spelling or create the snippet file before trying to load it. Any Command that called this function to include Snippets has now stopped without completing fully!");
+        }
+        $snippContent = file_get_contents($snippPath);
+        // Remove starting <?php if it exists
+        $snippContent = preg_replace('/^\s*<\?php\s*/', '', $snippContent);
+        // We also indent each line in the script so it is that when inserted into a function block
+        $snippContent = preg_replace('/^/m', "\t", $snippContent);
+        $snippArrayCode[] = $snippContent;
+    }
+    // We now concatenate it into a super long string with a \n separating each snippet and return it to the caller
+    return implode("\n\n", $snippArrayCode);
+}
+
 
 /*
  * Function that collects the cli_warning, cli_err, cli_err_syntax messages

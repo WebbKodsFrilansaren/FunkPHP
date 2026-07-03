@@ -54,6 +54,9 @@ return [
     // confirm:eval, write to confirm dangerous actions using a given command
     'confirmEvalRegex' => '/^confirm:eval$/i',
 
+    // snippetsRegex to get snippets files from src/snippets
+    'snippetsRegex' => '/^snippets:([a-zA-Z0-9-_\.,]+)$/i',
+
     // Add more regexes as needed in the future!
     '' => '',
     '' => '',

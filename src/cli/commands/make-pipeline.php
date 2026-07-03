@@ -1,13 +1,19 @@
 <?php // FunkCLI COMMAND "php funk make:pipeline" - creates a new Pipeline File with a skeleton Pipeline Anonymous Function inside of it
 $arg_plName  = null;
 $arg_plType = null;
+$arg_snippets = null;
+$optionalCodeSnippets = ''; // Optional code snippets to add inside created Pipeline
 // 1. Find/create the Pipeline Name argument (e.g., "n:headers_set")
 $arg_plName = cli_get_cli_input_from_interactive_or_regular($args, 'make:pipeline', 'pipeline_name');
 $pipeline =  cli_extract_pipeline($arg_plName);
 // 2. Get Pipeline type argument (request|post)
 $arg_plType = cli_get_cli_input_from_interactive_or_regular($args, 'make:pipeline', 'pipeline_type');
 $type = cli_extract_pipeline_type($arg_plType);
-$optionalCodeSnippets = ''; // Optional code snippets to add inside created Pipeline
+// 3. Optional snippets inside of it after creation
+$arg_snippets = cli_get_cli_input_from_interactive_or_regular($args, 'make:pipeline', 'snippets');
+if ($arg_snippets) {
+    $optionalCodeSnippets = cli_snippets_load($arg_snippets);
+}
 //////////////////////////////////////////////////
 // ALWAYS MANDATORY: Create or Find the Pipeline!
 //////////////////////////////////////////////////
@@ -26,9 +32,9 @@ if ($plStatus['exists_in_request_dir'] || $plStatus['exists_in_post_response_dir
 $plString = "<?php\n\nnamespace funkphp\\pipeline\\$type\\$pipeline;\n// FunkCLI Created File on " . date('Y-m-d H:i:s') . "!\n\nfunction $pipeline(&\$c)\n{\n\t// Placeholder Comment so Regex works - Remove & Add Your Own Code!\n$optionalCodeSnippets\n};\n";
 $newFilePath = ($type === 'request' ? $plStatus["full_file_path_request"] : $plStatus["full_file_path_post_response"]);
 if (cli_crud_folder_php_file_atomic_write($plString, $newFilePath)) {
-    cli_success("Pipeline File '{$pipeline}.php' created successfully in the `" . ($type === 'req' ? 'funkphp/pipeline/request' : 'funkphp/pipeline/post-response') . "` Directory! You can now edit it to add your desired Pipeline Anonymous Functions as needed.");
+    cli_success("Pipeline File '{$pipeline}.php' created successfully in the `" . ($type === 'request' ? 'funkphp/pipeline/request' : 'funkphp/pipeline/post-response') . "` Directory! You can now edit it to add your desired Pipeline Anonymous Functions as needed.");
 } else {
-    cli_err("Failed to create Pipeline File '{$pipeline}.php' in the `" . ($type === 'req' ? 'funkphp/pipeline/request' : 'funkphp/pipeline/post-response') . "` Directory! Please check the Permissions of the Directory and try again!");
+    cli_err("Failed to create Pipeline File '{$pipeline}.php' in the `" . ($type === 'request' ? 'funkphp/pipeline/request' : 'funkphp/pipeline/post-response') . "` Directory! Please check the Permissions of the Directory and try again!");
 }
 
 // Catch outside of all possible if/else/switch statements. Could happen during Refactoring this Command File!

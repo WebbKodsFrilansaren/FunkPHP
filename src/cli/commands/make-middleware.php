@@ -5,6 +5,7 @@ $ROUTES = $singleRoutesRoute['ROUTES'];
 // $folderType based on first parameter, and also initial $routeKey
 // $routeKey is only applicable to "routes" and "middlewares"!
 $arg_middleware  = null;
+$arg_snippets = null;
 $middleware = null;
 $newMWFile = null;
 $arg_methodRoute = null;
@@ -14,11 +15,15 @@ $matchedRoute = null;
 $createStatus = null;
 $folder = null;
 $optionalCodeSnippets = ''; // Optional code snippets to add inside created MW
-
 // 1. Find/create the Middleware Name argument (e.g., "n:auth" -> mw_auth)
 $arg_middleware = cli_get_cli_input_from_interactive_or_regular($args, 'make:middleware', 'middleware_name');
 $middleware =  cli_extract_middleware($arg_middleware);
-// 2. Find/create optional the Method/Route argument (e.g., "r:get/users")
+// 2. Optional snippets inside of it after creation
+$arg_snippets = cli_get_cli_input_from_interactive_or_regular($args, 'make:middleware', 'snippets');
+if ($arg_snippets) {
+    $optionalCodeSnippets = cli_snippets_load($arg_snippets);
+}
+// 3. Find/create optional the Method/Route argument (e.g., "r:get/users")
 $arg_methodRoute = cli_get_cli_input_from_interactive_or_regular($args, 'make:middleware', 'method/route');
 if ($arg_methodRoute) {
     [$method, $route] = cli_extract_method_route($arg_methodRoute);

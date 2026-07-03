@@ -6,6 +6,7 @@ $ROUTES = $singleRoutesRoute['ROUTES'];
 // $routeKey is only applicable to "routes" and "middlewares"!
 $arg_methodRoute = null;
 $arg_folderFileAndFn = null;
+$arg_snippets = null;
 $method = null;
 $route = null;
 $matchedRoute = null;
@@ -30,6 +31,12 @@ if ($arg_folderFileAndFn) {
     $routeKey = [$file => $fn];
     $singleFolder = $folder;
     $createdFFF = "File:`funkphp/pipeline/routes/$file.php` with Function:`function $fn(){};`";
+
+    // 3. Optional snippets to add to the created file=>fn but only if you also provided a File/Function argument since it is not applicable otherwise!
+    $arg_snippets = cli_get_cli_input_from_interactive_or_regular($args, 'make:route', 'snippets');
+    if ($arg_snippets) {
+        $optionalCodeSnippets = cli_snippets_load($arg_snippets);
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////

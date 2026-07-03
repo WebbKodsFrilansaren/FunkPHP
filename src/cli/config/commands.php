@@ -67,6 +67,15 @@ return [
                     'prefix' => 'ff:',
                     'external_callable_validator' => null,
                 ],
+                'snippets' => [
+                    'prompt' => 'Enter `snippet1,snippet2,and_so_on` to include any number of snippets file from the `src/snippets` folder to your created File=>Function:',
+                    'regex' => $cliRegex['snippetsRegex'],
+                    'required' => false,
+                    'default' => null,
+                    'help' => 'You can omit `.php` as it will be removed and then added manually as it loads each snippet into memory. Each php file is also stripped of its leading <?php tag. File names should be of Regex:`[a-zA-Z0-9_-,.]+`',
+                    'prefix' => 'snippets:',
+                    'external_callable_validator' => null,
+                ]
             ],
             'config' => [
                 // Add any special config for this command or its sub-commands here!
@@ -92,6 +101,15 @@ return [
                     'prefix' => 'ff:',
                     'external_callable_validator' => null,
                 ],
+                'snippets' => [
+                    'prompt' => 'Enter `snippet1,snippet2,and_so_on` to include any number of snippets file from the `src/snippets` folder to your created File=>Function:',
+                    'regex' => $cliRegex['snippetsRegex'],
+                    'required' => false,
+                    'default' => null,
+                    'help' => 'You can omit `.php` as it will be removed and then added manually as it loads each snippet into memory. Each php file is also stripped of its leading <?php tag. File names should be of Regex:`[a-zA-Z0-9_-,.]+`',
+                    'prefix' => 'snippets:',
+                    'external_callable_validator' => null,
+                ]
             ],
             'config' => [
                 // Add any special config for this command or its sub-commands here!
@@ -117,6 +135,15 @@ return [
                     'prefix' => 'r:',
                     'external_callable_validator' => 'method_route',
                 ],
+                'snippets' => [
+                    'prompt' => 'Enter `snippet1,snippet2,and_so_on` to include any number of snippets file from the `src/snippets` folder to your created Middleware File Function:',
+                    'regex' => $cliRegex['snippetsRegex'],
+                    'required' => false,
+                    'default' => null,
+                    'help' => 'You can omit `.php` as it will be removed and then added manually as it loads each snippet into memory. Each php file is also stripped of its leading <?php tag. File names should be of Regex:`[a-zA-Z0-9_-,.]+`',
+                    'prefix' => 'snippets:',
+                    'external_callable_validator' => null,
+                ]
             ],
             'config' => [
                 // Add any special config for this command or its sub-commands here!
@@ -140,6 +167,15 @@ return [
                     'default' => 'req',
                     'help' => 'The pipeline type determines which folder the file is created in: "req" for `src/funkphp/pipeline/request/` or "post" for `src/funkphp/pipeline/post-response/`. Defaults to "req".',
                     'prefix' => 'plt:',
+                    'external_callable_validator' => null,
+                ],
+                'snippets' => [
+                    'prompt' => 'Enter `snippet1,snippet2,and_so_on` to include any number of snippets file from the `src/snippets` folder to your created Request/Post_Response Pipeline File Function:',
+                    'regex' => $cliRegex['snippetsRegex'],
+                    'required' => false,
+                    'default' => null,
+                    'help' => 'You can omit `.php` as it will be removed and then added manually as it loads each snippet into memory. Each php file is also stripped of its leading <?php tag. File names should be of Regex:`[a-zA-Z0-9_-,.]+`',
+                    'prefix' => 'snippets:',
                     'external_callable_validator' => null,
                 ]
 
