@@ -32,6 +32,9 @@
 return [
     'aliases' => [
         'rc' => 'recompile',
+        'add:h' => 'add:handler',
+        'add:pl' => 'add:pipeline',
+        'add:mw' => 'add:middleware',
         'make:r' => 'make:route',
         'make:rutt' => 'make:route',
         'make:h' => 'make:handler',
@@ -59,11 +62,11 @@ return [
                     'external_callable_validator' => 'method_route',
                 ],
                 'file/fn' => [
-                    'prompt' => 'Enter `File=>Function` to create a folder with a file inside of it with a new function inside of it (e.g., "users=>user_file=>func" meaning `src/funkphp/routes/users/user_file.php` would be created with the named function `func(&$c, $passedValue = null){}` inside of it):',
+                    'prompt' => 'Enter `File,Function` to create a File with a Function inside of it (unless File already exists! Then a new Function is just added to it) (e.g., "users,user_file" meaning `src/funkphp/pipeline/routes/user_file.php` would be created with the named function `user_file(&$c){}` inside of it):',
                     'regex' => $cliRegex['fileFnRegex'],
                     'required' => false,
                     'default' => null,
-                    'help' => 'The `File` will be in src/funkphp/pipeline/routes/{File}.php (without the .php extension). The optional `Function` is the function inside of that file that will be called for this route. If you do not provide a `Function`, the `File` name will be used as the function name. . Example 1: "ff:users=>user_func=" creates src/funkphp/pipeline/routes/users.php with function users_func().',
+                    'help' => 'The `File` will be in src/funkphp/pipeline/routes/{File}.php (without the .php extension). The optional `Function` is the function inside of that file that will be called for this route. If you do not provide a `Function`, the `File` name will be used as the function name. Example: "ff:users,user_func" creates src/funkphp/pipeline/routes/users.php with function users_func() unless file already exists where it then just adds the function unless it also already exists.',
                     'prefix' => 'ff:',
                     'external_callable_validator' => null,
                 ],
@@ -84,7 +87,7 @@ return [
         'make:handler' => [
             'args' => [
                 'method/route' => [
-                    'prompt' => 'Enter `method/route` to create or target an existing METHOD/Route (e.g., "get/" (this creates the root), "get/users", "post/users/:id" where `:id` is a dynamic param, etc. - the provided `Folder=>File=>Function` will be added to it if it was successfully created!):',
+                    'prompt' => 'Enter `method/route` to create or target an existing METHOD/Route (e.g., "get/" (this creates the root), "get/users", "post/users/:id" where `:id` is a dynamic param, etc. - the provided `File,Function` will be added to it if it was successfully created!):',
                     'regex' => $cliRegex['methodRouteRegex'],
                     'required' => false,
                     'default' => null,
@@ -93,11 +96,11 @@ return [
                     'external_callable_validator' => 'method_route',
                 ],
                 'file/fn' => [
-                    'prompt' => 'Enter `File=>Function` to create a folder with a file inside of it with a new function inside of it (e.g., "users=>user_file=>func" meaning `src/funkphp/routes/users/user_file.php` would be created with the named function `func(&$c, $passedValue = null){}` inside of it):',
+                    'prompt' => 'Enter `File,Function` to create a File with a Function inside of it (unless File already exists! Then a new Function is just added to it) (e.g., "users,user_file" meaning `src/funkphp/pipeline/routes/user_file.php` would be created with the named function `user_file(&$c){}` inside of it):',
                     'regex' => $cliRegex['fileFnRegex'],
                     'required' => true,
                     'default' => null,
-                    'help' => 'The `File` will be in src/funkphp/pipeline/routes/{File}.php (without the .php extension). The optional `Function` is the function inside of that file that will be called for this route. If you do not provide a `Function`, the `File` name will be used as the function name. . Example 1: "ff:users=>user_func=" creates src/funkphp/pipeline/routes/users.php with function users_func().',
+                    'help' => 'The `File` will be in src/funkphp/pipeline/routes/{File}.php (without the .php extension). The optional `Function` is the function inside of that file that will be called for this route. If you do not provide a `Function`, the `File` name will be used as the function name. Example: "ff:users,user_func" creates src/funkphp/pipeline/routes/users.php with function users_func() unless the file already exists; then it just adds that functions unless it already exists.',
                     'prefix' => 'ff:',
                     'external_callable_validator' => null,
                 ],
@@ -187,11 +190,11 @@ return [
         'make:validation' => [
             'args' => [
                 'validationFileFn' => [
-                    'prompt' => 'Enter Validation File=>Function to Create File and/or Function if it does not already exist. For example:"users=>by_id" creates `src/funkphp/validation/v_users.php` if it does not already exists and then the Function `v_by_id` inside of it unless it already exists:',
+                    'prompt' => 'Enter `Validation File,Function` to Create File and/or Function if it does not already exist. For example:"users,by_id" creates `src/funkphp/data/validation/v_users.php` if it does not already exists and then the Function `v_by_id` inside of it unless it already exists:',
                     'regex' => $cliRegex['fileFnRegex'],
                     'required' => true,
                     'default' => null,
-                    'help' => 'Enter Validation File=>Function to Create using the Regex `/^([a-z0-9_-]+)=>([a-z_][a-z0-9_]+)$/i`. For example:"users=>by_id" creates `src/funkphp/validation/v_users.php` if it does not already exists and then the Function `s_by_id` inside of it unless it already exists (notice the added "v_" to the File automatically):',
+                    'help' => 'Enter `Validation File,Function` to Create using the Regex `/^([a-z0-9_-]+),([a-z_][a-z0-9_]+)$/i`. For example:"users,by_id" creates `src/funkphp/data/validation/v_users.php` if it does not already exists and then the Function `s_by_id` inside of it unless it already exists (notice the added "v_" to the File automatically):',
                     'prefix' => 'ff:',
                     'external_callable_validator' => null,
                 ],
@@ -212,11 +215,11 @@ return [
         'make:sql' => [
             'args' => [
                 'sqlFileFn' => [
-                    'prompt' => 'Enter SQL File=>Function to Create File and/or Function if it does not already exist. For example:"users=>by_id" creates `src/funkphp/data/sql/s_users.php` if it does not already exists and then the Function `s_by_id` inside of it unless it already exists:',
+                    'prompt' => 'Enter SQL `File,Function` to Create File and/or Function if it does not already exist. For example:"users,by_id" creates `src/funkphp/data/sql/s_users.php` if it does not already exists and then the Function `s_by_id` inside of it unless it already exists:',
                     'regex' => $cliRegex['fileFnRegex'],
                     'required' => true,
                     'default' => null,
-                    'help' => 'Enter SQL File=>Function to Create using the Regex `/^([a-z0-9_-]+)=>([a-z_][a-z0-9_]+)$/i`. For example:"users=>by_id" creates `src/funkphp/data/sql/s_users.php` if it does not already exists and then the Function `s_by_id` inside of it unless it already exists (notice the added "s_" to the File automatically):',
+                    'help' => 'Enter SQL `File,Function` to Create using the Regex `/^([a-z0-9_-]+),([a-z_][a-z0-9_]+)$/i`. For example:"users=>by_id" creates `src/funkphp/data/sql/s_users.php` if it does not already exists and then the Function `s_by_id` inside of it unless it already exists (notice the added "s_" to the File automatically):',
                     'prefix' => 'ff:',
                     'external_callable_validator' => null,
                 ],
@@ -246,11 +249,11 @@ return [
         'compile:validation' => [
             'args' => [
                 'validationFileFn' => [
-                    'prompt' => 'Enter Validation File and Function to Compile that Function inside of that File. For example:"users=>by_id" compiles the `by_id` Function inside of `src/funkphp/data/validation/v_users.php` assuming it already exists:',
+                    'prompt' => 'Enter Validation File and Function to Compile that Function inside of that File. For example:"users,by_id" compiles the `by_id` Function inside of `src/funkphp/data/validation/v_users.php` assuming it already exists:',
                     'regex' => $cliRegex['fileFnRegex'],
                     'required' => true,
                     'default' => null,
-                    'help' => 'Enter Validation File & Function using the Regex `/^([a-z0-9_-]+)=>([a-z_][a-z0-9_]+)$/i`. For example:"users=>by_id" compiles the `by_id` Function inside of `src/funkphp/data/validation/v_users.php` assuming it already exists (notice the added "v_" to the File automatically):',
+                    'help' => 'Enter Validation File & Function using the Regex `/^([a-z0-9_-]+),([a-z_][a-z0-9_]+)$/i`. For example:"users,by_id" compiles the `by_id` Function inside of `src/funkphp/data/validation/v_users.php` assuming it already exists (notice the added "v_" to the File automatically):',
                     'prefix' => 'ff:',
                     'external_callable_validator' => null,
                 ],
@@ -272,11 +275,11 @@ return [
         'compile:sql' => [
             'args' => [
                 'sqlFileFn' => [
-                    'prompt' => 'Enter SQL File and Function to Compile that Function inside of that File. For example:"users=>by_id" compiles the `by_id` Function inside of `src/funkphp/sql/v_users.php` assuming it already exists:',
+                    'prompt' => 'Enter SQL File and Function to Compile that Function inside of that File. For example:"users,by_id" compiles the `by_id` Function inside of `src/funkphp/data/sql/s_users.php` assuming it already exists:',
                     'regex' => $cliRegex['fileFnRegex'],
                     'required' => true,
                     'default' => null,
-                    'help' => 'Enter SQL File & Function using the Regex `/^([a-z0-9_-]+)=>([a-z_][a-z0-9_]+)$/i`. For example:"users=>by_id" compiles the `by_id` Function inside of `src/funkphp/sql/v_users.php` assuming it already exists (notice the added "s_" to the File automatically):',
+                    'help' => 'Enter SQL File & Function using the Regex `/^([a-z0-9_-]+),([a-z_][a-z0-9_]+)$/i`. For example:"users,by_id" compiles the `by_id` Function inside of `src/funkphp/data/sql/s_users.php` assuming it already exists (notice the added "s_" to the File automatically):',
                     'prefix' => 'ff:',
                     'external_callable_validator' => null,
                 ],

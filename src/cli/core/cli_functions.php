@@ -625,8 +625,8 @@ function cli_extract_folder_file_fn(string $validatedFolderFileFnString): array
     $prefixRegex = '/^([a-z]+:)/i';
     $sanitizedString = preg_replace($prefixRegex, '', $validatedFolderFileFnString, 1);
 
-    // 2. Split the parts using the '=>' delimiter
-    $parts = explode('=>', $sanitizedString);
+    // 2. Split the parts using the ',' delimiter
+    $parts = explode(',', $sanitizedString);
 
     // Because validation already passed on the regex, we know $parts has 3 elements.
     $folder = $parts[0];
@@ -655,7 +655,7 @@ function cli_extract_folder_file($validatedFileFnString, $prefix = null): array
     $prefixRegex = '/^([a-z]+:)/i';
     $sanitizedString = preg_replace($prefixRegex, '', $validatedFileFnString, 1);
     // 2. Split the parts using the '=>' delimiter
-    $parts = explode('=>', $sanitizedString);
+    $parts = explode(',', $sanitizedString);
     $file = $parts[0];
     $fn = $parts[1];
     // 3. Add optional prefix if provided and then return results

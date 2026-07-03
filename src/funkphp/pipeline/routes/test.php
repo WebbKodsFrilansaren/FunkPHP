@@ -23,12 +23,3 @@ function test(&$c)
 
 	var_dump($c['req']);
 };
-
-function test3(&$c)
-{
-	// Placeholder Comment so Regex works - Remove & Add Your Own Code!
-	echo "<h1>Test from Template 1 File!</h1>";
-
-
-	echo "<h1>Test from Template 1 File!</h1>";
-};

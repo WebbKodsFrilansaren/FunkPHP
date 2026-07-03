@@ -1,4 +1,4 @@
-<?php // pipeline_routes.php - FunkPHP | FunkCLI Modified it 2026-07-03 12:51:34
+<?php // pipeline_routes.php - FunkPHP | FunkCLI Modified it 2026-07-03 14:03:25
 return array(
   'ROUTES' =>
   array(
@@ -24,7 +24,9 @@ return array(
           array(),
         ),
         'middlewares' =>
-        array(),
+        array(
+          0 => 'mw_auth',
+        ),
         'pipeline' =>
         array(),
       ),

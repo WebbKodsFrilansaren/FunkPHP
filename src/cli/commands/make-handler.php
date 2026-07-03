@@ -20,7 +20,7 @@ $fn = null;
 $optionalCodeSnippets = ''; // Optional code snippets to add inside created File=>Fn Handler
 $createdFFF = "<N/A>";
 
-//1. Find & extract Folder/File/Function argument (e.g., "fff:usersFolder=>userFile=>FunctionInsideFile")
+//1. Find & extract Folder/File/Function argument (e.g., "ff:userFile=>FunctionInsideFile")
 $arg_folderFileAndFn = cli_get_cli_input_from_interactive_or_regular($args, 'make:handler', 'file/fn');
 [$file, $fn] =  cli_extract_folder_file($arg_folderFileAndFn);
 $routeKey = [$file => $fn];
