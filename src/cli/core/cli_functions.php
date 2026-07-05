@@ -442,7 +442,7 @@ function cli_assert_final_value(
         cli_err("[cli_assert_final_value()]: Invalid Message Type (\$severity) provided. Must be one of: `" . implode(', ', $validTypes) . "`!");
     }
     // Ensure our rule is a string for the remaining string-based evaluation methods
-    if (!is_string($rule)) {
+    if (!is_string($rule) && !is_callable($rule)) {
         cli_err("[cli_assert_final_value()]: The Validation \$rule must be a String (Type/Regex) or the Name of a Callable function!");
     }
 
