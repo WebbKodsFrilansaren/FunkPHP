@@ -72,7 +72,26 @@ function cli_build_warning_err_list(&$listArr, $warnErrType, $msg)
     // Now we just add to it
     $listArr[] = [$warnErrType => $msg];
 }
-
+// Function that sends an INFO if the count of &$listArr is larger than 0!
+// use it in tandem with "cli_build_warning_err_list"
+function cli_stop_from_warn_err_list(&$listArr, $exitMsg)
+{
+    if (count($listArr) > 0) {
+        $msgCount = 1;
+        foreach ($listArr as $issue) {
+            $type = key($issue);
+            $msg = current($issue);
+            $printerFunction = $type . '_without_exit';
+            if (function_exists($printerFunction)) {
+                $printerFunction($msgCount . ". $msg");
+            } else {
+                echo "[$type]: $msg\n";
+            }
+            $msgCount++;
+        }
+        cli_info($exitMsg); // This also exits script so!
+    }
+}
 /* FunkRouter Compiler Relationed Functions! */
 // Function takes an array of routes (without method since they are divided by method when matching so)
 // and calculate their "Binary Specificity Score" based on how many "/:param" vs "/static" segments they
@@ -353,6 +372,148 @@ function cli_compile_hydration_node(array $node, string $parentPath = '$results[
 }
 
 /**
+ * Asserts that a specific nested array path exists.
+ * Automatically handles warning/error tracking and path resolution.
+ *
+ * @param array $startingArray The configuration array.
+ * @param array $path The sequential subkeys to check (e.g., ['BASEURLS', 'LOCAL']).
+ * @param array $warnsAndErrs The accumulator array passed by reference.
+ * @param string $severity The logging function to use ('cli_err' or 'cli_warn').
+ * @param string|null $customMsg Optional override message.
+ * @return bool True if it exists, false otherwise.
+ */
+function cli_assert_array_keys_path(
+    array &$startingArray,
+    string $filePath,
+    array $path,
+    array &$warnsAndErrs,
+    string $severity,
+    ?string $customMsg = null
+): array {
+    // 1. Run your core structural validator
+    if (!is_string($filePath) || empty(trim($filePath))) {
+        cli_err("[cli_assert_array_keys_path()]: The provided \$filePath parameter must be a Non-Empty String representing the File Path whose array keys are being checked!");
+    }
+    if (!function_exists('cli_array_subkeys_single')) {
+        cli_err("[cli_assert_array_keys_path()]: Required function `cli_array_subkeys_single()` is missing! This is a critical internal error. Please ensure all FunkCLI Core Files are intact.");
+    }
+    if (!function_exists('cli_build_warning_err_list')) {
+        cli_err("[cli_assert_array_keys_path()]: Required function `cli_build_warning_err_list()` is missing! This is a critical internal error. Please ensure all FunkCLI Core Files are intact.");
+    }
+    if (!in_array($severity, ["cli_err", "cli_warning", "cli_err_syntax", "cli_info"])) {
+        cli_err("[cli_assert_array_keys_path()]: Invalid severity level provided. Must be one of: 'cli_err', 'cli_warning', 'cli_err_syntax', 'cli_info'.");
+    }
+    $results = cli_array_subkeys_single($startingArray, ...$path);
+    // 2. Safely grab the very last element checked in the path sequence
+    $finalCheck = end($results);
+    // 3. If it doesn't exist, trigger the error accumulation sequence
+    if (!$finalCheck || !$finalCheck['exists']) {
+        $lastKey = end($path);
+        $fullPathString =  $finalCheck['full_path']; //implode(' -> ', $path);
+        $msg = $customMsg ?? "Key '{$lastKey}' NOT in [{$fullPathString}] in:`{$filePath}`";
+        // Pass the severity string dynamically straight to your accumulator!
+        cli_build_warning_err_list($warnsAndErrs, $severity, $msg);
+    }
+    // Return final result wanna check the "value_type_under_it" for final value checks!
+    $finalCheck['file_path'] = $filePath;
+    return $finalCheck;
+}
+
+/**
+ * Asserts that a configuration value matches a native PHP data type,
+ * passes a regex pattern match, or satisfies a custom validation callback.
+ *
+ * @param array $finalCheck The self-contained data pipeline packet from `cli_assert_array_keys_path`.
+ * @param array &$warnsAndErrs The error accumulator array tracker.
+ * @param string $severity The logging function name ('cli_err', 'cli_warning', etc).
+ * @param mixed $rule A native type string, regex pattern string, or a callable validation function.
+ * @return bool True if the validation passes, false otherwise.
+ */
+function cli_assert_final_value(
+    array $finalCheck,
+    array &$warnsAndErrs,
+    string $severity,
+    mixed $rule,
+    string $info = '',
+): bool {
+    // 1. Internal Sanitation & Validation Guards
+    $validTypes = ['cli_err', 'cli_warning', 'cli_err_syntax', 'cli_info'];
+    if (!in_array($severity, $validTypes)) {
+        cli_err("[cli_assert_final_value()]: Invalid Message Type (\$severity) provided. Must be one of: `" . implode(', ', $validTypes) . "`!");
+    }
+    // Ensure our rule is a string for the remaining string-based evaluation methods
+    if (!is_string($rule)) {
+        cli_err("[cli_assert_final_value()]: The Validation \$rule must be a String (Type/Regex) or the Name of a Callable function!");
+    }
+
+    // 2. Safety Pipeline Guard: If the path didn't exist, stop right here.
+    // The upstream path validator function already logged the missing key error.
+    if (!isset($finalCheck['exists']) || !$finalCheck['exists']) {
+        return false;
+    }
+
+    // 3. Extract metadata straight out of our Functional State Packet
+    $actualValue = $finalCheck['value'];
+    $actualType  = $finalCheck['value_type_under_it'];
+    $fullPathStr = $finalCheck['full_path'];
+    $lastKey     = $finalCheck['key'];
+    $filePath    = $finalCheck['file_path'] ?? '[UNKNOWN_FILE]';
+
+    // --- STRATEGY A: Callback Function Rule ---
+    if (is_callable($rule)) {
+        // Execute custom callback, passing the raw value and the full packet for advanced contexts
+        $isValid = $rule($actualValue, $finalCheck);
+        if (!$isValid) {
+            $msg = "Custom Validation Callback Failed for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`.";
+            if (is_string($info) && !empty($info)) {
+                $msg .= " More Info: {$info}";
+            }
+            cli_build_warning_err_list($warnsAndErrs, $severity, $msg);
+            return false;
+        }
+        return true;
+    }
+
+    // --- STRATEGY B: Regex Pattern Rule ---
+    $isRegex = (str_starts_with($rule, '/') && str_ends_with($rule, '/'));
+    if ($isRegex) {
+        // Broadly guard against types that cannot be safely converted to a regexable string
+        if (in_array($actualType, ['array', 'object', 'resource', 'resource (closed)', 'unknown type'])) {
+            $msg = "Value Validation Failed at [{$fullPathStr}] in `{$filePath}`. Expected Regex Pattern Match, but found un-stringable type: '{$actualType}'.";
+            if (is_string($info) && !empty($info)) {
+                $msg .= " More Info: {$info}";
+            }
+            cli_build_warning_err_list($warnsAndErrs, $severity, $msg);
+            return false;
+        }
+        if (preg_match($rule, (string)$actualValue) !== 1) {
+            $msg = "Value '{$actualValue}' in Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}` does NOT Match Regex Pattern `{$rule}`.";
+            if (is_string($info) && !empty($info)) {
+                $msg .= " More Info: {$info}";
+            }
+            cli_build_warning_err_list($warnsAndErrs, $severity, $msg);
+            return false;
+        }
+        return true;
+    }
+    // --- STRATEGY C: Standard PHP Data Type Validation ---
+    // Normalize aliases down to native PHP gettype() strings
+    $normalizedRule = trim(strtolower($rule));
+    if ($normalizedRule === 'int')   $normalizedRule = 'integer';
+    if ($normalizedRule === 'bool')  $normalizedRule = 'boolean';
+    if ($normalizedRule === 'float') $normalizedRule = 'double'; // gettype() returns 'double' for floats
+    if ($normalizedRule === 'null')  $normalizedRule = 'NULL';   // gettype() returns uppercase 'NULL'
+    if ($actualType !== $normalizedRule) {
+        $msg = "Type mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected Primitive Type '{$rule}', but Found Type '{$actualType}'.";
+        if (is_string($info) && !empty($info)) {
+            $msg .= " More Info: {$info}";
+        }
+        cli_build_warning_err_list($warnsAndErrs, $severity, $msg);
+        return false;
+    }
+    return true;
+}
+/**
  * Recursively checks for the existence and strict single-subkey structure of a path
  * within a starting array.
  *
@@ -366,7 +527,7 @@ function cli_compile_hydration_node(array $node, string $parentPath = '$results[
  * @return array A numerically indexed array of results, where each element contains:
  * 'key' (the subkey checked), 'exists' (bool), and 'valid_single_key' (bool).
  */
-function array_subkeys_single(array &$startingArray, string ...$subkeys): array
+function cli_array_subkeys_single(array &$startingArray, string ...$subkeys): array
 {
     // Validate startingArray is indeed an array
     if (!is_array($startingArray)) {
@@ -382,44 +543,57 @@ function array_subkeys_single(array &$startingArray, string ...$subkeys): array
             cli_err('[array_subkeys_single]: Each Subkey must be a Non-Empty String or an Integer for Index Access!');
         }
     }
-    $currentLevel = $startingArray;
-    $results = [];
-    $isChainBroken = false;
-    foreach ($subkeys as $key) {
+    $fullPathString = implode(' -> ', $subkeys);
+    $currentLevel   = $startingArray;
+    $currentPathArr = [];
+    $results        = [];
+    $isChainBroken  = false;
+    $totalSubkeys   = count($subkeys);
+    foreach ($subkeys as $index => $key) {
+        $currentPathArr[] = $key;
+        // Determine if this loop is currently standing on the terminal key
+        $isLastKey = ($index === $totalSubkeys - 1);
         $exists = isset($currentLevel[$key]) || array_key_exists($key, $currentLevel);
         // --- 1. Handle Broken Chain or Non-Existence ---
         if ($isChainBroken || !$exists) {
             $isChainBroken = true;
             $results[] = [
-                'key' => $key,
-                'exists' => false,
-                'valid_single_key' => false
+                'full_path'           => $fullPathString,
+                'current_path'      => implode(' -> ', $currentPathArr),
+                'key'                 => $key,
+                'exists'              => false,
+                'valid_single_key'    => false,
+                'value_type_under_it' => '<<<NO_VALUE>>>',
+                'value'               => '<<<NO_VALUE>>>'
             ];
             continue;
         }
         // --- 2. Check for strict single-subkey structure (Reporting Only) ---
-        // This check reports if the structure is strictly single-keyed, but does NOT break traversal.
         $isSingleKeyValid = (
-            is_array($currentLevel) &&              // Current level must be an array
-            !empty($currentLevel) &&                // Must not be empty
-            !array_is_list($currentLevel) &&        // Must not be a numerically indexed list
-            count($currentLevel) === 1 &&           // Must have exactly one key
-            key($currentLevel) === $key             // That single key must be the key we are currently checking
+            is_array($currentLevel) &&
+            !empty($currentLevel) &&
+            !array_is_list($currentLevel) &&
+            count($currentLevel) === 1 &&
+            key($currentLevel) === $key
         );
         // Record the result for this key
         $results[] = [
-            'key' => $key,
-            'exists' => true,
-            'valid_single_key' => $isSingleKeyValid
+            'full_path'           => $fullPathString,
+            'current_path'      => implode(' -> ', $currentPathArr),
+            'key'                 => $key,
+            'exists'              => true,
+            'valid_single_key'    => $isSingleKeyValid,
+            'value_type_under_it' => gettype($currentLevel[$key]),
+            // THE FIX: Only copy the real underlying data if it's the absolute final key!
+            'value'               => $isLastKey ? $currentLevel[$key] : '<<<ASSUMED_ARRAY>>>'
         ];
         // Prepare for the next loop iteration
         $value = $currentLevel[$key];
-        // --- 3. Update Traversal: ONLY break the chain if the next value is NOT an array ---
+        // --- 3. Update Traversal ---
         if (!is_array($value)) {
             $isChainBroken = true;
             continue;
         }
-        // Move to the next level (the array held in $value)
         $currentLevel = $value;
     }
     return $results;
@@ -568,59 +742,6 @@ function cli_pipeline_file_status($validatedPipelineString): array
         'pipeline_post_response_dir_readable' => is_readable(FUNKPHP_PIPELINE_POST_RESPONSE_DIR),
         'pipeline_post_response_dir_writable' => is_writable(FUNKPHP_PIPELINE_POST_RESPONSE_DIR),
     ];
-}
-
-/**
- * Checks for duplicate Folder=>File=>Function route keys in a matched route array.
- * @param array $matchedRoute The matched route array to check.
- * @param string $folder The folder name to check for.
- * @param string $file The file name to check for.
- * @param string $fn The function name to check for.
- * @return bool Returns true if a duplicate is found, false otherwise.
- *
- * The function expects $matchedRoute to be a numerically indexed array of route keys,
- * each structured as Folder => File => Function => {optionalValue}. It checks each route key
- * to see if the specified folder, file, and function combination already exists.
- * If a duplicate is found, it logs a warning and returns true. If no duplicates are found,
- * it returns false. It is used by `make-route`, `make-handler` Command FIles and their aliases
- * to either warn or hard-error out when trying to create a route key that already exists.
- */
-function cli_duplicate_folder_file_fn_route_key($matchedRoute, $file, $fn, $methodroute): bool
-{
-    // $matchedRoute must be a numbered array that is NOT empty!
-    if (
-        !is_array($matchedRoute)
-        || empty($matchedRoute)
-        || !array_is_list($matchedRoute)
-    ) {
-        cli_err('[cli_duplicate_folder_file_fn_route_key]: The Provided $matchedRoute must be a Non-Empty Numerically Indexed Array. Function expects a Matched Route with a Numbered Array of Route Keys with `[index] => Folder => File => Function => {optionalValue}` Structure to check against!');
-    }
-    // $folder, $file, $fn & $methodroute must be non-empty strings
-    if (
-        !is_string($file)
-        || empty(trim($file))
-        || !is_string($fn)
-        || empty(trim($fn))
-        || !is_string($methodroute)
-        || empty(trim($methodroute))
-    ) {
-        cli_err('[cli_duplicate_folder_file_fn_route_key]: The Provided $file, $fn, $methodroute must be Non-Empty Strings. Function expects a Matched Route with a Numbered Array of Route Keys with `[index] => File => Function Structure to check against!');
-    }
-    // We now iterate over $matchedRoute keys using the array_subkeys_single() helper function
-    // passing the matched Route array and the three strings provided by "$folder", "$file","$fn"
-    foreach ($matchedRoute as $idx => $routeKey) {
-        // If all three subkeys exist and are valid single-key structures, we have a duplicate
-        $checkResult = array_subkeys_single($routeKey, $file, $fn);
-        if (
-            count($checkResult) === 2
-            && $checkResult[0]['exists'] === true
-            && $checkResult[1]['exists'] === true
-        ) {
-            cli_warning_without_exit("Duplicate Route Key `$file=>$fn` at Index:[$idx] in:`$methodroute`!");
-            return true;
-        }
-    }
-    return false;
 }
 
 /**
@@ -2547,7 +2668,6 @@ function cli_crud_folder_and_php_file($statusArray, $crudType, $file, $fn = null
             $newFile = cli_default_created_fn_files('sql_only_new_fn', null, $folder_name, $file_name, $fn, $table);
             $fileRaw = $file_raw_entire . "\n" . $newFile;
             $tryOuput = cli_crud_folder_php_file_atomic_write($fileRaw, $outputNewFile);
-            $tryOuput = cli_crud_folder_php_file_atomic_write($fileRaw, $outputNewFile);
             if (!$tryOuput) {
                 cli_err_without_exit('FAILED to Create a New SQL Function (`' . $fn . '`) in the File `' . $file_name . '` in `funkphp/sql`!');
                 cli_info_without_exit('Verify that Folder Path `' . $folder_path . '` exists AND is Readable/Writable!');
@@ -2560,7 +2680,6 @@ function cli_crud_folder_and_php_file($statusArray, $crudType, $file, $fn = null
         elseif ($folderType === 'validation') {
             $newFile = cli_default_created_fn_files('validation_only_new_fn', null, $folder_name, $file_name, $fn, $table);
             $fileRaw = $file_raw_entire . "\n" . $newFile;
-            $tryOuput = cli_crud_folder_php_file_atomic_write($fileRaw, $outputNewFile);
             $tryOuput = cli_crud_folder_php_file_atomic_write($fileRaw, $outputNewFile);
             if (!$tryOuput) {
                 cli_err_without_exit('FAILED to Create a New Validation Function (`' . $fn . '`) in the File `' . $file_name . '` in `funkphp/validation`!');
@@ -9812,7 +9931,7 @@ function cli_restore_default_folders_and_files()
 {
     // Prepare what folders to loop through and create if they don't exist!
     global $cDefault;
-    global $cStartPartDefault; // Contains constants that are inside of $c return []
+    global $cReplacements;
     global $CONSTANTSDefault;
     global $singlePipelineDefault;
     global $singleRoutesRouteDefault;
@@ -9894,7 +10013,7 @@ function cli_restore_default_folders_and_files()
         if (!file_exists($file)) {
             // Recreate default files based on type ("troute", "middleware routes" or "single routes")
             if (str_contains($file, "c.php")) {
-                file_put_contents($file, "<?php\n// c.php - FunkPHP | FunkCLI recreated it $date\n" . cli_get_prefix_code("do_not_modify_warning") . "\nrequire_once __DIR__ . '/CONSTANTS.php';\n// GLOBAL CONFIGURATIONS in \"\$c\" variable in \"funkphp/funkphp_start.php\"\n// Configure the included files below here separately as needed!\n// IMPORTANT: Do NOT store sensitive data here (e.g passwords/API-keys)\n" . join(";\n", $cStartPartDefault) . "\nreturn " . var_export($cDefault, true) . ";\n");
+                file_put_contents($file, "<?php\n// c.php - FunkPHP | FunkCLI recreated it $date\n" . cli_get_prefix_code("do_not_modify_warning") . "\nrequire_once __DIR__ . '/CONSTANTS.php';\n// GLOBAL CONFIGURATIONS in \"\$c\" variable in \"funkphp/funkphp_start.php\"\n// Configure as needed using FunkCLI and/or FunkGUI!\n// IMPORTANT: Do NOT store sensitive data here (e.g passwords/API-keys)\n\nreturn " . cli_replace_stringified_ternary_in_var_exported_string($cReplacements, var_export($cDefault, true)) . ";\n");
                 echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
                 continue;
             } else if (str_contains($file, "CONSTANTS.php")) {
@@ -10760,5 +10879,19 @@ function array_str_starts_with($arr, $startsWith)
     return false;
 }
 
-// Function that removes the starting " and ending " from a string if it exists, otherwise returns the string as is
-function cli_remove_from_defined_constants($var_exported_str) {}
+// Function that uses an array to replace all stringified ternary operators
+// in a given string with their evaluated values. Or it can be used for any
+// var_exported data that needs to replace data that would instead be evaluated.
+function cli_replace_stringified_ternary_in_var_exported_string($arr, $str)
+{
+    if (!is_array($arr)) {
+        cli_err_syntax("[cli_replace_stringified_ternary_in_var_exported_string]: First argument must be an Array!");
+    } else if (!is_string($str) || empty($str)) {
+        cli_err_syntax("[cli_replace_stringified_ternary_in_var_exported_string]: Second argument must be a Non-Empty String!");
+    }
+    // iterate through arr and use its keys as the target part of the $str to replace with its corresponding value in same array element in $arr!
+    foreach ($arr as $key => $value) {
+        $str = str_replace($key, $value, $str);
+    }
+    return $str;
+}

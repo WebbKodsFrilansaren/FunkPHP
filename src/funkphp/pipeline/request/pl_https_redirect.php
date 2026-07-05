@@ -5,7 +5,7 @@ namespace funkphp\pipeline\request\pl_https_redirect;
 function pl_https_redirect(&$c)
 {
     try {
-        if (defined("FUNKPHP_IS_LOCAL") && !FUNKPHP_IS_LOCAL) {
+        if ($c['FUNKPHP_ONLINE'] === true) {
             // Check if the connection is unencrypted
             $isHttps = (isset($_SERVER['HTTPS']) && ($_SERVER['HTTPS'] === 'on' || $_SERVER['HTTPS'] == 1))
                 || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');

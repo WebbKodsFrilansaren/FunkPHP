@@ -19,6 +19,8 @@ $embedPages = false; // imlpemented later
 $compilePages = false;
 $compressDeployment = false;
 $skipBrokenRoutes = false; // implemented later
+$skipCompilingValidation = false; // implemented later
+$skipCompilingSQL = false; // implemented later
 
 // Initialize an array to hold the different compiled sections of the file
 $deploymentBuffer = [];
@@ -43,15 +45,20 @@ foreach ($args as $arg) {
             $compressDeployment = true;
         } else if ($flag === "--skip-broken-routes") {
             $skipBrokenRoutes = true;
+        } else if ($flag === "--skip-compiling-validation") {
+            $skipCompilingValidation = true;
+        } else if ($flag === "--skip-compiling-sql") {
+            $skipCompilingSQL = true;
         }
     }
 }
 cli_info_without_exit("### FunkCLI Compiling & Building `FunkPHPDeployment.php` with the following options:");
 cli_info_without_exit("#### Skip Broken Routes: " . ($skipBrokenRoutes ? "YES" : "NO"));
-cli_info_without_exit("#### Compile Pages: " . ($compilePages ? "YES (pages will be compiled and output to 'funkphp/pages'" : "NO"));
-cli_info_without_exit("#### Embed Pages: " . ($embedPages ? "YES (pages will be inside of the FunkPHPDeployment.php File)" : "NO"));
-cli_info_without_exit("#### Compress Deployment: " . ($compressDeployment ? "YES (FunkPHPDeployment.php, pages and public_html folder will be in a single compresed file)" : "NO"));
-
+cli_info_without_exit("#### Skip Compiling Validation: " . ($skipCompilingValidation ? "YES" : "NO"));
+cli_info_without_exit("#### Skip Compiling SQL: " . ($skipCompilingValidation ? "YES" : "NO"));
+cli_info_without_exit("#### Do Compile Pages: " . ($compilePages ? "YES (pages will be compiled and output to 'funkphp/pages'" : "NO"));
+cli_info_without_exit("#### Do Embed Pages: " . ($embedPages ? "YES (pages will be inside of the FunkPHPDeployment.php File)" : "NO"));
+cli_info_without_exit("#### Do Compress Deployment: " . ($compressDeployment ? "YES (FunkPHPDeployment.php, pages and public_html folder will be in a single compresed file)" : "NO"));
 
 // The actual compiling & building steps
 cli_info_without_exit("### Step 1: Loading, Validating & Compiling `config.php` File ('Config' in FunkGUI)...");
@@ -75,7 +82,64 @@ if (is_readable(FUNKPHP_FILE_PATH_C_CONFIG_FILE)) {
     }
 }
 
-var_dump($cConfig);
+// The main keys that must exist on $c array level for FunkPHP! So we iterate
+// through using array_key_exists now in $cCOnfig to see if those actually exist!
+// those that do not exist we add to the "$configWarnsAndErrs" as errors!
+$cArrayKeysThatMustExist = [
+    'FUNKPHP_ONLINE',
+    'INI_SETS',
+    'BASEURLS',
+    'SESSION',
+    'shared',
+    'custom',
+    'classes',
+    'connections',
+    'req',
+    'd',
+    'v',
+    'v_data',
+    'p',
+    'files',
+    'err',
+];
+foreach ($cArrayKeysThatMustExist as $key) {
+    if (!array_key_exists($key, $cConfig)) {
+        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Key '$key' does NOT exist in the `c.php` (FunkPHP Configuration File)! Please check the File Contents and try again! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
+    }
+}
+cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings and/or Errors above for the `c.php` (FunkPHP Configuration File) and try again! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
+
+// VALIDATE BASEURLS Array Subkeys Paths!
+$baseURLSChecks = [];
+$baseURLSChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["BASEURLS", "LOCAL"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value($baseURLSChecks[0], $configWarnsAndErrs, "cli_err", '/^http:\/\//', "Must start with http://, then you can do any way you want! Example: 'http://localhost/funkphp/src/public_html/' or 'http://my-app.local/'");
+$baseURLSChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["BASEURLS", "ONLINE"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value($baseURLSChecks[1], $configWarnsAndErrs, "cli_err", '/^https:\/\//', "Must start with https://, then you can do any way you want! Example: 'https://www.funkphp.com/' or 'https://my-app.com/'");
+$baseURLSChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["BASEURLS", "BASEURL"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value($baseURLSChecks[2], $configWarnsAndErrs, "cli_err", 'string');
+$baseURLSChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["BASEURLS", "BASEURL_URI"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(
+    $baseURLSChecks[3],
+    $configWarnsAndErrs,
+    "cli_err",
+    '/^\/[a-zA-Z0-9_\-\/]*$/',
+    "Must start with a leading slash '/'. Example: '/api/v1/users' or '/my-app/'"
+);
+cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings and/or Errors above for 'BASEURL' Main Key in the `c.php` (FunkPHP Configuration File) and try again! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
+
+// VALIDATE SESSION Array Subkeys Paths!
+$sessionChecks = [];
+$sessionChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["SESSION", "driver"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value($sessionChecks[0], $configWarnsAndErrs, "cli_err", '/(^files$)|(^redis$)/', "Must be either 'files' or 'redis' for now! Example: 'files' or 'redis'");
+cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["SESSION", "COOKIES"], $configWarnsAndErrs, "cli_err");
+cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["SESSION", "COOKIES", "SESSION_NAME"], $configWarnsAndErrs, "cli_err");
+cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["SESSION", "COOKIES", "SESSION_LIFETIME"], $configWarnsAndErrs, "cli_err");
+cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["SESSION", "COOKIES", "SESSION_PATH"], $configWarnsAndErrs, "cli_err");
+cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["SESSION", "COOKIES", "SESSION_DOMAIN"], $configWarnsAndErrs, "cli_err");
+cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["SESSION", "COOKIES", "SESSION_SECURE"], $configWarnsAndErrs, "cli_err");
+cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["SESSION", "COOKIES", "SESSION_HTTPONLY"], $configWarnsAndErrs, "cli_err");
+cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings and/or Errors above for 'SESSION' Main Key in the `c.php` (FunkPHP Configuration File) and try again! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
+
 exit;
 
 cli_info_without_exit("### Step 2: Loading, Validating & Compiling `pipeline_request.php` ('Request' & 'Post_Response' in 'Pipeline' in FunkGUI) File...");
