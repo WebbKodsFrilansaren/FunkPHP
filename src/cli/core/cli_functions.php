@@ -64,10 +64,10 @@ function cli_build_warning_err_list(&$listArr, $warnErrType, $msg)
     }
     $validTypes = ['cli_err', 'cli_warning', 'cli_err_syntax', 'cli_info'];
     if (!in_array($warnErrType, $validTypes)) {
-        cli_err("[cli_build_warning_err_list()]: Invalid Message Type (\$warnErrType) provided. Must be one of: `" . implode(', ', $validTypes) . "`!");
+        cli_err("[cli_build_warning_err_list()]: Invalid Message Type (\$warnErrType) provided. Must be one of: `" . implode(', ', $validTypes) . "`! Any FunkCLI Command that called this function will now have stopped completely!");
     }
     if (!is_string($msg) || empty(trim($msg))) {
-        cli_err("[cli_build_warning_err_list()]: The provided Message (\$msg) must be a Non-Empty String!");
+        cli_err("[cli_build_warning_err_list()]: The provided Message (\$msg) must be a Non-Empty String! Any FunkCLI Command that called this function will now have stopped completely!");
     }
     // Now we just add to it
     $listArr[] = [$warnErrType => $msg];

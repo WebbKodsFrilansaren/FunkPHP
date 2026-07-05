@@ -4,6 +4,30 @@ namespace funkphp\pipeline\request\pl_match_route_then_run_matched_middlewares_a
 
 function pl_match_route_then_run_matched_middlewares_and_pipeline(&$c)
 {
+    // 1. Grab raw URI from server environment
+    $rawUri = $_SERVER['REQUEST_URI'] ?? '/';
+
+    // 2. Chop off query parameters and fragment injections instantly
+    // Explode splits at '?' or '#' if a raw socket forged it
+    $cleanPath = explode('?', $rawUri, 2)[0];
+    $cleanPath = explode('#', $cleanPath, 2)[0];
+
+    // 3. Resolve potential Subfolder installations (e.g., localhost/project/public/)
+    $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+    $baseUrl = dirname($scriptName);
+    if ($baseUrl !== '/' && str_starts_with($cleanPath, $baseUrl)) {
+        $cleanPath = substr($cleanPath, strlen($baseUrl));
+    }
+
+    // 4. Fallback safeguard: collapse duplicate slashes down to single slashes
+    // Fixes Apache installations where merge_slashes isn't handling it
+    $cleanPath = preg_replace('#/{2,#', '/', $cleanPath);
+
+    // 5. Enforce clean boundary states: Strip trailing and leading slashes, then wrap in a root slash
+    $cleanPath = trim($cleanPath, '/');
+
+    // Result is guaranteed to be a uniform format: '/' or '/users' or '/blog/post/view'
+    $c['req']['uri'] = ($cleanPath === '') ? '/' : '/' . $cleanPath;
 
     /* TRY MATCH A VALID ROUTE OR ERROR OUT ! */
     $c['ROUTES'] = [];
@@ -46,7 +70,7 @@ function pl_match_route_then_run_matched_middlewares_and_pipeline(&$c)
         $c,
         $c['req']['method'],
         $c['req']['uri'],
-        $c['ROUTES']['COMPILED'] ?? [],
+        $c['ROUTES']['COMPILED']['TRIE'] ?? [],
         $c['ROUTES']['DEVELOPER']['ROUTES'] ?? [],
     );
     // Return JSON/Page when no match!
@@ -86,12 +110,13 @@ function pl_match_route_then_run_matched_middlewares_and_pipeline(&$c)
         }
     }
     // When matched, data is stored in $c['req'] and it is up to the Developer to do whatever they want with it!
-    // Recommended is to first use `pl_run_matched_route_middlewares` to run any matched middlewares and then
-    // use the `pl_run_matched_route_keys` to run the matched Route Keys that has been stored after the match!
-
     /* RUN MATCHED MIDDLEWARES IF ANY */
     // 'defensive' = we check almost everything and output error to user if something gets wrong
-    if (isset($c['req']['matched_middlewares'])) {
+    if (
+        isset($c['req']['matched_middlewares'])
+        && (isset($c['req']['matched_config']['route_run_middlewares_before_pipeline'])
+            && $c['req']['matched_config']['route_run_middlewares_before_pipeline'] === true)
+    ) {
         // Must be a numbered array
         if (!is_array($c['req']['matched_middlewares']) || !array_is_list($c['req']['matched_middlewares'])) {
             $c['err']['MIDDLEWARES'][] = 'Configured Matched Route Middlewares (`"ROUTES" => "GET|POST|PUT|DELETE|PATCH" => "/route" => "middlewares" Key`) to load and run after Possibly Matched Route: `' . ($c['req']['route'] !== null ? $c['req']['method'] . $c['req']['route'] : '<No Route Matched>') . '` Route Matching. But the `middlewares` Key is not a numbered array, please check the `funkphp/config/routes.php` File!';

@@ -4,20 +4,28 @@ namespace funkphp\pipeline\request\pl_prepare_uri;
 
 function pl_prepare_uri(&$c, $passedValue = null)
 {
-    // $passedValues i not supported for this pipeline function as of yet
-    if (isset($passedValue)) {
-        $err = 'Tell The Developer - The Pipeline Function `pl_prepare_uri` does not support passed values ($passedValue) as of yet. Please change it back to: `{INT} => ["pl_prepare_uri" => null]` in the Pipeline Configuration.';
-        funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+    // 1. Grab raw URI from server environment
+    $rawUri = $_SERVER['REQUEST_URI'] ?? '/';
+
+    // 2. Chop off query parameters and fragment injections instantly
+    // Explode splits at '?' or '#' if a raw socket forged it
+    $cleanPath = explode('?', $rawUri, 2)[0];
+    $cleanPath = explode('#', $cleanPath, 2)[0];
+
+    // 3. Resolve potential Subfolder installations (e.g., localhost/project/public/)
+    $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+    $baseUrl = dirname($scriptName);
+    if ($baseUrl !== '/' && str_starts_with($cleanPath, $baseUrl)) {
+        $cleanPath = substr($cleanPath, strlen($baseUrl));
     }
 
-    $uri = $_SERVER['REQUEST_URI'];
-    $fphp_BASEURL_URI = $c['BASEURLS']['BASEURL_URI'] ?? '/';
-    $uri = str_starts_with($_SERVER['REQUEST_URI'], $fphp_BASEURL_URI) ? "/" . ltrim(substr(strtok($_SERVER['REQUEST_URI'], "?"), strlen($fphp_BASEURL_URI)), '/') : strtok($_SERVER['REQUEST_URI'], "?");
-    if ($uri === "") {
-        $uri = "/";
-    }
-    if ((substr($uri, -1) === "/") && substr_count($uri, "/") > 1) {
-        $uri = substr($uri, 0, -1);
-    }
-    $c['req']['uri'] = $uri;
+    // 4. Fallback safeguard: collapse duplicate slashes down to single slashes
+    // Fixes Apache installations where merge_slashes isn't handling it
+    $cleanPath = preg_replace('#/{2,#', '/', $cleanPath);
+
+    // 5. Enforce clean boundary states: Strip trailing and leading slashes, then wrap in a root slash
+    $cleanPath = trim($cleanPath, '/');
+
+    // Result is guaranteed to be a uniform format: '/' or '/users' or '/blog/post/view'
+    $c['req']['uri'] = ($cleanPath === '') ? '/' : '/' . $cleanPath;
 };

@@ -24,10 +24,6 @@ define('NAMESPACE_DATA_SQL', 'funkphp\\data\\sql\\');
 define('NAMESPACE_DATA_VALIDATION', 'funkphp\\data\\validation\\');
 
 // Constants for Localhost vs Online Usage AND Default URLs (Change to your own!)
-define('FUNKPHP_IS_LOCAL', true);
-define('FUNKPHP_LOCAL', "http://localhost/funkphp/src/public_html/");
-define('FUNKPHP_ONLINE', "https://www.funkphp.com/");
-define('FUNKPHP_PIPLINE_REQUEST_ENTRY', 'defensive'); // Choose between 'happy' or 'defensive' mode for pipeline request entry point!
 define('FUNKPHP_USE_VENDOR', true); // Change to "false" if you intend to not use any Composer packages and want to remove the Composer autoloader from "FunkPHP.php" for better performance!
 define("ROOT_FOLDER", dirname(__DIR__, 1)); // src/funkphp/
 define("ROOT_CORE", ROOT_FOLDER . '/core'); // src/funkphp/core

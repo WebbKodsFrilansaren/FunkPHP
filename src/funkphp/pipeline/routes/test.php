@@ -21,5 +21,5 @@ function test(&$c)
 	echo "<p>This is a test paragraph to see how the cURL Request Test functionality in FunkGUI will react to it!</p>";
 	echo "</div>";
 
-	var_dump($c['req']);
+	vd($c['req']);
 };

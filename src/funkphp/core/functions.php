@@ -151,21 +151,60 @@ function funk_use_class(&$c, $objClassFolder, $newObjectOrExistingObject, $insta
     return null;
 }
 
-// The function "h_destroy_session" is used to destroy the session and optionally redirect to a specified URI
-function funk_destroy_session(&$c, $set_other_cookies_with_h_setcookie_as_array = [], $redirect = null)
+// FUNKPHP SESSION-BASED FUNCTIONS
+function funk_session_started_or_start_it(&$c)
+{ // If already active in this request lifecycle, exit instantly (Zero overhead)
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        return;
+    }
+    // Lazy infrastructure allocation: Connect to Redis/DB only when a session is actually requested!
+    if (($c['config']['session']['driver'] ?? 'files') === 'redis') {
+        funk_connect_redis_infrastructure($c);
+    }
+    // Configure native cookie settings right before booting
+    // Pass the raw, pre-verified array straight to PHP. No runtime IF statements required!
+    session_set_cookie_params([
+        'lifetime' => $c['COOKIES']['SESSION_LIFETIME'] ?? 0,
+        'path' => $c['COOKIES']['SESSION_PATH'] ?? '/',
+        'domain' => $c['COOKIES']['SESSION_DOMAIN'] ?? '',
+        'secure' => $c['COOKIES']['SESSION_SECURE'] ?? true,
+        'httponly' => true,
+        'samesite' => $c['COOKIES']['SESSION_SAMESITE'] ?? 'Lax',
+    ]);
+    // If it fails to start a session, throw an error and exit with a 500 Internal Server Error
+    if (!session_start()) {
+        $err = 'Tell The Developer: FAILED to Start Session-based Cookie Session. Please check $c[\'INI_SETS\'] and/or $c[\'COOKIES\'] in the Global Configuration `funkphp/config/_all.php` File and adjust the values accordingly if needed!';
+        funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+    }
+}
+// The unified way to read session values across FunkPHP
+function funk_session_get(&$c, string $key, $default = null)
+{
+    funk_session_started_or_start_it($c);
+    return $_SESSION[$key] ?? $default;
+}
+// The unified way to write session values across FunkPHP
+function funk_session_set(&$c, string $key, $value): void
+{
+    funk_session_started_or_start_it($c);
+    $_SESSION[$key] = $value;
+}
+
+// Function to destroy the session and optionally set other cookies using funk_session_cookie_set as an array
+function funk_session_destroy(&$c, $set_other_cookies_with_h_setcookie_as_array = [], $redirect = null)
 {
     // If session is active, destroy it
     if (session_id() || session_status() === PHP_SESSION_ACTIVE) {
         $_SESSION = [];
         session_unset();
         session_destroy();
-        funk_headers_setcookie(session_name(), '', time() - 3600);
-        funk_headers_setcookie("csrf", '', time() - 3600);
+        funk_session_cookie_set(session_name(), '', time() - 3600);
+        funk_session_cookie_set("csrf", '', time() - 3600);
 
-        // Optional h_setcookie() to set other cookies
+        // Optional funk_session_cookie_set to set other cookies
         if (!empty($set_other_cookies_with_h_setcookie_as_array)) {
             foreach ($set_other_cookies_with_h_setcookie_as_array as $cookie) {
-                funk_headers_setcookie(...$cookie);
+                funk_session_cookie_set(...$cookie);
             }
         }
     }
@@ -177,7 +216,7 @@ function funk_destroy_session(&$c, $set_other_cookies_with_h_setcookie_as_array 
 }
 
 // Function to set a cookie with the specified parameters
-function funk_headers_setcookie(&$c, $name, $value, $expire = 0, $path = '/', $domain = '', $secure = false, $httponly = true, $samesite = 'strict')
+function funk_session_cookie_set(&$c, $name, $value, $expire = 0, $path = '/', $domain = '', $secure = false, $httponly = true, $samesite = 'strict')
 {
     // Set the cookie with the specified parameters
     setcookie($name, $value, [
@@ -189,7 +228,29 @@ function funk_headers_setcookie(&$c, $name, $value, $expire = 0, $path = '/', $d
         'samesite' => $samesite
     ]);
 }
+function funk_generate_csrf(&$c, string $currentUri, ?int $lifetimeSeconds = null): string
+{
+    if (funk_session_get($c, '_funk_csrf') === null) {
+        $_SESSION['_funk_csrf'] = [];
+    }
+    // 1. Generate a completely unique, unpredictable token string
+    $token = hash('sha256', random_bytes(32));
+    // 2. Store the URI and expiration metadata INSIDE the array payload
+    $_SESSION['_funk_csrf'][$token] = [
+        'uri' => $currentUri,
+        'expires' => ($lifetimeSeconds === null) ? null : (time() + $lifetimeSeconds)
+    ];
+    // Optional: Keep the session array from growing forever if a user opens 100 tabs
+    if (count($_SESSION['_funk_csrf']) > 99) {
+        array_shift($_SESSION['_funk_csrf']); // Drop the oldest token
+    }
 
+    return $token;
+}
+
+
+
+// FUNKPHP GENERIC RANDOMIZER FUNCTIONS
 // This function uses the "The Random\Randomizer class" to generate a unique password
 function funk_generate_random_password(&$c, $length = 20, $returnHashed = false)
 {

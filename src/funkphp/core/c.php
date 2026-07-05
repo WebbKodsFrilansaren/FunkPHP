@@ -16,6 +16,9 @@ require_once __DIR__ . '/CONSTANTS.php';
 // Configure the included files below here separately as needed!
 // IMPORTANT: Do NOT store sensitive data here (e.g passwords/API-keys)
 return [
+    !defined('FUNKPHP_IS_LOCAL') ? define('FUNKPHP_IS_LOCAL', true) : null,
+    !defined('FUNKPHP_LOCAL') ? define('FUNKPHP_LOCAL', 'http://localhost/funkphp/src/public_html/') : null,
+    !defined('FUNKPHP_ONLINE') ? define('FUNKPHP_ONLINE', 'https://www.funkphp.com/') : null,
     'INI_SETS' => [
         // IMPORTANT: Change and/or add these as needed! For example, if you wanna use
         // Redis or Memcached, you can add those configurations here as this INI_SET
