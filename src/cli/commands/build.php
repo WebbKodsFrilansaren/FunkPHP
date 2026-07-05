@@ -93,7 +93,9 @@ $routesPipelineWarnsAndErrs = [];
 cli_info_without_exit("### Step 6: Running any optional flags before finishing...");
 $optionalFlagsWarnsAndErrs = [];
 
-
 // This should happen if everything above went smoothly!
+if (!cli_crud_folder_php_file_atomic_write(implode($deploymentBuffer), FUNKPHP_FILE_PATH_DEPLOYMENT_FILE)) {
+    cli_err("Failed to write the otherwise Successfully Compiled `FunkPHPDeployment.php` File to the Disk! Please check the File Permissions and try again! Path: " . (FUNKPHP_FILE_PATH_DEPLOYMENT_FILE ?? "[NOT_DEFINED]"));
+}
 cli_success("### FunkCLI Successfully Compiled & Built `FunkPHPDeployment.php` with the following options:\n### Compile Pages: " . ($compilePages ? "YES" : "NO") . "\n### Compress Deployment: " . ($compressDeployment ? "YES" : "NO") . "\n### You can now deploy the `FunkPHPDeployment.php` file to your server for production use!");
 exit;

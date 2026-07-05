@@ -9811,6 +9811,9 @@ function cli_convert_array_to_simple_syntax(array $array): string | null | array
 function cli_restore_default_folders_and_files()
 {
     // Prepare what folders to loop through and create if they don't exist!
+    global $cDefault;
+    global $cStartPartDefault; // Contains constants that are inside of $c return []
+    global $CONSTANTSDefault;
     global $singlePipelineDefault;
     global $singleRoutesRouteDefault;
     global $singleTrouteDefault;
@@ -9866,6 +9869,8 @@ function cli_restore_default_folders_and_files()
         "$folderBase/funkphp/core/pipeline_request.php",
         "$folderBase/funkphp/core/pipeline_routes.php",
         "$folderBase/funkphp/core/tables.php",
+        "$folderBase/funkphp/core/c.php",
+        "$folderBase/funkphp/core/CONSTANTS.php",
         "$folderBase/funkphp/core/valid_mysql_datatypes.php",
         "$folderBase/funkphp/core/valid_mysql_operators.php",
         //"$folderBase/public_html/.htaccess",
@@ -9888,7 +9893,15 @@ function cli_restore_default_folders_and_files()
     foreach ($defaultFiles as $file) {
         if (!file_exists($file)) {
             // Recreate default files based on type ("troute", "middleware routes" or "single routes")
-            if (str_contains($file, "compiled_routes")) {
+            if (str_contains($file, "c.php")) {
+                file_put_contents($file, "<?php\n// c.php - FunkPHP | FunkCLI recreated it $date\n" . cli_get_prefix_code("do_not_modify_warning") . "\nrequire_once __DIR__ . '/CONSTANTS.php';\n// GLOBAL CONFIGURATIONS in \"\$c\" variable in \"funkphp/funkphp_start.php\"\n// Configure the included files below here separately as needed!\n// IMPORTANT: Do NOT store sensitive data here (e.g passwords/API-keys)\n" . join(";\n", $cStartPartDefault) . "\nreturn " . var_export($cDefault, true) . ";\n");
+                echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
+                continue;
+            } else if (str_contains($file, "CONSTANTS.php")) {
+                file_put_contents($file, "<?php\n// CONSTANTS.php - FunkPHP | FunkCLI recreated it $date\n" . cli_get_prefix_code("do_not_modify_warning") . "\n" . join(";\n", $CONSTANTSDefault) . ";\n");
+                echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
+                continue;
+            } else if (str_contains($file, "compiled_routes")) {
                 file_put_contents($file, "<?php\n// compiled_routes.php - FunkPHP | FunkCLI recreated it $date\n" . cli_get_prefix_code("do_not_modify_warning") . "\nreturn " . var_export($singleTrouteDefault, true) . ";\n");
                 echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
                 continue;
@@ -10746,3 +10759,6 @@ function array_str_starts_with($arr, $startsWith)
     }
     return false;
 }
+
+// Function that removes the starting " and ending " from a string if it exists, otherwise returns the string as is
+function cli_remove_from_defined_constants($var_exported_str) {}

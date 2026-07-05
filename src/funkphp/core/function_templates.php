@@ -16,23 +16,24 @@
 // This function is used to ensure that a session is available for reading
 // and writing session values.
 function funk_session_started_or_start_it(&$c)
-{ // If already active in this request lifecycle, exit instantly (Zero overhead)
+{
+    // If already active in this request lifecycle, exit instantly (Zero overhead)
     if (session_status() === PHP_SESSION_ACTIVE) {
         return;
     }
     // Lazy infrastructure allocation: Connect to Redis/DB only when a session is actually requested!
-    if (($c['config']['session']['driver'] ?? 'files') === 'redis') {
+    if (($c['SESSION']['driver'] ?? 'files') === 'redis') {
         funk_connect_redis_infrastructure($c);
     }
     // Configure native cookie settings right before booting
     // Pass the raw, pre-verified array straight to PHP. No runtime IF statements required!
     session_set_cookie_params([
-        'lifetime' => "{{['COOKIES']['SESSION_LIFETIME']}}" ?? 0,
-        'path' => "{{['COOKIES']['SESSION_PATH']}}" ?? '/',
-        'domain' => "{{['COOKIES']['SESSION_DOMAIN']}}" ?? '',
-        'secure' => "{{['COOKIES']['SESSION_SECURE']}}" ?? true,
-        'httponly' => "{{true}}",
-        'samesite' => "{{['COOKIES']['SESSION_SAMESITE']}}" ?? 'Lax',
+        'lifetime' => "{{['SESSION']['COOKIES']['SESSION_LIFETIME'] ?? 0}}",
+        'path' => "{{['SESSION']['COOKIES']['SESSION_PATH'] ?? '/'}}",
+        'domain' => "{{['SESSION']['COOKIES']['SESSION_DOMAIN'] ?? ''}}",
+        'secure' => "{{['SESSION']['COOKIES']['SESSION_SECURE'] ?? true}}",
+        'httponly' => "true",
+        'samesite' => "{{['SESSION']['COOKIES']['SESSION_SAMESITE'] ?? 'Lax'}}",
     ]);
     // If it fails to start a session, throw an error and exit with a 500 Internal Server Error
     if (!session_start()) {

@@ -49,42 +49,17 @@ return [
 
     // DEFAULT SESSION COOKIES SETTINGS - Change as needed!
     // IMPORTANT: They are used by `pl_set_session_cookie_params`!
-    'COOKIES' => [
-        'SESSION_NAME' => 'fphp_id',
-        'SESSION_LIFETIME' => 28800, // 28800 = 8 hours
-        'SESSION_PATH' => '/',
-        // Maybe hardcode these key values for best security & performance?
-        'SESSION_DOMAIN' => FUNKPHP_IS_LOCAL ? "localhost" : $_SERVER['SERVER_NAME'],
-        'SESSION_SECURE' => FUNKPHP_IS_LOCAL ? false : true,
-        'SESSION_HTTPONLY' => true,
-        'SESSION_SAMESITE' => FUNKPHP_IS_LOCAL ? 'Lax' : 'Strict',
-    ],
-
-    // DEFAULT HEADERS That are Added & Removed For Each Request! - Change as needed!
-    'HEADERS' => [
-        // You might change these as needed per Matched Route in your Web App!
-        // The "ADD" & "REMOVE" headers below are for Maximum User Security!
-        // IMOPRTANT: Change the CSP Header below to match your needs!
-        'ADD' => [
-            "Content-Type: text/html; charset=utf-8", // IMPORTANT: Change to "application/json" if you are primarily handling API!
-            "Content-Security-Policy: default-src 'none'; img-src 'self'; script-src 'self'; connect-src 'none'; style-src 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; font-src 'self'; base-uri 'self';",
-            "x-frame-options: DENY",
-            "x-content-type-options: nosniff",
-            "x-xss-protection: 1; mode=block",
-            "x-permitted-cross-domain-policies: none",
-            "referrer-policy: strict-origin-when-cross-origin",
-            "Access-Control-Allow-Origin: 'self'",
-            "cross-origin-resource-policy: same-origin",
-            "Cross-Origin-Embedder-Policy: require-corp",
-            "Cross-Origin-Opener-Policy: same-origin",
-            "Expect-CT: enforce, max-age=86400",
-            "Strict-Transport-Security: max-age=31536000; includeSubDomains; preload"
-        ],
-        'REMOVE' => [
-            "X-Powered-By",
-            "Server",
-            "X-AspNet-Version",
-            "X-AspNetMvc-Version"
+    'SESSION' => [
+        'driver' => 'files',
+        'COOKIES' => [
+            'SESSION_NAME' => 'fphp_id',
+            'SESSION_LIFETIME' => 28800, // 28800 = 8 hours
+            'SESSION_PATH' => '/',
+            // Maybe hardcode these key values for best security & performance?
+            'SESSION_DOMAIN' => FUNKPHP_IS_LOCAL ? "localhost" : $_SERVER['SERVER_NAME'],
+            'SESSION_SECURE' => FUNKPHP_IS_LOCAL ? false : true,
+            'SESSION_HTTPONLY' => true,
+            'SESSION_SAMESITE' => FUNKPHP_IS_LOCAL ? 'Lax' : 'Strict',
         ]
     ],
 
@@ -96,12 +71,6 @@ return [
     // when `m_match_route` is ran during `pipeline` in `funkphp_start.php`)
     'ROUTES' => [],
 
-    // 'TABLES' is the array of Processed SQL Tables ("schemas" folder) that
-    // are used in tandem with Validation & SQL Handlers during DB CRUD!
-    // This probably not need at all, commented out for now!
-    //'TABLES' => include_once __DIR__ . '/tables.php',
-
-
     // 'INSTANCES' is the array of instantiated objects of any classes
     // from either "vendor" (composer) or "classes" (your own classes)
     // folder that you want to be globally available via `$c`!
@@ -109,7 +78,6 @@ return [
     // the same key already exists! use the "define()" below whether you
     // want funk_use_custom_error() to run then or if you are OK with overwrite
     'INSTANCES' => ['vendor' => [], 'classes' => []],
-
 
     // 'DATABASES' is the array of multiple database connections that you can
     // use and can be SQL, MongoDB, PostgreSQL, etc. - Change as needed!
@@ -119,7 +87,9 @@ return [
     // 'req' is the array of request data which will also include changed data based
     // on matched route, middlewares (if any), data (if any) and page (if any), etc.
     'req' => [
-        'method' => $_SERVER['REQUEST_METHOD'] ?? null,
+        'method' => $_SERVER['REQUEST_METHOD'] ?? 'GET',
+        'ip'     => $_SERVER['REMOTE_ADDR'] ?? null,
+        'time'   => $_SERVER['REQUEST_TIME'] ?? time(),
         'uri' => null,
         'query' => $_SERVER['QUERY_STRING'] ?? null,
         'matched_in' => null,
@@ -140,13 +110,10 @@ return [
         'keep_running_exit' => null,
         'code' => 418,
         'log' => [],
-        'time' => $_SERVER['REQUEST_TIME'] ?? time() ?? null,
-        'ip' => $_SERVER['REMOTE_ADDR'] ?? null,
-        'ua' => $_SERVER['HTTP_USER_AGENT'] ?? null,
-        'content_type' => $_SERVER['CONTENT_TYPE'] ?? null,
-        'accept' => $_SERVER['HTTP_ACCEPT'] ?? null,
-        'protocol' => $_SERVER['SERVER_PROTOCOL'] ?? null,
-
+        'ua' => null,
+        'content_type' => null,
+        'accept' => null,
+        'protocol' => null,
     ],
     // 'd' will ALWAYS store hydrated database data!
     // data (it does NOT store validation errors)
@@ -194,10 +161,10 @@ return [
         'CLASSES' => [],
         'DATABASES' => [],
         'PIPELINE' => [],
-        'CACHED' => [],
         'MIDDLEWARES' => [],
         'PAGE' => [],
         'VALIDATION' => [],
+        'QUERY' => [],
         'SQL' => [],
     ],
 ];

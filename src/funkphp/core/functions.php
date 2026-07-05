@@ -158,18 +158,18 @@ function funk_session_started_or_start_it(&$c)
         return;
     }
     // Lazy infrastructure allocation: Connect to Redis/DB only when a session is actually requested!
-    if (($c['config']['session']['driver'] ?? 'files') === 'redis') {
+    if (($c['SESSION']['driver'] ?? 'files') === 'redis') {
         funk_connect_redis_infrastructure($c);
     }
     // Configure native cookie settings right before booting
     // Pass the raw, pre-verified array straight to PHP. No runtime IF statements required!
     session_set_cookie_params([
-        'lifetime' => $c['COOKIES']['SESSION_LIFETIME'] ?? 0,
-        'path' => $c['COOKIES']['SESSION_PATH'] ?? '/',
-        'domain' => $c['COOKIES']['SESSION_DOMAIN'] ?? '',
-        'secure' => $c['COOKIES']['SESSION_SECURE'] ?? true,
+        'lifetime' => $c['SESSION']['COOKIES']['SESSION_LIFETIME'] ?? 0,
+        'path' => $c['SESSION']['COOKIES']['SESSION_PATH'] ?? '/',
+        'domain' => $c['SESSION']['COOKIES']['SESSION_DOMAIN'] ?? '',
+        'secure' => $c['SESSION']['COOKIES']['SESSION_SECURE'] ?? true,
         'httponly' => true,
-        'samesite' => $c['COOKIES']['SESSION_SAMESITE'] ?? 'Lax',
+        'samesite' => $c['SESSION']['COOKIES']['SESSION_SAMESITE'] ?? 'Lax',
     ]);
     // If it fails to start a session, throw an error and exit with a 500 Internal Server Error
     if (!session_start()) {

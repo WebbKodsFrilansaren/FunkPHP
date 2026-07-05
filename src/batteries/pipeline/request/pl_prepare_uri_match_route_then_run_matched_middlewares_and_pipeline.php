@@ -1,8 +1,8 @@
 <?php
 
-namespace funkphp\pipeline\request\pl_match_route_then_run_matched_middlewares_and_pipeline;
+namespace funkphp\pipeline\request\pl_prepare_uri_match_route_then_run_matched_middlewares_and_pipeline;
 
-function pl_match_route_then_run_matched_middlewares_and_pipeline(&$c)
+function pl_prepare_uri_match_route_then_run_matched_middlewares_and_pipeline(&$c)
 {
     // 1. Grab raw URI from server environment
     $rawUri = $_SERVER['REQUEST_URI'] ?? '/';
@@ -110,6 +110,13 @@ function pl_match_route_then_run_matched_middlewares_and_pipeline(&$c)
         }
     }
     // When matched, data is stored in $c['req'] and it is up to the Developer to do whatever they want with it!
+    // We matched so we NOW store some server-provided metadata
+    $c['req']['query']        = $_SERVER['QUERY_STRING'] ?? null;
+    $c['req']['ua']           = $_SERVER['HTTP_USER_AGENT'] ?? null;
+    $c['req']['content_type'] = $_SERVER['CONTENT_TYPE'] ?? null;
+    $c['req']['accept']       = $_SERVER['HTTP_ACCEPT'] ?? null;
+    $c['req']['protocol']     = $_SERVER['SERVER_PROTOCOL'] ?? null;
+
     /* RUN MATCHED MIDDLEWARES IF ANY */
     // 'defensive' = we check almost everything and output error to user if something gets wrong
     if (
