@@ -4,3 +4,4 @@
 // must already exist or it will error out. This attachment of pipeline functions must be
 // done manually with this command meaning the make:pipeline will NOT add it!
 $PIPELINE = $singlePipeline;
+echo "NOT IMPLEMENTED YET!";

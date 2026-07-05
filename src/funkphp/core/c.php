@@ -1,11 +1,15 @@
 <?php // FunkPHP Global Configuration File (The `$c` Variable)
-// IMPORTANT: This file is used to set the global configuration for FunkPHP
-// CHANGE AS NEEDED BELOW SO IT WORKS OFFLINE & ONLINE FOR YOU!
-/*
-* WARNING: Do NOT store sensitive data here (e.g passwords/API-keys)
-* MAIN CONSTANTS USED BY THE FUNKPHP FRAMEWORK - Change as needed
-* WHEN YOU ARE COMFORTABLE ENOUGH TO WORK GRANULARLY WITH THE FRAMEWORK!
-*/
+
+/**
+ * ---------------------
+ * FUNKPHP (C)onfig File
+ * ---------------------
+ * DO NOT MANUALLY EDIT THIS FILE UNLESS YOU UNDERSTAND IT IN AND OUT.
+ * If you are currently editing this file to see if FunkCLI will "self-heal",
+ * it won't. This is a micro-framework, not your therapist. If you alter this
+ * source of truth, your app will most likely crash, and your peer will know
+ * you do not understand how caching and/or compiled files work.
+ **/
 require_once __DIR__ . '/CONSTANTS.php';
 
 // GLOBAL CONFIGURATIONS in "$c" variable in "funkphp/funkphp_start.php"
@@ -175,11 +179,6 @@ return [
     // 'files' is the array of uploaded files (if any)
     // that will be used to handle the file uploads!
     'files' => null,
-
-    // 'current' is collection of running File Handlers and/or their Handler Functions!
-    // This is used to keep track of them and also to include correct one during errors!
-    // Each key is the  "FileHandlerName" => "HandlerFunction" Pair!
-    'current' => ['MIDDLEWARES' => [], 'HANDLERS' => [], 'DATA' => [], 'VALIDATIONS' => [], 'SQL' => [], 'PAGES' => []],
 
     // 'err(ors)' is an array of errors that will be filled when errors occur in the
     // application, so they can optionally be handled later in the application flow!

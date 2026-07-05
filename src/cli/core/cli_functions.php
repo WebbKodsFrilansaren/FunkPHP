@@ -1,5 +1,16 @@
 <?php // ALL CLI FUNCTIONS
 
+/**
+ * -----------------
+ * FUNKCLI FUNCTIONS
+ * -----------------
+ * DO NOT MANUALLY EDIT THIS FILE.
+ * If you are currently editing this file to see if FunkCLI will "self-heal",
+ * it won't. This is a micro-framework, not your therapist. If you alter this
+ * source of truth, your app will most likely crash, and your peer will know
+ * you do not understand how caching and/or compiled files work.
+ **/
+
 /*
  * Function that loads a number of snippets file from the src/snippets folder and also
  * normalizes them by removing <?php in the beginning. the $snippets is expected to be a
@@ -3325,7 +3336,7 @@ function cli_parse_a_sql_table_file($tableFileName)
             if (isset($matches[3])) {
                 $matches[3] = strtoupper($matches[3]);
                 if (!isset($mysqlDataTypes[$matches[3]])) {
-                    cli_err_syntax("[cli_parse_a_sql_table_file] Data Type \"{$matches[3]}\" not found in \"funkphp/config/valid/supported_mysql_data_types.php\" of valid MySQL Data Types.");
+                    cli_err_syntax("[cli_parse_a_sql_table_file] Data Type \"{$matches[3]}\" not found in \"funkphp/config/valid/supported_mysql_datatypes.php\" of valid MySQL Data Types.");
                     cli_info("Please add its key if you believe it should be included, and then retry in FunkCLI!");
                 } else {
                     $parsedTable[$tableName][$matches[1]]["type"] = $matches[3];
@@ -3805,7 +3816,8 @@ function cli_output_tables_file($array)
     // --- (FROM LLM!!!) END NEW LOGIC ---
 
     // Attempt to write to the Tables.php file and check if it was successful
-    if (!cli_crud_folder_php_file_atomic_write("<?php\nreturn " . var_export($array, true) . ";\n", FUNKPHP_FILE_PATH_TABLES)) {
+    $date = date("Y-m-d H:i:s");
+    if (!cli_crud_folder_php_file_atomic_write("<?php\n// tables.php - FunkPHP | FunkCLI created/modified it $date\n" . cli_get_prefix_code("do_not_modify_tables") . "\nreturn " . var_export($array, true) . ";\n", FUNKPHP_FILE_PATH_TABLES)) {
         cli_err_syntax("FAILED recompiling Tables in `" . FUNKPHP_FILE_PATH_TABLES . "`!");
     } else {
         cli_success_without_exit("Recompiled Tables in `" . FUNKPHP_FILE_PATH_TABLES . "`!");
@@ -9422,7 +9434,7 @@ function cli_rebuild_single_routes_route_file($singleRouteRoutesFileArray): bool
         cli_err("[cli_rebuild_single_routes_file] Routes file (funkphp/core/pipeline_routes.php) must be writable. It is not!");
     }
     // Use Atomic File Write to prevent corruption while outputting the newly compiled Routes file
-    return (cli_crud_folder_php_file_atomic_write((cli_get_prefix_code("route_singles_routes_start")
+    return (cli_crud_folder_php_file_atomic_write((cli_get_prefix_code("route_singles_routes_start") . "\n" . cli_get_prefix_code("do_not_modify_warning_general") . "\n"
         . var_export($singleRouteRoutesFileArray, true) . ";\n"), FUNKPHP_FILE_PATH_ROUTES));
 }
 
@@ -9697,7 +9709,8 @@ function cli_output_compiled_routes(array $compiledTrie)
         cli_err_syntax("Compiled Routes Must Be A Non-Empty Array!");
     }
     // Try output ocmpiled route to file and report success or failure
-    if (!cli_crud_folder_php_file_atomic_write("<?php\nreturn " . var_export($compiledTrie, true) . ";\n", FUNKPHP_FILE_PATH_TROUTES)) {
+    $date = date("Y-m-d H:i:s");
+    if (!cli_crud_folder_php_file_atomic_write("<?php\n// compiled_routes.php - FunkPHP | FunkCLI created/updated $date\n" . cli_get_prefix_code("do_not_modify_warning_general") . "\nreturn " . var_export($compiledTrie, true) . ";\n", FUNKPHP_FILE_PATH_TROUTES)) {
         cli_err("Failed to write Compiled Routes to file: `" .  FUNKPHP_FILE_PATH_TROUTES . "`! Check File Permissions?");
     } else {
         cli_success_without_exit("SUCCESSFULLY Compiled Routes to file: `" . FUNKPHP_FILE_PATH_TROUTES . "`!");
@@ -9801,6 +9814,9 @@ function cli_restore_default_folders_and_files()
     global $singlePipelineDefault;
     global $singleRoutesRouteDefault;
     global $singleTrouteDefault;
+    global $tablesAndRelationshipsFileDefault;
+    global $mysqlDataTypesFileDefault;
+    global $mysqlOperatorSyntaxDefault;
     $folderBase = PROJECT_DIR;
     $folders = [
         "$folderBase",
@@ -9849,6 +9865,9 @@ function cli_restore_default_folders_and_files()
         "$folderBase/funkphp/core/compiled_routes.php",
         "$folderBase/funkphp/core/pipeline_request.php",
         "$folderBase/funkphp/core/pipeline_routes.php",
+        "$folderBase/funkphp/core/tables.php",
+        "$folderBase/funkphp/core/valid_mysql_datatypes.php",
+        "$folderBase/funkphp/core/valid_mysql_operators.php",
         //"$folderBase/public_html/.htaccess",
         "$folderBase/cli/.htaccess",
     ];
@@ -9870,15 +9889,27 @@ function cli_restore_default_folders_and_files()
         if (!file_exists($file)) {
             // Recreate default files based on type ("troute", "middleware routes" or "single routes")
             if (str_contains($file, "compiled_routes")) {
-                file_put_contents($file, "<?php\n// compiled_routes.php - FunkPHP Framework | FunkCLI recreated it $date\n\nreturn " . var_export($singleTrouteDefault, true) . ";\n");
+                file_put_contents($file, "<?php\n// compiled_routes.php - FunkPHP | FunkCLI recreated it $date\n" . cli_get_prefix_code("do_not_modify_warning") . "\nreturn " . var_export($singleTrouteDefault, true) . ";\n");
+                echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
+                continue;
+            } elseif (str_contains($file, "tables")) {
+                file_put_contents($file, "<?php\n// // tables.php - FunkPHP | FunkCLI recreated it $date\n" . cli_get_prefix_code("do_not_modify_warning") . "\nreturn " . var_export($tablesAndRelationshipsFileDefault, true) . ";\n");
+                echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
+                continue;
+            } elseif (str_contains($file, "valid_mysql_datatypes")) {
+                file_put_contents($file, "<?php\n// // valid_mysql_datatypes.php - FunkPHP | FunkCLI recreated it $date\n" . cli_get_prefix_code("do_not_modify_warning") . "\nreturn " . var_export($mysqlDataTypesFileDefault, true) . ";\n");
+                echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
+                continue;
+            } elseif (str_contains($file, "valid_mysql_operators")) {
+                file_put_contents($file, "<?php\n// valid_mysql_operators.php - FunkPHP | FunkCLI recreated it $date\n" . cli_get_prefix_code("do_not_modify_warning") . "\nreturn " . var_export($mysqlOperatorSyntaxDefault, true) . ";\n");
                 echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
                 continue;
             } elseif (str_contains($file, "pipeline_routes")) {
-                file_put_contents($file, "<?php\n// pipeline_routes.php - FunkPHP Framework | FunkCLI recreated it $date\nreturn " . var_export($singleRoutesRouteDefault, true) . ";\n");
+                file_put_contents($file, "<?php\n// pipeline_routes.php - FunkPHP | FunkCLI recreated it $date\n" . cli_get_prefix_code("do_not_modify_warning") . "\nreturn " . var_export($singleRoutesRouteDefault, true) . ";\n");
                 echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
                 continue;
             } else if (str_contains($file, "pipeline_request")) {
-                file_put_contents($file, "<?php\n// pipeline_request.php - FunkPHP Framework | FunkCLI recreated it $date\nreturn  " . var_export($singlePipelineDefault, true) . ";\n");
+                file_put_contents($file, "<?php\n// pipeline_request.php - FunkPHP | FunkCLI recreated it $date\n" . cli_get_prefix_code("do_not_modify_warning") . "\nreturn  " . var_export($singlePipelineDefault, true) . ";\n");
                 echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
                 continue;
             } else if (str_contains($file, "public_html/.htaccess")) {
@@ -10202,6 +10233,45 @@ function cli_get_prefix_code($keyString)
     $currDate = date("Y-m-d H:i:s");
     $prefixCode = [
         "route_singles_routes_start" => "<?php // pipeline_routes.php - FunkPHP | FunkCLI Modified it $currDate\nreturn ",
+        "do_not_modify_tables" => <<<EOF
+    /**
+    * --------------
+    * FUNKPHP TABLES
+    * --------------
+    * DO NOT MANUALLY EDIT THIS FILE.
+    * If you are currently editing this file to see if FunkCLI will "self-heal",
+    * it won't. This is a micro-framework, not your therapist. If you alter this
+    * source of truth, your app will most likely crash, and your peer will know
+    * you do not understand how caching and/or compiled files work.
+    **/
+EOF,
+        "do_not_modify_warning" => <<<EOF
+    /**
+    * -----------------------------------------------------
+    * FUNKPHP AUTOMATICALLY GENERATED/CREATED COMPILED FILE
+    * -----------------------------------------------------
+    * DO NOT MANUALLY EDIT THIS FILE.
+    * If you are currently editing this file to see if FunkPHP will "self-heal",
+    * it won't. This is a micro-framework, not your therapist. If you alter this
+    * source of truth, your app will most likely crash, and your peer will know
+    * you do not understand how caching and/or compiled files work.
+    **/
+EOF,
+        "do_not_modify_warning_general" => <<<EOF
+    /**
+    * -----------------------------------------------------
+    * FUNKPHP AUTOMATICALLY GENERATED/CREATED COMPILED FILE
+    * -----------------------------------------------------
+    * DO NOT MANUALLY EDIT THIS FILE.
+    * If you are currently editing this file to see if FunkPHP will "self-heal",
+    * it won't. This is a micro-framework, not your therapist. If you alter this
+    * source of truth, your app will most likely crash, and your peer will know
+    * you do not understand how caching and/or compiled files work.
+    * To fix your own self-sabotage (if it was the router files
+    * 'compiled_routes.php' and/or 'pipeline_routes.php'),
+    * run the following Terminal Command in Working Path '/src/cli': `php funk recompile`
+    */
+EOF,
     ];
 
     return $prefixCode[$keyString] ?? null;
@@ -10458,7 +10528,8 @@ function cli_update_reserved_functions_list()
     // We now save an array of those functions in cli_reserved.php which is in the cli folder!
     $output = file_put_contents(
         $dir2 . "cli_reserved.php",
-        "<?php\n// FunkPHP Framework - FunkCLI Created it " . date("Y-m-d H:i:s") . "\n" .
+        "<?php\n// cli_reserved.php - FunkPHP | FunkCLI Created/Updated it " . date("Y-m-d H:i:s") . "\n" .
+            cli_get_prefix_code("do_not_modify_warning") .
             "// This file contains all reserved functions in the FunkPHP Framework and FunkCLI.\n" .
             "// It is used to check if a function is reserved (used by FunkPHP/FunkCLI) or not.\n" .
             "return \n" . $reserved_functions_string . " // Functions Count: $count"

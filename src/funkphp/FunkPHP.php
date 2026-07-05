@@ -6,7 +6,8 @@
 //START:FUNCTIONS_AND_CONFIG
 // Load all functions needed for the FunkPHP Framework Web Application
 // $c is the global configuration array that is used throughout the application
-require_once __DIR__ . '/core/functions.php';
+require_once __DIR__ . '/core/functions.php'; // In-built functions
+require_once __DIR__ . '/config/functions.php'; // User-defined functions
 $c = require_once __DIR__ . '/core/c.php';
 $c['<ENTRY>'] = require_once __DIR__ . '/core/pipeline_request.php';
 //END:FUNCTIONS_AND_CONFIG

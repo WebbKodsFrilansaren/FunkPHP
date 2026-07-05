@@ -79,21 +79,25 @@ define('SNIPPETS_DIR', PROJECT_DIR . '/snippets');
 define('TEST_DIR', PROJECT_DIR . '/tests');
 
 // Default exact file path used by FunkCLI
-define("FUNKPHP_DEPLOYMENT_FILE", FUNKPHP_DIR . '/FunkPHPDeployment.php');
 define("FUNKPHP_FILE_PATH_CLI_RESERVED", CLI_CORE_DIR . '/cli_reserved.php');
-define("FUNKPHP_FILE_PATH_CLI_FUNS", CLI_CORE_DIR . '/cli_funs.php');
-define("FUNKPHP_FILE_PATH_CLI_FUNS2", CLI_CORE_DIR . '/cli_funs2.php');
 define("FUNKPHP_FILE_PATH_CLI_FUNCTIONS", CLI_CORE_DIR . '/cli_functions.php');
 define("FUNKPHP_FILE_PATH_CLI_CONFIG_REGEX", CLI_CONFIG_DIR . '/regexes.php');
 define("FUNKPHP_FILE_PATH_CLI_CONFIG_COMMANDS", CLI_CONFIG_DIR . '/commands.php');
 define("FUNKPHP_FILE_PATH_CLI_CONFIG_EXTERNAL_CALLABLE_VALIDATORS", CLI_CONFIG_DIR . '/external_callable_validators.php');
-define("FUNKPHP_FILE_PATH_TROUTES", FUNKPHP_CORE_DIR . '/compiled_routes.php');
-define("FUNKPHP_FILE_PATH_ROUTES", FUNKPHP_CORE_DIR . '/pipeline_routes.php');
-define("FUNKPHP_FILE_PATH_PIPELINE", FUNKPHP_CORE_DIR . '/pipeline_request.php');
-define("FUNKPHP_FILE_PATH_TABLES", FUNKPHP_CORE_DIR . '/tables.php');
-define("FUNKPHP_FILE_PATH_DB_LOCAL", FUNKPHP_CONFIG_DIR . '/db.php');
 define("FUNKPHP_FILE_PATH_SUPPORTED_MYSQL_DATA_TYPES", FUNKPHP_CORE_DIR . '/valid_mysql_datatypes.php');
 define("FUNKPHP_FILE_PATH_SUPPORTED_MYSQL_OPERATORS", FUNKPHP_CORE_DIR . '/valid_mysql_operators.php');
+define("FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL", FUNKPHP_CORE_DIR . '/functions.php');
+define("FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL_TEMPLATES", FUNKPHP_CORE_DIR . '/function_templates.php');
+define("FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED", FUNKPHP_CORE_DIR . '/functions.php');
+define("FUNKPHP_FILE_PATH_CONSTANTS_FILE", FUNKPHP_CONFIG_DIR . '/CONSTANTS.php');
+define("FUNKPHP_FILE_PATH_C_CONFIG_FILE", FUNKPHP_CONFIG_DIR . '/c.php');
+define("FUNKPHP_FILE_PATH_PIPELINE", FUNKPHP_CORE_DIR . '/pipeline_request.php');
+define("FUNKPHP_FILE_PATH_TROUTES", FUNKPHP_CORE_DIR . '/compiled_routes.php');
+define("FUNKPHP_FILE_PATH_ROUTES", FUNKPHP_CORE_DIR . '/pipeline_routes.php');
+define("FUNKPHP_FILE_PATH_TABLES", FUNKPHP_CORE_DIR . '/tables.php');
+define("FUNKPHP_FILE_PATH_DB_LOCAL", FUNKPHP_CONFIG_DIR . '/db.php');
+define("FUNKPHP_FILE_PATH_DEPLOYMENT_FILE", FUNKPHP_DIR . '/FunkPHPDeployment.php');
+
 
 // Define message types and ANSI colors for CLI output
 // but that can also be parsed by returned JSON Response
@@ -467,20 +471,15 @@ $singleTrouteDefault = [
         ),
     )
 ];
-// First restore the folders if they don't exist
-cli_restore_default_folders_and_files();
-
-// Load current pipeline, routes, data and pages before processing any commands
-$singlePipeline = include_once FUNKPHP_FILE_PATH_PIPELINE ?? $singlePipelineDefault;
-$singleRoutesRoute = include_once FUNKPHP_FILE_PATH_ROUTES ?? $singleRoutesRouteDefault;
-$singleTroute = include_once FUNKPHP_FILE_PATH_TROUTES ?? $singleTrouteDefault;
-$tablesAndRelationshipsFile = include_once FUNKPHP_FILE_PATH_TABLES ?? [
+$tablesAndRelationshipsFileDefault = [
     'tables' => [],
     'relationships' => [],
     'mappings' => [],
-    'dependencies' => []
+    'dependencies' => [],
+    'childrenFKstoParentPKs' => [],
+    'via' => []
 ];
-$mysqlDataTypesFile = include_once FUNKPHP_FILE_PATH_SUPPORTED_MYSQL_DATA_TYPES ?? [
+$mysqlDataTypesFileDefault = [
     // Valid Keys that Table Columns can have in the `funkphp/config/tables.php` File
     "VALID_TABLE_COL_KEYS" => [
         'auto_increment',
@@ -946,7 +945,7 @@ $mysqlDataTypesFile = include_once FUNKPHP_FILE_PATH_SUPPORTED_MYSQL_DATA_TYPES 
         "TYPE" => "year"
     ],
 ];
-$mysqlOperatorSyntax = include_once FUNKPHP_FILE_PATH_SUPPORTED_MYSQL_OPERATORS ?? [
+$mysqlOperatorSyntaxDefault = [
     'arithmetic' => [
         '+' => [],
         '-' => [],
@@ -992,6 +991,16 @@ $mysqlOperatorSyntax = include_once FUNKPHP_FILE_PATH_SUPPORTED_MYSQL_OPERATORS 
         'SOME' => [],
     ],
 ];
+// First restore the folders if they don't exist
+cli_restore_default_folders_and_files();
+
+// Load current pipeline, routes, data and pages before processing any commands
+$singlePipeline = include_once FUNKPHP_FILE_PATH_PIPELINE ?? $singlePipelineDefault;
+$singleRoutesRoute = include_once FUNKPHP_FILE_PATH_ROUTES ?? $singleRoutesRouteDefault;
+$singleTroute = include_once FUNKPHP_FILE_PATH_TROUTES ?? $singleTrouteDefault;
+$tablesAndRelationshipsFile = include_once FUNKPHP_FILE_PATH_TABLES ?? $tablesAndRelationshipsFileDefault;
+$mysqlDataTypesFile = include_once FUNKPHP_FILE_PATH_SUPPORTED_MYSQL_DATA_TYPES ?? $mysqlDataTypesFileDefault;
+$mysqlOperatorSyntax = include_once FUNKPHP_FILE_PATH_SUPPORTED_MYSQL_OPERATORS ?? $mysqlOperatorSyntaxDefault;
 
 // --------------------------------------------------------------------------------
 // GLOBAL INTERACTIVE MODE GUARD & JSON Only Command Files Check!

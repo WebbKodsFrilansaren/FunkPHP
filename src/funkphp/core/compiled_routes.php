@@ -1,15 +1,23 @@
 <?php
+// compiled_routes.php - FunkPHP | FunkCLI created/updated 2026-07-05 09:14:44
+    /**
+    * -----------------------------------------------------
+    * FUNKPHP AUTOMATICALLY GENERATED/CREATED COMPILED FILE
+    * -----------------------------------------------------
+    * DO NOT MANUALLY EDIT THIS FILE.
+    * If you are currently editing this file to see if FunkPHP will "self-heal",
+    * it won't. This is a micro-framework, not your therapist. If you alter this
+    * source of truth, your app will most likely crash, and your peer will know
+    * you do not understand how caching and/or compiled files work.
+    * To fix your own self-sabotage (if it was the router files
+    * 'compiled_routes.php' and/or 'pipeline_routes.php'),
+    * run the following Terminal Command in Working Path '/src/cli': `php funk recompile`
+    */
 return array (
   'TRIE' => 
   array (
     'GET' => 
     array (
-      '/' => 
-      array (
-      ),
-      '|' => 
-      array (
-      ),
     ),
     'POST' => 
     array (
@@ -30,11 +38,9 @@ return array (
     array (
       'allRoutes' => 
       array (
-        '/' => 1,
       ),
       'staticRoutes' => 
       array (
-        '/' => 1,
       ),
       'dynamicRoutes' => 
       array (
@@ -43,10 +49,9 @@ return array (
       'maxURICount' => 0,
       'URICountExistsForNumber' => 
       array (
-        0 => 1,
       ),
-      'allRoutesCount' => 1,
-      'staticRoutesCount' => 1,
+      'allRoutesCount' => 0,
+      'staticRoutesCount' => 0,
       'dynamicRoutesCount' => 0,
     ),
     'PATCH' => 

@@ -1,5 +1,16 @@
 <?php
-// pipeline_request.php - FunkPHP Framework | FunkCLI recreated it 2026-07-03 12:50:32
+// pipeline_request.php - FunkPHP Framework | FunkCLI recreated it 2026-07-05 08:55:15
+
+/**
+ * -----------------------------------------------------
+ * FUNKPHP AUTOMATICALLY GENERATED/CREATED COMPILED FILE
+ * -----------------------------------------------------
+ * DO NOT MANUALLY EDIT THIS FILE.
+ * If you are currently editing this file to see if FunkPHP will "self-heal",
+ * it won't. This is a micro-framework, not your therapist. If you alter this
+ * source of truth, your app will most likely crash, and your peer will know
+ * you do not understand how caching and/or compiled files work.
+ **/
 return  array(
   'pipeline' =>
   array(
