@@ -68,6 +68,6 @@ if (FUNKPHP_IS_LOCAL) {
 else {
     // --- PRODUCTION/ONLINE CREDENTIALS ---
     // IMPORTANT: Make sure include pathing is correct!
-    $credentials = include __DIR__ . '/db_config.php' ?? [];
+    $credentials = include __DIR__ . '/conns.php' ?? [];
 }
 return $credentials;

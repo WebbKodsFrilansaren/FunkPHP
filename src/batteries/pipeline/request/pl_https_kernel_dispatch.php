@@ -1,33 +1,67 @@
 <?php
 
-namespace funkphp\pipeline\request\pl_prepare_uri_match_route_then_run_matched_middlewares_and_pipeline;
+namespace funkphp\pipeline\request\pl_http_kernel_dispatch;
 
-function pl_prepare_uri_match_route_then_run_matched_middlewares_and_pipeline(&$c)
+function pl_http_kernel_dispatch(&$c)
 {
-    // 1. Grab raw URI from server environment
-    $rawUri = $_SERVER['REQUEST_URI'] ?? '/';
+    try {
+        // When FUNKPHP_USE_HTTPS is set to true, we redirect to HTTPS if the request is not already HTTPS
+        if ($c['FUNKPHP_USE_HTTPS'] === true) {
+            $isHttps = (isset($_SERVER['HTTPS']) && ($_SERVER['HTTPS'] === 'on' || $_SERVER['HTTPS'] == 1))
+                || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+            if (!$isHttps) {
+                $host = $_SERVER['HTTP_HOST'] ?? 'www.funkphp.com';
+                $uri  = $_SERVER['REQUEST_URI'] ?? '/';
+                // Reconstruct the URL completely dynamically
+                header("Location: https://" . $host . $uri, true, 301);
+                exit;
+            }
+        }
+    } catch (Exception $e) {
+        $err = 'Tell the Developer: The HTTPS Redirection in `pl_http_kernel_dispatch` Failed to Redirect to HTTPS despite being set to do it!';
+        funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+    }
+    try {
+        // When FUNKPHP_USE_PREPARE_URI is set to true, we prepare the URI for route matching
+        if ($c['FUNKPHP_USE_PREPARE_URI'] === true) {
+            // 1. Grab raw URI from server environment
+            $rawUri = $_SERVER['REQUEST_URI'] ?? '/';
 
-    // 2. Chop off query parameters and fragment injections instantly
-    // Explode splits at '?' or '#' if a raw socket forged it
-    $cleanPath = explode('?', $rawUri, 2)[0];
-    $cleanPath = explode('#', $cleanPath, 2)[0];
+            // 2. Chop off query parameters and fragment injections instantly
+            // Explode splits at '?' or '#' if a raw socket forged it
+            $cleanPath = explode('?', $rawUri, 2)[0];
+            $cleanPath = explode('#', $cleanPath, 2)[0];
 
-    // 3. Resolve potential Subfolder installations (e.g., localhost/project/public/)
-    $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
-    $baseUrl = dirname($scriptName);
-    if ($baseUrl !== '/' && str_starts_with($cleanPath, $baseUrl)) {
-        $cleanPath = substr($cleanPath, strlen($baseUrl));
+            // 3. Resolve potential Subfolder installations (e.g., localhost/project/public/)
+            $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+            $baseUrl = dirname($scriptName);
+            if ($baseUrl !== '/' && str_starts_with($cleanPath, $baseUrl)) {
+                $cleanPath = substr($cleanPath, strlen($baseUrl));
+            }
+            // 4. Fallback safeguard: collapse duplicate slashes down to single slashes
+            // Fixes Apache installations where merge_slashes isn't handling it
+            $cleanPath = preg_replace('#/{2,#', '/', $cleanPath);
+
+            // 5. Enforce clean boundary states: Strip trailing and leading slashes, then wrap in a root slash
+            $cleanPath = trim($cleanPath, '/');
+
+            // Result is guaranteed to be a uniform format: '/' or '/users' or '/blog/post/view'
+            $c['req']['uri'] = ($cleanPath === '') ? '/' : '/' . $cleanPath;
+        }
+        // When no FUNKPHP_USE_PREPARE_URI is set, we just use the raw REQUEST_URI as is
+        else {
+            $c['req']['uri'] = $_SERVER['REQUEST_URI'] ?? '/';
+        }
+    } catch (Exception $e) {
+        $err = 'Tell the Developer: The Request URI Preparing in `pl_http_kernel_dispatch` Failed to Prepare the Request URI Before Matching Route!';
+        funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
     }
 
-    // 4. Fallback safeguard: collapse duplicate slashes down to single slashes
-    // Fixes Apache installations where merge_slashes isn't handling it
-    $cleanPath = preg_replace('#/{2,#', '/', $cleanPath);
-
-    // 5. Enforce clean boundary states: Strip trailing and leading slashes, then wrap in a root slash
-    $cleanPath = trim($cleanPath, '/');
-
-    // Result is guaranteed to be a uniform format: '/' or '/users' or '/blog/post/view'
-    $c['req']['uri'] = ($cleanPath === '') ? '/' : '/' . $cleanPath;
+    // INSERT DYNAMIC BASE URL TRACKING
+    $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
+    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    $c['req']['base_url_absolute'] = rtrim($protocol . $host . $baseUrl, '/');
+    $c['req']['base_url_relative'] = ($baseUrl === '/') ? '' : $baseUrl;
 
     /* TRY MATCH A VALID ROUTE OR ERROR OUT ! */
     $c['ROUTES'] = [];

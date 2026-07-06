@@ -103,6 +103,8 @@ if (is_readable(FUNKPHP_FILE_PATH_C_CONFIG_FILE)) {
 // those that do not exist we add to the "$configWarnsAndErrs" as errors!
 $cArrayKeysThatMustExist = [
     'FUNKPHP_ONLINE',
+    'FUNKPHP_USE_HTTPS',
+    'FUNKPHP_USE_PREPARE_URI',
     'INI_SETS',
     'BASEURLS',
     'SESSION',
@@ -141,6 +143,10 @@ cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($conf
 $fphpo_iniChecks = [];
 $fphpo_iniChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["FUNKPHP_ONLINE"], $configWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($fphpo_iniChecks), $configWarnsAndErrs, "cli_err", 'boolean', "Key is needed for `pl_https_redirect` to work properly! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
+$fphpo_iniChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["FUNKPHP_USE_HTTPS"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($fphpo_iniChecks), $configWarnsAndErrs, "cli_err", 'boolean', "Key is needed to work properly! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
+$fphpo_iniChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["FUNKPHP_USE_PREPARE_URI"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($fphpo_iniChecks), $configWarnsAndErrs, "cli_err", 'boolean', "Key is needed to know whether to Prepare Request URI or not for each incoming HTTP(S) Request! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
 $fphpo_iniChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["INI_SETS"], $configWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($fphpo_iniChecks), $configWarnsAndErrs, "cli_err", 'array-associative|array-empty', "Key is for optionally running an Array of `ini_set()` that cannot be manually set in php.ini due to shared host environments or other kind of permission reason. Leave it as an Empty Array if not used! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
 cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for Main Keys 'FUNKPHP_ONLINE' & 'INI_SETS' in the `c.php` (FunkPHP Configuration File) and try again! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
@@ -234,6 +240,10 @@ $reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_F
 cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'null', "This is the Server-provided Request URI of the HTTP(S) Request that will be used after a Matched Route during a Valid HTTP(S) Request!");
 $reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "query"], $configWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'string|null', "This is the Server-provided Request Query String of the HTTP(S) Request that will be used after a Matched Route during a Valid HTTP(S) Request!");
+$reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "base_url_absolute"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'string|null', "This is the FunkPHP-provided Base URL Absolute String of the HTTP(S) Request used for URL Tracking during a Valid HTTP(S) Request!");
+$reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "base_url_relative"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'string|null', "This is the FunkPHP-provided Base URL Relative String of the HTTP(S) Request used for URL Tracking during a Valid HTTP(S) Request!");
 $reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "auth"], $configWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'null', "This is the FunkPHP-provided Auth Value depending on implemention that can be used after a Matched Route during a Valid HTTP(S) Request!");
 $reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "matched_in"], $configWarnsAndErrs, "cli_err");
@@ -291,7 +301,7 @@ cli_assert_final_value(end($dvpfChecks), $configWarnsAndErrs, "cli_err", 'null',
 $dvpfChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["v_ok_files"], $configWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($dvpfChecks), $configWarnsAndErrs, "cli_err", 'null', "Main Key `v_ok_files` is meant to Store Referenced Validated Files a given funk_use_validation() call. Can be used any time during a Valid HTTP(S) Request!");
 $dvpfChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["v_config"], $configWarnsAndErrs, "cli_err");
-cli_assert_final_value(end($dvpfChecks), $configWarnsAndErrs, "cli_err", 'null', "Main Key `v_config` is meant to Store Current Global Validation Configuration provided by a given funk_use_validation() call. Can be used any time during a Valid HTTP(S) Request!");
+cli_assert_final_value(end($dvpfChecks), $configWarnsAndErrs, "cli_err", 'array-empty', "Main Key `v_config` is meant to Store Current Global Validation Configuration provided by a given funk_use_validation() call. Can be used any time during a Valid HTTP(S) Request!");
 $dvpfChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["v_data"], $configWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($dvpfChecks), $configWarnsAndErrs, "cli_err", 'null', "Main Key `v_data` is meant to Store Validated Data a given funk_use_validation() call. Can be used any time during a Valid HTTP(S) Request!");
 $dvpfChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["p"], $configWarnsAndErrs, "cli_err");
@@ -328,7 +338,7 @@ cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($conf
 
 // VALIDATE Certain Constants by is using !defined() and error out if not found!
 
-cli_assert_final_value(NULL, $configWarnsAndErrs, "cli_err", 'constants:FUNKPHP_DEPLOYED,FUNKPHP_ONLINE,FUNKPHP_NO_VALUE,FUNKPHP_ALLOW_INSTANCE_OVERWRITE', "These Constants are a MUST for FunkPHPDeployment.php to 'function' properly!");
+cli_assert_final_value(NULL, $configWarnsAndErrs, "cli_err", 'constants:FUNKPHP_NO_VALUE,FUNKPHP_ALLOW_INSTANCE_OVERWRITE', "These Constants are a MUST for FunkPHPDeployment.php to 'function' properly!");
 cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for the Required Constants from the `c.php` (FunkPHP Configuration File) and try again! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
 
 // Here ### Step 1 is fully validated so now we insert starting point of the `FunkPHPDeployment.php` file into the $deploymentBuffer array for later writing to disk!
@@ -340,7 +350,6 @@ $deploymentBuffer[] = "<?php // FunkPHPDeployment.php | Created: " . date("Y-m-d
 
 exit;
 $deploymentBuffer[] = "define('FUNKPHP_DEPLOYED', true);\n";
-$deploymentBuffer[] = "define('FUNKPHP_ONLINE',\'" . FUNKPHP_ONLINE .  "'\n";
 $deploymentBuffer[] = "define('FUNKPHP_NO_VALUE', new stdClass());\n";
 $deploymentBuffer[] = "define('FUNKPHP_ALLOW_INSTANCE_OVERWRITE,\'" . FUNKPHP_ALLOW_INSTANCE_OVERWRITE .  "'\n";
 

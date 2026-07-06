@@ -1,5 +1,5 @@
 <?php
-// c.php - FunkPHP | FunkCLI recreated it 2026-07-05 13:28:42
+// c.php - FunkPHP | FunkCLI recreated it 2026-07-06 15:50:21
 
 /**
  * -----------------------------------------------------
@@ -17,11 +17,9 @@ require_once __DIR__ . '/CONSTANTS.php';
 // IMPORTANT: Do NOT store sensitive data here (e.g passwords/API-keys)
 
 return array(
-  !defined('FUNKPHP_DEPLOYED') ? define('FUNKPHP_DEPLOYED', false) : null,
-  !defined('FUNKPHP_IS_LOCAL') ? define('FUNKPHP_IS_LOCAL', true) : null,
-  !defined('FUNKPHP_LOCAL') ? define('FUNKPHP_LOCAL', 'http://localhost/funkphp/src/public_html/') : null,
-  !defined('FUNKPHP_ONLINE') ? define('FUNKPHP_ONLINE', 'https://www.funkphp.com/') : null,
   'FUNKPHP_ONLINE' => false,
+  'FUNKPHP_USE_HTTPS' => false,
+  'FUNKPHP_USE_PREPARE_URI' => true,
   'INI_SETS' =>
   array(
     'session.cache_limiter' => 'public',
@@ -32,15 +30,15 @@ return array(
     'session.name' => 'fphp_id',
     'session.sid_length' => 192,
     'session.sid_bits_per_character' => 6,
-    'display_errors' => FUNKPHP_IS_LOCAL ? 1 : 0,
-    'display_startup_errors' => FUNKPHP_IS_LOCAL ? 1 : 0,
-    'error_reporting' => FUNKPHP_IS_LOCAL ? E_ALL : 0,
+    'display_errors' => 1,
+    'display_startup_errors' => 1,
+    'error_reporting' => 1,
   ),
   'BASEURLS' =>
   array(
-    'LOCAL' => FUNKPHP_LOCAL,
-    'ONLINE' => FUNKPHP_ONLINE,
-    'BASEURL' => FUNKPHP_IS_LOCAL ? 'localhost' : FUNKPHP_ONLINE,
+    'LOCAL' => 'http://webdev.local:81/funkphp',
+    'ONLINE' => 'https://www.funkphp.com',
+    'BASEURL' => 'localhost',
     'BASEURL_URI' => '/funkphp/src/public_html/',
   ),
   'SESSION' =>
@@ -51,10 +49,10 @@ return array(
       'SESSION_NAME' => 'fphp_id',
       'SESSION_LIFETIME' => 28800,
       'SESSION_PATH' => '/',
-      'SESSION_DOMAIN' => FUNKPHP_IS_LOCAL ? 'localhost' : $_SERVER['SERVER_NAME'],
-      'SESSION_SECURE' => FUNKPHP_IS_LOCAL ? false : true,
+      'SESSION_DOMAIN' => 'webdev.local',
+      'SESSION_SECURE' => false,
       'SESSION_HTTPONLY' => true,
-      'SESSION_SAMESITE' => FUNKPHP_IS_LOCAL ? 'Lax' : 'Strict',
+      'SESSION_SAMESITE' => 'Lax',
     ),
   ),
   '<ENTRY>' =>
@@ -80,6 +78,8 @@ return array(
     'time' => $_SERVER['REQUEST_TIME'] ?? time(),
     'uri' => NULL,
     'query' => $_SERVER['QUERY_STRING'] ?? null,
+    'base_url_absolute' => NULL,
+    'base_url_relative' => NULL,
     'matched_in' => NULL,
     'route' => NULL,
     'params' => NULL,
@@ -109,7 +109,8 @@ return array(
   'v' => NULL,
   'v_ok' => NULL,
   'v_ok_files' => NULL,
-  'v_config' => NULL,
+  'v_config' =>
+  array(),
   'v_data' => NULL,
   'p' => NULL,
   'files' => NULL,

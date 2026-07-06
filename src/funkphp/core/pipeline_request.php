@@ -33,12 +33,11 @@ return  array(
     ),
     'request' =>
     array(
-      0 => 'pl_https_redirect',
-      1 => 'pl_run_ini_sets',
-      2 => 'pl_match_denied_exact_ips',
-      3 => 'pl_match_denied_methods',
-      4 => 'pl_match_denied_uas',
-      5 => 'pl_prepare_uri_match_route_then_run_matched_middlewares_and_pipeline',
+      0 => 'pl_run_ini_sets',
+      1 => 'pl_match_denied_exact_ips',
+      2 => 'pl_match_denied_methods',
+      3 => 'pl_match_denied_uas',
+      4 => 'pl_https_kernel_dispatch',
     ),
     'post_response' =>
     array(

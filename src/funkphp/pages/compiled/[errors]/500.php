@@ -73,7 +73,15 @@ $display_message = $custom_error_message ?? 'The server encountered an internal 
         </p>
         <div class="developer-note">
             If you are the developer, this error might indicate a server misconfiguration or an issue with the application code. Please check the server logs for more details.<br /><br /> If this is running in FUNKPHP_IS_LOCAL set to True you should see a var_dump right now!<br /><br />
-            <?= FUNKPHP_IS_LOCAL ? var_dump($c['req']) : "Make FunKPHP Local to see dumped \$c-req key!" ?>
+            <?php
+            $localIps = ['127.0.0.1', '::1', '192.168.122.1'];  // Add Your Own Local IP Addresses Here In Order To See Debug Dumps When Running Locally
+            $isLocal = in_array($_SERVER['REMOTE_ADDR'] ?? '', $localIps, true) || str_ends_with($_SERVER['HTTP_HOST'] ?? '', '.local');
+            if ($isLocal && isset($c['req'])): ?>
+                <strong>Local Environment Debug Dump:</strong>
+                <pre style="text-align: left; background: #f1f5f9; padding: 15px; border-radius: 6px; overflow-x: auto; font-size: 0.75rem; color: #334155;"><?php var_dump($c['req']); ?></pre>
+            <?php else: ?>
+                Production Environment active. Internal request signatures are hidden.
+            <?php endif; ?>
         </div>
     </div>
 </body>
