@@ -496,13 +496,148 @@ function cli_assert_final_value(
         }
         return true;
     }
-    // --- STRATEGY C: Standard PHP Data Type Validation ---
+
+    // Used by Strategy C & D when you either have ONE or MULTIPLE Primitive Type Rules!
+    // where the finalValue and/or finalType must either ONE or one of MULTIPLE Data types!
+    $validNormalizedRules = [
+        'unknown type',
+        'object',
+        'resource',
+        'array',
+        'array-empty',
+        'array-list',
+        'array-associative',
+        'integer',
+        'boolean',
+        'double',
+        'string',
+        'NULL'
+    ];
+    $normalizedRuleHelperFunction = function ($transformRule) {
+        if ($transformRule === 'utype')   $transformRule = 'unknown type';
+        if ($transformRule === 'arr')   $transformRule = 'array';
+        if ($transformRule === 'obj')   $transformRule = 'object';
+        if ($transformRule === 'res')   $transformRule = 'resource';
+        if ($transformRule === 'str')   $transformRule = 'string';
+        if ($transformRule === 'arr-empty')   $transformRule = 'array-empty';
+        if ($transformRule === 'arr-numbered')   $transformRule = 'array-list';
+        if ($transformRule === 'array-numbered')   $transformRule = 'array-list';
+        if ($transformRule === 'arr-list')   $transformRule = 'array-list';
+        if ($transformRule === 'array-assoc')   $transformRule = 'array-associative';
+        if ($transformRule === 'arr-assoc')   $transformRule = 'array-associative';
+        if ($transformRule === 'int')   $transformRule = 'integer';
+        if ($transformRule === 'bool')  $transformRule = 'boolean';
+        if ($transformRule === 'float') $transformRule = 'double'; // gettype() returns 'double' for floats
+        if ($transformRule === 'null')  $transformRule = 'NULL';   // gettype() returns uppercase 'NULL'
+        return $transformRule;
+    };
+
+    // --- STRATEGY C: Multiple Standard PHP Data Type Validation ---
     // Normalize aliases down to native PHP gettype() strings
-    $normalizedRule = trim(strtolower($rule));
-    if ($normalizedRule === 'int')   $normalizedRule = 'integer';
-    if ($normalizedRule === 'bool')  $normalizedRule = 'boolean';
-    if ($normalizedRule === 'float') $normalizedRule = 'double'; // gettype() returns 'double' for floats
-    if ($normalizedRule === 'null')  $normalizedRule = 'NULL';   // gettype() returns uppercase 'NULL'
+    // This is when the rule comes with one or more "|" meaning check
+    // for multiple data types!
+    if (str_contains($rule, "|")) {
+        $rawRules = explode('|', $rule);
+        $normalizedRules = [];
+        // Each element in $rawRules should be a non-empty string!
+        foreach ($rawRules as $rawRule) {
+            $norm = $normalizedRuleHelperFunction(trim(strtolower($rawRule)));
+            if (!in_array($norm, $validNormalizedRules, true)) {
+                cli_err("[cli_assert_final_value()]: Invalid Validation Rule (\$rule) provided. Must be one of: `" . implode(', ', $validNormalizedRules) . "`! Check if you happened to pass too many '|' so it created Empty Strings?");
+            }
+            $normalizedRules[] = $norm;
+        }
+        // Checking edge-cases first such as if one of the allowed multiple types are
+        // array types, we need to check for the specific array type requested and
+        // if it is satisfied!
+        if ($actualType === 'array') {
+            // Check 1: Was an empty array requested and satisfied?
+            if (in_array('array-empty', $normalizedRules, true) && count($actualValue) === 0) {
+                return true;
+            }
+            // Check 2: Was a zero-indexed sequential list requested and satisfied?
+            if (in_array('array-list', $normalizedRules, true) && array_is_list($actualValue)) {
+                return true;
+            }
+            // Check 3: Was an associative map requested and satisfied? (Non-empty and non-sequential)
+            if (in_array('array-associative', $normalizedRules, true) && !array_is_list($actualValue)) {
+                return true;
+            }
+        }
+        if (!in_array($actualType, $normalizedRules, true)) {
+            $msg = "Type mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected ONE of Any Valid Types: '" . implode(', ', $normalizedRules) . "', but Found Type '{$actualType}'.";
+            if (is_string($info) && !empty($info)) {
+                $msg .= " More Info: {$info}";
+            }
+            cli_build_warning_err_list($warnsAndErrs, $severity, $msg);
+            return false;
+        }
+        return true;
+    }
+
+    // --- STRATEGY D: Single Standard PHP Data Type Validation ---
+    // Normalize aliases down to native PHP gettype() strings
+
+    $normalizedRule = $normalizedRuleHelperFunction(trim(strtolower($rule)));
+    // if ($normalizedRule === 'utype')   $normalizedRule = 'unknown type';
+    // if ($normalizedRule === 'arr')   $normalizedRule = 'array';
+    // if ($normalizedRule === 'obj')   $normalizedRule = 'object';
+    // if ($normalizedRule === 'res')   $normalizedRule = 'resource';
+    // if ($normalizedRule === 'str')   $normalizedRule = 'string';
+    // if ($normalizedRule === 'arr-empty')   $normalizedRule = 'array-empty';
+    // if ($normalizedRule === 'arr-numbered')   $normalizedRule = 'array-list';
+    // if ($normalizedRule === 'array-numbered')   $normalizedRule = 'array-list';
+    // if ($normalizedRule === 'arr-list')   $normalizedRule = 'array-list';
+    // if ($normalizedRule === 'array-assoc')   $normalizedRule = 'array-associative';
+    // if ($normalizedRule === 'arr-assoc')   $normalizedRule = 'array-associative';
+    // if ($normalizedRule === 'int')   $normalizedRule = 'integer';
+    // if ($normalizedRule === 'bool')  $normalizedRule = 'boolean';
+    // if ($normalizedRule === 'float') $normalizedRule = 'double'; // gettype() returns 'double' for floats
+    // if ($normalizedRule === 'null')  $normalizedRule = 'NULL';   // gettype() returns uppercase 'NULL'
+
+    // If not in valid normalized rules we error out on this function since it is used incorrectly!
+    if (!in_array($normalizedRule, $validNormalizedRules)) {
+        cli_err("[cli_assert_final_value()]: Invalid Validation Rule (\$rule) provided. Must be one of: `" . implode(', ', $validNormalizedRules) . "` OR a Valid Regex Pattern OR a Callable Function (name to a Callable OR Callable itself)!");
+    }
+
+    // Edge-case when you want it to be an arary but also empty meaning we must check first "array" and then just
+    // the count of the actualValue!
+    if ($normalizedRule === 'array-empty') {
+        if (!is_array($actualValue) || count($actualValue) !== 0) {
+            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Empty Array, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
+            if (is_string($info) && !empty($info)) {
+                $msg .= " More Info: {$info}";
+            }
+            cli_build_warning_err_list($warnsAndErrs, $severity, $msg);
+            return false;
+        }
+        return true;
+    }
+    // Edge-case when you want it to be an array but also specifically numbered so double-check is needed!
+    if ($normalizedRule === 'array-list') {
+        if (!is_array($actualValue) || !array_is_list($actualValue)) {
+            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected a Numbered Array, but Found Type '{$actualType}' (if 'array', it was NOT parsed as Numbered Array)!";
+            if (is_string($info) && !empty($info)) {
+                $msg .= " More Info: {$info}";
+            }
+            cli_build_warning_err_list($warnsAndErrs, $severity, $msg);
+            return false;
+        }
+        return true;
+    }
+    // Edge-case when you want it to be an array but also specifically associative so double-check is needed!
+    if ($normalizedRule === 'array-associative') {
+        if (!is_array($actualValue) || array_is_list($actualValue)) {
+            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Associative Array, but Found Type '{$actualType}' (if 'array', it was NOT parsed as Associative Array). IMPORTANT: An Empty Array is vague so it is parsed as being a Numbered Array!";
+            if (is_string($info) && !empty($info)) {
+                $msg .= " More Info: {$info}";
+            }
+            cli_build_warning_err_list($warnsAndErrs, $severity, $msg);
+            return false;
+        }
+        return true;
+    }
+    // When actual final value type is not matched with asserted one
     if ($actualType !== $normalizedRule) {
         $msg = "Type mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected Primitive Type '{$rule}', but Found Type '{$actualType}'.";
         if (is_string($info) && !empty($info)) {
@@ -2800,34 +2935,6 @@ function cli_crud_folder_php_file_atomic_write($fileContent, $file_path)
     // general when trying to modify the file after it is created by the CLI.
     @chmod($file_path, 0666); // 0 = no special permissions, 6 = read/write for owner, group, and others
     return true;
-}
-
-// Function to check if a middleware exists in a given method/route which
-// can either be just a 'middlewares' => 'm_name' or 'middlewares' => ['m_name1', 'm_name2']
-// or 'middlewares' => ['m_name1' => 'passedValue', 'm_name2'] meaning we
-// must check for three different cases of existence of the middleware
-function cli_mw_exists_in_route(&$ROUTES, $method, $route, $mw_name)
-{
-    // Check $method, $route and $mw_name are non-empty strings
-    if (
-        !isset($method)
-        || !is_string($method)
-        || empty($method)
-        || !isset($route)
-        || !is_string($route)
-        || empty($route)
-        || !isset($mw_name)
-        || !is_string($mw_name)
-        || empty($mw_name)
-    ) {
-        cli_err_without_exit('[cli_mw_exists_in_route()]: $method, $route and $mw_name must be Non-Empty Strings!');
-        return false;
-    }
-    // Check that $ROUTES an array and has the method and route
-    if (!is_array($ROUTES) || !array_key_exists($method, $ROUTES) || !array_key_exists($route, $ROUTES[$method])) {
-        cli_err_without_exit('[cli_mw_exists_in_route()]: $ROUTES must be an Array and must contain the provided $method and $route!');
-        return false;
-    }
 }
 
 /**

@@ -67,12 +67,15 @@ $cConfig = null;
 
 // We look for defined constant "FUNKPHP_FILE_PATH_C_CONFIG_FILE" which should point to the c.php file
 // and we try to see if we can find it, read it, and whether it is an associative array which it should be!
+if (!defined("FUNKPHP_FILE_PATH_DEPLOYMENT_FILE")) {
+    cli_err("The Constant `FUNKPHP_FILE_PATH_DEPLOYMENT_FILE` containing exact Path to `FunkPHPDeployment.php` (FunkPHP Deployment Output File after Successful Building/Compiling) is NOT DEFINED! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
+}
 if (!defined("FUNKPHP_FILE_PATH_C_CONFIG_FILE") || !file_exists(FUNKPHP_FILE_PATH_C_CONFIG_FILE)) {
-    cli_err("The Constant `FUNKPHP_FILE_PATH_C_CONFIG_FILE` which contains the exact Path to the `c.php` (FunkPHP Configuration File) is not defined or the Exact File Path it points to does not exist or is wrong! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
+    cli_err("The Constant `FUNKPHP_FILE_PATH_C_CONFIG_FILE` containing exact Path to `c.php` (FunkPHP Configuration File) is NOT DEFINED or Exact File Path does NOT EXIST/IS WRONG! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
 }
 // File exists but is not readable?
 if (!is_readable(FUNKPHP_FILE_PATH_C_CONFIG_FILE)) {
-    cli_err("The `c.php` (FunkPHP Configuration File) exists but is NOT Readable! Please check the File Permissions and try again! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
+    cli_err("The `c.php` (FunkPHP Configuration File) exists but is NOT READABLE! Please check the File Permissions and try again! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
 }
 // File exists, is readable, but is NOT an associative array? We need to check if it returns an array when included!
 if (is_readable(FUNKPHP_FILE_PATH_C_CONFIG_FILE)) {
@@ -104,7 +107,16 @@ $cArrayKeysThatMustExist = [
 ];
 foreach ($cArrayKeysThatMustExist as $key) {
     if (!array_key_exists($key, $cConfig)) {
-        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Key '$key' does NOT exist in the `c.php` (FunkPHP Configuration File)! Please check the File Contents and try again! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
+        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "Key '$key' NOT FOUND in `c.php` (FunkPHP Configuration File)! Please check the File Contents and try again! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
+    }
+}
+foreach ($cConfig as $cKey => $val) {
+    if (
+        !in_array($cKey, $cArrayKeysThatMustExist)
+        && ($cKey !== "<ENTRY>")  && ($cKey !== "ROUTES") // Only applicable to the local web dev environment!
+        && ($cKey !== 0) && ($cKey !== 1) && ($cKey !== 2) // 0-2 are the !defined parts in the $c returned array!
+    ) {
+        cli_warning_without_exit("IGNORED: Key '$cKey' in `c.php` (FunkPHP Configuration File) will be ignored. Any custom variables should be in `\$c['custom']! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
     }
 }
 cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings and/or Errors above for the `c.php` (FunkPHP Configuration File) and try again! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
@@ -168,6 +180,36 @@ cli_assert_final_value(end($sessionChecks), $configWarnsAndErrs, "cli_err", (fun
 }), "Must Match Native Browser Specifications Exactly: 'Lax', 'Strict', or 'None'.");
 // Halt execution loop immediately if any errors crept into the pipeline setup
 cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings and/or Errors above for 'SESSION' Main Key in the `c.php` (FunkPHP Configuration File) and try again! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
+
+// VALIDATE CLASSES Array Subkeys Paths!
+$classesChecks = [];
+$classesChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["classes"], $configWarnsAndErrs, "cli_err");
+$classesChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["classes", "vendor"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($classesChecks), $configWarnsAndErrs, "cli_err", 'array-empty', "Must be an Empty Array as it will be filled with vendor-based class instances (from src/funkphp/vendor) during runtime.");
+$classesChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["classes", "user"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($classesChecks), $configWarnsAndErrs, "cli_err", 'array-empty', "Must be an Empty Array  as it will be filled with user-defined class instances (from src/funkphp/classes) during runtime.");
+cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings and/or Errors above for 'classes' Main Key in the `c.php` (FunkPHP Configuration File) and try again! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
+
+// VALIDATE CONNECTIONS Array Subkeys Paths!
+$connectionsChecks = [];
+$connectionsChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["connections"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($connectionsChecks), $configWarnsAndErrs, "cli_err", 'array-empty', "Must be an Empty Array as it will be filled with Connections like Databases (from src/funkphp/config/conns.php) and other connection-related services during runtime.");
+cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings and/or Errors above for 'connections' Main Key in the `c.php` (FunkPHP Configuration File) and try again! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
+
+// VALIDATE REQ Array Subkeys Paths!
+$reqChecks = [];
+$reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'array-associative', "This Associative Array will include Request Information that will be used after a Matched Route during a Valid HTTP(S) Request!");
+$reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "method"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'string|null', "This is the HTTP(S) Request Method (GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD, etc.) that will be used after a Matched Route during a Valid HTTP(S) Request!");
+$reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "ip"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'string|null', "This is the IP Address of the Client making the HTTP(S) Request that will be used after a Matched Route during a Valid HTTP(S) Request!");
+$reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "time"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'integer|null', "This is the Timestamp of the HTTP(S) Request that will be used after a Matched Route during a Valid HTTP(S) Request!");
+$reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "uri"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'null', "This is the Server-provided Request URI of the HTTP(S) Request that will be used after a Matched Route during a Valid HTTP(S) Request!");
+
+cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings and/or Errors above for 'req' Main Key and its Subkeys in the `c.php` (FunkPHP Configuration File) and try again! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
 exit;
 
 cli_info_without_exit("### Step 2: Loading, Validating & Compiling `pipeline_request.php` ('Request' & 'Post_Response' in 'Pipeline' in FunkGUI) File...");

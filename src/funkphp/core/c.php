@@ -53,7 +53,7 @@ return array(
       'SESSION_DOMAIN' => FUNKPHP_IS_LOCAL ? 'localhost' : $_SERVER['SERVER_NAME'],
       'SESSION_SECURE' => FUNKPHP_IS_LOCAL ? false : true,
       'SESSION_HTTPONLY' => true,
-      'SESSION_SAMESITE' => FUNKPHP_IS_LOCAL ? 'Laxa' : 'Strict',
+      'SESSION_SAMESITE' => FUNKPHP_IS_LOCAL ? 'Lax' : 'Strict',
     ),
   ),
   '<ENTRY>' =>
