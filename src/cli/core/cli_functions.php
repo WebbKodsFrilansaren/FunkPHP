@@ -10202,6 +10202,7 @@ function cli_restore_default_folders_and_files()
 {
     // Prepare what folders to loop through and create if they don't exist!
     global $cDefault;
+    global $connsDefault;
     global $cReplacements;
     global $CONSTANTSDefault;
     global $singlePipelineDefault;
@@ -10263,6 +10264,8 @@ function cli_restore_default_folders_and_files()
         "$folderBase/funkphp/core/CONSTANTS.php",
         "$folderBase/funkphp/core/valid_mysql_datatypes.php",
         "$folderBase/funkphp/core/valid_mysql_operators.php",
+        "$folderBase/funkphp/config/functions.php",
+        "$folderBase/funkphp/config/README_IN_IDE.php",
         //"$folderBase/public_html/.htaccess",
         "$folderBase/cli/.htaccess",
     ];
@@ -10283,7 +10286,15 @@ function cli_restore_default_folders_and_files()
     foreach ($defaultFiles as $file) {
         if (!file_exists($file)) {
             // Recreate default files based on type ("troute", "middleware routes" or "single routes")
-            if (str_contains($file, "c.php")) {
+            if (str_contains($file, "functions.php")) {
+                file_put_contents($file, "<?php\n// src/funkphp/config/functions.php - FunkPHP | FunkCLI recreated it $date\n\n" . cli_get_prefix_code("doModifyThisFile") . "\n");
+                echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
+                continue;
+            } else if (str_contains($file, "README_IN_IDE.php")) {
+                file_put_contents($file, "<?php\n// README_IN_IDE.php - FunkPHP | FunkCLI recreated it $date\n" . cli_get_prefix_code("connsDefaultStartText") . "\n" . var_export($connsDefault, true) . ";\n");
+                echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
+                continue;
+            } else if (str_contains($file, "c.php")) {
                 file_put_contents($file, "<?php\n// c.php - FunkPHP | FunkCLI recreated it $date\n" . cli_get_prefix_code("do_not_modify_warning") . "\nrequire_once __DIR__ . '/CONSTANTS.php';\n// GLOBAL CONFIGURATIONS in \"\$c\" variable in \"funkphp/funkphp_start.php\"\n// Configure as needed using FunkCLI and/or FunkGUI!\n\nreturn " . cli_replace_string_tokens_in_var_exported_string($cReplacements, var_export($cDefault, true)) . ";\n");
                 echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
                 continue;
@@ -10675,8 +10686,60 @@ EOF,
     * run the following Terminal Command in Working Path '/src/cli': `php funk recompile`
     */
 EOF,
-    ];
+        "connsDefaultStartText" =>    <<<EOF
+    /**
+    * -----------------------------------------------------
+    * FUNKPHP AUTOMATICALLY GENERATED/CREATED COMPILED FILE
+    * -----------------------------------------------------
+    */
+    // ***VERY IMPORTANT: This is GITIGNORED as '/src/funkphp/config/conns.php)' ***/
+    // *** You need to Upload this File Manually for PRODUCTION USE! ***//
+    // ***  Below is a Connection Example for the Drivers whose Data Schema Validation is supported!  ***//
+    // *** MAKE A COPY OF THIS FILE AND RENAME IT TO "conns.php" and put it in "/src/funkphp/config" so it
+    // *** becomes "/src/funkphp/config/conns.php". Then it will be picked up when compiling to single file!
+    // *** SUPER IMPORTANT: If you see an error about non-supported "driver" key, use the "--ignore-unknown-conns-drivers"
+    // *** compilation flag when you run `php funk build` command and it will ignore those unknown while validating the rest!
+    // *** `src/funkphp/config/README_IN_IDE.php` is recreated automatically when `conns.php` does not exist anymore!
+    /*
+     SYNTAX:
+     [
+     // Use this connection key with "funk_credentials_connect($c,'UNIQUE_CONNECTION_KEY')" function!
+     'UNIQUE_CONNECTION_KEY' =>
+        [
+         'driver' => 'mysqli'/'pdo_mysql'/'pgsql'/'mongodb'/'etc. It is Validated ',
+         'host' => DB_HOST,
+         'user' => DB_USER,
+         'password' => DB_PASSWORD,
+         'database' => DB_NAME,
+         'port' => DB_PORT,
+         'charset' => 'DB_CHARSET',
+         'add_other_keys' => 'and_values_here',
+        ],
+     ], // and so on...
+    */
+EOF,
+        "doModifyThisFile" =>    <<<EOF
+            /**
+    * -----------------------------------------------------
+    * FUNKPHP AUTOMATICALLY GENERATED/CREATED COMPILED FILE
+    * -----------------------------------------------------
+    // FunkPHP - User-defined Functions Available Globally!
+    // All functions below - as long as they do not conflict
+    // in naming with `cli|funk_FUNCTION_NAMES`, they will be
+    // available in the global namespace{} and should ALWAYS
+    // pass the `&\$c` (IMPORTANT: remember the starting "&"!)
+    // global config/context variable! You can also pass any other
+    // variables, but most `funk_FUNCTION_NAME` do not care about other
+    // arguments after first one since they assume you use \$c['shared']
+    // to grab data being shared between other functions!
+    // The names of the functions you define below here will be compared
+    // against the Array String List in `src/cli/core/cli_reserved.php`
+    // when you run the Compilation Command `php funk build`!
+    //
+    // Besides all that above, you can name your function anything you want!
 
+EOF
+    ];
     return $prefixCode[$keyString] ?? null;
 }
 

@@ -52,7 +52,7 @@ $userFunctionsFile = null;
 foreach ($args as $arg) {
     if (is_string($arg)) {
         $flag = strtolower(trim($arg));
-        if ($flag === "--both") {
+        if ($flag === "--both-compile-and-embed-pages") {
             $compilePages = true;
             $compressDeployment = true;
         } else if ($flag === "--compile-pages") {
@@ -305,10 +305,10 @@ $driverBlueprints = [
     'mysqli' => [
         'host'     => ['type' => 'string',  'required' => true],
         'user'     => ['type' => 'string',  'required' => true],
-        'password' => ['type' => 'string',  'required' => true], // even empty strings count as strings!
+        'password' => ['type' => 'string',  'required' => true],
         'database' => ['type' => 'string',  'required' => true],
         'port'     => ['type' => 'integer', 'required' => true],
-        'charset'  => ['type' => 'string',  'required' => false], // 🌟 OPTIONAL KEY!
+        'charset'  => ['type' => 'string',  'required' => false],
     ],
     'pdo_mysql' => [
         'host'     => ['type' => 'string',  'required' => true],
@@ -317,7 +317,41 @@ $driverBlueprints = [
         'database' => ['type' => 'string',  'required' => true],
         'port'     => ['type' => 'integer', 'required' => false],
         'charset'  => ['type' => 'string',  'required' => false],
-    ]
+    ],
+    'pdo_pgsql' => [
+        'host'     => ['type' => 'string',  'required' => true],
+        'user'     => ['type' => 'string',  'required' => true],
+        'password' => ['type' => 'string',  'required' => true],
+        'database' => ['type' => 'string',  'required' => true],
+        'port'     => ['type' => 'integer', 'required' => false], // Defaults to 5432 in PHP
+        'sslmode'  => ['type' => 'string',  'required' => false], // e.g., 'require', 'disable'
+    ],
+    // --- KEY-VALUE & CACHING STACKS ---
+    'redis' => [
+        'host'     => ['type' => 'string',  'required' => true],
+        'port'     => ['type' => 'integer', 'required' => false], // Defaults to 6379
+        'password' => ['type' => 'string',  'required' => false],
+        'database' => ['type' => 'integer', 'required' => false], // Redis DB index (e.g., 0)
+        'timeout'  => ['type' => 'integer', 'required' => false],
+    ],
+    'memcached' => [
+        // Useful for clustering. If you prefer simple singular setup, change type to string/integer
+        'servers'  => ['type' => 'array',   'required' => true],  // Expects [['host', port, weight]]
+    ],
+    // --- DOCUMENT & NOSQL STACKS ---
+    'mongodb' => [
+        // MongoDB heavily favors unified connection strings (DSN) over separate parameters
+        'dsn'      => ['type' => 'string',  'required' => true],  // e.g., 'mongodb://user:pass@host:27017'
+        'database' => ['type' => 'string',  'required' => true],
+        'options'  => ['type' => 'array',   'required' => false], // Optional driver array tuning options
+    ],
+    'dynamodb' => [
+        'region'   => ['type' => 'string',  'required' => true],  // e.g., 'us-east-1'
+        'version'  => ['type' => 'string',  'required' => true],  // AWS SDK requires a string date like 'latest'
+        'key'      => ['type' => 'string',  'required' => false], // Optional if using IAM Roles/ENV
+        'secret'   => ['type' => 'string',  'required' => false],
+        'endpoint' => ['type' => 'string',  'required' => false], // 🌟 Vital for routing to LocalStack in dev!
+    ],
 ];
 // 4. Loop over every profile defined by the developer
 if (is_array($connsPayload)) {

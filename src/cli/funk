@@ -129,6 +129,7 @@ define("FUNKPHP_FILE_PATH_ROUTES", FUNKPHP_CORE_DIR . '/pipeline_routes.php');
 define("FUNKPHP_FILE_PATH_TABLES", FUNKPHP_CORE_DIR . '/tables.php');
 define("FUNKPHP_FILE_PATH_DB_LOCAL", FUNKPHP_CONFIG_DIR . '/db.php');
 define("FUNKPHP_FILE_PATH_CONNS_CONFIG", FUNKPHP_CONFIG_DIR . '/conns.php');
+define("FUNKPHP_FILE_PATH_README_IN_IDE_CONFIG", FUNKPHP_CONFIG_DIR . '/README_IN_IDE.php');
 define("FUNKPHP_FILE_PATH_DEPLOYMENT_FILE", FUNKPHP_DIR . '/FunkPHPDeployment.php');
 
 // Define message types and ANSI colors for CLI output
@@ -379,6 +380,72 @@ if (is_readable(FUNKPHP_FILE_PATH_CLI_RESERVED)) {
 
 // DEFAULT FILES IN /funkphp/core that are used to
 // recover when they are removed/rebuilt failed:
+$connsDefault = [
+    // --- PRODUCTION/ONLINE CREDENTIALS ---
+    // --- NATIVE EXTENSION MYSQL PROFILE ---
+    'mysql_native' => [
+        'driver'   => 'mysqli',
+        'host'     => '127.0.0.1',
+        'user'     => 'root',
+        'password' => 'secret',
+        'database' => 'funk_db',
+        'port'     => 3306,
+        'charset'  => 'utf8mb4', // Optional key
+    ],
+    // --- PDO MYSQL PROFILE ---
+    'mysql_pdo' => [
+        'driver'   => 'pdo_mysql',
+        'host'     => '127.0.0.1',
+        'user'     => 'root',
+        'password' => 'secret',
+        'database' => 'funk_db',
+        'port'     => 3306,      // Optional key
+        'charset'  => 'utf8mb4', // Optional key
+    ],
+    // --- PDO POSTGRESQL PROFILE ---
+    'postgres_pdo' => [
+        'driver'   => 'pdo_pgsql',
+        'host'     => 'localhost',
+        'user'     => 'postgres',
+        'password' => 'secret_pg_pass',
+        'database' => 'funk_postgres',
+        'port'     => 5432,      // Optional key
+        'sslmode'  => 'prefer',  // Optional key (e.g., 'disable', 'require', 'prefer')
+    ],
+    // --- REDIS CACHE/STORE PROFILE ---
+    'redis_main' => [
+        'driver'   => 'redis',
+        'host'     => '127.0.0.1',
+        'port'     => 6379,              // Optional key
+        'password' => 'redis_auth_token', // Optional key
+        'database' => 0,                 // Optional key (Must be an integer index)
+        'timeout'  => 0,                 // Optional key (Must be an integer)
+    ],
+    // --- MEMCACHED MEMORY CLUSTER PROFILE ---
+    'memcached_cluster' => [
+        'driver'  => 'memcached',
+        'servers' => [ // Required array pattern for handling node routing/weight pooling
+            ['127.0.0.1', 11211, 100],
+            // ['127.0.0.2', 11211, 50], // Add additional cluster nodes as needed
+        ],
+    ],
+    // --- MONGODB DOCUMENT TRACK PROFILE ---
+    'mongo_docs' => [
+        'driver'   => 'mongodb',
+        'dsn'      => 'mongodb://root:secret@127.0.0.1:27017', // Native connection string URI
+        'database' => 'funk_nosql',
+        'options'  => [], // Optional internal driver arrays tuning parameters
+    ],
+    // --- AWS DYNAMODB KEY-VALUE PROFILE ---
+    'aws_dynamo' => [
+        'driver'   => 'dynamodb',
+        'region'   => 'us-east-1',
+        'version'  => 'latest',                  // String version required by AWS SDK
+        'key'      => 'AKIAIOSFODNN7EXAMPLE',    // Optional key (leave empty if using IAM Roles/ENV) - THIS IS RANDOM-GENERATED HERE!
+        'secret'   => 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY', // Optional key - THIS IS RANDOM-GENERATED HERE!
+        'endpoint' => 'http://localhost:8000',   // Optional key (Crucial pathing for LocalStack or local testing containers)
+    ],
+];
 $cReplacements = [
     "'##TOKEN_REQ_METHOD##'" => "\$_SERVER['REQUEST_METHOD'] ?? 'GET'",
     "'##TOKEN_REQ_IP##'" => "\$_SERVER['REMOTE_ADDR'] ?? null",
