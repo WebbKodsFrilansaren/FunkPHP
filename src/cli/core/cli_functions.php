@@ -10287,6 +10287,9 @@ function cli_restore_default_folders_and_files()
         if (!file_exists($file)) {
             // Recreate default files based on type ("troute", "middleware routes" or "single routes")
             if (str_contains($file, "functions.php")) {
+                if (file_exists(FUNKPHP_FILE_PATH_CONNS_CONFIG)) {
+                    continue;
+                }
                 file_put_contents($file, "<?php\n// src/funkphp/config/functions.php - FunkPHP | FunkCLI recreated it $date\n\n" . cli_get_prefix_code("doModifyThisFile") . "\n");
                 echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
                 continue;
@@ -10687,8 +10690,7 @@ EOF,
     */
 EOF,
         "connsDefaultStartText" =>    <<<EOF
-    /**
-    * -----------------------------------------------------
+    /*-----------------------------------------------------
     * FUNKPHP AUTOMATICALLY GENERATED/CREATED COMPILED FILE
     * -----------------------------------------------------
     */
@@ -10719,10 +10721,10 @@ EOF,
     */
 EOF,
         "doModifyThisFile" =>    <<<EOF
-            /**
-    * -----------------------------------------------------
+    /*-----------------------------------------------------
     * FUNKPHP AUTOMATICALLY GENERATED/CREATED COMPILED FILE
     * -----------------------------------------------------
+    */
     // FunkPHP - User-defined Functions Available Globally!
     // All functions below - as long as they do not conflict
     // in naming with `cli|funk_FUNCTION_NAMES`, they will be
