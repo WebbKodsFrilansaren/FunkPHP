@@ -10,7 +10,10 @@
  * source of truth, your app will most likely crash, and your peer will know
  * you do not understand how caching and/or compiled files work.
  **/
-
+/*
+ * Function that
+ *
+*/
 /*
  * Function that loads a number of snippets file from the src/snippets folder and also
  * normalizes them by removing <?php in the beginning. the $snippets is expected to be a
@@ -48,7 +51,6 @@ function cli_snippets_load($snippets)
     // We now concatenate it into a super long string with a \n separating each snippet and return it to the caller
     return implode("\n\n", $snippArrayCode);
 }
-
 /*
 * Function that returns the calculated hash value of a file as a string
 * it needs exact pathing includin whatever the PROJECT_DIR is!
@@ -82,8 +84,6 @@ function cli_get_hash_calculation_of_a_page($pagePathName)
     $hash = hash_file('sha256', $exactFilePath);
     return $hash;
 }
-
-
 /*
  * Function that collects the cli_warning, cli_err, cli_err_syntax messages
  * in a single referenced array that should be 0 if a process should be considered
@@ -247,7 +247,6 @@ function cli_build_flattened_routing_start_VF(array $PreparedRoutesArray, string
     }
     return $ast;
 }
-
 /*
  * Takes the flattened AST built by cli_build_flattened_routing_start_VF() and compiles it into
  * a single flat PHP file with optimized route matching logic using if statements and GOTO labels.
@@ -282,7 +281,6 @@ function cli_compile_flattened_AST_VF(array $nodes, int $depth = 0): string
     }
     return $code;
 }
-
 /**
  * Master orchestration function to compile the full routing tree.
  */
@@ -333,7 +331,6 @@ function cli_resolve_inherited_middlewares(string $routePath, array $developerRo
 
     return $compiledMiddlewares;
 }
-
 // Sort the developer-defined single routes with parameters in a way that ensures more specific routes
 // are matched before more general ones (e.g., /users/:id before /users/:id/posts). This is crucial
 // for correct route matching when using a flat array of routes. The sorting logic ensures that
@@ -370,7 +367,6 @@ function cli_uksort_on_routes_with_params($developerSingleRoutes)
         return 0;
     });
 }
-
 // Meant to create super fast hydration code on compiled SQL Query results with nested relations
 // hydration via GOTO labels and direct array access without function calls or loops!
 // IMPORTANT: might not work yet, still work in progress!
@@ -405,7 +401,6 @@ function cli_compile_hydration_node(array $node, string $parentPath = '$results[
     }
     return $code;
 }
-
 /**
  * Asserts that a specific nested array path exists.
  * Automatically handles warning/error tracking and path resolution.
@@ -453,7 +448,6 @@ function cli_assert_array_keys_path(
     $finalCheck['file_path'] = $filePath;
     return $finalCheck;
 }
-
 /**
  * Asserts that a configuration value matches a native PHP data type,
  * passes a regex pattern match, or satisfies a custom validation callback.
@@ -908,7 +902,6 @@ function cli_array_subkeys_single(array &$startingArray, string ...$subkeys): ar
     }
     return $results;
 }
-
 /**
  * Creates a new Pipeline file (in either 'request' or 'post_response' sub-directory)
  * with a skeleton anonymous function.
@@ -978,7 +971,6 @@ function cli_create_pipeline_file($pipelineNameString, $pipelineType, $plStatusA
     // 5. Atomic Creation/Write
     return cli_crud_folder_php_file_atomic_write($plString, $outputNewFile);
 }
-
 /**
  * Checks the existence and validity status of a Pipeline file across request and post_response directories.
  *
@@ -1053,7 +1045,6 @@ function cli_pipeline_file_status($validatedPipelineString): array
         'pipeline_post_response_dir_writable' => is_writable(FUNKPHP_PIPELINE_POST_RESPONSE_DIR),
     ];
 }
-
 /**
  * Extracts the folder, file, and function parts from a validated 'folder=>file=>function' string.
  * SUPER IMPORTANT: This function ASSUMES the input has already been successfully validated.
@@ -1078,7 +1069,6 @@ function cli_extract_folder_file_fn(string $validatedFolderFileFnString): array
     cli_info_without_exit("OK! Parsed Folder: `funkphp/pipeline/routes/$folder`, File: `funkphp/routes/$folder/$file.php`, Function: `function $fn(&\$c, \$passedValue = null){};`");
     return [$folder, $file, $fn];
 }
-
 /**
  * Extracts File and Function parts from a validated 'file=>function' string,
  * with optional prefix handling for 'v_' (validation) or 's_' (SQL).
@@ -1113,7 +1103,6 @@ function cli_extract_folder_file($validatedFileFnString, $prefix = null): array
     }
     return [$pre . $file, $pre . $fn];
 }
-
 /**
  * Extracts and normalizes the HTTP method and route path from a validated string.
  * SUPER IMPORTANT: This function ASSUMES the input has already been successfully validated.
@@ -1153,7 +1142,6 @@ function cli_extract_method_route($validatedMethodRouteString)
     cli_info_without_exit("OK! Parsed Method & Route:`$method$route`");
     return [$method, $route];
 }
-
 /**
  * Extracts and normalizes the Middleware file name, ensuring the 'mw_' prefix is present.
  * SUPER IMPORTANT: ASSUMES the input string has been previously validated and is non-empty.
@@ -1176,7 +1164,6 @@ function cli_extract_middleware($validatedMiddlewareString)
     cli_info_without_exit("OK! Parsed Middleware Name:`mw_$sanitizedString`");
     return 'mw_' . $sanitizedString;
 }
-
 /**
  * Extracts and normalizes the Pipeline file name, ensuring the 'pl_' prefix is present.
  * SUPER IMPORTANT: ASSUMES the input string has been previously validated and is non-empty.
@@ -10297,7 +10284,7 @@ function cli_restore_default_folders_and_files()
         if (!file_exists($file)) {
             // Recreate default files based on type ("troute", "middleware routes" or "single routes")
             if (str_contains($file, "c.php")) {
-                file_put_contents($file, "<?php\n// c.php - FunkPHP | FunkCLI recreated it $date\n" . cli_get_prefix_code("do_not_modify_warning") . "\nrequire_once __DIR__ . '/CONSTANTS.php';\n// GLOBAL CONFIGURATIONS in \"\$c\" variable in \"funkphp/funkphp_start.php\"\n// Configure as needed using FunkCLI and/or FunkGUI!\n// IMPORTANT: Do NOT store sensitive data here (e.g passwords/API-keys)\n\nreturn " . cli_replace_stringified_ternary_in_var_exported_string($cReplacements, var_export($cDefault, true)) . ";\n");
+                file_put_contents($file, "<?php\n// c.php - FunkPHP | FunkCLI recreated it $date\n" . cli_get_prefix_code("do_not_modify_warning") . "\nrequire_once __DIR__ . '/CONSTANTS.php';\n// GLOBAL CONFIGURATIONS in \"\$c\" variable in \"funkphp/funkphp_start.php\"\n// Configure as needed using FunkCLI and/or FunkGUI!\n\nreturn " . cli_replace_string_tokens_in_var_exported_string($cReplacements, var_export($cDefault, true)) . ";\n");
                 echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
                 continue;
             } else if (str_contains($file, "CONSTANTS.php")) {
@@ -11130,7 +11117,7 @@ function cli_str_starts_or_ends_not_with($str, $start, $end)
 // Function that uses an array to replace all stringified ternary operators
 // in a given string with their evaluated values. Or it can be used for any
 // var_exported data that needs to replace data that would instead be evaluated.
-function cli_replace_stringified_ternary_in_var_exported_string($arr, $str)
+function cli_replace_string_tokens_in_var_exported_string($arr, $str)
 {
     if (!is_array($arr)) {
         cli_err_syntax("[cli_replace_stringified_ternary_in_var_exported_string]: First argument must be an Array!");

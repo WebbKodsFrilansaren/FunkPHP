@@ -19,6 +19,7 @@ $embedPages = false; // imlpemented later
 $compilePages = false;
 $compressDeployment = false;
 $showAllErrors = false; // implemented later
+$ignoreUnknownConnsDrivers = false; // implemented later
 $skipBrokenRoutes = false; // implemented later
 $skipCompilingValidation = false; // implemented later
 $skipCompilingSQL = false; // implemented later
@@ -33,8 +34,15 @@ $deploymentPipelinePostResponseBuffer = [];
 $deploymentPipelineRoutesBuffer = [];
 $deploymentValidationBuffer = [];
 $deploymentSQLBuffer = [];
+$deploymentPagesBuffer = [];
 $deploymentExtraFlagsBuffer = [];
 $deploymentPath = FUNKPHP_FILE_PATH_DEPLOYMENT_FILE;
+
+// Files that will be loaded using "cli_folder_and_php_file_status()"
+$coreFunctionsFile = null;
+$pipelineRequestArrayFile = null;
+$pipelineRoutesArrayFile = null;
+$userFunctionsFile = null;
 
 // Inside of $args[] array on 1 or 2 we can have the optional
 // configs for "--compile-pages" and/or "--compress-deployment"
@@ -61,10 +69,13 @@ foreach ($args as $arg) {
             $skipCompilingSQL = true;
         } else if ($flag === "--show-error-reporting-all-errors") {
             $showAllErrors = true;
+        } else if ($flag === "--ignore-unknown-conns-drivers") {
+            $ignoreUnknownConnsDrivers = true;
         }
     }
 }
 cli_info_without_exit("### FunkCLI Compiling & Building `FunkPHPDeployment.php` with the following options:");
+cli_info_without_exit("#### Ignore Unknown Connection Drivers: " . ($ignoreUnknownConnsDrivers ? "YES (even unknown types of credentials in `src/funkphp/config/conns.php`) will be added and included in the output)" : "NO"));
 cli_info_without_exit("#### Skip Broken Routes: " . ($skipBrokenRoutes ? "YES (invalid routes will NOT be pruned in output)" : "NO"));
 cli_info_without_exit("#### Skip Compiling Validation: " . ($skipCompilingValidation ? "YES (Validation Functions will NOT be compiled before output)" : "NO"));
 cli_info_without_exit("#### Skip Compiling SQL: " . ($skipCompilingValidation ? "YES (SQL Functions will NOT be compiled before output)" : "NO"));
@@ -99,18 +110,22 @@ if (is_readable(FUNKPHP_FILE_PATH_C_CONFIG_FILE)) {
 }
 
 // The main keys that must exist on $c array level for FunkPHP! So we iterate
-// through using array_key_exists now in $cCOnfig to see if those actually exist!
+// through using array_key_exists now in $cConfig to see if those actually exist!
 // those that do not exist we add to the "$configWarnsAndErrs" as errors!
 $cArrayKeysThatMustExist = [
     'FUNKPHP_ONLINE',
     'FUNKPHP_USE_HTTPS',
     'FUNKPHP_USE_PREPARE_URI',
+    'FUNKPHP_USE_VENDOR',
+    'FUNKPHP_CUSTOM_EXCEPTION_HANDLER',
+    'FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION',
     'INI_SETS',
     'BASEURLS',
     'SESSION',
     'shared',
     'custom',
     'classes',
+    'credentials',
     'connections',
     'req',
     'd',
@@ -147,9 +162,61 @@ $fphpo_iniChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CO
 cli_assert_final_value(end($fphpo_iniChecks), $configWarnsAndErrs, "cli_err", 'boolean', "Key is needed to work properly! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
 $fphpo_iniChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["FUNKPHP_USE_PREPARE_URI"], $configWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($fphpo_iniChecks), $configWarnsAndErrs, "cli_err", 'boolean', "Key is needed to know whether to Prepare Request URI or not for each incoming HTTP(S) Request! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
+$fphpo_iniChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["FUNKPHP_USE_VENDOR"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($fphpo_iniChecks), $configWarnsAndErrs, "cli_err", 'boolean', "Key is needed to know whether to Use Vendor/Composer-based Classes or not for each incoming HTTP(S) Request! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
+$fphpo_iniChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["FUNKPHP_CUSTOM_EXCEPTION_HANDLER"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($fphpo_iniChecks), $configWarnsAndErrs, "cli_err", 'string|null', "Key is needed to know which Custom Exception Handler to use (or default is used; set it a string or null) for each incoming HTTP(S) Request! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
+$fphpo_iniChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($fphpo_iniChecks), $configWarnsAndErrs, "cli_err", 'string|null', "Key is needed to know  Custom Registered Shutdown Function to use (or default is used; set it a string or null) for each incoming HTTP(S) Request! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
 $fphpo_iniChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["INI_SETS"], $configWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($fphpo_iniChecks), $configWarnsAndErrs, "cli_err", 'array-associative|array-empty', "Key is for optionally running an Array of `ini_set()` that cannot be manually set in php.ini due to shared host environments or other kind of permission reason. Leave it as an Empty Array if not used! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
-cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for Main Keys 'FUNKPHP_ONLINE' & 'INI_SETS' in the `c.php` (FunkPHP Configuration File) and try again! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
+// Load Custom user-defined functions (NOT classes(!)) when its constant is defined, file exists and is readable.
+if (
+    !defined("FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED")
+) {
+    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED` containing exact Path to `src/funkphp/config/functions.php` (User-defined Globally Available Functions in FunkPHP) is NOT DEFINED! Path: " . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]"));
+}
+if (
+    !file_exists(FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED)
+) {
+    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED` containing exact Path to `src/funkphp/config/functions.php` (User-defined Globally Available Functions in FunkPHP) is DEFINED but its File NOT FOUND! Path: " . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]"));
+}
+if (
+    !is_readable(FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED)
+) {
+    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED` containing exact Path to `src/funkphp/config/functions.php` (User-defined Globally Available Functions in FunkPHP) is DEFINED & FOUND but is NOT READABLE! File Permission issues? Path: " . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]"));
+}
+// Load User Functions globally by now inside $userFunctionsFile
+$userFunctionsFile = cli_folder_and_php_file_status("funkphp/config", "functions.php");
+if (isset($cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER'])) {
+    if (!isset($userFunctionsFile["functions"][$cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER']])) {
+        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Exception Handler `{$cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER']}` NOT FOUND in `src/funkphp/config/functions.php` (User-defined Globally Available Functions in FunkPHP) is DEFINED & FOUND but is NOT READABLE! Check Function Name in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one! Path: " . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]"));
+    }
+}
+if (isset($cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION'])) {
+    if (!isset($userFunctionsFile["functions"][$cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION']])) {
+        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Registered Shutdown Function `{$cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION']}` NOT FOUND in `src/funkphp/config/functions.php` (User-defined Globally Available Functions in FunkPHP) is DEFINED & FOUND but is NOT READABLE! Check Function Name in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one! Path: " . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]"));
+    }
+}
+// Check that Reserved Functions Array $reserved_functions is available by now
+if (!defined('FUNKPHP_FILE_PATH_CLI_RESERVED')) {
+    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED` containing exact Path to `src/cli/core/cli_reserved.php` (The Array String List of Reserved Functions) is NOT DEFINED! Path: " . (FUNKPHP_FILE_PATH_CLI_RESERVED ?? "[NOT_DEFINED]"));
+}
+if (!is_array($reserved_functions) || empty($reserved_functions)) {
+    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Array String List of Reserved Functions is NOT AN ARRAY or IS EMPTY! Path: " . (FUNKPHP_FILE_PATH_CLI_RESERVED ?? "[NOT_DEFINED]"));
+}
+// User-defined Functions should not conflict with reserved function names used by FunkCLI and FunkPHP
+if (isset($cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION'])) {
+    if (in_array($cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION'], $reserved_functions)) {
+        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Registered Shutdown Function `{$cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION']}` HAS CONFLICTING FUNCTION NAME with The Array String List of Reserved Function Names `src/cli/core/cli_reserved.php`. Please change your Function Name in `src/funkphp/config/functions.php` and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). OR set it to `null` if you wanna use default one! Path: " . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]"));
+    }
+}
+if (isset($cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER'])) {
+    if (in_array($cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER'], $reserved_functions)) {
+        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Exception Handler `{$cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER']}` HAS CONFLICTING FUNCTION NAME with The Array String List of Reserved Function Names `src/cli/core/cli_reserved.php`. Please change your Function Name in `src/funkphp/config/functions.php` and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). OR set it to `null` if you wanna use default one! Path: " . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]"));
+    }
+}
+cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for Main Keys 'FUNKPHP_ONLINE', 'FUNKPHP_USE_HTTPS', 'FUNKPHP_USE_PREPARE_URI', 'FUNKPHP_CUSTOM_EXCEPTION_HANDLER', 'FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION' & 'INI_SETS' in the `c.php` (FunkPHP Configuration File) and try again! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
 
 // VALIDATE BASEURLS Array Subkeys Paths!
 $baseURLSChecks = [];
@@ -171,38 +238,30 @@ cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($conf
 
 // VALIDATE SESSION Array Subkeys Paths!
 $sessionChecks = [];
-
 // 1. Session Driver
 $sessionChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["SESSION", "driver"], $configWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($sessionChecks), $configWarnsAndErrs, "cli_err", '/(^files$)|(^redis$)/', "Must be either 'files' or 'redis'.");
-
 // 2. Cookie Structural Branch Layer Check & 3. Cookie Name Check
 cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["SESSION", "COOKIES"], $configWarnsAndErrs, "cli_err");
 $sessionChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["SESSION", "COOKIES", "SESSION_NAME"], $configWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($sessionChecks), $configWarnsAndErrs, "cli_err", '/^[a-zA-Z0-9_\-]+$/', "Must be a valid alphanumeric cookie name identifier (underscores and hyphens allowed). Example: 'fphp_id'");
-
 // 4. Session Lifetime (Positive Integer check via Callback)
 $sessionChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["SESSION", "COOKIES", "SESSION_LIFETIME"], $configWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($sessionChecks), $configWarnsAndErrs, "cli_err", (function ($val) {
     return is_int($val) && $val >= 0;
 }), "Must be a positive integer representing seconds. Example: 28800 (8 hours), or 0 (expires when browser closes).");
-
 // 5. Session Cookie URL Path Path Matching
 $sessionChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["SESSION", "COOKIES", "SESSION_PATH"], $configWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($sessionChecks), $configWarnsAndErrs, "cli_err", '/^\/[a-zA-Z0-9_\-\/]*$/', "Must be a valid URL scope root path starting with a forward slash. Example: '/' or '/app/'");
-
 // 6. Session Domain Check
 $sessionChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["SESSION", "COOKIES", "SESSION_DOMAIN"], $configWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($sessionChecks), $configWarnsAndErrs, "cli_err", 'string', "Must be a valid domain string matching your server context. Example: 'localhost' or 'my-app.com'");
-
 // 7. Session Secure (HTTPS enforced flag)
 $sessionChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["SESSION", "COOKIES", "SESSION_SECURE"], $configWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($sessionChecks), $configWarnsAndErrs, "cli_err", 'bool', "Must be a boolean value indicating if cookies are restricted to HTTPS transfers.");
-
 // 8. Session HttpOnly (XSS cross-site scripting shield flag)
 $sessionChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["SESSION", "COOKIES", "SESSION_HTTPONLY"], $configWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($sessionChecks), $configWarnsAndErrs, "cli_err", 'bool', "Must be a boolean value locking script access to the session identifier.");
-
 // 9. Session SameSite Strategy (Custom Whitelist Array check via Callback)
 $sessionChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["SESSION", "COOKIES", "SESSION_SAMESITE"], $configWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($sessionChecks), $configWarnsAndErrs, "cli_err", (function ($val) {
@@ -223,8 +282,90 @@ cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($conf
 // VALIDATE CONNECTIONS Array Subkeys Paths!
 $connectionsChecks = [];
 $connectionsChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["connections"], $configWarnsAndErrs, "cli_err");
-cli_assert_final_value(end($connectionsChecks), $configWarnsAndErrs, "cli_err", 'array-empty', "Must be an Empty Array as it will be filled with Connections like Databases (from src/funkphp/config/conns.php) and other connection-related services during runtime.");
-cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for 'connections' Main Key in the `c.php` (FunkPHP Configuration File) and try again! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
+cli_assert_final_value(end($connectionsChecks), $configWarnsAndErrs, "cli_err", 'array-empty', "Must be an Empty Array as it will be filled with Connections like Databases Instances (from src/funkphp/config/conns.php) and other connection-related service-instances during runtime and now during compilation the Connections Configuration Array (`src/funkphp/config/conns.php`) will be validated first and then be stored in [\$c -> 'credentials'].");
+$connectionsChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["credentials"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($connectionsChecks), $configWarnsAndErrs, "cli_err", 'array-empty', "Must be an Empty Array as it will be filled with First Validated Credentials stored in `src/funkphp/config/conns.php`!");
+
+// Load & validate the array structure inside of `src/funkphp/config/conns.php`
+if (
+    !defined('FUNKPHP_FILE_PATH_CONNS_CONFIG')
+    || !file_exists(FUNKPHP_FILE_PATH_CONNS_CONFIG)
+    || !is_readable(FUNKPHP_FILE_PATH_CONNS_CONFIG)
+) {
+    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_FILE_PATH_CONNS_CONFIG` containing Exact File Path to Your Credentials for your Connections is NOT DEFINED or FILE DOES NOT EXIST or FILE IS NOT READABLE. Path: " . (FUNKPHP_FILE_PATH_CONNS_CONFIG ?? "[NOT_DEFINED]"));
+    cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for the Main Keys 'connections' & 'credentials' in the `c.php` (FunkPHP Configuration File) and try again! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
+}
+$connsPayload = require FUNKPHP_FILE_PATH_CONNS_CONFIG;
+if (!is_array($connsPayload)) {
+    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Credentials File for your Connections (`src/funkphp/config/conns.php`) is NOT A VALID ARRAY. Each array key should be the name of a connection, and then include a driver and its corresponding connection details for that type of driver. Path: " . (FUNKPHP_FILE_PATH_CONNS_CONFIG ?? "[NOT_DEFINED]"));
+    cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for the Main Keys 'connections' & 'credentials' in the `c.php` (FunkPHP Configuration File) and try again! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
+}
+// 3. Define the Blueprint Schemas based on the 'driver' key
+$driverBlueprints = [
+    'mysqli' => [
+        'host'     => ['type' => 'string',  'required' => true],
+        'user'     => ['type' => 'string',  'required' => true],
+        'password' => ['type' => 'string',  'required' => true], // even empty strings count as strings!
+        'database' => ['type' => 'string',  'required' => true],
+        'port'     => ['type' => 'integer', 'required' => true],
+        'charset'  => ['type' => 'string',  'required' => false], // 🌟 OPTIONAL KEY!
+    ],
+    'pdo_mysql' => [
+        'host'     => ['type' => 'string',  'required' => true],
+        'user'     => ['type' => 'string',  'required' => true],
+        'password' => ['type' => 'string',  'required' => true],
+        'database' => ['type' => 'string',  'required' => true],
+        'port'     => ['type' => 'integer', 'required' => false],
+        'charset'  => ['type' => 'string',  'required' => false],
+    ]
+];
+// 4. Loop over every profile defined by the developer
+if (is_array($connsPayload)) {
+    foreach ($connsPayload as $profileName => $profileData) {
+        if (!is_array($profileData)) {
+            cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "Connection Profile [{$profileName}] must be defined as an Associative Array Configuration Block. Path: " . (FUNKPHP_FILE_PATH_CONNS_CONFIG ?? "[NOT_DEFINED]"));
+            continue;
+        }
+        // Validate that 'driver' exists and is a valid string
+        if (!isset($profileData['driver']) || !is_string($profileData['driver'])) {
+            cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "Connection Profile [{$profileName}] is missing a Valid String 'driver' key needed to know how to parse other (optional) keys. Path: " . (FUNKPHP_FILE_PATH_CONNS_CONFIG ?? "[NOT_DEFINED]"));
+            continue;
+        }
+        $driver = $profileData['driver'];
+        // Verify we actually support this database engine blueprint
+        if (!array_key_exists($driver, $driverBlueprints)) {
+            if ($ignoreUnknownConnsDrivers) {
+                cli_info_without_exit("Unknown Connection Profile `$profileName` ignored due to Compilation flag `--ignore-unknown-conns-drivers`.");
+            } else {
+                cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "Connection Profile [{$profileName}] specifies an Unknown Framework Driver: '{$driver}'. Current Framework Drivers supported for Data Schema Validation are: `" . join(", ", array_keys($driverBlueprints)) . "`! Include the compilation flag `--ignore-unknown-conns-drivers` to ignore validating unknown driver types. Path: " . (FUNKPHP_FILE_PATH_CONNS_CONFIG ?? "[NOT_DEFINED]"));
+            }
+            continue;
+        }
+        $blueprint = $driverBlueprints[$driver];
+        // 5. Cross-reference profile data keys against our blueprint matrix
+        foreach ($blueprint as $keyName => $rules) {
+            $keyExists = array_key_exists($keyName, $profileData);
+            if (!$keyExists && $rules['required']) {
+                cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "Profile [{$profileName}] ({$driver}): Missing required configuration parameter '{$keyName}'. Path: " . (FUNKPHP_FILE_PATH_CONNS_CONFIG ?? "[NOT_DEFINED]"));
+                continue;
+            }
+            if ($keyExists) {
+                $actualValue = $profileData[$keyName];
+                $expectedType = $rules['type'];
+                // Explicit strict primitive type evaluations
+                $typeMatches = false;
+                if ($expectedType === 'string' && is_string($actualValue))   $typeMatches = true;
+                if ($expectedType === 'integer' && is_int($actualValue))     $typeMatches = true;
+                if ($expectedType === 'boolean' && is_bool($actualValue))    $typeMatches = true;
+                if ($expectedType === 'array' && is_array($actualValue))      $typeMatches = true;
+                if (!$typeMatches) {
+                    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "Profile [{$profileName}] ({$driver}): Key '{$keyName}' must be an exact type mismatch! Expected data type: [{$expectedType}]. Path: " . (FUNKPHP_FILE_PATH_CONNS_CONFIG ?? "[NOT_DEFINED]"));
+                }
+            }
+        }
+    }
+}
+cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for the Main Keys 'connections' & 'credentials' in the `c.php` (FunkPHP Configuration File) and try again! Paths: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . " & " . (FUNKPHP_FILE_PATH_CONNS_CONFIG ?? "[NOT_DEFINED]"));
 
 // VALIDATE REQ Array Subkeys Paths!
 $reqChecks = [];
@@ -337,7 +478,6 @@ cli_assert_final_value(end($cErrChecks), $configWarnsAndErrs, "cli_err", 'array-
 cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for the Main Key 'err' and its Subkeys in the `c.php` (FunkPHP Configuration File) and try again! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
 
 // VALIDATE Certain Constants by is using !defined() and error out if not found!
-
 cli_assert_final_value(NULL, $configWarnsAndErrs, "cli_err", 'constants:FUNKPHP_NO_VALUE,FUNKPHP_ALLOW_INSTANCE_OVERWRITE', "These Constants are a MUST for FunkPHPDeployment.php to 'function' properly!");
 cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for the Required Constants from the `c.php` (FunkPHP Configuration File) and try again! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
 
@@ -348,12 +488,31 @@ $deploymentBuffer[] = "<?php // FunkPHPDeployment.php | Created: " . date("Y-m-d
 // Adding Starting Needed Constants First
 $deploymentBuffer[] = "define('FUNKPHP_DEPLOYED', true);\n";
 $deploymentBuffer[] = "define('FUNKPHP_NO_VALUE', new stdClass());\n";
-$deploymentBuffer[] = "define('FUNKPHP_ALLOW_INSTANCE_OVERWRITE,\'" . FUNKPHP_ALLOW_INSTANCE_OVERWRITE .  "');\n";
+$deploymentBuffer[] = "define('FUNKPHP_ALLOW_INSTANCE_OVERWRITE'," . FUNKPHP_ALLOW_INSTANCE_OVERWRITE .  ");\n";
 
+// Adding the keys, to the $c variable because there are 4 dynamic values like "$_SERVER['REQUEST_METHOD'] ?? 'GET'" we
+// have to add it as pure string instead of var_export! Then we add the $c array file to the entire current Deployment Buffer
+$cReqReplacements = [
+    "'##TOKEN_REQ_METHOD##'" => "\$_SERVER['REQUEST_METHOD'] ?? 'GET'",
+    "'##TOKEN_REQ_IP##'" => "\$_SERVER['REMOTE_ADDR'] ?? null",
+    "'##TOKEN_REQ_TIME##'" => "\$_SERVER['REQUEST_TIME'] ?? time()",
+    "'##TOKEN_REQ_QUERY_STRING##'" => "\$_SERVER['QUERY_STRING'] ?? null",
+];
+$cConfig['req']['method'] = "##TOKEN_REQ_METHOD##";
+$cConfig['req']['ip'] = "##TOKEN_REQ_IP##";
+$cConfig['req']['time'] =  "##TOKEN_REQ_TIME##";
+$cConfig['req']['query'] = "##TOKEN_REQ_QUERY_STRING##";
+$deploymentConfigBuffer[] = "\$c = ";
+$deploymentConfigBuffer[] = cli_replace_string_tokens_in_var_exported_string($cReqReplacements, var_export($cConfig, "true")) . ";\n";
+$deploymentBuffer[] = implode("", $deploymentConfigBuffer);
+$deploymentBuffer[] = "\n";
+
+// Adding
 exit;
-
 cli_info_without_exit("### Step 2: Loading, Validating & Compiling Core `functions.php` & User-defined `funkphp => config => functions.php` Files ('User-defined Functions' in 'Config' in FunkGUI)...");
 $functionsWarnsAndErrs = [];
+
+$coreFunctionsFile = cli_folder_and_php_file_status("funkphp/core", "functions.php");
 
 
 cli_info_without_exit("### Step 3: Loading, Validating & Compiling `pipeline_request.php` ('Request' & 'Post_Response' in 'Pipeline' in FunkGUI) File...");
@@ -374,8 +533,7 @@ $factorySignatures = [
     "compiled/[errors]/404.php" => "344fdc4eb934d01af1b3df5c78384a6d861c9e3fc697ce2097c860ba22029d2d",
     "compiled/[errors]/500.php" => "c6ecb2de90cdd71da99e02f5871b4f2e37c17efed725d3e0d38a63bdec4bc6b4",
 ];
-
-cli_info("Auditing Default Error Page Signatures for potential local debug leakages...");
+cli_info_without_exit("Auditing Default Error Page Signatures for potential local debug leakages...");
 foreach ($factorySignatures as $pagePath => $factoryHash) {
     // Build the exact file path dynamically
     $fullPath = FUNKPHP_PAGE_DIR . '/' . $pagePath;

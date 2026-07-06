@@ -1,28 +1,14 @@
-<?php
-// c.php - FunkPHP | FunkCLI recreated it 2026-07-06 15:50:21
-
-/**
- * -----------------------------------------------------
- * FUNKPHP AUTOMATICALLY GENERATED/CREATED COMPILED FILE
- * -----------------------------------------------------
- * DO NOT MANUALLY EDIT THIS FILE.
- * If you are currently editing this file to see if FunkPHP will "self-heal",
- * it won't. This is a micro-framework, not your therapist. If you alter this
- * source of truth, your app will most likely crash, and your peer will know
- * you do not understand how caching and/or compiled files work.
- **/
-require_once __DIR__ . '/CONSTANTS.php';
-// GLOBAL CONFIGURATIONS in "$c" variable in "funkphp/funkphp_start.php"
-// Configure as needed using FunkCLI and/or FunkGUI!
-// IMPORTANT: Do NOT store sensitive data here (e.g passwords/API-keys)
-
-return array(
+<?php // FunkPHPDeployment.php | Created: 2026-07-06 18:44:07 | PHP Version: 8.3.6 | FunkPHP Version: 1.0.0 | FunkCLI Version: 1.0.0
+define('FUNKPHP_DEPLOYED', true);
+define('FUNKPHP_NO_VALUE', new stdClass());
+define('FUNKPHP_ALLOW_INSTANCE_OVERWRITE', 1);
+$c = array(
   'FUNKPHP_ONLINE' => false,
   'FUNKPHP_USE_HTTPS' => false,
   'FUNKPHP_USE_PREPARE_URI' => true,
-  "FUNKPHP_USE_VENDOR" => true,
-  "FUNKPHP_CUSTOM_EXCEPTION_HANDLER" => "funk_handle_uncaught_exception",
-  "FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION" => "funk_set_register_shutdown_function",
+  'FUNKPHP_USE_VENDOR' => true,
+  'FUNKPHP_CUSTOM_EXCEPTION_HANDLER' => 'funk_handle_uncaught_exception',
+  'FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION' => 'funk_set_register_shutdown_function',
   'INI_SETS' =>
   array(
     'session.cache_limiter' => 'public',
@@ -72,8 +58,6 @@ return array(
     'user' =>
     array(),
   ),
-  'credentials' =>
-  array(),
   'connections' =>
   array(),
   'req' =>
