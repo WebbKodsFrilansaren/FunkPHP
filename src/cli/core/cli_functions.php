@@ -430,13 +430,16 @@ function cli_assert_array_keys_path(
  * @return bool True if the validation passes, false otherwise.
  */
 function cli_assert_final_value(
-    array $finalCheck,
+    array|null $finalCheck,
     array &$warnsAndErrs,
     string $severity,
     mixed $rule,
     string $info = '',
 ): bool {
     // 1. Internal Sanitation & Validation Guards
+    if (!is_array($warnsAndErrs)) {
+        cli_err("[cli_assert_final_value()]: The provided \$warnsAndErrs parameter must be an Array passed by Reference to collect Warnings and Errors!");
+    }
     $validTypes = ['cli_err', 'cli_warning', 'cli_err_syntax', 'cli_info'];
     if (!in_array($severity, $validTypes)) {
         cli_err("[cli_assert_final_value()]: Invalid Message Type (\$severity) provided. Must be one of: `" . implode(', ', $validTypes) . "`!");
@@ -444,6 +447,113 @@ function cli_assert_final_value(
     // Ensure our rule is a string for the remaining string-based evaluation methods
     if (!is_string($rule) && !is_callable($rule)) {
         cli_err("[cli_assert_final_value()]: The Validation \$rule must be a String (Type/Regex) or the Name of a Callable function!");
+    }
+
+    // STARTING EDGE-CASES: When we have no finalCheck (NULL) to check
+    // but other special-cases like defined(), function_exists(),
+    // class_exists() and add to the warnsAndErrs array if it is not defined!
+    if ($finalCheck === NULL) {
+        // "defined()"
+        if (
+            str_starts_with($rule, "defined:")
+            || str_starts_with($rule, "DEFINED:")
+            || str_starts_with($rule, "CONSTANTS:")
+            || str_starts_with($rule, "constants:")
+            || str_starts_with($rule, "consts:")
+            || str_starts_with($rule, "CONSTS:")
+        ) {
+            $rule = trim($rule);
+            $keyListStr = substr($rule, strpos($rule, ':') + 1);
+            $requiredKeys = array_map('trim', explode(',', $keyListStr));
+            if (in_array('', $requiredKeys, true) || empty($keyListStr)) {
+                cli_err("[cli_assert_final_value()]: Malformed Rule Syntax for `defined:` in `{$rule}`. Separate Each Constant with a Single comma (,) and remove trailing ones!");
+            }
+            // Iterate through requiredKeys to see if each key
+            // then is indeed a defined constant or not
+            $undefinedConstants = [];
+            foreach ($requiredKeys as $constName) {
+                if (!defined($constName)) {
+                    $undefinedConstants[] = $constName;
+                }
+            }
+            if (count($undefinedConstants) > 0) {
+                $msg = "Asserted Required Constant(s) `" .  join(", ", $undefinedConstants) . "` NOT DEFINED at This Point of Script Execution!";
+                if (is_string($info) && !empty($info)) {
+                    $msg .= " More Info: {$info}";
+                }
+                cli_build_warning_err_list($warnsAndErrs, $severity, $msg);
+                return false;
+            }
+            return true;
+        }
+        // "function_exists()"
+        else if (
+            str_starts_with($rule, "functions:")
+            || str_starts_with($rule, "FUNCTIONS:")
+            || str_starts_with($rule, "funks:")
+            || str_starts_with($rule, "FUNKS:")
+            || str_starts_with($rule, "funcs:")
+            || str_starts_with($rule, "FUNCS:")
+            || str_starts_with($rule, "FNS:")
+            || str_starts_with($rule, "fns:")
+        ) {
+            $rule = trim($rule);
+            $keyListStr = substr($rule, strpos($rule, ':') + 1);
+            $requiredKeys = array_map('trim', explode(',', $keyListStr));
+            if (in_array('', $requiredKeys, true) || empty($keyListStr)) {
+                cli_err("[cli_assert_final_value()]: Malformed Rule Syntax for `functions:` in `{$rule}`. Separate Each Function Name with a Single comma (,) and remove trailing ones!");
+            }
+            // Iterate through requiredKeys to see if each key
+            // then is indeed a defined function or not
+            $undefinedFunctions = [];
+            foreach ($requiredKeys as $functionName) {
+                if (!function_exists($functionName)) {
+                    $undefinedFunctions[] = $functionName;
+                }
+            }
+            if (count($undefinedFunctions) > 0) {
+                $msg = "Asserted Required Function(s) `" .  join(", ", $undefinedFunctions) . "` DO NOT EXIST at This Point of Script Execution!";
+                if (is_string($info) && !empty($info)) {
+                    $msg .= " More Info: {$info}";
+                }
+                cli_build_warning_err_list($warnsAndErrs, $severity, $msg);
+                return false;
+            }
+            return true;
+        }
+        // "class_exists()"
+        else if (
+            str_starts_with($rule, "classes:")
+            || str_starts_with($rule, "CLASSES:")
+        ) {
+            $rule = trim($rule);
+            $keyListStr = substr($rule, strpos($rule, ':') + 1);
+            $requiredKeys = array_map('trim', explode(',', $keyListStr));
+            if (in_array('', $requiredKeys, true) || empty($keyListStr)) {
+                cli_err("[cli_assert_final_value()]: Malformed Rule Syntax for `classes:` in `{$rule}`. Separate Each Class Name with a Single comma (,) and remove trailing ones!");
+            }
+            // Iterate through requiredKeys to see if each key
+            // then is indeed a defined class or not
+            $undefinedClasses = [];
+            foreach ($requiredKeys as $className) {
+                if (!class_exists($className)) {
+                    $undefinedClasses[] = $className;
+                }
+            }
+            if (count($undefinedClasses) > 0) {
+                $msg = "Asserted Required Class(es) `" .  join(", ", $undefinedClasses) . "` DO NOT EXIST at This Point of Script Execution!";
+                if (is_string($info) && !empty($info)) {
+                    $msg .= " More Info: {$info}";
+                }
+                cli_build_warning_err_list($warnsAndErrs, $severity, $msg);
+                return false;
+            }
+            return true;
+        }
+        // Error out and explain the supported checks without a finalCheck packet
+        else {
+            cli_err("[cli_assert_final_value()]: The provided \$finalCheck is NULL, but the provided \$rule does not match any of the supported special-case checks (defined:, functions:, classes:). Please provide a Valid Rule or ensure the path exists before calling this function!");
+        }
     }
 
     // 2. Safety Pipeline Guard: If the path didn't exist, stop right here.
@@ -459,12 +569,58 @@ function cli_assert_final_value(
     $lastKey     = $finalCheck['key'];
     $filePath    = $finalCheck['file_path'] ?? '[UNKNOWN_FILE]';
 
-    // --- STRATEGY A: Callback Function Rule ---
+    // --- STRATEGY CALLBACK (as string OR as Callable): Callback Function Rule ---
     if (is_callable($rule)) {
         // Execute custom callback, passing the raw value and the full packet for advanced contexts
         $isValid = $rule($actualValue, $finalCheck);
         if (!$isValid) {
             $msg = "Custom Validation Callback Failed for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`.";
+            if (is_string($info) && !empty($info)) {
+                $msg .= " More Info: {$info}";
+            }
+            cli_build_warning_err_list($warnsAndErrs, $severity, $msg);
+            return false;
+        }
+        return true;
+    }
+
+    // --- STRATEGY ARRAY_KEYS: Finding key names in final value! ---
+    // if $rule starts with "array_keys:" OR "array-keys:" we split on
+    // the colon and then check if the final value is an array and if it is we check if all the keys in the array are present in the final value!
+    if (
+        str_starts_with($rule, "array_keys:")
+        || str_starts_with($rule, "array-keys:")
+        || str_starts_with($rule, "arraykeys:")
+        || str_starts_with($rule, "arr_keys:")
+        || str_starts_with($rule, "arr-keys:")
+        || str_starts_with($rule, "arr-k:")
+        || str_starts_with($rule, "arrk:")
+        || str_starts_with($rule, "ak:")
+    ) {
+        $rule = trim($rule);
+        $keyListStr = substr($rule, strpos($rule, ':') + 1);
+        $requiredKeys = array_map('trim', explode(',', $keyListStr));
+        if (in_array('', $requiredKeys, true) || empty($keyListStr)) {
+            cli_err("[cli_assert_final_value()]: Malformed Rule Syntax for Array Keys in `{$rule}`. Separate Each Key with a Single comma (,) and remove trailing ones!");
+        }
+        // Is it not even array? then we cannot check for keys
+        if (!is_array($actualValue)) {
+            $msg = "Value Validation Failed at [{$fullPathStr}] in `{$filePath}`. Expected an Array to check for Required Keys, but found type: '{$actualType}'.";
+            if (is_string($info) && !empty($info)) {
+                $msg .= " More Info: {$info}";
+            }
+            cli_build_warning_err_list($warnsAndErrs, $severity, $msg);
+            return false;
+        }
+        // Now we check for keys and anything above 0 means missing keys!
+        $reqKeys = [];
+        foreach ($requiredKeys as $reqKey) {
+            if (!array_key_exists($reqKey, $actualValue)) {
+                $reqKeys[] = $reqKey;
+            }
+        }
+        if (count($reqKeys) > 0) {
+            $msg = "Required Key(s) `" .  join(", ", $reqKeys) . "` NOT FOUND in [{$fullPathStr}] in `{$filePath}`.";
             if (is_string($info) && !empty($info)) {
                 $msg .= " More Info: {$info}";
             }
@@ -577,23 +733,7 @@ function cli_assert_final_value(
 
     // --- STRATEGY D: Single Standard PHP Data Type Validation ---
     // Normalize aliases down to native PHP gettype() strings
-
     $normalizedRule = $normalizedRuleHelperFunction(trim(strtolower($rule)));
-    // if ($normalizedRule === 'utype')   $normalizedRule = 'unknown type';
-    // if ($normalizedRule === 'arr')   $normalizedRule = 'array';
-    // if ($normalizedRule === 'obj')   $normalizedRule = 'object';
-    // if ($normalizedRule === 'res')   $normalizedRule = 'resource';
-    // if ($normalizedRule === 'str')   $normalizedRule = 'string';
-    // if ($normalizedRule === 'arr-empty')   $normalizedRule = 'array-empty';
-    // if ($normalizedRule === 'arr-numbered')   $normalizedRule = 'array-list';
-    // if ($normalizedRule === 'array-numbered')   $normalizedRule = 'array-list';
-    // if ($normalizedRule === 'arr-list')   $normalizedRule = 'array-list';
-    // if ($normalizedRule === 'array-assoc')   $normalizedRule = 'array-associative';
-    // if ($normalizedRule === 'arr-assoc')   $normalizedRule = 'array-associative';
-    // if ($normalizedRule === 'int')   $normalizedRule = 'integer';
-    // if ($normalizedRule === 'bool')  $normalizedRule = 'boolean';
-    // if ($normalizedRule === 'float') $normalizedRule = 'double'; // gettype() returns 'double' for floats
-    // if ($normalizedRule === 'null')  $normalizedRule = 'NULL';   // gettype() returns uppercase 'NULL'
 
     // If not in valid normalized rules we error out on this function since it is used incorrectly!
     if (!in_array($normalizedRule, $validNormalizedRules)) {

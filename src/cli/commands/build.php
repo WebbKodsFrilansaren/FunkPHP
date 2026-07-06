@@ -18,12 +18,22 @@
 $embedPages = false; // imlpemented later
 $compilePages = false;
 $compressDeployment = false;
+$showAllErrors = false; // implemented later
 $skipBrokenRoutes = false; // implemented later
 $skipCompilingValidation = false; // implemented later
 $skipCompilingSQL = false; // implemented later
 
 // Initialize an array to hold the different compiled sections of the file
+// and its sub parts so we can add sub parts as needed to the entire file!
 $deploymentBuffer = [];
+$deploymentConfigBuffer = [];
+$deploymentFunctionsBuffer = [];
+$deploymentPipelineRequestBuffer = [];
+$deploymentPipelinePostResponseBuffer = [];
+$deploymentPipelineRoutesBuffer = [];
+$deploymentValidationBuffer = [];
+$deploymentSQLBuffer = [];
+$deploymentExtraFlagsBuffer = [];
 $deploymentPath = FUNKPHP_FILE_PATH_DEPLOYMENT_FILE;
 
 // Inside of $args[] array on 1 or 2 we can have the optional
@@ -49,13 +59,16 @@ foreach ($args as $arg) {
             $skipCompilingValidation = true;
         } else if ($flag === "--skip-compiling-sql") {
             $skipCompilingSQL = true;
+        } else if ($flag === "--show-error-reporting-all-errors") {
+            $showAllErrors = true;
         }
     }
 }
 cli_info_without_exit("### FunkCLI Compiling & Building `FunkPHPDeployment.php` with the following options:");
-cli_info_without_exit("#### Skip Broken Routes: " . ($skipBrokenRoutes ? "YES" : "NO"));
-cli_info_without_exit("#### Skip Compiling Validation: " . ($skipCompilingValidation ? "YES" : "NO"));
-cli_info_without_exit("#### Skip Compiling SQL: " . ($skipCompilingValidation ? "YES" : "NO"));
+cli_info_without_exit("#### Skip Broken Routes: " . ($skipBrokenRoutes ? "YES (invalid routes will NOT be pruned in output)" : "NO"));
+cli_info_without_exit("#### Skip Compiling Validation: " . ($skipCompilingValidation ? "YES (Validation Functions will NOT be compiled before output)" : "NO"));
+cli_info_without_exit("#### Skip Compiling SQL: " . ($skipCompilingValidation ? "YES (SQL Functions will NOT be compiled before output)" : "NO"));
+cli_info_without_exit("#### Do Include `error_reporting = E_ALL` in Deployment File: " . ($showAllErrors ? "YES (warning: sensitive info could be leaked in production!" : "NO"));
 cli_info_without_exit("#### Do Compile Pages: " . ($compilePages ? "YES (pages will be compiled and output to 'funkphp/pages'" : "NO"));
 cli_info_without_exit("#### Do Embed Pages: " . ($embedPages ? "YES (pages will be inside of the FunkPHPDeployment.php File)" : "NO"));
 cli_info_without_exit("#### Do Compress Deployment: " . ($compressDeployment ? "YES (FunkPHPDeployment.php, pages and public_html folder will be in a single compresed file)" : "NO"));
@@ -100,6 +113,9 @@ $cArrayKeysThatMustExist = [
     'req',
     'd',
     'v',
+    'v_ok',
+    'v_ok_files',
+    'v_config',
     'v_data',
     'p',
     'files',
@@ -114,7 +130,7 @@ foreach ($cConfig as $cKey => $val) {
     if (
         !in_array($cKey, $cArrayKeysThatMustExist)
         && ($cKey !== "<ENTRY>")  && ($cKey !== "ROUTES") // Only applicable to the local web dev environment!
-        && ($cKey !== 0) && ($cKey !== 1) && ($cKey !== 2) // 0-2 are the !defined parts in the $c returned array!
+        && ($cKey !== 0) && ($cKey !== 1) && ($cKey !== 2) && ($cKey !== 3) // 0-3 are the !defined parts in the $c returned array!
     ) {
         cli_warning_without_exit("IGNORED: Key '$cKey' in `c.php` (FunkPHP Configuration File) will be ignored. Any custom variables should be in `\$c['custom']! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
     }
@@ -208,15 +224,125 @@ $reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_F
 cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'integer|null', "This is the Timestamp of the HTTP(S) Request that will be used after a Matched Route during a Valid HTTP(S) Request!");
 $reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "uri"], $configWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'null', "This is the Server-provided Request URI of the HTTP(S) Request that will be used after a Matched Route during a Valid HTTP(S) Request!");
-
+$reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "query"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'string|null', "This is the Server-provided Request Query String of the HTTP(S) Request that will be used after a Matched Route during a Valid HTTP(S) Request!");
+$reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "auth"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'null', "This is the FunkPHP-provided Auth Value depending on implemention that can be used after a Matched Route during a Valid HTTP(S) Request!");
+$reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "matched_in"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'null', "This is the location identifier where the router found a match (e.g., 'web', 'api') and must stay initialized as NULL.");
+$reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "route"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'null', "This holds the raw matched dynamic route string path template from your route definitions file.");
+$reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "params"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'null', "This will hold extracted dynamic URI route parameters mapped as an associative array upon routing matching completion.");
+$reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "segments"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'null', "This will store exploded URL string path fragments used internally by FunkPHP for structural pattern matching analysis.");
+$reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "matched_config"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'null', "This carries custom meta-configuration state properties linked directly to the specific matched endpoint.");
+$reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "matched_pipeline"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'array-empty', "Must start as a pristine Empty Array. It acts as the compiled queue container holding pipeline processing layers for this request loop.");
+$reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "matched_middlewares"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'null', "This holds a sequential list of verified HTTP middleware layer keys that will execute sequentially before the controller functions trigger.");
+$reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "skip_post_response"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'boolean', "This is a boolean toggle flag used to control whether background post-response fast-cgi processes should run or terminate early.");
+$reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "current_pipeline"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'null', "This is the internal runtime pointer monitoring the actively running functional request pipeline segment.");
+$reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "next_pipeline"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'null', "This is the internal runtime pointer indicating the upcoming functional step scheduled next within the pipeline flow queue.");
+$reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "current_middleware"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'null', "This is the internal runtime pointer identifying which middleware interceptor layer is actively evaluating the state snapshot.");
+$reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "next_middleware"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'null', "This is the internal runtime pointer declaring the target middleware layer awaiting execution authority next.");
+$reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "keep_running_pipeline"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'null', "This is a execution state sentinel parameter used by the pipeline loop to handle async execution continuations.");
+$reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "keep_running_middlewares"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'null', "This is a structural control variable used to maintain context within nested onion-style middleware loops.");
+$reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "keep_running_exit"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'null', "This is a dedicated lifecycle termination pointer used to intercept deep call-stack errors and exit safely.");
+$reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "code"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'integer', "This is the initial baseline fallback HTTP status code (Defaults to 418 I'm a teapot) until updated by execution loops. You can change its default value in FunkGUI/FunkCLI if needed.");
+$reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "log"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'array-empty', "This must be an Empty Array at boot. It acts as the runtime trace tracker logging debugging events during the current request.");
+$reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "ua"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'null', "This will house the browser client's HTTP User Agent identifier string once incoming server traffic arrives.");
+$reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "content_type"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'null', "This tracks the incoming message payload body payload specification header (e.g., application/json).");
+$reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "accept"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'null', "This tracks the HTTP Accept response format expectations declared by the browser or API request platform client.");
+$reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "protocol"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'null', "This identifies the incoming server transport protocol details (e.g., HTTP/1.1, HTTP/2, HTTP/3).");
 cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings and/or Errors above for 'req' Main Key and its Subkeys in the `c.php` (FunkPHP Configuration File) and try again! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
+
+// VALIDATE 'd', 'v' (and its associated keys), 'p' & 'files' which should ALL be just null at this point!
+$dvpfChecks = [];
+$dvpfChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["d"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($dvpfChecks), $configWarnsAndErrs, "cli_err", 'null', "Main Key `d` is meant to store ANY data you wanna output later on a HTML Page/View or maybe Return in a JSON Response after a Matched Route during a Valid HTTP(S) Request!");
+$dvpfChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["v"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($dvpfChecks), $configWarnsAndErrs, "cli_err", 'null', "Main Key `v` is meant to store ANY Validation Errors for a given funk_use_validation() call. Can be used any time during a Valid HTTP(S) Request!");
+$dvpfChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["v_ok"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($dvpfChecks), $configWarnsAndErrs, "cli_err", 'null', "Main Key `v_ok` is meant to store the Boolean Flag for a given funk_use_validation() call for whether it was all OK/validated or not. Can be used any time during a Valid HTTP(S) Request!");
+$dvpfChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["v_ok_files"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($dvpfChecks), $configWarnsAndErrs, "cli_err", 'null', "Main Key `v_ok_files` is meant to Store Referenced Validated Files a given funk_use_validation() call. Can be used any time during a Valid HTTP(S) Request!");
+$dvpfChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["v_config"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($dvpfChecks), $configWarnsAndErrs, "cli_err", 'null', "Main Key `v_config` is meant to Store Current Global Validation Configuration provided by a given funk_use_validation() call. Can be used any time during a Valid HTTP(S) Request!");
+$dvpfChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["v_data"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($dvpfChecks), $configWarnsAndErrs, "cli_err", 'null', "Main Key `v_data` is meant to Store Validated Data a given funk_use_validation() call. Can be used any time during a Valid HTTP(S) Request!");
+$dvpfChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["p"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($dvpfChecks), $configWarnsAndErrs, "cli_err", 'null', "Main Key `p` is meant to Store Page-related that can be used after a Matched Route during a Valid HTTP(S) Request!");
+$dvpfChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["files"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($dvpfChecks), $configWarnsAndErrs, "cli_err", 'null', "Main Key `files` is meant to Store Uploaded Files (if applicable). Can be used any time during a Valid HTTP(S) Request!");
+cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings and/or Errors above for the Main Keys 'd','v','v_ok','v_ok_files','v_config','v_data','s_data','p','p_config' & 'files' in the `c.php` (FunkPHP Configuration File) and try again! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
+
+// VALIDATE 'err' and its subkeys!
+$cErrChecks = [];
+$cErrChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["err"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($cErrChecks), $configWarnsAndErrs, "cli_err", 'array-keys:MAYBE,FUNCTIONS,CLASSES,CONNECTIONS,PIPELINE,MIDDLEWARES,PAGE,VALIDATION,SQL,QUERY', "Main Key `err` is relevant Errors for certain parts during a HTTP(S) Request!");
+$cErrChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["err", "MAYBE"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($cErrChecks), $configWarnsAndErrs, "cli_err", 'array-empty', "This Subkey in `err` should be empty and is filled out during a HTTP(S) Request!");
+$cErrChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["err", "FUNCTIONS"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($cErrChecks), $configWarnsAndErrs, "cli_err", 'array-empty', "This Subkey in `err` should be empty and is filled out during a HTTP(S) Request!");
+$cErrChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["err", "CLASSES"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($cErrChecks), $configWarnsAndErrs, "cli_err", 'array-empty', "This Subkey in `err` should be empty and is filled out during a HTTP(S) Request!");
+$cErrChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["err", "CONNECTIONS"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($cErrChecks), $configWarnsAndErrs, "cli_err", 'array-empty', "This Subkey in `err` should be empty and is filled out during a HTTP(S) Request!");
+$cErrChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["err", "PIPELINE"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($cErrChecks), $configWarnsAndErrs, "cli_err", 'array-empty', "This Subkey in `err` should be empty and is filled out during a HTTP(S) Request!");
+$cErrChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["err", "MIDDLEWARES"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($cErrChecks), $configWarnsAndErrs, "cli_err", 'array-empty', "This Subkey in `err` should be empty and is filled out during a HTTP(S) Request!");
+$cErrChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["err", "PAGE"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($cErrChecks), $configWarnsAndErrs, "cli_err", 'array-empty', "This Subkey in `err` should be empty and is filled out during a HTTP(S) Request!");
+$cErrChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["err", "VALIDATION"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($cErrChecks), $configWarnsAndErrs, "cli_err", 'array-empty', "This Subkey in `err` should be empty and is filled out during a HTTP(S) Request!");
+$cErrChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["err", "SQL"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($cErrChecks), $configWarnsAndErrs, "cli_err", 'array-empty', "This Subkey in `err` should be empty and is filled out during a HTTP(S) Request!");
+$cErrChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["err", "QUERY"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($cErrChecks), $configWarnsAndErrs, "cli_err", 'array-empty', "This Subkey in `err` should be empty and is filled out during a HTTP(S) Request!");
+cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings and/or Errors above for the Main Key 'err' and its Subkeys in the `c.php` (FunkPHP Configuration File) and try again! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
+
+// VALIDATE Certain Constants by is using !defined() and error out if not found!
+
+cli_assert_final_value(NULL, $configWarnsAndErrs, "cli_err", 'constants:FUNKPHP_DEPLOYED,FUNKPHP_ONLINE,FUNKPHP_NO_VALUE,FUNKPHP_ALLOW_INSTANCE_OVERWRITE', "These Constants are a MUST for FunkPHPDeployment.php to 'function' properly!");
+cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings and/or Errors above for the Required Constants from the `c.php` (FunkPHP Configuration File) and try again! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
+
+// Here ### Step 1 is fully validated so now we insert starting point of the `FunkPHPDeployment.php` file into the $deploymentBuffer array for later writing to disk!
+cli_success_without_exit("### Step 1: Validated `c.php` (FunkPHP Configuration File) Successfully! All Required Keys & Subkeys Exist and are Valid! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`.");
+$deploymentBuffer[] = "<?php // FunkPHPDeployment.php | Created: " . date("Y-m-d H:i:s") . " | PHP Version: " .  PHP_VERSION . " | FunkPHP Version: " . (FUNKPHP_VERSION ?? "<Unknown Version>") . " | FunkCLI Version: " . (FUNKCLI_VERSION ?? "<Unknown Version>") . "\n";
+
+// Adding Starting Needed Constants First
+
+
 exit;
+$deploymentBuffer[] = "define('FUNKPHP_DEPLOYED', true);\n";
+$deploymentBuffer[] = "define('FUNKPHP_ONLINE',\'" . FUNKPHP_ONLINE .  "'\n";
+$deploymentBuffer[] = "define('FUNKPHP_NO_VALUE', new stdClass());\n";
+$deploymentBuffer[] = "define('FUNKPHP_ALLOW_INSTANCE_OVERWRITE', true);\n";
 
-cli_info_without_exit("### Step 2: Loading, Validating & Compiling `pipeline_request.php` ('Request' & 'Post_Response' in 'Pipeline' in FunkGUI) File...");
-$pipelineWarnsAndErrs = [];
 
-cli_info_without_exit("### Step 3: Loading, Validating & Compiling Core `functions.php` & User-defined `funkphp => config => functions.php` Files ('User-defined Functions' in 'Config' in FunkGUI)...");
+cli_info_without_exit("### Step 2: Loading, Validating & Compiling Core `functions.php` & User-defined `funkphp => config => functions.php` Files ('User-defined Functions' in 'Config' in FunkGUI)...");
 $functionsWarnsAndErrs = [];
+
+
+cli_info_without_exit("### Step 3: Loading, Validating & Compiling `pipeline_request.php` ('Request' & 'Post_Response' in 'Pipeline' in FunkGUI) File...");
+$pipelineWarnsAndErrs = [];
 
 cli_info_without_exit("### Step 4: Loading, Validating, Rebuilding & Compiling `compiled_routes.php` & `pipeline_routes.php` Files ('Routes' in 'Pipeline' in FunkGUI)...");
 $routesWarnsAndErrs = [];

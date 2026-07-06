@@ -12,7 +12,7 @@
  **/
 
 // Singleton Object Constant that indicates "no value"!
-define("FUNKPHP_NO_VALUE", new stdClass());
+define('FUNKPHP_NO_VALUE', new stdClass());
 define('FUNKPHP_ALLOW_INSTANCE_OVERWRITE', true); //
 //^Change to "true" to allow overwriting existing instances!
 // Related to  "'INSTANCES' => ['vendor' => [], 'classes' => []]," in "config.php" file!

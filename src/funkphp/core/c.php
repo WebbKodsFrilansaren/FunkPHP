@@ -17,6 +17,7 @@ require_once __DIR__ . '/CONSTANTS.php';
 // IMPORTANT: Do NOT store sensitive data here (e.g passwords/API-keys)
 
 return array(
+  !defined('FUNKPHP_DEPLOYED') ? define('FUNKPHP_DEPLOYED', false) : null,
   !defined('FUNKPHP_IS_LOCAL') ? define('FUNKPHP_IS_LOCAL', true) : null,
   !defined('FUNKPHP_LOCAL') ? define('FUNKPHP_LOCAL', 'http://localhost/funkphp/src/public_html/') : null,
   !defined('FUNKPHP_ONLINE') ? define('FUNKPHP_ONLINE', 'https://www.funkphp.com/') : null,
@@ -106,6 +107,9 @@ return array(
   ),
   'd' => NULL,
   'v' => NULL,
+  'v_ok' => NULL,
+  'v_ok_files' => NULL,
+  'v_config' => NULL,
   'v_data' => NULL,
   'p' => NULL,
   'files' => NULL,
@@ -117,11 +121,9 @@ return array(
     array(),
     'CLASSES' =>
     array(),
-    'DATABASES' =>
+    'CONNECTIONS' =>
     array(),
     'PIPELINE' =>
-    array(),
-    'CACHED' =>
     array(),
     'MIDDLEWARES' =>
     array(),
@@ -130,6 +132,8 @@ return array(
     'VALIDATION' =>
     array(),
     'SQL' =>
+    array(),
+    'QUERY' =>
     array(),
   ),
 );

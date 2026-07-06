@@ -11,6 +11,10 @@
  * you do not understand how caching and/or compiled files work.
  **/
 
+define("FUNKPHP_VERSION", "1.0.0");
+define("FUNKCLI_VERSION", "1.0.0");
+define("FUNKGUI_VERSION", "1.0.0");
+
 // "FUNKPHP_IS_LOCAL" is needed by the /config/db.php file. This constant is first in FunkPHP.php file
 // for the actual website and not the FunkCLI so this is where we use it to say it is all local now!
 define('FUNKPHP_IS_LOCAL', true);
@@ -374,6 +378,7 @@ if (is_readable(FUNKPHP_FILE_PATH_CLI_RESERVED)) {
 // DEFAULT FILES IN /funkphp/core that are used to
 // recover when they are removed/rebuilt failed:
 $cReplacements = [
+    "'##DEFINE_IS_DEPLOYED## => NULL,'" => "!defined('FUNKPHP_DEPLOYED') ? define('FUNKPHP_DEPLOYED', false) : null,",
     "'##DEFINE_IS_LOCAL##' => NULL," => "!defined('FUNKPHP_IS_LOCAL') ? define('FUNKPHP_IS_LOCAL', true) : null,",
     "'##DEFINE_LOCAL##' => NULL," => "!defined('FUNKPHP_LOCAL') ? define('FUNKPHP_LOCAL', 'http://localhost/funkphp/src/public_html/') : null,",
     "'##DEFINE_ONLINE##' => NULL," => "!defined('FUNKPHP_ONLINE') ? define('FUNKPHP_ONLINE', 'https://www.funkphp.com/') : null,",
@@ -392,6 +397,7 @@ $cReplacements = [
     "'##TOKEN_REQ_QUERY_STRING##'" => "\$_SERVER['QUERY_STRING'] ?? null",
 ];
 $cDefault = [
+    '##DEFINE_IS_DEPLOYED##' => NULL,
     '##DEFINE_IS_LOCAL##' => NULL,
     '##DEFINE_LOCAL##' => NULL,
     '##DEFINE_ONLINE##' => NULL,
@@ -489,11 +495,19 @@ $cDefault = [
     // data (it does NOT store validation errors)
     'd' => null,
     // 'v' should be NULL but stores ANY founds errors during the validation process while
+    // 'v_ok' will is true if not a single v['key']['optionalSubkey'] is set with error(s)!
+    // The 'v_ok_files' is boolean for validating files and works the same way as 'v_ok'!
+    // 'v_config' is a global array of validation configurations that can be accessed
+    // when validating no matter how nested or not the validation is! It stores "password"
+    // to for "password_confirm" to check against the "password" field, etc.
     // 'v_data' contains the validate data for a given validation process and default
     // for the "funk_use_validation" function is to ONLY populate it if EVERYTHING
     // is valid. Set this to "false" if you want to for example repopulate incomplete
     // form data instead of Users having to re-enter everything because of a single error!
     'v' => null,
+    'v_ok' => null,
+    'v_ok_files' => null,
+    'v_config' => [],
     'v_data' => null,
     // 'p' is the page object that will be used to handle the
     // page rendering and output (not needed for API requests)!
@@ -512,13 +526,13 @@ $cDefault = [
         'MAYBE' => [],
         'FUNCTIONS' => [],
         'CLASSES' => [],
-        'DATABASES' => [],
+        'CONNECTIONS' => [],
         'PIPELINE' => [],
-        'CACHED' => [],
         'MIDDLEWARES' => [],
         'PAGE' => [],
         'VALIDATION' => [],
         'SQL' => [],
+        'QUERY' => [],
     ],
 ];
 $cCONSTANTSDefault = [
