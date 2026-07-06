@@ -292,7 +292,7 @@ if (
     || !file_exists(FUNKPHP_FILE_PATH_CONNS_CONFIG)
     || !is_readable(FUNKPHP_FILE_PATH_CONNS_CONFIG)
 ) {
-    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_FILE_PATH_CONNS_CONFIG` containing Exact File Path to Your Credentials for your Connections is NOT DEFINED or FILE DOES NOT EXIST or FILE IS NOT READABLE. Path: " . (FUNKPHP_FILE_PATH_CONNS_CONFIG ?? "[NOT_DEFINED]"));
+    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_FILE_PATH_CONNS_CONFIG` containing Exact File Path to Your Credentials for your Connections is NOT DEFINED or FILE DOES NOT EXIST or FILE IS NOT READABLE. IMPORTANT: Look in your `src/funkphp/config` as `src/funkphp/config/README_IN_IDE.php` File should have been created _before you read this_. Rename that file to `conns.php` as it contains starting templates for how Connection Profiles should look like. Paths: " . (FUNKPHP_FILE_PATH_CONNS_CONFIG ?? "[NOT_DEFINED]") . " & " . (FUNKPHP_FILE_PATH_README_IN_IDE_CONFIG ?? "[NOT_DEFINED]"));
     cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for the Main Keys 'connections' & 'credentials' in the `c.php` (FunkPHP Configuration File) and try again! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
 }
 $connsPayload = require FUNKPHP_FILE_PATH_CONNS_CONFIG;
@@ -536,13 +536,14 @@ $cConfig['req']['method'] = "##TOKEN_REQ_METHOD##";
 $cConfig['req']['ip'] = "##TOKEN_REQ_IP##";
 $cConfig['req']['time'] =  "##TOKEN_REQ_TIME##";
 $cConfig['req']['query'] = "##TOKEN_REQ_QUERY_STRING##";
+$cConfig['credentials'] = $connsPayload;
 $deploymentConfigBuffer[] = "\$c = ";
 $deploymentConfigBuffer[] = cli_replace_string_tokens_in_var_exported_string($cReqReplacements, var_export($cConfig, "true")) . ";\n";
 $deploymentBuffer[] = implode("", $deploymentConfigBuffer);
 $deploymentBuffer[] = "\n";
 
 // Adding
-exit;
+
 cli_info_without_exit("### Step 2: Loading, Validating & Compiling Core `functions.php` & User-defined `funkphp => config => functions.php` Files ('User-defined Functions' in 'Config' in FunkGUI)...");
 $functionsWarnsAndErrs = [];
 

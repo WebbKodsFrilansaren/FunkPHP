@@ -10287,14 +10287,16 @@ function cli_restore_default_folders_and_files()
         if (!file_exists($file)) {
             // Recreate default files based on type ("troute", "middleware routes" or "single routes")
             if (str_contains($file, "functions.php")) {
-                if (file_exists(FUNKPHP_FILE_PATH_CONNS_CONFIG)) {
-                    continue;
-                }
                 file_put_contents($file, "<?php\n// src/funkphp/config/functions.php - FunkPHP | FunkCLI recreated it $date\n\n" . cli_get_prefix_code("doModifyThisFile") . "\n");
                 echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
                 continue;
-            } else if (str_contains($file, "README_IN_IDE.php")) {
-                file_put_contents($file, "<?php\n// README_IN_IDE.php - FunkPHP | FunkCLI recreated it $date\n" . cli_get_prefix_code("connsDefaultStartText") . "\n" . var_export($connsDefault, true) . ";\n");
+            } // Only recreated if /src/funkphp/config/conns.php does
+            // not exist since this is the template for that file!
+            else if (str_contains($file, "README_IN_IDE.php")) {
+                if (file_exists(FUNKPHP_FILE_PATH_CONNS_CONFIG)) {
+                    continue;
+                }
+                file_put_contents($file, "<?php\n// README_IN_IDE.php - FunkPHP | FunkCLI recreated it $date\n" . cli_get_prefix_code("connsDefaultStartText") . "\nreturn " . var_export($connsDefault, true) . ";\n");
                 echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
                 continue;
             } else if (str_contains($file, "c.php")) {
@@ -10690,7 +10692,8 @@ EOF,
     */
 EOF,
         "connsDefaultStartText" =>    <<<EOF
-    /*-----------------------------------------------------
+    /**
+    * -----------------------------------------------------
     * FUNKPHP AUTOMATICALLY GENERATED/CREATED COMPILED FILE
     * -----------------------------------------------------
     */
@@ -10721,7 +10724,8 @@ EOF,
     */
 EOF,
         "doModifyThisFile" =>    <<<EOF
-    /*-----------------------------------------------------
+    /**
+    * -----------------------------------------------------
     * FUNKPHP AUTOMATICALLY GENERATED/CREATED COMPILED FILE
     * -----------------------------------------------------
     */

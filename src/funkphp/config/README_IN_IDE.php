@@ -1,5 +1,5 @@
 <?php
-// README_IN_IDE.php - FunkPHP | FunkCLI recreated it 2026-07-06 21:25:54
+// README_IN_IDE.php - FunkPHP | FunkCLI recreated it 2026-07-06 21:43:08
 
 /**
  * -----------------------------------------------------
@@ -31,7 +31,7 @@
         ],
      ], // and so on...
     */
-array(
+return array(
   'mysql_native' =>
   array(
     'driver' => 'mysqli',
