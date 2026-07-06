@@ -87,6 +87,7 @@ define('CLI_CORE_DIR', CLI_DIR . '/core');
 define('CLI_COMMANDS_DIR', __DIR__ . '/commands');
 define('CLI_CONFIG_DIR', __DIR__ . '/config');
 define('FUNKPHP_DIR', PROJECT_DIR . '/funkphp');
+define('FUNKPHP_VENDOR_DIR', FUNKPHP_DIR . '/vendor');
 define('FUNKPHP_CORE_DIR', FUNKPHP_DIR . '/core');
 define('FUNKPHP_CLASSES_DIR', FUNKPHP_DIR . '/classes');
 define('FUNKPHP_CONFIG_DIR', FUNKPHP_DIR . '/config');
@@ -123,6 +124,7 @@ define("FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL_TEMPLATES", FUNKPHP_CORE_DIR . '/fu
 define("FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED", FUNKPHP_CONFIG_DIR . '/functions.php');
 define("FUNKPHP_FILE_PATH_CONSTANTS_FILE", FUNKPHP_CONFIG_DIR . '/CONSTANTS.php');
 define("FUNKPHP_FILE_PATH_C_CONFIG_FILE", FUNKPHP_CORE_DIR . '/c.php');
+define("FUNKPHP_FILE_PATH_VENDOR_AUTOLOAD_FILE", FUNKPHP_VENDOR_DIR . '/autoload.php');
 define("FUNKPHP_FILE_PATH_PIPELINE", FUNKPHP_CORE_DIR . '/pipeline_request.php');
 define("FUNKPHP_FILE_PATH_TROUTES", FUNKPHP_CORE_DIR . '/compiled_routes.php');
 define("FUNKPHP_FILE_PATH_ROUTES", FUNKPHP_CORE_DIR . '/pipeline_routes.php');

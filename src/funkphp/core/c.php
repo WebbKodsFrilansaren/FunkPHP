@@ -21,8 +21,8 @@ return array(
   'FUNKPHP_USE_HTTPS' => false,
   'FUNKPHP_USE_PREPARE_URI' => true,
   "FUNKPHP_USE_VENDOR" => true,
-  "FUNKPHP_CUSTOM_EXCEPTION_HANDLER" => "funk_handle_uncaught_exception",
-  "FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION" => "funk_set_register_shutdown_function",
+  "FUNKPHP_CUSTOM_EXCEPTION_HANDLER" => null,
+  "FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION" => null,
   'INI_SETS' =>
   array(
     'session.cache_limiter' => 'public',

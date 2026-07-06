@@ -30,12 +30,12 @@ $c['<ENTRY>'] = require_once __DIR__ . '/core/pipeline_request.php';
 //START:SET_EXCEPTION_HANDLER
 set_exception_handler(function (\Throwable $e) use (&$c) {
     if (
-        isset($c['req']['FUNKPHP_CUSTOM_EXCEPTION_HANDLER'])
-        && is_string($c['req']['FUNKPHP_CUSTOM_EXCEPTION_HANDLER'])
-        && !empty($c['req']['FUNKPHP_CUSTOM_EXCEPTION_HANDLER'])
-        && function_exists(($c['req']['FUNKPHP_CUSTOM_EXCEPTION_HANDLER']))
+        isset($c['FUNKPHP_CUSTOM_EXCEPTION_HANDLER'])
+        && is_string($c['FUNKPHP_CUSTOM_EXCEPTION_HANDLER'])
+        && !empty($c['FUNKPHP_CUSTOM_EXCEPTION_HANDLER'])
+        && function_exists(($c['FUNKPHP_CUSTOM_EXCEPTION_HANDLER']))
     ) {
-        $c['req']['FUNKPHP_CUSTOM_EXCEPTION_HANDLER']($c, $e);
+        $c['FUNKPHP_CUSTOM_EXCEPTION_HANDLER']($c, $e);
     } else {
         funk_default_exception_handler($c, $e);
     }
@@ -44,7 +44,7 @@ set_exception_handler(function (\Throwable $e) use (&$c) {
 
 // Load Composer Autoloader so that any Composer installed packages can be used
 //START:COMPOSER_AUTOLOADER
-if (isset($c['req']['FUNKPHP_USE_VENDOR']) && $c['req']['FUNKPHP_USE_VENDOR'] === true) {
+if (isset($c['FUNKPHP_USE_VENDOR']) && $c['FUNKPHP_USE_VENDOR'] === true) {
     if (file_exists(__DIR__ . '/vendor/autoload.php')) {
         require_once __DIR__ . '/vendor/autoload.php';
     }
@@ -56,10 +56,10 @@ if (isset($c['req']['FUNKPHP_USE_VENDOR']) && $c['req']['FUNKPHP_USE_VENDOR'] ==
 //START:REGISTER_SHUTDOWN_FUNCTION
 register_shutdown_function(function () use (&$c) {
     if (
-        isset($c['req']['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION'])
-        && is_string($c['req']['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION'])
-        && !empty($c['req']['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION'])
-        && function_exists(($c['req']['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION']))
+        isset($c['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION'])
+        && is_string($c['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION'])
+        && !empty($c['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION'])
+        && function_exists(($c['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION']))
     ) {
         $c['req']['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION']($c);
     } else {

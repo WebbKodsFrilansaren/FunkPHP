@@ -164,6 +164,18 @@ $fphpo_iniChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CO
 cli_assert_final_value(end($fphpo_iniChecks), $configWarnsAndErrs, "cli_err", 'boolean', "Key is needed to know whether to Prepare Request URI or not for each incoming HTTP(S) Request! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
 $fphpo_iniChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["FUNKPHP_USE_VENDOR"], $configWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($fphpo_iniChecks), $configWarnsAndErrs, "cli_err", 'boolean', "Key is needed to know whether to Use Vendor/Composer-based Classes or not for each incoming HTTP(S) Request! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
+// If vendor wanna be used, validate it actually exists, but this will NOT validate the entire contents of vendor!
+if ($cConfig['FUNKPHP_USE_VENDOR'] === true) {
+    if (
+        !defined('FUNKPHP_FILE_PATH_VENDOR_AUTOLOAD_FILE')
+        || !file_exists(FUNKPHP_FILE_PATH_VENDOR_AUTOLOAD_FILE)
+        || !is_readable(FUNKPHP_FILE_PATH_VENDOR_AUTOLOAD_FILE)
+    ) {
+        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_FILE_PATH_VENDOR_AUTOLOAD_FILE` containing exact Path to `src/funkphp/vendor/autoload.php` IS NOT DEFINED, or FILE IS NOT FOUND or FILE IS NOT READABLE. Set `FUNKPHP_USE_VENDOR` (via FunkCLI or FunkGUI) to false if you do not wanna use Vendor/Composer-based classes! Path: " . (FUNKPHP_FILE_PATH_VENDOR_AUTOLOAD_FILE ?? "[NOT_DEFINED]"));
+        cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for Main Keys 'FUNKPHP_ONLINE', 'FUNKPHP_USE_HTTPS', 'FUNKPHP_USE_PREPARE_URI', 'FUNKPHP_CUSTOM_EXCEPTION_HANDLER', 'FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION' & 'INI_SETS' in the `c.php` (FunkPHP Configuration File) and try again! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
+    }
+    cli_info_without_exit("IMPORTANT ABOUT VENDOR/COMPOSER BEING USED: FunkCLI does NOT validate the contents inside of the `src/funkphp/vendor` Directory!");
+}
 $fphpo_iniChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["FUNKPHP_CUSTOM_EXCEPTION_HANDLER"], $configWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($fphpo_iniChecks), $configWarnsAndErrs, "cli_err", 'string|null', "Key is needed to know which Custom Exception Handler to use (or default is used; set it a string or null) for each incoming HTTP(S) Request! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
 $fphpo_iniChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION"], $configWarnsAndErrs, "cli_err");
@@ -518,6 +530,7 @@ cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($conf
 // Here ### Step 1 is fully validated so now we insert starting point of the `FunkPHPDeployment.php` file into the $deploymentBuffer array for later writing to disk!
 cli_success_without_exit("### Step 1: Validated `c.php` (FunkPHP Configuration File) Successfully! All Required Keys & Subkeys Exist and are Valid! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`.");
 $deploymentBuffer[] = "<?php // FunkPHPDeployment.php | Created: " . date("Y-m-d H:i:s") . " | PHP Version: " .  PHP_VERSION . " | FunkPHP Version: " . (FUNKPHP_VERSION ?? "<Unknown Version>") . " | FunkCLI Version: " . (FUNKCLI_VERSION ?? "<Unknown Version>") . "\n";
+$deploymentBuffer[] = "namespace { "; // Opening Global namespace for nows
 
 // Adding Starting Needed Constants First
 $deploymentBuffer[] = "define('FUNKPHP_DEPLOYED', true);\n";
@@ -540,7 +553,32 @@ $cConfig['credentials'] = $connsPayload;
 $deploymentConfigBuffer[] = "\$c = ";
 $deploymentConfigBuffer[] = cli_replace_string_tokens_in_var_exported_string($cReqReplacements, var_export($cConfig, "true")) . ";\n";
 $deploymentBuffer[] = implode("", $deploymentConfigBuffer);
-$deploymentBuffer[] = "\n";
+
+// Adding optional /src/funkphp/vendor loading!
+if ($cConfig['FUNKPHP_USE_VENDOR'] === true) {
+    $deploymentBuffer[] = "require_once __DIR__ . '/vendor/autoload.php';\n";
+}
+
+// Adding custom or default Exception Handler Set
+$deploymentBuffer[] = "set_exception_handler(function (\\Throwable \$e) use (&\$c) {\n";
+if (isset($cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER'])) {
+    $deploymentBuffer[] = "\\" . $cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER'] . "(\$c, \$e);\n";
+} else {
+    $deploymentBuffer[] = "\\funk_default_exception_handler(\$c, \$e);\n";
+}
+$deploymentBuffer[] = "});\n";
+
+// Adding custom or default Register Shutdown Function Set
+$deploymentBuffer[] = "register_shutdown_function(function () use (&\$c) {\n";
+if (isset($cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION'])) {
+    $deploymentBuffer[] = "\\" . $cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION'] . "(\$c);";
+} else {
+    $deploymentBuffer[] = "\\funk_default_register_shutdown_function(\$c);\n";
+}
+$deploymentBuffer[] = "});\n";
+
+
+$deploymentBuffer[] = "}"; // Closing Global namespace for now
 
 // Adding
 
