@@ -1,5 +1,6 @@
 <?php
-// NOTE: This file is included by the error handler.
+// IMPORTANT: Default 403 Page File provided by FUNKPHP. It has a hash value it is compared against to know if you changed it!
+// You can change this Page as it is used when even the Error Handling fails for some reason. It is the last resort page!
 // The variable $custom_error_message is automatically available here.
 
 // Ensure $custom_error_message is a string, defaulting to a generic message if not set.

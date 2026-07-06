@@ -346,13 +346,11 @@ cli_success_without_exit("### Step 1: Validated `c.php` (FunkPHP Configuration F
 $deploymentBuffer[] = "<?php // FunkPHPDeployment.php | Created: " . date("Y-m-d H:i:s") . " | PHP Version: " .  PHP_VERSION . " | FunkPHP Version: " . (FUNKPHP_VERSION ?? "<Unknown Version>") . " | FunkCLI Version: " . (FUNKCLI_VERSION ?? "<Unknown Version>") . "\n";
 
 // Adding Starting Needed Constants First
-
-
-exit;
 $deploymentBuffer[] = "define('FUNKPHP_DEPLOYED', true);\n";
 $deploymentBuffer[] = "define('FUNKPHP_NO_VALUE', new stdClass());\n";
-$deploymentBuffer[] = "define('FUNKPHP_ALLOW_INSTANCE_OVERWRITE,\'" . FUNKPHP_ALLOW_INSTANCE_OVERWRITE .  "'\n";
+$deploymentBuffer[] = "define('FUNKPHP_ALLOW_INSTANCE_OVERWRITE,\'" . FUNKPHP_ALLOW_INSTANCE_OVERWRITE .  "');\n";
 
+exit;
 
 cli_info_without_exit("### Step 2: Loading, Validating & Compiling Core `functions.php` & User-defined `funkphp => config => functions.php` Files ('User-defined Functions' in 'Config' in FunkGUI)...");
 $functionsWarnsAndErrs = [];
@@ -364,10 +362,38 @@ $pipelineWarnsAndErrs = [];
 cli_info_without_exit("### Step 4: Loading, Validating, Rebuilding & Compiling `compiled_routes.php` & `pipeline_routes.php` Files ('Routes' in 'Pipeline' in FunkGUI)...");
 $routesWarnsAndErrs = [];
 
-cli_info_without_exit("### Step 5: Loading, Validating, & Compiling Pipeline Functions (files in `src/funkphp/pipeline/routes/`) & Middlewares Functions (files in `src/funkphp/pipeline/middlewares) Used For Each Valid Route Compiled From `compiled_routes.php` & `pipeline_routes.php` Files ('Routes' & 'Middlewares' in 'Pipeline' in FunkGUI)...");
+cli_info_without_exit("### Step 5: Loading, Validating, & Compiling Pipeline Functions (files in `src/funkphp/pipeline/routes`) & Middlewares Functions (files in `src/funkphp/pipeline/middlewares) Used For Each Valid Route Compiled From `compiled_routes.php` & `pipeline_routes.php` Files ('Routes' & 'Middlewares' in 'Pipeline' in FunkGUI)...");
 $routesPipelineWarnsAndErrs = [];
 
-cli_info_without_exit("### Step 6: Running any optional flags before finishing...");
+cli_info_without_exit("### Step 6: Loading, Validating, & Compiling Any Pages (files in `src/funkphp/pages`) used ('Pages' with 'Layouts', 'Components' & 'Compiled' in FunkGUI)...");
+$routesPipelineWarnsAndErrs = [];
+
+// Map the relative page path to its expected factory-default hash
+$factorySignatures = [
+    "compiled/[errors]/403.php" => "ecb4618bac290c5bd84063631c35931db1b0c303336fb348e332146934266b82",
+    "compiled/[errors]/404.php" => "344fdc4eb934d01af1b3df5c78384a6d861c9e3fc697ce2097c860ba22029d2d",
+    "compiled/[errors]/500.php" => "c6ecb2de90cdd71da99e02f5871b4f2e37c17efed725d3e0d38a63bdec4bc6b4",
+];
+
+cli_info("Auditing Default Error Page Signatures for potential local debug leakages...");
+foreach ($factorySignatures as $pagePath => $factoryHash) {
+    // Build the exact file path dynamically
+    $fullPath = FUNKPHP_PAGE_DIR . '/' . $pagePath;
+    // Skip if the developer completely deleted the file to use alternative setups
+    if (!file_exists($fullPath)) {
+        continue;
+    }
+    // Calculate current state using your helper function
+    $currentHash = cli_get_hash_calculation_of_a_page($pagePath);
+    if ($currentHash === $factoryHash) {
+        cli_warning_without_exit(
+            "The file `$pagePath` matches the Factory Default. It contains loopback IP checks and local variable dumping. Consider creating a Custom Version for Production Security that fits your needs!"
+        );
+    }
+}
+
+
+cli_info_without_exit("### Step 7: Running any optional flags before finishing...");
 $optionalFlagsWarnsAndErrs = [];
 
 // This should happen if everything above went smoothly!
