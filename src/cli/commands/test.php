@@ -1,5 +1,13 @@
 <?php // TEST FILE! Use to test FunkCLI Commands and Features! Rewrite as needed!
 
+/**
+ * ----------------------------
+ * FUNKCLI DEFAULT TEST COMMAND
+ * ----------------------------
+ * YOU CAN CHANGE THIS TEST COMMAND IF SO DESIRED! Just make sure you also check
+ * other versions of this file then so you do not accidentally run malicious code!
+ **/
+
 // Mock data mimicking your exact production "source of truth" structure
 $mockDeveloperRoutes = [
     // API-like routes

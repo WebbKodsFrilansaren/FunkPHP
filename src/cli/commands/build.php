@@ -5,9 +5,9 @@
 // compress all files into a single zip file for easier deployment!
 
 /**
- * ---------------------
- * FUNKCLI Build Command
- * ---------------------
+ * -----------------------
+ * FUNKCLI DEFAULT COMMAND
+ * -----------------------
  * DO NOT MANUALLY EDIT THIS FILE UNLESS YOU UNDERSTAND IT IN AND OUT.
  * If you are currently editing this file to see if FunkCLI will "self-heal",
  * it won't. This is a micro-framework, not your therapist. If you alter this
@@ -135,7 +135,15 @@ foreach ($cConfig as $cKey => $val) {
         cli_warning_without_exit("IGNORED: Key '$cKey' in `c.php` (FunkPHP Configuration File) will be ignored. Any custom variables should be in `\$c['custom']! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
     }
 }
-cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings and/or Errors above for the `c.php` (FunkPHP Configuration File) and try again! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
+cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for the `c.php` (FunkPHP Configuration File) and try again! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
+
+// VALIDATE "FUNKPHP_ONLINE" Key and that "INI_SETS" is an associative array
+$fphpo_iniChecks = [];
+$fphpo_iniChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["FUNKPHP_ONLINE"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($fphpo_iniChecks), $configWarnsAndErrs, "cli_err", 'boolean', "Key is needed for `pl_https_redirect` to work properly! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
+$fphpo_iniChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["INI_SETS"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($fphpo_iniChecks), $configWarnsAndErrs, "cli_err", 'array-associative|array-empty', "Key is for optionally running an Array of `ini_set()` that cannot be manually set in php.ini due to shared host environments or other kind of permission reason. Leave it as an Empty Array if not used! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
+cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for Main Keys 'FUNKPHP_ONLINE' & 'INI_SETS' in the `c.php` (FunkPHP Configuration File) and try again! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
 
 // VALIDATE BASEURLS Array Subkeys Paths!
 $baseURLSChecks = [];
@@ -153,7 +161,7 @@ cli_assert_final_value(
     '/^\/[a-zA-Z0-9_\-\/]*$/',
     "Must start with a leading slash '/'. Example: '/api/v1/users' or '/my-app/'"
 );
-cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings and/or Errors above for 'BASEURL' Main Key in the `c.php` (FunkPHP Configuration File) and try again! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
+cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for 'BASEURL' Main Key in the `c.php` (FunkPHP Configuration File) and try again! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
 
 // VALIDATE SESSION Array Subkeys Paths!
 $sessionChecks = [];
@@ -195,7 +203,7 @@ cli_assert_final_value(end($sessionChecks), $configWarnsAndErrs, "cli_err", (fun
     return in_array($val, ['Lax', 'Strict', 'None'], true);
 }), "Must Match Native Browser Specifications Exactly: 'Lax', 'Strict', or 'None'.");
 // Halt execution loop immediately if any errors crept into the pipeline setup
-cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings and/or Errors above for 'SESSION' Main Key in the `c.php` (FunkPHP Configuration File) and try again! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
+cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for 'SESSION' Main Key in the `c.php` (FunkPHP Configuration File) and try again! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
 
 // VALIDATE CLASSES Array Subkeys Paths!
 $classesChecks = [];
@@ -204,13 +212,13 @@ $classesChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONF
 cli_assert_final_value(end($classesChecks), $configWarnsAndErrs, "cli_err", 'array-empty', "Must be an Empty Array as it will be filled with vendor-based class instances (from src/funkphp/vendor) during runtime.");
 $classesChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["classes", "user"], $configWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($classesChecks), $configWarnsAndErrs, "cli_err", 'array-empty', "Must be an Empty Array  as it will be filled with user-defined class instances (from src/funkphp/classes) during runtime.");
-cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings and/or Errors above for 'classes' Main Key in the `c.php` (FunkPHP Configuration File) and try again! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
+cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for 'classes' Main Key in the `c.php` (FunkPHP Configuration File) and try again! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
 
 // VALIDATE CONNECTIONS Array Subkeys Paths!
 $connectionsChecks = [];
 $connectionsChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["connections"], $configWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($connectionsChecks), $configWarnsAndErrs, "cli_err", 'array-empty', "Must be an Empty Array as it will be filled with Connections like Databases (from src/funkphp/config/conns.php) and other connection-related services during runtime.");
-cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings and/or Errors above for 'connections' Main Key in the `c.php` (FunkPHP Configuration File) and try again! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
+cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for 'connections' Main Key in the `c.php` (FunkPHP Configuration File) and try again! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
 
 // VALIDATE REQ Array Subkeys Paths!
 $reqChecks = [];
@@ -270,7 +278,7 @@ $reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_F
 cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'null', "This tracks the HTTP Accept response format expectations declared by the browser or API request platform client.");
 $reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "protocol"], $configWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'null', "This identifies the incoming server transport protocol details (e.g., HTTP/1.1, HTTP/2, HTTP/3).");
-cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings and/or Errors above for 'req' Main Key and its Subkeys in the `c.php` (FunkPHP Configuration File) and try again! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
+cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for 'req' Main Key and its Subkeys in the `c.php` (FunkPHP Configuration File) and try again! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
 
 // VALIDATE 'd', 'v' (and its associated keys), 'p' & 'files' which should ALL be just null at this point!
 $dvpfChecks = [];
@@ -290,7 +298,7 @@ $dvpfChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_
 cli_assert_final_value(end($dvpfChecks), $configWarnsAndErrs, "cli_err", 'null', "Main Key `p` is meant to Store Page-related that can be used after a Matched Route during a Valid HTTP(S) Request!");
 $dvpfChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["files"], $configWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($dvpfChecks), $configWarnsAndErrs, "cli_err", 'null', "Main Key `files` is meant to Store Uploaded Files (if applicable). Can be used any time during a Valid HTTP(S) Request!");
-cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings and/or Errors above for the Main Keys 'd','v','v_ok','v_ok_files','v_config','v_data','s_data','p','p_config' & 'files' in the `c.php` (FunkPHP Configuration File) and try again! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
+cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for the Main Keys 'd','v','v_ok','v_ok_files','v_config','v_data','s_data','p','p_config' & 'files' in the `c.php` (FunkPHP Configuration File) and try again! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
 
 // VALIDATE 'err' and its subkeys!
 $cErrChecks = [];
@@ -316,12 +324,12 @@ $cErrChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_
 cli_assert_final_value(end($cErrChecks), $configWarnsAndErrs, "cli_err", 'array-empty', "This Subkey in `err` should be empty and is filled out during a HTTP(S) Request!");
 $cErrChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["err", "QUERY"], $configWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($cErrChecks), $configWarnsAndErrs, "cli_err", 'array-empty', "This Subkey in `err` should be empty and is filled out during a HTTP(S) Request!");
-cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings and/or Errors above for the Main Key 'err' and its Subkeys in the `c.php` (FunkPHP Configuration File) and try again! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
+cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for the Main Key 'err' and its Subkeys in the `c.php` (FunkPHP Configuration File) and try again! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
 
 // VALIDATE Certain Constants by is using !defined() and error out if not found!
 
 cli_assert_final_value(NULL, $configWarnsAndErrs, "cli_err", 'constants:FUNKPHP_DEPLOYED,FUNKPHP_ONLINE,FUNKPHP_NO_VALUE,FUNKPHP_ALLOW_INSTANCE_OVERWRITE', "These Constants are a MUST for FunkPHPDeployment.php to 'function' properly!");
-cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings and/or Errors above for the Required Constants from the `c.php` (FunkPHP Configuration File) and try again! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
+cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for the Required Constants from the `c.php` (FunkPHP Configuration File) and try again! Path: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]"));
 
 // Here ### Step 1 is fully validated so now we insert starting point of the `FunkPHPDeployment.php` file into the $deploymentBuffer array for later writing to disk!
 cli_success_without_exit("### Step 1: Validated `c.php` (FunkPHP Configuration File) Successfully! All Required Keys & Subkeys Exist and are Valid! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`.");
@@ -334,7 +342,7 @@ exit;
 $deploymentBuffer[] = "define('FUNKPHP_DEPLOYED', true);\n";
 $deploymentBuffer[] = "define('FUNKPHP_ONLINE',\'" . FUNKPHP_ONLINE .  "'\n";
 $deploymentBuffer[] = "define('FUNKPHP_NO_VALUE', new stdClass());\n";
-$deploymentBuffer[] = "define('FUNKPHP_ALLOW_INSTANCE_OVERWRITE', true);\n";
+$deploymentBuffer[] = "define('FUNKPHP_ALLOW_INSTANCE_OVERWRITE,\'" . FUNKPHP_ALLOW_INSTANCE_OVERWRITE .  "'\n";
 
 
 cli_info_without_exit("### Step 2: Loading, Validating & Compiling Core `functions.php` & User-defined `funkphp => config => functions.php` Files ('User-defined Functions' in 'Config' in FunkGUI)...");

@@ -1,4 +1,16 @@
 <?php // FunkCLI COMMAND "php funk make:handler" - creates a new file and optionally adds a function to a specific Method/Route
+
+/**
+ * -----------------------
+ * FUNKCLI DEFAULT COMMAND
+ * -----------------------
+ * DO NOT MANUALLY EDIT THIS FILE UNLESS YOU KNOW IT IN AND OUT.
+ * If you are currently editing this file to see if FunkCLI will "self-heal",
+ * it won't. This is a micro-framework, not your therapist. If you alter this
+ * source of truth, your app will most likely crash, and your peer will know
+ * you do not understand how caching and/or compiled files work.
+ **/
+
 $ROUTES = $singleRoutesRoute['ROUTES'];
 
 // Structure the correct folder name based on the first parameter,

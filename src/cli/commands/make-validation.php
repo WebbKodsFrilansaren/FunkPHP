@@ -3,6 +3,18 @@
 // will create a Function inside of that Validation File unless it already exists. The Validation File and the Function Name
 // will automatically be prefixed with `v_` to indicate it is a Validation File. Tables are optional.
 
+/**
+ * -----------------------
+ * FUNKCLI DEFAULT COMMAND
+ * -----------------------
+ * DO NOT MANUALLY EDIT THIS FILE UNLESS YOU KNOW IT IN AND OUT.
+ * If you are currently editing this file to see if FunkCLI will "self-heal",
+ * it won't. This is a micro-framework, not your therapist. If you alter this
+ * source of truth, your app will most likely crash, and your peer will know
+ * you do not understand how caching and/or compiled files work.
+ **/
+
+
 // Find and/or Create the Validation File and Function
 $file = null;
 $fn = null;

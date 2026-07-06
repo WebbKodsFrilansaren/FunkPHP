@@ -716,7 +716,7 @@ function cli_assert_final_value(
                 return true;
             }
             // Check 3: Was an associative map requested and satisfied? (Non-empty and non-sequential)
-            if (in_array('array-associative', $normalizedRules, true) && !array_is_list($actualValue)) {
+            if (in_array('array-associative', $normalizedRules, true) && count($actualValue) > 0 && !array_is_list($actualValue)) {
                 return true;
             }
         }
@@ -1040,7 +1040,7 @@ function cli_extract_folder_file_fn(string $validatedFolderFileFnString): array
     $file = $parts[1];
     $fn = $parts[2];
 
-    cli_info_without_exit("OK! Parsed Folder: `funkphp/routes/$folder`, File: `funkphp/routes/$folder/$file.php`, Function: `function $fn(&\$c, \$passedValue = null){};`");
+    cli_info_without_exit("OK! Parsed Folder: `funkphp/pipeline/routes/$folder`, File: `funkphp/routes/$folder/$file.php`, Function: `function $fn(&\$c, \$passedValue = null){};`");
     return [$folder, $file, $fn];
 }
 
@@ -1073,6 +1073,8 @@ function cli_extract_folder_file($validatedFileFnString, $prefix = null): array
         cli_info_without_exit("OK! Parsed Validation File:`src/FunkPHP/data/validation/$file.php` with Function:`function $pre$fn(&\$c){};`");
     } else if (isset($pre) && is_string($pre) && $pre === 's_') {
         cli_info_without_exit("OK! Parsed Query File:`src/FunkPHP/data/query/$file.php` with Function:`function $pre$fn(&\$c){};`");
+    } else {
+        cli_info_without_exit("OK! Parsed Pipeline Routes File:`src/FunkPHP/pipeline/routes/$file.php` with Function:`function $pre$fn(&\$c){};`");
     }
     return [$pre . $file, $pre . $fn];
 }

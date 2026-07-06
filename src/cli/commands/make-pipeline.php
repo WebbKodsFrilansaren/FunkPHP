@@ -1,4 +1,16 @@
 <?php // FunkCLI COMMAND "php funk make:pipeline" - creates a new Pipeline File with a skeleton Pipeline Anonymous Function inside of it
+
+/**
+ * -----------------------
+ * FUNKCLI DEFAULT COMMAND
+ * -----------------------
+ * DO NOT MANUALLY EDIT THIS FILE UNLESS YOU KNOW IT IN AND OUT.
+ * If you are currently editing this file to see if FunkCLI will "self-heal",
+ * it won't. This is a micro-framework, not your therapist. If you alter this
+ * source of truth, your app will most likely crash, and your peer will know
+ * you do not understand how caching and/or compiled files work.
+ **/
+
 $arg_plName  = null;
 $arg_plType = null;
 $arg_snippets = null;

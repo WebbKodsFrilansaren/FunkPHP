@@ -7,6 +7,18 @@
 // PHP function will be used to parse the $DX variable as a PHP Array. This is a safety mechanism to avoid accidental overwrites
 // of existing compiled Validation Functions AND also to confirm that the user is aware of the possible dangers of using `eval`.
 // Find & Extract Folder=>File and then the Confirm:eval Argument
+
+/**
+ * -----------------------
+ * FUNKCLI DEFAULT COMMAND
+ * -----------------------
+ * DO NOT MANUALLY EDIT THIS FILE UNLESS YOU KNOW IT IN AND OUT.
+ * If you are currently editing this file to see if FunkCLI will "self-heal",
+ * it won't. This is a micro-framework, not your therapist. If you alter this
+ * source of truth, your app will most likely crash, and your peer will know
+ * you do not understand how caching and/or compiled files work.
+ **/
+
 $file = null;
 $fn = null;
 $arg_FolderFile = cli_get_cli_input_from_interactive_or_regular($args, 'compile:validation', 'validationFileFn');
