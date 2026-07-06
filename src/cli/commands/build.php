@@ -14,11 +14,12 @@
  * source of truth, your app will most likely crash, and your peer will know
  * you do not understand how caching and/or compiled files work.
  **/
-
+$manifest = null; // contains all hashes needed
 $embedPages = false; // imlpemented later
 $compilePages = false;
 $compressDeployment = false;
 $showAllErrors = false; // implemented later
+$allowModifiedCore = false; // implemented later
 $ignoreUnknownConnsDrivers = false; // implemented later
 $skipBrokenRoutes = false; // implemented later
 $skipCompilingValidation = false; // implemented later
@@ -71,10 +72,13 @@ foreach ($args as $arg) {
             $showAllErrors = true;
         } else if ($flag === "--ignore-unknown-conns-drivers") {
             $ignoreUnknownConnsDrivers = true;
+        } else if ($flag === "--allow-modified-core") {
+            $allowModifiedCore = true;
         }
     }
 }
 cli_info_without_exit("### FunkCLI Compiling & Building `FunkPHPDeployment.php` with the following options:");
+cli_info_without_exit("#### Allow Modified Core Files: " . ($allowModifiedCore ? "YES (the hashes of files in `src/funkphp/core`) will NOT be checked and you are on your own regarding what happens with the output)" : "NO"));
 cli_info_without_exit("#### Ignore Unknown Connection Drivers: " . ($ignoreUnknownConnsDrivers ? "YES (even unknown types of credentials in `src/funkphp/config/conns.php`) will be added and included in the output)" : "NO"));
 cli_info_without_exit("#### Skip Broken Routes: " . ($skipBrokenRoutes ? "YES (invalid routes will NOT be pruned in output)" : "NO"));
 cli_info_without_exit("#### Skip Compiling Validation: " . ($skipCompilingValidation ? "YES (Validation Functions will NOT be compiled before output)" : "NO"));
@@ -88,6 +92,19 @@ cli_info_without_exit("#### Do Compress Deployment: " . ($compressDeployment ? "
 cli_info_without_exit("### Step 1: Loading, Validating & Compiling `config.php` File ('Config' in FunkGUI)...");
 $configWarnsAndErrs = [];
 $cConfig = null;
+
+// Attempt loading /src/funkphp/core/manifest.php
+if (
+    !defined("FUNKPHP_FILE_MANIFEST_CORE")
+    || !file_exists(FUNKPHP_FILE_MANIFEST_CORE)
+    || !is_readable(FUNKPHP_FILE_MANIFEST_CORE)
+) {
+    cli_err("The Constant `FUNKPHP_FILE_MANIFEST_CORE` containing exact Path to `/src/funkphp/core/manifest.php` (FunkPHP Manifest File with Version Number & Hashes) is NOT DEFINED or FILE DOES NOT EXIST or FILE IS NOT READABLE! Path: " . (FUNKPHP_FILE_MANIFEST_CORE ?? "[NOT_DEFINED]"));
+}
+$manifest = require_once FUNKPHP_FILE_MANIFEST_CORE;
+if (!is_array($manifest) || array_is_list($manifest)) {
+    cli_err("The FunkPHP Manifest File with Version Number & Hashes (`/src/funkphp/core/manifest.php`) is NOT ARRAY when it must be! Path: " . (FUNKPHP_FILE_MANIFEST_CORE ?? "[NOT_DEFINED]"));
+}
 
 // We look for defined constant "FUNKPHP_FILE_PATH_C_CONFIG_FILE" which should point to the c.php file
 // and we try to see if we can find it, read it, and whether it is an associative array which it should be!
@@ -577,15 +594,41 @@ if (isset($cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION'])) {
 }
 $deploymentBuffer[] = "});\n";
 
-
-$deploymentBuffer[] = "}"; // Closing Global namespace for now
-
-// Adding
-
+// Adding the Functions now! (first user-defined, then in-built functions) where the
+// user-defined with same name as the in-built is not allowed since both will be in global namespace!
 cli_info_without_exit("### Step 2: Loading, Validating & Compiling Core `functions.php` & User-defined `funkphp => config => functions.php` Files ('User-defined Functions' in 'Config' in FunkGUI)...");
 $functionsWarnsAndErrs = [];
+if (
+    !$allowModifiedCore &&
+    !defined('FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL')
+    || !file_exists(FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL)
+    || !is_readable(FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL)
+) {
+    cli_build_warning_err_list($functionsWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL` containing Exact File Path to FunkPHP Core Functions (`/src/funkphp/core`) needed to work properly is NOT DEFINED or FILE DOES NOT EXIST or FILE IS NOT READABLE. Your User-defined Functions you can add/edit/remove are found in `/src/funkphp/config/functions.php`! DO NOT edit FunkPHP Core Functions File! Paths: " . (FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL ?? "[NOT_DEFINED]") . " & " . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]"));
+    cli_stop_from_warn_err_list($functionsWarnsAndErrs, "Please Review (" . count($functionsWarnsAndErrs) . ") Warnings/Errors above for the Main Keys 'connections' & 'credentials' in the `c.php` (FunkPHP Configuration File) and try again! Path: " . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]"));
+}
+if (cli_get_hash_calculation_of_a_file(FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL) !== $manifest['hashes']['funkphp/core/functions.php'][0]) {
+    cli_build_warning_err_list($functionsWarnsAndErrs, "cli_err", "The FunkPHP Core Functions File `FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL` might be modified due to wrong calculated sha-256 hash value. Your User-defined Functions you should add/edit/remove are found in `/src/funkphp/config/functions.php`! DO NOT edit FunkPHP Core Functions File. Check your Git/File Versioning History to see if you can rollback any changes made to the FunkPHP Core Functions File! Paths: " . (FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL ?? "[NOT_DEFINED]") . " & " . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]"));
+    cli_stop_from_warn_err_list($functionsWarnsAndErrs, "Please Review (" . count($functionsWarnsAndErrs) . ") Warnings/Errors above for the Main Keys 'connections' & 'credentials' in the `c.php` (FunkPHP Configuration File) and try again! Path: " . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]"));
+}
 
 $coreFunctionsFile = cli_folder_and_php_file_status("funkphp/core", "functions.php");
+foreach ($userFunctionsFile['functions'] as $fnNameUser => $fnValsUser) {
+    if (isset($coreFunctionsFile['functions'][$fnNameUser]) || in_array($fnNameUser, $reserved_functions, true)) {
+        cli_build_warning_err_list($functionsWarnsAndErrs, "cli_err", "User-defined function '$fnNameUser' is already used by FunkPHP/FunkCLI. Please choose rename the function or remove it! Path: " . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]"));
+    } else {
+        $deploymentBuffer[] = $fnValsUser['fn_raw'] . "\n";
+    }
+}
+
+exit;
+
+cli_stop_from_warn_err_list($functionsWarnsAndErrs, "Please Review (" . count($functionsWarnsAndErrs) . ") Warnings/Errors above for regarding User-defined & In-built Functions! Paths: " . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . " & "(FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL ?? "[NOT_DEFINED]"));
+foreach ($coreFunctionsFile['functions'] as $fnNameCore => $fnValsCore) {
+    $deploymentBuffer[] = $fnValsCore['fn_raw'] . "\n";
+}
+
+$deploymentBuffer[] = "}"; // Closing Global namespace for now
 
 
 cli_info_without_exit("### Step 3: Loading, Validating & Compiling `pipeline_request.php` ('Request' & 'Post_Response' in 'Pipeline' in FunkGUI) File...");

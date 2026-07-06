@@ -2621,7 +2621,7 @@ function cli_folder_and_php_file_status($folder, $file)
     // If file exists and is readable, check if function exists
     // by first reading the file and then checking if
     // the function name is in the file content using regex!
-    $fnRegex = '/^function\s+([a-zA-Z_][a-zA-Z0-9_]*)\(&\$[^)]*\)(.*?^};)?$/ims';
+    $fnRegex = '/^function\s+([a-zA-Z_][a-zA-Z0-9_]*)\(&\$[^)]*\)(.*?^}\s*(;)?)?$/ims';
     $dxRegex = '/\$DX\s*=\s*\[\s*\'.*?];$/ims';
     $namespaceRegex = '/^namespace\s*(.*?)[;\n]$/ims';
     $classRegex = '/^class\s+[a-z_A-Z][a-zA-Z0-9_]*\s*{(.*?)}$/ims';
@@ -2645,11 +2645,6 @@ function cli_folder_and_php_file_status($folder, $file)
                 // we split on namespace parts and also remove last ;
                 $namespaceParts = explode('\\', rtrim($namespaceMatch[1] ?? '', ';'));
             }
-            // if (preg_match($returnFnRegex, $fileRaw, $fileReturnMatch)) {
-            //     $fileReturnRaw = $fileReturnMatch[0] ?? null;
-            // } else {
-            //     cli_warning_without_exit('[cli_folder_and_php_file_status()]: Could NOT find the Expected Anoynmous `return function` in the File `' . $file . '` when it SHOULD have been Found. This means it will NOT be possible to add any new Functions to this File (unless it is a Single Anonymous Function File) since it needs that matched part to add new functions from. This is due to the Regex: `/^(?:(<\?php\s*))?(return function)\s*\(&\$c\s*.+$.*?^};/ims` that cannot match `return function(&$c){};`!');
-            // }
             if (preg_match_all($fnRegex, $fileCnt, $fnsMatches)) {
                 foreach ($fnsMatches[1] as $idx => $fn) {
                     $fns[$fn] = [
@@ -10708,7 +10703,7 @@ EOF,
     /*
      SYNTAX:
      [
-     // Use this connection key with "funk_credentials_connect($c,'UNIQUE_CONNECTION_KEY')" function!
+     // Use this connection key with "funk_credentials_connect(\$c,'UNIQUE_CONNECTION_KEY')" function!
      'UNIQUE_CONNECTION_KEY' =>
         [
          'driver' => 'mysqli'/'pdo_mysql'/'pgsql'/'mongodb'/'etc. It is Validated ',
