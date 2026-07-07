@@ -323,7 +323,6 @@ function cli_compile_router_file_VF(array $ast, string $method): string
     // Process segment counts from highest to lowest
     foreach ($ast as $segCount => $nodes) {
         $code .= $method . "_segs_{$segCount}:\n";
-
         if ($segCount === 0) {
             // Instant execution return block for root domain "/"
             $code .= "    if (empty(\$segs)) {\n";

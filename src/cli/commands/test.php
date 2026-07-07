@@ -32,7 +32,6 @@ $mockDeveloperRoutes = [
 
 $sortedResult = cli_prepare_binary_specificity_score_VF($mockDeveloperRoutes, "GET");
 $ASTresult    = cli_build_flattened_routing_start_VF($sortedResult, "GET");
-
 // Run through the wrapper
 $compiledPHPCode = cli_compile_router_file_VF($ASTresult, "GET");
 
