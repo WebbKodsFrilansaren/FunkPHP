@@ -23,7 +23,7 @@ function funk_session_started_or_start_it(&$c)
     }
     // Lazy infrastructure allocation: Connect to Redis/DB only when a session is actually requested!
     if (($c['SESSION']['driver'] ?? 'files') === 'redis') {
-        funk_connect_redis_infrastructure($c);
+        \funk_connect_redis_infrastructure($c);
     }
     // Configure native cookie settings right before booting
     // Pass the raw, pre-verified array straight to PHP. No runtime IF statements required!
@@ -38,6 +38,6 @@ function funk_session_started_or_start_it(&$c)
     // If it fails to start a session, throw an error and exit with a 500 Internal Server Error
     if (!session_start()) {
         $err = 'Tell The Developer: FAILED to Start Session-based Cookie Session. Please check $c[\'INI_SETS\'] and/or $c[\'COOKIES\'] in the Global Configuration `funkphp/config/_all.php` File and adjust the values accordingly if needed!';
-        funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+        \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
     }
 }

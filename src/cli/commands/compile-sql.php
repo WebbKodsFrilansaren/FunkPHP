@@ -84,7 +84,7 @@ $optimizedSQLArray = cli_convert_simple_sql_query_to_optimized_sql($evalCode, $f
 // and the actual Table in the MySQL DBMS (e.g. phpMyAdmin, Adminer, etc.) assuming it exists!
 $dbConnect =  cli_db_connect();
 $queryToTest = $optimizedSQLArray['sql'] ?? null;
-if ($queryToTest === null || !is_string_and_not_empty($queryToTest)) {
+if ($queryToTest === null || !is_string($queryToTest) || empty($queryToTest)) {
     cli_err_without_exit("The optimized SQL Query is Empty or NOT a Valid String in SQL Function \"$fn\" in \"$file.php\".");
     cli_info("Check if indeed the `sql` key was provided from the returned Optimized SQL Array Variable?");
 }

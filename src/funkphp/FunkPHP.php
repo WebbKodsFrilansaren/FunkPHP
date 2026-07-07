@@ -37,7 +37,7 @@ set_exception_handler(function (\Throwable $e) use (&$c) {
     ) {
         $c['FUNKPHP_CUSTOM_EXCEPTION_HANDLER']($c, $e);
     } else {
-        funk_default_exception_handler($c, $e);
+        \funk_default_exception_handler($c, $e);
     }
 });
 //END:SET_EXCEPTION_HANDLER
@@ -63,12 +63,12 @@ register_shutdown_function(function () use (&$c) {
     ) {
         $c['req']['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION']($c);
     } else {
-        funk_default_register_shutdown_function($c);
+        \funk_default_register_shutdown_function($c);
     }
 });
 //END:REGISTER_SHUTDOWN_FUNCTION
 
 // The MAIN "KERNEL" STEP: Run the Pipeline of Anonymous
 //START:RUN_PIPELINE_REQUEST
-funk_run_pipeline_request($c);
+\funk_run_pipeline_request($c);
 //END:RUN_PIPELINE_REQUEST

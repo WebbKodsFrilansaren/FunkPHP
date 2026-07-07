@@ -180,13 +180,13 @@ function funk_session_started_or_start_it(&$c)
 // The unified way to read session values across FunkPHP
 function funk_session_get(&$c, string $key, $default = null)
 {
-    funk_session_started_or_start_it($c);
+    \funk_session_started_or_start_it($c);
     return $_SESSION[$key] ?? $default;
 }
 // The unified way to write session values across FunkPHP
 function funk_session_set(&$c, string $key, $value): void
 {
-    funk_session_started_or_start_it($c);
+    \funk_session_started_or_start_it($c);
     $_SESSION[$key] = $value;
 }
 
@@ -198,13 +198,13 @@ function funk_session_destroy(&$c, $set_other_cookies_with_h_setcookie_as_array 
         $_SESSION = [];
         session_unset();
         session_destroy();
-        funk_session_cookie_set(session_name(), '', time() - 3600);
-        funk_session_cookie_set("csrf", '', time() - 3600);
+        \funk_session_cookie_set(session_name(), '', time() - 3600);
+        \funk_session_cookie_set("csrf", '', time() - 3600);
 
         // Optional funk_session_cookie_set to set other cookies
         if (!empty($set_other_cookies_with_h_setcookie_as_array)) {
             foreach ($set_other_cookies_with_h_setcookie_as_array as $cookie) {
-                funk_session_cookie_set(...$cookie);
+                \funk_session_cookie_set(...$cookie);
             }
         }
     }
@@ -230,7 +230,7 @@ function funk_session_cookie_set(&$c, $name, $value, $expire = 0, $path = '/', $
 }
 function funk_generate_csrf(&$c, string $currentUri, ?int $lifetimeSeconds = null): string
 {
-    if (funk_session_get($c, '_funk_csrf') === null) {
+    if (\funk_session_get($c, '_funk_csrf') === null) {
         $_SESSION['_funk_csrf'] = [];
     }
     // 1. Generate a completely unique, unpredictable token string
@@ -244,11 +244,8 @@ function funk_generate_csrf(&$c, string $currentUri, ?int $lifetimeSeconds = nul
     if (count($_SESSION['_funk_csrf']) > 99) {
         array_shift($_SESSION['_funk_csrf']); // Drop the oldest token
     }
-
     return $token;
 }
-
-
 
 // FUNKPHP GENERIC RANDOMIZER FUNCTIONS
 // This function uses the "The Random\Randomizer class" to generate a unique password
@@ -256,7 +253,6 @@ function funk_generate_random_password(&$c, $length = 20, $returnHashed = false)
 {
     // Create a new Randomizer object
     $randomizer = new Random\Randomizer();
-
     // Prepare characters that can be used
     $lowers =  [
         'a',
@@ -385,13 +381,11 @@ function funk_generate_random_password(&$c, $length = 20, $returnHashed = false)
     // Otherwise, return the generated password
     return $password;
 }
-
 // This function uses the "The Random\Randomizer class" to generate a unique number
 function funk_generate_random_number(&$c, $length = 10)
 {
     // Create a new Randomizer object
     $randomizer = new Random\Randomizer();
-
     // Prepare numbers that can be used
     $numbers =  [
         '0',
@@ -405,25 +399,20 @@ function funk_generate_random_number(&$c, $length = 10)
         '8',
         '9',
     ];
-
     // Prepare empty number string and total count of numbers array minus 1
     // and add random numbers to the number until it reaches the desired length
     $total = count($numbers) - 1;
     $number = '';
-
     // First number cannot be 0
     $randomCharIndex = $randomizer->getInt(1, $total);
     $number .= $numbers[$randomCharIndex];
-
     while (strlen($number) < $length) {
         $randomCharIndex = $randomizer->getInt(0, $total);
         $number .= $numbers[$randomCharIndex];
     }
-
     // Return the generated number as an integer
     return (int)$number;
 }
-
 // This function uses the "The Random\Randomizer class" to generate a unique user_id
 function funk_generate_random_user_id(&$c, $length = 96)
 {
@@ -519,7 +508,6 @@ function funk_generate_random_user_id(&$c, $length = 96)
     // Return the generated user_id
     return $user_id;
 }
-
 // This function uses the "The Random\Randomizer class" to generate a unique CSRF
 function funk_generate_random_csrf(&$c, $length = 384)
 {
@@ -610,30 +598,6 @@ function funk_generate_random_csrf(&$c, $length = 384)
     // Return the generated CSRF
     return $csrf;
 }
-
-// Boolean function that returns that a directory exists and is readable & writable
-function dir_exists_is_readable_writable($dirPath)
-{
-    return is_dir($dirPath) && is_readable($dirPath) && is_writable($dirPath);
-}
-
-// Boolean function that returns that a file exists and is readable & writable
-function file_exists_is_readable_writable($filePath)
-{
-    return is_file($filePath) && is_readable($filePath) && is_writable($filePath);
-}
-
-// Boolean function that checks if a variable is a non-empty array
-function is_array_and_not_empty($array)
-{
-    return isset($array) && is_array($array) && !empty($array);
-}
-// Boolean function that checks if a variable is a non-empty string
-function is_string_and_not_empty($string)
-{
-    return isset($string) && is_string($string) && !empty($string);
-}
-
 /***  ROUTE-RELATED PHP FUNCTIONS FOR FUNKPHP ***/
 // Default FunkPHP Exception Handler that catches any uncaught exceptions and returns
 // a JSON or HTML error response depending on the Accept Header of the request. It is
@@ -642,9 +606,9 @@ function is_string_and_not_empty($string)
 function funk_default_exception_handler(&$c, $e)
 {
     $c['err']['UNCAUGHT_EXCEPTION'] = $e;
-    funk_use_log($c, "UNCAUGHT EXCEPTION BY DEVELOPER: " . $e->getMessage(), 'CRIT');
+    \funk_use_log($c, "UNCAUGHT EXCEPTION BY DEVELOPER: " . $e->getMessage(), 'CRIT');
     $err = 'Tell the Developer: An Uncaught Exception Occurred: `' . $e->getMessage() . '` Please check the Logs for more details.';
-    funk_use_error_json_or_page($c, 500, ["internal_error" => $err], '500', $err);
+    \funk_use_error_json_or_page($c, 500, ["internal_error" => $err], '500', $err);
 }
 
 // Default FunkPHP Registered Shutdown Function which runs after a request has been
@@ -659,7 +623,7 @@ function funk_default_register_shutdown_function(&$c)
         && array_is_list($c['<ENTRY>']['pipeline']['post_response'])
         && !empty($c['<ENTRY>']['pipeline']['post_response'])
     ) {
-        funk_run_pipeline_post_response($c);
+        \funk_run_pipeline_post_response($c);
     } else {
         $c['err']['MAYBE']['PIPELINE']['funk_run_post_request'][] = 'No Configured Post-Response Pipeline Functions (`"<ENTRY>" => "pipeline" => "post_response"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\'][\'post_response\']` Key in the Pipeline Configuration File `funkphp/core/pipeline_request.php` File!';
     }
@@ -690,7 +654,7 @@ function funk_use_error_raw_html(&$c, int $errCode, string $errMsg)
         || $erCode < 100
         || $erCode > 599
     ) {
-        critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_handle_error_html_string()` Function. This should be an integer between 100 and 599!');
+        \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_handle_error_html_string()` Function. This should be an integer between 100 and 599!');
     }
     // When $errMsg is not a string or empty
     if (
@@ -698,7 +662,7 @@ function funk_use_error_raw_html(&$c, int $errCode, string $errMsg)
         || !is_string($errMsg)
         || empty($errMsg)
     ) {
-        critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_handle_error_html_string()` Function. This should be a non-empty string!');
+        \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_handle_error_html_string()` Function. This should be a non-empty string!');
     }
     // Set the response code & header for HTML and output the message
     http_response_code($errCode);
@@ -732,7 +696,7 @@ function funk_use_error_raw_plain(&$c, int $errCode, string $errMsg)
         || $errCode < 100
         || $errCode > 599
     ) {
-        critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_handle_error_plain_text()` Function. This should be an integer between 100 and 599!');
+        \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_handle_error_plain_text()` Function. This should be an integer between 100 and 599!');
     }
     // When $errMsg is not a string or empty
     if (
@@ -740,7 +704,7 @@ function funk_use_error_raw_plain(&$c, int $errCode, string $errMsg)
         || !is_string($errMsg)
         || empty($errMsg)
     ) {
-        critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_handle_error_plain_text()` Function. This should be a non-empty string!');
+        \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_handle_error_plain_text()` Function. This should be a non-empty string!');
     }
     // Set response code & header for plain text and output the message
     http_response_code($errCode);
@@ -774,7 +738,7 @@ function funk_use_error_xml(&$c, int $errCode, string $errMsg)
         || $errCode < 100
         || $errCode > 599
     ) {
-        critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_handle_error_xml()` Function. This should be an integer between 100 and 599!');
+        \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_handle_error_xml()` Function. This should be an integer between 100 and 599!');
     }
     // When $errMsg is not a string or empty
     if (
@@ -782,7 +746,7 @@ function funk_use_error_xml(&$c, int $errCode, string $errMsg)
         || !is_string($errMsg)
         || empty($errMsg)
     ) {
-        critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_handle_error_xml()` Function. This should be a non-empty string!');
+        \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_handle_error_xml()` Function. This should be a non-empty string!');
     }
     // Set response code & header for XML and output the message
     http_response_code($errCode);
@@ -822,7 +786,7 @@ function funk_use_error_page(&$c, int $errCode, string $errMsg, string $pageName
         || $errCode < 100
         || $errCode > 599
     ) {
-        critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_handle_error_page()` Function. This should be an integer between 100 and 599!');
+        \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_handle_error_page()` Function. This should be an integer between 100 and 599!');
     }
     // When $errMsg is not a string or empty
     if (
@@ -830,7 +794,7 @@ function funk_use_error_page(&$c, int $errCode, string $errMsg, string $pageName
         || !is_string($errMsg)
         || empty($errMsg)
     ) {
-        critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_handle_error_page()` Function. This should be a non-empty string!');
+        \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_handle_error_page()` Function. This should be a non-empty string!');
     }
     // When $pageName is not a string or empty or file not readable
     if (
@@ -839,7 +803,7 @@ function funk_use_error_page(&$c, int $errCode, string $errMsg, string $pageName
         || empty($pageName)
         || !is_readable(ROOT_PAGES_ERRORS . '/' . $pageName . '.php')
     ) {
-        critical_err_json_or_html(500, 'Tell the Developer: No Valid Page Filename Provided to `funk_handle_error_page()` Function. This should be a non-empty string that is also a readable file inside `/pages/compiled/[errors]/` directory!');
+        \critical_err_json_or_html(500, 'Tell the Developer: No Valid Page Filename Provided to `funk_handle_error_page()` Function. This should be a non-empty string that is also a readable file inside `/pages/compiled/[errors]/` directory!');
     }
     // Headers that also support <styles> tag inline
     header('Content-Type: text/html; charset=utf-8');
@@ -848,7 +812,7 @@ function funk_use_error_page(&$c, int $errCode, string $errMsg, string $pageName
         $custom_error_message = $errMsg;
         include_once ROOT_PAGES_ERRORS . '/' . $pageName . '.php';
     } catch (\Throwable $e) {
-        critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the `funk_use_error_page()` Function while trying to return a Custom Error Page. Yes, an error to show an error occured:`' . $e->getMessage() . '`.');
+        \critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the `funk_use_error_page()` Function while trying to return a Custom Error Page. Yes, an error to show an error occured:`' . $e->getMessage() . '`.');
     }
     exit();
 }
@@ -884,7 +848,7 @@ function funk_use_error_callback(&$c, int $errCode, string $errMsg, string $call
         || $errCode < 100
         || $errCode > 599
     ) {
-        critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_handle_error_callback()` Function. This should be an integer between 100 and 599!');
+        \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_handle_error_callback()` Function. This should be an integer between 100 and 599!');
     }
     // When $errMsg is not a string or empty
     if (
@@ -892,7 +856,7 @@ function funk_use_error_callback(&$c, int $errCode, string $errMsg, string $call
         || !is_string($errMsg)
         || empty($errMsg)
     ) {
-        critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_handle_error_callback()` Function. This should be a non-empty string!');
+        \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_handle_error_callback()` Function. This should be a non-empty string!');
     }
     // When $callbackName is not a string or empty or not callable
     if (
@@ -901,14 +865,14 @@ function funk_use_error_callback(&$c, int $errCode, string $errMsg, string $call
         || empty($callbackName)
         || !is_callable($callbackName)
     ) {
-        critical_err_json_or_html(500, 'Tell the Developer: No Valid Callback Name Provided to `funk_handle_error_callback()` Function. This should be a non-empty string that is also callable!');
+        \critical_err_json_or_html(500, 'Tell the Developer: No Valid Callback Name Provided to `funk_handle_error_callback()` Function. This should be a non-empty string that is also callable!');
     }
     // Set response code, call function and exit
     http_response_code($errCode);
     try {
         $callbackName($c, $errMsg, $optionalCallbackData);
     } catch (\Throwable $e) {
-        critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the `funk_handle_error_callback()` Function with the following Error Message:`' . $e->getMessage() . '`.');
+        \critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the `funk_handle_error_callback()` Function with the following Error Message:`' . $e->getMessage() . '`.');
     }
     exit();
 }
@@ -935,7 +899,7 @@ function funk_use_error_throw(&$c, string $exceptionErrMsg)
         || !is_string($exceptionErrMsg)
         || empty($exceptionErrMsg)
     ) {
-        critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_handle_error_throw()` Function. This should be a non-empty string!');
+        \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_handle_error_throw()` Function. This should be a non-empty string!');
     }
     throw new Exception($exceptionErrMsg);
 }
@@ -966,7 +930,7 @@ function funk_use_error_json(&$c, int $errCode, $jsonObjectOrStringThatReturnsJS
         || $errCode < 100
         || $errCode > 599
     ) {
-        critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_handle_error_json()` Function. This should be an integer between 100 and 599!');
+        \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_handle_error_json()` Function. This should be an integer between 100 and 599!');
     }
     // When $jsonObjectOrStringThatReturnsJSON is not an Object/Array, nor a String that is also Callable
     if (
@@ -978,7 +942,7 @@ function funk_use_error_json(&$c, int $errCode, $jsonObjectOrStringThatReturnsJS
             )
         )
     ) {
-        critical_err_json_or_html(500, 'Tell the Developer: No Valid JSON Data or Callable Provided to `funk_handle_error_json()` Function. This should be either a Non-Empty Array/Object OR a Non-Empty String that is also Callable which returns a Valid JSON Payload!');
+        \critical_err_json_or_html(500, 'Tell the Developer: No Valid JSON Data or Callable Provided to `funk_handle_error_json()` Function. This should be either a Non-Empty Array/Object OR a Non-Empty String that is also Callable which returns a Valid JSON Payload!');
     }
     // Set the response code for both JSON
     http_response_code($errCode);
@@ -988,7 +952,7 @@ function funk_use_error_json(&$c, int $errCode, $jsonObjectOrStringThatReturnsJS
         try {
             $jsonData = $jsonData($c);
         } catch (\Throwable $e) {
-            critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the JSON Callable:`' . $e->getMessage() . '` that was called using the `funk_use_error_json_or_page_or_callback()` Function!');
+            \critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the JSON Callable:`' . $e->getMessage() . '` that was called using the `funk_use_error_json_or_page_or_callback()` Function!');
         }
     }
     // Now $jsonData is guaranteed to be the final data structure (or null/invalid)
@@ -996,7 +960,7 @@ function funk_use_error_json(&$c, int $errCode, $jsonObjectOrStringThatReturnsJS
     try {
         echo json_encode($jsonData, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     } catch (\JsonException $e) {
-        critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the `funk_handle_error_json()` While Encoding the Provided Data to JSON:`' . $e->getMessage() . '`');
+        \critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the `funk_handle_error_json()` While Encoding the Provided Data to JSON:`' . $e->getMessage() . '`');
     }
     exit();
 }
@@ -1040,7 +1004,7 @@ function funk_use_error_json_or_page(&$c, int $errCode, $jsonObjectOrStringThatR
         || $errCode < 100
         || $errCode > 599
     ) {
-        critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_use_error_json_or_page()` Function. This should be an Integer between 100 and 599!');
+        \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_use_error_json_or_page()` Function. This should be an Integer between 100 and 599!');
     }
     // When $pageErrMsg is not a string or empty
     if (
@@ -1048,7 +1012,7 @@ function funk_use_error_json_or_page(&$c, int $errCode, $jsonObjectOrStringThatR
         || !is_string($pageErrMsg)
         || empty($pageErrMsg)
     ) {
-        critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_use_error_json_or_page()` Function. This should be a Non-Empty String!');
+        \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_use_error_json_or_page()` Function. This should be a Non-Empty String!');
     }
     // When $jsonObjectOrStringThatReturnsJSON is not an Object/Array, nor a String that is also Callable
     if (
@@ -1060,7 +1024,7 @@ function funk_use_error_json_or_page(&$c, int $errCode, $jsonObjectOrStringThatR
             )
         )
     ) {
-        critical_err_json_or_html(500, 'Tell the Developer: No Valid JSON Data or Callable Provided to `funk_use_error_json_or_page()` Function. This should be either a Non-Empty Array/Object OR a Non-Empty String that is also Callable which returns a Valid JSON Payload!');
+        \critical_err_json_or_html(500, 'Tell the Developer: No Valid JSON Data or Callable Provided to `funk_use_error_json_or_page()` Function. This should be either a Non-Empty Array/Object OR a Non-Empty String that is also Callable which returns a Valid JSON Payload!');
     }
     // When $pageName is not a string or empty or the file does not exist in the expected folder
     if (
@@ -1069,7 +1033,7 @@ function funk_use_error_json_or_page(&$c, int $errCode, $jsonObjectOrStringThatR
         || empty($pageName)
         || !is_readable(ROOT_PAGES_ERRORS . '/' . $pageName . '.php')
     ) {
-        critical_err_json_or_html(500, 'Tell the Developer: No Valid Page Filename Provided to `funk_use_error_json_or_page()` Function. This should be a Non-Empty String and it must exist as a file in the `src/funkphp/pages/compiled/[errors]` directory!');
+        \critical_err_json_or_html(500, 'Tell the Developer: No Valid Page Filename Provided to `funk_use_error_json_or_page()` Function. This should be a Non-Empty String and it must exist as a file in the `src/funkphp/pages/compiled/[errors]` directory!');
     }
     // Set the response code for both JSON and Page
     http_response_code($errCode);
@@ -1086,7 +1050,7 @@ function funk_use_error_json_or_page(&$c, int $errCode, $jsonObjectOrStringThatR
             try {
                 $jsonData = $jsonData($c);
             } catch (\Throwable $e) {
-                critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the JSON Callable:`' . $e->getMessage() . '` that was called using the `funk_use_error_json_or_page_or_callback()` Function!');
+                \critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the JSON Callable:`' . $e->getMessage() . '` that was called using the `funk_use_error_json_or_page_or_callback()` Function!');
             }
         }
         // Now $jsonData is guaranteed to be the final data structure (or null/invalid)
@@ -1094,7 +1058,7 @@ function funk_use_error_json_or_page(&$c, int $errCode, $jsonObjectOrStringThatR
         try {
             echo json_encode($jsonData, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         } catch (\JsonException $e) {
-            critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the `funk_use_error_json_or_page_or_callback()` While Encoding the Provided Data to JSON:`' . $e->getMessage() . '`');
+            \critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the `funk_use_error_json_or_page_or_callback()` While Encoding the Provided Data to JSON:`' . $e->getMessage() . '`');
         }
     }
     // Otherwise we return a Page even if that was not explicitly requested
@@ -1106,7 +1070,7 @@ function funk_use_error_json_or_page(&$c, int $errCode, $jsonObjectOrStringThatR
             $custom_error_message = $pageErrMsg;
             include_once ROOT_PAGES_ERRORS . '/' . $pageName . '.php';
         } catch (\Throwable $e) {
-            critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the `funk_use_error_json_or_page()` Function while trying to return a Custom Error Page. Yes, an error to show an error occured:`' . $e->getMessage() . '`.');
+            \critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the `funk_use_error_json_or_page()` Function while trying to return a Custom Error Page. Yes, an error to show an error occured:`' . $e->getMessage() . '`.');
         }
     }
     exit();
@@ -1153,7 +1117,7 @@ function funk_use_error_json_or_page_or_callback(&$c, int $errCode, string $errM
         || $errCode < 100
         || $errCode > 599
     ) {
-        critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_use_error_json_or_page_or_callback()` Function. This should be an integer between 100 and 599!');
+        \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_use_error_json_or_page_or_callback()` Function. This should be an integer between 100 and 599!');
     }
     // When $errMsgForPageAndCallback is not a string or empty
     if (
@@ -1161,7 +1125,7 @@ function funk_use_error_json_or_page_or_callback(&$c, int $errCode, string $errM
         || !is_string($errMsgForPageAndCallback)
         || empty($errMsgForPageAndCallback)
     ) {
-        critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_use_error_json_or_page_or_callback()` Function. This should be a Non-Empty String!');
+        \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_use_error_json_or_page_or_callback()` Function. This should be a Non-Empty String!');
     }
     // When $pageName is not a string or empty or the file does not exist in the expected folder
     if (
@@ -1170,7 +1134,7 @@ function funk_use_error_json_or_page_or_callback(&$c, int $errCode, string $errM
         || empty($pageName)
         || !is_readable(ROOT_PAGES_ERRORS . '/' . $pageName . '.php')
     ) {
-        critical_err_json_or_html(500, 'Tell the Developer: No Valid Page Filename Provided to `funk_use_error_json_or_page_or_callback()` Function. This should be a Non-Empty String and it must exist as a file in the `src/funkphp/pages/compiled/[errors]` directory!');
+        \critical_err_json_or_html(500, 'Tell the Developer: No Valid Page Filename Provided to `funk_use_error_json_or_page_or_callback()` Function. This should be a Non-Empty String and it must exist as a file in the `src/funkphp/pages/compiled/[errors]` directory!');
     }
     // $callableName is not a string or empty or not callable
     if (
@@ -1179,7 +1143,7 @@ function funk_use_error_json_or_page_or_callback(&$c, int $errCode, string $errM
         || empty($callableName)
         || !is_callable($callableName)
     ) {
-        critical_err_json_or_html(500, 'Tell the Developer: No Valid Callback Name Provided to `funk_use_error_json_or_page_or_callback()` Function. This should be a Non-Empty String that is also Callable!');
+        \critical_err_json_or_html(500, 'Tell the Developer: No Valid Callback Name Provided to `funk_use_error_json_or_page_or_callback()` Function. This should be a Non-Empty String that is also Callable!');
     }
     // When $jsonObjectOrStringThatReturnsJSON is not an Object/Array, nor a String that is also Callable
     if (
@@ -1191,7 +1155,7 @@ function funk_use_error_json_or_page_or_callback(&$c, int $errCode, string $errM
             )
         )
     ) {
-        critical_err_json_or_html(500, 'Tell the Developer: No Valid JSON Data or Callable Provided to `funk_use_error_json_or_page_or_callback()` Function. This should be either a Non-Empty Array/Object OR a Non-Empty String that is also Callable which returns a Valid JSON Payload!');
+        \critical_err_json_or_html(500, 'Tell the Developer: No Valid JSON Data or Callable Provided to `funk_use_error_json_or_page_or_callback()` Function. This should be either a Non-Empty Array/Object OR a Non-Empty String that is also Callable which returns a Valid JSON Payload!');
     }
     // Set response code and check if Accept header contains text/html, application/json or text/json
     // If none of those headers then we call the callback function. We always exit nonetheless!
@@ -1210,7 +1174,7 @@ function funk_use_error_json_or_page_or_callback(&$c, int $errCode, string $errM
             $custom_error_message = $errMsgForPageAndCallback;
             include_once ROOT_PAGES_ERRORS . '/' . $pageName . '.php';
         } catch (\Throwable $e) {
-            critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the `funk_use_error_json_or_page_or_callback()` Function while trying to return a Custom Error Page. Yes, an error to show an error occured:`' . $e->getMessage() . '`.');
+            \critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the `funk_use_error_json_or_page_or_callback()` Function while trying to return a Custom Error Page. Yes, an error to show an error occured:`' . $e->getMessage() . '`.');
         }
     }
     // JSON Response
@@ -1226,7 +1190,7 @@ function funk_use_error_json_or_page_or_callback(&$c, int $errCode, string $errM
             try {
                 $jsonData = $jsonData($c);
             } catch (\Throwable $e) {
-                critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the JSON Callable:`' . $e->getMessage() . '` that was called using the `funk_use_error_json_or_page_or_callback()` Function!');
+                \critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the JSON Callable:`' . $e->getMessage() . '` that was called using the `funk_use_error_json_or_page_or_callback()` Function!');
             }
         }
         // Now $jsonData is guaranteed to be the final data structure (or null/invalid)
@@ -1234,7 +1198,7 @@ function funk_use_error_json_or_page_or_callback(&$c, int $errCode, string $errM
         try {
             echo json_encode($jsonData, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         } catch (\JsonException $e) {
-            critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the `funk_use_error_json_or_page_or_callback()` While Encoding the Provided Data to JSON:`' . $e->getMessage() . '`');
+            \critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the `funk_use_error_json_or_page_or_callback()` While Encoding the Provided Data to JSON:`' . $e->getMessage() . '`');
         }
     }
     // CALLBACK Response
@@ -1337,14 +1301,14 @@ function funk_save_log(&$c): void
 function funk_clear_log(&$c, $saveFirst = false)
 {
     if ($saveFirst === true) {
-        funk_save_log($c);
+        \funk_save_log($c);
     }
     if (!isset($c['req']['log']) || !is_array($c['req']['log'])) {
         $c['err']['FUNCTIONS']['funk_clear_log'][] = 'The Log Array Did Not Exist, so it was Created Automatically!';
-        funk_use_log($c, 'The Log Array Did Not Exist, so it was Created Automatically!', 'INFO');
+        \funk_use_log($c, 'The Log Array Did Not Exist, so it was Created Automatically!', 'INFO');
     } else {
         $c['req']['log'] = [];
-        funk_use_log($c, 'The Log Array was Cleared Successfully!', 'INFO');
+        \funk_use_log($c, 'The Log Array was Cleared Successfully!', 'INFO');
     }
     return;
 }
@@ -1372,7 +1336,7 @@ function funk_run_pipeline_request(&$c)
     ) {
         $c['err']['PIPELINE']['funk_run_pipeline_request'][] = 'No Configured Pipeline Functions (`"<ENTRY>" => "pipeline" => "request"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\'][\'request\']` Key in the Pipeline Configuration File `funkphp/core/pipeline_request.php` File!';
         $err = 'Tell the Developer: No Pipeline Functions to run? Please check the `[\'pipeline\'][\'request\']` Key in the `funkphp/core/pipeline_request.php` File!';
-        funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+        \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
     }
 
     // Prepare for main loop to run each pipeline function
@@ -1392,7 +1356,7 @@ function funk_run_pipeline_request(&$c)
         ) {
             $c['err']['PIPELINE']['funk_run_pipeline_request'][] = 'Pipeline Request Function at index ' .  $i . ' is either NULL or NOT a Valid Data Type. Must be a String!';
             $err = 'Tell the Developer: Pipeline Request Function at index ' .  $i . ' is either NULL or NOT a Valid Data Type. Must be a String!';
-            funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+            \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
         }
         $fnToRun = $current_pipe;
         $pipeToRun = $pipeDir . $fnToRun . '.php';
@@ -1400,7 +1364,7 @@ function funk_run_pipeline_request(&$c)
         if (!is_readable($pipeToRun)) {
             $c['err']['PIPELINE']['function funk_run_pipeline_request'][] = 'Pipeline Request Function (`' . $fnToRun . '`) at index '  .  $i . ' does NOT EXIST (or is NOT READABLE) in `funkphp/pipeline/request/` Directory!';
             $err = 'Tell the Developer: Pipeline Request Function (`' . $fnToRun . '`) at index '  .  $i . ' does NOT EXIST (or is NOT READABLE) in `funkphp/pipeline/request/` Directory!';
-            funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+            \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
         }
         $runPipe = include_once $pipeToRun;
         $pipeFnToRun = NAMESPACE_PIPELINE_REQUEST . $fnToRun . '\\' . $fnToRun;
@@ -1411,7 +1375,7 @@ function funk_run_pipeline_request(&$c)
         else {
             $c['err']['PIPELINE']['function funk_run_pipeline_request'][] = 'Pipeline Request Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`';
             $err = 'Tell the Developer: Pipeline Request Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`';
-            funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+            \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
         }
 
 
@@ -1501,7 +1465,7 @@ function funk_run_pipeline_post_response(&$c)
                 // HARD ERROR to not allow to pass security checks
                 else {
                     $c['err']['PIPELINE']['function funk_run_pipeline_post_response'][] = 'Pipeline Post-Response Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`';
-                    funk_use_log($c, 'Pipeline Post-Response Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };` - Function stops here!', 'CRITICAL');
+                    \funk_use_log($c, 'Pipeline Post-Response Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };` - Function stops here!', 'CRITICAL');
                     ob_end_clean();
                     return;
                 }
@@ -1510,7 +1474,7 @@ function funk_run_pipeline_post_response(&$c)
             else {
                 if (!is_readable($pipeToRun)) {
                     $c['err']['PIPELINE']['function funk_run_pipeline_post_response'][] = 'Pipeline Post-Response Function (`' . $fnToRun . '`) at index '  .  $i . ' does NOT EXIST (or is NOT READABLE) in `funkphp/pipeline/request/` Directory!';
-                    funk_use_log($c, 'Pipeline Post-Response Function (`' . $fnToRun . '`) at index '  .  $i . ' does NOT EXIST (or is NOT READABLE) in `funkphp/pipeline/request/` Directory! - Function stops here!', 'CRITICAL');
+                    \funk_use_log($c, 'Pipeline Post-Response Function (`' . $fnToRun . '`) at index '  .  $i . ' does NOT EXIST (or is NOT READABLE) in `funkphp/pipeline/request/` Directory! - Function stops here!', 'CRITICAL');
                     ob_end_clean();
                     return;
                 }
@@ -1529,7 +1493,7 @@ function funk_run_pipeline_post_response(&$c)
                 // HARD ERROR to not allow to pass security checks
                 else {
                     $c['err']['PIPELINE']['function funk_run_pipeline_post_response'][] = 'Pipeline Post-Response Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`';
-                    funk_use_log($c, 'Pipeline Post-Response Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };` - Function stops here!', 'CRITICAL');
+                    \funk_use_log($c, 'Pipeline Post-Response Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };` - Function stops here!', 'CRITICAL');
                     ob_end_clean();
                     return;
                 }
@@ -1584,7 +1548,6 @@ function funk_match_compiled_route(&$c, string $requestUri, array $methodRootNod
     $path = trim(strtolower($requestUri), '/');
     $uriSegments = empty($path) ? [] : array_values(array_filter(explode('/', $path)));
     $uriSegmentCount = count($uriSegments);
-
     // Prepare variables to store the current node,
     // matched segments, parameters, and middlewares
     $currentNode = $methodRootNode;
@@ -1592,7 +1555,6 @@ function funk_match_compiled_route(&$c, string $requestUri, array $methodRootNod
     $matchedParams = [];
     $matchedMiddlewares = [];
     $segmentsConsumed = 0;
-
     // EDGE-CASE: '/' and include middleware at root node if it exists
     if ($uriSegmentCount === 0) {
         // When no match for root node
@@ -1604,16 +1566,13 @@ function funk_match_compiled_route(&$c, string $requestUri, array $methodRootNod
         }
         return ["route" => '/', "params" => $matchedParams, "middlewares" => $matchedMiddlewares];
     }
-
     // Iterate URI segments when more than 0
     for ($i = 0; $i < $uriSegmentCount; $i++) {
         $currentUriSegment = $uriSegments[$i];
-
         /// First try match "|" middleware node
         if (isset($currentNode['|'])) {
             array_push($matchedMiddlewares, "/" . implode('/', $matchedPathSegments['route']));
         }
-
         // Then try match literal route
         if (isset($currentNode[$currentUriSegment])) {
             $matchedPathSegments['route'][] = $currentUriSegment;
@@ -1621,7 +1580,6 @@ function funk_match_compiled_route(&$c, string $requestUri, array $methodRootNod
             $segmentsConsumed++;
             continue;
         }
-
         // Or try match dynamic route ":" indicator node and
         // only store param and matched URI segment if not null
         if (isset($currentNode[':'])) {
@@ -1634,16 +1592,13 @@ function funk_match_compiled_route(&$c, string $requestUri, array $methodRootNod
                 continue;
             }
         }
-
         // No matched "|", ":" or literal route in Compiled Routes!
         return null;
     }
-
     // EDGE-CASE: Add middleware at last node if it exists
     if (isset($currentNode['|'])) {
         array_push($matchedMiddlewares, "/" . implode('/', $matchedPathSegments['route']));
     }
-
     // Return matched route, params & middlewares
     // if all consumed segments matched
     if ($segmentsConsumed === $uriSegmentCount) {
@@ -1675,7 +1630,7 @@ function funk_match_developer_route(&$c, string $method, string $uri, array $com
     $noMatchIn = ''; // Use as debug value
     // Try match HTTP Method Key in Compiled Routes
     if (isset($compiledRouteTrie[$method])) {
-        $routeDefinition = funk_match_compiled_route($c, $uri, $compiledRouteTrie[$method]);
+        $routeDefinition = \funk_match_compiled_route($c, $uri, $compiledRouteTrie[$method]);
     } else {
         $noMatchIn = 'NO MATCH FOR COMPILED_ROUTE_KEY (' . mb_strtoupper($method) . ') & ';
         return false;
@@ -1695,7 +1650,6 @@ function funk_match_developer_route(&$c, string $method, string $uri, array $com
             $c['req']['matched_in'] = $noMatchIn;
             $c['req']['matched_config'] = $routeInfo['config'] ?? [];
             $c['req']['matched_pipeline'] = $routeInfo['pipeline'] ?? [];
-
             // Add Any Matched Middlewares
             if (
                 isset($routeDefinition["middlewares"])
@@ -2030,7 +1984,6 @@ function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array 
     $nullable = array_key_exists('nullable', $rules);
     $required = array_key_exists('required', $rules);
     $field = array_key_exists('field', $rules);
-
     // Check if "field" rule exist since that contains the custom
     // field name used by the Developer that would then apply to
     // ALL rules for this given input field/data!
@@ -2038,26 +1991,22 @@ function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array 
         $fullFieldName = $rules['field']['value'] ?? $fullFieldName;
         unset($rules['field']);
     }
-
     // If required rule exist, we grab its value & error and unset it
     // from the array of rules so we do not loop through it later
     if ($required) {
         $required = $rules['required'];
         unset($rules['required']);
     }
-
     // If stop rule exist, we just unset it because the boolean value
     // is enough to know if we should stop further validation later
     if ($stop) {
         unset($rules['stop']);
     }
-
     // if nullable exists and the input value is null,
     // then we can just skip validation for this field
     if ($nullable && $inputValue === null) {
         return;
     }
-
     // Now use the required rule to validate
     // the input value if it exists and we
     // stored its value + error message
@@ -2065,14 +2014,12 @@ function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array 
         $ruleValue = $required['value'] ?? null;
         $customErr = $required['err_msg'] ?? null;
         // echo "Running `funk_validate_required` for field `$fullFieldName` with value `" . (is_string($inputValue) ? $inputValue :  json_encode($inputValue)) . "`\n";
-        $error = funk_validate_required($fullFieldName, $inputValue, $ruleValue, $customErr);
-
+        $error = \funk_validate_required($fullFieldName, $inputValue, $ruleValue, $customErr);
         // We set the error we got from the
         // required validation meaning it failed
         if ($error !== null) {
             $currentErrPath['required'] = $error;
             $c['v_ok'] = false;
-
             // MAYBE EXPERIMENTAL: Might not work as intended in all cases
             // This is the "'<STOP_ALL_ON_FIRST_ERROR>' => true," root key!
             if (
@@ -2081,7 +2028,6 @@ function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array 
                 $c['v_config']['stop_all_on_first_error'] = true;
                 return;
             }
-
             // Stop further validation for this field as
             // 'required' failed and if 'stop' is true!
             if ($stop) {
@@ -2089,7 +2035,6 @@ function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array 
             }
         }
     }
-
     // Categorize found data type rule so "min" and "max" and similar
     // ambiguous rules can be applied to the correct data type!
     // We will swiftly loop through to find it. Thanks to the priority
@@ -2191,16 +2136,13 @@ function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array 
         } elseif ($foundTypeRule === 'password_confirm') {
             $ruleValue = $c['v_config']['passwords_to_match'][$ruleValue] ?? null;
         }
-
         // Validate matching Data Type Rule
         $error = $validatorFn($fullFieldName, $inputValue, $ruleValue, $customErr);
-
         // Mark validation as failed if error is not null
         // and also stop if optionally set
         if ($error !== null) {
             $currentErrPath[$foundTypeRule] = $error;
             $c['v_ok'] = false;
-
             // MAYBE EXPERIMENTAL: Might not work as intended in all cases
             // This is the "'<STOP_ALL_ON_FIRST_ERROR>' => true," root key!
             if (
@@ -2209,12 +2151,10 @@ function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array 
                 $c['v_config']['stop_all_on_first_error'] = true;
                 return;
             }
-
             if (isset($rules['stop'])) {
                 return;
             }
         }
-
         // Remove the found Data Type to not repeat
         unset($rules[$foundTypeRule]);
     }
@@ -2227,7 +2167,6 @@ function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array 
         $currentErrPath[$foundTypeRule] = "This is unknown data type: '{$foundTypeRule}' in field '{$fullFieldName}'. Please tell the Developer about it since validation cannot continue without a valid data type provided!";
         $c['err']['VALIDATIONS']['funk_validation_validate_rules'][] = "Unknown Data Type Validation Rule: '{$foundTypeRule}' for field '{$fullFieldName}'.";
         $c['v_ok'] = false;
-
         // MAYBE EXPERIMENTAL: Might not work as intended in all cases
         // This is the "'<STOP_ALL_ON_FIRST_ERROR>' => true," root key!
         if (
@@ -2238,7 +2177,6 @@ function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array 
         }
         return;
     }
-
     // Rule mappings based on data type categories
     $mappedRulesBasedTypeCategory = [
         'string_types' => [
@@ -2272,7 +2210,6 @@ function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array 
             'size' => 'size_filesize',
         ],
     ];
-
     // We check if $c_['v_config']['source'] is set to "GET" meaning we should
     // try to convert $inputValue to numeric value if  $foundTypeRule is either
     // digit, integer, float, or number. This is because GET variables are
@@ -2296,27 +2233,23 @@ function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array 
             }
         }
     }
-
     // ITERATING THROUGH REMAINING RULES THIS INPUT FIELD
     foreach ($rules as $rule => $ruleConfig) {
         $ruleValue = $ruleConfig['value'];
         $customErr = $ruleConfig['err_msg'];
         $errorKey = $rule;
-
         // Check if $rule is the mapped rule ($foundTypeCat['$foundTypeRule'])
         // and set $Rule to that value then before concatenating.
         // If the rule is not in the mapped rules, we just use it as is
         if (isset($mappedRulesBasedTypeCategory[$foundTypeCat][$rule])) {
             $rule = $mappedRulesBasedTypeCategory[$foundTypeCat][$rule];
         }
-
         // Dynamically call the validation function for this rule
         // Assuming your rule functions are named funk_validate_rule
         $validatorFn = 'funk_validate_' . $rule;
 
         if (function_exists($validatorFn)) {
             $error = $validatorFn($fullFieldName, $inputValue, $ruleValue, $customErr);
-
             // Set the error message for this specific rule
             // if it is not null, meaning validation failed
             // Also stop remaining validation for
@@ -2324,7 +2257,6 @@ function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array 
             if ($error !== null) {
                 $currentErrPath[$errorKey] = $error;
                 $c['v_ok'] = false;
-
                 // MAYBE EXPERIMENTAL: Might not work as intended in all cases
                 // This is the "'<STOP_ALL_ON_FIRST_ERROR>' => true," root key!
                 // Stop ALL Validation if "stop_all_on_first_error" key exists
@@ -2334,7 +2266,6 @@ function funk_validation_validate_rules(&$c, $inputValue, $fullFieldName, array 
                     $c['v_config']['stop_all_on_first_error'] = true;
                     return;
                 }
-
                 if ($stop) {
                     return;
                 }
@@ -2381,7 +2312,6 @@ function funk_validation_recursively_improved(
             }
             return;
         }
-
         // Here we initialize all the global configs (this is ALWAYS the first key)
         // TODO: EXPERIMENTAL: Might not work as intended in all cases
         if ($DXKey === '<CONFIG>') {
@@ -2400,12 +2330,10 @@ function funk_validation_recursively_improved(
             if (isset($rulesOrNestedFields['show_v_data_only_if_all_valid'])) {
                 $c['v_config']['show_v_data_only_if_all_valid'] = true;
             }
-
             // Finally delete the "<CONFIG>" key since it has been fully processed
             unset($validationRules[$DXKey]);
             continue;
         }
-
         // When root key is NOT "*" (but "key.*", "key" or "key.subkey" and so on!)
         if ($DXKey !== '*') {
             // Get current rules, input data|null and initialize current error path
@@ -2414,12 +2342,11 @@ function funk_validation_recursively_improved(
             $currentErrPath[$DXKey] = [];
             $currentValidData[$DXKey] = null;
             $wildCardExist = ($DXKey === '*' || key($rulesOrNestedFields) === '*');
-
             // If "<RULES>" node exists, we process it by passing it to the
             // funk_validation_validate_rules function which also receives
             // the current error path!
             if ($currentRules) {
-                funk_validation_validate_rules(
+                \funk_validation_validate_rules(
                     $c,
                     $currentInputData,
                     $DXKey,
@@ -2437,7 +2364,6 @@ function funk_validation_recursively_improved(
                     unset($currentValidData[$DXKey]);
                 }
             }
-
             // If there still exists elements in the $rulesOrNestedFields we
             // can assume that they are nested fields or the * wildcard
             // but we first ONLY process the nested fields first
@@ -2456,8 +2382,7 @@ function funk_validation_recursively_improved(
                         // and pass the current error path for this nested field
                         $currentErrPath[$DXKey][$name] = [];
                         $currentValidData[$DXKey][$name] = null;
-
-                        funk_validation_recursively_improved(
+                        \funk_validation_recursively_improved(
                             $c,
                             $inputData[$DXKey] ?? null,
                             $rulesOrNestedFields ?? [],
@@ -2475,34 +2400,29 @@ function funk_validation_recursively_improved(
                     unset($currentValidData[$DXKey]);
                 }
             }
-
             // Handle "*" wildcard for Numbered Arrays (works when they are in
             // the $wildCardExist = $rulesOrNestedFields, not $DXKey === '*' yet!)
             if ($wildCardExist) {
                 $wildCardRules = $rulesOrNestedFields['*']["<RULES>"] ?? null;
-
                 // If Rules found for Numbered Array * we pass on the rules to the
                 // validation function and then set the current error path.
                 // Only if it all passes do we actually start iterating through the numbered array
                 $actualCount = (is_array($currentInputData)
                     && array_is_list($currentInputData)) ? count($currentInputData) : 0;
-
                 // If Rules for Numbered Array * exist, we can validate it
                 if ($wildCardRules) {
                     $currentErrPath[$DXKey] = [];
-                    funk_validation_validate_rules(
+                    \funk_validation_validate_rules(
                         $c,
                         $currentInputData,
                         $DXKey,
                         $wildCardRules,
                         $currentErrPath[$DXKey]
                     );
-
                     // Only if it is empty do we actually iterate
                     if (empty($currentErrPath[$DXKey])) {
                         unset($currentErrPath[$DXKey]);
                         unset($rulesOrNestedFields['*']["<RULES>"]);
-
                         // We now extract the number of iterations
                         // from the Wildcard Rules array, which should exist
                         // otherwise we set to 0
@@ -2520,20 +2440,17 @@ function funk_validation_recursively_improved(
                         } else if (isset($wildCardRules['between']['value'])) {
                             $iterations = (int)$wildCardRules['between']['value'][1] ?? 0;
                         }
-
                         // If iterations is larger than the actual count,
                         // we can set it to the actual count so we do not
                         // iterate more than the actual number of elements
                         $iterations = ($iterations > 0) ? min($iterations, $actualCount) : $actualCount;
-
                         // Now we can recurse into the validation function for this
                         // numbered array element when iterations is greater than 0!
                         if ($iterations > 0) {
                             for ($index = 0; $index < $iterations; $index++) {
-
                                 $currentErrPath[$DXKey][$index] = [];
                                 $currentValidData[$DXKey][$index] = null;
-                                funk_validation_recursively_improved(
+                                \funk_validation_recursively_improved(
                                     $c,
                                     $currentInputData[$index] ?? null,
                                     $rulesOrNestedFields['*'],
@@ -2570,7 +2487,6 @@ function funk_validation_recursively_improved(
                 }
             }
         }
-
         // MAYBE EXPERIMENTAL: Might not work as intended in all cases, but otherwise nicely done!!! ^_^
         // When root key IS "*" meaning everything is shifted to the left where the first key
         // is the wildcard "*" and the rest are the nested fields meaning all must be different.
@@ -2579,30 +2495,26 @@ function funk_validation_recursively_improved(
             $currentErrPath[$DXKey] = [];
             $currentValidData[$DXKey] = null;
             $wildCardRules = $rulesOrNestedFields["<RULES>"] ?? null;
-
             // If Rules found for Numbered Array * we pass on the rules to the
             // validation function and then set the current error path.
             // Only if it all passes do we actually start iterating through the numbered array
             $actualCount = (is_array($currentInputData)
                 && array_is_list($currentInputData)) ? count($currentInputData) : 0;
-
             // If Rules for Numbered Array * exist, we can validate it
             if ($wildCardRules) {
                 $currentErrPath[$DXKey] = [];
-                funk_validation_validate_rules(
+                \funk_validation_validate_rules(
                     $c,
                     $currentInputData,
                     $DXKey,
                     $wildCardRules,
                     $currentErrPath[$DXKey]
                 );
-
                 // Only if it is empty do we actually iterate
                 if (empty($currentErrPath[$DXKey])) {
                     unset($currentErrPath[$DXKey]);
                     unset($rulesOrNestedFields["<RULES>"]);
                     unset($currentValidData[$DXKey]); // Delete "$c['v_data']['*'] = null"
-
                     // We now extract the number of iterations
                     // from the Wildcard Rules array, which should exist
                     // otherwise we set to 0
@@ -2620,20 +2532,17 @@ function funk_validation_recursively_improved(
                     } else if (isset($wildCardRules['between']['value'])) {
                         $iterations = (int)$wildCardRules['between']['value'][1] ?? 0;
                     }
-
                     // If iterations is larger than the actual count,
                     // we can set it to the actual count so we do not
                     // iterate more than the actual number of elements
                     $iterations = ($iterations > 0) ? min($iterations, $actualCount) : $actualCount;
-
                     // Now we can recurse into the validation function for this
                     // numbered array element when iterations is greater than 0!
                     if ($iterations > 0) {
                         for ($index = 0; $index < $iterations; $index++) {
-
                             $currentErrPath[$index] = [];
                             $currentValidData[$index] = null;
-                            funk_validation_recursively_improved(
+                            \funk_validation_recursively_improved(
                                 $c,
                                 $currentInputData[$index] ?? null,
                                 $rulesOrNestedFields,
@@ -2726,6 +2635,7 @@ function funk_load_sql(&$c, $sqlHandler, $sqlFunction)
 // match those defined in the `fields` array. $hydrateDataAfter is a boolean that indicates whether
 // to hydrate the data after executing the SQL Query. That means it calls `funk_use_hydrate` function
 // after a successful SQL Query execution assuming it was `SELECT` Query Type. Otherwise it ignores it.
+// TODO: Fix soon? IMPORTANT: NOT DONE - STILL WORK IN PROGRESS !!!!!!!!!!!!!!!!!!!!!!!
 function funk_use_sql(&$c, $sqlArrayKey, $inputData = null, $hydrateDataAfter = false)
 {
     // Validate `$sqlArrayKey` which should contain the following keys:
@@ -2747,13 +2657,11 @@ function funk_use_sql(&$c, $sqlArrayKey, $inputData = null, $hydrateDataAfter = 
         $c['err']['SQL']['funk_use_sql'][] = $longDefaultErr;
         return false;
     }
-
     // Validate $c['db'] is a valid MySQLi Connection Object
     if (!isset($c['db']) || $c['db'] === null || !($c['db'] instanceof mysqli)) {
         $c['err']['SQL']['funk_use_sql'][] = 'Database Connection `$c[\'db\']` is NOT Set, IS NULL or NOT a Valid MySQLi Object Instance. Connect to the Database before calling this Function!';
         return false;
     }
-
     // Valid Query Types Hashed Key Array:
     $validQueryTypes = [
         'SELECT' => [],
@@ -2765,7 +2673,6 @@ function funk_use_sql(&$c, $sqlArrayKey, $inputData = null, $hydrateDataAfter = 
         $c['err']['SQL']['funk_use_sql'][] = 'Invalid SQL Query Type Provided. Valid Query Types are: `SELECT`,`UPDATE`,`INSERT` & `DELETE` in current version of FunkPHP!';
         return false;
     }
-
     // Return True when everything succeeded!
     return true;
 }
@@ -2809,7 +2716,6 @@ function funk_use_validation(&$c, $validationHandler, $validationFunction, $sour
             return false;
         }
     }
-
     // Inform about the fact that this function is not
     // used for validating $_FILES variables and that
     // a different function should be used for that!
@@ -2817,20 +2723,17 @@ function funk_use_validation(&$c, $validationHandler, $validationFunction, $sour
         $c['err']['VALIDATIONS']['funk_use_validation'][] = 'Use Validation Function `funk_use_validation_files(&\$c, \$optimizedValidationArray)` instead to validate `\$_FILES`!';
         return false;
     }
-
     // Check that $optimizedValidationArray is a valid array
     if (!is_array($optimizedValidationArray) || empty($optimizedValidationArray)) {
         $c['err']['VALIDATIONS']['funk_use_validation'][] = 'Validation Function needs a non-empty array for `\$optimizedValidationArray`!';
         return false;
     }
-
     // Check that $source is a valid string and is either "GET", "POST" or "JSON" (must be exact)
     $allowedSources = ['GET' => [], 'POST' => [], 'JSON' => []];
     if (!is_string($source) || !isset($allowedSources[$source])) {
         $c['err']['VALIDATIONS']['funk_use_validation'][] = 'Validation Function needs a valid string for `\$source` (\"GET\", \"POST\" or \"JSON\" - uppercase only)!';
         return false;
     }
-
     // Load input based on the source and make
     // sure it is a valid non-empty array!
     $inputData = null;
@@ -2852,23 +2755,20 @@ function funk_use_validation(&$c, $validationHandler, $validationFunction, $sour
         $c['err']['VALIDATIONS']['funk_use_validation'][] = 'Validation Function needs a valid non-empty array for `\$inputData`!';
         return false;
     }
-
     // TODO: REMOVE THIS LINE WHEN DONE TESTING
     // This is just for testing purposes to see the input data
     var_dump('TEST DATA(GET/POST/JSON):', $inputData);
-
     // Now we can run the validation recursively and
     $c['v_ok'] = true;
     $c['v'] = [];
     $c['v_data'] = [];
-    funk_validation_recursively_improved(
+    \funk_validation_recursively_improved(
         $c,
         $inputData,
         $optimizedValidationArray,
         $c['v'],
         $c['v_data'],
     );
-
     // When this is set to true, it means that the validation
     // function has passed and no errors were found/added to $c['v']
     // Its default value is null meaning either no validation was run
@@ -2878,7 +2778,6 @@ function funk_use_validation(&$c, $validationHandler, $validationFunction, $sour
         $c['v'] = null;
         return true;
     }
-
     // Clear Valid Data Array if Validation failed but only if
     // "v_config" key "show_v_data_only_if_all_valid" is true
     if (
@@ -2892,6 +2791,7 @@ function funk_use_validation(&$c, $validationHandler, $validationFunction, $sour
 
 // The main validation function for validating data
 // in FunkPHP mapping to the $_FILES variables ONLY!
+// TODO: Fix function or remove????
 function funk_use_validation_files(&$c, $optimizedValidationArray)
 {
     // Check that $optimizedValidationArray is a valid array
@@ -2905,7 +2805,6 @@ function funk_use_validation_files(&$c, $optimizedValidationArray)
         $c['err']['VALIDATIONS']['funk_use_validation_files'][] = "Files Validation Function must receive a non-empty array for `\$_FILES`!";
         return false;
     }
-
     // When this is set to true, it means that the validation
     // function has passed and no errors were found/added to $c['v']
     if ($c['v_ok']) {
