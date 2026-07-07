@@ -188,13 +188,11 @@ function buildFormattedOutputTerminalBox(parsedJson) {
 	if (!parsedJson || !Array.isArray(parsedJson.messages)) {
 		return `<div style="color: #94a3b8; font-family: monospace;">⚠️ No structural status messages returned.</div>`;
 	}
-	const regex = '/([BRYG])?([\'"`])(.*?)\2/i';
 	return parsedJson.messages
 		.map((msg) => {
 			let badgeBg = '#64748b';
 			let badgeText = '#ffffff';
-			let messageColor = '#f8fafc';
-
+			const messageColor = '#f8fafc';
 			switch (msg.type) {
 				case 'SUCCESS':
 					badgeBg = '#10b981';
@@ -205,7 +203,6 @@ function buildFormattedOutputTerminalBox(parsedJson) {
 					break;
 				case 'WARNING':
 					badgeBg = '#f59e0b';
-					boxTextColor = '#1e293b';
 					badgeText = '#1e293b';
 					break;
 				case 'INFO':
@@ -213,14 +210,39 @@ function buildFormattedOutputTerminalBox(parsedJson) {
 					badgeBg = '#3b82f6';
 					break;
 			}
-			// Returns a Flexbox row container with two dedicated grid divs
+			// JavaScript True Regex Literal (No quotes around slashes + global 'g' flag)
+			const highlightRegex = /([BRYG])?(['"`])(.*?)\2/gi;
+			// Apply inline highlights using a replacement callback
+			const formattedMessage = msg.message.replace(
+				highlightRegex,
+				(match, modifier, quote, text) => {
+					let highlightColor = '#f59e0b'; // Default Yellow (#f59e0b)
+					if (modifier) {
+						// Map explicit color overrides
+						const upperModifier = modifier.toUpperCase();
+						if (upperModifier === 'R')
+							highlightColor = '#ef4444'; // Red
+						else if (upperModifier === 'G')
+							highlightColor = '#10b981'; // Green
+						else if (upperModifier === 'Y')
+							highlightColor = '#f59e0b'; // Yellow
+						else if (upperModifier === 'B') highlightColor = '#3b82f6'; // Blue
+					} else if (msg.type === 'WARNING') {
+						// Contrast Guard: If the background context is already yellow, default highlight to Blue
+						highlightColor = '#60a5fa';
+					}
+					// Return text wrapped in a styled span tag keeping the quotes intact
+					return `<span style="font-family: monospace; color: ${highlightColor}; font-weight: 600;">${quote}${text}${quote}</span>`;
+				}
+			);
+			// Returns a flexbox row container for FunkGUI
 			return `
-    <div style="display: flex; align-items: center; font-family: monospace; line-height: 1.5; color: ${messageColor};">
-        <p style="background: ${badgeBg}; color: ${badgeText}; padding: 8px 8px; border-radius: 4px; font-weight: bold; font-size: 0.85em; margin-right: 12px; min-width: 169px; text-align: center; align-self:flex-start;">
+    <div style="display: flex; align-items: center; font-family: monospace; line-height: 1.5; color: ${messageColor}; margin-bottom: 8px;">
+        <p style="background: ${badgeBg}; color: ${badgeText}; padding: 8px 8px; border-radius: 4px; font-weight: bold; font-size: 0.85em; margin-right: 12px; min-width: 169px; text-align: center; align-self: flex-start; margin-top: 0; margin-bottom: 0;">
             [FunkCLI - ${msg.type}]
         </p>
         <p style="word-break: break-word; text-align: left; margin: 0;">
-            ${msg.message}
+            ${formattedMessage}
         </p>
     </div>
         `;
