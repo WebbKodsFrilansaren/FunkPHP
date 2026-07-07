@@ -11,9 +11,31 @@
  * you do not understand how caching and/or compiled files work.
  **/
 /*
- * Function that
+ * Function that replaces {{##text_tokens_inside_of_template_function##}}
  *
 */
+function cli_function_template_token_replacer($arrayOfTokensToReplace, $templateFunctionAsString)
+{
+    if (!is_array($arrayOfTokensToReplace) || empty($arrayOfTokensToReplace) || array_is_list($arrayOfTokensToReplace)) {
+        cli_err_syntax("[cli_function_template_token_replacer]: Provided `\$arrayOfTokensToReplace` Must Be A Non-Empty Associative Array!");
+    } else if (!is_string($templateFunctionAsString) || empty($templateFunctionAsString)) {
+        cli_err_syntax("[cli_function_template_token_replacer]: Provided `\$templateFunctionAsString` Must Be A Non-Empty String!");
+    }
+    // Iteriate through and replace  {{##text_tokens_inside_of_template_function##}}
+    // with actual provided values from the array_key=>value in $arrayOfTokensToReplace
+    foreach ($arrayOfTokensToReplace as $key => $value) {
+        if (!is_scalar($value)) {
+            cli_err("[cli_function_template_token_replacer]: Value for Function Template Token Replacing Key `$key` inside of `/src/funkphp/core/function_templates.php` IS NOT `string|int|bool|float`. It cannot be used. Check its assigned Value in `\$functionsTemplatesArray` in `src/cli/commands/build.php` and/or the associated Function Name(s)!");
+        }
+        $searchTarget = "'" . $key . "'";
+        if (!str_contains($templateFunctionAsString, $searchTarget)) {
+            cli_err("[cli_function_template_token_replacer]: Function Template Token Replacing Key `$searchTarget` inside of `/src/funkphp/core/function_templates.php` was NOT found when it defined as it should by `\$functionsTemplatesArray`? Check `\$functionsTemplatesArray` in `src/cli/commands/build.php` and/or the associated Function Name(s). Do NOT use Single Quotes (`' '`) around \$functionsTemplatesArray Subkeys for a given Function name since this is automatically done by this function!");
+        }
+        $phpLiteralValue = var_export($value, true);
+        $templateFunctionAsString = str_replace($searchTarget, $phpLiteralValue, $templateFunctionAsString);
+    }
+    return $templateFunctionAsString;
+}
 /*
  * Function that loads a number of snippets file from the src/snippets folder and also
  * normalizes them by removing <?php in the beginning. the $snippets is expected to be a
@@ -50,6 +72,23 @@ function cli_snippets_load($snippets)
     }
     // We now concatenate it into a super long string with a \n separating each snippet and return it to the caller
     return implode("\n\n", $snippArrayCode);
+}
+/*
+ * Function that makes sure a provided FUNKPHP_FILE_PATH_CONSTANT is defined, exists and is readable
+*/
+function cli_file_constant_defined_file_exists_is_readable($constantExactFilePath)
+{
+    if (!is_string($constantExactFilePath) || empty(trim($constantExactFilePath))) {
+        cli_err("[cli_file_constant_defined_file_exists_is_readable()]: The provided `\$constantExactFilePath` must be A Non-Empty String! Any Command that called this function will now have stopped completely!");
+    }
+    if (
+        !defined($constantExactFilePath)
+        || !file_exists($constantExactFilePath)
+        || !is_readable($constantExactFilePath)
+    ) {
+        return false;
+    }
+    return true;
 }
 /*
 * Function that returns the calculated hash value of a file as a string

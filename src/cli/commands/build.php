@@ -611,6 +611,12 @@ if (!$allowModifiedCore && (cli_get_hash_calculation_of_a_file(FUNKPHP_FILE_PATH
     cli_build_warning_err_list($functionsWarnsAndErrs, "cli_err", "The FunkPHP Core Functions File `FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL` (`funkphp/core/functions.php`) might be modified due to wrong calculated sha-256 hash value. Your User-defined Functions you should add/edit/remove are found in `/src/funkphp/config/functions.php`! DO NOT edit FunkPHP Core Functions File. Check your Git/File Versioning History to see if you can rollback any changes made to the FunkPHP Core Functions File, or Redownload the Files from an Official Source! Paths: " . (FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL ?? "[NOT_DEFINED]") . " & " . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]"));
     cli_stop_from_warn_err_list($functionsWarnsAndErrs, "Please Review (" . count($functionsWarnsAndErrs) . ") Warnings/Errors above for the Function Files (Core & User-defined) and try again! Path: " . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]"));
 }
+
+if (cli_file_constant_defined_file_exists_is_readable("FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL_TEMPLATES")) {
+    cli_build_warning_err_list($functionsWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL_TEMPLATES` containing exact File Path to FunkPHP Core Functions Templates File (`funkphp/core/function_templates.php`) is NOT DEFINED or FILE DOES NOT EXIST or FILE IS NOT READABLE. File Permission issues? DO NOT edit FunkPHP Core Functions File. Check your Git/File Versioning History to see if you can rollback any changes made to the FunkPHP Core Functions Templates File, or Redownload the Files from an Official Source! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL_TEMPLATES ?? "[NOT_DEFINED]") . "`");
+    cli_stop_from_warn_err_list($functionsWarnsAndErrs, "Please Review (" . count($functionsWarnsAndErrs) . ") Warnings/Errors above for the Function (Templates) Files (Core & User-defined) and try again! Path: " . (FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL_TEMPLATES ?? "[NOT_DEFINED]"));
+}
+$coreFunctionsTemplateFile = cli_folder_and_php_file_status("funkphp/core", "function_templates.php");
 $coreFunctionsFile = cli_folder_and_php_file_status("funkphp/core", "functions.php");
 foreach ($userFunctionsFile['functions'] as $fnNameUser => $fnValsUser) {
     if (
@@ -628,8 +634,50 @@ foreach ($userFunctionsFile['functions'] as $fnNameUser => $fnValsUser) {
     }
 }
 cli_stop_from_warn_err_list($functionsWarnsAndErrs, "Please Review (" . count($functionsWarnsAndErrs) . ") Warnings/Errors above for regarding User-defined & In-built Functions! Paths: " . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . " & " . (FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL ?? "[NOT_DEFINED]"));
-foreach ($coreFunctionsFile['functions'] as $fnNameCore => $fnValsCore) {
-    $deploymentBuffer[] = $fnValsCore['fn_raw'] . "\n";
+
+// Replace values for a dynamic function stored in /src/funkphp/core/function_templates.php that
+// are replaced if the function exists and this is then added as the default Core Function to ouput!
+$functionsTemplatesArray = [
+    "funk_session_started_or_start_it" => [
+        "{{##session_lifetime##}}" =>  $cConfig['SESSION']['COOKIES']['SESSION_LIFETIME'],
+        "{{##session_path##}}"  =>  $cConfig['SESSION']['COOKIES']['SESSION_PATH'],
+        "{{##session_domain##}}"  =>  $cConfig['SESSION']['COOKIES']['SESSION_DOMAIN'],
+        "{{##session_secure##}}"  =>  $cConfig['SESSION']['COOKIES']['SESSION_SECURE'],
+        "{{##session_httponly##}}"  =>  $cConfig['SESSION']['COOKIES']['SESSION_HTTPONLY'],
+        "{{##session_samesite##}}"  =>  $cConfig['SESSION']['COOKIES']['SESSION_SAMESITE'],
+    ],
+    "" => ["" => "", "" => "", "" => "", "" => "",],
+    "" => ["" => "", "" => "", "" => "", "" => "",],
+    "" => ["" => "", "" => "", "" => "", "" => "",],
+    "" => ["" => "", "" => "", "" => "", "" => "",],
+    "" => ["" => "", "" => "", "" => "", "" => "",],
+    "" => ["" => "", "" => "", "" => "", "" => "",],
+];
+
+// Add Core Functions and also replace some of them with their dynamic counter-parts from function_templates.php
+// in /src/funkphp/core/function_templates.php
+if (isset($coreFunctionsFile['functions'])) {
+    foreach ($coreFunctionsFile['functions'] as $fnNameCore => $fnValsCore) {
+        if (isset($functionsTemplatesArray[$fnNameCore])) {
+            $templateRawCode = $coreFunctionsTemplateFile['functions'][$fnNameCore]['fn_raw'] ?? null;
+            if (!$templateRawCode) {
+                cli_build_warning_err_list($functionsWarnsAndErrs, "cli_err", "Function '$fnNameCore' is marked for Token Replacement, but its Template was not found inside `/src/funkphp/core/function_templates.php`! The Function Structure must start with `function name(\&\$c`. Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL_TEMPLATES ?? "[NOT_DEFINED]") . "`");
+                cli_stop_from_warn_err_list($functionsWarnsAndErrs, "Please Review (" . count($functionsWarnsAndErrs) . ") Warnings/Errors above for the Function (Templates) Files (Core & User-defined) and try again! Path: " . (FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL_TEMPLATES ?? "[NOT_DEFINED]"));
+            }
+            $compiledTemplate = cli_function_template_token_replacer($functionsTemplatesArray[$fnNameCore], $templateRawCode);
+            $deploymentBuffer[] = $compiledTemplate . "\n";
+        } else {
+            $deploymentBuffer[] = $fnValsCore['fn_raw'] . "\n";
+        }
+    }
+}  // Core Functions not found by the helper function, but is it AllowedModifiedCore false?
+else {
+    if ($allowModifiedCore === false) {
+        cli_build_warning_err_list($functionsWarnsAndErrs, "cli_err", "The FunkPHP Core Functions File `FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL` (`/src/funkphp/core/functions.php`) might be modified due to not finding Any Valid Structured Functions. Your User-defined Functions you should add/edit/remove are found in `/src/funkphp/config/functions.php`! DO NOT edit FunkPHP Core Functions File. Check your Git/File Versioning History to see if you can rollback any changes made to the FunkPHP Core Functions File, or Redownload the Files from an Official Source! Paths: " . (FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL ?? "[NOT_DEFINED]") . " & " . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]"));
+        cli_stop_from_warn_err_list($functionsWarnsAndErrs, "Please Review (" . count($functionsWarnsAndErrs) . ") Warnings/Errors above for the Function Files (Core & User-defined) and try again! Path: " . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]"));
+    } else {
+        cli_warning_without_exit("FunkPHP Core Functions File in `/src/funkphp/core/functions.php` does NOT contain Any Valid Structured Functions (`function name(\&\$c){}`) or Any Functions at all. Modified Core is set to ALLOWED so it will be ignored.");
+    }
 }
 
 $deploymentBuffer[] = "}"; // Closing Global namespace for now
@@ -642,7 +690,7 @@ $pipelineWarnsAndErrs = [];
 cli_info_without_exit("### Step 4: Loading, Validating, Rebuilding & Compiling `compiled_routes.php` & `pipeline_routes.php` Files ('Routes' in 'Pipeline' in FunkGUI)...");
 $routesWarnsAndErrs = [];
 
-cli_info_without_exit("### Step 5: Loading, Validating, & Compiling Pipeline Functions (files in `src/funkphp/pipeline/routes`) & Middlewares Functions (files in `src/funkphp/pipeline/middlewares) Used For Each Valid Route Compiled From `compiled_routes.php` & `pipeline_routes.php` Files ('Routes' & 'Middlewares' in 'Pipeline' in FunkGUI)...");
+cli_info_without_exit("### Step 5: Loading, Validating, & Compiling Pipeline Functions (files in `src/funkphp/pipeline/routes`) & Middlewares Functions (files in `src/funkphp/pipeline/middlewares`) Used For Each Valid Route Compiled From `compiled_routes.php` & `pipeline_routes.php` Files ('Routes' & 'Middlewares' in 'Pipeline' in FunkGUI)...");
 $routesPipelineWarnsAndErrs = [];
 
 cli_info_without_exit("### Step 6: Loading, Validating, & Compiling Any Pages (files in `src/funkphp/pages`) used ('Pages' with 'Layouts', 'Components' & 'Compiled' in FunkGUI)...");
@@ -672,7 +720,7 @@ cli_info_without_exit("### Step 7: Running any optional flags before finishing..
 $optionalFlagsWarnsAndErrs = [];
 
 // This should happen if everything above went smoothly!
-if (!cli_crud_folder_php_file_atomic_write(implode($deploymentBuffer), FUNKPHP_FILE_PATH_DEPLOYMENT_FILE)) {
+if (!cli_crud_folder_php_file_atomic_write(cli_php_strip_whitespace_string(implode($deploymentBuffer)), FUNKPHP_FILE_PATH_DEPLOYMENT_FILE)) {
     cli_err("Failed to write the otherwise Successfully Compiled `FunkPHPDeployment.php` File to the Disk! Please check the File Permissions and try again! Path: " . (FUNKPHP_FILE_PATH_DEPLOYMENT_FILE ?? "[NOT_DEFINED]"));
 }
 cli_success("### FunkCLI Successfully Compiled & Built `FunkPHPDeployment.php` with the following options:\n### Compile Pages: " . ($compilePages ? "YES" : "NO") . "\n### Compress Deployment: " . ($compressDeployment ? "YES" : "NO") . "\n### You can now deploy the `FunkPHPDeployment.php` file to your server for production use!");

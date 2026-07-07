@@ -28,12 +28,12 @@ function funk_session_started_or_start_it(&$c)
     // Configure native cookie settings right before booting
     // Pass the raw, pre-verified array straight to PHP. No runtime IF statements required!
     session_set_cookie_params([
-        'lifetime' => "{{['SESSION']['COOKIES']['SESSION_LIFETIME'] ?? 0}}",
-        'path' => "{{['SESSION']['COOKIES']['SESSION_PATH'] ?? '/'}}",
-        'domain' => "{{['SESSION']['COOKIES']['SESSION_DOMAIN'] ?? ''}}",
-        'secure' => "{{['SESSION']['COOKIES']['SESSION_SECURE'] ?? true}}",
-        'httponly' => "true",
-        'samesite' => "{{['SESSION']['COOKIES']['SESSION_SAMESITE'] ?? 'Lax'}}",
+        'lifetime' => '{{##session_lifetime##}}',
+        'path' => '{{##session_path##}}',
+        'domain' => '{{##session_domain##}}',
+        'secure' => '{{##session_secure##}}',
+        'httponly' => '{{##session_httponly##}}',
+        'samesite' => '{{##session_samesite##}}',
     ]);
     // If it fails to start a session, throw an error and exit with a 500 Internal Server Error
     if (!session_start()) {
