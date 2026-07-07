@@ -13,7 +13,7 @@
 return [
     'name' => 'FunkPHP',
     'version' => '1.0.0',
-    'release_date' => '2026-08-08',
+    'release_date' => '2026-11-11',
     'hashes' => [
         'funkphp/core/c.php' => ['', ''],
         'funkphp/core/compiled_routes.php'    => ['', ''],

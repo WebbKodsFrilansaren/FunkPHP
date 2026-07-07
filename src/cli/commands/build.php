@@ -620,9 +620,7 @@ foreach ($userFunctionsFile['functions'] as $fnNameUser => $fnValsUser) {
     }
 }
 
-exit;
-
-cli_stop_from_warn_err_list($functionsWarnsAndErrs, "Please Review (" . count($functionsWarnsAndErrs) . ") Warnings/Errors above for regarding User-defined & In-built Functions! Paths: " . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . " & "(FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL ?? "[NOT_DEFINED]"));
+cli_stop_from_warn_err_list($functionsWarnsAndErrs, "Please Review (" . count($functionsWarnsAndErrs) . ") Warnings/Errors above for regarding User-defined & In-built Functions! Paths: " . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . " & " . (FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL ?? "[NOT_DEFINED]"));
 foreach ($coreFunctionsFile['functions'] as $fnNameCore => $fnValsCore) {
     $deploymentBuffer[] = $fnValsCore['fn_raw'] . "\n";
 }
