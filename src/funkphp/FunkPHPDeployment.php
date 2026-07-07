@@ -4,34 +4,7 @@ namespace {
     define('FUNKPHP_DEPLOYED', true);
     define('FUNKPHP_NO_VALUE', new stdClass());
     define('FUNKPHP_ALLOW_INSTANCE_OVERWRITE', 1);
-    $c = array(
-        'FUNKPHP_ONLINE' => false,
-        'FUNKPHP_USE_HTTPS' => false,
-        'FUNKPHP_USE_PREPARE_URI' => true,
-        'FUNKPHP_USE_VENDOR' => true,
-        'FUNKPHP_CUSTOM_EXCEPTION_HANDLER' => NULL,
-        'FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION' => NULL,
-        'INI_SETS' => array('session.cache_limiter' => 'public', 'session.use_strict_mode' => 8, 'session.use_only_cookies' => 1, 'session.cache_expire' => 30, 'session.cookie_lifetime' => 0, 'session.name' => 'fphp_id', 'session.sid_length' => 192, 'session.sid_bits_per_character' => 6, 'display_errors' => 1, 'display_startup_errors' => 1, 'error_reporting' => 1,),
-        'BASEURLS' => array('LOCAL' => 'http://webdev.local:81/funkphp', 'ONLINE' => 'https://www.funkphp.com', 'BASEURL' => 'localhost', 'BASEURL_URI' => '/funkphp/src/public_html/',),
-        'SESSION' => array('driver' => 'files', 'COOKIES' => array('SESSION_NAME' => 'fphp_id', 'SESSION_LIFETIME' => 28800, 'SESSION_PATH' => '/', 'SESSION_DOMAIN' => 'webdev.local', 'SESSION_SECURE' => false, 'SESSION_HTTPONLY' => true, 'SESSION_SAMESITE' => 'Lax',),),
-        '<ENTRY>' => array(),
-        'ROUTES' => array(),
-        'shared' => array(),
-        'custom' => NULL,
-        'classes' => array('vendor' => array(), 'user' => array(),),
-        'credentials' => array('mysql_native' => array('driver' => 'mysqli', 'host' => '127.0.0.1', 'user' => 'root', 'password' => 'secret', 'database' => 'funk_db', 'port' => 3306, 'charset' => 'utf8mb4',), 'mysql_pdo' => array('driver' => 'pdo_mysql', 'host' => '127.0.0.1', 'user' => 'root', 'password' => 'secret', 'database' => 'funk_db', 'port' => 3306, 'charset' => 'utf8mb4',), 'postgres_pdo' => array('driver' => 'pdo_pgsql', 'host' => 'localhost', 'user' => 'postgres', 'password' => 'secret_pg_pass', 'database' => 'funk_postgres', 'port' => 5432, 'sslmode' => 'prefer',), 'redis_main' => array('driver' => 'redis', 'host' => '127.0.0.1', 'port' => 6379, 'password' => 'redis_auth_token', 'database' => 0, 'timeout' => 0,), 'memcached_cluster' => array('driver' => 'memcached', 'servers' => array(0 => array(0 => '127.0.0.1', 1 => 11211, 2 => 100,),),), 'mongo_docs' => array('driver' => 'mongodb', 'dsn' => 'mongodb://root:secret@127.0.0.1:27017', 'database' => 'funk_nosql', 'options' => array(),), 'aws_dynamo' => array('driver' => 'dynamodb', 'region' => 'us-east-1', 'version' => 'latest', 'key' => 'AKIAIOSFODNN7EXAMPLE', 'secret' => 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY', 'endpoint' => 'http://localhost:8000',),),
-        'connections' => array(),
-        'req' => array('method' => $_SERVER['REQUEST_METHOD'] ?? 'GET', 'ip' => $_SERVER['REMOTE_ADDR'] ?? null, 'time' => $_SERVER['REQUEST_TIME'] ?? time(), 'uri' => NULL, 'query' => $_SERVER['QUERY_STRING'] ?? null, 'base_url_absolute' => NULL, 'base_url_relative' => NULL, 'matched_in' => NULL, 'route' => NULL, 'params' => NULL, 'segments' => NULL, 'auth' => NULL, 'matched_config' => NULL, 'matched_pipeline' => array(), 'matched_middlewares' => NULL, 'skip_post_response' => false, 'current_pipeline' => NULL, 'next_pipeline' => NULL, 'current_middleware' => NULL, 'next_middleware' => NULL, 'keep_running_pipeline' => NULL, 'keep_running_middlewares' => NULL, 'keep_running_exit' => NULL, 'code' => 418, 'log' => array(), 'ua' => NULL, 'content_type' => NULL, 'accept' => NULL, 'protocol' => NULL,),
-        'd' => NULL,
-        'v' => NULL,
-        'v_ok' => NULL,
-        'v_ok_files' => NULL,
-        'v_config' => array(),
-        'v_data' => NULL,
-        'p' => NULL,
-        'files' => NULL,
-        'err' => array('MAYBE' => array(), 'FUNCTIONS' => array(), 'CLASSES' => array(), 'CONNECTIONS' => array(), 'PIPELINE' => array(), 'MIDDLEWARES' => array(), 'PAGE' => array(), 'VALIDATION' => array(), 'SQL' => array(), 'QUERY' => array(),),
-    );
+    $c = array('FUNKPHP_ONLINE' => false, 'FUNKPHP_USE_HTTPS' => false, 'FUNKPHP_USE_PREPARE_URI' => true, 'FUNKPHP_USE_VENDOR' => true, 'FUNKPHP_CUSTOM_EXCEPTION_HANDLER' => NULL, 'FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION' => NULL, 'INI_SETS' => array('session.cache_limiter' => 'public', 'session.use_strict_mode' => 8, 'session.use_only_cookies' => 1, 'session.cache_expire' => 30, 'session.cookie_lifetime' => 0, 'session.name' => 'fphp_id', 'session.sid_length' => 192, 'session.sid_bits_per_character' => 6, 'display_errors' => 1, 'display_startup_errors' => 1, 'error_reporting' => 1,), 'BASEURLS' => array('LOCAL' => 'http://webdev.local:81/funkphp', 'ONLINE' => 'https://www.funkphp.com', 'BASEURL' => 'localhost', 'BASEURL_URI' => '/funkphp/src/public_html/',), 'SESSION' => array('driver' => 'files', 'COOKIES' => array('SESSION_NAME' => 'fphp_id', 'SESSION_LIFETIME' => 28800, 'SESSION_PATH' => '/', 'SESSION_DOMAIN' => 'webdev.local', 'SESSION_SECURE' => false, 'SESSION_HTTPONLY' => true, 'SESSION_SAMESITE' => 'Lax',),), '<ENTRY>' => array(), 'ROUTES' => array(), 'shared' => array(), 'custom' => NULL, 'classes' => array('vendor' => array(), 'user' => array(),), 'credentials' => array('mysql_native' => array('driver' => 'mysqli', 'host' => '127.0.0.1', 'user' => 'root', 'password' => 'secret', 'database' => 'funk_db', 'port' => 3306, 'charset' => 'utf8mb4',), 'mysql_pdo' => array('driver' => 'pdo_mysql', 'host' => '127.0.0.1', 'user' => 'root', 'password' => 'secret', 'database' => 'funk_db', 'port' => 3306, 'charset' => 'utf8mb4',), 'postgres_pdo' => array('driver' => 'pdo_pgsql', 'host' => 'localhost', 'user' => 'postgres', 'password' => 'secret_pg_pass', 'database' => 'funk_postgres', 'port' => 5432, 'sslmode' => 'prefer',), 'redis_main' => array('driver' => 'redis', 'host' => '127.0.0.1', 'port' => 6379, 'password' => 'redis_auth_token', 'database' => 0, 'timeout' => 0,), 'memcached_cluster' => array('driver' => 'memcached', 'servers' => array(0 => array(0 => '127.0.0.1', 1 => 11211, 2 => 100,),),), 'mongo_docs' => array('driver' => 'mongodb', 'dsn' => 'mongodb://root:secret@127.0.0.1:27017', 'database' => 'funk_nosql', 'options' => array(),), 'aws_dynamo' => array('driver' => 'dynamodb', 'region' => 'us-east-1', 'version' => 'latest', 'key' => 'AKIAIOSFODNN7EXAMPLE', 'secret' => 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY', 'endpoint' => 'http://localhost:8000',),), 'connections' => array(), 'req' => array('method' => $_SERVER['REQUEST_METHOD'] ?? 'GET', 'ip' => $_SERVER['REMOTE_ADDR'] ?? null, 'time' => $_SERVER['REQUEST_TIME'] ?? time(), 'uri' => NULL, 'query' => $_SERVER['QUERY_STRING'] ?? null, 'base_url_absolute' => NULL, 'base_url_relative' => NULL, 'matched_in' => NULL, 'route' => NULL, 'params' => NULL, 'segments' => NULL, 'auth' => NULL, 'matched_config' => NULL, 'matched_pipeline' => array(), 'matched_middlewares' => NULL, 'skip_post_response' => false, 'current_pipeline' => NULL, 'next_pipeline' => NULL, 'current_middleware' => NULL, 'next_middleware' => NULL, 'keep_running_pipeline' => NULL, 'keep_running_middlewares' => NULL, 'keep_running_exit' => NULL, 'code' => 418, 'log' => array(), 'ua' => NULL, 'content_type' => NULL, 'accept' => NULL, 'protocol' => NULL,), 'd' => NULL, 'v' => NULL, 'v_ok' => NULL, 'v_ok_files' => NULL, 'v_config' => array(), 'v_data' => NULL, 'p' => NULL, 'files' => NULL, 'err' => array('MAYBE' => array(), 'FUNCTIONS' => array(), 'CLASSES' => array(), 'CONNECTIONS' => array(), 'PIPELINE' => array(), 'MIDDLEWARES' => array(), 'PAGE' => array(), 'VALIDATION' => array(), 'SQL' => array(), 'QUERY' => array(),),);
     require_once __DIR__ . '/vendor/autoload.php';
     set_exception_handler(function (\Throwable $e) use (&$c) {
         \funk_default_exception_handler($c, $e);
@@ -73,7 +46,7 @@ namespace {
                 if (!FUNKPHP_ALLOW_INSTANCE_OVERWRITE) {
                     $c['err']['CLASSES']['funk_use_class()'][] = 'The `funk_use_class()` cannot set the instance for key `' . $instanceKey . '` in the `' . $objClassFolder . '` Folder as it already exists! Overwriting existing instances is not allowed.';
                     $err = 'The `funk_use_class()` cannot set the instance for key `' . $instanceKey . '` in the `' . $objClassFolder . '` Folder as it already exists! Overwriting existing instances is not allowed. Change to: `define("FUNKPHP_ALLOW_INSTANCE_OVERWRITE",true)` in `config/_all.php` (below $c["INSTANCES"] to `true` if you want to allow overwriting existing instances!';
-                    funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+                    \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
                 } else {
                     $c['INSTANCES'][$objClassFolder][$instanceKey] = $newObjectOrExistingObject;
                     return $c['INSTANCES'][$objClassFolder][$instanceKey];
@@ -91,22 +64,22 @@ namespace {
             return;
         }
         if (($c['SESSION']['driver'] ?? 'files') === 'redis') {
-            funk_connect_redis_infrastructure($c);
+            \funk_connect_redis_infrastructure($c);
         }
         session_set_cookie_params(['lifetime' => 28800, 'path' => '/', 'domain' => 'webdev.local', 'secure' => false, 'httponly' => true, 'samesite' => 'Lax',]);
         if (!session_start()) {
             $err = 'Tell The Developer: FAILED to Start Session-based Cookie Session. Please check $c[\'INI_SETS\'] and/or $c[\'COOKIES\'] in the Global Configuration `funkphp/config/_all.php` File and adjust the values accordingly if needed!';
-            funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+            \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
         }
     }
     function funk_session_get(&$c, string $key, $default = null)
     {
-        funk_session_started_or_start_it($c);
+        \funk_session_started_or_start_it($c);
         return $_SESSION[$key] ?? $default;
     }
     function funk_session_set(&$c, string $key, $value): void
     {
-        funk_session_started_or_start_it($c);
+        \funk_session_started_or_start_it($c);
         $_SESSION[$key] = $value;
     }
     function funk_session_destroy(&$c, $set_other_cookies_with_h_setcookie_as_array = [], $redirect = null)
@@ -115,11 +88,11 @@ namespace {
             $_SESSION = [];
             session_unset();
             session_destroy();
-            funk_session_cookie_set(session_name(), '', time() - 3600);
-            funk_session_cookie_set("csrf", '', time() - 3600);
+            \funk_session_cookie_set(session_name(), '', time() - 3600);
+            \funk_session_cookie_set("csrf", '', time() - 3600);
             if (!empty($set_other_cookies_with_h_setcookie_as_array)) {
                 foreach ($set_other_cookies_with_h_setcookie_as_array as $cookie) {
-                    funk_session_cookie_set(...$cookie);
+                    \funk_session_cookie_set(...$cookie);
                 }
             }
         }
@@ -134,7 +107,7 @@ namespace {
     }
     function funk_generate_csrf(&$c, string $currentUri, ?int $lifetimeSeconds = null): string
     {
-        if (funk_session_get($c, '_funk_csrf') === null) {
+        if (\funk_session_get($c, '_funk_csrf') === null) {
             $_SESSION['_funk_csrf'] = [];
         }
         $token = hash('sha256', random_bytes(32));
@@ -216,14 +189,14 @@ namespace {
     function funk_default_exception_handler(&$c, $e)
     {
         $c['err']['UNCAUGHT_EXCEPTION'] = $e;
-        funk_use_log($c, "UNCAUGHT EXCEPTION BY DEVELOPER: " . $e->getMessage(), 'CRIT');
+        \funk_use_log($c, "UNCAUGHT EXCEPTION BY DEVELOPER: " . $e->getMessage(), 'CRIT');
         $err = 'Tell the Developer: An Uncaught Exception Occurred: `' . $e->getMessage() . '` Please check the Logs for more details.';
-        funk_use_error_json_or_page($c, 500, ["internal_error" => $err], '500', $err);
+        \funk_use_error_json_or_page($c, 500, ["internal_error" => $err], '500', $err);
     }
     function funk_default_register_shutdown_function(&$c)
     {
         if (isset($c['<ENTRY>']['pipeline']['post_response']) && is_array($c['<ENTRY>']['pipeline']['post_response']) && array_is_list($c['<ENTRY>']['pipeline']['post_response']) && !empty($c['<ENTRY>']['pipeline']['post_response'])) {
-            funk_run_pipeline_post_response($c);
+            \funk_run_pipeline_post_response($c);
         } else {
             $c['err']['MAYBE']['PIPELINE']['funk_run_post_request'][] = 'No Configured Post-Response Pipeline Functions (`"<ENTRY>" => "pipeline" => "post_response"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\'][\'post_response\']` Key in the Pipeline Configuration File `funkphp/core/pipeline_request.php` File!';
         }
@@ -234,10 +207,10 @@ namespace {
             ob_clean();
         }
         if (!isset($erCode) || !is_int($erCode) || $erCode < 100 || $erCode > 599) {
-            critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_handle_error_html_string()` Function. This should be an integer between 100 and 599!');
+            \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_handle_error_html_string()` Function. This should be an integer between 100 and 599!');
         }
         if (!isset($errMsg) || !is_string($errMsg) || empty($errMsg)) {
-            critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_handle_error_html_string()` Function. This should be a non-empty string!');
+            \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_handle_error_html_string()` Function. This should be a non-empty string!');
         }
         http_response_code($errCode);
         header('Content-Type: text/html; charset=utf-8');
@@ -250,10 +223,10 @@ namespace {
             ob_clean();
         }
         if (!isset($errCode) || !is_int($errCode) || $errCode < 100 || $errCode > 599) {
-            critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_handle_error_plain_text()` Function. This should be an integer between 100 and 599!');
+            \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_handle_error_plain_text()` Function. This should be an integer between 100 and 599!');
         }
         if (!isset($errMsg) || !is_string($errMsg) || empty($errMsg)) {
-            critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_handle_error_plain_text()` Function. This should be a non-empty string!');
+            \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_handle_error_plain_text()` Function. This should be a non-empty string!');
         }
         http_response_code($errCode);
         header('Content-Type: text/plain; charset=utf-8');
@@ -266,10 +239,10 @@ namespace {
             ob_clean();
         }
         if (!isset($errCode) || !is_int($errCode) || $errCode < 100 || $errCode > 599) {
-            critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_handle_error_xml()` Function. This should be an integer between 100 and 599!');
+            \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_handle_error_xml()` Function. This should be an integer between 100 and 599!');
         }
         if (!isset($errMsg) || !is_string($errMsg) || empty($errMsg)) {
-            critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_handle_error_xml()` Function. This should be a non-empty string!');
+            \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_handle_error_xml()` Function. This should be a non-empty string!');
         }
         http_response_code($errCode);
         header('Content-Type: application/xml; charset=utf-8');
@@ -282,13 +255,13 @@ namespace {
             ob_clean();
         }
         if (!isset($errCode) || !is_int($errCode) || $errCode < 100 || $errCode > 599) {
-            critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_handle_error_page()` Function. This should be an integer between 100 and 599!');
+            \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_handle_error_page()` Function. This should be an integer between 100 and 599!');
         }
         if (!isset($errMsg) || !is_string($errMsg) || empty($errMsg)) {
-            critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_handle_error_page()` Function. This should be a non-empty string!');
+            \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_handle_error_page()` Function. This should be a non-empty string!');
         }
         if (!isset($pageName) || !is_string($pageName) || empty($pageName) || !is_readable(ROOT_PAGES_ERRORS . '/' . $pageName . '.php')) {
-            critical_err_json_or_html(500, 'Tell the Developer: No Valid Page Filename Provided to `funk_handle_error_page()` Function. This should be a non-empty string that is also a readable file inside `/pages/compiled/[errors]/` directory!');
+            \critical_err_json_or_html(500, 'Tell the Developer: No Valid Page Filename Provided to `funk_handle_error_page()` Function. This should be a non-empty string that is also a readable file inside `/pages/compiled/[errors]/` directory!');
         }
         header('Content-Type: text/html; charset=utf-8');
         header("Content-Security-Policy: default-src 'none'; img-src 'self'; script-src 'self'; connect-src 'none'; style-src 'self' 'unsafe-inline'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; font-src 'self'; base-uri 'self';");
@@ -296,7 +269,7 @@ namespace {
             $custom_error_message = $errMsg;
             include_once ROOT_PAGES_ERRORS . '/' . $pageName . '.php';
         } catch (\Throwable $e) {
-            critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the `funk_use_error_page()` Function while trying to return a Custom Error Page. Yes, an error to show an error occured:`' . $e->getMessage() . '`.');
+            \critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the `funk_use_error_page()` Function while trying to return a Custom Error Page. Yes, an error to show an error occured:`' . $e->getMessage() . '`.');
         }
         exit();
     }
@@ -306,26 +279,26 @@ namespace {
             ob_clean();
         }
         if (!isset($errCode) || !is_int($errCode) || $errCode < 100 || $errCode > 599) {
-            critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_handle_error_callback()` Function. This should be an integer between 100 and 599!');
+            \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_handle_error_callback()` Function. This should be an integer between 100 and 599!');
         }
         if (!isset($errMsg) || !is_string($errMsg) || empty($errMsg)) {
-            critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_handle_error_callback()` Function. This should be a non-empty string!');
+            \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_handle_error_callback()` Function. This should be a non-empty string!');
         }
         if (!isset($callbackName) || !is_string($callbackName) || empty($callbackName) || !is_callable($callbackName)) {
-            critical_err_json_or_html(500, 'Tell the Developer: No Valid Callback Name Provided to `funk_handle_error_callback()` Function. This should be a non-empty string that is also callable!');
+            \critical_err_json_or_html(500, 'Tell the Developer: No Valid Callback Name Provided to `funk_handle_error_callback()` Function. This should be a non-empty string that is also callable!');
         }
         http_response_code($errCode);
         try {
             $callbackName($c, $errMsg, $optionalCallbackData);
         } catch (\Throwable $e) {
-            critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the `funk_handle_error_callback()` Function with the following Error Message:`' . $e->getMessage() . '`.');
+            \critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the `funk_handle_error_callback()` Function with the following Error Message:`' . $e->getMessage() . '`.');
         }
         exit();
     }
     function funk_use_error_throw(&$c, string $exceptionErrMsg)
     {
         if (!isset($exceptionErrMsg) || !is_string($exceptionErrMsg) || empty($exceptionErrMsg)) {
-            critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_handle_error_throw()` Function. This should be a non-empty string!');
+            \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_handle_error_throw()` Function. This should be a non-empty string!');
         }
         throw new Exception($exceptionErrMsg);
     }
@@ -335,10 +308,10 @@ namespace {
             ob_clean();
         }
         if (!isset($errCode) || !is_int($errCode) || $errCode < 100 || $errCode > 599) {
-            critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_handle_error_json()` Function. This should be an integer between 100 and 599!');
+            \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_handle_error_json()` Function. This should be an integer between 100 and 599!');
         }
         if (!isset($jsonObjectOrStringThatReturnsJSON) || (!is_array($jsonObjectOrStringThatReturnsJSON) && !is_object($jsonObjectOrStringThatReturnsJSON) && (!is_string($jsonObjectOrStringThatReturnsJSON) || !is_callable($jsonObjectOrStringThatReturnsJSON)))) {
-            critical_err_json_or_html(500, 'Tell the Developer: No Valid JSON Data or Callable Provided to `funk_handle_error_json()` Function. This should be either a Non-Empty Array/Object OR a Non-Empty String that is also Callable which returns a Valid JSON Payload!');
+            \critical_err_json_or_html(500, 'Tell the Developer: No Valid JSON Data or Callable Provided to `funk_handle_error_json()` Function. This should be either a Non-Empty Array/Object OR a Non-Empty String that is also Callable which returns a Valid JSON Payload!');
         }
         http_response_code($errCode);
         $jsonData = $jsonObjectOrStringThatReturnsJSON;
@@ -346,30 +319,30 @@ namespace {
             try {
                 $jsonData = $jsonData($c);
             } catch (\Throwable $e) {
-                critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the JSON Callable:`' . $e->getMessage() . '` that was called using the `funk_use_error_json_or_page_or_callback()` Function!');
+                \critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the JSON Callable:`' . $e->getMessage() . '` that was called using the `funk_use_error_json_or_page_or_callback()` Function!');
             }
         }
         header('Content-Type: application/json; charset=utf-8');
         try {
             echo json_encode($jsonData, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         } catch (\JsonException $e) {
-            critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the `funk_handle_error_json()` While Encoding the Provided Data to JSON:`' . $e->getMessage() . '`');
+            \critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the `funk_handle_error_json()` While Encoding the Provided Data to JSON:`' . $e->getMessage() . '`');
         }
         exit();
     }
     function funk_use_error_json_or_page(&$c, int $errCode, $jsonObjectOrStringThatReturnsJSON, string $pageName, string $pageErrMsg)
     {
         if (!isset($errCode) || !is_int($errCode) || $errCode < 100 || $errCode > 599) {
-            critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_use_error_json_or_page()` Function. This should be an Integer between 100 and 599!');
+            \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_use_error_json_or_page()` Function. This should be an Integer between 100 and 599!');
         }
         if (!isset($pageErrMsg) || !is_string($pageErrMsg) || empty($pageErrMsg)) {
-            critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_use_error_json_or_page()` Function. This should be a Non-Empty String!');
+            \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_use_error_json_or_page()` Function. This should be a Non-Empty String!');
         }
         if (!isset($jsonObjectOrStringThatReturnsJSON) || (!is_array($jsonObjectOrStringThatReturnsJSON) && !is_object($jsonObjectOrStringThatReturnsJSON) && (!is_string($jsonObjectOrStringThatReturnsJSON) || !is_callable($jsonObjectOrStringThatReturnsJSON)))) {
-            critical_err_json_or_html(500, 'Tell the Developer: No Valid JSON Data or Callable Provided to `funk_use_error_json_or_page()` Function. This should be either a Non-Empty Array/Object OR a Non-Empty String that is also Callable which returns a Valid JSON Payload!');
+            \critical_err_json_or_html(500, 'Tell the Developer: No Valid JSON Data or Callable Provided to `funk_use_error_json_or_page()` Function. This should be either a Non-Empty Array/Object OR a Non-Empty String that is also Callable which returns a Valid JSON Payload!');
         }
         if (!isset($pageName) || !is_string($pageName) || empty($pageName) || !is_readable(ROOT_PAGES_ERRORS . '/' . $pageName . '.php')) {
-            critical_err_json_or_html(500, 'Tell the Developer: No Valid Page Filename Provided to `funk_use_error_json_or_page()` Function. This should be a Non-Empty String and it must exist as a file in the `src/funkphp/pages/compiled/[errors]` directory!');
+            \critical_err_json_or_html(500, 'Tell the Developer: No Valid Page Filename Provided to `funk_use_error_json_or_page()` Function. This should be a Non-Empty String and it must exist as a file in the `src/funkphp/pages/compiled/[errors]` directory!');
         }
         http_response_code($errCode);
         if (isset($c['req']['accept']) && is_string($c['req']['accept']) && !empty($c['req']['accept']) && (str_contains($c['req']['accept'], 'application/json') || str_contains($c['req']['accept'], 'text/json'))) {
@@ -378,14 +351,14 @@ namespace {
                 try {
                     $jsonData = $jsonData($c);
                 } catch (\Throwable $e) {
-                    critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the JSON Callable:`' . $e->getMessage() . '` that was called using the `funk_use_error_json_or_page_or_callback()` Function!');
+                    \critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the JSON Callable:`' . $e->getMessage() . '` that was called using the `funk_use_error_json_or_page_or_callback()` Function!');
                 }
             }
             header('Content-Type: application/json; charset=utf-8');
             try {
                 echo json_encode($jsonData, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
             } catch (\JsonException $e) {
-                critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the `funk_use_error_json_or_page_or_callback()` While Encoding the Provided Data to JSON:`' . $e->getMessage() . '`');
+                \critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the `funk_use_error_json_or_page_or_callback()` While Encoding the Provided Data to JSON:`' . $e->getMessage() . '`');
             }
         } else {
             header('Content-Type: text/html; charset=utf-8');
@@ -394,7 +367,7 @@ namespace {
                 $custom_error_message = $pageErrMsg;
                 include_once ROOT_PAGES_ERRORS . '/' . $pageName . '.php';
             } catch (\Throwable $e) {
-                critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the `funk_use_error_json_or_page()` Function while trying to return a Custom Error Page. Yes, an error to show an error occured:`' . $e->getMessage() . '`.');
+                \critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the `funk_use_error_json_or_page()` Function while trying to return a Custom Error Page. Yes, an error to show an error occured:`' . $e->getMessage() . '`.');
             }
         }
         exit();
@@ -405,19 +378,19 @@ namespace {
             ob_clean();
         }
         if (!isset($errCode) || !is_int($errCode) || $errCode < 100 || $errCode > 599) {
-            critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_use_error_json_or_page_or_callback()` Function. This should be an integer between 100 and 599!');
+            \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_use_error_json_or_page_or_callback()` Function. This should be an integer between 100 and 599!');
         }
         if (!isset($errMsgForPageAndCallback) || !is_string($errMsgForPageAndCallback) || empty($errMsgForPageAndCallback)) {
-            critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_use_error_json_or_page_or_callback()` Function. This should be a Non-Empty String!');
+            \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_use_error_json_or_page_or_callback()` Function. This should be a Non-Empty String!');
         }
         if (!isset($pageName) || !is_string($pageName) || empty($pageName) || !is_readable(ROOT_PAGES_ERRORS . '/' . $pageName . '.php')) {
-            critical_err_json_or_html(500, 'Tell the Developer: No Valid Page Filename Provided to `funk_use_error_json_or_page_or_callback()` Function. This should be a Non-Empty String and it must exist as a file in the `src/funkphp/pages/compiled/[errors]` directory!');
+            \critical_err_json_or_html(500, 'Tell the Developer: No Valid Page Filename Provided to `funk_use_error_json_or_page_or_callback()` Function. This should be a Non-Empty String and it must exist as a file in the `src/funkphp/pages/compiled/[errors]` directory!');
         }
         if (!isset($callableName) || !is_string($callableName) || empty($callableName) || !is_callable($callableName)) {
-            critical_err_json_or_html(500, 'Tell the Developer: No Valid Callback Name Provided to `funk_use_error_json_or_page_or_callback()` Function. This should be a Non-Empty String that is also Callable!');
+            \critical_err_json_or_html(500, 'Tell the Developer: No Valid Callback Name Provided to `funk_use_error_json_or_page_or_callback()` Function. This should be a Non-Empty String that is also Callable!');
         }
         if (!isset($jsonObjectOrStringThatReturnsJSON) || (!is_array($jsonObjectOrStringThatReturnsJSON) && !is_object($jsonObjectOrStringThatReturnsJSON) && (!is_string($jsonObjectOrStringThatReturnsJSON) || !is_callable($jsonObjectOrStringThatReturnsJSON)))) {
-            critical_err_json_or_html(500, 'Tell the Developer: No Valid JSON Data or Callable Provided to `funk_use_error_json_or_page_or_callback()` Function. This should be either a Non-Empty Array/Object OR a Non-Empty String that is also Callable which returns a Valid JSON Payload!');
+            \critical_err_json_or_html(500, 'Tell the Developer: No Valid JSON Data or Callable Provided to `funk_use_error_json_or_page_or_callback()` Function. This should be either a Non-Empty Array/Object OR a Non-Empty String that is also Callable which returns a Valid JSON Payload!');
         }
         http_response_code($errCode);
         if (isset($c['req']['accept']) && is_string($c['req']['accept']) && !empty($c['req']['accept']) && str_contains($c['req']['accept'], 'text/html')) {
@@ -427,7 +400,7 @@ namespace {
                 $custom_error_message = $errMsgForPageAndCallback;
                 include_once ROOT_PAGES_ERRORS . '/' . $pageName . '.php';
             } catch (\Throwable $e) {
-                critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the `funk_use_error_json_or_page_or_callback()` Function while trying to return a Custom Error Page. Yes, an error to show an error occured:`' . $e->getMessage() . '`.');
+                \critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the `funk_use_error_json_or_page_or_callback()` Function while trying to return a Custom Error Page. Yes, an error to show an error occured:`' . $e->getMessage() . '`.');
             }
         } else if (isset($c['req']['accept']) && is_string($c['req']['accept']) && !empty($c['req']['accept']) && (str_contains($c['req']['accept'], 'application/json') || str_contains($c['req']['accept'], 'text/json'))) {
             $jsonData = $jsonObjectOrStringThatReturnsJSON;
@@ -435,14 +408,14 @@ namespace {
                 try {
                     $jsonData = $jsonData($c);
                 } catch (\Throwable $e) {
-                    critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the JSON Callable:`' . $e->getMessage() . '` that was called using the `funk_use_error_json_or_page_or_callback()` Function!');
+                    \critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the JSON Callable:`' . $e->getMessage() . '` that was called using the `funk_use_error_json_or_page_or_callback()` Function!');
                 }
             }
             header('Content-Type: application/json; charset=utf-8');
             try {
                 echo json_encode($jsonData, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
             } catch (\JsonException $e) {
-                critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the `funk_use_error_json_or_page_or_callback()` While Encoding the Provided Data to JSON:`' . $e->getMessage() . '`');
+                \critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the `funk_use_error_json_or_page_or_callback()` While Encoding the Provided Data to JSON:`' . $e->getMessage() . '`');
             }
         } else {
             try {
@@ -465,7 +438,7 @@ namespace {
     {
         if (!isset($c['req']['log']) || !is_array($c['req']['log'])) {
             $c['req']['log'] = [];
-            funk_use_log($c, 'The Log Array Did Not Exist, so it was Created Automatically!', 'INFO');
+            \funk_use_log($c, 'The Log Array Did Not Exist, so it was Created Automatically!', 'INFO');
             return;
         }
         $c['req']['log'][] = ['timestamp' => time(), 'type' => strtoupper($logType), 'message' => $logMessage];
@@ -483,14 +456,14 @@ namespace {
     function funk_clear_log(&$c, $saveFirst = false)
     {
         if ($saveFirst === true) {
-            funk_save_log($c);
+            \funk_save_log($c);
         }
         if (!isset($c['req']['log']) || !is_array($c['req']['log'])) {
             $c['err']['FUNCTIONS']['funk_clear_log'][] = 'The Log Array Did Not Exist, so it was Created Automatically!';
-            funk_use_log($c, 'The Log Array Did Not Exist, so it was Created Automatically!', 'INFO');
+            \funk_use_log($c, 'The Log Array Did Not Exist, so it was Created Automatically!', 'INFO');
         } else {
             $c['req']['log'] = [];
-            funk_use_log($c, 'The Log Array was Cleared Successfully!', 'INFO');
+            \funk_use_log($c, 'The Log Array was Cleared Successfully!', 'INFO');
         }
         return;
     }
@@ -505,7 +478,7 @@ namespace {
         if (!isset($c['<ENTRY>']['pipeline']['request']) || !is_array($c['<ENTRY>']['pipeline']['request']) || !array_is_list($c['<ENTRY>']['pipeline']['request']) || count($c['<ENTRY>']['pipeline']['request']) === 0) {
             $c['err']['PIPELINE']['funk_run_pipeline_request'][] = 'No Configured Pipeline Functions (`"<ENTRY>" => "pipeline" => "request"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\'][\'request\']` Key in the Pipeline Configuration File `funkphp/core/pipeline_request.php` File!';
             $err = 'Tell the Developer: No Pipeline Functions to run? Please check the `[\'pipeline\'][\'request\']` Key in the `funkphp/core/pipeline_request.php` File!';
-            funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+            \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
         }
         $count = count($c['<ENTRY>']['pipeline']['request']);
         $pipeDir = ROOT_FOLDER . '/pipeline/request/';
@@ -518,14 +491,14 @@ namespace {
             if (!isset($current_pipe) || !is_string($current_pipe)) {
                 $c['err']['PIPELINE']['funk_run_pipeline_request'][] = 'Pipeline Request Function at index ' . $i . ' is either NULL or NOT a Valid Data Type. Must be a String!';
                 $err = 'Tell the Developer: Pipeline Request Function at index ' . $i . ' is either NULL or NOT a Valid Data Type. Must be a String!';
-                funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+                \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
             }
             $fnToRun = $current_pipe;
             $pipeToRun = $pipeDir . $fnToRun . '.php';
             if (!is_readable($pipeToRun)) {
                 $c['err']['PIPELINE']['function funk_run_pipeline_request'][] = 'Pipeline Request Function (`' . $fnToRun . '`) at index ' . $i . ' does NOT EXIST (or is NOT READABLE) in `funkphp/pipeline/request/` Directory!';
                 $err = 'Tell the Developer: Pipeline Request Function (`' . $fnToRun . '`) at index ' . $i . ' does NOT EXIST (or is NOT READABLE) in `funkphp/pipeline/request/` Directory!';
-                funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+                \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
             }
             $runPipe = include_once $pipeToRun;
             $pipeFnToRun = NAMESPACE_PIPELINE_REQUEST . $fnToRun . '\\' . $fnToRun;
@@ -534,7 +507,7 @@ namespace {
             } else {
                 $c['err']['PIPELINE']['function funk_run_pipeline_request'][] = 'Pipeline Request Function (`' . $fnToRun . '`) at index ' . $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`';
                 $err = 'Tell the Developer: Pipeline Request Function (`' . $fnToRun . '`) at index ' . $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`';
-                funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+                \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
             }
             $c['req']['current_pipeline'] = $current_pipe;
             unset($c['<ENTRY>']['pipeline']['request'][$i]);
@@ -549,14 +522,14 @@ namespace {
         ob_start();
         if ($c['req']['skip_post_response']) {
             $c['err']['MAYBE']['PIPELINE']['POST-RESPONSE']['funk_run_pipeline_post_response'][] = 'Post-Response Pipeline was skipped by the Application for HTTP(S) Request:' . (isset($c['req']['method']) && is_string($c['req']['method']) && !empty($c['req']['method'])) ?: "<UNKNOWN_METHOD>" . (isset($c['req']['route']) && is_string($c['req']['route']) && !empty($c['req']['route'])) ?: "<UNKNOWN_ROUTE>" . '. No Post-Response Pipeline Functions were run. If you expected some, check where the Function `funk_skip_post_response(&$c)` could have been ran for your HTTP(S) Request!';
-            funk_use_log($c, 'Post-Response Pipeline was skipped by the Application for HTTP(S) Request:' . (isset($c['req']['method']) && is_string($c['req']['method']) && !empty($c['req']['method'])) ?: "<UNKNOWN_METHOD>" . (isset($c['req']['route']) && is_string($c['req']['route']) && !empty($c['req']['route'])) ?: "<UNKNOWN_ROUTE>" . '. No Post-Response Pipeline Functions were run. If you expected some, check where the Function `funk_skip_post_response(&$c)` could have been ran for your HTTP(S) Request!', 'INFO');
+            \funk_use_log($c, 'Post-Response Pipeline was skipped by the Application for HTTP(S) Request:' . (isset($c['req']['method']) && is_string($c['req']['method']) && !empty($c['req']['method'])) ?: "<UNKNOWN_METHOD>" . (isset($c['req']['route']) && is_string($c['req']['route']) && !empty($c['req']['route'])) ?: "<UNKNOWN_ROUTE>" . '. No Post-Response Pipeline Functions were run. If you expected some, check where the Function `funk_skip_post_response(&$c)` could have been ran for your HTTP(S) Request!', 'INFO');
             ob_end_clean();
             return;
         }
         if (isset($c['<ENTRY>']['pipeline']['post_response'])) {
             if (!is_array($c['<ENTRY>']['pipeline']['post_response']) || !array_is_list($c['<ENTRY>']['pipeline']['post_response']) || count($c['<ENTRY>']['pipeline']['post_response']) === 0) {
                 $c['err']['PIPELINE']['funk_run_pipeline_post_response'][] = 'No Configured Pipeline Functions (`"<ENTRY>" => "pipeline" => "post_response"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\'][\'post_response\']` Key in the Pipeline Configuration File `funkphp/core/pipeline_request.php` File!';
-                funk_use_log($c, 'No Configured Pipeline Functions (`"<ENTRY>" => "pipeline" => "post_response"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\'][\'post_response\']` Key in the Pipeline Configuration File `funkphp/core/pipeline_request.php` File! - Function stops here!', 'CRITICAL');
+                \funk_use_log($c, 'No Configured Pipeline Functions (`"<ENTRY>" => "pipeline" => "post_response"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\'][\'post_response\']` Key in the Pipeline Configuration File `funkphp/core/pipeline_request.php` File! - Function stops here!', 'CRITICAL');
                 ob_end_clean();
                 return;
             }
@@ -570,7 +543,7 @@ namespace {
                 $current_pipe = $c['<ENTRY>']['pipeline']['post_response'][$i] ?? null;
                 if (!isset($current_pipe) || !is_string($current_pipe)) {
                     $c['err']['PIPELINE']['funk_run_pipeline_post_response'][] = 'Pipeline Post-Response Function at index ' . $i . ' is either NULL or NOT a Valid Data Type. It must be a String!';
-                    funk_use_log($c, 'Pipeline Post-Response Function at index ' . $i . ' is either NULL or NOT a Valid Data Type. It must a String - Function stops here!', 'CRITICAL');
+                    \funk_use_log($c, 'Pipeline Post-Response Function at index ' . $i . ' is either NULL or NOT a Valid Data Type. It must a String - Function stops here!', 'CRITICAL');
                     ob_end_clean();
                     return;
                 }
@@ -585,14 +558,14 @@ namespace {
                         $rawRun = $runPipeKey($c);
                     } else {
                         $c['err']['PIPELINE']['function funk_run_pipeline_post_response'][] = 'Pipeline Post-Response Function (`' . $fnToRun . '`) at index ' . $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`';
-                        funk_use_log($c, 'Pipeline Post-Response Function (`' . $fnToRun . '`) at index ' . $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };` - Function stops here!', 'CRITICAL');
+                        \funk_use_log($c, 'Pipeline Post-Response Function (`' . $fnToRun . '`) at index ' . $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };` - Function stops here!', 'CRITICAL');
                         ob_end_clean();
                         return;
                     }
                 } else {
                     if (!is_readable($pipeToRun)) {
                         $c['err']['PIPELINE']['function funk_run_pipeline_post_response'][] = 'Pipeline Post-Response Function (`' . $fnToRun . '`) at index ' . $i . ' does NOT EXIST (or is NOT READABLE) in `funkphp/pipeline/request/` Directory!';
-                        funk_use_log($c, 'Pipeline Post-Response Function (`' . $fnToRun . '`) at index ' . $i . ' does NOT EXIST (or is NOT READABLE) in `funkphp/pipeline/request/` Directory! - Function stops here!', 'CRITICAL');
+                        \funk_use_log($c, 'Pipeline Post-Response Function (`' . $fnToRun . '`) at index ' . $i . ' does NOT EXIST (or is NOT READABLE) in `funkphp/pipeline/request/` Directory! - Function stops here!', 'CRITICAL');
                         ob_end_clean();
                         return;
                     }
@@ -605,7 +578,7 @@ namespace {
                         $rawRun = $runPipe($c);
                     } else {
                         $c['err']['PIPELINE']['function funk_run_pipeline_post_response'][] = 'Pipeline Post-Response Function (`' . $fnToRun . '`) at index ' . $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`';
-                        funk_use_log($c, 'Pipeline Post-Response Function (`' . $fnToRun . '`) at index ' . $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };` - Function stops here!', 'CRITICAL');
+                        \funk_use_log($c, 'Pipeline Post-Response Function (`' . $fnToRun . '`) at index ' . $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };` - Function stops here!', 'CRITICAL');
                         ob_end_clean();
                         return;
                     }
@@ -703,7 +676,7 @@ namespace {
         $routeDefinition = null;
         $noMatchIn = '';
         if (isset($compiledRouteTrie[$method])) {
-            $routeDefinition = funk_match_compiled_route($c, $uri, $compiledRouteTrie[$method]);
+            $routeDefinition = \funk_match_compiled_route($c, $uri, $compiledRouteTrie[$method]);
         } else {
             $noMatchIn = 'NO MATCH FOR COMPILED_ROUTE_KEY (' . mb_strtoupper($method) . ') & ';
             return false;
@@ -974,7 +947,7 @@ namespace {
         if ($required) {
             $ruleValue = $required['value'] ?? null;
             $customErr = $required['err_msg'] ?? null;
-            $error = funk_validate_required($fullFieldName, $inputValue, $ruleValue, $customErr);
+            $error = \funk_validate_required($fullFieldName, $inputValue, $ruleValue, $customErr);
             if ($error !== null) {
                 $currentErrPath['required'] = $error;
                 $c['v_ok'] = false;
@@ -1214,7 +1187,7 @@ namespace {
         $c['v_ok'] = true;
         $c['v'] = [];
         $c['v_data'] = [];
-        funk_validation_recursively_improved($c, $inputData, $optimizedValidationArray, $c['v'], $c['v_data'],);
+        \funk_validation_recursively_improved($c, $inputData, $optimizedValidationArray, $c['v'], $c['v_data'],);
         if ($c['v_ok']) {
             $c['v'] = null;
             return true;

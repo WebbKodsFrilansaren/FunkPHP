@@ -19,7 +19,7 @@ $embedPages = false; // imlpemented later
 $compilePages = false;
 $compressDeployment = false;
 $showAllErrors = false; // implemented later
-$allowModifiedCore = false; // implemented later
+$allowModifiedCore = true; // implemented later
 $ignoreUnknownConnsDrivers = false; // implemented later
 $skipBrokenRoutes = false; // implemented later
 $skipCompilingValidation = false; // implemented later
@@ -719,8 +719,9 @@ cli_info_without_exit("### Step 7: Running any optional flags before finishing..
 $optionalFlagsWarnsAndErrs = [];
 
 // This should happen if everything above went smoothly!
-if (!cli_crud_folder_php_file_atomic_write(cli_php_strip_whitespace_string(implode($deploymentBuffer)), FUNKPHP_FILE_PATH_DEPLOYMENT_FILE)) {
+// IMPORTANT: Might go back to "cli_php_strip_whitespace_string" instead if "\" auto-adding causes more issues rather than help?
+if (!cli_crud_folder_php_file_atomic_write(cli_php_strip_whitespace_and_optimize(implode($deploymentBuffer)), FUNKPHP_FILE_PATH_DEPLOYMENT_FILE)) {
     cli_err("Failed to write the otherwise Successfully Compiled `FunkPHPDeployment.php` File to the Disk! Please check the File Permissions and try again! Path: " . (FUNKPHP_FILE_PATH_DEPLOYMENT_FILE ?? "[NOT_DEFINED]"));
 }
-cli_success("### FunkCLI Successfully Compiled & Built `FunkPHPDeployment.php` with the following options:\n### Compile Pages: " . ($compilePages ? "YES" : "NO") . "\n### Compress Deployment: " . ($compressDeployment ? "YES" : "NO") . "\n### You can now deploy the `FunkPHPDeployment.php` file to your server for production use!");
+cli_success("### FunkCLI Successfully Compiled & Built `FunkPHPDeployment.php` with the following options:\n### Compile Pages: " . ($compilePages ? "YES" : "NO") . "\n### Compress Deployment: " . ($compressDeployment ? "YES" : "NO") . "\n### You can now deploy the `FunkPHPDeployment.php` File to Your Server for Production use!");
 exit;

@@ -237,12 +237,10 @@ function cli_build_flattened_routing_start_VF(array $PreparedRoutesArray, string
 {
     $ast = [];
     $method = strtoupper($method);
-
     foreach ($PreparedRoutesArray as $routeData) {
         $segCount   = $routeData['segment_count'];
         $routeStr   = $routeData['original_route'];
         $trimmed    = trim($routeStr, '/');
-
         // --- Fix Edge-Case: Root Domain "/" ---
         if ($trimmed === '' && $segCount === 0) {
             $ast[0]['/'] = [
@@ -254,13 +252,10 @@ function cli_build_flattened_routing_start_VF(array $PreparedRoutesArray, string
             ];
             continue;
         }
-
         $segments = explode('/', $trimmed);
-
         if (!isset($ast[$segCount])) {
             $ast[$segCount] = [];
         }
-
         $currentNode = &$ast[$segCount];
         foreach ($segments as $index => $segment) {
             $isParam = str_starts_with($segment, ':');
@@ -274,12 +269,10 @@ function cli_build_flattened_routing_start_VF(array $PreparedRoutesArray, string
                     'children'      => []
                 ];
             }
-
             if ($index === ($segCount - 1)) {
                 $currentNode[$nodeKey]['route_target'] = $routeStr;
                 $currentNode[$nodeKey]['route_comment'] = "//$method$routeStr";
             }
-
             $currentNode = &$currentNode[$nodeKey]['children'];
         }
         unset($currentNode);
@@ -325,7 +318,7 @@ function cli_compile_flattened_AST_VF(array $nodes, int $depth = 0): string
  */
 function cli_compile_router_file_VF(array $ast, string $method): string
 {
-    $code = "<?php\n// Compiled Route Gate File via FunkCLI\n\n";
+    $code = "\n// Compiled Route Gate File via FunkCLI\n\n";
 
     // Process segment counts from highest to lowest
     foreach ($ast as $segCount => $nodes) {
@@ -2142,6 +2135,50 @@ function cli_default_created_fn_files($type, $methodAndRoute, $folder, $file, $f
     // Return finalized created string
     return $entireCreatedString;
 }
+// TODO:? Add support for user-defined prefixes that also should get the "\" before their function names!
+function cli_php_strip_whitespace_and_optimize(string $code, array $otherPrefixes = []): string
+{
+    $tokens = token_get_all($code);
+    $output = '';
+    $lastSignificantToken = null;
+    foreach ($tokens as $token) {
+        if (is_array($token)) {
+            $type = $token[0];
+            $value = $token[1];
+            // 1. Drop structural and doc comments completely
+            if ($type === T_COMMENT || $type === T_DOC_COMMENT) {
+                continue;
+            }
+            // 2. Sanitize and collapse whitespace chunks
+            if ($type === T_WHITESPACE) {
+                $output .= ' ';
+                continue;
+            }
+            // 3. THE NAMESPACE OPTIMIZER
+            // If it's a bare code string starting with "funk_"
+            if ($type === T_STRING && str_starts_with($value, 'funk_')) {
+                // Protect definitions (function funk_x) and method calls ($obj->funk_x)
+                if (
+                    $lastSignificantToken !== T_FUNCTION &&
+                    $lastSignificantToken !== T_OBJECT_OPERATOR &&
+                    $lastSignificantToken !== T_DOUBLE_COLON
+                ) {
+                    // Prepend global namespace indicator natively
+                    $value = '\\' . $value;
+                }
+            }
+            $output .= $value;
+            $lastSignificantToken = $type; // Track last code token processed
+        } else {
+            $output .= $token;
+            // Track single characters (like ;, {, }, etc.) to maintain lookup context
+            if (trim($token) !== '') {
+                $lastSignificantToken = $token;
+            }
+        }
+    }
+    return trim($output);
+}
 // A string version of "php_strip_whitespace" to get the optimized version of a PHP code string by removing comments and collapsing whitespace
 function cli_php_strip_whitespace_string(string $code): string
 {
@@ -2165,7 +2202,6 @@ function cli_php_strip_whitespace_string(string $code): string
     }
     return trim($output);
 }
-
 // CLI Test function, by GPT Free-use, might change later.
 // Provide Stringed Name of test, then function name, then the tests in an array like
 // [['testvalue1' => 'value', 'expected' =>  'expectedValue', 'args' => [arg1, arg2, ...]], ...]
@@ -2210,7 +2246,6 @@ function cli_run_tests(string $title, callable $fn, array $tests, string|array|n
         );
     }
 }
-
 // Checks if a provided String is of typical "/route/:valid/format"
 // VF = Validate First meaning you make sure you provide a String
 // before calling this function!!
@@ -2254,7 +2289,6 @@ function cli_route_is_valid_string_VF($routeString)
     }
     return true;
 }
-
 // Checks if a provided String is a valid method type, either its full version or
 // any of its shorthands: like "GET/", "post/", "g/" and so on. Notice it MUST
 // have the '/' at the end or it does not count as a valid method string!
@@ -2276,7 +2310,6 @@ function cli_route_method_is_valid_string_VF($methodString)
     }
     return true;
 }
-
 // Checks for valid "METHOD/route/:subroute" string where method is either
 // "GET", "POST", "PUT", "DELETE" or "PATCH" (or their shorthands) and
 // route is essentially like function "cli_route_is_valid_string_VF".
@@ -2303,7 +2336,6 @@ function cli_route_and_method_is_valid_string_VF($methodAndRouteString)
     $routePart = '/' . $exploded[1];
     return cli_route_method_is_valid_string_VF($methodPart) && cli_route_is_valid_string_VF($routePart);
 }
-
 // Checks if route (without method part) "/route1" is same as "/route2"
 // which also checks against duplicated "/:paramsegments" on same levels
 // like "/:route1" compared to "/:route2" which collide due to being
