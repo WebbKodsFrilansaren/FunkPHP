@@ -19,13 +19,13 @@
 // when you run the Compilation Command `php funk build`!
 //
 // Besides all that above, you can name your function anything you want!
-function funk_handle_uncaught_exception(&$c, $e)
+function funak_handle_uncaught_exception(&$c, $e)
 {
     // Regex
     $testing = "tset";
 }
 
-function funk_set_register_shutdown_function(&$c)
+function funak_set_register_shutdown_function(&$c)
 {
     // Regex
     $testing = "tset2";
