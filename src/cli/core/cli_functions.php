@@ -1275,10 +1275,12 @@ function cli_array_key_exists_in_list($key, $listArray, $returnIndex = false)
 
 // Two functions that are used to output messages in the CLI
 // and to send JSON responses when in JSON_MODE (web browser access)
-function cli_output(string $type, string $message, bool $do_exit = false, int $exit_code = 0): void
+function cli_output(string $type, string $message, bool $do_exit = false, int $exit_code = 0, mixed $data = null): void
 {
     // Access the global message array and
     // determine prefix and color for CLI output
+    // This can match "text" and even "te\"xt" (but it does not include closing "")
+    $regexQuotesInsideQuotes = '/(?<=\").*?(?=(?<!\\)\")/';
     global $funk_response_messages;
     $prefix = '';
     $color = '';
@@ -1315,7 +1317,6 @@ function cli_output(string $type, string $message, bool $do_exit = false, int $e
             $color = ANSI_RESET;
             break;
     }
-
     // Check if we are in JSON_MODE (web browser access)
     // If not JSON_MODE, we assume & output to CLI!
     // Any message that includes $do_exit true will
@@ -1326,16 +1327,37 @@ function cli_output(string $type, string $message, bool $do_exit = false, int $e
             'message' => $message
         ];
         if ($do_exit) {
-            cli_send_json_response();
+            cli_send_json_response($data);
         }
     } else {
-        echo $color . $prefix . $message . ANSI_RESET . "\n";
+        // CONSOLE RENDERING ROUTE: Apply Contextual
+        // Highlighting by using [BRYG]?[`'"]?(Text)+[`'"]? Regex!
+        // It uses default Yellow or Blue as default if color already is yellow!
+        $formattedMessage = preg_replace_callback('/([BRYG])?([\'"`])(.*?)\2/i', function ($matches) use ($color) {
+            $modifier = strtoupper($matches[1]);
+            $quote = $matches[2];
+            $text = $matches[3];
+            // 1. Determine Highlight Color based on prefix or contextual fallback
+            $highlightColor = match ($modifier) {
+                'R' => ANSI_RED,
+                'G' => ANSI_GREEN,
+                'Y' => ANSI_YELLOW,
+                'B' => ANSI_BLUE,
+                // Smart Fallback: If base text is already Yellow, highlight with Blue, else use Yellow
+                default => ($color === ANSI_YELLOW) ? ANSI_BLUE : ANSI_YELLOW
+            };
+            // 2. Return styled segment, resetting back to the current base message color at the end!
+            return $highlightColor . $quote . $text . $quote . $color;
+        }, $message);
+        // Print final compiled string out to the shell environment
+        echo $color . $prefix . $formattedMessage . ANSI_RESET . "\n";
+        //echo $color . $prefix . $message . ANSI_RESET . "\n";
         if ($do_exit) {
             exit($exit_code);
         }
     }
 }
-function cli_send_json_response(): void
+function cli_send_json_response($data = null): void
 {
     global $funk_response_messages;
     $overall_json_status = 'Success';
@@ -1365,7 +1387,7 @@ function cli_send_json_response(): void
     $response = [
         'status' => $overall_json_status,
         'messages' => $funk_response_messages,
-        'data' => []
+        'data' => $data,
     ];
     echo json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
     exit();

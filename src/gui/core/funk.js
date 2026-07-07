@@ -188,6 +188,7 @@ function buildFormattedOutputTerminalBox(parsedJson) {
 	if (!parsedJson || !Array.isArray(parsedJson.messages)) {
 		return `<div style="color: #94a3b8; font-family: monospace;">⚠️ No structural status messages returned.</div>`;
 	}
+	const regex = '/([BRYG])?([\'"`])(.*?)\2/i';
 	return parsedJson.messages
 		.map((msg) => {
 			let badgeBg = '#64748b';
