@@ -81,11 +81,11 @@ function cli_file_constant_defined_file_exists_is_readable($constantExactFilePat
     if (!is_string($constantExactFilePath) || empty(trim($constantExactFilePath))) {
         cli_err("[cli_file_constant_defined_file_exists_is_readable()]: The provided `\$constantExactFilePath` must be A Non-Empty String! Any Command that called this function will now have stopped completely!");
     }
-    if (
-        !defined($constantExactFilePath)
-        || !file_exists($constantExactFilePath)
-        || !is_readable($constantExactFilePath)
-    ) {
+    if (!defined($constantExactFilePath)) {
+        return false;
+    }
+    $actualResolvedPath = constant($constantExactFilePath);
+    if (!file_exists($actualResolvedPath) || !is_readable($actualResolvedPath)) {
         return false;
     }
     return true;
@@ -9908,21 +9908,21 @@ function cli_match_developer_route(string $method, string $uri, array $compiledR
 }
 
 // Rebuilds the Single Routes Route file (funkphp/routes/route_single_routes.php) based on valid array
-function cli_rebuild_single_routes_route_file($singleRouteRoutesFileArray): bool
+function cli_output_single_routes_route_file($singleRouteRoutesFileArray): bool
 {
     if (!is_array($singleRouteRoutesFileArray) || empty($singleRouteRoutesFileArray)) {
-        cli_err_syntax("[cli_rebuild_single_routes_file] Single Route Routes File Array (funkphp/core/pipeline_routes.php) must be a non-empty array!");
+        cli_err_syntax("[cli_output_single_routes_file] Single Route Routes File Array (funkphp/core/pipeline_routes.php) must be a non-empty array!");
     }
     if (!isset($singleRouteRoutesFileArray['ROUTES'])) {
-        cli_err_syntax("[cli_rebuild_single_routes_file] Single Route Routes File Array (funkphp/core/pipeline_routes.php) must start with a 'ROUTES' key!");
+        cli_err_syntax("[cli_output_single_routes_file] Single Route Routes File Array (funkphp/core/pipeline_routes.php) must start with a 'ROUTES' key!");
     }
     // Check that dir exist, is writable and is a directory
     if (!is_dir(FUNKPHP_ROUTES_DIR) || !is_writable(FUNKPHP_ROUTES_DIR)) {
-        cli_err("[cli_rebuild_single_routes_file] Directory for `routes.php` (" . FUNKPHP_ROUTES_DIR . ") must be a Writable Directory. Check it exists and/or its File Permission!");
+        cli_err("[cli_output_single_routes_file] Directory for `routes.php` (" . FUNKPHP_ROUTES_DIR . ") must be a Writable Directory. Check it exists and/or its File Permission!");
     }
     // Check that if file exists, it can be overwritten
     if (file_exists(FUNKPHP_FILE_PATH_ROUTES) && !is_writable(FUNKPHP_FILE_PATH_ROUTES)) {
-        cli_err("[cli_rebuild_single_routes_file] Routes file (funkphp/core/pipeline_routes.php) must be writable. It is not!");
+        cli_err("[cli_output_single_routes_file] Routes file (funkphp/core/pipeline_routes.php) must be writable. It is not!");
     }
     // Use Atomic File Write to prevent corruption while outputting the newly compiled Routes file
     return (cli_crud_folder_php_file_atomic_write((cli_get_prefix_code("route_singles_routes_start") . "\n" . cli_get_prefix_code("do_not_modify_warning_general") . "\n"
@@ -9930,7 +9930,7 @@ function cli_rebuild_single_routes_route_file($singleRouteRoutesFileArray): bool
 }
 
 // Build Compiled Route from Developer's Defined Routes
-function cli_build_compiled_routes(array $developerSingleRoutes)
+function cli_build_compiled_routes(array $developerSingleRoutes, $SingleRouteArr = null)
 {
     // Only localhost can run this function (meaning you cannot run this in production!)
     // Both arrays must be non-empty arrays
@@ -10567,7 +10567,7 @@ function cli_delete_a_route()
     cli_success_without_exit("Deleted Route \"$method$validRoute\" from Routes File!");
 
     // Then we rebuild and recompile Routes
-    cli_rebuild_single_routes_route_file($singleRoutesRoute);
+    cli_output_single_routes_route_file($singleRoutesRoute);
     $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRoute['ROUTES'], $singleRoutesRoute['ROUTES']);
     cli_output_compiled_routes($compiledRouteRoutes);
 
@@ -10615,12 +10615,12 @@ function cli_delete_a_route()
 }
 
 // All-in-one function to Sort all keys in ROUTES, build Route file, recompile and output them!
-function cli_sort_build_routes_compile_and_output($singleRoutesRootArray)
+function cli_sort_build_routes_compile_and_output($singleRoutesRootArray, $returnArrays = false)
 {
     cli_info_without_exit("Validating, then building and finally outputting the Pipeline Routes in optimal format!");
     // Validate input
     if (!is_array($singleRoutesRootArray) || empty($singleRoutesRootArray) || !isset($singleRoutesRootArray['ROUTES'])) {
-        cli_err_syntax("The Routes Array must be a non-empty array starting with the ROUTES key!");
+        cli_err_syntax("[cli_sort_build_routes_compile_and_output()]: The Routes Array must be a non-empty array starting with the ROUTES key!");
     }
     // Loop through each key below ROUTES and sort the keys
     // and values in the array by the key name (route name)
@@ -10709,22 +10709,25 @@ function cli_sort_build_routes_compile_and_output($singleRoutesRootArray)
             }
             $msgCount++;
         }
-        cli_info("Please Review Warnings and/or Errors above in order to move on with the Router Compilation Step!");
+        cli_info("[cli_sort_build_routes_compile_and_output()]: Please Review Warnings and/or Errors above in order to move on with the Router Compilation Step!");
         exit();
     } else {
-        cli_success_without_exit("All Methods & Routes are considered Valid in this version of FunkPHP!");
-        cli_info_without_exit("Proceeding to Rebuild Sorted Pipeline Routes...");
+        cli_success_without_exit("[cli_sort_build_routes_compile_and_output()]: All Methods & Routes are considered Valid in this version of FunkPHP!");
+        cli_info_without_exit("[cli_sort_build_routes_compile_and_output()]: Proceeding to Rebuild Sorted Pipeline Routes...");
     }
-    // Then we rebuild and recompile Routes
-    $rebuild = cli_rebuild_single_routes_route_file($singleRoutesRootArray);
+    // Then we rebuild/output and recompile Routes
+    $rebuild = cli_output_single_routes_route_file($singleRoutesRootArray);
     if ($rebuild) {
-        cli_success_without_exit("Rebuilt Pipeline Routes File \"" . FUNKPHP_FILE_PATH_ROUTES . "\"!");
+        cli_success_without_exit("[cli_sort_build_routes_compile_and_output()]: Rebuilt Pipeline Routes File \"" . FUNKPHP_FILE_PATH_ROUTES . "\"!");
     } else {
-        cli_err("FAILED to rebuild Pipeline Routes File \"" . FUNKPHP_FILE_PATH_ROUTES . "\". File permissions issues?");
+        cli_err("[cli_sort_build_routes_compile_and_output()]: FAILED to rebuild Pipeline Routes File \"" . FUNKPHP_FILE_PATH_ROUTES . "\". File permissions issues?");
     }
-    cli_info_without_exit("Now Compiling and Outputting the Compiled Routes to \"" . FUNKPHP_FILE_PATH_TROUTES . "\"...");
+    cli_info_without_exit("[cli_sort_build_routes_compile_and_output()]: Now Compiling and Outputting the Compiled Routes to \"" . FUNKPHP_FILE_PATH_TROUTES . "\"...");
     $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRootArray['ROUTES']);
     cli_output_compiled_routes($compiledRouteRoutes);
+    if ($returnArrays) {
+        return [$compiledRouteRoutes, $singleRoutesRootArray];
+    }
 }
 
 // Batched function of compiling and outputting routing files

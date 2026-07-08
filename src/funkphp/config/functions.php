@@ -30,7 +30,7 @@ function funak_set_register_shutdown_function(&$c)
     // Regex
     $testing = "tset2";
 }
-function funk_validate_email(&$c)
+function funk_validate_test(&$c)
 {
     if (empty($c['email'])) {
         return false;

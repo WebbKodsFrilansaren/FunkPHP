@@ -89,7 +89,7 @@ cli_info_without_exit("#### Do Embed Pages: " . ($embedPages ? "YES (pages will 
 cli_info_without_exit("#### Do Compress Deployment: " . ($compressDeployment ? "YES (FunkPHPDeployment.php, pages and public_html folder will be in a single compresed file)" : "NO"));
 
 // The actual compiling & building steps
-cli_info_without_exit("### Step 1: Loading, Validating & Compiling `config.php` File ('Config' in FunkGUI)...");
+cli_info_without_exit("G`### Step 1 STARTS ###` Loading, Validating & Compiling `config.php` File ('Config' in FunkGUI)...");
 $configWarnsAndErrs = [];
 $cConfig = null;
 
@@ -592,7 +592,7 @@ cli_assert_final_value(NULL, $configWarnsAndErrs, "cli_err", 'constants:FUNKPHP_
 cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for the Required Constants from the `c.php` (FunkPHP Configuration File) and try again! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
 
 // Here ### Step 1 is fully validated so now we insert starting point of the `FunkPHPDeployment.php` file into the $deploymentBuffer array for later writing to disk!
-cli_success_without_exit("### Step 1: Validated `c.php` (FunkPHP Configuration File) Successfully! All Required Keys & Subkeys Exist and are Valid! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`.");
+cli_success_without_exit("G`### Step 1 DONE ###` Validating & Adding `c.php` (FunkPHP Configuration File) SUCCESSFULLY! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`.");
 $deploymentBuffer[] = "<?php // FunkPHPDeployment.php | Created: " . date("Y-m-d H:i:s") . " | PHP Version: " .  PHP_VERSION . " | FunkPHP Version: " . (FUNKPHP_VERSION ?? "<Unknown Version>") . " | FunkCLI Version: " . (FUNKCLI_VERSION ?? "<Unknown Version>") . "\n";
 $deploymentBuffer[] = "namespace { "; // Opening Global namespace for nows
 
@@ -645,7 +645,7 @@ $deploymentBuffer[] = "});\n";
 // user-defined with same name as the in-built is not allowed since both will be in global namespace!
 // USER-DEFINED cannot start with "funk_" or "cli_" but can start with "funk_validate_" for custom validation
 // functions.
-cli_info_without_exit("### Step 2: Loading, Validating & Compiling Core `functions.php` & User-defined `funkphp => config => functions.php` Files ('User-defined Functions' in 'Config' in FunkGUI)...");
+cli_info_without_exit("G`### Step 2 STARTS ###` Loading, Validating & Compiling Core `functions.php` & User-defined `funkphp => config => functions.php` Files ('User-defined Functions' in 'Config' in FunkGUI)...");
 $functionsWarnsAndErrs = [];
 if (
     !$allowModifiedCore &&
@@ -661,7 +661,7 @@ if (!$allowModifiedCore && (cli_get_hash_calculation_of_a_file(FUNKPHP_FILE_PATH
     cli_stop_from_warn_err_list($functionsWarnsAndErrs, "Please Review (" . count($functionsWarnsAndErrs) . ") Warnings/Errors above for the Function Files (Core & User-defined) and try again! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
 }
 
-if (cli_file_constant_defined_file_exists_is_readable("FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL_TEMPLATES")) {
+if (!cli_file_constant_defined_file_exists_is_readable("FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL_TEMPLATES")) {
     cli_build_warning_err_list($functionsWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL_TEMPLATES` containing exact File Path to FunkPHP Core Functions Templates File (`funkphp/core/function_templates.php`) is NOT DEFINED or FILE DOES NOT EXIST or FILE IS NOT READABLE. File Permission issues? DO NOT edit FunkPHP Core Functions File. Check your Git/File Versioning History to see if you can rollback any changes made to the FunkPHP Core Functions Templates File, or Redownload the Files from an Official Source! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL_TEMPLATES ?? "[NOT_DEFINED]") . "`");
     cli_stop_from_warn_err_list($functionsWarnsAndErrs, "Please Review (" . count($functionsWarnsAndErrs) . ") Warnings/Errors above for the Function (Templates) Files (Core & User-defined) and try again! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL_TEMPLATES ?? "[NOT_DEFINED]") . "`");
 }
@@ -745,13 +745,35 @@ else {
     }
 }
 $deploymentBuffer[] = "}"; // Closing Global namespace for now
+cli_success_without_exit("G`### Step 2 DONE ###` Validating & Adding User-defined Functions (`/src/funkphp/config/functions.php`), Core Functions (`/src/funkphp/core/functions.php`) SUCCESSFULLY! Paths: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`" . " & `" . (FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL ?? "[NOT_DEFINED]") . "`");
 
 // NEXT UP FOR BUILD/COMPILE: Scoped Namespaces for pipeline_request (pl_) files!!! Will learn then if stuff even works
-
-cli_info_without_exit("### Step 3: Loading, Validating & Compiling `pipeline_request.php` ('Request' & 'Post_Response' in 'Pipeline' in FunkGUI) File...");
 $pipelineWarnsAndErrs = [];
+cli_info_without_exit("G`### Step 3 STARTS ###` Loading, Validating & Compiling `pipeline_request.php`, `pipeline_routes.php` & `compiled_routes.php` ('Request' & 'Post_Response' in 'Pipeline' in FunkGUI) File...");
+if (!cli_file_constant_defined_file_exists_is_readable("FUNKPHP_FILE_PATH_ROUTES")) {
+    cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "The FunkPHP Core Routes File `FUNKPHP_FILE_PATH_ROUTES` (`/src/funkphp/core/pipeline_routes.php`) does NOT EXIST or IS NOT READABLE or its DEFINED CONSTANT IS UNDEFINED! Try rebuilding the Route Files using `php funk rc` and try again! Path: `" . (FUNKPHP_FILE_PATH_ROUTES ?? "[NOT_DEFINED]") . "`");
+    cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline Files (Routes, Compiled Routes & Pipeline) and try again! Path: `" . (FUNKPHP_FILE_PATH_ROUTES ?? "[NOT_DEFINED]") . "`");
+}
+if (!cli_file_constant_defined_file_exists_is_readable("FUNKPHP_FILE_PATH_TROUTES")) {
+    cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "The FunkPHP Core Compiled Routes File `FUNKPHP_FILE_PATH_TROUTES` (`/src/funkphp/core/pipeline_routes.php`) does NOT EXIST or IS NOT READABLE or its DEFINED CONSTANT IS UNDEFINED! Try rebuilding the Route Files using `php funk rc` and try again! Path: `" . (FUNKPHP_FILE_PATH_TROUTES ?? "[NOT_DEFINED]") . "`");
+    cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline Files (Routes, Compiled Routes & Pipeline) and try again! Path: `" . (FUNKPHP_FILE_PATH_TROUTES ?? "[NOT_DEFINED]") . "`");
+}
+cli_info_without_exit("Recompiling & Rebuilding Routes (`/src/funkphp/core/pipeline_routes.php`) & Prefixed Routes (`/src/funkphp/core/compiled_routes.php`) using `cli_sort_build_routes_compile_and_output()`. If this step FAILS, the Building will ALSO Stop!");
+[$compiledRoutesFile, $onlyRoutesFile] = cli_sort_build_routes_compile_and_output($singleRoutesRoute, true); // $singleRoutesRoute is declared already `funk` File and also has default values if not existing!
 
-cli_info_without_exit("### Step 4: Loading, Validating, Rebuilding & Compiling `compiled_routes.php` & `pipeline_routes.php` Files ('Routes' in 'Pipeline' in FunkGUI)...");
+cli_info_without_exit("G`### Step 3 CONTINUES ###` Loading, Validating & Compiling `pipeline_request.php`, `pipeline_routes.php` & `compiled_routes.php` ('Request' & 'Post_Response' in 'Pipeline' in FunkGUI) File...");
+if (!cli_file_constant_defined_file_exists_is_readable("FUNKPHP_FILE_PATH_PIPELINE")) {
+    cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "The FunkPHP Core Compiled Routes File `FUNKPHP_FILE_PATH_PIPELINE` (`/src/funkphp/core/pipeline_routes.php`) does NOT EXIST or IS NOT READABLE or its DEFINED CONSTANT IS UNDEFINED! Try rebuilding the Route Files using `php funk rc` and try again! Path: `" . (FUNKPHP_FILE_PATH_PIPELINE ?? "[NOT_DEFINED]") . "`");
+    cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline Files (Routes, Compiled Routes & Pipeline) and try again! Path: `" . (FUNKPHP_FILE_PATH_PIPELINE ?? "[NOT_DEFINED]") . "`");
+}
+$pipelineFile = $singlePipelineDefault;
+
+var_dump($pipelineFile);
+exit;
+
+$pipelineErrChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["err"], $pipelineWarnsAndErrs, "cli_err");
+
+cli_info_without_exit("G`### Step 4 STARTS ###` Loading, Validating, Rebuilding & Compiling `compiled_routes.php` & `pipeline_routes.php` Files ('Routes' in 'Pipeline' in FunkGUI)...");
 $routesWarnsAndErrs = [];
 
 //////////////////////////////////
@@ -764,10 +786,10 @@ $routesWarnsAndErrs = [];
 
 
 
-cli_info_without_exit("### Step 5: Loading, Validating, & Compiling Pipeline Functions (files in `src/funkphp/pipeline/routes`) & Middlewares Functions (files in `src/funkphp/pipeline/middlewares`) Used For Each Valid Route Compiled From `compiled_routes.php` & `pipeline_routes.php` Files ('Routes' & 'Middlewares' in 'Pipeline' in FunkGUI)...");
+cli_info_without_exit("G`### Step 5 STARTS ###` Loading, Validating, & Compiling Pipeline Functions (files in `src/funkphp/pipeline/routes`) & Middlewares Functions (files in `src/funkphp/pipeline/middlewares`) Used For Each Valid Route Compiled From `compiled_routes.php` & `pipeline_routes.php` Files ('Routes' & 'Middlewares' in 'Pipeline' in FunkGUI)...");
 $routesPipelineWarnsAndErrs = [];
 
-cli_info_without_exit("### Step 6: Loading, Validating, & Compiling Any Pages (files in `src/funkphp/pages`) used ('Pages' with 'Layouts', 'Components' & 'Compiled' in FunkGUI)...");
+cli_info_without_exit("G`### Step 6 STARTS ###` Loading, Validating, & Compiling Any Pages (files in `src/funkphp/pages`) used ('Pages' with 'Layouts', 'Components' & 'Compiled' in FunkGUI)...");
 $routesPipelineWarnsAndErrs = [];
 
 // Map the relative page path to its expected factory-default hash
@@ -790,7 +812,7 @@ foreach ($factorySignatures as $pagePath => $factoryHash) {
 }
 
 
-cli_info_without_exit("### Step 7: Running any optional flags before finishing...");
+cli_info_without_exit("G`### Step 7 STARTS ###` Running any optional flags before finishing...");
 $optionalFlagsWarnsAndErrs = [];
 
 // This should happen if everything above went smoothly!
@@ -798,5 +820,7 @@ $optionalFlagsWarnsAndErrs = [];
 if (!cli_crud_folder_php_file_atomic_write(cli_php_strip_whitespace_and_optimize(implode($deploymentBuffer)), FUNKPHP_FILE_PATH_DEPLOYMENT_FILE)) {
     cli_err("Failed to write the otherwise Successfully Compiled `FunkPHPDeployment.php` File to the Disk! Please check the File Permissions and try again! Path: `" . (FUNKPHP_FILE_PATH_DEPLOYMENT_FILE ?? "[NOT_DEFINED]") . "`");
 }
-cli_success("### FunkCLI Successfully Compiled & Built `FunkPHPDeployment.php` with the following options:\n### Compile Pages: " . ($compilePages ? "YES" : "NO") . "\n### Compress Deployment: " . ($compressDeployment ? "YES" : "NO") . "\n### You can now deploy the `FunkPHPDeployment.php` File to Your Server for Production use!");
+cli_success_without_exit("### FunkCLI Successfully Compiled & Built `/src/funkphp/FunkPHPDeployment.php` ###");
+cli_success_without_exit("Compiled with the following options:\n- Compile Pages: " . ($compilePages ? "YES" : "NO") . "\n- Compress Deployment: " . ($compressDeployment ? "YES" : "NO"));
+cli_success("### You can now deploy the `FunkPHPDeployment.php` File to Your Server for Production use!");
 exit;
