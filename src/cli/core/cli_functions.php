@@ -749,9 +749,12 @@ function cli_assert_final_value(
         'array-floats',
         'array-booleans',
         'array-list',
+        'array-list-strings',
+        'array-list-strings-non-empty',
         'array-associative',
         'array-associative-nulls',
         'array-associative-strings',
+        'array-associative-strings-non-empty',
         'array-associative-integers',
         'array-associative-floats',
         'array-associative-objects',
@@ -807,6 +810,8 @@ function cli_assert_final_value(
         if ($transformRule === 'arr-numbered')   $transformRule = 'array-list';
         if ($transformRule === 'array-numbered')   $transformRule = 'array-list';
         if ($transformRule === 'arr-list')   $transformRule = 'array-list';
+        if ($transformRule === 'arr-list-str')   $transformRule = 'array-list-strings';
+        if ($transformRule === 'arr-list-strings')   $transformRule = 'array-list-strings';
         if ($transformRule === 'array-assoc')   $transformRule = 'array-associative';
         if ($transformRule === 'arr-assoc')   $transformRule = 'array-associative';
         if ($transformRule === 'arr-assoc-str')   $transformRule = 'array-associative-strings';
@@ -833,6 +838,10 @@ function cli_assert_final_value(
                 }
             } elseif ($checkForType === 'strings') {
                 if (!is_string($singleValueInArr)) {
+                    return false;
+                }
+            } elseif ($checkForType === 'strings-non-empty') {
+                if (!is_string($singleValueInArr) || empty(trim($singleValueInArr))) {
                     return false;
                 }
             } elseif ($checkForType === 'numbers') {
@@ -898,11 +907,38 @@ function cli_assert_final_value(
             ) {
                 return true;
             }
+            // Check 4.1 array-list-strings; all values must come as a numbered array and be all strings (no trim is used)
+            if (
+                in_array('array-list-strings', $normalizedRules, true)
+                && is_array($actualValue)
+                && array_is_list($actualValue)
+                && count($actualValue) > 0
+                &&  ($allValuesAreSameType($actualValue, "strings"))
+            ) {
+                return true;
+            }
+            // Check 4.1.1 array-list-strings-non-empty; all values must come as a numbered array and be all strings (no trim is used)
+            if (
+                in_array('array-list-strings-non-empty', $normalizedRules, true)
+                && is_array($actualValue)
+                && array_is_list($actualValue)
+                && count($actualValue) > 0
+                &&  ($allValuesAreSameType($actualValue, "strings-non-empty"))
+            ) {
+                return true;
+            }
             // Check 4.2: array-associative-strings
             if (
                 in_array('array-associative-strings', $normalizedRules, true)
             ) {
                 if (count($actualValue) > 0 && !array_is_list($actualValue) && $allValuesAreSameType($actualValue, "strings")) {
+                    return true;
+                }
+            }
+            if (
+                in_array('array-associative-strings-non-empty', $normalizedRules, true)
+            ) {
+                if (count($actualValue) > 0 && !array_is_list($actualValue) && $allValuesAreSameType($actualValue, "strings-non-empty")) {
                     return true;
                 }
             }
@@ -1049,6 +1085,38 @@ function cli_assert_final_value(
         }
         return true;
     }
+    if ($normalizedRule === 'array-list-strings') {
+        if (
+            !is_array($actualValue)
+            || !array_is_list($actualValue)
+            || count($actualValue) === 0
+            ||  (!$allValuesAreSameType($actualValue, "strings"))
+        ) {
+            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected a Numbered Array with only Strings, empty or not, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
+            if (is_string($info) && !empty($info)) {
+                $msg .= " More Info: {$info}";
+            }
+            cli_build_warning_err_list($warnsAndErrs, $severity, $msg);
+            return false;
+        }
+        return true;
+    }
+    if ($normalizedRule === 'array-list-strings-non-empty') {
+        if (
+            !is_array($actualValue)
+            || !array_is_list($actualValue)
+            || count($actualValue) === 0
+            ||  (!$allValuesAreSameType($actualValue, "strings-non-empty"))
+        ) {
+            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected a Numbered Array with only Non-Empty Strings, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
+            if (is_string($info) && !empty($info)) {
+                $msg .= " More Info: {$info}";
+            }
+            cli_build_warning_err_list($warnsAndErrs, $severity, $msg);
+            return false;
+        }
+        return true;
+    }
     if ($normalizedRule === 'array-numbers') {
         if (
             !is_array($actualValue)
@@ -1180,7 +1248,22 @@ function cli_assert_final_value(
             || count($actualValue) === 0
             ||  (!$allValuesAreSameType($actualValue, "strings"))
         ) {
-            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Associative Array where all Values are Strings (empty allowed) but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
+            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Associative Array where all Values are Strings (empty allowed), but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
+            if (is_string($info) && !empty($info)) {
+                $msg .= " More Info: {$info}";
+            }
+            cli_build_warning_err_list($warnsAndErrs, $severity, $msg);
+            return false;
+        }
+        return true;
+    }
+    if ($normalizedRule === 'array-associative-strings-non-empty') {
+        if (
+            !is_array($actualValue)
+            || count($actualValue) === 0
+            ||  (!$allValuesAreSameType($actualValue, "strings-non-empty"))
+        ) {
+            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Associative Array where all Values are Non-Empty Strings, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
             if (is_string($info) && !empty($info)) {
                 $msg .= " More Info: {$info}";
             }
@@ -1195,7 +1278,7 @@ function cli_assert_final_value(
             || count($actualValue) === 0
             ||  (!$allValuesAreSameType($actualValue, "numbers"))
         ) {
-            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Associative Array where all Values are Numbers but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
+            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Associative Array where all Values are Numbers, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
             if (is_string($info) && !empty($info)) {
                 $msg .= " More Info: {$info}";
             }
@@ -1210,7 +1293,7 @@ function cli_assert_final_value(
             || count($actualValue) === 0
             ||  (!$allValuesAreSameType($actualValue, "nulls"))
         ) {
-            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Associative Array where all Values are Nulls but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
+            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Associative Array where all Values are Nulls, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
             if (is_string($info) && !empty($info)) {
                 $msg .= " More Info: {$info}";
             }
@@ -1225,7 +1308,7 @@ function cli_assert_final_value(
             || count($actualValue) === 0
             ||  (!$allValuesAreSameType($actualValue, "integers"))
         ) {
-            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Associative Array where all Values are Integers but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
+            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Associative Array where all Values are Integers, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
             if (is_string($info) && !empty($info)) {
                 $msg .= " More Info: {$info}";
             }
@@ -1240,7 +1323,7 @@ function cli_assert_final_value(
             || count($actualValue) === 0
             ||  (!$allValuesAreSameType($actualValue, "floats"))
         ) {
-            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Associative Array where all Values are Floats but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
+            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Associative Array where all Values are Floats, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
             if (is_string($info) && !empty($info)) {
                 $msg .= " More Info: {$info}";
             }
@@ -1255,7 +1338,7 @@ function cli_assert_final_value(
             || count($actualValue) === 0
             ||  (!$allValuesAreSameType($actualValue, "booleans"))
         ) {
-            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Associative Array where all Values are Booleans but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
+            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Associative Array where all Values are Booleans, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
             if (is_string($info) && !empty($info)) {
                 $msg .= " More Info: {$info}";
             }

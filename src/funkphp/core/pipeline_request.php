@@ -58,10 +58,8 @@ return  array(
         'style-src'   => array("'self'"),
         'img-src'     => array("'self'"),
       ),
-      array(),
       'global_rate_limiting' => NULL,
-      'global_param_rules' =>
-      array(),
+      'global_param_rules' => array(),
       'global_default_no_route_match_response' => [
         'page' => "/[errors]/404",
         'json' => ["error_404" => "Route not found! If You are the Developer: Check inside `/src/funkphp/core/pipeline_routes.php` or via FunkGUI if you have defined Routes correctly!"],
@@ -79,8 +77,6 @@ return  array(
       4 => 'pl_https_kernel_dispatch',
     ),
     'post_response' =>
-    array(
-      0 => 'pl_debug',
-    ),
+    array(0 => 'pl_debug'),
   ),
 );
