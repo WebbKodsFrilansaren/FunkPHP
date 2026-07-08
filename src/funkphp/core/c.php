@@ -19,7 +19,7 @@ require_once __DIR__ . '/CONSTANTS.php';
 return array(
   'FUNKPHP_ONLINE' => false,
   'FUNKPHP_USE_HTTPS' => false,
-  'FUNKPHP_USE_PREPARE_URI' => true,
+  'FUNKPHP_USE_PREPARE_URI' => false,
   "FUNKPHP_USE_VENDOR" => true,
   "FUNKPHP_CUSTOM_URI_NORMALIZER" => null,
   "FUNKPHP_CUSTOM_EXCEPTION_HANDLER" => null,

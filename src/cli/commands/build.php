@@ -573,8 +573,8 @@ cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($conf
 
 // Here ### Step 1 is fully validated so now we insert starting point of the `FunkPHPDeployment.php` file into the $deploymentBuffer array for later writing to disk!
 cli_success_without_exit("G`### Step 1 DONE ###` Validating & Adding `c.php` (FunkPHP Configuration File) SUCCESSFULLY! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`.");
-$deploymentBuffer[] = "<?php // FunkPHPDeployment.php | Created: " . date("Y-m-d H:i:s") . " | PHP Version: " .  PHP_VERSION . " | FunkPHP Version: " . (FUNKPHP_VERSION ?? "<Unknown Version>") . " | FunkCLI Version: " . (FUNKCLI_VERSION ?? "<Unknown Version>") . "\n";
-$deploymentBuffer[] = "namespace { "; // Opening Global namespace for nows
+$BUILD_VERSION = "<?php // FunkPHPDeployment.php | Created: " . date("Y-m-d H:i:s") . " | PHP Version: " .  PHP_VERSION . " | FunkPHP Version: " . (FUNKPHP_VERSION ?? "<Unknown Version>") . " | FunkCLI Version: " . (FUNKCLI_VERSION ?? "<Unknown Version>") . "\n";
+$deploymentBuffer[] = "<?php \nnamespace { "; // Opening Global namespace for nows
 
 // Adding Starting Needed Constants First
 $deploymentBuffer[] = "define('FUNKPHP_DEPLOYED', true);\n";
@@ -633,6 +633,9 @@ if (isset($cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION'])) {
     $deploymentBuffer[] = "\\funk_default_register_shutdown_function(\$c);\n";
 }
 $deploymentBuffer[] = "});\n";
+
+// Add the Almighty Important `ob_start();` - FunkPHP Framework FOLLOWS "ob_start() FOR EVERY REQUEST - ALWAYS, YOU HAVE TO CHANGE IT MANUALLY!"
+$deploymentBuffer[] = "ob_start();\n";
 
 // Adding the Functions now! (first user-defined, then in-built functions) where the
 // user-defined with same name as the in-built is not allowed since both will be in global namespace!
@@ -748,7 +751,7 @@ if (!cli_file_constant_defined_file_exists_is_readable("FUNKPHP_FILE_PATH_ROUTES
     cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline Files (Routes, Compiled Routes & Pipeline) and try again! Path: `" . (FUNKPHP_FILE_PATH_ROUTES ?? "[NOT_DEFINED]") . "`");
 }
 if (!cli_file_constant_defined_file_exists_is_readable("FUNKPHP_FILE_PATH_TROUTES")) {
-    cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "The FunkPHP Core Compiled Routes File `FUNKPHP_FILE_PATH_TROUTES` (`/src/funkphp/core/pipeline_routes.php`) does NOT EXIST or IS NOT READABLE or its DEFINED CONSTANT IS UNDEFINED! Try rebuilding the Route Files using `php funk rc` and try again! Path: `" . (FUNKPHP_FILE_PATH_TROUTES ?? "[NOT_DEFINED]") . "`");
+    cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "The FunkPHP Core Compiled Routes File `FUNKPHP_FILE_PATH_TROUTES` (`/src/funkphp/core/compiled_routes.php`) does NOT EXIST or IS NOT READABLE or its DEFINED CONSTANT IS UNDEFINED! Try rebuilding the Route Files using `php funk rc` and try again! Path: `" . (FUNKPHP_FILE_PATH_TROUTES ?? "[NOT_DEFINED]") . "`");
     cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline Files (Routes, Compiled Routes & Pipeline) and try again! Path: `" . (FUNKPHP_FILE_PATH_TROUTES ?? "[NOT_DEFINED]") . "`");
 }
 cli_info_without_exit("Recompiling & Rebuilding Routes (`/src/funkphp/core/pipeline_routes.php`) & Prefixed Routes (`/src/funkphp/core/compiled_routes.php`) using `cli_sort_build_routes_compile_and_output()`. If this step FAILS, the Building will ALSO Stop!");
@@ -765,47 +768,89 @@ $pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PA
 $pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>"], $pipelineWarnsAndErrs, "cli_err");
 $pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_headers"], $pipelineWarnsAndErrs, "cli_err");
 $pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_headers", "add"], $pipelineWarnsAndErrs, "cli_err");
-cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'array-strings|array-empty', "All Values in `[<CONFIG_GLOBAL -> global_headers -> add]` must be Strings (empty or not) OR it must be an Empty Array!");
+cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'array-strings|array-empty', "All Values in `[<CONFIG_GLOBAL> -> global_headers -> add]` must be Strings (empty or not) OR it must be an Empty Array!");
 
 $pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_headers", "remove"], $pipelineWarnsAndErrs, "cli_err");
-cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'array-strings|array-empty', "All Values in `[<CONFIG_GLOBAL -> global_headers -> remove]` must be Strings (empty or not) OR it must be an Empty Array!");
+cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'array-strings|array-empty', "All Values in `[<CONFIG_GLOBAL> -> global_headers -> remove]` must be Strings (empty or not) OR it must be an Empty Array!");
 
 $pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_sris"], $pipelineWarnsAndErrs, "cli_err");
 $pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_sris", "internal"], $pipelineWarnsAndErrs, "cli_err");
-cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'array-empty', "All Values in `[<CONFIG_GLOBAL -> global_headers -> global_sris -> internal]` must be Single Associative Arrays with Single String Values (empty allowed) OR it must be an Empty Array!");
-
+cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'array-empty|array-associative-strings', "All Values in `[<CONFIG_GLOBAL> -> global_sris -> internal]` must be Single Associative Arrays with Single String Values (empty allowed) OR it must be an Empty Array!");
 
 $pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_sris", "external"], $pipelineWarnsAndErrs, "cli_err");
-cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'array-empty', "All Values in `[<CONFIG_GLOBAL -> global_headers -> global_sris -> internal]` must be Single Associative Arrays with Single String Values (empty allowed) OR it must be an Empty Array!");
+cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'array-empty|array-associative-strings', "All Values in `[<CONFIG_GLOBAL> -> global_sris -> external]` must be Single Associative Arrays with Single String Values (empty allowed) OR it must be an Empty Array!");
+cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", (function ($keyValuePairs) {
+    if (isset($keyValuePairs) && is_array($keyValuePairs) && count($keyValuePairs) > 0) {
+        foreach ($keyValuePairs as $KVKey => $KVVAL) {
+            if (!str_starts_with(strtolower($KVKey), "https://")) return false;
+        }
+        return true;
+    } else {
+        return true;
+    }
+}), "Every External URL Key in in `[<CONFIG_GLOBAL> -> global_headers -> global_sris -> internal]` must start with `https://` for security reasons!");
 
 $pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_csp"], $pipelineWarnsAndErrs, "cli_err");
 $pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_csp", "connect-src"], $pipelineWarnsAndErrs, "cli_err");
-$pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_csp", "font-src"], $pipelineWarnsAndErrs, "cli_err");
-$pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_csp", "frame-src"], $pipelineWarnsAndErrs, "cli_err");
-$pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_csp", "base-uri"], $pipelineWarnsAndErrs, "cli_err");
-$pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_csp", "form-action"], $pipelineWarnsAndErrs, "cli_err");
-$pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_csp", "object-src"], $pipelineWarnsAndErrs, "cli_err");
-$pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_csp", "default-src"], $pipelineWarnsAndErrs, "cli_err");
-$pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_csp", "script-src"], $pipelineWarnsAndErrs, "cli_err");
-$pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_csp", "style-src"], $pipelineWarnsAndErrs, "cli_err");
-$pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_csp", "img-src"], $pipelineWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'array-empty|array-strings', "All Values in `[<CONFIG_GLOBAL> -> global_csp-> connect-src]` must be Strings (empty or not) OR it must be an Empty Array!");
 
+$pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_csp", "font-src"], $pipelineWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'array-empty|array-strings', "All Values in `[<CONFIG_GLOBAL> -> global_csp -> font-src]` must be Strings (empty or not) OR it must be an Empty Array!");
+
+$pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_csp", "frame-src"], $pipelineWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'array-empty|array-strings', "All Values in `[<CONFIG_GLOBAL> -> global_csp -> frame-src]` must be Strings (empty or not) OR it must be an Empty Array!");
+
+$pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_csp", "base-uri"], $pipelineWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'array-empty|array-strings', "All Values in `[<CONFIG_GLOBAL> -> global_csp -> base-uri]` must be Strings (empty or not) OR it must be an Empty Array!");
+
+$pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_csp", "form-action"], $pipelineWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'array-empty|array-strings', "All Values in `[<CONFIG_GLOBAL> -> global_csp -> form-action]` must be Strings (empty or not) OR it must be an Empty Array!");
+
+$pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_csp", "object-src"], $pipelineWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'array-empty|array-strings', "All Values in `[<CONFIG_GLOBAL> -> global_csp -> object-src]` must be Strings (empty or not) OR it must be an Empty Array!");
+
+$pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_csp", "default-src"], $pipelineWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'array-empty|array-strings', "All Values in `[<CONFIG_GLOBAL> -> global_csp -> default-src]` must be Strings (empty or not) OR it must be an Empty Array!");
+
+$pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_csp", "script-src"], $pipelineWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'array-empty|array-strings', "All Values in `[<CONFIG_GLOBAL> -> global_csp -> script-src]` must be Strings (empty or not) OR it must be an Empty Array!");
+
+$pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_csp", "style-src"], $pipelineWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'array-empty|array-strings', "All Values in `[<CONFIG_GLOBAL> -> global_csp -> style-src]` must be Strings (empty or not) OR it must be an Empty Array!");
+
+$pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_csp", "img-src"], $pipelineWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'array-empty|array-strings', "All Values in `[<CONFIG_GLOBAL> -> global_csp -> img-src]` must be Strings (empty or not) OR it must be an Empty Array!");
 
 $pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_rate_limiting"], $pipelineWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'array|null', "All Values in `[<CONFIG_GLOBAL> -> global_rate_limiting]` must be an Array or null!");
+
 $pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_param_rules"], $pipelineWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'array-empty|array-associative-strings', "All Values in `[<CONFIG_GLOBAL> -> global_param_rules]` must be Strings (empty or not) OR it must be an Empty Array!");
+
 $pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_default_no_route_match_response"], $pipelineWarnsAndErrs, "cli_err");
 $pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_default_no_route_match_response", "page"], $pipelineWarnsAndErrs, "cli_err");
-$pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_default_no_route_match_response", "json"], $pipelineWarnsAndErrs, "cli_err");
-$pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_default_no_route_match_response", "xml"], $pipelineWarnsAndErrs, "cli_err");
-$pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_default_no_route_match_response", "text"], $pipelineWarnsAndErrs, "cli_err");
-$pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_default_no_route_match_response", "callback"], $pipelineWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'string|null', "`[<CONFIG_GLOBAL> -> global_default_no_route_match_response -> page]` must be a String or Null!");
 
-cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline Files (Routes, Compiled Routes & Pipeline) and try again! Paths: `" . (FUNKPHP_FILE_PATH_PIPELINE ?? "[NOT_DEFINED]") . "` & `" . (FUNKPHP_FILE_PATH_ROUTES ?? "[NOT_DEFINED]") . "` & `" . (FUNKPHP_FILE_PATH_TROUTES ?? "[NOT_DEFINED]") . "`");
+$pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_default_no_route_match_response", "json"], $pipelineWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'array|null', "`[<CONFIG_GLOBAL> -> global_default_no_route_match_response -> json]` must be an Array or Null!");
+
+$pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_default_no_route_match_response", "xml"], $pipelineWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'string|null', "`[<CONFIG_GLOBAL> -> global_default_no_route_match_response -> xml]` must be a String or Null!");
+
+$pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_default_no_route_match_response", "text"], $pipelineWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'string|null', "`[<CONFIG_GLOBAL> -> global_default_no_route_match_response -> text]` must be a String or Null!");
+
+$pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_default_no_route_match_response", "callback"], $pipelineWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'string|null', "`[<CONFIG_GLOBAL> -> global_default_no_route_match_response -> callback]` must be a String or Null!");
+
+cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline File in the Key `pipeline -> <CONFIG_GLOBAL>` and try again! Path: `" . (FUNKPHP_FILE_PATH_PIPELINE ?? "[NOT_DEFINED]") . "`");
+
+// We will NOT add 'pipeline' though yet to the $c['pipeline] until we have verified the compiled_routes & pipeline_routes and the request
+cli_info_without_exit("G`### Step 4 STARTS ###` Loading, Validating, Rebuilding & Compiling `compiled_routes.php` & `pipeline_routes.php` Files ('Routes' in 'Pipeline' in FunkGUI)...");
+$routesWarnsAndErrs = [];
 
 $cConfig['pipeline'] = $pipelineFile['pipeline'];
 
-cli_info_without_exit("G`### Step 4 STARTS ###` Loading, Validating, Rebuilding & Compiling `compiled_routes.php` & `pipeline_routes.php` Files ('Routes' in 'Pipeline' in FunkGUI)...");
-$routesWarnsAndErrs = [];
 
 //////////////////////////////////
 // Correct execution order for GOTO Labels: Route Matching Generator Functions???
@@ -849,10 +894,11 @@ $optionalFlagsWarnsAndErrs = [];
 // This should happen if everything above went smoothly!
 $FINAL_C_CONFIG = cli_replace_string_tokens_in_var_exported_string($cReqReplacements, var_export($cConfig, "true")) . "\n";
 $COMPLETE_DEPLOYMENT_BUFFER = implode($deploymentBuffer);
-$COMPLETE_DEPLOYMENT_BUFFER =  str_replace($compilationSecretToken, $FINAL_C_CONFIG, $COMPLETE_DEPLOYMENT_BUFFER);
+$COMPLETE_DEPLOYMENT_BUFFER =  cli_php_strip_whitespace_and_optimize(str_replace($compilationSecretToken, $FINAL_C_CONFIG, $COMPLETE_DEPLOYMENT_BUFFER));
+$COMPLETE_DEPLOYMENT_BUFFER = substr_replace($COMPLETE_DEPLOYMENT_BUFFER, $BUILD_VERSION, 0, 6);
 
 // IMPORTANT: Might go back to "cli_php_strip_whitespace_string" instead if "\" auto-adding causes more issues rather than help?
-if (!cli_crud_folder_php_file_atomic_write(cli_php_strip_whitespace_and_optimize($COMPLETE_DEPLOYMENT_BUFFER), FUNKPHP_FILE_PATH_DEPLOYMENT_FILE)) {
+if (!cli_crud_folder_php_file_atomic_write($COMPLETE_DEPLOYMENT_BUFFER, FUNKPHP_FILE_PATH_DEPLOYMENT_FILE)) {
     cli_err("Failed to write the otherwise Successfully Compiled `FunkPHPDeployment.php` File to the Disk! Please check the File Permissions and try again! Path: `" . (FUNKPHP_FILE_PATH_DEPLOYMENT_FILE ?? "[NOT_DEFINED]") . "`");
 }
 cli_success_without_exit("### FunkCLI Successfully Compiled & Built `/src/funkphp/FunkPHPDeployment.php` ###");

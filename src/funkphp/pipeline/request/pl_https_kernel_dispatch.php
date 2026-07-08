@@ -87,6 +87,8 @@ function pl_https_kernel_dispatch(&$c)
     // INSERT DYNAMIC BASE URL TRACKING
     $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
     $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    $scriptName = $scriptName ?: $_SERVER['SCRIPT_NAME'] ?: '';
+    $baseUrl = $baseUrl ? $baseUrl : dirname($scriptName);
     $c['req']['base_url_absolute'] = rtrim($protocol . $host . $baseUrl, '/');
     $c['req']['base_url_relative'] = ($baseUrl === '/') ? '' : $baseUrl;
 
