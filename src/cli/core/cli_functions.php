@@ -10,6 +10,23 @@
  * source of truth, your app will most likely crash, and your peer will know
  * you do not understand how caching and/or compiled files work.
  **/
+
+// Function that returns if(!['req']['post_response']){funkphp\pipeline\request|post_response\namespaceFunction($c);}
+// to easier build the buffer of 'request' and 'post_response'. Middlewares & Route Function Handlers are NOT allowed to be aborted
+// this way, but should be aborted inside of their own logic by essentially exit and/or returning a response in order to do so!
+function cli_add_if_closed_pipeline_namespaced_function($requestOrPostResponse, $nameSpaceString)
+{
+    if (
+        !is_string($requestOrPostResponse) || empty(trim($requestOrPostResponse))
+        || !is_string($nameSpaceString) || empty(trim($nameSpaceString))
+    ) {
+        cli_err("[cli_add_if_closed_pipeline_namespaced_function()]: The provided Parameters `\$requestOrPostResponse` and/or `\$nameSpaceString` must both be Non-Empty Strings! Any Command that called this Function will now have HALTED!");
+    }
+    if ($requestOrPostResponse !== 'REQUEST' || $requestOrPostResponse !== 'POST_RESPONSE') {
+        cli_err("[cli_add_if_closed_pipeline_namespaced_function()]: `\$requestOrPostResponse` must be `REQUEST` OR `POST_RESPONSE`! Any Command that called this Function will now have HALTED!");
+    }
+}
+
 /*
  * Function that replaces {{##text_tokens_inside_of_template_function##}}
  *
@@ -511,7 +528,7 @@ function cli_assert_final_value(
 
     // STARTING EDGE-CASES: When we have no finalCheck (NULL) to check
     // but other special-cases like defined(), function_exists(),
-    // class_exists() and add to the warnsAndErrs array if it is not defined!
+    // class_exists() and add to the warnsAndErrs array if it isn') { not defined!
     if ($finalCheck === NULL) {
         // "defined()"
         if (
@@ -715,14 +732,31 @@ function cli_assert_final_value(
 
     // Used by Strategy C & D when you either have ONE or MULTIPLE Primitive Type Rules!
     // where the finalValue and/or finalType must either ONE or one of MULTIPLE Data types!
+    // $allValuesAreSameType are used by array-strings|floats|booleans|nulls|integers|numbers
+    // to make sure a given array's all VALUES are the same type like when you expect only an
+    // array of strings and so forth!
     $validNormalizedRules = [
         'unknown type',
         'object',
         'resource',
         'array',
+        'array-objects',
+        'array-nulls',
         'array-empty',
+        'array-strings',
+        'array-numbers',
+        'array-integers',
+        'array-floats',
+        'array-booleans',
         'array-list',
         'array-associative',
+        'array-associative-nulls',
+        'array-associative-strings',
+        'array-associative-integers',
+        'array-associative-floats',
+        'array-associative-objects',
+        'array-associative-booleans',
+        'array-associative-numbers',
         'integer',
         'boolean',
         'double',
@@ -736,16 +770,92 @@ function cli_assert_final_value(
         if ($transformRule === 'res')   $transformRule = 'resource';
         if ($transformRule === 'str')   $transformRule = 'string';
         if ($transformRule === 'arr-empty')   $transformRule = 'array-empty';
+        if ($transformRule === 'arr-objs')   $transformRule = 'array-objects';
+        if ($transformRule === 'arr-objects')   $transformRule = 'array-objects';
+        if ($transformRule === 'array-objs')   $transformRule = 'array-objects';
+        if ($transformRule === 'arr-strings')   $transformRule = 'array-strings';
+        if ($transformRule === 'arr-string')   $transformRule = 'array-strings';
+        if ($transformRule === 'array-str')   $transformRule = 'array-strings';
+        if ($transformRule === 'array-string')   $transformRule = 'array-strings';
+        if ($transformRule === 'arr-str')   $transformRule = 'array-strings';
+        if ($transformRule === 'array-number')   $transformRule = 'array-numbers';
+        if ($transformRule === 'arr-number')   $transformRule = 'array-numbers';
+        if ($transformRule === 'arr-numbers')   $transformRule = 'array-numbers';
+        if ($transformRule === 'array-nums')   $transformRule = 'array-numbers';
+        if ($transformRule === 'array-ints')   $transformRule = 'array-integers';
+        if ($transformRule === 'arr-ints')   $transformRule = 'array-integers';
+        if ($transformRule === 'arr-integer')   $transformRule = 'array-integers';
+        if ($transformRule === 'array-integer')   $transformRule = 'array-integers';
+        if ($transformRule === 'arr-integers')   $transformRule = 'array-integers';
+        if ($transformRule === 'arr-flts')   $transformRule = 'array-floats';
+        if ($transformRule === 'array-flts')   $transformRule = 'array-floats';
+        if ($transformRule === 'arr-dbls')   $transformRule = 'array-floats';
+        if ($transformRule === 'array-dbls')   $transformRule = 'array-floats';
+        if ($transformRule === 'array-double')   $transformRule = 'array-floats';
+        if ($transformRule === 'arr-double')   $transformRule = 'array-floats';
+        if ($transformRule === 'arr-doubles')   $transformRule = 'array-floats';
+        if ($transformRule === 'arr-booleans')   $transformRule = 'array-booleans';
+        if ($transformRule === 'arr-bools')   $transformRule = 'array-booleans';
+        if ($transformRule === 'arr-bool')   $transformRule = 'array-booleans';
+        if ($transformRule === 'array-bool')   $transformRule = 'array-booleans';
+        if ($transformRule === 'array-bools')   $transformRule = 'array-booleans';
+        if ($transformRule === 'arr-booleans')   $transformRule = 'array-booleans';
+        if ($transformRule === 'arr-nulls')   $transformRule = 'array-nulls';
+        if ($transformRule === 'arr-null')   $transformRule = 'array-nulls';
+        if ($transformRule === 'array-null')   $transformRule = 'array-nulls';
+        if ($transformRule === 'arr-null')   $transformRule = 'array-nulls';
         if ($transformRule === 'arr-numbered')   $transformRule = 'array-list';
         if ($transformRule === 'array-numbered')   $transformRule = 'array-list';
         if ($transformRule === 'arr-list')   $transformRule = 'array-list';
         if ($transformRule === 'array-assoc')   $transformRule = 'array-associative';
         if ($transformRule === 'arr-assoc')   $transformRule = 'array-associative';
+        if ($transformRule === 'arr-assoc-str')   $transformRule = 'array-associative-strings';
+        if ($transformRule === 'arr-assoc-int')   $transformRule = 'array-associative-integers';
+        if ($transformRule === 'arr-assoc-float')   $transformRule = 'array-associative-floats';
+        if ($transformRule === 'arr-assoc-nulls')   $transformRule = 'array-associative-nulls';
+        if ($transformRule === 'arr-assoc-bools')   $transformRule = 'array-associative-booleans';
+        if ($transformRule === 'arr-assoc-nums')   $transformRule = 'array-associative-numbers';
         if ($transformRule === 'int')   $transformRule = 'integer';
         if ($transformRule === 'bool')  $transformRule = 'boolean';
         if ($transformRule === 'float') $transformRule = 'double'; // gettype() returns 'double' for floats
         if ($transformRule === 'null')  $transformRule = 'NULL';   // gettype() returns uppercase 'NULL'
         return $transformRule;
+    };
+    $allValuesAreSameType = function ($checkSameValueTypeArr, $checkForType) {
+        foreach ($checkSameValueTypeArr as $singleValueInArr) {
+            if ($checkForType === 'objects') {
+                if (gettype($singleValueInArr) !== "object") {
+                    return false;
+                }
+            } elseif ($checkForType === 'nulls') {
+                if ($singleValueInArr !== NULL) {
+                    return false;
+                }
+            } elseif ($checkForType === 'strings') {
+                if (!is_string($singleValueInArr)) {
+                    return false;
+                }
+            } elseif ($checkForType === 'numbers') {
+                if (!is_numeric($singleValueInArr)) {
+                    return false;
+                }
+            } elseif ($checkForType === 'integers') {
+                if (!is_int($singleValueInArr)) {
+                    return false;
+                }
+            } elseif ($checkForType === 'floats') {
+                if (!is_float($singleValueInArr)) {
+                    return false;
+                }
+            } elseif ($checkForType === 'booleans') {
+                if (!is_bool($singleValueInArr)) {
+                    return false;
+                }
+            } else {
+                cli_err("[cli_assert_final_value()]: Helper Function `\$allValuesAreSameType` need `objects`, `nulls`,`strings`,`numbers`,`integers`,`floats` OR `booleans` to validate that provided array is all of that type! (no trim used). Check if you forgot `s` at the end!");
+            }
+        }
+        return true;
     };
 
     // --- STRATEGY C: Multiple Standard PHP Data Type Validation ---
@@ -779,6 +889,113 @@ function cli_assert_final_value(
             if (in_array('array-associative', $normalizedRules, true) && count($actualValue) > 0 && !array_is_list($actualValue)) {
                 return true;
             }
+            // Check 4: array-strings; all values in provided array must all be strings (no trim is used)
+            if (
+                in_array('array-strings', $normalizedRules, true)
+                && is_array($actualValue)
+                && count($actualValue) > 0
+                &&  ($allValuesAreSameType($actualValue, "strings"))
+            ) {
+                return true;
+            }
+            // Check 4.2: array-associative-strings
+            if (
+                in_array('array-associative-strings', $normalizedRules, true)
+            ) {
+                if (count($actualValue) > 0 && !array_is_list($actualValue) && $allValuesAreSameType($actualValue, "strings")) {
+                    return true;
+                }
+            }
+            // Check 5: array-numbers; all values in provided array must all be numbers
+            if (
+                in_array('array-numbers', $normalizedRules, true) && is_array($actualValue)
+                && count($actualValue) > 0 && ($allValuesAreSameType($actualValue, "numbers"))
+            ) {
+                return true;
+            }
+            // Check 5.2: array-numbers; all values in provided array must all be numbers
+            if (
+                in_array('array-associative-numbers', $normalizedRules, true)
+            ) {
+                if (count($actualValue) > 0 && !array_is_list($actualValue) && $allValuesAreSameType($actualValue, "numbers")) {
+                    return true;
+                }
+            }
+            // Check 6: array-integers; all values in provided array must all be ints
+            if (
+                in_array('array-integers', $normalizedRules, true) && is_array($actualValue)
+                && count($actualValue) > 0 && ($allValuesAreSameType($actualValue, "integers"))
+            ) {
+                return true;
+            }
+            // Check 6.2: array-integers; all values in provided array must all be integers
+            if (
+                in_array('array-associative-integers', $normalizedRules, true)
+            ) {
+                if (count($actualValue) > 0 && !array_is_list($actualValue) && $allValuesAreSameType($actualValue, "integers")) {
+                    return true;
+                }
+            }
+            // Check 7: array-nulls; all values in provided array must all be nulls
+            if (
+                in_array('array-nulls', $normalizedRules, true) && is_array($actualValue)
+                && count($actualValue) > 0 && ($allValuesAreSameType($actualValue, "nulls"))
+            ) {
+                return true;
+            }
+            // Check 7.2: array-nulls; all values in provided array must all be nulls
+            if (
+                in_array('array-associative-nulls', $normalizedRules, true)
+            ) {
+                if (count($actualValue) > 0 && !array_is_list($actualValue) && $allValuesAreSameType($actualValue, "nulls")) {
+                    return true;
+                }
+            }
+            // Check 8: array-booleans; all values in provided array must all be bools
+            if (
+                in_array('array-booleans', $normalizedRules, true) && is_array($actualValue)
+                && count($actualValue) > 0 && ($allValuesAreSameType($actualValue, "booleans"))
+            ) {
+                return true;
+            }
+            // Check 8.2: array-booleans; all values in provided array must all be booleans
+            if (
+                in_array('array-associative-booleans', $normalizedRules, true)
+            ) {
+                if (count($actualValue) > 0 && !array_is_list($actualValue) && $allValuesAreSameType($actualValue, "booleans")) {
+                    return true;
+                }
+            }
+            // Check 9: array-floats; all values in provided array must all be floats
+            if (
+                in_array('array-floats', $normalizedRules, true) && is_array($actualValue)
+                && count($actualValue) > 0 && ($allValuesAreSameType($actualValue, "floats"))
+            ) {
+                return true;
+            }
+            // Check 9.2: array-floats; all values in provided array must all be floats
+            if (
+                in_array('array-associative-floats', $normalizedRules, true)
+            ) {
+                if (count($actualValue) > 0 && !array_is_list($actualValue) && $allValuesAreSameType($actualValue, "floats")) {
+                    return true;
+                }
+            }
+            // Check 10: array-objects; all values in provided array must all be objects
+            if (
+                in_array('array-objects', $normalizedRules, true) && is_array($actualValue)
+                && count($actualValue) > 0 && ($allValuesAreSameType($actualValue, "objects"))
+            ) {
+                return true;
+            }
+            // Check 10.2: array-objects; all values in provided array must all be objects
+            if (
+                in_array('array-associative-objects', $normalizedRules, true)
+            ) {
+                if (count($actualValue) > 0 && !array_is_list($actualValue) && $allValuesAreSameType($actualValue, "objects")) {
+                    return true;
+                }
+            }
         }
         if (!in_array($actualType, $normalizedRules, true)) {
             $msg = "Type mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected ONE of Any Valid Types: '" . implode(', ', $normalizedRules) . "', but Found Type '{$actualType}'.";
@@ -800,8 +1017,113 @@ function cli_assert_final_value(
         cli_err("[cli_assert_final_value()]: Invalid Validation Rule (\$rule) provided. Must be one of: `" . implode(', ', $validNormalizedRules) . "` OR a Valid Regex Pattern OR a Callable Function (name to a Callable OR Callable itself)!");
     }
 
-    // Edge-case when you want it to be an arary but also empty meaning we must check first "array" and then just
-    // the count of the actualValue!
+    // Edge-cases when the array must be something like empty, only containing a specific certain value type
+    // (all must be same type), or the array must be a list or the array must be an associative array
+    if ($normalizedRule === 'array-objects') {
+        if (
+            !is_array($actualValue)
+            || count($actualValue) === 0
+            ||  (!$allValuesAreSameType($actualValue, "objects"))
+        ) {
+            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Array with only Objects, empty or not, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
+            if (is_string($info) && !empty($info)) {
+                $msg .= " More Info: {$info}";
+            }
+            cli_build_warning_err_list($warnsAndErrs, $severity, $msg);
+            return false;
+        }
+        return true;
+    }
+    if ($normalizedRule === 'array-strings') {
+        if (
+            !is_array($actualValue)
+            || count($actualValue) === 0
+            ||  (!$allValuesAreSameType($actualValue, "strings"))
+        ) {
+            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Array with only Strings, empty or not, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
+            if (is_string($info) && !empty($info)) {
+                $msg .= " More Info: {$info}";
+            }
+            cli_build_warning_err_list($warnsAndErrs, $severity, $msg);
+            return false;
+        }
+        return true;
+    }
+    if ($normalizedRule === 'array-numbers') {
+        if (
+            !is_array($actualValue)
+            || count($actualValue) === 0
+            ||  (!$allValuesAreSameType($actualValue, "numbers"))
+        ) {
+            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Array with only Numbers, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
+            if (is_string($info) && !empty($info)) {
+                $msg .= " More Info: {$info}";
+            }
+            cli_build_warning_err_list($warnsAndErrs, $severity, $msg);
+            return false;
+        }
+        return true;
+    }
+    if ($normalizedRule === 'array-nulls') {
+        if (
+            !is_array($actualValue)
+            || count($actualValue) === 0
+            ||  (!$allValuesAreSameType($actualValue, "nulls"))
+        ) {
+            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Array with only Nulls, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
+            if (is_string($info) && !empty($info)) {
+                $msg .= " More Info: {$info}";
+            }
+            cli_build_warning_err_list($warnsAndErrs, $severity, $msg);
+            return false;
+        }
+        return true;
+    }
+    if ($normalizedRule === 'array-integers') {
+        if (
+            !is_array($actualValue)
+            || count($actualValue) === 0
+            ||  (!$allValuesAreSameType($actualValue, "integers"))
+        ) {
+            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Array with only Integers, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
+            if (is_string($info) && !empty($info)) {
+                $msg .= " More Info: {$info}";
+            }
+            cli_build_warning_err_list($warnsAndErrs, $severity, $msg);
+            return false;
+        }
+        return true;
+    }
+    if ($normalizedRule === 'array-floats') {
+        if (
+            !is_array($actualValue)
+            || count($actualValue) === 0
+            ||  (!$allValuesAreSameType($actualValue, "floats"))
+        ) {
+            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Array with only Floats, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
+            if (is_string($info) && !empty($info)) {
+                $msg .= " More Info: {$info}";
+            }
+            cli_build_warning_err_list($warnsAndErrs, $severity, $msg);
+            return false;
+        }
+        return true;
+    }
+    if ($normalizedRule === 'array-booleans') {
+        if (
+            !is_array($actualValue)
+            || count($actualValue) === 0
+            ||  (!$allValuesAreSameType($actualValue, "booleans"))
+        ) {
+            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Array with only Booleans, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
+            if (is_string($info) && !empty($info)) {
+                $msg .= " More Info: {$info}";
+            }
+            cli_build_warning_err_list($warnsAndErrs, $severity, $msg);
+            return false;
+        }
+        return true;
+    }
     if ($normalizedRule === 'array-empty') {
         if (!is_array($actualValue) || count($actualValue) !== 0) {
             $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Empty Array, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
@@ -829,6 +1151,111 @@ function cli_assert_final_value(
     if ($normalizedRule === 'array-associative') {
         if (!is_array($actualValue) || array_is_list($actualValue)) {
             $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Associative Array, but Found Type '{$actualType}' (if 'array', it was NOT parsed as Associative Array). IMPORTANT: An Empty Array is vague so it is parsed as being a Numbered Array!";
+            if (is_string($info) && !empty($info)) {
+                $msg .= " More Info: {$info}";
+            }
+            cli_build_warning_err_list($warnsAndErrs, $severity, $msg);
+            return false;
+        }
+        return true;
+    }
+    if ($normalizedRule === 'array-associative-objects') {
+        if (
+            !is_array($actualValue)
+            || count($actualValue) === 0
+            ||  (!$allValuesAreSameType($actualValue, "objects"))
+        ) {
+            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Associative Array where all Values are Objects (any type) but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
+            if (is_string($info) && !empty($info)) {
+                $msg .= " More Info: {$info}";
+            }
+            cli_build_warning_err_list($warnsAndErrs, $severity, $msg);
+            return false;
+        }
+        return true;
+    }
+    if ($normalizedRule === 'array-associative-strings') {
+        if (
+            !is_array($actualValue)
+            || count($actualValue) === 0
+            ||  (!$allValuesAreSameType($actualValue, "strings"))
+        ) {
+            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Associative Array where all Values are Strings (empty allowed) but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
+            if (is_string($info) && !empty($info)) {
+                $msg .= " More Info: {$info}";
+            }
+            cli_build_warning_err_list($warnsAndErrs, $severity, $msg);
+            return false;
+        }
+        return true;
+    }
+    if ($normalizedRule === 'array-associative-numbers') {
+        if (
+            !is_array($actualValue)
+            || count($actualValue) === 0
+            ||  (!$allValuesAreSameType($actualValue, "numbers"))
+        ) {
+            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Associative Array where all Values are Numbers but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
+            if (is_string($info) && !empty($info)) {
+                $msg .= " More Info: {$info}";
+            }
+            cli_build_warning_err_list($warnsAndErrs, $severity, $msg);
+            return false;
+        }
+        return true;
+    }
+    if ($normalizedRule === 'array-associative-nulls') {
+        if (
+            !is_array($actualValue)
+            || count($actualValue) === 0
+            ||  (!$allValuesAreSameType($actualValue, "nulls"))
+        ) {
+            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Associative Array where all Values are Nulls but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
+            if (is_string($info) && !empty($info)) {
+                $msg .= " More Info: {$info}";
+            }
+            cli_build_warning_err_list($warnsAndErrs, $severity, $msg);
+            return false;
+        }
+        return true;
+    }
+    if ($normalizedRule === 'array-associative-integers') {
+        if (
+            !is_array($actualValue)
+            || count($actualValue) === 0
+            ||  (!$allValuesAreSameType($actualValue, "integers"))
+        ) {
+            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Associative Array where all Values are Integers but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
+            if (is_string($info) && !empty($info)) {
+                $msg .= " More Info: {$info}";
+            }
+            cli_build_warning_err_list($warnsAndErrs, $severity, $msg);
+            return false;
+        }
+        return true;
+    }
+    if ($normalizedRule === 'array-associative-floats') {
+        if (
+            !is_array($actualValue)
+            || count($actualValue) === 0
+            ||  (!$allValuesAreSameType($actualValue, "floats"))
+        ) {
+            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Associative Array where all Values are Floats but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
+            if (is_string($info) && !empty($info)) {
+                $msg .= " More Info: {$info}";
+            }
+            cli_build_warning_err_list($warnsAndErrs, $severity, $msg);
+            return false;
+        }
+        return true;
+    }
+    if ($normalizedRule === 'array-associative-booleans') {
+        if (
+            !is_array($actualValue)
+            || count($actualValue) === 0
+            ||  (!$allValuesAreSameType($actualValue, "booleans"))
+        ) {
+            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Associative Array where all Values are Booleans but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
             if (is_string($info) && !empty($info)) {
                 $msg .= " More Info: {$info}";
             }
@@ -10712,7 +11139,7 @@ function cli_sort_build_routes_compile_and_output($singleRoutesRootArray, $retur
         cli_info("[cli_sort_build_routes_compile_and_output()]: Please Review Warnings and/or Errors above in order to move on with the Router Compilation Step!");
         exit();
     } else {
-        cli_success_without_exit("[cli_sort_build_routes_compile_and_output()]: All Methods & Routes are considered Valid in this version of FunkPHP!");
+        cli_success_without_exit("[cli_sort_build_routes_compile_and_output()]: All Methods & Routes are Valid in this version of FunkPHP!");
         cli_info_without_exit("[cli_sort_build_routes_compile_and_output()]: Proceeding to Rebuild Sorted Pipeline Routes...");
     }
     // Then we rebuild/output and recompile Routes
@@ -10720,7 +11147,7 @@ function cli_sort_build_routes_compile_and_output($singleRoutesRootArray, $retur
     if ($rebuild) {
         cli_success_without_exit("[cli_sort_build_routes_compile_and_output()]: Rebuilt Pipeline Routes File \"" . FUNKPHP_FILE_PATH_ROUTES . "\"!");
     } else {
-        cli_err("[cli_sort_build_routes_compile_and_output()]: FAILED to rebuild Pipeline Routes File \"" . FUNKPHP_FILE_PATH_ROUTES . "\". File permissions issues?");
+        cli_err("[cli_sort_build_routes_compile_and_output()]: FAILED to rebuild Pipeline Routes File \"" . FUNKPHP_FILE_PATH_ROUTES . "\". File permissions issues? Any FunkCLI Command calling this Function will now have STOPPED WITH FAILURE!");
     }
     cli_info_without_exit("[cli_sort_build_routes_compile_and_output()]: Now Compiling and Outputting the Compiled Routes to \"" . FUNKPHP_FILE_PATH_TROUTES . "\"...");
     $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRootArray['ROUTES']);
@@ -11302,4 +11729,54 @@ function cli_replace_string_tokens_in_var_exported_string($arr, $str)
         $str = str_replace($key, $value, $str);
     }
     return $str;
+}
+
+///////////////////////////////////////////////////////////////////////
+///CLI FUNCTIONS RELATED TO PAGE TEMPLATE ENGINE COMPILING/BUILDING!///
+///////////////////////////////////////////////////////////////////////
+// Function that should (not finished yet) take/match @js directive
+// and dynamically insert any SRI Hash it has in route_, method_
+// or global_sri whose file path ($assetName) matches it!
+function cli_page_replace_js_directive($string)
+{
+    $templateCompiled = preg_replace_callback(
+        '/@js\(\s*\'([^\']+)\'\s*(?:,\s*\'([^\']+)\')?\s*\)/',
+        function ($matches) use (&$global_csp_hashes) {
+            $assetName = $matches[1];
+            $mode = $matches[2] ?? 'external'; // Default to external script tag
+            $filePath = "/home/wkf_server/code_vm/funkphp/public_html/js/{$assetName}.js";
+
+            if (!file_exists($filePath)) {
+                return "";
+            }
+
+            $jsContent = file_get_contents($filePath);
+
+            // MODE A: Inline Embed
+            if ($mode === 'embed') {
+                // Calculate a CSP inline hash so this script is permitted to execute
+                $hash = base64_encode(hash('sha256', $jsContent, true));
+                $global_csp_hashes['script-src'][] = "'sha256-{$hash}'";
+
+                return "<script>\n{$jsContent}\n</script>";
+            }
+
+            // MODE B: External Tag with Automated SRI
+            $sriHash = base64_encode(hash('sha384', $jsContent, true));
+            return "<script src=\"/js/{$assetName}.js\" integrity=\"sha384-{$sriHash}\" crossorigin=\"anonymous\"></script>";
+        },
+        $templateRaw
+    );
+    return $templateCompiled($string);
+}
+
+// Function (not finished yet) that takes the image path
+// of an image inside of {{img('filename.extension','embed')}}
+// IF the 'embed' is used and then it replaces it with the image
+// as pure binary data for those who wanna do it like that!
+function cli_page_replace_img_with_base64($ImgPath)
+{
+    // Inside your template engine image matcher closure:
+    $imgData = base64_encode(file_get_contents($imgPath));
+    return "data:image/jpeg;base64,{$imgData}";
 }

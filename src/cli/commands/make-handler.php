@@ -32,7 +32,7 @@ $fn = null;
 $optionalCodeSnippets = ''; // Optional code snippets to add inside created File=>Fn Handler
 $createdFFF = "<N/A>";
 
-//1. Find & extract Folder/File/Function argument (e.g., "ff:userFile=>FunctionInsideFile")
+//1. Find & extract Folder/File/Function argument (e.g., "ff:userFile,FnInsideFile")
 $arg_folderFileAndFn = cli_get_cli_input_from_interactive_or_regular($args, 'make:handler', 'file/fn');
 [$file, $fn] =  cli_extract_folder_file($arg_folderFileAndFn);
 $routeKey = [$file => $fn];
@@ -52,7 +52,7 @@ if ($arg_methodRoute) {
 }
 
 //////////////////////////////////////////////////////////////////////////////////
-// ALWAYS MANDATORY: Creating a Handler (File=>Function) unless it already exists!
+// ALWAYS MANDATORY: Creating a Handler (File,Fn) unless it already exists!
 //////////////////////////////////////////////////////////////////////////////////
 // Grab status for the folder and file so we can check whether
 // we can even access it, if it exists, is writable, etc.
@@ -93,7 +93,7 @@ else {
 // here since the Handler was created/found successfully
 if (!$arg_methodRoute) {
     cli_info_without_exit("No `Method/Route` Argument was provided so only the Handler `$createdFFF` was created/found. Command Done!");
-    cli_success("Found/Created Handler `$createdFFF` without adding it to a Method/Route. Command Completed Successfully!");
+    cli_success("Found/Created Handler `$createdFFF` without adding it to a `Method/Route`. Command Completed Successfully!");
 }
 
 ///////////////////////////////////////////////////////

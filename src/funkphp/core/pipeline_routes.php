@@ -1,4 +1,4 @@
-<?php // pipeline_routes.php - FunkPHP | FunkCLI Modified it 2026-07-08 13:52:18
+<?php // pipeline_routes.php - FunkPHP | FunkCLI Modified it 2026-07-08 17:29:05
 return 
     /**
     * -----------------------------------------------------
@@ -18,42 +18,7 @@ array (
   array (
     'GET' => 
     array (
-      '/all' => 
-      array (
-        'config' => 
-        array (
-          'route_alias' => '',
-          'route_param_rules' => 
-          array (
-          ),
-          'route_run_middlewares_before_pipeline' => true,
-          'route_headers' => 
-          array (
-          ),
-          'route_rate_limiting' => NULL,
-          'route_cache' => NULL,
-          'route_sris' => 
-          array (
-          ),
-          'route_nonces' => 
-          array (
-          ),
-          'route_csp' => 
-          array (
-          ),
-        ),
-        'middlewares' => 
-        array (
-        ),
-        'pipeline' => 
-        array (
-          0 => 
-          array (
-            'test' => 'test',
-          ),
-        ),
-      ),
-      '/get' => 
+      '/' => 
       array (
         'config' => 
         array (
@@ -88,16 +53,18 @@ array (
         ),
         'pipeline' => 
         array (
-          0 => 
-          array (
-            'test' => 'test',
-          ),
         ),
       ),
       '<CONFIG_METHOD>' => 
       array (
         'method_headers' => 
         array (
+          'add' => 
+          array (
+          ),
+          'remove' => 
+          array (
+          ),
         ),
         'method_sris' => 
         array (
@@ -120,6 +87,12 @@ array (
       array (
         'method_headers' => 
         array (
+          'add' => 
+          array (
+          ),
+          'remove' => 
+          array (
+          ),
         ),
         'method_sris' => 
         array (
@@ -142,6 +115,12 @@ array (
       array (
         'method_headers' => 
         array (
+          'add' => 
+          array (
+          ),
+          'remove' => 
+          array (
+          ),
         ),
         'method_sris' => 
         array (
@@ -164,6 +143,12 @@ array (
       array (
         'method_headers' => 
         array (
+          'add' => 
+          array (
+          ),
+          'remove' => 
+          array (
+          ),
         ),
         'method_sris' => 
         array (
@@ -186,6 +171,12 @@ array (
       array (
         'method_headers' => 
         array (
+          'add' => 
+          array (
+          ),
+          'remove' => 
+          array (
+          ),
         ),
         'method_sris' => 
         array (

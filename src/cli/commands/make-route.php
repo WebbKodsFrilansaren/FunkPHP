@@ -36,7 +36,7 @@ $createdFFF = "<N/A>";
 $arg_methodRoute = cli_get_cli_input_from_interactive_or_regular($args, 'make:route', 'method/route');
 [$method, $route] = cli_extract_method_route($arg_methodRoute);
 
-// 2. Find/create optional Folder/File/Function argument (e.g., "fff:usersFolder=>userFile=>FunctionInsideFile")
+// 2. Find/create optional Folder/File/Function argument (e.g., "fff:usersFolder=>userFile,FnInsideFile")
 $arg_folderFileAndFn = cli_get_cli_input_from_interactive_or_regular($args, 'make:route', 'file/fn');
 if ($arg_folderFileAndFn) {
     [$file, $fn] =  cli_extract_folder_file($arg_folderFileAndFn);
@@ -67,7 +67,7 @@ if (!array_key_exists($method, $ROUTES)) {
 else {
     // CONDITION 1: Check for an EXACT string match first (Handles static and exact matching dynamic parameters)
     if (isset($ROUTES[$method][$route])) {
-        cli_info_without_exit("`$method$route` already exists exactly in `funkphp/core/pipeline_routes.php`. Any optionally provided `File=>Function` will be added as a Route Pipeline Key to it!");
+        cli_info_without_exit("`$method$route` already exists exactly in `funkphp/core/pipeline_routes.php`. Any optionally provided `File,Fn` will be added as a Route Pipeline Key to it!");
     }
     // CONDITION 2: Not an exact match, but structurally collides (The Parameter Name Clash Edge Case!)
     else if (!cli_new_route_is_unique_in_its_method_group_VF($ROUTES[$method], $route)) {
@@ -96,7 +96,7 @@ else {
 
 // We exit if no optional Folder/File/Function argument was provided
 if (!$arg_folderFileAndFn) {
-    cli_success("No File=>Function argument was provided so only `$method$route` was created. Command Done!");
+    cli_success("No `File,Fn` second argument was provided so only `$method$route` was created/used. Command Done!");
 }
 ////////////////////////////////////////////////////////////////////
 // Here we have a valid Folder, File and Function to create but we
@@ -138,7 +138,7 @@ if (!$statusArray['file_exists']) {
         cli_success_without_exit("SUCCESSFULLY Created File `$file.php` with Function `$fn` in Folder `$singleFolder`!");
         cli_info_without_exit("The Route Function File `$file.php` is now ready to be used in your Routes other than just `$method$route` where it has already been added to by now!");
         cli_sort_build_routes_compile_and_output(["ROUTES" => $ROUTES]);
-        cli_success("`$method$route` was SUCCESSFULLY created/used in `funkphp/core/pipeline_routes.php` with the File=>Function `$singleFolder=>$file=>$fn` added as its first or last Route Pipeline Key!");
+        cli_success("`$method$route` was SUCCESSFULLY created/used in `funkphp/core/pipeline_routes.php` with the File,Fn `$singleFolder=>$file=>$fn` added as its first or last Route Pipeline Key!");
     } else {
         array_pop($ROUTES[$method][$route]);
         cli_sort_build_routes_compile_and_output(["ROUTES" => $ROUTES]);
@@ -152,7 +152,7 @@ if (isset($statusArray['functions'][$fn])) {
     cli_info_without_exit("Function `$fn` ALREADY EXISTS in File `$file.php` in`$singleFolder`!");
     cli_info_without_exit("The Route Function File `$file.php` can be used in your Routes other than just `$method$route` where it has BEEN ADDED AGAIN AT THE END of the `pipeline` Array Key!");
     cli_sort_build_routes_compile_and_output(["ROUTES" => $ROUTES]);
-    cli_success("`$method$route` was SUCCESSFULLY created/used in `funkphp/core/pipeline_routes.php` with the Folder=>File=>Function `$singleFolder=>$file=>$fn` added as its LAST PIPELINE KEY for the Route!");
+    cli_success("`$method$route` was SUCCESSFULLY created/used in `funkphp/core/pipeline_routes.php` with the Folder=>File,Fn `$singleFolder=>$file=>$fn` added as its LAST PIPELINE KEY for the Route!");
 }
 // else means the function does not exist in the existing file so we add it to the end and rebuild routes
 else {
@@ -163,7 +163,7 @@ else {
         cli_success_without_exit("SUCCESSFULLY Created Function `$fn` in File `$file.php` in `$singleFolder`!");
         cli_info_without_exit("The Route Function File `$file.php` is now ready to be used in your Routes other than just `$method$route` where it has already been added to by now!");
         cli_sort_build_routes_compile_and_output(["ROUTES" => $ROUTES]);
-        cli_success("`$method$route` was SUCCESSFULLY created/used in `funkphp/core/pipeline_routes.php` with the File=>Function in `$singleFolder=>$file=>$fn` added as its first or last Route Pipeline Key!");
+        cli_success("`$method$route` was SUCCESSFULLY created/used in `funkphp/core/pipeline_routes.php` with the File,Fn in `$singleFolder=>$file=>$fn` added as its first or last Route Pipeline Key!");
     } else {
         array_pop($ROUTES[$method][$route]);
         cli_sort_build_routes_compile_and_output(["ROUTES" => $ROUTES]);

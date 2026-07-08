@@ -41,3 +41,43 @@ function funk_session_started_or_start_it(&$c)
         \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
     }
 }
+
+
+function funk_use_global_default_no_route_match_response(&$c)
+{ // Fast Content Negotiation Router Fallback
+    //{{##comment_token##}}
+    $acceptHeader = $_SERVER['HTTP_ACCEPT'] ?? '*/*';
+    $fallbackConfig = $config['method_default_no_route_match_response']
+        ?? $globalConfig['global_default_no_route_match_response'];
+    $chosenFormat = null;
+    // PRIORITY 1: Explicit Browser requests always win
+    if (str_contains($acceptHeader, 'text/html') && !empty($fallbackConfig['page'])) {
+        $chosenFormat = 'page';
+    }
+    // PRIORITY 2: Strict API clients
+    elseif (str_contains($acceptHeader, 'json') && !empty($fallbackConfig['json'])) {
+        $chosenFormat = 'json';
+    }
+    // PRIORITY 3: Strict Data Feeds
+    elseif (str_contains($acceptHeader, 'xml') && !empty($fallbackConfig['xml'])) {
+        $chosenFormat = 'xml';
+    }
+    // PRIORITY 4: Plain text fallback
+    elseif (str_contains($acceptHeader, 'text/plain') && !empty($fallbackConfig['text'])) {
+        $chosenFormat = 'text';
+    }
+    // EXECUTION PHASE
+    if ($chosenFormat && isset($fallbackConfig[$chosenFormat])) {
+        $handler = $fallbackConfig[$chosenFormat];
+        // Execute your built-in template renderer or user-defined function string here
+        return cli_execute_fallback_handler($handler, $c);
+    }
+    // THE ULTIMATE ESCAPE HATCH: Pass complex edge-cases straight to the callback
+    if (!empty($fallbackConfig['callback'])) {
+        $callbackFn = $fallbackConfig['callback'];
+        return $callbackFn($c); // The developer takes full programmatic control here
+    }
+    // System hard fallback if absolutely everything is unconfigured or null
+    return cli_use_internal_core_404_response($c);
+    //
+}

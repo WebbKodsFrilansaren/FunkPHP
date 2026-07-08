@@ -1,5 +1,5 @@
 <?php
-// pipeline_request.php - FunkPHP Framework | FunkCLI recreated it 2026-07-05 08:55:15
+// pipeline_request.php - FunkPHP | FunkCLI recreated it 2026-07-08 14:22:13
 
 /**
  * -----------------------------------------------------
@@ -14,22 +14,49 @@
 return  array(
   'pipeline' =>
   array(
-    0 =>
+    '<CONFIG_GLOBAL>' =>
     array(
-      '<CONFIG_GLOBAL>' =>
+      'global_headers' =>
       array(
-        'global_headers' =>
-        array(),
-        'global_sris' =>
-        array(),
-        'global_nonces' =>
-        array(),
-        'global_csp' =>
-        array(),
-        'global_rate_limiting' => NULL,
-        'global_param_rules' =>
-        array(),
+        'add' =>
+        array(
+          0 => 'Content-Security-Policy: default-src \'none\'; img-src \'self\'; script-src \'self\'; connect-src \'none\'; style-src \'self\'; object-src \'none\'; frame-ancestors \'none\'; form-action \'self\'; font-src \'self\'; base-uri \'self\';',
+          1 => 'x-frame-options: DENY',
+          2 => 'x-content-type-options: nosniff',
+          3 => 'x-xss-protection: 1; mode=block',
+          4 => 'x-permitted-cross-domain-policies: none',
+          5 => 'referrer-policy: strict-origin-when-cross-origin',
+          6 => 'Access-Control-Allow-Origin: \'self\'',
+          7 => 'cross-origin-resource-policy: same-origin',
+          8 => 'Cross-Origin-Embedder-Policy: require-corp',
+          9 => 'Cross-Origin-Opener-Policy: same-origin',
+          10 => 'Expect-CT: enforce, max-age=86400',
+          11 => 'Strict-Transport-Security: max-age=31536000; includeSubDomains; preload',
+        ),
+        'remove' =>
+        array(
+          "X-Powered-By",
+          "Server",
+          "X-AspNet-Version",
+          "X-AspNetMvc-Version"
+        )
       ),
+      'global_sris' =>
+      array(),
+      'global_nonces' =>
+      array(),
+      'global_csp' =>
+      array(),
+      'global_rate_limiting' => NULL,
+      'global_param_rules' =>
+      array(),
+      'global_default_no_route_match_response' => [
+        'page' => null,
+        'json' => null,
+        'xml' => null,
+        'text' => null,
+        'callback' => null,
+      ]
     ),
     'request' =>
     array(

@@ -10,7 +10,6 @@
  * source of truth, your app will most likely crash, and your peer will know
  * you do not understand how caching and/or compiled files work.
  **/
-
 define("FUNKPHP_VERSION", "1.0.0");
 define("FUNKCLI_VERSION", "1.0.0");
 define("FUNKGUI_VERSION", "1.0.0");
@@ -18,7 +17,7 @@ define("FUNKGUI_VERSION", "1.0.0");
 // DEFAULT CONFIGURATION KEYS AND THEIR DEFAULT VALUES FOR GLOBAL, METHOD, AND ROUTE CONFIGURATIONS
 define(
     'FUNKPHP_DEFAULT_GLOBAL_CONFIG_KEY_AND_ITS_KEYS',
-    ['<CONFIG_GLOBAL>' => [
+    [ // '<CONFIG_GLOBAL>' is already created when this is constant is used!
         'global_headers' => ['add' => [
             "Content-Security-Policy: default-src 'none'; img-src 'self'; script-src 'self'; connect-src 'none'; style-src 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; font-src 'self'; base-uri 'self';",
             "x-frame-options: DENY",
@@ -43,7 +42,14 @@ define(
         'global_csp' => [],
         'global_rate_limiting' => null,
         'global_param_rules' => [],
-    ]]
+        'global_default_no_route_match_response' => [
+            'page' => null,
+            'json' => null,
+            'xml' => null,
+            'text' => null,
+            'callback' => null,
+        ]
+    ]
 );
 define(
     'FUNKPHP_DEFAULT_METHOD_CONFIG_KEY_AND_ITS_KEYS',
@@ -54,6 +60,13 @@ define(
         'method_csp' => [],
         'method_rate_limiting' => null,
         'method_param_rules' => [],
+        'method_default_no_route_match_response' => [
+            'page' => null,
+            'json' => null,
+            'xml' => null,
+            'text' => null,
+            'callback' => null,
+        ]
     ]]
 );
 define('FUNKPHP_DEFAULT_ROUTE_KEYS', [
@@ -635,21 +648,22 @@ $cCONSTANTSDefault = [
     "define('ROOT_SQL', ROOT_FOLDER . '/data/sql')", // src/funkphp/data/sql
     "define('ROOT_VALIDATION', ROOT_FOLDER . '/data/validation')", // src/funkphp/data/validation
 ];
-$singlePipelineDefault = ['pipeline' =>
-[
-    FUNKPHP_DEFAULT_GLOBAL_CONFIG_KEY_AND_ITS_KEYS,
-    'request' =>
-    [
-        0 => 'pl_run_ini_sets',
-        1 => 'pl_match_denied_exact_ips',
-        2 => 'pl_match_denied_methods',
-        3 => 'pl_match_denied_uas',
-        4 => 'pl_https_kernel_dispatch',
-    ],
-    'post_response' => [
-        0 => 'pl_debug'
-    ],
-]];
+$singlePipelineDefault = [
+    'pipeline' => [
+        '<CONFIG_GLOBAL>' => FUNKPHP_DEFAULT_GLOBAL_CONFIG_KEY_AND_ITS_KEYS,
+        'request' =>
+        [
+            0 => 'pl_run_ini_sets',
+            1 => 'pl_match_denied_exact_ips',
+            2 => 'pl_match_denied_methods',
+            3 => 'pl_match_denied_uas',
+            4 => 'pl_https_kernel_dispatch',
+        ],
+        'post_response' => [
+            0 => 'pl_debug'
+        ],
+    ]
+];
 $singleRoutesRouteDefault = [
     'ROUTES' => [
         'GET' =>
