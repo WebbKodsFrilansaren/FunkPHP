@@ -27,7 +27,7 @@ define('NAMESPACE_DATA_QUERY', 'funkphp\\data\\sql\\');
 define('NAMESPACE_DATA_SQL', 'funkphp\\data\\sql\\');
 define('NAMESPACE_DATA_VALIDATION', 'funkphp\\data\\validation\\');
 
-// Constants for Localhost vs Online Usage AND Default URLs (Change to your own!)
+// Constants for Localhost vs Online Usage
 define('FUNKPHP_USE_VENDOR', true); // Change to "false" if you intend to not use any Composer packages and want to remove the Composer autoloader from "FunkPHP.php" for better performance!
 define('ROOT_FOLDER', dirname(__DIR__, 1)); // src/funkphp/
 define('ROOT_CORE', ROOT_FOLDER . '/core'); // src/funkphp/core

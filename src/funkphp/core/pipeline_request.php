@@ -63,10 +63,10 @@ return  array(
       'global_param_rules' =>
       array(),
       'global_default_no_route_match_response' => [
-        'page' => null,
-        'json' => null,
+        'page' => "/[errors]/404",
+        'json' => ["error_404" => "Route not found! If You are the Developer: Check inside `/src/funkphp/core/pipeline_routes.php` or via FunkGUI if you have defined Routes correctly!"],
         'xml' => null,
-        'text' => null,
+        'text' => 'Route not found!',
         'callback' => null,
       ]
     ),
