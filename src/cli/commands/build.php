@@ -134,6 +134,7 @@ $cArrayKeysThatMustExist = [
     'FUNKPHP_USE_HTTPS',
     'FUNKPHP_USE_PREPARE_URI',
     'FUNKPHP_USE_VENDOR',
+    'FUNKPHP_CUSTOM_URI_NORMALIZER',
     'FUNKPHP_CUSTOM_EXCEPTION_HANDLER',
     'FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION',
     'INI_SETS',
@@ -230,6 +231,10 @@ if (
     cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Exception Handler `{$cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER']}` & the Custom Registered Shutdown Function `{$cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION']}` are exactly the same in `src/funkphp/core/c.php` (Global Configuration Array File)! Check Function Names in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one(s)! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
 }
 $userFunctionsFile = cli_folder_and_php_file_status("funkphp/config", "functions.php");
+if (count($userFunctionsFile['fn_names_duplicates']) > 0) {
+    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "There are Duplicate Function Names (`" . join(", ", array_keys($userFunctionsFile['fn_names_duplicates'])) .  "`) in `src/funkphp/config/functions.php` (User-defined Globally Available Functions in FunkPHP)! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
+    cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for `src/funkphp/config/functions.php` (User-defined Globally Available Functions in FunkPHP) and try again! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
+}
 if (isset($cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER'])) {
     if (!isset($userFunctionsFile["functions"][$cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER']])) {
         cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Exception Handler `{$cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER']}` NOT FOUND in `src/funkphp/config/functions.php` (User-defined Globally Available Functions in FunkPHP) is DEFINED & FOUND but is NOT READABLE! Check Function Name in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
@@ -238,6 +243,35 @@ if (isset($cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER'])) {
 if (isset($cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION'])) {
     if (!isset($userFunctionsFile["functions"][$cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION']])) {
         cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Registered Shutdown Function `{$cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION']}` NOT FOUND in `src/funkphp/config/functions.php` (User-defined Globally Available Functions in FunkPHP) is DEFINED & FOUND but is NOT READABLE! Check Function Name in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
+    }
+}
+// c['FUNKPHP_CUSTOM_URI_NORMALIZER'] must be a string or null and it cannot be the same function as
+// custom exception handler function OR custom register shutdown function!
+$fphpo_customChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["FUNKPHP_CUSTOM_URI_NORMALIZER"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($fphpo_customChecks), $configWarnsAndErrs, "cli_err", 'string|null', "Key is needed to know whether to use Custom URI Normalizer Function or Default one that prepares a Normalized Request URI for each incoming HTTP(S) Request! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
+cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for Main Keys 'FUNKPHP_ONLINE', 'FUNKPHP_USE_HTTPS', 'FUNKPHP_USE_PREPARE_URI', 'FUNKPHP_CUSTOM_EXCEPTION_HANDLER', 'FUNKPHP_CUSTOM_EXCEPTION_HANDLER', 'FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION' & 'INI_SETS' in the `c.php` (FunkPHP Configuration File) and try again! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
+if (isset($cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER'])) {
+    if (isset($userFunctionsFile['functions'][$cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER']])) {
+        if (
+            $userFunctionsFile['functions'][$cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER']]['fn_starts_with_cli']
+            || $userFunctionsFile['functions'][$cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER']]['fn_starts_with_funk']
+        ) {
+            cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Request URI Normalizer Function `{$cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER']}` in `src/funkphp/config/functions.php` (User-defined Globally Available Functions in FunkPHP) is STARTS with `cli_` or `funk_` in its name which is NOT ALLOWED! Check Function Name in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
+        }
+    } else {
+        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Request URI Normalizer Function `{$cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER']}` is NOT FOUND in `src/funkphp/config/functions.php` (User-defined Globally Available Functions in FunkPHP)! Check Function Name in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
+    }
+    if (
+        isset($cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER'])
+        && isset($cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION'])
+        && is_string($cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER'])
+        && is_string($cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION'])
+        && !empty(trim($cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER']))
+        && !empty(trim($cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION']))
+        && ($cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER'] === $cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER']
+            || $cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER'] === $cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION'])
+    ) {
+        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Request URI Normalizer Function `{$cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER']}` in `src/funkphp/config/functions.php` (User-defined Globally Available Functions in FunkPHP) is SAME AS CUSTOM REGISTER SHUTDOWN FUNCTION or CUSTOM EXCEPTION HANDLER FUNCTION! Check Function Name in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
     }
 }
 // Check that Reserved Functions Array $reserved_functions is available by now
@@ -258,7 +292,7 @@ if (isset($cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER'])) {
         cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Exception Handler `{$cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER']}` HAS CONFLICTING FUNCTION NAME with The Array String List of Reserved Function Names `src/cli/core/cli_reserved.php`. Please change your Function Name in `src/funkphp/config/functions.php` and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). OR set it to `null` if you wanna use default one! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
     }
 }
-cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for Main Keys 'FUNKPHP_ONLINE', 'FUNKPHP_USE_HTTPS', 'FUNKPHP_USE_PREPARE_URI', 'FUNKPHP_CUSTOM_EXCEPTION_HANDLER', 'FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION' & 'INI_SETS' in the `c.php` (FunkPHP Configuration File) and try again! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
+cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for Main Keys 'FUNKPHP_ONLINE', 'FUNKPHP_USE_HTTPS', 'FUNKPHP_USE_PREPARE_URI', 'FUNKPHP_CUSTOM_EXCEPTION_HANDLER', 'FUNKPHP_CUSTOM_EXCEPTION_HANDLER', 'FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION' & 'INI_SETS' in the `c.php` (FunkPHP Configuration File) and try again! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
 
 // VALIDATE BASEURLS Array Subkeys Paths!
 $baseURLSChecks = [];
@@ -609,6 +643,8 @@ $deploymentBuffer[] = "});\n";
 
 // Adding the Functions now! (first user-defined, then in-built functions) where the
 // user-defined with same name as the in-built is not allowed since both will be in global namespace!
+// USER-DEFINED cannot start with "funk_" or "cli_" but can start with "funk_validate_" for custom validation
+// functions.
 cli_info_without_exit("### Step 2: Loading, Validating & Compiling Core `functions.php` & User-defined `funkphp => config => functions.php` Files ('User-defined Functions' in 'Config' in FunkGUI)...");
 $functionsWarnsAndErrs = [];
 if (
@@ -634,14 +670,18 @@ $coreFunctionsFile = cli_folder_and_php_file_status("funkphp/core", "functions.p
 foreach ($userFunctionsFile['functions'] as $fnNameUser => $fnValsUser) {
     if (
         isset($coreFunctionsFile['functions'][strtolower($fnNameUser)])
-        || in_array($fnNameUser, $reserved_functions, true)
+        || in_array(strtolower($fnNameUser), $reserved_functions, true)
     ) {
         cli_build_warning_err_list($functionsWarnsAndErrs, "cli_err", "User-defined function '$fnNameUser' is already used by FunkPHP/FunkCLI. Please choose rename the function (cannot start with `funk_` or `cli_`) or remove it! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
     } else if (
-        str_starts_with(strtolower($fnNameUser), "funk_")
+        (str_starts_with(strtolower($fnNameUser), "funk_") &&
+            !str_starts_with(strtolower($fnNameUser), "funk_validate_"))
         || str_starts_with(strtolower($fnNameUser), "cli_")
+        || (str_starts_with(strtolower($fnNameUser), "funk_validate_")
+            && $fnValsUser['fn_exact_name'] !== $fnValsUser['fn_lowercased']
+        )
     ) {
-        cli_build_warning_err_list($functionsWarnsAndErrs, "cli_err", "User-defined function '$fnNameUser' starts with `funk_` or `cli_` which is not allowed. Please choose rename the function or remove it! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
+        cli_build_warning_err_list($functionsWarnsAndErrs, "cli_err", "User-defined function '$fnNameUser' starts with `funk_` (but not `funk_validate_`) or `cli_` which is not allowed. Please choose rename the function or remove it! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
     } else {
         $deploymentBuffer[] = $fnValsUser['fn_raw'] . "\n";
     }
@@ -669,9 +709,21 @@ $functionsTemplatesArray = [
 
 // Add Core Functions and also replace some of them with their dynamic counter-parts from function_templates.php
 // in /src/funkphp/core/function_templates.php
+// $excludedCoreFunctionsInBuild = some Core Functions are NOT needed as
+// they will be either statically inserted or optimized inside of the build!
+$excludedCoreFunctionsInBuild = [
+    "funk_default_exception_handler" => true,
+    "funk_default_register_shutdown_function" => true,
+    "funk_match_compiled_route" => true,
+    "funk_match_developer_route" => true,
+    "funk_run_pipeline_request" => true,
+    "funk_run_pipeline_post_response" => true, // maybe?
+];
 if (isset($coreFunctionsFile['functions'])) {
     foreach ($coreFunctionsFile['functions'] as $fnNameCore => $fnValsCore) {
-        if (isset($functionsTemplatesArray[$fnNameCore])) {
+        if (isset($excludedCoreFunctionsInBuild[$fnNameCore])) {
+            continue;
+        } else if (isset($functionsTemplatesArray[$fnNameCore])) {
             $templateRawCode = $coreFunctionsTemplateFile['functions'][$fnNameCore]['fn_raw'] ?? null;
             if (!$templateRawCode) {
                 cli_build_warning_err_list($functionsWarnsAndErrs, "cli_err", "Function '$fnNameCore' is marked for Token Replacement, but its Template was not found inside `/src/funkphp/core/function_templates.php`! The Function Structure must start with `function name(\&\$c`. Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL_TEMPLATES ?? "[NOT_DEFINED]") . "`");

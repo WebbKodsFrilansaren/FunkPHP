@@ -2719,6 +2719,8 @@ function cli_folder_and_php_file_status($folder, $file)
     $classRegex = '/^class\s+[a-z_A-Z][a-zA-Z0-9_]*\s*{(.*?)}$/ims';
     $returnRegex = '/return\s*array\(.*?\);$\n/ims';
     $fns = null;
+    $fnames_only = [];
+    $fnames_duplicates = [];
     $classExists = false;
     $classes = [];
     $namespaceExists = false;
@@ -2740,10 +2742,20 @@ function cli_folder_and_php_file_status($folder, $file)
             if (preg_match_all($fnRegex, $fileCnt, $fnsMatches)) {
                 foreach ($fnsMatches[1] as $idx => $fn) {
                     $fns[$fn] = [
+                        'fn_exact_name' => $fn,
+                        'fn_lowercased' => strtolower($fn),
+                        'fn_uppercased' => strtoupper($fn),
+                        'fn_starts_with_cli' => str_starts_with(strtolower($fn), 'cli_'),
+                        'fn_starts_with_funk' => str_starts_with(strtolower($fn), 'funk_'),
+                        'fn_starts_with_funk_validate_' => str_starts_with(strtolower($fn), 'funk_validate_'),
                         'fn_raw' => $fnsMatches[0][$idx] ?? null,
                         'dx_raw' => null,
                         'return_raw' => null
                     ];
+                    if (in_array(strtolower($fn), $fnames_only)) {
+                        $fnames_duplicates[$fn] = true;
+                    }
+                    $fnames_only[] = $fn;
                     // We now use the index to match for $DX and return arrays
                     if (preg_match($dxRegex, $fnsMatches[0][$idx], $dxMatch)) {
                         $fns[$fn]['dx_raw'] = $dxMatch[0] ?? null;
@@ -2788,6 +2800,8 @@ function cli_folder_and_php_file_status($folder, $file)
         'file_exists' => is_file($file),
         'file_readable' => is_readable($file),
         'file_writable' => is_writable($file),
+        'fn_names_only' => (isset($fnames_only) ? $fnames_only : []),
+        'fn_names_duplicates' => (isset($fnames_duplicates) ? $fnames_duplicates : []),
         'functions' => (isset($fns) ? $fns : []),
         'file_raw' => $fileRaw,
     ];

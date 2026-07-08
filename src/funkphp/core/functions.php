@@ -2823,24 +2823,6 @@ function funk_use_validation_files(&$c, $optimizedValidationArray)
 // Each Validation function returns either error message or null if validation   //
 // passes which is used to set $c['v']["correctVariableDepth"] to null or error! //
 ///////////////////////////////////////////////////////////////////////////////////
-
-/*
-YOUR CUSTOM VALIDATION FUNCTIONS STARTS_HERE
-- It must start with "funk_validate_" and then the name of the function or
-  else it won't be called when you use it in any of the validation files!
-- It must accept the following parameters:
-    - $inputName: The name of the input field being validated
-    - $inputData: The data being validated
-    - $validationValues: The validation values for this input field
-    - $customErr: A custom error message to be used if validation fails
-*/
-
-
-
-/*
-YOUR CUSTOM VALIDATION FUNCTIONS ENDS_HERE
-*/
-
 /* ALL IN-BUILT VALIDATION FUNCTIONS IN FunkPHP */
 // This function exists so "nullable" can be used as a validation rule
 // When it exists and value for the $inputName is null, some rules
