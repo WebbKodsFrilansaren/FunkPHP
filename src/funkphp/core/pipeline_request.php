@@ -42,10 +42,22 @@ return  array(
         )
       ),
       'global_sris' =>
-      array(),
-      'global_nonces' =>
-      array(),
-      'global_csp' =>
+      array(
+        'internal' => array(),
+        'external' => array(),
+      ),
+      'global_csp' => array(
+        'connect-src' => array("'self'"),
+        'font-src' => array("'self'"),
+        'frame-src' => array("'self'"),
+        'base-uri' => array("'self'"),
+        'form-action' => array("'self'"),
+        'object-src' => array("'none'"),
+        'default-src' => array("'none'"),
+        'script-src'  => array("'self'"),
+        'style-src'   => array("'self'"),
+        'img-src'     => array("'self'"),
+      ),
       array(),
       'global_rate_limiting' => NULL,
       'global_param_rules' =>

@@ -497,34 +497,14 @@ $reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_F
 cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'string|null', "This is the FunkPHP-provided Base URL Relative String of the HTTP(S) Request used for URL Tracking during a Valid HTTP(S) Request!");
 $reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "auth"], $configWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'null', "This is the FunkPHP-provided Auth Value depending on implemention that can be used after a Matched Route during a Valid HTTP(S) Request!");
-$reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "matched_in"], $configWarnsAndErrs, "cli_err");
-cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'null', "This is the location identifier where the router found a match (e.g., 'web', 'api') and must stay initialized as NULL.");
 $reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "route"], $configWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'null', "This holds the raw matched dynamic route string path template from your route definitions file.");
 $reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "params"], $configWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'null', "This will hold extracted dynamic URI route parameters mapped as an associative array upon routing matching completion.");
 $reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "segments"], $configWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'null', "This will store exploded URL string path fragments used internally by FunkPHP for structural pattern matching analysis.");
-$reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "matched_config"], $configWarnsAndErrs, "cli_err");
-cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'null', "This carries custom meta-configuration state properties linked directly to the specific matched endpoint.");
-$reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "matched_pipeline"], $configWarnsAndErrs, "cli_err");
-cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'array-empty', "Must start as a pristine Empty Array. It acts as the compiled queue container holding pipeline processing layers for this request loop.");
-$reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "matched_middlewares"], $configWarnsAndErrs, "cli_err");
-cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'null', "This holds a sequential list of verified HTTP middleware layer keys that will execute sequentially before the controller functions trigger.");
 $reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "skip_post_response"], $configWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'boolean', "This is a boolean toggle flag used to control whether background post-response fast-cgi processes should run or terminate early.");
-$reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "current_pipeline"], $configWarnsAndErrs, "cli_err");
-cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'null', "This is the internal runtime pointer monitoring the actively running functional request pipeline segment.");
-$reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "next_pipeline"], $configWarnsAndErrs, "cli_err");
-cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'null', "This is the internal runtime pointer indicating the upcoming functional step scheduled next within the pipeline flow queue.");
-$reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "current_middleware"], $configWarnsAndErrs, "cli_err");
-cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'null', "This is the internal runtime pointer identifying which middleware interceptor layer is actively evaluating the state snapshot.");
-$reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "next_middleware"], $configWarnsAndErrs, "cli_err");
-cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'null', "This is the internal runtime pointer declaring the target middleware layer awaiting execution authority next.");
-$reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "keep_running_pipeline"], $configWarnsAndErrs, "cli_err");
-cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'null', "This is a execution state sentinel parameter used by the pipeline loop to handle async execution continuations.");
-$reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "keep_running_middlewares"], $configWarnsAndErrs, "cli_err");
-cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'null', "This is a structural control variable used to maintain context within nested onion-style middleware loops.");
 $reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "keep_running_exit"], $configWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'null', "This is a dedicated lifecycle termination pointer used to intercept deep call-stack errors and exit safely.");
 $reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "code"], $configWarnsAndErrs, "cli_err");
@@ -616,6 +596,15 @@ $cConfig['req']['time'] =  "##TOKEN_REQ_TIME##";
 $cConfig['req']['query'] = "##TOKEN_REQ_QUERY_STRING##";
 unset($cConfig['<ENTRY>']);
 unset($cConfig['ROUTES']);
+unset($cConfig['req']['current_pipeline']);
+unset($cConfig['req']['next_pipeline']);
+unset($cConfig['req']['current_middleware']);
+unset($cConfig['req']['keep_running_pipeline']);
+unset($cConfig['req']['next_middleware']);
+unset($cConfig['req']['matched_in']);
+unset($cConfig['req']['matched_config']);
+unset($cConfig['req']['matched_pipeline']);
+unset($cConfig['req']['matched_middlewares']);
 $cConfig['credentials'] = $connsPayload;
 $compilationSecretToken = "'{{##CONFIG_TOKEN_STRING_THAT_IS_REPLACED_##FUNKPHP_COMPILE_" . bin2hex(random_bytes(32)) . "LATER_BY_COMPLETE_CONFIG_IT_NEEDS_PIPELINE_KEYS_FIRST##}}'##";
 $deploymentConfigBuffer[] = "\$c = $compilationSecretToken;\n";
@@ -782,10 +771,26 @@ $pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PA
 cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'array-strings|array-empty', "All Values in `[<CONFIG_GLOBAL -> global_headers -> remove]` must be Strings (empty or not) OR it must be an Empty Array!");
 
 $pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_sris"], $pipelineWarnsAndErrs, "cli_err");
-cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'array-associative-strings|array-empty', "All Values in `[<CONFIG_GLOBAL -> global_headers -> global_sris]` must be Single Associative Arrays with Single String Values (empty allowed) OR it must be an Empty Array!");
+$pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_sris", "internal"], $pipelineWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'array-empty', "All Values in `[<CONFIG_GLOBAL -> global_headers -> global_sris -> internal]` must be Single Associative Arrays with Single String Values (empty allowed) OR it must be an Empty Array!");
 
-$pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_nonces"], $pipelineWarnsAndErrs, "cli_err");
+
+$pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_sris", "external"], $pipelineWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'array-empty', "All Values in `[<CONFIG_GLOBAL -> global_headers -> global_sris -> internal]` must be Single Associative Arrays with Single String Values (empty allowed) OR it must be an Empty Array!");
+
 $pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_csp"], $pipelineWarnsAndErrs, "cli_err");
+$pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_csp", "connect-src"], $pipelineWarnsAndErrs, "cli_err");
+$pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_csp", "font-src"], $pipelineWarnsAndErrs, "cli_err");
+$pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_csp", "frame-src"], $pipelineWarnsAndErrs, "cli_err");
+$pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_csp", "base-uri"], $pipelineWarnsAndErrs, "cli_err");
+$pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_csp", "form-action"], $pipelineWarnsAndErrs, "cli_err");
+$pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_csp", "object-src"], $pipelineWarnsAndErrs, "cli_err");
+$pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_csp", "default-src"], $pipelineWarnsAndErrs, "cli_err");
+$pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_csp", "script-src"], $pipelineWarnsAndErrs, "cli_err");
+$pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_csp", "style-src"], $pipelineWarnsAndErrs, "cli_err");
+$pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_csp", "img-src"], $pipelineWarnsAndErrs, "cli_err");
+
+
 $pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_rate_limiting"], $pipelineWarnsAndErrs, "cli_err");
 $pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_param_rules"], $pipelineWarnsAndErrs, "cli_err");
 $pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_default_no_route_match_response"], $pipelineWarnsAndErrs, "cli_err");

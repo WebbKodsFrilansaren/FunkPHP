@@ -1342,12 +1342,7 @@ function funk_run_pipeline_request(&$c)
     // Prepare for main loop to run each pipeline function
     $count = count($c['<ENTRY>']['pipeline']['request']);
     $pipeDir = ROOT_FOLDER . '/pipeline/request/';
-    $c['req']['keep_running_pipeline'] = true;
     for ($i = 0; $i < $count; $i++) {
-        if ($c['req']['keep_running_pipeline'] === false) {
-            break;
-        }
-
         // $current pipeline function should be a single associative array with a single value (which can be null)
         $current_pipe = $c['<ENTRY>']['pipeline']['request'][$i] ?? null;
         if (
@@ -1377,7 +1372,6 @@ function funk_run_pipeline_request(&$c)
             $err = 'Tell the Developer: Pipeline Request Function (`' . $fnToRun . '`) at index ' .  $i . ' is NOT CALLABLE for some reason. Each Function File should be in the style of: `<?php return function (&$c) { ... };`';
             \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
         }
-
 
         // Clean up before running the next pipeline function
         $c['req']['current_pipeline'] = $current_pipe;
@@ -1507,37 +1501,12 @@ function funk_run_pipeline_post_response(&$c)
     $c['<ENTRY>']['pipeline']['post_response'] = null;
 }
 
-// Exit the Pipeline and stop running any further pipeline functions
-// This is useful when you want to stop the pipeline early
-// IMPORTANT: As you can see, it will remove all remaining
-// pipeline functions, so use with care!
-function funk_abort_pipeline_request(&$c)
-{
-    $c['req']['current_pipeline'] = null;
-    $c['req']['keep_running_pipeline'] = false;
-    $c['<ENTRY>']['pipeline']['request'] = null;
-    return;
-}
 // Same as above but used for the post response functions
 // IMPORTANT: As you can see, it will remove all remaining
 // pipeline functions, so use with care!
 function funk_abort_pipeline_post_response(&$c)
 {
-    $c['req']['current_pipeline'] = null;
     $c['req']['keep_running_pipeline'] = false;
-    $c['<ENTRY>']['pipeline']['post_response'] = null;
-    return;
-}
-// Abort the middlewares and stop running any further middlewares
-// IMPORTANT: As you can see, it will remove all
-// remaining middleware functions, so use with care!
-// WARNING: Careful with aborting middlewares, particularly if
-// any kind of authentication/authorization is used for the route!
-function funk_abort_middlewares(&$c)
-{
-    $c['req']['current_middleware'] = null;
-    $c['req']['keep_running_middlewares'] = false;
-    $c['req']['matched_middlewares'] = null;
     return;
 }
 

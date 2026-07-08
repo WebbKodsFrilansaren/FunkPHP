@@ -37,9 +37,24 @@ define(
             "X-AspNet-Version",
             "X-AspNetMvc-Version"
         ]],
-        'global_sris' => [],
-        'global_nonces' => [],
-        'global_csp' => [],
+        'global_sris' => [
+            array(
+                'internal' => array(), // Called with "@js('FileName','sri:key') - sri is optional!
+                'external' => array(), // Called with "@js_ext('key') - SRI is a must for safety!
+            ),
+        ],
+        'global_csp' => [
+            'connect-src' => array("'self'"),
+            'font-src' => array("'self'"),
+            'frame-src' => array("'self'"),
+            'base-uri' => array("'self'"),
+            'form-action' => array("'self'"),
+            'object-src' => array("'none'"),
+            'default-src' => array("'none'"),
+            'script-src'  => array("'self'"),
+            'style-src'   => array("'self'"),
+            'img-src'     => array("'self'"),
+        ],
         'global_rate_limiting' => null,
         'global_param_rules' => [],
         'global_default_no_route_match_response' => [
@@ -55,9 +70,12 @@ define(
     'FUNKPHP_DEFAULT_METHOD_CONFIG_KEY_AND_ITS_KEYS',
     ['<CONFIG_METHOD>' => [
         'method_headers' => ['add' => [], 'remove' => []],
-        'method_sris' => [],
-        'method_nonces' => [],
-        'method_csp' => [],
+        'method_csp' => [
+            'default-src' => array("'none'"),
+            'script-src'  => array("'self'"),
+            'style-src'   => array("'self'"),
+            'img-src'     => array("'self'"),
+        ],
         'method_rate_limiting' => null,
         'method_param_rules' => [],
         'method_default_no_route_match_response' => [
@@ -77,9 +95,12 @@ define('FUNKPHP_DEFAULT_ROUTE_KEYS', [
         'route_headers' => ['add' => [], 'remove' => []],
         'route_rate_limiting' => null,
         'route_cache' => null,
-        'route_sris' => [],
-        'route_nonces' => [],
-        'route_csp' => [],
+        'route_csp' => [
+            'default-src' => array("'none'"),
+            'script-src'  => array("'self'"),
+            'style-src'   => array("'self'"),
+            'img-src'     => array("'self'"),
+        ],
     ],
     'middlewares' => [],
     'pipeline' => [],
@@ -560,8 +581,6 @@ $cDefault = [
         'next_pipeline' => null,
         'current_middleware' => null,
         'next_middleware' => null,
-        'keep_running_pipeline' => null,
-        'keep_running_middlewares' => null,
         'keep_running_exit' => null,
         'code' => 418,
         'log' => [],

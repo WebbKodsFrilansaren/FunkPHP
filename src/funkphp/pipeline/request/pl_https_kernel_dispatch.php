@@ -18,35 +18,62 @@ function pl_https_kernel_dispatch(&$c)
             }
         }
     } catch (Exception $e) {
-        $err = 'Tell the Developer: The HTTPS Redirection in `pl_http_kernel_dispatch` Failed to Redirect to HTTPS despite being set to do it!';
+        $err = 'Tell the Developer: The HTTPS Redirection in `pl_http_kernel_dispatch` Failed to Redirect to HTTPS despite being set to do it! Path: /src/funkphp/core/pipeline_request.php (or use FunkGUI)';
         funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
     }
     try {
         // When FUNKPHP_USE_PREPARE_URI is set to true, we prepare the URI for route matching
+        // also check if custom uri normalizer should be used instead or not!
+        if (
+            !isset($c['FUNKPHP_USE_PREPARE_URI'])
+            || (!is_bool($c['FUNKPHP_USE_PREPARE_URI']))
+        ) {
+            $err = 'Tell the Developer: The Configuration Key `FUNKPHP_USE_PREPARE_URI` is NOT boolean! It should be `true` or `false`! Path: /src/funkphp/core/c.php (or use FunkGUI)';
+            funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+        }
+        if (
+            isset($c['FUNKPHP_CUSTOM_URI_NORMALIZER'])
+            && (!is_string($c['FUNKPHP_CUSTOM_URI_NORMALIZER']))
+        ) {
+            $err = 'Tell the Developer: The Configuration Key `FUNKPHP_CUSTOM_URI_NORMALIZER` is NOT a String! Set it to `null` if not used! Path: /src/funkphp/core/c.php (or use FunkGUI)';
+            funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+        }
+        if (($c['FUNKPHP_USE_PREPARE_URI'] === false)
+            && (isset($c['FUNKPHP_USE_PREPARE_URI'])
+                && is_string($c['FUNKPHP_CUSTOM_URI_NORMALIZER']))
+        ) {
+            $err = 'Tell the Developer: The Configuration Key `FUNKPHP_CUSTOM_URI_NORMALIZER` is SET but the Configuration Key `FUNKPHP_USE_PREPARE_URI` is false meaning the Custom URI Normalizer will not run?! Please set `FUNKPHP_USE_PREPARE_URI` to `true` or set `FUNKPHP_CUSTOM_URI_NORMALIZER` to `null` instead!  Path: /src/funkphp/core/c.php (or use FunkGUI)';
+            funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+        }
         if ($c['FUNKPHP_USE_PREPARE_URI'] === true) {
-            // 1. Grab raw URI from server environment
-            $rawUri = $_SERVER['REQUEST_URI'] ?? '/';
-
-            // 2. Chop off query parameters and fragment injections instantly
-            // Explode splits at '?' or '#' if a raw socket forged it
-            $cleanPath = explode('?', $rawUri, 2)[0];
-            $cleanPath = explode('#', $cleanPath, 2)[0];
-
-            // 3. Resolve potential Subfolder installations (e.g., localhost/project/public/)
-            $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
-            $baseUrl = dirname($scriptName);
-            if ($baseUrl !== '/' && str_starts_with($cleanPath, $baseUrl)) {
-                $cleanPath = substr($cleanPath, strlen($baseUrl));
+            if (isset($c['FUNKPHP_CUSTOM_URI_NORMALIZER'])) {
+                if (!is_callable($c['FUNKPHP_CUSTOM_URI_NORMALIZER'])) {
+                    $err = 'Tell the Developer: The Configuration Key `FUNKPHP_CUSTOM_URI_NORMALIZER` is SET but it is NOT a Callable Function to Prepare the Request URI (see "/src/funkphp/core/c.php" and/or "/src/funkphp/config/functions.php" or FunKGUI). Set it to `null` if not used!';
+                    funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+                } else {
+                    $c['FUNKPHP_CUSTOM_URI_NORMALIZER']($c);
+                }
+            } else {
+                // 1. Grab raw URI from server environment
+                $rawUri = $_SERVER['REQUEST_URI'] ?? '/';
+                // 2. Chop off query parameters and fragment injections instantly
+                // Explode splits at '?' or '#' if a raw socket forged it
+                $cleanPath = explode('?', $rawUri, 2)[0];
+                $cleanPath = explode('#', $cleanPath, 2)[0];
+                // 3. Resolve potential Subfolder installations (e.g., localhost/project/public/)
+                $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+                $baseUrl = dirname($scriptName);
+                if ($baseUrl !== '/' && str_starts_with($cleanPath, $baseUrl)) {
+                    $cleanPath = substr($cleanPath, strlen($baseUrl));
+                }
+                // 4. Fallback safeguard: collapse duplicate slashes down to single slashes
+                // Fixes Apache installations where merge_slashes isn't handling it
+                $cleanPath = preg_replace('#/{2,#', '/', $cleanPath);
+                // 5. Enforce clean boundary states: Strip trailing and leading slashes, then wrap in a root slash
+                $cleanPath = trim($cleanPath, '/');
+                // Result is guaranteed to be a uniform format: '/' or '/users' or '/blog/post/view'
+                $c['req']['uri'] = ($cleanPath === '') ? '/' : '/' . $cleanPath;
             }
-            // 4. Fallback safeguard: collapse duplicate slashes down to single slashes
-            // Fixes Apache installations where merge_slashes isn't handling it
-            $cleanPath = preg_replace('#/{2,#', '/', $cleanPath);
-
-            // 5. Enforce clean boundary states: Strip trailing and leading slashes, then wrap in a root slash
-            $cleanPath = trim($cleanPath, '/');
-
-            // Result is guaranteed to be a uniform format: '/' or '/users' or '/blog/post/view'
-            $c['req']['uri'] = ($cleanPath === '') ? '/' : '/' . $cleanPath;
         }
         // When no FUNKPHP_USE_PREPARE_URI is set, we just use the raw REQUEST_URI as is
         else {
@@ -120,7 +147,7 @@ function pl_https_kernel_dispatch(&$c)
                 echo json_encode($jsonData, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
                 exit(); // Exit if json doesn't do it and let post-request run unless disabled before this pipeline function ran
             } catch (\JsonException $e) {
-                $err = 'No Route Matched (JSON Encoding Error Thrown) - Tell The Developer: The Pipepline `pl_match_route` Function needs a default Configured JSON Response OR Page to return OR a Callback Function to run in the case of No Matched Route. For example: `11 => ["pl_match_route" => ["no_match" => ["json" => "null", "page" => "404", "callback" => "null"]]]`. If the `json` key is a string, it will look for a function called that and use its return value as the JSON Encoded. If the `json` key is an array, it will be JSON Encoded as is. The `page` key must be a valid path or the default internal 404 Page will be used if not found. ONLY use the `callback` key if you need more things to do before returning any kind of response. Its string value is the function it will look for and execute. After any of these keys are ran exit() will be ran and `post-request` will run unless disabled before this pipeline function ran.';
+                $err = 'TELL THE DEVELOPER: No Route Matched (JSON Encoding Error Thrown) - Tell The Developer: The Pipepline `pl_match_route` Function needs a default Configured JSON Response OR Page to return OR a Callback Function to run in the case of No Matched Route. For example: `11 => ["pl_match_route" => ["no_match" => ["json" => "null", "page" => "404", "callback" => "null"]]]`. If the `json` key is a string, it will look for a function called that and use its return value as the JSON Encoded. If the `json` key is an array, it will be JSON Encoded as is. The `page` key must be a valid path or the default internal 404 Page will be used if not found. ONLY use the `callback` key if you need more things to do before returning any kind of response. Its string value is the function it will look for and execute. After any of these keys are ran exit() will be ran and `post-request` will run unless disabled before this pipeline function ran.';
                 funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
             }
         }
@@ -130,7 +157,7 @@ function pl_https_kernel_dispatch(&$c)
             header("Content-Security-Policy: default-src 'none'; img-src 'self'; script-src 'self'; connect-src 'none'; style-src 'self' 'unsafe-inline'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; font-src 'self'; base-uri 'self';");
             $page = ROOT_PAGES_COMPILED . '/[errors]/404.php';
             if (!is_readable($page)) {
-                $err = 'No Route Matched (configured "no_match => page => ..." Page NOT FOUND or NOT READABLE - if you wanna Use the Default Error Pages you must specify "/[errors]/{HttpErrorResponseCode}" - for example: `["page" => "/[errors]/404"]`) - Tell The Developer: The Pipepline `pl_match_route` Function needs a default Configured JSON Response OR Page to return OR a Callback Function to run in the case of No Matched Route. For example: `11 => ["pl_match_route" => ["no_match" => ["json" => "null", "page" => "404", "callback" => "null"]]]`. If the `json` key is a string, it will look for a function called that and use its return value as the JSON Encoded. If the `json` key is an array, it will be JSON Encoded as is. The `page` key must be a valid path or the default internal 404 Page will be used if not found. ONLY use the `callback` key if you need more things to do before returning any kind of response. Its string value is the function it will look for and execute. After any of these keys are ran exit() will be ran and `post-request` will run unless disabled before this pipeline function ran.';
+                $err = 'TELL THE DEVELOPER: No Route Matched (configured "no_match => page => ..." Page NOT FOUND or NOT READABLE - if you wanna Use the Default Error Pages you must specify "/[errors]/{HttpErrorResponseCode}" - for example: `["page" => "/[errors]/404"]`) - Tell The Developer: The Pipepline `pl_match_route` Function needs a default Configured JSON Response OR Page to return OR a Callback Function to run in the case of No Matched Route. For example: `11 => ["pl_match_route" => ["no_match" => ["json" => "null", "page" => "404", "callback" => "null"]]]`. If the `json` key is a string, it will look for a function called that and use its return value as the JSON Encoded. If the `json` key is an array, it will be JSON Encoded as is. The `page` key must be a valid path or the default internal 404 Page will be used if not found. ONLY use the `callback` key if you need more things to do before returning any kind of response. Its string value is the function it will look for and execute. After any of these keys are ran exit() will be ran and `post-request` will run unless disabled before this pipeline function ran.';
                 funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
             }
             include_once $page;
@@ -139,7 +166,7 @@ function pl_https_kernel_dispatch(&$c)
         } // <Add more "else ifs" if you wanna support more Content-Types before the catch-all-callback below>
         // Expected at least callback out of the 3 keys
         else {
-            $err = 'No Route Matched (no Matching Configured Key based on Accept Request Header provided in the `no_match` key. This is because only two keys are configured allowing for this special case!) - Tell The Developer: The Pipepline `pl_match_route` Function needs a default Configured JSON Response OR Page to return OR a Callback Function to run in the case of No Matched Route. For example: `11 => ["pl_match_route" => ["no_match" => ["json" => "null", "page" => "404", "callback" => "null"]]]`. If the `json` key is a string, it will look for a function called that and use its return value as the JSON Encoded. If the `json` key is an array, it will be JSON Encoded as is. The `page` key must be a valid path or the default internal 404 Page will be used if not found. ONLY use the `callback` key if you need more things to do before returning any kind of response. Its string value is the function it will look for and execute. After any of these keys are ran exit() will be ran and `post-request` will run unless disabled before this pipeline function ran.';
+            $err = 'TELL THE DEVELOPER: No Route Matched (no Matching Configured Key based on Accept Request Header provided in the `no_match` key. This is because only two keys are configured allowing for this special case!) - Tell The Developer: The Pipepline `pl_match_route` Function needs a default Configured JSON Response OR Page to return OR a Callback Function to run in the case of No Matched Route. For example: `11 => ["pl_match_route" => ["no_match" => ["json" => "null", "page" => "404", "callback" => "null"]]]`. If the `json` key is a string, it will look for a function called that and use its return value as the JSON Encoded. If the `json` key is an array, it will be JSON Encoded as is. The `page` key must be a valid path or the default internal 404 Page will be used if not found. ONLY use the `callback` key if you need more things to do before returning any kind of response. Its string value is the function it will look for and execute. After any of these keys are ran exit() will be ran and `post-request` will run unless disabled before this pipeline function ran.';
             funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
         }
     }
@@ -168,13 +195,9 @@ function pl_https_kernel_dispatch(&$c)
         // Initialize loop, it will stop running when "false" is set to "keep_running_middlewares"
         $count = count($c['req']['matched_middlewares']);
         $mwDir = ROOT_MIDDLEWARES . '/';
-        $c['req']['keep_running_middlewares'] = true;
 
         // Main MWs Loop
         for ($i = 0; $i < $count; $i++) {
-            if ($c['req']['keep_running_middlewares'] === false) {
-                break;
-            }
 
             // Current Middleware must be an associative array!
             $mwToRun = "";
@@ -218,7 +241,6 @@ function pl_https_kernel_dispatch(&$c)
         }
 
         // After MWs Loop, we set so MW Pipeline cannot run again
-        $c['req']['keep_running_middlewares'] = false;
         $c['req']['current_middleware'] = null;
         $c['req']['matched_middlewares'] = null;
     } else {
