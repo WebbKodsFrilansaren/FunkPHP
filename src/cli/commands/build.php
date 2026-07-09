@@ -230,7 +230,15 @@ if (
 ) {
     cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Exception Handler `{$cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER']}` & the Custom Registered Shutdown Function `{$cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION']}` are exactly the same in `src/funkphp/core/c.php` (Global Configuration Array File)! Check Function Names in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one(s)! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
 }
-$userFunctionsFile = cli_folder_and_php_file_status("funkphp/config", "functions.php");
+$userFunctionsFile = cli_folder_and_php_file_status("funkphp/config", "functions.php", false, true);
+var_dump($userFunctionsFile);
+exit;
+if (!$userFunctionsFile['file_exists'] || !$userFunctionsFile['folder_readable']) {
+    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configuration File `src/funkphp/config/functions.php` (User-defined Globally Available Functions) WAS NOT FOUND or IS NOT READABLE when it should have been? This might now show other errors below this one!");
+}
+if (!$userFunctionsFile['functions_same_count']) {
+    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configuration File `src/funkphp/config/functions.php` (User-defined Globally Available Functions) WAS FOUND USING Either Regex or Tokenizer but not both Indicating some Formatting Issue Inside File? (check for any trailing comment at the end of a function block{} <-- here)");
+}
 if (count($userFunctionsFile['fn_names_duplicates']) > 0) {
     cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "There are Duplicate Function Names (`" . join(", ", array_keys($userFunctionsFile['fn_names_duplicates'])) .  "`) in `src/funkphp/config/functions.php` (User-defined Globally Available Functions)! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
     cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for `src/funkphp/config/functions.php` (User-defined Globally Available Functions) and try again! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
@@ -882,11 +890,11 @@ cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pi
 // Now we start building namespace-scoped functions such as: 'funkphp\pipeline\request {}' & 'namespace 'funkphp\pipeline\post_response {}'
 if (!defined("FUNKPHP_PIPELINE_REQUEST_DIR")) {
     cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_PIPELINE_REQUEST_DIR` (`/src/funkphp/pipeline/request`) IS NOT DEFINED when it should be?! Try Git/Versioning Control (for `/src/cli/funk`) to get it back or redownload it again! Path: `" . (FUNKPHP_PIPELINE_REQUEST_DIR ?? "[NOT_DEFINED]") . "`");
-    cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline Files (& Pipeline) and try again! Path: `" . (FUNKPHP_PIPELINE_REQUEST_DIR ?? "[NOT_DEFINED]") . "`");
+    cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline Files (Pipeline Request Files) and try again! Path: `" . (FUNKPHP_PIPELINE_REQUEST_DIR ?? "[NOT_DEFINED]") . "`");
 }
 if (!defined("FUNKPHP_PIPELINE_POST_RESPONSE_DIR")) {
     cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_PIPELINE_POST_RESPONSE_DIR` (`/src/funkphp/pipeline/post_response`) IS NOT DEFINED when it should be?! Try Git/Versioning Control (for `/src/cli/funk`) to get it back or redownload it again! Path: `" . (FUNKPHP_PIPELINE_POST_RESPONSE_DIR ?? "[NOT_DEFINED]") . "`");
-    cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline Files (& Pipeline) and try again! Path: `" . (FUNKPHP_PIPELINE_POST_RESPONSE_DIR ?? "[NOT_DEFINED]") . "`");
+    cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline Files  (Pipeline Post_Response Files) and try again! Path: `" . (FUNKPHP_PIPELINE_POST_RESPONSE_DIR ?? "[NOT_DEFINED]") . "`");
 }
 
 $DEFAULT_ERROR_FORMATTING = "\nRECOMMENDED: `1) ALWAYS lowercase Function Names everywhere. 2) ALWAYS USE Standard Formatting so every newline inside of Functions are indented at least once` OR it won't be found by the Compiler!";
@@ -895,8 +903,8 @@ $deploymentPipelineRequestBuffer[] = 'namespace funkphp\\pipeline\\request';
 $deploymentPipelineRequestBuffer[] = " {\n";
 foreach ($pipelineFile['pipeline']['request'] as $pipeRequestFn) {
     $plReqStatus = cli_folder_and_php_file_status(FUNKPHP_PIPELINE_REQUEST_DIR, $pipeRequestFn, true);
-    if (!$plReqStatus['file_exists']) { // file exists?
-        cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "The Pipeline Request Function File (`/src/funkphp/pipeline/request/$pipeRequestFn.php`) was NOT FOUND! Dir Path: `" . (FUNKPHP_PIPELINE_REQUEST_DIR ?? "[NOT_DEFINED]") . "`");
+    if (!$plReqStatus['file_exists'] || !$plReqStatus['folder_readable']) { // file exists & is readable?
+        cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "The Pipeline Request Function File (`/src/funkphp/pipeline/request/$pipeRequestFn.php`) was NOT FOUND or IS NOT READABLE! Dir Path: `" . (FUNKPHP_PIPELINE_REQUEST_DIR ?? "[NOT_DEFINED]") . "`");
         cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline File in the Key `pipeline -> request` and try again! Path: `" . (FUNKPHP_FILE_PATH_PIPELINE ?? "[NOT_DEFINED]") . "` $DEFAULT_ERROR_FORMATTING");
     }
     if ($plReqStatus['namespace_name'] !== "funkphp\\pipeline\\request\\$pipeRequestFn") { // expected scoped namespace correct?
@@ -905,6 +913,9 @@ foreach ($pipelineFile['pipeline']['request'] as $pipeRequestFn) {
     if (!isset($plReqStatus['functions'][$pipeRequestFn])) { // does function (name) exist?
         cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Request Function (`/src/funkphp/pipeline/request/$pipeRequestFn.php`) was NOT FOUND in Expected Function `function $pipeRequestFn(&\$c) { // Code }`!");
     } else if (isset($plReqStatus['functions'][$pipeRequestFn])) {
+        if (!$plReqStatus['functions_same_count']) {
+            cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Request Response Function (`/src/funkphp/pipeline/request/$pipeRequestFn.php`) WAS FOUND USING Either Regex or Tokenizer but not both Indicating some Formatting Issue Inside File? (check for any trailing comment at the end of a function block{} <-- here)");
+        }
         if (!$plReqStatus['functions'][$pipeRequestFn]['fn_name_same_as_lowercased']) { // is function name lowercased?
             cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Request Function (`/src/funkphp/pipeline/request/$pipeRequestFn.php`) should only and always be lowercased!");
         }
@@ -928,8 +939,8 @@ $deploymentPipelineRequestBuffer[] = 'namespace funkphp\\pipeline\\post_response
 $deploymentPipelineRequestBuffer[] = " {\n";
 foreach ($pipelineFile['pipeline']['post_response'] as $pipePostResponseFn) {
     $plReqStatus = cli_folder_and_php_file_status(FUNKPHP_PIPELINE_POST_RESPONSE_DIR, $pipePostResponseFn, true);
-    if (!$plReqStatus['file_exists']) { // file exists?
-        cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "The Pipeline Post_Response Function File (`/src/funkphp/pipeline/post_response/$pipePostResponseFn.php`) was NOT FOUND! Dir Path: `" . (FUNKPHP_PIPELINE_POST_RESPONSE_DIR ?? "[NOT_DEFINED]") . "`");
+    if (!$plReqStatus['file_exists'] || !$plReqStatus['folder_readable']) { // file exists & is readable?
+        cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "The Pipeline Post_Response Function File (`/src/funkphp/pipeline/post_response/$pipePostResponseFn.php`) was NOT FOUND or IS NOT READABLE! Dir Path: `" . (FUNKPHP_PIPELINE_POST_RESPONSE_DIR ?? "[NOT_DEFINED]") . "`");
         cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline File in the Key `pipeline -> post_response` and try again! Path: `" . (FUNKPHP_PIPELINE_POST_RESPONSE_DIR ?? "[NOT_DEFINED]") . "` $DEFAULT_ERROR_FORMATTING");
     }
     if ($plReqStatus['namespace_name'] !== "funkphp\\pipeline\\post_response\\$pipePostResponseFn") { // expected scoped namespace correct?
@@ -938,6 +949,9 @@ foreach ($pipelineFile['pipeline']['post_response'] as $pipePostResponseFn) {
     if (!isset($plReqStatus['functions'][$pipePostResponseFn])) { // does function (name) exist?
         cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Post_Response Function (`/src/funkphp/pipeline/post_response/$pipePostResponseFn.php`) was NOT FOUND in Expected Function `function $pipePostResponseFn(&\$c) { // Code }`!");
     } else if (isset($plReqStatus['functions'][$pipePostResponseFn])) {
+        if (!$plReqStatus['functions_same_count']) {
+            cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Post_Response Function (`/src/funkphp/pipeline/post_response/$pipePostResponseFn.php`) WAS FOUND USING Either Regex or Tokenizer but not both Indicating some Formatting Issue Inside File? (check for any trailing comment at the end of a function block{} <-- here)");
+        }
         if (!$plReqStatus['functions'][$pipePostResponseFn]['fn_name_same_as_lowercased']) { // is function name lowercased?
             cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Post_Response Function (`/src/funkphp/pipeline/post_response/$pipePostResponseFn.php`) should only and always be lowercased!");
         }
@@ -971,7 +985,6 @@ unset($cConfig['pipeline']['post_response']);
 
 cli_info_without_exit("G`### Step 4 STARTS ###` Loading, Validating, Rebuilding & Compiling `compiled_routes.php` & `pipeline_routes.php` Files ('Routes' in 'Pipeline' in FunkGUI)...");
 
-
 // $TRIE === Compiled Prefix Router, it has faster info instead of calculating it manually
 // like how many (most+least) URI segments each HTTP(S) method has (used later for optimize route matching)
 // $RUTTER === Developer's Routes; they were recompiled before we reached this point so they could
@@ -984,6 +997,20 @@ $deploymentMiddlewaresBuffer = []; // Middlewares namespace {}
 $deploymentMiddlewaresBuffer[] = "namespace funkphp\\pipeline\\middlewares {\n";
 $deploymentMegaRouteMatchBuffer = []; // Optimized Match Routing+Direct Function Calls to $RUTTER=>route=>middlewares+pipeline
 $NO_ROUTES = false;
+
+if (!defined("FUNKPHP_ROUTES_DIR")) {
+    cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_ROUTES_DIR` (`/src/funkphp/pipeline/routes`) IS NOT DEFINED when it should be?! Try Git/Versioning Control (for `/src/cli/funk`) to get it back or redownload it again! Path: `" . (FUNKPHP_ROUTES_DIR ?? "[NOT_DEFINED]") . "`");
+}
+if (!defined("FUNKPHP_MIDDLEWARES_DIR")) {
+    cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_MIDDLEWARES_DIR` (`/src/funkphp/pipeline/middlewares`) IS NOT DEFINED when it should be?! Try Git/Versioning Control (for `/src/cli/funk`) to get it back or redownload it again! Path: `" . (FUNKPHP_MIDDLEWARES_DIR ?? "[NOT_DEFINED]") . "`");
+}
+cli_stop_from_warn_err_list($routesWarnsAndErrs, "Please Review (" . count($routesWarnsAndErrs) . ") Warnings/Errors above for the Pipeline Files (Pipeline Routes & Middlewares Files) and try again! Paths: `" . (FUNKPHP_ROUTES_DIR ?? "[NOT_DEFINED]") . "` & `" . (FUNKPHP_MIDDLEWARES_DIR ?? "[NOT_DEFINED]") . "`");
+
+
+//$test = cli_folder_and_php_file_status(FUNKPHP_ROUTES_DIR, "test", true);
+
+
+
 
 // SPECIAL EDGE CASE BELOW: When there are no routes compiled (like just trying out command & opening FunkPHPDeployment.php)
 if ($TRIE['METADATA']['<ALL>']['totalAllRoutes'] === 0) {

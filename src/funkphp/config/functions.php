@@ -23,6 +23,11 @@ function funak_handle_uncaught_exception(&$c, $e)
 {
     // Regex
     $testing = "tset";
+    exit;
+    function inside()
+    {
+        echo "test";
+    }
 }
 
 function funak_set_register_shutdown_function(&$c)
