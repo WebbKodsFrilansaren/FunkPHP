@@ -19,6 +19,7 @@ define('FUNKPHP_ALLOW_INSTANCE_OVERWRITE', true); //
 // Related to  "'INSTANCES' => ['vendor' => [], 'classes' => []]," in "config.php" file!
 
 // Constants only relevant for Localhost, so do not include this in Build/Deploy MegaFile!
+define('NAMESPACE_PAGES', 'funkphp\\pages\\');
 define('NAMESPACE_PIPELINE_REQUEST', 'funkphp\\pipeline\\request\\');
 define('NAMESPACE_PIPELINE_POST_RESPONSE', 'funkphp\\pipeline\\post_response\\');
 define('NAMESPACE_PIPELINE_MIDDLEWARES', 'funkphp\\pipeline\\middlewares\\');

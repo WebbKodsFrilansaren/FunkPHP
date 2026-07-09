@@ -32,8 +32,6 @@ $HTTPS_KERNEL_DISPATCH_FUNCTION_FOUND = false;
 $deploymentBuffer = [];
 $deploymentConfigBuffer = [];
 $deploymentFunctionsBuffer = [];
-$deploymentPipelineRoutesBuffer = [];
-$deploymentMegaRouteMatchBuffer = [];
 $deploymentValidationBuffer = [];
 $deploymentSQLBuffer = [];
 $deploymentPagesBuffer = [];
@@ -607,6 +605,7 @@ $BUILD_VERSION = "<?php // FunkPHPDeployment.php | Created: " . date("Y-m-d H:i:
 $deploymentBuffer[] = "<?php \nnamespace { "; // Opening Global namespace for nows
 
 // Adding Starting Needed Constants First
+$deploymentBuffer[] = "define('FUNKPHP_PAGES_DIR', __DIR__ . '/pages');\n";
 $deploymentBuffer[] = "define('FUNKPHP_DEPLOYED', true);\n";
 $deploymentBuffer[] = "define('FUNKPHP_NO_VALUE', new stdClass());\n";
 $deploymentBuffer[] = "define('FUNKPHP_ALLOW_INSTANCE_OVERWRITE'," . FUNKPHP_ALLOW_INSTANCE_OVERWRITE .  ");\n";
@@ -971,14 +970,22 @@ unset($cConfig['pipeline']['request']);
 unset($cConfig['pipeline']['post_response']);
 
 cli_info_without_exit("G`### Step 4 STARTS ###` Loading, Validating, Rebuilding & Compiling `compiled_routes.php` & `pipeline_routes.php` Files ('Routes' in 'Pipeline' in FunkGUI)...");
-$routesWarnsAndErrs = [];
+
 
 // $TRIE === Compiled Prefix Router, it has faster info instead of calculating it manually
 // like how many (most+least) URI segments each HTTP(S) method has (used later for optimize route matching)
 // $RUTTER === Developer's Routes; they were recompiled before we reached this point so they could
 // not be changed maliciously. They (METHODS/ROUTES) should be guaranteed by pre-recompilation to be unique
 // in each method with no conflicting same-level dynamic URI segments (e.g. GET/:test and GET/:test2)
+$routesWarnsAndErrs = []; // Warns&Errs BOTH for $RUTTER and/or $TRIE
+$deploymentPipelineRoutesBuffer = []; // $RUTTER (Routes namespace {})
+$deploymentPipelineRoutesBuffer[] = "namespace funk\\pipeline\\routes {\n";
+$deploymentMiddlewaresBuffer = []; // Middlewares namespace {}
+$deploymentMiddlewaresBuffer[] = "namespace funkphp\\pipeline\\middlewares {\n";
+$deploymentMegaRouteMatchBuffer = []; // Optimized Match Routing+Direct Function Calls to $RUTTER=>route=>middlewares+pipeline
 $NO_ROUTES = false;
+
+// SPECIAL EDGE CASE BELOW: When there are no routes compiled (like just trying out command & opening FunkPHPDeployment.php)
 if ($TRIE['METADATA']['<ALL>']['totalAllRoutes'] === 0) {
     $NO_ROUTES = true;
     cli_warning_without_exit("
@@ -1007,6 +1014,17 @@ Paths to consider checking:
 - `/src/funkphp/core/pipeline_routes.php` (Routes Array - your Routes, Middlewares & Route Pipeline Functions end up here)
 ==========================================================================================================================");
 }
+// When there ARE ROUTES TO Validate, Parse & Output!
+if (!$NO_ROUTES) { //START-BLOCK:ROUTES TO Validate, Parse & Output!
+    foreach ($RUTTER as $METOD => $RUTT) { // more Easter Eggs for those who know!
+        // Check if current $METOD has zero routes (because others might have though)
+    }
+} //END-BLOCK:ROUTES TO Validate, Parse & Output!
+
+
+// Closing namespaces { '}' <- This one for namespace funkphp\pipeline\middlewares|routes!
+$deploymentPipelineRoutesBuffer[] = " }\n"; // } Closing of Routes namespace {}
+$deploymentMiddlewaresBuffer[] = " }\n"; // } Closing of Middlewares namespace {}
 
 //////////////////////////////////
 // Correct execution order for GOTO Labels: Route Matching Generator Functions???
