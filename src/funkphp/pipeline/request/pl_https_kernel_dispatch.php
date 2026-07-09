@@ -376,4 +376,4 @@ function pl_https_kernel_dispatch(&$c)
             \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
         }
     }
-};
+}

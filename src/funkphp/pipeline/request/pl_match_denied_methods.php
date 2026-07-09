@@ -29,4 +29,4 @@ function pl_match_denied_methods(&$c, $passedValue = null)
         funk_use_error_json_or_page($c, 403, ['internal_error' => $err], '403', $err);
     }
     return; // All good here, continue request lifecycle
-};
+}

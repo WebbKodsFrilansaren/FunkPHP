@@ -41,7 +41,7 @@ if ($plStatus['exists_in_request_dir'] || $plStatus['exists_in_post_response_dir
 }
 
 // Attempt creation & assume failure, otherwise show success
-$plString = "<?php\n\nnamespace funkphp\\pipeline\\$type\\$pipeline;\n// FunkCLI Created File on " . date('Y-m-d H:i:s') . "!\n\nfunction $pipeline(&\$c)\n{\n\t// Placeholder Comment so Regex works - Remove & Add Your Own Code!\n$optionalCodeSnippets\n};\n";
+$plString = "<?php\n\nnamespace funkphp\\pipeline\\$type\\$pipeline;\n// FunkCLI Created File on " . date('Y-m-d H:i:s') . "!\n\nfunction $pipeline(&\$c)\n{\n\t// Placeholder Comment so Regex works - Remove & Add Your Own Code!\n$optionalCodeSnippets\n}\n";
 $newFilePath = ($type === 'request' ? $plStatus["full_file_path_request"] : $plStatus["full_file_path_post_response"]);
 if (cli_crud_folder_php_file_atomic_write($plString, $newFilePath)) {
     cli_success("Pipeline File '{$pipeline}.php' created successfully in the `" . ($type === 'request' ? 'funkphp/pipeline/request' : 'funkphp/pipeline/post-response') . "` Directory! You can now edit it to add your desired Pipeline Anonymous Functions as needed.");

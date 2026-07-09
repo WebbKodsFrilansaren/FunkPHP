@@ -857,13 +857,28 @@ if (!defined("FUNKPHP_PIPELINE_POST_RESPONSE_DIR")) {
     cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_PIPELINE_POST_RESPONSE_DIR` (`/src/funkphp/pipeline/post_response`) IS NOT DEFINED when it should be?! Try Git/Versioning Control (for `/src/cli/funk`) to get it back or redownload it again! Path: `" . (FUNKPHP_PIPELINE_POST_RESPONSE_DIR ?? "[NOT_DEFINED]") . "`");
     cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline Files (& Pipeline) and try again! Path: `" . (FUNKPHP_PIPELINE_POST_RESPONSE_DIR ?? "[NOT_DEFINED]") . "`");
 }
-$deploymentPipelineRequestBuffer = [];
-$deploymentPipelinePostResponseBuffer = [];
+
+
+$deploymentPipelineRequestBuffer[] = 'namespace funkphp\\pipeline\\request';
+$deploymentPipelineRequestBuffer[] = " {\n";
+
 foreach ($pipelineFile['pipeline']['request'] as $pipeRequestFn) {
     $plReqStatus = cli_folder_and_php_file_status(FUNKPHP_PIPELINE_REQUEST_DIR, $pipeRequestFn, true);
-    var_dump($plReqStatus);
-    exit;
+    if ($plReqStatus['namespace_name'] !== "funkphp\\pipeline\\request\\$pipeRequestFn") {
+        cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Request Function (`/src/funkphp/pipeline/request/$pipeRequestFn`) was NOT FOUND in Expected `namespace funkphp\\pipeline\\request`! Dir Path: `" . (FUNKPHP_PIPELINE_REQUEST_DIR ?? "[NOT_DEFINED]") . "`");
+    }
+    echo "Adding $pipeRequestFn\n";
+    $deploymentPipelineRequestBuffer[] = $plReqStatus['functions'][$pipeRequestFn]['fn_raw'] . "\n";
 }
+
+$deploymentPipelineRequestBuffer[] = " }\n"; // End namespace funkphp\pipeline\request {}
+cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline File in the Key `pipeline -> request` and try again! Path: `" . (FUNKPHP_FILE_PATH_PIPELINE ?? "[NOT_DEFINED]") . "`");
+
+// Add the valid Pipeline Request Functions now and move on to do the same for Pipeline PostRequest if it is not empty!
+$deploymentBuffer[] = implode("", $deploymentPipelineRequestBuffer);
+
+
+$deploymentPipelinePostResponseBuffer = [];
 
 // We now add the validated pipeline part (for now, we can check against its config during compiled_routes, pipeline_routes and the like)
 

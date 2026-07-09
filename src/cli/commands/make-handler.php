@@ -62,7 +62,7 @@ $statusArray = cli_folder_and_php_file_status($folder, $file);
 // that file and its fn does NOT exist so we will pass crudType "create_new_file_and_fn"
 // File does not exist so we create it and then rebuild routes
 if (!$statusArray['file_exists']) {
-    $mwString = "<?php\n\nnamespace funkphp\\pipeline\\routes\\$file;\n// FunkCLI Created File on " . date('Y-m-d H:i:s') . "!\n\nfunction $fn(&\$c)\n{\n\t// Placeholder Comment so Regex works - Remove & Add Your Own Code!\n$optionalCodeSnippets\n};\n";
+    $mwString = "<?php\n\nnamespace funkphp\\pipeline\\routes\\$file;\n// FunkCLI Created File on " . date('Y-m-d H:i:s') . "!\n\nfunction $fn(&\$c)\n{\n\t// Placeholder Comment so Regex works - Remove & Add Your Own Code!\n$optionalCodeSnippets\n}\n";
     $newFilePath = $statusArray['folder_path'] . '/' . $statusArray['file_name'];
     if (cli_crud_folder_php_file_atomic_write($mwString, $newFilePath)) {
         cli_success_without_exit("SUCCESSFULLY Created File `$file.php` with Function `$fn` in Folder `$singleFolder`!");

@@ -2,7 +2,7 @@
 
 namespace funkphp\pipeline\request\pl_run_ini_sets;
 
-function pl_run_ini_sets(&$c)
+function pl_run_ini_sets(&$c, $passedValue)
 {
     $iniSets = $c['INI_SETS'] ?? [];
     foreach ($iniSets as $key => $value) {
@@ -13,4 +13,4 @@ function pl_run_ini_sets(&$c)
         }
         ini_set($key, $value);
     }
-};
+}

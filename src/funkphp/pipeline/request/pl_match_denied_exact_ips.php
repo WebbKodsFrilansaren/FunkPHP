@@ -45,4 +45,4 @@ function pl_match_denied_exact_ips(&$c, $passedValue = null)
         funk_use_error_json_or_page($c, 403, ['internal_error' => $err], '403', $err);
     }
     return; // Here it means, all good, continue request processing!
-};
+}

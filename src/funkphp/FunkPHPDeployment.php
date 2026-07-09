@@ -1,4 +1,4 @@
-<?php // FunkPHPDeployment.php | Created: 2026-07-08 23:28:05 | PHP Version: 8.3.6 | FunkPHP Version: 1.0.0 | FunkCLI Version: 1.0.0
+<?php // FunkPHPDeployment.php | Created: 2026-07-09 01:03:17 | PHP Version: 8.3.6 | FunkPHP Version: 1.0.0 | FunkCLI Version: 1.0.0
 namespace {
     define('FUNKPHP_DEPLOYED', true);
     define('FUNKPHP_NO_VALUE', new stdClass());
@@ -970,5 +970,359 @@ namespace {
             return true;
         }
         return false;
+    }
+}
+
+namespace funkphp\pipeline\request {
+    function pl_run_ini_sets(&$c, $passedValue)
+    {
+        $iniSets = $c['INI_SETS'] ?? [];
+        foreach ($iniSets as $key => $value) {
+            if (!is_string($key) || empty($key) || !is_scalar($value)) {
+                $err = 'Tell The Developer: Invalid Data Provided in $c[\'INI_SETS\'] Global Configuration Array. The Data must be an Associative Array with Non-Empty String Keys and Non-Empty Values that are either Strings, Numbers or Booleans. Thus, it is likely that the Developer have used a non-string for $key or a non-scalar/empty value for $value!';
+                \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+            }
+            ini_set($key, $value);
+        }
+    }
+    function pl_match_denied_exact_ips(&$c, $passedValue = null)
+    {
+        if (!isset($passedValue)) {
+            return;
+        }
+        if (!is_string($passedValue)) {
+            $err = 'Tell The Developer: The "pl_match_denied_exact_ips" Pipeline Function requires a valid STRING as $passedValue that is the PATH to the "<path/to/blocked_ips_list.php>" file. It concatenates it with constant `ROOT_FOLDER` which is the root of the FunkPHP installation. For example: `ROOT_FOLDER . "/config/blocked/blocked_ips.php"`';
+            \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+        }
+        $ip = $_SERVER['REMOTE_ADDR'] ?? null;
+        if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+            $ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
+        }
+        if ($ip === null || !is_string($ip) || !filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 | FILTER_FLAG_IPV6)) {
+            $err = 'Tell the Developer: Failed to Parse Client IP Address!';
+            \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+        }
+        $ips_exact = ROOT_FOLDER . $passedValue;
+        if (!is_readable($ips_exact)) {
+            $err = 'Tell The Developer: Failed to Load List of Blocked Exact IPs from the provided $passedValue String. Make sure the File Exists and returns a valid ARRAY of Exact IPs!';
+            \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+        }
+        $ips_exact = include $ips_exact;
+        if (!is_array($ips_exact) || (count($ips_exact) > 0 && array_is_list($ips_exact))) {
+            $err = 'Tell The Developer: The "<Path To Blocked Exact IPs>" File must return a valid NON-EMPTY ASSOCIATIVE ARRAY of BLOCKED Exact IPs, where each Key is the exact IP and its optional value can be a string just informing why it is blocked. For example: `[123.123.123.123 => ["scraping"]]`.';
+            \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+        }
+        if (isset($ips_exact[$ip])) {
+            $err = 'Access Denied: Your IP Address (' . htmlspecialchars($ip) . ') is Blocked!';
+            \funk_use_error_json_or_page($c, 403, ['internal_error' => $err], '403', $err);
+        }
+        return;
+    }
+    function pl_match_denied_methods(&$c, $passedValue = null)
+    {
+        if ($passedValue === null) {
+            return;
+        } elseif (isset($passedValue)) {
+            if (is_array($passedValue) && !empty($passedValue) && array_is_list($passedValue)) {
+                $validMethods = ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"];
+                foreach ($passedValue as $pm) {
+                    if (!is_string($pm) || empty($pm) || !in_array($pm, $validMethods)) {
+                        $err = 'Tell the Developer: The Match Denied Methods Pipeline Function ran but WITHOUT a Valid Passed Value - Should Be A Non-Empty Numbered Array of Valid HTTP(S) Methods! (They must manually be uppercased). For example: [3 => "pl_match_denied_methods" => "["GET","POST]"] means it will block GET & POST Methods of EVERY Request!';
+                        \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+                    }
+                }
+            } else {
+                $err = 'Tell the Developer: The Match Denied Methods Pipeline Function ran but WITHOUT a Valid Passed Value - Should Be A Non-Empty Numbered Array of Valid HTTP(S) Methods! (They must manually be uppercased). For example: [3 => "pl_match_denied_methods" => "["GET","POST]"] means it will block GET & POST Methods of EVERY Request!';
+                \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+            }
+        }
+        $method = $_SERVER['REQUEST_METHOD'] ?? null;
+        if ($method === null || !is_string($method) || empty($method) || in_array(strtoupper($method), $passedValue)) {
+            $err = 'Access Denied: The HTTP(S) Method `' . $method . '` is Blocked by Server Configuration!';
+            \funk_use_error_json_or_page($c, 403, ['internal_error' => $err], '403', $err);
+        }
+        return;
+    }
+    function pl_match_denied_uas(&$c, $passedValue = null)
+    {
+        if (!isset($passedValue)) {
+            return;
+        }
+        if (!is_string($passedValue)) {
+            $err = 'Tell The Developer: The "pl_match_denied_uas" Pipeline Function requires a valid STRING as $passedValue that is the PATH to the "<path/to/blocked_uas_list.php>" file. It concatenates it with constant `ROOT_FOLDER` which is the root of the FunkPHP installation. For example: `ROOT_FOLDER . "/config/blocked/blocked_uas.php"`';
+            \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+        }
+        $ua = $_SERVER['HTTP_USER_AGENT'] ?? null;
+        if (!isset($ua) || !is_string($ua) || $ua === "") {
+            $err = 'Tell The Developer: The User Agent (UA) is either missing or invalid. Make sure Your Client sends a valid User Agent string in the "User-Agent" HTTP Header!';
+            \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+        }
+        $uas_path = ROOT_FOLDER . $passedValue;
+        if (!is_readable($uas_path)) {
+            $err = 'Tell The Developer: Failed to Load List of Blocked User Agents from the provided $passedValue String. Make sure the File Exists and returns a valid ARRAY of BLOCKED User Agents!';
+            \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+        }
+        $uas_path = include $uas_path;
+        if (!is_array($uas_path) || empty($uas_path) || array_is_list($uas_path)) {
+            $err = 'Tell The Developer: The "<Path To Blocked User Agents>" File must return a valid NON-EMPTY ASSOCIATIVE ARRAY of BLOCKED User Agents, where each key is a part of the User Agent (UA) string to BLOCK. For example: ["badbot" => [], "evilscanner" => [], "maliciousua" => [], "and_so_on" => []]. This is because it iterates through each key (`"unique_ua_key" => []`) and uses "str_contains()" to check if the UA contains any of the BLOCKED parts.';
+            \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+        }
+        $ua = mb_strtolower($ua);
+        foreach (array_keys($uas_path) as $deniedUa) {
+            if (str_contains($ua, $deniedUa)) {
+                $err = 'Access Denied: Your User Agent (UA) has been BLOCKED From Accessing This Resource!';
+                \funk_use_error_json_or_page($c, 403, ['internal_error' => $err], '403', $err);
+            }
+        }
+    }
+    function pl_https_kernel_dispatch(&$c)
+    {
+        try {
+            if ($c['FUNKPHP_USE_HTTPS'] === true) {
+                $isHttps = (isset($_SERVER['HTTPS']) && ($_SERVER['HTTPS'] === 'on' || $_SERVER['HTTPS'] == 1)) || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+                if (!$isHttps) {
+                    $host = $_SERVER['HTTP_HOST'] ?? 'www.funkphp.com';
+                    $uri = $_SERVER['REQUEST_URI'] ?? '/';
+                    header("Location: https://" . $host . $uri, true, 301);
+                    exit;
+                }
+            }
+        } catch (Exception $e) {
+            $err = 'Tell the Developer: The HTTPS Redirection in `pl_http_kernel_dispatch` Failed to Redirect to HTTPS despite being set to do it! Path: /src/funkphp/core/pipeline_request.php (or use FunkGUI)';
+            \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+        }
+        try {
+            if (!isset($c['FUNKPHP_USE_PREPARE_URI']) || (!is_bool($c['FUNKPHP_USE_PREPARE_URI']))) {
+                $err = 'Tell the Developer: The Configuration Key `FUNKPHP_USE_PREPARE_URI` is NOT boolean! It should be `true` or `false`! Path: /src/funkphp/core/c.php (or use FunkGUI)';
+                \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+            }
+            if (isset($c['FUNKPHP_CUSTOM_URI_NORMALIZER']) && (!is_string($c['FUNKPHP_CUSTOM_URI_NORMALIZER']))) {
+                $err = 'Tell the Developer: The Configuration Key `FUNKPHP_CUSTOM_URI_NORMALIZER` is NOT a String! Set it to `null` if not used! Path: /src/funkphp/core/c.php (or use FunkGUI)';
+                \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+            }
+            if (($c['FUNKPHP_USE_PREPARE_URI'] === false) && (isset($c['FUNKPHP_USE_PREPARE_URI']) && is_string($c['FUNKPHP_CUSTOM_URI_NORMALIZER']))) {
+                $err = 'Tell the Developer: The Configuration Key `FUNKPHP_CUSTOM_URI_NORMALIZER` is SET but the Configuration Key `FUNKPHP_USE_PREPARE_URI` is false meaning the Custom URI Normalizer will not run?! Please set `FUNKPHP_USE_PREPARE_URI` to `true` or set `FUNKPHP_CUSTOM_URI_NORMALIZER` to `null` instead!  Path: /src/funkphp/core/c.php (or use FunkGUI)';
+                \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+            }
+            if ($c['FUNKPHP_USE_PREPARE_URI'] === true) {
+                if (isset($c['FUNKPHP_CUSTOM_URI_NORMALIZER'])) {
+                    if (!is_callable($c['FUNKPHP_CUSTOM_URI_NORMALIZER'])) {
+                        $err = 'Tell the Developer: The Configuration Key `FUNKPHP_CUSTOM_URI_NORMALIZER` is SET but it is NOT a Callable Function to Prepare the Request URI (see "/src/funkphp/core/c.php" and/or "/src/funkphp/config/functions.php" or FunKGUI). Set it to `null` if not used!';
+                        \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+                    } else {
+                        $c['FUNKPHP_CUSTOM_URI_NORMALIZER']($c);
+                    }
+                } else {
+                    $rawUri = $_SERVER['REQUEST_URI'] ?? '/';
+                    $cleanPath = explode('?', $rawUri, 2)[0];
+                    $cleanPath = explode('#', $cleanPath, 2)[0];
+                    $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+                    $baseUrl = dirname($scriptName);
+                    if ($baseUrl !== '/' && str_starts_with($cleanPath, $baseUrl)) {
+                        $cleanPath = substr($cleanPath, strlen($baseUrl));
+                    }
+                    $cleanPath = preg_replace('#/{2,#', '/', $cleanPath);
+                    $cleanPath = trim($cleanPath, '/');
+                    $c['req']['uri'] = ($cleanPath === '') ? '/' : '/' . $cleanPath;
+                }
+            } else {
+                $c['req']['uri'] = $_SERVER['REQUEST_URI'] ?? '/';
+            }
+        } catch (Exception $e) {
+            $err = 'Tell the Developer: The Request URI Preparing in `pl_http_kernel_dispatch` Failed to Prepare the Request URI Before Matching Route!';
+            \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+        }
+        $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
+        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+        $scriptName = $scriptName ?: $_SERVER['SCRIPT_NAME'] ?: '';
+        $baseUrl = $baseUrl ? $baseUrl : dirname($scriptName);
+        $c['req']['base_url_absolute'] = rtrim($protocol . $host . $baseUrl, '/');
+        $c['req']['base_url_relative'] = ($baseUrl === '/') ? '' : $baseUrl;
+        $c['ROUTES'] = [];
+        if (!defined("ROOT_CORE")) {
+            $err = 'TELL THE DEVELOPER: The Defined Constant `ROOT_CORE` in /src/funkphp/core/CONSTANTS.php is NOT DEFINED?! Please fix directly or via FunkGUI.';
+            \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+        }
+        if (!is_readable(ROOT_CORE . '/pipeline_routes.php')) {
+            $err = 'Tell The Developer: The Developer Routes in File `funkphp/core/pipeline_routes.php` not found or is not readable!';
+            \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+        } elseif (!is_readable(ROOT_CORE . '/compiled_routes.php')) {
+            $err = 'Tell The Developer: The Compiled Routes in File `funkphp/core/compiled_routes.php` not found or is not readable!';
+            \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+        } else {
+            $c['ROUTES'] = ['COMPILED' => include_once ROOT_CORE . '/compiled_routes.php', 'DEVELOPER' => include_once ROOT_CORE . '/pipeline_routes.php',];
+        }
+        if (!isset($c['ROUTES']) || !is_array($c['ROUTES']) || empty($c['ROUTES']) || !isset($c['ROUTES']['COMPILED']) || !is_array($c['ROUTES']['COMPILED']) || empty($c['ROUTES']['COMPILED'])) {
+            $err = 'Tell The Developer: The Compiled Routes in File `funkphp/core/compiled_routes.php` seems empty, please check!';
+            \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+        }
+        if (!isset($c['ROUTES']['DEVELOPER']) || !is_array($c['ROUTES']['DEVELOPER']) || empty($c['ROUTES']['DEVELOPER']) || !isset($c['ROUTES']['DEVELOPER']['ROUTES']) || !is_array($c['ROUTES']['DEVELOPER']['ROUTES']) || empty($c['ROUTES']['DEVELOPER']['ROUTES'])) {
+            $err = 'Tell The Developer: The Developer Routes in File `funkphp/core/pipeline_routes.php` seems empty, please check!';
+            \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+        }
+        $FPHP_MATCHED_ROUTE = \funk_match_developer_route($c, $c['req']['method'], $c['req']['uri'], $c['ROUTES']['COMPILED']['TRIE'] ?? [], $c['ROUTES']['DEVELOPER']['ROUTES'] ?? [],);
+        $c['req']['query'] = $_SERVER['QUERY_STRING'] ?? null;
+        $c['req']['ua'] = $_SERVER['HTTP_USER_AGENT'] ?? null;
+        $c['req']['content_type'] = $_SERVER['CONTENT_TYPE'] ?? null;
+        $c['req']['accept'] = $_SERVER['HTTP_ACCEPT'] ?? null;
+        $c['req']['protocol'] = $_SERVER['SERVER_PROTOCOL'] ?? null;
+        if (!$FPHP_MATCHED_ROUTE) {
+            http_response_code(404);
+            $accept = $c['req']['accept'] ?? null;
+            if (!isset($c['<ENTRY>']['pipeline']['<CONFIG_GLOBAL>']['global_default_no_route_match_response'])) {
+                $err = 'TELL THE DEVELOPER: The `$c["<ENTRY>"]["pipeline"]["<CONFIG_GLOBAL>"]["global_default_no_route_match_response"]` Key in `/src/funkphp/core/pipeline_request.php` was NOT FOUND?! Please fix directly or via FunkGUI.';
+                \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+            }
+            if (str_contains($accept, 'json')) {
+                if (!isset($c['<ENTRY>']['pipeline']['<CONFIG_GLOBAL>']['global_default_no_route_match_response']['json'])) {
+                    $err = 'TELL THE DEVELOPER: The `$c["<ENTRY>"]["pipeline"]["<CONFIG_GLOBAL>"]["global_default_no_route_match_response"]["json"]` Key in `/src/funkphp/core/pipeline_request.php` was NOT FOUND despite Accept Header being "json"?! Please fix directly or via FunkGUI.';
+                    \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+                }
+                header('Content-Type: application/json; charset=utf-8');
+                $jsonData = $c['<ENTRY>']['pipeline']['<CONFIG_GLOBAL>']['global_default_no_route_match_response']['json'] ?? null;
+                try {
+                    echo json_encode($jsonData, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                    exit();
+                } catch (\JsonException $e) {
+                    $err = 'TELL THE DEVELOPER: The `$c["<ENTRY>"]["pipeline"]["<CONFIG_GLOBAL>"]["global_default_no_route_match_response"]["json"]` Key in `/src/funkphp/core/pipeline_request.php` is MALFORMED or DOES NOT EXIST AT ALL despite Accept Header being "json"?! Please fix directly or via FunkGUI';
+                    \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+                }
+            } else if (str_contains($accept, 'text/html')) {
+                if (!isset($c['<ENTRY>']['pipeline']['<CONFIG_GLOBAL>']['global_default_no_route_match_response']['page']) || !is_string($c['<ENTRY>']['pipeline']['<CONFIG_GLOBAL>']['global_default_no_route_match_response']['page']) || empty(trim($c['<ENTRY>']['pipeline']['<CONFIG_GLOBAL>']['global_default_no_route_match_response']['page']))) {
+                    $err = 'TELL THE DEVELOPER: The `$c["<ENTRY>"]["pipeline"]["<CONFIG_GLOBAL>"]["global_default_no_route_match_response"]["page"]` Key in `/src/funkphp/core/pipeline_request.php` was NOT FOUND or IS NOT A VALID STRING despite Accept Header being "text/html"?! Please fix directly or via FunkGUI.';
+                    \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+                }
+                header('Content-Type: text/html; charset=utf-8');
+                header("Content-Security-Policy: default-src 'none'; img-src 'self'; script-src 'self'; connect-src 'none'; style-src 'self' 'unsafe-inline'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; font-src 'self'; base-uri 'self';");
+                if (!defined("ROOT_PAGES_COMPILED")) {
+                    $err = 'TELL THE DEVELOPER: The `$c["<ENTRY>"]["pipeline"]["<CONFIG_GLOBAL>"]["global_default_no_route_match_response"]["page"]` Key in `/src/funkphp/core/pipeline_request.php` that needs to use the constant `ROOT_PAGES_COMPILED`; the constant was NOT FOUND despite Accept Header being "text/html"?! Please fix directly or via FunkGUI.';
+                    \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+                }
+                $page = ROOT_PAGES_COMPILED . $c['<ENTRY>']['pipeline']['<CONFIG_GLOBAL>']['global_default_no_route_match_response']['page'] . '.php';
+                if (!is_readable($page)) {
+                    $err = 'TELL THE DEVELOPER: The Page `' . $page . '` as defined in `$c["<ENTRY>"]["pipeline"]["<CONFIG_GLOBAL>"]["global_default_no_route_match_response"]["page"]` Key in `/src/funkphp/core/pipeline_request.php` was NOT FOUND (it should NOT end with .php, that is added on to automatically!) despite Accept Header being "text/html"?! Please fix directly or via FunkGUI.';
+                    \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+                }
+                include_once $page;
+                exit();
+            } else if (str_contains($accept, 'text/plain')) {
+                if (!isset($c['<ENTRY>']['pipeline']['<CONFIG_GLOBAL>']['global_default_no_route_match_response']['text']) || !is_string($c['<ENTRY>']['pipeline']['<CONFIG_GLOBAL>']['global_default_no_route_match_response']['text']) || empty(trim($c['<ENTRY>']['pipeline']['<CONFIG_GLOBAL>']['global_default_no_route_match_response']['text']))) {
+                    $err = 'TELL THE DEVELOPER: The `$c["<ENTRY>"]["pipeline"]["<CONFIG_GLOBAL>"]["global_default_no_route_match_response"]["text"]` Key in `/src/funkphp/core/pipeline_request.php` was NOT FOUND or IS NOT STRING or IS EMPTY despite Accept Header being "text/plain"?! Please fix directly or via FunkGUI.';
+                    \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+                }
+                header('Content-Type: text/plain; charset=utf-8');
+                header("Content-Security-Policy: default-src 'none'; img-src 'self'; script-src 'self'; connect-src 'none'; style-src 'self' 'unsafe-inline'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; font-src 'self'; base-uri 'self';");
+                echo $c['<ENTRY>']['pipeline']['<CONFIG_GLOBAL>']['global_default_no_route_match_response']['text'];
+                exit();
+            } else if (str_contains($accept, 'xml')) {
+                if (!isset($c['<ENTRY>']['pipeline']['<CONFIG_GLOBAL>']['global_default_no_route_match_response']['xml']) || !is_string($c['<ENTRY>']['pipeline']['<CONFIG_GLOBAL>']['global_default_no_route_match_response']['xml']) || empty(trim($c['<ENTRY>']['pipeline']['<CONFIG_GLOBAL>']['global_default_no_route_match_response']['xml']))) {
+                    $err = 'TELL THE DEVELOPER: The `$c["<ENTRY>"]["pipeline"]["<CONFIG_GLOBAL>"]["global_default_no_route_match_response"]["xml"]` Key in `/src/funkphp/core/pipeline_request.php` was NOT FOUND or IS NOT STRING or IS EMPTY despite Accept Header being "xml"?! Please fix directly or via FunkGUI.';
+                    \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+                }
+                header('Content-Type: text/xml; charset=utf-8');
+                header("Content-Security-Policy: default-src 'none'; img-src 'self'; script-src 'self'; connect-src 'none'; style-src 'self' 'unsafe-inline'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; font-src 'self'; base-uri 'self';");
+                echo $c['<ENTRY>']['pipeline']['<CONFIG_GLOBAL>']['global_default_no_route_match_response']['xml'];
+                exit();
+            } else {
+                if (!isset($c['<ENTRY>']['pipeline']['<CONFIG_GLOBAL>']['global_default_no_route_match_response']['callback']) || !is_string($c['<ENTRY>']['pipeline']['<CONFIG_GLOBAL>']['global_default_no_route_match_response']['callback']) || empty(trim($c['<ENTRY>']['pipeline']['<CONFIG_GLOBAL>']['global_default_no_route_match_response']['callback'])) || !is_callable($c['<ENTRY>']['pipeline']['<CONFIG_GLOBAL>']['global_default_no_route_match_response']['callback'])) {
+                    $err = 'TELL THE DEVELOPER: The `$c["<ENTRY>"]["pipeline"]["<CONFIG_GLOBAL>"]["global_default_no_route_match_response"]["callback"]` Key in `/src/funkphp/core/pipeline_request.php` was NOT FOUND or IS NOT STRING or IS EMPTY or IS NOT CALLABLE?! Please fix directly or via FunkGUI.';
+                    \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+                } else {
+                    $c['<ENTRY>']['pipeline']['<CONFIG_GLOBAL>']['global_default_no_route_match_response']['callback']($c);
+                    exit();
+                }
+            }
+        }
+        if (isset($c['req']['matched_middlewares']) && (isset($c['req']['matched_config']['route_run_middlewares_before_pipeline']) && $c['req']['matched_config']['route_run_middlewares_before_pipeline'] === true)) {
+            if (!is_array($c['req']['matched_middlewares']) || !array_is_list($c['req']['matched_middlewares'])) {
+                $c['err']['MIDDLEWARES'][] = 'Configured Matched Route Middlewares (`"ROUTES" => "GET|POST|PUT|DELETE|PATCH" => "/route" => "middlewares" Key`) to load and run after Possibly Matched Route: `' . ($c['req']['route'] !== null ? $c['req']['method'] . $c['req']['route'] : '<No Route Matched>') . '` Route Matching. But the `middlewares` Key is not a numbered array, please check the `funkphp/config/routes.php` File!';
+                $err = 'Tell the Developer: The Middlewares Pipeline Function ran but WITHOUT a Valid Middleware Structure - Should Be A Numbered Array!';
+                \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+            }
+            $count = count($c['req']['matched_middlewares']);
+            if (!defined("ROOT_MIDDLEWARES")) {
+                $err = 'TELL THE DEVELOPER: The Defined Constant `ROOT_MIDDLEWARES` in /src/funkphp/core/CONSTANTS.php is NOT DEFINED?! Please fix directly or via FunkGUI.';
+                \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+            }
+            if (!defined("NAMESPACE_PIPELINE_MIDDLEWARES")) {
+                $err = 'TELL THE DEVELOPER: The Defined Constant `NAMESPACE_PIPELINE_MIDDLEWARES` in /src/funkphp/core/CONSTANTS.php is NOT DEFINED?! Please fix directly or via FunkGUI.';
+                \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+            }
+            $mwDir = ROOT_MIDDLEWARES . '/';
+            for ($i = 0; $i < $count; $i++) {
+                $mwToRun = "";
+                $current_mw = $c['req']['matched_middlewares'][$i] ?? null;
+                if (!is_string($current_mw)) {
+                    $c['err']['MIDDLEWARES'][] = 'Configured Matched Route Middlewares (`"ROUTES" => "GET|POST|PUT|DELETE|PATCH" => "/route" => "middlewares" Key`) to load and run after Possibly Matched Route: ' . ($c['req']['route'] !== null ? $c['req']['method'] . $c['req']['route'] : '<No Route Matched>') . 'Route Matching. But one of the `middlewares` Key items is NOT a String (the Middleware Handler Name). Please see `funkphp/core/pipeline_routes.php` File OR by using the FunkGUI!';
+                    $err = 'Tell the Developer: The Middlewares Pipeline Function ran but WITHOUT a Valid Middleware Structure - Each Middleware must be an Associative Array with Only One key (the Middleware File Name)!';
+                    \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+                }
+                $mwToRun = $current_mw;
+                $c['req']['current_middleware'] = $mwToRun;
+                $mwFileToRun = $mwDir . $mwToRun . '.php';
+                if (is_readable($mwFileToRun)) {
+                    include_once $mwFileToRun;
+                    $mwFnToRun = NAMESPACE_PIPELINE_MIDDLEWARES . $mwToRun . '\\' . $mwToRun;
+                    if (is_callable($mwFnToRun)) {
+                        $rawRun = $mwFnToRun($c);
+                    } else {
+                        $c['err']['MIDDLEWARES'][] = 'Configured Matched Route Middlewares (`"ROUTES" => "GET|POST|PUT|DELETE|PATCH" => "/route" => "middlewares" Key`) to load and run after Possibly Matched Route: `' . ($c['req']['route'] !== null ? $c['req']['method'] . $c['req']['route'] : '<No Route Matched>') . '` Route Matching. But the Middleware `' . $mwToRun . '` was found in the `funkphp/middlewares/` Folder but it is not a valid callable function closure, please check the `funkphp/middlewares/' . $mwToRun . '.php` File!';
+                        $err = 'Tell the Developer: The Middlewares Pipeline Function ran but WITHOUT a Valid Middleware Structure - A Middleware File was found in the `funkphp/middlewares/` Folder but it is Not A Valid Callable Function Closure!';
+                        \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+                    }
+                } else {
+                    $c['err']['MIDDLEWARES'][] = 'Configured Matched Route Middlewares (`"ROUTES" => "GET|POST|PUT|DELETE|PATCH" => "/route" => "middlewares" Key`) to load and run after Possibly Matched Route: `' . ($c['req']['route'] !== null ? $c['req']['method'] . $c['req']['route'] : '<No Route Matched>') . '` Route Matching. But the Middleware `' . $mwToRun . '` was not found in the `funkphp/middlewares/` Folder or it was not properly loaded in the Config File `funkphp/config/_all.php` under the `dispatchers` Key!';
+                    $err = 'Tell the Developer: The Middlewares Pipeline Function ran but WITHOUT a Valid Middleware Structure - A Middleware File was not found in the `funkphp/middlewares/` Folder or it was not properly loaded in the Config File `funkphp/config/_all.php` under the `dispatchers` Key!';
+                    \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+                }
+                unset($c['req']['matched_middlewares'][$i]);
+                $c['req']['current_middleware'] = null;
+                $c['req']['next_middleware'] = isset($c['req']['matched_middlewares'][$i + 1]) && is_array($c['req']['matched_middlewares'][$i + 1]) ? array_key_first($c['req']['matched_middlewares'][$i + 1]) : null;
+            }
+            $c['req']['current_middleware'] = null;
+            $c['req']['matched_middlewares'] = null;
+        } else {
+            $c['err']['MAYBE']['CONFIG'][] = 'No Configured Matched Route Middlewares (`"ROUTES" => "GET|POST|PUT|DELETE|PATCH" => "/route" => "middlewares" Key`) to load and run after Possibly Matched Route: ' . ($c['req']['route'] !== null ? $c['req']['method'] . $c['req']['route'] : '<No Route Matched>') . 'Route Matching. If you expected Middlewares to run after Route Matching, check for the Route in the `funkphp/config/routes.php` File!';
+        }
+        if (!isset($c['req']['matched_pipeline']) || !is_array($c['req']['matched_pipeline']) || !array_is_list($c['req']['matched_pipeline']) || count($c['req']['matched_pipeline']) === 0) {
+            $c['err']['PIPELINE']['REQUEST']['funk_run_matched_pipeline'][] = 'Route Keys for the Matched Route must be a Numbered Array! Please check your Route Keys in `funkphp/core/pipeline_routes.php` for the Route `' . (is_string($c['req']['method']) ? $c['req']['method'] : '<No HTTP(S) Method Matched>') . (is_string($c['req']['route']) ? $c['req']['route'] : '<No Route Matched>') . '`!';
+            $err = 'Tell the Developer: The Route Keys for the Matched Route must be a Numbered Array! This can also happen when You ONLY have Middlewares but no other `Route Key`! Please check your Route Keys in `funkphp/core/pipeline_routes.php` for the Route `' . (is_string($c['req']['method']) ? $c['req']['method'] : '<No HTTP(S) Method Matched>') . (is_string($c['req']['route']) ? $c['req']['route'] : '<No Route Matched>') . '`!';
+            \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+        }
+        if (!defined("ROOT_ROUTES")) {
+            $err = 'TELL THE DEVELOPER: The Defined Constant `ROOT_ROUTES` in /src/funkphp/core/CONSTANTS.php is NOT DEFINED?! Please fix directly or via FunkGUI.';
+            \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+        }
+        if (!defined("NAMESPACE_PIPELINE_ROUTES")) {
+            $err = 'TELL THE DEVELOPER: The Defined Constant `NAMESPACE_PIPELINE_ROUTES` in /src/funkphp/core/CONSTANTS.php is NOT DEFINED?! Please fix directly or via FunkGUI.';
+            \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+        }
+        $routesDir = ROOT_ROUTES . '/';
+        foreach ($c['req']['matched_pipeline'] as $idx => $dirFileFn) {
+            $file = key($dirFileFn) ?? null;
+            $fn = $dirFileFn[$file ?? ''] ?? null;
+            if ($file === null || $fn === null) {
+                $c['err']['PIPELINE']['REQUEST']['funk_run_matched_pipeline'][] = '(1) Route Key at Index `' . $idx . '` must be an Array with a Non-Empty String Key corresponding to the Folder+File Path where the Function Name would be inside of! Please check your Route Keys in `funkphp/core/pipeline_routes.php` for the Route `' . (is_string($c['req']['method']) ? $c['req']['method'] : '<No HTTP(S) Method Matched>') . (is_string($c['req']['route']) ? $c['req']['route'] : '<No Route Matched>') . '`!';
+                $err = '(1) Tell the Developer: The Route Key at Index `' . $idx . '` must be an Array with a Non-Empty String Key corresponding to the Folder+File Path where the Function Name would be inside of! Please check your Route Keys in `funkphp/core/pipeline_routes.php` for the Route `' . (is_string($c['req']['method']) ? $c['req']['method'] : '<No HTTP(S) Method Matched>') . (is_string($c['req']['route']) ? $c['req']['route'] : '<No Route Matched>') . '`!';
+                \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+            }
+            $folderFile = $routesDir . $file . '.php';
+            if (is_readable($folderFile)) {
+                include_once $folderFile;
+                $fileFnToRun = NAMESPACE_PIPELINE_ROUTES . $file . '\\' . $fn;
+                if (is_callable($fileFnToRun)) {
+                    $rawRun = $fileFnToRun($c);
+                    continue;
+                } else {
+                    $c['err']['PIPELINE']['REQUEST']['funk_run_matched_pipeline'][] = '(2) Route Key at Index `' . $idx . '` must be an Array with a Non-Empty String Key corresponding to the Folder+File Path where the Function Name would be inside of! Please check your Route Keys in `funkphp/core/pipeline_routes.php` for the Route `' . (is_string($c['req']['method']) ? $c['req']['method'] : '<No HTTP(S) Method Matched>') . (is_string($c['req']['route']) ? $c['req']['route'] : '<No Route Matched>') . '`!';
+                    $err = '(2) Tell the Developer: The Route Key at Index `' . $idx . '` must be an Array with a Non-Empty String Key corresponding to the Folder+File Path where the Function Name would be inside of! Please check your Route Keys in `funkphp/core/pipeline_routes.php` for the Route `' . (is_string($c['req']['method']) ? $c['req']['method'] : '<No HTTP(S) Method Matched>') . (is_string($c['req']['route']) ? $c['req']['route'] : '<No Route Matched>') . '`!';
+                    \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+                }
+            } else {
+                $c['err']['PIPELINE']['REQUEST']['funk_run_matched_pipeline'][] = '(3) Route Key at Index `' . $idx . '` must be an Array with a Non-Empty String Key corresponding to the Folder+File Path where the Function Name would be inside of! Please check your Route Keys in `funkphp/core/pipeline_routes.php` for the Route `' . (is_string($c['req']['method']) ? $c['req']['method'] : '<No HTTP(S) Method Matched>') . (is_string($c['req']['route']) ? $c['req']['route'] : '<No Route Matched>') . '`!';
+                $err = '(3) Tell the Developer: The Route Key at Index `' . $idx . '` must be an Array with a Non-Empty String Key corresponding to the Folder+File Path where the Function Name would be inside of! Please check your Route Keys in `funkphp/core/pipeline_routes.php` for the Route `' . (is_string($c['req']['method']) ? $c['req']['method'] : '<No HTTP(S) Method Matched>') . (is_string($c['req']['route']) ? $c['req']['route'] : '<No Route Matched>') . '`!';
+                \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+            }
+        }
     }
 }
