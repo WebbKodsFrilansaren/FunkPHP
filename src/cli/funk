@@ -100,6 +100,7 @@ define('FUNKPHP_DEFAULT_ROUTE_KEYS', [
         ],
     ],
     'middlewares' => [],
+    'exclude_middlewares' => [],
     'pipeline' => [],
 ]);
 

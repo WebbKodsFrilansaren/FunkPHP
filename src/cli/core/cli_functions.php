@@ -10384,6 +10384,13 @@ function cli_build_compiled_routes(array $developerSingleRoutes, $SingleRouteArr
     // Prepare compiled route array to return and other variables
     $compiledTrie = [];
     $metadata = [
+        '<ALL>' => [
+            'totalAllRoutes' => 0,
+            'totalStaticRoutes' => 0,
+            'totalDynamicRoutes' => 0,
+            'minURICountAll' => 0,
+            'maxURICountAll' => 0,
+        ],
         'GET' => [
             'allRoutes' => [],
             'staticRoutes' => [],
@@ -10624,6 +10631,41 @@ function cli_build_compiled_routes(array $developerSingleRoutes, $SingleRouteArr
             $metadata[$method]['maxURICount'] = 0;
         }
     }
+
+    // Add final metadata to the "<ALL>" Key
+    $metadata['<ALL>']['totalAllRoutes'] = (
+        $metadata['GET']['allRoutesCount']
+        + $metadata['PUT']['allRoutesCount']
+        + $metadata['POST']['allRoutesCount']
+        + $metadata['PATCH']['allRoutesCount']
+        + $metadata['DELETE']['allRoutesCount']
+    );
+    $metadata['<ALL>']['totalStaticRoutes'] = (
+        $metadata['GET']['staticRoutesCount']
+        + $metadata['PUT']['staticRoutesCount']
+        + $metadata['POST']['staticRoutesCount']
+        + $metadata['PATCH']['staticRoutesCount']
+        + $metadata['DELETE']['staticRoutesCount']
+    );
+    $metadata['<ALL>']['totalDynamicRoutes'] = (
+        $metadata['GET']['dynamicRoutesCount']
+        + $metadata['PUT']['dynamicRoutesCount']
+        + $metadata['POST']['dynamicRoutesCount']
+        + $metadata['PATCH']['dynamicRoutesCount']
+        + $metadata['DELETE']['dynamicRoutesCount']
+    );
+    // Add highest and lowest URI Count from ALL Methods!
+    $activeMins = [];
+    $activeMaxs = [];
+    $methods = ['GET', 'PATCH', 'POST', 'PUT', 'DELETE'];
+    foreach ($methods as $method) {
+        if ($metadata[$method]['allRoutesCount'] > 0) {
+            $activeMins[] = $metadata[$method]['minURICount'];
+            $activeMaxs[] = $metadata[$method]['maxURICount'];
+        }
+    }
+    $metadata['<ALL>']['minURICountAll'] = !empty($activeMins) ? min($activeMins) : 0;
+    $metadata['<ALL>']['maxURICountAll'] = !empty($activeMaxs) ? max($activeMaxs) : 0;
     // Returns both entities wrapped safely under distinct identifiers
     return [
         'TRIE'     => $compiledTrie,
@@ -11353,10 +11395,6 @@ function cli_err_syntax_without_exit($string)
 {
     cli_output(MSG_TYPE_SYNTAX_ERROR, $string, false);
 }
-function cli_err_command($string)
-{
-    cli_output(MSG_TYPE_ERROR, $string, true, 1);
-}
 function cli_success($string)
 {
     cli_output(MSG_TYPE_SUCCESS, $string, true, 0);
@@ -11373,10 +11411,6 @@ function cli_info_without_exit($string)
 {
     cli_output(MSG_TYPE_INFO, $string, false);
 }
-function cli_info_multiline($string)
-{
-    cli_output(MSG_TYPE_INFO, $string, false);
-}
 function cli_warning($string)
 {
     cli_output(MSG_TYPE_WARNING, $string, true, 0);
@@ -11384,98 +11418,6 @@ function cli_warning($string)
 function cli_warning_without_exit($string)
 {
     cli_output(MSG_TYPE_WARNING, $string, false);
-}
-function cli_important($string)
-{
-    cli_output(MSG_TYPE_IMPORTANT, $string, true, 0);
-}
-function cli_important_without_exit($string)
-{
-    cli_output(MSG_TYPE_IMPORTANT, $string, false);
-}
-function cli_success_with_warning_same_line($string1, $string2)
-{
-    if (defined('JSON_MODE') && JSON_MODE) {
-        cli_output(MSG_TYPE_SUCCESS, $string1, false);
-        cli_output(MSG_TYPE_WARNING, $string2, true);
-    } else {
-        echo ANSI_GREEN . "[FunkCLI - SUCCESS + WARNING]: " . $string1 . ANSI_RESET;
-        echo ANSI_YELLOW . $string2 . ANSI_RESET . "\n";
-        exit(0);
-    }
-}
-function cli_err_with_info_same_line($string1, $string2)
-{
-    if (defined('JSON_MODE') && JSON_MODE) {
-        cli_output(MSG_TYPE_ERROR, $string1, false);
-        cli_output(MSG_TYPE_INFO, $string2, true, 1); // Exit after info in this case
-    } else {
-        echo ANSI_RED . "[FunkCLI - ERROR + INFO]: " . $string1 . ANSI_RESET;
-        echo ANSI_BLUE . $string2 . ANSI_RESET . "\n";
-        exit(1);
-    }
-}
-function cli_err_with_info_same_line_without_exit($string1, $string2)
-{
-    if (defined('JSON_MODE') && JSON_MODE) {
-        cli_output(MSG_TYPE_ERROR, $string1, false);
-        cli_output(MSG_TYPE_INFO, $string2, false);
-    } else {
-        echo ANSI_RED . "[FunkCLI - ERROR + INFO]: " . $string1 . ANSI_RESET;
-        echo ANSI_BLUE . $string2 . ANSI_RESET . "\n";
-    }
-}
-function cli_err_with_warning_same_line($string1, $string2)
-{
-    if (defined('JSON_MODE') && JSON_MODE) {
-        cli_output(MSG_TYPE_ERROR, $string1, false);
-        cli_output(MSG_TYPE_WARNING, $string2, true, 1);
-    } else {
-        echo ANSI_RED . "[FunkCLI - ERROR + WARNING]: " . $string1 . ANSI_RESET;
-        echo ANSI_YELLOW . $string2 . ANSI_RESET . "\n";
-        exit(1);
-    }
-}
-function cli_err_with_warning_same_line_without_exit($string1, $string2)
-{
-    if (defined('JSON_MODE') && JSON_MODE) {
-        cli_output(MSG_TYPE_ERROR, $string1, false);
-        cli_output(MSG_TYPE_WARNING, $string2, false);
-    } else {
-        echo ANSI_RED . "[FunkCLI - ERROR + WARNING]: " . $string1 . ANSI_RESET;
-        echo ANSI_YELLOW . $string2 . ANSI_RESET . "\n";
-    }
-}
-function cli_success_with_info_same_line($string1, $string2)
-{
-    if (defined('JSON_MODE') && JSON_MODE) {
-        cli_output(MSG_TYPE_SUCCESS, $string1, false);
-        cli_output(MSG_TYPE_INFO, $string2, true, 0);
-    } else {
-        echo ANSI_GREEN . "[FunkCLI - SUCCESS + INFO]: " . $string1 . ANSI_RESET;
-        echo ANSI_BLUE . $string2 . ANSI_RESET . "\n";
-        exit(0);
-    }
-}
-function cli_success_with_info_same_line_without_exit($string1, $string2)
-{
-    if (defined('JSON_MODE') && JSON_MODE) {
-        cli_output(MSG_TYPE_SUCCESS, $string1, false);
-        cli_output(MSG_TYPE_INFO, $string2, false);
-    } else {
-        echo ANSI_GREEN . "[FunkCLI - SUCCESS]: " . $string1 . ANSI_RESET; // Note: original prefix might be different here
-        echo ANSI_BLUE . $string2 . ANSI_RESET . "\n";
-    }
-}
-function cli_success_with_warning_same_line_without_exit($string1, $string2)
-{
-    if (defined('JSON_MODE') && JSON_MODE) {
-        cli_output(MSG_TYPE_SUCCESS, $string1, false);
-        cli_output(MSG_TYPE_WARNING, $string2, false);
-    } else {
-        echo ANSI_GREEN . "[FunkCLI - SUCCESS]: " . $string1 . ANSI_RESET; // Note: original prefix might be different here
-        echo ANSI_YELLOW . $string2 . ANSI_RESET . "\n";
-    }
 }
 
 // Function loops through all function files in funkphp/core/

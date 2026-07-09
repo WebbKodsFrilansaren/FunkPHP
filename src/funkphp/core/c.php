@@ -24,6 +24,7 @@ return array(
   "FUNKPHP_CUSTOM_URI_NORMALIZER" => null,
   "FUNKPHP_CUSTOM_EXCEPTION_HANDLER" => null,
   "FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION" => null,
+  "FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION" => null,
   'INI_SETS' =>
   array(
     'session.cache_limiter' => 'public',

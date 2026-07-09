@@ -138,6 +138,7 @@ $cArrayKeysThatMustExist = [
     'FUNKPHP_CUSTOM_URI_NORMALIZER',
     'FUNKPHP_CUSTOM_EXCEPTION_HANDLER',
     'FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION',
+    'FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION',
     'INI_SETS',
     'BASEURLS',
     'SESSION',
@@ -193,7 +194,7 @@ if ($cConfig['FUNKPHP_USE_VENDOR'] === true) {
         cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_FILE_PATH_VENDOR_AUTOLOAD_FILE` containing exact Path to `src/funkphp/vendor/autoload.php` IS NOT DEFINED, or FILE IS NOT FOUND or FILE IS NOT READABLE. Set `FUNKPHP_USE_VENDOR` (via FunkCLI or FunkGUI) to false if you do not wanna use Vendor/Composer-based classes! Path: `" . (FUNKPHP_FILE_PATH_VENDOR_AUTOLOAD_FILE ?? "[NOT_DEFINED]") . "`");
         cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for Main Keys 'FUNKPHP_ONLINE', 'FUNKPHP_USE_HTTPS', 'FUNKPHP_USE_PREPARE_URI', 'FUNKPHP_CUSTOM_EXCEPTION_HANDLER', 'FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION' & 'INI_SETS' in the `c.php` (FunkPHP Configuration File) and try again! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
     }
-    cli_info_without_exit("IMPORTANT ABOUT VENDOR/COMPOSER BEING USED: FunkCLI does NOT validate the contents inside of the `src/funkphp/vendor` Directory!");
+    cli_info_without_exit("IMPORTANT ABOUT VENDOR/COMPOSER BEING USED: FunkCLI does NOT validate the contents inside of the `src/funkphp/vendor` Directory and/or that it even exists after deployment, it just assumes it exists when you use `funk_use_vendor()`!");
 }
 $fphpo_iniChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["FUNKPHP_CUSTOM_EXCEPTION_HANDLER"], $configWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($fphpo_iniChecks), $configWarnsAndErrs, "cli_err", 'string|null', "Key is needed to know which Custom Exception Handler to use (or default is used; set it a string or null) for each incoming HTTP(S) Request! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
@@ -205,17 +206,17 @@ cli_assert_final_value(end($fphpo_iniChecks), $configWarnsAndErrs, "cli_err", 'a
 if (
     !defined("FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED")
 ) {
-    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED` containing exact Path to `src/funkphp/config/functions.php` (User-defined Globally Available Functions in FunkPHP) is NOT DEFINED! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
+    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED` containing exact Path to `src/funkphp/config/functions.php` (User-defined Globally Available Functions) is NOT DEFINED! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
 }
 if (
     !file_exists(FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED)
 ) {
-    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED` containing exact Path to `src/funkphp/config/functions.php` (User-defined Globally Available Functions in FunkPHP) is DEFINED but its File NOT FOUND! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
+    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED` containing exact Path to `src/funkphp/config/functions.php` (User-defined Globally Available Functions) is DEFINED but its File NOT FOUND! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
 }
 if (
     !is_readable(FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED)
 ) {
-    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED` containing exact Path to `src/funkphp/config/functions.php` (User-defined Globally Available Functions in FunkPHP) is DEFINED & FOUND but is NOT READABLE! File Permission issues? Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
+    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED` containing exact Path to `src/funkphp/config/functions.php` (User-defined Globally Available Functions) is DEFINED & FOUND but is NOT READABLE! File Permission issues? Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
 }
 // Load User Functions globally by now inside $userFunctionsFile
 // but first quick check if both are existing non-empty strings but are exactly the same
@@ -233,17 +234,17 @@ if (
 }
 $userFunctionsFile = cli_folder_and_php_file_status("funkphp/config", "functions.php");
 if (count($userFunctionsFile['fn_names_duplicates']) > 0) {
-    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "There are Duplicate Function Names (`" . join(", ", array_keys($userFunctionsFile['fn_names_duplicates'])) .  "`) in `src/funkphp/config/functions.php` (User-defined Globally Available Functions in FunkPHP)! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
-    cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for `src/funkphp/config/functions.php` (User-defined Globally Available Functions in FunkPHP) and try again! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
+    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "There are Duplicate Function Names (`" . join(", ", array_keys($userFunctionsFile['fn_names_duplicates'])) .  "`) in `src/funkphp/config/functions.php` (User-defined Globally Available Functions)! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
+    cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for `src/funkphp/config/functions.php` (User-defined Globally Available Functions) and try again! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
 }
 if (isset($cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER'])) {
     if (!isset($userFunctionsFile["functions"][$cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER']])) {
-        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Exception Handler `{$cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER']}` NOT FOUND in `src/funkphp/config/functions.php` (User-defined Globally Available Functions in FunkPHP) is DEFINED & FOUND but is NOT READABLE! Check Function Name in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
+        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Exception Handler `{$cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER']}` NOT FOUND in `src/funkphp/config/functions.php` (User-defined Globally Available Functions) is DEFINED & FOUND but is NOT READABLE! Check Function Name in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
     }
 }
 if (isset($cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION'])) {
     if (!isset($userFunctionsFile["functions"][$cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION']])) {
-        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Registered Shutdown Function `{$cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION']}` NOT FOUND in `src/funkphp/config/functions.php` (User-defined Globally Available Functions in FunkPHP) is DEFINED & FOUND but is NOT READABLE! Check Function Name in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
+        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Registered Shutdown Function `{$cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION']}` NOT FOUND in `src/funkphp/config/functions.php` (User-defined Globally Available Functions) is DEFINED & FOUND but is NOT READABLE! Check Function Name in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
     }
 }
 // c['FUNKPHP_CUSTOM_URI_NORMALIZER'] must be a string or null and it cannot be the same function as
@@ -257,10 +258,10 @@ if (isset($cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER'])) {
             $userFunctionsFile['functions'][$cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER']]['fn_starts_with_cli']
             || $userFunctionsFile['functions'][$cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER']]['fn_starts_with_funk']
         ) {
-            cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Request URI Normalizer Function `{$cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER']}` in `src/funkphp/config/functions.php` (User-defined Globally Available Functions in FunkPHP) is STARTS with `cli_` or `funk_` in its name which is NOT ALLOWED! Check Function Name in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
+            cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Request URI Normalizer Function `{$cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER']}` in `src/funkphp/config/functions.php` (User-defined Globally Available Functions) is STARTS with `cli_` or `funk_` in its name which is NOT ALLOWED! Check Function Name in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
         }
     } else {
-        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Request URI Normalizer Function `{$cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER']}` is NOT FOUND in `src/funkphp/config/functions.php` (User-defined Globally Available Functions in FunkPHP)! Check Function Name in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
+        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Request URI Normalizer Function `{$cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER']}` is NOT FOUND in `src/funkphp/config/functions.php` (User-defined Globally Available Functions)! Check Function Name in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
     }
     if (
         isset($cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER'])
@@ -272,7 +273,7 @@ if (isset($cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER'])) {
         && ($cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER'] === $cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER']
             || $cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER'] === $cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION'])
     ) {
-        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Request URI Normalizer Function `{$cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER']}` in `src/funkphp/config/functions.php` (User-defined Globally Available Functions in FunkPHP) is SAME AS CUSTOM REGISTER SHUTDOWN FUNCTION or CUSTOM EXCEPTION HANDLER FUNCTION! Check Function Name in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
+        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Request URI Normalizer Function `{$cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER']}` in `src/funkphp/config/functions.php` (User-defined Globally Available Functions) is SAME AS CUSTOM REGISTER SHUTDOWN FUNCTION or CUSTOM EXCEPTION HANDLER FUNCTION! Check Function Name in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
     }
 }
 // Check that Reserved Functions Array $reserved_functions is available by now
@@ -293,7 +294,35 @@ if (isset($cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER'])) {
         cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Exception Handler `{$cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER']}` HAS CONFLICTING FUNCTION NAME with The Array String List of Reserved Function Names `src/cli/core/cli_reserved.php`. Please change your Function Name in `src/funkphp/config/functions.php` and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). OR set it to `null` if you wanna use default one! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
     }
 }
-cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for Main Keys 'FUNKPHP_ONLINE', 'FUNKPHP_USE_HTTPS', 'FUNKPHP_USE_PREPARE_URI', 'FUNKPHP_CUSTOM_EXCEPTION_HANDLER', 'FUNKPHP_CUSTOM_EXCEPTION_HANDLER', 'FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION' & 'INI_SETS' in the `c.php` (FunkPHP Configuration File) and try again! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
+
+// Validate $c['FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION'] that allow for a custom HTTPS Kernel Dispatcher Function meaning
+// it would replace the in-built one that is triggered by having the 'pl_https_kernel_dispatch' in Pipeline Request Array!
+$fphpo_customChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($fphpo_customChecks), $configWarnsAndErrs, "cli_err", 'string|null', "Key is needed to know whether to use a Custom (from `/src/funkphp/config/functions.php`) Pipeline Request Function to `handle Route Matching` and `Execution of Route Middlewares & Route Pipeline Functions`! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
+if (isset($cConfig['FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION'])) {
+    if (in_array($cConfig['FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION'], $reserved_functions)) {
+        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom HTTPS Kernel Dispatch Pipeline Request Function `{$cConfig['FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION']}` HAS CONFLICTING FUNCTION NAME with The Array String List of Reserved Function Names `src/cli/core/cli_reserved.php`. Please change your Function Name in `src/funkphp/config/functions.php` and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). OR set it to `null` if you wanna use default one! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
+    }
+    if (isset($userFunctionsFile['functions'][$cConfig['FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION']])) {
+        if (
+            $userFunctionsFile['functions'][$cConfig['FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION']]['fn_starts_with_cli']
+            || $userFunctionsFile['functions'][$cConfig['FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION']]['fn_starts_with_funk']
+        ) {
+            cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom HTTPS Kernel Dispatch Pipeline Request Function `{$cConfig['FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION']}` in `src/funkphp/config/functions.php` (User-defined Globally Available Functions) is STARTS with `cli_` or `funk_` in its name which is NOT ALLOWED! Check Function Name in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
+        }
+    } else {
+        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom HTTPS Kernel Dispatch Pipeline Request Function `{$cConfig['FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION']}` is NOT FOUND in `src/funkphp/config/functions.php` (User-defined Globally Available Functions)! Check Function Name in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
+    }
+    if (
+        (isset($cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER']) && $cConfig['FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION'] === $cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER'])
+        || (isset($cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION']) && $cConfig['FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION'] === $cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION'])
+        || (isset($cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER']) && $cConfig['FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION'] === $cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER'])
+    ) {
+        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "Configured Custom HTTPS Kernel Dispatch Pipeline Request Function `{$cConfig['FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION']}` in `src/funkphp/config/functions.php` (User-defined Globally Available Functions) is SAME AS CUSTOM REGISTER SHUTDOWN FUNCTION, CUSTOM EXCEPTION HANDLER FUNCTION or CUSTOM REQUEST URI NORMALIZER FUNCTION! Check Function Name in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
+    }
+}
+
+cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for Main Keys 'FUNKPHP_ONLINE', 'FUNKPHP_USE_HTTPS', 'FUNKPHP_USE_PREPARE_URI', 'FUNKPHP_CUSTOM_EXCEPTION_HANDLER', 'FUNKPHP_CUSTOM_EXCEPTION_HANDLER', 'FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION', 'FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION', & 'INI_SETS' in the `c.php` (FunkPHP Configuration File) and try again! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
 
 // VALIDATE BASEURLS Array Subkeys Paths!
 $baseURLSChecks = [];
@@ -714,7 +743,7 @@ $excludedCoreFunctionsInBuild = [
     "funk_match_compiled_route" => true,
     "funk_match_developer_route" => true,
     "funk_run_pipeline_request" => true,
-    "funk_run_pipeline_post_response" => true, // maybe?
+    "funk_run_pipeline_post_response" => true,
 ];
 if (isset($coreFunctionsFile['functions'])) {
     foreach ($coreFunctionsFile['functions'] as $fnNameCore => $fnValsCore) {
@@ -756,7 +785,7 @@ if (!cli_file_constant_defined_file_exists_is_readable("FUNKPHP_FILE_PATH_TROUTE
     cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline Files (Routes, Compiled Routes & Pipeline) and try again! Path: `" . (FUNKPHP_FILE_PATH_TROUTES ?? "[NOT_DEFINED]") . "`");
 }
 cli_info_without_exit("Recompiling & Rebuilding Routes (`/src/funkphp/core/pipeline_routes.php`) & Prefixed Routes (`/src/funkphp/core/compiled_routes.php`) using `cli_sort_build_routes_compile_and_output()`. If this step FAILS, the Building will ALSO Stop!");
-[$compiledRoutesFile, $onlyRoutesFile] = cli_sort_build_routes_compile_and_output($singleRoutesRoute, true); // $singleRoutesRoute is declared already `funk` File and also has default values if not existing!
+[$TRIE, $RUTTER] = cli_sort_build_routes_compile_and_output($singleRoutesRoute, true); // $singleRoutesRoute is declared already `funk` File and also has default values if not existing!
 
 cli_info_without_exit("G`### Step 3 CONTINUES ###` Loading, Validating & Compiling `pipeline_request.php`, `pipeline_routes.php` & `compiled_routes.php` ('Request' & 'Post_Response' in 'Pipeline' in FunkGUI) File...");
 if (!cli_file_constant_defined_file_exists_is_readable("FUNKPHP_FILE_PATH_PIPELINE")) {
@@ -886,6 +915,7 @@ foreach ($pipelineFile['pipeline']['request'] as $pipeRequestFn) {
     }
     cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline File in the Key `pipeline -> request` and try again! Path: `" . (FUNKPHP_FILE_PATH_PIPELINE ?? "[NOT_DEFINED]") . "` $DEFAULT_ERROR_FORMATTING");
 
+    // Notice & ignore for now that default `pl_https_kernel_dispatch` was included in Pipeline Request Array!
     if ($pipeRequestFn === "pl_https_kernel_dispatch") {
         $HTTPS_KERNEL_DISPATCH_FUNCTION_FOUND = true;
         continue;
@@ -924,8 +954,11 @@ $deploymentPipelineRequestBuffer[] = " }\n"; // End namespace funkphp\pipeline\p
 // STRONG CRITICAL WARNING if they skip the `pl_https_kernel_dispatch` which is the "trigger"
 // to build the optimized route matching execution flow. Then it is all up to Dev to write their own!
 if (!$HTTPS_KERNEL_DISPATCH_FUNCTION_FOUND) {
-    cli_warning_without_exit("### CRITICAL WARNING ### Expected `pl_https_kernel_dispatch` Pipeline Request Function NOT FOUND meaning the Optimized Routing Matching Function will NOT BE PART OF THE BUILD! (that String is needed to 'trigger' that Building step!");
-    cli_warning_without_exit("If you have no other Pipeline Request Function that can match the Routes inside of `/src/funkphp/core/compiled_routes.php` and execute matched Middlewares & Route Pipeline Functions in `/src/funkphp/core/pipeline_routes.php` then you might end up with a 'Dead-On-Compilation Build'!");
+    cli_warning_without_exit("### ⚠️CRITICAL WARNING ### Expected `pl_https_kernel_dispatch` Pipeline Request Function NOT FOUND meaning the Optimized Routing Matching Function will NOT BE PART OF THE BUILD! (that String is needed to 'trigger' that Building step!");
+    if (!isset($cConfig['FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION'])) {
+        cli_warning_without_exit("⚠️A `Custom HTTPS Kernel Dispatch Pipeline Request Function` (`FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION` Key in `/src/funkphp/config/c.php`) WAS NOT FOUND meaning you must either write your own `pl_function` and add to the Pipeline Request Array that does all of it OR write a User-defined Function (in `/src/funkphp/config/functions.php`) that would be called if you write its Function Name in the `FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION` Key!");
+    }
+    cli_warning_without_exit("⚠️If you have no other Pipeline Request Function that can match the Routes inside of `/src/funkphp/core/compiled_routes.php` and execute matched Middlewares & Route Pipeline Functions in `/src/funkphp/core/pipeline_routes.php` then you might end up with a 'Dead-On-Compilation Build'!");
 }
 cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline File in the Key `pipeline -> request` and try again! Path: `" . (FUNKPHP_PIPELINE_POST_RESPONSE_DIR ?? "[NOT_DEFINED]") . "` $DEFAULT_ERROR_FORMATTING");
 
@@ -940,13 +973,40 @@ unset($cConfig['pipeline']['post_response']);
 cli_info_without_exit("G`### Step 4 STARTS ###` Loading, Validating, Rebuilding & Compiling `compiled_routes.php` & `pipeline_routes.php` Files ('Routes' in 'Pipeline' in FunkGUI)...");
 $routesWarnsAndErrs = [];
 
-
-// $compiledRoutesFile === Compiled Prefix Router, it has faster info instead of calculating it manually
+// $TRIE === Compiled Prefix Router, it has faster info instead of calculating it manually
 // like how many (most+least) URI segments each HTTP(S) method has (used later for optimize route matching)
-// $onlyRoutesFile === Developer's Routes; they were recompiled before we reached this point so they could
+// $RUTTER === Developer's Routes; they were recompiled before we reached this point so they could
 // not be changed maliciously. They (METHODS/ROUTES) should be guaranteed by pre-recompilation to be unique
 // in each method with no conflicting same-level dynamic URI segments (e.g. GET/:test and GET/:test2)
+$NO_ROUTES = false;
+if ($TRIE['METADATA']['<ALL>']['totalAllRoutes'] === 0) {
+    $NO_ROUTES = true;
+    cli_warning_without_exit("
+==========================================================================================================================
+CRITICAL NOTICE: ZERO ROUTES COMPILED (New Project? File Permission?)
+==========================================================================================================================
+The Compiler successfully generated 'compiled_routes.php',
+but found exactly (0) defined routes.
+What this means for your application:
 
+1) Every single incoming request will instantly trigger your
+`default 404/Error Pipeline` or `other default behavior`.
+
+2) If this is a `brand new project, this is normal!` Create
+Routes in FunkGUI or via FunkCLI `php funk make:r` and then
+add `middlewares` to them via `php funk make:mw` and then
+function handlers to them via `php funk make:h`!
+
+3) If this is an Existing App, `Check Your File Paths` or
+ensure your Route Arrays are not accidentally empty.
+
+Paths to consider checking:
+- `/src/funkphp/core/c.php` (The Configuration Array known as '\&\$c')
+- `/src/funkphp/config/functions.php` (Your Custom-defined Globally Available Functions)
+- `/src/funkphp/core/pipeline_request.php` (Pipeline Request Array - runs for each HTTP(S) Request)
+- `/src/funkphp/core/pipeline_routes.php` (Routes Array - your Routes, Middlewares & Route Pipeline Functions end up here)
+==========================================================================================================================");
+}
 
 //////////////////////////////////
 // Correct execution order for GOTO Labels: Route Matching Generator Functions???
@@ -995,7 +1055,18 @@ $COMPLETE_DEPLOYMENT_BUFFER = substr_replace($COMPLETE_DEPLOYMENT_BUFFER, $BUILD
 
 // IMPORTANT: Might go back to "cli_php_strip_whitespace_string" instead if "\" auto-adding causes more issues rather than help?
 if (!cli_crud_folder_php_file_atomic_write($COMPLETE_DEPLOYMENT_BUFFER, FUNKPHP_FILE_PATH_DEPLOYMENT_FILE)) {
-    cli_err("Failed to write the otherwise Successfully Compiled `FunkPHPDeployment.php` File to the Disk! Please check the File Permissions and try again! Path: `" . (FUNKPHP_FILE_PATH_DEPLOYMENT_FILE ?? "[NOT_DEFINED]") . "`");
+    cli_err("
+==========================================================================================================================
+FAILED to Write the otherwise Successfully Compiled `/src/funkphp/FunkPHPDeployment.php` File to the Disk!?
+Please check the File Permissions and try again! Path: `" . (FUNKPHP_FILE_PATH_DEPLOYMENT_FILE ?? "[NOT_DEFINED]") . "`
+==========================================================================================================================");
+}
+// Notify about super-important message if no routes were compiled but without any errors and/or warnings
+if ($NO_ROUTES) {
+    cli_warning_without_exit("
+==========================================================================================================================
+    SUPER-IMPORTANT: SCROLL UP TO READ SUPER-IMPORTANT MESSAGE REGARDING THE COMPILATION! ^_^ (look for `CRITICAL NOTICE`)
+==========================================================================================================================");
 }
 cli_success_without_exit("### FunkCLI Successfully Compiled & Built `/src/funkphp/FunkPHPDeployment.php` ###");
 cli_success_without_exit("Compiled with the following options:\n- Compile Pages: " . ($compilePages ? "YES" : "NO") . "\n- Compress Deployment: " . ($compressDeployment ? "YES" : "NO"));
