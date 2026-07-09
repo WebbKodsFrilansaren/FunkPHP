@@ -30,8 +30,6 @@ $skipCompilingSQL = false; // implemented later
 $deploymentBuffer = [];
 $deploymentConfigBuffer = [];
 $deploymentFunctionsBuffer = [];
-$deploymentPipelineRequestBuffer = [];
-$deploymentPipelinePostResponseBuffer = [];
 $deploymentPipelineRoutesBuffer = [];
 $deploymentValidationBuffer = [];
 $deploymentSQLBuffer = [];
@@ -850,10 +848,35 @@ cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err"
 
 cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline File in the Key `pipeline -> <CONFIG_GLOBAL>` and try again! Path: `" . (FUNKPHP_FILE_PATH_PIPELINE ?? "[NOT_DEFINED]") . "`");
 
+// Now we start building namespace-scoped functions such as: 'funkphp\pipeline\request {}' & 'namespace 'funkphp\pipeline\post_response {}'
+if (!defined("FUNKPHP_PIPELINE_REQUEST_DIR")) {
+    cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_PIPELINE_REQUEST_DIR` (`/src/funkphp/pipeline/request`) IS NOT DEFINED when it should be?! Try Git/Versioning Control (for `/src/cli/funk`) to get it back or redownload it again! Path: `" . (FUNKPHP_PIPELINE_REQUEST_DIR ?? "[NOT_DEFINED]") . "`");
+    cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline Files (& Pipeline) and try again! Path: `" . (FUNKPHP_PIPELINE_REQUEST_DIR ?? "[NOT_DEFINED]") . "`");
+}
+if (!defined("FUNKPHP_PIPELINE_POST_RESPONSE_DIR")) {
+    cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_PIPELINE_POST_RESPONSE_DIR` (`/src/funkphp/pipeline/post_response`) IS NOT DEFINED when it should be?! Try Git/Versioning Control (for `/src/cli/funk`) to get it back or redownload it again! Path: `" . (FUNKPHP_PIPELINE_POST_RESPONSE_DIR ?? "[NOT_DEFINED]") . "`");
+    cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline Files (& Pipeline) and try again! Path: `" . (FUNKPHP_PIPELINE_POST_RESPONSE_DIR ?? "[NOT_DEFINED]") . "`");
+}
+$deploymentPipelineRequestBuffer = [];
+$deploymentPipelinePostResponseBuffer = [];
+foreach ($pipelineFile['pipeline']['request'] as $pipeRequestFn) {
+    $plReqStatus = cli_folder_and_php_file_status(FUNKPHP_PIPELINE_REQUEST_DIR, $pipeRequestFn, true);
+    var_dump($plReqStatus);
+    exit;
+}
+
 // We now add the validated pipeline part (for now, we can check against its config during compiled_routes, pipeline_routes and the like)
+
+
+
+
+
 $cConfig['pipeline'] = $pipelineFile['pipeline'];
 unset($cConfig['pipeline']['request']);
 unset($cConfig['pipeline']['post_response']);
+
+
+
 
 cli_info_without_exit("G`### Step 4 STARTS ###` Loading, Validating, Rebuilding & Compiling `compiled_routes.php` & `pipeline_routes.php` Files ('Routes' in 'Pipeline' in FunkGUI)...");
 $routesWarnsAndErrs = [];

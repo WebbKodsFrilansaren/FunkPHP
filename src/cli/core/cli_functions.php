@@ -3184,20 +3184,22 @@ function cli_route_status(&$ROUTES, $method, $route)
 // is read into a raw string and each function is as well so CRUD can
 // be done for that file assuming its a PHP file with functions. If
 // `return function` exists in it (like middlewares), it's included.
-function cli_folder_and_php_file_status($folder, $file)
+function cli_folder_and_php_file_status($folder, $file, $useExactFilePathInstead = false)
 {
     // QoL fix for $folder if it is a string and starts with a slash
-    if (is_string($folder) && str_starts_with(trim($folder), "/")) {
-        $folder = substr(trim($folder), 1);
-    }
-    // Validate both are non-empty strings and match the regex
-    if (!isset($folder) || !is_string($folder) || empty($folder) || !preg_match('/^[a-z_][a-z_0-9\/-]*$/i', $folder)) {
-        cli_err_without_exit('[cli_folder_and_php_file_status()]: $folder must be A Valid Non-Empty String! (whitespace is NOT allowed)');
-        cli_info('[cli_folder_and_php_file_status()]: Use the following Directory Syntax (Regex):`[a-z_][a-z_0-9\/-]*)`! (you do NOT need to add a leading slash `/` to the string)');
-    }
-    if (!isset($file) || !is_string($file) || empty($file) || !preg_match('/^[a-z_][a-z_0-9\.]*$/i', $file)) {
-        cli_err_without_exit('[cli_folder_and_php_file_status()]: $file must be A Valid Non-Empty String! (whitespace is NOT allowed)');
-        cli_info('[cli_folder_and_php_file_status()]: Use the following File Syntax (Regex):`[a-z_][a-z_0-9\.]*)`! (you do NOT need to add a leading slash `/` to the string and NOT `.php` File Extension)');
+    if (!$useExactFilePathInstead) {
+        if (is_string($folder) && str_starts_with(trim($folder), "/")) {
+            $folder = substr(trim($folder), 1);
+        }
+        // Validate both are non-empty strings and match the regex
+        if (!isset($folder) || !is_string($folder) || empty($folder) || !preg_match('/^[a-z_][a-z_0-9\/-]*$/i', $folder)) {
+            cli_err_without_exit('[cli_folder_and_php_file_status()]: $folder must be A Valid Non-Empty String! (whitespace is NOT allowed)');
+            cli_info('[cli_folder_and_php_file_status()]: Use the following Directory Syntax (Regex):`[a-z_][a-z_0-9\/-]*)`! (you do NOT need to add a leading slash `/` to the string)');
+        }
+        if (!isset($file) || !is_string($file) || empty($file) || !preg_match('/^[a-z_][a-z_0-9\.]*$/i', $file)) {
+            cli_err_without_exit('[cli_folder_and_php_file_status()]: $file must be A Valid Non-Empty String! (whitespace is NOT allowed)');
+            cli_info('[cli_folder_and_php_file_status()]: Use the following File Syntax (Regex):`[a-z_][a-z_0-9\.]*)`! (you do NOT need to add a leading slash `/` to the string and NOT `.php` File Extension)');
+        }
     }
     // Consistently get '$folder' . '/' . $file . '.php' always!
     $folder = trim($folder);
@@ -3214,7 +3216,7 @@ function cli_folder_and_php_file_status($folder, $file)
     if (str_starts_with($file, '/')) {
         $file = ltrim($file, '/');
     }
-    $folder = PROJECT_DIR . '/' . $folder;
+    $folder = (($useExactFilePathInstead === false) ? (PROJECT_DIR . '/' . $folder) : ($folder));
     // $singleFolder is the last part of the folder path
     $singleFolder = basename($folder);
     $filename = $file;
@@ -3225,7 +3227,7 @@ function cli_folder_and_php_file_status($folder, $file)
     // the function name is in the file content using regex!
     $fnRegex = '/^function\s+([a-zA-Z_][a-zA-Z0-9_]*)\(&\$[^)]*\)(.*?^}\s*(;)?)?$/ims';
     $dxRegex = '/\$DX\s*=\s*\[\s*\'.*?];$/ims';
-    $namespaceRegex = '/^namespace\s*(.*?)[;\n]$/ims';
+    $namespaceRegex = '/^namespace\s+(.*?);(\r|\n){0,}$/im';
     $classRegex = '/^class\s+[a-z_A-Z][a-zA-Z0-9_]*\s*{(.*?)}$/ims';
     $returnRegex = '/return\s*array\(.*?\);$\n/ims';
     $fns = null;
@@ -3301,6 +3303,7 @@ function cli_folder_and_php_file_status($folder, $file)
         'folder_provided_path' => $providedFolder ?? null,
         'folder_name' => $singleFolder ?? null,
         'folder_path_attempted' => $folder ?? "<Invalid String>",
+        'file_path_attempted' => $file ?? "<Invalid String>",
         'folder_path' => ((is_string($folder) && is_dir($folder) && is_readable($folder) && is_writable($folder)) ? $folder : null),
         'folder_exists' => is_dir($folder),
         'folder_readable' => is_readable($folder),
