@@ -157,7 +157,7 @@ if (isset($statusArray['functions'][$fn])) {
 // else means the function does not exist in the existing file so we add it to the end and rebuild routes
 else {
     cli_info_without_exit("Function `$fn` does NOT exist in File `$file.php` in `$singleFolder`! Attempting to create it now... If it fails, the Route Pipeline Key `$file=>$fn` will be removed from `$method$route` and any created function will be removed from the file!");
-    $mwString = $statusArray['file_raw'] . "\nfunction $fn(&\$c)\n{\n\t// Placeholder Comment so Regex works - Remove & Add Your Own Code!\n$optionalCodeSnippets\n};\n";
+    $mwString = $statusArray['file_raw'] . "\nfunction $fn(&\$c)\n{\n\t// Placeholder Comment so Regex works - Remove & Add Your Own Code!\n$optionalCodeSnippets\n}\n";
     $newFilePath = $statusArray['folder_path'] . '/' . $statusArray['file_name'];
     if (cli_crud_folder_php_file_atomic_write($mwString, $newFilePath)) {
         cli_success_without_exit("SUCCESSFULLY Created Function `$fn` in File `$file.php` in `$singleFolder`!");

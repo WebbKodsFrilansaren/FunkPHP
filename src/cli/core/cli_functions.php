@@ -3255,6 +3255,7 @@ function cli_folder_and_php_file_status($folder, $file, $useExactFilePathInstead
                 foreach ($fnsMatches[1] as $idx => $fn) {
                     $fns[$fn] = [
                         'fn_exact_name' => $fn,
+                        'fn_name_same_as_lowercased' => ($fn === strtolower($fn)),
                         'fn_lowercased' => strtolower($fn),
                         'fn_uppercased' => strtoupper($fn),
                         'fn_starts_with_cli' => str_starts_with(strtolower($fn), 'cli_'),

@@ -27,10 +27,13 @@ $skipCompilingSQL = false; // implemented later
 
 // Initialize an array to hold the different compiled sections of the file
 // and its sub parts so we can add sub parts as needed to the entire file!
+$HTTPS_KERNEL_DISPATCH_FUNCTION_FOUND = false;
+//
 $deploymentBuffer = [];
 $deploymentConfigBuffer = [];
 $deploymentFunctionsBuffer = [];
 $deploymentPipelineRoutesBuffer = [];
+$deploymentMegaRouteMatchBuffer = [];
 $deploymentValidationBuffer = [];
 $deploymentSQLBuffer = [];
 $deploymentPagesBuffer = [];
@@ -858,44 +861,91 @@ if (!defined("FUNKPHP_PIPELINE_POST_RESPONSE_DIR")) {
     cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline Files (& Pipeline) and try again! Path: `" . (FUNKPHP_PIPELINE_POST_RESPONSE_DIR ?? "[NOT_DEFINED]") . "`");
 }
 
-
+$DEFAULT_ERROR_FORMATTING = "\nRECOMMENDED: `1) ALWAYS lowercase Function Names everywhere. 2) ALWAYS USE Standard Formatting so every newline inside of Functions are indented at least once` OR it won't be found by the Compiler!";
+// Add Pipeline Request Functions
 $deploymentPipelineRequestBuffer[] = 'namespace funkphp\\pipeline\\request';
 $deploymentPipelineRequestBuffer[] = " {\n";
-
 foreach ($pipelineFile['pipeline']['request'] as $pipeRequestFn) {
     $plReqStatus = cli_folder_and_php_file_status(FUNKPHP_PIPELINE_REQUEST_DIR, $pipeRequestFn, true);
-    if ($plReqStatus['namespace_name'] !== "funkphp\\pipeline\\request\\$pipeRequestFn") {
-        cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Request Function (`/src/funkphp/pipeline/request/$pipeRequestFn`) was NOT FOUND in Expected `namespace funkphp\\pipeline\\request`! Dir Path: `" . (FUNKPHP_PIPELINE_REQUEST_DIR ?? "[NOT_DEFINED]") . "`");
+    if (!$plReqStatus['file_exists']) { // file exists?
+        cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "The Pipeline Request Function File (`/src/funkphp/pipeline/request/$pipeRequestFn.php`) was NOT FOUND! Dir Path: `" . (FUNKPHP_PIPELINE_REQUEST_DIR ?? "[NOT_DEFINED]") . "`");
+        cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline File in the Key `pipeline -> request` and try again! Path: `" . (FUNKPHP_FILE_PATH_PIPELINE ?? "[NOT_DEFINED]") . "` $DEFAULT_ERROR_FORMATTING");
     }
-    echo "Adding $pipeRequestFn\n";
+    if ($plReqStatus['namespace_name'] !== "funkphp\\pipeline\\request\\$pipeRequestFn") { // expected scoped namespace correct?
+        cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Request Function (`/src/funkphp/pipeline/request/$pipeRequestFn.php`) was NOT FOUND in Expected `namespace funkphp\\pipeline\\request\\$pipeRequestFn;`! Dir Path: `" . (FUNKPHP_PIPELINE_REQUEST_DIR ?? "[NOT_DEFINED]") . "`");
+    }
+    if (!isset($plReqStatus['functions'][$pipeRequestFn])) { // does function (name) exist?
+        cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Request Function (`/src/funkphp/pipeline/request/$pipeRequestFn.php`) was NOT FOUND in Expected Function `function $pipeRequestFn(&\$c) { // Code }`!");
+    } else if (isset($plReqStatus['functions'][$pipeRequestFn])) {
+        if (!$plReqStatus['functions'][$pipeRequestFn]['fn_name_same_as_lowercased']) { // is function name lowercased?
+            cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Request Function (`/src/funkphp/pipeline/request/$pipeRequestFn.php`) should only and always be lowercased!");
+        }
+        if (!str_starts_with(strtolower($pipeRequestFn), "pl_")) { // function name starts with "pl_"?
+            cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Request Function (`/src/funkphp/pipeline/request/$pipeRequestFn.php`) must start with `pl_` for the sake of consistency!");
+        }
+    }
+    cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline File in the Key `pipeline -> request` and try again! Path: `" . (FUNKPHP_FILE_PATH_PIPELINE ?? "[NOT_DEFINED]") . "` $DEFAULT_ERROR_FORMATTING");
+
+    if ($pipeRequestFn === "pl_https_kernel_dispatch") {
+        $HTTPS_KERNEL_DISPATCH_FUNCTION_FOUND = true;
+        continue;
+    }
     $deploymentPipelineRequestBuffer[] = $plReqStatus['functions'][$pipeRequestFn]['fn_raw'] . "\n";
 }
-
 $deploymentPipelineRequestBuffer[] = " }\n"; // End namespace funkphp\pipeline\request {}
-cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline File in the Key `pipeline -> request` and try again! Path: `" . (FUNKPHP_FILE_PATH_PIPELINE ?? "[NOT_DEFINED]") . "`");
 
-// Add the valid Pipeline Request Functions now and move on to do the same for Pipeline PostRequest if it is not empty!
+// Add Pipeline Post_Response Functions
+$deploymentPipelineRequestBuffer[] = 'namespace funkphp\\pipeline\\post_response';
+$deploymentPipelineRequestBuffer[] = " {\n";
+foreach ($pipelineFile['pipeline']['post_response'] as $pipePostResponseFn) {
+    $plReqStatus = cli_folder_and_php_file_status(FUNKPHP_PIPELINE_POST_RESPONSE_DIR, $pipePostResponseFn, true);
+    if (!$plReqStatus['file_exists']) { // file exists?
+        cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "The Pipeline Post_Response Function File (`/src/funkphp/pipeline/post_response/$pipePostResponseFn.php`) was NOT FOUND! Dir Path: `" . (FUNKPHP_PIPELINE_POST_RESPONSE_DIR ?? "[NOT_DEFINED]") . "`");
+        cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline File in the Key `pipeline -> post_response` and try again! Path: `" . (FUNKPHP_PIPELINE_POST_RESPONSE_DIR ?? "[NOT_DEFINED]") . "` $DEFAULT_ERROR_FORMATTING");
+    }
+    if ($plReqStatus['namespace_name'] !== "funkphp\\pipeline\\post_response\\$pipePostResponseFn") { // expected scoped namespace correct?
+        cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Post_Response Function (`/src/funkphp/pipeline/post_response/$pipePostResponseFn.php`) was NOT FOUND in Expected `namespace funkphp\\pipeline\\post_response\\$pipePostResponseFn;`! Dir Path: `" . (FUNKPHP_PIPELINE_POST_RESPONSE_DIR ?? "[NOT_DEFINED]") . "`");
+    }
+    if (!isset($plReqStatus['functions'][$pipePostResponseFn])) { // does function (name) exist?
+        cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Post_Response Function (`/src/funkphp/pipeline/post_response/$pipePostResponseFn.php`) was NOT FOUND in Expected Function `function $pipePostResponseFn(&\$c) { // Code }`!");
+    } else if (isset($plReqStatus['functions'][$pipePostResponseFn])) {
+        if (!$plReqStatus['functions'][$pipePostResponseFn]['fn_name_same_as_lowercased']) { // is function name lowercased?
+            cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Post_Response Function (`/src/funkphp/pipeline/post_response/$pipePostResponseFn.php`) should only and always be lowercased!");
+        }
+        if (!str_starts_with(strtolower($pipePostResponseFn), "pl_")) { // function name starts with "pl_"?
+            cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Post_Response Function (`/src/funkphp/pipeline/post_response/$pipePostResponseFn.php`) must start with `pl_` for the sake of consistency!");
+        }
+    }
+    cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline File in the Key `pipeline -> post_response` and try again! Path: `" . (FUNKPHP_PIPELINE_POST_RESPONSE_DIR ?? "[NOT_DEFINED]") . "` $DEFAULT_ERROR_FORMATTING");
+    $deploymentPipelineRequestBuffer[] = $plReqStatus['functions'][$pipePostResponseFn]['fn_raw'] . "\n";
+}
+$deploymentPipelineRequestBuffer[] = " }\n"; // End namespace funkphp\pipeline\post_response {}
+
+// STRONG CRITICAL WARNING if they skip the `pl_https_kernel_dispatch` which is the "trigger"
+// to build the optimized route matching execution flow. Then it is all up to Dev to write their own!
+if (!$HTTPS_KERNEL_DISPATCH_FUNCTION_FOUND) {
+    cli_warning_without_exit("### CRITICAL WARNING ### Expected `pl_https_kernel_dispatch` Pipeline Request Function NOT FOUND meaning the Optimized Routing Matching Function will NOT BE PART OF THE BUILD! (that String is needed to 'trigger' that Building step!");
+    cli_warning_without_exit("If you have no other Pipeline Request Function that can match the Routes inside of `/src/funkphp/core/compiled_routes.php` and execute matched Middlewares & Route Pipeline Functions in `/src/funkphp/core/pipeline_routes.php` then you might end up with a 'Dead-On-Compilation Build'!");
+}
+cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline File in the Key `pipeline -> request` and try again! Path: `" . (FUNKPHP_PIPELINE_POST_RESPONSE_DIR ?? "[NOT_DEFINED]") . "` $DEFAULT_ERROR_FORMATTING");
+
+// Add the valid Pipeline Request & Post_Response Functions to final buffer
+// and remove them as they are no longer needed. If Dev wanna use them
+// they will have to call them by:`\funkphp\pipeline\request|post_response\pl_name($c);`
 $deploymentBuffer[] = implode("", $deploymentPipelineRequestBuffer);
-
-
-$deploymentPipelinePostResponseBuffer = [];
-
-// We now add the validated pipeline part (for now, we can check against its config during compiled_routes, pipeline_routes and the like)
-
-
-
-
-
 $cConfig['pipeline'] = $pipelineFile['pipeline'];
 unset($cConfig['pipeline']['request']);
 unset($cConfig['pipeline']['post_response']);
 
-
-
-
 cli_info_without_exit("G`### Step 4 STARTS ###` Loading, Validating, Rebuilding & Compiling `compiled_routes.php` & `pipeline_routes.php` Files ('Routes' in 'Pipeline' in FunkGUI)...");
 $routesWarnsAndErrs = [];
 
+
+// $compiledRoutesFile === Compiled Prefix Router, it has faster info instead of calculating it manually
+// like how many (most+least) URI segments each HTTP(S) method has (used later for optimize route matching)
+// $onlyRoutesFile === Developer's Routes; they were recompiled before we reached this point so they could
+// not be changed maliciously. They (METHODS/ROUTES) should be guaranteed by pre-recompilation to be unique
+// in each method with no conflicting same-level dynamic URI segments (e.g. GET/:test and GET/:test2)
 
 
 //////////////////////////////////
@@ -908,7 +958,7 @@ $routesWarnsAndErrs = [];
 
 
 
-cli_info_without_exit("G`### Step 5 STARTS ###` Loading, Validating, & Compiling Pipeline Functions (files in `src/funkphp/pipeline/routes`) & Middlewares Functions (files in `src/funkphp/pipeline/middlewares`) Used For Each Valid Route Compiled From `compiled_routes.php` & `pipeline_routes.php` Files ('Routes' & 'Middlewares' in 'Pipeline' in FunkGUI)...");
+cli_info_without_exit("G`### Step 5 STARTS ###` Loading, Validating, & Compiling Route Pipeline Functions (files in `src/funkphp/pipeline/routes`) & Middlewares Functions (files in `src/funkphp/pipeline/middlewares`) Used For Each Valid Route Compiled From `compiled_routes.php` & `pipeline_routes.php` Files ('Routes' & 'Middlewares' in 'Pipeline' in FunkGUI)...");
 $routesPipelineWarnsAndErrs = [];
 
 cli_info_without_exit("G`### Step 6 STARTS ###` Loading, Validating, & Compiling Any Pages (files in `src/funkphp/pages`) used ('Pages' with 'Layouts', 'Components' & 'Compiled' in FunkGUI)...");

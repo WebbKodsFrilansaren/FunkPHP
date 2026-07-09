@@ -1,5 +1,5 @@
 <?php
-// pipeline_request.php - FunkPHP | FunkCLI recreated it 2026-07-08 14:22:13
+// pipeline_request.php - FunkPHP | FunkCLI recreated it 2026-07-09 02:36:55
 
 /**
  * -----------------------------------------------------
@@ -35,38 +35,76 @@ return  array(
         ),
         'remove' =>
         array(
-          "X-Powered-By",
-          "Server",
-          "X-AspNet-Version",
-          "X-AspNetMvc-Version"
-        )
+          0 => 'X-Powered-By',
+          1 => 'Server',
+          2 => 'X-AspNet-Version',
+          3 => 'X-AspNetMvc-Version',
+        ),
       ),
       'global_sris' =>
       array(
-        'internal' => array(),
-        'external' => array(),
+        'internal' =>
+        array(),
+        'external' =>
+        array(),
       ),
-      'global_csp' => array(
-        'connect-src' => array("'self'"),
-        'font-src' => array("'self'"),
-        'frame-src' => array("'self'"),
-        'base-uri' => array("'self'"),
-        'form-action' => array("'self'"),
-        'object-src' => array("'none'"),
-        'default-src' => array("'none'"),
-        'script-src'  => array("'self'"),
-        'style-src'   => array("'self'"),
-        'img-src'     => array("'self'"),
+      'global_csp' =>
+      array(
+        'connect-src' =>
+        array(
+          0 => '\'self\'',
+        ),
+        'font-src' =>
+        array(
+          0 => '\'self\'',
+        ),
+        'frame-src' =>
+        array(
+          0 => '\'self\'',
+        ),
+        'base-uri' =>
+        array(
+          0 => '\'self\'',
+        ),
+        'form-action' =>
+        array(
+          0 => '\'self\'',
+        ),
+        'object-src' =>
+        array(
+          0 => '\'none\'',
+        ),
+        'default-src' =>
+        array(
+          0 => '\'none\'',
+        ),
+        'script-src' =>
+        array(
+          0 => '\'self\'',
+        ),
+        'style-src' =>
+        array(
+          0 => '\'self\'',
+        ),
+        'img-src' =>
+        array(
+          0 => '\'self\'',
+        ),
       ),
       'global_rate_limiting' => NULL,
-      'global_param_rules' => array(),
-      'global_default_no_route_match_response' => [
-        'page' => "/[errors]/404",
-        'json' => ["error_404" => "Route not found! If You are the Developer: Check inside `/src/funkphp/core/pipeline_routes.php` or via FunkGUI if you have defined Routes correctly!"],
-        'xml' => null,
+      'global_param_rules' =>
+      array(),
+      'global_default_no_route_match_response' =>
+      array(
+        'page' => '/[errors]/404',
+        'json' =>
+        array(
+          'error_404' => 'Route not found! If You are the Developer: Check inside `/src/funkphp/core/pipeline_routes.php` or via FunkGUI if you have defined Routes correctly!',
+        ),
+        'xml' => NULL,
         'text' => 'Route not found!',
-        'callback' => null,
-      ]
+        'callback' => NULL,
+      ),
     ),
     'request' =>
     array(
@@ -77,6 +115,8 @@ return  array(
       4 => 'pl_https_kernel_dispatch',
     ),
     'post_response' =>
-    array(0 => 'pl_debug'),
+    array(
+      0 => 'pl_debug',
+    ),
   ),
 );

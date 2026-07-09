@@ -38,10 +38,8 @@ define(
             "X-AspNetMvc-Version"
         ]],
         'global_sris' => [
-            array(
-                'internal' => array(), // Called with "@js('FileName','sri:key') - sri is optional!
-                'external' => array(), // Called with "@js_ext('key') - SRI is a must for safety!
-            ),
+            'internal' => array(), // Called with "@js('FileName','sri:key') - sri is optional!
+            'external' => array(), // Called with "@js_ext('key') - SRI is a must for safety!
         ],
         'global_csp' => [
             'connect-src' => array("'self'"),
@@ -91,7 +89,6 @@ define('FUNKPHP_DEFAULT_ROUTE_KEYS', [
     'config' => [
         'route_alias' => '',
         'route_param_rules' => [],
-        'route_run_middlewares_before_pipeline' => true,
         'route_headers' => ['add' => [], 'remove' => []],
         'route_rate_limiting' => null,
         'route_cache' => null,

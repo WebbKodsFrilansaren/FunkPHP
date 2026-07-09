@@ -1,4 +1,4 @@
-<?php // pipeline_routes.php - FunkPHP | FunkCLI Modified it 2026-07-09 01:03:17
+<?php // pipeline_routes.php - FunkPHP | FunkCLI Modified it 2026-07-09 02:37:52
 return 
     /**
     * -----------------------------------------------------
@@ -18,43 +18,6 @@ array (
   array (
     'GET' => 
     array (
-      '/' => 
-      array (
-        'config' => 
-        array (
-          'route_alias' => '',
-          'route_param_rules' => 
-          array (
-          ),
-          'route_run_middlewares_before_pipeline' => true,
-          'route_headers' => 
-          array (
-            'add' => 
-            array (
-            ),
-            'remove' => 
-            array (
-            ),
-          ),
-          'route_rate_limiting' => NULL,
-          'route_cache' => NULL,
-          'route_sris' => 
-          array (
-          ),
-          'route_nonces' => 
-          array (
-          ),
-          'route_csp' => 
-          array (
-          ),
-        ),
-        'middlewares' => 
-        array (
-        ),
-        'pipeline' => 
-        array (
-        ),
-      ),
       '<CONFIG_METHOD>' => 
       array (
         'method_headers' => 
@@ -66,18 +29,36 @@ array (
           array (
           ),
         ),
-        'method_sris' => 
-        array (
-        ),
-        'method_nonces' => 
-        array (
-        ),
         'method_csp' => 
         array (
+          'default-src' => 
+          array (
+            0 => '\'none\'',
+          ),
+          'script-src' => 
+          array (
+            0 => '\'self\'',
+          ),
+          'style-src' => 
+          array (
+            0 => '\'self\'',
+          ),
+          'img-src' => 
+          array (
+            0 => '\'self\'',
+          ),
         ),
         'method_rate_limiting' => NULL,
         'method_param_rules' => 
         array (
+        ),
+        'method_default_no_route_match_response' => 
+        array (
+          'page' => NULL,
+          'json' => NULL,
+          'xml' => NULL,
+          'text' => NULL,
+          'callback' => NULL,
         ),
       ),
     ),
@@ -94,18 +75,36 @@ array (
           array (
           ),
         ),
-        'method_sris' => 
-        array (
-        ),
-        'method_nonces' => 
-        array (
-        ),
         'method_csp' => 
         array (
+          'default-src' => 
+          array (
+            0 => '\'none\'',
+          ),
+          'script-src' => 
+          array (
+            0 => '\'self\'',
+          ),
+          'style-src' => 
+          array (
+            0 => '\'self\'',
+          ),
+          'img-src' => 
+          array (
+            0 => '\'self\'',
+          ),
         ),
         'method_rate_limiting' => NULL,
         'method_param_rules' => 
         array (
+        ),
+        'method_default_no_route_match_response' => 
+        array (
+          'page' => NULL,
+          'json' => NULL,
+          'xml' => NULL,
+          'text' => NULL,
+          'callback' => NULL,
         ),
       ),
     ),
@@ -122,18 +121,36 @@ array (
           array (
           ),
         ),
-        'method_sris' => 
-        array (
-        ),
-        'method_nonces' => 
-        array (
-        ),
         'method_csp' => 
         array (
+          'default-src' => 
+          array (
+            0 => '\'none\'',
+          ),
+          'script-src' => 
+          array (
+            0 => '\'self\'',
+          ),
+          'style-src' => 
+          array (
+            0 => '\'self\'',
+          ),
+          'img-src' => 
+          array (
+            0 => '\'self\'',
+          ),
         ),
         'method_rate_limiting' => NULL,
         'method_param_rules' => 
         array (
+        ),
+        'method_default_no_route_match_response' => 
+        array (
+          'page' => NULL,
+          'json' => NULL,
+          'xml' => NULL,
+          'text' => NULL,
+          'callback' => NULL,
         ),
       ),
     ),
@@ -150,18 +167,36 @@ array (
           array (
           ),
         ),
-        'method_sris' => 
-        array (
-        ),
-        'method_nonces' => 
-        array (
-        ),
         'method_csp' => 
         array (
+          'default-src' => 
+          array (
+            0 => '\'none\'',
+          ),
+          'script-src' => 
+          array (
+            0 => '\'self\'',
+          ),
+          'style-src' => 
+          array (
+            0 => '\'self\'',
+          ),
+          'img-src' => 
+          array (
+            0 => '\'self\'',
+          ),
         ),
         'method_rate_limiting' => NULL,
         'method_param_rules' => 
         array (
+        ),
+        'method_default_no_route_match_response' => 
+        array (
+          'page' => NULL,
+          'json' => NULL,
+          'xml' => NULL,
+          'text' => NULL,
+          'callback' => NULL,
         ),
       ),
     ),
@@ -178,18 +213,36 @@ array (
           array (
           ),
         ),
-        'method_sris' => 
-        array (
-        ),
-        'method_nonces' => 
-        array (
-        ),
         'method_csp' => 
         array (
+          'default-src' => 
+          array (
+            0 => '\'none\'',
+          ),
+          'script-src' => 
+          array (
+            0 => '\'self\'',
+          ),
+          'style-src' => 
+          array (
+            0 => '\'self\'',
+          ),
+          'img-src' => 
+          array (
+            0 => '\'self\'',
+          ),
         ),
         'method_rate_limiting' => NULL,
         'method_param_rules' => 
         array (
+        ),
+        'method_default_no_route_match_response' => 
+        array (
+          'page' => NULL,
+          'json' => NULL,
+          'xml' => NULL,
+          'text' => NULL,
+          'callback' => NULL,
         ),
       ),
     ),

@@ -1,5 +1,5 @@
 <?php
-// compiled_routes.php - FunkPHP | FunkCLI created/updated 2026-07-09 01:03:17
+// compiled_routes.php - FunkPHP | FunkCLI created/updated 2026-07-09 02:37:52
     /**
     * -----------------------------------------------------
     * FUNKPHP AUTOMATICALLY GENERATED/CREATED COMPILED FILE
@@ -18,9 +18,6 @@ return array (
   array (
     'GET' => 
     array (
-      '/' => 
-      array (
-      ),
     ),
     'POST' => 
     array (
@@ -41,11 +38,9 @@ return array (
     array (
       'allRoutes' => 
       array (
-        '/' => 1,
       ),
       'staticRoutes' => 
       array (
-        '/' => 1,
       ),
       'dynamicRoutes' => 
       array (
@@ -54,10 +49,9 @@ return array (
       'maxURICount' => 0,
       'URICountExistsForNumber' => 
       array (
-        0 => 1,
       ),
-      'allRoutesCount' => 1,
-      'staticRoutesCount' => 1,
+      'allRoutesCount' => 0,
+      'staticRoutesCount' => 0,
       'dynamicRoutesCount' => 0,
     ),
     'PATCH' => 
