@@ -26,22 +26,7 @@ function funak_handle_uncaught_exception(&$c, $e)
     exit;
     function inside()
     {
-        echo "test";
+        eval('echo "test"');
     }
-}
-
-function funak_set_register_shutdown_function(&$c)
-{
-    // Regex
-    $testing = "tset2";
-}
-function funk_validate_test(&$c)
-{
-    if (empty($c['email'])) {
-        return false;
-    } // 💥 THE REAL TRAP: 0 indentation!
-    // Because this is flush to the left, '^}' matches here.
-    // The regex stops here and drops the return statement below.
-
-    return filter_var($c['email'], FILTER_VALIDATE_EMAIL);
+    eval('echo "test"');
 }

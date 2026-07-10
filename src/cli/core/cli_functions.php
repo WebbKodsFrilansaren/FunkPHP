@@ -3306,11 +3306,11 @@ function cli_analyze_code_safety(string $code): array
                     $structDepth = $braceDepth; // Capture structural context depth
                     if ($isFn) {
                         $analysis['functions'][$currentName] = [
-                            'has_early_exit'        => false,
+                            'early_exit'        => false,
                             'early_exit_lines'      => [],
-                            'has_raw_output'        => false,
+                            'raw_output'        => false,
                             'raw_output_lines'      => [],
-                            'has_nested_functions'  => false,
+                            'nested_functions'  => false,
                             'nested_function_lines' => [],
                             'calls'                 => []
                         ];
@@ -3327,19 +3327,25 @@ function cli_analyze_code_safety(string $code): array
         if ($currentType === 'function') {
             // Catch Illegal Nested/Inner Functions
             if ($token->id === T_FUNCTION) {
-                $analysis['functions'][$currentName]['has_nested_functions'] = true;
+                $analysis['functions'][$currentName]['nested_functions'] = true;
                 $analysis['functions'][$currentName]['nested_function_lines'][] = $token->line;
+                continue;
+            }
+            // Catch classes?
+            if ($token->id === T_CLASS) {
+                $analysis['functions'][$currentName]['class_in_function'] = true;
+                $analysis['functions'][$currentName]['class_in_function_lines'][] = $token->line;
                 continue;
             }
             // Catch Short-Circuiting Terminators
             if ($token->id === T_EXIT) {
-                $analysis['functions'][$currentName]['has_early_exit'] = true;
+                $analysis['functions'][$currentName]['early_exit'] = true;
                 $analysis['functions'][$currentName]['early_exit_lines'][] = $token->line;
                 continue;
             }
             // Catch Raw Output Dumps
             if ($token->id === T_ECHO || $token->id === T_PRINT) {
-                $analysis['functions'][$currentName]['has_raw_output'] = true;
+                $analysis['functions'][$currentName]['raw_output'] = true;
                 $analysis['functions'][$currentName]['raw_output_lines'][] = $token->line;
                 continue;
             }
