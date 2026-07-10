@@ -22,11 +22,17 @@
 function funak_handle_uncaught_exception(&$c, $e)
 {
     // Regex
-    $testing = "tset";
-    exit;
     function inside()
     {
         eval('echo "test"');
     }
     eval('echo "test"');
-}
+} //
+function funak_handle_uncaught_exception2(&$c, $e)
+{
+    // Regex
+    $DX = ['test' => 'test'];
+    return array();
+    $testing = "tset";
+    exit;
+}//

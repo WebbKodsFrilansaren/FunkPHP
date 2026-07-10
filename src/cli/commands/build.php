@@ -230,15 +230,15 @@ if (
 ) {
     cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Exception Handler `{$cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER']}` & the Custom Registered Shutdown Function `{$cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION']}` are exactly the same in `src/funkphp/core/c.php` (Global Configuration Array File)! Check Function Names in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one(s)! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
 }
-$userFunctionsFile = cli_folder_and_php_file_status("funkphp/config", "functions.php", false, true);
-var_dump($userFunctionsFile);
-exit;
+$userFunctionsFile = cli_folder_and_php_file_status("funkphp/config", "functions.php");
 if (!$userFunctionsFile['file_exists'] || !$userFunctionsFile['folder_readable']) {
     cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configuration File `src/funkphp/config/functions.php` (User-defined Globally Available Functions) WAS NOT FOUND or IS NOT READABLE when it should have been? This might now show other errors below this one!");
 }
+var_dump($userFunctionsFile);
 if (!$userFunctionsFile['functions_same_count']) {
     cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configuration File `src/funkphp/config/functions.php` (User-defined Globally Available Functions) WAS FOUND USING Either Regex or Tokenizer but not both Indicating some Formatting Issue Inside File? (check for any trailing comment at the end of a function block{} <-- here)");
 }
+//exit;
 if (count($userFunctionsFile['fn_names_duplicates']) > 0) {
     cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "There are Duplicate Function Names (`" . join(", ", array_keys($userFunctionsFile['fn_names_duplicates'])) .  "`) in `src/funkphp/config/functions.php` (User-defined Globally Available Functions)! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
     cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for `src/funkphp/config/functions.php` (User-defined Globally Available Functions) and try again! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
@@ -609,7 +609,7 @@ cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($conf
 
 // Here ### Step 1 is fully validated so now we insert starting point of the `FunkPHPDeployment.php` file into the $deploymentBuffer array for later writing to disk!
 cli_success_without_exit("G`### Step 1 DONE ###` Validating & Adding `c.php` (FunkPHP Configuration File) SUCCESSFULLY! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`.");
-$BUILD_VERSION = "<?php // FunkPHPDeployment.php | Created: " . date("Y-m-d H:i:s") . " | PHP Version: " .  PHP_VERSION . " | FunkPHP Version: " . (FUNKPHP_VERSION ?? "<Unknown Version>") . " | FunkCLI Version: " . (FUNKCLI_VERSION ?? "<Unknown Version>") . "\n";
+$BUILD_VERSION = "<?php // FunkPHPDeployment.php | Created: " . date("Y-m-d H:i:s") . " | PHP Version: " .  PHP_VERSION . " | FunkPHP Version: " . (FUNKPHP_VERSION ?? "<Unknown Version>") . " | FunkCLI Version: " . (FUNKCLI_VERSION ?? "<Unknown Version>") . "\n\n";
 $deploymentBuffer[] = "<?php \nnamespace { "; // Opening Global namespace for nows
 
 // Adding Starting Needed Constants First
@@ -1005,12 +1005,6 @@ if (!defined("FUNKPHP_MIDDLEWARES_DIR")) {
     cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_MIDDLEWARES_DIR` (`/src/funkphp/pipeline/middlewares`) IS NOT DEFINED when it should be?! Try Git/Versioning Control (for `/src/cli/funk`) to get it back or redownload it again! Path: `" . (FUNKPHP_MIDDLEWARES_DIR ?? "[NOT_DEFINED]") . "`");
 }
 cli_stop_from_warn_err_list($routesWarnsAndErrs, "Please Review (" . count($routesWarnsAndErrs) . ") Warnings/Errors above for the Pipeline Files (Pipeline Routes & Middlewares Files) and try again! Paths: `" . (FUNKPHP_ROUTES_DIR ?? "[NOT_DEFINED]") . "` & `" . (FUNKPHP_MIDDLEWARES_DIR ?? "[NOT_DEFINED]") . "`");
-
-
-//$test = cli_folder_and_php_file_status(FUNKPHP_ROUTES_DIR, "test", true);
-
-
-
 
 // SPECIAL EDGE CASE BELOW: When there are no routes compiled (like just trying out command & opening FunkPHPDeployment.php)
 if ($TRIE['METADATA']['<ALL>']['totalAllRoutes'] === 0) {

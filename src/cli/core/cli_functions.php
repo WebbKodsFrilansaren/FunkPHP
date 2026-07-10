@@ -3450,7 +3450,7 @@ function cli_folder_and_php_file_status($folder, $file, $useExactFilePathInstead
     // If file exists and is readable, check if function exists
     // by first reading the file and then checking if
     // the function name is in the file content using regex!
-    $fnRegex = '/^function\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(&\$[^)]*\)(.*?^}\s*(;)?)?(\r|\n)*$/ims';
+    $fnRegex = '/^function\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(&\$[^)]*\)(.*?^}\s*(;)?)?(\r|\n)*/ims';
     $dxRegex = '/\$DX\s*=\s*\[\s*\'.*?];$/ims';
     $namespaceRegex = '/^namespace\s+(.*?);(\r|\n)*$/im';
     $classRegex = '/^class\s+[a-z_A-Z][a-zA-Z0-9_]*\s*{(.*?)}$/ims';
@@ -3537,6 +3537,8 @@ function cli_folder_and_php_file_status($folder, $file, $useExactFilePathInstead
         }
     }
     return [
+        'file_raw' => $fileRaw,
+        'deeper_analysis' => $DEEPER,
         'class_exists' => $classExists,
         'classes' => $classes,
         'classes_via_tokenizer' => (isset($classesviaTokenizer) ? $classesviaTokenizer :  []),
@@ -3562,8 +3564,6 @@ function cli_folder_and_php_file_status($folder, $file, $useExactFilePathInstead
         'functions' => (isset($fns) ? $fns : []),
         'functions_via_tokenizer' => (isset($fnsviaTokenizer) ? $fnsviaTokenizer : []),
         'functions_same_count' => (isset($fns) && isset($fnsviaTokenizer) && (count($fns) === count($fnsviaTokenizer))),
-        'file_raw' => $fileRaw,
-        'deeper_analysis' => $DEEPER
     ];
 }
 

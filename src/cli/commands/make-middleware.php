@@ -55,7 +55,7 @@ if (
 }
 // When Middleware file does not exist we can attempt creating it!
 if (!$statusArray['file_exists']) {
-    $mwString = "<?php\n\nnamespace funkphp\\pipeline\\middlewares\\$middleware;\n// FunkCLI Created File on " . date('Y-m-d H:i:s') . "!\n\nfunction $middleware(&\$c)\n{\n\t// Placeholder Comment so Regex works - Remove & Add Your Own Code!\n$optionalCodeSnippets\n}\n";
+    $mwString = "<?php\n\nnamespace funkphp\\pipeline\\middlewares\\$middleware;\n// FunkCLI Created File on " . date('Y-m-d H:i:s') . "!\n\nfunction $middleware(&\$c)\n{\n\t// Placeholder Comment so Regex works (do NOT place comment after closing '}') - Remove & Add Your Own Code!\n$optionalCodeSnippets\n}\n";
     $newFilePath = $statusArray['folder_path'] . '/' . $statusArray['file_name'];
     // Attempt creating new Middleware File or error out
     if (cli_crud_folder_php_file_atomic_write($mwString, $newFilePath)) {
