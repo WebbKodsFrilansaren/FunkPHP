@@ -27,7 +27,7 @@ function funak_handle_uncaught_exception(&$c, $e)
         eval('echo "test"');
     }
     eval('echo "test"');
-} //
+}
 function funak_handle_uncaught_exception2(&$c, $e)
 {
     // Regex
@@ -35,4 +35,4 @@ function funak_handle_uncaught_exception2(&$c, $e)
     return array();
     $testing = "tset";
     exit;
-}//
+}

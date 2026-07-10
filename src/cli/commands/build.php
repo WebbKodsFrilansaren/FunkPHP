@@ -20,8 +20,7 @@ $compilePages = false;
 $compressDeployment = false;
 $showAllErrors = false; // implemented later
 $allowModifiedCore = true; // implemented later
-$ignoreUnknownConnsDrivers = false; // implemented later
-$skipBrokenRoutes = false; // implemented later
+$ignoreUnknownConnsDrivers = false;
 $skipCompilingValidation = false; // implemented later
 $skipCompilingSQL = false; // implemented later
 
@@ -61,8 +60,6 @@ foreach ($args as $arg) {
             $embedPages = true;
         } else if ($flag === "--compress-deployment") {
             $compressDeployment = true;
-        } else if ($flag === "--skip-broken-routes") {
-            $skipBrokenRoutes = true;
         } else if ($flag === "--skip-compiling-validation") {
             $skipCompilingValidation = true;
         } else if ($flag === "--skip-compiling-sql") {
@@ -79,7 +76,6 @@ foreach ($args as $arg) {
 cli_info_without_exit("### FunkCLI Compiling & Building `FunkPHPDeployment.php` with the following options:");
 cli_info_without_exit("#### Allow Modified Core Files: " . ($allowModifiedCore ? "YES (the hashes of files in `src/funkphp/core`) will NOT be checked and you are on your own regarding what happens with the output)" : "NO"));
 cli_info_without_exit("#### Ignore Unknown Connection Drivers: " . ($ignoreUnknownConnsDrivers ? "YES (even unknown types of credentials in `src/funkphp/config/conns.php`) will be added and included in the output)" : "NO"));
-cli_info_without_exit("#### Skip Broken Routes: " . ($skipBrokenRoutes ? "YES (invalid routes will NOT be pruned in output)" : "NO"));
 cli_info_without_exit("#### Skip Compiling Validation: " . ($skipCompilingValidation ? "YES (Validation Functions will NOT be compiled before output)" : "NO"));
 cli_info_without_exit("#### Skip Compiling SQL: " . ($skipCompilingValidation ? "YES (SQL Functions will NOT be compiled before output)" : "NO"));
 cli_info_without_exit("#### Do Include `error_reporting = E_ALL` in Deployment File: " . ($showAllErrors ? "YES (warning: sensitive info could be leaked in production!" : "NO"));
@@ -234,7 +230,6 @@ $userFunctionsFile = cli_folder_and_php_file_status("funkphp/config", "functions
 if (!$userFunctionsFile['file_exists'] || !$userFunctionsFile['folder_readable']) {
     cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configuration File `src/funkphp/config/functions.php` (User-defined Globally Available Functions) WAS NOT FOUND or IS NOT READABLE when it should have been? This might now show other errors below this one!");
 }
-var_dump($userFunctionsFile);
 if (!$userFunctionsFile['functions_same_count']) {
     cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configuration File `src/funkphp/config/functions.php` (User-defined Globally Available Functions) WAS FOUND USING Either Regex or Tokenizer but not both Indicating some Formatting Issue Inside File? (check for any trailing comment at the end of a function block{} <-- here)");
 }
@@ -901,26 +896,28 @@ $DEFAULT_ERROR_FORMATTING = "\nRECOMMENDED: `1) ALWAYS lowercase Function Names 
 // Add Pipeline Request Functions
 $deploymentPipelineRequestBuffer[] = 'namespace funkphp\\pipeline\\request';
 $deploymentPipelineRequestBuffer[] = " {\n";
+$pipelineFileCount = 0;
 foreach ($pipelineFile['pipeline']['request'] as $pipeRequestFn) {
+    $pipelineFileCount++;
     $plReqStatus = cli_folder_and_php_file_status(FUNKPHP_PIPELINE_REQUEST_DIR, $pipeRequestFn, true);
     if (!$plReqStatus['file_exists'] || !$plReqStatus['folder_readable']) { // file exists & is readable?
-        cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "The Pipeline Request Function File (`/src/funkphp/pipeline/request/$pipeRequestFn.php`) was NOT FOUND or IS NOT READABLE! Dir Path: `" . (FUNKPHP_PIPELINE_REQUEST_DIR ?? "[NOT_DEFINED]") . "`");
+        cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Request #$pipelineFileCount Function File (`/src/funkphp/pipeline/request/$pipeRequestFn.php`) was NOT FOUND or IS NOT READABLE! Dir Path: `" . (FUNKPHP_PIPELINE_REQUEST_DIR ?? "[NOT_DEFINED]") . "`");
         cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline File in the Key `pipeline -> request` and try again! Path: `" . (FUNKPHP_FILE_PATH_PIPELINE ?? "[NOT_DEFINED]") . "` $DEFAULT_ERROR_FORMATTING");
     }
     if ($plReqStatus['namespace_name'] !== "funkphp\\pipeline\\request\\$pipeRequestFn") { // expected scoped namespace correct?
-        cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Request Function (`/src/funkphp/pipeline/request/$pipeRequestFn.php`) was NOT FOUND in Expected `namespace funkphp\\pipeline\\request\\$pipeRequestFn;`! Dir Path: `" . (FUNKPHP_PIPELINE_REQUEST_DIR ?? "[NOT_DEFINED]") . "`");
+        cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Request #$pipelineFileCount Function (`/src/funkphp/pipeline/request/$pipeRequestFn.php`) was NOT FOUND in Expected `namespace funkphp\\pipeline\\request\\$pipeRequestFn;`! Dir Path: `" . (FUNKPHP_PIPELINE_REQUEST_DIR ?? "[NOT_DEFINED]") . "`");
     }
     if (!isset($plReqStatus['functions'][$pipeRequestFn])) { // does function (name) exist?
-        cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Request Function (`/src/funkphp/pipeline/request/$pipeRequestFn.php`) was NOT FOUND in Expected Function `function $pipeRequestFn(&\$c) { // Code }`!");
+        cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Request #$pipelineFileCount Function (`/src/funkphp/pipeline/request/$pipeRequestFn.php`) was NOT FOUND in Expected Function `function $pipeRequestFn(&\$c) { // Code }`!");
     } else if (isset($plReqStatus['functions'][$pipeRequestFn])) {
         if (!$plReqStatus['functions_same_count']) {
-            cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Request Response Function (`/src/funkphp/pipeline/request/$pipeRequestFn.php`) WAS FOUND USING Either Regex or Tokenizer but not both Indicating some Formatting Issue Inside File? (check for any trailing comment at the end of a function block{} <-- here)");
+            cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Request #$pipelineFileCount Function (`/src/funkphp/pipeline/request/$pipeRequestFn.php`) WAS FOUND USING Either Regex or Tokenizer but not both Indicating some Formatting Issue Inside File? (check for any trailing comment at the end of a function block{} <-- here)");
         }
         if (!$plReqStatus['functions'][$pipeRequestFn]['fn_name_same_as_lowercased']) { // is function name lowercased?
-            cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Request Function (`/src/funkphp/pipeline/request/$pipeRequestFn.php`) should only and always be lowercased!");
+            cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Request #$pipelineFileCount Function (`/src/funkphp/pipeline/request/$pipeRequestFn.php`) should only and always be lowercased!");
         }
         if (!str_starts_with(strtolower($pipeRequestFn), "pl_")) { // function name starts with "pl_"?
-            cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Request Function (`/src/funkphp/pipeline/request/$pipeRequestFn.php`) must start with `pl_` for the sake of consistency!");
+            cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Request #$pipelineFileCount Function (`/src/funkphp/pipeline/request/$pipeRequestFn.php`) must start with `pl_` for the sake of consistency!");
         }
     }
     cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline File in the Key `pipeline -> request` and try again! Path: `" . (FUNKPHP_FILE_PATH_PIPELINE ?? "[NOT_DEFINED]") . "` $DEFAULT_ERROR_FORMATTING");
@@ -937,26 +934,28 @@ $deploymentPipelineRequestBuffer[] = " }\n"; // End namespace funkphp\pipeline\r
 // Add Pipeline Post_Response Functions
 $deploymentPipelineRequestBuffer[] = 'namespace funkphp\\pipeline\\post_response';
 $deploymentPipelineRequestBuffer[] = " {\n";
+$pipelineFileCount = 0;
 foreach ($pipelineFile['pipeline']['post_response'] as $pipePostResponseFn) {
+    $pipelineFileCount++;
     $plReqStatus = cli_folder_and_php_file_status(FUNKPHP_PIPELINE_POST_RESPONSE_DIR, $pipePostResponseFn, true);
     if (!$plReqStatus['file_exists'] || !$plReqStatus['folder_readable']) { // file exists & is readable?
         cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "The Pipeline Post_Response Function File (`/src/funkphp/pipeline/post_response/$pipePostResponseFn.php`) was NOT FOUND or IS NOT READABLE! Dir Path: `" . (FUNKPHP_PIPELINE_POST_RESPONSE_DIR ?? "[NOT_DEFINED]") . "`");
         cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline File in the Key `pipeline -> post_response` and try again! Path: `" . (FUNKPHP_PIPELINE_POST_RESPONSE_DIR ?? "[NOT_DEFINED]") . "` $DEFAULT_ERROR_FORMATTING");
     }
     if ($plReqStatus['namespace_name'] !== "funkphp\\pipeline\\post_response\\$pipePostResponseFn") { // expected scoped namespace correct?
-        cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Post_Response Function (`/src/funkphp/pipeline/post_response/$pipePostResponseFn.php`) was NOT FOUND in Expected `namespace funkphp\\pipeline\\post_response\\$pipePostResponseFn;`! Dir Path: `" . (FUNKPHP_PIPELINE_POST_RESPONSE_DIR ?? "[NOT_DEFINED]") . "`");
+        cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Post_Response #$pipelineFileCount Function (`/src/funkphp/pipeline/post_response/$pipePostResponseFn.php`) was NOT FOUND in Expected `namespace funkphp\\pipeline\\post_response\\$pipePostResponseFn;`! Dir Path: `" . (FUNKPHP_PIPELINE_POST_RESPONSE_DIR ?? "[NOT_DEFINED]") . "`");
     }
     if (!isset($plReqStatus['functions'][$pipePostResponseFn])) { // does function (name) exist?
-        cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Post_Response Function (`/src/funkphp/pipeline/post_response/$pipePostResponseFn.php`) was NOT FOUND in Expected Function `function $pipePostResponseFn(&\$c) { // Code }`!");
+        cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Post_Response #$pipelineFileCount Function (`/src/funkphp/pipeline/post_response/$pipePostResponseFn.php`) was NOT FOUND in Expected Function `function $pipePostResponseFn(&\$c) { // Code }`!");
     } else if (isset($plReqStatus['functions'][$pipePostResponseFn])) {
         if (!$plReqStatus['functions_same_count']) {
-            cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Post_Response Function (`/src/funkphp/pipeline/post_response/$pipePostResponseFn.php`) WAS FOUND USING Either Regex or Tokenizer but not both Indicating some Formatting Issue Inside File? (check for any trailing comment at the end of a function block{} <-- here)");
+            cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Post_Response #$pipelineFileCount Function (`/src/funkphp/pipeline/post_response/$pipePostResponseFn.php`) WAS FOUND USING Either Regex or Tokenizer but not both Indicating some Formatting Issue Inside File? (check for any trailing comment at the end of a function block{} <-- here)");
         }
         if (!$plReqStatus['functions'][$pipePostResponseFn]['fn_name_same_as_lowercased']) { // is function name lowercased?
-            cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Post_Response Function (`/src/funkphp/pipeline/post_response/$pipePostResponseFn.php`) should only and always be lowercased!");
+            cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Post_Response #$pipelineFileCount Function (`/src/funkphp/pipeline/post_response/$pipePostResponseFn.php`) should only and always be lowercased!");
         }
         if (!str_starts_with(strtolower($pipePostResponseFn), "pl_")) { // function name starts with "pl_"?
-            cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Post_Response Function (`/src/funkphp/pipeline/post_response/$pipePostResponseFn.php`) must start with `pl_` for the sake of consistency!");
+            cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Post_Response #$pipelineFileCount Function (`/src/funkphp/pipeline/post_response/$pipePostResponseFn.php`) must start with `pl_` for the sake of consistency!");
         }
     }
     cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline File in the Key `pipeline -> post_response` and try again! Path: `" . (FUNKPHP_PIPELINE_POST_RESPONSE_DIR ?? "[NOT_DEFINED]") . "` $DEFAULT_ERROR_FORMATTING");
@@ -1035,11 +1034,263 @@ Paths to consider checking:
 - `/src/funkphp/core/pipeline_routes.php` (Routes Array - your Routes, Middlewares & Route Pipeline Functions end up here)
 ==========================================================================================================================");
 }
+// Before we iterate through each METHOD/Route we gonna check for the
+// the <CONFIG_METHOD> for each METHOD first and valid keys=>values!
+// METHODS verified in this order: GET,POST,PUT,DELETE,PATCH
+$METHODNamesArray = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
+foreach ($METHODNamesArray as $MethodName) {
+    $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", $MethodName, "<CONFIG_METHOD>", "method_headers"], $routesWarnsAndErrs, "cli_err");
+    $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", $MethodName, "<CONFIG_METHOD>", "method_headers", "add"], $routesWarnsAndErrs, "cli_err");
+    cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'array-strings|array-empty', "All Values in `[ROUTES -> $MethodName -><CONFIG_METHOD> -> method_headers -> add]` must be Strings (empty or not) OR it must be an Empty Array!");
+    $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", $MethodName, "<CONFIG_METHOD>", "method_headers", "remove"], $routesWarnsAndErrs, "cli_err");
+    cli_assert_final_value(end($routesMethodsErrChecks), $pipelineWarnsAndErrs, "cli_err", 'array-strings|array-empty', "All Values in `[ROUTES -> $MethodName <CONFIG_METHOD> -> method_headers -> remove]` must be Strings (empty or not) OR it must be an Empty Array!");
+    $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", $MethodName, "<CONFIG_METHOD>", "method_csp"], $routesWarnsAndErrs, "cli_err");
+    $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", $MethodName, "<CONFIG_METHOD>", "method_csp", "connect-src"], $routesWarnsAndErrs, "cli_err");
+    cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'array-empty|array-strings', "All Values in `[ROUTES -> $MethodName -> <CONFIG_METHOD> -> method_csp-> connect-src]` must be Strings (empty or not) OR it must be an Empty Array!");
+    $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", $MethodName, "<CONFIG_METHOD>", "method_csp", "font-src"], $routesWarnsAndErrs, "cli_err");
+    cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'array-empty|array-strings', "All Values in `[ROUTES -> $MethodName -> <CONFIG_METHOD> -> method_csp -> font-src]` must be Strings (empty or not) OR it must be an Empty Array!");
+    $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", $MethodName, "<CONFIG_METHOD>", "method_csp", "frame-src"], $routesWarnsAndErrs, "cli_err");
+    cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'array-empty|array-strings', "All Values in `[ROUTES -> $MethodName -> <CONFIG_METHOD> -> method_csp -> frame-src]` must be Strings (empty or not) OR it must be an Empty Array!");
+    $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", $MethodName, "<CONFIG_METHOD>", "method_csp", "base-uri"], $routesWarnsAndErrs, "cli_err");
+    cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'array-empty|array-strings', "All Values in `[ROUTES -> $MethodName -> <CONFIG_METHOD> -> method_csp -> base-uri]` must be Strings (empty or not) OR it must be an Empty Array!");
+    $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", $MethodName, "<CONFIG_METHOD>", "method_csp", "form-action"], $routesWarnsAndErrs, "cli_err");
+    cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'array-empty|array-strings', "All Values in `[ROUTES -> $MethodName -> <CONFIG_METHOD> -> method_csp -> form-action]` must be Strings (empty or not) OR it must be an Empty Array!");
+    $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", $MethodName, "<CONFIG_METHOD>", "method_csp", "object-src"], $routesWarnsAndErrs, "cli_err");
+    cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'array-empty|array-strings', "All Values in `[ROUTES -> $MethodName -> <CONFIG_METHOD> -> method_csp -> object-src]` must be Strings (empty or not) OR it must be an Empty Array!");
+    $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", $MethodName, "<CONFIG_METHOD>", "method_csp", "default-src"], $routesWarnsAndErrs, "cli_err");
+    cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'array-empty|array-strings', "All Values in `[ROUTES -> $MethodName -> <CONFIG_METHOD> -> method_csp -> default-src]` must be Strings (empty or not) OR it must be an Empty Array!");
+    $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", $MethodName, "<CONFIG_METHOD>", "method_csp", "script-src"], $routesWarnsAndErrs, "cli_err");
+    cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'array-empty|array-strings', "All Values in `[ROUTES -> $MethodName -> <CONFIG_METHOD> -> method_csp -> script-src]` must be Strings (empty or not) OR it must be an Empty Array!");
+    $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", $MethodName, "<CONFIG_METHOD>", "method_csp", "style-src"], $routesWarnsAndErrs, "cli_err");
+    cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'array-empty|array-strings', "All Values in `[ROUTES -> $MethodName -> <CONFIG_METHOD> -> method_csp -> style-src]` must be Strings (empty or not) OR it must be an Empty Array!");
+    $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", $MethodName, "<CONFIG_METHOD>", "method_csp", "img-src"], $routesWarnsAndErrs, "cli_err");
+    cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'array-empty|array-strings', "All Values in `[ROUTES -> $MethodName -> <CONFIG_METHOD> -> method_csp -> img-src]` must be Strings (empty or not) OR it must be an Empty Array!");
+    $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", $MethodName, "<CONFIG_METHOD>", "method_rate_limiting"], $routesWarnsAndErrs, "cli_err");
+    cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'array|null', "All Values in `[ROUTES -> $MethodName -> <CONFIG_METHOD> -> method_rate_limiting]` must be an Array or null!");
+    $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", $MethodName, "<CONFIG_METHOD>", "method_param_rules"], $routesWarnsAndErrs, "cli_err");
+    cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'array-empty|array-associative-strings', "All Values in `[ROUTES -> $MethodName -> <CONFIG_METHOD> -> method_param_rules]` must be Strings (empty or not) OR it must be an Empty Array!");
+    $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", $MethodName, "<CONFIG_METHOD>", "method_default_no_route_match_response"], $routesWarnsAndErrs, "cli_err");
+    $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", $MethodName, "<CONFIG_METHOD>", "method_default_no_route_match_response", "page"], $routesWarnsAndErrs, "cli_err");
+    cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'string|null', "`[ROUTES -> $MethodName -> <CONFIG_METHOD> -> method_default_no_route_match_response -> page]` must be a String or Null!");
+    $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", $MethodName, "<CONFIG_METHOD>", "method_default_no_route_match_response", "json"], $routesWarnsAndErrs, "cli_err");
+    cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'array|null', "`[ROUTES -> $MethodName -> <CONFIG_METHOD> -> method_default_no_route_match_response -> json]` must be an Array or Null!");
+    $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", $MethodName, "<CONFIG_METHOD>", "method_default_no_route_match_response", "xml"], $routesWarnsAndErrs, "cli_err");
+    cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'string|null', "`[ROUTES -> $MethodName -> <CONFIG_METHOD> -> method_default_no_route_match_response -> xml]` must be a String or Null!");
+    $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", $MethodName, "<CONFIG_METHOD>", "method_default_no_route_match_response", "text"], $routesWarnsAndErrs, "cli_err");
+    cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'string|null', "`[ROUTES -> $MethodName -> <CONFIG_METHOD> -> method_default_no_route_match_response -> text]` must be a String or Null!");
+    $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", $MethodName, "<CONFIG_METHOD>", "method_default_no_route_match_response", "callback"], $routesWarnsAndErrs, "cli_err");
+    cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'string|null', "`[ROUTES -> $MethodName -> <CONFIG_METHOD> -> method_default_no_route_match_response -> callback]` must be a String or Null!");
+}
+cli_stop_from_warn_err_list($routesWarnsAndErrs, "Please Review (" . count($routesWarnsAndErrs) . ") Warnings/Errors above for the Pipeline Files (Routes & Compiled Routes) and try again! Path: `" . (FUNKPHP_FILE_PATH_ROUTES ?? "[NOT_DEFINED]") . "`");
+
+// NOW WE CAN FINALLY GO THROUGH EACH ROUTE ($RUTT) IN EACH METHOD ($METOD)!
 // When there ARE ROUTES TO Validate, Parse & Output!
+// "VALID" | "INVALID" are to reuse
+$FOUND_ROUTES_FILE_FNS = ['VALID' => [], 'INVALID' => []]; // It stores like "fileName" => "fnName"
+$FOUND_ROUTES_MW_FNS = ['VALID' => [], 'INVALID' => []];  // It stores like "mwName" => "mwfnName"
 if (!$NO_ROUTES) { //START-BLOCK:ROUTES TO Validate, Parse & Output!
-    foreach ($RUTTER as $METOD => $RUTT) { // more Easter Eggs for those who know!
+    foreach ($RUTTER['ROUTES'] as $METODKey => $METOD) { // more Easter Eggs for those who know!
         // Check if current $METOD has zero routes (because others might have though)
+        foreach ($METOD as $RUTT => $DATA) {
+            if ($RUTT === '<CONFIG_METHOD>') {
+                continue; // Skip <CONFIG_METHOD> as it has already been validated!
+            }
+            // Validate first main 4 keys for found route!
+            $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", "$METODKey", "$RUTT", "config"], $routesWarnsAndErrs, "cli_err");
+            $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", "$METODKey", "$RUTT", "config", "route_alias"], $routesWarnsAndErrs, "cli_err");
+            cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'string', "The Value in `[ROUTES -> $METODKey -> $RUTT -> route_alias]` must be a String (empty allowed)!");
+            $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", "$METODKey", "$RUTT", "config", "route_param_rules"], $routesWarnsAndErrs, "cli_err");
+            cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'array-empty|array-associative-strings-non-empty', "All Values in `[ROUTES -> $METODKey -> $RUTT -> route_alias]` must be an Associative Array with String Values OR an Empty Array!");
+            $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", "$METODKey", "$RUTT", "config", "route_headers"], $routesWarnsAndErrs, "cli_err");
+            $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", "$METODKey", "$RUTT", "config", "route_headers", "add"], $routesWarnsAndErrs, "cli_err");
+            cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'array-strings|array-empty', "The Value in `[ROUTES -> $METODKey -> $RUTT -> route_headers -> add]` must be a String (empty allowed)!");
+            $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", "$METODKey", "$RUTT", "config", "route_headers", "remove"], $routesWarnsAndErrs, "cli_err");
+            cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'array-strings|array-empty', "The Value in `[ROUTES -> $METODKey -> $RUTT -> route_headers -> remove]` must be a String (empty allowed)!");
+            $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", "$METODKey", "$RUTT", "config", "route_rate_limiting"], $routesWarnsAndErrs, "cli_err");
+            cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'array|null', "All Values in `[ROUTES -> $METODKey -> $RUTT -> method_rate_limiting]` must be an Array or null!");
+            $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", "$METODKey", "$RUTT", "config", "route_cache"], $routesWarnsAndErrs, "cli_err");
+            cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'array|null', "All Values in `[ROUTES -> $METODKey -> $RUTT -> route_cache]` must be an Array or null!");
+            $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", "$METODKey", "$RUTT", "config", "route_csp"], $routesWarnsAndErrs, "cli_err");
+            $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", "$METODKey", "$RUTT", "config", "route_csp", "connect-src"], $routesWarnsAndErrs, "cli_err");
+            cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'array-empty|array-list-strings-non-empty', "All Values in `[ROUTES -> $METODKey -> $RUTT -> config -> route_csp -> connect-src]` must be an Array of Only Non-Empty Strings OR An Empty Array!");
+            $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", "$METODKey", "$RUTT", "config", "route_csp", "font-src"], $routesWarnsAndErrs, "cli_err");
+            cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'array-empty|array-list-strings-non-empty', "All Values in `[ROUTES -> $METODKey -> $RUTT -> config -> route_csp -> font-src]` must be an Array of Only Non-Empty Strings OR An Empty Array!");
+            $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", "$METODKey", "$RUTT", "config", "route_csp", "frame-src"], $routesWarnsAndErrs, "cli_err");
+            cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'array-empty|array-list-strings-non-empty', "All Values in `[ROUTES -> $METODKey -> $RUTT -> config -> route_csp -> frame-src]` must be an Array of Only Non-Empty Strings OR An Empty Array!");
+            $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", "$METODKey", "$RUTT", "config", "route_csp", "base-uri"], $routesWarnsAndErrs, "cli_err");
+            cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'array-empty|array-list-strings-non-empty', "All Values in `[ROUTES -> $METODKey -> $RUTT -> config -> route_csp -> base-uri]` must be an Array of Only Non-Empty Strings OR An Empty Array!");
+            $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", "$METODKey", "$RUTT", "config", "route_csp", "form-action"], $routesWarnsAndErrs, "cli_err");
+            cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'array-empty|array-list-strings-non-empty', "All Values in `[ROUTES -> $METODKey -> $RUTT -> config -> route_csp -> form-action]` must be an Array of Only Non-Empty Strings OR An Empty Array!");
+            $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", "$METODKey", "$RUTT", "config", "route_csp", "object-src"], $routesWarnsAndErrs, "cli_err");
+            cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'array-empty|array-list-strings-non-empty', "All Values in `[ROUTES -> $METODKey -> $RUTT -> config -> route_csp -> object-src]` must be an Array of Only Non-Empty Strings OR An Empty Array!");
+            $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", "$METODKey", "$RUTT", "config", "route_csp", "default-src"], $routesWarnsAndErrs, "cli_err");
+            cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'array-empty|array-list-strings-non-empty', "All Values in `[ROUTES -> $METODKey -> $RUTT -> config -> route_csp -> default-src]` must be an Array of Only Non-Empty Strings OR An Empty Array!");
+            $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", "$METODKey", "$RUTT", "config", "route_csp", "script-src"], $routesWarnsAndErrs, "cli_err");
+            cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'array-empty|array-list-strings-non-empty', "All Values in `[ROUTES -> $METODKey -> $RUTT -> config -> route_csp -> script-src]` must be an Array of Only Non-Empty Strings OR An Empty Array!");
+            $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", "$METODKey", "$RUTT", "config", "route_csp", "style-src"], $routesWarnsAndErrs, "cli_err");
+            cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'array-empty|array-list-strings-non-empty', "All Values in `[ROUTES -> $METODKey -> $RUTT -> config -> route_csp -> style-src]` must be an Array of Only Non-Empty Strings OR An Empty Array!");
+            $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", "$METODKey", "$RUTT", "config", "route_csp", "img-src"], $routesWarnsAndErrs, "cli_err");
+            cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'array-empty|array-list-strings-non-empty', "All Values in `[ROUTES -> $METODKey -> $RUTT -> config -> route_csp -> img-src]` must be an Array of Only Non-Empty Strings OR An Empty Array!");
+            $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", "$METODKey", "$RUTT", "middlewares"], $routesWarnsAndErrs, "cli_err");
+            cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'array-empty|array-list-strings-non-empty', "All Values in `[ROUTES -> $METODKey -> $RUTT -> middlewares]` must be an Empty Array OR a Numbered Array with Only Non-Empty Strings!");
+            $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", "$METODKey", "$RUTT", "exclude_middlewares"], $routesWarnsAndErrs, "cli_err");
+            cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'array-empty|array-list-strings-non-empty', "All Values in `[ROUTES -> $METODKey -> $RUTT -> exclude_middlewares]` must be an Empty Array OR a Numbered Array with Only Non-Empty Strings!");
+            $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", "$METODKey", "$RUTT", "pipeline"], $routesWarnsAndErrs, "cli_err");
+            cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'array-empty|array-associative-strings-non-empty', "All Values in `[ROUTES -> $METODKey -> $RUTT -> pipeline]` must be an Empty Array OR an Associative Array with Only Non-Empty Strings!");
+
+            // Now the 4 main keys have been validated so now we can iterate through and start building to the 3 arrays
+            // SPECIAL EDGE CASE: If 'pipeline' array is empty, there would be no pipeline functions to run after middlewares?
+            if (count($DATA['pipeline'])) {
+                cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> pipeline #$plCount]: There are no Pipeline Files->Functions defined for this Method/Route. Please add some or remove the Route entirely. Path: `" . ($plDirFilePath ?? "[NOT_DEFINED]") . "`");
+                continue;
+            }
+            // MIDDLEWARES
+            var_dump($DATA);
+            $mwCount = 0;
+            $FOUND_MWS_LOCAL = [];
+            foreach ($DATA['middlewares'] as $DATAmw) {
+                $mwCount++;
+                // First check if we already have stored it and either add error if invalid one or continue if valid one
+                $mwDirFilePath = FUNKPHP_MIDDLEWARES_DIR . '/' . $DATAmw . '.php';
+                if (isset($FOUND_ROUTES_MW_FNS['INVALID'][$DATAmw])) {
+                    cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> middlewares #$mwCount]: The Middleware Function File `$DATAmw` DOES NOT EXIST OR HAS INVALID STRUCTURE! Path: `" . ($mwDirFilePath ?? "[NOT_DEFINED]") . "`");
+                    continue;
+                } else if (isset($FOUND_ROUTES_MW_FNS['VALID'][$DATAmw])) {
+                    if (isset($FOUND_MWS_LOCAL[$DATAmw])) {
+                        cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> middlewares #$mwCount]: The Middleware Function File `$DATAmw` ALREADY EXISTS IN Middlewares Array - Duplicates Not Allowed for Middlewares! Path: `" . ($mwDirFilePath ?? "[NOT_DEFINED]") . "`");
+                        continue;
+                    }
+                    $FOUND_MWS_LOCAL[$DATAmw] = true;
+                    continue;
+                }
+                $findMW = cli_folder_and_php_file_status(FUNKPHP_MIDDLEWARES_DIR, $DATAmw, true, true);
+                var_dump($findMW);
+                if (!$findMW['file_exists'] || !$findMW['file_readable']) { // Middleware File not found or not readable so we add this named key so it can be found faster next time
+                    $FOUND_ROUTES_MW_FNS['INVALID'][$DATAmw] = true;
+                    cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> middlewares #$mwCount]: The Middleware Function File `$DATAmw` was NOT FOUND in Expected Path OR it is NOT READABLE! Path: `" . ($mwDirFilePath ?? "[NOT_DEFINED]") . "`");
+                }
+                // Middleware File found & Readable, so let's validate its content and add it to VALID if all OK
+                // otherwise, we add to
+                if ($findMW['file_exists']) {
+                    if (!isset($findMW['functions'][$DATAmw])) { // MW Function not exist?
+                        $FOUND_ROUTES_MW_FNS['INVALID'][$DATAmw] = true;
+                        cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> middlewares #$mwCount]: The Middleware Function File `$DATAmw` FOUND but its Function was NOT FOUND! Path: `" . ($mwDirFilePath ?? "[NOT_DEFINED]") . "`");
+                    }
+                    // MW Function incorrect namespace name?
+                    else if ($findMW['namespace_name'] !== ('funkphp\\pipeline\\middlewares\\' . $DATAmw)) {
+                        $FOUND_ROUTES_MW_FNS['INVALID'][$DATAmw] = true;
+                        cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> middlewares #$mwCount]: The Middleware Function File `$DATAmw` FOUND but it has INVALID Namespace structure. Expected: `funkphp\pipeline\middleware\\$DATAmw;`! Path: `" . ($mwDirFilePath ?? "[NOT_DEFINED]") . "`");
+                    }
+                    // MW Function not all lowercased?
+                    else if (!$findMW['functions'][$DATAmw]['fn_name_same_as_lowercased']) {
+                        $FOUND_ROUTES_MW_FNS['INVALID'][$DATAmw] = true;
+                        cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> middlewares #$mwCount]: The Middleware Function File `$DATAmw` FOUND but is `NOT ALL LOWERCASED`! Path: `" . ($mwDirFilePath ?? "[NOT_DEFINED]") . "`");
+                    }
+                    // MW Function was not found same by regex vs tokenizer?
+                    else if (!$findMW['functions_same_count']) {
+                        $FOUND_ROUTES_MW_FNS['INVALID'][$DATAmw] = true;
+                        cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> middlewares #$mwCount]: The Middleware Function File `$DATAmw` FOUND but not both ways (`Regex & Tokenizer`). Check if the Function has trailing comments after the Function Closing `}`! Path: `" . ($mwDirFilePath ?? "[NOT_DEFINED]") . "`");
+                    }
+                    // ALL OK HERE! We store the function and continue
+                    else {
+                        $FOUND_ROUTES_MW_FNS['VALID'][$DATAmw] = $findMW['functions'][$DATAmw]['fn_raw'];
+                        $FOUND_MWS_LOCAL[$DATAmw] = true;
+                        continue;
+                    }
+                }
+            }
+
+            // EXCLUDE_MIDDLEWARES
+            $mwCount = 0;
+            $FOUND_MWS_LOCAL = [];
+            // SPECIAL EDGE CASE: Current Route is "/" root so no middlewares below can be excluded!
+            if ($RUTT === "/") {
+                if (count($DATA['exclude_middlewares']) > 0) {
+                    cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> pipeline #$plCount]: There are no Pipeline Files->Functions defined for this Method/Route. Please add some or remove the Route entirely. Path: `" . ($plDirFilePath ?? "[NOT_DEFINED]") . "`");
+                }
+                continue;
+            }
+            foreach ($DATA['exclude_middlewares'] as $DATAmwx) {
+                $mwCount++;
+                // First check if we already have stored it and either add error if invalid one or continue if valid one
+                $mwDirFilePath = FUNKPHP_MIDDLEWARES_DIR . '/' . $DATAmwx . '.php';
+                if (isset($FOUND_ROUTES_MW_FNS['INVALID'][$DATAmwx])) {
+                    cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> exclude_middlewares #$mwCount]: The Middleware Function File `$DATAmwx` DOES NOT EXIST OR HAS INVALID STRUCTURE! Path: `" . ($mwDirFilePath ?? "[NOT_DEFINED]") . "`");
+                    continue;
+                } else if (isset($FOUND_ROUTES_MW_FNS['VALID'][$DATAmwx])) {
+                    if (isset($FOUND_MWS_LOCAL[$DATAmwx])) {
+                        cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> exclude_middlewares #$mwCount]: The Middleware Function File `$DATAmwx` ALREADY EXISTS IN Middlewares Array - Duplicates Not Allowed for Excluded Middlewares! Path: `" . ($mwDirFilePath ?? "[NOT_DEFINED]") . "`");
+                        continue;
+                    }
+                    $FOUND_MWS_LOCAL[$DATAmwx] = true;
+                    continue;
+                }
+                $findMW = cli_folder_and_php_file_status(FUNKPHP_MIDDLEWARES_DIR, $DATAmwx, true, true);
+                if (!$findMW['file_exists'] || !$findMW['file_readable']) { // Middleware File not found or not readable so we add this named key so it can be found faster next time
+                    $FOUND_ROUTES_MW_FNS['INVALID'][$DATAmwx] = true;
+                    cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> exclude_middlewares #$mwCount]: The Middleware Function File `$DATAmwx` was NOT FOUND in Expected Path OR it is NOT READABLE! Path: `" . ($mwDirFilePath ?? "[NOT_DEFINED]") . "`");
+                }
+                // Middleware File found & Readable, so let's validate its content and add it to VALID if all OK
+                // otherwise, we add to
+                if ($findMW['file_exists']) {
+                    if (!isset($findMW['functions'][$DATAmwx])) { // MW Function not exist?
+                        $FOUND_ROUTES_MW_FNS['INVALID'][$DATAmwx] = true;
+                        cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> exclude_middlewares #$mwCount]: The Middleware Function File `$DATAmwx` FOUND but its Function was NOT FOUND! Path: `" . ($mwDirFilePath ?? "[NOT_DEFINED]") . "`");
+                    }
+                    // MW Function incorrect namespace name?
+                    else if ($findMW['namespace_name'] !== ('funkphp\\pipeline\\middlewares\\' . $DATAmwx)) {
+                        $FOUND_ROUTES_MW_FNS['INVALID'][$DATAmwx] = true;
+                        cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> exclude_middlewares #$mwCount]: The Middleware Function File `$DATAmwx` FOUND but it has INVALID Namespace structure. Expected: `funkphp\pipeline\middleware\\$DATAmwx;`! Path: `" . ($mwDirFilePath ?? "[NOT_DEFINED]") . "`");
+                    }
+                    // MW Function not all lowercased?
+                    else if (!$findMW['functions'][$DATAmwx]['fn_name_same_as_lowercased']) {
+                        $FOUND_ROUTES_MW_FNS['INVALID'][$DATAmwx] = true;
+                        cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> exclude_middlewares #$mwCount]: The Middleware Function File `$DATAmwx` FOUND but is `NOT ALL LOWERCASED`! Path: `" . ($mwDirFilePath ?? "[NOT_DEFINED]") . "`");
+                    }
+                    // MW Function was not found same by regex vs tokenizer?
+                    else if (!$findMW['functions_same_count']) {
+                        $FOUND_ROUTES_MW_FNS['INVALID'][$DATAmwx] = true;
+                        cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> exclude_middlewares #$mwCount]: The Middleware Function File `$DATAmwx` FOUND but not both ways (`Regex & Tokenizer`). Check if the Function has trailing comments after the Function Closing `}`! Path: `" . ($mwDirFilePath ?? "[NOT_DEFINED]") . "`");
+                    }
+                    // SPECIAL CHECK for exclude_middlewares (do they exist in all their levels below them?)
+                    // and we will have already checked that it is not already "/" level!
+                    else if ($DATAmwx) { // FIX
+                        continue;
+                    }
+                    // ALL OK HERE! We store the function and continue
+                    else {
+                        $FOUND_ROUTES_MW_FNS['VALID'][$DATAmwx] = $findMW['functions'][$DATAmwx]['fn_raw'];
+                        $FOUND_MWS_LOCAL[$DATAmwx] = true;
+                        continue;
+                    }
+                }
+            }
+
+            var_dump($FOUND_ROUTES_MW_FNS);
+            cli_stop_from_warn_err_list($routesWarnsAndErrs, "Please Review (" . count($routesWarnsAndErrs) . ") Warnings/Errors above for the Pipeline Files (Routes & Middlewares) and try again! Path: `" . (FUNKPHP_FILE_PATH_ROUTES ?? "[NOT_DEFINED]") . "`");
+
+
+            exit; // DEBUG
+
+            // PIPELINE
+            $plCount = 0;
+            $FOUND_PL_LOCAL = [];
+
+
+            foreach ($DATA['pipeline'] as $DATAplFile => $DATAplFn) {
+                $plCount++;
+                $plDirFilePath = FUNKPHP_ROUTES_DIR . '/' . $DATAplFile . '.php';
+                if (isset($FOUND_ROUTES_FILE_FNS['INVALID'][$DATAplFile][$DATAplFn])) {
+                    cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> pipeline #$plCount]: The Route Pipline File->Function (`$DATAplFile -> $DATAplFn`) DOES NOT EXIST OR HAS INVALID STRUCTURE! Path: `" . ($plDirFilePath ?? "[NOT_DEFINED]") . "`");
+                    continue;
+                } else if (isset($FOUND_ROUTES_FILE_FNS['VALID'][$DATAplFile][$DATAplFn])) {
+                    continue;
+                }
+                $findpl = cli_folder_and_php_file_status(FUNKPHP_MIDDLEWARES_DIR, $DATAplFile, true, true);
+            }
+        }
     }
+    cli_stop_from_warn_err_list($routesWarnsAndErrs, "Please Review (" . count($routesWarnsAndErrs) . ") Warnings/Errors above for the Pipeline Files (Routes & Middlewares) and try again! Path: `" . (FUNKPHP_FILE_PATH_ROUTES ?? "[NOT_DEFINED]") . "`");
 } //END-BLOCK:ROUTES TO Validate, Parse & Output!
 
 

@@ -3450,7 +3450,7 @@ function cli_folder_and_php_file_status($folder, $file, $useExactFilePathInstead
     // If file exists and is readable, check if function exists
     // by first reading the file and then checking if
     // the function name is in the file content using regex!
-    $fnRegex = '/^function\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(&\$[^)]*\)(.*?^}\s*(;)?)?(\r|\n)*/ims';
+    $fnRegex = '/^function\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(&\$[^)]*\)(.*?^}\s*(;)?)?(\r|\n)*$/ims';
     $dxRegex = '/\$DX\s*=\s*\[\s*\'.*?];$/ims';
     $namespaceRegex = '/^namespace\s+(.*?);(\r|\n)*$/im';
     $classRegex = '/^class\s+[a-z_A-Z][a-zA-Z0-9_]*\s*{(.*?)}$/ims';
@@ -3482,28 +3482,37 @@ function cli_folder_and_php_file_status($folder, $file, $useExactFilePathInstead
             // Main way to parse for ^functions{}$"
             if (preg_match_all($fnRegex, $fileCnt, $fnsMatches)) {
                 foreach ($fnsMatches[1] as $idx => $fn) {
-                    $fns[$fn] = [
-                        'fn_exact_name' => $fn,
-                        'fn_name_same_as_lowercased' => ($fn === strtolower($fn)),
-                        'fn_lowercased' => strtolower($fn),
-                        'fn_uppercased' => strtoupper($fn),
-                        'fn_starts_with_cli' => str_starts_with(strtolower($fn), 'cli_'),
-                        'fn_starts_with_funk' => str_starts_with(strtolower($fn), 'funk_'),
-                        'fn_starts_with_funk_validate_' => str_starts_with(strtolower($fn), 'funk_validate_'),
-                        'fn_raw' => $fnsMatches[0][$idx] ?? null,
-                        'dx_raw' => null,
-                        'return_raw' => null
-                    ];
-                    if (in_array(strtolower($fn), $fnames_only)) {
-                        $fnames_duplicates[$fn] = true;
-                    }
-                    $fnames_only[] = $fn;
-                    // We now use the index to match for $DX and return arrays
-                    if (preg_match($dxRegex, $fnsMatches[0][$idx], $dxMatch)) {
-                        $fns[$fn]['dx_raw'] = $dxMatch[0] ?? null;
-                    }
-                    if (preg_match($returnRegex, $fnsMatches[0][$idx], $returnMatch)) {
-                        $fns[$fn]['return_raw'] = $returnMatch[0] ?? null;
+                    // Clean up trailing whitespace/newlines from the regex capture and we will ONLY
+                    // add function if it does end with a '}' based on Regex matching!
+                    // EPIPHANY: If it doesn't end with a curly brace, the regex only caught the signature!
+                    $regexRaw = $fnsMatches[0][$idx] ?? '';
+                    $cleanRegexRaw = trim($regexRaw);
+                    $regexBodyCaught = (str_ends_with($cleanRegexRaw, '};') || str_ends_with($cleanRegexRaw, '}'));
+                    if ($regexBodyCaught) {
+                        $fns[$fn] = [
+                            'valid_fn_structure' => $regexBodyCaught,
+                            'fn_exact_name' => $fn,
+                            'fn_name_same_as_lowercased' => ($fn === strtolower($fn)),
+                            'fn_lowercased' => strtolower($fn),
+                            'fn_uppercased' => strtoupper($fn),
+                            'fn_starts_with_cli' => str_starts_with(strtolower($fn), 'cli_'),
+                            'fn_starts_with_funk' => str_starts_with(strtolower($fn), 'funk_'),
+                            'fn_starts_with_funk_validate_' => str_starts_with(strtolower($fn), 'funk_validate_'),
+                            'fn_raw' => $fnsMatches[0][$idx] ?? null,
+                            'dx_raw' => null,
+                            'return_raw' => null
+                        ];
+                        if (in_array(strtolower($fn), $fnames_only)) {
+                            $fnames_duplicates[$fn] = true;
+                        }
+                        $fnames_only[] = $fn;
+                        // We now use the index to match for $DX and return arrays
+                        if (preg_match($dxRegex, $fnsMatches[0][$idx], $dxMatch)) {
+                            $fns[$fn]['dx_raw'] = $dxMatch[0] ?? null;
+                        }
+                        if (preg_match($returnRegex, $fnsMatches[0][$idx], $returnMatch)) {
+                            $fns[$fn]['return_raw'] = $returnMatch[0] ?? null;
+                        }
                     }
                 }
             }
@@ -10700,9 +10709,9 @@ function cli_build_compiled_routes(array $developerSingleRoutes, $SingleRouteArr
     $POSTSingles = $developerSingleRoutes["POST"] ?? [];
     $POSTConfig = $developerSingleRoutes["POST"]['<CONFIG_METHOD>'] ?? FUNKPHP_DEFAULT_METHOD_CONFIG_KEY_AND_ITS_KEYS;
     $PUTSingles = $developerSingleRoutes["PUT"] ?? [];
-    $PUTConfig = $developerSingleRoutes["POST"]['<CONFIG_METHOD>'] ?? FUNKPHP_DEFAULT_METHOD_CONFIG_KEY_AND_ITS_KEYS;
+    $PUTConfig = $developerSingleRoutes["PUT"]['<CONFIG_METHOD>'] ?? FUNKPHP_DEFAULT_METHOD_CONFIG_KEY_AND_ITS_KEYS;
     $DELETESingles = $developerSingleRoutes["DELETE"] ?? [];
-    $DELETEConfig = $developerSingleRoutes["POST"]['<CONFIG_METHOD>'] ?? FUNKPHP_DEFAULT_METHOD_CONFIG_KEY_AND_ITS_KEYS;
+    $DELETEConfig = $developerSingleRoutes["DELETE"]['<CONFIG_METHOD>'] ?? FUNKPHP_DEFAULT_METHOD_CONFIG_KEY_AND_ITS_KEYS;
     $PATCHSingles = $developerSingleRoutes["PATCH"] ?? [];
     $PATCHConfig = $developerSingleRoutes["PATCH"]['<CONFIG_METHOD>'] ?? FUNKPHP_DEFAULT_METHOD_CONFIG_KEY_AND_ITS_KEYS;
 
@@ -11375,7 +11384,7 @@ function cli_sort_build_routes_compile_and_output($singleRoutesRootArray, $retur
             cli_build_warning_err_list($issueList, 'cli_warning', "Method Group '$method' (must be all uppercased) is missing from `pipeline_routes.php` and must be an Empty Array even if not used!");
             continue;
         }
-        if (!is_array($developerSingleRoutes[$method])) {
+        if (!is_array($developerSingleRoutes[$method]) || array_is_list($developerSingleRoutes[$method])) {
             cli_build_warning_err_list($issueList, 'cli_err', "Method Group '$method' must be an Associative Array and should be an Empty Array if not used!");
             continue;
         }
@@ -11401,27 +11410,27 @@ function cli_sort_build_routes_compile_and_output($singleRoutesRootArray, $retur
             }
             // We check that route has 'config', 'middlewares' and 'pipeline' keys and that they are arrays (if they exist)
             // and the 'middlewares' & 'pipeline' arrays both should be empty arrays or numbered arrays but not associative!
-            if (!isset($routeConfig['middlewares']) || !is_array($routeConfig['middlewares']) || !array_is_list($routeConfig['middlewares'])) {
-                cli_build_warning_err_list(
-                    $issueList,
-                    'cli_err_syntax',
-                    "Invalid Route Config for: [$method] -> '$routeStr'. The 'middlewares' Key must exist as a Numbered Array, and at least empty. Each index points to a string which is the name of a Middleware Function File in the `funkphp/pipeline/middlewares/` Folder!"
-                );
-            }
-            if (!isset($routeConfig['pipeline']) || !is_array($routeConfig['pipeline']) || !array_is_list($routeConfig['pipeline'])) {
-                cli_build_warning_err_list(
-                    $issueList,
-                    'cli_err_syntax',
-                    "Invalid Route Config for: [$method] -> '$routeStr'. The 'pipeline' Key must exist as a Numbered Array, and at least empty.  Each index points to a string which is the name of a Pipeline Function File in the `funkphp/pipeline/request/` Folder"
-                );
-            }
-            if (!isset($routeConfig['config']) || !is_array($routeConfig['config']) || empty($routeConfig['config']) || array_is_list($routeConfig['config'])) {
-                cli_build_warning_err_list(
-                    $issueList,
-                    'cli_err_syntax',
-                    "Invalid Route Config for: [$method] -> '$routeStr'. The 'config' Key must exist as an Associative Array!"
-                );
-            }
+            // if (!isset($routeConfig['middlewares']) || !is_array($routeConfig['middlewares']) || !array_is_list($routeConfig['middlewares'])) {
+            //     cli_build_warning_err_list(
+            //         $issueList,
+            //         'cli_err_syntax',
+            //         "Invalid Route Config for: [$method] -> '$routeStr'. The 'middlewares' Key must exist as a Numbered Array, and at least empty. Each index points to a string which is the name of a Middleware Function File in the `funkphp/pipeline/middlewares/` Folder!"
+            //     );
+            // }
+            // if (!isset($routeConfig['pipeline']) || !is_array($routeConfig['pipeline']) || !array_is_list($routeConfig['pipeline'])) {
+            //     cli_build_warning_err_list(
+            //         $issueList,
+            //         'cli_err_syntax',
+            //         "Invalid Route Config for: [$method] -> '$routeStr'. The 'pipeline' Key must exist as a Numbered Array, and at least empty.  Each index points to a string which is the name of a Pipeline Function File in the `funkphp/pipeline/request/` Folder"
+            //     );
+            // }
+            // if (!isset($routeConfig['config']) || !is_array($routeConfig['config']) || empty($routeConfig['config']) || array_is_list($routeConfig['config'])) {
+            //     cli_build_warning_err_list(
+            //         $issueList,
+            //         'cli_err_syntax',
+            //         "Invalid Route Config for: [$method] -> '$routeStr'. The 'config' Key must exist as an Associative Array!"
+            //     );
+            // }
         }
     }
     // If we accumulated any syntax or structural errors, halt execution and report all at once

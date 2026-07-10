@@ -69,6 +69,12 @@ define(
     ['<CONFIG_METHOD>' => [
         'method_headers' => ['add' => [], 'remove' => []],
         'method_csp' => [
+            'connect-src' => array("'self'"),
+            'font-src' => array("'self'"),
+            'frame-src' => array("'self'"),
+            'base-uri' => array("'self'"),
+            'form-action' => array("'self'"),
+            'object-src' => array("'none'"),
             'default-src' => array("'none'"),
             'script-src'  => array("'self'"),
             'style-src'   => array("'self'"),
@@ -93,6 +99,12 @@ define('FUNKPHP_DEFAULT_ROUTE_KEYS', [
         'route_rate_limiting' => null,
         'route_cache' => null,
         'route_csp' => [
+            'connect-src' => array("'self'"),
+            'font-src' => array("'self'"),
+            'frame-src' => array("'self'"),
+            'base-uri' => array("'self'"),
+            'form-action' => array("'self'"),
+            'object-src' => array("'none'"),
             'default-src' => array("'none'"),
             'script-src'  => array("'self'"),
             'style-src'   => array("'self'"),
