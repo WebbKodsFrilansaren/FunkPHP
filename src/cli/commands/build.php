@@ -1321,20 +1321,20 @@ if (!$NO_ROUTES) { //START-BLOCK:ROUTES TO Validate, Parse & Output!
 
 // PUT ALL MIDDLEWARES TOGETHER (ONE NS)
 $deploymentMiddlewaresBuffer = [];
-$deploymentMiddlewaresBuffer[] = "namespace funkphp\\pipeline\\middlewares {\n\n";
+$deploymentMiddlewaresBuffer[] = "namespace funkphp\\pipeline\\middlewares {";
 foreach ($FOUND_ROUTES_MW_FNS['VALID'] as $mwName => $mwRawCode) {
-    $deploymentMiddlewaresBuffer[] = $mwRawCode . "\n\n";
+    $deploymentMiddlewaresBuffer[] = $mwRawCode . "\n";
 }
-$deploymentMiddlewaresBuffer[] = "}\n"; // Close Middlewares Namespace
+$deploymentMiddlewaresBuffer[] = "}"; // Close Middlewares Namespace
 // THEN PUT ALL ROUTES (File->FN) which becomes (NS -> FNs)
 $deploymentPipelineRoutesBuffer = [];
 foreach ($FOUND_ROUTES_FILE_FNS['VALID'] as $fileName => $functions) {
     // Open a dedicated namespace for this specific pipeline file
-    $deploymentPipelineRoutesBuffer[] = "namespace funkphp\\pipeline\\routes\\{$fileName} {\n";
+    $deploymentPipelineRoutesBuffer[] = "namespace funkphp\\pipeline\\routes\\{$fileName} {";
     foreach ($functions as $fnName => $fnRawCode) {
         $deploymentPipelineRoutesBuffer[] = $fnRawCode . "\n";
     }
-    $deploymentPipelineRoutesBuffer[] = "}\n"; // Close this specific file's namespace
+    $deploymentPipelineRoutesBuffer[] = "}"; // Close this specific file's namespace
 }
 $deploymentBuffer[] = implode("", $deploymentMiddlewaresBuffer);
 $deploymentBuffer[] = implode("", $deploymentPipelineRoutesBuffer);

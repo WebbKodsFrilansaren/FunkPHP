@@ -1,4 +1,4 @@
-<?php // FunkPHPDeployment.php | Created: 2026-07-10 06:39:36 | PHP Version: 8.3.6 | FunkPHP Version: 1.0.0 | FunkCLI Version: 1.0.0
+<?php // FunkPHPDeployment.php | Created: 2026-07-10 06:51:12 | PHP Version: 8.3.6 | FunkPHP Version: 1.0.0 | FunkCLI Version: 1.0.0
 
 namespace {
     define('FUNKPHP_PAGES_DIR', __DIR__ . '/pages');
@@ -1090,6 +1090,10 @@ namespace funkphp\pipeline\post_response {
 }
 
 namespace funkphp\pipeline\middlewares {
+    function mw_auth(&$c)
+    {
+        echo "<h1>Test from Template 1 File!</h1>";
+    };
     function mw_auth2(&$c)
     {
         echo "YO FROM MiddleWare TEST 2!";
@@ -1097,6 +1101,19 @@ namespace funkphp\pipeline\middlewares {
 }
 
 namespace funkphp\pipeline\routes\test {
+    function test2(&$c)
+    {
+        if (\str_contains($_SERVER['HTTP_ACCEPT'], 'application/json')) {
+            header('Content-Type: application/json');
+            echo json_encode(["message" => "This is a test JSON response from the test function!",]);
+            exit;
+        }
+        echo "<h1 style='font-size:12px;'>Testing with HTML tags to see how the cURL Request Test functionality in FunkGUI will react to it!</h1>";
+        echo "<div>";
+        echo "<p>This is a test paragraph to see how the cURL Request Test functionality in FunkGUI will react to it!</p>";
+        echo "</div>";
+        vd($c['req']);
+    }
     function test(&$c)
     {
         if (\str_contains($_SERVER['HTTP_ACCEPT'], 'application/json')) {
