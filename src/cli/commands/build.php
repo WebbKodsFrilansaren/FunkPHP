@@ -990,11 +990,6 @@ cli_info_without_exit("G`### Step 4 STARTS ###` Loading, Validating, Rebuilding 
 // not be changed maliciously. They (METHODS/ROUTES) should be guaranteed by pre-recompilation to be unique
 // in each method with no conflicting same-level dynamic URI segments (e.g. GET/:test and GET/:test2)
 $routesWarnsAndErrs = []; // Warns&Errs BOTH for $RUTTER and/or $TRIE
-$deploymentPipelineRoutesBuffer = []; // $RUTTER (Routes namespace {})
-$deploymentPipelineRoutesBuffer[] = "namespace funk\\pipeline\\routes {\n";
-$deploymentMiddlewaresBuffer = []; // Middlewares namespace {}
-$deploymentMiddlewaresBuffer[] = "namespace funkphp\\pipeline\\middlewares {\n";
-$deploymentMegaRouteMatchBuffer = []; // Optimized Match Routing+Direct Function Calls to $RUTTER=>route=>middlewares+pipeline
 $NO_ROUTES = false;
 
 if (!defined("FUNKPHP_ROUTES_DIR")) {
@@ -1137,15 +1132,12 @@ if (!$NO_ROUTES) { //START-BLOCK:ROUTES TO Validate, Parse & Output!
             cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'array-empty|array-list-strings-non-empty', "All Values in `[ROUTES -> $METODKey -> $RUTT -> exclude_middlewares]` must be an Empty Array OR a Numbered Array with Only Non-Empty Strings!");
             $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", "$METODKey", "$RUTT", "pipeline"], $routesWarnsAndErrs, "cli_err");
             cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'array-empty|array-associative-strings-non-empty', "All Values in `[ROUTES -> $METODKey -> $RUTT -> pipeline]` must be an Empty Array OR an Associative Array with Only Non-Empty Strings!");
-
             // Now the 4 main keys have been validated so now we can iterate through and start building to the 3 arrays
             // SPECIAL EDGE CASE: If 'pipeline' array is empty, there would be no pipeline functions to run after middlewares?
-            if (count($DATA['pipeline'])) {
-                cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> pipeline #$plCount]: There are no Pipeline Files->Functions defined for this Method/Route. Please add some or remove the Route entirely. Path: `" . ($plDirFilePath ?? "[NOT_DEFINED]") . "`");
-                continue;
+            if (empty($DATA['pipeline'])) {
+                cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> pipeline #0]: Missing at least one Pipeline File->Function Handler. Each Route must map to least one of those! Path: `" . (FUNKPHP_FILE_PATH_ROUTES ?? "[NOT_DEFINED]") . "`");
             }
             // MIDDLEWARES
-            var_dump($DATA);
             $mwCount = 0;
             $FOUND_MWS_LOCAL = [];
             foreach ($DATA['middlewares'] as $DATAmw) {
@@ -1164,7 +1156,6 @@ if (!$NO_ROUTES) { //START-BLOCK:ROUTES TO Validate, Parse & Output!
                     continue;
                 }
                 $findMW = cli_folder_and_php_file_status(FUNKPHP_MIDDLEWARES_DIR, $DATAmw, true, true);
-                var_dump($findMW);
                 if (!$findMW['file_exists'] || !$findMW['file_readable']) { // Middleware File not found or not readable so we add this named key so it can be found faster next time
                     $FOUND_ROUTES_MW_FNS['INVALID'][$DATAmw] = true;
                     cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> middlewares #$mwCount]: The Middleware Function File `$DATAmw` was NOT FOUND in Expected Path OR it is NOT READABLE! Path: `" . ($mwDirFilePath ?? "[NOT_DEFINED]") . "`");
@@ -1199,30 +1190,32 @@ if (!$NO_ROUTES) { //START-BLOCK:ROUTES TO Validate, Parse & Output!
                     }
                 }
             }
-
             // EXCLUDE_MIDDLEWARES
             $mwCount = 0;
-            $FOUND_MWS_LOCAL = [];
+            $FOUND_MWS_LOCAL2 = [];
             // SPECIAL EDGE CASE: Current Route is "/" root so no middlewares below can be excluded!
             if ($RUTT === "/") {
                 if (count($DATA['exclude_middlewares']) > 0) {
-                    cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> pipeline #$plCount]: There are no Pipeline Files->Functions defined for this Method/Route. Please add some or remove the Route entirely. Path: `" . ($plDirFilePath ?? "[NOT_DEFINED]") . "`");
+                    cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> exclude_middlewares]: Cannot Exclude Middlewares on Root Level since that would mean to impossibly look one level below it. Path: `" . ($plDirFilePath ?? "[NOT_DEFINED]") . "`");
                 }
-                continue;
             }
             foreach ($DATA['exclude_middlewares'] as $DATAmwx) {
                 $mwCount++;
-                // First check if we already have stored it and either add error if invalid one or continue if valid one
                 $mwDirFilePath = FUNKPHP_MIDDLEWARES_DIR . '/' . $DATAmwx . '.php';
+                if (isset($FOUND_MWS_LOCAL[$DATAmwx])) { // exclude_middlewares that should also be part of the middlewares on the same route? doesn't make any sense!
+                    cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> exclude_middlewares #$mwCount]: The Middleware Function File `$DATAmwx` IS ALREADY IN `middlewares` Key for this Route. Cannot exclude it at the same time! Path: `" . ($mwDirFilePath ?? "[NOT_DEFINED]") . "`");
+                    continue;
+                }
+                // Then check if we already have stored it and either add error if invalid one or continue if valid one
                 if (isset($FOUND_ROUTES_MW_FNS['INVALID'][$DATAmwx])) {
                     cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> exclude_middlewares #$mwCount]: The Middleware Function File `$DATAmwx` DOES NOT EXIST OR HAS INVALID STRUCTURE! Path: `" . ($mwDirFilePath ?? "[NOT_DEFINED]") . "`");
                     continue;
                 } else if (isset($FOUND_ROUTES_MW_FNS['VALID'][$DATAmwx])) {
-                    if (isset($FOUND_MWS_LOCAL[$DATAmwx])) {
+                    if (isset($FOUND_MWS_LOCAL2[$DATAmwx])) {
                         cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> exclude_middlewares #$mwCount]: The Middleware Function File `$DATAmwx` ALREADY EXISTS IN Middlewares Array - Duplicates Not Allowed for Excluded Middlewares! Path: `" . ($mwDirFilePath ?? "[NOT_DEFINED]") . "`");
                         continue;
                     }
-                    $FOUND_MWS_LOCAL[$DATAmwx] = true;
+                    $FOUND_MWS_LOCAL2[$DATAmwx] = true;
                     continue;
                 }
                 $findMW = cli_folder_and_php_file_status(FUNKPHP_MIDDLEWARES_DIR, $DATAmwx, true, true);
@@ -1252,52 +1245,99 @@ if (!$NO_ROUTES) { //START-BLOCK:ROUTES TO Validate, Parse & Output!
                         $FOUND_ROUTES_MW_FNS['INVALID'][$DATAmwx] = true;
                         cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> exclude_middlewares #$mwCount]: The Middleware Function File `$DATAmwx` FOUND but not both ways (`Regex & Tokenizer`). Check if the Function has trailing comments after the Function Closing `}`! Path: `" . ($mwDirFilePath ?? "[NOT_DEFINED]") . "`");
                     }
-                    // SPECIAL CHECK for exclude_middlewares (do they exist in all their levels below them?)
-                    // and we will have already checked that it is not already "/" level!
-                    else if ($DATAmwx) { // FIX
-                        continue;
+                    // SPECIAL INHERITENCE CHECK for exclude_middlewares (do they exist in all their levels
+                    // below them?) and we will have already checked that it is not already "/" level!
+                    // IMPORTANT: We might check for Middlewares that otherwise do exist as files+fns but not
+                    // in those checked inherited subroutes so we cannot say it is invalid due that!
+                    else if (!cli_inherited_middleware_exist($RUTTER['ROUTES'], $METODKey, $RUTT, $DATAmwx)) {
+                        cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> exclude_middlewares #$mwCount]: The Middleware `$DATAmwx` CANNOT BE EXCLUDED because none of its Parent Routes have it! Path: `$mwDirFilePath`");
                     }
                     // ALL OK HERE! We store the function and continue
                     else {
                         $FOUND_ROUTES_MW_FNS['VALID'][$DATAmwx] = $findMW['functions'][$DATAmwx]['fn_raw'];
-                        $FOUND_MWS_LOCAL[$DATAmwx] = true;
+                        $FOUND_MWS_LOCAL2[$DATAmwx] = true;
                         continue;
                     }
                 }
             }
-
-            var_dump($FOUND_ROUTES_MW_FNS);
-            cli_stop_from_warn_err_list($routesWarnsAndErrs, "Please Review (" . count($routesWarnsAndErrs) . ") Warnings/Errors above for the Pipeline Files (Routes & Middlewares) and try again! Path: `" . (FUNKPHP_FILE_PATH_ROUTES ?? "[NOT_DEFINED]") . "`");
-
-
-            exit; // DEBUG
-
             // PIPELINE
             $plCount = 0;
             $FOUND_PL_LOCAL = [];
-
-
             foreach ($DATA['pipeline'] as $DATAplFile => $DATAplFn) {
                 $plCount++;
                 $plDirFilePath = FUNKPHP_ROUTES_DIR . '/' . $DATAplFile . '.php';
-                if (isset($FOUND_ROUTES_FILE_FNS['INVALID'][$DATAplFile][$DATAplFn])) {
+                if (isset($FOUND_ROUTES_FILE_FNS['INVALID'][$DATAplFile][$DATAplFn])) { // Invalid File->FN already confirmed, so could never be used!
                     cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> pipeline #$plCount]: The Route Pipline File->Function (`$DATAplFile -> $DATAplFn`) DOES NOT EXIST OR HAS INVALID STRUCTURE! Path: `" . ($plDirFilePath ?? "[NOT_DEFINED]") . "`");
                     continue;
-                } else if (isset($FOUND_ROUTES_FILE_FNS['VALID'][$DATAplFile][$DATAplFn])) {
+                }
+                // Valid File->FN already confirmed, but is it already in its own array?
+                else if (isset($FOUND_ROUTES_FILE_FNS['VALID'][$DATAplFile][$DATAplFn])) {
+                    if (isset($FOUND_PL_LOCAL[$DATAplFile][$DATAplFn])) {
+                        cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> pipeline #$plCount]: The Route Pipline File->Function (`$DATAplFile -> $DATAplFn`) ALREADY EXISTS IN Pipeline Array - Duplicates Not Allowed for Middlewares! Path: `" . ($plDirFilePath ?? "[NOT_DEFINED]") . "`");
+                        continue;
+                    }
+                    $FOUND_PL_LOCAL[$DATAplFile][$DATAplFn] = true;
                     continue;
                 }
-                $findpl = cli_folder_and_php_file_status(FUNKPHP_MIDDLEWARES_DIR, $DATAplFile, true, true);
+                $findpl = cli_folder_and_php_file_status(FUNKPHP_ROUTES_DIR, $DATAplFile, true, true);
+                // Pipeline File not found or not readable so we add this named key so it can be found faster next time
+                if (!$findpl['file_exists'] || !$findpl['file_readable']) {
+                    $FOUND_ROUTES_FILE_FNS['INVALID'][$DATAplFile][$DATAplFn] = true;
+                    cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> pipeline #$plCount]: The Route Pipline File->Function (`$DATAplFile -> $DATAplFn`) File was NOT FOUND in Expected Path OR it is NOT READABLE! Path: `" . ($plDirFilePath ?? "[NOT_DEFINED]") . "`");
+                }
+                // Pipeline File found so let's check if its Function exist
+                if ($findpl['file_exists']) {
+                    if (!isset($findpl['functions'][$DATAplFn])) { // Route PL Function not exist?
+                        $FOUND_ROUTES_FILE_FNS['INVALID'][$DATAplFile][$DATAplFn] = true;
+                        cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> pipeline #$plCount]: The Route Pipline File->Function (`$DATAplFile -> $DATAplFn`) File FOUND but its Function was NOT FOUND! Path: `" . ($plDirFilePath ?? "[NOT_DEFINED]") . "`");
+                    }
+                    // Route PL Function incorrect namespace name?
+                    else if ($findpl['namespace_name'] !== ('funkphp\\pipeline\\routes\\' . $DATAplFile)) {
+                        $FOUND_ROUTES_FILE_FNS['INVALID'][$DATAplFile][$DATAplFn] = true;
+                        cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> pipeline #$plCount]: The Route Pipline File->Function (`$DATAplFile -> $DATAplFn`) File FOUND but it has INVALID Namespace structure. Expected: `funkphp\pipeline\routes\\$DATApl;`! Path: `" . ($plDirFilePath ?? "[NOT_DEFINED]") . "`");
+                    }
+                    // Route PL Function not all lowercased?
+                    else if (!$findpl['functions'][$DATAplFn]['fn_name_same_as_lowercased']) {
+                        $FOUND_ROUTES_FILE_FNS['INVALID'][$DATAplFile][$DATAplFn] = true;
+                        cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> pipeline #$plCount]: The Route Pipline File->Function (`$DATAplFile -> $DATAplFn`) File FOUND but is `NOT ALL LOWERCASED`! Path: `" . ($plDirFilePath ?? "[NOT_DEFINED]") . "`");
+                    }
+                    // Route PL Function was not found same by regex vs tokenizer?
+                    else if (!$findpl['functions_same_count']) {
+                        $FOUND_ROUTES_FILE_FNS['INVALID'][$DATAplFile][$DATAplFn] = true;
+                        cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> pipeline #$plCount]: The Route Pipline File->Function (`$DATAplFile -> $DATAplFn`) File FOUND but not both ways (`Regex & Tokenizer`). Check if the Function has trailing comments after the Function Closing `}`! Path: `" . ($plDirFilePath ?? "[NOT_DEFINED]") . "`");
+                    } else {
+                        $FOUND_ROUTES_FILE_FNS['VALID'][$DATAplFile][$DATAplFn] = $findpl['functions'][$DATAplFn]['fn_raw'];
+                        $FOUND_PL_LOCAL[$DATAplFile][$DATAplFn] = true;
+                        continue;
+                    }
+                }
             }
+            var_dump($FOUND_ROUTES_FILE_FNS);
+            var_dump($FOUND_ROUTES_MW_FNS);
         }
     }
     cli_stop_from_warn_err_list($routesWarnsAndErrs, "Please Review (" . count($routesWarnsAndErrs) . ") Warnings/Errors above for the Pipeline Files (Routes & Middlewares) and try again! Path: `" . (FUNKPHP_FILE_PATH_ROUTES ?? "[NOT_DEFINED]") . "`");
 } //END-BLOCK:ROUTES TO Validate, Parse & Output!
 
-
-// Closing namespaces { '}' <- This one for namespace funkphp\pipeline\middlewares|routes!
-$deploymentPipelineRoutesBuffer[] = " }\n"; // } Closing of Routes namespace {}
-$deploymentMiddlewaresBuffer[] = " }\n"; // } Closing of Middlewares namespace {}
-
+// PUT ALL MIDDLEWARES TOGETHER (ONE NS)
+$deploymentMiddlewaresBuffer = [];
+$deploymentMiddlewaresBuffer[] = "namespace funkphp\\pipeline\\middlewares {\n\n";
+foreach ($FOUND_ROUTES_MW_FNS['VALID'] as $mwName => $mwRawCode) {
+    $deploymentMiddlewaresBuffer[] = $mwRawCode . "\n\n";
+}
+$deploymentMiddlewaresBuffer[] = "}\n"; // Close Middlewares Namespace
+// THEN PUT ALL ROUTES (File->FN) which becomes (NS -> FNs)
+$deploymentPipelineRoutesBuffer = [];
+foreach ($FOUND_ROUTES_FILE_FNS['VALID'] as $fileName => $functions) {
+    // Open a dedicated namespace for this specific pipeline file
+    $deploymentPipelineRoutesBuffer[] = "namespace funkphp\\pipeline\\routes\\{$fileName} {\n";
+    foreach ($functions as $fnName => $fnRawCode) {
+        $deploymentPipelineRoutesBuffer[] = $fnRawCode . "\n";
+    }
+    $deploymentPipelineRoutesBuffer[] = "}\n"; // Close this specific file's namespace
+}
+$deploymentBuffer[] = implode("", $deploymentMiddlewaresBuffer);
+$deploymentBuffer[] = implode("", $deploymentPipelineRoutesBuffer);
 //////////////////////////////////
 // Correct execution order for GOTO Labels: Route Matching Generator Functions???
 //$sortedResult = cli_prepare_binary_specificity_score_VF("mockDeveloperRoutes", "GET");

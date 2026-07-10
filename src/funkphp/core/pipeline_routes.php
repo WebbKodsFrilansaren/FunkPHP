@@ -1,4 +1,4 @@
-<?php // pipeline_routes.php - FunkPHP | FunkCLI Modified it 2026-07-10 04:21:36
+<?php // pipeline_routes.php - FunkPHP | FunkCLI Modified it 2026-07-10 06:39:36
 return
   /**
    * -----------------------------------------------------
@@ -79,15 +79,83 @@ return
             ),
           ),
           'middlewares' =>
+          array(),
+          'exclude_middlewares' =>
+          array(),
+          'pipeline' =>
           array(
-            0 => 'mw_auth',
-            1 => 'mw_auth2',
+            'test' => 'test',
+          ),
+        ),
+        '/a' =>
+        array(
+          'config' =>
+          array(
+            'route_alias' => '',
+            'route_param_rules' =>
+            array(),
+            'route_headers' =>
+            array(
+              'add' =>
+              array(),
+              'remove' =>
+              array(),
+            ),
+            'route_rate_limiting' => NULL,
+            'route_cache' => NULL,
+            'route_csp' =>
+            array(
+              'connect-src' =>
+              array(
+                0 => '\'self\'',
+              ),
+              'font-src' =>
+              array(
+                0 => '\'self\'',
+              ),
+              'frame-src' =>
+              array(
+                0 => '\'self\'',
+              ),
+              'base-uri' =>
+              array(
+                0 => '\'self\'',
+              ),
+              'form-action' =>
+              array(
+                0 => '\'self\'',
+              ),
+              'object-src' =>
+              array(
+                0 => '\'none\'',
+              ),
+              'default-src' =>
+              array(
+                0 => '\'none\'',
+              ),
+              'script-src' =>
+              array(
+                0 => '\'self\'',
+              ),
+              'style-src' =>
+              array(
+                0 => '\'self\'',
+              ),
+              'img-src' =>
+              array(
+                0 => '\'self\'',
+              ),
+            ),
+          ),
+          'middlewares' =>
+          array(
+            0 => 'mw_auth2',
           ),
           'exclude_middlewares' =>
           array(),
           'pipeline' =>
           array(
-            'a' => 'a',
+            'test' => 'test',
           ),
         ),
         '<CONFIG_METHOD>' =>
