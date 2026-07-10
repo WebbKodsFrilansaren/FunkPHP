@@ -3273,118 +3273,131 @@ function cli_analyze_code_safety(string $code): array
         'functions' => [],
         'classes'   => []
     ];
-    // Tracking variables for our state machine
     $currentType = 'global'; // 'global', 'function', or 'class'
     $currentName = '';
     $braceDepth  = 0;
-    $structDepth = 0; // The brace depth where our function/class started
+    $structDepth = 0;
     for ($i = 0; $i < $count; $i++) {
         $token = $tokens[$i];
-        // 1. Detect structural boundaries (Entering a Function or Class)
-        if ($currentType === 'global' && ($token->id === T_FUNCTION || $token->id === T_CLASS)) {
-            $isFn = ($token->id === T_FUNCTION);
-            // Advance past whitespace to harvest the structural identifier
-            $nameIdx = $i + 1;
-            while ($nameIdx < $count && $tokens[$nameIdx]->id === T_WHITESPACE) {
-                $nameIdx++;
-            }
-            // If it's an anonymous closure/class, ignore structural context mapping
-            if ($nameIdx < $count && $tokens[$nameIdx]->id === T_STRING) {
-                $currentType = $isFn ? 'function' : 'class';
-                $currentName = $tokens[$nameIdx]->text;
-                $structDepth = $braceDepth; // Lock in the outer baseline baseline
-                if ($isFn) {
-                    $analysis['functions'][$currentName] = [];
-                } else {
-                    $analysis['classes'][$currentName] = [];
-                }
-            }
-        }
-        // 2. Track brace layers to accurately determine when we exit a block
+        // 1. TRACK BRACE LAYERS ALWAYS
         if ($token->text === '{') {
             $braceDepth++;
         } elseif ($token->text === '}') {
             $braceDepth--;
 
-            // If depth returns to the starting structural baseline, we are back in global space
+            // If depth returns to baseline, we popped back into global namespace space
             if ($currentType !== 'global' && $braceDepth === $structDepth) {
                 $currentType = 'global';
                 $currentName = '';
+                continue;
             }
         }
-        // 3. Process Code inside a Function or Class block
-        if ($currentType !== 'global') {
-            // Match global functions (T_STRING) or language constructs like eval() (T_EVAL)
-            if ($token->id === T_STRING || $token->id === T_EVAL) {
-                // LOOK BEHIND: Skip if it's a method call ($this->fn()), static call (Class::fn()),
-                // instantiation (new Class()), or part of a declaration statement
-                $prevIdx = $i - 1;
-                while ($prevIdx >= 0 && $tokens[$prevIdx]->id === T_WHITESPACE) {
-                    $prevIdx--;
+        // 2. DETECT STRUCURAL BOUNDARIES (GLOBAL SPACE ONLY)
+        if ($currentType === 'global') {
+            if ($token->id === T_FUNCTION || $token->id === T_CLASS) {
+                $isFn = ($token->id === T_FUNCTION);
+                $nameIdx = $i + 1;
+                while ($nameIdx < $count && $tokens[$nameIdx]->id === T_WHITESPACE) {
+                    $nameIdx++;
                 }
-                if ($prevIdx >= 0) {
-                    $pId = $tokens[$prevIdx]->id;
-                    if ($pId === T_OBJECT_OPERATOR || $pId === T_DOUBLE_COLON || $pId === T_FUNCTION || $pId === T_NEW) {
-                        continue;
-                    }
-                    if (defined('T_NULLSAFE_OBJECT_OPERATOR') && $pId === T_NULLSAFE_OBJECT_OPERATOR) {
-                        continue;
-                    }
-                }
-                // LOOK AHEAD: Confirm it is an actual invocation by verifying the trailing open paren '('
-                $nextIdx = $i + 1;
-                while ($nextIdx < $count && $tokens[$nextIdx]->id === T_WHITESPACE) {
-                    $nextIdx++;
-                }
-                if ($nextIdx < $count && $tokens[$nextIdx]->text === '(') {
-                    $calledName = $token->text;
-                    $lineNo     = $token->line;
-                    // Harvest arguments by tracking balanced parentheses depth
-                    $argsString = '';
-                    $parenDepth = 1;
-                    $argRunner  = $nextIdx + 1;
-                    while ($argRunner < $count) {
-                        $argToken = $tokens[$argRunner];
-                        if ($argToken->text === '(') {
-                            $parenDepth++;
-                        } elseif ($argToken->text === ')') {
-                            $parenDepth--;
-                        }
-
-                        if ($parenDepth === 0) {
-                            break;
-                        }
-                        $argsString .= $argToken->text;
-                        $argRunner++;
-                    }
-                    // Append isolated invocation footprint into the analysis map
-                    $payload = [
-                        'name' => $calledName,
-                        'line' => $lineNo,
-                        'args' => trim($argsString)
-                    ];
-                    if ($currentType === 'function') {
-                        // 1. Catch short-circuiting tokens
-                        if ($token->id === T_EXIT) {
-                            $analysis['functions'][$currentName]['has_early_exit'] = true;
-                            $analysis['functions'][$currentName]['early_exit_lines'][] = $token->line;
-                        }
-                        // 2. Catch premature output rendering tokens
-                        if ($token->id === T_ECHO || $token->id === T_PRINT) {
-                            $analysis['functions'][$currentName]['has_raw_output'] = true;
-                            $analysis['functions'][$currentName]['raw_output_lines'][] = $token->line;
-                        }
-                        $analysis['functions'][$currentName][] = $payload;
+                if ($nameIdx < $count && $tokens[$nameIdx]->id === T_STRING) {
+                    $currentType = $isFn ? 'function' : 'class';
+                    $currentName = $tokens[$nameIdx]->text;
+                    $structDepth = $braceDepth; // Capture structural context depth
+                    if ($isFn) {
+                        $analysis['functions'][$currentName] = [
+                            'has_early_exit'        => false,
+                            'early_exit_lines'      => [],
+                            'has_raw_output'        => false,
+                            'raw_output_lines'      => [],
+                            'has_nested_functions'  => false,
+                            'nested_function_lines' => [],
+                            'calls'                 => []
+                        ];
                     } else {
-                        $analysis['classes'][$currentName][] = $payload;
+                        $analysis['classes'][$currentName] = [
+                            'calls' => []
+                        ];
                     }
+                }
+            }
+            continue;
+        }
+        // 3. CODE ANALYZER (INSIDE A FUNCTION OR CLASS BLOCK)
+        if ($currentType === 'function') {
+            // Catch Illegal Nested/Inner Functions
+            if ($token->id === T_FUNCTION) {
+                $analysis['functions'][$currentName]['has_nested_functions'] = true;
+                $analysis['functions'][$currentName]['nested_function_lines'][] = $token->line;
+                continue;
+            }
+            // Catch Short-Circuiting Terminators
+            if ($token->id === T_EXIT) {
+                $analysis['functions'][$currentName]['has_early_exit'] = true;
+                $analysis['functions'][$currentName]['early_exit_lines'][] = $token->line;
+                continue;
+            }
+            // Catch Raw Output Dumps
+            if ($token->id === T_ECHO || $token->id === T_PRINT) {
+                $analysis['functions'][$currentName]['has_raw_output'] = true;
+                $analysis['functions'][$currentName]['raw_output_lines'][] = $token->line;
+                continue;
+            }
+        }
+        // 4. STANDARD INVOCATION / CALL SCANNERS (T_STRING or T_EVAL)
+        if ($token->id === T_STRING || $token->id === T_EVAL) {
+            $prevIdx = $i - 1;
+            while ($prevIdx >= 0 && $tokens[$prevIdx]->id === T_WHITESPACE) {
+                $prevIdx--;
+            }
+            if ($prevIdx >= 0) {
+                $pId = $tokens[$prevIdx]->id;
+                if ($pId === T_OBJECT_OPERATOR || $pId === T_DOUBLE_COLON || $pId === T_FUNCTION || $pId === T_NEW) {
+                    continue;
+                }
+                if (defined('T_NULLSAFE_OBJECT_OPERATOR') && $pId === T_NULLSAFE_OBJECT_OPERATOR) {
+                    continue;
+                }
+            }
+            $nextIdx = $i + 1;
+            while ($nextIdx < $count && $tokens[$nextIdx]->id === T_WHITESPACE) {
+                $nextIdx++;
+            }
+            if ($nextIdx < $count && $tokens[$nextIdx]->text === '(') {
+                $calledName = $token->text;
+                $lineNo     = $token->line;
+                $argsString = '';
+                $parenDepth = 1;
+                $argRunner  = $nextIdx + 1;
+                while ($argRunner < $count) {
+                    $argToken = $tokens[$argRunner];
+                    if ($argToken->text === '(') {
+                        $parenDepth++;
+                    } elseif ($argToken->text === ')') {
+                        $parenDepth--;
+                    }
+                    if ($parenDepth === 0) {
+                        break;
+                    }
+                    $argsString .= $argToken->text;
+                    $argRunner++;
+                }
+                $payload = [
+                    'name' => $calledName,
+                    'line' => $lineNo,
+                    'args' => trim($argsString)
+                ];
+                if ($currentType === 'function') {
+                    $analysis['functions'][$currentName]['calls'][] = $payload;
+                } else {
+                    $analysis['classes'][$currentName]['calls'][] = $payload;
                 }
             }
         }
     }
+
     return $analysis;
 }
-
 // Returns an array of status of $folder & $file and whether they:
 // - exist, - are readable, - are writable, - the number of functions
 // and each function its $DX and/or return array(). Also the entire file
