@@ -134,9 +134,22 @@ else {
     }
 }
 
+
+/////// FIX: SHOW CLEARER ERROR WHEN TRYING TO ADD SAME/ALREADY EXISTING HANDLER!!!
+/////// DO SAME IN "make:route" COMMAND FILE AS WELL! ^_^
+
 // We now add it and then rebuild the Routes
-$ROUTES[$method][$route]['pipeline'][$file] = $fn;
-cli_info_without_exit("Added `$file=>$fn` Handler to `$method$route` in `funkphp/core/pipeline_routes.php`! Rebuilding Routes Now...");
+if (!isset($ROUTES[$method][$route]['pipeline'][$file])) {
+    $ROUTES[$method][$route]['pipeline'][$file] = $fn;
+    cli_info_without_exit("ADDED NEW `$file=>$fn` Handler to `$method$route` in `funkphp/core/pipeline_routes.php`! Rebuilding Routes Now...");
+} else {
+    if (isset($ROUTES[$method][$route]['pipeline'][$file]) && $ROUTES[$method][$route]['pipeline'][$file] === $fn) {
+        cli_info_without_exit("`FOUND ALREADY ADDED $file=>$fn` Handler to `$method$route` in `funkphp/core/pipeline_routes.php`! Rebuilding Routes Now...");
+    } else {
+        $ROUTES[$method][$route]['pipeline'][$file] = $fn;
+        cli_info_without_exit("`ADDED NEW $file=>$fn` Handler to `$method$route` in `funkphp/core/pipeline_routes.php`! Rebuilding Routes Now...");
+    }
+}
 cli_sort_build_routes_compile_and_output(["ROUTES" => $ROUTES]);
 cli_success("Found/Created `$file=>$fn` Handler and then added it to Created/Found `$method$route` in `funkphp/pipeline/pipeline_routes.php`!");
 

@@ -731,6 +731,7 @@ foreach ($userFunctionsFile['functions'] as $fnNameUser => $fnValsUser) {
     ) {
         cli_build_warning_err_list($functionsWarnsAndErrs, "cli_err", "User-defined function '$fnNameUser' starts with `funk_` (but not `funk_validate_`) or `cli_` which is not allowed. Please choose rename the function or remove it! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
     } else {
+        $COMPILE_STATS_TRACKER['User-FUNCTIONS'][] = $fnNameUser;
         $deploymentBuffer[] = $fnValsUser['fn_raw'] . "\n";
     }
 }
@@ -778,8 +779,10 @@ if (isset($coreFunctionsFile['functions'])) {
                 cli_stop_from_warn_err_list($functionsWarnsAndErrs, "Please Review (" . count($functionsWarnsAndErrs) . ") Warnings/Errors above for the Function (Templates) Files (Core & User-defined) and try again! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL_TEMPLATES ?? "[NOT_DEFINED]") . "`");
             }
             $compiledTemplate = cli_function_template_token_replacer($functionsTemplatesArray[$fnNameCore], $templateRawCode);
+            $COMPILE_STATS_TRACKER['Ignored-FUNCTIONS'][] = $fnNameCore;
             $deploymentBuffer[] = $compiledTemplate . "\n";
         } else {
+            $COMPILE_STATS_TRACKER['Core-FUNCTIONS'][] = $fnNameCore;
             $deploymentBuffer[] = $fnValsCore['fn_raw'] . "\n";
         }
     }
@@ -947,6 +950,7 @@ foreach ($pipelineFile['pipeline']['request'] as $pipeRequestFn) {
         $HTTPS_KERNEL_DISPATCH_FUNCTION_FOUND = true;
         continue;
     }
+    $COMPILE_STATS_TRACKER['Pipeline-REQUEST'][] = $pipeRequestFn;
     $deploymentPipelineRequestBuffer[] = $plReqStatus['functions'][$pipeRequestFn]['fn_raw'] . "\n";
 }
 $deploymentPipelineRequestBuffer[] = " }\n"; // End namespace funkphp\pipeline\request {}
@@ -979,6 +983,7 @@ foreach ($pipelineFile['pipeline']['post_response'] as $pipePostResponseFn) {
         }
     }
     cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline File in the Key `pipeline -> post_response` and try again! Path: `" . (FUNKPHP_PIPELINE_POST_RESPONSE_DIR ?? "[NOT_DEFINED]") . "` $DEFAULT_ERROR_FORMATTING");
+    $COMPILE_STATS_TRACKER['Pipeline-POST_RESPONSE'][] = $pipePostResponseFn;
     $deploymentPipelineRequestBuffer[] = $plReqStatus['functions'][$pipePostResponseFn]['fn_raw'] . "\n";
 }
 $deploymentPipelineRequestBuffer[] = " }\n"; // End namespace funkphp\pipeline\post_response {}
@@ -1347,6 +1352,7 @@ if (!$NO_ROUTES) { //START-BLOCK:ROUTES TO Validate, Parse & Output!
 $deploymentMiddlewaresBuffer = [];
 $deploymentMiddlewaresBuffer[] = "namespace funkphp\\pipeline\\middlewares {";
 foreach ($FOUND_ROUTES_MW_FNS['VALID'] as $mwName => $mwRawCode) {
+    $COMPILE_STATS_TRACKER['Pipeline-MIDDLEWARES'][] = $mwName;
     $deploymentMiddlewaresBuffer[] = $mwRawCode . "\n";
 }
 $deploymentMiddlewaresBuffer[] = "}"; // Close Middlewares Namespace
@@ -1356,6 +1362,7 @@ foreach ($FOUND_ROUTES_FILE_FNS['VALID'] as $fileName => $functions) {
     // Open a dedicated namespace for this specific pipeline file
     $deploymentPipelineRoutesBuffer[] = "namespace funkphp\\pipeline\\routes\\{$fileName} {";
     foreach ($functions as $fnName => $fnRawCode) {
+        $COMPILE_STATS_TRACKER['Pipeline-ROUTES'][] = $fnName;
         $deploymentPipelineRoutesBuffer[] = $fnRawCode . "\n";
     }
     $deploymentPipelineRoutesBuffer[] = "}"; // Close this specific file's namespace
@@ -1444,21 +1451,58 @@ $flagsOutput = empty($activeFlags)
 // FIX: Also include an IGNORED list
 $compilationStatsOutput = "";
 if (isset($COMPILE_STATS_TRACKER)) {
+    // 1. Core Functions & Custom Routines
+    $cntCoreFns    = count($COMPILE_STATS_TRACKER['Core-FUNCTIONS'] ?? []);
+    $cntUserFns    = count($COMPILE_STATS_TRACKER['User-FUNCTIONS'] ?? []);
+    $cntIgnoredFns = count($COMPILE_STATS_TRACKER['Ignored-FUNCTIONS'] ?? []);
+    $cntClasses    = count($COMPILE_STATS_TRACKER['CLASSES'] ?? []);
+    // 2. The Functional Pipeline Stages
+    $cntPlReq      = count($COMPILE_STATS_TRACKER['Pipeline-REQUEST'] ?? []);
+    $cntPlMws      = count($COMPILE_STATS_TRACKER['Pipeline-MIDDLEWARES'] ?? []);
+    $cntPlRoutes   = count($COMPILE_STATS_TRACKER['Pipeline-ROUTES'] ?? []);
+    $cntPlPost     = count($COMPILE_STATS_TRACKER['Pipeline-POST_RESPONSE'] ?? []);
+    // 3. UI Template Pages Engine
+    $cntPagesRef   = count($COMPILE_STATS_TRACKER['Pages-REFERENCED'] ?? []);
+    $cntPagesComp  = count($COMPILE_STATS_TRACKER['Pages-COMPILED'] ?? []);
+    $cntPagesEmb   = count($COMPILE_STATS_TRACKER['Pages-EMBEDDED'] ?? []);
+    // 4. Data Layer Optimization Metrics
+    $cntDataSql    = count($COMPILE_STATS_TRACKER['Data-SQL'] ?? []);
+    $cntDataVal    = count($COMPILE_STATS_TRACKER['Data-VALIDATION'] ?? []);
+    $cntDataQry    = count($COMPILE_STATS_TRACKER['Data-QUERY'] ?? []);
+    // 5. Structure the aligned CLI reporting visual tree
     $compilationStatsOutput = "\n[ COMPILED METRICS SUMMARY ]\n"
-        . "  • Functions Ignored:    " . count($COMPILE_STATS_TRACKER['GLOBALS'] ?? []) . "\n"
-        . "  • Global Functions Compiled:    " . count($COMPILE_STATS_TRACKER['GLOBALS'] ?? []) . "\n"
-        . "  • Namespaced Routes Compiled:   " . count($COMPILE_STATS_TRACKER['ROUTES'] ?? []) . "\n"
-        . "  • Middlewares Compiled:         " . count($COMPILE_STATS_TRACKER['MIDDLEWARES'] ?? []) . "\n";
+        . "  ├── GLOBAL FUNCTIONS/CLASSES\n"
+        . "  │   ├── Core Functions Inline:         " . $cntCoreFns . "\n"
+        . "  │   ├── User Functions Compiled:       " . $cntUserFns . "\n"
+        . "  │   ├── Static Classes Parsed:         " . $cntClasses . "\n"
+        . "  │   └── Dead Functions Ignored:        " . $cntIgnoredFns . "\n"
+        . "  │\n"
+        . "  ├── PIPELINE FUNCTIONS\n"
+        . "  │   ├── Pipeline Request FNs:          " . $cntPlReq . "\n"
+        . "  │   ├── Pipeline Middlewares:          " . $cntPlMws . "\n"
+        . "  │   ├── Namespaced Route FNs:          " . $cntPlRoutes . "\n"
+        . "  │   └── Post-Response FNs:             " . $cntPlPost . "\n"
+        . "  │\n"
+        . "  ├── PAGES & REFERENCES TO THEM\n"
+        . "  │   ├── Unique Pages Referenced:       " . $cntPagesRef . "\n"
+        . "  │   ├── Structural Pages Compiled:     " . $cntPagesComp . "\n"
+        . "  │   └── Inlined Assets Embedded:       " . $cntPagesEmb . "\n"
+        . "  │\n"
+        . "  └── QUERY & VALIDATION & OPTIMIZATIONS\n"
+        . "      ├── Pre-Compiled SQL Blocks:       " . $cntDataSql . "\n"
+        . "      ├── Compiled Validation Rules:     " . $cntDataVal . "\n"
+        . "      └── Memoized Pure Queries:         " . $cntDataQry . "\n";
 }
-
-
+// Print final success payload
 cli_success("
 ==========================================================================================================================
 FunkCLI SUCCESSFULLY Compiled `" . FUNKPHP_FILE_PATH_DEPLOYMENT_FILE . "`
+You can now Deploy the `FunkPHPDeployment.php` File to Your Server for Production use!
 
 [ ACTIVE ENGINE OPTIONS ]
 " . $flagsOutput . $compilationStatsOutput . "
 
+FunkCLI SUCCESSFULLY Compiled `" . FUNKPHP_FILE_PATH_DEPLOYMENT_FILE . "`
 You can now Deploy the `FunkPHPDeployment.php` File to Your Server for Production use!
 ==========================================================================================================================");
 exit;
