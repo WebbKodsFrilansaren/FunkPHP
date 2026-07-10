@@ -36,7 +36,7 @@ function test2(&$c)
 	}
 	echo "<h1 style='font-size:12px;'>Testing with HTML tags to see how the cURL Request Test functionality in FunkGUI will react to it!</h1>";
 	echo "<div>";
-	echo "<p>This is a test paragraph to see how the cURL Request Test functionality in FunkGUI will react to it!</p>";
+	echo "<p>            This is a test paragraph to see how the cURL Request Test functionality in FunkGUI will react to it!</p>";
 	echo "</div>";
 	vd($c['req']);
 }

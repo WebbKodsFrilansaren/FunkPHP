@@ -19,15 +19,35 @@ $embedPages = false; // imlpemented later
 $compilePages = false;
 $compressDeployment = false;
 $showAllErrors = false; // implemented later
-$allowModifiedCore = true; // implemented later
+$allowModifiedCore = false; // implemented later
 $ignoreUnknownConnsDrivers = false;
 $skipCompilingValidation = false; // implemented later
 $skipCompilingSQL = false; // implemented later
 
+// This one keeps track of count, as well as names of added functions
+// FIX: Add the name of functions to correct one here throughout building process,
+// it ONLY happens when it has been 100 % validated to become a part of build output!
+$COMPILE_STATS_TRACKER = [
+    'GLOBAL' => [],
+    'CLASSES' => [],
+    'Ignored-FUNCTIONS' => [],
+    'Core-FUNCTIONS' => [],
+    'User-FUNCTIONS' => [],
+    'Pages-REFERENCED' => [],
+    'Pages-COMPILED' => [],
+    'Pages-EMBEDDED' => [],
+    'Pipeline-REQUEST' => [],
+    'Pipeline-POST_RESPONSE' => [],
+    'Pipeline-ROUTES' => [],
+    'Pipeline-MIDDLEWARES' => [],
+    'Data-SQL' => [],
+    'Data-VALIDATION' => [],
+    'Data-QUERY' => [],
+];
+
 // Initialize an array to hold the different compiled sections of the file
 // and its sub parts so we can add sub parts as needed to the entire file!
 $HTTPS_KERNEL_DISPATCH_FUNCTION_FOUND = false;
-//
 $deploymentBuffer = [];
 $deploymentConfigBuffer = [];
 $deploymentFunctionsBuffer = [];
@@ -1312,8 +1332,6 @@ if (!$NO_ROUTES) { //START-BLOCK:ROUTES TO Validate, Parse & Output!
                     }
                 }
             }
-            var_dump($FOUND_ROUTES_FILE_FNS);
-            var_dump($FOUND_ROUTES_MW_FNS);
         }
     }
     cli_stop_from_warn_err_list($routesWarnsAndErrs, "Please Review (" . count($routesWarnsAndErrs) . ") Warnings/Errors above for the Pipeline Files (Routes & Middlewares) and try again! Path: `" . (FUNKPHP_FILE_PATH_ROUTES ?? "[NOT_DEFINED]") . "`");
@@ -1398,7 +1416,43 @@ if ($NO_ROUTES) {
     SUPER-IMPORTANT: SCROLL UP TO READ SUPER-IMPORTANT MESSAGE REGARDING THE COMPILATION! ^_^ (look for `CRITICAL NOTICE`)
 ==========================================================================================================================");
 }
-cli_success_without_exit("### FunkCLI Successfully Compiled & Built `/src/funkphp/FunkPHPDeployment.php` ###");
-cli_success_without_exit("Compiled with the following options:\n- Compile Pages: " . ($compilePages ? "YES" : "NO") . "\n- Compress Deployment: " . ($compressDeployment ? "YES" : "NO"));
-cli_success("### You can now deploy the `FunkPHPDeployment.php` File to Your Server for Production use!");
+
+// Prepare
+$activeFlags = [];
+
+if (!empty($compilePages))           $activeFlags[] = "    [+] --compile-pages           (Page layout caching enabled)";
+if (!empty($embedPages))             $activeFlags[] = "    [+] --embed-pages             (Static asset embedding enabled)";
+if (!empty($compressDeployment))     $activeFlags[] = "    [+] --compress-deployment      (Whitespace & comment stripping active)";
+if (!empty($skipCompilingValidation)) $activeFlags[] = "    [-] --skip-compiling-validation (Validation checks bypassed)";
+if (!empty($skipCompilingSQL))        $activeFlags[] = "    [-] --skip-compiling-sql        (SQL compilation skipped)";
+if (!empty($showAllErrors))          $activeFlags[] = "    [!] --show-error-reporting-all-errors (Verbose error reporting active)";
+if (!empty($ignoreUnknownConnsDrivers)) $activeFlags[] = "    [!] --ignore-unknown-conns-drivers   (Driver verification bypassed)";
+if (!empty($allowModifiedCore))      $activeFlags[] = "    [!] --allow-modified-core      (Core signature verification skipped)";
+// Fallback text if a developer runs a raw compiler build without args
+$flagsOutput = empty($activeFlags)
+    ? "    • None (Default Core Optimization Build)\n"
+    : implode("\n", $activeFlags) . "\n";
+
+// Output stats of the number of global functions, namespaced functions, middlewares, classes, etc. compiled.
+// now it is numbered, but we will include names also so it can easily be seen what is used and NOT used.
+// FIX: Also include an IGNORED list
+$compilationStatsOutput = "";
+if (isset($COMPILE_STATS_TRACKER)) {
+    $compilationStatsOutput = "\n[ COMPILED METRICS SUMMARY ]\n"
+        . "  • Functions Ignored:    " . count($COMPILE_STATS_TRACKER['GLOBALS'] ?? []) . "\n"
+        . "  • Global Functions Compiled:    " . count($COMPILE_STATS_TRACKER['GLOBALS'] ?? []) . "\n"
+        . "  • Namespaced Routes Compiled:   " . count($COMPILE_STATS_TRACKER['ROUTES'] ?? []) . "\n"
+        . "  • Middlewares Compiled:         " . count($COMPILE_STATS_TRACKER['MIDDLEWARES'] ?? []) . "\n";
+}
+
+
+cli_success("
+==========================================================================================================================
+FunkCLI SUCCESSFULLY Compiled `" . FUNKPHP_FILE_PATH_DEPLOYMENT_FILE . "`
+
+[ ACTIVE ENGINE OPTIONS ]
+" . $flagsOutput . $compilationStatsOutput . "
+
+You can now Deploy the `FunkPHPDeployment.php` File to Your Server for Production use!
+==========================================================================================================================");
 exit;
