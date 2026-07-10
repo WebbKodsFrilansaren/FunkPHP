@@ -58,3 +58,9 @@ function test3(&$c)
 	echo "</div>";
 	vd($c['req']);
 }
+
+function test4(&$c)
+{
+	// Placeholder Comment so Regex works (do NOT place comment after closing '}') - Remove & Add Your Own Code!
+
+}

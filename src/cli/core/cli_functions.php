@@ -752,6 +752,7 @@ function cli_assert_final_value(
         'array-list-strings',
         'array-list-strings-non-empty',
         'array-associative',
+        'array-list-with-single-associative-single-string-non-empty',
         'array-associative-nulls',
         'array-associative-strings',
         'array-associative-strings-non-empty',
@@ -827,6 +828,35 @@ function cli_assert_final_value(
         return $transformRule;
     };
     $allValuesAreSameType = function ($checkSameValueTypeArr, $checkForType) {
+        // Special case: Each Key must be 'named' => 'Non-EmptyStringValue'
+        // here the "$singleValueInArr" is a numbered array so [0] => 'namedKey' => 'non-empty-string-value'
+        if ($checkForType === 'array-list-with-single-associative-single-string-non-empty') {
+            // 1. Must be a valid, iterable array list
+            if (!is_array($checkSameValueTypeArr) || !array_is_list($checkSameValueTypeArr)) {
+                return false;
+            }
+            // 2. Loop over every single child container element inside the list
+            foreach ($checkSameValueTypeArr as $item) {
+                // CRITICAL SAFEGUARD: The element must be a nested array with exactly 1 pair
+                // This immediately catches the rogue string component at index [1] from your dump!
+                if (!is_array($item) || count($item) !== 1) {
+                    return false;
+                }
+                // Safely extract the associative properties
+                $k = array_key_first($item);
+                $v = $item[$k];
+                // 3. Ensure the key is a valid, non-empty string
+                if (!is_string($k) || trim($k) === '') {
+                    return false;
+                }
+                // 4. Ensure the value is a valid, non-empty string
+                // This immediately catches the integer 0 at index [0] from your dump!
+                if (!is_string($v) || trim($v) === '') {
+                    return false;
+                }
+            }
+        }
+        return true;
         foreach ($checkSameValueTypeArr as $singleValueInArr) {
             if ($checkForType === 'objects') {
                 if (gettype($singleValueInArr) !== "object") {
@@ -861,7 +891,7 @@ function cli_assert_final_value(
                     return false;
                 }
             } else {
-                cli_err("[cli_assert_final_value()]: Helper Function `\$allValuesAreSameType` need `objects`, `nulls`,`strings`,`numbers`,`integers`,`floats` OR `booleans` to validate that provided array is all of that type! (no trim used). Check if you forgot `s` at the end!");
+                cli_err("[cli_assert_final_value()]: Helper Function `\$allValuesAreSameType` need `objects`, `nulls`,`strings`,`numbers`,`integers`,`floats` OR `booleans` to validate that provided array is all of that type! (no trim used). Check if you forgot `s` at the end. Provided: " . (is_string()));
             }
         }
         return true;
@@ -1034,7 +1064,7 @@ function cli_assert_final_value(
             }
         }
         if (!in_array($actualType, $normalizedRules, true)) {
-            $msg = "Type mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected ONE of Any Valid Types: '" . implode(', ', $normalizedRules) . "', but Found Type '{$actualType}'.";
+            $msg = "Type mismatch for Key '{$lastKey}' at '[{$fullPathStr}]' in `{$filePath}`. Expected ONE of Any Valid Types: '" . implode(', ', $normalizedRules) . "', but Found Type '{$actualType}'.";
             if (is_string($info) && !empty($info)) {
                 $msg .= " More Info: {$info}";
             }
@@ -1061,7 +1091,7 @@ function cli_assert_final_value(
             || count($actualValue) === 0
             ||  (!$allValuesAreSameType($actualValue, "objects"))
         ) {
-            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Array with only Objects, empty or not, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
+            $msg = "Type Mismatch for Key '{$lastKey}' at '[{$fullPathStr}]' in `{$filePath}`. Expected an Array with only Objects, empty or not, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
             if (is_string($info) && !empty($info)) {
                 $msg .= " More Info: {$info}";
             }
@@ -1076,7 +1106,7 @@ function cli_assert_final_value(
             || count($actualValue) === 0
             ||  (!$allValuesAreSameType($actualValue, "strings"))
         ) {
-            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Array with only Strings, empty or not, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
+            $msg = "Type Mismatch for Key '{$lastKey}' at '[{$fullPathStr}]' in `{$filePath}`. Expected an Array with only Strings, empty or not, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
             if (is_string($info) && !empty($info)) {
                 $msg .= " More Info: {$info}";
             }
@@ -1092,7 +1122,7 @@ function cli_assert_final_value(
             || count($actualValue) === 0
             ||  (!$allValuesAreSameType($actualValue, "strings"))
         ) {
-            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected a Numbered Array with only Strings, empty or not, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
+            $msg = "Type Mismatch for Key '{$lastKey}' at '[{$fullPathStr}]' in `{$filePath}`. Expected a Numbered Array with only Strings, empty or not, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
             if (is_string($info) && !empty($info)) {
                 $msg .= " More Info: {$info}";
             }
@@ -1108,7 +1138,7 @@ function cli_assert_final_value(
             || count($actualValue) === 0
             ||  (!$allValuesAreSameType($actualValue, "strings-non-empty"))
         ) {
-            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected a Numbered Array with only Non-Empty Strings, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
+            $msg = "Type Mismatch for Key '{$lastKey}' at '[{$fullPathStr}]' in `{$filePath}`. Expected a Numbered Array with only Non-Empty Strings, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
             if (is_string($info) && !empty($info)) {
                 $msg .= " More Info: {$info}";
             }
@@ -1123,7 +1153,7 @@ function cli_assert_final_value(
             || count($actualValue) === 0
             ||  (!$allValuesAreSameType($actualValue, "numbers"))
         ) {
-            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Array with only Numbers, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
+            $msg = "Type Mismatch for Key '{$lastKey}' at '[{$fullPathStr}]' in `{$filePath}`. Expected an Array with only Numbers, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
             if (is_string($info) && !empty($info)) {
                 $msg .= " More Info: {$info}";
             }
@@ -1138,7 +1168,7 @@ function cli_assert_final_value(
             || count($actualValue) === 0
             ||  (!$allValuesAreSameType($actualValue, "nulls"))
         ) {
-            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Array with only Nulls, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
+            $msg = "Type Mismatch for Key '{$lastKey}' at '[{$fullPathStr}]' in `{$filePath}`. Expected an Array with only Nulls, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
             if (is_string($info) && !empty($info)) {
                 $msg .= " More Info: {$info}";
             }
@@ -1153,7 +1183,7 @@ function cli_assert_final_value(
             || count($actualValue) === 0
             ||  (!$allValuesAreSameType($actualValue, "integers"))
         ) {
-            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Array with only Integers, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
+            $msg = "Type Mismatch for Key '{$lastKey}' at '[{$fullPathStr}]' in `{$filePath}`. Expected an Array with only Integers, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
             if (is_string($info) && !empty($info)) {
                 $msg .= " More Info: {$info}";
             }
@@ -1168,7 +1198,7 @@ function cli_assert_final_value(
             || count($actualValue) === 0
             ||  (!$allValuesAreSameType($actualValue, "floats"))
         ) {
-            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Array with only Floats, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
+            $msg = "Type Mismatch for Key '{$lastKey}' at '[{$fullPathStr}]' in `{$filePath}`. Expected an Array with only Floats, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
             if (is_string($info) && !empty($info)) {
                 $msg .= " More Info: {$info}";
             }
@@ -1183,7 +1213,7 @@ function cli_assert_final_value(
             || count($actualValue) === 0
             ||  (!$allValuesAreSameType($actualValue, "booleans"))
         ) {
-            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Array with only Booleans, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
+            $msg = "Type Mismatch for Key '{$lastKey}' at '[{$fullPathStr}]' in `{$filePath}`. Expected an Array with only Booleans, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
             if (is_string($info) && !empty($info)) {
                 $msg .= " More Info: {$info}";
             }
@@ -1194,7 +1224,7 @@ function cli_assert_final_value(
     }
     if ($normalizedRule === 'array-empty') {
         if (!is_array($actualValue) || count($actualValue) !== 0) {
-            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Empty Array, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
+            $msg = "Type Mismatch for Key '{$lastKey}' at '[{$fullPathStr}]' in `{$filePath}`. Expected an Empty Array, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
             if (is_string($info) && !empty($info)) {
                 $msg .= " More Info: {$info}";
             }
@@ -1206,7 +1236,7 @@ function cli_assert_final_value(
     // Edge-case when you want it to be an array but also specifically numbered so double-check is needed!
     if ($normalizedRule === 'array-list') {
         if (!is_array($actualValue) || !array_is_list($actualValue)) {
-            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected a Numbered Array, but Found Type '{$actualType}' (if 'array', it was NOT parsed as Numbered Array)!";
+            $msg = "Type Mismatch for Key '{$lastKey}' at '[{$fullPathStr}]' in `{$filePath}`. Expected a Numbered Array, but Found Type '{$actualType}' (if 'array', it was NOT parsed as Numbered Array)!";
             if (is_string($info) && !empty($info)) {
                 $msg .= " More Info: {$info}";
             }
@@ -1218,7 +1248,7 @@ function cli_assert_final_value(
     // Edge-case when you want it to be an array but also specifically associative so double-check is needed!
     if ($normalizedRule === 'array-associative') {
         if (!is_array($actualValue) || array_is_list($actualValue)) {
-            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Associative Array, but Found Type '{$actualType}' (if 'array', it was NOT parsed as Associative Array). IMPORTANT: An Empty Array is vague so it is parsed as being a Numbered Array!";
+            $msg = "Type Mismatch for Key '{$lastKey}' at '[{$fullPathStr}]' in `{$filePath}`. Expected an Associative Array, but Found Type '{$actualType}' (if 'array', it was NOT parsed as Associative Array). IMPORTANT: An Empty Array is vague so it is parsed as being a Numbered Array!";
             if (is_string($info) && !empty($info)) {
                 $msg .= " More Info: {$info}";
             }
@@ -1233,7 +1263,7 @@ function cli_assert_final_value(
             || count($actualValue) === 0
             ||  (!$allValuesAreSameType($actualValue, "objects"))
         ) {
-            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Associative Array where all Values are Objects (any type) but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
+            $msg = "Type Mismatch for Key '{$lastKey}' at '[{$fullPathStr}]' in `{$filePath}`. Expected an Associative Array where all Values are Objects (any type) but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
             if (is_string($info) && !empty($info)) {
                 $msg .= " More Info: {$info}";
             }
@@ -1248,7 +1278,7 @@ function cli_assert_final_value(
             || count($actualValue) === 0
             ||  (!$allValuesAreSameType($actualValue, "strings"))
         ) {
-            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Associative Array where all Values are Strings (empty allowed), but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
+            $msg = "Type Mismatch for Key '{$lastKey}' at '[{$fullPathStr}]' in `{$filePath}`. Expected an Associative Array where all Values are Strings (empty allowed), but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
             if (is_string($info) && !empty($info)) {
                 $msg .= " More Info: {$info}";
             }
@@ -1263,7 +1293,7 @@ function cli_assert_final_value(
             || count($actualValue) === 0
             ||  (!$allValuesAreSameType($actualValue, "strings-non-empty"))
         ) {
-            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Associative Array where all Values are Non-Empty Strings, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
+            $msg = "Type Mismatch for Key '{$lastKey}' at '[{$fullPathStr}]' in `{$filePath}`. Expected an Associative Array where all Values are Non-Empty Strings, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
             if (is_string($info) && !empty($info)) {
                 $msg .= " More Info: {$info}";
             }
@@ -1278,7 +1308,7 @@ function cli_assert_final_value(
             || count($actualValue) === 0
             ||  (!$allValuesAreSameType($actualValue, "numbers"))
         ) {
-            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Associative Array where all Values are Numbers, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
+            $msg = "Type Mismatch for Key '{$lastKey}' at '[{$fullPathStr}]' in `{$filePath}`. Expected an Associative Array where all Values are Numbers, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
             if (is_string($info) && !empty($info)) {
                 $msg .= " More Info: {$info}";
             }
@@ -1293,7 +1323,7 @@ function cli_assert_final_value(
             || count($actualValue) === 0
             ||  (!$allValuesAreSameType($actualValue, "nulls"))
         ) {
-            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Associative Array where all Values are Nulls, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
+            $msg = "Type Mismatch for Key '{$lastKey}' at '[{$fullPathStr}]' in `{$filePath}`. Expected an Associative Array where all Values are Nulls, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
             if (is_string($info) && !empty($info)) {
                 $msg .= " More Info: {$info}";
             }
@@ -1308,7 +1338,7 @@ function cli_assert_final_value(
             || count($actualValue) === 0
             ||  (!$allValuesAreSameType($actualValue, "integers"))
         ) {
-            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Associative Array where all Values are Integers, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
+            $msg = "Type Mismatch for Key '{$lastKey}' at '[{$fullPathStr}]' in `{$filePath}`. Expected an Associative Array where all Values are Integers, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
             if (is_string($info) && !empty($info)) {
                 $msg .= " More Info: {$info}";
             }
@@ -1323,7 +1353,7 @@ function cli_assert_final_value(
             || count($actualValue) === 0
             ||  (!$allValuesAreSameType($actualValue, "floats"))
         ) {
-            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Associative Array where all Values are Floats, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
+            $msg = "Type Mismatch for Key '{$lastKey}' at '[{$fullPathStr}]' in `{$filePath}`. Expected an Associative Array where all Values are Floats, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
             if (is_string($info) && !empty($info)) {
                 $msg .= " More Info: {$info}";
             }
@@ -1338,7 +1368,7 @@ function cli_assert_final_value(
             || count($actualValue) === 0
             ||  (!$allValuesAreSameType($actualValue, "booleans"))
         ) {
-            $msg = "Type Mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected an Associative Array where all Values are Booleans, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
+            $msg = "Type Mismatch for Key '{$lastKey}' at '[{$fullPathStr}]' in `{$filePath}`. Expected an Associative Array where all Values are Booleans, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
             if (is_string($info) && !empty($info)) {
                 $msg .= " More Info: {$info}";
             }
@@ -1347,9 +1377,26 @@ function cli_assert_final_value(
         }
         return true;
     }
+    if ($normalizedRule === 'array-list-with-single-associative-single-string-non-empty') {
+        if (
+            !is_array($actualValue)
+            || !array_is_list($actualValue)
+            || count($actualValue) === 0
+            ||  (!$allValuesAreSameType($actualValue, "array-list-with-single-associative-single-string-non-empty"))
+        ) {
+            $msg = "Type Mismatch for Key '{$lastKey}' at '[{$fullPathStr}]' in `{$filePath}`. Expected a Numbered Array where Each Value is Single Associative Array with a Single Non-Empty String Value, but Found Type '{$actualType}' with Count: " . (is_array($actualValue) ? count($actualValue) : 'N/A') . ".";
+            if (is_string($info) && !empty($info)) {
+                $msg .= " More Info: {$info}";
+            }
+            cli_build_warning_err_list($warnsAndErrs, $severity, $msg);
+            return false;
+        }
+        return true;
+    }
+
     // When actual final value type is not matched with asserted one
     if ($actualType !== $normalizedRule) {
-        $msg = "Type mismatch for Key '{$lastKey}' at [{$fullPathStr}] in `{$filePath}`. Expected Primitive Type '{$rule}', but Found Type '{$actualType}'.";
+        $msg = "Type mismatch for Key '{$lastKey}' at '[{$fullPathStr}]' in `{$filePath}`. Expected Primitive Type '{$rule}', but Found Type '{$actualType}'.";
         if (is_string($info) && !empty($info)) {
             $msg .= " More Info: {$info}";
         }
@@ -1512,6 +1559,29 @@ function cli_create_pipeline_file($pipelineNameString, $pipelineType, $plStatusA
     // 5. Atomic Creation/Write
     return cli_crud_folder_php_file_atomic_write($plString, $outputNewFile);
 }
+
+// Validate that "file" => "fn" exist in 'pipeline' key in a given route
+// e.g. "if(['GET']['/']['pipeline']['test'] === 'test') but you only
+// provide exactly ['GET']['/'] beforehand so it just checks 'pipeline'
+function cli_pipeline_file_fn_exists_array(&$Route, $file, $fn)
+{
+    if (
+        !is_array($Route) || (count($Route) === 0)
+        || array_is_list($Route) || !isset($Route['pipeline'])
+        || !is_string($file) || empty(trim($file))
+        || !is_string($fn) || empty(trim($fn))
+    ) {
+        cli_err('[cli_pipeline_file_fn_exists_array()]: `&$Route` must be the "pipeline" Key for a given Route and "$file" and "$fn" must both be Non-Empty String!');
+    }
+    if (
+        !isset($Route['pipeline'][$file]) || !is_array($Route['pipeline'][$file])
+        || ($Route['pipeline'][$file] !== $fn)
+    ) {
+        return false;
+    }
+    return true;
+}
+
 /**
  * Checks the existence and validity status of a Pipeline file across request and post_response directories.
  *

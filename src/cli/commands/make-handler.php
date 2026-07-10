@@ -135,7 +135,7 @@ else {
 }
 
 // We now add it and then rebuild the Routes
-$ROUTES[$method][$route]['pipeline'][] = $routeKey;
+$ROUTES[$method][$route]['pipeline'][$file] = $fn;
 cli_info_without_exit("Added `$file=>$fn` Handler to `$method$route` in `funkphp/core/pipeline_routes.php`! Rebuilding Routes Now...");
 cli_sort_build_routes_compile_and_output(["ROUTES" => $ROUTES]);
 cli_success("Found/Created `$file=>$fn` Handler and then added it to Created/Found `$method$route` in `funkphp/pipeline/pipeline_routes.php`!");

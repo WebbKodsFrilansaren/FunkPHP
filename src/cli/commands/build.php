@@ -1115,7 +1115,7 @@ if (!$NO_ROUTES) { //START-BLOCK:ROUTES TO Validate, Parse & Output!
             $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", "$METODKey", "$RUTT", "config", "route_alias"], $routesWarnsAndErrs, "cli_err");
             cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'string', "The Value in `[ROUTES -> $METODKey -> $RUTT -> route_alias]` must be a String (empty allowed)!");
             $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", "$METODKey", "$RUTT", "config", "route_param_rules"], $routesWarnsAndErrs, "cli_err");
-            cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'array-empty|array-associative-strings-non-empty', "All Values in `[ROUTES -> $METODKey -> $RUTT -> route_alias]` must be an Associative Array with String Values OR an Empty Array!");
+            cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'array-empty|array-associative-strings-non-empty', "All Values in `[ROUTES -> $METODKey -> $RUTT -> route_alias]` must be an Associative Array with Non-Empty String Values OR an Empty Array!");
             $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", "$METODKey", "$RUTT", "config", "route_headers"], $routesWarnsAndErrs, "cli_err");
             $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", "$METODKey", "$RUTT", "config", "route_headers", "add"], $routesWarnsAndErrs, "cli_err");
             cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'array-strings|array-empty', "The Value in `[ROUTES -> $METODKey -> $RUTT -> route_headers -> add]` must be a String (empty allowed)!");
@@ -1151,8 +1151,11 @@ if (!$NO_ROUTES) { //START-BLOCK:ROUTES TO Validate, Parse & Output!
             $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", "$METODKey", "$RUTT", "exclude_middlewares"], $routesWarnsAndErrs, "cli_err");
             cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'array-empty|array-list-strings-non-empty', "All Values in `[ROUTES -> $METODKey -> $RUTT -> exclude_middlewares]` must be an Empty Array OR a Numbered Array with Only Non-Empty Strings!");
             $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", "$METODKey", "$RUTT", "pipeline"], $routesWarnsAndErrs, "cli_err");
-            cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'array-empty|array-associative-strings-non-empty', "All Values in `[ROUTES -> $METODKey -> $RUTT -> pipeline]` must be an Empty Array OR an Associative Array with Only Non-Empty Strings!");
+            cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'array-associative-strings-non-empty', "All Values in `[ROUTES -> $METODKey -> $RUTT -> pipeline]` must be an Associative Array with Non-Empty String Values!");
             // Now the 4 main keys have been validated so now we can iterate through and start building to the 3 arrays
+            cli_stop_from_warn_err_list($routesWarnsAndErrs, "Please Review (" . count($routesWarnsAndErrs) . ") Warnings/Errors above for the Pipeline Files (Routes & Compiled Routes) and try again! Path: `" . (FUNKPHP_FILE_PATH_ROUTES ?? "[NOT_DEFINED]") . "`");
+
+
             // SPECIAL EDGE CASE: If 'pipeline' array is empty, there would be no pipeline functions to run after middlewares?
             if (empty($DATA['pipeline'])) {
                 cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> pipeline #0]: Missing at least one Pipeline File->Function Handler. Each Route must map to least one of those! Path: `" . (FUNKPHP_FILE_PATH_ROUTES ?? "[NOT_DEFINED]") . "`");
@@ -1285,6 +1288,9 @@ if (!$NO_ROUTES) { //START-BLOCK:ROUTES TO Validate, Parse & Output!
             $FOUND_PL_LOCAL = [];
             foreach ($DATA['pipeline'] as $DATAplFile => $DATAplFn) {
                 $plCount++;
+                // $DATAplFile = key($DATAplFn1);
+                // $DATAplFn = $DATAplFn1[$DATAplFile];
+
                 $plDirFilePath = FUNKPHP_ROUTES_DIR . '/' . $DATAplFile . '.php';
                 if (isset($FOUND_ROUTES_FILE_FNS['INVALID'][$DATAplFile][$DATAplFn])) { // Invalid File->FN already confirmed, so could never be used!
                     cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> pipeline #$plCount]: The Route Pipline File->Function (`$DATAplFile -> $DATAplFn`) DOES NOT EXIST OR HAS INVALID STRUCTURE! Path: `" . ($plDirFilePath ?? "[NOT_DEFINED]") . "`");

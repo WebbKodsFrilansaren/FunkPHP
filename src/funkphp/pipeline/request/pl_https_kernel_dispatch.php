@@ -246,18 +246,14 @@ function pl_https_kernel_dispatch(&$c)
 
     /* RUN MATCHED MIDDLEWARES IF ANY */
     // 'defensive' = we check almost everything and output error to user if something gets wrong
-    if (
-        isset($c['req']['matched_middlewares'])
-        && (isset($c['req']['matched_config']['route_run_middlewares_before_pipeline'])
-            && $c['req']['matched_config']['route_run_middlewares_before_pipeline'] === true)
-    ) {
+
+    if (isset($c['req']['matched_middlewares'])) {
         // Must be a numbered array
         if (!is_array($c['req']['matched_middlewares']) || !array_is_list($c['req']['matched_middlewares'])) {
             $c['err']['MIDDLEWARES'][] = 'Configured Matched Route Middlewares (`"ROUTES" => "GET|POST|PUT|DELETE|PATCH" => "/route" => "middlewares" Key`) to load and run after Possibly Matched Route: `' . ($c['req']['route'] !== null ? $c['req']['method'] . $c['req']['route'] : '<No Route Matched>') . '` Route Matching. But the `middlewares` Key is not a numbered array, please check the `funkphp/config/routes.php` File!';
             $err = 'Tell the Developer: The Middlewares Pipeline Function ran but WITHOUT a Valid Middleware Structure - Should Be A Numbered Array!';
             \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
         }
-
         // Initialize loop, it will stop running when "false" is set to "keep_running_middlewares"
         $count = count($c['req']['matched_middlewares']);
         if (!defined("ROOT_MIDDLEWARES")) {
@@ -269,10 +265,8 @@ function pl_https_kernel_dispatch(&$c)
             \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
         }
         $mwDir = ROOT_MIDDLEWARES . '/';
-
         // Main MWs Loop
         for ($i = 0; $i < $count; $i++) {
-
             // Current Middleware must be an associative array!
             $mwToRun = "";
             $current_mw = $c['req']['matched_middlewares'][$i] ?? null;
@@ -281,16 +275,14 @@ function pl_https_kernel_dispatch(&$c)
                 $err = 'Tell the Developer: The Middlewares Pipeline Function ran but WITHOUT a Valid Middleware Structure - Each Middleware must be an Associative Array with Only One key (the Middleware File Name)!';
                 \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
             }
-
             // Prepare Middleware to Run and either run if it already exists
             // stored in the $c['dispatchers'] or include the file and run it!
             $mwToRun = $current_mw;
             $c['req']['current_middleware'] = $mwToRun;
-
             $mwFileToRun = $mwDir . $mwToRun . '.php';
             if (is_readable($mwFileToRun)) {
                 include_once $mwFileToRun;
-                $mwFnToRun = NAMESPACE_PIPELINE_MIDDLEWARES . $mwToRun . '\\' . $mwToRun;
+                $mwFnToRun = \NAMESPACE_PIPELINE_MIDDLEWARES . $mwToRun . '\\' . $mwToRun;
                 if (is_callable($mwFnToRun)) {
                     $rawRun = $mwFnToRun($c);
                 }
@@ -307,14 +299,12 @@ function pl_https_kernel_dispatch(&$c)
                 $err = 'Tell the Developer: The Middlewares Pipeline Function ran but WITHOUT a Valid Middleware Structure - A Middleware File was not found in the `funkphp/middlewares/` Folder or it was not properly loaded in the Config File `funkphp/config/_all.php` under the `dispatchers` Key!';
                 \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
             }
-
             // Here a Middleware was successfully ran (and also added to dispatchers if it was
             // included from file) so we add some stats to the request info and also reset things
             unset($c['req']['matched_middlewares'][$i]);
             $c['req']['current_middleware'] = null;
             $c['req']['next_middleware'] = isset($c['req']['matched_middlewares'][$i + 1]) && is_array($c['req']['matched_middlewares'][$i + 1]) ? array_key_first($c['req']['matched_middlewares'][$i + 1]) : null;
         }
-
         // After MWs Loop, we set so MW Pipeline cannot run again
         $c['req']['current_middleware'] = null;
         $c['req']['matched_middlewares'] = null;
@@ -327,7 +317,6 @@ function pl_https_kernel_dispatch(&$c)
     if (
         !isset($c['req']['matched_pipeline'])
         || !is_array($c['req']['matched_pipeline'])
-        || !array_is_list($c['req']['matched_pipeline'])
         || count($c['req']['matched_pipeline']) === 0
     ) {
         $c['err']['PIPELINE']['REQUEST']['funk_run_matched_pipeline'][] = 'Route Keys for the Matched Route must be a Numbered Array! Please check your Route Keys in `funkphp/core/pipeline_routes.php` for the Route `' . (is_string($c['req']['method']) ? $c['req']['method'] : '<No HTTP(S) Method Matched>') . (is_string($c['req']['route']) ? $c['req']['route'] : '<No Route Matched>') . '`!';
@@ -346,8 +335,8 @@ function pl_https_kernel_dispatch(&$c)
     $routesDir = ROOT_ROUTES . '/';
     // New version where we only go for "FileName=>FunctionName
     foreach ($c['req']['matched_pipeline'] as $idx => $dirFileFn) {
-        $file = key($dirFileFn) ?? null;
-        $fn = $dirFileFn[$file ?? ''] ?? null;
+        $file = $idx ?? null;
+        $fn = $dirFileFn ?? null;
 
         if ($file === null || $fn === null) {
             $c['err']['PIPELINE']['REQUEST']['funk_run_matched_pipeline'][] = '(1) Route Key at Index `' . $idx . '` must be an Array with a Non-Empty String Key corresponding to the Folder+File Path where the Function Name would be inside of! Please check your Route Keys in `funkphp/core/pipeline_routes.php` for the Route `' . (is_string($c['req']['method']) ? $c['req']['method'] : '<No HTTP(S) Method Matched>') . (is_string($c['req']['route']) ? $c['req']['route'] : '<No Route Matched>') . '`!';

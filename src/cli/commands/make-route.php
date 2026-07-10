@@ -124,7 +124,7 @@ if (count($ROUTES[$method][$route]) > 0) {
 }
 // We add the Route Pipeline Key to the Method/Route now and we can use array_pop() later if anything failed
 // meaning it should not exist as a Route Pipeline Key any longer for the matched/created Method/Route!
-$ROUTES[$method][$route]['pipeline'][] = $routeKey;
+$ROUTES[$method][$route]['pipeline'][$file] = $fn;
 
 // Grab status for the folder and file so we can check whether
 // we can even access it, if it exists, is writable, etc.
@@ -140,7 +140,7 @@ if (!$statusArray['file_exists']) {
         cli_sort_build_routes_compile_and_output(["ROUTES" => $ROUTES]);
         cli_success("`$method$route` was SUCCESSFULLY created/used in `funkphp/core/pipeline_routes.php` with the File,Fn `$singleFolder=>$file=>$fn` added as its first or last Route Pipeline Key!");
     } else {
-        array_pop($ROUTES[$method][$route]);
+        unset($ROUTES[$method][$route]['pipeline'][$file]);
         cli_sort_build_routes_compile_and_output(["ROUTES" => $ROUTES]);
         cli_err("FAILED to Create File `$file.php` with Function `$fn` in Folder `$singleFolder`.  Creating $createdFFF did NOT complete for `$method$route`!");
     }
@@ -165,7 +165,7 @@ else {
         cli_sort_build_routes_compile_and_output(["ROUTES" => $ROUTES]);
         cli_success("`$method$route` was SUCCESSFULLY created/used in `funkphp/core/pipeline_routes.php` with the File,Fn in `$singleFolder=>$file=>$fn` added as its first or last Route Pipeline Key!");
     } else {
-        array_pop($ROUTES[$method][$route]);
+        unset($ROUTES[$method][$route]['pipeline'][$file]);
         cli_sort_build_routes_compile_and_output(["ROUTES" => $ROUTES]);
         cli_err("FAILED to Create Function `$fn` in File `$file.php` in `$singleFolder`. Creating $createdFFF did NOT complete for `$method$route`!");
     }
