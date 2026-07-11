@@ -45,6 +45,393 @@ $COMPILE_STATS_TRACKER = [
     'Data-QUERY' => [],
 ];
 
+$ROUTES_CONFIG_PARSED = [
+    'ALL' => [
+        'ALL_SNIPPETS_USED' => [ // Probably not needed as snippets are inserted as pure code during creation of a FN, or File->FN
+            'VALID' => [],
+            'INVALID' => [],
+        ],
+        'ALL_CLASSES_USED' => [
+            'VALID' => [],
+            'INVALID' => [],
+        ],
+        'ALL_USER_FNS_USED' => [
+            'VALID' => [],
+            'INVALID' => [],
+        ],
+        'ALL_CORE_FNS_USED' => [
+            'VALID' => [],
+            'INVALID' => [],
+        ],
+        'ALL_IGNORED_FNS_USED' => [
+            'VALID' => [],
+            'INVALID' => [],
+        ],
+        'ALL_BLACKLISTED_FNS_USED' => [  // Use this to ALWAYS DISALLOW certain FNs? (but FNs from where though?)
+            'VALID' => [],
+            'INVALID' => [],
+        ],
+        'ALL_WHITELISTED_FNS_USED' => [ // Use this to ONLY ALLOW certain FNs? (but FNs from where though?)
+            'VALID' => [],
+            'INVALID' => [],
+        ],
+        'ALL_REQUEST_PIPELINE_FILES_FNS_USED' => [
+            'VALID' => [],
+            'INVALID' => [],
+        ],
+        'ALL_POST_RESPONSE_PIPELINE_FILES_FNS_USED' => [
+            'VALID' => [],
+            'INVALID' => [],
+        ],
+        'ALL_ROUTES_ALIAS_USED' => [ // Enforce a unique ALIAS for every route, even across methods!
+            'VALID' => [],
+            'INVALID' => [],
+        ],
+        'ALL_ROUTES_PIPELINE_FILES_FNS_USED' => [
+            'VALID' => [],
+            'INVALID' => [],
+        ],
+        'ALL_MIDDLEWARES_USED' => [
+            'VALID' => [],
+            'INVALID' => [],
+        ],
+        'ALL_EXLUDE_MIDDLEWARES_USED' => [
+            'VALID' => [],
+            'INVALID' => [],
+        ],
+        'ALL_VALIDATION_FILES_FNS_USED' => [
+            'VALID' => [],
+            'INVALID' => [],
+        ],
+        'ALL_SQL_FILES_FNS_USED' => [
+            'VALID' => [],
+            'INVALID' => [],
+        ],
+        'ALL_QUERY_FILES_FNS_USED' => [
+            'VALID' => [],
+            'INVALID' => [],
+        ],
+        'ALL_PAGES_USED' => [ // Not use this one due to not specific enough?
+            'VALID' => [],
+            'INVALID' => [],
+        ],
+        'ALL_PAGES_REFERENCED_USED' => [ // This are when you use 'page' => 'FileName' for a Route Pipeline Key!
+            'VALID' => [],
+            'INVALID' => [],
+        ],
+        'ALL_PAGES_COMPILED_USED' => [
+            'VALID' => [],
+            'INVALID' => [],
+        ],
+        // Maybe skip sub [errors]-folder and just include default ones and
+        // also embed one inside of this command as default 500 and also scaffolding
+        // with command like `php funk make:page err:404|400|500` and so on instead?
+        'ALL_PAGES_COMPILED_[ERRORS]_USED' => [
+            'VALID' => [],
+            'INVALID' => [],
+        ],
+        'ALL_PAGES_COMPONENTS_USED' => [
+            'VALID' => [],
+            'INVALID' => [],
+        ],
+        'ALL_PAGES_LAYOUTS_USED' => [
+            'VALID' => [],
+            'INVALID' => [],
+        ],
+        'ALL_PAGES_PARTIALS_USED' => [
+            'VALID' => [],
+            'INVALID' => [],
+        ],
+    ],
+    'GLOBAL' => [
+        'HEADERS_USED' => [ // from <CONFIG_GLOBAL>
+            'VALID' => [
+                'ADD' => [],
+                'REMOVE' => []
+            ],
+            'INVALID' => [
+                'ADD' => [],
+                'REMOVE' => []
+            ]
+        ],
+        'SRIS_USED' => [ // from <CONFIG_GLOBAL> IS ONLY ON THIS LEVEL!
+            'VALID' => [],
+            'INVALID' => [],
+        ],
+        'CSP_USED' => [ // from <CONFIG_GLOBAL>
+            'VALID' => [],
+            'INVALID' => []
+        ],
+        'RATE_LIMITING_USED' => [ // from <CONFIG_GLOBAL>
+            'VALID' => [],
+            'INVALID' => [],
+        ],
+        'PARAMS_USED' => [ // from <CONFIG_GLOBAL>
+            'VALID' => [],
+            'INVALID' => [],
+        ],
+        'DEFAULT_NO_ROUTE_MATCH_USED' => [ // from <CONFIG_GLOBAL>
+            'VALID' => [],
+            'INVALID' => []
+        ],
+    ],
+    'METHODS' => [
+        'GET' => [
+            'MIDDLEWARES_USED' => [ // ONLY used middlewares for this method then?
+                'VALID' => [],
+                'INVALID' => [],
+            ],
+            'EXLUDE_MIDDLEWARES_USED' => [ // ONLY excluded middlewares for this method then?
+                'VALID' => [],
+                'INVALID' => [],
+            ],
+            'ROUTES_USED' => [ // But what do I mean with "ROUTES" here? Only keys?
+                'VALID' => [],
+                'INVALID' => [],
+            ],
+            'PARAMS_USED' => [ // from <CONFIG_METHOD>
+                'VALID' => [],
+                'INVALID' => [],
+            ],
+            'HEADERS_USED' => [ // from <CONFIG_METHOD>
+                'VALID' => [
+                    'ADD' => [],
+                    'REMOVE' => []
+                ],
+                'INVALID' => [
+                    'ADD' => [],
+                    'REMOVE' => []
+                ]
+            ],
+            'CSP_USED' => [ // from <CONFIG_METHOD>
+                'VALID' => [],
+                'INVALID' => []
+            ],
+            'RATE_LIMITING_USED' => [ // from <CONFIG_METHOD>
+                'VALID' => [],
+                'INVALID' => [],
+            ],
+            'PARAMS_USED' => [ // from <CONFIG_METHOD>
+                'VALID' => [],
+                'INVALID' => [],
+            ],
+            'DEFAULT_NO_ROUTE_MATCH_USED' => [ // from <CONFIG_METHOD>
+                'VALID' => [],
+                'INVALID' => []
+            ],
+        ],
+        'POST' => [
+            'MIDDLEWARES_USED' => [ // ONLY used middlewares for this method then?
+                'VALID' => [],
+                'INVALID' => [],
+            ],
+            'EXLUDE_MIDDLEWARES_USED' => [ // ONLY excluded middlewares for this method then?
+                'VALID' => [],
+                'INVALID' => [],
+            ],
+            'ROUTES_USED' => [ // But what do I mean with "ROUTES" here? Only keys?
+                'VALID' => [],
+                'INVALID' => [],
+            ],
+            'PARAMS_USED' => [ // from <CONFIG_METHOD>
+                'VALID' => [],
+                'INVALID' => [],
+            ],
+            'HEADERS_USED' => [ // from <CONFIG_METHOD>
+                'VALID' => [
+                    'ADD' => [],
+                    'REMOVE' => []
+                ],
+                'INVALID' => [
+                    'ADD' => [],
+                    'REMOVE' => []
+                ]
+            ],
+            'CSP_USED' => [ // from <CONFIG_METHOD>
+                'VALID' => [],
+                'INVALID' => []
+            ],
+            'RATE_LIMITING_USED' => [ // from <CONFIG_METHOD>
+                'VALID' => [],
+                'INVALID' => [],
+            ],
+            'PARAMS_USED' => [ // from <CONFIG_METHOD>
+                'VALID' => [],
+                'INVALID' => [],
+            ],
+            'DEFAULT_NO_ROUTE_MATCH_USED' => [ // from <CONFIG_METHOD>
+                'VALID' => [],
+                'INVALID' => []
+            ],
+        ],
+        'PUT' => [
+            'MIDDLEWARES_USED' => [ // ONLY used middlewares for this method then?
+                'VALID' => [],
+                'INVALID' => [],
+            ],
+            'EXLUDE_MIDDLEWARES_USED' => [ // ONLY excluded middlewares for this method then?
+                'VALID' => [],
+                'INVALID' => [],
+            ],
+            'ROUTES_USED' => [ // But what do I mean with "ROUTES" here? Only keys?
+                'VALID' => [],
+                'INVALID' => [],
+            ],
+            'PARAMS_USED' => [ // from <CONFIG_METHOD>
+                'VALID' => [],
+                'INVALID' => [],
+            ],
+            'HEADERS_USED' => [ // from <CONFIG_METHOD>
+                'VALID' => [
+                    'ADD' => [],
+                    'REMOVE' => []
+                ],
+                'INVALID' => [
+                    'ADD' => [],
+                    'REMOVE' => []
+                ]
+            ],
+            'CSP_USED' => [ // from <CONFIG_METHOD>
+                'VALID' => [],
+                'INVALID' => []
+            ],
+            'RATE_LIMITING_USED' => [ // from <CONFIG_METHOD>
+                'VALID' => [],
+                'INVALID' => [],
+            ],
+            'PARAMS_USED' => [ // from <CONFIG_METHOD>
+                'VALID' => [],
+                'INVALID' => [],
+            ],
+            'DEFAULT_NO_ROUTE_MATCH_USED' => [ // from <CONFIG_METHOD>
+                'VALID' => [],
+                'INVALID' => []
+            ],
+        ],
+        'PATCH' => [
+            'MIDDLEWARES_USED' => [ // ONLY used middlewares for this method then?
+                'VALID' => [],
+                'INVALID' => [],
+            ],
+            'EXLUDE_MIDDLEWARES_USED' => [ // ONLY excluded middlewares for this method then?
+                'VALID' => [],
+                'INVALID' => [],
+            ],
+            'ROUTES_USED' => [ // But what do I mean with "ROUTES" here? Only keys?
+                'VALID' => [],
+                'INVALID' => [],
+            ],
+            'PARAMS_USED' => [ // from <CONFIG_METHOD>
+                'VALID' => [],
+                'INVALID' => [],
+            ],
+            'HEADERS_USED' => [ // from <CONFIG_METHOD>
+                'VALID' => [
+                    'ADD' => [],
+                    'REMOVE' => []
+                ],
+                'INVALID' => [
+                    'ADD' => [],
+                    'REMOVE' => []
+                ]
+            ],
+            'CSP_USED' => [ // from <CONFIG_METHOD>
+                'VALID' => [],
+                'INVALID' => []
+            ],
+            'RATE_LIMITING_USED' => [ // from <CONFIG_METHOD>
+                'VALID' => [],
+                'INVALID' => [],
+            ],
+            'PARAMS_USED' => [ // from <CONFIG_METHOD>
+                'VALID' => [],
+                'INVALID' => [],
+            ],
+            'DEFAULT_NO_ROUTE_MATCH_USED' => [ // from <CONFIG_METHOD>
+                'VALID' => [],
+                'INVALID' => []
+            ],
+        ],
+        'DELETE' => [
+            'MIDDLEWARES_USED' => [ // ONLY used middlewares for this method then?
+                'VALID' => [],
+                'INVALID' => [],
+            ],
+            'EXLUDE_MIDDLEWARES_USED' => [ // ONLY excluded middlewares for this method then?
+                'VALID' => [],
+                'INVALID' => [],
+            ],
+            'ROUTES_USED' => [ // But what do I mean with "ROUTES" here? Only keys?
+                'VALID' => [],
+                'INVALID' => [],
+            ],
+            'PARAMS_USED' => [ // from <CONFIG_METHOD>
+                'VALID' => [],
+                'INVALID' => [],
+            ],
+            'HEADERS_USED' => [ // from <CONFIG_METHOD>
+                'VALID' => [
+                    'ADD' => [],
+                    'REMOVE' => []
+                ],
+                'INVALID' => [
+                    'ADD' => [],
+                    'REMOVE' => []
+                ]
+            ],
+            'CSP_USED' => [ // from <CONFIG_METHOD>
+                'VALID' => [],
+                'INVALID' => []
+            ],
+            'RATE_LIMITING_USED' => [ // from <CONFIG_METHOD>
+                'VALID' => [],
+                'INVALID' => [],
+            ],
+            'PARAMS_USED' => [ // from <CONFIG_METHOD>
+                'VALID' => [],
+                'INVALID' => [],
+            ],
+            'DEFAULT_NO_ROUTE_MATCH_USED' => [ // from <CONFIG_METHOD>
+                'VALID' => [],
+                'INVALID' => []
+            ],
+        ],
+    ],
+    'ROUTES' => [
+        ["<PLACEHOLDER_THIS_IS_ROUTE_URI>" => [
+            'HEADERS_USED' => [ // from <SPECIFIC_ROUTE_URI_KEY>
+                'VALID' => [
+                    'ADD' => [],
+                    'REMOVE' => []
+                ],
+                'INVALID' => [
+                    'ADD' => [],
+                    'REMOVE' => []
+                ]
+            ],
+            'PARAMS_USED' => [ // from <SPECIFIC_ROUTE_URI_KEY>
+                'VALID' => [],
+                'INVALID' => [],
+            ],
+            'RATE_LIMITING_USED' => [ // from <SPECIFIC_ROUTE_URI_KEY>
+                'VALID' => [],
+                'INVALID' => [],
+            ],
+            // from <SPECIFIC_ROUTE_URI_KEY> | I really do NOT konw what I mean with "cache" for a specific route key though?
+            // what would actually be "cached", where, for how long, and most importantly; WHY?
+            'CACHE_USED' => [
+                'VALID' => [],
+                'INVALID' => []
+            ],
+            'CSP_USED' => [ // from <SPECIFIC_ROUTE_URI_KEY>
+                'VALID' => [],
+                'INVALID' => []
+            ],
+        ]],
+    ]
+];
+
+
 // Initialize an array to hold the different compiled sections of the file
 // and its sub parts so we can add sub parts as needed to the entire file!
 $HTTPS_KERNEL_DISPATCH_FUNCTION_FOUND = false;
@@ -104,6 +491,9 @@ cli_info_without_exit("#### Do Embed Pages: " . ($embedPages ? "YES (pages will 
 cli_info_without_exit("#### Do Compress Deployment: " . ($compressDeployment ? "YES (FunkPHPDeployment.php, pages and public_html folder will be in a single compresed file)" : "NO"));
 
 // The actual compiling & building steps
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////  STEP #1 Loading, Validating & Compiling `config.php`  //////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
 cli_info_without_exit("G`### Step 1 STARTS ###` Loading, Validating & Compiling `config.php` File ('Config' in FunkGUI)...");
 $configWarnsAndErrs = [];
 $cConfig = null;
@@ -188,6 +578,9 @@ foreach ($cConfig as $cKey => $val) {
 }
 cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for the `c.php` (FunkPHP Configuration File) and try again! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////  STEP #1 validate  `config.php` - BOOLEAN keys in $c[...] //////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
 // VALIDATE "FUNKPHP_ONLINE" Key and that "INI_SETS" is an associative array
 $fphpo_iniChecks = [];
 $fphpo_iniChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["FUNKPHP_ONLINE"], $configWarnsAndErrs, "cli_err");
@@ -232,6 +625,10 @@ if (
 ) {
     cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED` containing exact Path to `src/funkphp/config/functions.php` (User-defined Globally Available Functions) is DEFINED & FOUND but is NOT READABLE! File Permission issues? Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////  STEP #1  load /funkphp/config/functions.php and validate them //
+////////////////////////////////////////////////////////////////////////////////////////////////////
 // Load User Functions globally by now inside $userFunctionsFile
 // but first quick check if both are existing non-empty strings but are exactly the same
 // meaning same handler for both different types? Not recommended, so we do not allow.
@@ -247,13 +644,13 @@ if (
     cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Exception Handler `{$cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER']}` & the Custom Registered Shutdown Function `{$cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION']}` are exactly the same in `src/funkphp/core/c.php` (Global Configuration Array File)! Check Function Names in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one(s)! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
 }
 $userFunctionsFile = cli_folder_and_php_file_status("funkphp/config", "functions.php");
+cli_dump($userFunctionsFile);
 if (!$userFunctionsFile['file_exists'] || !$userFunctionsFile['folder_readable']) {
     cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configuration File `src/funkphp/config/functions.php` (User-defined Globally Available Functions) WAS NOT FOUND or IS NOT READABLE when it should have been? This might now show other errors below this one!");
 }
 if (!$userFunctionsFile['functions_same_count']) {
     cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configuration File `src/funkphp/config/functions.php` (User-defined Globally Available Functions) WAS FOUND USING Either Regex or Tokenizer but not both Indicating some Formatting Issue Inside File? (check for any trailing comment at the end of a function block{} <-- here)");
 }
-//exit;
 if (count($userFunctionsFile['fn_names_duplicates']) > 0) {
     cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "There are Duplicate Function Names (`" . join(", ", array_keys($userFunctionsFile['fn_names_duplicates'])) .  "`) in `src/funkphp/config/functions.php` (User-defined Globally Available Functions)! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
     cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for `src/funkphp/config/functions.php` (User-defined Globally Available Functions) and try again! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
@@ -268,6 +665,9 @@ if (isset($cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION'])) {
         cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Registered Shutdown Function `{$cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION']}` NOT FOUND in `src/funkphp/config/functions.php` (User-defined Globally Available Functions) is DEFINED & FOUND but is NOT READABLE! Check Function Name in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
     }
 }
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////  STEP #1  c['FUNKPHP_CUSTOM_URI_NORMALIZER'] //
+////////////////////////////////////////////////////////////////////////////////////////////////////
 // c['FUNKPHP_CUSTOM_URI_NORMALIZER'] must be a string or null and it cannot be the same function as
 // custom exception handler function OR custom register shutdown function!
 $fphpo_customChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["FUNKPHP_CUSTOM_URI_NORMALIZER"], $configWarnsAndErrs, "cli_err");
@@ -315,7 +715,9 @@ if (isset($cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER'])) {
         cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Exception Handler `{$cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER']}` HAS CONFLICTING FUNCTION NAME with The Array String List of Reserved Function Names `src/cli/core/cli_reserved.php`. Please change your Function Name in `src/funkphp/config/functions.php` and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). OR set it to `null` if you wanna use default one! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
     }
 }
-
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////  STEP #1 Validate $c['FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION']
+////////////////////////////////////////////////////////////////////////////////////////////////////
 // Validate $c['FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION'] that allow for a custom HTTPS Kernel Dispatcher Function meaning
 // it would replace the in-built one that is triggered by having the 'pl_https_kernel_dispatch' in Pipeline Request Array!
 $fphpo_customChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION"], $configWarnsAndErrs, "cli_err");
@@ -345,6 +747,9 @@ if (isset($cConfig['FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION'])) 
 
 cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for Main Keys 'FUNKPHP_ONLINE', 'FUNKPHP_USE_HTTPS', 'FUNKPHP_USE_PREPARE_URI', 'FUNKPHP_CUSTOM_EXCEPTION_HANDLER', 'FUNKPHP_CUSTOM_EXCEPTION_HANDLER', 'FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION', 'FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION', & 'INI_SETS' in the `c.php` (FunkPHP Configuration File) and try again! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////  STEP #1 VALIDATE BASEURLS Array Subkeys Paths!
+////////////////////////////////////////////////////////////////////////////////////////////////////
 // VALIDATE BASEURLS Array Subkeys Paths!
 $baseURLSChecks = [];
 $baseURLSChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["BASEURLS", "LOCAL"], $configWarnsAndErrs, "cli_err");
@@ -363,6 +768,9 @@ cli_assert_final_value(
 );
 cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for 'BASEURL' Main Key in the `c.php` (FunkPHP Configuration File) and try again! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////  STEP #1 VALIDATE SESSION Array Subkeys Paths!
+////////////////////////////////////////////////////////////////////////////////////////////////////
 // VALIDATE SESSION Array Subkeys Paths!
 $sessionChecks = [];
 // 1. Session Driver
@@ -397,6 +805,9 @@ cli_assert_final_value(end($sessionChecks), $configWarnsAndErrs, "cli_err", (fun
 // Halt execution loop immediately if any errors crept into the pipeline setup
 cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for 'SESSION' Main Key in the `c.php` (FunkPHP Configuration File) and try again! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////  STEP #1 VALIDATE CLASSES Array Subkeys Paths!
+////////////////////////////////////////////////////////////////////////////////////////////////////
 // VALIDATE CLASSES Array Subkeys Paths!
 $classesChecks = [];
 $classesChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["classes"], $configWarnsAndErrs, "cli_err");
@@ -406,6 +817,9 @@ $classesChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONF
 cli_assert_final_value(end($classesChecks), $configWarnsAndErrs, "cli_err", 'array-empty', "Must be an Empty Array  as it will be filled with user-defined class instances (from src/funkphp/classes) during runtime.");
 cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for 'classes' Main Key in the `c.php` (FunkPHP Configuration File) and try again! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////  STEP #1 VALIDATE CONNECTIONS Array Subkeys Paths!
+////////////////////////////////////////////////////////////////////////////////////////////////////
 // VALIDATE CONNECTIONS Array Subkeys Paths!
 $connectionsChecks = [];
 $connectionsChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["connections"], $configWarnsAndErrs, "cli_err");
@@ -413,6 +827,9 @@ cli_assert_final_value(end($connectionsChecks), $configWarnsAndErrs, "cli_err", 
 $connectionsChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["credentials"], $configWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($connectionsChecks), $configWarnsAndErrs, "cli_err", 'array-empty', "Must be an Empty Array as it will be filled with First Validated Credentials stored in `src/funkphp/config/conns.php`!");
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////  STEP #1 LOAD & VALIDATE ARRAY inside `src/funkphp/config/conns.php`
+////////////////////////////////////////////////////////////////////////////////////////////////////
 // Load & validate the array structure inside of `src/funkphp/config/conns.php`
 if (
     !defined('FUNKPHP_FILE_PATH_CONNS_CONFIG')
@@ -528,6 +945,9 @@ if (is_array($connsPayload)) {
 }
 cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for the Main Keys 'connections' & 'credentials' in the `c.php` (FunkPHP Configuration File) and try again! Paths: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . " & " . (FUNKPHP_FILE_PATH_CONNS_CONFIG ?? "[NOT_DEFINED]") . "`");
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////  STEP #1 VALIDATE REQ Array Subkeys Paths!
+////////////////////////////////////////////////////////////////////////////////////////////////////
 // VALIDATE REQ Array Subkeys Paths!
 $reqChecks = [];
 $reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req"], $configWarnsAndErrs, "cli_err");
@@ -572,6 +992,9 @@ $reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_F
 cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'null', "This identifies the incoming server transport protocol details (e.g., HTTP/1.1, HTTP/2, HTTP/3).");
 cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for 'req' Main Key and its Subkeys in the `c.php` (FunkPHP Configuration File) and try again! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////  STEP #1 VALIDATE 'd', 'v' (and its associated keys), 'p' & 'files'
+////////////////////////////////////////////////////////////////////////////////////////////////////
 // VALIDATE 'd', 'v' (and its associated keys), 'p' & 'files' which should ALL be just null at this point!
 $dvpfChecks = [];
 $dvpfChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["d"], $configWarnsAndErrs, "cli_err");
@@ -592,6 +1015,9 @@ $dvpfChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_
 cli_assert_final_value(end($dvpfChecks), $configWarnsAndErrs, "cli_err", 'null', "Main Key `files` is meant to Store Uploaded Files (if applicable). Can be used any time during a Valid HTTP(S) Request!");
 cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for the Main Keys 'd','v','v_ok','v_ok_files','v_config','v_data','s_data','p','p_config' & 'files' in the `c.php` (FunkPHP Configuration File) and try again! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////  STEP #1 VALIDATE 'err' and its subkeys!
+////////////////////////////////////////////////////////////////////////////////////////////////////
 // VALIDATE 'err' and its subkeys!
 $cErrChecks = [];
 $cErrChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["err"], $configWarnsAndErrs, "cli_err");
@@ -618,10 +1044,16 @@ $cErrChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_
 cli_assert_final_value(end($cErrChecks), $configWarnsAndErrs, "cli_err", 'array-empty', "This Subkey in `err` should be empty and is filled out during a HTTP(S) Request!");
 cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for the Main Key 'err' and its Subkeys in the `c.php` (FunkPHP Configuration File) and try again! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////  STEP #1 VALIDATE Certain Constants by is using !defined() and error out if not found!
+////////////////////////////////////////////////////////////////////////////////////////////////////
 // VALIDATE Certain Constants by is using !defined() and error out if not found!
 cli_assert_final_value(NULL, $configWarnsAndErrs, "cli_err", 'constants:FUNKPHP_NO_VALUE,FUNKPHP_ALLOW_INSTANCE_OVERWRITE', "These Constants are a MUST for FunkPHPDeployment.php to 'function' properly!");
 cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for the Required Constants from the `c.php` (FunkPHP Configuration File) and try again! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////  STEP #1 ALMOST DONE!
+////////////////////////////////////////////////////////////////////////////////////////////////////
 // Here ### Step 1 is fully validated so now we insert starting point of the `FunkPHPDeployment.php` file into the $deploymentBuffer array for later writing to disk!
 cli_success_without_exit("G`### Step 1 DONE ###` Validating & Adding `c.php` (FunkPHP Configuration File) SUCCESSFULLY! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`.");
 $BUILD_VERSION = "<?php // FunkPHPDeployment.php | Created: " . date("Y-m-d H:i:s") . " | PHP Version: " .  PHP_VERSION . " | FunkPHP Version: " . (FUNKPHP_VERSION ?? "<Unknown Version>") . " | FunkCLI Version: " . (FUNKCLI_VERSION ?? "<Unknown Version>") . "\n\n";
@@ -660,7 +1092,6 @@ unset($cConfig['req']['matched_middlewares']);
 $cConfig['credentials'] = $connsPayload;
 $compilationSecretToken = "'{{##CONFIG_TOKEN_STRING_THAT_IS_REPLACED_##FUNKPHP_COMPILE_" . bin2hex(random_bytes(32)) . "LATER_BY_COMPLETE_CONFIG_IT_NEEDS_PIPELINE_KEYS_FIRST##}}'##";
 $deploymentConfigBuffer[] = "\$c = $compilationSecretToken;\n";
-//$deploymentConfigBuffer[] = cli_replace_string_tokens_in_var_exported_string($cReqReplacements, var_export($cConfig, "true")) . ";\n";
 $deploymentBuffer[] = implode("", $deploymentConfigBuffer);
 
 // Adding optional /src/funkphp/vendor loading!
@@ -689,6 +1120,9 @@ $deploymentBuffer[] = "});\n";
 // Add the Almighty Important `ob_start();` - FunkPHP Framework FOLLOWS "ob_start() FOR EVERY REQUEST - ALWAYS, YOU HAVE TO CHANGE IT MANUALLY!"
 $deploymentBuffer[] = "ob_start();\n";
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////  STEP #1 Adding the Functions now! (first USER-DEFINED, then CORE DEFINED)
+////////////////////////////////////////////////////////////////////////////////////////////////////
 // Adding the Functions now! (first user-defined, then in-built functions) where the
 // user-defined with same name as the in-built is not allowed since both will be in global namespace!
 // USER-DEFINED cannot start with "funk_" or "cli_" but can start with "funk_validate_" for custom validation
@@ -720,6 +1154,7 @@ foreach ($userFunctionsFile['functions'] as $fnNameUser => $fnValsUser) {
         isset($coreFunctionsFile['functions'][strtolower($fnNameUser)])
         || in_array(strtolower($fnNameUser), $reserved_functions, true)
     ) {
+        $ROUTES_CONFIG_PARSED['ALL_USER_FNS_USED']['INVALID'][$fnNameUser] = true;
         cli_build_warning_err_list($functionsWarnsAndErrs, "cli_err", "User-defined function '$fnNameUser' is already used by FunkPHP/FunkCLI. Please choose rename the function (cannot start with `funk_` or `cli_`) or remove it! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
     } else if (
         (str_starts_with(strtolower($fnNameUser), "funk_") &&
@@ -729,9 +1164,11 @@ foreach ($userFunctionsFile['functions'] as $fnNameUser => $fnValsUser) {
             && $fnValsUser['fn_exact_name'] !== $fnValsUser['fn_lowercased']
         )
     ) {
+        $ROUTES_CONFIG_PARSED['ALL_USER_FNS_USED']['INVALID'][$fnNameUser] = true;
         cli_build_warning_err_list($functionsWarnsAndErrs, "cli_err", "User-defined function '$fnNameUser' starts with `funk_` (but not `funk_validate_`) or `cli_` which is not allowed. Please choose rename the function or remove it! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
     } else {
         $COMPILE_STATS_TRACKER['User-FUNCTIONS'][] = $fnNameUser;
+        $ROUTES_CONFIG_PARSED['ALL_USER_FNS_USED']['VALID'][$fnNameUser] = true;
         $deploymentBuffer[] = $fnValsUser['fn_raw'] . "\n";
     }
 }
