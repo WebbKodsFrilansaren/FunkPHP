@@ -50,7 +50,6 @@ function cli_dump($var, $exit = true, $horisontal = false)
     $cNull    = "\e[1;31m"; // Bold Red for Null values
     $cStatLbl = "\e[0;37m"; // White for Stat labels
     $cStatVal = "\e[1;32m"; // Bold Green for counts
-
     // Global Value Type count (like how many strings, booleans, arrays, etc.)
     $globalTypeCount = [
         'nulls' => 0,
@@ -69,11 +68,9 @@ function cli_dump($var, $exit = true, $horisontal = false)
         'objects' => 0,
         'others' => 0,
     ];
-
     // Output Header banner block
     echo "\n{$cHeader}[FunkCLI - DUMP]:{$cReset}\n";
     echo "{$cLine}" . str_repeat('=', 150) . "{$cReset}\n";
-
     // Isolated recursive formatting closure engine
     $render = function ($data, $depth = 0, $keyName = null, $inList = false) use (
         &$render,
@@ -196,7 +193,7 @@ function cli_dump($var, $exit = true, $horisontal = false)
     // Execute root level execution trace
     $render($var);
     // Format and output the telemetry metric reporting engine blocks
-    echo "{$cLine}" . str_repeat('=', 150) . "{$cReset}\n\n";
+    echo "{$cLine}" . str_repeat('=', 150) . "{$cReset}\n";
     echo "{$cHeader}[ DUMP TELEMETRY METRICS SUMMARY ]{$cReset}\n";
     echo "  ├── {$cStatLbl}Structural Containers{$cReset}\n"
         . "  │   ├── Objects:         " . sprintf("{$cStatVal}%-4d{$cReset}", $globalTypeCount['objects']) . "\n"
@@ -216,7 +213,6 @@ function cli_dump($var, $exit = true, $horisontal = false)
         exit(1);
     }
 }
-
 // Function that wants the return value of: "cli_file_status()"
 // and make do checks that then return boolean whether true, like checking
 /**
@@ -301,6 +297,7 @@ function cli_status_helper(&$ref, $checks): bool
                 if (
                     !($fnMeta['valid_fn_structure'] ?? false)
                     || !($fnMeta['fn_name_same_as_lowercased'] ?? false)
+                    || !($fnMeta['fn_starts_with_cli'] ?? false)
                 ) {
                     return false;
                 }
@@ -399,26 +396,35 @@ function cli_file_status($folder, $file, $useExactFilePathInstead = false, $deep
     $namespaceRegex = '/^namespace\s+(.*?);(\r|\n)*$/im';
     $classRegex = '/^class\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*{(.*?^}\s*(;)?)?(\r|\n)*$/ims';
     $returnRegex = '/return\s*array\(.*?\);$\n/ims';
-    $fns = null;
-    $fnsviaTokenizer = null;
+    $fns = [];
+    $fnsviaTokenizer = [];
     $clnames_only = [];
     $clnames_duplicates = [];
     $fnames_only = [];
     $fnames_duplicates = [];
     $classExists = false;
     $classes = [];
-    $classesviaTokenizer = null;
+    $classesviaTokenizer = [];
     $namespaceExists = false;
     $namespaceParts = null;
     $fileRaw = null;
     $fileReturnRaw = null;
     $DEEPER = null;
+    $NO_FN_START_CLI = true;
+    $NO_FN_START_FUNK = true;
+    $NO_FN_START_FUNK_VALIDATE = true;
     if (is_file($file) && is_readable($file)) {
         $fileCnt = file_get_contents($file);
         if (!$fileCnt) {
-            cli_warning_without_exit('[cli_file_status()]: Could NOT Read the File `' . $file . '` when it SHOULD have been Readable. This means that Named Functions, their $DX and/or Return arrays(), OR Anonymous Function Files CANNOT be retrieved for use!');
+            cli_warning_without_exit('[cli_file_status()]: Could NOT Read the File `' . $file . '` when it SHOULD have been Readable. This means that Namespace, Classes, Named Functions, their $DX and/or Return arrays() CANNOT be retrieved for use!');
         } else {
             $fileRaw = $fileCnt;
+            global $reserved_functions; // Access list of unallowed/reserved FN names!
+            if (
+                !isset($reserved_functions)
+                || !is_array($reserved_functions) || empty($reserved_functions)
+            ) {
+            }
             // Check if namespace exists which should start on a new line and end with ;
             if (preg_match($namespaceRegex, $fileCnt, $namespaceMatch)) {
                 $namespaceExists = true;
@@ -433,17 +439,19 @@ function cli_file_status($folder, $file, $useExactFilePathInstead = false, $deep
                     // EPIPHANY: If it doesn't end with a curly brace, the regex only caught the signature!
                     $regexRaw = $fnsMatches[0][$idx] ?? '';
                     $cleanRegexRaw = trim($regexRaw);
-                    $regexBodyCaught = (str_ends_with($cleanRegexRaw, '};') || str_ends_with($cleanRegexRaw, '}'));
+                    $regexBodyCaught =
+                        ((str_ends_with($cleanRegexRaw, '};') || str_ends_with($cleanRegexRaw, '}')));
                     if ($regexBodyCaught) {
                         $fns[$fn] = [
-                            'valid_fn_structure' => $regexBodyCaught,
+                            'valid_fn_structure' => ($regexBodyCaught && !in_array($fn, $reserved_functions)),
+                            'fn_name_reserved' => (in_array($fn, $reserved_functions)),
                             'fn_exact_name' => $fn,
                             'fn_name_same_as_lowercased' => ($fn === strtolower($fn)),
                             'fn_lowercased' => strtolower($fn),
                             'fn_uppercased' => strtoupper($fn),
                             'fn_starts_with_cli' => str_starts_with(strtolower($fn), 'cli_'),
                             'fn_starts_with_funk' => str_starts_with(strtolower($fn), 'funk_'),
-                            'fn_starts_with_funk_validate_' => str_starts_with(strtolower($fn), 'funk_validate_'),
+                            'fn_starts_with_funk_validate' => str_starts_with(strtolower($fn), 'funk_validate_'),
                             'fn_raw' => $fnsMatches[0][$idx] ?? null,
                             'dx_raw' => null,
                             'return_raw' => null
@@ -452,6 +460,15 @@ function cli_file_status($folder, $file, $useExactFilePathInstead = false, $deep
                             $fnames_duplicates[$fn] = true;
                         }
                         $fnames_only[] = $fn;
+                        if ($fns[$fn]['fn_starts_with_cli']) {
+                            $NO_FN_START_CLI = true;
+                        }
+                        if ($fns[$fn]['fn_starts_with_funk']) {
+                            $NO_FN_START_FUNK = true;
+                        }
+                        if ($fns[$fn]['fn_starts_with_funk_validate']) {
+                            $NO_FN_START_FUNK_VALIDATE = true;
+                        }
                         // We now use the index to match for $DX and return arrays
                         if (preg_match($dxRegex, $fnsMatches[0][$idx], $dxMatch)) {
                             $fns[$fn]['dx_raw'] = $dxMatch[0] ?? null;
@@ -498,15 +515,6 @@ function cli_file_status($folder, $file, $useExactFilePathInstead = false, $deep
     return [
         'file_raw' => $fileRaw,
         'deeper_analysis' => $DEEPER,
-        'class_exists' => $classExists,
-        'class_names_only' => $clnames_only,
-        'class_names_duplicates' => $clnames_duplicates,
-        'classes' => $classes,
-        'classes_via_tokenizer' => (isset($classesviaTokenizer) ? $classesviaTokenizer :  []),
-        'classes_same_count' => (isset($classes) && isset($classesviaTokenizer) && (count($classes) === count($classesviaTokenizer))),
-        'namespace_exists' => $namespaceExists,
-        'namespace_name' => ($namespaceExists ? $namespaceMatch[1] ?? null : null),
-        'namespace_parts' => $namespaceParts,
         'folder_provided_path' => $providedFolder ?? null,
         'folder_name' => $singleFolder ?? null,
         'folder_path_attempted' => $folder ?? "N/A",
@@ -517,14 +525,32 @@ function cli_file_status($folder, $file, $useExactFilePathInstead = false, $deep
         'folder_writable' => is_writable($folder),
         'file_name' => $filename,
         'file_path' => ((is_file($file) && is_readable($file) && is_writable($file)) ? $file : null),
-        'file_exists' => is_file($file),
-        'file_readable' => is_readable($file),
         'file_writable' => is_writable($file),
-        'fn_names_only' => (isset($fnames_only) ? $fnames_only : []),
-        'fn_names_duplicates' => (isset($fnames_duplicates) ? $fnames_duplicates : []),
+        'classes' => $classes,
+        'classes_via_tokenizer' => (isset($classesviaTokenizer) ? $classesviaTokenizer :  []),
         'functions' => (isset($fns) ? $fns : []),
         'functions_via_tokenizer' => (isset($fnsviaTokenizer) ? $fnsviaTokenizer : []),
+        'classes_same_count' => (isset($classes) && isset($classesviaTokenizer)
+            && (count($classes) === count($classesviaTokenizer))
+            && (count($classes) > 0) && (count($classesviaTokenizer) > 0)),
+        'class_names_only' => $clnames_only,
+        'class_names_duplicates' => $clnames_duplicates,
+        'fn_names_only' => (isset($fnames_only) ? $fnames_only : []),
+        'fn_names_duplicates' => (isset($fnames_duplicates) ? $fnames_duplicates : []),
+        'class_exists' => $classExists,
+        'no_fn_starts_with_cli' => $NO_FN_START_CLI,
+        'no_fn_starts_with_funk' => $NO_FN_START_FUNK,
+        'no_fn_starts_with_funk_validate' => $NO_FN_START_FUNK_VALIDATE,
+        'functions_exist' => ((isset($fns) && count($fns) > 0)),
         'functions_same_count' => (isset($fns) && isset($fnsviaTokenizer) && (count($fns) === count($fnsviaTokenizer))),
+        'namespace_parts' => $namespaceParts,
+        'namespace_name' => ($namespaceExists ? $namespaceMatch[1] ?? null : null),
+        'namespace_exists' => $namespaceExists,
+        'file_empty' => ((count($classes) === 0)
+            && (count($fns) === 0) && (count($fnsviaTokenizer) === 0)
+            && (count($classesviaTokenizer) === 0) && !$namespaceExists),
+        'file_readable' => is_readable($file),
+        'file_exists' => is_file($file),
     ];
 }
 

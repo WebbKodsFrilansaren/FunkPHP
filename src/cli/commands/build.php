@@ -682,7 +682,7 @@ cli_assert_final_value(end($useAndCustomChecks), $configWarnsAndErrs, "cli_err",
 // If vendor wanna be used, validate it actually exists, but this will NOT validate the entire contents of vendor!
 if ($cConfig['FUNKPHP_USE_VENDOR'] === true) {
     if (!defined('FUNKPHP_FILE_PATH_VENDOR_AUTOLOAD_FILE') || !is_readable(FUNKPHP_FILE_PATH_VENDOR_AUTOLOAD_FILE)) {
-        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_FILE_PATH_VENDOR_AUTOLOAD_FILE` containing exact Path to `src/funkphp/vendor/autoload.php` IS NOT DEFINED, or FILE IS NOT FOUND or FILE IS NOT READABLE. Set `FUNKPHP_USE_VENDOR` (via FunkCLI or FunkGUI) to false if you do not wanna use Vendor/Composer-based classes!");
+        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_FILE_PATH_VENDOR_AUTOLOAD_FILE` containing exact Path to `src/funkphp/vendor/autoload.php` IS NOT DEFINED, or FILE IS NOT FOUND or FILE IS NOT READABLE. Set `FUNKPHP_USE_VENDOR` (via FunkCLI or FunkGUI) to 'false' if you do not wanna use Vendor/Composer-based classes!");
         cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for Main Keys 'FUNKPHP_ONLINE', 'FUNKPHP_USE_HTTPS', 'FUNKPHP_USE_PREPARE_URI', 'FUNKPHP_CUSTOM_EXCEPTION_HANDLER', 'FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION' & 'INI_SETS' in the `/src/funkphp/config/c.php` (FunkPHP Configuration File) and try again!");
     }
     cli_info_without_exit("IMPORTANT ABOUT VENDOR/COMPOSER BEING USED: FunkCLI does NOT validate the contents inside of the `src/funkphp/vendor` Directory and/or that it even exists after deployment, it just assumes it exists when you use `funk_use_vendor()`!");
@@ -691,20 +691,22 @@ if ($cConfig['FUNKPHP_USE_VENDOR'] === true) {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////  STEP #1 validate  `config.php` - User-defined CUSTOM_Functions that must all be unique if used
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-// Load User Functions globally by now inside $userFunctionsFile
+// Load User Functions globally by now inside $userFunctionsFile | AND IT CAN BE EMPTY (No FNs used)
 // Load Custom user-defined functions (NOT classes(!)) when its constant is defined, file exists and is readable.
 $userFunctionsFile = cli_file_status("funkphp/config", "functions.php");
-if (!cli_status_helper($userFunctionsFile, ["file_exists", "folder_readable",])) {
-    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configuration File `/src/funkphp/config/functions.php` (User-defined Globally Available Functions) WAS NOT FOUND or IS NOT READABLE when it should have been? This might now show other errors below this one!");
-}
-if (!cli_status_helper($userFunctionsFile, ['functions_same_count'])) {
-    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configuration File `/src/funkphp/config/functions.php` (User-defined Globally Available Functions) WAS FOUND USING Either Regex or Tokenizer but not both Indicating some Formatting Issue Inside File? (check for any trailing comment at the end of a function block{} <-- here)");
+cli_dump($userFunctionsFile, false);
+if (!cli_status_helper($userFunctionsFile, [
+    "file_exists",
+    "folder_readable",
+])) {
+    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configuration File `/src/funkphp/config/functions.php` (User-defined Globally Available Functions) WAS NOT FOUND or IS NOT READABLE! Review File Name and/or File Permissions and try again!");
 }
 
+// VALIDATE THAT CUSTOM SET FNS ARE NOT THE SAME SINCE EACH FUNCTION MUST BE UNIQUE
 $useAndCustomChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["FUNKPHP_CUSTOM_EXCEPTION_HANDLER"], $configWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($useAndCustomChecks), $configWarnsAndErrs, "cli_err", 'string|null', "Key for which optional Custom Exception Handler to use or default is used. Set to `null` if not used or a `String` that is a Function Name in `/src/funkphp/config/functions.php`). This applies for every HTTP(S) Request!");
 if (isset($cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER'])) {
-    $ROUTES_CONFIG_PARSED['USER_FNS_USED_FOR'][$cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER']] = "Custom Exception Handler Function";
+    $ROUTES_CONFIG_PARSED['USER_FNS_USED_FOR'][$cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER']] = "FUNKPHP_CUSTOM_EXCEPTION_HANDLER";
 }
 $useAndCustomChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION"], $configWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($useAndCustomChecks), $configWarnsAndErrs, "cli_err", 'string|null', "Key for which optional Custom Shutdown Function to use or default is used. Set to `null` if not used or a `String` that is a Function Name in `/src/funkphp/config/functions.php`). This applies for every HTTP(S) Request!");
@@ -712,111 +714,53 @@ if (isset($cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION'])) {
     if (isset($ROUTES_CONFIG_PARSED['USER_FNS_USED_FOR'][$cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION']])) {
         cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The set `FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION` is already being used by `{$ROUTES_CONFIG_PARSED['USER_FNS_USED_FOR'][$cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION']]}`! Make sure all User-defined Functions in `/src/funkphp/config/functions.php` are all unique!");
     } else {
-        $ROUTES_CONFIG_PARSED['USER_FNS_USED_FOR'][$cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION']] = "Custom Shutdown Function";
+        $ROUTES_CONFIG_PARSED['USER_FNS_USED_FOR'][$cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION']] = "FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION";
     }
 }
-
 $useAndCustomChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["FUNKPHP_CUSTOM_ERROR_HANDLER"], $configWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($useAndCustomChecks), $configWarnsAndErrs, "cli_err", 'string|null', "Key for which optional Custom Error Handler to use or default is used. Set to `null` if not used or a `String` that is a Function Name in `/src/funkphp/config/functions.php`). This applies for every HTTP(S) Request!");
 if (isset($cConfig['FUNKPHP_CUSTOM_ERROR_HANDLER'])) {
     if (isset($ROUTES_CONFIG_PARSED['USER_FNS_USED_FOR'][$cConfig['FUNKPHP_CUSTOM_ERROR_HANDLER']])) {
         cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The set `FUNKPHP_CUSTOM_ERROR_HANDLER` is already being used by `{$ROUTES_CONFIG_PARSED['USER_FNS_USED_FOR'][$cConfig['FUNKPHP_CUSTOM_ERROR_HANDLER']]}`! Make sure all User-defined Functions in `/src/funkphp/config/functions.php` are all unique!");
     } else {
-        $ROUTES_CONFIG_PARSED['USER_FNS_USED_FOR'][$cConfig['FUNKPHP_CUSTOM_ERROR_HANDLER']] = "Custom Error Handler Function";
+        $ROUTES_CONFIG_PARSED['USER_FNS_USED_FOR'][$cConfig['FUNKPHP_CUSTOM_ERROR_HANDLER']] = "FUNKPHP_CUSTOM_ERROR_HANDLER";
     }
 }
-
 $useAndCustomChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["FUNKPHP_CUSTOM_URI_NORMALIZER"], $configWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($useAndCustomChecks), $configWarnsAndErrs, "cli_err", 'string|null', "Key for which optional Custom URI Normalizer Function to use or default is used. Set to `null` if not used or a `String` that is a Function Name in `/src/funkphp/config/functions.php`). This applies for every HTTP(S) Request!");
 if (isset($cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER'])) {
     if (isset($ROUTES_CONFIG_PARSED['USER_FNS_USED_FOR'][$cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER']])) {
         cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The set `FUNKPHP_CUSTOM_URI_NORMALIZER` is already being used by `{$ROUTES_CONFIG_PARSED['USER_FNS_USED_FOR'][$cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER']]}`! Make sure all User-defined Functions in `/src/funkphp/config/functions.php` are all unique!");
     } else {
-        $ROUTES_CONFIG_PARSED['USER_FNS_USED_FOR'][$cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER']] = "Custom URI Normalizer Function";
+        $ROUTES_CONFIG_PARSED['USER_FNS_USED_FOR'][$cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER']] = "FUNKPHP_CUSTOM_URI_NORMALIZER";
     }
 }
-
 $useAndCustomChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["FUNKPHP_CUSTOM_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION"], $configWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($useAndCustomChecks), $configWarnsAndErrs, "cli_err", 'string|null', "Key for which optional Custom HTTPS Kernel Dispatch Function to use or default is used. Set to `null` if not used or a `String` that is a Function Name in `/src/funkphp/config/functions.php`). This applies for every HTTP(S) Request when a Route is being matched!");
 if (isset($cConfig['FUNKPHP_CUSTOM_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION'])) {
     if (isset($ROUTES_CONFIG_PARSED['USER_FNS_USED_FOR'][$cConfig['FUNKPHP_CUSTOM_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION']])) {
         cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The set `FUNKPHP_CUSTOM_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION` is already being used by `{$ROUTES_CONFIG_PARSED['USER_FNS_USED_FOR'][$cConfig['FUNKPHP_CUSTOM_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION']]}`! Make sure all User-defined Functions in `/src/funkphp/config/functions.php` are all unique!");
     } else {
-        $ROUTES_CONFIG_PARSED['USER_FNS_USED_FOR'][$cConfig['FUNKPHP_CUSTOM_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION']] = "Custom HTTPS Dispatch Pipeline Request Function";
+        $ROUTES_CONFIG_PARSED['USER_FNS_USED_FOR'][$cConfig['FUNKPHP_CUSTOM_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION']] = "FUNKPHP_CUSTOM_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION";
     }
 }
+// Checking c['INI_SETS'] a quick since it is very optional
+$useAndCustomChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["INI_SETS"], $configWarnsAndErrs, "cli_err");
+cli_assert_final_value(end($useAndCustomChecks), $configWarnsAndErrs, "cli_err", 'array-empty|array-associative-strings-non-empty', "Key for which optional `runtime PHP Settings` (from 'php.ini') that you can be 'ran on shared web hosting deployments' when it is not possible to edit the '.ini' file directly. Set to an 'Empty Array' if not used!");
 
-$fphpo_iniChecks = [];
-$fphpo_iniChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["INI_SETS"], $configWarnsAndErrs, "cli_err");
-cli_assert_final_value(end($fphpo_iniChecks), $configWarnsAndErrs, "cli_err", 'array-associative|array-empty', "Key is for optionally running an Array of `ini_set()` that cannot be manually set in php.ini due to shared host environments or other kind of permission reason. Leave it as an Empty Array if not used!");
+// NOW WE INSERT "FUNKPHP_CUSTOM_EXCEPTION_HANDLER", "FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION"
+// "FUNKPHP_CUSTOM_ERROR_HANDLER", "FUNKPHP_CUSTOM_URI_NORMALIZER" and
+// "FUNKPHP_CUSTOM_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION" if User-defined FNs exists!
+// because we are guaranteed to NOT CONFLICT in functions names!
+// FIX:
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-////  STEP #1  load /funkphp/config/functions.php and validate them
-////////////////////////////////////////////////////////////////////////////////////////////////////
 
-if (count($userFunctionsFile['fn_names_duplicates']) > 0) {
-    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "There are Duplicate Function Names (`" . join(", ", array_keys($userFunctionsFile['fn_names_duplicates'])) .  "`) in `/src/funkphp/config/functions.php` (User-defined Globally Available Functions)!");
-    cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for `/src/funkphp/config/functions.php` (User-defined Globally Available Functions) and try again!");
-}
-if (isset($cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER'])) {
-    if (!isset($userFunctionsFile["functions"][$cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER']])) {
-        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Exception Handler `{$cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER']}` NOT FOUND in `/src/funkphp/config/functions.php` (User-defined Globally Available Functions) is DEFINED & FOUND but is NOT READABLE! Check Function Name in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one!");
-    }
-}
-if (isset($cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION'])) {
-    if (!isset($userFunctionsFile["functions"][$cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION']])) {
-        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Registered Shutdown Function `{$cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION']}` NOT FOUND in `/src/funkphp/config/functions.php` (User-defined Globally Available Functions) is DEFINED & FOUND but is NOT READABLE! Check Function Name in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one!");
-    }
-}
-$ROUTES_CONFIG_PARSE['USER_FNS_USED_FOR'][$cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION']] = "Configured Custom Registered Shutdown Function";
-////////////////////////////////////////////////////////////////////////////////////////////////////
-////  STEP #1  c['FUNKPHP_CUSTOM_URI_NORMALIZER'] //
-////////////////////////////////////////////////////////////////////////////////////////////////////
-// c['FUNKPHP_CUSTOM_URI_NORMALIZER'] must be a string or null and it cannot be the same function as
-// custom exception handler function OR custom register shutdown function!
-$fphpo_customChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["FUNKPHP_CUSTOM_URI_NORMALIZER"], $configWarnsAndErrs, "cli_err");
-cli_assert_final_value(end($fphpo_customChecks), $configWarnsAndErrs, "cli_err", 'string|null', "Key is needed to know whether to use Custom URI Normalizer Function or Default one that prepares a Normalized Request URI for each incoming HTTP(S) Request!");
-cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for Main Keys 'FUNKPHP_ONLINE', 'FUNKPHP_USE_HTTPS', 'FUNKPHP_USE_PREPARE_URI', 'FUNKPHP_CUSTOM_EXCEPTION_HANDLER', 'FUNKPHP_CUSTOM_EXCEPTION_HANDLER', 'FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION' & 'INI_SETS' in the `/src/funkphp/config/c.php` (FunkPHP Configuration File) and try again!");
-if (isset($cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER'])) {
-    if (isset($userFunctionsFile['functions'][$cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER']])) {
-        if (
-            $userFunctionsFile['functions'][$cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER']]['fn_starts_with_cli']
-            || $userFunctionsFile['functions'][$cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER']]['fn_starts_with_funk']
-        ) {
-            cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Request URI Normalizer Function `{$cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER']}` in `src/funkphp/config/functions.php` (User-defined Globally Available Functions) is STARTS with `cli_` or `funk_` in its name which is NOT ALLOWED! Check Function Name in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one!");
-        }
-    } else {
-        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Request URI Normalizer Function `{$cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER']}` is NOT FOUND in `src/funkphp/config/functions.php` (User-defined Globally Available Functions)! Check Function Name in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one!");
-    }
-    if (
-        isset($cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER'])
-        && isset($cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION'])
-        && is_string($cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER'])
-        && is_string($cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION'])
-        && !empty(trim($cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER']))
-        && !empty(trim($cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION']))
-        && ($cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER'] === $cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER']
-            || $cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER'] === $cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION'])
-    ) {
-        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Request URI Normalizer Function `{$cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER']}` in `src/funkphp/config/functions.php` (User-defined Globally Available Functions) is SAME AS CUSTOM REGISTER SHUTDOWN FUNCTION or CUSTOM EXCEPTION HANDLER FUNCTION! Check Function Name in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one!");
-    }
-}
-// Check that Reserved Functions Array $reserved_functions is available by now
 
-if (!is_array($reserved_functions) || empty($reserved_functions)) {
-    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Array String List of Reserved Functions (`/src/cli/core/cli_reserved.php`) is NOT AN ARRAY or IS EMPTY!");
-}
-// User-defined Functions should not conflict with reserved function names used by FunkCLI and FunkPHP
-if (isset($cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION'])) {
-    if (in_array($cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION'], $reserved_functions)) {
-        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Registered Shutdown Function `{$cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION']}` HAS CONFLICTING FUNCTION NAME with The Array String List of Reserved Function Names `/src/cli/core/cli_reserved.php`. Please change your Function Name in `/src/funkphp/config/functions.php` and/or in Configuration File via FunkCLI/FunkGUI (`/src/funkphp/core/c.php`). OR set it to `null` if you wanna use default one!");
-    }
-}
-if (isset($cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER'])) {
-    if (in_array($cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER'], $reserved_functions)) {
-        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Exception Handler `{$cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER']}` HAS CONFLICTING FUNCTION NAME with The Array String List of Reserved Function Names `/src/cli/core/cli_reserved.php`. Please change your Function Name in `/src/funkphp/config/functions.php` and/or in Configuration File via FunkCLI/FunkGUI (`/src/funkphp/core/c.php`). OR set it to `null` if you wanna use default one!");
-    }
-}
+
+
+
+
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////  STEP #1 Validate $c['FUNKPHP_CUSTOM_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION']
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1049,7 +993,7 @@ if (is_array($connsPayload)) {
         $driver = $profileData['driver'];
         // Verify we actually support this database engine blueprint
         if (!array_key_exists($driver, $driverBlueprints)) {
-            if ($ignoreUnknownConnsDrivers) {
+            if ($ignoreUnknownConnsDriversFlag) {
                 cli_info_without_exit("Unknown Connection Profile `$profileName` ignored due to Compilation flag `--ignore-unknown-conns-drivers`.");
             } else {
                 cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "Connection Profile [{$profileName}] in `/src/funkphp/config/conns.php` specifies an Unknown Framework Driver: '{$driver}'. Current Framework Drivers supported for Data Schema Validation are: `" . join(", ", array_keys($driverBlueprints)) . "`! Include the compilation flag `--ignore-unknown-conns-drivers` to ignore validating unknown driver types.");
@@ -1259,7 +1203,7 @@ $deploymentBuffer[] = "ob_start();\n";
 cli_info_without_exit("G`### Step 2 STARTS ###` Loading, Validating & Compiling Core `functions.php` & User-defined `funkphp => config => functions.php` Files ('User-defined Functions' in 'Config' in FunkGUI)...");
 $functionsWarnsAndErrs = [];
 
-if (!$allowModifiedCore && (cli_get_hash_calculation_of_a_file(FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL) !== $manifest['hashes']['core']['funkphp/core/functions.php'][0])) {
+if (!$allowModifiedCoreFlag && (cli_get_hash_calculation_of_a_file(FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL) !== $manifest['hashes']['core']['funkphp/core/functions.php'][0])) {
     cli_build_warning_err_list($functionsWarnsAndErrs, "cli_err", "The FunkPHP Core Functions File `FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL` (`/src/funkphp/core/functions.php`) might be modified due to wrong calculated sha-256 hash value. Your User-defined Functions you should add/edit/remove are found in `/src/funkphp/config/functions.php`! DO NOT edit FunkPHP Core Functions File. Check your Git/File Versioning History to see if you can rollback any changes made to the FunkPHP Core Functions File, or Redownload the Files from an Official Source!");
     cli_stop_from_warn_err_list($functionsWarnsAndErrs, "Please Review (" . count($functionsWarnsAndErrs) . ") Warnings/Errors above for the Function Files (Core & User-defined) and try again!");
 }
@@ -1471,12 +1415,12 @@ foreach ($pipelineFile['pipeline']['<CONFIG_GLOBAL>']['global_param_rules'] as $
         isset($ROUTES_CONFIG_PARSED['GLOBAL']['PARAMS_USED']['INVALID'][$GLOBAL_PARAM_KEY])
         || isset($ROUTES_CONFIG_PARSED['GLOBAL']['PARAMS_USED']['VALID'][$GLOBAL_PARAM_KEY])
     ) {
-        cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Global Param Rule: `$GLOBAL_PARAM_KEY` already added somehow?!");
+        cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Global Param Rule [pipeline -> <CONFIG_GLOBAL> -> global_param_rules -> $GLOBAL_PARAM_KEY] `$GLOBAL_PARAM_KEY` already added somehow?!");
         continue;
     }
     if (!is_string($GLOBAL_PARAM_VAL) || (empty(trim($GLOBAL_PARAM_VAL)))) {
         $ROUTES_CONFIG_PARSED['GLOBAL']['PARAMS_USED']['INVALID'][$GLOBAL_PARAM_KEY] = true;
-        cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Global Param Rule: `$GLOBAL_PARAM_KEY` is NOT a STRING or is Empty!");
+        cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Global Param Rule [pipeline -> <CONFIG_GLOBAL> -> global_param_rules -> $GLOBAL_PARAM_KEY] `$GLOBAL_PARAM_KEY` is NOT a STRING or is Empty!");
         continue;
     }
     // Regex starts/ends with simplified []+|*?
@@ -1491,11 +1435,14 @@ foreach ($pipelineFile['pipeline']['<CONFIG_GLOBAL>']['global_param_rules'] as $
     // Regex starts with / and should be valid then?
     else if (str_starts_with($GLOBAL_PARAM_VAL, '/')) {
         try {
-            preg_match($GLOBAL_PARAM_VAL, '');
+            if (@!preg_match($GLOBAL_PARAM_VAL, '')) {
+                $ROUTES_CONFIG_PARSED['GLOBAL']['PARAMS_USED']['INVALID'][$GLOBAL_PARAM_KEY] = true;
+                cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Global Param Rule [pipeline -> <CONFIG_GLOBAL> -> global_param_rules -> $GLOBAL_PARAM_KEY] `$GLOBAL_PARAM_KEY` started with `/` indicating a Regex but failed when tested!");
+            };
             $ROUTES_CONFIG_PARSED['GLOBAL']['PARAMS_USED']['VALID'][$GLOBAL_PARAM_KEY] = $GLOBAL_PARAM_VAL;
         } catch (e) {
             $ROUTES_CONFIG_PARSED['GLOBAL']['PARAMS_USED']['INVALID'][$GLOBAL_PARAM_KEY] = true;
-            cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Global Param Rule: `$GLOBAL_PARAM_KEY` started with `/` indicating a Regex but failed when tested!");
+            cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Global Param Rule [pipeline -> <CONFIG_GLOBAL> -> global_param_rules -> $GLOBAL_PARAM_KEY] `$GLOBAL_PARAM_KEY` started with `/` indicating a Regex but failed when tested!");
             continue;
         }
     }
@@ -1788,14 +1735,14 @@ if (!$NO_ROUTES) { //START-BLOCK:ROUTES TO Validate, Parse & Output!
             $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", "$METODKey", "$RUTT", "exclude_middlewares"], $routesWarnsAndErrs, "cli_err");
             cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'array-empty|array-list-strings-non-empty', "All Values in `[ROUTES -> $METODKey -> $RUTT -> exclude_middlewares]` must be an Empty Array OR a Numbered Array with Only Non-Empty Strings!");
             $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", "$METODKey", "$RUTT", "pipeline"], $routesWarnsAndErrs, "cli_err");
-            cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'array-associative-strings-non-empty', "All Values in `[ROUTES -> $METODKey -> $RUTT -> pipeline]` must be an Associative Array with Non-Empty String Values!");
+            cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'array-associative-strings-non-empty', "All Values in `[ROUTES -> $METODKey -> $RUTT -> pipeline]` must be an Associative Array with Non-Empty Strings Values!");
+            // SPECIAL EDGE CASE: If 'pipeline' array is empty, there would be no pipeline functions to run after middlewares?
+            if (empty($DATA['pipeline'])) {
+                cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> pipeline #0]: Missing at least 'One Pipeline File->Function Handler' from `/src/funkphp/pipeline/routes`. Each Route must map to least one of those!");
+            }
             // Now the 4 main keys have been validated so now we can iterate through and start building to the 3 arrays
             cli_stop_from_warn_err_list($routesWarnsAndErrs, "Please Review (" . count($routesWarnsAndErrs) . ") Warnings/Errors above for the Pipeline Files (Routes: `/src/funkphp/core/pipeline_routes.php` & Compiled Routes: `/src/funkphp/core/compiled_routes.php`) and try again!");
 
-            // SPECIAL EDGE CASE: If 'pipeline' array is empty, there would be no pipeline functions to run after middlewares?
-            if (empty($DATA['pipeline'])) {
-                cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> pipeline #0]: Missing at least one Pipeline File->Function Handler. Each Route must map to least one of those!");
-            }
             // MIDDLEWARES
             $mwCount = 0;
             $FOUND_MWS_LOCAL = [];

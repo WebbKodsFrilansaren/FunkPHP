@@ -42,7 +42,6 @@ function funk_session_started_or_start_it(&$c)
     }
 }
 
-
 function funk_use_global_default_no_route_match_response(&$c)
 { // Fast Content Negotiation Router Fallback
     //{{##comment_token##}}

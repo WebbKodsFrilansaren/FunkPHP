@@ -93,7 +93,7 @@ return  array(
       ),
       'global_rate_limiting' => NULL,
       'global_param_rules' =>
-      array('a' => "[a-z]+", 'b' => '/[a-z]+/', 'c' => "/"),
+      array('a' => 0),
       'global_default_no_route_match_response' =>
       array(
         'page' => '/[errors]/404',

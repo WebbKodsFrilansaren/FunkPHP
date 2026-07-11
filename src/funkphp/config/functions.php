@@ -19,25 +19,7 @@
 // when you run the Compilation Command `php funk build`!
 //
 // Besides all that above, you can name your function anything you want!
-function funak_handle_uncaught_exception(&$c, $e)
+function test()
 {
-    // Regex
-    function inside()
-    {
-        eval('echo "test"');
-    }
-    eval('echo "test"');
-}
-function funak_handle_uncaught_exception2(&$c, $e)
-{
-    // Regex
-    $DX = ['test' => 'test'];
-    return array();
-    $testing = "tset";
-    exit;
-}
-
-function my_regex(&$c)
-{
-    // custom regex
+    // test
 }

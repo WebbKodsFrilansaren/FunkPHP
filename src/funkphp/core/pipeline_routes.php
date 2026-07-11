@@ -1,4 +1,4 @@
-<?php // pipeline_routes.php - FunkPHP | FunkCLI Modified it 2026-07-11 09:17:56
+<?php // pipeline_routes.php - FunkPHP | FunkCLI Modified it 2026-07-11 11:37:45
 return 
     /**
     * -----------------------------------------------------
@@ -89,8 +89,6 @@ array (
         ),
         'pipeline' => 
         array (
-          'test' => 'test3',
-          'test2' => 'test3',
         ),
       ),
       '<CONFIG_METHOD>' => 
