@@ -36,3 +36,8 @@ function funak_handle_uncaught_exception2(&$c, $e)
     $testing = "tset";
     exit;
 }
+
+function my_regex(&$c)
+{
+    // custom regex
+}

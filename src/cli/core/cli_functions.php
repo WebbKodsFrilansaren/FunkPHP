@@ -528,6 +528,107 @@ function cli_file_status($folder, $file, $useExactFilePathInstead = false, $deep
     ];
 }
 
+// Function that handles certain keys in <CONFIG_GLOBAL> & certain keys in <CONFIG_METHOD>
+// and "config" key for each "/route" key.
+function cli_build_command_validate_default_config_keys_for_global_method_route_level($level, $dataToValidate, $whatToValidate, &$refIfNeeded = null)
+{
+    if (!is_string($level) || (empty(trim($level)) || !in_array(strtolower($level), ['global', 'method', 'route']))) {
+        cli_err("cli_build_command_validate_default_no_route_match_response_keys(): Expected `\$whatToValidate` to be a Non-Empty String that contains what to validate for in `config` Key in a Route or from CONFIG_GLOBAL|METHOD such as (choose only one per call): `global_sris` (internal & external), `X_rate_limiting`, `X_headers` (add & remove), `X_param_rules`, `global_default_no_route_match_response` OR `method_default_no_route_match_response`, `route_cache`, `route_alias`!");
+    }
+    $level = strtolower($level);
+    if ($dataToValidate === null) {
+        cli_err("cli_build_command_validate_default_no_route_match_response_keys(): Expected `\$dataToValidate` to contain data, but got `null`, check if it is `null` instead before sending any data to this function!");
+    }
+    $CanValidate = ['param_rules', 'csp', 'sri', 'headers', 'rate_limiting', 'route_cache', 'default_no_route_match_response'];
+    if (!is_string($whatToValidate) || empty(trim($whatToValidate) || !in_array($whatToValidate, $CanValidate))) {
+        cli_err("cli_build_command_validate_default_no_route_match_response_keys(): Expected `\$whatToValidate` to be a Non-Empty String that contains what to validate for in `config` Key in a Route or from CONFIG_GLOBAL|METHOD such as (choose only one per call): `global_sris` (internal & external), `X_rate_limiting`, `X_headers` (add & remove), `X_param_rules`, `global_default_no_route_match_response` OR `method_default_no_route_match_response`, `route_cache`, `route_alias`!");
+    }
+    // The different validation cases (it will err if wrong level is used for certain ones!)
+    // Otherwise it will return TRUE or FALSE so build step can fix error handling after!
+    // PARAM_RULES
+    if ($whatToValidate === "param_rules") {
+    }
+    // CSP
+    elseif ($whatToValidate === "csp") {
+    }
+    // SRI
+    elseif ($whatToValidate === "sri") {
+    }
+    // HEADERS
+    elseif ($whatToValidate === "headers") {
+    }
+    // RATE_LIMITING
+    elseif ($whatToValidate === "rate_limiting") {
+    }
+    // DEFAULT NO_ROUTE_MATCHED response - only 'global|method' can do it
+    elseif ($whatToValidate === "default_no_route_match_response") {
+        if ($level === 'route') {
+            cli_err("cli_build_command_validate_default_no_route_match_response_keys(): Only `global|method` can validate 'default_no_route_match_response'!");
+        }
+    }
+    // ROUTE_CACHE - only 'route' can do it
+    elseif ($whatToValidate === "route_cache") {
+        if ($level !== 'route') {
+            cli_err("cli_build_command_validate_default_no_route_match_response_keys(): Only `route` can validate 'route_cache'!");
+        }
+    }
+    // Forgot to add the new one here?
+    else {
+        cli_err("cli_build_command_validate_default_no_route_match_response_keys(): Forgot to implement the `$whatToValidate`?");
+    }
+}
+
+function cli_build_command_validate_param_rules_regex($level, $dataToValidate, &$refWarnsErrs, &$ROUTES_CONFIG_PARSED)
+{
+    if (!is_string($level) || (empty(trim($level)) || !in_array(strtolower($level), ['global', 'method', 'route']))) {
+        cli_err("cli_build_command_validate_param_rules_regex(): Expected `\$level` to be a Non-Empty String that is `global`,`method` OR `route`!");
+    }
+    $level = strtolower($level);
+    if (
+        !is_array($ROUTES_CONFIG_PARSED) || empty($ROUTES_CONFIG_PARSED) || array_is_list($ROUTES_CONFIG_PARSED)
+        || !is_array($refWarnsErrs) || empty($refWarnsErrs) || array_is_list($refWarnsErrs)
+    ) {
+        cli_err("cli_build_command_validate_param_rules(): Expected `\$whatToValidate` and/or `\refWarnsErrs` both to be Non-Empty Associative Arrays!");
+    }
+    if ($dataToValidate === null) {
+        cli_err("cli_build_command_validate_param_rules(): Expected `\$dataToValidate! NOT to be `null` since that should be checked before passing it to this function!");
+    }
+    foreach ($dataToValidate as $param => $rule) {
+        if (!is_string($rule) || empty($rule)) {
+            cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "!");
+            return false;
+        }
+        // Simplified Regex shorthand layout check
+        if (str_starts_with($rule, '[') && (str_ends_with($rule, ']+') || str_ends_with($rule, ']*'))) {
+            continue;
+        }
+        // Complex Regex pattern syntax validation pass
+        if (str_starts_with($rule, '/')) {
+            try {
+                preg_match($rule, '');
+                if ($level === "global") {
+                    cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "!");
+                } else if ($level === "method") {
+                    cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "!");
+                } else if ($level === "route") {
+                    cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "!");
+                }
+            } catch (e) {
+                if ($level === "global") {
+                    cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "!");
+                } else if ($level === "method") {
+                    cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "!");
+                } else if ($level === "route") {
+                    cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "!");
+                }
+            }
+            // @ suppresses warnings while testing pattern compilation compilation state
+            if (@preg_match($rule, '') === false) {
+            }
+            continue;
+        }
+    }
+}
 /*
  * Function that replaces {{##text_tokens_inside_of_template_function##}}
  *
