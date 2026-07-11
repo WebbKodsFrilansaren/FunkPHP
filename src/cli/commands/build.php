@@ -54,34 +54,42 @@ $ROUTES_CONFIG_PARSED = [
         'ALL_CLASSES_USED' => [
             'VALID' => [],
             'INVALID' => [],
+            'INVALID_PATHS' => [],
         ],
         'ALL_USER_FNS_USED' => [
             'VALID' => [],
             'INVALID' => [],
+            'INVALID_PATHS' => [],
         ],
         'ALL_CORE_FNS_USED' => [
             'VALID' => [],
             'INVALID' => [],
+            'INVALID_PATHS' => [],
         ],
         'ALL_IGNORED_FNS_USED' => [
             'VALID' => [],
             'INVALID' => [],
+            'INVALID_PATHS' => [],
         ],
         'ALL_BLACKLISTED_FNS_USED' => [  // Use this to ALWAYS DISALLOW certain FNs? (but FNs from where though?)
             'VALID' => [],
             'INVALID' => [],
+            'INVALID_PATHS' => [],
         ],
         'ALL_WHITELISTED_FNS_USED' => [ // Use this to ONLY ALLOW certain FNs? (but FNs from where though?)
             'VALID' => [],
             'INVALID' => [],
+            'INVALID_PATHS' => [],
         ],
         'ALL_REQUEST_PIPELINE_FILES_FNS_USED' => [
             'VALID' => [],
             'INVALID' => [],
+            'INVALID_PATHS' => [],
         ],
         'ALL_POST_RESPONSE_PIPELINE_FILES_FNS_USED' => [
             'VALID' => [],
             'INVALID' => [],
+            'INVALID_PATHS' => [],
         ],
         'ALL_ROUTES_ALIAS_USED' => [ // Enforce a unique ALIAS for every route, even across methods!
             'VALID' => [],
@@ -90,38 +98,47 @@ $ROUTES_CONFIG_PARSED = [
         'ALL_ROUTES_PIPELINE_FILES_FNS_USED' => [
             'VALID' => [],
             'INVALID' => [],
+            'INVALID_PATHS' => [],
         ],
         'ALL_MIDDLEWARES_USED' => [
             'VALID' => [],
             'INVALID' => [],
+            'INVALID_PATHS' => [],
         ],
         'ALL_EXLUDE_MIDDLEWARES_USED' => [
             'VALID' => [],
             'INVALID' => [],
+            'INVALID_PATHS' => [],
         ],
         'ALL_VALIDATION_FILES_FNS_USED' => [
             'VALID' => [],
             'INVALID' => [],
+            'INVALID_PATHS' => [],
         ],
         'ALL_SQL_FILES_FNS_USED' => [
             'VALID' => [],
             'INVALID' => [],
+            'INVALID_PATHS' => [],
         ],
         'ALL_QUERY_FILES_FNS_USED' => [
             'VALID' => [],
             'INVALID' => [],
+            'INVALID_PATHS' => [],
         ],
         'ALL_PAGES_USED' => [ // Not use this one due to not specific enough?
             'VALID' => [],
             'INVALID' => [],
+            'INVALID_PATHS' => [],
         ],
         'ALL_PAGES_REFERENCED_USED' => [ // This are when you use 'page' => 'FileName' for a Route Pipeline Key!
             'VALID' => [],
             'INVALID' => [],
+            'INVALID_PATHS' => [],
         ],
         'ALL_PAGES_COMPILED_USED' => [
             'VALID' => [],
             'INVALID' => [],
+            'INVALID_PATHS' => [],
         ],
         // Maybe skip sub [errors]-folder and just include default ones and
         // also embed one inside of this command as default 500 and also scaffolding
@@ -129,18 +146,22 @@ $ROUTES_CONFIG_PARSED = [
         'ALL_PAGES_COMPILED_[ERRORS]_USED' => [
             'VALID' => [],
             'INVALID' => [],
+            'INVALID_PATHS' => [],
         ],
         'ALL_PAGES_COMPONENTS_USED' => [
             'VALID' => [],
             'INVALID' => [],
+            'INVALID_PATHS' => [],
         ],
         'ALL_PAGES_LAYOUTS_USED' => [
             'VALID' => [],
             'INVALID' => [],
+            'INVALID_PATHS' => [],
         ],
         'ALL_PAGES_PARTIALS_USED' => [
             'VALID' => [],
             'INVALID' => [],
+            'INVALID_PATHS' => [],
         ],
     ],
     'GLOBAL' => [
@@ -431,7 +452,6 @@ $ROUTES_CONFIG_PARSED = [
     ]
 ];
 
-
 // Initialize an array to hold the different compiled sections of the file
 // and its sub parts so we can add sub parts as needed to the entire file!
 $HTTPS_KERNEL_DISPATCH_FUNCTION_FOUND = false;
@@ -504,30 +524,30 @@ if (
     || !file_exists(FUNKPHP_FILE_MANIFEST_CORE)
     || !is_readable(FUNKPHP_FILE_MANIFEST_CORE)
 ) {
-    cli_err("The Constant `FUNKPHP_FILE_MANIFEST_CORE` containing exact Path to `/src/funkphp/core/manifest.php` (FunkPHP Manifest File with Version Number & Hashes) is NOT DEFINED or FILE DOES NOT EXIST or FILE IS NOT READABLE! Path: `" . (FUNKPHP_FILE_MANIFEST_CORE ?? "[NOT_DEFINED]") . "`");
+    cli_err("The Constant `FUNKPHP_FILE_MANIFEST_CORE` containing exact Path to `/src/funkphp/core/manifest.php` (FunkPHP Manifest File with Version Number & Hashes) is NOT DEFINED or FILE DOES NOT EXIST or FILE IS NOT READABLE!");
 }
 $manifest = require_once FUNKPHP_FILE_MANIFEST_CORE;
 if (!is_array($manifest) || array_is_list($manifest)) {
-    cli_err("The FunkPHP Manifest File with Version Number & Hashes (`/src/funkphp/core/manifest.php`) is NOT ARRAY when it must be! Path: `" . (FUNKPHP_FILE_MANIFEST_CORE ?? "[NOT_DEFINED]") . "`");
+    cli_err("The FunkPHP Manifest File with Version Number & Hashes (`/src/funkphp/core/manifest.php`) is NOT ARRAY when it must be!");
 }
 
 // We look for defined constant "FUNKPHP_FILE_PATH_C_CONFIG_FILE" which should point to the c.php file
 // and we try to see if we can find it, read it, and whether it is an associative array which it should be!
 if (!defined("FUNKPHP_FILE_PATH_DEPLOYMENT_FILE")) {
-    cli_err("The Constant `FUNKPHP_FILE_PATH_DEPLOYMENT_FILE` containing exact Path to `FunkPHPDeployment.php` (FunkPHP Deployment Output File after Successful Building/Compiling) is NOT DEFINED! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
+    cli_err("The Constant `FUNKPHP_FILE_PATH_DEPLOYMENT_FILE` containing exact Path to `/src/funkphp/FunkPHPDeployment.php` (FunkPHP Deployment Output File after Successful Building/Compiling) is NOT DEFINED!");
 }
 if (!defined("FUNKPHP_FILE_PATH_C_CONFIG_FILE") || !file_exists(FUNKPHP_FILE_PATH_C_CONFIG_FILE)) {
-    cli_err("The Constant `FUNKPHP_FILE_PATH_C_CONFIG_FILE` containing exact Path to `c.php` (FunkPHP Configuration File) is NOT DEFINED or Exact File Path does NOT EXIST/IS WRONG! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
+    cli_err("The Constant `FUNKPHP_FILE_PATH_C_CONFIG_FILE` containing exact Path to `/src/funkphp/config/c.php` (FunkPHP Configuration File) is NOT DEFINED or Exact File Path does NOT EXIST/IS WRONG!");
 }
 // File exists but is not readable?
 if (!is_readable(FUNKPHP_FILE_PATH_C_CONFIG_FILE)) {
-    cli_err("The `c.php` (FunkPHP Configuration File) exists but is NOT READABLE! Please check the File Permissions and try again! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
+    cli_err("The `/src/funkphp/config/c.php` (FunkPHP Configuration File) exists but is NOT READABLE! Please check the File Permissions and try again!");
 }
 // File exists, is readable, but is NOT an associative array? We need to check if it returns an array when included!
 if (is_readable(FUNKPHP_FILE_PATH_C_CONFIG_FILE)) {
     $cConfig = require_once FUNKPHP_FILE_PATH_C_CONFIG_FILE;
     if (!is_array($cConfig) || array_is_list($cConfig)) {
-        cli_err("The `c.php` (FunkPHP Configuration File) exists and is Readable but does NOT return an Associative Array! Please check the File Contents and try again! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
+        cli_err("The `/src/funkphp/config/c.php` (FunkPHP Configuration File) exists and is Readable but does NOT return an Associative Array! Please check the File Contents and try again!");
     }
 }
 
@@ -564,7 +584,7 @@ $cArrayKeysThatMustExist = [
 ];
 foreach ($cArrayKeysThatMustExist as $key) {
     if (!array_key_exists($key, $cConfig)) {
-        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "Key '$key' NOT FOUND in `c.php` (FunkPHP Configuration File)! Please check the File Contents and try again! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
+        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "Key '$key' NOT FOUND in `/src/funkphp/config/c.php` (FunkPHP Configuration File)! Please check the File Contents and try again!");
     }
 }
 foreach ($cConfig as $cKey => $val) {
@@ -573,10 +593,10 @@ foreach ($cConfig as $cKey => $val) {
         && ($cKey !== "<ENTRY>")  && ($cKey !== "ROUTES") // Only applicable to the local web dev environment!
         && ($cKey !== 0) && ($cKey !== 1) && ($cKey !== 2) && ($cKey !== 3) // 0-3 are the !defined parts in the $c returned array!
     ) {
-        cli_warning_without_exit("IGNORED: Key '$cKey' in `c.php` (FunkPHP Configuration File) will be ignored. Any custom variables should be in `\$c['custom']! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
+        cli_warning_without_exit("IGNORED: Key '$cKey' in `/src/funkphp/config/c.php` (FunkPHP Configuration File) will be ignored. Any custom variables should be in `\$c['custom']!");
     }
 }
-cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for the `c.php` (FunkPHP Configuration File) and try again! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
+cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for the `/src/funkphp/config/c.php` (FunkPHP Configuration File) and try again!");
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////  STEP #1 validate  `config.php` - BOOLEAN keys in $c[...] //////////
@@ -584,13 +604,13 @@ cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($conf
 // VALIDATE "FUNKPHP_ONLINE" Key and that "INI_SETS" is an associative array
 $fphpo_iniChecks = [];
 $fphpo_iniChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["FUNKPHP_ONLINE"], $configWarnsAndErrs, "cli_err");
-cli_assert_final_value(end($fphpo_iniChecks), $configWarnsAndErrs, "cli_err", 'boolean', "Key is needed for `pl_https_redirect` to work properly! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
+cli_assert_final_value(end($fphpo_iniChecks), $configWarnsAndErrs, "cli_err", 'boolean', "Key is needed for `pl_https_redirect` to work properly!");
 $fphpo_iniChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["FUNKPHP_USE_HTTPS"], $configWarnsAndErrs, "cli_err");
-cli_assert_final_value(end($fphpo_iniChecks), $configWarnsAndErrs, "cli_err", 'boolean', "Key is needed to work properly! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
+cli_assert_final_value(end($fphpo_iniChecks), $configWarnsAndErrs, "cli_err", 'boolean', "Key is needed to work properly!");
 $fphpo_iniChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["FUNKPHP_USE_PREPARE_URI"], $configWarnsAndErrs, "cli_err");
-cli_assert_final_value(end($fphpo_iniChecks), $configWarnsAndErrs, "cli_err", 'boolean', "Key is needed to know whether to Prepare Request URI or not for each incoming HTTP(S) Request! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
+cli_assert_final_value(end($fphpo_iniChecks), $configWarnsAndErrs, "cli_err", 'boolean', "Key is needed to know whether to Prepare Request URI or not for each incoming HTTP(S) Request!");
 $fphpo_iniChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["FUNKPHP_USE_VENDOR"], $configWarnsAndErrs, "cli_err");
-cli_assert_final_value(end($fphpo_iniChecks), $configWarnsAndErrs, "cli_err", 'boolean', "Key is needed to know whether to Use Vendor/Composer-based Classes or not for each incoming HTTP(S) Request! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
+cli_assert_final_value(end($fphpo_iniChecks), $configWarnsAndErrs, "cli_err", 'boolean', "Key is needed to know whether to Use Vendor/Composer-based Classes or not for each incoming HTTP(S) Request!");
 // If vendor wanna be used, validate it actually exists, but this will NOT validate the entire contents of vendor!
 if ($cConfig['FUNKPHP_USE_VENDOR'] === true) {
     if (
@@ -598,32 +618,32 @@ if ($cConfig['FUNKPHP_USE_VENDOR'] === true) {
         || !file_exists(FUNKPHP_FILE_PATH_VENDOR_AUTOLOAD_FILE)
         || !is_readable(FUNKPHP_FILE_PATH_VENDOR_AUTOLOAD_FILE)
     ) {
-        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_FILE_PATH_VENDOR_AUTOLOAD_FILE` containing exact Path to `src/funkphp/vendor/autoload.php` IS NOT DEFINED, or FILE IS NOT FOUND or FILE IS NOT READABLE. Set `FUNKPHP_USE_VENDOR` (via FunkCLI or FunkGUI) to false if you do not wanna use Vendor/Composer-based classes! Path: `" . (FUNKPHP_FILE_PATH_VENDOR_AUTOLOAD_FILE ?? "[NOT_DEFINED]") . "`");
-        cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for Main Keys 'FUNKPHP_ONLINE', 'FUNKPHP_USE_HTTPS', 'FUNKPHP_USE_PREPARE_URI', 'FUNKPHP_CUSTOM_EXCEPTION_HANDLER', 'FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION' & 'INI_SETS' in the `c.php` (FunkPHP Configuration File) and try again! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
+        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_FILE_PATH_VENDOR_AUTOLOAD_FILE` containing exact Path to `src/funkphp/vendor/autoload.php` IS NOT DEFINED, or FILE IS NOT FOUND or FILE IS NOT READABLE. Set `FUNKPHP_USE_VENDOR` (via FunkCLI or FunkGUI) to false if you do not wanna use Vendor/Composer-based classes!");
+        cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for Main Keys 'FUNKPHP_ONLINE', 'FUNKPHP_USE_HTTPS', 'FUNKPHP_USE_PREPARE_URI', 'FUNKPHP_CUSTOM_EXCEPTION_HANDLER', 'FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION' & 'INI_SETS' in the `/src/funkphp/config/c.php` (FunkPHP Configuration File) and try again!");
     }
     cli_info_without_exit("IMPORTANT ABOUT VENDOR/COMPOSER BEING USED: FunkCLI does NOT validate the contents inside of the `src/funkphp/vendor` Directory and/or that it even exists after deployment, it just assumes it exists when you use `funk_use_vendor()`!");
 }
 $fphpo_iniChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["FUNKPHP_CUSTOM_EXCEPTION_HANDLER"], $configWarnsAndErrs, "cli_err");
-cli_assert_final_value(end($fphpo_iniChecks), $configWarnsAndErrs, "cli_err", 'string|null', "Key is needed to know which Custom Exception Handler to use (or default is used; set it a string or null) for each incoming HTTP(S) Request! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
+cli_assert_final_value(end($fphpo_iniChecks), $configWarnsAndErrs, "cli_err", 'string|null', "Key is needed to know which Custom Exception Handler to use (or default is used; set it a string or null) for each incoming HTTP(S) Request!");
 $fphpo_iniChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION"], $configWarnsAndErrs, "cli_err");
-cli_assert_final_value(end($fphpo_iniChecks), $configWarnsAndErrs, "cli_err", 'string|null', "Key is needed to know  Custom Registered Shutdown Function to use (or default is used; set it a string or null) for each incoming HTTP(S) Request! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
+cli_assert_final_value(end($fphpo_iniChecks), $configWarnsAndErrs, "cli_err", 'string|null', "Key is needed to know  Custom Registered Shutdown Function to use (or default is used; set it a string or null) for each incoming HTTP(S) Request!");
 $fphpo_iniChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["INI_SETS"], $configWarnsAndErrs, "cli_err");
-cli_assert_final_value(end($fphpo_iniChecks), $configWarnsAndErrs, "cli_err", 'array-associative|array-empty', "Key is for optionally running an Array of `ini_set()` that cannot be manually set in php.ini due to shared host environments or other kind of permission reason. Leave it as an Empty Array if not used! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
+cli_assert_final_value(end($fphpo_iniChecks), $configWarnsAndErrs, "cli_err", 'array-associative|array-empty', "Key is for optionally running an Array of `ini_set()` that cannot be manually set in php.ini due to shared host environments or other kind of permission reason. Leave it as an Empty Array if not used!");
 // Load Custom user-defined functions (NOT classes(!)) when its constant is defined, file exists and is readable.
 if (
     !defined("FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED")
 ) {
-    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED` containing exact Path to `src/funkphp/config/functions.php` (User-defined Globally Available Functions) is NOT DEFINED! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
+    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED` containing exact Path to `src/funkphp/config/functions.php` (User-defined Globally Available Functions) is NOT DEFINED!");
 }
 if (
     !file_exists(FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED)
 ) {
-    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED` containing exact Path to `src/funkphp/config/functions.php` (User-defined Globally Available Functions) is DEFINED but its File NOT FOUND! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
+    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED` containing exact Path to `src/funkphp/config/functions.php` (User-defined Globally Available Functions) is DEFINED but its File NOT FOUND!");
 }
 if (
     !is_readable(FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED)
 ) {
-    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED` containing exact Path to `src/funkphp/config/functions.php` (User-defined Globally Available Functions) is DEFINED & FOUND but is NOT READABLE! File Permission issues? Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
+    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED` containing exact Path to `src/funkphp/config/functions.php` (User-defined Globally Available Functions) is DEFINED & FOUND but is NOT READABLE! File Permission issues?");
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -641,28 +661,27 @@ if (
     && !empty(trim($cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION']))
     && $cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER'] === $cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION']
 ) {
-    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Exception Handler `{$cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER']}` & the Custom Registered Shutdown Function `{$cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION']}` are exactly the same in `src/funkphp/core/c.php` (Global Configuration Array File)! Check Function Names in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one(s)! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
+    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Exception Handler `{$cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER']}` & the Custom Registered Shutdown Function `{$cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION']}` are exactly the same in `/src/funkphp/core/c.php` (Global Configuration Array File)! Check Function Names in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one(s)!");
 }
 $userFunctionsFile = cli_file_status("funkphp/config", "functions.php");
-
 if (!cli_status_helper($userFunctionsFile, ["file_exists", "folder_readable",])) {
-    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configuration File `src/funkphp/config/functions.php` (User-defined Globally Available Functions) WAS NOT FOUND or IS NOT READABLE when it should have been? This might now show other errors below this one!");
+    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configuration File `/src/funkphp/config/functions.php` (User-defined Globally Available Functions) WAS NOT FOUND or IS NOT READABLE when it should have been? This might now show other errors below this one!");
 }
-if (!$userFunctionsFile['functions_same_count']) {
-    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configuration File `src/funkphp/config/functions.php` (User-defined Globally Available Functions) WAS FOUND USING Either Regex or Tokenizer but not both Indicating some Formatting Issue Inside File? (check for any trailing comment at the end of a function block{} <-- here)");
+if (!cli_status_helper($userFunctionsFile, ['functions_same_count'])) {
+    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configuration File `/src/funkphp/config/functions.php` (User-defined Globally Available Functions) WAS FOUND USING Either Regex or Tokenizer but not both Indicating some Formatting Issue Inside File? (check for any trailing comment at the end of a function block{} <-- here)");
 }
 if (count($userFunctionsFile['fn_names_duplicates']) > 0) {
-    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "There are Duplicate Function Names (`" . join(", ", array_keys($userFunctionsFile['fn_names_duplicates'])) .  "`) in `src/funkphp/config/functions.php` (User-defined Globally Available Functions)! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
-    cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for `src/funkphp/config/functions.php` (User-defined Globally Available Functions) and try again! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
+    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "There are Duplicate Function Names (`" . join(", ", array_keys($userFunctionsFile['fn_names_duplicates'])) .  "`) in `src/funkphp/config/functions.php` (User-defined Globally Available Functions)!");
+    cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for `/src/funkphp/config/functions.php` (User-defined Globally Available Functions) and try again!");
 }
 if (isset($cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER'])) {
     if (!isset($userFunctionsFile["functions"][$cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER']])) {
-        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Exception Handler `{$cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER']}` NOT FOUND in `src/funkphp/config/functions.php` (User-defined Globally Available Functions) is DEFINED & FOUND but is NOT READABLE! Check Function Name in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
+        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Exception Handler `{$cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER']}` NOT FOUND in `src/funkphp/config/functions.php` (User-defined Globally Available Functions) is DEFINED & FOUND but is NOT READABLE! Check Function Name in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one!");
     }
 }
 if (isset($cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION'])) {
     if (!isset($userFunctionsFile["functions"][$cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION']])) {
-        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Registered Shutdown Function `{$cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION']}` NOT FOUND in `src/funkphp/config/functions.php` (User-defined Globally Available Functions) is DEFINED & FOUND but is NOT READABLE! Check Function Name in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
+        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Registered Shutdown Function `{$cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION']}` NOT FOUND in `src/funkphp/config/functions.php` (User-defined Globally Available Functions) is DEFINED & FOUND but is NOT READABLE! Check Function Name in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one!");
     }
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -671,8 +690,8 @@ if (isset($cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION'])) {
 // c['FUNKPHP_CUSTOM_URI_NORMALIZER'] must be a string or null and it cannot be the same function as
 // custom exception handler function OR custom register shutdown function!
 $fphpo_customChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["FUNKPHP_CUSTOM_URI_NORMALIZER"], $configWarnsAndErrs, "cli_err");
-cli_assert_final_value(end($fphpo_customChecks), $configWarnsAndErrs, "cli_err", 'string|null', "Key is needed to know whether to use Custom URI Normalizer Function or Default one that prepares a Normalized Request URI for each incoming HTTP(S) Request! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
-cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for Main Keys 'FUNKPHP_ONLINE', 'FUNKPHP_USE_HTTPS', 'FUNKPHP_USE_PREPARE_URI', 'FUNKPHP_CUSTOM_EXCEPTION_HANDLER', 'FUNKPHP_CUSTOM_EXCEPTION_HANDLER', 'FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION' & 'INI_SETS' in the `c.php` (FunkPHP Configuration File) and try again! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
+cli_assert_final_value(end($fphpo_customChecks), $configWarnsAndErrs, "cli_err", 'string|null', "Key is needed to know whether to use Custom URI Normalizer Function or Default one that prepares a Normalized Request URI for each incoming HTTP(S) Request!");
+cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for Main Keys 'FUNKPHP_ONLINE', 'FUNKPHP_USE_HTTPS', 'FUNKPHP_USE_PREPARE_URI', 'FUNKPHP_CUSTOM_EXCEPTION_HANDLER', 'FUNKPHP_CUSTOM_EXCEPTION_HANDLER', 'FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION' & 'INI_SETS' in the `c.php` (FunkPHP Configuration File) and try again!");
 if (isset($cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER'])) {
     if (isset($userFunctionsFile['functions'][$cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER']])) {
         if (
@@ -818,24 +837,48 @@ cli_assert_final_value(end($classesChecks), $configWarnsAndErrs, "cli_err", 'arr
 $classesChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["classes", "user"], $configWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($classesChecks), $configWarnsAndErrs, "cli_err", 'array-empty', "Must be an Empty Array  as it will be filled with user-defined class instances (from src/funkphp/classes) during runtime.");
 cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for 'classes' Main Key in the `c.php` (FunkPHP Configuration File) and try again! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
-
 /// SCAN funkphp/classes dir as we do not know if there are any
 $classDir = scandir(FUNKPHP_CLASSES_DIR);
 foreach ($classDir as $classFile) {
     if ($classFile === '.' || $classFile === '..' || !str_ends_with($classFile, ".php")) continue;
     $klassPath = FUNKPHP_CLASSES_DIR . '/' .  $classFile;
-    $klass = new cli_file_status("funkphp/classes", $classFile);
-    if (
-        !$klass->file_exists || !$klass->namespace_exists
-        || !$klass->class_exists || !$klass->classes_same_count
-    ) {
-        $ROUTES_CONFIG_PARSED['ALL']['ALL_CLASSES_USED']['INVALID'] = $classFile;
-        cli_build_warning_err_list($classesWarnsErrs, "cli_err", "The Class File `$classFile` is NOT a Valid Class File; it must have namespace `funkphp\\classes;` and then no comments after closing class '}'! Path: `" . ($klassPath ?? "[NOT_DEFINED]") . "`");
+    if (isset($ROUTES_CONFIG_PARSED['ALL']['ALL_CLASSES_USED']['INVALID_PATHS'][$klassPath])) {
+        cli_build_warning_err_list($classesWarnsErrs, "cli_err", "The Class File `$klassPath` already VALIDATED AS INVALID CLASS FILE!");
+        continue;
     }
-    cli_dump($klass);
+    $klass = cli_file_status("funkphp/classes", $classFile);
+    cli_dump($klass, false);
+    if (
+        (!cli_status_helper($klass, [
+            "class_exists",
+            "namespace_exists",
+            "classes_same_count"
+        ]) || ($klass['namespace_name'] !== 'funkphp\\classes'))
+    ) {
+        $ROUTES_CONFIG_PARSED['ALL']['ALL_CLASSES_USED']['INVALID_PATHS'][$klassPath] = true;
+        cli_build_warning_err_list($classesWarnsErrs, "cli_err", "The Class File `$classFile` is NOT a Valid Class File; it must have namespace `funkphp\\classes;` and then no comments after closing class '}'! (check for trailing comments!)");
+        continue;
+    } else if (count($klass['class_names_duplicates']) > 0) {
+        $ROUTES_CONFIG_PARSED['ALL']['ALL_CLASSES_USED']['INVALID_PATHS'][$klassPath] = true;
+        cli_build_warning_err_list($classesWarnsErrs, "cli_err", "Duplicate Class Names in (`" . join(", ", array_keys($klass['class_names_duplicates'])) .  "`) in Class File `$klassPath`!");
+        continue;
+    }
+    foreach ($klass['classes'] as $singleKlassK => $singleKlassV) {
+        if (isset($ROUTES_CONFIG_PARSED['ALL']['ALL_CLASSES_USED']['VALID'][$singleKlassK])) {
+            cli_build_warning_err_list($classesWarnsErrs, "cli_err", "The Class `$singleKlassK` in File `$klassPath` already VALIDATED AS VALID CLASS!");
+            continue;
+        } else if (!$singleKlassV['class_name_ucfirst']) {
+            $ROUTES_CONFIG_PARSED['ALL']['ALL_CLASSES_USED']['INVALID'][$singleKlassK] = true;
+            cli_build_warning_err_list($classesWarnsErrs, "cli_err", "The Class Name `$singleKlassK` in File `$klassPath` must START WITH AN UPPERCASE LETTER!");
+            continue;
+        }
+        $ROUTES_CONFIG_PARSED['ALL']['ALL_CLASSES_USED']['VALID'][$singleKlassK] = true;
+        $classesBUFFER[] = $singleKlassV['class_raw'];
+    }
 }
+// Either it will fail here OR complete the classes buffer array
 cli_stop_from_warn_err_list($classesWarnsErrs, "Please Review (" . count($classesWarnsErrs) . ") Warnings/Errors above for 'classes' Files in `/src/funkphp/classes`! Path: `" . (FUNKPHP_CLASSES_DIR ?? "[NOT_DEFINED]") . "`");
-$classesBUFFER[] = "}\n";
+$classesBUFFER[] = "}\n"; // We do NOT add classes yet to the entire buffer though! We haven't even added the starting part of the file!
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////  STEP #1 VALIDATE CONNECTIONS Array Subkeys Paths!
@@ -1253,6 +1296,8 @@ else {
     }
 }
 $deploymentBuffer[] = "}"; // Closing Global namespace for now
+$deploymentBuffer[] = implode("", $classesBUFFER); // Now we add the classes buffer!
+
 cli_success_without_exit("G`### Step 2 DONE ###` Validating & Adding User-defined Functions (`/src/funkphp/config/functions.php`), Core Functions (`/src/funkphp/core/functions.php`) SUCCESSFULLY! Paths: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`" . " & `" . (FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL ?? "[NOT_DEFINED]") . "`");
 
 // NEXT UP FOR BUILD/COMPILE: Scoped Namespaces for pipeline_request (pl_) files!!! Will learn then if stuff even works
