@@ -128,7 +128,7 @@ $ROUTES[$method][$route]['pipeline'][$file] = $fn;
 
 // Grab status for the folder and file so we can check whether
 // we can even access it, if it exists, is writable, etc.
-$statusArray = cli_folder_and_php_file_status($folder, $file);
+$statusArray = cli_file_status($folder, $file);
 
 // File does not exist so we create it and then rebuild routes
 if (!$statusArray['file_exists']) {

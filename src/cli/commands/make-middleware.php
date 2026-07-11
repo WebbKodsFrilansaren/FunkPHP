@@ -45,7 +45,7 @@ if ($arg_methodRoute) {
 ///////////////////////////////////////////////////////////////////////////////////////////
 // Grab status for the folder and file so we can check whether
 // we can even access it, if it exists, is writable, etc.
-$statusArray = cli_folder_and_php_file_status("funkphp/pipeline/middlewares", $middleware);
+$statusArray = cli_file_status("funkphp/pipeline/middlewares", $middleware);
 // When Main Middlewares folder doesn't even exist or is accessible as it should by default!
 if (
     !$statusArray['folder_exists'] || !$statusArray['folder_readable']

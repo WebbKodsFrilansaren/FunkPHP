@@ -56,7 +56,7 @@ if ($arg_methodRoute) {
 //////////////////////////////////////////////////////////////////////////////////
 // Grab status for the folder and file so we can check whether
 // we can even access it, if it exists, is writable, etc.
-$statusArray = cli_folder_and_php_file_status($folder, $file);
+$statusArray = cli_file_status($folder, $file);
 
 // If folder path does not exist, we attempt creating it which also means
 // that file and its fn does NOT exist so we will pass crudType "create_new_file_and_fn"

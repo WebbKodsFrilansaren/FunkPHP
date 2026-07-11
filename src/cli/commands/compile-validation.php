@@ -25,7 +25,7 @@ $arg_FolderFile = cli_get_cli_input_from_interactive_or_regular($args, 'compile:
 [$file, $fn] = cli_extract_folder_file($arg_FolderFile, 'v_');
 $arg_confirmEval = cli_get_cli_input_from_interactive_or_regular($args, 'compile:validation', 'confirmEvalRegex');
 // Then go ahead try to compile the Validation Function inside of the Validation File
-$statusArray = cli_folder_and_php_file_status("funkphp/validation", $file);
+$statusArray = cli_file_status("funkphp/validation", $file);
 // File_path must exist, otherwise we cannot write
 // to it as part of the completed compile process
 if (!$statusArray['file_path']) {

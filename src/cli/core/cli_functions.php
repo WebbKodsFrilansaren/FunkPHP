@@ -1,15 +1,276 @@
-<?php // ALL CLI FUNCTIONS
+<?php
+
+// ALL CLI FUNCTIONS
 
 /**
- * -----------------
- * FUNKCLI FUNCTIONS
- * -----------------
+ * -------------------------------
+ * FUNKCLI FUNCTIONS & 1 CLASS !!!
+ * -------------------------------
  * DO NOT MANUALLY EDIT THIS FILE.
  * If you are currently editing this file to see if FunkCLI will "self-heal",
  * it won't. This is a micro-framework, not your therapist. If you alter this
  * source of truth, your app will most likely crash, and your peer will know
  * you do not understand how caching and/or compiled files work.
  **/
+
+/**
+ * Modern DTO & Static Analyzer for FunkPHP compilation pipelines.
+ * Provides immutable analysis metrics with complete IDE Intellisense.
+ */
+class cli_file_status
+{
+    // --- Public Read-Only Properties (Peak IDE Intellisense) ---
+    public readonly ?string $file_raw;
+    public readonly mixed $deeper_analysis;
+    public readonly bool $class_exists;
+    public readonly array $classes;
+    public readonly array $classes_via_tokenizer;
+    public readonly bool $classes_same_count;
+    public readonly bool $namespace_exists;
+    public readonly ?string $namespace_name;
+    public readonly ?array $namespace_parts;
+    public readonly ?string $folder_provided_path;
+    public readonly string $folder_name;
+    public readonly string $folder_path_attempted;
+    public readonly string $file_path_attempted;
+    public readonly ?string $folder_path;
+    public readonly bool $folder_exists;
+    public readonly bool $folder_readable;
+    public readonly bool $folder_writable;
+    public readonly string $file_name;
+    public readonly ?string $file_path;
+    public readonly bool $file_exists;
+    public readonly bool $file_readable;
+    public readonly bool $file_writable;
+    public readonly array $fn_names_only;
+    public readonly array $fn_names_duplicates;
+    public readonly array $functions;
+    public readonly array $functions_via_tokenizer;
+    public readonly bool $functions_same_count;
+
+    /**
+     * Parse and analyze a target file asset immediately upon instantiation.
+     */
+    public function __construct(
+        string $folder,
+        string $file,
+        bool $useExactFilePathInstead = false,
+        bool $deeperAnalysis = false
+    ) {
+        // 1. Path Guard Clauses & Sanitization
+        if (!$useExactFilePathInstead) {
+            if (str_starts_with(trim($folder), "/")) {
+                $folder = substr(trim($folder), 1);
+            }
+            if (empty($folder) || !preg_match('/^[a-z_][a-z_0-9\/-]*$/i', $folder)) {
+                cli_err_without_exit('[cli_file_status]: $folder must be a valid non-empty string without spaces.');
+            }
+            if (empty($file) || !preg_match('/^[a-z_][a-z_0-9\.]*$/i', $file)) {
+                cli_err_without_exit('[cli_file_status]: $file must be a valid non-empty string without spaces.');
+            }
+        }
+        $folder = trim($folder);
+        $providedFolder = $folder;
+        $file = trim($file);
+        if (str_ends_with($folder, '/')) {
+            $folder = rtrim($folder, '/');
+        }
+        if (!str_ends_with($file, '.php')) {
+            $file .= '.php';
+        }
+        if (str_starts_with($file, '/')) {
+            $file = ltrim($file, '/');
+        }
+        $targetFolder = !$useExactFilePathInstead ? (PROJECT_DIR . '/' . $folder) : $folder;
+        $targetFile   = $targetFolder . '/' . $file;
+        // Initialize internal parsing collector states
+        $fns = [];
+        $fnsviaTokenizer = [];
+        $fnames_only = [];
+        $fnames_duplicates = [];
+        $classExists = false;
+        $classes = [];
+        $classesviaTokenizer = [];
+        $namespaceExists = false;
+        $namespaceName = null;
+        $namespaceParts = null;
+        $fileRaw = null;
+        $DEEPER = null;
+        // 2. Perform Structural Code Mining if File is Accessible
+        if (is_file($targetFile) && is_readable($targetFile)) {
+            $fileCnt = file_get_contents($targetFile);
+            if (!$fileCnt) {
+                cli_warning_without_exit('[cli_file_status]: Could not read existing file: ' . $targetFile);
+            } else {
+                $fileRaw = $fileCnt;
+                // Regex definitions
+                $fnRegex        = '/^function\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(&\$[^)]*\)(.*?^}\s*(;)?)?(\r|\n)*$/ims';
+                $dxRegex        = '/\$DX\s*=\s*\[\s*\'.*?];$/ims';
+                $namespaceRegex = '/^namespace\s+(.*?);(\r|\n)*$/im';
+                $classRegex     = '/^class\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*{(.*?^}\s*(;)?)?(\r|\n)*$/ims';
+                $returnRegex    = '/return\s*array\(.*?\);$\n/ims';
+                // Namespace Analysis
+                if (preg_match($namespaceRegex, $fileCnt, $namespaceMatch)) {
+                    $namespaceExists = true;
+                    $namespaceName   = rtrim($namespaceMatch[1] ?? '', ';');
+                    $namespaceParts  = explode('\\', $namespaceName);
+                }
+                // Regular Expression Function Analysis Loop
+                if (preg_match_all($fnRegex, $fileCnt, $fnsMatches)) {
+                    foreach ($fnsMatches[1] as $idx => $fn) {
+                        $regexRaw = $fnsMatches[0][$idx] ?? '';
+                        $cleanRegexRaw = trim($regexRaw);
+                        $regexBodyCaught = (str_ends_with($cleanRegexRaw, '};') || str_ends_with($cleanRegexRaw, '}'));
+                        if ($regexBodyCaught) {
+                            $fns[$fn] = [
+                                'valid_fn_structure'           => $regexBodyCaught,
+                                'fn_exact_name'                => $fn,
+                                'fn_name_same_as_lowercased'   => ($fn === strtolower($fn)),
+                                'fn_lowercased'                => strtolower($fn),
+                                'fn_uppercased'                => strtoupper($fn),
+                                'fn_starts_with_cli'           => str_starts_with(strtolower($fn), 'cli_'),
+                                'fn_starts_with_funk'          => str_starts_with(strtolower($fn), 'funk_'),
+                                'fn_starts_with_funk_validate_' => str_starts_with(strtolower($fn), 'funk_validate_'),
+                                'fn_raw'                       => $regexRaw,
+                                'dx_raw'                       => null,
+                                'return_raw'                   => null
+                            ];
+                            if (in_array(strtolower($fn), $fnames_only, true)) {
+                                $fnames_duplicates[$fn] = true;
+                            }
+                            $fnames_only[] = $fn;
+                            if (preg_match($dxRegex, $regexRaw, $dxMatch)) {
+                                $fns[$fn]['dx_raw'] = $dxMatch[0] ?? null;
+                            }
+                            if (preg_match($returnRegex, $regexRaw, $returnMatch)) {
+                                $fns[$fn]['return_raw'] = $returnMatch[0] ?? null;
+                            }
+                        }
+                    }
+                }
+                // Tokenizer Function Extraction
+                $fnsviaTokenizer = cli_harvest_all_functions_from_code($fileRaw) ?? [];
+                // Class Object Extraction
+                if (preg_match_all($classRegex, $fileCnt, $classMatches)) {
+                    $classExists = true;
+                    foreach ($classMatches[0] as $idx => $classRaw) {
+                        $className = null;
+                        if (preg_match('/^class\s+([a-z_A-Z][a-zA-Z0-9_]*)\s*{/', $classRaw, $classNameMatch)) {
+                            $className = $classNameMatch[1] ?? null;
+                        }
+                        $classes[$className] = [
+                            'class_name' => $className,
+                            'class_raw'  => $classRaw,
+                        ];
+                    }
+                }
+                $classesviaTokenizer = cli_harvest_all_classes_from_code($fileRaw) ?? [];
+                if ($deeperAnalysis) {
+                    $DEEPER = cli_analyze_code_safety($fileRaw);
+                }
+            }
+        }
+        // 3. Hydrate Public Read-Only State Container Properties
+        $this->file_raw              = $fileRaw;
+        $this->deeper_analysis       = $DEEPER;
+        $this->class_exists          = $classExists;
+        $this->classes               = $classes;
+        $this->classes_via_tokenizer = $classesviaTokenizer;
+        $this->classes_same_count    = (count($classes) === count($classesviaTokenizer));
+        $this->namespace_exists      = $namespaceExists;
+        $this->namespace_name        = $namespaceName;
+        $this->namespace_parts       = $namespaceParts;
+        $this->folder_provided_path  = $providedFolder;
+        $this->folder_name           = basename($targetFolder);
+        $this->folder_path_attempted = $targetFolder;
+        $this->file_path_attempted   = $targetFile;
+
+        $this->folder_exists         = is_dir($targetFolder);
+        $this->folder_readable       = is_readable($targetFolder);
+        $this->folder_writable       = is_writable($targetFolder);
+        $this->folder_path           = ($this->folder_exists && $this->folder_readable && $this->folder_writable) ? $targetFolder : null;
+
+        $this->file_name             = $file;
+        $this->file_exists           = is_file($targetFile);
+        $this->file_readable         = is_readable($targetFile);
+        $this->file_writable         = is_writable($targetFile);
+        $this->file_path             = ($this->file_exists && $this->file_readable && $this->file_writable) ? $targetFile : null;
+
+        $this->fn_names_only         = $fnames_only;
+        $this->fn_names_duplicates   = $fnames_duplicates;
+        $this->functions             = $fns;
+        $this->functions_via_tokenizer = $fnsviaTokenizer;
+        $this->functions_same_count  = (count($fns) === count($fnsviaTokenizer));
+    }
+    // --- Fluent Domain Validation Methods (Replacing cli_status_helper) ---
+    /** Check if filesystem reads for both directory and target asset are clear. */
+    public function isAccessible(): bool
+    {
+        return $this->file_exists && $this->file_readable && $this->folder_readable;
+    }
+    /** Validate the structural health and standards layout of all functions. */
+    public function areFunctionsValid(): bool
+    {
+        if (!$this->functions_same_count || count($this->fn_names_duplicates) > 0) {
+            return false;
+        }
+        foreach ($this->functions as $meta) {
+            if (!($meta['valid_fn_structure'] ?? false) || !($meta['fn_name_same_as_lowercased'] ?? false)) {
+                return false;
+            }
+        }
+        return true;
+    }
+    /** Check if a precise named function exists in both parsing indices. */
+    public function hasFunction(string $name): bool
+    {
+        return isset($this->functions[$name]) && in_array($name, $this->functions_via_tokenizer, true);
+    }
+    /** Check if a specific named function meets structural syntax and casing standards. */
+    public function isFunctionValid(string $name): bool
+    {
+        if (!$this->hasFunction($name)) {
+            return false;
+        }
+        $meta = $this->functions[$name];
+        return ($meta['valid_fn_structure'] ?? false) && ($meta['fn_name_same_as_lowercased'] ?? false);
+    }
+    /** Validate the structural health of the namespace declarations. */
+    public function isNamespaceValid(): bool
+    {
+        return $this->namespace_exists && !empty($this->namespace_name) && count($this->namespace_parts ?? []) > 0;
+    }
+    /** Multi-pass rule assert engine (Backwards compatibility array lookup strategy). */
+    public function validate(string|array $rules): bool
+    {
+        $rules = is_string($rules) ? [$rules] : $rules;
+        $count = count($rules);
+        for ($i = 0; $i < $count; $i++) {
+            $rule = $rules[$i];
+            if ($rule === 'fn_exist' || $rule === 'fn_valid') {
+                $targetFn = $rules[$i + 1] ?? '';
+                $i++; // Skip the function name index on next pass
+
+                if ($rule === 'fn_exist' && !$this->hasFunction($targetFn)) return false;
+                if ($rule === 'fn_valid' && !$this->isFunctionValid($targetFn)) return false;
+                continue;
+            }
+            // Direct mapping expressions
+            if ($rule === 'file_exists' && !$this->file_exists) return false;
+            if ($rule === 'file_readable' && !$this->file_readable) return false;
+            if ($rule === 'folder_exists' && !$this->folder_exists) return false;
+            if ($rule === 'folder_readable' && !$this->folder_readable) return false;
+            if ($rule === 'namespace_valid' && !$this->isNamespaceValid()) return false;
+            if ($rule === 'fns_exist' && empty($this->functions)) return false;
+            if ($rule === 'fns_valid' && !$this->areFunctionsValid()) return false;
+            // Property reflection fallback
+            if (property_exists($this, $rule) && is_bool($this->$rule) && !$this->$rule) {
+                return false;
+            }
+        }
+        return true;
+    }
+}
 
 // Helper function to create a better looking "var_dump" in Console/Terminal mainly
 // by using fewer indentations where it is only one indentation if a key in $var
@@ -216,6 +477,306 @@ function cli_dump($var, $exit = true, $horisontal = false)
     }
 }
 
+// Function that wants the return value of: "cli_file_status()"
+// and make do checks that then return boolean whether true, like checking
+/**
+ * Evaluates a sequence of integrity rules for a parsed asset payload.
+ *
+ * @param array        $ref    The parsed file reference data array.
+ * @param string|array $checks A rule keyword string or sequential array of rule commands.
+ * @return bool                True if ALL validations pass successfully; otherwise False.
+ */
+function cli_status_helper(&$ref, $checks): bool
+{
+    // Fail immediately if target reference structure is structurally broken
+    if (empty($ref) || !is_array($ref)) {
+        cli_err("[cli_status_helper]: `\$ref` must be Return Value of a `cli_file_status()` Call!");
+    }
+    // Array keys
+    $mustExistKeys = [
+        'file_raw' => true,
+        'deeper_analysis' => true,
+        'class_exists' => true,
+        'classes' => true,
+        'classes_via_tokenizer' => true,
+        'classes_same_count' => true,
+        'namespace_exists' => true,
+        'namespace_name' => true,
+        'namespace_parts' => true,
+        'folder_provided_path' => true,
+        'folder_name' => true,
+        'folder_path_attempted' => true,
+        'file_path_attempted' => true,
+        'folder_path' => true,
+        'folder_exists' => true,
+        'folder_readable' => true,
+        'folder_writable' => true,
+        'file_name' => true,
+        'file_path' => true,
+        'file_exists' => true,
+        'file_readable' => true,
+        'file_writable' => true,
+        'fn_names_only' => true,
+        'fn_names_duplicates' => true,
+        'functions' => true,
+        'functions_via_tokenizer' => true,
+        'functions_same_count' => true,
+    ];
+    foreach ($ref as $refKey => $refVal) {
+        if (!array_key_exists($refKey, $mustExistKeys)) {
+            cli_err("[cli_status_helper]: Array Key `$refKey` expected in `\$ref`; it must be Return Value from a `cli_file_status()` Call!");
+        }
+    }
+    // Standardize single string calls straight into a sequential lookup layout array
+    if (is_string($checks)) {
+        $checks = [$checks];
+    }
+    $count = count($checks);
+    // We utilize an indexed loop so we can manually adjust the pointer index step position
+    for ($i = 0; $i < $count; $i++) {
+        $rule = $checks[$i];
+        // ── SPECIAL CASE: ADVANCED TARGET FUNCTION EVALUATIONS ─────────────────────
+        if ($rule === 'fn_exist' || $rule === 'fn_valid') {
+            // Peek at the very next entry array element to isolate the target function name payload string
+            $targetFn = isset($checks[$i + 1]) ? (string)$checks[$i + 1] : '';
+            // CRITICAL STEP: Jump the index pointer forward to skip checking the fn name string as a rule keyword!
+            $i++;
+            if (trim($targetFn) === '') {
+                return false;
+            }
+            $existsInRegex     = isset($ref['functions'][$targetFn]);
+            $existsInTokenizer = in_array($targetFn, $ref['functions_via_tokenizer'] ?? [], true);
+            // Execute isolation checks matching target profile requirements
+            if ($rule === 'fn_exist') {
+                if (!$existsInRegex || !$existsInTokenizer) {
+                    return false;
+                }
+            } elseif ($rule === 'fn_valid') {
+                if (!$existsInRegex || !$existsInTokenizer) {
+                    return false;
+                }
+                $fnMeta = $ref['functions'][$targetFn];
+                if (
+                    !($fnMeta['valid_fn_structure'] ?? false)
+                    || !($fnMeta['fn_name_same_as_lowercased'] ?? false)
+                ) {
+                    return false;
+                }
+            }
+            continue;
+        }
+        // ── STANDARD CASE: GENERAL CONTAINER STRUCTURAL VERIFICATIONS ─────────────
+        if ($rule === 'namespace_valid') {
+            if (
+                $ref['namespace_exists']
+                && $ref['namespace_name']
+                && count($ref['namespace_parts']) > 0
+            ) {
+                return true;
+            } else {
+                return false;
+            }
+        } elseif ($rule === 'file_exists') {
+            if (!($ref['file_exists'] ?? false)) return false;
+        } elseif ($rule === 'file_readable') {
+            if (!($ref['file_readable'] ?? false)) return false;
+        } elseif ($rule === 'folder_exists') {
+            if (!($ref['folder_exists'] ?? false)) return false;
+        } elseif ($rule === 'folder_readable') {
+            if (!($ref['folder_readable'] ?? false)) return false;
+        } elseif ($rule === 'fns_exist') {
+            if (empty($ref['functions'] ?? [])) return false;
+        } elseif ($rule === 'fns_valid') {
+            // Check cross-engine counts alignment consistency checks
+            if (!($ref['functions_same_count'] ?? false)) return false;
+            if (count($ref['fn_names_duplicates'] ?? []) > 0) return false;
+            // Loop internal tracking blocks inside to verify structural schema standards
+            foreach ($ref['functions'] as $fnMeta) {
+                if (!($fnMeta['valid_fn_structure'] ?? false) || !($fnMeta['fn_name_same_as_lowercased'] ?? false)) {
+                    return false;
+                }
+            }
+        } else {
+            // Dynamic Fallback: Directly intercept matching boolean element flags inside reference array context
+            if (isset($ref[$rule]) && is_bool($ref[$rule])) {
+                if (!$ref[$rule]) return false;
+            }
+        }
+    }
+    // All validation test elements passed clean
+    return true;
+}
+// Returns an array of status of $folder & $file and whether they:
+// - exist, - are readable, - are writable, - the number of functions
+// and each function its $DX and/or return array(). Also the entire file
+// is read into a raw string and each function is as well so CRUD can
+// be done for that file assuming its a PHP file with functions. If
+// `return function` exists in it (like middlewares), it's included.
+function cli_file_status($folder, $file, $useExactFilePathInstead = false, $deeperAnalysis = false)
+{
+    // QoL fix for $folder if it is a string and starts with a slash
+    if (!$useExactFilePathInstead) {
+        if (is_string($folder) && str_starts_with(trim($folder), "/")) {
+            $folder = substr(trim($folder), 1);
+        }
+        // Validate both are non-empty strings and match the regex
+        if (!isset($folder) || !is_string($folder) || empty($folder) || !preg_match('/^[a-z_][a-z_0-9\/-]*$/i', $folder)) {
+            cli_err_without_exit('[cli_file_status()]: $folder must be A Valid Non-Empty String! (whitespace is NOT allowed)');
+            cli_info('[cli_file_status()]: Use the following Directory Syntax (Regex):`[a-z_][a-z_0-9\/-]*)`! (you do NOT need to add a leading slash `/` to the string)');
+        }
+        if (!isset($file) || !is_string($file) || empty($file) || !preg_match('/^[a-z_][a-z_0-9\.]*$/i', $file)) {
+            cli_err_without_exit('[cli_file_status()]: $file must be A Valid Non-Empty String! (whitespace is NOT allowed)');
+            cli_info('[cli_file_status()]: Use the following File Syntax (Regex):`[a-z_][a-z_0-9\.]*)`! (you do NOT need to add a leading slash `/` to the string and NOT `.php` File Extension)');
+        }
+    }
+    // Consistently get '$folder' . '/' . $file . '.php' always!
+    $folder = trim($folder);
+    $providedFolder  = $folder; // Original folder for reference
+    $file = trim($file);
+    $filename = '<UNKNOWN>';
+    $singleFolder = '<UNKNOWN>';
+    if (str_ends_with($folder, '/')) {
+        $folder = rtrim($folder, '/');
+    }
+    if (!str_ends_with($file, '.php')) {
+        $file .= '.php';
+    }
+    if (str_starts_with($file, '/')) {
+        $file = ltrim($file, '/');
+    }
+    $folder = (($useExactFilePathInstead === false) ? (PROJECT_DIR . '/' . $folder) : ($folder));
+    // $singleFolder is the last part of the folder path
+    $singleFolder = basename($folder);
+    $filename = $file;
+    $file = $folder . '/' . $file;
+    // If file exists and is readable, check if function exists
+    // by first reading the file and then checking if
+    // the function name is in the file content using regex!
+    $fnRegex = '/^function\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(&\$[^)]*\)(.*?^}\s*(;)?)?(\r|\n)*$/ims';
+    $dxRegex = '/\$DX\s*=\s*\[\s*\'.*?];$/ims';
+    $namespaceRegex = '/^namespace\s+(.*?);(\r|\n)*$/im';
+    $classRegex = '/^class\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*{(.*?^}\s*(;)?)?(\r|\n)*$/ims';
+    $returnRegex = '/return\s*array\(.*?\);$\n/ims';
+    $fns = null;
+    $fnsviaTokenizer = null;
+    $fnames_only = [];
+    $fnames_duplicates = [];
+    $classExists = false;
+    $classes = [];
+    $classesviaTokenizer = null;
+    $namespaceExists = false;
+    $namespaceParts = null;
+    $fileRaw = null;
+    $fileReturnRaw = null;
+    $DEEPER = null;
+    if (is_file($file) && is_readable($file)) {
+        $fileCnt = file_get_contents($file);
+        if (!$fileCnt) {
+            cli_warning_without_exit('[cli_file_status()]: Could NOT Read the File `' . $file . '` when it SHOULD have been Readable. This means that Named Functions, their $DX and/or Return arrays(), OR Anonymous Function Files CANNOT be retrieved for use!');
+        } else {
+            $fileRaw = $fileCnt;
+            // Check if namespace exists which should start on a new line and end with ;
+            if (preg_match($namespaceRegex, $fileCnt, $namespaceMatch)) {
+                $namespaceExists = true;
+                // we split on namespace parts and also remove last ;
+                $namespaceParts = explode('\\', rtrim($namespaceMatch[1] ?? '', ';'));
+            }
+            // Main way to parse for ^functions{}$"
+            if (preg_match_all($fnRegex, $fileCnt, $fnsMatches)) {
+                foreach ($fnsMatches[1] as $idx => $fn) {
+                    // Clean up trailing whitespace/newlines from the regex capture and we will ONLY
+                    // add function if it does end with a '}' based on Regex matching!
+                    // EPIPHANY: If it doesn't end with a curly brace, the regex only caught the signature!
+                    $regexRaw = $fnsMatches[0][$idx] ?? '';
+                    $cleanRegexRaw = trim($regexRaw);
+                    $regexBodyCaught = (str_ends_with($cleanRegexRaw, '};') || str_ends_with($cleanRegexRaw, '}'));
+                    if ($regexBodyCaught) {
+                        $fns[$fn] = [
+                            'valid_fn_structure' => $regexBodyCaught,
+                            'fn_exact_name' => $fn,
+                            'fn_name_same_as_lowercased' => ($fn === strtolower($fn)),
+                            'fn_lowercased' => strtolower($fn),
+                            'fn_uppercased' => strtoupper($fn),
+                            'fn_starts_with_cli' => str_starts_with(strtolower($fn), 'cli_'),
+                            'fn_starts_with_funk' => str_starts_with(strtolower($fn), 'funk_'),
+                            'fn_starts_with_funk_validate_' => str_starts_with(strtolower($fn), 'funk_validate_'),
+                            'fn_raw' => $fnsMatches[0][$idx] ?? null,
+                            'dx_raw' => null,
+                            'return_raw' => null
+                        ];
+                        if (in_array(strtolower($fn), $fnames_only)) {
+                            $fnames_duplicates[$fn] = true;
+                        }
+                        $fnames_only[] = $fn;
+                        // We now use the index to match for $DX and return arrays
+                        if (preg_match($dxRegex, $fnsMatches[0][$idx], $dxMatch)) {
+                            $fns[$fn]['dx_raw'] = $dxMatch[0] ?? null;
+                        }
+                        if (preg_match($returnRegex, $fnsMatches[0][$idx], $returnMatch)) {
+                            $fns[$fn]['return_raw'] = $returnMatch[0] ?? null;
+                        }
+                    }
+                }
+            }
+            // Php::tokenize way to parse for ^functions{}$"
+            $fnsviaTokenizer = cli_harvest_all_functions_from_code($fileRaw) ?? null;
+            // CThen ceck first if any class exist and then push all those
+            // that exists to the "classes" subkey array in return []
+            if (preg_match_all($classRegex, $fileCnt, $classMatches)) {
+                $classExists = true;
+                foreach ($classMatches[0] as $idx => $class) {
+                    $classes[] = [
+                        'class_raw' => $class,
+                        'class_name' => null
+                    ];
+                    // We now use the index to match for class name
+                    if (preg_match('/^class\s+([a-z_A-Z][a-zA-Z0-9_]*)\s*{/', $classMatches[0][$idx], $classNameMatch)) {
+                        $classes[count($classes) - 1]['class_name'] = $classNameMatch[1] ?? null;
+                    }
+                }
+            }
+            // Php::tokenize way to parse for ^classes{}$"
+            $classesviaTokenizer  = cli_harvest_all_classes_from_code($fileRaw) ?? null;
+            // Perform even deeper analysis inside of file if boolean set to TRUE
+            // here we can check things like for devious/dangerous functions like eval()
+            // shell_exec(), curl(), base64 (common obfuscation technique) and the like
+            // since it does an extra pass, it must be set to TRUE to use since default
+            // is FALSE to not waste compute since it is meant for audit/compile commands/functions!
+            if ($deeperAnalysis) {
+                $DEEPER = cli_analyze_code_safety($fileRaw);
+            }
+        }
+    }
+    return [
+        'file_raw' => $fileRaw,
+        'deeper_analysis' => $DEEPER,
+        'class_exists' => $classExists,
+        'classes' => $classes,
+        'classes_via_tokenizer' => (isset($classesviaTokenizer) ? $classesviaTokenizer :  []),
+        'classes_same_count' => (isset($classes) && isset($classesviaTokenizer) && (count($classes) === count($classesviaTokenizer))),
+        'namespace_exists' => $namespaceExists,
+        'namespace_name' => ($namespaceExists ? $namespaceMatch[1] ?? null : null),
+        'namespace_parts' => $namespaceParts,
+        'folder_provided_path' => $providedFolder ?? null,
+        'folder_name' => $singleFolder ?? null,
+        'folder_path_attempted' => $folder ?? "<Invalid String>",
+        'file_path_attempted' => $file ?? "<Invalid String>",
+        'folder_path' => ((is_string($folder) && is_dir($folder) && is_readable($folder) && is_writable($folder)) ? $folder : null),
+        'folder_exists' => is_dir($folder),
+        'folder_readable' => is_readable($folder),
+        'folder_writable' => is_writable($folder),
+        'file_name' => $filename,
+        'file_path' => ((is_file($file) && is_readable($file) && is_writable($file)) ? $file : null),
+        'file_exists' => is_file($file),
+        'file_readable' => is_readable($file),
+        'file_writable' => is_writable($file),
+        'fn_names_only' => (isset($fnames_only) ? $fnames_only : []),
+        'fn_names_duplicates' => (isset($fnames_duplicates) ? $fnames_duplicates : []),
+        'functions' => (isset($fns) ? $fns : []),
+        'functions_via_tokenizer' => (isset($fnsviaTokenizer) ? $fnsviaTokenizer : []),
+        'functions_same_count' => (isset($fns) && isset($fnsviaTokenizer) && (count($fns) === count($fnsviaTokenizer))),
+    ];
+}
 // Function that returns if(!['req']['post_response']){funkphp\pipeline\request|post_response\namespaceFunction($c);}
 // to easier build the buffer of 'request' and 'post_response'. Middlewares & Route Function Handlers are NOT allowed to be aborted
 // this way, but should be aborted inside of their own logic by essentially exit and/or returning a response in order to do so!
@@ -3328,7 +3889,7 @@ function cli_inherited_middleware_exist(&$ROUTES, $method, $startPath, $mw)
     return $inheritedMiddlewaresFound;
 }
 
-// Helper function to `cli_folder_and_php_file_status` but can also be used
+// Helper function to `cli_file_status` but can also be used
 // without using that one to get an array of regular function declarations!
 // like "function name1(){}, function name2(){}" and so on within same file!
 function cli_harvest_all_functions_from_code(string $code): array
@@ -3370,7 +3931,7 @@ function cli_harvest_all_functions_from_code(string $code): array
     }
     return $harvested; // Returns ['all' => 'function all()...', 'by_id' => '...']
 }
-// Helper function to `cli_folder_and_php_file_status` but can also be used
+// Helper function to `cli_file_status` but can also be used
 // without using that one to get an array of regular class declarations!
 // like "class name1(){}, class name2(){}" and so on within same file!
 function cli_harvest_all_classes_from_code(string $code): array
@@ -3552,183 +4113,11 @@ function cli_analyze_code_safety(string $code): array
             }
         }
     }
-
     return $analysis;
-}
-// Returns an array of status of $folder & $file and whether they:
-// - exist, - are readable, - are writable, - the number of functions
-// and each function its $DX and/or return array(). Also the entire file
-// is read into a raw string and each function is as well so CRUD can
-// be done for that file assuming its a PHP file with functions. If
-// `return function` exists in it (like middlewares), it's included.
-function cli_folder_and_php_file_status($folder, $file, $useExactFilePathInstead = false, $deeperAnalysis = false)
-{
-    // QoL fix for $folder if it is a string and starts with a slash
-    if (!$useExactFilePathInstead) {
-        if (is_string($folder) && str_starts_with(trim($folder), "/")) {
-            $folder = substr(trim($folder), 1);
-        }
-        // Validate both are non-empty strings and match the regex
-        if (!isset($folder) || !is_string($folder) || empty($folder) || !preg_match('/^[a-z_][a-z_0-9\/-]*$/i', $folder)) {
-            cli_err_without_exit('[cli_folder_and_php_file_status()]: $folder must be A Valid Non-Empty String! (whitespace is NOT allowed)');
-            cli_info('[cli_folder_and_php_file_status()]: Use the following Directory Syntax (Regex):`[a-z_][a-z_0-9\/-]*)`! (you do NOT need to add a leading slash `/` to the string)');
-        }
-        if (!isset($file) || !is_string($file) || empty($file) || !preg_match('/^[a-z_][a-z_0-9\.]*$/i', $file)) {
-            cli_err_without_exit('[cli_folder_and_php_file_status()]: $file must be A Valid Non-Empty String! (whitespace is NOT allowed)');
-            cli_info('[cli_folder_and_php_file_status()]: Use the following File Syntax (Regex):`[a-z_][a-z_0-9\.]*)`! (you do NOT need to add a leading slash `/` to the string and NOT `.php` File Extension)');
-        }
-    }
-    // Consistently get '$folder' . '/' . $file . '.php' always!
-    $folder = trim($folder);
-    $providedFolder  = $folder; // Original folder for reference
-    $file = trim($file);
-    $filename = '<UNKNOWN>';
-    $singleFolder = '<UNKNOWN>';
-    if (str_ends_with($folder, '/')) {
-        $folder = rtrim($folder, '/');
-    }
-    if (!str_ends_with($file, '.php')) {
-        $file .= '.php';
-    }
-    if (str_starts_with($file, '/')) {
-        $file = ltrim($file, '/');
-    }
-    $folder = (($useExactFilePathInstead === false) ? (PROJECT_DIR . '/' . $folder) : ($folder));
-    // $singleFolder is the last part of the folder path
-    $singleFolder = basename($folder);
-    $filename = $file;
-    $file = $folder . '/' . $file;
-    // If file exists and is readable, check if function exists
-    // by first reading the file and then checking if
-    // the function name is in the file content using regex!
-    $fnRegex = '/^function\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(&\$[^)]*\)(.*?^}\s*(;)?)?(\r|\n)*$/ims';
-    $dxRegex = '/\$DX\s*=\s*\[\s*\'.*?];$/ims';
-    $namespaceRegex = '/^namespace\s+(.*?);(\r|\n)*$/im';
-    $classRegex = '/^class\s+[a-z_A-Z][a-zA-Z0-9_]*\s*{(.*?)}$/ims';
-    $returnRegex = '/return\s*array\(.*?\);$\n/ims';
-    $fns = null;
-    $fnsviaTokenizer = null;
-    $fnames_only = [];
-    $fnames_duplicates = [];
-    $classExists = false;
-    $classes = [];
-    $classesviaTokenizer = null;
-    $namespaceExists = false;
-    $namespaceParts = null;
-    $fileRaw = null;
-    $fileReturnRaw = null;
-    $DEEPER = null;
-    if (is_file($file) && is_readable($file)) {
-        $fileCnt = file_get_contents($file);
-        if (!$fileCnt) {
-            cli_warning_without_exit('[cli_folder_and_php_file_status()]: Could NOT Read the File `' . $file . '` when it SHOULD have been Readable. This means that Named Functions, their $DX and/or Return arrays(), OR Anonymous Function Files CANNOT be retrieved for use!');
-        } else {
-            $fileRaw = $fileCnt;
-            // Check if namespace exists which should start on a new line and end with ;
-            if (preg_match($namespaceRegex, $fileCnt, $namespaceMatch)) {
-                $namespaceExists = true;
-                // we split on namespace parts and also remove last ;
-                $namespaceParts = explode('\\', rtrim($namespaceMatch[1] ?? '', ';'));
-            }
-            // Main way to parse for ^functions{}$"
-            if (preg_match_all($fnRegex, $fileCnt, $fnsMatches)) {
-                foreach ($fnsMatches[1] as $idx => $fn) {
-                    // Clean up trailing whitespace/newlines from the regex capture and we will ONLY
-                    // add function if it does end with a '}' based on Regex matching!
-                    // EPIPHANY: If it doesn't end with a curly brace, the regex only caught the signature!
-                    $regexRaw = $fnsMatches[0][$idx] ?? '';
-                    $cleanRegexRaw = trim($regexRaw);
-                    $regexBodyCaught = (str_ends_with($cleanRegexRaw, '};') || str_ends_with($cleanRegexRaw, '}'));
-                    if ($regexBodyCaught) {
-                        $fns[$fn] = [
-                            'valid_fn_structure' => $regexBodyCaught,
-                            'fn_exact_name' => $fn,
-                            'fn_name_same_as_lowercased' => ($fn === strtolower($fn)),
-                            'fn_lowercased' => strtolower($fn),
-                            'fn_uppercased' => strtoupper($fn),
-                            'fn_starts_with_cli' => str_starts_with(strtolower($fn), 'cli_'),
-                            'fn_starts_with_funk' => str_starts_with(strtolower($fn), 'funk_'),
-                            'fn_starts_with_funk_validate_' => str_starts_with(strtolower($fn), 'funk_validate_'),
-                            'fn_raw' => $fnsMatches[0][$idx] ?? null,
-                            'dx_raw' => null,
-                            'return_raw' => null
-                        ];
-                        if (in_array(strtolower($fn), $fnames_only)) {
-                            $fnames_duplicates[$fn] = true;
-                        }
-                        $fnames_only[] = $fn;
-                        // We now use the index to match for $DX and return arrays
-                        if (preg_match($dxRegex, $fnsMatches[0][$idx], $dxMatch)) {
-                            $fns[$fn]['dx_raw'] = $dxMatch[0] ?? null;
-                        }
-                        if (preg_match($returnRegex, $fnsMatches[0][$idx], $returnMatch)) {
-                            $fns[$fn]['return_raw'] = $returnMatch[0] ?? null;
-                        }
-                    }
-                }
-            }
-            // Php::tokenize way to parse for ^functions{}$"
-            $fnsviaTokenizer = cli_harvest_all_functions_from_code($fileRaw) ?? null;
-            // CThen ceck first if any class exist and then push all those
-            // that exists to the "classes" subkey array in return []
-            if (preg_match_all($classRegex, $fileCnt, $classMatches)) {
-                $classExists = true;
-                foreach ($classMatches[0] as $idx => $class) {
-                    $classes[] = [
-                        'class_raw' => $class,
-                        'class_name' => null
-                    ];
-                    // We now use the index to match for class name
-                    if (preg_match('/^class\s+([a-z_A-Z][a-zA-Z0-9_]*)\s*{/', $classMatches[0][$idx], $classNameMatch)) {
-                        $classes[count($classes) - 1]['class_name'] = $classNameMatch[1] ?? null;
-                    }
-                }
-            }
-            // Php::tokenize way to parse for ^classes{}$"
-            $classesviaTokenizer  = cli_harvest_all_classes_from_code($fileRaw) ?? null;
-            // Perform even deeper analysis inside of file if boolean set to TRUE
-            // here we can check things like for devious/dangerous functions like eval()
-            // shell_exec(), curl(), base64 (common obfuscation technique) and the like
-            // since it does an extra pass, it must be set to TRUE to use since default
-            // is FALSE to not waste compute since it is meant for audit/compile commands/functions!
-            if ($deeperAnalysis) {
-                $DEEPER = cli_analyze_code_safety($fileRaw);
-            }
-        }
-    }
-    return [
-        'file_raw' => $fileRaw,
-        'deeper_analysis' => $DEEPER,
-        'class_exists' => $classExists,
-        'classes' => $classes,
-        'classes_via_tokenizer' => (isset($classesviaTokenizer) ? $classesviaTokenizer :  []),
-        'classes_same_count' => (isset($classes) && isset($classesviaTokenizer) && (count($classes) === count($classesviaTokenizer))),
-        'namespace_exists' => $namespaceExists,
-        'namespace_name' => ($namespaceExists ? $namespaceMatch[1] ?? null : null),
-        'namespace_parts' => $namespaceParts,
-        'folder_provided_path' => $providedFolder ?? null,
-        'folder_name' => $singleFolder ?? null,
-        'folder_path_attempted' => $folder ?? "<Invalid String>",
-        'file_path_attempted' => $file ?? "<Invalid String>",
-        'folder_path' => ((is_string($folder) && is_dir($folder) && is_readable($folder) && is_writable($folder)) ? $folder : null),
-        'folder_exists' => is_dir($folder),
-        'folder_readable' => is_readable($folder),
-        'folder_writable' => is_writable($folder),
-        'file_name' => $filename,
-        'file_path' => ((is_file($file) && is_readable($file) && is_writable($file)) ? $file : null),
-        'file_exists' => is_file($file),
-        'file_readable' => is_readable($file),
-        'file_writable' => is_writable($file),
-        'fn_names_only' => (isset($fnames_only) ? $fnames_only : []),
-        'fn_names_duplicates' => (isset($fnames_duplicates) ? $fnames_duplicates : []),
-        'functions' => (isset($fns) ? $fns : []),
-        'functions_via_tokenizer' => (isset($fnsviaTokenizer) ? $fnsviaTokenizer : []),
-        'functions_same_count' => (isset($fns) && isset($fnsviaTokenizer) && (count($fns) === count($fnsviaTokenizer))),
-    ];
 }
 
 // Function that expects and uses the array from the function above
-// "cli_folder_and_php_file_status()" to either Create a new Folder
+// "cli_file_status()" to either Create a new Folder
 // with a PHP File that is just Anoymous Function (middlewares &
 // pipeline functions) OR to Create a new Folder with a PHP File
 // that has a Named Function (like route handlers, etc.) meaning it
@@ -3747,9 +4136,9 @@ function cli_crud_folder_and_php_file($statusArray, $crudType, $file, $fn = null
     // Assume success is true, if any error occurs we just set it to false
     $success = true;
     // $statusArray must be an array with the structure
-    // returned by "cli_folder_and_php_file_status()"
+    // returned by "cli_file_status()"
     if (!isset($statusArray) || !is_array($statusArray) || empty($statusArray)) {
-        cli_err_without_exit('[cli_crud_folder_and_php_file()]: $statusArray must be a Non-Empty Array returned by "cli_folder_and_php_file_status()"!');
+        cli_err_without_exit('[cli_crud_folder_and_php_file()]: $statusArray must be a Non-Empty Array returned by "cli_file_status()"!');
         cli_info("It needs the following Keys: 'folder_name', 'folder_path', 'folder_exists', 'folder_readable', 'folder_writable', 'file_name', 'file_path', 'file_exists', 'file_readable', 'file_writable', 'functions' and 'file_raw'!");
         return null;
     }
@@ -11333,78 +11722,6 @@ function cli_restore_default_folders_and_files()
             }
         }
     }
-}
-
-// Output file until success (by waiting one second and retrying with new file name that is the file name + new datetime and extension    )
-function cli_output_file_until_success($outputPathWithoutExtension, $extension, $outputData, $customSuccessMessage = "")
-{
-    // First check not empty strings
-    if (
-        !is_string($outputPathWithoutExtension) ||  !is_string($extension) || !is_string($outputData)
-        || $outputPathWithoutExtension === "" || $extension === "" || $outputData === ""
-    ) {
-        cli_err_syntax("Output path, extension and data must be non-empty strings!");
-    }
-
-    // Check extension is valid (starting with ".") and ending with only characters
-    if (!str_starts_with($extension, ".")) {
-        cli_err_syntax("Output extension must start with '.' and only contain characters!");
-    }
-
-    // Check preg_match for extension which is (.[a-zA-Z0-9-_]+$)
-    if (!preg_match("/\.[a-zA-Z0-9-_]+$/", $extension)) {
-        cli_err_syntax("Output extension must start with '.' and only contain characters (a-zA-Z0-9-_)!");
-    }
-
-    // Check that output path exists (each folder in the path must exist)
-    $outputPath = dirname($outputPathWithoutExtension);
-    if (!is_dir($outputPath)) {
-        cli_err_syntax("Output path must be a valid directory. Path: $outputPath is not!");
-    }
-    if (!is_writable($outputPath)) {
-        cli_err_syntax("Output path must be writable! Path: $outputPath is not!");
-    }
-
-    // Now create first datetime string and file name and try to write it (by checking if that exact output file path exists)
-    // If it exists, we wait one second and try again with new datetime string and file name
-    $datetime = date("Y-m-d_H-i-s");
-    $success = false;
-    $outputFilePath = $outputPathWithoutExtension . "_" . $datetime . $extension;
-    while (!$success) {
-        if (file_exists($outputFilePath)) {
-            cli_info_without_exit("Output file already exists: $outputFilePath! Trying again in 1 second...");
-            sleep(1);
-            $datetime = date("Y-m-d_H-i-s");
-            $outputFilePath = $outputPathWithoutExtension . "_" . $datetime . $extension;
-        } else {
-            // Try to write the file
-            $result = file_put_contents($outputFilePath, $outputData);
-            if ($result === false) {
-                cli_err("Output file FAILED to write: $outputFilePath!");
-            } else {
-                if ($customSuccessMessage !== "") {
-                    cli_success_without_exit($customSuccessMessage);
-                    $success = true;
-                } else {
-                    cli_success_without_exit("Output file written SUCCESSFULLY: $outputFilePath!");
-                    $success = true;
-                }
-            }
-        }
-    }
-}
-
-// Backup batch of files based on the array of files (string values) to backup
-// Function uses "cli_backup_file_until_success"!
-// TODO: Fix actual backup functionality
-function cli_backup_batch($arrayOfFilesToBackup)
-{
-    // Check if the array is a non-empty array
-    if (!is_array($arrayOfFilesToBackup) || empty($arrayOfFilesToBackup)) {
-        cli_err_syntax("Array of files to backup must be a non-empty array!");
-    }
-    global $settings;
-    cli_info_without_exit("`cli_backup_batch` will be implemented another time! For now, it just simulates the backup process by waiting 1 second for each file and then reporting success!");
 }
 
 // Delete a Single Route from the Route file (funkphp/routes/route_single_routes.php)

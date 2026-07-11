@@ -23,7 +23,7 @@ $arg_FolderFile = cli_get_cli_input_from_interactive_or_regular($args, 'make:sql
 $arg_sqlType = cli_get_cli_input_from_interactive_or_regular($args, 'make:sql', 'sqlQType');
 $arg_tables = cli_get_cli_input_from_interactive_or_regular($args, 'make:sql', 'sqlTables');
 $tablesProvided = strtolower($arg_sqlType) . '=' . strtolower($arg_tables);
-$statusArray = cli_folder_and_php_file_status("funkphp/data/sql", $file);
+$statusArray = cli_file_status("funkphp/data/sql", $file);
 
 // Folder must always exist or error out hard
 if (!$statusArray['folder_path']) {

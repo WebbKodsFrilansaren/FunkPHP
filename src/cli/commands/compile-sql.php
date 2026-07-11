@@ -27,7 +27,7 @@ $arg_FolderFile = cli_get_cli_input_from_interactive_or_regular($args, 'compile:
 [$file, $fn] = cli_extract_folder_file($arg_FolderFile, 's_');
 $arg_confirmEval = cli_get_cli_input_from_interactive_or_regular($args, 'compile:sql', 'confirmEvalRegex');
 // Then go ahead try to compile the SQL Function inside of the SQL File
-$statusArray = cli_folder_and_php_file_status("funkphp/sql", $file);
+$statusArray = cli_file_status("funkphp/sql", $file);
 // File_path must exist, otherwise we cannot write
 // to it as part of the completed compile process
 if (!$statusArray['file_path']) {
