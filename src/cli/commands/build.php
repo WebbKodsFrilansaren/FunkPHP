@@ -63,6 +63,8 @@ $ROUTES_CONFIG_PARSED = [
         ],
         'ALL_CORE_FNS_USED' => [
             'VALID' => [],
+            'TEMPLATE_REPLACED_VALID' => [],
+            'TEMPLATE_REPLACED_INVALID' => [],
             'INVALID' => [],
             'INVALID_PATHS' => [],
         ],
@@ -847,7 +849,6 @@ foreach ($classDir as $classFile) {
         continue;
     }
     $klass = cli_file_status("funkphp/classes", $classFile);
-    cli_dump($klass, false);
     if (
         (!cli_status_helper($klass, [
             "class_exists",
@@ -1230,7 +1231,6 @@ foreach ($userFunctionsFile['functions'] as $fnNameUser => $fnValsUser) {
         $ROUTES_CONFIG_PARSED['ALL_USER_FNS_USED']['INVALID'][$fnNameUser] = true;
         cli_build_warning_err_list($functionsWarnsAndErrs, "cli_err", "User-defined function '$fnNameUser' `(in /src/funkphp/config/functions.php`) starts with `funk_` (but not `funk_validate_`) or `cli_` which is not allowed. Please choose rename the function or remove it!");
     } else {
-        $COMPILE_STATS_TRACKER['User-FUNCTIONS'][] = $fnNameUser;
         $ROUTES_CONFIG_PARSED['ALL_USER_FNS_USED']['VALID'][$fnNameUser] = true;
         $deploymentBuffer[] = $fnValsUser['fn_raw'] . "\n";
     }
@@ -1275,24 +1275,27 @@ if (isset($coreFunctionsFile['functions'])) {
         } else if (isset($functionsTemplatesArray[$fnNameCore])) {
             $templateRawCode = $coreFunctionsTemplateFile['functions'][$fnNameCore]['fn_raw'] ?? null;
             if (!$templateRawCode) {
+                $ROUTES_CONFIG_PARSED['ALL']['TEMPLATE_REPLACED_VALID']['INVALID'][$fnNameCore] = true;
                 cli_build_warning_err_list($functionsWarnsAndErrs, "cli_err", "Function '$fnNameCore' is marked for Token Replacement, but its Template was not found inside `/src/funkphp/core/function_templates.php`! The Function Structure must start with `function name(\&\$c`.");
                 cli_stop_from_warn_err_list($functionsWarnsAndErrs, "Please Review (" . count($functionsWarnsAndErrs) . ") Warnings/Errors above for the Function (Templates) Files (Core & User-defined) (`/src/funkphp/core/function_templates.php`,`/src/funkphp/core/functions.php`,`/src/funkphp/config/functions.php`) and try again!");
             }
             $compiledTemplate = cli_function_template_token_replacer($functionsTemplatesArray[$fnNameCore], $templateRawCode);
-            $COMPILE_STATS_TRACKER['Ignored-FUNCTIONS'][] = $fnNameCore;
+            $ROUTES_CONFIG_PARSED['ALL']['ALL_IGNORED_FNS_USED']['VALID'][$fnNameCore] = true;
+            $ROUTES_CONFIG_PARSED['ALL']['TEMPLATE_REPLACED_VALID']['VALID'][$fnNameCore] = true;
             $deploymentBuffer[] = $compiledTemplate . "\n";
         } else {
-            $COMPILE_STATS_TRACKER['Core-FUNCTIONS'][] = $fnNameCore;
+            $ROUTES_CONFIG_PARSED['ALL']['ALL_CORE_FNS_USED']['VALID'][$fnNameCore] = true;
             $deploymentBuffer[] = $fnValsCore['fn_raw'] . "\n";
         }
     }
 }  // Core Functions not found by the helper function, but is it AllowedModifiedCore false?
 else {
     if ($allowModifiedCore === false) {
+        $ROUTES_CONFIG_PARSED['ALL']['ALL_CORE_FNS_USED']['INVALID'] = true;
         cli_build_warning_err_list($functionsWarnsAndErrs, "cli_err", "The FunkPHP Core Functions File `FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL` (`/src/funkphp/core/functions.php`) might be modified due to not finding Any Valid Structured Functions. Your User-defined Functions you should add/edit/remove are found in `/src/funkphp/config/functions.php`! DO NOT edit FunkPHP Core Functions File. Check your Git/File Versioning History to see if you can rollback any changes made to the FunkPHP Core Functions File, or Redownload the Files from an Official Source!");
         cli_stop_from_warn_err_list($functionsWarnsAndErrs, "Please Review (" . count($functionsWarnsAndErrs) . ") Warnings/Errors above for the Function Files (Core: `/src/funkphp/core/functions.php` & User-defined: `/src/funkphp/config/functions.php`) and try again!");
     } else {
-        cli_warning_without_exit("FunkPHP Core Functions File in `/src/funkphp/core/functions.php` does NOT contain Any Valid Structured Functions (`function name(\&\$c){}`) or Any Functions at all. Modified Core is set to ALLOWED so it will be ignored.");
+        cli_warning_without_exit("FunkPHP Core Functions File in `/src/funkphp/core/functions.php` does NOT contain Any Valid Structured Functions (`function name(\&\$c){}`) or Any Functions at all. `Modified Core` is `set` to `ALLOWED` so it will be ignored. Cross your programming fingers for no errors now!");
     }
 }
 $deploymentBuffer[] = "}"; // Closing Global namespace for now
@@ -1300,7 +1303,9 @@ $deploymentBuffer[] = implode("", $classesBUFFER); // Now we add the classes buf
 
 cli_success_without_exit("G`### Step 2 DONE ###` Validating & Adding User-defined Functions (`/src/funkphp/config/functions.php`), Core Functions (`/src/funkphp/core/functions.php`) SUCCESSFULLY!");
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // NEXT UP FOR BUILD/COMPILE: Scoped Namespaces for pipeline_request (pl_) files!!! Will learn then if stuff even works
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 $pipelineWarnsAndErrs = [];
 cli_info_without_exit("G`### Step 3 STARTS ###` Loading, Validating & Compiling `pipeline_request.php`, `pipeline_routes.php` & `compiled_routes.php` ('Request' & 'Post_Response' in 'Pipeline' in FunkGUI) File...");
 if (!cli_file_constant_defined_file_exists_is_readable("FUNKPHP_FILE_PATH_ROUTES")) {
@@ -1321,6 +1326,9 @@ if (!cli_file_constant_defined_file_exists_is_readable("FUNKPHP_FILE_PATH_PIPELI
 }
 $pipelineFile = $singlePipeline;
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// BUILD/COMPILE Pipeline Key - GLOBAL HEADERS, GLOBAL SRIS
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 $pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline"], $pipelineWarnsAndErrs, "cli_err");
 $pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>"], $pipelineWarnsAndErrs, "cli_err");
 $pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_headers"], $pipelineWarnsAndErrs, "cli_err");
@@ -1347,66 +1355,70 @@ cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err"
     }
 }), "Every External URL Key in in `[<CONFIG_GLOBAL> -> global_headers -> global_sris -> internal]` must start with `https://` for security reasons!");
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// BUILD/COMPILE Pipeline Keys - GLOBAL CSP
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 $pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_csp"], $pipelineWarnsAndErrs, "cli_err");
 $pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_csp", "connect-src"], $pipelineWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'array-empty|array-strings', "All Values in `[pipeline -> <CONFIG_GLOBAL> -> global_csp-> connect-src]` must be Strings (empty or not) OR it must be an Empty Array!");
-
 $pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_csp", "font-src"], $pipelineWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'array-empty|array-strings', "All Values in `[pipeline -> <CONFIG_GLOBAL> -> global_csp -> font-src]` must be Strings (empty or not) OR it must be an Empty Array!");
-
 $pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_csp", "frame-src"], $pipelineWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'array-empty|array-strings', "All Values in `[pipeline -> <CONFIG_GLOBAL> -> global_csp -> frame-src]` must be Strings (empty or not) OR it must be an Empty Array!");
-
 $pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_csp", "base-uri"], $pipelineWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'array-empty|array-strings', "All Values in `[pipeline -> <CONFIG_GLOBAL> -> global_csp -> base-uri]` must be Strings (empty or not) OR it must be an Empty Array!");
-
 $pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_csp", "form-action"], $pipelineWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'array-empty|array-strings', "All Values in `[pipeline -> <CONFIG_GLOBAL> -> global_csp -> form-action]` must be Strings (empty or not) OR it must be an Empty Array!");
-
 $pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_csp", "object-src"], $pipelineWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'array-empty|array-strings', "All Values in `[pipeline -> <CONFIG_GLOBAL> -> global_csp -> object-src]` must be Strings (empty or not) OR it must be an Empty Array!");
-
 $pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_csp", "default-src"], $pipelineWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'array-empty|array-strings', "All Values in `[pipeline -> <CONFIG_GLOBAL> -> global_csp -> default-src]` must be Strings (empty or not) OR it must be an Empty Array!");
-
 $pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_csp", "script-src"], $pipelineWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'array-empty|array-strings', "All Values in `[pipeline -> <CONFIG_GLOBAL> -> global_csp -> script-src]` must be Strings (empty or not) OR it must be an Empty Array!");
-
 $pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_csp", "style-src"], $pipelineWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'array-empty|array-strings', "All Values in `[pipeline -> <CONFIG_GLOBAL> -> global_csp -> style-src]` must be Strings (empty or not) OR it must be an Empty Array!");
-
 $pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_csp", "img-src"], $pipelineWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'array-empty|array-strings', "All Values in `[pipeline -> <CONFIG_GLOBAL> -> global_csp -> img-src]` must be Strings (empty or not) OR it must be an Empty Array!");
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// BUILD/COMPILE Pipeline Keys - GLOBAL RATE LIMITING
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 $pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_rate_limiting"], $pipelineWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'array|null', "All Values in `[pipeline -> <CONFIG_GLOBAL> -> global_rate_limiting]` must be an Array or null!");
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// BUILD/COMPILE Pipeline Keys - GLOBAL PARAM RULES
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 $pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_param_rules"], $pipelineWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'array-empty|array-associative-strings', "All Values in `[pipeline -> <CONFIG_GLOBAL> -> global_param_rules]` must be Strings (empty or not) OR it must be an Empty Array!");
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// BUILD/COMPILE Pipeline Keys - GLOBAL DEFAULT NO ROUTE MATCH - Page, JSON, XML, Text & Callback
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 $pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_default_no_route_match_response"], $pipelineWarnsAndErrs, "cli_err");
 $pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_default_no_route_match_response", "page"], $pipelineWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'string|null', "`[pipeline -> <CONFIG_GLOBAL> -> global_default_no_route_match_response -> page]` must be a String or Null!");
-
 $pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_default_no_route_match_response", "json"], $pipelineWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'array|null', "`[pipeline -> <CONFIG_GLOBAL> -> global_default_no_route_match_response -> json]` must be an Array or Null!");
-
 $pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_default_no_route_match_response", "xml"], $pipelineWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'string|null', "`[pipeline -> <CONFIG_GLOBAL> -> global_default_no_route_match_response -> xml]` must be a String or Null!");
-
 $pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_default_no_route_match_response", "text"], $pipelineWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'string|null', "`[pipeline -> <CONFIG_GLOBAL> -> global_default_no_route_match_response -> text]` must be a String or Null!");
-
 $pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "<CONFIG_GLOBAL>", "global_default_no_route_match_response", "callback"], $pipelineWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'string|null', "`[pipeline -> <CONFIG_GLOBAL> -> global_default_no_route_match_response -> callback]` must be a String or Null!");
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// BUILD/COMPILE Pipeline Keys - Request + Post_Response
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 $pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "request"], $pipelineWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'array-list-strings-non-empty', "`[pipeline -> request]` must be a Numbered Array with Single Non-Empty String Values!");
 $pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "post_response"], $pipelineWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'array-empty|array-list-strings-non-empty', "`[pipeline -> post_response]` must be a Numbered Array with Single Non-Empty String Values OR an Empty Array!");
-
 cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline File (`/src/funkphp/core/pipeline_request.php`) in the Key `pipeline -> <CONFIG_GLOBAL>`. Please fix them and try again!");
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// BUILD/COMPILE Pipeline Keys - ADD FILE=>FN TO THE DEPLOY-BUFFER!
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Now we start building namespace-scoped functions such as: 'funkphp\pipeline\request {}' & 'namespace 'funkphp\pipeline\post_response {}'
 if (!defined("FUNKPHP_PIPELINE_REQUEST_DIR")) {
     cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_PIPELINE_REQUEST_DIR` (`/src/funkphp/pipeline/request`) IS NOT DEFINED when it should be?! Try Git/Versioning Control (for `/src/cli/funk`) to get it back or redownload it again!");
@@ -1416,16 +1428,24 @@ if (!defined("FUNKPHP_PIPELINE_POST_RESPONSE_DIR")) {
     cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_PIPELINE_POST_RESPONSE_DIR` (`/src/funkphp/pipeline/post_response`) IS NOT DEFINED when it should be?! Try Git/Versioning Control (for `/src/cli/funk`) to get it back or redownload it again!");
     cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline Files  (Pipeline Post_Response Files: `/src/funkphp/core/pipeline_request.php`) and try again!");
 }
-
 $DEFAULT_ERROR_FORMATTING = "\nRECOMMENDED: `1) ALWAYS lowercase Function Names everywhere. 2) ALWAYS USE Standard Formatting so every newline inside of Functions are indented at least once` OR it won't be found by the Compiler!";
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// BUILD/COMPILE Pipeline Keys - PIPELINE REQUEST FUNCTIONS
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Add Pipeline Request Functions
 $deploymentPipelineRequestBuffer[] = 'namespace funkphp\\pipeline\\request';
 $deploymentPipelineRequestBuffer[] = " {\n";
 $pipelineFileCount = 0;
 foreach ($pipelineFile['pipeline']['request'] as $pipeRequestFn) {
     $pipelineFileCount++;
+    if (isset($ROUTES_CONFIG_PARSED['ALL']['ALL_REQUEST_PIPELINE_FILES_FNS_USED']['VALID'][$pipeRequestFn])) {
+        cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Request #$pipelineFileCount Function File (`/src/funkphp/pipeline/request/$pipeRequestFn.php`) has already been added? Duplicate use in `/src/funkphp/config/pipeline_request.php`?");
+        continue;
+    }
     $plReqStatus = cli_file_status(FUNKPHP_PIPELINE_REQUEST_DIR, $pipeRequestFn, true);
     if (!$plReqStatus['file_exists'] || !$plReqStatus['folder_readable']) { // file exists & is readable?
+        $ROUTES_CONFIG_PARSED['ALL']['ALL_REQUEST_PIPELINE_FILES_FNS_USED']['INVALID'][$pipeRequestFn] = true;
         cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Request #$pipelineFileCount Function File (`/src/funkphp/pipeline/request/$pipeRequestFn.php`) was NOT FOUND or IS NOT READABLE!");
         cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline File in the Key `pipeline -> request` and try again! $DEFAULT_ERROR_FORMATTING");
     }
@@ -1436,12 +1456,15 @@ foreach ($pipelineFile['pipeline']['request'] as $pipeRequestFn) {
         cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Request #$pipelineFileCount Function (`/src/funkphp/pipeline/request/$pipeRequestFn.php`) was NOT FOUND in Expected Function `function $pipeRequestFn(&\$c) { // Code }`!");
     } else if (isset($plReqStatus['functions'][$pipeRequestFn])) {
         if (!$plReqStatus['functions_same_count']) {
+            $ROUTES_CONFIG_PARSED['ALL']['ALL_REQUEST_PIPELINE_FILES_FNS_USED']['INVALID'][$pipeRequestFn] = true;
             cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Request #$pipelineFileCount Function (`/src/funkphp/pipeline/request/$pipeRequestFn.php`) WAS FOUND USING Either Regex or Tokenizer but not both Indicating some Formatting Issue Inside File? (check for any trailing comment at the end of a function block{} <-- here)");
         }
         if (!$plReqStatus['functions'][$pipeRequestFn]['fn_name_same_as_lowercased']) { // is function name lowercased?
+            $ROUTES_CONFIG_PARSED['ALL']['ALL_REQUEST_PIPELINE_FILES_FNS_USED']['INVALID'][$pipeRequestFn] = true;
             cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Request #$pipelineFileCount Function (`/src/funkphp/pipeline/request/$pipeRequestFn.php`) should only and always be lowercased!");
         }
         if (!str_starts_with(strtolower($pipeRequestFn), "pl_")) { // function name starts with "pl_"?
+            $ROUTES_CONFIG_PARSED['ALL']['ALL_REQUEST_PIPELINE_FILES_FNS_USED']['INVALID'][$pipeRequestFn] = true;
             cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Request #$pipelineFileCount Function (`/src/funkphp/pipeline/request/$pipeRequestFn.php`) must start with `pl_` for the sake of consistency!");
         }
     }
@@ -1452,48 +1475,64 @@ foreach ($pipelineFile['pipeline']['request'] as $pipeRequestFn) {
         $HTTPS_KERNEL_DISPATCH_FUNCTION_FOUND = true;
         continue;
     }
-    $COMPILE_STATS_TRACKER['Pipeline-REQUEST'][] = $pipeRequestFn;
+    $ROUTES_CONFIG_PARSED['ALL']['ALL_REQUEST_PIPELINE_FILES_FNS_USED']['VALID'][$pipeRequestFn] = true;
     $deploymentPipelineRequestBuffer[] = $plReqStatus['functions'][$pipeRequestFn]['fn_raw'] . "\n";
 }
 $deploymentPipelineRequestBuffer[] = " }\n"; // End namespace funkphp\pipeline\request {}
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// BUILD/COMPILE Pipeline Keys - PIPELINE POST_RESPONSE FUNCTIONS
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Add Pipeline Post_Response Functions
 $deploymentPipelineRequestBuffer[] = 'namespace funkphp\\pipeline\\post_response';
 $deploymentPipelineRequestBuffer[] = " {\n";
 $pipelineFileCount = 0;
 foreach ($pipelineFile['pipeline']['post_response'] as $pipePostResponseFn) {
     $pipelineFileCount++;
+    if (isset($ROUTES_CONFIG_PARSED['ALL']['ALL_POST_RESPONSE_PIPELINE_FILES_FNS_USED']['VALID'][$pipePostResponseFn])) {
+        cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Post_Response #$pipelineFileCount Function File (`/src/funkphp/pipeline/post_response/$pipePostResponseFn.php`) has already been added? Duplicate use in `/src/funkphp/config/pipeline_request.php`?");
+        continue;
+    }
     $plReqStatus = cli_file_status(FUNKPHP_PIPELINE_POST_RESPONSE_DIR, $pipePostResponseFn, true);
     if (!$plReqStatus['file_exists'] || !$plReqStatus['folder_readable']) { // file exists & is readable?
+        $ROUTES_CONFIG_PARSED['ALL']['ALL_POST_RESPONSE_PIPELINE_FILES_FNS_USED']['INVALID'][$pipePostResponseFn] = true;
         cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "The Pipeline Post_Response Function File (`/src/funkphp/pipeline/post_response/$pipePostResponseFn.php`) was NOT FOUND or IS NOT READABLE!");
         cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline File in the Key `pipeline -> post_response` and try again! $DEFAULT_ERROR_FORMATTING");
     }
     if ($plReqStatus['namespace_name'] !== "funkphp\\pipeline\\post_response\\$pipePostResponseFn") { // expected scoped namespace correct?
+        $ROUTES_CONFIG_PARSED['ALL']['ALL_POST_RESPONSE_PIPELINE_FILES_FNS_USED']['INVALID'][$pipePostResponseFn] = true;
         cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Post_Response #$pipelineFileCount Function (`/src/funkphp/pipeline/post_response/$pipePostResponseFn.php`) was NOT FOUND in Expected `namespace funkphp\\pipeline\\post_response\\$pipePostResponseFn;`!");
     }
     if (!isset($plReqStatus['functions'][$pipePostResponseFn])) { // does function (name) exist?
+        $ROUTES_CONFIG_PARSED['ALL']['ALL_POST_RESPONSE_PIPELINE_FILES_FNS_USED']['INVALID'][$pipePostResponseFn] = true;
         cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Post_Response #$pipelineFileCount Function (`/src/funkphp/pipeline/post_response/$pipePostResponseFn.php`) was NOT FOUND in Expected Function `function $pipePostResponseFn(&\$c) { // Code }`!");
     } else if (isset($plReqStatus['functions'][$pipePostResponseFn])) {
         if (!$plReqStatus['functions_same_count']) {
+            $ROUTES_CONFIG_PARSED['ALL']['ALL_POST_RESPONSE_PIPELINE_FILES_FNS_USED']['INVALID'][$pipePostResponseFn] = true;
             cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Post_Response #$pipelineFileCount Function (`/src/funkphp/pipeline/post_response/$pipePostResponseFn.php`) WAS FOUND USING Either Regex or Tokenizer but not both Indicating some Formatting Issue Inside File? (check for any trailing comment at the end of a function block{} <-- here)");
         }
         if (!$plReqStatus['functions'][$pipePostResponseFn]['fn_name_same_as_lowercased']) { // is function name lowercased?
+            $ROUTES_CONFIG_PARSED['ALL']['ALL_POST_RESPONSE_PIPELINE_FILES_FNS_USED']['INVALID'][$pipePostResponseFn] = true;
             cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Post_Response #$pipelineFileCount Function (`/src/funkphp/pipeline/post_response/$pipePostResponseFn.php`) should only and always be lowercased!");
         }
         if (!str_starts_with(strtolower($pipePostResponseFn), "pl_")) { // function name starts with "pl_"?
+            $ROUTES_CONFIG_PARSED['ALL']['ALL_POST_RESPONSE_PIPELINE_FILES_FNS_USED']['INVALID'][$pipePostResponseFn] = true;
             cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Post_Response #$pipelineFileCount Function (`/src/funkphp/pipeline/post_response/$pipePostResponseFn.php`) must start with `pl_` for the sake of consistency!");
         }
     }
     cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline File (`/src/funkphp/core/pipeline_request.php`) in the Key `pipeline -> post_response` and try again! $DEFAULT_ERROR_FORMATTING");
-    $COMPILE_STATS_TRACKER['Pipeline-POST_RESPONSE'][] = $pipePostResponseFn;
+    $ROUTES_CONFIG_PARSED['ALL']['ALL_POST_RESPONSE_PIPELINE_FILES_FNS_USED']['VALID'][$pipePostResponseFn] = true;
     $deploymentPipelineRequestBuffer[] = $plReqStatus['functions'][$pipePostResponseFn]['fn_raw'] . "\n";
 }
 $deploymentPipelineRequestBuffer[] = " }\n"; // End namespace funkphp\pipeline\post_response {}
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// BUILD/COMPILE Pipeline Keys - PIPELINE REQUEST SPECIAL CASE: `pl_https_kernel_dispatch` not found
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // STRONG CRITICAL WARNING if they skip the `pl_https_kernel_dispatch` which is the "trigger"
 // to build the optimized route matching execution flow. Then it is all up to Dev to write their own!
 if (!$HTTPS_KERNEL_DISPATCH_FUNCTION_FOUND) {
-    cli_warning_without_exit("### ⚠️CRITICAL WARNING ### Expected `pl_https_kernel_dispatch` Pipeline Request Function NOT FOUND meaning the Optimized Routing Matching Function will NOT BE PART OF THE BUILD! (that String is needed to 'trigger' that Building step!");
+    cli_warning_without_exit("### ⚠️CRITICAL WARNING ### Expected `pl_https_kernel_dispatch` Pipeline Request Function NOT FOUND meaning the `Optimized Routing Matching Function` will `NOT BE PART OF THE BUILD`! (that String is needed to 'trigger' that Building step!");
     if (!isset($cConfig['FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION'])) {
         cli_warning_without_exit("⚠️A `Custom HTTPS Kernel Dispatch Pipeline Request Function` (`FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION` Key in `/src/funkphp/config/c.php`) WAS NOT FOUND meaning you must either write your own `pl_function` and add to the Pipeline Request Array that does all of it OR write a User-defined Function (in `/src/funkphp/config/functions.php`) that would be called if you write its Function Name in the `FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION` Key!");
     }
@@ -1501,6 +1540,16 @@ if (!$HTTPS_KERNEL_DISPATCH_FUNCTION_FOUND) {
 }
 cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline File in the Key `pipeline -> request` and try again! $DEFAULT_ERROR_FORMATTING");
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// BUILD/COMPILE Pipeline Keys - VALIDATE PARTS OF <GLOBAL_CONFIG> since it is only in pipeline_request.php file!
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// GLOBAL CONFIG PARAM RULES:
+foreach ($cConfig['pipeline']['<CONFIG_GLOBAL>'] as $GLOBAL_CONFIG_KEYS => $GLOBAL_CONFIG_VALS) {
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// BUILD/COMPILE Pipeline Keys - COMPLETE ADDING TO DEPLOY-BUFFER!
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Add the valid Pipeline Request & Post_Response Functions to final buffer
 // and remove them as they are no longer needed. If Dev wanna use them
 // they will have to call them by:`\funkphp\pipeline\request|post_response\pl_name($c);`
@@ -1511,6 +1560,9 @@ unset($cConfig['pipeline']['post_response']);
 
 cli_info_without_exit("G`### Step 4 STARTS ###` Loading, Validating, Rebuilding & Compiling `compiled_routes.php` & `pipeline_routes.php` Files ('Routes' in 'Pipeline' in FunkGUI)...");
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// BUILD/COMPILE Routes File=>Fn & Middlewares Files - Prepare stuff before starting with it
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // $TRIE === Compiled Prefix Router, it has faster info instead of calculating it manually
 // like how many (most+least) URI segments each HTTP(S) method has (used later for optimize route matching)
 // $RUTTER === Developer's Routes; they were recompiled before we reached this point so they could
@@ -1518,7 +1570,6 @@ cli_info_without_exit("G`### Step 4 STARTS ###` Loading, Validating, Rebuilding 
 // in each method with no conflicting same-level dynamic URI segments (e.g. GET/:test and GET/:test2)
 $routesWarnsAndErrs = []; // Warns&Errs BOTH for $RUTTER and/or $TRIE
 $NO_ROUTES = false;
-
 if (!defined("FUNKPHP_ROUTES_DIR")) {
     cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_ROUTES_DIR` (`/src/funkphp/pipeline/routes`) IS NOT DEFINED when it should be?! Try Git/Versioning Control (for `/src/cli/funk`) to get it back or redownload it again!");
 }
@@ -1526,7 +1577,9 @@ if (!defined("FUNKPHP_MIDDLEWARES_DIR")) {
     cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_MIDDLEWARES_DIR` (`/src/funkphp/pipeline/middlewares`) IS NOT DEFINED when it should be?! Try Git/Versioning Control (for `/src/cli/funk`) to get it back or redownload it again!");
 }
 cli_stop_from_warn_err_list($routesWarnsAndErrs, "Please Review (" . count($routesWarnsAndErrs) . ") Warnings/Errors above for the Pipeline Files (Pipeline Routes: `/src/funkphp/core/pipeline/routes` & Middlewares Files: `/src/funkphp/pipeline/middlewares`) and try again!");
-
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// BUILD/COMPILE Routes File=>Fn & Middlewares Files - Prepare special-edge case (no routes!)
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // SPECIAL EDGE CASE BELOW: When there are no routes compiled (like just trying out command & opening FunkPHPDeployment.php)
 if ($TRIE['METADATA']['<ALL>']['totalAllRoutes'] === 0) {
     $NO_ROUTES = true;
@@ -1556,6 +1609,10 @@ Paths to consider checking:
 - `/src/funkphp/core/pipeline_routes.php` (Routes Array - your Routes, Middlewares & Route Pipeline Functions end up here)
 ==========================================================================================================================");
 }
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// BUILD/COMPILE Routes File=>Fn & Middlewares Files - ITERATE THROUGH METHODS => ROUTES => ROUTE (with File->Fn + MWs)
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Before we iterate through each METHOD/Route we gonna check for the
 // the <CONFIG_METHOD> for each METHOD first and valid keys=>values!
 // METHODS verified in this order: GET,POST,PUT,DELETE,PATCH
@@ -1996,6 +2053,7 @@ if (isset($COMPILE_STATS_TRACKER)) {
         . "      └── Memoized Pure Queries:         " . $cntDataQry . "\n";
 }
 // Print final success payload
+cli_dump($ROUTES_CONFIG_PARSED['ALL'], false);
 cli_success("
 ==========================================================================================================================
 FunkCLI SUCCESSFULLY Compiled `" . FUNKPHP_FILE_PATH_DEPLOYMENT_FILE . "`

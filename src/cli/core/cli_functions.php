@@ -527,21 +527,6 @@ function cli_file_status($folder, $file, $useExactFilePathInstead = false, $deep
         'functions_same_count' => (isset($fns) && isset($fnsviaTokenizer) && (count($fns) === count($fnsviaTokenizer))),
     ];
 }
-// Function that returns if(!['req']['post_response']){funkphp\pipeline\request|post_response\namespaceFunction($c);}
-// to easier build the buffer of 'request' and 'post_response'. Middlewares & Route Function Handlers are NOT allowed to be aborted
-// this way, but should be aborted inside of their own logic by essentially exit and/or returning a response in order to do so!
-function cli_add_if_closed_pipeline_namespaced_function($requestOrPostResponse, $nameSpaceString)
-{
-    if (
-        !is_string($requestOrPostResponse) || empty(trim($requestOrPostResponse))
-        || !is_string($nameSpaceString) || empty(trim($nameSpaceString))
-    ) {
-        cli_err("[cli_add_if_closed_pipeline_namespaced_function()]: The provided Parameters `\$requestOrPostResponse` and/or `\$nameSpaceString` must both be Non-Empty Strings! Any Command that called this Function will now have HALTED!");
-    }
-    if ($requestOrPostResponse !== 'REQUEST' || $requestOrPostResponse !== 'POST_RESPONSE') {
-        cli_err("[cli_add_if_closed_pipeline_namespaced_function()]: `\$requestOrPostResponse` must be `REQUEST` OR `POST_RESPONSE`! Any Command that called this Function will now have HALTED!");
-    }
-}
 
 /*
  * Function that replaces {{##text_tokens_inside_of_template_function##}}
@@ -3991,80 +3976,10 @@ function cli_crud_folder_and_php_file($statusArray, $crudType, $file, $fn = null
         return null;
     }
 
-    // "create_XYZ" CRUD Type which either creates a new folder+new file if not
-    // existing OR updates the existing file by adding a new function to it
-    // ONLY Single Anonymous Function File is created
-    // if ($crudType === 'create_new_anonymous_file') {
-    //     // SPECIAL-CASE: 'pipeline' Folder Type can have their files
-    //     // either in "pipeline/post-request" OR "pipeline/request"
-    //     // so we check if the file already exists in either of those and
-    //     // error out if it does! Since these should not exist if being created!
-    //     if ($folderType === 'pipeline') {
-    //         if ($file_exists) {
-    //             cli_err_without_exit('Pipeline Function File `' . $file_name . '` already exists in the `funkphp/pipeline` Folder!');
-    //             return false;
-    //         } elseif (file_exists($folder_path . '/post_request' . '/' . $file)) {
-    //             cli_err_without_exit('Pipeline Function File `' . $file_name . '` already exists in the `funkphp/pipeline/post_request` Folder!');
-    //             return false;
-    //         } elseif (file_exists($folder_path . '/request' . '/' . $file)) {
-    //             cli_err_without_exit('Pipeline Function File `' . $file_name . '` already exists in the `funkphp/pipeline/request` Folder!');
-    //             return false;
-    //         }
-    //     }
-    //     // Not Special-case but middlewares are also anonymous functions
-    //     // meaning they should not exist in the folder if they should be created!
-    //     elseif ($folderType === 'middlewares') {
-    //         if ($file_exists) {
-    //             cli_err_without_exit('Middleware Function File `' . $file_name . '` already exists in the `funkphp/pipeline/middlewares` Folder!');
-    //             return false;
-    //         }
-    //     }
-    //     $newFile = cli_default_created_fn_files('anonymous', "N/A", $folder_name, $file_name, null, null);
-
-    //     // If $newFile is not a string, we error out
-    //     if (!is_string($newFile) || empty($newFile)) {
-    //         cli_err_without_exit('FAILED to create a New Anonymous Function File for Folder `' . $folder_name . '` and File `' . $file_name . '`!');
-    //         cli_info_without_exit('Verify that Folder Path `' . $folder_path . '` exists AND is Readable/Writable!');
-    //         return false;
-    //     }
-    //     // It worked, so we now output it in the folder path with the file name
-    //     if (!$folder_exists || !$folder_readable || !$folder_writable) {
-    //         cli_err_without_exit('Folder `' . $folder_name . '` does NOT exist or is NOT Readable/Writable!');
-    //         cli_info_without_exit('Verify Folder Path `' . $folder_path . '` exists AND is Readable/Writable.');
-    //         return false;
-    //     }
-    //     $tryOuput = cli_crud_folder_php_file_atomic_write($newFile, $outputNewFile);
-    //     if (!$tryOuput) {
-    //         cli_err_without_exit('FAILED to Create a New Anonymous Function File `' . $file_name . '` in Folder `' . $folder_name . '`!');
-    //         cli_info_without_exit('Verify that Folder Path `' . $folder_path . '` exists AND is Readable/Writable!');
-    //         return false;
-    //     } else {
-    //         return true; // Success, file created successfully
-    //     }
-    // }
     // A NEW FILE WITH A NAMED FUNCTION is created!
     if ($crudType === 'create_new_file_and_fn') {
-        // NEW ROUTE SubFolder With New File & Fn
-        if ($folderType === 'routes') {
-            $newFile = cli_default_created_fn_files('named_and_new_file', $methodAndRoute, $folder_name, $file_name, $fn);
-            // If $newFile is not a string, we error out
-            if (!is_string($newFile) || empty($newFile)) {
-                cli_err_without_exit('FAILED to create a New Named Function File for Folder `' . $folder_name . '` and File `' . $file_name . '` with Function Name `' . $fn .  '`!');
-                cli_info_without_exit('This is because an Invalid String (or not a String at all) was provided!');
-                return false;
-            }
-            // Folder has already been created so we just try output file
-            $tryOuput = cli_crud_folder_php_file_atomic_write($newFile, $outputNewFile);
-            if (!$tryOuput) {
-                cli_err_without_exit('FAILED to Create a New Anonymous Function File `' . $file_name . '` in Folder `' . $folder_name . '` with Function Name `' . $fn .  '`!');
-                cli_info_without_exit('Verify that Folder Path `' . $folder_path . '` exists AND is Readable/Writable!');
-                return false;
-            } else {
-                return true; // Success, file created successfully
-            }
-        }
         // NEW FILE WITH A NAMED FUNCTION in "funkphp/sql"
-        elseif ($folderType === 'sql') {
+        if ($folderType === 'sql') {
             $newFile = cli_default_created_fn_files('sql_new_file_and_fn', null, $folder_name, $file_name, $fn, $table);
             // If $newFile is not a string, we error out
             if (!is_string($newFile) || empty($newFile)) {
@@ -4102,28 +4017,8 @@ function cli_crud_folder_and_php_file($statusArray, $crudType, $file, $fn = null
     }
     // A NEW FUNCTION is created in an EXISTING FILE
     elseif ($crudType === 'create_only_new_fn_in_file') {
-        // NEW FUNCTION in EXISTING ROUTE SubFolder With Existing File & Fn
-        if ($folderType === 'routes') {
-            $newFile = cli_default_created_fn_files('named_not_new_file', $methodAndRoute, $folder_name, $file_name, $fn);
-            if (!is_string($newFile) || empty($newFile)) {
-                cli_err_without_exit('FAILED to create a New Named Function (`' . $fn . '`) for Folder `' . $folder_name . '` and File `' . $file_name . '`!');
-                cli_info_without_exit('This is because an Invalid String (or not a String at all) was provided!');
-                return false;
-            }
-            // We now replace the entire raw part with the $newFile since that now
-            // contains the new function as well as the return function at the end
-            $fileRaw = $file_raw_entire . "\n" . $newFile;
-            $tryOuput = cli_crud_folder_php_file_atomic_write($fileRaw, $outputNewFile);
-            if (!$tryOuput) {
-                cli_err_without_exit('FAILED to Create a New Named Function (`' . $fn . '`) in the File `' . $file_name . '` in Folder `' . $folder_name . '`!');
-                cli_info_without_exit('Verify that Folder Path `' . $folder_path . '` exists AND is Readable/Writable!');
-                return false;
-            } else {
-                return true; // Success, file updated successfully
-            }
-        }
         // NEW FUNCTION in EXISTING "funkphp/sql" File
-        elseif ($folderType === 'sql') {
+        if ($folderType === 'sql') {
             $newFile = cli_default_created_fn_files('sql_only_new_fn', null, $folder_name, $file_name, $fn, $table);
             $fileRaw = $file_raw_entire . "\n" . $newFile;
             $tryOuput = cli_crud_folder_php_file_atomic_write($fileRaw, $outputNewFile);
