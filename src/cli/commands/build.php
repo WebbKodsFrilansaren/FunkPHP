@@ -671,17 +671,17 @@ if (!cli_status_helper($userFunctionsFile, ['functions_same_count'])) {
     cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configuration File `/src/funkphp/config/functions.php` (User-defined Globally Available Functions) WAS FOUND USING Either Regex or Tokenizer but not both Indicating some Formatting Issue Inside File? (check for any trailing comment at the end of a function block{} <-- here)");
 }
 if (count($userFunctionsFile['fn_names_duplicates']) > 0) {
-    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "There are Duplicate Function Names (`" . join(", ", array_keys($userFunctionsFile['fn_names_duplicates'])) .  "`) in `src/funkphp/config/functions.php` (User-defined Globally Available Functions)!");
+    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "There are Duplicate Function Names (`" . join(", ", array_keys($userFunctionsFile['fn_names_duplicates'])) .  "`) in `/src/funkphp/config/functions.php` (User-defined Globally Available Functions)!");
     cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for `/src/funkphp/config/functions.php` (User-defined Globally Available Functions) and try again!");
 }
 if (isset($cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER'])) {
     if (!isset($userFunctionsFile["functions"][$cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER']])) {
-        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Exception Handler `{$cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER']}` NOT FOUND in `src/funkphp/config/functions.php` (User-defined Globally Available Functions) is DEFINED & FOUND but is NOT READABLE! Check Function Name in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one!");
+        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Exception Handler `{$cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER']}` NOT FOUND in `/src/funkphp/config/functions.php` (User-defined Globally Available Functions) is DEFINED & FOUND but is NOT READABLE! Check Function Name in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one!");
     }
 }
 if (isset($cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION'])) {
     if (!isset($userFunctionsFile["functions"][$cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION']])) {
-        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Registered Shutdown Function `{$cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION']}` NOT FOUND in `src/funkphp/config/functions.php` (User-defined Globally Available Functions) is DEFINED & FOUND but is NOT READABLE! Check Function Name in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one!");
+        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Registered Shutdown Function `{$cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION']}` NOT FOUND in `/src/funkphp/config/functions.php` (User-defined Globally Available Functions) is DEFINED & FOUND but is NOT READABLE! Check Function Name in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one!");
     }
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -691,17 +691,17 @@ if (isset($cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION'])) {
 // custom exception handler function OR custom register shutdown function!
 $fphpo_customChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["FUNKPHP_CUSTOM_URI_NORMALIZER"], $configWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($fphpo_customChecks), $configWarnsAndErrs, "cli_err", 'string|null', "Key is needed to know whether to use Custom URI Normalizer Function or Default one that prepares a Normalized Request URI for each incoming HTTP(S) Request!");
-cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for Main Keys 'FUNKPHP_ONLINE', 'FUNKPHP_USE_HTTPS', 'FUNKPHP_USE_PREPARE_URI', 'FUNKPHP_CUSTOM_EXCEPTION_HANDLER', 'FUNKPHP_CUSTOM_EXCEPTION_HANDLER', 'FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION' & 'INI_SETS' in the `c.php` (FunkPHP Configuration File) and try again!");
+cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for Main Keys 'FUNKPHP_ONLINE', 'FUNKPHP_USE_HTTPS', 'FUNKPHP_USE_PREPARE_URI', 'FUNKPHP_CUSTOM_EXCEPTION_HANDLER', 'FUNKPHP_CUSTOM_EXCEPTION_HANDLER', 'FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION' & 'INI_SETS' in the `/src/funkphp/config/c.php` (FunkPHP Configuration File) and try again!");
 if (isset($cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER'])) {
     if (isset($userFunctionsFile['functions'][$cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER']])) {
         if (
             $userFunctionsFile['functions'][$cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER']]['fn_starts_with_cli']
             || $userFunctionsFile['functions'][$cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER']]['fn_starts_with_funk']
         ) {
-            cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Request URI Normalizer Function `{$cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER']}` in `src/funkphp/config/functions.php` (User-defined Globally Available Functions) is STARTS with `cli_` or `funk_` in its name which is NOT ALLOWED! Check Function Name in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
+            cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Request URI Normalizer Function `{$cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER']}` in `src/funkphp/config/functions.php` (User-defined Globally Available Functions) is STARTS with `cli_` or `funk_` in its name which is NOT ALLOWED! Check Function Name in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one!");
         }
     } else {
-        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Request URI Normalizer Function `{$cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER']}` is NOT FOUND in `src/funkphp/config/functions.php` (User-defined Globally Available Functions)! Check Function Name in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
+        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Request URI Normalizer Function `{$cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER']}` is NOT FOUND in `src/funkphp/config/functions.php` (User-defined Globally Available Functions)! Check Function Name in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one!");
     }
     if (
         isset($cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER'])
@@ -713,25 +713,25 @@ if (isset($cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER'])) {
         && ($cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER'] === $cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER']
             || $cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER'] === $cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION'])
     ) {
-        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Request URI Normalizer Function `{$cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER']}` in `src/funkphp/config/functions.php` (User-defined Globally Available Functions) is SAME AS CUSTOM REGISTER SHUTDOWN FUNCTION or CUSTOM EXCEPTION HANDLER FUNCTION! Check Function Name in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
+        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Request URI Normalizer Function `{$cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER']}` in `src/funkphp/config/functions.php` (User-defined Globally Available Functions) is SAME AS CUSTOM REGISTER SHUTDOWN FUNCTION or CUSTOM EXCEPTION HANDLER FUNCTION! Check Function Name in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one!");
     }
 }
 // Check that Reserved Functions Array $reserved_functions is available by now
 if (!defined('FUNKPHP_FILE_PATH_CLI_RESERVED')) {
-    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED` containing exact Path to `src/cli/core/cli_reserved.php` (The Array String List of Reserved Functions) is NOT DEFINED! Path: `" . (FUNKPHP_FILE_PATH_CLI_RESERVED ?? "[NOT_DEFINED]") . "`");
+    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED` containing exact Path to `/src/cli/core/cli_reserved.php` (The Array String List of Reserved Functions) is NOT DEFINED!");
 }
 if (!is_array($reserved_functions) || empty($reserved_functions)) {
-    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Array String List of Reserved Functions is NOT AN ARRAY or IS EMPTY! Path: `" . (FUNKPHP_FILE_PATH_CLI_RESERVED ?? "[NOT_DEFINED]") . "`");
+    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Array String List of Reserved Functions (`/src/cli/core/cli_reserved.php`) is NOT AN ARRAY or IS EMPTY!");
 }
 // User-defined Functions should not conflict with reserved function names used by FunkCLI and FunkPHP
 if (isset($cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION'])) {
     if (in_array($cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION'], $reserved_functions)) {
-        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Registered Shutdown Function `{$cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION']}` HAS CONFLICTING FUNCTION NAME with The Array String List of Reserved Function Names `src/cli/core/cli_reserved.php`. Please change your Function Name in `src/funkphp/config/functions.php` and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). OR set it to `null` if you wanna use default one! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
+        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Registered Shutdown Function `{$cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION']}` HAS CONFLICTING FUNCTION NAME with The Array String List of Reserved Function Names `/src/cli/core/cli_reserved.php`. Please change your Function Name in `/src/funkphp/config/functions.php` and/or in Configuration File via FunkCLI/FunkGUI (`/src/funkphp/core/c.php`). OR set it to `null` if you wanna use default one!");
     }
 }
 if (isset($cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER'])) {
     if (in_array($cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER'], $reserved_functions)) {
-        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Exception Handler `{$cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER']}` HAS CONFLICTING FUNCTION NAME with The Array String List of Reserved Function Names `src/cli/core/cli_reserved.php`. Please change your Function Name in `src/funkphp/config/functions.php` and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). OR set it to `null` if you wanna use default one! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
+        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom Exception Handler `{$cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER']}` HAS CONFLICTING FUNCTION NAME with The Array String List of Reserved Function Names `/src/cli/core/cli_reserved.php`. Please change your Function Name in `/src/funkphp/config/functions.php` and/or in Configuration File via FunkCLI/FunkGUI (`/src/funkphp/core/c.php`). OR set it to `null` if you wanna use default one!");
     }
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -740,30 +740,30 @@ if (isset($cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER'])) {
 // Validate $c['FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION'] that allow for a custom HTTPS Kernel Dispatcher Function meaning
 // it would replace the in-built one that is triggered by having the 'pl_https_kernel_dispatch' in Pipeline Request Array!
 $fphpo_customChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION"], $configWarnsAndErrs, "cli_err");
-cli_assert_final_value(end($fphpo_customChecks), $configWarnsAndErrs, "cli_err", 'string|null', "Key is needed to know whether to use a Custom (from `/src/funkphp/config/functions.php`) Pipeline Request Function to `handle Route Matching` and `Execution of Route Middlewares & Route Pipeline Functions`! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
+cli_assert_final_value(end($fphpo_customChecks), $configWarnsAndErrs, "cli_err", 'string|null', "Key is needed to know whether to use a Custom (from `/src/funkphp/config/functions.php`) Pipeline Request Function to `handle Route Matching` and `Execution of Route Middlewares & Route Pipeline Functions`!");
 if (isset($cConfig['FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION'])) {
     if (in_array($cConfig['FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION'], $reserved_functions)) {
-        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom HTTPS Kernel Dispatch Pipeline Request Function `{$cConfig['FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION']}` HAS CONFLICTING FUNCTION NAME with The Array String List of Reserved Function Names `src/cli/core/cli_reserved.php`. Please change your Function Name in `src/funkphp/config/functions.php` and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). OR set it to `null` if you wanna use default one! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
+        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom HTTPS Kernel Dispatch Pipeline Request Function `{$cConfig['FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION']}` HAS CONFLICTING FUNCTION NAME with The Array String List of Reserved Function Names `/src/cli/core/cli_reserved.php`. Please change your Function Name in `/src/funkphp/config/functions.php` and/or in Configuration File via FunkCLI/FunkGUI (`/src/funkphp/core/c.php`). OR set it to `null` if you wanna use default one!");
     }
     if (isset($userFunctionsFile['functions'][$cConfig['FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION']])) {
         if (
             $userFunctionsFile['functions'][$cConfig['FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION']]['fn_starts_with_cli']
             || $userFunctionsFile['functions'][$cConfig['FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION']]['fn_starts_with_funk']
         ) {
-            cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom HTTPS Kernel Dispatch Pipeline Request Function `{$cConfig['FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION']}` in `src/funkphp/config/functions.php` (User-defined Globally Available Functions) is STARTS with `cli_` or `funk_` in its name which is NOT ALLOWED! Check Function Name in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
+            cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom HTTPS Kernel Dispatch Pipeline Request Function `{$cConfig['FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION']}` in `/src/funkphp/config/functions.php` (User-defined Globally Available Functions) is STARTS with `cli_` or `funk_` in its name which is NOT ALLOWED! Check Function Name in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`/src/funkphp/core/c.php`). Set it to `null` if you wanna use default one!");
         }
     } else {
-        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom HTTPS Kernel Dispatch Pipeline Request Function `{$cConfig['FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION']}` is NOT FOUND in `src/funkphp/config/functions.php` (User-defined Globally Available Functions)! Check Function Name in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
+        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Configured Custom HTTPS Kernel Dispatch Pipeline Request Function `{$cConfig['FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION']}` is NOT FOUND in `/src/funkphp/config/functions.php` (User-defined Globally Available Functions)! Check Function Name in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`/src/funkphp/core/c.php`). Set it to `null` if you wanna use default one!");
     }
     if (
         (isset($cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER']) && $cConfig['FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION'] === $cConfig['FUNKPHP_CUSTOM_EXCEPTION_HANDLER'])
         || (isset($cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION']) && $cConfig['FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION'] === $cConfig['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION'])
         || (isset($cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER']) && $cConfig['FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION'] === $cConfig['FUNKPHP_CUSTOM_URI_NORMALIZER'])
     ) {
-        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "Configured Custom HTTPS Kernel Dispatch Pipeline Request Function `{$cConfig['FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION']}` in `src/funkphp/config/functions.php` (User-defined Globally Available Functions) is SAME AS CUSTOM REGISTER SHUTDOWN FUNCTION, CUSTOM EXCEPTION HANDLER FUNCTION or CUSTOM REQUEST URI NORMALIZER FUNCTION! Check Function Name in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`src/funkphp/core/c.php`). Set it to `null` if you wanna use default one! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
+        cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "Configured Custom HTTPS Kernel Dispatch Pipeline Request Function `{$cConfig['FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION']}` in `/src/funkphp/config/functions.php` (User-defined Globally Available Functions) is SAME AS CUSTOM REGISTER SHUTDOWN FUNCTION, CUSTOM EXCEPTION HANDLER FUNCTION or CUSTOM REQUEST URI NORMALIZER FUNCTION! Check Function Name in Your Functions and/or in Configuration File via FunkCLI/FunkGUI (`/src/funkphp/core/c.php`). Set it to `null` if you wanna use default one!");
     }
 }
-cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for Main Keys 'FUNKPHP_ONLINE', 'FUNKPHP_USE_HTTPS', 'FUNKPHP_USE_PREPARE_URI', 'FUNKPHP_CUSTOM_EXCEPTION_HANDLER', 'FUNKPHP_CUSTOM_EXCEPTION_HANDLER', 'FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION', 'FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION', & 'INI_SETS' in the `c.php` (FunkPHP Configuration File) and try again! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
+cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for Main Keys 'FUNKPHP_ONLINE', 'FUNKPHP_USE_HTTPS', 'FUNKPHP_USE_PREPARE_URI', 'FUNKPHP_CUSTOM_EXCEPTION_HANDLER', 'FUNKPHP_CUSTOM_EXCEPTION_HANDLER', 'FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION', 'FUNKPHP_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION', & 'INI_SETS' in the `/src/funkphp/config/c.php` (FunkPHP Configuration File) and try again!");
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////  STEP #1 VALIDATE BASEURLS Array Subkeys Paths!
@@ -784,7 +784,7 @@ cli_assert_final_value(
     '/^\/[a-zA-Z0-9_\-\/]*$/',
     "Must start with a leading slash '/'. Example: '/api/v1/users' or '/my-app/'"
 );
-cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for 'BASEURL' Main Key in the `c.php` (FunkPHP Configuration File) and try again! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
+cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for 'BASEURL' Main Key in the `/src/funkphp/config/c.php` (FunkPHP Configuration File) and try again!");
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////  STEP #1 VALIDATE SESSION Array Subkeys Paths!
@@ -821,7 +821,7 @@ cli_assert_final_value(end($sessionChecks), $configWarnsAndErrs, "cli_err", (fun
     return in_array($val, ['Lax', 'Strict', 'None'], true);
 }), "Must Match Native Browser Specifications Exactly: 'Lax', 'Strict', or 'None'.");
 // Halt execution loop immediately if any errors crept into the pipeline setup
-cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for 'SESSION' Main Key in the `c.php` (FunkPHP Configuration File) and try again! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
+cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for 'SESSION' Main Key in the `/src/funkphp/config/c.php` (FunkPHP Configuration File) and try again!");
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////  STEP #1 VALIDATE CLASSES Array Subkeys Paths!
@@ -833,10 +833,10 @@ $classesBUFFER[] = "namespace funkphp\\classes {\n";
 $classesChecks = [];
 $classesChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["classes"], $configWarnsAndErrs, "cli_err");
 $classesChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["classes", "vendor"], $configWarnsAndErrs, "cli_err");
-cli_assert_final_value(end($classesChecks), $configWarnsAndErrs, "cli_err", 'array-empty', "Must be an Empty Array as it will be filled with vendor-based class instances (from src/funkphp/vendor) during runtime.");
+cli_assert_final_value(end($classesChecks), $configWarnsAndErrs, "cli_err", 'array-empty', "Must be an Empty Array as it will be filled with vendor-based class instances `(from /src/funkphp/vendor)` during runtime.");
 $classesChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["classes", "user"], $configWarnsAndErrs, "cli_err");
-cli_assert_final_value(end($classesChecks), $configWarnsAndErrs, "cli_err", 'array-empty', "Must be an Empty Array  as it will be filled with user-defined class instances (from src/funkphp/classes) during runtime.");
-cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for 'classes' Main Key in the `c.php` (FunkPHP Configuration File) and try again! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
+cli_assert_final_value(end($classesChecks), $configWarnsAndErrs, "cli_err", 'array-empty', "Must be an Empty Array  as it will be filled with user-defined class instances `(from /src/funkphp/classes)` during runtime.");
+cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for 'classes' Main Key in the `/src/funkphp/config/c.php` (FunkPHP Configuration File) and try again!");
 /// SCAN funkphp/classes dir as we do not know if there are any
 $classDir = scandir(FUNKPHP_CLASSES_DIR);
 foreach ($classDir as $classFile) {
@@ -877,7 +877,7 @@ foreach ($classDir as $classFile) {
     }
 }
 // Either it will fail here OR complete the classes buffer array
-cli_stop_from_warn_err_list($classesWarnsErrs, "Please Review (" . count($classesWarnsErrs) . ") Warnings/Errors above for 'classes' Files in `/src/funkphp/classes`! Path: `" . (FUNKPHP_CLASSES_DIR ?? "[NOT_DEFINED]") . "`");
+cli_stop_from_warn_err_list($classesWarnsErrs, "Please Review (" . count($classesWarnsErrs) . ") Warnings/Errors above for 'classes' Files in `/src/funkphp/classes`!");
 $classesBUFFER[] = "}\n"; // We do NOT add classes yet to the entire buffer though! We haven't even added the starting part of the file!
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -886,9 +886,9 @@ $classesBUFFER[] = "}\n"; // We do NOT add classes yet to the entire buffer thou
 // VALIDATE CONNECTIONS Array Subkeys Paths!
 $connectionsChecks = [];
 $connectionsChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["connections"], $configWarnsAndErrs, "cli_err");
-cli_assert_final_value(end($connectionsChecks), $configWarnsAndErrs, "cli_err", 'array-empty', "Must be an Empty Array as it will be filled with Connections like Databases Instances (from src/funkphp/config/conns.php) and other connection-related service-instances during runtime and now during compilation the Connections Configuration Array (`src/funkphp/config/conns.php`) will be validated first and then be stored in [\$c -> 'credentials'].");
+cli_assert_final_value(end($connectionsChecks), $configWarnsAndErrs, "cli_err", 'array-empty', "Must be an Empty Array as it will be filled with Connections like Databases Instances `(from /src/funkphp/config/conns.php)` and other connection-related service-instances during runtime and now during compilation the Connections Configuration Array (`/src/funkphp/config/conns.php`) will be validated first and then be stored in `[\$c -> 'credentials']`.");
 $connectionsChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["credentials"], $configWarnsAndErrs, "cli_err");
-cli_assert_final_value(end($connectionsChecks), $configWarnsAndErrs, "cli_err", 'array-empty', "Must be an Empty Array as it will be filled with First Validated Credentials stored in `src/funkphp/config/conns.php`!");
+cli_assert_final_value(end($connectionsChecks), $configWarnsAndErrs, "cli_err", 'array-empty', "Must be an Empty Array as it will be filled with First Validated Credentials stored in `/src/funkphp/config/conns.php`!");
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////  STEP #1 LOAD & VALIDATE ARRAY inside `src/funkphp/config/conns.php`
@@ -899,13 +899,13 @@ if (
     || !file_exists(FUNKPHP_FILE_PATH_CONNS_CONFIG)
     || !is_readable(FUNKPHP_FILE_PATH_CONNS_CONFIG)
 ) {
-    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_FILE_PATH_CONNS_CONFIG` containing Exact File Path to Your Credentials for your Connections is NOT DEFINED or FILE DOES NOT EXIST or FILE IS NOT READABLE. IMPORTANT: Look in your `src/funkphp/config` as `src/funkphp/config/README_IN_IDE.php` File should have been created _before you read this_. Rename that file to `conns.php` as it contains starting templates for how Connection Profiles should look like. Paths: " . (FUNKPHP_FILE_PATH_CONNS_CONFIG ?? "[NOT_DEFINED]") . " & " . (FUNKPHP_FILE_PATH_README_IN_IDE_CONFIG ?? "[NOT_DEFINED]") . "`");
-    cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for the Main Keys 'connections' & 'credentials' in the `c.php` (FunkPHP Configuration File) and try again! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
+    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_FILE_PATH_CONNS_CONFIG` containing Exact File Path to Your Credentials for your Connections is NOT DEFINED or FILE DOES NOT EXIST or FILE IS NOT READABLE. IMPORTANT: Look in your `/src/funkphp/config` as `/src/funkphp/config/README_IN_IDE.php` File should have been created _before you read this_. Rename that file to `conns.php` as it contains starting templates for how Connection Profiles should look like.");
+    cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for the Main Keys 'connections' & 'credentials' in the `/src/funkphp/config/c.php` (FunkPHP Configuration File) via FunkGUI or in `/src/funkphp/config/conns.php` and try again!");
 }
 $connsPayload = require FUNKPHP_FILE_PATH_CONNS_CONFIG;
 if (!is_array($connsPayload)) {
-    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Credentials File for your Connections (`src/funkphp/config/conns.php`) is NOT A VALID ARRAY. Each array key should be the name of a connection, and then include a driver and its corresponding connection details for that type of driver. Path: `" . (FUNKPHP_FILE_PATH_CONNS_CONFIG ?? "[NOT_DEFINED]") . "`");
-    cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for the Main Keys 'connections' & 'credentials' in the `c.php` (FunkPHP Configuration File) and try again! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
+    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Credentials File for your Connections (`src/funkphp/config/conns.php`) is NOT A VALID ARRAY. Each array key should be the name of a connection, and then include a driver and its corresponding connection details for that type of driver.");
+    cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for the Main Keys 'connections' & 'credentials' in the `/src/funkphp/config/c.php` (FunkPHP Configuration File) via FunkGUI or in `/src/funkphp/config/conns.php` and try again!");
 }
 // 3. Define the Blueprint Schemas based on the 'driver' key
 $driverBlueprints = [
@@ -964,12 +964,12 @@ $driverBlueprints = [
 if (is_array($connsPayload)) {
     foreach ($connsPayload as $profileName => $profileData) {
         if (!is_array($profileData)) {
-            cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "Connection Profile [{$profileName}] must be defined as an Associative Array Configuration Block. Path: `" . (FUNKPHP_FILE_PATH_CONNS_CONFIG ?? "[NOT_DEFINED]") . "`");
+            cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "Connection Profile [{$profileName}] in `/src/funkphp/config/conns.php` must be defined as an Associative Array Configuration Block.");
             continue;
         }
         // Validate that 'driver' exists and is a valid string
         if (!isset($profileData['driver']) || !is_string($profileData['driver'])) {
-            cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "Connection Profile [{$profileName}] is missing a Valid String 'driver' key needed to know how to parse other (optional) keys. Path: `" . (FUNKPHP_FILE_PATH_CONNS_CONFIG ?? "[NOT_DEFINED]") . "`");
+            cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "Connection Profile [{$profileName}] in `/src/funkphp/config/conns.php` is missing a Valid String 'driver' key needed to know how to parse other (optional) keys.");
             continue;
         }
         $driver = $profileData['driver'];
@@ -978,7 +978,7 @@ if (is_array($connsPayload)) {
             if ($ignoreUnknownConnsDrivers) {
                 cli_info_without_exit("Unknown Connection Profile `$profileName` ignored due to Compilation flag `--ignore-unknown-conns-drivers`.");
             } else {
-                cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "Connection Profile [{$profileName}] specifies an Unknown Framework Driver: '{$driver}'. Current Framework Drivers supported for Data Schema Validation are: `" . join(", ", array_keys($driverBlueprints)) . "`! Include the compilation flag `--ignore-unknown-conns-drivers` to ignore validating unknown driver types. Path: `" . (FUNKPHP_FILE_PATH_CONNS_CONFIG ?? "[NOT_DEFINED]") . "`");
+                cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "Connection Profile [{$profileName}] in `/src/funkphp/config/conns.php` specifies an Unknown Framework Driver: '{$driver}'. Current Framework Drivers supported for Data Schema Validation are: `" . join(", ", array_keys($driverBlueprints)) . "`! Include the compilation flag `--ignore-unknown-conns-drivers` to ignore validating unknown driver types.");
             }
             continue;
         }
@@ -987,7 +987,7 @@ if (is_array($connsPayload)) {
         foreach ($blueprint as $keyName => $rules) {
             $keyExists = array_key_exists($keyName, $profileData);
             if (!$keyExists && $rules['required']) {
-                cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "Profile [{$profileName}] ({$driver}): Missing required configuration parameter '{$keyName}'. Path: `" . (FUNKPHP_FILE_PATH_CONNS_CONFIG ?? "[NOT_DEFINED]") . "`");
+                cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "In `/src/funkphp/config/conns.php` - Profile [{$profileName}] ({$driver}): Missing required configuration parameter '{$keyName}'.");
                 continue;
             }
             if ($keyExists) {
@@ -1000,13 +1000,13 @@ if (is_array($connsPayload)) {
                 if ($expectedType === 'boolean' && is_bool($actualValue))    $typeMatches = true;
                 if ($expectedType === 'array' && is_array($actualValue))      $typeMatches = true;
                 if (!$typeMatches) {
-                    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "Profile [{$profileName}] ({$driver}): Key '{$keyName}' must be an exact type mismatch! Expected data type: [{$expectedType}]. Path: `" . (FUNKPHP_FILE_PATH_CONNS_CONFIG ?? "[NOT_DEFINED]") . "`");
+                    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "In `/src/funkphp/config/conns.php` - Profile [{$profileName}] ({$driver}): Key '{$keyName}' must be an exact type mismatch! Expected data type: [{$expectedType}].");
                 }
             }
         }
     }
 }
-cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for the Main Keys 'connections' & 'credentials' in the `c.php` (FunkPHP Configuration File) and try again! Paths: " . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . " & " . (FUNKPHP_FILE_PATH_CONNS_CONFIG ?? "[NOT_DEFINED]") . "`");
+cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for the Main Keys 'connections' & 'credentials' in the `/src/funkphp/config/c.php` (FunkPHP Configuration File) via FunkGUI or in `/src/funkphp/config/conns.php`");
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////  STEP #1 VALIDATE REQ Array Subkeys Paths!
@@ -1053,7 +1053,7 @@ $reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_F
 cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'null', "This tracks the HTTP Accept response format expectations declared by the browser or API request platform client.");
 $reqChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["req", "protocol"], $configWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($reqChecks), $configWarnsAndErrs, "cli_err", 'null', "This identifies the incoming server transport protocol details (e.g., HTTP/1.1, HTTP/2, HTTP/3).");
-cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for 'req' Main Key and its Subkeys in the `c.php` (FunkPHP Configuration File) and try again! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
+cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for 'req' Main Key and its Subkeys in the `/src/funkphp/config/c.php` (FunkPHP Configuration File) and try again!");
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////  STEP #1 VALIDATE 'd', 'v' (and its associated keys), 'p' & 'files'
@@ -1076,7 +1076,7 @@ $dvpfChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_
 cli_assert_final_value(end($dvpfChecks), $configWarnsAndErrs, "cli_err", 'null', "Main Key `p` is meant to Store Page-related that can be used after a Matched Route during a Valid HTTP(S) Request!");
 $dvpfChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["files"], $configWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($dvpfChecks), $configWarnsAndErrs, "cli_err", 'null', "Main Key `files` is meant to Store Uploaded Files (if applicable). Can be used any time during a Valid HTTP(S) Request!");
-cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for the Main Keys 'd','v','v_ok','v_ok_files','v_config','v_data','s_data','p','p_config' & 'files' in the `c.php` (FunkPHP Configuration File) and try again! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
+cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for the Main Keys 'd','v','v_ok','v_ok_files','v_config','v_data','s_data','p','p_config' & 'files' in the `/src/funkphp/config/c.php` (FunkPHP Configuration File) and try again!");
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////  STEP #1 VALIDATE 'err' and its subkeys!
@@ -1105,20 +1105,20 @@ $cErrChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_
 cli_assert_final_value(end($cErrChecks), $configWarnsAndErrs, "cli_err", 'array-empty', "This Subkey in `err` should be empty and is filled out during a HTTP(S) Request!");
 $cErrChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONFIG_FILE, ["err", "QUERY"], $configWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($cErrChecks), $configWarnsAndErrs, "cli_err", 'array-empty', "This Subkey in `err` should be empty and is filled out during a HTTP(S) Request!");
-cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for the Main Key 'err' and its Subkeys in the `c.php` (FunkPHP Configuration File) and try again! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
+cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for the Main Key 'err' and its Subkeys in the `/src/funkphp/config/c.php` (FunkPHP Configuration File) and try again!");
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////  STEP #1 VALIDATE Certain Constants by is using !defined() and error out if not found!
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // VALIDATE Certain Constants by is using !defined() and error out if not found!
-cli_assert_final_value(NULL, $configWarnsAndErrs, "cli_err", 'constants:FUNKPHP_NO_VALUE,FUNKPHP_ALLOW_INSTANCE_OVERWRITE', "These Constants are a MUST for FunkPHPDeployment.php to 'function' properly!");
-cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for the Required Constants from the `c.php` (FunkPHP Configuration File) and try again! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`");
+cli_assert_final_value(NULL, $configWarnsAndErrs, "cli_err", 'constants:FUNKPHP_NO_VALUE,FUNKPHP_ALLOW_INSTANCE_OVERWRITE', "These Constants are a MUST for `/src/funkphp/FunkPHPDeployment.php` to 'function' properly!");
+cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for the Required Constants from the `/src/funkphp/config/c.php` (FunkPHP Configuration File) and try again!");
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////  STEP #1 ALMOST DONE!
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Here ### Step 1 is fully validated so now we insert starting point of the `FunkPHPDeployment.php` file into the $deploymentBuffer array for later writing to disk!
-cli_success_without_exit("G`### Step 1 DONE ###` Validating & Adding `c.php` (FunkPHP Configuration File) SUCCESSFULLY! Path: `" . (FUNKPHP_FILE_PATH_C_CONFIG_FILE ?? "[NOT_DEFINED]") . "`.");
+cli_success_without_exit("G`### Step 1 DONE ###` Validating & Adding `c.php` (FunkPHP Configuration File) SUCCESSFULLY!.");
 $BUILD_VERSION = "<?php // FunkPHPDeployment.php | Created: " . date("Y-m-d H:i:s") . " | PHP Version: " .  PHP_VERSION . " | FunkPHP Version: " . (FUNKPHP_VERSION ?? "<Unknown Version>") . " | FunkCLI Version: " . (FUNKCLI_VERSION ?? "<Unknown Version>") . "\n\n";
 $deploymentBuffer[] = "<?php \nnamespace { "; // Opening Global namespace for nows
 
@@ -1198,17 +1198,17 @@ if (
         || !file_exists(FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL)
         || !is_readable(FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL))
 ) {
-    cli_build_warning_err_list($functionsWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL` containing Exact File Path to FunkPHP Core Functions (`/src/funkphp/core`) needed to work properly is NOT DEFINED or FILE DOES NOT EXIST or FILE IS NOT READABLE. Your User-defined Functions you can add/edit/remove are found in `/src/funkphp/config/functions.php`! DO NOT edit FunkPHP Core Functions File! Paths: " . (FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL ?? "[NOT_DEFINED]") . " & " . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
-    cli_stop_from_warn_err_list($functionsWarnsAndErrs, "Please Review (" . count($functionsWarnsAndErrs) . ") Warnings/Errors above for the Function Files (Core & User-defined) and try again! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
+    cli_build_warning_err_list($functionsWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL` containing Exact File Path to FunkPHP Core Functions (`/src/funkphp/core/functions.php`) needed to work properly is NOT DEFINED or FILE DOES NOT EXIST or FILE IS NOT READABLE. Your User-defined Functions you can add/edit/remove are found in `/src/funkphp/config/functions.php`! DO NOT edit FunkPHP Core Functions File!");
+    cli_stop_from_warn_err_list($functionsWarnsAndErrs, "Please Review (" . count($functionsWarnsAndErrs) . ") Warnings/Errors above for the Function Files (Core & User-defined) and try again!");
 }
 if (!$allowModifiedCore && (cli_get_hash_calculation_of_a_file(FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL) !== $manifest['hashes']['core']['funkphp/core/functions.php'][0])) {
-    cli_build_warning_err_list($functionsWarnsAndErrs, "cli_err", "The FunkPHP Core Functions File `FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL` (`funkphp/core/functions.php`) might be modified due to wrong calculated sha-256 hash value. Your User-defined Functions you should add/edit/remove are found in `/src/funkphp/config/functions.php`! DO NOT edit FunkPHP Core Functions File. Check your Git/File Versioning History to see if you can rollback any changes made to the FunkPHP Core Functions File, or Redownload the Files from an Official Source! Paths: " . (FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL ?? "[NOT_DEFINED]") . " & " . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
-    cli_stop_from_warn_err_list($functionsWarnsAndErrs, "Please Review (" . count($functionsWarnsAndErrs) . ") Warnings/Errors above for the Function Files (Core & User-defined) and try again! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
+    cli_build_warning_err_list($functionsWarnsAndErrs, "cli_err", "The FunkPHP Core Functions File `FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL` (`/src/funkphp/core/functions.php`) might be modified due to wrong calculated sha-256 hash value. Your User-defined Functions you should add/edit/remove are found in `/src/funkphp/config/functions.php`! DO NOT edit FunkPHP Core Functions File. Check your Git/File Versioning History to see if you can rollback any changes made to the FunkPHP Core Functions File, or Redownload the Files from an Official Source!");
+    cli_stop_from_warn_err_list($functionsWarnsAndErrs, "Please Review (" . count($functionsWarnsAndErrs) . ") Warnings/Errors above for the Function Files (Core & User-defined) and try again!");
 }
 
 if (!cli_file_constant_defined_file_exists_is_readable("FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL_TEMPLATES")) {
-    cli_build_warning_err_list($functionsWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL_TEMPLATES` containing exact File Path to FunkPHP Core Functions Templates File (`funkphp/core/function_templates.php`) is NOT DEFINED or FILE DOES NOT EXIST or FILE IS NOT READABLE. File Permission issues? DO NOT edit FunkPHP Core Functions File. Check your Git/File Versioning History to see if you can rollback any changes made to the FunkPHP Core Functions Templates File, or Redownload the Files from an Official Source! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL_TEMPLATES ?? "[NOT_DEFINED]") . "`");
-    cli_stop_from_warn_err_list($functionsWarnsAndErrs, "Please Review (" . count($functionsWarnsAndErrs) . ") Warnings/Errors above for the Function (Templates) Files (Core & User-defined) and try again! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL_TEMPLATES ?? "[NOT_DEFINED]") . "`");
+    cli_build_warning_err_list($functionsWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL_TEMPLATES` containing exact File Path to FunkPHP Core Functions Templates File (`/src/funkphp/core/function_templates.php`) is NOT DEFINED or FILE DOES NOT EXIST or FILE IS NOT READABLE. File Permission issues? DO NOT edit FunkPHP Core Functions File. Check your Git/File Versioning History to see if you can rollback any changes made to the FunkPHP Core Functions Templates File, or Redownload the Files from an Official Source!");
+    cli_stop_from_warn_err_list($functionsWarnsAndErrs, "Please Review (" . count($functionsWarnsAndErrs) . ") Warnings/Errors above for the Function (Templates) Files (Core & User-defined) (`/src/funkphp/core/function_templates.php`,`/src/funkphp/core/functions.php`,`/src/funkphp/config/functions.php`) and try again!");
 }
 $coreFunctionsTemplateFile = cli_file_status("funkphp/core", "function_templates.php");
 $coreFunctionsFile = cli_file_status("funkphp/core", "functions.php");
@@ -1218,7 +1218,7 @@ foreach ($userFunctionsFile['functions'] as $fnNameUser => $fnValsUser) {
         || in_array(strtolower($fnNameUser), $reserved_functions, true)
     ) {
         $ROUTES_CONFIG_PARSED['ALL_USER_FNS_USED']['INVALID'][$fnNameUser] = true;
-        cli_build_warning_err_list($functionsWarnsAndErrs, "cli_err", "User-defined function '$fnNameUser' is already used by FunkPHP/FunkCLI. Please choose rename the function (cannot start with `funk_` or `cli_`) or remove it! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
+        cli_build_warning_err_list($functionsWarnsAndErrs, "cli_err", "User-defined function '$fnNameUser' `(in /src/funkphp/config/functions.php`) is already used by FunkPHP/FunkCLI. Please choose rename the function (cannot start with `funk_` or `cli_`) or remove it!");
     } else if (
         (str_starts_with(strtolower($fnNameUser), "funk_") &&
             !str_starts_with(strtolower($fnNameUser), "funk_validate_"))
@@ -1228,14 +1228,14 @@ foreach ($userFunctionsFile['functions'] as $fnNameUser => $fnValsUser) {
         )
     ) {
         $ROUTES_CONFIG_PARSED['ALL_USER_FNS_USED']['INVALID'][$fnNameUser] = true;
-        cli_build_warning_err_list($functionsWarnsAndErrs, "cli_err", "User-defined function '$fnNameUser' starts with `funk_` (but not `funk_validate_`) or `cli_` which is not allowed. Please choose rename the function or remove it! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
+        cli_build_warning_err_list($functionsWarnsAndErrs, "cli_err", "User-defined function '$fnNameUser' `(in /src/funkphp/config/functions.php`) starts with `funk_` (but not `funk_validate_`) or `cli_` which is not allowed. Please choose rename the function or remove it!");
     } else {
         $COMPILE_STATS_TRACKER['User-FUNCTIONS'][] = $fnNameUser;
         $ROUTES_CONFIG_PARSED['ALL_USER_FNS_USED']['VALID'][$fnNameUser] = true;
         $deploymentBuffer[] = $fnValsUser['fn_raw'] . "\n";
     }
 }
-cli_stop_from_warn_err_list($functionsWarnsAndErrs, "Please Review (" . count($functionsWarnsAndErrs) . ") Warnings/Errors above for regarding User-defined & In-built Functions! Paths: " . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . " & " . (FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL ?? "[NOT_DEFINED]") . "`");
+cli_stop_from_warn_err_list($functionsWarnsAndErrs, "Please Review (" . count($functionsWarnsAndErrs) . ") Warnings/Errors above for regarding User-defined `(in /src/funkphp/config/functions.php`) & In-built Functions `(in /src/funkphp/core/functions.php`)!");
 
 // Replace values for a dynamic function stored in /src/funkphp/core/function_templates.php that
 // are replaced if the function exists and this is then added as the default Core Function to ouput!
@@ -1275,8 +1275,8 @@ if (isset($coreFunctionsFile['functions'])) {
         } else if (isset($functionsTemplatesArray[$fnNameCore])) {
             $templateRawCode = $coreFunctionsTemplateFile['functions'][$fnNameCore]['fn_raw'] ?? null;
             if (!$templateRawCode) {
-                cli_build_warning_err_list($functionsWarnsAndErrs, "cli_err", "Function '$fnNameCore' is marked for Token Replacement, but its Template was not found inside `/src/funkphp/core/function_templates.php`! The Function Structure must start with `function name(\&\$c`. Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL_TEMPLATES ?? "[NOT_DEFINED]") . "`");
-                cli_stop_from_warn_err_list($functionsWarnsAndErrs, "Please Review (" . count($functionsWarnsAndErrs) . ") Warnings/Errors above for the Function (Templates) Files (Core & User-defined) and try again! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL_TEMPLATES ?? "[NOT_DEFINED]") . "`");
+                cli_build_warning_err_list($functionsWarnsAndErrs, "cli_err", "Function '$fnNameCore' is marked for Token Replacement, but its Template was not found inside `/src/funkphp/core/function_templates.php`! The Function Structure must start with `function name(\&\$c`.");
+                cli_stop_from_warn_err_list($functionsWarnsAndErrs, "Please Review (" . count($functionsWarnsAndErrs) . ") Warnings/Errors above for the Function (Templates) Files (Core & User-defined) (`/src/funkphp/core/function_templates.php`,`/src/funkphp/core/functions.php`,`/src/funkphp/config/functions.php`) and try again!");
             }
             $compiledTemplate = cli_function_template_token_replacer($functionsTemplatesArray[$fnNameCore], $templateRawCode);
             $COMPILE_STATS_TRACKER['Ignored-FUNCTIONS'][] = $fnNameCore;
@@ -1289,8 +1289,8 @@ if (isset($coreFunctionsFile['functions'])) {
 }  // Core Functions not found by the helper function, but is it AllowedModifiedCore false?
 else {
     if ($allowModifiedCore === false) {
-        cli_build_warning_err_list($functionsWarnsAndErrs, "cli_err", "The FunkPHP Core Functions File `FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL` (`/src/funkphp/core/functions.php`) might be modified due to not finding Any Valid Structured Functions. Your User-defined Functions you should add/edit/remove are found in `/src/funkphp/config/functions.php`! DO NOT edit FunkPHP Core Functions File. Check your Git/File Versioning History to see if you can rollback any changes made to the FunkPHP Core Functions File, or Redownload the Files from an Official Source! Paths: " . (FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL ?? "[NOT_DEFINED]") . " & " . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
-        cli_stop_from_warn_err_list($functionsWarnsAndErrs, "Please Review (" . count($functionsWarnsAndErrs) . ") Warnings/Errors above for the Function Files (Core & User-defined) and try again! Path: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`");
+        cli_build_warning_err_list($functionsWarnsAndErrs, "cli_err", "The FunkPHP Core Functions File `FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL` (`/src/funkphp/core/functions.php`) might be modified due to not finding Any Valid Structured Functions. Your User-defined Functions you should add/edit/remove are found in `/src/funkphp/config/functions.php`! DO NOT edit FunkPHP Core Functions File. Check your Git/File Versioning History to see if you can rollback any changes made to the FunkPHP Core Functions File, or Redownload the Files from an Official Source!");
+        cli_stop_from_warn_err_list($functionsWarnsAndErrs, "Please Review (" . count($functionsWarnsAndErrs) . ") Warnings/Errors above for the Function Files (Core: `/src/funkphp/core/functions.php` & User-defined: `/src/funkphp/config/functions.php`) and try again!");
     } else {
         cli_warning_without_exit("FunkPHP Core Functions File in `/src/funkphp/core/functions.php` does NOT contain Any Valid Structured Functions (`function name(\&\$c){}`) or Any Functions at all. Modified Core is set to ALLOWED so it will be ignored.");
     }
@@ -1298,26 +1298,26 @@ else {
 $deploymentBuffer[] = "}"; // Closing Global namespace for now
 $deploymentBuffer[] = implode("", $classesBUFFER); // Now we add the classes buffer!
 
-cli_success_without_exit("G`### Step 2 DONE ###` Validating & Adding User-defined Functions (`/src/funkphp/config/functions.php`), Core Functions (`/src/funkphp/core/functions.php`) SUCCESSFULLY! Paths: `" . (FUNKPHP_FILE_PATH_FUNCTIONS_USER_DEFINED ?? "[NOT_DEFINED]") . "`" . " & `" . (FUNKPHP_FILE_PATH_FUNCTIONS_INTERNAL ?? "[NOT_DEFINED]") . "`");
+cli_success_without_exit("G`### Step 2 DONE ###` Validating & Adding User-defined Functions (`/src/funkphp/config/functions.php`), Core Functions (`/src/funkphp/core/functions.php`) SUCCESSFULLY!");
 
 // NEXT UP FOR BUILD/COMPILE: Scoped Namespaces for pipeline_request (pl_) files!!! Will learn then if stuff even works
 $pipelineWarnsAndErrs = [];
 cli_info_without_exit("G`### Step 3 STARTS ###` Loading, Validating & Compiling `pipeline_request.php`, `pipeline_routes.php` & `compiled_routes.php` ('Request' & 'Post_Response' in 'Pipeline' in FunkGUI) File...");
 if (!cli_file_constant_defined_file_exists_is_readable("FUNKPHP_FILE_PATH_ROUTES")) {
-    cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "The FunkPHP Core Routes File `FUNKPHP_FILE_PATH_ROUTES` (`/src/funkphp/core/pipeline_routes.php`) does NOT EXIST or IS NOT READABLE or its DEFINED CONSTANT IS UNDEFINED! Try rebuilding the Route Files using `php funk rc` and try again! Path: `" . (FUNKPHP_FILE_PATH_ROUTES ?? "[NOT_DEFINED]") . "`");
-    cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline Files (Routes, Compiled Routes & Pipeline) and try again! Path: `" . (FUNKPHP_FILE_PATH_ROUTES ?? "[NOT_DEFINED]") . "`");
+    cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "The FunkPHP Core Routes File `FUNKPHP_FILE_PATH_ROUTES` (`/src/funkphp/core/pipeline_routes.php`) does NOT EXIST or IS NOT READABLE or its DEFINED CONSTANT IS UNDEFINED! Try rebuilding the Route Files using `php funk rc` and try again!");
+    cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline Files (Routes, Compiled Routes & Pipeline) and try again!");
 }
 if (!cli_file_constant_defined_file_exists_is_readable("FUNKPHP_FILE_PATH_TROUTES")) {
-    cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "The FunkPHP Core Compiled Routes File `FUNKPHP_FILE_PATH_TROUTES` (`/src/funkphp/core/compiled_routes.php`) does NOT EXIST or IS NOT READABLE or its DEFINED CONSTANT IS UNDEFINED! Try rebuilding the Route Files using `php funk rc` and try again! Path: `" . (FUNKPHP_FILE_PATH_TROUTES ?? "[NOT_DEFINED]") . "`");
-    cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline Files (Routes, Compiled Routes & Pipeline) and try again! Path: `" . (FUNKPHP_FILE_PATH_TROUTES ?? "[NOT_DEFINED]") . "`");
+    cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "The FunkPHP Core Compiled Routes File `FUNKPHP_FILE_PATH_TROUTES` (`/src/funkphp/core/compiled_routes.php`) does NOT EXIST or IS NOT READABLE or its DEFINED CONSTANT IS UNDEFINED! Try rebuilding the Route Files using `php funk rc` and try again!");
+    cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline Files (Routes: `/src/funkphp/core/pipeline_routes.php`, Compiled Routes: `/src/funkphp/core/compiled_routes.php` & Pipeline: `/src/funkphp/core/pipeline_request.php`) and try again!");
 }
 cli_info_without_exit("Recompiling & Rebuilding Routes (`/src/funkphp/core/pipeline_routes.php`) & Prefixed Routes (`/src/funkphp/core/compiled_routes.php`) using `cli_sort_build_routes_compile_and_output()`. If this step FAILS, the Building will ALSO Stop!");
 [$TRIE, $RUTTER] = cli_sort_build_routes_compile_and_output($singleRoutesRoute, true); // $singleRoutesRoute is declared already `funk` File and also has default values if not existing!
 
 cli_info_without_exit("G`### Step 3 CONTINUES ###` Loading, Validating & Compiling `pipeline_request.php`, `pipeline_routes.php` & `compiled_routes.php` ('Request' & 'Post_Response' in 'Pipeline' in FunkGUI) File...");
 if (!cli_file_constant_defined_file_exists_is_readable("FUNKPHP_FILE_PATH_PIPELINE")) {
-    cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "The FunkPHP Core Compiled Routes File `FUNKPHP_FILE_PATH_PIPELINE` (`/src/funkphp/core/pipeline_routes.php`) does NOT EXIST or IS NOT READABLE or its DEFINED CONSTANT IS UNDEFINED! Try rebuilding the Route Files using `php funk rc` and try again! Path: `" . (FUNKPHP_FILE_PATH_PIPELINE ?? "[NOT_DEFINED]") . "`");
-    cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline Files (Routes, Compiled Routes & Pipeline) and try again! Path: `" . (FUNKPHP_FILE_PATH_PIPELINE ?? "[NOT_DEFINED]") . "`");
+    cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "The FunkPHP Core Compiled Routes File `FUNKPHP_FILE_PATH_PIPELINE` (`/src/funkphp/core/pipeline_routes.php`) does NOT EXIST or IS NOT READABLE or its DEFINED CONSTANT IS UNDEFINED! Try rebuilding the Route Files using `php funk rc` and try again!");
+    cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline Files  (Routes: `/src/funkphp/core/pipeline_routes.php`, Compiled Routes: `/src/funkphp/core/compiled_routes.php` & Pipeline: `/src/funkphp/core/pipeline_request.php`) and try again!");
 }
 $pipelineFile = $singlePipeline;
 
@@ -1405,16 +1405,16 @@ cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err"
 $pipelineErrChecks[] = cli_assert_array_keys_path($pipelineFile, FUNKPHP_FILE_PATH_PIPELINE, ["pipeline", "post_response"], $pipelineWarnsAndErrs, "cli_err");
 cli_assert_final_value(end($pipelineErrChecks), $pipelineWarnsAndErrs, "cli_err", 'array-empty|array-list-strings-non-empty', "`[pipeline -> post_response]` must be a Numbered Array with Single Non-Empty String Values OR an Empty Array!");
 
-cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline File in the Key `pipeline -> <CONFIG_GLOBAL>` and try again! Path: `" . (FUNKPHP_FILE_PATH_PIPELINE ?? "[NOT_DEFINED]") . "`");
+cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline File (`/src/funkphp/core/pipeline_request.php`) in the Key `pipeline -> <CONFIG_GLOBAL>`. Please fix them and try again!");
 
 // Now we start building namespace-scoped functions such as: 'funkphp\pipeline\request {}' & 'namespace 'funkphp\pipeline\post_response {}'
 if (!defined("FUNKPHP_PIPELINE_REQUEST_DIR")) {
-    cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_PIPELINE_REQUEST_DIR` (`/src/funkphp/pipeline/request`) IS NOT DEFINED when it should be?! Try Git/Versioning Control (for `/src/cli/funk`) to get it back or redownload it again! Path: `" . (FUNKPHP_PIPELINE_REQUEST_DIR ?? "[NOT_DEFINED]") . "`");
-    cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline Files (Pipeline Request Files) and try again! Path: `" . (FUNKPHP_PIPELINE_REQUEST_DIR ?? "[NOT_DEFINED]") . "`");
+    cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_PIPELINE_REQUEST_DIR` (`/src/funkphp/pipeline/request`) IS NOT DEFINED when it should be?! Try Git/Versioning Control (for `/src/cli/funk`) to get it back or redownload it again!");
+    cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline Files (Pipeline Request Files: `/src/funkphp/core/pipeline_request.php`) and try again!");
 }
 if (!defined("FUNKPHP_PIPELINE_POST_RESPONSE_DIR")) {
-    cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_PIPELINE_POST_RESPONSE_DIR` (`/src/funkphp/pipeline/post_response`) IS NOT DEFINED when it should be?! Try Git/Versioning Control (for `/src/cli/funk`) to get it back or redownload it again! Path: `" . (FUNKPHP_PIPELINE_POST_RESPONSE_DIR ?? "[NOT_DEFINED]") . "`");
-    cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline Files  (Pipeline Post_Response Files) and try again! Path: `" . (FUNKPHP_PIPELINE_POST_RESPONSE_DIR ?? "[NOT_DEFINED]") . "`");
+    cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_PIPELINE_POST_RESPONSE_DIR` (`/src/funkphp/pipeline/post_response`) IS NOT DEFINED when it should be?! Try Git/Versioning Control (for `/src/cli/funk`) to get it back or redownload it again!");
+    cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline Files  (Pipeline Post_Response Files: `/src/funkphp/core/pipeline_request.php`) and try again!");
 }
 
 $DEFAULT_ERROR_FORMATTING = "\nRECOMMENDED: `1) ALWAYS lowercase Function Names everywhere. 2) ALWAYS USE Standard Formatting so every newline inside of Functions are indented at least once` OR it won't be found by the Compiler!";
@@ -1426,11 +1426,11 @@ foreach ($pipelineFile['pipeline']['request'] as $pipeRequestFn) {
     $pipelineFileCount++;
     $plReqStatus = cli_file_status(FUNKPHP_PIPELINE_REQUEST_DIR, $pipeRequestFn, true);
     if (!$plReqStatus['file_exists'] || !$plReqStatus['folder_readable']) { // file exists & is readable?
-        cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Request #$pipelineFileCount Function File (`/src/funkphp/pipeline/request/$pipeRequestFn.php`) was NOT FOUND or IS NOT READABLE! Dir Path: `" . (FUNKPHP_PIPELINE_REQUEST_DIR ?? "[NOT_DEFINED]") . "`");
-        cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline File in the Key `pipeline -> request` and try again! Path: `" . (FUNKPHP_FILE_PATH_PIPELINE ?? "[NOT_DEFINED]") . "` $DEFAULT_ERROR_FORMATTING");
+        cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Request #$pipelineFileCount Function File (`/src/funkphp/pipeline/request/$pipeRequestFn.php`) was NOT FOUND or IS NOT READABLE!");
+        cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline File in the Key `pipeline -> request` and try again! $DEFAULT_ERROR_FORMATTING");
     }
     if ($plReqStatus['namespace_name'] !== "funkphp\\pipeline\\request\\$pipeRequestFn") { // expected scoped namespace correct?
-        cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Request #$pipelineFileCount Function (`/src/funkphp/pipeline/request/$pipeRequestFn.php`) was NOT FOUND in Expected `namespace funkphp\\pipeline\\request\\$pipeRequestFn;`! Dir Path: `" . (FUNKPHP_PIPELINE_REQUEST_DIR ?? "[NOT_DEFINED]") . "`");
+        cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Request #$pipelineFileCount Function (`/src/funkphp/pipeline/request/$pipeRequestFn.php`) was NOT FOUND in Expected `namespace funkphp\\pipeline\\request\\$pipeRequestFn;`!");
     }
     if (!isset($plReqStatus['functions'][$pipeRequestFn])) { // does function (name) exist?
         cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Request #$pipelineFileCount Function (`/src/funkphp/pipeline/request/$pipeRequestFn.php`) was NOT FOUND in Expected Function `function $pipeRequestFn(&\$c) { // Code }`!");
@@ -1445,7 +1445,7 @@ foreach ($pipelineFile['pipeline']['request'] as $pipeRequestFn) {
             cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Request #$pipelineFileCount Function (`/src/funkphp/pipeline/request/$pipeRequestFn.php`) must start with `pl_` for the sake of consistency!");
         }
     }
-    cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline File in the Key `pipeline -> request` and try again! Path: `" . (FUNKPHP_FILE_PATH_PIPELINE ?? "[NOT_DEFINED]") . "` $DEFAULT_ERROR_FORMATTING");
+    cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline File in the Key `pipeline -> request` and try again! $DEFAULT_ERROR_FORMATTING");
 
     // Notice & ignore for now that default `pl_https_kernel_dispatch` was included in Pipeline Request Array!
     if ($pipeRequestFn === "pl_https_kernel_dispatch") {
@@ -1465,11 +1465,11 @@ foreach ($pipelineFile['pipeline']['post_response'] as $pipePostResponseFn) {
     $pipelineFileCount++;
     $plReqStatus = cli_file_status(FUNKPHP_PIPELINE_POST_RESPONSE_DIR, $pipePostResponseFn, true);
     if (!$plReqStatus['file_exists'] || !$plReqStatus['folder_readable']) { // file exists & is readable?
-        cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "The Pipeline Post_Response Function File (`/src/funkphp/pipeline/post_response/$pipePostResponseFn.php`) was NOT FOUND or IS NOT READABLE! Dir Path: `" . (FUNKPHP_PIPELINE_POST_RESPONSE_DIR ?? "[NOT_DEFINED]") . "`");
-        cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline File in the Key `pipeline -> post_response` and try again! Path: `" . (FUNKPHP_PIPELINE_POST_RESPONSE_DIR ?? "[NOT_DEFINED]") . "` $DEFAULT_ERROR_FORMATTING");
+        cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "The Pipeline Post_Response Function File (`/src/funkphp/pipeline/post_response/$pipePostResponseFn.php`) was NOT FOUND or IS NOT READABLE!");
+        cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline File in the Key `pipeline -> post_response` and try again! $DEFAULT_ERROR_FORMATTING");
     }
     if ($plReqStatus['namespace_name'] !== "funkphp\\pipeline\\post_response\\$pipePostResponseFn") { // expected scoped namespace correct?
-        cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Post_Response #$pipelineFileCount Function (`/src/funkphp/pipeline/post_response/$pipePostResponseFn.php`) was NOT FOUND in Expected `namespace funkphp\\pipeline\\post_response\\$pipePostResponseFn;`! Dir Path: `" . (FUNKPHP_PIPELINE_POST_RESPONSE_DIR ?? "[NOT_DEFINED]") . "`");
+        cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Post_Response #$pipelineFileCount Function (`/src/funkphp/pipeline/post_response/$pipePostResponseFn.php`) was NOT FOUND in Expected `namespace funkphp\\pipeline\\post_response\\$pipePostResponseFn;`!");
     }
     if (!isset($plReqStatus['functions'][$pipePostResponseFn])) { // does function (name) exist?
         cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Post_Response #$pipelineFileCount Function (`/src/funkphp/pipeline/post_response/$pipePostResponseFn.php`) was NOT FOUND in Expected Function `function $pipePostResponseFn(&\$c) { // Code }`!");
@@ -1484,7 +1484,7 @@ foreach ($pipelineFile['pipeline']['post_response'] as $pipePostResponseFn) {
             cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "Pipeline Post_Response #$pipelineFileCount Function (`/src/funkphp/pipeline/post_response/$pipePostResponseFn.php`) must start with `pl_` for the sake of consistency!");
         }
     }
-    cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline File in the Key `pipeline -> post_response` and try again! Path: `" . (FUNKPHP_PIPELINE_POST_RESPONSE_DIR ?? "[NOT_DEFINED]") . "` $DEFAULT_ERROR_FORMATTING");
+    cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline File (`/src/funkphp/core/pipeline_request.php`) in the Key `pipeline -> post_response` and try again! $DEFAULT_ERROR_FORMATTING");
     $COMPILE_STATS_TRACKER['Pipeline-POST_RESPONSE'][] = $pipePostResponseFn;
     $deploymentPipelineRequestBuffer[] = $plReqStatus['functions'][$pipePostResponseFn]['fn_raw'] . "\n";
 }
@@ -1499,7 +1499,7 @@ if (!$HTTPS_KERNEL_DISPATCH_FUNCTION_FOUND) {
     }
     cli_warning_without_exit("⚠️If you have no other Pipeline Request Function that can match the Routes inside of `/src/funkphp/core/compiled_routes.php` and execute matched Middlewares & Route Pipeline Functions in `/src/funkphp/core/pipeline_routes.php` then you might end up with a 'Dead-On-Compilation Build'!");
 }
-cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline File in the Key `pipeline -> request` and try again! Path: `" . (FUNKPHP_PIPELINE_POST_RESPONSE_DIR ?? "[NOT_DEFINED]") . "` $DEFAULT_ERROR_FORMATTING");
+cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pipelineWarnsAndErrs) . ") Warnings/Errors above for the Pipeline File in the Key `pipeline -> request` and try again! $DEFAULT_ERROR_FORMATTING");
 
 // Add the valid Pipeline Request & Post_Response Functions to final buffer
 // and remove them as they are no longer needed. If Dev wanna use them
@@ -1520,12 +1520,12 @@ $routesWarnsAndErrs = []; // Warns&Errs BOTH for $RUTTER and/or $TRIE
 $NO_ROUTES = false;
 
 if (!defined("FUNKPHP_ROUTES_DIR")) {
-    cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_ROUTES_DIR` (`/src/funkphp/pipeline/routes`) IS NOT DEFINED when it should be?! Try Git/Versioning Control (for `/src/cli/funk`) to get it back or redownload it again! Path: `" . (FUNKPHP_ROUTES_DIR ?? "[NOT_DEFINED]") . "`");
+    cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_ROUTES_DIR` (`/src/funkphp/pipeline/routes`) IS NOT DEFINED when it should be?! Try Git/Versioning Control (for `/src/cli/funk`) to get it back or redownload it again!");
 }
 if (!defined("FUNKPHP_MIDDLEWARES_DIR")) {
-    cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_MIDDLEWARES_DIR` (`/src/funkphp/pipeline/middlewares`) IS NOT DEFINED when it should be?! Try Git/Versioning Control (for `/src/cli/funk`) to get it back or redownload it again! Path: `" . (FUNKPHP_MIDDLEWARES_DIR ?? "[NOT_DEFINED]") . "`");
+    cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_MIDDLEWARES_DIR` (`/src/funkphp/pipeline/middlewares`) IS NOT DEFINED when it should be?! Try Git/Versioning Control (for `/src/cli/funk`) to get it back or redownload it again!");
 }
-cli_stop_from_warn_err_list($routesWarnsAndErrs, "Please Review (" . count($routesWarnsAndErrs) . ") Warnings/Errors above for the Pipeline Files (Pipeline Routes & Middlewares Files) and try again! Paths: `" . (FUNKPHP_ROUTES_DIR ?? "[NOT_DEFINED]") . "` & `" . (FUNKPHP_MIDDLEWARES_DIR ?? "[NOT_DEFINED]") . "`");
+cli_stop_from_warn_err_list($routesWarnsAndErrs, "Please Review (" . count($routesWarnsAndErrs) . ") Warnings/Errors above for the Pipeline Files (Pipeline Routes: `/src/funkphp/core/pipeline/routes` & Middlewares Files: `/src/funkphp/pipeline/middlewares`) and try again!");
 
 // SPECIAL EDGE CASE BELOW: When there are no routes compiled (like just trying out command & opening FunkPHPDeployment.php)
 if ($TRIE['METADATA']['<ALL>']['totalAllRoutes'] === 0) {
@@ -1603,7 +1603,7 @@ foreach ($METHODNamesArray as $MethodName) {
     $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", $MethodName, "<CONFIG_METHOD>", "method_default_no_route_match_response", "callback"], $routesWarnsAndErrs, "cli_err");
     cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'string|null', "`[ROUTES -> $MethodName -> <CONFIG_METHOD> -> method_default_no_route_match_response -> callback]` must be a String or Null!");
 }
-cli_stop_from_warn_err_list($routesWarnsAndErrs, "Please Review (" . count($routesWarnsAndErrs) . ") Warnings/Errors above for the Pipeline Files (Routes & Compiled Routes) and try again! Path: `" . (FUNKPHP_FILE_PATH_ROUTES ?? "[NOT_DEFINED]") . "`");
+cli_stop_from_warn_err_list($routesWarnsAndErrs, "Please Review (" . count($routesWarnsAndErrs) . ") Warnings/Errors above for the Pipeline Files (Routes: `/src/funkphp/core/pipeline_routes.php` & Compiled Routes: `/src/funkphp/core/compiled_routes.php`) and try again!");
 
 // NOW WE CAN FINALLY GO THROUGH EACH ROUTE ($RUTT) IN EACH METHOD ($METOD)!
 // When there ARE ROUTES TO Validate, Parse & Output!
@@ -1660,12 +1660,12 @@ if (!$NO_ROUTES) { //START-BLOCK:ROUTES TO Validate, Parse & Output!
             $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", "$METODKey", "$RUTT", "pipeline"], $routesWarnsAndErrs, "cli_err");
             cli_assert_final_value(end($routesMethodsErrChecks), $routesWarnsAndErrs, "cli_err", 'array-associative-strings-non-empty', "All Values in `[ROUTES -> $METODKey -> $RUTT -> pipeline]` must be an Associative Array with Non-Empty String Values!");
             // Now the 4 main keys have been validated so now we can iterate through and start building to the 3 arrays
-            cli_stop_from_warn_err_list($routesWarnsAndErrs, "Please Review (" . count($routesWarnsAndErrs) . ") Warnings/Errors above for the Pipeline Files (Routes & Compiled Routes) and try again! Path: `" . (FUNKPHP_FILE_PATH_ROUTES ?? "[NOT_DEFINED]") . "`");
+            cli_stop_from_warn_err_list($routesWarnsAndErrs, "Please Review (" . count($routesWarnsAndErrs) . ") Warnings/Errors above for the Pipeline Files (Routes: `/src/funkphp/core/pipeline_routes.php` & Compiled Routes: `/src/funkphp/core/compiled_routes.php`) and try again!");
 
 
             // SPECIAL EDGE CASE: If 'pipeline' array is empty, there would be no pipeline functions to run after middlewares?
             if (empty($DATA['pipeline'])) {
-                cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> pipeline #0]: Missing at least one Pipeline File->Function Handler. Each Route must map to least one of those! Path: `" . (FUNKPHP_FILE_PATH_ROUTES ?? "[NOT_DEFINED]") . "`");
+                cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> pipeline #0]: Missing at least one Pipeline File->Function Handler. Each Route must map to least one of those!");
             }
             // MIDDLEWARES
             $mwCount = 0;
@@ -1675,11 +1675,11 @@ if (!$NO_ROUTES) { //START-BLOCK:ROUTES TO Validate, Parse & Output!
                 // First check if we already have stored it and either add error if invalid one or continue if valid one
                 $mwDirFilePath = FUNKPHP_MIDDLEWARES_DIR . '/' . $DATAmw . '.php';
                 if (isset($FOUND_ROUTES_MW_FNS['INVALID'][$DATAmw])) {
-                    cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> middlewares #$mwCount]: The Middleware Function File `$DATAmw` DOES NOT EXIST OR HAS INVALID STRUCTURE! Path: `" . ($mwDirFilePath ?? "[NOT_DEFINED]") . "`");
+                    cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> middlewares #$mwCount]: The Middleware Function File `$DATAmw` DOES NOT EXIST OR HAS INVALID STRUCTURE! Path: `" . $mwDirFilePath . "`");
                     continue;
                 } else if (isset($FOUND_ROUTES_MW_FNS['VALID'][$DATAmw])) {
                     if (isset($FOUND_MWS_LOCAL[$DATAmw])) {
-                        cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> middlewares #$mwCount]: The Middleware Function File `$DATAmw` ALREADY EXISTS IN Middlewares Array - Duplicates Not Allowed for Middlewares! Path: `" . ($mwDirFilePath ?? "[NOT_DEFINED]") . "`");
+                        cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> middlewares #$mwCount]: The Middleware Function File `$DATAmw` ALREADY EXISTS IN Middlewares Array - Duplicates Not Allowed for Middlewares! Path: `" . $mwDirFilePath . "`");
                         continue;
                     }
                     $FOUND_MWS_LOCAL[$DATAmw] = true;
@@ -1688,29 +1688,29 @@ if (!$NO_ROUTES) { //START-BLOCK:ROUTES TO Validate, Parse & Output!
                 $findMW = cli_file_status(FUNKPHP_MIDDLEWARES_DIR, $DATAmw, true, true);
                 if (!$findMW['file_exists'] || !$findMW['file_readable']) { // Middleware File not found or not readable so we add this named key so it can be found faster next time
                     $FOUND_ROUTES_MW_FNS['INVALID'][$DATAmw] = true;
-                    cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> middlewares #$mwCount]: The Middleware Function File `$DATAmw` was NOT FOUND in Expected Path OR it is NOT READABLE! Path: `" . ($mwDirFilePath ?? "[NOT_DEFINED]") . "`");
+                    cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> middlewares #$mwCount]: The Middleware Function File `$DATAmw` was NOT FOUND in Expected Path OR it is NOT READABLE! Path: `" . $mwDirFilePath . "`");
                 }
                 // Middleware File found & Readable, so let's validate its content and add it to VALID if all OK
                 // otherwise, we add to
                 if ($findMW['file_exists']) {
                     if (!isset($findMW['functions'][$DATAmw])) { // MW Function not exist?
                         $FOUND_ROUTES_MW_FNS['INVALID'][$DATAmw] = true;
-                        cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> middlewares #$mwCount]: The Middleware Function File `$DATAmw` FOUND but its Function was NOT FOUND! Path: `" . ($mwDirFilePath ?? "[NOT_DEFINED]") . "`");
+                        cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> middlewares #$mwCount]: The Middleware Function File `$DATAmw` FOUND but its Function was NOT FOUND! Path: `" . $mwDirFilePath . "`");
                     }
                     // MW Function incorrect namespace name?
                     else if ($findMW['namespace_name'] !== ('funkphp\\pipeline\\middlewares\\' . $DATAmw)) {
                         $FOUND_ROUTES_MW_FNS['INVALID'][$DATAmw] = true;
-                        cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> middlewares #$mwCount]: The Middleware Function File `$DATAmw` FOUND but it has INVALID Namespace structure. Expected: `funkphp\pipeline\middleware\\$DATAmw;`! Path: `" . ($mwDirFilePath ?? "[NOT_DEFINED]") . "`");
+                        cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> middlewares #$mwCount]: The Middleware Function File `$DATAmw` FOUND but it has INVALID Namespace structure. Expected: `funkphp\pipeline\middleware\\$DATAmw;`! Path: `" . $mwDirFilePath . "`");
                     }
                     // MW Function not all lowercased?
                     else if (!$findMW['functions'][$DATAmw]['fn_name_same_as_lowercased']) {
                         $FOUND_ROUTES_MW_FNS['INVALID'][$DATAmw] = true;
-                        cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> middlewares #$mwCount]: The Middleware Function File `$DATAmw` FOUND but is `NOT ALL LOWERCASED`! Path: `" . ($mwDirFilePath ?? "[NOT_DEFINED]") . "`");
+                        cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> middlewares #$mwCount]: The Middleware Function File `$DATAmw` FOUND but is `NOT ALL LOWERCASED`! Path: `" . $mwDirFilePath . "`");
                     }
                     // MW Function was not found same by regex vs tokenizer?
                     else if (!$findMW['functions_same_count']) {
                         $FOUND_ROUTES_MW_FNS['INVALID'][$DATAmw] = true;
-                        cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> middlewares #$mwCount]: The Middleware Function File `$DATAmw` FOUND but not both ways (`Regex & Tokenizer`). Check if the Function has trailing comments after the Function Closing `}`! Path: `" . ($mwDirFilePath ?? "[NOT_DEFINED]") . "`");
+                        cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> middlewares #$mwCount]: The Middleware Function File `$DATAmw` FOUND but not both ways (`Regex & Tokenizer`). Check if the Function has trailing comments after the Function Closing `}`! Path: `" . $mwDirFilePath . "`");
                     }
                     // ALL OK HERE! We store the function and continue
                     else {
@@ -1726,23 +1726,23 @@ if (!$NO_ROUTES) { //START-BLOCK:ROUTES TO Validate, Parse & Output!
             // SPECIAL EDGE CASE: Current Route is "/" root so no middlewares below can be excluded!
             if ($RUTT === "/") {
                 if (count($DATA['exclude_middlewares']) > 0) {
-                    cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> exclude_middlewares]: Cannot Exclude Middlewares on Root Level since that would mean to impossibly look one level below it. Path: `" . ($plDirFilePath ?? "[NOT_DEFINED]") . "`");
+                    cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> exclude_middlewares]: Cannot Exclude Middlewares on Root Level since that would mean to impossibly look one level below it. Path: `" . $plDirFilePath . "`");
                 }
             }
             foreach ($DATA['exclude_middlewares'] as $DATAmwx) {
                 $mwCount++;
                 $mwDirFilePath = FUNKPHP_MIDDLEWARES_DIR . '/' . $DATAmwx . '.php';
                 if (isset($FOUND_MWS_LOCAL[$DATAmwx])) { // exclude_middlewares that should also be part of the middlewares on the same route? doesn't make any sense!
-                    cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> exclude_middlewares #$mwCount]: The Middleware Function File `$DATAmwx` IS ALREADY IN `middlewares` Key for this Route. Cannot exclude it at the same time! Path: `" . ($mwDirFilePath ?? "[NOT_DEFINED]") . "`");
+                    cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> exclude_middlewares #$mwCount]: The Middleware Function File `$DATAmwx` IS ALREADY IN `middlewares` Key for this Route. Cannot exclude it at the same time! Path: `" . $mwDirFilePath . "`");
                     continue;
                 }
                 // Then check if we already have stored it and either add error if invalid one or continue if valid one
                 if (isset($FOUND_ROUTES_MW_FNS['INVALID'][$DATAmwx])) {
-                    cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> exclude_middlewares #$mwCount]: The Middleware Function File `$DATAmwx` DOES NOT EXIST OR HAS INVALID STRUCTURE! Path: `" . ($mwDirFilePath ?? "[NOT_DEFINED]") . "`");
+                    cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> exclude_middlewares #$mwCount]: The Middleware Function File `$DATAmwx` DOES NOT EXIST OR HAS INVALID STRUCTURE! Path: `" . $mwDirFilePath . "`");
                     continue;
                 } else if (isset($FOUND_ROUTES_MW_FNS['VALID'][$DATAmwx])) {
                     if (isset($FOUND_MWS_LOCAL2[$DATAmwx])) {
-                        cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> exclude_middlewares #$mwCount]: The Middleware Function File `$DATAmwx` ALREADY EXISTS IN Middlewares Array - Duplicates Not Allowed for Excluded Middlewares! Path: `" . ($mwDirFilePath ?? "[NOT_DEFINED]") . "`");
+                        cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> exclude_middlewares #$mwCount]: The Middleware Function File `$DATAmwx` ALREADY EXISTS IN Middlewares Array - Duplicates Not Allowed for Excluded Middlewares! Path: `" . $mwDirFilePath . "`");
                         continue;
                     }
                     $FOUND_MWS_LOCAL2[$DATAmwx] = true;
@@ -1751,29 +1751,29 @@ if (!$NO_ROUTES) { //START-BLOCK:ROUTES TO Validate, Parse & Output!
                 $findMW = cli_file_status(FUNKPHP_MIDDLEWARES_DIR, $DATAmwx, true, true);
                 if (!$findMW['file_exists'] || !$findMW['file_readable']) { // Middleware File not found or not readable so we add this named key so it can be found faster next time
                     $FOUND_ROUTES_MW_FNS['INVALID'][$DATAmwx] = true;
-                    cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> exclude_middlewares #$mwCount]: The Middleware Function File `$DATAmwx` was NOT FOUND in Expected Path OR it is NOT READABLE! Path: `" . ($mwDirFilePath ?? "[NOT_DEFINED]") . "`");
+                    cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> exclude_middlewares #$mwCount]: The Middleware Function File `$DATAmwx` was NOT FOUND in Expected Path OR it is NOT READABLE! Path: `" . $mwDirFilePath . "`");
                 }
                 // Middleware File found & Readable, so let's validate its content and add it to VALID if all OK
                 // otherwise, we add to
                 if ($findMW['file_exists']) {
                     if (!isset($findMW['functions'][$DATAmwx])) { // MW Function not exist?
                         $FOUND_ROUTES_MW_FNS['INVALID'][$DATAmwx] = true;
-                        cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> exclude_middlewares #$mwCount]: The Middleware Function File `$DATAmwx` FOUND but its Function was NOT FOUND! Path: `" . ($mwDirFilePath ?? "[NOT_DEFINED]") . "`");
+                        cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> exclude_middlewares #$mwCount]: The Middleware Function File `$DATAmwx` FOUND but its Function was NOT FOUND! Path: `" . $mwDirFilePath . "`");
                     }
                     // MW Function incorrect namespace name?
                     else if ($findMW['namespace_name'] !== ('funkphp\\pipeline\\middlewares\\' . $DATAmwx)) {
                         $FOUND_ROUTES_MW_FNS['INVALID'][$DATAmwx] = true;
-                        cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> exclude_middlewares #$mwCount]: The Middleware Function File `$DATAmwx` FOUND but it has INVALID Namespace structure. Expected: `funkphp\pipeline\middleware\\$DATAmwx;`! Path: `" . ($mwDirFilePath ?? "[NOT_DEFINED]") . "`");
+                        cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> exclude_middlewares #$mwCount]: The Middleware Function File `$DATAmwx` FOUND but it has INVALID Namespace structure. Expected: `funkphp\pipeline\middleware\\$DATAmwx;`! Path: `" . $mwDirFilePath . "`");
                     }
                     // MW Function not all lowercased?
                     else if (!$findMW['functions'][$DATAmwx]['fn_name_same_as_lowercased']) {
                         $FOUND_ROUTES_MW_FNS['INVALID'][$DATAmwx] = true;
-                        cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> exclude_middlewares #$mwCount]: The Middleware Function File `$DATAmwx` FOUND but is `NOT ALL LOWERCASED`! Path: `" . ($mwDirFilePath ?? "[NOT_DEFINED]") . "`");
+                        cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> exclude_middlewares #$mwCount]: The Middleware Function File `$DATAmwx` FOUND but is `NOT ALL LOWERCASED`! Path: `" . $mwDirFilePath . "`");
                     }
                     // MW Function was not found same by regex vs tokenizer?
                     else if (!$findMW['functions_same_count']) {
                         $FOUND_ROUTES_MW_FNS['INVALID'][$DATAmwx] = true;
-                        cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> exclude_middlewares #$mwCount]: The Middleware Function File `$DATAmwx` FOUND but not both ways (`Regex & Tokenizer`). Check if the Function has trailing comments after the Function Closing `}`! Path: `" . ($mwDirFilePath ?? "[NOT_DEFINED]") . "`");
+                        cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> exclude_middlewares #$mwCount]: The Middleware Function File `$DATAmwx` FOUND but not both ways (`Regex & Tokenizer`). Check if the Function has trailing comments after the Function Closing `}`! Path: `" . $mwDirFilePath . "`");
                     }
                     // SPECIAL INHERITENCE CHECK for exclude_middlewares (do they exist in all their levels
                     // below them?) and we will have already checked that it is not already "/" level!
@@ -1800,13 +1800,13 @@ if (!$NO_ROUTES) { //START-BLOCK:ROUTES TO Validate, Parse & Output!
 
                 $plDirFilePath = FUNKPHP_ROUTES_DIR . '/' . $DATAplFile . '.php';
                 if (isset($FOUND_ROUTES_FILE_FNS['INVALID'][$DATAplFile][$DATAplFn])) { // Invalid File->FN already confirmed, so could never be used!
-                    cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> pipeline #$plCount]: The Route Pipline File->Function (`$DATAplFile -> $DATAplFn`) DOES NOT EXIST OR HAS INVALID STRUCTURE! Path: `" . ($plDirFilePath ?? "[NOT_DEFINED]") . "`");
+                    cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> pipeline #$plCount]: The Route Pipline File->Function (`$DATAplFile -> $DATAplFn`) DOES NOT EXIST OR HAS INVALID STRUCTURE! Path: `" . $plDirFilePath . "`");
                     continue;
                 }
                 // Valid File->FN already confirmed, but is it already in its own array?
                 else if (isset($FOUND_ROUTES_FILE_FNS['VALID'][$DATAplFile][$DATAplFn])) {
                     if (isset($FOUND_PL_LOCAL[$DATAplFile][$DATAplFn])) {
-                        cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> pipeline #$plCount]: The Route Pipline File->Function (`$DATAplFile -> $DATAplFn`) ALREADY EXISTS IN Pipeline Array - Duplicates Not Allowed for Middlewares! Path: `" . ($plDirFilePath ?? "[NOT_DEFINED]") . "`");
+                        cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> pipeline #$plCount]: The Route Pipline File->Function (`$DATAplFile -> $DATAplFn`) ALREADY EXISTS IN Pipeline Array - Duplicates Not Allowed for Middlewares! Path: `" . $plDirFilePath . "`");
                         continue;
                     }
                     $FOUND_PL_LOCAL[$DATAplFile][$DATAplFn] = true;
@@ -1816,28 +1816,28 @@ if (!$NO_ROUTES) { //START-BLOCK:ROUTES TO Validate, Parse & Output!
                 // Pipeline File not found or not readable so we add this named key so it can be found faster next time
                 if (!$findpl['file_exists'] || !$findpl['file_readable']) {
                     $FOUND_ROUTES_FILE_FNS['INVALID'][$DATAplFile][$DATAplFn] = true;
-                    cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> pipeline #$plCount]: The Route Pipline File->Function (`$DATAplFile -> $DATAplFn`) File was NOT FOUND in Expected Path OR it is NOT READABLE! Path: `" . ($plDirFilePath ?? "[NOT_DEFINED]") . "`");
+                    cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> pipeline #$plCount]: The Route Pipline File->Function (`$DATAplFile -> $DATAplFn`) File was NOT FOUND in Expected Path OR it is NOT READABLE! Path: `" . $plDirFilePath . "`");
                 }
                 // Pipeline File found so let's check if its Function exist
                 if ($findpl['file_exists']) {
                     if (!isset($findpl['functions'][$DATAplFn])) { // Route PL Function not exist?
                         $FOUND_ROUTES_FILE_FNS['INVALID'][$DATAplFile][$DATAplFn] = true;
-                        cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> pipeline #$plCount]: The Route Pipline File->Function (`$DATAplFile -> $DATAplFn`) File FOUND but its Function was NOT FOUND! Path: `" . ($plDirFilePath ?? "[NOT_DEFINED]") . "`");
+                        cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> pipeline #$plCount]: The Route Pipline File->Function (`$DATAplFile -> $DATAplFn`) File FOUND but its Function was NOT FOUND! Path: `" . $plDirFilePath . "`");
                     }
                     // Route PL Function incorrect namespace name?
                     else if ($findpl['namespace_name'] !== ('funkphp\\pipeline\\routes\\' . $DATAplFile)) {
                         $FOUND_ROUTES_FILE_FNS['INVALID'][$DATAplFile][$DATAplFn] = true;
-                        cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> pipeline #$plCount]: The Route Pipline File->Function (`$DATAplFile -> $DATAplFn`) File FOUND but it has INVALID Namespace structure. Expected: `funkphp\pipeline\routes\\$DATApl;`! Path: `" . ($plDirFilePath ?? "[NOT_DEFINED]") . "`");
+                        cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> pipeline #$plCount]: The Route Pipline File->Function (`$DATAplFile -> $DATAplFn`) File FOUND but it has INVALID Namespace structure. Expected: `funkphp\pipeline\routes\\$DATApl;`! Path: `" . $plDirFilePath . "`");
                     }
                     // Route PL Function not all lowercased?
                     else if (!$findpl['functions'][$DATAplFn]['fn_name_same_as_lowercased']) {
                         $FOUND_ROUTES_FILE_FNS['INVALID'][$DATAplFile][$DATAplFn] = true;
-                        cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> pipeline #$plCount]: The Route Pipline File->Function (`$DATAplFile -> $DATAplFn`) File FOUND but is `NOT ALL LOWERCASED`! Path: `" . ($plDirFilePath ?? "[NOT_DEFINED]") . "`");
+                        cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> pipeline #$plCount]: The Route Pipline File->Function (`$DATAplFile -> $DATAplFn`) File FOUND but is `NOT ALL LOWERCASED`! Path: `" . $plDirFilePath . "`");
                     }
                     // Route PL Function was not found same by regex vs tokenizer?
                     else if (!$findpl['functions_same_count']) {
                         $FOUND_ROUTES_FILE_FNS['INVALID'][$DATAplFile][$DATAplFn] = true;
-                        cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> pipeline #$plCount]: The Route Pipline File->Function (`$DATAplFile -> $DATAplFn`) File FOUND but not both ways (`Regex & Tokenizer`). Check if the Function has trailing comments after the Function Closing `}`! Path: `" . ($plDirFilePath ?? "[NOT_DEFINED]") . "`");
+                        cli_build_warning_err_list($routesWarnsAndErrs, "cli_err", "For [$METODKey$RUTT -> pipeline #$plCount]: The Route Pipline File->Function (`$DATAplFile -> $DATAplFn`) File FOUND but not both ways (`Regex & Tokenizer`). Check if the Function has trailing comments after the Function Closing `}`! Path: `" . $plDirFilePath . "`");
                     } else {
                         $FOUND_ROUTES_FILE_FNS['VALID'][$DATAplFile][$DATAplFn] = $findpl['functions'][$DATAplFn]['fn_raw'];
                         $FOUND_PL_LOCAL[$DATAplFile][$DATAplFn] = true;
@@ -1847,7 +1847,7 @@ if (!$NO_ROUTES) { //START-BLOCK:ROUTES TO Validate, Parse & Output!
             }
         }
     }
-    cli_stop_from_warn_err_list($routesWarnsAndErrs, "Please Review (" . count($routesWarnsAndErrs) . ") Warnings/Errors above for the Pipeline Files (Routes & Middlewares) and try again! Path: `" . (FUNKPHP_FILE_PATH_ROUTES ?? "[NOT_DEFINED]") . "`");
+    cli_stop_from_warn_err_list($routesWarnsAndErrs, "Please Review (" . count($routesWarnsAndErrs) . ") Warnings/Errors above for the Pipeline Files (Routes: `/src/funkphp/pipeline/routes` & Middlewares: `/src/funkphp/pipeline/middlewares`) and try again!");
 } //END-BLOCK:ROUTES TO Validate, Parse & Output!
 
 // PUT ALL MIDDLEWARES TOGETHER (ONE NS)
@@ -1921,7 +1921,7 @@ if (!cli_crud_folder_php_file_atomic_write($COMPLETE_DEPLOYMENT_BUFFER, FUNKPHP_
     cli_err("
 ==========================================================================================================================
 FAILED to Write the otherwise Successfully Compiled `/src/funkphp/FunkPHPDeployment.php` File to the Disk!?
-Please check the File Permissions and try again! Path: `" . (FUNKPHP_FILE_PATH_DEPLOYMENT_FILE ?? "[NOT_DEFINED]") . "`
+Please check the File Permissions for the File Path above and try again!
 ==========================================================================================================================");
 }
 // Notify about super-important message if no routes were compiled but without any errors and/or warnings
