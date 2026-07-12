@@ -830,9 +830,7 @@ function cli_assert_optional_depth_and_value($val, $assertions): bool
     // 3. Traverse path elements ($assertions is now purely the array keys)
     // unless it is a single value!
     if (count($assertions) > 0) {
-
         foreach ($assertions as $segment) {
-            echo "CURRENT SEGMENT: " . $segment . "\n";
             if (!is_array($val) || !array_key_exists($segment, $val)) {
                 return false; // Path broke early or node isn't an array
             }
@@ -1062,23 +1060,34 @@ function cli_assert_optional_depth_and_value($val, $assertions): bool
                 } else if ($rule === '') {
                 } else if ($rule === '') {
                 } elseif ($rule === 'array-list-strings-non-empty') {
-                    if (is_array($currentVal) && array_is_list($currentVal)) {
+                    if (is_array($val) && array_is_list($val)) {
                         $pass = true;
-                        foreach ($currentVal as $currentVal) {
-                            if (!is_string($currentVal) || trim($currentVal) === '') {
+                        foreach ($val as $val) {
+                            if (!is_string($val) || trim($val) === '') {
                                 $pass = false; // Internal element failed
                                 break;
                             }
                         }
-                        // If entire rule pass then it is true but otherwise
-                        // it just breaks this inner foreach loop while outer
-                        // one still continues as usual!
+                    }
+                    // If entire rule pass then it is true but otherwise
+                    // it just breaks this inner foreach loop while outer
+                    // one still continues as usual!
+                } elseif ($rule === 'array-associative-scalars-non-empty') {
+                    if (is_array($val) && !array_is_list($val)) {
+                        $pass = true;
+                        foreach ($val as $item) {
+                            // 🚀 Allow strings, integers, and floats, but block empty strings
+                            if (!is_scalar($item) || (is_string($item) && trim($item) === '')) {
+                                $pass = false;
+                                break;
+                            }
+                        }
                         if ($pass) return true;
                     }
                 } elseif ($rule === 'array-associative-strings-non-empty') {
-                    if (is_array($currentVal) && !array_is_list($currentVal)) {
+                    if (is_array($val) && !array_is_list($val)) {
                         $pass = true;
-                        foreach ($currentVal as $item) {
+                        foreach ($val as $item) {
                             if (!is_string($item) || trim($item) === '') {
                                 $pass = false;
                                 break;
@@ -1090,9 +1099,9 @@ function cli_assert_optional_depth_and_value($val, $assertions): bool
                         if ($pass) return true;
                     }
                 } elseif ($rule === 'array-strings-non-empty') {
-                    if (is_array($currentVal)) {
+                    if (is_array($val)) {
                         $pass = true;
-                        foreach ($currentVal as $item) {
+                        foreach ($val as $item) {
                             if (!is_string($item) || trim($item) === '') {
                                 $pass = false;
                                 break;
