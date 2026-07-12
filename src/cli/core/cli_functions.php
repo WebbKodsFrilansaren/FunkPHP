@@ -773,7 +773,7 @@ function cli_get_hash_calculation_of_a_page($pagePathName)
  * in a single referenced array that should be 0 if a process should be considered
  * to be fault/error free. Should be used by long running processes that need to report multiple warnings/errors
 */
-function cli_build_warning_err_list(&$listArr, $warnErrType, $msg)
+function cli_build_warning_err_list(&$listArr, $warnErrType, $msg, $STOP_AND_FLUSH_WARNS_ERRS = false)
 {
     // First check that &$listArr is an array or make it an empty array to start with
     // then we check that warnErrType is either "cli_err", "cli_warning", "cli_err_syntax" or "cli_info"
@@ -811,6 +811,343 @@ function cli_stop_from_warn_err_list(&$listArr, $exitMsg)
         cli_info($exitMsg); // This also exits script so!
     }
 }
+/*
+ * Function to assert EITHER an array depth OR just a value using its 'final' provided key
+ * The 'final' provided key is always the last argument in ...$assertions!
+*/
+function cli_assert_optional_depth_and_value($val, $assertions): bool
+{
+    if (empty($assertions)) {
+        cli_err("[cli_assert_array_depth_and_final_value()]: Missing `Path and Value Parameters`!");
+    }
+    // 1. Direct Key Extraction: Instantly grab the rule without array_pop breaking things
+    if (!array_key_exists('assert', $assertions)) {
+        cli_err("[cli_assert_array_depth_and_final_value()]: The 'Assert Array' must contain a 'assert' Key.");
+    }
+    // 2. Grab rule(s) and remove it from array depth part
+    $finalRule = $assertions['assert'];
+    unset($assertions['assert']);
+    // 3. Traverse path elements ($assertions is now purely the array keys)
+    // unless it is a single value!
+    if (count($assertions) > 0) {
+
+        foreach ($assertions as $segment) {
+            echo "CURRENT SEGMENT: " . $segment . "\n";
+            if (!is_array($val) || !array_key_exists($segment, $val)) {
+                return false; // Path broke early or node isn't an array
+            }
+            // Move down one level
+            $val = $val[$segment];
+        }
+    }
+    // 4. Final Value Assertion Step (Optional Depth has been reached and/or Final Value)
+    // When 'final' => 'string_instruction_for_final_currentValue'
+    if (is_string($finalRule) && (trim($finalRule) !== '')) {
+        $rules = str_contains($finalRule, "|") ? explode('|', $finalRule) : [$finalRule];
+        $ruleCount  = 0;
+        if (is_string($finalRule) && trim($finalRule) !== '') {
+            $rules = str_contains($finalRule, "|") ? explode('|', $finalRule) : [$finalRule];
+            foreach ($rules as $rule) {
+                $ruleCount++;
+                $rule = trim($rule);
+                // Rules for primitives and different other data types
+                if ($rule === 'null') {
+                    if ($val === null) {
+                        return true;
+                    }
+                } else if ($rule === 'string') {
+                    if (is_string($val)) {
+                        return true;
+                    }
+                } else if ($rule === '!string') {
+                    if (!is_string($val)) {
+                        return true;
+                    }
+                } elseif ($rule === 'string-non-empty') {
+                    if (is_string($val) && !empty($val)) {
+                        return true;
+                    }
+                } elseif ($rule === 'string-empty') {
+                    if (is_string($val) && empty($val)) {
+                        return true;
+                    }
+                } else if ($rule === 'number') {
+                    if (is_numeric($val)) {
+                        return true;
+                    }
+                } else if ($rule === '!number') {
+                    if (!is_numeric($val)) {
+                        return true;
+                    }
+                } else if ($rule === 'number-not-zero') {
+                    if (is_numeric($val) && $val !== 0) {
+                        return true;
+                    }
+                } else if ($rule === 'integer') {
+                    if (is_int($val)) {
+                        return true;
+                    }
+                } else if ($rule === '!integer') {
+                    if (!is_int($val)) {
+                        return true;
+                    }
+                } else if ($rule === 'integer-not-zero') {
+                    if (is_int($val) && $val !== 0) {
+                        return true;
+                    }
+                } else if ($rule === 'boolean') {
+                    if (is_bool($val)) {
+                        return true;
+                    }
+                } else if ($rule === '!boolean') {
+                    if (!is_bool($val)) {
+                        return true;
+                    }
+                } else if ($rule === 'boolean:true') {
+                    if (is_bool($val) && $val === true) {
+                        return true;
+                    }
+                } else if ($rule === 'boolean:false') {
+                    if (is_bool($val) && $val === false) {
+                        return true;
+                    }
+                } else if ($rule === 'float') {
+                    if (is_float($val) && $val !== 0) {
+                        return true;
+                    }
+                } else if ($rule === '!float') {
+                    if (!is_float($val) && $val !== 0) {
+                        return true;
+                    }
+                } else if ($rule === 'float-not-zero') {
+                    if (is_float($val) && $val !== 0) {
+                        return true;
+                    }
+                } else if ($rule === 'scalar' || $rule === 'number_string_or_bool') {
+                    if (is_scalar($val)) {
+                        return true;
+                    }
+                } else if ($rule === '!scalar' || $rule === '!number_string_or_bool') {
+                    if (!is_scalar($val)) {
+                        return true;
+                    }
+                } else if ($rule === 'array') {
+                    if (is_array($val)) {
+                        return true;
+                    }
+                } else if ($rule === '!array') {
+                    if (!is_array($val)) {
+                        return true;
+                    }
+                } else if ($rule === 'array-empty') {
+                    if (is_array($val) && count($val) === 0) {
+                        return true;
+                    }
+                } else if ($rule === 'array-list') {
+                    if (is_array($val) && array_is_list($val)) {
+                        return true;
+                    }
+                } else if ($rule === '!array-list') {
+                    if (!is_array($val) || !array_is_list($val)) {
+                        return true;
+                    }
+                } else if ($rule === 'array-associative') {
+                    if (is_array($val) && count($val) > 0  && !array_is_list($val)) {
+                        return true;
+                    }
+                } else if ($rule === '!array-associative') {
+                    if (!is_array($val) || array_is_list($val)) {
+                        return true;
+                    }
+                } else if ($rule === 'resource') {
+                    if (is_resource($val)) {
+                        return true;
+                    }
+                } else if ($rule === '!resource') {
+                    if (!is_resource($val)) {
+                        return true;
+                    }
+                } else if ($rule === 'countable') {
+                    if (is_countable($val)) {
+                        return true;
+                    }
+                } else if ($rule === '!countable') {
+                    if (!is_countable($val)) {
+                        return true;
+                    }
+                } else if ($rule === 'iterable') {
+                    if (is_iterable($val)) {
+                        return true;
+                    }
+                } else if ($rule === '!iterable') {
+                    if (!is_iterable($val)) {
+                        return true;
+                    }
+                } else if ($rule === 'callable') {
+                    if (is_callable($val)) {
+                        return true;
+                    }
+                } else if ($rule === '!callable') {
+                    if (!is_callable($val)) {
+                        return true;
+                    }
+                } // COMPLEX Validation besides data types:
+                // 1. POSITIVE STARTS WITH
+                else if (str_starts_with($rule, 'str_starts_with:')) {
+                    if (!is_string($val) || trim($val) === '') {
+                        continue; // Skip if type doesn't match or is empty, letting other piped rules try
+                    }
+                    [, $payload] = explode(':', $rule, 2);
+                    $targets = str_contains($payload, ',') ? explode(',', $payload) : [$payload];
+                    $pass = false; // Positive check starts as false
+                    foreach ($targets as $target) {
+                        if (str_starts_with($val, trim($target))) {
+                            $pass = true; // Found a match!
+                            break;
+                        }
+                    }
+                    if ($pass) return true;
+                    // 2. NEGATED STARTS WITH
+                } else if (str_starts_with($rule, '!str_starts_with:')) {
+                    if (!is_string($val) || trim($val) === '') {
+                        continue;
+                    }
+                    [, $payload] = explode(':', $rule, 2);
+                    $targets = str_contains($payload, ',') ? explode(',', $payload) : [$payload];
+                    $pass = true; // Negated check starts as true (innocent until proven guilty)
+                    foreach ($targets as $target) {
+                        if (str_starts_with($val, trim($target))) {
+                            $pass = false; // It matched a banned prefix! Fail.
+                            break;
+                        }
+                    }
+                    if ($pass) return true;
+                    // 3. POSITIVE ENDS WITH
+                } else if (str_starts_with($rule, 'str_ends_with:')) {
+                    if (!is_string($val) || trim($val) === '') {
+                        continue;
+                    }
+                    [, $payload] = explode(':', $rule, 2);
+                    $targets = str_contains($payload, ',') ? explode(',', $payload) : [$payload];
+                    $pass = false;
+                    foreach ($targets as $target) {
+                        if (str_ends_with($val, trim($target))) {
+                            $pass = true;
+                            break;
+                        }
+                    }
+                    if ($pass) return true;
+                    // 4. NEGATED ENDS WITH
+                } else if (str_starts_with($rule, '!str_ends_with:')) {
+                    if (!is_string($val) || trim($val) === '') {
+                        continue;
+                    }
+                    [, $payload] = explode(':', $rule, 2);
+                    $targets = str_contains($payload, ',') ? explode(',', $payload) : [$payload];
+                    $pass = true;
+                    foreach ($targets as $target) {
+                        if (str_ends_with($val, trim($target))) {
+                            $pass = false;
+                            break;
+                        }
+                    }
+                    if ($pass) return true;
+                } else if ($rule === '') {
+                } else if ($rule === '') {
+                } else if ($rule === '') {
+                } else if ($rule === '') {
+                } else if ($rule === '') {
+                } else if ($rule === '') {
+                } else if ($rule === '') {
+                } else if ($rule === '') {
+                } else if ($rule === '') {
+                } elseif ($rule === 'array-list-strings-non-empty') {
+                    if (is_array($currentVal) && array_is_list($currentVal)) {
+                        $pass = true;
+                        foreach ($currentVal as $currentVal) {
+                            if (!is_string($currentVal) || trim($currentVal) === '') {
+                                $pass = false; // Internal element failed
+                                break;
+                            }
+                        }
+                        // If entire rule pass then it is true but otherwise
+                        // it just breaks this inner foreach loop while outer
+                        // one still continues as usual!
+                        if ($pass) return true;
+                    }
+                } elseif ($rule === 'array-associative-strings-non-empty') {
+                    if (is_array($currentVal) && !array_is_list($currentVal)) {
+                        $pass = true;
+                        foreach ($currentVal as $item) {
+                            if (!is_string($item) || trim($item) === '') {
+                                $pass = false;
+                                break;
+                            }
+                        }
+                        // If entire rule pass then it is true but otherwise
+                        // it just breaks this inner foreach loop while outer
+                        // one still continues as usual!
+                        if ($pass) return true;
+                    }
+                } elseif ($rule === 'array-strings-non-empty') {
+                    if (is_array($currentVal)) {
+                        $pass = true;
+                        foreach ($currentVal as $item) {
+                            if (!is_string($item) || trim($item) === '') {
+                                $pass = false;
+                                break;
+                            }
+                        }
+                        // If entire rule pass then it is true but otherwise
+                        // it just breaks this inner foreach loop while outer
+                        // one still continues as usual!
+                        if ($pass) return true;
+                    }
+                }
+                // ERR: Available String-based Validation NOT found here!
+                else {
+                    cli_err("[cli_assert_array_depth_and_final_value()]: The String-based Value of `assert` Key is NOT a Valid Validation! (fix or add it to the function). Received Rule#$ruleCount: `" . ((is_string($rule)) ? ($rule . '`') : '<Not A String>'));
+                }
+            }
+            // If the loop finished and no rule returned true, the entire assertion layer fails
+            return false;
+        }
+    }
+    // When 'final' => 'array_instructions_for_final_value'
+    else if (is_array($finalRule)) {
+    }
+    // When missing valid value type for 'final' Key! STRING or ARRAY it must be!
+    else {
+        cli_err("[cli_assert_array_depth_and_final_value()]: NOT ASSERTION FOUND?! The Value of `assert` Key is NOT a String or NOT an Array! (fix or add it to the function)");
+    }
+    // HERE IT IS FALSE BECAUSE NONE OF THE MATCHED (STRING|ARRAY RULES) RETURNED TRUE!)
+    return false;
+}
+
+function cli_assert_validation_build_warn_errs($arrOrSingleValue, &$warnsAndErrs, $severity, $errWarnMsg, $assertions)
+{
+
+    if (!is_array($warnsAndErrs) || !is_array($assertions) || array_key_last($assertions) !== 'assert') {
+        cli_err("[cli_assert_validation_build_warn_errs_n_stop_when_to()]: \$warnsAndErrs an Array passed by Reference to collect Warnings and Errors, and/or \$assertions Parameter must be an Array ending with a 'assert' Key!");
+    }
+    $validTypes = ['cli_err', 'cli_warning', 'cli_err_syntax', 'cli_info'];
+    if (!in_array($severity, $validTypes)) {
+        cli_err("[cli_assert_validation_build_warn_errs_n_stop_when_to()]: (\$severity) must be one of: `" . implode(', ', $validTypes) . "`!");
+    }
+    if (!is_string($errWarnMsg) || empty(trim($errWarnMsg))) {
+        cli_err("[cli_assert_validation_build_warn_errs_n_stop_when_to()]: \$errWarnMsg must be a `Non-Empty String`!");
+    }
+
+    // Assert Final Value for a Single Value within an optional depth that must then exist first
+    if (!cli_assert_optional_depth_and_value($arrOrSingleValue, $assertions)) {
+        $pathSegments = array_slice($assertions, 0, -1);
+        $prependedErrWarnMsg = !empty($pathSegments)
+            ? '[Array:`' . implode(' -> ', $pathSegments) . '`]: '
+            : '[Value]: ';
+        cli_build_warning_err_list($warnsAndErrs, $severity, $prependedErrWarnMsg . $errWarnMsg);
+    }
+}
+
 /* FunkRouter Compiler Relationed Functions! */
 // Function takes an array of routes (without method since they are divided by method when matching so)
 // and calculate their "Binary Specificity Score" based on how many "/:param" vs "/static" segments they
