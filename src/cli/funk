@@ -414,8 +414,8 @@ include_once FUNKPHP_FILE_PATH_CLI_CONFIG_EXTERNAL_CALLABLE_VALIDATORS;
 $reserved_functions = [];
 if (is_readable(FUNKPHP_FILE_PATH_CLI_RESERVED)) {
     $reserved_functions = include_once FUNKPHP_FILE_PATH_CLI_RESERVED;
-    if (!is_array($reserved_functions)) {
-        cli_info_without_exit("Reserved Functions List File `cli_reserved.php` INVALID TYPE! Attempting to generate a new valid one...");
+    if (!is_array($reserved_functions) || !array_is_list($reserved_functions)) {
+        cli_info_without_exit("Reserved Functions List File `cli_reserved.php` INVALID DATA TYPE! Attempting to generate a new valid one...");
         $reserved_functions = cli_update_reserved_functions_list_and_return_as_array();
         cli_success_without_exit("Reserved Functions List File `cli_reserved.php` Generated Successfully. Continuing...");
     }

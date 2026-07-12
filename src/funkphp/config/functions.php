@@ -19,7 +19,12 @@
 // when you run the Compilation Command `php funk build`!
 //
 // Besides all that above, you can name your function anything you want!
-function test()
+function testar(&$c)
 {
     // test
+}
+
+function funk_validate_testar(&$c)
+{
+    // Suoperb test!
 }

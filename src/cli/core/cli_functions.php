@@ -831,6 +831,7 @@ function cli_assert_optional_depth_and_value($val, $assertions): bool
     // unless it is a single value!
     if (count($assertions) > 0) {
         foreach ($assertions as $segment) {
+            echo "CURRENT Segment: " . $segment . "\n";
             if (!is_array($val) || !array_key_exists($segment, $val)) {
                 return false; // Path broke early or node isn't an array
             }
@@ -999,7 +1000,7 @@ function cli_assert_optional_depth_and_value($val, $assertions): bool
                     $targets = str_contains($payload, ',') ? explode(',', $payload) : [$payload];
                     $pass = false; // Positive check starts as false
                     foreach ($targets as $target) {
-                        if (str_starts_with($val, trim($target))) {
+                        if (str_starts_with(strtolower($val), trim(strtolower($target)))) {
                             $pass = true; // Found a match!
                             break;
                         }
@@ -1014,7 +1015,7 @@ function cli_assert_optional_depth_and_value($val, $assertions): bool
                     $targets = str_contains($payload, ',') ? explode(',', $payload) : [$payload];
                     $pass = true; // Negated check starts as true (innocent until proven guilty)
                     foreach ($targets as $target) {
-                        if (str_starts_with($val, trim($target))) {
+                        if (str_starts_with(strtolower($val), trim(strtolower($target)))) {
                             $pass = false; // It matched a banned prefix! Fail.
                             break;
                         }
@@ -1029,7 +1030,7 @@ function cli_assert_optional_depth_and_value($val, $assertions): bool
                     $targets = str_contains($payload, ',') ? explode(',', $payload) : [$payload];
                     $pass = false;
                     foreach ($targets as $target) {
-                        if (str_ends_with($val, trim($target))) {
+                        if (str_ends_with(strtolower($val), trim(strtolower($target)))) {
                             $pass = true;
                             break;
                         }
@@ -1044,7 +1045,7 @@ function cli_assert_optional_depth_and_value($val, $assertions): bool
                     $targets = str_contains($payload, ',') ? explode(',', $payload) : [$payload];
                     $pass = true;
                     foreach ($targets as $target) {
-                        if (str_ends_with($val, trim($target))) {
+                        if (str_ends_with(strtolower($val), trim(strtolower($target)))) {
                             $pass = false;
                             break;
                         }
@@ -1076,7 +1077,6 @@ function cli_assert_optional_depth_and_value($val, $assertions): bool
                     if (is_array($val) && !array_is_list($val)) {
                         $pass = true;
                         foreach ($val as $item) {
-                            // 🚀 Allow strings, integers, and floats, but block empty strings
                             if (!is_scalar($item) || (is_string($item) && trim($item) === '')) {
                                 $pass = false;
                                 break;
