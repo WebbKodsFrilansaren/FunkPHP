@@ -11271,7 +11271,6 @@ function cli_build_compiled_routes(array $developerSingleRoutes, $SingleRouteArr
         echo "[ERROR]: '\$developerSingleRoutes' Must be a Non-Empty Array!\n";
         exit;
     }
-
     // Prepare compiled route array to return and other variables
     $compiledTrie = [];
     $metadata = [
@@ -11338,7 +11337,6 @@ function cli_build_compiled_routes(array $developerSingleRoutes, $SingleRouteArr
             'dynamicRoutesCount' => 0
         ]
     ];
-
     $methods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
     $GETSingles = $developerSingleRoutes["GET"] ?? [];
     $GETConfig = $developerSingleRoutes["GET"]['<CONFIG_METHOD>'] ?? FUNKPHP_DEFAULT_METHOD_CONFIG_KEY_AND_ITS_KEYS;
@@ -11351,13 +11349,11 @@ function cli_build_compiled_routes(array $developerSingleRoutes, $SingleRouteArr
     $PATCHSingles = $developerSingleRoutes["PATCH"] ?? [];
     $PATCHConfig = $developerSingleRoutes["PATCH"]['<CONFIG_METHOD>'] ?? FUNKPHP_DEFAULT_METHOD_CONFIG_KEY_AND_ITS_KEYS;
 
-
+    // Global warning to show AFTER all is done!
     $warnsErrsAll = [];
-
-    // 🚀 STEP 1: Define a global parameter tracker before the closure
+    // STEP 1: Define a global parameter tracker before the closure
     // This carries states smoothly across GET, POST, PUT, DELETE, and PATCH executions
     $globalParamMap = [];
-
     // Using method below, iterate through each HttpMethod and then add it to the $compiledTrie array
     $addMethods = function ($singleRoutes, $method) use (&$globalParamMap) {
         // Begin with just getting the key names and no other nested values inside of them:
@@ -11365,7 +11361,6 @@ function cli_build_compiled_routes(array $developerSingleRoutes, $SingleRouteArr
         // and not the value inside of it. This is done by using array_keys() to get the keys of the array.
         $keys = array_keys($singleRoutes) ?? [];
         $compiledTrie = [];
-
         // Iterate through each key in the array and add it to the $compiledTrie array
         foreach ($keys as $key) {
             // Ignore empty keys or null values & handle special case for "/"
@@ -11379,34 +11374,27 @@ function cli_build_compiled_routes(array $developerSingleRoutes, $SingleRouteArr
                 $compiledTrie["/"] = [];
                 continue;
             }
-
             // Split the route into segments
             $splitRouteSegments = explode("/", trim($key, "/"));
-
             // Initialize the current node in the trie
             $currentNode = &$compiledTrie;
-
-            // 🚀 STEP 2: Initialize a tracking string for the structural shape of this route
+            // STEP 2: Initialize a tracking string for the structural shape of this route
             $structuralPath = '';
-
             // Iterate through each segment of the route
             foreach ($splitRouteSegments as $segment) {
                 // WHEN DYNAMIC PARAMETER ROUTE SEGMENT
                 if (str_starts_with($segment, ":")) {
-                    // 🚀 STEP 3: Append the generic placeholder identifier to our structural track
+                    // STEP 3: Append the generic placeholder identifier to our structural track
                     $paramName = substr($segment, 1); // REUSE '//$paramName = substr($segment, 1); if not working!
-
                     $structuralPath .= '/:PARAM';
-                    // 🚀 STEP 4: The Core Guard Engine
+                    // STEP 4: The Core Guard Engine
                     // If this structural path depth already has a recorded parameter name, and it's different... BUSTED!
                     if (isset($globalParamMap[$structuralPath]) && $globalParamMap[$structuralPath] !== $paramName) {
                         cli_err_without_exit("Route `$method{$key} has Naming Convention Conflict` with another `Method/Route!:/{$segment}`, must be:`/:{$globalParamMap[$structuralPath]}`");
                         exit;
                     }
-
                     // STEP 5: Save/Confirm the parameter name for this structural location globally
                     $globalParamMap[$structuralPath] = $paramName;
-
                     // Create when not exist
                     if (!isset($currentNode[':'])) {
                         $currentNode[':'] = [];
@@ -11420,7 +11408,7 @@ function cli_build_compiled_routes(array $developerSingleRoutes, $SingleRouteArr
                 }
                 // WHEN LITERAL ROUTE SEGMENT
                 else {
-                    // 🚀 STEP 5: Append the literal folder structure name to our track
+                    // STEP 5: Append the literal folder structure name to our track
                     $structuralPath .= '/' . $segment;
                     // Insert if not exist and/or move to next node
                     if (!isset($currentNode[$segment])) {
