@@ -1,5 +1,5 @@
 <?php
-// compiled_routes.php - FunkPHP | FunkCLI created/updated 2026-07-12 15:30:14
+// compiled_routes.php - FunkPHP | FunkCLI created/updated 2026-07-13 19:06:38
 
 /**
  * -----------------------------------------------------
@@ -21,9 +21,28 @@ return array(
     array(
       '/' =>
       array(),
+      ':' =>
+      array(
+        'users' =>
+        array(
+          'by_ida' =>
+          array(),
+        ),
+      ),
     ),
     'POST' =>
-    array(),
+    array(
+      ':' =>
+      array(
+        'users' =>
+        array(
+          'by_id' =>
+          array(),
+          'by_ida' =>
+          array(),
+        ),
+      ),
+    ),
     'PUT' =>
     array(),
     'DELETE' =>
@@ -35,33 +54,37 @@ return array(
   array(
     '<ALL>' =>
     array(
-      'totalAllRoutes' => 1,
+      'totalAllRoutes' => 4,
       'totalStaticRoutes' => 1,
-      'totalDynamicRoutes' => 0,
+      'totalDynamicRoutes' => 3,
       'minURICountAll' => 0,
-      'maxURICountAll' => 0,
+      'maxURICountAll' => 2,
     ),
     'GET' =>
     array(
       'allRoutes' =>
       array(
         '/' => 1,
+        '/:users/by_ida' => 1,
       ),
       'staticRoutes' =>
       array(
         '/' => 1,
       ),
       'dynamicRoutes' =>
-      array(),
+      array(
+        '/:users/by_ida' => 1,
+      ),
       'minURICount' => 0,
-      'maxURICount' => 0,
+      'maxURICount' => 2,
       'URICountExistsForNumber' =>
       array(
         0 => 1,
+        2 => 1,
       ),
-      'allRoutesCount' => 1,
+      'allRoutesCount' => 2,
       'staticRoutesCount' => 1,
-      'dynamicRoutesCount' => 0,
+      'dynamicRoutesCount' => 1,
     ),
     'PATCH' =>
     array(
@@ -82,18 +105,26 @@ return array(
     'POST' =>
     array(
       'allRoutes' =>
-      array(),
+      array(
+        '/:users/by_id' => 1,
+        '/:users/by_ida' => 1,
+      ),
       'staticRoutes' =>
       array(),
       'dynamicRoutes' =>
-      array(),
-      'minURICount' => 0,
-      'maxURICount' => 0,
+      array(
+        '/:users/by_id' => 1,
+        '/:users/by_ida' => 1,
+      ),
+      'minURICount' => 2,
+      'maxURICount' => 2,
       'URICountExistsForNumber' =>
-      array(),
-      'allRoutesCount' => 0,
+      array(
+        2 => 1,
+      ),
+      'allRoutesCount' => 2,
       'staticRoutesCount' => 0,
-      'dynamicRoutesCount' => 0,
+      'dynamicRoutesCount' => 2,
     ),
     'PUT' =>
     array(

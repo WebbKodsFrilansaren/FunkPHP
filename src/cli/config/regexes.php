@@ -16,10 +16,12 @@ return [
     'argRegex' => '/^(arg[0-9]+)$/',
 
     // `r:get/`, "r:get/users", "r:get/users/:id", "r:post/data", "r:delete/item/:item_id" etc
-    'methodRouteRegex' => '/^r:(([a-z]+\/)|([a-z]+(\/[:]?[a-zA-Z0-9_-]+)+))$/i',
+    // each segment CANNOT start OR end with "-", "_" and they cannot be consecutive or combined like:
+    // "r:get/all__users", "r:get/all-_users", "r:get/_all-users", "r:get/all-users_"
+    'methodRouteRegex' => '/^r:([a-z]+)(?!.*[-_]{2,})(?:\/|(?:\/[:]?[a-zA-Z0-9](?:[a-zA-Z0-9_-]*[a-zA-Z0-9])?)+)$/i',
 
     // `/`, "/users/", "/users/:id", "/users/:id/details" etc - used to validate route syntax in some commands
-    'routeRegex' => '/^((\/)?|(\/[:]?[a-z0-9_-]+)+)?$/',
+    'routeRegex' => '/^(?!.*[-_]{2,})(?:\/|(?:\/[:]?[a-zA-Z0-9](?:[a-zA-Z0-9_-]*[a-zA-Z0-9])?)+)$/',
     'routeSegment' => '/^(:)?[a-z_-]+$/',
     'methodSegment' => '/^(delete|patch|post|put|get|del|pa|po|pu|ge|g|d)\/$/i',
 

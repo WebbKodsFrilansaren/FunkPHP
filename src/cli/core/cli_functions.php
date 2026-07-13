@@ -11940,15 +11940,41 @@ function cli_delete_a_route()
 }
 
 // All-in-one function to Sort all keys in ROUTES, build Route file, recompile and output them!
+// it is first the 'pipeline_routes.php' AND THEN 'compiled_routes.php'
 function cli_sort_build_routes_compile_and_output($singleRoutesRootArray, $returnArrays = false)
 {
-    cli_info_without_exit("Validating, then building and finally outputting the Pipeline Routes in optimal format!");
     // Validate input
-    if (!is_array($singleRoutesRootArray) || empty($singleRoutesRootArray) || !isset($singleRoutesRootArray['ROUTES'])) {
-        cli_err_syntax("[cli_sort_build_routes_compile_and_output()]: The Routes Array must be a non-empty array starting with the ROUTES key!");
+    if (!is_array($singleRoutesRootArray) || empty($singleRoutesRootArray) || !isset($singleRoutesRootArray['ROUTES']) || count($singleRoutesRootArray) > 1) {
+        cli_warning_without_exit("[cli_sort_build_routes_compile_and_output()]: The Routes Array must be a 'Non-Empty Associative Array' starting with the 'ROUTES' Key! Rebuilding a new one due to this...");
+        global $singleRoutesRouteDefault;
+        $singleRoutesRootArray = $singleRoutesRouteDefault; // This rebuilds ['GET','POST'... all with needed '<CON]
     }
-    // Loop through each key below ROUTES and sort the keys
-    // and values in the array by the key name (route name)
+    // Reference array with collected warnings and warnings for methods
+    // and routes to validate now before even processing them!
+    $developerSingleRoutes = $singleRoutesRootArray['ROUTES'];
+    //cli_dump($developerSingleRoutes);
+    // FIRST: Remove disallowed keys and then validate all methods exist
+    $issueList = [];
+    $validMethods = [
+        'GET' => true,
+        'POST' => true,
+        'PUT' => true,
+        'DELETE' => true,
+        'PATCH' => true
+    ];
+    foreach ($developerSingleRoutes as $validMethodK => $_) {
+        if (!isset($validMethods[$validMethodK])) {
+            cli_warning_without_exit("[cli_sort_build_routes_compile_and_output()]: Removed `Invalid Key: $validMethodK` from `/src/funkphp/core/pipeline_routes.php`! (If this contained otherwise valid data, restore it using 'Git/Versioning' and 'rename' it to a `Valid Method Key`!");
+            unset($developerSingleRoutes[$validMethodK]);
+        }
+    }
+    foreach ($validMethods as $method => $_) {
+        if (!isset($developerSingleRoutes[$method])) {
+            cli_warning_without_exit("[cli_sort_build_routes_compile_and_output()]: Method Group '$method' (must be all UPPERCASED) is missing from `/src/funkphp/core/pipeline_routes.php` and must be an Associative Array with `<CONFIG_GLOBAL>` Single Key even if not used! Adding it back...");
+            $developerSingleRoutes[$method] = FUNKPHP_DEFAULT_METHOD_CONFIG_KEY_AND_ITS_KEYS;
+        }
+    }
+    // Now sort all route keys in each method in ascending/growing order
     foreach ($singleRoutesRootArray['ROUTES'] as $key => $value) {
         // Skip the <CONFIG_GLOBAL> key since it is not a
         // route and does not have route keys to sort
@@ -11957,67 +11983,77 @@ function cli_sort_build_routes_compile_and_output($singleRoutesRootArray, $retur
         }
         if (is_array($value)) {
             ksort($singleRoutesRootArray['ROUTES'][$key]);
+        } else {
+            cli_info("[cli_sort_build_routes_compile_and_output()]: A `Route in Method {$singleRoutesRootArray['ROUTES'][$key]}` is NOT an Associative Array when it should be! 'Any FunkCLI Command calling this Function' will now have 'STOPPED WITH FAILURE'");
         }
     }
-    // Reference array with collected warnings and warnings for methods
-    // and routes to validate now before even processing them!
-    $developerSingleRoutes = $singleRoutesRootArray['ROUTES'];
-    $issueList = [];
-    $validMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
-    // 1. Verify structural presence of HTTP Methods
-    foreach ($validMethods as $method) {
-        if (!isset($developerSingleRoutes[$method])) {
-            cli_build_warning_err_list($issueList, 'cli_warning', "Method Group '$method' (must be all uppercased) is missing from `pipeline_routes.php` and must be an Empty Array even if not used!");
-            continue;
-        }
-        if (!is_array($developerSingleRoutes[$method]) || array_is_list($developerSingleRoutes[$method])) {
-            cli_build_warning_err_list($issueList, 'cli_err', "Method Group '$method' must be an Associative Array and should be an Empty Array if not used!");
-            continue;
-        }
-        // 2. Check for Path Structure Collisions inside this specific method
-        $collisions = cli_routes_in_a_method_are_all_unique($developerSingleRoutes[$method]);
-        foreach ($collisions as $shape => $clashingRoutes) {
-            $routeList = implode(', ', $clashingRoutes);
-            cli_build_warning_err_list(
-                $issueList,
-                'cli_err_syntax',
-                "Ambiguous Route Collision found under shape '$shape'. The Routes [ $routeList ] conflict structurally!"
-            );
-        }
-        // 3. Check individual route string safety formatting
-        foreach ($developerSingleRoutes[$method] as $routeStr => $routeConfig) {
-            if ($routeStr === '<CONFIG_METHOD>') continue;
-            if (!cli_route_is_valid_string_VF($routeStr)) {
+
+    // All valid routes (that have no copnflicts)
+    $allValidRoutes = [];
+    foreach ($developerSingleRoutes as $method => $routes) {
+        $validRoutes = [];
+        $placeholderRoutes = [];
+        foreach ($routes as $currentRoute => $rVal) {
+            if ($currentRoute === '<CONFIG_METHOD>') {
+                continue;
+            }
+            // Skip Config Method as it is not a route key but applies to entire METHOD with Routes!
+            // 0. Type Guard: Must be a non-empty string
+            if (!is_string($currentRoute) || trim($currentRoute) === '') {
+                $configWarnsAndErrs['cli_err'][] = "'Route in /src/funkphp/core/pipeline_routes.php' must be a `Non-Empty String`. Received a Non-String Value!";
+                continue;
+            }
+            // 1. Normalize Case and Trailing Slashes safely
+            $normalizedRoute = strtolower(trim($currentRoute));
+            if ($normalizedRoute !== '/' && str_ends_with($normalizedRoute, '/')) {
+                $normalizedRoute = rtrim($normalizedRoute, '/');
+            }
+            // 2. DX Warning for inconsistent formatting
+            if ($normalizedRoute !== $currentRoute) {
+                cli_info_without_exit(
+                    "'Route $method$currentRoute in /src/funkphp/core/pipeline_routes.php' was 'normalized to $method$normalizedRoute' for internal consistency."
+                );
+            }
+            // 4. Regex Validation: Enforce clean URLs and name structures
+            // Allows alphanumeric, single dashes, single underscores, and colons for params
+            if (!preg_match('/^(?!.*[-_]{2,})(?:\/|(?:\/[:]?[a-zA-Z0-9](?:[a-zA-Z0-9_-]*[a-zA-Z0-9])?)+)$/', $normalizedRoute) && $normalizedRoute !== '/') {
                 cli_build_warning_err_list(
                     $issueList,
                     'cli_err_syntax',
-                    "Invalid Route Format or Duplicate Param naming in: [$method] -> '$routeStr'"
+                    "'Route `$method$normalizedRoute` in /src/funkphp/core/pipeline_routes.php' contains Invalid Characters or Malformed Segments. Each Segment "
                 );
+                continue;
             }
-            // We check that route has 'config', 'middlewares' and 'pipeline' keys and that they are arrays (if they exist)
-            // and the 'middlewares' & 'pipeline' arrays both should be empty arrays or numbered arrays but not associative!
-            // if (!isset($routeConfig['middlewares']) || !is_array($routeConfig['middlewares']) || !array_is_list($routeConfig['middlewares'])) {
-            //     cli_build_warning_err_list(
-            //         $issueList,
-            //         'cli_err_syntax',
-            //         "Invalid Route Config for: [$method] -> '$routeStr'. The 'middlewares' Key must exist as a Numbered Array, and at least empty. Each index points to a string which is the name of a Middleware Function File in the `funkphp/pipeline/middlewares/` Folder!"
-            //     );
-            // }
-            // if (!isset($routeConfig['pipeline']) || !is_array($routeConfig['pipeline']) || !array_is_list($routeConfig['pipeline'])) {
-            //     cli_build_warning_err_list(
-            //         $issueList,
-            //         'cli_err_syntax',
-            //         "Invalid Route Config for: [$method] -> '$routeStr'. The 'pipeline' Key must exist as a Numbered Array, and at least empty.  Each index points to a string which is the name of a Pipeline Function File in the `funkphp/pipeline/request/` Folder"
-            //     );
-            // }
-            // if (!isset($routeConfig['config']) || !is_array($routeConfig['config']) || empty($routeConfig['config']) || array_is_list($routeConfig['config'])) {
-            //     cli_build_warning_err_list(
-            //         $issueList,
-            //         'cli_err_syntax',
-            //         "Invalid Route Config for: [$method] -> '$routeStr'. The 'config' Key must exist as an Associative Array!"
-            //     );
-            // }
+            // 5. Convert to Structural Placeholder for Dynamic Conflict Testing
+            $currentPlaceholderRoute = $normalizedRoute;
+            if (str_contains($normalizedRoute, ':')) {
+                // Replace any variant of :name with uniform :PARAM
+                $currentPlaceholderRoute = preg_replace('/:([a-z0-9_-]+)/', ':PARAM', $normalizedRoute);
+            }
+            // 6. Conflict Detection: Exact Duplicate Match
+            if (isset($validRoutes[$normalizedRoute])) {
+                cli_build_warning_err_list(
+                    $issueList,
+                    'cli_err_syntax',
+                    "Duplicate Route Conflict! The 'Route `$method$normalizedRoute` in /src/funkphp/core/pipeline_routes.php' has already been registered."
+                );
+                continue;
+            }
+            // 7. Conflict Detection: Dynamic Structural Match (e.g., /users/:id vs /users/:name)
+            echo "$currentPlaceholderRoute \n";
+            if (isset($placeholderRoutes[$currentPlaceholderRoute])) {
+                cli_build_warning_err_list(
+                    $issueList,
+                    'cli_err_syntax',
+                    "Dynamic Routing Conflict! The 'Route `$method$normalizedRoute` in /src/funkphp/core/pipeline_routes.php' Conflicts with Established Naming Convention:`" . $method . $placeholderRoutes[$currentPlaceholderRoute] . "`. `IMPORTANT: The first Method/Route with each Dynamic Param on a given Segment Level becomes` the 'Established Naming Convention'!"
+                );
+                continue;
+            }
+            // 8. Clear to store!
+            $validRoutes[$normalizedRoute] = $rVal;
+            $placeholderRoutes[$currentPlaceholderRoute] = $normalizedRoute;
         }
+        $allValidRoutes[$method] = $validRoutes;
     }
     // If we accumulated any syntax or structural errors, halt execution and report all at once
     if (!empty($issueList)) {
@@ -12034,24 +12070,18 @@ function cli_sort_build_routes_compile_and_output($singleRoutesRootArray, $retur
             }
             $msgCount++;
         }
-        cli_info("[cli_sort_build_routes_compile_and_output()]: Please Review Warnings and/or Errors above in order to move on with the Router Compilation Step!");
-        exit();
-    } else {
-        cli_success_without_exit("[cli_sort_build_routes_compile_and_output()]: All Methods & Routes are Valid in this version of FunkPHP!");
-        cli_info_without_exit("[cli_sort_build_routes_compile_and_output()]: Proceeding to Rebuild Sorted Pipeline Routes...");
+        cli_info("[cli_sort_build_routes_compile_and_output()]: Please Review Warnings and/or Errors above! 'Any FunkCLI Command calling this Function' will now have 'STOPPED WITH FAILURE'");
     }
     // Then we rebuild/output and recompile Routes
-    $rebuild = cli_output_single_routes_route_file($singleRoutesRootArray);
-    if ($rebuild) {
-        cli_success_without_exit("[cli_sort_build_routes_compile_and_output()]: Rebuilt Pipeline Routes File \"" . FUNKPHP_FILE_PATH_ROUTES . "\"!");
-    } else {
-        cli_err("[cli_sort_build_routes_compile_and_output()]: FAILED to rebuild Pipeline Routes File \"" . FUNKPHP_FILE_PATH_ROUTES . "\". File permissions issues? Any FunkCLI Command calling this Function will now have STOPPED WITH FAILURE!");
+    $rebuild = ((cli_crud_folder_php_file_atomic_write((cli_get_prefix_code("route_singles_routes_start") . "\n" . cli_get_prefix_code("do_not_modify_warning_general") . "\n"
+        . var_export((['ROUTES' => $allValidRoutes]), true) . ";\n"), FUNKPHP_FILE_PATH_ROUTES)));
+    if (!$rebuild) {
+        cli_err("[cli_sort_build_routes_compile_and_output()]: FAILED to rebuild Pipeline Routes File \"" . FUNKPHP_FILE_PATH_ROUTES . "\". File permissions issues? 'Any FunkCLI Command calling this Functio'n will now have 'STOPPED WITH FAILURE'!");
     }
-    cli_info_without_exit("[cli_sort_build_routes_compile_and_output()]: Now Compiling and Outputting the Compiled Routes to \"" . FUNKPHP_FILE_PATH_TROUTES . "\"...");
-    $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRootArray['ROUTES']);
+    $compiledRouteRoutes = cli_build_compiled_routes($allValidRoutes);
     cli_output_compiled_routes($compiledRouteRoutes);
     if ($returnArrays) {
-        return [$compiledRouteRoutes, $singleRoutesRootArray];
+        return [$compiledRouteRoutes, 'ROUTES' => $allValidRoutes];
     }
 }
 
