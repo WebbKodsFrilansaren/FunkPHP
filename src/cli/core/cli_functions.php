@@ -11262,28 +11262,6 @@ function cli_match_developer_route(string $method, string $uri, array $compiledR
     ];
 }
 
-// Rebuilds the Single Routes Route file (funkphp/routes/route_single_routes.php) based on valid array
-function cli_output_single_routes_route_file($singleRouteRoutesFileArray): bool
-{
-    if (!is_array($singleRouteRoutesFileArray) || empty($singleRouteRoutesFileArray)) {
-        cli_err_syntax("[cli_output_single_routes_file] Single Route Routes File Array (funkphp/core/pipeline_routes.php) must be a non-empty array!");
-    }
-    if (!isset($singleRouteRoutesFileArray['ROUTES'])) {
-        cli_err_syntax("[cli_output_single_routes_file] Single Route Routes File Array (funkphp/core/pipeline_routes.php) must start with a 'ROUTES' key!");
-    }
-    // Check that dir exist, is writable and is a directory
-    if (!is_dir(FUNKPHP_ROUTES_DIR) || !is_writable(FUNKPHP_ROUTES_DIR)) {
-        cli_err("[cli_output_single_routes_file] Directory for `routes.php` (" . FUNKPHP_ROUTES_DIR . ") must be a Writable Directory. Check it exists and/or its File Permission!");
-    }
-    // Check that if file exists, it can be overwritten
-    if (file_exists(FUNKPHP_FILE_PATH_ROUTES) && !is_writable(FUNKPHP_FILE_PATH_ROUTES)) {
-        cli_err("[cli_output_single_routes_file] Routes file (funkphp/core/pipeline_routes.php) must be writable. It is not!");
-    }
-    // Use Atomic File Write to prevent corruption while outputting the newly compiled Routes file
-    return (cli_crud_folder_php_file_atomic_write((cli_get_prefix_code("route_singles_routes_start") . "\n" . cli_get_prefix_code("do_not_modify_warning_general") . "\n"
-        . var_export($singleRouteRoutesFileArray, true) . ";\n"), FUNKPHP_FILE_PATH_ROUTES));
-}
-
 // Build Compiled Route from Developer's Defined Routes
 function cli_build_compiled_routes(array $developerSingleRoutes, $SingleRouteArr = null)
 {
@@ -11373,8 +11351,15 @@ function cli_build_compiled_routes(array $developerSingleRoutes, $SingleRouteArr
     $PATCHSingles = $developerSingleRoutes["PATCH"] ?? [];
     $PATCHConfig = $developerSingleRoutes["PATCH"]['<CONFIG_METHOD>'] ?? FUNKPHP_DEFAULT_METHOD_CONFIG_KEY_AND_ITS_KEYS;
 
+
+    $warnsErrsAll = [];
+
+    // 🚀 STEP 1: Define a global parameter tracker before the closure
+    // This carries states smoothly across GET, POST, PUT, DELETE, and PATCH executions
+    $globalParamMap = [];
+
     // Using method below, iterate through each HttpMethod and then add it to the $compiledTrie array
-    $addMethods = function ($singleRoutes) {
+    $addMethods = function ($singleRoutes, $method) use (&$globalParamMap) {
         // Begin with just getting the key names and no other nested values inside of them:
         // For example:  '/users' => ['handler' => 'USERS_PAGE', /*...*/], only gets the '/users' key name
         // and not the value inside of it. This is done by using array_keys() to get the keys of the array.
@@ -11401,16 +11386,33 @@ function cli_build_compiled_routes(array $developerSingleRoutes, $SingleRouteArr
             // Initialize the current node in the trie
             $currentNode = &$compiledTrie;
 
+            // 🚀 STEP 2: Initialize a tracking string for the structural shape of this route
+            $structuralPath = '';
+
             // Iterate through each segment of the route
             foreach ($splitRouteSegments as $segment) {
                 // WHEN DYNAMIC PARAMETER ROUTE SEGMENT
                 if (str_starts_with($segment, ":")) {
+                    // 🚀 STEP 3: Append the generic placeholder identifier to our structural track
+                    $paramName = substr($segment, 1); // REUSE '//$paramName = substr($segment, 1); if not working!
+
+                    $structuralPath .= '/:PARAM';
+                    // 🚀 STEP 4: The Core Guard Engine
+                    // If this structural path depth already has a recorded parameter name, and it's different... BUSTED!
+                    if (isset($globalParamMap[$structuralPath]) && $globalParamMap[$structuralPath] !== $paramName) {
+                        cli_err_without_exit("Route `$method{$key} has Naming Convention Conflict` with another `Method/Route!:/{$segment}`, must be:`/:{$globalParamMap[$structuralPath]}`");
+                        exit;
+                    }
+
+                    // STEP 5: Save/Confirm the parameter name for this structural location globally
+                    $globalParamMap[$structuralPath] = $paramName;
+
                     // Create when not exist
                     if (!isset($currentNode[':'])) {
                         $currentNode[':'] = [];
                     }
                     // And update param as next nested key and/compile_or move to next node
-                    $paramName = substr($segment, 1);
+                    //$paramName = substr($segment, 1);
                     if (!isset($currentNode[':'][$paramName])) {
                         $currentNode[':'][$paramName] = [];
                     }
@@ -11418,6 +11420,8 @@ function cli_build_compiled_routes(array $developerSingleRoutes, $SingleRouteArr
                 }
                 // WHEN LITERAL ROUTE SEGMENT
                 else {
+                    // 🚀 STEP 5: Append the literal folder structure name to our track
+                    $structuralPath .= '/' . $segment;
                     // Insert if not exist and/or move to next node
                     if (!isset($currentNode[$segment])) {
                         $currentNode[$segment] = [];
@@ -11447,14 +11451,11 @@ function cli_build_compiled_routes(array $developerSingleRoutes, $SingleRouteArr
                 $compiledTrie["|"] = [];
                 continue;
             }
-
             // Now split key into segments and iterate through each segment
             $splitRouteSegments = explode("/", trim($key, "/"));
-
             // Now we just navigate to the last segment and add the middleware node "|".
             // We just check what it is and then just navigate,
             $currentNode = &$compiledTrie;
-
             // So we just check one of three things: is there a literal route to navigate to?
             // is there a dynamic route to navigate to? or is it a middleware node? WE JUST NAVIGATE TO IT
             // until we run out of segments, that means we have reached the node where we insert the middleware node "|".
@@ -11463,13 +11464,11 @@ function cli_build_compiled_routes(array $developerSingleRoutes, $SingleRouteArr
                 if (isset($currentNode['|']) && !empty($currentNode['|'])) {
                     $currentNode = &$currentNode['|'];
                 }
-
                 // LITERAL ROUTE SEGMENT
                 if (isset($currentNode[$segment])) {
                     $currentNode = &$currentNode[$segment];
                     continue;
                 }
-
                 // DYNAMIC ROUTE SEGMENT
                 elseif (str_starts_with($segment, ":")) {
                     $paramName = substr($segment, 1);
@@ -11477,7 +11476,6 @@ function cli_build_compiled_routes(array $developerSingleRoutes, $SingleRouteArr
                     continue;
                 }
             }
-
             // Now we are at the last segment, we just add the middleware node "|"
             // and then we add the middleware route to it.
             if (!isset($currentNode['|']) && isset($value['middlewares']) && !empty($value['middlewares'])) {
@@ -11487,11 +11485,11 @@ function cli_build_compiled_routes(array $developerSingleRoutes, $SingleRouteArr
     };
 
     // First add the single routes to the compiled trie
-    $compiledTrie['GET'] = $addMethods($GETSingles);
-    $compiledTrie['POST'] = $addMethods($POSTSingles);
-    $compiledTrie['PUT'] = $addMethods($PUTSingles);
-    $compiledTrie['DELETE'] = $addMethods($DELETESingles);
-    $compiledTrie['PATCH'] = $addMethods($PATCHSingles);
+    $compiledTrie['GET'] = $addMethods($GETSingles, "GET");
+    $compiledTrie['POST'] = $addMethods($POSTSingles, "POST");
+    $compiledTrie['PUT'] = $addMethods($PUTSingles, "PUT");
+    $compiledTrie['DELETE'] = $addMethods($DELETESingles, "DELETE");
+    $compiledTrie['PATCH'] = $addMethods($PATCHSingles, "PATCH");
 
     // Then add the middlewares to the compiled trie and return it
     $addMiddlewareRoutes($developerSingleRoutes["GET"] ?? [], $compiledTrie['GET']);
@@ -11838,103 +11836,6 @@ function cli_restore_default_folders_and_files()
                 echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
                 continue;
             }
-        }
-    }
-}
-
-// Delete a Single Route from the Route file (funkphp/routes/route_single_routes.php)
-// and delete its associated Handler Function (and Handler File if last function)
-// It does NOT delete validation files, or page files unless specifically specified!
-function cli_delete_a_route()
-{
-    // Load globals and validate input
-    global
-        $argv,
-        $singleRoutesRoute;
-    if (!isset($argv[3]) || !is_string($argv[3]) || empty($argv[3])) {
-        cli_err_syntax_without_exit("Provide a valid Route to delete from the Route file!\nExample: \"php funkcli delete [route|r] [method/route_name]\"");
-        cli_info("IMPORTANT: Its associated Handler Function (and Handler File if last function) will be deleted as well!\n");
-    }
-    // argv[4] is optional and can be used to delete the validation handler
-    $deleteValidationHandler = false;
-    if (isset($argv[4]) && is_string($argv[4]) && strtolower($argv[4]) === "with_validation") {
-        $deleteValidationHandler = true;
-    }
-
-    // Prepare the route string by trimming, validating starting, ending and middle parts of it
-    $deleteRoute = trim(strtolower($argv[3]));
-    $oldRoute = $deleteRoute;
-    [$method, $validRoute] = "";
-    cli_info_without_exit("ROUTE: " . "\"$oldRoute\"" . " parsed as: \"$validRoute\"");
-
-    // Check that provided route exists
-    if (!isset($singleRoutesRoute['ROUTES'][$method][$validRoute])) {
-        cli_err("Route: \"$method$validRoute\" does not exist. Another HTTP Method or was it deleted already?");
-    }
-
-    // TODO: Fix later when cli_backup_batch is also fixed!
-    // HERE we found the route so we can delete it
-    // First backup all associated route files if settings allow it
-    // cli_backup_batch(
-    //     [
-    //         "troutes",
-    //         "routes",
-    //     ]
-    // );
-    // Grab handlers for 'handler' and 'data' from the route array
-    $middlewares = $singleRoutesRoute['ROUTES'][$method][$validRoute]['middlewares'] ?? null;
-    $handler = $singleRoutesRoute['ROUTES'][$method][$validRoute]['handler'] ?? null;
-    $datahandler = $singleRoutesRoute['ROUTES'][$method][$validRoute]['data'] ?? null;
-    $validationHandler = $singleRoutesRoute['ROUTES'][$method][$validRoute]['validation'] ?? null;
-
-    // Then we unset() each matched route
-    unset($singleRoutesRoute['ROUTES'][$method][$validRoute]);
-    cli_success_without_exit("Deleted Route \"$method$validRoute\" from Routes File!");
-
-    // Then we rebuild and recompile Routes
-    cli_output_single_routes_route_file($singleRoutesRoute);
-    $compiledRouteRoutes = cli_build_compiled_routes($singleRoutesRoute['ROUTES'], $singleRoutesRoute['ROUTES']);
-    cli_output_compiled_routes($compiledRouteRoutes);
-
-    // Send the handler variable to delete it (this will
-    // also delete file if it's the last function in it!)
-    // But we only call them if they are not null or empty strings
-    if ($handler !== null && !empty($handler)) {
-        //delete_handler_file_with_fn_or_just_fn_or_err_out("r", $handler);
-    }
-    if ($datahandler !== null && !empty($datahandler)) {
-        // We check if the data handler exists before deleting it
-        //delete_handler_file_with_fn_or_just_fn_or_err_out("d", $datahandler);
-    }
-    // Only delete the validation handler if it is not null or empty string
-    // and if the user provided the "with_validation" argument
-    if ($validationHandler !== null && !empty($validationHandler)) {
-        if ($deleteValidationHandler) {
-            // We check if the validation handler exists before deleting it
-            //delete_handler_file_with_fn_or_just_fn_or_err_out("v", $validationHandler);
-        } else {
-            if (is_string($validationHandler)) {
-                cli_info_without_exit("Validation Handler \"$validationHandler\" for \"$method$validRoute\" was NOT deleted since \"with_validation\" argument was not provided!");
-            } elseif (is_array($validationHandler) && array_is_list($validationHandler)) {
-                cli_info_without_exit("Validation Handler \"$validationHandler[0]\" for \"$method$validRoute\" was NOT deleted since \"with_validation\" argument was not provided!");
-            } elseif (is_array($validationHandler)) {
-                cli_info_without_exit("Validation Handler \"{$validationHandler[key($validationHandler)]}\" for \"$method$validRoute\" was NOT deleted since \"with_validation\" argument was not provided!");
-            } else {
-                cli_info_without_exit("Validation Handler for \"$method$validRoute\" was NOT deleted since \"with_validation\" argument was not provided!");
-            }
-        }
-    }
-
-    // If "middlewares" is not null and not empty string/array
-    // then we list the middlewares and inform that the middlewwares
-    // where deleted from route but not as files!
-    if ($middlewares !== null && !empty($middlewares)) {
-        if (is_string($middlewares)) {
-            cli_info_without_exit("\"$method$validRoute\" used the following middleware: \"$middlewares\" from \"funkphp/middlewares/\"!");
-        } elseif (is_array($middlewares) && array_is_list($middlewares)) {
-            // Join all as a string with ", " separator
-            $middlewares = implode(", ", $middlewares);
-            cli_info_without_exit("\"$method$validRoute\" used the following middleware(s): \"$middlewares\" from \"funkphp/middlewares/\"!");
         }
     }
 }
