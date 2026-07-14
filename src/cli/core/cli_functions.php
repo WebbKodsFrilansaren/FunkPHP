@@ -1444,7 +1444,7 @@ function cli_assert_array_keys_path(
 ): array {
     // 1. Run your core structural validator
     if (!is_array($startingArray)) {
-        cli_err("[cli_assert_array_keys_path()]: The provided &\$startingArray parameter must be an Array.");
+        cli_err("[cli_assert_array_keys_path()]: The provided &\$startingArray parameter must be an Array. Function assumes a starting Array, empty or not. Please use `cli_assert_optional_depth_and_value()` to assert even unknown starting points!");
     }
     if (!is_string($filePath) || empty(trim($filePath))) {
         cli_err("[cli_assert_array_keys_path()]: The provided \$filePath parameter must be a Non-Empty String representing the File Path whose array keys are being checked!");
@@ -11315,8 +11315,8 @@ function cli_sort_build_routes_compile_and_output($singleRoutesRootArray, $retur
         $validRoutes = [];
         $placeholderRoutes = [];
         if (!isset($developerSingleRoutes[$method]['<CONFIG_METHOD>'])) {
-            cli_info_without_exit("Default '<CONFIG_METHOD>' Key missing for '$method' (`/src/funkphp/core/pipeline_routes.php`) and must be an Associative Array with `<CONFIG_GLOBAL>` Single Key even if not used! Adding it back...");
-            $validRoutes['<CONFIG_METHOD>'] = FUNKPHP_DEFAULT_METHOD_CONFIG_KEY_AND_ITS_KEYS;
+            cli_info_without_exit("Default '<CONFIG_METHOD>' Key missing for '$method' (`/src/funkphp/core/pipeline_routes.php`) and must be an Associative Array even if not used! Adding it back...");
+            $validRoutes = FUNKPHP_DEFAULT_METHOD_CONFIG_KEY_AND_ITS_KEYS;
         } else {
             $validRoutes['<CONFIG_METHOD>'] = $developerSingleRoutes[$method]['<CONFIG_METHOD>'];
         }
@@ -11525,8 +11525,8 @@ function cli_build_compiled_routes(array $developerSingleRoutes, $SingleRouteArr
         // Begin with just getting the key names and no other nested values inside of them:
         // For example:  '/users' => ['handler' => 'USERS_PAGE', /*...*/], only gets the '/users' key name
         // and not the value inside of it. This is done by using array_keys() to get the keys of the array.
-        $keys = array_keys($singleRoutes) ?? [];
         $compiledTrie = [];
+        $keys = array_keys($singleRoutes) ?? [];
         // Iterate through each key in the array and add it to the $compiledTrie array
         foreach ($keys as $key) {
             // Ignore empty keys or null values & handle special case for "/"
@@ -11613,7 +11613,7 @@ function cli_build_compiled_routes(array $developerSingleRoutes, $SingleRouteArr
                     $structuralPath .= '/' . $segment;
                     // Insert if not exist and/or move to next node
                     if (!isset($currentNode[$segment])) {
-                        $currentNode[$segment] = [];
+                        $currentNode[strval($segment)] = [];
                     }
                     $currentNode = &$currentNode[$segment];
                 }

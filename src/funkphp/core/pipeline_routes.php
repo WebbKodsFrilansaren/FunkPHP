@@ -1,4 +1,4 @@
-<?php // pipeline_routes.php - FunkPHP | FunkCLI Modified it 2026-07-14 00:20:59
+<?php // pipeline_routes.php - FunkPHP | FunkCLI Modified it 2026-07-14 00:43:19
 return
   /**
    * -----------------------------------------------------
@@ -25,7 +25,9 @@ return
             'add' =>
             array(),
             'remove' =>
-            array(),
+            array(
+              'a' => 'a',
+            ),
           ),
           'method_csp' =>
           array(
@@ -81,6 +83,140 @@ return
             'text' => NULL,
             'callback' => NULL,
           ),
+        ),
+        '/' =>
+        array(
+          'config' =>
+          array(
+            'route_alias' => '',
+            'route_param_rules' =>
+            array(),
+            'route_headers' =>
+            array(
+              'add' =>
+              array(),
+              'remove' =>
+              array(),
+            ),
+            'route_rate_limiting' => NULL,
+            'route_cache' => NULL,
+            'route_csp' =>
+            array(
+              'connect-src' =>
+              array(
+                0 => '\'self\'',
+              ),
+              'font-src' =>
+              array(
+                0 => '\'self\'',
+              ),
+              'frame-src' =>
+              array(
+                0 => '\'self\'',
+              ),
+              'base-uri' =>
+              array(
+                0 => '\'self\'',
+              ),
+              'form-action' =>
+              array(
+                0 => '\'self\'',
+              ),
+              'object-src' =>
+              array(
+                0 => '\'none\'',
+              ),
+              'default-src' =>
+              array(
+                0 => '\'none\'',
+              ),
+              'script-src' =>
+              array(
+                0 => '\'self\'',
+              ),
+              'style-src' =>
+              array(
+                0 => '\'self\'',
+              ),
+              'img-src' =>
+              array(
+                0 => '\'self\'',
+              ),
+            ),
+          ),
+          'middlewares' =>
+          array(),
+          'exclude_middlewares' =>
+          array(),
+          'pipeline' =>
+          array(),
+        ),
+        '/et' =>
+        array(
+          'config' =>
+          array(
+            'route_alias' => '',
+            'route_param_rules' =>
+            array(),
+            'route_headers' =>
+            array(
+              'add' =>
+              array(),
+              'remove' =>
+              array(),
+            ),
+            'route_rate_limiting' => NULL,
+            'route_cache' => NULL,
+            'route_csp' =>
+            array(
+              'connect-src' =>
+              array(
+                0 => '\'self\'',
+              ),
+              'font-src' =>
+              array(
+                0 => '\'self\'',
+              ),
+              'frame-src' =>
+              array(
+                0 => '\'self\'',
+              ),
+              'base-uri' =>
+              array(
+                0 => '\'self\'',
+              ),
+              'form-action' =>
+              array(
+                0 => '\'self\'',
+              ),
+              'object-src' =>
+              array(
+                0 => '\'none\'',
+              ),
+              'default-src' =>
+              array(
+                0 => '\'none\'',
+              ),
+              'script-src' =>
+              array(
+                0 => '\'self\'',
+              ),
+              'style-src' =>
+              array(
+                0 => '\'self\'',
+              ),
+              'img-src' =>
+              array(
+                0 => '\'self\'',
+              ),
+            ),
+          ),
+          'middlewares' =>
+          array(),
+          'exclude_middlewares' =>
+          array(),
+          'pipeline' =>
+          array(),
         ),
         '/test' =>
         array(
@@ -147,9 +283,208 @@ return
           'exclude_middlewares' =>
           array(),
           'pipeline' =>
+          array(),
+        ),
+        '/test/2' =>
+        array(
+          'config' =>
           array(
-            'test' => 'test',
+            'route_alias' => '',
+            'route_param_rules' =>
+            array(),
+            'route_headers' =>
+            array(
+              'add' =>
+              array(),
+              'remove' =>
+              array(),
+            ),
+            'route_rate_limiting' => NULL,
+            'route_cache' => NULL,
+            'route_csp' =>
+            array(
+              'connect-src' =>
+              array(
+                0 => '\'self\'',
+              ),
+              'font-src' =>
+              array(
+                0 => '\'self\'',
+              ),
+              'frame-src' =>
+              array(
+                0 => '\'self\'',
+              ),
+              'base-uri' =>
+              array(
+                0 => '\'self\'',
+              ),
+              'form-action' =>
+              array(
+                0 => '\'self\'',
+              ),
+              'object-src' =>
+              array(
+                0 => '\'none\'',
+              ),
+              'default-src' =>
+              array(
+                0 => '\'none\'',
+              ),
+              'script-src' =>
+              array(
+                0 => '\'self\'',
+              ),
+              'style-src' =>
+              array(
+                0 => '\'self\'',
+              ),
+              'img-src' =>
+              array(
+                0 => '\'self\'',
+              ),
+            ),
           ),
+          'middlewares' =>
+          array(),
+          'exclude_middlewares' =>
+          array(),
+          'pipeline' =>
+          array("test" => "test"),
+        ),
+        '/test/3' =>
+        array(
+          'config' =>
+          array(
+            'route_alias' => '',
+            'route_param_rules' =>
+            array(),
+            'route_headers' =>
+            array(
+              'add' =>
+              array(),
+              'remove' =>
+              array(),
+            ),
+            'route_rate_limiting' => NULL,
+            'route_cache' => NULL,
+            'route_csp' =>
+            array(
+              'connect-src' =>
+              array(
+                0 => '\'self\'',
+              ),
+              'font-src' =>
+              array(
+                0 => '\'self\'',
+              ),
+              'frame-src' =>
+              array(
+                0 => '\'self\'',
+              ),
+              'base-uri' =>
+              array(
+                0 => '\'self\'',
+              ),
+              'form-action' =>
+              array(
+                0 => '\'self\'',
+              ),
+              'object-src' =>
+              array(
+                0 => '\'none\'',
+              ),
+              'default-src' =>
+              array(
+                0 => '\'none\'',
+              ),
+              'script-src' =>
+              array(
+                0 => '\'self\'',
+              ),
+              'style-src' =>
+              array(
+                0 => '\'self\'',
+              ),
+              'img-src' =>
+              array(
+                0 => '\'self\'',
+              ),
+            ),
+          ),
+          'middlewares' =>
+          array(),
+          'exclude_middlewares' =>
+          array(),
+          'pipeline' =>
+          array(),
+        ),
+        '/test/testar2/jobb' =>
+        array(
+          'config' =>
+          array(
+            'route_alias' => '',
+            'route_param_rules' =>
+            array(),
+            'route_headers' =>
+            array(
+              'add' =>
+              array(),
+              'remove' =>
+              array(),
+            ),
+            'route_rate_limiting' => NULL,
+            'route_cache' => NULL,
+            'route_csp' =>
+            array(
+              'connect-src' =>
+              array(
+                0 => '\'self\'',
+              ),
+              'font-src' =>
+              array(
+                0 => '\'self\'',
+              ),
+              'frame-src' =>
+              array(
+                0 => '\'self\'',
+              ),
+              'base-uri' =>
+              array(
+                0 => '\'self\'',
+              ),
+              'form-action' =>
+              array(
+                0 => '\'self\'',
+              ),
+              'object-src' =>
+              array(
+                0 => '\'none\'',
+              ),
+              'default-src' =>
+              array(
+                0 => '\'none\'',
+              ),
+              'script-src' =>
+              array(
+                0 => '\'self\'',
+              ),
+              'style-src' =>
+              array(
+                0 => '\'self\'',
+              ),
+              'img-src' =>
+              array(
+                0 => '\'self\'',
+              ),
+            ),
+          ),
+          'middlewares' =>
+          array(),
+          'exclude_middlewares' =>
+          array(),
+          'pipeline' =>
+          array(),
         ),
       ),
       'POST' =>

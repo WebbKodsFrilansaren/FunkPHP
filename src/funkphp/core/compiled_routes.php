@@ -1,5 +1,5 @@
 <?php
-// compiled_routes.php - FunkPHP | FunkCLI created/updated 2026-07-14 00:20:59
+// compiled_routes.php - FunkPHP | FunkCLI created/updated 2026-07-14 00:43:19
 
 /**
  * -----------------------------------------------------
@@ -19,8 +19,22 @@ return array(
   array(
     'GET' =>
     array(
-      'test' =>
+      '/' =>
       array(),
+      'et' =>
+      array(),
+      'test' =>
+      array(
+        2 =>
+        array(),
+        3 =>
+        array(),
+        'testar2' =>
+        array(
+          'jobb' =>
+          array(),
+        ),
+      ),
     ),
     'POST' =>
     array(),
@@ -35,32 +49,45 @@ return array(
   array(
     '<ALL>' =>
     array(
-      'totalAllRoutes' => 1,
-      'totalStaticRoutes' => 1,
+      'totalAllRoutes' => 6,
+      'totalStaticRoutes' => 6,
       'totalDynamicRoutes' => 0,
-      'minURICountAll' => 1,
-      'maxURICountAll' => 1,
+      'minURICountAll' => 0,
+      'maxURICountAll' => 3,
     ),
     'GET' =>
     array(
       'allRoutes' =>
       array(
+        '/' => 1,
+        '/et' => 1,
         '/test' => 1,
+        '/test/2' => 1,
+        '/test/3' => 1,
+        '/test/testar2/jobb' => 1,
       ),
       'staticRoutes' =>
       array(
+        '/' => 1,
+        '/et' => 1,
         '/test' => 1,
+        '/test/2' => 1,
+        '/test/3' => 1,
+        '/test/testar2/jobb' => 1,
       ),
       'dynamicRoutes' =>
       array(),
-      'minURICount' => 1,
-      'maxURICount' => 1,
+      'minURICount' => 0,
+      'maxURICount' => 3,
       'URICountExistsForNumber' =>
       array(
+        0 => 1,
         1 => 1,
+        2 => 1,
+        3 => 1,
       ),
-      'allRoutesCount' => 1,
-      'staticRoutesCount' => 1,
+      'allRoutesCount' => 6,
+      'staticRoutesCount' => 6,
       'dynamicRoutesCount' => 0,
     ),
     'PATCH' =>
