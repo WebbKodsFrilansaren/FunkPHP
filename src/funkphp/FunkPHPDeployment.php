@@ -1,4 +1,4 @@
-<?php // FunkPHPDeployment.php | Created: 2026-07-12 15:30:14 | PHP Version: 8.3.6 | FunkPHP Version: 1.0.0 | FunkCLI Version: 1.0.0
+<?php // FunkPHPDeployment.php | Created: 2026-07-14 00:20:59 | PHP Version: 8.3.6 | FunkPHP Version: 1.0.0 | FunkCLI Version: 1.0.0
 
 namespace {
     define('FUNKPHP_PAGES_DIR', __DIR__ . '/pages');

@@ -1711,6 +1711,7 @@ Paths to consider checking:
 // the <CONFIG_METHOD> for each METHOD first and valid keys=>values!
 // METHODS verified in this order: GET,POST,PUT,DELETE,PATCH
 $METHODNamesArray = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
+
 foreach ($METHODNamesArray as $MethodName) {
     $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", $MethodName, "<CONFIG_METHOD>", "method_headers"], $routesWarnsAndErrs, "cli_err");
     $routesMethodsErrChecks[] = cli_assert_array_keys_path($RUTTER, FUNKPHP_FILE_PATH_ROUTES, ["ROUTES", $MethodName, "<CONFIG_METHOD>", "method_headers", "add"], $routesWarnsAndErrs, "cli_err");
