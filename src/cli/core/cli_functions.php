@@ -12436,6 +12436,18 @@ function cli_str_starts_or_ends_not_with($str, $start, $end)
     return false;
 }
 
+function cli_array_str_starts_with($array, $str){
+foreach ($array as $element) {
+        if (str_starts_with($str, $element)) {
+            return true;
+        }
+        if (str_starts_with($element, $str)) {
+            return true;
+        }
+    }
+return false;
+}
+
 // Function that uses an array to replace all stringified ternary operators
 // in a given string with their evaluated values. Or it can be used for any
 // var_exported data that needs to replace data that would instead be evaluated.
