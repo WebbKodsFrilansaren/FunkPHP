@@ -12495,7 +12495,7 @@ function cli_page_replace_js_directive($string)
 // of an image inside of {{img('filename.extension','embed')}}
 // IF the 'embed' is used and then it replaces it with the image
 // as pure binary data for those who wanna do it like that!
-function cli_page_replace_img_with_base64($ImgPath)
+function cli_page_replace_img_with_base64($imgPath)
 {
     // Inside your template engine image matcher closure:
     $imgData = base64_encode(file_get_contents($imgPath));
