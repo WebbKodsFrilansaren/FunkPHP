@@ -1,5 +1,5 @@
 <?php
-// compiled_routes.php - FunkPHP | FunkCLI created/updated 2026-07-14 00:45:59
+// compiled_routes.php - FunkPHP | FunkCLI created/updated 2026-07-15 18:23:50
     /**
     * -----------------------------------------------------
     * FUNKPHP AUTOMATICALLY GENERATED/CREATED COMPILED FILE

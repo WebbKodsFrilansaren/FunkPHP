@@ -378,12 +378,12 @@ define("NO_ARGS_CLI", ($CLI === true && count($args) === 0));
 if (JSON_MODE) {
     if (!isset($_SERVER['REMOTE_ADDR']) || !in_array($_SERVER['REMOTE_ADDR'], $settings['ALLOWED_IPS'])) {
         http_response_code(403);
-        echo json_encode(['error' => 'FunkCLI will ONLY accept using: ' . implode(', ', $settings['ALLOWED_IPS']) . ' as value for the `REMOTE_ADDR` Server Variable!' . 'Your current `REMOTE_ADDR/IP` is: ' . ($_SERVER['REMOTE_ADDR'] ?? 'NOT SET OR UNKNOWN')]);
+        cli_err('FunkCLI will ONLY accept using: ' . implode(', ', $settings['ALLOWED_IPS']) . ' as value for the `REMOTE_ADDR` Server Variable!' . 'Your current `REMOTE_ADDR/IP` is: ' . ($_SERVER['REMOTE_ADDR'] ?? 'NOT SET OR UNKNOWN'));
         exit;
     }
     if (!isset($_SERVER['HTTP_ACCEPT']) || $_SERVER['HTTP_ACCEPT'] !== 'application/json') {
         http_response_code(406);
-        echo json_encode(['error' => 'FunkCLI will ONLY accept `application/json` as value for the `Accept` Header!']);
+        cli_err('FunkCLI will ONLY accept `application/json` as value for the `Accept` Header!');
         exit;
     }
 }

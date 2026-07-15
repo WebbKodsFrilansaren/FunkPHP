@@ -66,7 +66,7 @@ function cli_dump($var, $exit = true, $horisontal = false)
         'arrays-lists' => 0,
         'arrays-assocs' => 0,
         'objects' => 0,
-        'others' => 0,
+        'others' => [],
     ];
     // Output Header banner block
     echo "\n{$cHeader}[FunkCLI - DUMP]:{$cReset}\n";
@@ -1063,8 +1063,8 @@ function cli_assert_optional_depth_and_value($val, $assertions): bool
                 } elseif ($rule === 'array-list-strings-non-empty') {
                     if (is_array($val) && array_is_list($val)) {
                         $pass = true;
-                        foreach ($val as $val) {
-                            if (!is_string($val) || trim($val) === '') {
+                        foreach ($val as $item) {
+                            if (!is_string($item) || trim($item) === '') {
                                 $pass = false; // Internal element failed
                                 break;
                             }
@@ -1416,7 +1416,7 @@ function cli_compile_hydration_node(array $node, string $parentPath = '$results[
 
         // Recursively compile deeper nesting if relations go further down!
         if (!empty($childNode['with'])) {
-            $code .= compile_hydration_node($childNode, "{$parentPath}['{$relationName}'][\$cKey]");
+            $code .= cli_compile_hydration_node($childNode, "{$parentPath}['{$relationName}'][\$cKey]");
         }
 
         $code .= "}\n";
@@ -1432,7 +1432,7 @@ function cli_compile_hydration_node(array $node, string $parentPath = '$results[
  * @param array $warnsAndErrs The accumulator array passed by reference.
  * @param string $severity The logging function to use ('cli_err' or 'cli_warn').
  * @param string|null $customMsg Optional override message.
- * @return bool True if it exists, false otherwise.
+ * @return array
  */
 function cli_assert_array_keys_path(
     array &$startingArray,
@@ -1868,7 +1868,7 @@ function cli_assert_final_value(
                     return false;
                 }
             } else {
-                cli_err("[cli_assert_final_value()]: Helper Function `\$allValuesAreSameType` need `objects`, `nulls`,`strings`,`numbers`,`integers`,`floats` OR `booleans` to validate that provided array is all of that type! (no trim used). Check if you forgot `s` at the end. Provided: " . (is_string()));
+                cli_err("[cli_assert_final_value()]: Helper Function `\$allValuesAreSameType` need `objects`, `nulls`,`strings`,`numbers`,`integers`,`floats` OR `booleans` to validate that provided array is all of that type! (no trim used). Check if you forgot `s` at the end. Provided: " . (is_string($allValuesAreSameType) ? $allValuesAreSameType : "Not a String Value"));
             }
         }
         return true;
@@ -4092,7 +4092,7 @@ function cli_inherited_middleware_exist(&$ROUTES, $method, $startPath, $mw)
             && !empty($ROUTES[$method][$currentPath]['middlewares'])
         ) {
             if (in_array($mw, $ROUTES[$method][$currentPath]['middlewares'], true)) {
-                $inheritedMiddlewaresFound['found'] = true;
+                $inheritedMiddlewaresFound = true;
                 break; // Found it up the chain, stop looping!
             }
         }
@@ -5537,7 +5537,7 @@ function cli_output_tables_file($array)
     if (!cli_is_array_and_not_empty($array)) {
         cli_err_syntax("The provided Array must be a Non-Empty Array!");
     }
-    if (!filecli__exists_is_readable_writable(FUNKPHP_FILE_PATH_TABLES)) {
+    if (!is_readable(FUNKPHP_FILE_PATH_TABLES) || !is_writable(FUNKPHP_FILE_PATH_TABLES)) {
         cli_err_syntax("The `" . FUNKPHP_FILE_PATH_TABLES . "` File must exist and be writable!");
     }
     // Check for the keys "tables" and "relationships" in the array at the root level
@@ -11975,7 +11975,7 @@ function cli_restore_default_folders_and_files()
             // Recreate default files based on type ("troute", "middleware routes" or "single routes")
             if (str_contains($file, "functions.php")) {
                 file_put_contents($file, "<?php\n// src/funkphp/config/functions.php - FunkPHP | FunkCLI recreated it $date\n\n" . cli_get_prefix_code("doModifyThisFile") . "\n");
-                echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
+                cli_success_without_exit("Recreated file: $file");
                 continue;
             } // Only recreated if /src/funkphp/config/conns.php does
             // not exist since this is the template for that file!
@@ -11984,47 +11984,47 @@ function cli_restore_default_folders_and_files()
                     continue;
                 }
                 file_put_contents($file, "<?php\n// README_IN_IDE.php - FunkPHP | FunkCLI recreated it $date\n" . cli_get_prefix_code("connsDefaultStartText") . "\nreturn " . var_export($connsDefault, true) . ";\n");
-                echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
+                cli_success_without_exit("Recreated file: $file");
                 continue;
             } else if (str_contains($file, "c.php")) {
                 file_put_contents($file, "<?php\n// c.php - FunkPHP | FunkCLI recreated it $date\n" . cli_get_prefix_code("do_not_modify_warning") . "\nrequire_once __DIR__ . '/CONSTANTS.php';\n// GLOBAL CONFIGURATIONS in \"\$c\" variable in \"funkphp/funkphp_start.php\"\n// Configure as needed using FunkCLI and/or FunkGUI!\n\nreturn " . cli_replace_string_tokens_in_var_exported_string($cReplacements, var_export($cDefault, true)) . ";\n");
-                echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
+                cli_success_without_exit("Recreated file: $file");
                 continue;
             } else if (str_contains($file, "CONSTANTS.php")) {
                 file_put_contents($file, "<?php\n// CONSTANTS.php - FunkPHP | FunkCLI recreated it $date\n" . cli_get_prefix_code("do_not_modify_warning") . "\n" . join(";\n", $CONSTANTSDefault) . ";\n");
-                echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
+                cli_success_without_exit("Recreated file: $file");
                 continue;
             } else if (str_contains($file, "compiled_routes")) {
                 file_put_contents($file, "<?php\n// compiled_routes.php - FunkPHP | FunkCLI recreated it $date\n" . cli_get_prefix_code("do_not_modify_warning") . "\nreturn " . var_export($singleTrouteDefault, true) . ";\n");
-                echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
+                cli_success_without_exit("Recreated file: $file");
                 continue;
             } elseif (str_contains($file, "tables")) {
                 file_put_contents($file, "<?php\n// // tables.php - FunkPHP | FunkCLI recreated it $date\n" . cli_get_prefix_code("do_not_modify_warning") . "\nreturn " . var_export($tablesAndRelationshipsFileDefault, true) . ";\n");
-                echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
+                cli_success_without_exit("Recreated file: $file");
                 continue;
             } elseif (str_contains($file, "valid_mysql_datatypes")) {
                 file_put_contents($file, "<?php\n// // valid_mysql_datatypes.php - FunkPHP | FunkCLI recreated it $date\n" . cli_get_prefix_code("do_not_modify_warning") . "\nreturn " . var_export($mysqlDataTypesFileDefault, true) . ";\n");
-                echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
+                cli_success_without_exit("Recreated file: $file");
                 continue;
             } elseif (str_contains($file, "valid_mysql_operators")) {
                 file_put_contents($file, "<?php\n// valid_mysql_operators.php - FunkPHP | FunkCLI recreated it $date\n" . cli_get_prefix_code("do_not_modify_warning") . "\nreturn " . var_export($mysqlOperatorSyntaxDefault, true) . ";\n");
-                echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
+                cli_success_without_exit("Recreated file: $file");
                 continue;
             } elseif (str_contains($file, "pipeline_routes")) {
                 file_put_contents($file, "<?php\n// pipeline_routes.php - FunkPHP | FunkCLI recreated it $date\n" . cli_get_prefix_code("do_not_modify_warning") . "\nreturn " . var_export($singleRoutesRouteDefault, true) . ";\n");
-                echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
+                cli_success_without_exit("Recreated file: $file");
                 continue;
             } else if (str_contains($file, "pipeline_request")) {
                 file_put_contents($file, "<?php\n// pipeline_request.php - FunkPHP | FunkCLI recreated it $date\n" . cli_get_prefix_code("do_not_modify_warning") . "\nreturn  " . var_export($singlePipelineDefault, true) . ";\n");
-                echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
+                cli_success_without_exit("Recreated file: $file");
                 continue;
             } else if (str_contains($file, "public_html/.htaccess")) {
                 file_put_contents($file, "# This file was recreated by FunkCLI!\nRewriteEngine On\nRewriteRule ^([^\.]+)$ $1.php [NC]\nRewriteRule ^.*$ index.php [L,QSA]");
-                echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
+                cli_success_without_exit("Recreated file: $file");
                 continue;
             } else if (str_contains($file, "cli/.htaccess")) {
                 file_put_contents($file, "# This file was recreated by FunkCLI!\n<Files \"funk\">\nSetHandler application/x-httpd-php\n</Files>");
-                echo "\033[32m[FunkCLI - SUCCESS]: Recreated file: $file\n\033[0m";
+                cli_success_without_exit("Recreated file: $file");
                 continue;
             }
         }
@@ -12486,8 +12486,7 @@ function cli_page_replace_js_directive($string)
             // MODE B: External Tag with Automated SRI
             $sriHash = base64_encode(hash('sha384', $jsContent, true));
             return "<script src=\"/js/{$assetName}.js\" integrity=\"sha384-{$sriHash}\" crossorigin=\"anonymous\"></script>";
-        },
-        $templateRaw
+        }, $string
     );
     return $templateCompiled($string);
 }
