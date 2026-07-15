@@ -11965,7 +11965,7 @@ function cli_restore_default_folders_and_files()
     foreach ($folders as $folder) {
         if (!is_dir($folder)) {
             mkdir($folder, 0777, true);
-            echo "\033[32m[FunkCLI - SUCCESS]: Recreated folder: $folder\n\033[0m";
+            cli_success_without_exit("Recreated folder: $folder");
         }
     }
     // Loop through files, and create them if they don't exist
