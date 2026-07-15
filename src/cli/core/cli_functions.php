@@ -639,7 +639,7 @@ function cli_build_command_validate_param_rules_regex($level, $dataToValidate, &
                 } else if ($level === "route") {
                     cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "!");
                 }
-            } catch (e) {
+            } catch (\Throwable $e) {
                 if ($level === "global") {
                     cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "!");
                 } else if ($level === "method") {
