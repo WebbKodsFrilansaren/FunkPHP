@@ -183,8 +183,8 @@ foreach ($requiredExtensions as $ext => $meta) {
 foreach ($requiredWritablePaths as $name => $path) {
     $realPath = realpath($path);
     if (!$realPath) {
-        if(!@mkdir($path, 0777)){
-        $compatibilityErrors[] = "<strong>{$name}:</strong> Target path at '<code>{$path}</code>' does NOT EXIST and it FAILED to Recreate it. File Permission issues?";
+        if (!@mkdir($path, 0777)) {
+            $compatibilityErrors[] = "<strong>{$name}:</strong> Target path at '<code>{$path}</code>' does NOT EXIST and it FAILED to Recreate it. File Permission issues?";
         }
         continue;
     }
@@ -204,10 +204,10 @@ $currentUser = extension_loaded('posix') ? (posix_getpwuid(posix_geteuid())['nam
 $projectRoot = realpath(dirname(__DIR__));
 $rootPerms = fileperms($projectRoot);
 $defaultPermsOctal = $rootPerms ? sprintf('%o', $rootPerms & 0777) : '755';
-$server = isset($_SERVER['SERVER_SOFTWARE']) ? explode('/', $_SERVER['SERVER_SOFTWARE'])[0] : 'unknown_server';    
+$server = isset($_SERVER['SERVER_SOFTWARE']) ? explode('/', $_SERVER['SERVER_SOFTWARE'])[0] : 'unknown_server';
 if (!empty($compatibilityErrors) && ($_SERVER['HTTP_ACCEPT'] ?? '') !== 'application/json') {
     $isCliFix = true;
-    
+
     if (!empty($missingPackagesQueue)) {
         $uniquePackages = array_unique($missingPackagesQueue);
         if ($pkgManager === 'apt') {
@@ -339,7 +339,7 @@ if (strpos($acceptHeader, 'application/json') !== false) {
         </p>
 
         <div class="inline-block bg-[#45475a]/60 text-xs text-slate-300 px-2.5 py-1 rounded mt-3 font-mono">
-            Running PHP as user: `<strong><?= htmlspecialchars($currentUser); ?></strong>` on server: `<strong><?= htmlspecialchars($server);?></strong>` with Package Manager: `<strong><?=  htmlspecialchars(strtoupper($pkgManager)); ?></strong>` and IP: `<strong><?=  $_SERVER['REMOTE_ADDR'] ?? "Unkown IP";?></strong>`
+            Running PHP as user: `<strong><?= htmlspecialchars($currentUser); ?></strong>` on server: `<strong><?= htmlspecialchars($server); ?></strong>` with Package Manager: `<strong><?= htmlspecialchars(strtoupper($pkgManager)); ?></strong>` and IP: `<strong><?= $_SERVER['REMOTE_ADDR'] ?? "Unkown IP"; ?></strong>`
         </div>
 
         <div class="flex gap-1 mt-8 border-b border-[#45475a]">

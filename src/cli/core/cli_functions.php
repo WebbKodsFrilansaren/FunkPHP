@@ -8912,6 +8912,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
     $tables = $tablesAndRelationshipsFile['tables'] ?? [];
     $cols = ['uniqueCols' => [], 'table:col' => [], 'subqueries' => null];
     $relationships = $tablesAndRelationshipsFile['relationships'] ?? [];
+    $aggAliases = [];
 
     // List of available Global Config Rules - these will be checked against
     $globalConfigRules = [
@@ -9409,7 +9410,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         // We also pass the "$builtBindedParamsString" as reference to add the necessary
         // "?" placeholders based on how many are used within the Parsed Where Clause!
         if (isset($whereTb) && cli_is_string_and_not_empty($whereTb)) {
-            $whereTb = cli_parse_condition_clause_sql($configTBKey, $whereTb, "UPDATE", $convertedSQLArray, $cols, $builtBindedParamsString, $builtFieldsArray, $allAliases, "WHERE", $aggAliases ?? []);
+            $whereTb = cli_parse_condition_clause_sql($configTBKey, $whereTb, "UPDATE", $convertedSQLArray, $cols, $builtBindedParamsString, $builtFieldsArray, $allAliases, "WHERE", $aggAliases);
             // If $whereTb is no longer a string after parsing, we error out
             if (!cli_is_string_and_not_empty($whereTb)) {
                 cli_err_syntax_without_exit("Invalid `WHERE` Key String found in SQL Array `$handlerFile.php=>$fnName` for UPDATE Query after being processed by `cli_parse_where_clause_sql` Function!");
@@ -9510,7 +9511,7 @@ function cli_convert_simple_sql_query_to_optimized_sql($sqlArray, $handlerFile, 
         // We also pass the "$builtBindedParamsString" as reference to add the necessary
         // "?" placeholders based on how many are used within the Parsed Where Clause!
         if (isset($whereTb) && cli_is_string_and_not_empty($whereTb)) {
-            $whereTb = cli_parse_condition_clause_sql($configTBKey, $whereTb, "DELETE", $convertedSQLArray, $cols, $builtBindedParamsString, $builtFieldsArray, $allAliases, "WHERE", $aggAliases ?? []);
+            $whereTb = cli_parse_condition_clause_sql($configTBKey, $whereTb, "DELETE", $convertedSQLArray, $cols, $builtBindedParamsString, $builtFieldsArray, $allAliases, "WHERE", $aggAliases);
             // If $whereTb is no longer a string after parsing, we error out
             if (!cli_is_string_and_not_empty($whereTb)) {
                 cli_err_syntax_without_exit("Invalid `WHERE` Key String found in SQL Array `$handlerFile.php=>$fnName` for UPDATE Query after being processed by `cli_parse_where_clause_sql` Function!");
@@ -12436,8 +12437,9 @@ function cli_str_starts_or_ends_not_with($str, $start, $end)
     return false;
 }
 
-function cli_array_str_starts_with($array, $str){
-foreach ($array as $element) {
+function cli_array_str_starts_with($array, $str)
+{
+    foreach ($array as $element) {
         if (str_starts_with($str, $element)) {
             return true;
         }
@@ -12445,7 +12447,7 @@ foreach ($array as $element) {
             return true;
         }
     }
-return false;
+    return false;
 }
 
 // Function that uses an array to replace all stringified ternary operators
@@ -12498,7 +12500,8 @@ function cli_page_replace_js_directive($string)
             // MODE B: External Tag with Automated SRI
             $sriHash = base64_encode(hash('sha384', $jsContent, true));
             return "<script src=\"/js/{$assetName}.js\" integrity=\"sha384-{$sriHash}\" crossorigin=\"anonymous\"></script>";
-        }, $string
+        },
+        $string
     );
     return $templateCompiled($string);
 }
