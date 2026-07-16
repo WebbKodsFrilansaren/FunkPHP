@@ -3999,7 +3999,6 @@ function funk_validate_any_of_these_values($inputName, $inputData, $validationVa
  *   - "uid:v4" (specific UUID version)
  *   - "uid:ulid" (ULID format)
  *   - "uid:base58" (Base58 format)
- *
  * @see https://github.com/symfony/routing/blob/8.1/Requirement/Requirement.php Upstream Regex Source
  * @see https://github.com/symfony/uid For Symfony's robust standalone UID component
  * @link https://symfony.com/sponsor Support the Symfony project if these patterns are useful to your project!
