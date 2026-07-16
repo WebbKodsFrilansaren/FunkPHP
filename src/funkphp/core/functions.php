@@ -159,7 +159,7 @@ function funk_session_started_or_start_it(&$c)
     }
     // Lazy infrastructure allocation: Connect to Redis/DB only when a session is actually requested!
     if (($c['SESSION']['driver'] ?? 'files') === 'redis') {
-        funk_connect_redis_infrastructure($c);
+        // funk_connect_redis_infrastructure($c); TODO: FIX LATER Or remove?
     }
     // Configure native cookie settings right before booting
     // Pass the raw, pre-verified array straight to PHP. No runtime IF statements required!
@@ -198,8 +198,8 @@ function funk_session_destroy(&$c, $set_other_cookies_with_h_setcookie_as_array 
         $_SESSION = [];
         session_unset();
         session_destroy();
-        \funk_session_cookie_set(session_name(), '', time() - 3600);
-        \funk_session_cookie_set("csrf", '', time() - 3600);
+        \funk_session_cookie_set($c, session_name(), '', time() - 3600);
+        \funk_session_cookie_set($c, "csrf", '', time() - 3600);
 
         // Optional funk_session_cookie_set to set other cookies
         if (!empty($set_other_cookies_with_h_setcookie_as_array)) {
@@ -1815,7 +1815,7 @@ function funk_db_conn(&$c, $dbKey)
             $pgsql = pg_connect($connString);
             // Check for connection errors
             if ($pgsql === false) {
-                $c['err']['DATABASES']['funk_db_conn'][] = 'Connection failed for ' . $dbKey . ': ' . pg_last_error();
+                $c['err']['DATABASES']['funk_db_conn'][] = 'Connection failed for ' . $dbKey . ': ' . pg_last_error(null);
                 return null;
             }
             // Store the connection in the global array by reference
@@ -3607,7 +3607,7 @@ function funk_validate_specials($inputName, $inputData, $validationValues, $cust
 // Validate that Input Data is a valid base64 string
 function funk_validate_base64($inputName, $inputData, $validationValues, $customErr = null)
 {
-    if (!isset($inputData) || !is_string($inputData) || !preg_match('/([A-Z][a-z][0-9]\-_)*/', $inputData)) {
+    if (!isset($inputData) || !is_string($inputData) || !preg_match('/^[A-Za-z0-9\-_]+={0,2}$/', $inputData)) {
         return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName does not match the required pattern of a base64 string - only A-Z, a-z, 0-9, - and _ are allowed.";
     }
     return null;
@@ -3616,7 +3616,7 @@ function funk_validate_base64($inputName, $inputData, $validationValues, $custom
 // Validate that Input Data is NOT a base64 string but a string nonetheless
 function funk_validate_not_base64($inputName, $inputData, $validationValues, $customErr = null)
 {
-    if (isset($inputData) && is_string($inputData) && preg_match('/([A-Z][a-z][0-9]\-_)*/', $inputData)) {
+    if (isset($inputData) && is_string($inputData) && preg_match('/^[A-Za-z0-9\-_]+={0,2}$/', $inputData)) {
         return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must NOT be a base64 string.";
     }
     return null;
@@ -3984,6 +3984,103 @@ function funk_validate_any_of_these_values($inputName, $inputData, $validationVa
     // Now we check if the input data is in the validation values
     if (!in_array($inputData, $validationValues, true)) {
         return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be one of the following values: " . implode(', ', $validationValues) . ".";
+    }
+    return null;
+}
+
+/**
+ * Validate that Input Data is a valid Unique Identifier (UID).
+ *
+ * This supports standard RFC-compliant UUIDs, raw RFC 4122 formats, ULIDs,
+ * as well as Base32 and Base58 unique string representations.
+ *
+ * Usage:
+ *   - "uid" or "uid:any" (defaults to standard UUID v1-v8)
+ *   - "uid:v4" (specific UUID version)
+ *   - "uid:ulid" (ULID format)
+ *   - "uid:base58" (Base58 format)
+ *
+ * @see https://github.com/symfony/routing/blob/8.1/Requirement/Requirement.php Upstream Regex Source
+ * @see https://github.com/symfony/uid For Symfony's robust standalone UID component
+ * @link https://symfony.com/sponsor Support the Symfony project if these patterns are useful to your project!
+ *
+ * @param string      $inputName        The field name for error reporting
+ * @param mixed       $inputData        The value being validated
+ * @param mixed       $validationValues String or array of allowed types (e.g. 'v4,ulid', 'base58')
+ * @param string|null $customErr        Optional custom error message override
+ * @return string|null Returns the error message string on failure, or null if validation passes
+ */
+function funk_validate_uid($inputName, $inputData, $validationValues, $customErr = null)
+{
+    // Define anchored regex patterns for all supported UID formats
+    $patterns = [
+        // Standard UUID Versions (RFC 4122 / RFC 9562)
+        'v1'      => '/^[0-9a-f]{8}-[0-9a-f]{4}-1[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i',
+        'v2'      => '/^[0-9a-f]{8}-[0-9a-f]{4}-2[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i',
+        'v3'      => '/^[0-9a-f]{8}-[0-9a-f]{4}-3[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i',
+        'v4'      => '/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i',
+        'v5'      => '/^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i',
+        'v6'      => '/^[0-9a-f]{8}-[0-9a-f]{4}-6[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i',
+        'v7'      => '/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i',
+        'v8'      => '/^[0-9a-f]{8}-[0-9a-f]{4}-8[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i',
+        'any'     => '/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i',
+        // Generic RFC 4122/9562 (8-4-4-4-12 hex string without version restriction)
+        'rfc4122' => '/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i',
+        'rfc9562' => '/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i',
+        // ULID (Universally Unique Lexicographically Sortable Identifier)
+        'ulid'    => '/^[0-7][0-9A-HJKMNP-TV-Z]{25}$/i',
+        // Crockford's Base32
+        'base32'  => '/^[0-9A-HJKMNP-TV-Z]{26}$/i',
+        // Base58 (Strictly Case-Sensitive, excludes 0, O, I, l)
+        'base58'  => '/^[1-9A-HJ-NP-Za-km-z]{22}$/'
+    ];
+    // Normalize validation values to an array of lowercase strings
+    if (empty($validationValues)) {
+        $requestedVersions = ['any'];
+    } elseif (is_string($validationValues)) {
+        $requestedVersions = array_map('trim', explode(',', $validationValues));
+    } else {
+        $requestedVersions = array_map('trim', (array)$validationValues);
+    }
+    $passed = false;
+    // Check if the input matches at least one of the specified version patterns
+    foreach ($requestedVersions as $version) {
+        $versionKey = strtolower($version);
+        if (isset($patterns[$versionKey])) {
+            if (preg_match($patterns[$versionKey], $inputData)) {
+                $passed = true;
+                break; // Found a match!
+            }
+        }
+    }
+    if (!$passed) {
+        return (isset($customErr) && is_string($customErr))
+            ? $customErr
+            : "$inputName is not a valid Unique Identifier (" . implode(', ', $requestedVersions) . ").";
+    }
+    return null;
+}
+/**
+ * Validate that Input Data is a valid slug.
+ * Usage: "slug:ascii" (strictly alphanumeric/English slugs) 
+ * or just "slug" (universal slug pattern allowing unicode/anything but consecutive or trailing hyphens).
+ * @see https://github.com/symfony/routing/blob/8.1/Requirement/Requirement.php Upstream Regex Source
+ * @see https://github.com/symfony/ For more of Symfony's project
+ * @link https://symfony.com/sponsor Support the Symfony project if these patterns are useful to your project!
+ *
+ */
+function funk_validate_slug($inputName, $inputData, $validationValues, $customErr = null)
+{
+    // Default Pattern: Any chars except consecutive, leading, or trailing hyphens
+    $pattern = '/^[^-]+(?:-[^-]+)*$/u';
+    // If 'ascii' is requested, use Symfony's strict alphanumeric/hyphen slug pattern
+    if (is_string($validationValues) && strtolower(trim($validationValues)) === 'ascii') {
+        $pattern = '/^[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$/';
+    }
+    if (!is_string($inputData) || !preg_match($pattern, $inputData)) {
+        return (isset($customErr) && is_string($customErr))
+            ? $customErr
+            : "$inputName is not a valid slug pattern.";
     }
     return null;
 }
