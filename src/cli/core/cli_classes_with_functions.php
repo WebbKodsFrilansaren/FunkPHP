@@ -708,6 +708,9 @@ class RuleSetAll
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['size_mb'] = \"" . $error . "\";";
         return $this;
     }
+    // GLOBAL COMPILER MUST CHECK that "gte", "gt","lte","lt","same", "different" try NOT
+    // to "target" themselves but this needs access to outer keys which they do not have
+    // access to so they use {{##INPUT##}} and {{##TARGET_INPUT:<other_key_name>##}} thus!
     public function gte(string $targetFieldinValidation, string $customErrorMsg = ''): self
     {
         // 1. Ensure Data Type is set
@@ -752,6 +755,7 @@ class RuleSetAll
         // 4. Store compiled rule (with Target Existence Guard)
         $this->rules['gte'] = [
             'error'    => $error,
+            'target' => $targetFieldinValidation,
             'compiled' => "if(!isset({{##TARGET_INPUT:{$targetFieldinValidation}##}}) || {$condition}) {\n" .
                 "    {{##ERRORS##}}['gte'] = \"{$error}\";\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
@@ -803,6 +807,7 @@ class RuleSetAll
         }
         $this->rules['gt'] = [
             'error'    => $error,
+            'target' => $targetFieldinValidation,
             'compiled' => "if(!isset({{##TARGET_INPUT:{$targetFieldinValidation}##}}) || {$condition}) {\n" .
                 "    {{##ERRORS##}}['gt'] = \"{$error}\";\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
@@ -854,6 +859,7 @@ class RuleSetAll
         }
         $this->rules['lte'] = [
             'error'    => $error,
+            'target' => $targetFieldinValidation,
             'compiled' => "if(!isset({{##TARGET_INPUT:{$targetFieldinValidation}##}}) || {$condition}) {\n" .
                 "    {{##ERRORS##}}['lte'] = \"{$error}\";\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
@@ -905,6 +911,7 @@ class RuleSetAll
         }
         $this->rules['lt'] = [
             'error'    => $error,
+            'target' => $targetFieldinValidation,
             'compiled' => "if(!isset({{##TARGET_INPUT:{$targetFieldinValidation}##}}) || {$condition}) {\n" .
                 "    {{##ERRORS##}}['lt'] = \"{$error}\";\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
@@ -914,6 +921,94 @@ class RuleSetAll
                 "}"
         ];
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['lt'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function same(string $targetField, string $customErrorMsg = ''): self
+    {
+        // 1. Ensure Data Type is set
+        if (!isset($this->dataType)) {
+            $this->configErrors[] = 'Cannot add Rule `same` before setting the Data Type Rule!';
+            return $this;
+        }
+        // 2. Prevent Duplicate Rule Usage
+        if (isset($this->rules['same'])) {
+            $this->configErrors[] = 'Rule `same` is already used for Input Key: `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        // 3. Conflict Guard
+        if (isset($this->rules['different'])) {
+            $this->configErrors[] = 'Rule `same` conflicts with existing rule `different` on Input Key `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        // 4. Validate Target Field Parameter
+        $targetField = trim($targetField);
+        if ($targetField === '') {
+            $this->configErrors[] = 'Rule `same` requires a Non-Empty Target Field Name for Input Key `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        // 5. Build Failure Condition (Fails if values are NOT strictly identical)
+        // Access target field safely using var_export for the key name
+        $condition = "{{##INPUT##}} !== ({{##TARGET_INPUT:{$targetField}##}} ?? null)";
+        $error = (!empty($customErrorMsg))
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must match field `{$targetField}`.";
+        // 6. Store Compiled Rule
+        $this->rules['same'] = [
+            'error'    => $error,
+            'target' => $targetField,
+            'compiled' => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['same'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['same'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function different(string $targetField, string $customErrorMsg = ''): self
+    {
+        // 1. Ensure Data Type is set
+        if (!isset($this->dataType)) {
+            $this->configErrors[] = 'Cannot add Rule `different` before setting the Data Type Rule!';
+            return $this;
+        }
+        // 2. Prevent Duplicate Rule Usage
+        if (isset($this->rules['different'])) {
+            $this->configErrors[] = 'Rule `different` is already used for Input Key: `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        // 3. Conflict Guard
+        if (isset($this->rules['same'])) {
+            $this->configErrors[] = 'Rule `different` conflicts with existing rule `same` on Input Key `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        // 4. Validate Target Field Parameter
+        $targetField = trim($targetField);
+        if ($targetField === '') {
+            $this->configErrors[] = 'Rule `different` requires a Non-Empty Target Field Name for Input Key `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        // 5. Build Failure Condition (Fails if values ARE strictly identical)
+        // Enclose target variable in parentheses for strict operator precedence with ?? null
+        $condition = "{{##INPUT##}} === ({{##TARGET_INPUT:{$targetField}##}} ?? null)";
+        $error = (!empty($customErrorMsg))
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be different from field `{$targetField}`.";
+        // 6. Store Compiled Rule
+        $this->rules['different'] = [
+            'error'  => $error,
+            'target' => $targetField,
+            'compiled' => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['different'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['different'] = \"" . $error . "\";";
         return $this;
     }
     public function regex(string|array $regexOrRegexes, string $customErrorMsg = ''): self
@@ -1197,6 +1292,209 @@ class RuleSetAll
                 "}"
         ];
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['not_in'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function mac_address(string $customErrorMsg = ''): self
+    {
+        // 1. Ensure Data Type is set
+        if (!isset($this->dataType)) {
+            $this->configErrors[] = 'Cannot add Rule `mac_address` before setting the Data Type Rule!';
+            return $this;
+        }
+        // 2. Prevent Duplicate Rule Usage
+        if (isset($this->rules['mac_address'])) {
+            $this->configErrors[] = 'Rule `mac_address` is already used for Input Key: `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        // 3. Enforce Data Type Category (Must be String)
+        if ($this->dataTypeCategory !== 'string') {
+            $this->configErrors[] = 'Rule `mac_address` is Only Valid for `string` Data Type, but Data Type `' . $this->dataType . '` was selected for Input Key `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        // 4. Build Failure Condition
+        $condition = 'filter_var({{##INPUT##}}, FILTER_VALIDATE_MAC) === false';
+        $error = (!empty($customErrorMsg))
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be a valid MAC address.";
+
+        // 5. Store Compiled Rule
+        $this->rules['mac_address'] = [
+            'error'    => $error,
+            'compiled' => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['mac_address'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['mac_address'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function lowercase(string $customErrorMsg = ''): self
+    {
+        // 1. Ensure Data Type is set
+        if (!isset($this->dataType)) {
+            $this->configErrors[] = 'Cannot add Rule `lowercase` before setting the Data Type Rule!';
+            return $this;
+        }
+        // 2. Prevent Duplicate Rule Usage
+        if (isset($this->rules['lowercase'])) {
+            $this->configErrors[] = 'Rule `lowercase` is already used for Input Key: `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        // 3. Conflict Guard
+        if (isset($this->rules['uppercase']) || isset($this->rules['uppercase_mb']) || isset($this->rules['lowercase_mb'])) {
+            $this->configErrors[] = 'Rule `lowercase` conflicts with existing rules (`uppercase`, `lowercase_mb` or `uppercase_mb`) on Input Key `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        // 4. Enforce Data Type Category (Must be String)
+        if ($this->dataTypeCategory !== 'string') {
+            $this->configErrors[] = 'Rule `lowercase` is Only Valid for `string` Data Type, but Data Type `' . $this->dataType . '` was selected for Input Key `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        // 5. Build Failure Condition (Fails if converting to lowercase changes the value)
+        $condition = 'strtolower({{##INPUT##}}) !== {{##INPUT##}}';
+        $error = (!empty($customErrorMsg))
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be lowercase.";
+        // 6. Store Compiled Rule
+        $this->rules['lowercase'] = [
+            'error'    => $error,
+            'compiled' => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['lowercase'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['lowercase'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function uppercase(string $customErrorMsg = ''): self
+    {
+        // 1. Ensure Data Type is set
+        if (!isset($this->dataType)) {
+            $this->configErrors[] = 'Cannot add Rule `uppercase` before setting the Data Type Rule!';
+            return $this;
+        }
+        // 2. Prevent Duplicate Rule Usage
+        if (isset($this->rules['uppercase'])) {
+            $this->configErrors[] = 'Rule `uppercase` is already used for Input Key: `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        // 3. Conflict Guard
+        if (isset($this->rules['lowercase']) || isset($this->rules['uppercase_mb']) || isset($this->rules['lowercase_mb'])) {
+            $this->configErrors[] = 'Rule `uppercase` conflicts with existing rules (`lowercase`, `lowercase_mb` or `uppercase_mb`) on Input Key `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        // 4. Enforce Data Type Category (Must be String)
+        if ($this->dataTypeCategory !== 'string') {
+            $this->configErrors[] = 'Rule `uppercase` is Only Valid for `string` Data Type, but Data Type `' . $this->dataType . '` was selected for Input Key `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        // 5. Build Failure Condition (Fails if converting to uppercase changes the value)
+        $condition = 'strtoupper({{##INPUT##}}) !== {{##INPUT##}}';
+        $error = (!empty($customErrorMsg))
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be uppercase.";
+        // 6. Store Compiled Rule
+        $this->rules['uppercase'] = [
+            'error'    => $error,
+            'compiled' => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['uppercase'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['uppercase'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function lowercase_mb(string $customErrorMsg = ''): self
+    {
+        // 1. Ensure Data Type is set
+        if (!isset($this->dataType)) {
+            $this->configErrors[] = 'Cannot add Rule `lowercase_mb` before setting the Data Type Rule!';
+            return $this;
+        }
+        // 2. Prevent Duplicate Rule Usage
+        if (isset($this->rules['lowercase_mb'])) {
+            $this->configErrors[] = 'Rule `lowercase_mb` is already used for Input Key: `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        // 3. Conflict Guard
+        if (isset($this->rules['uppercase']) || isset($this->rules['uppercase_mb']) || isset($this->rules['lowercase_mb'])) {
+            $this->configErrors[] = 'Rule `lowercase_mb` conflicts with existing rules (`uppercase`, `lowercase_mb` or `uppercase_mb`) on Input Key `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        // 4. Enforce Data Type Category (Must be String)
+        if ($this->dataTypeCategory !== 'string') {
+            $this->configErrors[] = 'Rule `lowercase_mb` is Only Valid for `string` Data Type, but Data Type `' . $this->dataType . '` was selected for Input Key `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        // 5. Build Failure Condition (Fails if converting to lowercase_mb changes the value)
+        $condition = 'mb_strtolower({{##INPUT##}}) !== {{##INPUT##}}';
+        $error = (!empty($customErrorMsg))
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be lowercase_mb.";
+        // 6. Store Compiled Rule
+        $this->rules['lowercase_mb'] = [
+            'error'    => $error,
+            'compiled' => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['lowercase_mb'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['lowercase_mb'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function uppercase_mb(string $customErrorMsg = ''): self
+    {
+        // 1. Ensure Data Type is set
+        if (!isset($this->dataType)) {
+            $this->configErrors[] = 'Cannot add Rule `uppercase_mb` before setting the Data Type Rule!';
+            return $this;
+        }
+        // 2. Prevent Duplicate Rule Usage
+        if (isset($this->rules['uppercase_mb'])) {
+            $this->configErrors[] = 'Rule `uppercase_mb` is already used for Input Key: `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        // 3. Conflict Guard
+        if (isset($this->rules['uppercase']) || isset($this->rules['uppercase']) || isset($this->rules['lowercase_mb'])) {
+            $this->configErrors[] = 'Rule `uppercase_mb` conflicts with existing rules (`uppercase`, `lowercase` or `uppercase_mb`) on Input Key `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        // 4. Enforce Data Type Category (Must be String)
+        if ($this->dataTypeCategory !== 'string') {
+            $this->configErrors[] = 'Rule `uppercase_mb` is Only Valid for `string` Data Type, but Data Type `' . $this->dataType . '` was selected for Input Key `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        // 5. Build Failure Condition (Fails if converting to uppercase_mb changes the value)
+        $condition = 'mb_strtoupper({{##INPUT##}}) !== {{##INPUT##}}';
+        $error = (!empty($customErrorMsg))
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be uppercase_mb.";
+        // 6. Store Compiled Rule
+        $this->rules['uppercase_mb'] = [
+            'error'    => $error,
+            'compiled' => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['uppercase_mb'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['uppercase_mb'] = \"" . $error . "\";";
         return $this;
     }
 }
