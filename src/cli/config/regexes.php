@@ -26,13 +26,18 @@ return [
     'methodSegment' => '/^(delete|patch|post|put|get|del|pa|po|pu|ge|g|d)\/$/i',
 
     // targets file `users.php` with `by_id` Function inside
-    //`ff:users=>by_id` This function is used when folder are
+    //`ff:users,by_id` This function is used when folder are
     // already known and cannot be changed as with Validation & SQL!
     'fileFnRegex' => '/^ff:([a-z0-9_-]+),([a-z_][a-z0-9_]+)$/i',
 
     // `funkphp/routes/users/users.php with `update_user` Function inside
-    //`fff:users=>users=>update_user`
+    //`fff:users,users,update_user`
     'folderFileFnRegex' => '/^fff:([a-z][a-z0-9_]+),([a-z0-9_-]+),([a-z_][a-z0-9_]+)$/i',
+
+    // `fff:data,validation,test,test2` meaning it looks for
+    // '/src/funkphp/data/validation/test.php' and then for
+    // 'function test2(&$c){}'
+    'folderFileFnSimplerRegex' => '/^fff:([a-zA-Z0-9-_,]+)$/i',
 
     // `tb:table1` OR `tb:table1,table2` OR `tb:table1*2` OR `tb:table1*2,table2` (\*\d+) part is optional!
     'tableRegexValidation' => '/^tb:([a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]*(\*[0-9]+)?)*$/i',

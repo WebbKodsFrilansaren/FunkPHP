@@ -33,6 +33,12 @@ return [
     'aliases' => [
         'sw' => 'switch',
         'rc' => 'recompile',
+        'test:funktion' => 'test:function',
+        'test:funk' => 'test:function',
+        'test:func' => 'test:function',
+        'test:fun' => 'test:function',
+        'test:fn' => 'test:function',
+        'test:f' => 'test:function',
         'add:h' => 'add:handler',
         'add:pl' => 'add:pipeline',
         'add:mw' => 'add:middleware',
@@ -293,6 +299,23 @@ return [
                     'prefix' => null,
                     'external_callable_validator' => null,
                 ]
+
+            ],
+            'config' => [
+                // Add any special config for this command or its sub-commands here!
+            ],
+        ],
+        'test:function' => [
+            'args' => [
+                'folder_file_path_and_then_fn_name_inside' => [
+                    'prompt' => 'Enter a Folder+File Path (this is added to starting path:`/src/funkphp/`) separated with commas where the string after the last comma should be the function name inside of that Folder+FilePath (e.g. `data,validation,test,test2` tries running function `function test2(&$c){}` inside of Folder+File Path `/src/funkphp/data/validation/test.php`!):',
+                    'regex' => $cliRegex['folderFileFnSimplerRegex'],
+                    'required' => true,
+                    'default' => null,
+                    'help' => 'Separate each folder+file path with a single comma. The last string after the last comma is the function inside of that second last string after second last comma that is the file name. For example: `data,validation,test,test2` has folder paths `data` and `validation` from `/src/funkphp/` as starting path whereas `test` becomes the file path with the file name `test.php`. Inside of that Folder+File Path it then tries running function `function test2(&$c){}` inside of Folder+File Path `/src/funkphp/data/validation/test.php`. You can omit the `.php` File Ending!',
+                    'prefix' => 'fff:',
+                    'external_callable_validator' => null,
+                ],
 
             ],
             'config' => [

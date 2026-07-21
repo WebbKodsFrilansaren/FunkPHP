@@ -1,6 +1,5 @@
 <?php
-
-// ALL CLI FUNCTIONS
+// ALMOST ALL CLI FUNCTIONS
 
 /**
  * -----------------

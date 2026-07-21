@@ -161,6 +161,7 @@ define('TEST_DIR', PROJECT_DIR . '/tests');
 define('FUNKPHP_FILE_MANIFEST_CORE', FUNKPHP_CORE_DIR . '/manifest.php');
 define('FUNKPHP_FILE_PATH_CLI_RESERVED', CLI_CORE_DIR . '/cli_reserved.php');
 define('FUNKPHP_FILE_PATH_CLI_FUNCTIONS', CLI_CORE_DIR . '/cli_functions.php');
+define('FUNKPHP_FILE_PATH_CLI_FUNCTIONS_AND_ALSO_CLASSES', CLI_CORE_DIR . '/cli_classes_with_functions.php');
 define('FUNKPHP_FILE_PATH_CLI_CONFIG_REGEX', CLI_CONFIG_DIR . '/regexes.php');
 define('FUNKPHP_FILE_PATH_CLI_CONFIG_COMMANDS', CLI_CONFIG_DIR . '/commands.php');
 define('FUNKPHP_FILE_PATH_CLI_CONFIG_EXTERNAL_CALLABLE_VALIDATORS', CLI_CONFIG_DIR . '/external_callable_validators.php');
