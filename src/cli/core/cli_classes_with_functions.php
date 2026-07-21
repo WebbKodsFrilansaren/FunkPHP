@@ -31,6 +31,7 @@ class RuleSetAll
         'video'     => '(is_array({{##INPUT##}}) && isset({{##INPUT##}}[\'tmp_name\']) && is_uploaded_file({{##INPUT##}}[\'tmp_name\']))',
         'audio'     => '(is_array({{##INPUT##}}) && isset({{##INPUT##}}[\'tmp_name\']) && is_uploaded_file({{##INPUT##}}[\'tmp_name\']))',
         'string'    => 'is_string({{##INPUT##}})',
+        'date'    => 'is_string({{##INPUT##}})',
         'integer'   => 'is_int({{##INPUT##}})',
         'float'     => 'is_float({{##INPUT##}})',
         'boolean'   => 'is_bool({{##INPUT##}})',
@@ -48,6 +49,7 @@ class RuleSetAll
     public array $setDataTypeCategory = [
         'string' => 'string',
         'email' => 'string',
+        'date' => 'string',
         'password' => 'string',
         'password_match' => 'string',
         'json' => 'string',
@@ -83,7 +85,7 @@ class RuleSetAll
     // if it is not nullable then we can show all other errors immediately unless bail and/or
     // stop_all_on_first_error is set to true!)
     public array $mergedErrorsBesdiesDataType = [];
-
+    // ACTUAL RULES (some are data type-restricted like some for only strings, some for only arrays, etc.)
     public function setDatatype(string $dataType, string $customErrorMsg = ''): self
     {
         if (isset($this->dataType)) {
@@ -109,7 +111,6 @@ class RuleSetAll
             "}";
         return $this;
     }
-
     public function bail(): self
     {
         if (isset($this->rules['bail'])) {
@@ -120,7 +121,6 @@ class RuleSetAll
         $this->useBail = true;
         return $this;
     }
-
     public function nullable(): self
     {
         if (isset($this->rules['nullable'])) {
@@ -131,7 +131,6 @@ class RuleSetAll
         $this->useNullable = true;
         return $this;
     }
-
     public function required(string $customErrorMsg = ''): self
     {
         if (isset($this->rules['required'])) {
@@ -152,7 +151,6 @@ class RuleSetAll
         $this->useRequired = true;
         return $this;
     }
-
     public function min(int|float $minValue, string $customErrorMsg = ''): self
     {
         if (!isset($this->dataType)) {
@@ -238,7 +236,6 @@ class RuleSetAll
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['min'] = \"{$error}\";";
         return $this;
     }
-
     public function max(int|float $maxValue, string $customErrorMsg = ''): self
     {
         if (!isset($this->dataType)) {
@@ -325,7 +322,6 @@ class RuleSetAll
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['max'] = \"{$error}\";";
         return $this;
     }
-
     public function min_mb(int|float $minChars, string $customErrorMsg = ''): self
     {
         // 1. Ensure Data Type is set
@@ -377,7 +373,6 @@ class RuleSetAll
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['min_mb'] = \"" . $error . "\";";
         return $this;
     }
-
     public function max_mb(int|float $maxChars, string $customErrorMsg = ''): self
     {
         // 1. Ensure Data Type is set
@@ -429,7 +424,6 @@ class RuleSetAll
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['max_mb'] = \"" . $error . "\";";
         return $this;
     }
-
     public function between(int|float $minVal, int|float $maxVal, string $customErrorMsg = ''): self
     {
         // 1. Ensure Data Type is set
@@ -519,7 +513,6 @@ class RuleSetAll
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['between'] = \"" . $error . "\";";
         return $this;
     }
-
     public function between_mb(int|float $minChars, int|float $maxChars, string $customErrorMsg = ''): self
     {
         // 1. Ensure Data Type is set
@@ -578,7 +571,6 @@ class RuleSetAll
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['between_mb'] = \"" . $error . "\";";
         return $this;
     }
-
     public function size(int|float $size, string $customErrorMsg = ''): self
     {
         // 1. Ensure Data Type is set
@@ -664,7 +656,6 @@ class RuleSetAll
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['size'] = \"" . $error . "\";";
         return $this;
     }
-
     public function size_mb(int|float $size, string $customErrorMsg = ''): self
     {
         // 1. Ensure Data Type is set
@@ -715,6 +706,497 @@ class RuleSetAll
                 "}"
         ];
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['size_mb'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function gte(string $targetFieldinValidation, string $customErrorMsg = ''): self
+    {
+        // 1. Ensure Data Type is set
+        if (!isset($this->dataType)) {
+            $this->configErrors[] = 'Cannot add Rule `gte` (greater than or equal) before setting the Data Type Rule!';
+            return $this;
+        }
+        // 2. Prevent Duplicate Rule Usage
+        if (isset($this->rules['gte'])) {
+            $this->configErrors[] = 'Rule `gte` (greater than or equal) is already used for Input Key: `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        if (isset($this->rules['gt'])) {
+            $this->configErrors[] = 'Rule `gte` (greater than or equal) conflicts with existing rule `gt` on Input Key `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        $error = (!empty($customErrorMsg))
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be greater than or equal to field `{$targetFieldinValidation}`.";
+        // 3. Branch condition based on current Data Type Category
+        // Failure condition: current field is LESS THAN target field
+        switch ($this->dataTypeCategory) {
+            case 'string':
+                $condition = "strlen({{##INPUT##}}) < strlen({{##TARGET_INPUT:{$targetFieldinValidation}##}})";
+                break;
+            case 'numeric':
+                $condition = "{{##INPUT##}} < {{##TARGET_INPUT:{$targetFieldinValidation}##}}";
+                break;
+            case 'array':
+                $condition = "count({{##INPUT##}}) < count({{##TARGET_INPUT:{$targetFieldinValidation}##}})";
+                break;
+            case 'object':
+                $condition = "count(get_object_vars({{##INPUT##}})) < count(get_object_vars({{##TARGET_INPUT:{$targetFieldinValidation}##}}))";
+                break;
+            case 'file':
+                $condition = "(!isset({{##INPUT##}}['size'], {{##TARGET_INPUT:{$targetFieldinValidation}##}}['size']) || {{##INPUT##}}['size'] < {{##TARGET_INPUT:{$targetFieldinValidation}##}}['size'])";
+                break;
+            default:
+                $this->configErrors[] = "Rule `gte` (greater than or equal) is not supported for Data Type `{$this->dataType}`!";
+                return $this;
+        }
+        // 4. Store compiled rule (with Target Existence Guard)
+        $this->rules['gte'] = [
+            'error'    => $error,
+            'compiled' => "if(!isset({{##TARGET_INPUT:{$targetFieldinValidation}##}}) || {$condition}) {\n" .
+                "    {{##ERRORS##}}['gte'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['gte'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function gt(string $targetFieldinValidation, string $customErrorMsg = ''): self
+    {
+        if (!isset($this->dataType)) {
+            $this->configErrors[] = 'Cannot add Rule `gt` (greater than) before setting the Data Type Rule!';
+            return $this;
+        }
+        if (isset($this->rules['gt'])) {
+            $this->configErrors[] = 'Rule `gt` (greater than) is already used for Input Key: `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        if (isset($this->rules['gte'])) {
+            $this->configErrors[] = 'Rule `gt` (greater than) conflicts with existing rule `gte` on Input Key `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        $error = (!empty($customErrorMsg))
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be greater than field `{$targetFieldinValidation}`.";
+        // Failure condition: input <= target
+        switch ($this->dataTypeCategory) {
+            case 'string':
+                $condition = "strlen({{##INPUT##}}) <= strlen({{##TARGET_INPUT:{$targetFieldinValidation}##}})";
+                break;
+            case 'numeric':
+                $condition = "{{##INPUT##}} <= {{##TARGET_INPUT:{$targetFieldinValidation}##}}";
+                break;
+            case 'array':
+                $condition = "count({{##INPUT##}}) <= count({{##TARGET_INPUT:{$targetFieldinValidation}##}})";
+                break;
+            case 'object':
+                $condition = "count(get_object_vars({{##INPUT##}})) <= count(get_object_vars({{##TARGET_INPUT:{$targetFieldinValidation}##}}))";
+                break;
+            case 'file':
+                $condition = "(!isset({{##INPUT##}}['size'], {{##TARGET_INPUT:{$targetFieldinValidation}##}}['size']) || {{##INPUT##}}['size'] <= {{##TARGET_INPUT:{$targetFieldinValidation}##}}['size'])";
+                break;
+            default:
+                $this->configErrors[] = "Rule `gt` (greater than) is not supported for Data Type `{$this->dataType}`!";
+                return $this;
+        }
+        $this->rules['gt'] = [
+            'error'    => $error,
+            'compiled' => "if(!isset({{##TARGET_INPUT:{$targetFieldinValidation}##}}) || {$condition}) {\n" .
+                "    {{##ERRORS##}}['gt'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['gt'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function lte(string $targetFieldinValidation, string $customErrorMsg = ''): self
+    {
+        if (!isset($this->dataType)) {
+            $this->configErrors[] = 'Cannot add Rule `lte` (less than or equal) before setting the Data Type Rule!';
+            return $this;
+        }
+        if (isset($this->rules['lte'])) {
+            $this->configErrors[] = 'Rule `lte` (less than or equal) is already used for Input Key: `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        if (isset($this->rules['lt'])) {
+            $this->configErrors[] = 'Rule `lte` (less than or equal) conflicts with existing rule `lt` on Input Key `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        $error = (!empty($customErrorMsg))
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be less than or equal to field `{$targetFieldinValidation}`.";
+        // Failure condition: input > target
+        switch ($this->dataTypeCategory) {
+            case 'string':
+                $condition = "strlen({{##INPUT##}}) > strlen({{##TARGET_INPUT:{$targetFieldinValidation}##}})";
+                break;
+            case 'numeric':
+                $condition = "{{##INPUT##}} > {{##TARGET_INPUT:{$targetFieldinValidation}##}}";
+                break;
+            case 'array':
+                $condition = "count({{##INPUT##}}) > count({{##TARGET_INPUT:{$targetFieldinValidation}##}})";
+                break;
+            case 'object':
+                $condition = "count(get_object_vars({{##INPUT##}})) > count(get_object_vars({{##TARGET_INPUT:{$targetFieldinValidation}##}}))";
+                break;
+            case 'file':
+                $condition = "(!isset({{##INPUT##}}['size'], {{##TARGET_INPUT:{$targetFieldinValidation}##}}['size']) || {{##INPUT##}}['size'] > {{##TARGET_INPUT:{$targetFieldinValidation}##}}['size'])";
+                break;
+            default:
+                $this->configErrors[] = "Rule `lte` (less than or equal) is not supported for Data Type `{$this->dataType}`!";
+                return $this;
+        }
+        $this->rules['lte'] = [
+            'error'    => $error,
+            'compiled' => "if(!isset({{##TARGET_INPUT:{$targetFieldinValidation}##}}) || {$condition}) {\n" .
+                "    {{##ERRORS##}}['lte'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['lte'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function lt(string $targetFieldinValidation, string $customErrorMsg = ''): self
+    {
+        if (!isset($this->dataType)) {
+            $this->configErrors[] = 'Cannot add Rule `lt` (less than) before setting the Data Type Rule!';
+            return $this;
+        }
+        if (isset($this->rules['lt'])) {
+            $this->configErrors[] = 'Rule `lt` (less than) is already used for Input Key: `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        if (isset($this->rules['lte'])) {
+            $this->configErrors[] = 'Rule `lt` (less than) conflicts with existing rule `lte` on Input Key `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        $error = (!empty($customErrorMsg))
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be less than field `{$targetFieldinValidation}`.";
+        // Failure condition: input >= target
+        switch ($this->dataTypeCategory) {
+            case 'string':
+                $condition = "strlen({{##INPUT##}}) >= strlen({{##TARGET_INPUT:{$targetFieldinValidation}##}})";
+                break;
+            case 'numeric':
+                $condition = "{{##INPUT##}} >= {{##TARGET_INPUT:{$targetFieldinValidation}##}}";
+                break;
+            case 'array':
+                $condition = "count({{##INPUT##}}) >= count({{##TARGET_INPUT:{$targetFieldinValidation}##}})";
+                break;
+            case 'object':
+                $condition = "count(get_object_vars({{##INPUT##}})) >= count(get_object_vars({{##TARGET_INPUT:{$targetFieldinValidation}##}}))";
+                break;
+            case 'file':
+                $condition = "(!isset({{##INPUT##}}['size'], {{##TARGET_INPUT:{$targetFieldinValidation}##}}['size']) || {{##INPUT##}}['size'] >= {{##TARGET_INPUT:{$targetFieldinValidation}##}}['size'])";
+                break;
+            default:
+                $this->configErrors[] = "Rule `lt` is not supported for Data Type `{$this->dataType}`!";
+                return $this;
+        }
+        $this->rules['lt'] = [
+            'error'    => $error,
+            'compiled' => "if(!isset({{##TARGET_INPUT:{$targetFieldinValidation}##}}) || {$condition}) {\n" .
+                "    {{##ERRORS##}}['lt'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['lt'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function regex(string|array $regexOrRegexes, string $customErrorMsg = ''): self
+    {
+        // 1. Ensure Data Type is set
+        if (!isset($this->dataType)) {
+            $this->configErrors[] = 'Cannot add Rule `regex` before setting the Data Type Rule!';
+            return $this;
+        }
+        // 2. Prevent Duplicate Rule Usage
+        if (isset($this->rules['regex'])) {
+            $this->configErrors[] = 'Rule `regex` is already used for Input Key: `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        // 3. Enforce Category Rule (Strictly String Category)
+        if ($this->dataTypeCategory !== 'string') {
+            $this->configErrors[] = 'Rule `regex` is only valid for `string` types, but Data Type `' . $this->dataType . '` (Category `' . $this->dataTypeCategory . '`) was selected for Input Key `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        // 4. Normalize to array & Validate Patterns
+        $patterns = is_array($regexOrRegexes) ? $regexOrRegexes : [$regexOrRegexes];
+        if (empty($patterns)) {
+            $this->configErrors[] = 'Rule `regex` requires at least one pattern for Input Key `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        $compiledConditions = [];
+        $duplicatePatterns = [];
+        foreach ($patterns as $pattern) {
+            if (!is_string($pattern)) {
+                $this->configErrors[] = 'Rule `regex` Patterns must be Strings for Input Key `{{##INPUT_KEY##}}`!';
+                return $this;
+            }
+            if (in_array($pattern, $duplicatePatterns, true)) {
+                $this->configErrors[] = 'Rule `regex` Pattern Duplicate:`' . $pattern .  '` for Input Key `{{##INPUT_KEY##}}`!';
+                return $this;
+            }
+            $duplicatePatterns[] = $pattern;
+            // Test regex syntax at compile-time
+            try {
+                if (@preg_match($pattern, '') === false) {
+                    $this->configErrors[] = "Rule `regex` has Invalid Pattern Syntax `{$pattern}` (tested against Empty String!) for Input Key `{{##INPUT_KEY##}}`!";
+                    return $this;
+                }
+            } catch (\Throwable $e) {
+                $this->configErrors[] = "Rule `regex` has Invalid Pattern Syntax `{$pattern}` (tested against Empty String!) for Input Key `{{##INPUT_KEY##}}`!";
+                return $this;
+            }
+            // Safely convert pattern into valid PHP code string
+            $exportedPattern = var_export($pattern, true);
+            // Failure condition: input DOES NOT match pattern
+            $compiledConditions[] = "!preg_match({$exportedPattern}, {{##INPUT##}})";
+        }
+        $condition = "(" . implode(' || ', $compiledConditions) . ")";
+        $error = (!empty($customErrorMsg)) ? $customErrorMsg : "Field `{{##INPUT_KEY##}}` format is invalid.";
+        // 5. Store compiled rule
+        $this->rules['regex'] = [
+            'error'    => $error,
+            'compiled' => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['regex'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['regex'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function not_regex(string|array $regexOrRegexes, string $customErrorMsg = ''): self
+    {
+        // 1. Ensure Data Type is set
+        if (!isset($this->dataType)) {
+            $this->configErrors[] = 'Cannot add Rule `not_regex` before setting the Data Type Rule!';
+            return $this;
+        }
+        // 2. Prevent Duplicate Rule Usage
+        if (isset($this->rules['not_regex'])) {
+            $this->configErrors[] = 'Rule `not_regex` is already used for Input Key: `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        // 3. Enforce Category Rule (Strictly String Category)
+        if ($this->dataTypeCategory !== 'string') {
+            $this->configErrors[] = 'Rule `not_regex` is only valid for `string` types, but Data Type `' . $this->dataType . '` (Category `' . $this->dataTypeCategory . '`) was selected for Input Key `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        // 4. Normalize to array & Validate Patterns
+        $patterns = is_array($regexOrRegexes) ? $regexOrRegexes : [$regexOrRegexes];
+        if (empty($patterns)) {
+            $this->configErrors[] = 'Rule `not_regex` requires at least one pattern for Input Key `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        $compiledConditions = [];
+        $duplicatePatterns = [];
+        foreach ($patterns as $pattern) {
+            if (!is_string($pattern)) {
+                $this->configErrors[] = 'Rule `not_regex` Patterns must be Strings for Input Key `{{##INPUT_KEY##}}`!';
+                return $this;
+            }
+            if (in_array($pattern, $duplicatePatterns, true)) {
+                $this->configErrors[] = 'Rule `regex` Pattern Duplicate:`' . $pattern .  '` for Input Key `{{##INPUT_KEY##}}`!';
+                return $this;
+            }
+            $duplicatePatterns[] = $pattern;
+            // Test regex syntax at compile-time
+            try {
+                if (@preg_match($pattern, '') === false) {
+                    $this->configErrors[] = "Rule `not_regex` has Invalid Pattern Syntax `{$pattern}` (tested against Empty String!) for Input Key `{{##INPUT_KEY##}}`!";
+                    return $this;
+                }
+            } catch (\Throwable $e) {
+                $this->configErrors[] = "Rule `not_regex` has Invalid Pattern Syntax `{$pattern}` (tested against Empty String!) for Input Key `{{##INPUT_KEY##}}`!";
+                return $this;
+            }
+            $exportedPattern = var_export($pattern, true);
+            // Failure condition: input DOES match pattern
+            $compiledConditions[] = "preg_match({$exportedPattern}, {{##INPUT##}})";
+        }
+        $condition = "(" . implode(' || ', $compiledConditions) . ")";
+        $error = (!empty($customErrorMsg)) ? $customErrorMsg : "Field `{{##INPUT_KEY##}}` format is invalid.";
+        // 5. Store compiled rule
+        $this->rules['not_regex'] = [
+            'error'    => $error,
+            'compiled' => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['not_regex'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['not_regex'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function in(array|string $inValues, string $customErrorMsg = ''): self
+    {
+        // 1. Ensure Data Type is set
+        if (!isset($this->dataType)) {
+            $this->configErrors[] = 'Cannot add Rule `in` before setting the Data Type Rule!';
+            return $this;
+        }
+        // 2. Prevent Duplicate Rule Usage
+        if (isset($this->rules['in'])) {
+            $this->configErrors[] = 'Rule `in` is already used for Input Key: `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        // 3. Conflict Guard
+        if (isset($this->rules['not_in'])) {
+            $this->configErrors[] = 'Rule `in` conflicts with existing rule `not_in` on Input Key `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        // 4. Enforce Data Type Category (String or Numeric)
+        if ($this->dataTypeCategory !== 'string' && $this->dataTypeCategory !== 'numeric' && $this->dataTypeCategory !== 'boolean') {
+            $this->configErrors[] = 'Rule `in` is Only Valid for Scalar Types (`string`, `numeric`, `boolean`), but Data Type `' . $this->dataType . '` was selected for Input Key `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        if ((is_string($inValues) && (empty($inValues)))
+            || (is_array($inValues) && (empty($inValues) || !array_is_list($inValues)))
+        ) {
+            $this->configErrors[] = 'Rule `in` requires at least one Allowed Value as a String or as a Non-Empty Numbered Array for Input Key `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        // 5. Normalize Input Values
+        $validValues = [];
+        if (is_string($inValues)) {
+            $values = array_map('trim', explode(',', $inValues));
+        } else {
+            $values = array_values($inValues);
+        }
+        // Check for duplicate items in configured list
+        foreach ($values as $val) {
+            if (in_array($val, $validValues, true)) {
+                $displayVal = is_bool($val) ? ($val ? 'true' : 'false') : (string)$val;
+                $this->configErrors[] = 'Rule `in` contains duplicate (`' . $displayVal . '`) Allowed Values for Input Key `{{##INPUT_KEY##}}`!';
+                return $this;
+            }
+            if ((!is_scalar($val)) && ($val !== null)) {
+                $this->configErrors[] = 'Rule `in` must have SCALARS or NULLS as Values for Input Key `{{##INPUT_KEY##}}`!';
+                return $this;
+            }
+            $validValues[] = $val;
+        }
+        // 6. Build Failure Condition
+        $values = $validValues;
+        // Failure condition: input value is NOT in the allowed list
+        if (count($values) <= 3) {
+            $checks = [];
+            foreach ($values as $val) {
+                $checks[] = '{{##INPUT##}} !== ' . var_export($val, true);
+            }
+            $condition = '(' . implode(' && ', $checks) . ')';
+        } else {
+            $exportedArray = var_export($values, true);
+            $condition = '!in_array({{##INPUT##}}, ' . $exportedArray . ', true)';
+        }
+        $error = (!empty($customErrorMsg)) ? $customErrorMsg : "Selected value for `{{##INPUT_KEY##}}` is invalid.";
+        // 7. Store Compiled Rule
+        $this->rules['in'] = [
+            'error'    => $error,
+            'compiled' => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['in'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['in'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function not_in(array|string $inValues, string $customErrorMsg = ''): self
+    {
+        // 1. Ensure Data Type is set
+        if (!isset($this->dataType)) {
+            $this->configErrors[] = 'Cannot add Rule `not_in` before setting the Data Type Rule!';
+            return $this;
+        }
+        // 2. Prevent Duplicate Rule Usage
+        if (isset($this->rules['not_in'])) {
+            $this->configErrors[] = 'Rule `not_in` is already used for Input Key: `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        // 3. Conflict Guard
+        if (isset($this->rules['in'])) {
+            $this->configErrors[] = 'Rule `not_in` conflicts with existing rule `in` on Input Key `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        // 4. Enforce Data Type Category (String, Numeric, or Boolean)
+        if ($this->dataTypeCategory !== 'string' && $this->dataTypeCategory !== 'numeric' && $this->dataTypeCategory !== 'boolean') {
+            $this->configErrors[] = 'Rule `not_in` is Only Valid for Scalar Types (`string`, `numeric`, `boolean`), but Data Type `' . $this->dataType . '` was selected for Input Key `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        if ((is_string($inValues) && (empty($inValues)))
+            || (is_array($inValues) && (empty($inValues) || !array_is_list($inValues)))
+        ) {
+            $this->configErrors[] = 'Rule `not_in` requires at least one Forbidden Value as a String or as a Non-Empty Numbered Array for Input Key `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        // 5. Normalize Input Values
+        $validValues = [];
+        if (is_string($inValues)) {
+            $values = array_map('trim', explode(',', $inValues));
+        } else {
+            $values = array_values($inValues);
+        }
+        // Check for duplicate items in configured list
+        foreach ($values as $val) {
+            if (in_array($val, $validValues, true)) {
+                $displayVal = is_bool($val) ? ($val ? 'true' : 'false') : (string)$val;
+                $this->configErrors[] = 'Rule `not_in` contains duplicate (`' . $displayVal . '`) Forbidden Values for Input Key `{{##INPUT_KEY##}}`!';
+                return $this;
+            }
+            if ((!is_scalar($val)) && ($val !== null)) {
+                $this->configErrors[] = 'Rule `not_in` must have SCALARS or NULLS as Values for Input Key `{{##INPUT_KEY##}}`!';
+                return $this;
+            }
+            $validValues[] = $val;
+        }
+        // 6. Build Failure Condition
+        $values = $validValues;
+        // Failure condition: input value IS in the forbidden list
+        if (count($values) <= 3) {
+            $checks = [];
+            foreach ($values as $val) {
+                $checks[] = '{{##INPUT##}} === ' . var_export($val, true);
+            }
+            $condition = '(' . implode(' || ', $checks) . ')';
+        } else {
+            $exportedArray = var_export($values, true);
+            $condition = 'in_array({{##INPUT##}}, ' . $exportedArray . ', true)';
+        }
+        $error = (!empty($customErrorMsg)) ? $customErrorMsg : "Selected value for `{{##INPUT_KEY##}}` is forbidden.";
+        // 7. Store Compiled Rule
+        $this->rules['not_in'] = [
+            'error'    => $error,
+            'compiled' => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['not_in'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['not_in'] = \"" . $error . "\";";
         return $this;
     }
 }

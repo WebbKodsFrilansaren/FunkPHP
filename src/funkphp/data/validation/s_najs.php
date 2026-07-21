@@ -14,8 +14,7 @@ function s_paj(&$c)
 	cli_dump([
 		'<CONFIG>' => ['stop_all_on_first_error' => false],
 		'VALIDATION' => [
-			'name'  => all("string", "Name must be a string!")
-				->nullable()->required("A Username is required!")->min(10, "Must be 10 at least!")
+			'bigger.name'  => all("string", "Name must be a string!")->not_in(["a", true, false])
 		],
 	]);
 };
