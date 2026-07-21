@@ -59,7 +59,7 @@ namespace {
             return;
         }
         if (($c['SESSION']['driver'] ?? 'files') === 'redis') {
-            \funk_connect_redis_infrastructure($c);
+            //\funk_connect_redis_infrastructure($c);
         }
         session_set_cookie_params(['lifetime' => 28800, 'path' => '/', 'domain' => 'webdev.local', 'secure' => false, 'httponly' => true, 'samesite' => 'Lax',]);
         if (!session_start()) {
