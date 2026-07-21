@@ -31,6 +31,7 @@
 */
 return [
     'aliases' => [
+        'sw' => 'switch',
         'rc' => 'recompile',
         'add:h' => 'add:handler',
         'add:pl' => 'add:pipeline',
