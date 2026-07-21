@@ -12,6 +12,6 @@ function s_paj(&$c)
 	// Run the command `php funkcli compile v file=>fn`
 	// to get optimized version in return statement below it!
 	cli_dump([
-		'user.name'  => string("Must be a string!"),
+		'user.name'  => (string("Must be a string!")),
 	]);
 };

@@ -23,26 +23,21 @@
 class RuleSetAll
 {
     // Valid "Data Types" (set in $dataType)
-    private array $dataTypeRules = [
-        'string',
-        'integer',
-        'float',
-        'boolean',
-        'number',
-        'phone',
-        'date',
-        'array',
-        'arr',
-        'email',
-        'password',
-        'password_match',
-        'url',
-        'ip',
-        'uuid',
-        'json',
-        'object'
+    public array $typeGuardMap = [
+        'string'    => 'is_string({{##INPUT##}})',
+        'integer'   => 'is_int({{##INPUT##}})',
+        'float'     => 'is_float({{##INPUT##}})',
+        'boolean'   => 'is_bool({{##INPUT##}})',
+        'number'    => 'is_numeric({{##INPUT##}})',
+        'array'     => 'is_array({{##INPUT##}})',
+        'arr'       => 'is_array({{##INPUT##}})',
+        'object'    => 'is_object({{##INPUT##}})',
+        'json'      => 'is_string({{##INPUT##}})',
+        'email'     => 'is_string({{##INPUT##}})',
+        'url'       => '(is_string({{##INPUT##}}) && filter_var({{##INPUT##}}, FILTER_VALIDATE_URL) !== false)',
+        'ip'        => '(is_string({{##INPUT##}}) && filter_var({{##INPUT##}}, FILTER_VALIDATE_IP) !== false)',
     ];
-    private array $placeholders = [
+    public array $placeholders = [
         'INPUT' => '{{##INPUT##}}',
         'INPUT_KEY' => '{{##INPUT_KEY##}}',
         'BAIL' => '{{##BAIL##}}',
@@ -68,22 +63,26 @@ class RuleSetAll
     public function setDatatype(string $dataType, string $customErrorMsg = ''): self
     {
         if (isset($this->dataType)) {
-            $this->configErrors[] = 'A Data Type already chosen: `' . ((is_string($this->dataType)) ? $this->dataType : 'NOT_A_STRING') . '`!';
-        } else if (!in_array($dataType, $this->dataTypeRules)) {
-            $this->configErrors[] = 'No/Invalid Data Type chosen: `' . ((is_string($dataType)) ? $dataType : 'NOT_A_STRING') . '`. Choose from: `' . implode(', ', $this->dataTypeRules) . '`!';
-        } else if (isset($this->rules[$dataType])) {
-            $this->configErrors[] = 'Rule `' . $dataType . '` already used for Input Key: `' . $this->placeholders['INPUT_KEY'] . '`!';
-        } else {
-            $this->dataType = $dataType;
-            $this->rules[$dataType] = [
-                'error' => ((!empty($customErrorMsg)) ? $customErrorMsg : "Must be of data type '$dataType'!")
-            ];
-            $is_what = '';
-
-            $compiled = "if($is_what){} else { {$this->placeholders['BAIL']} {$this->placeholders['STOP_ALL']} {$this->placeholders['NEXT_RULE']} }";
-            $this->rules[$dataType]['compiled'] = $compiled;
-            //$this->mergedErrorsBesdiesDataType[] = $this->rules[$dataType]['error']; - never used for data type rule but to illustrate!
+            $this->configErrors[] = 'A Data Type is already set: `' . $this->dataType . '`!';
+            return $this;
         }
+
+        if (!isset($this->typeGuardMap[$dataType])) {
+            $this->configErrors[] = 'Invalid Data Type chosen: `' . $dataType . '`.';
+            return $this;
+        }
+        $this->dataType = $dataType;
+        $guardExpression = $this->typeGuardMap[$dataType];
+        $this->rules[$dataType] = [
+            'error'    => ((!empty($customErrorMsg)) ? $customErrorMsg : "Must be of data type '{$dataType}'."),
+        ];
+        $this->rules[$dataType]['compiled'] =  "if(!{$guardExpression}) {\n" .
+            "    {{##ERRORS##}}['{$dataType}'] = \"{$this->rules[$dataType]['error']}\";\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "}";
+
+        //$this->mergedErrorsBesdiesDataType[] = $this->rules[$dataType]['error']; - never used for data type rule but to illustrate!
+
         return $this;
     }
 
