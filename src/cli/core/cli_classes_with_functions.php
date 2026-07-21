@@ -23,6 +23,7 @@
 class RuleSetAll
 {
     // Valid "Data Types" (set in $dataType)
+    // TODO: test all cuz these might actually be wrong sometimes when evaluated with "if(!{$guardExpression})"???
     public array $typeGuardMap = [
         // File Types
         'files'      => '(is_array({{##INPUT##}}) && isset({{##INPUT##}}[\'tmp_name\']) && is_uploaded_file({{##INPUT##}}[\'tmp_name\']))',
@@ -32,6 +33,7 @@ class RuleSetAll
         'audio'     => '(is_array({{##INPUT##}}) && isset({{##INPUT##}}[\'tmp_name\']) && is_uploaded_file({{##INPUT##}}[\'tmp_name\']))',
         'string'    => 'is_string({{##INPUT##}})',
         'date'    => 'is_string({{##INPUT##}})',
+        'checkbox' => '(is_scalar({{##INPUT##}}) && {{##INPUT##}} !== null)',
         'integer'   => 'is_int({{##INPUT##}})',
         'float'     => 'is_float({{##INPUT##}})',
         'boolean'   => 'is_bool({{##INPUT##}})',
@@ -62,6 +64,7 @@ class RuleSetAll
         'object' => 'object',
         'array' => 'array',
         'arr' => 'array',
+        'checkbox' => 'checkbox',
         'file' => 'file',
         'files' => 'file',
         'image' => 'file',
@@ -2193,12 +2196,11 @@ class RuleSetAll
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['single_digit'] = \"" . $error . "\";";
         return $this;
     }
-
     public function checked(array|string $allowedValues = [true, 1, '1', 'on', 'yes', 'ja', 'true', 'checked', 'enabled', 'selected'], string $customErrorMsg = ''): self
     {
         // 1. Ensure Data Type is set
-        if (!isset($this->dataType)) {
-            $this->configErrors[] = 'Cannot add Rule `checked` before setting the Data Type Rule!';
+        if (!isset($this->dataType) || ($this->dataType !== 'checkbox')) {
+            $this->configErrors[] = 'Cannot add Rule `checked` before setting the Data Type Rule to `checkbox`!';
             return $this;
         }
         // 2. Prevent Duplicate Rule Usage
@@ -2249,8 +2251,8 @@ class RuleSetAll
     public function unchecked(array|string $allowedValues = [false, 0, '0', 'off', 'no', 'nej', 'false', 'unchecked', 'disabled', 'unselected'], string $customErrorMsg = ''): self
     {
         // 1. Ensure Data Type is set
-        if (!isset($this->dataType)) {
-            $this->configErrors[] = 'Cannot add Rule `unchecked` before setting the Data Type Rule!';
+        if (!isset($this->dataType) || ($this->dataType !== 'checkbox')) {
+            $this->configErrors[] = 'Cannot add Rule `unchecked` before setting the Data Type Rule to `checkbox`!';
             return $this;
         }
         // 2. Prevent Duplicate Rule Usage
@@ -2585,6 +2587,184 @@ class RuleSetBoolean
             "}";
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['required'] = \"" . $this->rules['required']['error'] . "\";";
         $this->useRequired = true;
+        return $this;
+    }
+}
+
+class RuleSetCheckbox
+{
+    public ?string $dataType = null;
+    public ?string $dataTypeCategory = 'checkbox';
+    public ?bool $useNullable = false;
+    public ?bool $useRequired = false;
+    public ?bool $useBail = false;
+    // Flat associative list of configured rules
+    public array $rules = [];
+    // Tracks syntax/dev errors during chaining for validating the correct use of the rules
+    public array $configErrors = [];
+    // Collected compiled errors from the rules based on their received static scheme data
+    public array $compiledErrors = [];
+    // Collection of all errors besides the one for data type (this is for the else part
+    // when the $dataType rule is not fulfilled in validation; e.g. it is not a string so
+    // if it is not nullable then we can show all other errors immediately unless bail and/or
+    // stop_all_on_first_error is set to true!)
+    public array $mergedErrorsBesdiesDataType = [];
+    public function checkbox(string $customErrorMsg = ''): self
+    {
+        $this->dataType = "checkbox";
+        $this->rules['checkbox'] = [
+            'error' => ((!empty($customErrorMsg)) ? $customErrorMsg : 'This field is REQUIRED!')
+        ];
+        $this->rules['checkbox']['compiled'] =  "if(!is_scalar({{##INPUT##}}) || {{##INPUT##}} === null) {\n" .
+            "    {{##ERRORS##}}['checkbox'] = \"{$this->rules['checkbox']['error']}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "}";
+        return $this;
+    }
+    public function bail(): self
+    {
+        if (isset($this->rules['bail'])) {
+            $this->configErrors[] = 'Rule `bail` already used for Input Key: `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        $this->rules['bail'] = ['error' => null, 'compiled' => null];
+        $this->useBail = true;
+        return $this;
+    }
+    public function nullable(): self
+    {
+        if (isset($this->rules['nullable'])) {
+            $this->configErrors[] = 'Rule `nullable` already used for Input Key: `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        $this->rules['nullable'] = ['error' => null, 'compiled' => null];
+        $this->useNullable = true;
+        return $this;
+    }
+    public function required(string $customErrorMsg = ''): self
+    {
+        if (isset($this->rules['required'])) {
+            $this->configErrors[] = 'Rule `required` already used for Input Key: `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        $this->rules['required'] = [
+            'error' => ((!empty($customErrorMsg)) ? $customErrorMsg : 'This field is REQUIRED!')
+        ];
+        $this->rules['required']['compiled'] =  "if(!isset({{##INPUT##}})) {\n" .
+            "    {{##ERRORS##}}['required'] = \"{$this->rules['required']['error']}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "}";
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['required'] = \"" . $this->rules['required']['error'] . "\";";
+        $this->useRequired = true;
+        return $this;
+    }
+    public function checked(array|string $allowedValues = [true, 1, '1', 'on', 'yes', 'ja', 'true', 'checked', 'enabled', 'selected'], string $customErrorMsg = ''): self
+    {
+        // 1. Ensure Data Type is set
+        if (!isset($this->dataType) || ($this->dataType !== 'checkbox')) {
+            $this->configErrors[] = 'Cannot add Rule `checked` before setting the Data Type Rule to `checkbox`!';
+            return $this;
+        }
+        // 2. Prevent Duplicate Rule Usage
+        if (isset($this->rules['checked'])) {
+            $this->configErrors[] = 'Rule `checked` is already used for Input Key: `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        // 3. Conflict Guard
+        if (isset($this->rules['unchecked'])) {
+            $this->configErrors[] = 'Rule `checked` conflicts with existing rule `unchecked` on Input Key `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        // 4. Defaults & Parameter Normalization
+        $defaults = [true, 1, '1', 'on', 'yes', 'ja', 'true', 'checked', 'enabled', 'selected'];
+        if (empty($allowedValues)) {
+            $values = $defaults;
+        } elseif (is_string($allowedValues)) {
+            $values = array_filter(array_map('trim', explode(',', $allowedValues)), fn($v) => $v !== '');
+        } else {
+            $values = array_values($allowedValues);
+        }
+        if (empty($values)) {
+            $this->configErrors[] = 'Rule `checked` requires at least one allowed value for Input Key `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        // 5. Build Failure Condition (Strict in_array check)
+        $exportedValues = var_export($values, true);
+        $condition = '!in_array({{##INPUT##}}, ' . $exportedValues . ', true)';
+        $error = (!empty($customErrorMsg))
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be checked.";
+
+        // 6. Store Compiled Rule
+        $this->rules['checked'] = [
+            'allowed_values' => $values,
+            'error'          => $error,
+            'compiled'       => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['checked'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['checked'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function unchecked(array|string $allowedValues = [false, 0, '0', 'off', 'no', 'nej', 'false', 'unchecked', 'disabled', 'unselected'], string $customErrorMsg = ''): self
+    {
+        // 1. Ensure Data Type is set
+        if (!isset($this->dataType) || ($this->dataType !== 'checkbox')) {
+            $this->configErrors[] = 'Cannot add Rule `unchecked` before setting the Data Type Rule to `checkbox`!';
+            return $this;
+        }
+        // 2. Prevent Duplicate Rule Usage
+        if (isset($this->rules['unchecked'])) {
+            $this->configErrors[] = 'Rule `unchecked` is already used for Input Key: `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        // 3. Conflict Guard
+        if (isset($this->rules['checked'])) {
+            $this->configErrors[] = 'Rule `unchecked` conflicts with existing rule `checked` on Input Key `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        // 4. Defaults & Parameter Normalization
+        $defaults = [false, 0, '0', 'off', 'no', 'nej', 'false', 'unchecked', 'disabled', 'unselected'];
+        if (empty($allowedValues)) {
+            $values = $defaults;
+        } elseif (is_string($allowedValues)) {
+            $values = array_filter(array_map('trim', explode(',', $allowedValues)), fn($v) => $v !== '');
+        } else {
+            $values = array_values($allowedValues);
+        }
+        if (empty($values)) {
+            $this->configErrors[] = 'Rule `unchecked` requires at least one allowed value for Input Key `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        // 5. Build Failure Condition (Strict in_array check)
+        $exportedValues = var_export($values, true);
+        $condition = '!in_array({{##INPUT##}}, ' . $exportedValues . ', true)';
+        $error = (!empty($customErrorMsg))
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be unchecked.";
+        // 6. Store Compiled Rule
+        $this->rules['unchecked'] = [
+            'allowed_values' => $values,
+            'error'          => $error,
+            'compiled'       => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['unchecked'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['unchecked'] = \"" . $error . "\";";
         return $this;
     }
 }
@@ -3091,6 +3271,10 @@ function email(string $customErrorMsg = ''): RuleSetEmail
 function boolean(string $customErrorMsg = ''): RuleSetBoolean
 {
     return (new RuleSetBoolean())->boolean($customErrorMsg);
+}
+function checkbox(string $customErrorMsg = ''): RuleSetCheckbox
+{
+    return (new RuleSetCheckbox())->checkbox($customErrorMsg);
 }
 function number(string $customErrorMsg = ''): RuleSetNumber
 {
