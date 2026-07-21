@@ -12,6 +12,10 @@ function s_paj(&$c)
 	// Run the command `php funkcli compile v file=>fn`
 	// to get optimized version in return statement below it!
 	cli_dump([
-		'user.name'  => (string("Must be a string!")),
+		'<CONFIG>' => ['stop_all_on_first_error' => false],
+		'VALIDATION' => [
+			'name'  => all("string", "Name must be a string!")
+				->nullable()->required("A Username is required!")->min(10, "Must be 10 at least!")
+		],
 	]);
 };
