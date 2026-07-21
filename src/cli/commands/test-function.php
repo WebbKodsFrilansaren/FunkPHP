@@ -19,7 +19,6 @@ if (!defined('FUNKPHP_FILE_PATH_CLI_FUNCTIONS_AND_ALSO_CLASSES') || !is_readable
     cli_err('Expected Constant `FUNKPHP_FILE_PATH_CLI_FUNCTIONS_AND_ALSO_CLASSES` in `/src/cli/funk` File was NOT FOUND when it should have been? OR; the Expected File `/src/cli/core/cli_classes_with_functions.php` was NOT FOUND when it should have been!? Try restore the `/src/cli/funk` File using File Versioning Control Tool or by redownloading it from FunkPHP!');
 }
 include_once FUNKPHP_FILE_PATH_CLI_FUNCTIONS_AND_ALSO_CLASSES;
-
 $startPath = FUNKPHP_DIR . '/';
 $parts = null;
 $parts2 = null;
@@ -45,7 +44,6 @@ if ((isset($arg_foldersFileFn))
     if ($content === true) {
         cli_err('Provided & Parsed File Path (with expected Function `' . $fn . '` inside): `' . $startPath . '` was FOUND BUT IT SEEMS TO HAVE BEEN INCLUDED ALREADY?!');
     }
-
     // Try execute function in global scope, then try assumed namespace-scoped
     $c = []; // Fake pseudo global c/context/config variable to use!
     $fnToRun = ("\\funkphp\\" . join("\\", $parts2));

@@ -42,11 +42,17 @@ class RuleSetAll
         'json',
         'object'
     ];
+    private array $placeholders = [
+        'INPUT' => '{{##INPUT##}}',
+        'INPUT_KEY' => '{{##INPUT_KEY##}}',
+        'BAIL' => '{{##BAIL##}}',
+        'STOP_ALL' => '{{##STOP_ALL##}}',
+        'NEXT_RULE' => '{{##NEXT_RULE##}}'
+    ];
     public ?string $dataType = null;
     public ?bool $useNullable = false;
     public ?bool $useRequired = false;
     public ?bool $useBail = false;
-    public ?bool $useStopAllOnFirstError = false;
     // Flat associative list of configured rules
     public array $rules = [];
     // Tracks syntax/dev errors during chaining for validating the correct use of the rules
@@ -65,19 +71,52 @@ class RuleSetAll
             $this->configErrors[] = 'A Data Type already chosen: `' . ((is_string($this->dataType)) ? $this->dataType : 'NOT_A_STRING') . '`!';
         } else if (!in_array($dataType, $this->dataTypeRules)) {
             $this->configErrors[] = 'No/Invalid Data Type chosen: `' . ((is_string($dataType)) ? $dataType : 'NOT_A_STRING') . '`. Choose from: `' . implode(', ', $this->dataTypeRules) . '`!';
+        } else if (isset($this->rules[$dataType])) {
+            $this->configErrors[] = 'Rule `' . $dataType . '` already used for Input Key: `' . $this->placeholders['INPUT_KEY'] . '`!';
         } else {
             $this->dataType = $dataType;
+            $this->rules[$dataType] = [
+                'error' => ((!empty($customErrorMsg)) ? $customErrorMsg : "Must be of data type '$dataType'!")
+            ];
+            $is_what = '';
+
+            $compiled = "if($is_what){} else { {$this->placeholders['BAIL']} {$this->placeholders['STOP_ALL']} {$this->placeholders['NEXT_RULE']} }";
+            $this->rules[$dataType]['compiled'] = $compiled;
+            //$this->mergedErrorsBesdiesDataType[] = $this->rules[$dataType]['error']; - never used for data type rule but to illustrate!
         }
         return $this;
     }
 
+    public function bail(): self
+    {
+        if (isset($this->rules['bail'])) {
+            $this->configErrors[] = 'Rule `bail` already used for Input Key: `' . $this->placeholders['INPUT_KEY'] . '`!';
+        }
+        $this->useBail = true;
+        return $this;
+    }
+
+
     public function nullable(): self
     {
+        if (isset($this->rules['nullable'])) {
+            $this->configErrors[] = 'Rule `nullable` already used for Input Key: `' . $this->placeholders['INPUT_KEY'] . '`!';
+        }
         $this->useNullable = true;
         return $this;
     }
     public function required(string $customErrorMsg = ''): self
     {
+        if (isset($this->rules['required'])) {
+            $this->configErrors[] = 'Rule `required` already used for Input Key: `' . $this->placeholders['INPUT_KEY'] . '`!';
+        }
+
+        $this->rules['required'] = [
+            'error' => ((!empty($customErrorMsg)) ? $customErrorMsg : 'Input for `' . $this->placeholders['INPUT_KEY'] . '` is REQUIRED!')
+        ];
+        $compiled = 'if()';
+        $this->rules['required']['compiled'] = $compiled;
+        $this->mergedErrorsBesdiesDataType[] = $this->rules['required']['error'];
         $this->useRequired = true;
         return $this;
     }
@@ -85,11 +124,15 @@ class RuleSetAll
 
 class RuleSetString
 {
+    private array $placeholders = [
+        'INPUT' => '{{##INPUT##}}',
+        'BAIL' => '{{##BAIL##}}',
+        'STOP_ALL' => '{{##STOP_ALL##}}'
+    ];
     public ?string $dataType = null;
     public ?bool $useNullable = false;
     public ?bool $useRequired = false;
     public ?bool $useBail = false;
-    public ?bool $useStopAllOnFirstError = false;
     // Flat associative list of configured rules
     public array $rules = [];
     // Tracks syntax/dev errors during chaining for validating the correct use of the rules
@@ -126,11 +169,15 @@ class RuleSetString
 
 class RuleSetPassword
 {
+    private array $placeholders = [
+        'INPUT' => '{{##INPUT##}}',
+        'BAIL' => '{{##BAIL##}}',
+        'STOP_ALL' => '{{##STOP_ALL##}}'
+    ];
     public ?string $dataType = null;
     public ?bool $useNullable = false;
     public ?bool $useRequired = false;
     public ?bool $useBail = false;
-    public ?bool $useStopAllOnFirstError = false;
     // Flat associative list of configured rules
     public array $rules = [];
     // Tracks syntax/dev errors during chaining for validating the correct use of the rules
@@ -152,11 +199,15 @@ class RuleSetPassword
 
 class RuleSetEmail
 {
+    private array $placeholders = [
+        'INPUT' => '{{##INPUT##}}',
+        'BAIL' => '{{##BAIL##}}',
+        'STOP_ALL' => '{{##STOP_ALL##}}'
+    ];
     public ?string $dataType = null;
     public ?bool $useNullable = false;
     public ?bool $useRequired = false;
     public ?bool $useBail = false;
-    public ?bool $useStopAllOnFirstError = false;
     // Flat associative list of configured rules
     public array $rules = [];
     // Tracks syntax/dev errors during chaining for validating the correct use of the rules
@@ -178,11 +229,15 @@ class RuleSetEmail
 
 class RuleSetBoolean
 {
+    private array $placeholders = [
+        'INPUT' => '{{##INPUT##}}',
+        'BAIL' => '{{##BAIL##}}',
+        'STOP_ALL' => '{{##STOP_ALL##}}'
+    ];
     public ?string $dataType = null;
     public ?bool $useNullable = false;
     public ?bool $useRequired = false;
     public ?bool $useBail = false;
-    public ?bool $useStopAllOnFirstError = false;
     // Flat associative list of configured rules
     public array $rules = [];
     // Tracks syntax/dev errors during chaining for validating the correct use of the rules
@@ -204,11 +259,15 @@ class RuleSetBoolean
 
 class RuleSetNumber
 {
+    private array $placeholders = [
+        'INPUT' => '{{##INPUT##}}',
+        'BAIL' => '{{##BAIL##}}',
+        'STOP_ALL' => '{{##STOP_ALL##}}'
+    ];
     public ?string $dataType = null;
     public ?bool $useNullable = false;
     public ?bool $useRequired = false;
     public ?bool $useBail = false;
-    public ?bool $useStopAllOnFirstError = false;
     // Flat associative list of configured rules
     public array $rules = [];
     // Tracks syntax/dev errors during chaining for validating the correct use of the rules
@@ -230,11 +289,15 @@ class RuleSetNumber
 
 class RuleSetInteger
 {
+    private array $placeholders = [
+        'INPUT' => '{{##INPUT##}}',
+        'BAIL' => '{{##BAIL##}}',
+        'STOP_ALL' => '{{##STOP_ALL##}}'
+    ];
     public ?string $dataType = null;
     public ?bool $useNullable = false;
     public ?bool $useRequired = false;
     public ?bool $useBail = false;
-    public ?bool $useStopAllOnFirstError = false;
     // Flat associative list of configured rules
     public array $rules = [];
     // Tracks syntax/dev errors during chaining for validating the correct use of the rules
@@ -256,11 +319,15 @@ class RuleSetInteger
 
 class RuleSetFloat
 {
+    private array $placeholders = [
+        'INPUT' => '{{##INPUT##}}',
+        'BAIL' => '{{##BAIL##}}',
+        'STOP_ALL' => '{{##STOP_ALL##}}'
+    ];
     public ?string $dataType = null;
     public ?bool $useNullable = false;
     public ?bool $useRequired = false;
     public ?bool $useBail = false;
-    public ?bool $useStopAllOnFirstError = false;
     // Flat associative list of configured rules
     public array $rules = [];
     // Tracks syntax/dev errors during chaining for validating the correct use of the rules
@@ -282,11 +349,15 @@ class RuleSetFloat
 
 class RuleSetPhone
 {
+    private array $placeholders = [
+        'INPUT' => '{{##INPUT##}}',
+        'BAIL' => '{{##BAIL##}}',
+        'STOP_ALL' => '{{##STOP_ALL##}}'
+    ];
     public ?string $dataType = null;
     public ?bool $useNullable = false;
     public ?bool $useRequired = false;
     public ?bool $useBail = false;
-    public ?bool $useStopAllOnFirstError = false;
     // Flat associative list of configured rules
     public array $rules = [];
     // Tracks syntax/dev errors during chaining for validating the correct use of the rules
@@ -308,11 +379,15 @@ class RuleSetPhone
 
 class RuleSetArray
 {
+    private array $placeholders = [
+        'INPUT' => '{{##INPUT##}}',
+        'BAIL' => '{{##BAIL##}}',
+        'STOP_ALL' => '{{##STOP_ALL##}}'
+    ];
     public ?string $dataType = null;
     public ?bool $useNullable = false;
     public ?bool $useRequired = false;
     public ?bool $useBail = false;
-    public ?bool $useStopAllOnFirstError = false;
     // Flat associative list of configured rules
     public array $rules = [];
     // Tracks syntax/dev errors during chaining for validating the correct use of the rules
@@ -334,11 +409,15 @@ class RuleSetArray
 
 class RuleSetObject
 {
+    private array $placeholders = [
+        'INPUT' => '{{##INPUT##}}',
+        'BAIL' => '{{##BAIL##}}',
+        'STOP_ALL' => '{{##STOP_ALL##}}'
+    ];
     public ?string $dataType = null;
     public ?bool $useNullable = false;
     public ?bool $useRequired = false;
     public ?bool $useBail = false;
-    public ?bool $useStopAllOnFirstError = false;
     // Flat associative list of configured rules
     public array $rules = [];
     // Tracks syntax/dev errors during chaining for validating the correct use of the rules
