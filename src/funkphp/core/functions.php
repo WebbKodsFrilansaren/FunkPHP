@@ -4061,7 +4061,7 @@ function funk_validate_uid($inputName, $inputData, $validationValues, $customErr
 }
 /**
  * Validate that Input Data is a valid slug.
- * Usage: "slug:ascii" (strictly alphanumeric/English slugs) 
+ * Usage: "slug:ascii" (strictly alphanumeric/English slugs)
  * or just "slug" (universal slug pattern allowing unicode/anything but consecutive or trailing hyphens).
  * @see https://github.com/symfony/routing/blob/8.1/Requirement/Requirement.php Upstream Regex Source
  * @see https://github.com/symfony/ For more of Symfony's project
