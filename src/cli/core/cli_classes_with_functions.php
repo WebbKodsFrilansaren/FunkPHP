@@ -20,6 +20,11 @@
  * you do not understand how caching and/or compiled files work.
  **/
 
+
+
+
+
+
 class RuleSetAll
 {
     // Valid "Data Types" (set in $dataType)
@@ -77,6 +82,7 @@ class RuleSetAll
     public ?bool $useNullable = false;
     public ?bool $useRequired = false;
     public ?bool $useBail = false;
+    public ?string $arrayType = null;
     // Flat associative list of configured rules
     public array $rules = [];
     // Tracks syntax/dev errors during chaining for validating the correct use of the rules
@@ -150,6 +156,7 @@ class RuleSetAll
         string $ruleName,
         mixed $values,
         array $allowedDataTypes = [],
+        bool $valuesCanBeEmpty = false
     ): array|false {
         // 1. Normalize into an array
         if (is_array($values)) {
@@ -163,6 +170,9 @@ class RuleSetAll
         $normalized = array_values(array_filter($normalized, fn($v) => $v !== ''));
         // 2. Ensure non-empty list of values
         if (empty($normalized)) {
+            if ($valuesCanBeEmpty) {
+                return [];
+            }
             $this->configErrors[] = "Rule `{$ruleName}` Requires at least One Value for Input Key `{{##INPUT_KEY##}}`!";
             return false;
         }
@@ -204,8 +214,9 @@ class RuleSetAll
         }
         return $uniqueValues;
     }
+
     // ACTUAL RULES (some are data type-restricted like some for only strings, some for only arrays, etc.)
-    public function setDatatype(string $dataType, string $customErrorMsg = ''): self
+    public function setDatatype(string $dataType, string $customErrorMsg = '', string $setArrayTypeToListOrAssociative = ''): self
     {
         if (isset($this->dataType)) {
             $this->configErrors[] = 'A Data Type is already set: `' . $this->dataType . '`!';
@@ -215,6 +226,7 @@ class RuleSetAll
             $this->configErrors[] = 'Invalid Data Type chosen: `' . $dataType . '`.';
             return $this;
         }
+
         $this->dataType = $dataType;
         $this->dataTypeCategory = $this->setDataTypeCategory[$dataType];
         $guardExpression = $this->typeGuardMap[$dataType];
@@ -228,8 +240,24 @@ class RuleSetAll
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
+        if (!empty($setArrayTypeToListOrAssociative)) {
+            if ($dataType !== 'array') {
+                $this->configErrors[] = 'Invalid Data Type chosen: `' . $dataType . '` to set Array Type! Set `array` as Data Type to set Array Type at the same time!';
+                return $this;
+            }
+            if (strtolower($setArrayTypeToListOrAssociative) === 'list') {
+                return $this->keys_in_array_list();
+            } elseif (strtolower($setArrayTypeToListOrAssociative) === 'associative') {
+                return $this->keys_in_array_associative();
+            } else {
+                $this->configErrors[] = 'Invalid Array Type chosen: `' . $setArrayTypeToListOrAssociative . '`. Choose between `list` (a Numbered Array) OR `associative` (an Associative Array)!';
+                return $this;
+            }
+        }
+
         return $this;
     }
+    /* ALL DATA TYPES RULES */
     public function bail(): self
     {
         if (!$this->validateRuleUsage('bail')) {
@@ -267,6 +295,7 @@ class RuleSetAll
         $this->useRequired = true;
         return $this;
     }
+    /* ARRAY-ONLY RULES */
     public function keys_in_array_null_allowed(array|string $keysThatMustExistCanBeNull, string $customErrorMsg = ''): self
     {
         if (!$this->validateRuleUsage('keys_in_array_null_allowed', [], [], ['array'])) {
@@ -433,7 +462,105 @@ class RuleSetAll
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['keys_in_array_not_null_exact_count'] = \"" . $error . "\";";
         return $this;
     }
-
+    public function keys_in_array_list(string $customErrorMsg = ''): self
+    {
+        // 1. Guard check: strictly allowed on 'array' data type & conflicts with keys_in_array_associative
+        if (!$this->validateRuleUsage('keys_in_array_list', ['keys_in_array_associative'], ['array'], [])) {
+            return $this;
+        }
+        // 2. Classify the array structure on the builder
+        $this->arrayType = 'list';
+        $error = (!empty($customErrorMsg))
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be a Numbered Array!";
+        $this->rules['array']['compiled'] = str_replace("if(!is_array({{##INPUT##}}))", "if(!is_array({{##INPUT##}}) || !array_is_list({{##INPUT##}}))", $this->rules['array']['compiled']);
+        $this->rules['array']['error'] .= ' ' . $error;
+        return $this;
+    }
+    public function keys_in_array_associative(string $customErrorMsg = ''): self
+    {
+        // 1. Guard check: strictly allowed on 'array' data type & conflicts with keys_in_array_list
+        if (!$this->validateRuleUsage('keys_in_array_associative', ['keys_in_array_list'], ['array'], [])) {
+            return $this;
+        }
+        // 2. Classify the array structure on the builder
+        $this->arrayType = 'associative';
+        $error = (!empty($customErrorMsg))
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be an Associative Array!";
+        // !empty() ensures an empty array [] passes as a valid empty map instead of failing array_is_list()
+        $this->rules['array']['compiled'] = str_replace(
+            "if(!is_array({{##INPUT##}}))",
+            "if(!is_array({{##INPUT##}}) || (!empty({{##INPUT##}}) && array_is_list({{##INPUT##}})))",
+            $this->rules['array']['compiled']
+        );
+        $this->rules['array']['error'] .= ' ' . $error;
+        return $this;
+    }
+    public function keys_in_array_depths(array $pathsWhereEachDotIsNextDepthLevel, string $customErrorMsg = ''): self
+    {
+        // 1. Guard check: strictly allowed on 'array' data type
+        if (!$this->validateRuleUsage('keys_in_array_depths', [], ['array'], [])) {
+            return $this;
+        }
+        if (empty($pathsWhereEachDotIsNextDepthLevel)) {
+            $this->configErrors[] = '`keys_in_array_depths` requires at least one path string.';
+            return $this;
+        }
+        $compiledPathChecks = [];
+        // 2. Build short-circuiting PHP checks for each path
+        foreach ($pathsWhereEachDotIsNextDepthLevel as $path) {
+            $segments = array_filter(array_map('trim', explode('.', $path)), 'strlen');
+            if (empty($segments)) {
+                continue;
+            }
+            $stepChecks = [];
+            $currentAccess = '{{##INPUT##}}';
+            $totalSegments = count($segments);
+            $i = 0;
+            foreach ($segments as $segment) {
+                $i++;
+                $exportedKey = var_export($segment, true);
+                // Check if key exists at current level
+                $stepChecks[] = "array_key_exists({$exportedKey}, {$currentAccess})";
+                // Advance pointer deeper into the array structure
+                $currentAccess .= "[{$exportedKey}]";
+                // If there are more segments to traverse, ensure current node is an array
+                if ($i < $totalSegments) {
+                    $stepChecks[] = "is_array({$currentAccess})";
+                }
+            }
+            // Wrap individual path checks in parentheses
+            $compiledPathChecks[] = '(' . implode(' && ', $stepChecks) . ')';
+        }
+        if (empty($compiledPathChecks)) {
+            $this->configErrors[] = '`keys_in_array_depths` provided paths contained no valid segments.';
+            return $this;
+        }
+        // Combine all path conditions (all requested paths must exist)
+        $fullCondition = implode(' && ', $compiledPathChecks);
+        if (count($compiledPathChecks) > 1) {
+            $fullCondition = "({$fullCondition})";
+        }
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` is missing required nested array key paths: " . implode(', ', $pathsWhereEachDotIsNextDepthLevel);
+        // 3. Store compiled rule
+        $this->rules['keys_in_array_depths'] = [
+            'paths'    => $pathsWhereEachDotIsNextDepthLevel,
+            'error'    => $error,
+            'compiled' => "if(!({$fullCondition})) {\n" .
+                "    {{##ERRORS##}}['keys_in_array_depths'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['keys_in_array_depths'] = \"" . $error . "\";";
+        return $this;
+    }
+    /* MIXED DATA TYPES RULES when using RuleSetAll! */
     public function min(int|float $minValue, string $customErrorMsg = ''): self
     {
         if (!$this->validateRuleUsage('min', ['between', 'between_mb', 'size', 'min_mb'])) {
@@ -578,66 +705,6 @@ class RuleSetAll
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['max'] = \"{$error}\";";
         return $this;
     }
-    public function min_mb(int|float $minChars, string $customErrorMsg = ''): self
-    {
-        if (!$this->validateRuleUsage('min_mb', ['between', 'between_mb', 'size', 'min'], [], ['string'])) {
-            return $this;
-        }
-        // 3. Reject Floats (Multibyte character counts cannot be fractional)
-        if (is_float($minChars)) {
-            $this->configErrors[] = 'Rule `min_mb` has a Non-Integer Value `' . $minChars . '` for Input Key `{{##INPUT_KEY##}}`. Multibyte String Lengths must be Whole Numbers!';
-            return $this;
-        }
-        // 4. Reject Negative Values
-        if ($minChars < 0) {
-            $this->configErrors[] = 'Rule `min_mb` has a Negative Value `' . $minChars . '` for Input Key `{{##INPUT_KEY##}}`!';
-            return $this;
-        }
-        // 6. Build Rule Error & Compiled Code
-        $error = (!empty($customErrorMsg)) ? $customErrorMsg : "Must be at least {$minChars} characters.";
-        $this->rules['min_mb'] = [
-            'error'    => $error,
-            'compiled' => "if(mb_strlen({{##INPUT##}}) < {$minChars}) {\n" .
-                "    {{##ERRORS##}}['min_mb'] = \"{$error}\";\n" .
-                "    {{##GOTO_STOP_ALL##}}\n" .
-                "    {{##GOTO_BAIL##}}\n" .
-                "    {{##GOTO_NEXT_RULE##}}\n" .
-                "    {{##GOTO_END_FIELD##}}\n" .
-                "}"
-        ];
-        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['min_mb'] = \"" . $error . "\";";
-        return $this;
-    }
-    public function max_mb(int|float $maxChars, string $customErrorMsg = ''): self
-    {
-        if (!$this->validateRuleUsage('max_mb', ['between', 'between_mb', 'size', 'max'], [], ['string'])) {
-            return $this;
-        }
-        // 3. Reject Floats (Multibyte character counts cannot be fractional)
-        if (is_float($maxChars)) {
-            $this->configErrors[] = 'Rule `max_mb` has a Non-Integer Value `' . $maxChars . '` for Input Key `{{##INPUT_KEY##}}`. Multibyte String Lengths must be Whole Numbers!';
-            return $this;
-        }
-        // 4. Reject Negative Values
-        if ($maxChars < 0) {
-            $this->configErrors[] = 'Rule `max_mb` has a Negative Value `' . $maxChars . '` for Input Key `{{##INPUT_KEY##}}`!';
-            return $this;
-        }
-        // 6. Build Rule Error & Compiled Code
-        $error = (!empty($customErrorMsg)) ? $customErrorMsg : "Must be at most {$maxChars} characters.";
-        $this->rules['max_mb'] = [
-            'error'    => $error,
-            'compiled' => "if(mb_strlen({{##INPUT##}}) > {$maxChars}) {\n" .
-                "    {{##ERRORS##}}['max_mb'] = \"{$error}\";\n" .
-                "    {{##GOTO_STOP_ALL##}}\n" .
-                "    {{##GOTO_BAIL##}}\n" .
-                "    {{##GOTO_NEXT_RULE##}}\n" .
-                "    {{##GOTO_END_FIELD##}}\n" .
-                "}"
-        ];
-        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['max_mb'] = \"" . $error . "\";";
-        return $this;
-    }
     public function between(int|float $minVal, int|float $maxVal, string $customErrorMsg = ''): self
     {
         if (!$this->validateRuleUsage('between', ['size', 'between_mb', 'min', 'max', 'min_mb', 'max_mb'])) {
@@ -712,44 +779,6 @@ class RuleSetAll
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['between'] = \"" . $error . "\";";
         return $this;
     }
-    public function between_mb(int|float $minChars, int|float $maxChars, string $customErrorMsg = ''): self
-    {
-        if (!$this->validateRuleUsage('between_mb', ['size', 'between', 'min', 'max', 'min_mb', 'max_mb'], [], ['string'])) {
-            return $this;
-        }
-        // 3. Reject Floats on BOTH parameters
-        if (is_float($minChars) || is_float($maxChars)) {
-            $this->configErrors[] = 'Rule `between_mb` has a Non-Integer Value for Input Key `{{##INPUT_KEY##}}`. Multibyte String Lengths must be Whole Numbers!';
-            return $this;
-        }
-        // 4. Reject Negative Values & incompatible ranges
-        if ($minChars < 0) {
-            $this->configErrors[] = 'Rule `between_mb` has a Negative Value `' . $minChars . '` for Input Key `{{##INPUT_KEY##}}`!';
-            return $this;
-        }
-        if ($maxChars < 0) {
-            $this->configErrors[] = 'Rule `between_mb` has a Negative Value `' . $maxChars . '` for Input Key `{{##INPUT_KEY##}}`!';
-            return $this;
-        }
-        if ($minChars >= $maxChars) {
-            $this->configErrors[] = 'Rule `between_mb` has invalid range `[' . $minChars . ', ' . $maxChars . ']` for Input Key `{{##INPUT_KEY##}}`. MinChars must be strictly smaller than MaxChars!';
-            return $this;
-        }
-        // 6. Build Rule Error & Compiled Code
-        $error = (!empty($customErrorMsg)) ? $customErrorMsg : "Must be between {$minChars} and {$maxChars} characters.";
-        $this->rules['between_mb'] = [
-            'error'    => $error,
-            'compiled' => "if((mb_strlen({{##INPUT##}}) < {$minChars} || mb_strlen({{##INPUT##}}) > {$maxChars})) {\n" .
-                "    {{##ERRORS##}}['between_mb'] = \"{$error}\";\n" .
-                "    {{##GOTO_STOP_ALL##}}\n" .
-                "    {{##GOTO_BAIL##}}\n" .
-                "    {{##GOTO_NEXT_RULE##}}\n" .
-                "    {{##GOTO_END_FIELD##}}\n" .
-                "}"
-        ];
-        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['between_mb'] = \"" . $error . "\";";
-        return $this;
-    }
     public function size(int|float $size, string $customErrorMsg = ''): self
     {
         if (!$this->validateRuleUsage('size', ['min', 'max', 'between', 'between_mb', 'size_mb', 'max_mb', 'min_mb'])) {
@@ -820,6 +849,405 @@ class RuleSetAll
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['size'] = \"" . $error . "\";";
         return $this;
     }
+    public function starts_with(array|string|int|float $startsWithValues, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('starts_with', ['starts_with_mb'], [], ['string', 'numeric'])) {
+            return $this;
+        }
+        $prefixes = $this->validateRuleMultipleValues('starts_with', $startsWithValues, ['string', 'integer', 'float']);
+        if (!$prefixes) {
+            return $this;
+        }
+        // 3. Build Compiled Conditions using (string)({{##INPUT##}} ?? '')
+        $inputStr = '(string)({{##INPUT##}} ?? \'\')';
+        $conditions = [];
+        foreach ($prefixes as $prefix) {
+            $escapedPrefix = addslashes($prefix);
+            $conditions[] = "str_starts_with({$inputStr}, '{$escapedPrefix}')";
+        }
+        // If multiple prefixes, ANY match is valid: !(cond1 || cond2)
+        $condition = '!(' . implode(' || ', $conditions) . ')';
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must start with: " . implode(', ', $prefixes);
+        $this->rules['starts_with'] = [
+            'prefixes' => $prefixes,
+            'error'    => $error,
+            'compiled' => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['starts_with'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['starts_with'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function ends_with(array|string|int|float $endsWithValues, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('ends_with', ['ends_with_mb'], [], ['string', 'numeric'])) {
+            return $this;
+        }
+        $suffixes = $this->validateRuleMultipleValues('ends_with', $endsWithValues, ['string', 'integer', 'float']);
+        if (!$suffixes) {
+            return $this;
+        }
+        $inputStr = '(string)({{##INPUT##}} ?? \'\')';
+        $conditions = [];
+        foreach ($suffixes as $suffix) {
+            $escapedSuffix = addslashes($suffix);
+            $conditions[] = "str_ends_with({$inputStr}, '{$escapedSuffix}')";
+        }
+        // If multiple values given, ANY match passes validation
+        $condition = '!(' . implode(' || ', $conditions) . ')';
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must end with: " . implode(', ', $suffixes);
+        $this->rules['ends_with'] = [
+            'suffixes' => $suffixes,
+            'error'    => $error,
+            'compiled' => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['ends_with'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['ends_with'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function contains(array|string|int|float $containsValues, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('contains', ['contains_mb'], [], ['string', 'numeric', 'array'])) {
+            return $this;
+        }
+        $needles = $this->validateRuleMultipleValues('contains', $containsValues, ['string', 'integer', 'float']);
+        if (!$needles) {
+            return $this;
+        }
+        // BUILD-TIME BRANCHING based on Data Type Category
+        if ($this->dataTypeCategory === 'array') {
+            // ARRAY CATEGORY: Input array must contain ALL specified values
+            $inputArr = '(array)({{##INPUT##}} ?? [])';
+            $conditions = [];
+            foreach ($needles as $needle) {
+                $exportedNeedle = var_export($needle, true);
+                // Fails if ANY needle is NOT in the array
+                $conditions[] = "!in_array({$exportedNeedle}, {$inputArr}, true)";
+            }
+            $condition = implode(' || ', $conditions);
+        } else {
+            // STRING/NUMERIC CATEGORY: Input string must contain AT LEAST ONE of the specified values
+            $inputStr = '(string)({{##INPUT##}} ?? \'\')';
+            $conditions = [];
+            foreach ($needles as $needle) {
+                $escapedNeedle = addslashes((string)$needle);
+                $conditions[] = "str_contains({$inputStr}, '{$escapedNeedle}')";
+            }
+            $condition = '!(' . implode(' || ', $conditions) . ')';
+        }
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must contain: " . implode(', ', $needles);
+        $this->rules['contains'] = [
+            'needles'  => $needles,
+            'error'    => $error,
+            'compiled' => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['contains'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['contains'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function doesnt_start_with(array|string|int|float $startsWithValues, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('doesnt_start_with', ['doesnt_start_with_mb', 'starts_with'], [], ['string', 'numeric'])) {
+            return $this;
+        }
+        $prefixes = $this->validateRuleMultipleValues('doesnt_start_with', $startsWithValues, ['string', 'integer', 'float',]);
+        if (!$prefixes) {
+            return $this;
+        }
+        $inputStr = '(string)({{##INPUT##}} ?? \'\')';
+        $conditions = [];
+        foreach ($prefixes as $prefix) {
+            $escapedPrefix = addslashes($prefix);
+            $conditions[] = "str_starts_with({$inputStr}, '{$escapedPrefix}')";
+        }
+        // Fails if ANY condition matches
+        $condition = '(' . implode(' || ', $conditions) . ')';
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must not start with: " . implode(', ', $prefixes);
+        $this->rules['doesnt_start_with'] = [
+            'prefixes' => $prefixes,
+            'error'    => $error,
+            'compiled' => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['doesnt_start_with'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['doesnt_start_with'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function doesnt_end_with(array|string|int|float $endsWithValues, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('doesnt_end_with', ['doesnt_end_with_mb', 'ends_with'], [], ['string', 'numeric'])) {
+            return $this;
+        }
+        $suffixes = $this->validateRuleMultipleValues('doesnt_end_with', $endsWithValues, ['string', 'integer', 'float',]);
+        if (!$suffixes) {
+            return $this;
+        }
+        $inputStr = '(string)({{##INPUT##}} ?? \'\')';
+        $conditions = [];
+        foreach ($suffixes as $suffix) {
+            $escapedSuffix = addslashes($suffix);
+            $conditions[] = "str_ends_with({$inputStr}, '{$escapedSuffix}')";
+        }
+        // Fails if ANY condition matches
+        $condition = '(' . implode(' || ', $conditions) . ')';
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must not end with: " . implode(', ', $suffixes);
+        $this->rules['doesnt_end_with'] = [
+            'suffixes' => $suffixes,
+            'error'    => $error,
+            'compiled' => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['doesnt_end_with'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['doesnt_end_with'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function doesnt_contain(array|string|int|float $containsValues, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('doesnt_contain', ['doesnt_contain_mb', 'contains'], [], ['string', 'numeric', 'array'])) {
+            return $this;
+        }
+        $needles = $this->validateRuleMultipleValues('doesnt_contain', $containsValues, ['string', 'integer', 'float',]);
+        if (!$needles) {
+            return $this;
+        }
+        // BUILD-TIME BRANCHING based on Data Type Category
+        if ($this->dataTypeCategory === 'array') {
+            // ARRAY CATEGORY: Input array must NOT contain ANY of the specified values
+            $inputArr = '(array)({{##INPUT##}} ?? [])';
+            $conditions = [];
+            foreach ($needles as $needle) {
+                $exportedNeedle = var_export($needle, true);
+                // Fails if ANY needle IS found in the array
+                $conditions[] = "in_array({$exportedNeedle}, {$inputArr}, true)";
+            }
+            $condition = implode(' || ', $conditions);
+        } else {
+            // STRING/NUMERIC CATEGORY: Input string must NOT contain ANY of the specified values
+            $inputStr = '(string)({{##INPUT##}} ?? \'\')';
+            $conditions = [];
+            foreach ($needles as $needle) {
+                $escapedNeedle = addslashes((string)$needle);
+                $conditions[] = "str_contains({$inputStr}, '{$escapedNeedle}')";
+            }
+            $condition = '(' . implode(' || ', $conditions) . ')';
+        }
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must not contain: " . implode(', ', $needles);
+        $this->rules['doesnt_contain'] = [
+            'needles'  => $needles,
+            'error'    => $error,
+            'compiled' => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['doesnt_contain'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['doesnt_contain'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function in(array|string $inValues, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('in', ['not_in'], [], ['string', 'numeric', 'boolean'])) {
+            return $this;
+        }
+        $values = $this->validateRuleMultipleValues('in', $inValues, ['string', 'integer', 'boolean', 'float', null]);
+        if (!$values) {
+            return $this;
+        }
+        // 6. Build Failure Condition
+        // Failure condition: input value is NOT in the allowed list
+        if (count($values) <= 3) {
+            $checks = [];
+            foreach ($values as $val) {
+                $checks[] = '{{##INPUT##}} !== ' . var_export($val, true);
+            }
+            $condition = '(' . implode(' && ', $checks) . ')';
+        } else {
+            $exportedArray = var_export($values, true);
+            $condition = '!in_array({{##INPUT##}}, ' . $exportedArray . ', true)';
+        }
+        $error = (!empty($customErrorMsg)) ? $customErrorMsg : "Selected value for `{{##INPUT_KEY##}}` is invalid.";
+        // 7. Store Compiled Rule
+        $this->rules['in'] = [
+            'error'    => $error,
+            'compiled' => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['in'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['in'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function not_in(array|string $inValues, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('not_in', ['in'], [], ['string', 'numeric', 'boolean'])) {
+            return $this;
+        }
+        $values = $this->validateRuleMultipleValues('not_in', $inValues, ['string', 'integer', 'boolean', 'float', null]);
+        // Failure condition: input value IS in the forbidden list
+        if (count($values) <= 3) {
+            $checks = [];
+            foreach ($values as $val) {
+                $checks[] = '{{##INPUT##}} === ' . var_export($val, true);
+            }
+            $condition = '(' . implode(' || ', $checks) . ')';
+        } else {
+            $exportedArray = var_export($values, true);
+            $condition = 'in_array({{##INPUT##}}, ' . $exportedArray . ', true)';
+        }
+        $error = (!empty($customErrorMsg)) ? $customErrorMsg : "Selected value for `{{##INPUT_KEY##}}` is forbidden.";
+        // 7. Store Compiled Rule
+        $this->rules['not_in'] = [
+            'error'    => $error,
+            'compiled' => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['not_in'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['not_in'] = \"" . $error . "\";";
+        return $this;
+    }
+
+    /* STRING-ONLY RULES */
+    public function min_mb(int|float $minChars, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('min_mb', ['between', 'between_mb', 'size', 'min'], [], ['string'])) {
+            return $this;
+        }
+        // 3. Reject Floats (Multibyte character counts cannot be fractional)
+        if (is_float($minChars)) {
+            $this->configErrors[] = 'Rule `min_mb` has a Non-Integer Value `' . $minChars . '` for Input Key `{{##INPUT_KEY##}}`. Multibyte String Lengths must be Whole Numbers!';
+            return $this;
+        }
+        // 4. Reject Negative Values
+        if ($minChars < 0) {
+            $this->configErrors[] = 'Rule `min_mb` has a Negative Value `' . $minChars . '` for Input Key `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        // 6. Build Rule Error & Compiled Code
+        $error = (!empty($customErrorMsg)) ? $customErrorMsg : "Must be at least {$minChars} characters.";
+        $this->rules['min_mb'] = [
+            'error'    => $error,
+            'compiled' => "if(mb_strlen({{##INPUT##}}) < {$minChars}) {\n" .
+                "    {{##ERRORS##}}['min_mb'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['min_mb'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function max_mb(int|float $maxChars, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('max_mb', ['between', 'between_mb', 'size', 'max'], [], ['string'])) {
+            return $this;
+        }
+        // 3. Reject Floats (Multibyte character counts cannot be fractional)
+        if (is_float($maxChars)) {
+            $this->configErrors[] = 'Rule `max_mb` has a Non-Integer Value `' . $maxChars . '` for Input Key `{{##INPUT_KEY##}}`. Multibyte String Lengths must be Whole Numbers!';
+            return $this;
+        }
+        // 4. Reject Negative Values
+        if ($maxChars < 0) {
+            $this->configErrors[] = 'Rule `max_mb` has a Negative Value `' . $maxChars . '` for Input Key `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        // 6. Build Rule Error & Compiled Code
+        $error = (!empty($customErrorMsg)) ? $customErrorMsg : "Must be at most {$maxChars} characters.";
+        $this->rules['max_mb'] = [
+            'error'    => $error,
+            'compiled' => "if(mb_strlen({{##INPUT##}}) > {$maxChars}) {\n" .
+                "    {{##ERRORS##}}['max_mb'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['max_mb'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function between_mb(int|float $minChars, int|float $maxChars, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('between_mb', ['size', 'between', 'min', 'max', 'min_mb', 'max_mb'], [], ['string'])) {
+            return $this;
+        }
+        // 3. Reject Floats on BOTH parameters
+        if (is_float($minChars) || is_float($maxChars)) {
+            $this->configErrors[] = 'Rule `between_mb` has a Non-Integer Value for Input Key `{{##INPUT_KEY##}}`. Multibyte String Lengths must be Whole Numbers!';
+            return $this;
+        }
+        // 4. Reject Negative Values & incompatible ranges
+        if ($minChars < 0) {
+            $this->configErrors[] = 'Rule `between_mb` has a Negative Value `' . $minChars . '` for Input Key `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        if ($maxChars < 0) {
+            $this->configErrors[] = 'Rule `between_mb` has a Negative Value `' . $maxChars . '` for Input Key `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        if ($minChars >= $maxChars) {
+            $this->configErrors[] = 'Rule `between_mb` has invalid range `[' . $minChars . ', ' . $maxChars . ']` for Input Key `{{##INPUT_KEY##}}`. MinChars must be strictly smaller than MaxChars!';
+            return $this;
+        }
+        // 6. Build Rule Error & Compiled Code
+        $error = (!empty($customErrorMsg)) ? $customErrorMsg : "Must be between {$minChars} and {$maxChars} characters.";
+        $this->rules['between_mb'] = [
+            'error'    => $error,
+            'compiled' => "if((mb_strlen({{##INPUT##}}) < {$minChars} || mb_strlen({{##INPUT##}}) > {$maxChars})) {\n" .
+                "    {{##ERRORS##}}['between_mb'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['between_mb'] = \"" . $error . "\";";
+        return $this;
+    }
     public function size_mb(int|float $size, string $customErrorMsg = ''): self
     {
         if (!$this->validateRuleUsage('size_mb', ['min', 'max', 'between', 'between_mb', 'size', 'max_mb', 'min_mb'], [], ['string'])) {
@@ -848,247 +1276,6 @@ class RuleSetAll
                 "}"
         ];
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['size_mb'] = \"" . $error . "\";";
-        return $this;
-    }
-    // GLOBAL COMPILER MUST CHECK that "gte", "gt","lte","lt","same", "different" try NOT
-    // to "target" themselves but this needs access to outer keys which they do not have
-    // access to so they use {{##INPUT##}} and {{##TARGET_INPUT:<other_key_name>##}} thus!
-    public function gte(string $targetFieldinValidation, string $customErrorMsg = ''): self
-    {
-        if (!$this->validateRuleUsage('gte', ['gt'])) {
-            return $this;
-        }
-        $error = (!empty($customErrorMsg))
-            ? $customErrorMsg
-            : "Field `{{##INPUT_KEY##}}` must be greater than or equal to field `{$targetFieldinValidation}`.";
-        // 3. Branch condition based on current Data Type Category
-        // Failure condition: current field is LESS THAN target field
-        switch ($this->dataTypeCategory) {
-            case 'string':
-                $condition = "strlen({{##INPUT##}}) < strlen({{##TARGET_INPUT:{$targetFieldinValidation}##}})";
-                break;
-            case 'numeric':
-                $condition = "{{##INPUT##}} < {{##TARGET_INPUT:{$targetFieldinValidation}##}}";
-                break;
-            case 'array':
-                $condition = "count({{##INPUT##}}) < count({{##TARGET_INPUT:{$targetFieldinValidation}##}})";
-                break;
-            case 'object':
-                $condition = "count(get_object_vars({{##INPUT##}})) < count(get_object_vars({{##TARGET_INPUT:{$targetFieldinValidation}##}}))";
-                break;
-            case 'file':
-                $condition = "(!isset({{##INPUT##}}['size'], {{##TARGET_INPUT:{$targetFieldinValidation}##}}['size']) || {{##INPUT##}}['size'] < {{##TARGET_INPUT:{$targetFieldinValidation}##}}['size'])";
-                break;
-            default:
-                $this->configErrors[] = "Rule `gte` (greater than or equal) is not supported for Data Type `{$this->dataType}`!";
-                return $this;
-        }
-        // 4. Store compiled rule (with Target Existence Guard)
-        $this->rules['gte'] = [
-            'error'    => $error,
-            'target' => $targetFieldinValidation,
-            'compiled' => "if(!isset({{##TARGET_INPUT:{$targetFieldinValidation}##}}) || {$condition}) {\n" .
-                "    {{##ERRORS##}}['gte'] = \"{$error}\";\n" .
-                "    {{##GOTO_STOP_ALL##}}\n" .
-                "    {{##GOTO_BAIL##}}\n" .
-                "    {{##GOTO_NEXT_RULE##}}\n" .
-                "    {{##GOTO_END_FIELD##}}\n" .
-                "}"
-        ];
-        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['gte'] = \"" . $error . "\";";
-        return $this;
-    }
-    public function gt(string $targetFieldinValidation, string $customErrorMsg = ''): self
-    {
-        if (!$this->validateRuleUsage('gt', ['gte'])) {
-            return $this;
-        }
-        $error = (!empty($customErrorMsg))
-            ? $customErrorMsg
-            : "Field `{{##INPUT_KEY##}}` must be greater than field `{$targetFieldinValidation}`.";
-        // Failure condition: input <= target
-        switch ($this->dataTypeCategory) {
-            case 'string':
-                $condition = "strlen({{##INPUT##}}) <= strlen({{##TARGET_INPUT:{$targetFieldinValidation}##}})";
-                break;
-            case 'numeric':
-                $condition = "{{##INPUT##}} <= {{##TARGET_INPUT:{$targetFieldinValidation}##}}";
-                break;
-            case 'array':
-                $condition = "count({{##INPUT##}}) <= count({{##TARGET_INPUT:{$targetFieldinValidation}##}})";
-                break;
-            case 'object':
-                $condition = "count(get_object_vars({{##INPUT##}})) <= count(get_object_vars({{##TARGET_INPUT:{$targetFieldinValidation}##}}))";
-                break;
-            case 'file':
-                $condition = "(!isset({{##INPUT##}}['size'], {{##TARGET_INPUT:{$targetFieldinValidation}##}}['size']) || {{##INPUT##}}['size'] <= {{##TARGET_INPUT:{$targetFieldinValidation}##}}['size'])";
-                break;
-            default:
-                $this->configErrors[] = "Rule `gt` (greater than) is not supported for Data Type `{$this->dataType}`!";
-                return $this;
-        }
-        $this->rules['gt'] = [
-            'error'    => $error,
-            'target' => $targetFieldinValidation,
-            'compiled' => "if(!isset({{##TARGET_INPUT:{$targetFieldinValidation}##}}) || {$condition}) {\n" .
-                "    {{##ERRORS##}}['gt'] = \"{$error}\";\n" .
-                "    {{##GOTO_STOP_ALL##}}\n" .
-                "    {{##GOTO_BAIL##}}\n" .
-                "    {{##GOTO_NEXT_RULE##}}\n" .
-                "    {{##GOTO_END_FIELD##}}\n" .
-                "}"
-        ];
-        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['gt'] = \"" . $error . "\";";
-        return $this;
-    }
-    public function lte(string $targetFieldinValidation, string $customErrorMsg = ''): self
-    {
-        if (!$this->validateRuleUsage('lte', ['lt'])) {
-            return $this;
-        }
-        $error = (!empty($customErrorMsg))
-            ? $customErrorMsg
-            : "Field `{{##INPUT_KEY##}}` must be less than or equal to field `{$targetFieldinValidation}`.";
-        // Failure condition: input > target
-        switch ($this->dataTypeCategory) {
-            case 'string':
-                $condition = "strlen({{##INPUT##}}) > strlen({{##TARGET_INPUT:{$targetFieldinValidation}##}})";
-                break;
-            case 'numeric':
-                $condition = "{{##INPUT##}} > {{##TARGET_INPUT:{$targetFieldinValidation}##}}";
-                break;
-            case 'array':
-                $condition = "count({{##INPUT##}}) > count({{##TARGET_INPUT:{$targetFieldinValidation}##}})";
-                break;
-            case 'object':
-                $condition = "count(get_object_vars({{##INPUT##}})) > count(get_object_vars({{##TARGET_INPUT:{$targetFieldinValidation}##}}))";
-                break;
-            case 'file':
-                $condition = "(!isset({{##INPUT##}}['size'], {{##TARGET_INPUT:{$targetFieldinValidation}##}}['size']) || {{##INPUT##}}['size'] > {{##TARGET_INPUT:{$targetFieldinValidation}##}}['size'])";
-                break;
-            default:
-                $this->configErrors[] = "Rule `lte` (less than or equal) is not supported for Data Type `{$this->dataType}`!";
-                return $this;
-        }
-        $this->rules['lte'] = [
-            'error'    => $error,
-            'target' => $targetFieldinValidation,
-            'compiled' => "if(!isset({{##TARGET_INPUT:{$targetFieldinValidation}##}}) || {$condition}) {\n" .
-                "    {{##ERRORS##}}['lte'] = \"{$error}\";\n" .
-                "    {{##GOTO_STOP_ALL##}}\n" .
-                "    {{##GOTO_BAIL##}}\n" .
-                "    {{##GOTO_NEXT_RULE##}}\n" .
-                "    {{##GOTO_END_FIELD##}}\n" .
-                "}"
-        ];
-        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['lte'] = \"" . $error . "\";";
-        return $this;
-    }
-    public function lt(string $targetFieldinValidation, string $customErrorMsg = ''): self
-    {
-        if (!$this->validateRuleUsage('lt', ['lte'])) {
-            return $this;
-        }
-        $error = (!empty($customErrorMsg))
-            ? $customErrorMsg
-            : "Field `{{##INPUT_KEY##}}` must be less than field `{$targetFieldinValidation}`.";
-        // Failure condition: input >= target
-        switch ($this->dataTypeCategory) {
-            case 'string':
-                $condition = "strlen({{##INPUT##}}) >= strlen({{##TARGET_INPUT:{$targetFieldinValidation}##}})";
-                break;
-            case 'numeric':
-                $condition = "{{##INPUT##}} >= {{##TARGET_INPUT:{$targetFieldinValidation}##}}";
-                break;
-            case 'array':
-                $condition = "count({{##INPUT##}}) >= count({{##TARGET_INPUT:{$targetFieldinValidation}##}})";
-                break;
-            case 'object':
-                $condition = "count(get_object_vars({{##INPUT##}})) >= count(get_object_vars({{##TARGET_INPUT:{$targetFieldinValidation}##}}))";
-                break;
-            case 'file':
-                $condition = "(!isset({{##INPUT##}}['size'], {{##TARGET_INPUT:{$targetFieldinValidation}##}}['size']) || {{##INPUT##}}['size'] >= {{##TARGET_INPUT:{$targetFieldinValidation}##}}['size'])";
-                break;
-            default:
-                $this->configErrors[] = "Rule `lt` is not supported for Data Type `{$this->dataType}`!";
-                return $this;
-        }
-        $this->rules['lt'] = [
-            'error'    => $error,
-            'target' => $targetFieldinValidation,
-            'compiled' => "if(!isset({{##TARGET_INPUT:{$targetFieldinValidation}##}}) || {$condition}) {\n" .
-                "    {{##ERRORS##}}['lt'] = \"{$error}\";\n" .
-                "    {{##GOTO_STOP_ALL##}}\n" .
-                "    {{##GOTO_BAIL##}}\n" .
-                "    {{##GOTO_NEXT_RULE##}}\n" .
-                "    {{##GOTO_END_FIELD##}}\n" .
-                "}"
-        ];
-        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['lt'] = \"" . $error . "\";";
-        return $this;
-    }
-    public function same(string $targetField, string $customErrorMsg = ''): self
-    {
-        if (!$this->validateRuleUsage('same', ['different'])) {
-            return $this;
-        }
-        // 4. Validate Target Field Parameter
-        $targetField = trim($targetField);
-        if ($targetField === '') {
-            $this->configErrors[] = 'Rule `same` requires a Non-Empty Target Field Name for Input Key `{{##INPUT_KEY##}}`!';
-            return $this;
-        }
-        // 5. Build Failure Condition (Fails if values are NOT strictly identical)
-        // Access target field safely using var_export for the key name
-        $condition = "{{##INPUT##}} !== ({{##TARGET_INPUT:{$targetField}##}} ?? null)";
-        $error = (!empty($customErrorMsg))
-            ? $customErrorMsg
-            : "Field `{{##INPUT_KEY##}}` must match field `{$targetField}`.";
-        // 6. Store Compiled Rule
-        $this->rules['same'] = [
-            'error'    => $error,
-            'target' => $targetField,
-            'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['same'] = \"{$error}\";\n" .
-                "    {{##GOTO_STOP_ALL##}}\n" .
-                "    {{##GOTO_BAIL##}}\n" .
-                "    {{##GOTO_NEXT_RULE##}}\n" .
-                "    {{##GOTO_END_FIELD##}}\n" .
-                "}"
-        ];
-        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['same'] = \"" . $error . "\";";
-        return $this;
-    }
-    public function different(string $targetField, string $customErrorMsg = ''): self
-    {
-        if (!$this->validateRuleUsage('different', ['same'])) {
-            return $this;
-        }
-        // 4. Validate Target Field Parameter
-        $targetField = trim($targetField);
-        if ($targetField === '') {
-            $this->configErrors[] = 'Rule `different` requires a Non-Empty Target Field Name for Input Key `{{##INPUT_KEY##}}`!';
-            return $this;
-        }
-        // 5. Build Failure Condition (Fails if values ARE strictly identical)
-        // Enclose target variable in parentheses for strict operator precedence with ?? null
-        $condition = "{{##INPUT##}} === ({{##TARGET_INPUT:{$targetField}##}} ?? null)";
-        $error = (!empty($customErrorMsg))
-            ? $customErrorMsg
-            : "Field `{{##INPUT_KEY##}}` must be different from field `{$targetField}`.";
-        // 6. Store Compiled Rule
-        $this->rules['different'] = [
-            'error'  => $error,
-            'target' => $targetField,
-            'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['different'] = \"{$error}\";\n" .
-                "    {{##GOTO_STOP_ALL##}}\n" .
-                "    {{##GOTO_BAIL##}}\n" .
-                "    {{##GOTO_NEXT_RULE##}}\n" .
-                "    {{##GOTO_END_FIELD##}}\n" .
-                "}"
-        ];
-        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['different'] = \"" . $error . "\";";
         return $this;
     }
     public function regex(string|array $regexOrRegexes, string $customErrorMsg = ''): self
@@ -1174,74 +1361,6 @@ class RuleSetAll
                 "}"
         ];
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['not_regex'] = \"" . $error . "\";";
-        return $this;
-    }
-    public function in(array|string $inValues, string $customErrorMsg = ''): self
-    {
-        if (!$this->validateRuleUsage('in', ['not_in'], [], ['string', 'numeric', 'boolean'])) {
-            return $this;
-        }
-        $values = $this->validateRuleMultipleValues('in', $inValues, ['string', 'integer', 'boolean', 'float', null]);
-        if (!$values) {
-            return $this;
-        }
-        // 6. Build Failure Condition
-        // Failure condition: input value is NOT in the allowed list
-        if (count($values) <= 3) {
-            $checks = [];
-            foreach ($values as $val) {
-                $checks[] = '{{##INPUT##}} !== ' . var_export($val, true);
-            }
-            $condition = '(' . implode(' && ', $checks) . ')';
-        } else {
-            $exportedArray = var_export($values, true);
-            $condition = '!in_array({{##INPUT##}}, ' . $exportedArray . ', true)';
-        }
-        $error = (!empty($customErrorMsg)) ? $customErrorMsg : "Selected value for `{{##INPUT_KEY##}}` is invalid.";
-        // 7. Store Compiled Rule
-        $this->rules['in'] = [
-            'error'    => $error,
-            'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['in'] = \"{$error}\";\n" .
-                "    {{##GOTO_STOP_ALL##}}\n" .
-                "    {{##GOTO_BAIL##}}\n" .
-                "    {{##GOTO_NEXT_RULE##}}\n" .
-                "    {{##GOTO_END_FIELD##}}\n" .
-                "}"
-        ];
-        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['in'] = \"" . $error . "\";";
-        return $this;
-    }
-    public function not_in(array|string $inValues, string $customErrorMsg = ''): self
-    {
-        if (!$this->validateRuleUsage('not_in', ['in'], [], ['string', 'numeric', 'boolean'])) {
-            return $this;
-        }
-        $values = $this->validateRuleMultipleValues('not_in', $inValues, ['string', 'integer', 'boolean', 'float', null]);
-        // Failure condition: input value IS in the forbidden list
-        if (count($values) <= 3) {
-            $checks = [];
-            foreach ($values as $val) {
-                $checks[] = '{{##INPUT##}} === ' . var_export($val, true);
-            }
-            $condition = '(' . implode(' || ', $checks) . ')';
-        } else {
-            $exportedArray = var_export($values, true);
-            $condition = 'in_array({{##INPUT##}}, ' . $exportedArray . ', true)';
-        }
-        $error = (!empty($customErrorMsg)) ? $customErrorMsg : "Selected value for `{{##INPUT_KEY##}}` is forbidden.";
-        // 7. Store Compiled Rule
-        $this->rules['not_in'] = [
-            'error'    => $error,
-            'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['not_in'] = \"{$error}\";\n" .
-                "    {{##GOTO_STOP_ALL##}}\n" .
-                "    {{##GOTO_BAIL##}}\n" .
-                "    {{##GOTO_NEXT_RULE##}}\n" .
-                "    {{##GOTO_END_FIELD##}}\n" .
-                "}"
-        ];
-        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['not_in'] = \"" . $error . "\";";
         return $this;
     }
     public function mac_address(string $customErrorMsg = ''): self
@@ -1623,12 +1742,11 @@ class RuleSetAll
         if (!$this->validateRuleUsage('single_char', ['single_char_mb'], [], ['string'])) {
             return $this;
         }
-        // 4. Normalize & Validate Input Parameters
-        if (is_string($allowedChars)) {
-            $chars = array_filter(array_map('trim', explode(',', $allowedChars)), fn($c) => $c !== '');
-        } else {
-            $chars = array_values(array_map('strval', $allowedChars));
+        $chars = $this->validateRuleMultipleValues('single_char', $allowedChars, ['string'], true);
+        if ($chars === false) {
+            return $this;
         }
+        // 4. Validate Input Parameters
         $invalidChars = [];
         foreach ($chars as $c) {
             if (strlen($c) !== 1) {
@@ -1669,12 +1787,11 @@ class RuleSetAll
         if (!$this->validateRuleUsage('single_char_mb', ['single_char'], [], ['string'])) {
             return $this;
         }
-        // 4. Normalize & Validate Input Parameters
-        if (is_string($allowedChars)) {
-            $chars = array_filter(array_map('trim', explode(',', $allowedChars)), fn($c) => $c !== '');
-        } else {
-            $chars = array_values(array_map('strval', $allowedChars));
+        $chars = $this->validateRuleMultipleValues('single_char_mb', $allowedChars, ['string'], true);
+        if ($chars === false) {
+            return $this;
         }
+        //  Validate Input Parameters
         $invalidChars = [];
         foreach ($chars as $c) {
             if (mb_strlen($c) !== 1) {
@@ -1708,248 +1825,6 @@ class RuleSetAll
                 "}"
         ];
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['single_char_mb'] = \"" . $error . "\";";
-        return $this;
-    }
-    public function single_digit(array|string $allowedDigits = [], string $customErrorMsg = ''): self
-    {
-        if (!$this->validateRuleUsage('single_digit', ['min_digits', 'max_digits', 'digits', 'decimal', 'min_decimal', 'max_decimal', 'between_decimal'], [], ['string', 'integer'])) {
-            return $this;
-        }
-        // 4. Normalize & Validate Input Parameters
-        if (is_string($allowedDigits)) {
-            $digits = array_filter(array_map('trim', explode(',', $allowedDigits)), fn($d) => $d !== '');
-        } else {
-            $digits = array_values(array_map('strval', $allowedDigits));
-        }
-        $invalidDigits = [];
-        foreach ($digits as $d) {
-            if (!preg_match('/^\d$/', $d)) {
-                $invalidDigits[] = $d;
-            }
-        }
-        if (!empty($invalidDigits)) {
-            $this->configErrors[] = 'Rule `single_digit` received invalid digit(s) (`' . implode(', ', $invalidDigits) . '`) for Input Key `{{##INPUT_KEY##}}`! Each allowed entry must be a single digit (0-9).';
-            return $this;
-        }
-        // 5. Build Failure Condition
-        if (empty($digits)) {
-            // Opcode-level fast path for general single-digit check
-            $condition = 'strlen({{##INPUT##}}) !== 1 || !ctype_digit({{##INPUT##}})';
-            $defaultError = "Field `{{##INPUT_KEY##}}` must be a single digit (0-9).";
-        } else {
-            $exportedDigits = var_export(array_values($digits), true);
-            $condition = 'strlen({{##INPUT##}}) !== 1 || !in_array({{##INPUT##}}, ' . $exportedDigits . ', true)';
-            $defaultError = "Field `{{##INPUT_KEY##}}` must be one of the following digits: " . implode(', ', $digits) . ".";
-        }
-        $error = (!empty($customErrorMsg)) ? $customErrorMsg : $defaultError;
-        // 6. Store Compiled Rule
-        $this->rules['single_digit'] = [
-            'allowed_digits' => $digits,
-            'error'          => $error,
-            'compiled'       => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['single_digit'] = \"{$error}\";\n" .
-                "    {{##GOTO_STOP_ALL##}}\n" .
-                "    {{##GOTO_BAIL##}}\n" .
-                "    {{##GOTO_NEXT_RULE##}}\n" .
-                "    {{##GOTO_END_FIELD##}}\n" .
-                "}"
-        ];
-        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['single_digit'] = \"" . $error . "\";";
-        return $this;
-    }
-    public function checked(array|string $allowedValues = [true, 1, '1', 'on', 'yes', 'true', 'checked', 'enabled', 'selected', 'ja'], string $customErrorMsg = ''): self
-    {
-        if (!$this->validateRuleUsage('checked', ['unchecked'], ['checkbox'], ['checkbox'])) {
-            return $this;
-        }
-        // 4. Defaults & Parameter Normalization
-        $defaults = [true, 1, '1', 'on', 'yes', 'ja', 'true', 'checked', 'enabled', 'selected'];
-        if (empty($allowedValues)) {
-            $values = $defaults;
-        } elseif (is_string($allowedValues)) {
-            $values = array_filter(array_map('trim', explode(',', $allowedValues)), fn($v) => $v !== '');
-        } else {
-            $values = array_values($allowedValues);
-        }
-        if (empty($values)) {
-            $this->configErrors[] = 'Rule `checked` requires at least one allowed value for Input Key `{{##INPUT_KEY##}}`!';
-            return $this;
-        }
-        // 5. Build Failure Condition (Strict in_array check)
-        $exportedValues = var_export($values, true);
-        $condition = '!in_array({{##INPUT##}}, ' . $exportedValues . ', true)';
-        $error = (!empty($customErrorMsg))
-            ? $customErrorMsg
-            : "Field `{{##INPUT_KEY##}}` must be checked.";
-
-        // 6. Store Compiled Rule
-        $this->rules['checked'] = [
-            'allowed_values' => $values,
-            'error'          => $error,
-            'compiled'       => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['checked'] = \"{$error}\";\n" .
-                "    {{##GOTO_STOP_ALL##}}\n" .
-                "    {{##GOTO_BAIL##}}\n" .
-                "    {{##GOTO_NEXT_RULE##}}\n" .
-                "    {{##GOTO_END_FIELD##}}\n" .
-                "}"
-        ];
-        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['checked'] = \"" . $error . "\";";
-        return $this;
-    }
-    public function unchecked(array|string $allowedValues = [false, 0, '0', 'off', 'no', 'false', 'unchecked', 'disabled', 'unselected', 'nej'], string $customErrorMsg = ''): self
-    {
-        if (!$this->validateRuleUsage('unchecked', ['checked'], ['checkbox'], ['checkbox'])) {
-            return $this;
-        }
-        // 4. Defaults & Parameter Normalization
-        $defaults = [false, 0, '0', 'off', 'no', 'nej', 'false', 'unchecked', 'disabled', 'unselected'];
-        if (empty($allowedValues)) {
-            $values = $defaults;
-        } elseif (is_string($allowedValues)) {
-            $values = array_filter(array_map('trim', explode(',', $allowedValues)), fn($v) => $v !== '');
-        } else {
-            $values = array_values($allowedValues);
-        }
-        if (empty($values)) {
-            $this->configErrors[] = 'Rule `unchecked` requires at least one allowed value for Input Key `{{##INPUT_KEY##}}`!';
-            return $this;
-        }
-        // 5. Build Failure Condition (Strict in_array check)
-        $exportedValues = var_export($values, true);
-        $condition = '!in_array({{##INPUT##}}, ' . $exportedValues . ', true)';
-        $error = (!empty($customErrorMsg))
-            ? $customErrorMsg
-            : "Field `{{##INPUT_KEY##}}` must be unchecked.";
-        // 6. Store Compiled Rule
-        $this->rules['unchecked'] = [
-            'allowed_values' => $values,
-            'error'          => $error,
-            'compiled'       => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['unchecked'] = \"{$error}\";\n" .
-                "    {{##GOTO_STOP_ALL##}}\n" .
-                "    {{##GOTO_BAIL##}}\n" .
-                "    {{##GOTO_NEXT_RULE##}}\n" .
-                "    {{##GOTO_END_FIELD##}}\n" .
-                "}"
-        ];
-        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['unchecked'] = \"" . $error . "\";";
-        return $this;
-    }
-    public function starts_with(array|string|int|float $startsWithValues, string $customErrorMsg = ''): self
-    {
-        if (!$this->validateRuleUsage('starts_with', ['starts_with_mb'], [], ['string', 'numeric'])) {
-            return $this;
-        }
-        $prefixes = $this->validateRuleMultipleValues('starts_with', $startsWithValues, ['string', 'integer', 'float']);
-        if (!$prefixes) {
-            return $this;
-        }
-        // 3. Build Compiled Conditions using (string)({{##INPUT##}} ?? '')
-        $inputStr = '(string)({{##INPUT##}} ?? \'\')';
-        $conditions = [];
-        foreach ($prefixes as $prefix) {
-            $escapedPrefix = addslashes($prefix);
-            $conditions[] = "str_starts_with({$inputStr}, '{$escapedPrefix}')";
-        }
-        // If multiple prefixes, ANY match is valid: !(cond1 || cond2)
-        $condition = '!(' . implode(' || ', $conditions) . ')';
-        $error = !empty($customErrorMsg)
-            ? $customErrorMsg
-            : "Field `{{##INPUT_KEY##}}` must start with: " . implode(', ', $prefixes);
-        $this->rules['starts_with'] = [
-            'prefixes' => $prefixes,
-            'error'    => $error,
-            'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['starts_with'] = \"{$error}\";\n" .
-                "    {{##GOTO_STOP_ALL##}}\n" .
-                "    {{##GOTO_BAIL##}}\n" .
-                "    {{##GOTO_NEXT_RULE##}}\n" .
-                "    {{##GOTO_END_FIELD##}}\n" .
-                "}"
-        ];
-        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['starts_with'] = \"" . $error . "\";";
-        return $this;
-    }
-    public function ends_with(array|string|int|float $endsWithValues, string $customErrorMsg = ''): self
-    {
-        if (!$this->validateRuleUsage('ends_with', ['ends_with_mb'], [], ['string', 'numeric'])) {
-            return $this;
-        }
-        $suffixes = $this->validateRuleMultipleValues('ends_with', $endsWithValues, ['string', 'integer', 'float']);
-        if (!$suffixes) {
-            return $this;
-        }
-        $inputStr = '(string)({{##INPUT##}} ?? \'\')';
-        $conditions = [];
-        foreach ($suffixes as $suffix) {
-            $escapedSuffix = addslashes($suffix);
-            $conditions[] = "str_ends_with({$inputStr}, '{$escapedSuffix}')";
-        }
-        // If multiple values given, ANY match passes validation
-        $condition = '!(' . implode(' || ', $conditions) . ')';
-        $error = !empty($customErrorMsg)
-            ? $customErrorMsg
-            : "Field `{{##INPUT_KEY##}}` must end with: " . implode(', ', $suffixes);
-        $this->rules['ends_with'] = [
-            'suffixes' => $suffixes,
-            'error'    => $error,
-            'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['ends_with'] = \"{$error}\";\n" .
-                "    {{##GOTO_STOP_ALL##}}\n" .
-                "    {{##GOTO_BAIL##}}\n" .
-                "    {{##GOTO_NEXT_RULE##}}\n" .
-                "    {{##GOTO_END_FIELD##}}\n" .
-                "}"
-        ];
-        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['ends_with'] = \"" . $error . "\";";
-        return $this;
-    }
-    public function contains(array|string|int|float $containsValues, string $customErrorMsg = ''): self
-    {
-        if (!$this->validateRuleUsage('contains', ['contains_mb'], [], ['string', 'numeric', 'array'])) {
-            return $this;
-        }
-        $needles = $this->validateRuleMultipleValues('contains', $containsValues, ['string', 'integer', 'float']);
-        if (!$needles) {
-            return $this;
-        }
-        // BUILD-TIME BRANCHING based on Data Type Category
-        if ($this->dataTypeCategory === 'array') {
-            // ARRAY CATEGORY: Input array must contain ALL specified values
-            $inputArr = '(array)({{##INPUT##}} ?? [])';
-            $conditions = [];
-            foreach ($needles as $needle) {
-                $exportedNeedle = var_export($needle, true);
-                // Fails if ANY needle is NOT in the array
-                $conditions[] = "!in_array({$exportedNeedle}, {$inputArr}, true)";
-            }
-            $condition = implode(' || ', $conditions);
-        } else {
-            // STRING/NUMERIC CATEGORY: Input string must contain AT LEAST ONE of the specified values
-            $inputStr = '(string)({{##INPUT##}} ?? \'\')';
-            $conditions = [];
-            foreach ($needles as $needle) {
-                $escapedNeedle = addslashes((string)$needle);
-                $conditions[] = "str_contains({$inputStr}, '{$escapedNeedle}')";
-            }
-            $condition = '!(' . implode(' || ', $conditions) . ')';
-        }
-        $error = !empty($customErrorMsg)
-            ? $customErrorMsg
-            : "Field `{{##INPUT_KEY##}}` must contain: " . implode(', ', $needles);
-        $this->rules['contains'] = [
-            'needles'  => $needles,
-            'error'    => $error,
-            'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['contains'] = \"{$error}\";\n" .
-                "    {{##GOTO_STOP_ALL##}}\n" .
-                "    {{##GOTO_BAIL##}}\n" .
-                "    {{##GOTO_NEXT_RULE##}}\n" .
-                "    {{##GOTO_END_FIELD##}}\n" .
-                "}"
-        ];
-        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['contains'] = \"" . $error . "\";";
         return $this;
     }
     public function starts_with_mb(array|string|int|float $startsWithValues, string $customErrorMsg = ''): self
@@ -2063,121 +1938,6 @@ class RuleSetAll
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['contains_mb'] = \"" . $error . "\";";
         return $this;
     }
-    public function doesnt_start_with(array|string|int|float $startsWithValues, string $customErrorMsg = ''): self
-    {
-        if (!$this->validateRuleUsage('doesnt_start_with', ['doesnt_start_with_mb', 'starts_with'], [], ['string', 'numeric'])) {
-            return $this;
-        }
-        $prefixes = $this->validateRuleMultipleValues('doesnt_start_with', $startsWithValues, ['string', 'integer', 'float',]);
-        if (!$prefixes) {
-            return $this;
-        }
-        $inputStr = '(string)({{##INPUT##}} ?? \'\')';
-        $conditions = [];
-        foreach ($prefixes as $prefix) {
-            $escapedPrefix = addslashes($prefix);
-            $conditions[] = "str_starts_with({$inputStr}, '{$escapedPrefix}')";
-        }
-        // Fails if ANY condition matches
-        $condition = '(' . implode(' || ', $conditions) . ')';
-        $error = !empty($customErrorMsg)
-            ? $customErrorMsg
-            : "Field `{{##INPUT_KEY##}}` must not start with: " . implode(', ', $prefixes);
-        $this->rules['doesnt_start_with'] = [
-            'prefixes' => $prefixes,
-            'error'    => $error,
-            'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['doesnt_start_with'] = \"{$error}\";\n" .
-                "    {{##GOTO_STOP_ALL##}}\n" .
-                "    {{##GOTO_BAIL##}}\n" .
-                "    {{##GOTO_NEXT_RULE##}}\n" .
-                "    {{##GOTO_END_FIELD##}}\n" .
-                "}"
-        ];
-        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['doesnt_start_with'] = \"" . $error . "\";";
-        return $this;
-    }
-    public function doesnt_end_with(array|string|int|float $endsWithValues, string $customErrorMsg = ''): self
-    {
-        if (!$this->validateRuleUsage('doesnt_end_with', ['doesnt_end_with_mb', 'ends_with'], [], ['string', 'numeric'])) {
-            return $this;
-        }
-        $suffixes = $this->validateRuleMultipleValues('doesnt_end_with', $endsWithValues, ['string', 'integer', 'float',]);
-        if (!$suffixes) {
-            return $this;
-        }
-        $inputStr = '(string)({{##INPUT##}} ?? \'\')';
-        $conditions = [];
-        foreach ($suffixes as $suffix) {
-            $escapedSuffix = addslashes($suffix);
-            $conditions[] = "str_ends_with({$inputStr}, '{$escapedSuffix}')";
-        }
-        // Fails if ANY condition matches
-        $condition = '(' . implode(' || ', $conditions) . ')';
-        $error = !empty($customErrorMsg)
-            ? $customErrorMsg
-            : "Field `{{##INPUT_KEY##}}` must not end with: " . implode(', ', $suffixes);
-        $this->rules['doesnt_end_with'] = [
-            'suffixes' => $suffixes,
-            'error'    => $error,
-            'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['doesnt_end_with'] = \"{$error}\";\n" .
-                "    {{##GOTO_STOP_ALL##}}\n" .
-                "    {{##GOTO_BAIL##}}\n" .
-                "    {{##GOTO_NEXT_RULE##}}\n" .
-                "    {{##GOTO_END_FIELD##}}\n" .
-                "}"
-        ];
-        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['doesnt_end_with'] = \"" . $error . "\";";
-        return $this;
-    }
-    public function doesnt_contain(array|string|int|float $containsValues, string $customErrorMsg = ''): self
-    {
-        if (!$this->validateRuleUsage('doesnt_contain', ['doesnt_contain_mb', 'contains'], [], ['string', 'numeric', 'array'])) {
-            return $this;
-        }
-        $needles = $this->validateRuleMultipleValues('doesnt_contain', $containsValues, ['string', 'integer', 'float',]);
-        if (!$needles) {
-            return $this;
-        }
-        // BUILD-TIME BRANCHING based on Data Type Category
-        if ($this->dataTypeCategory === 'array') {
-            // ARRAY CATEGORY: Input array must NOT contain ANY of the specified values
-            $inputArr = '(array)({{##INPUT##}} ?? [])';
-            $conditions = [];
-            foreach ($needles as $needle) {
-                $exportedNeedle = var_export($needle, true);
-                // Fails if ANY needle IS found in the array
-                $conditions[] = "in_array({$exportedNeedle}, {$inputArr}, true)";
-            }
-            $condition = implode(' || ', $conditions);
-        } else {
-            // STRING/NUMERIC CATEGORY: Input string must NOT contain ANY of the specified values
-            $inputStr = '(string)({{##INPUT##}} ?? \'\')';
-            $conditions = [];
-            foreach ($needles as $needle) {
-                $escapedNeedle = addslashes((string)$needle);
-                $conditions[] = "str_contains({$inputStr}, '{$escapedNeedle}')";
-            }
-            $condition = '(' . implode(' || ', $conditions) . ')';
-        }
-        $error = !empty($customErrorMsg)
-            ? $customErrorMsg
-            : "Field `{{##INPUT_KEY##}}` must not contain: " . implode(', ', $needles);
-        $this->rules['doesnt_contain'] = [
-            'needles'  => $needles,
-            'error'    => $error,
-            'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['doesnt_contain'] = \"{$error}\";\n" .
-                "    {{##GOTO_STOP_ALL##}}\n" .
-                "    {{##GOTO_BAIL##}}\n" .
-                "    {{##GOTO_NEXT_RULE##}}\n" .
-                "    {{##GOTO_END_FIELD##}}\n" .
-                "}"
-        ];
-        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['doesnt_contain'] = \"" . $error . "\";";
-        return $this;
-    }
     public function doesnt_start_with_mb(array|string|int|float $startsWithValues, string $customErrorMsg = ''): self
     {
         if (!$this->validateRuleUsage('doesnt_start_with_mb', ['doesnt_start_with', 'starts_with_mb'], [], ['string'])) {
@@ -2285,6 +2045,639 @@ class RuleSetAll
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['doesnt_contain_mb'] = \"" . $error . "\";";
         return $this;
     }
+
+    /* OTHER INPUT KEYS-ONLY RULES - value is ANOTHER data field! */
+    // GLOBAL COMPILER MUST CHECK that "gte", "gt","lte","lt","same", "different" try NOT
+    // to "target" themselves but this needs access to outer keys which they do not have
+    // access to so they use {{##INPUT##}} and {{##TARGET_INPUT:<other_key_name>##}} thus!
+    public function gte(string $targetFieldinValidation, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('gte', ['gt'])) {
+            return $this;
+        }
+        $error = (!empty($customErrorMsg))
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be greater than or equal to field `{$targetFieldinValidation}`.";
+        // 3. Branch condition based on current Data Type Category
+        // Failure condition: current field is LESS THAN target field
+        switch ($this->dataTypeCategory) {
+            case 'string':
+                $condition = "strlen({{##INPUT##}}) < strlen({{##TARGET_INPUT:{$targetFieldinValidation}##}})";
+                break;
+            case 'numeric':
+                $condition = "{{##INPUT##}} < {{##TARGET_INPUT:{$targetFieldinValidation}##}}";
+                break;
+            case 'array':
+                $condition = "count({{##INPUT##}}) < count({{##TARGET_INPUT:{$targetFieldinValidation}##}})";
+                break;
+            case 'object':
+                $condition = "count(get_object_vars({{##INPUT##}})) < count(get_object_vars({{##TARGET_INPUT:{$targetFieldinValidation}##}}))";
+                break;
+            case 'file':
+                $condition = "(!isset({{##INPUT##}}['size'], {{##TARGET_INPUT:{$targetFieldinValidation}##}}['size']) || {{##INPUT##}}['size'] < {{##TARGET_INPUT:{$targetFieldinValidation}##}}['size'])";
+                break;
+            default:
+                $this->configErrors[] = "Rule `gte` (greater than or equal) is not supported for Data Type `{$this->dataType}`!";
+                return $this;
+        }
+        // 4. Store compiled rule (with Target Existence Guard)
+        $this->rules['gte'] = [
+            'error'    => $error,
+            'target' => $targetFieldinValidation,
+            'compiled' => "if(!isset({{##TARGET_INPUT:{$targetFieldinValidation}##}}) || {$condition}) {\n" .
+                "    {{##ERRORS##}}['gte'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['gte'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function gt(string $targetFieldinValidation, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('gt', ['gte'])) {
+            return $this;
+        }
+        $error = (!empty($customErrorMsg))
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be greater than field `{$targetFieldinValidation}`.";
+        // Failure condition: input <= target
+        switch ($this->dataTypeCategory) {
+            case 'string':
+                $condition = "strlen({{##INPUT##}}) <= strlen({{##TARGET_INPUT:{$targetFieldinValidation}##}})";
+                break;
+            case 'numeric':
+                $condition = "{{##INPUT##}} <= {{##TARGET_INPUT:{$targetFieldinValidation}##}}";
+                break;
+            case 'array':
+                $condition = "count({{##INPUT##}}) <= count({{##TARGET_INPUT:{$targetFieldinValidation}##}})";
+                break;
+            case 'object':
+                $condition = "count(get_object_vars({{##INPUT##}})) <= count(get_object_vars({{##TARGET_INPUT:{$targetFieldinValidation}##}}))";
+                break;
+            case 'file':
+                $condition = "(!isset({{##INPUT##}}['size'], {{##TARGET_INPUT:{$targetFieldinValidation}##}}['size']) || {{##INPUT##}}['size'] <= {{##TARGET_INPUT:{$targetFieldinValidation}##}}['size'])";
+                break;
+            default:
+                $this->configErrors[] = "Rule `gt` (greater than) is not supported for Data Type `{$this->dataType}`!";
+                return $this;
+        }
+        $this->rules['gt'] = [
+            'error'    => $error,
+            'target' => $targetFieldinValidation,
+            'compiled' => "if(!isset({{##TARGET_INPUT:{$targetFieldinValidation}##}}) || {$condition}) {\n" .
+                "    {{##ERRORS##}}['gt'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['gt'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function lte(string $targetFieldinValidation, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('lte', ['lt'])) {
+            return $this;
+        }
+        $error = (!empty($customErrorMsg))
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be less than or equal to field `{$targetFieldinValidation}`.";
+        // Failure condition: input > target
+        switch ($this->dataTypeCategory) {
+            case 'string':
+                $condition = "strlen({{##INPUT##}}) > strlen({{##TARGET_INPUT:{$targetFieldinValidation}##}})";
+                break;
+            case 'numeric':
+                $condition = "{{##INPUT##}} > {{##TARGET_INPUT:{$targetFieldinValidation}##}}";
+                break;
+            case 'array':
+                $condition = "count({{##INPUT##}}) > count({{##TARGET_INPUT:{$targetFieldinValidation}##}})";
+                break;
+            case 'object':
+                $condition = "count(get_object_vars({{##INPUT##}})) > count(get_object_vars({{##TARGET_INPUT:{$targetFieldinValidation}##}}))";
+                break;
+            case 'file':
+                $condition = "(!isset({{##INPUT##}}['size'], {{##TARGET_INPUT:{$targetFieldinValidation}##}}['size']) || {{##INPUT##}}['size'] > {{##TARGET_INPUT:{$targetFieldinValidation}##}}['size'])";
+                break;
+            default:
+                $this->configErrors[] = "Rule `lte` (less than or equal) is not supported for Data Type `{$this->dataType}`!";
+                return $this;
+        }
+        $this->rules['lte'] = [
+            'error'    => $error,
+            'target' => $targetFieldinValidation,
+            'compiled' => "if(!isset({{##TARGET_INPUT:{$targetFieldinValidation}##}}) || {$condition}) {\n" .
+                "    {{##ERRORS##}}['lte'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['lte'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function lt(string $targetFieldinValidation, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('lt', ['lte'])) {
+            return $this;
+        }
+        $error = (!empty($customErrorMsg))
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be less than field `{$targetFieldinValidation}`.";
+        // Failure condition: input >= target
+        switch ($this->dataTypeCategory) {
+            case 'string':
+                $condition = "strlen({{##INPUT##}}) >= strlen({{##TARGET_INPUT:{$targetFieldinValidation}##}})";
+                break;
+            case 'numeric':
+                $condition = "{{##INPUT##}} >= {{##TARGET_INPUT:{$targetFieldinValidation}##}}";
+                break;
+            case 'array':
+                $condition = "count({{##INPUT##}}) >= count({{##TARGET_INPUT:{$targetFieldinValidation}##}})";
+                break;
+            case 'object':
+                $condition = "count(get_object_vars({{##INPUT##}})) >= count(get_object_vars({{##TARGET_INPUT:{$targetFieldinValidation}##}}))";
+                break;
+            case 'file':
+                $condition = "(!isset({{##INPUT##}}['size'], {{##TARGET_INPUT:{$targetFieldinValidation}##}}['size']) || {{##INPUT##}}['size'] >= {{##TARGET_INPUT:{$targetFieldinValidation}##}}['size'])";
+                break;
+            default:
+                $this->configErrors[] = "Rule `lt` is not supported for Data Type `{$this->dataType}`!";
+                return $this;
+        }
+        $this->rules['lt'] = [
+            'error'    => $error,
+            'target' => $targetFieldinValidation,
+            'compiled' => "if(!isset({{##TARGET_INPUT:{$targetFieldinValidation}##}}) || {$condition}) {\n" .
+                "    {{##ERRORS##}}['lt'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['lt'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function same(string $targetField, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('same', ['different'])) {
+            return $this;
+        }
+        // 4. Validate Target Field Parameter
+        $targetField = trim($targetField);
+        if ($targetField === '') {
+            $this->configErrors[] = 'Rule `same` requires a Non-Empty Target Field Name for Input Key `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        // 5. Build Failure Condition (Fails if values are NOT strictly identical)
+        // Access target field safely using var_export for the key name
+        $condition = "{{##INPUT##}} !== ({{##TARGET_INPUT:{$targetField}##}} ?? null)";
+        $error = (!empty($customErrorMsg))
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must match field `{$targetField}`.";
+        // 6. Store Compiled Rule
+        $this->rules['same'] = [
+            'error'    => $error,
+            'target' => $targetField,
+            'compiled' => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['same'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['same'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function different(string $targetField, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('different', ['same'])) {
+            return $this;
+        }
+        // 4. Validate Target Field Parameter
+        $targetField = trim($targetField);
+        if ($targetField === '') {
+            $this->configErrors[] = 'Rule `different` requires a Non-Empty Target Field Name for Input Key `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        // 5. Build Failure Condition (Fails if values ARE strictly identical)
+        // Enclose target variable in parentheses for strict operator precedence with ?? null
+        $condition = "{{##INPUT##}} === ({{##TARGET_INPUT:{$targetField}##}} ?? null)";
+        $error = (!empty($customErrorMsg))
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be different from field `{$targetField}`.";
+        // 6. Store Compiled Rule
+        $this->rules['different'] = [
+            'error'  => $error,
+            'target' => $targetField,
+            'compiled' => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['different'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['different'] = \"" . $error . "\";";
+        return $this;
+    }
+
+    /* INTEGER+FLOAT-ONLY RULES (meaning they support both Float+Integer data types but no other!) */
+    public function multiple_of(int|float|string $value, string $customErrorMsg = ''): self
+    {
+        // 1. Guard check: allowed on both 'integer' and 'float' data types
+        if (!$this->validateRuleUsage('multiple_of', [], ['integer', 'float'], [])) {
+            return $this;
+        }
+        // 2. Validate parameter (accepts integer, float, or numeric string)
+        $values = $this->validateRuleMultipleValues('multiple_of', $value, ['integer', 'float']);
+        if ($values === false) {
+            return $this;
+        }
+        $target = $values[0];
+        // Reject zero or negative values to prevent division-by-zero errors
+        if ($target <= 0) {
+            $this->configErrors[] = "Rule `multiple_of` Parameter must be a Positive Number greater than 0, `{$target}` given for Input Key `{{##INPUT_KEY##}}`!";
+            return $this;
+        }
+        // 3. Pick the optimal runtime condition based on context
+        $isPureInteger = ($this->dataType === 'integer' && is_int($target));
+        if ($isPureInteger) {
+            // Fast integer modulo operator %
+            $condition = "({{##INPUT##}} % {$target}) !== 0";
+        } else {
+            // Floating-point fmod() with epsilon tolerance to eliminate binary float precision quirks
+            $targetFloat = (float)$target;
+            $condition = "abs(fmod((float)({{##INPUT##}} ?? 0), {$targetFloat})) > 0.00001";
+        }
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be a multiple of {$target}.";
+        // 4. Store compiled rule
+        $this->rules['multiple_of'] = [
+            'value'    => $target,
+            'error'    => $error,
+            'compiled' => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['multiple_of'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['multiple_of'] = \"" . $error . "\";";
+        return $this;
+    }
+
+    /* INTEGER-ONLY RULES */
+    public function single_digit(array|string $allowedDigitsLeaveEmptyForAll = [], string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('single_digit', ['min_digits', 'max_digits', 'digits', 'decimal', 'min_decimal', 'max_decimal', 'between_decimal'], [], ['string', 'integer'])) {
+            return $this;
+        }
+        $digits = $this->validateRuleMultipleValues('single_digit', $allowedDigitsLeaveEmptyForAll, ['integer'], true);
+        if ($digits === false) {
+            return $this;
+        }
+        // 4. Normalize & Validate Input Parameters
+        $invalidDigits = [];
+        foreach ($digits as $d) {
+            if (!preg_match('/^\d$/', $d)) {
+                $invalidDigits[] = $d;
+            }
+        }
+        if (!empty($invalidDigits)) {
+            $this->configErrors[] = 'Rule `single_digit` received invalid digit(s) (`' . implode(', ', $invalidDigits) . '`) for Input Key `{{##INPUT_KEY##}}`! Each allowed entry must be a single digit (0-9).';
+            return $this;
+        }
+        // 5. Build Failure Condition
+        if (empty($digits)) {
+            // Opcode-level fast path for general single-digit check
+            $condition = 'strlen({{##INPUT##}}) !== 1 || !ctype_digit({{##INPUT##}})';
+            $defaultError = "Field `{{##INPUT_KEY##}}` must be a single digit (0-9).";
+        } else {
+            $exportedDigits = var_export(array_values($digits), true);
+            $condition = 'strlen({{##INPUT##}}) !== 1 || !in_array({{##INPUT##}}, ' . $exportedDigits . ', true)';
+            $defaultError = "Field `{{##INPUT_KEY##}}` must be one of the following digits: " . implode(', ', $digits) . ".";
+        }
+        $error = (!empty($customErrorMsg)) ? $customErrorMsg : $defaultError;
+        // 6. Store Compiled Rule
+        $this->rules['single_digit'] = [
+            'allowed_digits' => $digits,
+            'error'          => $error,
+            'compiled'       => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['single_digit'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['single_digit'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function digits(int $exactNumberOfDigits, string $customErrorMsg = ''): self
+    {
+        // 1. Guard check: strictly allowed on 'integer' data type only
+        if (!$this->validateRuleUsage('digits', ['min_digits', 'max_digits', 'digits_between'], ['integer'], [])) {
+            return $this;
+        }
+        // 2. Validate parameter using rule values helper
+        $values = $this->validateRuleMultipleValues('digits', $exactNumberOfDigits, ['integer']);
+        if ($values === false) {
+            return $this;
+        }
+        $count = $values[0];
+        if ($count < 1) {
+            $this->configErrors[] = "Rule `digits` parameter must be a positive integer greater than 0 for Input Key `{{##INPUT_KEY##}}`!";
+            return $this;
+        }
+        // 3. Compile failure condition (uses abs() so negative signs are not counted as digits)
+        $condition = "strlen((string)abs({{##INPUT##}})) !== {$count}";
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be exactly {$count} digits.";
+        // 4. Store compiled rule
+        $this->rules['digits'] = [
+            'digits'   => $count,
+            'error'    => $error,
+            'compiled' => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['digits'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['digits'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function min_digits(int $minNumberOfDigits, string $customErrorMsg = ''): self
+    {
+        // 1. Guard check: strictly allowed on 'integer' data type only
+        if (!$this->validateRuleUsage('min_digits', ['digits', 'single_digit', 'digits_between'], ['integer'], [])) {
+            return $this;
+        }
+        // 2. Validate parameter
+        $values = $this->validateRuleMultipleValues('min_digits', $minNumberOfDigits, ['integer']);
+        if ($values === false) {
+            return $this;
+        }
+        $min = $values[0];
+        if ($min < 1) {
+            $this->configErrors[] = "Rule `min_digits` parameter must be a positive integer greater than 0 for Input Key `{{##INPUT_KEY##}}`!";
+            return $this;
+        }
+        // 3. Compile failure condition
+        $condition = "strlen((string)abs({{##INPUT##}})) < {$min}";
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must have at least {$min} digits.";
+        // 4. Store compiled rule
+        $this->rules['min_digits'] = [
+            'min'      => $min,
+            'error'    => $error,
+            'compiled' => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['min_digits'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['min_digits'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function max_digits(int $maxNumberOfDigits, string $customErrorMsg = ''): self
+    {
+        // 1. Guard check: strictly allowed on 'integer' data type only
+        if (!$this->validateRuleUsage('max_digits', ['digits', 'single_digit', 'digits_between'], ['integer'], [])) {
+            return $this;
+        }
+        // 2. Validate parameter
+        $values = $this->validateRuleMultipleValues('max_digits', $maxNumberOfDigits, ['integer']);
+        if ($values === false) {
+            return $this;
+        }
+        $max = $values[0];
+        if ($max < 1) {
+            $this->configErrors[] = "Rule `max_digits` parameter must be a positive integer greater than 0 for Input Key `{{##INPUT_KEY##}}`!";
+            return $this;
+        }
+        // Build-time check: prevent max_digits from being smaller than an existing min_digits rule
+        if (isset($this->rules['min_digits']) && $this->rules['min_digits']['min'] > $max) {
+            $this->configErrors[] = "Rule `max_digits` ({$max}) cannot be smaller than `min_digits` ({$this->rules['min_digits']['min']}) for Input Key `{{##INPUT_KEY##}}`!";
+            return $this;
+        }
+        // 3. Compile failure condition
+        $condition = "strlen((string)abs({{##INPUT##}})) > {$max}";
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must not exceed {$max} digits.";
+
+        // 4. Store compiled rule
+        $this->rules['max_digits'] = [
+            'max'      => $max,
+            'error'    => $error,
+            'compiled' => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['max_digits'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['max_digits'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function digits_between(int $min_digits, int $max_digits, string $customErrorMsg = ''): self
+    {
+        // 1. Guard check: strictly allowed on 'integer' data type only
+        if (!$this->validateRuleUsage('digits_between', ['digits', 'min_digits', 'max_digits', 'single_digit'], ['integer'], [])) {
+            return $this;
+        }
+        // 2. Validate parameters through rule values helper
+        $values = $this->validateRuleMultipleValues('digits_between', [$min_digits, $max_digits], ['integer']);
+        if ($values === false) {
+            return $this;
+        }
+        $minVal = $values[0];
+        $maxVal = $values[1];
+        if ($minVal < 1 || $maxVal < 1) {
+            $this->configErrors[] = "Rule `digits_between` Parameter values must be Positive Integers greater than 0 for Input Key `{{##INPUT_KEY##}}`!";
+            return $this;
+        }
+        if ($minVal > $maxVal) {
+            $this->configErrors[] = "Rule `digits_between` min_digits ({$minVal}) cannot be greater than max_digits ({$maxVal}) for Input Key `{{##INPUT_KEY##}}`!";
+            return $this;
+        }
+        // 3. Compile failure condition (ignoring sign via abs())
+        $len = "strlen((string)abs({{##INPUT##}}))";
+        $condition = "({$len} < {$minVal} || {$len} > {$maxVal})";
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be between {$minVal} and {$maxVal} digits.";
+        // 4. Store compiled rule
+        $this->rules['digits_between'] = [
+            'min'      => $minVal,
+            'max'      => $maxVal,
+            'error'    => $error,
+            'compiled' => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['digits_between'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['digits_between'] = \"" . $error . "\";";
+        return $this;
+    }
+
+    /* FLOAT-ONLY RULES */
+    public function decimal(array|string|int $decimalValues, string $customErrorMsg = ''): self
+    {
+        // 1. Guard check: strictly allowed on 'float' data type only
+        if (!$this->validateRuleUsage('decimal', [], ['float'], [])) {
+            return $this;
+        }
+        // 2. Validate and normalize parameters (accepts integers or numeric strings)
+        $values = $this->validateRuleMultipleValues('decimal', $decimalValues, ['integer', 'string']);
+        if ($values === false) {
+            return $this;
+        }
+        // Must be either 1 value (exact) or 2 values (min, max)
+        if (count($values) > 2) {
+            $this->configErrors[] = "Rule `decimal` Accepts At Most 2 Parameter Values (min, max) for Input Key `{{##INPUT_KEY##}}`!";
+            return $this;
+        }
+        // Ensure all parameter values are non-negative integers
+        $parsedValues = [];
+        foreach ($values as $v) {
+            $strV = (string)$v;
+            if (!ctype_digit($strV)) {
+                $this->configErrors[] = "Rule `decimal` Parameter Values must be Non-Negative Integers, `{$strV}` given for Input Key `{{##INPUT_KEY##}}`!";
+                return $this;
+            }
+            $parsedValues[] = (int)$strV;
+        }
+        $min = $parsedValues[0];
+        $max = $parsedValues[1] ?? $min;
+        if ($min > $max) {
+            $this->configErrors[] = "Rule `decimal` min decimal places ({$min}) cannot be greater than max decimal places ({$max}) for Input Key `{{##INPUT_KEY##}}`!";
+            return $this;
+        }
+        // 3. Compile failure condition using fast runtime string splitting
+        $decLen = "strlen(explode('.', (string)({{##INPUT##}} ?? ''))[1] ?? '')";
+        if ($min === $max) {
+            // Exact decimal count check
+            $condition = "{$decLen} !== {$min}";
+            $error = !empty($customErrorMsg)
+                ? $customErrorMsg
+                : "Field `{{##INPUT_KEY##}}` must have exactly {$min} decimal places.";
+        } else {
+            // Range decimal count check
+            $condition = "({$decLen} < {$min} || {$decLen} > {$max})";
+            $error = !empty($customErrorMsg)
+                ? $customErrorMsg
+                : "Field `{{##INPUT_KEY##}}` must have between {$min} and {$max} decimal places.";
+        }
+        // 4. Store compiled rule
+        $this->rules['decimal'] = [
+            'min'      => $min,
+            'max'      => $max,
+            'error'    => $error,
+            'compiled' => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['decimal'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['decimal'] = \"" . $error . "\";";
+        return $this;
+    }
+
+    /* input type='checkbox'-ONLY RULES */
+    public function checked(array|string $allowedValues = [true, 1, '1', 'on', 'yes', 'true', 'checked', 'enabled', 'selected', 'ja'], string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('checked', ['unchecked'], ['checkbox'], ['checkbox'])) {
+            return $this;
+        }
+        // 4. Defaults & Parameter Normalization
+        $defaults = [true, 1, '1', 'on', 'yes', 'ja', 'true', 'checked', 'enabled', 'selected'];
+        $values = $this->validateRuleMultipleValues('checked', $allowedValues, ['integer', 'string', 'boolean'], true);
+        if ($values === false) {
+            return $this;
+        }
+        if (empty($allowedValues)) {
+            $values = $defaults;
+        }
+        // 5. Build Failure Condition (Strict in_array check)
+        $exportedValues = var_export($values, true);
+        $condition = '!in_array({{##INPUT##}}, ' . $exportedValues . ', true)';
+        $error = (!empty($customErrorMsg))
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be checked.";
+
+        // 6. Store Compiled Rule
+        $this->rules['checked'] = [
+            'allowed_values' => $values,
+            'error'          => $error,
+            'compiled'       => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['checked'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['checked'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function unchecked(array|string $allowedValues = [false, 0, '0', 'off', 'no', 'false', 'unchecked', 'disabled', 'unselected', 'nej'], string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('unchecked', ['checked'], ['checkbox'], ['checkbox'])) {
+            return $this;
+        }
+        // 4. Defaults & Parameter Normalization
+        $defaults = [false, 0, '0', 'off', 'no', 'nej', 'false', 'unchecked', 'disabled', 'unselected'];
+        $values = $this->validateRuleMultipleValues('unchecked', $allowedValues, ['integer', 'string', 'boolean'], true);
+        if ($values === false) {
+            return $this;
+        }
+        if (empty($allowedValues)) {
+            $values = $defaults;
+        }
+        // 5. Build Failure Condition (Strict in_array check)
+        $exportedValues = var_export($values, true);
+        $condition = '!in_array({{##INPUT##}}, ' . $exportedValues . ', true)';
+        $error = (!empty($customErrorMsg))
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be unchecked.";
+        // 6. Store Compiled Rule
+        $this->rules['unchecked'] = [
+            'allowed_values' => $values,
+            'error'          => $error,
+            'compiled'       => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['unchecked'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['unchecked'] = \"" . $error . "\";";
+        return $this;
+    }
 }
 
 class RuleSetString
@@ -2354,6 +2747,76 @@ class RuleSetString
             }
         }
         return true;
+    }
+    /**
+     * Validates and normalizes values supplied to a rule method during builder time.
+     *
+     * @param string $ruleName Name of the rule being configured (e.g. 'contains')
+     * @param mixed $values Raw values passed into the rule method (array, comma-separated string, scalar)
+     * @param array $allowedDataTypes Allowed PHP data types for each parameter (empty array = allow all)
+     * @return array|false Normalized array of unique values on success, or false on validation failure
+     */
+    private function validateRuleMultipleValues(
+        string $ruleName,
+        mixed $values,
+        array $allowedDataTypes = [],
+        bool $valuesCanBeEmpty = false
+    ): array|false {
+        // 1. Normalize into an array
+        if (is_array($values)) {
+            $normalized = array_values($values);
+        } elseif (is_string($values)) {
+            $normalized = array_map('trim', explode(',', $values));
+        } else {
+            $normalized = [$values];
+        }
+        // Filter out empty strings resulting from comma splitting
+        $normalized = array_values(array_filter($normalized, fn($v) => $v !== ''));
+        // 2. Ensure non-empty list of values
+        if (empty($normalized)) {
+            if ($valuesCanBeEmpty) {
+                return [];
+            }
+            $this->configErrors[] = "Rule `{$ruleName}` Requires at least One Value for Input Key `{{##INPUT_KEY##}}`!";
+            return false;
+        }
+        $uniqueValues = [];
+        foreach ($normalized as $val) {
+            // Strict duplicate check
+            if (in_array($val, $uniqueValues, true)) {
+                $valFormatted = is_scalar($val) || $val === null ? var_export($val, true) : json_encode($val);
+                $this->configErrors[] = "Rule `{$ruleName}` contains Duplicate ({$valFormatted}) Parameter Values for Input Key `{{##INPUT_KEY##}}`!";
+                return false;
+            }
+            $uniqueValues[] = $val;
+        }
+        // 3. Validate Data Types of parameters (if restricted)
+        if (!empty($allowedDataTypes)) {
+            $normalizeType = function (mixed $t): string {
+                if ($t === null) {
+                    return 'null';
+                }
+                return match (strtolower((string)$t)) {
+                    'integer', 'int'   => 'int',
+                    'boolean', 'bool'  => 'bool',
+                    'double', 'float'  => 'float',
+                    'null'             => 'null',
+                    default            => strtolower((string)$t)
+                };
+            };
+            $normalizedAllowedTypes = array_map($normalizeType, (array)$allowedDataTypes);
+            foreach ($uniqueValues as $index => $val) {
+                $rawType = gettype($val);
+                $type = $normalizeType($rawType);
+                if (!in_array($type, $normalizedAllowedTypes, true)) {
+                    $allowedList = implode(', ', $normalizedAllowedTypes);
+                    $valFormatted = is_scalar($val) || $val === null ? var_export($val, true) : json_encode($val);
+                    $this->configErrors[] = "Rule `{$ruleName}` value at index [{$index}] must be of type [{$allowedList}], `{$type} => {$valFormatted}` given for Input Key `{{##INPUT_KEY##}}`!";
+                    return false;
+                }
+            }
+        }
+        return $uniqueValues;
     }
     public function string(string $customErrorMsg = ''): self
     {
@@ -2487,6 +2950,76 @@ class RuleSetPassword
         }
         return true;
     }
+    /**
+     * Validates and normalizes values supplied to a rule method during builder time.
+     *
+     * @param string $ruleName Name of the rule being configured (e.g. 'contains')
+     * @param mixed $values Raw values passed into the rule method (array, comma-separated string, scalar)
+     * @param array $allowedDataTypes Allowed PHP data types for each parameter (empty array = allow all)
+     * @return array|false Normalized array of unique values on success, or false on validation failure
+     */
+    private function validateRuleMultipleValues(
+        string $ruleName,
+        mixed $values,
+        array $allowedDataTypes = [],
+        bool $valuesCanBeEmpty = false
+    ): array|false {
+        // 1. Normalize into an array
+        if (is_array($values)) {
+            $normalized = array_values($values);
+        } elseif (is_string($values)) {
+            $normalized = array_map('trim', explode(',', $values));
+        } else {
+            $normalized = [$values];
+        }
+        // Filter out empty strings resulting from comma splitting
+        $normalized = array_values(array_filter($normalized, fn($v) => $v !== ''));
+        // 2. Ensure non-empty list of values
+        if (empty($normalized)) {
+            if ($valuesCanBeEmpty) {
+                return [];
+            }
+            $this->configErrors[] = "Rule `{$ruleName}` Requires at least One Value for Input Key `{{##INPUT_KEY##}}`!";
+            return false;
+        }
+        $uniqueValues = [];
+        foreach ($normalized as $val) {
+            // Strict duplicate check
+            if (in_array($val, $uniqueValues, true)) {
+                $valFormatted = is_scalar($val) || $val === null ? var_export($val, true) : json_encode($val);
+                $this->configErrors[] = "Rule `{$ruleName}` contains Duplicate ({$valFormatted}) Parameter Values for Input Key `{{##INPUT_KEY##}}`!";
+                return false;
+            }
+            $uniqueValues[] = $val;
+        }
+        // 3. Validate Data Types of parameters (if restricted)
+        if (!empty($allowedDataTypes)) {
+            $normalizeType = function (mixed $t): string {
+                if ($t === null) {
+                    return 'null';
+                }
+                return match (strtolower((string)$t)) {
+                    'integer', 'int'   => 'int',
+                    'boolean', 'bool'  => 'bool',
+                    'double', 'float'  => 'float',
+                    'null'             => 'null',
+                    default            => strtolower((string)$t)
+                };
+            };
+            $normalizedAllowedTypes = array_map($normalizeType, (array)$allowedDataTypes);
+            foreach ($uniqueValues as $index => $val) {
+                $rawType = gettype($val);
+                $type = $normalizeType($rawType);
+                if (!in_array($type, $normalizedAllowedTypes, true)) {
+                    $allowedList = implode(', ', $normalizedAllowedTypes);
+                    $valFormatted = is_scalar($val) || $val === null ? var_export($val, true) : json_encode($val);
+                    $this->configErrors[] = "Rule `{$ruleName}` value at index [{$index}] must be of type [{$allowedList}], `{$type} => {$valFormatted}` given for Input Key `{{##INPUT_KEY##}}`!";
+                    return false;
+                }
+            }
+        }
+        return $uniqueValues;
+    }
     public function password(string $customErrorMsg = ''): self
     {
         $this->dataType = "password";
@@ -2604,6 +3137,76 @@ class RuleSetEmail
             }
         }
         return true;
+    }
+    /**
+     * Validates and normalizes values supplied to a rule method during builder time.
+     *
+     * @param string $ruleName Name of the rule being configured (e.g. 'contains')
+     * @param mixed $values Raw values passed into the rule method (array, comma-separated string, scalar)
+     * @param array $allowedDataTypes Allowed PHP data types for each parameter (empty array = allow all)
+     * @return array|false Normalized array of unique values on success, or false on validation failure
+     */
+    private function validateRuleMultipleValues(
+        string $ruleName,
+        mixed $values,
+        array $allowedDataTypes = [],
+        bool $valuesCanBeEmpty = false
+    ): array|false {
+        // 1. Normalize into an array
+        if (is_array($values)) {
+            $normalized = array_values($values);
+        } elseif (is_string($values)) {
+            $normalized = array_map('trim', explode(',', $values));
+        } else {
+            $normalized = [$values];
+        }
+        // Filter out empty strings resulting from comma splitting
+        $normalized = array_values(array_filter($normalized, fn($v) => $v !== ''));
+        // 2. Ensure non-empty list of values
+        if (empty($normalized)) {
+            if ($valuesCanBeEmpty) {
+                return [];
+            }
+            $this->configErrors[] = "Rule `{$ruleName}` Requires at least One Value for Input Key `{{##INPUT_KEY##}}`!";
+            return false;
+        }
+        $uniqueValues = [];
+        foreach ($normalized as $val) {
+            // Strict duplicate check
+            if (in_array($val, $uniqueValues, true)) {
+                $valFormatted = is_scalar($val) || $val === null ? var_export($val, true) : json_encode($val);
+                $this->configErrors[] = "Rule `{$ruleName}` contains Duplicate ({$valFormatted}) Parameter Values for Input Key `{{##INPUT_KEY##}}`!";
+                return false;
+            }
+            $uniqueValues[] = $val;
+        }
+        // 3. Validate Data Types of parameters (if restricted)
+        if (!empty($allowedDataTypes)) {
+            $normalizeType = function (mixed $t): string {
+                if ($t === null) {
+                    return 'null';
+                }
+                return match (strtolower((string)$t)) {
+                    'integer', 'int'   => 'int',
+                    'boolean', 'bool'  => 'bool',
+                    'double', 'float'  => 'float',
+                    'null'             => 'null',
+                    default            => strtolower((string)$t)
+                };
+            };
+            $normalizedAllowedTypes = array_map($normalizeType, (array)$allowedDataTypes);
+            foreach ($uniqueValues as $index => $val) {
+                $rawType = gettype($val);
+                $type = $normalizeType($rawType);
+                if (!in_array($type, $normalizedAllowedTypes, true)) {
+                    $allowedList = implode(', ', $normalizedAllowedTypes);
+                    $valFormatted = is_scalar($val) || $val === null ? var_export($val, true) : json_encode($val);
+                    $this->configErrors[] = "Rule `{$ruleName}` value at index [{$index}] must be of type [{$allowedList}], `{$type} => {$valFormatted}` given for Input Key `{{##INPUT_KEY##}}`!";
+                    return false;
+                }
+            }
+        }
+        return $uniqueValues;
     }
     public function email(string $customErrorMsg = ''): self
     {
@@ -2723,6 +3326,76 @@ class RuleSetBoolean
         }
         return true;
     }
+    /**
+     * Validates and normalizes values supplied to a rule method during builder time.
+     *
+     * @param string $ruleName Name of the rule being configured (e.g. 'contains')
+     * @param mixed $values Raw values passed into the rule method (array, comma-separated string, scalar)
+     * @param array $allowedDataTypes Allowed PHP data types for each parameter (empty array = allow all)
+     * @return array|false Normalized array of unique values on success, or false on validation failure
+     */
+    private function validateRuleMultipleValues(
+        string $ruleName,
+        mixed $values,
+        array $allowedDataTypes = [],
+        bool $valuesCanBeEmpty = false
+    ): array|false {
+        // 1. Normalize into an array
+        if (is_array($values)) {
+            $normalized = array_values($values);
+        } elseif (is_string($values)) {
+            $normalized = array_map('trim', explode(',', $values));
+        } else {
+            $normalized = [$values];
+        }
+        // Filter out empty strings resulting from comma splitting
+        $normalized = array_values(array_filter($normalized, fn($v) => $v !== ''));
+        // 2. Ensure non-empty list of values
+        if (empty($normalized)) {
+            if ($valuesCanBeEmpty) {
+                return [];
+            }
+            $this->configErrors[] = "Rule `{$ruleName}` Requires at least One Value for Input Key `{{##INPUT_KEY##}}`!";
+            return false;
+        }
+        $uniqueValues = [];
+        foreach ($normalized as $val) {
+            // Strict duplicate check
+            if (in_array($val, $uniqueValues, true)) {
+                $valFormatted = is_scalar($val) || $val === null ? var_export($val, true) : json_encode($val);
+                $this->configErrors[] = "Rule `{$ruleName}` contains Duplicate ({$valFormatted}) Parameter Values for Input Key `{{##INPUT_KEY##}}`!";
+                return false;
+            }
+            $uniqueValues[] = $val;
+        }
+        // 3. Validate Data Types of parameters (if restricted)
+        if (!empty($allowedDataTypes)) {
+            $normalizeType = function (mixed $t): string {
+                if ($t === null) {
+                    return 'null';
+                }
+                return match (strtolower((string)$t)) {
+                    'integer', 'int'   => 'int',
+                    'boolean', 'bool'  => 'bool',
+                    'double', 'float'  => 'float',
+                    'null'             => 'null',
+                    default            => strtolower((string)$t)
+                };
+            };
+            $normalizedAllowedTypes = array_map($normalizeType, (array)$allowedDataTypes);
+            foreach ($uniqueValues as $index => $val) {
+                $rawType = gettype($val);
+                $type = $normalizeType($rawType);
+                if (!in_array($type, $normalizedAllowedTypes, true)) {
+                    $allowedList = implode(', ', $normalizedAllowedTypes);
+                    $valFormatted = is_scalar($val) || $val === null ? var_export($val, true) : json_encode($val);
+                    $this->configErrors[] = "Rule `{$ruleName}` value at index [{$index}] must be of type [{$allowedList}], `{$type} => {$valFormatted}` given for Input Key `{{##INPUT_KEY##}}`!";
+                    return false;
+                }
+            }
+        }
+        return $uniqueValues;
+    }
     public function boolean(string $customErrorMsg = ''): self
     {
         $this->dataType = "boolean";
@@ -2841,6 +3514,76 @@ class RuleSetCheckbox
         }
         return true;
     }
+    /**
+     * Validates and normalizes values supplied to a rule method during builder time.
+     *
+     * @param string $ruleName Name of the rule being configured (e.g. 'contains')
+     * @param mixed $values Raw values passed into the rule method (array, comma-separated string, scalar)
+     * @param array $allowedDataTypes Allowed PHP data types for each parameter (empty array = allow all)
+     * @return array|false Normalized array of unique values on success, or false on validation failure
+     */
+    private function validateRuleMultipleValues(
+        string $ruleName,
+        mixed $values,
+        array $allowedDataTypes = [],
+        bool $valuesCanBeEmpty = false
+    ): array|false {
+        // 1. Normalize into an array
+        if (is_array($values)) {
+            $normalized = array_values($values);
+        } elseif (is_string($values)) {
+            $normalized = array_map('trim', explode(',', $values));
+        } else {
+            $normalized = [$values];
+        }
+        // Filter out empty strings resulting from comma splitting
+        $normalized = array_values(array_filter($normalized, fn($v) => $v !== ''));
+        // 2. Ensure non-empty list of values
+        if (empty($normalized)) {
+            if ($valuesCanBeEmpty) {
+                return [];
+            }
+            $this->configErrors[] = "Rule `{$ruleName}` Requires at least One Value for Input Key `{{##INPUT_KEY##}}`!";
+            return false;
+        }
+        $uniqueValues = [];
+        foreach ($normalized as $val) {
+            // Strict duplicate check
+            if (in_array($val, $uniqueValues, true)) {
+                $valFormatted = is_scalar($val) || $val === null ? var_export($val, true) : json_encode($val);
+                $this->configErrors[] = "Rule `{$ruleName}` contains Duplicate ({$valFormatted}) Parameter Values for Input Key `{{##INPUT_KEY##}}`!";
+                return false;
+            }
+            $uniqueValues[] = $val;
+        }
+        // 3. Validate Data Types of parameters (if restricted)
+        if (!empty($allowedDataTypes)) {
+            $normalizeType = function (mixed $t): string {
+                if ($t === null) {
+                    return 'null';
+                }
+                return match (strtolower((string)$t)) {
+                    'integer', 'int'   => 'int',
+                    'boolean', 'bool'  => 'bool',
+                    'double', 'float'  => 'float',
+                    'null'             => 'null',
+                    default            => strtolower((string)$t)
+                };
+            };
+            $normalizedAllowedTypes = array_map($normalizeType, (array)$allowedDataTypes);
+            foreach ($uniqueValues as $index => $val) {
+                $rawType = gettype($val);
+                $type = $normalizeType($rawType);
+                if (!in_array($type, $normalizedAllowedTypes, true)) {
+                    $allowedList = implode(', ', $normalizedAllowedTypes);
+                    $valFormatted = is_scalar($val) || $val === null ? var_export($val, true) : json_encode($val);
+                    $this->configErrors[] = "Rule `{$ruleName}` value at index [{$index}] must be of type [{$allowedList}], `{$type} => {$valFormatted}` given for Input Key `{{##INPUT_KEY##}}`!";
+                    return false;
+                }
+            }
+        }
+        return $uniqueValues;
+    }
     public function checkbox(string $customErrorMsg = ''): self
     {
         $this->dataType = "checkbox";
@@ -2894,109 +3637,6 @@ class RuleSetCheckbox
             "}";
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['required'] = \"" . $this->rules['required']['error'] . "\";";
         $this->useRequired = true;
-        return $this;
-    }
-    public function checked(array|string $allowedValues = [true, 1, '1', 'on', 'yes', 'ja', 'true', 'checked', 'enabled', 'selected'], string $customErrorMsg = ''): self
-    {
-        // 1. Ensure Data Type is set
-        if (!isset($this->dataType) || ($this->dataType !== 'checkbox')) {
-            $this->configErrors[] = 'Cannot add Rule `checked` before setting the Data Type Rule to `checkbox`!';
-            return $this;
-        }
-        // 2. Prevent Duplicate Rule Usage
-        if (isset($this->rules['checked'])) {
-            $this->configErrors[] = 'Rule `checked` is already used for Input Key: `{{##INPUT_KEY##}}`!';
-            return $this;
-        }
-        // 3. Conflict Guard
-        if (isset($this->rules['unchecked'])) {
-            $this->configErrors[] = 'Rule `checked` conflicts with existing rule `unchecked` on Input Key `{{##INPUT_KEY##}}`!';
-            return $this;
-        }
-        // 4. Defaults & Parameter Normalization
-        $defaults = [true, 1, '1', 'on', 'yes', 'ja', 'true', 'checked', 'enabled', 'selected'];
-        if (empty($allowedValues)) {
-            $values = $defaults;
-        } elseif (is_string($allowedValues)) {
-            $values = array_filter(array_map('trim', explode(',', $allowedValues)), fn($v) => $v !== '');
-        } else {
-            $values = array_values($allowedValues);
-        }
-        if (empty($values)) {
-            $this->configErrors[] = 'Rule `checked` requires at least one allowed value for Input Key `{{##INPUT_KEY##}}`!';
-            return $this;
-        }
-        // 5. Build Failure Condition (Strict in_array check)
-        $exportedValues = var_export($values, true);
-        $condition = '!in_array({{##INPUT##}}, ' . $exportedValues . ', true)';
-        $error = (!empty($customErrorMsg))
-            ? $customErrorMsg
-            : "Field `{{##INPUT_KEY##}}` must be checked.";
-
-        // 6. Store Compiled Rule
-        $this->rules['checked'] = [
-            'allowed_values' => $values,
-            'error'          => $error,
-            'compiled'       => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['checked'] = \"{$error}\";\n" .
-                "    {{##GOTO_STOP_ALL##}}\n" .
-                "    {{##GOTO_BAIL##}}\n" .
-                "    {{##GOTO_NEXT_RULE##}}\n" .
-                "    {{##GOTO_END_FIELD##}}\n" .
-                "}"
-        ];
-        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['checked'] = \"" . $error . "\";";
-        return $this;
-    }
-    public function unchecked(array|string $allowedValues = [false, 0, '0', 'off', 'no', 'nej', 'false', 'unchecked', 'disabled', 'unselected'], string $customErrorMsg = ''): self
-    {
-        // 1. Ensure Data Type is set
-        if (!isset($this->dataType) || ($this->dataType !== 'checkbox')) {
-            $this->configErrors[] = 'Cannot add Rule `unchecked` before setting the Data Type Rule to `checkbox`!';
-            return $this;
-        }
-        // 2. Prevent Duplicate Rule Usage
-        if (isset($this->rules['unchecked'])) {
-            $this->configErrors[] = 'Rule `unchecked` is already used for Input Key: `{{##INPUT_KEY##}}`!';
-            return $this;
-        }
-        // 3. Conflict Guard
-        if (isset($this->rules['checked'])) {
-            $this->configErrors[] = 'Rule `unchecked` conflicts with existing rule `checked` on Input Key `{{##INPUT_KEY##}}`!';
-            return $this;
-        }
-        // 4. Defaults & Parameter Normalization
-        $defaults = [false, 0, '0', 'off', 'no', 'nej', 'false', 'unchecked', 'disabled', 'unselected'];
-        if (empty($allowedValues)) {
-            $values = $defaults;
-        } elseif (is_string($allowedValues)) {
-            $values = array_filter(array_map('trim', explode(',', $allowedValues)), fn($v) => $v !== '');
-        } else {
-            $values = array_values($allowedValues);
-        }
-        if (empty($values)) {
-            $this->configErrors[] = 'Rule `unchecked` requires at least one allowed value for Input Key `{{##INPUT_KEY##}}`!';
-            return $this;
-        }
-        // 5. Build Failure Condition (Strict in_array check)
-        $exportedValues = var_export($values, true);
-        $condition = '!in_array({{##INPUT##}}, ' . $exportedValues . ', true)';
-        $error = (!empty($customErrorMsg))
-            ? $customErrorMsg
-            : "Field `{{##INPUT_KEY##}}` must be unchecked.";
-        // 6. Store Compiled Rule
-        $this->rules['unchecked'] = [
-            'allowed_values' => $values,
-            'error'          => $error,
-            'compiled'       => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['unchecked'] = \"{$error}\";\n" .
-                "    {{##GOTO_STOP_ALL##}}\n" .
-                "    {{##GOTO_BAIL##}}\n" .
-                "    {{##GOTO_NEXT_RULE##}}\n" .
-                "    {{##GOTO_END_FIELD##}}\n" .
-                "}"
-        ];
-        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['unchecked'] = \"" . $error . "\";";
         return $this;
     }
 }
@@ -3068,6 +3708,76 @@ class RuleSetNumber
             }
         }
         return true;
+    }
+    /**
+     * Validates and normalizes values supplied to a rule method during builder time.
+     *
+     * @param string $ruleName Name of the rule being configured (e.g. 'contains')
+     * @param mixed $values Raw values passed into the rule method (array, comma-separated string, scalar)
+     * @param array $allowedDataTypes Allowed PHP data types for each parameter (empty array = allow all)
+     * @return array|false Normalized array of unique values on success, or false on validation failure
+     */
+    private function validateRuleMultipleValues(
+        string $ruleName,
+        mixed $values,
+        array $allowedDataTypes = [],
+        bool $valuesCanBeEmpty = false
+    ): array|false {
+        // 1. Normalize into an array
+        if (is_array($values)) {
+            $normalized = array_values($values);
+        } elseif (is_string($values)) {
+            $normalized = array_map('trim', explode(',', $values));
+        } else {
+            $normalized = [$values];
+        }
+        // Filter out empty strings resulting from comma splitting
+        $normalized = array_values(array_filter($normalized, fn($v) => $v !== ''));
+        // 2. Ensure non-empty list of values
+        if (empty($normalized)) {
+            if ($valuesCanBeEmpty) {
+                return [];
+            }
+            $this->configErrors[] = "Rule `{$ruleName}` Requires at least One Value for Input Key `{{##INPUT_KEY##}}`!";
+            return false;
+        }
+        $uniqueValues = [];
+        foreach ($normalized as $val) {
+            // Strict duplicate check
+            if (in_array($val, $uniqueValues, true)) {
+                $valFormatted = is_scalar($val) || $val === null ? var_export($val, true) : json_encode($val);
+                $this->configErrors[] = "Rule `{$ruleName}` contains Duplicate ({$valFormatted}) Parameter Values for Input Key `{{##INPUT_KEY##}}`!";
+                return false;
+            }
+            $uniqueValues[] = $val;
+        }
+        // 3. Validate Data Types of parameters (if restricted)
+        if (!empty($allowedDataTypes)) {
+            $normalizeType = function (mixed $t): string {
+                if ($t === null) {
+                    return 'null';
+                }
+                return match (strtolower((string)$t)) {
+                    'integer', 'int'   => 'int',
+                    'boolean', 'bool'  => 'bool',
+                    'double', 'float'  => 'float',
+                    'null'             => 'null',
+                    default            => strtolower((string)$t)
+                };
+            };
+            $normalizedAllowedTypes = array_map($normalizeType, (array)$allowedDataTypes);
+            foreach ($uniqueValues as $index => $val) {
+                $rawType = gettype($val);
+                $type = $normalizeType($rawType);
+                if (!in_array($type, $normalizedAllowedTypes, true)) {
+                    $allowedList = implode(', ', $normalizedAllowedTypes);
+                    $valFormatted = is_scalar($val) || $val === null ? var_export($val, true) : json_encode($val);
+                    $this->configErrors[] = "Rule `{$ruleName}` value at index [{$index}] must be of type [{$allowedList}], `{$type} => {$valFormatted}` given for Input Key `{{##INPUT_KEY##}}`!";
+                    return false;
+                }
+            }
+        }
+        return $uniqueValues;
     }
     public function number(string $customErrorMsg = ''): self
     {
@@ -3187,6 +3897,76 @@ class RuleSetInteger
         }
         return true;
     }
+    /**
+     * Validates and normalizes values supplied to a rule method during builder time.
+     *
+     * @param string $ruleName Name of the rule being configured (e.g. 'contains')
+     * @param mixed $values Raw values passed into the rule method (array, comma-separated string, scalar)
+     * @param array $allowedDataTypes Allowed PHP data types for each parameter (empty array = allow all)
+     * @return array|false Normalized array of unique values on success, or false on validation failure
+     */
+    private function validateRuleMultipleValues(
+        string $ruleName,
+        mixed $values,
+        array $allowedDataTypes = [],
+        bool $valuesCanBeEmpty = false
+    ): array|false {
+        // 1. Normalize into an array
+        if (is_array($values)) {
+            $normalized = array_values($values);
+        } elseif (is_string($values)) {
+            $normalized = array_map('trim', explode(',', $values));
+        } else {
+            $normalized = [$values];
+        }
+        // Filter out empty strings resulting from comma splitting
+        $normalized = array_values(array_filter($normalized, fn($v) => $v !== ''));
+        // 2. Ensure non-empty list of values
+        if (empty($normalized)) {
+            if ($valuesCanBeEmpty) {
+                return [];
+            }
+            $this->configErrors[] = "Rule `{$ruleName}` Requires at least One Value for Input Key `{{##INPUT_KEY##}}`!";
+            return false;
+        }
+        $uniqueValues = [];
+        foreach ($normalized as $val) {
+            // Strict duplicate check
+            if (in_array($val, $uniqueValues, true)) {
+                $valFormatted = is_scalar($val) || $val === null ? var_export($val, true) : json_encode($val);
+                $this->configErrors[] = "Rule `{$ruleName}` contains Duplicate ({$valFormatted}) Parameter Values for Input Key `{{##INPUT_KEY##}}`!";
+                return false;
+            }
+            $uniqueValues[] = $val;
+        }
+        // 3. Validate Data Types of parameters (if restricted)
+        if (!empty($allowedDataTypes)) {
+            $normalizeType = function (mixed $t): string {
+                if ($t === null) {
+                    return 'null';
+                }
+                return match (strtolower((string)$t)) {
+                    'integer', 'int'   => 'int',
+                    'boolean', 'bool'  => 'bool',
+                    'double', 'float'  => 'float',
+                    'null'             => 'null',
+                    default            => strtolower((string)$t)
+                };
+            };
+            $normalizedAllowedTypes = array_map($normalizeType, (array)$allowedDataTypes);
+            foreach ($uniqueValues as $index => $val) {
+                $rawType = gettype($val);
+                $type = $normalizeType($rawType);
+                if (!in_array($type, $normalizedAllowedTypes, true)) {
+                    $allowedList = implode(', ', $normalizedAllowedTypes);
+                    $valFormatted = is_scalar($val) || $val === null ? var_export($val, true) : json_encode($val);
+                    $this->configErrors[] = "Rule `{$ruleName}` value at index [{$index}] must be of type [{$allowedList}], `{$type} => {$valFormatted}` given for Input Key `{{##INPUT_KEY##}}`!";
+                    return false;
+                }
+            }
+        }
+        return $uniqueValues;
+    }
     public function integer(string $customErrorMsg = ''): self
     {
         $this->dataType = "integer";
@@ -3304,6 +4084,76 @@ class RuleSetFloat
             }
         }
         return true;
+    }
+    /**
+     * Validates and normalizes values supplied to a rule method during builder time.
+     *
+     * @param string $ruleName Name of the rule being configured (e.g. 'contains')
+     * @param mixed $values Raw values passed into the rule method (array, comma-separated string, scalar)
+     * @param array $allowedDataTypes Allowed PHP data types for each parameter (empty array = allow all)
+     * @return array|false Normalized array of unique values on success, or false on validation failure
+     */
+    private function validateRuleMultipleValues(
+        string $ruleName,
+        mixed $values,
+        array $allowedDataTypes = [],
+        bool $valuesCanBeEmpty = false
+    ): array|false {
+        // 1. Normalize into an array
+        if (is_array($values)) {
+            $normalized = array_values($values);
+        } elseif (is_string($values)) {
+            $normalized = array_map('trim', explode(',', $values));
+        } else {
+            $normalized = [$values];
+        }
+        // Filter out empty strings resulting from comma splitting
+        $normalized = array_values(array_filter($normalized, fn($v) => $v !== ''));
+        // 2. Ensure non-empty list of values
+        if (empty($normalized)) {
+            if ($valuesCanBeEmpty) {
+                return [];
+            }
+            $this->configErrors[] = "Rule `{$ruleName}` Requires at least One Value for Input Key `{{##INPUT_KEY##}}`!";
+            return false;
+        }
+        $uniqueValues = [];
+        foreach ($normalized as $val) {
+            // Strict duplicate check
+            if (in_array($val, $uniqueValues, true)) {
+                $valFormatted = is_scalar($val) || $val === null ? var_export($val, true) : json_encode($val);
+                $this->configErrors[] = "Rule `{$ruleName}` contains Duplicate ({$valFormatted}) Parameter Values for Input Key `{{##INPUT_KEY##}}`!";
+                return false;
+            }
+            $uniqueValues[] = $val;
+        }
+        // 3. Validate Data Types of parameters (if restricted)
+        if (!empty($allowedDataTypes)) {
+            $normalizeType = function (mixed $t): string {
+                if ($t === null) {
+                    return 'null';
+                }
+                return match (strtolower((string)$t)) {
+                    'integer', 'int'   => 'int',
+                    'boolean', 'bool'  => 'bool',
+                    'double', 'float'  => 'float',
+                    'null'             => 'null',
+                    default            => strtolower((string)$t)
+                };
+            };
+            $normalizedAllowedTypes = array_map($normalizeType, (array)$allowedDataTypes);
+            foreach ($uniqueValues as $index => $val) {
+                $rawType = gettype($val);
+                $type = $normalizeType($rawType);
+                if (!in_array($type, $normalizedAllowedTypes, true)) {
+                    $allowedList = implode(', ', $normalizedAllowedTypes);
+                    $valFormatted = is_scalar($val) || $val === null ? var_export($val, true) : json_encode($val);
+                    $this->configErrors[] = "Rule `{$ruleName}` value at index [{$index}] must be of type [{$allowedList}], `{$type} => {$valFormatted}` given for Input Key `{{##INPUT_KEY##}}`!";
+                    return false;
+                }
+            }
+        }
+        return $uniqueValues;
     }
     public function float(string $customErrorMsg = ''): self
     {
@@ -3423,6 +4273,76 @@ class RuleSetPhone
         }
         return true;
     }
+    /**
+     * Validates and normalizes values supplied to a rule method during builder time.
+     *
+     * @param string $ruleName Name of the rule being configured (e.g. 'contains')
+     * @param mixed $values Raw values passed into the rule method (array, comma-separated string, scalar)
+     * @param array $allowedDataTypes Allowed PHP data types for each parameter (empty array = allow all)
+     * @return array|false Normalized array of unique values on success, or false on validation failure
+     */
+    private function validateRuleMultipleValues(
+        string $ruleName,
+        mixed $values,
+        array $allowedDataTypes = [],
+        bool $valuesCanBeEmpty = false
+    ): array|false {
+        // 1. Normalize into an array
+        if (is_array($values)) {
+            $normalized = array_values($values);
+        } elseif (is_string($values)) {
+            $normalized = array_map('trim', explode(',', $values));
+        } else {
+            $normalized = [$values];
+        }
+        // Filter out empty strings resulting from comma splitting
+        $normalized = array_values(array_filter($normalized, fn($v) => $v !== ''));
+        // 2. Ensure non-empty list of values
+        if (empty($normalized)) {
+            if ($valuesCanBeEmpty) {
+                return [];
+            }
+            $this->configErrors[] = "Rule `{$ruleName}` Requires at least One Value for Input Key `{{##INPUT_KEY##}}`!";
+            return false;
+        }
+        $uniqueValues = [];
+        foreach ($normalized as $val) {
+            // Strict duplicate check
+            if (in_array($val, $uniqueValues, true)) {
+                $valFormatted = is_scalar($val) || $val === null ? var_export($val, true) : json_encode($val);
+                $this->configErrors[] = "Rule `{$ruleName}` contains Duplicate ({$valFormatted}) Parameter Values for Input Key `{{##INPUT_KEY##}}`!";
+                return false;
+            }
+            $uniqueValues[] = $val;
+        }
+        // 3. Validate Data Types of parameters (if restricted)
+        if (!empty($allowedDataTypes)) {
+            $normalizeType = function (mixed $t): string {
+                if ($t === null) {
+                    return 'null';
+                }
+                return match (strtolower((string)$t)) {
+                    'integer', 'int'   => 'int',
+                    'boolean', 'bool'  => 'bool',
+                    'double', 'float'  => 'float',
+                    'null'             => 'null',
+                    default            => strtolower((string)$t)
+                };
+            };
+            $normalizedAllowedTypes = array_map($normalizeType, (array)$allowedDataTypes);
+            foreach ($uniqueValues as $index => $val) {
+                $rawType = gettype($val);
+                $type = $normalizeType($rawType);
+                if (!in_array($type, $normalizedAllowedTypes, true)) {
+                    $allowedList = implode(', ', $normalizedAllowedTypes);
+                    $valFormatted = is_scalar($val) || $val === null ? var_export($val, true) : json_encode($val);
+                    $this->configErrors[] = "Rule `{$ruleName}` value at index [{$index}] must be of type [{$allowedList}], `{$type} => {$valFormatted}` given for Input Key `{{##INPUT_KEY##}}`!";
+                    return false;
+                }
+            }
+        }
+        return $uniqueValues;
+    }
     public function phone(string $customErrorMsg = ''): self
     {
         $this->dataType = "phone";
@@ -3480,6 +4400,7 @@ class RuleSetArray
     public ?bool $useNullable = false;
     public ?bool $useRequired = false;
     public ?bool $useBail = false;
+    public ?string $arrayType = null;
     // Flat associative list of configured rules
     public array $rules = [];
     // Tracks syntax/dev errors during chaining for validating the correct use of the rules
@@ -3540,6 +4461,76 @@ class RuleSetArray
             }
         }
         return true;
+    }
+    /**
+     * Validates and normalizes values supplied to a rule method during builder time.
+     *
+     * @param string $ruleName Name of the rule being configured (e.g. 'contains')
+     * @param mixed $values Raw values passed into the rule method (array, comma-separated string, scalar)
+     * @param array $allowedDataTypes Allowed PHP data types for each parameter (empty array = allow all)
+     * @return array|false Normalized array of unique values on success, or false on validation failure
+     */
+    private function validateRuleMultipleValues(
+        string $ruleName,
+        mixed $values,
+        array $allowedDataTypes = [],
+        bool $valuesCanBeEmpty = false
+    ): array|false {
+        // 1. Normalize into an array
+        if (is_array($values)) {
+            $normalized = array_values($values);
+        } elseif (is_string($values)) {
+            $normalized = array_map('trim', explode(',', $values));
+        } else {
+            $normalized = [$values];
+        }
+        // Filter out empty strings resulting from comma splitting
+        $normalized = array_values(array_filter($normalized, fn($v) => $v !== ''));
+        // 2. Ensure non-empty list of values
+        if (empty($normalized)) {
+            if ($valuesCanBeEmpty) {
+                return [];
+            }
+            $this->configErrors[] = "Rule `{$ruleName}` Requires at least One Value for Input Key `{{##INPUT_KEY##}}`!";
+            return false;
+        }
+        $uniqueValues = [];
+        foreach ($normalized as $val) {
+            // Strict duplicate check
+            if (in_array($val, $uniqueValues, true)) {
+                $valFormatted = is_scalar($val) || $val === null ? var_export($val, true) : json_encode($val);
+                $this->configErrors[] = "Rule `{$ruleName}` contains Duplicate ({$valFormatted}) Parameter Values for Input Key `{{##INPUT_KEY##}}`!";
+                return false;
+            }
+            $uniqueValues[] = $val;
+        }
+        // 3. Validate Data Types of parameters (if restricted)
+        if (!empty($allowedDataTypes)) {
+            $normalizeType = function (mixed $t): string {
+                if ($t === null) {
+                    return 'null';
+                }
+                return match (strtolower((string)$t)) {
+                    'integer', 'int'   => 'int',
+                    'boolean', 'bool'  => 'bool',
+                    'double', 'float'  => 'float',
+                    'null'             => 'null',
+                    default            => strtolower((string)$t)
+                };
+            };
+            $normalizedAllowedTypes = array_map($normalizeType, (array)$allowedDataTypes);
+            foreach ($uniqueValues as $index => $val) {
+                $rawType = gettype($val);
+                $type = $normalizeType($rawType);
+                if (!in_array($type, $normalizedAllowedTypes, true)) {
+                    $allowedList = implode(', ', $normalizedAllowedTypes);
+                    $valFormatted = is_scalar($val) || $val === null ? var_export($val, true) : json_encode($val);
+                    $this->configErrors[] = "Rule `{$ruleName}` value at index [{$index}] must be of type [{$allowedList}], `{$type} => {$valFormatted}` given for Input Key `{{##INPUT_KEY##}}`!";
+                    return false;
+                }
+            }
+        }
+        return $uniqueValues;
     }
     public function arr(string $customErrorMsg = ''): self
     {
@@ -3659,6 +4650,76 @@ class RuleSetObject
         }
         return true;
     }
+    /**
+     * Validates and normalizes values supplied to a rule method during builder time.
+     *
+     * @param string $ruleName Name of the rule being configured (e.g. 'contains')
+     * @param mixed $values Raw values passed into the rule method (array, comma-separated string, scalar)
+     * @param array $allowedDataTypes Allowed PHP data types for each parameter (empty array = allow all)
+     * @return array|false Normalized array of unique values on success, or false on validation failure
+     */
+    private function validateRuleMultipleValues(
+        string $ruleName,
+        mixed $values,
+        array $allowedDataTypes = [],
+        bool $valuesCanBeEmpty = false
+    ): array|false {
+        // 1. Normalize into an array
+        if (is_array($values)) {
+            $normalized = array_values($values);
+        } elseif (is_string($values)) {
+            $normalized = array_map('trim', explode(',', $values));
+        } else {
+            $normalized = [$values];
+        }
+        // Filter out empty strings resulting from comma splitting
+        $normalized = array_values(array_filter($normalized, fn($v) => $v !== ''));
+        // 2. Ensure non-empty list of values
+        if (empty($normalized)) {
+            if ($valuesCanBeEmpty) {
+                return [];
+            }
+            $this->configErrors[] = "Rule `{$ruleName}` Requires at least One Value for Input Key `{{##INPUT_KEY##}}`!";
+            return false;
+        }
+        $uniqueValues = [];
+        foreach ($normalized as $val) {
+            // Strict duplicate check
+            if (in_array($val, $uniqueValues, true)) {
+                $valFormatted = is_scalar($val) || $val === null ? var_export($val, true) : json_encode($val);
+                $this->configErrors[] = "Rule `{$ruleName}` contains Duplicate ({$valFormatted}) Parameter Values for Input Key `{{##INPUT_KEY##}}`!";
+                return false;
+            }
+            $uniqueValues[] = $val;
+        }
+        // 3. Validate Data Types of parameters (if restricted)
+        if (!empty($allowedDataTypes)) {
+            $normalizeType = function (mixed $t): string {
+                if ($t === null) {
+                    return 'null';
+                }
+                return match (strtolower((string)$t)) {
+                    'integer', 'int'   => 'int',
+                    'boolean', 'bool'  => 'bool',
+                    'double', 'float'  => 'float',
+                    'null'             => 'null',
+                    default            => strtolower((string)$t)
+                };
+            };
+            $normalizedAllowedTypes = array_map($normalizeType, (array)$allowedDataTypes);
+            foreach ($uniqueValues as $index => $val) {
+                $rawType = gettype($val);
+                $type = $normalizeType($rawType);
+                if (!in_array($type, $normalizedAllowedTypes, true)) {
+                    $allowedList = implode(', ', $normalizedAllowedTypes);
+                    $valFormatted = is_scalar($val) || $val === null ? var_export($val, true) : json_encode($val);
+                    $this->configErrors[] = "Rule `{$ruleName}` value at index [{$index}] must be of type [{$allowedList}], `{$type} => {$valFormatted}` given for Input Key `{{##INPUT_KEY##}}`!";
+                    return false;
+                }
+            }
+        }
+        return $uniqueValues;
+    }
     public function object(string $customErrorMsg = ''): self
     {
         $this->dataType = "object";
@@ -3777,6 +4838,76 @@ class RuleSetFile
         }
         return true;
     }
+    /**
+     * Validates and normalizes values supplied to a rule method during builder time.
+     *
+     * @param string $ruleName Name of the rule being configured (e.g. 'contains')
+     * @param mixed $values Raw values passed into the rule method (array, comma-separated string, scalar)
+     * @param array $allowedDataTypes Allowed PHP data types for each parameter (empty array = allow all)
+     * @return array|false Normalized array of unique values on success, or false on validation failure
+     */
+    private function validateRuleMultipleValues(
+        string $ruleName,
+        mixed $values,
+        array $allowedDataTypes = [],
+        bool $valuesCanBeEmpty = false
+    ): array|false {
+        // 1. Normalize into an array
+        if (is_array($values)) {
+            $normalized = array_values($values);
+        } elseif (is_string($values)) {
+            $normalized = array_map('trim', explode(',', $values));
+        } else {
+            $normalized = [$values];
+        }
+        // Filter out empty strings resulting from comma splitting
+        $normalized = array_values(array_filter($normalized, fn($v) => $v !== ''));
+        // 2. Ensure non-empty list of values
+        if (empty($normalized)) {
+            if ($valuesCanBeEmpty) {
+                return [];
+            }
+            $this->configErrors[] = "Rule `{$ruleName}` Requires at least One Value for Input Key `{{##INPUT_KEY##}}`!";
+            return false;
+        }
+        $uniqueValues = [];
+        foreach ($normalized as $val) {
+            // Strict duplicate check
+            if (in_array($val, $uniqueValues, true)) {
+                $valFormatted = is_scalar($val) || $val === null ? var_export($val, true) : json_encode($val);
+                $this->configErrors[] = "Rule `{$ruleName}` contains Duplicate ({$valFormatted}) Parameter Values for Input Key `{{##INPUT_KEY##}}`!";
+                return false;
+            }
+            $uniqueValues[] = $val;
+        }
+        // 3. Validate Data Types of parameters (if restricted)
+        if (!empty($allowedDataTypes)) {
+            $normalizeType = function (mixed $t): string {
+                if ($t === null) {
+                    return 'null';
+                }
+                return match (strtolower((string)$t)) {
+                    'integer', 'int'   => 'int',
+                    'boolean', 'bool'  => 'bool',
+                    'double', 'float'  => 'float',
+                    'null'             => 'null',
+                    default            => strtolower((string)$t)
+                };
+            };
+            $normalizedAllowedTypes = array_map($normalizeType, (array)$allowedDataTypes);
+            foreach ($uniqueValues as $index => $val) {
+                $rawType = gettype($val);
+                $type = $normalizeType($rawType);
+                if (!in_array($type, $normalizedAllowedTypes, true)) {
+                    $allowedList = implode(', ', $normalizedAllowedTypes);
+                    $valFormatted = is_scalar($val) || $val === null ? var_export($val, true) : json_encode($val);
+                    $this->configErrors[] = "Rule `{$ruleName}` value at index [{$index}] must be of type [{$allowedList}], `{$type} => {$valFormatted}` given for Input Key `{{##INPUT_KEY##}}`!";
+                    return false;
+                }
+            }
+        }
+        return $uniqueValues;
+    }
     public function files(string $customErrorMsg = ''): self
     {
         $this->dataType = "file";
@@ -3827,9 +4958,9 @@ class RuleSetFile
     }
 }
 // "PUBLICALLY AVAILABLE" Functions when "use" keyword includes them in a file to "use" them!
-function all(string $dataType, string $customErrorMsg = ''): RuleSetAll
+function all(string $dataType, string $customErrorMsg = '', string $setArrayTypeToListOrAssociative = ''): RuleSetAll
 {
-    return (new RuleSetAll())->setDatatype($dataType, $customErrorMsg);
+    return (new RuleSetAll())->setDatatype($dataType, $customErrorMsg, $setArrayTypeToListOrAssociative);
 }
 function string(string $customErrorMsg = ''): RuleSetString
 {
@@ -3867,9 +4998,9 @@ function phone(string $customErrorMsg = ''): RuleSetPhone
 {
     return (new RuleSetPhone())->phone($customErrorMsg);
 }
-function arr(string $customErrorMsg = ''): RuleSetArray
+function arr(string $setArrayTypeToListOrAssociative = '', string $customErrorMsg = ''): RuleSetArray
 {
-    return (new RuleSetArray())->arr($customErrorMsg);
+    return (new RuleSetArray())->arr($setArrayTypeToListOrAssociative, $customErrorMsg);
 }
 function object(string $customErrorMsg = ''): RuleSetObject
 {
