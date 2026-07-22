@@ -138,6 +138,72 @@ class RuleSetAll
         }
         return true;
     }
+    /**
+     * Validates and normalizes values supplied to a rule method during builder time.
+     *
+     * @param string $ruleName Name of the rule being configured (e.g. 'contains')
+     * @param mixed $values Raw values passed into the rule method (array, comma-separated string, scalar)
+     * @param array $allowedDataTypes Allowed PHP data types for each parameter (empty array = allow all)
+     * @return array|false Normalized array of unique values on success, or false on validation failure
+     */
+    private function validateRuleMultipleValues(
+        string $ruleName,
+        mixed $values,
+        array $allowedDataTypes = [],
+    ): array|false {
+        // 1. Normalize into an array
+        if (is_array($values)) {
+            $normalized = array_values($values);
+        } elseif (is_string($values)) {
+            $normalized = array_map('trim', explode(',', $values));
+        } else {
+            $normalized = [$values];
+        }
+        // Filter out empty strings resulting from comma splitting
+        $normalized = array_values(array_filter($normalized, fn($v) => $v !== ''));
+        // 2. Ensure non-empty list of values
+        if (empty($normalized)) {
+            $this->configErrors[] = "Rule `{$ruleName}` Requires at least One Value for Input Key `{{##INPUT_KEY##}}`!";
+            return false;
+        }
+        $uniqueValues = [];
+        foreach ($normalized as $val) {
+            // Strict duplicate check
+            if (in_array($val, $uniqueValues, true)) {
+                $valFormatted = is_scalar($val) || $val === null ? var_export($val, true) : json_encode($val);
+                $this->configErrors[] = "Rule `{$ruleName}` contains Duplicate ({$valFormatted}) Parameter Values for Input Key `{{##INPUT_KEY##}}`!";
+                return false;
+            }
+            $uniqueValues[] = $val;
+        }
+        // 3. Validate Data Types of parameters (if restricted)
+        if (!empty($allowedDataTypes)) {
+            $normalizeType = function (mixed $t): string {
+                if ($t === null) {
+                    return 'null';
+                }
+                return match (strtolower((string)$t)) {
+                    'integer', 'int'   => 'int',
+                    'boolean', 'bool'  => 'bool',
+                    'double', 'float'  => 'float',
+                    'null'             => 'null',
+                    default            => strtolower((string)$t)
+                };
+            };
+            $normalizedAllowedTypes = array_map($normalizeType, (array)$allowedDataTypes);
+            foreach ($uniqueValues as $index => $val) {
+                $rawType = gettype($val);
+                $type = $normalizeType($rawType);
+                if (!in_array($type, $normalizedAllowedTypes, true)) {
+                    $allowedList = implode(', ', $normalizedAllowedTypes);
+                    $valFormatted = is_scalar($val) || $val === null ? var_export($val, true) : json_encode($val);
+                    $this->configErrors[] = "Rule `{$ruleName}` value at index [{$index}] must be of type [{$allowedList}], `{$type} => {$valFormatted}` given for Input Key `{{##INPUT_KEY##}}`!";
+                    return false;
+                }
+            }
+        }
+        return $uniqueValues;
+    }
     // ACTUAL RULES (some are data type-restricted like some for only strings, some for only arrays, etc.)
     public function setDatatype(string $dataType, string $customErrorMsg = ''): self
     {
@@ -203,8 +269,11 @@ class RuleSetAll
     }
     public function keys_in_array_null_allowed(array|string $keysThatMustExistCanBeNull, string $customErrorMsg = ''): self
     {
-
         if (!$this->validateRuleUsage('keys_in_array_null_allowed', [], [], ['array'])) {
+            return $this;
+        }
+        $keys = $this->validateRuleMultipleValues('keys_in_array_null_allowed', $keysThatMustExistCanBeNull, ['string', 'null', 'NULL']);
+        if (!$keys) {
             return $this;
         }
         // 4. Normalize & Validate Input Parameters
@@ -241,6 +310,10 @@ class RuleSetAll
     public function keys_in_array_null_allowed_exact_count(array|string $keysThatMustExistCanBeNull, string $customErrorMsg = ''): self
     {
         if (!$this->validateRuleUsage('keys_in_array_null_allowed_exact_count', [], [], ['array'])) {
+            return $this;
+        }
+        $keys = $this->validateRuleMultipleValues('keys_in_array_null_allowed_exact_count', $keysThatMustExistCanBeNull, ['string', 'null', 'NULL']);
+        if (!$keys) {
             return $this;
         }
         // 4. Normalize & Validate Input Parameters
@@ -282,6 +355,10 @@ class RuleSetAll
         if (!$this->validateRuleUsage('keys_in_array_not_null', [], [], ['array'])) {
             return $this;
         }
+        $keys = $this->validateRuleMultipleValues('keys_in_array_not_null', $keysThatMustExistNotNull, ['string', 'null', 'NULL']);
+        if (!$keys) {
+            return $this;
+        }
         // 4. Normalize & Validate Input Parameters
         if (is_string($keysThatMustExistNotNull)) {
             $keys = array_filter(array_map('trim', explode(',', $keysThatMustExistNotNull)), fn($k) => $k !== '');
@@ -317,6 +394,10 @@ class RuleSetAll
     public function keys_in_array_not_null_exact_count(array|string $keysThatMustExistNotNull, string $customErrorMsg = ''): self
     {
         if (!$this->validateRuleUsage('keys_in_array_not_null_exact_count', [], [], ['array'])) {
+            return $this;
+        }
+        $keys = $this->validateRuleMultipleValues('keys_in_array_not_null_exact_count', $keysThatMustExistNotNull, ['string', 'null', 'NULL']);
+        if (!$keys) {
             return $this;
         }
         // 4. Normalize & Validate Input Parameters
@@ -1016,23 +1097,12 @@ class RuleSetAll
             return $this;
         }
         // 4. Normalize to array & Validate Patterns
-        $patterns = is_array($regexOrRegexes) ? $regexOrRegexes : [$regexOrRegexes];
-        if (empty($patterns)) {
-            $this->configErrors[] = 'Rule `regex` requires at least one pattern for Input Key `{{##INPUT_KEY##}}`!';
+        $patterns = $this->validateRuleMultipleValues('regex', $regexOrRegexes, ['string']);
+        if (!$patterns) {
             return $this;
         }
         $compiledConditions = [];
-        $duplicatePatterns = [];
         foreach ($patterns as $pattern) {
-            if (!is_string($pattern)) {
-                $this->configErrors[] = 'Rule `regex` Patterns must be Strings for Input Key `{{##INPUT_KEY##}}`!';
-                return $this;
-            }
-            if (in_array($pattern, $duplicatePatterns, true)) {
-                $this->configErrors[] = 'Rule `regex` Pattern Duplicate:`' . $pattern .  '` for Input Key `{{##INPUT_KEY##}}`!';
-                return $this;
-            }
-            $duplicatePatterns[] = $pattern;
             // Test regex syntax at compile-time
             try {
                 if (@preg_match($pattern, '') === false) {
@@ -1070,23 +1140,12 @@ class RuleSetAll
             return $this;
         }
         // 4. Normalize to array & Validate Patterns
-        $patterns = is_array($regexOrRegexes) ? $regexOrRegexes : [$regexOrRegexes];
-        if (empty($patterns)) {
-            $this->configErrors[] = 'Rule `not_regex` requires at least one pattern for Input Key `{{##INPUT_KEY##}}`!';
+        $patterns = $this->validateRuleMultipleValues('not_regex', $regexOrRegexes, ['string']);
+        if (!$patterns) {
             return $this;
         }
         $compiledConditions = [];
-        $duplicatePatterns = [];
         foreach ($patterns as $pattern) {
-            if (!is_string($pattern)) {
-                $this->configErrors[] = 'Rule `not_regex` Patterns must be Strings for Input Key `{{##INPUT_KEY##}}`!';
-                return $this;
-            }
-            if (in_array($pattern, $duplicatePatterns, true)) {
-                $this->configErrors[] = 'Rule `regex` Pattern Duplicate:`' . $pattern .  '` for Input Key `{{##INPUT_KEY##}}`!';
-                return $this;
-            }
-            $duplicatePatterns[] = $pattern;
             // Test regex syntax at compile-time
             try {
                 if (@preg_match($pattern, '') === false) {
@@ -1122,34 +1181,11 @@ class RuleSetAll
         if (!$this->validateRuleUsage('in', ['not_in'], [], ['string', 'numeric', 'boolean'])) {
             return $this;
         }
-        if ((is_string($inValues) && (empty($inValues)))
-            || (is_array($inValues) && (empty($inValues) || !array_is_list($inValues)))
-        ) {
-            $this->configErrors[] = 'Rule `in` requires at least one Allowed Value as a String or as a Non-Empty Numbered Array for Input Key `{{##INPUT_KEY##}}`!';
+        $values = $this->validateRuleMultipleValues('in', $inValues, ['string', 'integer', 'boolean', 'float', null]);
+        if (!$values) {
             return $this;
         }
-        // 5. Normalize Input Values
-        $validValues = [];
-        if (is_string($inValues)) {
-            $values = array_map('trim', explode(',', $inValues));
-        } else {
-            $values = array_values($inValues);
-        }
-        // Check for duplicate items in configured list
-        foreach ($values as $val) {
-            if (in_array($val, $validValues, true)) {
-                $displayVal = is_bool($val) ? ($val ? 'true' : 'false') : (string)$val;
-                $this->configErrors[] = 'Rule `in` contains duplicate (`' . $displayVal . '`) Allowed Values for Input Key `{{##INPUT_KEY##}}`!';
-                return $this;
-            }
-            if ((!is_scalar($val)) && ($val !== null)) {
-                $this->configErrors[] = 'Rule `in` must have SCALARS or NULLS as Values for Input Key `{{##INPUT_KEY##}}`!';
-                return $this;
-            }
-            $validValues[] = $val;
-        }
         // 6. Build Failure Condition
-        $values = $validValues;
         // Failure condition: input value is NOT in the allowed list
         if (count($values) <= 3) {
             $checks = [];
@@ -1181,34 +1217,7 @@ class RuleSetAll
         if (!$this->validateRuleUsage('not_in', ['in'], [], ['string', 'numeric', 'boolean'])) {
             return $this;
         }
-        if ((is_string($inValues) && (empty($inValues)))
-            || (is_array($inValues) && (empty($inValues) || !array_is_list($inValues)))
-        ) {
-            $this->configErrors[] = 'Rule `not_in` requires at least one Forbidden Value as a String or as a Non-Empty Numbered Array for Input Key `{{##INPUT_KEY##}}`!';
-            return $this;
-        }
-        // 5. Normalize Input Values
-        $validValues = [];
-        if (is_string($inValues)) {
-            $values = array_map('trim', explode(',', $inValues));
-        } else {
-            $values = array_values($inValues);
-        }
-        // Check for duplicate items in configured list
-        foreach ($values as $val) {
-            if (in_array($val, $validValues, true)) {
-                $displayVal = is_bool($val) ? ($val ? 'true' : 'false') : (string)$val;
-                $this->configErrors[] = 'Rule `not_in` contains duplicate (`' . $displayVal . '`) Forbidden Values for Input Key `{{##INPUT_KEY##}}`!';
-                return $this;
-            }
-            if ((!is_scalar($val)) && ($val !== null)) {
-                $this->configErrors[] = 'Rule `not_in` must have SCALARS or NULLS as Values for Input Key `{{##INPUT_KEY##}}`!';
-                return $this;
-            }
-            $validValues[] = $val;
-        }
-        // 6. Build Failure Condition
-        $values = $validValues;
+        $values = $this->validateRuleMultipleValues('not_in', $inValues, ['string', 'integer', 'boolean', 'float', null]);
         // Failure condition: input value IS in the forbidden list
         if (count($values) <= 3) {
             $checks = [];
@@ -1748,7 +1757,7 @@ class RuleSetAll
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['single_digit'] = \"" . $error . "\";";
         return $this;
     }
-    public function checked(array|string $allowedValues = [true, 1, '1', 'on', 'yes', 'ja', 'true', 'checked', 'enabled', 'selected'], string $customErrorMsg = ''): self
+    public function checked(array|string $allowedValues = [true, 1, '1', 'on', 'yes', 'true', 'checked', 'enabled', 'selected', 'ja'], string $customErrorMsg = ''): self
     {
         if (!$this->validateRuleUsage('checked', ['unchecked'], ['checkbox'], ['checkbox'])) {
             return $this;
@@ -1788,7 +1797,7 @@ class RuleSetAll
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['checked'] = \"" . $error . "\";";
         return $this;
     }
-    public function unchecked(array|string $allowedValues = [false, 0, '0', 'off', 'no', 'nej', 'false', 'unchecked', 'disabled', 'unselected'], string $customErrorMsg = ''): self
+    public function unchecked(array|string $allowedValues = [false, 0, '0', 'off', 'no', 'false', 'unchecked', 'disabled', 'unselected', 'nej'], string $customErrorMsg = ''): self
     {
         if (!$this->validateRuleUsage('unchecked', ['checked'], ['checkbox'], ['checkbox'])) {
             return $this;
@@ -1832,11 +1841,9 @@ class RuleSetAll
         if (!$this->validateRuleUsage('starts_with', ['starts_with_mb'], [], ['string', 'numeric'])) {
             return $this;
         }
-        // 2. Normalize inputs into array of strings
-        if (is_array($startsWithValues)) {
-            $prefixes = array_map('strval', $startsWithValues);
-        } else {
-            $prefixes = array_map('trim', explode(',', (string)$startsWithValues));
+        $prefixes = $this->validateRuleMultipleValues('starts_with', $startsWithValues, ['string', 'integer', 'float']);
+        if (!$prefixes) {
+            return $this;
         }
         // 3. Build Compiled Conditions using (string)({{##INPUT##}} ?? '')
         $inputStr = '(string)({{##INPUT##}} ?? \'\')';
@@ -1869,14 +1876,8 @@ class RuleSetAll
         if (!$this->validateRuleUsage('ends_with', ['ends_with_mb'], [], ['string', 'numeric'])) {
             return $this;
         }
-        // Normalize inputs into array of strings
-        if (is_array($endsWithValues)) {
-            $suffixes = array_map('strval', $endsWithValues);
-        } else {
-            $suffixes = array_map('trim', explode(',', (string)$endsWithValues));
-        }
-        if (empty($suffixes)) {
-            $this->configErrors[] = 'Rule `ends_with` requires at least one suffix value for Input Key `{{##INPUT_KEY##}}`!';
+        $suffixes = $this->validateRuleMultipleValues('ends_with', $endsWithValues, ['string', 'integer', 'float']);
+        if (!$suffixes) {
             return $this;
         }
         $inputStr = '(string)({{##INPUT##}} ?? \'\')';
@@ -1906,27 +1907,34 @@ class RuleSetAll
     }
     public function contains(array|string|int|float $containsValues, string $customErrorMsg = ''): self
     {
-        if (!$this->validateRuleUsage('contains', ['contains_mb'], [], ['string', 'numeric'])) {
+        if (!$this->validateRuleUsage('contains', ['contains_mb'], [], ['string', 'numeric', 'array'])) {
             return $this;
         }
-        // Normalize inputs into array of strings
-        if (is_array($containsValues)) {
-            $needles = array_map('strval', $containsValues);
+        $needles = $this->validateRuleMultipleValues('contains', $containsValues, ['string', 'integer', 'float']);
+        if (!$needles) {
+            return $this;
+        }
+        // BUILD-TIME BRANCHING based on Data Type Category
+        if ($this->dataTypeCategory === 'array') {
+            // ARRAY CATEGORY: Input array must contain ALL specified values
+            $inputArr = '(array)({{##INPUT##}} ?? [])';
+            $conditions = [];
+            foreach ($needles as $needle) {
+                $exportedNeedle = var_export($needle, true);
+                // Fails if ANY needle is NOT in the array
+                $conditions[] = "!in_array({$exportedNeedle}, {$inputArr}, true)";
+            }
+            $condition = implode(' || ', $conditions);
         } else {
-            $needles = array_map('trim', explode(',', (string)$containsValues));
+            // STRING/NUMERIC CATEGORY: Input string must contain AT LEAST ONE of the specified values
+            $inputStr = '(string)({{##INPUT##}} ?? \'\')';
+            $conditions = [];
+            foreach ($needles as $needle) {
+                $escapedNeedle = addslashes((string)$needle);
+                $conditions[] = "str_contains({$inputStr}, '{$escapedNeedle}')";
+            }
+            $condition = '!(' . implode(' || ', $conditions) . ')';
         }
-        if (empty($needles)) {
-            $this->configErrors[] = 'Rule `contains` requires at least one search value for Input Key `{{##INPUT_KEY##}}`!';
-            return $this;
-        }
-        $inputStr = '(string)({{##INPUT##}} ?? \'\')';
-        $conditions = [];
-        foreach ($needles as $needle) {
-            $escapedNeedle = addslashes($needle);
-            $conditions[] = "str_contains({$inputStr}, '{$escapedNeedle}')";
-        }
-        // If multiple values given, ANY match passes validation
-        $condition = '!(' . implode(' || ', $conditions) . ')';
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must contain: " . implode(', ', $needles);
@@ -1942,6 +1950,339 @@ class RuleSetAll
                 "}"
         ];
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['contains'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function starts_with_mb(array|string|int|float $startsWithValues, string $customErrorMsg = ''): self
+    {
+        // 1. Guard check: conflicts with 'starts_with' and strictly allows 'string' category
+        if (!$this->validateRuleUsage('starts_with_mb', ['starts_with'], [], ['string'])) {
+            return $this;
+        }
+        $prefixes = $this->validateRuleMultipleValues('starts_with_mb', $startsWithValues, ['string', 'integer', 'float',]);
+        if (!$prefixes) {
+            return $this;
+        }
+        // 3. Multibyte string start check using mb_strpos === 0
+        $inputStr = '(string)({{##INPUT##}} ?? \'\')';
+        $conditions = [];
+        foreach ($prefixes as $prefix) {
+            $escapedPrefix = addslashes($prefix);
+            $conditions[] = "mb_strpos({$inputStr}, '{$escapedPrefix}') === 0";
+        }
+        $condition = '!(' . implode(' || ', $conditions) . ')';
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must start with: " . implode(', ', $prefixes);
+        $this->rules['starts_with_mb'] = [
+            'prefixes' => $prefixes,
+            'error'    => $error,
+            'compiled' => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['starts_with_mb'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['starts_with_mb'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function ends_with_mb(array|string|int|float $endsWithValues, string $customErrorMsg = ''): self
+    {
+        // 1. Guard check: conflicts with 'ends_with' and strictly allows 'string' category
+        if (!$this->validateRuleUsage('ends_with_mb', ['ends_with'], [], ['string'])) {
+            return $this;
+        }
+        $suffixes = $this->validateRuleMultipleValues('ends_with_mb', $endsWithValues, ['string', 'integer', 'float',]);
+        if (!$suffixes) {
+            return $this;
+        }
+        // 3. Multibyte string end check using mb_substr
+        $inputStr = '(string)({{##INPUT##}} ?? \'\')';
+        $conditions = [];
+        foreach ($suffixes as $suffix) {
+            $escapedSuffix = addslashes($suffix);
+            $length = mb_strlen($suffix);
+
+            if ($length === 0) {
+                $conditions[] = 'true';
+            } else {
+                $conditions[] = "mb_substr({$inputStr}, -{$length}) === '{$escapedSuffix}'";
+            }
+        }
+        $condition = '!(' . implode(' || ', $conditions) . ')';
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must end with: " . implode(', ', $suffixes);
+        $this->rules['ends_with_mb'] = [
+            'suffixes' => $suffixes,
+            'error'    => $error,
+            'compiled' => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['ends_with_mb'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['ends_with_mb'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function contains_mb(array|string|int|float $containsValues, string $customErrorMsg = ''): self
+    {
+        // 1. Guard check: conflicts with 'contains' and strictly allows 'string' category
+        if (!$this->validateRuleUsage('contains_mb', ['contains'], [], ['string'])) {
+            return $this;
+        }
+        $needles = $this->validateRuleMultipleValues('contains_mb', $containsValues, ['string', 'integer', 'float',]);
+        if (!$needles) {
+            return $this;
+        }
+        // 3. Multibyte string contains check using mb_strpos !== false
+        $inputStr = '(string)({{##INPUT##}} ?? \'\')';
+        $conditions = [];
+        foreach ($needles as $needle) {
+            $escapedNeedle = addslashes($needle);
+            $conditions[] = "mb_strpos({$inputStr}, '{$escapedNeedle}') !== false";
+        }
+        $condition = '!(' . implode(' || ', $conditions) . ')';
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must contain: " . implode(', ', $needles);
+        $this->rules['contains_mb'] = [
+            'needles'  => $needles,
+            'error'    => $error,
+            'compiled' => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['contains_mb'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['contains_mb'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function doesnt_start_with(array|string|int|float $startsWithValues, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('doesnt_start_with', ['doesnt_start_with_mb', 'starts_with'], [], ['string', 'numeric'])) {
+            return $this;
+        }
+        $prefixes = $this->validateRuleMultipleValues('doesnt_start_with', $startsWithValues, ['string', 'integer', 'float',]);
+        if (!$prefixes) {
+            return $this;
+        }
+        $inputStr = '(string)({{##INPUT##}} ?? \'\')';
+        $conditions = [];
+        foreach ($prefixes as $prefix) {
+            $escapedPrefix = addslashes($prefix);
+            $conditions[] = "str_starts_with({$inputStr}, '{$escapedPrefix}')";
+        }
+        // Fails if ANY condition matches
+        $condition = '(' . implode(' || ', $conditions) . ')';
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must not start with: " . implode(', ', $prefixes);
+        $this->rules['doesnt_start_with'] = [
+            'prefixes' => $prefixes,
+            'error'    => $error,
+            'compiled' => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['doesnt_start_with'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['doesnt_start_with'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function doesnt_end_with(array|string|int|float $endsWithValues, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('doesnt_end_with', ['doesnt_end_with_mb', 'ends_with'], [], ['string', 'numeric'])) {
+            return $this;
+        }
+        $suffixes = $this->validateRuleMultipleValues('doesnt_end_with', $endsWithValues, ['string', 'integer', 'float',]);
+        if (!$suffixes) {
+            return $this;
+        }
+        $inputStr = '(string)({{##INPUT##}} ?? \'\')';
+        $conditions = [];
+        foreach ($suffixes as $suffix) {
+            $escapedSuffix = addslashes($suffix);
+            $conditions[] = "str_ends_with({$inputStr}, '{$escapedSuffix}')";
+        }
+        // Fails if ANY condition matches
+        $condition = '(' . implode(' || ', $conditions) . ')';
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must not end with: " . implode(', ', $suffixes);
+        $this->rules['doesnt_end_with'] = [
+            'suffixes' => $suffixes,
+            'error'    => $error,
+            'compiled' => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['doesnt_end_with'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['doesnt_end_with'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function doesnt_contain(array|string|int|float $containsValues, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('doesnt_contain', ['doesnt_contain_mb', 'contains'], [], ['string', 'numeric', 'array'])) {
+            return $this;
+        }
+        $needles = $this->validateRuleMultipleValues('doesnt_contain', $containsValues, ['string', 'integer', 'float',]);
+        if (!$needles) {
+            return $this;
+        }
+        // BUILD-TIME BRANCHING based on Data Type Category
+        if ($this->dataTypeCategory === 'array') {
+            // ARRAY CATEGORY: Input array must NOT contain ANY of the specified values
+            $inputArr = '(array)({{##INPUT##}} ?? [])';
+            $conditions = [];
+            foreach ($needles as $needle) {
+                $exportedNeedle = var_export($needle, true);
+                // Fails if ANY needle IS found in the array
+                $conditions[] = "in_array({$exportedNeedle}, {$inputArr}, true)";
+            }
+            $condition = implode(' || ', $conditions);
+        } else {
+            // STRING/NUMERIC CATEGORY: Input string must NOT contain ANY of the specified values
+            $inputStr = '(string)({{##INPUT##}} ?? \'\')';
+            $conditions = [];
+            foreach ($needles as $needle) {
+                $escapedNeedle = addslashes((string)$needle);
+                $conditions[] = "str_contains({$inputStr}, '{$escapedNeedle}')";
+            }
+            $condition = '(' . implode(' || ', $conditions) . ')';
+        }
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must not contain: " . implode(', ', $needles);
+        $this->rules['doesnt_contain'] = [
+            'needles'  => $needles,
+            'error'    => $error,
+            'compiled' => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['doesnt_contain'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['doesnt_contain'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function doesnt_start_with_mb(array|string|int|float $startsWithValues, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('doesnt_start_with_mb', ['doesnt_start_with', 'starts_with_mb'], [], ['string'])) {
+            return $this;
+        }
+        $prefixes = $this->validateRuleMultipleValues('doesnt_start_with_mb', $startsWithValues, ['string', 'integer', 'float',]);
+        if (!$prefixes) {
+            return $this;
+        }
+        $inputStr = '(string)({{##INPUT##}} ?? \'\')';
+        $conditions = [];
+        foreach ($prefixes as $prefix) {
+            $escapedPrefix = addslashes($prefix);
+            $conditions[] = "mb_strpos({$inputStr}, '{$escapedPrefix}') === 0";
+        }
+        // Fails if ANY condition matches
+        $condition = '(' . implode(' || ', $conditions) . ')';
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must not start with: " . implode(', ', $prefixes);
+        $this->rules['doesnt_start_with_mb'] = [
+            'prefixes' => $prefixes,
+            'error'    => $error,
+            'compiled' => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['doesnt_start_with_mb'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['doesnt_start_with_mb'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function doesnt_end_with_mb(array|string|int|float $endsWithValues, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('doesnt_end_with_mb', ['doesnt_end_with', 'ends_with_mb'], [], ['string'])) {
+            return $this;
+        }
+        $suffixes = $this->validateRuleMultipleValues('doesnt_end_with_mb', $endsWithValues, ['string', 'integer', 'float',]);
+        if (!$suffixes) {
+            return $this;
+        }
+        $inputStr = '(string)({{##INPUT##}} ?? \'\')';
+        $conditions = [];
+        foreach ($suffixes as $suffix) {
+            $escapedSuffix = addslashes($suffix);
+            $length = mb_strlen($suffix);
+            if ($length === 0) {
+                $conditions[] = 'true';
+            } else {
+                $conditions[] = "mb_substr({$inputStr}, -{$length}) === '{$escapedSuffix}'";
+            }
+        }
+        // Fails if ANY condition matches
+        $condition = '(' . implode(' || ', $conditions) . ')';
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must not end with: " . implode(', ', $suffixes);
+        $this->rules['doesnt_end_with_mb'] = [
+            'suffixes' => $suffixes,
+            'error'    => $error,
+            'compiled' => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['doesnt_end_with_mb'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['doesnt_end_with_mb'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function doesnt_contain_mb(array|string|int|float $containsValues, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('doesnt_contain_mb', ['doesnt_contain', 'contains_mb'], [], ['string'])) {
+            return $this;
+        }
+        $needles = $this->validateRuleMultipleValues('doesnt_contain_mb', $containsValues, ['string', 'integer', 'float',]);
+        if (!$needles) {
+            return $this;
+        }
+        $inputStr = '(string)({{##INPUT##}} ?? \'\')';
+        $conditions = [];
+        foreach ($needles as $needle) {
+            $escapedNeedle = addslashes($needle);
+            $conditions[] = "mb_strpos({$inputStr}, '{$escapedNeedle}') !== false";
+        }
+        // Fails if ANY condition matches
+        $condition = '(' . implode(' || ', $conditions) . ')';
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must not contain: " . implode(', ', $needles);
+        $this->rules['doesnt_contain_mb'] = [
+            'needles'  => $needles,
+            'error'    => $error,
+            'compiled' => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['doesnt_contain_mb'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['doesnt_contain_mb'] = \"" . $error . "\";";
         return $this;
     }
 }

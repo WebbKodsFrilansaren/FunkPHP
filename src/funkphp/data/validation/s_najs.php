@@ -14,7 +14,7 @@ function s_paj(&$c)
 	cli_dump([
 		'<CONFIG>' => ['stop_all_on_first_error' => false],
 		'VALIDATION' => [
-			'bigger.name'  => all("string", "Name must be a string!")->ends_with(10.5)->bail()->contains("test")
+			'bigger.name'  => all("string", "Name must be an array!")->contains_mb('ab')
 		],
 	]);
 };
