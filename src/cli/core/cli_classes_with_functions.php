@@ -260,7 +260,7 @@ class RuleSetAll
     }
 
     /* ALL DATA TYPES RULES */
-    public function chain_rules_experimental(string $customErrorMsg): self
+    public function chain_rules_experimental(string $customErrorMsg): self // MIGHT NOT BE USED AT ALL!
     {
         if (!$this->validateRuleUsage('chain_rules_experimental')) {
             return $this;
@@ -309,6 +309,49 @@ class RuleSetAll
         $this->useRequired = true;
         return $this;
     }
+    /**
+     * Validates field input using a custom user-defined function from `/src/funkphp/config/functions.php` OR Any `Fully Qualified Name (e.g \Name\Name2\Name3)`. You do NOT need to add the starting slash!
+     *
+     * The callback function receives the Global `$c` variable as its first argument and the input value as its second:
+     * `function_name($c, $value)`. Returning `false` triggers a validation error. Any `other returned value than false is ignored`!
+     *
+     * @param string $functionName Name of the function defined in `/src/funkphp/config/functions.php`.
+     * @param string $customErrorMsg Custom error message on validation failure.
+     * @return self
+     */
+    public function callback(string $functionName, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('callback', [], [], [])) {
+            return $this;
+        }
+        $validated = $this->validateRuleMultipleValues('callback', $functionName, ['string']);
+        if (!$validated) {
+            return $this;
+        }
+        $func = trim($validated[0]);
+        // Developer config check: Validate function identifier syntax
+        if (empty($func) || !preg_match('/^[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\\\\-\x7f-\xff]*$/', $func)) {
+            $this->configErrors[] = "Rule `callback` Parameter `'{$func}'` is NOT a valid PHP function identifier for Input Key `{{##INPUT_KEY##}}`!";
+            return $this;
+        }
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` failed custom validation!";
+        $compiledCode = "if(\\{$func}(\$c,{{##INPUT##}}) === false) {\n" .
+            "    {{##ERRORS##}}['callback'] = \"{$error}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "}";
+        $this->rules['callback'] = [
+            'functionName' => "\\$func",
+            'error'        => $error,
+            'compiled'     => $compiledCode,
+        ];
+        return $this;
+    }
+
     /* ARRAY-ONLY RULES */
     public function keys_in_array_null_allowed(array|string $keysThatMustExistCanBeNull, string $customErrorMsg = ''): self
     {
@@ -574,6 +617,140 @@ class RuleSetAll
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['keys_in_array_depths'] = \"" . $error . "\";";
         return $this;
     }
+    /**
+     * Validates that every element within the target array matches the specified data type.
+     *
+     * @param 'distinct'|'distinct_strict'|'distinct_ignore_case'|'string'|'string-not-empty'|'int'|'int_only_positive'|'int_only_negative'|'float'|'float_only_positive'|'float_only_negative'|'int_and_float'|'int_and_float_only_positive'|'int_and_float_only_negative'|'numeric'|'numeric_only_positive'|'numeric_only_negative'|'boolean'|'boolean_only_true'|'boolean_only_false'|'scalar'|'scalar_not_empty'|'null'|'object'|'array'|'array-not-empty'|'list'|'list-not-empty'|'associative'|'associative-not-empty'|'callback:'|string $arrayElementSingleDataType Target element data type or a Custom `callback:` user-defined in `/src/funkphp/config/functions.php` OR Any `Fully Qualified Name (e.g \Name\Name2\Name3)` - you do NOT need to add the starting slash! If you use Custom `callback:`, each element will be passed as the SECOND ARGUMENT after the Global $c variable, as such: `callback($c,$element)` and if the returning value is `false` then it is considered to have failed the validation for that Input! (any other returned value than false is ignored when using `callback:`)
+     * @param string $customErrorMsg Custom error message on validation failure.
+     * @return self
+     */
+    public function elements_in_array_are_all(string $arrayElementSingleDataType, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('elements_in_array_are_all', [], [], ['array'])) {
+            return $this;
+        }
+        $validated = $this->validateRuleMultipleValues('elements_in_array_are_all', $arrayElementSingleDataType, ['string']);
+        if (!$validated) {
+            return $this;
+        }
+        $targetType = strtolower(trim($validated[0]));
+        $useCallback = false;
+        $useDistinct = false;
+        // Map allowed target types to their compiled negative PHP evaluation condition
+        $typeConditions = [
+            'string'                  => '!is_string($elem)',
+            'string-not-empty'        => '!is_string($elem) || trim($elem) === \'\'',
+            'int'                 => '!is_int($elem)',
+            'int_only_positive'   => '!is_int($elem) || $elem <= 0',
+            'int_only_negative'   => '!is_int($elem) || $elem >= 0',
+            'float'                   => '!is_float($elem)',
+            'float_only_positive'     => '!is_float($elem) || $elem <= 0',
+            'float_only_negative'     => '!is_float($elem) || $elem >= 0',
+            'int_and_float'                  => '(!is_int($elem) && !is_float($elem))',
+            'int_and_float_only_positive'    => '(!is_int($elem) && !is_float($elem)) || $elem <= 0',
+            'int_and_float_only_negative'    => '(!is_int($elem) && !is_float($elem)) || $elem >= 0',
+            'numeric'                 => '!is_numeric($elem)',
+            'numeric_only_positive'   => '!is_numeric($elem) || $elem <= 0',
+            'numeric_only_negative'   => '!is_numeric($elem) || $elem >= 0',
+            'boolean'                 => '!is_bool($elem)',
+            'boolean_only_true'       => '!is_bool($elem) || $elem !== true',
+            'boolean_only_false'      => '!is_bool($elem) || $elem !== false',
+            'scalar'           => '!is_scalar($elem)',
+            'scalar_not_empty' => '!is_scalar($elem) || (is_string($elem) && trim($elem) === \'\')',
+            'null'                    => '$elem !== null',
+            'object'                  => '!is_object($elem)',
+            'array'                   => '!is_array($elem)',
+            'array-not-empty'         => '!is_array($elem) || count($elem) === 0',
+            'list'                    => '!is_array($elem) || !array_is_list($elem)',
+            'list-not-empty'          => '!is_array($elem) || !array_is_list($elem) || count($elem) === 0',
+            'associative'             => '!is_array($elem) || array_is_list($elem)',
+            'associative-not-empty'   => '!is_array($elem) || array_is_list($elem) || count($elem) === 0',
+        ];
+        // Developer config check: Reject unrecognized data types
+        $callBackCondition = '';
+        $callbackUsed = null;
+        if (str_starts_with($targetType, 'callback:')) {
+            $useCallback = true;
+            $cb = explode("callback:", $targetType)[1];
+            if (trim($cb) === '') {
+                $this->configErrors[] = "Rule `elements_in_array_are_all` Parameter `'{$targetType}'` is NOT a valid target data type (allowed: EITHER a custom `callback:function_name` stored in `/src/funkphp/config/functions.php` that must return false if it fails validation, OR:`" . join(",", array_keys($typeConditions)) . "`) for Input Key `{{##INPUT_KEY##}}`!";
+            }
+            $callbackUsed = $cb;
+            $callBackCondition = "\\{$cb}(\$c,\$elem) === false";
+        } else if (str_starts_with($targetType, 'distinct')) {
+            $useDistinct = true;
+        } else if (!array_key_exists($targetType, $typeConditions)) {
+            $allowedList = implode(", ", array_keys($typeConditions));
+            $this->configErrors[] = "Rule `elements_in_array_are_all` Parameter `'{$targetType}'` is NOT a valid target data type (allowed: EITHER a custom `callback:function_name` stored in `/src/funkphp/config/functions.php` that must return false if it fails validation, OR:`{$allowedList}`) for Input Key `{{##INPUT_KEY##}}`!";
+            return $this;
+        }
+        if (!$useDistinct) {
+            $condition = ($useCallback ? $callBackCondition : $typeConditions[$targetType]);
+            $error = !empty($customErrorMsg)
+                ? $customErrorMsg
+                : "Field `{{##INPUT_KEY##}}` must contain only `{$targetType}` elements!";
+            $compiledCode = "foreach({{##INPUT##}} as \$elem) {\n" .
+                "    if({$condition}) {\n" .
+                "        {{##ERRORS##}}['elements_in_array_are_all'] = \"{$error}\";\n" .
+                "        {{##GOTO_STOP_ALL##}}\n" .
+                "        {{##GOTO_BAIL##}}\n" .
+                "        {{##GOTO_NEXT_RULE##}}\n" .
+                "        {{##GOTO_END_FIELD##}}\n" .
+                "        break;\n" .
+                "    }\n" .
+                "}";
+        }  // Starts with distinct, so now we check if
+        // it is, strict, ignore_case or just distinct!
+        else {
+            $allowedDistinct = ['distinct', 'distinct_strict', 'distinct_ignore_case'];
+            // Developer config check: Reject unrecognized distinct parameters
+            if (!in_array($targetType, $allowedDistinct, true)) {
+                $this->configErrors[] = "Rule `elements_in_array_are_all` Parameter `'{$targetType}'` is NOT a valid distinct mode (allowed: `distinct`, `distinct_strict`, `distinct_ignore_case`) for Input Key `{{##INPUT_KEY##}}`!";
+                return $this;
+            }
+            $error = !empty($customErrorMsg)
+                ? $customErrorMsg
+                : "Field `{{##INPUT_KEY##}}` contains duplicate elements!";
+            if ($targetType === 'distinct_ignore_case') {
+                $compiledCode = "\$seen = [];\n" .
+                    "foreach({{##INPUT##}} as \$elem) {\n" .
+                    "    \$checkVal = is_string(\$elem) ? strtolower(\$elem) : \$elem;\n" .
+                    "    if(in_array(\$checkVal, \$seen, false)) {\n" .
+                    "        {{##ERRORS##}}['elements_in_array_are_all'] = \"{$error}\";\n" .
+                    "        {{##GOTO_STOP_ALL##}}\n" .
+                    "        {{##GOTO_BAIL##}}\n" .
+                    "        {{##GOTO_NEXT_RULE##}}\n" .
+                    "        {{##GOTO_END_FIELD##}}\n" .
+                    "        break;\n" .
+                    "    }\n" .
+                    "    \$seen[] = \$checkVal;\n" .
+                    "}";
+            } else {
+                $strictFlag = ($targetType === 'distinct_strict') ? 'true' : 'false';
+                $compiledCode = "\$seen = [];\n" .
+                    "foreach({{##INPUT##}} as \$elem) {\n" .
+                    "    if(in_array(\$elem, \$seen, {$strictFlag})) {\n" .
+                    "        {{##ERRORS##}}['elements_in_array_are_all'] = \"{$error}\";\n" .
+                    "        {{##GOTO_STOP_ALL##}}\n" .
+                    "        {{##GOTO_BAIL##}}\n" .
+                    "        {{##GOTO_NEXT_RULE##}}\n" .
+                    "        {{##GOTO_END_FIELD##}}\n" .
+                    "        break;\n" .
+                    "    }\n" .
+                    "    \$seen[] = \$elem;\n" .
+                    "}";
+            }
+        }
+        $this->rules['elements_in_array_are_all'] = [
+            'callback' => $useCallback,
+            'callback_used' => $callbackUsed,
+            'targetType' => $targetType,
+            'error'      => $error,
+            'compiled'   => $compiledCode,
+        ];
+        return $this;
+    }
+
     /* MIXED DATA TYPES RULES when using RuleSetAll! */
     public function min(int|float $minValue, string $customErrorMsg = ''): self
     {
@@ -2059,6 +2236,442 @@ class RuleSetAll
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['doesnt_contain_mb'] = \"" . $error . "\";";
         return $this;
     }
+    /**
+     * Validates that the input is a valid date string
+     *
+     * @param string $customErrorMsg Custom error message on validation failure.
+     * @return self
+     */
+    public function date(string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('date', [], ['string', 'date'], ['string'])) {
+            return $this;
+        }
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must contain a valid date format!";
+        $compiledCode = "if(strtotime({{##INPUT##}}) === false) {\n" .
+            "    {{##ERRORS##}}['date'] = \"{$error}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "}";
+        $this->rules['date'] = [
+            'error'    => $error,
+            'compiled' => $compiledCode,
+        ];
+        return $this;
+    }
+    /**
+     * Validates that the input is a valid date occurring strictly AFTER the target date/time.
+     *
+     * @param string $targetDate Parseable date string (e.g. '2026-01-01', 'today', '+2 days').
+     * @param string $customErrorMsg Custom error message on validation failure.
+     * @return self
+     */
+    public function date_after(string $targetDate, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('date_after', [], ['string', 'date'], ['string'])) {
+            return $this;
+        }
+        $validated = $this->validateRuleMultipleValues('date_after', $targetDate, ['string']);
+        if ($validated === false) {
+            return $this;
+        }
+        $targetDate = $validated[0];
+        // Developer config check: Ensure the target parameter itself is a valid date string
+        if (strtotime($targetDate) === false) {
+            $this->configErrors[] = "Rule `date_after` Parameter `'{$targetDate}'` is NOT a Valid Parseable Date String (checked with `strtotime()`) for Input Key `{{##INPUT_KEY##}}`!";
+            return $this;
+        }
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be a valid date after `{$targetDate}`!";
+        // Fails if input is not a string, not parseable, or falls on/before the target date
+        $condition = "strtotime({{##INPUT##}}) === false || " .
+            "strtotime({{##INPUT##}}) <= strtotime('{$targetDate}')";
+        $compiledCode = "if({$condition}) {\n" .
+            "    {{##ERRORS##}}['date_after'] = \"{$error}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "}";
+        $this->rules['date_after'] = [
+            'targetDate' => $targetDate,
+            'error'      => $error,
+            'compiled'   => $compiledCode,
+        ];
+        return $this;
+    }
+    /**
+     * Validates that the input is a valid date occurring on or AFTER the target date/time.
+     *
+     * @param string $targetDate Parseable date string (e.g. '2026-01-01', 'today', '+2 days').
+     * @param string $customErrorMsg Custom error message on validation failure.
+     * @return self
+     */
+    public function date_after_or_equal(string $targetDate, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('date_after_or_equal', [], ['string', 'date'], ['string'])) {
+            return $this;
+        }
+        $validated = $this->validateRuleMultipleValues('date_after_or_equal', $targetDate, ['string']);
+        if ($validated === false) {
+            return $this;
+        }
+        $targetDate = $validated[0];
+        // Developer config check: Ensure the target parameter itself is a valid date string
+        if (strtotime($targetDate) === false) {
+            $this->configErrors[] = "Rule `date_after_or_equal` Parameter `'{$targetDate}'` is NOT a Valid Parseable Date String (checked with `strtotime()`) for Input Key `{{##INPUT_KEY##}}`!";
+            return $this;
+        }
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be a valid date on or after `{$targetDate}`!";
+        // Fails if input is unparseable or falls strictly before the target date
+        $condition = "strtotime({{##INPUT##}}) === false || " .
+            "strtotime({{##INPUT##}}) < strtotime('{$targetDate}')";
+        $compiledCode = "if({$condition}) {\n" .
+            "    {{##ERRORS##}}['date_after_or_equal'] = \"{$error}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "}";
+        $this->rules['date_after_or_equal'] = [
+            'targetDate' => $targetDate,
+            'error'      => $error,
+            'compiled'   => $compiledCode,
+        ];
+        return $this;
+    }
+    /**
+     * Validates that the input is a valid date occurring strictly BEFORE the target date/time.
+     *
+     * @param string $targetDate Parseable date string (e.g. '2026-12-31', 'tomorrow', '-1 month').
+     * @param string $customErrorMsg Custom error message on validation failure.
+     * @return self
+     */
+    public function date_before(string $targetDate, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('date_before', [], ['string', 'date'], ['string'])) {
+            return $this;
+        }
+        $validated = $this->validateRuleMultipleValues('date_before', $targetDate, ['string']);
+        if ($validated === false) {
+            return $this;
+        }
+        $targetDate = $validated[0];
+        // Developer config check: Ensure the target parameter itself is a valid date string
+        if (strtotime($targetDate) === false) {
+            $this->configErrors[] = "Rule `date_before` parameter `'{$targetDate}'` is NOT a Valid Parseable Date String (checked with `strtotime()`) for Input Key `{{##INPUT_KEY##}}`!";
+            return $this;
+        }
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be a valid date before `{$targetDate}`!";
+        // Fails if input is not a string, not parseable, or falls on/after the target date
+        $condition = "strtotime({{##INPUT##}}) === false || " .
+            "strtotime({{##INPUT##}}) >= strtotime('{$targetDate}')";
+        $compiledCode = "if({$condition}) {\n" .
+            "    {{##ERRORS##}}['date_before'] = \"{$error}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "}";
+        $this->rules['date_before'] = [
+            'targetDate' => $targetDate,
+            'error'      => $error,
+            'compiled'   => $compiledCode,
+        ];
+        return $this;
+    }
+    /**
+     * Validates that the input is a valid date occurring on or BEFORE the target date/time.
+     *
+     * @param string $targetDate Parseable date string (e.g. '2026-12-31', 'tomorrow', '-1 month').
+     * @param string $customErrorMsg Custom error message on validation failure.
+     * @return self
+     */
+    public function date_before_or_equal(string $targetDate, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('date_before_or_equal', [], ['string', 'date'], ['string'])) {
+            return $this;
+        }
+        $validated = $this->validateRuleMultipleValues('date_before_or_equal', $targetDate, ['string']);
+        if ($validated === false) {
+            return $this;
+        }
+        $targetDate = $validated[0];
+        // Developer config check: Ensure the target parameter itself is a valid date string
+        if (strtotime($targetDate) === false) {
+            $this->configErrors[] = "Rule `date_before_or_equal` Parameter `'{$targetDate}'` is NOT a Valid Parseable Date String (checked with `strtotime()`) for Input Key `{{##INPUT_KEY##}}`!";
+            return $this;
+        }
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be a valid date on or before `{$targetDate}`!";
+        // Fails if input is unparseable or falls strictly after the target date
+        $condition = "strtotime({{##INPUT##}}) === false || " .
+            "strtotime({{##INPUT##}}) > strtotime('{$targetDate}')";
+        $compiledCode = "if({$condition}) {\n" .
+            "    {{##ERRORS##}}['date_before_or_equal'] = \"{$error}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "}";
+        $this->rules['date_before_or_equal'] = [
+            'targetDate' => $targetDate,
+            'error'      => $error,
+            'compiled'   => $compiledCode,
+        ];
+        return $this;
+    }
+    /**
+     * Validates that the input date is equal to the target date/time when evaluated via strtotime().
+     *
+     * @param string $targetDate Parseable date string (e.g. '2026-01-01', 'today').
+     * @param string $customErrorMsg Custom error message on validation failure.
+     * @return self
+     */
+    public function date_equals(string $targetDate, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('date_equals', ['date_before', 'date_after'], ['string', 'date'], ['string'])) {
+            return $this;
+        }
+        $validated = $this->validateRuleMultipleValues('date_equals', $targetDate, ['string']);
+        if ($validated === false) {
+            return $this;
+        }
+        $targetDate = $validated[0];
+        // Developer config check: Ensure target date is parseable
+        if (strtotime($targetDate) === false) {
+            $this->configErrors[] = "Rule `date_equals` Parameter `'{$targetDate}'` is NOT a Valid Parseable Date String (checked with `strtotime()`) for Input Key `{{##INPUT_KEY##}}`!";
+            return $this;
+        }
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be a valid date equal to `{$targetDate}`!";
+        // Fails if input is not parseable or timestamps do not match
+        $condition = "strtotime({{##INPUT##}}) === false || " .
+            "strtotime({{##INPUT##}}) !== strtotime('{$targetDate}')";
+        $compiledCode = "if({$condition}) {\n" .
+            "    {{##ERRORS##}}['date_equals'] = \"{$error}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "}";
+        $this->rules['date_equals'] = [
+            'targetDate' => $targetDate,
+            'error'      => $error,
+            'compiled'   => $compiledCode,
+        ];
+        return $this;
+    }
+    /**
+     * Validates that the input matches at least one of the given PHP date formats.
+     *
+     * @param array<int, 'Y-m-d'|'Y-m-d H:i:s'|'Y/m/d'|'m/d/Y'|'d/m/Y'|'H:i:s'|'H:i'|'Y-m-d\TH:i:sP'|'l, d-M-Y H:i:s T'|'Y-m-d\TH:i:sO'|'X-m-d\TH:i:sP'|'D, d M y H:i:s O'|'l, d-M-y H:i:s T'|'D, d M Y H:i:s O'|'D, d M Y H:i:s \G\M\T'|'Y-m-d\TH:i:s.vP'|string>|'Y-m-d'|'Y-m-d H:i:s'|'Y/m/d'|'m/d/Y'|'d/m/Y'|'H:i:s'|'H:i'|'Y-m-d\TH:i:sP'|'l, d-M-Y H:i:s T'|'Y-m-d\TH:i:sO'|'X-m-d\TH:i:sP'|'D, d M y H:i:s O'|'l, d-M-y H:i:s T'|'D, d M Y H:i:s O'|'D, d M Y H:i:s \G\M\T'|'Y-m-d\TH:i:s.vP'|string $formats Choose One or More Date Formats separated with a comma in a Single String OR as String Elements in an Array
+     * @param string $customErrorMsg Custom error message on validation failure.
+     * @return self
+     */
+    public function date_format(array|string $formats, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('date_format', [], ['string', 'date'], ['string'])) {
+            return $this;
+        }
+        $validFormats = $this->validateRuleMultipleValues('date_format', $formats, ['string']);
+        if ($validFormats === false) {
+            return $this;
+        }
+        $dummies = [];
+        $dummyDate = new \DateTimeImmutable();
+        foreach ($validFormats as $index => $fmt) {
+            // Ensure format string contains at least one valid PHP date specifier token
+            $hasToken = (bool) preg_match('/[dDjlNSwzWFmMntLoYyaABgGhHisuveIOPpTZcrU]/', $fmt);
+            try {
+                $formattedDummy = $dummyDate->format($fmt);
+                $dummies[] = $formattedDummy;
+                if (!$hasToken) {
+                    $this->configErrors[] = "Rule `date_format` Parameter [{$index}] `'{$fmt}'` does NOT contain any valid PHP Date Format Specifiers (e.g. `Y`, `m`, `d`, `H`, `i`, `s`; COMPLETE LIST BASED ON REGEX IS:`dDjlNSwzWFmMntLoYyaABgGhHisuveIOPpTZcrU`) for Input Key `{{##INPUT_KEY##}}`!";
+                    return $this;
+                }
+            } catch (\Throwable $e) {
+                $this->configErrors[] = "Rule `date_format` Parameter [{$index}] `'{$fmt}'` threw an exception when evaluated by DateTimeImmutable for Input Key `{{##INPUT_KEY##}}`!";
+                return $this;
+            }
+        }
+        // Build matching checks for each supplied format
+        $matchingConditions = [];
+        foreach ($validFormats as $fmt) {
+            $escapedFmt = addslashes($fmt);
+            $matchingConditions[] = "(\\DateTimeImmutable::createFromFormat('{$escapedFmt}', {{##INPUT##}}) !== false && " .
+                "\\DateTimeImmutable::createFromFormat('{$escapedFmt}', {{##INPUT##}})->format('{$escapedFmt}') === {{##INPUT##}})";
+        }
+        $joinedFormats = implode('`, `', $validFormats);
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must match one of the following date formats: `{$joinedFormats}`!";
+        // Fails if NONE of the format conditions evaluate to true
+        $condition = "!(" . implode(" || ", $matchingConditions) . ")";
+        $compiledCode = "if({$condition}) {\n" .
+            "    {{##ERRORS##}}['date_format'] = \"{$error}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "}";
+        $this->rules['date_format'] = [
+            'dummies'  => $dummies,
+            'formats'  => $validFormats,
+            'error'    => $error,
+            'compiled' => $compiledCode,
+        ];
+
+        return $this;
+    }
+    /**
+     * Validates that the input date is a valid date matching at least one of the given target dates.
+     *
+     * @param array<int, string>|string $targetDates Single parseable date string or array of date strings (e.g. 'today', ['2026-01-01', '2026-12-25']).
+     * @param string $customErrorMsg Custom error message on validation failure.
+     * @return self
+     */
+    public function date_in(array|string $targetDates, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('date_in', ['date_equals'], ['string', 'date'], ['string'])) {
+            return $this;
+        }
+
+        $validatedDates = $this->validateRuleMultipleValues('date_in', $targetDates, ['string']);
+        if ($validatedDates === false) {
+            return $this;
+        }
+        // Developer config check: Ensure every target parameter is a valid parseable date string
+        foreach ($validatedDates as $index => $target) {
+            if (strtotime($target) === false) {
+                $this->configErrors[] = "Rule `date_in` Parameter [{$index}] `'{$target}'` is NOT a Valid Parseable Date String (checked with `strtotime()`) for Input Key `{{##INPUT_KEY##}}`!";
+                return $this;
+            }
+        }
+        // Build individual equality checks for each target date
+        $equalityChecks = [];
+        foreach ($validatedDates as $target) {
+            $escapedTarget = addslashes($target);
+            $equalityChecks[] = "strtotime({{##INPUT##}}) === strtotime('{$escapedTarget}')";
+        }
+        $joinedTargets = implode('`, `', $validatedDates);
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be a valid date matching one of the following: `{$joinedTargets}`!";
+        // Fails if input is unparseable OR if none of the target checks match
+        $condition = "strtotime({{##INPUT##}}) === false || !(" . implode(' || ', $equalityChecks) . ")";
+        $compiledCode = "if({$condition}) {\n" .
+            "    {{##ERRORS##}}['date_in'] = \"{$error}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "}";
+        $this->rules['date_in'] = [
+            'targetDates' => $validatedDates,
+            'error'       => $error,
+            'compiled'    => $compiledCode,
+        ];
+        return $this;
+    }
+    /**
+     * Validates that the input string is a valid timezone identifier.
+     *
+     * @param 'all'|'africa'|'america'|'antarctica'|'arctic'|'asia'|'atlantic'|'australia'|'europe'|'indian'|'pacific'|'utc'|'per_country'|string $region Region filter or 'per_country'.
+     * @param string|null $countryCode 2-letter ISO country code if $region is 'per_country' (e.g. 'US', 'SE', 'GB').
+     * @param string $customErrorMsg Custom error message on validation failure.
+     * @return self
+     */
+    public function date_timezone(string $region = 'all', ?string $countryCode = null, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('date_timezone', [], ['string', 'date'], ['string'])) {
+            return $this;
+        }
+        // Map region strings to DateTimeZone constants
+        $regionMap = [
+            'all'         => \DateTimeZone::ALL,
+            'africa'      => \DateTimeZone::AFRICA,
+            'america'     => \DateTimeZone::AMERICA,
+            'antarctica'  => \DateTimeZone::ANTARCTICA,
+            'arctic'      => \DateTimeZone::ARCTIC,
+            'asia'        => \DateTimeZone::ASIA,
+            'atlantic'    => \DateTimeZone::ATLANTIC,
+            'australia'   => \DateTimeZone::AUSTRALIA,
+            'europe'      => \DateTimeZone::EUROPE,
+            'indian'      => \DateTimeZone::INDIAN,
+            'pacific'     => \DateTimeZone::PACIFIC,
+            'utc'         => \DateTimeZone::UTC,
+            'all_with_bc' => \DateTimeZone::ALL_WITH_BC,
+            'per_country' => \DateTimeZone::PER_COUNTRY,
+        ];
+        $normalizedRegion = strtolower(trim($region));
+        if (!array_key_exists($normalizedRegion, $regionMap)) {
+            $this->configErrors[] = "Rule `date_timezone` Parameter `'{$region}'` is NOT a Valid Timezone Region for Input Key `{{##INPUT_KEY##}}`! The available ones are:`" . join(', ', array_keys($regionMap)) .  '`!';
+            return $this;
+        }
+        $groupConstant = $regionMap[$normalizedRegion];
+        // Developer config check: Dry-run DateTimeZone::listIdentifiers to verify parameters
+        try {
+            if ($groupConstant === \DateTimeZone::PER_COUNTRY) {
+                if (empty($countryCode) || strlen($countryCode) !== 2) {
+                    $this->configErrors[] = "Rule `date_timezone` requires a Valid 2-Letter ISO Country Code when using 'per_country' for Input Key `{{##INPUT_KEY##}}`!";
+                    return $this;
+                }
+                $tzList = \DateTimeZone::listIdentifiers(\DateTimeZone::PER_COUNTRY, strtoupper($countryCode));
+            } else {
+                $tzList = \DateTimeZone::listIdentifiers($groupConstant);
+            }
+            if (empty($tzList)) {
+                $this->configErrors[] = "Rule `date_timezone` produced zero valid timezones for region `'{$region}'` and country `'{$countryCode}'` for Input Key `{{##INPUT_KEY##}}`!";
+                return $this;
+            }
+        } catch (\Throwable $e) {
+            $this->configErrors[] = "Rule `date_timezone` failed parameter validation for Input Key `{{##INPUT_KEY##}}`!";
+            return $this;
+        }
+        // Determine error message
+        if (!empty($customErrorMsg)) {
+            $error = $customErrorMsg;
+        } elseif ($groupConstant === \DateTimeZone::PER_COUNTRY) {
+            $error = "Field `{{##INPUT_KEY##}}` must be a valid timezone identifier for country `" . strtoupper($countryCode) . "`!";
+        } elseif ($normalizedRegion !== 'all') {
+            $error = "Field `{{##INPUT_KEY##}}` must be a valid timezone identifier in the `" . ucfirst($normalizedRegion) . "` region!";
+        } else {
+            $error = "Field `{{##INPUT_KEY##}}` must be a valid timezone identifier!";
+        }
+        // Build compiled code condition
+        if ($groupConstant === \DateTimeZone::PER_COUNTRY) {
+            $upperCountry = strtoupper($countryCode);
+            $condition = "!\\in_array({{##INPUT##}}, \\DateTimeZone::listIdentifiers(\\DateTimeZone::PER_COUNTRY, '{$upperCountry}'), true)";
+        } else {
+            $condition = "!\\in_array({{##INPUT##}}, \\DateTimeZone::listIdentifiers({$groupConstant}), true)";
+        }
+        $compiledCode = "if({$condition}) {\n" .
+            "    {{##ERRORS##}}['date_timezone'] = \"{$error}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "}";
+        $this->rules['date_timezone'] = [
+            'region'      => $normalizedRegion,
+            'countryCode' => $countryCode,
+            'error'       => $error,
+            'compiled'    => $compiledCode,
+        ];
+        return $this;
+    }
 
     /* OTHER INPUT KEYS-ONLY RULES - value is ANOTHER data field! */
     // GLOBAL COMPILER MUST CHECK that "gte", "gt","lte","lt","same", "different" try NOT
@@ -2692,6 +3305,10 @@ class RuleSetAll
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['unchecked'] = \"" . $error . "\";";
         return $this;
     }
+
+    /* DATABASE-ONLY RULES (calls to database so compiler will check that database connection, table and column exists, NOT rules themselves!) */
+
+    /* FILES-ONLY RULES (accesses $_FILES array to validate things like filetype, filesize, dimensions if applicable, and so on) */
 }
 
 class RuleSetString
@@ -5038,7 +5655,14 @@ class RuleSetFile
         return $this;
     }
 }
-// "PUBLICALLY AVAILABLE" Functions when "use" keyword includes them in a file to "use" them!
+/**
+ * Global entry point for initializing a fluent validation rule set.
+ *
+ * @param 'files'|'file'|'image'|'video'|'audio'|'string'|'date'|'checkbox'|'integer'|'float'|'boolean'|'number'|'array'|'arr'|'object'|'json'|'password'|'password_match'|'email'|'url'|'ip' $dataType
+ * @param string $customErrorMsg
+ * @param 'list'|'associative'|'' $setArrayTypeToListOrAssociative
+ * @return RuleSetAll
+ */
 function all(string $dataType, string $customErrorMsg = '', string $setArrayTypeToListOrAssociative = ''): RuleSetAll
 {
     return (new RuleSetAll())->setDatatype($dataType, $customErrorMsg, $setArrayTypeToListOrAssociative);

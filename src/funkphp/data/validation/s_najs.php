@@ -15,7 +15,7 @@ function s_paj(&$c)
 		'<CONFIG>' => ['stop_all_on_first_error' => false],
 		'VALIDATION' => [
 			'bigger.name'  => all("array", "Name must be an associative array!", "associative")->keys_in_array_depths(['meta.author.name', 'config.settings']),
-			'test' => arr('list', 5,)
+			'test' => all('array')->elements_in_array_are_all('distinct_ignore_case')
 
 		],
 	]);
