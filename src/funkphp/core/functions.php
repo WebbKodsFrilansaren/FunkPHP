@@ -2813,7 +2813,6 @@ function funk_validate_required($inputName, $inputData, $validationValues, $cust
     }
     return null;
 }
-
 /* Validating valid data type: string, integer, float, array, boolean, email, date */
 // Validate that Input Data is a valid UTF-8 string
 function funk_validate_string($inputName, $inputData, $validationValues, $customErr = null)
@@ -2823,7 +2822,6 @@ function funk_validate_string($inputName, $inputData, $validationValues, $custom
     }
     return null;
 }
-
 // Validate that Input Data is a single character string (either any or
 // based on validationValues) and is not empty meaning whitespace is not allowed
 function funk_validate_char($inputName, $inputData, $validationValues, $customErr = null)
@@ -2848,7 +2846,6 @@ function funk_validate_char($inputName, $inputData, $validationValues, $customEr
 
     return null;
 }
-
 // Validate that Input Data is a valid single digit (either
 // any digit or based on validationValues)
 function funk_validate_digit($inputName, $inputData, $validationValues, $customErr = null)
@@ -2874,7 +2871,6 @@ function funk_validate_digit($inputName, $inputData, $validationValues, $customE
     }
     return null;
 }
-
 // Validate that Input Data is a valid integer
 function funk_validate_integer($inputName, $inputData, $validationValues, $customErr = null)
 {
@@ -2883,7 +2879,6 @@ function funk_validate_integer($inputName, $inputData, $validationValues, $custo
     }
     return null;
 }
-
 // Validate that Input Data is a valid float
 function funk_validate_float($inputName, $inputData, $validationValues, $customErr = null)
 {
@@ -2892,7 +2887,6 @@ function funk_validate_float($inputName, $inputData, $validationValues, $customE
     }
     return null;
 }
-
 // Validate that Input Data is a valid number (is numeric)
 function funk_validate_number($inputName, $inputData, $validationValues, $customErr = null)
 {
@@ -2901,7 +2895,6 @@ function funk_validate_number($inputName, $inputData, $validationValues, $custom
     }
     return null;
 }
-
 // Validate that Input Data is a valid array
 function funk_validate_array($inputName, $inputData, $validationValues, $customErr = null)
 {
@@ -2910,7 +2903,6 @@ function funk_validate_array($inputName, $inputData, $validationValues, $customE
     }
     return null;
 }
-
 // Validate that Input Data is a valid list (a numbered array)
 function funk_validate_list($inputName, $inputData, $validationValues, $customErr = null)
 {
@@ -2919,24 +2911,6 @@ function funk_validate_list($inputName, $inputData, $validationValues, $customEr
     }
     return null;
 }
-
-// CURRENTLY: Both "set" and "enum" are more about matching a specific value set by the
-// rule "any_of_these_values" and not about being an actual array with (unique) values!
-function funk_validate_set($inputName, $inputData, $validationValues, $customErr = null)
-{
-    // if (!is_array($inputData) || (is_array($inputData) && count($inputData) !== count(array_unique($inputData)))) {
-    //     return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a set (an array with unique values).";
-    // }
-    return null;
-}
-function funk_validate_enum($inputName, $inputData, $validationValues, $customErr = null)
-{
-    // if (!is_array($inputData) || (is_array($inputData) && count($inputData) !== count(array_unique($inputData)))) {
-    //     return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a set (an array with unique values).";
-    // }
-    return null;
-}
-
 // Validate that Input Data is a valid boolean (true/false, 1/0, "1"/"0")
 function funk_validate_boolean($inputName, $inputData, $validationValues, $customErr = null)
 {
@@ -2953,7 +2927,6 @@ function funk_validate_boolean($inputName, $inputData, $validationValues, $custo
         return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be of a boolean value type.";
     }
 }
-
 // Validate that Input Data checked in a boolean way
 function funk_validate_checked($inputName, $inputData, $validationValues, $customErr = null)
 {
@@ -2974,7 +2947,6 @@ function funk_validate_checked($inputName, $inputData, $validationValues, $custo
         return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be checked in one way or another.";
     }
 }
-
 // Validate that Input Data unchecked in a boolean way
 function funk_validate_unchecked($inputName, $inputData, $validationValues, $customErr = null)
 {
@@ -2995,7 +2967,6 @@ function funk_validate_unchecked($inputName, $inputData, $validationValues, $cus
         return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be unchecked in one way or another.";
     }
 }
-
 // Validate that Input Data is a valid date in any provided format
 // This function uses PHP's DateTime::createFromFormat and format
 // method so it can validate ANY provided date format. Default
@@ -3029,7 +3000,6 @@ function funk_validate_date($inputName, $inputData, $validationValues, $customEr
         ? $customErr
         : '$inputName must be a valid date using any of the following formats: ' . implode(', ', $validationValues) . '.';
 }
-
 // Validate that Input Data is a valid email address
 // IMPORTANT: The regex unfortunately cannot match "@[a-zA-Z]\.[a-zA-Z]{2,}" meaning
 // when there is just a single character before the dot and at least 2 characters after it!
@@ -3102,7 +3072,6 @@ function funk_validate_email($inputName, $inputData, $validationValues, $customE
     }
     return null;
 }
-
 // Validate that Input Data is a valid email address by using the validationValue
 // which should be a custom validation function name OR a regex pattern
 function funk_validate_email_custom($inputName, $inputData, $validationValues, $customErr = null)
@@ -3126,7 +3095,6 @@ function funk_validate_email_custom($inputName, $inputData, $validationValues, $
     }
     return null;
 }
-
 // Validate that Input Data is a string meaning it can be hashed as a password later.
 // IMPORTANT: This does NOT validate the password strength, length, etc.! It only "signals"
 // to the Validation system that a valid string field should be hashed as a password later.
@@ -3135,7 +3103,6 @@ function funk_validate_password_hash($inputName, $inputData, $validationValues, 
 {
     return null;
 }
-
 // Validate that Input Data is a valid password where the values in $validationValues
 // the first value is the number of lowercases required in the password, the second value
 // is the number of uppercases required in the password, and the third value is number of digits
@@ -3198,7 +3165,6 @@ function funk_validate_password($inputName, $inputData, $validationValues, $cust
     }
     return null;
 }
-
 // Validate that Input Data is a valid password confirmation
 function funk_validate_password_confirm($inputName, $inputData, $validationValues, $customErr = null)
 {
@@ -3213,7 +3179,6 @@ function funk_validate_password_confirm($inputName, $inputData, $validationValue
     }
     return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must match the original password.";
 }
-
 // Validate that Input Data is a valid password with custom validation where $validationValues
 // is the name of the custom validation function that will be called
 function funk_validate_password_custom($inputName, $inputData, $validationValues, $customErr = null)
@@ -3231,7 +3196,6 @@ function funk_validate_password_custom($inputName, $inputData, $validationValues
     }
     return null;
 }
-
 // Validate that Input Data is a valid file (this means we need to check the $_FILES array)
 // where the $inputName is the name of the file input field
 // TODO: Maybe add more checks for file type, size?
@@ -3242,7 +3206,6 @@ function funk_validate_file($inputName, $inputData, $validationValues, $customEr
     }
     return null;
 }
-
 /* Validating min & max sizes as values in numbers, as lengths in strings and as number of element sin arrays */
 /* These first ones are just placeholders for "cli_convert_simple_validation_rules_to_optimized_validation()"
    to not freak out when it tries to validate a funk_validate_FUNCTION actually exists during compilation! */
@@ -3252,21 +3215,17 @@ function funk_validate_min($inputName, $inputData, $validationValues, $customErr
 function funk_validate_max($inputName, $inputData, $validationValues, $customErr = null) {};
 function funk_validate_exact($inputName, $inputData, $validationValues, $customErr = null) {};
 function funk_validate_size($inputName, $inputData, $validationValues, $customErr = null) {};
-
 // This function is here so that "stop_all_on_first_error" can be used as a validation rule.
 // It stops ALL validation rules from running on the first error found. When compiled,
 // it is added as the first root key as "<'STOP'>" before any other root keys!
 function funk_validate_stop_all_on_first_error($inputName, $inputData, $validationValues, $customErr = null) {};
-
 // Validate that Input Data is a valid stop condition which means stop running any rules
 // if this rule is found in the validation rules and when any error occurs for a given field!
 function funk_validate_stop($inputName, $inputData, $validationValues, $customErr = null) {};
-
 // "Field" rule is just so you can specify what a field should be called when showing
 // for the end-user and is never really used for validation purposes. End-user sees this if used!
 // instead of the $inputName which is usually a key in $_POST/$_GET/JSON
 function funk_validate_field($inputName, $inputData, $validationValues, $customErr = null) {};
-
 // Validate that Input Data is of valid minimal length provided in $validationValues
 // This is used ONLY for string inputs. This is "min" when it knows it is a string.
 function funk_validate_minlen($inputName, $inputData, $validationValues, $customErr = null)
@@ -3276,7 +3235,6 @@ function funk_validate_minlen($inputName, $inputData, $validationValues, $custom
     }
     return null;
 }
-
 // Validate that Input Data is of valid maximum length provided in $validationValues
 // This is used ONLY for string inputs. This is "max" when it knows it is a string.
 function funk_validate_maxlen($inputName, $inputData, $validationValues, $customErr = null)
@@ -3286,7 +3244,6 @@ function funk_validate_maxlen($inputName, $inputData, $validationValues, $custom
     }
     return null;
 }
-
 // Validate that Input Data is of valid length provided in $validationValues
 // This is used ONLY for string inputs. This is "between" when it knows it is a string.
 function funk_validate_betweenlen($inputName, $inputData, $validationValues, $customErr = null)
@@ -3300,7 +3257,6 @@ function funk_validate_betweenlen($inputName, $inputData, $validationValues, $cu
     }
     return null;
 }
-
 // Validate that Input Data is of valid minimum value provided in $validationValues
 // This is used ONLY for numerical inputs. This is "min" when it knows it is a number.
 function funk_validate_minval($inputName, $inputData, $validationValues, $customErr = null)
@@ -3310,7 +3266,6 @@ function funk_validate_minval($inputName, $inputData, $validationValues, $custom
     }
     return null;
 }
-
 // Validate that Input Data is of valid maximum value provided in $validationValues
 // This is used ONLY for numerical inputs. This is "max" when it knows it is a number.
 function funk_validate_maxval($inputName, $inputData, $validationValues, $customErr = null)
@@ -3320,7 +3275,6 @@ function funk_validate_maxval($inputName, $inputData, $validationValues, $custom
     }
     return null;
 }
-
 // Validate that Input Data is of valid minimum and maximum value provided in $validationValues
 // This is used ONLY for numerical inputs. This is "between" when it knows it is a number.
 function funk_validate_betweenval($inputName, $inputData, $validationValues, $customErr = null)
@@ -3334,7 +3288,6 @@ function funk_validate_betweenval($inputName, $inputData, $validationValues, $cu
     }
     return null;
 }
-
 // Validate that Input Data's array has minimum number of elements as in $validationValues
 // This is used ONLY for array inputs. This is "min" when it knows it is a array.
 function funk_validate_mincount($inputName, $inputData, $validationValues, $customErr = null)
@@ -3344,7 +3297,6 @@ function funk_validate_mincount($inputName, $inputData, $validationValues, $cust
     }
     return null;
 }
-
 // Validate that Input Data's array has maximum number of elements as in $validationValues
 // This is used ONLY for array inputs. This is "max" when it knows it is a array.
 function funk_validate_maxcount($inputName, $inputData, $validationValues, $customErr = null)
@@ -3354,7 +3306,6 @@ function funk_validate_maxcount($inputName, $inputData, $validationValues, $cust
     }
     return null;
 }
-
 // Validate that Input Data's array has minimum and maximum number of elements as in $validationValues
 // This is used ONLY for array inputs. This is "between" when it knows it is a array.
 function funk_validate_betweencount($inputName, $inputData, $validationValues, $customErr = null)
@@ -3368,7 +3319,6 @@ function funk_validate_betweencount($inputName, $inputData, $validationValues, $
     }
     return null;
 }
-
 // Validate that Input Data is of valid maximum value provided in $validationValues
 // This is used ONLY for numerical inputs. This is "max" when it knows it is a number.
 function funk_validate_exactval($inputName, $inputData, $validationValues, $customErr = null)
@@ -3386,7 +3336,6 @@ function funk_validate_sizeval($inputName, $inputData, $validationValues, $custo
     }
     return null;
 }
-
 // Validate that Input Data is of valid exact length provided in $validationValues meaning
 // it must be that length and not less or more. This is used ONLY for string inputs.
 function funk_validate_exactlen($inputName, $inputData, $validationValues, $customErr = null)
@@ -3404,7 +3353,6 @@ function funk_validate_sizelen($inputName, $inputData, $validationValues, $custo
     }
     return null;
 }
-
 // Validate that Input Data's array has an exact number of elements as in $validationValues
 // This is used ONLY for array inputs. This is "max" when it knows it is a array.
 function funk_validate_exactcount($inputName, $inputData, $validationValues, $customErr = null)
@@ -3430,7 +3378,6 @@ function funk_validate_arraycount($inputName, $inputData, $validationValues, $cu
     }
     return null;
 }
-
 // Validate that Input Data is of valid maximum number of digits as in $validationValues
 // This is used ONLY for numerical inputs. This is "min_digits" when it knows it is a number.
 function funk_validate_min_digits($inputName, $inputData, $validationValues, $customErr = null)
@@ -3440,7 +3387,6 @@ function funk_validate_min_digits($inputName, $inputData, $validationValues, $cu
     }
     return null;
 }
-
 // Validate that Input Data is of valid maximum number of digits as in $validationValues
 // This is used ONLY for numerical inputs. This is "max_digits" when it knows it is a number.
 function funk_validate_max_digits($inputName, $inputData, $validationValues, $customErr = null)
@@ -3450,7 +3396,6 @@ function funk_validate_max_digits($inputName, $inputData, $validationValues, $cu
     }
     return null;
 }
-
 // Validate that Input Data is of valid minimum and maximum number of digits as in $validationValues
 // This is used ONLY for numerical inputs. This is "between_digits" when it knows it is a number.
 function funk_validate_digits_between($inputName, $inputData, $validationValues, $customErr = null)
@@ -3460,7 +3405,6 @@ function funk_validate_digits_between($inputName, $inputData, $validationValues,
     }
     return null;
 }
-
 // Validate that Input Data is of valid exact number of digits as in $validationValues
 // This is used ONLY for numerical inputs. This is "digits" when it knows it is a number.
 function funk_validate_digits($inputName, $inputData, $validationValues, $customErr = null)
@@ -3471,7 +3415,6 @@ function funk_validate_digits($inputName, $inputData, $validationValues, $custom
     }
     return null;
 }
-
 // Validate that Input Data is a valid hex color code
 // This function checks if the input is a valid hex color code in the format #RRGGBB or #RGB
 function funk_validate_color($inputName, $inputData, $validationValues, $customErr = null)
@@ -3519,7 +3462,6 @@ function funk_validate_color($inputName, $inputData, $validationValues, $customE
     // Here we return an error if no valid color format was found when $validationValues were provided
     return (isset($customErr) && is_string($customErr)) ? $customErr : "$inputName must be a valid color code in one of the supported formats: " . implode(', ', array_keys($colorPatterns)) . ".";
 }
-
 // Validate that Input Data is in uppercase, must be combiend with string validation
 function funk_validate_lowercase($inputName, $inputData, $validationValues, $customErr = null)
 {
@@ -3528,7 +3470,6 @@ function funk_validate_lowercase($inputName, $inputData, $validationValues, $cus
     }
     return null;
 }
-
 // Validate that Input Data has a number of lowercases as specified in $validationValues
 // This function checks if the input data is a string and if it contains the specified number of lowercases.
 function funk_validate_lowercases($inputName, $inputData, $validationValues, $customErr = null)
@@ -3542,7 +3483,6 @@ function funk_validate_lowercases($inputName, $inputData, $validationValues, $cu
     }
     return null;
 }
-
 // Validate that Input Data is in uppercase, must be combined with string validation
 function funk_validate_uppercase($inputName, $inputData, $validationValues, $customErr = null)
 {
@@ -3551,7 +3491,6 @@ function funk_validate_uppercase($inputName, $inputData, $validationValues, $cus
     }
     return null;
 }
-
 // Validate that Input Data has a number of uppercases as specified in $validationValues
 // This function checks if the input data is a string and if it contains the specified number of uppercases.
 function funk_validate_uppercases($inputName, $inputData, $validationValues, $customErr = null)
@@ -3565,7 +3504,6 @@ function funk_validate_uppercases($inputName, $inputData, $validationValues, $cu
     }
     return null;
 }
-
 // Validate that Input Data is has a certain number of digits as specified in $validationValues
 // This function checks if the input data is a string and if it contains the specified number of digits.
 function funk_validate_numbers($inputName, $inputData, $validationValues, $customErr = null)
@@ -3579,7 +3517,6 @@ function funk_validate_numbers($inputName, $inputData, $validationValues, $custo
     }
     return null;
 }
-
 // Validate that Input Data is has a certain number of special characters as specified in $validationValues
 // This function checks if the input data is a string and if it contains the specified number of special characters.
 function funk_validate_specials($inputName, $inputData, $validationValues, $customErr = null)
@@ -3603,7 +3540,6 @@ function funk_validate_specials($inputName, $inputData, $validationValues, $cust
     }
     return null;
 }
-
 // Validate that Input Data is a valid base64 string
 function funk_validate_base64($inputName, $inputData, $validationValues, $customErr = null)
 {
@@ -3612,7 +3548,6 @@ function funk_validate_base64($inputName, $inputData, $validationValues, $custom
     }
     return null;
 }
-
 // Validate that Input Data is NOT a base64 string but a string nonetheless
 function funk_validate_not_base64($inputName, $inputData, $validationValues, $customErr = null)
 {
@@ -3621,7 +3556,6 @@ function funk_validate_not_base64($inputName, $inputData, $validationValues, $cu
     }
     return null;
 }
-
 // Validate that Input Data matches a specific regex pattern provided in $validationValues
 // This can be used for validating strings, numbers, etc., if it can be regex-expressed!
 function funk_validate_regex($inputName, $inputData, $validationValues, $customErr = null)
@@ -3631,7 +3565,6 @@ function funk_validate_regex($inputName, $inputData, $validationValues, $customE
     }
     return null;
 }
-
 // Validate that Input Data does NOT match a specific regex pattern provided in $validationValues
 // This can be used for validating strings, numbers, etc., if it can be regex-expressed!
 function funk_validate_not_regex($inputName, $inputData, $validationValues, $customErr = null)
@@ -3641,7 +3574,6 @@ function funk_validate_not_regex($inputName, $inputData, $validationValues, $cus
     }
     return null;
 }
-
 // Validate that Input Data has a number of decimal places as specified in $validationValues (which can
 // be a single number or an array with min and max values for decimal places). This function should
 // only be used for floats to be on the safe side since it does NOT check for the decimal point!
@@ -3661,7 +3593,6 @@ function funk_validate_decimals($inputName, $inputData, $validationValues, $cust
     }
     return null;
 }
-
 // Validate that Input Data has all the keys specified in $validationValues (which is an array of keys).
 // This function checks if the input data is an array and if it contains all the specified keys.
 function funk_validate_array_keys($inputName, $inputData, $validationValues, $customErr = null)
@@ -3677,7 +3608,6 @@ function funk_validate_array_keys($inputName, $inputData, $validationValues, $cu
     }
     return null;
 }
-
 // Validate that Input Data's array values are within the specified $validationValues.
 // This function checks if the input data is an array and if all its values are in the
 // specified validation values and the count must be equal to the count of $validationValues.
@@ -3696,7 +3626,6 @@ function funk_validate_array_keys_exact($inputName, $inputData, $validationValue
     }
     return null;
 }
-
 // Validate that Input Data's array values are within the specified $validationValues.
 // This function checks if the input data is an array and if all its values are in the specified validation values.
 function funk_validate_array_values($inputName, $inputData, $validationValues, $customErr = null)
@@ -3711,7 +3640,6 @@ function funk_validate_array_values($inputName, $inputData, $validationValues, $
     }
     return null;
 }
-
 // Validate that Input Data's array values are exactly as specified in $validationValues.
 // This function checks if the input data is an array and if all its values match exactly the specified
 // validation values and the count must be equal to the count of $validationValues.
@@ -3730,7 +3658,6 @@ function funk_validate_array_values_exact($inputName, $inputData, $validationVal
     }
     return null;
 }
-
 // Validate that Input Data's array all values are evaluated as arrays.
 function funk_validate_elements_all_arrays($inputName, $inputData, $validationValues, $customErr = null)
 {
@@ -3744,7 +3671,6 @@ function funk_validate_elements_all_arrays($inputName, $inputData, $validationVa
     }
     return null;
 }
-
 // Validate that Input Data's array all values are evaluated as lists (numbered arrays).
 function funk_validate_elements_all_lists($inputName, $inputData, $validationValues, $customErr = null)
 {
@@ -3758,7 +3684,6 @@ function funk_validate_elements_all_lists($inputName, $inputData, $validationVal
     }
     return null;
 }
-
 // Validate that Input Data's array all values are evaluated as strings.
 function funk_validate_elements_all_strings($inputName, $inputData, $validationValues, $customErr = null)
 {
@@ -3772,7 +3697,6 @@ function funk_validate_elements_all_strings($inputName, $inputData, $validationV
     }
     return null;
 }
-
 // Validate that Input Data's array all values are evaluated as numbers (int, float, numeric).
 function funk_validate_elements_all_numbers($inputName, $inputData, $validationValues, $customErr = null)
 {
@@ -3786,7 +3710,6 @@ function funk_validate_elements_all_numbers($inputName, $inputData, $validationV
     }
     return null;
 }
-
 // Validate that Input Data's array all values are evaluated as INTEGERS (whole numbers)
 function funk_validate_elements_all_integers($inputName, $inputData, $validationValues, $customErr = null)
 {
@@ -3800,7 +3723,6 @@ function funk_validate_elements_all_integers($inputName, $inputData, $validation
     }
     return null;
 }
-
 // Validate that Input Data's array all values are evaluated as FLOATS (decimal numbers)
 function funk_validate_elements_all_floats($inputName, $inputData, $validationValues, $customErr = null)
 {
@@ -3814,7 +3736,6 @@ function funk_validate_elements_all_floats($inputName, $inputData, $validationVa
     }
     return null;
 }
-
 // Validate that Input Data's array all values are evaluated as BOOLEANS (true/false, 1/0, "1"/"0")
 function funk_validate_elements_all_booleans($inputName, $inputData, $validationValues, $customErr = null)
 {
@@ -3828,7 +3749,6 @@ function funk_validate_elements_all_booleans($inputName, $inputData, $validation
     }
     return null;
 }
-
 // Validate that Input Data's array all values are evaluated as CHECKED (true, 1, "1", "on", "yes", etc.)
 function funk_validate_elements_all_checked($inputName, $inputData, $validationValues, $customErr = null)
 {
@@ -3853,7 +3773,6 @@ function funk_validate_elements_all_checked($inputName, $inputData, $validationV
     }
     return null;
 }
-
 // Validate that Input Data's array all values are evaluated as UNCHECKED (false, 0, "0", "off", "no", etc.)
 function funk_validate_elements_all_unchecked($inputName, $inputData, $validationValues, $customErr = null)
 {
@@ -3878,7 +3797,6 @@ function funk_validate_elements_all_unchecked($inputName, $inputData, $validatio
     }
     return null;
 }
-
 // Validate that Input Data's array all values are evaluated as NULL
 function funk_validate_elements_all_nulls($inputName, $inputData, $validationValues, $customErr = null)
 {
@@ -3892,7 +3810,6 @@ function funk_validate_elements_all_nulls($inputName, $inputData, $validationVal
     }
     return null;
 }
-
 // Validate that Input Data's array all values are evaluated as single characters (strings of length 1)
 function funk_validate_elements_all_chars($inputName, $inputData, $validationValues, $customErr = null)
 {
@@ -3906,7 +3823,6 @@ function funk_validate_elements_all_chars($inputName, $inputData, $validationVal
     }
     return null;
 }
-
 // Validate that Input Data's array all values are the data type in the following order stored in $validationValues
 // for example, if $validationValues is ['string', 'number', 'boolean'], then the first value in the array must be a string,
 // the second value must be a number, and the third value must be a boolean. This is used for validating arrays of mixed types.
@@ -3972,7 +3888,6 @@ function funk_validate_elements_this_type_order($inputName, $inputData, $validat
         }
     }
 }
-
 // Validate that $inputData is any of the primitive values provided in $validationValues
 function funk_validate_any_of_these_values($inputName, $inputData, $validationValues, $customErr = null)
 {
@@ -3987,7 +3902,6 @@ function funk_validate_any_of_these_values($inputName, $inputData, $validationVa
     }
     return null;
 }
-
 /**
  * Validate that Input Data is a valid Unique Identifier (UID).
  *
@@ -4083,13 +3997,5 @@ function funk_validate_slug($inputName, $inputData, $validationValues, $customEr
     }
     return null;
 }
-
-// TODO: Fix
-// Validate that specific value DOES EXIST in a specific database table=>column
-function funk_validate_exists($inputName, $inputData, $validationValues, $customErr = null) {}
-
-// Validate that specific value Does NOT EXIST in a specific database table=>column (thus unique)
-function funk_validate_unique($inputName, $inputData, $validationValues, $customErr = null) {}
-
 
 /*** PAGE-RELATED Functions For FunkPHP  ***/
