@@ -22,8 +22,40 @@
 
 
 
+/* CLI Function that compiles a returned array with the following starting point:
+        return
+        [
+        '<CONFIG'> => ['stop_all_on_first_error' => false],
+         'VALIDATION'=> [
+            'key' => ruleFunctionObject()->with()->rules('RuleValue','CustomErrorMsgOrDefaultIsUsed'),
+            'key.subKey' => ruleFunctionObject()->with()->rules()->andMaybeOtherRules(),
+                        ]
+        ];
+        and then returns a single string that contains the optimized validation version!
+*/
+function cli_compile_validation_schema($validation_schema, &$currentTables, &$currentConnections): string
+{
+    /* FROM GEMINI LLM; might be true or NOT for exists(), unique(), unique_except() DB-related ONLY rules!!!
+    How the Compiler Replaces Placeholders dynamically
+    When the FunkPHP compiler processes the rules:
+    It reads $this->rules['exists']['databaseConnection'] (e.g. 'mysql_pdo' vs 'mongo_docs').
+    It looks up 'mysql_pdo' in conns.php to check the 'driver' key (pdo_mysql, mysqli, mongodb, redis, etc.).
+    It swaps out {{##DB_EXISTS_NOT_FOUND##}} with driver-specific PHP:
+        pdo_mysql / pdo_pgsql:
+        $c->db('mysql_pdo')->prepare("SELECT 1 FROM usersWHEREemail = ? LIMIT 1")->execute([{{##INPUT##}}]) && $stmt->fetchColumn() === false
 
+        mysqli:
+        $c->db('mysql_native')->query("SELECT 1 FROM usersWHEREemail = '" . $c->db('mysql_native')->real_escape_string({{##INPUT##}}) . "' LIMIT 1")->num_rows === 0
 
+        mongodb:
+        $c->db('mongo_docs')->users->countDocuments(['email' => {{##INPUT##}}]) === 0
+    */
+
+    // The final Validation Schema including all the
+    // optimized flattened if(){}else{} and goto labels: code!
+    $compiledValidationSchema = '';
+    return $compiledValidationSchema;
+}
 
 class RuleSetAll
 {
@@ -157,7 +189,8 @@ class RuleSetAll
         string $ruleName,
         mixed $values,
         array $allowedDataTypes = [],
-        bool $valuesCanBeEmpty = false
+        bool $valuesCanBeEmpty = false,
+        bool $valuesCanBeSame = false
     ): array|false {
         // 1. Normalize into an array
         if (is_array($values)) {
@@ -180,7 +213,7 @@ class RuleSetAll
         $uniqueValues = [];
         foreach ($normalized as $val) {
             // Strict duplicate check
-            if (in_array($val, $uniqueValues, true)) {
+            if (!$valuesCanBeSame && in_array($val, $uniqueValues, true)) {
                 $valFormatted = is_scalar($val) || $val === null ? var_export($val, true) : json_encode($val);
                 $this->configErrors[] = "Rule `{$ruleName}` contains Duplicate ({$valFormatted}) Parameter Values for Input Key `{{##INPUT_KEY##}}`!";
                 return false;
@@ -3307,7 +3340,172 @@ class RuleSetAll
     }
 
     /* DATABASE-ONLY RULES (calls to database so compiler will check that database connection, table and column exists, NOT rules themselves!) */
-
+    /**
+     * Validates that the input value exists in the specified database table and column.
+     * IMPORTANT: Validated at global compiler-level to insert driver-specific query logic.
+     *
+     * @param string $databaseConnection Connection name as defined in `/src/funkphp/config/conns.php`.
+     * @param string $table Database table name.
+     * @param string $column Database column name.
+     * @param string $customErrorMsg Custom error message on validation failure.
+     * @return self
+     */
+    public function exists(string $databaseConnection, string $table, string $column, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('exists', [], [], ['string', 'boolean', 'numeric', 'null'])) {
+            return $this;
+        }
+        $ruleVals = $this->validateRuleMultipleValues('exists', [$databaseConnection, $table, $column], ['string'], false, true);
+        if ($ruleVals === false) {
+            return $this;
+        }
+        [$dbConn, $dbTbl, $dbCol] = $ruleVals;
+        // Developer config check: Sanitize table and column identifiers
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $dbTbl) || !preg_match('/^[a-zA-Z0-9_]+$/', $dbCol)) {
+            $this->configErrors[] = "Rule `exists` contains invalid table or column characters (allowed: a-z, 0-9, _) for Input Key `{{##INPUT_KEY##}}`!";
+            return $this;
+        }
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Selected `{{##INPUT_KEY##}}` does not exist.";
+        $compiledCode = "try {\n" .
+            "    {{##DB_EXISTS_NOT_FOUND_BLOCK_END_WITH_FINAL_IF_NEGATED_STATEMENT##}} {\n" .
+            "        {{##ERRORS##}}['exists'] = \"{$error}\";\n" .
+            "        {{##GOTO_STOP_ALL##}}\n" .
+            "        {{##GOTO_BAIL##}}\n" .
+            "        {{##GOTO_NEXT_RULE##}}\n" .
+            "        {{##GOTO_END_FIELD##}}\n" .
+            "    }\n" .
+            "} catch (\\Throwable \$e) {\n" .
+            "    {{##ERRORS##}}['exists'] = \"{$error}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "}";
+        $this->rules['exists'] = [
+            'databaseConnection' => $dbConn,
+            'table'              => $dbTbl,
+            'column'             => $dbCol,
+            'error'              => $error,
+            'compiled'           => $compiledCode,
+        ];
+        return $this;
+    }
+    /**
+     * Validates that the input value does not already exist in the specified database table and column.
+     * IMPORTANT: Validated at global compiler-level to insert driver-specific query logic.
+     *
+     * @param string $databaseConnection Connection name as defined in `/src/funkphp/config/conns.php`.
+     * @param string $table Database table name.
+     * @param string $column Database column name.
+     * @param string $customErrorMsg Custom error message on validation failure.
+     * @return self
+     */
+    public function unique(string $databaseConnection, string $table, string $column, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('unique', [], [], ['string', 'boolean', 'numeric', 'null'])) {
+            return $this;
+        }
+        $ruleVals = $this->validateRuleMultipleValues('unique', [$databaseConnection, $table, $column], ['string'], false, true);
+        if ($ruleVals === false) {
+            return $this;
+        }
+        [$dbConn, $dbTbl, $dbCol] = $ruleVals;
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $dbTbl) || !preg_match('/^[a-zA-Z0-9_]+$/', $dbCol)) {
+            $this->configErrors[] = "Rule `unique` contains invalid table or column characters (allowed: a-z, 0-9, _) for Input Key `{{##INPUT_KEY##}}`!";
+            return $this;
+        }
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be unique. Value already exists in database.";
+        $compiledCode = "try {\n" .
+            "    {{##DB_UNIQUE_ALREADY_EXISTS_BLOCK_END_WITH_FINAL_IF_NEGATED_STATEMENT##}} {\n" .
+            "        {{##ERRORS##}}['unique'] = \"{$error}\";\n" .
+            "        {{##GOTO_STOP_ALL##}}\n" .
+            "        {{##GOTO_BAIL##}}\n" .
+            "        {{##GOTO_NEXT_RULE##}}\n" .
+            "        {{##GOTO_END_FIELD##}}\n" .
+            "    }\n" .
+            "} catch (\\Throwable \$e) {\n" .
+            "    {{##ERRORS##}}['unique'] = \"{$error}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "}";
+        $this->rules['unique'] = [
+            'databaseConnection' => $dbConn,
+            'table'              => $dbTbl,
+            'column'             => $dbCol,
+            'error'              => $error,
+            'compiled'           => $compiledCode,
+        ];
+        return $this;
+    }
+    /**
+     * Validates uniqueness while ignoring a specific record ID (useful for UPDATE operations).
+     * IMPORTANT: Validated at global compiler-level to insert driver-specific query logic.
+     *
+     * @param string $databaseConnection Connection name as defined in `/src/funkphp/config/conns.php`.
+     * @param string $table Database table name.
+     * @param string $column Database column name to check uniqueness against.
+     * @param string $ignoreColumn Primary key or identifier column to ignore (e.g. 'id').
+     * @param string $ignoreValueFromCPath Dot-notation Path to Fetch Value from `Global Configuration Array Variable $c` (e.g., 'req.params.id' or 'shared.user.id' becomes `$c['req']['params']['id']` and `$c['shared']['user']['id]`). This allows for fetching dynamic value from the same place without knowing the value beforehand!
+     * @param string $customErrorMsg Custom error message on validation failure.
+     * @return self
+     */
+    public function unique_except(string $databaseConnection, string $table, string $column, string $ignoreColumn, string $ignoreValueFromCPath, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('unique_except', [], [], [])) {
+            return $this;
+        }
+        $ruleVals = $this->validateRuleMultipleValues('unique_except', [$databaseConnection, $table, $column, $ignoreColumn, $ignoreValueFromCPath], ['string'], false, true);
+        if ($ruleVals === false) {
+            return $this;
+        }
+        [$dbConn, $dbTbl, $dbCol, $ignoreCol, $ignoreValueCPath] = $ruleVals;
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $dbTbl) || !preg_match('/^[a-zA-Z0-9_]+$/', $dbCol) || !preg_match('/^[a-zA-Z0-9_]+$/', $ignoreCol)) {
+            $this->configErrors[] = "Rule `unique_except` contains invalid identifier characters for Input Key `{{##INPUT_KEY##}}`!";
+            return $this;
+        }
+        if (empty($ignoreValueCPath) || !preg_match('/^[a-zA-Z0-9_]+(\.[a-zA-Z0-9_]+)*$/', $ignoreValueCPath)) {
+            $this->configErrors[] = "Rule `unique_except` parameter `$ignoreValueFromCPath` must be a valid dot-notation path (e.g. `req.params.id` or `shared.user_id`) for Input Key `{{##INPUT_KEY##}}`! It ALWAYS uses the Globally Available Configuration Array Variable `\$c` as root starting point!";
+            return $this;
+        }
+        // Convert dot notation "req.matched_params.id" into "$c['req']['matched_params']['id'] ?? null"
+        $pathParts = explode('.', $ignoreValueCPath);
+        $compiledCPath = "\$c['" . implode("']['", $pathParts) . "'] ?? null";
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be unique and cannot be the current one.";
+        $compiledCode = "try {\n" .
+            "        \$ignoreValue = {$compiledCPath};\n" .
+            "    {{##DB_UNIQUE_EXCEPT_ALREADY_EXISTS_BLOCK_END_WITH_FINAL_IF_NEGATED_STATEMENT##}} {\n" .
+            "        {{##ERRORS##}}['unique_except'] = \"{$error}\";\n" .
+            "        {{##GOTO_STOP_ALL##}}\n" .
+            "        {{##GOTO_BAIL##}}\n" .
+            "        {{##GOTO_NEXT_RULE##}}\n" .
+            "        {{##GOTO_END_FIELD##}}\n" .
+            "    }\n" .
+            "} catch (\\Throwable \$e) {\n" .
+            "    {{##ERRORS##}}['unique_except'] = \"{$error}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "}";
+        $this->rules['unique_except'] = [
+            'databaseConnection' => $dbConn,
+            'table'              => $dbTbl,
+            'column'             => $dbCol,
+            'ignoreColumn'       => $ignoreCol,
+            'ignoreValueFromCPath' => $compiledCPath,
+            'error'              => $error,
+            'compiled'           => $compiledCode,
+        ];
+        return $this;
+    }
     /* FILES-ONLY RULES (accesses $_FILES array to validate things like filetype, filesize, dimensions if applicable, and so on) */
 }
 
