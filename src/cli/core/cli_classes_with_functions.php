@@ -113,6 +113,13 @@ function cli_compile_validation_schema($validation_schema, &$currentTables, &$cu
         $c->db('mongo_docs')->users->countDocuments(['email' => {{##INPUT##}}]) === 0
     */
 
+    // IMPORTANT: Regarding "\." in "key.subKey.names.v1\.0"; On the other hand, if your field name
+    // contains a literal period, you can explicitly prevent this from being interpreted as a "dot"
+    //  by escaping the period with a backslash:
+    //      'title' => 'required|unique:posts|max:255',
+    //     'v1\.0' => 'required',
+    // ADD Support for this when parsing the keys of 'VALIDATION'!
+
     // The final Validation Schema including all the
     // optimized flattened if(){}else{} and goto labels: code!
     $compiledValidationSchema = '';
@@ -249,6 +256,7 @@ class RuleSetAll
         'null' => 'null'
     ];
     public ?string $dataType = null;
+    public ?string $inputKeyField = null; // This replaces the {{##INPUT_KEY##}} with this set string value instead of the 'VALIDATION' => ['key' =>...]
     public ?string $dataTypeCategory = null;
     public ?bool $useNullable = false;
     public ?bool $useRequired = false;
@@ -461,6 +469,20 @@ class RuleSetAll
             return $this;
         }
         $this->rules['nullable'] = ['error' => null, 'compiled' => null];
+        $this->useNullable = true;
+        return $this;
+    }
+    public function input_key_field(string $fieldToReplaceINPUT_KEYWith): self
+    {
+        if (!$this->validateRuleUsage('input_key_field')) {
+            return $this;
+        }
+        $validated = $this->validateRuleMultipleValues('input_key_field', $fieldToReplaceINPUT_KEYWith, ['string']);
+        if (!$validated) {
+            return $this;
+        }
+        $this->inputKeyField = trim($validated[0]);
+        $this->rules['input_key_field'] = ['error' => null, 'compiled' => null];
         $this->useNullable = true;
         return $this;
     }
@@ -2386,6 +2408,72 @@ class RuleSetAll
         $this->rules['json'] = ['error' => $error, 'compiled' => $compiledCode];
         return $this;
     }
+    /**
+     * Validates that the input string consists entirely of 7-bit ASCII characters (0-127).
+     */
+    public function ascii(string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('ascii', ['ascii_printable'], [], ['string'])) {
+            return $this;
+        }
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must contain only 7-bit ASCII characters.";
+        $compiledCode = "if(!mb_check_encoding({{##INPUT##}}, 'ASCII')) {\n" .
+            "    {{##ERRORS##}}['ascii'] = \"{$error}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "}";
+        $this->rules['ascii'] = ['error' => $error, 'compiled' => $compiledCode];
+        return $this;
+    }
+    /**
+     * Validates that the input string consists entirely of printable 7-bit ASCII characters
+     * (excludes non-printable control characters like Null, Bell, or line breaks).
+     */
+    public function ascii_printable(string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('ascii_printable', ['ascii'], [], ['string'])) {
+            return $this;
+        }
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must contain only printable ASCII characters.";
+        $compiledCode = "if(!ctype_print({{##INPUT##}})) {\n" .
+            "    {{##ERRORS##}}['ascii_printable'] = \"{$error}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "}";
+        $this->rules['ascii_printable'] = ['error' => $error, 'compiled' => $compiledCode];
+        return $this;
+    }
+    /**
+     * Validates that the input string is a well-formed UTF-8 byte sequence.
+     */
+    public function utf8(string $customErrorMsg = ''): self
+    {
+        // 'ascii' and 'printable_ascii' are subsets of UTF-8, so listing them as conflicts
+        if (!$this->validateRuleUsage('utf8', ['ascii', 'printable_ascii'], [], ['string'])) {
+            return $this;
+        }
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be a valid UTF-8 string.";
+        // preg_match('//u', $var) returns 1 if valid UTF-8, 0 if malformed
+        $compiledCode = "if(preg_match('//u', {{##INPUT##}}) !== 1) {\n" .
+            "    {{##ERRORS##}}['utf8'] = \"{$error}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "}";
+        $this->rules['utf8'] = ['error' => $error, 'compiled' => $compiledCode];
+        return $this;
+    }
     public function color(array|string $formats = 'hex6', string $customErrorMsg = ''): self
     {
         if (!$this->validateRuleUsage('color', [], [], ['string'])) {
@@ -3271,6 +3359,9 @@ class RuleSetAll
         return $this;
     }
     /*  STRING RELATED FUNCTIONS LEFT: email_, password_ to fix here! */
+    // CONTINUE HERE NAOW!
+
+
 
     /* OTHER INPUT KEYS-ONLY RULES - value is ANOTHER data field! */
     // GLOBAL COMPILER MUST CHECK that "gte", "gt","lte","lt","same", "different" try NOT
