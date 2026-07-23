@@ -1145,7 +1145,6 @@ function cli_assert_validation_build_warn_errs($arrOrSingleValue, &$warnsAndErrs
     if (!is_string($errWarnMsg) || empty(trim($errWarnMsg))) {
         cli_err("[cli_assert_validation_build_warn_errs_n_stop_when_to()]: \$errWarnMsg must be a `Non-Empty String`!");
     }
-
     // Assert Final Value for a Single Value within an optional depth that must then exist first
     if (!cli_assert_optional_depth_and_value($arrOrSingleValue, $assertions)) {
         $pathSegments = array_slice($assertions, 0, -1);
