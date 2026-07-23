@@ -82,6 +82,7 @@ class RuleSetAll
     public ?bool $useNullable = false;
     public ?bool $useRequired = false;
     public ?bool $useBail = false;
+    public ?bool $useChainAll = false;
     public ?string $arrayType = null;
     // Flat associative list of configured rules
     public array $rules = [];
@@ -257,7 +258,20 @@ class RuleSetAll
 
         return $this;
     }
+
     /* ALL DATA TYPES RULES */
+    public function chain_rules_experimental(string $customErrorMsg): self
+    {
+        if (!$this->validateRuleUsage('chain_rules_experimental')) {
+            return $this;
+        }
+        if (empty(trim($customErrorMsg))) {
+            $this->configErrors[] = 'The Compiler-applied Global Rule `chain_rules_experimental` cannot have an empty Custom Error Message but must contain the error message that includes all other rules errors as this Rule chains all rules into a single long `if(condition1 && condition2 ... && ...)` code statement!';
+        }
+        $this->rules['chain_rules_experimental'] = ['error' => $customErrorMsg, 'compiled' => null];
+        $this->useChainAll = true;
+        return $this;
+    }
     public function bail(): self
     {
         if (!$this->validateRuleUsage('bail')) {
@@ -4401,6 +4415,7 @@ class RuleSetArray
     public ?bool $useRequired = false;
     public ?bool $useBail = false;
     public ?string $arrayType = null;
+    public bool $maxArraySizeAlreadySet = false;
     // Flat associative list of configured rules
     public array $rules = [];
     // Tracks syntax/dev errors during chaining for validating the correct use of the rules
@@ -4532,9 +4547,76 @@ class RuleSetArray
         }
         return $uniqueValues;
     }
-    public function arr(string $customErrorMsg = ''): self
+    /**
+     * Restricts validation to array structures.
+     *
+     * @param 'list'|'associative'|'' $listOrAssociative 'list' for indexed array, 'associative' for key-value array, or '' for any array.
+     * @param int|null $maxArraySize Optional shortcut to limit max array count.
+     * @param string $customErrorMsg
+     * @return self
+     */
+    public function arr(string $listOrAssociative = '', mixed $maxArraySize = null, string $customErrorMsg = ''): self
     {
-        $this->dataType = "array";
+        if (isset($this->dataType)) {
+            $this->configErrors[] = 'Data Type `array` has already been set, with its Array Type: ' . ($this->arrayType ? "`{$this->arrayType}`!" : '`Both Array Types`!');
+            return $this;
+        }
+        $maxArraySize = $this->validateRuleMultipleValues('arr', $maxArraySize, ['integer', 'null']);
+        if ($maxArraySize === false) {
+            return $this;
+        }
+        $maxArraySize = $maxArraySize[0];
+        $this->dataType = 'array';
+        $normalizedType = strtolower(trim($listOrAssociative));
+        // 1. Determine base condition and default message based on array sub-type
+        if ($normalizedType === 'list') {
+            $this->arrayType = 'list';
+            $condition = "!is_array({{##INPUT##}}) || !array_is_list({{##INPUT##}})";
+            $defaultError = "This field must be a numbered array (list)!";
+        } elseif ($normalizedType === 'associative') {
+            $this->arrayType = 'associative';
+            $condition = "!is_array({{##INPUT##}}) || (!empty({{##INPUT##}}) && array_is_list({{##INPUT##}}))";
+            $defaultError = "This field must be an associative array!";
+        } elseif ($normalizedType === '') {
+            $condition = "!is_array({{##INPUT##}})";
+            $defaultError = "This field must be an array!";
+        } else {
+            $this->configErrors[] = 'Invalid Array Type chosen: `' . $listOrAssociative . '`. Choose between `list` (a Numbered Array) OR `associative` (an Associative Array)!';
+            return $this;
+        }
+        // 2. Append optional maxArraySize check directly to the condition
+        if ($maxArraySize !== null) {
+            if ($maxArraySize < 0) {
+                $this->configErrors[] = 'Invalid max array size provided to `arr()`: `' . $maxArraySize . '`. Maximum item count must be 0 or greater!';
+                return $this;
+            }
+            $this->maxArraySizeAlreadySet = true;
+            $condition .= " || count({{##INPUT##}}) > {$maxArraySize}";
+            // Auto-build an intuitive default error if no custom message was supplied
+            if (trim($customErrorMsg) === '') {
+                $typeLabel = match ($normalizedType) {
+                    'list'        => 'a numbered array',
+                    'associative' => 'an associative array',
+                    default       => 'an array',
+                };
+                $defaultError = "This field must be {$typeLabel} containing at most {$maxArraySize} elements!";
+            }
+        }
+        $error = (trim($customErrorMsg) !== '') ? $customErrorMsg : $defaultError;
+        // 3. Compile into a single, clean IF block without duplicate placeholders
+        $compiledCode = "if({$condition}) {\n" .
+            "    {{##ERRORS##}}['arr'] = \"{$error}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "}";
+        $this->rules['arr'] = [
+            'arrayType' => $this->arrayType ?? 'any',
+            'maxSize'   => $maxArraySize,
+            'error'     => $error,
+            'compiled'  => $compiledCode,
+        ];
         return $this;
     }
 
@@ -4562,8 +4644,7 @@ class RuleSetArray
 
     public function required(string $customErrorMsg = ''): self
     {
-        if (isset($this->rules['required'])) {
-            $this->configErrors[] = 'Rule `required` already used for Input Key: `{{##INPUT_KEY##}}`!';
+        if (!$this->validateRuleUsage('required')) {
             return $this;
         }
         $this->rules['required'] = [
@@ -4998,9 +5079,16 @@ function phone(string $customErrorMsg = ''): RuleSetPhone
 {
     return (new RuleSetPhone())->phone($customErrorMsg);
 }
-function arr(string $setArrayTypeToListOrAssociative = '', string $customErrorMsg = ''): RuleSetArray
+/**
+ * Restricts validation to array structures.
+ *
+ * @param 'list'|'associative'|'' $setArrayTypeToListOrAssociative 'list' for indexed array, 'associative' for key-value array, or '' for any array.
+ * @param string $customErrorMsg
+ * @return RuleSetArray
+ */
+function arr(string $setArrayTypeToListOrAssociative = '', mixed $maxArraySize = null, string $customErrorMsg = ''): RuleSetArray
 {
-    return (new RuleSetArray())->arr($setArrayTypeToListOrAssociative, $customErrorMsg);
+    return (new RuleSetArray())->arr($setArrayTypeToListOrAssociative, $maxArraySize, $customErrorMsg);
 }
 function object(string $customErrorMsg = ''): RuleSetObject
 {

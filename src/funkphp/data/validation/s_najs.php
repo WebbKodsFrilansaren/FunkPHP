@@ -14,7 +14,9 @@ function s_paj(&$c)
 	cli_dump([
 		'<CONFIG>' => ['stop_all_on_first_error' => false],
 		'VALIDATION' => [
-			'bigger.name'  => all("array", "Name must be an associative array!", "associative")->keys_in_array_depths(['meta.author.name', 'config.settings'])
+			'bigger.name'  => all("array", "Name must be an associative array!", "associative")->keys_in_array_depths(['meta.author.name', 'config.settings']),
+			'test' => arr('list', 5,)
+
 		],
 	]);
 };
