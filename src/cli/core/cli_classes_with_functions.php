@@ -21,6 +21,68 @@
  **/
 
 
+/**
+ * Converts exploded dot-notation path segments into a compiled PHP $c array access string.
+ * Differentiates between quoted string keys ("'5'" -> ['5']) and unquoted integer keys ("5" -> [5]).
+ *
+ * @param array $explodedDotNotationPathString Array of path segments from explode('.', $path)
+ * @return string Compiled PHP array access code, e.g. "$c['shared']['stuff'][5] ?? null"
+ */
+function cli_bracketfy(array $explodedDotNotationPathString): string
+{
+    $bracketed = '';
+    foreach ($explodedDotNotationPathString as $segment) {
+        $segment = trim((string)$segment);
+        if ($segment === '') {
+            continue;
+        }
+        // 1. Explicitly wrapped in single or double quotes -> string key (e.g., '5' => ['5'])
+        if (
+            (str_starts_with($segment, "'") && str_ends_with($segment, "'") && strlen($segment) >= 2) ||
+            (str_starts_with($segment, '"') && str_ends_with($segment, '"') && strlen($segment) >= 2)
+        ) {
+            $unquoted = substr($segment, 1, -1);
+            $bracketed .= "['" . addslashes($unquoted) . "']";
+        }
+        // 2. Unquoted integer -> literal integer index (e.g., 5 => [5])
+        elseif (preg_match('/^-?\d+$/', $segment)) {
+            $bracketed .= "[{$segment}]";
+        }
+        // 3. Unquoted identifier -> standard string key (e.g., shared => ['shared'])
+        else {
+            $bracketed .= "['" . addslashes($segment) . "']";
+        }
+    }
+    return $bracketed;
+}
+
+/**
+ * Normalizes and converts human-readable file size units to raw bytes.
+ *
+ * @param int|float $size Size value.
+ * @param string $unit Unit string ('B', 'KB', 'MB', 'GB', 'PT').
+ * @return int|false Bytes count on success, or false if invalid unit or negative size.
+ * Used by file_RULE(s) since they need to output valid max, min, between, size, file sizes!
+ */
+function cli_parseFileSizeToBytes(int|float $size, string $unit): int|false
+{
+    if ($size < 0) {
+        return false;
+    }
+    $normalizedUnit = strtoupper(trim($unit));
+    $multiplier = match ($normalizedUnit) {
+        'B', 'BYTES', 'BYTE' => 1,
+        'KB', 'K'            => 1024,
+        'MB', 'M'            => 1024 * 1024,
+        'GB', 'G'            => 1024 * 1024 * 1024,
+        'PB', 'P'            => 1024 * 1024 * 1024 * 1024,
+        default              => false
+    };
+    if ($multiplier === false) {
+        return false;
+    }
+    return (int) round($size * $multiplier);
+}
 
 /* CLI Function that compiles a returned array with the following starting point:
         return
@@ -57,17 +119,98 @@ function cli_compile_validation_schema($validation_schema, &$currentTables, &$cu
     return $compiledValidationSchema;
 }
 
+/* ACTUAL RULE-RELATED CLASSES (FOR VALIDATION PURPOSES! - Compiler Functions Are Before These!) */
 class RuleSetAll
 {
+    /*
+     * Comprehensive Extension to MIME Types Mapping Dictionary. - WILL PROBABLY BE MOVED & EXTENDED!!!
+     */
+    private static array $extensionToMimeMap = [
+        // Images
+        // Standard & Modern Web Images
+        'jpg'     => ['image/jpeg', 'image/pjpeg'],
+        'jpeg'    => ['image/jpeg', 'image/pjpeg'],
+        'jpe'     => ['image/jpeg', 'image/pjpeg'],
+        'png'     => ['image/png', 'image/x-png'],
+        'gif'     => ['image/gif'],
+        'bmp'     => ['image/bmp', 'image/x-bmp', 'image/x-bitmap', 'image/x-ms-bmp'],
+        'webp'    => ['image/webp'],
+        'avif'    => ['image/avif', 'image/avif-sequence'],
+        'heic'    => ['image/heic', 'image/heif', 'image/heic-sequence', 'image/heif-sequence'],
+        'heif'    => ['image/heic', 'image/heif', 'image/heic-sequence', 'image/heif-sequence'],
+        'tiff'    => ['image/tiff', 'image/x-tiff'],
+        'tif'     => ['image/tiff', 'image/x-tiff'],
+        'ico'     => ['image/x-icon', 'image/vnd.microsoft.icon', 'image/icon', 'image/ico', 'application/ico'],
+        'svg'     => ['image/svg+xml', 'text/xml', 'text/plain'],
+        // Next-Gen & Advanced Formats (JPEG 2000, JPEG XL, etc.)
+        'jp2'     => ['image/jp2', 'image/jpx', 'image/jpm'],
+        'j2k'     => ['image/jp2', 'image/j2c', 'image/jpc'],
+        'jpf'     => ['image/jp2', 'image/jpx'],
+        'jpx'     => ['image/jpx', 'image/jp2'],
+        'jxl'     => ['image/jxl'],
+        // Specialty / Graphics Editing Formats
+        'psd'     => ['image/vnd.adobe.photoshop', 'image/x-photoshop', 'application/x-photoshop'],
+        'tga'     => ['image/x-tga', 'image/targa'],
+        'pnm'     => ['image/x-portable-anymap'],
+        'pbm'     => ['image/x-portable-bitmap'],
+        'pgm'     => ['image/x-portable-graymap'],
+        'ppm'     => ['image/x-portable-pixmap'],
+        // Documents & Text
+        'pdf'   => ['application/pdf', 'application/x-pdf', 'application/acrobat'],
+        'txt'   => ['text/plain'],
+        'rtf'   => ['text/rtf', 'application/rtf'],
+        'json'  => ['application/json', 'text/json', 'text/plain'],
+        'xml'   => ['application/xml', 'text/xml', 'text/plain'],
+        'csv'   => ['text/csv', 'text/plain', 'text/x-comma-separated-values', 'text/comma-separated-values', 'application/vnd.ms-excel'],
+        'doc'   => ['application/msword', 'application/vnd.ms-word'],
+        'docx'  => ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+        'xls'   => ['application/vnd.ms-excel', 'application/msexcel', 'application/x-msexcel'],
+        'xlsx'  => ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+        'ppt'   => ['application/vnd.ms-powerpoint', 'application/mspowerpoint'],
+        'pptx'  => ['application/vnd.openxmlformats-officedocument.presentationml.presentation'],
+        'odt'   => ['application/vnd.oasis.opendocument.text'],
+        'ods'   => ['application/vnd.oasis.opendocument.spreadsheet'],
+        'odp'   => ['application/vnd.oasis.opendocument.presentation'],
+        'epub'  => ['application/epub+zip'],
+        // Archives & Executables
+        'zip'   => ['application/zip', 'application/x-zip-compressed', 'multipart/x-zip'],
+        'rar'   => ['application/x-rar-compressed', 'application/rar', 'application/octet-stream'],
+        'tar'   => ['application/x-tar'],
+        'gz'    => ['application/x-gzip', 'application/gzip'],
+        '7z'    => ['application/x-7z-compressed'],
+        'bz2'   => ['application/x-bzip2'],
+        'xz'    => ['application/x-xz'],
+        // Audio
+        'mp3'   => ['audio/mpeg', 'audio/mp3', 'audio/x-mpeg', 'audio/x-mp3'],
+        'wav'   => ['audio/wav', 'audio/x-wav', 'audio/wave'],
+        'ogg'   => ['audio/ogg', 'video/ogg', 'application/ogg'],
+        'm4a'   => ['audio/m4a', 'audio/x-m4a', 'audio/mp4'],
+        'flac'  => ['audio/flac', 'audio/x-flac'],
+        'aac'   => ['audio/aac', 'audio/x-aac'],
+        'wma'   => ['audio/x-ms-wma'],
+        'opus'  => ['audio/opus'],
+        // Video
+        'mp4'   => ['video/mp4', 'video/x-mp4'],
+        'webm'  => ['video/webm'],
+        'avi'   => ['video/x-msvideo', 'video/avi', 'video/msvideo'],
+        'mov'   => ['video/quicktime'],
+        'mkv'   => ['video/x-matroska'],
+        'wmv'   => ['video/x-ms-wmv'],
+        'flv'   => ['video/x-flv'],
+        'm4v'   => ['video/x-m4v'],
+        '3gp'   => ['video/3gpp', 'audio/3gpp'],
+        // Fonts
+        'ttf'   => ['font/ttf', 'font/sfnt', 'application/x-font-ttf'],
+        'otf'   => ['font/otf', 'font/sfnt', 'application/x-font-opentype'],
+        'woff'  => ['font/woff', 'application/font-woff', 'application/x-font-woff'],
+        'woff2' => ['font/woff2'],
+        'eot'   => ['application/vnd.ms-fontobject'],
+    ];
     // Valid "Data Types" (set in $dataType)
     // TODO: test all cuz these might actually be wrong sometimes when evaluated with "if(!{$guardExpression})"???
     public array $typeGuardMap = [
         // File Types
-        'files'      => '(is_array({{##INPUT##}}) && isset({{##INPUT##}}[\'tmp_name\']) && is_uploaded_file({{##INPUT##}}[\'tmp_name\']))',
         'file'      => '(is_array({{##INPUT##}}) && isset({{##INPUT##}}[\'tmp_name\']) && is_uploaded_file({{##INPUT##}}[\'tmp_name\']))',
-        'image'     => '(is_array({{##INPUT##}}) && isset({{##INPUT##}}[\'tmp_name\']) && is_uploaded_file({{##INPUT##}}[\'tmp_name\']))',
-        'video'     => '(is_array({{##INPUT##}}) && isset({{##INPUT##}}[\'tmp_name\']) && is_uploaded_file({{##INPUT##}}[\'tmp_name\']))',
-        'audio'     => '(is_array({{##INPUT##}}) && isset({{##INPUT##}}[\'tmp_name\']) && is_uploaded_file({{##INPUT##}}[\'tmp_name\']))',
         'string'    => 'is_string({{##INPUT##}})',
         'date'    => 'is_string({{##INPUT##}})',
         'checkbox' => '(is_scalar({{##INPUT##}}) && {{##INPUT##}} !== null)',
@@ -103,10 +246,6 @@ class RuleSetAll
         'arr' => 'array',
         'checkbox' => 'checkbox',
         'file' => 'file',
-        'files' => 'file',
-        'image' => 'file',
-        'video' => 'file',
-        'audio' => 'file',
         'null' => 'null'
     ];
     public ?string $dataType = null;
@@ -252,6 +391,10 @@ class RuleSetAll
     // ACTUAL RULES (some are data type-restricted like some for only strings, some for only arrays, etc.)
     public function setDatatype(string $dataType, string $customErrorMsg = '', string $setArrayTypeToListOrAssociative = ''): self
     {
+        if (trim($dataType) === '') {
+            $this->configErrors[] = 'A Data Type is already set: `' . $this->dataType . '`!';
+            return $this;
+        }
         if (isset($this->dataType)) {
             $this->configErrors[] = 'A Data Type is already set: `' . $this->dataType . '`!';
             return $this;
@@ -260,7 +403,6 @@ class RuleSetAll
             $this->configErrors[] = 'Invalid Data Type chosen: `' . $dataType . '`.';
             return $this;
         }
-
         $this->dataType = $dataType;
         $this->dataTypeCategory = $this->setDataTypeCategory[$dataType];
         $guardExpression = $this->typeGuardMap[$dataType];
@@ -288,7 +430,6 @@ class RuleSetAll
                 return $this;
             }
         }
-
         return $this;
     }
 
@@ -2705,6 +2846,75 @@ class RuleSetAll
         ];
         return $this;
     }
+    /**
+     * Validates that a String input matches at least one of the specified character encodings.
+     * Checks against PHP's supported mb_list_encodings() at compile time. `IMPORTANT:` This rule
+     * means that ONLY one of the encoding(s) must validate in order to pass. Fail ONLY happens
+     * when all passed encoding(s) did not pass the check against the string-based Input!
+     *
+     * @param string|array $encoding Single encoding string or array/comma-separated list of allowed encodings (e.g., 'UTF-8', 'ASCII, ISO-8859-1').
+     * @param string $customErrorMsg Custom error message on validation failure.
+     * @return self
+     */
+    public function encoding(string|array $encoding, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('encoding', ['file_encoding'], [], ['string'])) {
+            return $this;
+        }
+        $encodingValid = $this->validateRuleMultipleValues('encoding', $encoding, ['string']);
+        if ($encodingValid === false) {
+            return $this;
+        }
+        // 1. Verify all requested encodings exist in PHP's supported list at compile time
+        $supportedEncodings = array_map('strtoupper', mb_list_encodings());
+        $cleanEncodings = [];
+        $unrecognizedEncodings = [];
+        foreach ($encodingValid as $enc) {
+            $cleanEnc = strtoupper(trim($enc));
+            if (in_array($cleanEnc, $supportedEncodings, true)) {
+                $cleanEncodings[] = $cleanEnc;
+            } else {
+                $unrecognizedEncodings[] = $cleanEnc;
+            }
+        }
+        if (!empty($unrecognizedEncodings)) {
+            $unrecognizedList = implode(', ', $unrecognizedEncodings);
+            $this->configErrors[] = "Rule `encoding` contains unrecognized encoding(s): [{$unrecognizedList}] for Input Key `{{##INPUT_KEY##}}`!";
+            return $this;
+        }
+        $cleanEncodings = array_values(array_unique($cleanEncodings));
+        if (empty($cleanEncodings)) {
+            $this->configErrors[] = "Rule `encoding` requires at least one valid encoding for Input Key `{{##INPUT_KEY##}}`!";
+            return $this;
+        }
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be encoded in any of the following formats: `" . implode(', ', $cleanEncodings) . "`.";
+        $compiledEncodings = var_export($cleanEncodings, true);
+        // 2. Compiled runtime check
+        $compiledCode = "{\n" .
+            "    \$isValidEncoding = false;\n" .
+            "    foreach ({$compiledEncodings} as \$enc) {\n" .
+            "        if (mb_check_encoding({{##INPUT##}}, \$enc)) {\n" .
+            "            \$isValidEncoding = true;\n" .
+            "            break;\n" .
+            "        }\n" .
+            "    }\n" .
+            "    if (!\$isValidEncoding) {\n" .
+            "        {{##ERRORS##}}['encoding'] = \"{$error}\";\n" .
+            "        {{##GOTO_STOP_ALL##}}\n" .
+            "        {{##GOTO_BAIL##}}\n" .
+            "        {{##GOTO_NEXT_RULE##}}\n" .
+            "        {{##GOTO_END_FIELD##}}\n" .
+            "    }\n" .
+            "}";
+        $this->rules['encoding'] = [
+            'encodings' => $cleanEncodings,
+            'error'     => $error,
+            'compiled'  => $compiledCode,
+        ];
+        return $this;
+    }
 
     /* OTHER INPUT KEYS-ONLY RULES - value is ANOTHER data field! */
     // GLOBAL COMPILER MUST CHECK that "gte", "gt","lte","lt","same", "different" try NOT
@@ -3451,31 +3661,37 @@ class RuleSetAll
      * @param string $table Database table name.
      * @param string $column Database column name to check uniqueness against.
      * @param string $ignoreColumn Primary key or identifier column to ignore (e.g. 'id').
-     * @param string $ignoreValueFromCPath Dot-notation Path to Fetch Value from `Global Configuration Array Variable $c` (e.g., 'req.params.id' or 'shared.user.id' becomes `$c['req']['params']['id']` and `$c['shared']['user']['id]`). This allows for fetching dynamic value from the same place without knowing the value beforehand!
+     * @param string|int|float $ignoreValueFromCPath Dot-notation Path to Fetch Value from `Global Configuration Array Variable $c` (e.g., 'req.params.id' or 'shared.user.id' becomes `$c['req']['params']['id']` and `$c['shared']['user']['id]`). This allows for fetching dynamic value from the same place without knowing the value beforehand!
      * @param string $customErrorMsg Custom error message on validation failure.
      * @return self
      */
-    public function unique_except(string $databaseConnection, string $table, string $column, string $ignoreColumn, string $ignoreValueFromCPath, string $customErrorMsg = ''): self
+    public function unique_except(string $databaseConnection, string $table, string $column, string $ignoreColumn, string|int|float $ignoreValueFromCPath, string $customErrorMsg = ''): self
     {
         if (!$this->validateRuleUsage('unique_except', [], [], [])) {
             return $this;
         }
-        $ruleVals = $this->validateRuleMultipleValues('unique_except', [$databaseConnection, $table, $column, $ignoreColumn, $ignoreValueFromCPath], ['string'], false, true);
+        $ruleVals = $this->validateRuleMultipleValues('unique_except', [$databaseConnection, $table, $column, $ignoreColumn], ['string'], false, true);
         if ($ruleVals === false) {
             return $this;
         }
-        [$dbConn, $dbTbl, $dbCol, $ignoreCol, $ignoreValueCPath] = $ruleVals;
+        [$dbConn, $dbTbl, $dbCol, $ignoreCol] = $ruleVals;
+        $ruleVals2 = $this->validateRuleMultipleValues('unique_except', [$ignoreValueFromCPath], ['string', 'integer', 'float'], false, true);
+        if ($ruleVals2 === false) {
+            return $this;
+        }
+        [$ignoreValueCPath] = $ruleVals2;
         if (!preg_match('/^[a-zA-Z0-9_]+$/', $dbTbl) || !preg_match('/^[a-zA-Z0-9_]+$/', $dbCol) || !preg_match('/^[a-zA-Z0-9_]+$/', $ignoreCol)) {
             $this->configErrors[] = "Rule `unique_except` contains invalid identifier characters for Input Key `{{##INPUT_KEY##}}`!";
             return $this;
         }
-        if (empty($ignoreValueCPath) || !preg_match('/^[a-zA-Z0-9_]+(\.[a-zA-Z0-9_]+)*$/', $ignoreValueCPath)) {
+        if (empty($ignoreValueCPath) || !preg_match('/^[a-zA-Z0-9_\']+(\.[a-zA-Z0-9_\']+)*$/', $ignoreValueCPath)) {
             $this->configErrors[] = "Rule `unique_except` parameter `$ignoreValueFromCPath` must be a valid dot-notation path (e.g. `req.params.id` or `shared.user_id`) for Input Key `{{##INPUT_KEY##}}`! It ALWAYS uses the Globally Available Configuration Array Variable `\$c` as root starting point!";
             return $this;
         }
         // Convert dot notation "req.matched_params.id" into "$c['req']['matched_params']['id'] ?? null"
+        // using "cli_bracketfy" which also makes '5' become ['5'] where as just 5 would become [5]!
         $pathParts = explode('.', $ignoreValueCPath);
-        $compiledCPath = "\$c['" . implode("']['", $pathParts) . "'] ?? null";
+        $compiledCPath = "\$c" . cli_bracketfy($pathParts) . " ?? null";
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be unique and cannot be the current one.";
@@ -3507,6 +3723,854 @@ class RuleSetAll
         return $this;
     }
     /* FILES-ONLY RULES (accesses $_FILES array to validate things like filetype, filesize, dimensions if applicable, and so on) */
+    /**
+     * Validates that the uploaded file meets a minimum file size threshold.
+     *
+     * @param int|float $minSize Minimum file size threshold. B = Bytes
+     * @param 'B'|'Bytes'|'KB'|'MB'|'GB'|'PB' $unit Unit of measurement. Defaults to 'KB' (1024 bytes).
+     * @param string $customErrorMsg Custom error message on validation failure.
+     * @return self
+     */
+    public function file_min(int|float $minSize, string $unit = 'KB', string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('file_min', ['file_size', 'file_between'], ['file'], ['file'])) {
+            return $this;
+        }
+        if (trim($unit) === '') {
+            $this->configErrors[] = "Rule `file_min` Parameter `\$unit` must be A Non-Empty String for Input Key `{{##INPUT_KEY##}}`. Choose between the following Values: `" . join(", ", ['B', 'bytes', 'KB', 'MB', 'GB', 'PB']) . "`!";
+            return $this;
+        }
+        if (!in_array($unit, ['B', 'bytes', 'KB', 'MB', 'GB', 'PB'])) {
+            $this->configErrors[] = "Rule `file_min` receives an invalid unit `[{$unit}]` for Input Key `{{##INPUT_KEY##}}`. Choose between: `" . join(", ", ['B', 'bytes', 'KB', 'MB', 'GB', 'PB']) . "`!";
+            return $this;
+        }
+        $ruleVals = $this->validateRuleMultipleValues('file_min', [$minSize], ['integer', 'float']);
+        if ($ruleVals === false) {
+            return $this;
+        }
+        $minSizeBytes = cli_parseFileSizeToBytes($minSize, $unit);
+        if ($minSizeBytes === false) {
+            $this->configErrors[] = "Rule `file_min` receives an invalid size or unit `[{$minSize} {$unit}]` for Input Key `{{##INPUT_KEY##}}`!";
+            return $this;
+        }
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "The file `{{##INPUT_KEY##}}` must be at least {$minSize} {$unit}.";
+        $compiledCode = "if(!isset({{##INPUT##}}['size']) || {{##INPUT##}}['size'] < {$minSizeBytes}) {\n" .
+            "    {{##ERRORS##}}['file_min'] = \"{$error}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "}";
+        $this->rules['file_min'] = [
+            'minSize'       => $minSize,
+            'unit'          => $unit,
+            'bytes'         => $minSizeBytes,
+            'error'         => $error,
+            'compiled'      => $compiledCode,
+        ];
+        return $this;
+    }
+    /**
+     * Validates that the uploaded file does not exceed a maximum file size limit.
+     *
+     * @param int|float $maxSize Maximum allowed file size.
+     * @param 'B'|'bytes'|'KB'|'MB'|'GB'|'PB' $unit Unit of measurement. Defaults to 'KB' (1024 bytes).
+     * @param string $customErrorMsg Custom error message on validation failure.
+     * @return self
+     */
+    public function file_max(int|float $maxSize, string $unit = 'KB', string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('file_max', ['file_size', 'file_between'], ['file'], ['file'])) {
+            return $this;
+        }
+        if (trim($unit) === '') {
+            $this->configErrors[] = "Rule `file_max` Parameter `\$unit` must be A Non-Empty String for Input Key `{{##INPUT_KEY##}}`. Choose between the following Values: `" . join(", ", ['B', 'bytes', 'KB', 'MB', 'GB', 'PB']) . "`!";
+            return $this;
+        }
+        if (!in_array($unit, ['B', 'bytes', 'KB', 'MB', 'GB', 'PB'])) {
+            $this->configErrors[] = "Rule `file_max` receives an invalid unit `[{$unit}]` for Input Key `{{##INPUT_KEY##}}`. Choose between: `" . join(", ", ['B', 'bytes', 'KB', 'MB', 'GB', 'PB']) . "`!";
+            return $this;
+        }
+        $ruleVals = $this->validateRuleMultipleValues('file_max', [$maxSize], ['integer', 'float']);
+        if ($ruleVals === false) {
+            return $this;
+        }
+        $maxSizeBytes = cli_parseFileSizeToBytes($maxSize, $unit);
+        if ($maxSizeBytes === false) {
+            $this->configErrors[] = "Rule `file_max` receives an invalid size or unit `[{$maxSize} {$unit}]` for Input Key `{{##INPUT_KEY##}}`!";
+            return $this;
+        }
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "The file `{{##INPUT_KEY##}}` must not exceed {$maxSize} {$unit}.";
+        $compiledCode = "if(!isset({{##INPUT##}}['size']) || {{##INPUT##}}['size'] > {$maxSizeBytes}) {\n" .
+            "    {{##ERRORS##}}['file_max'] = \"{$error}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "}";
+        $this->rules['file_max'] = [
+            'maxSize'       => $maxSize,
+            'unit'          => $unit,
+            'bytes'         => $maxSizeBytes,
+            'error'         => $error,
+            'compiled'      => $compiledCode,
+        ];
+        return $this;
+    }
+    /**
+     * Validates that the uploaded file size falls inclusively within a specified range.
+     *
+     * @param int|float $minSize Minimum allowed file size.
+     * @param int|float $maxSize Maximum allowed file size.
+     * @param 'B'|'bytes'|'KB'|'MB'|'GB'|'PB' $unit Unit of measurement. Defaults to 'KB' (1024 bytes).
+     * @param string $customErrorMsg Custom error message on validation failure.
+     * @return self
+     */
+    public function file_between(int|float $minSize, int|float $maxSize, string $unit = 'KB', string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('file_between', ['file_min', 'file_max', 'file_size'], [], ['file'])) {
+            return $this;
+        }
+        if (trim($unit) === '') {
+            $this->configErrors[] = "Rule `file_between` Parameter `\$unit` must be A Non-Empty String for Input Key `{{##INPUT_KEY##}}`. Choose between the following Values: `" . join(", ", ['B', 'bytes', 'KB', 'MB', 'GB', 'PB']) . "`!";
+            return $this;
+        }
+        if (!in_array($unit, ['B', 'bytes', 'KB', 'MB', 'GB', 'PB'])) {
+            $this->configErrors[] = "Rule `file_between` receives an invalid unit `[{$unit}]` for Input Key `{{##INPUT_KEY##}}`. Choose between: `" . join(", ", ['B', 'bytes', 'KB', 'MB', 'GB', 'PB']) . "`!";
+            return $this;
+        }
+        $ruleVals = $this->validateRuleMultipleValues('file_between', [$minSize, $maxSize], ['integer', 'float'], false, true);
+        if ($ruleVals === false) {
+            return $this;
+        }
+        [$minVal, $maxVal] = $ruleVals;
+        if ($minVal >= $maxVal) {
+            $this->configErrors[] = "Rule `file_between` requires minSize ({$minVal}) to be strictly less than maxSize ({$maxVal}) for Input Key `{{##INPUT_KEY##}}`!";
+            return $this;
+        }
+        $minSizeBytes = cli_parseFileSizeToBytes($minVal, $unit);
+        $maxSizeBytes = cli_parseFileSizeToBytes($maxVal, $unit);
+        if ($minSizeBytes === false || $maxSizeBytes === false) {
+            $this->configErrors[] = "Rule `file_between` receives invalid size or unit `[{$minVal}-{$maxVal} {$unit}]` for Input Key `{{##INPUT_KEY##}}`!";
+            return $this;
+        }
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "The file `{{##INPUT_KEY##}}` must be between {$minVal} and {$maxVal} {$unit}.";
+        $compiledCode = "if(!isset({{##INPUT##}}['size']) || {{##INPUT##}}['size'] < {$minSizeBytes} || {{##INPUT##}}['size'] > {$maxSizeBytes}) {\n" .
+            "    {{##ERRORS##}}['file_between'] = \"{$error}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "}";
+        $this->rules['file_between'] = [
+            'minSize'       => $minVal,
+            'maxSize'       => $maxVal,
+            'unit'          => $unit,
+            'minBytes'      => $minSizeBytes,
+            'maxBytes'      => $maxSizeBytes,
+            'error'         => $error,
+            'compiled'      => $compiledCode,
+        ];
+        return $this;
+    }
+    /**
+     * Validates that the uploaded file matches an exact size.
+     *
+     * @param int|float $exactSize Exact file size.
+     * @param 'B'|'bytes'|'KB'|'MB'|'GB'|'PB' $unit Unit of measurement. Defaults to 'KB' (1024 bytes).
+     * @param string $customErrorMsg Custom error message on validation failure.
+     * @return self
+     */
+    public function file_size(int|float $exactSize, string $unit = 'KB', string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('file_size', ['file_min', 'file_max', 'file_between'], [], ['file'])) {
+            return $this;
+        }
+        if (trim($unit) === '') {
+            $this->configErrors[] = "Rule `file_size` Parameter `\$unit` must be A Non-Empty String for Input Key `{{##INPUT_KEY##}}`. Choose between the following Values: `" . join(", ", ['B', 'bytes', 'KB', 'MB', 'GB', 'PB']) . "`!";
+            return $this;
+        }
+        if (!in_array($unit, ['B', 'bytes', 'KB', 'MB', 'GB', 'PB'])) {
+            $this->configErrors[] = "Rule `file_size` receives an invalid unit `[{$unit}]` for Input Key `{{##INPUT_KEY##}}`. Choose between: `" . join(", ", ['B', 'bytes', 'KB', 'MB', 'GB', 'PB']) . "`!";
+            return $this;
+        }
+        $ruleVals = $this->validateRuleMultipleValues('file_size', [$exactSize], ['integer', 'float'], false, true);
+        if ($ruleVals === false) {
+            return $this;
+        }
+        $exactSizeBytes = cli_parseFileSizeToBytes($exactSize, $unit);
+        if ($exactSizeBytes === false) {
+            $this->configErrors[] = "Rule `file_size` receives an invalid size or unit `[{$exactSize} {$unit}]` for Input Key `{{##INPUT_KEY##}}`!";
+            return $this;
+        }
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "The file `{{##INPUT_KEY##}}` must be exactly {$exactSize} {$unit}.";
+        $compiledCode = "if (!isset({{##INPUT##}}['size']) || {{##INPUT##}}['size'] !== {$exactSizeBytes}) {\n" .
+            "    {{##ERRORS##}}['file_size'] = \"{$error}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "}";
+        $this->rules['file_size'] = [
+            'exactSize'     => $exactSize,
+            'unit'          => $unit,
+            'bytes'         => $exactSizeBytes,
+            'error'         => $error,
+            'compiled'      => $compiledCode,
+        ];
+        return $this;
+    }
+    /**
+     * Validates that the uploaded file's extension matches one of the allowed extensions (case-insensitive).
+     * Note: This performs a fast check against the filename extension string. For deep magic-bytes inspection, use file_mimetype().
+     *
+     * @param string|array $extensions Allowed extensions as a comma-separated string (e.g. 'jpg, png, webp' or '.jpg, .png') or array (e.g. ['jpg', 'png']).
+     * @param string $customErrorMsg Custom error message on validation failure.
+     * @return self
+     */
+    public function file_extensions(string|array $extensions, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('file_extensions', [], ['file'], ['file'])) {
+            return $this;
+        }
+        $ruleVals = $this->validateRuleMultipleValues('file_extensions', $extensions, ['string']);
+        if ($ruleVals === false) {
+            return $this;
+        }
+        // 1. Normalize input string or array into a flat array
+        $rawExts = $ruleVals;
+        $normalizedExts = [];
+        // 2. Clean, trim, strip leading dots, and lowercase all extensions
+        foreach ($rawExts as $ext) {
+            if (!is_string($ext) && !is_numeric($ext)) {
+                continue;
+            }
+            $cleanExt = strtolower(trim((string)$ext));
+            $cleanExt = ltrim($cleanExt, '.'); // Handles '.jpg' -> 'jpg'
+            if ($cleanExt !== '') {
+                $normalizedExts[] = $cleanExt;
+            }
+        }
+        // Format nice user-facing list: ".jpg, .png, .pdf"
+        $allowedListStr = implode(', ', array_map(fn($e) => '.' . $e, $normalizedExts));
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "The file `{{##INPUT_KEY##}}` must have one of the following extensions: {$allowedListStr}.";
+        // Export array into valid PHP code array syntax
+        $compiledAllowedArray = var_export($normalizedExts, true);
+        $compiledCode = "if (!isset({{##INPUT##}}['name']) || !in_array(strtolower(pathinfo({{##INPUT##}}['name'], PATHINFO_EXTENSION)), {$compiledAllowedArray}, true)) {\n" .
+            "    {{##ERRORS##}}['file_extensions'] = \"{$error}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "}";
+        $this->rules['file_extensions'] = [
+            'allowedExtensions' => $normalizedExts,
+            'error'             => $error,
+            'compiled'          => $compiledCode,
+        ];
+        return $this;
+    }
+    /**
+     * Validates that the uploaded file's actual MIME type matches allowed extensions or MIME types.
+     * Inspects magic bytes of the uploaded temporary file using PHP's native finfo_file().
+     *
+     * @param string|array $mimes Allowed extensions (e.g., 'jpg, png, pdf') or full MIME types (e.g., 'image/jpeg, application/pdf').
+     * @param string $customErrorMsg Custom error message on validation failure.
+     * @return self
+     */
+    public function file_mimes(string|array $mimes, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('file_mimes', [], ['file'], ['file'])) {
+            return $this;
+        }
+        $validMimes = $this->validateRuleMultipleValues('file_mimes', $mimes, ['string']);
+        if ($validMimes === false) {
+            return $this;
+        }
+        $allowedMimeTypes = [];
+        $unrecognizedItems = [];
+        foreach ($validMimes as $item) {
+            $itemClean = strtolower(trim($item));
+            if (str_contains($itemClean, '/')) {
+                // Explicit MIME type (e.g., "image/jpeg" or "application/pdf")
+                $allowedMimeTypes[] = $itemClean;
+            } else {
+                // Extension shortcode (e.g., "jpg", ".png", "pdf")
+                $ext = ltrim($itemClean, '.');
+                if (isset(self::$extensionToMimeMap[$ext])) {
+                    foreach (self::$extensionToMimeMap[$ext] as $mime) {
+                        $allowedMimeTypes[] = $mime;
+                    }
+                } else {
+                    $unrecognizedItems[] = $ext;
+                }
+            }
+        }
+        if (!empty($unrecognizedItems)) {
+            $unrecognizedList = implode(', ', $unrecognizedItems);
+            $this->configErrors[] = "Rule `file_mimes` contains unrecognized file extension(s): [{$unrecognizedList}] for Input Key `{{##INPUT_KEY##}}`! OR the `private static array \$extensionToMimeMap = []` Array in class RulesSetAll{} and/or RulesSetFile{} is incomplete. You can add to the list in `/src/cli/core/cli_classes_with_functions.php` if you would like to! Just search for `private static array \$extensionToMimeMap` in that File! OR CONSIDER to use the `callback:FN_NAME` Rule if you need to make a highly specific File Validation that is not covered by the included File-related Rules here!";
+            return $this;
+        }
+        // Deduplicate allowed MIME types array
+        $allowedMimeTypes = array_values(array_unique($allowedMimeTypes));
+        if (empty($allowedMimeTypes)) {
+            $this->configErrors[] = "Rule `file_mimes` requires at least one valid extension or MIME type for Input Key `{{##INPUT_KEY##}}`!";
+            return $this;
+        }
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "The file `{{##INPUT_KEY##}}` must be of type: " . implode(', ', $validMimes) . '.';
+        $compiledAllowedArray = var_export($allowedMimeTypes, true);
+        // Compiled PHP: Validates temp file existence, reads magic bytes via finfo, and checks array match
+        $compiledCode = "if (" .
+            "!isset({{##INPUT##}}['tmp_name']) || " .
+            "!is_string({{##INPUT##}}['tmp_name']) || " .
+            "!is_file({{##INPUT##}}['tmp_name']) || " .
+            "!is_readable({{##INPUT##}}['tmp_name'])" .
+            ") {\n" .
+            "    {{##ERRORS##}}['file_mimes'] = \"{$error}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "} else {\n" .
+            "    \$finfoHandle = finfo_open(FILEINFO_MIME_TYPE);\n" .
+            "    \$detectedMime = \$finfoHandle ? finfo_file(\$finfoHandle, {{##INPUT##}}['tmp_name']) : false;\n" .
+            "    if (\$finfoHandle) { finfo_close(\$finfoHandle); }\n" .
+            "    if (!\$detectedMime || !in_array(strtolower(\$detectedMime), {$compiledAllowedArray}, true)) {\n" .
+            "        {{##ERRORS##}}['file_mimes'] = \"{$error}\";\n" .
+            "        {{##GOTO_STOP_ALL##}}\n" .
+            "        {{##GOTO_BAIL##}}\n" .
+            "        {{##GOTO_NEXT_RULE##}}\n" .
+            "        {{##GOTO_END_FIELD##}}\n" .
+            "    }\n" .
+            "}";
+
+        $this->rules['file_mimes'] = [
+            'allowedMimeTypes' => $allowedMimeTypes,
+            'error'            => $error,
+            'compiled'         => $compiledCode,
+        ];
+
+        return $this;
+    }
+    /**
+     * Validates that the uploaded file is a valid image based on magic bytes (finfo_file).
+     * By default, checks for jpg, jpeg, png, gif, bmp, webp, avif, heic, heif, tiff, tif, ico.
+     * SVG is disabled by default to prevent XSS vulnerabilities, but can be enabled via $allowSVG = true.
+     *
+     * @param string|array|null $excludeCertainImageTypes Optional extensions or MIME types to exclude (e.g., 'gif, webp' or ['gif', 'webp']).
+     * @param string $customErrorMsg Custom error message on validation failure.
+     * @param bool $allowSVG Set to true to allow SVG files.
+     * @return self
+     */
+    public function file_image(string|array|null $excludeCertainImageTypes = null, string $customErrorMsg = '', bool $allowSVG = false): self
+    {
+        if (!$this->validateRuleUsage('file_image', ['file_mimes'], ['file'], ['file'])) {
+            return $this;
+        }
+        // 1. Define base image extensions list & 2. Conditionally include SVG if allowed
+        $baseImageExts = [
+            'jpg',
+            'jpeg',
+            'jpe',
+            'png',
+            'gif',
+            'bmp',
+            'webp',
+            'avif',
+            'heic',
+            'heif',
+            'tiff',
+            'tif',
+            'ico',
+            'jp2',
+            'j2k',
+            'jpf',
+            'jpx',
+            'jxl',
+            'psd',
+            'tga',
+            'pnm',
+            'pbm',
+            'pgm',
+            'ppm'
+        ];
+        if ($allowSVG) {
+            $baseImageExts[] = 'svg';
+        }
+        // 3. Process exclusions if specified
+        $excludedItems = [];
+        if ($excludeCertainImageTypes !== null) {
+            $validExclusions = $this->validateRuleMultipleValues('file_image', $excludeCertainImageTypes, ['string']);
+            if ($validExclusions === false) {
+                return $this;
+            }
+            foreach ($validExclusions as $ex) {
+                $cleanEx = strtolower(trim((string)$ex));
+                $cleanEx = ltrim($cleanEx, '.');
+                if ($cleanEx !== '') {
+                    if (!in_array($cleanEx, $baseImageExts)) {
+                        $this->configErrors[] = "Rule `file_image` for Input Key `{{##INPUT_KEY##}}` has an excluded Image File Type (`$cleanEx`) that does NOT exist in the list of available Image File Types of which you can exclude up until you have only one left:`" . join(", ", $baseImageExts) .  "`! OR CONSIDER to use the `callback:FN_NAME` Rule if you need to make a highly specific File Validation that is not covered by the included File-related Rules here!";
+                        return $this;
+                    }
+                    $excludedItems[] = $cleanEx;
+                }
+            }
+        }
+        // 4. Build final allowed MIME types list from base extensions
+        $allowedMimeTypes = [];
+        foreach ($baseImageExts as $ext) {
+            // Skip if this extension was explicitly excluded (e.g., 'gif')
+            if (in_array($ext, $excludedItems, true)) {
+                continue;
+            }
+            if (isset(self::$extensionToMimeMap[$ext])) {
+                foreach (self::$extensionToMimeMap[$ext] as $mime) {
+                    // Skip if specific MIME type was explicitly excluded (e.g., 'image/gif')
+                    if (in_array($mime, $excludedItems, true)) {
+                        continue;
+                    }
+                    $allowedMimeTypes[] = $mime;
+                }
+            }
+        }
+        $allowedMimeTypes = array_values(array_unique($allowedMimeTypes));
+        if (empty($allowedMimeTypes)) {
+            $this->configErrors[] = "Rule `file_image` for Input Key `{{##INPUT_KEY##}}` has excluded all known Base Image File Types so no typical uploaded image would be able to be validated. CONSIDER to use the `callback:FN_NAME` Rule if you need to make a highly specific File Validation that is not covered by the included File-related Rules here!";
+            return $this;
+        }
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "The file `{{##INPUT_KEY##}}` must be a valid image.";
+        $compiledAllowedArray = var_export($allowedMimeTypes, true);
+        // 5. Compile runtime PHP check using finfo_file
+        $compiledCode = "if (" .
+            "!isset({{##INPUT##}}['tmp_name']) || " .
+            "!is_string({{##INPUT##}}['tmp_name']) || " .
+            "!is_file({{##INPUT##}}['tmp_name']) || " .
+            "!is_readable({{##INPUT##}}['tmp_name'])" .
+            ") {\n" .
+            "    {{##ERRORS##}}['file_image'] = \"{$error}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "} else {\n" .
+            "    \$finfoHandle = finfo_open(FILEINFO_MIME_TYPE);\n" .
+            "    \$detectedMime = \$finfoHandle ? finfo_file(\$finfoHandle, {{##INPUT##}}['tmp_name']) : false;\n" .
+            "    if (\$finfoHandle) { finfo_close(\$finfoHandle); }\n" .
+            "    if (!\$detectedMime || !in_array(strtolower(\$detectedMime), {$compiledAllowedArray}, true)) {\n" .
+            "        {{##ERRORS##}}['file_image'] = \"{$error}\";\n" .
+            "        {{##GOTO_STOP_ALL##}}\n" .
+            "        {{##GOTO_BAIL##}}\n" .
+            "        {{##GOTO_NEXT_RULE##}}\n" .
+            "        {{##GOTO_END_FIELD##}}\n" .
+            "    }\n" .
+            "}";
+        $this->rules['file_image'] = [
+            'allowSVG'          => $allowSVG,
+            'excludedTypes'     => $excludedItems,
+            'allowedMimeTypes'  => $allowedMimeTypes,
+            'error'             => $error,
+            'compiled'          => $compiledCode,
+        ];
+        return $this;
+    }
+    /**
+     * Validates that an uploaded image meets specified dimension constraints (min/max width and height).
+     * Supports units in pixels ('px'), inches ('in'), centimeters ('cm'), or millimeters ('mm').
+     *
+     * @param int|float|null $minWidth Minimum allowed width.
+     * @param int|float|null $minHeight Minimum allowed height.
+     * @param int|float|null $maxWidth Maximum allowed width.
+     * @param int|float|null $maxHeight Maximum allowed height.
+     * @param 'px'|'in'|'cm'|'mm' $unitType Unit type: 'px' (default), 'in', 'cm', or 'mm'.
+     * @param string $customErrorMsg Custom error message on validation failure.
+     * @return self
+     */
+    public function file_dimensions(
+        int|float|null $minWidth = null,
+        int|float|null $minHeight = null,
+        int|float|null $maxWidth = null,
+        int|float|null $maxHeight = null,
+        string $unitType = 'px',
+        string $customErrorMsg = ''
+    ): self {
+        if (!$this->validateRuleUsage('file_dimensions', [], ['file'], ['file'])) {
+            return $this;
+        }
+        $minWminHmaxWmaxH = $this->validateRuleMultipleValues(
+            'file_dimensions',
+            [$minWidth, $minHeight, $maxWidth, $maxHeight],
+            ['integer', 'float', 'null'],
+            false,
+            true
+        );
+        if ($minWminHmaxWmaxH === false) {
+            return $this;
+        }
+        [$minWidth, $minHeight, $maxWidth, $maxHeight] = $minWminHmaxWmaxH;
+        // 1. Ensure at least one dimension constraint is provided
+        if ($minWidth === null && $minHeight === null && $maxWidth === null && $maxHeight === null) {
+            $this->configErrors[] = "Rule `file_dimensions` for Input Key `{{##INPUT_KEY##}}` requires at least one constraint (minWidth, minHeight, maxWidth, or maxHeight)!";
+            return $this;
+        }
+        // Ensure min dimensions do not exceed max dimensions
+        if ($minWidth !== null && $maxWidth !== null && $minWidth > $maxWidth) {
+            $this->configErrors[] = "Rule `file_dimensions` for Input Key `{{##INPUT_KEY##}}` has minWidth ({$minWidth}) greater than maxWidth ({$maxWidth})!";
+            return $this;
+        }
+        if ($minHeight !== null && $maxHeight !== null && $minHeight > $maxHeight) {
+            $this->configErrors[] = "Rule `file_dimensions` for Input Key `{{##INPUT_KEY##}}` has minHeight ({$minHeight}) greater than maxHeight ({$maxHeight})!";
+            return $this;
+        }
+        // 2. Validate unit type
+        $unit = strtolower(trim($unitType));
+        if ($unit === '') {
+            $unit = 'px';
+        }
+        $validUnits = ['px', 'in', 'cm', 'mm'];
+        if (!in_array($unit, $validUnits, true)) {
+            $this->configErrors[] = "Rule `file_dimensions` for Input Key `{{##INPUT_KEY##}}` has invalid unit type `{$unitType}`! Allowed units are: " . implode(', ', $validUnits) . '.';
+            return $this;
+        }
+        // 3. Build human-readable error message using original unit
+        $constraints = [];
+        if ($minWidth !== null)  $constraints[] = "min width: {$minWidth}{$unit}";
+        if ($minHeight !== null) $constraints[] = "min height: {$minHeight}{$unit}";
+        if ($maxWidth !== null)  $constraints[] = "max width: {$maxWidth}{$unit}";
+        if ($maxHeight !== null) $constraints[] = "max height: {$maxHeight}{$unit}";
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "The Image File `{{##INPUT_KEY##}}` dimensions are invalid (" . implode(', ', $constraints) . ").";
+        // 4. Convert unit inputs to standard pixels at compile time (using standard 96 DPI CSS scale)
+        $toPixels = static function (?float $val, string $unit): ?float {
+            if ($val === null) {
+                return null;
+            }
+            return match ($unit) {
+                'in'    => $val * 96.0,
+                'cm'    => ($val / 2.54) * 96.0,
+                'mm'    => ($val / 25.4) * 96.0,
+                default => $val, // 'px'
+            };
+        };
+        $minWidthPx  = $toPixels($minWidth !== null ? (float)$minWidth : null, $unit);
+        $minHeightPx = $toPixels($minHeight !== null ? (float)$minHeight : null, $unit);
+        $maxWidthPx  = $toPixels($maxWidth !== null ? (float)$maxWidth : null, $unit);
+        $maxHeightPx = $toPixels($maxHeight !== null ? (float)$maxHeight : null, $unit);
+        $pMinWidth  = $minWidthPx !== null ? (string)$minWidthPx : 'null';
+        $pMinHeight = $minHeightPx !== null ? (string)$minHeightPx : 'null';
+        $pMaxWidth  = $maxWidthPx !== null ? (string)$maxWidthPx : 'null';
+        $pMaxHeight = $maxHeightPx !== null ? (string)$maxHeightPx : 'null';
+        // 5. Lightweight compiled runtime check
+        $compiledCode = "if (" .
+            "!isset({{##INPUT##}}['tmp_name']) || " .
+            "!is_string({{##INPUT##}}['tmp_name']) || " .
+            "!is_file({{##INPUT##}}['tmp_name']) || " .
+            "!is_readable({{##INPUT##}}['tmp_name'])" .
+            ") {\n" .
+            "    {{##ERRORS##}}['file_dimensions'] = \"{$error}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "} else {\n" .
+            "    \$imgSizeInfo = @getimagesize({{##INPUT##}}['tmp_name']);\n" .
+            "    if (\$imgSizeInfo === false) {\n" .
+            "        // File is corrupt or not a readable image format\n" .
+            "        {{##ERRORS##}}['file_dimensions'] = \"{$error}\";\n" .
+            "        {{##GOTO_STOP_ALL##}}\n" .
+            "        {{##GOTO_BAIL##}}\n" .
+            "        {{##GOTO_NEXT_RULE##}}\n" .
+            "        {{##GOTO_END_FIELD##}}\n" .
+            "    } else {\n" .
+            "        \$w = (float)\$imgSizeInfo[0];\n" .
+            "        \$h = (float)\$imgSizeInfo[1];\n" .
+            "        \$minW = {$pMinWidth};\n" .
+            "        \$minH = {$pMinHeight};\n" .
+            "        \$maxW = {$pMaxWidth};\n" .
+            "        \$maxH = {$pMaxHeight};\n" .
+            "\n" .
+            "        if ((\$minW !== null && \$w < \$minW) || " .
+            "(\$minH !== null && \$h < \$minH) || " .
+            "(\$maxW !== null && \$w > \$maxW) || " .
+            "(\$maxH !== null && \$h > \$maxH)) {\n" .
+            "            {{##ERRORS##}}['file_dimensions'] = \"{$error}\";\n" .
+            "            {{##GOTO_STOP_ALL##}}\n" .
+            "            {{##GOTO_BAIL##}}\n" .
+            "            {{##GOTO_NEXT_RULE##}}\n" .
+            "            {{##GOTO_END_FIELD##}}\n" .
+            "        }\n" .
+            "    }\n" .
+            "}";
+        $this->rules['file_dimensions'] = [
+            'minWidth'  => $minWidth,
+            'minHeight' => $minHeight,
+            'maxWidth'  => $maxWidth,
+            'maxHeight' => $maxHeight,
+            'unitType'  => $unit,
+            'error'     => $error,
+            'compiled'  => $compiledCode,
+        ];
+        return $this;
+    }
+    /**
+     * Validates that an uploaded image's resolution (DPI - Dots Per Inch) falls within specified min/max bounds.
+     * Useful for print-on-demand services, photo products, document scanning, and prepress validation.
+     * `SUPER-IMPORTANT:` This Rule has NO FALLBACK if it fails to detect DPI so be prepared that some image files might fail (for better or worse) to validate as a result of it. ONLY use this Rule when a detectable and exact range of DPI are crucial for your use-case!
+     *
+     * @param int|float|null $minDpi Minimum allowed DPI (e.g., 300 for print quality).
+     * @param int|float|null $maxDpi Maximum allowed DPI.
+     * @param string $customErrorMsg Custom error message on validation failure.
+
+     * @return self
+     */
+    public function file_dpi(
+        int|float|null $minDpi = null,
+        int|float|null $maxDpi = null,
+        string $customErrorMsg = ''
+    ): self {
+        if (!$this->validateRuleUsage('file_dpi', [], ['file'], ['file'])) {
+            return $this;
+        }
+        $minMaxDpi = $this->validateRuleMultipleValues(
+            'file_dpi',
+            [$minDpi, $maxDpi],
+            ['integer', 'float', 'null'],
+            false,
+            true
+        );
+        if ($minMaxDpi === false) {
+            return $this;
+        }
+        [$minDpi, $maxDpi] = $minMaxDpi;
+        // 1. Ensure at least one DPI constraint is provided & 2. Ensure minDpi does not exceed maxDpi
+        if ($minDpi === null && $maxDpi === null) {
+            $this->configErrors[] = "Rule `file_dpi` for Input Key `{{##INPUT_KEY##}}` requires at least one constraint (minDpi or maxDpi)!";
+            return $this;
+        }
+        if ($minDpi !== null && $maxDpi !== null && $minDpi > $maxDpi) {
+            $this->configErrors[] = "Rule `file_dpi` for Input Key `{{##INPUT_KEY##}}` has minDpi ({$minDpi}) greater than maxDpi ({$maxDpi})!";
+            return $this;
+        }
+        // 3. Build human-readable default error message
+        $constraints = [];
+        if ($minDpi !== null) $constraints[] = "min DPI: {$minDpi}";
+        if ($maxDpi !== null) $constraints[] = "max DPI: {$maxDpi}";
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "The Image File `{{##INPUT_KEY##}}` resolution (DPI) is invalid (" . implode(', ', $constraints) . ").";
+        $pMinDpi = $minDpi !== null ? (string)(float)$minDpi : 'null';
+        $pMaxDpi = $maxDpi !== null ? (string)(float)$maxDpi : 'null';
+        // 4. Compiled runtime check
+        // Attempt 1: Read EXIF metadata (JPEG / TIFF) and then Attempt 2: Read PNG pHYs chunk if EXIF produced no DPI
+        // If DPI metadata is completely missing or failed to extract (=if (\$detectedDpi === null)), treat as invalid
+        $compiledCode = "if (" .
+            "!isset({{##INPUT##}}['tmp_name']) || " .
+            "!is_string({{##INPUT##}}['tmp_name']) || " .
+            "!is_file({{##INPUT##}}['tmp_name']) || " .
+            "!is_readable({{##INPUT##}}['tmp_name'])" .
+            ") {\n" .
+            "    {{##ERRORS##}}['file_dpi'] = \"{$error}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "} else {\n" .
+            "    \$tmpFile = {{##INPUT##}}['tmp_name'];\n" .
+            "    \$detectedDpi = null;\n" .
+            "\n" .
+            "    \n" .
+            "    if (function_exists('exif_read_data')) {\n" .
+            "        \$exif = @exif_read_data(\$tmpFile);\n" .
+            "        if (!empty(\$exif['XResolution'])) {\n" .
+            "            \$resParts = explode('/', (string)\$exif['XResolution']);\n" .
+            "            \$rawRes = (count(\$resParts) === 2 && (float)\$resParts[1] > 0)\n" .
+            "                ? (float)\$resParts[0] / (float)\$resParts[1]\n" .
+            "                : (float)\$resParts[0];\n" .
+            "\n" .
+            "            if (\$rawRes > 0) {\n" .
+            "                \$unit = \$exif['ResolutionUnit'] ?? 2; // 2 = inches, 3 = cm\n" .
+            "                \$detectedDpi = (\$unit == 3) ? round(\$rawRes * 2.54) : round(\$rawRes);\n" .
+            "            }\n" .
+            "        }\n" .
+            "    }\n" .
+            "\n" .
+            "    \n" .
+            "    if (\$detectedDpi === null) {\n" .
+            "        \$handle = @fopen(\$tmpFile, 'rb');\n" .
+            "        if (\$handle !== false) {\n" .
+            "            \$header = fread(\$handle, 8);\n" .
+            "            if (\$header === \"\\x89PNG\\x0d\\x0a\\x1a\\x0a\") {\n" .
+            "                while (!feof(\$handle)) {\n" .
+            "                    \$chunkHeader = fread(\$handle, 8);\n" .
+            "                    if (strlen(\$chunkHeader) < 8) { break; }\n" .
+            "                    \$chunkLen = unpack('Nlen', substr(\$chunkHeader, 0, 4))['len'];\n" .
+            "                    \$chunkType = substr(\$chunkHeader, 4, 4);\n" .
+            "\n" .
+            "                    if (\$chunkType === 'pHYs') {\n" .
+            "                        \$data = fread(\$handle, 9);\n" .
+            "                        if (strlen(\$data) === 9) {\n" .
+            "                            \$phys = unpack('Nx/Ny/Cunit', \$data);\n" .
+            "                            if (\$phys['unit'] === 1 && \$phys['x'] > 0) { // unit 1 = meters\n" .
+            "                                \$detectedDpi = round(\$phys['x'] * 0.0254);\n" .
+            "                            }\n" .
+            "                        }\n" .
+            "                        break;\n" .
+            "                    }\n" .
+            "                    fseek(\$handle, \$chunkLen + 4, SEEK_CUR); // Skip data + CRC\n" .
+            "                }\n" .
+            "            }\n" .
+            "            fclose(\$handle);\n" .
+            "        }\n" .
+            "    }\n" .
+            "\n" .
+            "    \n" .
+            "    if (\$detectedDpi === null) {\n" .
+            "        {{##ERRORS##}}['file_dpi'] = \"{$error}\";\n" .
+            "        {{##GOTO_STOP_ALL##}}\n" .
+            "        {{##GOTO_BAIL##}}\n" .
+            "        {{##GOTO_NEXT_RULE##}}\n" .
+            "        {{##GOTO_END_FIELD##}}\n" .
+            "    } else {\n" .
+            "        \$minD = {$pMinDpi};\n" .
+            "        \$maxD = {$pMaxDpi};\n" .
+            "\n" .
+            "        if ((\$minD !== null && \$detectedDpi < \$minD) || " .
+            "(\$maxD !== null && \$detectedDpi > \$maxD)) {\n" .
+            "            {{##ERRORS##}}['file_dpi'] = \"{$error}\";\n" .
+            "            {{##GOTO_STOP_ALL##}}\n" .
+            "            {{##GOTO_BAIL##}}\n" .
+            "            {{##GOTO_NEXT_RULE##}}\n" .
+            "            {{##GOTO_END_FIELD##}}\n" .
+            "        }\n" .
+            "    }\n" .
+            "}";
+        $this->rules['file_dpi'] = [
+            'minDpi'   => $minDpi,
+            'maxDpi'   => $maxDpi,
+            'error'    => $error,
+            'compiled' => $compiledCode,
+        ];
+        return $this;
+    }
+    /**
+     * Validates that an uploaded file matches a specific character encoding (e.g., 'UTF-8', 'ASCII', 'ISO-8859-1').
+     * Streams through the entire file in 64KB chunks to guarantee 100% byte integrity without memory exhaustion.
+     * Includes smart boundary back-off to handle multibyte characters split across chunk boundaries.
+     *
+     * @param string $encoding Target encoding to check (e.g., 'UTF-8', 'ASCII', 'ISO-8859-1').
+     * @param string $customErrorMsg Custom error message on validation failure.
+     * @return self
+     */
+    public function file_encoding(string $encoding, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('file_encoding', [], ['file'], ['file'])) {
+            return $this;
+        }
+        $cleanEncoding = strtoupper(trim($encoding));
+        if ($cleanEncoding === '') {
+            $this->configErrors[] = "Rule `file_encoding` for Input Key `{{##INPUT_KEY##}}` requires a valid non-empty encoding string!";
+            return $this;
+        }
+        // Validate that the requested encoding is supported by PHP's multibyte extension
+        $supportedEncodings = array_map('strtoupper', mb_list_encodings());
+        if (!in_array($cleanEncoding, $supportedEncodings, true)) {
+            $this->configErrors[] = "Rule `file_encoding` for Input Key `{{##INPUT_KEY##}}` specified an unsupported encoding `{$encoding}`! Supported encodings include: UTF-8, ASCII, ISO-8859-1, UTF-16, UTF-32, etc.";
+            return $this;
+        }
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "The file `{{##INPUT_KEY##}}` must be encoded in {$cleanEncoding}.";
+        // Compiled runtime check streaming file in 64KB chunks with boundary back-off
+        $compiledCode = "if (" .
+            "!isset({{##INPUT##}}['tmp_name']) || " .
+            "!is_string({{##INPUT##}}['tmp_name']) || " .
+            "!is_file({{##INPUT##}}['tmp_name']) || " .
+            "!is_readable({{##INPUT##}}['tmp_name'])" .
+            ") {\n" .
+            "    {{##ERRORS##}}['file_encoding'] = \"{$error}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "} else {\n" .
+            "    \$filePath = {{##INPUT##}}['tmp_name'];\n" .
+            "    \$targetEncoding = '{$cleanEncoding}';\n" .
+            "    \$handle = @fopen(\$filePath, 'rb');\n" .
+            "    \$isValidEncoding = true;\n" .
+            "\n" .
+            "    if (\$handle === false) {\n" .
+            "        \$isValidEncoding = false;\n" .
+            "    } else {\n" .
+            "        \$buffer = '';\n" .
+            "        \$chunkSize = 65536; // 64 KB streaming buffer\n" .
+            "\n" .
+            "        while (!feof(\$handle)) {\n" .
+            "            \$readChunk = fread(\$handle, \$chunkSize);\n" .
+            "            if (\$readChunk === false) { \$isValidEncoding = false; break; }\n" .
+            "            if (\$readChunk === '') { continue; }\n" .
+            "\n" .
+            "            \$data = \$buffer . \$readChunk;\n" .
+            "            \$buffer = '';\n" .
+            "\n" .
+            "            // Check if entire chunk is valid encoding\n" .
+            "            if (!mb_check_encoding(\$data, \$targetEncoding)) {\n" .
+            "                // Handle possible multibyte character split at chunk boundary\n" .
+            "                \$dataLen = strlen(\$data);\n" .
+            "                \$foundValidBoundary = false;\n" .
+            "\n" .
+            "                // Back off up to 4 bytes from chunk end to detect split multibyte sequences\n" .
+            "                for (\$backoff = 1; \$backoff <= 4 && \$backoff < \$dataLen; \$backoff++) {\n" .
+            "                    \$subData = substr(\$data, 0, \$dataLen - \$backoff);\n" .
+            "                    if (mb_check_encoding(\$subData, \$targetEncoding)) {\n" .
+            "                        \$buffer = substr(\$data, \$dataLen - \$backoff);\n" .
+            "                        \$foundValidBoundary = true;\n" .
+            "                        break;\n" .
+            "                    }\n" .
+            "                }\n" .
+            "\n" .
+            "                if (!\$foundValidBoundary) {\n" .
+            "                    \$isValidEncoding = false;\n" .
+            "                    break;\n" .
+            "                }\n" .
+            "            }\n" .
+            "        }\n" .
+            "        fclose(\$handle);\n" .
+            "\n" .
+            "        // Validate any remaining carryover buffer\n" .
+            "        if (\$isValidEncoding && \$buffer !== '' && !mb_check_encoding(\$buffer, \$targetEncoding)) {\n" .
+            "            \$isValidEncoding = false;\n" .
+            "        }\n" .
+            "    }\n" .
+            "\n" .
+            "    if (!\$isValidEncoding) {\n" .
+            "        {{##ERRORS##}}['file_encoding'] = \"{$error}\";\n" .
+            "        {{##GOTO_STOP_ALL##}}\n" .
+            "        {{##GOTO_BAIL##}}\n" .
+            "        {{##GOTO_NEXT_RULE##}}\n" .
+            "        {{##GOTO_END_FIELD##}}\n" .
+            "    }\n" .
+            "}";
+        $this->rules['file_encoding'] = [
+            'encoding' => $cleanEncoding,
+            'error'    => $error,
+            'compiled' => $compiledCode,
+        ];
+        return $this;
+    }
 }
 
 class RuleSetString
@@ -5856,7 +6920,7 @@ class RuleSetFile
 /**
  * Global entry point for initializing a fluent validation rule set.
  *
- * @param 'files'|'file'|'image'|'video'|'audio'|'string'|'date'|'checkbox'|'integer'|'float'|'boolean'|'number'|'array'|'arr'|'object'|'json'|'password'|'password_match'|'email'|'url'|'ip' $dataType
+ * @param 'file'|'string'|'date'|'checkbox'|'integer'|'float'|'boolean'|'number'|'array'|'arr'|'object'|'json'|'password'|'password_match'|'email'|'url'|'ip' $dataType
  * @param string $customErrorMsg
  * @param 'list'|'associative'|'' $setArrayTypeToListOrAssociative
  * @return RuleSetAll
