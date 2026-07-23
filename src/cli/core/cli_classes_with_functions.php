@@ -3360,7 +3360,9 @@ class RuleSetAll
     }
     /*  STRING RELATED FUNCTIONS LEFT: email_, password_ to fix here! */
     // CONTINUE HERE NAOW!
-
+    // VIKTIGT FÖRST: FIXA att lägga till:
+    // "$this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['<RULENAME>'] = \"" . $error . "\";";"
+    // till ALLA nuvarande regler som saknar det då AIn glömde bort då jag glömde bort å visa! ;P
 
 
     /* OTHER INPUT KEYS-ONLY RULES - value is ANOTHER data field! */
