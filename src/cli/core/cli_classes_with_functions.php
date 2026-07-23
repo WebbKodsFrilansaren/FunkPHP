@@ -2029,6 +2029,363 @@ class RuleSetAll
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['not_base64'] = \"" . $error . "\";";
         return $this;
     }
+    /**
+     * Validates that the input string is a valid Base32 encoded string (RFC 4648).
+     * Common for 2FA / TOTP secret keys (e.g., JBSWY3DPEHPK3PXP).
+     */
+    public function base32(string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('base32', ['hexadecimal', 'octal', 'binary', 'base64', 'uid', 'slug', 'regex'], [], ['string'])) {
+            return $this;
+        }
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be a valid Base32 string.";
+        // Matches A-Z and 2-7, optional '=' padding at end (length must be multiple of 8 if padded)
+        $compiledCode = "if(preg_match('/^(?:[A-Z2-7]{8})*(?:[A-Z2-7]{2}={6}|[A-Z2-7]{4}={4}|[A-Z2-7]{5}={3}|[A-Z2-7]{7}=)?$/iD', {{##INPUT##}}) !== 1) {\n" .
+            "    {{##ERRORS##}}['base32'] = \"{$error}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "}";
+        $this->rules['base32'] = ['error' => $error, 'compiled' => $compiledCode];
+        return $this;
+    }
+    /**
+     * Validates that the input string is a valid Base58 string.
+     * Common in crypto addresses (Bitcoin), IPFS hashes, and short identifiers.
+     */
+    public function base58(string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('base58', ['hexadecimal', 'octal', 'binary', 'base64', 'uid', 'slug', 'regex'], [], ['string'])) {
+            return $this;
+        }
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be a valid Base58 string.";
+        // Matches 1-9, A-Z (no I, O), a-z (no l)
+        $compiledCode = "if(preg_match('/^[1-9A-HJ-NP-Za-km-z]+$/D', {{##INPUT##}}) !== 1) {\n" .
+            "    {{##ERRORS##}}['base58'] = \"{$error}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "}";
+        $this->rules['base58'] = ['error' => $error, 'compiled' => $compiledCode];
+        return $this;
+    }
+    /**
+     * Validates that the input string is a valid URL-Safe Base64 string (RFC 4648 §5).
+     * Uses '-' and '_' instead of '+' and '/', without '=' padding. Common in JWTs and WebAuthn.
+     */
+    public function base64url(string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('base64url', ['base64', 'hexadecimal', 'octal', 'binary', 'uid', 'slug', 'regex'], [], ['string'])) {
+            return $this;
+        }
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be a valid URL-safe Base64 string.";
+        $compiledCode = "if(preg_match('/^[A-Za-z0-9_-]+$/D', {{##INPUT##}}) !== 1) {\n" .
+            "    {{##ERRORS##}}['base64url'] = \"{$error}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "}";
+        $this->rules['base64url'] = ['error' => $error, 'compiled' => $compiledCode];
+        return $this;
+    }
+    /**
+     * Validates that the input string contains only valid hexadecimal characters (0-9, a-f, A-F).
+     */
+    public function hexadecimal(string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('hexadecimal', ['octal', 'binary', 'base64', 'uid', 'slug', 'regex'], [], ['string'])) {
+            return $this;
+        }
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be a Valid Hexadecimal String.";
+        $compiledCode = "if(!ctype_xdigit({{##INPUT##}})) {\n" .
+            "    {{##ERRORS##}}['hexadecimal'] = \"{$error}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "}";
+        $this->rules['hexadecimal'] = ['error' => $error, 'compiled' => $compiledCode];
+        return $this;
+    }
+    /**
+     * Validates that the input string is a valid 32-character MD5 hash.
+     *
+     * @param string $customErrorMsg Custom error message on validation failure.
+     * @return self
+     */
+    public function md5(string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('md5', ['sha1', 'sha256', 'sha512', 'octal', 'binary', 'base64', 'uid', 'slug', 'regex'], [], ['string'])) {
+            return $this;
+        }
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be a valid MD5 hash.";
+        $compiledCode = "if(preg_match('/^[a-f0-9]{32}$/iD', {{##INPUT##}}) !== 1) {\n" .
+            "    {{##ERRORS##}}['md5'] = \"{$error}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "}";
+        $this->rules['md5'] = ['error' => $error, 'compiled' => $compiledCode];
+        return $this;
+    }
+    /**
+     * Validates that the input string is a valid 40-character SHA-1 hash.
+     *
+     * @param string $customErrorMsg Custom error message on validation failure.
+     * @return self
+     */
+    public function sha1(string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('sha1', ['md5', 'sha256', 'sha512', 'octal', 'binary', 'base64', 'uid', 'slug', 'regex'], [], ['string'])) {
+            return $this;
+        }
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be a valid SHA-1 hash.";
+        $compiledCode = "if(preg_match('/^[a-f0-9]{40}$/iD', {{##INPUT##}}) !== 1) {\n" .
+            "    {{##ERRORS##}}['sha1'] = \"{$error}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "}";
+        $this->rules['sha1'] = ['error' => $error, 'compiled' => $compiledCode];
+        return $this;
+    }
+    /**
+     * Validates that the input string is a valid 64-character SHA-256 hash.
+     */
+    public function sha256(string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('sha256', ['octal', 'binary', 'base64', 'uid', 'slug', 'regex'], [], ['string'])) {
+            return $this;
+        }
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be a valid SHA-256 hash.";
+        $compiledCode = "if(preg_match('/^[a-f0-9]{64}$/iD', {{##INPUT##}}) !== 1) {\n" .
+            "    {{##ERRORS##}}['sha256'] = \"{$error}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "}";
+        $this->rules['sha256'] = ['error' => $error, 'compiled' => $compiledCode];
+        return $this;
+    }
+    /**
+     * Validates that the input string is a valid 96-character SHA-384 hash.
+     *
+     * @param string $customErrorMsg Custom error message on validation failure.
+     * @return self
+     */
+    public function sha384(string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('sha384', ['md5', 'sha1', 'sha256', 'sha512', 'octal', 'binary', 'base64', 'uid', 'slug', 'regex'], [], ['string'])) {
+            return $this;
+        }
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be a valid SHA-384 hash.";
+        $compiledCode = "if(preg_match('/^[a-f0-9]{96}$/iD', {{##INPUT##}}) !== 1) {\n" .
+            "    {{##ERRORS##}}['sha384'] = \"{$error}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "}";
+        $this->rules['sha384'] = ['error' => $error, 'compiled' => $compiledCode];
+        return $this;
+    }
+    /**
+     * Validates that the input string is a valid 128-character SHA-512 hash.
+     *
+     * @param string $customErrorMsg Custom error message on validation failure.
+     * @return self
+     */
+    public function sha512(string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('sha512', ['md5', 'sha1', 'sha256', 'octal', 'binary', 'base64', 'uid', 'slug', 'regex'], [], ['string'])) {
+            return $this;
+        }
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be a valid SHA-512 hash.";
+        $compiledCode = "if(preg_match('/^[a-f0-9]{128}$/iD', {{##INPUT##}}) !== 1) {\n" .
+            "    {{##ERRORS##}}['sha512'] = \"{$error}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "}";
+        $this->rules['sha512'] = ['error' => $error, 'compiled' => $compiledCode];
+        return $this;
+    }
+    /**
+     * Validates that the input string contains only valid octal digits (0-7).
+     */
+    public function octal(string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('octal', ['hexadecimal', 'binary', 'base64', 'uid', 'slug', 'regex'], [], ['string'])) {
+            return $this;
+        }
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be a Valid Octal String.";
+        $compiledCode = "if(preg_match('/^[0-7]+$/D', {{##INPUT##}}) !== 1) {\n" .
+            "    {{##ERRORS##}}['octal'] = \"{$error}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "}";
+        $this->rules['octal'] = ['error' => $error, 'compiled' => $compiledCode];
+        return $this;
+    }
+    /**
+     * Validates that the input string contains only binary digits (0 and 1).
+     */
+    public function binary(string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('binary', ['hexadecimal', 'octal', 'base64', 'uid', 'slug', 'regex'], [], ['string'])) {
+            return $this;
+        }
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be a Valid Binary String (0s and 1s only).";
+        $compiledCode = "if(preg_match('/^[01]+$/D', {{##INPUT##}}) !== 1) {\n" .
+            "    {{##ERRORS##}}['binary'] = \"{$error}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "}";
+        $this->rules['binary'] = ['error' => $error, 'compiled' => $compiledCode];
+        return $this;
+    }
+    /**
+     * Validates that the input string is a valid PEM-formatted block
+     * (e.g., SSL/TLS certificates, public/private keys).
+     */
+    public function pem(string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('pem', ['json', 'base64url', 'slug'], [], ['string'])) {
+            return $this;
+        }
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be a Valid PEM Formatted String.";
+        // Validates header, base64 payload, and footer pattern
+        $compiledCode = "if(preg_match('/^-----BEGIN [A-Z0-9 ]+-----[\\r\\n]+[A-Za-z0-9+\\/\\r\\n=]+[\\r\\n]+-----END [A-Z0-9 ]+-----[\\r\\n]*$/D', {{##INPUT##}}) !== 1) {\n" .
+            "    {{##ERRORS##}}['pem'] = \"{$error}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "}";
+        $this->rules['pem'] = ['error' => $error, 'compiled' => $compiledCode];
+        return $this;
+    }
+    /**
+     * Validates that the input string is a valid IP address (IPv4 or IPv6).
+     */
+    public function ip(string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('ip', ['ipv4', 'ipv6'], [], ['string'])) {
+            return $this;
+        }
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be a valid IP address.";
+        $compiledCode = "if(filter_var({{##INPUT##}}, FILTER_VALIDATE_IP) === false) {\n" .
+            "    {{##ERRORS##}}['ip'] = \"{$error}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "}";
+        $this->rules['ip'] = ['error' => $error, 'compiled' => $compiledCode];
+        return $this;
+    }
+    /**
+     * Validates that the input string is a valid IPv4 address.
+     */
+    public function ipv4(string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('ipv4', ['ipv6', 'ip'], [], ['string'])) {
+            return $this;
+        }
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be a valid IPv4 address.";
+        $compiledCode = "if(filter_var({{##INPUT##}}, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) === false) {\n" .
+            "    {{##ERRORS##}}['ipv4'] = \"{$error}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "}";
+        $this->rules['ipv4'] = ['error' => $error, 'compiled' => $compiledCode];
+        return $this;
+    }
+    /**
+     * Validates that the input string is a valid IPv6 address.
+     */
+    public function ipv6(string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('ipv6', ['ipv4', 'ip'], [], ['string'])) {
+            return $this;
+        }
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be a valid IPv6 address.";
+        $compiledCode = "if(filter_var({{##INPUT##}}, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) === false) {\n" .
+            "    {{##ERRORS##}}['ipv6'] = \"{$error}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "}";
+        $this->rules['ipv6'] = ['error' => $error, 'compiled' => $compiledCode];
+        return $this;
+    }
+    /**
+     * Validates that the input string is a valid JSON payload.
+     * Uses native PHP json_validate() for ultra-fast validation without memory allocation.
+     * OR this text above is complete BS from LLM that made it. Anyhow, it exists at least!
+     */
+    public function json(string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('json', [], [], ['string'])) {
+            return $this;
+        }
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be a valid JSON string.";
+        $compiledCode = "if(!json_validate({{##INPUT##}})) {\n" .
+            "    {{##ERRORS##}}['json'] = \"{$error}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "}";
+        $this->rules['json'] = ['error' => $error, 'compiled' => $compiledCode];
+        return $this;
+    }
     public function color(array|string $formats = 'hex6', string $customErrorMsg = ''): self
     {
         if (!$this->validateRuleUsage('color', [], [], ['string'])) {
@@ -2706,7 +3063,6 @@ class RuleSetAll
             'error'    => $error,
             'compiled' => $compiledCode,
         ];
-
         return $this;
     }
     /**
@@ -2721,7 +3077,6 @@ class RuleSetAll
         if (!$this->validateRuleUsage('date_in', ['date_equals'], ['string', 'date'], ['string'])) {
             return $this;
         }
-
         $validatedDates = $this->validateRuleMultipleValues('date_in', $targetDates, ['string']);
         if ($validatedDates === false) {
             return $this;
@@ -2915,6 +3270,7 @@ class RuleSetAll
         ];
         return $this;
     }
+    /*  STRING RELATED FUNCTIONS LEFT: email_, password_ to fix here! */
 
     /* OTHER INPUT KEYS-ONLY RULES - value is ANOTHER data field! */
     // GLOBAL COMPILER MUST CHECK that "gte", "gt","lte","lt","same", "different" try NOT
@@ -3912,7 +4268,7 @@ class RuleSetAll
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "The file `{{##INPUT_KEY##}}` must be exactly {$exactSize} {$unit}.";
-        $compiledCode = "if (!isset({{##INPUT##}}['size']) || {{##INPUT##}}['size'] !== {$exactSizeBytes}) {\n" .
+        $compiledCode = "if(!isset({{##INPUT##}}['size']) || {{##INPUT##}}['size'] !== {$exactSizeBytes}) {\n" .
             "    {{##ERRORS##}}['file_size'] = \"{$error}\";\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
@@ -3966,7 +4322,7 @@ class RuleSetAll
             : "The file `{{##INPUT_KEY##}}` must have one of the following extensions: {$allowedListStr}.";
         // Export array into valid PHP code array syntax
         $compiledAllowedArray = var_export($normalizedExts, true);
-        $compiledCode = "if (!isset({{##INPUT##}}['name']) || !in_array(strtolower(pathinfo({{##INPUT##}}['name'], PATHINFO_EXTENSION)), {$compiledAllowedArray}, true)) {\n" .
+        $compiledCode = "if(!isset({{##INPUT##}}['name']) || !in_array(strtolower(pathinfo({{##INPUT##}}['name'], PATHINFO_EXTENSION)), {$compiledAllowedArray}, true)) {\n" .
             "    {{##ERRORS##}}['file_extensions'] = \"{$error}\";\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
@@ -4032,7 +4388,7 @@ class RuleSetAll
             : "The file `{{##INPUT_KEY##}}` must be of type: " . implode(', ', $validMimes) . '.';
         $compiledAllowedArray = var_export($allowedMimeTypes, true);
         // Compiled PHP: Validates temp file existence, reads magic bytes via finfo, and checks array match
-        $compiledCode = "if (" .
+        $compiledCode = "if(" .
             "!isset({{##INPUT##}}['tmp_name']) || " .
             "!is_string({{##INPUT##}}['tmp_name']) || " .
             "!is_file({{##INPUT##}}['tmp_name']) || " .
@@ -4155,7 +4511,7 @@ class RuleSetAll
             : "The file `{{##INPUT_KEY##}}` must be a valid image.";
         $compiledAllowedArray = var_export($allowedMimeTypes, true);
         // 5. Compile runtime PHP check using finfo_file
-        $compiledCode = "if (" .
+        $compiledCode = "if(" .
             "!isset({{##INPUT##}}['tmp_name']) || " .
             "!is_string({{##INPUT##}}['tmp_name']) || " .
             "!is_file({{##INPUT##}}['tmp_name']) || " .
@@ -4275,7 +4631,7 @@ class RuleSetAll
         $pMaxWidth  = $maxWidthPx !== null ? (string)$maxWidthPx : 'null';
         $pMaxHeight = $maxHeightPx !== null ? (string)$maxHeightPx : 'null';
         // 5. Lightweight compiled runtime check
-        $compiledCode = "if (" .
+        $compiledCode = "if(" .
             "!isset({{##INPUT##}}['tmp_name']) || " .
             "!is_string({{##INPUT##}}['tmp_name']) || " .
             "!is_file({{##INPUT##}}['tmp_name']) || " .
@@ -4377,7 +4733,7 @@ class RuleSetAll
         // 4. Compiled runtime check
         // Attempt 1: Read EXIF metadata (JPEG / TIFF) and then Attempt 2: Read PNG pHYs chunk if EXIF produced no DPI
         // If DPI metadata is completely missing or failed to extract (=if (\$detectedDpi === null)), treat as invalid
-        $compiledCode = "if (" .
+        $compiledCode = "if(" .
             "!isset({{##INPUT##}}['tmp_name']) || " .
             "!is_string({{##INPUT##}}['tmp_name']) || " .
             "!is_file({{##INPUT##}}['tmp_name']) || " .
@@ -4495,7 +4851,7 @@ class RuleSetAll
             ? $customErrorMsg
             : "The file `{{##INPUT_KEY##}}` must be encoded in {$cleanEncoding}.";
         // Compiled runtime check streaming file in 64KB chunks with boundary back-off
-        $compiledCode = "if (" .
+        $compiledCode = "if(" .
             "!isset({{##INPUT##}}['tmp_name']) || " .
             "!is_string({{##INPUT##}}['tmp_name']) || " .
             "!is_file({{##INPUT##}}['tmp_name']) || " .
