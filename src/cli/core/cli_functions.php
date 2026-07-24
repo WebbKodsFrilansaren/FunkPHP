@@ -11952,6 +11952,7 @@ function cli_restore_default_folders_and_files()
         "$folderBase/funkphp/core/valid_mysql_operators.php",
         "$folderBase/funkphp/config/functions.php",
         "$folderBase/funkphp/config/README_IN_IDE.php",
+        "$folderBase/funkphp/config/lists.php",
         //"$folderBase/public_html/.htaccess",
         "$folderBase/cli/.htaccess",
     ];
@@ -11983,6 +11984,12 @@ function cli_restore_default_folders_and_files()
                     continue;
                 }
                 file_put_contents($file, "<?php\n// README_IN_IDE.php - FunkPHP | FunkCLI recreated it $date\n" . cli_get_prefix_code("connsDefaultStartText") . "\nreturn " . var_export($connsDefault, true) . ";\n");
+                cli_success_without_exit("Recreated file: $file");
+                continue;
+            } else if (str_contains($file, "lists.php")) {
+                if (function_exists("cli_get_default_lists")) {
+                    file_put_contents($file, "<?php\n// lists.php - FunkPHP | FunkCLI recreated it $date\n" . cli_get_prefix_code("do_not_modify_directly") . "\nreturn " . var_export((cli_get_default_lists()), true) . ";\n");
+                }
                 cli_success_without_exit("Recreated file: $file");
                 continue;
             } else if (str_contains($file, "c.php")) {
@@ -12036,6 +12043,18 @@ function cli_get_prefix_code($keyString)
     $currDate = date("Y-m-d H:i:s");
     $prefixCode = [
         "route_singles_routes_start" => "<?php // pipeline_routes.php - FunkPHP | FunkCLI Modified it $currDate\nreturn ",
+        "do_not_modify_directly" => <<<EOF
+    /**
+    * -------------------------------------------------------------
+    * FUNKPHP AUTOMATICALLY GENERATED/CREATED/UPDATED COMPILED FILE
+    * -------------------------------------------------------------
+    * DO NOT MANUALLY EDIT THIS FILE - USE FUNKCLI/FUNKGUI TO ADD TO THE DIFFERENT LISTS!
+    * If you are currently editing this file manually to see if FunkPHP will "self-heal",
+    * it won't. This is a micro-framework, not your therapist. If you alter this
+    * source of truth, your app will most likely crash, and your peer will know
+    * you do not understand how caching and/or compiled files work.
+    **/
+EOF,
         "do_not_modify_tables" => <<<EOF
     /**
     * --------------

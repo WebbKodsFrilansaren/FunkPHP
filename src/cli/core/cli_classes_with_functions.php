@@ -4481,11 +4481,10 @@ class RuleSetAll
             : "The file `{{##INPUT_KEY##}}` must be of type: " . implode(', ', $validMimes) . '.';
         $compiledAllowedArray = var_export($allowedMimeTypes, true);
         // Compiled PHP: Validates temp file existence, reads magic bytes via finfo, and checks array match
-        $compiledCode = "if(" .
+        $compiledCode = "if (" .
             "!isset({{##INPUT##}}['tmp_name']) || " .
             "!is_string({{##INPUT##}}['tmp_name']) || " .
-            "!is_file({{##INPUT##}}['tmp_name']) || " .
-            "!is_readable({{##INPUT##}}['tmp_name'])" .
+            "!is_uploaded_file({{##INPUT##}}['tmp_name'])" .
             ") {\n" .
             "    {{##ERRORS##}}['file_mimes'] = \"{$error}\";\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
@@ -4493,9 +4492,13 @@ class RuleSetAll
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "} else {\n" .
-            "    \$finfoHandle = finfo_open(FILEINFO_MIME_TYPE);\n" .
+            "    static \$finfoHandle = null;\n" .
+            "    \$finfoHandle ??= finfo_open(FILEINFO_MIME_TYPE);\n" .
             "    \$detectedMime = \$finfoHandle ? finfo_file(\$finfoHandle, {{##INPUT##}}['tmp_name']) : false;\n" .
-            "    if (\$finfoHandle) { finfo_close(\$finfoHandle); }\n" .
+            "    if (\$detectedMime && (strlen(\$detectedMime) % 2 === 0)) {\n" .
+            "        \$mimeHalf = substr(\$detectedMime, 0, strlen(\$detectedMime) >> 1);\n" .
+            "        if (\$mimeHalf . \$mimeHalf === \$detectedMime) { \$detectedMime = \$mimeHalf; }\n" .
+            "    }\n" .
             "    if (!\$detectedMime || !in_array(strtolower(\$detectedMime), {$compiledAllowedArray}, true)) {\n" .
             "        {{##ERRORS##}}['file_mimes'] = \"{$error}\";\n" .
             "        {{##GOTO_STOP_ALL##}}\n" .
@@ -4504,13 +4507,11 @@ class RuleSetAll
             "        {{##GOTO_END_FIELD##}}\n" .
             "    }\n" .
             "}";
-
         $this->rules['file_mimes'] = [
             'allowedMimeTypes' => $allowedMimeTypes,
             'error'            => $error,
             'compiled'         => $compiledCode,
         ];
-
         return $this;
     }
     /**
