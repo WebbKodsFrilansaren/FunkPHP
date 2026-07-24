@@ -127,6 +127,237 @@ function cli_compile_validation_schema($validation_schema, &$currentTables, &$cu
 }
 
 /* ACTUAL RULE-RELATED CLASSES (FOR VALIDATION PURPOSES! - Compiler Functions Are Before These!) */
+
+/*
+ * List of Country Codes so you can use `CountryCode::<COUNTRY> for phone() rules!`
+ */
+final class CountryCode
+{
+    public const UK = '44';
+    public const USA = '1';
+    public const Algeria = '213';
+    public const Andorra = '376';
+    public const Angola = '244';
+    public const Anguilla = '1264';
+    public const Antigua_Barbuda = '1268';
+    public const Argentina = '54';
+    public const Armenia = '374';
+    public const Aruba = '297';
+    public const Australia = '61';
+    public const Austria = '43';
+    public const Azerbaijan = '994';
+    public const Bahamas = '1242';
+    public const Bahrain = '973';
+    public const Bangladesh = '880';
+    public const Barbados = '1246';
+    public const Belarus = '375';
+    public const Belgium = '32';
+    public const Belize = '501';
+    public const Benin = '229';
+    public const Bermuda = '1441';
+    public const Bhutan = '975';
+    public const Bolivia = '591';
+    public const Bosnia_Herzegovina = '387';
+    public const Botswana = '267';
+    public const Brazil = '55';
+    public const Brunei = '673';
+    public const Bulgaria = '359';
+    public const Burkina_Faso = '226';
+    public const Burundi = '257';
+    public const Cambodia = '855';
+    public const Cameroon = '237';
+    public const Canada = '1';
+    public const Cape_Verde_Islands = '238';
+    public const Cayman_Islands = '1345';
+    public const Central_African_Republic = '236';
+    public const Chile = '56';
+    public const China = '86';
+    public const Colombia = '57';
+    public const Comoros = '269';
+    public const Congo = '242';
+    public const Cook_Islands = '682';
+    public const Cote_d_Ivoire = '225';
+    public const Costa_Rica = '506';
+    public const Croatia = '385';
+    public const Cuba = '53';
+    public const Cyprus_North = '90392';
+    public const Cyprus_South = '357';
+    public const Czech_Republic = '42';
+    public const Denmark = '45';
+    public const Djibouti = '253';
+    public const Dominica = '1809';
+    public const Dominican_Republic = '1809';
+    public const Ecuador = '593';
+    public const Egypt = '20';
+    public const El_Salvador = '503';
+    public const Equatorial_Guinea = '240';
+    public const Eritrea = '291';
+    public const Estonia = '372';
+    public const Ethiopia = '251';
+    public const Falkland_Islands = '500';
+    public const Faroe_Islands = '298';
+    public const Fiji = '679';
+    public const Finland = '358';
+    public const France = '33';
+    public const French_Guiana = '594';
+    public const French_Polynesia = '689';
+    public const Gabon = '241';
+    public const Gambia = '220';
+    public const Georgia = '995';
+    public const Germany = '49';
+    public const Ghana = '233';
+    public const Gibraltar = '350';
+    public const Greece = '30';
+    public const Greenland = '299';
+    public const Grenada = '1473';
+    public const Guadeloupe = '590';
+    public const Guam = '671';
+    public const Guatemala = '502';
+    public const Guinea = '224';
+    public const Guinea_Bissau = '245';
+    public const Guyana = '592';
+    public const Haiti = '509';
+    public const Honduras = '504';
+    public const Hong_Kong = '852';
+    public const Hungary = '36';
+    public const Iceland = '354';
+    public const India = '91';
+    public const Indonesia = '62';
+    public const Iran = '98';
+    public const Iraq = '964';
+    public const Ireland = '353';
+    public const Israel = '972';
+    public const Italy = '39';
+    public const Jamaica = '1876';
+    public const Japan = '81';
+    public const Jordan = '962';
+    public const Kazakhstan = '7';
+    public const Kenya = '254';
+    public const Kiribati = '686';
+    public const North_Korea = '850';
+    public const South_Korea = '82';
+    public const Korea_North = '850';
+    public const Korea_South = '82';
+    public const Kuwait = '965';
+    public const Kyrgyzstan = '996';
+    public const Laos = '856';
+    public const Latvia = '371';
+    public const Lebanon = '961';
+    public const Lesotho = '266';
+    public const Liberia = '231';
+    public const Libya = '218';
+    public const Liechtenstein = '417';
+    public const Lithuania = '370';
+    public const Luxembourg = '352';
+    public const Macao = '853';
+    public const Macedonia = '389';
+    public const Madagascar = '261';
+    public const Malawi = '265';
+    public const Malaysia = '60';
+    public const Maldives = '960';
+    public const Mali = '223';
+    public const Malta = '356';
+    public const Marshall_Islands = '692';
+    public const Martinique = '596';
+    public const Mauritania = '222';
+    public const Mayotte = '269';
+    public const Mexico = '52';
+    public const Micronesia = '691';
+    public const Moldova = '373';
+    public const Monaco = '377';
+    public const Mongolia = '976';
+    public const Montserrat = '1664';
+    public const Morocco = '212';
+    public const Mozambique = '258';
+    public const Myanmar = '95';
+    public const Namibia = '264';
+    public const Nauru = '674';
+    public const Nepal = '977';
+    public const Netherlands = '31';
+    public const New_Caledonia = '687';
+    public const New_Zealand = '64';
+    public const Nicaragua = '505';
+    public const Niger = '227';
+    public const Nigeria = '234';
+    public const Niue = '683';
+    public const Norfolk_Islands = '672';
+    public const Northern_Marianas = '670';
+    public const Norway = '47';
+    public const Oman = '968';
+    public const Palau = '680';
+    public const Panama = '507';
+    public const Papua_New_Guinea = '675';
+    public const Paraguay = '595';
+    public const Peru = '51';
+    public const Philippines = '63';
+    public const Poland = '48';
+    public const Portugal = '351';
+    public const Puerto_Rico = '1787';
+    public const Qatar = '974';
+    public const Reunion = '262';
+    public const Romania = '40';
+    public const Russia = '7';
+    public const Rwanda = '250';
+    public const San_Marino = '378';
+    public const Sao_Tome_Principe = '239';
+    public const Saudi_Arabia = '966';
+    public const Senegal = '221';
+    public const Serbia = '381';
+    public const Seychelles = '248';
+    public const Sierra_Leone = '232';
+    public const Singapore = '65';
+    public const Slovak_Republic = '421';
+    public const Slovenia = '386';
+    public const Solomon_Islands = '677';
+    public const Somalia = '252';
+    public const South_Africa = '27';
+    public const Spain = '34';
+    public const Sri_Lanka = '94';
+    public const St_Helena = '290';
+    public const Saint_Kitts = '1869';
+    public const Saint_Lucia = '1758';
+    public const Saint_Helena = '290';
+    public const St_Kitts = '1869';
+    public const St_Lucia = '1758';
+    public const Sudan = '249';
+    public const Suriname = '597';
+    public const Swaziland = '268';
+    public const Sweden = '46';
+    public const Switzerland = '41';
+    public const Syria = '963';
+    public const Taiwan = '886';
+    public const Tajikstan = '7';
+    public const Thailand = '66';
+    public const Togo = '228';
+    public const Tonga = '676';
+    public const Trinidad_Tobago = '1868';
+    public const Tunisia = '216';
+    public const Turkey = '90';
+    public const Turkmenistan = '993';
+    public const Turks_Caicos_Islands = '1649';
+    public const Tuvalu = '688';
+    public const Uganda = '256';
+    public const Ukraine = '380';
+    public const United_Arab_Emirates = '971';
+    public const Uruguay = '598';
+    public const Uzbekistan = '998';
+    public const Vanuatu = '678';
+    public const Vatican_City = '379';
+    public const Venezuela = '58';
+    public const Vietnam = '84';
+    public const Virgin_Islands_British = '1284';
+    public const British_Virgin_Islands = '1284';
+    public const Virgin_Islands_US = '1340';
+    public const US_Virgin_Islands = '1340';
+    public const Wallis_Futuna = '681';
+    public const Yemen_North = '969';
+    public const Yemen_South = '967';
+    public const North_Yemen = '969';
+    public const South_Yemen = '967';
+    public const Zambia = '260';
+    public const Zimbabwe = '263';
+}
+
 class RuleSetAll
 {
     /*
@@ -3551,74 +3782,145 @@ class RuleSetAll
         return $this;
     }
     /**
-     * Validates that an input is a valid email address, with optional TLD and DNS record checks.
+     * Validates that an input is a valid real-world email address using regex, with optional TLD and DNS record checks.
      *
      * @param bool $checkDns Performs DNS lookup for MX, A, and AAAA records on the domain (default = false).
      * @param bool $checkTld Verifies domain suffix against global TLD list constants (default = false).
      * @param string $customErrorMsg Custom error message on validation failure.
      * @return self
      */
-    public function email(
+    public function email_web(
         bool $checkDns = false,
         bool $checkTld = false,
         string $customErrorMsg = ''
     ): self {
         // 1. Guard check: strictly allowed on 'string' data type and 'email' category
-        if (!$this->validateRuleUsage('email', ['password', 'phone'], ['string', 'email'], ['string'])) {
+        if (!$this->validateRuleUsage('email_web', [], ['string', 'email'], ['string'])) {
             return $this;
         }
         // 2. Error message setup
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be a valid email address.";
-        // 3. Base Email Validation (Uses PHP's native C-compiled filter_var)
-        $compiledCode = "if (filter_var({{##INPUT##}}, FILTER_VALIDATE_EMAIL) === false) {\n" .
+        // 3. Custom Regex Validation (Handles 99% of web email formats, single-letter domains like x.se, disallows '..')
+        $compiledCode = "if(!preg_match('/^(?!.*\\.\\.)[a-zA-Z0-9](?:[a-zA-Z0-9._+-]*[a-zA-Z0-9])?@(?:[a-zA-Z0-9](?!.*--)[a-zA-Z0-9-]*\\.)+[a-zA-Z]{2,}\$/D', {{##INPUT##}})) {\n" .
             "    {{##ERRORS##}}['email'] = \"{$error}\";\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
-        // 4. Optional TLD Check (Appended only if requested)
+        // 4. Optional Fast TLD Check (Uses fast in_array lookups on extracted suffix)
         if ($checkTld) {
-            $compiledCode .= " else {\n" .
+            $compiledCode .= "\n" .
                 "    \$__domain = substr(strrchr({{##INPUT##}}, '@') ?: '', 1);\n" .
                 "    \$__tld = strtolower(strrchr(\$__domain, '.') ?: '');\n" .
-                "    if (\$__tld === '' || (!isset(FUNKPHP_LISTS['LISTS']['valid_tlds_top100'][\$__tld]) && !isset(FUNKPHP_LISTS['LISTS']['valid_tlds_all'][\$__tld]))) {\n" .
+                "    if(\$__tld === '' || (!in_array(\$__tld, FUNKPHP_LISTS['LISTS']['valid_tlds_top100'] ?? [], true) && !in_array(\$__tld, FUNKPHP_LISTS['LISTS']['valid_tlds_all'] ?? [], true))) {\n" .
                 "        {{##ERRORS##}}['email'] = \"{$error}\";\n" .
                 "        {{##GOTO_STOP_ALL##}}\n" .
                 "        {{##GOTO_BAIL##}}\n" .
                 "        {{##GOTO_NEXT_RULE##}}\n" .
                 "        {{##GOTO_END_FIELD##}}\n" .
                 "    }\n" .
-                "}";
+                "";
         }
         // 5. Optional DNS Check (Appended only if requested)
         if ($checkDns) {
-            $compiledCode .= " else {\n" .
-                "    \$__domain = substr(strrchr({{##INPUT##}}, '@'), 1);\n" .
-                "    if (!checkdnsrr(\$__domain, 'MX') && !checkdnsrr(\$__domain, 'A') && !checkdnsrr(\$__domain, 'AAAA')) {\n" .
+            $compiledCode .= "\n" .
+                "    \$__domain = substr(strrchr({{##INPUT##}}, '@') ?: '', 1);\n" .
+                "    if(!checkdnsrr(\$__domain, 'MX') && !checkdnsrr(\$__domain, 'A') && !checkdnsrr(\$__domain, 'AAAA')) {\n" .
                 "        {{##ERRORS##}}['email'] = \"{$error}\";\n" .
                 "        {{##GOTO_STOP_ALL##}}\n" .
                 "        {{##GOTO_BAIL##}}\n" .
                 "        {{##GOTO_NEXT_RULE##}}\n" .
                 "        {{##GOTO_END_FIELD##}}\n" .
                 "    }\n" .
-                "}";
+                "";
         }
         // 6. Store compiled rule
-        $this->rules['email'] = [
+        $this->rules['email_web'] = [
             'checkDns' => $checkDns,
             'checkTld' => $checkTld,
             'error'    => $error,
             'compiled' => $compiledCode
         ];
-        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['email'] = \"" . $error . "\";";
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['email_web'] = \"" . $error . "\";";
         return $this;
     }
-
-    /*  STRING RELATED FUNCTIONS LEFT: email_, password_ to fix here! */
-
+    /**
+     *
+     * Validates that an input is a formatted phone number (7-15 digits with optional +, -, (), spaces, and dots).
+     *
+     * @param array<SupportedCountry|string> $countryCodes Country ISO codes or dial prefixes (e.g. ['UK', 'SE'] or ['+44', '+46']).
+     * @param int $minDigits Minimum number of raw numeric digits required (default = 7).
+     * @param int $maxDigits Maximum number of raw numeric digits allowed (default = 15).
+     * @param string $customErrorMsg Custom error message on validation failure.
+     * @return self
+     */
+    public function phone(
+        array $countryCodes = [],
+        int $minDigits = 7,
+        int $maxDigits = 15,
+        string $customErrorMsg = ''
+    ): self {
+        // 1. Guard check: strictly allowed on 'string' data type and 'phone' category
+        if (!$this->validateRuleUsage('phone', ['email_web', 'password', 'password_uncompromised'], ['string', 'phone'], ['string'])) {
+            return $this;
+        }
+        // 2. Error message setup
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be a valid phone number.";
+        // 3. Base Regex: allows optional leading +, numbers, spaces, parens, hyphens, and dots
+        $compiledCode = "if(!preg_match('/^\\+?[0-9\\s().-]{{$minDigits},30}\$/D', {{##INPUT##}})) {\n" .
+            "    {{##ERRORS##}}['phone'] = \"{$error}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "} \n" .
+            "    \$__rawDigits = preg_replace('/\\D/', '', {{##INPUT##}});\n" .
+            "    \$__digitCount = strlen(\$__rawDigits);\n" .
+            "    if (\$__digitCount < {$minDigits} || \$__digitCount > {$maxDigits}) {\n" .
+            "        {{##ERRORS##}}['phone'] = \"{$error}\";\n" .
+            "        {{##GOTO_STOP_ALL##}}\n" .
+            "        {{##GOTO_BAIL##}}\n" .
+            "        {{##GOTO_NEXT_RULE##}}\n" .
+            "        {{##GOTO_END_FIELD##}}\n" .
+            "    \n" .
+            "}";
+        // 4. Optional Country Code Prefix Check
+        if (!empty($countryCodes)) {
+            $exportedCodes = var_export(array_values($countryCodes), true);
+            $compiledCode .= "\n" .
+                "    \$__allowedPrefixes = {$exportedCodes};\n" .
+                "    \$__matchesPrefix = false;\n" .
+                "    foreach (\$__allowedPrefixes as \$__prefix) {\n" .
+                "        if (str_starts_with({{##INPUT##}}, \$__prefix)) {\n" .
+                "            \$__matchesPrefix = true;\n" .
+                "            break;\n" .
+                "        }\n" .
+                "    }\n" .
+                "    if(!\$__matchesPrefix) {\n" .
+                "        {{##ERRORS##}}['phone'] = \"{$error}\";\n" .
+                "        {{##GOTO_STOP_ALL##}}\n" .
+                "        {{##GOTO_BAIL##}}\n" .
+                "        {{##GOTO_NEXT_RULE##}}\n" .
+                "        {{##GOTO_END_FIELD##}}\n" .
+                "    }\n" .
+                "";
+        }
+        // 5. Store compiled rule
+        $this->rules['phone'] = [
+            'countryCodes' => $countryCodes,
+            'minDigits'    => $minDigits,
+            'maxDigits'    => $maxDigits,
+            'error'        => $error,
+            'compiled'     => $compiledCode
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['phone'] = \"" . $error . "\";";
+        return $this;
+    }
 
     /* OTHER INPUT KEYS-ONLY RULES - value is ANOTHER data field! */
     // GLOBAL COMPILER MUST CHECK that "gte", "gt","lte","lt","same", "different" try NOT
@@ -5290,7 +5592,6 @@ class RuleSetAll
         return $this;
     }
 }
-
 class RuleSetString
 {
     public ?string $dataType = null;
@@ -5492,572 +5793,6 @@ class RuleSetString
         return $this;
     }
 }
-
-class RuleSetPassword
-{
-    public ?string $dataType = null;
-    public ?string $dataTypeCategory = 'string';
-    public ?bool $useNullable = false;
-    public ?bool $useRequired = false;
-    public ?bool $useBail = false;
-    // Flat associative list of configured rules
-    public array $rules = [];
-    // Tracks syntax/dev errors during chaining for validating the correct use of the rules
-    public array $configErrors = [];
-    // Collected compiled errors from the rules based on their received static scheme data
-    public array $compiledErrors = [];
-    // Collection of all errors besides the one for data type (this is for the else part
-    // when the $dataType rule is not fulfilled in validation; e.g. it is not a string so
-    // if it is not nullable then we can show all other errors immediately unless bail and/or
-    // stop_all_on_first_error is set to true!)
-    public array $mergedErrorsBesdiesDataType = [];
-    /**
-     * Validates Rule Config checking 3 things: data type set first, no duplicate and no conflicts
-     *
-     * @param string $ruleName The name of the rule being added (e.g., 'starts_with', 'checked')
-     * @param array $conflictingRules List of existing rules that cannot coexist with this rule
-     * @param array|string $allowedDataTypes Restricted data types (empty array = allowed on all data types)
-     * @return bool Returns true if configuration is valid; false if a config error was added
-     */
-    private function validateRuleUsage(
-        string $ruleName,
-        array $conflictingRules = [],
-        array|string $allowedDataTypes = [],
-        array|string $allowedDataTypeCategories = []
-    ): bool {
-        // 1. Ensure a Data Type Rule has been set first
-        // 2. Restrict to specific Data Types (if provided)
-        // 3. Prevent Duplicate Rules
-        // 4. Prevent Conflicting Rules
-        if ($this->dataType === null) {
-            $this->configErrors[] = "Cannot add Rule `{$ruleName}` before setting the Data Type Rule on Input Key: `{{##INPUT_KEY##}}`!";
-            return false;
-        }
-        if (!empty($allowedDataTypes)) {
-            $allowed = (array) $allowedDataTypes;
-            if (!in_array($this->dataType, $allowed, true)) {
-                $allowedList = implode(', ', $allowed);
-                $this->configErrors[] = "Rule `{$ruleName}` can Only Be Used on Data Types: [{$allowedList}]. Current Data Type: `{$this->dataType}` on Input Key: `{{##INPUT_KEY##}}`.";
-                return false;
-            }
-        }
-        if (!empty($allowedDataTypeCategories)) {
-            $allowed = (array) $allowedDataTypeCategories;
-            if (!in_array($this->dataTypeCategory, $allowed, true)) {
-                $allowedList = implode(', ', $allowed);
-                $this->configErrors[] = "Rule `$ruleName` is Only Valid for Data Type Categories: [{$allowedList}], but Data Type `{$this->dataType}` was selected for Input Key `{{##INPUT_KEY##}}`!";
-                return false;
-            }
-        }
-        if (isset($this->rules[$ruleName])) {
-            $this->configErrors[] = "Rule `{$ruleName}` is Already Used for Input Key: `{{##INPUT_KEY##}}`!";
-            return false;
-        }
-        foreach ($conflictingRules as $conflict) {
-            if (isset($this->rules[$conflict])) {
-                $this->configErrors[] = "Rule `{$ruleName}` conflicts with Existing Rule `{$conflict}` on Input Key: `{{##INPUT_KEY##}}`!";
-                return false;
-            }
-        }
-        return true;
-    }
-    /**
-     * Validates and normalizes values supplied to a rule method during builder time.
-     *
-     * @param string $ruleName Name of the rule being configured (e.g. 'contains')
-     * @param mixed $values Raw values passed into the rule method (array, comma-separated string, scalar)
-     * @param array $allowedDataTypes Allowed PHP data types for each parameter (empty array = allow all)
-     * @return array|false Normalized array of unique values on success, or false on validation failure
-     */
-    private function validateRuleMultipleValues(
-        string $ruleName,
-        mixed $values,
-        array $allowedDataTypes = [],
-        bool $valuesCanBeEmpty = false
-    ): array|false {
-        // 1. Normalize into an array
-        if (is_array($values)) {
-            $normalized = array_values($values);
-        } elseif (is_string($values)) {
-            $normalized = array_map('trim', explode(',', $values));
-        } else {
-            $normalized = [$values];
-        }
-        // Filter out empty strings resulting from comma splitting
-        $normalized = array_values(array_filter($normalized, fn($v) => $v !== ''));
-        // 2. Ensure non-empty list of values
-        if (empty($normalized)) {
-            if ($valuesCanBeEmpty) {
-                return [];
-            }
-            $this->configErrors[] = "Rule `{$ruleName}` Requires at least One Value for Input Key `{{##INPUT_KEY##}}`!";
-            return false;
-        }
-        $uniqueValues = [];
-        foreach ($normalized as $val) {
-            // Strict duplicate check
-            if (in_array($val, $uniqueValues, true)) {
-                $valFormatted = is_scalar($val) || $val === null ? var_export($val, true) : json_encode($val);
-                $this->configErrors[] = "Rule `{$ruleName}` contains Duplicate ({$valFormatted}) Parameter Values for Input Key `{{##INPUT_KEY##}}`!";
-                return false;
-            }
-            $uniqueValues[] = $val;
-        }
-        // 3. Validate Data Types of parameters (if restricted)
-        if (!empty($allowedDataTypes)) {
-            $normalizeType = function (mixed $t): string {
-                if ($t === null) {
-                    return 'null';
-                }
-                return match (strtolower((string)$t)) {
-                    'integer', 'int'   => 'int',
-                    'boolean', 'bool'  => 'bool',
-                    'double', 'float'  => 'float',
-                    'null'             => 'null',
-                    default            => strtolower((string)$t)
-                };
-            };
-            $normalizedAllowedTypes = array_map($normalizeType, (array)$allowedDataTypes);
-            foreach ($uniqueValues as $index => $val) {
-                $rawType = gettype($val);
-                $type = $normalizeType($rawType);
-                if (!in_array($type, $normalizedAllowedTypes, true)) {
-                    $allowedList = implode(', ', $normalizedAllowedTypes);
-                    $valFormatted = is_scalar($val) || $val === null ? var_export($val, true) : json_encode($val);
-                    $this->configErrors[] = "Rule `{$ruleName}` value at index [{$index}] must be of type [{$allowedList}], `{$type} => {$valFormatted}` given for Input Key `{{##INPUT_KEY##}}`!";
-                    return false;
-                }
-            }
-        }
-        return $uniqueValues;
-    }
-    public function password(string $customErrorMsg = ''): self
-    {
-        $this->dataType = "password";
-        return $this;
-    }
-
-
-    public function bail(): self
-    {
-        if (isset($this->rules['bail'])) {
-            $this->configErrors[] = 'Rule `bail` already used for Input Key: `{{##INPUT_KEY##}}`!';
-            return $this;
-        }
-        $this->rules['bail'] = ['error' => null, 'compiled' => null];
-        $this->useBail = true;
-        return $this;
-    }
-
-    public function nullable(): self
-    {
-        if (isset($this->rules['nullable'])) {
-            $this->configErrors[] = 'Rule `nullable` already used for Input Key: `{{##INPUT_KEY##}}`!';
-            return $this;
-        }
-        $this->rules['nullable'] = ['error' => null, 'compiled' => null];
-        $this->useNullable = true;
-        return $this;
-    }
-
-    public function required(string $customErrorMsg = ''): self
-    {
-        if (isset($this->rules['required'])) {
-            $this->configErrors[] = 'Rule `required` already used for Input Key: `{{##INPUT_KEY##}}`!';
-            return $this;
-        }
-        $this->rules['required'] = [
-            'error' => ((!empty($customErrorMsg)) ? $customErrorMsg : 'This field is REQUIRED!')
-        ];
-        $this->rules['required']['compiled'] =  "if(!isset({{##INPUT##}})) {\n" .
-            "    {{##ERRORS##}}['required'] = \"{$this->rules['required']['error']}\";\n" .
-            "    {{##GOTO_STOP_ALL##}}\n" .
-            "    {{##GOTO_BAIL##}}\n" .
-            "    {{##GOTO_NEXT_RULE##}}\n" .
-            "    {{##GOTO_END_FIELD##}}\n" .
-            "}";
-        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['required'] = \"" . $this->rules['required']['error'] . "\";";
-        $this->useRequired = true;
-        return $this;
-    }
-}
-
-class RuleSetEmail
-{
-    public ?string $dataType = null;
-    public ?string $dataTypeCategory = 'string';
-    public ?bool $useNullable = false;
-    public ?bool $useRequired = false;
-    public ?bool $useBail = false;
-    // Flat associative list of configured rules
-    public array $rules = [];
-    // Tracks syntax/dev errors during chaining for validating the correct use of the rules
-    public array $configErrors = [];
-    // Collected compiled errors from the rules based on their received static scheme data
-    public array $compiledErrors = [];
-    // Collection of all errors besides the one for data type (this is for the else part
-    // when the $dataType rule is not fulfilled in validation; e.g. it is not a string so
-    // if it is not nullable then we can show all other errors immediately unless bail and/or
-    // stop_all_on_first_error is set to true!)
-    public array $mergedErrorsBesdiesDataType = [];
-    /**
-     * Validates Rule Config checking 3 things: data type set first, no duplicate and no conflicts
-     *
-     * @param string $ruleName The name of the rule being added (e.g., 'starts_with', 'checked')
-     * @param array $conflictingRules List of existing rules that cannot coexist with this rule
-     * @param array|string $allowedDataTypes Restricted data types (empty array = allowed on all data types)
-     * @return bool Returns true if configuration is valid; false if a config error was added
-     */
-    private function validateRuleUsage(
-        string $ruleName,
-        array $conflictingRules = [],
-        array|string $allowedDataTypes = [],
-        array|string $allowedDataTypeCategories = []
-    ): bool {
-        // 1. Ensure a Data Type Rule has been set first
-        // 2. Restrict to specific Data Types (if provided)
-        // 3. Prevent Duplicate Rules
-        // 4. Prevent Conflicting Rules
-        if ($this->dataType === null) {
-            $this->configErrors[] = "Cannot add Rule `{$ruleName}` before setting the Data Type Rule on Input Key: `{{##INPUT_KEY##}}`!";
-            return false;
-        }
-        if (!empty($allowedDataTypes)) {
-            $allowed = (array) $allowedDataTypes;
-            if (!in_array($this->dataType, $allowed, true)) {
-                $allowedList = implode(', ', $allowed);
-                $this->configErrors[] = "Rule `{$ruleName}` can Only Be Used on Data Types: [{$allowedList}]. Current Data Type: `{$this->dataType}` on Input Key: `{{##INPUT_KEY##}}`.";
-                return false;
-            }
-        }
-        if (!empty($allowedDataTypeCategories)) {
-            $allowed = (array) $allowedDataTypeCategories;
-            if (!in_array($this->dataTypeCategory, $allowed, true)) {
-                $allowedList = implode(', ', $allowed);
-                $this->configErrors[] = "Rule `$ruleName` is Only Valid for Data Type Categories: [{$allowedList}], but Data Type `{$this->dataType}` was selected for Input Key `{{##INPUT_KEY##}}`!";
-                return false;
-            }
-        }
-        if (isset($this->rules[$ruleName])) {
-            $this->configErrors[] = "Rule `{$ruleName}` is Already Used for Input Key: `{{##INPUT_KEY##}}`!";
-            return false;
-        }
-        foreach ($conflictingRules as $conflict) {
-            if (isset($this->rules[$conflict])) {
-                $this->configErrors[] = "Rule `{$ruleName}` conflicts with Existing Rule `{$conflict}` on Input Key: `{{##INPUT_KEY##}}`!";
-                return false;
-            }
-        }
-        return true;
-    }
-    /**
-     * Validates and normalizes values supplied to a rule method during builder time.
-     *
-     * @param string $ruleName Name of the rule being configured (e.g. 'contains')
-     * @param mixed $values Raw values passed into the rule method (array, comma-separated string, scalar)
-     * @param array $allowedDataTypes Allowed PHP data types for each parameter (empty array = allow all)
-     * @return array|false Normalized array of unique values on success, or false on validation failure
-     */
-    private function validateRuleMultipleValues(
-        string $ruleName,
-        mixed $values,
-        array $allowedDataTypes = [],
-        bool $valuesCanBeEmpty = false
-    ): array|false {
-        // 1. Normalize into an array
-        if (is_array($values)) {
-            $normalized = array_values($values);
-        } elseif (is_string($values)) {
-            $normalized = array_map('trim', explode(',', $values));
-        } else {
-            $normalized = [$values];
-        }
-        // Filter out empty strings resulting from comma splitting
-        $normalized = array_values(array_filter($normalized, fn($v) => $v !== ''));
-        // 2. Ensure non-empty list of values
-        if (empty($normalized)) {
-            if ($valuesCanBeEmpty) {
-                return [];
-            }
-            $this->configErrors[] = "Rule `{$ruleName}` Requires at least One Value for Input Key `{{##INPUT_KEY##}}`!";
-            return false;
-        }
-        $uniqueValues = [];
-        foreach ($normalized as $val) {
-            // Strict duplicate check
-            if (in_array($val, $uniqueValues, true)) {
-                $valFormatted = is_scalar($val) || $val === null ? var_export($val, true) : json_encode($val);
-                $this->configErrors[] = "Rule `{$ruleName}` contains Duplicate ({$valFormatted}) Parameter Values for Input Key `{{##INPUT_KEY##}}`!";
-                return false;
-            }
-            $uniqueValues[] = $val;
-        }
-        // 3. Validate Data Types of parameters (if restricted)
-        if (!empty($allowedDataTypes)) {
-            $normalizeType = function (mixed $t): string {
-                if ($t === null) {
-                    return 'null';
-                }
-                return match (strtolower((string)$t)) {
-                    'integer', 'int'   => 'int',
-                    'boolean', 'bool'  => 'bool',
-                    'double', 'float'  => 'float',
-                    'null'             => 'null',
-                    default            => strtolower((string)$t)
-                };
-            };
-            $normalizedAllowedTypes = array_map($normalizeType, (array)$allowedDataTypes);
-            foreach ($uniqueValues as $index => $val) {
-                $rawType = gettype($val);
-                $type = $normalizeType($rawType);
-                if (!in_array($type, $normalizedAllowedTypes, true)) {
-                    $allowedList = implode(', ', $normalizedAllowedTypes);
-                    $valFormatted = is_scalar($val) || $val === null ? var_export($val, true) : json_encode($val);
-                    $this->configErrors[] = "Rule `{$ruleName}` value at index [{$index}] must be of type [{$allowedList}], `{$type} => {$valFormatted}` given for Input Key `{{##INPUT_KEY##}}`!";
-                    return false;
-                }
-            }
-        }
-        return $uniqueValues;
-    }
-    public function email(string $customErrorMsg = ''): self
-    {
-        $this->dataType = "email";
-        return $this;
-    }
-
-    public function bail(): self
-    {
-        if (isset($this->rules['bail'])) {
-            $this->configErrors[] = 'Rule `bail` already used for Input Key: `{{##INPUT_KEY##}}`!';
-            return $this;
-        }
-        $this->rules['bail'] = ['error' => null, 'compiled' => null];
-        $this->useBail = true;
-        return $this;
-    }
-
-    public function nullable(): self
-    {
-        if (isset($this->rules['nullable'])) {
-            $this->configErrors[] = 'Rule `nullable` already used for Input Key: `{{##INPUT_KEY##}}`!';
-            return $this;
-        }
-        $this->rules['nullable'] = ['error' => null, 'compiled' => null];
-        $this->useNullable = true;
-        return $this;
-    }
-
-    public function required(string $customErrorMsg = ''): self
-    {
-        if (isset($this->rules['required'])) {
-            $this->configErrors[] = 'Rule `required` already used for Input Key: `{{##INPUT_KEY##}}`!';
-            return $this;
-        }
-        $this->rules['required'] = [
-            'error' => ((!empty($customErrorMsg)) ? $customErrorMsg : 'This field is REQUIRED!')
-        ];
-        $this->rules['required']['compiled'] =  "if(!isset({{##INPUT##}})) {\n" .
-            "    {{##ERRORS##}}['required'] = \"{$this->rules['required']['error']}\";\n" .
-            "    {{##GOTO_STOP_ALL##}}\n" .
-            "    {{##GOTO_BAIL##}}\n" .
-            "    {{##GOTO_NEXT_RULE##}}\n" .
-            "    {{##GOTO_END_FIELD##}}\n" .
-            "}";
-        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['required'] = \"" . $this->rules['required']['error'] . "\";";
-        $this->useRequired = true;
-        return $this;
-    }
-}
-
-class RuleSetBoolean
-{
-    public ?string $dataType = null;
-    public ?string $dataTypeCategory = 'boolean';
-    public ?bool $useNullable = false;
-    public ?bool $useRequired = false;
-    public ?bool $useBail = false;
-    // Flat associative list of configured rules
-    public array $rules = [];
-    // Tracks syntax/dev errors during chaining for validating the correct use of the rules
-    public array $configErrors = [];
-    // Collected compiled errors from the rules based on their received static scheme data
-    public array $compiledErrors = [];
-    // Collection of all errors besides the one for data type (this is for the else part
-    // when the $dataType rule is not fulfilled in validation; e.g. it is not a string so
-    // if it is not nullable then we can show all other errors immediately unless bail and/or
-    // stop_all_on_first_error is set to true!)
-    public array $mergedErrorsBesdiesDataType = [];
-    /**
-     * Validates Rule Config checking 3 things: data type set first, no duplicate and no conflicts
-     *
-     * @param string $ruleName The name of the rule being added (e.g., 'starts_with', 'checked')
-     * @param array $conflictingRules List of existing rules that cannot coexist with this rule
-     * @param array|string $allowedDataTypes Restricted data types (empty array = allowed on all data types)
-     * @return bool Returns true if configuration is valid; false if a config error was added
-     */
-    private function validateRuleUsage(
-        string $ruleName,
-        array $conflictingRules = [],
-        array|string $allowedDataTypes = [],
-        array|string $allowedDataTypeCategories = []
-    ): bool {
-        // 1. Ensure a Data Type Rule has been set first
-        // 2. Restrict to specific Data Types (if provided)
-        // 3. Prevent Duplicate Rules
-        // 4. Prevent Conflicting Rules
-        if ($this->dataType === null) {
-            $this->configErrors[] = "Cannot add Rule `{$ruleName}` before setting the Data Type Rule on Input Key: `{{##INPUT_KEY##}}`!";
-            return false;
-        }
-        if (!empty($allowedDataTypes)) {
-            $allowed = (array) $allowedDataTypes;
-            if (!in_array($this->dataType, $allowed, true)) {
-                $allowedList = implode(', ', $allowed);
-                $this->configErrors[] = "Rule `{$ruleName}` can Only Be Used on Data Types: [{$allowedList}]. Current Data Type: `{$this->dataType}` on Input Key: `{{##INPUT_KEY##}}`.";
-                return false;
-            }
-        }
-        if (!empty($allowedDataTypeCategories)) {
-            $allowed = (array) $allowedDataTypeCategories;
-            if (!in_array($this->dataTypeCategory, $allowed, true)) {
-                $allowedList = implode(', ', $allowed);
-                $this->configErrors[] = "Rule `$ruleName` is Only Valid for Data Type Categories: [{$allowedList}], but Data Type `{$this->dataType}` was selected for Input Key `{{##INPUT_KEY##}}`!";
-                return false;
-            }
-        }
-        if (isset($this->rules[$ruleName])) {
-            $this->configErrors[] = "Rule `{$ruleName}` is Already Used for Input Key: `{{##INPUT_KEY##}}`!";
-            return false;
-        }
-        foreach ($conflictingRules as $conflict) {
-            if (isset($this->rules[$conflict])) {
-                $this->configErrors[] = "Rule `{$ruleName}` conflicts with Existing Rule `{$conflict}` on Input Key: `{{##INPUT_KEY##}}`!";
-                return false;
-            }
-        }
-        return true;
-    }
-    /**
-     * Validates and normalizes values supplied to a rule method during builder time.
-     *
-     * @param string $ruleName Name of the rule being configured (e.g. 'contains')
-     * @param mixed $values Raw values passed into the rule method (array, comma-separated string, scalar)
-     * @param array $allowedDataTypes Allowed PHP data types for each parameter (empty array = allow all)
-     * @return array|false Normalized array of unique values on success, or false on validation failure
-     */
-    private function validateRuleMultipleValues(
-        string $ruleName,
-        mixed $values,
-        array $allowedDataTypes = [],
-        bool $valuesCanBeEmpty = false
-    ): array|false {
-        // 1. Normalize into an array
-        if (is_array($values)) {
-            $normalized = array_values($values);
-        } elseif (is_string($values)) {
-            $normalized = array_map('trim', explode(',', $values));
-        } else {
-            $normalized = [$values];
-        }
-        // Filter out empty strings resulting from comma splitting
-        $normalized = array_values(array_filter($normalized, fn($v) => $v !== ''));
-        // 2. Ensure non-empty list of values
-        if (empty($normalized)) {
-            if ($valuesCanBeEmpty) {
-                return [];
-            }
-            $this->configErrors[] = "Rule `{$ruleName}` Requires at least One Value for Input Key `{{##INPUT_KEY##}}`!";
-            return false;
-        }
-        $uniqueValues = [];
-        foreach ($normalized as $val) {
-            // Strict duplicate check
-            if (in_array($val, $uniqueValues, true)) {
-                $valFormatted = is_scalar($val) || $val === null ? var_export($val, true) : json_encode($val);
-                $this->configErrors[] = "Rule `{$ruleName}` contains Duplicate ({$valFormatted}) Parameter Values for Input Key `{{##INPUT_KEY##}}`!";
-                return false;
-            }
-            $uniqueValues[] = $val;
-        }
-        // 3. Validate Data Types of parameters (if restricted)
-        if (!empty($allowedDataTypes)) {
-            $normalizeType = function (mixed $t): string {
-                if ($t === null) {
-                    return 'null';
-                }
-                return match (strtolower((string)$t)) {
-                    'integer', 'int'   => 'int',
-                    'boolean', 'bool'  => 'bool',
-                    'double', 'float'  => 'float',
-                    'null'             => 'null',
-                    default            => strtolower((string)$t)
-                };
-            };
-            $normalizedAllowedTypes = array_map($normalizeType, (array)$allowedDataTypes);
-            foreach ($uniqueValues as $index => $val) {
-                $rawType = gettype($val);
-                $type = $normalizeType($rawType);
-                if (!in_array($type, $normalizedAllowedTypes, true)) {
-                    $allowedList = implode(', ', $normalizedAllowedTypes);
-                    $valFormatted = is_scalar($val) || $val === null ? var_export($val, true) : json_encode($val);
-                    $this->configErrors[] = "Rule `{$ruleName}` value at index [{$index}] must be of type [{$allowedList}], `{$type} => {$valFormatted}` given for Input Key `{{##INPUT_KEY##}}`!";
-                    return false;
-                }
-            }
-        }
-        return $uniqueValues;
-    }
-    public function boolean(string $customErrorMsg = ''): self
-    {
-        $this->dataType = "boolean";
-        return $this;
-    }
-
-    public function bail(): self
-    {
-        if (isset($this->rules['bail'])) {
-            $this->configErrors[] = 'Rule `bail` already used for Input Key: `{{##INPUT_KEY##}}`!';
-            return $this;
-        }
-        $this->rules['bail'] = ['error' => null, 'compiled' => null];
-        $this->useBail = true;
-        return $this;
-    }
-
-    public function nullable(): self
-    {
-        if (isset($this->rules['nullable'])) {
-            $this->configErrors[] = 'Rule `nullable` already used for Input Key: `{{##INPUT_KEY##}}`!';
-            return $this;
-        }
-        $this->rules['nullable'] = ['error' => null, 'compiled' => null];
-        $this->useNullable = true;
-        return $this;
-    }
-
-    public function required(string $customErrorMsg = ''): self
-    {
-        if (isset($this->rules['required'])) {
-            $this->configErrors[] = 'Rule `required` already used for Input Key: `{{##INPUT_KEY##}}`!';
-            return $this;
-        }
-        $this->rules['required'] = [
-            'error' => ((!empty($customErrorMsg)) ? $customErrorMsg : 'This field is REQUIRED!')
-        ];
-        $this->rules['required']['compiled'] =  "if(!isset({{##INPUT##}})) {\n" .
-            "    {{##ERRORS##}}['required'] = \"{$this->rules['required']['error']}\";\n" .
-            "    {{##GOTO_STOP_ALL##}}\n" .
-            "    {{##GOTO_BAIL##}}\n" .
-            "    {{##GOTO_NEXT_RULE##}}\n" .
-            "    {{##GOTO_END_FIELD##}}\n" .
-            "}";
-        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['required'] = \"" . $this->rules['required']['error'] . "\";";
-        $this->useRequired = true;
-        return $this;
-    }
-}
-
 class RuleSetCheckbox
 {
     public ?string $dataType = null;
@@ -6252,7 +5987,6 @@ class RuleSetCheckbox
         return $this;
     }
 }
-
 class RuleSetNumber
 {
     public ?string $dataType = null;
@@ -6440,7 +6174,6 @@ class RuleSetNumber
         return $this;
     }
 }
-
 class RuleSetInteger
 {
     public ?string $dataType = null;
@@ -6628,7 +6361,6 @@ class RuleSetInteger
         return $this;
     }
 }
-
 class RuleSetFloat
 {
     public ?string $dataType = null;
@@ -6816,208 +6548,23 @@ class RuleSetFloat
         return $this;
     }
 }
-
-class RuleSetPhone
-{
-    public ?string $dataType = null;
-    public ?string $dataTypeCategory = 'string';
-    public ?bool $useNullable = false;
-    public ?bool $useRequired = false;
-    public ?bool $useBail = false;
-    // Flat associative list of configured rules
-    public array $rules = [];
-    // Tracks syntax/dev errors during chaining for validating the correct use of the rules
-    public array $configErrors = [];
-    // Collected compiled errors from the rules based on their received static scheme data
-    public array $compiledErrors = [];
-    // Collection of all errors besides the one for data type (this is for the else part
-    // when the $dataType rule is not fulfilled in validation; e.g. it is not a string so
-    // if it is not nullable then we can show all other errors immediately unless bail and/or
-    // stop_all_on_first_error is set to true!)
-    public array $mergedErrorsBesdiesDataType = [];
-    /**
-     * Validates Rule Config checking 3 things: data type set first, no duplicate and no conflicts
-     *
-     * @param string $ruleName The name of the rule being added (e.g., 'starts_with', 'checked')
-     * @param array $conflictingRules List of existing rules that cannot coexist with this rule
-     * @param array|string $allowedDataTypes Restricted data types (empty array = allowed on all data types)
-     * @return bool Returns true if configuration is valid; false if a config error was added
-     */
-    private function validateRuleUsage(
-        string $ruleName,
-        array $conflictingRules = [],
-        array|string $allowedDataTypes = [],
-        array|string $allowedDataTypeCategories = []
-    ): bool {
-        // 1. Ensure a Data Type Rule has been set first
-        // 2. Restrict to specific Data Types (if provided)
-        // 3. Prevent Duplicate Rules
-        // 4. Prevent Conflicting Rules
-        if ($this->dataType === null) {
-            $this->configErrors[] = "Cannot add Rule `{$ruleName}` before setting the Data Type Rule on Input Key: `{{##INPUT_KEY##}}`!";
-            return false;
-        }
-        if (!empty($allowedDataTypes)) {
-            $allowed = (array) $allowedDataTypes;
-            if (!in_array($this->dataType, $allowed, true)) {
-                $allowedList = implode(', ', $allowed);
-                $this->configErrors[] = "Rule `{$ruleName}` can Only Be Used on Data Types: [{$allowedList}]. Current Data Type: `{$this->dataType}` on Input Key: `{{##INPUT_KEY##}}`.";
-                return false;
-            }
-        }
-        if (!empty($allowedDataTypeCategories)) {
-            $allowed = (array) $allowedDataTypeCategories;
-            if (!in_array($this->dataTypeCategory, $allowed, true)) {
-                $allowedList = implode(', ', $allowed);
-                $this->configErrors[] = "Rule `$ruleName` is Only Valid for Data Type Categories: [{$allowedList}], but Data Type `{$this->dataType}` was selected for Input Key `{{##INPUT_KEY##}}`!";
-                return false;
-            }
-        }
-        if (isset($this->rules[$ruleName])) {
-            $this->configErrors[] = "Rule `{$ruleName}` is Already Used for Input Key: `{{##INPUT_KEY##}}`!";
-            return false;
-        }
-        foreach ($conflictingRules as $conflict) {
-            if (isset($this->rules[$conflict])) {
-                $this->configErrors[] = "Rule `{$ruleName}` conflicts with Existing Rule `{$conflict}` on Input Key: `{{##INPUT_KEY##}}`!";
-                return false;
-            }
-        }
-        return true;
-    }
-    /**
-     * Validates and normalizes values supplied to a rule method during builder time.
-     *
-     * @param string $ruleName Name of the rule being configured (e.g. 'contains')
-     * @param mixed $values Raw values passed into the rule method (array, comma-separated string, scalar)
-     * @param array $allowedDataTypes Allowed PHP data types for each parameter (empty array = allow all)
-     * @return array|false Normalized array of unique values on success, or false on validation failure
-     */
-    private function validateRuleMultipleValues(
-        string $ruleName,
-        mixed $values,
-        array $allowedDataTypes = [],
-        bool $valuesCanBeEmpty = false
-    ): array|false {
-        // 1. Normalize into an array
-        if (is_array($values)) {
-            $normalized = array_values($values);
-        } elseif (is_string($values)) {
-            $normalized = array_map('trim', explode(',', $values));
-        } else {
-            $normalized = [$values];
-        }
-        // Filter out empty strings resulting from comma splitting
-        $normalized = array_values(array_filter($normalized, fn($v) => $v !== ''));
-        // 2. Ensure non-empty list of values
-        if (empty($normalized)) {
-            if ($valuesCanBeEmpty) {
-                return [];
-            }
-            $this->configErrors[] = "Rule `{$ruleName}` Requires at least One Value for Input Key `{{##INPUT_KEY##}}`!";
-            return false;
-        }
-        $uniqueValues = [];
-        foreach ($normalized as $val) {
-            // Strict duplicate check
-            if (in_array($val, $uniqueValues, true)) {
-                $valFormatted = is_scalar($val) || $val === null ? var_export($val, true) : json_encode($val);
-                $this->configErrors[] = "Rule `{$ruleName}` contains Duplicate ({$valFormatted}) Parameter Values for Input Key `{{##INPUT_KEY##}}`!";
-                return false;
-            }
-            $uniqueValues[] = $val;
-        }
-        // 3. Validate Data Types of parameters (if restricted)
-        if (!empty($allowedDataTypes)) {
-            $normalizeType = function (mixed $t): string {
-                if ($t === null) {
-                    return 'null';
-                }
-                return match (strtolower((string)$t)) {
-                    'integer', 'int'   => 'int',
-                    'boolean', 'bool'  => 'bool',
-                    'double', 'float'  => 'float',
-                    'null'             => 'null',
-                    default            => strtolower((string)$t)
-                };
-            };
-            $normalizedAllowedTypes = array_map($normalizeType, (array)$allowedDataTypes);
-            foreach ($uniqueValues as $index => $val) {
-                $rawType = gettype($val);
-                $type = $normalizeType($rawType);
-                if (!in_array($type, $normalizedAllowedTypes, true)) {
-                    $allowedList = implode(', ', $normalizedAllowedTypes);
-                    $valFormatted = is_scalar($val) || $val === null ? var_export($val, true) : json_encode($val);
-                    $this->configErrors[] = "Rule `{$ruleName}` value at index [{$index}] must be of type [{$allowedList}], `{$type} => {$valFormatted}` given for Input Key `{{##INPUT_KEY##}}`!";
-                    return false;
-                }
-            }
-        }
-        return $uniqueValues;
-    }
-    public function phone(string $customErrorMsg = ''): self
-    {
-        $this->dataType = "phone";
-        return $this;
-    }
-
-    public function bail(): self
-    {
-        if (isset($this->rules['bail'])) {
-            $this->configErrors[] = 'Rule `bail` already used for Input Key: `{{##INPUT_KEY##}}`!';
-            return $this;
-        }
-        $this->rules['bail'] = ['error' => null, 'compiled' => null];
-        $this->useBail = true;
-        return $this;
-    }
-
-    public function nullable(): self
-    {
-        if (isset($this->rules['nullable'])) {
-            $this->configErrors[] = 'Rule `nullable` already used for Input Key: `{{##INPUT_KEY##}}`!';
-            return $this;
-        }
-        $this->rules['nullable'] = ['error' => null, 'compiled' => null];
-        $this->useNullable = true;
-        return $this;
-    }
-
-    public function required(string $customErrorMsg = ''): self
-    {
-        if (isset($this->rules['required'])) {
-            $this->configErrors[] = 'Rule `required` already used for Input Key: `{{##INPUT_KEY##}}`!';
-            return $this;
-        }
-        $this->rules['required'] = [
-            'error' => ((!empty($customErrorMsg)) ? $customErrorMsg : 'This field is REQUIRED!')
-        ];
-        $this->rules['required']['compiled'] =  "if(!isset({{##INPUT##}})) {\n" .
-            "    {{##ERRORS##}}['required'] = \"{$this->rules['required']['error']}\";\n" .
-            "    {{##GOTO_STOP_ALL##}}\n" .
-            "    {{##GOTO_BAIL##}}\n" .
-            "    {{##GOTO_NEXT_RULE##}}\n" .
-            "    {{##GOTO_END_FIELD##}}\n" .
-            "}";
-        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['required'] = \"" . $this->rules['required']['error'] . "\";";
-        $this->useRequired = true;
-        return $this;
-    }
-}
-
 class RuleSetArray
 {
+    public bool $maxArraySizeAlreadySet = false;
     public ?string $dataType = null;
+    public ?string $inputKeyField = null; // This replaces the {{##INPUT_KEY##}} with this set string value instead of the 'VALIDATION' => ['key' =>...]
     public ?string $dataTypeCategory = 'array';
     public ?bool $useNullable = false;
     public ?bool $useRequired = false;
     public ?bool $useBail = false;
+    public ?bool $useChainAll = false;
     public ?string $arrayType = null;
-    public bool $maxArraySizeAlreadySet = false;
     // Flat associative list of configured rules
     public array $rules = [];
     // Tracks syntax/dev errors during chaining for validating the correct use of the rules
     public array $configErrors = [];
+    // Tracks warnings that will still compile but might be crucial to reconsider due to them
+    public array $configWarnings = [];
     // Collected compiled errors from the rules based on their received static scheme data
     public array $compiledErrors = [];
     // Collection of all errors besides the one for data type (this is for the else part
@@ -7087,7 +6634,8 @@ class RuleSetArray
         string $ruleName,
         mixed $values,
         array $allowedDataTypes = [],
-        bool $valuesCanBeEmpty = false
+        bool $valuesCanBeEmpty = false,
+        bool $valuesCanBeSame = false
     ): array|false {
         // 1. Normalize into an array
         if (is_array($values)) {
@@ -7110,7 +6658,7 @@ class RuleSetArray
         $uniqueValues = [];
         foreach ($normalized as $val) {
             // Strict duplicate check
-            if (in_array($val, $uniqueValues, true)) {
+            if (!$valuesCanBeSame && in_array($val, $uniqueValues, true)) {
                 $valFormatted = is_scalar($val) || $val === null ? var_export($val, true) : json_encode($val);
                 $this->configErrors[] = "Rule `{$ruleName}` contains Duplicate ({$valFormatted}) Parameter Values for Input Key `{{##INPUT_KEY##}}`!";
                 return false;
@@ -7145,6 +6693,7 @@ class RuleSetArray
         }
         return $uniqueValues;
     }
+
     /**
      * Restricts validation to array structures.
      *
@@ -7217,29 +6766,38 @@ class RuleSetArray
         ];
         return $this;
     }
-
     public function bail(): self
     {
-        if (isset($this->rules['bail'])) {
-            $this->configErrors[] = 'Rule `bail` already used for Input Key: `{{##INPUT_KEY##}}`!';
+        if (!$this->validateRuleUsage('bail')) {
             return $this;
         }
         $this->rules['bail'] = ['error' => null, 'compiled' => null];
         $this->useBail = true;
         return $this;
     }
-
     public function nullable(): self
     {
-        if (isset($this->rules['nullable'])) {
-            $this->configErrors[] = 'Rule `nullable` already used for Input Key: `{{##INPUT_KEY##}}`!';
+        if (!$this->validateRuleUsage('nullable')) {
             return $this;
         }
         $this->rules['nullable'] = ['error' => null, 'compiled' => null];
         $this->useNullable = true;
         return $this;
     }
-
+    public function input_key_field(string $fieldToReplaceINPUT_KEYWith): self
+    {
+        if (!$this->validateRuleUsage('input_key_field')) {
+            return $this;
+        }
+        $validated = $this->validateRuleMultipleValues('input_key_field', $fieldToReplaceINPUT_KEYWith, ['string']);
+        if (!$validated) {
+            return $this;
+        }
+        $this->inputKeyField = strtolower(trim($validated[0]));
+        $this->rules['input_key_field'] = ['error' => null, 'compiled' => null];
+        $this->useNullable = true;
+        return $this;
+    }
     public function required(string $customErrorMsg = ''): self
     {
         if (!$this->validateRuleUsage('required')) {
@@ -7259,8 +6817,447 @@ class RuleSetArray
         $this->useRequired = true;
         return $this;
     }
+    /**
+     * Validates field input using a custom user-defined function from `/src/funkphp/config/functions.php` OR Any `Fully Qualified Name (e.g \Name\Name2\Name3)`. You do NOT need to add the starting slash!
+     *
+     * The callback function receives the Global `$c` variable as its first argument and the input value as its second:
+     * `function_name($c, $value)`. Returning `false` triggers a validation error. Any `other returned value than false is ignored`!
+     *
+     * @param string $functionName Name of the function defined in `/src/funkphp/config/functions.php`.
+     * @param string $customErrorMsg Custom error message on validation failure.
+     * @return self
+     */
+    public function callback(string $functionName, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('callback', [], [], [])) {
+            return $this;
+        }
+        $validated = $this->validateRuleMultipleValues('callback', $functionName, ['string']);
+        if (!$validated) {
+            return $this;
+        }
+        $func = trim($validated[0]);
+        // Developer config check: Validate function identifier syntax
+        if (empty($func) || !preg_match('/^[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\\\\-\x7f-\xff]*$/', $func)) {
+            $this->configErrors[] = "Rule `callback` Parameter `'{$func}'` is NOT a valid PHP function identifier for Input Key `{{##INPUT_KEY##}}`!";
+            return $this;
+        }
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` failed custom validation!";
+        $compiledCode = "if(\\{$func}(\$c,{{##INPUT##}}) === false) {\n" .
+            "    {{##ERRORS##}}['callback'] = \"{$error}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "}";
+        $this->rules['callback'] = [
+            'functionName' => "\\$func",
+            'error'        => $error,
+            'compiled'     => $compiledCode,
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['callback'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function keys_in_array_null_allowed(array|string $keysThatMustExistCanBeNull, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('keys_in_array_null_allowed', [], [], ['array'])) {
+            return $this;
+        }
+        $keys = $this->validateRuleMultipleValues('keys_in_array_null_allowed', $keysThatMustExistCanBeNull, ['string', 'null', 'NULL']);
+        if (!$keys) {
+            return $this;
+        }
+        // 4. Normalize & Validate Input Parameters
+        if (is_string($keysThatMustExistCanBeNull)) {
+            $keys = array_filter(array_map('trim', explode(',', $keysThatMustExistCanBeNull)), fn($k) => $k !== '');
+        } else {
+            $keys = array_values($keysThatMustExistCanBeNull);
+        }
+        if (empty($keys)) {
+            $this->configErrors[] = 'Rule `keys_in_array_null_allowed` requires at least one required key for Input Key `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        // 5. Build Failure Condition (Fails if any required key is missing from array keys)
+        $exportedKeys = var_export($keys, true);
+        $condition = 'array_diff(' . $exportedKeys . ', array_keys({{##INPUT##}})) !== []';
+        $error = (!empty($customErrorMsg))
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` is missing required keys.";
+        // 6. Store Compiled Rule
+        $this->rules['keys_in_array_null_allowed'] = [
+            'required_keys' => $keys,
+            'error'         => $error,
+            'compiled'      => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['keys_in_array_null_allowed'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['keys_in_array_null_allowed'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function keys_in_array_null_allowed_exact_count(array|string $keysThatMustExistCanBeNull, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('keys_in_array_null_allowed_exact_count', [], [], ['array'])) {
+            return $this;
+        }
+        $keys = $this->validateRuleMultipleValues('keys_in_array_null_allowed_exact_count', $keysThatMustExistCanBeNull, ['string', 'null', 'NULL']);
+        if (!$keys) {
+            return $this;
+        }
+        // 4. Normalize & Validate Input Parameters
+        if (is_string($keysThatMustExistCanBeNull)) {
+            $keys = array_filter(array_map('trim', explode(',', $keysThatMustExistCanBeNull)), fn($k) => $k !== '');
+        } else {
+            $keys = array_values($keysThatMustExistCanBeNull);
+        }
+        if (empty($keys)) {
+            $this->configErrors[] = 'Rule `keys_in_array_null_allowed_exact_count` requires at least one required key for Input Key `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        // 5. Build Failure Condition
+        $expectedCount = count($keys);
+        $exportedKeys  = var_export($keys, true);
+        // O(1) count check short-circuits array_diff execution on size mismatch
+        $condition = 'count({{##INPUT##}}) !== ' . $expectedCount . ' || array_diff(' . $exportedKeys . ', array_keys({{##INPUT##}})) !== []';
+        $error = (!empty($customErrorMsg))
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must contain exactly {$expectedCount} specific keys.";
+        // 6. Store Compiled Rule
+        $this->rules['keys_in_array_null_allowed_exact_count'] = [
+            'required_keys'  => $keys,
+            'expected_count' => $expectedCount,
+            'error'          => $error,
+            'compiled'       => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['keys_in_array_null_allowed_exact_count'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['keys_in_array_null_allowed_exact_count'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function keys_in_array_not_null(array|string $keysThatMustExistNotNull, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('keys_in_array_not_null', [], [], ['array'])) {
+            return $this;
+        }
+        $keys = $this->validateRuleMultipleValues('keys_in_array_not_null', $keysThatMustExistNotNull, ['string', 'null', 'NULL']);
+        if (!$keys) {
+            return $this;
+        }
+        // 4. Normalize & Validate Input Parameters
+        if (is_string($keysThatMustExistNotNull)) {
+            $keys = array_filter(array_map('trim', explode(',', $keysThatMustExistNotNull)), fn($k) => $k !== '');
+        } else {
+            $keys = array_values($keysThatMustExistNotNull);
+        }
+        if (empty($keys)) {
+            $this->configErrors[] = 'Rule `keys_in_array_not_null` requires at least one required key for Input Key `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        // 5. Build Failure Condition (Opcode-level isset check)
+        $issetArgs = implode(', ', array_map(fn($k) => '{{##INPUT##}}[' . var_export($k, true) . ']', $keys));
+        $condition = '!isset(' . $issetArgs . ')';
+        $error = (!empty($customErrorMsg))
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` is missing required non-null keys.";
+        // 6. Store Compiled Rule
+        $this->rules['keys_in_array_not_null'] = [
+            'required_keys' => $keys,
+            'error'         => $error,
+            'compiled'      => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['keys_in_array_not_null'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['keys_in_array_not_null'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function keys_in_array_not_null_exact_count(array|string $keysThatMustExistNotNull, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('keys_in_array_not_null_exact_count', [], [], ['array'])) {
+            return $this;
+        }
+        $keys = $this->validateRuleMultipleValues('keys_in_array_not_null_exact_count', $keysThatMustExistNotNull, ['string', 'null', 'NULL']);
+        if (!$keys) {
+            return $this;
+        }
+        // 4. Normalize & Validate Input Parameters
+        if (is_string($keysThatMustExistNotNull)) {
+            $keys = array_filter(array_map('trim', explode(',', $keysThatMustExistNotNull)), fn($k) => $k !== '');
+        } else {
+            $keys = array_values($keysThatMustExistNotNull);
+        }
+        if (empty($keys)) {
+            $this->configErrors[] = 'Rule `keys_in_array_not_null_exact_count` requires at least one required key for Input Key `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
+        // 5. Build Failure Condition ($O(1)$ short-circuit count check followed by isset)
+        $expectedCount = count($keys);
+        $issetArgs = implode(', ', array_map(fn($k) => '{{##INPUT##}}[' . var_export($k, true) . ']', $keys));
+        $condition = 'count({{##INPUT##}}) !== ' . $expectedCount . ' || !isset(' . $issetArgs . ')';
+        $error = (!empty($customErrorMsg))
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must contain exactly {$expectedCount} specified non-null keys.";
+        // 6. Store Compiled Rule
+        $this->rules['keys_in_array_not_null_exact_count'] = [
+            'required_keys'  => $keys,
+            'expected_count' => $expectedCount,
+            'error'          => $error,
+            'compiled'       => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['keys_in_array_not_null_exact_count'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['keys_in_array_not_null_exact_count'] = \"" . $error . "\";";
+        return $this;
+    }
+    public function keys_in_array_list(string $customErrorMsg = ''): self
+    {
+        // 1. Guard check: strictly allowed on 'array' data type & conflicts with keys_in_array_associative
+        if (!$this->validateRuleUsage('keys_in_array_list', ['keys_in_array_associative'], ['array'], [])) {
+            return $this;
+        }
+        // 2. Classify the array structure on the builder
+        $this->arrayType = 'list';
+        $error = (!empty($customErrorMsg))
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be a Numbered Array!";
+        $this->rules['array']['compiled'] = str_replace("if(!is_array({{##INPUT##}}))", "if(!is_array({{##INPUT##}}) || !array_is_list({{##INPUT##}}))", $this->rules['array']['compiled']);
+        $this->rules['array']['error'] .= ' ' . $error;
+        return $this;
+    }
+    public function keys_in_array_associative(string $customErrorMsg = ''): self
+    {
+        // 1. Guard check: strictly allowed on 'array' data type & conflicts with keys_in_array_list
+        if (!$this->validateRuleUsage('keys_in_array_associative', ['keys_in_array_list'], ['array'], [])) {
+            return $this;
+        }
+        // 2. Classify the array structure on the builder
+        $this->arrayType = 'associative';
+        $error = (!empty($customErrorMsg))
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be an Associative Array!";
+        // !empty() ensures an empty array [] passes as a valid empty map instead of failing array_is_list()
+        $this->rules['array']['compiled'] = str_replace(
+            "if(!is_array({{##INPUT##}}))",
+            "if(!is_array({{##INPUT##}}) || (!empty({{##INPUT##}}) && array_is_list({{##INPUT##}})))",
+            $this->rules['array']['compiled']
+        );
+        $this->rules['array']['error'] .= ' ' . $error;
+        return $this;
+    }
+    public function keys_in_array_depths(array $pathsWhereEachDotIsNextDepthLevel, string $customErrorMsg = ''): self
+    {
+        // 1. Guard check: strictly allowed on 'array' data type
+        if (!$this->validateRuleUsage('keys_in_array_depths', [], ['array'], [])) {
+            return $this;
+        }
+        if (empty($pathsWhereEachDotIsNextDepthLevel)) {
+            $this->configErrors[] = '`keys_in_array_depths` requires at least one path string.';
+            return $this;
+        }
+        $compiledPathChecks = [];
+        // 2. Build short-circuiting PHP checks for each path
+        foreach ($pathsWhereEachDotIsNextDepthLevel as $path) {
+            $segments = array_filter(array_map('trim', explode('.', $path)), 'strlen');
+            if (empty($segments)) {
+                continue;
+            }
+            $stepChecks = [];
+            $currentAccess = '{{##INPUT##}}';
+            $totalSegments = count($segments);
+            $i = 0;
+            foreach ($segments as $segment) {
+                $i++;
+                $exportedKey = var_export($segment, true);
+                // Check if key exists at current level
+                $stepChecks[] = "array_key_exists({$exportedKey}, {$currentAccess})";
+                // Advance pointer deeper into the array structure
+                $currentAccess .= "[{$exportedKey}]";
+                // If there are more segments to traverse, ensure current node is an array
+                if ($i < $totalSegments) {
+                    $stepChecks[] = "is_array({$currentAccess})";
+                }
+            }
+            // Wrap individual path checks in parentheses
+            $compiledPathChecks[] = '(' . implode(' && ', $stepChecks) . ')';
+        }
+        if (empty($compiledPathChecks)) {
+            $this->configErrors[] = '`keys_in_array_depths` provided paths contained no valid segments.';
+            return $this;
+        }
+        // Combine all path conditions (all requested paths must exist)
+        $fullCondition = implode(' && ', $compiledPathChecks);
+        if (count($compiledPathChecks) > 1) {
+            $fullCondition = "({$fullCondition})";
+        }
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` is missing required nested array key paths: " . implode(', ', $pathsWhereEachDotIsNextDepthLevel);
+        // 3. Store compiled rule
+        $this->rules['keys_in_array_depths'] = [
+            'paths'    => $pathsWhereEachDotIsNextDepthLevel,
+            'error'    => $error,
+            'compiled' => "if(!({$fullCondition})) {\n" .
+                "    {{##ERRORS##}}['keys_in_array_depths'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['keys_in_array_depths'] = \"" . $error . "\";";
+        return $this;
+    }
+    /**
+     * Validates that every element within the target array matches the specified data type.
+     *
+     * @param 'distinct'|'distinct_strict'|'distinct_ignore_case'|'string'|'string-not-empty'|'int'|'int_only_positive'|'int_only_negative'|'float'|'float_only_positive'|'float_only_negative'|'int_and_float'|'int_and_float_only_positive'|'int_and_float_only_negative'|'numeric'|'numeric_only_positive'|'numeric_only_negative'|'boolean'|'boolean_only_true'|'boolean_only_false'|'scalar'|'scalar_not_empty'|'null'|'object'|'array'|'array-not-empty'|'list'|'list-not-empty'|'associative'|'associative-not-empty'|'callback:'|string $arrayElementSingleDataType Target element data type or a Custom `callback:` user-defined in `/src/funkphp/config/functions.php` OR Any `Fully Qualified Name (e.g \Name\Name2\Name3)` - you do NOT need to add the starting slash! If you use Custom `callback:`, each element will be passed as the SECOND ARGUMENT after the Global $c variable, as such: `callback($c,$element)` and if the returning value is `false` then it is considered to have failed the validation for that Input! (any other returned value than false is ignored when using `callback:`)
+     * @param string $customErrorMsg Custom error message on validation failure.
+     * @return self
+     */
+    public function elements_in_array_are_all(string $arrayElementSingleDataType, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('elements_in_array_are_all', [], [], ['array'])) {
+            return $this;
+        }
+        $validated = $this->validateRuleMultipleValues('elements_in_array_are_all', $arrayElementSingleDataType, ['string']);
+        if (!$validated) {
+            return $this;
+        }
+        $targetType = strtolower(trim($validated[0]));
+        $useCallback = false;
+        $useDistinct = false;
+        // Map allowed target types to their compiled negative PHP evaluation condition
+        $typeConditions = [
+            'string'                  => '!is_string($elem)',
+            'string-not-empty'        => '!is_string($elem) || trim($elem) === \'\'',
+            'int'                 => '!is_int($elem)',
+            'int_only_positive'   => '!is_int($elem) || $elem <= 0',
+            'int_only_negative'   => '!is_int($elem) || $elem >= 0',
+            'float'                   => '!is_float($elem)',
+            'float_only_positive'     => '!is_float($elem) || $elem <= 0',
+            'float_only_negative'     => '!is_float($elem) || $elem >= 0',
+            'int_and_float'                  => '(!is_int($elem) && !is_float($elem))',
+            'int_and_float_only_positive'    => '(!is_int($elem) && !is_float($elem)) || $elem <= 0',
+            'int_and_float_only_negative'    => '(!is_int($elem) && !is_float($elem)) || $elem >= 0',
+            'numeric'                 => '!is_numeric($elem)',
+            'numeric_only_positive'   => '!is_numeric($elem) || $elem <= 0',
+            'numeric_only_negative'   => '!is_numeric($elem) || $elem >= 0',
+            'boolean'                 => '!is_bool($elem)',
+            'boolean_only_true'       => '!is_bool($elem) || $elem !== true',
+            'boolean_only_false'      => '!is_bool($elem) || $elem !== false',
+            'scalar'           => '!is_scalar($elem)',
+            'scalar_not_empty' => '!is_scalar($elem) || (is_string($elem) && trim($elem) === \'\')',
+            'null'                    => '$elem !== null',
+            'object'                  => '!is_object($elem)',
+            'array'                   => '!is_array($elem)',
+            'array-not-empty'         => '!is_array($elem) || count($elem) === 0',
+            'list'                    => '!is_array($elem) || !array_is_list($elem)',
+            'list-not-empty'          => '!is_array($elem) || !array_is_list($elem) || count($elem) === 0',
+            'associative'             => '!is_array($elem) || array_is_list($elem)',
+            'associative-not-empty'   => '!is_array($elem) || array_is_list($elem) || count($elem) === 0',
+        ];
+        // Developer config check: Reject unrecognized data types
+        $callBackCondition = '';
+        $callbackUsed = null;
+        if (str_starts_with($targetType, 'callback:')) {
+            $useCallback = true;
+            $cb = explode("callback:", $targetType)[1];
+            if (trim($cb) === '') {
+                $this->configErrors[] = "Rule `elements_in_array_are_all` Parameter `'{$targetType}'` is NOT a valid target data type (allowed: EITHER a custom `callback:function_name` stored in `/src/funkphp/config/functions.php` that must return false if it fails validation, OR:`" . join(",", array_keys($typeConditions)) . "`) for Input Key `{{##INPUT_KEY##}}`!";
+            }
+            $callbackUsed = $cb;
+            $callBackCondition = "\\{$cb}(\$c,\$elem) === false";
+        } else if (str_starts_with($targetType, 'distinct')) {
+            $useDistinct = true;
+        } else if (!array_key_exists($targetType, $typeConditions)) {
+            $allowedList = implode(", ", array_keys($typeConditions));
+            $this->configErrors[] = "Rule `elements_in_array_are_all` Parameter `'{$targetType}'` is NOT a valid target data type (allowed: EITHER a custom `callback:function_name` stored in `/src/funkphp/config/functions.php` that must return false if it fails validation, OR:`{$allowedList}`) for Input Key `{{##INPUT_KEY##}}`!";
+            return $this;
+        }
+        if (!$useDistinct) {
+            $condition = ($useCallback ? $callBackCondition : $typeConditions[$targetType]);
+            $error = !empty($customErrorMsg)
+                ? $customErrorMsg
+                : "Field `{{##INPUT_KEY##}}` must contain only `{$targetType}` elements!";
+            $compiledCode = "foreach({{##INPUT##}} as \$elem) {\n" .
+                "    if({$condition}) {\n" .
+                "        {{##ERRORS##}}['elements_in_array_are_all'] = \"{$error}\";\n" .
+                "        {{##GOTO_STOP_ALL##}}\n" .
+                "        {{##GOTO_BAIL##}}\n" .
+                "        {{##GOTO_NEXT_RULE##}}\n" .
+                "        {{##GOTO_END_FIELD##}}\n" .
+                "        break;\n" .
+                "    }\n" .
+                "}";
+        }  // Starts with distinct, so now we check if
+        // it is, strict, ignore_case or just distinct!
+        else {
+            $allowedDistinct = ['distinct', 'distinct_strict', 'distinct_ignore_case'];
+            // Developer config check: Reject unrecognized distinct parameters
+            if (!in_array($targetType, $allowedDistinct, true)) {
+                $this->configErrors[] = "Rule `elements_in_array_are_all` Parameter `'{$targetType}'` is NOT a valid distinct mode (allowed: `distinct`, `distinct_strict`, `distinct_ignore_case`) for Input Key `{{##INPUT_KEY##}}`!";
+                return $this;
+            }
+            $error = !empty($customErrorMsg)
+                ? $customErrorMsg
+                : "Field `{{##INPUT_KEY##}}` contains duplicate elements!";
+            if ($targetType === 'distinct_ignore_case') {
+                $compiledCode = "\$seen = [];\n" .
+                    "foreach({{##INPUT##}} as \$elem) {\n" .
+                    "    \$checkVal = is_string(\$elem) ? strtolower(\$elem) : \$elem;\n" .
+                    "    if(in_array(\$checkVal, \$seen, false)) {\n" .
+                    "        {{##ERRORS##}}['elements_in_array_are_all'] = \"{$error}\";\n" .
+                    "        {{##GOTO_STOP_ALL##}}\n" .
+                    "        {{##GOTO_BAIL##}}\n" .
+                    "        {{##GOTO_NEXT_RULE##}}\n" .
+                    "        {{##GOTO_END_FIELD##}}\n" .
+                    "        break;\n" .
+                    "    }\n" .
+                    "    \$seen[] = \$checkVal;\n" .
+                    "}";
+            } else {
+                $strictFlag = ($targetType === 'distinct_strict') ? 'true' : 'false';
+                $compiledCode = "\$seen = [];\n" .
+                    "foreach({{##INPUT##}} as \$elem) {\n" .
+                    "    if(in_array(\$elem, \$seen, {$strictFlag})) {\n" .
+                    "        {{##ERRORS##}}['elements_in_array_are_all'] = \"{$error}\";\n" .
+                    "        {{##GOTO_STOP_ALL##}}\n" .
+                    "        {{##GOTO_BAIL##}}\n" .
+                    "        {{##GOTO_NEXT_RULE##}}\n" .
+                    "        {{##GOTO_END_FIELD##}}\n" .
+                    "        break;\n" .
+                    "    }\n" .
+                    "    \$seen[] = \$elem;\n" .
+                    "}";
+            }
+        }
+        $this->rules['elements_in_array_are_all'] = [
+            'callback' => $useCallback,
+            'callback_used' => $callbackUsed,
+            'targetType' => $targetType,
+            'error'      => $error,
+            'compiled'   => $compiledCode,
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['elements_in_array_are_all'] = \"" . $error . "\";";
+        return $this;
+    }
 }
-
 class RuleSetObject
 {
     public ?string $dataType = null;
@@ -7448,8 +7445,7 @@ class RuleSetObject
         return $this;
     }
 }
-
-class RuleSetFile
+class RuleSetFiles
 {
     public ?string $dataType = null;
     public ?string $dataTypeCategory = 'file';
@@ -7652,18 +7648,6 @@ function string(string $customErrorMsg = ''): RuleSetString
 {
     return (new RuleSetString())->string($customErrorMsg);
 }
-function password(string $customErrorMsg = ''): RuleSetPassword
-{
-    return (new RuleSetPassword())->password($customErrorMsg);
-}
-function email(string $customErrorMsg = ''): RuleSetEmail
-{
-    return (new RuleSetEmail())->email($customErrorMsg);
-}
-function boolean(string $customErrorMsg = ''): RuleSetBoolean
-{
-    return (new RuleSetBoolean())->boolean($customErrorMsg);
-}
 function checkbox(string $customErrorMsg = ''): RuleSetCheckbox
 {
     return (new RuleSetCheckbox())->checkbox($customErrorMsg);
@@ -7680,10 +7664,6 @@ function float(string $customErrorMsg = ''): RuleSetFloat
 {
     return (new RuleSetFloat())->float($customErrorMsg);
 }
-function phone(string $customErrorMsg = ''): RuleSetPhone
-{
-    return (new RuleSetPhone())->phone($customErrorMsg);
-}
 /**
  * Restricts validation to array structures.
  *
@@ -7699,7 +7679,7 @@ function object(string $customErrorMsg = ''): RuleSetObject
 {
     return (new RuleSetObject())->object($customErrorMsg);
 }
-function files(string $customErrorMsg = ''): RuleSetFile
+function files(string $customErrorMsg = ''): RuleSetFiles
 {
-    return (new RuleSetFile())->files($customErrorMsg);
+    return (new RuleSetFiles())->files($customErrorMsg);
 }
