@@ -267,6 +267,8 @@ class RuleSetAll
     public array $rules = [];
     // Tracks syntax/dev errors during chaining for validating the correct use of the rules
     public array $configErrors = [];
+    // Tracks warnings that will still compile but might be crucial to reconsider due to them
+    public array $configWarnings = [];
     // Collected compiled errors from the rules based on their received static scheme data
     public array $compiledErrors = [];
     // Collection of all errors besides the one for data type (this is for the else part
@@ -442,18 +444,6 @@ class RuleSetAll
     }
 
     /* ALL DATA TYPES RULES */
-    public function chain_rules_experimental(string $customErrorMsg): self // MIGHT NOT BE USED AT ALL!
-    {
-        if (!$this->validateRuleUsage('chain_rules_experimental')) {
-            return $this;
-        }
-        if (empty(trim($customErrorMsg))) {
-            $this->configErrors[] = 'The Compiler-applied Global Rule `chain_rules_experimental` cannot have an empty Custom Error Message but must contain the error message that includes all other rules errors as this Rule chains all rules into a single long `if(condition1 && condition2 ... && ...)` code statement!';
-        }
-        $this->rules['chain_rules_experimental'] = ['error' => $customErrorMsg, 'compiled' => null];
-        $this->useChainAll = true;
-        return $this;
-    }
     public function bail(): self
     {
         if (!$this->validateRuleUsage('bail')) {
@@ -481,7 +471,7 @@ class RuleSetAll
         if (!$validated) {
             return $this;
         }
-        $this->inputKeyField = trim($validated[0]);
+        $this->inputKeyField = strtolower(trim($validated[0]));
         $this->rules['input_key_field'] = ['error' => null, 'compiled' => null];
         $this->useNullable = true;
         return $this;
@@ -545,6 +535,7 @@ class RuleSetAll
             'error'        => $error,
             'compiled'     => $compiledCode,
         ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['callback'] = \"" . $error . "\";";
         return $this;
     }
 
@@ -944,6 +935,7 @@ class RuleSetAll
             'error'      => $error,
             'compiled'   => $compiledCode,
         ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['elements_in_array_are_all'] = \"" . $error . "\";";
         return $this;
     }
 
@@ -2072,6 +2064,7 @@ class RuleSetAll
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
         $this->rules['base32'] = ['error' => $error, 'compiled' => $compiledCode];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['base32'] = \"" . $error . "\";";
         return $this;
     }
     /**
@@ -2095,6 +2088,7 @@ class RuleSetAll
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
         $this->rules['base58'] = ['error' => $error, 'compiled' => $compiledCode];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['base58'] = \"" . $error . "\";";
         return $this;
     }
     /**
@@ -2117,6 +2111,7 @@ class RuleSetAll
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
         $this->rules['base64url'] = ['error' => $error, 'compiled' => $compiledCode];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['base64url'] = \"" . $error . "\";";
         return $this;
     }
     /**
@@ -2138,6 +2133,7 @@ class RuleSetAll
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
         $this->rules['hexadecimal'] = ['error' => $error, 'compiled' => $compiledCode];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['hexadecimal'] = \"" . $error . "\";";
         return $this;
     }
     /**
@@ -2162,6 +2158,7 @@ class RuleSetAll
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
         $this->rules['md5'] = ['error' => $error, 'compiled' => $compiledCode];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['md5'] = \"" . $error . "\";";
         return $this;
     }
     /**
@@ -2186,6 +2183,7 @@ class RuleSetAll
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
         $this->rules['sha1'] = ['error' => $error, 'compiled' => $compiledCode];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['sha1'] = \"" . $error . "\";";
         return $this;
     }
     /**
@@ -2207,6 +2205,7 @@ class RuleSetAll
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
         $this->rules['sha256'] = ['error' => $error, 'compiled' => $compiledCode];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['sha256'] = \"" . $error . "\";";
         return $this;
     }
     /**
@@ -2231,6 +2230,7 @@ class RuleSetAll
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
         $this->rules['sha384'] = ['error' => $error, 'compiled' => $compiledCode];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['sha384'] = \"" . $error . "\";";
         return $this;
     }
     /**
@@ -2255,6 +2255,7 @@ class RuleSetAll
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
         $this->rules['sha512'] = ['error' => $error, 'compiled' => $compiledCode];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['sha512'] = \"" . $error . "\";";
         return $this;
     }
     /**
@@ -2276,6 +2277,7 @@ class RuleSetAll
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
         $this->rules['octal'] = ['error' => $error, 'compiled' => $compiledCode];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['octal'] = \"" . $error . "\";";
         return $this;
     }
     /**
@@ -2297,6 +2299,7 @@ class RuleSetAll
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
         $this->rules['binary'] = ['error' => $error, 'compiled' => $compiledCode];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['binary'] = \"" . $error . "\";";
         return $this;
     }
     /**
@@ -2320,6 +2323,7 @@ class RuleSetAll
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
         $this->rules['pem'] = ['error' => $error, 'compiled' => $compiledCode];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['pem'] = \"" . $error . "\";";
         return $this;
     }
     /**
@@ -2341,6 +2345,7 @@ class RuleSetAll
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
         $this->rules['ip'] = ['error' => $error, 'compiled' => $compiledCode];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['ip'] = \"" . $error . "\";";
         return $this;
     }
     /**
@@ -2362,6 +2367,7 @@ class RuleSetAll
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
         $this->rules['ipv4'] = ['error' => $error, 'compiled' => $compiledCode];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['ipv4'] = \"" . $error . "\";";
         return $this;
     }
     /**
@@ -2383,6 +2389,7 @@ class RuleSetAll
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
         $this->rules['ipv6'] = ['error' => $error, 'compiled' => $compiledCode];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['ipv6'] = \"" . $error . "\";";
         return $this;
     }
     /**
@@ -2406,6 +2413,7 @@ class RuleSetAll
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
         $this->rules['json'] = ['error' => $error, 'compiled' => $compiledCode];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['json'] = \"" . $error . "\";";
         return $this;
     }
     /**
@@ -2427,6 +2435,7 @@ class RuleSetAll
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
         $this->rules['ascii'] = ['error' => $error, 'compiled' => $compiledCode];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['ascii'] = \"" . $error . "\";";
         return $this;
     }
     /**
@@ -2449,6 +2458,7 @@ class RuleSetAll
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
         $this->rules['ascii_printable'] = ['error' => $error, 'compiled' => $compiledCode];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['ascii_printable'] = \"" . $error . "\";";
         return $this;
     }
     /**
@@ -2472,6 +2482,7 @@ class RuleSetAll
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
         $this->rules['utf8'] = ['error' => $error, 'compiled' => $compiledCode];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['utf8'] = \"" . $error . "\";";
         return $this;
     }
     public function color(array|string $formats = 'hex6', string $customErrorMsg = ''): self
@@ -2880,6 +2891,7 @@ class RuleSetAll
             'error'    => $error,
             'compiled' => $compiledCode,
         ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['date'] = \"" . $error . "\";";
         return $this;
     }
     /**
@@ -2922,6 +2934,7 @@ class RuleSetAll
             'error'      => $error,
             'compiled'   => $compiledCode,
         ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['date_after'] = \"" . $error . "\";";
         return $this;
     }
     /**
@@ -2964,6 +2977,7 @@ class RuleSetAll
             'error'      => $error,
             'compiled'   => $compiledCode,
         ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['date_after_or_equal'] = \"" . $error . "\";";
         return $this;
     }
     /**
@@ -3006,6 +3020,7 @@ class RuleSetAll
             'error'      => $error,
             'compiled'   => $compiledCode,
         ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['date_before'] = \"" . $error . "\";";
         return $this;
     }
     /**
@@ -3048,6 +3063,7 @@ class RuleSetAll
             'error'      => $error,
             'compiled'   => $compiledCode,
         ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['date_before_or_equal'] = \"" . $error . "\";";
         return $this;
     }
     /**
@@ -3090,6 +3106,7 @@ class RuleSetAll
             'error'      => $error,
             'compiled'   => $compiledCode,
         ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['date_equals'] = \"" . $error . "\";";
         return $this;
     }
     /**
@@ -3151,6 +3168,7 @@ class RuleSetAll
             'error'    => $error,
             'compiled' => $compiledCode,
         ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['date_format'] = \"" . $error . "\";";
         return $this;
     }
     /**
@@ -3200,6 +3218,7 @@ class RuleSetAll
             'error'       => $error,
             'compiled'    => $compiledCode,
         ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['date_in'] = \"" . $error . "\";";
         return $this;
     }
     /**
@@ -3287,6 +3306,7 @@ class RuleSetAll
             'error'       => $error,
             'compiled'    => $compiledCode,
         ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['date_timezone'] = \"" . $error . "\";";
         return $this;
     }
     /**
@@ -3356,13 +3376,248 @@ class RuleSetAll
             'error'     => $error,
             'compiled'  => $compiledCode,
         ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['encoding'] = \"" . $error . "\";";
         return $this;
     }
+    /**
+     * Validates that a password string satisfies complexity requirements (length, letters, numbers, symbols, mixed case).
+     *
+     * @param string $length Range formatted strictly as "min-max" or "min,max" (e.g. "10-50").
+     * @param int $letters Minimum count of alphabetic characters required (0 = disabled).
+     * @param int $numbers Minimum count of numeric digits required (0 = disabled).
+     * @param int $symbols Minimum count of special/symbol characters required (0 = disabled).
+     * @param bool $mixedCase Require at least 1 uppercase and 1 lowercase character (default = true).
+     * @param string $customErrorMsg Custom error message on validation failure.
+     * @return self
+     */
+    public function password(
+        string $length = "10-50",
+        int $letters = 0,
+        int $numbers = 0,
+        int $symbols = 0,
+        bool $mixedCase = true,
+        string $customErrorMsg = ''
+    ): self {
+        // 1. Guard check: strictly allowed on 'string' data type and 'password' category
+        if (!$this->validateRuleUsage('password', ['email', 'phone'], ['string', 'password'], ['string'])) {
+            return $this;
+        }
+        if (!preg_match('/^([\d]+)[,|-]([\d]+)$/', $length, $lengthParts)) {
+            $this->configErrors[] = "Rule `password` length Parameter (`{$length}`) must be formated as EITHER `min-max` OR `min,max` for Input Key `{{##INPUT_KEY##}}` !";
+            return $this;
+        }
+        $min = (int)($lengthParts[1] ?? 10);
+        $max = (int)($lengthParts[2] ?? $min);
+        if (($min <= 0)) {
+            $this->configErrors[] = "Rule `password` min length ({$min}) cannot be 0 or negative for Input Key `{{##INPUT_KEY##}}`!";
+            return $this;
+        }
+        if (($min < ($letters + $numbers + $symbols))) {
+            $this->configErrors[] = "Rule `password` min length ({$min}) cannot be smaller than the combination of letters, numbers and/or symbols needed for the password to be considered valid for Input Key `{{##INPUT_KEY##}}`!";
+            return $this;
+        }
+        if (($min > $max) || ($min === $max)) {
+            $this->configErrors[] = "Rule `password` min length ({$min}) cannot be greater or equal than max length ({$max}) for Input Key `{{##INPUT_KEY##}}`!";
+            return $this;
+        }
+        if (($min < 12)) {
+            $this->configWarnings[] = "Rule `password` min length ({$min}) is recommended to be at least 12 or preferably even higher for Input Key `{{##INPUT_KEY##}}`!";
+        }
+        if (($max < 16)) {
+            $this->configWarnings[] = "Rule `password` max length ({$max}) is recommended to be at least 16 or preferably even higher for Input Key `{{##INPUT_KEY##}}`!";
+        }
+        if (!$mixedCase) {
+            $this->configWarnings[] = "Rule `password` is recommended to use mixed character casings for more secure password for Input Key `{{##INPUT_KEY##}}`!";
+        }
+        // 2. Build array of compiled runtime conditions
+        $conditions = [];
+        $inputStr = "{{##INPUT##}}";
+        // Length check using O(1) strlen
+        $conditions[] = "strlen({$inputStr}) < {$min}";
+        if ($max > 0) {
+            $conditions[] = "strlen({$inputStr}) > {$max}";
+        }
+        // Letter count check
+        if ($letters > 0) {
+            $conditions[] = "preg_match_all('/[a-zA-Z]/', {$inputStr}) < {$letters}";
+        }
+        // Number count check
+        if ($numbers > 0) {
+            $conditions[] = "preg_match_all('/[0-9]/', {$inputStr}) < {$numbers}";
+        }
+        // Symbol/Special character check (\W includes non-alphanumeric, _ included explicitly)
+        if ($symbols > 0) {
+            $conditions[] = "preg_match_all('/[\W_]/', {$inputStr}) < {$symbols}";
+        }
+        // Mixed case check (requires at least 1 lowercase and 1 uppercase)
+        if ($mixedCase) {
+            $conditions[] = "(!preg_match('/[a-z]/', {$inputStr}) || !preg_match('/[A-Z]/', {$inputStr}))";
+        }
+        // Join all conditions into a single logical OR evaluation
+        $compiledCondition = implode(" ||\n        ", $conditions);
+        // 3. Error message construction
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` does not meet the required password security complexity.";
+        // 4. Store compiled rule
+        $this->rules['password'] = [
+            'min'       => $min,
+            'max'       => $max,
+            'letters'   => $letters,
+            'numbers'   => $numbers,
+            'symbols'   => $symbols,
+            'mixedCase' => $mixedCase,
+            'error'     => $error,
+            'compiled'  => "if({$compiledCondition}) {\n" .
+                "    {{##ERRORS##}}['password'] = \"{$error}\";\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['password'] = \"" . $error . "\";";
+        return $this;
+    }
+    /**
+     * Checks if the password has appeared in public data breaches using the HaveIBeenPwned API (k-Anonymity model) - URL used: https://api.pwnedpasswords.com/range/
+     *
+     * @param int $threshold Minimum number of times leaked to consider compromised (default = 1).
+     * @param float $timeout HTTP socket timeout in seconds for the API request (default = 1.5).
+     * @param bool $failOnApiError If true, fails validation on API timeouts/errors; if false, fails open (default = false).
+     * @param string $customErrorMsg Custom error message on validation failure.
+     * @return self
+     */
+    public function password_uncompromised(
+        int $threshold = 1,
+        float $timeout = 1.5,
+        bool $failOnApiError = false,
+        string $customErrorMsg = ''
+    ): self {
+        // 1. Guard check: must be used on string / password category
+        if (!$this->validateRuleUsage('password_uncompromised', ['email', 'phone'], ['string', 'password'], ['string'])) {
+            return $this;
+        }
+        if ($threshold < 1) {
+            $this->configErrors[] = "Rule `password_uncompromised` threshold must be at least 1 for Input Key `{{##INPUT_KEY##}}`!";
+            return $this;
+        }
+        // 2. Error message
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` has appeared in data breaches and is compromised.";
+        $failOnErrCode = $failOnApiError ? 'true' : 'false';
+        // 3. Runtime Pre-Compiled Logic (Concatenation style)
+        $compiledCode = "if({{##INPUT##}} !== '') {\n" .
+            "    \$__hash = strtoupper(sha1({{##INPUT##}}));\n" .
+            "    \$__prefix = substr(\$__hash, 0, 5);\n" .
+            "    \$__suffix = substr(\$__hash, 5);\n" .
+            "    \$__isCompromised = false;\n" .
+            "    \$__ctx = stream_context_create([\n" .
+            "        'http' => [\n" .
+            "            'method'  => 'GET',\n" .
+            "            'timeout' => {$timeout},\n" .
+            "            'header'  => \"User-Agent: FunkPHP-Validator\\r\\n\"\n" .
+            "        ]\n" .
+            "    ]);\n" .
+            "    \$__response = @file_get_contents(\"https://api.pwnedpasswords.com/range/\" . \$__prefix, false, \$__ctx);\n" .
+            "    if (\$__response === false) {\n" .
+            "        if ({$failOnErrCode}) {\n" .
+            "            \$__isCompromised = true;\n" .
+            "        }\n" .
+            "    } else {\n" .
+            "        if (preg_match_all('/^' . preg_quote(\$__suffix, '/') . ':(\\\\d+)/m', \$__response, \$__matches)) {\n" .
+            "            \$__count = (int)(\$__matches[1][0] ?? 0);\n" .
+            "            if (\$__count >= {$threshold}) {\n" .
+            "                \$__isCompromised = true;\n" .
+            "            }\n" .
+            "        }\n" .
+            "    }\n" .
+            "    if (\$__isCompromised) {\n" .
+            "        {{##ERRORS##}}['password_uncompromised'] = \"{$error}\";\n" .
+            "        {{##GOTO_STOP_ALL##}}\n" .
+            "        {{##GOTO_BAIL##}}\n" .
+            "        {{##GOTO_NEXT_RULE##}}\n" .
+            "        {{##GOTO_END_FIELD##}}\n" .
+            "    }\n" .
+            "}";
+        // 4. Store compiled rule
+        $this->rules['password_uncompromised'] = [
+            'threshold' => $threshold,
+            'error'     => $error,
+            'compiled'  => $compiledCode
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['password_uncompromised'] = \"" . $error . "\";";
+        return $this;
+    }
+    /**
+     * Validates that an input is a valid email address, with optional TLD and DNS record checks.
+     *
+     * @param bool $checkDns Performs DNS lookup for MX, A, and AAAA records on the domain (default = false).
+     * @param bool $checkTld Verifies domain suffix against global TLD list constants (default = false).
+     * @param string $customErrorMsg Custom error message on validation failure.
+     * @return self
+     */
+    public function email(
+        bool $checkDns = false,
+        bool $checkTld = false,
+        string $customErrorMsg = ''
+    ): self {
+        // 1. Guard check: strictly allowed on 'string' data type and 'email' category
+        if (!$this->validateRuleUsage('email', ['password', 'phone'], ['string', 'email'], ['string'])) {
+            return $this;
+        }
+        // 2. Error message setup
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` must be a valid email address.";
+        // 3. Base Email Validation (Uses PHP's native C-compiled filter_var)
+        $compiledCode = "if (filter_var({{##INPUT##}}, FILTER_VALIDATE_EMAIL) === false) {\n" .
+            "    {{##ERRORS##}}['email'] = \"{$error}\";\n" .
+            "    {{##GOTO_STOP_ALL##}}\n" .
+            "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_RULE##}}\n" .
+            "    {{##GOTO_END_FIELD##}}\n" .
+            "}";
+        // 4. Optional TLD Check (Appended only if requested)
+        if ($checkTld) {
+            $compiledCode .= " else {\n" .
+                "    \$__domain = substr(strrchr({{##INPUT##}}, '@') ?: '', 1);\n" .
+                "    \$__tld = strtolower(strrchr(\$__domain, '.') ?: '');\n" .
+                "    if (\$__tld === '' || (!isset(FUNKPHP_LISTS['LISTS']['valid_tlds_top100'][\$__tld]) && !isset(FUNKPHP_LISTS['LISTS']['valid_tlds_all'][\$__tld]))) {\n" .
+                "        {{##ERRORS##}}['email'] = \"{$error}\";\n" .
+                "        {{##GOTO_STOP_ALL##}}\n" .
+                "        {{##GOTO_BAIL##}}\n" .
+                "        {{##GOTO_NEXT_RULE##}}\n" .
+                "        {{##GOTO_END_FIELD##}}\n" .
+                "    }\n" .
+                "}";
+        }
+        // 5. Optional DNS Check (Appended only if requested)
+        if ($checkDns) {
+            $compiledCode .= " else {\n" .
+                "    \$__domain = substr(strrchr({{##INPUT##}}, '@'), 1);\n" .
+                "    if (!checkdnsrr(\$__domain, 'MX') && !checkdnsrr(\$__domain, 'A') && !checkdnsrr(\$__domain, 'AAAA')) {\n" .
+                "        {{##ERRORS##}}['email'] = \"{$error}\";\n" .
+                "        {{##GOTO_STOP_ALL##}}\n" .
+                "        {{##GOTO_BAIL##}}\n" .
+                "        {{##GOTO_NEXT_RULE##}}\n" .
+                "        {{##GOTO_END_FIELD##}}\n" .
+                "    }\n" .
+                "}";
+        }
+        // 6. Store compiled rule
+        $this->rules['email'] = [
+            'checkDns' => $checkDns,
+            'checkTld' => $checkTld,
+            'error'    => $error,
+            'compiled' => $compiledCode
+        ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['email'] = \"" . $error . "\";";
+        return $this;
+    }
+
     /*  STRING RELATED FUNCTIONS LEFT: email_, password_ to fix here! */
-    // CONTINUE HERE NAOW!
-    // VIKTIGT FÖRST: FIXA att lägga till:
-    // "$this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['<RULENAME>'] = \"" . $error . "\";";"
-    // till ALLA nuvarande regler som saknar det då AIn glömde bort då jag glömde bort å visa! ;P
 
 
     /* OTHER INPUT KEYS-ONLY RULES - value is ANOTHER data field! */
@@ -4049,6 +4304,7 @@ class RuleSetAll
             'error'              => $error,
             'compiled'           => $compiledCode,
         ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['exists'] = \"" . $error . "\";";
         return $this;
     }
     /**
@@ -4100,6 +4356,7 @@ class RuleSetAll
             'error'              => $error,
             'compiled'           => $compiledCode,
         ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['unique'] = \"" . $error . "\";";
         return $this;
     }
     /**
@@ -4169,6 +4426,7 @@ class RuleSetAll
             'error'              => $error,
             'compiled'           => $compiledCode,
         ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['unique_except'] = \"" . $error . "\";";
         return $this;
     }
     /* FILES-ONLY RULES (accesses $_FILES array to validate things like filetype, filesize, dimensions if applicable, and so on) */
@@ -4219,6 +4477,7 @@ class RuleSetAll
             'error'         => $error,
             'compiled'      => $compiledCode,
         ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['file_min'] = \"" . $error . "\";";
         return $this;
     }
     /**
@@ -4268,6 +4527,7 @@ class RuleSetAll
             'error'         => $error,
             'compiled'      => $compiledCode,
         ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['file_max'] = \"" . $error . "\";";
         return $this;
     }
     /**
@@ -4326,6 +4586,7 @@ class RuleSetAll
             'error'         => $error,
             'compiled'      => $compiledCode,
         ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['file_between'] = \"" . $error . "\";";
         return $this;
     }
     /**
@@ -4375,6 +4636,7 @@ class RuleSetAll
             'error'         => $error,
             'compiled'      => $compiledCode,
         ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['file_size'] = \"" . $error . "\";";
         return $this;
     }
     /**
@@ -4427,6 +4689,7 @@ class RuleSetAll
             'error'             => $error,
             'compiled'          => $compiledCode,
         ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['file_extensions'] = \"" . $error . "\";";
         return $this;
     }
     /**
@@ -4481,7 +4744,7 @@ class RuleSetAll
             : "The file `{{##INPUT_KEY##}}` must be of type: " . implode(', ', $validMimes) . '.';
         $compiledAllowedArray = var_export($allowedMimeTypes, true);
         // Compiled PHP: Validates temp file existence, reads magic bytes via finfo, and checks array match
-        $compiledCode = "if (" .
+        $compiledCode = "if(" .
             "!isset({{##INPUT##}}['tmp_name']) || " .
             "!is_string({{##INPUT##}}['tmp_name']) || " .
             "!is_uploaded_file({{##INPUT##}}['tmp_name'])" .
@@ -4512,6 +4775,7 @@ class RuleSetAll
             'error'            => $error,
             'compiled'         => $compiledCode,
         ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['file_mimes'] = \"" . $error . "\";";
         return $this;
     }
     /**
@@ -4635,6 +4899,7 @@ class RuleSetAll
             'error'             => $error,
             'compiled'          => $compiledCode,
         ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['file_image'] = \"" . $error . "\";";
         return $this;
     }
     /**
@@ -4774,6 +5039,7 @@ class RuleSetAll
             'error'     => $error,
             'compiled'  => $compiledCode,
         ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['file_dimensions'] = \"" . $error . "\";";
         return $this;
     }
     /**
@@ -4914,6 +5180,7 @@ class RuleSetAll
             'error'    => $error,
             'compiled' => $compiledCode,
         ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['file_dpi'] = \"" . $error . "\";";
         return $this;
     }
     /**
@@ -5019,6 +5286,7 @@ class RuleSetAll
             'error'    => $error,
             'compiled' => $compiledCode,
         ];
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['file_encoding'] = \"" . $error . "\";";
         return $this;
     }
 }
@@ -5368,6 +5636,7 @@ class RuleSetPassword
         $this->dataType = "password";
         return $this;
     }
+
 
     public function bail(): self
     {
