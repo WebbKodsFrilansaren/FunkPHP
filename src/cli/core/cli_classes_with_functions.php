@@ -95,7 +95,7 @@ function cli_parseFileSizeToBytes(int|float $size, string $unit): int|false
         ];
         and then returns a single string that contains the optimized validation version!
 */
-function cli_compile_validation_schema($validation_schema_array): string
+function cli_compile_validation_schema($validation_schema_array, $file, $fn): string
 {
     if (
         !isset($validation_schema_array)
@@ -110,11 +110,47 @@ function cli_compile_validation_schema($validation_schema_array): string
     ) {
         cli_err("\$validation_schema_array must be a Non-Empty Associative Array containg the main Keys: `<CONFIG>` & `VALIDATION` which themselves CANNOT be Empty Arrays but must be both Associative Arrays!");
     }
+
+    $validationKeyRegex = '//i';
+    $validationConfig = $validation_schema_array['<CONFIG>'] ?? null;
+    $validationKey = $validation_schema_array['VALIDATION'] ?? null;
+
     $compiledValidationRules = [];
     $compiledFunctionCommentAbove = [];
     $compiledValidationSchema = '';
     global $tablesAndRelationshipsFile;
     global $connectionsFile;
+
+    // --- STEP 1: Validate Keys and RuleSet Instance Values ---
+    // Regex for each dot-separated segment (rejects control characters & null bytes)
+    $segmentRegex = '/^[^\x00-\x1F\x7F]+$/u';
+    $validationErrWarns = [];
+    foreach ($validationKey as $rawKey => $ruleSetInstance) {
+        // Handle PHP auto-casting '123' to integer 123
+        $fieldKey = (string) $rawKey;
+        // Check 1: Must strictly be an instance of RuleSet
+        if (!($ruleSetInstance instanceof \RuleSet)) {
+            $valueType = is_object($ruleSetInstance) ? get_class($ruleSetInstance) : gettype($ruleSetInstance);
+            cli_build_warning_err_list($validationErrWarns, 'cli_err', "Validation key `{$fieldKey}` must be an instance of `RuleSet` initialized via `data()`. Data Type `{$valueType}` was given instead.");
+        }
+        // Check 2: Parse dot-notation segments while respecting escaped dots (\.)
+        $segments = preg_split('/(?<!\\\\)\./', $fieldKey);
+        if (empty($segments)) {
+            cli_build_warning_err_list($validationErrWarns, 'cli_err', "Validation key `{$fieldKey}` cannot be empty.");
+        }
+        foreach ($segments as $segment) {
+            // Unescape dots to get the literal key name for segment checking
+            $literalSegment = str_replace('\.', '.', $segment);
+            if ($literalSegment === '') {
+                cli_build_warning_err_list($validationErrWarns, 'cli_err', "Validation key `{$fieldKey}` contains an Empty Dot Segment (e.g., `foo..bar` or trailing dot).");
+            }
+            if (!preg_match($segmentRegex, $literalSegment)) {
+                cli_build_warning_err_list($validationErrWarns, 'cli_err', "Validation key segment `{$literalSegment}` in `{$fieldKey}` contains invalid control characters or invalid bytes.");
+            }
+        }
+    }
+    cli_stop_from_warn_err_list($validationErrWarns, "Please Review (" . count($validationErrWarns) . ") Warnings/Errors above for the Validation Function:`{$fn}` in Validation File:`{$file}`!");
+
     /* FROM GEMINI LLM; might be true or NOT for exists(), unique(), unique_except() DB-related ONLY rules!!!
     How the Compiler Replaces Placeholders dynamically
     When the FunkPHP compiler processes the rules:
@@ -131,16 +167,8 @@ function cli_compile_validation_schema($validation_schema_array): string
         $c->db('mongo_docs')->users->countDocuments(['email' => {{##INPUT##}}]) === 0
     */
 
-    // IMPORTANT: Regarding "\." in "key.subKey.names.v1\.0"; On the other hand, if your field name
-    // contains a literal period, you can explicitly prevent this from being interpreted as a "dot"
-    //  by escaping the period with a backslash:
-    //      'title' => 'required|unique:posts|max:255',
-    //     'v1\.0' => 'required',
-    // ADD Support for this when parsing the keys of 'VALIDATION'!
-
     // The final Validation Schema including all the
     // optimized flattened if(){}else{} and goto labels: code!
-
     return $compiledValidationSchema;
 }
 

@@ -2933,10 +2933,10 @@ function cli_output(string $type, string $message, bool $do_exit = false, int $e
                 default => ($color === ANSI_YELLOW) ? ANSI_BLUE : ANSI_YELLOW
             };
             // 2. Return styled segment, resetting back to the current base message color at the end!
-            return $highlightColor . $quote . $text . $quote . $color;
+            return $highlightColor . $quote . $text . $quote . ANSI_RESET;
         }, $message);
         // Print final compiled string out to the shell environment
-        echo $color . $prefix . $formattedMessage . ANSI_RESET . "\n";
+        echo $color . $prefix . ANSI_RESET . $formattedMessage . "\n";
         //echo $color . $prefix . $message . ANSI_RESET . "\n";
         if ($do_exit) {
             exit($exit_code);
