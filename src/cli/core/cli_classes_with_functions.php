@@ -71,7 +71,7 @@ function cli_validate_ruleset_class(mixed $ruleSetInstance, array &$validationEr
         cli_build_warning_err_list(
             $validationErrWarns,
             'cli_err',
-            "Validation key `{$fieldKey}` must be an object instance of `RuleSet`."
+            "Validation Key `{$fieldKey}` MUST be an Object Instance of `RuleSet`!"
         );
         return false;
     }
@@ -103,7 +103,7 @@ function cli_validate_ruleset_class(mixed $ruleSetInstance, array &$validationEr
             cli_build_warning_err_list(
                 $validationErrWarns,
                 'cli_err',
-                "RuleSet instance for key `{$fieldKey}` (Class `{$className}`) is missing required property `\${$propName}`."
+                "RuleSet instance for Key `{$fieldKey}` (Class `{$className}`) is MISSING Rquired Property `\${$propName}`!"
             );
         }
     }
@@ -127,7 +127,7 @@ function cli_validate_ruleset_class(mixed $ruleSetInstance, array &$validationEr
             cli_build_warning_err_list(
                 $validationErrWarns,
                 'cli_err',
-                "RuleSet instance for key `{$fieldKey}` (Class `{$className}`) is missing required method `{$methodName}()`."
+                "RuleSet instance for Key `{$fieldKey}` (Class `{$className}`) is MISSING Required Method `{$methodName}()`!"
             );
         }
     }
