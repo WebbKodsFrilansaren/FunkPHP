@@ -56,6 +56,17 @@ function cli_bracketfy(array $explodedDotNotationPathString): string
     return $bracketed;
 }
 
+function cli_slashify_string($str): string
+{
+    if (trim($str) === '') {
+        return "";
+    }
+    $slashedStr = '';
+
+
+    return '';
+}
+
 /**
  * Normalizes and converts human-readable file size units to raw bytes.
  *
@@ -493,7 +504,7 @@ class RuleSet
     public array $mergedErrorsBesdiesDataType = [];
 
     // ENTRY POINT METHOD WHERE YOU SET DATA TYPE with OR without optional parameters
-    public function setDatatype(string $dataType, string $customErrorMsg = ''): self
+    public function setDatatype(string $dataType, string $customErrorMsg = '', ?string $customErrorMsgForParameters = ''): self
     {
         if (isset($this->dataType)) {
             $this->configErrors[] = 'A Data Type is already set: `' . $this->dataType . '` for Input Key `{{##INPUT_KEY##}}`!';
@@ -518,24 +529,57 @@ class RuleSet
                 return $this;
             }
             // --- ARRAYS: (Dimensional array support like arrays:1-5,5-5) ---
+            // --- ARRAYS: (Multi-dimensional array support like arrays:1-5,5 or arrays:5,5-10) ---
             if ($prefix === 'arrays') {
-                foreach ($arrVals as $arVal) {
-                    if (!$this->validateStringDataConversion($arVal, 'integer')) {
-                        $this->configErrors[] = "Identified Valid Data Type (arrays:) could not convert String Value (`$arVal`) to an expected Integer Value for `$dataType` for Input Key `{{##INPUT_KEY##}}`!";
-                        return $this;
+                $guardConditions = [];
+                foreach ($arrVals as $levelIndex => $arVal) {
+                    // Build depth accessor: level 0 = {{##INPUT##}}, level 1 = {{##INPUT##}}[0], level 2 = {{##INPUT##}}[0][0]
+                    $accessor = '{{##INPUT##}}' . str_repeat('[0]', $levelIndex);
+                    // Level-0 only checks is_array; level-1+ also checks isset() and is_array()
+                    if ($levelIndex === 0) {
+                        $guardConditions[] = "is_array({$accessor})";
+                    } else {
+                        $guardConditions[] = "(isset({$accessor}) && is_array({$accessor}))";
                     }
-                    $this->dimensionalArrayCount[] = (int)$arVal;
+                    // Check if level parameter is a Range (e.g., "1-5")
+                    if (str_contains($arVal, '-')) {
+                        if (substr_count($arVal, '-') !== 1) {
+                            $this->configErrors[] = "Identified Valid Data Type (arrays:) has invalid range format (`{$arVal}`) for Input Key `{{##INPUT_KEY##}}`!";
+                            return $this;
+                        }
+                        [$minStr, $maxStr] = explode('-', $arVal, 2);
+                        if (!$this->validateStringDataConversion($minStr, 'integer') || !$this->validateStringDataConversion($maxStr, 'integer')) {
+                            $this->configErrors[] = "Identified Valid Data Type (arrays:) could not convert String Range (`{$arVal}`) to Integer for `$dataType` on Input Key `{{##INPUT_KEY##}}`!";
+                            return $this;
+                        }
+                        $min = (int)$minStr;
+                        $max = (int)$maxStr;
+                        if ($min >= $max) {
+                            $this->configErrors[] = "Identified Valid Data Type (arrays:) min boundary (`{$min}`) cannot be greater than or equal to max boundary (`{$max}`) in `{$arVal}` for Input Key `{{##INPUT_KEY##}}`. Use a Single Integer if you want an exact size instead!";
+                            return $this;
+                        }
+                        $guardConditions[] = "(count({$accessor}) >= {$min} && count({$accessor}) <= {$max})";
+                    }
+                    // Single value exact size (e.g., "5")
+                    else {
+                        if (!$this->validateStringDataConversion($arVal, 'integer')) {
+                            $this->configErrors[] = "Identified Valid Data Type (arrays:) could not convert String Value (`{$arVal}`) to Integer for `$dataType` on Input Key `{{##INPUT_KEY##}}`!";
+                            return $this;
+                        }
+                        $exactSize = (int)$arVal;
+                        $guardConditions[] = "count({$accessor}) === {$exactSize}";
+                    }
+                    $this->dimensionalArrayCount[] = $arVal;
                 }
-                // Set underlying target type to array
+                $guardExpression = implode(' && ', $guardConditions);
                 $dataType = 'array';
                 $this->dataType = $dataType;
                 $this->dataTypeCategory = $this->setDataTypeCategory[$dataType];
-                $guardExpression = $this->typeGuardMap[$dataType];
-                $this->rules[$dataType] = [
-                    'error' => (!empty($customErrorMsg)) ? $customErrorMsg : "Must be of data type 'array'.",
-                ];
-                $this->rules[$dataType]['compiled'] = "if(!{$guardExpression}) {\n" .
-                    "    {{##ERRORS##}}['{$dataType}'] = '{$this->rules[$dataType]['error']}';\n" .
+                $error = (!empty($customErrorMsg)) ? $customErrorMsg : "Must be of data type `multi-dimensional array`!";
+                $error = addcslashes($error, "'\\");
+                $this->rules[$dataType] = ['error' => $error];
+                $this->rules[$dataType]['compiled'] = "if(!({$guardExpression})) {\n" .
+                    "    {{##ERRORS##}}['{$dataType}'] = '{$error}';\n" .
                     "    {{##GOTO_STOP_ALL##}}\n" .
                     "    {{##GOTO_BAIL##}}\n" .
                     "    {{##GOTO_NEXT_RULE##}}\n" .
@@ -568,23 +612,28 @@ class RuleSet
             // Register the base data type first & then apply automatic size or range shortcut rules
             $this->setDatatype($prefix, $customErrorMsg);
             if (count($numericVals) === 2) {
-                return $this->between($numericVals[0], $numericVals[1], ('{{#INPUT_KEY#}} must be between `' . $numericVals[0] . '` and `' . $numericVals[1] . '`!'));
+                return $this->between($numericVals[0], $numericVals[1], ((!empty($customErrorMsgForParameters)) ? $customErrorMsgForParameters : ('`{{#INPUT_KEY#}}` must be between `' . $numericVals[0] . '` and `' . $numericVals[1] . '`!')));
             }
-            return $this->size($numericVals[0], "{{#INPUT_KEY#}} must have an exact size of `{$numericVals[0]}`!");
+            return $this->size($numericVals[0], ((!empty($customErrorMsgForParameters)) ? $customErrorMsgForParameters : ('`{{#INPUT_KEY#}}` must have an exact size of `{$numericVals[0]}`!')));
         }
         // ANY OTHER DATA TYPE THAT IS VALID BASED ON $typeGuardMap?
         if (!isset($this->typeGuardMap[$dataType])) {
             $this->configErrors[] = 'Invalid Data Type chosen: `' . $dataType . '` for Input Key `{{##INPUT_KEY##}}`!';
             return $this;
         }
+        // Do not allow Parameters Only Custom Error Message when only setting data type without optional parameters!
+        if (trim($customErrorMsgForParameters) !== '') {
+            $this->configErrors[] = 'Cannot use Custom Error Message for Parameters (`' .  $customErrorMsgForParameters  . '`) when setting only Data Type and not its Parameters:`' . $dataType . '` for Input Key `{{##INPUT_KEY##}}`!';
+            return $this;
+        }
         $this->dataType = $dataType;
         $this->dataTypeCategory = $this->setDataTypeCategory[$dataType];
+        $error = ((!empty($customErrorMsg)) ? $customErrorMsg : "`{{##INPUT_KEY##}}` must be of data type `{$dataType}`.");
+        $error = addcslashes($error, "'\\");
         $guardExpression = $this->typeGuardMap[$dataType];
-        $this->rules[$dataType] = [
-            'error'    => ((!empty($customErrorMsg)) ? $customErrorMsg : "{{##INPUT_KEY##}} must be of data type '{$dataType}'."),
-        ];
+        $this->rules[$dataType] = ['error'    => $error];
         $this->rules[$dataType]['compiled'] =  "if(!{$guardExpression}) {\n" .
-            "    {{##ERRORS##}}['{$dataType}'] = '{$this->rules[$dataType]['error']}';\n" .
+            "    {{##ERRORS##}}['{$dataType}'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
@@ -605,7 +654,9 @@ class RuleSet
         }
         [$prefix, $rawParams] = explode(':', $rawDataType, 2);
         $prefix = strtolower(trim($prefix));
-        $rawParams = str_replace('-', ',', $rawParams);
+        if ($prefix !== 'arrays') {
+            $rawParams = str_replace('-', ',', $rawParams);
+        }
         $rawParams = trim($rawParams);
         if ($rawParams === '') {
             $this->configErrors[] = "Identified Valid Data Type (`{$prefix}:`) but no parameters were provided: `{$rawDataType}`!";
@@ -792,17 +843,19 @@ class RuleSet
         if (!$this->validateRuleUsage('required')) {
             return $this;
         }
-        $this->rules['required'] = [
-            'error' => ((!empty($customErrorMsg)) ? $customErrorMsg : 'This field is REQUIRED!')
-        ];
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "`{{##INPUT_KEY##}}` is REQUIRED!";
+        $error = addcslashes($error, "'\\");
+        $this->rules['required'] = ['error' => $error];
         $this->rules['required']['compiled'] =  "if(!isset({{##INPUT##}})) {\n" .
-            "    {{##ERRORS##}}['required'] = \"{$this->rules['required']['error']}\";\n" .
+            "    {{##ERRORS##}}['required'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
-        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['required'] = '" . $this->rules['required']['error'] . "';";
+        $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['required'] = '" . $error . "';";
         $this->useRequired = true;
         return $this;
     }
@@ -834,6 +887,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` failed custom validation!";
+        $error = addcslashes($error, "'\\");
         $compiledCode = "if(\\{$func}(\$c,{{##INPUT##}}) === false) {\n" .
             "    {{##ERRORS##}}['callback'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
@@ -876,6 +930,7 @@ class RuleSet
         $error = (!empty($customErrorMsg))
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` is missing required keys.";
+        $error = addcslashes($error, "'\\");
         // 6. Store Compiled Rule
         $this->rules['keys_in_array_null_allowed'] = [
             'required_keys' => $keys,
@@ -918,6 +973,7 @@ class RuleSet
         $error = (!empty($customErrorMsg))
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must contain exactly {$expectedCount} specific keys.";
+        $error = addcslashes($error, "'\\");
         // 6. Store Compiled Rule
         $this->rules['keys_in_array_null_allowed_exact_count'] = [
             'required_keys'  => $keys,
@@ -959,7 +1015,7 @@ class RuleSet
         $error = (!empty($customErrorMsg))
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` is missing required non-null keys.";
-
+        $error = addcslashes($error, "'\\");
         // 6. Store Compiled Rule
         $this->rules['keys_in_array_not_null'] = [
             'required_keys' => $keys,
@@ -1001,6 +1057,7 @@ class RuleSet
         $error = (!empty($customErrorMsg))
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must contain exactly {$expectedCount} specified non-null keys.";
+        $error = addcslashes($error, "'\\");
         // 6. Store Compiled Rule
         $this->rules['keys_in_array_not_null_exact_count'] = [
             'required_keys'  => $keys,
@@ -1028,6 +1085,7 @@ class RuleSet
         $error = (!empty($customErrorMsg))
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be a Numbered Array!";
+        $error = addcslashes($error, "'\\");
         $this->rules['array']['compiled'] = str_replace("if(!is_array({{##INPUT##}}))", "if(!is_array({{##INPUT##}}) || !array_is_list({{##INPUT##}}))", $this->rules['array']['compiled']);
         $this->rules['array']['error'] .= ' ' . $error;
         return $this;
@@ -1043,6 +1101,7 @@ class RuleSet
         $error = (!empty($customErrorMsg))
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be an Associative Array!";
+        $error = addcslashes($error, "'\\");
         // !empty() ensures an empty array [] passes as a valid empty map instead of failing array_is_list()
         $this->rules['array']['compiled'] = str_replace(
             "if(!is_array({{##INPUT##}}))",
@@ -1100,6 +1159,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` is missing required nested array key paths: " . implode(', ', $pathsWhereEachDotIsNextDepthLevel);
+        $error = addcslashes($error, "'\\");
         // 3. Store compiled rule
         $this->rules['keys_in_array_depths'] = [
             'paths'    => $pathsWhereEachDotIsNextDepthLevel,
@@ -1187,6 +1247,7 @@ class RuleSet
             $error = !empty($customErrorMsg)
                 ? $customErrorMsg
                 : "Field `{{##INPUT_KEY##}}` must contain only `{$targetType}` elements!";
+            $error = addcslashes($error, "'\\");
             $compiledCode = "foreach({{##INPUT##}} as \$elem) {\n" .
                 "    if({$condition}) {\n" .
                 "        {{##ERRORS##}}['elements_in_array_are_all'] = '{$error}';\n" .
@@ -1209,6 +1270,7 @@ class RuleSet
             $error = !empty($customErrorMsg)
                 ? $customErrorMsg
                 : "Field `{{##INPUT_KEY##}}` contains duplicate elements!";
+            $error = addcslashes($error, "'\\");
             if ($targetType === 'distinct_ignore_case') {
                 $compiledCode = "\$seen = [];\n" .
                     "foreach({{##INPUT##}} as \$elem) {\n" .
@@ -1283,6 +1345,7 @@ class RuleSet
             }
         }
         $error = ((!empty($customErrorMsg)) ? $customErrorMsg : "Value must be at least {$minValue}.");
+        $error = addcslashes($error, "'\\");
         // Branch compilation based on the selected Data Type
         switch ($this->dataType) {
             case 'string':
@@ -1355,6 +1418,7 @@ class RuleSet
             }
         }
         $error = ((!empty($customErrorMsg)) ? $customErrorMsg : "Value must be at most {$maxValue}.");
+        $error = addcslashes($error, "'\\");
         // Branch compilation based on the selected Data Type
         switch ($this->dataType) {
             case 'string':
@@ -1402,7 +1466,7 @@ class RuleSet
         }
         // 3. Range Sanity Guard ($minVal must be strictly less than $maxVal)
         if ($minVal >= $maxVal) {
-            $this->configErrors[] = 'Rule `between` has invalid range `[' . $minVal . ', ' . $maxVal . ']` for Input Key `{{##INPUT_KEY##}}`. Min value must be strictly smaller than Max value!';
+            $this->configErrors[] = 'Rule `between` has invalid range `[' . $minVal . ', ' . $maxVal . ']` for Input Key `{{##INPUT_KEY##}}` where Min value must be strictly smaller than Max value. Use the Rule `size()` if need an exact value to be validated instead!';
             return $this;
         }
         // 4. Float Guard
@@ -1434,6 +1498,7 @@ class RuleSet
             }
         }
         $error = (!empty($customErrorMsg)) ? $customErrorMsg : "Value must be between {$minVal} and {$maxVal}.";
+        $error = addcslashes($error, "'\\");
         // 6. Branch compilation based on selected Data Type / Category
         switch ($this->dataTypeCategory) {
             case 'string':
@@ -1503,6 +1568,7 @@ class RuleSet
             }
         }
         $error = (!empty($customErrorMsg)) ? $customErrorMsg : "Must be exactly {$size}.";
+        $error = addcslashes($error, "'\\");
         // 6. Branch compilation based on selected Data Type Category
         switch ($this->dataTypeCategory) {
             case 'string':
@@ -1549,10 +1615,10 @@ class RuleSet
             return $this;
         }
         // 3. Build Compiled Conditions using (string)({{##INPUT##}} ?? '')
-        $inputStr = '(string)({{##INPUT##}} ?? \'\')';
+        $inputStr = '{{##INPUT##}}';
         $conditions = [];
         foreach ($prefixes as $prefix) {
-            $escapedPrefix = addslashes($prefix);
+            $escapedPrefix = addcslashes($prefix, "'\\");
             $conditions[] = "str_starts_with({$inputStr}, '{$escapedPrefix}')";
         }
         // If multiple prefixes, ANY match is valid: !(cond1 || cond2)
@@ -1560,6 +1626,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must start with: " . implode(', ', $prefixes);
+        $error = addcslashes($error, "'\\");
         $this->rules['starts_with'] = [
             'prefixes' => $prefixes,
             'error'    => $error,
@@ -1583,10 +1650,10 @@ class RuleSet
         if (!$suffixes) {
             return $this;
         }
-        $inputStr = '(string)({{##INPUT##}} ?? \'\')';
+        $inputStr = '{{##INPUT##}}';
         $conditions = [];
         foreach ($suffixes as $suffix) {
-            $escapedSuffix = addslashes($suffix);
+            $escapedSuffix = addcslashes($suffix, "'\\");
             $conditions[] = "str_ends_with({$inputStr}, '{$escapedSuffix}')";
         }
         // If multiple values given, ANY match passes validation
@@ -1594,6 +1661,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must end with: " . implode(', ', $suffixes);
+        $error = addcslashes($error, "'\\");
         $this->rules['ends_with'] = [
             'suffixes' => $suffixes,
             'error'    => $error,
@@ -1620,7 +1688,7 @@ class RuleSet
         // BUILD-TIME BRANCHING based on Data Type Category
         if ($this->dataTypeCategory === 'array') {
             // ARRAY CATEGORY: Input array must contain ALL specified values
-            $inputArr = '(array)({{##INPUT##}} ?? [])';
+            $inputArr = '{{##INPUT##}}';
             $conditions = [];
             foreach ($needles as $needle) {
                 $exportedNeedle = var_export($needle, true);
@@ -1630,10 +1698,10 @@ class RuleSet
             $condition = implode(' || ', $conditions);
         } else {
             // STRING/NUMERIC CATEGORY: Input string must contain AT LEAST ONE of the specified values
-            $inputStr = '(string)({{##INPUT##}} ?? \'\')';
+            $inputStr = '{{##INPUT##}}';
             $conditions = [];
             foreach ($needles as $needle) {
-                $escapedNeedle = addslashes((string)$needle);
+                $escapedNeedle = addcslashes(((string)$needle), "'\\");
                 $conditions[] = "str_contains({$inputStr}, '{$escapedNeedle}')";
             }
             $condition = '!(' . implode(' || ', $conditions) . ')';
@@ -1641,6 +1709,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must contain: " . implode(', ', $needles);
+        $error = addcslashes($error, "'\\");
         $this->rules['contains'] = [
             'needles'  => $needles,
             'error'    => $error,
@@ -1664,10 +1733,10 @@ class RuleSet
         if (!$prefixes) {
             return $this;
         }
-        $inputStr = '(string)({{##INPUT##}} ?? \'\')';
+        $inputStr = '{{##INPUT##}}';
         $conditions = [];
         foreach ($prefixes as $prefix) {
-            $escapedPrefix = addslashes($prefix);
+            $escapedPrefix = addcslashes($prefix, "'\\");
             $conditions[] = "str_starts_with({$inputStr}, '{$escapedPrefix}')";
         }
         // Fails if ANY condition matches
@@ -1675,6 +1744,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must not start with: " . implode(', ', $prefixes);
+        $error = addcslashes($error, "'\\");
         $this->rules['doesnt_start_with'] = [
             'prefixes' => $prefixes,
             'error'    => $error,
@@ -1698,10 +1768,10 @@ class RuleSet
         if (!$suffixes) {
             return $this;
         }
-        $inputStr = '(string)({{##INPUT##}} ?? \'\')';
+        $inputStr = '{{##INPUT##}}';
         $conditions = [];
         foreach ($suffixes as $suffix) {
-            $escapedSuffix = addslashes($suffix);
+            $escapedSuffix = addcslashes($suffix, "'\\");
             $conditions[] = "str_ends_with({$inputStr}, '{$escapedSuffix}')";
         }
         // Fails if ANY condition matches
@@ -1709,6 +1779,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must not end with: " . implode(', ', $suffixes);
+        $error = addcslashes($error, "'\\");
         $this->rules['doesnt_end_with'] = [
             'suffixes' => $suffixes,
             'error'    => $error,
@@ -1735,7 +1806,7 @@ class RuleSet
         // BUILD-TIME BRANCHING based on Data Type Category
         if ($this->dataTypeCategory === 'array') {
             // ARRAY CATEGORY: Input array must NOT contain ANY of the specified values
-            $inputArr = '(array)({{##INPUT##}} ?? [])';
+            $inputArr = '{{##INPUT##}}';
             $conditions = [];
             foreach ($needles as $needle) {
                 $exportedNeedle = var_export($needle, true);
@@ -1745,10 +1816,10 @@ class RuleSet
             $condition = implode(' || ', $conditions);
         } else {
             // STRING/NUMERIC CATEGORY: Input string must NOT contain ANY of the specified values
-            $inputStr = '(string)({{##INPUT##}} ?? \'\')';
+            $inputStr = '{{##INPUT##}}';
             $conditions = [];
             foreach ($needles as $needle) {
-                $escapedNeedle = addslashes((string)$needle);
+                $escapedNeedle = addcslashes($needle, "'\\");
                 $conditions[] = "str_contains({$inputStr}, '{$escapedNeedle}')";
             }
             $condition = '(' . implode(' || ', $conditions) . ')';
@@ -1756,6 +1827,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must not contain: " . implode(', ', $needles);
+        $error = addcslashes($error, "'\\");
         $this->rules['doesnt_contain'] = [
             'needles'  => $needles,
             'error'    => $error,
@@ -1792,6 +1864,7 @@ class RuleSet
             $condition = '!in_array({{##INPUT##}}, ' . $exportedArray . ', true)';
         }
         $error = (!empty($customErrorMsg)) ? $customErrorMsg : "Selected value for `{{##INPUT_KEY##}}` is invalid.";
+        $error = addcslashes($error, "'\\");
         // 7. Store Compiled Rule
         $this->rules['in'] = [
             'error'    => $error,
@@ -1824,6 +1897,7 @@ class RuleSet
             $condition = 'in_array({{##INPUT##}}, ' . $exportedArray . ', true)';
         }
         $error = (!empty($customErrorMsg)) ? $customErrorMsg : "Selected value for `{{##INPUT_KEY##}}` is forbidden.";
+        $error = addcslashes($error, "'\\");
         // 7. Store Compiled Rule
         $this->rules['not_in'] = [
             'error'    => $error,
@@ -1857,6 +1931,7 @@ class RuleSet
         }
         // 6. Build Rule Error & Compiled Code
         $error = (!empty($customErrorMsg)) ? $customErrorMsg : "Must be at least {$minChars} characters.";
+        $error = addcslashes($error, "'\\");
         $this->rules['min_mb'] = [
             'error'    => $error,
             'compiled' => "if(mb_strlen({{##INPUT##}}) < {$minChars}) {\n" .
@@ -1887,6 +1962,7 @@ class RuleSet
         }
         // 6. Build Rule Error & Compiled Code
         $error = (!empty($customErrorMsg)) ? $customErrorMsg : "Must be at most {$maxChars} characters.";
+        $error = addcslashes($error, "'\\");
         $this->rules['max_mb'] = [
             'error'    => $error,
             'compiled' => "if(mb_strlen({{##INPUT##}}) > {$maxChars}) {\n" .
@@ -1925,6 +2001,7 @@ class RuleSet
         }
         // 6. Build Rule Error & Compiled Code
         $error = (!empty($customErrorMsg)) ? $customErrorMsg : "Must be between {$minChars} and {$maxChars} characters.";
+        $error = addcslashes($error, "'\\");
         $this->rules['between_mb'] = [
             'error'    => $error,
             'compiled' => "if((mb_strlen({{##INPUT##}}) < {$minChars} || mb_strlen({{##INPUT##}}) > {$maxChars})) {\n" .
@@ -1955,6 +2032,7 @@ class RuleSet
         }
         // 7. Build Rule Error & Compiled Code
         $error = (!empty($customErrorMsg)) ? $customErrorMsg : "Must be exactly {$size} characters.";
+        $error = addcslashes($error, "'\\");
         $this->rules['size_mb'] = [
             'error'    => $error,
             'compiled' => "if(mb_strlen({{##INPUT##}}) !== {$size}) {\n" .
@@ -1997,6 +2075,7 @@ class RuleSet
         }
         $condition = "(" . implode(' || ', $compiledConditions) . ")";
         $error = (!empty($customErrorMsg)) ? $customErrorMsg : "Field `{{##INPUT_KEY##}}` format is invalid.";
+        $error = addcslashes($error, "'\\");
         // 5. Store compiled rule
         $this->rules['regex'] = [
             'error'    => $error,
@@ -2039,6 +2118,7 @@ class RuleSet
         }
         $condition = "(" . implode(' || ', $compiledConditions) . ")";
         $error = (!empty($customErrorMsg)) ? $customErrorMsg : "Field `{{##INPUT_KEY##}}` format is invalid.";
+        $error = addcslashes($error, "'\\");
         // 5. Store compiled rule
         $this->rules['not_regex'] = [
             'error'    => $error,
@@ -2063,7 +2143,7 @@ class RuleSet
         $error = (!empty($customErrorMsg))
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be a valid MAC address.";
-
+        $error = addcslashes($error, "'\\");
         // 5. Store Compiled Rule
         $this->rules['mac_address'] = [
             'error'    => $error,
@@ -2088,6 +2168,7 @@ class RuleSet
         $error = (!empty($customErrorMsg))
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be lowercase.";
+        $error = addcslashes($error, "'\\");
         // 6. Store Compiled Rule
         $this->rules['lowercase'] = [
             'error'    => $error,
@@ -2112,6 +2193,7 @@ class RuleSet
         $error = (!empty($customErrorMsg))
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be uppercase.";
+        $error = addcslashes($error, "'\\");
         // 6. Store Compiled Rule
         $this->rules['uppercase'] = [
             'error'    => $error,
@@ -2137,6 +2219,7 @@ class RuleSet
         $error = (!empty($customErrorMsg))
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be lowercase_mb.";
+        $error = addcslashes($error, "'\\");
         // 6. Store Compiled Rule
         $this->rules['lowercase_mb'] = [
             'error'    => $error,
@@ -2161,6 +2244,7 @@ class RuleSet
         $error = (!empty($customErrorMsg))
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be uppercase_mb.";
+        $error = addcslashes($error, "'\\");
         // 6. Store Compiled Rule
         $this->rules['uppercase_mb'] = [
             'error'    => $error,
@@ -2234,6 +2318,7 @@ class RuleSet
         $error = (!empty($customErrorMsg))
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` is not a valid Unique Identifier ({$fmtListStr}).";
+        $error = addcslashes($error, "'\\");
         // 4. Store Compiled Rule
         $this->rules['uid'] = [
             'error'    => $error,
@@ -2268,6 +2353,7 @@ class RuleSet
         $error = (!empty($customErrorMsg))
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` is not a valid slug pattern.";
+        $error = addcslashes($error, "'\\");
         // 6. Store Compiled Rule
         $this->rules['slug'] = [
             'error'    => $error,
@@ -2304,6 +2390,7 @@ class RuleSet
         $error = (!empty($customErrorMsg))
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be a valid base64 encoded string.";
+        $error = addcslashes($error, "'\\");
         // 7. Store Compiled Rule
         $this->rules['base64'] = [
             'error'    => $error,
@@ -2340,6 +2427,7 @@ class RuleSet
         $error = (!empty($customErrorMsg))
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must NOT be a base64 encoded string.";
+        $error = addcslashes($error, "'\\");
         // 7. Store Compiled Rule
         $this->rules['not_base64'] = [
             'error'    => $error,
@@ -2366,6 +2454,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be a valid Base32 string.";
+        $error = addcslashes($error, "'\\");
         // Matches A-Z and 2-7, optional '=' padding at end (length must be multiple of 8 if padded)
         $compiledCode = "if(preg_match('/^(?:[A-Z2-7]{8})*(?:[A-Z2-7]{2}={6}|[A-Z2-7]{4}={4}|[A-Z2-7]{5}={3}|[A-Z2-7]{7}=)?$/iD', {{##INPUT##}}) !== 1) {\n" .
             "    {{##ERRORS##}}['base32'] = '{$error}';\n" .
@@ -2390,6 +2479,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be a valid Base58 string.";
+        $error = addcslashes($error, "'\\");
         // Matches 1-9, A-Z (no I, O), a-z (no l)
         $compiledCode = "if(preg_match('/^[1-9A-HJ-NP-Za-km-z]+$/D', {{##INPUT##}}) !== 1) {\n" .
             "    {{##ERRORS##}}['base58'] = '{$error}';\n" .
@@ -2414,6 +2504,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be a valid URL-safe Base64 string.";
+        $error = addcslashes($error, "'\\");
         $compiledCode = "if(preg_match('/^[A-Za-z0-9_-]+$/D', {{##INPUT##}}) !== 1) {\n" .
             "    {{##ERRORS##}}['base64url'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
@@ -2436,6 +2527,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be a Valid Hexadecimal String.";
+        $error = addcslashes($error, "'\\");
         $compiledCode = "if(!ctype_xdigit({{##INPUT##}})) {\n" .
             "    {{##ERRORS##}}['hexadecimal'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
@@ -2461,6 +2553,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be a valid MD5 hash.";
+        $error = addcslashes($error, "'\\");
         $compiledCode = "if(preg_match('/^[a-f0-9]{32}$/iD', {{##INPUT##}}) !== 1) {\n" .
             "    {{##ERRORS##}}['md5'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
@@ -2486,6 +2579,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be a valid SHA-1 hash.";
+        $error = addcslashes($error, "'\\");
         $compiledCode = "if(preg_match('/^[a-f0-9]{40}$/iD', {{##INPUT##}}) !== 1) {\n" .
             "    {{##ERRORS##}}['sha1'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
@@ -2508,6 +2602,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be a valid SHA-256 hash.";
+        $error = addcslashes($error, "'\\");
         $compiledCode = "if(preg_match('/^[a-f0-9]{64}$/iD', {{##INPUT##}}) !== 1) {\n" .
             "    {{##ERRORS##}}['sha256'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
@@ -2533,6 +2628,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be a valid SHA-384 hash.";
+        $error = addcslashes($error, "'\\");
         $compiledCode = "if(preg_match('/^[a-f0-9]{96}$/iD', {{##INPUT##}}) !== 1) {\n" .
             "    {{##ERRORS##}}['sha384'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
@@ -2558,6 +2654,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be a valid SHA-512 hash.";
+        $error = addcslashes($error, "'\\");
         $compiledCode = "if(preg_match('/^[a-f0-9]{128}$/iD', {{##INPUT##}}) !== 1) {\n" .
             "    {{##ERRORS##}}['sha512'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
@@ -2580,6 +2677,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be a Valid Octal String.";
+        $error = addcslashes($error, "'\\");
         $compiledCode = "if(preg_match('/^[0-7]+$/D', {{##INPUT##}}) !== 1) {\n" .
             "    {{##ERRORS##}}['octal'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
@@ -2602,6 +2700,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be a Valid Binary String (0s and 1s only).";
+        $error = addcslashes($error, "'\\");
         $compiledCode = "if(preg_match('/^[01]+$/D', {{##INPUT##}}) !== 1) {\n" .
             "    {{##ERRORS##}}['binary'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
@@ -2625,6 +2724,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be a Valid PEM Formatted String.";
+        $error = addcslashes($error, "'\\");
         // Validates header, base64 payload, and footer pattern
         $compiledCode = "if(preg_match('/^-----BEGIN [A-Z0-9 ]+-----[\\r\\n]+[A-Za-z0-9+\\/\\r\\n=]+[\\r\\n]+-----END [A-Z0-9 ]+-----[\\r\\n]*$/D', {{##INPUT##}}) !== 1) {\n" .
             "    {{##ERRORS##}}['pem'] = '{$error}';\n" .
@@ -2648,6 +2748,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be a valid IP address.";
+        $error = addcslashes($error, "'\\");
         $compiledCode = "if(filter_var({{##INPUT##}}, FILTER_VALIDATE_IP) === false) {\n" .
             "    {{##ERRORS##}}['ip'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
@@ -2670,6 +2771,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be a valid IPv4 address.";
+        $error = addcslashes($error, "'\\");
         $compiledCode = "if(filter_var({{##INPUT##}}, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) === false) {\n" .
             "    {{##ERRORS##}}['ipv4'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
@@ -2692,6 +2794,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be a valid IPv6 address.";
+        $error = addcslashes($error, "'\\");
         $compiledCode = "if(filter_var({{##INPUT##}}, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) === false) {\n" .
             "    {{##ERRORS##}}['ipv6'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
@@ -2716,6 +2819,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be a valid JSON string.";
+        $error = addcslashes($error, "'\\");
         $compiledCode = "if(!json_validate({{##INPUT##}})) {\n" .
             "    {{##ERRORS##}}['json'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
@@ -2738,6 +2842,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must contain only 7-bit ASCII characters.";
+        $error = addcslashes($error, "'\\");
         $compiledCode = "if(!mb_check_encoding({{##INPUT##}}, 'ASCII')) {\n" .
             "    {{##ERRORS##}}['ascii'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
@@ -2761,6 +2866,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must contain only printable ASCII characters.";
+        $error = addcslashes($error, "'\\");
         $compiledCode = "if(!ctype_print({{##INPUT##}})) {\n" .
             "    {{##ERRORS##}}['ascii_printable'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
@@ -2784,6 +2890,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be a valid UTF-8 string.";
+        $error = addcslashes($error, "'\\");
         // preg_match('//u', $var) returns 1 if valid UTF-8, 0 if malformed
         $compiledCode = "if(preg_match('//u', {{##INPUT##}}) !== 1) {\n" .
             "    {{##ERRORS##}}['utf8'] = '{$error}';\n" .
@@ -2854,6 +2961,7 @@ class RuleSet
         $error = (!empty($customErrorMsg))
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be a valid color code ({$fmtListStr}).";
+        $error = addcslashes($error, "'\\");
         // 6. Store Compiled Rule
         $this->rules['color'] = [
             'allowed_formats' => array_keys($selectedPatterns),
@@ -2899,6 +3007,7 @@ class RuleSet
             $defaultError = "Field `{{##INPUT_KEY##}}` must be one of the following characters: " . implode(', ', $chars) . ".";
         }
         $error = (!empty($customErrorMsg)) ? $customErrorMsg : $defaultError;
+        $error = addcslashes($error, "'\\");
         // 6. Store Compiled Rule
         $this->rules['single_char'] = [
             'allowed_chars' => $chars,
@@ -2944,6 +3053,7 @@ class RuleSet
             $defaultError = "Field `{{##INPUT_KEY##}}` must be one of the following characters: " . implode(', ', $chars) . ".";
         }
         $error = (!empty($customErrorMsg)) ? $customErrorMsg : $defaultError;
+        $error = addcslashes($error, "'\\");
         // 6. Store Compiled Rule
         $this->rules['single_char_mb'] = [
             'allowed_chars' => $chars,
@@ -2970,16 +3080,17 @@ class RuleSet
             return $this;
         }
         // 3. Multibyte string start check using mb_strpos === 0
-        $inputStr = '(string)({{##INPUT##}} ?? \'\')';
+        $inputStr = '{{##INPUT##}}';
         $conditions = [];
         foreach ($prefixes as $prefix) {
-            $escapedPrefix = addslashes($prefix);
+            $escapedPrefix = addcslashes($prefix, "'\\");
             $conditions[] = "mb_strpos({$inputStr}, '{$escapedPrefix}') === 0";
         }
         $condition = '!(' . implode(' || ', $conditions) . ')';
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must start with: " . implode(', ', $prefixes);
+        $error = addcslashes($error, "'\\");
         $this->rules['starts_with_mb'] = [
             'prefixes' => $prefixes,
             'error'    => $error,
@@ -3005,12 +3116,11 @@ class RuleSet
             return $this;
         }
         // 3. Multibyte string end check using mb_substr
-        $inputStr = '(string)({{##INPUT##}} ?? \'\')';
+        $inputStr = '{{##INPUT##}}';
         $conditions = [];
         foreach ($suffixes as $suffix) {
-            $escapedSuffix = addslashes($suffix);
+            $escapedSuffix = addcslashes($suffix, "'\\");
             $length = mb_strlen($suffix);
-
             if ($length === 0) {
                 $conditions[] = 'true';
             } else {
@@ -3021,6 +3131,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must end with: " . implode(', ', $suffixes);
+        $error = addcslashes($error, "'\\");
         $this->rules['ends_with_mb'] = [
             'suffixes' => $suffixes,
             'error'    => $error,
@@ -3046,16 +3157,17 @@ class RuleSet
             return $this;
         }
         // 3. Multibyte string contains check using mb_strpos !== false
-        $inputStr = '(string)({{##INPUT##}} ?? \'\')';
+        $inputStr = '{{##INPUT##}}';
         $conditions = [];
         foreach ($needles as $needle) {
-            $escapedNeedle = addslashes($needle);
+            $escapedNeedle = addcslashes($needle, "'\\");
             $conditions[] = "mb_strpos({$inputStr}, '{$escapedNeedle}') !== false";
         }
         $condition = '!(' . implode(' || ', $conditions) . ')';
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must contain: " . implode(', ', $needles);
+        $error = addcslashes($error, "'\\");
         $this->rules['contains_mb'] = [
             'needles'  => $needles,
             'error'    => $error,
@@ -3079,10 +3191,10 @@ class RuleSet
         if (!$prefixes) {
             return $this;
         }
-        $inputStr = '(string)({{##INPUT##}} ?? \'\')';
+        $inputStr = '{{##INPUT##}}';
         $conditions = [];
         foreach ($prefixes as $prefix) {
-            $escapedPrefix = addslashes($prefix);
+            $escapedPrefix = addcslashes($prefix, "'\\");
             $conditions[] = "mb_strpos({$inputStr}, '{$escapedPrefix}') === 0";
         }
         // Fails if ANY condition matches
@@ -3090,6 +3202,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must not start with: " . implode(', ', $prefixes);
+        $error = addcslashes($error, "'\\");
         $this->rules['doesnt_start_with_mb'] = [
             'prefixes' => $prefixes,
             'error'    => $error,
@@ -3113,10 +3226,10 @@ class RuleSet
         if (!$suffixes) {
             return $this;
         }
-        $inputStr = '(string)({{##INPUT##}} ?? \'\')';
+        $inputStr = '{{##INPUT##}}';
         $conditions = [];
         foreach ($suffixes as $suffix) {
-            $escapedSuffix = addslashes($suffix);
+            $escapedSuffix = addcslashes($suffix, "'\\");
             $length = mb_strlen($suffix);
             if ($length === 0) {
                 $conditions[] = 'true';
@@ -3129,6 +3242,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must not end with: " . implode(', ', $suffixes);
+        $error = addcslashes($error, "'\\");
         $this->rules['doesnt_end_with_mb'] = [
             'suffixes' => $suffixes,
             'error'    => $error,
@@ -3152,10 +3266,10 @@ class RuleSet
         if (!$needles) {
             return $this;
         }
-        $inputStr = '(string)({{##INPUT##}} ?? \'\')';
+        $inputStr = '{{##INPUT##}}';
         $conditions = [];
         foreach ($needles as $needle) {
-            $escapedNeedle = addslashes($needle);
+            $escapedNeedle = addcslashes($needle, "'\\");
             $conditions[] = "mb_strpos({$inputStr}, '{$escapedNeedle}') !== false";
         }
         // Fails if ANY condition matches
@@ -3163,6 +3277,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must not contain: " . implode(', ', $needles);
+        $error = addcslashes($error, "'\\");
         $this->rules['doesnt_contain_mb'] = [
             'needles'  => $needles,
             'error'    => $error,
@@ -3191,6 +3306,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must contain a valid date format!";
+        $error = addcslashes($error, "'\\");
         $compiledCode = "if(strtotime({{##INPUT##}}) === false) {\n" .
             "    {{##ERRORS##}}['date'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
@@ -3230,6 +3346,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be a valid date after `{$targetDate}`!";
+        $error = addcslashes($error, "'\\");
         // Fails if input is not a string, not parseable, or falls on/before the target date
         $condition = "strtotime({{##INPUT##}}) === false || " .
             "strtotime({{##INPUT##}}) <= strtotime('{$targetDate}')";
@@ -3273,6 +3390,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be a valid date on or after `{$targetDate}`!";
+        $error = addcslashes($error, "'\\");
         // Fails if input is unparseable or falls strictly before the target date
         $condition = "strtotime({{##INPUT##}}) === false || " .
             "strtotime({{##INPUT##}}) < strtotime('{$targetDate}')";
@@ -3316,6 +3434,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be a valid date before `{$targetDate}`!";
+        $error = addcslashes($error, "'\\");
         // Fails if input is not a string, not parseable, or falls on/after the target date
         $condition = "strtotime({{##INPUT##}}) === false || " .
             "strtotime({{##INPUT##}}) >= strtotime('{$targetDate}')";
@@ -3359,6 +3478,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be a valid date on or before `{$targetDate}`!";
+        $error = addcslashes($error, "'\\");
         // Fails if input is unparseable or falls strictly after the target date
         $condition = "strtotime({{##INPUT##}}) === false || " .
             "strtotime({{##INPUT##}}) > strtotime('{$targetDate}')";
@@ -3402,6 +3522,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be a valid date equal to `{$targetDate}`!";
+        $error = addcslashes($error, "'\\");
         // Fails if input is not parseable or timestamps do not match
         $condition = "strtotime({{##INPUT##}}) === false || " .
             "strtotime({{##INPUT##}}) !== strtotime('{$targetDate}')";
@@ -3456,7 +3577,7 @@ class RuleSet
         // Build matching checks for each supplied format
         $matchingConditions = [];
         foreach ($validFormats as $fmt) {
-            $escapedFmt = addslashes($fmt);
+            $escapedFmt = addcslashes($fmt, "'\\");
             $matchingConditions[] = "(\\DateTimeImmutable::createFromFormat('{$escapedFmt}', {{##INPUT##}}) !== false && " .
                 "\\DateTimeImmutable::createFromFormat('{$escapedFmt}', {{##INPUT##}})->format('{$escapedFmt}') === {{##INPUT##}})";
         }
@@ -3464,6 +3585,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must match one of the following date formats: `{$joinedFormats}`!";
+        $error = addcslashes($error, "'\\");
         // Fails if NONE of the format conditions evaluate to true
         $condition = "!(" . implode(" || ", $matchingConditions) . ")";
         $compiledCode = "if({$condition}) {\n" .
@@ -3508,13 +3630,14 @@ class RuleSet
         // Build individual equality checks for each target date
         $equalityChecks = [];
         foreach ($validatedDates as $target) {
-            $escapedTarget = addslashes($target);
+            $escapedTarget = addcslashes($target, "'\\");
             $equalityChecks[] = "strtotime({{##INPUT##}}) === strtotime('{$escapedTarget}')";
         }
         $joinedTargets = implode('`, `', $validatedDates);
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be a valid date matching one of the following: `{$joinedTargets}`!";
+        $error = addcslashes($error, "'\\");
         // Fails if input is unparseable OR if none of the target checks match
         $condition = "strtotime({{##INPUT##}}) === false || !(" . implode(' || ', $equalityChecks) . ")";
         $compiledCode = "if({$condition}) {\n" .
@@ -3590,6 +3713,7 @@ class RuleSet
         // Determine error message
         if (!empty($customErrorMsg)) {
             $error = $customErrorMsg;
+            $error = addcslashes($error, "'\\");
         } elseif ($groupConstant === \DateTimeZone::PER_COUNTRY) {
             $error = "Field `{{##INPUT_KEY##}}` must be a valid timezone identifier for country `" . strtoupper($countryCode) . "`!";
         } elseif ($normalizedRegion !== 'all') {
@@ -3664,6 +3788,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be encoded in any of the following formats: `" . implode(', ', $cleanEncodings) . "`.";
+        $error = addcslashes($error, "'\\");
         $compiledEncodings = var_export($cleanEncodings, true);
         // 2. Compiled runtime check
         $compiledCode = "{\n" .
@@ -3766,11 +3891,45 @@ class RuleSet
         }
         // Join all conditions into a single logical OR evaluation
         $compiledCondition = implode(" ||\n        ", $conditions);
-        // 3. Error message construction
-        $error = !empty($customErrorMsg)
-            ? $customErrorMsg
-            : "Field `{{##INPUT_KEY##}}` does not meet the required password security complexity.";
-        // 4. Store compiled rule
+        // Error message construction
+        $error = '';
+        if (!empty($customErrorMsg)) {
+            $error = $customErrorMsg;
+        } else {
+            $reqs = [];
+            // Length requirement
+            $reqs[] = "be between {$min} and {$max} characters long";
+            // Mixed case requirement
+            if ($mixedCase) {
+                $reqs[] = "contain both uppercase and lowercase letters";
+            }
+            // Minimum letters count
+            if ($letters > 0) {
+                $reqs[] = "contain at least {$letters} " . ($letters === 1 ? 'letter' : 'letters');
+            }
+            // Minimum numbers count
+            if ($numbers > 0) {
+                $reqs[] = "contain at least {$numbers} " . ($numbers === 1 ? 'number' : 'numbers');
+            }
+            // Minimum symbols count
+            if ($symbols > 0) {
+                $reqs[] = "contain at least {$symbols} " . ($symbols === 1 ? 'symbol' : 'symbols');
+            }
+            // Format requirements into a clean list
+            $totalReqs = count($reqs);
+            if ($totalReqs === 1) {
+                $reqList = $reqs[0];
+            } elseif ($totalReqs === 2) {
+                $reqList = $reqs[0] . " and " . $reqs[1];
+            } else {
+                $lastReq = array_pop($reqs);
+                $reqList = implode(', ', $reqs) . ', and ' . $lastReq;
+            }
+            $error = "Field `{{##INPUT_KEY##}}` must {$reqList}.";
+        }
+        // Escape error message for single-quoted compiled PHP strings
+        $error = addcslashes($error, "'\\");
+        // Store compiled rule
         $this->rules['password'] = [
             'min'       => $min,
             'max'       => $max,
@@ -3817,6 +3976,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` has appeared in data breaches and is compromised.";
+        $error = addcslashes($error, "'\\");
         $failOnErrCode = $failOnApiError ? 'true' : 'false';
         // 3. Runtime Pre-Compiled Logic (Concatenation style)
         $compiledCode = "if({{##INPUT##}} !== '') {\n" .
@@ -3882,6 +4042,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be a valid email address.";
+        $error = addcslashes($error, "'\\");
         // 3. Custom Regex Validation (Handles 99% of web email formats, single-letter domains like x.se, disallows '..')
         $compiledCode = "if(!preg_match('/^(?!.*\\.\\.)[a-zA-Z0-9](?:[a-zA-Z0-9._+-]*[a-zA-Z0-9])?@(?:[a-zA-Z0-9](?!.*--)[a-zA-Z0-9-]*\\.)+[a-zA-Z]{2,}\$/D', {{##INPUT##}})) {\n" .
             "    {{##ERRORS##}}['email'] = '{$error}';\n" .
@@ -3951,6 +4112,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be a valid phone number.";
+        $error = addcslashes($error, "'\\");
         // 3. Base Regex: allows optional leading +, numbers, spaces, parens, hyphens, and dots
         $compiledCode = "if(!preg_match('/^\\+?[0-9\\s().-]{{$minDigits},30}\$/D', {{##INPUT##}})) {\n" .
             "    {{##ERRORS##}}['phone'] = '{$error}';\n" .
@@ -4014,6 +4176,7 @@ class RuleSet
         $error = (!empty($customErrorMsg))
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be greater than or equal to field `{$targetFieldinValidation}`.";
+        $error = addcslashes($error, "'\\");
         // 3. Branch condition based on current Data Type Category
         // Failure condition: current field is LESS THAN target field
         switch ($this->dataTypeCategory) {
@@ -4059,6 +4222,7 @@ class RuleSet
         $error = (!empty($customErrorMsg))
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be greater than field `{$targetFieldinValidation}`.";
+        $error = addcslashes($error, "'\\");
         // Failure condition: input <= target
         switch ($this->dataTypeCategory) {
             case 'string':
@@ -4102,6 +4266,7 @@ class RuleSet
         $error = (!empty($customErrorMsg))
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be less than or equal to field `{$targetFieldinValidation}`.";
+        $error = addcslashes($error, "'\\");
         // Failure condition: input > target
         switch ($this->dataTypeCategory) {
             case 'string':
@@ -4145,6 +4310,7 @@ class RuleSet
         $error = (!empty($customErrorMsg))
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be less than field `{$targetFieldinValidation}`.";
+        $error = addcslashes($error, "'\\");
         // Failure condition: input >= target
         switch ($this->dataTypeCategory) {
             case 'string':
@@ -4197,6 +4363,7 @@ class RuleSet
         $error = (!empty($customErrorMsg))
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must match field `{$targetField}`.";
+        $error = addcslashes($error, "'\\");
         // 6. Store Compiled Rule
         $this->rules['same'] = [
             'error'    => $error,
@@ -4229,6 +4396,7 @@ class RuleSet
         $error = (!empty($customErrorMsg))
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be different from field `{$targetField}`.";
+        $error = addcslashes($error, "'\\");
         // 6. Store Compiled Rule
         $this->rules['different'] = [
             'error'  => $error,
@@ -4276,6 +4444,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be a multiple of {$target}.";
+        $error = addcslashes($error, "'\\");
         // 4. Store compiled rule
         $this->rules['multiple_of'] = [
             'value'    => $target,
@@ -4324,6 +4493,7 @@ class RuleSet
             $defaultError = "Field `{{##INPUT_KEY##}}` must be one of the following digits: " . implode(', ', $digits) . ".";
         }
         $error = (!empty($customErrorMsg)) ? $customErrorMsg : $defaultError;
+        $error = addcslashes($error, "'\\");
         // 6. Store Compiled Rule
         $this->rules['single_digit'] = [
             'allowed_digits' => $digits,
@@ -4360,6 +4530,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be exactly {$count} digits.";
+        $error = addcslashes($error, "'\\");
         // 4. Store compiled rule
         $this->rules['digits'] = [
             'digits'   => $count,
@@ -4396,6 +4567,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must have at least {$min} digits.";
+        $error = addcslashes($error, "'\\");
         // 4. Store compiled rule
         $this->rules['min_digits'] = [
             'min'      => $min,
@@ -4437,7 +4609,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must not exceed {$max} digits.";
-
+        $error = addcslashes($error, "'\\");
         // 4. Store compiled rule
         $this->rules['max_digits'] = [
             'max'      => $max,
@@ -4480,6 +4652,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be between {$minVal} and {$maxVal} digits.";
+        $error = addcslashes($error, "'\\");
         // 4. Store compiled rule
         $this->rules['digits_between'] = [
             'min'      => $minVal,
@@ -4531,6 +4704,7 @@ class RuleSet
             return $this;
         }
         // 3. Compile failure condition using fast runtime string splitting
+        $error = '';
         $decLen = "strlen(explode('.', (string)({{##INPUT##}} ?? ''))[1] ?? '')";
         if ($min === $max) {
             // Exact decimal count check
@@ -4545,6 +4719,7 @@ class RuleSet
                 ? $customErrorMsg
                 : "Field `{{##INPUT_KEY##}}` must have between {$min} and {$max} decimal places.";
         }
+        $error = addcslashes($error, "'\\");
         // 4. Store compiled rule
         $this->rules['decimal'] = [
             'min'      => $min,
@@ -4583,7 +4758,7 @@ class RuleSet
         $error = (!empty($customErrorMsg))
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be checked.";
-
+        $error = addcslashes($error, "'\\");
         // 6. Store Compiled Rule
         $this->rules['checked'] = [
             'allowed_values' => $values,
@@ -4619,6 +4794,7 @@ class RuleSet
         $error = (!empty($customErrorMsg))
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be unchecked.";
+        $error = addcslashes($error, "'\\");
         // 6. Store Compiled Rule
         $this->rules['unchecked'] = [
             'allowed_values' => $values,
@@ -4664,6 +4840,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Selected `{{##INPUT_KEY##}}` does not exist.";
+        $error = addcslashes($error, "'\\");
         $compiledCode = "try {\n" .
             "    {{##DB_EXISTS_NOT_FOUND_BLOCK_END_WITH_FINAL_IF_NEGATED_STATEMENT##}} {\n" .
             "        {{##ERRORS##}}['exists'] = '{$error}';\n" .
@@ -4716,6 +4893,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be unique. Value already exists in database.";
+        $error = addcslashes($error, "'\\");
         $compiledCode = "try {\n" .
             "    {{##DB_UNIQUE_ALREADY_EXISTS_BLOCK_END_WITH_FINAL_IF_NEGATED_STATEMENT##}} {\n" .
             "        {{##ERRORS##}}['unique'] = '{$error}';\n" .
@@ -4783,6 +4961,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "Field `{{##INPUT_KEY##}}` must be unique and cannot be the current one.";
+        $error = addcslashes($error, "'\\");
         $compiledCode = "try {\n" .
             "        \$ignoreValue = {$compiledCPath};\n" .
             "    {{##DB_UNIQUE_EXCEPT_ALREADY_EXISTS_BLOCK_END_WITH_FINAL_IF_NEGATED_STATEMENT##}} {\n" .
@@ -4846,6 +5025,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "The file `{{##INPUT_KEY##}}` must be at least {$minSize} {$unit}.";
+        $error = addcslashes($error, "'\\");
         $compiledCode = "if(!isset({{##INPUT##}}['size']) || {{##INPUT##}}['size'] < {$minSizeBytes}) {\n" .
             "    {{##ERRORS##}}['file_min'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
@@ -4896,6 +5076,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "The file `{{##INPUT_KEY##}}` must not exceed {$maxSize} {$unit}.";
+        $error = addcslashes($error, "'\\");
         $compiledCode = "if(!isset({{##INPUT##}}['size']) || {{##INPUT##}}['size'] > {$maxSizeBytes}) {\n" .
             "    {{##ERRORS##}}['file_max'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
@@ -4953,6 +5134,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "The file `{{##INPUT_KEY##}}` must be between {$minVal} and {$maxVal} {$unit}.";
+        $error = addcslashes($error, "'\\");
         $compiledCode = "if(!isset({{##INPUT##}}['size']) || {{##INPUT##}}['size'] < {$minSizeBytes} || {{##INPUT##}}['size'] > {$maxSizeBytes}) {\n" .
             "    {{##ERRORS##}}['file_between'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
@@ -5005,6 +5187,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "The file `{{##INPUT_KEY##}}` must be exactly {$exactSize} {$unit}.";
+        $error = addcslashes($error, "'\\");
         $compiledCode = "if(!isset({{##INPUT##}}['size']) || {{##INPUT##}}['size'] !== {$exactSizeBytes}) {\n" .
             "    {{##ERRORS##}}['file_size'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
@@ -5058,6 +5241,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "The file `{{##INPUT_KEY##}}` must have one of the following extensions: {$allowedListStr}.";
+        $error = addcslashes($error, "'\\");
         // Export array into valid PHP code array syntax
         $compiledAllowedArray = var_export($normalizedExts, true);
         $compiledCode = "if(!isset({{##INPUT##}}['name']) || !in_array(strtolower(pathinfo({{##INPUT##}}['name'], PATHINFO_EXTENSION)), {$compiledAllowedArray}, true)) {\n" .
@@ -5125,6 +5309,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "The file `{{##INPUT_KEY##}}` must be of type: " . implode(', ', $validMimes) . '.';
+        $error = addcslashes($error, "'\\");
         $compiledAllowedArray = var_export($allowedMimeTypes, true);
         // Compiled PHP: Validates temp file existence, reads magic bytes via finfo, and checks array match
         $compiledCode = "if(" .
@@ -5250,6 +5435,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "The file `{{##INPUT_KEY##}}` must be a valid image.";
+        $error = addcslashes($error, "'\\");
         $compiledAllowedArray = var_export($allowedMimeTypes, true);
         // 5. Compile runtime PHP check using finfo_file
         $compiledCode = "if(" .
@@ -5352,6 +5538,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "The Image File `{{##INPUT_KEY##}}` dimensions are invalid (" . implode(', ', $constraints) . ").";
+        $error = addcslashes($error, "'\\");
         // 4. Convert unit inputs to standard pixels at compile time (using standard 96 DPI CSS scale)
         $toPixels = static function (?float $val, string $unit): ?float {
             if ($val === null) {
@@ -5471,6 +5658,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "The Image File `{{##INPUT_KEY##}}` resolution (DPI) is invalid (" . implode(', ', $constraints) . ").";
+        $error = addcslashes($error, "'\\");
         $pMinDpi = $minDpi !== null ? (string)(float)$minDpi : 'null';
         $pMaxDpi = $maxDpi !== null ? (string)(float)$maxDpi : 'null';
         // 4. Compiled runtime check
@@ -5594,6 +5782,7 @@ class RuleSet
         $error = !empty($customErrorMsg)
             ? $customErrorMsg
             : "The file `{{##INPUT_KEY##}}` must be encoded in {$cleanEncoding}.";
+        $error = addcslashes($error, "'\\");
         // Compiled runtime check streaming file in 64KB chunks with boundary back-off
         $compiledCode = "if(" .
             "!isset({{##INPUT##}}['tmp_name']) || " .
@@ -5683,7 +5872,7 @@ class RuleSet
  * @param 'list'|'associative'|'' $setArrayTypeToListOrAssociative
  * @return RuleSetAll
  */
-function data(string $dataType, string $customErrorMsg = '', string $setArrayTypeToListOrAssociative = ''): RuleSet
+function data(string $dataType, string $customErrorMsgDataTypeOnly = '', string $customErrorMsgOnlyForParameters = ''): RuleSet
 {
-    return (new RuleSet())->setDatatype($dataType, $customErrorMsg, $setArrayTypeToListOrAssociative);
+    return (new RuleSet())->setDatatype($dataType, $customErrorMsgDataTypeOnly, $customErrorMsgOnlyForParameters);
 }
