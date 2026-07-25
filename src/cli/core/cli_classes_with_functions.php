@@ -57,6 +57,84 @@ function cli_bracketfy(array $explodedDotNotationPathString): string
 }
 
 /**
+ * Validates that a given object strictly adheres to the expected RuleSet class structure
+ * by verifying all required properties and methods via Reflection.
+ *
+ * @param mixed  $ruleSetInstance     The object to validate
+ * @param array  $validationErrWarns Reference to error/warning collector array
+ * @param string $fieldKey           The field key name (for context in error messages)
+ * @return bool True if valid structure, false if any property/method is missing
+ */
+function cli_validate_ruleset_class(mixed $ruleSetInstance, array &$validationErrWarns, string $fieldKey): bool
+{
+    if (!is_object($ruleSetInstance)) {
+        cli_build_warning_err_list(
+            $validationErrWarns,
+            'cli_err',
+            "Validation key `{$fieldKey}` must be an object instance of `RuleSet`."
+        );
+        return false;
+    }
+    $ref = new \ReflectionClass($ruleSetInstance);
+    $className = $ref->getName();
+    $hasErrors = false;
+    // 1. Array of required properties (public, private, static, etc.)
+    $requiredProperties = [
+        'dataType',
+        'dataTypeCategory',
+        'inputKeyField',
+        'useNullable',
+        'useRequired',
+        'useBail',
+        'arrayType',
+        'dimensionalArrayCount',
+        'rules',
+        'configErrors',
+        'configWarnings',
+        'compiledErrors',
+        'mergedErrorsBesdiesDataType',
+        'extensionToMimeMap',
+        'typeGuardMap',
+        'setDataTypeCategory',
+    ];
+    foreach ($requiredProperties as $propName) {
+        if (!$ref->hasProperty($propName)) {
+            $hasErrors = true;
+            cli_build_warning_err_list(
+                $validationErrWarns,
+                'cli_err',
+                "RuleSet instance for key `{$fieldKey}` (Class `{$className}`) is missing required property `\${$propName}`."
+            );
+        }
+    }
+    // 2. Array of required methods (public, private, protected, static)
+    // Easily add or adjust method names here as you expand RuleSet!
+    $requiredMethods = [
+        'setDatatype',
+        'validateSetDataTypeParameters',
+        'validateStringDataConversion',
+        // --- ADD FUTURE METHODS BELOW ---
+        // 'validateRuleUsage',
+        // 'validateRuleMultipleValues',
+        // 'in_allowed',
+        // 'in_disallowed',
+        // 'not_in_allowed',
+        // 'not_in_disallowed',
+    ];
+    foreach ($requiredMethods as $methodName) {
+        if (!$ref->hasMethod($methodName)) {
+            $hasErrors = true;
+            cli_build_warning_err_list(
+                $validationErrWarns,
+                'cli_err',
+                "RuleSet instance for key `{$fieldKey}` (Class `{$className}`) is missing required method `{$methodName}()`."
+            );
+        }
+    }
+    return !$hasErrors;
+}
+
+/**
  * Normalizes and converts human-readable file size units to raw bytes.
  *
  * @param int|float $size Size value.
