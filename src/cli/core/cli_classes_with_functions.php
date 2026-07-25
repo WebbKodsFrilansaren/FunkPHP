@@ -95,8 +95,26 @@ function cli_parseFileSizeToBytes(int|float $size, string $unit): int|false
         ];
         and then returns a single string that contains the optimized validation version!
 */
-function cli_compile_validation_schema($validation_schema, &$currentTables, &$currentConnections): string
+function cli_compile_validation_schema($validation_schema_array): string
 {
+    if (
+        !isset($validation_schema_array)
+        || !is_array($validation_schema_array)
+        || array_is_list($validation_schema_array)
+        || count($validation_schema_array) === 0
+        || !array_key_exists('<CONFIG>', $validation_schema_array)
+        || !array_key_exists('stop_all_on_first_error', $validation_schema_array['<CONFIG>'])
+        || !array_key_exists('VALIDATION', $validation_schema_array)
+        || count($validation_schema_array['VALIDATION']) === 0
+        || array_is_list($validation_schema_array['VALIDATION'])
+    ) {
+        cli_err("\$validation_schema_array must be a Non-Empty Associative Array containg the main Keys: `<CONFIG>` & `VALIDATION` which themselves CANNOT be Empty Arrays but must be both Associative Arrays!");
+    }
+    $compiledValidationRules = [];
+    $compiledFunctionCommentAbove = [];
+    $compiledValidationSchema = '';
+    global $tablesAndRelationshipsFile;
+    global $connectionsFile;
     /* FROM GEMINI LLM; might be true or NOT for exists(), unique(), unique_except() DB-related ONLY rules!!!
     How the Compiler Replaces Placeholders dynamically
     When the FunkPHP compiler processes the rules:
@@ -122,7 +140,7 @@ function cli_compile_validation_schema($validation_schema, &$currentTables, &$cu
 
     // The final Validation Schema including all the
     // optimized flattened if(){}else{} and goto labels: code!
-    $compiledValidationSchema = '';
+
     return $compiledValidationSchema;
 }
 

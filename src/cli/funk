@@ -9874,6 +9874,7 @@ $singlePipeline = include_once FUNKPHP_FILE_PATH_PIPELINE ?? $singlePipelineDefa
 $singleRoutesRoute = include_once FUNKPHP_FILE_PATH_ROUTES ?? $singleRoutesRouteDefault;
 $singleTroute = include_once FUNKPHP_FILE_PATH_TROUTES ?? $singleTrouteDefault;
 $tablesAndRelationshipsFile = include_once FUNKPHP_FILE_PATH_TABLES ?? $tablesAndRelationshipsFileDefault;
+$connectionsFile = include_once FUNKPHP_FILE_PATH_CONNS_CONFIG ?? $connsDefault;
 $mysqlDataTypesFile = include_once FUNKPHP_FILE_PATH_SUPPORTED_MYSQL_DATA_TYPES ?? $mysqlDataTypesFileDefault;
 $mysqlOperatorSyntax = include_once FUNKPHP_FILE_PATH_SUPPORTED_MYSQL_OPERATORS ?? $mysqlOperatorSyntaxDefault;
 
