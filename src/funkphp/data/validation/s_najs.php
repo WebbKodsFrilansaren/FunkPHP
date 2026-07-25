@@ -2,7 +2,7 @@
 
 namespace funkphp\data\validation\s_najs;
 
-use function string, integer, float, number, object, arr, files, all;
+use function data;
 // FunkCLI Created on 2026-06-15 17:55:32!
 
 function s_paj(&$c)
@@ -14,8 +14,8 @@ function s_paj(&$c)
 	cli_dump([
 		'<CONFIG>' => ['stop_all_on_first_error' => false],
 		'VALIDATION' => [
-			'bigger.name'  => all("array", "Name must be an associative array!", "associative")->keys_in_array_depths(['meta.author.name', 'config.settings']),
-			'test' => all('string')->phone([], 7, 15)
+			'bigger.name'  => data("array", "Name must be an associative array!", "associative")->keys_in_array_depths(['meta.author.name', 'config.settings']),
+			'test' => data('file:1500-15050')
 		],
 	]);
 };
