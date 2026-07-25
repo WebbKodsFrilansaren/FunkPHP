@@ -2869,40 +2869,74 @@ function cli_output(string $type, string $message, bool $do_exit = false, int $e
     $regexQuotesInsideQuotes = '/(?<=\").*?(?=(?<!\\)\")/';
     global $funk_response_messages;
     $prefix = '';
-    $color = '';
+    $indent = '  ';
+    $badge = '';
+    $color = ANSI_RESET;
     switch ($type) {
         case MSG_TYPE_ERROR:
-            $prefix = '[FunkCLI - ERROR]: ';
-            $color = ANSI_RED;
+            // Red background with bold white text: " ERROR "
+            $badge = ANSI_BG_RED . ANSI_TEXT_WHITE_BOLD . '  ERROR  ' . ANSI_RESET;
+            $color = ANSI_RED; // Default color for highlighting inside $message
             $exit_code = ($exit_code === 0) ? 1 : $exit_code;
             break;
         case MSG_TYPE_SYNTAX_ERROR:
-            $prefix = '[FunkCLI - SYNTAX ERROR]: ';
+            $badge = ANSI_BG_RED . ANSI_TEXT_WHITE_BOLD . ' SYNTAX ERROR ' . ANSI_RESET;
             $color = ANSI_RED;
             $exit_code = ($exit_code === 0) ? 1 : $exit_code;
             break;
         case MSG_TYPE_SUCCESS:
-            $prefix = '[FunkCLI - SUCCESS]: ';
+            // Green background with bold black text
+            $badge = ANSI_BG_GREEN . ANSI_TEXT_BLACK_BOLD . ' SUCCESS ' . ANSI_RESET;
             $color = ANSI_GREEN;
             break;
         case MSG_TYPE_INFO:
-            $prefix = '[FunkCLI - INFO]: ';
+            $badge = ANSI_BG_BLUE . ANSI_TEXT_WHITE_BOLD . '  INFO   ' . ANSI_RESET;
             $color = ANSI_BLUE;
             break;
         case MSG_TYPE_WARNING:
-            $prefix = '[FunkCLI - WARNING]: ';
-            $color = ANSI_YELLOW;
-            break;
         case MSG_TYPE_IMPORTANT:
-            $prefix = '[FunkCLI - IMPORTANT]: ';
+            // Yellow background with bold black text
+            $badge = ANSI_BG_YELLOW . ANSI_TEXT_BLACK_BOLD . ' WARNING ' . ANSI_RESET;
             $color = ANSI_YELLOW;
             break;
         default:
-            $type = 'UNKOWN';
-            $prefix = '[FunkCLI - UNKOWN MESSAGE TYPE]: '; // Fallback for unknown types
+            $badge = ANSI_BG_CYAN . ANSI_TEXT_BLACK_BOLD . ' UNKNOWN ' . ANSI_RESET;
             $color = ANSI_RESET;
             break;
     }
+    // switch ($type) {
+    //     case MSG_TYPE_ERROR:
+    //         $prefix = '[FunkCLI - ERROR]: ';
+    //         $color = ANSI_RED;
+    //         $exit_code = ($exit_code === 0) ? 1 : $exit_code;
+    //         break;
+    //     case MSG_TYPE_SYNTAX_ERROR:
+    //         $prefix = '[FunkCLI - SYNTAX ERROR]: ';
+    //         $color = ANSI_RED;
+    //         $exit_code = ($exit_code === 0) ? 1 : $exit_code;
+    //         break;
+    //     case MSG_TYPE_SUCCESS:
+    //         $prefix = '[FunkCLI - SUCCESS]: ';
+    //         $color = ANSI_GREEN;
+    //         break;
+    //     case MSG_TYPE_INFO:
+    //         $prefix = '[FunkCLI - INFO]: ';
+    //         $color = ANSI_BLUE;
+    //         break;
+    //     case MSG_TYPE_WARNING:
+    //         $prefix = '[FunkCLI - WARNING]: ';
+    //         $color = ANSI_YELLOW;
+    //         break;
+    //     case MSG_TYPE_IMPORTANT:
+    //         $prefix = '[FunkCLI - IMPORTANT]: ';
+    //         $color = ANSI_YELLOW;
+    //         break;
+    //     default:
+    //         $type = 'UNKOWN';
+    //         $prefix = '[FunkCLI - UNKOWN MESSAGE TYPE]: '; // Fallback for unknown types
+    //         $color = ANSI_RESET;
+    //         break;
+    // }
     // Check if we are in JSON_MODE (web browser access)
     // If not JSON_MODE, we assume & output to CLI!
     // Any message that includes $do_exit true will
@@ -2933,11 +2967,14 @@ function cli_output(string $type, string $message, bool $do_exit = false, int $e
                 default => ($color === ANSI_YELLOW) ? ANSI_BLUE : ANSI_YELLOW
             };
             // 2. Return styled segment, resetting back to the current base message color at the end!
-            return $highlightColor . $quote . $text . $quote . ANSI_RESET;
+            //return $highlightColor . $quote . $text . $quote . ANSI_RESET;
+            return $highlightColor . $text . ANSI_RESET; // without quotes?!
         }, $message);
         // Print final compiled string out to the shell environment
-        echo $color . $prefix . ANSI_RESET . $formattedMessage . "\n";
-        //echo $color . $prefix . $message . ANSI_RESET . "\n";
+        echo $indent . $badge . ' ' . $formattedMessage . "\n"; // This uses badge type!
+
+        //echo $color . $prefix . ANSI_RESET . $formattedMessage . "\n"; // This uses old version!
+        //echo $color . $prefix . $message . ANSI_RESET . "\n"; // This uses older version?
         if ($do_exit) {
             exit($exit_code);
         }

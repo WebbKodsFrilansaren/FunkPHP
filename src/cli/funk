@@ -187,6 +187,17 @@ define('FUNKPHP_FILE_PATH_PUBLIC_INDEX', FUNKPHP_PUBLIC_DIR . '/index.php');
 
 // Define message types and ANSI colors for CLI output
 // but that can also be parsed by returned JSON Response
+// Background Colors
+define('ANSI_BG_RED',     "\033[41m");
+define('ANSI_BG_GREEN',   "\033[42m");
+define('ANSI_BG_YELLOW',  "\033[43m");
+define('ANSI_BG_BLUE',    "\033[44m");
+define('ANSI_BG_MAGENTA', "\033[45m");
+define('ANSI_BG_CYAN',    "\033[46m");
+// High-Contrast Text Colors for inside Badges
+define('ANSI_TEXT_WHITE_BOLD', "\033[97;1m");
+define('ANSI_TEXT_BLACK_BOLD', "\033[30;1m");
+// Normal-sized colors?
 define('MSG_TYPE_ERROR', 'ERROR');
 define('MSG_TYPE_SUCCESS', 'SUCCESS');
 define('MSG_TYPE_INFO', 'INFO');

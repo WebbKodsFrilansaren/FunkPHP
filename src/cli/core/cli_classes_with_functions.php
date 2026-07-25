@@ -114,6 +114,7 @@ function cli_compile_validation_schema($validation_schema_array, $file, $fn): st
     $validationKeyRegex = '//i';
     $validationConfig = $validation_schema_array['<CONFIG>'] ?? null;
     $validationKey = $validation_schema_array['VALIDATION'] ?? null;
+    ksort($validationKey);
 
     $compiledValidationRules = [];
     $compiledFunctionCommentAbove = [];
@@ -122,9 +123,26 @@ function cli_compile_validation_schema($validation_schema_array, $file, $fn): st
     global $connectionsFile;
 
     // --- STEP 1: Validate Keys and RuleSet Instance Values ---
+    // Extract all array keys beforehand to allow O(1) or O(N) structural checks
+    $allValidationKeys = array_map('strval', array_keys($validationKey));
+
     // Regex for each dot-separated segment (rejects control characters & null bytes)
     $segmentRegex = '/^[^\x00-\x1F\x7F]+$/u';
     $validationErrWarns = [];
+
+    // INSTA-EDGE-CASE: Do we have * as root key? Then all other keys must start with it!
+    // If we have "*" as a key, we need to check that all other keys
+    // start with "*." because now we are saying that the entire thing
+    // begins as a numbered array!
+    if (array_key_exists("*", $validationKey)) {
+        foreach ($allValidationKeys as $currentKey) {
+            if (!str_starts_with($currentKey, "*.") && $currentKey !== "*") {
+                cli_build_warning_err_list($validationErrWarns, 'cli_err', "Validation Key `$currentKey` in Validation `$file.php=>$fn` must start with `*.` when `*` is used as a Root Key!");
+            }
+        }
+    }
+
+    // Now we iterate through each ['VALIDATION'] => ['key' as => data() <- This should be the case or add err!]
     foreach ($validationKey as $rawKey => $ruleSetInstance) {
         // Handle PHP auto-casting '123' to integer 123
         $fieldKey = (string) $rawKey;
@@ -132,6 +150,46 @@ function cli_compile_validation_schema($validation_schema_array, $file, $fn): st
         if (!($ruleSetInstance instanceof \RuleSet)) {
             $valueType = is_object($ruleSetInstance) ? get_class($ruleSetInstance) : gettype($ruleSetInstance);
             cli_build_warning_err_list($validationErrWarns, 'cli_err', "Validation key `{$fieldKey}` must be an instance of `RuleSet` initialized via `data()`. Data Type `{$valueType}` was given instead.");
+        }
+        // Edge-case check: Root key * exists meaning it should be dataType 'array' with max(), size() OR between() rule
+        // to know limit of array elements. This is required for all array-types for security and performance reasons!
+        else if ($fieldKey === '*') {
+            // FIX THAT HERE ALSO: fix helper function that validates that each RuleSet Class instance has all properties+methods available!
+        }
+        // --- WILDCARD ARRAY STRUCTURE CHECKS ---
+        if (str_contains($fieldKey, '*')) {
+            // 1. Parent key check: If key contains '*' but does NOT end with '*' (e.g. 'bigger.names.*.name')
+            if (!str_ends_with($fieldKey, '*')) {
+                // Find the parent path before the last unescaped dot
+                if (preg_match('/^(.*)(?<!\\\\)\.([^.]+)$/', $fieldKey, $matches)) {
+                    $parentKey = $matches[1];
+                    if (!in_array($parentKey, $allValidationKeys, true)) {
+                        cli_build_warning_err_list(
+                            $validationErrWarns,
+                            'cli_err',
+                            "The Validation Key `{$fieldKey}` requires the Parent Array Key `{$parentKey}` to exist in the VALIDATION array!"
+                        );
+                    }
+                }
+            }
+            // 2. Leaf wildcard subkey check: If key ends with '*' (e.g. 'bigger.names.*')
+            if (str_ends_with($fieldKey, '*')) {
+                $hasSubkey = false;
+                $prefix = $fieldKey . '.';
+                foreach ($allValidationKeys as $k) {
+                    if ($k !== $fieldKey && str_starts_with($k, $prefix)) {
+                        $hasSubkey = true;
+                        break;
+                    }
+                }
+                if (!$hasSubkey) {
+                    cli_build_warning_err_list(
+                        $validationErrWarns,
+                        'cli_err',
+                        "The Validation Key `{$fieldKey}` requires at least one Subkey to exist in the VALIDATION array (e.g., `{$fieldKey}.subKey`)."
+                    );
+                }
+            }
         }
         // Check 2: Parse dot-notation segments while respecting escaped dots (\.)
         $segments = preg_split('/(?<!\\\\)\./', $fieldKey);
@@ -149,7 +207,7 @@ function cli_compile_validation_schema($validation_schema_array, $file, $fn): st
             }
         }
     }
-    cli_stop_from_warn_err_list($validationErrWarns, "Please Review (" . count($validationErrWarns) . ") Warnings/Errors above for the Validation Function:`{$fn}` in Validation File:`{$file}`!");
+    cli_stop_from_warn_err_list($validationErrWarns, "Please Review (" . count($validationErrWarns) . ") Warnings/Errors above for the Validation Function `{$fn}` in `/src/funkphp/data/validation/$file.php`!");
 
     /* FROM GEMINI LLM; might be true or NOT for exists(), unique(), unique_except() DB-related ONLY rules!!!
     How the Compiler Replaces Placeholders dynamically
