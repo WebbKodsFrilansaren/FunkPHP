@@ -16,7 +16,7 @@ function s_paj(&$c)
 		'<CONFIG>' => ['stop_all_on_first_error' => false],
 		'VALIDATION' => [
 			'bigger.name'  => data("array", "Name must be an associative array!", "associative")->keys_in_array_depths(['meta.author.name', 'config.settings']),
-			'test' => data('string:10-15', "Dimensional array\" with 2' and then 2' elements please!")->starts_with(["O'Reilly", "Another ' to test it!"], "custom errors with a ' and here again escaped \'!?")
+			'test' => data('string')->in_allowed("test,test")
 		],
 	]);
 };

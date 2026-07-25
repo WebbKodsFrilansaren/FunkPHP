@@ -56,17 +56,6 @@ function cli_bracketfy(array $explodedDotNotationPathString): string
     return $bracketed;
 }
 
-function cli_slashify_string($str): string
-{
-    if (trim($str) === '') {
-        return "";
-    }
-    $slashedStr = '';
-
-
-    return '';
-}
-
 /**
  * Normalizes and converts human-readable file size units to raw bytes.
  *
@@ -502,7 +491,6 @@ class RuleSet
     // if it is not nullable then we can show all other errors immediately unless bail and/or
     // stop_all_on_first_error is set to true!)
     public array $mergedErrorsBesdiesDataType = [];
-
     // ENTRY POINT METHOD WHERE YOU SET DATA TYPE with OR without optional parameters
     public function setDatatype(string $dataType, string $customErrorMsg = '', ?string $customErrorMsgForParameters = ''): self
     {
@@ -1840,6 +1828,142 @@ class RuleSet
                 "}"
         ];
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['doesnt_contain'] = '" . $error . "';";
+        return $this;
+    }
+    public function in_allowed(array|string $inAllowed, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('in_allowed', [], [], ['string', 'numeric'])) {
+            return $this;
+        }
+        $needles = $this->validateRuleMultipleValues('in_allowed', $inAllowed, ['string']);
+        if (!$needles) {
+            return $this;
+        }
+        $ALLOWED_LIST_ROOT = "FUNKPHP_LISTS['LISTS']['ALLOWED']";
+        $listChecks = [];
+        foreach ($needles as $list) {
+            $escapedList = addcslashes($list, "'\\");
+            $listChecks[] = "(!empty({$ALLOWED_LIST_ROOT}['{$escapedList}']) && (isset({$ALLOWED_LIST_ROOT}['{$escapedList}'][{{##INPUT_VAL##}}]) || in_array({{##INPUT_VAL##}}, {$ALLOWED_LIST_ROOT}['{$escapedList}'], true)))";
+        }
+        // Error if value is NOT found in any specified allowed list
+        $condition = "!(" . implode(" || ", $listChecks) . ")";
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` is not in the allowed list.";
+        $error = addcslashes($error, "'\\");
+        $this->rules['in_allowed'] = [
+            'lists'    => $needles,
+            'error'    => $error,
+            'compiled' => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['in_allowed'] = '{$error}';\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        return $this;
+    }
+    public function in_disallowed(array|string $inDisallowed, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('in_disallowed', [], [], ['string', 'numeric'])) {
+            return $this;
+        }
+        $needles = $this->validateRuleMultipleValues('in_disallowed', $inDisallowed, ['string']);
+        if (!$needles) {
+            return $this;
+        }
+        $DISALLOWED_LIST_ROOT = "FUNKPHP_LISTS['LISTS']['DISALLOWED']";
+        $listChecks = [];
+        foreach ($needles as $list) {
+            $escapedList = addcslashes($list, "'\\");
+            $listChecks[] = "(!empty({$DISALLOWED_LIST_ROOT}['{$escapedList}']) && (isset({$DISALLOWED_LIST_ROOT}['{$escapedList}'][{{##INPUT_VAL##}}]) || in_array({{##INPUT_VAL##}}, {$DISALLOWED_LIST_ROOT}['{$escapedList}'], true)))";
+        }
+        // Error if value is NOT found in any specified disallowed list
+        $condition = "!(" . implode(" || ", $listChecks) . ")";
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` is not present in the disallowed list.";
+        $error = addcslashes($error, "'\\");
+        $this->rules['in_disallowed'] = [
+            'lists'    => $needles,
+            'error'    => $error,
+            'compiled' => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['in_disallowed'] = '{$error}';\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        return $this;
+    }
+    public function not_in_allowed(array|string $notInAllowed, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('not_in_allowed', [], [], ['string', 'numeric'])) {
+            return $this;
+        }
+        $needles = $this->validateRuleMultipleValues('not_in_allowed', $notInAllowed, ['string']);
+        if (!$needles) {
+            return $this;
+        }
+        $ALLOWED_LIST_ROOT = "FUNKPHP_LISTS['LISTS']['ALLOWED']";
+        $listChecks = [];
+        foreach ($needles as $list) {
+            $escapedList = addcslashes($list, "'\\");
+            $listChecks[] = "(!empty({$ALLOWED_LIST_ROOT}['{$escapedList}']) && (isset({$ALLOWED_LIST_ROOT}['{$escapedList}'][{{##INPUT_VAL##}}]) || in_array({{##INPUT_VAL##}}, {$ALLOWED_LIST_ROOT}['{$escapedList}'], true)))";
+        }
+        // Error if value IS found in any specified allowed list
+        $condition = "(" . implode(" || ", $listChecks) . ")";
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` cannot be in the specified allowed list.";
+        $error = addcslashes($error, "'\\");
+        $this->rules['not_in_allowed'] = [
+            'lists'    => $needles,
+            'error'    => $error,
+            'compiled' => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['not_in_allowed'] = '{$error}';\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
+        return $this;
+    }
+    public function not_in_disallowed(array|string $notInDisallowed, string $customErrorMsg = ''): self
+    {
+        if (!$this->validateRuleUsage('not_in_disallowed', [], [], ['string', 'numeric'])) {
+            return $this;
+        }
+        $needles = $this->validateRuleMultipleValues('not_in_disallowed', $notInDisallowed, ['string']);
+        if (!$needles) {
+            return $this;
+        }
+        $DISALLOWED_LIST_ROOT = "FUNKPHP_LISTS['LISTS']['DISALLOWED']";
+        $listChecks = [];
+        foreach ($needles as $list) {
+            $escapedList = addcslashes($list, "'\\");
+            $listChecks[] = "(!empty({$DISALLOWED_LIST_ROOT}['{$escapedList}']) && (isset({$DISALLOWED_LIST_ROOT}['{$escapedList}'][{{##INPUT_VAL##}}]) || in_array({{##INPUT_VAL##}}, {$DISALLOWED_LIST_ROOT}['{$escapedList}'], true)))";
+        }
+        // Error if value IS found in any specified disallowed list
+        $condition = "(" . implode(" || ", $listChecks) . ")";
+        $error = !empty($customErrorMsg)
+            ? $customErrorMsg
+            : "Field `{{##INPUT_KEY##}}` contains a disallowed value.";
+        $error = addcslashes($error, "'\\");
+        $this->rules['not_in_disallowed'] = [
+            'lists'    => $needles,
+            'error'    => $error,
+            'compiled' => "if({$condition}) {\n" .
+                "    {{##ERRORS##}}['not_in_disallowed'] = '{$error}';\n" .
+                "    {{##GOTO_STOP_ALL##}}\n" .
+                "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_RULE##}}\n" .
+                "    {{##GOTO_END_FIELD##}}\n" .
+                "}"
+        ];
         return $this;
     }
     public function in(array|string $inValues, string $customErrorMsg = ''): self
