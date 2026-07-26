@@ -280,6 +280,195 @@ function cli_parseFileSizeToBytes(int|float $size, string $unit): int|false
     return (int) round($size * $multiplier);
 }
 
+/**
+ * Builds a Prefix Trie from validation schema keys.
+ * Fully supports multi-dimensional array wildcards (*.*, a.*.b.*) while catching
+ * structural conflicts (mixing associative keys with wildcards at the same node level).
+ *
+ * @param array  $allValidationKeys Array of raw string keys from VALIDATION
+ * @param array  $validationErrWarns Reference to error/warning collector
+ * @param string $file Validation file name
+ * @param string $fn   Validation function name
+ * @return array Array containing ['parsedKeys' => map, 'trie' => rootNode]
+ */
+function cli_validate_key_trie(array $allValidationKeys, array &$validationErrWarns, string $file = '', string $fn = ''): array
+{
+    $trie = [
+        'children'     => [],
+        'has_wildcard' => false,
+        'has_named'    => false,
+        'is_terminal'  => false,
+        'keys'         => [],
+    ];
+    $parsedKeyMap = [];
+
+    // --- WILDCARD ARRAY STRUCTURE CHECKS ---
+    foreach ($allValidationKeys as $avK) {
+        $fieldKey = (string) $avK;
+        // Begin validating edge-case where * is used as root key meaning all other keys
+        // must start with *. (e.g. "*" exists so next must be "*.<key_or_another_*_for_nesting>")
+        if (str_starts_with($avK, '*')) {
+            foreach ($allValidationKeys as $currentKey) {
+                if (!str_starts_with($currentKey, "*.") && $currentKey !== "*") {
+                    cli_build_warning_err_list($validationErrWarns, 'cli_err', "Validation Key `$currentKey` in Validation `$file.php=>$fn` must start with `*.` when `*` is used as a Root Key as it means the entire Data Root is a Numbered Array!");
+                    break 2;
+                }
+            }
+        }
+        // Wildcard * exists, starting or not - then checks for when it ends with and when doesn't end with it
+        if (str_contains($fieldKey, '*')) {
+            // 1. Parent key check: If key contains '*' but does NOT end with '*' (e.g. 'bigger.names.*.name')
+            if (!str_ends_with($fieldKey, '*')) {
+                // Find the parent path before the last unescaped dot
+                if (preg_match('/^(.*)(?<!\\\\)\.([^.]+)$/', $fieldKey, $matches)) {
+                    $parentKey = $matches[1];
+                    if (!in_array($parentKey, $allValidationKeys, true)) {
+                        cli_build_warning_err_list(
+                            $validationErrWarns,
+                            'cli_err',
+                            "Validation Key `{$fieldKey}` requires the Parent Array Key `{$parentKey}` to exist in the VALIDATION array!"
+                        );
+                    }
+                }
+            }
+            // 2. Leaf wildcard subkey check: If key ends with '*' (e.g. 'bigger.names.*')
+            // meaning it must have subkeys that starts with it (e.g. 'bigger.names.*.subkey')
+            // and there CANNOT exist 'bigger.names' as 'bigger.names.*' informs that it is numbered array!
+            if (str_ends_with($fieldKey, '*')) {
+                $hasSubkey = false;
+                $prefix = $fieldKey . '.';
+                foreach ($allValidationKeys as $k) {
+                    if ($k !== $fieldKey && str_starts_with($k, $prefix)) {
+                        $hasSubkey = true;
+                        break;
+                    }
+                }
+                if (!$hasSubkey) {
+                    cli_build_warning_err_list(
+                        $validationErrWarns,
+                        'cli_err',
+                        "Validation Key `{$fieldKey}` requires at least one Subkey to exist in the VALIDATION array (e.g., `{$fieldKey}.subKey`)."
+                    );
+                }
+                $arrConflict = substr($fieldKey, 0, -2);
+                if (in_array($arrConflict, $allValidationKeys)) {
+                    cli_build_warning_err_list(
+                        $validationErrWarns,
+                        'cli_err',
+                        "Validation Key `{$fieldKey}` parsed as a Numbered Array conflicts with `{$arrConflict}` since `{$fieldKey}` is metadata for the Validation to know where a Numbered Array starts and ends!"
+                    );
+                }
+            }
+            // 3.  No wildcard * at the end so does its supposed parent then exist? There exists *
+            // but does not end with it so there must exist a parent which ends then with .*!
+            if (!str_ends_with($fieldKey, "*")) {
+                $lastSplit = strrpos($fieldKey, ".");
+                $firstPart = substr($fieldKey, 0, $lastSplit);
+                if (!in_array($firstPart, $allValidationKeys)) {
+                    cli_build_warning_err_list($validationErrWarns, 'cli_err', "Validation Key `{$fieldKey}` requires the Key `$firstPart` to exist in the Validation Array!.");
+                }
+            }
+        }
+    }
+    // Regex for each dot-separated segment (rejects control characters & null bytes)
+    $segmentRegex = '/^[^\x00-\x1F\x7F]+$/u';
+    foreach ($allValidationKeys as $rawKey) {
+        $fieldKey = (string) $rawKey;
+        // 1. Split on unescaped dots: 'grid\.*.*.*' -> ['grid\.*', '*', '*']
+        $rawSegments = preg_split('/(?<!\\\\)\./', $fieldKey);
+        $runningPath = [];
+        var_dump($rawSegments);
+
+        // 1.1 First round of the segments,
+        foreach ($rawSegments as $segment) {
+            $runningPath[] = $segment;
+            if ($segment === '*') {
+                $ancestorWildcardKey = implode('.', $runningPath);
+                // If an ancestor wildcard key isn't explicitly defined in the VALIDATION array, add error
+                if ($ancestorWildcardKey !== $fieldKey && !in_array($ancestorWildcardKey, $allValidationKeys, true)) {
+                    cli_build_warning_err_list(
+                        $validationErrWarns,
+                        'cli_err',
+                        "Validation Key `{$fieldKey}` requires the Parent Array Key `{$ancestorWildcardKey}` to be explicitly defined in the VALIDATION array (e.g. `'{$ancestorWildcardKey}' => data('array')->between(1, 100)`)."
+                    );
+                }
+            }
+            // Unescape dots to get the literal key name for segment checking
+            $literalSegment = str_replace('\.', '.', $segment);
+            if ($literalSegment === '') {
+                cli_build_warning_err_list($validationErrWarns, 'cli_err', "Validation Key `{$fieldKey}` contains an Empty Dot Segment (e.g., `foo..bar` or trailing dot).");
+            }
+            if (!preg_match($segmentRegex, $literalSegment)) {
+                cli_build_warning_err_list($validationErrWarns, 'cli_err', "Validation Key Segment `{$literalSegment}` in `{$fieldKey}` contains Invalid Control Characters or Invalid Bytes. Please stick to what would be typical JSON-allowed key names!");
+            }
+        }
+
+        // 2. Unescape dots for literal segment names: 'grid\.*' -> 'grid.*'
+        $segments = array_map(static function ($s) {
+            return str_replace('\.', '.', $s);
+        }, $rawSegments);
+        // 3. Count wildcard depth for compiler scoping ($v_0, $v_1, etc.)
+        $wildcardDepth = 0;
+        foreach ($segments as $seg) {
+            if ($seg === '*') {
+                $wildcardDepth++;
+            }
+        }
+        $parsedKeyMap[$fieldKey] = [
+            'segments'       => $segments,
+            'wildcard_depth' => $wildcardDepth,
+        ];
+        // 4. Traverse & Build Trie to detect Object vs. Array conflicts at each node level
+        $currentNode = &$trie;
+        $pathSoFar = [];
+        foreach ($segments as $segment) {
+            $pathSoFar[] = $segment;
+            $isWildcard = ($segment === '*');
+            if ($isWildcard) {
+                // Conflict check: Parent node level already has named associative children!
+                if ($currentNode['has_named']) {
+                    $parentPath = implode('.', array_slice($pathSoFar, 0, -1));
+                    $parentDisplay = ($parentPath === '') ? 'Root' : "`{$parentPath}`";
+                    cli_build_warning_err_list(
+                        $validationErrWarns,
+                        'cli_err',
+                        "Structural Conflict `{$fieldKey}` in `{$file}.php=>{$fn}`: Node {$parentDisplay} mixes named Object/Array Keys with an Array Wildcard (`*`). A node cannot be both an Associative Object/Array and a Numbered List!"
+                    );
+                }
+                $currentNode['has_wildcard'] = true;
+            } else {
+                // Conflict check: Parent node level is already marked as an array wildcard!
+                if ($currentNode['has_wildcard']) {
+                    $parentPath = implode('.', array_slice($pathSoFar, 0, -1));
+                    $parentDisplay = ($parentPath === '') ? 'Root' : "`{$parentPath}`";
+                    cli_build_warning_err_list(
+                        $validationErrWarns,
+                        'cli_err',
+                        "Structural Conflict `{$fieldKey}` in `{$file}.php=>{$fn}`: Node {$parentDisplay} is defined as an Array Wildcard (`*`). Cannot add Named Associative Subkey `{$segment}` directly to an Array Wildcard Level!"
+                    );
+                }
+                $currentNode['has_named'] = true;
+            }
+            if (!isset($currentNode['children'][$segment])) {
+                $currentNode['children'][$segment] = [
+                    'children'     => [],
+                    'has_wildcard' => false,
+                    'has_named'    => false,
+                    'is_terminal'  => false,
+                    'keys'         => [],
+                ];
+            }
+            $currentNode = &$currentNode['children'][$segment];
+        }
+        $currentNode['is_terminal'] = true;
+        $currentNode['keys'][] = $fieldKey;
+    }
+    return [
+        'parsedKeys' => $parsedKeyMap,
+        'trie'       => $trie,
+    ];
+}
+
 /* CLI Function that compiles a returned array with the following starting point:
         return
         [
@@ -306,8 +495,6 @@ function cli_compile_validation_schema($validation_schema_array, $file, $fn): st
     ) {
         cli_err("\$validation_schema_array must be a Non-Empty Associative Array containg the main Keys: `<CONFIG>` & `VALIDATION` which themselves CANNOT be Empty Arrays but must be both Associative Arrays!");
     }
-
-    $validationKeyRegex = '//i';
     $validationConfig = $validation_schema_array['<CONFIG>'] ?? null;
     $validationKey = $validation_schema_array['VALIDATION'] ?? null;
     ksort($validationKey);
@@ -320,33 +507,25 @@ function cli_compile_validation_schema($validation_schema_array, $file, $fn): st
 
     // --- STEP 1: Validate Keys and RuleSet Instance Values ---
     // Extract all array keys beforehand to allow O(1) or O(N) structural checks
-    $allValidationKeys = array_map('strval', array_keys($validationKey));
-
     // Regex for each dot-separated segment (rejects control characters & null bytes)
     $segmentRegex = '/^[^\x00-\x1F\x7F]+$/u';
     $validationErrWarns = [];
+    $allValidationKeys = array_map('strval', array_keys($validationKey));
 
-    // INSTA-EDGE-CASE: Do we have * as root key? Then all other keys must start with it!
-    // If we have "*" as a key, we need to check that all other keys
-    // start with "*." because now we are saying that the entire thing
-    // begins as a numbered array!
-    if (array_key_exists("*", $validationKey)) {
-        foreach ($allValidationKeys as $currentKey) {
-            if (!str_starts_with($currentKey, "*.") && $currentKey !== "*") {
-                cli_build_warning_err_list($validationErrWarns, 'cli_err', "Validation Key `$currentKey` in Validation `$file.php=>$fn` must start with `*.` when `*` is used as a Root Key as it means the entire Data Root is a Numbered Array!");
-            }
-        }
-    }
+    // 1A. Build Prefix Trie and validate structural key conflicts
+    $parsedKeySegmentsMap = cli_validate_key_trie($allValidationKeys, $validationErrWarns, $file, $fn);
+
     cli_stop_from_warn_err_list($validationErrWarns, "Please Review (" . count($validationErrWarns) . ") Warnings/Errors above for the Validation Function `{$fn}` in `/src/funkphp/data/validation/$file.php`!");
 
     // Now we iterate through each ['VALIDATION'] => ['key' as => data() <- This should be the case or add err!]
     foreach ($validationKey as $rawKey => $ruleSetInstance) {
         // Handle PHP auto-casting '123' to integer 123
         $fieldKey = (string) $rawKey;
+
         // Check 1: Must strictly be an instance of RuleSet and that it contains all needed properties & methods!
         if (!($ruleSetInstance instanceof \RuleSet)) {
             $valueType = is_object($ruleSetInstance) ? get_class($ruleSetInstance) : gettype($ruleSetInstance);
-            cli_build_warning_err_list($validationErrWarns, 'cli_err', "Validation key `{$fieldKey}` must be an instance of `RuleSet` initialized via `data()`. Data Type `{$valueType}` was given instead.");
+            cli_build_warning_err_list($validationErrWarns, 'cli_err', "Validation Key `{$fieldKey}` must be an instance of `RuleSet` initialized via `data()`. Data Type `{$valueType}` was given instead.");
         } elseif (!cli_validate_ruleset_class($ruleSetInstance, $validationErrWarns, $fieldKey)) {
             cli_stop_from_warn_err_list($validationErrWarns, "Please Review (" . count($validationErrWarns) . ") Warnings/Errors above for the Validation Function `{$fn}` in `/src/funkphp/data/validation/$file.php`!");
         }
@@ -355,56 +534,9 @@ function cli_compile_validation_schema($validation_schema_array, $file, $fn): st
         else if ($fieldKey === '*') {
             // FIX THAT HERE ALSO: fix helper function that validates that each RuleSet Class instance has all properties+methods available!
         }
-        // --- WILDCARD ARRAY STRUCTURE CHECKS ---
-        if (str_contains($fieldKey, '*')) {
-            // 1. Parent key check: If key contains '*' but does NOT end with '*' (e.g. 'bigger.names.*.name')
-            if (!str_ends_with($fieldKey, '*')) {
-                // Find the parent path before the last unescaped dot
-                if (preg_match('/^(.*)(?<!\\\\)\.([^.]+)$/', $fieldKey, $matches)) {
-                    $parentKey = $matches[1];
-                    if (!in_array($parentKey, $allValidationKeys, true)) {
-                        cli_build_warning_err_list(
-                            $validationErrWarns,
-                            'cli_err',
-                            "The Validation Key `{$fieldKey}` requires the Parent Array Key `{$parentKey}` to exist in the VALIDATION array!"
-                        );
-                    }
-                }
-            }
-            // 2. Leaf wildcard subkey check: If key ends with '*' (e.g. 'bigger.names.*')
-            if (str_ends_with($fieldKey, '*')) {
-                $hasSubkey = false;
-                $prefix = $fieldKey . '.';
-                foreach ($allValidationKeys as $k) {
-                    if ($k !== $fieldKey && str_starts_with($k, $prefix)) {
-                        $hasSubkey = true;
-                        break;
-                    }
-                }
-                if (!$hasSubkey) {
-                    cli_build_warning_err_list(
-                        $validationErrWarns,
-                        'cli_err',
-                        "The Validation Key `{$fieldKey}` requires at least one Subkey to exist in the VALIDATION array (e.g., `{$fieldKey}.subKey`)."
-                    );
-                }
-            }
-        }
+
         // Check 2: Parse dot-notation segments while respecting escaped dots (\.)
         $segments = preg_split('/(?<!\\\\)\./', $fieldKey);
-        if (empty($segments)) {
-            cli_build_warning_err_list($validationErrWarns, 'cli_err', "Validation key `{$fieldKey}` cannot be empty.");
-        }
-        foreach ($segments as $segment) {
-            // Unescape dots to get the literal key name for segment checking
-            $literalSegment = str_replace('\.', '.', $segment);
-            if ($literalSegment === '') {
-                cli_build_warning_err_list($validationErrWarns, 'cli_err', "Validation key `{$fieldKey}` contains an Empty Dot Segment (e.g., `foo..bar` or trailing dot).");
-            }
-            if (!preg_match($segmentRegex, $literalSegment)) {
-                cli_build_warning_err_list($validationErrWarns, 'cli_err', "Validation key segment `{$literalSegment}` in `{$fieldKey}` contains invalid control characters or invalid bytes.");
-            }
-        }
     }
     cli_stop_from_warn_err_list($validationErrWarns, "Please Review (" . count($validationErrWarns) . ") Warnings/Errors above for the Validation Function `{$fn}` in `/src/funkphp/data/validation/$file.php`!");
 
@@ -879,9 +1011,15 @@ class RuleSet
                 $error = addcslashes($error, "'\\");
                 $this->rules[$dataType] = ['error' => $error];
                 $this->rules[$dataType]['compiled'] = "if(!({$guardExpression})) {\n" .
-                    "    {{##ERRORS##}}['{$dataType}'] = '{$error}';\n" .
+                    "    {{##DEBUG##}}{{##ERRORS##}}['{$dataType}'] = '{$error}';\n" .
                     "    {{##GOTO_STOP_ALL##}}\n" .
                     "    {{##GOTO_BAIL##}}\n" .
+                    "    {{##GOTO_NEXT_LOOP##}}\n" .
+                    "    {{##GOTO_EXIT_LOOP##}}\n" .
+                    "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                    "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                    "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                    "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                     "    {{##GOTO_NEXT_RULE##}}\n" .
                     "    {{##GOTO_END_FIELD##}}\n" .
                     "}";
@@ -933,9 +1071,15 @@ class RuleSet
         $guardExpression = $this->typeGuardMap[$dataType];
         $this->rules[$dataType] = ['error'    => $error];
         $this->rules[$dataType]['compiled'] =  "if(!{$guardExpression}) {\n" .
-            "    {{##ERRORS##}}['{$dataType}'] = '{$error}';\n" .
+            "    {{##DEBUG##}}{{##ERRORS##}}['{$dataType}'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
@@ -1149,9 +1293,15 @@ class RuleSet
         $error = addcslashes($error, "'\\");
         $this->rules['required'] = ['error' => $error];
         $this->rules['required']['compiled'] =  "if(!isset({{##INPUT##}})) {\n" .
-            "    {{##ERRORS##}}['required'] = '{$error}';\n" .
+            "    {{##DEBUG##}}{{##ERRORS##}}['required'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
@@ -1189,9 +1339,15 @@ class RuleSet
             : "Field `{{##INPUT_KEY##}}` failed custom validation!";
         $error = addcslashes($error, "'\\");
         $compiledCode = "if(\\{$func}(\$c,{{##INPUT##}}) === false) {\n" .
-            "    {{##ERRORS##}}['callback'] = '{$error}';\n" .
+            "    {{##DEBUG##}}{{##ERRORS##}}['callback'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
@@ -1236,9 +1392,15 @@ class RuleSet
             'required_keys' => $keys,
             'error'         => $error,
             'compiled'      => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['keys_in_array_null_allowed'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['keys_in_array_null_allowed'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -1280,9 +1442,15 @@ class RuleSet
             'expected_count' => $expectedCount,
             'error'          => $error,
             'compiled'       => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['keys_in_array_null_allowed_exact_count'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['keys_in_array_null_allowed_exact_count'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -1321,9 +1489,15 @@ class RuleSet
             'required_keys' => $keys,
             'error'         => $error,
             'compiled'      => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['keys_in_array_not_null'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['keys_in_array_not_null'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -1364,9 +1538,15 @@ class RuleSet
             'expected_count' => $expectedCount,
             'error'          => $error,
             'compiled'       => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['keys_in_array_not_null_exact_count'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['keys_in_array_not_null_exact_count'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -1465,9 +1645,15 @@ class RuleSet
             'paths'    => $pathsWhereEachDotIsNextDepthLevel,
             'error'    => $error,
             'compiled' => "if(!({$fullCondition})) {\n" .
-                "    {{##ERRORS##}}['keys_in_array_depths'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['keys_in_array_depths'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -1676,9 +1862,15 @@ class RuleSet
         $this->rules['min'] = [
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['min'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['min'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -1749,9 +1941,15 @@ class RuleSet
         $this->rules['max'] = [
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['max'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['max'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -1824,9 +2022,15 @@ class RuleSet
         $this->rules['between'] = [
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['between'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['between'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -1895,9 +2099,15 @@ class RuleSet
         $this->rules['size'] = [
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['size'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['size'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -1931,9 +2141,15 @@ class RuleSet
             'prefixes' => $prefixes,
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['starts_with'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['starts_with'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -1966,9 +2182,15 @@ class RuleSet
             'suffixes' => $suffixes,
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['ends_with'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['ends_with'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -2014,9 +2236,15 @@ class RuleSet
             'needles'  => $needles,
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['contains'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['contains'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -2049,9 +2277,15 @@ class RuleSet
             'prefixes' => $prefixes,
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['doesnt_start_with'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['doesnt_start_with'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -2084,9 +2318,15 @@ class RuleSet
             'suffixes' => $suffixes,
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['doesnt_end_with'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['doesnt_end_with'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -2132,9 +2372,15 @@ class RuleSet
             'needles'  => $needles,
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['doesnt_contain'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['doesnt_contain'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -2167,9 +2413,15 @@ class RuleSet
             'lists'    => $needles,
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['in_allowed'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['in_allowed'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -2201,9 +2453,15 @@ class RuleSet
             'lists'    => $needles,
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['in_disallowed'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['in_disallowed'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -2235,9 +2493,15 @@ class RuleSet
             'lists'    => $needles,
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['not_in_allowed'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['not_in_allowed'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -2269,9 +2533,15 @@ class RuleSet
             'lists'    => $needles,
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['not_in_disallowed'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['not_in_disallowed'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -2305,9 +2575,15 @@ class RuleSet
         $this->rules['in'] = [
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['in'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['in'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -2338,9 +2614,15 @@ class RuleSet
         $this->rules['not_in'] = [
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['not_in'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['not_in'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -2371,9 +2653,15 @@ class RuleSet
         $this->rules['min_mb'] = [
             'error'    => $error,
             'compiled' => "if(mb_strlen({{##INPUT##}}) < {$minChars}) {\n" .
-                "    {{##ERRORS##}}['min_mb'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['min_mb'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -2402,9 +2690,15 @@ class RuleSet
         $this->rules['max_mb'] = [
             'error'    => $error,
             'compiled' => "if(mb_strlen({{##INPUT##}}) > {$maxChars}) {\n" .
-                "    {{##ERRORS##}}['max_mb'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['max_mb'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -2441,9 +2735,15 @@ class RuleSet
         $this->rules['between_mb'] = [
             'error'    => $error,
             'compiled' => "if((mb_strlen({{##INPUT##}}) < {$minChars} || mb_strlen({{##INPUT##}}) > {$maxChars})) {\n" .
-                "    {{##ERRORS##}}['between_mb'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['between_mb'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -2472,9 +2772,15 @@ class RuleSet
         $this->rules['size_mb'] = [
             'error'    => $error,
             'compiled' => "if(mb_strlen({{##INPUT##}}) !== {$size}) {\n" .
-                "    {{##ERRORS##}}['size_mb'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['size_mb'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -2516,9 +2822,15 @@ class RuleSet
         $this->rules['regex'] = [
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['regex'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['regex'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -2559,9 +2871,15 @@ class RuleSet
         $this->rules['not_regex'] = [
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['not_regex'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['not_regex'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -2584,9 +2902,15 @@ class RuleSet
         $this->rules['mac_address'] = [
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['mac_address'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['mac_address'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -2609,9 +2933,15 @@ class RuleSet
         $this->rules['lowercase'] = [
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['lowercase'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['lowercase'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -2634,9 +2964,15 @@ class RuleSet
         $this->rules['uppercase'] = [
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['uppercase'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['uppercase'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -2660,9 +2996,15 @@ class RuleSet
         $this->rules['lowercase_mb'] = [
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['lowercase_mb'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['lowercase_mb'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -2685,9 +3027,15 @@ class RuleSet
         $this->rules['uppercase_mb'] = [
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['uppercase_mb'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['uppercase_mb'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -2759,9 +3107,15 @@ class RuleSet
         $this->rules['uid'] = [
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['uid'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['uid'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -2794,9 +3148,15 @@ class RuleSet
         $this->rules['slug'] = [
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['slug'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['slug'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -2831,9 +3191,15 @@ class RuleSet
         $this->rules['base64'] = [
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['base64'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['base64'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -2868,9 +3234,15 @@ class RuleSet
         $this->rules['not_base64'] = [
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['not_base64'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['not_base64'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -2893,9 +3265,15 @@ class RuleSet
         $error = addcslashes($error, "'\\");
         // Matches A-Z and 2-7, optional '=' padding at end (length must be multiple of 8 if padded)
         $compiledCode = "if(preg_match('/^(?:[A-Z2-7]{8})*(?:[A-Z2-7]{2}={6}|[A-Z2-7]{4}={4}|[A-Z2-7]{5}={3}|[A-Z2-7]{7}=)?$/iD', {{##INPUT##}}) !== 1) {\n" .
-            "    {{##ERRORS##}}['base32'] = '{$error}';\n" .
+            "    {{##DEBUG##}}{{##ERRORS##}}['base32'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
@@ -2918,9 +3296,15 @@ class RuleSet
         $error = addcslashes($error, "'\\");
         // Matches 1-9, A-Z (no I, O), a-z (no l)
         $compiledCode = "if(preg_match('/^[1-9A-HJ-NP-Za-km-z]+$/D', {{##INPUT##}}) !== 1) {\n" .
-            "    {{##ERRORS##}}['base58'] = '{$error}';\n" .
+            "    {{##DEBUG##}}{{##ERRORS##}}['base58'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
@@ -2942,9 +3326,15 @@ class RuleSet
             : "Field `{{##INPUT_KEY##}}` must be a valid URL-safe Base64 string.";
         $error = addcslashes($error, "'\\");
         $compiledCode = "if(preg_match('/^[A-Za-z0-9_-]+$/D', {{##INPUT##}}) !== 1) {\n" .
-            "    {{##ERRORS##}}['base64url'] = '{$error}';\n" .
+            "    {{##DEBUG##}}{{##ERRORS##}}['base64url'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
@@ -2965,9 +3355,15 @@ class RuleSet
             : "Field `{{##INPUT_KEY##}}` must be a Valid Hexadecimal String.";
         $error = addcslashes($error, "'\\");
         $compiledCode = "if(!ctype_xdigit({{##INPUT##}})) {\n" .
-            "    {{##ERRORS##}}['hexadecimal'] = '{$error}';\n" .
+            "    {{##DEBUG##}}{{##ERRORS##}}['hexadecimal'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
@@ -2991,9 +3387,15 @@ class RuleSet
             : "Field `{{##INPUT_KEY##}}` must be a valid MD5 hash.";
         $error = addcslashes($error, "'\\");
         $compiledCode = "if(preg_match('/^[a-f0-9]{32}$/iD', {{##INPUT##}}) !== 1) {\n" .
-            "    {{##ERRORS##}}['md5'] = '{$error}';\n" .
+            "    {{##DEBUG##}}{{##ERRORS##}}['md5'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
@@ -3017,9 +3419,15 @@ class RuleSet
             : "Field `{{##INPUT_KEY##}}` must be a valid SHA-1 hash.";
         $error = addcslashes($error, "'\\");
         $compiledCode = "if(preg_match('/^[a-f0-9]{40}$/iD', {{##INPUT##}}) !== 1) {\n" .
-            "    {{##ERRORS##}}['sha1'] = '{$error}';\n" .
+            "    {{##DEBUG##}}{{##ERRORS##}}['sha1'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
@@ -3040,9 +3448,15 @@ class RuleSet
             : "Field `{{##INPUT_KEY##}}` must be a valid SHA-256 hash.";
         $error = addcslashes($error, "'\\");
         $compiledCode = "if(preg_match('/^[a-f0-9]{64}$/iD', {{##INPUT##}}) !== 1) {\n" .
-            "    {{##ERRORS##}}['sha256'] = '{$error}';\n" .
+            "    {{##DEBUG##}}{{##ERRORS##}}['sha256'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
@@ -3066,9 +3480,15 @@ class RuleSet
             : "Field `{{##INPUT_KEY##}}` must be a valid SHA-384 hash.";
         $error = addcslashes($error, "'\\");
         $compiledCode = "if(preg_match('/^[a-f0-9]{96}$/iD', {{##INPUT##}}) !== 1) {\n" .
-            "    {{##ERRORS##}}['sha384'] = '{$error}';\n" .
+            "    {{##DEBUG##}}{{##ERRORS##}}['sha384'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
@@ -3092,9 +3512,15 @@ class RuleSet
             : "Field `{{##INPUT_KEY##}}` must be a valid SHA-512 hash.";
         $error = addcslashes($error, "'\\");
         $compiledCode = "if(preg_match('/^[a-f0-9]{128}$/iD', {{##INPUT##}}) !== 1) {\n" .
-            "    {{##ERRORS##}}['sha512'] = '{$error}';\n" .
+            "    {{##DEBUG##}}{{##ERRORS##}}['sha512'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
@@ -3115,9 +3541,15 @@ class RuleSet
             : "Field `{{##INPUT_KEY##}}` must be a Valid Octal String.";
         $error = addcslashes($error, "'\\");
         $compiledCode = "if(preg_match('/^[0-7]+$/D', {{##INPUT##}}) !== 1) {\n" .
-            "    {{##ERRORS##}}['octal'] = '{$error}';\n" .
+            "    {{##DEBUG##}}{{##ERRORS##}}['octal'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
@@ -3138,9 +3570,15 @@ class RuleSet
             : "Field `{{##INPUT_KEY##}}` must be a Valid Binary String (0s and 1s only).";
         $error = addcslashes($error, "'\\");
         $compiledCode = "if(preg_match('/^[01]+$/D', {{##INPUT##}}) !== 1) {\n" .
-            "    {{##ERRORS##}}['binary'] = '{$error}';\n" .
+            "    {{##DEBUG##}}{{##ERRORS##}}['binary'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
@@ -3163,9 +3601,15 @@ class RuleSet
         $error = addcslashes($error, "'\\");
         // Validates header, base64 payload, and footer pattern
         $compiledCode = "if(preg_match('/^-----BEGIN [A-Z0-9 ]+-----[\\r\\n]+[A-Za-z0-9+\\/\\r\\n=]+[\\r\\n]+-----END [A-Z0-9 ]+-----[\\r\\n]*$/D', {{##INPUT##}}) !== 1) {\n" .
-            "    {{##ERRORS##}}['pem'] = '{$error}';\n" .
+            "    {{##DEBUG##}}{{##ERRORS##}}['pem'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
@@ -3186,9 +3630,15 @@ class RuleSet
             : "Field `{{##INPUT_KEY##}}` must be a valid IP address.";
         $error = addcslashes($error, "'\\");
         $compiledCode = "if(filter_var({{##INPUT##}}, FILTER_VALIDATE_IP) === false) {\n" .
-            "    {{##ERRORS##}}['ip'] = '{$error}';\n" .
+            "    {{##DEBUG##}}{{##ERRORS##}}['ip'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
@@ -3209,9 +3659,15 @@ class RuleSet
             : "Field `{{##INPUT_KEY##}}` must be a valid IPv4 address.";
         $error = addcslashes($error, "'\\");
         $compiledCode = "if(filter_var({{##INPUT##}}, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) === false) {\n" .
-            "    {{##ERRORS##}}['ipv4'] = '{$error}';\n" .
+            "    {{##DEBUG##}}{{##ERRORS##}}['ipv4'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
@@ -3232,9 +3688,15 @@ class RuleSet
             : "Field `{{##INPUT_KEY##}}` must be a valid IPv6 address.";
         $error = addcslashes($error, "'\\");
         $compiledCode = "if(filter_var({{##INPUT##}}, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) === false) {\n" .
-            "    {{##ERRORS##}}['ipv6'] = '{$error}';\n" .
+            "    {{##DEBUG##}}{{##ERRORS##}}['ipv6'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
@@ -3257,9 +3719,15 @@ class RuleSet
             : "Field `{{##INPUT_KEY##}}` must be a valid JSON string.";
         $error = addcslashes($error, "'\\");
         $compiledCode = "if(!json_validate({{##INPUT##}})) {\n" .
-            "    {{##ERRORS##}}['json'] = '{$error}';\n" .
+            "    {{##DEBUG##}}{{##ERRORS##}}['json'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
@@ -3280,9 +3748,15 @@ class RuleSet
             : "Field `{{##INPUT_KEY##}}` must contain only 7-bit ASCII characters.";
         $error = addcslashes($error, "'\\");
         $compiledCode = "if(!mb_check_encoding({{##INPUT##}}, 'ASCII')) {\n" .
-            "    {{##ERRORS##}}['ascii'] = '{$error}';\n" .
+            "    {{##DEBUG##}}{{##ERRORS##}}['ascii'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
@@ -3304,9 +3778,15 @@ class RuleSet
             : "Field `{{##INPUT_KEY##}}` must contain only printable ASCII characters.";
         $error = addcslashes($error, "'\\");
         $compiledCode = "if(!ctype_print({{##INPUT##}})) {\n" .
-            "    {{##ERRORS##}}['ascii_printable'] = '{$error}';\n" .
+            "    {{##DEBUG##}}{{##ERRORS##}}['ascii_printable'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
@@ -3329,9 +3809,15 @@ class RuleSet
         $error = addcslashes($error, "'\\");
         // preg_match('//u', $var) returns 1 if valid UTF-8, 0 if malformed
         $compiledCode = "if(preg_match('//u', {{##INPUT##}}) !== 1) {\n" .
-            "    {{##ERRORS##}}['utf8'] = '{$error}';\n" .
+            "    {{##DEBUG##}}{{##ERRORS##}}['utf8'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
@@ -3403,9 +3889,15 @@ class RuleSet
             'allowed_formats' => array_keys($selectedPatterns),
             'error'           => $error,
             'compiled'        => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['color'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['color'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -3449,9 +3941,15 @@ class RuleSet
             'allowed_chars' => $chars,
             'error'         => $error,
             'compiled'      => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['single_char'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['single_char'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -3495,9 +3993,15 @@ class RuleSet
             'allowed_chars' => $chars,
             'error'         => $error,
             'compiled'      => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['single_char_mb'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['single_char_mb'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -3531,9 +4035,15 @@ class RuleSet
             'prefixes' => $prefixes,
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['starts_with_mb'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['starts_with_mb'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -3572,9 +4082,15 @@ class RuleSet
             'suffixes' => $suffixes,
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['ends_with_mb'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['ends_with_mb'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -3608,9 +4124,15 @@ class RuleSet
             'needles'  => $needles,
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['contains_mb'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['contains_mb'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -3643,9 +4165,15 @@ class RuleSet
             'prefixes' => $prefixes,
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['doesnt_start_with_mb'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['doesnt_start_with_mb'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -3683,9 +4211,15 @@ class RuleSet
             'suffixes' => $suffixes,
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['doesnt_end_with_mb'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['doesnt_end_with_mb'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -3718,9 +4252,15 @@ class RuleSet
             'needles'  => $needles,
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['doesnt_contain_mb'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['doesnt_contain_mb'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -3744,9 +4284,15 @@ class RuleSet
             : "Field `{{##INPUT_KEY##}}` must contain a valid date format!";
         $error = addcslashes($error, "'\\");
         $compiledCode = "if(strtotime({{##INPUT##}}) === false) {\n" .
-            "    {{##ERRORS##}}['date'] = '{$error}';\n" .
+            "    {{##DEBUG##}}{{##ERRORS##}}['date'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
@@ -3787,9 +4333,15 @@ class RuleSet
         $condition = "strtotime({{##INPUT##}}) === false || " .
             "strtotime({{##INPUT##}}) <= strtotime('{$targetDate}')";
         $compiledCode = "if({$condition}) {\n" .
-            "    {{##ERRORS##}}['date_after'] = '{$error}';\n" .
+            "    {{##DEBUG##}}{{##ERRORS##}}['date_after'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
@@ -3831,9 +4383,15 @@ class RuleSet
         $condition = "strtotime({{##INPUT##}}) === false || " .
             "strtotime({{##INPUT##}}) < strtotime('{$targetDate}')";
         $compiledCode = "if({$condition}) {\n" .
-            "    {{##ERRORS##}}['date_after_or_equal'] = '{$error}';\n" .
+            "    {{##DEBUG##}}{{##ERRORS##}}['date_after_or_equal'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
@@ -3875,9 +4433,15 @@ class RuleSet
         $condition = "strtotime({{##INPUT##}}) === false || " .
             "strtotime({{##INPUT##}}) >= strtotime('{$targetDate}')";
         $compiledCode = "if({$condition}) {\n" .
-            "    {{##ERRORS##}}['date_before'] = '{$error}';\n" .
+            "    {{##DEBUG##}}{{##ERRORS##}}['date_before'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
@@ -3919,9 +4483,15 @@ class RuleSet
         $condition = "strtotime({{##INPUT##}}) === false || " .
             "strtotime({{##INPUT##}}) > strtotime('{$targetDate}')";
         $compiledCode = "if({$condition}) {\n" .
-            "    {{##ERRORS##}}['date_before_or_equal'] = '{$error}';\n" .
+            "    {{##DEBUG##}}{{##ERRORS##}}['date_before_or_equal'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
@@ -3963,9 +4533,15 @@ class RuleSet
         $condition = "strtotime({{##INPUT##}}) === false || " .
             "strtotime({{##INPUT##}}) !== strtotime('{$targetDate}')";
         $compiledCode = "if({$condition}) {\n" .
-            "    {{##ERRORS##}}['date_equals'] = '{$error}';\n" .
+            "    {{##DEBUG##}}{{##ERRORS##}}['date_equals'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
@@ -4025,9 +4601,15 @@ class RuleSet
         // Fails if NONE of the format conditions evaluate to true
         $condition = "!(" . implode(" || ", $matchingConditions) . ")";
         $compiledCode = "if({$condition}) {\n" .
-            "    {{##ERRORS##}}['date_format'] = '{$error}';\n" .
+            "    {{##DEBUG##}}{{##ERRORS##}}['date_format'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
@@ -4077,9 +4659,15 @@ class RuleSet
         // Fails if input is unparseable OR if none of the target checks match
         $condition = "strtotime({{##INPUT##}}) === false || !(" . implode(' || ', $equalityChecks) . ")";
         $compiledCode = "if({$condition}) {\n" .
-            "    {{##ERRORS##}}['date_in'] = '{$error}';\n" .
+            "    {{##DEBUG##}}{{##ERRORS##}}['date_in'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
@@ -4165,9 +4753,15 @@ class RuleSet
             $condition = "!\\in_array({{##INPUT##}}, \\DateTimeZone::listIdentifiers({$groupConstant}), true)";
         }
         $compiledCode = "if({$condition}) {\n" .
-            "    {{##ERRORS##}}['date_timezone'] = '{$error}';\n" .
+            "    {{##DEBUG##}}{{##ERRORS##}}['date_timezone'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
@@ -4375,9 +4969,15 @@ class RuleSet
             'mixedCase' => $mixedCase,
             'error'     => $error,
             'compiled'  => "if({$compiledCondition}) {\n" .
-                "    {{##ERRORS##}}['password'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['password'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -4481,9 +5081,15 @@ class RuleSet
         $error = addcslashes($error, "'\\");
         // 3. Custom Regex Validation (Handles 99% of web email formats, single-letter domains like x.se, disallows '..')
         $compiledCode = "if(!preg_match('/^(?!.*\\.\\.)[a-zA-Z0-9](?:[a-zA-Z0-9._+-]*[a-zA-Z0-9])?@(?:[a-zA-Z0-9](?!.*--)[a-zA-Z0-9-]*\\.)+[a-zA-Z]{2,}\$/D', {{##INPUT##}})) {\n" .
-            "    {{##ERRORS##}}['email'] = '{$error}';\n" .
+            "    {{##DEBUG##}}{{##ERRORS##}}['email'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
@@ -4551,9 +5157,15 @@ class RuleSet
         $error = addcslashes($error, "'\\");
         // 3. Base Regex: allows optional leading +, numbers, spaces, parens, hyphens, and dots
         $compiledCode = "if(!preg_match('/^\\+?[0-9\\s().-]{{$minDigits},30}\$/D', {{##INPUT##}})) {\n" .
-            "    {{##ERRORS##}}['phone'] = '{$error}';\n" .
+            "    {{##DEBUG##}}{{##ERRORS##}}['phone'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "} \n" .
@@ -4640,9 +5252,15 @@ class RuleSet
             'error'    => $error,
             'target' => $targetFieldinValidation,
             'compiled' => "if(!isset({{##TARGET_INPUT:{$targetFieldinValidation}##}}) || {$condition}) {\n" .
-                "    {{##ERRORS##}}['gte'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['gte'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -4684,9 +5302,15 @@ class RuleSet
             'error'    => $error,
             'target' => $targetFieldinValidation,
             'compiled' => "if(!isset({{##TARGET_INPUT:{$targetFieldinValidation}##}}) || {$condition}) {\n" .
-                "    {{##ERRORS##}}['gt'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['gt'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -4728,9 +5352,15 @@ class RuleSet
             'error'    => $error,
             'target' => $targetFieldinValidation,
             'compiled' => "if(!isset({{##TARGET_INPUT:{$targetFieldinValidation}##}}) || {$condition}) {\n" .
-                "    {{##ERRORS##}}['lte'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['lte'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -4772,9 +5402,15 @@ class RuleSet
             'error'    => $error,
             'target' => $targetFieldinValidation,
             'compiled' => "if(!isset({{##TARGET_INPUT:{$targetFieldinValidation}##}}) || {$condition}) {\n" .
-                "    {{##ERRORS##}}['lt'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['lt'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -4805,9 +5441,15 @@ class RuleSet
             'error'    => $error,
             'target' => $targetField,
             'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['same'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['same'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -4838,9 +5480,15 @@ class RuleSet
             'error'  => $error,
             'target' => $targetField,
             'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['different'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['different'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -4886,9 +5534,15 @@ class RuleSet
             'value'    => $target,
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['multiple_of'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['multiple_of'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -4935,9 +5589,15 @@ class RuleSet
             'allowed_digits' => $digits,
             'error'          => $error,
             'compiled'       => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['single_digit'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['single_digit'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -4972,9 +5632,15 @@ class RuleSet
             'digits'   => $count,
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['digits'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['digits'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -5009,9 +5675,15 @@ class RuleSet
             'min'      => $min,
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['min_digits'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['min_digits'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -5051,9 +5723,15 @@ class RuleSet
             'max'      => $max,
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['max_digits'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['max_digits'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -5095,9 +5773,15 @@ class RuleSet
             'max'      => $maxVal,
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['digits_between'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['digits_between'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -5162,9 +5846,15 @@ class RuleSet
             'max'      => $max,
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['decimal'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['decimal'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -5200,9 +5890,15 @@ class RuleSet
             'allowed_values' => $values,
             'error'          => $error,
             'compiled'       => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['checked'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['checked'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -5236,9 +5932,15 @@ class RuleSet
             'allowed_values' => $values,
             'error'          => $error,
             'compiled'       => "if({$condition}) {\n" .
-                "    {{##ERRORS##}}['unchecked'] = '{$error}';\n" .
+                "    {{##DEBUG##}}{{##ERRORS##}}['unchecked'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
                 "    {{##GOTO_BAIL##}}\n" .
+                "    {{##GOTO_NEXT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+                "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+                "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
                 "    {{##GOTO_NEXT_RULE##}}\n" .
                 "    {{##GOTO_END_FIELD##}}\n" .
                 "}"
@@ -5286,9 +5988,15 @@ class RuleSet
             "        {{##GOTO_END_FIELD##}}\n" .
             "    }\n" .
             "} catch (\\Throwable \$e) {\n" .
-            "    {{##ERRORS##}}['exists'] = '{$error}';\n" .
+            "    {{##DEBUG##}}{{##ERRORS##}}['exists'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
@@ -5339,9 +6047,15 @@ class RuleSet
             "        {{##GOTO_END_FIELD##}}\n" .
             "    }\n" .
             "} catch (\\Throwable \$e) {\n" .
-            "    {{##ERRORS##}}['unique'] = '{$error}';\n" .
+            "    {{##DEBUG##}}{{##ERRORS##}}['unique'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
@@ -5408,9 +6122,15 @@ class RuleSet
             "        {{##GOTO_END_FIELD##}}\n" .
             "    }\n" .
             "} catch (\\Throwable \$e) {\n" .
-            "    {{##ERRORS##}}['unique_except'] = '{$error}';\n" .
+            "    {{##DEBUG##}}{{##ERRORS##}}['unique_except'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
@@ -5463,9 +6183,15 @@ class RuleSet
             : "The file `{{##INPUT_KEY##}}` must be at least {$minSize} {$unit}.";
         $error = addcslashes($error, "'\\");
         $compiledCode = "if(!isset({{##INPUT##}}['size']) || {{##INPUT##}}['size'] < {$minSizeBytes}) {\n" .
-            "    {{##ERRORS##}}['file_min'] = '{$error}';\n" .
+            "    {{##DEBUG##}}{{##ERRORS##}}['file_min'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
@@ -5514,9 +6240,15 @@ class RuleSet
             : "The file `{{##INPUT_KEY##}}` must not exceed {$maxSize} {$unit}.";
         $error = addcslashes($error, "'\\");
         $compiledCode = "if(!isset({{##INPUT##}}['size']) || {{##INPUT##}}['size'] > {$maxSizeBytes}) {\n" .
-            "    {{##ERRORS##}}['file_max'] = '{$error}';\n" .
+            "    {{##DEBUG##}}{{##ERRORS##}}['file_max'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
@@ -5572,9 +6304,15 @@ class RuleSet
             : "The file `{{##INPUT_KEY##}}` must be between {$minVal} and {$maxVal} {$unit}.";
         $error = addcslashes($error, "'\\");
         $compiledCode = "if(!isset({{##INPUT##}}['size']) || {{##INPUT##}}['size'] < {$minSizeBytes} || {{##INPUT##}}['size'] > {$maxSizeBytes}) {\n" .
-            "    {{##ERRORS##}}['file_between'] = '{$error}';\n" .
+            "    {{##DEBUG##}}{{##ERRORS##}}['file_between'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
@@ -5625,9 +6363,15 @@ class RuleSet
             : "The file `{{##INPUT_KEY##}}` must be exactly {$exactSize} {$unit}.";
         $error = addcslashes($error, "'\\");
         $compiledCode = "if(!isset({{##INPUT##}}['size']) || {{##INPUT##}}['size'] !== {$exactSizeBytes}) {\n" .
-            "    {{##ERRORS##}}['file_size'] = '{$error}';\n" .
+            "    {{##DEBUG##}}{{##ERRORS##}}['file_size'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
@@ -5681,9 +6425,15 @@ class RuleSet
         // Export array into valid PHP code array syntax
         $compiledAllowedArray = var_export($normalizedExts, true);
         $compiledCode = "if(!isset({{##INPUT##}}['name']) || !in_array(strtolower(pathinfo({{##INPUT##}}['name'], PATHINFO_EXTENSION)), {$compiledAllowedArray}, true)) {\n" .
-            "    {{##ERRORS##}}['file_extensions'] = '{$error}';\n" .
+            "    {{##DEBUG##}}{{##ERRORS##}}['file_extensions'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
@@ -5753,9 +6503,15 @@ class RuleSet
             "!is_string({{##INPUT##}}['tmp_name']) || " .
             "!is_uploaded_file({{##INPUT##}}['tmp_name'])" .
             ") {\n" .
-            "    {{##ERRORS##}}['file_mimes'] = '{$error}';\n" .
+            "    {{##DEBUG##}}{{##ERRORS##}}['file_mimes'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "} else {\n" .
@@ -5880,9 +6636,15 @@ class RuleSet
             "!is_file({{##INPUT##}}['tmp_name']) || " .
             "!is_readable({{##INPUT##}}['tmp_name'])" .
             ") {\n" .
-            "    {{##ERRORS##}}['file_image'] = '{$error}';\n" .
+            "    {{##DEBUG##}}{{##ERRORS##}}['file_image'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "} else {\n" .
@@ -6002,9 +6764,15 @@ class RuleSet
             "!is_file({{##INPUT##}}['tmp_name']) || " .
             "!is_readable({{##INPUT##}}['tmp_name'])" .
             ") {\n" .
-            "    {{##ERRORS##}}['file_dimensions'] = '{$error}';\n" .
+            "    {{##DEBUG##}}{{##ERRORS##}}['file_dimensions'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "} else {\n" .
@@ -6106,9 +6874,15 @@ class RuleSet
             "!is_file({{##INPUT##}}['tmp_name']) || " .
             "!is_readable({{##INPUT##}}['tmp_name'])" .
             ") {\n" .
-            "    {{##ERRORS##}}['file_dpi'] = '{$error}';\n" .
+            "    {{##DEBUG##}}{{##ERRORS##}}['file_dpi'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "} else {\n" .
@@ -6226,9 +7000,15 @@ class RuleSet
             "!is_file({{##INPUT##}}['tmp_name']) || " .
             "!is_readable({{##INPUT##}}['tmp_name'])" .
             ") {\n" .
-            "    {{##ERRORS##}}['file_encoding'] = '{$error}';\n" .
+            "    {{##DEBUG##}}{{##ERRORS##}}['file_encoding'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
             "    {{##GOTO_BAIL##}}\n" .
+            "    {{##GOTO_NEXT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_INNER_LOOP##}}\n" .
+            "    {{##GOTO_NEXT_OUTER_LOOP##}}\n" .
+            "    {{##GOTO_EXIT_OUTER_LOOP##}}\n" .
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "} else {\n" .
