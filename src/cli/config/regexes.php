@@ -39,6 +39,11 @@ return [
     // 'function test2(&$c){}'
     'folderFileFnSimplerRegex' => '/^fff:([a-zA-Z0-9-_,]+)$/i',
 
+    // Exact same as above but using `ff:` prefix instead!
+    'folderFilePathSimpleRegex' => '/^ff:([a-zA-Z0-9-_,]+)$/i',
+
+    'extract_regex' => '/^regx:(.*)$/',
+
     // `tb:table1` OR `tb:table1,table2` OR `tb:table1*2` OR `tb:table1*2,table2` (\*\d+) part is optional!
     'tableRegexValidation' => '/^tb:([a-z][a-z0-9_]*(\*[0-9]+)?)(,[a-z][a-z0-9_]*(\*[0-9]+)?)*$/i',
 

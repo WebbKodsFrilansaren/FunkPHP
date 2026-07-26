@@ -31,6 +31,9 @@
 */
 return [
     'aliases' => [
+        'extract:d' => 'extract:data',
+        'ext:d' => 'extract:data',
+        'exd' => 'extract:data',
         'sw' => 'switch',
         'rc' => 'recompile',
         'test:funktion' => 'test:function',
@@ -57,6 +60,31 @@ return [
         'c:p' => 'compile:page',
     ],
     'commands' => [
+        'extract:data' => [
+            'args' => [
+                'folder_file_path' => [
+                    'prompt' => 'Enter a Folder+File Path by separating each Path Segment with a comma and where the last segment is the file name without the `.php` part (this folder+file path uses starting path:`/src/`):',
+                    'regex' => $cliRegex['folderFilePathSimpleRegex'],
+                    'required' => true,
+                    'default' => null,
+                    'help' => 'Enter for example `cli,cli_functions` to check if `/src/cli/cli_functions.php` exact File Path exists and then load that into memory and apply Regex on (entered in next argument after this one)!',
+                    'prefix' => 'ff:',
+                    'external_callable_validator' => null,
+                ],
+                'extract_regex' => [
+                    'prompt' => 'Enter one Regex String (wrap them inside "" OR \'\' in Terminal! Also: `m` multiline modifier is always added automatically at the end! You must provide starting `/` and ending `/` though!) to use to extract data from the matched existing exact File Path (it returns matches as a single array to copy&paste):',
+                    'regex' => $cliRegex['extract_regex'],
+                    'required' => true,
+                    'default' => null,
+                    'help' => 'Enter for example Regex `/\s*public function ([^(]+)/i` to extract all public functions from all classes as a single array from that matched Existing File Path already loaded into memory first!',
+                    'prefix' => 'regx:',
+                    'external_callable_validator' => null,
+                ],
+            ],
+            'config' => [
+                // Add any special config for this command or its sub-commands here!
+            ],
+        ],
         'make:route' => [
             'args' => [
                 'method/route' => [

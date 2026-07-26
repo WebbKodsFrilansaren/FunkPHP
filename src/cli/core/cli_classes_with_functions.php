@@ -80,8 +80,17 @@ function cli_validate_ruleset_class(mixed $ruleSetInstance, array &$validationEr
     $hasErrors = false;
     // 1. Array of required properties (public, private, static, etc.)
     $requiredProperties = [
+        'mixedDataType',
         'dataType',
         'dataTypeCategory',
+        'maxIntegerValue',
+        'minIntegerValue',
+        'maxArrayCountValue',
+        'minArrayCountValue',
+        'maxFloatValue',
+        'minFloatValue',
+        'maxStringLength',
+        'minStringLength',
         'inputKeyField',
         'useNullable',
         'useRequired',
@@ -110,16 +119,125 @@ function cli_validate_ruleset_class(mixed $ruleSetInstance, array &$validationEr
     // 2. Array of required methods (public, private, protected, static)
     // Easily add or adjust method names here as you expand RuleSet!
     $requiredMethods = [
-        'setDatatype',
-        'validateSetDataTypeParameters',
-        'validateStringDataConversion',
-        // --- ADD FUTURE METHODS BELOW ---
-        // 'validateRuleUsage',
-        // 'validateRuleMultipleValues',
-        // 'in_allowed',
-        // 'in_disallowed',
-        // 'not_in_allowed',
-        // 'not_in_disallowed',
+        0 => 'setDatatype',
+        1 => 'bail',
+        2 => 'nullable',
+        3 => 'input_key_field',
+        4 => 'required',
+        5 => 'callback',
+        6 => 'keys_in_array_null_allowed',
+        7 => 'keys_in_array_null_allowed_exact_count',
+        8 => 'keys_in_array_not_null',
+        9 => 'keys_in_array_not_null_exact_count',
+        10 => 'keys_in_array_list',
+        11 => 'keys_in_array_associative',
+        12 => 'keys_in_array_depths',
+        13 => 'elements_in_array_are_all',
+        14 => 'min',
+        15 => 'max',
+        16 => 'between',
+        17 => 'size',
+        18 => 'starts_with',
+        19 => 'ends_with',
+        20 => 'contains',
+        21 => 'doesnt_start_with',
+        22 => 'doesnt_end_with',
+        23 => 'doesnt_contain',
+        24 => 'in_allowed',
+        25 => 'in_disallowed',
+        26 => 'not_in_allowed',
+        27 => 'not_in_disallowed',
+        28 => 'in',
+        29 => 'not_in',
+        30 => 'min_mb',
+        31 => 'max_mb',
+        32 => 'between_mb',
+        33 => 'size_mb',
+        34 => 'regex',
+        35 => 'not_regex',
+        36 => 'mac_address',
+        37 => 'lowercase',
+        38 => 'uppercase',
+        39 => 'lowercase_mb',
+        40 => 'uppercase_mb',
+        41 => 'uid',
+        42 => 'slug',
+        43 => 'base64',
+        44 => 'not_base64',
+        45 => 'base32',
+        46 => 'base58',
+        47 => 'base64url',
+        48 => 'hexadecimal',
+        49 => 'md5',
+        50 => 'sha1',
+        51 => 'sha256',
+        52 => 'sha384',
+        53 => 'sha512',
+        54 => 'octal',
+        55 => 'binary',
+        56 => 'pem',
+        57 => 'ip',
+        58 => 'ipv4',
+        59 => 'ipv6',
+        60 => 'json',
+        61 => 'ascii',
+        62 => 'ascii_printable',
+        63 => 'utf8',
+        64 => 'color',
+        65 => 'single_char',
+        66 => 'single_char_mb',
+        67 => 'starts_with_mb',
+        68 => 'ends_with_mb',
+        69 => 'contains_mb',
+        70 => 'doesnt_start_with_mb',
+        71 => 'doesnt_end_with_mb',
+        72 => 'doesnt_contain_mb',
+        73 => 'date',
+        74 => 'date_after',
+        75 => 'date_after_or_equal',
+        76 => 'date_before',
+        77 => 'date_before_or_equal',
+        78 => 'date_equals',
+        79 => 'date_format',
+        80 => 'date_in',
+        81 => 'date_timezone',
+        82 => 'encoding',
+        83 => 'password',
+        84 => 'password_uncompromised',
+        85 => 'email_web',
+        86 => 'phone',
+        87 => 'gte',
+        88 => 'gt',
+        89 => 'lte',
+        90 => 'lt',
+        91 => 'same',
+        92 => 'different',
+        93 => 'multiple_of',
+        94 => 'single_digit',
+        95 => 'digits',
+        96 => 'min_digits',
+        97 => 'max_digits',
+        98 => 'digits_between',
+        99 => 'decimal',
+        100 => 'checked',
+        101 => 'unchecked',
+        102 => 'exists',
+        103 => 'unique',
+        104 => 'unique_except',
+        105 => 'file_min',
+        106 => 'file_max',
+        107 => 'file_between',
+        108 => 'file_size',
+        109 => 'file_extensions',
+        110 => 'file_mimes',
+        111 => 'file_image',
+        112 => 'file_dimensions',
+        113 => 'file_dpi',
+        114 => 'file_encoding',
+        115 => 'validateSetDataTypeParameters',
+        116 => 'validateStringDataConversion',
+        117 => 'validateRuleUsage',
+        118 => 'validateRuleMultipleValues',
     ];
     foreach ($requiredMethods as $methodName) {
         if (!$ref->hasMethod($methodName)) {
@@ -215,19 +333,22 @@ function cli_compile_validation_schema($validation_schema_array, $file, $fn): st
     if (array_key_exists("*", $validationKey)) {
         foreach ($allValidationKeys as $currentKey) {
             if (!str_starts_with($currentKey, "*.") && $currentKey !== "*") {
-                cli_build_warning_err_list($validationErrWarns, 'cli_err', "Validation Key `$currentKey` in Validation `$file.php=>$fn` must start with `*.` when `*` is used as a Root Key!");
+                cli_build_warning_err_list($validationErrWarns, 'cli_err', "Validation Key `$currentKey` in Validation `$file.php=>$fn` must start with `*.` when `*` is used as a Root Key as it means the entire Data Root is a Numbered Array!");
             }
         }
     }
+    cli_stop_from_warn_err_list($validationErrWarns, "Please Review (" . count($validationErrWarns) . ") Warnings/Errors above for the Validation Function `{$fn}` in `/src/funkphp/data/validation/$file.php`!");
 
     // Now we iterate through each ['VALIDATION'] => ['key' as => data() <- This should be the case or add err!]
     foreach ($validationKey as $rawKey => $ruleSetInstance) {
         // Handle PHP auto-casting '123' to integer 123
         $fieldKey = (string) $rawKey;
-        // Check 1: Must strictly be an instance of RuleSet
+        // Check 1: Must strictly be an instance of RuleSet and that it contains all needed properties & methods!
         if (!($ruleSetInstance instanceof \RuleSet)) {
             $valueType = is_object($ruleSetInstance) ? get_class($ruleSetInstance) : gettype($ruleSetInstance);
             cli_build_warning_err_list($validationErrWarns, 'cli_err', "Validation key `{$fieldKey}` must be an instance of `RuleSet` initialized via `data()`. Data Type `{$valueType}` was given instead.");
+        } elseif (!cli_validate_ruleset_class($ruleSetInstance, $validationErrWarns, $fieldKey)) {
+            cli_stop_from_warn_err_list($validationErrWarns, "Please Review (" . count($validationErrWarns) . ") Warnings/Errors above for the Validation Function `{$fn}` in `/src/funkphp/data/validation/$file.php`!");
         }
         // Edge-case check: Root key * exists meaning it should be dataType 'array' with max(), size() OR between() rule
         // to know limit of array elements. This is required for all array-types for security and performance reasons!
@@ -652,8 +773,17 @@ class RuleSet
         'file' => 'file',
         'null' => 'null'
     ];
+    public ?array $mixedDataType = [];
     public ?string $dataType = null;
     public ?string $dataTypeCategory = null;
+    public ?int $maxIntegerValue = null;
+    public ?int $minIntegerValue = null;
+    public ?int $maxArrayCountValue = null;
+    public ?int $minArrayCountValue = null;
+    public ?float $maxFloatValue = null;
+    public ?float $minFloatValue = null;
+    public ?string $maxStringLength = null;
+    public ?string $minStringLength = null;
     public ?string $inputKeyField = null; // This replaces the {{##INPUT_KEY##}} with this set string value instead of the 'VALIDATION' => ['key' =>...]
     public ?bool $useNullable = false;
     public ?bool $useRequired = false;

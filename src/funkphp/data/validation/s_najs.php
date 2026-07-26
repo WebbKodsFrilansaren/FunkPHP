@@ -11,10 +11,14 @@ function s_paj(&$c)
 	$test = [
 		'<CONFIG>' => ['stop_all_on_first_error' => false],
 		'VALIDATION' => [
-			'*' => data("array"),
-			'*.bigger.names.*'  => data("array"),
-			'*.bigger.names.*.name'  => data("array"),
-			'*.test' => data('string')->min(5, 10),
+			'*.test' => data("array"),
+			'test' => data("array"),
+			'test.*'  => data("array"),
+			'test\.*'  => data("array"),
+			'test\.*.test4'  => data("array"),
+			'test.test3'  => data("array"),
+			'test.*.*'  => data("array"),
+			'best.test' => data('string')->min(5, 10),
 		],
 	];
 	\cli_compile_validation_schema($test, "s_najs", "s_paj");
