@@ -11,10 +11,11 @@ function s_paj(&$c)
 	$test = [
 		'<CONFIG>' => ['stop_all_on_first_error' => false],
 		'VALIDATION' => [
-			'users.*' => data("array"),
-			'users.*.posts.*' => data("array"),
-			'users.*.posts.*.title' => data("string"),
-			//'user.*.*' => data("array"),
+			'best.*' => data("string"),
+			'best.*.test' => data("string"),
+			'test.*' => data("string"),
+			'test.*.test' => data("string"),
+			'btest' => data("string"),
 		],
 	];
 	\cli_compile_validation_schema($test, "s_najs", "s_paj");

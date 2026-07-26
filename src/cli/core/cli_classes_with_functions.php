@@ -301,17 +301,29 @@ function cli_validate_key_trie(array $allValidationKeys, array &$validationErrWa
         'keys'         => [],
     ];
     $parsedKeyMap = [];
-
     // --- WILDCARD ARRAY STRUCTURE CHECKS ---
     foreach ($allValidationKeys as $avK) {
         $fieldKey = (string) $avK;
+        if ($fieldKey === '') {
+            cli_build_warning_err_list($validationErrWarns, 'cli_err', "`Empty Key ('')` in VALIDATION Array FOUND. No further Validation will be done until this is resolved!");
+            return [
+                'parsedKeys' => $parsedKeyMap,
+                'trie'       => $trie,
+            ];
+        }
+        if (str_starts_with($fieldKey, '.') || str_ends_with($fieldKey, '.')) {
+            cli_build_warning_err_list($validationErrWarns, 'cli_err', "`Starting/ending with . (dot) in Key ({$fieldKey})` in VALIDATION Array FOUND. No further Validation will be done until this is resolved!");
+            return [
+                'parsedKeys' => $parsedKeyMap,
+                'trie'       => $trie,
+            ];
+        }
         // Begin validating edge-case where * is used as root key meaning all other keys
         // must start with *. (e.g. "*" exists so next must be "*.<key_or_another_*_for_nesting>")
         if (str_starts_with($avK, '*')) {
             foreach ($allValidationKeys as $currentKey) {
                 if (!str_starts_with($currentKey, "*.") && $currentKey !== "*") {
-                    cli_build_warning_err_list($validationErrWarns, 'cli_err', "Validation Key `$currentKey` in Validation `$file.php=>$fn` must start with `*.` when `*` is used as a Root Key as it means the entire Data Root is a Numbered Array!");
-                    break 2;
+                    cli_build_warning_err_list($validationErrWarns, 'cli_err', "Validation Key `$currentKey` must start with `*.` in VALIDATION Array! When `*` is used as a Root Key, the entire Data Root is a Numbered Array!");
                 }
             }
         }
@@ -326,7 +338,7 @@ function cli_validate_key_trie(array $allValidationKeys, array &$validationErrWa
                         cli_build_warning_err_list(
                             $validationErrWarns,
                             'cli_err',
-                            "Validation Key `{$fieldKey}` requires the Parent Array Key `{$parentKey}` to exist in the VALIDATION array!"
+                            "Validation Key `{$fieldKey}` requires Parent Array Key `{$parentKey}` in VALIDATION Array as an `Array Datatype`!"
                         );
                     }
                 }
@@ -334,6 +346,9 @@ function cli_validate_key_trie(array $allValidationKeys, array &$validationErrWa
             // 2. Leaf wildcard subkey check: If key ends with '*' (e.g. 'bigger.names.*')
             // meaning it must have subkeys that starts with it (e.g. 'bigger.names.*.subkey')
             // and there CANNOT exist 'bigger.names' as 'bigger.names.*' informs that it is numbered array!
+            // But we have edge-case "*" since that is NOT ".*" and we need to check against ".*" of any level
+            // (the count of .* that is; .* or .*.* and so on) using $arrConflict so we use preg_replace from
+            // the end of a string
             if (str_ends_with($fieldKey, '*')) {
                 $hasSubkey = false;
                 $prefix = $fieldKey . '.';
@@ -347,15 +362,20 @@ function cli_validate_key_trie(array $allValidationKeys, array &$validationErrWa
                     cli_build_warning_err_list(
                         $validationErrWarns,
                         'cli_err',
-                        "Validation Key `{$fieldKey}` requires at least one Subkey to exist in the VALIDATION array (e.g., `{$fieldKey}.subKey`)."
+                        "Validation Key `{$fieldKey}` requires at least one `Subkey (e.g., {$fieldKey}.subKey`) to exist in the VALIDATION Array!"
                     );
                 }
-                $arrConflict = substr($fieldKey, 0, -2);
-                if (in_array($arrConflict, $allValidationKeys)) {
+                $arrConflict = preg_replace(
+                    '/(\.\*)+$/',
+                    '',
+                    $fieldKey
+                );
+                //echo "FIELD KEY: {$fieldKey} | CONFLICT?: $arrConflict:\n";
+                if (in_array($arrConflict, $allValidationKeys) && $fieldKey !== '*') {
                     cli_build_warning_err_list(
                         $validationErrWarns,
                         'cli_err',
-                        "Validation Key `{$fieldKey}` parsed as a Numbered Array conflicts with `{$arrConflict}` since `{$fieldKey}` is metadata for the Validation to know where a Numbered Array starts and ends!"
+                        "Validation Key `{$fieldKey}` conflicts with `{$arrConflict}` since `{$fieldKey}` is metadata for the Validation to know where a Numbered Array starts and ends!"
                     );
                 }
             }
@@ -365,7 +385,7 @@ function cli_validate_key_trie(array $allValidationKeys, array &$validationErrWa
                 $lastSplit = strrpos($fieldKey, ".");
                 $firstPart = substr($fieldKey, 0, $lastSplit);
                 if (!in_array($firstPart, $allValidationKeys)) {
-                    cli_build_warning_err_list($validationErrWarns, 'cli_err', "Validation Key `{$fieldKey}` requires the Key `$firstPart` to exist in the Validation Array!.");
+                    cli_build_warning_err_list($validationErrWarns, 'cli_err', "Validation Key `{$fieldKey}` requires the Key `$firstPart` to exist in the VALIDATION Array!");
                 }
             }
         }
@@ -376,33 +396,17 @@ function cli_validate_key_trie(array $allValidationKeys, array &$validationErrWa
         $fieldKey = (string) $rawKey;
         // 1. Split on unescaped dots: 'grid\.*.*.*' -> ['grid\.*', '*', '*']
         $rawSegments = preg_split('/(?<!\\\\)\./', $fieldKey);
-        $runningPath = [];
-        var_dump($rawSegments);
-
         // 1.1 First round of the segments,
         foreach ($rawSegments as $segment) {
-            $runningPath[] = $segment;
-            if ($segment === '*') {
-                $ancestorWildcardKey = implode('.', $runningPath);
-                // If an ancestor wildcard key isn't explicitly defined in the VALIDATION array, add error
-                if ($ancestorWildcardKey !== $fieldKey && !in_array($ancestorWildcardKey, $allValidationKeys, true)) {
-                    cli_build_warning_err_list(
-                        $validationErrWarns,
-                        'cli_err',
-                        "Validation Key `{$fieldKey}` requires the Parent Array Key `{$ancestorWildcardKey}` to be explicitly defined in the VALIDATION array (e.g. `'{$ancestorWildcardKey}' => data('array')->between(1, 100)`)."
-                    );
-                }
-            }
             // Unescape dots to get the literal key name for segment checking
             $literalSegment = str_replace('\.', '.', $segment);
             if ($literalSegment === '') {
                 cli_build_warning_err_list($validationErrWarns, 'cli_err', "Validation Key `{$fieldKey}` contains an Empty Dot Segment (e.g., `foo..bar` or trailing dot).");
             }
             if (!preg_match($segmentRegex, $literalSegment)) {
-                cli_build_warning_err_list($validationErrWarns, 'cli_err', "Validation Key Segment `{$literalSegment}` in `{$fieldKey}` contains Invalid Control Characters or Invalid Bytes. Please stick to what would be typical JSON-allowed key names!");
+                cli_build_warning_err_list($validationErrWarns, 'cli_err', "Validation Key Segment `{$literalSegment}` in `{$fieldKey}` contains Invalid Control Characters or Invalid Bytes. Please only use characters that are JSON-valid characters!");
             }
         }
-
         // 2. Unescape dots for literal segment names: 'grid\.*' -> 'grid.*'
         $segments = array_map(static function ($s) {
             return str_replace('\.', '.', $s);
@@ -432,7 +436,7 @@ function cli_validate_key_trie(array $allValidationKeys, array &$validationErrWa
                     cli_build_warning_err_list(
                         $validationErrWarns,
                         'cli_err',
-                        "Structural Conflict `{$fieldKey}` in `{$file}.php=>{$fn}`: Node {$parentDisplay} mixes named Object/Array Keys with an Array Wildcard (`*`). A node cannot be both an Associative Object/Array and a Numbered List!"
+                        "Structural Conflict `{$fieldKey}`: Node {$parentDisplay} mixes named Object/Array Keys with an Array Wildcard (`*`). A node cannot be both an Associative Object/Array and a Numbered List!"
                     );
                 }
                 $currentNode['has_wildcard'] = true;
@@ -441,10 +445,11 @@ function cli_validate_key_trie(array $allValidationKeys, array &$validationErrWa
                 if ($currentNode['has_wildcard']) {
                     $parentPath = implode('.', array_slice($pathSoFar, 0, -1));
                     $parentDisplay = ($parentPath === '') ? 'Root' : "`{$parentPath}`";
+                    $pathSoFarImploded = implode('.', $pathSoFar);
                     cli_build_warning_err_list(
                         $validationErrWarns,
                         'cli_err',
-                        "Structural Conflict `{$fieldKey}` in `{$file}.php=>{$fn}`: Node {$parentDisplay} is defined as an Array Wildcard (`*`). Cannot add Named Associative Subkey `{$segment}` directly to an Array Wildcard Level!"
+                        "Structural Conflict `{$fieldKey}`: Node {$parentDisplay} is defined as an Array Wildcard (`*`) and conflicts with `{$pathSoFarImploded}`. Cannot add Named Associative Subkey `{$segment}` directly to an Array Wildcard Level!"
                     );
                 }
                 $currentNode['has_named'] = true;
@@ -480,7 +485,7 @@ function cli_validate_key_trie(array $allValidationKeys, array &$validationErrWa
         ];
         and then returns a single string that contains the optimized validation version!
 */
-function cli_compile_validation_schema($validation_schema_array, $file, $fn): string
+function cli_compile_validation_schema($validation_schema_array, $file, $fn, $customComment = ''): string
 {
     if (
         !isset($validation_schema_array)
@@ -501,6 +506,7 @@ function cli_compile_validation_schema($validation_schema_array, $file, $fn): st
 
     $compiledValidationRules = [];
     $compiledFunctionCommentAbove = [];
+    $compiledFunctionCommentAbove[] = "/**\n * Compiled Validation $file=>$fn";
     $compiledValidationSchema = '';
     global $tablesAndRelationshipsFile;
     global $connectionsFile;
@@ -515,7 +521,7 @@ function cli_compile_validation_schema($validation_schema_array, $file, $fn): st
     // 1A. Build Prefix Trie and validate structural key conflicts
     $parsedKeySegmentsMap = cli_validate_key_trie($allValidationKeys, $validationErrWarns, $file, $fn);
 
-    cli_stop_from_warn_err_list($validationErrWarns, "Please Review (" . count($validationErrWarns) . ") Warnings/Errors above for the Validation Function `{$fn}` in `/src/funkphp/data/validation/$file.php`!");
+    cli_stop_from_warn_err_list($validationErrWarns, "B`Please Review (" . count($validationErrWarns) . ")` `Warnings`/R`Errors` above for the Validation Function `{$fn}` in `/src/funkphp/data/validation/$file.php`! (Start with R`Structural Conflict Errors` - if any)");
 
     // Now we iterate through each ['VALIDATION'] => ['key' as => data() <- This should be the case or add err!]
     foreach ($validationKey as $rawKey => $ruleSetInstance) {
