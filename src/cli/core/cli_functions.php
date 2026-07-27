@@ -221,7 +221,7 @@ function cli_dump($var, $exit = true, $horisontal = false)
  * @param mixed $var  The variable payload to inspect
  * @param bool $exit  Whether to terminate script execution immediately after rendering
  * @param bool $horisontal  Whether to show more data horizontally (default is false)
- * @param array $ignoreSpecificKeyDepths  Key paths separated by single dots to skip (e.g. ['user.password', 'config.db'])
+ * @param array $ignoreSpecificKeyDepths  Key paths to skip (always starting from `$var`) separated by single dots (e.g. ['user.password', 'config.db'])
  */
 function cli_dump_with_ignore_depths($var, $exit = true, $horisontal = false, array $ignoreSpecificKeyDepths = [])
 {
