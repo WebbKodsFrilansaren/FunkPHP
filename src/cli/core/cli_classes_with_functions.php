@@ -81,16 +81,27 @@ function cli_validate_ruleset_class(mixed $ruleSetInstance, array &$validationEr
     // 1. Array of required properties (public, private, static, etc.)
     $requiredProperties = [
         'mixedDataType',
+        'dimensionalArrayDepth',
         'dataType',
         'dataTypeCategory',
         'maxIntegerValue',
         'minIntegerValue',
+        'exactIntegerValue',
         'maxArrayCountValue',
         'minArrayCountValue',
+        'maxArrayCountValue',
+        'minObjectCountValue',
+        'minObjectCountValue',
+        'exactObjectCountValue',
         'maxFloatValue',
         'minFloatValue',
+        'exactFloatValue',
+        'maxFilesizeValue',
+        'minFilesizeValue',
+        'exactFilesizeValue',
         'maxStringLength',
         'minStringLength',
+        'exactStringLength',
         'inputKeyField',
         'useNullable',
         'useRequired',
@@ -301,17 +312,39 @@ function cli_validate_key_trie(array $allValidationKeys, array &$validationErrWa
         'keys'         => [],
     ];
     $parsedKeyMap = [];
-    // --- WILDCARD ARRAY STRUCTURE CHECKS ---
+    $segmentRegex = '/^[^\x00-\x1F\x7F]+$/u';
+    $multiplieWildcardRegex = '/[*]{2,}/';
+    // INITIAL VALIDATION KEY String(s) Check (not starting ending with ., not containing '\.*')
     foreach ($allValidationKeys as $avK) {
         $fieldKey = (string) $avK;
         if ($fieldKey === '') {
-            cli_build_warning_err_list($validationErrWarns, 'cli_err', "`Empty Key ('')` in VALIDATION Array FOUND. No further Validation will be done until this is resolved!");
+            cli_build_warning_err_list($validationErrWarns, 'cli_err', "`Empty Key ('')` in VALIDATION Array FOUND!");
+        }
+        if (preg_match_all($multiplieWildcardRegex, $fieldKey)) {
+            cli_build_warning_err_list($validationErrWarns, 'cli_err', "Validation Key `{$fieldKey}` contains Consecutive Wildcards (`**` or more) when they should be separated by Single Dots (e.g `*.*` as Root OR `key.*` after Root)!");
+        }
+        // Split on unescaped dots: 'grid\.*.*.*' -> ['grid\.*', '*', '*']
+        // and then for each segment; Unescape dots to get the literal key name for segment checking
+        // to validate it contains only valid characters (see $segmentRegex above)
+        $rawSegments = preg_split('/(?<!\\\\)\./', $fieldKey);
+        foreach ($rawSegments as $segment) {
+
+            $literalSegment = str_replace('\.', '.', $segment);
+            if ($literalSegment === '') {
+                cli_build_warning_err_list($validationErrWarns, 'cli_err', "Validation Key `{$fieldKey}` contains an Empty Dot Segment (e.g., `key..subKey` or trailing dot)!");
+            }
+            if (!preg_match($segmentRegex, $literalSegment)) {
+                cli_build_warning_err_list($validationErrWarns, 'cli_err', "Validation Key Segment `{$literalSegment}` in `{$fieldKey}` contains `Invalid Control Characters` and/or `Invalid Bytes`. Please ONLY use characters that are JSON-valid characters!");
+            }
+        }
+        if (str_contains($fieldKey, '\.*')) {
+            cli_build_warning_err_list($validationErrWarns, 'cli_err', "`Escaped Segment Syntax on Wildcard ('\.*')` - NOT Supported yet - in VALIDATION Array FOUND. No further Validation will be done until this is resolved!");
             return [
                 'parsedKeys' => $parsedKeyMap,
                 'trie'       => $trie,
             ];
         }
-        if (str_starts_with($fieldKey, '.') || str_ends_with($fieldKey, '.')) {
+        if (str_starts_with($fieldKey, '.') || (str_ends_with($fieldKey, '.') && !str_ends_with($fieldKey, '\.'))) {
             cli_build_warning_err_list($validationErrWarns, 'cli_err', "`Starting/ending with . (dot) in Key ({$fieldKey})` in VALIDATION Array FOUND. No further Validation will be done until this is resolved!");
             return [
                 'parsedKeys' => $parsedKeyMap,
@@ -362,7 +395,7 @@ function cli_validate_key_trie(array $allValidationKeys, array &$validationErrWa
                     cli_build_warning_err_list(
                         $validationErrWarns,
                         'cli_err',
-                        "Validation Key `{$fieldKey}` requires at least one `Subkey (e.g., {$fieldKey}.subKey`) to exist in the VALIDATION Array!"
+                        "Validation Key `{$fieldKey}` requires at least one `Subkey` (e.g., `{$fieldKey}.subKey`) to exist in the VALIDATION Array!"
                     );
                 }
                 $arrConflict = preg_replace(
@@ -375,7 +408,7 @@ function cli_validate_key_trie(array $allValidationKeys, array &$validationErrWa
                     cli_build_warning_err_list(
                         $validationErrWarns,
                         'cli_err',
-                        "Validation Key `{$fieldKey}` conflicts with `{$arrConflict}` since `{$fieldKey}` is metadata for the Validation to know where a Numbered Array starts and ends!"
+                        "Validation Key `{$fieldKey}` conflicts with `{$arrConflict}` since `{$fieldKey}` indicates a Numbered Array in that VALIDATION Key!"
                     );
                 }
             }
@@ -390,28 +423,21 @@ function cli_validate_key_trie(array $allValidationKeys, array &$validationErrWa
             }
         }
     }
+    cli_stop_from_warn_err_list($validationErrWarns, "B`Please Review (" . count($validationErrWarns) . ")` R`Errors` above for the Validation Function `{$fn}` in `/src/funkphp/data/validation/$file.php`!");
+
+    // Here the raw segments in array keys in VALIDATION key all having valid formatting
+    // so now we will be looking for structural conflicts and/or missing "Parent Keys"/"SubKeys"
     // Regex for each dot-separated segment (rejects control characters & null bytes)
+    // This validates that each dot-separated segment is valid, otherwise it will not be used in the built Trie
     $segmentRegex = '/^[^\x00-\x1F\x7F]+$/u';
     foreach ($allValidationKeys as $rawKey) {
         $fieldKey = (string) $rawKey;
-        // 1. Split on unescaped dots: 'grid\.*.*.*' -> ['grid\.*', '*', '*']
         $rawSegments = preg_split('/(?<!\\\\)\./', $fieldKey);
-        // 1.1 First round of the segments,
-        foreach ($rawSegments as $segment) {
-            // Unescape dots to get the literal key name for segment checking
-            $literalSegment = str_replace('\.', '.', $segment);
-            if ($literalSegment === '') {
-                cli_build_warning_err_list($validationErrWarns, 'cli_err', "Validation Key `{$fieldKey}` contains an Empty Dot Segment (e.g., `foo..bar` or trailing dot).");
-            }
-            if (!preg_match($segmentRegex, $literalSegment)) {
-                cli_build_warning_err_list($validationErrWarns, 'cli_err', "Validation Key Segment `{$literalSegment}` in `{$fieldKey}` contains Invalid Control Characters or Invalid Bytes. Please only use characters that are JSON-valid characters!");
-            }
-        }
-        // 2. Unescape dots for literal segment names: 'grid\.*' -> 'grid.*'
+        // Unescape dots for literal segment names: 'grid\.*' -> 'grid.*'
         $segments = array_map(static function ($s) {
             return str_replace('\.', '.', $s);
         }, $rawSegments);
-        // 3. Count wildcard depth for compiler scoping ($v_0, $v_1, etc.)
+        // Count wildcard depth for compiler scoping ($v_0, $v_1, etc.)
         $wildcardDepth = 0;
         foreach ($segments as $seg) {
             if ($seg === '*') {
@@ -432,11 +458,11 @@ function cli_validate_key_trie(array $allValidationKeys, array &$validationErrWa
                 // Conflict check: Parent node level already has named associative children!
                 if ($currentNode['has_named']) {
                     $parentPath = implode('.', array_slice($pathSoFar, 0, -1));
-                    $parentDisplay = ($parentPath === '') ? 'Root' : "`{$parentPath}`";
+                    $parentDisplay = ($parentPath === '') ? 'Root' : "{$parentPath}";
                     cli_build_warning_err_list(
                         $validationErrWarns,
                         'cli_err',
-                        "Structural Conflict `{$fieldKey}`: Node {$parentDisplay} mixes named Object/Array Keys with an Array Wildcard (`*`). A node cannot be both an Associative Object/Array and a Numbered List!"
+                        "Structural Conflict `{$fieldKey}`: Node `{$parentDisplay}` mixes named Object/Array Keys with an Array Wildcard (`*`). A node cannot be both an Associative Object/Array and a Numbered List!"
                     );
                 }
                 $currentNode['has_wildcard'] = true;
@@ -444,12 +470,12 @@ function cli_validate_key_trie(array $allValidationKeys, array &$validationErrWa
                 // Conflict check: Parent node level is already marked as an array wildcard!
                 if ($currentNode['has_wildcard']) {
                     $parentPath = implode('.', array_slice($pathSoFar, 0, -1));
-                    $parentDisplay = ($parentPath === '') ? 'Root' : "`{$parentPath}`";
+                    $parentDisplay = ($parentPath === '') ? 'Root' : "{$parentPath}";
                     $pathSoFarImploded = implode('.', $pathSoFar);
                     cli_build_warning_err_list(
                         $validationErrWarns,
                         'cli_err',
-                        "Structural Conflict `{$fieldKey}`: Node {$parentDisplay} is defined as an Array Wildcard (`*`) and conflicts with `{$pathSoFarImploded}`. Cannot add Named Associative Subkey `{$segment}` directly to an Array Wildcard Level!"
+                        "Structural Conflict `{$fieldKey}`: Node `{$parentDisplay}.*` is defined as an Array Wildcard (`*`) and conflicts with `{$pathSoFarImploded}`. Cannot add Named Associative Subkey `{$segment}` directly to an Array Wildcard Level!"
                     );
                 }
                 $currentNode['has_named'] = true;
@@ -485,7 +511,7 @@ function cli_validate_key_trie(array $allValidationKeys, array &$validationErrWa
         ];
         and then returns a single string that contains the optimized validation version!
 */
-function cli_compile_validation_schema($validation_schema_array, $file, $fn, $customComment = ''): string
+function cli_compile_validation_schema($validation_schema_array, $file, $fn, $customComment = '', $DEBUG = false): string
 {
     if (
         !isset($validation_schema_array)
@@ -506,7 +532,7 @@ function cli_compile_validation_schema($validation_schema_array, $file, $fn, $cu
 
     $compiledValidationRules = [];
     $compiledFunctionCommentAbove = [];
-    $compiledFunctionCommentAbove[] = "/**\n * Compiled Validation $file=>$fn";
+    $compiledFunctionCommentAbove[] = ($DEBUG ? "/**\n * ## WITH DEBUG ##\n * Compiled Validation $file=>$fn" : "/**\n * Compiled Validation $file=>$fn");
     $compiledValidationSchema = '';
     global $tablesAndRelationshipsFile;
     global $connectionsFile;
@@ -520,31 +546,29 @@ function cli_compile_validation_schema($validation_schema_array, $file, $fn, $cu
 
     // 1A. Build Prefix Trie and validate structural key conflicts
     $parsedKeySegmentsMap = cli_validate_key_trie($allValidationKeys, $validationErrWarns, $file, $fn);
-
-    cli_stop_from_warn_err_list($validationErrWarns, "B`Please Review (" . count($validationErrWarns) . ")` `Warnings`/R`Errors` above for the Validation Function `{$fn}` in `/src/funkphp/data/validation/$file.php`! (Start with R`Structural Conflict Errors` - if any)");
+    cli_stop_from_warn_err_list($validationErrWarns, "B`Please Review (" . count($validationErrWarns) . ")` R`Errors` above for the Validation Function `{$fn}` in `/src/funkphp/data/validation/$file.php`! (Start with R`Structural Conflict Errors` - if any)");
 
     // Now we iterate through each ['VALIDATION'] => ['key' as => data() <- This should be the case or add err!]
     foreach ($validationKey as $rawKey => $ruleSetInstance) {
         // Handle PHP auto-casting '123' to integer 123
         $fieldKey = (string) $rawKey;
+        //Parse dot-notation segments while respecting escaped dots (\.)
+        $segments = preg_split('/(?<!\\\\)\./', $fieldKey);
 
         // Check 1: Must strictly be an instance of RuleSet and that it contains all needed properties & methods!
         if (!($ruleSetInstance instanceof \RuleSet)) {
             $valueType = is_object($ruleSetInstance) ? get_class($ruleSetInstance) : gettype($ruleSetInstance);
             cli_build_warning_err_list($validationErrWarns, 'cli_err', "Validation Key `{$fieldKey}` must be an instance of `RuleSet` initialized via `data()`. Data Type `{$valueType}` was given instead.");
         } elseif (!cli_validate_ruleset_class($ruleSetInstance, $validationErrWarns, $fieldKey)) {
-            cli_stop_from_warn_err_list($validationErrWarns, "Please Review (" . count($validationErrWarns) . ") Warnings/Errors above for the Validation Function `{$fn}` in `/src/funkphp/data/validation/$file.php`!");
+            cli_stop_from_warn_err_list($validationErrWarns, "B`Please Review (" . count($validationErrWarns) . ")` R`Errors` above for the Validation Function `{$fn}` in `/src/funkphp/data/validation/$file.php`! (Start with R`Structural Conflict Errors` - if any)");
         }
         // Edge-case check: Root key * exists meaning it should be dataType 'array' with max(), size() OR between() rule
         // to know limit of array elements. This is required for all array-types for security and performance reasons!
         else if ($fieldKey === '*') {
             // FIX THAT HERE ALSO: fix helper function that validates that each RuleSet Class instance has all properties+methods available!
         }
-
-        // Check 2: Parse dot-notation segments while respecting escaped dots (\.)
-        $segments = preg_split('/(?<!\\\\)\./', $fieldKey);
     }
-    cli_stop_from_warn_err_list($validationErrWarns, "Please Review (" . count($validationErrWarns) . ") Warnings/Errors above for the Validation Function `{$fn}` in `/src/funkphp/data/validation/$file.php`!");
+    cli_stop_from_warn_err_list($validationErrWarns, "B`Please Review (" . count($validationErrWarns) . ")` R`Errors` above for the Validation Function `{$fn}` in `/src/funkphp/data/validation/$file.php`! (Start with R`Structural Conflict Errors` - if any)");
 
     /* FROM GEMINI LLM; might be true or NOT for exists(), unique(), unique_except() DB-related ONLY rules!!!
     How the Compiler Replaces Placeholders dynamically
@@ -914,20 +938,31 @@ class RuleSet
     public ?array $mixedDataType = [];
     public ?string $dataType = null;
     public ?string $dataTypeCategory = null;
+    public ?string $inputKeyField = null; // This replaces the {{##INPUT_KEY##}} with this set string value instead of the 'VALIDATION' => ['key' =>...]
     public ?int $maxIntegerValue = null;
     public ?int $minIntegerValue = null;
+    public ?int $exactIntegerValue = null;
     public ?int $maxArrayCountValue = null;
     public ?int $minArrayCountValue = null;
+    public ?int $exactArrayCountValue = null;
+    public ?int $maxObjectCountValue = null;
+    public ?int $minObjectCountValue = null;
+    public ?int $exactObjectCountValue = null;
     public ?float $maxFloatValue = null;
     public ?float $minFloatValue = null;
-    public ?string $maxStringLength = null;
-    public ?string $minStringLength = null;
-    public ?string $inputKeyField = null; // This replaces the {{##INPUT_KEY##}} with this set string value instead of the 'VALIDATION' => ['key' =>...]
+    public ?float $exactFloatValue = null;
+    public ?float $maxFilesizeValue = null;
+    public ?float $minFilesizeValue = null;
+    public ?float $exactFilesizeValue = null;
+    public ?int $maxStringLength = null;
+    public ?int $minStringLength = null;
+    public ?int $exactStringLength = null;
     public ?bool $useNullable = false;
     public ?bool $useRequired = false;
     public ?bool $useBail = false;
     public ?string $arrayType = null;
     public ?array $dimensionalArrayCount = [];
+    public ?int $dimensionalArrayDepth = 0;
     // Flat associative list of configured rules
     public array $rules = [];
     // Tracks syntax/dev errors during chaining for validating the correct use of the rules
@@ -970,6 +1005,9 @@ class RuleSet
             // --- ARRAYS: (Multi-dimensional array support like arrays:1-5,5 or arrays:5,5-10) ---
             if ($prefix === 'arrays') {
                 $guardConditions = [];
+                $min = null;
+                $max = nulL;
+                $exactSize = null;
                 foreach ($arrVals as $levelIndex => $arVal) {
                     // Build depth accessor: level 0 = {{##INPUT##}}, level 1 = {{##INPUT##}}[0], level 2 = {{##INPUT##}}[0][0]
                     $accessor = '{{##INPUT##}}' . str_repeat('[0]', $levelIndex);
@@ -1009,13 +1047,14 @@ class RuleSet
                     }
                     $this->dimensionalArrayCount[] = $arVal;
                 }
+                $this->dimensionalArrayDepth = count($this->dimensionalArrayCount);
                 $guardExpression = implode(' && ', $guardConditions);
                 $dataType = 'array';
                 $this->dataType = $dataType;
                 $this->dataTypeCategory = $this->setDataTypeCategory[$dataType];
                 $error = (!empty($customErrorMsg)) ? $customErrorMsg : "Must be of data type `multi-dimensional array`!";
                 $error = addcslashes($error, "'\\");
-                $this->rules[$dataType] = ['error' => $error];
+                $this->rules[$dataType] = ['error' => $error, 'values' => ['type' => $dataType, 'dimensionalArrayDepth' =>  count($this->dimensionalArrayCount), 'dimensionalArrayCount' =>  $this->dimensionalArrayCount]];
                 $this->rules[$dataType]['compiled'] = "if(!({$guardExpression})) {\n" .
                     "    {{##DEBUG##}}{{##ERRORS##}}['{$dataType}'] = '{$error}';\n" .
                     "    {{##GOTO_STOP_ALL##}}\n" .
@@ -1075,7 +1114,7 @@ class RuleSet
         $error = ((!empty($customErrorMsg)) ? $customErrorMsg : "`{{##INPUT_KEY##}}` must be of data type `{$dataType}`.");
         $error = addcslashes($error, "'\\");
         $guardExpression = $this->typeGuardMap[$dataType];
-        $this->rules[$dataType] = ['error'    => $error];
+        $this->rules[$dataType] = ['error'    => $error, 'values' => ['type' => $dataType]];
         $this->rules[$dataType]['compiled'] =  "if(!{$guardExpression}) {\n" .
             "    {{##DEBUG##}}{{##ERRORS##}}['{$dataType}'] = '{$error}';\n" .
             "    {{##GOTO_STOP_ALL##}}\n" .
@@ -1261,7 +1300,7 @@ class RuleSet
         if (!$this->validateRuleUsage('bail')) {
             return $this;
         }
-        $this->rules['bail'] = ['error' => null, 'compiled' => null];
+        $this->rules['bail'] = ['error' => null, 'values' => null, 'compiled' => null];
         $this->useBail = true;
         return $this;
     }
@@ -1270,7 +1309,7 @@ class RuleSet
         if (!$this->validateRuleUsage('nullable')) {
             return $this;
         }
-        $this->rules['nullable'] = ['error' => null, 'compiled' => null];
+        $this->rules['nullable'] = ['error' => null, 'values' => null, 'compiled' => null];
         $this->useNullable = true;
         return $this;
     }
@@ -1284,7 +1323,7 @@ class RuleSet
             return $this;
         }
         $this->inputKeyField = strtolower(trim($validated[0]));
-        $this->rules['input_key_field'] = ['error' => null, 'compiled' => null];
+        $this->rules['input_key_field'] = ['error' => null, 'values' => null, 'compiled' => null];
         $this->useNullable = true;
         return $this;
     }
@@ -1358,7 +1397,8 @@ class RuleSet
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
         $this->rules['callback'] = [
-            'functionName' => "\\$func",
+            'values' => "$func",
+            'callback' => "\\$func",
             'error'        => $error,
             'compiled'     => $compiledCode,
         ];
@@ -1395,7 +1435,7 @@ class RuleSet
         $error = addcslashes($error, "'\\");
         // 6. Store Compiled Rule
         $this->rules['keys_in_array_null_allowed'] = [
-            'required_keys' => $keys,
+            'values' => $keys,
             'error'         => $error,
             'compiled'      => "if({$condition}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['keys_in_array_null_allowed'] = '{$error}';\n" .
@@ -1444,7 +1484,7 @@ class RuleSet
         $error = addcslashes($error, "'\\");
         // 6. Store Compiled Rule
         $this->rules['keys_in_array_null_allowed_exact_count'] = [
-            'required_keys'  => $keys,
+            'values'  => $keys,
             'expected_count' => $expectedCount,
             'error'          => $error,
             'compiled'       => "if({$condition}) {\n" .
@@ -1492,7 +1532,7 @@ class RuleSet
         $error = addcslashes($error, "'\\");
         // 6. Store Compiled Rule
         $this->rules['keys_in_array_not_null'] = [
-            'required_keys' => $keys,
+            'values' => $keys,
             'error'         => $error,
             'compiled'      => "if({$condition}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['keys_in_array_not_null'] = '{$error}';\n" .
@@ -1540,7 +1580,7 @@ class RuleSet
         $error = addcslashes($error, "'\\");
         // 6. Store Compiled Rule
         $this->rules['keys_in_array_not_null_exact_count'] = [
-            'required_keys'  => $keys,
+            'values'  => $keys,
             'expected_count' => $expectedCount,
             'error'          => $error,
             'compiled'       => "if({$condition}) {\n" .
@@ -1648,7 +1688,8 @@ class RuleSet
         $error = addcslashes($error, "'\\");
         // 3. Store compiled rule
         $this->rules['keys_in_array_depths'] = [
-            'paths'    => $pathsWhereEachDotIsNextDepthLevel,
+            'values'    => $pathsWhereEachDotIsNextDepthLevel,
+            'paths_compiled' => $compiledPathChecks,
             'error'    => $error,
             'compiled' => "if(!({$fullCondition})) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['keys_in_array_depths'] = '{$error}';\n" .
@@ -1807,7 +1848,7 @@ class RuleSet
     /* MIXED DATA TYPES RULES when using RuleSetAll! */
     public function min(int|float $minValue, string $customErrorMsg = ''): self
     {
-        if (!$this->validateRuleUsage('min', ['between', 'between_mb', 'size', 'min_mb'])) {
+        if (!$this->validateRuleUsage('min', ['between', 'between_mb', 'size', 'min_mb', 'file_min'])) {
             return $this;
         }
         if (is_float($minValue)) {
@@ -1867,6 +1908,7 @@ class RuleSet
         }
         $this->rules['min'] = [
             'error'    => $error,
+            'values'    => $minValue,
             'compiled' => "if({$condition}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['min'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
@@ -1886,7 +1928,7 @@ class RuleSet
     }
     public function max(int|float $maxValue, string $customErrorMsg = ''): self
     {
-        if (!$this->validateRuleUsage('max', ['between', 'between_mb', 'size', 'max_mb'])) {
+        if (!$this->validateRuleUsage('max', ['between', 'between_mb', 'size', 'max_mb', 'file_max'])) {
             return $this;
         }
         if (is_float($maxValue)) {
@@ -1946,6 +1988,7 @@ class RuleSet
         }
         $this->rules['max'] = [
             'error'    => $error,
+            'values'    => $maxValue,
             'compiled' => "if({$condition}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['max'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
@@ -1965,7 +2008,7 @@ class RuleSet
     }
     public function between(int|float $minVal, int|float $maxVal, string $customErrorMsg = ''): self
     {
-        if (!$this->validateRuleUsage('between', ['size', 'between_mb', 'min', 'max', 'min_mb', 'max_mb'])) {
+        if (!$this->validateRuleUsage('between', ['size', 'between_mb', 'min', 'max', 'min_mb', 'max_mb', 'file_between', 'file_min', 'file_max', 'file_size'])) {
             return $this;
         }
         // 3. Range Sanity Guard ($minVal must be strictly less than $maxVal)
@@ -2027,6 +2070,7 @@ class RuleSet
         // 7. Store compiled rules
         $this->rules['between'] = [
             'error'    => $error,
+            'values'    => ['min' => $minVal, 'max' => $maxVal],
             'compiled' => "if({$condition}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['between'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
@@ -2046,7 +2090,7 @@ class RuleSet
     }
     public function size(int|float $size, string $customErrorMsg = ''): self
     {
-        if (!$this->validateRuleUsage('size', ['min', 'max', 'between', 'between_mb', 'size_mb', 'max_mb', 'min_mb'])) {
+        if (!$this->validateRuleUsage('size', ['min', 'max', 'between', 'between_mb', 'size_mb', 'max_mb', 'min_mb', 'file_size', 'file_min', 'file_max', 'file_between'])) {
             return $this;
         }
         // 4. Float Guard
@@ -2104,6 +2148,7 @@ class RuleSet
         // 7. Store compiled rule
         $this->rules['size'] = [
             'error'    => $error,
+            'values'    => $size,
             'compiled' => "if({$condition}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['size'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
@@ -2144,7 +2189,7 @@ class RuleSet
             : "Field `{{##INPUT_KEY##}}` must start with: " . implode(', ', $prefixes);
         $error = addcslashes($error, "'\\");
         $this->rules['starts_with'] = [
-            'prefixes' => $prefixes,
+            'values' => $prefixes,
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['starts_with'] = '{$error}';\n" .
@@ -2185,7 +2230,7 @@ class RuleSet
             : "Field `{{##INPUT_KEY##}}` must end with: " . implode(', ', $suffixes);
         $error = addcslashes($error, "'\\");
         $this->rules['ends_with'] = [
-            'suffixes' => $suffixes,
+            'values' => $suffixes,
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['ends_with'] = '{$error}';\n" .
@@ -2239,7 +2284,7 @@ class RuleSet
             : "Field `{{##INPUT_KEY##}}` must contain: " . implode(', ', $needles);
         $error = addcslashes($error, "'\\");
         $this->rules['contains'] = [
-            'needles'  => $needles,
+            'values'  => $needles,
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['contains'] = '{$error}';\n" .
@@ -2280,7 +2325,7 @@ class RuleSet
             : "Field `{{##INPUT_KEY##}}` must not start with: " . implode(', ', $prefixes);
         $error = addcslashes($error, "'\\");
         $this->rules['doesnt_start_with'] = [
-            'prefixes' => $prefixes,
+            'values' => $prefixes,
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['doesnt_start_with'] = '{$error}';\n" .
@@ -2321,7 +2366,7 @@ class RuleSet
             : "Field `{{##INPUT_KEY##}}` must not end with: " . implode(', ', $suffixes);
         $error = addcslashes($error, "'\\");
         $this->rules['doesnt_end_with'] = [
-            'suffixes' => $suffixes,
+            'values' => $suffixes,
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['doesnt_end_with'] = '{$error}';\n" .
@@ -2375,7 +2420,7 @@ class RuleSet
             : "Field `{{##INPUT_KEY##}}` must not contain: " . implode(', ', $needles);
         $error = addcslashes($error, "'\\");
         $this->rules['doesnt_contain'] = [
-            'needles'  => $needles,
+            'values'  => $needles,
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['doesnt_contain'] = '{$error}';\n" .
@@ -2416,7 +2461,7 @@ class RuleSet
             : "Field `{{##INPUT_KEY##}}` is not in the allowed list.";
         $error = addcslashes($error, "'\\");
         $this->rules['in_allowed'] = [
-            'lists'    => $needles,
+            'values'    => $needles,
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['in_allowed'] = '{$error}';\n" .
@@ -2456,7 +2501,7 @@ class RuleSet
             : "Field `{{##INPUT_KEY##}}` is not present in the disallowed list.";
         $error = addcslashes($error, "'\\");
         $this->rules['in_disallowed'] = [
-            'lists'    => $needles,
+            'values'    => $needles,
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['in_disallowed'] = '{$error}';\n" .
@@ -2496,7 +2541,7 @@ class RuleSet
             : "Field `{{##INPUT_KEY##}}` cannot be in the specified allowed list.";
         $error = addcslashes($error, "'\\");
         $this->rules['not_in_allowed'] = [
-            'lists'    => $needles,
+            'values'    => $needles,
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['not_in_allowed'] = '{$error}';\n" .
@@ -2536,7 +2581,7 @@ class RuleSet
             : "Field `{{##INPUT_KEY##}}` contains a disallowed value.";
         $error = addcslashes($error, "'\\");
         $this->rules['not_in_disallowed'] = [
-            'lists'    => $needles,
+            'values'    => $needles,
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['not_in_disallowed'] = '{$error}';\n" .
@@ -2575,11 +2620,12 @@ class RuleSet
             $exportedArray = var_export($values, true);
             $condition = '!in_array({{##INPUT##}}, ' . $exportedArray . ', true)';
         }
-        $error = (!empty($customErrorMsg)) ? $customErrorMsg : "Selected value for `{{##INPUT_KEY##}}` is invalid.";
+        $error = (!empty($customErrorMsg)) ? $customErrorMsg : "Selected value for `{{##INPUT_KEY##}}` is invalid. Must be one of the following valid ones:`" . join(', ', $values) . '`!';
         $error = addcslashes($error, "'\\");
         // 7. Store Compiled Rule
         $this->rules['in'] = [
             'error'    => $error,
+            'values' => $values,
             'compiled' => "if({$condition}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['in'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
@@ -2597,12 +2643,12 @@ class RuleSet
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['in'] = '" . $error . "';";
         return $this;
     }
-    public function not_in(array|string $inValues, string $customErrorMsg = ''): self
+    public function not_in(array|string $notInValues, string $customErrorMsg = ''): self
     {
         if (!$this->validateRuleUsage('not_in', ['in'], [], ['string', 'numeric', 'boolean'])) {
             return $this;
         }
-        $values = $this->validateRuleMultipleValues('not_in', $inValues, ['string', 'integer', 'boolean', 'float', null]);
+        $values = $this->validateRuleMultipleValues('not_in', $notInValues, ['string', 'integer', 'boolean', 'float', null]);
         // Failure condition: input value IS in the forbidden list
         if (count($values) <= 3) {
             $checks = [];
@@ -2614,11 +2660,12 @@ class RuleSet
             $exportedArray = var_export($values, true);
             $condition = 'in_array({{##INPUT##}}, ' . $exportedArray . ', true)';
         }
-        $error = (!empty($customErrorMsg)) ? $customErrorMsg : "Selected value for `{{##INPUT_KEY##}}` is forbidden.";
+        $error = (!empty($customErrorMsg)) ? $customErrorMsg : "Selected value for `{{##INPUT_KEY##}}` is forbidden. It CANNOT be any of following ones:`" . join(', ', $values) . '`!';
         $error = addcslashes($error, "'\\");
         // 7. Store Compiled Rule
         $this->rules['not_in'] = [
             'error'    => $error,
+            'values' => $values,
             'compiled' => "if({$condition}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['not_in'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
@@ -2658,6 +2705,7 @@ class RuleSet
         $error = addcslashes($error, "'\\");
         $this->rules['min_mb'] = [
             'error'    => $error,
+            'values' => $minChars,
             'compiled' => "if(mb_strlen({{##INPUT##}}) < {$minChars}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['min_mb'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
@@ -2695,6 +2743,7 @@ class RuleSet
         $error = addcslashes($error, "'\\");
         $this->rules['max_mb'] = [
             'error'    => $error,
+            'values' => $maxChars,
             'compiled' => "if(mb_strlen({{##INPUT##}}) > {$maxChars}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['max_mb'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
@@ -2740,6 +2789,7 @@ class RuleSet
         $error = addcslashes($error, "'\\");
         $this->rules['between_mb'] = [
             'error'    => $error,
+            'values' => ['min' => $minChars, 'max' => $maxChars],
             'compiled' => "if((mb_strlen({{##INPUT##}}) < {$minChars} || mb_strlen({{##INPUT##}}) > {$maxChars})) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['between_mb'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
@@ -2777,6 +2827,7 @@ class RuleSet
         $error = addcslashes($error, "'\\");
         $this->rules['size_mb'] = [
             'error'    => $error,
+            'values' => $size,
             'compiled' => "if(mb_strlen({{##INPUT##}}) !== {$size}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['size_mb'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
@@ -2827,6 +2878,7 @@ class RuleSet
         // 5. Store compiled rule
         $this->rules['regex'] = [
             'error'    => $error,
+            'values' => $patterns,
             'compiled' => "if({$condition}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['regex'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
@@ -2876,6 +2928,7 @@ class RuleSet
         // 5. Store compiled rule
         $this->rules['not_regex'] = [
             'error'    => $error,
+            'values' => $patterns,
             'compiled' => "if({$condition}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['not_regex'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
@@ -2907,6 +2960,7 @@ class RuleSet
         // 5. Store Compiled Rule
         $this->rules['mac_address'] = [
             'error'    => $error,
+            'values' => null,
             'compiled' => "if({$condition}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['mac_address'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
@@ -2938,6 +2992,7 @@ class RuleSet
         // 6. Store Compiled Rule
         $this->rules['lowercase'] = [
             'error'    => $error,
+            'values' => null,
             'compiled' => "if({$condition}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['lowercase'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
@@ -2969,6 +3024,7 @@ class RuleSet
         // 6. Store Compiled Rule
         $this->rules['uppercase'] = [
             'error'    => $error,
+            'values' => null,
             'compiled' => "if({$condition}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['uppercase'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
@@ -3001,6 +3057,7 @@ class RuleSet
         // 6. Store Compiled Rule
         $this->rules['lowercase_mb'] = [
             'error'    => $error,
+            'values' => null,
             'compiled' => "if({$condition}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['lowercase_mb'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
@@ -3032,6 +3089,7 @@ class RuleSet
         // 6. Store Compiled Rule
         $this->rules['uppercase_mb'] = [
             'error'    => $error,
+            'values' => null,
             'compiled' => "if({$condition}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['uppercase_mb'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
@@ -3112,6 +3170,8 @@ class RuleSet
         // 4. Store Compiled Rule
         $this->rules['uid'] = [
             'error'    => $error,
+            'values' => $formats,
+            'selected_patterns' => $selectedPatterns,
             'compiled' => "if({$condition}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['uid'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
@@ -3153,6 +3213,7 @@ class RuleSet
         // 6. Store Compiled Rule
         $this->rules['slug'] = [
             'error'    => $error,
+            'values' => $variant,
             'compiled' => "if({$condition}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['slug'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
@@ -3196,6 +3257,7 @@ class RuleSet
         // 7. Store Compiled Rule
         $this->rules['base64'] = [
             'error'    => $error,
+            'values' => $variant,
             'compiled' => "if({$condition}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['base64'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
@@ -3239,6 +3301,7 @@ class RuleSet
         // 7. Store Compiled Rule
         $this->rules['not_base64'] = [
             'error'    => $error,
+            'values' => $variant,
             'compiled' => "if({$condition}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['not_base64'] = '{$error}';\n" .
                 "    {{##GOTO_STOP_ALL##}}\n" .
@@ -3283,7 +3346,7 @@ class RuleSet
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
-        $this->rules['base32'] = ['error' => $error, 'compiled' => $compiledCode];
+        $this->rules['base32'] = ['error' => $error, 'values' => null, 'compiled' => $compiledCode];
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['base32'] = '" . $error . "';";
         return $this;
     }
@@ -3314,7 +3377,7 @@ class RuleSet
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
-        $this->rules['base58'] = ['error' => $error, 'compiled' => $compiledCode];
+        $this->rules['base58'] = ['error' => $error, 'values' => null, 'compiled' => $compiledCode];
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['base58'] = '" . $error . "';";
         return $this;
     }
@@ -3344,7 +3407,7 @@ class RuleSet
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
-        $this->rules['base64url'] = ['error' => $error, 'compiled' => $compiledCode];
+        $this->rules['base64url'] = ['error' => $error, 'values' => null, 'compiled' => $compiledCode];
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['base64url'] = '" . $error . "';";
         return $this;
     }
@@ -3373,7 +3436,7 @@ class RuleSet
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
-        $this->rules['hexadecimal'] = ['error' => $error, 'compiled' => $compiledCode];
+        $this->rules['hexadecimal'] = ['error' => $error, 'values' => null, 'compiled' => $compiledCode];
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['hexadecimal'] = '" . $error . "';";
         return $this;
     }
@@ -3405,7 +3468,7 @@ class RuleSet
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
-        $this->rules['md5'] = ['error' => $error, 'compiled' => $compiledCode];
+        $this->rules['md5'] = ['error' => $error, 'values' => null, 'compiled' => $compiledCode];
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['md5'] = '" . $error . "';";
         return $this;
     }
@@ -3437,7 +3500,7 @@ class RuleSet
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
-        $this->rules['sha1'] = ['error' => $error, 'compiled' => $compiledCode];
+        $this->rules['sha1'] = ['error' => $error, 'values' => null, 'compiled' => $compiledCode];
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['sha1'] = '" . $error . "';";
         return $this;
     }
@@ -3466,7 +3529,7 @@ class RuleSet
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
-        $this->rules['sha256'] = ['error' => $error, 'compiled' => $compiledCode];
+        $this->rules['sha256'] = ['error' => $error, 'values' => null, 'compiled' => $compiledCode];
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['sha256'] = '" . $error . "';";
         return $this;
     }
@@ -3498,7 +3561,7 @@ class RuleSet
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
-        $this->rules['sha384'] = ['error' => $error, 'compiled' => $compiledCode];
+        $this->rules['sha384'] = ['error' => $error, 'values' => null, 'compiled' => $compiledCode];
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['sha384'] = '" . $error . "';";
         return $this;
     }
@@ -3530,7 +3593,7 @@ class RuleSet
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
-        $this->rules['sha512'] = ['error' => $error, 'compiled' => $compiledCode];
+        $this->rules['sha512'] = ['error' => $error, 'values' => null, 'compiled' => $compiledCode];
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['sha512'] = '" . $error . "';";
         return $this;
     }
@@ -3559,7 +3622,7 @@ class RuleSet
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
-        $this->rules['octal'] = ['error' => $error, 'compiled' => $compiledCode];
+        $this->rules['octal'] = ['error' => $error, 'values' => null, 'compiled' => $compiledCode];
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['octal'] = '" . $error . "';";
         return $this;
     }
@@ -3588,7 +3651,7 @@ class RuleSet
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
-        $this->rules['binary'] = ['error' => $error, 'compiled' => $compiledCode];
+        $this->rules['binary'] = ['error' => $error, 'values' => null, 'compiled' => $compiledCode];
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['binary'] = '" . $error . "';";
         return $this;
     }
@@ -3619,7 +3682,7 @@ class RuleSet
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
-        $this->rules['pem'] = ['error' => $error, 'compiled' => $compiledCode];
+        $this->rules['pem'] = ['error' => $error, 'values' => null, 'compiled' => $compiledCode];
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['pem'] = '" . $error . "';";
         return $this;
     }
@@ -3648,7 +3711,7 @@ class RuleSet
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
-        $this->rules['ip'] = ['error' => $error, 'compiled' => $compiledCode];
+        $this->rules['ip'] = ['error' => $error, 'values' => null, 'compiled' => $compiledCode];
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['ip'] = '" . $error . "';";
         return $this;
     }
@@ -3677,7 +3740,7 @@ class RuleSet
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
-        $this->rules['ipv4'] = ['error' => $error, 'compiled' => $compiledCode];
+        $this->rules['ipv4'] = ['error' => $error, 'values' => null, 'compiled' => $compiledCode];
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['ipv4'] = '" . $error . "';";
         return $this;
     }
@@ -3706,7 +3769,7 @@ class RuleSet
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
-        $this->rules['ipv6'] = ['error' => $error, 'compiled' => $compiledCode];
+        $this->rules['ipv6'] = ['error' => $error, 'values' => null, 'compiled' => $compiledCode];
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['ipv6'] = '" . $error . "';";
         return $this;
     }
@@ -3737,7 +3800,7 @@ class RuleSet
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
-        $this->rules['json'] = ['error' => $error, 'compiled' => $compiledCode];
+        $this->rules['json'] = ['error' => $error, 'values' => null, 'compiled' => $compiledCode];
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['json'] = '" . $error . "';";
         return $this;
     }
@@ -3766,7 +3829,7 @@ class RuleSet
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
-        $this->rules['ascii'] = ['error' => $error, 'compiled' => $compiledCode];
+        $this->rules['ascii'] = ['error' => $error, 'values' => null, 'compiled' => $compiledCode];
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['ascii'] = '" . $error . "';";
         return $this;
     }
@@ -3796,7 +3859,7 @@ class RuleSet
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
-        $this->rules['ascii_printable'] = ['error' => $error, 'compiled' => $compiledCode];
+        $this->rules['ascii_printable'] = ['error' => $error, 'values' => null, 'compiled' => $compiledCode];
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['ascii_printable'] = '" . $error . "';";
         return $this;
     }
@@ -3827,7 +3890,7 @@ class RuleSet
             "    {{##GOTO_NEXT_RULE##}}\n" .
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
-        $this->rules['utf8'] = ['error' => $error, 'compiled' => $compiledCode];
+        $this->rules['utf8'] = ['error' => $error, 'values' => null, 'compiled' => $compiledCode];
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['utf8'] = '" . $error . "';";
         return $this;
     }
@@ -3893,6 +3956,8 @@ class RuleSet
         // 6. Store Compiled Rule
         $this->rules['color'] = [
             'allowed_formats' => array_keys($selectedPatterns),
+            'values' => $formats,
+            'selected_patterns' => $selectedPatterns,
             'error'           => $error,
             'compiled'        => "if({$condition}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['color'] = '{$error}';\n" .
@@ -3945,6 +4010,7 @@ class RuleSet
         // 6. Store Compiled Rule
         $this->rules['single_char'] = [
             'allowed_chars' => $chars,
+            'values' => $chars,
             'error'         => $error,
             'compiled'      => "if({$condition}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['single_char'] = '{$error}';\n" .
@@ -3997,6 +4063,7 @@ class RuleSet
         // 6. Store Compiled Rule
         $this->rules['single_char_mb'] = [
             'allowed_chars' => $chars,
+            'values' => $chars,
             'error'         => $error,
             'compiled'      => "if({$condition}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['single_char_mb'] = '{$error}';\n" .
@@ -4038,7 +4105,7 @@ class RuleSet
             : "Field `{{##INPUT_KEY##}}` must start with: " . implode(', ', $prefixes);
         $error = addcslashes($error, "'\\");
         $this->rules['starts_with_mb'] = [
-            'prefixes' => $prefixes,
+            'values' => $prefixes,
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['starts_with_mb'] = '{$error}';\n" .
@@ -4085,7 +4152,7 @@ class RuleSet
             : "Field `{{##INPUT_KEY##}}` must end with: " . implode(', ', $suffixes);
         $error = addcslashes($error, "'\\");
         $this->rules['ends_with_mb'] = [
-            'suffixes' => $suffixes,
+            'values' => $suffixes,
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['ends_with_mb'] = '{$error}';\n" .
@@ -4127,7 +4194,7 @@ class RuleSet
             : "Field `{{##INPUT_KEY##}}` must contain: " . implode(', ', $needles);
         $error = addcslashes($error, "'\\");
         $this->rules['contains_mb'] = [
-            'needles'  => $needles,
+            'values'  => $needles,
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['contains_mb'] = '{$error}';\n" .
@@ -4168,7 +4235,7 @@ class RuleSet
             : "Field `{{##INPUT_KEY##}}` must not start with: " . implode(', ', $prefixes);
         $error = addcslashes($error, "'\\");
         $this->rules['doesnt_start_with_mb'] = [
-            'prefixes' => $prefixes,
+            'values' => $prefixes,
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['doesnt_start_with_mb'] = '{$error}';\n" .
@@ -4214,7 +4281,7 @@ class RuleSet
             : "Field `{{##INPUT_KEY##}}` must not end with: " . implode(', ', $suffixes);
         $error = addcslashes($error, "'\\");
         $this->rules['doesnt_end_with_mb'] = [
-            'suffixes' => $suffixes,
+            'values' => $suffixes,
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['doesnt_end_with_mb'] = '{$error}';\n" .
@@ -4255,7 +4322,7 @@ class RuleSet
             : "Field `{{##INPUT_KEY##}}` must not contain: " . implode(', ', $needles);
         $error = addcslashes($error, "'\\");
         $this->rules['doesnt_contain_mb'] = [
-            'needles'  => $needles,
+            'values'  => $needles,
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['doesnt_contain_mb'] = '{$error}';\n" .
@@ -4304,6 +4371,7 @@ class RuleSet
             "}";
         $this->rules['date'] = [
             'error'    => $error,
+            'values' => null,
             'compiled' => $compiledCode,
         ];
         $this->mergedErrorsBesdiesDataType[] = "    {{##ERRORS##}}['date'] = '" . $error . "';";
@@ -4353,6 +4421,7 @@ class RuleSet
             "}";
         $this->rules['date_after'] = [
             'targetDate' => $targetDate,
+            'values' => $targetDate,
             'error'      => $error,
             'compiled'   => $compiledCode,
         ];
@@ -4403,6 +4472,7 @@ class RuleSet
             "}";
         $this->rules['date_after_or_equal'] = [
             'targetDate' => $targetDate,
+            'values' => $targetDate,
             'error'      => $error,
             'compiled'   => $compiledCode,
         ];
@@ -4453,6 +4523,7 @@ class RuleSet
             "}";
         $this->rules['date_before'] = [
             'targetDate' => $targetDate,
+            'values' => $targetDate,
             'error'      => $error,
             'compiled'   => $compiledCode,
         ];
@@ -4503,6 +4574,7 @@ class RuleSet
             "}";
         $this->rules['date_before_or_equal'] = [
             'targetDate' => $targetDate,
+            'values' => $targetDate,
             'error'      => $error,
             'compiled'   => $compiledCode,
         ];
@@ -4553,6 +4625,7 @@ class RuleSet
             "}";
         $this->rules['date_equals'] = [
             'targetDate' => $targetDate,
+            'values' => $targetDate,
             'error'      => $error,
             'compiled'   => $compiledCode,
         ];
@@ -4620,8 +4693,9 @@ class RuleSet
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
         $this->rules['date_format'] = [
-            'dummies'  => $dummies,
+            'values' => $formats,
             'formats'  => $validFormats,
+            'dummies'  => $dummies,
             'error'    => $error,
             'compiled' => $compiledCode,
         ];
@@ -4679,6 +4753,7 @@ class RuleSet
             "}";
         $this->rules['date_in'] = [
             'targetDates' => $validatedDates,
+            'values' => $targetDates,
             'error'       => $error,
             'compiled'    => $compiledCode,
         ];
@@ -4772,6 +4847,7 @@ class RuleSet
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
         $this->rules['date_timezone'] = [
+            'values' => ['region' => $region, 'countryCode' => $countryCode],
             'region'      => $normalizedRegion,
             'countryCode' => $countryCode,
             'error'       => $error,
@@ -4844,6 +4920,7 @@ class RuleSet
             "    }\n" .
             "}";
         $this->rules['encoding'] = [
+            'values' => $encoding,
             'encodings' => $cleanEncodings,
             'error'     => $error,
             'compiled'  => $compiledCode,
@@ -4967,6 +5044,14 @@ class RuleSet
         $error = addcslashes($error, "'\\");
         // Store compiled rule
         $this->rules['password'] = [
+            'values' => [
+                'min'       => $min,
+                'max'       => $max,
+                'letters'   => $letters,
+                'numbers'   => $numbers,
+                'symbols'   => $symbols,
+                'mixedCase' => $mixedCase,
+            ],
             'min'       => $min,
             'max'       => $max,
             'letters'   => $letters,
@@ -5056,6 +5141,7 @@ class RuleSet
             "}";
         // 4. Store compiled rule
         $this->rules['password_uncompromised'] = [
+            'values' => ['threshold' => $threshold, 'timeout' => $timeout, 'failOnApiError' => $failOnApiError],
             'threshold' => $threshold,
             'error'     => $error,
             'compiled'  => $compiledCode
@@ -5128,6 +5214,10 @@ class RuleSet
         }
         // 6. Store compiled rule
         $this->rules['email_web'] = [
+            'values' => [
+                'checkDns' => $checkDns,
+                'checkTld' => $checkTld,
+            ],
             'checkDns' => $checkDns,
             'checkTld' => $checkTld,
             'error'    => $error,
@@ -5208,6 +5298,11 @@ class RuleSet
         }
         // 5. Store compiled rule
         $this->rules['phone'] = [
+            'values' => [
+                'countryCodes' => $countryCodes,
+                'minDigits'    => $minDigits,
+                'maxDigits'    => $maxDigits,
+            ],
             'countryCodes' => $countryCodes,
             'minDigits'    => $minDigits,
             'maxDigits'    => $maxDigits,
@@ -5256,6 +5351,7 @@ class RuleSet
         // 4. Store compiled rule (with Target Existence Guard)
         $this->rules['gte'] = [
             'error'    => $error,
+            'values' => $targetFieldinValidation,
             'target' => $targetFieldinValidation,
             'compiled' => "if(!isset({{##TARGET_INPUT:{$targetFieldinValidation}##}}) || {$condition}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['gte'] = '{$error}';\n" .
@@ -5306,6 +5402,7 @@ class RuleSet
         }
         $this->rules['gt'] = [
             'error'    => $error,
+            'values' => $targetFieldinValidation,
             'target' => $targetFieldinValidation,
             'compiled' => "if(!isset({{##TARGET_INPUT:{$targetFieldinValidation}##}}) || {$condition}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['gt'] = '{$error}';\n" .
@@ -5356,6 +5453,7 @@ class RuleSet
         }
         $this->rules['lte'] = [
             'error'    => $error,
+            'values' => $targetFieldinValidation,
             'target' => $targetFieldinValidation,
             'compiled' => "if(!isset({{##TARGET_INPUT:{$targetFieldinValidation}##}}) || {$condition}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['lte'] = '{$error}';\n" .
@@ -5406,6 +5504,7 @@ class RuleSet
         }
         $this->rules['lt'] = [
             'error'    => $error,
+            'values' => $targetFieldinValidation,
             'target' => $targetFieldinValidation,
             'compiled' => "if(!isset({{##TARGET_INPUT:{$targetFieldinValidation}##}}) || {$condition}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['lt'] = '{$error}';\n" .
@@ -5445,6 +5544,7 @@ class RuleSet
         // 6. Store Compiled Rule
         $this->rules['same'] = [
             'error'    => $error,
+            'values' => $targetField,
             'target' => $targetField,
             'compiled' => "if({$condition}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['same'] = '{$error}';\n" .
@@ -5484,6 +5584,7 @@ class RuleSet
         // 6. Store Compiled Rule
         $this->rules['different'] = [
             'error'  => $error,
+            'values' => $targetField,
             'target' => $targetField,
             'compiled' => "if({$condition}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['different'] = '{$error}';\n" .
@@ -5537,7 +5638,8 @@ class RuleSet
         $error = addcslashes($error, "'\\");
         // 4. Store compiled rule
         $this->rules['multiple_of'] = [
-            'value'    => $target,
+            'values' => $values,
+            'targetValue'    => $target,
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
                 "    {{##DEBUG##}}{{##ERRORS##}}['multiple_of'] = '{$error}';\n" .
@@ -5592,6 +5694,7 @@ class RuleSet
         $error = addcslashes($error, "'\\");
         // 6. Store Compiled Rule
         $this->rules['single_digit'] = [
+            'values' => $digits,
             'allowed_digits' => $digits,
             'error'          => $error,
             'compiled'       => "if({$condition}) {\n" .
@@ -5635,6 +5738,7 @@ class RuleSet
         $error = addcslashes($error, "'\\");
         // 4. Store compiled rule
         $this->rules['digits'] = [
+            'values' =>  $values,
             'digits'   => $count,
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
@@ -5678,6 +5782,7 @@ class RuleSet
         $error = addcslashes($error, "'\\");
         // 4. Store compiled rule
         $this->rules['min_digits'] = [
+            'values' => $min,
             'min'      => $min,
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
@@ -5726,6 +5831,7 @@ class RuleSet
         $error = addcslashes($error, "'\\");
         // 4. Store compiled rule
         $this->rules['max_digits'] = [
+            'values' => $max,
             'max'      => $max,
             'error'    => $error,
             'compiled' => "if({$condition}) {\n" .
@@ -5775,6 +5881,10 @@ class RuleSet
         $error = addcslashes($error, "'\\");
         // 4. Store compiled rule
         $this->rules['digits_between'] = [
+            'values' => [
+                'min'      => $minVal,
+                'max'      => $maxVal,
+            ],
             'min'      => $minVal,
             'max'      => $maxVal,
             'error'    => $error,
@@ -5848,6 +5958,10 @@ class RuleSet
         $error = addcslashes($error, "'\\");
         // 4. Store compiled rule
         $this->rules['decimal'] = [
+            'values' => [
+                'min'      => $min,
+                'max'      => $max,
+            ],
             'min'      => $min,
             'max'      => $max,
             'error'    => $error,
@@ -5893,6 +6007,8 @@ class RuleSet
         $error = addcslashes($error, "'\\");
         // 6. Store Compiled Rule
         $this->rules['checked'] = [
+            'values' => $values,
+            'exported_values' => $exportedValues,
             'allowed_values' => $values,
             'error'          => $error,
             'compiled'       => "if({$condition}) {\n" .
@@ -5935,6 +6051,8 @@ class RuleSet
         $error = addcslashes($error, "'\\");
         // 6. Store Compiled Rule
         $this->rules['unchecked'] = [
+            'values' => $values,
+            'exported_values' => $exportedValues,
             'allowed_values' => $values,
             'error'          => $error,
             'compiled'       => "if({$condition}) {\n" .
@@ -6007,6 +6125,11 @@ class RuleSet
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
         $this->rules['exists'] = [
+            'values' => [
+                'databaseConnection' => $dbConn,
+                'table'              => $dbTbl,
+                'column'             => $dbCol,
+            ],
             'databaseConnection' => $dbConn,
             'table'              => $dbTbl,
             'column'             => $dbCol,
@@ -6066,6 +6189,11 @@ class RuleSet
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
         $this->rules['unique'] = [
+            'values' => [
+                'databaseConnection' => $dbConn,
+                'table'              => $dbTbl,
+                'column'             => $dbCol,
+            ],
             'databaseConnection' => $dbConn,
             'table'              => $dbTbl,
             'column'             => $dbCol,
@@ -6141,6 +6269,13 @@ class RuleSet
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
         $this->rules['unique_except'] = [
+            'values' => [
+                'databaseConnection' => $dbConn,
+                'table'              => $dbTbl,
+                'column'             => $dbCol,
+                'ignoreColumn'       => $ignoreCol,
+                'ignoreValueFromCPath' => $compiledCPath,
+            ],
             'databaseConnection' => $dbConn,
             'table'              => $dbTbl,
             'column'             => $dbCol,
@@ -6164,7 +6299,7 @@ class RuleSet
      */
     public function file_min(int|float $minSize, string $unit = 'KB', string $customErrorMsg = ''): self
     {
-        if (!$this->validateRuleUsage('file_min', ['file_size', 'file_between'], ['file'], ['file'])) {
+        if (!$this->validateRuleUsage('file_min', ['file_size', 'file_between', 'min', 'size', 'between'], ['file'], ['file'])) {
             return $this;
         }
         if (trim($unit) === '') {
@@ -6202,6 +6337,11 @@ class RuleSet
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
         $this->rules['file_min'] = [
+            'values' => [
+                'minSize'       => $minSize,
+                'unit'          => $unit,
+                'bytes'         => $minSizeBytes,
+            ],
             'minSize'       => $minSize,
             'unit'          => $unit,
             'bytes'         => $minSizeBytes,
@@ -6221,7 +6361,7 @@ class RuleSet
      */
     public function file_max(int|float $maxSize, string $unit = 'KB', string $customErrorMsg = ''): self
     {
-        if (!$this->validateRuleUsage('file_max', ['file_size', 'file_between'], ['file'], ['file'])) {
+        if (!$this->validateRuleUsage('file_max', ['file_size', 'file_between', 'max', 'size', 'between'], ['file'], ['file'])) {
             return $this;
         }
         if (trim($unit) === '') {
@@ -6259,6 +6399,11 @@ class RuleSet
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
         $this->rules['file_max'] = [
+            'values' => [
+                'maxSize'       => $maxSize,
+                'unit'          => $unit,
+                'bytes'         => $maxSizeBytes,
+            ],
             'maxSize'       => $maxSize,
             'unit'          => $unit,
             'bytes'         => $maxSizeBytes,
@@ -6279,7 +6424,7 @@ class RuleSet
      */
     public function file_between(int|float $minSize, int|float $maxSize, string $unit = 'KB', string $customErrorMsg = ''): self
     {
-        if (!$this->validateRuleUsage('file_between', ['file_min', 'file_max', 'file_size'], [], ['file'])) {
+        if (!$this->validateRuleUsage('file_between', ['file_min', 'file_max', 'file_size', 'min', 'size', 'between', 'max'], [], ['file'])) {
             return $this;
         }
         if (trim($unit) === '') {
@@ -6323,6 +6468,13 @@ class RuleSet
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
         $this->rules['file_between'] = [
+            'values' => [
+                'minSize'       => $minVal,
+                'maxSize'       => $maxVal,
+                'unit'          => $unit,
+                'minBytes'      => $minSizeBytes,
+                'maxBytes'      => $maxSizeBytes,
+            ],
             'minSize'       => $minVal,
             'maxSize'       => $maxVal,
             'unit'          => $unit,
@@ -6344,7 +6496,7 @@ class RuleSet
      */
     public function file_size(int|float $exactSize, string $unit = 'KB', string $customErrorMsg = ''): self
     {
-        if (!$this->validateRuleUsage('file_size', ['file_min', 'file_max', 'file_between'], [], ['file'])) {
+        if (!$this->validateRuleUsage('file_size', ['file_min', 'file_max', 'file_between', 'min', 'between', 'max', 'size'], [], ['file'])) {
             return $this;
         }
         if (trim($unit) === '') {
@@ -6382,6 +6534,11 @@ class RuleSet
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
         $this->rules['file_size'] = [
+            'values' => [
+                'exactSize'     => $exactSize,
+                'unit'          => $unit,
+                'bytes'         => $exactSizeBytes,
+            ],
             'exactSize'     => $exactSize,
             'unit'          => $unit,
             'bytes'         => $exactSizeBytes,
@@ -6444,6 +6601,7 @@ class RuleSet
             "    {{##GOTO_END_FIELD##}}\n" .
             "}";
         $this->rules['file_extensions'] = [
+            'values' => $normalizedExts,
             'allowedExtensions' => $normalizedExts,
             'error'             => $error,
             'compiled'          => $compiledCode,
@@ -6537,6 +6695,7 @@ class RuleSet
             "    }\n" .
             "}";
         $this->rules['file_mimes'] = [
+            'values' => $mimes,
             'allowedMimeTypes' => $allowedMimeTypes,
             'error'            => $error,
             'compiled'         => $compiledCode,
@@ -6666,6 +6825,11 @@ class RuleSet
             "    }\n" .
             "}";
         $this->rules['file_image'] = [
+            'values' => [
+                'allowSVG'          => $allowSVG,
+                'excludedTypes'     => $excludedItems,
+                'allowedMimeTypes'  => $allowedMimeTypes,
+            ],
             'allowSVG'          => $allowSVG,
             'excludedTypes'     => $excludedItems,
             'allowedMimeTypes'  => $allowedMimeTypes,
@@ -6811,6 +6975,13 @@ class RuleSet
             "    }\n" .
             "}";
         $this->rules['file_dimensions'] = [
+            'values' => [
+                'minWidth'  => $minWidth,
+                'minHeight' => $minHeight,
+                'maxWidth'  => $maxWidth,
+                'maxHeight' => $maxHeight,
+                'unitType'  => $unit,
+            ],
             'minWidth'  => $minWidth,
             'minHeight' => $minHeight,
             'maxWidth'  => $maxWidth,
@@ -6962,6 +7133,10 @@ class RuleSet
             "    }\n" .
             "}";
         $this->rules['file_dpi'] = [
+            'values' => [
+                'minDpi'   => $minDpi,
+                'maxDpi'   => $maxDpi,
+            ],
             'minDpi'   => $minDpi,
             'maxDpi'   => $maxDpi,
             'error'    => $error,
@@ -7076,6 +7251,7 @@ class RuleSet
             "    }\n" .
             "}";
         $this->rules['file_encoding'] = [
+            'values' => [$encoding, 'encoding' => $cleanEncoding,],
             'encoding' => $cleanEncoding,
             'error'    => $error,
             'compiled' => $compiledCode,
