@@ -987,6 +987,10 @@ class RuleSet
             $this->configErrors[] = 'No Data Type provided?!: `' . $dataType . '` for Input Key `{{##INPUT_KEY##}}`!';
             return $this;
         }
+        if (trim($dataType) === 'arrays') {
+            $this->configErrors[] = 'Data Type `arrays` for Input Key `{{##INPUT_KEY##}}` means `Multi-Dimensional Array` (e.g. `$input[0][0]`) where each new array depth is separated by a comma (`,`) after `arrays:` must have between() and/or size() values separated by each comma (e.g. `arrays:10,10-15` means `depth 1` has `size(10)` while `depth 2` has `between(10,15)` in their respective count values)! VALIDATION Key must have matching numbers of `*` separated with a single dot `.` (except for first one if starting from root: `*.*.key` vs `key.*.*`)!';
+            return $this;
+        }
         // Optional extra parameters when setting data type such as ("datatype:<parameter1&|parameter2>")
         // 1. Check if type has parameters (e.g., "array:1,5", "string:1-10")
         $parsed = $this->validateSetDataTypeParameters($dataType);

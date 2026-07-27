@@ -11,9 +11,9 @@ function s_paj(&$c)
 	$test = [
 		'<CONFIG>' => ['stop_all_on_first_error' => false],
 		'VALIDATION' => [
-			'test' => data("arrays:10,10-15,11")
+			'*.*' => data("arrays:1,2"),
 		],
 	];
-	\cli_dump($test);
+	\cli_dump_with_ignore_depths($test, true, false, ['VALIDATION.*.*.typeGuardMap']);
 	\cli_compile_validation_schema($test, "s_najs", "s_paj");
 };
