@@ -18,12 +18,23 @@
 // $c is the global configuration array that is used throughout the application
 require_once __DIR__ . '/core/functions.php'; // In-built functions
 require_once __DIR__ . '/config/functions.php'; // User-defined functions
+$c = require_once __DIR__ . '/core/c.php';
+
+$iniSets = $c['INI_SETS'] ?? [];
+foreach ($iniSets as $key => $value) {
+    // Hard error on invalid configured $c['INI_SETS'] data
+    if (!is_string($key) || empty($key) || !is_scalar($value)) {
+        $err = 'Tell The Developer: Invalid Data Provided in $c[\'INI_SETS\'] Global Configuration Array. The Data must be an Associative Array with Non-Empty String Keys and Non-Empty Values that are either Strings, Numbers or Booleans. Thus, it is likely that the Developer have used a non-string for $key or a non-scalar/empty value for $value!';
+        funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+    }
+    ini_set($key, $value);
+}
 
 require_once __DIR__ . '/config/app.php'; // User-defined functions
 
 exit;
 
-$c = require_once __DIR__ . '/core/c.php';
+
 $c['<ENTRY>'] = require_once __DIR__ . '/core/pipeline_request.php';
 // Use either Custom Exception Handler by Developer OR Default one!
 // Developer is advised to use `funk_use_error_throw` to intentionally

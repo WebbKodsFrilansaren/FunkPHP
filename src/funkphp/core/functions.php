@@ -36,21 +36,266 @@ function vd($data)
     echo '</pre>';
 }
 
-// Data Dump function to dump data and optionally return it as JSON
-function dd($data, $json = false)
+/**
+ * Enhanced Web & CLI dumper for FunkPHP.
+ * Features built-in circular reference / recursion detection and max depth protection.
+ */
+function dd(mixed $data, bool $json = false, bool $exit = true): void
 {
-    // Dump the data and die (stop execution)
     if ($json) {
-        header('Content-Type: application/json', true, 200);
+        if (!headers_sent()) {
+            header('Content-Type: application/json', true, 200);
+        }
         echo json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-    } else {
-        echo '<pre>';
-        var_dump($data);
-        echo '</pre>';
+        if ($exit) exit;
+        return;
     }
-    exit;
-}
+    if (php_sapi_name() === 'cli' && function_exists('cli_dump')) {
+        cli_dump($data, $exit);
+        return;
+    }
+    $metrics = [
+        'nulls'          => 0,
+        'strings'        => 0,
+        'strings-empty'  => 0,
+        'booleans'       => 0,
+        'booleans-true'  => 0,
+        'booleans-false' => 0,
+        'integers'       => 0,
+        'floats'         => 0,
+        'arrays'         => 0,
+        'arrays-empty'   => 0,
+        'arrays-lists'   => 0,
+        'arrays-assocs'  => 0,
+        'objects'        => 0,
+        'others'         => 0,
+    ];
+    // Recursive HTML UL/LI Generator with recursion tracking
+    $render = function ($data, $key = null, $isList = false, array $seenObjects = [], int $depth = 0) use (&$render, &$metrics): string {
+        // Max depth guard (prevents potential infinite array-reference loops)
+        if ($depth > 25) {
+            return "<span class=\"fd-null\">*MAX DEPTH EXCEEDED*</span>";
+        }
+        $prefix = '';
+        if ($key !== null) {
+            $safeKey = htmlspecialchars((string)$key, ENT_QUOTES, 'UTF-8');
+            $prefix = $isList
+                ? "<span class=\"fd-idx\">[{$safeKey}]</span> "
+                : "<span class=\"fd-key\">'{$safeKey}'</span> <span class=\"fd-type\">=&gt;</span> ";
+        }
+        if (is_array($data)) {
+            $metrics['arrays']++;
+            $count = count($data);
+            $isListArr = array_is_list($data);
+            $typeLabel = $isListArr ? 'List-Array' : 'Assoc-Array';
+            if ($isListArr) $metrics['arrays-lists']++;
+            else $metrics['arrays-assocs']++;
+            if ($count === 0) {
+                $metrics['arrays-empty']++;
+                return "{$prefix}<span class=\"fd-type\">{$typeLabel}(0) []</span>";
+            }
+            $html = "{$prefix}<span class=\"fd-toggle\">▼</span> <span class=\"fd-type\">{$typeLabel}({$count}) [</span>";
+            $html .= "<ul class=\"fd-tree\">";
+            foreach ($data as $k => $v) {
+                $html .= "<li>" . $render($v, $k, $isListArr, $seenObjects, $depth + 1) . "</li>";
+            }
+            $html .= "</ul><span class=\"fd-type\">]</span>";
+            return $html;
+        } elseif (is_object($data)) {
+            $metrics['objects']++;
+            $className = get_class($data);
+            $objHash = spl_object_hash($data);
+            // Circular reference detection!
+            if (isset($seenObjects[$objHash])) {
+                return "{$prefix}<span class=\"fd-type\">Object('{$className}')</span> <span class=\"fd-null\">*RECURSION*</span>";
+            }
+            // Mark object as seen in this branch
+            $seenObjects[$objHash] = true;
+            $properties = (array)$data;
+            $count = count($properties);
+            if ($count === 0) {
+                return "{$prefix}<span class=\"fd-type\">Object('{$className}') {}</span>";
+            }
+            $html = "{$prefix}<span class=\"fd-toggle\">▼</span> <span class=\"fd-type\">Object('{$className}') ({$count}) {</span>";
+            $html .= "<ul class=\"fd-tree\">";
+            foreach ($properties as $k => $v) {
+                $k = str_replace("\0*\0", '(protected) ', $k);
+                $k = preg_replace('/^\0[^\0]+\0/', '(private) ', $k);
+                $html .= "<li>" . $render($v, $k, false, $seenObjects, $depth + 1) . "</li>";
+            }
+            $html .= "</ul><span class=\"fd-type\">}</span>";
+            return $html;
+        } elseif (is_string($data)) {
+            $metrics['strings']++;
+            $len = strlen($data);
+            if ($len === 0) $metrics['strings-empty']++;
+            $safeStr = htmlspecialchars($data, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+            return "{$prefix}<span class=\"fd-str\">\"{$safeStr}\"</span> <span class=\"fd-meta\">(string:{$len})</span>";
+        } elseif (is_int($data)) {
+            $metrics['integers']++;
+            return "{$prefix}<span class=\"fd-num\">{$data}</span> <span class=\"fd-meta\">(integer)</span>";
+        } elseif (is_float($data)) {
+            $metrics['floats']++;
+            return "{$prefix}<span class=\"fd-num\">{$data}</span> <span class=\"fd-meta\">(float)</span>";
+        } elseif (is_bool($data)) {
+            $metrics['booleans']++;
+            if ($data) $metrics['booleans-true']++;
+            else $metrics['booleans-false']++;
+            $boolStr = $data ? 'true' : 'false';
+            return "{$prefix}<span class=\"fd-bool\">{$boolStr}</span> <span class=\"fd-meta\">(boolean)</span>";
+        } elseif (is_null($data)) {
+            $metrics['nulls']++;
+            return "{$prefix}<span class=\"fd-null\">null</span>";
+        } else {
+            $metrics['others']++;
+            $type = gettype($data);
+            return "{$prefix}<span class=\"fd-null\">[Type: {$type}]</span>";
+        }
+    };
 
+    $treeHtml = $render($data);
+?>
+    <div class="funk-web-dump">
+        <style>
+            .funk-web-dump {
+                background: #181825;
+                color: #cdd6f4;
+                font-family: 'Fira Code', 'Cascadia Code', Consolas, Monaco, monospace;
+                font-size: 13px;
+                line-height: 1.5;
+                padding: 16px;
+                margin: 12px;
+                border-radius: 8px;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+                border: 1px solid #313244;
+            }
+
+            .funk-web-dump header {
+                color: #cba6f7;
+                font-weight: bold;
+                font-size: 15px;
+                margin-bottom: 8px;
+                border-bottom: 1px solid #45475a;
+                padding-bottom: 6px;
+            }
+
+            .funk-web-dump ul.fd-tree {
+                list-style: none;
+                margin: 2px 0;
+                padding-left: 20px;
+                border-left: 1px dashed #45475a;
+            }
+
+            .funk-web-dump li {
+                margin: 2px 0;
+            }
+
+            .funk-web-dump .fd-toggle {
+                cursor: pointer;
+                user-select: none;
+                color: #f5e0dc;
+                display: inline-block;
+                width: 14px;
+                font-size: 11px;
+                transition: transform 0.1s ease;
+            }
+
+            .funk-web-dump .fd-toggle.collapsed {
+                transform: rotate(-90deg);
+                color: #a6adc8;
+            }
+
+            .funk-web-dump .fd-key {
+                color: #89dceb;
+                font-weight: bold;
+            }
+
+            .funk-web-dump .fd-idx {
+                color: #74c7ec;
+            }
+
+            .funk-web-dump .fd-type {
+                color: #6c7086;
+            }
+
+            .funk-web-dump .fd-str {
+                color: #a6e3a1;
+            }
+
+            .funk-web-dump .fd-num {
+                color: #89b4fa;
+            }
+
+            .funk-web-dump .fd-bool {
+                color: #f9e2af;
+                font-weight: bold;
+            }
+
+            .funk-web-dump .fd-null {
+                color: #f38ba8;
+                font-weight: bold;
+            }
+
+            .funk-web-dump .fd-meta {
+                color: #585b70;
+                font-size: 11px;
+            }
+
+            .funk-web-dump footer {
+                margin-top: 14px;
+                padding-top: 8px;
+                border-top: 1px solid #45475a;
+                font-size: 11px;
+                color: #a6adc8;
+            }
+
+            .funk-web-dump .fd-val {
+                color: #a6e3a1;
+                font-weight: bold;
+            }
+        </style>
+
+        <header>[FunkPHP Web Dump]</header>
+
+        <div class="fd-content">
+            <?= $treeHtml ?>
+        </div>
+
+        <footer>
+            <strong>TELEMETRY METRICS:</strong>
+            Objects: <span class="fd-val"><?= $metrics['objects'] ?></span> |
+            Arrays: <span class="fd-val"><?= $metrics['arrays'] ?></span>
+            <span class="fd-meta">(Empty: <?= $metrics['arrays-empty'] ?> | Lists: <?= $metrics['arrays-lists'] ?> | Assocs: <?= $metrics['arrays-assocs'] ?>)</span> |
+            Strings: <span class="fd-val"><?= $metrics['strings'] ?></span> |
+            Numbers: <span class="fd-val"><?= $metrics['integers'] + $metrics['floats'] ?></span> |
+            Booleans: <span class="fd-val"><?= $metrics['booleans'] ?></span> |
+            Nulls: <span class="fd-val"><?= $metrics['nulls'] ?></span>
+        </footer>
+
+        <script>
+            document.querySelectorAll('.funk-web-dump .fd-toggle').forEach(function(btn) {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    var parent = this.parentElement;
+                    var tree = parent.querySelector(':scope > .fd-tree');
+                    if (tree) {
+                        if (tree.style.display === 'none') {
+                            tree.style.display = 'block';
+                            this.classList.remove('collapsed');
+                        } else {
+                            tree.style.display = 'none';
+                            this.classList.add('collapsed');
+                        }
+                    }
+                });
+            });
+        </script>
+    </div>
+<?php
+    if ($exit) {
+        exit(1);
+    }
+}
 // Data Dump function to dump data as JSON
 function ddj($data, $json = false)
 {
