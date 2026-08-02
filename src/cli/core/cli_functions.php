@@ -2843,7 +2843,7 @@ function cli_extract_folder_file_fn(string $validatedFolderFileFnString): array
     $file = $parts[1];
     $fn = $parts[2];
 
-    cli_info_without_exit("OK! Parsed Folder: `funkphp/pipeline/routes/$folder`, File: `funkphp/routes/$folder/$file.php`, Function: `function $fn(&\$c, \$passedValue = null){};`");
+    cli_info_without_exit("OK! Parsed Folder: `funkphp/pipes/routes/$folder`, File: `funkphp/routes/$folder/$file.php`, Function: `function $fn(&\$c, \$passedValue = null){};`");
     return [$folder, $file, $fn];
 }
 /**
@@ -2876,7 +2876,7 @@ function cli_extract_folder_file($validatedFileFnString, $prefix = null): array
     } else if (isset($pre) && is_string($pre) && $pre === 's_') {
         cli_info_without_exit("OK! Parsed Query File:`src/FunkPHP/data/query/$file.php` with Function:`function $pre$fn(&\$c){};`");
     } else {
-        cli_info_without_exit("OK! Parsed Pipeline Routes File:`src/FunkPHP/pipeline/routes/$file.php` with Function:`function $pre$fn(&\$c){};`");
+        cli_info_without_exit("OK! Parsed Pipeline Routes File:`src/FunkPHP/pipes/routes/$file.php` with Function:`function $pre$fn(&\$c){};`");
     }
     return [$pre . $file, $pre . $fn];
 }
@@ -12130,10 +12130,10 @@ function cli_restore_default_folders_and_files()
         "$folderBase",
         "$folderBase/backups/",
         "$folderBase/batteries/",
-        "$folderBase/batteries/pipeline/",
-        "$folderBase/batteries/pipeline/middlewares",
-        "$folderBase/batteries/pipeline/post_response/",
-        "$folderBase/batteries/pipeline/request/",
+        "$folderBase/batteries/pipes/",
+        "$folderBase/batteries/pipes/middlewares",
+        "$folderBase/batteries/pipes/post_response/",
+        "$folderBase/batteries/pipes/request/",
         "$folderBase/cli/",
         "$folderBase/cli/commands/",
         "$folderBase/cli/config/",
@@ -12142,11 +12142,11 @@ function cli_restore_default_folders_and_files()
         "$folderBase/funkphp/classes/",
         "$folderBase/funkphp/core/",
         "$folderBase/funkphp/config/",
-        "$folderBase/funkphp/pipeline/",
-        "$folderBase/funkphp/pipeline/request/",
-        "$folderBase/funkphp/pipeline/post_response/",
-        "$folderBase/funkphp/pipeline/middlewares",
-        "$folderBase/funkphp/pipeline/routes",
+        "$folderBase/funkphp/pipes/",
+        "$folderBase/funkphp/pipes/request/",
+        "$folderBase/funkphp/pipes/post_response/",
+        "$folderBase/funkphp/pipes/middlewares",
+        "$folderBase/funkphp/pipes/routes",
         "$folderBase/funkphp/pages/",
         "$folderBase/funkphp/pages/compiled/",
         "$folderBase/funkphp/pages/compiled/[errors]/",

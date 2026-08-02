@@ -2802,9 +2802,203 @@ function funk_use_validation_files(&$c, $optimizedValidationArray)
 */
 class C
 {
-    // Default booleans for compile(), run()
-    private bool $FunkPHPcompiled = false;
-    private bool $FunkPHPbooted = false;
+    // The actual written config line by line starting with FunkPHP()
+    public array $FunkPHPTextArray = ["FunkPHP()"];
+    // All errors + categorized errors
+    private array $errors = [
+        'all' => [],
+        'routes' => [],
+        'paramRules' => [],
+        // 'config' => [],
+        // 'pipes' => [
+        //     'request' => [],
+        //     'post_response' => [],
+        //     'middlewares' => [],
+        //     'routes' => [
+        //         'HEAD' => [],
+        //         'GET' => [],
+        //         'PUT' => [],
+        //         'PATCH' => [],
+        //         'POST' => [],
+        //         'DELETE' => [],
+        //     ],
+        // ],
+        // 'data' => [
+        //     'tables' => [],
+        //     'query' => [],
+        //     'validation' => [],
+        //     'sql' => []
+        // ],
+        // 'pages' => [
+        //     'compiled' => [],
+        //     'components' => [],
+        //     'layouts' => [],
+        //     'partials' => []
+        // ],
+    ];
+    //
+    private array $validBatches = [
+        'routes' => [],
+        'paramRules' => [
+            'routes' => [
+                'GET' => [],
+                'POST' => [],
+                'PUT' => [],
+                'PATCH' => [],
+                'DELETE' => []
+            ],
+            'methods' => [
+                'GET' => [],
+                'POST' => [],
+                'PUT' => [],
+                'PATCH' => [],
+                'DELETE' => []
+            ],
+            'global' => []
+        ],
+        // 'all' => [],
+        // 'config' => [],
+        // 'pipes' => [
+        //     'request' => [],
+        //     'post_response' => [],
+        //     'middlewares' => [],
+        //     'routes' => [
+        //         'HEAD' => [],
+        //         'GET' => [],
+        //         'PUT' => [],
+        //         'PATCH' => [],
+        //         'POST' => [],
+        //         'DELETE' => [],
+        //     ],
+        // ],
+        // 'data' => [
+        //     'tables' => [],
+        //     'query' => [],
+        //     'validation' => [],
+        //     'sql' => []
+        // ],
+        // 'pages' => [
+        //     'compiled' => [],
+        //     'components' => [],
+        //     'layouts' => [],
+        //     'partials' => []
+        // ],
+    ];
+    private array $invalidBatches = [
+        'routes' => [],
+        'paramRules' => [
+            'routes' => [
+                'GET' => [],
+                'POST' => [],
+                'PUT' => [],
+                'PATCH' => [],
+                'DELETE' => []
+            ],
+            'methods' => [
+                'GET' => [],
+                'POST' => [],
+                'PUT' => [],
+                'PATCH' => [],
+                'DELETE' => []
+            ],
+            'global' => []
+        ],
+        // 'all' => [],
+        // 'config' => [],
+        // 'pipes' => [
+        //     'request' => [],
+        //     'post_response' => [],
+        //     'middlewares' => [],
+        //     'routes' => [
+        //         'HEAD' => [],
+        //         'GET' => [],
+        //         'PUT' => [],
+        //         'PATCH' => [],
+        //         'POST' => [],
+        //         'DELETE' => [],
+        //     ],
+        // ],
+        // 'data' => [
+        //     'tables' => [],
+        //     'query' => [],
+        //     'validation' => [],
+        //     'sql' => []
+        // ],
+        // 'pages' => [
+        //     'compiled' => [],
+        //     'components' => [],
+        //     'layouts' => [],
+        //     'partials' => []
+        // ],
+    ];
+    // $cached = (Attempted) Access to any file/function and/or file=>function in a DRY fashion!
+    private array $cached = [
+        'placeholderRoutes' => [],
+        // 'fileNotFound' => [],
+        // 'fileNotRadable' => [],
+        // 'expectedNamespaceNotFound' => [],
+        // 'expectedFileFunctionNotFound' => [],
+        // 'all' => [],
+        // 'config' => [],
+        // 'pipes' => [
+        //     'request' => [],
+        //     'post_response' => [],
+        //     'middlewares' => [],
+        //     'routes' => [
+        //         'allRouteAliases' => [],
+        //         'HEAD' => [],
+        //         'GET' => [],
+        //         'PUT' => [],
+        //         'PATCH' => [],
+        //         'POST' => [],
+        //         'DELETE' => [],
+        //     ],
+        // ],
+        // 'data' => [
+        //     'tables' => [],
+        //     'query' => [],
+        //     'validation' => [],
+        //     'sql' => []
+        // ],
+        // 'pages' => [
+        //     'compiled' => [],
+        //     'components' => [],
+        //     'layouts' => [],
+        //     'partials' => []
+        // ],
+    ];
+    // $compiled = The entire compiled code that can either be executed as is OR
+    // be exported to the `/src/funkphp/FunkPHPDeployment.php` File!
+    private array $compiled = [
+        // 'all' => [],
+        // 'config' => [],
+        // 'pipes' => [
+        //     'request' => [],
+        //     'post_response' => [],
+        //     'middlewares' => [],
+        //     'routes' => [
+        //         'HEAD' => [],
+        //         'GET' => [],
+        //         'PUT' => [],
+        //         'PATCH' => [],
+        //         'POST' => [],
+        //         'DELETE' => [],
+        //     ],
+        // ],
+        // 'data' => [
+        //     'tables' => [],
+        //     'query' => [],
+        //     'validation' => [],
+        //     'sql' => []
+        // ],
+        // 'pages' => [
+        //     'compiled' => [],
+        //     'components' => [],
+        //     'layouts' => [],
+        //     'partials' => []
+        // ],
+    ];
+
     // Default values for $c that is returned via
     // Use the `config()->setUse<cVariableKey>Global` to change each value!
     // It is set to the $c variable before globally starting executing!
@@ -2914,175 +3108,53 @@ class C
     // $batches (= can be validated for compilation)
     // $invalidBatches (= cannot be validated for compilation based on initial value check)
     // $errors (= stored errors where )
-    private array $batches = [
-        // 'all' => [],
-        // 'config' => [],
-        // 'pipes' => [
-        //     'request' => [],
-        //     'post_response' => [],
-        //     'middlewares' => [],
-        //     'routes' => [
-        //         'HEAD' => [],
-        //         'GET' => [],
-        //         'PUT' => [],
-        //         'PATCH' => [],
-        //         'POST' => [],
-        //         'DELETE' => [],
-        //     ],
-        // ],
-        // 'data' => [
-        //     'tables' => [],
-        //     'query' => [],
-        //     'validation' => [],
-        //     'sql' => []
-        // ],
-        // 'pages' => [
-        //     'compiled' => [],
-        //     'components' => [],
-        //     'layouts' => [],
-        //     'partials' => []
-        // ],
-    ];
-    private array $invalidBatches = [
-        // 'all' => [],
-        // 'config' => [],
-        // 'pipes' => [
-        //     'request' => [],
-        //     'post_response' => [],
-        //     'middlewares' => [],
-        //     'routes' => [
-        //         'HEAD' => [],
-        //         'GET' => [],
-        //         'PUT' => [],
-        //         'PATCH' => [],
-        //         'POST' => [],
-        //         'DELETE' => [],
-        //     ],
-        // ],
-        // 'data' => [
-        //     'tables' => [],
-        //     'query' => [],
-        //     'validation' => [],
-        //     'sql' => []
-        // ],
-        // 'pages' => [
-        //     'compiled' => [],
-        //     'components' => [],
-        //     'layouts' => [],
-        //     'partials' => []
-        // ],
-    ];
-    private array $errors = [
-        'all' => [],
-        // 'config' => [],
-        // 'pipes' => [
-        //     'request' => [],
-        //     'post_response' => [],
-        //     'middlewares' => [],
-        //     'routes' => [
-        //         'HEAD' => [],
-        //         'GET' => [],
-        //         'PUT' => [],
-        //         'PATCH' => [],
-        //         'POST' => [],
-        //         'DELETE' => [],
-        //     ],
-        // ],
-        // 'data' => [
-        //     'tables' => [],
-        //     'query' => [],
-        //     'validation' => [],
-        //     'sql' => []
-        // ],
-        // 'pages' => [
-        //     'compiled' => [],
-        //     'components' => [],
-        //     'layouts' => [],
-        //     'partials' => []
-        // ],
-    ];
-    // $cached = (Attempted) Access to any file/function and/or file=>function in a DRY fashion!
-    private array $cached = [
-        // 'fileNotFound' => [],
-        // 'fileNotRadable' => [],
-        // 'expectedNamespaceNotFound' => [],
-        // 'expectedFileFunctionNotFound' => [],
-        // 'all' => [],
-        // 'config' => [],
-        // 'pipes' => [
-        //     'request' => [],
-        //     'post_response' => [],
-        //     'middlewares' => [],
-        //     'routes' => [
-        //         'allRouteAliases' => [],
-        //         'HEAD' => [],
-        //         'GET' => [],
-        //         'PUT' => [],
-        //         'PATCH' => [],
-        //         'POST' => [],
-        //         'DELETE' => [],
-        //     ],
-        // ],
-        // 'data' => [
-        //     'tables' => [],
-        //     'query' => [],
-        //     'validation' => [],
-        //     'sql' => []
-        // ],
-        // 'pages' => [
-        //     'compiled' => [],
-        //     'components' => [],
-        //     'layouts' => [],
-        //     'partials' => []
-        // ],
-    ];
 
-    // $compiled = The entire compiled code that can either be executed as is OR
-    // be exported to the `/src/funkphp/FunkPHPDeployment.php` File!
-    private array $compiled = [
-        // 'all' => [],
-        // 'config' => [],
-        // 'pipes' => [
-        //     'request' => [],
-        //     'post_response' => [],
-        //     'middlewares' => [],
-        //     'routes' => [
-        //         'HEAD' => [],
-        //         'GET' => [],
-        //         'PUT' => [],
-        //         'PATCH' => [],
-        //         'POST' => [],
-        //         'DELETE' => [],
-        //     ],
-        // ],
-        // 'data' => [
-        //     'tables' => [],
-        //     'query' => [],
-        //     'validation' => [],
-        //     'sql' => []
-        // ],
-        // 'pages' => [
-        //     'compiled' => [],
-        //     'components' => [],
-        //     'layouts' => [],
-        //     'partials' => []
-        // ],
-    ];
+
 
     // NAVIGATION VARIABLES+METHODS IN IDE config()->
     private ?FunkConfig $configScope = null;
     private ?FunkRoutes $routesScope = null;
+    // Default booleans for compile(), run()
+    private bool $FunkPHPcompiled = false;
+    private bool $FunkPHPbooted = false;
+
+    // Helper function to build the $FunkPHPTextArray
+    // using var_export($var,true). It throws away last optional values like [] & null
+    private function appendFunkPHPTextArray(string $methodName, mixed ...$vars): string
+    {
+        while (!empty($vars)) {
+            $last = end($vars);
+            if ($last === null || $last === []) {
+                array_pop($vars);
+            } else {
+                break;
+            }
+        }
+        $exported = array_map(function ($var) {
+            if (is_array($var) && empty($var)) {
+                return '[]';
+            }
+            return var_export($var, true);
+        }, $vars);
+        return '->' . $methodName . '(' . implode(', ', $exported) . ')';
+    }
+    private function getLastFunkPHPTextArray(): string
+    {
+        return ($this->FunkPHPTextArray[count($this->FunkPHPTextArray) - 1]);
+    }
 
     // ->config()
     // and can jump to->pipesRequest(),->pipesPostResponse() or ->routes()
     public function config(): FunkConfig
     {
+        $this->FunkPHPTextArray[] = "->config()";
         return $this->configScope ??= new FunkConfig($this);
     }
     // ->routes() | gives access to:->GET(),->POST(),->PATCH(),->PUT(),->DELETE()
     // and can jump back to ->config()
     public function routes(): FunkRoutes
     {
+        $this->FunkPHPTextArray[] = "->routes()";
         return $this->routesScope ??= new FunkRoutes($this);
     }
     // batchFunctions that attempt batching something in $batches that would be validated later unless
@@ -3106,20 +3178,24 @@ class C
     private function batchSetFunkPHPOnlineGlobal(bool $trueOrFalse) {}
     private function batchSetUseHTTPSGlobal(bool $trueOrFalse) {}
     private function batchSetUseVendorGlobal(bool $trueOrFalse) {}
+
     private function batchSetDefaultRegisteredShutdownFunctionGlobal(string $userDefinedFunction) {}
     private function batchSetDefaultExceptionHandlerGlobal(string $userDefinedFunction) {}
     private function batchSetDefaultErrorHandlerGlobal(string $userDefinedFunction) {}
     private function batchSetDefaultURINormalizerGlobal(string $userDefinedFunction) {}
     private function batchSetDefaultHTTPSKernelDispatchHandlerGlobal(string $userDefinedFunction) {}
+
     private function batchSetNoRouteMatchGlobal(array $options) {}
     private function batchSetNoRouteMatchPageGlobal(string $PageFileName) {}
     private function batchSetNoRouteMatchJsonGlobal(array|object $data, int $statusCode = 404) {}
     private function batchSetNoRouteMatchTextGlobal(string $message, int $statusCode = 404) {}
     private function batchSetNoRouteMatchCallbackGlobal(callable|string $userDefinedFunctionname) {}
+
     private function batchSetDefaultBaseURLLocalGlobal(string $httpsPath) {}
     private function batchSetDefaultBaseURLOnlineGlobal(string $httpsPath) {}
     private function batchSetDefaultBaseURLHostGlobal(string $hostNameLocally) {}
     private function batchSetDefaultBaseURLUriGlobal(string $localURI) {}
+
     private function batchSetDefaultSessionDriverGlobal(string $filesOrRedisOrSomethingElse = 'files') {}
     private function batchSetDefaultSessionCookieNameGlobal(string $sessionCookieName = 'fphp_id') {}
     private function batchSetDefaultSessionCookieLifetimeGlobal(int $sessionCookieLifetime = 28800) {}
@@ -3128,10 +3204,60 @@ class C
     private function batchSetDefaultSessionCookieSecureGlobal(bool $trueOrFalse = false) {}
     private function batchSetDefaultSessionCookieHTTPOnlyGlobal(bool $trueOrFalse = true) {}
     private function batchSetDefaultSessionCookieSameSiteGlobal(string $LaxOrStrict = 'Lax') {}
+
     private function batchSetINI_SETGlobal(array $iniSetArrayWithKeyNamesAsSettingTypeWithSingleScalarValue) {}
+
     private function batchSetGroupedFunctions(string ...$functions) {}
     private function batchSetGroupedMiddlewares(string ...$middlewares) {}
-    private function batchSetParamRuleGlobal(string $param, string $regex, $defaultParamValueOnRegexMismatch = null) {}
+
+    private function batchSetParamRuleGlobal(string $param, string $regex, $defaultParamValueOnRegexMismatch = null)
+    {
+        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setParamRule', $param, $regex, $defaultParamValueOnRegexMismatch);
+
+        // Check against already global invalid one
+        if (isset($this->invalidBatches['paramRules']['global'][$param])) {
+            $this->errors['all'][] = "Duplicate Invalid Global Param Rule `{$param},{$regex}`.";
+            $this->errors['paramRules']['global'][] = "Duplicate Invalid Global Param Rule `{$param},{$regex}`.";
+            return;
+        }
+        // Validate valid $param identifier formatting
+        if (!is_string($param) || !preg_match('/^[a-z0-9_-]+$/i', $param)) {
+            $err = "Invalid Global Param Rule Identifier Formatting:`{$param}`. Param Rule Identifier should only contain [a-z0-9_-] characters and without the colon (:).";
+            $this->errors['all'][] = $err;
+            $this->errors['paramRules']['global'][] = $err;
+            $this->invalidBatches['paramRules']['global'][$param] = "{$param},{$regex},{$defaultParamValueOnRegexMismatch}";
+            return;
+        }
+        // Validate valid $regex pattern
+        $regexValid = true;
+        try {
+            if (@preg_match($regex, '') === false) {
+                $regexValid = false;
+            }
+        } catch (\Throwable $e) {
+            $regexValid = false;
+        }
+        if (!$regexValid) {
+            $err = "Invalid Global Param Rule Regex Formatting:`{$regex}` for Param:`{$param}`. Param Rule Regex should be a Valid Regex Pattern!";
+            $this->errors['all'][] = $err;
+            $this->errors['paramRules']['global'][] = $err;
+            $this->invalidBatches['paramRules']['global'][$param] = "{$param},{$regex},{$defaultParamValueOnRegexMismatch}";
+            return;
+        }
+        // Check for duplicate valid rule at global level
+        if (isset($this->validBatches['paramRules']['global'][$param])) {
+            $err = "Duplicate Valid Global Param Rule Identifier:`{$param}` - Global config already has a Param Rule with that Identifier.";
+            $this->errors['all'][] = $err;
+            $this->errors['paramRules']['global'][] = $err;
+            return;
+        }
+        // Finally store valid global param rule
+        $this->validBatches['paramRules']['global'][$param] = [
+            'pattern' => $regex,
+            'default' => $defaultParamValueOnRegexMismatch
+        ];
+    }
+
     private function batchSetCSPGlobal(string $sourceType, string ...$sources) {}
     private function batchSetCSPScriptGlobal(string ...$sources) {}
     private function batchSetCSPStyleGlobal(string ...$sources) {}
@@ -3157,7 +3283,53 @@ class C
     private function batchSetNoRouteMatchJsonMethod(string $method, array|object $data, int $statusCode = 404) {}
     private function batchSetNoRouteMatchTextMethod(string $method, string $message, int $statusCode = 404) {}
     private function batchSetNoRouteMatchCallbackMethod(string $method, callable|string $userDefinedFunctionname) {}
-    private function batchSetParamRuleMethod(string $method, string $param, string $regex, $defaultParamValueOnRegexMismatch = null) {}
+
+    private function batchSetParamRuleMethod(string $method, string $param, string $regex, $defaultParamValueOnRegexMismatch = null)
+    {
+        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setParamRule', $param, $regex, $defaultParamValueOnRegexMismatch);
+        // Check if method param rule already exists as invalid one
+        if (isset($this->invalidBatches['paramRules']['methods'][$method][$param])) {
+            $this->errors['all'][] = "Duplicate Invalid Method Param Rule `{$param},{$regex}` in Method:`{$method}`.";
+            $this->errors['paramRules']['methods'][$method][] = "Duplicate Invalid Method Param Rule `{$param},{$regex}` in Method:`{$method}`.";
+            return;
+        }
+        // Validate valid $param
+        if (!is_string($param) || !preg_match('/^[a-z0-9_-]+$/i', $param)) {
+            $err = "Invalid Method Param Rule Identifier Formatting:`{$param}` to use in Method:`{$method}`. Param Rule Identifier should only contain [a-z0-9_-] characters and without the colon (:).";
+            $this->errors['all'][] = $err;
+            $this->errors['paramRules']['methods'][$method][] = $err;
+            $this->invalidBatches['paramRules']['methods'][$method][$param] = "{$param},{$regex},{$defaultParamValueOnRegexMismatch}";
+            return;
+        }
+        // Validate valid $regex pattern
+        $regexValid = true;
+        try {
+            if (@preg_match($regex, '') === false) {
+                $regexValid = false;
+            }
+        } catch (\Throwable $e) {
+            $regexValid = false;
+        }
+        if (!$regexValid || preg_match('#\/\/[gimsuy]+#', $regex)) {
+            $err = "Invalid Method Param Rule Regex Formatting:`{$regex}` for Param:`{$param}` in Method:`{$method}`. Param Rule Regex should be a Valid Regex Pattern!";
+            $this->errors['all'][] = $err;
+            $this->errors['paramRules']['methods'][$method][] = $err;
+            $this->invalidBatches['paramRules']['methods'][$method][$param] = "{$param},{$regex},{$defaultParamValueOnRegexMismatch}";
+            return;
+        }
+        // Check for duplicate valid rule at method level
+        if (isset($this->validBatches['paramRules']['methods'][$method][$param])) {
+            $err = "Duplicate Valid Method Param Rule Identifier:`{$param}` in Method:`{$method}` - Method config already has a Param Rule with that Identifier.";
+            $this->errors['all'][] = $err;
+            $this->errors['paramRules']['methods'][$method][] = $err;
+            return;
+        }
+        // Finally store valid method param rule
+        $this->validBatches['paramRules']['methods'][$method][$param] = [
+            'pattern' => $regex,
+            'default' => $defaultParamValueOnRegexMismatch
+        ];
+    }
     private function batchSetCSPMethod(string $method, string $sourceType, string ...$sources) {}
     private function batchSetCSPScriptMethod(string $method, string ...$sources) {}
     private function batchSetCSPStyleMethod(string $method, string ...$sources) {}
@@ -3172,10 +3344,187 @@ class C
     private function batchSetHeaderMethod(string $method, string $header) {}
     private function batchRemoveHeaderMethod(string $method, string $header_to_remove) {}
     private function batchNewPipeMiddlewareMethod(string $method, string $middleware) {}
-    private function batchNewRoute(string $method, string $route, array $inlineParamRules = []) {}
+
+    // Batching New Route `->route("/route", $optionalParamRules as an array)`
+    private function batchNewRoute(string $method, string $route)
+    {
+        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('route', $route);
+        $errRoute = '` | A Valid Route must: 1) Start with or just be / as root (never end with -, _ or /), 2) Be all lowercased, 3) Have all uniquely named /:params URI segments (if any used), 4) Never use - and/or _ consecutively, after each other (e.g. -_ or _-) or as start in static/dynamic segments (e.g. /:-, /:_, /_, or /-), 5) Only use [a-z0-9_-] characters.';
+        // Check initial string formatting: all non-empty string that is all lowercased,
+        // starting with / or just is /, does not end with /, have no consecutive -,_
+        // or them after one another like -_ or _- and that all dynamic
+        // params begin with "/:[a-z0-9]"
+        if (
+            !is_string($route) || trim($route) === ''
+            || (strtolower($route) !== $route)
+            || !str_starts_with($route, '/')
+            || (str_ends_with($route, '/') && $route !== '/')
+            || !preg_match('/^(?!.*[-_]{2,})(?:\/|(?:\/[:]?[a-zA-Z0-9](?:[a-zA-Z0-9_-]*[a-zA-Z0-9])?)+)$/', $route)
+        ) {
+            if (isset($this->invalidBatches['routes'][$method][$route])) {
+                $this->errors['all'][] = "Duplicate Invalid Formatted Route:`{$method}()" . $this->getLastFunkPHPTextArray() . $errRoute;
+                $this->errors['routes'][$method][] = "Duplicate Invalid Formatted Route:`{$method}()" . $this->getLastFunkPHPTextArray() . $errRoute;
+            } else {
+                $this->errors['all'][] = "Invalid Formatted Route:`{$method}()" . $this->getLastFunkPHPTextArray() . $errRoute;
+                $this->errors['routes'][$method][] = "Invalid Formatted Route:`{$method}()" . $this->getLastFunkPHPTextArray() . $errRoute;
+                $this->invalidBatches['routes'][$method][$route] = [];
+            }
+            return;
+        }
+        // Check for duplicates if dynamic params are used (indicated by existence of ":")
+        // If it is still OK then we check against dynamic structural conflicts like
+        // "/:users/" and "/:id" where both use dynamic params on same URI segment level
+        $placeHolderRoute = '';
+        $routeHasParams = null;
+        if (str_contains($route, ":")) {
+            preg_match_all('/:([a-z0-9_-]+)/i', $route, $paramMatches);
+            if (count($paramMatches[1]) !== count(array_unique($paramMatches[1]))) {
+                if (isset($this->invalidBatches['routes'][$method][$route])) {
+                    $this->errors['all'][] = "Duplicate Invalid Formatted Route:`{$method}()" . $this->getLastFunkPHPTextArray() . ' | Duplicate Dynamic Params Found!';
+                    $this->errors['routes'][$method][] = "Duplicate Invalid Formatted Route:`{$method}()" . $this->getLastFunkPHPTextArray() . ' | Duplicate Dynamic Params Found!';
+                } else {
+                    $this->errors['all'][] = "Invalid Formatted Route:`{$method}()" . $this->getLastFunkPHPTextArray() . ' | Duplicate Dynamic Params Found!';
+                    $this->errors['routes'][$method][] = "Invalid Formatted Route:`{$method}()" . $this->getLastFunkPHPTextArray() . ' | Duplicate Dynamic Params Found!';
+                    $this->invalidBatches['routes'][$method][$route] = [];
+                }
+                return;
+            }
+            $routeHasParams = $paramMatches[1]; // Store any params used
+            $placeHolderRoute = preg_replace('/:([a-z0-9_-]+)/', ':PARAM', $route);
+        }
+        // If it is a dynamic param route we check if it already exists given same
+        // URI segment levels for <METHOD>/:PARAM1|STATIC1/:PARAM2|STATIC and so on
+        if ($placeHolderRoute !== '') {
+            if (isset($this->cached['placeholderRoutes'][$method][$placeHolderRoute])) {
+                $this->errors['all'][] = "Duplicate Route Conflict in Valid Formatted Route:`{$method}()" . $this->getLastFunkPHPTextArray() . ' with (defined first):`' . $this->cached['placeholderRoutes'][$method][$placeHolderRoute] . '`.';
+                $this->errors['routes'][$method][] = "Duplicate Route Conflict in Valid Formatted Route:`{$method}()" . $this->getLastFunkPHPTextArray() . ' with (defined first):`' . $this->cached['placeholderRoutes'][$method][$placeHolderRoute] . '`.';
+                return;
+            } else {
+                $this->cached['placeholderRoutes'][$method][$placeHolderRoute] = "$method$route";
+            }
+        }
+        // Ok, Method/Route String is valid, now final check; is it already in batch? That makes it invalid due to duplicate!
+        if (isset($this->validBatches['routes'][$method][$route])) {
+            $this->errors['all'][] = "Duplicate Valid Formatted Route:`{$method}()" . $this->getLastFunkPHPTextArray() . '`!';
+            $this->errors['routes'][$method][] = "Duplicate Valid Formatted Route:`{$method}()" . $this->getLastFunkPHPTextArray() . '`!';
+            return;
+        }
+        // Add Valid String Formatted METHOD/Route now; in compilation it will be checked for
+        // conflicting URI segments with other routes as we do not know which order they are added!
+        $this->validBatches['routes'][$method][$route] = ['hasParams' => $routeHasParams];
+    }
     // Set & New Batches for ROUTES! (so ->routes()-><Method>()->route()->set|pipe<What>)
-    private function batchSetAliasRoute(string $method, string $route, string $alias) {}
-    private function batchSetParamRuleRoute(string $method, string $route, string $param, string $regex, $defaultParamValueOnRegexMismatch = null) {}
+    private function batchSetAliasRoute(string $method, string $route, string $alias)
+    {
+        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setAlias', $alias);
+        $alias = trim($alias);
+        // Check if the associated $method$route is in the InvalidBatches first
+        // OR if it is already as an invalid alias OR a valid alias already exists
+        if (isset($this->invalidBatches['routes'][$method][$route])) {
+            $err = "Invalid Route:`$method()->$route` must be become Valid before Route Alias `{$alias}` gets validated!";
+            $this->errors['all'][] = $err;
+            $this->errors['routes'][$method][$route][] = $err;
+            return;
+        }
+        if (isset($this->invalidBatches['routes']['aliases'][$method][$route])) {
+            $err = "An Invalid Route Alias:`{$this->invalidBatches['routes']['aliases'][$method][$route]}` for `{$method}()->{$route}` already exists. Replace it with `{$alias}`?";
+            $this->errors['all'][] = $err;
+            $this->errors['routes'][$method][$route][] = $err;
+            return;
+        }
+        if (isset($this->validBatches['routes'][$method][$route]['alias'])) {
+            $err = "Valid Route:`{$method}()->{$route}` already has a Valid Route Alias:`{$this->validBatches['routes'][$method][$route]['alias']}`.";
+            $this->errors['all'][] = $err;
+            $this->errors['routes'][$method][$route][] = $err;
+            return;
+        }
+        // Alias formatting with typical alphanumerals plus dot-notation support
+        if ($alias === '' || !preg_match('/^[a-zA-Z0-9_.-]+$/', $alias)) {
+            $err = "Invalid Route Alias Formatting:`{$alias}` on `{$method}()->{$route}`. Aliases must only contain [a-zA-Z0-9_.-] characters (e.g., 'users.all').";
+            $this->errors['all'][] = $err;
+            $this->errors['routes'][$method][$route][] = $err;
+            $this->invalidBatches['routes']['aliases'][$method][$route] = $alias;
+            return;
+        }
+        // Global Uniqueness Check: Aliases CANNOT be duplicated across ANY method
+        if (isset($this->cached['routeAliases'][$alias])) {
+            $firstDefined = $this->cached['routeAliases'][$alias]; // Stores "METHOD /route"
+            $err = "Duplicate Route Alias Conflict:`{$alias}` on `{$method}()->{$route}`"
+                . " was already assigned to `{$firstDefined}`. Aliases must be Globally Unique across ALL HTTP(S) methods!";
+            $this->errors['all'][] = $err;
+            $this->errors['routes'][$method][$route][] = $err;
+            return;
+        }
+        // Register valid alias in reverse lookup map
+        $this->cached['routeAliases'][$alias] = "{$method}{$route}";
+        $this->validBatches['routes'][$method][$route]['alias'] = $alias;
+    }
+    private function batchSetParamRuleRoute(string $method, string $route, string $param, string $regex, $defaultParamValueOnRegexMismatch = null)
+    {
+        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setParamRule', $param, $regex, $defaultParamValueOnRegexMismatch);
+        // Check if the associated $method$route is in the InvalidBatches first!
+        // or the ParamRule itself with its $param name
+        if (isset($this->invalidBatches['routes'][$method][$route])) {
+            $this->errors['all'][] = "Invalid Route `$method$route` must be become Valid before Route Param Rule:`{$param},{$regex}` gets validated.";
+            $this->errors['paramRules']['routes'][$method][$route][] = "Invalid Route `$method$route` must be become Valid before Route Param Rule:`{$param},{$regex}` gets validated.";
+            return;
+        }
+        if (isset($this->invalidBatches['paramRules']['routes'][$method][$route][$param])) {
+            $this->errors['all'][] = "Duplicate Invalid Route Param Rule `{$param},{$regex}` in `$method$route`.";
+            $this->errors['paramRules']['routes'][$method][$route][] = "Duplicate Invalid Route Param Rule `$method$route`.";
+            return;
+        }
+        // Does provided method/route even use params?
+        if (!isset($this->validBatches['routes'][$method][$route]['hasParams'])) {
+            $this->errors['all'][] = "Valid Route `$method$route` has no `:params` defined so `{$param},{$regex}` cannot be used.";
+            $this->errors['paramRules']['routes'][$method][$route][] = "Valid Route `$method$route` has no `:params` defined so `{$param},{$regex},{$defaultParamValueOnRegexMismatch}` cannot be used.";
+            return;
+        }
+        // We now validate $param is a typical :param string and $regex is a typical valid regex
+        if (
+            !is_string($param) ||
+            !preg_match('/^([a-z0-9_-]+)$/i', $param)
+        ) {
+            $err = "Invalid Route Param Rule Identifier Formatting:`{$param}` to use in Route:`$method$route`. Param Rule Identifier should only contain [a-z0-9_-] characters and without the colon (:).";
+            $this->errors['all'][] = $err;
+            $this->errors['paramRules'][$method . $route][] = $err;
+            $this->invalidBatches['paramRules']['routes'][$method][$route][$param] = "{$param},{$regex},{$defaultParamValueOnRegexMismatch}";
+            return;
+        }
+        $regexValid = true;
+        try {
+            if (@preg_match($regex, '') === false) {
+                $regexValid = false;
+            }
+        } catch (\Throwable $e) {
+            $regexValid = false;
+        }
+        if ($regexValid === false) {
+            $err = "Invalid Route Param Rule Regex Formatting:`{$regex}` to use in Route:`$method$route`. Param Rule Regex should be a Valid Regex Pattern!";
+            $this->errors['all'][] = $err;
+            $this->errors['paramRules'][$method . $route][] = $err;
+            $this->invalidBatches['paramRules']['routes'][$method][$route][$param] = "{$param},{$regex},{$defaultParamValueOnRegexMismatch}";
+        }
+        // Does valid method/route already have valid param rule identifier?
+        if (isset($this->validBatches['paramRules']['routes'][$method][$route][$param])) {
+            $err = "Duplicate Valid Param Rule Identifier:`{$param}` in Valid Route:`$method$route` - Valid Route already has a Param Rule with that Identifier.";
+            $this->errors['all'][] = $err;
+            $this->errors['paramRules']['routes'][$method][$route][] = $err;
+            return;
+        }
+        if (!in_array($param, $this->validBatches['routes'][$method][$route]['hasParams'])) {
+            $err = "Valid Param Rule Identifier:`{$param}` is NOT used in Valid Route:`$method$route`. It only uses: `" . join(', ', $this->validBatches['routes'][$method][$route]['hasParams']) . "`.";
+            $this->errors['all'][] = $err;
+            $this->errors['paramRules']['routes'][$method][$route][] = $err;
+            $this->invalidBatches['paramRules']['routes'][$method][$route][$param] = "{$param},{$regex},{$defaultParamValueOnRegexMismatch}";
+            return;
+        }
+        // Finally add it as valid for that route in
+        // $validBatches->paramRules->routes->method->route-><$param>
+        // Method-leveled paramRules uses 'paramRules'->'methods',
+        // while config() uses 'paramRules'->'global'
+        $this->validBatches['paramRules']['routes'][$method][$route][$param] = ['pattern' => $regex, 'default' => $defaultParamValueOnRegexMismatch];
+    }
     private function batchSetRateLimitingRoute(string $method, string $route, array $rateLimitingOptions) {}
     private function batchSetCacheRoute(string $method, string $route, array $cacheOptions) {}
     private function batchSetCSPRoute(string $method, string $route, string $sourceType, string ...$sources) {}
@@ -4026,30 +4375,37 @@ class FunkRoutes
     public function __construct(private C $c) {}
     public function HEAD(): FunkMethod
     {
+        $this->c->FunkPHPTextArray[] = "->HEAD()";
         return $this->methodInstances['HEAD'] ??= new FunkMethod($this->c, $this, 'HEAD');
     }
     public function GET(): FunkMethod
     {
+        $this->c->FunkPHPTextArray[] = "->GET()";
         return $this->methodInstances['GET'] ??= new FunkMethod($this->c, $this, 'GET');
     }
     public function POST(): FunkMethod
     {
+        $this->c->FunkPHPTextArray[] = "->POST()";
         return $this->methodInstances['POST'] ??= new FunkMethod($this->c, $this, 'POST');
     }
     public function PUT(): FunkMethod
     {
+        $this->c->FunkPHPTextArray[] = "->PUT()";
         return $this->methodInstances['PUT'] ??= new FunkMethod($this->c, $this, 'PUT');
     }
     public function PATCH(): FunkMethod
     {
+        $this->c->FunkPHPTextArray[] = "->PATCH()";
         return $this->methodInstances['PATCH'] ??= new FunkMethod($this->c, $this, 'PATCH');
     }
     public function DELETE(): FunkMethod
     {
+        $this->c->FunkPHPTextArray[] = "->DELETE()";
         return $this->methodInstances['DELETE'] ??= new FunkMethod($this->c, $this, 'DELETE');
     }
     public function config(): FunkConfig
     {
+        $this->c->FunkPHPTextArray[] = "->config()";
         return $this->c->config();
     }
 }
@@ -4166,10 +4522,10 @@ class FunkMethod
     // Create a new route for the current FunkMethod() and/or
     // jump back/initialize to HEAD,GET,POST,PUT,PATCH,DELETE
     // that is under ->routes() | This allows for group and such!
-    public function route(string $path, array $inlineRules = []): FunkRoute
+    public function route(string $path): FunkRoute
     {
-        $this->c->batch('batchNewRoute', $this->method, $path, $inlineRules);
-        return new FunkRoute($this->c, $this, $this->method, $path, $inlineRules);
+        $this->c->batch('batchNewRoute', $this->method, $path);
+        return new FunkRoute($this->c, $this, $this->method, $path);
     }
     public function HEAD(): FunkMethod
     {
@@ -4329,9 +4685,9 @@ class FunkRoute
     }
     // Create a new Route under currently navigated <METHOD>() and/or
     // jump to any other available <METHOD>() as seen below!
-    public function route(string $path, array $inlineParamRules = []): FunkRoute
+    public function route(string $path): FunkRoute
     {
-        return $this->parentMethod->route($path, $inlineParamRules);
+        return $this->parentMethod->route($path);
     }
     public function HEAD(): FunkMethod
     {

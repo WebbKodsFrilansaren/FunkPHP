@@ -2,8 +2,11 @@
 
 $test = FunkPHP()
     ->config()
+    ->setParamRule("test", '/^t/')
     ->routes()
     ->GET()
-    ->route("/test",);
+    ->setParamRule('test', '##i')
+    ->route('/:id/:test/:test2')
+    ->setParamRule("test", "/^t/");
 
 dd($test);
