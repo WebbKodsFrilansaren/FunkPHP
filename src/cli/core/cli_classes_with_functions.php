@@ -7589,27 +7589,61 @@ class C
     // formatting for a regex or route, and so on! It is structured on "batch<New|Set><LEVEL><WHAT>"
     // Where "New" means you can add several as long as they are not duplicates OR conflict in certain
     // order like "pipeResponse" means you have completed the request cycle for that route and now
-    // any piped ->requestPostResponse() should run as a result!
-    private function batchSetMethodRateLimiting(string $method, array $rateLimitingOptions) {}
+    // any piped ->requestPostResponse() should run as a result! Different levels (global, method, route)
+    // have different amount of settings/piping they can do (thus what can be batched and not!)
 
-    // Set & New Batches for routes! (so ->route()->route()->set|pipe<What>)
-    private function batchSetRouteAlias(string $method, string $route, string $alias) {}
-    private function batchSetRouteRateLimiting(string $method, string $route, array $rateLimitingOptions) {}
-    private function batchSetRouteCache(string $method, string $route, array $cacheOptions) {}
+    // Set & New Batches for GLOBAL/CONFIG()! (so ->config()->set|pipe<What>)
+    private function batchSetFunkPHPOnlineGlobal(bool $trueOrFalse) {}
+    private function batchSetUseHTTPSGlobal(bool $trueOrFalse) {}
+    private function batchSetUseVendorGlobal(bool $trueOrFalse) {}
+    private function batchSetDefaultRegisteredShutdownFunctionGlobal(string|null $userDefinedFunction = null) {}
+    private function batchSetDefaultExceptionHandlerGlobal(string|null $userDefinedFunction = null) {}
+    private function batchSetDefaultErrorHandlerGlobal(string|null $userDefinedFunction = null) {}
+    private function batchSetDefaultURINormalizerGlobal(string|null $userDefinedFunction = null) {}
+    private function batchSetDefaultHTTPSKernelDispatchHandlerGlobal(string|null $userDefinedFunction = null) {}
+    private function batchSetDefaultNoRouteMatchGlobal(array $noRouteMatchedOptions) {}
+    private function batchSetDefaultBaseURLLocalGlobal(string $httpsPath) {}
+    private function batchSetDefaultBaseURLOnlineGlobal(string $httpsPath) {}
+    private function batchSetDefaultBaseURLHostGlobal(string $hostNameLocally) {}
+    private function batchSetDefaultBaseURLUriGlobal(string $localURI) {}
+    private function batchSetDefaultSessionDriverGlobal(string $filesOrRedisOrSomethingElse = 'files') {}
+    private function batchSetDefaultSessionCookieNameGlobal(string $sessionCookieName = 'fphp_id') {}
+    private function batchSetDefaultSessionCookieLifetimeGlobal(int $sessionCookieLifetime = 28800) {}
+    private function batchSetDefaultSessionCookiePathGlobal(string $sessionCookiePath = '/') {}
+    private function batchSetDefaultSessionCookieDomainGlobal(string $sessionCookiePath = 'webdev.local') {}
+    private function batchSetDefaultSessionCookieSecureGlobal(bool $trueOrFalse = false) {}
+    private function batchSetDefaultSessionCookieHTTPOnlyGlobal(bool $trueOrFalse = true) {}
+    private function batchSetDefaultSessionCookieSameSiteGlobal(string $LaxOrStrict = 'Lax') {}
+    private function batchNewINI_SETGlobal(array $iniSetArrayWithKeyNamesAsSettingTypeWithSingleScalarValue) {}
+    private function batchNewMiddlewareGlobal(string $middleware) {}
+    private function batchNewParamRuleGlobal(string $paramRule) {}
+    private function batchNewCSPGlobal($srcType, string $CSP) {}
+    private function batchNewHeaderGlobal(string $header, string $addOrRemove = 'add') {}
+    private function batchNewSRIGlobal(string $internalOrExternal = 'internal', string $CSP) {}
 
+    // Set & New Batches for SPECIFIC_METHOD! (so ->routes()-><Method>->set|pipe<What>)
+    private function batchSetRateLimitingMethod(string $method, array $rateLimitingOptions) {}
+    private function batchSetNoRouteMatchMethod(string $method, array $noRouteMatchedOptions) {}
+    private function batchNewMiddlewareMethod(string $method, string $middleware) {}
+    private function batchNewParamRuleMethod(string $method, string $paramRule) {}
+    private function batchNewCSPMethod(string $method, $srcType, string $CSP) {}
+    private function batchNewHeaderMethod(string $method, string $header, string $addOrRemove = "add") {}
+
+    // Set & New Batches for ROUTES! (so ->routes()-><Method>()->route()->set|pipe<What>)
+    private function batchSetAliasRoute(string $method, string $route, string $alias) {}
+    private function batchSetRateLimitingRoute(string $method, string $route, array $rateLimitingOptions) {}
+    private function batchSetCacheRoute(string $method, string $route, array $cacheOptions) {}
     private function batchNewRoute(string $method, string $route) {}
-    private function batchNewRouteParamRule(string $method, string $route, string $paramRule) {}
-    private function batchNewRoutePipeFunction(string $method, string $route, string $fileFunctionName) {}
-    private function batchNewRoutePipeResponse(string $method, string $route, string $typeOfResponse) {}
-    private function batchNewRoutePipeSQL(string $method, string $route, string $sqlFileFunction) {}
-    private function batchNewRoutePipeQuery(string $method, string $route, string $queryFileFunction) {}
-    private function batchNewRoutePipeValidation(string $method, string $route, string $validationFileFunction) {}
-    private function batchNewRouteMiddleware(string $method, string $route, string $middleware) {}
-    private function batchNewRouteExcludeMiddleware(string $method, string $route, string $middlewareToExclude) {}
-    private function batchNewRouteCSP(string $method, string $route, $srcType, string $CSP) {}
-    private function batchNewRouteHeader(string $method, string $route, string $header, string $addOrRemove = "add") {}
-
-
+    private function batchNewParamRuleRoute(string $method, string $route, string $paramRule) {}
+    private function batchNewPipeFunctionRoute(string $method, string $route, string $fileFunctionName) {}
+    private function batchNewPipeResponseRoute(string $method, string $route, string $typeOfResponse) {}
+    private function batchNewPipeSQLRoute(string $method, string $route, string $sqlFileFunction) {}
+    private function batchNewPipeQueryRoute(string $method, string $route, string $queryFileFunction) {}
+    private function batchNewPipeValidationRoute(string $method, string $route, string $validationFileFunction) {}
+    private function batchNewMiddlewareRoute(string $method, string $route, string $middleware) {}
+    private function batchNewExcludeMiddlewareRoute(string $method, string $route, string $middlewareToExclude) {}
+    private function batchNewCSPRoute(string $method, string $route, $srcType, string $CSP) {}
+    private function batchNewHeaderRoute(string $method, string $route, string $header, string $addOrRemove = "add") {}
 
     // Two private functions that are ONLY used via Reflection classes so you do not see
     // them while configuring `/src/funkphp/FunkPHP.php` and runs it unless `FunkPHPDeployment.php`
@@ -7626,7 +7660,9 @@ class C
 
 /*
  * Class FunkPHP is the top level navigation in the IDE that "jumps" via method-chaining
- * between `->config()`,`->pipesRequest()`,`->pipesPostResponse()`,`->routes()`
+ * between `->config()`,`->pipesRequest()`,`->pipesPostResponse()`,`->routes()`. It is
+ * accessed via function FunkPHP() which then returns FunKPHP instance with class C as
+ * private variable. Should be used as:`return FunkPH()-><config()|routes()>`
 */
 class FunkPHP
 {
@@ -7649,34 +7685,38 @@ class FunkPHP
         return $this->c->routes();
     }
 }
+/*
+ * Class FunkConfig() - accessed via FunkPHP()->config() - contains
+ * Can jump to ->routes()
+*/
 class FunkConfig
 {
     public function __construct(private C $c) {}
-
-    public function setDefaultRouteHandler(string $handlerFunctionName): self
+    public function setDefaultRouteHandler(string $userDefinedFunctionName): self
     {
         //$this->c->run();
         return $this;
     }
-
-    public function setMiddlewaresCascade(bool $cascadeOrNot): self
+    public function setMiddlewaresCascade(bool $trueOrFalse): self
     {
         return $this;
     }
-
     // Allow jumping directly to another scope without breaking the chain!
     public function pipesRequest(): FunkPipesRequest
     {
         return $this->c->pipesRequest();
+    }
+    public function pipesPostResponse(): FunkPipesPostResponse
+    {
+        return $this->c->pipesPostResponse();
     }
     public function routes(): FunkRoutes
     {
         return $this->c->routes();
     }
 }
-
 /*
- * Class FunkRoutes() - accessed via ->routes() - contains references to all
+ * Class FunkRoutes() - accessed via FunkPHP()->routes() - contains references to all
  * typical method-based routes such as GET,POST,PUT,DELETE, and PATCH+HEAD!
  * Can also jump back to ->config()
 */
@@ -7713,7 +7753,9 @@ class FunkRoutes
         return $this->c->config();
     }
 }
-
+/*
+ * Class FunkMethod() - accessed via FunkPHP()->routes()-><METHOD>()
+*/
 class FunkMethod
 {
     public function __construct(
@@ -7721,22 +7763,17 @@ class FunkMethod
         private FunkRoutes $parent,
         private string $method
     ) {}
-
-    public function setParamRuleMethod(string $param, string $regex, string $defaultOnRegexMismatch = null): self
-    {
-
-        return $this;
-    }
-
     //
     public function route(string $path, array $inlineRules = []): FunkRoute
     {
         // Validate route syntax format immediately
-
-
-        return new FunkRoute($this->c, $this, $this->method, $path);
+        return new FunkRoute($this->c, $this, $this->method, $path, $inlineRules);
     }
-
+    public function setParamRuleMethod(string $param, string $regex, string|null $defaultOnRegexMismatch = null): self
+    {
+        //$this->c->batchNewParamRuleMethod($this->method, $param, $regex, $defaultOnRegexMismatch);
+        return $this;
+    }
     // Jump back/initialize to HEAD,GET,POST,PUT,PATCH,DELETE
     // that is under ->routes() | This allows for group and such!
     public function HEAD(): FunkMethod
@@ -7764,10 +7801,53 @@ class FunkMethod
         return $this->parent->DELETE();
     }
 }
+/*
+ * Class FunkRoute() - accessed via FunkPHP()->routes()-><METHOD>()->route("/URI-path")
+*/
+class FunkRoute
+{
+    public function __construct(
+        private C $c,
+        private FunkMethod $parentMethod,
+        private string $method,
+        private ?string $routePath = '',
+        private ?array $inlineParamRules = []
+    ) {}
 
-
-
-
+    public function pipeMiddlewareRoute(string $middleware = ''): self
+    {
+        //$this->c->batchNewMiddlewareRoute($this->method, $this->routePath, $middleware);
+        return $this;
+    }
+    public function route(string $path, array $inlineRules = []): FunkRoute
+    {
+        return $this->parentMethod->route($path, $inlineRules);
+    }
+    public function HEAD(): FunkMethod
+    {
+        return $this->parentMethod->HEAD();
+    }
+    public function GET(): FunkMethod
+    {
+        return $this->parentMethod->GET();
+    }
+    public function POST(): FunkMethod
+    {
+        return $this->parentMethod->POST();
+    }
+    public function PUT(): FunkMethod
+    {
+        return $this->parentMethod->PUT();
+    }
+    public function PATCH(): FunkMethod
+    {
+        return $this->parentMethod->PATCH();
+    }
+    public function DELETE(): FunkMethod
+    {
+        return $this->parentMethod->DELETE();
+    }
+}
 
 /* Global entry point for initializing FunkPHP in `/src/funkphp/config/app.php` */
 function FunkPHP()
