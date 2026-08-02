@@ -2784,3 +2784,648 @@ function funk_use_validation_files(&$c, $optimizedValidationArray)
 }
 
 /*** PAGE-RELATED Functions For FunkPHP  ***/
+
+
+
+
+
+
+/**
+ * CLASSES USED BY FunkPHP FOR IDE $DX!
+ */
+/*
+ * FunkPHP Classes used in the `/src/funkphp/config/app.php`
+*/
+/*
+ * Class C is the "source of truth" regarding app state, app configuration (globally, on method leve, on route level)
+ * such as `request, post-response, routes, middlewares, individual routse and their piped functions`
+*/
+class C
+{
+    // Default booleans for compile(), run()
+    private bool $FunkPHPcompiled = false;
+    private bool $FunkPHPbooted = false;
+    // Default values for $c that is returned via
+    // Use the `config()->setUse<cVariableKey>Global` to change each value!
+    // It is set to the $c variable before globally starting executing!
+    public array $cVariable =  [
+        // 'FUNKPHP_ONLINE' => false,
+        // 'FUNKPHP_USE_HTTPS' => false,
+        // 'FUNKPHP_USE_PREPARE_URI' => true,
+        // "FUNKPHP_USE_VENDOR" => true,
+        // "FUNKPHP_CUSTOM_EXCEPTION_HANDLER" => null,
+        // "FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION" => null,
+        // "FUNKPHP_CUSTOM_ERROR_HANDLER" => null,
+        // "FUNKPHP_CUSTOM_URI_NORMALIZER" => null,
+        // "FUNKPHP_CUSTOM_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION" => null,
+        // 'INI_SETS' => [
+        //     'session.cache_limiter' => 'public',
+        //     'session.use_strict_mode' => 8,
+        //     'session.use_only_cookies' => 1,
+        //     'session.cache_expire' => 30,
+        //     'session.cookie_lifetime' => 0,
+        //     'session.name' => 'fphp_id',
+        //     'session.sid_length' => 192,
+        //     'session.sid_bits_per_character' => 6,
+        //     'display_errors'          => 1,
+        //     'display_startup_errors'  => 1,
+        //     'error_reporting'         => 1,
+        // ],
+        // 'BASEURLS' => [
+        //     'LOCAL' => "http://webdev.local:81/funkphp",
+        //     'ONLINE' => "https://www.funkphp.com",
+        //     'BASEURL' =>  'localhost',
+        //     'BASEURL_URI' => '/funkphp/src/public_html/',
+        // ],
+        // 'SESSION' => [
+        //     'driver' => 'files',
+        //     'COOKIES' => [
+        //         'SESSION_NAME' => 'fphp_id',
+        //         'SESSION_LIFETIME' => 28800,
+        //         'SESSION_PATH' => '/',
+        //         'SESSION_DOMAIN' => "webdev.local",
+        //         'SESSION_SECURE' => false,
+        //         'SESSION_HTTPONLY' => true,
+        //         'SESSION_SAMESITE' => 'Lax',
+        //     ]
+        // ],
+        // '<ENTRY>' => [],
+        // 'pipeline' => [
+        //     'request' => [],
+        //     'post_response' => []
+        // ],
+        // 'ROUTES' => [],
+        // 'shared' => [],
+        // 'custom' => null,
+        // 'classes' => ['vendor' => [], 'user' => []],
+        // 'credentials' => null,
+        // 'connections' => [],
+        // 'req' => [
+        //     'method' => '##TOKEN_REQ_METHOD##',
+        //     'ip'     => '##TOKEN_REQ_IP##',
+        //     'time'   => '##TOKEN_REQ_TIME##',
+        //     'uri' => null,
+        //     'query' => '##TOKEN_REQ_QUERY_STRING##',
+        //     'base_url_absolute' => null,
+        //     'base_url_relative' => null,
+        //     'matched_in' => null,
+        //     'route' => null,
+        //     'params' => null,
+        //     'segments' => null,
+        //     'auth' => null,
+        //     'matched_config' => null,
+        //     'matched_pipeline' => [],
+        //     'matched_middlewares' => null,
+        //     'skip_post_response' => false,
+        //     'current_pipeline' => null,
+        //     'next_pipeline' => null,
+        //     'current_middleware' => null,
+        //     'next_middleware' => null,
+        //     'keep_running_exit' => null,
+        //     'code' => 418,
+        //     'log' => [],
+        //     'ua' => null,
+        //     'content_type' => null,
+        //     'accept' => null,
+        //     'protocol' => null,
+        // ],
+        // 'd' => null,
+        // 'v' => null,
+        // 'v_ok' => null,
+        // 'v_ok_files' => null,
+        // 'v_config' => [],
+        // 'v_data' => null,
+        // 'p' => null,
+        // 'files' => null,
+        // 'err' => [
+        //     'MAYBE' => [],
+        //     'FUNCTIONS' => [],
+        //     'CLASSES' => [],
+        //     'CONNECTIONS' => [],
+        //     'PIPELINE' => [],
+        //     'MIDDLEWARES' => [],
+        //     'PAGE' => [],
+        //     'VALIDATION' => [],
+        //     'SQL' => [],
+        //     'QUERY' => [],
+        // ],
+    ];
+
+    // $batches (= can be validated for compilation)
+    // $invalidBatches (= cannot be validated for compilation based on initial value check)
+    // $errors (= stored errors where )
+    private array $batches = [
+        // 'all' => [],
+        // 'config' => [],
+        // 'pipes' => [
+        //     'request' => [],
+        //     'post_response' => [],
+        //     'middlewares' => [],
+        //     'routes' => [
+        //         'HEAD' => [],
+        //         'GET' => [],
+        //         'PUT' => [],
+        //         'PATCH' => [],
+        //         'POST' => [],
+        //         'DELETE' => [],
+        //     ],
+        // ],
+        // 'data' => [
+        //     'tables' => [],
+        //     'query' => [],
+        //     'validation' => [],
+        //     'sql' => []
+        // ],
+        // 'pages' => [
+        //     'compiled' => [],
+        //     'components' => [],
+        //     'layouts' => [],
+        //     'partials' => []
+        // ],
+    ];
+    private array $invalidBatches = [
+        // 'all' => [],
+        // 'config' => [],
+        // 'pipes' => [
+        //     'request' => [],
+        //     'post_response' => [],
+        //     'middlewares' => [],
+        //     'routes' => [
+        //         'HEAD' => [],
+        //         'GET' => [],
+        //         'PUT' => [],
+        //         'PATCH' => [],
+        //         'POST' => [],
+        //         'DELETE' => [],
+        //     ],
+        // ],
+        // 'data' => [
+        //     'tables' => [],
+        //     'query' => [],
+        //     'validation' => [],
+        //     'sql' => []
+        // ],
+        // 'pages' => [
+        //     'compiled' => [],
+        //     'components' => [],
+        //     'layouts' => [],
+        //     'partials' => []
+        // ],
+    ];
+    private array $errors = [
+        'all' => [],
+        // 'config' => [],
+        // 'pipes' => [
+        //     'request' => [],
+        //     'post_response' => [],
+        //     'middlewares' => [],
+        //     'routes' => [
+        //         'HEAD' => [],
+        //         'GET' => [],
+        //         'PUT' => [],
+        //         'PATCH' => [],
+        //         'POST' => [],
+        //         'DELETE' => [],
+        //     ],
+        // ],
+        // 'data' => [
+        //     'tables' => [],
+        //     'query' => [],
+        //     'validation' => [],
+        //     'sql' => []
+        // ],
+        // 'pages' => [
+        //     'compiled' => [],
+        //     'components' => [],
+        //     'layouts' => [],
+        //     'partials' => []
+        // ],
+    ];
+    // $cached = (Attempted) Access to any file/function and/or file=>function in a DRY fashion!
+    private array $cached = [
+        // 'fileNotFound' => [],
+        // 'fileNotRadable' => [],
+        // 'expectedNamespaceNotFound' => [],
+        // 'expectedFileFunctionNotFound' => [],
+        // 'all' => [],
+        // 'config' => [],
+        // 'pipes' => [
+        //     'request' => [],
+        //     'post_response' => [],
+        //     'middlewares' => [],
+        //     'routes' => [
+        //         'allRouteAliases' => [],
+        //         'HEAD' => [],
+        //         'GET' => [],
+        //         'PUT' => [],
+        //         'PATCH' => [],
+        //         'POST' => [],
+        //         'DELETE' => [],
+        //     ],
+        // ],
+        // 'data' => [
+        //     'tables' => [],
+        //     'query' => [],
+        //     'validation' => [],
+        //     'sql' => []
+        // ],
+        // 'pages' => [
+        //     'compiled' => [],
+        //     'components' => [],
+        //     'layouts' => [],
+        //     'partials' => []
+        // ],
+    ];
+
+    // $compiled = The entire compiled code that can either be executed as is OR
+    // be exported to the `/src/funkphp/FunkPHPDeployment.php` File!
+    private array $compiled = [
+        // 'all' => [],
+        // 'config' => [],
+        // 'pipes' => [
+        //     'request' => [],
+        //     'post_response' => [],
+        //     'middlewares' => [],
+        //     'routes' => [
+        //         'HEAD' => [],
+        //         'GET' => [],
+        //         'PUT' => [],
+        //         'PATCH' => [],
+        //         'POST' => [],
+        //         'DELETE' => [],
+        //     ],
+        // ],
+        // 'data' => [
+        //     'tables' => [],
+        //     'query' => [],
+        //     'validation' => [],
+        //     'sql' => []
+        // ],
+        // 'pages' => [
+        //     'compiled' => [],
+        //     'components' => [],
+        //     'layouts' => [],
+        //     'partials' => []
+        // ],
+    ];
+
+    // NAVIGATION VARIABLES+METHODS IN IDE config()->
+    private ?FunkConfig $configScope = null;
+    private ?FunkRoutes $routesScope = null;
+
+    // ->config()
+    // and can jump to->pipesRequest(),->pipesPostResponse() or ->routes()
+    public function config(): FunkConfig
+    {
+        return $this->configScope ??= new FunkConfig($this);
+    }
+    // ->routes() | gives access to:->GET(),->POST(),->PATCH(),->PUT(),->DELETE()
+    // and can jump back to ->config()
+    public function routes(): FunkRoutes
+    {
+        return $this->routesScope ??= new FunkRoutes($this);
+    }
+    // batchFunctions that attempt batching something in $batches that would be validated later unless
+    // placed in $invalidBatches based upon initial valid string value like empty string or invalid
+    // formatting for a regex or route, and so on! It is structured on "batch<New|Set><LEVEL><WHAT>"
+    // Where "New" means you can add several as long as they are not duplicates OR conflict in certain
+    // order like "pipeResponse" means you have completed the request cycle for that route and now
+    // any piped ->requestPostResponse() should run as a result! Different levels (global, method, route)
+    // have different amount of settings/piping they can do (thus what can be batched and not!)
+
+    // Set & New Batches for GLOBAL/CONFIG()! (so ->config()->set|pipe<What>)
+    public function batch(string $fn, mixed ...$payload)
+    {
+        if ($fn === '' || !method_exists($this, $fn)) {
+            $this->errors['all'][] = 'Internal Error: Tried calling to a non-existing Private Function `' . $fn  . '` in Class `C`. Please report this bug/code miss to `https://www.GitHub.com/WebbKodsFrilansaren/FunkPHP`!';
+            return;
+        }
+        $this->$fn(...$payload);
+    }
+    private function batchSetFunkPHPOnlineGlobal(bool $trueOrFalse) {}
+    private function batchSetUseHTTPSGlobal(bool $trueOrFalse) {}
+    private function batchSetUseVendorGlobal(bool $trueOrFalse) {}
+    private function batchSetDefaultRegisteredShutdownFunctionGlobal(string|null $userDefinedFunction = null) {}
+    private function batchSetDefaultExceptionHandlerGlobal(string|null $userDefinedFunction = null) {}
+    private function batchSetDefaultErrorHandlerGlobal(string|null $userDefinedFunction = null) {}
+    private function batchSetDefaultURINormalizerGlobal(string|null $userDefinedFunction = null) {}
+    private function batchSetDefaultHTTPSKernelDispatchHandlerGlobal(string|null $userDefinedFunction = null) {}
+    private function batchSetDefaultNoRouteMatchGlobal(array $noRouteMatchedOptions) {}
+    private function batchSetDefaultBaseURLLocalGlobal(string $httpsPath) {}
+    private function batchSetDefaultBaseURLOnlineGlobal(string $httpsPath) {}
+    private function batchSetDefaultBaseURLHostGlobal(string $hostNameLocally) {}
+    private function batchSetDefaultBaseURLUriGlobal(string $localURI) {}
+    private function batchSetDefaultSessionDriverGlobal(string $filesOrRedisOrSomethingElse = 'files') {}
+    private function batchSetDefaultSessionCookieNameGlobal(string $sessionCookieName = 'fphp_id') {}
+    private function batchSetDefaultSessionCookieLifetimeGlobal(int $sessionCookieLifetime = 28800) {}
+    private function batchSetDefaultSessionCookiePathGlobal(string $sessionCookiePath = '/') {}
+    private function batchSetDefaultSessionCookieDomainGlobal(string $sessionCookiePath = 'webdev.local') {}
+    private function batchSetDefaultSessionCookieSecureGlobal(bool $trueOrFalse = false) {}
+    private function batchSetDefaultSessionCookieHTTPOnlyGlobal(bool $trueOrFalse = true) {}
+    private function batchSetDefaultSessionCookieSameSiteGlobal(string $LaxOrStrict = 'Lax') {}
+    private function batchNewINI_SETGlobal(array $iniSetArrayWithKeyNamesAsSettingTypeWithSingleScalarValue) {}
+    private function batchNewMiddlewareGlobal(string $middleware) {}
+    private function batchNewParamRuleGlobal(string $paramRule) {}
+    private function batchNewCSPGlobal($srcType, string $CSP) {}
+    private function batchNewHeaderGlobal(string $header) {}
+    private function batchRemoveHeaderGlobal(string $header_to_remove) {}
+    private function batchNewSRIInternalGlobal(string $internalSRI) {}
+    private function batchNewSRIExternalGlobal(string $externalSRI) {}
+    private function batchNewPipeRequestFunctionGlobal(string $fileFunctionName) {}
+    private function batchNewPipePostResponseFunctionGlobal(string $fileFunctionName) {}
+
+    // Set & New Batches for SPECIFIC_METHOD! (so ->routes()-><Method>->set|pipe<What>)
+    private function batchSetRateLimitingMethod(string $method, array $rateLimitingOptions) {}
+    private function batchSetNoRouteMatchMethod(string $method, array $noRouteMatchedOptions) {}
+    private function batchNewMiddlewareMethod(string $method, string $middleware) {}
+    private function batchNewParamRuleMethod(string $method, string $paramRule) {}
+    private function batchNewCSPMethod(string $method, $srcType, string $CSP) {}
+    private function batchNewHeaderMethod(string $method, string $header) {}
+    private function batchRemoveHeaderMethod(string $method, string $header_to_remove) {}
+
+    // Set & New Batches for ROUTES! (so ->routes()-><Method>()->route()->set|pipe<What>)
+    private function batchSetAliasRoute(string $method, string $route, string $alias) {}
+    private function batchSetRateLimitingRoute(string $method, string $route, array $rateLimitingOptions) {}
+    private function batchSetCacheRoute(string $method, string $route, array $cacheOptions) {}
+    private function batchNewRoute(string $method, string $route) {}
+    private function batchNewParamRuleRoute(string $method, string $route, string $paramRule) {}
+    private function batchNewPipeFunctionRoute(string $method, string $route, string $fileFunctionName) {}
+    private function batchNewPipeResponseRoute(string $method, string $route, string $typeOfResponse) {}
+    private function batchNewPipeSQLRoute(string $method, string $route, string $sqlFileFunction) {}
+    private function batchNewPipeQueryRoute(string $method, string $route, string $queryFileFunction) {}
+    private function batchNewPipeValidationRoute(string $method, string $route, string $validationFileFunction) {}
+    private function batchNewMiddlewareRoute(string $method, string $route, string $middleware) {}
+    private function batchNewExcludeMiddlewareRoute(string $method, string $route, string $middlewareToExclude) {}
+    private function batchNewCSPRoute(string $method, string $route, $srcType, string $CSP) {}
+    private function batchNewHeaderRoute(string $method, string $route, string $header) {}
+    private function batchRemoveHeaderRoute(string $method, string $route, string $header) {}
+
+    // Two private functions that are ONLY used via Reflection classes so you do not see
+    // them while configuring `/src/funkphp/FunkPHP.php` and runs it unless `FunkPHPDeployment.php`
+    // is set in `/src/public_html/index.php` to run instead!
+    private function compile()
+    {
+        // Attempt compiling FunkPHP and create the code
+    }
+    private function run()
+    {
+        // Run the valid compiled FunkPHP
+    }
+}
+
+/*
+ * Class FunkPHP is the top level navigation in the IDE that "jumps" via method-chaining
+ * between `->config()`,`->pipesRequest()`,`->pipesPostResponse()`,`->routes()`. It is
+ * accessed via function FunkPHP() which then returns FunKPHP instance with class C as
+ * private variable. Should be used as:`return FunkPH()-><config()|routes()>`
+*/
+class FunkPHP
+{
+    public function __construct(private C $c) {}
+    // TOP LEVEL METHOD-CHAINED-BASED NAVIGATION
+    public function config(): FunkConfig
+    {
+        return $this->c->config();
+    }
+    public function routes(): FunkRoutes
+    {
+        return $this->c->routes();
+    }
+}
+/*
+ * Class FunkConfig() - accessed via FunkPHP()->config() - contains
+ * Can jump to ->routes()
+*/
+class FunkConfig
+{
+    public function __construct(private C $c) {}
+    public function setDefaultRouteHandler(string $userDefinedFunctionName): self
+    {
+        //$this->c->run();
+        return $this;
+    }
+    public function setMiddlewaresCascade(bool $trueOrFalse): self
+    {
+        return $this;
+    }
+    public function routes(): FunkRoutes
+    {
+        return $this->c->routes();
+    }
+}
+/*
+ * Class FunkRoutes() - accessed via FunkPHP()->routes() - contains references to all
+ * typical method-based routes such as GET,POST,PUT,DELETE, and PATCH+HEAD!
+ * Can also jump back to ->config()
+*/
+class FunkRoutes
+{
+    private array $methodInstances = [];
+    public function __construct(private C $c) {}
+    public function HEAD(): FunkMethod
+    {
+        return $this->methodInstances['HEAD'] ??= new FunkMethod($this->c, $this, 'HEAD');
+    }
+    public function GET(): FunkMethod
+    {
+        return $this->methodInstances['GET'] ??= new FunkMethod($this->c, $this, 'GET');
+    }
+    public function POST(): FunkMethod
+    {
+        return $this->methodInstances['POST'] ??= new FunkMethod($this->c, $this, 'POST');
+    }
+    public function PUT(): FunkMethod
+    {
+        return $this->methodInstances['PUT'] ??= new FunkMethod($this->c, $this, 'PUT');
+    }
+    public function PATCH(): FunkMethod
+    {
+        return $this->methodInstances['PATCH'] ??= new FunkMethod($this->c, $this, 'PATCH');
+    }
+    public function DELETE(): FunkMethod
+    {
+        return $this->methodInstances['DELETE'] ??= new FunkMethod($this->c, $this, 'DELETE');
+    }
+    public function config(): FunkConfig
+    {
+        return $this->c->config();
+    }
+}
+/*
+ * Class FunkMethod() - accessed via FunkPHP()->routes()-><METHOD>()
+*/
+class FunkMethod
+{
+    public function __construct(
+        private C $c,
+        private FunkRoutes $parent,
+        private string $method
+    ) {}
+    //
+    public function route(string $path, array $inlineRules = []): FunkRoute
+    {
+        // Validate route syntax format immediately
+        return new FunkRoute($this->c, $this, $this->method, $path, $inlineRules);
+    }
+    public function setParamRuleMethod(string $param, string $regex, string|null $defaultOnRegexMismatch = null): self
+    {
+        //$this->c->batchNewParamRuleMethod($this->method, $param, $regex, $defaultOnRegexMismatch);
+        return $this;
+    }
+    // Jump back/initialize to HEAD,GET,POST,PUT,PATCH,DELETE
+    // that is under ->routes() | This allows for group and such!
+    public function HEAD(): FunkMethod
+    {
+        return $this->parent->HEAD();
+    }
+    public function GET(): FunkMethod
+    {
+        return $this->parent->GET();
+    }
+    public function POST(): FunkMethod
+    {
+        return $this->parent->POST();
+    }
+    public function PUT(): FunkMethod
+    {
+        return $this->parent->PUT();
+    }
+    public function PATCH(): FunkMethod
+    {
+        return $this->parent->PATCH();
+    }
+    public function DELETE(): FunkMethod
+    {
+        return $this->parent->DELETE();
+    }
+}
+/*
+ * Class FunkRoute() - accessed via FunkPHP()->routes()-><METHOD>()->route("/URI-path")
+*/
+class FunkRoute
+{
+    public function __construct(
+        private C $c,
+        private FunkMethod $parentMethod,
+        private string $method,
+        private ?string $routePath = '',
+    ) {}
+
+    public function setAlias(string $aliasName = ''): self
+    {
+        $this->c->batch('batchSetAliasRoute', $this->method, $this->routePath, $aliasName);
+        return $this;
+    }
+
+    public function setRateLimiting(array $rateLimitingOptions): self
+    {
+        $this->c->batch('batchSetRateLimitingRoute', $this->method, $this->routePath, $rateLimitingOptions);
+        return $this;
+    }
+
+    public function setCache(array $cacheOptions): self
+    {
+        $this->c->batch('batchSetCacheRoute', $this->method, $this->routePath, $cacheOptions);
+        return $this;
+    }
+
+    public function pipeParamRule(string $paramRule): self
+    {
+        $this->c->batch('batchNewParamRuleRoute', $this->method, $this->routePath, $paramRule);
+        return $this;
+    }
+
+    public function pipeResponse(string $typeOfResponse): self
+    {
+        $this->c->batch('batchNewPipeResponseRoute', $this->method, $this->routePath, $typeOfResponse);
+        return $this;
+    }
+
+    public function pipeSQL(string $sqlFileFunction): self
+    {
+        $this->c->batch('batchNewPipeSQLRoute', $this->method, $this->routePath, $sqlFileFunction);
+        return $this;
+    }
+
+    public function pipeQuery(string $queryFileFunction): self
+    {
+        $this->c->batch('batchNewPipeQueryRoute', $this->method, $this->routePath, $queryFileFunction);
+        return $this;
+    }
+
+    public function pipeValidation(string $validationFileFunction): self
+    {
+        $this->c->batch('batchNewPipeValidationRoute', $this->method, $this->routePath, $validationFileFunction);
+        return $this;
+    }
+
+    public function pipeExcludeMiddleware(string $middlewareToExclude): self
+    {
+        $this->c->batch('batchNewExcludeMiddlewareRoute', $this->method, $this->routePath, $middlewareToExclude);
+        return $this;
+    }
+
+    public function pipeCSP(mixed $srcType, string $CSP): self
+    {
+        $this->c->batch('batchNewCSPRoute', $this->method, $this->routePath, $srcType, $CSP);
+        return $this;
+    }
+
+    public function pipeHeader(string $header): self
+    {
+        $this->c->batch('batchNewHeaderRoute', $this->method, $this->routePath, $header);
+        return $this;
+    }
+    public function removeHeader(string $header_to_remove): self
+    {
+        $this->c->batch('batchRemoveHeaderRoute', $this->method, $this->routePath, $header_to_remove);
+        return $this;
+    }
+
+    public function pipeMiddleware(string $middleware = ''): self
+    {
+        $this->c->batch('batchNewMiddlewareRoute', $this->method, $this->routePath, $middleware);
+        return $this;
+    }
+    public function pipeFunction(string $fileNameAndFunctionName = ''): self
+    {
+        $this->c->batch('batchNewPipeFunctionRoute', $this->method, $this->routePath, $fileNameAndFunctionName);
+        return $this;
+    }
+
+
+    public function route(string $path, array $inlineParamRules = []): FunkRoute
+    {
+        return $this->parentMethod->route($path, $inlineParamRules);
+    }
+    public function HEAD(): FunkMethod
+    {
+        return $this->parentMethod->HEAD();
+    }
+    public function GET(): FunkMethod
+    {
+        return $this->parentMethod->GET();
+    }
+    public function POST(): FunkMethod
+    {
+        return $this->parentMethod->POST();
+    }
+    public function PUT(): FunkMethod
+    {
+        return $this->parentMethod->PUT();
+    }
+    public function PATCH(): FunkMethod
+    {
+        return $this->parentMethod->PATCH();
+    }
+    public function DELETE(): FunkMethod
+    {
+        return $this->parentMethod->DELETE();
+    }
+}
+
+/* Global entry point for initializing FunkPHP in `/src/funkphp/config/app.php` */
+function FunkPHP()
+{
+    return new FunkPHP(new C);
+}

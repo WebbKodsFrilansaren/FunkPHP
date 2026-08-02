@@ -18,6 +18,11 @@
 // $c is the global configuration array that is used throughout the application
 require_once __DIR__ . '/core/functions.php'; // In-built functions
 require_once __DIR__ . '/config/functions.php'; // User-defined functions
+
+require_once __DIR__ . '/config/app.php'; // User-defined functions
+
+exit;
+
 $c = require_once __DIR__ . '/core/c.php';
 $c['<ENTRY>'] = require_once __DIR__ . '/core/pipeline_request.php';
 // Use either Custom Exception Handler by Developer OR Default one!
