@@ -1,10 +1,9 @@
 <?php
 
-$test = (FunkPHP()
+$test = FunkPHP()
     ->config()
     ->routes()
     ->GET()
-    ->route("/test")
-    ->pipeMiddleware('test'));
+    ->route("/test",);
 
 dd($test);
