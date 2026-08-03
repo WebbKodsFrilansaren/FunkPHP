@@ -3978,7 +3978,54 @@ class C
     }
 
     /* setCSP<VARIANTS> & setNonces Global */
-    private function batchSetNoncesGlobal(string ...$noncesReferenceKeys) {}
+    private function batchSetNoncesGlobal(string ...$noncesReferenceKeys)
+    {
+        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setNonces', ...$noncesReferenceKeys);
+        if (isset($this->invalidBatches['config']['nonces'])) {
+            $err = "Duplicate call `->setNonces()` under `->config()`. An Invalid Formatted Nonces Array already exists.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (isset($this->validBatches['config']['nonces'])) {
+            $err = "Duplicate call `->setNonces()` under `->config()`. A Valid Formatted Nonces Array already exists.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        $allErr = "Invalid Formatted Nonce Reference Key Array under `->config()`. Nonce keys must be Non-Empty Alphanumeric Strings (e.g., 'test', 'main_script', 'inline-css'). This are then referred to in SetCSP like:`->setCSP('script-src','nonce:main_script')` OR in Templated Pages:`{{nonce:main_script}}`.";
+        if (empty($noncesReferenceKeys)) {
+            $this->errors['all'][] = $allErr;
+            $this->errors['config'][] = $allErr;
+            $this->invalidBatches['config']['nonces'] = $noncesReferenceKeys;
+            return;
+        }
+        $cleanedKeys = [];
+        foreach ($noncesReferenceKeys as $key) {
+            if (!is_string($key)) {
+                $this->errors['all'][] = $allErr;
+                $this->errors['config'][] = $allErr;
+                $this->invalidBatches['config']['nonces'] = $noncesReferenceKeys;
+                return;
+            }
+            $trimmed = trim($key);
+            if ($trimmed === '' || !preg_match('/^[a-zA-Z0-9_-]+$/', $trimmed)) {
+                $err = "Invalid Nonce Key Name `{$key}` in `->setNonces()` under `->config()`. Keys must be non-empty and contain Only Alphanumeric Characters, dashes, or underscores (e.g., 'test', 'main-script').";
+                $this->errors['all'][] = $err;
+                $this->errors['config'][] = $err;
+                $this->invalidBatches['config']['nonces'] = $noncesReferenceKeys;
+                return;
+            }
+            if (in_array($trimmed, $cleanedKeys)) {
+                $err = "Duplicate Valid Nonce Key Name `{$key}` in `->setNonces()` under `->config()`. It has already been added.";
+                $this->errors['all'][] = $err;
+                $this->errors['config'][] = $err;
+                $this->invalidBatches['config']['nonces'] = $noncesReferenceKeys;
+            }
+            $cleanedKeys[] = $trimmed;
+        }
+        $this->validBatches['config']['nonces'] = $cleanedKeys;
+    }
     private function batchSetCSPGlobal(string $directive, string ...$sources)
     {
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setCSP', $directive, ...$sources);
@@ -4327,7 +4374,54 @@ class C
     }
 
     //METHOD: setNonces & setCSP
-    private function batchSetNoncesMethod(string $method, string ...$noncesReferenceKeys) {}
+    private function batchSetNoncesMethod(string $method, string ...$noncesReferenceKeys)
+    {
+        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setNonces', ...$noncesReferenceKeys);
+        if (isset($this->invalidBatches['methods'][$method]['nonces'])) {
+            $err = "Duplicate call `->setNonces()` under `->config()->routes()->{$method}()`. An Invalid Formatted Nonces Array already exists.";
+            $this->errors['all'][] = $err;
+            $this->errors['methods'][$method][] = $err;
+            return;
+        }
+        if (isset($this->validBatches['methods'][$method]['nonces'])) {
+            $err = "Duplicate call `->setNonces()` under `->config()->routes()->{$method}()`. A Valid Formatted Nonces Array already exists.";
+            $this->errors['all'][] = $err;
+            $this->errors['methods'][$method][] = $err;
+            return;
+        }
+        $allErr = "Invalid Formatted Nonce Reference Key Array under `->config()->routes()->{$method}()`. Nonce keys must be Non-Empty Alphanumeric Strings (e.g., 'test', 'main_script', 'inline-css'). This are then referred to in SetCSP like:`->setCSP('script-src','nonce:main_script')` OR in Templated Pages:`{{nonce:main_script}}`.";
+        if (empty($noncesReferenceKeys)) {
+            $this->errors['all'][] = $allErr;
+            $this->errors['methods'][$method][] = $allErr;
+            $this->invalidBatches['methods'][$method]['nonces'] = $noncesReferenceKeys;
+            return;
+        }
+        $cleanedKeys = [];
+        foreach ($noncesReferenceKeys as $key) {
+            if (!is_string($key)) {
+                $this->errors['all'][] = $allErr;
+                $this->errors['methods'][$method][] = $allErr;
+                $this->invalidBatches['methods'][$method]['nonces'] = $noncesReferenceKeys;
+                return;
+            }
+            $trimmed = trim($key);
+            if ($trimmed === '' || !preg_match('/^[a-zA-Z0-9_-]+$/', $trimmed)) {
+                $err = "Invalid Nonce Key Name `{$key}` in `->setNonces()` under `->config()->routes()->{$method}()`. Keys must be non-empty and contain Only Alphanumeric Characters, dashes, or underscores (e.g., 'test', 'main-script').";
+                $this->errors['all'][] = $err;
+                $this->errors['methods'][$method][] = $err;
+                $this->invalidBatches['methods'][$method]['nonces'] = $noncesReferenceKeys;
+                return;
+            }
+            if (in_array($trimmed, $cleanedKeys)) {
+                $err = "Duplicate Valid Nonce Key Name `{$key}` in `->setNonces()` under `->config()->routes()->{$method}()`. It has already been added.";
+                $this->errors['all'][] = $err;
+                $this->errors['methods'][$method][] = $err;
+                $this->invalidBatches['methods'][$method]['nonces'] = $noncesReferenceKeys;
+            }
+            $cleanedKeys[] = $trimmed;
+        }
+        $this->validBatches['methods'][$method]['nonces'] = $cleanedKeys;
+    }
     private function batchSetCSPMethod(string $method, string $directive, string ...$sources)
     {
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setCSP', $directive, ...$sources);
@@ -4694,7 +4788,54 @@ class C
     private function batchSetCacheRoute(string $method, string $route, array $cacheOptions) {}
 
     /*ROUTE: setNoncesRoute & setCSP<VARIANTS> */
-    private function batchSetNoncesRoute(string $method, $route, string ...$noncesReferenceKeys) {}
+    private function batchSetNoncesRoute(string $method, $route, string ...$noncesReferenceKeys)
+    {
+        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setNonces', ...$noncesReferenceKeys);
+        if (isset($this->invalidBatches['routes'][$method][$route]['nonces'])) {
+            $err = "Duplicate call `->setNonces()` under `->config()->routes()->{$method}()->{$route}`. An Invalid Formatted Nonces Array already exists.";
+            $this->errors['all'][] = $err;
+            $this->errors['routes'][$method][$route][] = $err;
+            return;
+        }
+        if (isset($this->validBatches['routes'][$method][$route]['nonces'])) {
+            $err = "Duplicate call `->setNonces()` under `->config()->routes()->{$method}()->{$route}`. A Valid Formatted Nonces Array already exists.";
+            $this->errors['all'][] = $err;
+            $this->errors['routes'][$method][$route][] = $err;
+            return;
+        }
+        $allErr = "Invalid Formatted Nonce Reference Key Array under `->config()->routes()->{$method}()->{$route}`. Nonce keys must be Non-Empty Alphanumeric Strings (e.g., 'test', 'main_script', 'inline-css'). This are then referred to in SetCSP like:`->setCSP('script-src','nonce:main_script')` OR in Templated Pages:`{{nonce:main_script}}`.";
+        if (empty($noncesReferenceKeys)) {
+            $this->errors['all'][] = $allErr;
+            $this->errors['routes'][$method][$route][] = $allErr;
+            $this->invalidBatches['routes'][$method][$route]['nonces'] = $noncesReferenceKeys;
+            return;
+        }
+        $cleanedKeys = [];
+        foreach ($noncesReferenceKeys as $key) {
+            if (!is_string($key)) {
+                $this->errors['all'][] = $allErr;
+                $this->errors['routes'][$method][$route][] = $allErr;
+                $this->invalidBatches['routes'][$method][$route]['nonces'] = $noncesReferenceKeys;
+                return;
+            }
+            $trimmed = trim($key);
+            if ($trimmed === '' || !preg_match('/^[a-zA-Z0-9_-]+$/', $trimmed)) {
+                $err = "Invalid Nonce Key Name `{$key}` in `->setNonces()` under `->config()->routes()->{$method}()->{$route}`. Keys must be non-empty and contain Only Alphanumeric Characters, dashes, or underscores (e.g., 'test', 'main-script').";
+                $this->errors['all'][] = $err;
+                $this->errors['routes'][$method][$route][] = $err;
+                $this->invalidBatches['routes'][$method][$route]['nonces'] = $noncesReferenceKeys;
+                return;
+            }
+            if (in_array($trimmed, $cleanedKeys)) {
+                $err = "Duplicate Valid Nonce Key Name `{$key}` in `->setNonces()` under `->config()->routes()->{$method}()->{$route}`. It has already been added.";
+                $this->errors['all'][] = $err;
+                $this->errors['routes'][$method][$route][] = $err;
+                $this->invalidBatches['routes'][$method][$route]['nonces'] = $noncesReferenceKeys;
+            }
+            $cleanedKeys[] = $trimmed;
+        }
+        $this->validBatches['routes'][$method][$route]['nonces'] = $cleanedKeys;
+    }
     private function batchSetCSPRoute(string $method, string $route, string $directive, string ...$sources)
     {
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setCSP', $directive, ...$sources);
@@ -4807,8 +4948,8 @@ class C
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('pipeHeader', $header);
         // Check if the associated $method$route is in the InvalidBatches first!
         if (isset($this->invalidBatches['routes'][$method][$route])) {
-            $this->errors['all'][] = "Invalid Route `->config()->routes()->$method$route` must be become Valid before Header `{$header}` gets validated with `->pipeHeader()`.";
-            $this->errors['routes'][$method][$route][] = "Invalid Route `->config()->routes()->{$method}()->{$route}` must be become Valid before Header `{$header}` gets validated with `->pipeHeader()`.";
+            $this->errors['all'][] = "Invalid Route `->config()->routes()->{$method}()->{$route}` must be become Valid before Header `{$header}` gets validated with `->pipeHeader()`.";
+            $this->errors['routes'][$method][$route][] = "Duplicate call `->pipeHeader()` - Invalid Route `->config()->routes()->{$method}()->{$route}` must be become Valid before Header `{$header}` gets validated with `->pipeHeader()`.";
             return;
         }
         if (isset($this->inValidBatches['routes'][$method][$route]['headers']['add'][$header])) {
@@ -5494,14 +5635,14 @@ class FunkConfig
     public function __construct(private C $c) {}
 
     /* setGroup<VARIANTS> - GLOBAL */
-    public function setGroupFunctions(string ...$functions): self
+    public function setGroupFunctions(string $groupName, string ...$functions): self
     {
-        $this->c->batch('batchSetGroupedFunctions', ...$functions);
+        $this->c->batch('batchSetGroupedFunctions', $groupName, ...$functions);
         return $this;
     }
-    public function setGroupMiddlewares(string ...$middlewares): self
+    public function setGroupMiddlewares(string $groupName, string ...$middlewares): self
     {
-        $this->c->batch('batchSetGroupedMiddlewares', $middlewares);
+        $this->c->batch('batchSetGroupedMiddlewares', $groupName, ...$middlewares);
         return $this;
     }
     public function setINI_SET(array $iniSetArrayWithKeyNamesAsSettingTypeWithSingleScalarValue): self
@@ -5511,9 +5652,9 @@ class FunkConfig
     }
 
     /* setNonces and setCSP<&Variants> - GLOBAL */
-    public function setNonces(...$noncesReferenceKeys)
+    public function setNonces(string ...$noncesReferenceKeys)
     {
-        $this->c->batch('batchSetNoncesGlobal', $noncesReferenceKeys);
+        $this->c->batch('batchSetNoncesGlobal', ...$noncesReferenceKeys);
         return $this;
     }
     /**
@@ -5845,7 +5986,7 @@ class FunkMethod
     }
     public function setNonces(...$noncesReferenceKeys)
     {
-        $this->c->batch('batchSetNoncesMethod', $this->method, $noncesReferenceKeys);
+        $this->c->batch('batchSetNoncesMethod', $this->method, ...$noncesReferenceKeys);
         return $this;
     }
     /**
@@ -5977,7 +6118,7 @@ class FunkRoute
     }
     public function setNonces(...$noncesReferenceKeys)
     {
-        $this->c->batch('batchSetNoncesRoute', $this->method, $this->routePath, $noncesReferenceKeys);
+        $this->c->batch('batchSetNoncesRoute', $this->method, $this->routePath, ...$noncesReferenceKeys);
         return $this;
     }
 
