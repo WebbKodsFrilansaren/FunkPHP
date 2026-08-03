@@ -3283,16 +3283,16 @@ class C
 
     // ->config()
     // and can jump to->pipesRequest(),->pipesPostResponse() or ->routes()
-    public function config(): FunkConfig
+    public function CONFIG(): FunkConfig
     {
-        $this->FunkPHPTextArray[] = "->config()";
+        $this->FunkPHPTextArray[] = "->CONFIG()";
         return $this->configScope ??= new FunkConfig($this);
     }
     // ->routes() | gives access to:->GET(),->POST(),->PATCH(),->PUT(),->DELETE()
     // and can jump back to ->config()
-    public function routes(): FunkRoutes
+    public function ROUTES(): FunkRoutes
     {
-        $this->FunkPHPTextArray[] = "->routes()";
+        $this->FunkPHPTextArray[] = "->ROUTES()";
         return $this->routesScope ??= new FunkRoutes($this);
     }
     // batchFunctions that attempt batching something in $batches that would be validated later unless
@@ -5476,11 +5476,11 @@ class FunkPHP
 {
     public function __construct(private C $c) {}
     // TOP LEVEL METHOD-CHAINED-BASED NAVIGATION
-    public function config(): FunkConfig
+    public function CONFIG(): FunkConfig
     {
         return $this->c->config();
     }
-    public function routes(): FunkRoutes
+    public function ROUTES(): FunkRoutes
     {
         return $this->c->routes();
     }
@@ -5758,7 +5758,7 @@ class FunkConfig
         return $this;
     }
     // Jump to ->routes() from FunkPHP->config()! - from GLOBAL
-    public function routes(): FunkRoutes
+    public function ROUTES(): FunkRoutes
     {
         return $this->c->routes();
     }
@@ -5802,9 +5802,9 @@ class FunkRoutes
         $this->c->FunkPHPTextArray[] = "->DELETE()";
         return $this->methodInstances['DELETE'] ??= new FunkMethod($this->c, $this, 'DELETE');
     }
-    public function config(): FunkConfig
+    public function CONFIG(): FunkConfig
     {
-        $this->c->FunkPHPTextArray[] = "->config()";
+        $this->c->FunkPHPTextArray[] = "->CONFIG()";
         return $this->c->config();
     }
 }

@@ -1,10 +1,10 @@
 <?php
 
 $test = FunkPHP()
-    ->config()
-    ->setParamRule('test', '##i')
-    ->setCSP("img-src", "data:", "https:")
-    ->routes()
+    ->CONFIG()
+    ->setCSP('report-uri', '*')
+    ->ROUTES()
     ->GET()
-    ->setParamRule('test', '##i');
+    ->route("/:id");
+
 dd($test);
