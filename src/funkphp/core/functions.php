@@ -3245,6 +3245,41 @@ class C
     {
         return ($this->FunkPHPTextArray[count($this->FunkPHPTextArray) - 1]);
     }
+    // Helper function to auto-quote keywords if developer passed
+    // unquoted e.g. 'self' -> "'self'" when configuring CSP!
+    private function formatCSPSources(array $sources): array
+    {
+        $keywordsToQuote = [
+            'self',
+            'none',
+            'unsafe-inline',
+            'unsafe-eval',
+            'strict-dynamic',
+            'unsafe-hashes',
+            'wasm-unsafe-eval',
+            'report-sample',
+            'inline-speculation-rules'
+        ];
+        $cleaned = [];
+        foreach ($sources as $source) {
+            $trimmed = trim($source);
+            if ($trimmed === '') {
+                continue;
+            }
+            if (str_starts_with($trimmed, "'") && str_ends_with($trimmed, "'") && strlen($trimmed) > 2) {
+                $cleaned[] = $trimmed;
+                continue;
+            }
+            // $keywordsToQuote are all lowercased so check if current one is that one needing the ''-wrap
+            $lower = strtolower($trimmed);
+            if (in_array($lower, $keywordsToQuote, true)) {
+                $cleaned[] = "'{$lower}'";
+            } else {
+                $cleaned[] = $trimmed;
+            }
+        }
+        return array_values(array_unique($cleaned));
+    }
 
     // ->config()
     // and can jump to->pipesRequest(),->pipesPostResponse() or ->routes()
@@ -3899,17 +3934,17 @@ class C
     {
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setParamRule', $param, $regex, $defaultParamValueOnRegexMismatch);
         // Check against already global invalid one
-        if (isset($this->invalidBatches['paramRules']['global'][$param])) {
+        if (isset($this->invalidBatches['config']['paramRules'][$param])) {
             $this->errors['all'][] = "Duplicate Invalid Global Param Rule `{$param},{$regex}`.";
-            $this->errors['paramRules']['global'][] = "Duplicate Invalid Global Param Rule `{$param},{$regex}`.";
+            $this->errors['config'][] = "Duplicate Invalid Global Param Rule `{$param},{$regex}`.";
             return;
         }
         // Validate valid $param identifier formatting
         if (!is_string($param) || !preg_match('/^[a-z0-9_-]+$/i', $param)) {
             $err = "Invalid Global Param Rule Identifier Formatting:`{$param}`. Param Rule Identifier should only contain [a-z0-9_-] characters and without the colon (:).";
             $this->errors['all'][] = $err;
-            $this->errors['paramRules']['global'][] = $err;
-            $this->invalidBatches['paramRules']['global'][$param] = "{$param},{$regex},{$defaultParamValueOnRegexMismatch}";
+            $this->errors['config'][] = $err;
+            $this->invalidBatches['config']['paramRules'][$param] = "{$param},{$regex},{$defaultParamValueOnRegexMismatch}";
             return;
         }
         // Validate valid $regex pattern
@@ -3924,36 +3959,120 @@ class C
         if (!$regexValid) {
             $err = "Invalid Global Param Rule Regex Formatting:`{$regex}` for Param:`{$param}`. Param Rule Regex should be a Valid Regex Pattern!";
             $this->errors['all'][] = $err;
-            $this->errors['paramRules']['global'][] = $err;
-            $this->invalidBatches['paramRules']['global'][$param] = "{$param},{$regex},{$defaultParamValueOnRegexMismatch}";
+            $this->errors['config'][] = $err;
+            $this->invalidBatches['config']['paramRules'][$param] = "{$param},{$regex},{$defaultParamValueOnRegexMismatch}";
             return;
         }
         // Check for duplicate valid rule at global level
-        if (isset($this->validBatches['paramRules']['global'][$param])) {
+        if (isset($this->validBatches['config']['paramRules'][$param])) {
             $err = "Duplicate Valid Global Param Rule Identifier:`{$param}` - Global config already has a Param Rule with that Identifier.";
             $this->errors['all'][] = $err;
-            $this->errors['paramRules']['global'][] = $err;
+            $this->errors['global'][] = $err;
             return;
         }
         // Finally store valid global param rule
-        $this->validBatches['paramRules']['global'][$param] = [
+        $this->validBatches['config']['paramRules'][$param] = [
             'pattern' => $regex,
             'default' => $defaultParamValueOnRegexMismatch
         ];
     }
 
-    /* setCSP<VARIANTS> Global */
-    private function batchSetCSPGlobal(string $sourceType, string ...$sources) {}
-    private function batchSetCSPScriptGlobal(string ...$sources) {}
-    private function batchSetCSPStyleGlobal(string ...$sources) {}
-    private function batchSetCSPImageGlobal(string ...$sources) {}
-    private function batchSetCSPFontGlobal(string ...$sources) {}
-    private function batchSetCSPConnectGlobal(string ...$sources) {}
-    private function batchSetCSPFrameGlobal(string ...$sources) {}
-    private function batchSetCSPObjectGlobal(string ...$sources) {}
-    private function batchSetCSPBaseURIGlobal(string ...$sources) {}
-    private function batchSetCSPFormActionGlobal(string ...$sources) {}
-    private function batchSetCSPDefaultGlobal(string ...$sources) {}
+    /* setCSP<VARIANTS> & setNonces Global */
+    private function batchSetNoncesGlobal(string ...$noncesReferenceKeys) {}
+    private function batchSetCSPGlobal(string $directive, string ...$sources)
+    {
+        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setCSP', $directive, ...$sources);
+        $directive = strtolower(trim($directive));
+        if (isset($this->invalidBatches['config']['csp'][$directive])) {
+            $err = "Duplicate call `->setCSP()` under `->config()` for directive `{$directive}`. An Invalid Formatted CSP Array already exists.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (isset($this->validBatches['config']['csp'][$directive])) {
+            $err = "Duplicate call `->setCSP()` under `->config()` for directive `{$directive}`. A Valid Formatted CSP Array already exists.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        $allowedDirectives = [
+            'default-src',
+            'script-src',
+            'script-src-elem',
+            'script-src-attr',
+            'style-src',
+            'style-src-elem',
+            'style-src-attr',
+            'img-src',
+            'font-src',
+            'connect-src',
+            'media-src',
+            'object-src',
+            'child-src',
+            'frame-src',
+            'worker-src',
+            'manifest-src',
+            'prefetch-src',
+            'base-uri',
+            'form-action',
+            'frame-ancestors',
+            'sandbox',
+            'report-uri',
+            'report-to'
+        ];
+        if ($directive === '' || !in_array($directive, $allowedDirectives, true)) {
+            $err = "Invalid CSP Directive `{$directive}` in `->setCSP()` under `->config()`. Must be one of the following:`" . join(', ', $allowedDirectives) . '`';
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        $allErr = "Invalid Formatted CSP Source Array in `->SetCSP()` under `->config()` for directive `{$directive}`. Ensure Sources are Valid Non-Empty Strings with no spaces, semicolons, or CRLF injections.";
+        if (empty($sources)) {
+            $this->errors['all'][] = $allErr;
+            $this->errors['config'][] = $allErr;
+            $this->invalidBatches['config']['csp'][$directive] = $sources;
+            return;
+        }
+        $formattedSources = $this->formatCSPSources($sources);
+        if (in_array("'none'", $formattedSources, true) && count($formattedSources) > 1) {
+            $err = "Invalid CSP Configuration with Directive `{$directive}` in `->setCSP()` under `->config()`: `'none'` cannot be combined with any other Source List Values.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            $this->invalidBatches['config']['csp'][$directive] = $sources;
+            return;
+        }
+        foreach ($sources as $source) {
+            if (!is_string($source)) {
+                $this->errors['all'][] = $allErr;
+                $this->errors['config'][] = $allErr;
+                $this->invalidBatches['config']['csp'][$directive] = $sources;
+                return;
+            }
+            $trimmed = trim($source);
+            if (
+                $trimmed === ''
+                || str_contains($trimmed, ';')
+                || str_contains($trimmed, "\r")
+                || str_contains($trimmed, "\n")
+                || preg_match('/\s/', $trimmed)
+            ) {
+                $this->errors['all'][] = $allErr;
+                $this->errors['config'][] = $allErr;
+                $this->invalidBatches['config']['csp'][$directive] = $sources;
+                return;
+            }
+            if (str_contains($trimmed, '*') && $trimmed !== '*') {
+                if (!preg_match('/^(https?:\/\/)?\*\.[a-zA-Z0-9\.-]+(:\d+)?$/', $trimmed)) {
+                    $err = "Invalid Wildcard Domain `{$trimmed}` for CSP directive `{$directive}` under `->config()`. Wildcards must appear as `*.domain.com` or `https://*.domain.com`.";
+                    $this->errors['all'][] = $err;
+                    $this->errors['config'][] = $err;
+                    $this->invalidBatches['config']['csp'][$directive] = $sources;
+                    return;
+                }
+            }
+        }
+        $this->validBatches['config']['csp'][$directive] = $formattedSources;
+    }
 
     /* setSRI Internal&External Global */
     private function batchSetSRIInternalGlobal(array $internalSRI)
@@ -4164,17 +4283,17 @@ class C
     {
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setParamRule', $param, $regex, $defaultParamValueOnRegexMismatch);
         // Check if method param rule already exists as invalid one
-        if (isset($this->invalidBatches['paramRules']['methods'][$method][$param])) {
+        if (isset($this->invalidBatches['methods'][$method]['paramRules'][$param])) {
             $this->errors['all'][] = "Duplicate Invalid Method Param Rule `{$param},{$regex}` in Method:`{$method}`.";
-            $this->errors['paramRules']['methods'][$method][] = "Duplicate Invalid Method Param Rule `{$param},{$regex}` in Method:`{$method}`.";
+            $this->errors['methods'][$method][] = "Duplicate Invalid Method Param Rule `{$param},{$regex}` in Method:`{$method}`.";
             return;
         }
         // Validate valid $param
         if (!is_string($param) || !preg_match('/^[a-z0-9_-]+$/i', $param)) {
             $err = "Invalid Method Param Rule Identifier Formatting:`{$param}` to use in Method:`{$method}`. Param Rule Identifier should only contain [a-z0-9_-] characters and without the colon (:).";
             $this->errors['all'][] = $err;
-            $this->errors['paramRules']['methods'][$method][] = $err;
-            $this->invalidBatches['paramRules']['methods'][$method][$param] = "{$param},{$regex},{$defaultParamValueOnRegexMismatch}";
+            $this->errors['methods'][$method][] = $err;
+            $this->invalidBatches['methods'][$method]['paramRules'][$param] = "{$param},{$regex},{$defaultParamValueOnRegexMismatch}";
             return;
         }
         // Validate valid $regex pattern
@@ -4189,34 +4308,120 @@ class C
         if (!$regexValid || preg_match('#\/\/[gimsuy]+#', $regex)) {
             $err = "Invalid Method Param Rule Regex Formatting:`{$regex}` for Param:`{$param}` in Method:`{$method}`. Param Rule Regex should be a Valid Regex Pattern!";
             $this->errors['all'][] = $err;
-            $this->errors['paramRules']['methods'][$method][] = $err;
-            $this->invalidBatches['paramRules']['methods'][$method][$param] = "{$param},{$regex},{$defaultParamValueOnRegexMismatch}";
+            $this->errors['methods'][$method][] = $err;
+            $this->invalidBatches['methods'][$method]['paramRules'][$param] = "{$param},{$regex},{$defaultParamValueOnRegexMismatch}";
             return;
         }
         // Check for duplicate valid rule at method level
-        if (isset($this->validBatches['paramRules']['methods'][$method][$param])) {
+        if (isset($this->validBatches['methods'][$method]['paramRules'][$param])) {
             $err = "Duplicate Valid Method Param Rule Identifier:`{$param}` in Method:`{$method}` - Method config already has a Param Rule with that Identifier.";
             $this->errors['all'][] = $err;
-            $this->errors['paramRules']['methods'][$method][] = $err;
+            $this->errors['methods'][$method][] = $err;
             return;
         }
         // Finally store valid method param rule
-        $this->validBatches['paramRules']['methods'][$method][$param] = [
+        $this->validBatches['methods'][$method]['paramRules'][$param] = [
             'pattern' => $regex,
             'default' => $defaultParamValueOnRegexMismatch
         ];
     }
-    private function batchSetCSPMethod(string $method, string $sourceType, string ...$sources) {}
-    private function batchSetCSPScriptMethod(string $method, string ...$sources) {}
-    private function batchSetCSPStyleMethod(string $method, string ...$sources) {}
-    private function batchSetCSPImageMethod(string $method, string ...$sources) {}
-    private function batchSetCSPFontMethod(string $method, string ...$sources) {}
-    private function batchSetCSPConnectMethod(string $method, string ...$sources) {}
-    private function batchSetCSPFrameMethod(string $method, string ...$sources) {}
-    private function batchSetCSPObjectMethod(string $method, string ...$sources) {}
-    private function batchSetCSPBaseURIMethod(string $method, string ...$sources) {}
-    private function batchSetCSPFormActionMethod(string $method, string ...$sources) {}
-    private function batchSetCSPDefaultMethod(string $method, string ...$sources) {}
+
+    //METHOD: setNonces & setCSP
+    private function batchSetNoncesMethod(string $method, string ...$noncesReferenceKeys) {}
+    private function batchSetCSPMethod(string $method, string $directive, string ...$sources)
+    {
+        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setCSP', $directive, ...$sources);
+        $directive = strtolower(trim($directive));
+        if (isset($this->invalidBatches['methods'][$method]['csp'][$directive])) {
+            $err = "Duplicate call `->setCSP()` under `->config()->routes()->{$method}()` for directive `{$directive}`. An Invalid Formatted CSP Array already exists.";
+            $this->errors['all'][] = $err;
+            $this->errors['methods'][$method][] = $err;
+            return;
+        }
+        if (isset($this->validBatches['methods'][$method]['csp'][$directive])) {
+            $err = "Duplicate call `->setCSP()` under `->config()->routes()->{$method}()` for directive `{$directive}`. A Valid Formatted CSP Array already exists.";
+            $this->errors['all'][] = $err;
+            $this->errors['methods'][$method][] = $err;
+            return;
+        }
+        $allowedDirectives = [
+            'default-src',
+            'script-src',
+            'script-src-elem',
+            'script-src-attr',
+            'style-src',
+            'style-src-elem',
+            'style-src-attr',
+            'img-src',
+            'font-src',
+            'connect-src',
+            'media-src',
+            'object-src',
+            'child-src',
+            'frame-src',
+            'worker-src',
+            'manifest-src',
+            'prefetch-src',
+            'base-uri',
+            'form-action',
+            'frame-ancestors',
+            'sandbox',
+            'report-uri',
+            'report-to'
+        ];
+        if ($directive === '' || !in_array($directive, $allowedDirectives, true)) {
+            $err = "Invalid CSP Directive `{$directive}` in `->setCSP()` under `->config()->routes()->{$method}()`. Must be one of the following:`" . join(', ', $allowedDirectives) . '`';
+            $this->errors['all'][] = $err;
+            $this->errors['methods'][$method][] = $err;
+            return;
+        }
+        $allErr = "Invalid Formatted CSP Source Array in `->SetCSP()` under `->config()->routes()->{$method}()` for directive `{$directive}`. Ensure Sources are Valid Non-Empty Strings with no spaces, semicolons, or CRLF injections.";
+        if (empty($sources)) {
+            $this->errors['all'][] = $allErr;
+            $this->errors['methods'][$method][] = $allErr;
+            $this->invalidBatches['methods'][$method]['csp'][$directive] = $sources;
+            return;
+        }
+        $formattedSources = $this->formatCSPSources($sources);
+        if (in_array("'none'", $formattedSources, true) && count($formattedSources) > 1) {
+            $err = "Invalid CSP Configuration with Directive `{$directive}` in `->setCSP()` under `->config()->routes()->{$method}()`: `'none'` cannot be combined with any other Source List Values.";
+            $this->errors['all'][] = $err;
+            $this->errors['methods'][$method][] = $err;
+            $this->invalidBatches['methods'][$method]['csp'][$directive] = $sources;
+            return;
+        }
+        foreach ($sources as $source) {
+            if (!is_string($source)) {
+                $this->errors['all'][] = $allErr;
+                $this->errors['methods'][$method][] = $allErr;
+                $this->invalidBatches['methods'][$method]['csp'][$directive] = $sources;
+                return;
+            }
+            $trimmed = trim($source);
+            if (
+                $trimmed === ''
+                || str_contains($trimmed, ';')
+                || str_contains($trimmed, "\r")
+                || str_contains($trimmed, "\n")
+                || preg_match('/\s/', $trimmed)
+            ) {
+                $this->errors['all'][] = $allErr;
+                $this->errors['methods'][$method][] = $allErr;
+                $this->invalidBatches['methods'][$method]['csp'][$directive] = $sources;
+                return;
+            }
+            if (str_contains($trimmed, '*') && $trimmed !== '*') {
+                if (!preg_match('/^(https?:\/\/)?\*\.[a-zA-Z0-9\.-]+(:\d+)?$/', $trimmed)) {
+                    $err = "Invalid Wildcard Domain `{$trimmed}` for CSP directive `{$directive}` under `->config()->routes()->{$method}()`. Wildcards must appear as `*.domain.com` or `https://*.domain.com`.";
+                    $this->errors['all'][] = $err;
+                    $this->errors['methods'][$method][] = $err;
+                    $this->invalidBatches['methods'][$method]['csp'][$directive] = $sources;
+                    return;
+                }
+            }
+        }
+        $this->validBatches['methods'][$method]['csp'][$directive] = $formattedSources;
+    }
 
     /*METHOD: removeHeader & pipeHeader */
     private function batchSetHeaderMethod(string $method, string $header)
@@ -4245,7 +4450,6 @@ class C
             $this->invalidBatches['methods'][$method]['headers']['add'][$header] = true;
             return;
         }
-
         // Now prepare header to store but first check if it already exists
         $headerName  = trim($parts[0]);
         $headerValue = trim($parts[1]);
@@ -4263,7 +4467,6 @@ class C
             $this->invalidBatches['methods'][$method]['headers']['add'][$lowerHeader] = true;
             return;
         }
-
         // Store header to be addd from Global level (->config())
         $this->validBatches['methods'][$method]['headers']['add'][$lowerHeader] = ['name' => $headerName, 'value' => $headerValue];
     }
@@ -4490,18 +4693,102 @@ class C
     private function batchSetRateLimitingRoute(string $method, string $route, array $rateLimitingOptions) {}
     private function batchSetCacheRoute(string $method, string $route, array $cacheOptions) {}
 
-    /*ROUTE: setCSP<VARIANTS> */
-    private function batchSetCSPRoute(string $method, string $route, string $sourceType, string ...$sources) {}
-    private function batchSetCSPScriptRoute(string $method, string $route, string ...$sources) {}
-    private function batchSetCSPStyleRoute(string $method, string $route, string ...$sources) {}
-    private function batchSetCSPImageRoute(string $method, string $route, string ...$sources) {}
-    private function batchSetCSPFontRoute(string $method, string $route, string ...$sources) {}
-    private function batchSetCSPConnectRoute(string $method, string $route, string ...$sources) {}
-    private function batchSetCSPFrameRoute(string $method, string $route, string ...$sources) {}
-    private function batchSetCSPObjectRoute(string $method, string $route, string ...$sources) {}
-    private function batchSetCSPBaseURIRoute(string $method, string $route, string ...$sources) {}
-    private function batchSetCSPFormActionRoute(string $method, string $route, string ...$sources) {}
-    private function batchSetCSPDefaultRoute(string $method, string $route, string ...$sources) {}
+    /*ROUTE: setNoncesRoute & setCSP<VARIANTS> */
+    private function batchSetNoncesRoute(string $method, $route, string ...$noncesReferenceKeys) {}
+    private function batchSetCSPRoute(string $method, string $route, string $directive, string ...$sources)
+    {
+        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setCSP', $directive, ...$sources);
+        $directive = strtolower(trim($directive));
+        if (isset($this->invalidBatches['routes'][$method][$route]['csp'][$directive])) {
+            $err = "Duplicate call `->setCSP()` under `->config()->routes()->{$method}()->{$route}` for directive `{$directive}`. An Invalid Formatted CSP Array already exists.";
+            $this->errors['all'][] = $err;
+            $this->errors['routes'][$method][$route][] = $err;
+            return;
+        }
+        if (isset($this->validBatches['routes'][$method][$route]['csp'][$directive])) {
+            $err = "Duplicate call `->setCSP()` under `->config()->routes()->{$method}()->{$route}` for directive `{$directive}`. A Valid Formatted CSP Array already exists.";
+            $this->errors['all'][] = $err;
+            $this->errors['routes'][$method][$route][] = $err;
+            return;
+        }
+        $allowedDirectives = [
+            'default-src',
+            'script-src',
+            'script-src-elem',
+            'script-src-attr',
+            'style-src',
+            'style-src-elem',
+            'style-src-attr',
+            'img-src',
+            'font-src',
+            'connect-src',
+            'media-src',
+            'object-src',
+            'child-src',
+            'frame-src',
+            'worker-src',
+            'manifest-src',
+            'prefetch-src',
+            'base-uri',
+            'form-action',
+            'frame-ancestors',
+            'sandbox',
+            'report-uri',
+            'report-to'
+        ];
+        if ($directive === '' || !in_array($directive, $allowedDirectives, true)) {
+            $err = "Invalid CSP Directive `{$directive}` in `->setCSP()` under `->config()->routes()->{$method}()->{$route}`. Must be one of the following:`" . join(', ', $allowedDirectives) . '`';
+            $this->errors['all'][] = $err;
+            $this->errors['routes'][$method][$route][] = $err;
+            return;
+        }
+        $allErr = "Invalid Formatted CSP Source Array in `->SetCSP()` under `->config()->routes()->{$method}()->{$route}` for directive `{$directive}`. Ensure Sources are Valid Non-Empty Strings with no spaces, semicolons, or CRLF injections.";
+        if (empty($sources)) {
+            $this->errors['all'][] = $allErr;
+            $this->errors['routes'][$method][$route][] = $allErr;
+            $this->invalidBatches['routes'][$method][$route]['csp'][$directive] = $sources;
+            return;
+        }
+        $formattedSources = $this->formatCSPSources($sources);
+        if (in_array("'none'", $formattedSources, true) && count($formattedSources) > 1) {
+            $err = "Invalid CSP Configuration with Directive `{$directive}` in `->setCSP()` under `->config()->routes()->{$method}()->{$route}`: `'none'` cannot be combined with any other Source List Values.";
+            $this->errors['all'][] = $err;
+            $this->errors['routes'][$method][$route][] = $err;
+            $this->invalidBatches['routes'][$method][$route]['csp'][$directive] = $sources;
+            return;
+        }
+        foreach ($sources as $source) {
+            if (!is_string($source)) {
+                $this->errors['all'][] = $allErr;
+                $this->errors['routes'][$method][$route][] = $allErr;
+                $this->invalidBatches['routes'][$method][$route]['csp'][$directive] = $sources;
+                return;
+            }
+            $trimmed = trim($source);
+            if (
+                $trimmed === ''
+                || str_contains($trimmed, ';')
+                || str_contains($trimmed, "\r")
+                || str_contains($trimmed, "\n")
+                || preg_match('/\s/', $trimmed)
+            ) {
+                $this->errors['all'][] = $allErr;
+                $this->errors['routes'][$method][$route][] = $allErr;
+                $this->invalidBatches['routes'][$method][$route]['csp'][$directive] = $sources;
+                return;
+            }
+            if (str_contains($trimmed, '*') && $trimmed !== '*') {
+                if (!preg_match('/^(https?:\/\/)?\*\.[a-zA-Z0-9\.-]+(:\d+)?$/', $trimmed)) {
+                    $err = "Invalid Wildcard Domain `{$trimmed}` for CSP directive `{$directive}` under `->config()->routes()->{$method}()->{$route}`. Wildcards must appear as `*.domain.com` or `https://*.domain.com`.";
+                    $this->errors['all'][] = $err;
+                    $this->errors['routes'][$method][$route][] = $err;
+                    $this->invalidBatches['routes'][$method][$route]['csp'][$directive] = $sources;
+                    return;
+                }
+            }
+        }
+        $this->validBatches['routes'][$method][$route]['csp'][$directive] = $formattedSources;
+    }
 
     /*ROUTE: pipeFunction, pipeResonse, pipeSQL, pipeQuery & pipeValidation */
     private function batchNewPipeFunctionRoute(string $method, string $route, string $fileFunctionName) {}
@@ -4521,18 +4808,18 @@ class C
         // Check if the associated $method$route is in the InvalidBatches first!
         if (isset($this->invalidBatches['routes'][$method][$route])) {
             $this->errors['all'][] = "Invalid Route `->config()->routes()->$method$route` must be become Valid before Header `{$header}` gets validated with `->pipeHeader()`.";
-            $this->errors['routes'][$method][$route][] = "Invalid Route `->config()->routes()->$method$route` must be become Valid before Header `{$header}` gets validated with `->pipeHeader()`.";
+            $this->errors['routes'][$method][$route][] = "Invalid Route `->config()->routes()->{$method}()->{$route}` must be become Valid before Header `{$header}` gets validated with `->pipeHeader()`.";
             return;
         }
         if (isset($this->inValidBatches['routes'][$method][$route]['headers']['add'][$header])) {
-            $err = "Duplicate call `->pipeHeader()` under `->config()->routes()->{$method}()`. Invalid Formatted Header `{$header}` already exists under `->config()`.";
+            $err = "Duplicate call `->pipeHeader()` under `->config()->routes()->{$method}()->{$route}`. Invalid Formatted Header `{$header}` already exists under `->config()`.";
             $this->errors['all'][] = $err;
             $this->errors['routes'][$method][$route][] = $err;
             return;
         }
         // Forbid possible CRLF injection
         if (str_contains($header, "\r") || str_contains($header, "\n")) {
-            $err = "Possible CRLF Injection in Header Value `{$header}` in `->pipeHeader()` under `->config()->routes()->{$method}()`. Header Value must not contain any kind of newline characters.";
+            $err = "Possible CRLF Injection in Header Value `{$header}` in `->pipeHeader()` under `->config()->routes()->{$method}()->{$route}`. Header Value must not contain any kind of newline characters.";
             $this->errors['all'][] = $err;
             $this->errors['routes'][$method][$route][] = $err;
             $this->invalidBatches['routes'][$method][$route]['headers']['add'][$header] = true;
@@ -4541,7 +4828,7 @@ class C
         // Must be two parts after splitted on ":"
         $parts = explode(':', $header, 2);
         if (count($parts) !== 2 || trim($parts[0]) === '' || trim($parts[1]) === '') {
-            $err = "Invalid Header Format `{$header}` in `->pipeHeader()` under `->config()->routes()->{$method}()`. Must follow `Header-Name: Header-Value` syntax (e.g. `X-Frame-Options: DENY`) where the Single Semi-colon (:) is the divider between Key and Value.";
+            $err = "Invalid Header Format `{$header}` in `->pipeHeader()` under `->config()->routes()->{$method}()->{$route}`. Must follow `Header-Name: Header-Value` syntax (e.g. `X-Frame-Options: DENY`) where the Single Semi-colon (:) is the divider between Key and Value.";
             $this->errors['all'][] = $err;
             $this->errors['routes'][$method][$route][] = $err;
             $this->invalidBatches['routes'][$method][$route]['headers']['add'][$header] = true;
@@ -4552,13 +4839,13 @@ class C
         $headerValue = trim($parts[1]);
         $lowerHeader = strtolower($headerName);
         if (isset($this->validBatches['routes'][$method][$route]['headers']['add'][$lowerHeader])) {
-            $err = "Duplicate call `->pipeHeader()` under `->config()->routes()->{$method}()`. Valid Formatted Header `{$header}` already exists under `->config()`.";
+            $err = "Duplicate call `->pipeHeader()` under `->config()->routes()->{$method}()->{$route}`. Valid Formatted Header `{$header}` already exists under `->config()`.";
             $this->errors['all'][] = $err;
             $this->errors['routes'][$method][$route][] = $err;
             return;
         }
         if (isset($this->validBatches['routes'][$method][$route]['headers']['remove'][$lowerHeader])) {
-            $err = "Conflicting calls between `->pipeHeader()` and `->removeHeader()` under `->config()->routes()->{$method}()`. Header `{$headerName}` was first configured to be removed before being configured now to be added. Delete and/or change one or more of these under `->config()`.";
+            $err = "Conflicting calls between `->pipeHeader()` and `->removeHeader()` under `->config()->routes()->{$method}()->{$route}`. Header `{$headerName}` was first configured to be removed before being configured now to be added. Delete and/or change one or more of these under `->config()`.";
             $this->errors['all'][] = $err;
             $this->errors['routes'][$method][$route][] = $err;
             $this->invalidBatches['routes'][$method][$route]['headers']['add'][$lowerHeader] = true;
@@ -5223,62 +5510,58 @@ class FunkConfig
         return $this;
     }
 
-    /* setCSP<&Variants> - GLOBAL */
+    /* setNonces and setCSP<&Variants> - GLOBAL */
+    public function setNonces(...$noncesReferenceKeys)
+    {
+        $this->c->batch('batchSetNoncesGlobal', $noncesReferenceKeys);
+        return $this;
+    }
+    /**
+     * Configures Content-Security-Policy (CSP) directives globally.
+     *
+     * Automatically wraps standard CSP keywords (e.g. 'self', 'none', 'unsafe-inline') in single quotes,
+     * while preserving casing for hashes, nonces, and domains.
+     *
+     * @param 'default-src'|'script-src'|'script-src-elem'|'script-src-attr'|'style-src'|'style-src-elem'|'style-src-attr'|'img-src'|'font-src'|'connect-src'|'media-src'|'object-src'|'child-src'|'frame-src'|'worker-src'|'manifest-src'|'prefetch-src'|'base-uri'|'form-action'|'frame-ancestors'|'sandbox'|'report-uri'|'report-to' $sourceType
+     * The CSP directive name. Supported values:
+     * - `default-src`      : Fallback for other fetch directives.
+     * - `script-src`       : JavaScript execution sources.
+     * - `script-src-elem`  : Valid sources for `<script>` elements.
+     * - `script-src-attr`  : Valid sources for inline event handlers (e.g. onclick).
+     * - `style-src`        : Stylesheet and CSS sources.
+     * - `style-src-elem`   : Valid sources for `<style>` and `<link rel="stylesheet">`.
+     * - `style-src-attr`   : Valid sources for inline `style="..."` attributes.
+     * - `img-src`          : Images and favicons.
+     * - `font-src`         : Web fonts.
+     * - `connect-src`      : Fetch, XMLHttpRequest, WebSocket, and EventSource targets.
+     * - `media-src`        : Audio and video `<audio>`, `<video>`.
+     * - `object-src`       : Plugins like Flash or PDF viewers (`<object>`, `<embed>`).
+     * - `child-src`        : Web workers and nested frame contexts.
+     * - `frame-src`        : Valid sources for `<iframe>` and `<frame>`.
+     * - `worker-src`       : Valid sources for Worker, SharedWorker, or ServiceWorker.
+     * - `manifest-src`     : Web App Manifest files.
+     * - `prefetch-src`     : Resources to be prefetched or prerendered.
+     * - `base-uri`         : Restricted URLs for the `<base>` element.
+     * - `form-action`      : Valid target URLs for `<form>` submissions.
+     * - `frame-ancestors`  : Valid parents that may embed this page in an `<iframe>`.
+     * - `sandbox`         : Enables sandbox restrictions for the requested resource.
+     * - `report-uri`      : Endpoint URL where CSP violation reports are sent (Deprecated).
+     * - `report-to`       : Reporting API group name for CSP violations.
+     *
+     * @param string ...$sources One or more sources (e.g. `'self'`, `'https://cdn.example.com'`, `'sha256-...'`).
+     *
+     * @example
+     * FunkPHP()->config()->setCSP('script-src', 'self', 'https://cdn.jsdelivr.net');
+     * FunkPHP()->config()->setCSP('object-src', 'none');
+     *
+     * @return $this
+     */
     public function setCSP(string $sourceType, string ...$sources): self
     {
         $this->c->batch('batchSetCSPGlobal', $sourceType, ...$sources);
         return $this;
     }
-    public function setCSPScript(string ...$sources): self
-    {
-        $this->c->batch('batchSetCSPScriptGlobal', ...$sources);
-        return $this;
-    }
-    public function setCSPStyle(string ...$sources): self
-    {
-        $this->c->batch('batchSetCSPStyleGlobal', ...$sources);
-        return $this;
-    }
-    public function setCSPImage(string ...$sources): self
-    {
-        $this->c->batch('batchSetCSPImageGlobal', ...$sources);
-        return $this;
-    }
-    public function setCSPFont(string ...$sources): self
-    {
-        $this->c->batch('batchSetCSPFontGlobal', ...$sources);
-        return $this;
-    }
-    public function setCSPConnect(string ...$sources): self
-    {
-        $this->c->batch('batchSetCSPConnectGlobal', ...$sources);
-        return $this;
-    }
-    public function setCSPFrame(string ...$sources): self
-    {
-        $this->c->batch('batchSetCSPFrameGlobal', ...$sources);
-        return $this;
-    }
-    public function setCSPObject(string ...$sources): self
-    {
-        $this->c->batch('batchSetCSPObjectGlobal', ...$sources);
-        return $this;
-    }
-    public function setCSPBaseURI(string ...$sources): self
-    {
-        $this->c->batch('batchSetCSPBaseURIGlobal', ...$sources);
-        return $this;
-    }
-    public function setCSPFormAction(string ...$sources): self
-    {
-        $this->c->batch('batchSetCSPFormActionGlobal', ...$sources);
-        return $this;
-    }
-    public function setCSPDefault(string ...$sources): self
-    {
-        $this->c->batch('batchSetCSPDefaultGlobal', ...$sources);
-        return $this;
-    }
+
     /* setSRI<VARIANTS> - GLOBAL */
     public function setSRIInternal(array $internalSRI): self
     {
@@ -5560,66 +5843,63 @@ class FunkMethod
         $this->c->batch('batchSetNoRouteMatchCallbackMethod', $this->method, $functionName);
         return $this;
     }
+    public function setNonces(...$noncesReferenceKeys)
+    {
+        $this->c->batch('batchSetNoncesMethod', $this->method, $noncesReferenceKeys);
+        return $this;
+    }
+    /**
+     * Configures Content-Security-Policy (CSP) directives globally.
+     *
+     * Automatically wraps standard CSP keywords (e.g. 'self', 'none', 'unsafe-inline') in single quotes,
+     * while preserving casing for hashes, nonces, and domains.
+     *
+     * @param 'default-src'|'script-src'|'script-src-elem'|'script-src-attr'|'style-src'|'style-src-elem'|'style-src-attr'|'img-src'|'font-src'|'connect-src'|'media-src'|'object-src'|'child-src'|'frame-src'|'worker-src'|'manifest-src'|'prefetch-src'|'base-uri'|'form-action'|'frame-ancestors'|'sandbox'|'report-uri'|'report-to' $sourceType
+     * The CSP directive name. Supported values:
+     * - `default-src`      : Fallback for other fetch directives.
+     * - `script-src`       : JavaScript execution sources.
+     * - `script-src-elem`  : Valid sources for `<script>` elements.
+     * - `script-src-attr`  : Valid sources for inline event handlers (e.g. onclick).
+     * - `style-src`        : Stylesheet and CSS sources.
+     * - `style-src-elem`   : Valid sources for `<style>` and `<link rel="stylesheet">`.
+     * - `style-src-attr`   : Valid sources for inline `style="..."` attributes.
+     * - `img-src`          : Images and favicons.
+     * - `font-src`         : Web fonts.
+     * - `connect-src`      : Fetch, XMLHttpRequest, WebSocket, and EventSource targets.
+     * - `media-src`        : Audio and video `<audio>`, `<video>`.
+     * - `object-src`       : Plugins like Flash or PDF viewers (`<object>`, `<embed>`).
+     * - `child-src`        : Web workers and nested frame contexts.
+     * - `frame-src`        : Valid sources for `<iframe>` and `<frame>`.
+     * - `worker-src`       : Valid sources for Worker, SharedWorker, or ServiceWorker.
+     * - `manifest-src`     : Web App Manifest files.
+     * - `prefetch-src`     : Resources to be prefetched or prerendered.
+     * - `base-uri`         : Restricted URLs for the `<base>` element.
+     * - `form-action`      : Valid target URLs for `<form>` submissions.
+     * - `frame-ancestors`  : Valid parents that may embed this page in an `<iframe>`.
+     * - `sandbox`         : Enables sandbox restrictions for the requested resource.
+     * - `report-uri`      : Endpoint URL where CSP violation reports are sent (Deprecated).
+     * - `report-to`       : Reporting API group name for CSP violations.
+     *
+     * @param string ...$sources One or more sources (e.g. `'self'`, `'https://cdn.example.com'`, `'sha256-...'`).
+     *
+     * @example
+     * FunkPHP()->config()->setCSP('script-src', 'self', 'https://cdn.jsdelivr.net');
+     * FunkPHP()->config()->setCSP('object-src', 'none');
+     *
+     * @return $this
+     */
     public function setCSP(string $sourceType, string ...$sources): self
     {
         $this->c->batch('batchSetCSPMethod', $this->method, $sourceType, ...$sources);
         return $this;
     }
-    public function setCSPScript(string ...$sources): self
-    {
-        $this->c->batch('batchSetCSPScriptMethod', $this->method, ...$sources);
-        return $this;
-    }
-    public function setCSPStyle(string ...$sources): self
-    {
-        $this->c->batch('batchSetCSPStyleMethod', $this->method, ...$sources);
-        return $this;
-    }
-    public function setCSPImage(string ...$sources): self
-    {
-        $this->c->batch('batchSetCSPImageMethod', $this->method, ...$sources);
-        return $this;
-    }
-    public function setCSPFont(string ...$sources): self
-    {
-        $this->c->batch('batchSetCSPFontMethod', $this->method, ...$sources);
-        return $this;
-    }
-    public function setCSPConnect(string ...$sources): self
-    {
-        $this->c->batch('batchSetCSPConnectMethod', $this->method, ...$sources);
-        return $this;
-    }
-    public function setCSPFrame(string ...$sources): self
-    {
-        $this->c->batch('batchSetCSPFrameMethod', $this->method, ...$sources);
-        return $this;
-    }
-    public function setCSPObject(string ...$sources): self
-    {
-        $this->c->batch('batchSetCSPObjectMethod', $this->method, ...$sources);
-        return $this;
-    }
-    public function setCSPBaseURI(string ...$sources): self
-    {
-        $this->c->batch('batchSetCSPBaseURIMethod', $this->method, ...$sources);
-        return $this;
-    }
-    public function setCSPFormAction(string ...$sources): self
-    {
-        $this->c->batch('batchSetCSPFormActionMethod', $this->method, ...$sources);
-        return $this;
-    }
-    public function setCSPDefault(string ...$sources): self
-    {
-        $this->c->batch('batchSetCSPDefaultMethod', $this->method, ...$sources);
-        return $this;
-    }
+
     public function pipeMiddleware(string $middleware = ''): self
     {
         $this->c->batch('batchNewPipeMiddlewareMethod', $this->method, $middleware);
         return $this;
     }
+    /*METHOD: pipeHeader & removeHeader & setParamRule */
     public function pipeHeader(string $header): self
     {
         $this->c->batch('batchSetHeaderMethod', $this->method, $header);
@@ -5679,6 +5959,7 @@ class FunkRoute
         private string $method,
         private string $routePath,
     ) {}
+    /*ROUTE: set<VARIANTS> */
     public function setAlias(string $aliasName = ''): self
     {
         $this->c->batch('batchSetAliasRoute', $this->method, $this->routePath, $aliasName);
@@ -5694,6 +5975,12 @@ class FunkRoute
         $this->c->batch('batchSetCacheRoute', $this->method, $this->routePath, $cacheOptions);
         return $this;
     }
+    public function setNonces(...$noncesReferenceKeys)
+    {
+        $this->c->batch('batchSetNoncesRoute', $this->method, $this->routePath, $noncesReferenceKeys);
+        return $this;
+    }
+
     public function pipeMiddleware(string $middleware = ''): self
     {
         $this->c->batch('batchNewPipeMiddlewareRoute', $this->method, $this->routePath, $middleware);
@@ -5735,60 +6022,49 @@ class FunkRoute
         return $this;
     }
 
-    /*ROUTE: setCSP<Variants> */
+    /**
+     * Configures Content-Security-Policy (CSP) directives globally.
+     *
+     * Automatically wraps standard CSP keywords (e.g. 'self', 'none', 'unsafe-inline') in single quotes,
+     * while preserving casing for hashes, nonces, and domains.
+     *
+     * @param 'default-src'|'script-src'|'script-src-elem'|'script-src-attr'|'style-src'|'style-src-elem'|'style-src-attr'|'img-src'|'font-src'|'connect-src'|'media-src'|'object-src'|'child-src'|'frame-src'|'worker-src'|'manifest-src'|'prefetch-src'|'base-uri'|'form-action'|'frame-ancestors'|'sandbox'|'report-uri'|'report-to' $sourceType
+     * The CSP directive name. Supported values:
+     * - `default-src`      : Fallback for other fetch directives.
+     * - `script-src`       : JavaScript execution sources.
+     * - `script-src-elem`  : Valid sources for `<script>` elements.
+     * - `script-src-attr`  : Valid sources for inline event handlers (e.g. onclick).
+     * - `style-src`        : Stylesheet and CSS sources.
+     * - `style-src-elem`   : Valid sources for `<style>` and `<link rel="stylesheet">`.
+     * - `style-src-attr`   : Valid sources for inline `style="..."` attributes.
+     * - `img-src`          : Images and favicons.
+     * - `font-src`         : Web fonts.
+     * - `connect-src`      : Fetch, XMLHttpRequest, WebSocket, and EventSource targets.
+     * - `media-src`        : Audio and video `<audio>`, `<video>`.
+     * - `object-src`       : Plugins like Flash or PDF viewers (`<object>`, `<embed>`).
+     * - `child-src`        : Web workers and nested frame contexts.
+     * - `frame-src`        : Valid sources for `<iframe>` and `<frame>`.
+     * - `worker-src`       : Valid sources for Worker, SharedWorker, or ServiceWorker.
+     * - `manifest-src`     : Web App Manifest files.
+     * - `prefetch-src`     : Resources to be prefetched or prerendered.
+     * - `base-uri`         : Restricted URLs for the `<base>` element.
+     * - `form-action`      : Valid target URLs for `<form>` submissions.
+     * - `frame-ancestors`  : Valid parents that may embed this page in an `<iframe>`.
+     * - `sandbox`         : Enables sandbox restrictions for the requested resource.
+     * - `report-uri`      : Endpoint URL where CSP violation reports are sent (Deprecated).
+     * - `report-to`       : Reporting API group name for CSP violations.
+     *
+     * @param string ...$sources One or more sources (e.g. `'self'`, `'https://cdn.example.com'`, `'sha256-...'`).
+     *
+     * @example
+     * FunkPHP()->config()->routes()-><METHOD>->route()->setCSP('script-src', 'self', 'https://cdn.jsdelivr.net');
+     * FunkPHP()->config()->routes()-><METHOD>->route()->setCSP('object-src', 'none');
+     *
+     * @return $this
+     */
     public function setCSP(string $sourceType, string ...$sources): self
     {
         $this->c->batch('batchSetCSPRoute', $this->method, $this->routePath, $sourceType, ...$sources);
-        return $this;
-    }
-    public function setCSPScript(string ...$sources): self
-    {
-        $this->c->batch('batchSetCSPScriptRoute', $this->method, $this->routePath, ...$sources);
-        return $this;
-    }
-    public function setCSPStyle(string ...$sources): self
-    {
-        $this->c->batch('batchSetCSPStyleRoute', $this->method, $this->routePath, ...$sources);
-        return $this;
-    }
-    public function setCSPImage(string ...$sources): self
-    {
-        $this->c->batch('batchSetCSPImageRoute', $this->method, $this->routePath, ...$sources);
-        return $this;
-    }
-    public function setCSPFont(string ...$sources): self
-    {
-        $this->c->batch('batchSetCSPFontRoute', $this->method, $this->routePath, ...$sources);
-        return $this;
-    }
-    public function setCSPConnect(string ...$sources): self
-    {
-        $this->c->batch('batchSetCSPConnectRoute', $this->method, $this->routePath, ...$sources);
-        return $this;
-    }
-    public function setCSPFrame(string ...$sources): self
-    {
-        $this->c->batch('batchSetCSPFrameRoute', $this->method, $this->routePath, ...$sources);
-        return $this;
-    }
-    public function setCSPObject(string ...$sources): self
-    {
-        $this->c->batch('batchSetCSPObjectRoute', $this->method, $this->routePath, ...$sources);
-        return $this;
-    }
-    public function setCSPBaseURI(string ...$sources): self
-    {
-        $this->c->batch('batchSetCSPBaseURIRoute', $this->method, $this->routePath, ...$sources);
-        return $this;
-    }
-    public function setCSPFormAction(string ...$sources): self
-    {
-        $this->c->batch('batchSetCSPFormActionRoute', $this->method, $this->routePath, ...$sources);
-        return $this;
-    }
-    public function setCSPDefault(string ...$sources): self
-    {
-        $this->c->batch('batchSetCSPDefaultRoute', $this->method, $this->routePath, ...$sources);
         return $this;
     }
 

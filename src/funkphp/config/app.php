@@ -2,12 +2,9 @@
 
 $test = FunkPHP()
     ->config()
-    ->removeHeader("x-powered-by")
+    ->setParamRule('test', '##i')
+    ->setCSP("img-src", "data:", "https:")
     ->routes()
     ->GET()
-    ->setParamRule('test', '##i')
-    ->route('/:id/:test/:test2')
-    ->pipeHeader("test: test")
-    ->removeHeader("test2");
-
+    ->setParamRule('test', '##i');
 dd($test);
