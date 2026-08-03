@@ -5883,8 +5883,8 @@ class FunkMethod
      * @param string ...$sources One or more sources (e.g. `'self'`, `'https://cdn.example.com'`, `'sha256-...'`).
      *
      * @example
-     * FunkPHP()->config()->setCSP('script-src', 'self', 'https://cdn.jsdelivr.net');
-     * FunkPHP()->config()->setCSP('object-src', 'none');
+     * FunkPHP()->config()->routes()-><METHOD>()->setCSP('script-src', 'self', 'https://cdn.jsdelivr.net');
+     * FunkPHP()->config()->routes()-><METHOD>()->setCSP('object-src', 'none');
      *
      * @return $this
      */
