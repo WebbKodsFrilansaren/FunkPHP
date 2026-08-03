@@ -5539,6 +5539,7 @@ class C
     private function run()
     {
         // Run the valid compiled FunkPHP
+        echo "TEST";
     }
 }
 
