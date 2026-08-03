@@ -11,31 +11,6 @@
  * you do not understand how caching and/or compiled files work.
  **/
 /***  HELPER-RELATED FUNCTIONS FOR FunkPHP ***/
-// Data Dump ONLY $c['err'] array and die (stop execution)
-function dderr()
-{
-    header('Content-Type: application/json', true, 200);
-    echo json_encode($GLOBALS['c']['err'], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-    exit;
-}
-
-// Data Dump ONLY $c array and die (stop execution)
-function ddc()
-{
-    header('Content-Type: application/json', true, 200);
-    echo json_encode($GLOBALS['c'], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-    exit;
-}
-
-// Var_dump shorthand, doe NOT exit
-function vd($data)
-{
-    // Apply CSS to force word wrap and limit width
-    echo '<pre>';
-    var_dump($data);
-    echo '</pre>';
-}
-
 /**
  * Enhanced Web & CLI dumper for FunkPHP.
  * Features built-in circular reference / recursion detection and max depth protection.
@@ -331,46 +306,6 @@ function dd(mixed $data, bool $ignoreC = true, bool $json = false, bool $exit = 
     if ($exit) {
         exit(1);
     }
-}
-// Data Dump function to dump data as JSON
-function ddj($data, $json = false)
-{
-    header('Content-Type: application/json', true, 200);
-    echo json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-    exit;
-}
-
-/**
- * Compares an IP address against a compiled wildcard Trie array.
- * Max 4 iterations. Blazing fast. Provide a white OR black list of IPs!
- */
-function funk_use_ip_trie_matching(string $ip, array $trie): bool
-{
-    $octets = explode('.', $ip);
-    $currentNode = $trie;
-
-    foreach ($octets as $octet) {
-        // 1. Check for the Short-Circuit Wildcard '!' (Matches everything from here down)
-        if (isset($currentNode['!'])) {
-            return true;
-        }
-
-        // 2. Check for an exact octet match
-        if (isset($currentNode[$octet])) {
-            $currentNode = $currentNode[$octet];
-        }
-        // 3. Check for a single-segment wildcard '*'
-        elseif (isset($currentNode['*'])) {
-            $currentNode = $currentNode['*'];
-        }
-        // No match found at this level
-        else {
-            return false;
-        }
-    }
-
-    // If we successfully traversed 4 steps, check if this is an explicit match leaf
-    return $currentNode === true || isset($currentNode['!']);
 }
 
 function funk_return_download($filePath, $fileName = null, $statusCode = 200)
