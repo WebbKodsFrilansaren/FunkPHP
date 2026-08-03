@@ -2,11 +2,10 @@
 
 $test = FunkPHP()
     ->CONFIG()
-    ->setCSP('report-uri', '*')
+    ->setCSP('')
     ->setNonces("a")
     ->ROUTES()
     ->GET()
-    ->route("/:id")
-    ->setNonces("b");
+    ->route("/:id");
 
 dd($test);

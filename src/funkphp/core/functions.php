@@ -5598,7 +5598,7 @@ class FunkConfig
      * Automatically wraps standard CSP keywords (e.g. 'self', 'none', 'unsafe-inline') in single quotes,
      * while preserving casing for hashes, nonces, and domains.
      *
-     * @param 'default-src'|'script-src'|'script-src-elem'|'script-src-attr'|'style-src'|'style-src-elem'|'style-src-attr'|'img-src'|'font-src'|'connect-src'|'media-src'|'object-src'|'child-src'|'frame-src'|'worker-src'|'manifest-src'|'prefetch-src'|'base-uri'|'form-action'|'frame-ancestors'|'sandbox'|'report-uri'|'report-to' $sourceType
+     * @param 'default-src'|'script-src'|'script-src-elem'|'script-src-attr'|'style-src'|'style-src-elem'|'style-src-attr'|'img-src'|'font-src'|'connect-src'|'media-src'|'object-src'|'child-src'|'frame-src'|'worker-src'|'manifest-src'|'prefetch-src'|'base-uri'|'form-action'|'frame-ancestors'|'sandbox'|'plugin-types'|'navigate-to'|'report-uri'|'report-to' $sourceType
      * The CSP directive name. Supported values:
      * - `default-src`      : Fallback for other fetch directives.
      * - `script-src`       : JavaScript execution sources.
@@ -5620,7 +5620,7 @@ class FunkConfig
      * - `base-uri`         : Restricted URLs for the `<base>` element.
      * - `form-action`      : Valid target URLs for `<form>` submissions.
      * - `frame-ancestors`  : Valid parents that may embed this page in an `<iframe>`.
-     * - `sandbox`         : Enables sandbox restrictions for the requested resource.
+     * - `sandbox`         : Enables sandbox restrictions for the requested resource. Available flags:`allow-forms allow-same-origin allow-scripts allow-popups, allow-modals, allow-orientation-lock, allow-pointer-lock, allow-presentation, allow-popups-to-escape-sandbox, and allow-top-navigation`
      * - `report-uri`      : Endpoint URL where CSP violation reports are sent (Deprecated).
      * - `report-to`       : Reporting API group name for CSP violations.
      *
@@ -5930,7 +5930,7 @@ class FunkMethod
      * Automatically wraps standard CSP keywords (e.g. 'self', 'none', 'unsafe-inline') in single quotes,
      * while preserving casing for hashes, nonces, and domains.
      *
-     * @param 'default-src'|'script-src'|'script-src-elem'|'script-src-attr'|'style-src'|'style-src-elem'|'style-src-attr'|'img-src'|'font-src'|'connect-src'|'media-src'|'object-src'|'child-src'|'frame-src'|'worker-src'|'manifest-src'|'prefetch-src'|'base-uri'|'form-action'|'frame-ancestors'|'sandbox'|'report-uri'|'report-to' $sourceType
+     * @param 'default-src'|'script-src'|'script-src-elem'|'script-src-attr'|'style-src'|'style-src-elem'|'style-src-attr'|'img-src'|'font-src'|'connect-src'|'media-src'|'object-src'|'child-src'|'frame-src'|'worker-src'|'manifest-src'|'prefetch-src'|'base-uri'|'form-action'|'frame-ancestors'|'sandbox'|'plugin-types'|'navigate-to'|'report-uri'|'report-to' $sourceType
      * The CSP directive name. Supported values:
      * - `default-src`      : Fallback for other fetch directives.
      * - `script-src`       : JavaScript execution sources.
@@ -5952,7 +5952,7 @@ class FunkMethod
      * - `base-uri`         : Restricted URLs for the `<base>` element.
      * - `form-action`      : Valid target URLs for `<form>` submissions.
      * - `frame-ancestors`  : Valid parents that may embed this page in an `<iframe>`.
-     * - `sandbox`         : Enables sandbox restrictions for the requested resource.
+     * - `sandbox`         : Enables sandbox restrictions for the requested resource. Available flags:`allow-forms allow-same-origin allow-scripts allow-popups, allow-modals, allow-orientation-lock, allow-pointer-lock, allow-presentation, allow-popups-to-escape-sandbox, and allow-top-navigation`
      * - `report-uri`      : Endpoint URL where CSP violation reports are sent (Deprecated).
      * - `report-to`       : Reporting API group name for CSP violations.
      *
@@ -6104,7 +6104,7 @@ class FunkRoute
      * Automatically wraps standard CSP keywords (e.g. 'self', 'none', 'unsafe-inline') in single quotes,
      * while preserving casing for hashes, nonces, and domains.
      *
-     * @param 'default-src'|'script-src'|'script-src-elem'|'script-src-attr'|'style-src'|'style-src-elem'|'style-src-attr'|'img-src'|'font-src'|'connect-src'|'media-src'|'object-src'|'child-src'|'frame-src'|'worker-src'|'manifest-src'|'prefetch-src'|'base-uri'|'form-action'|'frame-ancestors'|'sandbox'|'report-uri'|'report-to' $sourceType
+     * @param 'default-src'|'script-src'|'script-src-elem'|'script-src-attr'|'style-src'|'style-src-elem'|'style-src-attr'|'img-src'|'font-src'|'connect-src'|'media-src'|'object-src'|'child-src'|'frame-src'|'worker-src'|'manifest-src'|'prefetch-src'|'base-uri'|'form-action'|'frame-ancestors'|'sandbox'|'plugin-types'|'navigate-to'|'report-uri'|'report-to' $sourceType
      * The CSP directive name. Supported values:
      * - `default-src`      : Fallback for other fetch directives.
      * - `script-src`       : JavaScript execution sources.
@@ -6126,7 +6126,7 @@ class FunkRoute
      * - `base-uri`         : Restricted URLs for the `<base>` element.
      * - `form-action`      : Valid target URLs for `<form>` submissions.
      * - `frame-ancestors`  : Valid parents that may embed this page in an `<iframe>`.
-     * - `sandbox`         : Enables sandbox restrictions for the requested resource.
+     * - `sandbox`         : Enables sandbox restrictions for the requested resource. Available flags:`allow-forms allow-same-origin allow-scripts allow-popups, allow-modals, allow-orientation-lock, allow-pointer-lock, allow-presentation, allow-popups-to-escape-sandbox, and allow-top-navigation`
      * - `report-uri`      : Endpoint URL where CSP violation reports are sent (Deprecated).
      * - `report-to`       : Reporting API group name for CSP violations.
      *
