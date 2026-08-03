@@ -3035,110 +3035,11 @@ class C
 {
     // The actual written config line by line starting with FunkPHP()
     public array $FunkPHPTextArray = ["FunkPHP()"];
-    // All errors + categorized errors
-    private array $errors = [
-        'all' => [],
-        'routes' => [],
-        'config' => [],
-        'paramRules' => [],
-        // 'config' => [],
-        // 'pipes' => [
-        //     'request' => [],
-        //     'post_response' => [],
-        //     'middlewares' => [],
-        //     'routes' => [
-        //         'HEAD' => [],
-        //         'GET' => [],
-        //         'PUT' => [],
-        //         'PATCH' => [],
-        //         'POST' => [],
-        //         'DELETE' => [],
-        //     ],
-        // ],
-        // 'data' => [
-        //     'tables' => [],
-        //     'query' => [],
-        //     'validation' => [],
-        //     'sql' => []
-        // ],
-        // 'pages' => [
-        //     'compiled' => [],
-        //     'components' => [],
-        //     'layouts' => [],
-        //     'partials' => []
-        // ],
-    ];
-    //
-    private array $validBatches = [
-        'routes' => [],
-        'paramRules' => [
-            'routes' => [],
-            'methods' => [],
-            'global' => []
-        ],
-        // 'all' => [],
-        // 'config' => [],
-        // 'pipes' => [
-        //     'request' => [],
-        //     'post_response' => [],
-        //     'middlewares' => [],
-        //     'routes' => [
-        //         'HEAD' => [],
-        //         'GET' => [],
-        //         'PUT' => [],
-        //         'PATCH' => [],
-        //         'POST' => [],
-        //         'DELETE' => [],
-        //     ],
-        // ],
-        // 'data' => [
-        //     'tables' => [],
-        //     'query' => [],
-        //     'validation' => [],
-        //     'sql' => []
-        // ],
-        // 'pages' => [
-        //     'compiled' => [],
-        //     'components' => [],
-        //     'layouts' => [],
-        //     'partials' => []
-        // ],
-    ];
-    private array $invalidBatches = [
-        'routes' => [],
-        'paramRules' => [
-            'routes' => [],
-            'methods' => [],
-            'global' => []
-        ],
-        // 'all' => [],
-        // 'config' => [],
-        // 'pipes' => [
-        //     'request' => [],
-        //     'post_response' => [],
-        //     'middlewares' => [],
-        //     'routes' => [
-        //         'HEAD' => [],
-        //         'GET' => [],
-        //         'PUT' => [],
-        //         'PATCH' => [],
-        //         'POST' => [],
-        //         'DELETE' => [],
-        //     ],
-        // ],
-        // 'data' => [
-        //     'tables' => [],
-        //     'query' => [],
-        //     'validation' => [],
-        //     'sql' => []
-        // ],
-        // 'pages' => [
-        //     'compiled' => [],
-        //     'components' => [],
-        //     'layouts' => [],
-        //     'partials' => []
-        // ],
-    ];
+    // $errors contain all errors + categorized errors
+    private array $errors = [];
+    // Valid + Invalid batches, compile() only starts if $invalidBatches is empty!
+    private array $validBatches = [];
+    private array $invalidBatches = [];
     // $cached = (Attempted) Access to any file/function and/or file=>function in a DRY fashion!
     private array $cached = [
         'placeholderRoutes' => [],
@@ -3313,13 +3214,7 @@ class C
         // ],
     ];
 
-    // $batches (= can be validated for compilation)
-    // $invalidBatches (= cannot be validated for compilation based on initial value check)
-    // $errors (= stored errors where )
-
-
-
-    // NAVIGATION VARIABLES+METHODS IN IDE config()->
+    // NAVIGATION VARIABLES+METHODS IN IDE ->config()
     private ?FunkConfig $configScope = null;
     private ?FunkRoutes $routesScope = null;
     // Default booleans for compile(), run()
@@ -4133,13 +4028,6 @@ class C
         $duplicateHashes = [];
         $valid = [];
         foreach ($externalSRI as $key => $details) {
-            if (isset($duplicateHashes[$details['hash']])) {
-                $this->invalidBatches['config']['global_sris']['external'] = $externalSRI;
-                $allErr = "Invalid Formatted Array Value in `->setSRIExternal()` under `->config()` where External SRI Hash:`{$details['hash']}` is already used by Key=>URL:`{$duplicateHashes[$details['hash']]}`. Each External SRI Key must contain Single Non-Empty String-based Unique Hash Values in their `hash` Key.";
-                $this->errors['all'][] = $allErr;
-                $this->errors['config'][] = $allErr;
-                return;
-            }
             if (
                 !is_string($key) || trim($key) === ''
                 || !is_array($details)
@@ -4149,6 +4037,14 @@ class C
                 || !is_string($details['url']) || trim($details['url']) === '' || !str_starts_with(trim($details['url']), 'https://')
                 || !is_string($details['hash']) || trim($details['hash']) === '' || !str_contains($details['hash'], 'sha')
             ) {
+                $this->errors['all'][] = $allErr;
+                $this->errors['config'][] = $allErr;
+                $this->invalidBatches['config']['global_sris']['external'] = $externalSRI;
+                return;
+            }
+            if (isset($duplicateHashes[$details['hash']])) {
+
+                $allErr = "Invalid Formatted Array Value in `->setSRIExternal()` under `->config()` where External SRI Hash:`{$details['hash']}` is already used by Key=>URL:`{$duplicateHashes[$details['hash']]}`. Each External SRI Key must contain Single Non-Empty String-based Unique Hash Values in their `hash` Key.";
                 $this->errors['all'][] = $allErr;
                 $this->errors['config'][] = $allErr;
                 $this->invalidBatches['config']['global_sris']['external'] = $externalSRI;
@@ -4164,8 +4060,91 @@ class C
     }
 
     /* remove|pipeHeader - Global */
-    private function batchRemoveHeaderGlobal(string $header_to_remove) {}
-    private function batchNewHeaderGlobal(string $header) {}
+    private function batchRemoveHeaderGlobal(string $header_to_remove)
+    {
+        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('removeHeader', $header_to_remove);
+        if (isset($this->inValidBatches['config']['headers']['remove'][strtolower(trim($header_to_remove))])) {
+            $err = "Duplicate call `->removeHeader()` under `->config()`. Invalid Formatted Header `{$header_to_remove}` already exists under `->config()`.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (isset($this->validBatches['config']['headers']['remove'][strtolower(trim($header_to_remove))])) {
+            $err = "Duplicate call `->removeHeader()` under `->config()`. Valid Formatted Header `{$this->validBatches['config']['headers']['remove'][strtolower(trim($header_to_remove))]}` already exists under `->config()`.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        // We will store both the original value and its lowercased version to find future conflicts
+        $headerName = trim($header_to_remove);
+        $lowerHeader = strtolower($headerName);
+        // Header names cannot contain colons, spaces, or CRLF injections
+        if ($headerName === '' || !preg_match('/^[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$/', $headerName)) {
+            $err = "Invalid Formatted Header `{$headerName}` in `->removeHeader()` under `->config()`. Must be a Non-Empty String with Header Name Only (e.g. `server`, `x-powered-by`), with only alphanumerics and single dashes between the words.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            $this->invalidBatches['config']['headers']['remove'][$lowerHeader] = $header_to_remove;
+            return;
+        }
+        // Header cannot be removed if it was first configured to be added
+        if (isset($this->validBatches['config']['headers']['add'][$lowerHeader])) {
+            $err = "Conflicting calls between `->removeHeader()` and `->newHeader()` under `->config()`. Header `{$headerName}` was first configured to be added before being configured now to be deleted. Delete and/or change one or more of these under `->config()`.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            $this->invalidBatches['config']['headers']['remove'][] = $header_to_remove;
+            return;
+        }
+        // Store header to be removed from Global level (->config())
+        $this->validBatches['config']['headers']['remove'][$lowerHeader] = $headerName;
+    }
+    private function batchNewHeaderGlobal(string $header)
+    {
+        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('pipeHeader', $header);
+        if (isset($this->inValidBatches['config']['headers']['add'][$header])) {
+            $err = "Duplicate call `->pipeHeader()` under `->config()`. Invalid Formatted Header `{$header}` already exists under `->config()`.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        // Forbid possible CRLF injection
+        if (str_contains($header, "\r") || str_contains($header, "\n")) {
+            $err = "Possible CRLF Injection in Header Value `{$header}` in `->pipeHeader()` under `->config()`. Header Value must not contain any kind of newline characters.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            $this->invalidBatches['config']['headers']['add'][$header] = true;
+            return;
+        }
+        // Must be two parts after splitted on ":"
+        $parts = explode(':', $header, 2);
+        if (count($parts) !== 2 || trim($parts[0]) === '' || trim($parts[1]) === '') {
+            $err = "Invalid Header Format `{$header}` in `->pipeHeader()` under `->config()`. Must follow `Header-Name: Header-Value` syntax (e.g. `X-Frame-Options: DENY`) where the Single Semi-colon (:) is the divider between Key and Value.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            $this->invalidBatches['config']['headers']['add'][$header] = true;
+            return;
+        }
+
+        // Now prepare header to store but first check if it already exists
+        $headerName  = trim($parts[0]);
+        $headerValue = trim($parts[1]);
+        $lowerHeader = strtolower($headerName);
+        if (isset($this->validBatches['config']['headers']['add'][$lowerHeader])) {
+            $err = "Duplicate call `->pipeHeader()` under `->config()`. Valid Formatted Header `{$header}` already exists under `->config()`.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (isset($this->validBatches['config']['headers']['remove'][$lowerHeader])) {
+            $err = "Conflicting calls between `->pipeHeader()` and `->removeHeader()` under `->config()`. Header `{$headerName}` was first configured to be removed before being configured now to be added. Delete and/or change one or more of these under `->config()`.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            $this->invalidBatches['config']['headers']['add'][$lowerHeader] = true;
+            return;
+        }
+
+        // Store header to be addd from Global level (->config())
+        $this->validBatches['config']['headers']['add'][$lowerHeader] = ['name' => $headerName, 'value' => $headerValue];
+    }
 
     /* pipeMiddleware|requestFunction|postResponseFunction - Global */
     private function batchNewPipeMiddlewareGlobal(string $middleware) {}
@@ -4238,8 +4217,93 @@ class C
     private function batchSetCSPBaseURIMethod(string $method, string ...$sources) {}
     private function batchSetCSPFormActionMethod(string $method, string ...$sources) {}
     private function batchSetCSPDefaultMethod(string $method, string ...$sources) {}
-    private function batchSetHeaderMethod(string $method, string $header) {}
-    private function batchRemoveHeaderMethod(string $method, string $header_to_remove) {}
+
+    /*METHOD: removeHeader & pipeHeader */
+    private function batchSetHeaderMethod(string $method, string $header)
+    {
+        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('pipeHeader', $header);
+        if (isset($this->inValidBatches['methods'][$method]['headers']['add'][$header])) {
+            $err = "Duplicate call `->pipeHeader()` under `->config()->routes()->{$method}()`. Invalid Formatted Header `{$header}` already exists under `->config()`.";
+            $this->errors['all'][] = $err;
+            $this->errors['methods'][$method][] = $err;
+            return;
+        }
+        // Forbid possible CRLF injection
+        if (str_contains($header, "\r") || str_contains($header, "\n")) {
+            $err = "Possible CRLF Injection in Header Value `{$header}` in `->pipeHeader()` under `->config()->routes()->{$method}()`. Header Value must not contain any kind of newline characters.";
+            $this->errors['all'][] = $err;
+            $this->errors['methods'][$method][] = $err;
+            $this->invalidBatches['methods'][$method]['headers']['add'][$header] = true;
+            return;
+        }
+        // Must be two parts after splitted on ":"
+        $parts = explode(':', $header, 2);
+        if (count($parts) !== 2 || trim($parts[0]) === '' || trim($parts[1]) === '') {
+            $err = "Invalid Header Format `{$header}` in `->pipeHeader()` under `->config()->routes()->{$method}()`. Must follow `Header-Name: Header-Value` syntax (e.g. `X-Frame-Options: DENY`) where the Single Semi-colon (:) is the divider between Key and Value.";
+            $this->errors['all'][] = $err;
+            $this->errors['methods'][$method][] = $err;
+            $this->invalidBatches['methods'][$method]['headers']['add'][$header] = true;
+            return;
+        }
+
+        // Now prepare header to store but first check if it already exists
+        $headerName  = trim($parts[0]);
+        $headerValue = trim($parts[1]);
+        $lowerHeader = strtolower($headerName);
+        if (isset($this->validBatches['methods'][$method]['headers']['add'][$lowerHeader])) {
+            $err = "Duplicate call `->pipeHeader()` under `->config()->routes()->{$method}()`. Valid Formatted Header `{$header}` already exists under `->config()`.";
+            $this->errors['all'][] = $err;
+            $this->errors['methods'][$method][] = $err;
+            return;
+        }
+        if (isset($this->validBatches['methods'][$method]['headers']['remove'][$lowerHeader])) {
+            $err = "Conflicting calls between `->pipeHeader()` and `->removeHeader()` under `->config()->routes()->{$method}()`. Header `{$headerName}` was first configured to be removed before being configured now to be added. Delete and/or change one or more of these under `->config()`.";
+            $this->errors['all'][] = $err;
+            $this->errors['methods'][$method][] = $err;
+            $this->invalidBatches['methods'][$method]['headers']['add'][$lowerHeader] = true;
+            return;
+        }
+
+        // Store header to be addd from Global level (->config())
+        $this->validBatches['methods'][$method]['headers']['add'][$lowerHeader] = ['name' => $headerName, 'value' => $headerValue];
+    }
+    private function batchRemoveHeaderMethod(string $method, string $header_to_remove)
+    {
+        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('removeHeader', $header_to_remove);
+        if (isset($this->inValidBatches['methods'][$method]['headers']['remove'][strtolower(trim($header_to_remove))])) {
+            $err = "Duplicate call `->removeHeader()` under `->config()->routes()->{$method}()`. Invalid Formatted Header `{$header_to_remove}` already exists under `->config()`.";
+            $this->errors['all'][] = $err;
+            $this->errors['methods'][$method][] = $err;
+            return;
+        }
+        if (isset($this->validBatches['methods'][$method]['headers']['remove'][strtolower(trim($header_to_remove))])) {
+            $err = "Duplicate call `->removeHeader()` under `->config()->routes()->{$method}()`. Valid Formatted Header `{$this->validBatches['methods'][$method]['headers']['remove'][strtolower(trim($header_to_remove))]}` already exists under `->config()`.";
+            $this->errors['all'][] = $err;
+            $this->errors['methods'][$method][] = $err;
+            return;
+        }
+        // We will store both the original value and its lowercased version to find future conflicts
+        $headerName = trim($header_to_remove);
+        $lowerHeader = strtolower($headerName);
+        // Header names cannot contain colons, spaces, or CRLF injections
+        if ($headerName === '' || !preg_match('/^[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$/', $headerName)) {
+            $err = "Invalid Formatted Header `{$headerName}` in `->removeHeader()` under `->config()->routes()->{$method}()`. Must be a Non-Empty String with Header Name Only (e.g. `server`, `x-powered-by`), with only alphanumerics and single dashes between the words.";
+            $this->errors['all'][] = $err;
+            $this->errors['methods'][$method][] = $err;
+            $this->invalidBatches['methods'][$method]['headers']['remove'][$lowerHeader] = $header_to_remove;
+            return;
+        }
+        // Header cannot be removed if it was first configured to be added
+        if (isset($this->validBatches['methods'][$method]['headers']['add'][$lowerHeader])) {
+            $err = "Conflicting calls between `->removeHeader()` and `->newHeader()` under `->config()->routes()->{$method}()`. Header `{$headerName}` was first configured to be added before being configured now to be deleted. Delete and/or change one or more of these under `->config()`.";
+            $this->errors['all'][] = $err;
+            $this->errors['methods'][$method][] = $err;
+            $this->invalidBatches['methods'][$method]['headers']['remove'][] = $header_to_remove;
+            return;
+        }
+        // Store header to be removed from Global level (->config())
+        $this->validBatches['methods'][$method]['headers']['remove'][$lowerHeader] = $headerName;
+    }
     private function batchNewPipeMiddlewareMethod(string $method, string $middleware) {}
 
     // Batching New Route `->route("/route", $optionalParamRules as an array)`
@@ -4318,26 +4382,26 @@ class C
         // Check if the associated $method$route is in the InvalidBatches first
         // OR if it is already as an invalid alias OR a valid alias already exists
         if (isset($this->invalidBatches['routes'][$method][$route])) {
-            $err = "Invalid Route:`$method()->$route` must be become Valid before Route Alias `{$alias}` gets validated!";
+            $err = "Invalid Route:`->config()->routes()->$method()->$route` must be become Valid before Route Alias `{$alias}` gets validated with `->setAlias()`!";
             $this->errors['all'][] = $err;
             $this->errors['routes'][$method][$route][] = $err;
             return;
         }
         if (isset($this->invalidBatches['routes']['aliases'][$method][$route])) {
-            $err = "An Invalid Route Alias:`{$this->invalidBatches['routes']['aliases'][$method][$route]}` for `{$method}()->{$route}` already exists. Replace it with `{$alias}`?";
+            $err = "Duplicate call - Invalid Route Alias:`{$this->invalidBatches['routes']['aliases'][$method][$route]}` for `{$method}()->{$route}` already exists. Replace it with `{$alias}`?";
             $this->errors['all'][] = $err;
             $this->errors['routes'][$method][$route][] = $err;
             return;
         }
         if (isset($this->validBatches['routes'][$method][$route]['alias'])) {
-            $err = "Valid Route:`{$method}()->{$route}` already has a Valid Route Alias:`{$this->validBatches['routes'][$method][$route]['alias']}`.";
+            $err = "Duplicate call - Valid Route:`->config()->routes()->{$method}()->{$route}` already has a Valid Route Alias:`{$this->validBatches['routes'][$method][$route]['alias']}`.";
             $this->errors['all'][] = $err;
             $this->errors['routes'][$method][$route][] = $err;
             return;
         }
         // Alias formatting with typical alphanumerals plus dot-notation support
         if ($alias === '' || !preg_match('/^[a-zA-Z0-9_.-]+$/', $alias)) {
-            $err = "Invalid Route Alias Formatting:`{$alias}` on `{$method}()->{$route}`. Aliases must only contain [a-zA-Z0-9_.-] characters (e.g., 'users.all').";
+            $err = "Invalid Route Alias Formatting:`{$alias}` in `->config()->routes()->{$method}()->{$route}`. Aliases must only contain [a-zA-Z0-9_.-] characters (e.g., 'users.all').";
             $this->errors['all'][] = $err;
             $this->errors['routes'][$method][$route][] = $err;
             $this->invalidBatches['routes']['aliases'][$method][$route] = $alias;
@@ -4346,7 +4410,7 @@ class C
         // Global Uniqueness Check: Aliases CANNOT be duplicated across ANY method
         if (isset($this->cached['routeAliases'][$alias])) {
             $firstDefined = $this->cached['routeAliases'][$alias]; // Stores "METHOD /route"
-            $err = "Duplicate Route Alias Conflict:`{$alias}` on `{$method}()->{$route}`"
+            $err = "Duplicate Route Alias Conflict:`{$alias}` in `->config()->routes()->{$method}()->{$route}`"
                 . " was already assigned to `{$firstDefined}`. Aliases must be Globally Unique across ALL HTTP(S) methods!";
             $this->errors['all'][] = $err;
             $this->errors['routes'][$method][$route][] = $err;
@@ -4422,8 +4486,11 @@ class C
         // while config() uses 'paramRules'->'global'
         $this->validBatches['paramRules']['routes'][$method][$route][$param] = ['pattern' => $regex, 'default' => $defaultParamValueOnRegexMismatch];
     }
+    /*ROUTE: RateLimiting & setCache */
     private function batchSetRateLimitingRoute(string $method, string $route, array $rateLimitingOptions) {}
     private function batchSetCacheRoute(string $method, string $route, array $cacheOptions) {}
+
+    /*ROUTE: setCSP<VARIANTS> */
     private function batchSetCSPRoute(string $method, string $route, string $sourceType, string ...$sources) {}
     private function batchSetCSPScriptRoute(string $method, string $route, string ...$sources) {}
     private function batchSetCSPStyleRoute(string $method, string $route, string ...$sources) {}
@@ -4435,16 +4502,114 @@ class C
     private function batchSetCSPBaseURIRoute(string $method, string $route, string ...$sources) {}
     private function batchSetCSPFormActionRoute(string $method, string $route, string ...$sources) {}
     private function batchSetCSPDefaultRoute(string $method, string $route, string ...$sources) {}
+
+    /*ROUTE: pipeFunction, pipeResonse, pipeSQL, pipeQuery & pipeValidation */
     private function batchNewPipeFunctionRoute(string $method, string $route, string $fileFunctionName) {}
     private function batchNewPipeResponseRoute(string $method, string $route, string $typeOfResponse) {}
     private function batchNewPipeSQLRoute(string $method, string $route, string $sqlFileFunction) {}
     private function batchNewPipeQueryRoute(string $method, string $route, string $queryFileFunction) {}
     private function batchNewPipeValidationRoute(string $method, string $route, string $validationFileFunction) {}
+
+    /*ROUTE: pipeMiddleware & excludeMiddleware */
     private function batchNewPipeMiddlewareRoute(string $method, string $route, string $middleware) {}
     private function batchNewExcludeMiddlewareRoute(string $method, string $route, string $middlewareToExclude) {}
-    private function batchNewHeaderRoute(string $method, string $route, string $header) {}
-    private function batchRemoveHeaderRoute(string $method, string $route, string $header) {}
 
+    /*ROUTE: pipeHeader & removeHeader */
+    private function batchNewHeaderRoute(string $method, string $route, string $header)
+    {
+        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('pipeHeader', $header);
+        // Check if the associated $method$route is in the InvalidBatches first!
+        if (isset($this->invalidBatches['routes'][$method][$route])) {
+            $this->errors['all'][] = "Invalid Route `->config()->routes()->$method$route` must be become Valid before Header `{$header}` gets validated with `->pipeHeader()`.";
+            $this->errors['routes'][$method][$route][] = "Invalid Route `->config()->routes()->$method$route` must be become Valid before Header `{$header}` gets validated with `->pipeHeader()`.";
+            return;
+        }
+        if (isset($this->inValidBatches['routes'][$method][$route]['headers']['add'][$header])) {
+            $err = "Duplicate call `->pipeHeader()` under `->config()->routes()->{$method}()`. Invalid Formatted Header `{$header}` already exists under `->config()`.";
+            $this->errors['all'][] = $err;
+            $this->errors['routes'][$method][$route][] = $err;
+            return;
+        }
+        // Forbid possible CRLF injection
+        if (str_contains($header, "\r") || str_contains($header, "\n")) {
+            $err = "Possible CRLF Injection in Header Value `{$header}` in `->pipeHeader()` under `->config()->routes()->{$method}()`. Header Value must not contain any kind of newline characters.";
+            $this->errors['all'][] = $err;
+            $this->errors['routes'][$method][$route][] = $err;
+            $this->invalidBatches['routes'][$method][$route]['headers']['add'][$header] = true;
+            return;
+        }
+        // Must be two parts after splitted on ":"
+        $parts = explode(':', $header, 2);
+        if (count($parts) !== 2 || trim($parts[0]) === '' || trim($parts[1]) === '') {
+            $err = "Invalid Header Format `{$header}` in `->pipeHeader()` under `->config()->routes()->{$method}()`. Must follow `Header-Name: Header-Value` syntax (e.g. `X-Frame-Options: DENY`) where the Single Semi-colon (:) is the divider between Key and Value.";
+            $this->errors['all'][] = $err;
+            $this->errors['routes'][$method][$route][] = $err;
+            $this->invalidBatches['routes'][$method][$route]['headers']['add'][$header] = true;
+            return;
+        }
+        // Now prepare header to store but first check if it already exists
+        $headerName  = trim($parts[0]);
+        $headerValue = trim($parts[1]);
+        $lowerHeader = strtolower($headerName);
+        if (isset($this->validBatches['routes'][$method][$route]['headers']['add'][$lowerHeader])) {
+            $err = "Duplicate call `->pipeHeader()` under `->config()->routes()->{$method}()`. Valid Formatted Header `{$header}` already exists under `->config()`.";
+            $this->errors['all'][] = $err;
+            $this->errors['routes'][$method][$route][] = $err;
+            return;
+        }
+        if (isset($this->validBatches['routes'][$method][$route]['headers']['remove'][$lowerHeader])) {
+            $err = "Conflicting calls between `->pipeHeader()` and `->removeHeader()` under `->config()->routes()->{$method}()`. Header `{$headerName}` was first configured to be removed before being configured now to be added. Delete and/or change one or more of these under `->config()`.";
+            $this->errors['all'][] = $err;
+            $this->errors['routes'][$method][$route][] = $err;
+            $this->invalidBatches['routes'][$method][$route]['headers']['add'][$lowerHeader] = true;
+            return;
+        }
+        // Store header to be addd from Global level (->config())
+        $this->validBatches['routes'][$method][$route]['headers']['add'][$lowerHeader] = ['name' => $headerName, 'value' => $headerValue];
+    }
+    private function batchRemoveHeaderRoute(string $method, string $route, string $header_to_remove)
+    {
+        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('removeHeader', $header_to_remove);
+        // Check if the associated $method$route is in the InvalidBatches first!
+        if (isset($this->invalidBatches['routes'][$method][$route])) {
+            $this->errors['all'][] = "Invalid Route `->config()->routes()->$method$route` must be become Valid before Header `{$header_to_remove}` gets validated with `->removeHeader()`.";
+            $this->errors['routes'][$method][$route][] = "Invalid Route `->config()->routes()->$method$route` must be become Valid before Header `{$header_to_remove}` gets validated with `->removeHeader()`.";
+            return;
+        }
+        if (isset($this->inValidBatches['routes'][$method][$route]['headers']['remove'][strtolower(trim($header_to_remove))])) {
+            $err = "Duplicate call `->removeHeader()` under `->config()->routes()->{$method}()->{$route}()`. Invalid Formatted Header `{$header_to_remove}` already exists under `->config()`.";
+            $this->errors['all'][] = $err;
+            $this->errors['routes'][$method][$route][] = $err;
+            return;
+        }
+        if (isset($this->validBatches['routes'][$method][$route]['headers']['remove'][strtolower(trim($header_to_remove))])) {
+            $err = "Duplicate call `->removeHeader()` under `->config()->routes()->{$method}()->{$route}()`. Valid Formatted Header `{$this->validBatches['routes'][$method][$route]['headers']['remove'][strtolower(trim($header_to_remove))]}` already exists under `->config()`.";
+            $this->errors['all'][] = $err;
+            $this->errors['routes'][$method][$route][] = $err;
+            return;
+        }
+        // We will store both the original value and its lowercased version to find future conflicts
+        $headerName = trim($header_to_remove);
+        $lowerHeader = strtolower($headerName);
+        // Header names cannot contain colons, spaces, or CRLF injections
+        if ($headerName === '' || !preg_match('/^[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$/', $headerName)) {
+            $err = "Invalid Formatted Header `{$headerName}` in `->removeHeader()` under `->config()->routes()->{$method}()->{$route}()`. Must be a Non-Empty String with Header Name Only (e.g. `server`, `x-powered-by`), with only alphanumerics and single dashes between the words.";
+            $this->errors['all'][] = $err;
+            $this->errors['routes'][$method][$route][] = $err;
+            $this->invalidBatches['routes'][$method][$route]['headers']['remove'][$lowerHeader] = $header_to_remove;
+            return;
+        }
+        // Header cannot be removed if it was first configured to be added
+        if (isset($this->validBatches['routes'][$method][$route]['headers']['add'][$lowerHeader])) {
+            $err = "Conflicting calls between `->removeHeader()` and `->newHeader()` under `->config()->routes()->{$method}()->{$route}()`. Header `{$headerName}` was first configured to be added before being configured now to be deleted. Delete and/or change one or more of these under `->config()`.";
+            $this->errors['all'][] = $err;
+            $this->errors['routes'][$method][$route][] = $err;
+            $this->invalidBatches['routes'][$method][$route]['headers']['remove'][] = $header_to_remove;
+            return;
+        }
+        // Store header to be removed from Global level (->config())
+        $this->validBatches['routes'][$method][$route]['headers']['remove'][$lowerHeader] = $headerName;
+    }
 
     /*** Private Helper functions for compile() and/or run() ***/
     // Helper function that returns an array of status of $folder & $file and whether they:
@@ -5569,6 +5734,8 @@ class FunkRoute
         $this->c->batch('batchSetParamRuleRoute', $this->method, $this->routePath, $param, $regex, $defaultParamValueOnRegexMismatch);
         return $this;
     }
+
+    /*ROUTE: setCSP<Variants> */
     public function setCSP(string $sourceType, string ...$sources): self
     {
         $this->c->batch('batchSetCSPRoute', $this->method, $this->routePath, $sourceType, ...$sources);
@@ -5624,9 +5791,11 @@ class FunkRoute
         $this->c->batch('batchSetCSPDefaultRoute', $this->method, $this->routePath, ...$sources);
         return $this;
     }
+
+    /*ROUTE: pipeHeader & removeHeader */
     public function pipeHeader(string $header): self
     {
-        $this->c->batch('batchSetHeaderRoute', $this->method, $this->routePath, $header);
+        $this->c->batch('batchNewHeaderRoute', $this->method, $this->routePath, $header);
         return $this;
     }
     public function removeHeader(string $header_to_remove): self
@@ -5634,6 +5803,7 @@ class FunkRoute
         $this->c->batch('batchRemoveHeaderRoute', $this->method, $this->routePath, $header_to_remove);
         return $this;
     }
+
     // Create a new Route under currently navigated <METHOD>() and/or
     // jump to any other available <METHOD>() as seen below!
     public function route(string $path): FunkRoute

@@ -2,12 +2,12 @@
 
 $test = FunkPHP()
     ->config()
-    ->setSRIInternal(["test" => 'shasodhasdoiuashdoashd', "test2" => 'shasodhasdoiuashdoashd'])
-    ->setSRIExternal(["test" => ['url' => 'https://yas.com', 'hash' => 'shasodhasdoiuashdoashd'], "test2" => ['url' => 'https://yas.com', 'hash' => 'shasodhasdoiuashdoashd']])
+    ->removeHeader("x-powered-by")
     ->routes()
     ->GET()
     ->setParamRule('test', '##i')
     ->route('/:id/:test/:test2')
-    ->setParamRule("test", "/^t/");
+    ->pipeHeader("test: test")
+    ->removeHeader("test2");
 
 dd($test);
