@@ -2,7 +2,8 @@
 
 $test = FunkPHP()
     ->config()
-    ->setParamRule("test", '/^t/')
+    ->setSessionCookiePath("/a/a")
+    ->setSessionCookieDomain("best.com")
     ->routes()
     ->GET()
     ->setParamRule('test', '##i')

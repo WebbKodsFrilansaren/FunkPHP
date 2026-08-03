@@ -40,7 +40,7 @@ function vd($data)
  * Enhanced Web & CLI dumper for FunkPHP.
  * Features built-in circular reference / recursion detection and max depth protection.
  */
-function dd(mixed $data, bool $json = false, bool $exit = true): void
+function dd(mixed $data, bool $ignoreC = true, bool $json = false, bool $exit = true): void
 {
     if ($json) {
         if (!headers_sent()) {
@@ -54,6 +54,7 @@ function dd(mixed $data, bool $json = false, bool $exit = true): void
         cli_dump($data, $exit);
         return;
     }
+    global $c;
     $metrics = [
         'nulls'          => 0,
         'strings'        => 0,
@@ -154,6 +155,9 @@ function dd(mixed $data, bool $json = false, bool $exit = true): void
     };
 
     $treeHtml = $render($data);
+    if (!$ignoreC && $c) {
+        $treeHtmlC = $render($c);
+    }
 ?>
     <div class="funk-web-dump">
         <style>
@@ -177,6 +181,14 @@ function dd(mixed $data, bool $json = false, bool $exit = true): void
                 margin-bottom: 8px;
                 border-bottom: 1px solid #45475a;
                 padding-bottom: 6px;
+            }
+
+            .funk-web-dump h1 {
+                color: #cba6f7;
+                font-weight: bold;
+                font-size: 14px;
+                margin-bottom: 4px;
+                padding-bottom: 3px;
             }
 
             .funk-web-dump ul.fd-tree {
@@ -249,18 +261,43 @@ function dd(mixed $data, bool $json = false, bool $exit = true): void
                 color: #a6adc8;
             }
 
+            .funk-web-dump div .metrics-top {
+                margin-top: 8x;
+                padding-top: 4px;
+                margin-bottom: 8px;
+                font-size: 11px;
+                color: #a6adc8;
+            }
+
             .funk-web-dump .fd-val {
                 color: #a6e3a1;
                 font-weight: bold;
             }
         </style>
 
-        <header>[FunkPHP Web Dump]</header>
-
-        <div class="fd-content">
+        <header>[FunkPHP Data Dump]</header>
+        <div class="metrics-top" style="font-size:11px; border-bottom: 1px solid #45475a; padding-bottom:8px;">
+            <strong>TELEMETRY METRICS:</strong>
+            Objects: <span class="fd-val"><?= $metrics['objects'] ?></span> |
+            Arrays: <span class="fd-val"><?= $metrics['arrays'] ?></span>
+            <span class="fd-meta">(Empty: <?= $metrics['arrays-empty'] ?> | Lists: <?= $metrics['arrays-lists'] ?> | Assocs: <?= $metrics['arrays-assocs'] ?>)</span> |
+            Strings: <span class="fd-val"><?= $metrics['strings'] ?></span> |
+            Numbers: <span class="fd-val"><?= $metrics['integers'] + $metrics['floats'] ?></span> |
+            Booleans: <span class="fd-val"><?= $metrics['booleans'] ?></span> |
+            Nulls: <span class="fd-val"><?= $metrics['nulls'] ?></span>
+        </div>
+        <?php if (!$ignoreC && $c): ?>
+            <h1>[FunkPHP $c Variable]</h1>
+            <div class="fd-content" style="margin-top:0.5rem;">
+                <?= $treeHtmlC ?? '' ?>
+            </div>
+        <?php endif ?>
+        <?php if (!$ignoreC): ?>
+            <h1>[FunkPHP Data Dumped]</h1>
+        <?php endif ?>
+        <div class="fd-content" style="margin-top:0.5rem;">
             <?= $treeHtml ?>
         </div>
-
         <footer>
             <strong>TELEMETRY METRICS:</strong>
             Objects: <span class="fd-val"><?= $metrics['objects'] ?></span> |
@@ -271,13 +308,12 @@ function dd(mixed $data, bool $json = false, bool $exit = true): void
             Booleans: <span class="fd-val"><?= $metrics['booleans'] ?></span> |
             Nulls: <span class="fd-val"><?= $metrics['nulls'] ?></span>
         </footer>
-
         <script>
             document.querySelectorAll('.funk-web-dump .fd-toggle').forEach(function(btn) {
                 btn.addEventListener('click', function(e) {
                     e.stopPropagation();
-                    var parent = this.parentElement;
-                    var tree = parent.querySelector(':scope > .fd-tree');
+                    const parent = this.parentElement;
+                    const tree = parent.querySelector(':scope > .fd-tree');
                     if (tree) {
                         if (tree.style.display === 'none') {
                             tree.style.display = 'block';
@@ -344,56 +380,6 @@ function funk_return_download($filePath, $fileName = null, $statusCode = 200)
     header('Content-Disposition: attachment; filename="' . ($fileName ?? basename($filePath)) . '"');
     readfile($filePath);
     exit;
-}
-
-// Function either sets and/or gets (if it sets, then it also returns that instance)
-// It uses $c['INSTANCES'] array from config/_all.php
-function funk_use_class(&$c, $objClassFolder, $newObjectOrExistingObject, $instanceKey = null)
-{
-    // $objClassFolder is either "vendor" (composer) or "classes" (custom classes)
-    if (!in_array($objClassFolder, ['vendor', 'classes'])) {
-        $c['err']['CLASSES']['funk_use_class()'][] = 'The `funk_use_class()` received invalid $objClassFolder Value. Must be STRING (either "vendor" or "classes").';
-        return null;
-    }
-    // $newObjectOrExistingObject is either a new object instance to SET, or an empty array to GET
-    if (!is_object($newObjectOrExistingObject) && !is_string($newObjectOrExistingObject)) {
-        $c['err']['CLASSES']['funk_use_class()'][] = 'The `funk_use_class()` received invalid $newObjectOrExistingObject Value. Must be STRING (object to GET) or OBJECT (to SET).';
-        return null;
-    }
-    // If it is a string, we check if it exists within the INSTANCES array and return it
-    if (is_string($newObjectOrExistingObject)) {
-        if (isset($c['INSTANCES'][$objClassFolder][$newObjectOrExistingObject])) {
-            return $c['INSTANCES'][$objClassFolder][$newObjectOrExistingObject];
-        } else {
-            $c['err']['CLASSES']['funk_use_class()'][] = 'The `funk_use_class()` did not find the requested instance `' . $newObjectOrExistingObject . '` in the `' . $objClassFolder . '` Folder. Typo and/or not set first?';
-            return null;
-        }
-    }
-    // If object, we first check that the instanceKey is a valid string
-    else if (is_object($newObjectOrExistingObject)) {
-        if (!is_string($instanceKey) || empty($instanceKey)) {
-            $c['err']['CLASSES']['funk_use_class()'][] = 'The `funk_use_class()` received invalid $instanceKey Value. Must be NON-EMPTY STRING when setting a new object instance.';
-            return null;
-        }
-        // then check if it already exists for the given key in the given folder
-        // which is NOT allowed as it is like overwriting an existing instance!
-        if (isset($c['INSTANCES'][$objClassFolder][$instanceKey])) {
-            // Hard-error if overwrite is not allowed
-            if (!FUNKPHP_ALLOW_INSTANCE_OVERWRITE) {
-                $c['err']['CLASSES']['funk_use_class()'][] = 'The `funk_use_class()` cannot set the instance for key `' . $instanceKey . '` in the `' . $objClassFolder . '` Folder as it already exists! Overwriting existing instances is not allowed.';
-                $err = 'The `funk_use_class()` cannot set the instance for key `' . $instanceKey . '` in the `' . $objClassFolder . '` Folder as it already exists! Overwriting existing instances is not allowed. Change to: `define("FUNKPHP_ALLOW_INSTANCE_OVERWRITE",true)` in `config/_all.php` (below $c["INSTANCES"] to `true` if you want to allow overwriting existing instances!';
-                funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
-            } else {
-                $c['INSTANCES'][$objClassFolder][$instanceKey] = $newObjectOrExistingObject;
-                return $c['INSTANCES'][$objClassFolder][$instanceKey];
-            }
-        } else {
-            // Finally, we set the new object instance and return it
-            $c['INSTANCES'][$objClassFolder][$instanceKey] = $newObjectOrExistingObject;
-            return $c['INSTANCES'][$objClassFolder][$instanceKey];
-        }
-    }
-    return null;
 }
 
 // FUNKPHP SESSION-BASED FUNCTIONS
@@ -3053,6 +3039,7 @@ class C
     private array $errors = [
         'all' => [],
         'routes' => [],
+        'config' => [],
         'paramRules' => [],
         // 'config' => [],
         // 'pipes' => [
@@ -3085,20 +3072,8 @@ class C
     private array $validBatches = [
         'routes' => [],
         'paramRules' => [
-            'routes' => [
-                'GET' => [],
-                'POST' => [],
-                'PUT' => [],
-                'PATCH' => [],
-                'DELETE' => []
-            ],
-            'methods' => [
-                'GET' => [],
-                'POST' => [],
-                'PUT' => [],
-                'PATCH' => [],
-                'DELETE' => []
-            ],
+            'routes' => [],
+            'methods' => [],
             'global' => []
         ],
         // 'all' => [],
@@ -3132,20 +3107,8 @@ class C
     private array $invalidBatches = [
         'routes' => [],
         'paramRules' => [
-            'routes' => [
-                'GET' => [],
-                'POST' => [],
-                'PUT' => [],
-                'PATCH' => [],
-                'DELETE' => []
-            ],
-            'methods' => [
-                'GET' => [],
-                'POST' => [],
-                'PUT' => [],
-                'PATCH' => [],
-                'DELETE' => []
-            ],
+            'routes' => [],
+            'methods' => [],
             'global' => []
         ],
         // 'all' => [],
@@ -3414,15 +3377,115 @@ class C
     public function batch(string $fn, mixed ...$payload)
     {
         if ($fn === '' || !method_exists($this, $fn)) {
-            $this->errors['all'][] = 'Internal Error: Tried calling to a non-existing Private Function `' . $fn  . '` in Class `C`. Please report this bug/code miss to `https://www.GitHub.com/WebbKodsFrilansaren/FunkPHP`!';
+            $this->errors['all'][] = '[INTERNAL FUNKPHP ERROR]: Tried calling to a non-existing Private Function `' . $fn  . '` in Class `C`. Please report this bug/code miss to `https://www.GitHub.com/WebbKodsFrilansaren/FunkPHP`!';
             return;
         }
         $this->$fn(...$payload);
     }
-    private function batchSetMiddlewaresCascade(bool $trueOrFalse) {}
-    private function batchSetFunkPHPOnlineGlobal(bool $trueOrFalse) {}
-    private function batchSetUseHTTPSGlobal(bool $trueOrFalse) {}
-    private function batchSetUseVendorGlobal(bool $trueOrFalse) {}
+    private function batchSetMiddlewaresCascade(bool $trueOrFalse)
+    {
+        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('batchSetMiddlewaresCascade', $trueOrFalse);
+        if (isset($this->invalidBatches['config']['MIDDLEWARES_CASCADE'])) {
+            $err = "Duplicate Invalid Boolean Value for `->batchSetMiddlewaresCascade()` as current one under `->config()` is Invalid.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (isset($this->validBatches['config']['MIDDLEWARES_CASCADE'])) {
+            $err = "A Valid Boolean Value for `->batchSetMiddlewaresCascade()` already exists under `->config()`.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (
+            !is_bool($trueOrFalse) || ($trueOrFalse !== FALSE && $trueOrFalse !== TRUE)
+        ) {
+            $err = "Invalid Boolean Value in `->batchSetMiddlewaresCascade()` under `->config()`. Must be a Boolean as either `TRUE` or `FALSE`.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            $this->invalidBatches['config']['MIDDLEWARES_CASCADE'] = $trueOrFalse;
+            return;
+        }
+        $this->validBatches['config']['MIDDLEWARES_CASCADE'] = $trueOrFalse;
+    }
+    private function batchSetFunkPHPOnlineGlobal(bool $trueOrFalse)
+    {
+        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('batchSetFunkPHPOnlineGlobal', $trueOrFalse);
+        if (isset($this->invalidBatches['config']['FUNKPHP_ONLINE'])) {
+            $err = "Duplicate Invalid Boolean Value for `->batchSetFunkPHPOnlineGlobal()` as current one under `->config()` is Invalid.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (isset($this->validBatches['config']['FUNKPHP_ONLINE'])) {
+            $err = "A Valid Boolean Value for `->batchSetFunkPHPOnlineGlobal()` already exists under `->config()`.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (
+            !is_bool($trueOrFalse) || ($trueOrFalse !== FALSE && $trueOrFalse !== TRUE)
+        ) {
+            $err = "Invalid Boolean Value in `->batchSetFunkPHPOnlineGlobal()` under `->config()`. Must be a Boolean as either `TRUE` or `FALSE`.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            $this->invalidBatches['config']['FUNKPHP_ONLINE'] = $trueOrFalse;
+            return;
+        }
+        $this->validBatches['config']['FUNKPHP_ONLINE'] = $trueOrFalse;
+    }
+    private function batchSetUseHTTPSGlobal(bool $trueOrFalse)
+    {
+        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setUseHTTPS', $trueOrFalse);
+        if (isset($this->invalidBatches['config']['USE_HTTPS'])) {
+            $err = "Duplicate Invalid Boolean Value for `->setUseHTTPS()` as current one under `->config()` is Invalid.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (isset($this->validBatches['config']['USE_HTTPS'])) {
+            $err = "A Valid Boolean Value for `->setUseHTTPS()` already exists under `->config()`.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (
+            !is_bool($trueOrFalse) || ($trueOrFalse !== FALSE && $trueOrFalse !== TRUE)
+        ) {
+            $err = "Invalid Boolean Value in `->setUseHTTPS()` under `->config()`. Must be a Boolean as either `TRUE` or `FALSE`.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            $this->invalidBatches['config']['USE_HTTPS'] = $trueOrFalse;
+            return;
+        }
+        $this->validBatches['config']['USE_HTTPS'] = $trueOrFalse;
+    }
+    private function batchSetUseVendorGlobal(bool $trueOrFalse)
+    {
+        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setUseVendor', $trueOrFalse);
+        if (isset($this->invalidBatches['config']['USE_VENDOR'])) {
+            $err = "Duplicate Invalid Boolean Value for `->setUseVendor()` as current one under `->config()` is Invalid.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (isset($this->validBatches['config']['USE_VENDOR'])) {
+            $err = "A Valid Boolean Value for `->setUseVendor()` already exists under `->config()`.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (
+            !is_bool($trueOrFalse) || ($trueOrFalse !== FALSE && $trueOrFalse !== TRUE)
+        ) {
+            $err = "Invalid Boolean Value in `->setUseVendor()` under `->config()`. Must be a Boolean as either `TRUE` or `FALSE`.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            $this->invalidBatches['config']['USE_VENDOR'] = $trueOrFalse;
+            return;
+        }
+        $this->validBatches['config']['USE_VENDOR'] = $trueOrFalse;
+    }
 
     private function batchSetDefaultRegisteredShutdownFunctionGlobal(string $userDefinedFunction) {}
     private function batchSetDefaultExceptionHandlerGlobal(string $userDefinedFunction) {}
@@ -3436,29 +3499,502 @@ class C
     private function batchSetNoRouteMatchTextGlobal(string $message, int $statusCode = 404) {}
     private function batchSetNoRouteMatchCallbackGlobal(callable|string $userDefinedFunctionname) {}
 
-    private function batchSetDefaultBaseURLLocalGlobal(string $httpsPath) {}
-    private function batchSetDefaultBaseURLOnlineGlobal(string $httpsPath) {}
-    private function batchSetDefaultBaseURLHostGlobal(string $hostNameLocally) {}
-    private function batchSetDefaultBaseURLUriGlobal(string $localURI) {}
+    private function batchSetDefaultBaseURLLocalGlobal(string $httpsPath)
+    {
+        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setBaseURLLocal', $httpsPath);
+        if (isset($this->invalidBatches['config']['BASEURL_LOCAL'])) {
+            $err = "Duplicate Invalid String Value for `->setBaseURLLocal()` as current one under `->config()` is Invalid.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (isset($this->validBatches['config']['BASEURL_LOCAL'])) {
+            $err = "A Valid String Value for `->setBaseURLLocal()` already exists under `->config()`.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (
+            !is_string($httpsPath) || trim($httpsPath) === ''
+            || !preg_match('/^http:\/\//', $httpsPath)
+        ) {
+            $err = "Invalid String Value `{$httpsPath}` in `->setBaseURLLocal()` under `->config()`. Must be a Non-Empty String that starts with `http://`.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            $this->invalidBatches['config']['BASEURL_LOCAL'] = $httpsPath;
+            return;
+        }
+        $this->validBatches['config']['BASEURL_LOCAL'] = $httpsPath;
+    }
+    private function batchSetDefaultBaseURLOnlineGlobal(string $httpsPath)
+    {
+        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setBaseURLOnline', $httpsPath);
+        if (isset($this->invalidBatches['config']['BASEURL_ONLINE'])) {
+            $err = "Duplicate Invalid String Value for `->setBaseURLOnline()` as current one under `->config()` is Invalid.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (isset($this->validBatches['config']['BASEURL_ONLINE'])) {
+            $err = "A Valid String Value for `->setBaseURLOnline()` already exists under `->config()`.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (
+            !is_string($httpsPath) || trim($httpsPath) === ''
+            || !preg_match('/^https:\/\//', $httpsPath)
+        ) {
+            $err = "Invalid String Value `{$httpsPath}` in `->setBaseURLOnline()` under `->config()`. Must be a Non-Empty String that starts with `https://`.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            $this->invalidBatches['config']['BASEURL_ONLINE'] = $httpsPath;
+            return;
+        }
+        $this->validBatches['config']['BASEURL_ONLINE'] = $httpsPath;
+    }
+    private function batchSetDefaultBaseURLHostGlobal(string $hostNameLocally)
+    {
+        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setBaseURLHost', $hostNameLocally);
+        if (isset($this->invalidBatches['config']['BASEURL_HOST'])) {
+            $err = "Duplicate Invalid String Value for `->setBaseURLHost()` as current one under `->config()` is Invalid.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (isset($this->validBatches['config']['BASEURL_HOST'])) {
+            $err = "A Valid String Value for `->setBaseURLHost()` already exists under `->config()`.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (
+            !is_string($hostNameLocally) || trim($hostNameLocally) === ''
+        ) {
+            $err = "Invalid String Value `{$hostNameLocally}` in `->setBaseURLHost()` under `->config()`. Must be a Non-Empty String.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            $this->invalidBatches['config']['BASEURL_HOST'] = $hostNameLocally;
+            return;
+        }
+        $this->validBatches['config']['BASEURL_HOST'] = $hostNameLocally;
+    }
+    private function batchSetDefaultBaseURLUriGlobal(string $localURI)
+    {
+        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setBaseURLUri', $localURI);
+        if (isset($this->invalidBatches['config']['BASEURL_URI'])) {
+            $err = "Duplicate Invalid String Value for `->setBaseURLUri()` as current one under `->config()` is Invalid.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (isset($this->validBatches['config']['BASEURL_URI'])) {
+            $err = "A Valid String Value for `->setBaseURLUri()` already exists under `->config()`.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (
+            !is_string($localURI) || trim($localURI) === ''
+        ) {
+            $err = "Invalid String Value `{$localURI}` in `->setBaseURLUri()` under `->config()`. Must be a Non-Empty String.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            $this->invalidBatches['config']['BASEURL_URI'] = $localURI;
+            return;
+        }
+        $this->validBatches['config']['BASEURL_URI'] = $localURI;
+    }
+    private function batchSetDefaultSessionCookieOptionsGlobal(array $SessionCookieOptions)
+    {
+        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setSessionCookieOptions', $SessionCookieOptions);
+        if (isset($this->invalidBatches['config']['SESSION']['COOKIES']['AS_OPTIONS'])) {
+            $err = "Duplicate Invalid Array Value for `->setSessionCookieOptions()` as current one under `->config()` is Invalid.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (isset($this->validBatches['config']['SESSION']['COOKIES']['AS_OPTIONS'])) {
+            $err = "A Valid Array Value for `->setSessionCookieOptions()` already exists under `->config()`.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        $allowedKeys = [
+            'SESSION_NAME',
+            'SESSION_LIFETIME',
+            'SESSION_PATH',
+            'SESSION_DOMAIN',
+            'SESSION_SECURE',
+            'SESSION_HTTPONLY',
+            'SESSION_SAMESITE',
+        ];
+        if (empty($SessionCookieOptions) || array_is_list($SessionCookieOptions)) {
+            $err = "Invalid Formatted Array in `->setSessionCookieOptions()` under `->config()`. Must be a Non-Empty Associative Array with these Session Cookie Options:`" . implode('`, `', $allowedKeys) . "`.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            $this->invalidBatches['config']['SESSION']['COOKIES']['AS_OPTIONS'] = $SessionCookieOptions;
+            return;
+        }
+        // Validate Session Cookie Options are just Assoc_key => Scalar_Value
+        foreach ($SessionCookieOptions as $key => $val) {
+            if (!is_scalar($val)) {
+                $err = "Invalid Value for Session Cookie Option `{$key}` in `->setSessionCookieOptions()` under `->config()`. It must be a Scalar Value (Non-Empty String, Non-Negative Integer|Float, or Boolean) using these Session Cookie Keys:`" . implode('`, `', $allowedKeys) . "`.";
+                $this->errors['all'][] = $err;
+                $this->errors['config'][] = $err;
+                $this->invalidBatches['config']['SESSION']['COOKIES']['AS_OPTIONS'] = $SessionCookieOptions;
+            }
+            if (!in_array($key, $allowedKeys, true)) {
+                $err = "Invalid Session Cookie Option `{$key}` in `->setSessionCookieOptions()` under `->config()`. Use these Session Cookie Keys:`" . implode('`, `', $allowedKeys) . "`.";
+                $this->errors['all'][] = $err;
+                $this->errors['config'][] = $err;
+                $this->invalidBatches['config']['SESSION']['COOKIES']['AS_OPTIONS'] = $SessionCookieOptions;
+                return;
+            }
+            if (isset($this->validBatches['config']['SESSION']['COOKIES'][$key])) {
+                $err = "The Session Cookie Option `{$key}` in `->setSessionCookieOptions()` under `->config()` already exists as a Valid Session Cookie Value under `->config()`.";
+                $this->errors['all'][] = $err;
+                $this->errors['config'][] = $err;
+                $this->invalidBatches['config']['SESSION']['COOKIES']['AS_OPTIONS'] = $SessionCookieOptions;
+                return;
+            } else if (isset($this->invalidBatches['config']['SESSION']['COOKIES'][$key])) {
+                $err = "The Session Cookie Option `{$key}` in `->setSessionCookieOptions()` under `->config()` already exists as a Invalid Session Cookie Value under `->config()`.";
+                $this->errors['all'][] = $err;
+                $this->errors['config'][] = $err;
+                $this->invalidBatches['config']['SESSION']['COOKIES']['AS_OPTIONS'] = $SessionCookieOptions;
+                return;
+            }
+        }
+        // Then validate each individual session cookie option
+        $validated = [];
+        foreach ($SessionCookieOptions as $key => $val) {
+            switch ($key) {
+                case 'SESSION_NAME':
+                    if (!is_string($val) || trim($val) === '') {
+                        $err = "Invalid `SESSION_NAME` Value in `->setSessionCookieOptions()` under `->config()`. Must be a Non-Empty String.";
+                        $this->errors['all'][] = $err;
+                        $this->errors['config'][] = $err;
+                        $this->invalidBatches['config']['SESSION']['COOKIES']['AS_OPTIONS'] = $SessionCookieOptions;
+                        return;
+                    }
+                    $validated[$key] = trim($val);
+                    break;
+                case 'SESSION_LIFETIME':
+                    if (!is_int($val) || $val < 0) {
+                        $err = "Invalid `SESSION_LIFETIME` Value in `->setSessionCookieOptions()` under `->config()`. Must be a Non-Negative Integer.";
+                        $this->errors['all'][] = $err;
+                        $this->errors['config'][] = $err;
+                        $this->invalidBatches['config']['SESSION']['COOKIES']['AS_OPTIONS'] = $SessionCookieOptions;
+                        return;
+                    }
+                    $validated[$key] = $val;
+                    break;
+                case 'SESSION_PATH':
+                    if (
+                        !is_string($val) || !str_starts_with($val, '/')
+                        || !preg_match('/^((\/[a-zA-Z0-9-_]+)+)|(\/)$/i', $val)
+                    ) {
+                        $err = "Invalid `SESSION_PATH` Value in `->setSessionCookieOptions()` under `->config()`. Must be a Non-Empty String starting with or only being:`/` and then use [a-zA-Z0-9_-#] characters only in each `/segment`.";
+                        $this->errors['all'][] = $err;
+                        $this->errors['config'][] = $err;
+                        $this->invalidBatches['config']['SESSION']['COOKIES']['AS_OPTIONS'] = $SessionCookieOptions;
+                        return;
+                    }
+                    $validated[$key] = $val;
+                    break;
+                case 'SESSION_DOMAIN':
+                    if (
+                        !is_string($val) || trim($val) === ''
+                        || str_contains($val, '://')
+                        || str_contains($val, ':')
+                        || str_contains($val, '/')
+                        || preg_match('/[\s;]/', $val)
+                    ) {
+                        $err = "Invalid `SESSION_DOMAIN` Value in `->setSessionCookieOptions()` under `->config()`. Must be a Non-Empty String without schemes and ports:`://`, `:`, `/`.";
+                        $this->errors['all'][] = $err;
+                        $this->errors['config'][] = $err;
+                        $this->invalidBatches['config']['SESSION']['COOKIES']['AS_OPTIONS'] = $SessionCookieOptions;
+                        return;
+                    }
+                    $validated[$key] = $val;
+                    break;
+                case 'SESSION_SECURE':
+                case 'SESSION_HTTPONLY':
+                    if (!is_bool($val)) {
+                        $err = "Invalid `{$key}` Value in `->setSessionCookieOptions()` under `->config()`. Must be a Boolean as either `TRUE` or `FALSE`.";
+                        $this->errors['all'][] = $err;
+                        $this->errors['config'][] = $err;
+                        $this->invalidBatches['config']['SESSION']['COOKIES']['AS_OPTIONS'] = $SessionCookieOptions;
+                        return;
+                    }
+                    $validated[$key] = $val;
+                    break;
+                case 'SESSION_SAMESITE':
+                    if (!is_string($val) || trim($val) === '' || !in_array((ucfirst(strtolower($val))), ['Lax', 'Strict', 'None'], true)) {
+                        $err = "Invalid `SESSION_SAMESITE` Value in `->setSessionCookieOptions()` under `->config()`. Must be one of these Non-Empty String Values:`Lax, Strict, None`.";
+                        $this->errors['all'][] = $err;
+                        $this->errors['config'][] = $err;
+                        $this->invalidBatches['config']['SESSION']['COOKIES']['AS_OPTIONS'] = $SessionCookieOptions;
+                        return;
+                    }
+                    $validated[$key] = $val;
+                    break;
+            }
+        }
+        // Finally add all to the specific Session Cookie Variables and assign as valid batch
+        foreach ($validated as $k => $v) {
+            $this->validBatches['config']['SESSION']['COOKIES'][$k] = $v;
+        }
+        $this->validBatches['config']['SESSION']['COOKIES']['AS_OPTIONS'] = true;
+    }
 
-    private function batchSetDefaultSessionDriverGlobal(string $filesOrRedisOrSomethingElse = 'files') {}
-    private function batchSetDefaultSessionCookieNameGlobal(string $sessionCookieName = 'fphp_id') {}
-    private function batchSetDefaultSessionCookieLifetimeGlobal(int $sessionCookieLifetime = 28800) {}
-    private function batchSetDefaultSessionCookiePathGlobal(string $sessionCookiePath = '/') {}
-    private function batchSetDefaultSessionCookieDomainGlobal(string $sessionCookiePath = 'webdev.local') {}
-    private function batchSetDefaultSessionCookieSecureGlobal(bool $trueOrFalse = false) {}
-    private function batchSetDefaultSessionCookieHTTPOnlyGlobal(bool $trueOrFalse = true) {}
-    private function batchSetDefaultSessionCookieSameSiteGlobal(string $LaxOrStrict = 'Lax') {}
+    private function batchSetDefaultSessionDriverGlobal(string $filesOrRedisOrSomethingElse = 'files')
+    {
+        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setSessionDriver', $filesOrRedisOrSomethingElse);
+        if (isset($this->invalidBatches['config']['SESSION']['driver'])) {
+            $err = "Duplicate Invalid String Value for `->setSessionDriver()` as current one under `->config()` is Invalid.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (isset($this->validBatches['config']['SESSION']['driver'])) {
+            $err = "A Valid String Value for `->setSessionDriver()` already exists under `->config()`.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (
+            !is_string($filesOrRedisOrSomethingElse) || trim($filesOrRedisOrSomethingElse) === ''
+            || !in_array(strtolower($filesOrRedisOrSomethingElse), ['files', 'redis', 'memcached', 'database', 'array'], true)
+        ) {
+            $err = "Invalid String Value `{$filesOrRedisOrSomethingElse}` in `->setSessionDriver()` under `->config()`. Must be one of these Non-Empty String Values:`files, redis, memcached, database, array`.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            $this->invalidBatches['config']['SESSION']['driver'] = $filesOrRedisOrSomethingElse;
+            return;
+        }
+        $this->validBatches['config']['SESSION']['driver'] = $filesOrRedisOrSomethingElse;
+    }
+    private function batchSetDefaultSessionCookieNameGlobal(string $sessionCookieName = 'fphp_id')
+    {
+        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setSessionCookieName', $sessionCookieName);
+        if (isset($this->invalidBatches['config']['SESSION']['COOKIES']['SESSION_NAME'])) {
+            $err = "Duplicate Invalid String Value for `->setSessionCookieName()` as current one under `->config()` is Invalid.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_NAME'])) {
+            $err = "A Valid String Value for `->setSessionCookieName()` already exists under `->config()`.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (!is_string($sessionCookieName) || trim($sessionCookieName) === '') {
+            $err = "Invalid String Value `{$sessionCookieName}` in `->setSessionCookieName()` under `->config()`. Must be a Non-Empty String.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            $this->invalidBatches['config']['SESSION']['COOKIES']['SESSION_NAME'] = $sessionCookieName;
+            return;
+        }
+        $this->validBatches['config']['SESSION']['COOKIES']['SESSION_NAME'] = $sessionCookieName;
+    }
+    private function batchSetDefaultSessionCookieLifetimeGlobal(int $sessionCookieLifetime = 28800)
+    {
+        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setSessionCookieLifetime', $sessionCookieLifetime);
+        if (isset($this->invalidBatches['config']['SESSION']['COOKIES']['SESSION_LIFETIME'])) {
+            $err = "Duplicate Invalid Integer Value for `->setSessionCookieLifetime()` as current one under `->config()` is Invalid.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_LIFETIME'])) {
+            $err = "A Valid Integer Value for `->setSessionCookieLifetime()` already exists under `->config()`.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (!is_int($sessionCookieLifetime) || $sessionCookieLifetime < 0) {
+            $err = "Invalid Integer Value `{$sessionCookieLifetime}` in `->setSessionCookieLifetime()` under `->config()`. Must be a Non-Negative Integer.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            $this->invalidBatches['config']['SESSION']['COOKIES']['SESSION_LIFETIME'] = $sessionCookieLifetime;
+            return;
+        }
+        $this->validBatches['config']['SESSION']['COOKIES']['SESSION_LIFETIME'] = $sessionCookieLifetime;
+    }
+    private function batchSetDefaultSessionCookiePathGlobal(string $sessionCookiePath = '/')
+    {
+        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setSessionCookiePath', $sessionCookiePath);
+        if (isset($this->invalidBatches['config']['SESSION']['COOKIES']['SESSION_PATH'])) {
+            $err = "Duplicate Invalid String Value for `->setSessionCookiePath()` as current one under `->config()` is Invalid.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_PATH'])) {
+            $err = "A Valid String Value for `->setSessionCookiePath()` already exists under `->config()`.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (
+            !is_string($sessionCookiePath) || trim($sessionCookiePath) === ''
+            || !str_starts_with($sessionCookiePath, '/') || !preg_match('/^((\/[a-zA-Z0-9-_]+)+)|(\/)$/i', $sessionCookiePath)
+        ) {
+            $err = "Invalid String Value `{$sessionCookiePath}` in `->setSessionCookiePath()` under `->config()`. Must be a Non-Empty String starting with or only being:`/` and then use [a-zA-Z0-9_-#] characters only in each `/segment`.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            $this->invalidBatches['config']['SESSION']['COOKIES']['SESSION_PATH'] = $sessionCookiePath;
+            return;
+        }
+        $this->validBatches['config']['SESSION']['COOKIES']['SESSION_PATH'] = $sessionCookiePath;
+    }
+    private function batchSetDefaultSessionCookieDomainGlobal(string $sessionCookieDomain = 'webdev.local')
+    {
+        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setSessionCookieDomain', $sessionCookieDomain);
+        if (isset($this->invalidBatches['config']['SESSION']['COOKIES']['SESSION_DOMAIN'])) {
+            $err = "Duplicate Invalid String Value for `->setSessionCookieDomain()` as current one under `->config()` is Invalid.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_DOMAIN'])) {
+            $err = "A Valid String Value for `->setSessionCookieDomain()` already exists under `->config()`.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (
+            !is_string($sessionCookieDomain) || trim($sessionCookieDomain) === ''
+            || str_contains($sessionCookieDomain, '://')
+            || str_contains($sessionCookieDomain, ':')
+            || str_contains($sessionCookieDomain, '/')
+            || preg_match('/[\s;]/', $sessionCookieDomain)
+        ) {
+            $err = "Invalid String Value `{$sessionCookieDomain}` in `->setSessionCookieDomain()` under `->config()`. Must be a Non-Empty String without schemes and ports:`://`, `:`, `/`.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            $this->invalidBatches['config']['SESSION']['COOKIES']['SESSION_DOMAIN'] = $sessionCookieDomain;
+            return;
+        }
+        $this->validBatches['config']['SESSION']['COOKIES']['SESSION_DOMAIN'] = $sessionCookieDomain;
+    }
+    private function batchSetDefaultSessionCookieSecureGlobal(bool $trueOrFalse = false)
+    {
+        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setSessionCookieSecure', $trueOrFalse);
+        if (isset($this->invalidBatches['config']['SESSION']['COOKIES']['SESSION_SECURE'])) {
+            $err = "Duplicate Invalid Boolean Value for `->setSessionCookieSecure()` as current one under `->config()` is Invalid.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_SECURE'])) {
+            $err = "A Valid Boolean Value for `->setSessionCookieSecure()` already exists under `->config()`.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (!is_bool($trueOrFalse)) {
+            $err = "Invalid Boolean Value in `->setSessionCookieSecure()` under `->config()`. Must be a Boolean as either `TRUE` or `FALSE`.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            $this->invalidBatches['config']['SESSION']['COOKIES']['SESSION_SECURE'] = $trueOrFalse;
+            return;
+        }
+        $this->validBatches['config']['SESSION']['COOKIES']['SESSION_SECURE'] = $trueOrFalse;
+    }
+    private function batchSetDefaultSessionCookieHTTPOnlyGlobal(bool $trueOrFalse = true)
+    {
+        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setSessionCookieHTTPOnly', $trueOrFalse);
+        if (isset($this->invalidBatches['config']['SESSION']['COOKIES']['SESSION_HTTPONLY'])) {
+            $err = "Duplicate Invalid Boolean Value for `->setSessionCookieHTTPOnly()` as current one under `->config()` is Invalid.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_HTTPONLY'])) {
+            $err = "A Valid Boolean Value for `->setSessionCookieHTTPOnly()` already exists under `->config()`.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (!is_bool($trueOrFalse)) {
+            $err = "Invalid Boolean Value in `->setSessionCookieHTTPOnly()` under `->config()`. Must be a Boolean as either `TRUE` or `FALSE`.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            $this->invalidBatches['config']['SESSION']['COOKIES']['SESSION_HTTPONLY'] = $trueOrFalse;
+            return;
+        }
+        $this->validBatches['config']['SESSION']['COOKIES']['SESSION_HTTPONLY'] = $trueOrFalse;
+    }
+    private function batchSetDefaultSessionCookieSameSiteGlobal(string $LaxOrStrict = 'Lax')
+    {
+        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setSessionCookieSameSite', $LaxOrStrict);
+        if (isset($this->invalidBatches['config']['SESSION']['COOKIES']['SESSION_SAMESITE'])) {
+            $err = "Duplicate Invalid String Value for `->setSessionCookieSameSite()` as current one under `->config()` is Invalid.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_SAMESITE'])) {
+            $err = "A Valid String Value for `->setSessionCookieSameSite()` already exists under `->config()`.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (!is_string($LaxOrStrict) || trim($LaxOrStrict) === '' || !in_array((ucfirst(strtolower($LaxOrStrict))), ['Lax', 'Strict', 'None'], true)) {
+            $err = "Invalid String Value in `->setSessionCookieSameSite()` under `->config()`. Must be one of these Non-Empty String Values:`Lax, Strict, None`.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            $this->invalidBatches['config']['SESSION']['COOKIES']['SESSION_SAMESITE'] = $LaxOrStrict;
+            return;
+        }
+        $this->validBatches['config']['SESSION']['COOKIES']['SESSION_SAMESITE'] = $LaxOrStrict;
+    }
 
-    private function batchSetINI_SETGlobal(array $iniSetArrayWithKeyNamesAsSettingTypeWithSingleScalarValue) {}
+    private function batchSetINI_SETGlobal(array $iniSetArrayWithKeyNamesAsSettingTypeWithSingleScalarValue)
+    {
+        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setINI_SET', $iniSetArrayWithKeyNamesAsSettingTypeWithSingleScalarValue);
+        if (isset($this->invalidBatches['config']['setINI_SET'])) {
+            $err = "Duplicate Invalid Formatted Array of `ini_set()`. Current `->setINI_SET()` under `->config()` is already invalid.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (isset($this->validBatches['config']['setINI_SET'])) {
+            $err = "A Valid Formatted Array of `ini_set()` via `->setINI_SET()` already exists under `->config()`.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (empty($iniSetArrayWithKeyNamesAsSettingTypeWithSingleScalarValue) || array_is_list($iniSetArrayWithKeyNamesAsSettingTypeWithSingleScalarValue)) {
+            $err = "Invalid Formatted Array in `->setINI_SET()`. Must be a non-empty associative array (e.g., ['setting' => 'value']).";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            $this->invalidBatches['config']['setINI_SET'] = $iniSetArrayWithKeyNamesAsSettingTypeWithSingleScalarValue;
+            return;
+        }
+        foreach ($iniSetArrayWithKeyNamesAsSettingTypeWithSingleScalarValue as $k => $v) {
+            $isValidKey   = is_string($k) && trim($k) !== '';
+            $isValidValue = is_scalar($v) && (!is_string($v) || trim($v) !== '');
+            if (!$isValidKey || !$isValidValue) {
+                $err = "Invalid Formatted Array Key or Value in `->setINI_SET()`. Keys must be non-empty strings and values must be non-empty scalar types (string, int, float, bool).";
+                $this->errors['all'][] = $err;
+                $this->errors['config'][] = $err;
+                $this->invalidBatches['config']['setINI_SET'] = $iniSetArrayWithKeyNamesAsSettingTypeWithSingleScalarValue;
+                return;
+            }
+        }
+        $this->validBatches['config']['setINI_SET'] = $iniSetArrayWithKeyNamesAsSettingTypeWithSingleScalarValue;
+    }
 
-    private function batchSetGroupedFunctions(string ...$functions) {}
-    private function batchSetGroupedMiddlewares(string ...$middlewares) {}
+    private function batchSetGroupedFunctions(string $groupName, string ...$functions) {}
+    private function batchSetGroupedMiddlewares(string $groupName, string ...$middlewares) {}
 
     private function batchSetParamRuleGlobal(string $param, string $regex, $defaultParamValueOnRegexMismatch = null)
     {
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setParamRule', $param, $regex, $defaultParamValueOnRegexMismatch);
-
         // Check against already global invalid one
         if (isset($this->invalidBatches['paramRules']['global'][$param])) {
             $this->errors['all'][] = "Duplicate Invalid Global Param Rule `{$param},{$regex}`.";
@@ -3521,6 +4057,7 @@ class C
     private function batchNewPipeMiddlewareGlobal(string $middleware) {}
     private function batchNewPipeRequestFunctionGlobal(string $fileFunctionName) {}
     private function batchNewPipePostResponseFunctionGlobal(string $fileFunctionName) {}
+
     // Set & New Batches for SPECIFIC_METHOD! (so ->routes()-><Method>->set|pipe<What>)
     private function batchSetRateLimitingMethod(string $method, array $rateLimitingOptions) {}
     private function batchSetNoRouteMatchMethod(string $method, array $options) {}
@@ -4403,6 +4940,8 @@ class FunkConfig
         $this->c->batch('batchSetINI_SETGlobal', $iniSetArrayWithKeyNamesAsSettingTypeWithSingleScalarValue);
         return $this;
     }
+
+    /* setCSP<&Variants> */
     public function setCSP(string $sourceType, string ...$sources): self
     {
         $this->c->batch('batchSetCSPGlobal', $sourceType, ...$sources);
@@ -4463,6 +5002,8 @@ class FunkConfig
         $this->c->batch('batchSetNoRouteMatchGlobal', $options);
         return $this;
     }
+
+    /* setNoRouteMatch<Variants> */
     public function setNoRouteMatchPage(string $PageFileName): self
     {
         $this->c->batch('batchSetNoRouteMatchPageGlobal', $PageFileName);
@@ -4483,6 +5024,8 @@ class FunkConfig
         $this->c->batch('batchSetNoRouteMatchCallbackGlobal', $userDefinedFunctionName);
         return $this;
     }
+
+    /* setDefault<Variants_from_User_defined_Functions> */
     public function setDefaultRegisteredShutdownHandler(string $userDefinedFunctionName): self
     {
         $this->c->batch('batchSetDefaultRegisteredShutdownFunctionGlobal', $userDefinedFunctionName);
@@ -4508,6 +5051,8 @@ class FunkConfig
         $this->c->batch('batchSetDefaultHTTPSKernelDispatchHandlerGlobal', $userDefinedFunctionName);
         return $this;
     }
+
+    /* setBASEURL<Variants> */
     public function setBaseURLLocal(string $httpsPath): self
     {
         $this->c->batch('batchSetDefaultBaseURLLocalGlobal', $httpsPath);
@@ -4528,9 +5073,17 @@ class FunkConfig
         $this->c->batch('batchSetDefaultBaseURLUriGlobal', $localURI);
         return $this;
     }
+
+    /* setSession<Driver&Cookie_Configs_For_it> */
     public function setSessionDriver(string $filesOrRedisOrSomethingElse = 'files'): self
     {
         $this->c->batch('batchSetDefaultSessionDriverGlobal', $filesOrRedisOrSomethingElse);
+        return $this;
+    }
+    /* This one is just to set all values immediately as an array instead of single ones */
+    public function setSessionCookieOptions(array $sessionCookieOptions): self
+    {
+        $this->c->batch('batchSetDefaultSessionCookieOptionsGlobal', $sessionCookieOptions);
         return $this;
     }
     public function setSessionCookieName(string $sessionCookieName = 'fphp_id'): self
@@ -4548,9 +5101,9 @@ class FunkConfig
         $this->c->batch('batchSetDefaultSessionCookiePathGlobal', $sessionCookiePath);
         return $this;
     }
-    public function setSessionCookieDomain(string $sessionCookiePath = 'webdev.local'): self
+    public function setSessionCookieDomain(string $sessionCookieDomain = 'webdev.local'): self
     {
-        $this->c->batch('batchSetDefaultSessionCookieDomainGlobal', $sessionCookiePath);
+        $this->c->batch('batchSetDefaultSessionCookieDomainGlobal', $sessionCookieDomain);
         return $this;
     }
     public function setSessionCookieSecure(bool $trueOrFalse = false): self
@@ -4568,36 +5121,61 @@ class FunkConfig
         $this->c->batch('batchSetDefaultSessionCookieSameSiteGlobal', $LaxOrStrict);
         return $this;
     }
-    public function setParamRule(string $param, string $regex, $defaultParamValueOnRegexMismatch = null): self
-    {
-        $this->c->batch('batchSetParamRuleGlobal', $param, $regex, $defaultParamValueOnRegexMismatch);
-        return $this;
-    }
+
+    /* set<VARIANTS> that are ONLY Boolean */
     public function setMiddlewaresCascade(bool $trueOrFalse): self
     {
         $this->c->batch('batchSetMiddlewaresCascade', $trueOrFalse);
         return $this;
     }
+    public function setUseFunKPHPOnline(bool $trueOrFalse): self
+    {
+        $this->c->batch('batchSetFunkPHPOnlineGlobal', $trueOrFalse);
+        return $this;
+    }
+    public function setUseHTTPS(bool $trueOrFalse): self
+    {
+        $this->c->batch('batchSetUseHTTPSGlobal', $trueOrFalse);
+        return $this;
+    }
+    public function setUseVendor(bool $trueOrFalse): self
+    {
+        $this->c->batch('batchSetUseVendorGlobal', $trueOrFalse);
+        return $this;
+    }
+
+    /* setParamRule Globally/config() */
+    public function setParamRule(string $param, string $regex, $defaultParamValueOnRegexMismatch = null): self
+    {
+        $this->c->batch('batchSetParamRuleGlobal', $param, $regex, $defaultParamValueOnRegexMismatch);
+        return $this;
+    }
+
+    /* pipeHeader Globally/config() */
     public function pipeHeader(string $header): self
     {
         $this->c->batch('batchNewHeaderGlobal', $header);
         return $this;
     }
+    /* removeHeader Globally/config() */
     public function removeHeader(string $header_to_remove): self
     {
         $this->c->batch('batchRemoveHeaderGlobal', $header_to_remove);
         return $this;
     }
+    /* pipeMiddleware Globally/config() */
     public function pipeMiddleware(string $middleware): self
     {
         $this->c->batch('batchNewPipeMiddlewareGlobal', $middleware);
         return $this;
     }
+    /* pipeRequestFunction Globally/config() */
     public function pipeRequestFunction(string $requestFunction): self
     {
         $this->c->batch('batchNewPipeRequestFunctionGlobal', $requestFunction);
         return $this;
     }
+    /* pipePostResponseFunction Globally/config() */
     public function pipePostResponseFunction(string $postResponseFunction): self
     {
         $this->c->batch('batchNewPipePostResponseFunctionGlobal', $postResponseFunction);
