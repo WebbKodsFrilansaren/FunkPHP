@@ -3382,6 +3382,8 @@ class C
         }
         $this->$fn(...$payload);
     }
+
+    /* set<BOOLEAN_VARIANTS_OPTIONS-MiddlewaresCascade,FunkPHPOnline,UseHTTPS,UseVendor> Global */
     private function batchSetMiddlewaresCascade(bool $trueOrFalse)
     {
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('batchSetMiddlewaresCascade', $trueOrFalse);
@@ -3487,18 +3489,21 @@ class C
         $this->validBatches['config']['USE_VENDOR'] = $trueOrFalse;
     }
 
+    /* setUseDefault<Register,Exception,Error,UriNormalizer,In-builtKernel-UserDefinedFunctions> Global */
     private function batchSetDefaultRegisteredShutdownFunctionGlobal(string $userDefinedFunction) {}
     private function batchSetDefaultExceptionHandlerGlobal(string $userDefinedFunction) {}
     private function batchSetDefaultErrorHandlerGlobal(string $userDefinedFunction) {}
     private function batchSetDefaultURINormalizerGlobal(string $userDefinedFunction) {}
     private function batchSetDefaultHTTPSKernelDispatchHandlerGlobal(string $userDefinedFunction) {}
 
+    /* setNoRouteMatch<VARIANTS> Global */
     private function batchSetNoRouteMatchGlobal(array $options) {}
     private function batchSetNoRouteMatchPageGlobal(string $PageFileName) {}
     private function batchSetNoRouteMatchJsonGlobal(array|object $data, int $statusCode = 404) {}
     private function batchSetNoRouteMatchTextGlobal(string $message, int $statusCode = 404) {}
     private function batchSetNoRouteMatchCallbackGlobal(callable|string $userDefinedFunctionname) {}
 
+    /* setBASEURL<VARIANTS> Global */
     private function batchSetDefaultBaseURLLocalGlobal(string $httpsPath)
     {
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setBaseURLLocal', $httpsPath);
@@ -3747,7 +3752,7 @@ class C
         }
         $this->validBatches['config']['SESSION']['COOKIES']['AS_OPTIONS'] = true;
     }
-
+    /* setSESSIONDriver Global & then setSESSION_COOKIE<VARIANTS> Global */
     private function batchSetDefaultSessionDriverGlobal(string $filesOrRedisOrSomethingElse = 'files')
     {
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setSessionDriver', $filesOrRedisOrSomethingElse);
@@ -3953,6 +3958,7 @@ class C
         $this->validBatches['config']['SESSION']['COOKIES']['SESSION_SAMESITE'] = $LaxOrStrict;
     }
 
+    /* setINI_SET for "ini_set()" calls Global */
     private function batchSetINI_SETGlobal(array $iniSetArrayWithKeyNamesAsSettingTypeWithSingleScalarValue)
     {
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setINI_SET', $iniSetArrayWithKeyNamesAsSettingTypeWithSingleScalarValue);
@@ -3989,9 +3995,11 @@ class C
         $this->validBatches['config']['setINI_SET'] = $iniSetArrayWithKeyNamesAsSettingTypeWithSingleScalarValue;
     }
 
+    /* setGrouped<VARIANTS> Global */
     private function batchSetGroupedFunctions(string $groupName, string ...$functions) {}
     private function batchSetGroupedMiddlewares(string $groupName, string ...$middlewares) {}
 
+    /* setParamRule GLOBAL */
     private function batchSetParamRuleGlobal(string $param, string $regex, $defaultParamValueOnRegexMismatch = null)
     {
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setParamRule', $param, $regex, $defaultParamValueOnRegexMismatch);
@@ -4039,6 +4047,7 @@ class C
         ];
     }
 
+    /* setCSP<VARIANTS> Global */
     private function batchSetCSPGlobal(string $sourceType, string ...$sources) {}
     private function batchSetCSPScriptGlobal(string ...$sources) {}
     private function batchSetCSPStyleGlobal(string ...$sources) {}
@@ -4050,15 +4059,120 @@ class C
     private function batchSetCSPBaseURIGlobal(string ...$sources) {}
     private function batchSetCSPFormActionGlobal(string ...$sources) {}
     private function batchSetCSPDefaultGlobal(string ...$sources) {}
-    private function batchSetSRIInternalGlobal(string $internalSRI) {}
-    private function batchSetSRIExternalGlobal(string $externalSRI) {}
+
+    /* setSRI Internal&External Global */
+    private function batchSetSRIInternalGlobal(array $internalSRI)
+    {
+        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setSRIInternal', $internalSRI);
+        if (isset($this->invalidBatches['config']['global_sris']['internal'])) {
+            $err = "Duplicate call `->setSRIInternal()` under `->config()`. An Invalid Formatted SRI Internal Array already exists under `->config()`.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (isset($this->validBatches['config']['global_sris']['internal'])) {
+            $err = "Duplicate call `->setSRIInternal()` under `->config()`. An Valid Formatted SRI Internal Array already exists under `->config()`.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        $allErr = "Invalid Formatted Array Value in `->setSRIInternal()` under `->config()`. Must be a Non-Empty Associative Array whose Keys are Non-Empty Strings and where each Key contains Single Unique Non-Empty String Values like:`['app_js' => 'sha384-...']` where the Key is the File Name without File Extension and the Value is the Hash Value of that File.";
+        if (!isset($internalSRI) || empty($internalSRI) || array_is_list($internalSRI)) {
+            $this->errors['all'][] = $allErr;
+            $this->errors['config'][] = $allErr;
+            $this->invalidBatches['config']['global_sris']['internal'] = $internalSRI;
+            return;
+        }
+        $duplicateHashes = [];
+        $valid = [];
+        foreach ($internalSRI as $key => $sriHash) {
+            if (isset($duplicateHashes[$sriHash])) {
+                $allErr = "Invalid Formatted Array Value in `->setSRIInternal()` under `->config()` where Internal SRI Hash:`{$sriHash}` is already used by Key:`{$duplicateHashes[$sriHash]}`. Each Internal SRI Key must contain Single Unique Non-Empty String Values like:`['app_js' => 'sha384-...']` where the Key is the File Name without File Extension and the Value is the Hash Value of that File.";
+                $this->errors['all'][] = $allErr;
+                $this->errors['config'][] = $allErr;
+                $this->invalidBatches['config']['global_sris']['internal'] = $internalSRI;
+                return;
+            }
+            if (
+                !is_string($key) || trim($key) === ''
+                || !is_string($sriHash) || (trim($sriHash) === '')
+                || (!str_contains($sriHash, 'sha'))
+            ) {
+                $this->errors['all'][] = $allErr;
+                $this->errors['config'][] = $allErr;
+                $this->invalidBatches['config']['global_sris']['internal'] = $internalSRI;
+                return;
+            }
+            $valid[$key] = $sriHash;
+            $duplicateHashes[$sriHash] = $key;
+        }
+        $this->validBatches['config']['global_sris']['internal'] = $valid;
+    }
+    private function batchSetSRIExternalGlobal(array $externalSRI)
+    {
+        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setSRIExternal', $externalSRI);
+        if (isset($this->invalidBatches['config']['global_sris']['external'])) {
+            $err = "Duplicate call `->setSRIExternal()` under `->config()`. An Invalid Formatted SRI Internal Array already exists under `->config()`.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (isset($this->validBatches['config']['global_sris']['external'])) {
+            $err = "Duplicate call `->setSRIExternal()` under `->config()`. An Valid Formatted SRI Internal Array already exists under `->config()`.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        $allErr = "Invalid Formatted Array Value in `->setSRIExternal()` under `->config()`. Must be a Non-Empty Associative Array where each Key is a Non-Empty String Reference (e.g. 'cdn.tailwind') and its Value is an Associative Array containing Exactly Two Keys: 'url' (must start with https://) and 'hash' (Non-Empty String containing 'sha'), for example:`['cdn.tailwind' => ['url' => 'https://cdn.tailwindcss.com', 'hash' => 'sha384-...']]`.";
+        if (empty($externalSRI) || array_is_list($externalSRI)) {
+            $this->errors['all'][] = $allErr;
+            $this->errors['config'][] = $allErr;
+            $this->invalidBatches['config']['global_sris']['external'] = $externalSRI;
+            return;
+        }
+        $duplicateHashes = [];
+        $valid = [];
+        foreach ($externalSRI as $key => $details) {
+            if (isset($duplicateHashes[$details['hash']])) {
+                $this->invalidBatches['config']['global_sris']['external'] = $externalSRI;
+                $allErr = "Invalid Formatted Array Value in `->setSRIExternal()` under `->config()` where External SRI Hash:`{$details['hash']}` is already used by Key=>URL:`{$duplicateHashes[$details['hash']]}`. Each External SRI Key must contain Single Non-Empty String-based Unique Hash Values in their `hash` Key.";
+                $this->errors['all'][] = $allErr;
+                $this->errors['config'][] = $allErr;
+                return;
+            }
+            if (
+                !is_string($key) || trim($key) === ''
+                || !is_array($details)
+                || count($details) !== 2
+                || array_is_list($details)
+                || !isset($details['url'], $details['hash'])
+                || !is_string($details['url']) || trim($details['url']) === '' || !str_starts_with(trim($details['url']), 'https://')
+                || !is_string($details['hash']) || trim($details['hash']) === '' || !str_contains($details['hash'], 'sha')
+            ) {
+                $this->errors['all'][] = $allErr;
+                $this->errors['config'][] = $allErr;
+                $this->invalidBatches['config']['global_sris']['external'] = $externalSRI;
+                return;
+            }
+            $valid[trim($key)] = [
+                'url'  => trim($details['url']),
+                'hash' => trim($details['hash'])
+            ];
+            $duplicateHashes[$details['hash']] = "{$key}=>{$details['url']}";
+        }
+        $this->validBatches['config']['global_sris']['external'] = $valid;
+    }
+
+    /* remove|pipeHeader - Global */
     private function batchRemoveHeaderGlobal(string $header_to_remove) {}
     private function batchNewHeaderGlobal(string $header) {}
+
+    /* pipeMiddleware|requestFunction|postResponseFunction - Global */
     private function batchNewPipeMiddlewareGlobal(string $middleware) {}
     private function batchNewPipeRequestFunctionGlobal(string $fileFunctionName) {}
     private function batchNewPipePostResponseFunctionGlobal(string $fileFunctionName) {}
 
-    // Set & New Batches for SPECIFIC_METHOD! (so ->routes()-><Method>->set|pipe<What>)
+    //METHOD:Set & New Batches for SPECIFIC_METHOD! (so ->routes()-><Method>->set|pipe<What>)
     private function batchSetRateLimitingMethod(string $method, array $rateLimitingOptions) {}
     private function batchSetNoRouteMatchMethod(string $method, array $options) {}
     private function batchSetNoRouteMatchPageMethod(string $method, string $PageFileName) {}
@@ -4066,6 +4180,7 @@ class C
     private function batchSetNoRouteMatchTextMethod(string $method, string $message, int $statusCode = 404) {}
     private function batchSetNoRouteMatchCallbackMethod(string $method, callable|string $userDefinedFunctionname) {}
 
+    //METHOD: setParamRule Method
     private function batchSetParamRuleMethod(string $method, string $param, string $regex, $defaultParamValueOnRegexMismatch = null)
     {
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setParamRule', $param, $regex, $defaultParamValueOnRegexMismatch);
@@ -4925,6 +5040,8 @@ class FunkPHP
 class FunkConfig
 {
     public function __construct(private C $c) {}
+
+    /* setGroup<VARIANTS> - GLOBAL */
     public function setGroupFunctions(string ...$functions): self
     {
         $this->c->batch('batchSetGroupedFunctions', ...$functions);
@@ -4941,7 +5058,7 @@ class FunkConfig
         return $this;
     }
 
-    /* setCSP<&Variants> */
+    /* setCSP<&Variants> - GLOBAL */
     public function setCSP(string $sourceType, string ...$sources): self
     {
         $this->c->batch('batchSetCSPGlobal', $sourceType, ...$sources);
@@ -4997,13 +5114,24 @@ class FunkConfig
         $this->c->batch('batchSetCSPDefaultGlobal', ...$sources);
         return $this;
     }
+    /* setSRI<VARIANTS> - GLOBAL */
+    public function setSRIInternal(array $internalSRI): self
+    {
+        $this->c->batch('batchSetSRIInternalGlobal', $internalSRI);
+        return $this;
+    }
+    public function setSRIExternal(array $options): self
+    {
+        $this->c->batch('batchSetSRIExternalGlobal', $options);
+        return $this;
+    }
+
+    /* setNoRouteMatch<Variants> - GLOBAL */
     public function setNoRouteMatch(array $options): self
     {
         $this->c->batch('batchSetNoRouteMatchGlobal', $options);
         return $this;
     }
-
-    /* setNoRouteMatch<Variants> */
     public function setNoRouteMatchPage(string $PageFileName): self
     {
         $this->c->batch('batchSetNoRouteMatchPageGlobal', $PageFileName);
@@ -5052,7 +5180,7 @@ class FunkConfig
         return $this;
     }
 
-    /* setBASEURL<Variants> */
+    /* setBASEURL<Variants> - GLOBAL */
     public function setBaseURLLocal(string $httpsPath): self
     {
         $this->c->batch('batchSetDefaultBaseURLLocalGlobal', $httpsPath);
@@ -5074,7 +5202,7 @@ class FunkConfig
         return $this;
     }
 
-    /* setSession<Driver&Cookie_Configs_For_it> */
+    /* setSession<Driver&Cookie_Configs_For_it> - GLOBAL */
     public function setSessionDriver(string $filesOrRedisOrSomethingElse = 'files'): self
     {
         $this->c->batch('batchSetDefaultSessionDriverGlobal', $filesOrRedisOrSomethingElse);
@@ -5122,7 +5250,7 @@ class FunkConfig
         return $this;
     }
 
-    /* set<VARIANTS> that are ONLY Boolean */
+    /* set<VARIANTS> that are ONLY Boolean - GLOBAL */
     public function setMiddlewaresCascade(bool $trueOrFalse): self
     {
         $this->c->batch('batchSetMiddlewaresCascade', $trueOrFalse);
@@ -5144,44 +5272,44 @@ class FunkConfig
         return $this;
     }
 
-    /* setParamRule Globally/config() */
+    /* setParamRule Globally/config() - GLOBAL */
     public function setParamRule(string $param, string $regex, $defaultParamValueOnRegexMismatch = null): self
     {
         $this->c->batch('batchSetParamRuleGlobal', $param, $regex, $defaultParamValueOnRegexMismatch);
         return $this;
     }
 
-    /* pipeHeader Globally/config() */
+    /* pipeHeader Globally/config() - GLOBAL */
     public function pipeHeader(string $header): self
     {
         $this->c->batch('batchNewHeaderGlobal', $header);
         return $this;
     }
-    /* removeHeader Globally/config() */
+    /* removeHeader Globally/config() - GLOBAL */
     public function removeHeader(string $header_to_remove): self
     {
         $this->c->batch('batchRemoveHeaderGlobal', $header_to_remove);
         return $this;
     }
-    /* pipeMiddleware Globally/config() */
+    /* pipeMiddleware Globally/config() - GLOBAL */
     public function pipeMiddleware(string $middleware): self
     {
         $this->c->batch('batchNewPipeMiddlewareGlobal', $middleware);
         return $this;
     }
-    /* pipeRequestFunction Globally/config() */
+    /* pipeRequestFunction Globally/config() - GLOBAL */
     public function pipeRequestFunction(string $requestFunction): self
     {
         $this->c->batch('batchNewPipeRequestFunctionGlobal', $requestFunction);
         return $this;
     }
-    /* pipePostResponseFunction Globally/config() */
+    /* pipePostResponseFunction Globally/config() - GLOBAL */
     public function pipePostResponseFunction(string $postResponseFunction): self
     {
         $this->c->batch('batchNewPipePostResponseFunctionGlobal', $postResponseFunction);
         return $this;
     }
-    // Jump to ->routes() from FunkPHP->config()!
+    // Jump to ->routes() from FunkPHP->config()! - from GLOBAL
     public function routes(): FunkRoutes
     {
         return $this->c->routes();
