@@ -3735,7 +3735,7 @@ class C
         }
         // Emit warnings (which can be configured to either be ignored or not ignored) and then add it to the config
         $this->cachedKeyFNWarnings($this->cached['file_user_defined_functions']['functions'][$userDefinedFunction], $this->cached['file_user_defined_functions']['file_path'] ?? null);
-        $this->validBatches['config']['DEFAULT_EXCEPTION_HANDLER'][] = $userDefinedFunction;
+        $this->validBatches['config']['DEFAULT_EXCEPTION_HANDLER'] = $userDefinedFunction;
         $this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction] = "->setDefaultExceptionHandler()";
     }
     private function batchSetDefaultErrorHandlerGlobal(string $userDefinedFunction) // DEFAULT GLOBAL ERROR HANDLER
@@ -3808,7 +3808,7 @@ class C
         }
         // Emit warnings (which can be configured to either be ignored or not ignored) and then add it to the config
         $this->cachedKeyFNWarnings($this->cached['file_user_defined_functions']['functions'][$userDefinedFunction], $this->cached['file_user_defined_functions']['file_path'] ?? null);
-        $this->validBatches['config']['DEFAULT_ERROR_HANDLER'][] = $userDefinedFunction;
+        $this->validBatches['config']['DEFAULT_ERROR_HANDLER'] = $userDefinedFunction;
         $this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction] = "->setDefaultErrorHandler()";
     }
     private function batchSetDefaultURINormalizerGlobal(string $userDefinedFunction) // URI NORMALIZER GLOBAL
@@ -3881,7 +3881,7 @@ class C
         }
         // Emit warnings (which can be configured to either be ignored or not ignored) and then add it to the config
         $this->cachedKeyFNWarnings($this->cached['file_user_defined_functions']['functions'][$userDefinedFunction], $this->cached['file_user_defined_functions']['file_path'] ?? null);
-        $this->validBatches['config']['DEFAULT_URI_NORMALIZER'][] = $userDefinedFunction;
+        $this->validBatches['config']['DEFAULT_URI_NORMALIZER'] = $userDefinedFunction;
         $this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction] = "->setDefaultURI_Normalizer()";
     }
     private function batchSetDefaultHTTPSKernelDispatchHandlerGlobal(string $userDefinedFunction) // DEFAULT HTTSP KERNEL/ROUTING
@@ -3954,7 +3954,7 @@ class C
         }
         // Emit warnings (which can be configured to either be ignored or not ignored) and then add it to the config
         $this->cachedKeyFNWarnings($this->cached['file_user_defined_functions']['functions'][$userDefinedFunction], $this->cached['file_user_defined_functions']['file_path'] ?? null);
-        $this->validBatches['config']['DEFAULT_HTTPS_KERNEL'][] = $userDefinedFunction;
+        $this->validBatches['config']['DEFAULT_HTTPS_KERNEL'] = $userDefinedFunction;
         $this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction] = "->setDefaultKernelHandler()";
     }
 
