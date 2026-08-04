@@ -1201,12 +1201,25 @@ function cli_analyze_body_tokens(string $bodyCode, int $startLine = 1): array
     $globalVars = [];
     $hasDangerousCalls = false;
     $hasVariableVars = false;
+    $hasOnlyCommentsOrWhiteSpace = true;
     $calls = [];
     // Account for added '<?php ' offset in line mapping if needed
     $lineOffset = $startLine;
     for ($i = 0; $i < $count; $i++) {
         $tok = $tokens[$i];
         $line = $tok->line + $lineOffset;
+        // 0. NOT a Comment and NOT whitespace?
+        if (
+            $tok->text !== '{' &&
+            $tok->text !== '}' &&
+            $tok->id !== T_OPEN_TAG &&
+            $tok->id !== T_CLOSE_TAG &&
+            $tok->id !== T_COMMENT &&
+            $tok->id !== T_DOC_COMMENT &&
+            $tok->id !== T_WHITESPACE
+        ) {
+            $hasOnlyCommentsOrWhiteSpace = false;
+        }
         // 1. Early Exits (exit / die)
         if ($tok->id === T_EXIT) {
             $hasExit = true;
@@ -1225,10 +1238,27 @@ function cli_analyze_body_tokens(string $bodyCode, int $startLine = 1): array
             $evalLines[] = $line;
             continue;
         }
-        // 4. Nested Functions
-        if ($tok->id === T_FUNCTION) {
-            $hasInnerFunctions = true;
-            $innerFunctionLines[] = $line;
+        // 4. Nested Functions (Named vs Anonymous/Closures)
+        if ($tok->id === T_FUNCTION || (defined('T_FN') && $tok->id === T_FN)) {
+            $nextIdx = $i + 1;
+            // Fast-forward past whitespace, comments, and reference operators ('&')
+            while ($nextIdx < $count && (
+                $tokens[$nextIdx]->id === T_WHITESPACE ||
+                $tokens[$nextIdx]->id === T_COMMENT ||
+                $tokens[$nextIdx]->id === T_DOC_COMMENT ||
+                $tokens[$nextIdx]->text === '&'
+            )) {
+                $nextIdx++;
+            }
+            // If a T_STRING immediately follows, it's a NAMED inner function (e.g., function test() {})
+            if ($nextIdx < $count && $tokens[$nextIdx]->id === T_STRING) {
+                $hasInnerFunctions = true;
+                $innerFunctionLines[] = $line;
+                continue;
+            }
+            // Otherwise, it's an anonymous closure ($var = function() {}) or arrow function
+            $hasClosures = true;
+            $closureLines[] = $line;
             continue;
         }
         // 5. Nested Classes
@@ -1307,7 +1337,6 @@ function cli_analyze_body_tokens(string $bodyCode, int $startLine = 1): array
             }
         }
     }
-
     return [
         'has_exit'             => $hasExit,
         'exit_lines'           => array_unique($exitLines),
@@ -1317,12 +1346,15 @@ function cli_analyze_body_tokens(string $bodyCode, int $startLine = 1): array
         'eval_lines'           => array_unique($evalLines),
         'has_inner_functions'  => $hasInnerFunctions,
         'nested_function_lines' => array_unique($innerFunctionLines),
+        'has_closures'           => $hasClosures ?? false,   // Safe anonymous closures
+        'closure_lines'          => array_unique($closureLines ?? []),
         'has_inner_classes'    => $hasInnerClasses,
         'inner_class_lines'    => array_unique($innerClassLines),
         'has_globals'          => $hasGlobals,
         'global_vars'          => array_unique($globalVars),
         'has_dangerous_calls'  => $hasDangerousCalls,
         'has_variable_vars'    => $hasVariableVars,
+        'only_whitespace_and_or_comments' => $hasOnlyCommentsOrWhiteSpace,
         'calls'                => $calls,
     ];
 }

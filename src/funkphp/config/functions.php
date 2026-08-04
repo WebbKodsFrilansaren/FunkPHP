@@ -21,12 +21,7 @@
 //
 // Besides all that above, name your function(s) anything you want!
 
-function testar(&$c)
+function testar()
 {
-    // test
-}
-
-function funk_validate_testar(&$c)
-{
-    // Suoperb test!
+    $var = "Test";
 }
