@@ -3,8 +3,7 @@
 $FUNK = FunkPHP();
 
 $FUNK->CONFIG()
-    ->setDefaultRegisteredShutdownHandler("testar")
-    ->setDefaultErrorHandler("testar2");
+    ->setDefaultRegisteredShutdownHandler("testar");
 
 $FUNK->ROUTES()
     ->GET()

@@ -21,27 +21,27 @@
 //
 // Besides all that above, name your function(s) anything you want!
 
-function testar()
+function testar(&$c)
 {
     $var = "Test";
 }
 
-function testar2()
-{
-    $var = "Test";
-}
+// function testar2()
+// {
+//     $var = "Test";
+// }
 
-function testar3()
-{
-    $var = "Test";
-}
+// function testar3()
+// {
+//     $var = "Test";
+// }
 
-function testar4()
-{
-    $var = "Test";
-}
+// function testar4()
+// {
+//     $var = "Test";
+// }
 
-function testar5()
-{
-    $var = "Test";
-}
+// function testar5()
+// {
+//     $var = "Test";
+// }
