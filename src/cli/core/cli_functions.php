@@ -741,29 +741,16 @@ function cli_status_helper(&$ref, $checks): bool
 // is read into a raw string and each function is as well so CRUD can
 // be done for that file assuming its a PHP file with functions. If
 // `return function` exists in it (like middlewares), it's included.
-function cli_file_status($folder, $file, $useExactFilePathInstead = false, $deeperAnalysis = false)
+function cli_file_status(string $folder, string $file, bool $useExactFilePathInstead = false, bool $deeperAnalysis = false)
 {
-    // QoL fix for $folder if it is a string and starts with a slash
     if (!$useExactFilePathInstead) {
         if (is_string($folder) && str_starts_with(trim($folder), "/")) {
             $folder = substr(trim($folder), 1);
         }
-        // Validate both are non-empty strings and match the regex
-        if (!isset($folder) || !is_string($folder) || empty($folder) || !preg_match('/^[a-z_][a-z_0-9\/-]*$/i', $folder)) {
-            cli_err_without_exit('[cli_file_status()]: $folder must be A Valid Non-Empty String! (whitespace is NOT allowed)');
-            cli_info('[cli_file_status()]: Use the following Directory Syntax (Regex):`[a-z_][a-z_0-9\/-]*)`! (you do NOT need to add a leading slash `/` to the string)');
-        }
-        if (!isset($file) || !is_string($file) || empty($file) || !preg_match('/^[a-z_][a-z_0-9\.]*$/i', $file)) {
-            cli_err_without_exit('[cli_file_status()]: $file must be A Valid Non-Empty String! (whitespace is NOT allowed)');
-            cli_info('[cli_file_status()]: Use the following File Syntax (Regex):`[a-z_][a-z_0-9\.]*)`! (you do NOT need to add a leading slash `/` to the string and NOT `.php` File Extension)');
-        }
     }
-    // Consistently get '$folder' . '/' . $file . '.php' always!
     $folder = trim($folder);
-    $providedFolder  = $folder; // Original folder for reference
+    $providedFolder = $folder;
     $file = trim($file);
-    $filename = '<UNKNOWN>';
-    $singleFolder = '<UNKNOWN>';
     if (str_ends_with($folder, '/')) {
         $folder = rtrim($folder, '/');
     }
@@ -773,174 +760,694 @@ function cli_file_status($folder, $file, $useExactFilePathInstead = false, $deep
     if (str_starts_with($file, '/')) {
         $file = ltrim($file, '/');
     }
-    $folder = (($useExactFilePathInstead === false) ? (PROJECT_DIR . '/' . $folder) : ($folder));
-    // $singleFolder is the last part of the folder path
+    $folder = ($useExactFilePathInstead === false) ? (PROJECT_DIR . '/' . $folder) : $folder;
     $singleFolder = basename($folder);
     $filename = $file;
     $file = $folder . '/' . $file;
-    // If file exists and is readable, check if function exists
-    // by first reading the file and then checking if
-    // the function name is in the file content using regex!
-    $fnRegex = '/^function\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(&\$[^)]*\)(.*?^}\s*(;)?)?(\r|\n)*$/ims';
-    $dxRegex = '/\$DX\s*=\s*\[\s*\'.*?];$/ims';
-    $namespaceRegex = '/^namespace\s+(.*?);(\r|\n)*$/im';
-    $classRegex = '/^class\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*{(.*?^}\s*(;)?)?(\r|\n)*$/ims';
-    $returnRegex = '/return\s*array\(.*?\);$\n/ims';
+    $fileRaw = null;
+    $namespace = null;
+    $namespaceParts = null;
+    $fileUse = [];
     $fns = [];
-    $fnsviaTokenizer = [];
-    $clnames_only = [];
-    $clnames_duplicates = [];
     $fnames_only = [];
     $fnames_duplicates = [];
-    $classExists = false;
     $classes = [];
-    $classesviaTokenizer = [];
-    $namespaceExists = false;
-    $namespaceParts = null;
-    $fileRaw = null;
-    $fileReturnRaw = null;
-    $DEEPER = null;
+    $clnames_only = [];
+    $clnames_duplicates = [];
     $NO_FN_START_CLI = true;
     $NO_FN_START_FUNK = true;
-    $NO_FN_START_FUNK_VALIDATE = true;
     if (is_file($file) && is_readable($file)) {
         $fileCnt = file_get_contents($file);
-        if (!$fileCnt) {
-            cli_warning_without_exit('[cli_file_status()]: Could NOT Read the File `' . $file . '` when it SHOULD have been Readable. This means that Namespace, Classes, Named Functions, their $DX and/or Return arrays() CANNOT be retrieved for use!');
-        } else {
+        if ($fileCnt !== false) {
             $fileRaw = $fileCnt;
-            global $reserved_functions; // Access list of unallowed/reserved FN names!
-            if (
-                !isset($reserved_functions)
-                || !is_array($reserved_functions) || empty($reserved_functions)
-            ) {
-            }
-            // Check if namespace exists which should start on a new line and end with ;
-            if (preg_match($namespaceRegex, $fileCnt, $namespaceMatch)) {
-                $namespaceExists = true;
-                // we split on namespace parts and also remove last ;
-                $namespaceParts = explode('\\', rtrim($namespaceMatch[1] ?? '', ';'));
-            }
-            // Main way to parse for ^functions{}$"
-            if (preg_match_all($fnRegex, $fileCnt, $fnsMatches)) {
-                foreach ($fnsMatches[1] as $idx => $fn) {
-                    // Clean up trailing whitespace/newlines from the regex capture and we will ONLY
-                    // add function if it does end with a '}' based on Regex matching!
-                    // EPIPHANY: If it doesn't end with a curly brace, the regex only caught the signature!
-                    $regexRaw = $fnsMatches[0][$idx] ?? '';
-                    $cleanRegexRaw = trim($regexRaw);
-                    $regexBodyCaught =
-                        ((str_ends_with($cleanRegexRaw, '};') || str_ends_with($cleanRegexRaw, '}')));
-                    if ($regexBodyCaught) {
-                        $fns[$fn] = [
-                            'valid_fn_structure' => ($regexBodyCaught && !in_array($fn, $reserved_functions)),
-                            'fn_name_reserved' => (in_array($fn, $reserved_functions)),
-                            'fn_exact_name' => $fn,
-                            'fn_name_same_as_lowercased' => ($fn === strtolower($fn)),
-                            'fn_lowercased' => strtolower($fn),
-                            'fn_uppercased' => strtoupper($fn),
-                            'fn_starts_with_cli' => str_starts_with(strtolower($fn), 'cli_'),
-                            'fn_starts_with_funk' => str_starts_with(strtolower($fn), 'funk_'),
-                            'fn_starts_with_funk_validate' => str_starts_with(strtolower($fn), 'funk_validate_'),
-                            'fn_raw' => $fnsMatches[0][$idx] ?? null,
-                            'dx_raw' => null,
-                            'return_raw' => null
-                        ];
-                        if (in_array(strtolower($fn), $fnames_only)) {
-                            $fnames_duplicates[$fn] = true;
-                        }
-                        $fnames_only[] = $fn;
-                        if ($fns[$fn]['fn_starts_with_cli']) {
-                            $NO_FN_START_CLI = true;
-                        }
-                        if ($fns[$fn]['fn_starts_with_funk']) {
-                            $NO_FN_START_FUNK = true;
-                        }
-                        if ($fns[$fn]['fn_starts_with_funk_validate']) {
-                            $NO_FN_START_FUNK_VALIDATE = true;
-                        }
-                        // We now use the index to match for $DX and return arrays
-                        if (preg_match($dxRegex, $fnsMatches[0][$idx], $dxMatch)) {
-                            $fns[$fn]['dx_raw'] = $dxMatch[0] ?? null;
-                        }
-                        if (preg_match($returnRegex, $fnsMatches[0][$idx], $returnMatch)) {
-                            $fns[$fn]['return_raw'] = $returnMatch[0] ?? null;
-                        }
-                    }
+            global $reserved_functions;
+            $reserved = $reserved_functions ?? [];
+            // 1. Tokenized Namespace & Use statements
+            $nsAndUses = cli_harvest_namespace_and_uses_from_code($fileRaw);
+            $namespace = $nsAndUses['namespace'];
+            $namespaceParts = $nsAndUses['namespace_parts'];
+            $fileUse = $nsAndUses['file_use'];
+            // 2. Tokenized Functions
+            $tokenizedFns = cli_harvest_all_functions_from_code($fileRaw);
+            foreach ($tokenizedFns as $fnName => $fnData) {
+                $isReserved = in_array($fnName, $reserved, true);
+                $fns[$fnName] = array_merge($fnData, [
+                    'valid_fn_structure'          => !$isReserved && !$fnData['has_inner_functions'],
+                    'fn_name_reserved'            => $isReserved,
+                    'fn_name_same_as_lowercased'  => ($fnName === strtolower($fnName)),
+                    'fn_uppercased'               => strtoupper($fnName),
+                    'fn_starts_with_cli'          => str_starts_with(strtolower($fnName), 'cli_'),
+                    'fn_starts_with_funk'         => str_starts_with(strtolower($fnName), 'funk_'),
+                ]);
+                if (in_array(strtolower($fnName), $fnames_only, true)) {
+                    $fnames_duplicates[$fnName] = true;
                 }
+                $fnames_only[] = $fnName;
+                if ($fns[$fnName]['fn_starts_with_cli']) $NO_FN_START_CLI = false;
+                if ($fns[$fnName]['fn_starts_with_funk']) $NO_FN_START_FUNK = false;
             }
-            // Php::tokenize way to parse for ^functions{}$"
-            $fnsviaTokenizer = cli_harvest_all_functions_from_code($fileRaw) ?? null;
-            // CThen ceck first if any class exist and then push all those
-            // that exists to the "classes" subkey array in return []
-            if (preg_match_all($classRegex, $fileCnt, $classMatches)) {
-                $classExists = true;
-                foreach ($classMatches[1] as $idx => $class) {
-                    $classes[$class] = [
-                        'class_name' => $class,
-                        'class_name_ucfirst' => (ucfirst($class) === $class),
-                        'class_raw' => $classMatches[0][$idx],
-                        'class_starts_with_cli' => str_starts_with(strtolower($class), 'cli_'),
-                        'class_starts_with_funk' => str_starts_with(strtolower($class), 'funk_'),
-                        'class_starts_with_funk_validate_' => str_starts_with(strtolower($class), 'funk_validate_'),
-                    ];
-                    if (in_array(strtolower($class), $clnames_only)) {
-                        $clnames_duplicates[$class] = true;
-                    }
-                    $clnames_only[] = $class;
+            // 3. Tokenized Classes
+            $tokenizedClasses = cli_harvest_all_classes_from_code($fileRaw);
+            foreach ($tokenizedClasses as $className => $classData) {
+                $classes[$className] = $classData;
+                if (in_array(strtolower($className), $clnames_only, true)) {
+                    $clnames_duplicates[$className] = true;
                 }
-            }
-            // Php::tokenize way to parse for ^classes{}$"
-            $classesviaTokenizer  = cli_harvest_all_classes_from_code($fileRaw) ?? null;
-            // Perform even deeper analysis inside of file if boolean set to TRUE
-            // here we can check things like for devious/dangerous functions like eval()
-            // shell_exec(), curl(), base64 (common obfuscation technique) and the like
-            // since it does an extra pass, it must be set to TRUE to use since default
-            // is FALSE to not waste compute since it is meant for audit/compile commands/functions!
-            if ($deeperAnalysis) {
-                $DEEPER = cli_analyze_code_safety($fileRaw);
+                $clnames_only[] = $className;
             }
         }
     }
     return [
-        'file_raw' => $fileRaw,
-        'deeper_analysis' => $DEEPER,
-        'folder_provided_path' => $providedFolder ?? null,
-        'folder_name' => $singleFolder ?? null,
-        'folder_path_attempted' => $folder ?? "N/A",
-        'file_path_attempted' => $file ?? "N/A",
-        'folder_path' => ((is_string($folder) && is_dir($folder) && is_readable($folder) && is_writable($folder)) ? $folder : null),
-        'folder_exists' => is_dir($folder),
-        'folder_readable' => is_readable($folder),
-        'folder_writable' => is_writable($folder),
-        'file_name' => $filename,
-        'file_path' => ((is_file($file) && is_readable($file) && is_writable($file)) ? $file : null),
-        'file_writable' => is_writable($file),
-        'classes' => $classes,
-        'classes_via_tokenizer' => (isset($classesviaTokenizer) ? $classesviaTokenizer :  []),
-        'functions' => (isset($fns) ? $fns : []),
-        'functions_via_tokenizer' => (isset($fnsviaTokenizer) ? $fnsviaTokenizer : []),
-        'classes_same_count' => (isset($classes) && isset($classesviaTokenizer)
-            && (count($classes) === count($classesviaTokenizer))
-            && (count($classes) > 0) && (count($classesviaTokenizer) > 0)),
-        'class_names_only' => $clnames_only,
+        'namespace'             => $namespace,
+        'namespace_parts'       => $namespaceParts,
+        'file_use'              => $fileUse,
+        'functions_exist'       => count($fns) > 0,
+        'classes_exist'         => count($classes) > 0,
+        'file_readable'         => is_readable($file),
+        'file_exists'           => is_file($file),
+        'folder_provided_path'  => $providedFolder,
+        'folder_name'           => $singleFolder,
+        'folder_path'           => (is_dir($folder) && is_readable($folder)) ? $folder : null,
+        'folder_exists'         => is_dir($folder),
+        'file_name'             => $filename,
+        'file_path'             => (is_file($file) && is_readable($file)) ? $file : null,
+        'fn_names_only'         => $fnames_only,
+        'fn_names_duplicates'   => $fnames_duplicates,
+        'class_names_only'      => $clnames_only,
         'class_names_duplicates' => $clnames_duplicates,
-        'fn_names_only' => (isset($fnames_only) ? $fnames_only : []),
-        'fn_names_duplicates' => (isset($fnames_duplicates) ? $fnames_duplicates : []),
-        'class_exists' => $classExists,
         'no_fn_starts_with_cli' => $NO_FN_START_CLI,
         'no_fn_starts_with_funk' => $NO_FN_START_FUNK,
-        'no_fn_starts_with_funk_validate' => $NO_FN_START_FUNK_VALIDATE,
-        'functions_exist' => ((isset($fns) && count($fns) > 0)),
-        'functions_same_count' => (isset($fns) && isset($fnsviaTokenizer) && (count($fns) === count($fnsviaTokenizer))),
+        'functions'             => $fns,
+        'classes'               => $classes,
+        'file_raw'              => $fileRaw,
+
+    ];
+}
+function cli_file_harvest_all_functions_from_code2(string $code): array
+{
+    $tokens = PhpToken::tokenize($code);
+    $count = count($tokens);
+    $harvested = [];
+    $dangerousFuncs = ['shell_exec', 'exec', 'system', 'passthru', 'proc_open', 'popen', 'pcntl_exec'];
+    for ($i = 0; $i < $count; $i++) {
+        if ($tokens[$i]->id !== T_FUNCTION) {
+            continue;
+        }
+        // 1. Look ahead to find function name (handle return-by-reference like `function &myFunc()`)
+        $curr = $i + 1;
+        $isByRef = false;
+        while ($curr < $count && ($tokens[$curr]->id === T_WHITESPACE || $tokens[$curr]->text === '&')) {
+            if ($tokens[$curr]->text === '&') {
+                $isByRef = true;
+            }
+            $curr++;
+        }
+        // Skip anonymous closures function() {} or invalid definitions
+        if ($curr >= $count || $tokens[$curr]->id !== T_STRING) {
+            continue;
+        }
+        $fnName = $tokens[$curr]->text;
+        $fnTokenPos = $tokens[$i]->pos;
+        // 2. Walk BACKWARD to collect DocBlocks / Comments
+        $commentStartPos = $fnTokenPos;
+        $collectedComments = [];
+        $back = $i - 1;
+
+        while ($back >= 0) {
+            $tok = $tokens[$back];
+            if ($tok->id === T_WHITESPACE) {
+                $back--;
+                continue;
+            }
+            if ($tok->id === T_DOC_COMMENT || $tok->id === T_COMMENT) {
+                array_unshift($collectedComments, $tok->text);
+                $commentStartPos = $tok->pos;
+                $back--;
+                continue;
+            }
+            break; // Stopped at non-comment code/statement
+        }
+        $docComment = !empty($collectedComments) ? implode("\n", $collectedComments) : null;
+        // 3. Extract Function Arguments: find '(' and matching ')'
+        $argStartTok = $curr + 1;
+        while ($argStartTok < $count && $tokens[$argStartTok]->text !== '(' && $tokens[$argStartTok]->text !== '{' && $tokens[$argStartTok]->text !== ';') {
+            $argStartTok++;
+        }
+        $argsRaw = '';
+        $bodySearchTokIdx = $argStartTok;
+        if ($argStartTok < $count && $tokens[$argStartTok]->text === '(') {
+            $parenDepth = 1;
+            $argTokens = [];
+            for ($j = $argStartTok + 1; $j < $count; $j++) {
+                if ($tokens[$j]->text === '(') $parenDepth++;
+                elseif ($tokens[$j]->text === ')') $parenDepth--;
+                if ($parenDepth === 0) {
+                    $bodySearchTokIdx = $j + 1;
+                    break;
+                }
+                $argTokens[] = $tokens[$j]->text;
+            }
+            $argsRaw = trim(implode('', $argTokens));
+        }
+        // 4. Find Body '{'
+        while ($bodySearchTokIdx < $count && $tokens[$bodySearchTokIdx]->text !== '{' && $tokens[$bodySearchTokIdx]->text !== ';') {
+            $bodySearchTokIdx++;
+        }
+        // Skip abstract/interface declarations ending with ';'
+        if ($bodySearchTokIdx >= $count || $tokens[$bodySearchTokIdx]->text === ';') {
+            continue;
+        }
+        $bodyStartPos = $tokens[$bodySearchTokIdx]->pos;
+        $braceDepth = 0;
+        $hasStartedBody = false;
+        $hasInnerFunctions = false;
+        $hasEval = false;
+        $hasDangerousCalls = false;
+        $bodyEndPos = -1;
+        $lastTokenIdx = $i;
+        // 5. Walk FORWARD through body to analyze inner code & find closing '}'
+        for ($j = $bodySearchTokIdx; $j < $count; $j++) {
+            $tok = $tokens[$j];
+            if ($tok->text === '{') {
+                $braceDepth++;
+                $hasStartedBody = true;
+            } elseif ($tok->text === '}') {
+                $braceDepth--;
+            }
+            // Detect INNER named function declarations (forbidden!)
+            if ($hasStartedBody && $braceDepth > 1 && $tok->id === T_FUNCTION) {
+                $next = $j + 1;
+                while ($next < $count && ($tokens[$next]->id === T_WHITESPACE || $tokens[$next]->text === '&')) {
+                    $next++;
+                }
+                if ($next < $count && $tokens[$next]->id === T_STRING) {
+                    $hasInnerFunctions = true;
+                }
+            }
+            // Detect dangerous tokens inside body
+            if ($hasStartedBody && $braceDepth >= 1) {
+                if ($tok->id === T_EVAL) {
+                    $hasEval = true;
+                }
+                if ($tok->id === T_STRING && in_array(strtolower($tok->text), $dangerousFuncs, true)) {
+                    $hasDangerousCalls = true;
+                }
+            }
+            // Hit closing brace of outer function body
+            if ($hasStartedBody && $braceDepth === 0) {
+                $bodyEndPos = $tok->pos + strlen($tok->text);
+                $lastTokenIdx = $j;
+                break;
+            }
+        }
+        if ($bodyEndPos === -1) {
+            continue; // Malformed PHP body
+        }
+        // 6. Slice exact code strings using byte offsets
+        $fnRawWithDoc = substr($code, $commentStartPos, $bodyEndPos - $commentStartPos);
+        $fnRaw        = substr($code, $fnTokenPos, $bodyEndPos - $fnTokenPos);
+        $bodyRaw      = substr($code, $bodyStartPos, $bodyEndPos - $bodyStartPos);
+        $harvested[$fnName] = [
+            'fn_exact_name'       => $fnName,
+            'fn_lowercased'       => strtolower($fnName),
+            'doc_comment'         => $docComment,
+            'args_raw'            => $argsRaw,
+            'body_raw'            => $bodyRaw,
+            'fn_raw'              => $fnRaw,
+            'fn_raw_with_doc'     => $fnRawWithDoc,
+            'is_by_ref'           => $isByRef,
+            'has_inner_functions' => $hasInnerFunctions,
+            'has_eval'            => $hasEval,
+            'has_dangerous_calls' => $hasDangerousCalls,
+        ];
+        // Move outer loop index past this function body
+        $i = $lastTokenIdx;
+    }
+    return $harvested;
+}
+
+// Helper function that ONLY grabs `namespace <part1\part2\and_so_on;`
+// and then the `use <what>,<what2>,<and_so_on>;` from a given file!
+// Function is used in tandem with cli_file_status().
+function cli_harvest_namespace_and_uses_from_code(string $code): array
+{
+    $tokens = PhpToken::tokenize($code);
+    $count = count($tokens);
+    $namespace = null;
+    $namespaceParts = null;
+    $fileUse = [];
+    $braceDepth = 0;
+    for ($i = 0; $i < $count; $i++) {
+        $tok = $tokens[$i];
+        if ($tok->text === '{') {
+            $braceDepth++;
+        } elseif ($tok->text === '}') {
+            $braceDepth--;
+        }
+        // Only process file-level declarations (outside any function/class body)
+        if ($braceDepth === 0) {
+            // 1. Namespace Parser
+            if ($tok->id === T_NAMESPACE) {
+                $nsTokens = [];
+                for ($j = $i + 1; $j < $count; $j++) {
+                    if ($tokens[$j]->text === ';' || $tokens[$j]->text === '{') {
+                        break;
+                    }
+                    if ($tokens[$j]->id !== T_WHITESPACE) {
+                        $nsTokens[] = $tokens[$j]->text;
+                    }
+                }
+                $nsString = trim(implode('', $nsTokens));
+                if ($nsString !== '') {
+                    $namespace = $nsString;
+                    $namespaceParts = explode('\\', $nsString);
+                }
+            }
+            // 2. Use Statements Parser ('file_use')
+            if ($tok->id === T_USE) {
+                $useStartPos = $tok->pos;
+                $useEndPos = -1;
+                for ($j = $i + 1; $j < $count; $j++) {
+                    if ($tokens[$j]->text === ';') {
+                        $useEndPos = $tokens[$j]->pos + 1;
+                        $i = $j; // Fast-forward outer loop past ';'
+                        break;
+                    }
+                }
+                if ($useEndPos !== -1) {
+                    $rawUse = trim(substr($code, $useStartPos, $useEndPos - $useStartPos));
+                    // Clean statement removing 'use ' prefix and ';' suffix
+                    $cleanUse = preg_replace('/^use\s+/i', '', rtrim($rawUse, ';'));
+
+                    $fileUse[] = [
+                        'raw'   => $rawUse,
+                        'clean' => trim($cleanUse),
+                    ];
+                }
+            }
+        }
+    }
+    return [
+        'namespace'       => $namespace,
         'namespace_parts' => $namespaceParts,
-        'namespace_name' => ($namespaceExists ? $namespaceMatch[1] ?? null : null),
-        'namespace_exists' => $namespaceExists,
-        'file_empty' => ((count($classes) === 0)
-            && (count($fns) === 0) && (count($fnsviaTokenizer) === 0)
-            && (count($classesviaTokenizer) === 0) && !$namespaceExists),
-        'file_readable' => is_readable($file),
-        'file_exists' => is_file($file),
+        'file_use'        => $fileUse,
+    ];
+}
+// Helper function to `cli_file_status` but can also be used
+// without using that one to get an array of regular function declarations!
+// like "function name1(){}, function name2(){}" and so on within same file!
+function cli_harvest_all_functions_from_code(string $code): array
+{
+    $tokens = PhpToken::tokenize($code);
+    $count = count($tokens);
+    $harvested = [];
+    for ($i = 0; $i < $count; $i++) {
+        if ($tokens[$i]->id !== T_FUNCTION) {
+            continue;
+        }
+        $curr = $i + 1;
+        $isByRef = false;
+        while ($curr < $count && ($tokens[$curr]->id === T_WHITESPACE || $tokens[$curr]->text === '&')) {
+            if ($tokens[$curr]->text === '&') {
+                $isByRef = true;
+            }
+            $curr++;
+        }
+        if ($curr >= $count || $tokens[$curr]->id !== T_STRING) {
+            continue;
+        }
+        $fnName = $tokens[$curr]->text;
+        $fnTokenPos = $tokens[$i]->pos;
+        $startLine = $tokens[$i]->line;
+        // DocComments
+        $commentStartPos = $fnTokenPos;
+        $collectedComments = [];
+        $back = $i - 1;
+        while ($back >= 0) {
+            $tok = $tokens[$back];
+            if ($tok->id === T_WHITESPACE) {
+                $back--;
+                continue;
+            }
+            if ($tok->id === T_DOC_COMMENT || $tok->id === T_COMMENT) {
+                array_unshift($collectedComments, $tok->text);
+                $commentStartPos = $tok->pos;
+                $back--;
+                continue;
+            }
+            break;
+        }
+        $docComment = !empty($collectedComments) ? implode("\n", $collectedComments) : null;
+        // Extract Arguments
+        $argStartTok = $curr + 1;
+        while ($argStartTok < $count && $tokens[$argStartTok]->text !== '(' && $tokens[$argStartTok]->text !== '{' && $tokens[$argStartTok]->text !== ';') {
+            $argStartTok++;
+        }
+        $argsRaw = '';
+        $bodySearchTokIdx = $argStartTok;
+        if ($argStartTok < $count && $tokens[$argStartTok]->text === '(') {
+            $parenDepth = 1;
+            $argTokens = [];
+            for ($j = $argStartTok + 1; $j < $count; $j++) {
+                if ($tokens[$j]->text === '(') $parenDepth++;
+                elseif ($tokens[$j]->text === ')') $parenDepth--;
+
+                if ($parenDepth === 0) {
+                    $bodySearchTokIdx = $j + 1;
+                    break;
+                }
+                $argTokens[] = $tokens[$j]->text;
+            }
+            $argsRaw = trim(implode('', $argTokens));
+        }
+        // Body '{' lookup
+        while ($bodySearchTokIdx < $count && $tokens[$bodySearchTokIdx]->text !== '{' && $tokens[$bodySearchTokIdx]->text !== ';') {
+            $bodySearchTokIdx++;
+        }
+        if ($bodySearchTokIdx >= $count || $tokens[$bodySearchTokIdx]->text === ';') {
+            continue;
+        }
+        $bodyStartPos = $tokens[$bodySearchTokIdx]->pos;
+        $braceDepth = 0;
+        $hasStartedBody = false;
+        $bodyEndPos = -1;
+        $lastTokenIdx = $i;
+        for ($j = $bodySearchTokIdx; $j < $count; $j++) {
+            $tok = $tokens[$j];
+            if ($tok->text === '{') {
+                $braceDepth++;
+                $hasStartedBody = true;
+            } elseif ($tok->text === '}') {
+                $braceDepth--;
+            }
+            if ($hasStartedBody && $braceDepth === 0) {
+                $bodyEndPos = $tok->pos + strlen($tok->text);
+                $lastTokenIdx = $j;
+                break;
+            }
+        }
+        if ($bodyEndPos === -1) {
+            continue;
+        }
+        $fnRawWithDoc = substr($code, $commentStartPos, $bodyEndPos - $commentStartPos);
+        $fnRaw        = substr($code, $fnTokenPos, $bodyEndPos - $fnTokenPos);
+        $bodyRaw      = substr($code, $bodyStartPos, $bodyEndPos - $bodyStartPos);
+        // Run analysis on the body
+        $analysis = cli_analyze_body_tokens($bodyRaw, $startLine);
+        $harvested[$fnName] = array_merge([
+            'fn_exact_name'   => $fnName,
+            'fn_lowercased'   => strtolower($fnName),
+            'doc_comment'     => $docComment,
+            'args_raw'        => $argsRaw,
+            'body_raw'        => $bodyRaw,
+            'fn_raw'          => $fnRaw,
+            'fn_raw_with_doc' => $fnRawWithDoc,
+            'is_by_ref'       => $isByRef,
+            'line_start'      => $startLine,
+        ], $analysis);
+        $i = $lastTokenIdx;
+    }
+    return $harvested;
+}
+// Helper function to `cli_file_status` but can also be used
+// without using that one to get an array of regular class declarations!
+// like "class name1(){}, class name2(){}" and so on within same file!
+function cli_harvest_all_classes_from_code(string $code): array
+{
+    $tokens = PhpToken::tokenize($code);
+    $count = count($tokens);
+    $harvested = [];
+    $dangerousFuncs = ['shell_exec', 'exec', 'system', 'passthru', 'proc_open', 'popen', 'pcntl_exec'];
+    $braceDepth = 0;
+    for ($i = 0; $i < $count; $i++) {
+        $tok = $tokens[$i];
+        if ($tok->text === '{') {
+            $braceDepth++;
+        } elseif ($tok->text === '}') {
+            $braceDepth--;
+        }
+        if ($tok->id === T_CLASS) {
+            // Skip anonymous classes: "new class {}"
+            $prevIdx = $i - 1;
+            while ($prevIdx >= 0 && $tokens[$prevIdx]->id === T_WHITESPACE) {
+                $prevIdx--;
+            }
+            if ($prevIdx >= 0 && $tokens[$prevIdx]->id === T_NEW) {
+                continue;
+            }
+            // Find class name
+            $nameIndex = $i + 1;
+            while ($nameIndex < $count && $tokens[$nameIndex]->id === T_WHITESPACE) {
+                $nameIndex++;
+            }
+            if ($nameIndex >= $count || $tokens[$nameIndex]->id !== T_STRING) {
+                continue;
+            }
+            $className = $tokens[$nameIndex]->text;
+            $classTokenPos = $tok->pos;
+            // Walk BACKWARD to capture DocComments
+            $commentStartPos = $classTokenPos;
+            $collectedComments = [];
+            $back = $i - 1;
+            while ($back >= 0) {
+                $btok = $tokens[$back];
+                if ($btok->id === T_WHITESPACE) {
+                    $back--;
+                    continue;
+                }
+                if ($btok->id === T_DOC_COMMENT || $btok->id === T_COMMENT) {
+                    array_unshift($collectedComments, $btok->text);
+                    $commentStartPos = $btok->pos;
+                    $back--;
+                    continue;
+                }
+                break;
+            }
+            $docComment = !empty($collectedComments) ? implode("\n", $collectedComments) : null;
+            // Find class body opening '{' and check for 'extends'
+            $bodySearchIdx = $nameIndex + 1;
+            $extends = null;
+            while ($bodySearchIdx < $count && $tokens[$bodySearchIdx]->text !== '{') {
+                if ($tokens[$bodySearchIdx]->id === T_EXTENDS) {
+                    $eIdx = $bodySearchIdx + 1;
+                    while ($eIdx < $count && $tokens[$eIdx]->id === T_WHITESPACE) {
+                        $eIdx++;
+                    }
+                    if ($eIdx < $count) {
+                        $extends = $tokens[$eIdx]->text;
+                    }
+                }
+                $bodySearchIdx++;
+            }
+            if ($bodySearchIdx >= $count) {
+                continue;
+            }
+            $bodyStartPos = $tokens[$bodySearchIdx]->pos;
+            $classBraceDepth = 0;
+            $hasStartedBody = false;
+            $hasEval = false;
+            $hasDangerousCalls = false;
+            $hasExit = false;
+            $bodyEndPos = -1;
+            $lastTokenIdx = $i;
+            // Walk body to detect safety metrics and closing brace
+            for ($j = $bodySearchIdx; $j < $count; $j++) {
+                $ctok = $tokens[$j];
+                if ($ctok->text === '{') {
+                    $classBraceDepth++;
+                    $hasStartedBody = true;
+                } elseif ($ctok->text === '}') {
+                    $classBraceDepth--;
+                }
+                if ($hasStartedBody && $classBraceDepth >= 1) {
+                    if ($ctok->id === T_EVAL) {
+                        $hasEval = true;
+                    }
+                    // Catch early exits: exit, die, T_EXIT
+                    if ($ctok->id === T_EXIT) {
+                        $hasExit = true;
+                    }
+                    if ($ctok->id === T_STRING && in_array(strtolower($ctok->text), $dangerousFuncs, true)) {
+                        $hasDangerousCalls = true;
+                    }
+                }
+                if ($hasStartedBody && $classBraceDepth === 0) {
+                    $bodyEndPos = $ctok->pos + strlen($ctok->text);
+                    $lastTokenIdx = $j;
+                    break;
+                }
+            }
+            if ($bodyEndPos === -1) {
+                continue;
+            }
+            $classRawWithDoc = substr($code, $commentStartPos, $bodyEndPos - $commentStartPos);
+            $classRaw        = substr($code, $classTokenPos, $bodyEndPos - $classTokenPos);
+            $bodyRaw         = substr($code, $bodyStartPos, $bodyEndPos - $bodyStartPos);
+            $harvested[$className] = [
+                'class_name'                       => $className,
+                'class_name_ucfirst'               => (ucfirst($className) === $className),
+                'doc_comment'                      => $docComment,
+                'extends'                          => $extends,
+                'body_raw'                         => $bodyRaw,
+                'class_raw'                        => $classRaw,
+                'class_raw_with_doc'               => $classRawWithDoc,
+                'has_eval'                         => $hasEval,
+                'has_dangerous_calls'              => $hasDangerousCalls,
+                'has_exit'                         => $hasExit,
+                'class_starts_with_cli'            => str_starts_with(strtolower($className), 'cli_'),
+                'class_starts_with_funk'           => str_starts_with(strtolower($className), 'funk_'),
+                'class_starts_with_funk_validate'  => str_starts_with(strtolower($className), 'funk_validate_'),
+            ];
+            $i = $lastTokenIdx;
+        }
+    }
+    return $harvested;
+}
+// Helper function (must get code as string) that can analyze already
+// loaded PHP code for safety by providing any functions a function
+// and/or class is using to compare against (dis)allowed functions and so on!
+function cli_analyze_body_tokens(string $bodyCode, int $startLine = 1): array
+{
+    $tokens = PhpToken::tokenize("<?php " . $bodyCode);
+    $count = count($tokens);
+    $dangerousFuncs = ['shell_exec', 'exec', 'system', 'passthru', 'proc_open', 'popen', 'pcntl_exec'];
+    $hasExit = false;
+    $exitLines = [];
+    $hasRawOutput = false;
+    $rawOutputLines = [];
+    $hasEval = false;
+    $evalLines = [];
+    $hasInnerFunctions = false;
+    $innerFunctionLines = [];
+    $hasInnerClasses = false;
+    $innerClassLines = [];
+    $hasGlobals = false;
+    $globalVars = [];
+    $hasDangerousCalls = false;
+    $hasVariableVars = false;
+    $calls = [];
+    // Account for added '<?php ' offset in line mapping if needed
+    $lineOffset = $startLine - 1;
+    for ($i = 0; $i < $count; $i++) {
+        $tok = $tokens[$i];
+        $line = $tok->line + $lineOffset;
+        // 1. Early Exits (exit / die)
+        if ($tok->id === T_EXIT) {
+            $hasExit = true;
+            $exitLines[] = $line;
+            continue;
+        }
+        // 2. Raw Output Dumps
+        if ($tok->id === T_ECHO || $tok->id === T_PRINT) {
+            $hasRawOutput = true;
+            $rawOutputLines[] = $line;
+            continue;
+        }
+        // 3. Eval / Dynamic Code
+        if ($tok->id === T_EVAL) {
+            $hasEval = true;
+            $evalLines[] = $line;
+            continue;
+        }
+        // 4. Nested Functions
+        if ($tok->id === T_FUNCTION) {
+            $hasInnerFunctions = true;
+            $innerFunctionLines[] = $line;
+            continue;
+        }
+        // 5. Nested Classes
+        if ($tok->id === T_CLASS) {
+            $hasInnerClasses = true;
+            $innerClassLines[] = $line;
+            continue;
+        }
+        // 6. Global State Inspection ($GLOBALS or global $a)
+        if ($tok->id === T_GLOBAL) {
+            $hasGlobals = true;
+            for ($g = $i + 1; $g < $count; $g++) {
+                if ($tokens[$g]->text === ';') break;
+                if ($tokens[$g]->id === T_VARIABLE) {
+                    $globalVars[] = $tokens[$g]->text;
+                }
+            }
+        }
+        // 7. Variable Variables ($$foo)
+        if ($tok->text === '$' && isset($tokens[$i + 1]) && ($tokens[$i + 1]->id === T_VARIABLE || $tokens[$i + 1]->text === '{')) {
+            $hasVariableVars = true;
+        }
+        // 8. Function Calls (T_STRING, T_EVAL, or fully qualified \foo\bar)
+        if ($tok->id === T_STRING || $tok->id === T_NAME_QUALIFIED || $tok->id === T_NAME_FULLY_QUALIFIED) {
+            $prevIdx = $i - 1;
+            while ($prevIdx >= 0 && $tokens[$prevIdx]->id === T_WHITESPACE) {
+                $prevIdx--;
+            }
+            // Exclude method calls ($obj->method), static calls (Class::method), definitions, or instantiations
+            if ($prevIdx >= 0) {
+                $pId = $tokens[$prevIdx]->id;
+                if (
+                    $pId === T_OBJECT_OPERATOR ||
+                    $pId === T_DOUBLE_COLON ||
+                    $pId === T_FUNCTION ||
+                    $pId === T_CLASS ||
+                    $pId === T_NEW ||
+                    (defined('T_NULLSAFE_OBJECT_OPERATOR') && $pId === T_NULLSAFE_OBJECT_OPERATOR)
+                ) {
+                    continue;
+                }
+            }
+            $nextIdx = $i + 1;
+            while ($nextIdx < $count && $tokens[$nextIdx]->id === T_WHITESPACE) {
+                $nextIdx++;
+            }
+            // Confirm call via opening parenthesis '('
+            if ($nextIdx < $count && $tokens[$nextIdx]->text === '(') {
+                $calledName = $tok->text;
+                $lineNo = $line;
+                $argsString = '';
+                $parenDepth = 1;
+                $argRunner = $nextIdx + 1;
+                while ($argRunner < $count) {
+                    $argToken = $tokens[$argRunner];
+                    if ($argToken->text === '(') {
+                        $parenDepth++;
+                    } elseif ($argToken->text === ')') {
+                        $parenDepth--;
+                    }
+                    if ($parenDepth === 0) {
+                        break;
+                    }
+                    $argsString .= $argToken->text;
+                    $argRunner++;
+                }
+                $loweredName = strtolower(ltrim($calledName, '\\'));
+                if (in_array($loweredName, $dangerousFuncs, true)) {
+                    $hasDangerousCalls = true;
+                }
+                $calls[] = [
+                    'name' => $calledName,
+                    'line' => $lineNo,
+                    'args' => trim($argsString)
+                ];
+            }
+        }
+    }
+
+    return [
+        'has_exit'             => $hasExit,
+        'exit_lines'           => array_unique($exitLines),
+        'has_raw_output'       => $hasRawOutput,
+        'raw_output_lines'     => array_unique($rawOutputLines),
+        'has_eval'             => $hasEval,
+        'eval_lines'           => array_unique($evalLines),
+        'has_inner_functions'  => $hasInnerFunctions,
+        'nested_function_lines' => array_unique($innerFunctionLines),
+        'has_inner_classes'    => $hasInnerClasses,
+        'inner_class_lines'    => array_unique($innerClassLines),
+        'has_globals'          => $hasGlobals,
+        'global_vars'          => array_unique($globalVars),
+        'has_dangerous_calls'  => $hasDangerousCalls,
+        'has_variable_vars'    => $hasVariableVars,
+        'calls'                => $calls,
     ];
 }
 
@@ -4524,233 +5031,6 @@ function cli_inherited_middleware_exist(&$ROUTES, $method, $startPath, $mw)
         }
     }
     return $inheritedMiddlewaresFound;
-}
-
-// Helper function to `cli_file_status` but can also be used
-// without using that one to get an array of regular function declarations!
-// like "function name1(){}, function name2(){}" and so on within same file!
-function cli_harvest_all_functions_from_code(string $code): array
-{
-    $tokens = PhpToken::tokenize($code); // Yes, unfortunately we do use a static class method
-    $count = count($tokens);
-    $harvested = [];
-    for ($i = 0; $i < $count; $i++) {
-        if ($tokens[$i]->id === T_FUNCTION) {
-            // Find function name (skip whitespace/hints if any)
-            $nameIndex = $i + 1;
-            while ($nameIndex < $count && $tokens[$nameIndex]->id === T_WHITESPACE) {
-                $nameIndex++;
-            }
-            // If it's an anonymous closure, skip it
-            if ($nameIndex >= $count || $tokens[$nameIndex]->id !== T_STRING) {
-                continue;
-            }
-            $fnName = $tokens[$nameIndex]->text;
-            $startIndex = $tokens[$i]->pos;
-            $braceDepth = 0;
-            $hasStartedBody = false;
-            // Track brace depth to find the end of this specific function
-            for ($j = $nameIndex + 1; $j < $count; $j++) {
-                if ($tokens[$j]->text === '{') {
-                    $braceDepth++;
-                    $hasStartedBody = true;
-                } elseif ($tokens[$j]->text === '}') {
-                    $braceDepth--;
-                }
-                if ($hasStartedBody && $braceDepth === 0) {
-                    $endIndex = $tokens[$j]->pos + 1;
-                    $harvested[$fnName] = substr($code, $startIndex, $endIndex - $startIndex);
-                    $i = $j; // Move outer pointer past this function
-                    break;
-                }
-            }
-        }
-    }
-    return $harvested; // Returns ['all' => 'function all()...', 'by_id' => '...']
-}
-// Helper function to `cli_file_status` but can also be used
-// without using that one to get an array of regular class declarations!
-// like "class name1(){}, class name2(){}" and so on within same file!
-function cli_harvest_all_classes_from_code(string $code): array
-{
-    $tokens = PhpToken::tokenize($code);
-    $count = count($tokens);
-    $harvested = [];
-    for ($i = 0; $i < $count; $i++) {
-        if ($tokens[$i]->id === T_CLASS) {
-            // Fast-forward past whitespace to find the class name
-            $nameIndex = $i + 1;
-            while ($nameIndex < $count && $tokens[$nameIndex]->id === T_WHITESPACE) {
-                $nameIndex++;
-            }
-            // Skip anonymous classes (e.g., $instance = new class {})
-            if ($nameIndex >= $count || $tokens[$nameIndex]->id !== T_STRING) {
-                continue;
-            }
-            $className = $tokens[$nameIndex]->text;
-            $startIndex = $tokens[$i]->pos; // Capture right from the "class" keyword
-            $braceDepth = 0;
-            $hasStartedBody = false;
-            // Track braces to isolate the entire class structure
-            for ($j = $nameIndex + 1; $j < $count; $j++) {
-                if ($tokens[$j]->text === '{') {
-                    $braceDepth++;
-                    $hasStartedBody = true;
-                } elseif ($tokens[$j]->text === '}') {
-                    $braceDepth--;
-                }
-                if ($hasStartedBody && $braceDepth === 0) {
-                    $endIndex = $tokens[$j]->pos + 1;
-                    $harvested[$className] = substr($code, $startIndex, $endIndex - $startIndex);
-                    $i = $j; // Advance outer pointer past this class block
-                    break;
-                }
-            }
-        }
-    }
-    return $harvested; // Returns ['User' => 'class User { ... }']
-}
-
-// Helper function (must get code as string) that can analyze already
-// loaded PHP code for safety by providing any functions a function
-// and/or class is using to compare against (dis)allowed functions and so on!
-function cli_analyze_code_safety(string $code): array
-{
-    $tokens = PhpToken::tokenize($code);
-    $count = count($tokens);
-    $analysis = [
-        'functions' => [],
-        'classes'   => []
-    ];
-    $currentType = 'global'; // 'global', 'function', or 'class'
-    $currentName = '';
-    $braceDepth  = 0;
-    $structDepth = 0;
-    for ($i = 0; $i < $count; $i++) {
-        $token = $tokens[$i];
-        // 1. TRACK BRACE LAYERS ALWAYS
-        if ($token->text === '{') {
-            $braceDepth++;
-        } elseif ($token->text === '}') {
-            $braceDepth--;
-
-            // If depth returns to baseline, we popped back into global namespace space
-            if ($currentType !== 'global' && $braceDepth === $structDepth) {
-                $currentType = 'global';
-                $currentName = '';
-                continue;
-            }
-        }
-        // 2. DETECT STRUCURAL BOUNDARIES (GLOBAL SPACE ONLY)
-        if ($currentType === 'global') {
-            if ($token->id === T_FUNCTION || $token->id === T_CLASS) {
-                $isFn = ($token->id === T_FUNCTION);
-                $nameIdx = $i + 1;
-                while ($nameIdx < $count && $tokens[$nameIdx]->id === T_WHITESPACE) {
-                    $nameIdx++;
-                }
-                if ($nameIdx < $count && $tokens[$nameIdx]->id === T_STRING) {
-                    $currentType = $isFn ? 'function' : 'class';
-                    $currentName = $tokens[$nameIdx]->text;
-                    $structDepth = $braceDepth; // Capture structural context depth
-                    if ($isFn) {
-                        $analysis['functions'][$currentName] = [
-                            'early_exit'        => false,
-                            'early_exit_lines'      => [],
-                            'raw_output'        => false,
-                            'raw_output_lines'      => [],
-                            'nested_functions'  => false,
-                            'nested_function_lines' => [],
-                            'calls'                 => []
-                        ];
-                    } else {
-                        $analysis['classes'][$currentName] = [
-                            'calls' => []
-                        ];
-                    }
-                }
-            }
-            continue;
-        }
-        // 3. CODE ANALYZER (INSIDE A FUNCTION OR CLASS BLOCK)
-        if ($currentType === 'function') {
-            // Catch Illegal Nested/Inner Functions
-            if ($token->id === T_FUNCTION) {
-                $analysis['functions'][$currentName]['nested_functions'] = true;
-                $analysis['functions'][$currentName]['nested_function_lines'][] = $token->line;
-                continue;
-            }
-            // Catch classes?
-            if ($token->id === T_CLASS) {
-                $analysis['functions'][$currentName]['class_in_function'] = true;
-                $analysis['functions'][$currentName]['class_in_function_lines'][] = $token->line;
-                continue;
-            }
-            // Catch Short-Circuiting Terminators
-            if ($token->id === T_EXIT) {
-                $analysis['functions'][$currentName]['early_exit'] = true;
-                $analysis['functions'][$currentName]['early_exit_lines'][] = $token->line;
-                continue;
-            }
-            // Catch Raw Output Dumps
-            if ($token->id === T_ECHO || $token->id === T_PRINT) {
-                $analysis['functions'][$currentName]['raw_output'] = true;
-                $analysis['functions'][$currentName]['raw_output_lines'][] = $token->line;
-                continue;
-            }
-        }
-        // 4. STANDARD INVOCATION / CALL SCANNERS (T_STRING or T_EVAL)
-        if ($token->id === T_STRING || $token->id === T_EVAL) {
-            $prevIdx = $i - 1;
-            while ($prevIdx >= 0 && $tokens[$prevIdx]->id === T_WHITESPACE) {
-                $prevIdx--;
-            }
-            if ($prevIdx >= 0) {
-                $pId = $tokens[$prevIdx]->id;
-                if ($pId === T_OBJECT_OPERATOR || $pId === T_DOUBLE_COLON || $pId === T_FUNCTION || $pId === T_NEW) {
-                    continue;
-                }
-                if (defined('T_NULLSAFE_OBJECT_OPERATOR') && $pId === T_NULLSAFE_OBJECT_OPERATOR) {
-                    continue;
-                }
-            }
-            $nextIdx = $i + 1;
-            while ($nextIdx < $count && $tokens[$nextIdx]->id === T_WHITESPACE) {
-                $nextIdx++;
-            }
-            if ($nextIdx < $count && $tokens[$nextIdx]->text === '(') {
-                $calledName = $token->text;
-                $lineNo     = $token->line;
-                $argsString = '';
-                $parenDepth = 1;
-                $argRunner  = $nextIdx + 1;
-                while ($argRunner < $count) {
-                    $argToken = $tokens[$argRunner];
-                    if ($argToken->text === '(') {
-                        $parenDepth++;
-                    } elseif ($argToken->text === ')') {
-                        $parenDepth--;
-                    }
-                    if ($parenDepth === 0) {
-                        break;
-                    }
-                    $argsString .= $argToken->text;
-                    $argRunner++;
-                }
-                $payload = [
-                    'name' => $calledName,
-                    'line' => $lineNo,
-                    'args' => trim($argsString)
-                ];
-                if ($currentType === 'function') {
-                    $analysis['functions'][$currentName]['calls'][] = $payload;
-                } else {
-                    $analysis['classes'][$currentName]['calls'][] = $payload;
-                }
-            }
-        }
-    }
-    return $analysis;
 }
 
 // Function that expects and uses the array from the function above

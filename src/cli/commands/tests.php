@@ -8,36 +8,37 @@
  * other versions of this file then so you do not accidentally run malicious code!
  **/
 
+cli_dump(cli_file_status("/funkphp/data/validation", "s_najs"));
+
+
+
 // Mock data mimicking your exact production "source of truth" structure
-$mockDeveloperRoutes = [
-    // API-like routes
-    '/api'                             => ['config' => [], 'middlewares' => [], 'pipeline' => []],
-    '/api/v1/users'                             => ['config' => [], 'middlewares' => [], 'pipeline' => []],
-    '/api/v1/:posts'                             => ['config' => [], 'middlewares' => [], 'pipeline' => []],
-    '/api/v1/posts/:id'                             => ['config' => [], 'middlewares' => [], 'pipeline' => []],
-    '/api/v1/posts/:id/comments'                 => ['config' => [], 'middlewares' => [], 'pipeline' => []],
-    '/api/v1/users/:id'                         => ['config' => [], 'middlewares' => [], 'pipeline' => []],
-    '/api/v1/users/:id/posts'                   => ['config' => [], 'middlewares' => [], 'pipeline' => []],
-    '/api/v1/users/:id/posts/:postId'           => ['config' => [], 'middlewares' => [], 'pipeline' => []],
-    '/api/v1/users/:id/posts/:postId/comments'  => ['config' => [], 'middlewares' => [], 'pipeline' => []],
-    // Routes that normalize to same shape
-    '/:user/:id'                                => ['config' => [], 'middlewares' => [], 'pipeline' => []],
-    '/:member/profileId'                       => ['config' => [], 'middlewares' => [], 'pipeline' => []],
-    '/:author/:article/:comment'                => ['config' => [], 'middlewares' => [], 'pipeline' => []],
-    // Very short routes
-    '/'                 => ['config' => [], 'middlewares' => [], 'pipeline' => []],
-    '/aa'                                        => ['config' => [], 'middlewares' => [], 'pipeline' => []],
-    '/:a'                                       => ['config' => [], 'middlewares' => [], 'pipeline' => []],
-];
+// $mockDeveloperRoutes = [
+//     // API-like routes
+//     '/api'                             => ['config' => [], 'middlewares' => [], 'pipeline' => []],
+//     '/api/v1/users'                             => ['config' => [], 'middlewares' => [], 'pipeline' => []],
+//     '/api/v1/:posts'                             => ['config' => [], 'middlewares' => [], 'pipeline' => []],
+//     '/api/v1/posts/:id'                             => ['config' => [], 'middlewares' => [], 'pipeline' => []],
+//     '/api/v1/posts/:id/comments'                 => ['config' => [], 'middlewares' => [], 'pipeline' => []],
+//     '/api/v1/users/:id'                         => ['config' => [], 'middlewares' => [], 'pipeline' => []],
+//     '/api/v1/users/:id/posts'                   => ['config' => [], 'middlewares' => [], 'pipeline' => []],
+//     '/api/v1/users/:id/posts/:postId'           => ['config' => [], 'middlewares' => [], 'pipeline' => []],
+//     '/api/v1/users/:id/posts/:postId/comments'  => ['config' => [], 'middlewares' => [], 'pipeline' => []],
+//     // Routes that normalize to same shape
+//     '/:user/:id'                                => ['config' => [], 'middlewares' => [], 'pipeline' => []],
+//     '/:member/profileId'                       => ['config' => [], 'middlewares' => [], 'pipeline' => []],
+//     '/:author/:article/:comment'                => ['config' => [], 'middlewares' => [], 'pipeline' => []],
+//     // Very short routes
+//     '/'                 => ['config' => [], 'middlewares' => [], 'pipeline' => []],
+//     '/aa'                                        => ['config' => [], 'middlewares' => [], 'pipeline' => []],
+//     '/:a'                                       => ['config' => [], 'middlewares' => [], 'pipeline' => []],
+// ];
 
-$sortedResult = cli_prepare_binary_specificity_score_VF($mockDeveloperRoutes, "GET");
-$ASTresult    = cli_build_flattened_routing_start_VF($sortedResult, "GET");
-// Run through the wrapper
-$compiledPHPCode = cli_compile_router_file_VF($ASTresult, "GET");
-
-echo $compiledPHPCode;
-
-
+// $sortedResult = cli_prepare_binary_specificity_score_VF($mockDeveloperRoutes, "GET");
+// $ASTresult    = cli_build_flattened_routing_start_VF($sortedResult, "GET");
+// // Run through the wrapper
+// $compiledPHPCode = cli_compile_router_file_VF($ASTresult, "GET");
+// echo $compiledPHPCode;
 // Visualizing the sorted compilation queue
 // echo sprintf(
 //     "%-100s | %-10s | %-11s | %-12s\n",
@@ -57,6 +58,5 @@ echo $compiledPHPCode;
 //         $r['binary_score']
 //     );
 // }
-
 echo "All tests completed!" . PHP_EOL;
 exit;

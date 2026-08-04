@@ -821,7 +821,7 @@ final class CountryCode
     public const Zambia = '260';
     public const Zimbabwe = '263';
 }
-class RuleSet
+class FunkValidate
 {
     /*
      * Comprehensive Extension to MIME Types Mapping Dictionary. - WILL PROBABLY BE MOVED & EXTENDED!!!
@@ -959,7 +959,8 @@ class RuleSet
     private ?int $exactStringLength = null;
     private ?bool $useNullable = false;
     private ?bool $useRequired = false;
-    private ?bool $useBail = false;
+    private ?bool $useBailField = false;
+    private ?bool $useFieldSkippable = false;
     private ?string $arrayType = null;
     private ?array $dimensionalArrayCount = [];
     private ?int $dimensionalArrayDepth = 0;
@@ -1299,15 +1300,36 @@ class RuleSet
 
     // ACTUAL RULES (some are data type-restricted like some for only strings, some for only arrays, etc.)
     /* ALL DATA TYPES RULES */
+
+    // `skippable` means the given ['field.subField'] assigned it can be skipped during a validation
+    // call so it can still pass/validate others fields. This means one validation can be reused instead
+    // having to create several different versions of it.
+    // For example `\funk\use\validate\file_function($c,$dataSource,$errorSource,[skip=>['field.subField']])`
+    // meaning it would skip the ['field.subField'] key when it reaches that Rule meaning it would not even
+    // check if any of its data exists first since you decided to skip that input field entirely.
+    public function skippable(): self
+    {
+        if (!$this->validateRuleUsage('skippable')) {
+            return $this;
+        }
+        $this->rules['skippable'] = ['error' => null, 'values' => null, 'compiled' => null];
+        $this->useFieldSkippable = true;
+        return $this;
+    }
+    // `bail` means you wanna stop validating for the given input data as soon as you stumble upon the first
+    // error. IMPORTANT: if this is used on array that has keys, it would skip all those keys if the array part
+    // stumbles upon an error. Well, if keys do not exist, they would not be validated but using `bail` means
+    // they do not even get any errors registered but only the array field does if it has `bail` assigned.
     public function bail(): self
     {
         if (!$this->validateRuleUsage('bail')) {
             return $this;
         }
         $this->rules['bail'] = ['error' => null, 'values' => null, 'compiled' => null];
-        $this->useBail = true;
+        $this->useBailField = true;
         return $this;
     }
+    // `nullable` means the input data can be set as `null`.
     public function nullable(): self
     {
         if (!$this->validateRuleUsage('nullable')) {
@@ -1327,7 +1349,7 @@ class RuleSet
             return $this;
         }
         $this->inputKeyField = strtolower(trim($validated[0]));
-        $this->rules['input_key_field'] = ['error' => null, 'values' => null, 'compiled' => null];
+        $this->rules['input_key_field'] = ['error' => null, 'values' => $fieldToReplaceINPUT_KEYWith, 'compiled' => null];
         $this->useNullable = true;
         return $this;
     }
@@ -7271,9 +7293,9 @@ class RuleSet
  * @param 'file'|'string'|'date'|'checkbox'|'integer'|'float'|'boolean'|'number'|'array'|'arr'|'object'|'json'|'password'|'password_match'|'email'|'url'|'ip' $dataType
  * @param string $customErrorMsg
  * @param 'list'|'associative'|'' $setArrayTypeToListOrAssociative
- * @return RuleSetAll
+ * @return FunkValidate
  */
-function data(string $dataType, string $customErrorMsgDataTypeOnly = '', string $customErrorMsgOnlyForParameters = ''): RuleSet
+function data(string $dataType, string $customErrorMsgDataTypeOnly = '', string $customErrorMsgOnlyForParameters = ''): FunkValidate
 {
-    return (new RuleSet())->setDatatype($dataType, $customErrorMsgDataTypeOnly, $customErrorMsgOnlyForParameters);
+    return (new FunkValidate())->setDatatype($dataType, $customErrorMsgDataTypeOnly, $customErrorMsgOnlyForParameters);
 }
