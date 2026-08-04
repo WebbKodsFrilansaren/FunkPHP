@@ -25,3 +25,23 @@ function testar()
 {
     $var = "Test";
 }
+
+function testar2()
+{
+    $var = "Test";
+}
+
+function testar3()
+{
+    $var = "Test";
+}
+
+function testar4()
+{
+    $var = "Test";
+}
+
+function testar5()
+{
+    $var = "Test";
+}
