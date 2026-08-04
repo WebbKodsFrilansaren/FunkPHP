@@ -133,7 +133,6 @@ define('CLI_CONFIG_DIR', __DIR__ . '/config');
 define('FUNKPHP_DIR', PROJECT_DIR . '/funkphp');
 define('FUNKPHP_VENDOR_DIR', FUNKPHP_DIR . '/vendor');
 define('FUNKPHP_CORE_DIR', FUNKPHP_DIR . '/core');
-define('FUNKPHP_CLASSES_DIR', FUNKPHP_DIR . '/classes');
 define('FUNKPHP_CONFIG_DIR', FUNKPHP_DIR . '/config');
 define('FUNKPHP_CONFIG_BLOCKED_DIR', FUNKPHP_CONFIG_DIR . '/blacklists');
 define('FUNKPHP_CONFIG_VALID_DIR', FUNKPHP_CONFIG_DIR . '/whitelists');
@@ -9215,7 +9214,6 @@ $cCONSTANTSDefault = [
     "define('FUNKPHP_USE_VENDOR', true)",
     "define('ROOT_FOLDER', dirname(__DIR__, 1))", // src/funkphp/
     "define('ROOT_CORE', ROOT_FOLDER . '/core')", // src/funkphp/core
-    "define('ROOT_CLASSES', ROOT_FOLDER . '/classes')", // src/funkphp/classes
     "define('ROOT_CONFIG', ROOT_FOLDER . '/config')", // src/funkphp/config
     "define('ROOT_MIDDLEWARES', ROOT_FOLDER . '/pipes/middlewares')", // src/funkphp/FunkPHP
     "define('ROOT_PAGES', ROOT_FOLDER . '/pages')", // src/funkphp/pages

@@ -591,9 +591,6 @@ if (
 ) {
     cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_FILE_PATH_CONNS_CONFIG` containing Exact File Path to `/src/funkphp/config/conns.php` (Your Credentials for your Connections) is NOT DEFINED or FILE DOES NOT EXIST or FILE IS NOT READABLE. IMPORTANT: Look in your `/src/funkphp/config` as `/src/funkphp/config/README_IN_IDE.php` File should have been created _before you read this_. Rename that file to `conns.php` as it contains starting templates for how `Connection Profiles` should look like.");
 }
-if (!defined('FUNKPHP_CLASSES_DIR') || !is_readable(FUNKPHP_CLASSES_DIR)) {
-    cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_CLASSES_DIR` containing Exact Dir Path to `/src/funkphp/classes` (Your classes that are NOT Vendor-based) is NOT DEFINED or PATH DOES NOT EXIST or IS NOT READABLE. File Permission issues?");
-}
 if (!defined("FUNKPHP_ROUTES_DIR") || !is_readable(FUNKPHP_ROUTES_DIR)) {
     cli_build_warning_err_list($configWarnsAndErrs, "cli_err", "The Constant `FUNKPHP_ROUTES_DIR` (`/src/funkphp/pipeline/routes`) IS NOT DEFINED when it should be?! Try Git/Versioning Control (for `/src/cli/funk`) to get it back or redownload it again!");
 }
@@ -875,43 +872,6 @@ $classesChecks[] = cli_assert_array_keys_path($cConfig, FUNKPHP_FILE_PATH_C_CONF
 cli_assert_final_value(end($classesChecks), $configWarnsAndErrs, "cli_err", 'array-empty', "Must be an Empty Array  as it will be filled with user-defined class instances `(from /src/funkphp/classes)` during runtime.");
 cli_stop_from_warn_err_list($configWarnsAndErrs, "Please Review (" . count($configWarnsAndErrs) . ") Warnings/Errors above for 'classes' Main Key in the `/src/funkphp/config/c.php` (FunkPHP Configuration File) and try again!");
 /// SCAN funkphp/classes dir as we do not know if there are any
-$classDir = scandir(FUNKPHP_CLASSES_DIR);
-foreach ($classDir as $classFile) {
-    if ($classFile === '.' || $classFile === '..' || !str_ends_with($classFile, ".php")) continue;
-    $klassPath = FUNKPHP_CLASSES_DIR . '/' .  $classFile;
-    if (isset($ROUTES_CONFIG_PARSED['ALL']['ALL_CLASSES_USED']['INVALID_PATHS'][$klassPath])) {
-        cli_build_warning_err_list($classesWarnsErrs, "cli_err", "The Class File `$klassPath` already VALIDATED AS INVALID CLASS FILE!");
-        continue;
-    }
-    $klass = cli_file_status("funkphp/classes", $classFile);
-    if (
-        (!cli_status_helper($klass, [
-            "class_exists",
-            "namespace_exists",
-            "classes_same_count"
-        ]) || ($klass['namespace_name'] !== 'funkphp\\classes'))
-    ) {
-        $ROUTES_CONFIG_PARSED['ALL']['ALL_CLASSES_USED']['INVALID_PATHS'][$klassPath] = true;
-        cli_build_warning_err_list($classesWarnsErrs, "cli_err", "The Class File `$classFile` is NOT a Valid Class File; it must have namespace `funkphp\\classes;` and then no comments after closing class '}'! (check for trailing comments!)");
-        continue;
-    } else if (count($klass['class_names_duplicates']) > 0) {
-        $ROUTES_CONFIG_PARSED['ALL']['ALL_CLASSES_USED']['INVALID_PATHS'][$klassPath] = true;
-        cli_build_warning_err_list($classesWarnsErrs, "cli_err", "Duplicate Class Names in (`" . join(", ", array_keys($klass['class_names_duplicates'])) .  "`) in Class File `$klassPath`!");
-        continue;
-    }
-    foreach ($klass['classes'] as $singleKlassK => $singleKlassV) {
-        if (isset($ROUTES_CONFIG_PARSED['ALL']['ALL_CLASSES_USED']['VALID'][$singleKlassK])) {
-            cli_build_warning_err_list($classesWarnsErrs, "cli_err", "The Class `$singleKlassK` in File `$klassPath` already VALIDATED AS VALID CLASS!");
-            continue;
-        } else if (!$singleKlassV['class_name_ucfirst']) {
-            $ROUTES_CONFIG_PARSED['ALL']['ALL_CLASSES_USED']['INVALID'][$singleKlassK] = true;
-            cli_build_warning_err_list($classesWarnsErrs, "cli_err", "The Class Name `$singleKlassK` in File `$klassPath` must START WITH AN UPPERCASE LETTER!");
-            continue;
-        }
-        $ROUTES_CONFIG_PARSED['ALL']['ALL_CLASSES_USED']['VALID'][$singleKlassK] = true;
-        $classesBUFFER[] = $singleKlassV['class_raw'];
-    }
-}
 // Either it will fail here OR complete the classes buffer array
 cli_stop_from_warn_err_list($classesWarnsErrs, "Please Review (" . count($classesWarnsErrs) . ") Warnings/Errors above for 'classes' Files in `/src/funkphp/classes`!");
 $classesBUFFER[] = "}\n"; // We do NOT add classes yet to the entire buffer though! We haven't even added the starting part of the file!

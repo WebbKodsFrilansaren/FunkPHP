@@ -32,7 +32,6 @@ define('NAMESPACE_DATA_VALIDATION', 'funkphp\\data\\validation\\');
 define('FUNKPHP_USE_VENDOR', true); // Change to "false" if you intend to not use any Composer packages and want to remove the Composer autoloader from "FunkPHP.php" for better performance!
 define('ROOT_FOLDER', dirname(__DIR__, 1)); // src/funkphp/
 define('ROOT_CORE', ROOT_FOLDER . '/core'); // src/funkphp/core
-define('ROOT_CLASSES', ROOT_FOLDER . '/classes'); // src/funkphp/classes
 define('ROOT_CONFIG', ROOT_FOLDER . '/config'); // src/funkphp/config
 define('ROOT_MIDDLEWARES', ROOT_FOLDER . '/pipeline/middlewares'); // src/funkphp/FunkPHP
 define('ROOT_PAGES', ROOT_FOLDER . '/pages'); // src/funkphp/pages

@@ -1,6 +1,5 @@
 <?php
-// compiled_routes.php - FunkPHP | FunkCLI created/updated 2026-08-03 15:03:05
-
+// compiled_routes.php - FunkPHP | FunkCLI created/updated 2026-08-04 11:11:04
 /**
  * -----------------------------------------------------
  * FUNKPHP AUTOMATICALLY GENERATED/CREATED COMPILED FILE
@@ -14,53 +13,63 @@
  * 'compiled_routes.php' and/or 'pipeline_routes.php'),
  * run the following Terminal Command in Working Path '/src/cli': `php funk recompile`
  */
-return array(
-  'TRIE' =>
-  array(
-    'GET' =>
-    array(
-      '/' =>
-      array(),
-      'et' =>
-      array(),
-      'get' =>
-      array(),
-      'test' =>
-      array(
-        2 =>
-        array(),
-        3 =>
-        array(),
-        'testar2' =>
-        array(
-          'jobb' =>
-          array(),
+return array (
+  'TRIE' => 
+  array (
+    'GET' => 
+    array (
+      '/' => 
+      array (
+      ),
+      'et' => 
+      array (
+      ),
+      'get' => 
+      array (
+      ),
+      'test' => 
+      array (
+        2 => 
+        array (
+        ),
+        3 => 
+        array (
+        ),
+        'testar2' => 
+        array (
+          'jobb' => 
+          array (
+          ),
         ),
       ),
     ),
-    'POST' =>
-    array(),
-    'PUT' =>
-    array(),
-    'DELETE' =>
-    array(),
-    'PATCH' =>
-    array(),
+    'POST' => 
+    array (
+    ),
+    'PUT' => 
+    array (
+    ),
+    'DELETE' => 
+    array (
+    ),
+    'PATCH' => 
+    array (
+    ),
   ),
-  'METADATA' =>
-  array(
-    '<ALL>' =>
-    array(
+  'METADATA' => 
+  array (
+    '<ALL>' => 
+    array (
       'totalAllRoutes' => 7,
       'totalStaticRoutes' => 7,
       'totalDynamicRoutes' => 0,
       'minURICountAll' => 0,
       'maxURICountAll' => 3,
     ),
-    'GET' =>
-    array(
-      'allRoutes' =>
-      array(
+    'GET' => 
+    array (
+      'allRoutes' => 
+      array (
         '/' => 1,
         '/et' => 1,
         '/get' => 1,
@@ -69,8 +78,8 @@ return array(
         '/test/3' => 1,
         '/test/testar2/jobb' => 1,
       ),
-      'staticRoutes' =>
-      array(
+      'staticRoutes' => 
+      array (
         '/' => 1,
         '/et' => 1,
         '/get' => 1,
@@ -79,12 +88,13 @@ return array(
         '/test/3' => 1,
         '/test/testar2/jobb' => 1,
       ),
-      'dynamicRoutes' =>
-      array(),
+      'dynamicRoutes' => 
+      array (
+      ),
       'minURICount' => 0,
       'maxURICount' => 3,
-      'URICountExistsForNumber' =>
-      array(
+      'URICountExistsForNumber' => 
+      array (
         0 => 1,
         1 => 1,
         2 => 1,
@@ -94,66 +104,82 @@ return array(
       'staticRoutesCount' => 7,
       'dynamicRoutesCount' => 0,
     ),
-    'PATCH' =>
-    array(
-      'allRoutes' =>
-      array(),
-      'staticRoutes' =>
-      array(),
-      'dynamicRoutes' =>
-      array(),
+    'PATCH' => 
+    array (
+      'allRoutes' => 
+      array (
+      ),
+      'staticRoutes' => 
+      array (
+      ),
+      'dynamicRoutes' => 
+      array (
+      ),
       'minURICount' => 0,
       'maxURICount' => 0,
-      'URICountExistsForNumber' =>
-      array(),
+      'URICountExistsForNumber' => 
+      array (
+      ),
       'allRoutesCount' => 0,
       'staticRoutesCount' => 0,
       'dynamicRoutesCount' => 0,
     ),
-    'POST' =>
-    array(
-      'allRoutes' =>
-      array(),
-      'staticRoutes' =>
-      array(),
-      'dynamicRoutes' =>
-      array(),
+    'POST' => 
+    array (
+      'allRoutes' => 
+      array (
+      ),
+      'staticRoutes' => 
+      array (
+      ),
+      'dynamicRoutes' => 
+      array (
+      ),
       'minURICount' => 0,
       'maxURICount' => 0,
-      'URICountExistsForNumber' =>
-      array(),
+      'URICountExistsForNumber' => 
+      array (
+      ),
       'allRoutesCount' => 0,
       'staticRoutesCount' => 0,
       'dynamicRoutesCount' => 0,
     ),
-    'PUT' =>
-    array(
-      'allRoutes' =>
-      array(),
-      'staticRoutes' =>
-      array(),
-      'dynamicRoutes' =>
-      array(),
+    'PUT' => 
+    array (
+      'allRoutes' => 
+      array (
+      ),
+      'staticRoutes' => 
+      array (
+      ),
+      'dynamicRoutes' => 
+      array (
+      ),
       'minURICount' => 0,
       'maxURICount' => 0,
-      'URICountExistsForNumber' =>
-      array(),
+      'URICountExistsForNumber' => 
+      array (
+      ),
       'allRoutesCount' => 0,
       'staticRoutesCount' => 0,
       'dynamicRoutesCount' => 0,
     ),
-    'DELETE' =>
-    array(
-      'allRoutes' =>
-      array(),
-      'staticRoutes' =>
-      array(),
-      'dynamicRoutes' =>
-      array(),
+    'DELETE' => 
+    array (
+      'allRoutes' => 
+      array (
+      ),
+      'staticRoutes' => 
+      array (
+      ),
+      'dynamicRoutes' => 
+      array (
+      ),
       'minURICount' => 0,
       'maxURICount' => 0,
-      'URICountExistsForNumber' =>
-      array(),
+      'URICountExistsForNumber' => 
+      array (
+      ),
       'allRoutesCount' => 0,
       'staticRoutesCount' => 0,
       'dynamicRoutesCount' => 0,

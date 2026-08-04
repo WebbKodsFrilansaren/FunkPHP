@@ -12773,7 +12773,6 @@ function cli_restore_default_folders_and_files()
         "$folderBase/cli/config/",
         "$folderBase/cli/core/",
         "$folderBase/funkphp/",
-        "$folderBase/funkphp/classes/",
         "$folderBase/funkphp/core/",
         "$folderBase/funkphp/config/",
         "$folderBase/funkphp/pipes/",
@@ -12813,6 +12812,7 @@ function cli_restore_default_folders_and_files()
         "$folderBase/funkphp/core/valid_mysql_datatypes.php",
         "$folderBase/funkphp/core/valid_mysql_operators.php",
         "$folderBase/funkphp/config/functions.php",
+        "$folderBase/funkphp/config/classes.php",
         "$folderBase/funkphp/config/README_IN_IDE.php",
         "$folderBase/funkphp/config/lists.php",
         //"$folderBase/public_html/.htaccess",
@@ -12835,64 +12835,72 @@ function cli_restore_default_folders_and_files()
     foreach ($defaultFiles as $file) {
         if (!file_exists($file)) {
             // Recreate default files based on type ("troute", "middleware routes" or "single routes")
+            // Recreate default User-defined Functions File `/src/funkphp/classes.php`
             if (str_contains($file, "functions.php")) {
                 file_put_contents($file, "<?php\n// src/funkphp/config/functions.php - FunkPHP | FunkCLI recreated it $date\n\n" . cli_get_prefix_code("doModifyThisFile") . "\n");
-                cli_success_without_exit("Recreated file: $file");
+                cli_success_without_exit("Recreated Default Config User-defined Functions File: $file");
                 continue;
-            } // Only recreated if /src/funkphp/config/conns.php does
+            }
+            // Recreate default User-defined Classes File `/src/funkphp/classes.php`
+            else if (str_contains($file, "classes.php")) {
+                file_put_contents($file, "<?php\n// src/funkphp/config/classes.php - FunkPHP | FunkCLI recreated it $date\n\n" . cli_get_prefix_code("doModifyThisFile_Classes") . "\nnamespace funkphp\\classes;\n");
+                cli_success_without_exit("Recreated Default Config User-defined Classes File: $file");
+                continue;
+            }
+            // Only recreated if /src/funkphp/config/conns.php does
             // not exist since this is the template for that file!
             else if (str_contains($file, "README_IN_IDE.php")) {
                 if (file_exists(FUNKPHP_FILE_PATH_CONNS_CONFIG)) {
                     continue;
                 }
                 file_put_contents($file, "<?php\n// README_IN_IDE.php - FunkPHP | FunkCLI recreated it $date\n" . cli_get_prefix_code("connsDefaultStartText") . "\nreturn " . var_export($connsDefault, true) . ";\n");
-                cli_success_without_exit("Recreated file: $file");
+                cli_success_without_exit("Recreated Config `Conns.php-Information` File: $file");
                 continue;
             } else if (str_contains($file, "lists.php")) {
                 if (function_exists("cli_get_default_lists")) {
                     file_put_contents($file, "<?php\n// lists.php - FunkPHP | FunkCLI recreated it $date\n" . cli_get_prefix_code("do_not_modify_directly") . "\nreturn " . var_export((cli_get_default_lists()), true) . ";\n");
                 }
-                cli_success_without_exit("Recreated file: $file");
+                cli_success_without_exit("Recreated Default Config Lists File: $file");
                 continue;
             } else if (str_contains($file, "c.php")) {
                 file_put_contents($file, "<?php\n// c.php - FunkPHP | FunkCLI recreated it $date\n" . cli_get_prefix_code("do_not_modify_warning") . "\nrequire_once __DIR__ . '/CONSTANTS.php';\n// GLOBAL CONFIGURATIONS in \"\$c\" variable in \"funkphp/funkphp_start.php\"\n// Configure as needed using FunkCLI and/or FunkGUI!\n\nreturn " . cli_replace_string_tokens_in_var_exported_string($cReplacements, var_export($cDefault, true)) . ";\n");
-                cli_success_without_exit("Recreated file: $file");
+                cli_success_without_exit("Recreated Default Core Global Configuration `c.php` File: $file");
                 continue;
             } else if (str_contains($file, "CONSTANTS.php")) {
                 file_put_contents($file, "<?php\n// CONSTANTS.php - FunkPHP | FunkCLI recreated it $date\n" . cli_get_prefix_code("do_not_modify_warning") . "\n" . join(";\n", $CONSTANTSDefault) . ";\n");
-                cli_success_without_exit("Recreated file: $file");
+                cli_success_without_exit("Recreated Default Core Constants `CONSTANTS.php` File: $file");
                 continue;
             } else if (str_contains($file, "compiled_routes")) {
                 file_put_contents($file, "<?php\n// compiled_routes.php - FunkPHP | FunkCLI recreated it $date\n" . cli_get_prefix_code("do_not_modify_warning") . "\nreturn " . var_export($singleTrouteDefault, true) . ";\n");
-                cli_success_without_exit("Recreated file: $file");
+                cli_success_without_exit("Recreated Default Core Compiled Trie Routes with Metadata File: $file");
                 continue;
             } elseif (str_contains($file, "tables")) {
                 file_put_contents($file, "<?php\n// // tables.php - FunkPHP | FunkCLI recreated it $date\n" . cli_get_prefix_code("do_not_modify_warning") . "\nreturn " . var_export($tablesAndRelationshipsFileDefault, true) . ";\n");
-                cli_success_without_exit("Recreated file: $file");
+                cli_success_without_exit("Recreated Default Core Tables `tables.php` File: $file");
                 continue;
             } elseif (str_contains($file, "valid_mysql_datatypes")) {
                 file_put_contents($file, "<?php\n// // valid_mysql_datatypes.php - FunkPHP | FunkCLI recreated it $date\n" . cli_get_prefix_code("do_not_modify_warning") . "\nreturn " . var_export($mysqlDataTypesFileDefault, true) . ";\n");
-                cli_success_without_exit("Recreated file: $file");
+                cli_success_without_exit("Recreated Default Core ValidMySQLDataTypes File: $file");
                 continue;
             } elseif (str_contains($file, "valid_mysql_operators")) {
                 file_put_contents($file, "<?php\n// valid_mysql_operators.php - FunkPHP | FunkCLI recreated it $date\n" . cli_get_prefix_code("do_not_modify_warning") . "\nreturn " . var_export($mysqlOperatorSyntaxDefault, true) . ";\n");
-                cli_success_without_exit("Recreated file: $file");
+                cli_success_without_exit("Recreated Default Core ValidMySQLOperators File: $file");
                 continue;
             } elseif (str_contains($file, "pipeline_routes")) {
                 file_put_contents($file, "<?php\n// pipeline_routes.php - FunkPHP | FunkCLI recreated it $date\n" . cli_get_prefix_code("do_not_modify_warning") . "\nreturn " . var_export($singleRoutesRouteDefault, true) . ";\n");
-                cli_success_without_exit("Recreated file: $file");
+                cli_success_without_exit("Recreated Default Core Pipeline Routes File: $file");
                 continue;
             } else if (str_contains($file, "pipeline_request")) {
                 file_put_contents($file, "<?php\n// pipeline_request.php - FunkPHP | FunkCLI recreated it $date\n" . cli_get_prefix_code("do_not_modify_warning") . "\nreturn  " . var_export($singlePipelineDefault, true) . ";\n");
-                cli_success_without_exit("Recreated file: $file");
+                cli_success_without_exit("Recreated Default Core Pipeline Request+Post_Response File: $file");
                 continue;
             } else if (str_contains($file, "public_html/.htaccess")) {
                 file_put_contents($file, "# This file was recreated by FunkCLI!\nRewriteEngine On\nRewriteRule ^([^\.]+)$ $1.php [NC]\nRewriteRule ^.*$ index.php [L,QSA]");
-                cli_success_without_exit("Recreated file: $file");
+                cli_success_without_exit("Recreated Default `.htaccess in /src/public_html` File: $file");
                 continue;
             } else if (str_contains($file, "cli/.htaccess")) {
                 file_put_contents($file, "# This file was recreated by FunkCLI!\n<Files \"funk\">\nSetHandler application/x-httpd-php\n</Files>");
-                cli_success_without_exit("Recreated file: $file");
+                cli_success_without_exit("Recreated Default `.htaccess in /src/cli` File: $file");
                 continue;
             }
         }
@@ -12906,71 +12914,71 @@ function cli_get_prefix_code($keyString)
     $prefixCode = [
         "route_singles_routes_start" => "<?php // pipeline_routes.php - FunkPHP | FunkCLI Modified it $currDate\nreturn ",
         "do_not_modify_directly" => <<<EOF
-    /**
-    * -------------------------------------------------------------
-    * FUNKPHP AUTOMATICALLY GENERATED/CREATED/UPDATED COMPILED FILE
-    * -------------------------------------------------------------
-    * DO NOT MANUALLY EDIT THIS FILE - USE FUNKCLI/FUNKGUI TO ADD TO THE DIFFERENT LISTS!
-    * If you are currently editing this file manually to see if FunkPHP will "self-heal",
-    * it won't. This is a micro-framework, not your therapist. If you alter this
-    * source of truth, your app will most likely crash, and your peer will know
-    * you do not understand how caching and/or compiled files work.
-    **/
+/**
+ * -------------------------------------------------------------
+ * FUNKPHP AUTOMATICALLY GENERATED/CREATED/UPDATED COMPILED FILE
+ * -------------------------------------------------------------
+ * DO NOT MANUALLY EDIT THIS FILE - USE FUNKCLI/FUNKGUI TO ADD TO THE DIFFERENT LISTS!
+ * If you are currently editing this file manually to see if FunkPHP will "self-heal",
+ * it won't. This is a micro-framework, not your therapist. If you alter this
+ * source of truth, your app will most likely crash, and your peer will know
+ * you do not understand how caching and/or compiled files work.
+ */
 EOF,
         "do_not_modify_tables" => <<<EOF
-    /**
-    * --------------
-    * FUNKPHP TABLES
-    * --------------
-    * DO NOT MANUALLY EDIT THIS FILE.
-    * If you are currently editing this file to see if FunkCLI will "self-heal",
-    * it won't. This is a micro-framework, not your therapist. If you alter this
-    * source of truth, your app will most likely crash, and your peer will know
-    * you do not understand how caching and/or compiled files work.
-    **/
+/**
+ * --------------
+ * FUNKPHP TABLES
+ * --------------
+ * DO NOT MANUALLY EDIT THIS FILE.
+ * If you are currently editing this file to see if FunkCLI will "self-heal",
+ * it won't. This is a micro-framework, not your therapist. If you alter this
+ * source of truth, your app will most likely crash, and your peer will know
+ * you do not understand how caching and/or compiled files work.
+ */
 EOF,
         "do_not_modify_warning" => <<<EOF
-    /**
-    * -----------------------------------------------------
-    * FUNKPHP AUTOMATICALLY GENERATED/CREATED COMPILED FILE
-    * -----------------------------------------------------
-    * DO NOT MANUALLY EDIT THIS FILE.
-    * If you are currently editing this file to see if FunkPHP will "self-heal",
-    * it won't. This is a micro-framework, not your therapist. If you alter this
-    * source of truth, your app will most likely crash, and your peer will know
-    * you do not understand how caching and/or compiled files work.
-    **/
+/**
+ * -----------------------------------------------------
+ * FUNKPHP AUTOMATICALLY GENERATED/CREATED COMPILED FILE
+ * -----------------------------------------------------
+ * DO NOT MANUALLY EDIT THIS FILE.
+ * If you are currently editing this file to see if FunkPHP will "self-heal",
+ * it won't. This is a micro-framework, not your therapist. If you alter this
+ * source of truth, your app will most likely crash, and your peer will know
+ * you do not understand how caching and/or compiled files work.
+ */
 EOF,
         "do_not_modify_warning_general" => <<<EOF
-    /**
-    * -----------------------------------------------------
-    * FUNKPHP AUTOMATICALLY GENERATED/CREATED COMPILED FILE
-    * -----------------------------------------------------
-    * DO NOT MANUALLY EDIT THIS FILE.
-    * If you are currently editing this file to see if FunkPHP will "self-heal",
-    * it won't. This is a micro-framework, not your therapist. If you alter this
-    * source of truth, your app will most likely crash, and your peer will know
-    * you do not understand how caching and/or compiled files work.
-    * To fix your own self-sabotage (if it was the router files
-    * 'compiled_routes.php' and/or 'pipeline_routes.php'),
-    * run the following Terminal Command in Working Path '/src/cli': `php funk recompile`
-    */
+/**
+ * -----------------------------------------------------
+ * FUNKPHP AUTOMATICALLY GENERATED/CREATED COMPILED FILE
+ * -----------------------------------------------------
+ * DO NOT MANUALLY EDIT THIS FILE.
+ * If you are currently editing this file to see if FunkPHP will "self-heal",
+ * it won't. This is a micro-framework, not your therapist. If you alter this
+ * source of truth, your app will most likely crash, and your peer will know
+ * you do not understand how caching and/or compiled files work.
+ * To fix your own self-sabotage (if it was the router files
+ * 'compiled_routes.php' and/or 'pipeline_routes.php'),
+ * run the following Terminal Command in Working Path '/src/cli': `php funk recompile`
+ */
 EOF,
-        "connsDefaultStartText" =>    <<<EOF
-    /**
-    * -----------------------------------------------------
-    * FUNKPHP AUTOMATICALLY GENERATED/CREATED COMPILED FILE
-    * -----------------------------------------------------
-    */
-    // ***VERY IMPORTANT: This is GITIGNORED as '/src/funkphp/config/conns.php)' ***/
-    // *** You need to Upload this File Manually for PRODUCTION USE! ***//
-    // ***  Below is a Connection Example for the Drivers whose Data Schema Validation is supported!  ***//
-    // *** MAKE A COPY OF THIS FILE AND RENAME IT TO "conns.php" and put it in "/src/funkphp/config" so it
-    // *** becomes "/src/funkphp/config/conns.php". Then it will be picked up when compiling to single file!
-    // *** SUPER IMPORTANT: If you see an error about non-supported "driver" key, use the "--ignore-unknown-conns-drivers"
-    // *** compilation flag when you run `php funk build` command and it will ignore those unknown while validating the rest!
-    // *** `src/funkphp/config/README_IN_IDE.php` is recreated automatically when `conns.php` does not exist anymore!
-    /*
+        "connsDefaultStartText" => <<<EOF
+/**
+ * -----------------------------------------------------
+ * FUNKPHP AUTOMATICALLY GENERATED/CREATED COMPILED FILE
+ * -----------------------------------------------------
+ */
+// ***VERY IMPORTANT: This is GITIGNORED as '/src/funkphp/config/conns.php)' ***/
+// *** You need to Upload this File Manually for PRODUCTION USE! ***//
+// ***  Below is a Connection Example for the Drivers whose Data Schema Validation is supported!  ***//
+// *** MAKE A COPY OF THIS FILE AND RENAME IT TO "conns.php" and put it in "/src/funkphp/config" so it
+// *** becomes "/src/funkphp/config/conns.php". Then it will be picked up when compiling to single file!
+// *** SUPER IMPORTANT: If you see an error about non-supported "driver" key, use the "--ignore-unknown-conns-drivers"
+// *** compilation flag when you run `php funk build` command and it will ignore those unknown while validating the rest!
+// *** `src/funkphp/config/README_IN_IDE.php` is recreated automatically when `conns.php` does not exist anymore!
+/*
      SYNTAX:
      [
      // Use this connection key with "funk_credentials_connect(\$c,'UNIQUE_CONNECTION_KEY')" function!
@@ -12988,28 +12996,46 @@ EOF,
      ], // and so on...
     */
 EOF,
-        "doModifyThisFile" =>    <<<EOF
-    /**
-    * -----------------------------------------------------
-    * FUNKPHP AUTOMATICALLY GENERATED/CREATED COMPILED FILE
-    * -----------------------------------------------------
-    */
-    // FunkPHP - User-defined Functions Available Globally!
-    // All functions below - as long as they do not conflict
-    // in naming with `cli|funk_FUNCTION_NAMES`, they will be
-    // available in the global namespace{} and should ALWAYS
-    // pass the `&\$c` (IMPORTANT: remember the starting "&"!)
-    // global config/context variable! You can also pass any other
-    // variables, but most `funk_FUNCTION_NAME` do not care about other
-    // arguments after first one since they assume you use \$c['shared']
-    // to grab data being shared between other functions!
-    // The names of the functions you define below here will be compared
-    // against the Array String List in `src/cli/core/cli_reserved.php`
-    // when you run the Compilation Command `php funk build`!
-    //
-    // Besides all that above, you can name your function anything you want!
+        "doModifyThisFile" => <<<EOF
+/**
+ * ------------------------------------------------------
+ * FUNKPHP AUTOMATICALLY GENERATED/RECREATED DEFAULT FILE
+ * ------------------------------------------------------
+ */
+// FunkPHP - User-defined Functions Available Globally!
+// All functions below - as long as they do not conflict
+// in naming with `cli|funk_FUNCTION_NAMES`, they will be
+// available in the global namespace{} and should ALWAYS
+// pass the `&\$c` (IMPORTANT: remember the starting "&"!)
+// global config/context variable! You can also pass any other
+// variables, but most `funk_FUNCTION_NAME` do not care about other
+// arguments after first one since they assume you use \$c['shared']
+// to grab data being shared between other functions!
+// The names of the functions you define below here will be compared
+// against the Array String List in `src/cli/core/cli_reserved.php`
+// when you run the Compilation Command `php funk build`!
+//
+// Besides all that above, name your function(s) anything you want!
 
-EOF
+EOF,
+        "doModifyThisFile_Classes" => <<<EOF
+/**
+ * ------------------------------------------------------
+ * FUNKPHP AUTOMATICALLY GENERATED/RECREATED DEFAULT FILE
+ * ------------------------------------------------------
+ */
+// FunkPHP - User-defined Classes Available either globally OR
+// via `funkphp\classes` Namespace Scoping. Name them anything
+// as long as they do not conflict with "Funk|" class names
+// that begin with "Funk" or any other class(es) from
+// the `/src/funkphp/vendor` (Composer Classes).
+//
+// Also, you may remove the `namespace funkphp\classes;` and your classes
+// will then be put in the Global Namespace Scope during compiling/running.
+//
+// Besides all that above, name your class(es) anything you want!
+
+EOF,
     ];
     return $prefixCode[$keyString] ?? null;
 }
