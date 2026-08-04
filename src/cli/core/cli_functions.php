@@ -843,149 +843,6 @@ function cli_file_status(string $folder, string $file, bool $useExactFilePathIns
 
     ];
 }
-function cli_file_harvest_all_functions_from_code2(string $code): array
-{
-    $tokens = PhpToken::tokenize($code);
-    $count = count($tokens);
-    $harvested = [];
-    $dangerousFuncs = ['shell_exec', 'exec', 'system', 'passthru', 'proc_open', 'popen', 'pcntl_exec'];
-    for ($i = 0; $i < $count; $i++) {
-        if ($tokens[$i]->id !== T_FUNCTION) {
-            continue;
-        }
-        // 1. Look ahead to find function name (handle return-by-reference like `function &myFunc()`)
-        $curr = $i + 1;
-        $isByRef = false;
-        while ($curr < $count && ($tokens[$curr]->id === T_WHITESPACE || $tokens[$curr]->text === '&')) {
-            if ($tokens[$curr]->text === '&') {
-                $isByRef = true;
-            }
-            $curr++;
-        }
-        // Skip anonymous closures function() {} or invalid definitions
-        if ($curr >= $count || $tokens[$curr]->id !== T_STRING) {
-            continue;
-        }
-        $fnName = $tokens[$curr]->text;
-        $fnTokenPos = $tokens[$i]->pos;
-        // 2. Walk BACKWARD to collect DocBlocks / Comments
-        $commentStartPos = $fnTokenPos;
-        $collectedComments = [];
-        $back = $i - 1;
-
-        while ($back >= 0) {
-            $tok = $tokens[$back];
-            if ($tok->id === T_WHITESPACE) {
-                $back--;
-                continue;
-            }
-            if ($tok->id === T_DOC_COMMENT || $tok->id === T_COMMENT) {
-                array_unshift($collectedComments, $tok->text);
-                $commentStartPos = $tok->pos;
-                $back--;
-                continue;
-            }
-            break; // Stopped at non-comment code/statement
-        }
-        $docComment = !empty($collectedComments) ? implode("\n", $collectedComments) : null;
-        // 3. Extract Function Arguments: find '(' and matching ')'
-        $argStartTok = $curr + 1;
-        while ($argStartTok < $count && $tokens[$argStartTok]->text !== '(' && $tokens[$argStartTok]->text !== '{' && $tokens[$argStartTok]->text !== ';') {
-            $argStartTok++;
-        }
-        $argsRaw = '';
-        $bodySearchTokIdx = $argStartTok;
-        if ($argStartTok < $count && $tokens[$argStartTok]->text === '(') {
-            $parenDepth = 1;
-            $argTokens = [];
-            for ($j = $argStartTok + 1; $j < $count; $j++) {
-                if ($tokens[$j]->text === '(') $parenDepth++;
-                elseif ($tokens[$j]->text === ')') $parenDepth--;
-                if ($parenDepth === 0) {
-                    $bodySearchTokIdx = $j + 1;
-                    break;
-                }
-                $argTokens[] = $tokens[$j]->text;
-            }
-            $argsRaw = trim(implode('', $argTokens));
-        }
-        // 4. Find Body '{'
-        while ($bodySearchTokIdx < $count && $tokens[$bodySearchTokIdx]->text !== '{' && $tokens[$bodySearchTokIdx]->text !== ';') {
-            $bodySearchTokIdx++;
-        }
-        // Skip abstract/interface declarations ending with ';'
-        if ($bodySearchTokIdx >= $count || $tokens[$bodySearchTokIdx]->text === ';') {
-            continue;
-        }
-        $bodyStartPos = $tokens[$bodySearchTokIdx]->pos;
-        $braceDepth = 0;
-        $hasStartedBody = false;
-        $hasInnerFunctions = false;
-        $hasEval = false;
-        $hasDangerousCalls = false;
-        $bodyEndPos = -1;
-        $lastTokenIdx = $i;
-        // 5. Walk FORWARD through body to analyze inner code & find closing '}'
-        for ($j = $bodySearchTokIdx; $j < $count; $j++) {
-            $tok = $tokens[$j];
-            if ($tok->text === '{') {
-                $braceDepth++;
-                $hasStartedBody = true;
-            } elseif ($tok->text === '}') {
-                $braceDepth--;
-            }
-            // Detect INNER named function declarations (forbidden!)
-            if ($hasStartedBody && $braceDepth > 1 && $tok->id === T_FUNCTION) {
-                $next = $j + 1;
-                while ($next < $count && ($tokens[$next]->id === T_WHITESPACE || $tokens[$next]->text === '&')) {
-                    $next++;
-                }
-                if ($next < $count && $tokens[$next]->id === T_STRING) {
-                    $hasInnerFunctions = true;
-                }
-            }
-            // Detect dangerous tokens inside body
-            if ($hasStartedBody && $braceDepth >= 1) {
-                if ($tok->id === T_EVAL) {
-                    $hasEval = true;
-                }
-                if ($tok->id === T_STRING && in_array(strtolower($tok->text), $dangerousFuncs, true)) {
-                    $hasDangerousCalls = true;
-                }
-            }
-            // Hit closing brace of outer function body
-            if ($hasStartedBody && $braceDepth === 0) {
-                $bodyEndPos = $tok->pos + strlen($tok->text);
-                $lastTokenIdx = $j;
-                break;
-            }
-        }
-        if ($bodyEndPos === -1) {
-            continue; // Malformed PHP body
-        }
-        // 6. Slice exact code strings using byte offsets
-        $fnRawWithDoc = substr($code, $commentStartPos, $bodyEndPos - $commentStartPos);
-        $fnRaw        = substr($code, $fnTokenPos, $bodyEndPos - $fnTokenPos);
-        $bodyRaw      = substr($code, $bodyStartPos, $bodyEndPos - $bodyStartPos);
-        $harvested[$fnName] = [
-            'fn_exact_name'       => $fnName,
-            'fn_lowercased'       => strtolower($fnName),
-            'doc_comment'         => $docComment,
-            'args_raw'            => $argsRaw,
-            'body_raw'            => $bodyRaw,
-            'fn_raw'              => $fnRaw,
-            'fn_raw_with_doc'     => $fnRawWithDoc,
-            'is_by_ref'           => $isByRef,
-            'has_inner_functions' => $hasInnerFunctions,
-            'has_eval'            => $hasEval,
-            'has_dangerous_calls' => $hasDangerousCalls,
-        ];
-        // Move outer loop index past this function body
-        $i = $lastTokenIdx;
-    }
-    return $harvested;
-}
-
 // Helper function that ONLY grabs `namespace <part1\part2\and_so_on;`
 // and then the `use <what>,<what2>,<and_so_on>;` from a given file!
 // Function is used in tandem with cli_file_status().
@@ -1178,6 +1035,7 @@ function cli_harvest_all_classes_from_code(string $code): array
     $count = count($tokens);
     $harvested = [];
     $dangerousFuncs = ['shell_exec', 'exec', 'system', 'passthru', 'proc_open', 'popen', 'pcntl_exec'];
+    $dangerousCalls = [];
     $braceDepth = 0;
     for ($i = 0; $i < $count; $i++) {
         $tok = $tokens[$i];
@@ -1195,7 +1053,7 @@ function cli_harvest_all_classes_from_code(string $code): array
             if ($prevIdx >= 0 && $tokens[$prevIdx]->id === T_NEW) {
                 continue;
             }
-            // Find class name
+            // Capture class name
             $nameIndex = $i + 1;
             while ($nameIndex < $count && $tokens[$nameIndex]->id === T_WHITESPACE) {
                 $nameIndex++;
@@ -1205,7 +1063,8 @@ function cli_harvest_all_classes_from_code(string $code): array
             }
             $className = $tokens[$nameIndex]->text;
             $classTokenPos = $tok->pos;
-            // Walk BACKWARD to capture DocComments
+            $startLine = $tok->line;
+            // Capture DocComments backward
             $commentStartPos = $classTokenPos;
             $collectedComments = [];
             $back = $i - 1;
@@ -1224,9 +1083,10 @@ function cli_harvest_all_classes_from_code(string $code): array
                 break;
             }
             $docComment = !empty($collectedComments) ? implode("\n", $collectedComments) : null;
-            // Find class body opening '{' and check for 'extends'
+            // Parse inheritance (extends & implements) until '{'
             $bodySearchIdx = $nameIndex + 1;
             $extends = null;
+            $implements = [];
             while ($bodySearchIdx < $count && $tokens[$bodySearchIdx]->text !== '{') {
                 if ($tokens[$bodySearchIdx]->id === T_EXTENDS) {
                     $eIdx = $bodySearchIdx + 1;
@@ -1235,6 +1095,14 @@ function cli_harvest_all_classes_from_code(string $code): array
                     }
                     if ($eIdx < $count) {
                         $extends = $tokens[$eIdx]->text;
+                    }
+                }
+                if ($tokens[$bodySearchIdx]->id === T_IMPLEMENTS) {
+                    for ($impIdx = $bodySearchIdx + 1; $impIdx < $count; $impIdx++) {
+                        if ($tokens[$impIdx]->text === '{') break;
+                        if ($tokens[$impIdx]->id === T_STRING || $tokens[$impIdx]->id === T_NAME_QUALIFIED) {
+                            $implements[] = $tokens[$impIdx]->text;
+                        }
                     }
                 }
                 $bodySearchIdx++;
@@ -1250,7 +1118,7 @@ function cli_harvest_all_classes_from_code(string $code): array
             $hasExit = false;
             $bodyEndPos = -1;
             $lastTokenIdx = $i;
-            // Walk body to detect safety metrics and closing brace
+            // Walk body for top-level metrics and boundaries
             for ($j = $bodySearchIdx; $j < $count; $j++) {
                 $ctok = $tokens[$j];
                 if ($ctok->text === '{') {
@@ -1263,12 +1131,12 @@ function cli_harvest_all_classes_from_code(string $code): array
                     if ($ctok->id === T_EVAL) {
                         $hasEval = true;
                     }
-                    // Catch early exits: exit, die, T_EXIT
                     if ($ctok->id === T_EXIT) {
                         $hasExit = true;
                     }
                     if ($ctok->id === T_STRING && in_array(strtolower($ctok->text), $dangerousFuncs, true)) {
                         $hasDangerousCalls = true;
+                        $dagnerousCalls[] = ['call' => $ctok->text, 'line' => $ctok->line];
                     }
                 }
                 if ($hasStartedBody && $classBraceDepth === 0) {
@@ -1283,20 +1151,28 @@ function cli_harvest_all_classes_from_code(string $code): array
             $classRawWithDoc = substr($code, $commentStartPos, $bodyEndPos - $commentStartPos);
             $classRaw        = substr($code, $classTokenPos, $bodyEndPos - $classTokenPos);
             $bodyRaw         = substr($code, $bodyStartPos, $bodyEndPos - $bodyStartPos);
+            // Deep-analyze class members via file_analyze_class_tokens
+            $classStructureAnalysis = cli_analyze_class_tokens($bodyRaw, $startLine);
             $harvested[$className] = [
-                'class_name'                       => $className,
-                'class_name_ucfirst'               => (ucfirst($className) === $className),
-                'doc_comment'                      => $docComment,
-                'extends'                          => $extends,
-                'body_raw'                         => $bodyRaw,
-                'class_raw'                        => $classRaw,
-                'class_raw_with_doc'               => $classRawWithDoc,
-                'has_eval'                         => $hasEval,
-                'has_dangerous_calls'              => $hasDangerousCalls,
-                'has_exit'                         => $hasExit,
-                'class_starts_with_cli'            => str_starts_with(strtolower($className), 'cli_'),
-                'class_starts_with_funk'           => str_starts_with(strtolower($className), 'funk_'),
-                'class_starts_with_funk_validate'  => str_starts_with(strtolower($className), 'funk_validate_'),
+                'class_name'              => $className,
+                'class_name_ucfirst'      => (ucfirst($className) === $className),
+                'doc_comment'             => $docComment,
+                'extends'                 => $extends,
+                'implements'              => $implements,
+                'traits_used'             => $classStructureAnalysis['traits_used'],
+                'constants'               => $classStructureAnalysis['constants'],
+                'properties'              => $classStructureAnalysis['properties'],
+                'methods'                 => $classStructureAnalysis['methods'],
+                'body_raw'                => $bodyRaw,
+                'class_raw'               => $classRaw,
+                'class_raw_with_doc'      => $classRawWithDoc,
+                'line_start'              => $startLine,
+                'has_eval'                => $hasEval,
+                'has_dangerous_calls'     => $hasDangerousCalls,
+                'dangerous_calls'         => $dangerousCalls,
+                'has_exit'                => $hasExit,
+                'class_starts_with_cli'   => str_starts_with(strtolower($className), 'cli_'),
+                'class_starts_with_funk'  => str_starts_with(strtolower($className), 'funk_'),
             ];
             $i = $lastTokenIdx;
         }
@@ -1327,7 +1203,7 @@ function cli_analyze_body_tokens(string $bodyCode, int $startLine = 1): array
     $hasVariableVars = false;
     $calls = [];
     // Account for added '<?php ' offset in line mapping if needed
-    $lineOffset = $startLine - 1;
+    $lineOffset = $startLine;
     for ($i = 0; $i < $count; $i++) {
         $tok = $tokens[$i];
         $line = $tok->line + $lineOffset;
@@ -1448,6 +1324,284 @@ function cli_analyze_body_tokens(string $bodyCode, int $startLine = 1): array
         'has_dangerous_calls'  => $hasDangerousCalls,
         'has_variable_vars'    => $hasVariableVars,
         'calls'                => $calls,
+    ];
+}
+function cli_analyze_class_tokens(string $classBodyCode, int $startLine = 1): array
+{
+    $tokens = PhpToken::tokenize("<?php " . $classBodyCode);
+    $count = count($tokens);
+    $lineOffset = $startLine;
+    $traitsUsed = [];
+    $constants = [];
+    $properties = [];
+    $methods = [];
+    $braceDepth = 0;
+    for ($i = 0; $i < $count; $i++) {
+        $tok = $tokens[$i];
+        if ($tok->text === '{') {
+            $braceDepth++;
+            continue;
+        } elseif ($tok->text === '}') {
+            $braceDepth--;
+            continue;
+        }
+        // We only parse class members at the top level of the class body (depth === 1 inside "class { ... }")
+        if ($braceDepth !== 1) {
+            continue;
+        }
+        // 1. TRAIT INCLUSION: "use TraitA, TraitB;"
+        if ($tok->id === T_USE) {
+            $traitTokens = [];
+            for ($j = $i + 1; $j < $count; $j++) {
+                if ($tokens[$j]->text === ';' || $tokens[$j]->text === '{') { // '{' handles adapt/insteadof blocks
+                    $i = $j;
+                    break;
+                }
+                if ($tokens[$j]->id !== T_WHITESPACE) {
+                    $traitTokens[] = $tokens[$j]->text;
+                }
+            }
+            $traitStr = implode('', $traitTokens);
+            foreach (explode(',', $traitStr) as $t) {
+                $trimmed = trim($t);
+                if ($trimmed !== '') {
+                    $traitsUsed[] = $trimmed;
+                }
+            }
+            continue;
+        }
+        // 2. CONSTANTS: "public const FOO = 'bar';"
+        if ($tok->id === T_CONST) {
+            $visibility = 'public';
+            // Look backward for visibility
+            for ($b = $i - 1; $b >= 0; $b--) {
+                if ($tokens[$b]->id === T_PRIVATE) {
+                    $visibility = 'private';
+                    break;
+                }
+                if ($tokens[$b]->id === T_PROTECTED) {
+                    $visibility = 'protected';
+                    break;
+                }
+                if ($tokens[$b]->id === T_PUBLIC) {
+                    $visibility = 'public';
+                    break;
+                }
+                if ($tokens[$b]->text === ';' || $tokens[$b]->text === '}') break;
+            }
+            // Look forward for CONST_NAME = value
+            $constName = null;
+            $valueTokens = [];
+            $hasEquals = false;
+            for ($j = $i + 1; $j < $count; $j++) {
+                if ($tokens[$j]->text === ';') {
+                    $i = $j;
+                    break;
+                }
+                if (!$hasEquals && $tokens[$j]->id === T_STRING) {
+                    $constName = $tokens[$j]->text;
+                } elseif ($tokens[$j]->text === '=') {
+                    $hasEquals = true;
+                } elseif ($hasEquals && $tokens[$j]->id !== T_WHITESPACE) {
+                    $valueTokens[] = $tokens[$j]->text;
+                }
+            }
+            if ($constName !== null) {
+                $constants[$constName] = [
+                    'name'       => $constName,
+                    'visibility' => $visibility,
+                    'value_raw'  => trim(implode(' ', $valueTokens)),
+                    'line'       => $tok->line + $lineOffset,
+                ];
+            }
+            continue;
+        }
+        // 3. METHODS: "public static function myMethod($a) { ... }"
+        if ($tok->id === T_FUNCTION) {
+            $visibility = 'public'; // PHP default
+            $isStatic   = false;
+            $isAbstract = false;
+            $isFinal    = false;
+            // Look backward for modifiers
+            for ($b = $i - 1; $b >= 0; $b--) {
+                $bId = $tokens[$b]->id;
+                if ($bId === T_PRIVATE) {
+                    $visibility = 'private';
+                }
+                if ($bId === T_PROTECTED) {
+                    $visibility = 'protected';
+                }
+                if ($bId === T_PUBLIC) {
+                    $visibility = 'public';
+                }
+                if ($bId === T_STATIC) {
+                    $isStatic = true;
+                }
+                if ($bId === T_ABSTRACT) {
+                    $isAbstract = true;
+                }
+                if ($bId === T_FINAL) {
+                    $isFinal = true;
+                }
+                if ($tokens[$b]->text === ';' || $tokens[$b]->text === '}' || $tokens[$b]->text === '{') {
+                    break;
+                }
+            }
+            // Find method name
+            $nameIdx = $i + 1;
+            while ($nameIdx < $count && ($tokens[$nameIdx]->id === T_WHITESPACE || $tokens[$nameIdx]->text === '&')) {
+                $nameIdx++;
+            }
+            if ($nameIdx >= $count || $tokens[$nameIdx]->id !== T_STRING) {
+                continue;
+            }
+            $methodName = $tokens[$nameIdx]->text;
+            $methodLine = $tok->line + $lineOffset;
+            // Harvest arguments string inside (...)
+            $argStart = $nameIdx + 1;
+            while ($argStart < $count && $tokens[$argStart]->text !== '(' && $tokens[$argStart]->text !== ';' && $tokens[$argStart]->text !== '{') {
+                $argStart++;
+            }
+            $argsRaw = '';
+            $bodySearchIdx = $argStart;
+            if ($argStart < $count && $tokens[$argStart]->text === '(') {
+                $pDepth = 1;
+                $aTokens = [];
+                for ($j = $argStart + 1; $j < $count; $j++) {
+                    if ($tokens[$j]->text === '(') $pDepth++;
+                    elseif ($tokens[$j]->text === ')') $pDepth--;
+                    if ($pDepth === 0) {
+                        $bodySearchIdx = $j + 1;
+                        break;
+                    }
+                    $aTokens[] = $tokens[$j]->text;
+                }
+                $argsRaw = trim(implode('', $aTokens));
+            }
+            // Find method body opening '{' or abstract semicolon ';'
+            while ($bodySearchIdx < $count && $tokens[$bodySearchIdx]->text !== '{' && $tokens[$bodySearchIdx]->text !== ';') {
+                $bodySearchIdx++;
+            }
+            if ($bodySearchIdx >= $count) {
+                continue;
+            }
+            // Abstract or interface method with no body
+            if ($tokens[$bodySearchIdx]->text === ';') {
+                $methods[$methodName] = [
+                    'name'        => $methodName,
+                    'visibility'  => $visibility,
+                    'is_static'   => $isStatic,
+                    'is_abstract' => true,
+                    'is_final'    => $isFinal,
+                    'args_raw'    => $argsRaw,
+                    'body_raw'    => null,
+                    'line'        => $methodLine,
+                    'analysis'    => null,
+                ];
+                $i = $bodySearchIdx;
+                continue;
+            }
+            // Extract body using brace depth
+            $mBodyStartPos = $tokens[$bodySearchIdx]->pos;
+            $mBraceDepth = 0;
+            $mHasStarted = false;
+            $mBodyEndPos = -1;
+            $lastIdx = $i;
+            for ($j = $bodySearchIdx; $j < $count; $j++) {
+                if ($tokens[$j]->text === '{') {
+                    $mBraceDepth++;
+                    $mHasStarted = true;
+                } elseif ($tokens[$j]->text === '}') {
+                    $mBraceDepth--;
+                }
+                if ($mHasStarted && $mBraceDepth === 0) {
+                    $mBodyEndPos = $tokens[$j]->pos + strlen($tokens[$j]->text);
+                    $lastIdx = $j;
+                    break;
+                }
+            }
+            if ($mBodyEndPos !== -1) {
+                $methodBodyRaw = substr($classBodyCode, $mBodyStartPos - 5, $mBodyEndPos - $mBodyStartPos); // adjust for <?php token prefix
+                $methodAnalysis =  cli_analyze_body_tokens($methodBodyRaw, $methodLine);
+                $methods[$methodName] = [
+                    'name'        => $methodName,
+                    'visibility'  => $visibility,
+                    'is_static'   => $isStatic,
+                    'is_abstract' => $isAbstract,
+                    'is_final'    => $isFinal,
+                    'args_raw'    => $argsRaw,
+                    'body_raw'    => $methodBodyRaw,
+                    'line'        => $methodLine,
+                    'analysis'    => $methodAnalysis,
+                ];
+                $i = $lastIdx;
+            }
+            continue;
+        }
+        // 4. PROPERTIES: "private static ?string $name = 'default';"
+        if ($tok->id === T_VARIABLE) {
+            $propName = ltrim($tok->text, '$');
+            $visibility = 'public'; // Default if unassigned
+            $isStatic   = false;
+            $isReadonly = false;
+            $typeHint   = null;
+            // Scan backwards to semicolon / brace / docblock for modifiers and type hint
+            $modifierTokens = [];
+            for ($b = $i - 1; $b >= 0; $b--) {
+                $bTok = $tokens[$b];
+                if ($bTok->text === ';' || $bTok->text === '}' || $bTok->text === '{' || $bTok->id === T_DOC_COMMENT) {
+                    break;
+                }
+                if ($bTok->id !== T_WHITESPACE) {
+                    array_unshift($modifierTokens, $bTok);
+                }
+            }
+            foreach ($modifierTokens as $mTok) {
+                if ($mTok->id === T_PRIVATE) {
+                    $visibility = 'private';
+                } elseif ($mTok->id === T_PROTECTED) {
+                    $visibility = 'protected';
+                } elseif ($mTok->id === T_PUBLIC) {
+                    $visibility = 'public';
+                } elseif ($mTok->id === T_STATIC) {
+                    $isStatic = true;
+                } elseif (defined('T_READONLY') && $mTok->id === T_READONLY) {
+                    $isReadonly = true;
+                } elseif ($mTok->id === T_STRING || $mTok->id === T_NAME_QUALIFIED || $mTok->text === '?') {
+                    $typeHint .= $mTok->text;
+                }
+            }
+            // Scan forward for default value until ';'
+            $hasDefault = false;
+            $defaultValueTokens = [];
+            for ($j = $i + 1; $j < $count; $j++) {
+                if ($tokens[$j]->text === ';' || $tokens[$j]->text === ',') {
+                    $i = $j;
+                    break;
+                }
+                if ($tokens[$j]->text === '=') {
+                    $hasDefault = true;
+                } elseif ($hasDefault && $tokens[$j]->id !== T_WHITESPACE) {
+                    $defaultValueTokens[] = $tokens[$j]->text;
+                }
+            }
+            $properties[$propName] = [
+                'name'          => $propName,
+                'visibility'    => $visibility,
+                'is_static'     => $isStatic,
+                'is_readonly'   => $isReadonly,
+                'type'          => $typeHint,
+                'has_default'   => $hasDefault,
+                'default_raw'   => $hasDefault ? implode(' ', $defaultValueTokens) : null,
+                'line'          => $tok->line + $lineOffset,
+            ];
+        }
+    }
+    return [
+        'traits_used' => array_unique($traitsUsed),
+        'constants'   => $constants,
+        'properties'  => $properties,
+        'methods'     => $methods,
     ];
 }
 
