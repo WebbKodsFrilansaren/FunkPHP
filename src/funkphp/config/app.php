@@ -3,14 +3,12 @@
 $FUNK = FunkPHP();
 
 $FUNK->CONFIG()
-    ->setCSP('')
+    ->setDefaultRegisteredShutdownHandler("test")
     ->setNonces("a");
 
 $FUNK->ROUTES()
     ->GET()
     ->route("/:id");
-
-
 
 // 1. Inspect the FunkRoute instance ($test) to get the private $c property
 // $routeReflection = new ReflectionObject($test);
@@ -22,4 +20,4 @@ $FUNK->ROUTES()
 // $runMethod = new ReflectionMethod($cInstance, 'run');
 // $runMethod->setAccessible(true); // Needed for PHP < 8.1, good practice to keep
 // $runMethod->invoke($cInstance);  // Outputs: "TEST"
-dd($test);
+dd($FUNK);

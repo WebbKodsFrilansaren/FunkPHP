@@ -8,7 +8,7 @@
  * other versions of this file then so you do not accidentally run malicious code!
  **/
 
-cli_dump(cli_file_status("/funkphp/data/validation", "s_najs"));
+cli_dump(cli_file_status("/funkphp/config", "functions"));
 
 
 
