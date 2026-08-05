@@ -3,7 +3,7 @@
 $FUNK = FunkPHP();
 
 $FUNK->CONFIG()
-    ->setGroupPipeRequest('test', 'pl_run_ini_sets', 'pl_run_ini_sets');
+    ->setGroupPipeRoute("test", "test.test", "test.test2", "test.test");
 $FUNK->ROUTES()
     ->GET()
     ->route("/:id");

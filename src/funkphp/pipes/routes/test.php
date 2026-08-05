@@ -1,6 +1,6 @@
 <?php
 
-namespace funkphp\pipeline\routes\test;
+namespace funkphp\pipes\routes\test;
 // FunkCLI Created on 2025-10-31 09:14:22!
 
 function test(&$c)
@@ -20,8 +20,6 @@ function test(&$c)
 	echo "<div>";
 	echo "<p>This is a test paragraph to see how the cURL Request Test functionality in FunkGUI will react to it!</p>";
 	echo "</div>";
-
-	vd($c['req']);
 }
 function test2(&$c)
 {
@@ -38,7 +36,6 @@ function test2(&$c)
 	echo "<div>";
 	echo "<p>            This is a test paragraph to see how the cURL Request Test functionality in FunkGUI will react to it!</p>";
 	echo "</div>";
-	vd($c['req']);
 }
 
 function test3(&$c)
@@ -56,11 +53,4 @@ function test3(&$c)
 	echo "<div>";
 	echo "<p>This is a test paragraph to see how the cURL Request Test functionality in FunkGUI will react to it!</p>";
 	echo "</div>";
-	vd($c['req']);
-}
-
-function test4(&$c)
-{
-	// Placeholder Comment so Regex works (do NOT place comment after closing '}') - Remove & Add Your Own Code!
-
 }

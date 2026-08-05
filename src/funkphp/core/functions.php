@@ -2410,6 +2410,19 @@ class C
         }
         return true;
     }
+    private function nonEmptyLowercaseStrThatIsFileAndFunctionWithDot(string $str): bool
+    {
+        if (
+            !is_string($str) || trim($str) === ''
+            || ($str !== strtolower($str))
+            || (str_starts_with($str, 'cli_'))
+            || (str_starts_with($str, 'funk_'))
+            || !preg_match('/^[a-z_][a-z0-9_]*\.[a-z_][a-z0-9_]*$/', $str)
+        ) {
+            return false;
+        }
+        return true;
+    }
     // Autoload any non-existing $this->cached[$key] that is either always a file with functions OR classes
     private function cachedCreateKeyIfNullAndOptionalFileName(string $key, string $optionalFileName = '1_NO_FILE_NAME_PROVIDED_1'): void
     {
@@ -2430,6 +2443,10 @@ class C
         } elseif ($key === 'files_pipes_middlewares') {
             if (!isset($this->cached[$key][$optionalFileName])) {
                 $this->cached[$key][$optionalFileName] = $this->file_status('/pipes/middlewares', $optionalFileName);
+            }
+        } elseif ($key === 'files_routes') {
+            if (!isset($this->cached[$key][$optionalFileName])) {
+                $this->cached[$key][$optionalFileName] = $this->file_status('/pipes/routes', $optionalFileName);
             }
         } elseif ($key === 'files_data_sql') {
             if (!isset($this->cached[$key][$optionalFileName])) {
@@ -3664,13 +3681,7 @@ class C
                 $this->invalidBatches['config']['GROUPED_PIPE_REQUEST'][$groupName] = [...$RequestFNs];
                 return;
             }
-            // Non-fatal check: Audit function body for code quality warnings
-            if (!empty($fileData['functions'])) {
-                $fnAnalysis = reset($fileData['functions']);
-                $this->cachedKeyFNWarnings($fnAnalysis, $fileData['file_path'] ?? $FN_FILE);
-            }
         }
-
         // Set when all OK!
         $this->validBatches['config']['GROUPED_PIPE_REQUEST'][$groupName] = [...$RequestFNs];
     }
@@ -3707,7 +3718,34 @@ class C
                 return;
             }
         }
+        // Find and disallow duplicates
+        if (count($PostResponseFNs) !== count(array_unique($PostResponseFNs))) {
+            $err = "Duplicate Function Names Found in `->setGroupPipePostResponse()` under `->CONFIG()`: `" . join(', ', $PostResponseFNs) . '`.';
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            $this->invalidBatches['config']['GROUPED_PIPE_POST_RESPONSE'][strtolower($groupName)] = [...$PostResponseFNs];
+        }
         // Now we check each File using $this->cached
+        // Now we check each Function File using $this->cached which will store it in
+        // $this->cached['files_pipes_post_response][$FN_FILE] if it does not already exist.
+        // Then we can attempt validation that it is a valid structured file+function:
+        // 1. Only one function per file, 2. Function body cannot be empty or just comments,
+        // 3. Function body must start with "&$c" in its function parameters.
+        foreach ($PostResponseFNs as $FN_FILE) {
+            $this->cachedCreateKeyIfNullAndOptionalFileName('files_pipes_post_response', $FN_FILE);
+            $fileData = $this->cached['files_pipes_post_response'][$FN_FILE] ?? [];
+            $contextLabel = "`->setGroupPipePostResponse('{$groupName}') under ->CONFIG()`";
+            // Fatal check: Bails on the first structural error
+            $fatalError = $this->validateFNFile($fileData, $FN_FILE, $contextLabel, "funkphp\\pipes\\post_response\\{$FN_FILE}", true);
+            if ($fatalError !== null) {
+                $this->errors['all'][] = $fatalError;
+                $this->errors['config'][] = $fatalError;
+                $this->invalidBatches['config']['GROUPED_PIPE_POST_RESPONSE'][$groupName] = [...$PostResponseFNs];
+                return;
+            }
+        }
+        // Set when all OK!
+        $this->validBatches['config']['GROUPED_PIPE_POST_RESPONSE'][$groupName] = [...$PostResponseFNs];
     }
     private function batchSetGroupedPipeRoute(string $groupName, string ...$RoutePipeFNs)
     {
@@ -3734,15 +3772,38 @@ class C
             return;
         }
         foreach ($RoutePipeFNs as $FN) {
-            if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($FN)) {
-                $err = "Invalid Route Pipe Function Name (`{$FN}`) in `->setGroupPipeRoute()` under `->CONFIG()`. It must be a Non-Empty String all lowercased that uses Valid characters for a Function Declaration Name ([a-z_][a-z0-9_]*) and that does NOT start with `cli_` OR `funk_`.";
+            if (!$this->nonEmptyLowercaseStrThatIsFileAndFunctionWithDot($FN)) {
+                $err = "Invalid Route Pipe Function Name Format (`{$FN}`) in `->setGroupPipeRoute()` under `->CONFIG()`. It must be a Non-Empty String all lowercased that uses Valid characters for a Function Declaration Name ([a-z_][a-z0-9_]*) and that does NOT start with `cli_` OR `funk_`. For Route Pipe Functions, you can have several in the same file so you must name with `file.Function` separated with a comma as such:`file.Function,file.Function2`.";
                 $this->errors['all'][] = $err;
                 $this->errors['config'][] = $err;
                 $this->invalidBatches['config']['GROUPED_PIPE_ROUTES'][strtolower($groupName)] = [$groupName, ...$RoutePipeFNs];
                 return;
             }
         }
+        // Find and disallow duplicates
+        if (count($RoutePipeFNs) !== count(array_unique($RoutePipeFNs))) {
+            $err = "Duplicate Function Names Found in `->setGroupPipeRoute()` under `->CONFIG()`: `" . join(', ', $RoutePipeFNs) . '`.';
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            $this->invalidBatches['config']['GROUPED_PIPE_ROUTES'][strtolower($groupName)] = [...$RoutePipeFNs];
+        }
         // Now we check each File using $this->cached
+        foreach ($RoutePipeFNs as $FN_FILE) {
+            [$file, $fn] = explode('.', $FN_FILE);
+            $this->cachedCreateKeyIfNullAndOptionalFileName('files_routes', $file);
+            $fileData = $this->cached['files_routes'][$file] ?? [];
+            $contextLabel = "`->setGroupPipeRoute('{$groupName}') under ->CONFIG()`";
+            // Fatal check: Bails on the first structural error
+            $fatalError = $this->validateFNFile($fileData, $fn, $contextLabel, "funkphp\\pipes\\routes\\{$file}", false);
+            if ($fatalError !== null) {
+                $this->errors['all'][] = $fatalError;
+                $this->errors['config'][] = $fatalError;
+                $this->invalidBatches['config']['GROUPED_PIPE_ROUTES'][$groupName] = [...$RoutePipeFNs];
+                return;
+            }
+        }
+        // ALL OK!
+        $this->validBatches['config']['GROUPED_PIPE_ROUTES'][$groupName] = [...$RoutePipeFNs];
     }
     private function batchSetGroupedPipeMiddlewares(string $groupName, string ...$middlewareFNs)
     {
@@ -3777,7 +3838,39 @@ class C
                 return;
             }
         }
+        // Find and disallow duplicates
+        if (count($middlewareFNs) !== count(array_unique($middlewareFNs))) {
+            $err = "Duplicate Function Names Found in `->setGroupPipeMiddlewares()` under `->CONFIG()`: `" . join(', ', $middlewareFNs) . '`.';
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            $this->invalidBatches['config']['GROUPED_PIPE_MIDDLEWARES'][strtolower($groupName)] = [...$middlewareFNs];
+        }
         // Now we check each File using $this->cached
+        // Now we check each Function File using $this->cached which will store it in
+        // $this->cached['files_pipes_middlewares][$FN_FILE] if it does not already exist.
+        // Then we can attempt validation that it is a valid structured file+function:
+        // 1. Only one function per file, 2. Function body cannot be empty or just comments,
+        // 3. Function body must start with "&$c" in its function parameters.
+        foreach ($middlewareFNs as $FN_FILE) {
+            $this->cachedCreateKeyIfNullAndOptionalFileName('files_pipes_middlewares', $FN_FILE);
+            $fileData = $this->cached['files_pipes_middlewares'][$FN_FILE] ?? [];
+            $contextLabel = "`->setGroupPipeMiddlewares('{$groupName}') under ->CONFIG()`";
+            // Fatal check: Bails on the first structural error
+            $fatalError = $this->validateFNFile($fileData, $FN_FILE, $contextLabel, "funkphp\\pipes\\middlewares\\{$FN_FILE}", true);
+            if ($fatalError !== null) {
+                $this->errors['all'][] = $fatalError;
+                $this->errors['config'][] = $fatalError;
+                $this->invalidBatches['config']['GROUPED_PIPE_MIDDLEWARES'][$groupName] = [...$middlewareFNs];
+                return;
+            }
+            // Non-fatal check: Audit function body for code quality warnings
+            if (!empty($fileData['functions'])) {
+                $fnAnalysis = reset($fileData['functions']);
+                $this->cachedKeyFNWarnings($fnAnalysis, $fileData['file_path'] ?? $FN_FILE);
+            }
+        }
+        // Set when all OK!
+        $this->validBatches['config']['GROUPED_PIPE_MIDDLEWARES'][$groupName] = [...$middlewareFNs];
     }
 
     /* setParamRule GLOBAL */
