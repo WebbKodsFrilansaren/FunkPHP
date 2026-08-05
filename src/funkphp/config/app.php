@@ -3,15 +3,10 @@
 $FUNK = FunkPHP();
 
 $FUNK->CONFIG()
-    ->setParamRule("id", '/[\d]+/');
-
+    ->setGroupPipeRequest('test', 'pl_run_ini_sets');
 $FUNK->ROUTES()
     ->GET()
-    ->route("/:id/:id2")
-    ->route("/:id/:id2/static")
-    ->route("/users/:id2/profile")
-    ->POST()
-    ->route("/users/:id2/profile/:id");
+    ->route("/:id");
 
 // 1. Inspect the FunkRoute instance ($test) to get the private $c property
 // $routeReflection = new ReflectionObject($test);

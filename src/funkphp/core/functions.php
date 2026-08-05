@@ -2165,112 +2165,116 @@ class C
     ];
     // $compiled = The entire compiled code that can either be executed as is OR
     // be exported to the `/src/funkphp/FunkPHPDeployment.php` File!
-    private array $compiled = [];
-
-    // Default values for $c that is returned via
-    // Use the `config()->setUse<cVariableKey>Global` to change each value!
-    // It is set to the $c variable before globally starting executing!
-    public array $cVariable =  [
-        // 'FUNKPHP_ONLINE' => false,
-        // 'FUNKPHP_USE_HTTPS' => false,
-        // 'FUNKPHP_USE_PREPARE_URI' => true,
-        // "FUNKPHP_USE_VENDOR" => true,
-        // "FUNKPHP_CUSTOM_EXCEPTION_HANDLER" => null,
-        // "FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION" => null,
-        // "FUNKPHP_CUSTOM_ERROR_HANDLER" => null,
-        // "FUNKPHP_CUSTOM_URI_NORMALIZER" => null,
-        // "FUNKPHP_CUSTOM_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION" => null,
-        // 'INI_SETS' => [
-        //     'session.cache_limiter' => 'public',
-        //     'session.use_strict_mode' => 8,
-        //     'session.use_only_cookies' => 1,
-        //     'session.cache_expire' => 30,
-        //     'session.cookie_lifetime' => 0,
-        //     'session.name' => 'fphp_id',
-        //     'session.sid_length' => 192,
-        //     'session.sid_bits_per_character' => 6,
-        //     'display_errors'          => 1,
-        //     'display_startup_errors'  => 1,
-        //     'error_reporting'         => 1,
-        // ],
-        // 'BASEURLS' => [
-        //     'LOCAL' => "http://webdev.local:81/funkphp",
-        //     'ONLINE' => "https://www.funkphp.com",
-        //     'BASEURL' =>  'localhost',
-        //     'BASEURL_URI' => '/funkphp/src/public_html/',
-        // ],
-        // 'SESSION' => [
-        //     'driver' => 'files',
-        //     'COOKIES' => [
-        //         'SESSION_NAME' => 'fphp_id',
-        //         'SESSION_LIFETIME' => 28800,
-        //         'SESSION_PATH' => '/',
-        //         'SESSION_DOMAIN' => "webdev.local",
-        //         'SESSION_SECURE' => false,
-        //         'SESSION_HTTPONLY' => true,
-        //         'SESSION_SAMESITE' => 'Lax',
-        //     ]
-        // ],
-        // '<ENTRY>' => [],
-        // 'pipeline' => [
-        //     'request' => [],
-        //     'post_response' => []
-        // ],
-        // 'ROUTES' => [],
-        // 'shared' => [],
-        // 'custom' => null,
-        // 'classes' => ['vendor' => [], 'user' => []],
-        // 'credentials' => null,
-        // 'connections' => [],
-        // 'req' => [
-        //     'method' => '##TOKEN_REQ_METHOD##',
-        //     'ip'     => '##TOKEN_REQ_IP##',
-        //     'time'   => '##TOKEN_REQ_TIME##',
-        //     'uri' => null,
-        //     'query' => '##TOKEN_REQ_QUERY_STRING##',
-        //     'base_url_absolute' => null,
-        //     'base_url_relative' => null,
-        //     'matched_in' => null,
-        //     'route' => null,
-        //     'params' => null,
-        //     'segments' => null,
-        //     'auth' => null,
-        //     'matched_config' => null,
-        //     'matched_pipeline' => [],
-        //     'matched_middlewares' => null,
-        //     'skip_post_response' => false,
-        //     'current_pipeline' => null,
-        //     'next_pipeline' => null,
-        //     'current_middleware' => null,
-        //     'next_middleware' => null,
-        //     'keep_running_exit' => null,
-        //     'code' => 418,
-        //     'log' => [],
-        //     'ua' => null,
-        //     'content_type' => null,
-        //     'accept' => null,
-        //     'protocol' => null,
-        // ],
-        // 'd' => null,
-        // 'v' => null,
-        // 'v_ok' => null,
-        // 'v_ok_files' => null,
-        // 'v_config' => [],
-        // 'v_data' => null,
-        // 'p' => null,
-        // 'files' => null,
-        // 'err' => [
-        //     'MAYBE' => [],
-        //     'FUNCTIONS' => [],
-        //     'CLASSES' => [],
-        //     'CONNECTIONS' => [],
-        //     'PIPELINE' => [],
-        //     'MIDDLEWARES' => [],
-        //     'PAGE' => [],
-        //     'VALIDATION' => [],
-        //     'SQL' => [],
-        //     'QUERY' => [],
-        // ],
+    private array $compiled = [
+        'config' => [],
+        'methods' => [],
+        'routes' => [],
+        'middlewares' => [],
+        'pages' => ['compiled' => [], 'layouts' => [], 'components' => [], 'partials' => [], 'errors' => []],
+        'data' => ['query' => [], 'sql' => [], 'validation' => []],
+        // This is the $c Variable that is then assigned automatically globally.
+        'c' => [
+            'FUNKPHP_ONLINE' => false,
+            'FUNKPHP_USE_HTTPS' => false,
+            'FUNKPHP_USE_PREPARE_URI' => true,
+            "FUNKPHP_USE_VENDOR" => true,
+            "FUNKPHP_CUSTOM_EXCEPTION_HANDLER" => null,
+            "FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION" => null,
+            "FUNKPHP_CUSTOM_ERROR_HANDLER" => null,
+            "FUNKPHP_CUSTOM_URI_NORMALIZER" => null,
+            "FUNKPHP_CUSTOM_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION" => null,
+            'INI_SETS' => [
+                'session.cache_limiter' => 'public',
+                'session.use_strict_mode' => 8,
+                'session.use_only_cookies' => 1,
+                'session.cache_expire' => 30,
+                'session.cookie_lifetime' => 0,
+                'session.name' => 'fphp_id',
+                'session.sid_length' => 192,
+                'session.sid_bits_per_character' => 6,
+                'display_errors'          => 1,
+                'display_startup_errors'  => 1,
+                'error_reporting'         => 1,
+            ],
+            'BASEURLS' => [
+                'LOCAL' => "http://webdev.local:81/funkphp",
+                'ONLINE' => "https://www.funkphp.com",
+                'BASEURL' =>  'localhost',
+                'BASEURL_URI' => '/funkphp/src/public_html/',
+            ],
+            'SESSION' => [
+                'driver' => 'files',
+                'COOKIES' => [
+                    'SESSION_NAME' => 'fphp_id',
+                    'SESSION_LIFETIME' => 28800,
+                    'SESSION_PATH' => '/',
+                    'SESSION_DOMAIN' => "webdev.local",
+                    'SESSION_SECURE' => false,
+                    'SESSION_HTTPONLY' => true,
+                    'SESSION_SAMESITE' => 'Lax',
+                ]
+            ],
+            '<ENTRY>' => [],
+            'pipeline' => [
+                'request' => [],
+                'post_response' => []
+            ],
+            'ROUTES' => [],
+            'shared' => [],
+            'custom' => null,
+            'classes' => ['vendor' => [], 'user' => []],
+            'credentials' => null,
+            'connections' => [],
+            'req' => [
+                'method' => '##TOKEN_REQ_METHOD##',
+                'ip'     => '##TOKEN_REQ_IP##',
+                'time'   => '##TOKEN_REQ_TIME##',
+                'uri' => null,
+                'query' => '##TOKEN_REQ_QUERY_STRING##',
+                'base_url_absolute' => null,
+                'base_url_relative' => null,
+                'matched_in' => null,
+                'route' => null,
+                'params' => null,
+                'segments' => null,
+                'auth' => null,
+                'matched_config' => null,
+                'matched_pipeline' => [],
+                'matched_middlewares' => null,
+                'skip_post_response' => false,
+                'current_pipeline' => null,
+                'next_pipeline' => null,
+                'current_middleware' => null,
+                'next_middleware' => null,
+                'keep_running_exit' => null,
+                'code' => 418,
+                'log' => [],
+                'ua' => null,
+                'content_type' => null,
+                'accept' => null,
+                'protocol' => null,
+            ],
+            'd' => null,
+            'v' => null,
+            'v_ok' => null,
+            'v_ok_files' => null,
+            'v_config' => [],
+            'v_data' => null,
+            'p' => null,
+            'files' => null,
+            'err' => [
+                'MAYBE' => [],
+                'FUNCTIONS' => [],
+                'CLASSES' => [],
+                'CONNECTIONS' => [],
+                'PIPELINE' => [],
+                'MIDDLEWARES' => [],
+                'PAGE' => [],
+                'VALIDATION' => [],
+                'SQL' => [],
+                'QUERY' => [],
+            ],
+        ],
     ];
 
     // NAVIGATION VARIABLES+METHODS IN IDE ->config()
@@ -2398,6 +2402,7 @@ class C
         if (
             !is_string($str) || trim($str) === ''
             || ($str !== strtolower($str))
+            || !preg_match('/^[a-z_][a-z0-9_]*$/', $str)
             || (str_starts_with($str, 'cli_'))
             || (str_starts_with($str, 'funk_'))
         ) {
@@ -2408,50 +2413,48 @@ class C
     // Autoload any non-existing $this->cached[$key] that is either always a file with functions OR classes
     private function cachedCreateKeyIfNullAndOptionalFileName(string $key, string $optionalFileName = '1_NO_FILE_NAME_PROVIDED_1'): void
     {
-        if (!isset($this->cached[$key])) {
-            if ($key === 'file_user_defined_functions') {
-                $this->cached[$key] = $this->file_status('/config', 'functions');
-            } elseif ($key === 'file_user_defined_classes') {
-                $this->cached[$key] = $this->file_status('/config', 'classes');
-            } elseif ($key === 'file_user_defined_tables') {
-                $this->cached[$key] = $this->file_status('/config', 'tables');
-            } elseif ($key === 'files_pipes_request') {
-                if (!isset($this->cached[$key][$optionalFileName])) {
-                    $this->cached[$key][$optionalFileName] = $this->file_status('/pipes/request', $optionalFileName);
-                }
-            } elseif ($key === 'files_pipes_post_response') {
-                if (!isset($this->cached[$key][$optionalFileName])) {
-                    $this->cached[$key][$optionalFileName] = $this->file_status('/pipes/post_response', $optionalFileName);
-                }
-            } elseif ($key === 'files_pipes_middlewares') {
-                if (!isset($this->cached[$key][$optionalFileName])) {
-                    $this->cached[$key][$optionalFileName] = $this->file_status('/pipes/middlewares', $optionalFileName);
-                }
-            } elseif ($key === 'files_data_sql') {
-                if (!isset($this->cached[$key][$optionalFileName])) {
-                    $this->cached[$key][$optionalFileName] = $this->file_status('/pipes/data/sql', $optionalFileName);
-                }
-            } elseif ($key === 'files_data_query') {
-                if (!isset($this->cached[$key][$optionalFileName])) {
-                    $this->cached[$key][$optionalFileName] = $this->file_status('/pipes/data/query', $optionalFileName);
-                }
-            } elseif ($key === 'files_data_validation') {
-                if (!isset($this->cached[$key][$optionalFileName])) {
-                    $this->cached[$key][$optionalFileName] = $this->file_status('/pipes/data/validation', $optionalFileName);
-                }
-            } elseif ($key === 'file_core_functions') {
-                $this->cached[$key] = $this->file_status('/core', 'functions');
-            } elseif ($key === 'file_manifest') {
-                $this->cached[$key] = $this->file_status('/core', 'manifest');
-            } else {
-                $err = "[INTERNAL FUNKPHP ERROR - Class C->\$this->cachedCreateKeyIfNull()]: Unknown `{$key}` Value passed when it expected one of those defined in \$this->cached in Class C. Report this Internal Error to the Official FunkPHP repository.";
-                $this->errors['all'][] = $err;
-                $this->errors['config'][] = $err;
+        if ($key === 'file_user_defined_functions') {
+            $this->cached[$key] = $this->file_status('/config', 'functions');
+        } elseif ($key === 'file_user_defined_classes') {
+            $this->cached[$key] = $this->file_status('/config', 'classes');
+        } elseif ($key === 'file_user_defined_tables') {
+            $this->cached[$key] = $this->file_status('/config', 'tables');
+        } elseif ($key === 'files_pipes_request') {
+            if (!isset($this->cached[$key][$optionalFileName])) {
+                $this->cached[$key][$optionalFileName] = $this->file_status('/pipes/request', $optionalFileName);
             }
+        } elseif ($key === 'files_pipes_post_response') {
+            if (!isset($this->cached[$key][$optionalFileName])) {
+                $this->cached[$key][$optionalFileName] = $this->file_status('/pipes/post_response', $optionalFileName);
+            }
+        } elseif ($key === 'files_pipes_middlewares') {
+            if (!isset($this->cached[$key][$optionalFileName])) {
+                $this->cached[$key][$optionalFileName] = $this->file_status('/pipes/middlewares', $optionalFileName);
+            }
+        } elseif ($key === 'files_data_sql') {
+            if (!isset($this->cached[$key][$optionalFileName])) {
+                $this->cached[$key][$optionalFileName] = $this->file_status('/pipes/data/sql', $optionalFileName);
+            }
+        } elseif ($key === 'files_data_query') {
+            if (!isset($this->cached[$key][$optionalFileName])) {
+                $this->cached[$key][$optionalFileName] = $this->file_status('/pipes/data/query', $optionalFileName);
+            }
+        } elseif ($key === 'files_data_validation') {
+            if (!isset($this->cached[$key][$optionalFileName])) {
+                $this->cached[$key][$optionalFileName] = $this->file_status('/pipes/data/validation', $optionalFileName);
+            }
+        } elseif ($key === 'file_core_functions') {
+            $this->cached[$key] = $this->file_status('/core', 'functions');
+        } elseif ($key === 'file_manifest') {
+            $this->cached[$key] = $this->file_status('/core', 'manifest');
+        } else {
+            $err = "[INTERNAL FUNKPHP ERROR - Class C->\$this->cachedCreateKeyIfNull()]: Unknown `{$key}` Value passed when it expected one of those defined in \$this->cached in Class C. Report this Internal Error to the Official FunkPHP repository.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
         }
         return;
     }
-    // These 4 functions find either a Key=>FN|CLASS OR Key=>File=>FN|CLASS
+    // Function find either a Key=>FN|CLASS OR Key=>File=>FN|CLASS
     private function cachedKeyHasSpecificFN(string $key, string $FN)
     {
         if (
@@ -2467,53 +2470,7 @@ class C
         }
         return true;
     }
-    private function cachedKeyHasSpecificCLASS(string $key, string $CLASS)
-    {
-        if (
-            !isset($this->cached)
-            || !is_array($this->cached)
-            || !isset($this->cached[$key])
-            || $this->cached[$key]['file_exists'] === false
-            || $this->cached[$key]['file_readable'] === false
-            || $this->cached[$key]['classes_exist'] === false
-            || !isset($this->cached[$key]['classes'][$CLASS])
-        ) {
-            return false;
-        }
-        return true;
-    }
-    private function cachedKeyHasSpecificFileAndFUNCTION(string $key, string $FILE, string $FN)
-    {
-        if (
-            !isset($this->cached)
-            || !is_array($this->cached)
-            || !isset($this->cached[$key])
-            || !isset($this->cached[$key][$FILE])
-            || $this->cached[$key][$FILE]['file_exists'] === false
-            || $this->cached[$key][$FILE]['file_readable'] === false
-            || $this->cached[$key][$FILE]['functions_exist'] === false
-            || !isset($this->cached[$key][$FILE]['functions'][$FN])
-        ) {
-            return false;
-        }
-        return true;
-    }
-    private function cachedKeyHasSpecificFileAndCLASS(string $key, string $FILE, string $CLASS)
-    {
-        if (
-            !isset($this->cached)
-            || !is_array($this->cached)
-            || !isset($this->cached[$key])
-            || !isset($this->cached[$key][$FILE])
-            || $this->cached[$key][$FILE]['file_exists'] === false
-            || $this->cached[$key][$FILE]['file_readable'] === false
-            || $this->cached[$key][$FILE]['classes_exist'] === false
-            || !isset($this->cached[$key][$FILE]['classes'][$CLASS])
-        ) {
-            return false;
-        }
-        return true;
-    }
+
     // These 2 functions check things like eval(), early exit(), which can be used to inform
     // developer about possible dangerous code but it is only emitted as warnings - nothing else.
     // They set the warnings for a given FN|CLASS and if the boolean $this->NoWarningsAllowed is
@@ -2596,6 +2553,54 @@ class C
         }
     }
 
+    // Validate a Single Function in a Single File AND with
+    private function validateFNFile(array $fileData, string $expectedFNName, string $contextLabel, string $expectedNSName = '', bool $singleFNExpected = false): ?string
+    {
+        $relativePath = '/src/funkphp/' . $fileData['folder_provided_path'] . '/' . $fileData['file_name'];
+        if (empty($fileData) || array_is_list($fileData)) {
+            return "File Function Error in {$contextLabel}: Parsed File Data `$relativePath` as an Array is EITHER A Numbered Array when it should be an Associative Array OR it is Completely Empty.";
+        }
+        if (empty($fileData['file_exists'])) {
+            return "File Function Error in {$contextLabel}: File `$relativePath` does NOT exist.";
+        }
+        if (empty($fileData['file_readable'])) {
+            return "File Function Error in {$contextLabel}: File `$relativePath` is NOT Readable.";
+        }
+        if (!empty($fileData['classes_exist'])) {
+            return "File Function Error in {$contextLabel}: File `$relativePath` contains Class Definitions which is forbidden for this type of File Function.";
+        }
+        $fnCount = count($fileData['functions'] ?? []);
+        if ($singleFNExpected) {
+            if ($fnCount !== 1) {
+                return "File Function Error in {$contextLabel}: File `$relativePath` must contain EXACTLY 1 Function (found {$fnCount}).";
+            }
+        }
+        $FN = $fileData['functions'][$expectedFNName] ?? null;
+        if (!$FN) {
+            return "File Function Error in {$contextLabel}: Expected Function `{$expectedFNName}` in File `$relativePath` does NOT exist.";
+        }
+        if (strtolower($FN['fn_exact_name']) !== $FN['fn_lowercased']) {
+            return "File Function Error in {$contextLabel}: Function `{$expectedFNName}()` in File `$relativePath` must have Function Name that is all lowercased.";
+        }
+        if ($expectedNSName !== '') {
+            if (!isset($fileData['namespace']) || $fileData['namespace'] !== $expectedNSName) {
+                return "File Function Error in {$contextLabel}: Function `{$expectedFNName}` in File `$relativePath` must have the following namespace:`{$expectedNSName}`.";
+            }
+        }
+        if ($FN['body_raw'] === '{}' || $FN['only_whitespace_and_or_comments'] === true) {
+            return "File Function Error in {$contextLabel}: Function `{$expectedFNName}()` in File `$relativePath` must have Code in its Function Body and cannot just contain whitespace and/or comments.";
+        }
+        $argsRaw = trim($FN['args_raw'] ?? '');
+        if (!str_starts_with($argsRaw, '&$c')) {
+            return "File Function Error in {$contextLabel}: Function `{$expectedFNName}()` in File `$relativePath` must have `&\$c` as its First Parameter (found `({$argsRaw})`).";
+        }
+        if ($FN['has_inner_functions'] === true) {
+            return "File Function Error in {$contextLabel}: Function `{$expectedFNName}()` in File `$relativePath` cannot have Inner Function Declarations (e.g. `function name(&\$c){ function inner(&\$c){}}`). See lines:`" . join(', ', $FN['nested_function_lines']) . "` in the File.";
+        }
+        return null; // All fatal checks passed
+    }
+
+
     // ->config()
     // and can jump to->pipesRequest(),->pipesPostResponse() or ->routes()
     public function CONFIG(): FunkConfig
@@ -2628,7 +2633,7 @@ class C
         $this->$fn(...$payload);
     }
 
-    /* set<BOOLEAN_VARIANTS_OPTIONS-NoWarningsAllowed,MiddlewaresCascade,FunkPHPOnline,UseHTTPS,UseVendor> Global */
+    /* set<BOOLEAN_VARIANTS_OPTIONS-NoWarningsAllowed,FunkPHPOnline,UseHTTPS,UseVendor> Global */
     private function batchSetAllowNoWarnings(bool $trueOrFalse)
     {
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setAllowNoWarnings', $trueOrFalse);
@@ -2655,58 +2660,6 @@ class C
         }
         $this->validBatches['config']['NO_WARNINGS_ALLOWED'] = $trueOrFalse;
         $this->NoWarningsAllowed = true;
-    }
-    private function batchSetCascadeMiddlewares(bool $trueOrFalse)
-    {
-        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setCascadeMiddlewares', $trueOrFalse);
-        if (isset($this->invalidBatches['config']['CASCADE_MIDDLEWARES'])) {
-            $err = "Duplicate Invalid Boolean Value for `->setCascadeMiddlewares()` as current one under `->CONFIG()` is Invalid.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
-            return;
-        }
-        if (isset($this->validBatches['config']['CASCADE_MIDDLEWARES'])) {
-            $err = "A Valid Boolean Value for `->setCascadeMiddlewares()` already exists under `->CONFIG()`.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
-            return;
-        }
-        if (
-            !is_bool($trueOrFalse) || ($trueOrFalse !== FALSE && $trueOrFalse !== TRUE)
-        ) {
-            $err = "Invalid Boolean Value in `->setCascadeMiddlewares()` under `->CONFIG()`. Must be a Boolean as either `TRUE` or `FALSE`.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
-            $this->invalidBatches['config']['CASCADE_MIDDLEWARES'] = $trueOrFalse;
-            return;
-        }
-        $this->validBatches['config']['CASCADE_MIDDLEWARES'] = $trueOrFalse;
-    }
-    private function batchSetCascadeHeaders(bool $trueOrFalse)
-    {
-        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setCascadeHeaders', $trueOrFalse);
-        if (isset($this->invalidBatches['config']['CASCADE_HEADERS'])) {
-            $err = "Duplicate Invalid Boolean Value for `->setCascadeHeaders()` as current one under `->CONFIG()` is Invalid.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
-            return;
-        }
-        if (isset($this->validBatches['config']['CASCADE_HEADERS'])) {
-            $err = "A Valid Boolean Value for `->setCascadeHeaders()` already exists under `->CONFIG()`.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
-            return;
-        }
-        if (
-            !is_bool($trueOrFalse) || ($trueOrFalse !== FALSE && $trueOrFalse !== TRUE)
-        ) {
-            $err = "Invalid Boolean Value in `->setCascadeHeaders()` under `->CONFIG()`. Must be a Boolean as either `TRUE` or `FALSE`.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
-            $this->invalidBatches['config']['CASCADE_HEADERS'] = $trueOrFalse;
-            return;
-        }
-        $this->validBatches['config']['CASCADE_HEADERS'] = $trueOrFalse;
     }
     private function batchSetFunkPHPOnlineGlobal(bool $trueOrFalse)
     {
@@ -3655,8 +3608,171 @@ class C
     }
 
     /* setGrouped<VARIANTS> Global */
-    private function batchSetGroupedFunctions(string $groupName, string ...$functions) {}
-    private function batchSetGroupedMiddlewares(string $groupName, string ...$middlewares) {}
+    private function batchSetGroupedPipeRequest(string $groupName, string ...$RequestFNs)
+    {
+        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('batchSetGroupedPipeRequest', $groupName, ...$RequestFNs);
+        // Initial checks: invalidBathced already? ValidBatched already? Invalid $groupName string?
+        // Any of the FNs invalid in their naming? Only after that, do we start checking each FN file.
+        if (isset($this->invalidBatches['config']['GROUPED_PIPE_REQUEST'][strtolower($groupName)])) {
+            $err = "Duplicate Call - Invalid Pipe Group in `->setGroupPipeRequest({$groupName})` under `->CONFIG()` already exists that must be fixed first.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (isset($this->validBatches['config']['GROUPED_PIPE_REQUEST'][strtolower($groupName)])) {
+            $err = "Duplicate Call - Valid Pipe Group in `->setGroupPipeRequest({$groupName})` under `->CONFIG()` already exist:`" . join(',', $this->validBatches['config']['GROUPED_PIPE_REQUEST'][strtolower($groupName)]) . '`.';
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($groupName)) {
+            $err = "Invalid Group Name Value (`{$groupName}`) in `->setGroupPipeRequest()` under `->CONFIG()`. It must be a Non-Empty String all lowercased that uses Valid characters for a Function Declaration Name ([a-z_][a-z0-9_]*) and that does NOT start with `cli_` OR `funk_`.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            $this->invalidBatches['config']['GROUPED_PIPE_REQUEST'][strtolower($groupName)] = [...$RequestFNs];
+            return;
+        }
+        foreach ($RequestFNs as $FN) {
+            if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($FN)) {
+                $err = "Invalid Request Function Name (`{$FN}`) in `->setGroupPipeRequest()` under `->CONFIG()`. It must be a Non-Empty String all lowercased that uses Valid characters for a Function Declaration Name ([a-z_][a-z0-9_]*) and that does NOT start with `cli_` OR `funk_`.";
+                $this->errors['all'][] = $err;
+                $this->errors['config'][] = $err;
+                $this->invalidBatches['config']['GROUPED_PIPE_REQUEST'][strtolower($groupName)] = [...$RequestFNs];
+                return;
+            }
+        }
+        // Now we check each Function File using $this->cached which will store it in
+        // $this->cached['files_pipes_request][$FN_FILE] if it does not already exist.
+        // Then we can attempt validation that it is a valid structured file+function:
+        // 1. Only one function per file, 2. Function body cannot be empty or just comments,
+        // 3. Function body must start with "&$c" in its function parameters.
+        foreach ($RequestFNs as $FN_FILE) {
+            $this->cachedCreateKeyIfNullAndOptionalFileName('files_pipes_request', $FN_FILE);
+            $fileData = $this->cached['files_pipes_request'][$FN_FILE] ?? [];
+            $contextLabel = "`->setGroupPipeRequest('{$groupName}') under ->CONFIG()`";
+            // Fatal check: Bails on the first structural error
+            $fatalError = $this->validateFNFile($fileData, $FN_FILE, $contextLabel, "funkphp\\pipes\\request\\{$FN_FILE}", true);
+            if ($fatalError !== null) {
+                $this->errors['all'][] = $fatalError;
+                $this->errors['config'][] = $fatalError;
+                $this->invalidBatches['config']['GROUPED_PIPE_REQUEST'][$groupName] = [...$RequestFNs];
+                return;
+            }
+            // Non-fatal check: Audit function body for code quality warnings
+            if (!empty($fileData['functions'])) {
+                $fnAnalysis = reset($fileData['functions']);
+                $this->cachedKeyFNWarnings($fnAnalysis, $fileData['file_path'] ?? $FN_FILE);
+            }
+        }
+
+        // Set when all OK!
+        $this->validBatches['config']['GROUPED_PIPE_REQUEST'][$groupName] = [...$RequestFNs];
+    }
+    private function batchSetGroupedPipePostResponse(string $groupName, string ...$PostResponseFNs)
+    {
+        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setGroupPipePostResponse', $groupName, ...$PostResponseFNs);
+        // Initial checks: invalidBathced already? ValidBatched already? Invalid $groupName string?
+        // Any of the FNs invalid in their naming? Only after that, do we start checking each FN file.
+        if (isset($this->invalidBatches['config']['GROUPED_PIPE_POST_RESPONSE'][strtolower($groupName)])) {
+            $err = "Duplicate Call - Invalid Pipe Group in `->setGroupPipePostResponse({$groupName})` under `->CONFIG()` already exists that must be fixed first.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (isset($this->validBatches['config']['GROUPED_PIPE_POST_RESPONSE'][strtolower($groupName)])) {
+            $err = "Duplicate Call - Valid Pipe Group Pipe in `->setGroupPipePostResponse({$groupName})` under `->CONFIG()` already exist:`" . join(',', $this->validBatches['config']['GROUPED_PIPE_POST_RESPONSE'][strtolower($groupName)]) . '`.';
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($groupName)) {
+            $err = "Invalid Group Name Value (`{$groupName}`) in `->setGroupPipePostResponse()` under `->CONFIG()`. It must be a Non-Empty String all lowercased that uses Valid characters for a Function Declaration Name ([a-z_][a-z0-9_]*) and that does NOT start with `cli_` OR `funk_`.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            $this->invalidBatches['config']['GROUPED_PIPE_POST_RESPONSE'][strtolower($groupName)] = [$groupName, ...$PostResponseFNs];
+            return;
+        }
+        foreach ($PostResponseFNs as $FN) {
+            if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($FN)) {
+                $err = "Invalid Post Response Function Name (`{$FN}`) in `->setGroupPipePostResponse()` under `->CONFIG()`. It must be a Non-Empty String all lowercased that uses Valid characters for a Function Declaration Name ([a-z_][a-z0-9_]*) and that does NOT start with `cli_` OR `funk_`.";
+                $this->errors['all'][] = $err;
+                $this->errors['config'][] = $err;
+                $this->invalidBatches['config']['GROUPED_PIPE_POST_RESPONSE'][strtolower($groupName)] = [$groupName, ...$PostResponseFNs];
+                return;
+            }
+        }
+        // Now we check each File using $this->cached
+    }
+    private function batchSetGroupedPipeRoute(string $groupName, string ...$RoutePipeFNs)
+    {
+        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setGroupPipeRoute', $groupName, ...$RoutePipeFNs);
+        // Initial checks: invalidBathced already? ValidBatched already? Invalid $groupName string?
+        // Any of the FNs invalid in their naming? Only after that, do we start checking each FN file.
+        if (isset($this->invalidBatches['config']['GROUPED_PIPE_ROUTES'][strtolower($groupName)])) {
+            $err = "Duplicate Call - Invalid Pipe Group in `->setGroupPipeRoute({$groupName})` under `->CONFIG()` already exists that must be fixed first.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (isset($this->validBatches['config']['GROUPED_PIPE_ROUTES'][strtolower($groupName)])) {
+            $err = "Duplicate Call - Valid Pipe Group in `->setGroupPipeRoute({$groupName})` under `->CONFIG()` already exist:`" . join(',', $this->validBatches['config']['GROUPED_PIPE_ROUTES'][strtolower($groupName)]) . '`.';
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($groupName)) {
+            $err = "Invalid Group Name Value (`{$groupName}`) in `->setGroupPipeRoute()` under `->CONFIG()`. It must be a Non-Empty String all lowercased that uses Valid characters for a Function Declaration Name ([a-z_][a-z0-9_]*) and that does NOT start with `cli_` OR `funk_`.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            $this->invalidBatches['config']['GROUPED_PIPE_ROUTES'][strtolower($groupName)] = [$groupName, ...$RoutePipeFNs];
+            return;
+        }
+        foreach ($RoutePipeFNs as $FN) {
+            if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($FN)) {
+                $err = "Invalid Route Pipe Function Name (`{$FN}`) in `->setGroupPipeRoute()` under `->CONFIG()`. It must be a Non-Empty String all lowercased that uses Valid characters for a Function Declaration Name ([a-z_][a-z0-9_]*) and that does NOT start with `cli_` OR `funk_`.";
+                $this->errors['all'][] = $err;
+                $this->errors['config'][] = $err;
+                $this->invalidBatches['config']['GROUPED_PIPE_ROUTES'][strtolower($groupName)] = [$groupName, ...$RoutePipeFNs];
+                return;
+            }
+        }
+        // Now we check each File using $this->cached
+    }
+    private function batchSetGroupedPipeMiddlewares(string $groupName, string ...$middlewareFNs)
+    {
+        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setGroupPipeMiddlewares', $groupName, ...$middlewareFNs);
+        // Initial checks: invalidBathced already? ValidBatched already? Invalid $groupName string?
+        // Any of the FNs invalid in their naming? Only after that, do we start checking each FN file.
+        if (isset($this->invalidBatches['config']['GROUPED_PIPE_MIDDLEWARES'][strtolower($groupName)])) {
+            $err = "Duplicate Call - Invalid Pipe Group in `->setGroupPipeMiddlewares({$groupName})` under `->CONFIG()` already exists that must be fixed first.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (isset($this->validBatches['config']['GROUPED_PIPE_MIDDLEWARES'][strtolower($groupName)])) {
+            $err = "Duplicate Call - Valid Pipe Group in `->setGroupPipeMiddlewares({$groupName})` under `->CONFIG()` already exist:`" . join(',', $this->validBatches['config']['GROUPED_PIPE_MIDDLEWARES'][strtolower($groupName)]) . '`.';
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+        if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($groupName)) {
+            $err = "Invalid Group Name Value (`{$groupName}`) in `->setGroupPipeMiddlewares()` under `->CONFIG()`. It must be a Non-Empty String all lowercased that uses Valid characters for a Function Declaration Name ([a-z_][a-z0-9_]*) and that does NOT start with `cli_` OR `funk_`.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            $this->invalidBatches['config']['GROUPED_PIPE_MIDDLEWARES'][strtolower($groupName)] = [$groupName, ...$middlewareFNs];
+            return;
+        }
+        foreach ($middlewareFNs as $FN) {
+            if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($FN)) {
+                $err = "Invalid Middleware Function Name (`{$FN}`) in `->setGroupPipeMiddlewares()` under `->CONFIG()`. It must be a Non-Empty String all lowercased that uses Valid characters for a Function Declaration Name ([a-z_][a-z0-9_]*) and that does NOT start with `cli_` OR `funk_`.";
+                $this->errors['all'][] = $err;
+                $this->errors['config'][] = $err;
+                $this->invalidBatches['config']['GROUPED_PIPE_MIDDLEWARES'][strtolower($groupName)] = [$groupName, ...$middlewareFNs];
+                return;
+            }
+        }
+        // Now we check each File using $this->cached
+    }
 
     /* setParamRule GLOBAL */
     private function batchSetParamRuleGlobal(string $param, string $regex, $defaultParamValueOnRegexMismatch = null)
@@ -4695,9 +4811,10 @@ class C
     private function batchNewPipeQueryRoute(string $method, string $route, string $queryFileFunction) {}
     private function batchNewPipeValidationRoute(string $method, string $route, string $validationFileFunction) {}
 
-    /*ROUTE: pipeMiddleware & excludeMiddleware */
+    /*ROUTE: pipeMiddleware & excludeMiddleware & excludeHeaders */
     private function batchNewPipeMiddlewareRoute(string $method, string $route, string $middleware) {}
-    private function batchNewExcludeMiddlewareRoute(string $method, string $route, string $middlewareToExclude) {}
+    private function batchSetExcludeMiddlewareRoute(string $method, string $route, string ...$middlewareToExclude) {}
+    private function batchSetExcludeHeadersRoute(string $method, string $route, string ...$headersToExclude) {}
 
     /*ROUTE: pipeHeader & removeHeader */
     private function batchNewHeaderRoute(string $method, string $route, string $header)
@@ -5733,17 +5850,30 @@ class FunkConfig
 {
     public function __construct(private C $c) {}
 
-    /* setGroup<VARIANTS> - GLOBAL */
-    public function setGroupFunctions(string $groupName, string ...$functions): self
+    /* setGroup<VARIANTS> - use the prefix "group:<$groupName>"
+    // to faster more pipes at the same time! - GLOBAL */
+    public function setGroupPipeRequest(string $groupName, string ...$pipeRequestFNs): self
     {
-        $this->c->batch('batchSetGroupedFunctions', $groupName, ...$functions);
+        $this->c->batch('batchSetGroupedPipeRequest', $groupName, ...$pipeRequestFNs);
         return $this;
     }
-    public function setGroupMiddlewares(string $groupName, string ...$middlewares): self
+    public function setGroupPipePostResponse(string $groupName, string ...$pipePostReponseFNs): self
     {
-        $this->c->batch('batchSetGroupedMiddlewares', $groupName, ...$middlewares);
+        $this->c->batch('batchSetGroupedPipePostResponse', $groupName, ...$pipePostReponseFNs);
         return $this;
     }
+    public function setGroupPipeRoute(string $groupName, string ...$pipeRouteFNs): self
+    {
+        $this->c->batch('batchSetGroupedPipeRoute', $groupName, ...$pipeRouteFNs);
+        return $this;
+    }
+    public function setGroupPipeMiddlewares(string $groupName, string ...$pipeMiddlewareFNs): self
+    {
+        $this->c->batch('batchSetGroupedPipeMiddlewares', $groupName, ...$pipeMiddlewareFNs);
+        return $this;
+    }
+
+    /* INI_SET() Setter - GLOBAL */
     public function setINI_SET(array $iniSetArrayWithKeyNamesAsSettingTypeWithSingleScalarValue): self
     {
         $this->c->batch('batchSetINI_SETGlobal', $iniSetArrayWithKeyNamesAsSettingTypeWithSingleScalarValue);
@@ -5942,16 +6072,6 @@ class FunkConfig
     public function setAllowNoWarnings(bool $trueOrFalse): self
     {
         $this->c->batch('batchSetAllowNoWarnings', $trueOrFalse);
-        return $this;
-    }
-    public function setCascadeMiddlewares(bool $trueOrFalse): self
-    {
-        $this->c->batch('batchSetCascadeMiddlewares', $trueOrFalse);
-        return $this;
-    }
-    public function setCascadeHeaders(bool $trueOrFalse): self
-    {
-        $this->c->batch('batchSetCascadeHeaders', $trueOrFalse);
         return $this;
     }
     public function setUseFunKPHPOnline(bool $trueOrFalse): self
@@ -6261,9 +6381,14 @@ class FunkRoute
         $this->c->batch('batchNewPipeValidationRoute', $this->method, $this->routePath, $validationFileFunction);
         return $this;
     }
-    public function pipeExcludeMiddleware(string $middlewareToExclude): self
+    public function setExcludeMiddleware(string ...$middlewareToExclude): self
     {
-        $this->c->batch('batchNewExcludeMiddlewareRoute', $this->method, $this->routePath, $middlewareToExclude);
+        $this->c->batch('batchNewExcludeMiddlewareRoute', $this->method, $this->routePath, ...$middlewareToExclude);
+        return $this;
+    }
+    public function setExcludeHeaders(string ...$headersToExclude): self
+    {
+        $this->c->batch('batchSetExcludeHeadersRoute', $this->method, $this->routePath, ...$headersToExclude);
         return $this;
     }
     public function setParamRule(string $param, string $regex, string|null $defaultParamValueOnRegexMismatch = null): self

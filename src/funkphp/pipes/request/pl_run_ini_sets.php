@@ -1,10 +1,11 @@
 <?php
 
-namespace funkphp\pipeline\request\pl_run_ini_sets;
+namespace funkphp\pipes\request\pl_run_ini_sets;
 
 function pl_run_ini_sets(&$c)
 {
     $iniSets = $c['INI_SETS'] ?? [];
+    function test() {}
     foreach ($iniSets as $key => $value) {
         // Hard error on invalid configured $c['INI_SETS'] data
         if (!is_string($key) || empty($key) || !is_scalar($value)) {
