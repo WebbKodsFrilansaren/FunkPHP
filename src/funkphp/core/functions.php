@@ -2570,7 +2570,9 @@ class C
         }
     }
 
-    // Validate a Single Function in a Single File AND with
+    // Validate a Single Function in a Single File AND with optional boolean to Validate SingleFileFunctions
+    // where it can only be one function in the file (middleware, request, post_response - while routes,
+    // query, sql, and validation files can have more than one function per file. This might change!)
     private function validateFNFile(array $fileData, string $expectedFNName, string $contextLabel, string $expectedNSName = '', bool $singleFNExpected = false): ?string
     {
         $relativePath = '/src/funkphp/' . $fileData['folder_provided_path'] . '/' . $fileData['file_name'];
@@ -2615,6 +2617,28 @@ class C
             return "File Function Error in {$contextLabel}: Function `{$expectedFNName}()` in File `$relativePath` cannot have Inner Function Declarations (e.g. `function name(&\$c){ function inner(&\$c){}}`). See lines:`" . join(', ', $FN['nested_function_lines']) . "` in the File.";
         }
         return null; // Function File for FunkPHP use is all OK here! - Warnings are emitted by another function
+    }
+
+    // Validate Response Code is between 100-599
+    private function validateStatusCode($status): bool
+    {
+        if (
+            !isset($status) || !is_int($status)
+            || ($status < 100 || $status > 599)
+        ) {
+            return false;
+        }
+        return true;
+    }
+    // Validate AND return a JSON String OR just Null when failure
+    private function encodeJSONorReturnNull($json): string|null
+    {
+        try {
+            $json = json_encode($json, JSON_THROW_ON_ERROR);
+        } catch (\Throwable $e) {
+            return null;
+        }
+        return $json;
     }
 
     // ->config()
@@ -2761,7 +2785,7 @@ class C
     {
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setDefaultRegisteredShutdownHandler', $userDefinedFunction);
         if (isset($this->invalidBatches['config']['DEFAULT_REGISTER_SHUTDOWN_HANDLER'])) {
-            $err = "A Invalid String Value for `->setDefaultRegisteredShutdownHandler()` under `->CONFIG()` already exist that must be fixed before `{$userDefinedFunction}` gets validated.";
+            $err = "Invalid String Value for `->setDefaultRegisteredShutdownHandler()` under `->CONFIG()` already exist that must be fixed before `{$userDefinedFunction}` gets validated.";
             $this->errors['all'][] = $err;
             $this->errors['config'][] = $err;
             return;
@@ -3124,11 +3148,47 @@ class C
         $this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction] = "->setDefaultKernelHandler()";
     }
 
-    /* setNoRouteMatch<VARIANTS> Global */
-    private function batchSetNoRouteMatchPageGlobal(string $PageFileName) {}
-    private function batchSetNoRouteMatchJsonGlobal(array|object $data, int $statusCode = 404) {}
-    private function batchSetNoRouteMatchTextGlobal(string $message, int $statusCode = 404) {}
-    private function batchSetNoRouteMatchCallbackGlobal(string $userDefinedFunctionName) {}
+    /* setNoRouteMatch<VARIANTS> Global - These are all catches when no catches for specific <method(s)> are defined/applied */
+    private function batchSetNoRouteMatchPageGlobal(string $PageFileName)
+    {
+        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('batchSetNoRouteMatchPageGlobal', $PageFileName);
+        if (isset($this->invalidBatches['config']['NO_ROUTE_MATCH']['PAGE'])) {
+            $err = "Duplicate call - Invalid Values for `->batchSetNoRouteMatchPageGlobal()` under `->CONFIG()` already exist that must be fixed before `{$PageFileName}` gets validated.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+    }
+    private function batchSetNoRouteMatchJsonGlobal(array|object $data, int $statusCode = 404)
+    {
+        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('batchSetNoRouteMatchJsonGlobal', $data, $statusCode);
+        if (isset($this->invalidBatches['config']['NO_ROUTE_MATCH']['JSON'])) {
+            $err = "Duplicate call - Invalid Values for `->setNoRouteMatchJSON()` under `->CONFIG()` already exist that must be fixed before `\$data` & `{$statusCode}` gets validated.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+    }
+    private function batchSetNoRouteMatchTextGlobal(string $message, int $statusCode = 404)
+    {
+        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('batchSetNoRouteMatchTextGlobal', $message, $statusCode);
+        if (isset($this->invalidBatches['config']['NO_ROUTE_MATCH']['TEXT'])) {
+            $err = "Duplicate call - Invalid Values for `->setNoRouteMatchText()` under `->CONFIG()` already exist that must be fixed before `{$message}` & `{$statusCode}` gets validated.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+    }
+    private function batchSetNoRouteMatchCallbackGlobal(string $userDefinedFunctionName)
+    {
+        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('batchSetNoRouteMatchCallbackGlobal', $userDefinedFunctionName);
+        if (isset($this->invalidBatches['config']['NO_ROUTE_MATCH']['CALLBACK'])) {
+            $err = "Duplicate call - Invalid Values Value for `->setNoRouteMatchCallback()` under `->CONFIG()` already exist that must be fixed before `{$userDefinedFunctionName}` gets validated.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            return;
+        }
+    }
 
     /* setBASEURL<VARIANTS> Global */
     private function batchSetDefaultBaseURLLocalGlobal(string $httpsPath)
@@ -6043,17 +6103,12 @@ class FunkConfig
     }
 
     /* setNoRouteMatch<Variants> - GLOBAL */
-    public function setNoRouteMatch(array $options): self
-    {
-        $this->c->batch('batchSetNoRouteMatchGlobal', $options);
-        return $this;
-    }
     public function setNoRouteMatchPage(string $PageFileName): self
     {
         $this->c->batch('batchSetNoRouteMatchPageGlobal', $PageFileName);
         return $this;
     }
-    public function setNoRouteMatchJson(array|object $data, int $statusCode = 404): self
+    public function setNoRouteMatchJSON(array|object $data, int $statusCode = 404): self
     {
         $this->c->batch('batchSetNoRouteMatchJsonGlobal', $data, $statusCode);
         return $this;
