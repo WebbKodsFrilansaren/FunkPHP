@@ -3125,7 +3125,6 @@ class C
     }
 
     /* setNoRouteMatch<VARIANTS> Global */
-    private function batchSetNoRouteMatchGlobal(array $options) {}
     private function batchSetNoRouteMatchPageGlobal(string $PageFileName) {}
     private function batchSetNoRouteMatchJsonGlobal(array|object $data, int $statusCode = 404) {}
     private function batchSetNoRouteMatchTextGlobal(string $message, int $statusCode = 404) {}
@@ -3663,6 +3662,7 @@ class C
             $this->errors['all'][] = $err;
             $this->errors['config'][] = $err;
             $this->invalidBatches['config']['GROUPED_PIPE_REQUEST'][strtolower($groupName)] = [...$RequestFNs];
+            return;
         }
         // Now we check each Function File using $this->cached which will store it in
         // $this->cached['files_pipes_request][$FN_FILE] if it does not already exist.
@@ -3678,7 +3678,7 @@ class C
             if ($fatalError !== null) {
                 $this->errors['all'][] = $fatalError;
                 $this->errors['config'][] = $fatalError;
-                $this->invalidBatches['config']['GROUPED_PIPE_REQUEST'][$groupName] = [...$RequestFNs];
+                $this->invalidBatches['config']['GROUPED_PIPE_REQUEST'][strtolower($groupName)] = [...$RequestFNs];
                 return;
             }
         }
@@ -3724,6 +3724,7 @@ class C
             $this->errors['all'][] = $err;
             $this->errors['config'][] = $err;
             $this->invalidBatches['config']['GROUPED_PIPE_POST_RESPONSE'][strtolower($groupName)] = [...$PostResponseFNs];
+            return;
         }
         // Now we check each File using $this->cached
         // Now we check each Function File using $this->cached which will store it in
@@ -3740,7 +3741,7 @@ class C
             if ($fatalError !== null) {
                 $this->errors['all'][] = $fatalError;
                 $this->errors['config'][] = $fatalError;
-                $this->invalidBatches['config']['GROUPED_PIPE_POST_RESPONSE'][$groupName] = [...$PostResponseFNs];
+                $this->invalidBatches['config']['GROUPED_PIPE_POST_RESPONSE'][strtolower($groupName)] = [...$PostResponseFNs];
                 return;
             }
         }
@@ -3786,6 +3787,7 @@ class C
             $this->errors['all'][] = $err;
             $this->errors['config'][] = $err;
             $this->invalidBatches['config']['GROUPED_PIPE_ROUTES'][strtolower($groupName)] = [...$RoutePipeFNs];
+            return;
         }
         // Now we check each File using $this->cached
         foreach ($RoutePipeFNs as $FN_FILE) {
@@ -3798,7 +3800,7 @@ class C
             if ($fatalError !== null) {
                 $this->errors['all'][] = $fatalError;
                 $this->errors['config'][] = $fatalError;
-                $this->invalidBatches['config']['GROUPED_PIPE_ROUTES'][$groupName] = [...$RoutePipeFNs];
+                $this->invalidBatches['config']['GROUPED_PIPE_ROUTES'][strtolower($groupName)] = [...$RoutePipeFNs];
                 return;
             }
         }
@@ -3844,6 +3846,7 @@ class C
             $this->errors['all'][] = $err;
             $this->errors['config'][] = $err;
             $this->invalidBatches['config']['GROUPED_PIPE_MIDDLEWARES'][strtolower($groupName)] = [...$middlewareFNs];
+            return;
         }
         // Now we check each File using $this->cached
         // Now we check each Function File using $this->cached which will store it in
@@ -3860,13 +3863,8 @@ class C
             if ($fatalError !== null) {
                 $this->errors['all'][] = $fatalError;
                 $this->errors['config'][] = $fatalError;
-                $this->invalidBatches['config']['GROUPED_PIPE_MIDDLEWARES'][$groupName] = [...$middlewareFNs];
+                $this->invalidBatches['config']['GROUPED_PIPE_MIDDLEWARES'][strtolower($groupName)] = [...$middlewareFNs];
                 return;
-            }
-            // Non-fatal check: Audit function body for code quality warnings
-            if (!empty($fileData['functions'])) {
-                $fnAnalysis = reset($fileData['functions']);
-                $this->cachedKeyFNWarnings($fnAnalysis, $fileData['file_path'] ?? $FN_FILE);
             }
         }
         // Set when all OK!
@@ -4263,7 +4261,8 @@ class C
 
     //METHOD:Set & New Batches for SPECIFIC_METHOD! (so ->routes()-><Method>->set|pipe<What>)
     private function batchSetRateLimitingMethod(string $method, array $rateLimitingOptions) {}
-    private function batchSetNoRouteMatchMethod(string $method, array $options) {}
+
+    //METHOD: No Match for this https method, if none is set, it falls back to the global versions.
     private function batchSetNoRouteMatchPageMethod(string $method, string $PageFileName) {}
     private function batchSetNoRouteMatchJsonMethod(string $method, array|object $data, int $statusCode = 404) {}
     private function batchSetNoRouteMatchTextMethod(string $method, string $message, int $statusCode = 404) {}
