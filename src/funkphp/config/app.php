@@ -3,11 +3,15 @@
 $FUNK = FunkPHP();
 
 $FUNK->CONFIG()
-    ->setDefaultURI_Normalizer("testar");
+    ->setParamRule("id", '/[\d]+/');
 
 $FUNK->ROUTES()
     ->GET()
-    ->route("/:id");
+    ->route("/:id/:id2")
+    ->route("/:id/:id2/static")
+    ->route("/users/:id2/profile")
+    ->POST()
+    ->route("/users/:id2/profile/:id");
 
 // 1. Inspect the FunkRoute instance ($test) to get the private $c property
 // $routeReflection = new ReflectionObject($test);
@@ -19,4 +23,4 @@ $FUNK->ROUTES()
 // $runMethod = new ReflectionMethod($cInstance, 'run');
 // $runMethod->setAccessible(true); // Needed for PHP < 8.1, good practice to keep
 // $runMethod->invoke($cInstance);  // Outputs: "TEST"
-dd($FUNK);
+dd($FUNK, 'Check (private) errors->all', true);

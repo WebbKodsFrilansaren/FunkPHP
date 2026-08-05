@@ -15,7 +15,7 @@
  * Enhanced Web & CLI dumper for FunkPHP.
  * Features built-in circular reference / recursion detection and max depth protection.
  */
-function dd(mixed $data, bool $ignoreC = true, bool $json = false, bool $exit = true): void
+function dd(mixed $data, string $headerOptionalMsg = '', bool $exit = true, bool $ignoreC = true, bool $json = false): void
 {
     if ($json) {
         if (!headers_sent()) {
@@ -250,9 +250,9 @@ function dd(mixed $data, bool $ignoreC = true, bool $json = false, bool $exit = 
             }
         </style>
 
-        <header>[FunkPHP Data Dump]</header>
+        <header>[FunkDump]<?= (strlen($headerOptionalMsg) > 0 ? " - $headerOptionalMsg" : '') ?></header>
         <div class="metrics-top" style="font-size:11px; border-bottom: 1px solid #45475a; padding-bottom:8px;">
-            <strong>TELEMETRY METRICS:</strong>
+            <strong>COUNTS:</strong>
             Objects: <span class="fd-val"><?= $metrics['objects'] ?></span> |
             Arrays: <span class="fd-val"><?= $metrics['arrays'] ?></span>
             <span class="fd-meta">(Empty: <?= $metrics['arrays-empty'] ?> | Lists: <?= $metrics['arrays-lists'] ?> | Assocs: <?= $metrics['arrays-assocs'] ?>)</span> |
@@ -268,13 +268,13 @@ function dd(mixed $data, bool $ignoreC = true, bool $json = false, bool $exit = 
             </div>
         <?php endif ?>
         <?php if (!$ignoreC): ?>
-            <h1>[FunkPHP Data Dumped]</h1>
+            <h1>[FunkDump]</h1>
         <?php endif ?>
         <div class="fd-content" style="margin-top:0.5rem;">
             <?= $treeHtml ?>
         </div>
         <footer>
-            <strong>TELEMETRY METRICS:</strong>
+            <strong>COUNTS:</strong>
             Objects: <span class="fd-val"><?= $metrics['objects'] ?></span> |
             Arrays: <span class="fd-val"><?= $metrics['arrays'] ?></span>
             <span class="fd-meta">(Empty: <?= $metrics['arrays-empty'] ?> | Lists: <?= $metrics['arrays-lists'] ?> | Assocs: <?= $metrics['arrays-assocs'] ?>)</span> |
@@ -2145,6 +2145,7 @@ class C
     // $cached = (Attempted) Access to any file/function and/or file=>function in a DRY fashion!
     private array $cached = [
         'placeholderRoutes' => [],
+        'placeholderParamContexts' => [],
         'placeholderUsedUserDefinedFunctions' => [],
         'placeholderUsedUserDefinedClasses' => [],
         'placeholderMiddlewaresInWhatRoutes' => [],
@@ -2281,21 +2282,56 @@ class C
 
     // Helper function to build the $FunkPHPTextArray
     // using var_export($var,true). It throws away last optional values like [] & null
+    private function exportShortSyntax(mixed $var): string
+    {
+        if ($var === null) {
+            return 'null';
+        }
+        if (is_bool($var)) {
+            return $var ? 'true' : 'false';
+        }
+        if (is_int($var) || is_float($var)) {
+            return (string)$var;
+        }
+        if (is_string($var)) {
+            return var_export($var, true);
+        }
+        if (is_array($var)) {
+            if (empty($var)) {
+                return '[]';
+            }
+            $elements = [];
+            $expectedIndex = 0;
+            foreach ($var as $key => $val) {
+                $exportedValue = $this->exportShortSyntax($val);
+                if ($key === $expectedIndex) {
+                    $elements[] = $exportedValue;
+                    $expectedIndex++;
+                } else {
+                    $exportedKey = var_export($key, true);
+                    $elements[] = "{$exportedKey} => {$exportedValue}";
+                }
+            }
+            return '[' . implode(', ', $elements) . ']';
+        }
+        return var_export($var, true);
+    }
+
     private function appendFunkPHPTextArray(string $methodName, mixed ...$vars): string
     {
+
+        // Pop trailing optional empty arrays/nulls from arguments
+        // as they are usually optional default values in most FNs
         while (!empty($vars)) {
             $last = end($vars);
-            if ($last === null || $last === []) {
+            if ($last === null || (is_array($last) && empty($last))) {
                 array_pop($vars);
             } else {
                 break;
             }
         }
         $exported = array_map(function ($var) {
-            if (is_array($var) && empty($var)) {
-                return '[]';
-            }
-            return var_export($var, true);
+            return $this->exportShortSyntax($var);
         }, $vars);
         return '->' . $methodName . '(' . implode(', ', $exported) . ')';
     }
@@ -4301,6 +4337,12 @@ class C
     {
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('route', $route);
         $errRoute = '` | A Valid Route must: 1) Start with or just be / as root (never end with -, _ or /), 2) Be all lowercased, 3) Have all uniquely named /:params URI segments (if any used), 4) Never use - and/or _ consecutively, after each other (e.g. -_ or _-) or as start in static/dynamic segments (e.g. /:-, /:_, /_, or /-), 5) Only use [a-z0-9_-] characters.';
+        // Does $route already exist as a valid one? (meaning it was formatted correctly but duplicate)
+        if (isset($this->validBatches['routes'][$method][$route])) {
+            $this->errors['all'][] = "Duplicate call - Valid Formatted Route:`{$method}()" . $this->getLastFunkPHPTextArray() . '` under `->config()->ROUTES()->` - already added!';
+            $this->errors['routes'][$method][] = "Duplicate call - Valid Formatted Route:`{$method}()" . $this->getLastFunkPHPTextArray() . '` under `->config()->ROUTES()->` - already added!';
+            return;
+        }
         // Check initial string formatting: all non-empty string that is all lowercased,
         // starting with / or just is /, does not end with /, have no consecutive -,_
         // or them after one another like -_ or _- and that all dynamic
@@ -4340,6 +4382,33 @@ class C
                 }
                 return;
             }
+            // Check if this parent path context ALREADY locked a parameter name meaning
+            // if GET()->route('/users/:id') came first then <METHOD>()->rout('/users/:id2)
+            // cannot follow NOR any depth that starts with "/users/:PARAM" where :PARAM is
+            // not "id" since that :PARAM laid out the convention to follow from that parent static.
+            $segments = explode('/', ltrim($route, '/'));
+            $currentParentContext = '';
+            foreach ($segments as $segment) {
+                if (str_starts_with($segment, ':')) {
+                    $paramName = substr($segment, 1);
+                    $contextKey = $currentParentContext === '' ? '/' : $currentParentContext;
+                    if (isset($this->cached['placeholderParamContexts'][$contextKey])) {
+                        $lockedParamName = $this->cached['placeholderParamContexts'][$contextKey]['param'];
+                        if ($lockedParamName !== $paramName) {
+                            $errMsg = "Route Parameter Conflict in `{$method}()`" . $this->getLastFunkPHPTextArray() . " | Parameter `:{$paramName}` conflicts with Locked Parameter `:{$lockedParamName}` first defined:`{$this->cached['placeholderParamContexts'][$contextKey]['first']}`.";
+                            $this->errors['all'][] = $errMsg;
+                            $this->errors['routes'][$method][] = $errMsg;
+                            return;
+                        }
+                    } else {
+                        // Lock this parameter name globally for this parent path context
+                        $this->cached['placeholderParamContexts'][$contextKey] = ['param' => $paramName, 'first' => "$method$route"];
+                    }
+                    $currentParentContext .= '/:PARAM';
+                } else {
+                    $currentParentContext .= '/' . $segment;
+                }
+            }
             $routeHasParams = $paramMatches[1]; // Store any params used
             $placeHolderRoute = preg_replace('/:([a-z0-9_-]+)/', ':PARAM', $route);
         }
@@ -4354,12 +4423,7 @@ class C
                 $this->cached['placeholderRoutes'][$method][$placeHolderRoute] = "$method$route";
             }
         }
-        // Ok, Method/Route String is valid, now final check; is it already in batch? That makes it invalid due to duplicate!
-        if (isset($this->validBatches['routes'][$method][$route])) {
-            $this->errors['all'][] = "Duplicate Valid Formatted Route:`{$method}()" . $this->getLastFunkPHPTextArray() . '`!';
-            $this->errors['routes'][$method][] = "Duplicate Valid Formatted Route:`{$method}()" . $this->getLastFunkPHPTextArray() . '`!';
-            return;
-        }
+
         // Add Valid String Formatted METHOD/Route now; in compilation it will be checked for
         // conflicting URI segments with other routes as we do not know which order they are added!
         $this->validBatches['routes'][$method][$route] = ['hasParams' => $routeHasParams];
