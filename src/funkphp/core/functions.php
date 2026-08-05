@@ -2597,9 +2597,8 @@ class C
         if ($FN['has_inner_functions'] === true) {
             return "File Function Error in {$contextLabel}: Function `{$expectedFNName}()` in File `$relativePath` cannot have Inner Function Declarations (e.g. `function name(&\$c){ function inner(&\$c){}}`). See lines:`" . join(', ', $FN['nested_function_lines']) . "` in the File.";
         }
-        return null; // All fatal checks passed
+        return null; // Function File for FunkPHP use is all OK here! - Warnings are emitted by another function
     }
-
 
     // ->config()
     // and can jump to->pipesRequest(),->pipesPostResponse() or ->routes()
@@ -3640,6 +3639,13 @@ class C
                 $this->invalidBatches['config']['GROUPED_PIPE_REQUEST'][strtolower($groupName)] = [...$RequestFNs];
                 return;
             }
+        }
+        // Find and disallow duplicates
+        if (count($RequestFNs) !== count(array_unique($RequestFNs))) {
+            $err = "Duplicate Function Names Found in `->setGroupPipeRequest()` under `->CONFIG()`: `" . join(', ', $RequestFNs) . '`.';
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            $this->invalidBatches['config']['GROUPED_PIPE_REQUEST'][strtolower($groupName)] = [...$RequestFNs];
         }
         // Now we check each Function File using $this->cached which will store it in
         // $this->cached['files_pipes_request][$FN_FILE] if it does not already exist.
