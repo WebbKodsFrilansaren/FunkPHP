@@ -3802,7 +3802,7 @@ class C
         }
         // FN already in array of chained Register Shutdown FNs?
         if (in_array($userDefinedFunction, $this->validBatches['config']['REGISTERED_SHUTDOWN_HANDLERS'] ?? [], true)) {
-            $err = $this->getErr('UserDefinedFUNCTIONAlreadyInArray') . $this->joinArray($this->validBatches['config']['REGISTERED_SHUTDOWN_HANDLERS'] ?? ['***EMPTY***']);
+            $err = $this->getErr('UserDefinedFUNCTIONAlreadyInArray', $ctxVals) . $this->joinArray($this->validBatches['config']['REGISTERED_SHUTDOWN_HANDLERS'] ?? ['***EMPTY***']);
             $this->setErr($err, $this->errors['config']);
             return;
         }
@@ -3811,9 +3811,8 @@ class C
         if (!$this->rootFolderExistOrSetError()) return;
         $this->cachedCreateKeyIfNullAndOptionalFileName('file_user_defined_functions');
         $fileData = $this->cached['file_user_defined_functions'] ?? [];
-        $contextLabel = "`->setDefaultRegisteredShutdownHandler('{$userDefinedFunction}') under ->CONFIG()`";
         // Bails on the first structural error regarding a typical user-defined function
-        $fatalError = $this->validateFNFile($fileData, $userDefinedFunction, $contextLabel);
+        $fatalError = $this->validateFNFile($fileData, $userDefinedFunction, $ctxVals);
         if ($fatalError !== null) {
             $this->setErr($fatalError, $this->errors['config']);
             $this->invalidBatches['config']['DEFAULT_REGISTER_SHUTDOWN_HANDLER'] = $userDefinedFunction;
@@ -3854,9 +3853,8 @@ class C
         if (!$this->rootFolderExistOrSetError()) return;
         $this->cachedCreateKeyIfNullAndOptionalFileName('file_user_defined_functions');
         $fileData = $this->cached['file_user_defined_functions'] ?? [];
-        $contextLabel = "`->setDefaultExceptionHandler('{$userDefinedFunction}') under ->CONFIG()`";
         // Bails on the first structural error regarding a typical user-defined function
-        $fatalError = $this->validateFNFile($fileData, $userDefinedFunction, $contextLabel, '', false);
+        $fatalError = $this->validateFNFile($fileData, $userDefinedFunction, $ctxVals, '', false);
         if ($fatalError !== null) {
             $this->setErr($fatalError, $this->errors['config']);
             $this->invalidBatches['config']['DEFAULT_EXCEPTION_HANDLER'] = $userDefinedFunction;
@@ -3907,9 +3905,8 @@ class C
         if (!$this->rootFolderExistOrSetError()) return;
         $this->cachedCreateKeyIfNullAndOptionalFileName('file_user_defined_functions');
         $fileData = $this->cached['file_user_defined_functions'] ?? [];
-        $contextLabel = "`->setDefaultErrorHandler('{$userDefinedFunction}') under ->CONFIG()`";
         // Bails on the first structural error regarding a typical user-defined function
-        $fatalError = $this->validateFNFile($fileData, $userDefinedFunction, $contextLabel, '', false);
+        $fatalError = $this->validateFNFile($fileData, $userDefinedFunction, $ctxVals, '', false);
         if ($fatalError !== null) {
             $this->setErr($fatalError, $this->errors['config']);
             $this->invalidBatches['config']['DEFAULT_ERROR_HANDLER'] = $userDefinedFunction;
@@ -3960,9 +3957,8 @@ class C
         if (!$this->rootFolderExistOrSetError()) return;
         $this->cachedCreateKeyIfNullAndOptionalFileName('file_user_defined_functions');
         $fileData = $this->cached['file_user_defined_functions'] ?? [];
-        $contextLabel = "`->setDefaultURI_NormalizerHandler('{$userDefinedFunction}') under ->CONFIG()`";
         // Bails on the first structural error regarding a typical user-defined function
-        $fatalError = $this->validateFNFile($fileData, $userDefinedFunction, $contextLabel, '', false);
+        $fatalError = $this->validateFNFile($fileData, $userDefinedFunction, $ctxVals, '', false);
         if ($fatalError !== null) {
             $this->setErr($fatalError, $this->errors['config']);
             $this->invalidBatches['config']['DEFAULT_URI_NORMALIZER'] = $userDefinedFunction;
@@ -4003,9 +3999,8 @@ class C
         if (!$this->rootFolderExistOrSetError()) return;
         $this->cachedCreateKeyIfNullAndOptionalFileName('file_user_defined_functions');
         $fileData = $this->cached['file_user_defined_functions'] ?? [];
-        $contextLabel = "`->setDefaultKernelHandler('{$userDefinedFunction}') under ->CONFIG()`";
         // Bails on the first structural error regarding a typical user-defined function
-        $fatalError = $this->validateFNFile($fileData, $userDefinedFunction, $contextLabel, '', false);
+        $fatalError = $this->validateFNFile($fileData, $userDefinedFunction, $ctxVals, '', false);
         if ($fatalError !== null) {
             $this->setErr($fatalError, $this->errors['config']);
             $this->invalidBatches['config']['DEFAULT_HTTPS_KERNEL'] = $userDefinedFunction;
@@ -4607,9 +4602,8 @@ class C
         foreach ($userDefFNS as $FN_FILE) {
             $this->cachedCreateKeyIfNullAndOptionalFileName('file_user_defined_functions', $FN_FILE);
             $fileData = $this->cached['file_user_defined_functions'] ?? [];
-            $contextLabel = "`->setGroupPipeUserdefined('{$groupName}') under ->CONFIG()`";
             // Fatal check: Bails on the first structural error
-            $fatalError = $this->validateFNFile($fileData, $FN_FILE, $contextLabel, "");
+            $fatalError = $this->validateFNFile($fileData, $FN_FILE, $ctxVals, "");
             if ($fatalError !== null) {
                 $this->setErr($fatalError, $this->errors['config']);
                 $this->invalidBatches['config']['GROUPED_PIPE_USER_DEFINED'][strtolower(trim($groupName))] = [...$userDefFNS];
@@ -4668,9 +4662,8 @@ class C
         foreach ($RequestFNs as $FN_FILE) {
             $this->cachedCreateKeyIfNullAndOptionalFileName('files_pipes_request', $FN_FILE);
             $fileData = $this->cached['files_pipes_request'][$FN_FILE] ?? [];
-            $contextLabel = "`->setGroupPipeRequest('{$groupName}') under ->CONFIG()`";
             // Fatal check: Bails on the first structural error
-            $fatalError = $this->validateFNFile($fileData, $FN_FILE, $contextLabel, "funkphp\\pipes\\request\\{$FN_FILE}", true);
+            $fatalError = $this->validateFNFile($fileData, $FN_FILE, $ctxVals, "funkphp\\pipes\\request\\{$FN_FILE}", true);
             if ($fatalError !== null) {
                 $this->setErr($fatalError, $this->errors['config']);
                 $this->invalidBatches['config']['GROUPED_PIPE_REQUEST'][strtolower(trim($groupName))] = [...$RequestFNs];
@@ -4726,9 +4719,8 @@ class C
         foreach ($PostResponseFNs as $FN_FILE) {
             $this->cachedCreateKeyIfNullAndOptionalFileName('files_pipes_post_response', $FN_FILE);
             $fileData = $this->cached['files_pipes_post_response'][$FN_FILE] ?? [];
-            $contextLabel = "`->setGroupPipePostResponse('{$groupName}') under ->CONFIG()`";
             // Fatal check: Bails on the first structural error
-            $fatalError = $this->validateFNFile($fileData, $FN_FILE, $contextLabel, "funkphp\\pipes\\post_response\\{$FN_FILE}", true);
+            $fatalError = $this->validateFNFile($fileData, $FN_FILE, $ctxVals, "funkphp\\pipes\\post_response\\{$FN_FILE}", true);
             if ($fatalError !== null) {
                 $this->setErr($fatalError, $this->errors['config']);
                 $this->invalidBatches['config']['GROUPED_PIPE_POST_RESPONSE'][strtolower(trim($groupName))] = [...$PostResponseFNs];
@@ -4780,9 +4772,8 @@ class C
             [$file, $fn] = explode('.', $FN_FILE);
             $this->cachedCreateKeyIfNullAndOptionalFileName('files_routes', $file);
             $fileData = $this->cached['files_routes'][$file] ?? [];
-            $contextLabel = "`->setGroupPipeRoute('{$groupName}') under ->CONFIG()`";
             // Fatal check: Bails on the first structural error
-            $fatalError = $this->validateFNFile($fileData, $fn, $contextLabel, "funkphp\\pipes\\routes\\{$file}", false);
+            $fatalError = $this->validateFNFile($fileData, $fn, $ctxVals, "funkphp\\pipes\\routes\\{$file}", false);
             if ($fatalError !== null) {
                 $this->setErr($fatalError, $this->errors['config']);
                 $this->invalidBatches['config']['GROUPED_PIPE_ROUTES'][strtolower(trim($groupName))] = [...$RoutePipeFNs];
@@ -4838,9 +4829,8 @@ class C
         foreach ($middlewareFNs as $FN_FILE) {
             $this->cachedCreateKeyIfNullAndOptionalFileName('files_pipes_middlewares', $FN_FILE);
             $fileData = $this->cached['files_pipes_middlewares'][$FN_FILE] ?? [];
-            $contextLabel = "`->setGroupPipeMiddlewares('{$groupName}') under ->CONFIG()`";
             // Fatal check: Bails on the first structural error
-            $fatalError = $this->validateFNFile($fileData, $FN_FILE, $contextLabel, "funkphp\\pipes\\middlewares\\{$FN_FILE}", true);
+            $fatalError = $this->validateFNFile($fileData, $FN_FILE, $ctxVals, "funkphp\\pipes\\middlewares\\{$FN_FILE}", true);
             if ($fatalError !== null) {
                 $this->setErr($fatalError, $this->errors['config']);
                 $this->invalidBatches['config']['GROUPED_PIPE_MIDDLEWARES'][strtolower(trim($groupName))] = [...$middlewareFNs];
@@ -5177,7 +5167,10 @@ class C
         $this->validBatches['config']['headers']['add'][$lowerHeader] = ['name' => $headerName, 'value' => $headerValue];
     }
 
-    /* pipeMiddleware|requestFunction|postResponseFunction - Global */
+    /* pipeMiddleware|requestFunction|postResponseFunction - Global - NEXT UP TO FIX:
+    // REMEMBER: when using "group:" to pipe you do not know whether pipe group has been
+       added yet due to chaining so just then check that the middlewares|FNs wanna be used
+       actually exist and then let compile() resolve if setGroup<Type> actually existed! */
     private function batchNewPipeMiddlewareGlobal(string $middleware) {}
     private function batchNewPipeRequestFunctionGlobal(string $fileFunctionName) {}
     private function batchNewPipePostResponseFunctionGlobal(string $fileFunctionName) {}
@@ -5977,6 +5970,12 @@ class C
         }
         // Store header to be removed from Route level (->config()->ROUTES()-><METHOD>-><ROUTE>)
         $this->validBatches['routes'][$method][$route]['headers']['remove'][$lowerHeader] = $headerName;
+    }
+
+    /*PAGE-related Functions like Compiling a Page */
+    private function compilePage(string $exactPageFilePath): string
+    {
+        return '';
     }
 
     // Two private functions that are ONLY used via Reflection classes so you do not see

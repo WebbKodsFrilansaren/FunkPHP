@@ -3,8 +3,8 @@
 $FUNK = FunkPHP();
 
 $FUNK->CONFIG()->pipeHeader("Ab: af")
-    ->setDefaultURI_NormalizerHandler("testar2")
-    ->setNoRouteMatchCallback("testar2")
+    ->setGroupPipeMiddlewares("early_mws", "mw_1", "mw_2")
+    ->pipeMiddleware("group:early_mws")
     ->ROUTES()
     ->GET()
     ->setNoRouteMatchPage("test");
