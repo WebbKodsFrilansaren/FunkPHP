@@ -4083,10 +4083,12 @@ class C
             $this->invalidBatches['config']['NO_ROUTE_MATCH']['JSON'] = true;
             return;
         }
-        if (
-            is_array($data) && empty($data)
-            || (is_object($data) && is_countable($data) && count($data) === 0)
-        ) {
+        // Really check it is an empty object
+        $isEmptyObject = is_object($data) && (
+            ($data instanceof \Countable && count($data) === 0) ||
+            (get_object_vars($data) === [] && !($data instanceof \JsonSerializable))
+        );
+        if (is_array($data) && empty($data) || $isEmptyObject) {
             $this->setErr($this->getErr('JsonEncodingFailedNoData', $ctx), $this->errors['config']);
             $this->invalidBatches['config']['NO_ROUTE_MATCH']['JSON'] = true;
             return;
@@ -5248,10 +5250,12 @@ class C
             $this->invalidBatches['methods'][$method]['NO_ROUTE_MATCH']['JSON'] = true;
             return;
         }
-        if (
-            is_array($data) && empty($data)
-            || (is_object($data) && is_countable($data) && count($data) === 0)
-        ) {
+        // Really check it is an empty object
+        $isEmptyObject = is_object($data) && (
+            ($data instanceof \Countable && count($data) === 0) ||
+            (get_object_vars($data) === [] && !($data instanceof \JsonSerializable))
+        );
+        if (is_array($data) && empty($data) || $isEmptyObject) {
             $this->setErr($this->getErr('JsonEncodingFailedNoData', $ctx), $this->errors['methods'][$method]);
             $this->invalidBatches['methods'][$method]['NO_ROUTE_MATCH']['JSON'] = true;
             return;
