@@ -3512,7 +3512,7 @@ class C
             return "File Function Error in {$contextLabel}: Function `{$expectedFNName}()` in File `$relativePath` must have `&\$c` as its First Parameter (found `({$argsRaw})`).";
         }
         if ($FN['has_inner_functions'] === true) {
-            return "File Function Error in {$contextLabel}: Function `{$expectedFNName}()` in File `$relativePath` cannot have Inner Function Declarations (e.g. `function name(&\$c){ function inner(&\$c){}}`). See line(s):`" . join(', ', $FN['nested_function_lines']) . "` in the File.";
+            return "File Function Error in {$contextLabel}: Function `{$expectedFNName}()` in File `$relativePath` cannot have Inner Function Declarations (e.g. `function name(&\$c){ function inner(&\$c){} }`). See line(s):`" . join(', ', $FN['nested_function_lines']) . "` in the File.";
         }
         return null; // Function File for FunkPHP use is all OK here! - Warnings are emitted by another function
     }
@@ -3545,39 +3545,50 @@ class C
     /**
      * Resolves a standardized validation error message template.
      *
-     * @param 'NonEmptyAllLowercasedStringNotStartCLIorFUNK'|'ValidFunctionName'|'ValidRegex'|'InvalidArrayFormat'|'MustExistInOPT_CTX'|'DuplicateCallInvalidOPT_CTX'|'DuplicateCallValidOPT_CTX'|'ConflictingConfigurationOPT_CTX'|'InvalidHttpStatusCode'|'JsonEncodingFailed'|'DuplicateFunctionNameInBatch'|'UserDefinedFUNCTIONNotFoundOPT_CTX'|'UserDefinedCLASSNotFoundOPT_CTX'|'UserDefinedFUNCTIONAlreadyUsedByOPT_CTX'|'UserDefinedCLASSAlreadyUsedByOPT_CTX'|'UserDefinedFUNCTIONAlreadyInArrayOPT_CTX'|'UserDefinedCLASSAlreadyInArrayOPT_CTX'|'UserDefinedFUNCTIONHasWrongArgsOPT_CTX' $errType
-     * @param string|null $optionalCtx Extra Context injected where applicable (noted with `OPT_CTX` in key names).
+     * @param 'NonEmptyAllLowercasedStringNotStartCLIorFUNK'|'ValidFunctionName'|'ValidRegex'|'InvalidArrayFormat'|'MustExistIn'|'DuplicateCallInvalid'|'DuplicateCallValid'|'ConflictingConfiguration'|'InvalidHttpStatusCode'|'JsonEncodingFailed'|'DuplicateFunctionNameInBatch'|'UserDefinedFUNCTIONNotFound'|'UserDefinedCLASSNotFound'|'UserDefinedFUNCTIONAlreadyUsedBy'|'UserDefinedCLASSAlreadyUsedBy'|'UserDefinedFUNCTIONAlreadyInArray'|'UserDefinedCLASSAlreadyInArray'|'UserDefinedFUNCTIONHasWrongArgs'|'NotBoolean'|'NonEmptyAllLowercasedStringSTARTWithHTTP'|'NonEmptyAllLowercasedStringSTARTWithHTTPS'|'NotInteger'|'NotIntegerNotNegative'|'NotIntegerNotPositive'|'NotFloat'|'NotFloatNotNegative'|'NotFloatNotPositive'|'NotNumeric'|'NotFloatNotPositive'|'NotFloatNotNegative' $errType
+     * @param string|null $optionalCtx Extra Context injected somewhere in the string. It is always used or internal error is issued instead.
      * @return string The Formatted Error Message Segment.
      */
     private function getErr(string $errType, ?string $optionalCtx = ''): string
     {
         $errors = [
-            // Basic Syntax & Naming Rules
-            'NonEmptyAllLowercasedStringNotStartCLIorFUNKOPT_CTX' => "Invalid String Value in {$optionalCtx}: must be a Non-Empty String (no trailing spaces) all lowercased that does NOT start with `cli_` OR `funk_`.",
-            'ValidFunctionNameOPT_CTX'                         => "Invalid Function Name in {$optionalCtx}: must be a Non-Empty String (no trailing spaces) starting with `[_a-z]` and then only use the following characters: `[_a-z0-9]`.",
-            'ValidRegexOPT_CTX'                                => "Invalid Regex Value in {$optionalCtx}: must be a Non-Empty String (no trailing spaces) that is also a Valid Regex Pattern using `preg_match()`.",
-
-            // Scope & Existence Rules
-            'UserDefinedFUNCTIONHasWrongArgsOPT_CTX'                       => "Provided User-defined Function in {$optionalCtx} from `/src/funkphp/config/functions.php` must besides the starting Function Parameter `&\$c` also have the following Function Parameters:",
-            'UserDefinedFUNCTIONAlreadyInArrayOPT_CTX'                       => "Provided User-defined Function in {$optionalCtx} from `/src/funkphp/config/functions.php` is already in a must-be-unique array:",
-            'UserDefinedCLASSAlreadyInArrayOPT_CTX'                       => "Provided User-defined Class in {$optionalCtx} from `/src/funkphp/config/classes.php` is already in a must-be-unique array:",
-            'UserDefinedFUNCTIONAlreadyUsedByOPT_CTX'                       => "Provided User-defined Function in {$optionalCtx} from `/src/funkphp/config/functions.php` is already being used by:",
-            'UserDefinedCLASSAlreadyUsedByOPT_CTX'                       => "Provided User-defined Class in {$optionalCtx} from `/src/funkphp/config/classes.php` is already being used by:",
-            'UserDefinedFUNCTIONNotFoundOPT_CTX'                       => "Provided User-defined Function in {$optionalCtx} NOT Found in `/src/funkphp/config/functions.php`. Review Function Name OR add it to the File.",
-            'UserDefinedCLASSNotFoundOPT_CTX'                          => "Provided User-defined Class in {$optionalCtx} NOT Found in `/src/funkphp/config/classes.php`. Review Class Name OR add it to the File.",
-            'MustExistInOPT_CTX'                                 => "must exist in {$optionalCtx}.",
-
-            // Call Order & Duplicate Conflict Rules
-            'DuplicateCallInvalidOPT_CTX'              => "Duplicate Call to {$optionalCtx}. Review the already Invalid Configuration.",
-            'DuplicateCallValidOPT_CTX'                => "Duplicate Call to {$optionalCtx}. Review/change the already Valid Configuration.",
-            'ConflictingConfigurationOPT_CTX'           => "Valid Configuration (`{$optionalCtx}`) is already set and CANNOT be overridden, only changed manually.",
-
-            // Serialization & HTTP Rules
-            'InvalidHttpStatusCode'                     => 'must be a Valid Integer HTTP Status Code between 100-599.',
-            'JsonEncodingFailed'                        => "Data Serialization to JSON Failed {$optionalCtx}. Review the passed Input to it.",
+            // Basic Syntax & Data Validation Errors
+            'NonEmptyAllLowercasedStringNotStartCLIorFUNK' => "Invalid String Value in {$optionalCtx}: must be a Non-Empty String (no trailing spaces) all lowercased that does NOT start with `cli_` OR `funk_`.",
+            'NotBoolean' => "Invalid Boolean Value in {$optionalCtx}: must a Boolean that is set to TRUE or FALSE.",
+            'NotInteger' => "Invalid Integer Value in {$optionalCtx}: must an Integer Value.",
+            'NotIntegerNotNegative' => "Invalid Integer Value in {$optionalCtx}: must an Integer Value that is also not Negative.",
+            'NotIntegerNotPositive' => "Invalid Integer Value in {$optionalCtx}: must an Integer Value that is also not Positive.",
+            'NotFloat' => "Invalid Float Value in {$optionalCtx}: must a Boolean that is set to TRUE or FALSE.",
+            'NotFloatNotNegative' => "Invalid Float Value in {$optionalCtx}: must an Float Value that is also not Negative.",
+            'NotFloatNotPositive' => "Invalid Float Value in {$optionalCtx}: must an Float Value that is also not Positive.",
+            'NotNumeric' => "Invalid Numeric Value in {$optionalCtx}: must a Numeric Value (integer or float).",
+            'NotNumericNotNegative' => "Invalid Numeric Value in {$optionalCtx}: must an Numeric Value that is also not Negative.",
+            'NotNumericNotPositive' => "Invalid Numeric Value in {$optionalCtx}: must an Numeric Value that is also not Positive.",
+            'ValidFunctionName'                         => "Invalid Function Name in {$optionalCtx}: must be a Non-Empty String (no trailing spaces) starting with `[_a-z]` and then only use the following characters: `[_a-z0-9]`.",
+            'ValidRegex'                                => "Invalid Regex Value in {$optionalCtx}: must be a Non-Empty String (no trailing spaces) that is also a Valid Regex Pattern using `preg_match()`.",
+            'NonEmptyAllLowercasedStringSTARTWithHTTP'  => "Invalid String Value in {$optionalCtx}: must be a Non-Empty String (no trailing spaces) all lowercased that starts with `http://`.",
+            'NonEmptyAllLowercasedStringSTARTWithHTTPS'  => "Invalid String Value in {$optionalCtx}: must be a Non-Empty String (no trailing spaces) all lowercased that starts with `http://`.",
             'InvalidArrayFormat'                        => 'must be a Non-Empty, Numbered Array of Valid Strings (Non-Empty without trailing spaces).',
+            'InvalidHttpStatusCode'                     => "Invalid Integer Value in {$optionalCtx} must be a Valid Integer HTTP(S) Status Code between 100-599.",
+            'JsonEncodingFailed'                        => "Data Serialization to JSON Failed in {$optionalCtx}. Review the passed Input to it.",
+
+            // Scope & Existence for FUNCTIONS Validation Errors
+            'UserDefinedFUNCTIONHasWrongArgs'                       => "Provided User-defined Function in {$optionalCtx} from `/src/funkphp/config/functions.php` must besides the starting Function Parameter `&\$c` also have the following Function Parameters:",
+            'UserDefinedFUNCTIONAlreadyInArray'                       => "Provided User-defined Function in {$optionalCtx} from `/src/funkphp/config/functions.php` is already in a must-be-unique array:",
+            'UserDefinedCLASSAlreadyInArray'                       => "Provided User-defined Class in {$optionalCtx} from `/src/funkphp/config/classes.php` is already in a must-be-unique array:",
+            'UserDefinedFUNCTIONAlreadyUsedBy'                       => "Provided User-defined Function in {$optionalCtx} from `/src/funkphp/config/functions.php` is already being used by:",
+            'UserDefinedCLASSAlreadyUsedBy'                       => "Provided User-defined Class in {$optionalCtx} from `/src/funkphp/config/classes.php` is already being used by:",
+            'UserDefinedFUNCTIONNotFound'                       => "Provided User-defined Function in {$optionalCtx} NOT Found in `/src/funkphp/config/functions.php`. Review Function Name OR add it to the File.",
+            'UserDefinedCLASSNotFound'                          => "Provided User-defined Class in {$optionalCtx} NOT Found in `/src/funkphp/config/classes.php`. Review Class Name OR add it to the File.",
+            'MustExistIn'                                 => "must exist in {$optionalCtx}.",
+
+            // Call Order & Duplicate|Conflict Validation Errors
+            'DuplicateCallInvalid'              => "Duplicate Call to {$optionalCtx}. Review the already Invalid Configuration.",
+            'DuplicateCallValid'                => "Duplicate Call to {$optionalCtx}. Review/change the already Valid Configuration.",
+            'ConflictingConfiguration'           => "Valid Configuration (`{$optionalCtx}`) is already set and CANNOT be overridden, only changed manually.",
+
         ];
-        return $errors[$errType] ?? ' [INTERNAL FUNKPHP ERROR - UNKNOWN_ERROR_TYPE]: REVIEW class C -> private function getErr in `/src/funkphp/core/functions.php`!';
+        return $errors[$errType] ?? ' [[INTERNAL FUNKPHP ERROR - UNKNOWN_ERROR_TYPE]: REVIEW class C -> private function getErr in `/src/funkphp/core/functions.php`!] ';
     }
     // Set default error in 'all' and also the specified key based on error level depth
     private function setErr(string $errMsg, array|null &$specificErrDepth, bool $skipDepth = false)
@@ -3629,24 +3640,19 @@ class C
     private function batchSetAllowNoWarnings(bool $trueOrFalse)
     {
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setAllowNoWarnings', $trueOrFalse);
+        [$ctx, $ctxVals] = $this->setCtx('setAllowNoWarnings', "CONFIG", $trueOrFalse);
         if (isset($this->invalidBatches['config']['NO_WARNINGS_ALLOWED'])) {
-            $err = "Duplicate Invalid Boolean Value for `->setAllowNoWarnings()` as current one under `->CONFIG()` is Invalid.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
             return;
         }
         if (isset($this->validBatches['config']['NO_WARNINGS_ALLOWED'])) {
-            $err = "A Valid Boolean Value for `->setAllowNoWarnings()` already exists under `->CONFIG()`.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
             return;
         }
         if (
             !is_bool($trueOrFalse) || ($trueOrFalse !== FALSE && $trueOrFalse !== TRUE)
         ) {
-            $err = "Invalid Boolean Value in `->setAllowNoWarnings()` under `->CONFIG()`. Must be a Boolean as either `TRUE` or `FALSE`.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
+            $this->setErr($this->getErr('NotBoolean', $ctxVals), $this->errors['config']);
             $this->invalidBatches['config']['NO_WARNINGS_ALLOWED'] = $trueOrFalse;
             return;
         }
@@ -3655,25 +3661,20 @@ class C
     }
     private function batchSetFunkPHPOnlineGlobal(bool $trueOrFalse)
     {
-        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('batchSetFunkPHPOnlineGlobal', $trueOrFalse);
+        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setUseFunKPHPOnline', $trueOrFalse);
+        [$ctx, $ctxVals] = $this->setCtx('setUseFunKPHPOnline', "CONFIG", $trueOrFalse);
         if (isset($this->invalidBatches['config']['FUNKPHP_ONLINE'])) {
-            $err = "Duplicate Invalid Boolean Value for `->batchSetFunkPHPOnlineGlobal()` as current one under `->CONFIG()` is Invalid.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
             return;
         }
         if (isset($this->validBatches['config']['FUNKPHP_ONLINE'])) {
-            $err = "A Valid Boolean Value for `->batchSetFunkPHPOnlineGlobal()` already exists under `->CONFIG()`.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
             return;
         }
         if (
             !is_bool($trueOrFalse) || ($trueOrFalse !== FALSE && $trueOrFalse !== TRUE)
         ) {
-            $err = "Invalid Boolean Value in `->batchSetFunkPHPOnlineGlobal()` under `->CONFIG()`. Must be a Boolean as either `TRUE` or `FALSE`.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
+            $this->setErr($this->getErr('NotBoolean', $ctxVals), $this->errors['config']);
             $this->invalidBatches['config']['FUNKPHP_ONLINE'] = $trueOrFalse;
             return;
         }
@@ -3682,24 +3683,19 @@ class C
     private function batchSetUseHTTPSGlobal(bool $trueOrFalse)
     {
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setUseHTTPS', $trueOrFalse);
+        [$ctx, $ctxVals] = $this->setCtx('setUseHTTPS', "CONFIG", $trueOrFalse);
         if (isset($this->invalidBatches['config']['USE_HTTPS'])) {
-            $err = "Duplicate Invalid Boolean Value for `->setUseHTTPS()` as current one under `->CONFIG()` is Invalid.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
             return;
         }
         if (isset($this->validBatches['config']['USE_HTTPS'])) {
-            $err = "A Valid Boolean Value for `->setUseHTTPS()` already exists under `->CONFIG()`.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
             return;
         }
         if (
             !is_bool($trueOrFalse) || ($trueOrFalse !== FALSE && $trueOrFalse !== TRUE)
         ) {
-            $err = "Invalid Boolean Value in `->setUseHTTPS()` under `->CONFIG()`. Must be a Boolean as either `TRUE` or `FALSE`.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
+            $this->setErr($this->getErr('NotBoolean', $ctxVals), $this->errors['config']);
             $this->invalidBatches['config']['USE_HTTPS'] = $trueOrFalse;
             return;
         }
@@ -3708,24 +3704,19 @@ class C
     private function batchSetUseVendorGlobal(bool $trueOrFalse)
     {
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setUseVendor', $trueOrFalse);
+        [$ctx, $ctxVals] = $this->setCtx('setUseVendor', "CONFIG", $trueOrFalse);
         if (isset($this->invalidBatches['config']['USE_VENDOR'])) {
-            $err = "Duplicate Invalid Boolean Value for `->setUseVendor()` as current one under `->CONFIG()` is Invalid.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
             return;
         }
         if (isset($this->validBatches['config']['USE_VENDOR'])) {
-            $err = "A Valid Boolean Value for `->setUseVendor()` already exists under `->CONFIG()`.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
             return;
         }
         if (
             !is_bool($trueOrFalse) || ($trueOrFalse !== FALSE && $trueOrFalse !== TRUE)
         ) {
-            $err = "Invalid Boolean Value in `->setUseVendor()` under `->CONFIG()`. Must be a Boolean as either `TRUE` or `FALSE`.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
+            $this->setErr($this->getErr('NotBoolean', $ctxVals), $this->errors['config']);
             $this->invalidBatches['config']['USE_VENDOR'] = $trueOrFalse;
             return;
         }
@@ -3738,24 +3729,24 @@ class C
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setDefaultRegisteredShutdownHandler', $userDefinedFunction);
         [$ctx, $ctxVals] = $this->setCtx('setDefaultRegisteredShutdownHandler', "CONFIG", $userDefinedFunction);
         if (isset($this->invalidBatches['config']['DEFAULT_REGISTER_SHUTDOWN_HANDLER'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalidOPT_CTX', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
             return;
         }
         if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($userDefinedFunction)) {
-            $this->setErr($this->getErr('NonEmptyAllLowercasedStringNotStartCLIorFUNKOPT_CTX', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('NonEmptyAllLowercasedStringNotStartCLIorFUNK', $ctxVals), $this->errors['config']);
             $this->invalidBatches['config']['DEFAULT_REGISTER_SHUTDOWN_HANDLER'] = $userDefinedFunction;
             return;
         }
         // FN already used by some other Global Engine Function? (exception, error, uri normalizer, https kernel?)
         if (isset($this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunction])) {
-            $err = $this->getErr('UserDefinedFUNCTIONAlreadyUsedByOPT_CTX', $ctxVals) . "`{$this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction]}` and cannot be used for multiple purposes as a result.";
+            $err = $this->getErr('UserDefinedFUNCTIONAlreadyUsedBy', $ctxVals) . "`{$this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction]}` and cannot be used for multiple purposes as a result.";
             $this->setErr($err, $this->errors['config']);
             $this->invalidBatches['config']['DEFAULT_REGISTER_SHUTDOWN_HANDLER'] = $userDefinedFunction;
             return;
         }
         // FN already in array of chained Register Shutdown FNs?
         if (in_array($userDefinedFunction, $this->validBatches['config']['REGISTERED_SHUTDOWN_HANDLERS'] ?? [], true)) {
-            $err = $this->getErr('UserDefinedFUNCTIONAlreadyInArrayOPT_CTX') . $this->joinArray($this->validBatches['config']['REGISTERED_SHUTDOWN_HANDLERS'] ?? ['***EMPTY***']);
+            $err = $this->getErr('UserDefinedFUNCTIONAlreadyInArray') . $this->joinArray($this->validBatches['config']['REGISTERED_SHUTDOWN_HANDLERS'] ?? ['***EMPTY***']);
             $this->setErr($err, $this->errors['config']);
             return;
         }
@@ -3775,33 +3766,31 @@ class C
         // Add to ValidBatches, UserDefinedFNs and also UserDefinedEngineFNs which means any User-defined function
         // that is added there cannot be used for multiple purposes as they are meant to be very specifically used.
         $this->validBatches['config']['DEFAULT_REGISTER_SHUTDOWN_HANDLER'][] = $userDefinedFunction;
-        $this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction] = "->setDefaultRegisteredShutdownHandler()";
-        $this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunction] = "->setDefaultRegisteredShutdownHandler()";
+        $this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction] = "->CONFIG()->setDefaultRegisteredShutdownHandler()";
+        $this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunction] = "->CONFIG()->setDefaultRegisteredShutdownHandler()";
     }
     private function batchSetDefaultExceptionHandlerGlobal(string $userDefinedFunction) // DEFAULT EXCEPTION HANDLER
     {
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setDefaultExceptionHandler', $userDefinedFunction);
         [$ctx, $ctxVals] = $this->setCtx('setDefaultExceptionHandler', "CONFIG", $userDefinedFunction);
         if (isset($this->invalidBatches['config']['DEFAULT_EXCEPTION_HANDLER'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalidOPT_CTX', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
+            return;
+        }
+        if (isset($this->validBatches['config']['DEFAULT_EXCEPTION_HANDLER'])) {
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
             return;
         }
         if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($userDefinedFunction)) {
-            $this->setErr($this->getErr('NonEmptyAllLowercasedStringNotStartCLIorFUNKOPT_CTX', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('NonEmptyAllLowercasedStringNotStartCLIorFUNK', $ctxVals), $this->errors['config']);
             $this->invalidBatches['config']['DEFAULT_EXCEPTION_HANDLER'] = $userDefinedFunction;
             return;
         }
         // FN already used by some other Global Engine Function? (exception, error, uri normalizer, https kernel?)
         if (isset($this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunction])) {
-            $err = $this->getErr('UserDefinedFUNCTIONAlreadyUsedByOPT_CTX', $ctxVals) . "`{$this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction]}` and cannot be used for multiple purposes as a result.";
+            $err = $this->getErr('UserDefinedFUNCTIONAlreadyUsedBy', $ctxVals) . "`{$this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction]}` and cannot be used for multiple purposes as a result.";
             $this->setErr($err, $this->errors['config']);
             $this->invalidBatches['config']['DEFAULT_EXCEPTION_HANDLER'] = $userDefinedFunction;
-            return;
-        }
-        // FN already in array of chained Register Shutdown FNs?
-        if (in_array($userDefinedFunction, $this->validBatches['config']['DEFAULT_EXCEPTION_HANDLER'] ?? [], true)) {
-            $err = $this->getErr('UserDefinedFUNCTIONAlreadyInArrayOPT_CTX') . $this->joinArray($this->validBatches['config']['DEFAULT_EXCEPTION_HANDLER'] ?? ['***EMPTY***']);
-            $this->setErr($err, $this->errors['config']);
             return;
         }
         // Prepare Config Functions.php File I/O if needed
@@ -3822,41 +3811,39 @@ class C
         if (
             !preg_match('/\\\\Throwable\s+\$[_a-z][_a-z0-9]*/i', $fileData['functions'][$userDefinedFunction]['args_raw'])
         ) {
-            $err = $this->getErr('UserDefinedFUNCTIONHasWrongArgsOPT_CTX', $ctxVals) . ' `\Throwable \$e` (e.g. `function userDefined(&\$c, \Throwable \$e){}`) in order to use it as a User-defined Exception Handler. The variable `$e` can be named something else as well.' . " Found instead:`{$fileData['functions'][$userDefinedFunction]['args_raw']}`.";
+            $err = $this->getErr('UserDefinedFUNCTIONHasWrongArgs', $ctxVals) . ' `\Throwable \$e` (e.g. `function userDefined(&\$c, \Throwable \$e){}`) in order to use it as a User-defined Exception Handler. The variable `$e` can be named something else as well.' . " Found instead:`{$fileData['functions'][$userDefinedFunction]['args_raw']}`.";
             $this->setErr($err, $this->errors['config']);
             $this->invalidBatches['config']['DEFAULT_EXCEPTION_HANDLER'] = $userDefinedFunction;
             return;
         }
         // Add to ValidBatches, UserDefinedFNs and also UserDefinedEngineFNs which means any User-defined function
         // that is added there cannot be used for multiple purposes as they are meant to be very specifically used.
-        $this->validBatches['config']['DEFAULT_EXCEPTION_HANDLER'][] = $userDefinedFunction;
-        $this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction] = "->setDefaultExceptionHandler()";
-        $this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunction] = "->setDefaultExceptionHandler()";
+        $this->validBatches['config']['DEFAULT_EXCEPTION_HANDLER'] = $userDefinedFunction;
+        $this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction] = "->CONFIG()>setDefaultExceptionHandler()";
+        $this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunction] = "->CONFIG()->setDefaultExceptionHandler()";
     }
     private function batchSetDefaultErrorHandlerGlobal(string $userDefinedFunction) // DEFAULT GLOBAL ERROR HANDLER
     {
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setDefaultErrorHandler', $userDefinedFunction);
         [$ctx, $ctxVals] = $this->setCtx('setDefaultErrorHandler', "CONFIG", $userDefinedFunction);
         if (isset($this->invalidBatches['config']['DEFAULT_ERROR_HANDLER'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalidOPT_CTX', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
+            return;
+        }
+        if (isset($this->validBatches['config']['DEFAULT_ERROR_HANDLER'])) {
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
             return;
         }
         if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($userDefinedFunction)) {
-            $this->setErr($this->getErr('NonEmptyAllLowercasedStringNotStartCLIorFUNKOPT_CTX', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('NonEmptyAllLowercasedStringNotStartCLIorFUNK', $ctxVals), $this->errors['config']);
             $this->invalidBatches['config']['DEFAULT_ERROR_HANDLER'] = $userDefinedFunction;
             return;
         }
         // FN already used by some other Global Engine Function? (exception, error, uri normalizer, https kernel?)
         if (isset($this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunction])) {
-            $err = $this->getErr('UserDefinedFUNCTIONAlreadyUsedByOPT_CTX', $ctxVals) . "`{$this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction]}` and cannot be used for multiple purposes as a result.";
+            $err = $this->getErr('UserDefinedFUNCTIONAlreadyUsedBy', $ctxVals) . "`{$this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction]}` and cannot be used for multiple purposes as a result.";
             $this->setErr($err, $this->errors['config']);
             $this->invalidBatches['config']['DEFAULT_ERROR_HANDLER'] = $userDefinedFunction;
-            return;
-        }
-        // FN already in array of chained Register Shutdown FNs?
-        if (in_array($userDefinedFunction, $this->validBatches['config']['DEFAULT_ERROR_HANDLER'] ?? [], true)) {
-            $err = $this->getErr('UserDefinedFUNCTIONAlreadyInArrayOPT_CTX') . $this->joinArray($this->validBatches['config']['DEFAULT_ERROR_HANDLER'] ?? ['***EMPTY***']);
-            $this->setErr($err, $this->errors['config']);
             return;
         }
         // Prepare Config Functions.php File I/O if needed
@@ -3877,115 +3864,38 @@ class C
         if (
             !preg_match('/^&\$c\s*,\s*(?:int\s+)?\$[_a-z0-9]+\s*,\s*(?:string\s+)?\$[_a-z0-9]+\s*,\s*(?:string\s+)?\$[_a-z0-9]+\s*,\s*(?:int\s+)?\$[_a-z0-9]+$/i', $fileData['functions'][$userDefinedFunction]['args_raw'])
         ) {
-            $err = $this->getErr('UserDefinedFUNCTIONHasWrongArgsOPT_CTX', $ctxVals) . '` $errNo, $errStr, $errFile, $errLine` (e.g. `function userDefined(&\$c, $errNo, $errStr, $errFile, $errLine){}`) in order to use it as a User-defined Error Handler. The `$errNo,$errStr,$errFile,$errLine` can be named something else as well.' . " Found instead:`{$fileData['functions'][$userDefinedFunction]['args_raw']}`.";
+            $err = $this->getErr('UserDefinedFUNCTIONHasWrongArgs', $ctxVals) . '` $errNo, $errStr, $errFile, $errLine` (e.g. `function userDefined(&\$c, $errNo, $errStr, $errFile, $errLine){}`) in order to use it as a User-defined Error Handler. The `$errNo,$errStr,$errFile,$errLine` can be named something else as well.' . " Found instead:`{$fileData['functions'][$userDefinedFunction]['args_raw']}`.";
             $this->setErr($err, $this->errors['config']);
             $this->invalidBatches['config']['DEFAULT_ERROR_HANDLER'] = $userDefinedFunction;
             return;
         }
         // Add to ValidBatches, UserDefinedFNs and also UserDefinedEngineFNs which means any User-defined function
         // that is added there cannot be used for multiple purposes as they are meant to be very specifically used.
-        $this->validBatches['config']['DEFAULT_ERROR_HANDLER'][] = $userDefinedFunction;
-        $this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction] = "->setDefaultErrorHandler()";
-        $this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunction] = "->setDefaultErrorHandler()";
-
-
-        // $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setDefaultErrorHandler', $userDefinedFunction);
-        // if (isset($this->invalidBatches['config']['DEFAULT_ERROR_HANDLER'])) {
-        //     $err = "Duplicate call - Invalid String Value for `->setDefaultErrorHandler()` as current one under `->CONFIG()` is Invalid.";
-        //     $this->errors['all'][] = $err;
-        //     $this->errors['config'][] = $err;
-        //     return;
-        // }
-        // if (isset($this->validBatches['config']['DEFAULT_ERROR_HANDLER'])) {
-        //     $err = "Duplicate call - A Valid String Value for `->setDefaultErrorHandler()` already exists under `->CONFIG()`.";
-        //     $this->errors['all'][] = $err;
-        //     $this->errors['config'][] = $err;
-        //     return;
-        // }
-        // if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($userDefinedFunction)) {
-        //     $err = "Invalid String Value in `->setDefaultErrorHandler()` under `->CONFIG()`. It must be a Non-Empty String all Lowercased that does not start with `cli_` or `funk_`.";
-        //     $this->errors['all'][] = $err;
-        //     $this->errors['config'][] = $err;
-        //     $this->invalidBatches['config']['DEFAULT_ERROR_HANDLER'] = $userDefinedFunction;
-        //     return;
-        // }
-        // // FN already used by some other Global Engine Function? (exception, error, uri normalizer, https kernel?)
-        // if (isset($this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction])) {
-        //     $err = "User-defined Error Handler `{$userDefinedFunction}` for `->setDefaultErrorHandler()` under `->CONFIG()` is already being used by:`{$this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction]}`.";
-        //     $this->errors['all'][] = $err;
-        //     $this->errors['config'][] = $err;
-        //     $this->invalidBatches['config']['DEFAULT_ERROR_HANDLER'] = $userDefinedFunction;
-        //     return;
-        // }
-        // // Prepare Config Functions.php File I/O if needed
-        // // assuming ROOT_FOLDER constant exists first!
-        // if (!$this->rootFolderExistOrSetError()) return;
-        // $this->cachedCreateKeyIfNullAndOptionalFileName('file_user_defined_functions');
-        // if (!$this->cachedKeyHasSpecificFN('file_user_defined_functions', $userDefinedFunction)) {
-        //     $err = "User-defined Error Handler `{$userDefinedFunction}` for `->setDefaultErrorHandler()` under `->CONFIG()` does NOT exist in User-defined Functions (`/src/funkphp/config/functions.php`).";
-        //     $this->errors['all'][] = $err;
-        //     $this->errors['config'][] = $err;
-        //     $this->invalidBatches['config']['DEFAULT_ERROR_HANDLER'] = $userDefinedFunction;
-        //     return;
-        // }
-        // // No inner Function declarations allowed but anonymous ones are OK!
-        // if ($this->cached['file_user_defined_functions']['functions'][$userDefinedFunction]['has_inner_functions']) {
-        //     $err = "User-defined Error Handler `{$userDefinedFunction}` for `->setDefaultErrorHandler()` under `->CONFIG()` has regular `Inner Function Declarations` (e.g. `function Name(...\$params){}`) on lines:`" . join(',', $this->cached['file_user_defined_functions']['functions'][$userDefinedFunction]['nested_function_lines'] ?? []) . '` which is not allowed in FunkPHP due to the high risk of `Global Function Declaration Pollution`. Instead, use `Anonymous OR Arrow Functions` as a replacement.';
-        //     $this->errors['all'][] = $err;
-        //     $this->errors['config'][] = $err;
-        //     $this->invalidBatches['config']['DEFAULT_ERROR_HANDLER'] = $userDefinedFunction;
-        //     return;
-        // }
-        // // Cannot have an empty body OR just whitespace and/or comments inside of it!
-        // if (
-        //     $this->cached['file_user_defined_functions']['functions'][$userDefinedFunction]['body_raw'] === "{}"
-        //     || $this->cached['file_user_defined_functions']['functions'][$userDefinedFunction]['only_whitespace_and_or_comments'] === true
-        // ) {
-        //     $err = "User-defined Error Handler `{$userDefinedFunction}` for `->setDefaultErrorHandler()` under `->CONFIG()` has `No Code in its Body` (e.g. `function Name(){}`) OR it has only Whitespace and/or Comments. Add some Code to the Function or Configure to Use another User-defined Function.";
-        //     $this->errors['all'][] = $err;
-        //     $this->errors['config'][] = $err;
-        //     $this->invalidBatches['config']['DEFAULT_ERROR_HANDLER'] = $userDefinedFunction;
-        //     return;
-        // }
-        // // Cannot not start with `&$c` as its first Function Parameter!
-        // if (!str_starts_with($this->cached['file_user_defined_functions']['functions'][$userDefinedFunction]['args_raw'], '&$c')) {
-        //     $err = "User-defined Error Handler `{$userDefinedFunction}` for `->setDefaultErrorHandler()` under `->CONFIG()` does NOT start with `&\$c` (e.g. `function Name(&\$c){}`) as its first Parameter which it must for any User-defined Function.";
-        //     $this->errors['all'][] = $err;
-        //     $this->errors['config'][] = $err;
-        //     $this->invalidBatches['config']['DEFAULT_ERROR_HANDLER'] = $userDefinedFunction;
-        //     return;
-        // }
-
-        // $this->validBatches['config']['DEFAULT_ERROR_HANDLER'] = $userDefinedFunction;
-        // $this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction] = "->setDefaultErrorHandler()";
+        $this->validBatches['config']['DEFAULT_ERROR_HANDLER'] = $userDefinedFunction;
+        $this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction] = "->CONFIG()->setDefaultErrorHandler()";
+        $this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunction] = "->CONFIG()->setDefaultErrorHandler()";
     }
     private function batchSetDefaultURINormalizerGlobal(string $userDefinedFunction) // URI NORMALIZER GLOBAL
     {
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setDefaultURI_Normalizer', $userDefinedFunction);
+        [$ctx, $ctxVals] = $this->setCtx('setDefaultURI_Normalizer', "CONFIG", $userDefinedFunction);
         if (isset($this->invalidBatches['config']['DEFAULT_URI_NORMALIZER'])) {
-            $err = "Duplicate call - Invalid String Value for `->setDefaultURI_Normalizer()` as current one under `->CONFIG()` is Invalid.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
             return;
         }
         if (isset($this->validBatches['config']['DEFAULT_URI_NORMALIZER'])) {
-            $err = "Duplicate call - A Valid String Value for `->setDefaultURI_Normalizer()` already exists under `->CONFIG()`.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
             return;
         }
         if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($userDefinedFunction)) {
-            $err = "Invalid String Value in `->DEFAULT_URI_NORMALIZER()` under `->CONFIG()`. It must be a Non-Empty String all Lowercased that does not start with `cli_` or `funk_`.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
+            $this->setErr($this->getErr('NonEmptyAllLowercasedStringNotStartCLIorFUNK', $ctxVals), $this->errors['config']);
             $this->invalidBatches['config']['DEFAULT_URI_NORMALIZER'] = $userDefinedFunction;
             return;
         }
         // FN already used by some other Global Engine Function? (exception, error, uri normalizer, https kernel?)
-        if (isset($this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction])) {
-            $err = "User-defined URI Normalizer Handler `{$userDefinedFunction}` for `->setDefaultURI_Normalizer()` under `->CONFIG()` is already being used by:`{$this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction]}`.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
+        if (isset($this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunction])) {
+            $err = $this->getErr('UserDefinedFUNCTIONAlreadyUsedBy', $ctxVals) . "`{$this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction]}` and cannot be used for multiple purposes as a result.";
+            $this->setErr($err, $this->errors['config']);
             $this->invalidBatches['config']['DEFAULT_URI_NORMALIZER'] = $userDefinedFunction;
             return;
         }
@@ -3993,71 +3903,42 @@ class C
         // assuming ROOT_FOLDER constant exists first!
         if (!$this->rootFolderExistOrSetError()) return;
         $this->cachedCreateKeyIfNullAndOptionalFileName('file_user_defined_functions');
-        if (!$this->cachedKeyHasSpecificFN('file_user_defined_functions', $userDefinedFunction)) {
-            $err = "User-defined URI Normalizer Handler `{$userDefinedFunction}` for `->setDefaultURI_Normalizer()` under `->CONFIG()` does NOT exist in User-defined Functions (`/src/funkphp/config/functions.php`).";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
+        $fileData = $this->cached['file_user_defined_functions'] ?? [];
+        $contextLabel = "`->setDefaultURI_Normalizer('{$userDefinedFunction}') under ->CONFIG()`";
+        // Bails on the first structural error regarding a typical user-defined function
+        $fatalError = $this->validateFNFile($fileData, $userDefinedFunction, $contextLabel, '', false);
+        if ($fatalError !== null) {
+            $this->setErr($fatalError, $this->errors['config']);
             $this->invalidBatches['config']['DEFAULT_URI_NORMALIZER'] = $userDefinedFunction;
             return;
         }
-        // No inner Function declarations allowed but anonymous ones are OK!
-        if ($this->cached['file_user_defined_functions']['functions'][$userDefinedFunction]['has_inner_functions']) {
-            $err = "User-defined URI Normalizer Handler `{$userDefinedFunction}` for `->setDefaultURI_Normalizer()` under `->CONFIG()` has regular `Inner Function Declarations` (e.g. `function Name(...\$params){}`) on lines:`" . join(',', $this->cached['file_user_defined_functions']['functions'][$userDefinedFunction]['nested_function_lines'] ?? []) . '` which is not allowed in FunkPHP due to the high risk of `Global Function Declaration Pollution`. Instead, use `Anonymous OR Arrow Functions` as a replacement.';
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
-            $this->invalidBatches['config']['DEFAULT_URI_NORMALIZER'] = $userDefinedFunction;
-            return;
-        }
-        // Cannot have an empty body OR just whitespace and/or comments inside of it!
-        if (
-            $this->cached['file_user_defined_functions']['functions'][$userDefinedFunction]['body_raw'] === "{}"
-            || $this->cached['file_user_defined_functions']['functions'][$userDefinedFunction]['only_whitespace_and_or_comments'] === true
-        ) {
-            $err = "User-defined URI Normalizer Handler `{$userDefinedFunction}` for `->setDefaultURI_Normalizer()` under `->CONFIG()` has `No Code in its Body` (e.g. `function Name(){}`) OR it has only Whitespace and/or Comments. Add some Code to the Function or Configure to Use another User-defined Function.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
-            $this->invalidBatches['config']['DEFAULT_URI_NORMALIZER'] = $userDefinedFunction;
-            return;
-        }
-        // Cannot not start with `&$c` as its first Function Parameter!
-        if (!str_starts_with($this->cached['file_user_defined_functions']['functions'][$userDefinedFunction]['args_raw'], '&$c')) {
-            $err = "User-defined URI Normalizer Handler `{$userDefinedFunction}` for `->setDefaultURI_Normalizer()` under `->CONFIG()` does NOT start with `&\$c` (e.g. `function Name(&\$c){}`) as its first Parameter which it must for any User-defined Function.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
-            $this->invalidBatches['config']['DEFAULT_URI_NORMALIZER'] = $userDefinedFunction;
-            return;
-        }
-
+        // Add to ValidBatches, UserDefinedFNs and also UserDefinedEngineFNs which means any User-defined function
+        // that is added there cannot be used for multiple purposes as they are meant to be very specifically used.
         $this->validBatches['config']['DEFAULT_URI_NORMALIZER'] = $userDefinedFunction;
-        $this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction] = "->setDefaultURI_Normalizer()";
+        $this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction] = "->CONFIG()->setDefaultURI_Normalizer()";
+        $this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunction] = "->CONFIG()->setDefaultURI_Normalizer()";
     }
     private function batchSetDefaultHTTPSKernelDispatchHandlerGlobal(string $userDefinedFunction) // DEFAULT HTTSP KERNEL/ROUTING
     {
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setDefaultKernelHandler', $userDefinedFunction);
+        [$ctx, $ctxVals] = $this->setCtx('setDefaultKernelHandler', "CONFIG", $userDefinedFunction);
         if (isset($this->invalidBatches['config']['DEFAULT_HTTPS_KERNEL'])) {
-            $err = "Duplicate call - Invalid String Value for `->setDefaultKernelHandler()` as current one under `->CONFIG()` is Invalid.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
             return;
         }
         if (isset($this->validBatches['config']['DEFAULT_HTTPS_KERNEL'])) {
-            $err = "Duplicate call - A Valid String Value for `->setDefaultKernelHandler()` already exists under `->CONFIG()`.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
             return;
         }
         if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($userDefinedFunction)) {
-            $err = "Invalid String Value in `->setDefaultKernelHandler()` under `->CONFIG()`. It must be a Non-Empty String all Lowercased that does not start with `cli_` or `funk_`.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
+            $this->setErr($this->getErr('NonEmptyAllLowercasedStringNotStartCLIorFUNK', $ctxVals), $this->errors['config']);
             $this->invalidBatches['config']['DEFAULT_HTTPS_KERNEL'] = $userDefinedFunction;
             return;
         }
         // FN already used by some other Global Engine Function? (exception, error, uri normalizer, https kernel?)
-        if (isset($this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction])) {
-            $err = "User-defined HTTPS Kernel Handler `{$userDefinedFunction}` for `->setDefaultKernelHandler()` under `->CONFIG()` is already being used by:`{$this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction]}`.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
+        if (isset($this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunction])) {
+            $err = $this->getErr('UserDefinedFUNCTIONAlreadyUsedBy', $ctxVals) . "`{$this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction]}` and cannot be used for multiple purposes as a result.";
+            $this->setErr($err, $this->errors['config']);
             $this->invalidBatches['config']['DEFAULT_HTTPS_KERNEL'] = $userDefinedFunction;
             return;
         }
@@ -4065,43 +3946,20 @@ class C
         // assuming ROOT_FOLDER constant exists first!
         if (!$this->rootFolderExistOrSetError()) return;
         $this->cachedCreateKeyIfNullAndOptionalFileName('file_user_defined_functions');
-        if (!$this->cachedKeyHasSpecificFN('file_user_defined_functions', $userDefinedFunction)) {
-            $err = "User-defined HTTPS Kernel Handler `{$userDefinedFunction}` for `->setDefaultKernelHandler()` under `->CONFIG()` does NOT exist in User-defined Functions (`/src/funkphp/config/functions.php`).";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
+        $fileData = $this->cached['file_user_defined_functions'] ?? [];
+        $contextLabel = "`->setDefaultKernelHandler('{$userDefinedFunction}') under ->CONFIG()`";
+        // Bails on the first structural error regarding a typical user-defined function
+        $fatalError = $this->validateFNFile($fileData, $userDefinedFunction, $contextLabel, '', false);
+        if ($fatalError !== null) {
+            $this->setErr($fatalError, $this->errors['config']);
             $this->invalidBatches['config']['DEFAULT_HTTPS_KERNEL'] = $userDefinedFunction;
             return;
         }
-        // No inner Function declarations allowed but anonymous ones are OK!
-        if ($this->cached['file_user_defined_functions']['functions'][$userDefinedFunction]['has_inner_functions']) {
-            $err = "User-defined HTTPS Kernel Handler `{$userDefinedFunction}` for `->setDefaultKernelHandler()` under `->CONFIG()` has regular `Inner Function Declarations` (e.g. `function Name(...\$params){}`) on lines:`" . join(',', $this->cached['file_user_defined_functions']['functions'][$userDefinedFunction]['nested_function_lines'] ?? []) . '` which is not allowed in FunkPHP due to the high risk of `Global Function Declaration Pollution`. Instead, use `Anonymous OR Arrow Functions` as a replacement.';
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
-            $this->invalidBatches['config']['DEFAULT_HTTPS_KERNEL'] = $userDefinedFunction;
-            return;
-        }
-        // Cannot have an empty body OR just whitespace and/or comments inside of it!
-        if (
-            $this->cached['file_user_defined_functions']['functions'][$userDefinedFunction]['body_raw'] === "{}"
-            || $this->cached['file_user_defined_functions']['functions'][$userDefinedFunction]['only_whitespace_and_or_comments'] === true
-        ) {
-            $err = "User-defined HTTPS Kernel Handler `{$userDefinedFunction}` for `->setDefaultKernelHandler()` under `->CONFIG()` has `No Code in its Body` (e.g. `function Name(){}`) OR it has only Whitespace and/or Comments. Add some Code to the Function or Configure to Use another User-defined Function.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
-            $this->invalidBatches['config']['DEFAULT_HTTPS_KERNEL'] = $userDefinedFunction;
-            return;
-        }
-        // Cannot not start with `&$c` as its first Function Parameter!
-        if (!str_starts_with($this->cached['file_user_defined_functions']['functions'][$userDefinedFunction]['args_raw'], '&$c')) {
-            $err = "User-defined HTTPS Kernel Handler `{$userDefinedFunction}` for `->setDefaultKernelHandler()` under `->CONFIG()` does NOT start with `&\$c` (e.g. `function Name(&\$c){}`) as its first Parameter which it must for any User-defined Function.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
-            $this->invalidBatches['config']['DEFAULT_HTTPS_KERNEL'] = $userDefinedFunction;
-            return;
-        }
-
+        // Add to ValidBatches, UserDefinedFNs and also UserDefinedEngineFNs which means any User-defined function
+        // that is added there cannot be used for multiple purposes as they are meant to be very specifically used.
         $this->validBatches['config']['DEFAULT_HTTPS_KERNEL'] = $userDefinedFunction;
-        $this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction] = "->setDefaultKernelHandler()";
+        $this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction] = "->CONFIG()->setDefaultKernelHandler()";
+        $this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunction] = "->CONFIG()->setDefaultKernelHandler()";
     }
 
     /* setNoRouteMatch<VARIANTS> Global - These are all catches when no catches for specific <method(s)> are defined/applied */
@@ -4150,25 +4008,20 @@ class C
     private function batchSetDefaultBaseURLLocalGlobal(string $httpsPath)
     {
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setBaseURLLocal', $httpsPath);
+        [$ctx, $ctxVals] = $this->setCtx('setBaseURLLocal', "CONFIG", $httpsPath);
         if (isset($this->invalidBatches['config']['BASEURL_LOCAL'])) {
-            $err = "Duplicate Invalid String Value for `->setBaseURLLocal()` as current one under `->CONFIG()` is Invalid.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
             return;
         }
         if (isset($this->validBatches['config']['BASEURL_LOCAL'])) {
-            $err = "A Valid String Value for `->setBaseURLLocal()` already exists under `->CONFIG()`.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
             return;
         }
         if (
             !is_string($httpsPath) || trim($httpsPath) === ''
             || !preg_match('/^http:\/\//', $httpsPath)
         ) {
-            $err = "Invalid String Value `{$httpsPath}` in `->setBaseURLLocal()` under `->CONFIG()`. Must be a Non-Empty String that starts with `http://`.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
+            $this->setErr($this->getErr('NonEmptyAllLowercasedStringSTARTWithHTTP', $ctxVals), $this->errors['config']);
             $this->invalidBatches['config']['BASEURL_LOCAL'] = $httpsPath;
             return;
         }
@@ -4177,25 +4030,20 @@ class C
     private function batchSetDefaultBaseURLOnlineGlobal(string $httpsPath)
     {
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setBaseURLOnline', $httpsPath);
+        [$ctx, $ctxVals] = $this->setCtx('setBaseURLLocal', "CONFIG", $httpsPath);
         if (isset($this->invalidBatches['config']['BASEURL_ONLINE'])) {
-            $err = "Duplicate Invalid String Value for `->setBaseURLOnline()` as current one under `->CONFIG()` is Invalid.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
             return;
         }
         if (isset($this->validBatches['config']['BASEURL_ONLINE'])) {
-            $err = "A Valid String Value for `->setBaseURLOnline()` already exists under `->CONFIG()`.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
             return;
         }
         if (
             !is_string($httpsPath) || trim($httpsPath) === ''
             || !preg_match('/^https:\/\//', $httpsPath)
         ) {
-            $err = "Invalid String Value `{$httpsPath}` in `->setBaseURLOnline()` under `->CONFIG()`. Must be a Non-Empty String that starts with `https://`.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
+            $this->setErr($this->getErr('NonEmptyAllLowercasedStringSTARTWithHTTPS', $ctxVals), $this->errors['config']);
             $this->invalidBatches['config']['BASEURL_ONLINE'] = $httpsPath;
             return;
         }

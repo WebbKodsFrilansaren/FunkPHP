@@ -3,9 +3,9 @@
 $FUNK = FunkPHP();
 
 $FUNK->CONFIG()
-    ->setDefaultRegisteredShutdownHandler('testar')
-    ->setDefaultErrorHandler('testar3')
-    ->setDefaultExceptionHandler("testar3");
+    ->setUseVendor(false)
+    ->setBaseURLLocal("http://test")
+    ->setDefaultRegisteredShutdownHandler('testar');
 $FUNK->ROUTES()
     ->GET()
     ->route("/:id");
