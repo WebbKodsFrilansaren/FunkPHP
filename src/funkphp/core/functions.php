@@ -2146,6 +2146,7 @@ class C
     private array $cached = [
         'placeholderRoutes' => [],
         'placeholderParamContexts' => [],
+        'placeHolderUsedUserDefinedEngineFNS' => [], // defaultRegisterShutDown,Error|ExceptionHandler&HTTPSKernel
         'placeholderUsedUserDefinedFunctions' => [],
         'placeholderUsedUserDefinedClasses' => [],
         'placeholderMiddlewaresInWhatRoutes' => [],
@@ -2641,6 +2642,55 @@ class C
         return $json;
     }
 
+    // Set context to not having to repeat so much for each batchFUNCTION
+    private function setCtx(string $batchFN, string $under, mixed ...$vals)
+    {
+        return ["`->$batchFN()` under `->{$under}()`", "`->$batchFN(" . $this->exportShortSyntax(...$vals) . ")` under `->{$under}()`"];
+    }
+    /**
+     * Resolves a standardized validation error message template.
+     *
+     * @param 'NonEmptyAllLowercasedStringNotStartCLIorFUNK'|'ValidFunctionName'|'ValidRegex'|'InvalidArrayFormat'|'MustExistInOPT_CTX'|'DuplicateCallInvalidOPT_CTX'|'DuplicateCallValidOPT_CTX'|'ConflictingConfigurationOPT_CTX'|'InvalidHttpStatusCode'|'JsonEncodingFailed'|'DuplicateFunctionNameInBatch'|'UserDefinedFUNCTIONNotFoundOPT_CTX'|'UserDefinedCLASSNotFoundOPT_CTX'|'UserDefinedFUNCTIONAlreadyUsedByOPT_CTX'|'UserDefinedCLASSAlreadyUsedByOPT_CTX'|'UserDefinedFUNCTIONAlreadyInArrayOPT_CTX'|'UserDefinedCLASSAlreadyInArrayOPT_CTX' $errType
+     * @param string|null $optionalCtx Extra Context injected where applicable (noted with `OPT_CTX` in key names).
+     * @return string The Formatted Error Message Segment.
+     */
+    private function getErr(string $errType, ?string $optionalCtx = ''): string
+    {
+        $errors = [
+            // Basic Syntax & Naming Rules
+            'NonEmptyAllLowercasedStringNotStartCLIorFUNKOPT_CTX' => "Invalid String Value in {$optionalCtx}: must be a Non-Empty String (no trailing spaces) all lowercased that does NOT start with `cli_` OR `funk_`.",
+            'ValidFunctionNameOPT_CTX'                         => "Invalid Function Name in {$optionalCtx}: must be a Non-Empty String (no trailing spaces) starting with `[_a-z]` and then only use the following characters: `[_a-z0-9]`.",
+            'ValidRegexOPT_CTX'                                => "Invalid Regex Value in {$optionalCtx}: must be a Non-Empty String (no trailing spaces) that is also a Valid Regex Pattern using `preg_match()`.",
+            // Scope & Existence Rules
+            'UserDefinedFUNCTIONAlreadyInArrayOPT_CTX'                       => "Provided User-defined Function in {$optionalCtx} from `/src/funkphp/config/functions.php` is already in a must-be-unique array:",
+            'UserDefinedCLASSAlreadyInArrayOPT_CTX'                       => "Provided User-defined Class in {$optionalCtx} from `/src/funkphp/config/classes.php` is already in a must-be-unique array:",
+            'UserDefinedFUNCTIONAlreadyUsedByOPT_CTX'                       => "Provided User-defined Function in {$optionalCtx} from `/src/funkphp/config/functions.php` is already being used by:",
+            'UserDefinedCLASSAlreadyUsedByOPT_CTX'                       => "Provided User-defined Class in {$optionalCtx} from `/src/funkphp/config/classes.php` is already being used by:",
+            'UserDefinedFUNCTIONNotFoundOPT_CTX'                       => "Provided User-defined Function in {$optionalCtx} NOT Found in `/src/funkphp/config/functions.php`. Review Function Name OR add it to the File.",
+            'UserDefinedCLASSNotFoundOPT_CTX'                          => "Provided User-defined Class in {$optionalCtx} NOT Found in `/src/funkphp/config/classes.php`. Review Class Name OR add it to the File.",
+            'MustExistInOPT_CTX'                                 => "must exist in {$optionalCtx}.",
+            // Call Order & Duplicate Conflict Rules
+            'DuplicateCallInvalidOPT_CTX'              => "Duplicate Call to {$optionalCtx}. Review the already Invalid Configuration.",
+            'DuplicateCallValidOPT_CTX'                => "Duplicate Call to {$optionalCtx}. Review/change the already Valid Configuration.",
+            'ConflictingConfigurationOPT_CTX'           => "Valid Configuration (`{$optionalCtx}`) is already set and CANNOT be overridden, only changed manually.",
+            'AlreadyUsedBy' => "",
+            // Serialization & HTTP Rules
+            'InvalidHttpStatusCode'                     => 'must be a Valid Integer HTTP Status Code between 100-599.',
+            'JsonEncodingFailed'                        => "Data Serialization to JSON Failed {$optionalCtx}. Review the passed Input to it.",
+            'InvalidArrayFormat'                        => 'must be a Non-Empty, Numbered Array of Valid Strings (Non-Empty without trailing spaces).',
+        ];
+        return $errors[$errType] ?? ' [INTERNAL FUNKPHP ERROR - UNKNOWN_ERROR_TYPE]: REVIEW class C -> private function getErr in `/src/funkphp/core/functions.php`!';
+    }
+
+    // Set default error in 'all' and also the specified key based on error level depth
+    private function setErr(string $errMsg, array|null &$specificErrDepth, bool $skipDepth = false)
+    {
+        $this->errors['all'][] = $errMsg;
+        if ($skipDepth === false) {
+            $specificErrDepth[] = $errMsg;
+        }
+    }
+
     // ->config()
     // and can jump to->pipesRequest(),->pipesPostResponse() or ->routes()
     public function CONFIG(): FunkConfig
@@ -2784,32 +2834,27 @@ class C
     private function batchSetDefaultRegisteredShutdownFunctionGlobal(string $userDefinedFunction)  // DEFAULT REGISTER SHUTDOWN HANDLER
     {
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setDefaultRegisteredShutdownHandler', $userDefinedFunction);
+        [$ctx, $ctxVals] = $this->setCtx('setDefaultRegisteredShutdownHandler', "CONFIG", $userDefinedFunction);
         if (isset($this->invalidBatches['config']['DEFAULT_REGISTER_SHUTDOWN_HANDLER'])) {
-            $err = "Invalid String Value for `->setDefaultRegisteredShutdownHandler()` under `->CONFIG()` already exist that must be fixed before `{$userDefinedFunction}` gets validated.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
+            $this->setErr($this->getErr('DuplicateCallInvalidOPT_CTX', $ctx), $this->errors['config']);
             return;
         }
         if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($userDefinedFunction)) {
-            $err = "Invalid String Value in `->addRegisteredShutdownHandler()` under `->CONFIG()`. It must be a Non-Empty String all Lowercased that does not start with `cli_` or `funk_`.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
+            $this->setErr($this->getErr('NonEmptyAllLowercasedStringNotStartCLIorFUNKOPT_CTX', $ctxVals), $this->errors['config']);
             $this->invalidBatches['config']['DEFAULT_REGISTER_SHUTDOWN_HANDLER'] = $userDefinedFunction;
             return;
         }
         // FN already used by some other Global Engine Function? (exception, error, uri normalizer, https kernel?)
         if (isset($this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction])) {
-            $err = "User-defined Registered Shutdown Handler `{$userDefinedFunction}` for `->addRegisteredShutdownHandler()` under `->CONFIG()` is already being used by:`{$this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction]}`.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
+            $err = $this->getErr('UserDefinedFUNCTIONAlreadyUsedByOPT_CTX', $ctxVals) . " `{$this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction]}`";
+            $this->setErr($err, $this->errors['config']);
             $this->invalidBatches['config']['DEFAULT_REGISTER_SHUTDOWN_HANDLER'] = $userDefinedFunction;
             return;
         }
         // FN already in array of chained Register Shutdown FNs?
         if (in_array($userDefinedFunction, $this->validBatches['config']['REGISTERED_SHUTDOWN_HANDLERS'] ?? [], true)) {
-            $err = "Duplicate User-defined Registered Shutdown Handler `{$userDefinedFunction}` for `->addRegisteredShutdownHandler()` already added under `->CONFIG()`.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
+            $err = "Duplicate User-defined Registered Shutdown Handler `{$userDefinedFunction}` in $ctxVals - already added.";
+            $this->setErr($err, $this->errors['config']);
             return;
         }
         // Prepare Config Functions.php File I/O if needed
@@ -2817,15 +2862,14 @@ class C
         if (!$this->rootFolderExistOrSetError()) return;
         $this->cachedCreateKeyIfNullAndOptionalFileName('file_user_defined_functions');
         if (!$this->cachedKeyHasSpecificFN('file_user_defined_functions', $userDefinedFunction)) {
-            $err = "User-defined Registered Shutdown Handler `{$userDefinedFunction}` for `->addRegisteredShutdownHandler()` under `->CONFIG()` does NOT exist in User-defined Functions (`/src/funkphp/config/functions.php`).";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
+            $err = "User-defined Registered Shutdown Handler `{$userDefinedFunction}` $ctxVals does NOT exist in User-defined Functions (`/src/funkphp/config/functions.php`).";
+            $this->setErr($err, $this->errors['config']);
             $this->invalidBatches['config']['DEFAULT_REGISTER_SHUTDOWN_HANDLER'] = $userDefinedFunction;
             return;
         }
         // No inner Function declarations allowed but anonymous ones are OK!
         if ($this->cached['file_user_defined_functions']['functions'][$userDefinedFunction]['has_inner_functions']) {
-            $err = "User-defined Registered Shutdown Handler `{$userDefinedFunction}` for `->addRegisteredShutdownHandler()` under `->CONFIG()` has regular `Inner Function Declarations` (e.g. `function Name(...\$params){}`) on lines:`" . join(',', $this->cached['file_user_defined_functions']['functions'][$userDefinedFunction]['nested_function_lines'] ?? []) . '` which is not allowed in FunkPHP due to the high risk of `Global Function Declaration Pollution`. Instead, use `Anonymous OR Arrow Functions` as a replacement.';
+            $err = "User-defined Registered Shutdown Handler `{$userDefinedFunction}` $ctxVals has regular `Inner Function Declarations` (e.g. `function Name(...\$params){}`) on lines:`" . join(',', $this->cached['file_user_defined_functions']['functions'][$userDefinedFunction]['nested_function_lines'] ?? []) . '` which is not allowed in FunkPHP due to the high risk of `Global Function Declaration Pollution`. Instead, use `Anonymous OR Arrow Functions` as a replacement.';
             $this->errors['all'][] = $err;
             $this->errors['config'][] = $err;
             $this->invalidBatches['config']['DEFAULT_REGISTER_SHUTDOWN_HANDLER'] = $userDefinedFunction;
@@ -2836,7 +2880,7 @@ class C
             $this->cached['file_user_defined_functions']['functions'][$userDefinedFunction]['body_raw'] === "{}"
             || $this->cached['file_user_defined_functions']['functions'][$userDefinedFunction]['only_whitespace_and_or_comments'] === true
         ) {
-            $err = "User-defined Registered Shutdown Handler `{$userDefinedFunction}` for `->addRegisteredShutdownHandler()` under `->CONFIG()` has `No Code in its Body` (e.g. `function Name(){}`) OR it has only Whitespace and/or Comments. Add some Code to the Function or Configure to Use another User-defined Function.";
+            $err = "User-defined Registered Shutdown Handler `{$userDefinedFunction}` $ctxVals has `No Code in its Body` (e.g. `function Name(){}`) OR it has only Whitespace and/or Comments. Add some Code to the Function or Configure to Use another User-defined Function.";
             $this->errors['all'][] = $err;
             $this->errors['config'][] = $err;
             $this->invalidBatches['config']['DEFAULT_REGISTER_SHUTDOWN_HANDLER'] = $userDefinedFunction;
@@ -2844,14 +2888,13 @@ class C
         }
         // Cannot not start with `&$c` as its first Function Parameter!
         if (!str_starts_with($this->cached['file_user_defined_functions']['functions'][$userDefinedFunction]['args_raw'], '&$c')) {
-            $err = "User-defined Registered Shutdown Handler `{$userDefinedFunction}` for `->addRegisteredShutdownHandler()` under `->CONFIG()` does NOT start with `&\$c` (e.g. `function Name(&\$c){}`) as its first Parameter which it must for any User-defined Function.";
+            $err = "User-defined Registered Shutdown Handler `{$userDefinedFunction}` $ctxVals does NOT start with `&\$c` (e.g. `function Name(&\$c){}`) as its first Parameter which it must for any User-defined Function.";
             $this->errors['all'][] = $err;
             $this->errors['config'][] = $err;
             $this->invalidBatches['config']['DEFAULT_REGISTER_SHUTDOWN_HANDLER'] = $userDefinedFunction;
             return;
         }
-        // Emit warnings (which can be configured to either be ignored or not ignored) and then add it to the config
-        $this->cachedKeyFNWarnings($this->cached['file_user_defined_functions']['functions'][$userDefinedFunction], $this->cached['file_user_defined_functions']['file_path'] ?? null);
+
         $this->validBatches['config']['DEFAULT_REGISTER_SHUTDOWN_HANDLER'][] = $userDefinedFunction;
         $this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction] = "->setDefaultRegisteredShutdownHandler()";
     }
@@ -2871,7 +2914,7 @@ class C
             return;
         }
         if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($userDefinedFunction)) {
-            $err = "Invalid String Value in `->setDefaultExceptionHandler()` under `->CONFIG()`. It must be a Non-Empty String all Lowercased that does not start with `cli_` or `funk_`.";
+            $err = "Invalid String Value in `->setDefaultExceptionHandler()` under `->CONFIG()`. It must be a Non-Empty String (no trailing spaces) all Lowercased that does not start with `cli_` or `funk_`.";
             $this->errors['all'][] = $err;
             $this->errors['config'][] = $err;
             $this->invalidBatches['config']['DEFAULT_EXCEPTION_HANDLER'] = $userDefinedFunction;
@@ -2923,8 +2966,7 @@ class C
             $this->invalidBatches['config']['DEFAULT_EXCEPTION_HANDLER'] = $userDefinedFunction;
             return;
         }
-        // Emit warnings (which can be configured to either be ignored or not ignored) and then add it to the config
-        $this->cachedKeyFNWarnings($this->cached['file_user_defined_functions']['functions'][$userDefinedFunction], $this->cached['file_user_defined_functions']['file_path'] ?? null);
+
         $this->validBatches['config']['DEFAULT_EXCEPTION_HANDLER'] = $userDefinedFunction;
         $this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction] = "->setDefaultExceptionHandler()";
     }
@@ -2996,8 +3038,7 @@ class C
             $this->invalidBatches['config']['DEFAULT_ERROR_HANDLER'] = $userDefinedFunction;
             return;
         }
-        // Emit warnings (which can be configured to either be ignored or not ignored) and then add it to the config
-        $this->cachedKeyFNWarnings($this->cached['file_user_defined_functions']['functions'][$userDefinedFunction], $this->cached['file_user_defined_functions']['file_path'] ?? null);
+
         $this->validBatches['config']['DEFAULT_ERROR_HANDLER'] = $userDefinedFunction;
         $this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction] = "->setDefaultErrorHandler()";
     }
@@ -3069,8 +3110,7 @@ class C
             $this->invalidBatches['config']['DEFAULT_URI_NORMALIZER'] = $userDefinedFunction;
             return;
         }
-        // Emit warnings (which can be configured to either be ignored or not ignored) and then add it to the config
-        $this->cachedKeyFNWarnings($this->cached['file_user_defined_functions']['functions'][$userDefinedFunction], $this->cached['file_user_defined_functions']['file_path'] ?? null);
+
         $this->validBatches['config']['DEFAULT_URI_NORMALIZER'] = $userDefinedFunction;
         $this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction] = "->setDefaultURI_Normalizer()";
     }
@@ -3142,8 +3182,7 @@ class C
             $this->invalidBatches['config']['DEFAULT_HTTPS_KERNEL'] = $userDefinedFunction;
             return;
         }
-        // Emit warnings (which can be configured to either be ignored or not ignored) and then add it to the config
-        $this->cachedKeyFNWarnings($this->cached['file_user_defined_functions']['functions'][$userDefinedFunction], $this->cached['file_user_defined_functions']['file_path'] ?? null);
+
         $this->validBatches['config']['DEFAULT_HTTPS_KERNEL'] = $userDefinedFunction;
         $this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction] = "->setDefaultKernelHandler()";
     }
@@ -3688,6 +3727,7 @@ class C
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('batchSetGroupedPipeRequest', $groupName, ...$RequestFNs);
         // Initial checks: invalidBathced already? ValidBatched already? Invalid $groupName string?
         // Any of the FNs invalid in their naming? Only after that, do we start checking each FN file.
+        $ctx = "in `->setGroupPipeRequest()` under `->CONFIG()`";
         if (isset($this->invalidBatches['config']['GROUPED_PIPE_REQUEST'][strtolower($groupName)])) {
             $err = "Duplicate Call - Invalid Pipe Group in `->setGroupPipeRequest({$groupName})` under `->CONFIG()` already exists that must be fixed first.";
             $this->errors['all'][] = $err;
@@ -3701,7 +3741,14 @@ class C
             return;
         }
         if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($groupName)) {
-            $err = "Invalid Group Name Value (`{$groupName}`) in `->setGroupPipeRequest()` under `->CONFIG()`. It must be a Non-Empty String all lowercased that uses Valid characters for a Function Declaration Name ([a-z_][a-z0-9_]*) and that does NOT start with `cli_` OR `funk_`.";
+            $err = "Invalid Group Name Value (`{$groupName}`) $ctx. It must be a Non-Empty String all lowercased that uses Valid characters for a Function Declaration Name ([a-z_][a-z0-9_]*) and that does NOT start with `cli_` OR `funk_`.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            $this->invalidBatches['config']['GROUPED_PIPE_REQUEST'][strtolower($groupName)] = [...$RequestFNs];
+            return;
+        }
+        if (!count($RequestFNs) < 2) {
+            $err = "Invalid Count of Request Pipe Functions $ctx. Must be at least two(2) Functions.";
             $this->errors['all'][] = $err;
             $this->errors['config'][] = $err;
             $this->invalidBatches['config']['GROUPED_PIPE_REQUEST'][strtolower($groupName)] = [...$RequestFNs];
@@ -3709,7 +3756,7 @@ class C
         }
         foreach ($RequestFNs as $FN) {
             if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($FN)) {
-                $err = "Invalid Request Function Name (`{$FN}`) in `->setGroupPipeRequest()` under `->CONFIG()`. It must be a Non-Empty String all lowercased that uses Valid characters for a Function Declaration Name ([a-z_][a-z0-9_]*) and that does NOT start with `cli_` OR `funk_`.";
+                $err = "Invalid Request Function Name (`{$FN}`) $ctx. It must be a Non-Empty String all lowercased that uses Valid characters for a Function Declaration Name ([a-z_][a-z0-9_]*) and that does NOT start with `cli_` OR `funk_`.";
                 $this->errors['all'][] = $err;
                 $this->errors['config'][] = $err;
                 $this->invalidBatches['config']['GROUPED_PIPE_REQUEST'][strtolower($groupName)] = [...$RequestFNs];
@@ -3718,7 +3765,7 @@ class C
         }
         // Find and disallow duplicates
         if (count($RequestFNs) !== count(array_unique($RequestFNs))) {
-            $err = "Duplicate Function Names Found in `->setGroupPipeRequest()` under `->CONFIG()`: `" . join(', ', $RequestFNs) . '`.';
+            $err = "Duplicate Function Names Found $ctx: `" . join(', ', $RequestFNs) . '`.';
             $this->errors['all'][] = $err;
             $this->errors['config'][] = $err;
             $this->invalidBatches['config']['GROUPED_PIPE_REQUEST'][strtolower($groupName)] = [...$RequestFNs];
@@ -3750,6 +3797,7 @@ class C
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setGroupPipePostResponse', $groupName, ...$PostResponseFNs);
         // Initial checks: invalidBathced already? ValidBatched already? Invalid $groupName string?
         // Any of the FNs invalid in their naming? Only after that, do we start checking each FN file.
+        $ctx = "in `->setGroupPipePostResponse()` under `->CONFIG()`";
         if (isset($this->invalidBatches['config']['GROUPED_PIPE_POST_RESPONSE'][strtolower($groupName)])) {
             $err = "Duplicate Call - Invalid Pipe Group in `->setGroupPipePostResponse({$groupName})` under `->CONFIG()` already exists that must be fixed first.";
             $this->errors['all'][] = $err;
@@ -3763,15 +3811,22 @@ class C
             return;
         }
         if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($groupName)) {
-            $err = "Invalid Group Name Value (`{$groupName}`) in `->setGroupPipePostResponse()` under `->CONFIG()`. It must be a Non-Empty String all lowercased that uses Valid characters for a Function Declaration Name ([a-z_][a-z0-9_]*) and that does NOT start with `cli_` OR `funk_`.";
+            $err = "Invalid Group Name Value (`{$groupName}`) $ctx. It must be a Non-Empty String all lowercased that uses Valid characters for a Function Declaration Name ([a-z_][a-z0-9_]*) and that does NOT start with `cli_` OR `funk_`.";
             $this->errors['all'][] = $err;
             $this->errors['config'][] = $err;
             $this->invalidBatches['config']['GROUPED_PIPE_POST_RESPONSE'][strtolower($groupName)] = [$groupName, ...$PostResponseFNs];
             return;
         }
+        if (!count($PostResponseFNs) < 2) {
+            $err = "Invalid Count of Post Response Pipe Functions $ctx. Must be at least two(2) Functions.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            $this->invalidBatches['config']['GROUPED_PIPE_POST_RESPONSE'][strtolower($groupName)] = [...$PostResponseFNs];
+            return;
+        }
         foreach ($PostResponseFNs as $FN) {
             if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($FN)) {
-                $err = "Invalid Post Response Function Name (`{$FN}`) in `->setGroupPipePostResponse()` under `->CONFIG()`. It must be a Non-Empty String all lowercased that uses Valid characters for a Function Declaration Name ([a-z_][a-z0-9_]*) and that does NOT start with `cli_` OR `funk_`.";
+                $err = "Invalid Post Response Function Name (`{$FN}`) $ctx. It must be a Non-Empty String all lowercased that uses Valid characters for a Function Declaration Name ([a-z_][a-z0-9_]*) and that does NOT start with `cli_` OR `funk_`.";
                 $this->errors['all'][] = $err;
                 $this->errors['config'][] = $err;
                 $this->invalidBatches['config']['GROUPED_PIPE_POST_RESPONSE'][strtolower($groupName)] = [$groupName, ...$PostResponseFNs];
@@ -3780,7 +3835,7 @@ class C
         }
         // Find and disallow duplicates
         if (count($PostResponseFNs) !== count(array_unique($PostResponseFNs))) {
-            $err = "Duplicate Function Names Found in `->setGroupPipePostResponse()` under `->CONFIG()`: `" . join(', ', $PostResponseFNs) . '`.';
+            $err = "Duplicate Function Names Found $ctx: `" . join(', ', $PostResponseFNs) . '`.';
             $this->errors['all'][] = $err;
             $this->errors['config'][] = $err;
             $this->invalidBatches['config']['GROUPED_PIPE_POST_RESPONSE'][strtolower($groupName)] = [...$PostResponseFNs];
@@ -3811,6 +3866,7 @@ class C
     private function batchSetGroupedPipeRoute(string $groupName, string ...$RoutePipeFNs)
     {
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setGroupPipeRoute', $groupName, ...$RoutePipeFNs);
+        $ctx = "in `->setGroupPipeRoute()` under `->CONFIG()`";
         // Initial checks: invalidBathced already? ValidBatched already? Invalid $groupName string?
         // Any of the FNs invalid in their naming? Only after that, do we start checking each FN file.
         if (isset($this->invalidBatches['config']['GROUPED_PIPE_ROUTES'][strtolower($groupName)])) {
@@ -3826,15 +3882,22 @@ class C
             return;
         }
         if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($groupName)) {
-            $err = "Invalid Group Name Value (`{$groupName}`) in `->setGroupPipeRoute()` under `->CONFIG()`. It must be a Non-Empty String all lowercased that uses Valid characters for a Function Declaration Name ([a-z_][a-z0-9_]*) and that does NOT start with `cli_` OR `funk_`.";
+            $err = "Invalid Group Name Value (`{$groupName}`) $ctx. It must be a Non-Empty String all lowercased that uses Valid characters for a Function Declaration Name ([a-z_][a-z0-9_]*) and that does NOT start with `cli_` OR `funk_`.";
             $this->errors['all'][] = $err;
             $this->errors['config'][] = $err;
             $this->invalidBatches['config']['GROUPED_PIPE_ROUTES'][strtolower($groupName)] = [$groupName, ...$RoutePipeFNs];
             return;
         }
+        if (!count($RoutePipeFNs) < 2) {
+            $err = "Invalid Count of Route Pipe Functions $ctx. Must be at least two(2) Functions.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            $this->invalidBatches['config']['GROUPED_PIPE_ROUTES'][strtolower($groupName)] = [...$RoutePipeFNs];
+            return;
+        }
         foreach ($RoutePipeFNs as $FN) {
             if (!$this->nonEmptyLowercaseStrThatIsFileAndFunctionWithDot($FN)) {
-                $err = "Invalid Route Pipe Function Name Format (`{$FN}`) in `->setGroupPipeRoute()` under `->CONFIG()`. It must be a Non-Empty String all lowercased that uses Valid characters for a Function Declaration Name ([a-z_][a-z0-9_]*) and that does NOT start with `cli_` OR `funk_`. For Route Pipe Functions, you can have several in the same file so you must name with `file.Function` separated with a comma as such:`file.Function,file.Function2`.";
+                $err = "Invalid Route Pipe Function Name Format (`{$FN}`) $ctx. It must be a Non-Empty String all lowercased that uses Valid characters for a Function Declaration Name ([a-z_][a-z0-9_]*) and that does NOT start with `cli_` OR `funk_`. For Route Pipe Functions, you can have several in the same file so you must name with `file.Function` separated with a comma as such:`file.Function,file.Function2`.";
                 $this->errors['all'][] = $err;
                 $this->errors['config'][] = $err;
                 $this->invalidBatches['config']['GROUPED_PIPE_ROUTES'][strtolower($groupName)] = [$groupName, ...$RoutePipeFNs];
@@ -3843,7 +3906,7 @@ class C
         }
         // Find and disallow duplicates
         if (count($RoutePipeFNs) !== count(array_unique($RoutePipeFNs))) {
-            $err = "Duplicate Function Names Found in `->setGroupPipeRoute()` under `->CONFIG()`: `" . join(', ', $RoutePipeFNs) . '`.';
+            $err = "Duplicate Function Names Found $ctx: `" . join(', ', $RoutePipeFNs) . '`.';
             $this->errors['all'][] = $err;
             $this->errors['config'][] = $err;
             $this->invalidBatches['config']['GROUPED_PIPE_ROUTES'][strtolower($groupName)] = [...$RoutePipeFNs];
@@ -3870,6 +3933,7 @@ class C
     private function batchSetGroupedPipeMiddlewares(string $groupName, string ...$middlewareFNs)
     {
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setGroupPipeMiddlewares', $groupName, ...$middlewareFNs);
+        $ctx = "in `->setGroupPipeMiddlewares()` under `->CONFIG()`";
         // Initial checks: invalidBathced already? ValidBatched already? Invalid $groupName string?
         // Any of the FNs invalid in their naming? Only after that, do we start checking each FN file.
         if (isset($this->invalidBatches['config']['GROUPED_PIPE_MIDDLEWARES'][strtolower($groupName)])) {
@@ -3885,15 +3949,22 @@ class C
             return;
         }
         if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($groupName)) {
-            $err = "Invalid Group Name Value (`{$groupName}`) in `->setGroupPipeMiddlewares()` under `->CONFIG()`. It must be a Non-Empty String all lowercased that uses Valid characters for a Function Declaration Name ([a-z_][a-z0-9_]*) and that does NOT start with `cli_` OR `funk_`.";
+            $err = "Invalid Group Name Value (`{$groupName}`) $ctx. It must be a Non-Empty String all lowercased that uses Valid characters for a Function Declaration Name ([a-z_][a-z0-9_]*) and that does NOT start with `cli_` OR `funk_`.";
             $this->errors['all'][] = $err;
             $this->errors['config'][] = $err;
             $this->invalidBatches['config']['GROUPED_PIPE_MIDDLEWARES'][strtolower($groupName)] = [$groupName, ...$middlewareFNs];
             return;
         }
+        if (!count($middlewareFNs) < 2) {
+            $err = "Invalid Count of Route Pipe Functions $ctx. Must be at least two(2) Functions.";
+            $this->errors['all'][] = $err;
+            $this->errors['config'][] = $err;
+            $this->invalidBatches['config']['GROUPED_PIPE_MIDDLEWARES'][strtolower($groupName)] = [...$middlewareFNs];
+            return;
+        }
         foreach ($middlewareFNs as $FN) {
             if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($FN)) {
-                $err = "Invalid Middleware Function Name (`{$FN}`) in `->setGroupPipeMiddlewares()` under `->CONFIG()`. It must be a Non-Empty String all lowercased that uses Valid characters for a Function Declaration Name ([a-z_][a-z0-9_]*) and that does NOT start with `cli_` OR `funk_`.";
+                $err = "Invalid Middleware Function Name (`{$FN}`) $ctx. It must be a Non-Empty String all lowercased that uses Valid characters for a Function Declaration Name ([a-z_][a-z0-9_]*) and that does NOT start with `cli_` OR `funk_`.";
                 $this->errors['all'][] = $err;
                 $this->errors['config'][] = $err;
                 $this->invalidBatches['config']['GROUPED_PIPE_MIDDLEWARES'][strtolower($groupName)] = [$groupName, ...$middlewareFNs];
@@ -3902,7 +3973,7 @@ class C
         }
         // Find and disallow duplicates
         if (count($middlewareFNs) !== count(array_unique($middlewareFNs))) {
-            $err = "Duplicate Function Names Found in `->setGroupPipeMiddlewares()` under `->CONFIG()`: `" . join(', ', $middlewareFNs) . '`.';
+            $err = "Duplicate Function Names Found $ctx: `" . join(', ', $middlewareFNs) . '`.';
             $this->errors['all'][] = $err;
             $this->errors['config'][] = $err;
             $this->invalidBatches['config']['GROUPED_PIPE_MIDDLEWARES'][strtolower($groupName)] = [...$middlewareFNs];
@@ -3935,6 +4006,7 @@ class C
     private function batchSetParamRuleGlobal(string $param, string $regex, $defaultParamValueOnRegexMismatch = null)
     {
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setParamRule', $param, $regex, $defaultParamValueOnRegexMismatch);
+        $ctx = "in `->setParamRule({$param}, {$regex}, $defaultParamValueOnRegexMismatch)` under `->CONFIG()`";
         // Check against already global invalid one
         if (isset($this->invalidBatches['config']['paramRules'][$param])) {
             $this->errors['all'][] = "Duplicate Invalid Global Param Rule `{$param},{$regex}`.";
@@ -3943,7 +4015,7 @@ class C
         }
         // Validate valid $param identifier formatting
         if (!is_string($param) || !preg_match('/^[a-z0-9_-]+$/i', $param)) {
-            $err = "Invalid Global Param Rule Identifier Formatting:`{$param}`. Param Rule Identifier should only contain [a-z0-9_-] characters and without the colon (:).";
+            $err = "Invalid Global Param Rule Identifier Formatting:`{$param}` $ctx. Param Rule Identifier should only contain [a-z0-9_-] characters and without the colon (:).";
             $this->errors['all'][] = $err;
             $this->errors['config'][] = $err;
             $this->invalidBatches['config']['paramRules'][$param] = "{$param},{$regex},{$defaultParamValueOnRegexMismatch}";
@@ -3959,7 +4031,7 @@ class C
             $regexValid = false;
         }
         if (!$regexValid) {
-            $err = "Invalid Global Param Rule Regex Formatting:`{$regex}` for Param:`{$param}`. Param Rule Regex should be a Valid Regex Pattern!";
+            $err = "Invalid Global Param Rule Regex Formatting:`{$regex}` for Param:`{$param}` $ctx. Param Rule Regex should be a Valid Regex Pattern!";
             $this->errors['all'][] = $err;
             $this->errors['config'][] = $err;
             $this->invalidBatches['config']['paramRules'][$param] = "{$param},{$regex},{$defaultParamValueOnRegexMismatch}";
@@ -3967,7 +4039,7 @@ class C
         }
         // Check for duplicate valid rule at global level
         if (isset($this->validBatches['config']['paramRules'][$param])) {
-            $err = "Duplicate Valid Global Param Rule Identifier:`{$param}` - Global config already has a Param Rule with that Identifier.";
+            $err = "Duplicate Valid Global Param Rule Identifier:`{$param}` $ctx. Global config already has a Param Rule with that Identifier.";
             $this->errors['all'][] = $err;
             $this->errors['global'][] = $err;
             return;
@@ -3983,6 +4055,7 @@ class C
     private function batchSetNoncesGlobal(string ...$noncesReferenceKeys)
     {
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setNonces', ...$noncesReferenceKeys);
+        $ctx = "";
         if (isset($this->invalidBatches['config']['nonces'])) {
             $err = "Duplicate call `->setNonces()` under `->CONFIG()`. An Invalid Formatted Nonces Array already exists.";
             $this->errors['all'][] = $err;

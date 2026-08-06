@@ -3,7 +3,8 @@
 $FUNK = FunkPHP();
 
 $FUNK->CONFIG()
-    ->setGroupPipeRoute("test", "test.test", "test.test2", "test.test");
+    ->setDefaultRegisteredShutdownHandler('testar')
+    ->setDefaultRegisteredShutdownHandler("testar");
 $FUNK->ROUTES()
     ->GET()
     ->route("/:id");

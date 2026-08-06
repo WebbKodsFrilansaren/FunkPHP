@@ -26,6 +26,11 @@ function testar(&$c)
     $var = "Test";
 }
 
+function testar2(&$c)
+{
+    $var = "Test";
+}
+
 // function testar2()
 // {
 //     $var = "Test";
