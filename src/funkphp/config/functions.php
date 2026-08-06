@@ -23,23 +23,17 @@
 
 function testar(&$c)
 {
-    $var = "Test";
+    $yas = "Yas";
 }
 
-function testar2(&$c)
+function testar2(&$c, \Throwable $ae)
 {
     $var = "Test";
 }
-
-// function testar2()
-// {
-//     $var = "Test";
-// }
-
-// function testar3()
-// {
-//     $var = "Test";
-// }
+function testar3(&$c, $errno, $errstr, $errfile, $errline)
+{
+    $var = "Test";
+}
 
 // function testar4()
 // {

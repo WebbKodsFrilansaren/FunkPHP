@@ -15,16 +15,8 @@
  * Enhanced Web & CLI dumper for FunkPHP.
  * Features built-in circular reference / recursion detection and max depth protection.
  */
-function dd(mixed $data, string $headerOptionalMsg = '', bool $exit = true, bool $ignoreC = true, bool $json = false): void
+function dd(mixed $data, string $headerOptionalMsg = '', bool $exit = true, bool $ignoreC = true, bool $colorizeAccentGravedText = true): void
 {
-    if ($json) {
-        if (!headers_sent()) {
-            header('Content-Type: application/json', true, 200);
-        }
-        echo json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-        if ($exit) exit;
-        return;
-    }
     if (php_sapi_name() === 'cli' && function_exists('cli_dump')) {
         cli_dump($data, $exit);
         return;
@@ -248,6 +240,11 @@ function dd(mixed $data, string $headerOptionalMsg = '', bool $exit = true, bool
                 color: #a6e3a1;
                 font-weight: bold;
             }
+
+            .funk-web-dump .fd-gravel {
+                color: #f3aff9;
+                font-weight: bold;
+            }
         </style>
 
         <header>[FunkDump]<?= (strlen($headerOptionalMsg) > 0 ? " - $headerOptionalMsg" : '') ?></header>
@@ -300,6 +297,13 @@ function dd(mixed $data, string $headerOptionalMsg = '', bool $exit = true, bool
                     }
                 });
             });
+            <?php if ($colorizeAccentGravedText): ?>
+                document.querySelectorAll('.funk-web-dump .fd-str').forEach(function(el) {
+                    if (el.textContent.includes('`')) {
+                        el.innerHTML = el.innerHTML.replace(/`([^`]+)`/g, '<span class="fd-gravel">$1</span>');
+                    }
+                });
+            <?php endif; ?>
         </script>
     </div>
 <?php
@@ -2488,7 +2492,6 @@ class C
         }
         return true;
     }
-
     // These 2 functions check things like eval(), early exit(), which can be used to inform
     // developer about possible dangerous code but it is only emitted as warnings - nothing else.
     // They set the warnings for a given FN|CLASS and if the boolean $this->NoWarningsAllowed is
@@ -2570,7 +2573,901 @@ class C
         else {
         }
     }
+    /*** !!! PRIVATE HELPER FUNCTIONS FOR MANY batch<VARIANTS> ABOVE !!! */
+    // Also used by compile() & run() below!
+    private function file_status(string $folder, string $file, bool $useExactFilePathInstead = false, bool $deeperAnalysis = false)
+    {
+        if (!$useExactFilePathInstead) {
+            if (is_string($folder) && str_starts_with(trim($folder), "/")) {
+                $folder = substr(trim($folder), 1);
+            }
+        }
+        $folder = trim($folder);
+        $providedFolder = $folder;
+        $file = trim($file);
+        if (str_ends_with($folder, '/')) {
+            $folder = rtrim($folder, '/');
+        }
+        if (!str_ends_with($file, '.php')) {
+            $file .= '.php';
+        }
+        if (str_starts_with($file, '/')) {
+            $file = ltrim($file, '/');
+        }
+        $folder = ($useExactFilePathInstead === false) ? (ROOT_FOLDER . '/' . $folder) : $folder;
+        $singleFolder = basename($folder);
+        $filename = $file;
+        $file = $folder . '/' . $file;
+        $fileRaw = null;
+        $namespace = null;
+        $namespaceParts = null;
+        $fileUse = [];
+        $fns = [];
+        $fnames_only = [];
+        $fnames_duplicates = [];
+        $classes = [];
+        $clnames_only = [];
+        $clnames_duplicates = [];
+        $NO_FN_START_CLI = true;
+        $NO_FN_START_FUNK = true;
+        if (is_file($file) && is_readable($file)) {
+            $fileCnt = file_get_contents($file);
+            if ($fileCnt !== false) {
+                $fileRaw = $fileCnt;
+                global $reserved_functions;
+                $reserved = $reserved_functions ?? [];
+                // 1. Tokenized Namespace & Use statements
+                $nsAndUses = $this->file_harvest_namespace_and_uses_from_code($fileRaw);
+                $namespace = $nsAndUses['namespace'];
+                $namespaceParts = $nsAndUses['namespace_parts'];
+                $fileUse = $nsAndUses['file_use'];
+                // 2. Tokenized Functions
+                $tokenizedFns = $this->file_harvest_all_functions_from_code($fileRaw);
+                foreach ($tokenizedFns as $fnName => $fnData) {
+                    $isReserved = in_array($fnName, $reserved, true);
+                    $fns[$fnName] = array_merge($fnData, [
+                        'valid_fn_structure'          => !$isReserved && !$fnData['has_inner_functions'],
+                        'fn_name_reserved'            => $isReserved,
+                        'fn_name_same_as_lowercased'  => ($fnName === strtolower($fnName)),
+                        'fn_uppercased'               => strtoupper($fnName),
+                        'fn_starts_with_cli'          => str_starts_with(strtolower($fnName), 'cli_'),
+                        'fn_starts_with_funk'         => str_starts_with(strtolower($fnName), 'funk_'),
+                    ]);
+                    if (in_array(strtolower($fnName), $fnames_only, true)) {
+                        $fnames_duplicates[$fnName] = true;
+                    }
+                    $fnames_only[] = $fnName;
+                    if ($fns[$fnName]['fn_starts_with_cli']) $NO_FN_START_CLI = false;
+                    if ($fns[$fnName]['fn_starts_with_funk']) $NO_FN_START_FUNK = false;
+                }
+                // 3. Tokenized Classes
+                $tokenizedClasses = $this->file_harvest_all_classes_from_code($fileRaw);
+                foreach ($tokenizedClasses as $className => $classData) {
+                    $classes[$className] = $classData;
+                    if (in_array(strtolower($className), $clnames_only, true)) {
+                        $clnames_duplicates[$className] = true;
+                    }
+                    $clnames_only[] = $className;
+                }
+            } else {
+                $this->errors['all'] = "[INTERNAL FUNKPHP ERROR - file_status()] - FAILED to read Folder+File Path:`{$folder}{$file}` when it should ahve been possible. Verify Folder/File Permissions in Your Project.";
+                return ['INTERNAL_FUNKPHP_ERROR' => "[INTERNAL FUNKPHP ERROR - file_status()] - FAILED to read Folder+File Path:`{$folder}{$file}` when it should ahve been possible. Verify Folder/File Permissions in Your Project."];
+            }
+        }
+        return [
+            'namespace'             => $namespace,
+            'namespace_parts'       => $namespaceParts,
+            'file_use'              => $fileUse,
+            'functions'             => $fns,
+            'classes'               => $classes,
+            'file_raw'              => $fileRaw,
+            'functions_exist'       => count($fns) > 0,
+            'classes_exist'         => count($classes) > 0,
+            'file_readable'         => is_readable($file),
+            'file_exists'           => is_file($file),
+            'folder_provided_path'  => $providedFolder,
+            'folder_name'           => $singleFolder,
+            'folder_path'           => (is_dir($folder) && is_readable($folder)) ? $folder : null,
+            'folder_exists'         => is_dir($folder),
+            'file_name'             => $filename,
+            'file_path'             => (is_file($file) && is_readable($file)) ? $file : null,
+            'fn_names_only'         => $fnames_only,
+            'fn_names_duplicates'   => $fnames_duplicates,
+            'class_names_only'      => $clnames_only,
+            'class_names_duplicates' => $clnames_duplicates,
+            'no_fn_starts_with_cli' => $NO_FN_START_CLI,
+            'no_fn_starts_with_funk' => $NO_FN_START_FUNK,
+        ];
+    }
+    // Helper function to `file_status` but can also be used
+    // without using that one to get an array of regular function declarations!
+    // like "function name1(){}, function name2(){}" and so on within same file!
+    private function file_harvest_all_functions_from_code(string $code): array
+    {
+        $tokens = PhpToken::tokenize($code);
+        $count = count($tokens);
+        $harvested = [];
+        for ($i = 0; $i < $count; $i++) {
+            if ($tokens[$i]->id !== T_FUNCTION) {
+                continue;
+            }
+            $curr = $i + 1;
+            $isByRef = false;
+            while ($curr < $count && ($tokens[$curr]->id === T_WHITESPACE || $tokens[$curr]->text === '&')) {
+                if ($tokens[$curr]->text === '&') {
+                    $isByRef = true;
+                }
+                $curr++;
+            }
+            if ($curr >= $count || $tokens[$curr]->id !== T_STRING) {
+                continue;
+            }
+            $fnName = $tokens[$curr]->text;
+            $fnTokenPos = $tokens[$i]->pos;
+            $startLine = $tokens[$i]->line;
+            // DocComments
+            $commentStartPos = $fnTokenPos;
+            $collectedComments = [];
+            $back = $i - 1;
+            while ($back >= 0) {
+                $tok = $tokens[$back];
+                if ($tok->id === T_WHITESPACE) {
+                    $back--;
+                    continue;
+                }
+                if ($tok->id === T_DOC_COMMENT || $tok->id === T_COMMENT) {
+                    array_unshift($collectedComments, $tok->text);
+                    $commentStartPos = $tok->pos;
+                    $back--;
+                    continue;
+                }
+                break;
+            }
+            $docComment = !empty($collectedComments) ? implode("\n", $collectedComments) : null;
+            // Extract Arguments
+            $argStartTok = $curr + 1;
+            while ($argStartTok < $count && $tokens[$argStartTok]->text !== '(' && $tokens[$argStartTok]->text !== '{' && $tokens[$argStartTok]->text !== ';') {
+                $argStartTok++;
+            }
+            $argsRaw = '';
+            $bodySearchTokIdx = $argStartTok;
+            if ($argStartTok < $count && $tokens[$argStartTok]->text === '(') {
+                $parenDepth = 1;
+                $argTokens = [];
+                for ($j = $argStartTok + 1; $j < $count; $j++) {
+                    if ($tokens[$j]->text === '(') $parenDepth++;
+                    elseif ($tokens[$j]->text === ')') $parenDepth--;
+                    if ($parenDepth === 0) {
+                        $bodySearchTokIdx = $j + 1;
+                        break;
+                    }
+                    $argTokens[] = $tokens[$j]->text;
+                }
+                $argsRaw = trim(implode('', $argTokens));
+            }
+            // Body '{' lookup
+            while ($bodySearchTokIdx < $count && $tokens[$bodySearchTokIdx]->text !== '{' && $tokens[$bodySearchTokIdx]->text !== ';') {
+                $bodySearchTokIdx++;
+            }
+            if ($bodySearchTokIdx >= $count || $tokens[$bodySearchTokIdx]->text === ';') {
+                continue;
+            }
+            $bodyStartPos = $tokens[$bodySearchTokIdx]->pos;
+            $braceDepth = 0;
+            $hasStartedBody = false;
+            $bodyEndPos = -1;
+            $lastTokenIdx = $i;
+            for ($j = $bodySearchTokIdx; $j < $count; $j++) {
+                $tok = $tokens[$j];
+                if ($tok->text === '{') {
+                    $braceDepth++;
+                    $hasStartedBody = true;
+                } elseif ($tok->text === '}') {
+                    $braceDepth--;
+                }
+                if ($hasStartedBody && $braceDepth === 0) {
+                    $bodyEndPos = $tok->pos + strlen($tok->text);
+                    $lastTokenIdx = $j;
+                    break;
+                }
+            }
+            if ($bodyEndPos === -1) {
+                continue;
+            }
+            $fnRawWithDoc = substr($code, $commentStartPos, $bodyEndPos - $commentStartPos);
+            $fnRaw        = substr($code, $fnTokenPos, $bodyEndPos - $fnTokenPos);
+            $bodyRaw      = substr($code, $bodyStartPos, $bodyEndPos - $bodyStartPos);
+            // Run analysis on the body
+            $analysis = $this->file_analyze_body_tokens($bodyRaw, $startLine);
+            $harvested[$fnName] = array_merge([
+                'fn_exact_name'   => $fnName,
+                'fn_lowercased'   => strtolower($fnName),
+                'doc_comment'     => $docComment,
+                'args_raw'        => $argsRaw,
+                'body_raw'        => $bodyRaw,
+                'fn_raw'          => $fnRaw,
+                'fn_raw_with_doc' => $fnRawWithDoc,
+                'is_by_ref'       => $isByRef,
+                'line_start'      => $startLine,
+            ], $analysis);
+            $i = $lastTokenIdx;
+        }
+        return $harvested;
+    }
+    // Helper function to `file_status` but can also be used
+    // without using that one to get an array of regular class declarations!
+    // like "class name1(){}, class name2(){}" and so on within same file!
+    private function file_harvest_all_classes_from_code(string $code): array
+    {
+        $tokens = PhpToken::tokenize($code);
+        $count = count($tokens);
+        $harvested = [];
+        $dangerousFuncs = ['shell_exec', 'exec', 'system', 'passthru', 'proc_open', 'popen', 'pcntl_exec'];
+        $dangerousCalls = [];
+        $braceDepth = 0;
+        for ($i = 0; $i < $count; $i++) {
+            $tok = $tokens[$i];
+            if ($tok->text === '{') {
+                $braceDepth++;
+            } elseif ($tok->text === '}') {
+                $braceDepth--;
+            }
+            if ($tok->id === T_CLASS) {
+                // Skip anonymous classes: "new class {}"
+                $prevIdx = $i - 1;
+                while ($prevIdx >= 0 && $tokens[$prevIdx]->id === T_WHITESPACE) {
+                    $prevIdx--;
+                }
+                if ($prevIdx >= 0 && $tokens[$prevIdx]->id === T_NEW) {
+                    continue;
+                }
+                // Capture class name
+                $nameIndex = $i + 1;
+                while ($nameIndex < $count && $tokens[$nameIndex]->id === T_WHITESPACE) {
+                    $nameIndex++;
+                }
+                if ($nameIndex >= $count || $tokens[$nameIndex]->id !== T_STRING) {
+                    continue;
+                }
+                $className = $tokens[$nameIndex]->text;
+                $classTokenPos = $tok->pos;
+                $startLine = $tok->line;
+                // Capture DocComments backward
+                $commentStartPos = $classTokenPos;
+                $collectedComments = [];
+                $back = $i - 1;
+                while ($back >= 0) {
+                    $btok = $tokens[$back];
+                    if ($btok->id === T_WHITESPACE) {
+                        $back--;
+                        continue;
+                    }
+                    if ($btok->id === T_DOC_COMMENT || $btok->id === T_COMMENT) {
+                        array_unshift($collectedComments, $btok->text);
+                        $commentStartPos = $btok->pos;
+                        $back--;
+                        continue;
+                    }
+                    break;
+                }
+                $docComment = !empty($collectedComments) ? implode("\n", $collectedComments) : null;
+                // Parse inheritance (extends & implements) until '{'
+                $bodySearchIdx = $nameIndex + 1;
+                $extends = null;
+                $implements = [];
+                while ($bodySearchIdx < $count && $tokens[$bodySearchIdx]->text !== '{') {
+                    if ($tokens[$bodySearchIdx]->id === T_EXTENDS) {
+                        $eIdx = $bodySearchIdx + 1;
+                        while ($eIdx < $count && $tokens[$eIdx]->id === T_WHITESPACE) {
+                            $eIdx++;
+                        }
+                        if ($eIdx < $count) {
+                            $extends = $tokens[$eIdx]->text;
+                        }
+                    }
+                    if ($tokens[$bodySearchIdx]->id === T_IMPLEMENTS) {
+                        for ($impIdx = $bodySearchIdx + 1; $impIdx < $count; $impIdx++) {
+                            if ($tokens[$impIdx]->text === '{') break;
+                            if ($tokens[$impIdx]->id === T_STRING || $tokens[$impIdx]->id === T_NAME_QUALIFIED) {
+                                $implements[] = $tokens[$impIdx]->text;
+                            }
+                        }
+                    }
+                    $bodySearchIdx++;
+                }
+                if ($bodySearchIdx >= $count) {
+                    continue;
+                }
+                $bodyStartPos = $tokens[$bodySearchIdx]->pos;
+                $classBraceDepth = 0;
+                $hasStartedBody = false;
+                $hasEval = false;
+                $hasDangerousCalls = false;
+                $hasExit = false;
+                $bodyEndPos = -1;
+                $lastTokenIdx = $i;
+                // Walk body for top-level metrics and boundaries
+                for ($j = $bodySearchIdx; $j < $count; $j++) {
+                    $ctok = $tokens[$j];
+                    if ($ctok->text === '{') {
+                        $classBraceDepth++;
+                        $hasStartedBody = true;
+                    } elseif ($ctok->text === '}') {
+                        $classBraceDepth--;
+                    }
+                    if ($hasStartedBody && $classBraceDepth >= 1) {
+                        if ($ctok->id === T_EVAL) {
+                            $hasEval = true;
+                        }
+                        if ($ctok->id === T_EXIT) {
+                            $hasExit = true;
+                        }
+                        if ($ctok->id === T_STRING && in_array(strtolower($ctok->text), $dangerousFuncs, true)) {
+                            $hasDangerousCalls = true;
+                            $dagnerousCalls[] = ['call' => $ctok->text, 'line' => $ctok->line];
+                        }
+                    }
+                    if ($hasStartedBody && $classBraceDepth === 0) {
+                        $bodyEndPos = $ctok->pos + strlen($ctok->text);
+                        $lastTokenIdx = $j;
+                        break;
+                    }
+                }
+                if ($bodyEndPos === -1) {
+                    continue;
+                }
+                $classRawWithDoc = substr($code, $commentStartPos, $bodyEndPos - $commentStartPos);
+                $classRaw        = substr($code, $classTokenPos, $bodyEndPos - $classTokenPos);
+                $bodyRaw         = substr($code, $bodyStartPos, $bodyEndPos - $bodyStartPos);
+                // Deep-analyze class members via file_analyze_class_tokens
+                $classStructureAnalysis = $this->file_analyze_class_tokens($bodyRaw, $startLine);
+                $harvested[$className] = [
+                    'class_name'              => $className,
+                    'class_name_ucfirst'      => (ucfirst($className) === $className),
+                    'doc_comment'             => $docComment,
+                    'extends'                 => $extends,
+                    'implements'              => $implements,
+                    'traits_used'             => $classStructureAnalysis['traits_used'],
+                    'constants'               => $classStructureAnalysis['constants'],
+                    'properties'              => $classStructureAnalysis['properties'],
+                    'methods'                 => $classStructureAnalysis['methods'],
+                    'body_raw'                => $bodyRaw,
+                    'class_raw'               => $classRaw,
+                    'class_raw_with_doc'      => $classRawWithDoc,
+                    'line_start'              => $startLine,
+                    'has_eval'                => $hasEval,
+                    'has_dangerous_calls'     => $hasDangerousCalls,
+                    'dangerous_calls'         => $dangerousCalls,
+                    'has_exit'                => $hasExit,
+                    'class_starts_with_cli'   => str_starts_with(strtolower($className), 'cli_'),
+                    'class_starts_with_funk'  => str_starts_with(strtolower($className), 'funk_'),
+                ];
+                $i = $lastTokenIdx;
+            }
+        }
+        return $harvested;
+    }
+    // Helper function gets the namespace and use from raw code string
+    private function file_harvest_namespace_and_uses_from_code(string $code): array
+    {
+        $tokens = PhpToken::tokenize($code);
+        $count = count($tokens);
+        $namespace = null;
+        $namespaceParts = null;
+        $fileUse = [];
+        $braceDepth = 0;
+        for ($i = 0; $i < $count; $i++) {
+            $tok = $tokens[$i];
+            if ($tok->text === '{') {
+                $braceDepth++;
+            } elseif ($tok->text === '}') {
+                $braceDepth--;
+            }
+            // Only process file-level declarations (outside any function/class body)
+            if ($braceDepth === 0) {
+                // 1. Namespace Parser
+                if ($tok->id === T_NAMESPACE) {
+                    $nsTokens = [];
+                    for ($j = $i + 1; $j < $count; $j++) {
+                        if ($tokens[$j]->text === ';' || $tokens[$j]->text === '{') {
+                            break;
+                        }
+                        if ($tokens[$j]->id !== T_WHITESPACE) {
+                            $nsTokens[] = $tokens[$j]->text;
+                        }
+                    }
+                    $nsString = trim(implode('', $nsTokens));
+                    if ($nsString !== '') {
+                        $namespace = $nsString;
+                        $namespaceParts = explode('\\', $nsString);
+                    }
+                }
+                // 2. Use Statements Parser ('file_use')
+                if ($tok->id === T_USE) {
+                    $useStartPos = $tok->pos;
+                    $useEndPos = -1;
+                    for ($j = $i + 1; $j < $count; $j++) {
+                        if ($tokens[$j]->text === ';') {
+                            $useEndPos = $tokens[$j]->pos + 1;
+                            $i = $j; // Fast-forward outer loop past ';'
+                            break;
+                        }
+                    }
+                    if ($useEndPos !== -1) {
+                        $rawUse = trim(substr($code, $useStartPos, $useEndPos - $useStartPos));
+                        // Clean statement removing 'use ' prefix and ';' suffix
+                        $cleanUse = preg_replace('/^use\s+/i', '', rtrim($rawUse, ';'));
 
+                        $fileUse[] = [
+                            'raw'   => $rawUse,
+                            'clean' => trim($cleanUse),
+                        ];
+                    }
+                }
+            }
+        }
+        return [
+            'namespace'       => $namespace,
+            'namespace_parts' => $namespaceParts,
+            'file_use'        => $fileUse,
+        ];
+    }
+    // Helper function (must get code as string) that can analyze already
+    // loaded PHP code for safety by providing any functions a function
+    // and/or class is using to compare against (dis)allowed functions and so on!
+    private function file_analyze_body_tokens(string $bodyCode, int $startLine = 1): array
+    {
+        $tokens = PhpToken::tokenize("<?php " . $bodyCode);
+        $count = count($tokens);
+        $dangerousFuncs = ['shell_exec', 'exec', 'system', 'passthru', 'proc_open', 'popen', 'pcntl_exec'];
+        $hasExit = false;
+        $exitLines = [];
+        $hasRawOutput = false;
+        $rawOutputLines = [];
+        $hasEval = false;
+        $evalLines = [];
+        $hasInnerFunctions = false;
+        $innerFunctionLines = [];
+        $hasInnerClasses = false;
+        $innerClassLines = [];
+        $hasGlobals = false;
+        $globalVars = [];
+        $hasDangerousCalls = false;
+        $hasOnlyCommentsOrWhiteSpace = true;
+        $hasVariableVars = false;
+        $calls = [];
+        // Account for added '<?php ' offset in line mapping if needed
+        $lineOffset = $startLine;
+        for ($i = 0; $i < $count; $i++) {
+            $tok = $tokens[$i];
+            $line = $tok->line + $lineOffset;
+            if (
+                $tok->text !== '{' &&
+                $tok->text !== '}' &&
+                $tok->id !== T_OPEN_TAG &&
+                $tok->id !== T_CLOSE_TAG &&
+                $tok->id !== T_COMMENT &&
+                $tok->id !== T_DOC_COMMENT &&
+                $tok->id !== T_WHITESPACE
+            ) {
+                $hasOnlyCommentsOrWhiteSpace = false;
+            }
+            // 1. Early Exits (exit / die)
+            if ($tok->id === T_EXIT) {
+                $hasExit = true;
+                $exitLines[] = $line;
+                continue;
+            }
+            // 2. Raw Output Dumps
+            if ($tok->id === T_ECHO || $tok->id === T_PRINT) {
+                $hasRawOutput = true;
+                $rawOutputLines[] = $line;
+                continue;
+            }
+            // 3. Eval / Dynamic Code
+            if ($tok->id === T_EVAL) {
+                $hasEval = true;
+                $evalLines[] = $line;
+                continue;
+            }
+            // 4. Nested Functions (Named vs Anonymous/Closures)
+            if ($tok->id === T_FUNCTION || (defined('T_FN') && $tok->id === T_FN)) {
+                $nextIdx = $i + 1;
+                // Fast-forward past whitespace, comments, and reference operators ('&')
+                while ($nextIdx < $count && (
+                    $tokens[$nextIdx]->id === T_WHITESPACE ||
+                    $tokens[$nextIdx]->id === T_COMMENT ||
+                    $tokens[$nextIdx]->id === T_DOC_COMMENT ||
+                    $tokens[$nextIdx]->text === '&'
+                )) {
+                    $nextIdx++;
+                }
+                // If a T_STRING immediately follows, it's a NAMED inner function (e.g., function test() {})
+                if ($nextIdx < $count && $tokens[$nextIdx]->id === T_STRING) {
+                    $hasInnerFunctions = true;
+                    $innerFunctionLines[] = $line;
+                    continue;
+                }
+                // Otherwise, it's an anonymous closure ($var = function() {}) or arrow function
+                $hasClosures = true;
+                $closureLines[] = $line;
+                continue;
+            }
+            // 5. Nested Classes
+            if ($tok->id === T_CLASS) {
+                $hasInnerClasses = true;
+                $innerClassLines[] = $line;
+                continue;
+            }
+            // 6. Global State Inspection ($GLOBALS or global $a)
+            if ($tok->id === T_GLOBAL) {
+                $hasGlobals = true;
+                for ($g = $i + 1; $g < $count; $g++) {
+                    if ($tokens[$g]->text === ';') break;
+                    if ($tokens[$g]->id === T_VARIABLE) {
+                        $globalVars[] = $tokens[$g]->text;
+                    }
+                }
+            }
+            // 7. Variable Variables ($$foo)
+            if ($tok->text === '$' && isset($tokens[$i + 1]) && ($tokens[$i + 1]->id === T_VARIABLE || $tokens[$i + 1]->text === '{')) {
+                $hasVariableVars = true;
+            }
+            // 8. Function Calls (T_STRING, T_EVAL, or fully qualified \foo\bar)
+            if ($tok->id === T_STRING || $tok->id === T_NAME_QUALIFIED || $tok->id === T_NAME_FULLY_QUALIFIED) {
+                $prevIdx = $i - 1;
+                while ($prevIdx >= 0 && $tokens[$prevIdx]->id === T_WHITESPACE) {
+                    $prevIdx--;
+                }
+                // Exclude method calls ($obj->method), static calls (Class::method), definitions, or instantiations
+                if ($prevIdx >= 0) {
+                    $pId = $tokens[$prevIdx]->id;
+                    if (
+                        $pId === T_OBJECT_OPERATOR ||
+                        $pId === T_DOUBLE_COLON ||
+                        $pId === T_FUNCTION ||
+                        $pId === T_CLASS ||
+                        $pId === T_NEW ||
+                        (defined('T_NULLSAFE_OBJECT_OPERATOR') && $pId === T_NULLSAFE_OBJECT_OPERATOR)
+                    ) {
+                        continue;
+                    }
+                }
+                $nextIdx = $i + 1;
+                while ($nextIdx < $count && $tokens[$nextIdx]->id === T_WHITESPACE) {
+                    $nextIdx++;
+                }
+                // Confirm call via opening parenthesis '('
+                if ($nextIdx < $count && $tokens[$nextIdx]->text === '(') {
+                    $calledName = $tok->text;
+                    $lineNo = $line;
+                    $argsString = '';
+                    $parenDepth = 1;
+                    $argRunner = $nextIdx + 1;
+                    while ($argRunner < $count) {
+                        $argToken = $tokens[$argRunner];
+                        if ($argToken->text === '(') {
+                            $parenDepth++;
+                        } elseif ($argToken->text === ')') {
+                            $parenDepth--;
+                        }
+                        if ($parenDepth === 0) {
+                            break;
+                        }
+                        $argsString .= $argToken->text;
+                        $argRunner++;
+                    }
+                    $loweredName = strtolower(ltrim($calledName, '\\'));
+                    if (in_array($loweredName, $dangerousFuncs, true)) {
+                        $hasDangerousCalls = true;
+                    }
+                    $calls[] = [
+                        'name' => $calledName,
+                        'line' => $lineNo,
+                        'args' => trim($argsString)
+                    ];
+                }
+            }
+        }
+        return [
+            'has_exit'             => $hasExit,
+            'exit_lines'           => array_unique($exitLines),
+            'has_raw_output'       => $hasRawOutput,
+            'raw_output_lines'     => array_unique($rawOutputLines),
+            'has_eval'             => $hasEval,
+            'eval_lines'           => array_unique($evalLines),
+            'has_inner_functions'  => $hasInnerFunctions,
+            'nested_function_lines' => array_unique($innerFunctionLines),
+            'has_closures'           => $hasClosures ?? false,   // Safe anonymous closures
+            'closure_lines'          => array_unique($closureLines ?? []),
+            'has_inner_classes'    => $hasInnerClasses,
+            'inner_class_lines'    => array_unique($innerClassLines),
+            'has_globals'          => $hasGlobals,
+            'global_vars'          => array_unique($globalVars),
+            'has_dangerous_calls'  => $hasDangerousCalls,
+            'only_whitespace_and_or_comments' => $hasOnlyCommentsOrWhiteSpace,
+            'has_variable_vars'    => $hasVariableVars,
+            'calls'                => $calls,
+        ];
+    }
+    private function file_analyze_class_tokens(string $classBodyCode, int $startLine = 1): array
+    {
+        $tokens = PhpToken::tokenize("<?php " . $classBodyCode);
+        $count = count($tokens);
+        $lineOffset = $startLine;
+        $traitsUsed = [];
+        $constants = [];
+        $properties = [];
+        $methods = [];
+        $braceDepth = 0;
+        for ($i = 0; $i < $count; $i++) {
+            $tok = $tokens[$i];
+            if ($tok->text === '{') {
+                $braceDepth++;
+                continue;
+            } elseif ($tok->text === '}') {
+                $braceDepth--;
+                continue;
+            }
+            // We only parse class members at the top level of the class body (depth === 1 inside "class { ... }")
+            if ($braceDepth !== 1) {
+                continue;
+            }
+            // 1. TRAIT INCLUSION: "use TraitA, TraitB;"
+            if ($tok->id === T_USE) {
+                $traitTokens = [];
+                for ($j = $i + 1; $j < $count; $j++) {
+                    if ($tokens[$j]->text === ';' || $tokens[$j]->text === '{') { // '{' handles adapt/insteadof blocks
+                        $i = $j;
+                        break;
+                    }
+                    if ($tokens[$j]->id !== T_WHITESPACE) {
+                        $traitTokens[] = $tokens[$j]->text;
+                    }
+                }
+                $traitStr = implode('', $traitTokens);
+                foreach (explode(',', $traitStr) as $t) {
+                    $trimmed = trim($t);
+                    if ($trimmed !== '') {
+                        $traitsUsed[] = $trimmed;
+                    }
+                }
+                continue;
+            }
+            // 2. CONSTANTS: "public const FOO = 'bar';"
+            if ($tok->id === T_CONST) {
+                $visibility = 'public';
+                // Look backward for visibility
+                for ($b = $i - 1; $b >= 0; $b--) {
+                    if ($tokens[$b]->id === T_PRIVATE) {
+                        $visibility = 'private';
+                        break;
+                    }
+                    if ($tokens[$b]->id === T_PROTECTED) {
+                        $visibility = 'protected';
+                        break;
+                    }
+                    if ($tokens[$b]->id === T_PUBLIC) {
+                        $visibility = 'public';
+                        break;
+                    }
+                    if ($tokens[$b]->text === ';' || $tokens[$b]->text === '}') break;
+                }
+                // Look forward for CONST_NAME = value
+                $constName = null;
+                $valueTokens = [];
+                $hasEquals = false;
+                for ($j = $i + 1; $j < $count; $j++) {
+                    if ($tokens[$j]->text === ';') {
+                        $i = $j;
+                        break;
+                    }
+                    if (!$hasEquals && $tokens[$j]->id === T_STRING) {
+                        $constName = $tokens[$j]->text;
+                    } elseif ($tokens[$j]->text === '=') {
+                        $hasEquals = true;
+                    } elseif ($hasEquals && $tokens[$j]->id !== T_WHITESPACE) {
+                        $valueTokens[] = $tokens[$j]->text;
+                    }
+                }
+                if ($constName !== null) {
+                    $constants[$constName] = [
+                        'name'       => $constName,
+                        'visibility' => $visibility,
+                        'value_raw'  => trim(implode(' ', $valueTokens)),
+                        'line'       => $tok->line + $lineOffset,
+                    ];
+                }
+                continue;
+            }
+            // 3. METHODS: "public static function myMethod($a) { ... }"
+            if ($tok->id === T_FUNCTION) {
+                $visibility = 'public'; // PHP default
+                $isStatic   = false;
+                $isAbstract = false;
+                $isFinal    = false;
+                // Look backward for modifiers
+                for ($b = $i - 1; $b >= 0; $b--) {
+                    $bId = $tokens[$b]->id;
+                    if ($bId === T_PRIVATE) {
+                        $visibility = 'private';
+                    }
+                    if ($bId === T_PROTECTED) {
+                        $visibility = 'protected';
+                    }
+                    if ($bId === T_PUBLIC) {
+                        $visibility = 'public';
+                    }
+                    if ($bId === T_STATIC) {
+                        $isStatic = true;
+                    }
+                    if ($bId === T_ABSTRACT) {
+                        $isAbstract = true;
+                    }
+                    if ($bId === T_FINAL) {
+                        $isFinal = true;
+                    }
+                    if ($tokens[$b]->text === ';' || $tokens[$b]->text === '}' || $tokens[$b]->text === '{') {
+                        break;
+                    }
+                }
+                // Find method name
+                $nameIdx = $i + 1;
+                while ($nameIdx < $count && ($tokens[$nameIdx]->id === T_WHITESPACE || $tokens[$nameIdx]->text === '&')) {
+                    $nameIdx++;
+                }
+                if ($nameIdx >= $count || $tokens[$nameIdx]->id !== T_STRING) {
+                    continue;
+                }
+                $methodName = $tokens[$nameIdx]->text;
+                $methodLine = $tok->line + $lineOffset;
+                // Harvest arguments string inside (...)
+                $argStart = $nameIdx + 1;
+                while ($argStart < $count && $tokens[$argStart]->text !== '(' && $tokens[$argStart]->text !== ';' && $tokens[$argStart]->text !== '{') {
+                    $argStart++;
+                }
+                $argsRaw = '';
+                $bodySearchIdx = $argStart;
+                if ($argStart < $count && $tokens[$argStart]->text === '(') {
+                    $pDepth = 1;
+                    $aTokens = [];
+                    for ($j = $argStart + 1; $j < $count; $j++) {
+                        if ($tokens[$j]->text === '(') $pDepth++;
+                        elseif ($tokens[$j]->text === ')') $pDepth--;
+                        if ($pDepth === 0) {
+                            $bodySearchIdx = $j + 1;
+                            break;
+                        }
+                        $aTokens[] = $tokens[$j]->text;
+                    }
+                    $argsRaw = trim(implode('', $aTokens));
+                }
+                // Find method body opening '{' or abstract semicolon ';'
+                while ($bodySearchIdx < $count && $tokens[$bodySearchIdx]->text !== '{' && $tokens[$bodySearchIdx]->text !== ';') {
+                    $bodySearchIdx++;
+                }
+                if ($bodySearchIdx >= $count) {
+                    continue;
+                }
+                // Abstract or interface method with no body
+                if ($tokens[$bodySearchIdx]->text === ';') {
+                    $methods[$methodName] = [
+                        'name'        => $methodName,
+                        'visibility'  => $visibility,
+                        'is_static'   => $isStatic,
+                        'is_abstract' => true,
+                        'is_final'    => $isFinal,
+                        'args_raw'    => $argsRaw,
+                        'body_raw'    => null,
+                        'line'        => $methodLine,
+                        'analysis'    => null,
+                    ];
+                    $i = $bodySearchIdx;
+                    continue;
+                }
+                // Extract body using brace depth
+                $mBodyStartPos = $tokens[$bodySearchIdx]->pos;
+                $mBraceDepth = 0;
+                $mHasStarted = false;
+                $mBodyEndPos = -1;
+                $lastIdx = $i;
+                for ($j = $bodySearchIdx; $j < $count; $j++) {
+                    if ($tokens[$j]->text === '{') {
+                        $mBraceDepth++;
+                        $mHasStarted = true;
+                    } elseif ($tokens[$j]->text === '}') {
+                        $mBraceDepth--;
+                    }
+                    if ($mHasStarted && $mBraceDepth === 0) {
+                        $mBodyEndPos = $tokens[$j]->pos + strlen($tokens[$j]->text);
+                        $lastIdx = $j;
+                        break;
+                    }
+                }
+                if ($mBodyEndPos !== -1) {
+                    $methodBodyRaw = substr($classBodyCode, $mBodyStartPos - 5, $mBodyEndPos - $mBodyStartPos); // adjust for <?php token prefix
+                    $methodAnalysis =  $this->file_analyze_body_tokens($methodBodyRaw, $methodLine);
+                    $methods[$methodName] = [
+                        'name'        => $methodName,
+                        'visibility'  => $visibility,
+                        'is_static'   => $isStatic,
+                        'is_abstract' => $isAbstract,
+                        'is_final'    => $isFinal,
+                        'args_raw'    => $argsRaw,
+                        'body_raw'    => $methodBodyRaw,
+                        'line'        => $methodLine,
+                        'analysis'    => $methodAnalysis,
+                    ];
+                    $i = $lastIdx;
+                }
+                continue;
+            }
+            // 4. PROPERTIES: "private static ?string $name = 'default';"
+            if ($tok->id === T_VARIABLE) {
+                $propName = ltrim($tok->text, '$');
+                $visibility = 'public'; // Default if unassigned
+                $isStatic   = false;
+                $isReadonly = false;
+                $typeHint   = null;
+                // Scan backwards to semicolon / brace / docblock for modifiers and type hint
+                $modifierTokens = [];
+                for ($b = $i - 1; $b >= 0; $b--) {
+                    $bTok = $tokens[$b];
+                    if ($bTok->text === ';' || $bTok->text === '}' || $bTok->text === '{' || $bTok->id === T_DOC_COMMENT) {
+                        break;
+                    }
+                    if ($bTok->id !== T_WHITESPACE) {
+                        array_unshift($modifierTokens, $bTok);
+                    }
+                }
+                foreach ($modifierTokens as $mTok) {
+                    if ($mTok->id === T_PRIVATE) {
+                        $visibility = 'private';
+                    } elseif ($mTok->id === T_PROTECTED) {
+                        $visibility = 'protected';
+                    } elseif ($mTok->id === T_PUBLIC) {
+                        $visibility = 'public';
+                    } elseif ($mTok->id === T_STATIC) {
+                        $isStatic = true;
+                    } elseif (defined('T_READONLY') && $mTok->id === T_READONLY) {
+                        $isReadonly = true;
+                    } elseif ($mTok->id === T_STRING || $mTok->id === T_NAME_QUALIFIED || $mTok->text === '?') {
+                        $typeHint .= $mTok->text;
+                    }
+                }
+                // Scan forward for default value until ';'
+                $hasDefault = false;
+                $defaultValueTokens = [];
+                for ($j = $i + 1; $j < $count; $j++) {
+                    if ($tokens[$j]->text === ';' || $tokens[$j]->text === ',') {
+                        $i = $j;
+                        break;
+                    }
+                    if ($tokens[$j]->text === '=') {
+                        $hasDefault = true;
+                    } elseif ($hasDefault && $tokens[$j]->id !== T_WHITESPACE) {
+                        $defaultValueTokens[] = $tokens[$j]->text;
+                    }
+                }
+                $properties[$propName] = [
+                    'name'          => $propName,
+                    'visibility'    => $visibility,
+                    'is_static'     => $isStatic,
+                    'is_readonly'   => $isReadonly,
+                    'type'          => $typeHint,
+                    'has_default'   => $hasDefault,
+                    'default_raw'   => $hasDefault ? implode(' ', $defaultValueTokens) : null,
+                    'line'          => $tok->line + $lineOffset,
+                ];
+            }
+        }
+        return [
+            'traits_used' => array_unique($traitsUsed),
+            'constants'   => $constants,
+            'properties'  => $properties,
+            'methods'     => $methods,
+        ];
+    }
     // Validate a Single Function in a Single File AND with optional boolean to Validate SingleFileFunctions
     // where it can only be one function in the file (middleware, request, post_response - while routes,
     // query, sql, and validation files can have more than one function per file. This might change!)
@@ -2578,7 +3475,7 @@ class C
     {
         $relativePath = '/src/funkphp/' . $fileData['folder_provided_path'] . '/' . $fileData['file_name'];
         if (empty($fileData) || array_is_list($fileData)) {
-            return "File Function Error in {$contextLabel}: Parsed File Data `$relativePath` as an Array is EITHER A Numbered Array when it should be an Associative Array OR it is Completely Empty.";
+            return "File Function Error in {$contextLabel}: Parsed File Data `$relativePath` as an Array is EITHER A Numbered Array when it should be an Associative Array OR it is Completely Empty. (This is possibly an Internal FunkPHP Error - try regenerate default files in `/src/funkphp/config/` and try again)";
         }
         if (empty($fileData['file_exists'])) {
             return "File Function Error in {$contextLabel}: File `$relativePath` does NOT exist.";
@@ -2615,11 +3512,10 @@ class C
             return "File Function Error in {$contextLabel}: Function `{$expectedFNName}()` in File `$relativePath` must have `&\$c` as its First Parameter (found `({$argsRaw})`).";
         }
         if ($FN['has_inner_functions'] === true) {
-            return "File Function Error in {$contextLabel}: Function `{$expectedFNName}()` in File `$relativePath` cannot have Inner Function Declarations (e.g. `function name(&\$c){ function inner(&\$c){}}`). See lines:`" . join(', ', $FN['nested_function_lines']) . "` in the File.";
+            return "File Function Error in {$contextLabel}: Function `{$expectedFNName}()` in File `$relativePath` cannot have Inner Function Declarations (e.g. `function name(&\$c){ function inner(&\$c){}}`). See line(s):`" . join(', ', $FN['nested_function_lines']) . "` in the File.";
         }
         return null; // Function File for FunkPHP use is all OK here! - Warnings are emitted by another function
     }
-
     // Validate Response Code is between 100-599
     private function validateStatusCode($status): bool
     {
@@ -2641,7 +3537,6 @@ class C
         }
         return $json;
     }
-
     // Set context to not having to repeat so much for each batchFUNCTION
     private function setCtx(string $batchFN, string $under, mixed ...$vals)
     {
@@ -2650,7 +3545,7 @@ class C
     /**
      * Resolves a standardized validation error message template.
      *
-     * @param 'NonEmptyAllLowercasedStringNotStartCLIorFUNK'|'ValidFunctionName'|'ValidRegex'|'InvalidArrayFormat'|'MustExistInOPT_CTX'|'DuplicateCallInvalidOPT_CTX'|'DuplicateCallValidOPT_CTX'|'ConflictingConfigurationOPT_CTX'|'InvalidHttpStatusCode'|'JsonEncodingFailed'|'DuplicateFunctionNameInBatch'|'UserDefinedFUNCTIONNotFoundOPT_CTX'|'UserDefinedCLASSNotFoundOPT_CTX'|'UserDefinedFUNCTIONAlreadyUsedByOPT_CTX'|'UserDefinedCLASSAlreadyUsedByOPT_CTX'|'UserDefinedFUNCTIONAlreadyInArrayOPT_CTX'|'UserDefinedCLASSAlreadyInArrayOPT_CTX' $errType
+     * @param 'NonEmptyAllLowercasedStringNotStartCLIorFUNK'|'ValidFunctionName'|'ValidRegex'|'InvalidArrayFormat'|'MustExistInOPT_CTX'|'DuplicateCallInvalidOPT_CTX'|'DuplicateCallValidOPT_CTX'|'ConflictingConfigurationOPT_CTX'|'InvalidHttpStatusCode'|'JsonEncodingFailed'|'DuplicateFunctionNameInBatch'|'UserDefinedFUNCTIONNotFoundOPT_CTX'|'UserDefinedCLASSNotFoundOPT_CTX'|'UserDefinedFUNCTIONAlreadyUsedByOPT_CTX'|'UserDefinedCLASSAlreadyUsedByOPT_CTX'|'UserDefinedFUNCTIONAlreadyInArrayOPT_CTX'|'UserDefinedCLASSAlreadyInArrayOPT_CTX'|'UserDefinedFUNCTIONHasWrongArgsOPT_CTX' $errType
      * @param string|null $optionalCtx Extra Context injected where applicable (noted with `OPT_CTX` in key names).
      * @return string The Formatted Error Message Segment.
      */
@@ -2661,7 +3556,9 @@ class C
             'NonEmptyAllLowercasedStringNotStartCLIorFUNKOPT_CTX' => "Invalid String Value in {$optionalCtx}: must be a Non-Empty String (no trailing spaces) all lowercased that does NOT start with `cli_` OR `funk_`.",
             'ValidFunctionNameOPT_CTX'                         => "Invalid Function Name in {$optionalCtx}: must be a Non-Empty String (no trailing spaces) starting with `[_a-z]` and then only use the following characters: `[_a-z0-9]`.",
             'ValidRegexOPT_CTX'                                => "Invalid Regex Value in {$optionalCtx}: must be a Non-Empty String (no trailing spaces) that is also a Valid Regex Pattern using `preg_match()`.",
+
             // Scope & Existence Rules
+            'UserDefinedFUNCTIONHasWrongArgsOPT_CTX'                       => "Provided User-defined Function in {$optionalCtx} from `/src/funkphp/config/functions.php` must besides the starting Function Parameter `&\$c` also have the following Function Parameters:",
             'UserDefinedFUNCTIONAlreadyInArrayOPT_CTX'                       => "Provided User-defined Function in {$optionalCtx} from `/src/funkphp/config/functions.php` is already in a must-be-unique array:",
             'UserDefinedCLASSAlreadyInArrayOPT_CTX'                       => "Provided User-defined Class in {$optionalCtx} from `/src/funkphp/config/classes.php` is already in a must-be-unique array:",
             'UserDefinedFUNCTIONAlreadyUsedByOPT_CTX'                       => "Provided User-defined Function in {$optionalCtx} from `/src/funkphp/config/functions.php` is already being used by:",
@@ -2669,11 +3566,12 @@ class C
             'UserDefinedFUNCTIONNotFoundOPT_CTX'                       => "Provided User-defined Function in {$optionalCtx} NOT Found in `/src/funkphp/config/functions.php`. Review Function Name OR add it to the File.",
             'UserDefinedCLASSNotFoundOPT_CTX'                          => "Provided User-defined Class in {$optionalCtx} NOT Found in `/src/funkphp/config/classes.php`. Review Class Name OR add it to the File.",
             'MustExistInOPT_CTX'                                 => "must exist in {$optionalCtx}.",
+
             // Call Order & Duplicate Conflict Rules
             'DuplicateCallInvalidOPT_CTX'              => "Duplicate Call to {$optionalCtx}. Review the already Invalid Configuration.",
             'DuplicateCallValidOPT_CTX'                => "Duplicate Call to {$optionalCtx}. Review/change the already Valid Configuration.",
             'ConflictingConfigurationOPT_CTX'           => "Valid Configuration (`{$optionalCtx}`) is already set and CANNOT be overridden, only changed manually.",
-            'AlreadyUsedBy' => "",
+
             // Serialization & HTTP Rules
             'InvalidHttpStatusCode'                     => 'must be a Valid Integer HTTP Status Code between 100-599.',
             'JsonEncodingFailed'                        => "Data Serialization to JSON Failed {$optionalCtx}. Review the passed Input to it.",
@@ -2681,7 +3579,6 @@ class C
         ];
         return $errors[$errType] ?? ' [INTERNAL FUNKPHP ERROR - UNKNOWN_ERROR_TYPE]: REVIEW class C -> private function getErr in `/src/funkphp/core/functions.php`!';
     }
-
     // Set default error in 'all' and also the specified key based on error level depth
     private function setErr(string $errMsg, array|null &$specificErrDepth, bool $skipDepth = false)
     {
@@ -2689,6 +3586,11 @@ class C
         if ($skipDepth === false) {
             $specificErrDepth[] = $errMsg;
         }
+    }
+    // Join array with wrapped `` and comma
+    private function joinArray(array $array = [])
+    {
+        return '`' . join('`, `', $array) . '`';
     }
 
     // ->config()
@@ -2845,15 +3747,15 @@ class C
             return;
         }
         // FN already used by some other Global Engine Function? (exception, error, uri normalizer, https kernel?)
-        if (isset($this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction])) {
-            $err = $this->getErr('UserDefinedFUNCTIONAlreadyUsedByOPT_CTX', $ctxVals) . " `{$this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction]}`";
+        if (isset($this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunction])) {
+            $err = $this->getErr('UserDefinedFUNCTIONAlreadyUsedByOPT_CTX', $ctxVals) . "`{$this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction]}` and cannot be used for multiple purposes as a result.";
             $this->setErr($err, $this->errors['config']);
             $this->invalidBatches['config']['DEFAULT_REGISTER_SHUTDOWN_HANDLER'] = $userDefinedFunction;
             return;
         }
         // FN already in array of chained Register Shutdown FNs?
         if (in_array($userDefinedFunction, $this->validBatches['config']['REGISTERED_SHUTDOWN_HANDLERS'] ?? [], true)) {
-            $err = "Duplicate User-defined Registered Shutdown Handler `{$userDefinedFunction}` in $ctxVals - already added.";
+            $err = $this->getErr('UserDefinedFUNCTIONAlreadyInArrayOPT_CTX') . $this->joinArray($this->validBatches['config']['REGISTERED_SHUTDOWN_HANDLERS'] ?? ['***EMPTY***']);
             $this->setErr($err, $this->errors['config']);
             return;
         }
@@ -2861,186 +3763,201 @@ class C
         // assuming ROOT_FOLDER constant exists first!
         if (!$this->rootFolderExistOrSetError()) return;
         $this->cachedCreateKeyIfNullAndOptionalFileName('file_user_defined_functions');
-        if (!$this->cachedKeyHasSpecificFN('file_user_defined_functions', $userDefinedFunction)) {
-            $err = "User-defined Registered Shutdown Handler `{$userDefinedFunction}` $ctxVals does NOT exist in User-defined Functions (`/src/funkphp/config/functions.php`).";
-            $this->setErr($err, $this->errors['config']);
+        $fileData = $this->cached['file_user_defined_functions'] ?? [];
+        $contextLabel = "`->setDefaultRegisteredShutdownHandler('{$userDefinedFunction}') under ->CONFIG()`";
+        // Bails on the first structural error regarding a typical user-defined function
+        $fatalError = $this->validateFNFile($fileData, $userDefinedFunction, $contextLabel, '', false);
+        if ($fatalError !== null) {
+            $this->setErr($fatalError, $this->errors['config']);
             $this->invalidBatches['config']['DEFAULT_REGISTER_SHUTDOWN_HANDLER'] = $userDefinedFunction;
             return;
         }
-        // No inner Function declarations allowed but anonymous ones are OK!
-        if ($this->cached['file_user_defined_functions']['functions'][$userDefinedFunction]['has_inner_functions']) {
-            $err = "User-defined Registered Shutdown Handler `{$userDefinedFunction}` $ctxVals has regular `Inner Function Declarations` (e.g. `function Name(...\$params){}`) on lines:`" . join(',', $this->cached['file_user_defined_functions']['functions'][$userDefinedFunction]['nested_function_lines'] ?? []) . '` which is not allowed in FunkPHP due to the high risk of `Global Function Declaration Pollution`. Instead, use `Anonymous OR Arrow Functions` as a replacement.';
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
-            $this->invalidBatches['config']['DEFAULT_REGISTER_SHUTDOWN_HANDLER'] = $userDefinedFunction;
-            return;
-        }
-        // Cannot have an empty body OR just whitespace and/or comments inside of it!
-        if (
-            $this->cached['file_user_defined_functions']['functions'][$userDefinedFunction]['body_raw'] === "{}"
-            || $this->cached['file_user_defined_functions']['functions'][$userDefinedFunction]['only_whitespace_and_or_comments'] === true
-        ) {
-            $err = "User-defined Registered Shutdown Handler `{$userDefinedFunction}` $ctxVals has `No Code in its Body` (e.g. `function Name(){}`) OR it has only Whitespace and/or Comments. Add some Code to the Function or Configure to Use another User-defined Function.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
-            $this->invalidBatches['config']['DEFAULT_REGISTER_SHUTDOWN_HANDLER'] = $userDefinedFunction;
-            return;
-        }
-        // Cannot not start with `&$c` as its first Function Parameter!
-        if (!str_starts_with($this->cached['file_user_defined_functions']['functions'][$userDefinedFunction]['args_raw'], '&$c')) {
-            $err = "User-defined Registered Shutdown Handler `{$userDefinedFunction}` $ctxVals does NOT start with `&\$c` (e.g. `function Name(&\$c){}`) as its first Parameter which it must for any User-defined Function.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
-            $this->invalidBatches['config']['DEFAULT_REGISTER_SHUTDOWN_HANDLER'] = $userDefinedFunction;
-            return;
-        }
-
+        // Add to ValidBatches, UserDefinedFNs and also UserDefinedEngineFNs which means any User-defined function
+        // that is added there cannot be used for multiple purposes as they are meant to be very specifically used.
         $this->validBatches['config']['DEFAULT_REGISTER_SHUTDOWN_HANDLER'][] = $userDefinedFunction;
         $this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction] = "->setDefaultRegisteredShutdownHandler()";
+        $this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunction] = "->setDefaultRegisteredShutdownHandler()";
     }
     private function batchSetDefaultExceptionHandlerGlobal(string $userDefinedFunction) // DEFAULT EXCEPTION HANDLER
     {
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setDefaultExceptionHandler', $userDefinedFunction);
+        [$ctx, $ctxVals] = $this->setCtx('setDefaultExceptionHandler', "CONFIG", $userDefinedFunction);
         if (isset($this->invalidBatches['config']['DEFAULT_EXCEPTION_HANDLER'])) {
-            $err = "Duplicate call - Invalid String Value for `->setDefaultExceptionHandler()` as current one under `->CONFIG()` is Invalid.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
-            return;
-        }
-        if (isset($this->validBatches['config']['DEFAULT_EXCEPTION_HANDLER'])) {
-            $err = "Duplicate call - A Valid String Value for `->setDefaultExceptionHandler()` already exists under `->CONFIG()`.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
+            $this->setErr($this->getErr('DuplicateCallInvalidOPT_CTX', $ctx), $this->errors['config']);
             return;
         }
         if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($userDefinedFunction)) {
-            $err = "Invalid String Value in `->setDefaultExceptionHandler()` under `->CONFIG()`. It must be a Non-Empty String (no trailing spaces) all Lowercased that does not start with `cli_` or `funk_`.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
+            $this->setErr($this->getErr('NonEmptyAllLowercasedStringNotStartCLIorFUNKOPT_CTX', $ctxVals), $this->errors['config']);
             $this->invalidBatches['config']['DEFAULT_EXCEPTION_HANDLER'] = $userDefinedFunction;
             return;
         }
         // FN already used by some other Global Engine Function? (exception, error, uri normalizer, https kernel?)
-        if (isset($this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction])) {
-            $err = "User-defined Exception Handler `{$userDefinedFunction}` for `->setDefaultExceptionHandler()` under `->CONFIG()` is already being used by:`{$this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction]}`.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
+        if (isset($this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunction])) {
+            $err = $this->getErr('UserDefinedFUNCTIONAlreadyUsedByOPT_CTX', $ctxVals) . "`{$this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction]}` and cannot be used for multiple purposes as a result.";
+            $this->setErr($err, $this->errors['config']);
             $this->invalidBatches['config']['DEFAULT_EXCEPTION_HANDLER'] = $userDefinedFunction;
+            return;
+        }
+        // FN already in array of chained Register Shutdown FNs?
+        if (in_array($userDefinedFunction, $this->validBatches['config']['DEFAULT_EXCEPTION_HANDLER'] ?? [], true)) {
+            $err = $this->getErr('UserDefinedFUNCTIONAlreadyInArrayOPT_CTX') . $this->joinArray($this->validBatches['config']['DEFAULT_EXCEPTION_HANDLER'] ?? ['***EMPTY***']);
+            $this->setErr($err, $this->errors['config']);
             return;
         }
         // Prepare Config Functions.php File I/O if needed
         // assuming ROOT_FOLDER constant exists first!
         if (!$this->rootFolderExistOrSetError()) return;
         $this->cachedCreateKeyIfNullAndOptionalFileName('file_user_defined_functions');
-        if (!$this->cachedKeyHasSpecificFN('file_user_defined_functions', $userDefinedFunction)) {
-            $err = "User-defined Exception Handler `{$userDefinedFunction}` for `->setDefaultExceptionHandler()` under `->CONFIG()` does NOT exist in User-defined Functions (`/src/funkphp/config/functions.php`).";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
+        $fileData = $this->cached['file_user_defined_functions'] ?? [];
+        $contextLabel = "`->setDefaultExceptionHandler('{$userDefinedFunction}') under ->CONFIG()`";
+        // Bails on the first structural error regarding a typical user-defined function
+        $fatalError = $this->validateFNFile($fileData, $userDefinedFunction, $contextLabel, '', false);
+        if ($fatalError !== null) {
+            $this->setErr($fatalError, $this->errors['config']);
             $this->invalidBatches['config']['DEFAULT_EXCEPTION_HANDLER'] = $userDefinedFunction;
             return;
         }
-        // No inner Function declarations allowed but anonymous ones are OK!
-        if ($this->cached['file_user_defined_functions']['functions'][$userDefinedFunction]['has_inner_functions']) {
-            $err = "User-defined Exception Handler `{$userDefinedFunction}` for `->setDefaultExceptionHandler()` under `->CONFIG()` has regular `Inner Function Declarations` (e.g. `function Name(...\$params){}`) on lines:`" . join(',', $this->cached['file_user_defined_functions']['functions'][$userDefinedFunction]['nested_function_lines'] ?? []) . '` which is not allowed in FunkPHP due to the high risk of `Global Function Declaration Pollution`. Instead, use `Anonymous OR Arrow Functions` as a replacement.';
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
-            $this->invalidBatches['config']['DEFAULT_EXCEPTION_HANDLER'] = $userDefinedFunction;
-            return;
-        }
-        // Cannot have an empty body OR just whitespace and/or comments inside of it!
+        // Unique Function checks for SetExceptionHandler: it must contain "\throwable $<varName>"
+        // and this is checked AFTER it starts with &$c so no issues there!
         if (
-            $this->cached['file_user_defined_functions']['functions'][$userDefinedFunction]['body_raw'] === "{}"
-            || $this->cached['file_user_defined_functions']['functions'][$userDefinedFunction]['only_whitespace_and_or_comments'] === true
+            !preg_match('/\\\\Throwable\s+\$[_a-z][_a-z0-9]*/i', $fileData['functions'][$userDefinedFunction]['args_raw'])
         ) {
-            $err = "User-defined Exception Handler `{$userDefinedFunction}` for `->setDefaultExceptionHandler()` under `->CONFIG()` has `No Code in its Body` (e.g. `function Name(){}`) OR it has only Whitespace and/or Comments. Add some Code to the Function or Configure to Use another User-defined Function.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
+            $err = $this->getErr('UserDefinedFUNCTIONHasWrongArgsOPT_CTX', $ctxVals) . ' `\Throwable \$e` (e.g. `function userDefined(&\$c, \Throwable \$e){}`) in order to use it as a User-defined Exception Handler. The variable `$e` can be named something else as well.' . " Found instead:`{$fileData['functions'][$userDefinedFunction]['args_raw']}`.";
+            $this->setErr($err, $this->errors['config']);
             $this->invalidBatches['config']['DEFAULT_EXCEPTION_HANDLER'] = $userDefinedFunction;
             return;
         }
-        // Cannot not start with `&$c` as its first Function Parameter!
-        if (!str_starts_with($this->cached['file_user_defined_functions']['functions'][$userDefinedFunction]['args_raw'], '&$c')) {
-            $err = "User-defined Exception Handler `{$userDefinedFunction}` for `->setDefaultExceptionHandler()` under `->CONFIG()` does NOT start with `&\$c` (e.g. `function Name(&\$c){}`) as its first Parameter which it must for any User-defined Function.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
-            $this->invalidBatches['config']['DEFAULT_EXCEPTION_HANDLER'] = $userDefinedFunction;
-            return;
-        }
-
-        $this->validBatches['config']['DEFAULT_EXCEPTION_HANDLER'] = $userDefinedFunction;
+        // Add to ValidBatches, UserDefinedFNs and also UserDefinedEngineFNs which means any User-defined function
+        // that is added there cannot be used for multiple purposes as they are meant to be very specifically used.
+        $this->validBatches['config']['DEFAULT_EXCEPTION_HANDLER'][] = $userDefinedFunction;
         $this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction] = "->setDefaultExceptionHandler()";
+        $this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunction] = "->setDefaultExceptionHandler()";
     }
     private function batchSetDefaultErrorHandlerGlobal(string $userDefinedFunction) // DEFAULT GLOBAL ERROR HANDLER
     {
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setDefaultErrorHandler', $userDefinedFunction);
+        [$ctx, $ctxVals] = $this->setCtx('setDefaultErrorHandler', "CONFIG", $userDefinedFunction);
         if (isset($this->invalidBatches['config']['DEFAULT_ERROR_HANDLER'])) {
-            $err = "Duplicate call - Invalid String Value for `->setDefaultErrorHandler()` as current one under `->CONFIG()` is Invalid.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
-            return;
-        }
-        if (isset($this->validBatches['config']['DEFAULT_ERROR_HANDLER'])) {
-            $err = "Duplicate call - A Valid String Value for `->setDefaultErrorHandler()` already exists under `->CONFIG()`.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
+            $this->setErr($this->getErr('DuplicateCallInvalidOPT_CTX', $ctx), $this->errors['config']);
             return;
         }
         if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($userDefinedFunction)) {
-            $err = "Invalid String Value in `->setDefaultErrorHandler()` under `->CONFIG()`. It must be a Non-Empty String all Lowercased that does not start with `cli_` or `funk_`.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
+            $this->setErr($this->getErr('NonEmptyAllLowercasedStringNotStartCLIorFUNKOPT_CTX', $ctxVals), $this->errors['config']);
             $this->invalidBatches['config']['DEFAULT_ERROR_HANDLER'] = $userDefinedFunction;
             return;
         }
         // FN already used by some other Global Engine Function? (exception, error, uri normalizer, https kernel?)
-        if (isset($this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction])) {
-            $err = "User-defined Error Handler `{$userDefinedFunction}` for `->setDefaultErrorHandler()` under `->CONFIG()` is already being used by:`{$this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction]}`.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
+        if (isset($this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunction])) {
+            $err = $this->getErr('UserDefinedFUNCTIONAlreadyUsedByOPT_CTX', $ctxVals) . "`{$this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction]}` and cannot be used for multiple purposes as a result.";
+            $this->setErr($err, $this->errors['config']);
             $this->invalidBatches['config']['DEFAULT_ERROR_HANDLER'] = $userDefinedFunction;
+            return;
+        }
+        // FN already in array of chained Register Shutdown FNs?
+        if (in_array($userDefinedFunction, $this->validBatches['config']['DEFAULT_ERROR_HANDLER'] ?? [], true)) {
+            $err = $this->getErr('UserDefinedFUNCTIONAlreadyInArrayOPT_CTX') . $this->joinArray($this->validBatches['config']['DEFAULT_ERROR_HANDLER'] ?? ['***EMPTY***']);
+            $this->setErr($err, $this->errors['config']);
             return;
         }
         // Prepare Config Functions.php File I/O if needed
         // assuming ROOT_FOLDER constant exists first!
         if (!$this->rootFolderExistOrSetError()) return;
         $this->cachedCreateKeyIfNullAndOptionalFileName('file_user_defined_functions');
-        if (!$this->cachedKeyHasSpecificFN('file_user_defined_functions', $userDefinedFunction)) {
-            $err = "User-defined Error Handler `{$userDefinedFunction}` for `->setDefaultErrorHandler()` under `->CONFIG()` does NOT exist in User-defined Functions (`/src/funkphp/config/functions.php`).";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
+        $fileData = $this->cached['file_user_defined_functions'] ?? [];
+        $contextLabel = "`->setDefaultErrorHandler('{$userDefinedFunction}') under ->CONFIG()`";
+        // Bails on the first structural error regarding a typical user-defined function
+        $fatalError = $this->validateFNFile($fileData, $userDefinedFunction, $contextLabel, '', false);
+        if ($fatalError !== null) {
+            $this->setErr($fatalError, $this->errors['config']);
             $this->invalidBatches['config']['DEFAULT_ERROR_HANDLER'] = $userDefinedFunction;
             return;
         }
-        // No inner Function declarations allowed but anonymous ones are OK!
-        if ($this->cached['file_user_defined_functions']['functions'][$userDefinedFunction]['has_inner_functions']) {
-            $err = "User-defined Error Handler `{$userDefinedFunction}` for `->setDefaultErrorHandler()` under `->CONFIG()` has regular `Inner Function Declarations` (e.g. `function Name(...\$params){}`) on lines:`" . join(',', $this->cached['file_user_defined_functions']['functions'][$userDefinedFunction]['nested_function_lines'] ?? []) . '` which is not allowed in FunkPHP due to the high risk of `Global Function Declaration Pollution`. Instead, use `Anonymous OR Arrow Functions` as a replacement.';
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
-            $this->invalidBatches['config']['DEFAULT_ERROR_HANDLER'] = $userDefinedFunction;
-            return;
-        }
-        // Cannot have an empty body OR just whitespace and/or comments inside of it!
+        // Unique Function checks for SetErrorHandler: it must contain "$errNo, $errStr, $errFile, $errLine"
+        // and this is checked AFTER it starts with &$c so no issues there! The variables can be typed or not.
         if (
-            $this->cached['file_user_defined_functions']['functions'][$userDefinedFunction]['body_raw'] === "{}"
-            || $this->cached['file_user_defined_functions']['functions'][$userDefinedFunction]['only_whitespace_and_or_comments'] === true
+            !preg_match('/^&\$c\s*,\s*(?:int\s+)?\$[_a-z0-9]+\s*,\s*(?:string\s+)?\$[_a-z0-9]+\s*,\s*(?:string\s+)?\$[_a-z0-9]+\s*,\s*(?:int\s+)?\$[_a-z0-9]+$/i', $fileData['functions'][$userDefinedFunction]['args_raw'])
         ) {
-            $err = "User-defined Error Handler `{$userDefinedFunction}` for `->setDefaultErrorHandler()` under `->CONFIG()` has `No Code in its Body` (e.g. `function Name(){}`) OR it has only Whitespace and/or Comments. Add some Code to the Function or Configure to Use another User-defined Function.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
+            $err = $this->getErr('UserDefinedFUNCTIONHasWrongArgsOPT_CTX', $ctxVals) . '` $errNo, $errStr, $errFile, $errLine` (e.g. `function userDefined(&\$c, $errNo, $errStr, $errFile, $errLine){}`) in order to use it as a User-defined Error Handler. The `$errNo,$errStr,$errFile,$errLine` can be named something else as well.' . " Found instead:`{$fileData['functions'][$userDefinedFunction]['args_raw']}`.";
+            $this->setErr($err, $this->errors['config']);
             $this->invalidBatches['config']['DEFAULT_ERROR_HANDLER'] = $userDefinedFunction;
             return;
         }
-        // Cannot not start with `&$c` as its first Function Parameter!
-        if (!str_starts_with($this->cached['file_user_defined_functions']['functions'][$userDefinedFunction]['args_raw'], '&$c')) {
-            $err = "User-defined Error Handler `{$userDefinedFunction}` for `->setDefaultErrorHandler()` under `->CONFIG()` does NOT start with `&\$c` (e.g. `function Name(&\$c){}`) as its first Parameter which it must for any User-defined Function.";
-            $this->errors['all'][] = $err;
-            $this->errors['config'][] = $err;
-            $this->invalidBatches['config']['DEFAULT_ERROR_HANDLER'] = $userDefinedFunction;
-            return;
-        }
-
-        $this->validBatches['config']['DEFAULT_ERROR_HANDLER'] = $userDefinedFunction;
+        // Add to ValidBatches, UserDefinedFNs and also UserDefinedEngineFNs which means any User-defined function
+        // that is added there cannot be used for multiple purposes as they are meant to be very specifically used.
+        $this->validBatches['config']['DEFAULT_ERROR_HANDLER'][] = $userDefinedFunction;
         $this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction] = "->setDefaultErrorHandler()";
+        $this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunction] = "->setDefaultErrorHandler()";
+
+
+        // $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setDefaultErrorHandler', $userDefinedFunction);
+        // if (isset($this->invalidBatches['config']['DEFAULT_ERROR_HANDLER'])) {
+        //     $err = "Duplicate call - Invalid String Value for `->setDefaultErrorHandler()` as current one under `->CONFIG()` is Invalid.";
+        //     $this->errors['all'][] = $err;
+        //     $this->errors['config'][] = $err;
+        //     return;
+        // }
+        // if (isset($this->validBatches['config']['DEFAULT_ERROR_HANDLER'])) {
+        //     $err = "Duplicate call - A Valid String Value for `->setDefaultErrorHandler()` already exists under `->CONFIG()`.";
+        //     $this->errors['all'][] = $err;
+        //     $this->errors['config'][] = $err;
+        //     return;
+        // }
+        // if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($userDefinedFunction)) {
+        //     $err = "Invalid String Value in `->setDefaultErrorHandler()` under `->CONFIG()`. It must be a Non-Empty String all Lowercased that does not start with `cli_` or `funk_`.";
+        //     $this->errors['all'][] = $err;
+        //     $this->errors['config'][] = $err;
+        //     $this->invalidBatches['config']['DEFAULT_ERROR_HANDLER'] = $userDefinedFunction;
+        //     return;
+        // }
+        // // FN already used by some other Global Engine Function? (exception, error, uri normalizer, https kernel?)
+        // if (isset($this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction])) {
+        //     $err = "User-defined Error Handler `{$userDefinedFunction}` for `->setDefaultErrorHandler()` under `->CONFIG()` is already being used by:`{$this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction]}`.";
+        //     $this->errors['all'][] = $err;
+        //     $this->errors['config'][] = $err;
+        //     $this->invalidBatches['config']['DEFAULT_ERROR_HANDLER'] = $userDefinedFunction;
+        //     return;
+        // }
+        // // Prepare Config Functions.php File I/O if needed
+        // // assuming ROOT_FOLDER constant exists first!
+        // if (!$this->rootFolderExistOrSetError()) return;
+        // $this->cachedCreateKeyIfNullAndOptionalFileName('file_user_defined_functions');
+        // if (!$this->cachedKeyHasSpecificFN('file_user_defined_functions', $userDefinedFunction)) {
+        //     $err = "User-defined Error Handler `{$userDefinedFunction}` for `->setDefaultErrorHandler()` under `->CONFIG()` does NOT exist in User-defined Functions (`/src/funkphp/config/functions.php`).";
+        //     $this->errors['all'][] = $err;
+        //     $this->errors['config'][] = $err;
+        //     $this->invalidBatches['config']['DEFAULT_ERROR_HANDLER'] = $userDefinedFunction;
+        //     return;
+        // }
+        // // No inner Function declarations allowed but anonymous ones are OK!
+        // if ($this->cached['file_user_defined_functions']['functions'][$userDefinedFunction]['has_inner_functions']) {
+        //     $err = "User-defined Error Handler `{$userDefinedFunction}` for `->setDefaultErrorHandler()` under `->CONFIG()` has regular `Inner Function Declarations` (e.g. `function Name(...\$params){}`) on lines:`" . join(',', $this->cached['file_user_defined_functions']['functions'][$userDefinedFunction]['nested_function_lines'] ?? []) . '` which is not allowed in FunkPHP due to the high risk of `Global Function Declaration Pollution`. Instead, use `Anonymous OR Arrow Functions` as a replacement.';
+        //     $this->errors['all'][] = $err;
+        //     $this->errors['config'][] = $err;
+        //     $this->invalidBatches['config']['DEFAULT_ERROR_HANDLER'] = $userDefinedFunction;
+        //     return;
+        // }
+        // // Cannot have an empty body OR just whitespace and/or comments inside of it!
+        // if (
+        //     $this->cached['file_user_defined_functions']['functions'][$userDefinedFunction]['body_raw'] === "{}"
+        //     || $this->cached['file_user_defined_functions']['functions'][$userDefinedFunction]['only_whitespace_and_or_comments'] === true
+        // ) {
+        //     $err = "User-defined Error Handler `{$userDefinedFunction}` for `->setDefaultErrorHandler()` under `->CONFIG()` has `No Code in its Body` (e.g. `function Name(){}`) OR it has only Whitespace and/or Comments. Add some Code to the Function or Configure to Use another User-defined Function.";
+        //     $this->errors['all'][] = $err;
+        //     $this->errors['config'][] = $err;
+        //     $this->invalidBatches['config']['DEFAULT_ERROR_HANDLER'] = $userDefinedFunction;
+        //     return;
+        // }
+        // // Cannot not start with `&$c` as its first Function Parameter!
+        // if (!str_starts_with($this->cached['file_user_defined_functions']['functions'][$userDefinedFunction]['args_raw'], '&$c')) {
+        //     $err = "User-defined Error Handler `{$userDefinedFunction}` for `->setDefaultErrorHandler()` under `->CONFIG()` does NOT start with `&\$c` (e.g. `function Name(&\$c){}`) as its first Parameter which it must for any User-defined Function.";
+        //     $this->errors['all'][] = $err;
+        //     $this->errors['config'][] = $err;
+        //     $this->invalidBatches['config']['DEFAULT_ERROR_HANDLER'] = $userDefinedFunction;
+        //     return;
+        // }
+
+        // $this->validBatches['config']['DEFAULT_ERROR_HANDLER'] = $userDefinedFunction;
+        // $this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction] = "->setDefaultErrorHandler()";
     }
     private function batchSetDefaultURINormalizerGlobal(string $userDefinedFunction) // URI NORMALIZER GLOBAL
     {
@@ -5144,901 +6061,7 @@ class C
         $this->validBatches['routes'][$method][$route]['headers']['remove'][$lowerHeader] = $headerName;
     }
 
-    /*** !!! PRIVATE HELPER FUNCTIONS FOR MANY batch<VARIANTS> ABOVE !!! */
-    // Also used by compile() & run() below!
-    private function file_status(string $folder, string $file, bool $useExactFilePathInstead = false, bool $deeperAnalysis = false)
-    {
-        if (!$useExactFilePathInstead) {
-            if (is_string($folder) && str_starts_with(trim($folder), "/")) {
-                $folder = substr(trim($folder), 1);
-            }
-        }
-        $folder = trim($folder);
-        $providedFolder = $folder;
-        $file = trim($file);
-        if (str_ends_with($folder, '/')) {
-            $folder = rtrim($folder, '/');
-        }
-        if (!str_ends_with($file, '.php')) {
-            $file .= '.php';
-        }
-        if (str_starts_with($file, '/')) {
-            $file = ltrim($file, '/');
-        }
-        $folder = ($useExactFilePathInstead === false) ? (ROOT_FOLDER . '/' . $folder) : $folder;
-        $singleFolder = basename($folder);
-        $filename = $file;
-        $file = $folder . '/' . $file;
-        $fileRaw = null;
-        $namespace = null;
-        $namespaceParts = null;
-        $fileUse = [];
-        $fns = [];
-        $fnames_only = [];
-        $fnames_duplicates = [];
-        $classes = [];
-        $clnames_only = [];
-        $clnames_duplicates = [];
-        $NO_FN_START_CLI = true;
-        $NO_FN_START_FUNK = true;
-        if (is_file($file) && is_readable($file)) {
-            $fileCnt = file_get_contents($file);
-            if ($fileCnt !== false) {
-                $fileRaw = $fileCnt;
-                global $reserved_functions;
-                $reserved = $reserved_functions ?? [];
-                // 1. Tokenized Namespace & Use statements
-                $nsAndUses = $this->file_harvest_namespace_and_uses_from_code($fileRaw);
-                $namespace = $nsAndUses['namespace'];
-                $namespaceParts = $nsAndUses['namespace_parts'];
-                $fileUse = $nsAndUses['file_use'];
-                // 2. Tokenized Functions
-                $tokenizedFns = $this->file_harvest_all_functions_from_code($fileRaw);
-                foreach ($tokenizedFns as $fnName => $fnData) {
-                    $isReserved = in_array($fnName, $reserved, true);
-                    $fns[$fnName] = array_merge($fnData, [
-                        'valid_fn_structure'          => !$isReserved && !$fnData['has_inner_functions'],
-                        'fn_name_reserved'            => $isReserved,
-                        'fn_name_same_as_lowercased'  => ($fnName === strtolower($fnName)),
-                        'fn_uppercased'               => strtoupper($fnName),
-                        'fn_starts_with_cli'          => str_starts_with(strtolower($fnName), 'cli_'),
-                        'fn_starts_with_funk'         => str_starts_with(strtolower($fnName), 'funk_'),
-                    ]);
-                    if (in_array(strtolower($fnName), $fnames_only, true)) {
-                        $fnames_duplicates[$fnName] = true;
-                    }
-                    $fnames_only[] = $fnName;
-                    if ($fns[$fnName]['fn_starts_with_cli']) $NO_FN_START_CLI = false;
-                    if ($fns[$fnName]['fn_starts_with_funk']) $NO_FN_START_FUNK = false;
-                }
-                // 3. Tokenized Classes
-                $tokenizedClasses = $this->file_harvest_all_classes_from_code($fileRaw);
-                foreach ($tokenizedClasses as $className => $classData) {
-                    $classes[$className] = $classData;
-                    if (in_array(strtolower($className), $clnames_only, true)) {
-                        $clnames_duplicates[$className] = true;
-                    }
-                    $clnames_only[] = $className;
-                }
-            } else {
-                $this->errors['all'] = "[INTERNAL FUNKPHP ERROR - file_status()] - FAILED to read Folder+File Path:`{$folder}{$file}` when it should ahve been possible. Verify Folder/File Permissions in Your Project.";
-                return ['INTERNAL_FUNKPHP_ERROR' => "[INTERNAL FUNKPHP ERROR - file_status()] - FAILED to read Folder+File Path:`{$folder}{$file}` when it should ahve been possible. Verify Folder/File Permissions in Your Project."];
-            }
-        }
-        return [
-            'namespace'             => $namespace,
-            'namespace_parts'       => $namespaceParts,
-            'file_use'              => $fileUse,
-            'functions'             => $fns,
-            'classes'               => $classes,
-            'file_raw'              => $fileRaw,
-            'functions_exist'       => count($fns) > 0,
-            'classes_exist'         => count($classes) > 0,
-            'file_readable'         => is_readable($file),
-            'file_exists'           => is_file($file),
-            'folder_provided_path'  => $providedFolder,
-            'folder_name'           => $singleFolder,
-            'folder_path'           => (is_dir($folder) && is_readable($folder)) ? $folder : null,
-            'folder_exists'         => is_dir($folder),
-            'file_name'             => $filename,
-            'file_path'             => (is_file($file) && is_readable($file)) ? $file : null,
-            'fn_names_only'         => $fnames_only,
-            'fn_names_duplicates'   => $fnames_duplicates,
-            'class_names_only'      => $clnames_only,
-            'class_names_duplicates' => $clnames_duplicates,
-            'no_fn_starts_with_cli' => $NO_FN_START_CLI,
-            'no_fn_starts_with_funk' => $NO_FN_START_FUNK,
-        ];
-    }
-    // Helper function to `file_status` but can also be used
-    // without using that one to get an array of regular function declarations!
-    // like "function name1(){}, function name2(){}" and so on within same file!
-    private function file_harvest_all_functions_from_code(string $code): array
-    {
-        $tokens = PhpToken::tokenize($code);
-        $count = count($tokens);
-        $harvested = [];
-        for ($i = 0; $i < $count; $i++) {
-            if ($tokens[$i]->id !== T_FUNCTION) {
-                continue;
-            }
-            $curr = $i + 1;
-            $isByRef = false;
-            while ($curr < $count && ($tokens[$curr]->id === T_WHITESPACE || $tokens[$curr]->text === '&')) {
-                if ($tokens[$curr]->text === '&') {
-                    $isByRef = true;
-                }
-                $curr++;
-            }
-            if ($curr >= $count || $tokens[$curr]->id !== T_STRING) {
-                continue;
-            }
-            $fnName = $tokens[$curr]->text;
-            $fnTokenPos = $tokens[$i]->pos;
-            $startLine = $tokens[$i]->line;
-            // DocComments
-            $commentStartPos = $fnTokenPos;
-            $collectedComments = [];
-            $back = $i - 1;
-            while ($back >= 0) {
-                $tok = $tokens[$back];
-                if ($tok->id === T_WHITESPACE) {
-                    $back--;
-                    continue;
-                }
-                if ($tok->id === T_DOC_COMMENT || $tok->id === T_COMMENT) {
-                    array_unshift($collectedComments, $tok->text);
-                    $commentStartPos = $tok->pos;
-                    $back--;
-                    continue;
-                }
-                break;
-            }
-            $docComment = !empty($collectedComments) ? implode("\n", $collectedComments) : null;
-            // Extract Arguments
-            $argStartTok = $curr + 1;
-            while ($argStartTok < $count && $tokens[$argStartTok]->text !== '(' && $tokens[$argStartTok]->text !== '{' && $tokens[$argStartTok]->text !== ';') {
-                $argStartTok++;
-            }
-            $argsRaw = '';
-            $bodySearchTokIdx = $argStartTok;
-            if ($argStartTok < $count && $tokens[$argStartTok]->text === '(') {
-                $parenDepth = 1;
-                $argTokens = [];
-                for ($j = $argStartTok + 1; $j < $count; $j++) {
-                    if ($tokens[$j]->text === '(') $parenDepth++;
-                    elseif ($tokens[$j]->text === ')') $parenDepth--;
-                    if ($parenDepth === 0) {
-                        $bodySearchTokIdx = $j + 1;
-                        break;
-                    }
-                    $argTokens[] = $tokens[$j]->text;
-                }
-                $argsRaw = trim(implode('', $argTokens));
-            }
-            // Body '{' lookup
-            while ($bodySearchTokIdx < $count && $tokens[$bodySearchTokIdx]->text !== '{' && $tokens[$bodySearchTokIdx]->text !== ';') {
-                $bodySearchTokIdx++;
-            }
-            if ($bodySearchTokIdx >= $count || $tokens[$bodySearchTokIdx]->text === ';') {
-                continue;
-            }
-            $bodyStartPos = $tokens[$bodySearchTokIdx]->pos;
-            $braceDepth = 0;
-            $hasStartedBody = false;
-            $bodyEndPos = -1;
-            $lastTokenIdx = $i;
-            for ($j = $bodySearchTokIdx; $j < $count; $j++) {
-                $tok = $tokens[$j];
-                if ($tok->text === '{') {
-                    $braceDepth++;
-                    $hasStartedBody = true;
-                } elseif ($tok->text === '}') {
-                    $braceDepth--;
-                }
-                if ($hasStartedBody && $braceDepth === 0) {
-                    $bodyEndPos = $tok->pos + strlen($tok->text);
-                    $lastTokenIdx = $j;
-                    break;
-                }
-            }
-            if ($bodyEndPos === -1) {
-                continue;
-            }
-            $fnRawWithDoc = substr($code, $commentStartPos, $bodyEndPos - $commentStartPos);
-            $fnRaw        = substr($code, $fnTokenPos, $bodyEndPos - $fnTokenPos);
-            $bodyRaw      = substr($code, $bodyStartPos, $bodyEndPos - $bodyStartPos);
-            // Run analysis on the body
-            $analysis = $this->file_analyze_body_tokens($bodyRaw, $startLine);
-            $harvested[$fnName] = array_merge([
-                'fn_exact_name'   => $fnName,
-                'fn_lowercased'   => strtolower($fnName),
-                'doc_comment'     => $docComment,
-                'args_raw'        => $argsRaw,
-                'body_raw'        => $bodyRaw,
-                'fn_raw'          => $fnRaw,
-                'fn_raw_with_doc' => $fnRawWithDoc,
-                'is_by_ref'       => $isByRef,
-                'line_start'      => $startLine,
-            ], $analysis);
-            $i = $lastTokenIdx;
-        }
-        return $harvested;
-    }
-    // Helper function to `file_status` but can also be used
-    // without using that one to get an array of regular class declarations!
-    // like "class name1(){}, class name2(){}" and so on within same file!
-    private function file_harvest_all_classes_from_code(string $code): array
-    {
-        $tokens = PhpToken::tokenize($code);
-        $count = count($tokens);
-        $harvested = [];
-        $dangerousFuncs = ['shell_exec', 'exec', 'system', 'passthru', 'proc_open', 'popen', 'pcntl_exec'];
-        $dangerousCalls = [];
-        $braceDepth = 0;
-        for ($i = 0; $i < $count; $i++) {
-            $tok = $tokens[$i];
-            if ($tok->text === '{') {
-                $braceDepth++;
-            } elseif ($tok->text === '}') {
-                $braceDepth--;
-            }
-            if ($tok->id === T_CLASS) {
-                // Skip anonymous classes: "new class {}"
-                $prevIdx = $i - 1;
-                while ($prevIdx >= 0 && $tokens[$prevIdx]->id === T_WHITESPACE) {
-                    $prevIdx--;
-                }
-                if ($prevIdx >= 0 && $tokens[$prevIdx]->id === T_NEW) {
-                    continue;
-                }
-                // Capture class name
-                $nameIndex = $i + 1;
-                while ($nameIndex < $count && $tokens[$nameIndex]->id === T_WHITESPACE) {
-                    $nameIndex++;
-                }
-                if ($nameIndex >= $count || $tokens[$nameIndex]->id !== T_STRING) {
-                    continue;
-                }
-                $className = $tokens[$nameIndex]->text;
-                $classTokenPos = $tok->pos;
-                $startLine = $tok->line;
-                // Capture DocComments backward
-                $commentStartPos = $classTokenPos;
-                $collectedComments = [];
-                $back = $i - 1;
-                while ($back >= 0) {
-                    $btok = $tokens[$back];
-                    if ($btok->id === T_WHITESPACE) {
-                        $back--;
-                        continue;
-                    }
-                    if ($btok->id === T_DOC_COMMENT || $btok->id === T_COMMENT) {
-                        array_unshift($collectedComments, $btok->text);
-                        $commentStartPos = $btok->pos;
-                        $back--;
-                        continue;
-                    }
-                    break;
-                }
-                $docComment = !empty($collectedComments) ? implode("\n", $collectedComments) : null;
-                // Parse inheritance (extends & implements) until '{'
-                $bodySearchIdx = $nameIndex + 1;
-                $extends = null;
-                $implements = [];
-                while ($bodySearchIdx < $count && $tokens[$bodySearchIdx]->text !== '{') {
-                    if ($tokens[$bodySearchIdx]->id === T_EXTENDS) {
-                        $eIdx = $bodySearchIdx + 1;
-                        while ($eIdx < $count && $tokens[$eIdx]->id === T_WHITESPACE) {
-                            $eIdx++;
-                        }
-                        if ($eIdx < $count) {
-                            $extends = $tokens[$eIdx]->text;
-                        }
-                    }
-                    if ($tokens[$bodySearchIdx]->id === T_IMPLEMENTS) {
-                        for ($impIdx = $bodySearchIdx + 1; $impIdx < $count; $impIdx++) {
-                            if ($tokens[$impIdx]->text === '{') break;
-                            if ($tokens[$impIdx]->id === T_STRING || $tokens[$impIdx]->id === T_NAME_QUALIFIED) {
-                                $implements[] = $tokens[$impIdx]->text;
-                            }
-                        }
-                    }
-                    $bodySearchIdx++;
-                }
-                if ($bodySearchIdx >= $count) {
-                    continue;
-                }
-                $bodyStartPos = $tokens[$bodySearchIdx]->pos;
-                $classBraceDepth = 0;
-                $hasStartedBody = false;
-                $hasEval = false;
-                $hasDangerousCalls = false;
-                $hasExit = false;
-                $bodyEndPos = -1;
-                $lastTokenIdx = $i;
-                // Walk body for top-level metrics and boundaries
-                for ($j = $bodySearchIdx; $j < $count; $j++) {
-                    $ctok = $tokens[$j];
-                    if ($ctok->text === '{') {
-                        $classBraceDepth++;
-                        $hasStartedBody = true;
-                    } elseif ($ctok->text === '}') {
-                        $classBraceDepth--;
-                    }
-                    if ($hasStartedBody && $classBraceDepth >= 1) {
-                        if ($ctok->id === T_EVAL) {
-                            $hasEval = true;
-                        }
-                        if ($ctok->id === T_EXIT) {
-                            $hasExit = true;
-                        }
-                        if ($ctok->id === T_STRING && in_array(strtolower($ctok->text), $dangerousFuncs, true)) {
-                            $hasDangerousCalls = true;
-                            $dagnerousCalls[] = ['call' => $ctok->text, 'line' => $ctok->line];
-                        }
-                    }
-                    if ($hasStartedBody && $classBraceDepth === 0) {
-                        $bodyEndPos = $ctok->pos + strlen($ctok->text);
-                        $lastTokenIdx = $j;
-                        break;
-                    }
-                }
-                if ($bodyEndPos === -1) {
-                    continue;
-                }
-                $classRawWithDoc = substr($code, $commentStartPos, $bodyEndPos - $commentStartPos);
-                $classRaw        = substr($code, $classTokenPos, $bodyEndPos - $classTokenPos);
-                $bodyRaw         = substr($code, $bodyStartPos, $bodyEndPos - $bodyStartPos);
-                // Deep-analyze class members via file_analyze_class_tokens
-                $classStructureAnalysis = $this->file_analyze_class_tokens($bodyRaw, $startLine);
-                $harvested[$className] = [
-                    'class_name'              => $className,
-                    'class_name_ucfirst'      => (ucfirst($className) === $className),
-                    'doc_comment'             => $docComment,
-                    'extends'                 => $extends,
-                    'implements'              => $implements,
-                    'traits_used'             => $classStructureAnalysis['traits_used'],
-                    'constants'               => $classStructureAnalysis['constants'],
-                    'properties'              => $classStructureAnalysis['properties'],
-                    'methods'                 => $classStructureAnalysis['methods'],
-                    'body_raw'                => $bodyRaw,
-                    'class_raw'               => $classRaw,
-                    'class_raw_with_doc'      => $classRawWithDoc,
-                    'line_start'              => $startLine,
-                    'has_eval'                => $hasEval,
-                    'has_dangerous_calls'     => $hasDangerousCalls,
-                    'dangerous_calls'         => $dangerousCalls,
-                    'has_exit'                => $hasExit,
-                    'class_starts_with_cli'   => str_starts_with(strtolower($className), 'cli_'),
-                    'class_starts_with_funk'  => str_starts_with(strtolower($className), 'funk_'),
-                ];
-                $i = $lastTokenIdx;
-            }
-        }
-        return $harvested;
-    }
-    // Helper function gets the namespace and use from raw code string
-    private function file_harvest_namespace_and_uses_from_code(string $code): array
-    {
-        $tokens = PhpToken::tokenize($code);
-        $count = count($tokens);
-        $namespace = null;
-        $namespaceParts = null;
-        $fileUse = [];
-        $braceDepth = 0;
-        for ($i = 0; $i < $count; $i++) {
-            $tok = $tokens[$i];
-            if ($tok->text === '{') {
-                $braceDepth++;
-            } elseif ($tok->text === '}') {
-                $braceDepth--;
-            }
-            // Only process file-level declarations (outside any function/class body)
-            if ($braceDepth === 0) {
-                // 1. Namespace Parser
-                if ($tok->id === T_NAMESPACE) {
-                    $nsTokens = [];
-                    for ($j = $i + 1; $j < $count; $j++) {
-                        if ($tokens[$j]->text === ';' || $tokens[$j]->text === '{') {
-                            break;
-                        }
-                        if ($tokens[$j]->id !== T_WHITESPACE) {
-                            $nsTokens[] = $tokens[$j]->text;
-                        }
-                    }
-                    $nsString = trim(implode('', $nsTokens));
-                    if ($nsString !== '') {
-                        $namespace = $nsString;
-                        $namespaceParts = explode('\\', $nsString);
-                    }
-                }
-                // 2. Use Statements Parser ('file_use')
-                if ($tok->id === T_USE) {
-                    $useStartPos = $tok->pos;
-                    $useEndPos = -1;
-                    for ($j = $i + 1; $j < $count; $j++) {
-                        if ($tokens[$j]->text === ';') {
-                            $useEndPos = $tokens[$j]->pos + 1;
-                            $i = $j; // Fast-forward outer loop past ';'
-                            break;
-                        }
-                    }
-                    if ($useEndPos !== -1) {
-                        $rawUse = trim(substr($code, $useStartPos, $useEndPos - $useStartPos));
-                        // Clean statement removing 'use ' prefix and ';' suffix
-                        $cleanUse = preg_replace('/^use\s+/i', '', rtrim($rawUse, ';'));
 
-                        $fileUse[] = [
-                            'raw'   => $rawUse,
-                            'clean' => trim($cleanUse),
-                        ];
-                    }
-                }
-            }
-        }
-        return [
-            'namespace'       => $namespace,
-            'namespace_parts' => $namespaceParts,
-            'file_use'        => $fileUse,
-        ];
-    }
-    // Helper function (must get code as string) that can analyze already
-    // loaded PHP code for safety by providing any functions a function
-    // and/or class is using to compare against (dis)allowed functions and so on!
-    private function file_analyze_body_tokens(string $bodyCode, int $startLine = 1): array
-    {
-        $tokens = PhpToken::tokenize("<?php " . $bodyCode);
-        $count = count($tokens);
-        $dangerousFuncs = ['shell_exec', 'exec', 'system', 'passthru', 'proc_open', 'popen', 'pcntl_exec'];
-        $hasExit = false;
-        $exitLines = [];
-        $hasRawOutput = false;
-        $rawOutputLines = [];
-        $hasEval = false;
-        $evalLines = [];
-        $hasInnerFunctions = false;
-        $innerFunctionLines = [];
-        $hasInnerClasses = false;
-        $innerClassLines = [];
-        $hasGlobals = false;
-        $globalVars = [];
-        $hasDangerousCalls = false;
-        $hasOnlyCommentsOrWhiteSpace = true;
-        $hasVariableVars = false;
-        $calls = [];
-        // Account for added '<?php ' offset in line mapping if needed
-        $lineOffset = $startLine;
-        for ($i = 0; $i < $count; $i++) {
-            $tok = $tokens[$i];
-            $line = $tok->line + $lineOffset;
-            if (
-                $tok->text !== '{' &&
-                $tok->text !== '}' &&
-                $tok->id !== T_OPEN_TAG &&
-                $tok->id !== T_CLOSE_TAG &&
-                $tok->id !== T_COMMENT &&
-                $tok->id !== T_DOC_COMMENT &&
-                $tok->id !== T_WHITESPACE
-            ) {
-                $hasOnlyCommentsOrWhiteSpace = false;
-            }
-            // 1. Early Exits (exit / die)
-            if ($tok->id === T_EXIT) {
-                $hasExit = true;
-                $exitLines[] = $line;
-                continue;
-            }
-            // 2. Raw Output Dumps
-            if ($tok->id === T_ECHO || $tok->id === T_PRINT) {
-                $hasRawOutput = true;
-                $rawOutputLines[] = $line;
-                continue;
-            }
-            // 3. Eval / Dynamic Code
-            if ($tok->id === T_EVAL) {
-                $hasEval = true;
-                $evalLines[] = $line;
-                continue;
-            }
-            // 4. Nested Functions (Named vs Anonymous/Closures)
-            if ($tok->id === T_FUNCTION || (defined('T_FN') && $tok->id === T_FN)) {
-                $nextIdx = $i + 1;
-                // Fast-forward past whitespace, comments, and reference operators ('&')
-                while ($nextIdx < $count && (
-                    $tokens[$nextIdx]->id === T_WHITESPACE ||
-                    $tokens[$nextIdx]->id === T_COMMENT ||
-                    $tokens[$nextIdx]->id === T_DOC_COMMENT ||
-                    $tokens[$nextIdx]->text === '&'
-                )) {
-                    $nextIdx++;
-                }
-                // If a T_STRING immediately follows, it's a NAMED inner function (e.g., function test() {})
-                if ($nextIdx < $count && $tokens[$nextIdx]->id === T_STRING) {
-                    $hasInnerFunctions = true;
-                    $innerFunctionLines[] = $line;
-                    continue;
-                }
-                // Otherwise, it's an anonymous closure ($var = function() {}) or arrow function
-                $hasClosures = true;
-                $closureLines[] = $line;
-                continue;
-            }
-            // 5. Nested Classes
-            if ($tok->id === T_CLASS) {
-                $hasInnerClasses = true;
-                $innerClassLines[] = $line;
-                continue;
-            }
-            // 6. Global State Inspection ($GLOBALS or global $a)
-            if ($tok->id === T_GLOBAL) {
-                $hasGlobals = true;
-                for ($g = $i + 1; $g < $count; $g++) {
-                    if ($tokens[$g]->text === ';') break;
-                    if ($tokens[$g]->id === T_VARIABLE) {
-                        $globalVars[] = $tokens[$g]->text;
-                    }
-                }
-            }
-            // 7. Variable Variables ($$foo)
-            if ($tok->text === '$' && isset($tokens[$i + 1]) && ($tokens[$i + 1]->id === T_VARIABLE || $tokens[$i + 1]->text === '{')) {
-                $hasVariableVars = true;
-            }
-            // 8. Function Calls (T_STRING, T_EVAL, or fully qualified \foo\bar)
-            if ($tok->id === T_STRING || $tok->id === T_NAME_QUALIFIED || $tok->id === T_NAME_FULLY_QUALIFIED) {
-                $prevIdx = $i - 1;
-                while ($prevIdx >= 0 && $tokens[$prevIdx]->id === T_WHITESPACE) {
-                    $prevIdx--;
-                }
-                // Exclude method calls ($obj->method), static calls (Class::method), definitions, or instantiations
-                if ($prevIdx >= 0) {
-                    $pId = $tokens[$prevIdx]->id;
-                    if (
-                        $pId === T_OBJECT_OPERATOR ||
-                        $pId === T_DOUBLE_COLON ||
-                        $pId === T_FUNCTION ||
-                        $pId === T_CLASS ||
-                        $pId === T_NEW ||
-                        (defined('T_NULLSAFE_OBJECT_OPERATOR') && $pId === T_NULLSAFE_OBJECT_OPERATOR)
-                    ) {
-                        continue;
-                    }
-                }
-                $nextIdx = $i + 1;
-                while ($nextIdx < $count && $tokens[$nextIdx]->id === T_WHITESPACE) {
-                    $nextIdx++;
-                }
-                // Confirm call via opening parenthesis '('
-                if ($nextIdx < $count && $tokens[$nextIdx]->text === '(') {
-                    $calledName = $tok->text;
-                    $lineNo = $line;
-                    $argsString = '';
-                    $parenDepth = 1;
-                    $argRunner = $nextIdx + 1;
-                    while ($argRunner < $count) {
-                        $argToken = $tokens[$argRunner];
-                        if ($argToken->text === '(') {
-                            $parenDepth++;
-                        } elseif ($argToken->text === ')') {
-                            $parenDepth--;
-                        }
-                        if ($parenDepth === 0) {
-                            break;
-                        }
-                        $argsString .= $argToken->text;
-                        $argRunner++;
-                    }
-                    $loweredName = strtolower(ltrim($calledName, '\\'));
-                    if (in_array($loweredName, $dangerousFuncs, true)) {
-                        $hasDangerousCalls = true;
-                    }
-                    $calls[] = [
-                        'name' => $calledName,
-                        'line' => $lineNo,
-                        'args' => trim($argsString)
-                    ];
-                }
-            }
-        }
-        return [
-            'has_exit'             => $hasExit,
-            'exit_lines'           => array_unique($exitLines),
-            'has_raw_output'       => $hasRawOutput,
-            'raw_output_lines'     => array_unique($rawOutputLines),
-            'has_eval'             => $hasEval,
-            'eval_lines'           => array_unique($evalLines),
-            'has_inner_functions'  => $hasInnerFunctions,
-            'nested_function_lines' => array_unique($innerFunctionLines),
-            'has_closures'           => $hasClosures ?? false,   // Safe anonymous closures
-            'closure_lines'          => array_unique($closureLines ?? []),
-            'has_inner_classes'    => $hasInnerClasses,
-            'inner_class_lines'    => array_unique($innerClassLines),
-            'has_globals'          => $hasGlobals,
-            'global_vars'          => array_unique($globalVars),
-            'has_dangerous_calls'  => $hasDangerousCalls,
-            'only_whitespace_and_or_comments' => $hasOnlyCommentsOrWhiteSpace,
-            'has_variable_vars'    => $hasVariableVars,
-            'calls'                => $calls,
-        ];
-    }
-    private function file_analyze_class_tokens(string $classBodyCode, int $startLine = 1): array
-    {
-        $tokens = PhpToken::tokenize("<?php " . $classBodyCode);
-        $count = count($tokens);
-        $lineOffset = $startLine;
-        $traitsUsed = [];
-        $constants = [];
-        $properties = [];
-        $methods = [];
-        $braceDepth = 0;
-        for ($i = 0; $i < $count; $i++) {
-            $tok = $tokens[$i];
-            if ($tok->text === '{') {
-                $braceDepth++;
-                continue;
-            } elseif ($tok->text === '}') {
-                $braceDepth--;
-                continue;
-            }
-            // We only parse class members at the top level of the class body (depth === 1 inside "class { ... }")
-            if ($braceDepth !== 1) {
-                continue;
-            }
-            // 1. TRAIT INCLUSION: "use TraitA, TraitB;"
-            if ($tok->id === T_USE) {
-                $traitTokens = [];
-                for ($j = $i + 1; $j < $count; $j++) {
-                    if ($tokens[$j]->text === ';' || $tokens[$j]->text === '{') { // '{' handles adapt/insteadof blocks
-                        $i = $j;
-                        break;
-                    }
-                    if ($tokens[$j]->id !== T_WHITESPACE) {
-                        $traitTokens[] = $tokens[$j]->text;
-                    }
-                }
-                $traitStr = implode('', $traitTokens);
-                foreach (explode(',', $traitStr) as $t) {
-                    $trimmed = trim($t);
-                    if ($trimmed !== '') {
-                        $traitsUsed[] = $trimmed;
-                    }
-                }
-                continue;
-            }
-            // 2. CONSTANTS: "public const FOO = 'bar';"
-            if ($tok->id === T_CONST) {
-                $visibility = 'public';
-                // Look backward for visibility
-                for ($b = $i - 1; $b >= 0; $b--) {
-                    if ($tokens[$b]->id === T_PRIVATE) {
-                        $visibility = 'private';
-                        break;
-                    }
-                    if ($tokens[$b]->id === T_PROTECTED) {
-                        $visibility = 'protected';
-                        break;
-                    }
-                    if ($tokens[$b]->id === T_PUBLIC) {
-                        $visibility = 'public';
-                        break;
-                    }
-                    if ($tokens[$b]->text === ';' || $tokens[$b]->text === '}') break;
-                }
-                // Look forward for CONST_NAME = value
-                $constName = null;
-                $valueTokens = [];
-                $hasEquals = false;
-                for ($j = $i + 1; $j < $count; $j++) {
-                    if ($tokens[$j]->text === ';') {
-                        $i = $j;
-                        break;
-                    }
-                    if (!$hasEquals && $tokens[$j]->id === T_STRING) {
-                        $constName = $tokens[$j]->text;
-                    } elseif ($tokens[$j]->text === '=') {
-                        $hasEquals = true;
-                    } elseif ($hasEquals && $tokens[$j]->id !== T_WHITESPACE) {
-                        $valueTokens[] = $tokens[$j]->text;
-                    }
-                }
-                if ($constName !== null) {
-                    $constants[$constName] = [
-                        'name'       => $constName,
-                        'visibility' => $visibility,
-                        'value_raw'  => trim(implode(' ', $valueTokens)),
-                        'line'       => $tok->line + $lineOffset,
-                    ];
-                }
-                continue;
-            }
-            // 3. METHODS: "public static function myMethod($a) { ... }"
-            if ($tok->id === T_FUNCTION) {
-                $visibility = 'public'; // PHP default
-                $isStatic   = false;
-                $isAbstract = false;
-                $isFinal    = false;
-                // Look backward for modifiers
-                for ($b = $i - 1; $b >= 0; $b--) {
-                    $bId = $tokens[$b]->id;
-                    if ($bId === T_PRIVATE) {
-                        $visibility = 'private';
-                    }
-                    if ($bId === T_PROTECTED) {
-                        $visibility = 'protected';
-                    }
-                    if ($bId === T_PUBLIC) {
-                        $visibility = 'public';
-                    }
-                    if ($bId === T_STATIC) {
-                        $isStatic = true;
-                    }
-                    if ($bId === T_ABSTRACT) {
-                        $isAbstract = true;
-                    }
-                    if ($bId === T_FINAL) {
-                        $isFinal = true;
-                    }
-                    if ($tokens[$b]->text === ';' || $tokens[$b]->text === '}' || $tokens[$b]->text === '{') {
-                        break;
-                    }
-                }
-                // Find method name
-                $nameIdx = $i + 1;
-                while ($nameIdx < $count && ($tokens[$nameIdx]->id === T_WHITESPACE || $tokens[$nameIdx]->text === '&')) {
-                    $nameIdx++;
-                }
-                if ($nameIdx >= $count || $tokens[$nameIdx]->id !== T_STRING) {
-                    continue;
-                }
-                $methodName = $tokens[$nameIdx]->text;
-                $methodLine = $tok->line + $lineOffset;
-                // Harvest arguments string inside (...)
-                $argStart = $nameIdx + 1;
-                while ($argStart < $count && $tokens[$argStart]->text !== '(' && $tokens[$argStart]->text !== ';' && $tokens[$argStart]->text !== '{') {
-                    $argStart++;
-                }
-                $argsRaw = '';
-                $bodySearchIdx = $argStart;
-                if ($argStart < $count && $tokens[$argStart]->text === '(') {
-                    $pDepth = 1;
-                    $aTokens = [];
-                    for ($j = $argStart + 1; $j < $count; $j++) {
-                        if ($tokens[$j]->text === '(') $pDepth++;
-                        elseif ($tokens[$j]->text === ')') $pDepth--;
-                        if ($pDepth === 0) {
-                            $bodySearchIdx = $j + 1;
-                            break;
-                        }
-                        $aTokens[] = $tokens[$j]->text;
-                    }
-                    $argsRaw = trim(implode('', $aTokens));
-                }
-                // Find method body opening '{' or abstract semicolon ';'
-                while ($bodySearchIdx < $count && $tokens[$bodySearchIdx]->text !== '{' && $tokens[$bodySearchIdx]->text !== ';') {
-                    $bodySearchIdx++;
-                }
-                if ($bodySearchIdx >= $count) {
-                    continue;
-                }
-                // Abstract or interface method with no body
-                if ($tokens[$bodySearchIdx]->text === ';') {
-                    $methods[$methodName] = [
-                        'name'        => $methodName,
-                        'visibility'  => $visibility,
-                        'is_static'   => $isStatic,
-                        'is_abstract' => true,
-                        'is_final'    => $isFinal,
-                        'args_raw'    => $argsRaw,
-                        'body_raw'    => null,
-                        'line'        => $methodLine,
-                        'analysis'    => null,
-                    ];
-                    $i = $bodySearchIdx;
-                    continue;
-                }
-                // Extract body using brace depth
-                $mBodyStartPos = $tokens[$bodySearchIdx]->pos;
-                $mBraceDepth = 0;
-                $mHasStarted = false;
-                $mBodyEndPos = -1;
-                $lastIdx = $i;
-                for ($j = $bodySearchIdx; $j < $count; $j++) {
-                    if ($tokens[$j]->text === '{') {
-                        $mBraceDepth++;
-                        $mHasStarted = true;
-                    } elseif ($tokens[$j]->text === '}') {
-                        $mBraceDepth--;
-                    }
-                    if ($mHasStarted && $mBraceDepth === 0) {
-                        $mBodyEndPos = $tokens[$j]->pos + strlen($tokens[$j]->text);
-                        $lastIdx = $j;
-                        break;
-                    }
-                }
-                if ($mBodyEndPos !== -1) {
-                    $methodBodyRaw = substr($classBodyCode, $mBodyStartPos - 5, $mBodyEndPos - $mBodyStartPos); // adjust for <?php token prefix
-                    $methodAnalysis =  $this->file_analyze_body_tokens($methodBodyRaw, $methodLine);
-                    $methods[$methodName] = [
-                        'name'        => $methodName,
-                        'visibility'  => $visibility,
-                        'is_static'   => $isStatic,
-                        'is_abstract' => $isAbstract,
-                        'is_final'    => $isFinal,
-                        'args_raw'    => $argsRaw,
-                        'body_raw'    => $methodBodyRaw,
-                        'line'        => $methodLine,
-                        'analysis'    => $methodAnalysis,
-                    ];
-                    $i = $lastIdx;
-                }
-                continue;
-            }
-            // 4. PROPERTIES: "private static ?string $name = 'default';"
-            if ($tok->id === T_VARIABLE) {
-                $propName = ltrim($tok->text, '$');
-                $visibility = 'public'; // Default if unassigned
-                $isStatic   = false;
-                $isReadonly = false;
-                $typeHint   = null;
-                // Scan backwards to semicolon / brace / docblock for modifiers and type hint
-                $modifierTokens = [];
-                for ($b = $i - 1; $b >= 0; $b--) {
-                    $bTok = $tokens[$b];
-                    if ($bTok->text === ';' || $bTok->text === '}' || $bTok->text === '{' || $bTok->id === T_DOC_COMMENT) {
-                        break;
-                    }
-                    if ($bTok->id !== T_WHITESPACE) {
-                        array_unshift($modifierTokens, $bTok);
-                    }
-                }
-                foreach ($modifierTokens as $mTok) {
-                    if ($mTok->id === T_PRIVATE) {
-                        $visibility = 'private';
-                    } elseif ($mTok->id === T_PROTECTED) {
-                        $visibility = 'protected';
-                    } elseif ($mTok->id === T_PUBLIC) {
-                        $visibility = 'public';
-                    } elseif ($mTok->id === T_STATIC) {
-                        $isStatic = true;
-                    } elseif (defined('T_READONLY') && $mTok->id === T_READONLY) {
-                        $isReadonly = true;
-                    } elseif ($mTok->id === T_STRING || $mTok->id === T_NAME_QUALIFIED || $mTok->text === '?') {
-                        $typeHint .= $mTok->text;
-                    }
-                }
-                // Scan forward for default value until ';'
-                $hasDefault = false;
-                $defaultValueTokens = [];
-                for ($j = $i + 1; $j < $count; $j++) {
-                    if ($tokens[$j]->text === ';' || $tokens[$j]->text === ',') {
-                        $i = $j;
-                        break;
-                    }
-                    if ($tokens[$j]->text === '=') {
-                        $hasDefault = true;
-                    } elseif ($hasDefault && $tokens[$j]->id !== T_WHITESPACE) {
-                        $defaultValueTokens[] = $tokens[$j]->text;
-                    }
-                }
-                $properties[$propName] = [
-                    'name'          => $propName,
-                    'visibility'    => $visibility,
-                    'is_static'     => $isStatic,
-                    'is_readonly'   => $isReadonly,
-                    'type'          => $typeHint,
-                    'has_default'   => $hasDefault,
-                    'default_raw'   => $hasDefault ? implode(' ', $defaultValueTokens) : null,
-                    'line'          => $tok->line + $lineOffset,
-                ];
-            }
-        }
-        return [
-            'traits_used' => array_unique($traitsUsed),
-            'constants'   => $constants,
-            'properties'  => $properties,
-            'methods'     => $methods,
-        ];
-    }
 
     // Two private functions that are ONLY used via Reflection classes so you do not see
     // them while configuring `/src/funkphp/FunkPHP.php` and runs it unless `FunkPHPDeployment.php`

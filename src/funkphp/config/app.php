@@ -4,7 +4,8 @@ $FUNK = FunkPHP();
 
 $FUNK->CONFIG()
     ->setDefaultRegisteredShutdownHandler('testar')
-    ->setDefaultRegisteredShutdownHandler("testar");
+    ->setDefaultErrorHandler('testar3')
+    ->setDefaultExceptionHandler("testar3");
 $FUNK->ROUTES()
     ->GET()
     ->route("/:id");
@@ -19,4 +20,4 @@ $FUNK->ROUTES()
 // $runMethod = new ReflectionMethod($cInstance, 'run');
 // $runMethod->setAccessible(true); // Needed for PHP < 8.1, good practice to keep
 // $runMethod->invoke($cInstance);  // Outputs: "TEST"
-dd($FUNK, 'Check (private) errors->all', true);
+dd($FUNK, 'Check (private) errors->all');
