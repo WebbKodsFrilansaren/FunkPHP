@@ -2,18 +2,12 @@
 
 $FUNK = FunkPHP();
 
-$FUNK->CONFIG()
-    ->setUseVendor(false)
-    ->setParamRule("a", "/a/", "yas");
-
-$FUNK->ROUTES()
+$FUNK->CONFIG()->pipeHeader("Ab: af")
+    ->setDefaultURI_NormalizerHandler("testar2")
+    ->setNoRouteMatchCallback("testar2")
+    ->ROUTES()
     ->GET()
-    ->route("/:id")
-    ->setParamRule("a", "/a/", "a")
-    ->setAlias("test|")
-    ->POST()
-    ->route("/a")
-    ->setAlias("test");
+    ->setNoRouteMatchPage("test");
 
 // 1. Inspect the FunkRoute instance ($test) to get the private $c property
 // $routeReflection = new ReflectionObject($test);
