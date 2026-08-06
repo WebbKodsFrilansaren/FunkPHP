@@ -4,12 +4,16 @@ $FUNK = FunkPHP();
 
 $FUNK->CONFIG()
     ->setUseVendor(false)
-    ->setSessionCookieName("fphp_id")
-    ->setSessionCookiePath("a/a")
-    ->setSessionDriver('files');
+    ->setParamRule("a", "/a/", "yas");
+
 $FUNK->ROUTES()
     ->GET()
-    ->route("/:id");
+    ->route("/:id")
+    ->setParamRule("a", "/a/", "a")
+    ->setAlias("test|")
+    ->POST()
+    ->route("/a")
+    ->setAlias("test");
 
 // 1. Inspect the FunkRoute instance ($test) to get the private $c property
 // $routeReflection = new ReflectionObject($test);
