@@ -25,7 +25,6 @@ function testar(&$c)
 {
     $yas = "Yas";
 }
-
 function testar2(&$c, \Throwable $ae)
 {
     $var = "Test";
@@ -34,12 +33,10 @@ function testar3(&$c, $errno, $errstr, $errfile, $errline)
 {
     $var = "Test";
 }
-
 function testar4(&$c)
 {
     $var = "Test";
 }
-
 function testar5(&$c)
 {
     $var = "Test";
