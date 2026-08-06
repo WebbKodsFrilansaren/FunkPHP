@@ -4,8 +4,9 @@ $FUNK = FunkPHP();
 
 $FUNK->CONFIG()
     ->setUseVendor(false)
-    ->setBaseURLLocal("http://test")
-    ->setDefaultRegisteredShutdownHandler('testar');
+    ->setSessionCookieName("fphp_id")
+    ->setSessionCookiePath("a/a")
+    ->setSessionDriver('files');
 $FUNK->ROUTES()
     ->GET()
     ->route("/:id");
