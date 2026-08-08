@@ -6,6 +6,7 @@ $FUNK->CONFIG()
     ->setCompileFlag('NO_WARNINGS_ALLOWED');
 $FUNK->ROUTES()
     ->GET()
+    ->setParamRule("test", "/a/", "nope")
     ->ROUTE("/:iA")
     ->pipeFunction("test.test")
     ->pipeMiddleware("auth")

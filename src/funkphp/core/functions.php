@@ -5071,7 +5071,7 @@ class C
             'pattern' => $regex,
             'default' => $defaultParamValueOnRegexMismatch
         ];
-        $this->cached['placeHolderUnusedParams']['global'][$param] = [
+        $this->cached['placeholderUNSUEDParams']['global'][$param] = [
             'pattern' => $regex,
             'default' => $defaultParamValueOnRegexMismatch
         ];
@@ -5635,7 +5635,7 @@ class C
             'pattern' => $regex,
             'default' => $defaultParamValueOnRegexMismatch
         ];
-        $this->cached['placeHolderUnusedParams']['methods'][$method][$param] = [
+        $this->cached['placeholderUNSUEDParams']['methods'][$method][$param] = [
             'pattern' => $regex,
             'default' => $defaultParamValueOnRegexMismatch
         ];
@@ -6040,7 +6040,7 @@ class C
         // Method-leveled paramRules uses 'paramRules'->'methods',
         // while config() uses 'paramRules'->'global'
         $this->validBatches['routes'][$method][$route]['paramRules'][$param] = ['pattern' => $regex, 'default' => $defaultParamValueOnRegexMismatch];
-        $this->cached['placeHolderUnusedParams']['routes'][$method][$route][$param] = [
+        $this->cached['placeholderUNSUEDParams']['routes'][$method][$route][$param] = [
             'pattern' => $regex,
             'default' => $defaultParamValueOnRegexMismatch
         ];
