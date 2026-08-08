@@ -3,7 +3,8 @@
 $FUNK = FunkPHP();
 
 $FUNK->CONFIG()
-    ->setCompileFlag('NO_WARNINGS_ALLOWED');
+    ->setCompileFlag('NO_WARNINGS_ALLOWED')
+    ->setParamRule("id", "/a/", "mm");
 $FUNK->ROUTES()
     ->GET()
     ->setParamRule("test", "/a/", "nope")

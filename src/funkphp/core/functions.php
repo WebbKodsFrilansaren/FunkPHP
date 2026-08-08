@@ -5638,7 +5638,7 @@ class C
             'pattern' => $regex,
             'default' => $defaultParamValueOnRegexMismatch
         ];
-        $this->cached['placeholderUNSUEDParams']['methods'][$method][$param] = [
+        $this->cached['placeholderUNSUEDParams'][$method][$param] = [
             'pattern' => $regex,
             'default' => $defaultParamValueOnRegexMismatch
         ];
@@ -6043,10 +6043,6 @@ class C
         // Method-leveled paramRules uses 'paramRules'->'methods',
         // while config() uses 'paramRules'->'global'
         $this->validBatches['routes'][$method][$route]['paramRules'][$param] = ['pattern' => $regex, 'default' => $defaultParamValueOnRegexMismatch];
-        $this->cached['placeholderUNSUEDParams']['routes'][$method][$route][$param] = [
-            'pattern' => $regex,
-            'default' => $defaultParamValueOnRegexMismatch
-        ];
     }
     /*ROUTE: RateLimiting & setCache */
     private function batchSetRateLimitingRoute(string $method, string $route, array $rateLimitingOptions) {}
