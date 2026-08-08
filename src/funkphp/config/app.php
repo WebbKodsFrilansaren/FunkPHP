@@ -3,11 +3,9 @@
 $FUNK = FunkPHP();
 
 $FUNK->CONFIG()->pipeHeader("Ab: af")
-    ->setGroupPipeMiddlewares("early_mws", "mw_1", "mw_2")
-    ->pipeMiddleware("group:early_mws")
     ->ROUTES()
     ->GET()
-    ->setNoRouteMatchPage("test");
+    ->setNoRouteMatchPage("a");
 
 // 1. Inspect the FunkRoute instance ($test) to get the private $c property
 // $routeReflection = new ReflectionObject($test);

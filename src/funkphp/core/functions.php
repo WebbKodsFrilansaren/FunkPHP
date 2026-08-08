@@ -3646,13 +3646,116 @@ class C
         ];
         return $errors[$errType] ?? ' [[INTERNAL FUNKPHP ERROR - UNKNOWN_ERROR_TYPE]: REVIEW class C -> private function getErr in `/src/funkphp/core/functions.php`!] ';
     }
-    // Set default error in 'all' and also the specified key based on error level depth
-    private function setErr(string $errMsg, array|null &$specificErrDepth, bool $skipDepth = false)
+    /**
+     * Set Error Message with specific type ($type) so it can be grouped if needed.
+     *
+     * Choose Error Type based on scope (global, method, route) and optional method and route when applicable.
+     *
+     * @param string $errMsg
+     * @param 'Global-setCompileFlag'|'Global-setGroupPipeUserdefined'|'Global-setGroupPipeRequest'|'Global-setGroupPipePostResponse'|'Global-setGroupPipeRoute'|'Global-setGroupPipeMiddlewares'|'Global-setINI_SET'|'Global-setNonces'|'Global-setCSP'|'Global-setSRIInternal'|'Global-setSRIExternal'|'Global-setNoRouteMatchPage'|'Global-setNoRouteMatchJSON'|'Global-setNoRouteMatchText'|'Global-setNoRouteMatchCallback'|'Global-setDefaultRegisteredShutdownHandler'|'Global-setDefaultExceptionHandler'|'Global-setDefaultErrorHandler'|'Global-setDefaultURI_NormalizerHandler'|'Global-setDefaultKernelHandler'|'Global-setBaseURLLocal'|'Global-setBaseURLOnline'|'Global-setBaseURLHost'|'Global-setBaseURLUri'|'Global-setSessionDriver'|'Global-setSessionCookieOptions'|'Global-setSessionCookieName'|'Global-setSessionCookieLifetime'|'Global-setSessionCookiePath'|'Global-setSessionCookieDomain'|'Global-setSessionCookieSecure'|'Global-setSessionCookieHTTPOnly'|'Global-setSessionCookieSameSite'|'Global-setUseFunkPHPOnline'|'Global-setUseHTTPS'|'Global-setUseVendor'|'Global-setParamRule'|'Global-pipeHeader'|'Global-removeHeader'|'Global-pipeMiddleware'|'Global-pipeRequestFunction'|'Global-pipePostResponseFunction'|'Method-setNoRouteMatch'|'Method-setNoRouteMatchPage'|'Method-setNoRouteMatchJson'|'Method-setNoRouteMatchText'|'Method-setNoRouteMatchCallback'|'Method-setNonces'|'Method-setCSP'|'Method-setRateLimiting'|'Method-pipeMiddleware'|'Method-pipeHeader'|'Method-removeHeader'|'Method-setParamRule'|'Method-route'|'Route-setAlias'|'Route-setRateLimiting'|'Route-setCache'|'Route-setNonces'|'Route-pipeMiddleware'|'Route-pipeFunction'|'Route-pipeResponse'|'Route-pipeSQL'|'Route-pipeQuery'|'Route-pipeValidation'|'Route-setExcludeMiddleware'|'Route-setExcludeHeaders'|'Route-setParamRule'|'Route-setCSP'|'Route-pipeHeader'|'Route-removeHeader'|'Route-route' $errType
+     * @param 'GET'|'POST'|'PUT'|'PATCH'|'DELETE'|'HEAD'|null $method
+     * @param string|null $route
+     *
+     */
+    private function setErr(string $errMsg, string $errType = '', ?string $method = null, ?string $route = null)
     {
-        $this->errors['all'][] = $errMsg;
-        if ($skipDepth === false) {
-            $specificErrDepth[] = $errMsg;
+        $validErrTypes = [
+            'Global-setGroupPipeUserdefined',
+            'Global-setGroupPipeRequest',
+            'Global-setGroupPipePostResponse',
+            'Global-setGroupPipeRoute',
+            'Global-setGroupPipeMiddlewares',
+            'Global-setINI_SET',
+            'Global-setNonces',
+            'Global-setCSP',
+            'Global-setSRIInternal',
+            'Global-setSRIExternal',
+            'Global-setNoRouteMatchPage',
+            'Global-setNoRouteMatchJSON',
+            'Global-setNoRouteMatchText',
+            'Global-setNoRouteMatchCallback',
+            'Global-setDefaultRegisteredShutdownHandler',
+            'Global-setDefaultExceptionHandler',
+            'Global-setDefaultErrorHandler',
+            'Global-setDefaultURI_NormalizerHandler',
+            'Global-setDefaultKernelHandler',
+            'Global-setBaseURLLocal',
+            'Global-setBaseURLOnline',
+            'Global-setBaseURLHost',
+            'Global-setBaseURLUri',
+            'Global-setSessionDriver',
+            'Global-setSessionCookieOptions',
+            'Global-setSessionCookieName',
+            'Global-setSessionCookieLifetime',
+            'Global-setSessionCookiePath',
+            'Global-setSessionCookieDomain',
+            'Global-setSessionCookieSecure',
+            'Global-setSessionCookieHTTPOnly',
+            'Global-setSessionCookieSameSite',
+            'Global-setUseFunkPHPOnline',
+            'Global-setUseHTTPS',
+            'Global-setUseVendor',
+            'Global-setParamRule',
+            'Global-pipeHeader',
+            'Global-removeHeader',
+            'Global-pipeMiddleware',
+            'Global-pipeRequestFunction',
+            'Global-pipePostResponseFunction',
+            'Method-setNoRouteMatch',
+            'Method-setNoRouteMatchPage',
+            'Method-setNoRouteMatchJson',
+            'Method-setNoRouteMatchText',
+            'Method-setNoRouteMatchCallback',
+            'Method-setNonces',
+            'Method-setCSP',
+            'Method-setRateLimiting',
+            'Method-pipeMiddleware',
+            'Method-pipeHeader',
+            'Method-removeHeader',
+            'Method-setParamRule',
+            'Method-route',
+            'Route-setAlias',
+            'Route-setRateLimiting',
+            'Route-setCache',
+            'Route-setNonces',
+            'Route-pipeMiddleware',
+            'Route-pipeFunction',
+            'Route-pipeResponse',
+            'Route-pipeSQL',
+            'Route-pipeQuery',
+            'Route-pipeValidation',
+            'Route-setExcludeMiddleware',
+            'Route-setExcludeHeaders',
+            'Route-setParamRule',
+            'Route-setCSP',
+            'Route-pipeHeader',
+            'Route-removeHeader',
+            'Route-route',
+        ];
+        $validMethodTypes = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD'];
+        // No error (or valid) type
+        if (!is_string($errType) || trim($errType) === '' || !in_array($errType, $validErrTypes)) {
+            $this->errors[] = ['type' => 'internal', 'err' => 'Invalid \$type (Error Type) Value in `class C->setErr()` when setting Error:\'`' . $errMsg . '`\' Report this found bug/issue to the Official FunkPHP Repositories. Choose a `Valid Error Type` from: ' . $this->joinArray($validErrTypes), 'method' => $method, 'route' => $route];
+            return;
         }
+        // No method (or valid) provided for Method- & Route-related errors (since Route always needs Method)
+        if (
+            (str_starts_with($errType, 'Method-') || str_starts_with($errType, 'Route-'))
+            && (!is_string($method)
+                || trim($method) === '' || !in_array($method, $validMethodTypes))
+        ) {
+            $this->errors[] = ['type' => 'internal', 'err' => 'Invalid \$method (Method Type) Value in `class C->setErr()`: must be provided when Error Type starts with `Method-` OR `Route-`. Report this found bug/issue to the Official FunkPHP Repositories. Choose a `Valid Error Type` from: ' . $this->joinArray($validMethodTypes), 'method' => $method, 'route' => $route];
+            return;
+        }
+        if (
+            str_starts_with($errType, 'Route-')
+            && (!is_string($route)
+                || trim($route) === '')
+        ) {
+            $this->errors[] = ['type' => 'internal', 'err' => 'Invalid \$route Value in `class C->setErr()`: must be provided when Error Type starts with `Route-`. Report this found bug/issue to the Official FunkPHP Repositories.', 'method' => $method, 'route' => $route];
+            return;
+        }
+        $this->errors[] = ['err' => $errMsg, 'type' => $errType, 'method' => $method, 'route' => $route];
     }
     // Join array with wrapped `` and comma
     private function joinArray(array $array = [])
@@ -3692,45 +3795,23 @@ class C
         $this->$fn(...$payload);
     }
 
-    /* set<BOOLEAN_VARIANTS_OPTIONS-NoWarningsAllowed,FunkPHPOnline,UseHTTPS,UseVendor> Global */
-    private function batchSetAllowNoWarnings(bool $trueOrFalse)
-    {
-        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setAllowNoWarnings', $trueOrFalse);
-        [$ctx, $ctxVals] = $this->setCtx('setAllowNoWarnings', "CONFIG()", $trueOrFalse);
-        if (isset($this->invalidBatches['config']['NO_WARNINGS_ALLOWED'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
-            return;
-        }
-        if (isset($this->validBatches['config']['NO_WARNINGS_ALLOWED'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
-            return;
-        }
-        if (
-            !is_bool($trueOrFalse) || ($trueOrFalse !== FALSE && $trueOrFalse !== TRUE)
-        ) {
-            $this->setErr($this->getErr('NotBoolean', $ctxVals), $this->errors['config']);
-            $this->invalidBatches['config']['NO_WARNINGS_ALLOWED'] = $trueOrFalse;
-            return;
-        }
-        $this->validBatches['config']['NO_WARNINGS_ALLOWED'] = $trueOrFalse;
-        $this->NoWarningsAllowed = true;
-    }
+    /* set<BOOLEAN_VARIANTS_OPTIONS-FunkPHPOnline,UseHTTPS,UseVendor> Global */
     private function batchSetFunkPHPOnlineGlobal(bool $trueOrFalse)
     {
-        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setUseFunKPHPOnline', $trueOrFalse);
-        [$ctx, $ctxVals] = $this->setCtx('setUseFunKPHPOnline', "CONFIG()", $trueOrFalse);
+        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setUseFunkPHPOnline', $trueOrFalse);
+        [$ctx, $ctxVals] = $this->setCtx('setUseFunkPHPOnline', "CONFIG()", $trueOrFalse);
         if (isset($this->invalidBatches['config']['FUNKPHP_ONLINE'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setUseFunkPHPOnline');
             return;
         }
         if (isset($this->validBatches['config']['FUNKPHP_ONLINE'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setUseFunkPHPOnline');
             return;
         }
         if (
             !is_bool($trueOrFalse) || ($trueOrFalse !== FALSE && $trueOrFalse !== TRUE)
         ) {
-            $this->setErr($this->getErr('NotBoolean', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('NotBoolean', $ctxVals), 'Global-setUseFunkPHPOnline');
             $this->invalidBatches['config']['FUNKPHP_ONLINE'] = $trueOrFalse;
             return;
         }
@@ -3741,17 +3822,17 @@ class C
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setUseHTTPS', $trueOrFalse);
         [$ctx, $ctxVals] = $this->setCtx('setUseHTTPS', "CONFIG()", $trueOrFalse);
         if (isset($this->invalidBatches['config']['USE_HTTPS'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setUseHTTPS');
             return;
         }
         if (isset($this->validBatches['config']['USE_HTTPS'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setUseHTTPS');
             return;
         }
         if (
             !is_bool($trueOrFalse) || ($trueOrFalse !== FALSE && $trueOrFalse !== TRUE)
         ) {
-            $this->setErr($this->getErr('NotBoolean', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('NotBoolean', $ctxVals), 'Global-setUseHTTPS');
             $this->invalidBatches['config']['USE_HTTPS'] = $trueOrFalse;
             return;
         }
@@ -3762,17 +3843,17 @@ class C
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setUseVendor', $trueOrFalse);
         [$ctx, $ctxVals] = $this->setCtx('setUseVendor', "CONFIG()", $trueOrFalse);
         if (isset($this->invalidBatches['config']['USE_VENDOR'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setUseVendor');
             return;
         }
         if (isset($this->validBatches['config']['USE_VENDOR'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setUseVendor');
             return;
         }
         if (
             !is_bool($trueOrFalse) || ($trueOrFalse !== FALSE && $trueOrFalse !== TRUE)
         ) {
-            $this->setErr($this->getErr('NotBoolean', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('NotBoolean', $ctxVals), 'Global-setUseVendor');
             $this->invalidBatches['config']['USE_VENDOR'] = $trueOrFalse;
             return;
         }
@@ -3785,25 +3866,25 @@ class C
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setDefaultRegisteredShutdownHandler', $userDefinedFunction);
         [$ctx, $ctxVals] = $this->setCtx('setDefaultRegisteredShutdownHandler', "CONFIG()", $userDefinedFunction);
         if (isset($this->invalidBatches['config']['DEFAULT_REGISTER_SHUTDOWN_HANDLER'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setDefaultRegisteredShutdownHandler');
             return;
         }
         if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($userDefinedFunction)) {
-            $this->setErr($this->getErr('NonEmptyAllLowercasedStringNotStartCLIorFUNK', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('NonEmptyAllLowercasedStringNotStartCLIorFUNK', $ctxVals), 'Global-setDefaultRegisteredShutdownHandler');
             $this->invalidBatches['config']['DEFAULT_REGISTER_SHUTDOWN_HANDLER'] = $userDefinedFunction;
             return;
         }
         // FN already used by some other Global Engine Function? (exception, error, uri normalizer, https kernel?)
         if (isset($this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunction])) {
             $err = $this->getErr('UserDefinedFUNCTIONAlreadyUsedBy', $ctxVals) . "`{$this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction]}` and cannot be used for multiple purposes as a result.";
-            $this->setErr($err, $this->errors['config']);
+            $this->setErr($err, 'Global-setDefaultRegisteredShutdownHandler');
             $this->invalidBatches['config']['DEFAULT_REGISTER_SHUTDOWN_HANDLER'] = $userDefinedFunction;
             return;
         }
         // FN already in array of chained Register Shutdown FNs?
         if (in_array($userDefinedFunction, $this->validBatches['config']['REGISTERED_SHUTDOWN_HANDLERS'] ?? [], true)) {
             $err = $this->getErr('UserDefinedFUNCTIONAlreadyInArray', $ctxVals) . $this->joinArray($this->validBatches['config']['REGISTERED_SHUTDOWN_HANDLERS'] ?? ['***EMPTY***']);
-            $this->setErr($err, $this->errors['config']);
+            $this->setErr($err, 'Global-setDefaultRegisteredShutdownHandler');
             return;
         }
         // Prepare Config Functions.php File I/O if needed
@@ -3814,7 +3895,7 @@ class C
         // Bails on the first structural error regarding a typical user-defined function
         $fatalError = $this->validateFNFile($fileData, $userDefinedFunction, $ctxVals);
         if ($fatalError !== null) {
-            $this->setErr($fatalError, $this->errors['config']);
+            $this->setErr($fatalError, 'Global-setDefaultRegisteredShutdownHandler');
             $this->invalidBatches['config']['DEFAULT_REGISTER_SHUTDOWN_HANDLER'] = $userDefinedFunction;
             return;
         }
@@ -3829,22 +3910,22 @@ class C
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setDefaultExceptionHandler', $userDefinedFunction);
         [$ctx, $ctxVals] = $this->setCtx('setDefaultExceptionHandler', "CONFIG()", $userDefinedFunction);
         if (isset($this->invalidBatches['config']['DEFAULT_EXCEPTION_HANDLER'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setDefaultExceptionHandler');
             return;
         }
         if (isset($this->validBatches['config']['DEFAULT_EXCEPTION_HANDLER'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setDefaultExceptionHandler');
             return;
         }
         if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($userDefinedFunction)) {
-            $this->setErr($this->getErr('NonEmptyAllLowercasedStringNotStartCLIorFUNK', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('NonEmptyAllLowercasedStringNotStartCLIorFUNK', $ctxVals), 'Global-setDefaultExceptionHandler');
             $this->invalidBatches['config']['DEFAULT_EXCEPTION_HANDLER'] = $userDefinedFunction;
             return;
         }
         // FN already used by some other Global Engine Function? (exception, error, uri normalizer, https kernel?)
         if (isset($this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunction])) {
             $err = $this->getErr('UserDefinedFUNCTIONAlreadyUsedBy', $ctxVals) . "`{$this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction]}` and cannot be used for multiple purposes as a result.";
-            $this->setErr($err, $this->errors['config']);
+            $this->setErr($err, 'Global-setDefaultExceptionHandler');
             $this->invalidBatches['config']['DEFAULT_EXCEPTION_HANDLER'] = $userDefinedFunction;
             return;
         }
@@ -3856,7 +3937,7 @@ class C
         // Bails on the first structural error regarding a typical user-defined function
         $fatalError = $this->validateFNFile($fileData, $userDefinedFunction, $ctxVals, '', false);
         if ($fatalError !== null) {
-            $this->setErr($fatalError, $this->errors['config']);
+            $this->setErr($fatalError, 'Global-setDefaultExceptionHandler');
             $this->invalidBatches['config']['DEFAULT_EXCEPTION_HANDLER'] = $userDefinedFunction;
             return;
         }
@@ -3866,7 +3947,7 @@ class C
             !preg_match('/\\\\Throwable\s+\$[_a-z][_a-z0-9]*/i', $fileData['functions'][$userDefinedFunction]['args_raw'])
         ) {
             $err = $this->getErr('UserDefinedFUNCTIONHasWrongArgs', $ctxVals) . ' `\Throwable \$e` (e.g. `function userDefined(&\$c, \Throwable \$e){}`) in order to use it as a User-defined Exception Handler. The variable `$e` can be named something else as well.' . " Found instead:`{$fileData['functions'][$userDefinedFunction]['args_raw']}`.";
-            $this->setErr($err, $this->errors['config']);
+            $this->setErr($err, 'Global-setDefaultExceptionHandler');
             $this->invalidBatches['config']['DEFAULT_EXCEPTION_HANDLER'] = $userDefinedFunction;
             return;
         }
@@ -3881,22 +3962,22 @@ class C
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setDefaultErrorHandler', $userDefinedFunction);
         [$ctx, $ctxVals] = $this->setCtx('setDefaultErrorHandler', "CONFIG()", $userDefinedFunction);
         if (isset($this->invalidBatches['config']['DEFAULT_ERROR_HANDLER'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setDefaultErrorHandler');
             return;
         }
         if (isset($this->validBatches['config']['DEFAULT_ERROR_HANDLER'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setDefaultErrorHandler');
             return;
         }
         if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($userDefinedFunction)) {
-            $this->setErr($this->getErr('NonEmptyAllLowercasedStringNotStartCLIorFUNK', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('NonEmptyAllLowercasedStringNotStartCLIorFUNK', $ctxVals), 'Global-setDefaultErrorHandler');
             $this->invalidBatches['config']['DEFAULT_ERROR_HANDLER'] = $userDefinedFunction;
             return;
         }
         // FN already used by some other Global Engine Function? (exception, error, uri normalizer, https kernel?)
         if (isset($this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunction])) {
             $err = $this->getErr('UserDefinedFUNCTIONAlreadyUsedBy', $ctxVals) . "`{$this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction]}` and cannot be used for multiple purposes as a result.";
-            $this->setErr($err, $this->errors['config']);
+            $this->setErr($err, 'Global-setDefaultErrorHandler');
             $this->invalidBatches['config']['DEFAULT_ERROR_HANDLER'] = $userDefinedFunction;
             return;
         }
@@ -3908,7 +3989,7 @@ class C
         // Bails on the first structural error regarding a typical user-defined function
         $fatalError = $this->validateFNFile($fileData, $userDefinedFunction, $ctxVals, '', false);
         if ($fatalError !== null) {
-            $this->setErr($fatalError, $this->errors['config']);
+            $this->setErr($fatalError, 'Global-setDefaultErrorHandler');
             $this->invalidBatches['config']['DEFAULT_ERROR_HANDLER'] = $userDefinedFunction;
             return;
         }
@@ -3918,7 +3999,7 @@ class C
             !preg_match('/^&\$c\s*,\s*(?:int\s+)?\$[_a-z0-9]+\s*,\s*(?:string\s+)?\$[_a-z0-9]+\s*,\s*(?:string\s+)?\$[_a-z0-9]+\s*,\s*(?:int\s+)?\$[_a-z0-9]+$/i', $fileData['functions'][$userDefinedFunction]['args_raw'])
         ) {
             $err = $this->getErr('UserDefinedFUNCTIONHasWrongArgs', $ctxVals) . '` $errNo, $errStr, $errFile, $errLine` (e.g. `function userDefined(&\$c, $errNo, $errStr, $errFile, $errLine){}`) in order to use it as a User-defined Error Handler. The `$errNo,$errStr,$errFile,$errLine` can be named something else as well.' . " Found instead:`{$fileData['functions'][$userDefinedFunction]['args_raw']}`.";
-            $this->setErr($err, $this->errors['config']);
+            $this->setErr($err, 'Global-setDefaultErrorHandler');
             $this->invalidBatches['config']['DEFAULT_ERROR_HANDLER'] = $userDefinedFunction;
             return;
         }
@@ -3933,22 +4014,22 @@ class C
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setDefaultURI_NormalizerHandler', $userDefinedFunction);
         [$ctx, $ctxVals] = $this->setCtx('setDefaultURI_NormalizerHandler', "CONFIG()", $userDefinedFunction);
         if (isset($this->invalidBatches['config']['DEFAULT_URI_NORMALIZER'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setDefaultURI_NormalizerHandler');
             return;
         }
         if (isset($this->validBatches['config']['DEFAULT_URI_NORMALIZER'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals),  'Global-setDefaultURI_NormalizerHandler');
             return;
         }
         if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($userDefinedFunction)) {
-            $this->setErr($this->getErr('NonEmptyAllLowercasedStringNotStartCLIorFUNK', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('NonEmptyAllLowercasedStringNotStartCLIorFUNK', $ctxVals),  'Global-setDefaultURI_NormalizerHandler');
             $this->invalidBatches['config']['DEFAULT_URI_NORMALIZER'] = $userDefinedFunction;
             return;
         }
         // FN already used by some other Global Engine Function? (exception, error, uri normalizer, https kernel?)
         if (isset($this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunction])) {
             $err = $this->getErr('UserDefinedFUNCTIONAlreadyUsedBy', $ctxVals) . "`{$this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction]}` and cannot be used for multiple purposes as a result.";
-            $this->setErr($err, $this->errors['config']);
+            $this->setErr($err,  'Global-setDefaultURI_NormalizerHandler');
             $this->invalidBatches['config']['DEFAULT_URI_NORMALIZER'] = $userDefinedFunction;
             return;
         }
@@ -3960,7 +4041,7 @@ class C
         // Bails on the first structural error regarding a typical user-defined function
         $fatalError = $this->validateFNFile($fileData, $userDefinedFunction, $ctxVals, '', false);
         if ($fatalError !== null) {
-            $this->setErr($fatalError, $this->errors['config']);
+            $this->setErr($fatalError,  'Global-setDefaultURI_NormalizerHandler');
             $this->invalidBatches['config']['DEFAULT_URI_NORMALIZER'] = $userDefinedFunction;
             return;
         }
@@ -3975,22 +4056,22 @@ class C
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setDefaultKernelHandler', $userDefinedFunction);
         [$ctx, $ctxVals] = $this->setCtx('setDefaultKernelHandler', "CONFIG()", $userDefinedFunction);
         if (isset($this->invalidBatches['config']['DEFAULT_HTTPS_KERNEL'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setDefaultKernelHandler');
             return;
         }
         if (isset($this->validBatches['config']['DEFAULT_HTTPS_KERNEL'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setDefaultKernelHandler');
             return;
         }
         if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($userDefinedFunction)) {
-            $this->setErr($this->getErr('NonEmptyAllLowercasedStringNotStartCLIorFUNK', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('NonEmptyAllLowercasedStringNotStartCLIorFUNK', $ctxVals), 'Global-setDefaultKernelHandler');
             $this->invalidBatches['config']['DEFAULT_HTTPS_KERNEL'] = $userDefinedFunction;
             return;
         }
         // FN already used by some other Global Engine Function? (exception, error, uri normalizer, https kernel?)
         if (isset($this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunction])) {
             $err = $this->getErr('UserDefinedFUNCTIONAlreadyUsedBy', $ctxVals) . "`{$this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction]}` and cannot be used for multiple purposes as a result.";
-            $this->setErr($err, $this->errors['config']);
+            $this->setErr($err, 'Global-setDefaultKernelHandler');
             $this->invalidBatches['config']['DEFAULT_HTTPS_KERNEL'] = $userDefinedFunction;
             return;
         }
@@ -4002,7 +4083,7 @@ class C
         // Bails on the first structural error regarding a typical user-defined function
         $fatalError = $this->validateFNFile($fileData, $userDefinedFunction, $ctxVals, '', false);
         if ($fatalError !== null) {
-            $this->setErr($fatalError, $this->errors['config']);
+            $this->setErr($fatalError, 'Global-setDefaultKernelHandler');
             $this->invalidBatches['config']['DEFAULT_HTTPS_KERNEL'] = $userDefinedFunction;
             return;
         }
@@ -4019,20 +4100,20 @@ class C
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setNoRouteMatchPage', $PageFileName);
         [$ctx, $ctxVals] = $this->setCtx('setNoRouteMatchPage', "CONFIG()", $PageFileName);
         if (isset($this->invalidBatches['config']['NO_ROUTE_MATCH']['PAGE'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setNoRouteMatchPage');
             return;
         }
         if (isset($this->validBatches['config']['NO_ROUTE_MATCH']['PAGE'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setNoRouteMatchPage');
             return;
         }
         if (!$this->validateStatusCode($statusCode)) {
-            $this->setErr($this->getErr('InvalidHttpStatusCode', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('InvalidHttpStatusCode', $ctx), 'Global-setNoRouteMatchPage');
             $this->invalidBatches['config']['NO_ROUTE_MATCH']['PAGE'] = $PageFileName;
             return;
         }
         if (!is_string($PageFileName) || (trim($PageFileName) === '') || !preg_match('/[a-zA-Z0-9-_]+/i', $PageFileName)) {
-            $this->setErr($this->getErr('InvalidPageName', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('InvalidPageName', $ctx), 'Global-setNoRouteMatchPage');
             $this->invalidBatches['config']['NO_ROUTE_MATCH']['PAGE'] = $PageFileName;
             return;
         }
@@ -4055,7 +4136,7 @@ class C
         }
         // No Page at all found?
         if (!$pageFound) {
-            $this->setErr($this->getErr('NoPageAtAllFound', $ctxVals) . " using Filename `{$PageFileName}.php`.", $this->errors['config']);
+            $this->setErr($this->getErr('NoPageAtAllFound', $ctxVals) . " using Filename `{$PageFileName}.php`.", 'Global-setNoRouteMatchPage');
             $this->invalidBatches['config']['NO_ROUTE_MATCH']['PAGE'] = $PageFileName;
             return;
         }
@@ -4066,15 +4147,15 @@ class C
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setNoRouteMatchJSON', $data, $statusCode);
         [$ctx, $ctxVals] = $this->setCtx('setNoRouteMatchJSON', "CONFIG()", $data, $statusCode);
         if (isset($this->invalidBatches['config']['NO_ROUTE_MATCH']['JSON'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setNoRouteMatchJSON');
             return;
         }
         if (isset($this->validBatches['config']['NO_ROUTE_MATCH']['JSON'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setNoRouteMatchJSON');
             return;
         }
         if (!$this->validateStatusCode($statusCode)) {
-            $this->setErr($this->getErr('InvalidHttpStatusCode', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('InvalidHttpStatusCode', $ctx), 'Global-setNoRouteMatchJSON');
             $this->invalidBatches['config']['NO_ROUTE_MATCH']['JSON'] = true;
             return;
         }
@@ -4084,7 +4165,7 @@ class C
             (get_object_vars($data) === [] && !($data instanceof \JsonSerializable))
         );
         if (is_array($data) && empty($data) || $isEmptyObject) {
-            $this->setErr($this->getErr('JsonEncodingFailedNoData', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('JsonEncodingFailedNoData', $ctx), 'Global-setNoRouteMatchJSON');
             $this->invalidBatches['config']['NO_ROUTE_MATCH']['JSON'] = true;
             return;
         }
@@ -4092,7 +4173,7 @@ class C
         try {
             $JSON = json_encode($data, JSON_THROW_ON_ERROR, JSON_PRETTY_PRINT);
         } catch (\Throwable $e) {
-            $this->setErr($this->getErr('JsonEncodingFailed', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('JsonEncodingFailed', $ctx), 'Global-setNoRouteMatchJSON');
             $this->invalidBatches['config']['NO_ROUTE_MATCH']['JSON'] = true;
             return;
         }
@@ -4103,20 +4184,20 @@ class C
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setNoRouteMatchText', $message, $statusCode);
         [$ctx, $ctxVals] = $this->setCtx('setNoRouteMatchText', "CONFIG()", $message, $statusCode);
         if (isset($this->invalidBatches['config']['NO_ROUTE_MATCH']['TEXT'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setNoRouteMatchText');
             return;
         }
         if (isset($this->validBatches['config']['NO_ROUTE_MATCH']['TEXT'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setNoRouteMatchText');
             return;
         }
         if (!$this->validateStatusCode($statusCode)) {
-            $this->setErr($this->getErr('InvalidHttpStatusCode', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('InvalidHttpStatusCode', $ctx), 'Global-setNoRouteMatchText');
             $this->invalidBatches['config']['NO_ROUTE_MATCH']['TEXT'] = true;
             return;
         }
         if (!is_string($message) || (trim($message) === '')) {
-            $this->setErr($this->getErr('InvalidNoRouteMatchTextValue', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('InvalidNoRouteMatchTextValue', $ctx), 'Global-setNoRouteMatchText');
             $this->invalidBatches['config']['NO_ROUTE_MATCH']['TEXT'] = true;
             return;
         }
@@ -4127,15 +4208,15 @@ class C
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setNoRouteMatchCallback', $userDefinedFunctionName);
         [$ctx, $ctxVals] = $this->setCtx('setNoRouteMatchCallback', "CONFIG()", $userDefinedFunctionName);
         if (isset($this->invalidBatches['config']['NO_ROUTE_MATCH']['CALLBACK'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setNoRouteMatchCallback');
             return;
         }
         if (isset($this->validBatches['config']['NO_ROUTE_MATCH']['CALLBACK'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setNoRouteMatchCallback');
             return;
         }
         if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($userDefinedFunctionName)) {
-            $this->setErr($this->getErr('InvalidFunctionName', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('InvalidFunctionName', $ctx), 'Global-setNoRouteMatchCallback');
             $this->invalidBatches['config']['NO_ROUTE_MATCH']['CALLBACK'] = $userDefinedFunctionName;
             return;
         }
@@ -4145,7 +4226,7 @@ class C
         // Bails on the first structural error regarding a typical user-defined function
         $fatalError = $this->validateFNFile($fileData, $userDefinedFunctionName, $ctxVals);
         if ($fatalError !== null) {
-            $this->setErr($fatalError, $this->errors['config']);
+            $this->setErr($fatalError, 'Global-setNoRouteMatchCallback');
             $this->invalidBatches['config']['NO_ROUTE_MATCH']['CALLBACK'] = $userDefinedFunctionName;
             return;
         }
@@ -4164,18 +4245,18 @@ class C
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setBaseURLLocal', $httpsPath);
         [$ctx, $ctxVals] = $this->setCtx('setBaseURLLocal', "CONFIG()", $httpsPath);
         if (isset($this->invalidBatches['config']['BASEURL_LOCAL'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setBaseURLLocal');
             return;
         }
         if (isset($this->validBatches['config']['BASEURL_LOCAL'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setBaseURLLocal');
             return;
         }
         if (
             !is_string($httpsPath) || trim($httpsPath) === ''
             || !preg_match('/^http:\/\//', $httpsPath)
         ) {
-            $this->setErr($this->getErr('NonEmptyAllLowercasedStringSTARTWithHTTP', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('NonEmptyAllLowercasedStringSTARTWithHTTP', $ctxVals), 'Global-setBaseURLLocal');
             $this->invalidBatches['config']['BASEURL_LOCAL'] = $httpsPath;
             return;
         }
@@ -4186,18 +4267,18 @@ class C
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setBaseURLOnline', $httpsPath);
         [$ctx, $ctxVals] = $this->setCtx('setBaseURLLocal', "CONFIG()", $httpsPath);
         if (isset($this->invalidBatches['config']['BASEURL_ONLINE'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setBaseURLOnline');
             return;
         }
         if (isset($this->validBatches['config']['BASEURL_ONLINE'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setBaseURLOnline');
             return;
         }
         if (
             !is_string($httpsPath) || trim($httpsPath) === ''
             || !preg_match('/^https:\/\//', $httpsPath)
         ) {
-            $this->setErr($this->getErr('NonEmptyAllLowercasedStringSTARTWithHTTPS', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('NonEmptyAllLowercasedStringSTARTWithHTTPS', $ctxVals), 'Global-setBaseURLOnline');
             $this->invalidBatches['config']['BASEURL_ONLINE'] = $httpsPath;
             return;
         }
@@ -4208,15 +4289,15 @@ class C
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setBaseURLHost', $hostNameLocally);
         [$ctx, $ctxVals] = $this->setCtx('setBaseURLHost', "CONFIG()", $hostNameLocally);
         if (isset($this->invalidBatches['config']['BASEURL_HOST'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setBaseURLHost');
             return;
         }
         if (isset($this->validBatches['config']['BASEURL_HOST'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setBaseURLHost');
             return;
         }
         if (!is_string($hostNameLocally) || trim($hostNameLocally) === '') {
-            $this->setErr($this->getErr('NonEmptyStringNoTrailing', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('NonEmptyStringNoTrailing', $ctxVals), 'Global-setBaseURLHost');
             $this->invalidBatches['config']['BASEURL_HOST'] = $hostNameLocally;
             return;
         }
@@ -4227,15 +4308,15 @@ class C
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setBaseURLUri', $localURI);
         [$ctx, $ctxVals] = $this->setCtx('setBaseURLHost', "CONFIG()", $localURI);
         if (isset($this->invalidBatches['config']['BASEURL_URI'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setBaseURLUri');
             return;
         }
         if (isset($this->validBatches['config']['BASEURL_URI'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setBaseURLUri');
             return;
         }
         if (!is_string($localURI) || trim($localURI) === '') {
-            $this->setErr($this->getErr('NonEmptyStringNoTrailing', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('NonEmptyStringNoTrailing', $ctxVals), 'Global-setBaseURLUri');
             $this->invalidBatches['config']['BASEURL_URI'] = $localURI;
             return;
         }
@@ -4246,11 +4327,11 @@ class C
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setSessionCookieOptions', $SessionCookieOptions);
         [$ctx, $ctxVals] = $this->setCtx('setSessionCookieOptions', "CONFIG()", $SessionCookieOptions);
         if (isset($this->invalidBatches['config']['SESSION']['COOKIES']['AS_OPTIONS'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setSessionCookieOptions');
             return;
         }
         if (isset($this->validBatches['config']['SESSION']['COOKIES']['AS_OPTIONS'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setSessionCookieOptions');
             return;
         }
         $allowedKeys = [
@@ -4263,28 +4344,28 @@ class C
             'SESSION_SAMESITE',
         ];
         if (empty($SessionCookieOptions) || array_is_list($SessionCookieOptions)) {
-            $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . " must be a Non-Empty Associative Array with these Session Cookie Options:`" . implode('`, `', $allowedKeys) . "`.", $this->errors['config']);
+            $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . " must be a Non-Empty Associative Array with these Session Cookie Options:`" . implode('`, `', $allowedKeys) . "`.", 'Global-setSessionCookieOptions');
             $this->invalidBatches['config']['SESSION']['COOKIES']['AS_OPTIONS'] = $SessionCookieOptions;
             return;
         }
         // Validate Session Cookie Options are just Assoc_key => Scalar_Value
         foreach ($SessionCookieOptions as $key => $val) {
             if (!is_scalar($val)) {
-                $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . " Invalid Value for Session Cookie Option `{$key}`. It must be a Scalar Value (Non-Empty String, Non-Negative Integer|Float, or Boolean) using these Session Cookie Keys:`" . implode('`, `', $allowedKeys) . "`.", $this->errors['config']);
+                $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . " Invalid Value for Session Cookie Option `{$key}`. It must be a Scalar Value (Non-Empty String, Non-Negative Integer|Float, or Boolean) using these Session Cookie Keys:`" . implode('`, `', $allowedKeys) . "`.", 'Global-setSessionCookieOptions');
                 $this->invalidBatches['config']['SESSION']['COOKIES']['AS_OPTIONS'] = $SessionCookieOptions;
                 return;
             }
             if (!in_array($key, $allowedKeys, true)) {
-                $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . " Invalid Value for Session Cookie Option `{$key}`. Use these Session Cookie Keys:`" . implode('`, `', $allowedKeys) . "`.", $this->errors['config']);
+                $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . " Invalid Value for Session Cookie Option `{$key}`. Use these Session Cookie Keys:`" . implode('`, `', $allowedKeys) . "`.", 'Global-setSessionCookieOptions');
                 $this->invalidBatches['config']['SESSION']['COOKIES']['AS_OPTIONS'] = $SessionCookieOptions;
                 return;
             }
             if (isset($this->validBatches['config']['SESSION']['COOKIES'][$key])) {
-                $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . " The Session Cookie Option `{$key}` already exists as a Valid Session Cookie Value under `->CONFIG()`.", $this->errors['config']);
+                $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . " The Session Cookie Option `{$key}` already exists as a Valid Session Cookie Value under `->CONFIG()`.", 'Global-setSessionCookieOptions');
                 $this->invalidBatches['config']['SESSION']['COOKIES']['AS_OPTIONS'] = $SessionCookieOptions;
                 return;
             } else if (isset($this->invalidBatches['config']['SESSION']['COOKIES'][$key])) {
-                $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . " The Session Cookie Option `{$key}` already exists as a Invalid Session Cookie Value under `->CONFIG()`.", $this->errors['config']);
+                $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . " The Session Cookie Option `{$key}` already exists as a Invalid Session Cookie Value under `->CONFIG()`.", 'Global-setSessionCookieOptions');
                 $this->invalidBatches['config']['SESSION']['COOKIES']['AS_OPTIONS'] = $SessionCookieOptions;
                 return;
             }
@@ -4295,7 +4376,7 @@ class C
             switch ($key) {
                 case 'SESSION_NAME':
                     if (!is_string($val) || trim($val) === '') {
-                        $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctx) . " Invalid `SESSION_NAME` Value. Must be a Non-Empty String without trailing spaces.", $this->errors['config']);
+                        $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctx) . " Invalid `SESSION_NAME` Value. Must be a Non-Empty String without trailing spaces.", 'Global-setSessionCookieOptions');
                         $this->invalidBatches['config']['SESSION']['COOKIES']['AS_OPTIONS'] = $SessionCookieOptions;
                         return;
                     }
@@ -4303,7 +4384,7 @@ class C
                     break;
                 case 'SESSION_LIFETIME':
                     if (!is_int($val) || $val < 0) {
-                        $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctx) . " Invalid `SESSION_LIFETIME` Value. Must be a Non-Negative Integer.", $this->errors['config']);
+                        $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctx) . " Invalid `SESSION_LIFETIME` Value. Must be a Non-Negative Integer.", 'Global-setSessionCookieOptions');
                         $this->invalidBatches['config']['SESSION']['COOKIES']['AS_OPTIONS'] = $SessionCookieOptions;
                         return;
                     }
@@ -4314,7 +4395,7 @@ class C
                         !is_string($val) || !str_starts_with($val, '/')
                         || !preg_match('/^\/([a-zA-Z0-9-_]+\/?)*$/i', $val)
                     ) {
-                        $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctx) . " Invalid `SESSION_PATH` Value. Must be a Non-Empty String starting with or only being:`/` and then use [a-zA-Z0-9_-#] characters only in each `/segment`. You may include a single trailing slash at the end if technically needed.", $this->errors['config']);
+                        $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctx) . " Invalid `SESSION_PATH` Value. Must be a Non-Empty String starting with or only being:`/` and then use [a-zA-Z0-9_-#] characters only in each `/segment`. You may include a single trailing slash at the end if technically needed.", 'Global-setSessionCookieOptions');
                         $this->invalidBatches['config']['SESSION']['COOKIES']['AS_OPTIONS'] = $SessionCookieOptions;
                         return;
                     }
@@ -4328,7 +4409,7 @@ class C
                         || str_contains($val, '/')
                         || preg_match('/[\s;]/', $val)
                     ) {
-                        $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctx) . " Invalid `SESSION_DOMAIN` Value. Must be a Non-Empty String without schemes and ports:`://`, `:`, `/`.", $this->errors['config']);
+                        $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctx) . " Invalid `SESSION_DOMAIN` Value. Must be a Non-Empty String without schemes and ports:`://`, `:`, `/`.", 'Global-setSessionCookieOptions');
                         $this->invalidBatches['config']['SESSION']['COOKIES']['AS_OPTIONS'] = $SessionCookieOptions;
                         return;
                     }
@@ -4337,7 +4418,7 @@ class C
                 case 'SESSION_SECURE':
                 case 'SESSION_HTTPONLY':
                     if (!is_bool($val)) {
-                        $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctx) . " Invalid `{$key}` Value. Must be a Boolean as either `TRUE` or `FALSE`.", $this->errors['config']);
+                        $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctx) . " Invalid `{$key}` Value. Must be a Boolean as either `TRUE` or `FALSE`.", 'Global-setSessionCookieOptions');
                         $this->invalidBatches['config']['SESSION']['COOKIES']['AS_OPTIONS'] = $SessionCookieOptions;
                         return;
                     }
@@ -4345,7 +4426,7 @@ class C
                     break;
                 case 'SESSION_SAMESITE':
                     if (!is_string($val) || trim($val) === '' || !in_array((ucfirst(strtolower($val))), ['Lax', 'Strict', 'None'], true)) {
-                        $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctx) . " Invalid `SESSION_SAMESITE` Value. Must be one of these Non-Empty String Values:`Lax, Strict, None`.", $this->errors['config']);
+                        $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctx) . " Invalid `SESSION_SAMESITE` Value. Must be one of these Non-Empty String Values:`Lax, Strict, None`.", 'Global-setSessionCookieOptions');
                         $this->invalidBatches['config']['SESSION']['COOKIES']['AS_OPTIONS'] = $SessionCookieOptions;
                         return;
                     }
@@ -4366,18 +4447,18 @@ class C
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setSessionDriver', $filesOrRedisOrSomethingElse);
         [$ctx, $ctxVals] = $this->setCtx('setSessionDriver', "CONFIG()", $filesOrRedisOrSomethingElse);
         if (isset($this->invalidBatches['config']['SESSION']['driver'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setSessionDriver');
             return;
         }
         if (isset($this->validBatches['config']['SESSION']['driver'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setSessionDriver');
             return;
         }
         if (
             !is_string($filesOrRedisOrSomethingElse) || trim($filesOrRedisOrSomethingElse) === ''
             || !in_array(strtolower($filesOrRedisOrSomethingElse), ['files', 'redis', 'memcached', 'database', 'array'], true)
         ) {
-            $this->setErr($this->getErr('InvalidStringCustomErrAfterColon', $ctxVals) . " must be one of these Non-Empty String Values:`files, redis, memcached, database, array`.", $this->errors['config']);
+            $this->setErr($this->getErr('InvalidStringCustomErrAfterColon', $ctxVals) . " must be one of these Non-Empty String Values:`files, redis, memcached, database, array`.", 'Global-setSessionDriver');
             $this->invalidBatches['config']['SESSION']['driver'] = $filesOrRedisOrSomethingElse;
             return;
         }
@@ -4388,15 +4469,15 @@ class C
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setSessionCookieName', $sessionCookieName);
         [$ctx, $ctxVals] = $this->setCtx('setSessionCookieName', "CONFIG()", $sessionCookieName);
         if (isset($this->invalidBatches['config']['SESSION']['COOKIES']['SESSION_NAME'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setSessionCookieName');
             return;
         }
         if (isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_NAME'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setSessionCookieName');
             return;
         }
         if (!is_string($sessionCookieName) || trim($sessionCookieName) === '') {
-            $this->setErr($this->getErr('NonEmptyStringNoTrailing', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('NonEmptyStringNoTrailing', $ctxVals), 'Global-setSessionCookieName');
             $this->invalidBatches['config']['SESSION']['COOKIES']['SESSION_NAME'] = $sessionCookieName;
             return;
         }
@@ -4407,15 +4488,15 @@ class C
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setSessionCookieLifetime', $sessionCookieLifetime);
         [$ctx, $ctxVals] = $this->setCtx('setSessionCookieLifetime', "CONFIG()", $sessionCookieLifetime);
         if (isset($this->invalidBatches['config']['SESSION']['COOKIES']['SESSION_LIFETIME'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setSessionCookieLifetime');
             return;
         }
         if (isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_LIFETIME'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setSessionCookieLifetime');
             return;
         }
         if (!is_int($sessionCookieLifetime) || $sessionCookieLifetime < 0) {
-            $this->setErr($this->getErr('NotIntegerNotNegative', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('NotIntegerNotNegative', $ctxVals), 'Global-setSessionCookieLifetime');
             $this->invalidBatches['config']['SESSION']['COOKIES']['SESSION_LIFETIME'] = $sessionCookieLifetime;
             return;
         }
@@ -4426,18 +4507,18 @@ class C
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setSessionCookiePath', $sessionCookiePath);
         [$ctx, $ctxVals] = $this->setCtx('setSessionCookiePath', "CONFIG()", $sessionCookiePath);
         if (isset($this->invalidBatches['config']['SESSION']['COOKIES']['SESSION_PATH'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setSessionCookiePath');
             return;
         }
         if (isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_PATH'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setSessionCookiePath');
             return;
         }
         if (
             !is_string($sessionCookiePath) || trim($sessionCookiePath) === ''
             || !str_starts_with($sessionCookiePath, '/') || !preg_match('/^\/([a-zA-Z0-9-_]+\/?)*$/i', $sessionCookiePath)
         ) {
-            $this->setErr($this->getErr('InvalidStringCustomErrAfterColon', $ctxVals) . " must be a Non-Empty String starting with or only being:`/` and then use `[a-zA-Z0-9_-#]` characters only in each `/segment`. You may include a single trailing slash at the end if technically needed.", $this->errors['config']);
+            $this->setErr($this->getErr('InvalidStringCustomErrAfterColon', $ctxVals) . " must be a Non-Empty String starting with or only being:`/` and then use `[a-zA-Z0-9_-#]` characters only in each `/segment`. You may include a single trailing slash at the end if technically needed.", 'Global-setSessionCookiePath');
             $this->invalidBatches['config']['SESSION']['COOKIES']['SESSION_PATH'] = $sessionCookiePath;
             return;
         }
@@ -4448,11 +4529,11 @@ class C
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setSessionCookieDomain', $sessionCookieDomain);
         [$ctx, $ctxVals] = $this->setCtx('setSessionCookieDomain', "CONFIG()", $sessionCookieDomain);
         if (isset($this->invalidBatches['config']['SESSION']['COOKIES']['SESSION_DOMAIN'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setSessionCookieDomain');
             return;
         }
         if (isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_DOMAIN'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setSessionCookieDomain');
             return;
         }
         if (
@@ -4462,7 +4543,7 @@ class C
             || str_contains($sessionCookieDomain, '/')
             || preg_match('/[\s;]/', $sessionCookieDomain)
         ) {
-            $this->setErr($this->getErr('InvalidStringCustomErrAfterColon', $ctxVals) . " Must be a Non-Empty String without schemes and ports:`://`, `:`, `/`.", $this->errors['config']);
+            $this->setErr($this->getErr('InvalidStringCustomErrAfterColon', $ctxVals) . " Must be a Non-Empty String without schemes and ports:`://`, `:`, `/`.", 'Global-setSessionCookieDomain');
             $this->invalidBatches['config']['SESSION']['COOKIES']['SESSION_DOMAIN'] = $sessionCookieDomain;
             return;
         }
@@ -4473,15 +4554,15 @@ class C
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setSessionCookieSecure', $trueOrFalse);
         [$ctx, $ctxVals] = $this->setCtx('setSessionCookieSecure', "CONFIG()", $trueOrFalse);
         if (isset($this->invalidBatches['config']['SESSION']['COOKIES']['SESSION_SECURE'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setSessionCookieSecure');
             return;
         }
         if (isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_SECURE'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setSessionCookieSecure');
             return;
         }
         if (!is_bool($trueOrFalse)) {
-            $this->setErr($this->getErr('NotBoolean', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('NotBoolean', $ctxVals), 'Global-setSessionCookieSecure');
             $this->invalidBatches['config']['SESSION']['COOKIES']['SESSION_SECURE'] = $trueOrFalse;
             return;
         }
@@ -4492,15 +4573,15 @@ class C
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setSessionCookieHTTPOnly', $trueOrFalse);
         [$ctx, $ctxVals] = $this->setCtx('setSessionCookieHTTPOnly', "CONFIG()", $trueOrFalse);
         if (isset($this->invalidBatches['config']['SESSION']['COOKIES']['SESSION_HTTPONLY'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setSessionCookieHTTPOnly');
             return;
         }
         if (isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_HTTPONLY'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setSessionCookieHTTPOnly');
             return;
         }
         if (!is_bool($trueOrFalse)) {
-            $this->setErr($this->getErr('NotBoolean', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('NotBoolean', $ctxVals), 'Global-setSessionCookieHTTPOnly');
             $this->invalidBatches['config']['SESSION']['COOKIES']['SESSION_HTTPONLY'] = $trueOrFalse;
             return;
         }
@@ -4511,15 +4592,15 @@ class C
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setSessionCookieSameSite', $LaxOrStrict);
         [$ctx, $ctxVals] = $this->setCtx('setSessionCookieSameSite', "CONFIG()", $LaxOrStrict);
         if (isset($this->invalidBatches['config']['SESSION']['COOKIES']['SESSION_SAMESITE'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setSessionCookieSameSite');
             return;
         }
         if (isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_SAMESITE'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setSessionCookieSameSite');
             return;
         }
         if (!is_string($LaxOrStrict) || trim($LaxOrStrict) === '' || !in_array((ucfirst(strtolower($LaxOrStrict))), ['Lax', 'Strict', 'None'], true)) {
-            $this->setErr($this->getErr('InvalidStringCustomErrAfterColon', $ctx) . " must be one of these Non-Empty String Values:`Lax, Strict, None`.", $this->errors['config']);
+            $this->setErr($this->getErr('InvalidStringCustomErrAfterColon', $ctx) . " must be one of these Non-Empty String Values:`Lax, Strict, None`.", 'Global-setSessionCookieSameSite');
             $this->invalidBatches['config']['SESSION']['COOKIES']['SESSION_SAMESITE'] = $LaxOrStrict;
             return;
         }
@@ -4532,15 +4613,15 @@ class C
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setINI_SET', $iniSetArrayWithKeyNamesAsSettingTypeWithSingleScalarValue);
         [$ctx, $ctxVals] = $this->setCtx('setINI_SET', "CONFIG()", $iniSetArrayWithKeyNamesAsSettingTypeWithSingleScalarValue);
         if (isset($this->invalidBatches['config']['setINI_SET'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setINI_SET');
             return;
         }
         if (isset($this->validBatches['config']['setINI_SET'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setINI_SET');
             return;
         }
         if (empty($iniSetArrayWithKeyNamesAsSettingTypeWithSingleScalarValue) || array_is_list($iniSetArrayWithKeyNamesAsSettingTypeWithSingleScalarValue)) {
-            $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . " must be a non-empty associative array (e.g., `['setting' => 'value']`).", $this->errors['config']);
+            $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . " must be a non-empty associative array (e.g., `['setting' => 'value']`).", 'Global-setINI_SET');
             $this->invalidBatches['config']['setINI_SET'] = $iniSetArrayWithKeyNamesAsSettingTypeWithSingleScalarValue;
             return;
         }
@@ -4548,7 +4629,7 @@ class C
             $isValidKey   = is_string($k) && trim($k) !== '';
             $isValidValue = is_scalar($v) && (!is_string($v) || trim($v) !== '');
             if (!$isValidKey || !$isValidValue) {
-                $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . " Keys must be Non-Empty Strings and values must be Non-Empty Scalar Types (string, int, float, bool).", $this->errors['config']);
+                $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . " Keys must be Non-Empty Strings and values must be Non-Empty Scalar Types (string, int, float, bool).", 'Global-setINI_SET');
                 $this->invalidBatches['config']['setINI_SET'] = $iniSetArrayWithKeyNamesAsSettingTypeWithSingleScalarValue;
                 return;
             }
@@ -4564,33 +4645,33 @@ class C
         // Initial checks: invalidBathced already? ValidBatched already? Invalid $groupName string?
         // Any of the FNs invalid in their naming? Only after that, do we start checking each FN file.
         if (isset($this->invalidBatches['config']['GROUPED_PIPE_USER_DEFINED'][strtolower(trim($groupName))])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setGroupPipeUserdefined');
             return;
         }
         if (isset($this->validBatches['config']['GROUPED_PIPE_USER_DEFINED'][strtolower(trim($groupName))])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setGroupPipeUserdefined');
             return;
         }
         if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($groupName)) {
-            $this->setErr($this->getErr('InvalidGroupName', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('InvalidGroupName', $ctxVals), 'Global-setGroupPipeUserdefined');
             $this->invalidBatches['config']['GROUPED_PIPE_USER_DEFINED'][strtolower(trim($groupName))] = [...$userDefFNS];
             return;
         }
         if (count($userDefFNS) < 2) {
-            $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . ' Count of Request Pipe Functions must be at least two(2) Functions.' . ' Provided: ' . $this->joinArray($userDefFNS), $this->errors['config']);
+            $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . ' Count of Request Pipe Functions must be at least two(2) Functions.' . ' Provided: ' . $this->joinArray($userDefFNS), 'Global-setGroupPipeUserdefined');
             $this->invalidBatches['config']['GROUPED_PIPE_USER_DEFINED'][strtolower(trim($groupName))] = [...$userDefFNS];
             return;
         }
         foreach ($userDefFNS as $FN) {
             if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($FN)) {
-                $this->setErr($this->getErr('InvalidFunctionName', $ctxVals), $this->errors['config']);
+                $this->setErr($this->getErr('InvalidFunctionName', $ctxVals), 'Global-setGroupPipeUserdefined');
                 $this->invalidBatches['config']['GROUPED_PIPE_USER_DEFINED'][strtolower(trim($groupName))] = [...$userDefFNS];
                 return;
             }
         }
         // Find and disallow duplicates
         if (count($userDefFNS) !== count(array_unique($userDefFNS))) {
-            $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . " Duplicate Function Names Found." . ' Provided: ' . $this->joinArray($userDefFNS), $this->errors['config']);
+            $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . " Duplicate Function Names Found." . ' Provided: ' . $this->joinArray($userDefFNS), 'Global-setGroupPipeUserdefined');
             $this->invalidBatches['config']['GROUPED_PIPE_USER_DEFINED'][strtolower(trim($groupName))] = [...$userDefFNS];
             return;
         }
@@ -4605,12 +4686,12 @@ class C
             // Fatal check: Bails on the first structural error
             $fatalError = $this->validateFNFile($fileData, $FN_FILE, $ctxVals, "");
             if ($fatalError !== null) {
-                $this->setErr($fatalError, $this->errors['config']);
+                $this->setErr($fatalError, 'Global-setGroupPipeUserdefined');
                 $this->invalidBatches['config']['GROUPED_PIPE_USER_DEFINED'][strtolower(trim($groupName))] = [...$userDefFNS];
                 return;
             }
             if (isset($this->cached['placeHolderUsedUserDefinedEngineFNS'][$FN_FILE])) {
-                $this->setErr($this->getErr('UserDefinedFNSetAsEngineFN', $ctxVals) . ' See: `' . $this->cached['placeHolderUsedUserDefinedEngineFNS'][$FN_FILE] . '`', $this->errors['config']);
+                $this->setErr($this->getErr('UserDefinedFNSetAsEngineFN', $ctxVals) . ' See: `' . $this->cached['placeHolderUsedUserDefinedEngineFNS'][$FN_FILE] . '`', 'Global-setGroupPipeUserdefined');
                 return;
             }
         }
@@ -4624,33 +4705,33 @@ class C
         // Initial checks: invalidBathced already? ValidBatched already? Invalid $groupName string?
         // Any of the FNs invalid in their naming? Only after that, do we start checking each FN file.
         if (isset($this->invalidBatches['config']['GROUPED_PIPE_REQUEST'][strtolower(trim($groupName))])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setGroupPipeRequest');
             return;
         }
         if (isset($this->validBatches['config']['GROUPED_PIPE_REQUEST'][strtolower(trim($groupName))])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setGroupPipeRequest');
             return;
         }
         if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($groupName)) {
-            $this->setErr($this->getErr('InvalidGroupName', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('InvalidGroupName', $ctxVals), 'Global-setGroupPipeRequest');
             $this->invalidBatches['config']['GROUPED_PIPE_REQUEST'][strtolower(trim($groupName))] = [...$RequestFNs];
             return;
         }
         if (count($RequestFNs) < 2) {
-            $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . ' Count of Request Pipe Functions must be at least two(2) Functions.' . ' Provided: ' . $this->joinArray($RequestFNs), $this->errors['config']);
+            $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . ' Count of Request Pipe Functions must be at least two(2) Functions.' . ' Provided: ' . $this->joinArray($RequestFNs), 'Global-setGroupPipeRequest');
             $this->invalidBatches['config']['GROUPED_PIPE_REQUEST'][strtolower(trim($groupName))] = [...$RequestFNs];
             return;
         }
         foreach ($RequestFNs as $FN) {
             if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($FN)) {
-                $this->setErr($this->getErr('InvalidFunctionName', $ctxVals), $this->errors['config']);
+                $this->setErr($this->getErr('InvalidFunctionName', $ctxVals), 'Global-setGroupPipeRequest');
                 $this->invalidBatches['config']['GROUPED_PIPE_REQUEST'][strtolower(trim($groupName))] = [...$RequestFNs];
                 return;
             }
         }
         // Find and disallow duplicates
         if (count($RequestFNs) !== count(array_unique($RequestFNs))) {
-            $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . " Duplicate Function Names Found." . ' Provided: ' . $this->joinArray($RequestFNs), $this->errors['config']);
+            $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . " Duplicate Function Names Found." . ' Provided: ' . $this->joinArray($RequestFNs), 'Global-setGroupPipeRequest');
             $this->invalidBatches['config']['GROUPED_PIPE_REQUEST'][strtolower(trim($groupName))] = [...$RequestFNs];
             return;
         }
@@ -4665,7 +4746,7 @@ class C
             // Fatal check: Bails on the first structural error
             $fatalError = $this->validateFNFile($fileData, $FN_FILE, $ctxVals, "funkphp\\pipes\\request\\{$FN_FILE}", true);
             if ($fatalError !== null) {
-                $this->setErr($fatalError, $this->errors['config']);
+                $this->setErr($fatalError, 'Global-setGroupPipeRequest');
                 $this->invalidBatches['config']['GROUPED_PIPE_REQUEST'][strtolower(trim($groupName))] = [...$RequestFNs];
                 return;
             }
@@ -4680,33 +4761,33 @@ class C
         // Initial checks: invalidBathced already? ValidBatched already? Invalid $groupName string?
         // Any of the FNs invalid in their naming? Only after that, do we start checking each FN file.
         if (isset($this->invalidBatches['config']['GROUPED_PIPE_POST_RESPONSE'][strtolower(trim($groupName))])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setGroupPipePostResponse');
             return;
         }
         if (isset($this->validBatches['config']['GROUPED_PIPE_POST_RESPONSE'][strtolower(trim($groupName))])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setGroupPipePostResponse');
             return;
         }
         if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($groupName)) {
-            $this->setErr($this->getErr('InvalidGroupName', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('InvalidGroupName', $ctxVals), 'Global-setGroupPipePostResponse');
             $this->invalidBatches['config']['GROUPED_PIPE_POST_RESPONSE'][strtolower(trim($groupName))] = [...$PostResponseFNs];
             return;
         }
         if (count($PostResponseFNs) < 2) {
-            $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . ' Count of Post-Response Pipe Functions must be at least two(2) Functions.' . ' Provided: ' . $this->joinArray($PostResponseFNs), $this->errors['config']);
+            $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . ' Count of Post-Response Pipe Functions must be at least two(2) Functions.' . ' Provided: ' . $this->joinArray($PostResponseFNs), 'Global-setGroupPipePostResponse');
             $this->invalidBatches['config']['GROUPED_PIPE_POST_RESPONSE'][strtolower(trim($groupName))] = [...$PostResponseFNs];
             return;
         }
         foreach ($PostResponseFNs as $FN) {
             if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($FN)) {
-                $this->setErr($this->getErr('InvalidFunctionName', $ctxVals), $this->errors['config']);
+                $this->setErr($this->getErr('InvalidFunctionName', $ctxVals), 'Global-setGroupPipePostResponse');
                 $this->invalidBatches['config']['GROUPED_PIPE_POST_RESPONSE'][strtolower(trim($groupName))] = [...$PostResponseFNs];
                 return;
             }
         }
         // Find and disallow duplicates
         if (count($PostResponseFNs) !== count(array_unique($PostResponseFNs))) {
-            $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . " Duplicate Function Names Found." . ' Provided: ' . $this->joinArray($PostResponseFNs), $this->errors['config']);
+            $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . " Duplicate Function Names Found." . ' Provided: ' . $this->joinArray($PostResponseFNs), 'Global-setGroupPipePostResponse');
             $this->invalidBatches['config']['GROUPED_PIPE_POST_RESPONSE'][strtolower(trim($groupName))] = [...$PostResponseFNs];
             return;
         }
@@ -4722,7 +4803,7 @@ class C
             // Fatal check: Bails on the first structural error
             $fatalError = $this->validateFNFile($fileData, $FN_FILE, $ctxVals, "funkphp\\pipes\\post_response\\{$FN_FILE}", true);
             if ($fatalError !== null) {
-                $this->setErr($fatalError, $this->errors['config']);
+                $this->setErr($fatalError, 'Global-setGroupPipePostResponse');
                 $this->invalidBatches['config']['GROUPED_PIPE_POST_RESPONSE'][strtolower(trim($groupName))] = [...$PostResponseFNs];
                 return;
             }
@@ -4737,33 +4818,33 @@ class C
         // Initial checks: invalidBathced already? ValidBatched already? Invalid $groupName string?
         // Any of the FNs invalid in their naming? Only after that, do we start checking each FN file.
         if (isset($this->invalidBatches['config']['GROUPED_PIPE_ROUTES'][strtolower(trim($groupName))])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setGroupPipeRoute');
             return;
         }
         if (isset($this->validBatches['config']['GROUPED_PIPE_ROUTES'][strtolower(trim($groupName))])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setGroupPipeRoute');
             return;
         }
         if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($groupName)) {
-            $this->setErr($this->getErr('InvalidGroupName', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('InvalidGroupName', $ctxVals), 'Global-setGroupPipeRoute');
             $this->invalidBatches['config']['GROUPED_PIPE_ROUTES'][strtolower(trim($groupName))] = [...$RoutePipeFNs];
             return;
         }
         if (count($RoutePipeFNs) < 2) {
-            $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . ' Count of Route Pipe Functions must be at least two(2) Functions.' . ' Provided: ' . $this->joinArray($RoutePipeFNs), $this->errors['config']);
+            $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . ' Count of Route Pipe Functions must be at least two(2) Functions.' . ' Provided: ' . $this->joinArray($RoutePipeFNs), 'Global-setGroupPipeRoute');
             $this->invalidBatches['config']['GROUPED_PIPE_ROUTES'][strtolower(trim($groupName))] = [...$RoutePipeFNs];
             return;
         }
         foreach ($RoutePipeFNs as $FN) {
             if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($FN)) {
-                $this->setErr($this->getErr('InvalidFunctionName', $ctxVals), $this->errors['config']);
+                $this->setErr($this->getErr('InvalidFunctionName', $ctxVals), 'Global-setGroupPipeRoute');
                 $this->invalidBatches['config']['GROUPED_PIPE_ROUTES'][strtolower(trim($groupName))] = [...$RoutePipeFNs];
                 return;
             }
         }
         // Find and disallow duplicates
         if (count($RoutePipeFNs) !== count(array_unique($RoutePipeFNs))) {
-            $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . " Duplicate Function Names Found." . ' Provided: ' . $this->joinArray($RoutePipeFNs), $this->errors['config']);
+            $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . " Duplicate Function Names Found." . ' Provided: ' . $this->joinArray($RoutePipeFNs), 'Global-setGroupPipeRoute');
             $this->invalidBatches['config']['GROUPED_PIPE_ROUTES'][strtolower(trim($groupName))] = [...$RoutePipeFNs];
             return;
         }
@@ -4775,7 +4856,7 @@ class C
             // Fatal check: Bails on the first structural error
             $fatalError = $this->validateFNFile($fileData, $fn, $ctxVals, "funkphp\\pipes\\routes\\{$file}", false);
             if ($fatalError !== null) {
-                $this->setErr($fatalError, $this->errors['config']);
+                $this->setErr($fatalError, 'Global-setGroupPipeRoute');
                 $this->invalidBatches['config']['GROUPED_PIPE_ROUTES'][strtolower(trim($groupName))] = [...$RoutePipeFNs];
                 return;
             }
@@ -4790,33 +4871,33 @@ class C
         // Initial checks: invalidBathced already? ValidBatched already? Invalid $groupName string?
         // Any of the FNs invalid in their naming? Only after that, do we start checking each FN file.
         if (isset($this->invalidBatches['config']['GROUPED_PIPE_MIDDLEWARES'][strtolower(trim($groupName))])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setGroupPipeMiddlewares');
             return;
         }
         if (isset($this->validBatches['config']['GROUPED_PIPE_MIDDLEWARES'][strtolower(trim($groupName))])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setGroupPipeMiddlewares');
             return;
         }
         if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($groupName)) {
-            $this->setErr($this->getErr('InvalidGroupName', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('InvalidGroupName', $ctxVals), 'Global-setGroupPipeMiddlewares');
             $this->invalidBatches['config']['GROUPED_PIPE_MIDDLEWARES'][strtolower(trim($groupName))] = [...$middlewareFNs];
             return;
         }
         if (count($middlewareFNs) < 2) {
-            $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . ' Count of Middleware Functions must be at least two(2) Functions.' . ' Provided: ' . $this->joinArray($middlewareFNs), $this->errors['config']);
+            $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . ' Count of Middleware Functions must be at least two(2) Functions.' . ' Provided: ' . $this->joinArray($middlewareFNs), 'Global-setGroupPipeMiddlewares');
             $this->invalidBatches['config']['GROUPED_PIPE_MIDDLEWARES'][strtolower(trim($groupName))] = [...$middlewareFNs];
             return;
         }
         foreach ($middlewareFNs as $FN) {
             if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($FN)) {
-                $this->setErr($this->getErr('InvalidFunctionName', $ctxVals), $this->errors['config']);
+                $this->setErr($this->getErr('InvalidFunctionName', $ctxVals), 'Global-setGroupPipeMiddlewares');
                 $this->invalidBatches['config']['GROUPED_PIPE_MIDDLEWARES'][strtolower(trim($groupName))] = [...$middlewareFNs];
                 return;
             }
         }
         // Find and disallow duplicates
         if (count($middlewareFNs) !== count(array_unique($middlewareFNs))) {
-            $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . " Duplicate Function Names Found." . ' Provided: ' . $this->joinArray($middlewareFNs), $this->errors['config']);
+            $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . " Duplicate Function Names Found." . ' Provided: ' . $this->joinArray($middlewareFNs), 'Global-setGroupPipeMiddlewares');
             $this->invalidBatches['config']['GROUPED_PIPE_MIDDLEWARES'][strtolower(trim($groupName))] = [...$middlewareFNs];
             return;
         }
@@ -4832,7 +4913,7 @@ class C
             // Fatal check: Bails on the first structural error
             $fatalError = $this->validateFNFile($fileData, $FN_FILE, $ctxVals, "funkphp\\pipes\\middlewares\\{$FN_FILE}", true);
             if ($fatalError !== null) {
-                $this->setErr($fatalError, $this->errors['config']);
+                $this->setErr($fatalError, 'Global-setGroupPipeMiddlewares');
                 $this->invalidBatches['config']['GROUPED_PIPE_MIDDLEWARES'][strtolower(trim($groupName))] = [...$middlewareFNs];
                 return;
             }
@@ -4847,16 +4928,16 @@ class C
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setParamRule', $param, $regex, $defaultParamValueOnRegexMismatch);
         [$ctx, $ctxVals] = $this->setCtx('setParamRule', "CONFIG()", $param, $regex, $defaultParamValueOnRegexMismatch);
         if (isset($this->invalidBatches['config']['paramRules'][strtolower(trim($param))])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setParamRule');
             return;
         }
         if (isset($this->validBatches['config']['paramRules'][strtolower(trim($param))])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setParamRule');
             return;
         }
         // Validate valid $param identifier formatting
         if (!is_string($param) || !preg_match('/^[a-z0-9_-]+$/', $param)) {
-            $this->setErr($this->getErr('InvalidParamName', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('InvalidParamName', $ctxVals), 'Global-setParamRule');
             $this->invalidBatches['config']['paramRules'][$param] = "{$param},{$regex},{$defaultParamValueOnRegexMismatch}";
             return;
         }
@@ -4870,13 +4951,13 @@ class C
             $regexValid = false;
         }
         if (!$regexValid || preg_match('#\/\/[gimsuy]*#', $regex)) {
-            $this->setErr($this->getErr('InvalidRegex', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('InvalidRegex', $ctxVals), 'Global-setParamRule');
             $this->invalidBatches['config']['paramRules'][$param] = "{$param},{$regex},{$defaultParamValueOnRegexMismatch}";
             return;
         }
         // Check for duplicate valid rule at global level
         if (isset($this->validBatches['config']['paramRules'][$param])) {
-            $this->setErr($this->getErr('DuplicateParamGlobal', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateParamGlobal', $ctxVals), 'Global-setParamRule');
             return;
         }
         // Finally store valid global param rule
@@ -4893,32 +4974,32 @@ class C
         [$ctx, $ctxVals] = $this->setCtx('setNonces', "CONFIG()", ...$noncesReferenceKeys);
         // Check if already in inValidBatches OR validBatches!
         if (isset($this->invalidBatches['config']['nonces'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setNonces');
             return;
         }
         if (isset($this->validBatches['config']['nonces'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setNonces');
             return;
         }
         if (empty($noncesReferenceKeys)) {
-            $this->setErr($this->getErr('InvalidNonceKeys', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('InvalidNonceKeys', $ctxVals), 'Global-setNonces');
             return;
         }
         $cleanedKeys = [];
         foreach ($noncesReferenceKeys as $key) {
             if (!is_string($key)) {
-                $this->setErr($this->getErr('InvalidNonceKeys', $ctxVals), $this->errors['config']);
+                $this->setErr($this->getErr('InvalidNonceKeys', $ctxVals), 'Global-setNonces');
                 $this->invalidBatches['config']['nonces'] = $noncesReferenceKeys;
                 return;
             }
             $trimmed = trim($key);
             if ($trimmed === '' || !preg_match('/^[a-zA-Z0-9_-]+$/', $trimmed)) {
-                $this->setErr($this->getErr('InvalidNonceKeyName', $ctxVals), $this->errors['config']);
+                $this->setErr($this->getErr('InvalidNonceKeyName', $ctxVals), 'Global-setNonces');
                 $this->invalidBatches['config']['nonces'] = $noncesReferenceKeys;
                 return;
             }
             if (in_array($trimmed, $cleanedKeys)) {
-                $this->setErr($this->getErr('DuplicateNonceKeyName', $ctxVals) . "`{$key}`", $this->errors['config']);
+                $this->setErr($this->getErr('DuplicateNonceKeyName', $ctxVals) . "`{$key}`", 'Global-setNonces');
                 $this->invalidBatches['config']['nonces'] = $noncesReferenceKeys;
             }
             $cleanedKeys[] = $trimmed;
@@ -4932,11 +5013,11 @@ class C
         // Check if already in inValidBatches OR validBatches!
         $directive = strtolower(trim($directive));
         if (isset($this->invalidBatches['config']['csp'][$directive])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setCSP');
             return;
         }
         if (isset($this->validBatches['config']['csp'][$directive])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setCSP');
             return;
         }
         $allowedDirectives = [
@@ -4965,23 +5046,23 @@ class C
             'report-to'
         ];
         if ($directive === '' || !in_array($directive, $allowedDirectives, true)) {
-            $this->setErr($this->getErr('InvalidCSPDirective', $ctxVals) . $this->joinArray($allowedDirectives), $this->errors['config']);
+            $this->setErr($this->getErr('InvalidCSPDirective', $ctxVals) . $this->joinArray($allowedDirectives), 'Global-setCSP');
             return;
         }
         if (empty($sources)) {
-            $this->setErr($this->getErr('InvalidCSPSourceArray', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('InvalidCSPSourceArray', $ctxVals), 'Global-setCSP');
             $this->invalidBatches['config']['csp'][$directive] = $sources;
             return;
         }
         $formattedSources = $this->formatCSPSources($sources);
         if (in_array("'none'", $formattedSources, true) && count($formattedSources) > 1) {
-            $this->setErr($this->getErr('ConflictNoneSourceInCSP', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('ConflictNoneSourceInCSP', $ctxVals), 'Global-setCSP');
             $this->invalidBatches['config']['csp'][$directive] = $sources;
             return;
         }
         foreach ($sources as $source) {
             if (!is_string($source)) {
-                $this->setErr($this->getErr('InvalidCSPSourceArray', $ctxVals), $this->errors['config']);
+                $this->setErr($this->getErr('InvalidCSPSourceArray', $ctxVals), 'Global-setCSP');
                 $this->invalidBatches['config']['csp'][$directive] = $sources;
                 return;
             }
@@ -4993,13 +5074,13 @@ class C
                 || str_contains($trimmed, "\n")
                 || preg_match('/\s/', $trimmed)
             ) {
-                $this->setErr($this->getErr('InvalidCSPSourceArray', $ctxVals), $this->errors['config']);
+                $this->setErr($this->getErr('InvalidCSPSourceArray', $ctxVals), 'Global-setCSP');
                 $this->invalidBatches['config']['csp'][$directive] = $sources;
                 return;
             }
             if (str_contains($trimmed, '*') && $trimmed !== '*') {
                 if (!preg_match('/^(https?:\/\/)?\*\.[a-zA-Z0-9\.-]+(:\d+)?$/', $trimmed)) {
-                    $this->setErr($this->getErr('InvalidCSPWildcardUse', $ctxVals), $this->errors['config']);
+                    $this->setErr($this->getErr('InvalidCSPWildcardUse', $ctxVals), 'Global-setCSP');
                     $this->invalidBatches['config']['csp'][$directive] = $sources;
                     return;
                 }
@@ -5016,15 +5097,15 @@ class C
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setSRIInternal', $internalSRI);
         [$ctx, $ctxVals] = $this->setCtx('setSRIInternal', "CONFIG()", $internalSRI);
         if (isset($this->invalidBatches['config']['global_sris']['internal'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setSRIInternal');
             return;
         }
         if (isset($this->validBatches['config']['global_sris']['internal'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setSRIInternal');
             return;
         }
         if (!isset($internalSRI) || empty($internalSRI) || array_is_list($internalSRI)) {
-            $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . " must be a Non-Empty Associative Array whose Keys are Non-Empty Strings and where each Key contains `Single Unique Non-Empty String Values` like:`['app_js' => 'sha384-...']` where the Key is the File Name without File Extension and the Value is the Hash Value of that File.", $this->errors['config']);
+            $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . " must be a Non-Empty Associative Array whose Keys are Non-Empty Strings and where each Key contains `Single Unique Non-Empty String Values` like:`['app_js' => 'sha384-...']` where the Key is the File Name without File Extension and the Value is the Hash Value of that File.", 'Global-setSRIInternal');
             $this->invalidBatches['config']['global_sris']['internal'] = $internalSRI;
             return;
         }
@@ -5032,7 +5113,7 @@ class C
         $valid = [];
         foreach ($internalSRI as $key => $sriHash) {
             if (isset($duplicateHashes[$sriHash])) {
-                $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . " Internal SRI Hash `{$sriHash}` is already used by Key:`{$duplicateHashes[$sriHash]}`. Each Internal SRI Key must contain `Single Unique Non-Empty String Values` like:`['app_js' => 'sha384-...']` where the Key is the File Name without File Extension and the Value is the Hash Value of that File.", $this->errors['config']);
+                $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . " Internal SRI Hash `{$sriHash}` is already used by Key:`{$duplicateHashes[$sriHash]}`. Each Internal SRI Key must contain `Single Unique Non-Empty String Values` like:`['app_js' => 'sha384-...']` where the Key is the File Name without File Extension and the Value is the Hash Value of that File.", 'Global-setSRIInternal');
                 $this->invalidBatches['config']['global_sris']['internal'] = $internalSRI;
                 return;
             }
@@ -5041,7 +5122,7 @@ class C
                 || !is_string($sriHash) || (trim($sriHash) === '')
                 || (!str_contains($sriHash, 'sha'))
             ) {
-                $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . " Internal SRI Hash `{$sriHash}` must be a `Non-Empty String` starting with `sha-`. Each Internal SRI Key must contain `Single Unique Non-Empty String Values` like:`['app_js' => 'sha384-...']` where the Key is the File Name without File Extension and the Value is the Hash Value of that File.", $this->errors['config']);
+                $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . " Internal SRI Hash `{$sriHash}` must be a `Non-Empty String` starting with `sha-`. Each Internal SRI Key must contain `Single Unique Non-Empty String Values` like:`['app_js' => 'sha384-...']` where the Key is the File Name without File Extension and the Value is the Hash Value of that File.", 'Global-setSRIInternal');
                 $this->invalidBatches['config']['global_sris']['internal'] = $internalSRI;
                 return;
             }
@@ -5055,15 +5136,15 @@ class C
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setSRIExternal', $externalSRI);
         [$ctx, $ctxVals] = $this->setCtx('setSRIExternal', "CONFIG()", $externalSRI);
         if (isset($this->invalidBatches['config']['global_sris']['external'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setSRIExternal');
             return;
         }
         if (isset($this->validBatches['config']['global_sris']['external'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setSRIExternal');
             return;
         }
         if (empty($externalSRI) || array_is_list($externalSRI)) {
-            $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . " must be a `Non-Empty Associative Array` where each Key is a `Non-Empty String Reference` (e.g. `cdn.tailwind`) and its Value is an Associative Array containing `Exactly Two Keys`: `url` (must start with `https://`) and `hash` (`Non-Empty String` containing `sha-`), for example:`['cdn.tailwind' => ['url' => 'https://cdn.tailwindcss.com', 'hash' => 'sha384-...']]`.", $this->errors['config']);
+            $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . " must be a `Non-Empty Associative Array` where each Key is a `Non-Empty String Reference` (e.g. `cdn.tailwind`) and its Value is an Associative Array containing `Exactly Two Keys`: `url` (must start with `https://`) and `hash` (`Non-Empty String` containing `sha-`), for example:`['cdn.tailwind' => ['url' => 'https://cdn.tailwindcss.com', 'hash' => 'sha384-...']]`.", 'Global-setSRIExternal');
             $this->invalidBatches['config']['global_sris']['external'] = $externalSRI;
             return;
         }
@@ -5079,7 +5160,7 @@ class C
                 || !is_string($details['url']) || trim($details['url']) === '' || !str_starts_with(trim($details['url']), 'https://')
                 || !is_string($details['hash']) || trim($details['hash']) === '' || !str_contains($details['hash'], 'sha')
             ) {
-                $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . " must be a `Non-Empty Associative Array` where each Key is a `Non-Empty String Reference` (e.g. `cdn.tailwind`) and its Value is an Associative Array containing `Exactly Two Keys`: `url` (must start with `https://`) and `hash` (`Non-Empty String` containing `sha-`), for example:`['cdn.tailwind' => ['url' => 'https://cdn.tailwindcss.com', 'hash' => 'sha384-...']]`.", $this->errors['config']);
+                $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . " must be a `Non-Empty Associative Array` where each Key is a `Non-Empty String Reference` (e.g. `cdn.tailwind`) and its Value is an Associative Array containing `Exactly Two Keys`: `url` (must start with `https://`) and `hash` (`Non-Empty String` containing `sha-`), for example:`['cdn.tailwind' => ['url' => 'https://cdn.tailwindcss.com', 'hash' => 'sha384-...']]`.", 'Global-setSRIExternal');
                 $this->invalidBatches['config']['global_sris']['external'] = $externalSRI;
                 return;
             }
@@ -5103,11 +5184,11 @@ class C
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('removeHeader', $header_to_remove);
         [$ctx, $ctxVals] = $this->setCtx('removeHeader', "CONFIG()", $header_to_remove);
         if (isset($this->invalidBatches['config']['headers']['remove'][strtolower(trim($header_to_remove))])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-removeHeader');
             return;
         }
         if (isset($this->validBatches['config']['headers']['remove'][strtolower(trim($header_to_remove))])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-removeHeader');
             return;
         }
         // We will store both the original value and its lowercased version to find future conflicts
@@ -5115,13 +5196,13 @@ class C
         $lowerHeader = strtolower($headerName);
         // Header names cannot contain colons, spaces, or CRLF injections
         if ($headerName === '' || !preg_match('/^[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$/', $headerName)) {
-            $this->setErr($this->getErr('InvalidHeaderName', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('InvalidHeaderName', $ctxVals), 'Global-removeHeader');
             $this->invalidBatches['config']['headers']['remove'][$lowerHeader] = $header_to_remove;
             return;
         }
         // Header cannot be removed if it was first configured to be added
         if (isset($this->validBatches['config']['headers']['add'][$lowerHeader])) {
-            $this->setErr($this->getErr('ConflictRemovePipedHeader', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('ConflictRemovePipedHeader', $ctxVals), 'Global-removeHeader');
             $this->invalidBatches['config']['headers']['remove'][] = $header_to_remove;
             return;
         }
@@ -5133,19 +5214,19 @@ class C
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('pipeHeader', $header);
         [$ctx, $ctxVals] = $this->setCtx('pipeHeader', "CONFIG()", $header);
         if (isset($this->invalidBatches['config']['headers']['add'][$header])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-pipeHeader');
             return;
         }
         // Forbid possible CRLF injection
         if (str_contains($header, "\r") || str_contains($header, "\n")) {
-            $this->setErr($this->getErr('InvalidAddHeaderFormat', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('InvalidAddHeaderFormat', $ctx), 'Global-pipeHeader');
             $this->invalidBatches['config']['headers']['add'][$header] = true;
             return;
         }
         // Must be two parts after splitted on ":"
         $parts = explode(':', $header, 2);
         if (count($parts) !== 2 || trim($parts[0]) === '' || trim($parts[1]) === '') {
-            $this->setErr($this->getErr('InvalidAddHeaderFormat', $ctx), $this->errors['config']);
+            $this->setErr($this->getErr('InvalidAddHeaderFormat', $ctx), 'Global-pipeHeader');
             $this->invalidBatches['config']['headers']['add'][$header] = true;
             return;
         }
@@ -5154,12 +5235,12 @@ class C
         $headerValue = trim($parts[1]);
         $lowerHeader = strtolower($headerName);
         if (isset($this->validBatches['config']['headers']['add'][$lowerHeader])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-pipeHeader');
             return;
         }
         // Cannot add a header that was first meant to be removed
         if (isset($this->validBatches['config']['headers']['remove'][$lowerHeader])) {
-            $this->setErr($this->getErr('ConflictPipeRemovedHeader', $ctxVals), $this->errors['config']);
+            $this->setErr($this->getErr('ConflictPipeRemovedHeader', $ctxVals), 'Global-pipeHeader');
             $this->invalidBatches['config']['headers']['add'][$lowerHeader] = true;
             return;
         }
@@ -5184,20 +5265,20 @@ class C
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setNoRouteMatchPage', $PageFileName);
         [$ctx, $ctxVals] = $this->setCtx('setNoRouteMatchPage', "CONFIG()->{$method}()", $PageFileName);
         if (isset($this->invalidBatches['methods'][$method]['NO_ROUTE_MATCH']['PAGE'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['methods'][$method]);
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Method-setNoRouteMatchPage', $method);
             return;
         }
         if (isset($this->validBatches['methods'][$method]['NO_ROUTE_MATCH']['PAGE'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['methods'][$method]);
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Method-setNoRouteMatchPage', $method);
             return;
         }
         if (!$this->validateStatusCode($statusCode)) {
-            $this->setErr($this->getErr('InvalidHttpStatusCode', $ctx), $this->errors['methods'][$method]);
+            $this->setErr($this->getErr('InvalidHttpStatusCode', $ctx), 'Method-setNoRouteMatchPage', $method);
             $this->invalidBatches['methods'][$method]['NO_ROUTE_MATCH']['PAGE'] = $PageFileName;
             return;
         }
         if (!is_string($PageFileName) || (trim($PageFileName) === '') || !preg_match('/[a-zA-Z0-9-_]+/i', $PageFileName)) {
-            $this->setErr($this->getErr('InvalidPageName', $ctx), $this->errors['methods'][$method]);
+            $this->setErr($this->getErr('InvalidPageName', $ctx), 'Method-setNoRouteMatchPage', $method);
             $this->invalidBatches['methods'][$method]['NO_ROUTE_MATCH']['PAGE'] = $PageFileName;
             return;
         }
@@ -5220,7 +5301,7 @@ class C
         }
         // No Page at all found?
         if (!$pageFound) {
-            $this->setErr($this->getErr('NoPageAtAllFound', $ctxVals) . " using Filename `{$PageFileName}.php`.", $this->errors['methods'][$method]);
+            $this->setErr($this->getErr('NoPageAtAllFound', $ctxVals) . " using Filename `{$PageFileName}.php`.", 'Method-setNoRouteMatchPage', $method);
             $this->invalidBatches['methods'][$method]['NO_ROUTE_MATCH']['PAGE'] = $PageFileName;
             return;
         }
@@ -5231,15 +5312,15 @@ class C
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setNoRouteMatchJSON', $data, $statusCode);
         [$ctx, $ctxVals] = $this->setCtx('setNoRouteMatchJSON', "CONFIG()->{$method}()", $data, $statusCode);
         if (isset($this->invalidBatches['methods'][$method]['NO_ROUTE_MATCH']['JSON'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['methods'][$method]);
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Method-setNoRouteMatchJson', $method);
             return;
         }
         if (isset($this->validBatches['methods'][$method]['NO_ROUTE_MATCH']['JSON'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['methods'][$method]);
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Method-setNoRouteMatchJson', $method);
             return;
         }
         if (!$this->validateStatusCode($statusCode)) {
-            $this->setErr($this->getErr('InvalidHttpStatusCode', $ctx), $this->errors['methods'][$method]);
+            $this->setErr($this->getErr('InvalidHttpStatusCode', $ctx), 'Method-setNoRouteMatchJson', $method);
             $this->invalidBatches['methods'][$method]['NO_ROUTE_MATCH']['JSON'] = true;
             return;
         }
@@ -5249,7 +5330,7 @@ class C
             (get_object_vars($data) === [] && !($data instanceof \JsonSerializable))
         );
         if (is_array($data) && empty($data) || $isEmptyObject) {
-            $this->setErr($this->getErr('JsonEncodingFailedNoData', $ctx), $this->errors['methods'][$method]);
+            $this->setErr($this->getErr('JsonEncodingFailedNoData', $ctx), 'Method-setNoRouteMatchJson', $method);
             $this->invalidBatches['methods'][$method]['NO_ROUTE_MATCH']['JSON'] = true;
             return;
         }
@@ -5257,7 +5338,7 @@ class C
         try {
             $JSON = json_encode($data, JSON_THROW_ON_ERROR, JSON_PRETTY_PRINT);
         } catch (\Throwable $e) {
-            $this->setErr($this->getErr('JsonEncodingFailed', $ctx), $this->errors['methods'][$method]);
+            $this->setErr($this->getErr('JsonEncodingFailed', $ctx), 'Method-setNoRouteMatchJson', $method);
             $this->invalidBatches['methods'][$method]['NO_ROUTE_MATCH']['JSON'] = true;
             return;
         }
@@ -5268,20 +5349,20 @@ class C
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setNoRouteMatchText', $message, $statusCode);
         [$ctx, $ctxVals] = $this->setCtx('setNoRouteMatchText', "CONFIG()->{$method}()", $message, $statusCode);
         if (isset($this->invalidBatches['methods'][$method]['NO_ROUTE_MATCH']['TEXT'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['methods'][$method]);
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Method-setNoRouteMatchText', $method);
             return;
         }
         if (isset($this->validBatches['methods'][$method]['NO_ROUTE_MATCH']['TEXT'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['methods'][$method]);
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Method-setNoRouteMatchText', $method);
             return;
         }
         if (!$this->validateStatusCode($statusCode)) {
-            $this->setErr($this->getErr('InvalidHttpStatusCode', $ctx), $this->errors['methods'][$method]);
+            $this->setErr($this->getErr('InvalidHttpStatusCode', $ctx), 'Method-setNoRouteMatchText', $method);
             $this->invalidBatches['methods'][$method]['NO_ROUTE_MATCH']['TEXT'] = true;
             return;
         }
         if (!is_string($message) || (trim($message) === '')) {
-            $this->setErr($this->getErr('InvalidNoRouteMatchTextValue', $ctx), $this->errors['methods'][$method]);
+            $this->setErr($this->getErr('InvalidNoRouteMatchTextValue', $ctx), 'Method-setNoRouteMatchText', $method);
             $this->invalidBatches['methods'][$method]['NO_ROUTE_MATCH']['TEXT'] = true;
             return;
         }
@@ -5292,15 +5373,15 @@ class C
         $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray('setNoRouteMatchCallback', $userDefinedFunctionName);
         [$ctx, $ctxVals] = $this->setCtx('setNoRouteMatchCallback', "CONFIG()->{$method}()", $userDefinedFunctionName);
         if (isset($this->invalidBatches['methods'][$method]['NO_ROUTE_MATCH']['CALLBACK'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), $this->errors['methods'][$method]);
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Method-setNoRouteMatchCallback', $method);
             return;
         }
         if (isset($this->validBatches['methods'][$method]['NO_ROUTE_MATCH']['CALLBACK'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), $this->errors['methods'][$method]);
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Method-setNoRouteMatchCallback', $method);
             return;
         }
         if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($userDefinedFunctionName)) {
-            $this->setErr($this->getErr('InvalidFunctionName', $ctx), $this->errors['methods'][$method]);
+            $this->setErr($this->getErr('InvalidFunctionName', $ctx), 'Method-setNoRouteMatchCallback', $method);
             $this->invalidBatches['methods'][$method]['NO_ROUTE_MATCH']['CALLBACK'] = $userDefinedFunctionName;
             return;
         }
@@ -5310,13 +5391,13 @@ class C
         // Bails on the first structural error regarding a typical user-defined function
         $fatalError = $this->validateFNFile($fileData, $userDefinedFunctionName, $ctxVals);
         if ($fatalError !== null) {
-            $this->setErr($fatalError, $this->errors['methods'][$method]);
+            $this->setErr($fatalError, 'Method-setNoRouteMatchCallback', $method);
             $this->invalidBatches['methods'][$method]['NO_ROUTE_MATCH']['CALLBACK'] = $userDefinedFunctionName;
             return;
         }
         // After initial check, check that it is not already used by Global Handlers (->CONFIG()->setDefault<Handler>)
         if (isset($this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunctionName])) {
-            $this->setErr($this->getErr('UserDefinedFNSetAsEngineFN', $ctxVals) . ' See: `' . $this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunctionName] . '`', $this->errors['methods'][$method]);
+            $this->setErr($this->getErr('UserDefinedFNSetAsEngineFN', $ctxVals) . ' See: `' . $this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunctionName] . '`', 'Method-setNoRouteMatchCallback', $method);
             return;
         }
         // Finally add it
@@ -6019,9 +6100,17 @@ class FunkConfig
 {
     public function __construct(private C $c) {}
 
+
+    /* setCompileFlag - to set specific flags for compile() when it runs/executes */
+    // "setAllowNoWarnings" is set here as valid flag!!! - remove that batchSetAllowNoWarnings FN !!!
+    public function setCompileFlag(string $flag): self
+    {
+        $this->c->batch('batchSetCompileFlag', $flag);
+        return $this;
+    }
+
     /* setGroup<VARIANTS> - use the prefix "group:<$groupName>"
     // to faster more pipes at the same time! - GLOBAL */
-
     /**
      * Set a Group of User-defined Functions (in `/src/funkphp/config/functions.php`)
      *
@@ -6280,22 +6369,6 @@ class FunkConfig
 
     /* set<VARIANTS> that are ONLY Boolean - GLOBAL */
     /**
-     * Set if FunkPHP `should FAIL Compilation for any
-     * given Warnings` (these are usually for the use of certain
-     * calls inside of Functions that could be malicious like
-     * eval() and the like. Warnings could also be for unused
-     * Params defined globally and/or in a given  on a method)
-     *
-     * Choose between 'true' OR 'false'
-     *
-     * @param bool $trueOrFalse
-     */
-    public function setAllowNoWarnings(bool $trueOrFalse): self
-    {
-        $this->c->batch('batchSetAllowNoWarnings', $trueOrFalse);
-        return $this;
-    }
-    /**
      * Set if FunkPHP should act as if online. `IMPORTANT: This one
      * might not be needed so might be removed in the future. It is
      * right now just a placeholder here due to legacy purposes`.
@@ -6508,6 +6581,11 @@ class FunkMethod
     public function setCSP(string $sourceType, string ...$sources): self
     {
         $this->c->batch('batchSetCSPMethod', $this->method, $sourceType, ...$sources);
+        return $this;
+    }
+    public function setRateLimiting(array $rateLimitingOptions): self
+    {
+        $this->c->batch('batchSetRateLimitingRoute', $this->method, $rateLimitingOptions);
         return $this;
     }
 
