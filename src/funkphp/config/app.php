@@ -2,8 +2,16 @@
 
 $FUNK = FunkPHP();
 
-$FUNK->CONFIG()->setCompileFlag('NO_WARNINGS_ALLOWED');
-$FUNK->ROUTES()->GET()->route("/:iA")->pipeFunction("test.test")->pipeMiddleware("auth");
+$FUNK->CONFIG()
+    ->setCompileFlag('NO_WARNINGS_ALLOWED')
+    ->setParamRule("test", "a", "a");
+$FUNK->ROUTES()
+    ->GET()
+    ->setParamRule("test", "a", "a")
+    ->route("/:iA")
+    ->pipeFunction("test.test")
+    ->pipeMiddleware("auth")
+    ->setParamRule("test", "a", "a");
 
 
 // 1. Inspect the FunkRoute instance ($test) to get the private $c property

@@ -3840,7 +3840,7 @@ class C
     public function batch(string $fn, mixed ...$payload)
     {
         if ($fn === '' || !method_exists($this, $fn)) {
-            $this->errors[] = ['type' => 'internal', 'err' => '[Class C->batch()]: Tried calling to a Non-existing Private Function `' . $fn  . '` in Class `C`. Please report this Bug/Issue to the `Official FunkPHP Repositories`.'];
+            $this->errors[] = ['type' => 'internal', 'err' => '[Class C->batch()]: Tried calling to a Non-existing Private Function `' . $fn  . '` in Class `C` in `/src/funkphp/core/functions.php`. Please report this Bug/Issue to the `Official FunkPHP Repositories`.'];
             return;
         }
         $this->$fn(...$payload);
@@ -4480,7 +4480,7 @@ class C
                     $validated[$key] = $val;
                     break;
                 case 'SESSION_SAMESITE':
-                    if (!is_string($val) || trim($val) === '' || !in_array((ucfirst(strtolower($val))), ['Lax', 'Strict', 'None'], true)) {
+                    if (!is_string($val) || trim($val) === '' || !in_array((ucfirst(strtolower(trim($val)))), ['Lax', 'Strict', 'None'], true)) {
                         $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctx) . " Invalid `SESSION_SAMESITE` Value. Must be one of these Non-Empty String Values:`Lax, Strict, None`.", 'Global-setSessionCookieOptions');
                         $this->invalidBatches['config']['SESSION']['COOKIES']['AS_OPTIONS'] = $SessionCookieOptions;
                         return;
@@ -4647,12 +4647,12 @@ class C
             $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setSessionCookieSameSite');
             return;
         }
-        if (!is_string($LaxOrStrict) || trim($LaxOrStrict) === '' || !in_array((ucfirst(strtolower($LaxOrStrict))), ['Lax', 'Strict', 'None'], true)) {
+        if (!is_string($LaxOrStrict) || trim($LaxOrStrict) === '' || !in_array($LaxOrStrict, ['Lax', 'Strict', 'None'], true)) {
             $this->setErr($this->getErr('InvalidStringCustomErrAfterColon', $ctx) . " must be one of these Non-Empty String Values:`Lax, Strict, None`.", 'Global-setSessionCookieSameSite');
             $this->invalidBatches['config']['SESSION']['COOKIES']['SESSION_SAMESITE'] = $LaxOrStrict;
             return;
         }
-        $this->validBatches['config']['SESSION']['COOKIES']['SESSION_SAMESITE'] = ucfirst(strtolower(trim($LaxOrStrict)));
+        $this->validBatches['config']['SESSION']['COOKIES']['SESSION_SAMESITE'] = $LaxOrStrict;
     }
 
     /* setINI_SET for "ini_set()" calls Global */
@@ -4690,35 +4690,35 @@ class C
         [$ctx, $ctxVals] = $this->setCtx('setGroupPipeUserdefined', "CONFIG()", $groupName, ...$userDefFNS);
         // Initial checks: invalidBathced already? ValidBatched already? Invalid $groupName string?
         // Any of the FNs invalid in their naming? Only after that, do we start checking each FN file.
-        if (isset($this->invalidBatches['config']['GROUPED_PIPE_USER_DEFINED'][strtolower(trim($groupName))])) {
+        if (isset($this->invalidBatches['config']['GROUPED_PIPE_USER_DEFINED'][$groupName])) {
             $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setGroupPipeUserdefined');
             return;
         }
-        if (isset($this->validBatches['config']['GROUPED_PIPE_USER_DEFINED'][strtolower(trim($groupName))])) {
+        if (isset($this->validBatches['config']['GROUPED_PIPE_USER_DEFINED'][$groupName])) {
             $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setGroupPipeUserdefined');
             return;
         }
         if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($groupName)) {
             $this->setErr($this->getErr('InvalidGroupName', $ctxVals), 'Global-setGroupPipeUserdefined');
-            $this->invalidBatches['config']['GROUPED_PIPE_USER_DEFINED'][strtolower(trim($groupName))] = [...$userDefFNS];
+            $this->invalidBatches['config']['GROUPED_PIPE_USER_DEFINED'][$groupName] = [...$userDefFNS];
             return;
         }
         if (count($userDefFNS) < 2) {
             $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . ' Count of Request Pipe Functions must be at least two(2) Functions.' . ' Provided: ' . $this->joinArray($userDefFNS), 'Global-setGroupPipeUserdefined');
-            $this->invalidBatches['config']['GROUPED_PIPE_USER_DEFINED'][strtolower(trim($groupName))] = [...$userDefFNS];
+            $this->invalidBatches['config']['GROUPED_PIPE_USER_DEFINED'][$groupName] = [...$userDefFNS];
             return;
         }
         foreach ($userDefFNS as $FN) {
             if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($FN)) {
                 $this->setErr($this->getErr('InvalidFunctionName', $ctxVals), 'Global-setGroupPipeUserdefined');
-                $this->invalidBatches['config']['GROUPED_PIPE_USER_DEFINED'][strtolower(trim($groupName))] = [...$userDefFNS];
+                $this->invalidBatches['config']['GROUPED_PIPE_USER_DEFINED'][$groupName] = [...$userDefFNS];
                 return;
             }
         }
         // Find and disallow duplicates
         if (count($userDefFNS) !== count(array_unique($userDefFNS))) {
             $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . " Duplicate Function Names Found." . ' Provided: ' . $this->joinArray($userDefFNS), 'Global-setGroupPipeUserdefined');
-            $this->invalidBatches['config']['GROUPED_PIPE_USER_DEFINED'][strtolower(trim($groupName))] = [...$userDefFNS];
+            $this->invalidBatches['config']['GROUPED_PIPE_USER_DEFINED'][$groupName] = [...$userDefFNS];
             return;
         }
         // Now we check each Function File using $this->cached which will store it in
@@ -4733,7 +4733,7 @@ class C
             $fatalError = $this->validateFNFile($fileData, $FN_FILE, $ctxVals, "");
             if ($fatalError !== null) {
                 $this->setErr($fatalError, 'Global-setGroupPipeUserdefined');
-                $this->invalidBatches['config']['GROUPED_PIPE_USER_DEFINED'][strtolower(trim($groupName))] = [...$userDefFNS];
+                $this->invalidBatches['config']['GROUPED_PIPE_USER_DEFINED'][$groupName] = [...$userDefFNS];
                 return;
             }
             if (isset($this->cached['placeHolderUsedUserDefinedEngineFNS'][$FN_FILE])) {
@@ -4749,35 +4749,35 @@ class C
         [$ctx, $ctxVals] = $this->setCtx('setGroupPipeRequest', "CONFIG()", $groupName, ...$RequestFNs);
         // Initial checks: invalidBathced already? ValidBatched already? Invalid $groupName string?
         // Any of the FNs invalid in their naming? Only after that, do we start checking each FN file.
-        if (isset($this->invalidBatches['config']['GROUPED_PIPE_REQUEST'][strtolower(trim($groupName))])) {
+        if (isset($this->invalidBatches['config']['GROUPED_PIPE_REQUEST'][$groupName])) {
             $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setGroupPipeRequest');
             return;
         }
-        if (isset($this->validBatches['config']['GROUPED_PIPE_REQUEST'][strtolower(trim($groupName))])) {
+        if (isset($this->validBatches['config']['GROUPED_PIPE_REQUEST'][$groupName])) {
             $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setGroupPipeRequest');
             return;
         }
         if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($groupName)) {
             $this->setErr($this->getErr('InvalidGroupName', $ctxVals), 'Global-setGroupPipeRequest');
-            $this->invalidBatches['config']['GROUPED_PIPE_REQUEST'][strtolower(trim($groupName))] = [...$RequestFNs];
+            $this->invalidBatches['config']['GROUPED_PIPE_REQUEST'][$groupName] = [...$RequestFNs];
             return;
         }
         if (count($RequestFNs) < 2) {
             $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . ' Count of Request Pipe Functions must be at least two(2) Functions.' . ' Provided: ' . $this->joinArray($RequestFNs), 'Global-setGroupPipeRequest');
-            $this->invalidBatches['config']['GROUPED_PIPE_REQUEST'][strtolower(trim($groupName))] = [...$RequestFNs];
+            $this->invalidBatches['config']['GROUPED_PIPE_REQUEST'][$groupName] = [...$RequestFNs];
             return;
         }
         foreach ($RequestFNs as $FN) {
             if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($FN)) {
                 $this->setErr($this->getErr('InvalidFunctionName', $ctxVals), 'Global-setGroupPipeRequest');
-                $this->invalidBatches['config']['GROUPED_PIPE_REQUEST'][strtolower(trim($groupName))] = [...$RequestFNs];
+                $this->invalidBatches['config']['GROUPED_PIPE_REQUEST'][$groupName] = [...$RequestFNs];
                 return;
             }
         }
         // Find and disallow duplicates
         if (count($RequestFNs) !== count(array_unique($RequestFNs))) {
             $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . " Duplicate Function Names Found." . ' Provided: ' . $this->joinArray($RequestFNs), 'Global-setGroupPipeRequest');
-            $this->invalidBatches['config']['GROUPED_PIPE_REQUEST'][strtolower(trim($groupName))] = [...$RequestFNs];
+            $this->invalidBatches['config']['GROUPED_PIPE_REQUEST'][$groupName] = [...$RequestFNs];
             return;
         }
         // Now we check each Function File using $this->cached which will store it in
@@ -4792,7 +4792,7 @@ class C
             $fatalError = $this->validateFNFile($fileData, $FN_FILE, $ctxVals, "funkphp\\pipes\\request\\{$FN_FILE}", true);
             if ($fatalError !== null) {
                 $this->setErr($fatalError, 'Global-setGroupPipeRequest');
-                $this->invalidBatches['config']['GROUPED_PIPE_REQUEST'][strtolower(trim($groupName))] = [...$RequestFNs];
+                $this->invalidBatches['config']['GROUPED_PIPE_REQUEST'][$groupName] = [...$RequestFNs];
                 return;
             }
         }
@@ -4804,35 +4804,35 @@ class C
         [$ctx, $ctxVals] = $this->setCtx('setGroupPipePostResponse', "CONFIG()", $groupName, ...$PostResponseFNs);
         // Initial checks: invalidBathced already? ValidBatched already? Invalid $groupName string?
         // Any of the FNs invalid in their naming? Only after that, do we start checking each FN file.
-        if (isset($this->invalidBatches['config']['GROUPED_PIPE_POST_RESPONSE'][strtolower(trim($groupName))])) {
+        if (isset($this->invalidBatches['config']['GROUPED_PIPE_POST_RESPONSE'][$groupName])) {
             $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setGroupPipePostResponse');
             return;
         }
-        if (isset($this->validBatches['config']['GROUPED_PIPE_POST_RESPONSE'][strtolower(trim($groupName))])) {
+        if (isset($this->validBatches['config']['GROUPED_PIPE_POST_RESPONSE'][$groupName])) {
             $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setGroupPipePostResponse');
             return;
         }
         if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($groupName)) {
             $this->setErr($this->getErr('InvalidGroupName', $ctxVals), 'Global-setGroupPipePostResponse');
-            $this->invalidBatches['config']['GROUPED_PIPE_POST_RESPONSE'][strtolower(trim($groupName))] = [...$PostResponseFNs];
+            $this->invalidBatches['config']['GROUPED_PIPE_POST_RESPONSE'][$groupName] = [...$PostResponseFNs];
             return;
         }
         if (count($PostResponseFNs) < 2) {
             $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . ' Count of Post-Response Pipe Functions must be at least two(2) Functions.' . ' Provided: ' . $this->joinArray($PostResponseFNs), 'Global-setGroupPipePostResponse');
-            $this->invalidBatches['config']['GROUPED_PIPE_POST_RESPONSE'][strtolower(trim($groupName))] = [...$PostResponseFNs];
+            $this->invalidBatches['config']['GROUPED_PIPE_POST_RESPONSE'][$groupName] = [...$PostResponseFNs];
             return;
         }
         foreach ($PostResponseFNs as $FN) {
             if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($FN)) {
                 $this->setErr($this->getErr('InvalidFunctionName', $ctxVals), 'Global-setGroupPipePostResponse');
-                $this->invalidBatches['config']['GROUPED_PIPE_POST_RESPONSE'][strtolower(trim($groupName))] = [...$PostResponseFNs];
+                $this->invalidBatches['config']['GROUPED_PIPE_POST_RESPONSE'][$groupName] = [...$PostResponseFNs];
                 return;
             }
         }
         // Find and disallow duplicates
         if (count($PostResponseFNs) !== count(array_unique($PostResponseFNs))) {
             $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . " Duplicate Function Names Found." . ' Provided: ' . $this->joinArray($PostResponseFNs), 'Global-setGroupPipePostResponse');
-            $this->invalidBatches['config']['GROUPED_PIPE_POST_RESPONSE'][strtolower(trim($groupName))] = [...$PostResponseFNs];
+            $this->invalidBatches['config']['GROUPED_PIPE_POST_RESPONSE'][$groupName] = [...$PostResponseFNs];
             return;
         }
         // Now we check each File using $this->cached
@@ -4848,7 +4848,7 @@ class C
             $fatalError = $this->validateFNFile($fileData, $FN_FILE, $ctxVals, "funkphp\\pipes\\post_response\\{$FN_FILE}", true);
             if ($fatalError !== null) {
                 $this->setErr($fatalError, 'Global-setGroupPipePostResponse');
-                $this->invalidBatches['config']['GROUPED_PIPE_POST_RESPONSE'][strtolower(trim($groupName))] = [...$PostResponseFNs];
+                $this->invalidBatches['config']['GROUPED_PIPE_POST_RESPONSE'][$groupName] = [...$PostResponseFNs];
                 return;
             }
         }
@@ -4860,35 +4860,35 @@ class C
         [$ctx, $ctxVals] = $this->setCtx('setGroupPipeRoute', "CONFIG()", $groupName, ...$RoutePipeFNs);
         // Initial checks: invalidBathced already? ValidBatched already? Invalid $groupName string?
         // Any of the FNs invalid in their naming? Only after that, do we start checking each FN file.
-        if (isset($this->invalidBatches['config']['GROUPED_PIPE_ROUTES'][strtolower(trim($groupName))])) {
+        if (isset($this->invalidBatches['config']['GROUPED_PIPE_ROUTES'][$groupName])) {
             $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setGroupPipeRoute');
             return;
         }
-        if (isset($this->validBatches['config']['GROUPED_PIPE_ROUTES'][strtolower(trim($groupName))])) {
+        if (isset($this->validBatches['config']['GROUPED_PIPE_ROUTES'][$groupName])) {
             $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setGroupPipeRoute');
             return;
         }
         if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($groupName)) {
             $this->setErr($this->getErr('InvalidGroupName', $ctxVals), 'Global-setGroupPipeRoute');
-            $this->invalidBatches['config']['GROUPED_PIPE_ROUTES'][strtolower(trim($groupName))] = [...$RoutePipeFNs];
+            $this->invalidBatches['config']['GROUPED_PIPE_ROUTES'][$groupName] = [...$RoutePipeFNs];
             return;
         }
         if (count($RoutePipeFNs) < 2) {
             $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . ' Count of Route Pipe Functions must be at least two(2) Functions.' . ' Provided: ' . $this->joinArray($RoutePipeFNs), 'Global-setGroupPipeRoute');
-            $this->invalidBatches['config']['GROUPED_PIPE_ROUTES'][strtolower(trim($groupName))] = [...$RoutePipeFNs];
+            $this->invalidBatches['config']['GROUPED_PIPE_ROUTES'][$groupName] = [...$RoutePipeFNs];
             return;
         }
         foreach ($RoutePipeFNs as $FN) {
             if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($FN)) {
                 $this->setErr($this->getErr('InvalidFunctionName', $ctxVals), 'Global-setGroupPipeRoute');
-                $this->invalidBatches['config']['GROUPED_PIPE_ROUTES'][strtolower(trim($groupName))] = [...$RoutePipeFNs];
+                $this->invalidBatches['config']['GROUPED_PIPE_ROUTES'][$groupName] = [...$RoutePipeFNs];
                 return;
             }
         }
         // Find and disallow duplicates
         if (count($RoutePipeFNs) !== count(array_unique($RoutePipeFNs))) {
             $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . " Duplicate Function Names Found." . ' Provided: ' . $this->joinArray($RoutePipeFNs), 'Global-setGroupPipeRoute');
-            $this->invalidBatches['config']['GROUPED_PIPE_ROUTES'][strtolower(trim($groupName))] = [...$RoutePipeFNs];
+            $this->invalidBatches['config']['GROUPED_PIPE_ROUTES'][$groupName] = [...$RoutePipeFNs];
             return;
         }
         // Now we check each File using $this->cached
@@ -4900,7 +4900,7 @@ class C
             $fatalError = $this->validateFNFile($fileData, $fn, $ctxVals, "funkphp\\pipes\\routes\\{$file}", false);
             if ($fatalError !== null) {
                 $this->setErr($fatalError, 'Global-setGroupPipeRoute');
-                $this->invalidBatches['config']['GROUPED_PIPE_ROUTES'][strtolower(trim($groupName))] = [...$RoutePipeFNs];
+                $this->invalidBatches['config']['GROUPED_PIPE_ROUTES'][$groupName] = [...$RoutePipeFNs];
                 return;
             }
         }
@@ -4912,35 +4912,35 @@ class C
         [$ctx, $ctxVals] = $this->setCtx('setGroupPipeMiddlewares', "CONFIG()", $groupName, ...$middlewareFNs);
         // Initial checks: invalidBathced already? ValidBatched already? Invalid $groupName string?
         // Any of the FNs invalid in their naming? Only after that, do we start checking each FN file.
-        if (isset($this->invalidBatches['config']['GROUPED_PIPE_MIDDLEWARES'][strtolower(trim($groupName))])) {
+        if (isset($this->invalidBatches['config']['GROUPED_PIPE_MIDDLEWARES'][$groupName])) {
             $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setGroupPipeMiddlewares');
             return;
         }
-        if (isset($this->validBatches['config']['GROUPED_PIPE_MIDDLEWARES'][strtolower(trim($groupName))])) {
+        if (isset($this->validBatches['config']['GROUPED_PIPE_MIDDLEWARES'][$groupName])) {
             $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setGroupPipeMiddlewares');
             return;
         }
         if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($groupName)) {
             $this->setErr($this->getErr('InvalidGroupName', $ctxVals), 'Global-setGroupPipeMiddlewares');
-            $this->invalidBatches['config']['GROUPED_PIPE_MIDDLEWARES'][strtolower(trim($groupName))] = [...$middlewareFNs];
+            $this->invalidBatches['config']['GROUPED_PIPE_MIDDLEWARES'][$groupName] = [...$middlewareFNs];
             return;
         }
         if (count($middlewareFNs) < 2) {
             $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . ' Count of Middleware Functions must be at least two(2) Functions.' . ' Provided: ' . $this->joinArray($middlewareFNs), 'Global-setGroupPipeMiddlewares');
-            $this->invalidBatches['config']['GROUPED_PIPE_MIDDLEWARES'][strtolower(trim($groupName))] = [...$middlewareFNs];
+            $this->invalidBatches['config']['GROUPED_PIPE_MIDDLEWARES'][$groupName] = [...$middlewareFNs];
             return;
         }
         foreach ($middlewareFNs as $FN) {
             if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($FN)) {
                 $this->setErr($this->getErr('InvalidFunctionName', $ctxVals), 'Global-setGroupPipeMiddlewares');
-                $this->invalidBatches['config']['GROUPED_PIPE_MIDDLEWARES'][strtolower(trim($groupName))] = [...$middlewareFNs];
+                $this->invalidBatches['config']['GROUPED_PIPE_MIDDLEWARES'][$groupName] = [...$middlewareFNs];
                 return;
             }
         }
         // Find and disallow duplicates
         if (count($middlewareFNs) !== count(array_unique($middlewareFNs))) {
             $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . " Duplicate Function Names Found." . ' Provided: ' . $this->joinArray($middlewareFNs), 'Global-setGroupPipeMiddlewares');
-            $this->invalidBatches['config']['GROUPED_PIPE_MIDDLEWARES'][strtolower(trim($groupName))] = [...$middlewareFNs];
+            $this->invalidBatches['config']['GROUPED_PIPE_MIDDLEWARES'][$groupName] = [...$middlewareFNs];
             return;
         }
         // Now we check each File using $this->cached
@@ -4956,7 +4956,7 @@ class C
             $fatalError = $this->validateFNFile($fileData, $FN_FILE, $ctxVals, "funkphp\\pipes\\middlewares\\{$FN_FILE}", true);
             if ($fatalError !== null) {
                 $this->setErr($fatalError, 'Global-setGroupPipeMiddlewares');
-                $this->invalidBatches['config']['GROUPED_PIPE_MIDDLEWARES'][strtolower(trim($groupName))] = [...$middlewareFNs];
+                $this->invalidBatches['config']['GROUPED_PIPE_MIDDLEWARES'][$groupName] = [...$middlewareFNs];
                 return;
             }
         }
@@ -5219,11 +5219,11 @@ class C
     private function batchRemoveHeaderGlobal(string $header_to_remove)
     {
         [$ctx, $ctxVals] = $this->setCtx('removeHeader', "CONFIG()", $header_to_remove);
-        if (isset($this->invalidBatches['headers']['config']['remove'][strtolower(trim($header_to_remove))])) {
+        if (isset($this->invalidBatches['headers']['config']['remove'][$header_to_remove])) {
             $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-removeHeader');
             return;
         }
-        if (isset($this->validBatches['config']['headers']['remove'][strtolower(trim($header_to_remove))])) {
+        if (isset($this->validBatches['config']['headers']['remove'][$header_to_remove])) {
             $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-removeHeader');
             return;
         }
@@ -5233,13 +5233,13 @@ class C
         // Header names cannot contain colons, spaces, or CRLF injections
         if ($headerName === '' || !preg_match('/^[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$/', $headerName)) {
             $this->setErr($this->getErr('InvalidHeaderName', $ctxVals), 'Global-removeHeader');
-            $this->invalidBatches['headers']['config']['remove'][$lowerHeader] = strtolower(trim($header_to_remove));
+            $this->invalidBatches['headers']['config']['remove'][$lowerHeader] = $header_to_remove;
             return;
         }
         // Header cannot be removed if it was first configured to be added
         if (isset($this->validBatches['config']['headers']['add'][$lowerHeader])) {
             $this->setErr($this->getErr('ConflictRemovePipedHeader', $ctxVals), 'Global-removeHeader');
-            $this->invalidBatches['headers']['config']['remove'][$lowerHeader] = strtolower(trim($header_to_remove));
+            $this->invalidBatches['headers']['config']['remove'][$lowerHeader] = $header_to_remove;
             return;
         }
         // Store header to be removed from Global level (->config())
@@ -5350,13 +5350,13 @@ class C
     private function batchPipePostResponseFunctionGlobal(string $fileFunctionName)
     {
         [$ctx, $ctxVals] = $this->setCtx('pipePostResponseFunction', "CONFIG()", $fileFunctionName);
-        if (isset($this->invalidBatches['config']['post_response'][strtolower(trim($fileFunctionName))])) {
+        if (isset($this->invalidBatches['config']['post_response'][$fileFunctionName])) {
             $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-pipePostResponseFunction');
             return;
         }
         if (!$this->nonEmptyLC_Str_ThatISGroupORFNWithoutCLIorFunk($fileFunctionName)) {
             $this->setErr($this->getErr('InvalidGroupORFunctionName', $ctxVals), 'Global-pipePostResponseFunction');
-            $this->invalidBatches['config']['post_response'][strtolower(trim($fileFunctionName))] = true;
+            $this->invalidBatches['config']['post_response'][$fileFunctionName] = true;
             return;
         }
         // Just add if it starts with "group:" since that is validated by compile()
@@ -6112,7 +6112,6 @@ class C
             $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route-pipeMiddleware', $method, $route);
             return;
         }
-        $middleware = strtolower(trim($middleware));
         if (isset($this->invalidBatches['middlewares']['routes'][$method][$route][$middleware])) {
             $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Route-pipeMiddleware', $method, $route);
             return;
@@ -6258,11 +6257,11 @@ class C
             return;
         }
         // Then check against invalid/valid batches
-        if (isset($this->invalidBatches['headers']['routes'][$method][$route]['remove'][strtolower(trim($header_to_remove))])) {
+        if (isset($this->invalidBatches['headers']['routes'][$method][$route]['remove'][$header_to_remove])) {
             $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Route-removeHeader', $method, $route);
             return;
         }
-        if (isset($this->validBatches['routes'][$method][$route]['headers']['remove'][strtolower(trim($header_to_remove))])) {
+        if (isset($this->validBatches['routes'][$method][$route]['headers']['remove'][$header_to_remove])) {
             $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Route-removeHeader', $method, $route);
             return;
         }
@@ -6270,7 +6269,7 @@ class C
         $headerName = trim($header_to_remove);
         $lowerHeader = strtolower($headerName);
         // Header names cannot contain colons, spaces, or CRLF injections
-        if ($headerName === '' || !preg_match('/^[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$/', $headerName)) {
+        if ($headerName === '' || !preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $headerName)) {
             $this->setErr($this->getErr('InvalidHeaderName', $ctxVals), 'Route-removeHeader', $method, $route);
             $this->invalidBatches['headers']['routes'][$method][$route]['remove'][$lowerHeader] = $header_to_remove;
             return;
@@ -6546,6 +6545,7 @@ class FunkConfig
      */
     public function setSessionDriver(string $filesOrRedisOrSomethingElse = 'files'): self
     {
+        $filesOrRedisOrSomethingElse = strtolower(trim($filesOrRedisOrSomethingElse));
         $this->c->batch('batchSetDefaultSessionDriverGlobal', $filesOrRedisOrSomethingElse);
         return $this;
     }
@@ -6572,6 +6572,7 @@ class FunkConfig
     }
     public function setSessionCookieDomain(string $sessionCookieDomain = 'webdev.local'): self
     {
+        $sessionCookieDomain = strtolower(trim($sessionCookieDomain));
         $this->c->batch('batchSetDefaultSessionCookieDomainGlobal', $sessionCookieDomain);
         return $this;
     }
@@ -6609,6 +6610,7 @@ class FunkConfig
      */
     public function setSessionCookieSameSite(string $LaxOrStrict = 'Lax'): self
     {
+        $LaxOrStrict = ucfirst(strtolower(trim($LaxOrStrict)));
         $this->c->batch('batchSetDefaultSessionCookieSameSiteGlobal', $LaxOrStrict);
         return $this;
     }
