@@ -2055,6 +2055,7 @@ class C
     private array $cached = [
         'placeholderRoutes' => [],
         'placeholderParamContexts' => [],
+        'placeholderUNSUEDParams' => null,
         'placeHolderUsedUserDefinedEngineFNS' => [], // defaultRegisterShutDown,Error|ExceptionHandler&HTTPSKernel
         'placeholderUsedUserDefinedFunctions' => [],
         'placeholderUsedUserDefinedClasses' => [],
@@ -2069,9 +2070,11 @@ class C
         'files_data_sql' => null,
         'files_data_query' => null,
         'files_data_validation' => null,
+        'file_data_sql_compiled' => null,
+        'file_data_query_compiled' => null,
+        'file_data_validation_compiled' => null,
         'file_core_functions' => null,
         'file_manifest' => null,
-
     ];
     // $compiled = The entire compiled code that can either be executed as is OR
     // be exported to the `/src/funkphp/FunkPHPDeployment.php` File!
