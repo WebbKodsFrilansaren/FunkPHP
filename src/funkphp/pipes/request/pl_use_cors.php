@@ -1,6 +1,6 @@
 <?php
 
-namespace funkphp\pipeline\request\pl_use_cors;
+namespace funkphp\pipes\request\pl_use_cors;
 // FunkCLI Created File on 2026-07-05 10:17:21!
 
 function pl_use_cors(&$c)

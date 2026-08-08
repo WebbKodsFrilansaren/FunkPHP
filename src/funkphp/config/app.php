@@ -2,11 +2,9 @@
 
 $FUNK = FunkPHP();
 
-$FUNK->CONFIG()->pipeHeader("Ab: af")
-    ->pipeMiddleware("group:a")
-    ->pipeRequestFunction("pl_use_cores")
-    ->pipePostResponseFunction("a")
-    ->ROUTES();
+$FUNK->CONFIG()->setCompileFlag('NO_WARNINGS_ALLOWED');
+$FUNK->ROUTES()->GET()->route("/:iA")->pipeFunction("test.test")->pipeMiddleware("auth");
+
 
 // 1. Inspect the FunkRoute instance ($test) to get the private $c property
 // $routeReflection = new ReflectionObject($test);
@@ -18,4 +16,4 @@ $FUNK->CONFIG()->pipeHeader("Ab: af")
 // $runMethod = new ReflectionMethod($cInstance, 'run');
 // $runMethod->setAccessible(true); // Needed for PHP < 8.1, good practice to keep
 // $runMethod->invoke($cInstance);  // Outputs: "TEST"
-dd($FUNK, 'Check (private) errors->all');
+dd($FUNK, 'Check (private) errors');
