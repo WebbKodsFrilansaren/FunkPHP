@@ -6,12 +6,15 @@ $FUNK->CONFIG()
     ->setCompileFlag('NO_WARNINGS_ALLOWED');
 $FUNK->ROUTES()
     ->GET()
-    ->route("/:iA")
+    ->ROUTE("/:iA")
     ->pipeFunction("test.test")
     ->pipeMiddleware("auth")
-    ->setExcludeMiddleware("auth", "auth2")
+    ->pipeQuery("test.test")
+    ->pipeSQL("s_paj.s_najs")
+    ->pipeValidation("s_najs.s_paj")
     ->pipeResponse("callback:testar")
     ->setParamRule('ia', '/[\d]+/')
+    ->pipeCompiledQuery("a")
     ->pipeHeader("test-test: a");
 
 

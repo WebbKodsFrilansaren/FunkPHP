@@ -12819,7 +12819,9 @@ function cli_restore_default_folders_and_files()
         "$folderBase/funkphp/pages/layouts/",
         "$folderBase/funkphp/pages/partials/",
         "$folderBase/funkphp/data/",
+        "$folderBase/funkphp/data/compiled/",
         "$folderBase/funkphp/data/query/",
+        "$folderBase/funkphp/data/sql/",
         "$folderBase/funkphp/data/validation/",
         "$folderBase/funkphp/vendor/",
         "$folderBase/gui/",
@@ -12847,6 +12849,9 @@ function cli_restore_default_folders_and_files()
         "$folderBase/funkphp/config/classes.php",
         "$folderBase/funkphp/config/README_IN_IDE.php",
         "$folderBase/funkphp/config/lists.php",
+        "$folderBase/funkphp/data/compiled/query.php",
+        "$folderBase/funkphp/data/compiled/sql.php",
+        "$folderBase/funkphp/data/compiled/validation.php",
         //"$folderBase/public_html/.htaccess",
         "$folderBase/cli/.htaccess",
     ];
@@ -12925,6 +12930,18 @@ function cli_restore_default_folders_and_files()
             } else if (str_contains($file, "pipeline_request")) {
                 file_put_contents($file, "<?php\n// pipeline_request.php - FunkPHP | FunkCLI recreated it $date\n" . cli_get_prefix_code("do_not_modify_warning") . "\nreturn  " . var_export($singlePipelineDefault, true) . ";\n");
                 cli_success_without_exit("Recreated Default Core Pipeline Request+Post_Response File: $file");
+                continue;
+            } else if (str_ends_with($file, "query.php")) {
+                file_put_contents($file, "<?php\n// src/funkphp/data/compiled/query.php - FunkPHP | FunkCLI recreated it $date\n\n" . cli_get_prefix_code("do_not_modify_directly") . "\n\nnamespace funkphp\\data\\compiled\\query;\n");
+                cli_success_without_exit("Recreated Default Compiled Query File: $file");
+                continue;
+            } else if (str_ends_with($file, "sql.php")) {
+                file_put_contents($file, "<?php\n// src/funkphp/data/compiled/sql.php - FunkPHP | FunkCLI recreated it $date\n\n" . cli_get_prefix_code("do_not_modify_directly") . "\n\nnamespace funkphp\\data\\compiled\\sql;\n");
+                cli_success_without_exit("Recreated Default Compiled SQL File: $file");
+                continue;
+            } else if (str_ends_with($file, "validation.php")) {
+                file_put_contents($file, "<?php\n// src/funkphp/data/compiled/validation.php - FunkPHP | FunkCLI recreated it $date\n\n" . cli_get_prefix_code("do_not_modify_directly") . "\n\nnamespace funkphp\\data\\compiled\\validation;\n");
+                cli_success_without_exit("Recreated Default Compiled Validation File: $file");
                 continue;
             } else if (str_contains($file, "public_html/.htaccess")) {
                 file_put_contents($file, "# This file was recreated by FunkCLI!\nRewriteEngine On\nRewriteRule ^([^\.]+)$ $1.php [NC]\nRewriteRule ^.*$ index.php [L,QSA]");

@@ -2396,15 +2396,27 @@ class C
             }
         } elseif ($key === 'files_data_sql') {
             if (!isset($this->cached[$key][$optionalFileName])) {
-                $this->cached[$key][$optionalFileName] = $this->file_status('/pipes/data/sql', $optionalFileName);
+                $this->cached[$key][$optionalFileName] = $this->file_status('/data/sql', $optionalFileName);
             }
         } elseif ($key === 'files_data_query') {
             if (!isset($this->cached[$key][$optionalFileName])) {
-                $this->cached[$key][$optionalFileName] = $this->file_status('/pipes/data/query', $optionalFileName);
+                $this->cached[$key][$optionalFileName] = $this->file_status('/data/query', $optionalFileName);
             }
         } elseif ($key === 'files_data_validation') {
             if (!isset($this->cached[$key][$optionalFileName])) {
-                $this->cached[$key][$optionalFileName] = $this->file_status('/pipes/data/validation', $optionalFileName);
+                $this->cached[$key][$optionalFileName] = $this->file_status('/data/validation', $optionalFileName);
+            }
+        } elseif ($key === 'files_data_sql_compiled') {
+            if (!isset($this->cached[$key][$optionalFileName])) {
+                $this->cached[$key][$optionalFileName] = $this->file_status('/data/compiled/sql', $optionalFileName);
+            }
+        } elseif ($key === 'files_data_query_compiled') {
+            if (!isset($this->cached[$key][$optionalFileName])) {
+                $this->cached[$key][$optionalFileName] = $this->file_status('/data/compiled/query', $optionalFileName);
+            }
+        } elseif ($key === 'files_data_validation_compiled') {
+            if (!isset($this->cached[$key][$optionalFileName])) {
+                $this->cached[$key][$optionalFileName] = $this->file_status('/data/compiled/validation', $optionalFileName);
             }
         } elseif ($key === 'file_core_functions') {
             $this->cached[$key] = $this->file_status('/core', 'functions');
@@ -3710,6 +3722,7 @@ class C
             'NoCompiledPageNotFound' => "Provided Page Filename in {$optionalCtx} was NOT found in `/src/funkphp/pages/compiled/`",
             'NoNonCompiledPageNotFound' => "Provided Page Filename in {$optionalCtx} was NOT found in `/src/funkphp/pages/`",
             'NoPageAtAllFound' => "Provided Page Filename in {$optionalCtx} was NOT found in `/src/funkphp/pages/` and also NOT found in `/src/funkphp/pages/compiled/`",
+            'GroupPipeResponseNotSupported' => "Unsupported `'group:' Syntax` in {$optionalCtx}: cannot use `group:` in `->pipeResponse()` as you are meant to only use `->pipeResponse()` once for each Route.",
 
             // Call Order & Duplicate|Conflict Validation Errors
             'DuplicateNonceKeyName'           => "Duplicate Nonce Key Name in {$optionalCtx}. Review/change the already Valid Nonce Key Name ",
@@ -3724,9 +3737,13 @@ class C
             'ConflictRouteParam' => "Route Parameter in Conflict in {$optionalCtx}:",
             'ConflictRemovePipedHeader' => "Conflicting Calls in {$optionalCtx}: cannot set `Remove a Header` that was first configured as `Pipe a Header`.",
             'ConflictPipeRemovedHeader' => "Conflicting Calls in {$optionalCtx}: cannot set `Pipe a Header` that was first configured as `Remove a Header` .",
+            'ConflictingExcludeHeadersWithAlreadyPipedHeader' => "Conflicting Calls in {$optionalCtx}: cannot reference the same Header(s) in `->setExcludeHeaders()` and `->pipeHeader()` in the same Route. Headers to Exclude should target Piped Headers in the same `<METHOD>()` and/or `CONFIG()`.",
+            'ConflictingPipeHeaderWithAlreadyExcludeHeaders' => "Conflicting Calls in {$optionalCtx}: cannot reference the same Header(s) in `->pipeHeader()` and `->setExcludeHeaders()` in the same Route. Headers to Exclude should target Piped Headers in the same `<METHOD>()` and/or `CONFIG()`.",
             'ConflictingConfiguration'           => "Valid Configuration (`{$optionalCtx}`) is already set and CANNOT be overridden, only changed manually.",
-            'ConflictingExcludeMWWithAlreadyPipedMW' => "Conflicting Middlewares in {$optionalCtx}: cannot reference the same Middleware(s) in `setExcludeMiddleware()` and `pipeMiddleware` in the same Route. Choose Middlewares piped in a given `<METHOD>()` and/or `CONFIG()`.",
-            'ConflictingPipeMiddlewareWithAlreadyExcludeMW' => "Conflicting Middlewares in {$optionalCtx}: cannot reference the same Middleware(s) in `pipeMiddleware()` and `setExcludeMiddleware()` in the same Route. Choose Middlewares piped in a given `<METHOD>()` and/or `CONFIG()`.",
+            'ConflictingExcludeMWWithAlreadyPipedMW' => "Conflicting Calls in {$optionalCtx}: cannot reference the same Middleware(s) in `->setExcludeMiddleware()` and `->pipeMiddleware` in the same Route. Middlewares to Exclude should target Piped Middlewares in the same `<METHOD>()` and/or `CONFIG()`.",
+            'ConflictingPipeMiddlewareWithAlreadyExcludeMW' => "Conflicting Calls in {$optionalCtx}: cannot reference the same Middleware(s) in `->pipeMiddleware()` and `->setExcludeMiddleware()` in the same Route. Middlewares to Exclude should target Piped Middlewares in the same `<METHOD>()` and/or `CONFIG()`.",
+            // When Response Already exists
+            'ConflictResponseAlreadyAdded' => "Conflicting Calls in {$optionalCtx}: A `->pipeResponse()` has already been piped. Cannot use `->pipe<Function|SQL|Query|Validation>` after that. If you need `Different Possible Responses` in the same Matched Route, use `funk_return_response()` inside your Piped Functions and one final `->pipeResponse()`.",
         ];
         if (isset($errors[$errType])) {
             return $errors[$errType];
@@ -3741,7 +3758,7 @@ class C
      * Choose Error Type based on scope (global, method, route) and optional method and route when applicable.
      *
      * @param string $errMsg
-     * @param 'Global-setCompileFlag'|'Global-setGroupPipeUserdefined'|'Global-setGroupPipeRequest'|'Global-setGroupPipePostResponse'|'Global-setGroupPipeRoute'|'Global-setGroupPipeMiddlewares'|'Global-setINI_SET'|'Global-setNonces'|'Global-setCSP'|'Global-setSRIInternal'|'Global-setSRIExternal'|'Global-setNoRouteMatchPage'|'Global-setNoRouteMatchJSON'|'Global-setNoRouteMatchText'|'Global-setNoRouteMatchCallback'|'Global-setDefaultRegisteredShutdownHandler'|'Global-setDefaultExceptionHandler'|'Global-setDefaultErrorHandler'|'Global-setDefaultURI_NormalizerHandler'|'Global-setDefaultKernelHandler'|'Global-setBaseURLLocal'|'Global-setBaseURLOnline'|'Global-setBaseURLHost'|'Global-setBaseURLUri'|'Global-setSessionDriver'|'Global-setSessionCookieOptions'|'Global-setSessionCookieName'|'Global-setSessionCookieLifetime'|'Global-setSessionCookiePath'|'Global-setSessionCookieDomain'|'Global-setSessionCookieSecure'|'Global-setSessionCookieHTTPOnly'|'Global-setSessionCookieSameSite'|'Global-setUseFunkPHPOnline'|'Global-setUseHTTPS'|'Global-setUseVendor'|'Global-setParamRule'|'Global-pipeHeader'|'Global-removeHeader'|'Global-pipeMiddleware'|'Global-pipeRequestFunction'|'Global-pipePostResponseFunction'|'Method-setNoRouteMatch'|'Method-setNoRouteMatchPage'|'Method-setNoRouteMatchJson'|'Method-setNoRouteMatchText'|'Method-setNoRouteMatchCallback'|'Method-setNonces'|'Method-setCSP'|'Method-setRateLimiting'|'Method-pipeMiddleware'|'Method-pipeHeader'|'Method-removeHeader'|'Method-setParamRule'|'Method-route'|'Route-setAlias'|'Route-setRateLimiting'|'Route-setCache'|'Route-setNonces'|'Route-pipeMiddleware'|'Route-pipeFunction'|'Route-pipeResponse'|'Route-pipeSQL'|'Route-pipeQuery'|'Route-pipeValidation'|'Route-setExcludeMiddleware'|'Route-setExcludeHeaders'|'Route-setParamRule'|'Route-setCSP'|'Route-pipeHeader'|'Route-removeHeader'|'Route-route' $errType
+     * @param 'Route-pipeCompiledQuery'|'Route-pipeCompiledSQL'|'Route-pipeCompiledValidation'|'Global-setCompileFlag'|'Global-setGroupPipeUserdefined'|'Global-setGroupPipeRequest'|'Global-setGroupPipePostResponse'|'Global-setGroupPipeRoute'|'Global-setGroupPipeMiddlewares'|'Global-setINI_SET'|'Global-setNonces'|'Global-setCSP'|'Global-setSRIInternal'|'Global-setSRIExternal'|'Global-setNoRouteMatchPage'|'Global-setNoRouteMatchJSON'|'Global-setNoRouteMatchText'|'Global-setNoRouteMatchCallback'|'Global-setDefaultRegisteredShutdownHandler'|'Global-setDefaultExceptionHandler'|'Global-setDefaultErrorHandler'|'Global-setDefaultURI_NormalizerHandler'|'Global-setDefaultKernelHandler'|'Global-setBaseURLLocal'|'Global-setBaseURLOnline'|'Global-setBaseURLHost'|'Global-setBaseURLUri'|'Global-setSessionDriver'|'Global-setSessionCookieOptions'|'Global-setSessionCookieName'|'Global-setSessionCookieLifetime'|'Global-setSessionCookiePath'|'Global-setSessionCookieDomain'|'Global-setSessionCookieSecure'|'Global-setSessionCookieHTTPOnly'|'Global-setSessionCookieSameSite'|'Global-setUseFunkPHPOnline'|'Global-setUseHTTPS'|'Global-setUseVendor'|'Global-setParamRule'|'Global-pipeHeader'|'Global-removeHeader'|'Global-pipeMiddleware'|'Global-pipeRequestFunction'|'Global-pipePostResponseFunction'|'Method-setNoRouteMatch'|'Method-setNoRouteMatchPage'|'Method-setNoRouteMatchJson'|'Method-setNoRouteMatchText'|'Method-setNoRouteMatchCallback'|'Method-setNonces'|'Method-setCSP'|'Method-setRateLimiting'|'Method-pipeMiddleware'|'Method-pipeHeader'|'Method-removeHeader'|'Method-setParamRule'|'Method-route'|'Route-setAlias'|'Route-setRateLimiting'|'Route-setCache'|'Route-setNonces'|'Route-pipeMiddleware'|'Route-pipeFunction'|'Route-pipeResponse'|'Route-pipeSQL'|'Route-pipeQuery'|'Route-pipeValidation'|'Route-setExcludeMiddlewares'|'Route-setExcludeHeaders'|'Route-setParamRule'|'Route-setCSP'|'Route-pipeHeader'|'Route-removeHeader'|'Route-route' $errType
      * @param 'GET'|'POST'|'PUT'|'PATCH'|'DELETE'|'HEAD'|null $method
      * @param string|null $route
      *
@@ -3814,7 +3831,10 @@ class C
             'Route-pipeSQL',
             'Route-pipeQuery',
             'Route-pipeValidation',
-            'Route-setExcludeMiddleware',
+            'Route-pipeCompiledSQL',
+            'Route-pipeCompiledQuery',
+            'Route-pipeCompiledValidation',
+            'Route-setExcludeMiddlewares',
             'Route-setExcludeHeaders',
             'Route-setParamRule',
             'Route-setCSP',
@@ -5051,6 +5071,10 @@ class C
             'pattern' => $regex,
             'default' => $defaultParamValueOnRegexMismatch
         ];
+        $this->cached['placeHolderUnusedParams']['global'][$param] = [
+            'pattern' => $regex,
+            'default' => $defaultParamValueOnRegexMismatch
+        ];
     }
 
     /* setCSP<VARIANTS> & setNonces Global */
@@ -5611,6 +5635,10 @@ class C
             'pattern' => $regex,
             'default' => $defaultParamValueOnRegexMismatch
         ];
+        $this->cached['placeHolderUnusedParams']['methods'][$method][$param] = [
+            'pattern' => $regex,
+            'default' => $defaultParamValueOnRegexMismatch
+        ];
     }
 
     //METHOD: setNonces & setCSP
@@ -5836,7 +5864,7 @@ class C
     //ROUTE:Batching New Route `->route("/route", $optionalParamRules as an array)`
     private function batchNewRoute(string $method, string $route)
     {
-        [$ctx, $ctxVals] = $this->setCtx('route', "ROUTES()->{$method}()->route('{$route}')", $route);
+        [$ctx, $ctxVals] = $this->setCtx('ROUTE', "ROUTES()->{$method}()->ROUTE('{$route}')", $route);
         // Check if the associated $method$route is in the InvalidBatches first
         // OR if it is already as an invalid alias OR a valid alias already exists
         if (isset($this->invalidBatches['routes'][$method][$route])) {
@@ -5902,7 +5930,7 @@ class C
                         }
                     } else {
                         // Lock this parameter name globally for this parent path context
-                        $this->cached['placeholderParamContexts'][$contextKey] = ['param' => $paramName, 'first' => "->ROUTES()->{$method}()->route('{$route}')"];
+                        $this->cached['placeholderParamContexts'][$contextKey] = ['param' => $paramName, 'first' => "->ROUTES()->{$method}()->ROUTE('{$route}')"];
                     }
                     $currentParentContext .= '/:PARAM';
                 } else {
@@ -5920,7 +5948,7 @@ class C
         //         $this->setErr($this->getErr('ConflictRouteParam', $ctxVals) . ' with (defined first):`' . $this->cached['placeholderRoutes'][$method][$placeHolderRoute] . '`.', $this->errors['routes'][$method]);
         //         return;
         //     } else {
-        //         $this->cached['placeholderRoutes'][$method][$placeHolderRoute] = "->ROUTES()->{$method}()->route('{$route}')";
+        //         $this->cached['placeholderRoutes'][$method][$placeHolderRoute] = "->ROUTES()->{$method}()->ROUTE('{$route}')";
         //     }
         // }
         // Add Valid String Formatted METHOD/Route now; in compilation it will be checked for
@@ -5931,7 +5959,7 @@ class C
     //ROUTE: Set & New Batches for ROUTES! (so ->routes()-><Method>()->route()->set|pipe<What>)
     private function batchSetAliasRoute(string $method, string $route, string $alias)
     {
-        [$ctx, $ctxVals] = $this->setCtx('setAlias', "ROUTES()->{$method}()->route('{$route}')", $alias);
+        [$ctx, $ctxVals] = $this->setCtx('setAlias', "ROUTES()->{$method}()->ROUTE('{$route}')", $alias);
         // Route must be valid first
         if (isset($this->invalidBatches['routes'][$method][$route])) {
             $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route-setAlias', $method, $route);
@@ -5960,14 +5988,14 @@ class C
             return;
         }
         // Register valid alias in reverse lookup map
-        $this->cached['routeAliases'][$alias] = "->ROUTES()->{$method}()->route('{$route}')";
+        $this->cached['routeAliases'][$alias] = "->ROUTES()->{$method}()->ROUTE('{$route}')";
         $this->validBatches['routes'][$method][$route]['alias'] = $alias;
     }
 
     //ROUTE: SetParamRule
     private function batchSetParamRuleRoute(string $method, string $route, string $param, string $regex, $defaultParamValueOnRegexMismatch = null)
     {
-        [$ctx, $ctxVals] = $this->setCtx('setParamRule', "ROUTES()->{$method}()->route('{$route}')", $param, $regex, $defaultParamValueOnRegexMismatch);
+        [$ctx, $ctxVals] = $this->setCtx('setParamRule', "ROUTES()->{$method}()->ROUTE('{$route}')", $param, $regex, $defaultParamValueOnRegexMismatch);
         // Route must be valid first
         if (isset($this->invalidBatches['routes'][$method][$route])) {
             $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route-setParamRule', $method, $route);
@@ -6012,6 +6040,10 @@ class C
         // Method-leveled paramRules uses 'paramRules'->'methods',
         // while config() uses 'paramRules'->'global'
         $this->validBatches['routes'][$method][$route]['paramRules'][$param] = ['pattern' => $regex, 'default' => $defaultParamValueOnRegexMismatch];
+        $this->cached['placeHolderUnusedParams']['routes'][$method][$route][$param] = [
+            'pattern' => $regex,
+            'default' => $defaultParamValueOnRegexMismatch
+        ];
     }
     /*ROUTE: RateLimiting & setCache */
     private function batchSetRateLimitingRoute(string $method, string $route, array $rateLimitingOptions) {}
@@ -6020,7 +6052,7 @@ class C
     /*ROUTE: setNoncesRoute & setCSP<VARIANTS> */
     private function batchSetNoncesRoute(string $method, $route, string ...$noncesReferenceKeys)
     {
-        [$ctx, $ctxVals] = $this->setCtx('setNonces', "ROUTES()->{$method}()->route('{$route}')", ...$noncesReferenceKeys);
+        [$ctx, $ctxVals] = $this->setCtx('setNonces', "ROUTES()->{$method}()->ROUTE('{$route}')", ...$noncesReferenceKeys);
         // Route must be valid first
         if (isset($this->invalidBatches['routes'][$method][$route])) {
             $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route-setNonces', $method, $route);
@@ -6064,7 +6096,7 @@ class C
     /*ROUTE: setCSPRoute */
     private function batchSetCSPRoute(string $method, string $route, string $directive, string ...$sources)
     {
-        [$ctx, $ctxVals] = $this->setCtx('setCSP', "ROUTES()->{$method}()->route('{$route}')", $directive, ...$sources);
+        [$ctx, $ctxVals] = $this->setCtx('setCSP', "ROUTES()->{$method}()->ROUTE('{$route}')", $directive, ...$sources);
         // Route must be valid first
         if (isset($this->invalidBatches['csp']['routes'][$method][$route])) {
             $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route-setCSP', $method, $route);
@@ -6151,7 +6183,7 @@ class C
     /*ROUTE: pipeMiddleware, pipeFunction, pipeResponse, pipeSQL, pipeQuery & pipeValidation */
     private function batchPipeMiddlewareRoute(string $method, string $route, string $middleware)
     {
-        [$ctx, $ctxVals] = $this->setCtx('pipeMiddleware', "ROUTES()->{$method}()->route('{$route}')", $middleware);
+        [$ctx, $ctxVals] = $this->setCtx('pipeMiddleware', "ROUTES()->{$method}()->ROUTE('{$route}')", $middleware);
         // Route must be valid first
         if (isset($this->invalidBatches['routes'][$method][$route])) {
             $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route-pipeMiddleware', $method, $route);
@@ -6188,10 +6220,9 @@ class C
         // Pipe Global MW when all OK!
         $this->validBatches['routes'][$method][$route]['middlewares'][] = $middleware;
     }
-
     private function batchPipeFunctionRoute(string $method, string $route, string $fileFunctionName)
     {
-        [$ctx, $ctxVals] = $this->setCtx('pipeFunction', "ROUTES()->{$method}()->route('{$route}')", $fileFunctionName);
+        [$ctx, $ctxVals] = $this->setCtx('pipeFunction', "ROUTES()->{$method}()->ROUTE('{$route}')", $fileFunctionName);
         // Route must be valid first
         if (isset($this->invalidBatches['routes'][$method][$route])) {
             $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route-pipeFunction', $method, $route);
@@ -6199,6 +6230,11 @@ class C
         }
         if (isset($this->invalidBatches['pipes']['functions']['routes'][$method][$route][$fileFunctionName])) {
             $this->setErr($this->getErr('DuplicateCallInvalid', $ctxVals), 'Route-pipeFunction', $method, $route);
+            return;
+        }
+        if (isset($this->validBatches['routes'][$method][$route]['response'])) {
+            $this->setErr($this->getErr('ConflictResponseAlreadyAdded', $ctxVals), 'Route-pipeFunction', $method, $route);
+            $this->invalidBatches['pipes']['functions']['routes'][$method][$route][$fileFunctionName] = true;
             return;
         }
         if (!$this->nonEmptyLC_Str_ThatISGroupORRouteFileFNWithoutCLIorFunk($fileFunctionName)) {
@@ -6226,7 +6262,7 @@ class C
     }
     private function batchPipeResponseRoute(string $method, string $route, string $typeOfResponse)
     {
-        [$ctx, $ctxVals] = $this->setCtx('pipeResponse', "ROUTES()->{$method}()->route('{$route}')", $typeOfResponse);
+        [$ctx, $ctxVals] = $this->setCtx('pipeResponse', "ROUTES()->{$method}()->ROUTE('{$route}')", $typeOfResponse);
         // Route must be valid first
         if (isset($this->invalidBatches['routes'][$method][$route])) {
             $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route-pipeResponse', $method, $route);
@@ -6238,6 +6274,11 @@ class C
         }
         if (isset($this->validBatches['routes'][$method][$route]['response'])) {
             $this->setErr($this->getErr('DuplicateCallValid', $ctx), 'Route-pipeResponse', $method, $route);
+            return;
+        }
+        if (str_starts_with(strtolower(trim($typeOfResponse)), 'group:')) {
+            $this->setErr($this->getErr('GroupPipeResponseNotSupported', $ctxVals), 'Route-pipeResponse', $method, $route);
+            $this->invalidBatches['pipes']['responses']['routes'][$method][$route][strtolower(trim($typeOfResponse))] = true;
             return;
         }
         // The valid Response Types
@@ -6307,45 +6348,195 @@ class C
     }
     private function batchPipeSQLRoute(string $method, string $route, string $sqlFileFunction)
     {
-        [$ctx, $ctxVals] = $this->setCtx('pipeSQL', "ROUTES()->{$method}()->route('{$route}')", $sqlFileFunction);
+        [$ctx, $ctxVals] = $this->setCtx('pipeSQL', "ROUTES()->{$method}()->ROUTE('{$route}')", $sqlFileFunction);
+        // Route must be valid first
+        if (isset($this->invalidBatches['routes'][$method][$route])) {
+            $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route-pipeSQL', $method, $route);
+            return;
+        }
+        if (isset($this->invalidBatches['sql']['routes'][$method][$route][$sqlFileFunction])) {
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Route-pipeSQL', $method, $route);
+            return;
+        }
+        if (isset($this->validBatches['routes'][$method][$route]['response'])) {
+            $this->setErr($this->getErr('ConflictResponseAlreadyAdded', $ctxVals), 'Route-pipeSQL', $method, $route);
+            $this->invalidBatches['sql']['routes'][$method][$route][$sqlFileFunction] = true;
+            return;
+        }
+        if (!$this->nonEmptyLC_Str_ThatISGroupORRouteFileFNWithoutCLIorFunk($sqlFileFunction)) {
+            $this->setErr($this->getErr('InvalidGroupORFileFunctionNames', $ctxVals), 'Route-pipeSQL', $method, $route);
+            $this->invalidBatches['sql']['routes'][$method][$route][$sqlFileFunction] = true;
+            return;
+        }
+        // Just add if it starts with "group:" since that is validated by compile()
+        // and it will see "sql:" meaning it is a specialized pipe to consider so it does NOT
+        // confuse it with regular pipes like function
+        if (str_starts_with($sqlFileFunction, 'group:')) {
+            $this->validBatches['routes'][$method][$route]['pipes'][] = "sql:$sqlFileFunction";
+            return;
+        }
+        // Parse "filename.fnname" and check just like for pipeFunction()
+        // Otherwise we know it is a valid string formatted "filename.functionname"
+        [$file, $fn] = explode('.', $sqlFileFunction);
+        $this->cachedCreateKeyIfNullAndOptionalFileName('files_data_sql', $file);
+        $fileData = $this->cached['files_data_sql'][$file] ?? [];
+        // Fatal check: Bails on the first structural error
+        $fatalError = $this->validateFNFile($fileData, $fn, $ctxVals, "funkphp\\data\\sql\\{$file}", false);
+        if ($fatalError !== null) {
+            $this->setErr($fatalError, 'Route-pipeSQL', $method, $route);
+            $this->invalidBatches['sql']['routes'][$method][$route][$sqlFileFunction] = true;
+            return;
+        }
+        // When all OK!
+        $this->validBatches['routes'][$method][$route]['pipes'][] = "sql:$sqlFileFunction";
     }
     private function batchPipeQueryRoute(string $method, string $route, string $queryFileFunction)
     {
-        [$ctx, $ctxVals] = $this->setCtx('pipeQuery', "ROUTES()->{$method}()->route('{$route}')", $queryFileFunction);
+        [$ctx, $ctxVals] = $this->setCtx('pipeQuery', "ROUTES()->{$method}()->ROUTE('{$route}')", $queryFileFunction);
+        // Route must be valid first
+        if (isset($this->invalidBatches['routes'][$method][$route])) {
+            $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route-pipeQuery', $method, $route);
+            return;
+        }
+        if (isset($this->invalidBatches['query']['routes'][$method][$route][$queryFileFunction])) {
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Route-pipeQuery', $method, $route);
+            return;
+        }
+        if (isset($this->validBatches['routes'][$method][$route]['response'])) {
+            $this->setErr($this->getErr('ConflictResponseAlreadyAdded', $ctxVals), 'Route-pipeQuery', $method, $route);
+            $this->invalidBatches['query']['routes'][$method][$route][$queryFileFunction] = true;
+            return;
+        }
+        if (!$this->nonEmptyLC_Str_ThatISGroupORRouteFileFNWithoutCLIorFunk($queryFileFunction)) {
+            $this->setErr($this->getErr('InvalidGroupORFileFunctionNames', $ctxVals), 'Route-pipeQuery', $method, $route);
+            $this->invalidBatches['query']['routes'][$method][$route][$queryFileFunction] = true;
+            return;
+        }
+        // Just add if it starts with "group:" since that is validated by compile()
+        // and it will see "query:" meaning it is a specialized pipe to consider so it does NOT
+        // confuse it with regular pipes like function
+        if (str_starts_with($queryFileFunction, 'group:')) {
+            $this->validBatches['routes'][$method][$route]['pipes'][] = "query:$queryFileFunction";
+            return;
+        }
+        // Parse "filename.fnname" and check just like for pipeFunction()
+        [$file, $fn] = explode('.', $queryFileFunction);
+        $this->cachedCreateKeyIfNullAndOptionalFileName('files_data_query', $file);
+        $fileData = $this->cached['files_data_query'][$file] ?? [];
+        // Fatal check: Bails on the first structural error
+        $fatalError = $this->validateFNFile($fileData, $fn, $ctxVals, "funkphp\\data\\query\\{$file}", false);
+        if ($fatalError !== null) {
+            $this->setErr($fatalError, 'Route-pipeQuery', $method, $route);
+            $this->invalidBatches['query']['routes'][$method][$route][$queryFileFunction] = true;
+            return;
+        }
+        // When all OK!
+        $this->validBatches['routes'][$method][$route]['pipes'][] = "query:$queryFileFunction";
     }
     private function batchPipeValidationRoute(string $method, string $route, string $validationFileFunction)
     {
-        [$ctx, $ctxVals] = $this->setCtx('pipeValidation', "ROUTES()->{$method}()->route('{$route}')", $validationFileFunction);
+        [$ctx, $ctxVals] = $this->setCtx('pipeValidation', "ROUTES()->{$method}()->ROUTE('{$route}')", $validationFileFunction);
+        // Route must be valid first
+        if (isset($this->invalidBatches['routes'][$method][$route])) {
+            $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route-pipeValidation', $method, $route);
+            return;
+        }
+        if (isset($this->invalidBatches['validation']['routes'][$method][$route][$validationFileFunction])) {
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Route-pipeValidation', $method, $route);
+            return;
+        }
+        if (isset($this->validBatches['routes'][$method][$route]['response'])) {
+            $this->setErr($this->getErr('ConflictResponseAlreadyAdded', $ctxVals), 'Route-pipeValidation', $method, $route);
+            $this->invalidBatches['validation']['routes'][$method][$route][$validationFileFunction] = true;
+            return;
+        }
+        if (!$this->nonEmptyLC_Str_ThatISGroupORRouteFileFNWithoutCLIorFunk($validationFileFunction)) {
+            $this->setErr($this->getErr('InvalidGroupORFileFunctionNames', $ctxVals), 'Route-pipeValidation', $method, $route);
+            $this->invalidBatches['validation']['routes'][$method][$route][$validationFileFunction] = true;
+            return;
+        }
+        // Just add if it starts with "group:" since that is validated by compile()
+        // and it will see "validation:" meaning it is a specialized pipe to consider so it does NOT
+        // confuse it with regular pipes like function
+        if (str_starts_with($validationFileFunction, 'group:')) {
+            $this->validBatches['routes'][$method][$route]['pipes'][] = "validation:$validationFileFunction";
+            return;
+        }
+        // Parse "filename.fnname" and check just like for pipeFunction()
+        [$file, $fn] = explode('.', $validationFileFunction);
+        $this->cachedCreateKeyIfNullAndOptionalFileName('files_data_validation', $file);
+        $fileData = $this->cached['files_data_validation'][$file] ?? [];
+        // Fatal check: Bails on the first structural error
+        $fatalError = $this->validateFNFile($fileData, $fn, $ctxVals, "funkphp\\data\\validation\\{$file}", false);
+        if ($fatalError !== null) {
+            $this->setErr($fatalError, 'Route-pipeValidation', $method, $route);
+            $this->invalidBatches['validation']['routes'][$method][$route][$validationFileFunction] = true;
+            return;
+        }
+        // When all OK!
+        $this->validBatches['routes'][$method][$route]['pipes'][] = "validation:$validationFileFunction";
+    }
+
+    /*ROUTE: Compiled versions of above "pipe<Query|SQL|Validation>" Methods!!! Checks in /data/compiled/ Folder! */
+    private function batchPipeCompiledSQLRoute(string $method, string $route, string $compiledSQLFileFunction)
+    {
+        [$ctx, $ctxVals] = $this->setCtx('pipeCompiledSQL', "ROUTES()->{$method}()->ROUTE('{$route}')", $compiledSQLFileFunction);
+        // Route must be valid first
+        if (isset($this->invalidBatches['routes'][$method][$route])) {
+            $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route-pipeCompiledSQL', $method, $route);
+            return;
+        }
+    }
+    private function batchPipeCompiledQueryRoute(string $method, string $route, string $compiledQueryFileFunction)
+    {
+        [$ctx, $ctxVals] = $this->setCtx('pipeCompiledQuery', "ROUTES()->{$method}()->ROUTE('{$route}')", $compiledQueryFileFunction);
+        // Route must be valid first
+        if (isset($this->invalidBatches['routes'][$method][$route])) {
+            $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route-pipeCompiledQuery', $method, $route);
+            return;
+        }
+    }
+    private function batchPipeCompiledValidationRoute(string $method, string $route, string $compiledValidationFileFunction)
+    {
+        [$ctx, $ctxVals] = $this->setCtx('pipeCompiledValidation', "ROUTES()->{$method}()->ROUTE('{$route}')", $compiledValidationFileFunction);
+        // Route must be valid first
+        if (isset($this->invalidBatches['routes'][$method][$route])) {
+            $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route-pipeCompiledValidation', $method, $route);
+            return;
+        }
     }
 
     /*ROUTE: excludeMiddleware & excludeHeaders */
-    private function batchExcludeMiddlewareRoute(string $method, string $route, string ...$middlewareToExclude)
+    private function batchExcludeMiddlewaresRoute(string $method, string $route, string ...$middlewareToExclude)
     {
-        [$ctx, $ctxVals] = $this->setCtx('setExcludeMiddleware', "ROUTES()->{$method}()->route('{$route}')", ...$middlewareToExclude);
+        [$ctx, $ctxVals] = $this->setCtx('setExcludeMiddlewares', "ROUTES()->{$method}()->ROUTE('{$route}')", ...$middlewareToExclude);
         // Route must be valid first
         if (isset($this->invalidBatches['routes'][$method][$route])) {
-            $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route-setExcludeMiddleware', $method, $route);
+            $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route-setExcludeMiddlewares', $method, $route);
             return;
         }
-        if (isset($this->invalidBatches['excludeMiddleware']['routes'][$method][$route])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Route-setExcludeMiddleware', $method, $route);
+        if (isset($this->invalidBatches['excludeMiddlewares']['routes'][$method][$route])) {
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Route-setExcludeMiddlewares', $method, $route);
             return;
         }
-        if (isset($this->validBatches['routes'][$method][$route]['excludeMiddleware'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctx), 'Route-setExcludeMiddleware', $method, $route);
+        if (isset($this->validBatches['routes'][$method][$route]['excludeMiddlewares'])) {
+            $this->setErr($this->getErr('DuplicateCallValid', $ctx), 'Route-setExcludeMiddlewares', $method, $route);
             return;
         }
         // Check that all Middlewares exist; later compile() will also
         // check they exist on correct associated sub-route-depth!
         // and that they do not clash with piped middlewares on the same route as that is conflicting
+        $validMWs = [];
         foreach ($middlewareToExclude as $middleware) {
             $middleware = strtolower(trim($middleware));
             if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($middleware)) {
-                $this->setErr($this->getErr('InvalidMiddlewareFunctionName', $ctx), 'Route-setExcludeMiddleware', $method, $route);
+                $this->setErr($this->getErr('InvalidMiddlewareFunctionName', $ctx), 'Route-setExcludeMiddlewares', $method, $route);
+                $this->invalidBatches['excludeMiddlewares']['routes'][$method][$route] = true;
                 return;
             }
             if (in_array($middleware, ($this->validBatches['routes'][$method][$route]['middlewares'] ?? []), true)) {
-                $this->setErr($this->getErr('ConflictingExcludeMWWithAlreadyPipedMW', $ctxVals) . " Conflict: `->pipeMiddleware('{$middleware}')`.", 'Route-setExcludeMiddleware', $method, $route);
+                $this->setErr($this->getErr('ConflictingExcludeMWWithAlreadyPipedMW', $ctxVals) . " Conflict: `->pipeMiddleware('{$middleware}')`.", 'Route-setExcludeMiddlewares', $method, $route);
+                $this->invalidBatches['excludeMiddlewares']['routes'][$method][$route] = true;
                 return;
             }
             $this->cachedCreateKeyIfNullAndOptionalFileName('files_pipes_middlewares', $middleware);
@@ -6353,24 +6544,54 @@ class C
             // Fatal check: Bails on the first structural error
             $fatalError = $this->validateFNFile($fileData, $middleware, $ctxVals, "funkphp\\pipes\\middlewares\\{$middleware}", true);
             if ($fatalError !== null) {
-                $this->setErr($fatalError, 'Route-setExcludeMiddleware', $method, $route);
-                $this->invalidBatches['excludeMiddleware']['routes'][$method][$route] = true;
+                $this->setErr($fatalError, 'Route-setExcludeMiddlewares', $method, $route);
+                $this->invalidBatches['excludeMiddlewares']['routes'][$method][$route] = true;
                 return;
             }
+            $validMWs[] = $middleware;
         }
         // Add to excludeMiddleware when all OK!
-        $this->validBatches['routes'][$method][$route]['excludeMiddleware'] = $middlewareToExclude;
+        $this->validBatches['routes'][$method][$route]['excludeMiddlewares'] = $$validMWs;
     }
     private function batchExcludeHeadersRoute(string $method, string $route, string ...$headersToExclude)
     {
-        [$ctx, $ctxVals] = $this->setCtx('excludeHeaders', "ROUTES()->{$method}()->route('{$route}')", ...$headersToExclude);
+        [$ctx, $ctxVals] = $this->setCtx('setExcludeHeaders', "ROUTES()->{$method}()->ROUTE('{$route}')", ...$headersToExclude);
+        // Route must be valid first
+        if (isset($this->invalidBatches['routes'][$method][$route])) {
+            $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route-setExcludeHeaders', $method, $route);
+            return;
+        }
+        if (isset($this->invalidBatches['excludeHeaders']['routes'][$method][$route])) {
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Route-setExcludeHeaders', $method, $route);
+            return;
+        }
+        if (isset($this->validBatches['routes'][$method][$route]['excludeHeaders'])) {
+            $this->setErr($this->getErr('DuplicateCallValid', $ctx), 'Route-setExcludeHeaders', $method, $route);
+            return;
+        }
+        $validHeaders = [];
+        foreach ($headersToExclude as $header) {
+            $header = strtolower(trim($header));
+            if ($header === '' || !preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $header)) {
+                $this->setErr($this->getErr('InvalidHeaderName', $ctxVals), 'Route-setExcludeHeaders', $method, $route);
+                $this->invalidBatches['excludeHeaders']['routes'][$method][$route] = $headersToExclude;
+                return;
+            }
+            if (isset($this->validBatches['routes'][$method][$route]['headers']['add'][$header])) {
+                $this->setErr($this->getErr('ConflictingExcludeHeadersWithAlreadyPipedHeader', $ctxVals) . " Conflict: `->pipeHeader('{$header}')`.", 'Route-setExcludeHeaders', $method, $route);
+                $this->invalidBatches['excludeHeaders']['routes'][$method][$route] = $headersToExclude;
+                return;
+            }
+            $validHeaders[] = $header;
+        }
+        $this->validBatches['routes'][$method][$route]['excludeHeaders'] = $validHeaders;
     }
 
     /*ROUTE: pipeHeader & removeHeader */
     /*ROUTE: setpipeHeaderRoute*/
     private function batchPipeHeaderRoute(string $method, string $route, string $header)
     {
-        [$ctx, $ctxVals] = $this->setCtx('pipeHeader', "ROUTES()->{$method}()->route('{$route}')", $header);
+        [$ctx, $ctxVals] = $this->setCtx('pipeHeader', "ROUTES()->{$method}()->ROUTE('{$route}')", $header);
         // Route must be valid first
         if (isset($this->invalidBatches['routes'][$method][$route])) {
             $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route-pipeHeader', $method, $route);
@@ -6402,6 +6623,11 @@ class C
             $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Route-pipeHeader', $method, $route);
             return;
         }
+        if (in_array($lowerHeader, ($this->validBatches['routes'][$method][$route]['excludeHeaders'] ?? []), true)) {
+            $this->setErr($this->getErr('ConflictingPipeHeaderWithAlreadyExcludeHeaders', $ctxVals) . " Conflict: `->setExcludeHeaders('{$lowerHeader}')`.", 'Route-pipeHeader', $method, $route);
+            $this->invalidBatches['headers']['routes'][$method][$route]['add'][$lowerHeader] = true;
+            return;
+        }
         // Cannot add a header that was first meant to be removed
         if (isset($this->validBatches['routes'][$method][$route]['headers']['remove'][$lowerHeader])) {
             $this->setErr($this->getErr('ConflictPipeRemovedHeader', $ctxVals), 'Route-pipeHeader', $method, $route);
@@ -6414,7 +6640,7 @@ class C
     /*ROUTE: setRemoveHeaderRoute*/
     private function batchRemoveHeaderRoute(string $method, string $route, string $header_to_remove)
     {
-        [$ctx, $ctxVals] = $this->setCtx('removeHeader', "ROUTES()->{$method}()->route('{$route}')", $header_to_remove);
+        [$ctx, $ctxVals] = $this->setCtx('removeHeader', "ROUTES()->{$method}()->ROUTE('{$route}')", $header_to_remove);
         // Route must be valid first
         if (isset($this->invalidBatches['routes'][$method][$route])) {
             $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route-removeHeader', $method, $route);
@@ -7036,7 +7262,7 @@ class FunkMethod
     // Create a new route for the current FunkMethod() and/or
     // jump back/initialize to HEAD,GET,POST,PUT,PATCH,DELETE
     // that is under ->routes() | This allows for group and such!
-    public function route(string $path): FunkRoute
+    public function ROUTE(string $path): FunkRoute
     {
         $this->c->batch('batchNewRoute', $this->method, strtolower(trim($path)));
         return new FunkRoute($this->c, $this, $this->method, strtolower(trim($path)));
@@ -7136,9 +7362,30 @@ class FunkRoute
         $this->c->batch('batchPipeValidationRoute', $this->method, $this->routePath, $validationFileFunction);
         return $this;
     }
-    public function setExcludeMiddleware(string ...$middlewareToExclude): self
+    /*ROUTE: pipe<COMPILED_VERSIONS_OF:SQL,Query&Validation>*/
+    public function pipeCompiledSQL(string $compiledSQLFileFunction)
     {
-        $this->c->batch('batchExcludeMiddlewareRoute', $this->method, $this->routePath, ...$middlewareToExclude);
+        $compiledSQLFileFunction = strtolower(trim($compiledSQLFileFunction));
+        $this->c->batch('batchPipeCompiledSQLRoute', $this->method, $this->routePath, $compiledSQLFileFunction);
+        return $this;
+    }
+    public function pipeCompiledQuery(string $compiledQueryFileFunction)
+    {
+        $compiledQueryFileFunction = strtolower(trim($compiledQueryFileFunction));
+        $this->c->batch('batchPipeCompiledQueryRoute', $this->method, $this->routePath, $compiledQueryFileFunction);
+        return $this;
+    }
+    public function pipeCompiledValidation(string $compiledValidationFileFunction)
+    {
+        $compiledValidationFileFunction = strtolower(trim($compiledValidationFileFunction));
+        $this->c->batch('batchPipeCompiledValidationRoute', $this->method, $this->routePath, $compiledValidationFileFunction);
+        return $this;
+    }
+
+    /* setExcludeMiddlewares & setExcludeHeaders */
+    public function setExcludeMiddlewares(string ...$middlewareToExclude): self
+    {
+        $this->c->batch('batchExcludeMiddlewaresRoute', $this->method, $this->routePath, ...$middlewareToExclude);
         return $this;
     }
     public function setExcludeHeaders(string ...$headersToExclude): self
@@ -7214,9 +7461,9 @@ class FunkRoute
 
     // Create a new Route under currently navigated <METHOD>() and/or
     // jump to any other available <METHOD>() as seen below!
-    public function route(string $path): FunkRoute
+    public function ROUTE(string $path): FunkRoute
     {
-        return $this->parentMethod->route($path);
+        return $this->parentMethod->ROUTE($path);
     }
     public function HEAD(): FunkMethod
     {
