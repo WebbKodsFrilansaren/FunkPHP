@@ -1818,101 +1818,6 @@ function funk_match_developer_route(&$c, string $method, string $uri, array $com
     return false;
 }
 
-// Function that validates dynamic parameters in a given route
-// It uses the $c['req']['matched_params'] array so you only
-// provide an array of ['param_key' => 'validationLogic'] pairs.
-// It returns null when incorrectly used and true/false whether
-// all provided parameters are valid or not.
-function funk_params_are(&$c, $args)
-{
-    if (!isset($args) || !is_array($args)) {
-        $c['err']['ROUTES']['funk_param_are'][] = 'No Parameters provided (by the Developer) to Validate for Current Route!';
-        return null;
-    }
-    if (!isset($c['req']['params']) || !is_array($c['req']['params'])) {
-        $c['err']['ROUTES']['funk_param_is'][] = 'No matched Dynamic Parameters (from the Visitor) to Validate for Current Route!';
-        return null;
-    }
-    $params = $c['req']['params'];
-
-    // When all parameters are valid, return true
-    return true;
-}
-// Same as above but only takes a single Dynamic Parameter Key
-// and returns true/false whether it is valid or not. Returns null
-// when incorrectly used or no matched parameters.
-function funk_param_is(&$c, $param_key, $validation)
-{
-    if (!isset($c['req']['params']) || !is_array($c['req']['params'])) {
-        $c['err']['ROUTES']['funk_param_is'][] = 'No matched Dynamic Parameters to Validate for Current Route!';
-        return null;
-    }
-    $param = $c['req']['params'][$param_key] ?? null;
-    if ($param === null) {
-        $c['err']['ROUTES']['funk_param_is'][] = 'No matched Dynamic Parameter with Key `' . $param_key . '` to Validate for Current Route!';
-        return null;
-    }
-
-    // When provided parameter is valid, return true
-    return true;
-}
-
-// Quick Validate a $c['params'][$param_key] is one of many types:
-function funk_param_is_string(&$c, $param_key)
-{
-    if (!isset($param_key)) {
-        $c['err']['ROUTES']['funk_param_is_string'][] = 'No Parameter Key provided to Validate for Current Route!';
-        return null;
-    }
-    // When provided parameter is a string, return true
-    $param = $c['req']['params'][$param_key] ?? null;
-    return is_string($param) && !empty($param);
-}
-function funk_param_is_number(&$c, $param_key)
-{
-    if (!isset($param_key)) {
-        $c['err']['ROUTES']['funk_param_is_string'][] = 'No Parameter Key provided to Validate for Current Route!';
-        return null;
-    }
-    // When provided parameter is a string, return true
-    $param = $c['req']['params'][$param_key] ?? null;
-    return is_numeric($param);
-}
-function funk_param_is_integer(&$c, $param_key)
-{
-    if (!isset($param_key)) {
-        $c['err']['ROUTES']['funk_param_is_integer'][] = 'No Parameter Key provided to Validate for Current Route!';
-        return null;
-    }
-    // When provided parameter is an integer, return true
-    $param = $c['req']['params'][$param_key] ?? null;
-    return is_int($param) || intval($param) == $param;
-}
-function funk_param_is_float(&$c, $param_key)
-{
-    if (!isset($param_key)) {
-        $c['err']['ROUTES']['funk_param_is_float'][] = 'No Parameter Key provided to Validate for Current Route!';
-        return null;
-    }
-    // When provided parameter is a float, return true
-    $param = $c['req']['params'][$param_key] ?? null;
-    return is_float($param) || (is_numeric($param) && strpos($param, '.') !== false && floatval($param) == $param);
-}
-function funk_param_is_regex(&$c, $param_key, $regexStr)
-{
-    if (!isset($param_key)) {
-        $c['err']['ROUTES']['funk_param_is_regex'][] = 'No Parameter Key provided to Validate for Current Route!';
-        return null;
-    }
-    if (!isset($regexStr) || !is_string($regexStr) || empty($regexStr)) {
-        $c['err']['ROUTES']['funk_param_is_regex'][] = 'No Regex String provided to Validate for Current Route!';
-        return null;
-    }
-    // When provided parameter matches the regex, return true
-    $param = $c['req']['params'][$param_key] ?? "";
-    return preg_match($regexStr, $param) === 1;
-}
-
 /***  DATA-RELATED PHP FUNCTIONS FOR FUNKPHP ***/
 // Function that either creates and returns a new database connection or returns
 // an already existing one in $c['DATABASES'][<$dbKey>] if it exists
@@ -2512,20 +2417,147 @@ class C
         return;
     }
     // Function find either a Key=>FN|CLASS OR Key=>File=>FN|CLASS
-    private function cachedKeyHasSpecificFN(string $key, string $FN)
+
+    /* AUTO-LOAD AND CHECK IF FILES EXIST (Does NOT check actual FNs except UserDefined One!) */
+    private function cachedPageFileCOMPILEDExists(string $page): bool
     {
+        $this->cachedCreateKeyIfNullAndOptionalFileName('files_pages_compiled', $page);
+        $pageFound = false;
         if (
-            !isset($this->cached)
-            || !is_array($this->cached)
-            || !isset($this->cached[$key])
-            || $this->cached[$key]['file_exists'] === false
-            || $this->cached[$key]['file_readable'] === false
-            || $this->cached[$key]['functions_exist'] === false
-            || !isset($this->cached[$key]['functions'][$FN])
+            isset($this->cached['files_pages_compiled'][$page]['file_exists'])
+            && $this->cached['files_pages_compiled'][$page]['file_exists'] === true
         ) {
-            return false;
+            $pageFound = true;
         }
-        return true;
+        return $pageFound;
+    }
+    private function cachedPageFileNOT_COMPILEDExists(string $page): bool
+    {
+        $this->cachedCreateKeyIfNullAndOptionalFileName('files_pages', $page);
+        $pageFound = false;
+        if (
+            isset($this->cached['files_pages'][$page]['file_exists'])
+            && $this->cached['files_pages'][$page]['file_exists'] === true
+        ) {
+            $pageFound = true;
+        }
+        return $pageFound;
+    }
+    private function cachedPageFileEITHER_TYPEExists(string $page): bool
+    {
+        $this->cachedCreateKeyIfNullAndOptionalFileName('files_pages_compiled', $page);
+        $this->cachedCreateKeyIfNullAndOptionalFileName('files_pages', $page);
+        $pageFound = false;
+        if (
+            isset($this->cached['files_pages'][$page]['file_exists'])
+            && $this->cached['files_pages'][$page]['file_exists'] === true
+        ) {
+            $pageFound = true;
+        } else if (
+            isset($this->cached['files_pages_compiled'][$page]['file_exists'])
+            && $this->cached['files_pages_compiled'][$page]['file_exists'] === true
+        ) {
+            $pageFound = true;
+        }
+        return $pageFound;
+    }
+    private function cachedMiddlewareFileExists(string $middleware): bool
+    {
+        $this->cachedCreateKeyIfNullAndOptionalFileName('files_pipes_middlewares', $middleware);
+        $middlewareFound = false;
+        if (
+            isset($this->cached['files_pipes_middlewares'][$middleware]['file_exists'])
+            && $this->cached['files_pipes_middlewares'][$middleware]['file_exists'] === true
+        ) {
+            $middlewareFound = true;
+        }
+        return $middlewareFound;
+    }
+    private function cachedRequestFileExists(string $requestFN): bool
+    {
+        $this->cachedCreateKeyIfNullAndOptionalFileName('files_pipes_request', $requestFN);
+        $requestFNFound = false;
+        if (
+            isset($this->cached['files_pipes_request'][$requestFN]['file_exists'])
+            && $this->cached['files_pipes_request'][$requestFN]['file_exists'] === true
+        ) {
+            $requestFNFound = true;
+        }
+        return $requestFNFound;
+    }
+    private function cachedPostResponseFileExists(string $postResponseFN): bool
+    {
+        $this->cachedCreateKeyIfNullAndOptionalFileName('files_pipes_post_response', $postResponseFN);
+        $postResponseFNFound = false;
+        if (
+            isset($this->cached['files_pipes_post_response'][$postResponseFN]['file_exists'])
+            && $this->cached['files_pipes_post_response'][$postResponseFN]['file_exists'] === true
+        ) {
+            $postResponseFNFound = true;
+        }
+        return $postResponseFNFound;
+    }
+    private function cachedRoutesFileExists(string $routesFile): bool
+    {
+        $this->cachedCreateKeyIfNullAndOptionalFileName('files_routes', $routesFile);
+        $routesFileFound = false;
+        if (
+            isset($this->cached['files_routes'][$routesFile]['file_exists'])
+            && $this->cached['files_routes'][$routesFile]['file_exists'] === true
+        ) {
+            $routesFileFound = true;
+        }
+        return $routesFileFound;
+    }
+    private function cachedQueryFileExists(string $QueryFile): bool
+    {
+        $this->cachedCreateKeyIfNullAndOptionalFileName('files_data_query', $QueryFile);
+        $fileFound = false;
+        if (
+            isset($this->cached['files_data_query'][$QueryFile]['file_exists'])
+            && $this->cached['files_data_query'][$QueryFile]['file_exists'] === true
+        ) {
+            $fileFound = true;
+        }
+        return $fileFound;
+    }
+    private function cachedSQLFileExists(string $SQLFile): bool
+    {
+        $this->cachedCreateKeyIfNullAndOptionalFileName('files_data_sql', $SQLFile);
+        $fileFound = false;
+        if (
+            isset($this->cached['files_data_sql'][$SQLFile]['file_exists'])
+            && $this->cached['files_data_sql'][$SQLFile]['file_exists'] === true
+        ) {
+            $fileFound = true;
+        }
+        return $fileFound;
+    }
+    private function cachedValidationFileExists(string $ValidationFile): bool
+    {
+        $this->cachedCreateKeyIfNullAndOptionalFileName('files_data_validation', $ValidationFile);
+        $fileFound = false;
+        if (
+            isset($this->cached['files_data_validation'][$ValidationFile]['file_exists'])
+            && $this->cached['files_data_validation'][$ValidationFile]['file_exists'] === true
+        ) {
+            $fileFound = true;
+        }
+        return $fileFound;
+    }
+    private function cachedUserDefinedFNExists(string $userDefinedFunction): bool
+    {
+        $this->cachedCreateKeyIfNullAndOptionalFileName('file_user_defined_functions');
+        $FNFound = false;
+        if (
+            isset($this->cached['file_user_defined_functions']['file_exists'])
+            && $this->cached['file_user_defined_functions']['file_exists'] === true
+        ) {
+            if (isset($this->cached['file_user_defined_functions']['functions'][strtolower(trim($userDefinedFunction))])) {
+                $FNFound = true;
+            }
+        }
+        return $FNFound;
     }
     // These 2 functions check things like eval(), early exit(), which can be used to inform
     // developer about possible dangerous code but it is only emitted as warnings - nothing else.
@@ -3527,13 +3559,13 @@ class C
             return "File Function Error in {$contextLabel}: Parsed File Data `$relativePath` as an Array is EITHER A Numbered Array when it should be an Associative Array OR it is Completely Empty. (This is possibly an Internal FunkPHP Error - try regenerate default files in `/src/funkphp/config/` and try again)";
         }
         if (empty($fileData['file_exists'])) {
-            return "File Function Error in {$contextLabel}: File `$relativePath` does NOT exist.";
+            return "File Function Error in {$contextLabel}: Expected File `$relativePath` does NOT exist.";
         }
         if (empty($fileData['file_readable'])) {
-            return "File Function Error in {$contextLabel}: File `$relativePath` is NOT Readable.";
+            return "File Function Error in {$contextLabel}: Expected File `$relativePath` is NOT Readable.";
         }
         if (!empty($fileData['classes_exist'])) {
-            return "File Function Error in {$contextLabel}: File `$relativePath` contains Class Definitions which is forbidden for this type of File Function.";
+            return "File Function Error in {$contextLabel}: File `$relativePath` contains `Class Definitions` which is forbidden for this type of `File Function`.";
         }
         $fnCount = count($fileData['functions'] ?? []);
         if ($singleFNExpected) {
@@ -3637,7 +3669,10 @@ class C
             'InvalidGroupORFunctionName'                            => "Invalid Group|Function Name in {$optionalCtx}: must EITHER start with `group:` and then follow with these Valid `[a-z_][a-z0-9_]*` characters, OR it must a `Non-Empty String (no trailing spaces)` all `lowercased` starting with `[_a-z]` and then only use the following characters: `[_a-z0-9]` while it also does NOT start with `funk_` OR `cli_`.",
             'InvalidGroupORFileFunctionNames' => "Invalid Group|File+Function Name(s) in {$optionalCtx}: must EITHER start with `group:` and then follow with these Valid `[a-z_][a-z0-9_]*` characters, OR it must be a Valid `FileName.FunctionName` using `[a-z_][a-z0-9_]*` characters only for `Filename`, then a Single Dot (`.`), followed by these `[a-z_][a-z0-9_]*` characters again for `Function Name` (what PHP considers a `Valid Declared Function Name`). VALID: `users.by_id`, `_users._by_id`, OR `users.all`. NOT VALID: `1users.by_id`, `us-ers.by_id`, `users.by-id`, OR `users.1by_id`.",
             'InvalidFunctionName'                         => "Invalid Function Name in {$optionalCtx}: must be a `Non-Empty String (no trailing spaces)` all `lowercased` starting with `[_a-z]` and then only use the following characters: `[_a-z0-9]` while it also does NOT start with `funk_` OR `cli_`.",
+            'InvalidMiddlewareFunctionName' => "Invalid Middleware Function Name in {$optionalCtx}: must be a `Non-Empty All Lowercased String (no trailing spaces)` that only uses `[a-z_][a-z0-9_]+` characters in that order while it does NOT start with `cli_` OR `funk_`.",
             'InvalidGroupName'                                => "Invalid Group Name Value in {$optionalCtx}: must be a `Non-Empty String (no trailing spaces)` all `lowercased` that does NOT start with `cli_` OR `funk_`.",
+            'InvalidResponseType' => "Invalid Response Type in {$optionalCtx}: Choose between: `page:`, `json:`, `callback:`, OR `text:` and then follow up with the `pageFileName` (for page:), OR `SingleArrayKeyDepth` - only use `[a-zA-Z-_.]` characters - to get `\$c['d']['SingleArrayKeyDepth']` (if 'json:SingleArrayKeyDepth') for where `Stored JSON Data` should be returned from (for json:), OR `userDefinedFunctionName in /src/funkphp/config/functions.php` that you have defined to use as a callback (for callback:), OR the plain text message (for text:). `pipeResponse() automatically completes it with exit()` and then run any optionally configured `Post-Response`.",
+            'InvalidResponseContext' => "Invalid Response Context in {$optionalCtx}: Valid choice between `page:|json:|callback:|text:` found, but the Context after the Single Colon (`:`) is Empty or Invalid. ",
             'InvalidAddHeaderFormat' => "Invalid Header Value Format in {$optionalCtx}: Header must not contain any kind of newline characters (`CRLF Injections` risks) and must follow `Header-Name: Header-Value` syntax (e.g. `X-Frame-Options: DENY`) where the Single Semi-colon (`:`) is the `divider` between `Key` and `Value`.",
             'InvalidHeaderName' => "Invalid Header Name Value in {$optionalCtx}: Must be a `Non-Empty String` with Header Name Only (e.g. `server`, `x-powered-by`), with `Only Alphanumerics` and `single dashes between the words.`",
             'InvalidCSPSourceArray' => "Invalid CSP Source Array in {$optionalCtx}: Ensure Sources are Valid Non-Empty Strings with no spaces, semicolons, or CRLF Injections.",
@@ -3660,6 +3695,7 @@ class C
             'JsonEncodingFailed'                        => "Data Serialization to JSON Failed in {$optionalCtx}. Review the passed Input to it.",
             'RouteIsInvalidMustBecomeValidBeforeWhat' => "Invalid Route being applied with {$optionalCtx}. Route must first become Valid.",
             'InvalidCompilerFlag' => "Invalid Compiler Flag in {$optionalCtx}: must be one of the following: ",
+            'InvalidJSONSourceForResponseCtx' => "Invalid JSON Data Source Syntax in {$optionalCtx}: use only `[a-zA-Z0-9-_.]` characters. 'YourKey' after `json:` will then be used in `\$c['d']['YourKey']` as the Final Data Source ",
 
             // Scope & Existence for FUNCTIONS Validation Errors
             'UserDefinedFUNCTIONHasWrongArgs'                       => "Provided User-defined Function in {$optionalCtx} from `/src/funkphp/config/functions.php` must besides the starting Function Parameter `&\$c` also have the following Function Parameters:",
@@ -3668,6 +3704,7 @@ class C
             'UserDefinedFUNCTIONAlreadyUsedBy'                       => "Provided User-defined Function in {$optionalCtx} from `/src/funkphp/config/functions.php` is already being used by:",
             'UserDefinedCLASSAlreadyUsedBy'                       => "Provided User-defined Class in {$optionalCtx} from `/src/funkphp/config/classes.php` is already being used by:",
             'UserDefinedFUNCTIONNotFound'                       => "Provided User-defined Function in {$optionalCtx} NOT Found in `/src/funkphp/config/functions.php`. Review Function Name OR add it to the File.",
+            'UserDefinedFUNCTIONNotFoundForResponseCtx'                       => "Provided User-defined Function in {$optionalCtx} NOT Found in `/src/funkphp/config/functions.php` ",
             'UserDefinedCLASSNotFound'                          => "Provided User-defined Class in {$optionalCtx} NOT Found in `/src/funkphp/config/classes.php`. Review Class Name OR add it to the File.",
             'UserDefinedFNSetAsEngineFN'                         => "Provided User-defined Function in {$optionalCtx} from `/src/funkphp/config/functions.php` is already set as Global Handler.",
             'NoCompiledPageNotFound' => "Provided Page Filename in {$optionalCtx} was NOT found in `/src/funkphp/pages/compiled/`",
@@ -3688,6 +3725,8 @@ class C
             'ConflictRemovePipedHeader' => "Conflicting Calls in {$optionalCtx}: cannot set `Remove a Header` that was first configured as `Pipe a Header`.",
             'ConflictPipeRemovedHeader' => "Conflicting Calls in {$optionalCtx}: cannot set `Pipe a Header` that was first configured as `Remove a Header` .",
             'ConflictingConfiguration'           => "Valid Configuration (`{$optionalCtx}`) is already set and CANNOT be overridden, only changed manually.",
+            'ConflictingExcludeMWWithAlreadyPipedMW' => "Conflicting Middlewares in {$optionalCtx}: cannot reference the same Middleware(s) in `setExcludeMiddleware()` and `pipeMiddleware` in the same Route. Choose Middlewares piped in a given `<METHOD>()` and/or `CONFIG()`.",
+            'ConflictingPipeMiddlewareWithAlreadyExcludeMW' => "Conflicting Middlewares in {$optionalCtx}: cannot reference the same Middleware(s) in `pipeMiddleware()` and `setExcludeMiddleware()` in the same Route. Choose Middlewares piped in a given `<METHOD>()` and/or `CONFIG()`.",
         ];
         if (isset($errors[$errType])) {
             return $errors[$errType];
@@ -3851,7 +3890,13 @@ class C
     private function batchSetCompileFlag(string $flag)
     {
         [$ctx, $ctxVals] = $this->setCtx('setCompileFlag', "CONFIG()", $flag);
-        $validFlags = ['NO_WARNINGS_ALLOWED', 'COMPILE_ROUTES_SORTED_ASC', 'COMPILE_ROUTES_SORTED_DESC'];
+        $validFlags = [
+            'NO_WARNINGS_ALLOWED',
+            'COMPILE_ROUTES_SORTED_ASC',
+            'COMPILE_ROUTES_SORTED_DESC',
+            'ONLY_RETURN_COMPILED_PAGES', // pipeResponse() config will ONLY look for compiled pages and error out if not found during config
+            'ONLY_RETURN_NONCOMPILED_PAGES' // pipeResponse() config wil ONLY look for non-compiled pages and error out if not found during config
+        ];
         if (isset($this->invalidBatches['config']['compileFlags'][$flag])) {
             $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setCompileFlag');
             return;
@@ -5880,7 +5925,7 @@ class C
         // }
         // Add Valid String Formatted METHOD/Route now; in compilation it will be checked for
         // conflicting URI segments with other routes as we do not know which order they are added!
-        $this->validBatches['routes'][$method][$route] = ['hasParams' => $routeHasParams, 'response' => null, 'pipes' => [], 'middlewares' => [], 'excludeMiddleware' => [], 'headers' => ['add' => [], 'remove' => []], 'excludeHeaders' => []];
+        $this->validBatches['routes'][$method][$route] = ['hasParams' => $routeHasParams, 'response' => null, 'pipes' => [], 'middlewares' => [], 'excludeMiddleware' => null, 'headers' => ['add' => null, 'remove' => null], 'excludeHeaders' => null];
     }
 
     //ROUTE: Set & New Batches for ROUTES! (so ->routes()-><Method>()->route()->set|pipe<What>)
@@ -6121,6 +6166,10 @@ class C
             $this->invalidBatches['middlewares']['routes'][$method][$route][$middleware] = true;
             return;
         }
+        if (in_array($middleware, ($this->validBatches['routes'][$method][$route]['excludeMiddleware'] ?? []), true)) {
+            $this->setErr($this->getErr('ConflictingPipeMiddlewareWithAlreadyExcludeMW', $ctxVals) . " Conflict: `->setExcludeMiddleware('{$middleware}')`.", 'Route-setExcludeMiddleware', $method, $route);
+            return;
+        }
         // Just add if it starts with "group:" since that is validated by compile()
         if (str_starts_with($middleware, 'group:')) {
             $this->validBatches['routes'][$method][$route]['middlewares'][] = $middleware;
@@ -6178,6 +6227,83 @@ class C
     private function batchPipeResponseRoute(string $method, string $route, string $typeOfResponse)
     {
         [$ctx, $ctxVals] = $this->setCtx('pipeResponse', "ROUTES()->{$method}()->route('{$route}')", $typeOfResponse);
+        // Route must be valid first
+        if (isset($this->invalidBatches['routes'][$method][$route])) {
+            $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route-pipeResponse', $method, $route);
+            return;
+        }
+        if (isset($this->invalidBatches['pipes']['responses']['routes'][$method][$route][strtolower(trim($typeOfResponse))])) {
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctxVals), 'Route-pipeResponse', $method, $route);
+            return;
+        }
+        if (isset($this->validBatches['routes'][$method][$route]['response'])) {
+            $this->setErr($this->getErr('DuplicateCallValid', $ctx), 'Route-pipeResponse', $method, $route);
+            return;
+        }
+        // The valid Response Types
+        if (!preg_match('/^(json:|page:|callback:|text:)/i', $typeOfResponse)) {
+            $this->setErr($this->getErr('InvalidResponseType', $ctxVals), 'Route-pipeResponse', $method, $route);
+            $this->invalidBatches['pipes']['responses']['routes'][$method][$route][strtolower(trim($typeOfResponse))] = true;
+            return;
+        }
+        // Handle each response type, error out if not possible, and if all OK, just set it to validBatches
+        [$type, $ctx] = explode(':', $typeOfResponse, 2);
+        $typeErr = '';
+        $type = strtolower(trim($type));
+        if ($type === 'json') {
+            $typeErr = 'Choose a Array Path for where to return the `Stored Valid JSON Data` from. For exampel: `d.subKey.optionalSubkey` will return `Stored JSON Data` from `\$c["d"]["subKey"]["optionalSubkey"]`. Make sure that `JSON Data` is stored in that variable `before pipeResponse() executes`. Invalid JSON Data when it is being returned will make it instead return `500 HTTP(S) Status Code` and `[\'code\':500, \'error\':\'Internal Server Error\']`';
+        } else if ($type === 'page') {
+            $typeErr = 'Choose a `Page Filename` (e.g. `login`). It will then first check for `/src/funkphp/pages/compiled/login.php` and then for `/src/funkphp/pages/login.php` attempting to Compile it On-the-Fly and then return it. `In-built Page Not Found` is returned instead if both Page Files are not found during runtime (or Page On-the-Fly-Compilation fails).';
+        } else if ($type === 'callback') {
+            $typeErr = 'Choose a `User-defined Function in /src/funkphp/config/functions.php` that is also NOT already used as a `Global Handler`. For example, if you have set `->setDefaultKernelHandler(\'test\')`, then you cannot use the User-Defined Function `function test(&$c){}` in `/src/funkphp/config/functions.php`.';
+        } else if ($type === 'text') {
+            $typeErr = 'Write any length (except 0) of Plain-Text after the Single Colon (`:`) that is Valid UTF-8. If you need to return `Non-UTF-8 Plain-Text use a Callback instead` to achieve that kind of Response Type as `pipeResponse() assumes UTF-8` during Configuration.';
+        } else {
+            $typeErr = "The Response Type `{$type}` does NOT exist but somehow got through the Configuration Checks. Report this FunkPHP Internal Bug/Issue to the `Official FunkPHP Repositories`.";
+        }
+        if (!isset($ctx) || trim($ctx) === '') {
+            $this->setErr($this->getErr('InvalidResponseContext', $ctxVals) . $typeErr, 'Route-pipeResponse', $method, $route);
+            $this->invalidBatches['pipes']['responses']['routes'][$method][$route][strtolower(trim($typeOfResponse))] = true;
+            return;
+        }
+        // Check that Page exists in compiled OR non-compiled for page:
+        if ($type === 'page') {
+            $ctx = trim($ctx);
+            if (!$this->cachedPageFileEITHER_TYPEExists($ctx)) {
+                $this->setErr($this->getErr('NoPageAtAllFound', $ctxVals) . ' to be used as the `returned Page in pipeResponse()`.', 'Route-pipeResponse', $method, $route);
+                $this->invalidBatches['pipes']['responses']['routes'][$method][$route][strtolower(trim($typeOfResponse))] = true;
+                return;
+            }
+        }
+        // Check that a Single Simple Array Depth String is used for json:
+        else if ($type === 'json') {
+            $ctx = trim($ctx);
+            if (!preg_match('/^[a-zA-Z0-9-_\.]+$/', $ctx)) {
+                $this->setErr($this->getErr('InvalidJSONSourceForResponseCtx', $ctxVals) . ' to be used as the `returned JSON Data in pipeResponse()`.', 'Route-pipeResponse', $method, $route);
+                $this->invalidBatches['pipes']['responses']['routes'][$method][$route][strtolower(trim($typeOfResponse))] = true;
+                return;
+            }
+            [$root, $rest] = explode('.', $ctx, 2);
+        }
+        // Check that User-defined function exists for callback:
+        // and that it is not already is set as a Global Handler.
+        else if ($type === 'callback') {
+            $ctx = trim($ctx);
+            if (!$this->cachedUserDefinedFNExists($ctx)) {
+                $this->setErr($this->getErr('UserDefinedFUNCTIONNotFoundForResponseCtx', $ctxVals) . ' to be used as the `returned User-defined Callback Function in pipeResponse()`.', 'Route-pipeResponse', $method, $route);
+                $this->invalidBatches['pipes']['responses']['routes'][$method][$route][strtolower(trim($typeOfResponse))] = true;
+                return;
+            }
+            if (isset($this->cached['placeHolderUsedUserDefinedEngineFNS'][$ctx])) {
+                $this->setErr($this->getErr('UserDefinedFNSetAsEngineFN', $ctxVals) . ' It cannot be as the `returned User-defined Callback Function in pipeResponse()`. See `' . $this->cached['placeHolderUsedUserDefinedEngineFNS'][$ctx] . '`', 'Route-pipeResponse', $method, $route);
+                $this->invalidBatches['pipes']['responses']['routes'][$method][$route][strtolower(trim($typeOfResponse))] = true;
+                return;
+            }
+        } else if ($type === 'text') {
+            // Nothing really needs to be done here.
+        }
+        // All good by here so add!
+        $this->validBatches['routes'][$method][$route]['response'] = ['type' => $type, 'context' => $ctx];
     }
     private function batchPipeSQLRoute(string $method, string $route, string $sqlFileFunction)
     {
@@ -6195,7 +6321,45 @@ class C
     /*ROUTE: excludeMiddleware & excludeHeaders */
     private function batchExcludeMiddlewareRoute(string $method, string $route, string ...$middlewareToExclude)
     {
-        [$ctx, $ctxVals] = $this->setCtx('excludeMiddleware', "ROUTES()->{$method}()->route('{$route}')", ...$middlewareToExclude);
+        [$ctx, $ctxVals] = $this->setCtx('setExcludeMiddleware', "ROUTES()->{$method}()->route('{$route}')", ...$middlewareToExclude);
+        // Route must be valid first
+        if (isset($this->invalidBatches['routes'][$method][$route])) {
+            $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route-setExcludeMiddleware', $method, $route);
+            return;
+        }
+        if (isset($this->invalidBatches['excludeMiddleware']['routes'][$method][$route])) {
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Route-setExcludeMiddleware', $method, $route);
+            return;
+        }
+        if (isset($this->validBatches['routes'][$method][$route]['excludeMiddleware'])) {
+            $this->setErr($this->getErr('DuplicateCallValid', $ctx), 'Route-setExcludeMiddleware', $method, $route);
+            return;
+        }
+        // Check that all Middlewares exist; later compile() will also
+        // check they exist on correct associated sub-route-depth!
+        // and that they do not clash with piped middlewares on the same route as that is conflicting
+        foreach ($middlewareToExclude as $middleware) {
+            $middleware = strtolower(trim($middleware));
+            if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($middleware)) {
+                $this->setErr($this->getErr('InvalidMiddlewareFunctionName', $ctx), 'Route-setExcludeMiddleware', $method, $route);
+                return;
+            }
+            if (in_array($middleware, ($this->validBatches['routes'][$method][$route]['middlewares'] ?? []), true)) {
+                $this->setErr($this->getErr('ConflictingExcludeMWWithAlreadyPipedMW', $ctxVals) . " Conflict: `->pipeMiddleware('{$middleware}')`.", 'Route-setExcludeMiddleware', $method, $route);
+                return;
+            }
+            $this->cachedCreateKeyIfNullAndOptionalFileName('files_pipes_middlewares', $middleware);
+            $fileData = $this->cached['files_pipes_middlewares'][$middleware] ?? [];
+            // Fatal check: Bails on the first structural error
+            $fatalError = $this->validateFNFile($fileData, $middleware, $ctxVals, "funkphp\\pipes\\middlewares\\{$middleware}", true);
+            if ($fatalError !== null) {
+                $this->setErr($fatalError, 'Route-setExcludeMiddleware', $method, $route);
+                $this->invalidBatches['excludeMiddleware']['routes'][$method][$route] = true;
+                return;
+            }
+        }
+        // Add to excludeMiddleware when all OK!
+        $this->validBatches['routes'][$method][$route]['excludeMiddleware'] = $middlewareToExclude;
     }
     private function batchExcludeHeadersRoute(string $method, string $route, string ...$headersToExclude)
     {

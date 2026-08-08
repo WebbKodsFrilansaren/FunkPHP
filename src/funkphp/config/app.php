@@ -3,15 +3,16 @@
 $FUNK = FunkPHP();
 
 $FUNK->CONFIG()
-    ->setCompileFlag('NO_WARNINGS_ALLOWED')
-    ->setParamRule("test", "a", "a");
+    ->setCompileFlag('NO_WARNINGS_ALLOWED');
 $FUNK->ROUTES()
     ->GET()
-    ->setParamRule("test", "a", "a")
     ->route("/:iA")
     ->pipeFunction("test.test")
     ->pipeMiddleware("auth")
-    ->setParamRule("test", "a", "a");
+    ->setExcludeMiddleware("auth", "auth2")
+    ->pipeResponse("callback:testar")
+    ->setParamRule('ia', '/[\d]+/')
+    ->pipeHeader("test-test: a");
 
 
 // 1. Inspect the FunkRoute instance ($test) to get the private $c property
