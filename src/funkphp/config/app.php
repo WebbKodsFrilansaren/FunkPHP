@@ -5,7 +5,8 @@ $FUNK = FunkPHP();
 $FUNK->CONFIG()->pipeHeader("Ab: af")
     ->ROUTES()
     ->GET()
-    ->setNoRouteMatchPage("a");
+    ->route("/a:a")
+    ->setParamRule("a", "a", "a");
 
 // 1. Inspect the FunkRoute instance ($test) to get the private $c property
 // $routeReflection = new ReflectionObject($test);
