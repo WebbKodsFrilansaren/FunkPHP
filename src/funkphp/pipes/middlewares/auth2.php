@@ -1,6 +1,6 @@
 <?php
 
-namespace funkphp\pipes\middlewares\mw_auth2;
+namespace funkphp\pipes\middlewares\auth2;
 // FunkCLI Created on 2026-06-15 14:11:21!
 
 function mw_auth2(&$c)
