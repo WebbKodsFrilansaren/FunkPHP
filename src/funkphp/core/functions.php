@@ -4751,6 +4751,7 @@ class C
         }
         $this->validBatches['config']['setINI_SET'] = $iniSetArrayWithKeyNamesAsSettingTypeWithSingleScalarValue;
     }
+    private function batchSetRateLimitingGlobal(int $maxRequestsPerWindowSize = 60, int $windowSizeInSeconds = 60, $by = 'ip', $driver = 'redis') {}
 
     /* setGrouped<VARIANTS> Global */
     private function batchSetGroupedPipeUserDefined(string $groupName, string ...$userDefFNS)
@@ -5452,7 +5453,7 @@ class C
 
     /* !!! METHOD BATCHES/ROUTES()->GET|POST|PATCH|PUT|DELETE() FUNCTIONS !!! */
     //METHOD:Set & New Batches for SPECIFIC_METHOD! (so ->routes()-><Method>->set|pipe<What>)
-    private function batchSetRateLimitingMethod(string $method, array $rateLimitingOptions) {}
+    private function batchSetRateLimitingMethod(string $method, int $maxRequestsPerWindowSize = 60, int $windowSizeInSeconds = 60, $by = 'ip', $driver = 'redis') {}
 
     //METHOD: No Match for this https method, if none is set, it falls back to the global versions.
     private function batchSetNoRouteMatchPageMethod(string $method, string $PageFileName, int $statusCode = 404)
@@ -6045,8 +6046,8 @@ class C
         $this->validBatches['routes'][$method][$route]['paramRules'][$param] = ['pattern' => $regex, 'default' => $defaultParamValueOnRegexMismatch];
     }
     /*ROUTE: RateLimiting & setCache */
-    private function batchSetRateLimitingRoute(string $method, string $route, array $rateLimitingOptions) {}
-    private function batchSetCacheRoute(string $method, string $route, array $cacheOptions) {}
+    private function batchSetRateLimitingRoute(string $method, string $route, int $maxRequestsPerWindowSize = 60, int $windowSizeInSeconds = 60, $by = 'ip', $driver = 'redis') {}
+    private function batchSetCacheRoute(string $method, string $route, int $ttl = 3600, string $driver = 'redis', mixed $varyBy = null, bool $private = false) {}
 
     /*ROUTE: setNoncesRoute & setCSP<VARIANTS> */
     private function batchSetNoncesRoute(string $method, $route, string ...$noncesReferenceKeys)
