@@ -19,23 +19,90 @@
 require_once __DIR__ . '/core/functions.php'; // In-built functions
 require_once __DIR__ . '/config/functions.php'; // User-defined functions
 $c = require_once __DIR__ . '/core/c.php';
+// $iniSets = $c['INI_SETS'] ?? [];
+// foreach ($iniSets as $key => $value) {
+//     // Hard error on invalid configured $c['INI_SETS'] data
+//     if (!is_string($key) || empty($key) || !is_scalar($value)) {
+//         $err = 'Tell The Developer: Invalid Data Provided in $c[\'INI_SETS\'] Global Configuration Array. The Data must be an Associative Array with Non-Empty String Keys and Non-Empty Values that are either Strings, Numbers or Booleans. Thus, it is likely that the Developer have used a non-string for $key or a non-scalar/empty value for $value!';
+//         funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+//     }
+//     ini_set($key, $value);
+// }
 
-$iniSets = $c['INI_SETS'] ?? [];
-foreach ($iniSets as $key => $value) {
-    // Hard error on invalid configured $c['INI_SETS'] data
-    if (!is_string($key) || empty($key) || !is_scalar($value)) {
-        $err = 'Tell The Developer: Invalid Data Provided in $c[\'INI_SETS\'] Global Configuration Array. The Data must be an Associative Array with Non-Empty String Keys and Non-Empty Values that are either Strings, Numbers or Booleans. Thus, it is likely that the Developer have used a non-string for $key or a non-scalar/empty value for $value!';
-        funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+ini_set('error_reporting', 1);
+$FUNKPHP = require_once __DIR__ . '/config/app.php';
+if (is_object($FUNKPHP) && $FUNKPHP instanceof FunkPHP) {
+    $reflectFunk = new ReflectionObject($FUNKPHP);
+    $cProperty   = $reflectFunk->getProperty('c');
+    $cProperty->setAccessible(true);
+    $cInstance   = $cProperty->getValue($FUNKPHP);
+    $reflectC    = new ReflectionObject($cInstance);
+    $getProp = function (string $propName) use ($reflectC, $cInstance) {
+        if (!$reflectC->hasProperty($propName)) {
+            return null;
+        }
+        $prop = $reflectC->getProperty($propName);
+        $prop->setAccessible(true);
+        return $prop->getValue($cInstance);
+    };
+    $debug    = $getProp('debug') ?? [];
+    $errors   = $getProp('errors') ?? [];
+    $warnings = $getProp('WARNINGS') ?? [];
+    $fluent   = $getProp('FunkPHPFluentAPI') ?? [];
+    $errCount  = count($errors);
+    $warnCount = count($warnings);
+    $isDebugOn          = $debug['ON_OR_OFF'] ?? false;
+    $alwaysShow         = $debug['ALWAYS_SHOW'] ?? true;
+    $showValid          = $debug['SHOW_VALID_BATCHES'] ?? false;
+    $showInvalid        = $debug['SHOW_INVALID_BATCHES'] ?? false;
+    $showCached         = $debug['SHOW_CACHED'] ?? false;
+    $showCompiled       = $debug['SHOW_COMPILED'] ?? false;
+    $showAll            = $debug['SHOW_ALL'] ?? false;
+    $hasErrorsToReport = ($errCount > 0);
+    $shouldTriggerDump = $hasErrorsToReport || ($isDebugOn && $alwaysShow);
+    if ($shouldTriggerDump) {
+        $toDump = [];
+        $toDump['API'] = $fluent;
+        if ($errCount > 0) {
+            $toDump['ERRORS'] = $errors;
+        }
+        if ($warnCount > 0) {
+            $toDump['WARNINGS'] = $warnings;
+        }
+        if ($showAll || $showValid) {
+            $toDump['VALID_BATCHES'] = $getProp('validBatches') ?? [];
+        }
+        if ($showAll || $showInvalid) {
+            $toDump['INVALID_BATCHES'] = $getProp('invalidBatches') ?? [];
+        }
+        if ($showAll || $showCached) {
+            $toDump['CACHED'] = $getProp('cached') ?? [];
+        }
+        if ($showAll || $showCompiled) {
+            $toDump['COMPILED'] = $getProp('compiled') ?? [];
+        }
+        if ($showAll) {
+            $toDump['COMPILE_FLAGS'] = $getProp('compileFlags') ?? [];
+        }
+        if ($errCount > 0) {
+            $title = "FunkPHP Configuration Debug ($errCount Error" . ($errCount === 1 ? '' : 's') . ")";
+        } else {
+            $title = "FunkPHP Configuration Debug";
+        }
+        dd($toDump, $title, false);
     }
-    ini_set($key, $value);
+} else {
+    dd([
+        'Internal FunkPHP Error' => 'Expected to find `FunkPHP Class` in `/src/funkphp/config/app.php` but instead found Data Type: `' . (is_object($FUNKPHP) ? get_class($FUNKPHP) : gettype($FUNKPHP)) . '`',
+        'Step-by-Step Fix' => 'The return Value in `/src/funkphp/config/app.php` must be the Object Instance of `FunkPHP` (defined in `/src/funkphp/core/functions.php`) that is returned at the end of the File. `DO NOT` modify the `return $FUNK; statement` (unless: you just `return the entire Object in one long method-chaining`) at the end of the `app.php` File.'
+    ], 'See Internal FunkPHP Error');
 }
-
-require_once __DIR__ . '/config/app.php'; // User-defined functions
-
 exit;
 
 
-$c['<ENTRY>'] = require_once __DIR__ . '/core/pipeline_request.php';
+//$c['<ENTRY>'] = require_once __DIR__ . '/core/pipeline_request.php';
 // Use either Custom Exception Handler by Developer OR Default one!
 // Developer is advised to use `funk_use_error_throw` to intentionally
 // throw exceptions that are caught the Developer then catches later!

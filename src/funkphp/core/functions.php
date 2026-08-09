@@ -2039,12 +2039,13 @@ function funk_db_conn(&$c, $dbKey)
 class C
 {
     // The actual written config line by line starting with FunkPHP()
-    public array $FunkPHPTextArray = ["FunkPHP()"];
+    public array $FunkPHPFluentAPI = ['1' => 'FunkPHP()'];
     // $errors contain all errors + categorized errors
     // $WARNINGS contain warnings meaning compiling/running will happen
     // but developer will be known about possible issues such as dangerous
     // function calls, early exists, evals(), and so on. But they are never stopped
     // unless configured so (if $this->NoWarningsAllowed is set to TRUE).
+
     private array $errors = [];
     private array $WARNINGS = [];
     private array $compileFlags = [];
@@ -2196,8 +2197,9 @@ class C
     // Default booleans for compile(), run()
     private bool $FunkPHPcompiled = false;
     private bool $FunkPHPbooted = false;
+    private array $debug = ['ON_OR_OFF' => false, 'SHOW_VALID_BATCHES' => false, 'SHOW_INVALID_BATCHES' => false, 'SHOW_CACHED' => false, 'SHOW_COMPILED' => false, 'SHOW_ALL' => false,];
 
-    // Helper function to build the $FunkPHPTextArray
+    // Helper function to build the $FunkPHPFluentAPI
     // using var_export($var,true). It throws away last optional values like [] & null
     private function exportShortSyntax(mixed $var): string
     {
@@ -2233,10 +2235,8 @@ class C
         }
         return var_export($var, true);
     }
-
-    private function appendFunkPHPTextArray(string $methodName, mixed ...$vars): string
+    private function appendFunkPHPFluentAPI(string $methodName, mixed ...$vars): string
     {
-
         // Pop trailing optional empty arrays/nulls from arguments
         // as they are usually optional default values in most FNs
         while (!empty($vars)) {
@@ -2251,10 +2251,6 @@ class C
             return $this->exportShortSyntax($var);
         }, $vars);
         return '->' . $methodName . '(' . implode(', ', $exported) . ')';
-    }
-    private function getLastFunkPHPTextArray(): string
-    {
-        return ($this->FunkPHPTextArray[count($this->FunkPHPTextArray) - 1]);
     }
     // Helper function to auto-quote keywords if developer passed
     // unquoted e.g. 'self' -> "'self'" when configuring CSP!
@@ -3634,10 +3630,10 @@ class C
         return $json;
     }
     // Set context to not having to repeat so much for each batchFUNCTION
-    // It also first appends to the FunkPHPTextArray
+    // It also first appends to the FunkPHPFluentAPI
     private function setCtx(string $batchFN, string $under, mixed ...$vals)
     {
-        $this->FunkPHPTextArray[] = $this->appendFunkPHPTextArray($batchFN, ...$vals);
+        $this->FunkPHPFluentAPI[count($this->FunkPHPFluentAPI) + 1] = $this->appendFunkPHPFluentAPI($batchFN, ...$vals);
         $exportedVals = array_map(fn($v) => $this->exportShortSyntax($v), $vals);
         $argString = implode(', ', $exportedVals);
         return [
@@ -3761,7 +3757,7 @@ class C
      * Choose Error Type based on scope (global, method, route) and optional method and route when applicable.
      *
      * @param string $errMsg
-     * @param 'Route-pipeCompiledQuery'|'Route-pipeCompiledSQL'|'Route-pipeCompiledValidation'|'Global-setCompileFlag'|'Global-setGroupPipeUserdefined'|'Global-setGroupPipeRequest'|'Global-setGroupPipePostResponse'|'Global-setGroupPipeRoute'|'Global-setGroupPipeMiddlewares'|'Global-setINI_SET'|'Global-setNonces'|'Global-setCSP'|'Global-setSRIInternal'|'Global-setSRIExternal'|'Global-setNoRouteMatchPage'|'Global-setNoRouteMatchJSON'|'Global-setNoRouteMatchText'|'Global-setNoRouteMatchCallback'|'Global-setDefaultRegisteredShutdownHandler'|'Global-setDefaultExceptionHandler'|'Global-setDefaultErrorHandler'|'Global-setDefaultURI_NormalizerHandler'|'Global-setDefaultKernelHandler'|'Global-setBaseURLLocal'|'Global-setBaseURLOnline'|'Global-setBaseURLHost'|'Global-setBaseURLUri'|'Global-setSessionDriver'|'Global-setSessionCookieOptions'|'Global-setSessionCookieName'|'Global-setSessionCookieLifetime'|'Global-setSessionCookiePath'|'Global-setSessionCookieDomain'|'Global-setSessionCookieSecure'|'Global-setSessionCookieHTTPOnly'|'Global-setSessionCookieSameSite'|'Global-setUseFunkPHPOnline'|'Global-setUseHTTPS'|'Global-setUseVendor'|'Global-setParamRule'|'Global-pipeHeader'|'Global-removeHeader'|'Global-pipeMiddleware'|'Global-pipeRequestFunction'|'Global-pipePostResponseFunction'|'Method-setNoRouteMatch'|'Method-setNoRouteMatchPage'|'Method-setNoRouteMatchJson'|'Method-setNoRouteMatchText'|'Method-setNoRouteMatchCallback'|'Method-setNonces'|'Method-setCSP'|'Method-setRateLimiting'|'Method-pipeMiddleware'|'Method-pipeHeader'|'Method-removeHeader'|'Method-setParamRule'|'Method-route'|'Route-setAlias'|'Route-setRateLimiting'|'Route-setCache'|'Route-setNonces'|'Route-pipeMiddleware'|'Route-pipeFunction'|'Route-pipeResponse'|'Route-pipeSQL'|'Route-pipeQuery'|'Route-pipeValidation'|'Route-setExcludeMiddlewares'|'Route-setExcludeHeaders'|'Route-setParamRule'|'Route-setCSP'|'Route-pipeHeader'|'Route-removeHeader'|'Route-route' $errType
+     * @param 'Global-setDebug'|'Route-pipeCompiledQuery'|'Route-pipeCompiledSQL'|'Route-pipeCompiledValidation'|'Global-setCompileFlag'|'Global-setGroupPipeUserdefined'|'Global-setGroupPipeRequest'|'Global-setGroupPipePostResponse'|'Global-setGroupPipeRoute'|'Global-setGroupPipeMiddlewares'|'Global-setINI_SET'|'Global-setNonces'|'Global-setCSP'|'Global-setSRIInternal'|'Global-setSRIExternal'|'Global-setNoRouteMatchPage'|'Global-setNoRouteMatchJSON'|'Global-setNoRouteMatchText'|'Global-setNoRouteMatchCallback'|'Global-setDefaultRegisteredShutdownHandler'|'Global-setDefaultExceptionHandler'|'Global-setDefaultErrorHandler'|'Global-setDefaultURI_NormalizerHandler'|'Global-setDefaultKernelHandler'|'Global-setBaseURLLocal'|'Global-setBaseURLOnline'|'Global-setBaseURLHost'|'Global-setBaseURLUri'|'Global-setSessionDriver'|'Global-setSessionCookieOptions'|'Global-setSessionCookieName'|'Global-setSessionCookieLifetime'|'Global-setSessionCookiePath'|'Global-setSessionCookieDomain'|'Global-setSessionCookieSecure'|'Global-setSessionCookieHTTPOnly'|'Global-setSessionCookieSameSite'|'Global-setUseFunkPHPOnline'|'Global-setUseHTTPS'|'Global-setUseVendor'|'Global-setParamRule'|'Global-pipeHeader'|'Global-removeHeader'|'Global-pipeMiddleware'|'Global-pipeRequestFunction'|'Global-pipePostResponseFunction'|'Method-setNoRouteMatch'|'Method-setNoRouteMatchPage'|'Method-setNoRouteMatchJson'|'Method-setNoRouteMatchText'|'Method-setNoRouteMatchCallback'|'Method-setNonces'|'Method-setCSP'|'Method-setRateLimiting'|'Method-pipeMiddleware'|'Method-pipeHeader'|'Method-removeHeader'|'Method-setParamRule'|'Method-route'|'Route-setAlias'|'Route-setRateLimiting'|'Route-setCache'|'Route-setNonces'|'Route-pipeMiddleware'|'Route-pipeFunction'|'Route-pipeResponse'|'Route-pipeSQL'|'Route-pipeQuery'|'Route-pipeValidation'|'Route-setExcludeMiddlewares'|'Route-setExcludeHeaders'|'Route-setParamRule'|'Route-setCSP'|'Route-pipeHeader'|'Route-removeHeader'|'Route-route' $errType
      * @param 'GET'|'POST'|'PUT'|'PATCH'|'DELETE'|'HEAD'|null $method
      * @param string|null $route
      *
@@ -3769,6 +3765,7 @@ class C
     private function setErr(string $errMsg, string $errType = '', ?string $method = null, ?string $route = null)
     {
         $validErrTypes = [
+            'Global-setDebug',
             'Global-setGroupPipeUserdefined',
             'Global-setGroupPipeRequest',
             'Global-setGroupPipePostResponse',
@@ -3847,8 +3844,9 @@ class C
         ];
         $validMethodTypes = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD'];
         // No error (or valid) type
+        $nextErrIndex = (count($this->errors) + 1);
         if (!is_string($errType) || trim($errType) === '' || !in_array($errType, $validErrTypes)) {
-            $this->errors[] = ['type' => 'internal', 'err' => 'Invalid \$type (Error Type) Value in `class C->setErr()` when setting Error:\'`' . $errMsg . '`\' Report this found bug/issue to the Official FunkPHP Repositories. Choose a `Valid Error Type` from: ' . $this->joinArray($validErrTypes), 'method' => $method, 'route' => $route];
+            $this->errors[$nextErrIndex] = ['type' => 'internal', 'err' => 'Invalid \$type (Error Type) Value in `class C->setErr()` when setting Error:\'`' . $errMsg . '`\' Report this found bug/issue to the Official FunkPHP Repositories. Choose a `Valid Error Type` from: ' . $this->joinArray($validErrTypes), 'method' => $method, 'route' => $route];
             return;
         }
         // No method (or valid) provided for Method- & Route-related errors (since Route always needs Method)
@@ -3865,10 +3863,11 @@ class C
             && (!is_string($route)
                 || trim($route) === '')
         ) {
-            $this->errors[] = ['type' => 'internal', 'err' => 'Invalid \$route Value in `class C->setErr()`: must be provided when Error Type starts with `Route-`. Report this found bug/issue to the Official FunkPHP Repositories.', 'method' => $method, 'route' => $route];
+            $this->errors[$nextErrIndex] = ['type' => 'internal', 'err' => 'Invalid \$route Value in `class C->setErr()`: must be provided when Error Type starts with `Route-`. Report this found bug/issue to the Official FunkPHP Repositories.', 'method' => $method, 'route' => $route];
             return;
         }
-        $this->errors[] = ['err' => $errMsg, 'type' => $errType, 'method' => $method, 'route' => $route];
+        $this->FunkPHPFluentAPI[count($this->FunkPHPFluentAPI)] .= ' - (`See Error #' . $nextErrIndex . '`)';
+        $this->errors[$nextErrIndex] = ['err' => $errMsg, 'type' => $errType, 'method' => $method, 'route' => $route];
     }
     // Join array with wrapped `` and comma
     private function joinArray(array $array = [])
@@ -3880,14 +3879,14 @@ class C
     // and can jump to->pipesRequest(),->pipesPostResponse() or ->routes()
     public function CONFIG(): FunkConfig
     {
-        $this->FunkPHPTextArray[] = "->CONFIG()";
+        $this->FunkPHPFluentAPI[] = "->CONFIG()";
         return $this->configScope ??= new FunkConfig($this);
     }
     // ->routes() | gives access to:->GET(),->POST(),->PATCH(),->PUT(),->DELETE()
     // and can jump back to ->config()
     public function ROUTES(): FunkRoutes
     {
-        $this->FunkPHPTextArray[] = "->ROUTES()";
+        $this->FunkPHPFluentAPI[] = "->ROUTES()";
         return $this->routesScope ??= new FunkRoutes($this);
     }
     // batchFunctions that attempt batching something in $batches that would be validated later unless
@@ -3909,7 +3908,7 @@ class C
     }
 
     /* !!! GLOBAL/CONFIG() BATCHES FUNCTIONS !!! */
-    /* set<BOOLEAN_VARIANTS_OPTIONS-FunkPHPOnline,UseHTTPS,UseVendor> Global */
+    /* setCompileFlag & setDebug */
     private function batchSetCompileFlag(string $flag)
     {
         [$ctx, $ctxVals] = $this->setCtx('setCompileFlag', "CONFIG()", $flag);
@@ -3936,6 +3935,44 @@ class C
         $this->compileFlags[$flag] = true;
     }
 
+    /**
+     * FunkPHP Debug Mode (default is to enable it and always show it, even if zero errors)
+     *
+     * Debug Internal FunkPHP Configuration State during development|testing. This feature is automatically
+     * disabled during compilation. Debug to show Fluent API trail, Errors, Warnings, and in-built variables:
+     * `$validBatches`, `$invalidBatches`, `$cached`, and `$compiled`.
+     *
+     * @param bool $ON_OR_OFF            Enable|disable debugging globally (default: true).
+     * @param bool $ALWAYS_SHOW          Enable|disable show debug even if zero errors (default: true).
+     * @param bool $SHOW_ALL             Dump all diagnostic targets (`validBatches`, `invalidBatches`, `cached`, `compiled`).
+     * @param bool $SHOW_VALID_BATCHES   Dump `$validBatches` (staged routes, methods, and config options).
+     * @param bool $SHOW_INVALID_BATCHES Dump `$invalidBatches` (rejected configuration calls).
+     * @param bool $SHOW_CACHED          Dump `$cached` (parsed files, metadata, placeholders, etc.,).
+     * @param bool $SHOW_COMPILED        Dump the final compiled execution matrix generated by `compile()`.
+     */
+    private function batchSetDebug(bool $ON_OR_OFF = true, bool $ALWAYS_SHOW = true, bool $SHOW_ALL = false, bool $SHOW_VALID_BATCHES = false, bool $SHOW_INVALID_BATCHES = false, bool $SHOW_CACHED = false, bool $SHOW_COMPILED = false)
+    {
+        [$ctx, $ctxVals] = $this->setCtx('setDebug', "CONFIG()->setDebug", $ON_OR_OFF, $ALWAYS_SHOW, $SHOW_ALL, $SHOW_VALID_BATCHES, $SHOW_INVALID_BATCHES, $SHOW_CACHED, $SHOW_COMPILED);
+        if (isset($this->invalidBatches['config']['DEBUG'])) {
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setDebug');
+            return;
+        }
+        if (isset($this->validBatches['config']['DEBUG'])) {
+            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setDebug');
+            return;
+        }
+        $this->debug = [
+            'ON_OR_OFF'            => $ON_OR_OFF,
+            'ALWAYS_SHOW' => $ALWAYS_SHOW,
+            'SHOW_VALID_BATCHES'   => $SHOW_ALL || $SHOW_VALID_BATCHES,
+            'SHOW_INVALID_BATCHES' => $SHOW_ALL || $SHOW_INVALID_BATCHES,
+            'SHOW_CACHED'          => $SHOW_ALL || $SHOW_CACHED,
+            'SHOW_COMPILED'        => $SHOW_ALL || $SHOW_COMPILED,
+            'SHOW_ALL'             => $SHOW_ALL
+        ];
+    }
+
+    /* set<BOOLEAN_VARIANTS_OPTIONS-FunkPHPOnline,UseHTTPS,UseVendor> Global */
     private function batchSetFunkPHPOnlineGlobal(bool $trueOrFalse)
     {
         [$ctx, $ctxVals] = $this->setCtx('setUseFunkPHPOnline', "CONFIG()", $trueOrFalse);
@@ -6720,14 +6757,32 @@ class FunkPHP
 class FunkConfig
 {
     public function __construct(private C $c) {}
-
-
     /* setCompileFlag - to set specific flags for compile() when it runs/executes */
     // "setAllowNoWarnings" is set here as valid flag!!! - remove that batchSetAllowNoWarnings FN !!!
     public function setCompileFlag(string $flag): self
     {
         $flag = strtoupper(trim($flag));
         $this->c->batch('batchSetCompileFlag', $flag);
+        return $this;
+    }
+    /**
+     * FunkPHP Debug Mode (default is to enable it and always show it, even if zero errors)
+     *
+     * Debug Internal FunkPHP Configuration State during development|testing. This feature is automatically
+     * disabled during compilation. Debug to show Fluent API trail, Errors, Warnings, and in-built variables:
+     * `$validBatches`, `$invalidBatches`, `$cached`, and `$compiled`.
+     *
+     * @param bool $ON_OR_OFF            Enable|disable debugging globally (default: true).
+     * @param bool $ALWAYS_SHOW          Enable|disable show debug even if zero errors (default: true).
+     * @param bool $SHOW_ALL             Dump all diagnostic targets (`validBatches`, `invalidBatches`, `cached`, `compiled`).
+     * @param bool $SHOW_VALID_BATCHES   Dump `$validBatches` (staged routes, methods, and config options).
+     * @param bool $SHOW_INVALID_BATCHES Dump `$invalidBatches` (rejected configuration calls).
+     * @param bool $SHOW_CACHED          Dump `$cached` (parsed files, metadata, placeholders, etc.,).
+     * @param bool $SHOW_COMPILED        Dump the final compiled execution matrix generated by `compile()`.
+     */
+    public function setDebug(bool $ON_OR_OFF = true, bool $ALWAYS_SHOW = true, bool $SHOW_ALL = false, bool $SHOW_VALID_BATCHES = false, bool $SHOW_INVALID_BATCHES = false, bool $SHOW_CACHED = false, bool $SHOW_COMPILED = false): self
+    {
+        $this->c->batch('batchSetDebug', $ON_OR_OFF, $ALWAYS_SHOW, $SHOW_ALL, $SHOW_VALID_BATCHES, $SHOW_INVALID_BATCHES, $SHOW_CACHED, $SHOW_COMPILED);
         return $this;
     }
 
@@ -7107,37 +7162,37 @@ class FunkRoutes
     public function __construct(private C $c) {}
     public function HEAD(): FunkMethod
     {
-        $this->c->FunkPHPTextArray[] = "->HEAD()";
+        $this->c->FunkPHPFluentAPI[] = "->HEAD()";
         return $this->methodInstances['HEAD'] ??= new FunkMethod($this->c, $this, 'HEAD');
     }
     public function GET(): FunkMethod
     {
-        $this->c->FunkPHPTextArray[] = "->GET()";
+        $this->c->FunkPHPFluentAPI[] = "->GET()";
         return $this->methodInstances['GET'] ??= new FunkMethod($this->c, $this, 'GET');
     }
     public function POST(): FunkMethod
     {
-        $this->c->FunkPHPTextArray[] = "->POST()";
+        $this->c->FunkPHPFluentAPI[] = "->POST()";
         return $this->methodInstances['POST'] ??= new FunkMethod($this->c, $this, 'POST');
     }
     public function PUT(): FunkMethod
     {
-        $this->c->FunkPHPTextArray[] = "->PUT()";
+        $this->c->FunkPHPFluentAPI[] = "->PUT()";
         return $this->methodInstances['PUT'] ??= new FunkMethod($this->c, $this, 'PUT');
     }
     public function PATCH(): FunkMethod
     {
-        $this->c->FunkPHPTextArray[] = "->PATCH()";
+        $this->c->FunkPHPFluentAPI[] = "->PATCH()";
         return $this->methodInstances['PATCH'] ??= new FunkMethod($this->c, $this, 'PATCH');
     }
     public function DELETE(): FunkMethod
     {
-        $this->c->FunkPHPTextArray[] = "->DELETE()";
+        $this->c->FunkPHPFluentAPI[] = "->DELETE()";
         return $this->methodInstances['DELETE'] ??= new FunkMethod($this->c, $this, 'DELETE');
     }
     public function CONFIG(): FunkConfig
     {
-        $this->c->FunkPHPTextArray[] = "->CONFIG()";
+        $this->c->FunkPHPFluentAPI[] = "->CONFIG()";
         return $this->c->config();
     }
 }
