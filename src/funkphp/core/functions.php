@@ -2128,25 +2128,25 @@ class C
             "FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION" => null,
             "FUNKPHP_CUSTOM_ERROR_HANDLER" => null,
             "FUNKPHP_CUSTOM_URI_NORMALIZER" => null,
-            "FUNKPHP_CUSTOM_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION" => null,
+            "FUNKPHP_CUSTOM_HTTPS_KERNEL" => null,
             'INI_SETS' => [
-                'session.cache_limiter' => 'public',
-                'session.use_strict_mode' => 8,
-                'session.use_only_cookies' => 1,
-                'session.cache_expire' => 30,
-                'session.cookie_lifetime' => 0,
-                'session.name' => 'fphp_id',
-                'session.sid_length' => 192,
-                'session.sid_bits_per_character' => 6,
-                'display_errors'          => 1,
-                'display_startup_errors'  => 1,
-                'error_reporting'         => 1,
+                // 'session.cache_limiter' => 'public',
+                // 'session.use_strict_mode' => 8,
+                // 'session.use_only_cookies' => 1,
+                // 'session.cache_expire' => 30,
+                // 'session.cookie_lifetime' => 0,
+                // 'session.name' => 'fphp_id',
+                // 'session.sid_length' => 192,
+                // 'session.sid_bits_per_character' => 6,
+                // 'display_errors'          => 1,
+                // 'display_startup_errors'  => 1,
+                // 'error_reporting'         => 1,
             ],
             'BASEURLS' => [
-                'LOCAL' => "http://webdev.local:81/funkphp",
-                'ONLINE' => "https://www.funkphp.com",
-                'BASEURL' =>  'localhost',
-                'BASEURL_URI' => '/funkphp/src/public_html/',
+                'LOCAL' => null,
+                'ONLINE' => null,
+                'BASEURL_URI' =>  null,
+                'HOST' => null,
             ],
             'SESSION' => [
                 'driver' => 'files',
@@ -2160,14 +2160,12 @@ class C
                     'SESSION_SAMESITE' => 'Lax',
                 ]
             ],
-            '<ENTRY>' => [],
             'pipeline' => [
                 'request' => [],
                 'post_response' => []
             ],
             'ROUTES' => [],
             'shared' => [],
-            'custom' => null,
             'classes' => ['vendor' => [], 'user' => []],
             'credentials' => null,
             'connections' => [],
@@ -2185,13 +2183,9 @@ class C
                 'segments' => null,
                 'auth' => null,
                 'matched_config' => null,
-                'matched_pipeline' => [],
+                'matched_pipes' => [],
                 'matched_middlewares' => null,
                 'skip_post_response' => false,
-                'current_pipeline' => null,
-                'next_pipeline' => null,
-                'current_middleware' => null,
-                'next_middleware' => null,
                 'keep_running_exit' => null,
                 'code' => 418,
                 'log' => [],
@@ -4544,9 +4538,16 @@ class C
             'SESSION_SAMESITE',
         ];
         if (empty($SessionCookieOptions) || array_is_list($SessionCookieOptions)) {
-            $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . " must be a Non-Empty Associative Array with these Session Cookie Options:`" . implode('`, `', $allowedKeys) . "`.", 'Global-setSessionCookieOptions');
+            $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . " must be a Non-Empty Associative Array with these Session Cookie Options: `" . implode('`, `', $allowedKeys) . "`.", 'Global-setSessionCookieOptions');
             $this->invalidBatches['config']['SESSION']['COOKIES']['AS_OPTIONS'] = $SessionCookieOptions;
             return;
+        }
+        foreach ($allowedKeys as $k) {
+            if (!isset($SessionCookieOptions[$k])) {
+                $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . " must be a Non-Empty Associative Array with these Session Cookie Options: `" . implode('`, `', $allowedKeys) . "`. Missing Key: `'" . "{$k}'`", 'Global-setSessionCookieOptions');
+                $this->invalidBatches['config']['SESSION']['COOKIES']['AS_OPTIONS'] = $SessionCookieOptions;
+                return;
+            }
         }
         // Validate Session Cookie Options are just Assoc_key => Scalar_Value
         foreach ($SessionCookieOptions as $key => $val) {
@@ -6829,6 +6830,10 @@ class C
         if (isset($this->validBatches['config']['BASEURL_URI'])) {
             $this->compiled['c']['BASEURLS']['BASEURL_URI'] = $this->validBatches['config']['BASEURL_URI'];
         }
+        // 1 ARRAY (ini_set(s)
+        if (isset($this->validBatches['config']['setINI_SET'])) {
+            $this->compiled['c']['INI_SETS'] = $this->validBatches['config']['setINI_SET'];
+        }
 
         // STEP 3: Check Global Handlers set and then all setGroup<VARIANTS> since they can refer to
         // either non-existing function+files AND/OR to set Global Handlers which would conflict.
@@ -6866,21 +6871,35 @@ class C
                     }
                 }
                 if ($validGroup) {
-                    $GLOBAL_GROUPED['USER_DEFINED']["group:$GROUPED_UD_NAME"] = true;
+                    $GLOBAL_GROUPED['USER_DEFINED']["group:$GROUPED_UD_NAME"] = $GROUPED_UD_VALS;
                 }
             }
         }
         if (isset($this->validBatches['config']['GROUPED_PIPE_MIDDLEWARES'])) {
-            foreach ($this->validBatches['config']['GROUPED_PIPE_MIDDLEWARES'] as $GROUPED_MWS) {
+            foreach ($this->validBatches['config']['GROUPED_PIPE_MIDDLEWARES'] as $GROUPED => $_) {
+                $GLOBAL_GROUPED['MIDDLEWARES']["group:$GROUPED"] = $_;
             }
         }
         if (isset($this->validBatches['config']['GROUPED_PIPE_REQUEST'])) {
+            foreach ($this->validBatches['config']['GROUPED_PIPE_REQUEST']  as $GROUPED => $_) {
+                $GLOBAL_GROUPED['REQUEST']["group:$GROUPED"] = $_;
+            }
         }
         if (isset($this->validBatches['config']['GROUPED_PIPE_ROUTES'])) {
+            foreach ($this->validBatches['config']['GROUPED_PIPE_ROUTES'] as $GROUPED => $_) {
+                $GLOBAL_GROUPED['ROUTES_FILE_FUNCTIONS']["group:$GROUPED"] = $_;
+            }
         }
         if (isset($this->validBatches['config']['GROUPED_PIPE_POST_RESPONSE'])) {
+            foreach ($this->validBatches['config']['GROUPED_PIPE_POST_RESPONSE'] as $GROUPED => $_) {
+                $GLOBAL_GROUPED['POST_RESPONSE']["group:$GROUPED"] = $_;
+            }
         }
-        dd(['COMPILE_ERRORS' => $compileErrors, 'GLOBAL_HANDLERS' => $GLOBAL_HANDLERS, 'GLOBAL_GROUPS' => $GLOBAL_GROUPED], "FINAL COMPILE OUTPUT - DEBUG", true);
+
+        // STEP 4: Check SESSION (driver + COOKIES)
+        if (isset($this->validBatches['config']['SESSION']['driver'])) {
+        }
+        dd(['API' => $this->FunkPHPFluentAPI, 'VALID' => $this->validBatches, 'COMPILE_ERRORS' => $compileErrors, 'GLOBAL_HANDLERS' => $GLOBAL_HANDLERS, 'GLOBAL_GROUPS' => $GLOBAL_GROUPED, 'compiled_c' => $this->compiled['c']], "FINAL COMPILE OUTPUT - DEBUG", true);
     }
     private function run()
     {

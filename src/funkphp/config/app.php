@@ -3,9 +3,7 @@
 $FUNK = FunkPHP();
 $FUNK->CONFIG()
     ->setDebug(true, false, false, true, false, false, true)
-    ->setUseFunkPHPOnline(true)
     ->setUseVendor(true)
-    ->setUseHTTPS(true)
     ->setCompileFlag('NO_WARNINGS_ALLOWED')
     ->setBaseURLHost("wkf")
     ->setBaseURLLocal("http://wkf.com")
@@ -20,8 +18,8 @@ $FUNK->CONFIG()
     ->setDefaultErrorHandler("testar2")
     ->setDefaultExceptionHandler("testar3")
     ->setDefaultRegisteredShutdownHandler("testar4")
-    ->setDefaultRegisteredShutdownHandler("testar6")
     ->setDefaultKernelHandler("testar5")
+    ->setSessionDriver('redis')
     ->setINI_SET([
         'session.cache_limiter' => 'public',
         'session.use_strict_mode' => 8,
@@ -35,6 +33,16 @@ $FUNK->CONFIG()
         'display_startup_errors' => 1,
         'error_reporting' => 1,
     ])
+    ->setSessionCookieOptions([
+        'SESSION_SECURE' => true,
+        'SESSION_HTTPONLY' => true,
+        'SESSION_DOMAIN' => 'funkphp',
+        'SESSION_PATH' => '/',
+        'SESSION_LIFETIME' => 28880,
+        'SESSION_NAME' => 'fphp_test',
+        'SESSION_SAMESITE' => 'Lax'
+    ])
+    ->setSessionCookieName("new")
     ->setParamRule("id", "/[\d]+/", "0");
 
 $FUNK->ROUTES()->GET()->ROUTE("/:id")->pipeFunction("group:test_routes");

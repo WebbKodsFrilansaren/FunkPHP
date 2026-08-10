@@ -90,9 +90,11 @@ if (is_object($FUNKPHP) && $FUNKPHP instanceof FunkPHP) {
 
     // Attempt running Class C->compile() which meaning it will attempt
     // compiling first and then run right after it if no errors occurs.
-    $compileAndRun = new ReflectionMethod($cInstance, 'compile');
-    $compileAndRun->setAccessible(true);
-    $compileAndRun->invoke($cInstance);
+    if (count($errors) === 0) {
+        $compileAndRun = new ReflectionMethod($cInstance, 'compile');
+        $compileAndRun->setAccessible(true);
+        $compileAndRun->invoke($cInstance);
+    }
 }
 // When it is NOT FunkPHP Object as defined in the `/src/funkphp/core/functions.php`
 else {

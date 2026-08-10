@@ -60,13 +60,11 @@ return array(
       'SESSION_SAMESITE' => 'Lax',
     ),
   ),
-  '<ENTRY>' =>
   array(),
   'ROUTES' =>
   array(),
   'shared' =>
   array(),
-  'custom' => NULL,
   'classes' =>
   array(
     'vendor' =>
