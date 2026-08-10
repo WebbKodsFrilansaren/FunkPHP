@@ -1,0 +1,2 @@
+<?php
+$APP->ROUTES()->DELETE();

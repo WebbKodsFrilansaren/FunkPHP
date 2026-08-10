@@ -30,6 +30,14 @@ define('NAMESPACE_DATA_VALIDATION', 'funkphp\\data\\validation\\');
 // Constants for Localhost vs Online Usage
 define('FUNKPHP_USE_VENDOR', true); // Change to "false" if you intend to not use any Composer packages and want to remove the Composer autoloader from "FunkPHP.php" for better performance!
 define('ROOT_FOLDER', dirname(__DIR__, 1)); // src/funkphp/
+define('ROOT_APP', ROOT_FOLDER . '/app'); // src/funkphp/app
+define('ROOT_CORE_APP', ROOT_FOLDER . '/core/app.php'); // src/funkphp/config/app.php
+define('ROOT_APP_CONFIG', ROOT_FOLDER . '/app/CONFIG.php'); // src/funkphp/app/CONFIG.php
+define('ROOT_APP_GET', ROOT_FOLDER . '/app/GET.php'); // src/funkphp/app/GET.php
+define('ROOT_APP_POST', ROOT_FOLDER . '/app/POST.php'); // src/funkphp/app/POST.php
+define('ROOT_APP_PUT', ROOT_FOLDER . '/app/PUT.php'); // src/funkphp/app/PUT.php
+define('ROOT_APP_PATCH', ROOT_FOLDER . '/app/PATCH.php'); // src/funkphp/app/PATCH.php
+define('ROOT_APP_DELETE', ROOT_FOLDER . '/app/DELETE.php'); // src/funkphp/app/DELETE.php
 define('ROOT_CORE', ROOT_FOLDER . '/core'); // src/funkphp/core
 define('ROOT_CONFIG', ROOT_FOLDER . '/config'); // src/funkphp/config
 define('ROOT_MIDDLEWARES', ROOT_FOLDER . '/pipeline/middlewares'); // src/funkphp/FunkPHP
@@ -6980,7 +6988,33 @@ class C
                 $this->compiled['c']['SESSION']['COOKIES']['SESSION_HTTPONLY'] = $this->validBatches['config']['SESSION']['COOKIES']['SESSION_HTTPONLY'];
             }
         }
-        // STEP 5:
+        // STEP 5: Build pipes() for `request` & `post_response` and also check if request is empty
+        // 5.1 Request Pipes
+        if (!isset($this->validBatches['config']['request'])) {
+            if (!isset($this->validBatches['config']['DEFAULT_HTTPS_KERNEL'])) {
+                $this->compile_setWarn("No Request Pipes (via `->pipeRequestFunction() in ->CONFIG()` detected. If intended to use No Request Pipes, just ignore this warning. This means that only Global-based Middlewares, then Route-matching, then Method-based Middleware and finally Route-based Middleware and its remaining pipes will run.", $compileWarnings);
+            } else {
+                $this->compile_setWarn("No Request Pipes (via `->pipeRequestFunction() in ->CONFIG()` detected. If intended to use No Request Pipes, just ignore this warning. You have configured to use `User-defined Custom Default HTTPS Kernel Handler` meaning that after Successful Compilation it will have access to Trie-based Routes with Metadata and then it is `all up to that User-defined Function to handle everything` from Route-matching to executing each Route-associated Pipe Function(s).", $compileWarnings);
+            }
+        }
+        // request pipes exist
+        else {
+        }
+        // 5.2 Post-Response Pipes
+        if (!isset($this->validBatches['config']['post_response'])) {
+            if (!isset($this->validBatches['config']['DEFAULT_REGISTER_SHUTDOWN_HANDLER'])) {
+                $this->compile_setWarn("No Post-Response Pipes (via `->pipePostResponseFunction() in ->CONFIG()` detected. If intended to use No Post-Response Pipes, just ignore this warning. This means that after each HTTP(S) Request that completes (or via `exit()`) nothing else will happen as `Default Registered Shutdown Function` is to only run the Post-Response Pipe Functions.", $compileWarnings);
+            } else {
+                $this->compile_setWarn("No Post-Response Pipes (via `->pipePostResponseFunction() in ->CONFIG()` detected. If intended to use No Post-Response Pipes, just ignore this warning. This means that after each HTTP(S) Request that completes (or via `exit()`) the `User-defined Custom Default Registered Shutdown Functions` will run. This is would be the same as using same `User-defined Functions as Post-Response Pipe Functions` and remove all Default Registered Shutdown Functions. Either way works.", $compileWarnings);
+            }
+        }
+        // post_response pipes exist
+        else {
+            if (isset($this->validBatches['config']['DEFAULT_REGISTER_SHUTDOWN_HANDLER'])) {
+                $this->compile_setErr("Conflict between `User-defined Custom Default Registered Shutdown Handlers` (via `->CONFIG->setDefaultRegisteredShutdownHandler()`) and `->CONFIG()->pipePostResponseFunction()` as Post-Response Pipes run as part of the `In-built Default Registered Shutdown Handler` when no Custom Default one has been configured. Consider converting your Post-Response Pipes into User-defined Functions that you then register with `->setDefaultRegisteredShutdownHandler()` OR vice versa.", $compileErrors);
+            } else {
+            }
+        }
 
 
         $this->compile_setErr("", $compileErrors);

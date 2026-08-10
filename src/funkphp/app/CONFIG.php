@@ -1,7 +1,5 @@
 <?php
-
-$FUNK = FunkPHP();
-$FUNK->CONFIG()
+$APP->CONFIG()
     ->setDebug(true, false, false, true, false, false, true)
     ->setUseVendor(true)
     ->setCompileFlag('NO_WARNINGS_ALLOWED')
@@ -9,16 +7,18 @@ $FUNK->CONFIG()
     ->setBaseURLLocal("http://wkf.com")
     ->setBaseURLOnline("https://www.funkphp.com")
     ->setBaseURLUri("/funkphp")
+    // GROUPED Pipes
     ->setGroupPipeMiddlewares("test_mw", "auth", "auth2")
     ->setGroupPipePostResponse("test_post_response", "debug", "debug2")
     ->setGroupPipeRequest("test_request", "use_cors", "run_ini_sets")
     ->setGroupPipeRoute("test_routes", 'test.test', 'test.test2')
     ->setGroupPipeUserdefined('test_group', 'testar7', 'testar8')
+    // DEFAULT Global Handlers
     ->setDefaultURI_NormalizerHandler("testar1")
     ->setDefaultErrorHandler("testar2")
     ->setDefaultExceptionHandler("testar3")
-    ->setDefaultRegisteredShutdownHandler("testar4")
     ->setDefaultKernelHandler("testar5")
+    // ini_set()
     ->setINI_SET([
         'session.cache_limiter' => 'public',
         'session.use_strict_mode' => 8,
@@ -32,6 +32,7 @@ $FUNK->CONFIG()
         'display_startup_errors' => 1,
         'error_reporting' => 1,
     ])
+    // session_cookie_set()
     ->setSessionCookieOptions([
         'SESSION_DRIVER' => ' files',
         'SESSION_SECURE' => true,
@@ -42,18 +43,11 @@ $FUNK->CONFIG()
         'SESSION_NAME' => 'fphp_test',
         'SESSION_SAMESITE' => 'Lax'
     ])
-    ->setParamRule("id", "/[\d]+/", "0");
-
-$FUNK->ROUTES()->GET()->ROUTE("/:id")->pipeFunction("group:test_routes");
-
-return $FUNK;
-// 1. Inspect the FunkRoute instance ($test) to get the private $c property
-// $routeReflection = new ReflectionObject($test);
-// $cProperty = $routeReflection->getProperty('c'); // Name of the property holding C in FunkRoute
-// $cProperty->setAccessible(true);
-// $cInstance = $cProperty->getValue($test);
-
-// // 2. Reflect on the C instance to call its private `run()` method
-// $runMethod = new ReflectionMethod($cInstance, 'run');
-// $runMethod->setAccessible(true); // Needed for PHP < 8.1, good practice to keep
-// $runMethod->invoke($cInstance);  // Outputs: "TEST"
+    // GLOBAL PARAMS
+    ->setParamRule("id", "/[\d]+/", "0")
+    // GLOBAL REQUEST PIPES
+    ->pipeRequestFunction("use_cors")
+    ->pipeRequestFunction("group:test_request")
+    // GLOBAL POST_RESPONSE PIPES
+    ->pipePostResponseFunction("debug")
+    ->pipePostResponseFunction("group:test_post_responsea");
