@@ -4,7 +4,10 @@
 /** @var FunkPHP $APP */
 $APP->ROUTES()
     ->GET()
+    ->pipeHeader('content-type', 'application/json')
     ->setNoRouteMatchCallback("testar8")
     ->setParamRule("id", "/[\d]+/")
     ->ROUTE("/:id")
-    ->setParamRule("id", "/[\d]+/");
+    ->setParamRule("id", "/[\d]+/")
+    ->pipeHeader("content-type", 'text/html')
+    ->removeHeader("content-typeb");

@@ -20,11 +20,16 @@ $APP->CONFIG()
     ->setNoRouteMatchCallback("testar1")
     ->pipeHeader("Content-type", "application/json")
     ->pipeHeader("Content-typea", "text/html")
+    ->removeHeader("content-typeb")
+    ->setCSP('base-uri', 'none')
+    ->setNonces('test', 'test2')
     // DEFAULT Global Handlers
     ->setDefaultURI_NormalizerHandler("testar1")
     ->setDefaultErrorHandler("testar2")
     ->setDefaultExceptionHandler("testar3")
     ->setDefaultKernelHandler("testar5")
+    ->pipeMiddleware("auth")
+    ->pipeMiddleware("group:test_mw")
     // ini_set()
     ->setINI_SET([
         'session.cache_limiter' => 'public',
