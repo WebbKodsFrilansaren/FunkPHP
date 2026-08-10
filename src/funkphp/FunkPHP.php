@@ -34,11 +34,11 @@ if (is_object($FUNKPHP) && $FUNKPHP instanceof FunkPHP) {
     $errors   = $getProp('errors') ?? [];
     $warnings = $getProp('WARNINGS') ?? [];
     $fluent   = $getProp('FunkPHPFluentAPI') ?? [];
-    $fluent2   = $getProp('FunkPHPFluentAPI2') ?? [];
     $errCount  = $errors['ERRORS'];
     $warnCount = count($warnings);
     $isDebugOn          = $debug['ON_OR_OFF'] ?? false;
     $alwaysShow         = $debug['ALWAYS_SHOW'] ?? true;
+    $showMainConfig         = $debug['SHOW_MAIN_CONFIG'] ?? true;
     $showValid          = $debug['SHOW_VALID_BATCHES'] ?? false;
     $showInvalid        = $debug['SHOW_INVALID_BATCHES'] ?? false;
     $showCached         = $debug['SHOW_CACHED'] ?? false;
@@ -48,8 +48,10 @@ if (is_object($FUNKPHP) && $FUNKPHP instanceof FunkPHP) {
     $shouldTriggerDump = $hasErrorsToReport || ($isDebugOn && $alwaysShow);
     if ($shouldTriggerDump) {
         $toDump = [];
-        //$toDump['API'] = $fluent;
         $toDump['API'] = $fluent;
+        if (!$showMainConfig) {
+            $toDump['API']['CONFIG'] = '(' . (count($toDump['API']['CONFIG'])) . ' Configurations)';
+        }
         if ($errCount > 0) {
             $toDump['ERRORS'] = $errors;
         }

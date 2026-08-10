@@ -2,7 +2,7 @@
 
 /** @var FunkPHP $APP */
 $APP->CONFIG()
-    ->setDebug(true, false, false, true, false, false, true)
+    ->setDebug(true, true, false, false)
     ->setUseVendor(true)
     ->setCompileFlag('NO_WARNINGS_ALLOWED')
     ->setBaseURLHost("wkf")

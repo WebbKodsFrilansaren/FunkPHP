@@ -4,5 +4,6 @@
 /** @var FunkPHP $APP */
 $APP->ROUTES()
     ->GET()
+    ->setParamRule("id", "/[\d]+/")
     ->ROUTE("/:id")
     ->setParamRule("id", "/[\d]+/");
