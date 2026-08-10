@@ -1,4 +1,6 @@
 <?php
+
+/** @var FunkPHP $APP */
 $APP->CONFIG()
     ->setDebug(true, false, false, true, false, false, true)
     ->setUseVendor(true)

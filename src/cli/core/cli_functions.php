@@ -12876,33 +12876,33 @@ function cli_restore_default_folders_and_files()
             }
             // Recreate default Core App File `/src/funkphp/core/app.php`
             else if (str_contains($file, "app.php")) {
-                file_put_contents($file, "<?php\n// src/funkphp/core/app.php - FunkPHP | FunkCLI recreated it $date\n\n" . cli_get_prefix_code("do_not_modify_warning") . "\n\$APP = FunkPHP(); require_once ROOT_APP_CONFIG; \$routeFiles = [ ROOT_APP_GET,ROOT_APP_POST, ROOT_APP_PUT,ROOT_APP_PATCH,ROOT_APP_DELETE,]; foreach (\$routeFiles as \$file) {if (file_exists(\$file)) { require_once \$file; } } return \$APP;");
+                file_put_contents($file, "<?php\n// src/funkphp/core/app.php - FunkPHP | FunkCLI recreated it $date\n\n" . cli_get_prefix_code("do_not_modify_warning") . "\n/** @var FunkPHP \$APP */\n\$APP = FunkPHP(); require_once ROOT_APP_CONFIG; \$routeFiles = [ ROOT_APP_GET,ROOT_APP_POST, ROOT_APP_PUT,ROOT_APP_PATCH,ROOT_APP_DELETE,]; foreach (\$routeFiles as \$file) {if (file_exists(\$file)) { require_once \$file; } } return \$APP;");
                 cli_success_without_exit("Recreated Default FunkPHP Core App File: $file");
                 continue;
             }
             // Recreate default `/src/funkphp/app/<CONFIG+METHODS>.php Files`
             else if (str_contains($file, "CONFIG.php")) {
-                file_put_contents($file, "<?php\n// src/funkphp/app/CONFIG.php - FunkPHP | FunkCLI recreated it $date\n\n\$APP->ROUTES()->CONFIG();");
+                file_put_contents($file, "<?php\n// src/funkphp/app/CONFIG.php - FunkPHP | FunkCLI recreated it $date\n\n/** @var FunkPHP \$APP */\n\$APP->CONFIG()->setDebug(true, false, false);");
                 cli_success_without_exit("Recreated Default FunkPHP Core App File: $file");
                 continue;
             } else if (str_contains($file, "GET.php")) {
-                file_put_contents($file, "<?php\n// src/funkphp/app/GET.php - FunkPHP | FunkCLI recreated it $date\n\n\$APP->ROUTES()->GET();");
+                file_put_contents($file, "<?php\n// src/funkphp/app/GET.php - FunkPHP | FunkCLI recreated it $date\n\n/** @var FunkPHP \$APP */\n\$APP->ROUTES()->GET();");
                 cli_success_without_exit("Recreated Default FunkPHP Core App File: $file");
                 continue;
             } else if (str_contains($file, "POST.php")) {
-                file_put_contents($file, "<?php\n// src/funkphp/app/POST.php - FunkPHP | FunkCLI recreated it $date\n\n\$APP->ROUTES()->POST();");
+                file_put_contents($file, "<?php\n// src/funkphp/app/POST.php - FunkPHP | FunkCLI recreated it $date\n\n/** @var FunkPHP \$APP */\n\$APP->ROUTES()->POST();");
                 cli_success_without_exit("Recreated Default FunkPHP Core App File: $file");
                 continue;
             } else if (str_contains($file, "PUT.php")) {
-                file_put_contents($file, "<?php\n// src/funkphp/app/PUT.php - FunkPHP | FunkCLI recreated it $date\n\n\$APP->ROUTES()->PUT();");
+                file_put_contents($file, "<?php\n// src/funkphp/app/PUT.php - FunkPHP | FunkCLI recreated it $date\n\n/** @var FunkPHP \$APP */\n\$APP->ROUTES()->PUT();");
                 cli_success_without_exit("Recreated Default FunkPHP Core App File: $file");
                 continue;
             } else if (str_contains($file, "DELETE.php")) {
-                file_put_contents($file, "<?php\n// src/funkphp/app/DELETE.php - FunkPHP | FunkCLI recreated it $date\n\n\$APP->ROUTES()->DELETE();");
+                file_put_contents($file, "<?php\n// src/funkphp/app/DELETE.php - FunkPHP | FunkCLI recreated it $date\n\n/** @var FunkPHP \$APP */\n\$APP->ROUTES()->DELETE();");
                 cli_success_without_exit("Recreated Default FunkPHP Core App File: $file");
                 continue;
             } else if (str_contains($file, "PATCH.php")) {
-                file_put_contents($file, "<?php\n// src/funkphp/app/PATCH.php - FunkPHP | FunkCLI recreated it $date\n\n\$APP->ROUTES()->PATCH();");
+                file_put_contents($file, "<?php\n// src/funkphp/app/PATCH.php - FunkPHP | FunkCLI recreated it $date\n\n/** @var FunkPHP \$APP */\n\$APP->ROUTES()->PATCH();");
                 cli_success_without_exit("Recreated Default FunkPHP Core App File: $file");
                 continue;
             }
