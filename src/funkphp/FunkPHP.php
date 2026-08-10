@@ -32,12 +32,10 @@ if (is_object($FUNKPHP) && $FUNKPHP instanceof FunkPHP) {
     };
     $debug    = $getProp('debug') ?? [];
     $errors   = $getProp('errors') ?? [];
-    $errors2   = $getProp('errors2') ?? [];
     $warnings = $getProp('WARNINGS') ?? [];
     $fluent   = $getProp('FunkPHPFluentAPI') ?? [];
     $fluent2   = $getProp('FunkPHPFluentAPI2') ?? [];
-    $errCount  = count($errors);
-    $errCount2  = count($errors2);
+    $errCount  = $errors['ERRORS'];
     $warnCount = count($warnings);
     $isDebugOn          = $debug['ON_OR_OFF'] ?? false;
     $alwaysShow         = $debug['ALWAYS_SHOW'] ?? true;
@@ -50,13 +48,10 @@ if (is_object($FUNKPHP) && $FUNKPHP instanceof FunkPHP) {
     $shouldTriggerDump = $hasErrorsToReport || ($isDebugOn && $alwaysShow);
     if ($shouldTriggerDump) {
         $toDump = [];
+        //$toDump['API'] = $fluent;
         $toDump['API'] = $fluent;
-        $toDump['API2'] = $fluent2;
         if ($errCount > 0) {
             $toDump['ERRORS'] = $errors;
-        }
-        if ($errCount2 > 0) {
-            $toDump['ERRORS2'] = $errors2;
         }
         if ($warnCount > 0) {
             $toDump['WARNINGS'] = $warnings;
