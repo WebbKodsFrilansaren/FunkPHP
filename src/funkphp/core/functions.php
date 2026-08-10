@@ -2096,6 +2096,7 @@ class C
     // unless configured so (if $this->NoWarningsAllowed is set to TRUE).
     private array $errors = [];
     private array $errors2 = [
+        'INTERNAL' => [],
         'CONFIG' => [],
         'METHODS' => [
             'HEAD'   => ['GLOBAL' => [], 'ROUTES' => []],
@@ -3702,9 +3703,12 @@ class C
             $this->FunkPHPFluentAPI2['CONFIG'][count($this->FunkPHPFluentAPI2['CONFIG']) + 1] = $this->appendFunkPHPFluentAPI($batchFN, ...$vals);
         } else {
             if ($route) {
-                $this->FunkPHPFluentAPI2['METHODS'][$config_or_method][$route][count($this->FunkPHPFluentAPI2['METHODS'][$config_or_method][$route]) + 1] = $this->appendFunkPHPFluentAPI($batchFN, ...$vals);
+                if (!isset($this->FunkPHPFluentAPI2['METHODS'][$config_or_method]['ROUTES'][$route])) {
+                    $this->FunkPHPFluentAPI2['METHODS'][$config_or_method]['ROUTES'][$route] = [];
+                }
+                $this->FunkPHPFluentAPI2['METHODS'][$config_or_method]['ROUTES'][$route][count($this->FunkPHPFluentAPI2['METHODS'][$config_or_method]['ROUTES'][$route]) + 1] = $this->appendFunkPHPFluentAPI($batchFN, ...$vals);
             } else {
-                $this->FunkPHPFluentAPI2['METHODS'][$config_or_method][count($this->FunkPHPFluentAPI2['METHODS'][$config_or_method]) + 1] = $this->appendFunkPHPFluentAPI($batchFN, ...$vals);
+                $this->FunkPHPFluentAPI2['METHODS'][$config_or_method]['GLOBAL'][count($this->FunkPHPFluentAPI2['METHODS'][$config_or_method]['GLOBAL']) + 1] = $this->appendFunkPHPFluentAPI($batchFN, ...$vals);
             }
         }
         //$this->FunkPHPFluentAPI2[count($this->FunkPHPFluentAPI) + 1] = $this->appendFunkPHPFluentAPI($batchFN, ...$vals);
@@ -4029,9 +4033,8 @@ class C
         ];
         $validMethodTypes = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'CONFIG'];
         // No error (or valid) type
-        $nextErrIndex = (count($this->errors) + 1);
         if (!is_string($errType) || trim($errType) === '' || !in_array($errType, $validErrTypes)) {
-            $this->errors[$nextErrIndex] = ['type' => 'internal', 'err' => 'Invalid \$type (Error Type) Value in `class C->setErr()` when setting Error:\'`' . $errMsg . '`\' Report this found bug/issue to the Official FunkPHP Repositories. Choose a `Valid Error Type` from: ' . $this->joinArray($validErrTypes), 'method' => $method, 'route' => $route];
+            $this->errors2['INTERNAL'][count($this->errors2['INTERNAL']) + 1] = ['type' => 'internal', 'err' => 'Invalid \$type (Error Type) Value in `class C->setErr()` when setting Error:\'`' . $errMsg . '`\' Report this found bug/issue to the Official FunkPHP Repositories. Choose a `Valid Error Type` from: ' . $this->joinArray($validErrTypes), 'method' => $method, 'route' => $route];
             return;
         }
         // No method (or valid) provided for Method- & Route-related errors (since Route always needs Method)
@@ -4040,7 +4043,7 @@ class C
             && (!is_string($method)
                 || trim($method) === '' || !in_array($method, $validMethodTypes))
         ) {
-            $this->errors[] = ['type' => 'internal', 'err' => 'Invalid \$method (Method Type) Value in `class C->setErr()`: must be provided when Error Type starts with `Method-` OR `Route-`. Report this found bug/issue to the Official FunkPHP Repositories. Choose a `Valid Error Type` from: ' . $this->joinArray($validMethodTypes), 'method' => $method, 'route' => $route];
+            $this->errors2['INTERNAL'][count($this->errors2['INTERNAL']) + 1] = ['type' => 'internal', 'err' => 'Invalid \$method (Method Type) Value in `class C->setErr()`: must be provided when Error Type starts with `Method-` OR `Route-`. Report this found bug/issue to the Official FunkPHP Repositories. Choose a `Valid Error Type` from: ' . $this->joinArray($validMethodTypes), 'method' => $method, 'route' => $route];
             return;
         }
         if (
@@ -4048,17 +4051,33 @@ class C
             && (!is_string($route)
                 || trim($route) === '')
         ) {
-            $this->errors[$nextErrIndex] = ['type' => 'internal', 'err' => 'Invalid \$route Value in `class C->setErr()`: must be provided when Error Type starts with `Route-`. Report this found bug/issue to the Official FunkPHP Repositories.', 'method' => $method, 'route' => $route];
+            $this->errors2['INTERNAL'][count($this->errors2['INTERNAL']) + 1] = ['type' => 'internal', 'err' => 'Invalid \$route Value in `class C->setErr()`: must be provided when Error Type starts with `Route-`. Report this found bug/issue to the Official FunkPHP Repositories.', 'method' => $method, 'route' => $route];
             return;
+        }
+        $nextErrIndex = null;
+        if ($method === 'CONFIG') {
+            $nextErrIndex = (count($this->errors2['CONFIG']) + 1);
+        } else {
+            if ($route) {
+                if (!isset($this->errors2['METHODS'][$method]['ROUTES'][$route])) {
+                    $this->errors2['METHODS'][$method]['ROUTES'][$route] = [];
+                }
+                $nextErrIndex  = (count($this->errors2['METHODS'][$method]['ROUTES'][$route]) + 1);
+            } else {
+                $nextErrIndex  = (count($this->errors2['METHODS'][$method]['GLOBAL']) + 1);
+            }
         }
         // = $this->errors[$nextErrIndex] = ['err' => $errMsg, 'type' => $errType, 'method' => $method, 'route' => $route];
         if ($method === 'CONFIG') {
             $this->FunkPHPFluentAPI2['CONFIG'][count($this->FunkPHPFluentAPI2['CONFIG']) + 1] .= ' - (`See Error #' . $nextErrIndex . '`)';
         } else {
             if ($route) {
-                $this->FunkPHPFluentAPI2['METHODS'][$method][$route][count($this->FunkPHPFluentAPI2['METHODS'][$method][$route]) + 1] .= ' - (`See Error #' . $nextErrIndex . '`)';
+                if (!isset($this->FunkPHPFluentAPI2['METHODS'][$method]['ROUTES'][$route])) {
+                    $this->FunkPHPFluentAPI2['METHODS'][$method]['ROUTES'][$route] = [];
+                }
+                $this->FunkPHPFluentAPI2['METHODS'][$method]['ROUTES'][$route][count($this->FunkPHPFluentAPI2['METHODS'][$method]['ROUTES'][$route]) + 1] .= ' - (`See Error #' . $nextErrIndex . '`)';
             } else {
-                $this->FunkPHPFluentAPI2['METHODS'][$method][count($this->FunkPHPFluentAPI2['METHODS'][$method]) + 1] .= ' - (`See Error #' . $nextErrIndex . '`)';
+                $this->FunkPHPFluentAPI2['METHODS'][$method]['GLOBAL'][count($this->FunkPHPFluentAPI2['METHODS'][$method]['GLOBAL']) + 1] .= ' - (`See Error #' . $nextErrIndex . '`)';
             }
         }
         // = $this->FunkPHPFluentAPI[count($this->FunkPHPFluentAPI)] .= ' - (`See Error #' . $nextErrIndex . '`)';
@@ -4066,9 +4085,12 @@ class C
             $this->errors2['CONFIG'][$nextErrIndex] = ['err' => $errMsg, 'type' => $errType, 'method' => $method, 'route' => $route];
         } else {
             if ($route) {
-                $this->errors2['METHODS'][$method][$route][$nextErrIndex] = ['err' => $errMsg, 'type' => $errType, 'method' => $method, 'route' => $route];
+                if (!isset($this->errors2['METHODS'][$method]['ROUTES'][$route])) {
+                    $this->errors2['METHODS'][$method]['ROUTES'][$route] = [];
+                }
+                $this->errors2['METHODS'][$method]['ROUTES'][$route][$nextErrIndex] = ['err' => $errMsg, 'type' => $errType, 'method' => $method, 'route' => $route];
             } else {
-                $this->errors2['METHODS'][$method][$nextErrIndex] = ['err' => $errMsg, 'type' => $errType, 'method' => $method, 'route' => $route];
+                $this->errors2['METHODS'][$method]['GLOBAL'][$nextErrIndex] = ['err' => $errMsg, 'type' => $errType, 'method' => $method, 'route' => $route];
             }
         }
     }
