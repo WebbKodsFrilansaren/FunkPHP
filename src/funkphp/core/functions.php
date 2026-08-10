@@ -4054,6 +4054,7 @@ class C
             $this->errors2['INTERNAL'][count($this->errors2['INTERNAL']) + 1] = ['type' => 'internal', 'err' => 'Invalid \$route Value in `class C->setErr()`: must be provided when Error Type starts with `Route-`. Report this found bug/issue to the Official FunkPHP Repositories.', 'method' => $method, 'route' => $route];
             return;
         }
+        // = get next error index depending on CONFIG, a METHODS GLOBAL, or a METHODS ROUTES
         $nextErrIndex = null;
         if ($method === 'CONFIG') {
             $nextErrIndex = (count($this->errors2['CONFIG']) + 1);
@@ -4067,20 +4068,22 @@ class C
                 $nextErrIndex  = (count($this->errors2['METHODS'][$method]['GLOBAL']) + 1);
             }
         }
-        // = $this->errors[$nextErrIndex] = ['err' => $errMsg, 'type' => $errType, 'method' => $method, 'route' => $route];
+        // append to last API depending on CONFIG, a METHODS GLOBAL, or a METHODS ROUTES
+        // = $this->FunkPHPFluentAPI[count($this->FunkPHPFluentAPI)] .= ' - (`See Error #' . $nextErrIndex . '`)';
         if ($method === 'CONFIG') {
-            $this->FunkPHPFluentAPI2['CONFIG'][count($this->FunkPHPFluentAPI2['CONFIG']) + 1] .= ' - (`See Error #' . $nextErrIndex . '`)';
+            $this->FunkPHPFluentAPI2['CONFIG'][count($this->FunkPHPFluentAPI2['CONFIG'])] .= ' - (`See Error #' . $nextErrIndex . '`)';
         } else {
             if ($route) {
                 if (!isset($this->FunkPHPFluentAPI2['METHODS'][$method]['ROUTES'][$route])) {
                     $this->FunkPHPFluentAPI2['METHODS'][$method]['ROUTES'][$route] = [];
                 }
-                $this->FunkPHPFluentAPI2['METHODS'][$method]['ROUTES'][$route][count($this->FunkPHPFluentAPI2['METHODS'][$method]['ROUTES'][$route]) + 1] .= ' - (`See Error #' . $nextErrIndex . '`)';
+                $this->FunkPHPFluentAPI2['METHODS'][$method]['ROUTES'][$route][count($this->FunkPHPFluentAPI2['METHODS'][$method]['ROUTES'][$route])] .= ' - (`See Error #' . $nextErrIndex . '`)';
             } else {
-                $this->FunkPHPFluentAPI2['METHODS'][$method]['GLOBAL'][count($this->FunkPHPFluentAPI2['METHODS'][$method]['GLOBAL']) + 1] .= ' - (`See Error #' . $nextErrIndex . '`)';
+                $this->FunkPHPFluentAPI2['METHODS'][$method]['GLOBAL'][count($this->FunkPHPFluentAPI2['METHODS'][$method]['GLOBAL'])] .= ' - (`See Error #' . $nextErrIndex . '`)';
             }
         }
-        // = $this->FunkPHPFluentAPI[count($this->FunkPHPFluentAPI)] .= ' - (`See Error #' . $nextErrIndex . '`)';
+        // add the latest error depending on CONFIG, a METHODS GLOBAL, or a METHODS ROUTES
+        // = $this->errors[$nextErrIndex] = ['err' => $errMsg, 'type' => $errType, 'method' => $method, 'route' => $route];
         if ($method === 'CONFIG') {
             $this->errors2['CONFIG'][$nextErrIndex] = ['err' => $errMsg, 'type' => $errType, 'method' => $method, 'route' => $route];
         } else {
@@ -4140,7 +4143,7 @@ class C
     /* setCompileFlag & setDebug */
     private function batchSetCompileFlag(string $flag)
     {
-        [$ctx, $ctxVals] = $this->setCtx('setCompileFlag', "CONFIG()", $flag);
+        [$ctx, $ctxVals] = $this->setCtx2('CONFIG', 'setCompileFlag', "CONFIG()", null, $flag);
         $validFlags = [
             'NO_WARNINGS_ALLOWED', // $this->WARNINGS must be 0 after compile() is done or it is considered a failure and discarded
             'COMPILE_ROUTES_SORTED_ASC',

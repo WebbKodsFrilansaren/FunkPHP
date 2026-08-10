@@ -35,7 +35,9 @@ if (is_object($FUNKPHP) && $FUNKPHP instanceof FunkPHP) {
     $errors2   = $getProp('errors2') ?? [];
     $warnings = $getProp('WARNINGS') ?? [];
     $fluent   = $getProp('FunkPHPFluentAPI') ?? [];
+    $fluent2   = $getProp('FunkPHPFluentAPI2') ?? [];
     $errCount  = count($errors);
+    $errCount2  = count($errors2);
     $warnCount = count($warnings);
     $isDebugOn          = $debug['ON_OR_OFF'] ?? false;
     $alwaysShow         = $debug['ALWAYS_SHOW'] ?? true;
@@ -49,8 +51,12 @@ if (is_object($FUNKPHP) && $FUNKPHP instanceof FunkPHP) {
     if ($shouldTriggerDump) {
         $toDump = [];
         $toDump['API'] = $fluent;
+        $toDump['API2'] = $fluent2;
         if ($errCount > 0) {
             $toDump['ERRORS'] = $errors;
+        }
+        if ($errCount2 > 0) {
+            $toDump['ERRORS2'] = $errors2;
         }
         if ($warnCount > 0) {
             $toDump['WARNINGS'] = $warnings;
@@ -75,7 +81,7 @@ if (is_object($FUNKPHP) && $FUNKPHP instanceof FunkPHP) {
         } else {
             $title = "FunkPHP Configuration Debug";
         }
-        dd($toDump, $title, false);
+        dd($toDump, $title, true);
     }
     // Only here we consider loading validated user-defined functions&classes
     require_once __DIR__ . '/config/functions.php';
