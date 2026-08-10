@@ -76,7 +76,7 @@ if (is_object($FUNKPHP) && $FUNKPHP instanceof FunkPHP) {
         } else {
             $title = "FunkPHP Configuration Debug";
         }
-        dd($toDump, $title, true);
+        dd($toDump, $title, false);
     }
     // Only here we consider loading validated user-defined functions&classes
     require_once __DIR__ . '/config/functions.php';
@@ -84,7 +84,7 @@ if (is_object($FUNKPHP) && $FUNKPHP instanceof FunkPHP) {
 
     // Attempt running Class C->compile() which meaning it will attempt
     // compiling first and then run right after it if no errors occurs.
-    if (count($errors) === 0) {
+    if ($errCount === 0) {
         $compileAndRun = new ReflectionMethod($cInstance, 'compile');
         $compileAndRun->setAccessible(true);
         $compileAndRun->invoke($cInstance);

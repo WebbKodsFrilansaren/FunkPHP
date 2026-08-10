@@ -2077,16 +2077,15 @@ function funk_db_conn(&$c, $dbKey)
 class C
 {
     // The actual written config line by line starting with FunkPHP()
-    public array $FunkPHPFluentAPI2 = ['1' => 'FunkPHP()'];
     public array $FunkPHPFluentAPI = [
         'CONFIG' => [],
         'METHODS' => [
-            'HEAD'   => ['CONFIG' => [], 'ROUTES' => []],
             'GET'    => ['CONFIG' => [], 'ROUTES' => []],
             'POST'   => ['CONFIG' => [], 'ROUTES' => []],
+            'DELETE' => ['CONFIG' => [], 'ROUTES' => []],
             'PUT'    => ['CONFIG' => [], 'ROUTES' => []],
             'PATCH'  => ['CONFIG' => [], 'ROUTES' => []],
-            'DELETE' => ['CONFIG' => [], 'ROUTES' => []],
+            'HEAD'   => ['CONFIG' => [], 'ROUTES' => []],
         ]
     ];
     // $errors contain all errors + categorized errors
@@ -2094,18 +2093,17 @@ class C
     // but developer will be known about possible issues such as dangerous
     // function calls, early exists, evals(), and so on. But they are never stopped
     // unless configured so (if $this->NoWarningsAllowed is set to TRUE).
-    private array $errors2 = [];
     private array $errors = [
         'ERRORS' => 0,
         'INTERNAL' => [],
         'CONFIG' => [],
         'METHODS' => [
-            'HEAD'   => ['CONFIG' => [], 'ROUTES' => []],
             'GET'    => ['CONFIG' => [], 'ROUTES' => []],
             'POST'   => ['CONFIG' => [], 'ROUTES' => []],
             'PUT'    => ['CONFIG' => [], 'ROUTES' => []],
-            'PATCH'  => ['CONFIG' => [], 'ROUTES' => []],
             'DELETE' => ['CONFIG' => [], 'ROUTES' => []],
+            'PATCH'  => ['CONFIG' => [], 'ROUTES' => []],
+            'HEAD'   => ['CONFIG' => [], 'ROUTES' => []],
         ]
     ];
     private array $WARNINGS = [];
@@ -4131,14 +4129,12 @@ class C
     // and can jump to->pipesRequest(),->pipesPostResponse() or ->routes()
     public function CONFIG(): FunkConfig
     {
-        $this->FunkPHPFluentAPI[] = "->CONFIG()";
         return $this->configScope ??= new FunkConfig($this);
     }
     // ->routes() | gives access to:->GET(),->POST(),->PATCH(),->PUT(),->DELETE()
     // and can jump back to ->config()
     public function ROUTES(): FunkRoutes
     {
-        $this->FunkPHPFluentAPI[] = "->ROUTES()";
         return $this->routesScope ??= new FunkRoutes($this);
     }
     // batchFunctions that attempt batching something in $batches that would be validated later unless
@@ -7059,7 +7055,7 @@ class C
         // Attempt compiling FunkPHP and create the code
         // STEP 1: Check there are zero Invalid Batches and zero errors so far.
         // Otherwise, we dump API + Errors and exist early (default in dd()).
-        if (count($this->errors) > 0 || count($this->invalidBatches) > 0) {
+        if ($this->errors['ERRORS'] > 0 || count($this->invalidBatches) > 0) {
             $errCount = count($this->errors);
             dd(['API' => $this->FunkPHPFluentAPI, 'ERRORS' => $this->errors], "FunkPHP Compilation ($errCount Error" . ($errCount === 1 ? '' : 's') . ')', true);
         }
@@ -7249,7 +7245,7 @@ class C
         }
 
         $this->compile_setErr("", $compileErrors);
-        dd(['API' => $this->FunkPHPFluentAPI, 'COMPILE_ERRORS' => $compileErrors, 'COMPILE_WARNINGS' => $compileWarnings, 'VALID' => $this->validBatches,  'GLOBAL_HANDLERS' => $GLOBAL_HANDLERS, 'GLOBAL_GROUPS' => $GLOBAL_GROUPED, 'compiled_c' => $this->compiled['c']], "FINAL COMPILE OUTPUT - DEBUG", true);
+        dd(['API' => $this->FunkPHPFluentAPI, 'COMPILE_ERRORS' => $compileErrors, 'COMPILE_WARNINGS' => $compileWarnings, 'VALID' => $this->validBatches,  'GLOBAL_HANDLERS' => $GLOBAL_HANDLERS, 'GLOBAL_GROUPS' => $GLOBAL_GROUPED, 'compiled_c' => $this->compiled['c']], "COMPILATION - DEBUG", true);
     }
     private function run()
     {
@@ -7935,7 +7931,6 @@ class FunkRoutes
      */
     public function HEAD(): FunkMethod
     {
-        $this->c->FunkPHPFluentAPI[] = "->HEAD()";
         return $this->methodInstances['HEAD'] ??= new FunkMethod($this->c, $this, 'HEAD');
     }
 
@@ -7946,7 +7941,6 @@ class FunkRoutes
      */
     public function GET(): FunkMethod
     {
-        $this->c->FunkPHPFluentAPI[] = "->GET()";
         return $this->methodInstances['GET'] ??= new FunkMethod($this->c, $this, 'GET');
     }
 
@@ -7957,7 +7951,6 @@ class FunkRoutes
      */
     public function POST(): FunkMethod
     {
-        $this->c->FunkPHPFluentAPI[] = "->POST()";
         return $this->methodInstances['POST'] ??= new FunkMethod($this->c, $this, 'POST');
     }
 
@@ -7968,7 +7961,6 @@ class FunkRoutes
      */
     public function PUT(): FunkMethod
     {
-        $this->c->FunkPHPFluentAPI[] = "->PUT()";
         return $this->methodInstances['PUT'] ??= new FunkMethod($this->c, $this, 'PUT');
     }
 
@@ -7979,7 +7971,6 @@ class FunkRoutes
      */
     public function PATCH(): FunkMethod
     {
-        $this->c->FunkPHPFluentAPI[] = "->PATCH()";
         return $this->methodInstances['PATCH'] ??= new FunkMethod($this->c, $this, 'PATCH');
     }
 
@@ -7990,7 +7981,6 @@ class FunkRoutes
      */
     public function DELETE(): FunkMethod
     {
-        $this->c->FunkPHPFluentAPI[] = "->DELETE()";
         return $this->methodInstances['DELETE'] ??= new FunkMethod($this->c, $this, 'DELETE');
     }
 
@@ -8001,7 +7991,6 @@ class FunkRoutes
      */
     public function CONFIG(): FunkConfig
     {
-        $this->c->FunkPHPFluentAPI[] = "->CONFIG()";
         return $this->c->config();
     }
 }

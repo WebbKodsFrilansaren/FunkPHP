@@ -5,5 +5,4 @@
 $APP->ROUTES()
     ->GET()
     ->ROUTE("/:id")
-    ->setParamRule("id", "/[\d]+/")
     ->setParamRule("id", "/[\d]+/");

@@ -2,11 +2,11 @@
 
 /** @var FunkPHP $APP */
 $APP->CONFIG()
-    ->setDebug(true, true, false, true, false, false, true)
+    ->setDebug(true, false, false, true, false, false, true)
     ->setUseVendor(true)
     ->setCompileFlag('NO_WARNINGS_ALLOWED')
     ->setBaseURLHost("wkf")
-    ->setBaseURLLocal("ahttp://wkf.com")
+    ->setBaseURLLocal("http://wkf.com")
     ->setBaseURLOnline("https://www.funkphp.com")
     ->setBaseURLUri("/funkphp")
     // GROUPED Pipes
