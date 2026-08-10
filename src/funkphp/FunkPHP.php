@@ -10,16 +10,8 @@
  * source of truth, your app will most likely crash, and your peer will know
  * you do not understand how caching and/or compiled files work.
  **/
-
-// This is replaced by all Functions, Configuration and
-// highly optimized Route Matching & Pipeline Execution
-// in the large compiled FunkPHPDeployment.php File!
-// Load all functions needed for the FunkPHP Framework Web Application
-// $c is the global configuration array that is used throughout the application
-require_once __DIR__ . '/core/functions.php'; // In-built functions
-
+require_once __DIR__ . '/core/functions.php'; // Core functions
 $c = null; // Initialize c that is then populated after compile() and/or run()
-
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 ini_set('error_reporting', 1);

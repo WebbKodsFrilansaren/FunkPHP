@@ -6994,11 +6994,14 @@ class C
             if (!isset($this->validBatches['config']['DEFAULT_HTTPS_KERNEL'])) {
                 $this->compile_setWarn("No Request Pipes (via `->pipeRequestFunction() in ->CONFIG()` detected. If intended to use No Request Pipes, just ignore this warning. This means that only Global-based Middlewares, then Route-matching, then Method-based Middleware and finally Route-based Middleware and its remaining pipes will run.", $compileWarnings);
             } else {
-                $this->compile_setWarn("No Request Pipes (via `->pipeRequestFunction() in ->CONFIG()` detected. If intended to use No Request Pipes, just ignore this warning. You have configured to use `User-defined Custom Default HTTPS Kernel Handler` meaning that after Successful Compilation it will have access to Trie-based Routes with Metadata and then it is `all up to that User-defined Function to handle everything` from Route-matching to executing each Route-associated Pipe Function(s).", $compileWarnings);
+                $this->compile_setWarn("No Request Pipes (via `->pipeRequestFunction() in ->CONFIG()` detected. If intended to use No Request Pipes, just ignore this warning. The `User-defined Custom Default HTTPS Kernel Handler` is configured for use meaning that after Successful Compilation it will have access to Trie-based Routes with Metadata and then it is `all up to that User-defined Function to handle everything` from Route-matching to executing each Route-associated Pipe Function(s).", $compileWarnings);
             }
         }
         // request pipes exist
         else {
+            if (isset($this->validBatches['config']['DEFAULT_HTTPS_KERNEL'])) {
+                $this->compile_setWarn("Request Pipes (via `->pipeRequestFunction() in ->CONFIG()` and the `User-defined Custom Default HTTPS Kernel Handler` detected. This means that that after Successful Compilation it will have access to Trie-based Routes with Metadata and then it is `all up to that User-defined Function to handle everything AFTER Request Pipe Functions first have ran`; everything from Route-matching to executing each Route-associated Pipe Function(s).", $compileWarnings);
+            }
         }
         // 5.2 Post-Response Pipes
         if (!isset($this->validBatches['config']['post_response'])) {
@@ -7026,20 +7029,28 @@ class C
         echo "TEST";
     }
 }
-/*
- * Class FunkPHP is the top level navigation in the IDE that "jumps" via method-chaining
- * between `->CONFIG()`,`->pipesRequest()`,`->pipesPostResponse()`,`->routes()`. It is
- * accessed via function FunkPHP() which then returns FunKPHP instance with class C as
- * private variable. Should be used as:`return FunkPH()-><config()|routes()>`
-*/
+/**
+ * Class FunkPHP
+ *
+ * The Entry Point for FunkPHP Fluent API.
+ */
 class FunkPHP
 {
     public function __construct(private C $c) {}
-    // TOP LEVEL METHOD-CHAINED-BASED NAVIGATION
+    /**
+     * Access global framework configuration settings.
+     *
+     * @return FunkConfig
+     */
     public function CONFIG(): FunkConfig
     {
         return $this->c->config();
     }
+    /**
+     * Access HTTP route definition builders.
+     *
+     * @return FunkRoutes
+     */
     public function ROUTES(): FunkRoutes
     {
         return $this->c->routes();
@@ -7052,8 +7063,13 @@ class FunkPHP
 class FunkConfig
 {
     public function __construct(private C $c) {}
-    /* setCompileFlag - to set specific flags for compile() when it runs/executes */
-    // "setAllowNoWarnings" is set here as valid flag!!! - remove that batchSetAllowNoWarnings FN !!!
+
+    /**
+     * Set a compilation engine flag to control code generation rules.
+     *
+     * @param string $flag Compiler flag (e.g., "NO_WARNINGS_ALLOWED")
+     * @return $this
+     */
     public function setCompileFlag(string $flag): self
     {
         $flag = strtoupper(trim($flag));
@@ -7099,24 +7115,56 @@ class FunkConfig
         $this->c->batch('batchSetGroupedPipeUserDefined', $groupName, ...$pipeUserDefinedFNs);
         return $this;
     }
+
+    /**
+     * Group multiple request pipeline function names under a single reference key.
+     *
+     * @param string $groupName Group identifier key
+     * @param string ...$pipeRequestFNs Function names to assign to this group
+     * @return $this
+     */
     public function setGroupPipeRequest(string $groupName, string ...$pipeRequestFNs): self
     {
         $groupName = strtolower(trim($groupName));
         $this->c->batch('batchSetGroupedPipeRequest', $groupName, ...$pipeRequestFNs);
         return $this;
     }
+
+    /**
+     * Group multiple post-response pipeline function names under a single reference key.
+     *
+     * @param string $groupName Group identifier key
+     * @param string ...$pipePostReponseFNs Function names to assign to this group
+     * @return $this
+     */
     public function setGroupPipePostResponse(string $groupName, string ...$pipePostReponseFNs): self
     {
         $groupName = strtolower(trim($groupName));
         $this->c->batch('batchSetGroupedPipePostResponse', $groupName, ...$pipePostReponseFNs);
         return $this;
     }
+
+    /**
+     * Group multiple route handler function names under a single reference key.
+     *
+     * @param string $groupName Group identifier key
+     * @param string ...$pipeRouteFNs Function names to assign to this group
+     * @return $this
+     */
     public function setGroupPipeRoute(string $groupName, string ...$pipeRouteFNs): self
     {
         $groupName = strtolower(trim($groupName));
         $this->c->batch('batchSetGroupedPipeRoute', $groupName, ...$pipeRouteFNs);
         return $this;
     }
+
+    /**
+     * Group multiple middleware function names under a single reference key.
+     *
+     * @param string $groupName Group identifier key
+     * @param string ...$pipeMiddlewareFNs Function names to assign to this group
+     * @return $this
+     */
     public function setGroupPipeMiddlewares(string $groupName, string ...$pipeMiddlewareFNs): self
     {
         $groupName = strtolower(trim($groupName));
@@ -7124,14 +7172,24 @@ class FunkConfig
         return $this;
     }
 
-    /* INI_SET() Setter - GLOBAL */
+    /**
+     * Apply runtime php.ini configuration settings globally.
+     *
+     * @param array<string, scalar> $iniSetArrayWithKeyNamesAsSettingTypeWithSingleScalarValue Key-value pairs of ini_set() calls
+     * @return $this
+     */
     public function setINI_SET(array $iniSetArrayWithKeyNamesAsSettingTypeWithSingleScalarValue): self
     {
         $this->c->batch('batchSetINI_SETGlobal', $iniSetArrayWithKeyNamesAsSettingTypeWithSingleScalarValue);
         return $this;
     }
 
-    /* setNonces and setCSP<&Variants> - GLOBAL */
+    /**
+     * Define global reference keys for nonces generated across all routes.
+     *
+     * @param string ...$noncesReferenceKeys Reference key names for nonces
+     * @return $this
+     */
     public function setNonces(string ...$noncesReferenceKeys)
     {
         $this->c->batch('batchSetNoncesGlobal', ...$noncesReferenceKeys);
@@ -7184,35 +7242,76 @@ class FunkConfig
         return $this;
     }
 
-    /* setSRI<VARIANTS> - GLOBAL */
+    /**
+     * Define Subresource Integrity (SRI) hashes for internal assets.
+     *
+     * @param array<string, string> $internalSRI Asset paths mapped to SRI hashes
+     * @return $this
+     */
     public function setSRIInternal(array $internalSRI): self
     {
         $this->c->batch('batchSetSRIInternalGlobal', $internalSRI);
         return $this;
     }
+
+    /**
+     * Define Subresource Integrity (SRI) hashes and options for external scripts/styles.
+     *
+     * @param array<string, mixed> $options SRI configuration and hash map
+     * @return $this
+     */
     public function setSRIExternal(array $options): self
     {
         $this->c->batch('batchSetSRIExternalGlobal', $options);
         return $this;
     }
 
-    /* setNoRouteMatch<Variants> - GLOBAL */
+    /**
+     * Render a template page as the global fallback when no route matches.
+     *
+     * @param string $PageFileName Template filename or path
+     * @param int $statusCode HTTP status code (default: 404)
+     * @return $this
+     */
     public function setNoRouteMatchPage(string $PageFileName, int $statusCode = 404): self
     {
         $PageFileName = strtolower(trim($PageFileName));
         $this->c->batch('batchSetNoRouteMatchPageGlobal', $PageFileName, $statusCode);
         return $this;
     }
+
+    /**
+     * Return a JSON payload as the global fallback when no route matches.
+     *
+     * @param array<mixed>|object $data JSON payload structure
+     * @param int $statusCode HTTP status code (default: 404)
+     * @return $this
+     */
     public function setNoRouteMatchJSON(array|object $data, int $statusCode = 404): self
     {
         $this->c->batch('batchSetNoRouteMatchJsonGlobal', $data, $statusCode);
         return $this;
     }
+
+    /**
+     * Return plain text as the global fallback when no route matches.
+     *
+     * @param string $message Response message text
+     * @param int $statusCode HTTP status code (default: 404)
+     * @return $this
+     */
     public function setNoRouteMatchText(string $message, int $statusCode = 404): self
     {
         $this->c->batch('batchSetNoRouteMatchTextGlobal', $message, $statusCode);
         return $this;
     }
+
+    /**
+     * Register a callback function as the global fallback handler when no route matches.
+     *
+     * @param callable|string $userDefinedFunctionName Callback function name or callable
+     * @return $this
+     */
     public function setNoRouteMatchCallback(callable|string $userDefinedFunctionName): self
     {
         $userDefinedFunctionName = strtolower(trim($userDefinedFunctionName));
@@ -7220,31 +7319,64 @@ class FunkConfig
         return $this;
     }
 
-    /* setDefault<Variants_from_User_defined_Functions> */
+    /**
+     * Set the global shutdown handler callback function.
+     *
+     * @param string $userDefinedFunctionName Name of the function registered for script shutdown
+     * @return $this
+     */
     public function setDefaultRegisteredShutdownHandler(string $userDefinedFunctionName): self
     {
         $userDefinedFunctionName = strtolower(trim($userDefinedFunctionName));
         $this->c->batch('batchSetDefaultRegisteredShutdownFunctionGlobal', $userDefinedFunctionName);
         return $this;
     }
+
+    /**
+     * Set the globaluncaught exception handler callback function.
+     *
+     * @param string $userDefinedFunctionName Name of the user-defined exception handler function
+     * @return $this
+     */
     public function setDefaultExceptionHandler(string $userDefinedFunctionName): self
     {
         $userDefinedFunctionName = strtolower(trim($userDefinedFunctionName));
         $this->c->batch('batchSetDefaultExceptionHandlerGlobal', $userDefinedFunctionName);
         return $this;
     }
+
+    /**
+     * Set the global PHP error handler callback function.
+     *
+     * @param string $userDefinedFunctionName Name of the user-defined error handler function
+     * @return $this
+     */
     public function setDefaultErrorHandler(string $userDefinedFunctionName): self
     {
         $userDefinedFunctionName = strtolower(trim($userDefinedFunctionName));
         $this->c->batch('batchSetDefaultErrorHandlerGlobal', $userDefinedFunctionName);
         return $this;
     }
+
+    /**
+     * Set the global URI normalizer handler callback function.
+     *
+     * @param string $userDefinedFunctionName Name of the URI normalization function
+     * @return $this
+     */
     public function setDefaultURI_NormalizerHandler(string $userDefinedFunctionName): self
     {
         $userDefinedFunctionName = strtolower(trim($userDefinedFunctionName));
         $this->c->batch('batchSetDefaultURINormalizerGlobal', $userDefinedFunctionName);
         return $this;
     }
+
+    /**
+     * Set the primary HTTP kernel dispatch handler callback function.
+     *
+     * @param string $userDefinedFunctionName Name of the kernel dispatch handler function
+     * @return $this
+     */
     public function setDefaultKernelHandler(string $userDefinedFunctionName): self
     {
         $userDefinedFunctionName = strtolower(trim($userDefinedFunctionName));
@@ -7252,29 +7384,53 @@ class FunkConfig
         return $this;
     }
 
-    /* setBASEURL<Variants> - GLOBAL */
+    /**
+     * Set the base URL for local development environments.
+     *
+     * @param string $httpsPath Full local URL (e.g., "http://WKF.com")
+     * @return $this
+     */
     public function setBaseURLLocal(string $httpsPath): self
     {
         $this->c->batch('batchSetDefaultBaseURLLocalGlobal', $httpsPath);
         return $this;
     }
+
+    /**
+     * Set the base URL for production/online deployment.
+     *
+     * @param string $httpsPath Full production URL (e.g., "https://www.FunkPHP.com")
+     * @return $this
+     */
     public function setBaseURLOnline(string $httpsPath): self
     {
         $this->c->batch('batchSetDefaultBaseURLOnlineGlobal', $httpsPath);
         return $this;
     }
+
+    /**
+     * Set the target host name string used to detect local development environment.
+     *
+     * @param string $hostNameLocally Local hostname indicator (e.g., "wkf" or "localhost")
+     * @return $this
+     */
     public function setBaseURLHost(string $hostNameLocally): self
     {
         $this->c->batch('batchSetDefaultBaseURLHostGlobal', $hostNameLocally);
         return $this;
     }
+
+    /**
+     * Set the base sub-folder or sub-path prefix for local development URLs.
+     *
+     * @param string $localURI Sub-path URI prefix (e.g., "/funkphp")
+     * @return $this
+     */
     public function setBaseURLUri(string $localURI): self
     {
         $this->c->batch('batchSetDefaultBaseURLUriGlobal', $localURI);
         return $this;
     }
-
-    /* setSession<Driver&Cookie_Configs_For_it> - GLOBAL */
 
     /**
      * Set Default Session Cookie Driver
@@ -7289,27 +7445,70 @@ class FunkConfig
         $this->c->batch('batchSetDefaultSessionDriverGlobal', $filesOrRedisOrSomethingElse);
         return $this;
     }
-    /* This one is just to set all values immediately as an array instead of single ones */
+
+    /**
+     * Set session cookie options in bulk using an associative array.
+     *
+     * @param array{
+     *     SESSION_DRIVER?: string,
+     *     SESSION_NAME?: string,
+     *     SESSION_LIFETIME?: int,
+     *     SESSION_PATH?: string,
+     *     SESSION_DOMAIN?: string,
+     *     SESSION_SECURE?: bool,
+     *     SESSION_HTTPONLY?: bool,
+     *     SESSION_SAMESITE?: string
+     * } $sessionCookieOptions
+     * @return $this
+     */
     public function setSessionCookieOptions(array $sessionCookieOptions): self
     {
         $this->c->batch('batchSetDefaultSessionCookieOptionsGlobal', $sessionCookieOptions);
         return $this;
     }
+
+    /**
+     * Set the global session cookie name.
+     *
+     * @param string $sessionCookieName Default is 'fphp_id'
+     * @return $this
+     */
     public function setSessionCookieName(string $sessionCookieName = 'fphp_id'): self
     {
         $this->c->batch('batchSetDefaultSessionCookieNameGlobal', $sessionCookieName);
         return $this;
     }
+
+    /**
+     * Set the global session cookie lifetime in seconds.
+     *
+     * @param int $sessionCookieLifetime Lifetime in seconds (default: 28800 = 8 hours)
+     * @return $this
+     */
     public function setSessionCookieLifetime(int $sessionCookieLifetime = 28800): self
     {
         $this->c->batch('batchSetDefaultSessionCookieLifetimeGlobal', $sessionCookieLifetime);
         return $this;
     }
+
+    /**
+     * Set the session cookie path scope.
+     *
+     * @param string $sessionCookiePath Default is '/'
+     * @return $this
+     */
     public function setSessionCookiePath(string $sessionCookiePath = '/'): self
     {
         $this->c->batch('batchSetDefaultSessionCookiePathGlobal', $sessionCookiePath);
         return $this;
     }
+
+    /**
+     * Set the domain scope for session cookies.
+     *
+     * @param string $sessionCookieDomain Target domain (default: 'webdev.local')
+     * @return $this
+     */
     public function setSessionCookieDomain(string $sessionCookieDomain = 'webdev.local'): self
     {
         $sessionCookieDomain = strtolower(trim($sessionCookieDomain));
@@ -7398,7 +7597,14 @@ class FunkConfig
         return $this;
     }
 
-    /* setParamRule Globally/config() - GLOBAL */
+    /**
+     * Define a global parameter validation regex rule applied across all routes.
+     *
+     * @param string $param Parameter name without leading colon (e.g., "id")
+     * @param string $regex Regex pattern (e.g., "/[\d]+/")
+     * @param string|null $defaultParamValueOnRegexMismatch Fallback value if validation fails
+     * @return $this
+     */
     public function setParamRule(string $param, string $regex, $defaultParamValueOnRegexMismatch = null): self
     {
         $param = strtolower(trim($param));
@@ -7406,94 +7612,184 @@ class FunkConfig
         return $this;
     }
 
-    /* pipeHeader Globally/config() - GLOBAL */
+    /**
+     * Pipe a global response header to be sent on every response.
+     *
+     * @param string $header Raw header string (e.g., "X-Content-Type-Options: nosniff")
+     * @return $this
+     */
     public function pipeHeader(string $header): self
     {
         $this->c->batch('batchPipeHeaderGlobal', $header);
         return $this;
     }
-    /* removeHeader Globally/config() - GLOBAL */
+
+    /**
+     * Remove a previously queued global response header.
+     *
+     * @param string $header_to_remove Case-insensitive header key to remove
+     * @return $this
+     */
     public function removeHeader(string $header_to_remove): self
     {
         $header_to_remove = strtolower(trim($header_to_remove));
         $this->c->batch('batchRemoveHeaderGlobal', $header_to_remove);
         return $this;
     }
-    /* pipeMiddleware Globally/config() - GLOBAL */
+
+    /**
+     * Attach a middleware globally to run across all incoming requests.
+     *
+     * @param string $middleware Middleware name or reference key
+     * @return $this
+     */
     public function pipeMiddleware(string $middleware): self
     {
         $middleware = strtolower(trim($middleware));
         $this->c->batch('batchPipeMiddlewareGlobal', $middleware);
         return $this;
     }
-    /* pipeRequestFunction Globally/config() - GLOBAL */
+
+    /**
+     * Register a global request pipeline function to execute before route handling.
+     *
+     * @param string $requestFunction Function name or "group:name"
+     * @return $this
+     */
     public function pipeRequestFunction(string $requestFunction): self
     {
         $requestFunction = strtolower(trim($requestFunction));
         $this->c->batch('batchPipeRequestFunctionGlobal', $requestFunction);
         return $this;
     }
-    /* pipePostResponseFunction Globally/config() - GLOBAL */
+
+    /**
+     * Register a global post-response function to execute after the response is sent.
+     *
+     * @param string $postResponseFunction Function name or "group:name"
+     * @return $this
+     */
     public function pipePostResponseFunction(string $postResponseFunction): self
     {
         $postResponseFunction = strtolower(trim($postResponseFunction));
         $this->c->batch('batchPipePostResponseFunctionGlobal', $postResponseFunction);
         return $this;
     }
-    // Jump to ->routes() from FunkPHP->config()! - from GLOBAL
+
+    /**
+     * Switch context directly from configuration to the route definition builder.
+     *
+     * @return FunkRoutes
+     */
     public function ROUTES(): FunkRoutes
     {
         return $this->c->routes();
     }
 }
-/*
- * Class FunkRoutes() - accessed via FunkPHP()->routes() - contains references to all
- * typical method-based routes such as GET,POST,PUT,DELETE, and PATCH+HEAD!
- * Can also jump back to ->config()
-*/
+/**
+ * Class FunkRoutes
+ *
+ * @method FunkMethod GET()
+ * @method FunkMethod POST()
+ * @method FunkMethod PUT()
+ * @method FunkMethod PATCH()
+ * @method FunkMethod DELETE()
+ * @method FunkMethod CONFIG()
+ */
 class FunkRoutes
 {
     private array $methodInstances = [];
     public function __construct(private C $c) {}
+
+    /**
+     * Switch or initialize routing context for HEAD requests.
+     *
+     * @return FunkMethod
+     */
     public function HEAD(): FunkMethod
     {
         $this->c->FunkPHPFluentAPI[] = "->HEAD()";
         return $this->methodInstances['HEAD'] ??= new FunkMethod($this->c, $this, 'HEAD');
     }
+
+    /**
+     * Switch or initialize routing context for GET requests.
+     *
+     * @return FunkMethod
+     */
     public function GET(): FunkMethod
     {
         $this->c->FunkPHPFluentAPI[] = "->GET()";
         return $this->methodInstances['GET'] ??= new FunkMethod($this->c, $this, 'GET');
     }
+
+    /**
+     * Switch or initialize routing context for POST requests.
+     *
+     * @return FunkMethod
+     */
     public function POST(): FunkMethod
     {
         $this->c->FunkPHPFluentAPI[] = "->POST()";
         return $this->methodInstances['POST'] ??= new FunkMethod($this->c, $this, 'POST');
     }
+
+    /**
+     * Switch or initialize routing context for PUT requests.
+     *
+     * @return FunkMethod
+     */
     public function PUT(): FunkMethod
     {
         $this->c->FunkPHPFluentAPI[] = "->PUT()";
         return $this->methodInstances['PUT'] ??= new FunkMethod($this->c, $this, 'PUT');
     }
+
+    /**
+     * Switch or initialize routing context for PATCH requests.
+     *
+     * @return FunkMethod
+     */
     public function PATCH(): FunkMethod
     {
         $this->c->FunkPHPFluentAPI[] = "->PATCH()";
         return $this->methodInstances['PATCH'] ??= new FunkMethod($this->c, $this, 'PATCH');
     }
+
+    /**
+     * Switch or initialize routing context for DELETE requests.
+     *
+     * @return FunkMethod
+     */
     public function DELETE(): FunkMethod
     {
         $this->c->FunkPHPFluentAPI[] = "->DELETE()";
         return $this->methodInstances['DELETE'] ??= new FunkMethod($this->c, $this, 'DELETE');
     }
+
+    /**
+     * Jump directly back to the global application configuration context.
+     *
+     * @return FunkConfig
+     */
     public function CONFIG(): FunkConfig
     {
         $this->c->FunkPHPFluentAPI[] = "->CONFIG()";
         return $this->c->config();
     }
 }
-/*
- * Class FunkMethod() - accessed via FunkPHP()->routes()-><METHOD>()
-*/
+/**
+ * Class FunkMethod
+ *
+ * Manages HTTP method-level routing defaults, nonces, and fallback handlers.
+ *
+ * @method FunkMethod HEAD()
+ * @method FunkMethod GET()
+ * @method FunkMethod POST()
+ * @method FunkMethod PUT()
+ * @method FunkMethod PATCH()
+ * @method FunkMethod DELETE()
+ */
 class FunkMethod
 {
     public function __construct(
@@ -7501,33 +7797,78 @@ class FunkMethod
         private FunkRoutes $parent,
         private string $method
     ) {}
+
+    /**
+     * Set raw route fallback options for this HTTP method.
+     *
+     * @param array<string, mixed> $options
+     * @return $this
+     */
     public function setNoRouteMatch(array $options): self
     {
         $this->c->batch('batchSetNoRouteMatchMethod', $this->method, $options);
         return $this;
     }
+
+    /**
+     * Render a template page when no route matches this HTTP method.
+     *
+     * @param string $PageFileName
+     * @param int $statusCode Default HTTP status code (404)
+     * @return $this
+     */
     public function setNoRouteMatchPage(string $PageFileName, int $statusCode = 404): self
     {
         $PageFileName = strtolower(trim($PageFileName));
         $this->c->batch('batchSetNoRouteMatchPageMethod', $this->method, $PageFileName, $statusCode);
         return $this;
     }
+
+    /**
+     * Return a JSON payload when no route matches this HTTP method.
+     *
+     * @param array<mixed>|object $data
+     * @param int $statusCode Default HTTP status code (404)
+     * @return $this
+     */
     public function setNoRouteMatchJson(array|object $data, int $statusCode = 404): self
     {
         $this->c->batch('batchSetNoRouteMatchJsonMethod', $this->method, $data, $statusCode);
         return $this;
     }
+
+    /**
+     * Return plain text when no route matches this HTTP method.
+     *
+     * @param string $message
+     * @param int $statusCode Default HTTP status code (404)
+     * @return $this
+     */
     public function setNoRouteMatchText(string $message, int $statusCode = 404): self
     {
         $this->c->batch('batchSetNoRouteMatchTextMethod', $this->method, $message, $statusCode);
         return $this;
     }
+
+    /**
+     * Register a callback function when no route matches this HTTP method.
+     *
+     * @param string $functionName
+     * @return $this
+     */
     public function setNoRouteMatchCallback(string $functionName): self
     {
         $functionName = strtolower(trim($functionName));
         $this->c->batch('batchSetNoRouteMatchCallbackMethod', $this->method, $functionName);
         return $this;
     }
+
+    /**
+     * Set reference nonces for this HTTP method.
+     *
+     * @param string ...$noncesReferenceKeys
+     * @return $this
+     */
     public function setNonces(...$noncesReferenceKeys)
     {
         $this->c->batch('batchSetNoncesMethod', $this->method, ...$noncesReferenceKeys);
@@ -7579,64 +7920,139 @@ class FunkMethod
         $this->c->batch('batchSetCSPMethod', $this->method, $sourceType, ...$sources);
         return $this;
     }
+
+    /**
+     * Configure rate limiting options for this HTTP method.
+     *
+     * @param array<string, mixed> $rateLimitingOptions
+     * @return $this
+     */
     public function setRateLimiting(array $rateLimitingOptions): self
     {
         $this->c->batch('batchSetRateLimitingRoute', $this->method, $rateLimitingOptions);
         return $this;
     }
 
+    /**
+     * Attach a middleware to all routes under this HTTP method.
+     *
+     * @param string $middleware Middleware name or reference key
+     * @return $this
+     */
     public function pipeMiddleware(string $middleware = ''): self
     {
         $middleware = strtolower(trim($middleware));
         $this->c->batch('batchPipeMiddlewareMethod', $this->method, $middleware);
         return $this;
     }
-    /*METHOD: pipeHeader & removeHeader & setParamRule */
+
+    /**
+     * Pipe a response header to be sent for all routes under this HTTP method.
+     *
+     * @param string $header Raw header string (e.g., "X-Frame-Options: DENY")
+     * @return $this
+     */
     public function pipeHeader(string $header): self
     {
         $this->c->batch('batchPipeHeaderMethod', $this->method, $header);
         return $this;
     }
+
+    /**
+     * Remove a previously queued response header for this HTTP method.
+     *
+     * @param string $header_to_remove Case-insensitive header key to remove
+     * @return $this
+     */
     public function removeHeader(string $header_to_remove): self
     {
         $header_to_remove = strtolower(trim($header_to_remove));
         $this->c->batch('batchRemoveHeaderMethod', $this->method, $header_to_remove);
         return $this;
     }
+
+    /**
+     * Define a parameter validation regex rule scoped to this HTTP method.
+     *
+     * @param string $param Parameter name without leading colon (e.g., "id")
+     * @param string $regex Regex pattern (e.g., "/[\d]+/")
+     * @param string|null $defaultParamValueOnRegexMismatch Fallback value if validation fails
+     * @return $this
+     */
     public function setParamRule(string $param, string $regex, string|null $defaultParamValueOnRegexMismatch = null): self
     {
         $param = strtolower(trim($param));
         $this->c->batch('batchSetParamRuleMethod', $this->method, $param, $regex, $defaultParamValueOnRegexMismatch);
         return $this;
     }
-    // Create a new route for the current FunkMethod() and/or
-    // jump back/initialize to HEAD,GET,POST,PUT,PATCH,DELETE
-    // that is under ->routes() | This allows for group and such!
+
+    /**
+     * Initialize a new route definition for the current HTTP method.
+     *
+     * @param string $path Route path pattern (e.g., "/users/:id")
+     * @return FunkRoute
+     */
     public function ROUTE(string $path): FunkRoute
     {
         $this->c->batch('batchNewRoute', $this->method, strtolower(trim($path)));
         return new FunkRoute($this->c, $this, $this->method, strtolower(trim($path)));
     }
+
+    /**
+     * Switch context back to HEAD method builder.
+     *
+     * @return FunkMethod
+     */
     public function HEAD(): FunkMethod
     {
         return $this->parent->HEAD();
     }
+
+    /**
+     * Switch context back to GET method builder.
+     *
+     * @return FunkMethod
+     */
     public function GET(): FunkMethod
     {
         return $this->parent->GET();
     }
+
+    /**
+     * Switch context back to POST method builder.
+     *
+     * @return FunkMethod
+     */
     public function POST(): FunkMethod
     {
         return $this->parent->POST();
     }
+
+    /**
+     * Switch context back to PUT method builder.
+     *
+     * @return FunkMethod
+     */
     public function PUT(): FunkMethod
     {
         return $this->parent->PUT();
     }
+
+    /**
+     * Switch context back to PATCH method builder.
+     *
+     * @return FunkMethod
+     */
     public function PATCH(): FunkMethod
     {
         return $this->parent->PATCH();
     }
+
+    /**
+     * Switch context back to DELETE method builder.
+     *
+     * @return FunkMethod
+     */
     public function DELETE(): FunkMethod
     {
         return $this->parent->DELETE();
@@ -7653,78 +8069,166 @@ class FunkRoute
         private string $method,
         private string $routePath,
     ) {}
-    /*ROUTE: set<VARIANTS> */
+
+    /**
+     * Set a named alias for this specific route.
+     *
+     * @param string $aliasName Unique alias identifier
+     * @return $this
+     */
     public function setAlias(string $aliasName = ''): self
     {
         $aliasName = trim($aliasName);
         $this->c->batch('batchSetAliasRoute', $this->method, $this->routePath, $aliasName);
         return $this;
     }
+
+    /**
+     * Configure rate limiting options specific to this route.
+     *
+     * @param array<string, mixed> $rateLimitingOptions Rate limiting parameters
+     * @return $this
+     */
     public function setRateLimiting(array $rateLimitingOptions): self
     {
         $this->c->batch('batchSetRateLimitingRoute', $this->method, $this->routePath, $rateLimitingOptions);
         return $this;
     }
+
+    /**
+     * Configure response caching options for this route.
+     *
+     * @param array<string, mixed> $cacheOptions Cache strategy configuration
+     * @return $this
+     */
     public function setCache(array $cacheOptions): self
     {
         $this->c->batch('batchSetCacheRoute', $this->method, $this->routePath, $cacheOptions);
         return $this;
     }
+
+    /**
+     * Define nonces required or generated for this route.
+     *
+     * @param string ...$noncesReferenceKeys Reference keys for nonces
+     * @return $this
+     */
     public function setNonces(...$noncesReferenceKeys)
     {
         $this->c->batch('batchSetNoncesRoute', $this->method, $this->routePath, ...$noncesReferenceKeys);
         return $this;
     }
 
+    /**
+     * Attach a middleware specific to this route. They all run in FIFO.
+     *
+     * @param string $middleware Middleware function or group name
+     * @return $this
+     */
     public function pipeMiddleware(string $middleware = ''): self
     {
         $middleware = strtolower(trim($middleware));
         $this->c->batch('batchPipeMiddlewareRoute', $this->method, $this->routePath, $middleware);
         return $this;
     }
+
+    /**
+     * Pipe a handler function for this route. They all run in FIFO.
+     *
+     * @param string $fileNameAndFunctionName Function or file reference key
+     * @return $this
+     */
     public function pipeFunction(string $fileNameAndFunctionName = ''): self
     {
         $fileNameAndFunctionName = strtolower(trim($fileNameAndFunctionName));
         $this->c->batch('batchPipeFunctionRoute', $this->method, $this->routePath, $fileNameAndFunctionName);
         return $this;
     }
+
+    /**
+     * Specify ONE Response transformation or content type format for this route.
+     *
+     * @param string $typeOfResponse Response format identifier (e.g., "json", "html")
+     * @return $this
+     */
     public function pipeResponse(string $typeOfResponse): self
     {
         $typeOfResponse = trim($typeOfResponse);
         $this->c->batch('batchPipeResponseRoute', $this->method, $this->routePath, $typeOfResponse);
         return $this;
     }
+
+    /**
+     * Pipe an raw SQL execution handler to this route.
+     *
+     * @param string $sqlFileFunction SQL execution handler function
+     * @return $this
+     */
     public function pipeSQL(string $sqlFileFunction): self
     {
         $sqlFileFunction = strtolower(trim($sqlFileFunction));
         $this->c->batch('batchPipeSQLRoute', $this->method, $this->routePath, $sqlFileFunction);
         return $this;
     }
+
+    /**
+     * Pipe a database query handler function to this route.
+     *
+     * @param string $queryFileFunction Query handler function
+     * @return $this
+     */
     public function pipeQuery(string $queryFileFunction): self
     {
         $queryFileFunction = strtolower(trim($queryFileFunction));
         $this->c->batch('batchPipeQueryRoute', $this->method, $this->routePath, $queryFileFunction);
         return $this;
     }
+
+    /**
+     * Pipe a request validation handler function to this route.
+     *
+     * @param string $validationFileFunction Validation handler function
+     * @return $this
+     */
     public function pipeValidation(string $validationFileFunction): self
     {
         $validationFileFunction = strtolower(trim($validationFileFunction));
         $this->c->batch('batchPipeValidationRoute', $this->method, $this->routePath, $validationFileFunction);
         return $this;
     }
-    /*ROUTE: pipe<COMPILED_VERSIONS_OF:SQL,Query&Validation>*/
+
+    /**
+     * Pipe a compiled pre-optimized SQL handler to this route.
+     *
+     * @param string $compiledSQLFileFunction Compiled SQL handler function
+     * @return $this
+     */
     public function pipeCompiledSQL(string $compiledSQLFileFunction)
     {
         $compiledSQLFileFunction = strtolower(trim($compiledSQLFileFunction));
         $this->c->batch('batchPipeCompiledSQLRoute', $this->method, $this->routePath, $compiledSQLFileFunction);
         return $this;
     }
+
+    /**
+     * Pipe a compiled pre-optimized database query handler to this route.
+     *
+     * @param string $compiledQueryFileFunction Compiled query handler function
+     * @return $this
+     */
     public function pipeCompiledQuery(string $compiledQueryFileFunction)
     {
         $compiledQueryFileFunction = strtolower(trim($compiledQueryFileFunction));
         $this->c->batch('batchPipeCompiledQueryRoute', $this->method, $this->routePath, $compiledQueryFileFunction);
         return $this;
     }
+
+    /**
+     * Pipe a compiled pre-optimized validation handler to this route.
+     *
+     * @param string $compiledValidationFileFunction Compiled validation handler function
+     * @return $this
+     */
     public function pipeCompiledValidation(string $compiledValidationFileFunction)
     {
         $compiledValidationFileFunction = strtolower(trim($compiledValidationFileFunction));
@@ -7732,17 +8236,38 @@ class FunkRoute
         return $this;
     }
 
-    /* setExcludeMiddlewares & setExcludeHeaders */
+    /**
+     * Exclude specific global/method middlewares from running on this route.
+     *
+     * @param string ...$middlewareToExclude Middleware names or keys to bypass
+     * @return $this
+     */
     public function setExcludeMiddlewares(string ...$middlewareToExclude): self
     {
         $this->c->batch('batchExcludeMiddlewaresRoute', $this->method, $this->routePath, ...$middlewareToExclude);
         return $this;
     }
+
+    /**
+     * Exclude specific global/method response headers from being sent on this route.
+     *
+     * @param string ...$headersToExclude Header keys to bypass
+     * @return $this
+     */
     public function setExcludeHeaders(string ...$headersToExclude): self
     {
         $this->c->batch('batchExcludeHeadersRoute', $this->method, $this->routePath, ...$headersToExclude);
         return $this;
     }
+
+    /**
+     * Define a parameter validation regex rule scoped exclusively to this route.
+     *
+     * @param string $param Parameter name without leading colon (e.g., "id")
+     * @param string $regex Regex pattern (e.g., "/[\d]+/")
+     * @param string|null $defaultParamValueOnRegexMismatch Fallback value if validation fails
+     * @return $this
+     */
     public function setParamRule(string $param, string $regex, string|null $defaultParamValueOnRegexMismatch = null): self
     {
         $param = strtolower(trim($param));
@@ -7797,44 +8322,96 @@ class FunkRoute
         return $this;
     }
 
-    /*ROUTE: pipeHeader & removeHeader */
+    /**
+     * Pipe a response header to be sent exclusively for this route.
+     *
+     * @param string $header Raw header string (e.g., "Cache-Control: no-store")
+     * @return $this
+     */
     public function pipeHeader(string $header): self
     {
         $this->c->batch('batchPipeHeaderRoute', $this->method, $this->routePath, $header);
         return $this;
     }
+
+    /**
+     * Remove a previously queued header for this specific route.
+     *
+     * @param string $header_to_remove Case-insensitive header key to remove
+     * @return $this
+     */
     public function removeHeader(string $header_to_remove): self
     {
         $this->c->batch('batchRemoveHeaderRoute', $this->method, $this->routePath, $header_to_remove);
         return $this;
     }
 
-    // Create a new Route under currently navigated <METHOD>() and/or
-    // jump to any other available <METHOD>() as seen below!
+    /**
+     * Initialize another route under the current HTTP method context.
+     *
+     * @param string $path Route path pattern (e.g., "/posts/:slug")
+     * @return FunkRoute
+     */
     public function ROUTE(string $path): FunkRoute
     {
         return $this->parentMethod->ROUTE($path);
     }
+
+    /**
+     * Switch context back to HEAD method builder.
+     *
+     * @return FunkMethod
+     */
     public function HEAD(): FunkMethod
     {
         return $this->parentMethod->HEAD();
     }
+
+    /**
+     * Switch context back to GET method builder.
+     *
+     * @return FunkMethod
+     */
     public function GET(): FunkMethod
     {
         return $this->parentMethod->GET();
     }
+
+    /**
+     * Switch context back to POST method builder.
+     *
+     * @return FunkMethod
+     */
     public function POST(): FunkMethod
     {
         return $this->parentMethod->POST();
     }
+
+    /**
+     * Switch context back to PUT method builder.
+     *
+     * @return FunkMethod
+     */
     public function PUT(): FunkMethod
     {
         return $this->parentMethod->PUT();
     }
+
+    /**
+     * Switch context back to PATCH method builder.
+     *
+     * @return FunkMethod
+     */
     public function PATCH(): FunkMethod
     {
         return $this->parentMethod->PATCH();
     }
+
+    /**
+     * Switch context back to DELETE method builder.
+     *
+     * @return FunkMethod
+     */
     public function DELETE(): FunkMethod
     {
         return $this->parentMethod->DELETE();
