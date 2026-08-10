@@ -2129,6 +2129,11 @@ class C
         'data' => ['query' => [], 'sql' => [], 'validation' => []],
         // This is the $c Variable that is then assigned automatically globally.
         'c' => [
+            'pipeline' => [
+                'request' => [],
+                'post_response' => []
+            ],
+            'ROUTES' => [],
             'FUNKPHP_ONLINE' => false,
             'FUNKPHP_USE_HTTPS' => false,
             "FUNKPHP_USE_VENDOR" => true,
@@ -2168,11 +2173,7 @@ class C
                     'SESSION_SAMESITE' => 'Lax',
                 ]
             ],
-            'pipeline' => [
-                'request' => [],
-                'post_response' => []
-            ],
-            'ROUTES' => [],
+
             'shared' => [],
             'classes' => ['vendor' => [], 'user' => []],
             'credentials' => null,
