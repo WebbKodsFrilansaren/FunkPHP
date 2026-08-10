@@ -1,8 +1,8 @@
 <?php
 
-namespace funkphp\pipes\request\pl_run_ini_sets;
+namespace funkphp\pipes\request\run_ini_sets;
 
-function pl_run_ini_sets(&$c)
+function run_ini_sets(&$c)
 {
     $iniSets = $c['INI_SETS'] ?? [];
     foreach ($iniSets as $key => $value) {

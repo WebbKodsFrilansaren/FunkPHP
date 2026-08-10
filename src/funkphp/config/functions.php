@@ -21,10 +21,50 @@
 //
 // Besides all that above, name your function(s) anything you want!
 
-function testar(&$c)
+function testar1(&$c)
 {
     $yas = "Yas";
     $yas = strtolower($yas);
-    eval(funk_use_log($c, "test"));
-    base64_decode("a");
+}
+
+function testar2(&$c, $errNo, $errStr, $errFile, $errLine)
+{
+    $yas = "Yas";
+    $yas = strtolower($yas);
+}
+
+function testar3(&$c, \Throwable $e)
+{
+    $yas = "Yas";
+    $yas = strtolower($yas);
+}
+
+function testar4(&$c)
+{
+    $yas = "Yas";
+    $yas = strtolower($yas);
+}
+
+function testar5(&$c)
+{
+    $yas = "Yas";
+    $yas = strtolower($yas);
+}
+
+function testar6(&$c)
+{
+    $yas = "Yas";
+    $yas = strtolower($yas);
+}
+
+function testar7(&$c)
+{
+    $yas = "Yas";
+    $yas = strtolower($yas);
+}
+
+function testar8(&$c)
+{
+    $yas = "Yas";
+    $yas = strtolower($yas);
 }

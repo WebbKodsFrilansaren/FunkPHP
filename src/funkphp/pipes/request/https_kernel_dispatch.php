@@ -1,8 +1,8 @@
 <?php
 
-namespace funkphp\pipeline\request\pl_https_kernel_dispatch;
+namespace funkphp\pipes\request\https_kernel_dispatch;
 
-function pl_https_kernel_dispatch(&$c)
+function https_kernel_dispatch(&$c)
 {
     try {
         // When FUNKPHP_USE_HTTPS is set to true, we redirect to HTTPS if the request is not already HTTPS

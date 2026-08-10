@@ -19,13 +19,12 @@ require_once __DIR__ . '/CONSTANTS.php';
 return array(
   'FUNKPHP_ONLINE' => false,
   'FUNKPHP_USE_HTTPS' => false,
-  'FUNKPHP_USE_PREPARE_URI' => false,
   "FUNKPHP_USE_VENDOR" => true,
   "FUNKPHP_CUSTOM_EXCEPTION_HANDLER" => null,
   "FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION" => null,
   "FUNKPHP_CUSTOM_ERROR_HANDLER" => null,
   "FUNKPHP_CUSTOM_URI_NORMALIZER" => null,
-  "FUNKPHP_CUSTOM_HTTPS_KERNEL_DISPATCH_PIPELINE_REQUEST_FUNCTION" => null,
+  "FUNKPHP_CUSTOM_HTTPS_KERNEL" => null,
   'INI_SETS' =>
   array(
     'session.cache_limiter' => 'public',

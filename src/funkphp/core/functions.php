@@ -1,15 +1,49 @@
 <?php
 
 /**
- * -----------------
- * FUNKPHP FUNCTIONS
- * -----------------
+ * -----------------------------
+ * FUNKPHP CONSTANTS & FUNCTIONS
+ * -----------------------------
  * DO NOT MANUALLY EDIT THIS FILE.
  * If you are currently editing this file to see if FunkCLI will "self-heal",
  * it won't. This is a micro-framework, not your therapist. If you alter this
  * source of truth, your app will most likely crash, and your peer will know
  * you do not understand how caching and/or compiled files work.
  **/
+// Singleton Object Constant that indicates "no value"!
+define('FUNKPHP_NO_VALUE', new stdClass());
+define('FUNKPHP_IS_LOCAL', true);
+define('FUNKPHP_ALLOW_INSTANCE_OVERWRITE', true); //
+//^Change to "true" to allow overwriting existing instances!
+// Related to  "'INSTANCES' => ['vendor' => [], 'classes' => []]," in "config.php" file!
+
+// Constants only relevant for Localhost, so do not include this in Build/Deploy MegaFile!
+define('NAMESPACE_PAGES', 'funkphp\\pages\\');
+define('NAMESPACE_PIPELINE_REQUEST', 'funkphp\\pipes\\request\\');
+define('NAMESPACE_PIPELINE_POST_RESPONSE', 'funkphp\\pipes\\post_response\\');
+define('NAMESPACE_PIPELINE_MIDDLEWARES', 'funkphp\\pipes\\middlewares\\');
+define('NAMESPACE_PIPELINE_ROUTES', 'funkphp\\pipes\\routes\\');
+define('NAMESPACE_DATA_QUERY', 'funkphp\\data\\sql\\');
+define('NAMESPACE_DATA_SQL', 'funkphp\\data\\sql\\');
+define('NAMESPACE_DATA_VALIDATION', 'funkphp\\data\\validation\\');
+
+// Constants for Localhost vs Online Usage
+define('FUNKPHP_USE_VENDOR', true); // Change to "false" if you intend to not use any Composer packages and want to remove the Composer autoloader from "FunkPHP.php" for better performance!
+define('ROOT_FOLDER', dirname(__DIR__, 1)); // src/funkphp/
+define('ROOT_CORE', ROOT_FOLDER . '/core'); // src/funkphp/core
+define('ROOT_CONFIG', ROOT_FOLDER . '/config'); // src/funkphp/config
+define('ROOT_MIDDLEWARES', ROOT_FOLDER . '/pipeline/middlewares'); // src/funkphp/FunkPHP
+define('ROOT_PAGES', ROOT_FOLDER . '/pages'); // src/funkphp/pages
+define('ROOT_PAGES_COMPILED', ROOT_FOLDER . '/pages/compiled'); // src/funkphp/pages/compiled
+define('ROOT_PAGES_ERRORS', ROOT_FOLDER . '/pages/compiled/[errors]'); // src/funkphp/pages/compiled/[errors]
+define('ROOT_PIPELINE', ROOT_FOLDER . '/pipes'); // src/funkphp/pipes
+define('ROOT_PIPELINE_REQUEST', ROOT_FOLDER . '/pipes/request'); // src/funkphp/pipes/request
+define('ROOT_PIPELINE_POST_RESPONSE', ROOT_FOLDER . '/pipes/post_response'); // src/funkphp/pipes/post-response
+define('ROOT_ROUTES', ROOT_FOLDER . '/pipes/routes'); // src/funkphp/pipes/routes
+define('ROOT_QUERY', ROOT_FOLDER . '/data/query'); // src/funkphp/data/query
+define('ROOT_SQL', ROOT_FOLDER . '/data/sql'); // src/funkphp/data/sql
+define('ROOT_VALIDATION', ROOT_FOLDER . '/data/validation'); // src/funkphp/data/validation
+
 /***  HELPER-RELATED FUNCTIONS FOR FunkPHP ***/
 /**
  * Enhanced Web & CLI dumper for FunkPHP.
@@ -2045,7 +2079,6 @@ class C
     // but developer will be known about possible issues such as dangerous
     // function calls, early exists, evals(), and so on. But they are never stopped
     // unless configured so (if $this->NoWarningsAllowed is set to TRUE).
-
     private array $errors = [];
     private array $WARNINGS = [];
     private array $compileFlags = [];
@@ -2090,7 +2123,6 @@ class C
         'c' => [
             'FUNKPHP_ONLINE' => false,
             'FUNKPHP_USE_HTTPS' => false,
-            'FUNKPHP_USE_PREPARE_URI' => true,
             "FUNKPHP_USE_VENDOR" => true,
             "FUNKPHP_CUSTOM_EXCEPTION_HANDLER" => null,
             "FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION" => null,
@@ -2195,8 +2227,9 @@ class C
     private ?FunkConfig $configScope = null;
     private ?FunkRoutes $routesScope = null;
     // Default booleans for compile(), run()
-    private bool $FunkPHPcompiled = false;
-    private bool $FunkPHPbooted = false;
+    private bool $FUNKPHP_COMPILED = false;
+    private bool $FUNKPHP_COMPILED_SUCCESS = false;
+    private bool $FUNKPHP_RAN = false;
     private array $debug = ['ON_OR_OFF' => false, 'SHOW_VALID_BATCHES' => false, 'SHOW_INVALID_BATCHES' => false, 'SHOW_CACHED' => false, 'SHOW_COMPILED' => false, 'SHOW_ALL' => false,];
 
     // Helper function to build the $FunkPHPFluentAPI
@@ -2287,7 +2320,6 @@ class C
         }
         return array_values(array_unique($cleaned));
     }
-
     /* !!! SMALL HELPER FUNCTIONS FOR $this->cached and all File I/O !!! */
     // ROOT_FOLDER constant must exist as string ending with `src/funkphp`
     private function rootFolderExistOrSetError(): bool
@@ -2298,7 +2330,7 @@ class C
             || trim(ROOT_FOLDER) === ''
             || !str_ends_with(ROOT_FOLDER, 'src/funkphp')
         ) {
-            $err = "[Class C]: Expected `ROOT_FOLDER` Constant Not Defined or is not ending with `src/funkphp` as a Non-Empty String. It is supposed to be defined in `/src/funkphp/core/CONSTANTS.php`. Verify the integrity of that File.";
+            $err = "`[Class C->rootFolderExistOrSetError() in /src/funkphp/core/functions.php]:` Expected `ROOT_FOLDER` Constant Not Defined or is not ending with `src/funkphp` as a Non-Empty String. It is supposed to be defined in `/src/funkphp/core/CONSTANTS.php`. Verify the integrity of that File.";
             $this->errors[] = ['type' => 'internal', 'err' => $err];
             return false;
         }
@@ -3680,6 +3712,7 @@ class C
             'InvalidGroupORFunctionName'                            => "Invalid Group|Function Name in {$optionalCtx}: must EITHER start with `group:` and then follow with these Valid `[a-z_][a-z0-9_]*` characters, OR it must a `Non-Empty String (no trailing spaces)` all `lowercased` starting with `[_a-z]` and then only use the following characters: `[_a-z0-9]` while it also does NOT start with `funk_` OR `cli_`.",
             'InvalidGroupORFileFunctionNames' => "Invalid Group|File+Function Name(s) in {$optionalCtx}: must EITHER start with `group:` and then follow with these Valid `[a-z_][a-z0-9_]*` characters, OR it must be a Valid `FileName.FunctionName` using `[a-z_][a-z0-9_]*` characters only for `Filename`, then a Single Dot (`.`), followed by these `[a-z_][a-z0-9_]*` characters again for `Function Name` (what PHP considers a `Valid Declared Function Name`). VALID: `users.by_id`, `_users._by_id`, OR `users.all`. NOT VALID: `1users.by_id`, `us-ers.by_id`, `users.by-id`, OR `users.1by_id`.",
             'InvalidFunctionName'                         => "Invalid Function Name in {$optionalCtx}: must be a `Non-Empty String (no trailing spaces)` all `lowercased` starting with `[_a-z]` and then only use the following characters: `[_a-z0-9]` while it also does NOT start with `funk_` OR `cli_`.",
+            'InvalidFileAndFunctionName'                         => "Invalid File & Function Name in {$optionalCtx}: must be a `Non-Empty String (no trailing spaces) all lowercased` with a Single Dot (`.`) between the `Filename` and `Function Name`. Both must start with `[a-z_]` and then only use `[a-z0-9_]` characters while NOT starting with `funk_` OR `cli_`.",
             'InvalidMiddlewareFunctionName' => "Invalid Middleware Function Name in {$optionalCtx}: must be a `Non-Empty All Lowercased String (no trailing spaces)` that only uses `[a-z_][a-z0-9_]+` characters in that order while it does NOT start with `cli_` OR `funk_`.",
             'InvalidGroupName'                                => "Invalid Group Name Value in {$optionalCtx}: must be a `Non-Empty String (no trailing spaces)` all `lowercased` that does NOT start with `cli_` OR `funk_`.",
             'InvalidResponseType' => "Invalid Response Type in {$optionalCtx}: Choose between: `page:`, `json:`, `callback:`, OR `text:` and then follow up with the `pageFileName` (for page:), OR `SingleArrayKeyDepth` - only use `[a-zA-Z-_.]` characters - to get `\$c['d']['SingleArrayKeyDepth']` (if 'json:SingleArrayKeyDepth') for where `Stored JSON Data` should be returned from (for json:), OR `userDefinedFunctionName in /src/funkphp/config/functions.php` that you have defined to use as a callback (for callback:), OR the plain text message (for text:). `pipeResponse() automatically completes it with exit()` and then run any optionally configured `Post-Response`.",
@@ -3722,20 +3755,22 @@ class C
             'NoNonCompiledPageNotFound' => "Provided Page Filename in {$optionalCtx} was NOT found in `/src/funkphp/pages/`",
             'NoPageAtAllFound' => "Provided Page Filename in {$optionalCtx} was NOT found in `/src/funkphp/pages/` and also NOT found in `/src/funkphp/pages/compiled/`",
             'GroupPipeResponseNotSupported' => "Unsupported `'group:' Syntax` in {$optionalCtx}: cannot use `group:` in `->pipeResponse()` as you are meant to only use `->pipeResponse()` once for each Route.",
+            'RouteHasNoParams' => "No Params for Route in {$optionalCtx} so `->setParamRule()` cannot be used. Add Valid Params to the Route first via `/:param-segment` parts.",
+            'RouteHasNotChosenParam' => "Provided Param for Route in {$optionalCtx} does NOT exist so it cannot be used in `->setParamRule()`.",
 
             // Call Order & Duplicate|Conflict Validation Errors
-            'DuplicateNonceKeyName'           => "Duplicate Nonce Key Name in {$optionalCtx}. Review/change the already Valid Nonce Key Name ",
-            'DuplicateRouteAliasName'           => "Duplicate Route Alias Name in {$optionalCtx}. Review/change the already Valid Configuration first defined in ",
-            'DuplicateRouteConflict' => "Duplicate Route Conflict in Valid Formatted Route in {$optionalCtx} ",
-            'DuplicateCallInvalid'              => "Duplicate Call to {$optionalCtx}. Review the already Invalid Configuration.",
-            'DuplicateCallValid'                => "Duplicate Call to {$optionalCtx}. Review/change the already Valid Configuration.",
-            'DuplicateParamGlobal' => "Duplicate Global Param Rule in {$optionalCtx}. Review/change the already Valid Configuration.",
-            'DuplicateParamMethod' => "Duplicate Method Param Rule in {$optionalCtx}. Review/change the already Valid Configuration.",
-            'DuplicateParamRoute' => "Duplicate Route Param Rule in {$optionalCtx}. Review/change the already Valid Configuration.",
-            'ConflictNoneSourceInCSP' => "Invalid CSP Configuration in {$optionalCtx}: Source `'none'` must always be used isolated for a given CSP Directive. More than one Source is used.",
-            'ConflictRouteParam' => "Route Parameter in Conflict in {$optionalCtx}:",
-            'ConflictRemovePipedHeader' => "Conflicting Calls in {$optionalCtx}: cannot set `Remove a Header` that was first configured as `Pipe a Header`.",
-            'ConflictPipeRemovedHeader' => "Conflicting Calls in {$optionalCtx}: cannot set `Pipe a Header` that was first configured as `Remove a Header` .",
+            'DuplicateNonceKeyName'           => "`Duplicate Nonce Key Name` in {$optionalCtx}. Review/change the already `Valid` Nonce Key Name ",
+            'DuplicateRouteAliasName'           => "Duplicate Route Alias Name` in {$optionalCtx}. Review/change the already `Valid` Configuration first defined in ",
+            'DuplicateRouteConflict' => "`Duplicate Route Conflict` in Valid Formatted Route in {$optionalCtx} ",
+            'DuplicateCallInvalid'              => "`Duplicate Call` to {$optionalCtx} with either `Exact Values` OR it can Only be Called Once. Review the already `Invalid` Configuration which is before this Error in the `API Array`.",
+            'DuplicateCallValid'                => "`Duplicate Call` to {$optionalCtx} with either `Exact Values` OR it can Only be Called Once. Review/change the already `Valid` Configuration which is before this Error in the `API Array`.",
+            'DuplicateParamGlobal' => "`Duplicate Global Param Rule` in {$optionalCtx}. Review/change the already `Valid` Configuration which is before this Error in the `API Array`.",
+            'DuplicateParamMethod' => "`Duplicate Method Param Rule` in {$optionalCtx}. Review/change the already `Valid` Configuration which is before this Error in the `API Array`.",
+            'DuplicateParamRoute' => "`Duplicate Route Param Rule` in {$optionalCtx}. Review/change the already `Valid` Configuration which is before this Error in the `API Array`.",
+            'ConflictNoneSourceInCSP' => "`Invalid` CSP Configuration in {$optionalCtx}: Source `'none'` must always be used isolated for a given CSP Directive. More than one Source is used.",
+            'ConflictRouteParam' => "`Route Parameter in Conflict` in {$optionalCtx}:",
+            'ConflictRemovePipedHeader' => "`Conflicting Calls` in {$optionalCtx}: cannot set `Remove a Header` that was first configured as `Pipe a Header`.",
+            'ConflictPipeRemovedHeader' => "`Conflicting Calls` in {$optionalCtx}: cannot set `Pipe a Header` that was first configured as `Remove a Header` .",
             'ConflictingExcludeHeadersWithAlreadyPipedHeader' => "Conflicting Calls in {$optionalCtx}: cannot reference the same Header(s) in `->setExcludeHeaders()` and `->pipeHeader()` in the same Route. Headers to Exclude should target Piped Headers in the same `<METHOD>()` and/or `CONFIG()`.",
             'ConflictingPipeHeaderWithAlreadyExcludeHeaders' => "Conflicting Calls in {$optionalCtx}: cannot reference the same Header(s) in `->pipeHeader()` and `->setExcludeHeaders()` in the same Route. Headers to Exclude should target Piped Headers in the same `<METHOD>()` and/or `CONFIG()`.",
             'ConflictingConfiguration'           => "Valid Configuration (`{$optionalCtx}`) is already set and CANNOT be overridden, only changed manually.",
@@ -3757,7 +3792,7 @@ class C
      * Choose Error Type based on scope (global, method, route) and optional method and route when applicable.
      *
      * @param string $errMsg
-     * @param 'Global-setDebug'|'Route-pipeCompiledQuery'|'Route-pipeCompiledSQL'|'Route-pipeCompiledValidation'|'Global-setCompileFlag'|'Global-setGroupPipeUserdefined'|'Global-setGroupPipeRequest'|'Global-setGroupPipePostResponse'|'Global-setGroupPipeRoute'|'Global-setGroupPipeMiddlewares'|'Global-setINI_SET'|'Global-setNonces'|'Global-setCSP'|'Global-setSRIInternal'|'Global-setSRIExternal'|'Global-setNoRouteMatchPage'|'Global-setNoRouteMatchJSON'|'Global-setNoRouteMatchText'|'Global-setNoRouteMatchCallback'|'Global-setDefaultRegisteredShutdownHandler'|'Global-setDefaultExceptionHandler'|'Global-setDefaultErrorHandler'|'Global-setDefaultURI_NormalizerHandler'|'Global-setDefaultKernelHandler'|'Global-setBaseURLLocal'|'Global-setBaseURLOnline'|'Global-setBaseURLHost'|'Global-setBaseURLUri'|'Global-setSessionDriver'|'Global-setSessionCookieOptions'|'Global-setSessionCookieName'|'Global-setSessionCookieLifetime'|'Global-setSessionCookiePath'|'Global-setSessionCookieDomain'|'Global-setSessionCookieSecure'|'Global-setSessionCookieHTTPOnly'|'Global-setSessionCookieSameSite'|'Global-setUseFunkPHPOnline'|'Global-setUseHTTPS'|'Global-setUseVendor'|'Global-setParamRule'|'Global-pipeHeader'|'Global-removeHeader'|'Global-pipeMiddleware'|'Global-pipeRequestFunction'|'Global-pipePostResponseFunction'|'Method-setNoRouteMatch'|'Method-setNoRouteMatchPage'|'Method-setNoRouteMatchJson'|'Method-setNoRouteMatchText'|'Method-setNoRouteMatchCallback'|'Method-setNonces'|'Method-setCSP'|'Method-setRateLimiting'|'Method-pipeMiddleware'|'Method-pipeHeader'|'Method-removeHeader'|'Method-setParamRule'|'Method-route'|'Route-setAlias'|'Route-setRateLimiting'|'Route-setCache'|'Route-setNonces'|'Route-pipeMiddleware'|'Route-pipeFunction'|'Route-pipeResponse'|'Route-pipeSQL'|'Route-pipeQuery'|'Route-pipeValidation'|'Route-setExcludeMiddlewares'|'Route-setExcludeHeaders'|'Route-setParamRule'|'Route-setCSP'|'Route-pipeHeader'|'Route-removeHeader'|'Route-route' $errType
+     * @param 'Internal'|'Global-setDebug'|'Route-pipeCompiledQuery'|'Route-pipeCompiledSQL'|'Route-pipeCompiledValidation'|'Global-setCompileFlag'|'Global-setGroupPipeUserdefined'|'Global-setGroupPipeRequest'|'Global-setGroupPipePostResponse'|'Global-setGroupPipeRoute'|'Global-setGroupPipeMiddlewares'|'Global-setINI_SET'|'Global-setNonces'|'Global-setCSP'|'Global-setSRIInternal'|'Global-setSRIExternal'|'Global-setNoRouteMatchPage'|'Global-setNoRouteMatchJSON'|'Global-setNoRouteMatchText'|'Global-setNoRouteMatchCallback'|'Global-setDefaultRegisteredShutdownHandler'|'Global-setDefaultExceptionHandler'|'Global-setDefaultErrorHandler'|'Global-setDefaultURI_NormalizerHandler'|'Global-setDefaultKernelHandler'|'Global-setBaseURLLocal'|'Global-setBaseURLOnline'|'Global-setBaseURLHost'|'Global-setBaseURLUri'|'Global-setSessionDriver'|'Global-setSessionCookieOptions'|'Global-setSessionCookieName'|'Global-setSessionCookieLifetime'|'Global-setSessionCookiePath'|'Global-setSessionCookieDomain'|'Global-setSessionCookieSecure'|'Global-setSessionCookieHTTPOnly'|'Global-setSessionCookieSameSite'|'Global-setUseFunkPHPOnline'|'Global-setUseHTTPS'|'Global-setUseVendor'|'Global-setParamRule'|'Global-pipeHeader'|'Global-removeHeader'|'Global-pipeMiddleware'|'Global-pipeRequestFunction'|'Global-pipePostResponseFunction'|'Method-setNoRouteMatch'|'Method-setNoRouteMatchPage'|'Method-setNoRouteMatchJson'|'Method-setNoRouteMatchText'|'Method-setNoRouteMatchCallback'|'Method-setNonces'|'Method-setCSP'|'Method-setRateLimiting'|'Method-pipeMiddleware'|'Method-pipeHeader'|'Method-removeHeader'|'Method-setParamRule'|'Method-route'|'Route-setAlias'|'Route-setRateLimiting'|'Route-setCache'|'Route-setNonces'|'Route-pipeMiddleware'|'Route-pipeFunction'|'Route-pipeResponse'|'Route-pipeSQL'|'Route-pipeQuery'|'Route-pipeValidation'|'Route-setExcludeMiddlewares'|'Route-setExcludeHeaders'|'Route-setParamRule'|'Route-setCSP'|'Route-pipeHeader'|'Route-removeHeader'|'Route-route' $errType
      * @param 'GET'|'POST'|'PUT'|'PATCH'|'DELETE'|'HEAD'|null $method
      * @param string|null $route
      *
@@ -3870,9 +3905,13 @@ class C
         $this->errors[$nextErrIndex] = ['err' => $errMsg, 'type' => $errType, 'method' => $method, 'route' => $route];
     }
     // Join array with wrapped `` and comma
-    private function joinArray(array $array = [])
+    private function joinArray(array $array = [], bool $USE_ARRAY_KEYS = false)
     {
-        return '`' . join('`, `', $array) . '`';
+        if ($USE_ARRAY_KEYS) {
+            return '`' . join('`, `', array_keys($array)) . '`';
+        } else {
+            return '`' . join('`, `', $array) . '`';
+        }
     }
 
     // ->config()
@@ -3913,7 +3952,7 @@ class C
     {
         [$ctx, $ctxVals] = $this->setCtx('setCompileFlag', "CONFIG()", $flag);
         $validFlags = [
-            'NO_WARNINGS_ALLOWED',
+            'NO_WARNINGS_ALLOWED', // $this->WARNINGS must be 0 after compile() is done or it is considered a failure and discarded
             'COMPILE_ROUTES_SORTED_ASC',
             'COMPILE_ROUTES_SORTED_DESC',
             'ONLY_RETURN_COMPILED_PAGES', // pipeResponse() config will ONLY look for compiled pages and error out if not found during config
@@ -3929,9 +3968,10 @@ class C
         }
         if (!is_string($flag) || trim($flag) === '' || !in_array($flag, $validFlags)) {
             $this->setErr($this->getErr('InvalidCompilerFlag', $ctxVals) . $this->joinArray($validFlags), 'Global-setCompileFlag');
-            $this->invalidBatches['config']['compileFlags'] = $flag;
+            $this->invalidBatches['config']['compileFlags'][$flag] = true;
             return;
         }
+        $this->validBatches['config']['compileFlags'][$flag] = true;
         $this->compileFlags[$flag] = true;
     }
 
@@ -4405,9 +4445,9 @@ class C
     }
 
     /* setBASEURL<VARIANTS> Global */
-    private function batchSetDefaultBaseURLLocalGlobal(string $httpsPath)
+    private function batchSetDefaultBaseURLLocalGlobal(string $httpPath)
     {
-        [$ctx, $ctxVals] = $this->setCtx('setBaseURLLocal', "CONFIG()", $httpsPath);
+        [$ctx, $ctxVals] = $this->setCtx('setBaseURLLocal', "CONFIG()", $httpPath);
         if (isset($this->invalidBatches['config']['BASEURL_LOCAL'])) {
             $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setBaseURLLocal');
             return;
@@ -4417,14 +4457,14 @@ class C
             return;
         }
         if (
-            !is_string($httpsPath) || trim($httpsPath) === ''
-            || !preg_match('/^http:\/\//', $httpsPath)
+            !is_string($httpPath) || trim($httpPath) === ''
+            || !preg_match('/^http:\/\//', $httpPath)
         ) {
             $this->setErr($this->getErr('NonEmptyAllLowercasedStringSTARTWithHTTP', $ctxVals), 'Global-setBaseURLLocal');
-            $this->invalidBatches['config']['BASEURL_LOCAL'] = $httpsPath;
+            $this->invalidBatches['config']['BASEURL_LOCAL'] = $httpPath;
             return;
         }
-        $this->validBatches['config']['BASEURL_LOCAL'] = $httpsPath;
+        $this->validBatches['config']['BASEURL_LOCAL'] = $httpPath;
     }
     private function batchSetDefaultBaseURLOnlineGlobal(string $httpsPath)
     {
@@ -4816,7 +4856,7 @@ class C
         }
         foreach ($userDefFNS as $FN) {
             if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($FN)) {
-                $this->setErr($this->getErr('InvalidFunctionName', $ctxVals), 'Global-setGroupPipeUserdefined');
+                $this->setErr($this->getErr('InvalidFunctionName', $ctxVals) . " Review the Invalid `{$FN}`.", 'Global-setGroupPipeUserdefined');
                 $this->invalidBatches['config']['GROUPED_PIPE_USER_DEFINED'][$groupName] = [...$userDefFNS];
                 return;
             }
@@ -4875,7 +4915,7 @@ class C
         }
         foreach ($RequestFNs as $FN) {
             if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($FN)) {
-                $this->setErr($this->getErr('InvalidFunctionName', $ctxVals), 'Global-setGroupPipeRequest');
+                $this->setErr($this->getErr('InvalidFunctionName', $ctxVals) . " Review the Invalid `{$FN}`.", 'Global-setGroupPipeRequest');
                 $this->invalidBatches['config']['GROUPED_PIPE_REQUEST'][$groupName] = [...$RequestFNs];
                 return;
             }
@@ -4930,7 +4970,7 @@ class C
         }
         foreach ($PostResponseFNs as $FN) {
             if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($FN)) {
-                $this->setErr($this->getErr('InvalidFunctionName', $ctxVals), 'Global-setGroupPipePostResponse');
+                $this->setErr($this->getErr('InvalidFunctionName', $ctxVals) . " Review the Invalid `{$FN}`.", 'Global-setGroupPipePostResponse');
                 $this->invalidBatches['config']['GROUPED_PIPE_POST_RESPONSE'][$groupName] = [...$PostResponseFNs];
                 return;
             }
@@ -4985,8 +5025,8 @@ class C
             return;
         }
         foreach ($RoutePipeFNs as $FN) {
-            if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($FN)) {
-                $this->setErr($this->getErr('InvalidFunctionName', $ctxVals), 'Global-setGroupPipeRoute');
+            if (!$this->nonEmptyLowercaseStrThatIsFileAndFunctionWithDot($FN)) {
+                $this->setErr($this->getErr('InvalidFileAndFunctionName', $ctxVals) . " Review the Invalid `{$FN}`.", 'Global-setGroupPipeRoute');
                 $this->invalidBatches['config']['GROUPED_PIPE_ROUTES'][$groupName] = [...$RoutePipeFNs];
                 return;
             }
@@ -5038,7 +5078,7 @@ class C
         }
         foreach ($middlewareFNs as $FN) {
             if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($FN)) {
-                $this->setErr($this->getErr('InvalidFunctionName', $ctxVals), 'Global-setGroupPipeMiddlewares');
+                $this->setErr($this->getErr('InvalidFunctionName', $ctxVals) . " Review the Invalid `{$FN}`.", 'Global-setGroupPipeMiddlewares');
                 $this->invalidBatches['config']['GROUPED_PIPE_MIDDLEWARES'][$groupName] = [...$middlewareFNs];
                 return;
             }
@@ -5939,7 +5979,7 @@ class C
         // Check for duplicates if dynamic params are used (indicated by existence of ":")
         // If it is still OK then we check against dynamic structural conflicts like
         // "/:users/" and "/:id" where both use dynamic params on same URI segment level
-        $placeHolderRoute = '';
+        //$placeHolderRoute = ''; // dead code maybe?
         $routeHasParams = null;
         if (str_contains($route, ":")) {
             preg_match_all('/:([a-z0-9_-]+)/i', $route, $paramMatches);
@@ -5994,7 +6034,7 @@ class C
         // }
         // Add Valid String Formatted METHOD/Route now; in compilation it will be checked for
         // conflicting URI segments with other routes as we do not know which order they are added!
-        $this->validBatches['routes'][$method][$route] = ['hasParams' => $routeHasParams, 'response' => null, 'pipes' => [], 'middlewares' => [], 'excludeMiddleware' => null, 'headers' => ['add' => null, 'remove' => null], 'excludeHeaders' => null];
+        $this->validBatches['routes'][$method][$route] = ['hasParams' => $routeHasParams, 'paramRules' => null, 'response' => null, 'pipes' => [], 'middlewares' => [], 'excludeMiddleware' => null, 'headers' => ['add' => null, 'remove' => null], 'excludeHeaders' => null];
     }
 
     //ROUTE: Set & New Batches for ROUTES! (so ->routes()-><Method>()->route()->set|pipe<What>)
@@ -6051,9 +6091,20 @@ class C
             $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Route-setParamRule', $method, $route);
             return;
         }
+        // Does the valid route even have params?
+        if (!isset($this->validBatches['routes'][$method][$route]['hasParams'])) {
+            $this->setErr($this->getErr('RouteHasNoParams', $ctxVals), 'Route-setParamRule', $method, $route);
+            $this->invalidBatches['paramRules']['routes'][$method][$route][$param] = "{$param},{$regex},{$defaultParamValueOnRegexMismatch}";
+        }
         // Validate valid $param identifier formatting
         if (!is_string($param) || !preg_match('/^[a-z0-9_-]+$/', $param)) {
             $this->setErr($this->getErr('InvalidParamName', $ctxVals), 'Route-setParamRule', $method, $route);
+            $this->invalidBatches['paramRules']['routes'][$method][$route][$param] = "{$param},{$regex},{$defaultParamValueOnRegexMismatch}";
+            return;
+        }
+        // $param identifier formatting is valid, but does it exist in the array of hasParams?
+        if (!in_array($param, $this->validBatches['routes'][$method][$route]['hasParams'])) {
+            $this->setErr($this->getErr('RouteHasNotChosenParam', $ctxVals) . " The available Params in the Route: " . $this->joinArray($this->validBatches['routes'][$method][$route]['hasParams']) . '.', 'Route-setParamRule', $method, $route);
             $this->invalidBatches['paramRules']['routes'][$method][$route][$param] = "{$param},{$regex},{$defaultParamValueOnRegexMismatch}";
             return;
         }
@@ -6567,7 +6618,7 @@ class C
         foreach ($middlewareToExclude as $middleware) {
             $middleware = strtolower(trim($middleware));
             if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($middleware)) {
-                $this->setErr($this->getErr('InvalidMiddlewareFunctionName', $ctx), 'Route-setExcludeMiddlewares', $method, $route);
+                $this->setErr($this->getErr('InvalidMiddlewareFunctionName', $ctx) . " Review the Invalid `{$middleware}`.", 'Route-setExcludeMiddlewares', $method, $route);
                 $this->invalidBatches['excludeMiddlewares']['routes'][$method][$route] = true;
                 return;
             }
@@ -6610,7 +6661,7 @@ class C
         foreach ($headersToExclude as $header) {
             $header = strtolower(trim($header));
             if ($header === '' || !preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $header)) {
-                $this->setErr($this->getErr('InvalidHeaderName', $ctxVals), 'Route-setExcludeHeaders', $method, $route);
+                $this->setErr($this->getErr('InvalidHeaderName', $ctxVals) . " Review the Invalid `{$header}`.", 'Route-setExcludeHeaders', $method, $route);
                 $this->invalidBatches['excludeHeaders']['routes'][$method][$route] = $headersToExclude;
                 return;
             }
@@ -6720,10 +6771,116 @@ class C
     // Two private functions that are ONLY used via Reflection classes so you do not see
     // them while configuring `/src/funkphp/FunkPHP.php` and runs it unless `FunkPHPDeployment.php`
     // is set in `/src/public_html/index.php` to run instead!
-    private function compile()
+    private function compile(bool $CompileAndRunLocally = true)
     {
+        //REFER TO THESE TO
+        //$this->FUNKPHP_COMPILED = false;
+        //$this->FUNKPHP_COMPILED_SUCCESS = false;
+
+        // Initialize global $c already in `/src/funkphp/FunkPHP.php` to populate it
+        // for runtime either in compiled `/src/funkphp/FunkPHPDeployment.php` or
+        // just after calling $this->run() after, only, a valid compilation.
+        $compileErrors = [];
+        $PATH_USER_DEFINED_FNS = '/src/funkphp/config/functions.php';
+        $PATH_CLASSES = '/src/funkphp/config/classes.php';
+
+        // Contains User-defined functions that are assigned Global Handlers meaning
+        // they are prioritized even if they are configured at the end of the app.
+        $GLOBAL_HANDLERS = [];
+
+        // Contains group:<Name,FN,FN2> (and soon)
+        $GLOBAL_GROUPED = [
+            'MIDDLEWARES' => [],
+            'REQUEST' => [],
+            'POST_RESPONSE' => [],
+            'USER_DEFINED' => [],
+            'ROUTES_FILE_FUNCTIONS' => []
+        ];
+
         // Attempt compiling FunkPHP and create the code
         // STEP 1: Check there are zero Invalid Batches and zero errors so far.
+        // Otherwise, we dump API + Errors and exist early (default in dd()).
+        if (count($this->errors) > 0 || count($this->invalidBatches) > 0) {
+            $errCount = count($this->errors);
+            dd(['API' => $this->FunkPHPFluentAPI, 'ERRORS' => $this->errors], "FunkPHP Compilation ($errCount Error" . ($errCount === 1 ? '' : 's') . ')', true);
+        }
+
+        // STEP 2: First add to the $compiled->c variable that can be added right away
+        // 3 BOOLEANS
+        if (isset($this->validBatches['config']['FUNKPHP_ONLINE'])) {
+            $this->compiled['c']['FUNKPHP_ONLINE'] = $this->validBatches['config']['FUNKPHP_ONLINE'];
+        }
+        if (isset($this->validBatches['config']['USE_VENDOR'])) {
+            $this->compiled['c']['FUNKPHP_USE_VENDOR'] = $this->validBatches['config']['USE_VENDOR'];
+        }
+        if (isset($this->validBatches['config']['USE_HTTPS'])) {
+            $this->compiled['c']['FUNKPHP_USE_HTTPS'] = $this->validBatches['config']['USE_HTTPS'];
+        }
+        // 4 STRINGS
+        if (isset($this->validBatches['config']['BASEURL_HOST'])) {
+            $this->compiled['c']['BASEURLS']['HOST'] = $this->validBatches['config']['BASEURL_HOST'];
+        }
+        if (isset($this->validBatches['config']['BASEURL_LOCAL'])) {
+            $this->compiled['c']['BASEURLS']['LOCAL'] = $this->validBatches['config']['BASEURL_LOCAL'];
+        }
+        if (isset($this->validBatches['config']['BASEURL_ONLINE'])) {
+            $this->compiled['c']['BASEURLS']['ONLINE'] = $this->validBatches['config']['BASEURL_ONLINE'];
+        }
+        if (isset($this->validBatches['config']['BASEURL_URI'])) {
+            $this->compiled['c']['BASEURLS']['BASEURL_URI'] = $this->validBatches['config']['BASEURL_URI'];
+        }
+
+        // STEP 3: Check Global Handlers set and then all setGroup<VARIANTS> since they can refer to
+        // either non-existing function+files AND/OR to set Global Handlers which would conflict.
+        // STEP 3.1 - Global Handlers
+        if (isset($this->validBatches['config']['DEFAULT_HTTPS_KERNEL'])) {
+            $this->compiled['c']['FUNKPHP_CUSTOM_HTTPS_KERNEL'] = $this->validBatches['config']['DEFAULT_HTTPS_KERNEL'];
+            $GLOBAL_HANDLERS[$this->validBatches['config']['DEFAULT_HTTPS_KERNEL']] = "User-defined Default HTTPS Kernel Handler";
+        }
+        if (isset($this->validBatches['config']['DEFAULT_REGISTER_SHUTDOWN_HANDLER'])) {
+            $this->compiled['c']['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION'] = $this->validBatches['config']['DEFAULT_REGISTER_SHUTDOWN_HANDLER'];
+            foreach ($this->validBatches['config']['DEFAULT_REGISTER_SHUTDOWN_HANDLER'] as $DEFAULT_SHUTDOWN_FN) {
+                $GLOBAL_HANDLERS[$DEFAULT_SHUTDOWN_FN] = "User-defined Default Registered Shutdown Handler";
+            }
+        }
+        if (isset($this->validBatches['config']['DEFAULT_EXCEPTION_HANDLER'])) {
+            $this->compiled['c']['FUNKPHP_CUSTOM_EXCEPTION_HANDLER'] = $this->validBatches['config']['DEFAULT_EXCEPTION_HANDLER'];
+            $GLOBAL_HANDLERS[$this->validBatches['config']['DEFAULT_EXCEPTION_HANDLER']] = "User-defined Default Exception Handler";
+        }
+        if (isset($this->validBatches['config']['DEFAULT_ERROR_HANDLER'])) {
+            $this->compiled['c']['FUNKPHP_CUSTOM_ERROR_HANDLER'] = $this->validBatches['config']['DEFAULT_ERROR_HANDLER'];
+            $GLOBAL_HANDLERS[$this->validBatches['config']['DEFAULT_ERROR_HANDLER']] = "User-defined Default Error Handler";
+        }
+        if (isset($this->validBatches['config']['DEFAULT_URI_NORMALIZER'])) {
+            $this->compiled['c']['FUNKPHP_CUSTOM_URI_NORMALIZER'] = $this->validBatches['config']['DEFAULT_URI_NORMALIZER'];
+            $GLOBAL_HANDLERS[$this->validBatches['config']['DEFAULT_URI_NORMALIZER']] = "User-defined Default URI Normalizer Handler";
+        }
+        // STEP 3.2 - Grouped<VARIANTS>
+        if (isset($this->validBatches['config']['GROUPED_PIPE_USER_DEFINED'])) {
+            foreach ($this->validBatches['config']['GROUPED_PIPE_USER_DEFINED'] as $GROUPED_UD_NAME => $GROUPED_UD_VALS) {
+                $validGroup = true;
+                foreach ($GROUPED_UD_VALS as $UD_FN) {
+                    if (isset($GLOBAL_HANDLERS[$UD_FN])) {
+                        $compileErrors[count($compileErrors) + 1] = "Grouped-configured User-defined Function `{$UD_FN}` in `{$PATH_USER_DEFINED_FNS}` in `->setGroupPipeUserdefined('{$GROUPED_UD_NAME}')` conflicts with already defined Global Handler Role `{$GLOBAL_HANDLERS[$UD_FN]}.` Remove `{$UD_FN}` from the `->setGroupPipeUserdefined()` OR from the `Global Handler Role`.";
+                        $validGroup = false;
+                    }
+                }
+                if ($validGroup) {
+                    $GLOBAL_GROUPED['USER_DEFINED']["group:$GROUPED_UD_NAME"] = true;
+                }
+            }
+        }
+        if (isset($this->validBatches['config']['GROUPED_PIPE_MIDDLEWARES'])) {
+            foreach ($this->validBatches['config']['GROUPED_PIPE_MIDDLEWARES'] as $GROUPED_MWS) {
+            }
+        }
+        if (isset($this->validBatches['config']['GROUPED_PIPE_REQUEST'])) {
+        }
+        if (isset($this->validBatches['config']['GROUPED_PIPE_ROUTES'])) {
+        }
+        if (isset($this->validBatches['config']['GROUPED_PIPE_POST_RESPONSE'])) {
+        }
+        dd(['COMPILE_ERRORS' => $compileErrors, 'GLOBAL_HANDLERS' => $GLOBAL_HANDLERS, 'GLOBAL_GROUPS' => $GLOBAL_GROUPED], "FINAL COMPILE OUTPUT - DEBUG", true);
     }
     private function run()
     {
@@ -7070,7 +7227,7 @@ class FunkConfig
      *
      * @param bool $trueOrFalse
      */
-    public function setUseFunKPHPOnline(bool $trueOrFalse): self
+    public function setUseFunkPHPOnline(bool $trueOrFalse): self
     {
         $this->c->batch('batchSetFunkPHPOnlineGlobal', $trueOrFalse);
         return $this;

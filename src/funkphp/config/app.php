@@ -2,22 +2,42 @@
 
 $FUNK = FunkPHP();
 $FUNK->CONFIG()
-    ->setDebug(true, true, true)
+    ->setDebug(true, false, false, true, false, false, true)
+    ->setUseFunkPHPOnline(true)
+    ->setUseVendor(true)
+    ->setUseHTTPS(true)
     ->setCompileFlag('NO_WARNINGS_ALLOWED')
-    ->setParamRule("id", "/a/", "mm");
-$FUNK->ROUTES()
-    ->GET()
-    ->setParamRule("test", "/a/", "nope")
-    ->ROUTE("/:iA")
-    ->pipeFunction("test.test")
-    ->pipeMiddleware("auth")
-    ->pipeQuery("test.test")
-    ->pipeSQL("s_paj.s_najs")
-    ->pipeValidation("s_najs.s_paj")
-    ->pipeResponse("callback:testar")
-    ->setParamRule('ia', 'a/[\d]+/')
-    ->pipeCompiledQuery("a")
-    ->pipeHeader("test-test: a");
+    ->setBaseURLHost("wkf")
+    ->setBaseURLLocal("http://wkf.com")
+    ->setBaseURLOnline("https://www.funkphp.com")
+    ->setBaseURLUri("/funkphp")
+    ->setGroupPipeMiddlewares("test_mw", "auth", "auth2")
+    ->setGroupPipePostResponse("test_post_response", "debug", "debug2")
+    ->setGroupPipeRequest("test_request", "use_cors", "run_ini_sets")
+    ->setGroupPipeRoute("test_routes", 'test.test', 'test.test2')
+    ->setGroupPipeUserdefined('test_group', 'testar7', 'testar8')
+    ->setDefaultURI_NormalizerHandler("testar1")
+    ->setDefaultErrorHandler("testar2")
+    ->setDefaultExceptionHandler("testar3")
+    ->setDefaultRegisteredShutdownHandler("testar4")
+    ->setDefaultRegisteredShutdownHandler("testar6")
+    ->setDefaultKernelHandler("testar5")
+    ->setINI_SET([
+        'session.cache_limiter' => 'public',
+        'session.use_strict_mode' => 8,
+        'session.use_only_cookies' => 1,
+        'session.cache_expire' => 30,
+        'session.cookie_lifetime' => 0,
+        'session.name' => 'fphp_id',
+        'session.sid_length' => 192,
+        'session.sid_bits_per_character' => 6,
+        'display_errors' => 1,
+        'display_startup_errors' => 1,
+        'error_reporting' => 1,
+    ])
+    ->setParamRule("id", "/[\d]+/", "0");
+
+$FUNK->ROUTES()->GET()->ROUTE("/:id")->pipeFunction("group:test_routes");
 
 return $FUNK;
 // 1. Inspect the FunkRoute instance ($test) to get the private $c property

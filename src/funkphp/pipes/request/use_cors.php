@@ -1,9 +1,9 @@
 <?php
 
-namespace funkphp\pipes\request\pl_use_cors;
+namespace funkphp\pipes\request\use_cors;
 // FunkCLI Created File on 2026-07-05 10:17:21!
 
-function pl_use_cors(&$c)
+function use_cors(&$c)
 {
 	// Placeholder Comment so Regex works - Remove & Add Your Own Code!
 	if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'OPTIONS') {

@@ -17,17 +17,8 @@
 // Load all functions needed for the FunkPHP Framework Web Application
 // $c is the global configuration array that is used throughout the application
 require_once __DIR__ . '/core/functions.php'; // In-built functions
-require_once __DIR__ . '/config/functions.php'; // User-defined functions
-$c = require_once __DIR__ . '/core/c.php';
-// $iniSets = $c['INI_SETS'] ?? [];
-// foreach ($iniSets as $key => $value) {
-//     // Hard error on invalid configured $c['INI_SETS'] data
-//     if (!is_string($key) || empty($key) || !is_scalar($value)) {
-//         $err = 'Tell The Developer: Invalid Data Provided in $c[\'INI_SETS\'] Global Configuration Array. The Data must be an Associative Array with Non-Empty String Keys and Non-Empty Values that are either Strings, Numbers or Booleans. Thus, it is likely that the Developer have used a non-string for $key or a non-scalar/empty value for $value!';
-//         funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
-//     }
-//     ini_set($key, $value);
-// }
+
+$c = null; // Initialize c that is then populated after compile() and/or run()
 
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
@@ -93,12 +84,25 @@ if (is_object($FUNKPHP) && $FUNKPHP instanceof FunkPHP) {
         }
         dd($toDump, $title, false);
     }
-} else {
+    // Only here we consider loading validated user-defined functions&classes
+    require_once __DIR__ . '/config/functions.php';
+    require_once __DIR__ . '/config/classes.php';
+
+    // Attempt running Class C->compile() which meaning it will attempt
+    // compiling first and then run right after it if no errors occurs.
+    $compileAndRun = new ReflectionMethod($cInstance, 'compile');
+    $compileAndRun->setAccessible(true);
+    $compileAndRun->invoke($cInstance);
+}
+// When it is NOT FunkPHP Object as defined in the `/src/funkphp/core/functions.php`
+else {
     dd([
         'Internal FunkPHP Error' => 'Expected to find `FunkPHP Class` in `/src/funkphp/config/app.php` but instead found Data Type: `' . (is_object($FUNKPHP) ? get_class($FUNKPHP) : gettype($FUNKPHP)) . '`',
         'Step-by-Step Fix' => 'The return Value in `/src/funkphp/config/app.php` must be the Object Instance of `FunkPHP` (defined in `/src/funkphp/core/functions.php`) that is returned at the end of the File. `DO NOT` modify the `return $FUNK; statement` (unless: you just `return the entire Object in one long method-chaining`) at the end of the `app.php` File.'
     ], 'See Internal FunkPHP Error');
 }
+
+
 exit;
 
 
