@@ -2079,14 +2079,7 @@ class C
     // The actual written config line by line starting with FunkPHP()
     public array $FunkPHPFluentAPI = [
         'CONFIG' => [],
-        'METHODS' => [
-            'GET'    => ['CONFIG' => [], 'ROUTES' => []],
-            'POST'   => ['CONFIG' => [], 'ROUTES' => []],
-            'DELETE' => ['CONFIG' => [], 'ROUTES' => []],
-            'PUT'    => ['CONFIG' => [], 'ROUTES' => []],
-            'PATCH'  => ['CONFIG' => [], 'ROUTES' => []],
-            'HEAD'   => ['CONFIG' => [], 'ROUTES' => []],
-        ]
+        'METHODS' => []
     ];
     // $errors contain all errors + categorized errors
     // $WARNINGS contain warnings meaning compiling/running will happen
@@ -2097,14 +2090,7 @@ class C
         'ERRORS' => 0,
         'INTERNAL' => [],
         'CONFIG' => [],
-        'METHODS' => [
-            'GET'    => ['CONFIG' => [], 'ROUTES' => []],
-            'POST'   => ['CONFIG' => [], 'ROUTES' => []],
-            'PUT'    => ['CONFIG' => [], 'ROUTES' => []],
-            'DELETE' => ['CONFIG' => [], 'ROUTES' => []],
-            'PATCH'  => ['CONFIG' => [], 'ROUTES' => []],
-            'HEAD'   => ['CONFIG' => [], 'ROUTES' => []],
-        ]
+        'METHODS' => []
     ];
     private array $WARNINGS = [];
     private array $compileFlags = [];
@@ -3708,6 +3694,9 @@ class C
                 }
                 $this->FunkPHPFluentAPI['METHODS'][$config_or_method]['ROUTES'][$route][count($this->FunkPHPFluentAPI['METHODS'][$config_or_method]['ROUTES'][$route]) + 1] = $this->appendFunkPHPFluentAPI($batchFN, ...$vals);
             } else {
+                if (!isset($this->FunkPHPFluentAPI['METHODS'][$config_or_method]['CONFIG'])) {
+                    $this->FunkPHPFluentAPI['METHODS'][$config_or_method]['CONFIG'] = [];
+                }
                 $this->FunkPHPFluentAPI['METHODS'][$config_or_method]['CONFIG'][count($this->FunkPHPFluentAPI['METHODS'][$config_or_method]['CONFIG']) + 1] = $this->appendFunkPHPFluentAPI($batchFN, ...$vals);
             }
         }
@@ -3844,125 +3833,6 @@ class C
      * @param string|null $route
      *
      */
-    private function setErrOLD_BUT_WORKED(string $errMsg, string $errType = '', ?string $method = null, ?string $route = null)
-    {
-        $validErrTypes = [
-            'Global-setDebug',
-            'Global-setGroupPipeUserdefined',
-            'Global-setGroupPipeRequest',
-            'Global-setGroupPipePostResponse',
-            'Global-setGroupPipeRoute',
-            'Global-setGroupPipeMiddlewares',
-            'Global-setCompileFlag',
-            'Global-setINI_SET',
-            'Global-setNonces',
-            'Global-setCSP',
-            'Global-setSRIInternal',
-            'Global-setSRIExternal',
-            'Global-setNoRouteMatchPage',
-            'Global-setNoRouteMatchJSON',
-            'Global-setNoRouteMatchText',
-            'Global-setNoRouteMatchCallback',
-            'Global-setDefaultRegisteredShutdownHandler',
-            'Global-setDefaultExceptionHandler',
-            'Global-setDefaultErrorHandler',
-            'Global-setDefaultURI_NormalizerHandler',
-            'Global-setDefaultKernelHandler',
-            'Global-setBaseURLLocal',
-            'Global-setBaseURLOnline',
-            'Global-setBaseURLHost',
-            'Global-setBaseURLUri',
-            'Global-setSessionDriver',
-            'Global-setSessionCookieOptions',
-            'Global-setSessionCookieName',
-            'Global-setSessionCookieLifetime',
-            'Global-setSessionCookiePath',
-            'Global-setSessionCookieDomain',
-            'Global-setSessionCookieSecure',
-            'Global-setSessionCookieHTTPOnly',
-            'Global-setSessionCookieSameSite',
-            'Global-setUseFunkPHPOnline',
-            'Global-setUseHTTPS',
-            'Global-setUseVendor',
-            'Global-setParamRule',
-            'Global-pipeHeader',
-            'Global-removeHeader',
-            'Global-pipeMiddleware',
-            'Global-pipeRequestFunction',
-            'Global-pipePostResponseFunction',
-            'Method-setNoRouteMatch',
-            'Method-setNoRouteMatchPage',
-            'Method-setNoRouteMatchJson',
-            'Method-setNoRouteMatchText',
-            'Method-setNoRouteMatchCallback',
-            'Method-setNonces',
-            'Method-setCSP',
-            'Method-setRateLimiting',
-            'Method-pipeMiddleware',
-            'Method-pipeHeader',
-            'Method-removeHeader',
-            'Method-setParamRule',
-            'Method-route',
-            'Route-setAlias',
-            'Route-setRateLimiting',
-            'Route-setCache',
-            'Route-setNonces',
-            'Route-pipeMiddleware',
-            'Route-pipeFunction',
-            'Route-pipeResponse',
-            'Route-pipeSQL',
-            'Route-pipeQuery',
-            'Route-pipeValidation',
-            'Route-pipeCompiledSQL',
-            'Route-pipeCompiledQuery',
-            'Route-pipeCompiledValidation',
-            'Route-setExcludeMiddlewares',
-            'Route-setExcludeHeaders',
-            'Route-setParamRule',
-            'Route-setCSP',
-            'Route-pipeHeader',
-            'Route-removeHeader',
-            'Route-route',
-        ];
-        $validMethodTypes = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD'];
-        // No error (or valid) type
-        $nextErrIndex = (count($this->errors) + 1);
-        if (!is_string($errType) || trim($errType) === '' || !in_array($errType, $validErrTypes)) {
-            $this->errors[$nextErrIndex] = ['type' => 'internal', 'err' => 'Invalid \$type (Error Type) Value in `class C->setErr()` when setting Error:\'`' . $errMsg . '`\' Report this found bug/issue to the Official FunkPHP Repositories. Choose a `Valid Error Type` from: ' . $this->joinArray($validErrTypes), 'method' => $method, 'route' => $route];
-            return;
-        }
-        // No method (or valid) provided for Method- & Route-related errors (since Route always needs Method)
-        if (
-            (str_starts_with($errType, 'Method-') || str_starts_with($errType, 'Route-'))
-            && (!is_string($method)
-                || trim($method) === '' || !in_array($method, $validMethodTypes))
-        ) {
-            $this->errors[] = ['type' => 'internal', 'err' => 'Invalid \$method (Method Type) Value in `class C->setErr()`: must be provided when Error Type starts with `Method-` OR `Route-`. Report this found bug/issue to the Official FunkPHP Repositories. Choose a `Valid Error Type` from: ' . $this->joinArray($validMethodTypes), 'method' => $method, 'route' => $route];
-            return;
-        }
-        if (
-            str_starts_with($errType, 'Route-')
-            && (!is_string($route)
-                || trim($route) === '')
-        ) {
-            $this->errors[$nextErrIndex] = ['type' => 'internal', 'err' => 'Invalid \$route Value in `class C->setErr()`: must be provided when Error Type starts with `Route-`. Report this found bug/issue to the Official FunkPHP Repositories.', 'method' => $method, 'route' => $route];
-            return;
-        }
-        $this->FunkPHPFluentAPI[count($this->FunkPHPFluentAPI)] .= ' - (`See Error #' . $nextErrIndex . '`)';
-        $this->errors[$nextErrIndex] = ['err' => $errMsg, 'type' => $errType, 'method' => $method, 'route' => $route];
-    }
-
-    /**
-     * Set Error Message with specific type ($type) so it can be grouped if needed.
-     *
-     * Choose Error Type based on scope (global, method, route) and optional method and route when applicable.
-     *
-     * @param string $errMsg
-     * @param 'Internal'|'Global-setDebug'|'Route-pipeCompiledQuery'|'Route-pipeCompiledSQL'|'Route-pipeCompiledValidation'|'Global-setCompileFlag'|'Global-setGroupPipeUserdefined'|'Global-setGroupPipeRequest'|'Global-setGroupPipePostResponse'|'Global-setGroupPipeRoute'|'Global-setGroupPipeMiddlewares'|'Global-setINI_SET'|'Global-setNonces'|'Global-setCSP'|'Global-setSRIInternal'|'Global-setSRIExternal'|'Global-setNoRouteMatchPage'|'Global-setNoRouteMatchJSON'|'Global-setNoRouteMatchText'|'Global-setNoRouteMatchCallback'|'Global-setDefaultRegisteredShutdownHandler'|'Global-setDefaultExceptionHandler'|'Global-setDefaultErrorHandler'|'Global-setDefaultURI_NormalizerHandler'|'Global-setDefaultKernelHandler'|'Global-setBaseURLLocal'|'Global-setBaseURLOnline'|'Global-setBaseURLHost'|'Global-setBaseURLUri'|'Global-setSessionDriver'|'Global-setSessionCookieOptions'|'Global-setSessionCookieName'|'Global-setSessionCookieLifetime'|'Global-setSessionCookiePath'|'Global-setSessionCookieDomain'|'Global-setSessionCookieSecure'|'Global-setSessionCookieHTTPOnly'|'Global-setSessionCookieSameSite'|'Global-setUseFunkPHPOnline'|'Global-setUseHTTPS'|'Global-setUseVendor'|'Global-setParamRule'|'Global-pipeHeader'|'Global-removeHeader'|'Global-pipeMiddleware'|'Global-pipeRequestFunction'|'Global-pipePostResponseFunction'|'Method-setNoRouteMatch'|'Method-setNoRouteMatchPage'|'Method-setNoRouteMatchJson'|'Method-setNoRouteMatchText'|'Method-setNoRouteMatchCallback'|'Method-setNonces'|'Method-setCSP'|'Method-setRateLimiting'|'Method-pipeMiddleware'|'Method-pipeHeader'|'Method-removeHeader'|'Method-setParamRule'|'Method-route'|'Route-setAlias'|'Route-setRateLimiting'|'Route-setCache'|'Route-setNonces'|'Route-pipeMiddleware'|'Route-pipeFunction'|'Route-pipeResponse'|'Route-pipeSQL'|'Route-pipeQuery'|'Route-pipeValidation'|'Route-setExcludeMiddlewares'|'Route-setExcludeHeaders'|'Route-setParamRule'|'Route-setCSP'|'Route-pipeHeader'|'Route-removeHeader'|'Route-route' $errType
-     * @param 'GET'|'POST'|'PUT'|'PATCH'|'DELETE'|'HEAD'|null $method
-     * @param string|null $route
-     *
-     */
     private function setErr(string $errMsg, string $errType = '', string $method = 'CONFIG', ?string $route = null)
     {
         $validErrTypes = [
@@ -4080,6 +3950,9 @@ class C
                 }
                 $nextErrIndex  = (count($this->errors['METHODS'][$method]['ROUTES'][$route]) + 1);
             } else {
+                if (!isset($this->errors['METHODS'][$method]['CONFIG'])) {
+                    $this->errors['METHODS'][$method]['CONFIG'] = [];
+                }
                 $nextErrIndex  = (count($this->errors['METHODS'][$method]['CONFIG']) + 1);
             }
         }
@@ -4094,6 +3967,9 @@ class C
                 }
                 $this->FunkPHPFluentAPI['METHODS'][$method]['ROUTES'][$route][count($this->FunkPHPFluentAPI['METHODS'][$method]['ROUTES'][$route])] .= ' - (`See Error #' . $nextErrIndex . '`)';
             } else {
+                if (!isset($this->FunkPHPFluentAPI['METHODS'][$method]['CONFIG'])) {
+                    $this->FunkPHPFluentAPI['METHODS'][$method]['CONFIG'] = [];
+                }
                 $this->FunkPHPFluentAPI['METHODS'][$method]['CONFIG'][count($this->FunkPHPFluentAPI['METHODS'][$method]['CONFIG'])] .= ' - (`See Error #' . $nextErrIndex . '`)';
             }
         }
@@ -4111,10 +3987,132 @@ class C
                 $this->errors['METHODS'][$method]['ROUTES'][$route][$nextErrIndex] = ['err' => $errMsg, 'type' => $errType, 'method' => $method, 'route' => $route];
             } else {
                 $this->errors['ERRORS']++;
+                if (!isset($this->errors['METHODS'][$method]['CONFIG'])) {
+                    $this->errors['METHODS'][$method]['CONFIG'] = [];
+                }
                 $this->errors['METHODS'][$method]['CONFIG'][$nextErrIndex] = ['err' => $errMsg, 'type' => $errType, 'method' => $method, 'route' => $route];
             }
         }
     }
+    /**
+     * Set Error Message with specific type ($type) so it can be grouped if needed.
+     *
+     * Choose Error Type based on scope (global, method, route) and optional method and route when applicable.
+     *
+     * @param string $errMsg
+     * @param 'Internal'|'Global-setDebug'|'Route-pipeCompiledQuery'|'Route-pipeCompiledSQL'|'Route-pipeCompiledValidation'|'Global-setCompileFlag'|'Global-setGroupPipeUserdefined'|'Global-setGroupPipeRequest'|'Global-setGroupPipePostResponse'|'Global-setGroupPipeRoute'|'Global-setGroupPipeMiddlewares'|'Global-setINI_SET'|'Global-setNonces'|'Global-setCSP'|'Global-setSRIInternal'|'Global-setSRIExternal'|'Global-setNoRouteMatchPage'|'Global-setNoRouteMatchJSON'|'Global-setNoRouteMatchText'|'Global-setNoRouteMatchCallback'|'Global-setDefaultRegisteredShutdownHandler'|'Global-setDefaultExceptionHandler'|'Global-setDefaultErrorHandler'|'Global-setDefaultURI_NormalizerHandler'|'Global-setDefaultKernelHandler'|'Global-setBaseURLLocal'|'Global-setBaseURLOnline'|'Global-setBaseURLHost'|'Global-setBaseURLUri'|'Global-setSessionDriver'|'Global-setSessionCookieOptions'|'Global-setSessionCookieName'|'Global-setSessionCookieLifetime'|'Global-setSessionCookiePath'|'Global-setSessionCookieDomain'|'Global-setSessionCookieSecure'|'Global-setSessionCookieHTTPOnly'|'Global-setSessionCookieSameSite'|'Global-setUseFunkPHPOnline'|'Global-setUseHTTPS'|'Global-setUseVendor'|'Global-setParamRule'|'Global-pipeHeader'|'Global-removeHeader'|'Global-pipeMiddleware'|'Global-pipeRequestFunction'|'Global-pipePostResponseFunction'|'Method-setNoRouteMatch'|'Method-setNoRouteMatchPage'|'Method-setNoRouteMatchJson'|'Method-setNoRouteMatchText'|'Method-setNoRouteMatchCallback'|'Method-setNonces'|'Method-setCSP'|'Method-setRateLimiting'|'Method-pipeMiddleware'|'Method-pipeHeader'|'Method-removeHeader'|'Method-setParamRule'|'Method-route'|'Route-setAlias'|'Route-setRateLimiting'|'Route-setCache'|'Route-setNonces'|'Route-pipeMiddleware'|'Route-pipeFunction'|'Route-pipeResponse'|'Route-pipeSQL'|'Route-pipeQuery'|'Route-pipeValidation'|'Route-setExcludeMiddlewares'|'Route-setExcludeHeaders'|'Route-setParamRule'|'Route-setCSP'|'Route-pipeHeader'|'Route-removeHeader'|'Route-route' $errType
+     * @param 'GET'|'POST'|'PUT'|'PATCH'|'DELETE'|'HEAD'|null $method
+     * @param string|null $route
+     *
+     */
+    private function setErrOLD_BUT_WORKED(string $errMsg, string $errType = '', ?string $method = null, ?string $route = null)
+    {
+        $validErrTypes = [
+            'Global-setDebug',
+            'Global-setGroupPipeUserdefined',
+            'Global-setGroupPipeRequest',
+            'Global-setGroupPipePostResponse',
+            'Global-setGroupPipeRoute',
+            'Global-setGroupPipeMiddlewares',
+            'Global-setCompileFlag',
+            'Global-setINI_SET',
+            'Global-setNonces',
+            'Global-setCSP',
+            'Global-setSRIInternal',
+            'Global-setSRIExternal',
+            'Global-setNoRouteMatchPage',
+            'Global-setNoRouteMatchJSON',
+            'Global-setNoRouteMatchText',
+            'Global-setNoRouteMatchCallback',
+            'Global-setDefaultRegisteredShutdownHandler',
+            'Global-setDefaultExceptionHandler',
+            'Global-setDefaultErrorHandler',
+            'Global-setDefaultURI_NormalizerHandler',
+            'Global-setDefaultKernelHandler',
+            'Global-setBaseURLLocal',
+            'Global-setBaseURLOnline',
+            'Global-setBaseURLHost',
+            'Global-setBaseURLUri',
+            'Global-setSessionDriver',
+            'Global-setSessionCookieOptions',
+            'Global-setSessionCookieName',
+            'Global-setSessionCookieLifetime',
+            'Global-setSessionCookiePath',
+            'Global-setSessionCookieDomain',
+            'Global-setSessionCookieSecure',
+            'Global-setSessionCookieHTTPOnly',
+            'Global-setSessionCookieSameSite',
+            'Global-setUseFunkPHPOnline',
+            'Global-setUseHTTPS',
+            'Global-setUseVendor',
+            'Global-setParamRule',
+            'Global-pipeHeader',
+            'Global-removeHeader',
+            'Global-pipeMiddleware',
+            'Global-pipeRequestFunction',
+            'Global-pipePostResponseFunction',
+            'Method-setNoRouteMatch',
+            'Method-setNoRouteMatchPage',
+            'Method-setNoRouteMatchJson',
+            'Method-setNoRouteMatchText',
+            'Method-setNoRouteMatchCallback',
+            'Method-setNonces',
+            'Method-setCSP',
+            'Method-setRateLimiting',
+            'Method-pipeMiddleware',
+            'Method-pipeHeader',
+            'Method-removeHeader',
+            'Method-setParamRule',
+            'Method-route',
+            'Route-setAlias',
+            'Route-setRateLimiting',
+            'Route-setCache',
+            'Route-setNonces',
+            'Route-pipeMiddleware',
+            'Route-pipeFunction',
+            'Route-pipeResponse',
+            'Route-pipeSQL',
+            'Route-pipeQuery',
+            'Route-pipeValidation',
+            'Route-pipeCompiledSQL',
+            'Route-pipeCompiledQuery',
+            'Route-pipeCompiledValidation',
+            'Route-setExcludeMiddlewares',
+            'Route-setExcludeHeaders',
+            'Route-setParamRule',
+            'Route-setCSP',
+            'Route-pipeHeader',
+            'Route-removeHeader',
+            'Route-route',
+        ];
+        $validMethodTypes = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD'];
+        // No error (or valid) type
+        $nextErrIndex = (count($this->errors) + 1);
+        if (!is_string($errType) || trim($errType) === '' || !in_array($errType, $validErrTypes)) {
+            $this->errors[$nextErrIndex] = ['type' => 'internal', 'err' => 'Invalid \$type (Error Type) Value in `class C->setErr()` when setting Error:\'`' . $errMsg . '`\' Report this found bug/issue to the Official FunkPHP Repositories. Choose a `Valid Error Type` from: ' . $this->joinArray($validErrTypes), 'method' => $method, 'route' => $route];
+            return;
+        }
+        // No method (or valid) provided for Method- & Route-related errors (since Route always needs Method)
+        if (
+            (str_starts_with($errType, 'Method-') || str_starts_with($errType, 'Route-'))
+            && (!is_string($method)
+                || trim($method) === '' || !in_array($method, $validMethodTypes))
+        ) {
+            $this->errors[] = ['type' => 'internal', 'err' => 'Invalid \$method (Method Type) Value in `class C->setErr()`: must be provided when Error Type starts with `Method-` OR `Route-`. Report this found bug/issue to the Official FunkPHP Repositories. Choose a `Valid Error Type` from: ' . $this->joinArray($validMethodTypes), 'method' => $method, 'route' => $route];
+            return;
+        }
+        if (
+            str_starts_with($errType, 'Route-')
+            && (!is_string($route)
+                || trim($route) === '')
+        ) {
+            $this->errors[$nextErrIndex] = ['type' => 'internal', 'err' => 'Invalid \$route Value in `class C->setErr()`: must be provided when Error Type starts with `Route-`. Report this found bug/issue to the Official FunkPHP Repositories.', 'method' => $method, 'route' => $route];
+            return;
+        }
+        $this->FunkPHPFluentAPI[count($this->FunkPHPFluentAPI)] .= ' - (`See Error #' . $nextErrIndex . '`)';
+        $this->errors[$nextErrIndex] = ['err' => $errMsg, 'type' => $errType, 'method' => $method, 'route' => $route];
+    }
+
     // Join array with wrapped `` and comma
     private function joinArray(array $array = [], bool $USE_ARRAY_KEYS = false)
     {
@@ -7244,7 +7242,7 @@ class C
             }
         }
 
-        $this->compile_setErr("", $compileErrors);
+        //$this->compile_setErr("", $compileErrors);
         dd(['API' => $this->FunkPHPFluentAPI, 'COMPILE_ERRORS' => $compileErrors, 'COMPILE_WARNINGS' => $compileWarnings, 'VALID' => $this->validBatches,  'GLOBAL_HANDLERS' => $GLOBAL_HANDLERS, 'GLOBAL_GROUPS' => $GLOBAL_GROUPED, 'compiled_c' => $this->compiled['c']], "COMPILATION - DEBUG", true);
     }
     private function run()
