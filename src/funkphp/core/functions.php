@@ -2128,6 +2128,7 @@ class C
         'config' => [
             'NO_ROUTE_MATCH' => [],
             'pipes' => [],
+            'params' => [],
             'headers' => [],
             'csp' => [],
             'nonces' => [],
@@ -6163,7 +6164,7 @@ class C
             $this->invalidBatches['middlewares']['methods'][$method][$middleware] = true;
             return;
         }
-        // Pipe Global MW when all OK!
+        // Pipe Method MW when all OK!
         $this->validBatches['methods'][$method]['middlewares'][] = $middleware;
     }
 
@@ -7267,10 +7268,11 @@ class C
                 $this->compiled['methods'][$method]['nonces'] = $this->validBatches['methods'][$method]['nonces'];
             }
         }
-
         // ------------------------------------------------------------------------------------------
-        // STEP : Build pipes() for `request` & `post_response` and also check if request is empty
-        // .1 Request Pipes
+        // STEP 8: Build pipes() for `request` & `post_response` and also check if request is empty
+        // and the same with `post_response` and/or if they conflict with DEFAULT_HTTPS_KERNEL and/or
+        // any registered DEFAULT_REGISTER_SHUTDOWN_HANDLER which conflicts with post_response pipes.
+        // 8.1 Request Pipes
         // ------------------------------------------------------------------------------------------
         if (!isset($this->validBatches['config']['request'])) {
             if (!isset($this->validBatches['config']['DEFAULT_HTTPS_KERNEL'])) {
@@ -7289,17 +7291,17 @@ class C
             foreach ($this->validBatches['config']['request'] as $pipe) {
                 if (!str_starts_with($pipe, 'group:')) {
                     if (count($allPipes) > 0 && $allPipes[count($allPipes) - 1] === $pipe) {
-                        $this->compile_setWarn("`Consecutive Pipe Request Function '{$pipe}' found`: this one runs twice without any other inbetween it. Ignore this warning if it is intentional or Review `->CONFIG()->pipeRequestFunction()` in `/src/funkphp/app/CONFIG.pphp`.", $compileWarnings);
+                        $this->compile_setWarn("`Consecutive GLOBAL Pipe Request Function '{$pipe}' found`. Ignore this warning if it is intentional or Review `->CONFIG()->pipeRequestFunction()` in `/src/funkphp/app/CONFIG.php`.", $compileWarnings);
                     }
                     $allPipes[] = $pipe;
                     continue;
                 }
                 if (!isset($GLOBAL_GROUPED['REQUEST'][$pipe])) {
-                    $this->compile_setErr("Grouped Request Pipe Functions with the name `{$pipe}` does not exist but was still part of the `->CONFIG()->pipeRequestFunction('{$pipe}')` in `/src/funkphp/app/CONFIG.pphp`.", $compileErrors);
+                    $this->compile_setErr("Grouped GLOBAL Request Pipe Functions with the name `{$pipe}` does not exist but was still part of the `->CONFIG()->pipeRequestFunction('{$pipe}')` in `/src/funkphp/app/CONFIG.php`.", $compileErrors);
                 } else {
                     foreach ($GLOBAL_GROUPED['REQUEST'][$pipe] as $groupPipe) {
                         if (count($allPipes) > 0 && $allPipes[count($allPipes) - 1] === $groupPipe) {
-                            $this->compile_setWarn("`Consecutive Pipe Request Function '{$groupPipe}' found`: this one runs twice without any other inbetween it. Ignore this warning if it is intentional or Review `->CONFIG()->pipeRequestFunction()` in `/src/funkphp/app/CONFIG.pphp`.", $compileWarnings);
+                            $this->compile_setWarn("`Consecutive GLOBAL Pipe Request Function '{$groupPipe}' found`. Ignore this warning if it is intentional or Review `->CONFIG()->pipeRequestFunction()` in `/src/funkphp/app/CONFIG.php`.", $compileWarnings);
                         }
                         $allPipes[] = $groupPipe;
                     }
@@ -7308,7 +7310,7 @@ class C
             $this->compiled['config']['pipes']['request'] =  $allPipes;
         }
         // ------------------------------------------------------------------------------------------
-        // .2 Middlewares Globally (runs AFTER a matched method+route only?)
+        // 8.2 Middlewares Globally (runs AFTER a matched method+route only?)
         // ------------------------------------------------------------------------------------------
         if (isset($this->validBatches['config']['middlewares'])) {
             // VALIDATE "group:" Variants and then ADD MIDDLEWARES PIPES (global first then method level)
@@ -7316,17 +7318,17 @@ class C
             foreach ($this->validBatches['config']['middlewares'] as $pipe) {
                 if (!str_starts_with($pipe, 'group:')) {
                     if (count($allPipes) > 0 && $allPipes[count($allPipes) - 1] === $pipe) {
-                        $this->compile_setWarn("`Consecutive Pipe Middleware Function '{$pipe}' found`: this one runs twice without any other inbetween it. Ignore this warning if it is intentional or Review `->CONFIG()->pipeMiddleware()` in `/src/funkphp/app/CONFIG.pphp`.", $compileWarnings);
+                        $this->compile_setWarn("`Consecutive GLOBAL Pipe Middleware Function '{$pipe}' found`. Ignore this warning if it is intentional or Review `->CONFIG()->pipeMiddleware()` in `/src/funkphp/app/CONFIG.php`.", $compileWarnings);
                     }
                     $allPipes[] = $pipe;
                     continue;
                 }
                 if (!isset($GLOBAL_GROUPED['MIDDLEWARES'][$pipe])) {
-                    $this->compile_setErr("Grouped Middleware Pipe Functions with the name `{$pipe}` does not exist but was still part of the `->CONFIG()->pipeMiddleware('{$pipe}')` in `/src/funkphp/app/CONFIG.pphp`.", $compileErrors);
+                    $this->compile_setErr("Grouped GLOBAL Middleware Pipe Functions with the name `{$pipe}` does not exist but was still part of the `->CONFIG()->pipeMiddleware('{$pipe}')` in `/src/funkphp/app/CONFIG.php`.", $compileErrors);
                 } else {
                     foreach ($GLOBAL_GROUPED['MIDDLEWARES'][$pipe] as $groupPipe) {
                         if (count($allPipes) > 0 && $allPipes[count($allPipes) - 1] === $groupPipe) {
-                            $this->compile_setWarn("`Consecutive Pipe Middleware Function '{$groupPipe}' found`: this one runs twice without any other inbetween it. Ignore this warning if it is intentional or Review `->CONFIG()->pipeMiddleware()` in `/src/funkphp/app/CONFIG.pphp`.", $compileWarnings);
+                            $this->compile_setWarn("`Consecutive GLOBAL Pipe Middleware Function '{$groupPipe}' found`. Ignore this warning if it is intentional or Review `->CONFIG()->pipeMiddleware()` in `/src/funkphp/app/CONFIG.php`.", $compileWarnings);
                         }
                         $allPipes[] = $groupPipe;
                     }
@@ -7335,7 +7337,7 @@ class C
             $this->compiled['config']['pipes']['middlewares'] =  $allPipes;
         }
         // ------------------------------------------------------------------------------------------
-        // .3 Post-Response Pipes
+        // 8.3 Post-Response Pipes
         // ------------------------------------------------------------------------------------------
         if (!isset($this->validBatches['config']['post_response'])) {
             if (!isset($this->validBatches['config']['DEFAULT_REGISTER_SHUTDOWN_HANDLER'])) {
@@ -7355,17 +7357,17 @@ class C
                 foreach ($this->validBatches['config']['post_response'] as $pipe) {
                     if (!str_starts_with($pipe, 'group:')) {
                         if (count($allPipes) > 0 && $allPipes[count($allPipes) - 1] === $pipe) {
-                            $this->compile_setWarn("`Consecutive Pipe Post-Response Function '{$pipe}' found`: this one runs twice without any other inbetween it. Ignore this warning if it is intentional or Review `->CONFIG()->pipePostResponseFunction()` in `/src/funkphp/app/CONFIG.pphp`.", $compileWarnings);
+                            $this->compile_setWarn("`Consecutive GLOBAL Pipe Post-Response Function '{$pipe}' found`. Ignore this warning if it is intentional or Review `->CONFIG()->pipePostResponseFunction()` in `/src/funkphp/app/CONFIG.php`.", $compileWarnings);
                         }
                         $allPipes[] = $pipe;
                         continue;
                     }
                     if (!isset($GLOBAL_GROUPED['POST_RESPONSE'][$pipe])) {
-                        $this->compile_setErr("Grouped Post-Response Pipe Functions with the name `{$pipe}` does not exist but was still part of the `->CONFIG()->pipePostResponseFunction('{$pipe}')` in `/src/funkphp/app/CONFIG.pphp`.", $compileErrors);
+                        $this->compile_setErr("Grouped GLOBAL Post-Response Pipe Functions with the name `{$pipe}` does not exist but was still part of the `->CONFIG()->pipePostResponseFunction('{$pipe}')` in `/src/funkphp/app/CONFIG.php`.", $compileErrors);
                     } else {
                         foreach ($GLOBAL_GROUPED['POST_RESPONSE'][$pipe] as $groupPipe) {
                             if (count($allPipes) > 0 && $allPipes[count($allPipes) - 1] === $groupPipe) {
-                                $this->compile_setWarn("`Consecutive Pipe Post-Response Function '{$groupPipe}' found`: this one runs twice without any other inbetween it. Ignore this warning if it is intentional or Review `->CONFIG()->pipePostResponseFunction()` in `/src/funkphp/app/CONFIG.pphp`.", $compileWarnings);
+                                $this->compile_setWarn("`Consecutive GLOBAL Pipe Post-Response Function '{$groupPipe}' found`. Ignore this warning if it is intentional or Review `->CONFIG()->pipePostResponseFunction()` in `/src/funkphp/app/CONFIG.php`.", $compileWarnings);
                             }
                             $allPipes[] = $groupPipe;
                         }
@@ -7375,8 +7377,42 @@ class C
             }
         }
         // ------------------------------------------------------------------------------------------
+        // STEP 9: Build `middlewares` for all <METHODS> - same checks as global config()
         // ------------------------------------------------------------------------------------------
+        if (isset($this->validBatches['methods'])) {
+            foreach ($this->validBatches['methods'] as $method => $methodConfig) {
+                if (isset($methodConfig['middlewares'])) {
+                    // VALIDATE "group:" Variants and then ADD MIDDLEWARES PIPES (global first then method level)
+                    $allPipes = [];
+                    foreach ($methodConfig['middlewares'] as $pipe) {
+                        if (!str_starts_with($pipe, 'group:')) {
+                            if (count($allPipes) > 0 && $allPipes[count($allPipes) - 1] === $pipe) {
+                                $this->compile_setWarn("`Consecutive {$method} Pipe Middleware Function '{$pipe}' found`. Ignore this warning if it is intentional or Review `->ROUTES()->{$method}()->pipeMiddleware()` in `/src/funkphp/app/{$method}.php`.", $compileWarnings);
+                            }
+                            $allPipes[] = $pipe;
+                            continue;
+                        }
+                        if (!isset($GLOBAL_GROUPED['MIDDLEWARES'][$pipe])) {
+                            $this->compile_setErr("Grouped Middleware {$method} Pipe Functions with the name `{$pipe}` does not exist but was still part of the `->ROUTES()->{$method}()->pipeMiddleware('{$pipe}')` in `/src/funkphp/app/{$method}.php`.", $compileErrors);
+                        } else {
+                            foreach ($GLOBAL_GROUPED['MIDDLEWARES'][$pipe] as $groupPipe) {
+                                if (count($allPipes) > 0 && $allPipes[count($allPipes) - 1] === $groupPipe) {
+                                    $this->compile_setWarn("`Consecutive {$method} Pipe Middleware Function '{$groupPipe}' found`. Ignore this warning if it is intentional or Review `->ROUTES()->{$method}()->pipeMiddleware()` in `/src/funkphp/app/{$method}.php`.", $compileWarnings);
+                                }
+                                $allPipes[] = $groupPipe;
+                            }
+                        }
+                    }
+                    $this->compiled['methods'][$method]['middlewares'] = $allPipes;
+                }
+            }
+        }
 
+
+
+
+
+        /////////////////////////////////////// END /////////////////////////////
         //$this->compile_setErr("", $compileErrors);
         if (
             isset($this->debug['SHOW_MAIN_CONFIG'])

@@ -9,6 +9,8 @@ $APP->CONFIG()
     ->setBaseURLLocal("http://wkf.com")
     ->setBaseURLOnline("https://www.funkphp.com")
     ->setBaseURLUri("/funkphp")
+    // PARAMS
+    ->setParamRule("id", "/[\d]+/", 0)
     // GROUPED Pipes
     ->setGroupPipeMiddlewares("test_mw", "auth", "auth2")
     ->setGroupPipePostResponse("test_post_response", "debug", "debug2")
@@ -56,7 +58,6 @@ $APP->CONFIG()
         'SESSION_SAMESITE' => 'Lax'
     ])
     // GLOBAL PARAMS
-    ->setParamRule("id", "/[\d]+/", "0")
     // GLOBAL REQUEST PIPES
     ->pipeRequestFunction("use_cors")
     ->pipeRequestFunction("group:test_request")
