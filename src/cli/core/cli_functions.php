@@ -3988,39 +3988,6 @@ function cli_output(string $type, string $message, bool $do_exit = false, int $e
             $color = ANSI_RESET;
             break;
     }
-    // switch ($type) {
-    //     case MSG_TYPE_ERROR:
-    //         $prefix = '[FunkCLI - ERROR]: ';
-    //         $color = ANSI_RED;
-    //         $exit_code = ($exit_code === 0) ? 1 : $exit_code;
-    //         break;
-    //     case MSG_TYPE_SYNTAX_ERROR:
-    //         $prefix = '[FunkCLI - SYNTAX ERROR]: ';
-    //         $color = ANSI_RED;
-    //         $exit_code = ($exit_code === 0) ? 1 : $exit_code;
-    //         break;
-    //     case MSG_TYPE_SUCCESS:
-    //         $prefix = '[FunkCLI - SUCCESS]: ';
-    //         $color = ANSI_GREEN;
-    //         break;
-    //     case MSG_TYPE_INFO:
-    //         $prefix = '[FunkCLI - INFO]: ';
-    //         $color = ANSI_BLUE;
-    //         break;
-    //     case MSG_TYPE_WARNING:
-    //         $prefix = '[FunkCLI - WARNING]: ';
-    //         $color = ANSI_YELLOW;
-    //         break;
-    //     case MSG_TYPE_IMPORTANT:
-    //         $prefix = '[FunkCLI - IMPORTANT]: ';
-    //         $color = ANSI_YELLOW;
-    //         break;
-    //     default:
-    //         $type = 'UNKOWN';
-    //         $prefix = '[FunkCLI - UNKOWN MESSAGE TYPE]: '; // Fallback for unknown types
-    //         $color = ANSI_RESET;
-    //         break;
-    // }
     // Check if we are in JSON_MODE (web browser access)
     // If not JSON_MODE, we assume & output to CLI!
     // Any message that includes $do_exit true will

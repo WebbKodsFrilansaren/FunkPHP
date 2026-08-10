@@ -1,6 +1,4 @@
-<?php // ***VERY IMPORTANT: This is GITIGNORED (.gitignore file: /src/funkphp/config/db_config.php)***/
-// *** You need to Upload this File Manually for PRODUCTION USE! ***//
-// ***  DB_CHARSET is default utf8mb4 - Change as needed during db_connect call!  ***//
+<?php
 /*
      SYNTAX:
      ['UNIQUE_CONNECTION_KEY' =>

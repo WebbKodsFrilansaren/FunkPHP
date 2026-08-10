@@ -12,8 +12,6 @@
  **/
 // Singleton Object Constant that indicates "no value"!
 define('FUNKPHP_NO_VALUE', new stdClass());
-//^Change to "true" to allow overwriting existing instances!
-// Related to  "'INSTANCES' => ['vendor' => [], 'classes' => []]," in "config.php" file!
 
 // Constants only relevant for Localhost, so do not include this in Build/Deploy MegaFile!
 define('NAMESPACE_PAGES', 'funkphp\\pages\\');
@@ -7001,6 +6999,8 @@ class C
             if (isset($this->validBatches['config']['DEFAULT_HTTPS_KERNEL'])) {
                 $this->compile_setWarn("Request Pipes (via `->pipeRequestFunction() in ->CONFIG()` and the `User-defined Custom Default HTTPS Kernel Handler` detected. This means that that after Successful Compilation it will have access to Trie-based Routes with Metadata and then it is `all up to that User-defined Function to handle everything AFTER Request Pipe Functions first have ran`; everything from Route-matching to executing each Route-associated Pipe Function(s).", $compileWarnings);
             }
+            // VALIDATE "group:" Variants and then ADD REQUEST PIPES
+
         }
         // 5.2 Post-Response Pipes
         if (!isset($this->validBatches['config']['post_response'])) {
@@ -7015,6 +7015,8 @@ class C
             if (isset($this->validBatches['config']['DEFAULT_REGISTER_SHUTDOWN_HANDLER'])) {
                 $this->compile_setErr("Conflict between `User-defined Custom Default Registered Shutdown Handlers` (via `->CONFIG->setDefaultRegisteredShutdownHandler()`) and `->CONFIG()->pipePostResponseFunction()` as Post-Response Pipes run as part of the `In-built Default Registered Shutdown Handler` when no Custom Default one has been configured. Consider converting your Post-Response Pipes into User-defined Functions that you then register with `->setDefaultRegisteredShutdownHandler()` OR vice versa.", $compileErrors);
             } else {
+                // VALIDATE "group:" Variants and then ADD POST-RESPONSE PIPES
+
             }
         }
 
@@ -7025,7 +7027,6 @@ class C
     private function run()
     {
         // Run the valid compiled FunkPHP
-        echo "TEST";
     }
 }
 /**
