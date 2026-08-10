@@ -159,7 +159,6 @@ define('TEST_DIR', PROJECT_DIR . '/tests');
 // Default exact file path used by FunkCLI
 define('FUNKPHP_FILE_APP', CLI_CONFIG_DIR . '/app.php');
 define('FUNKPHP_FILE_MANIFEST_CORE', FUNKPHP_CORE_DIR . '/manifest.php');
-define('FUNKPHP_FILE_PATH_CLI_RESERVED', CLI_CORE_DIR . '/cli_reserved.php');
 define('FUNKPHP_FILE_PATH_CLI_FUNCTIONS', CLI_CORE_DIR . '/cli_functions.php');
 define('FUNKPHP_FILE_PATH_CLI_FUNCTIONS_AND_ALSO_CLASSES', CLI_CORE_DIR . '/cli_classes_with_functions.php');
 define('FUNKPHP_FILE_PATH_CLI_CONFIG_REGEX', CLI_CONFIG_DIR . '/regexes.php');
@@ -429,18 +428,6 @@ include_once FUNKPHP_FILE_PATH_CLI_CONFIG_EXTERNAL_CALLABLE_VALIDATORS;
 // should not be used in the application code. They are checked against
 // when adding any new kind of function that is already reserved.
 $reserved_functions = [];
-if (is_readable(FUNKPHP_FILE_PATH_CLI_RESERVED)) {
-    $reserved_functions = include_once FUNKPHP_FILE_PATH_CLI_RESERVED;
-    if (!is_array($reserved_functions) || !array_is_list($reserved_functions)) {
-        cli_info_without_exit("Reserved Functions List File `cli_reserved.php` INVALID DATA TYPE! Attempting to generate a new valid one...");
-        $reserved_functions = cli_update_reserved_functions_list_and_return_as_array();
-        cli_success_without_exit("Reserved Functions List File `cli_reserved.php` Generated Successfully. Continuing...");
-    }
-} else {
-    cli_info_without_exit("Reserved Functions List File `cli_reserved.php` NOT FOUND! Attempting to generate a new one...");
-    $reserved_functions = cli_update_reserved_functions_list_and_return_as_array();
-    cli_success_without_exit("Reserved Functions List File `cli_reserved.php` Generated Successfully. Continuing...");
-}
 
 // DEFAULT FILES IN /funkphp/core that are used to
 // recover when they are removed/rebuilt failed:
@@ -9679,7 +9666,6 @@ $mysqlOperatorSyntaxDefault = [
 cli_restore_default_folders_and_files();
 
 // Load current pipeline, routes, data and pages before processing any commands
-$singlePipeline = include_once FUNKPHP_FILE_PATH_PIPELINE ?? $singlePipelineDefault;
 $singleRoutesRoute = include_once FUNKPHP_FILE_PATH_ROUTES ?? $singleRoutesRouteDefault;
 $singleTroute = include_once FUNKPHP_FILE_PATH_TROUTES ?? $singleTrouteDefault;
 $tablesAndRelationshipsFile = include_once FUNKPHP_FILE_PATH_TABLES ?? $tablesAndRelationshipsFileDefault;

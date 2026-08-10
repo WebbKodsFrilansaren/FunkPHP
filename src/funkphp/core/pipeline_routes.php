@@ -1,4 +1,4 @@
-<?php // pipeline_routes.php - FunkPHP | FunkCLI Modified it 2026-08-10 05:15:19
+<?php // pipeline_routes.php - FunkPHP | FunkCLI Modified it 2026-08-10 05:26:29
 return
   /**
    * -----------------------------------------------------
@@ -25,10 +25,7 @@ return
             'add' =>
             array(),
             'remove' =>
-            array(
-              'a' => 'a',
-              'b' => 'b',
-            ),
+            array(),
           ),
           'method_csp' =>
           array(

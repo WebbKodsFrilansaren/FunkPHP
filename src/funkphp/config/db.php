@@ -18,7 +18,7 @@
 */
 // Define the connection settings based on the environment
 $credentials = [];
-if (FUNKPHP_IS_LOCAL) {
+if (!$c['FUNKPHP_ONLINE']) {
     // --- LOCAL/DEVELOPMENT CREDENTIALS ---
     $credentials = [
         // IMPORTANT: Used by `cli_db_connect()` to connect to MySQL/MariaDB in CLI mode

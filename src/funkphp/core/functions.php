@@ -12,8 +12,6 @@
  **/
 // Singleton Object Constant that indicates "no value"!
 define('FUNKPHP_NO_VALUE', new stdClass());
-define('FUNKPHP_IS_LOCAL', true);
-define('FUNKPHP_ALLOW_INSTANCE_OVERWRITE', true); //
 //^Change to "true" to allow overwriting existing instances!
 // Related to  "'INSTANCES' => ['vendor' => [], 'classes' => []]," in "config.php" file!
 
@@ -28,7 +26,6 @@ define('NAMESPACE_DATA_SQL', 'funkphp\\data\\sql\\');
 define('NAMESPACE_DATA_VALIDATION', 'funkphp\\data\\validation\\');
 
 // Constants for Localhost vs Online Usage
-define('FUNKPHP_USE_VENDOR', true); // Change to "false" if you intend to not use any Composer packages and want to remove the Composer autoloader from "FunkPHP.php" for better performance!
 define('ROOT_FOLDER', dirname(__DIR__, 1)); // src/funkphp/
 define('ROOT_APP', ROOT_FOLDER . '/app'); // src/funkphp/app
 define('ROOT_CORE_APP', ROOT_FOLDER . '/core/app.php'); // src/funkphp/config/app.php
@@ -38,6 +35,7 @@ define('ROOT_APP_POST', ROOT_FOLDER . '/app/POST.php'); // src/funkphp/app/POST.
 define('ROOT_APP_PUT', ROOT_FOLDER . '/app/PUT.php'); // src/funkphp/app/PUT.php
 define('ROOT_APP_PATCH', ROOT_FOLDER . '/app/PATCH.php'); // src/funkphp/app/PATCH.php
 define('ROOT_APP_DELETE', ROOT_FOLDER . '/app/DELETE.php'); // src/funkphp/app/DELETE.php
+define('ROOT_APP_VENDOR', ROOT_FOLDER . '/vendor/autoload.php');
 define('ROOT_CORE', ROOT_FOLDER . '/core'); // src/funkphp/core
 define('ROOT_CONFIG', ROOT_FOLDER . '/config'); // src/funkphp/config
 define('ROOT_MIDDLEWARES', ROOT_FOLDER . '/pipeline/middlewares'); // src/funkphp/FunkPHP
