@@ -3755,6 +3755,7 @@ class C
             // Call Order & Duplicate|Conflict Validation Errors
             'DuplicateNonceKeyName'           => "`Duplicate Nonce Key Name` in {$optionalCtx}. Review/change the already `Valid` Nonce Key Name ",
             'DuplicateRouteAliasName'           => "Duplicate Route Alias Name` in {$optionalCtx}. Review/change the already `Valid` Configuration first defined in ",
+            'DuplicateCallSessionCookieDueToValidOptionsVersion' => "`Duplicate Setting Session Cookie Call` to {$optionalCtx} due to already being set and `Valid` OR because `->setSessionCookieOptions()` has been used already which sets all Session Cookie Values at once.",
             'DuplicateRouteConflict' => "`Duplicate Route Conflict` in Valid Formatted Route in {$optionalCtx} ",
             'DuplicateCallInvalid'              => "`Duplicate Call` to {$optionalCtx} with either `Exact Values` OR it can Only be Called Once. Review the already `Invalid` Configuration which is before this Error in the `API Array`.",
             'DuplicateCallValid'                => "`Duplicate Call` to {$optionalCtx} with either `Exact Values` OR it can Only be Called Once. Review/change the already `Valid` Configuration which is before this Error in the `API Array`.",
@@ -4529,6 +4530,7 @@ class C
             return;
         }
         $allowedKeys = [
+            'SESSION_DRIVER',
             'SESSION_NAME',
             'SESSION_LIFETIME',
             'SESSION_PATH',
@@ -4561,6 +4563,11 @@ class C
                 $this->invalidBatches['config']['SESSION']['COOKIES']['AS_OPTIONS'] = $SessionCookieOptions;
                 return;
             }
+            if ($key === 'SESSION_DRIVER' && isset($this->validBatches['config']['SESSION']['driver'])) {
+                $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . " The Session Cookie Option `{$key}` already exists as a Valid Session Cookie Value under `->CONFIG()`.", 'Global-setSessionCookieOptions');
+                $this->invalidBatches['config']['SESSION']['COOKIES']['AS_OPTIONS'] = $SessionCookieOptions;
+                return;
+            }
             if (isset($this->validBatches['config']['SESSION']['COOKIES'][$key])) {
                 $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . " The Session Cookie Option `{$key}` already exists as a Valid Session Cookie Value under `->CONFIG()`.", 'Global-setSessionCookieOptions');
                 $this->invalidBatches['config']['SESSION']['COOKIES']['AS_OPTIONS'] = $SessionCookieOptions;
@@ -4575,6 +4582,14 @@ class C
         $validated = [];
         foreach ($SessionCookieOptions as $key => $val) {
             switch ($key) {
+                case 'SESSION_DRIVER':
+                    if (!is_string($val) || trim($val) === '' || !in_array(strtolower(trim($val)), ['files', 'redis', 'memcached', 'database', 'array'])) {
+                        $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctx) . " Invalid `SESSION_DRIVER` Value. Must be a Non-Empty String without trailing spaces that is one of the following values: " . $this->joinArray(['files', 'redis', 'memcached', 'database', 'array']), 'Global-setSessionCookieOptions');
+                        $this->invalidBatches['config']['SESSION']['COOKIES']['AS_OPTIONS'] = $SessionCookieOptions;
+                        return;
+                    }
+                    $validated[$key] = $val;
+                    break;
                 case 'SESSION_NAME':
                     if (!is_string($val) || trim($val) === '') {
                         $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctx) . " Invalid `SESSION_NAME` Value. Must be a Non-Empty String without trailing spaces.", 'Global-setSessionCookieOptions');
@@ -4637,6 +4652,10 @@ class C
         }
         // Finally add all to the specific Session Cookie Variables and assign as valid batch
         foreach ($validated as $k => $v) {
+            if ($k === 'SESSION_DRIVER') {
+                $this->validBatches['config']['SESSION']['driver'] = $v;
+                continue;
+            }
             $this->validBatches['config']['SESSION']['COOKIES'][$k] = $v;
         }
         $this->validBatches['config']['SESSION']['COOKIES']['AS_OPTIONS'] = true;
@@ -4672,7 +4691,7 @@ class C
             return;
         }
         if (isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_NAME'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setSessionCookieName');
+            $this->setErr($this->getErr('DuplicateCallSessionCookieDueToValidOptionsVersion', $ctxVals), 'Global-setSessionCookieName');
             return;
         }
         if (!is_string($sessionCookieName) || trim($sessionCookieName) === '') {
@@ -4690,7 +4709,7 @@ class C
             return;
         }
         if (isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_LIFETIME'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setSessionCookieLifetime');
+            $this->setErr($this->getErr('DuplicateCallSessionCookieDueToValidOptionsVersion', $ctxVals), 'Global-setSessionCookieLifetime');
             return;
         }
         if (!is_int($sessionCookieLifetime) || $sessionCookieLifetime < 0) {
@@ -4708,7 +4727,7 @@ class C
             return;
         }
         if (isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_PATH'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setSessionCookiePath');
+            $this->setErr($this->getErr('DuplicateCallSessionCookieDueToValidOptionsVersion', $ctxVals), 'Global-setSessionCookiePath');
             return;
         }
         if (
@@ -4729,7 +4748,7 @@ class C
             return;
         }
         if (isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_DOMAIN'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setSessionCookieDomain');
+            $this->setErr($this->getErr('DuplicateCallSessionCookieDueToValidOptionsVersion', $ctxVals), 'Global-setSessionCookieDomain');
             return;
         }
         if (
@@ -4753,7 +4772,7 @@ class C
             return;
         }
         if (isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_SECURE'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setSessionCookieSecure');
+            $this->setErr($this->getErr('DuplicateCallSessionCookieDueToValidOptionsVersion', $ctxVals), 'Global-setSessionCookieSecure');
             return;
         }
         if (!is_bool($trueOrFalse)) {
@@ -4772,7 +4791,7 @@ class C
             return;
         }
         if (isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_HTTPONLY'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setSessionCookieHTTPOnly');
+            $this->setErr($this->getErr('DuplicateCallSessionCookieDueToValidOptionsVersion', $ctxVals), 'Global-setSessionCookieHTTPOnly');
             return;
         }
         if (!is_bool($trueOrFalse)) {
@@ -4790,7 +4809,7 @@ class C
             return;
         }
         if (isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_SAMESITE'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setSessionCookieSameSite');
+            $this->setErr($this->getErr('DuplicateCallSessionCookieDueToValidOptionsVersion', $ctxVals), 'Global-setSessionCookieSameSite');
             return;
         }
         if (!is_string($LaxOrStrict) || trim($LaxOrStrict) === '' || !in_array($LaxOrStrict, ['Lax', 'Strict', 'None'], true)) {
@@ -6772,6 +6791,14 @@ class C
     // Two private functions that are ONLY used via Reflection classes so you do not see
     // them while configuring `/src/funkphp/FunkPHP.php` and runs it unless `FunkPHPDeployment.php`
     // is set in `/src/public_html/index.php` to run instead!
+    private function compile_setErr(string $err, array &$compileErrors)
+    {
+        $compileErrors[count($compileErrors) + 1] = $err;
+    }
+    private function compile_setWarn(string $err, array &$compileWarnings)
+    {
+        $compileWarnings[count($compileWarnings) + 1] = $err;
+    }
     private function compile(bool $CompileAndRunLocally = true)
     {
         //REFER TO THESE TO
@@ -6782,13 +6809,12 @@ class C
         // for runtime either in compiled `/src/funkphp/FunkPHPDeployment.php` or
         // just after calling $this->run() after, only, a valid compilation.
         $compileErrors = [];
+        $compileWarnings = [];
         $PATH_USER_DEFINED_FNS = '/src/funkphp/config/functions.php';
         $PATH_CLASSES = '/src/funkphp/config/classes.php';
-
         // Contains User-defined functions that are assigned Global Handlers meaning
         // they are prioritized even if they are configured at the end of the app.
         $GLOBAL_HANDLERS = [];
-
         // Contains group:<Name,FN,FN2> (and soon)
         $GLOBAL_GROUPED = [
             'MIDDLEWARES' => [],
@@ -6797,7 +6823,6 @@ class C
             'USER_DEFINED' => [],
             'ROUTES_FILE_FUNCTIONS' => []
         ];
-
         // Attempt compiling FunkPHP and create the code
         // STEP 1: Check there are zero Invalid Batches and zero errors so far.
         // Otherwise, we dump API + Errors and exist early (default in dd()).
@@ -6805,7 +6830,6 @@ class C
             $errCount = count($this->errors);
             dd(['API' => $this->FunkPHPFluentAPI, 'ERRORS' => $this->errors], "FunkPHP Compilation ($errCount Error" . ($errCount === 1 ? '' : 's') . ')', true);
         }
-
         // STEP 2: First add to the $compiled->c variable that can be added right away
         // 3 BOOLEANS
         if (isset($this->validBatches['config']['FUNKPHP_ONLINE'])) {
@@ -6834,7 +6858,6 @@ class C
         if (isset($this->validBatches['config']['setINI_SET'])) {
             $this->compiled['c']['INI_SETS'] = $this->validBatches['config']['setINI_SET'];
         }
-
         // STEP 3: Check Global Handlers set and then all setGroup<VARIANTS> since they can refer to
         // either non-existing function+files AND/OR to set Global Handlers which would conflict.
         // STEP 3.1 - Global Handlers
@@ -6866,7 +6889,8 @@ class C
                 $validGroup = true;
                 foreach ($GROUPED_UD_VALS as $UD_FN) {
                     if (isset($GLOBAL_HANDLERS[$UD_FN])) {
-                        $compileErrors[count($compileErrors) + 1] = "Grouped-configured User-defined Function `{$UD_FN}` in `{$PATH_USER_DEFINED_FNS}` in `->setGroupPipeUserdefined('{$GROUPED_UD_NAME}')` conflicts with already defined Global Handler Role `{$GLOBAL_HANDLERS[$UD_FN]}.` Remove `{$UD_FN}` from the `->setGroupPipeUserdefined()` OR from the `Global Handler Role`.";
+                        $this->compile_setErr("Grouped-configured User-defined Function `{$UD_FN}` in `{$PATH_USER_DEFINED_FNS}` in `->setGroupPipeUserdefined('{$GROUPED_UD_NAME}')` conflicts with already defined Global Handler Role `{$GLOBAL_HANDLERS[$UD_FN]}.` Remove `{$UD_FN}` from the `->setGroupPipeUserdefined()` OR from the `Global Handler Role`.", $compileErrors);
+                        //$compileErrors[count($compileErrors) + 1] = "Grouped-configured User-defined Function `{$UD_FN}` in `{$PATH_USER_DEFINED_FNS}` in `->setGroupPipeUserdefined('{$GROUPED_UD_NAME}')` conflicts with already defined Global Handler Role `{$GLOBAL_HANDLERS[$UD_FN]}.` Remove `{$UD_FN}` from the `->setGroupPipeUserdefined()` OR from the `Global Handler Role`.";
                         $validGroup = false;
                     }
                 }
@@ -6895,11 +6919,72 @@ class C
                 $GLOBAL_GROUPED['POST_RESPONSE']["group:$GROUPED"] = $_;
             }
         }
-
-        // STEP 4: Check SESSION (driver + COOKIES)
-        if (isset($this->validBatches['config']['SESSION']['driver'])) {
+        // STEP 4: Check SESSION (driver + COOKIES) - either AS_OPTIONS or single values
+        if (isset($this->validBatches['config']['SESSION']['COOKIES']['AS_OPTIONS'])) {
+            $this->compiled['c']['SESSION'] = $this->validBatches['config']['SESSION'];
+        } else {
+            // Use user-defined (UD) OR default Session Driver? (files)
+            if (!isset($this->validBatches['config']['SESSION']['driver'])) {
+                $this->compiled['c']['SESSION']['driver'] = "files";
+                $this->compile_setWarn("No Default `Session Cookie Driver` set (with `'->CONFIG()->setSessionDriver()'`) - using default: `'files'`.", $compileWarnings);
+            } else {
+                $this->compiled['c']['SESSION']['driver'] = $this->validBatches['config']['SESSION']['driver'];
+            }
+            // UD or default Session Name?
+            if (!isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_NAME'])) {
+                $this->compiled['c']['SESSION']['COOKIES']['SESSION_NAME'] = "fphp_id";
+                $this->compile_setWarn("No Default `Session Cookie Name` set (with `'->CONFIG()->setSessionCookieName()'`) - using default: `'fphp_id'`.", $compileWarnings);
+            } else {
+                $this->compiled['c']['SESSION']['COOKIES']['SESSION_NAME'] = $this->validBatches['config']['SESSION']['COOKIES']['SESSION_NAME'];
+            }
+            // UD or default Session Domain?
+            if (!isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_DOMAIN'])) {
+                $this->compiled['c']['SESSION']['COOKIES']['SESSION_DOMAIN'] = "funkphp";
+                $this->compile_setWarn("No Default `Session Cookie Domain` set (with `'->CONFIG()->setSessionCookieDomain()'`) - using default: `'funkphp'`.", $compileWarnings);
+            } else {
+                $this->compiled['c']['SESSION']['COOKIES']['SESSION_DOMAIN'] = $this->validBatches['config']['SESSION']['COOKIES']['SESSION_DOMAIN'];
+            }
+            // UD or default Session Path?
+            if (!isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_PATH'])) {
+                $this->compiled['c']['SESSION']['COOKIES']['SESSION_PATH'] = "/";
+                $this->compile_setWarn("No Default `Session Cookie Domain` set (with `'->CONFIG()->setSessionCookiePath()'`) - using default: `'/'`.", $compileWarnings);
+            } else {
+                $this->compiled['c']['SESSION']['COOKIES']['SESSION_PATH'] = $this->validBatches['config']['SESSION']['COOKIES']['SESSION_PATH'];
+            }
+            // UD or default Session Lifetime?
+            if (!isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_LIFETIME'])) {
+                $this->compiled['c']['SESSION']['COOKIES']['SESSION_LIFETIME'] = 28800;
+                $this->compile_setWarn("No Default `Session Cookie Lifetime` set (with `'->CONFIG()->setSessionCookieLifetime()'`) - using default: `'28800'`.", $compileWarnings);
+            } else {
+                $this->compiled['c']['SESSION']['COOKIES']['SESSION_LIFETIME'] = $this->validBatches['config']['SESSION']['COOKIES']['SESSION_LIFETIME'];
+            }
+            // UD or default Session Lifetime?
+            if (!isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_SAMESITE'])) {
+                $this->compiled['c']['SESSION']['COOKIES']['SESSION_SAMESITE'] = 'Lax';
+                $this->compile_setWarn("No Default `Session Cookie Samesite` set (with `'->CONFIG()->setSessionCookieSameSite()'`) - using default: `'Lax'`.", $compileWarnings);
+            } else {
+                $this->compiled['c']['SESSION']['COOKIES']['SESSION_SAMESITE'] = $this->validBatches['config']['SESSION']['COOKIES']['SESSION_SAMESITE'];
+            }
+            // UD or default Session SECURE?
+            if (!isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_SECURE'])) {
+                $this->compiled['c']['SESSION']['COOKIES']['SESSION_SECURE'] = false;
+                $this->compile_setWarn("No Default `Session Cookie Secure` set (with `'->CONFIG()->setSessionCookieSecure()'`) - using default: `'false'`.", $compileWarnings);
+            } else {
+                $this->compiled['c']['SESSION']['COOKIES']['SESSION_SECURE'] = $this->validBatches['config']['SESSION']['COOKIES']['SESSION_SECURE'];
+            }
+            // UD or default Session HTTP?
+            if (!isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_HTTPONLY'])) {
+                $this->compiled['c']['SESSION']['COOKIES']['SESSION_HTTPONLY'] = true;
+                $this->compile_setWarn("No Default `Session Cookie HttpOnly` set (with `'->CONFIG()->setSessionCookieHTTPOnly()'`) - using default: `'true'`.", $compileWarnings);
+            } else {
+                $this->compiled['c']['SESSION']['COOKIES']['SESSION_HTTPONLY'] = $this->validBatches['config']['SESSION']['COOKIES']['SESSION_HTTPONLY'];
+            }
         }
-        dd(['API' => $this->FunkPHPFluentAPI, 'VALID' => $this->validBatches, 'COMPILE_ERRORS' => $compileErrors, 'GLOBAL_HANDLERS' => $GLOBAL_HANDLERS, 'GLOBAL_GROUPS' => $GLOBAL_GROUPED, 'compiled_c' => $this->compiled['c']], "FINAL COMPILE OUTPUT - DEBUG", true);
+        // STEP 5:
+
+
+        $this->compile_setErr("", $compileErrors);
+        dd(['API' => $this->FunkPHPFluentAPI, 'COMPILE_ERRORS' => $compileErrors, 'COMPILE_WARNINGS' => $compileWarnings, 'VALID' => $this->validBatches,  'GLOBAL_HANDLERS' => $GLOBAL_HANDLERS, 'GLOBAL_GROUPS' => $GLOBAL_GROUPED, 'compiled_c' => $this->compiled['c']], "FINAL COMPILE OUTPUT - DEBUG", true);
     }
     private function run()
     {

@@ -19,7 +19,6 @@ $FUNK->CONFIG()
     ->setDefaultExceptionHandler("testar3")
     ->setDefaultRegisteredShutdownHandler("testar4")
     ->setDefaultKernelHandler("testar5")
-    ->setSessionDriver('redis')
     ->setINI_SET([
         'session.cache_limiter' => 'public',
         'session.use_strict_mode' => 8,
@@ -34,6 +33,7 @@ $FUNK->CONFIG()
         'error_reporting' => 1,
     ])
     ->setSessionCookieOptions([
+        'SESSION_DRIVER' => ' files',
         'SESSION_SECURE' => true,
         'SESSION_HTTPONLY' => true,
         'SESSION_DOMAIN' => 'funkphp',
@@ -42,7 +42,6 @@ $FUNK->CONFIG()
         'SESSION_NAME' => 'fphp_test',
         'SESSION_SAMESITE' => 'Lax'
     ])
-    ->setSessionCookieName("new")
     ->setParamRule("id", "/[\d]+/", "0");
 
 $FUNK->ROUTES()->GET()->ROUTE("/:id")->pipeFunction("group:test_routes");
