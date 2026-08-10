@@ -32,6 +32,7 @@ if (is_object($FUNKPHP) && $FUNKPHP instanceof FunkPHP) {
     };
     $debug    = $getProp('debug') ?? [];
     $errors   = $getProp('errors') ?? [];
+    $errors2   = $getProp('errors2') ?? [];
     $warnings = $getProp('WARNINGS') ?? [];
     $fluent   = $getProp('FunkPHPFluentAPI') ?? [];
     $errCount  = count($errors);
