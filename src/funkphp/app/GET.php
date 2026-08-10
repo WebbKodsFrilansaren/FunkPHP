@@ -4,6 +4,7 @@
 /** @var FunkPHP $APP */
 $APP->ROUTES()
     ->GET()
+    ->setNoRouteMatchCallback("testar8")
     ->setParamRule("id", "/[\d]+/")
     ->ROUTE("/:id")
     ->setParamRule("id", "/[\d]+/");

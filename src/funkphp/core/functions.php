@@ -2177,7 +2177,6 @@ class C
                     'SESSION_SAMESITE' => 'Lax',
                 ]
             ],
-
             'shared' => [],
             'classes' => ['vendor' => [], 'user' => []],
             'credentials' => null,
@@ -3752,7 +3751,7 @@ class C
             'InvalidGroupName'                                => "Invalid Group Name Value in {$optionalCtx}: must be a `Non-Empty String (no trailing spaces)` all `lowercased` that does NOT start with `cli_` OR `funk_`.",
             'InvalidResponseType' => "Invalid Response Type in {$optionalCtx}: Choose between: `page:`, `json:`, `callback:`, OR `text:` and then follow up with the `pageFileName` (for page:), OR `SingleArrayKeyDepth` - only use `[a-zA-Z-_.]` characters - to get `\$c['d']['SingleArrayKeyDepth']` (if 'json:SingleArrayKeyDepth') for where `Stored JSON Data` should be returned from (for json:), OR `userDefinedFunctionName in /src/funkphp/config/functions.php` that you have defined to use as a callback (for callback:), OR the plain text message (for text:). `pipeResponse() automatically completes it with exit()` and then run any optionally configured `Post-Response`.",
             'InvalidResponseContext' => "Invalid Response Context in {$optionalCtx}: Valid choice between `page:|json:|callback:|text:` found, but the Context after the Single Colon (`:`) is Empty or Invalid. ",
-            'InvalidAddHeaderFormat' => "Invalid Header Value Format in {$optionalCtx}: Header must not contain any kind of newline characters (`CRLF Injections` risks) and must follow `Header-Name: Header-Value` syntax (e.g. `X-Frame-Options: DENY`) where the Single Semi-colon (`:`) is the `divider` between `Key` and `Value`.",
+            'InvalidAddHeaderFormat' => "Invalid Header Format in {$optionalCtx}: Header Name and Header Value cannot contain any kind of newline characters (`CRLF Injections` risks) OR the Single Colon (`:`) as that is added automatically. Valid Examples: `'Header-Name','HeaderValue'` OR `'Content-type','application/json'`.",
             'InvalidHeaderName' => "Invalid Header Name Value in {$optionalCtx}: Must be a `Non-Empty String` with Header Name Only (e.g. `server`, `x-powered-by`), with `Only Alphanumerics` and `single dashes between the words.`",
             'InvalidCSPSourceArray' => "Invalid CSP Source Array in {$optionalCtx}: Ensure Sources are Valid Non-Empty Strings with no spaces, semicolons, or CRLF Injections.",
             'InvalidCSPDirective' => "Invalid CSP Directive Name Value in {$optionalCtx}. Must be one of the following: ",
@@ -3800,6 +3799,10 @@ class C
             'DuplicateRouteConflict' => "`Duplicate Route Conflict` in Valid Formatted Route in {$optionalCtx} ",
             'DuplicateCallInvalid'              => "`Duplicate Call` to {$optionalCtx} with either `Exact Values` OR it can Only be Called Once. Review the already `Invalid` Configuration which is before this Error in the `API Array`.",
             'DuplicateCallValid'                => "`Duplicate Call` to {$optionalCtx} with either `Exact Values` OR it can Only be Called Once. Review/change the already `Valid` Configuration which is before this Error in the `API Array`.",
+            'DuplicateCallValidCanOnlyBeSetOnce' => "`Duplicate Valid Call` to {$optionalCtx}: this can only be set once. Review the already `Valid` Configuration which is before this Error in the `API Array`.",
+            'DuplicateCallinValidCanOnlyBeSetOnce' => "`Duplicate Invalid Call` to {$optionalCtx}: this can only be set once. Review the already `Invalid` Configuration which is before this Error in the `API Array`.",
+            'DuplicateCallValidMustBeSetWithDifferentValues' => "`Duplicate Valid Call` to {$optionalCtx}: one or more values must be different in order to use this more than once. Review the already `Valid` Configuration which is before this Error in the `API Array`.",
+            'DuplicateCallInvalidMustBeSetWithDifferentValues' => "`Duplicate Invalid Call` to {$optionalCtx}: one or more values must be different in order to use this more than once. Review the already `Invalid` Configuration which is before this Error in the `API Array`.",
             'DuplicateParamGlobal' => "`Duplicate Global Param Rule` in {$optionalCtx}. Review/change the already `Valid` Configuration which is before this Error in the `API Array`.",
             'DuplicateParamMethod' => "`Duplicate Method Param Rule` in {$optionalCtx}. Review/change the already `Valid` Configuration which is before this Error in the `API Array`.",
             'DuplicateParamRoute' => "`Duplicate Route Param Rule` in {$optionalCtx}. Review/change the already `Valid` Configuration which is before this Error in the `API Array`.",
@@ -4236,11 +4239,11 @@ class C
     {
         [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setUseFunkPHPOnline', "CONFIG()", $trueOrFalse);
         if (isset($this->invalidBatches['config']['FUNKPHP_ONLINE'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setUseFunkPHPOnline');
+            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Global-setUseFunkPHPOnline');
             return;
         }
         if (isset($this->validBatches['config']['FUNKPHP_ONLINE'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setUseFunkPHPOnline');
+            $this->setErr($this->getErr('DuplicateCallValidCanOnlyBeSetOnce', $ctxVals), 'Global-setUseFunkPHPOnline');
             return;
         }
         if (
@@ -4256,11 +4259,11 @@ class C
     {
         [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setUseHTTPS', "CONFIG()", $trueOrFalse);
         if (isset($this->invalidBatches['config']['USE_HTTPS'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setUseHTTPS');
+            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Global-setUseHTTPS');
             return;
         }
         if (isset($this->validBatches['config']['USE_HTTPS'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setUseHTTPS');
+            $this->setErr($this->getErr('DuplicateCallValidCanOnlyBeSetOnce', $ctxVals), 'Global-setUseHTTPS');
             return;
         }
         if (
@@ -4276,11 +4279,11 @@ class C
     {
         [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setUseVendor', "CONFIG()", $trueOrFalse);
         if (isset($this->invalidBatches['config']['USE_VENDOR'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setUseVendor');
+            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Global-setUseVendor');
             return;
         }
         if (isset($this->validBatches['config']['USE_VENDOR'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setUseVendor');
+            $this->setErr($this->getErr('DuplicateCallValidCanOnlyBeSetOnce', $ctxVals), 'Global-setUseVendor');
             return;
         }
         if (
@@ -4298,7 +4301,7 @@ class C
     {
         [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setDefaultRegisteredShutdownHandler', "CONFIG()", $userDefinedFunction);
         if (isset($this->invalidBatches['config']['DEFAULT_REGISTER_SHUTDOWN_HANDLER'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setDefaultRegisteredShutdownHandler');
+            $this->setErr($this->getErr('DuplicateCallInvalidMustBeSetWithDifferentValues', $ctx) . " Each Function Name must be unique.", 'Global-setDefaultRegisteredShutdownHandler');
             return;
         }
         if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($userDefinedFunction)) {
@@ -4315,7 +4318,7 @@ class C
         }
         // FN already in array of chained Register Shutdown FNs?
         if (in_array($userDefinedFunction, $this->validBatches['config']['REGISTERED_SHUTDOWN_HANDLERS'] ?? [], true)) {
-            $err = $this->getErr('UserDefinedFUNCTIONAlreadyInArray', $ctxVals) . $this->joinArray($this->validBatches['config']['REGISTERED_SHUTDOWN_HANDLERS'] ?? ['***EMPTY***']);
+            $err = $this->getErr('UserDefinedFUNCTIONAlreadyInArray', $ctxVals) . ($this->joinArray($this->validBatches['config']['REGISTERED_SHUTDOWN_HANDLERS'] ?? ['***EMPTY***']) . " Each Function Name must be unique.");
             $this->setErr($err, 'Global-setDefaultRegisteredShutdownHandler');
             return;
         }
@@ -4341,11 +4344,11 @@ class C
     {
         [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setDefaultExceptionHandler', "CONFIG()", $userDefinedFunction);
         if (isset($this->invalidBatches['config']['DEFAULT_EXCEPTION_HANDLER'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setDefaultExceptionHandler');
+            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Global-setDefaultExceptionHandler');
             return;
         }
         if (isset($this->validBatches['config']['DEFAULT_EXCEPTION_HANDLER'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setDefaultExceptionHandler');
+            $this->setErr($this->getErr('DuplicateCallValidCanOnlyBeSetOnce', $ctxVals), 'Global-setDefaultExceptionHandler');
             return;
         }
         if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($userDefinedFunction)) {
@@ -4392,11 +4395,11 @@ class C
     {
         [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setDefaultErrorHandler', "CONFIG()", $userDefinedFunction);
         if (isset($this->invalidBatches['config']['DEFAULT_ERROR_HANDLER'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setDefaultErrorHandler');
+            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Global-setDefaultErrorHandler');
             return;
         }
         if (isset($this->validBatches['config']['DEFAULT_ERROR_HANDLER'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setDefaultErrorHandler');
+            $this->setErr($this->getErr('DuplicateCallValidCanOnlyBeSetOnce', $ctxVals), 'Global-setDefaultErrorHandler');
             return;
         }
         if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($userDefinedFunction)) {
@@ -4443,11 +4446,11 @@ class C
     {
         [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setDefaultURI_NormalizerHandler', "CONFIG()", $userDefinedFunction);
         if (isset($this->invalidBatches['config']['DEFAULT_URI_NORMALIZER'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setDefaultURI_NormalizerHandler');
+            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Global-setDefaultURI_NormalizerHandler');
             return;
         }
         if (isset($this->validBatches['config']['DEFAULT_URI_NORMALIZER'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals),  'Global-setDefaultURI_NormalizerHandler');
+            $this->setErr($this->getErr('DuplicateCallValidCanOnlyBeSetOnce', $ctxVals),  'Global-setDefaultURI_NormalizerHandler');
             return;
         }
         if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($userDefinedFunction)) {
@@ -4484,11 +4487,11 @@ class C
     {
         [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setDefaultKernelHandler', "CONFIG()", $userDefinedFunction);
         if (isset($this->invalidBatches['config']['DEFAULT_HTTPS_KERNEL'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setDefaultKernelHandler');
+            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Global-setDefaultKernelHandler');
             return;
         }
         if (isset($this->validBatches['config']['DEFAULT_HTTPS_KERNEL'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setDefaultKernelHandler');
+            $this->setErr($this->getErr('DuplicateCallValidCanOnlyBeSetOnce', $ctxVals), 'Global-setDefaultKernelHandler');
             return;
         }
         if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($userDefinedFunction)) {
@@ -4527,11 +4530,11 @@ class C
     {
         [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setNoRouteMatchPage', "CONFIG()", $PageFileName);
         if (isset($this->invalidBatches['config']['NO_ROUTE_MATCH']['PAGE'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setNoRouteMatchPage');
+            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Global-setNoRouteMatchPage');
             return;
         }
         if (isset($this->validBatches['config']['NO_ROUTE_MATCH']['PAGE'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setNoRouteMatchPage');
+            $this->setErr($this->getErr('DuplicateCallValidCanOnlyBeSetOnce', $ctxVals), 'Global-setNoRouteMatchPage');
             return;
         }
         if (!$this->validateStatusCode($statusCode)) {
@@ -4573,11 +4576,11 @@ class C
     {
         [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setNoRouteMatchJSON', "CONFIG()", $data, $statusCode);
         if (isset($this->invalidBatches['config']['NO_ROUTE_MATCH']['JSON'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setNoRouteMatchJSON');
+            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Global-setNoRouteMatchJSON');
             return;
         }
         if (isset($this->validBatches['config']['NO_ROUTE_MATCH']['JSON'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setNoRouteMatchJSON');
+            $this->setErr($this->getErr('DuplicateCallValidCanOnlyBeSetOnce', $ctxVals), 'Global-setNoRouteMatchJSON');
             return;
         }
         if (!$this->validateStatusCode($statusCode)) {
@@ -4609,11 +4612,11 @@ class C
     {
         [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setNoRouteMatchText', "CONFIG()", $message, $statusCode);
         if (isset($this->invalidBatches['config']['NO_ROUTE_MATCH']['TEXT'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setNoRouteMatchText');
+            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Global-setNoRouteMatchText');
             return;
         }
         if (isset($this->validBatches['config']['NO_ROUTE_MATCH']['TEXT'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setNoRouteMatchText');
+            $this->setErr($this->getErr('DuplicateCallValidCanOnlyBeSetOnce', $ctxVals), 'Global-setNoRouteMatchText');
             return;
         }
         if (!$this->validateStatusCode($statusCode)) {
@@ -4632,11 +4635,11 @@ class C
     {
         [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setNoRouteMatchCallback', "CONFIG()", $userDefinedFunctionName);
         if (isset($this->invalidBatches['config']['NO_ROUTE_MATCH']['CALLBACK'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setNoRouteMatchCallback');
+            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Global-setNoRouteMatchCallback');
             return;
         }
         if (isset($this->validBatches['config']['NO_ROUTE_MATCH']['CALLBACK'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setNoRouteMatchCallback');
+            $this->setErr($this->getErr('DuplicateCallValidCanOnlyBeSetOnce', $ctxVals), 'Global-setNoRouteMatchCallback');
             return;
         }
         if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($userDefinedFunctionName)) {
@@ -4668,11 +4671,11 @@ class C
     {
         [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setBaseURLLocal', "CONFIG()", $httpPath);
         if (isset($this->invalidBatches['config']['BASEURL_LOCAL'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setBaseURLLocal');
+            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Global-setBaseURLLocal');
             return;
         }
         if (isset($this->validBatches['config']['BASEURL_LOCAL'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setBaseURLLocal');
+            $this->setErr($this->getErr('DuplicateCallValidCanOnlyBeSetOnce', $ctxVals), 'Global-setBaseURLLocal');
             return;
         }
         if (
@@ -4689,11 +4692,11 @@ class C
     {
         [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setBaseURLLocal', "CONFIG()", $httpsPath);
         if (isset($this->invalidBatches['config']['BASEURL_ONLINE'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setBaseURLOnline');
+            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Global-setBaseURLOnline');
             return;
         }
         if (isset($this->validBatches['config']['BASEURL_ONLINE'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setBaseURLOnline');
+            $this->setErr($this->getErr('DuplicateCallValidCanOnlyBeSetOnce', $ctxVals), 'Global-setBaseURLOnline');
             return;
         }
         if (
@@ -4710,11 +4713,11 @@ class C
     {
         [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setBaseURLHost', "CONFIG()", $hostNameLocally);
         if (isset($this->invalidBatches['config']['BASEURL_HOST'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setBaseURLHost');
+            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Global-setBaseURLHost');
             return;
         }
         if (isset($this->validBatches['config']['BASEURL_HOST'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setBaseURLHost');
+            $this->setErr($this->getErr('DuplicateCallValidCanOnlyBeSetOnce', $ctxVals), 'Global-setBaseURLHost');
             return;
         }
         if (!is_string($hostNameLocally) || trim($hostNameLocally) === '') {
@@ -4728,11 +4731,11 @@ class C
     {
         [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setBaseURLHost', "CONFIG()", $localURI);
         if (isset($this->invalidBatches['config']['BASEURL_URI'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setBaseURLUri');
+            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Global-setBaseURLUri');
             return;
         }
         if (isset($this->validBatches['config']['BASEURL_URI'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setBaseURLUri');
+            $this->setErr($this->getErr('DuplicateCallValidCanOnlyBeSetOnce', $ctxVals), 'Global-setBaseURLUri');
             return;
         }
         if (!is_string($localURI) || trim($localURI) === '') {
@@ -4746,11 +4749,11 @@ class C
     {
         [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setSessionCookieOptions', "CONFIG()", $SessionCookieOptions);
         if (isset($this->invalidBatches['config']['SESSION']['COOKIES']['AS_OPTIONS'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setSessionCookieOptions');
+            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Global-setSessionCookieOptions');
             return;
         }
         if (isset($this->validBatches['config']['SESSION']['COOKIES']['AS_OPTIONS'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setSessionCookieOptions');
+            $this->setErr($this->getErr('DuplicateCallValidCanOnlyBeSetOnce', $ctxVals), 'Global-setSessionCookieOptions');
             return;
         }
         $allowedKeys = [
@@ -4890,11 +4893,11 @@ class C
     {
         [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setSessionDriver', "CONFIG()", $filesOrRedisOrSomethingElse);
         if (isset($this->invalidBatches['config']['SESSION']['driver'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setSessionDriver');
+            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Global-setSessionDriver');
             return;
         }
         if (isset($this->validBatches['config']['SESSION']['driver'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setSessionDriver');
+            $this->setErr($this->getErr('DuplicateCallValidCanOnlyBeSetOnce', $ctxVals), 'Global-setSessionDriver');
             return;
         }
         if (
@@ -4911,7 +4914,7 @@ class C
     {
         [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setSessionCookieName', "CONFIG()", $sessionCookieName);
         if (isset($this->invalidBatches['config']['SESSION']['COOKIES']['SESSION_NAME'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setSessionCookieName');
+            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Global-setSessionCookieName');
             return;
         }
         if (isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_NAME'])) {
@@ -4929,7 +4932,7 @@ class C
     {
         [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setSessionCookieLifetime', "CONFIG()", $sessionCookieLifetime);
         if (isset($this->invalidBatches['config']['SESSION']['COOKIES']['SESSION_LIFETIME'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setSessionCookieLifetime');
+            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Global-setSessionCookieLifetime');
             return;
         }
         if (isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_LIFETIME'])) {
@@ -4947,7 +4950,7 @@ class C
     {
         [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setSessionCookiePath', "CONFIG()", $sessionCookiePath);
         if (isset($this->invalidBatches['config']['SESSION']['COOKIES']['SESSION_PATH'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setSessionCookiePath');
+            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Global-setSessionCookiePath');
             return;
         }
         if (isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_PATH'])) {
@@ -4968,7 +4971,7 @@ class C
     {
         [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setSessionCookieDomain', "CONFIG()", $sessionCookieDomain);
         if (isset($this->invalidBatches['config']['SESSION']['COOKIES']['SESSION_DOMAIN'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setSessionCookieDomain');
+            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Global-setSessionCookieDomain');
             return;
         }
         if (isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_DOMAIN'])) {
@@ -4992,7 +4995,7 @@ class C
     {
         [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setSessionCookieSecure', "CONFIG()", $trueOrFalse);
         if (isset($this->invalidBatches['config']['SESSION']['COOKIES']['SESSION_SECURE'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setSessionCookieSecure');
+            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Global-setSessionCookieSecure');
             return;
         }
         if (isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_SECURE'])) {
@@ -5011,7 +5014,7 @@ class C
 
         [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setSessionCookieHTTPOnly', "CONFIG()", $trueOrFalse);
         if (isset($this->invalidBatches['config']['SESSION']['COOKIES']['SESSION_HTTPONLY'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setSessionCookieHTTPOnly');
+            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Global-setSessionCookieHTTPOnly');
             return;
         }
         if (isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_HTTPONLY'])) {
@@ -5029,7 +5032,7 @@ class C
     {
         [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setSessionCookieSameSite', "CONFIG()", $LaxOrStrict);
         if (isset($this->invalidBatches['config']['SESSION']['COOKIES']['SESSION_SAMESITE'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setSessionCookieSameSite');
+            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Global-setSessionCookieSameSite');
             return;
         }
         if (isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_SAMESITE'])) {
@@ -5049,11 +5052,11 @@ class C
     {
         [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setINI_SET', "CONFIG()", $iniSetArrayWithKeyNamesAsSettingTypeWithSingleScalarValue);
         if (isset($this->invalidBatches['config']['setINI_SET'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setINI_SET');
+            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Global-setINI_SET');
             return;
         }
         if (isset($this->validBatches['config']['setINI_SET'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setINI_SET');
+            $this->setErr($this->getErr('DuplicateCallValidCanOnlyBeSetOnce', $ctxVals), 'Global-setINI_SET');
             return;
         }
         if (empty($iniSetArrayWithKeyNamesAsSettingTypeWithSingleScalarValue) || array_is_list($iniSetArrayWithKeyNamesAsSettingTypeWithSingleScalarValue)) {
@@ -5081,11 +5084,11 @@ class C
         // Initial checks: invalidBathced already? ValidBatched already? Invalid $groupName string?
         // Any of the FNs invalid in their naming? Only after that, do we start checking each FN file.
         if (isset($this->invalidBatches['config']['GROUPED_PIPE_USER_DEFINED'][$groupName])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setGroupPipeUserdefined');
+            $this->setErr($this->getErr('DuplicateCallInvalidMustBeSetWithDifferentValues', $ctx) . " Each Group Name must be unique.", 'Global-setGroupPipeUserdefined');
             return;
         }
         if (isset($this->validBatches['config']['GROUPED_PIPE_USER_DEFINED'][$groupName])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setGroupPipeUserdefined');
+            $this->setErr($this->getErr('DuplicateCallValidMustBeSetWithDifferentValues', $ctxVals) . " Each Group Name must be unique.", 'Global-setGroupPipeUserdefined');
             return;
         }
         if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($groupName)) {
@@ -5140,11 +5143,11 @@ class C
         // Initial checks: invalidBathced already? ValidBatched already? Invalid $groupName string?
         // Any of the FNs invalid in their naming? Only after that, do we start checking each FN file.
         if (isset($this->invalidBatches['config']['GROUPED_PIPE_REQUEST'][$groupName])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setGroupPipeRequest');
+            $this->setErr($this->getErr('DuplicateCallInvalidMustBeSetWithDifferentValues', $ctx) . " Each Group Name must be unique.", 'Global-setGroupPipeRequest');
             return;
         }
         if (isset($this->validBatches['config']['GROUPED_PIPE_REQUEST'][$groupName])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setGroupPipeRequest');
+            $this->setErr($this->getErr('DuplicateCallValidMustBeSetWithDifferentValues', $ctxVals) . " Each Group Name must be unique.", 'Global-setGroupPipeRequest');
             return;
         }
         if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($groupName)) {
@@ -5195,11 +5198,11 @@ class C
         // Initial checks: invalidBathced already? ValidBatched already? Invalid $groupName string?
         // Any of the FNs invalid in their naming? Only after that, do we start checking each FN file.
         if (isset($this->invalidBatches['config']['GROUPED_PIPE_POST_RESPONSE'][$groupName])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setGroupPipePostResponse');
+            $this->setErr($this->getErr('DuplicateCallInvalidMustBeSetWithDifferentValues', $ctx) . " Each Group Name must be unique.", 'Global-setGroupPipePostResponse');
             return;
         }
         if (isset($this->validBatches['config']['GROUPED_PIPE_POST_RESPONSE'][$groupName])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setGroupPipePostResponse');
+            $this->setErr($this->getErr('DuplicateCallValidMustBeSetWithDifferentValues', $ctxVals) . " Each Group Name must be unique.", 'Global-setGroupPipePostResponse');
             return;
         }
         if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($groupName)) {
@@ -5251,11 +5254,11 @@ class C
         // Initial checks: invalidBathced already? ValidBatched already? Invalid $groupName string?
         // Any of the FNs invalid in their naming? Only after that, do we start checking each FN file.
         if (isset($this->invalidBatches['config']['GROUPED_PIPE_ROUTES'][$groupName])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setGroupPipeRoute');
+            $this->setErr($this->getErr('DuplicateCallInvalidMustBeSetWithDifferentValues', $ctx) . " Each Group Name must be unique.", 'Global-setGroupPipeRoute');
             return;
         }
         if (isset($this->validBatches['config']['GROUPED_PIPE_ROUTES'][$groupName])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setGroupPipeRoute');
+            $this->setErr($this->getErr('DuplicateCallValidMustBeSetWithDifferentValues', $ctxVals) . " Each Group Name must be unique.", 'Global-setGroupPipeRoute');
             return;
         }
         if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($groupName)) {
@@ -5303,11 +5306,11 @@ class C
         // Initial checks: invalidBathced already? ValidBatched already? Invalid $groupName string?
         // Any of the FNs invalid in their naming? Only after that, do we start checking each FN file.
         if (isset($this->invalidBatches['config']['GROUPED_PIPE_MIDDLEWARES'][$groupName])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setGroupPipeMiddlewares');
+            $this->setErr($this->getErr('DuplicateCallInvalidMustBeSetWithDifferentValues', $ctx) . " Each Group Name must be unique.", 'Global-setGroupPipeMiddlewares');
             return;
         }
         if (isset($this->validBatches['config']['GROUPED_PIPE_MIDDLEWARES'][$groupName])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setGroupPipeMiddlewares');
+            $this->setErr($this->getErr('DuplicateCallValidMustBeSetWithDifferentValues', $ctxVals) . " Each Group Name must be unique.", 'Global-setGroupPipeMiddlewares');
             return;
         }
         if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($groupName)) {
@@ -5359,11 +5362,11 @@ class C
     {
         [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setParamRule', "CONFIG()", $param, $regex, $defaultParamValueOnRegexMismatch);
         if (isset($this->invalidBatches['paramRules']['config'][$param])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setParamRule');
+            $this->setErr($this->getErr('DuplicateCallInvalidMustBeSetWithDifferentValues', $ctx) . " Param Identifier must be unique.", 'Global-setParamRule');
             return;
         }
         if (isset($this->validBatches['config']['paramRules'][$param])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setParamRule');
+            $this->setErr($this->getErr('DuplicateCallValidMustBeSetWithDifferentValues', $ctxVals) . " Param Identifier must be unique.", 'Global-setParamRule');
             return;
         }
         // Validate valid $param identifier formatting
@@ -5408,11 +5411,11 @@ class C
         [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setNonces', "CONFIG()", ...$noncesReferenceKeys);
         // Check if already in inValidBatches OR validBatches!
         if (isset($this->invalidBatches['nonces']['config'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setNonces');
+            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Global-setNonces');
             return;
         }
         if (isset($this->validBatches['config']['nonces'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setNonces');
+            $this->setErr($this->getErr('DuplicateCallValidCanOnlyBeSetOnce', $ctxVals), 'Global-setNonces');
             return;
         }
         if (empty($noncesReferenceKeys)) {
@@ -5446,11 +5449,11 @@ class C
         [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setCSP', "CONFIG()", $directive, ...$sources);
         // Check if already in inValidBatches OR validBatches!
         if (isset($this->invalidBatches['csp']['config'][$directive])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setCSP');
+            $this->setErr($this->getErr('DuplicateCallInvalidMustBeSetWithDifferentValues', $ctx) . " Each `\$directive` can only be used/set once.", 'Global-setCSP');
             return;
         }
         if (isset($this->validBatches['config']['csp'][$directive])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setCSP');
+            $this->setErr($this->getErr('DuplicateCallValidMustBeSetWithDifferentValues', $ctxVals) . " Each `\$directive` can only be used/set once.", 'Global-setCSP');
             return;
         }
         $allowedDirectives = [
@@ -5529,11 +5532,11 @@ class C
     {
         [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setSRIInternal', "CONFIG()", $internalSRI);
         if (isset($this->invalidBatches['global_sris']['internal']['config'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setSRIInternal');
+            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx) . " Set everything once in a Single Array.", 'Global-setSRIInternal');
             return;
         }
         if (isset($this->validBatches['config']['global_sris']['internal'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setSRIInternal');
+            $this->setErr($this->getErr('DuplicateCallValidCanOnlyBeSetOnce', $ctxVals) . " Set everything once in a Single Array.", 'Global-setSRIInternal');
             return;
         }
         if (!isset($internalSRI) || empty($internalSRI) || array_is_list($internalSRI)) {
@@ -5567,11 +5570,11 @@ class C
     {
         [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setSRIExternal', "CONFIG()", $externalSRI);
         if (isset($this->invalidBatches['global_sris']['external']['config'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-setSRIExternal');
+            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Global-setSRIExternal');
             return;
         }
         if (isset($this->validBatches['config']['global_sris']['external'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-setSRIExternal');
+            $this->setErr($this->getErr('DuplicateCallValidCanOnlyBeSetOnce', $ctxVals), 'Global-setSRIExternal');
             return;
         }
         if (empty($externalSRI) || array_is_list($externalSRI)) {
@@ -5614,11 +5617,11 @@ class C
     {
         [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'removeHeader', "CONFIG()", $header_to_remove);
         if (isset($this->invalidBatches['headers']['config']['remove'][$header_to_remove])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-removeHeader');
+            $this->setErr($this->getErr('DuplicateCallInvalidMustBeSetWithDifferentValues', $ctx) . " Header Name must be unique (case-insensitive).", 'Global-removeHeader');
             return;
         }
         if (isset($this->validBatches['config']['headers']['remove'][$header_to_remove])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-removeHeader');
+            $this->setErr($this->getErr('DuplicateCallValidMustBeSetWithDifferentValues', $ctxVals) . " Header Name must be unique (case-insensitive).", 'Global-removeHeader');
             return;
         }
         // We will store both the original value and its lowercased version to find future conflicts
@@ -5639,32 +5642,29 @@ class C
         // Store header to be removed from Global level (->config())
         $this->validBatches['config']['headers']['remove'][$lowerHeader] = $headerName;
     }
-    private function batchPipeHeaderGlobal(string $header)
+    private function batchPipeHeaderGlobal(string $header, string $value)
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'pipeHeader', "CONFIG()", $header);
-        if (isset($this->invalidBatches['headers']['config']['add'][strtolower($header)])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Global-pipeHeader');
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'pipeHeader', "CONFIG()", $header, $value);
+        $headerName  = trim($header);
+        $headerValue = trim($value);
+        $lowerHeader = strtolower($headerName);
+        if (isset($this->invalidBatches['headers']['config']['add'][$lowerHeader])) {
+            $this->setErr($this->getErr('DuplicateCallInvalidMustBeSetWithDifferentValues', $ctx) . " Each `Header Name` must be unique (case-insensitive).", 'Global-pipeHeader');
             return;
         }
         // Forbid possible CRLF injection
-        if (str_contains($header, "\r") || str_contains($header, "\n")) {
+        if (
+            $headerName === '' || $headerValue === ''
+            || str_contains($headerName, ":") || str_contains($headerValue, ":")
+            || str_contains($headerName, "\r") || str_contains($headerName, "\n")
+            || str_contains($headerValue, "\r") || str_contains($headerValue, "\n")
+        ) {
             $this->setErr($this->getErr('InvalidAddHeaderFormat', $ctx), 'Global-pipeHeader');
-            $this->invalidBatches['headers']['config']['add'][strtolower($header)] = true;
+            $this->invalidBatches['headers']['config']['add'][$lowerHeader] = true;
             return;
         }
-        // Must be two parts after splitted on ":"
-        $parts = explode(':', $header, 2);
-        if (count($parts) !== 2 || trim($parts[0]) === '' || trim($parts[1]) === '') {
-            $this->setErr($this->getErr('InvalidAddHeaderFormat', $ctx), 'Global-pipeHeader');
-            $this->invalidBatches['headers']['config']['add'][strtolower($header)] = true;
-            return;
-        }
-        // Now prepare header to store but first check if it already exists
-        $headerName  = trim($parts[0]);
-        $headerValue = trim($parts[1]);
-        $lowerHeader = strtolower($headerName);
         if (isset($this->validBatches['config']['headers']['add'][$lowerHeader])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Global-pipeHeader');
+            $this->setErr($this->getErr('DuplicateCallValidMustBeSetWithDifferentValues', $ctxVals) . " Each `Header Name` must be unique (case-insensitive).", 'Global-pipeHeader');
             return;
         }
         // Cannot add a header that was first meant to be removed
@@ -5784,11 +5784,11 @@ class C
     {
         [$ctx, $ctxVals] = $this->setCtx($method, null, 'setNoRouteMatchPage', "CONFIG()->{$method}()", $PageFileName);
         if (isset($this->invalidBatches['methods'][$method]['NO_ROUTE_MATCH']['PAGE'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Method-setNoRouteMatchPage', $method);
+            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Method-setNoRouteMatchPage', $method);
             return;
         }
         if (isset($this->validBatches['methods'][$method]['NO_ROUTE_MATCH']['PAGE'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Method-setNoRouteMatchPage', $method);
+            $this->setErr($this->getErr('DuplicateCallValidCanOnlyBeSetOnce', $ctxVals), 'Method-setNoRouteMatchPage', $method);
             return;
         }
         if (!$this->validateStatusCode($statusCode)) {
@@ -5830,11 +5830,11 @@ class C
     {
         [$ctx, $ctxVals] = $this->setCtx($method, null, 'setNoRouteMatchJSON', "CONFIG()->{$method}()", $data, $statusCode);
         if (isset($this->invalidBatches['methods'][$method]['NO_ROUTE_MATCH']['JSON'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Method-setNoRouteMatchJson', $method);
+            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Method-setNoRouteMatchJson', $method);
             return;
         }
         if (isset($this->validBatches['methods'][$method]['NO_ROUTE_MATCH']['JSON'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Method-setNoRouteMatchJson', $method);
+            $this->setErr($this->getErr('DuplicateCallValidCanOnlyBeSetOnce', $ctxVals), 'Method-setNoRouteMatchJson', $method);
             return;
         }
         if (!$this->validateStatusCode($statusCode)) {
@@ -5866,11 +5866,11 @@ class C
     {
         [$ctx, $ctxVals] = $this->setCtx($method, null, 'setNoRouteMatchText', "CONFIG()->{$method}()", $message, $statusCode);
         if (isset($this->invalidBatches['methods'][$method]['NO_ROUTE_MATCH']['TEXT'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Method-setNoRouteMatchText', $method);
+            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Method-setNoRouteMatchText', $method);
             return;
         }
         if (isset($this->validBatches['methods'][$method]['NO_ROUTE_MATCH']['TEXT'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Method-setNoRouteMatchText', $method);
+            $this->setErr($this->getErr('DuplicateCallValidCanOnlyBeSetOnce', $ctxVals), 'Method-setNoRouteMatchText', $method);
             return;
         }
         if (!$this->validateStatusCode($statusCode)) {
@@ -5889,11 +5889,11 @@ class C
     {
         [$ctx, $ctxVals] = $this->setCtx($method, null, 'setNoRouteMatchCallback', "CONFIG()->{$method}()", $userDefinedFunctionName);
         if (isset($this->invalidBatches['methods'][$method]['NO_ROUTE_MATCH']['CALLBACK'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Method-setNoRouteMatchCallback', $method);
+            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Method-setNoRouteMatchCallback', $method);
             return;
         }
         if (isset($this->validBatches['methods'][$method]['NO_ROUTE_MATCH']['CALLBACK'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Method-setNoRouteMatchCallback', $method);
+            $this->setErr($this->getErr('DuplicateCallValidCanOnlyBeSetOnce', $ctxVals), 'Method-setNoRouteMatchCallback', $method);
             return;
         }
         if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($userDefinedFunctionName)) {
@@ -5925,11 +5925,11 @@ class C
     {
         [$ctx, $ctxVals] = $this->setCtx($method, null, 'setParamRule', "ROUTES()->{$method}()", $param, $regex, $defaultParamValueOnRegexMismatch);
         if (isset($this->invalidBatches['paramRules']['methods'][$method][$param])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Method-setParamRule', $method);
+            $this->setErr($this->getErr('DuplicateCallInvalidMustBeSetWithDifferentValues', $ctx) . " Each Param Identifier must be unique (case-insensitive).", 'Method-setParamRule', $method);
             return;
         }
         if (isset($this->validBatches['methods'][$method]['paramRules'][$param])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Method-setParamRule', $method);
+            $this->setErr($this->getErr('DuplicateCallValidMustBeSetWithDifferentValues', $ctxVals) . " Each Param Identifier must be unique (case-insensitive).", 'Method-setParamRule', $method);
             return;
         }
         // Validate valid $param identifier formatting
@@ -5975,11 +5975,11 @@ class C
         [$ctx, $ctxVals] = $this->setCtx($method, null, 'setNonces', "ROUTES()->{$method}()", ...$noncesReferenceKeys);
         // Check if already in inValidBatches OR validBatches!
         if (isset($this->invalidBatches['nonces']['methods'][$method])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Method-setNonces', $method);
+            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Method-setNonces', $method);
             return;
         }
         if (isset($this->validBatches['methods'][$method]['nonces'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Method-setNonces', $method);
+            $this->setErr($this->getErr('DuplicateCallValidCanOnlyBeSetOnce', $ctxVals), 'Method-setNonces', $method);
             return;
         }
         if (empty($noncesReferenceKeys)) {
@@ -6013,11 +6013,11 @@ class C
         [$ctx, $ctxVals] = $this->setCtx($method, null, 'setCSP', "ROUTES()->{$method}()", $directive, ...$sources);
         // Check if already in inValidBatches OR validBatches!
         if (isset($this->invalidBatches['csp']['methods'][$method][$directive])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Method-setCSP', $method);
+            $this->setErr($this->getErr('DuplicateCallInvalidMustBeSetWithDifferentValues', $ctx) . " Each `\$directive` can only be used/set once.", 'Method-setCSP', $method);
             return;
         }
         if (isset($this->validBatches['methods'][$method]['csp'][$directive])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Method-setCSP', $method);
+            $this->setErr($this->getErr('DuplicateCallValidMustBeSetWithDifferentValues', $ctxVals) . " Each `\$directive` can only be used/set once.", 'Method-setCSP', $method);
             return;
         }
         $allowedDirectives = [
@@ -6091,32 +6091,30 @@ class C
     }
 
     /*METHOD: removeHeader & pipeHeader */
-    private function batchPipeHeaderMethod(string $method, string $header)
+    private function batchPipeHeaderMethod(string $method, string $header, $value)
     {
-        [$ctx, $ctxVals] = $this->setCtx($method, null, 'pipeHeader', "ROUTES()->{$method}()", $header);
+        [$ctx, $ctxVals] = $this->setCtx($method, null, 'pipeHeader', "ROUTES()->{$method}()", $header, $value);
+        $headerName  = $header;
+        $headerValue = $value;
+        $lowerHeader = strtolower($headerName);
         if (isset($this->invalidBatches['headers']['methods'][$method]['add'][$header])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Method-pipeHeader', $method);
+            $this->setErr($this->getErr('DuplicateCallInvalidMustBeSetWithDifferentValues', $ctx) . " Each `Header Name` must be unique (case-insensitive).", 'Method-pipeHeader', $method);
             return;
         }
         // Forbid possible CRLF injection
-        if (str_contains($header, "\r") || str_contains($header, "\n")) {
+        if (
+            $headerName === '' || $headerValue === ''
+            || str_contains($headerName, ":") || str_contains($headerValue, ":")
+            || str_contains($headerName, "\r") || str_contains($headerName, "\n")
+            || str_contains($headerValue, "\r") || str_contains($headerValue, "\n")
+        ) {
             $this->setErr($this->getErr('InvalidAddHeaderFormat', $ctx), 'Method-pipeHeader', $method);
-            $this->invalidBatches['headers']['methods'][$method]['add'][$header] = true;
+            $this->invalidBatches['headers']['methods'][$method]['add'][$lowerHeader] = true;
             return;
         }
-        // Must be two parts after splitted on ":"
-        $parts = explode(':', $header, 2);
-        if (count($parts) !== 2 || trim($parts[0]) === '' || trim($parts[1]) === '') {
-            $this->setErr($this->getErr('InvalidAddHeaderFormat', $ctx), 'Method-pipeHeader', $method);
-            $this->invalidBatches['headers']['methods'][$method]['add'][$header] = true;
-            return;
-        }
-        // Now prepare header to store but first check if it already exists
-        $headerName  = trim($parts[0]);
-        $headerValue = trim($parts[1]);
-        $lowerHeader = strtolower($headerName);
+        // Check if it already exists
         if (isset($this->validBatches['methods'][$method]['headers']['add'][$lowerHeader])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Method-pipeHeader', $method);
+            $this->setErr($this->getErr('DuplicateCallValidMustBeSetWithDifferentValues', $ctxVals) . " Each `Header Name` must be unique (case-insensitive).", 'Method-pipeHeader', $method);
             return;
         }
         // Cannot add a header that was first meant to be removed
@@ -6132,11 +6130,11 @@ class C
     {
         [$ctx, $ctxVals] = $this->setCtx($method, null, 'removeHeader', "ROUTES()->{$method}()", $header_to_remove);
         if (isset($this->invalidBatches['headers']['methods'][$method]['remove'][$header_to_remove])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Method-removeHeader', $method);
+            $this->setErr($this->getErr('DuplicateCallInvalidMustBeSetWithDifferentValues', $ctx) . " Header Name must be unique (case-insensitive).", 'Method-removeHeader', $method);
             return;
         }
         if (isset($this->validBatches['methods'][$method]['headers']['remove'][$header_to_remove])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Method-removeHeader', $method);
+            $this->setErr($this->getErr('DuplicateCallValidMustBeSetWithDifferentValues', $ctxVals) . " Header Name must be unique (case-insensitive).", 'Method-removeHeader', $method);
             return;
         }
         // We will store both the original value and its lowercased version to find future conflicts
@@ -6201,7 +6199,7 @@ class C
         }
         // Does $route already exist as a valid one? (meaning it was formatted correctly but duplicate)
         if (isset($this->validBatches['routes'][$method][$route])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Route-route', $method, $route);
+            $this->setErr($this->getErr('DuplicateCallValidCanOnlyBeSetOnce', $ctxVals), 'Route-route', $method, $route);
             return;
         }
         // Check initial string formatting: all non-empty string that is all lowercased,
@@ -6295,7 +6293,7 @@ class C
         }
         // Check if it exists already in invalid or valid batch
         if (isset($this->invalidBatches['aliases'][$method][$route])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Route-setAlias', $method, $route);
+            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Route-setAlias', $method, $route);
             return;
         }
         // Alias formatting with typical alphanumerals plus dot-notation support
@@ -6305,7 +6303,7 @@ class C
             return;
         }
         if (isset($this->validBatches['routes'][$method][$route]['alias'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Route-setAlias', $method, $route);
+            $this->setErr($this->getErr('DuplicateCallValidCanOnlyBeSetOnce', $ctxVals), 'Route-setAlias', $method, $route);
             return;
         }
         // Global Uniqueness Check: Aliases CANNOT be duplicated across ANY method
@@ -6331,11 +6329,11 @@ class C
         }
         // Now validate inValidBatches|validBatches
         if (isset($this->invalidBatches['paramRules']['routes'][$method][$route][$param])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Route-setParamRule', $method, $route);
+            $this->setErr($this->getErr('DuplicateCallInvalidMustBeSetWithDifferentValues', $ctx) . " Each Param Identifier must be unique (case-insensitive).", 'Route-setParamRule', $method, $route);
             return;
         }
         if (isset($this->validBatches['paramRules']['routes'][$method][$route][$param])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Route-setParamRule', $method, $route);
+            $this->setErr($this->getErr('DuplicateCallValidMustBeSetWithDifferentValues', $ctxVals) . " Each Param Identifier must be unique (case-insensitive).", 'Route-setParamRule', $method, $route);
             return;
         }
         // Does the valid route even have params?
@@ -6398,11 +6396,11 @@ class C
         }
         // Check if already in inValidBatches OR validBatches!
         if (isset($this->invalidBatches['nonces']['routes'][$method][$route])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Route-setNonces', $method, $route);
+            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Route-setNonces', $method, $route);
             return;
         }
         if (isset($this->validBatches['routes'][$method][$route]['nonces'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Route-setNonces', $method, $route);
+            $this->setErr($this->getErr('DuplicateCallValidCanOnlyBeSetOnce', $ctxVals), 'Route-setNonces', $method, $route);
             return;
         }
         if (empty($noncesReferenceKeys)) {
@@ -6442,11 +6440,11 @@ class C
         }
         // Check if already in inValidBatches OR validBatches!
         if (isset($this->invalidBatches['csp']['routes'][$method][$route][$directive])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Route-setCSP', $method, $route);
+            $this->setErr($this->getErr('DuplicateCallInvalidMustBeSetWithDifferentValues', $ctx) . " Each `\$directive` can only be used/set once.", 'Route-setCSP', $method, $route);
             return;
         }
         if (isset($this->validBatches['routes'][$method][$route]['csp'][$directive])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Route-setCSP', $method, $route);
+            $this->setErr($this->getErr('DuplicateCallValidMustBeSetWithDifferentValues', $ctxVals) . " Each `\$directive` can only be used/set once.", 'Route-setCSP', $method, $route);
             return;
         }
         $allowedDirectives = [
@@ -6854,11 +6852,11 @@ class C
             return;
         }
         if (isset($this->invalidBatches['excludeMiddlewares']['routes'][$method][$route])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Route-setExcludeMiddlewares', $method, $route);
+            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx) . " Set all Middlewares to exclude (this applies both on Method and Global Config) once for this Route.", 'Route-setExcludeMiddlewares', $method, $route);
             return;
         }
         if (isset($this->validBatches['routes'][$method][$route]['excludeMiddlewares'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctx), 'Route-setExcludeMiddlewares', $method, $route);
+            $this->setErr($this->getErr('DuplicateCallValidCanOnlyBeSetOnce', $ctx) . " Set all Middlewares to exclude (this applies both on Method and Global Config) once for this Route.", 'Route-setExcludeMiddlewares', $method, $route);
             return;
         }
         // Check that all Middlewares exist; later compile() will also
@@ -6900,11 +6898,11 @@ class C
             return;
         }
         if (isset($this->invalidBatches['excludeHeaders']['routes'][$method][$route])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Route-setExcludeHeaders', $method, $route);
+            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx) . " Set all Headers to exclude (this applies both on Method and Global Config) once for this Route.", 'Route-setExcludeHeaders', $method, $route);
             return;
         }
         if (isset($this->validBatches['routes'][$method][$route]['excludeHeaders'])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctx), 'Route-setExcludeHeaders', $method, $route);
+            $this->setErr($this->getErr('DuplicateCallValidCanOnlyBeSetOnce', $ctx) . " Set all Headers to exclude (this applies both on Method and Global Config) once for this Route.", 'Route-setExcludeHeaders', $method, $route);
             return;
         }
         $validHeaders = [];
@@ -6927,7 +6925,7 @@ class C
 
     /*ROUTE: pipeHeader & removeHeader */
     /*ROUTE: setpipeHeaderRoute*/
-    private function batchPipeHeaderRoute(string $method, string $route, string $header)
+    private function batchPipeHeaderRoute(string $method, string $route, string $header, $value)
     {
         [$ctx, $ctxVals] = $this->setCtx($method, $route, 'pipeHeader', "ROUTES()->{$method}()->ROUTE('{$route}')", $header);
         // Route must be valid first
@@ -6935,30 +6933,28 @@ class C
             $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route-pipeHeader', $method, $route);
             return;
         }
+        $headerName  = $header;
+        $headerValue = $value;
+        $lowerHeader = strtolower($headerName);
         // Then check against valid/invalid batches
-        if (isset($this->invalidBatches['headers']['routes'][$method][$route]['add'][$header])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Route-pipeHeader', $method, $route);
+        if (isset($this->invalidBatches['headers']['routes'][$method][$route]['add'][$lowerHeader])) {
+            $this->setErr($this->getErr('DuplicateCallInvalidMustBeSetWithDifferentValues', $ctx) . " Each `Header Name` must be unique (case-insensitive).", 'Route-pipeHeader', $method, $route);
             return;
         }
         // Forbid possible CRLF injection
-        if (str_contains($header, "\r") || str_contains($header, "\n")) {
+        if (
+            $headerName === '' || $headerValue === ''
+            || str_contains($headerName, ":") || str_contains($headerValue, ":")
+            || str_contains($headerName, "\r") || str_contains($headerName, "\n")
+            || str_contains($headerValue, "\r") || str_contains($headerValue, "\n")
+        ) {
             $this->setErr($this->getErr('InvalidAddHeaderFormat', $ctx), 'Route-pipeHeader', $method, $route);
-            $this->invalidBatches['headers']['routes'][$method][$route]['add'][$header] = true;
+            $this->invalidBatches['headers']['routes'][$method][$route]['add'][$lowerHeader] = true;
             return;
         }
-        // Must be two parts after splitted on ":"
-        $parts = explode(':', $header, 2);
-        if (count($parts) !== 2 || trim($parts[0]) === '' || trim($parts[1]) === '') {
-            $this->setErr($this->getErr('InvalidAddHeaderFormat', $ctx), 'Route-pipeHeader', $method, $route);
-            $this->invalidBatches['headers']['routes'][$method][$route]['add'][$header] = true;
-            return;
-        }
-        // Now prepare header to store but first check if it already exists
-        $headerName  = trim($parts[0]);
-        $headerValue = trim($parts[1]);
-        $lowerHeader = strtolower($headerName);
+        // First check if it already exists
         if (isset($this->validBatches['routes'][$method][$route]['headers']['add'][$lowerHeader])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Route-pipeHeader', $method, $route);
+            $this->setErr($this->getErr('DuplicateCallValidMustBeSetWithDifferentValues', $ctxVals) . " Each `Header Name` must be unique (case-insensitive).", 'Route-pipeHeader', $method, $route);
             return;
         }
         if (in_array($lowerHeader, ($this->validBatches['routes'][$method][$route]['excludeHeaders'] ?? []), true)) {
@@ -6986,11 +6982,11 @@ class C
         }
         // Then check against invalid/valid batches
         if (isset($this->invalidBatches['headers']['routes'][$method][$route]['remove'][$header_to_remove])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Route-removeHeader', $method, $route);
+            $this->setErr($this->getErr('DuplicateCallInvalidMustBeSetWithDifferentValues', $ctx) . " Header Name must be unique (case-insensitive).", 'Route-removeHeader', $method, $route);
             return;
         }
         if (isset($this->validBatches['routes'][$method][$route]['headers']['remove'][$header_to_remove])) {
-            $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Route-removeHeader', $method, $route);
+            $this->setErr($this->getErr('DuplicateCallValidMustBeSetWithDifferentValues', $ctxVals) . " Header Name must be unique (case-insensitive).", 'Route-removeHeader', $method, $route);
             return;
         }
         // We will store both the original value and its lowercased version to find future conflicts
@@ -7053,14 +7049,18 @@ class C
             'USER_DEFINED' => [],
             'ROUTES_FILE_FUNCTIONS' => []
         ];
+        // ------------------------------------------------------------------------------------------
         // Attempt compiling FunkPHP and create the code
         // STEP 1: Check there are zero Invalid Batches and zero errors so far.
         // Otherwise, we dump API + Errors and exist early (default in dd()).
+        // ------------------------------------------------------------------------------------------
         if ($this->errors['ERRORS'] > 0 || count($this->invalidBatches) > 0) {
             $errCount = count($this->errors);
             dd(['API' => $this->FunkPHPFluentAPI, 'ERRORS' => $this->errors], "FunkPHP Compilation ($errCount Error" . ($errCount === 1 ? '' : 's') . ')', true);
         }
+        // ------------------------------------------------------------------------------------------
         // STEP 2: First add to the $compiled->c variable that can be added right away
+        // ------------------------------------------------------------------------------------------
         // 3 BOOLEANS
         if (isset($this->validBatches['config']['FUNKPHP_ONLINE'])) {
             $this->compiled['c']['FUNKPHP_ONLINE'] = $this->validBatches['config']['FUNKPHP_ONLINE'];
@@ -7084,13 +7084,15 @@ class C
         if (isset($this->validBatches['config']['BASEURL_URI'])) {
             $this->compiled['c']['BASEURLS']['BASEURL_URI'] = $this->validBatches['config']['BASEURL_URI'];
         }
-        // 1 ARRAY (ini_set(s)
+        // 1 ARRAY (ini_set(s))
         if (isset($this->validBatches['config']['setINI_SET'])) {
-            $this->compiled['c']['INI_SETS'] = $this->validBatches['config']['setINI_SET'];
+            $this->compiled['config']['INI_SETS'] = $this->validBatches['config']['setINI_SET'];
         }
+        // ------------------------------------------------------------------------------------------
         // STEP 3: Check Global Handlers set and then all setGroup<VARIANTS> since they can refer to
         // either non-existing function+files AND/OR to set Global Handlers which would conflict.
         // STEP 3.1 - Global Handlers
+        // ------------------------------------------------------------------------------------------
         if (isset($this->validBatches['config']['DEFAULT_HTTPS_KERNEL'])) {
             $this->compiled['c']['FUNKPHP_CUSTOM_HTTPS_KERNEL'] = $this->validBatches['config']['DEFAULT_HTTPS_KERNEL'];
             $GLOBAL_HANDLERS[$this->validBatches['config']['DEFAULT_HTTPS_KERNEL']] = "User-defined Default HTTPS Kernel Handler";
@@ -7113,7 +7115,9 @@ class C
             $this->compiled['c']['FUNKPHP_CUSTOM_URI_NORMALIZER'] = $this->validBatches['config']['DEFAULT_URI_NORMALIZER'];
             $GLOBAL_HANDLERS[$this->validBatches['config']['DEFAULT_URI_NORMALIZER']] = "User-defined Default URI Normalizer Handler";
         }
+        // -----------------------------------------------------------------------------
         // STEP 3.2 - Grouped<VARIANTS>
+        // -----------------------------------------------------------------------------
         if (isset($this->validBatches['config']['GROUPED_PIPE_USER_DEFINED'])) {
             foreach ($this->validBatches['config']['GROUPED_PIPE_USER_DEFINED'] as $GROUPED_UD_NAME => $GROUPED_UD_VALS) {
                 $validGroup = true;
@@ -7149,7 +7153,9 @@ class C
                 $GLOBAL_GROUPED['POST_RESPONSE']["group:$GROUPED"] = $_;
             }
         }
+        // -----------------------------------------------------------------------------
         // STEP 4: Check SESSION (driver + COOKIES) - either AS_OPTIONS or single values
+        // -----------------------------------------------------------------------------
         if (isset($this->validBatches['config']['SESSION']['COOKIES']['AS_OPTIONS'])) {
             $this->compiled['c']['SESSION'] = $this->validBatches['config']['SESSION'];
         } else {
@@ -7210,8 +7216,57 @@ class C
                 $this->compiled['c']['SESSION']['COOKIES']['SESSION_HTTPONLY'] = $this->validBatches['config']['SESSION']['COOKIES']['SESSION_HTTPONLY'];
             }
         }
-        // STEP 5: Build pipes() for `request` & `post_response` and also check if request is empty
-        // 5.1 Request Pipes
+        // ------------------------------------------------------------------------------------------------
+        // STEP 5: NoRouteMatch on Global/CONFIG+Every Methods Level (callback cannot be Global Handler FN!)
+        // Which starts with NoRouteMatch CALLBACK then JSON & PAGE Globally, then same again but <METHODS>
+        // ------------------------------------------------------------------------------------------------
+        if (isset($this->validBatches['config']['NO_ROUTE_MATCH'])) {
+            if (
+                isset($this->validBatches['config']['NO_ROUTE_MATCH']['CALLBACK'])
+                && isset($GLOBAL_HANDLERS[$this->validBatches['config']['NO_ROUTE_MATCH']['CALLBACK']])
+            ) {
+                $this->compile_setErr("User-defined Function `{$this->validBatches['config']['NO_ROUTE_MATCH']['CALLBACK']}` in `{$PATH_USER_DEFINED_FNS}` in `->CONFIG()->setNoRouteMatchCallback('{$this->validBatches['config']['NO_ROUTE_MATCH']['CALLBACK']}')` conflicts with already defined Global Handler Role `{$GLOBAL_HANDLERS[$this->validBatches['config']['NO_ROUTE_MATCH']['CALLBACK']]}.` Remove `{$this->validBatches['config']['NO_ROUTE_MATCH']['callback']}` from the `->CONFIG()->setNoRouteMatchCallback()` OR from the `Global Handler Role`.", $compileErrors);
+            } else {
+                $this->compiled['config']['NO_ROUTE_MATCH']['CALLBACK'] =  $this->validBatches['config']['NO_ROUTE_MATCH']['CALLBACK'];
+            }
+            if (isset($this->validBatches['config']['NO_ROUTE_MATCH']['PAGE'])) {
+                $this->compiled['config']['NO_ROUTE_MATCH']['PAGE'] =  $this->validBatches['config']['NO_ROUTE_MATCH']['PAGE'];
+            }
+            if (isset($this->validBatches['config']['NO_ROUTE_MATCH']['JSON'])) {
+                $this->compiled['config']['NO_ROUTE_MATCH']['JSON'] =  $this->validBatches['config']['NO_ROUTE_MATCH']['JSON'];
+            }
+        }
+        foreach (['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD'] as $method) {
+            if (
+                isset($this->validBatches['methods'][$method]['NO_ROUTE_MATCH']['CALLBACK'])
+            ) {
+                if (isset($GLOBAL_HANDLERS[$this->validBatches['methods'][$method]['NO_ROUTE_MATCH']['CALLBACK']])) {
+                    $callbackFn = $this->validBatches['methods'][$method]['NO_ROUTE_MATCH']['CALLBACK'];
+                    $role = $GLOBAL_HANDLERS[$callbackFn];
+                    $this->compile_setErr(
+                        "User-defined Function `{$callbackFn}` in `{$PATH_USER_DEFINED_FNS}` in `->ROUTES()->{$method}()->setNoRouteMatchCallback('{$callbackFn}')` conflicts with already defined Global Handler Role `{$role}`. Remove `{$callbackFn}` from `->ROUTES()->{$method}()->setNoRouteMatchCallback()` OR from the `Global Handler Role`.",
+                        $compileErrors
+                    );
+                } else {
+                    $this->compiled['methods'][$method]['NO_ROUTE_MATCH']['CALLBACK'] =  $callbackFn;
+                }
+            }
+            if (isset($this->validBatches['methods'][$method]['NO_ROUTE_MATCH']['PAGE'])) {
+                $this->compiled['methods'][$method]['NO_ROUTE_MATCH']['PAGE'] =  $this->validBatches['methods'][$method]['NO_ROUTE_MATCH']['PAGE'];
+            }
+            if (isset($this->validBatches['methods'][$method]['NO_ROUTE_MATCH']['JSON'])) {
+                $this->compiled['methods'][$method]['NO_ROUTE_MATCH']['JSON'] =  $this->validBatches['methods'][$method]['NO_ROUTE_MATCH']['JSON'];
+            }
+        }
+        // ------------------------------------------------------------------------------------------------
+        // STEP 6: HEADERS (add+remove) on Global/CONFIG+Every Methods Level
+        // ------------------------------------------------------------------------------------------------
+
+
+        // ------------------------------------------------------------------------------------------
+        // STEP : Build pipes() for `request` & `post_response` and also check if request is empty
+        // .1 Request Pipes
+        // ------------------------------------------------------------------------------------------
         if (!isset($this->validBatches['config']['request'])) {
             if (!isset($this->validBatches['config']['DEFAULT_HTTPS_KERNEL'])) {
                 $this->compile_setWarn("No Request Pipes (via `->pipeRequestFunction() in ->CONFIG()` detected. If intended to use No Request Pipes, just ignore this warning. This means that only Global-based Middlewares, then Route-matching, then Method-based Middleware and finally Route-based Middleware and its remaining pipes will run.", $compileWarnings);
@@ -7227,7 +7282,9 @@ class C
             // VALIDATE "group:" Variants and then ADD REQUEST PIPES
 
         }
-        // 5.2 Post-Response Pipes
+        // ------------------------------------------------------------------------------------------
+        // .2 Post-Response Pipes
+        // ------------------------------------------------------------------------------------------
         if (!isset($this->validBatches['config']['post_response'])) {
             if (!isset($this->validBatches['config']['DEFAULT_REGISTER_SHUTDOWN_HANDLER'])) {
                 $this->compile_setWarn("No Post-Response Pipes (via `->pipePostResponseFunction() in ->CONFIG()` detected. If intended to use No Post-Response Pipes, just ignore this warning. This means that after each HTTP(S) Request that completes (or via `exit()`) nothing else will happen as `Default Registered Shutdown Function` is to only run the Post-Response Pipe Functions.", $compileWarnings);
@@ -7244,7 +7301,8 @@ class C
 
             }
         }
-
+        // ------------------------------------------------------------------------------------------
+        // ------------------------------------------------------------------------------------------
         //$this->compile_setErr("", $compileErrors);
         if (
             isset($this->debug['SHOW_MAIN_CONFIG'])
@@ -7252,7 +7310,7 @@ class C
         ) {
             $this->FunkPHPFluentAPI['CONFIG'] = '(' . (count($this->FunkPHPFluentAPI['CONFIG'])) . ' Configurations)';
         }
-        dd(['COMPILE FLAGS' => $this->compileFlags, 'API' => $this->FunkPHPFluentAPI, 'COMPILE_ERRORS' => $compileErrors, 'COMPILE_WARNINGS' => $compileWarnings, 'VALID' => $this->validBatches,  'GLOBAL_HANDLERS' => $GLOBAL_HANDLERS, 'GLOBAL_GROUPS' => $GLOBAL_GROUPED, 'compiled_c' => $this->compiled['c']], "COMPILATION - DEBUG", true);
+        dd(['COMPILE FLAGS' => $this->compileFlags, 'API' => $this->FunkPHPFluentAPI, 'COMPILE_ERRORS' => $compileErrors, 'COMPILE_WARNINGS' => $compileWarnings, 'COMPILED' => $this->compiled, 'VALID' => $this->validBatches,  'GLOBAL_HANDLERS' => $GLOBAL_HANDLERS, 'GLOBAL_GROUPS' => $GLOBAL_GROUPED], "COMPILATION - DEBUG", true);
     }
     private function run()
     {
@@ -7846,12 +7904,13 @@ class FunkConfig
     /**
      * Pipe a global response header to be sent on every response.
      *
-     * @param string $header Raw header string (e.g., "X-Content-Type-Options: nosniff")
+     * @param string $header Header Name (e.g., "X-Content-Type-Options")
+     * @param string $value Header Value (e.g., "nosniff")
      * @return $this
      */
-    public function pipeHeader(string $header): self
+    public function pipeHeader(string $header, string $value): self
     {
-        $this->c->batch('batchPipeHeaderGlobal', $header);
+        $this->c->batch('batchPipeHeaderGlobal', trim($header), trim($value));
         return $this;
     }
 
@@ -8173,12 +8232,13 @@ class FunkMethod
     /**
      * Pipe a response header to be sent for all routes under this HTTP method.
      *
-     * @param string $header Raw header string (e.g., "X-Frame-Options: DENY")
+     * @param string $header Header Name (e.g., "X-Content-Type-Options")
+     * @param string $value Header Value (e.g., "nosniff")
      * @return $this
      */
-    public function pipeHeader(string $header): self
+    public function pipeHeader(string $header, string $value): self
     {
-        $this->c->batch('batchPipeHeaderMethod', $this->method, $header);
+        $this->c->batch('batchPipeHeaderMethod', $this->method, trim($header), trim($value));
         return $this;
     }
 
@@ -8547,14 +8607,16 @@ class FunkRoute
     }
 
     /**
-     * Pipe a response header to be sent exclusively for this route.
+     * Pipe a response header to be sent exclusively for this Route.
      *
-     * @param string $header Raw header string (e.g., "Cache-Control: no-store")
+     * @param string $header Header Name (e.g., "X-Content-Type-Options")
+     * @param string $value Header Value (e.g., "nosniff")
+     *
      * @return $this
      */
-    public function pipeHeader(string $header): self
+    public function pipeHeader(string $header, string $value): self
     {
-        $this->c->batch('batchPipeHeaderRoute', $this->method, $this->routePath, $header);
+        $this->c->batch('batchPipeHeaderRoute', $this->method, $this->routePath, trim($header), trim($value));
         return $this;
     }
 

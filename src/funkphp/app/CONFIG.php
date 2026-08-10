@@ -2,7 +2,7 @@
 
 /** @var FunkPHP $APP */
 $APP->CONFIG()
-    ->setDebug(true, true, false, false)
+    ->setDebug(true, false, false, false)
     ->setUseVendor(true)
     ->setCompileFlag('NO_WARNINGS_ALLOWED')
     ->setBaseURLHost("wkf")
@@ -15,6 +15,11 @@ $APP->CONFIG()
     ->setGroupPipeRequest("test_request", "use_cors", "run_ini_sets")
     ->setGroupPipeRoute("test_routes", 'test.test', 'test.test2')
     ->setGroupPipeUserdefined('test_group', 'testar7', 'testar8')
+    // DEFAULT NoMatcheHandlers
+    ->setNoRouteMatchPage("test")
+    ->setNoRouteMatchCallback("testar1")
+    ->pipeHeader("Content-type", "application/json")
+    ->pipeHeader("Content-typea", "text/html")
     // DEFAULT Global Handlers
     ->setDefaultURI_NormalizerHandler("testar1")
     ->setDefaultErrorHandler("testar2")
