@@ -23,7 +23,7 @@ $c = null; // Initialize c that is then populated after compile() and/or run()
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 ini_set('error_reporting', 1);
-$FUNKPHP = require_once __DIR__ . '/config/app.php';
+$FUNKPHP = require_once __DIR__ . '/core/app.php';
 if (is_object($FUNKPHP) && $FUNKPHP instanceof FunkPHP) {
     $reflectFunk = new ReflectionObject($FUNKPHP);
     $cProperty   = $reflectFunk->getProperty('c');

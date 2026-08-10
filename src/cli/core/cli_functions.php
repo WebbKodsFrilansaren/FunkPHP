@@ -12781,13 +12781,7 @@ function cli_convert_array_to_simple_syntax(array $array): string | null | array
 function cli_restore_default_folders_and_files()
 {
     // Prepare what folders to loop through and create if they don't exist!
-    global $cDefault;
     global $connsDefault;
-    global $cReplacements;
-    global $CONSTANTSDefault;
-    global $singlePipelineDefault;
-    global $singleRoutesRouteDefault;
-    global $singleTrouteDefault;
     global $tablesAndRelationshipsFileDefault;
     global $mysqlDataTypesFileDefault;
     global $mysqlOperatorSyntaxDefault;
@@ -12837,15 +12831,17 @@ function cli_restore_default_folders_and_files()
 
     // Prepare default files that doesn't exist if certain folders don't exist
     $defaultFiles = [
-        "$folderBase/funkphp/core/compiled_routes.php",
-        "$folderBase/funkphp/core/pipeline_request.php",
-        "$folderBase/funkphp/core/pipeline_routes.php",
         "$folderBase/funkphp/core/tables.php",
-        "$folderBase/funkphp/core/c.php",
-        "$folderBase/funkphp/core/CONSTANTS.php",
         "$folderBase/funkphp/core/valid_mysql_datatypes.php",
         "$folderBase/funkphp/core/valid_mysql_operators.php",
         "$folderBase/funkphp/config/functions.php",
+        "$folderBase/funkphp/core/app.php",
+        "$folderBase/funkphp/app/CONFIG.php",
+        "$folderBase/funkphp/app/GET.php",
+        "$folderBase/funkphp/app/POST.php",
+        "$folderBase/funkphp/app/PUT.php",
+        "$folderBase/funkphp/app/DELETE.php",
+        "$folderBase/funkphp/app/PATCH.php",
         "$folderBase/funkphp/config/classes.php",
         "$folderBase/funkphp/config/README_IN_IDE.php",
         "$folderBase/funkphp/config/lists.php",
@@ -12878,6 +12874,38 @@ function cli_restore_default_folders_and_files()
                 cli_success_without_exit("Recreated Default Config User-defined Functions File: $file");
                 continue;
             }
+            // Recreate default Core App File `/src/funkphp/core/app.php`
+            else if (str_contains($file, "app.php")) {
+                file_put_contents($file, "<?php\n// src/funkphp/core/app.php - FunkPHP | FunkCLI recreated it $date\n\n" . cli_get_prefix_code("do_not_modify_warning") . "\n\$APP = FunkPHP(); require_once ROOT_APP_CONFIG; \$routeFiles = [ ROOT_APP_GET,ROOT_APP_POST, ROOT_APP_PUT,ROOT_APP_PATCH,ROOT_APP_DELETE,]; foreach (\$routeFiles as \$file) {if (file_exists(\$file)) { require_once \$file; } } return \$APP;");
+                cli_success_without_exit("Recreated Default FunkPHP Core App File: $file");
+                continue;
+            }
+            // Recreate default `/src/funkphp/app/<CONFIG+METHODS>.php Files`
+            else if (str_contains($file, "CONFIG.php")) {
+                file_put_contents($file, "<?php\n// src/funkphp/app/CONFIG.php - FunkPHP | FunkCLI recreated it $date\n\n\$APP->ROUTES()->CONFIG();");
+                cli_success_without_exit("Recreated Default FunkPHP Core App File: $file");
+                continue;
+            } else if (str_contains($file, "GET.php")) {
+                file_put_contents($file, "<?php\n// src/funkphp/app/GET.php - FunkPHP | FunkCLI recreated it $date\n\n\$APP->ROUTES()->GET();");
+                cli_success_without_exit("Recreated Default FunkPHP Core App File: $file");
+                continue;
+            } else if (str_contains($file, "POST.php")) {
+                file_put_contents($file, "<?php\n// src/funkphp/app/POST.php - FunkPHP | FunkCLI recreated it $date\n\n\$APP->ROUTES()->POST();");
+                cli_success_without_exit("Recreated Default FunkPHP Core App File: $file");
+                continue;
+            } else if (str_contains($file, "PUT.php")) {
+                file_put_contents($file, "<?php\n// src/funkphp/app/PUT.php - FunkPHP | FunkCLI recreated it $date\n\n\$APP->ROUTES()->PUT();");
+                cli_success_without_exit("Recreated Default FunkPHP Core App File: $file");
+                continue;
+            } else if (str_contains($file, "DELETE.php")) {
+                file_put_contents($file, "<?php\n// src/funkphp/app/DELETE.php - FunkPHP | FunkCLI recreated it $date\n\n\$APP->ROUTES()->DELETE();");
+                cli_success_without_exit("Recreated Default FunkPHP Core App File: $file");
+                continue;
+            } else if (str_contains($file, "PATCH.php")) {
+                file_put_contents($file, "<?php\n// src/funkphp/app/PATCH.php - FunkPHP | FunkCLI recreated it $date\n\n\$APP->ROUTES()->PATCH();");
+                cli_success_without_exit("Recreated Default FunkPHP Core App File: $file");
+                continue;
+            }
             // Recreate default User-defined Classes File `/src/funkphp/classes.php`
             else if (str_contains($file, "classes.php")) {
                 file_put_contents($file, "<?php\n// src/funkphp/config/classes.php - FunkPHP | FunkCLI recreated it $date\n\n" . cli_get_prefix_code("doModifyThisFile_Classes") . "\nnamespace funkphp\\classes;\n");
@@ -12899,18 +12927,6 @@ function cli_restore_default_folders_and_files()
                 }
                 cli_success_without_exit("Recreated Default Config Lists File: $file");
                 continue;
-            } else if (str_contains($file, "c.php")) {
-                file_put_contents($file, "<?php\n// c.php - FunkPHP | FunkCLI recreated it $date\n" . cli_get_prefix_code("do_not_modify_warning") . "\nrequire_once __DIR__ . '/CONSTANTS.php';\n// GLOBAL CONFIGURATIONS in \"\$c\" variable in \"funkphp/funkphp_start.php\"\n// Configure as needed using FunkCLI and/or FunkGUI!\n\nreturn " . cli_replace_string_tokens_in_var_exported_string($cReplacements, var_export($cDefault, true)) . ";\n");
-                cli_success_without_exit("Recreated Default Core Global Configuration `c.php` File: $file");
-                continue;
-            } else if (str_contains($file, "CONSTANTS.php")) {
-                file_put_contents($file, "<?php\n// CONSTANTS.php - FunkPHP | FunkCLI recreated it $date\n" . cli_get_prefix_code("do_not_modify_warning") . "\n" . join(";\n", $CONSTANTSDefault) . ";\n");
-                cli_success_without_exit("Recreated Default Core Constants `CONSTANTS.php` File: $file");
-                continue;
-            } else if (str_contains($file, "compiled_routes")) {
-                file_put_contents($file, "<?php\n// compiled_routes.php - FunkPHP | FunkCLI recreated it $date\n" . cli_get_prefix_code("do_not_modify_warning") . "\nreturn " . var_export($singleTrouteDefault, true) . ";\n");
-                cli_success_without_exit("Recreated Default Core Compiled Trie Routes with Metadata File: $file");
-                continue;
             } elseif (str_contains($file, "tables")) {
                 file_put_contents($file, "<?php\n// // tables.php - FunkPHP | FunkCLI recreated it $date\n" . cli_get_prefix_code("do_not_modify_warning") . "\nreturn " . var_export($tablesAndRelationshipsFileDefault, true) . ";\n");
                 cli_success_without_exit("Recreated Default Core Tables `tables.php` File: $file");
@@ -12922,14 +12938,6 @@ function cli_restore_default_folders_and_files()
             } elseif (str_contains($file, "valid_mysql_operators")) {
                 file_put_contents($file, "<?php\n// valid_mysql_operators.php - FunkPHP | FunkCLI recreated it $date\n" . cli_get_prefix_code("do_not_modify_warning") . "\nreturn " . var_export($mysqlOperatorSyntaxDefault, true) . ";\n");
                 cli_success_without_exit("Recreated Default Core ValidMySQLOperators File: $file");
-                continue;
-            } elseif (str_contains($file, "pipeline_routes")) {
-                file_put_contents($file, "<?php\n// pipeline_routes.php - FunkPHP | FunkCLI recreated it $date\n" . cli_get_prefix_code("do_not_modify_warning") . "\nreturn " . var_export($singleRoutesRouteDefault, true) . ";\n");
-                cli_success_without_exit("Recreated Default Core Pipeline Routes File: $file");
-                continue;
-            } else if (str_contains($file, "pipeline_request")) {
-                file_put_contents($file, "<?php\n// pipeline_request.php - FunkPHP | FunkCLI recreated it $date\n" . cli_get_prefix_code("do_not_modify_warning") . "\nreturn  " . var_export($singlePipelineDefault, true) . ";\n");
-                cli_success_without_exit("Recreated Default Core Pipeline Request+Post_Response File: $file");
                 continue;
             } else if (str_ends_with($file, "query.php")) {
                 file_put_contents($file, "<?php\n// src/funkphp/data/compiled/query.php - FunkPHP | FunkCLI recreated it $date\n\n" . cli_get_prefix_code("do_not_modify_directly") . "\n\nnamespace funkphp\\data\\compiled\\query;\n");
