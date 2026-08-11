@@ -7316,6 +7316,23 @@ class C
     {
         $compileWarnings[count($compileWarnings) + 1] = $err;
     }
+    // Function that generates HTML to then output an easier visualized version of current errors
+    // and/or warnings. It has TABS based upon what actually has errors/warnings. It starts with
+    // the tabs "CONFIG | GET | POST | PUT | DELETE | PATCH" and then inside of each Tab (Methods)
+    // there are errors for each <Method><Route>. $internalErrors are from $this->errors[] while
+    //  $compileErrors &  $compileWarninsg are exclusively from private function compile() which then
+    // would be calling this function exclusively to provide those compile errors and/or warnings.
+    // Essentially it is a typical REST API Swagger but with errors/warnings below each <Method> => <Route> Tab
+    private function output_errors(array $internalErrors = [], ?array $compileErrors = [], array $compileWarnings = [])
+    {
+        // Prepare HTML based upon stored
+        $html = "";
+
+        // Output Error HTML
+        header("content-type: text/html");
+        http_response_code(500);
+        echo $html;
+    }
     /**
      * Checks whether a middleware is active globally, in method,
      * OR on any parent route prefix leading up to the current route.
@@ -7830,6 +7847,8 @@ class C
         // STEP 11: Build `routes` - (unpacking) middlewares, headers|csp|nonces|exclusions and pipes
         // ------------------------------------------------------------------------------------------
         // STEP 11.1: Build `routes` -
+        if (!isset($this->validBatches['routes'])) {
+        }
 
         // STEP 11.2: Build `routes` -
 
