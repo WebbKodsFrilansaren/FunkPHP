@@ -6265,13 +6265,16 @@ class C
                     if (isset($this->cached['placeholderParamContexts'][$contextKey])) {
                         $lockedParamName = $this->cached['placeholderParamContexts'][$contextKey]['param'];
                         if ($lockedParamName !== $paramName) {
-                            $this->setErr($this->getErr('ConflictRouteParam', $ctxVals) . " Parameter `:{$paramName}` conflicts with Locked Parameter `:{$lockedParamName}` first defined in `{$this->cached['placeholderParamContexts'][$contextKey]['first']}`", 'Route-route', $method, $route);
+                            $this->setErr($this->getErr('ConflictRouteParam', $ctxVals) . " Parameter `:{$paramName}` conflicts with Locked Parameter `:{$lockedParamName}` first defined in `{$this->cached['placeholderParamContexts'][$contextKey]['first']}`. Either Standardize `{$paramName}` across both routes OR if you want the OTHER Route to be considered the `First defined with {$paramName}`, you will need to swap their File Inclusions in `/src/funkphp/core/app.php` (`\$routeFiles`). Default order: `GET => POST => PUT => PATCH => DELETE`. FunkPHP treats `URI Segments` as `Dynamic Folder Levels`, so a given folder depth can only have one dynamic parameter name (e.g. `[id]` but not both `[id]` and `[name]`). Use `ROUTE()->setParamRulePolymorphic()` to match Multiple Data Types (e.g. `numeric IDs` AND `string Usernames`).", 'Route-route', $method, $route);
                             $this->invalidBatches['routes'][$method][$route] = true;
                             return;
                         }
                     } else {
                         // Lock this parameter name globally for this parent path context
-                        $this->cached['placeholderParamContexts'][$contextKey] = ['param' => $paramName, 'first' => "->ROUTES()->{$method}()->ROUTE('{$route}')"];
+                        $this->cached['placeholderParamContexts'][$contextKey] = [
+                            'param' => $paramName,
+                            'first' => "/src/funkphp/app/{$method}.php => ROUTES()->{$method}()->ROUTE('{$route}')"
+                        ];
                     }
                     $currentParentContext .= '/:PARAM';
                 } else {
@@ -6294,7 +6297,18 @@ class C
         // }
         // Add Valid String Formatted METHOD/Route now; in compilation it will be checked for
         // conflicting URI segments with other routes as we do not know which order they are added!
-        $this->validBatches['routes'][$method][$route] = ['hasParams' => $routeHasParams, 'paramRules' => null, 'response' => null, 'pipes' => [], 'middlewares' => [], 'excludeMiddleware' => null, 'headers' => ['add' => null, 'remove' => null], 'excludeHeaders' => null];
+        $this->validBatches['routes'][$method][$route] = [
+            'hasParams' => $routeHasParams,
+            'paramRules' => null,
+            'response' => null,
+            'pipes' => [],
+            'middlewares' => [],
+            'excludeMiddleware' => null,
+            'nonces' => null,
+            'csp' => null,
+            'headers' => ['add' => null, 'remove' => null],
+            'excludeHeaders' => null
+        ];
     }
 
     //ROUTE: Set & New Batches for ROUTES! (so ->routes()-><Method>()->route()->set|pipe<What>)
@@ -7138,6 +7152,47 @@ class C
     {
         $compileWarnings[count($compileWarnings) + 1] = $err;
     }
+    /**
+     * Checks whether a middleware is active globally, in method,
+     * OR on any parent route prefix leading up to the current route.
+     */
+    private function isMiddlewareActiveInScope(string $middleware, string $method, string $route): bool
+    {
+        // Even registered?
+        if (!isset($this->cached['placeholderMiddlewaresInWhatRoutes'][$middleware])) {
+            return false;
+        }
+        $activeScopes = $this->cached['placeholderMiddlewaresInWhatRoutes'][$middleware];
+        // In global OR method scope?
+        if (
+            in_array('GLOBAL', $activeScopes, true)
+            || in_array($method, $activeScopes, true)
+        ) {
+            return true;
+        }
+        // Check Direct Route Path & Parent Ancestor Routes
+        // Construct target key format: "GET/:id/users"
+        $fullPathKey = $method . ($route === '/' ? '/' : $route);
+        foreach ($activeScopes as $scope) {
+            if ($scope === 'GLOBAL' || $scope === $method) {
+                continue;
+            }
+            // Exact Route Match
+            if ($scope === $fullPathKey) {
+                return true;
+            }
+            // Prefix/Ancestor Match: Ensures "GET/:id" matches a descendant "GET/:id/users"
+            // append trailing slash to prevent false positives like "GET/:id" matching "GET/:identifier"
+            $scopePrefix = rtrim($scope, '/') . '/';
+            $fullPathPrefix = rtrim($fullPathKey, '/') . '/';
+            if (str_starts_with($fullPathPrefix, $scopePrefix)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    // Actual compile() function that can EITHER compile and run it as is
+    // OR compile and output it to the FunkPHPDeployment.php File instead.
     private function compile(bool $CompileAndRunLocally = true)
     {
         //REFER TO THESE TO
@@ -7160,7 +7215,13 @@ class C
             'REQUEST' => [],
             'POST_RESPONSE' => [],
             'USER_DEFINED' => [],
-            'ROUTES_FILE_FUNCTIONS' => []
+            'ROUTES_FILE_FUNCTIONS' => [],
+            'DATA_QUERY_FNS' => [],
+            'DATA_SQL_FNS' => [],
+            'DATA_VALIDATION_FNS' => [],
+            'DATA_QUERY_COMPILED_FNS' => [],
+            'DATA_SQL_COMPILED_FNS' => [],
+            'DATA_VALIDATION_COMPILED_FNS' => [],
         ];
         // ------------------------------------------------------------------------------------------
         // Attempt compiling FunkPHP and create the code
@@ -7428,7 +7489,7 @@ class C
                     continue;
                 }
                 if (!isset($GLOBAL_GROUPED['REQUEST'][$pipe])) {
-                    $this->compile_setErr("Grouped GLOBAL Request Pipe Functions with the name `{$pipe}` does not exist but was still part of the `->CONFIG()->pipeRequestFunction('{$pipe}')` in `/src/funkphp/app/CONFIG.php`.", $compileErrors);
+                    $this->compile_setErr("Grouped GLOBAL Request Pipe Functions with the name `{$pipe}` does not exist but was still part of the `->CONFIG()->pipeRequestFunction('{$pipe}')` in `/src/funkphp/app/CONFIG.php`. Use `->setGroupPipeRequest('{$pipe}')` in `/src/funkphp/app/CONFIG.php` to first create the Grouping.", $compileErrors);
                 } else {
                     foreach ($GLOBAL_GROUPED['REQUEST'][$pipe] as $groupPipe) {
                         if (count($allPipes) > 0 && $allPipes[count($allPipes) - 1] === $groupPipe) {
@@ -7455,7 +7516,7 @@ class C
                     continue;
                 }
                 if (!isset($GLOBAL_GROUPED['MIDDLEWARES'][$pipe])) {
-                    $this->compile_setErr("Grouped GLOBAL Middleware Pipe Functions with the name `{$pipe}` does not exist but was still part of the `->CONFIG()->pipeMiddleware('{$pipe}')` in `/src/funkphp/app/CONFIG.php`.", $compileErrors);
+                    $this->compile_setErr("Grouped GLOBAL Middleware Pipe Functions with the name `{$pipe}` does not exist but was still part of the `->CONFIG()->pipeMiddleware('{$pipe}')` in `/src/funkphp/app/CONFIG.php`. Use `->setGroupPipeMiddlewares('{$pipe}')` in `/src/funkphp/app/CONFIG.php` to first create the Grouping.", $compileErrors);
                 } else {
                     foreach ($GLOBAL_GROUPED['MIDDLEWARES'][$pipe] as $groupPipe) {
                         if (count($allPipes) > 0 && $allPipes[count($allPipes) - 1] === $groupPipe) {
@@ -7502,7 +7563,7 @@ class C
                         continue;
                     }
                     if (!isset($GLOBAL_GROUPED['POST_RESPONSE'][$pipe])) {
-                        $this->compile_setErr("Grouped GLOBAL Post-Response Pipe Functions with the name `{$pipe}` does not exist but was still part of the `->CONFIG()->pipePostResponseFunction('{$pipe}')` in `/src/funkphp/app/CONFIG.php`.", $compileErrors);
+                        $this->compile_setErr("Grouped GLOBAL Post-Response Pipe Functions with the name `{$pipe}` does not exist but was still part of the `->CONFIG()->pipePostResponseFunction('{$pipe}')` in `/src/funkphp/app/CONFIG.php`. Use `->setGroupPipePostResponse('{$pipe}')` in `/src/funkphp/app/CONFIG.php` to first create the Grouping.", $compileErrors);
                     } else {
                         foreach ($GLOBAL_GROUPED['POST_RESPONSE'][$pipe] as $groupPipe) {
                             if (count($allPipes) > 0 && $allPipes[count($allPipes) - 1] === $groupPipe) {
@@ -7532,7 +7593,7 @@ class C
                             continue;
                         }
                         if (!isset($GLOBAL_GROUPED['MIDDLEWARES'][$pipe])) {
-                            $this->compile_setErr("Grouped Middleware {$method} Pipe Functions with the name `{$pipe}` does not exist but was still part of the `->ROUTES()->{$method}()->pipeMiddleware('{$pipe}')` in `/src/funkphp/app/{$method}.php`.", $compileErrors);
+                            $this->compile_setErr("Grouped Middleware {$method} Pipe Functions with the name `{$pipe}` does not exist but was still part of the `->ROUTES()->{$method}()->pipeMiddleware('{$pipe}')` in `/src/funkphp/app/{$method}.php`. Use `->setGroupPipeMiddlewares('{$pipe}')` in `/src/funkphp/app/CONFIG.php` to first create the Grouping.", $compileErrors);
                         } else {
                             foreach ($GLOBAL_GROUPED['MIDDLEWARES'][$pipe] as $groupPipe) {
                                 if (count($allPipes) > 0 && $allPipes[count($allPipes) - 1] === $groupPipe) {
@@ -7567,6 +7628,21 @@ class C
                 }
             }
         }
+
+        // ------------------------------------------------------------------------------------------
+        // STEP 11: Build `routes` - (unpacking) middlewares, headers|csp|nonces|exclusions and pipes
+        // ------------------------------------------------------------------------------------------
+        // STEP 11.1: Build `routes` -
+
+        // STEP 11.2: Build `routes` -
+
+        // STEP 11.3: Build `routes` -
+
+        // STEP 11.4: Build `routes` -
+
+        // STEP 11.5: Build `routes` -
+
+        // STEP 11.6: Build `routes` -
 
         /////////////////////////////////////// END /////////////////////////////
         //$this->compile_setErr("", $compileErrors);

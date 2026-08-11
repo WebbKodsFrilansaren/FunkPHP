@@ -12,11 +12,6 @@ $APP->CONFIG()
     // PARAMS
     ->setParamRule("id", "/[\d]+/", 0)
     // GROUPED Pipes
-    ->setGroupPipeMiddlewares("test_mw", "auth", "auth2")
-    ->setGroupPipePostResponse("test_post_response", "debug", "debug2")
-    ->setGroupPipeRequest("test_request", "use_cors", "run_ini_sets")
-    ->setGroupPipeRoute("test_routes", 'test.test', 'test.test2')
-    ->setGroupPipeUserdefined('test_group', 'testar7', 'testar8')
     // DEFAULT NoMatcheHandlers
     ->setNoRouteMatchPage("test")
     ->setNoRouteMatchCallback("testar1")

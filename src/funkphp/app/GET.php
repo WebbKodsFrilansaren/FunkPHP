@@ -4,19 +4,9 @@
 /** @var FunkPHP $APP */
 $APP->ROUTES()
     ->GET()
-    ->setCSP('base-uri', 'none')
-    ->setNonces('test', 'test2')
-    ->pipeHeader('content-type', 'application/json')
-    ->setNoRouteMatchCallback("testar8")
     ->setParamRule("ida", "/[\d]+/")
-    ->pipeMiddleware("auth")
-    ->pipeMiddleware("auth2")
     ->ROUTE("/:id")
-    ->setParamRulePolymorphic('id', 'nums', '/[\d]+/', 'text', '/[a-z0-9-_]+/i')
-    //->setParamRule("id", "/[\d]+/")
+    ->setParamRule("id", "/[\d]+/")
     ->pipeHeader("content-type", 'text/html')
-    ->pipeMiddleware("auth2")
-    ->pipeMiddleware("auth2")
-    ->setCSP('base-uri', 'none')
-    ->setNonces('test', 'test2')
-    ->removeHeader("content-typeb");
+    ->removeHeader("content-typeb")
+    ->ROUTE("/users/:id");
