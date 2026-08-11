@@ -5389,7 +5389,7 @@ class C
             'pattern' => $regex,
             'default' => $defaultParamValueOnRegexMismatch
         ];
-        $this->cached['placeholderUNSUEDParams']['global'][$param] = [
+        $this->cached['placeholderUNSUEDParams']['GLOBAL'][$param] = [
             'pattern' => $regex,
             'default' => $defaultParamValueOnRegexMismatch
         ];
@@ -7462,6 +7462,7 @@ class C
                             $this->compile_setWarn("`Consecutive GLOBAL Pipe Middleware Function '{$groupPipe}' found`. Ignore this warning if it is intentional or Review `->CONFIG()->pipeMiddleware()` in `/src/funkphp/app/CONFIG.php`.", $compileWarnings);
                         }
                         $allPipes[] = $groupPipe;
+                        // As MWs are unpacked, add then them to global-based MW Invert Index
                         if (!isset($this->cached['placeholderMiddlewareInvertIindex'][$groupPipe])) {
                             $this->cached['placeholderMiddlewareInvertIindex'][$groupPipe][] = 'GLOBAL';
                         } else {
@@ -7538,6 +7539,7 @@ class C
                                     $this->compile_setWarn("`Consecutive {$method} Pipe Middleware Function '{$groupPipe}' found`. Ignore this warning if it is intentional or Review `->ROUTES()->{$method}()->pipeMiddleware()` in `/src/funkphp/app/{$method}.php`.", $compileWarnings);
                                 }
                                 $allPipes[] = $groupPipe;
+                                // As MWs are unpacked, add then them to method-based MW Invert Index
                                 if (!isset($this->cached['placeholderMiddlewareInvertIindex'][$groupPipe])) {
                                     $this->cached['placeholderMiddlewareInvertIindex'][$groupPipe][] = $method;
                                 } else {
