@@ -2122,12 +2122,54 @@ class C
         'file_core_functions' => null,
         'file_manifest' => null,
     ];
+    // Add this later to finalized/compiled $c ($this->compiled['c'])
+    // in order to reduce the amount of info on the screen during dev.
+    private array $cAddLater = [
+        'shared' => [],
+        'classes' => ['vendor' => [], 'user' => []],
+        'credentials' => null,
+        'connections' => [],
+        'req' => [
+            'method' => '##TOKEN_REQ_METHOD##',
+            'ip'     => '##TOKEN_REQ_IP##',
+            'time'   => '##TOKEN_REQ_TIME##',
+            'uri' => null,
+            'query' => '##TOKEN_REQ_QUERY_STRING##',
+            'base_url_absolute' => null,
+            'base_url_relative' => null,
+            'matched_in' => null,
+            'route' => null,
+            'params' => null,
+            'segments' => null,
+            'auth' => null,
+            'matched_config' => null,
+            'matched_pipes' => [],
+            'matched_middlewares' => null,
+            'skip_post_response' => false,
+            'keep_running_exit' => null,
+            'code' => 418,
+            'log' => [],
+            'ua' => null,
+            'content_type' => null,
+            'accept' => null,
+            'protocol' => null,
+        ],
+        'd' => null,
+        'v' => null,
+        'v_ok' => null,
+        'v_ok_files' => null,
+        'v_config' => [],
+        'v_data' => null,
+        'p' => null,
+        'files' => null,
+        'err' => [],
+    ];
     // $compiled = The entire compiled code that can either be executed as is OR
     // be exported to the `/src/funkphp/FunkPHPDeployment.php` File!
     private array $compiled = [
         'config' => [
             'NO_ROUTE_MATCH' => [],
-            'pipes' => [],
+            'pipes' => ['request' => [], 'middlewares' => [], 'post_response' => [],],
             'params' => [],
             'headers' => [],
             'csp' => [],
@@ -2136,7 +2178,6 @@ class C
         ],
         'methods' => [],
         'routes' => [],
-        'middlewares' => [],
         'pages' => [],
         'data' => [],
         // This is the $c Variable that is then assigned automatically globally.
@@ -2170,44 +2211,6 @@ class C
                 'driver' => 'files',
                 'COOKIES' => []
             ],
-            'shared' => [],
-            'classes' => ['vendor' => [], 'user' => []],
-            'credentials' => null,
-            'connections' => [],
-            'req' => [
-                'method' => '##TOKEN_REQ_METHOD##',
-                'ip'     => '##TOKEN_REQ_IP##',
-                'time'   => '##TOKEN_REQ_TIME##',
-                'uri' => null,
-                'query' => '##TOKEN_REQ_QUERY_STRING##',
-                'base_url_absolute' => null,
-                'base_url_relative' => null,
-                'matched_in' => null,
-                'route' => null,
-                'params' => null,
-                'segments' => null,
-                'auth' => null,
-                'matched_config' => null,
-                'matched_pipes' => [],
-                'matched_middlewares' => null,
-                'skip_post_response' => false,
-                'keep_running_exit' => null,
-                'code' => 418,
-                'log' => [],
-                'ua' => null,
-                'content_type' => null,
-                'accept' => null,
-                'protocol' => null,
-            ],
-            'd' => null,
-            'v' => null,
-            'v_ok' => null,
-            'v_ok_files' => null,
-            'v_config' => [],
-            'v_data' => null,
-            'p' => null,
-            'files' => null,
-            'err' => [],
         ],
     ];
 
@@ -3713,6 +3716,7 @@ class C
             'InvalidFunctionNameCustomErrAfterColon' => "Invalid Function Name Value in {$optionalCtx}:",
             'InvalidFunctionStructureCustomErrAfterColon' => "Invalid Function Structure in {$optionalCtx}:",
             'InvalidParamName' => "Invalid Param Rule Name in {$optionalCtx}: Param Rule Name must be a Non-Empty String (no trailing spaces) all lowercased containing only `[a-z0-9_-]` characters without the colon (`:`).",
+            'InvalidParamFlexibleStringArray' => "Invalid Param Rule Collection in {$optionalCtx}: must be an Array of Strings where each first element is the Name of the Regex Rule and each second element is the Regex Rule itself. Any matched Flexible Regex Rule is then set to `\$c['req']['matched_params_flexible']['{paramIdentifier}'] = '{name}|null';` when matched OR it is set to null if no Param Flexible Rule match.",
             'NonEmptyStringNoTrailing' => "Invalid String Value in {$optionalCtx}: must be a Non-Empty String (no trailing spaces).",
             'NonEmptyAllLowercasedStringNotStartCLIorFUNK' => "Invalid String Value in {$optionalCtx}: must be a Non-Empty String (no trailing spaces) all lowercased that does NOT start with `cli_` OR `funk_`.",
             'NotBoolean' => "Invalid Boolean Value in {$optionalCtx}: must a Boolean that is set to TRUE or FALSE.",
@@ -3742,7 +3746,7 @@ class C
             'InvalidNonceKeyName' => "Invalid Nonce Key Value in {$optionalCtx}: Nonce Keys must be Non-Empty Strings containing only `[a-zA-Z0-9_-]` characters (e.g., `test`, `main-script`).",
             'InvalidPageName' => "Invalid Page Name Value in {$optionalCtx}: must be a `Non-Empty String` containing only `[a-zA-Z0-9-_]` characters (no trailing spaces) and without the File Extension.",
             'InvalidNoRouteMatchTextValue' => "Invalid Text Value in {$optionalCtx}: must be a `Non-Empty String` after `trim()` have been applied to it.",
-            'InvalidRegex'                                => "Invalid Regex Value in {$optionalCtx}: must be a Non-Empty String that is also a Valid Regex Pattern when parsed by `preg_match()`. It cannot be an Empty Expression with optional modifiers (e.g. `//` OR `//i`).",
+            'InvalidRegex'                                => "Invalid Regex Value in {$optionalCtx}: must be a `Non-Empty String` that is also a `Valid Regex Pattern` when parsed by `preg_match()`. It cannot be an Empty Expression with optional modifiers (e.g. `//` OR `//i`).",
             'InvalidRouteFormat' => "Invalid Route Value in {$optionalCtx}: A Valid Route must: 1) Start with or just be `/` as root (`never end with -, _ OR /`), 2) Be all `lowercased`, 3) Have all `Uniquely Named /:params` URI segments (if any used), 4) Never use `-` and/or `_ consecutively`, after each other (e.g. `-_` or `_-`) OR as start in static/dynamic segments (e.g. `/:-`, `/:_`, `/_`, OR `/-`), 5) Only use `[a-z0-9_-]` characters.",
             'InvalidRouteFormatDuplicateParams' => "Invalid Route Value in {$optionalCtx}: `Check for Duplicate Params`. A Valid Route must: 1) Start with or just be `/` as root (`never end with -, _ OR /`), 2) Be all `lowercased`, 3) Have all `Uniquely Named /:params` URI segments (if any used), 4) Never use `-` and/or `_ consecutively`, after each other (e.g. `-_` or `_-`) OR as start in static/dynamic segments (e.g. `/:-`, `/:_`, `/_`, OR `/-`), 5) Only use `[a-z0-9_-]` characters.",
             'InvalidRouteAliasName'                     => "Invalid Route Alias Name in {$optionalCtx}: Aliases must only contain `[a-zA-Z0-9_.-]` characters (e.g., `users.all` OR `Users.All`).",
@@ -3775,6 +3779,7 @@ class C
             'RouteHasNotChosenParam' => "Provided Param for Route in {$optionalCtx} does NOT exist so it cannot be used in `->setParamRule()`.",
 
             // Call Order & Duplicate|Conflict Validation Errors
+            'DuplicateFlexibleRegexPairName' => "`Duplicate Regex Pair Name` in {$optionalCtx}: ",
             'DuplicateNonceKeyName'           => "`Duplicate Nonce Key Name` in {$optionalCtx}. Review/change the already `Valid` Nonce Key Name ",
             'DuplicateRouteAliasName'           => "Duplicate Route Alias Name` in {$optionalCtx}. Review/change the already `Valid` Configuration first defined in ",
             'DuplicateCallSessionCookieDueToValidOptionsVersion' => "`Duplicate Setting Session Cookie Call` to {$optionalCtx} due to already being set and `Valid` OR because `->setSessionCookieOptions()` has been used already which sets all Session Cookie Values at once.",
@@ -3813,7 +3818,7 @@ class C
      * Choose Error Type based on scope (global, method, route) and optional method and route when applicable.
      *
      * @param string $errMsg
-     * @param 'Internal'|'Global-setDebug'|'Route-pipeCompiledQuery'|'Route-pipeCompiledSQL'|'Route-pipeCompiledValidation'|'Global-setCompileFlag'|'Global-setGroupPipeUserdefined'|'Global-setGroupPipeRequest'|'Global-setGroupPipePostResponse'|'Global-setGroupPipeRoute'|'Global-setGroupPipeMiddlewares'|'Global-setINI_SET'|'Global-setNonces'|'Global-setCSP'|'Global-setSRIInternal'|'Global-setSRIExternal'|'Global-setNoRouteMatchPage'|'Global-setNoRouteMatchJSON'|'Global-setNoRouteMatchText'|'Global-setNoRouteMatchCallback'|'Global-setDefaultRegisteredShutdownHandler'|'Global-setDefaultExceptionHandler'|'Global-setDefaultErrorHandler'|'Global-setDefaultURI_NormalizerHandler'|'Global-setDefaultKernelHandler'|'Global-setBaseURLLocal'|'Global-setBaseURLOnline'|'Global-setBaseURLHost'|'Global-setBaseURLUri'|'Global-setSessionDriver'|'Global-setSessionCookieOptions'|'Global-setSessionCookieName'|'Global-setSessionCookieLifetime'|'Global-setSessionCookiePath'|'Global-setSessionCookieDomain'|'Global-setSessionCookieSecure'|'Global-setSessionCookieHTTPOnly'|'Global-setSessionCookieSameSite'|'Global-setUseFunkPHPOnline'|'Global-setUseHTTPS'|'Global-setUseVendor'|'Global-setParamRule'|'Global-pipeHeader'|'Global-removeHeader'|'Global-pipeMiddleware'|'Global-pipeRequestFunction'|'Global-pipePostResponseFunction'|'Method-setNoRouteMatch'|'Method-setNoRouteMatchPage'|'Method-setNoRouteMatchJson'|'Method-setNoRouteMatchText'|'Method-setNoRouteMatchCallback'|'Method-setNonces'|'Method-setCSP'|'Method-setRateLimiting'|'Method-pipeMiddleware'|'Method-pipeHeader'|'Method-removeHeader'|'Method-setParamRule'|'Method-route'|'Route-setAlias'|'Route-setRateLimiting'|'Route-setCache'|'Route-setNonces'|'Route-pipeMiddleware'|'Route-pipeFunction'|'Route-pipeResponse'|'Route-pipeSQL'|'Route-pipeQuery'|'Route-pipeValidation'|'Route-setExcludeMiddlewares'|'Route-setExcludeHeaders'|'Route-setParamRule'|'Route-setCSP'|'Route-pipeHeader'|'Route-removeHeader'|'Route-route' $errType
+     * @param 'Route-setParamRulePolymorphic'|'Method-setParamRulePolymorphic'|'Global-setParamRulePolymorphic'|'Global-setDebug'|'Route-pipeCompiledQuery'|'Route-pipeCompiledSQL'|'Route-pipeCompiledValidation'|'Global-setCompileFlag'|'Global-setGroupPipeUserdefined'|'Global-setGroupPipeRequest'|'Global-setGroupPipePostResponse'|'Global-setGroupPipeRoute'|'Global-setGroupPipeMiddlewares'|'Global-setINI_SET'|'Global-setNonces'|'Global-setCSP'|'Global-setSRIInternal'|'Global-setSRIExternal'|'Global-setNoRouteMatchPage'|'Global-setNoRouteMatchJSON'|'Global-setNoRouteMatchText'|'Global-setNoRouteMatchCallback'|'Global-setDefaultRegisteredShutdownHandler'|'Global-setDefaultExceptionHandler'|'Global-setDefaultErrorHandler'|'Global-setDefaultURI_NormalizerHandler'|'Global-setDefaultKernelHandler'|'Global-setBaseURLLocal'|'Global-setBaseURLOnline'|'Global-setBaseURLHost'|'Global-setBaseURLUri'|'Global-setSessionDriver'|'Global-setSessionCookieOptions'|'Global-setSessionCookieName'|'Global-setSessionCookieLifetime'|'Global-setSessionCookiePath'|'Global-setSessionCookieDomain'|'Global-setSessionCookieSecure'|'Global-setSessionCookieHTTPOnly'|'Global-setSessionCookieSameSite'|'Global-setUseFunkPHPOnline'|'Global-setUseHTTPS'|'Global-setUseVendor'|'Global-setParamRule'|'Global-pipeHeader'|'Global-removeHeader'|'Global-pipeMiddleware'|'Global-pipeRequestFunction'|'Global-pipePostResponseFunction'|'Method-setNoRouteMatch'|'Method-setNoRouteMatchPage'|'Method-setNoRouteMatchJson'|'Method-setNoRouteMatchText'|'Method-setNoRouteMatchCallback'|'Method-setNonces'|'Method-setCSP'|'Method-setRateLimiting'|'Method-pipeMiddleware'|'Method-pipeHeader'|'Method-removeHeader'|'Method-setParamRule'|'Method-route'|'Route-setAlias'|'Route-setRateLimiting'|'Route-setCache'|'Route-setNonces'|'Route-pipeMiddleware'|'Route-pipeFunction'|'Route-pipeResponse'|'Route-pipeSQL'|'Route-pipeQuery'|'Route-pipeValidation'|'Route-setExcludeMiddlewares'|'Route-setExcludeHeaders'|'Route-setParamRule'|'Route-setCSP'|'Route-pipeHeader'|'Route-removeHeader'|'Route-route' $errType
      * @param 'GET'|'POST'|'PUT'|'PATCH'|'DELETE'|'HEAD'|null $method
      * @param string|null $route
      *
@@ -3859,6 +3864,7 @@ class C
             'Global-setUseHTTPS',
             'Global-setUseVendor',
             'Global-setParamRule',
+            'Global-setParamRulePolymorphic',
             'Global-pipeHeader',
             'Global-removeHeader',
             'Global-pipeMiddleware',
@@ -3876,6 +3882,7 @@ class C
             'Method-pipeHeader',
             'Method-removeHeader',
             'Method-setParamRule',
+            'Method-setParamRulePolymorphic',
             'Method-route',
             'Route-setAlias',
             'Route-setRateLimiting',
@@ -3893,6 +3900,7 @@ class C
             'Route-setExcludeMiddlewares',
             'Route-setExcludeHeaders',
             'Route-setParamRule',
+            'Route-setParamRulePolymorphic',
             'Route-setCSP',
             'Route-pipeHeader',
             'Route-removeHeader',
@@ -6300,6 +6308,92 @@ class C
         $this->validBatches['routes'][$method][$route]['alias'] = $alias;
     }
 
+    //ROUTE: setParamRulePolymorphic
+    private function batchSetParamRulePolymorphicRoute(string $method, string $route, string $paramIdentifier, string ...$keyAndRegexPairs)
+    {
+        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'setParamRulePolymorphic', "ROUTES()->{$method}()->ROUTE('{$route}')", $paramIdentifier, ...$keyAndRegexPairs);
+        // Route must be valid first
+        if (isset($this->invalidBatches['routes'][$method][$route])) {
+            $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route-setParamRule', $method, $route);
+            return;
+        }
+        // Now validate inValidBatches|validBatches
+        if (
+            isset($this->invalidBatches['paramRulesFlexible']['routes'][$method][$route][$paramIdentifier]) ||
+            isset($this->invalidBatches['paramRules']['routes'][$method][$route][$paramIdentifier])
+        ) {
+            $this->setErr($this->getErr('DuplicateCallInvalidMustBeSetWithDifferentValues', $ctx) . " Each Param Identifier must be unique (case-insensitive) and this applies both to regular ParamRules as well as Flexible ParamRules.", 'Route-setParamRulePolymorphic', $method, $route);
+            return;
+        }
+        if (
+            isset($this->validBatches['paramRulesFlexible']['routes'][$method][$route][$paramIdentifier])
+            || isset($this->validBatches['paramRules']['routes'][$method][$route][$paramIdentifier])
+        ) {
+            $this->setErr($this->getErr('DuplicateCallValidMustBeSetWithDifferentValues', $ctxVals) . " Each Param Identifier must be unique (case-insensitive) and this applies both to regular ParamRules as well as Flexible ParamRules.", 'Route-setParamRulePolymorphic', $method, $route);
+            return;
+        }
+        // Does the valid route even have params?
+        if (!isset($this->validBatches['routes'][$method][$route]['hasParams'])) {
+            $this->setErr($this->getErr('RouteHasNoParams', $ctxVals), 'Route-setParamRule', $method, $route);
+            $this->invalidBatches['paramRulesFlexible']['routes'][$method][$route][$paramIdentifier] = "$paramIdentifier";
+        }
+        // Validate valid $param identifier formatting
+        if (!is_string($paramIdentifier) || !preg_match('/^[a-z0-9_-]+$/', $paramIdentifier)) {
+            $this->setErr($this->getErr('InvalidParamName', $ctxVals), 'Route-setParamRule', $method, $route);
+            $this->invalidBatches['paramRulesFlexible']['routes'][$method][$route][$paramIdentifier] = "$paramIdentifier";
+            return;
+        }
+        // $param identifier formatting is valid, but does it exist in the array of hasParams?
+        if (!in_array($paramIdentifier, $this->validBatches['routes'][$method][$route]['hasParams'])) {
+            $this->setErr($this->getErr('RouteHasNotChosenParam', $ctxVals) . " The available Params in the Route: " . $this->joinArray($this->validBatches['routes'][$method][$route]['hasParams']) . '.', 'Route-setParamRule', $method, $route);
+            $this->invalidBatches['paramRulesFlexible']['routes'][$method][$route][$paramIdentifier] = "$paramIdentifier";
+            return;
+        }
+        if (isset($this->validBatches['routes'][$method][$route]['paramRules'][$paramIdentifier])) {
+            $this->setErr($this->getErr('DuplicateParamRoute', $ctxVals), 'Route-setParamRule', $method, $route);
+            return;
+        }
+        // Check count on $firstKeyNameSecondKeyRegexThirdKeyDefaultValueAndSoOn and make sure it is an equal count since it needs first each element
+        // to be the name identifier of the regex rule that then follows. For example: 'number','/[\d]+/' so that can be stored
+        // in the $c['req']['matched_params_flexible']['name'] and so on.
+        $pairCount = count($keyAndRegexPairs);
+        if ($pairCount === 0 || ($pairCount % 2) !== 0) {
+            $this->setErr($this->getErr('InvalidParamFlexibleStringArray', $ctxVals) . " Flexible rules require matching [RuleName, RegexPattern] pairs.", 'Route-setParamRulePolymorphic', $method, $route);
+            $this->invalidBatches['paramRulesFlexible']['routes'][$method][$route][$paramIdentifier] = $paramIdentifier;
+            return;
+        }
+        $compiledPairs = [];
+        for ($i = 0; $i < $pairCount; $i += 2) {
+            $ruleName = strtolower(trim($keyAndRegexPairs[$i]));
+            $regex    = trim($keyAndRegexPairs[$i + 1]);
+            if ($ruleName === '' || !preg_match('/^[a-z0-9_-]+$/', $ruleName)) {
+                $this->setErr($this->getErr('InvalidParamName', $ctxVals), 'Route-setParamRulePolymorphic', $method, $route);
+                $this->invalidBatches['paramRulesFlexible']['routes'][$method][$route][$paramIdentifier] = $paramIdentifier;
+                return;
+            }
+            if (isset($compiledPairs[$ruleName])) {
+                $this->setErr($this->getErr('DuplicateFlexibleRegexPairName', $ctxVals) . " `{$ruleName}` is already used for `{$paramIdentifier}`.", 'Route-setParamRulePolymorphic', $method, $route);
+                $this->invalidBatches['paramRulesFlexible']['routes'][$method][$route][$paramIdentifier] = $paramIdentifier;
+                return;
+            }
+            $regexValid = true;
+            try {
+                if (@preg_match($regex, '') === false) {
+                    $regexValid = false;
+                }
+            } catch (\Throwable $e) {
+                $regexValid = false;
+            }
+            if (!$regexValid || preg_match('#\/\/[gimsuy]*#', $regex)) {
+                $this->setErr($this->getErr('InvalidRegex', $ctxVals), 'Route-setParamRulePolymorphic', $method, $route);
+                $this->invalidBatches['paramRulesFlexible']['routes'][$method][$route][$paramIdentifier] = $paramIdentifier;
+                return;
+            }
+            $compiledPairs[$ruleName] = $regex;
+        }
+        $this->validBatches['routes'][$method][$route]['paramRules'][$paramIdentifier] = ['pairs' => $compiledPairs];
+    }
+
     //ROUTE: SetParamRule
     private function batchSetParamRuleRoute(string $method, string $route, string $param, string $regex, $defaultParamValueOnRegexMismatch = null)
     {
@@ -7407,10 +7501,19 @@ class C
                 }
             }
         }
-
-
-
-
+        // ------------------------------------------------------------------------------------------
+        // STEP 10: Build `params` for GLOBAL & for all <METHODS>
+        // ------------------------------------------------------------------------------------------
+        if (isset($this->validBatches['config']['paramRules'])) {
+            $this->compiled['config']['params'] = $this->validBatches['config']['paramRules'];
+        }
+        if (isset($this->validBatches['methods'])) {
+            foreach ($this->validBatches['methods'] as $method => $methodConfig) {
+                if (isset($methodConfig['paramRules'])) {
+                    $this->compiled['methods'][$method]['params'] = $methodConfig['paramRules'];
+                }
+            }
+        }
 
         /////////////////////////////////////// END /////////////////////////////
         //$this->compile_setErr("", $compileErrors);
@@ -8655,7 +8758,7 @@ class FunkRoute
     }
 
     /**
-     * Define a parameter validation regex rule scoped exclusively to this route.
+     * Define a Single Parameter Regex Rule scoped exclusively to this Route.
      *
      * @param string $param Parameter name without leading colon (e.g., "id")
      * @param string $regex Regex pattern (e.g., "/[\d]+/")
@@ -8666,6 +8769,23 @@ class FunkRoute
     {
         $param = strtolower(trim($param));
         $this->c->batch('batchSetParamRuleRoute', $this->method, $this->routePath, $param, $regex, $defaultParamValueOnRegexMismatch);
+        return $this;
+    }
+
+    /**
+     * Define Multiple Alternative Regex Rules for a Single Route Parameter (so called `Polymorphic Parameter`) scoped exclusively to this Route.
+     *
+     * Allows a parameter (e.g., ":identifier") to match against different input forms
+     * (e.g., "numeric_id", "/\d+/", "slug", "/[a-z0-9-]+/").
+     *
+     * @param string $paramIdentifier Parameter name without leading colon (e.g., "id" or "identifier")
+     * @param string ...$keyAndRegexPairs Sequential pairs of [RuleName, RegexPattern] (e.g., "num", "/\d+/", "slug", "/[a-z]+/")
+     * @return $this
+     */
+    public function setParamRulePolymorphic(string $paramIdentifier, string ...$keyAndRegexPairs): self
+    {
+        $paramIdentifier = strtolower(trim($paramIdentifier));
+        $this->c->batch('batchSetParamRulePolymorphicRoute', $this->method, $this->routePath, $paramIdentifier, ...$keyAndRegexPairs);
         return $this;
     }
 

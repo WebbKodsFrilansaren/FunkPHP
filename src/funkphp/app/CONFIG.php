@@ -26,12 +26,9 @@ $APP->CONFIG()
     ->setCSP('base-uri', 'none')
     ->setNonces('test', 'test2')
     // DEFAULT Global Handlers
-    ->setDefaultURI_NormalizerHandler("testar1")
     ->setDefaultErrorHandler("testar2")
     ->setDefaultExceptionHandler("testar3")
-    ->setDefaultKernelHandler("testar5")
     ->pipeMiddleware("auth")
-    ->pipeMiddleware("group:test_mw")
     // ini_set()
     ->setINI_SET([
         'session.cache_limiter' => 'public',
@@ -60,7 +57,5 @@ $APP->CONFIG()
     // GLOBAL PARAMS
     // GLOBAL REQUEST PIPES
     ->pipeRequestFunction("use_cors")
-    ->pipeRequestFunction("group:test_request")
     // GLOBAL POST_RESPONSE PIPES
-    ->pipePostResponseFunction("debug")
-    ->pipePostResponseFunction("group:test_post_responsea");
+    ->pipePostResponseFunction("debug");
