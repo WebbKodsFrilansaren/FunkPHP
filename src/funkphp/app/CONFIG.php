@@ -29,6 +29,7 @@ $APP->CONFIG()
     ->setDefaultErrorHandler("testar2")
     ->setDefaultExceptionHandler("testar3")
     ->pipeMiddleware("auth")
+    ->pipeMiddleware("auth2")
     // ini_set()
     ->setINI_SET([
         'session.cache_limiter' => 'public',

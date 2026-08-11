@@ -2099,13 +2099,13 @@ class C
     private array $invalidBatches = [];
     // $cached = (Attempted) Access to any file/function and/or file=>function in a DRY fashion!
     private array $cached = [
-        'placeholderRoutes' => [],
+        //'placeholderRoutes' => [],
         'placeholderParamContexts' => [],
         'placeholderUNSUEDParams' => null,
-        'placeHolderUsedUserDefinedEngineFNS' => [], // defaultRegisterShutDown,Error|ExceptionHandler&HTTPSKernel
+        'placeHolderUsedUserDefinedEngineFNS' => [],
         'placeholderUsedUserDefinedFunctions' => [],
         'placeholderUsedUserDefinedClasses' => [],
-        'placeholderMiddlewaresInWhatRoutes' => [],
+        'placeholderMiddlewareInvertIindex' => [],
         'file_user_defined_functions' => null,
         'file_user_defined_classes' => null,
         'file_user_defined_tables' => null,
@@ -5700,6 +5700,19 @@ class C
         }
         // Pipe Global MW when all OK!
         $this->validBatches['config']['middlewares'][] = $middleware;
+
+        // Add middleware (unless group: named) to what middlewares are used by what routes
+        // where "GLOBAL" is for CONFIG(), and "<METHOD_NAME>" are CONFIG in each Method
+        // but otherwise, it is added with each route.
+        if (!str_starts_with($middleware, 'group:')) {
+            if (!isset($this->cached['placeholderMiddlewareInvertIindex'][$middleware])) {
+                $this->cached['placeholderMiddlewareInvertIindex'][$middleware][] = 'GLOBAL';
+            } else {
+                if (!in_array('GLOBAL', $this->cached['placeholderMiddlewareInvertIindex'][$middleware])) {
+                    $this->cached['placeholderMiddlewareInvertIindex'][$middleware][] = 'GLOBAL';
+                }
+            }
+        }
     }
     private function batchPipeRequestFunctionGlobal(string $fileFunctionName)
     {
@@ -6174,6 +6187,18 @@ class C
         }
         // Pipe Method MW when all OK!
         $this->validBatches['methods'][$method]['middlewares'][] = $middleware;
+        // Add middleware (unless group: named) to what middlewares are used by what routes
+        // where "GLOBAL" is for CONFIG(), and "<METHOD_NAME>" are CONFIG in each Method
+        // but otherwise, it is added with each route.
+        if (!str_starts_with($middleware, 'group:')) {
+            if (!isset($this->cached['placeholderMiddlewareInvertIindex'][$middleware])) {
+                $this->cached['placeholderMiddlewareInvertIindex'][$middleware][] = $method;
+            } else {
+                if (!in_array($method, $this->cached['placeholderMiddlewareInvertIindex'][$middleware])) {
+                    $this->cached['placeholderMiddlewareInvertIindex'][$middleware][] = $method;
+                }
+            }
+        }
     }
 
     /* !!! ROUTE/ROUTES()-><METHOD>()->route()-> BATCHES FUNCTIONS !!! */
@@ -6629,8 +6654,20 @@ class C
             $this->invalidBatches['middlewares']['routes'][$method][$route][$middleware] = true;
             return;
         }
-        // Pipe Global MW when all OK!
+        // Pipe Route MW when all OK!
         $this->validBatches['routes'][$method][$route]['middlewares'][] = $middleware;
+        // Add middleware (unless group: named) to what middlewares are used by what routes
+        // where "GLOBAL" is for CONFIG(), and "<METHOD_NAME>" are CONFIG in each Method
+        // but otherwise, it is added with each route.
+        if (!str_starts_with($middleware, 'group:')) {
+            if (!isset($this->cached['placeholderMiddlewareInvertIindex'][$middleware])) {
+                $this->cached['placeholderMiddlewareInvertIindex'][$middleware][] = "$method$route";
+            } else {
+                if (!in_array("$method$route", $this->cached['placeholderMiddlewareInvertIindex'][$middleware])) {
+                    $this->cached['placeholderMiddlewareInvertIindex'][$middleware][] = "$method$route";
+                }
+            }
+        }
     }
     private function batchPipeFunctionRoute(string $method, string $route, string $fileFunctionName)
     {
@@ -7425,6 +7462,13 @@ class C
                             $this->compile_setWarn("`Consecutive GLOBAL Pipe Middleware Function '{$groupPipe}' found`. Ignore this warning if it is intentional or Review `->CONFIG()->pipeMiddleware()` in `/src/funkphp/app/CONFIG.php`.", $compileWarnings);
                         }
                         $allPipes[] = $groupPipe;
+                        if (!isset($this->cached['placeholderMiddlewareInvertIindex'][$groupPipe])) {
+                            $this->cached['placeholderMiddlewareInvertIindex'][$groupPipe][] = 'GLOBAL';
+                        } else {
+                            if (!in_array('GLOBAL', $this->cached['placeholderMiddlewareInvertIindex'][$groupPipe])) {
+                                $this->cached['placeholderMiddlewareInvertIindex'][$groupPipe][] = 'GLOBAL';
+                            }
+                        }
                     }
                 }
             }
@@ -7494,6 +7538,13 @@ class C
                                     $this->compile_setWarn("`Consecutive {$method} Pipe Middleware Function '{$groupPipe}' found`. Ignore this warning if it is intentional or Review `->ROUTES()->{$method}()->pipeMiddleware()` in `/src/funkphp/app/{$method}.php`.", $compileWarnings);
                                 }
                                 $allPipes[] = $groupPipe;
+                                if (!isset($this->cached['placeholderMiddlewareInvertIindex'][$groupPipe])) {
+                                    $this->cached['placeholderMiddlewareInvertIindex'][$groupPipe][] = $method;
+                                } else {
+                                    if (!in_array($method, $this->cached['placeholderMiddlewareInvertIindex'][$groupPipe])) {
+                                        $this->cached['placeholderMiddlewareInvertIindex'][$groupPipe][] = $method;
+                                    }
+                                }
                             }
                         }
                     }
@@ -7523,7 +7574,7 @@ class C
         ) {
             $this->FunkPHPFluentAPI['CONFIG'] = '(' . (count($this->FunkPHPFluentAPI['CONFIG'])) . ' Configurations)';
         }
-        dd(['COMPILE FLAGS' => $this->compileFlags, 'API' => $this->FunkPHPFluentAPI, 'COMPILE_ERRORS' => $compileErrors, 'COMPILE_WARNINGS' => $compileWarnings, 'COMPILED' => $this->compiled, 'VALID' => $this->validBatches,  'GLOBAL_HANDLERS' => $GLOBAL_HANDLERS, 'GLOBAL_GROUPS' => $GLOBAL_GROUPED], "COMPILATION - DEBUG", true);
+        dd(['COMPILE FLAGS' => $this->compileFlags, 'API' => $this->FunkPHPFluentAPI, 'COMPILE_ERRORS' => $compileErrors, 'COMPILE_WARNINGS' => $compileWarnings, 'COMPILED' => $this->compiled, 'VALID' => $this->validBatches,  'CACHED' => $this->cached], "COMPILATION - DEBUG", true);
     }
     private function run()
     {
