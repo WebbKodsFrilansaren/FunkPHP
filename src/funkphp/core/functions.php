@@ -7693,6 +7693,29 @@ class FunkPHP
 class FunkConfig
 {
     public function __construct(private C $c) {}
+    /**
+     * FLUENT METHOD VISUAL COMMENT DIVIDER (HAS NO LOGICAL, BUT MAYBE PRACTICAL EFFECT)
+     *
+     * USE: `_('GLOBAL HANDLERS')` or `_('ROUTES FOR BLABLA')`
+     *
+     * @param string ...$comment Optional Visual Label
+     *
+     * IMPORTANT: it is IGNORED during Compilation & Runtime.
+     * @return $this
+     */
+    public function _(string ...$comment): self
+    {
+        return $this;
+    }
+    /**
+     * ARBITRARY SPACE BETWEEN CHAINED METHODS (HAS NO LOGICAL, BUT MAYBE PRACTICAL EFFECT)
+     *
+     * @return $this
+     */
+    public function ______________________________________________(): self
+    {
+        return $this;
+    }
 
     /**
      * Set a compilation engine flag to control code generation rules.
@@ -8332,7 +8355,6 @@ class FunkRoutes
 {
     private array $methodInstances = [];
     public function __construct(private C $c) {}
-
     /**
      * Switch or initialize routing context for HEAD requests.
      *
@@ -8342,7 +8364,6 @@ class FunkRoutes
     {
         return $this->methodInstances['HEAD'] ??= new FunkMethod($this->c, $this, 'HEAD');
     }
-
     /**
      * Switch or initialize routing context for GET requests.
      *
@@ -8352,7 +8373,6 @@ class FunkRoutes
     {
         return $this->methodInstances['GET'] ??= new FunkMethod($this->c, $this, 'GET');
     }
-
     /**
      * Switch or initialize routing context for POST requests.
      *
@@ -8362,7 +8382,6 @@ class FunkRoutes
     {
         return $this->methodInstances['POST'] ??= new FunkMethod($this->c, $this, 'POST');
     }
-
     /**
      * Switch or initialize routing context for PUT requests.
      *
@@ -8372,7 +8391,6 @@ class FunkRoutes
     {
         return $this->methodInstances['PUT'] ??= new FunkMethod($this->c, $this, 'PUT');
     }
-
     /**
      * Switch or initialize routing context for PATCH requests.
      *
@@ -8382,7 +8400,6 @@ class FunkRoutes
     {
         return $this->methodInstances['PATCH'] ??= new FunkMethod($this->c, $this, 'PATCH');
     }
-
     /**
      * Switch or initialize routing context for DELETE requests.
      *
@@ -8392,7 +8409,6 @@ class FunkRoutes
     {
         return $this->methodInstances['DELETE'] ??= new FunkMethod($this->c, $this, 'DELETE');
     }
-
     /**
      * Jump directly back to the global application configuration context.
      *
@@ -8422,7 +8438,29 @@ class FunkMethod
         private FunkRoutes $parent,
         private string $method
     ) {}
-
+    /**
+     * FLUENT METHOD VISUAL COMMENT DIVIDER (HAS NO LOGICAL, BUT MAYBE PRACTICAL EFFECT)
+     *
+     * USE: `_('GLOBAL HANDLERS')` or `_('ROUTES FOR BLABLA')`
+     *
+     * @param string ...$comment Optional Visual Label
+     *
+     * IMPORTANT: it is IGNORED during Compilation & Runtime.
+     * @return $this
+     */
+    public function _(string ...$comment): self
+    {
+        return $this;
+    }
+    /**
+     * ARBITRARY SPACE BETWEEN CHAINED METHODS (HAS NO LOGICAL, BUT MAYBE PRACTICAL EFFECT)
+     *
+     * @return $this
+     */
+    public function ______________________________________________(): self
+    {
+        return $this;
+    }
     /**
      * Set raw route fallback options for this HTTP method.
      *
@@ -8434,7 +8472,6 @@ class FunkMethod
         $this->c->batch('batchSetNoRouteMatchMethod', $this->method, $options);
         return $this;
     }
-
     /**
      * Render a template page when no route matches this HTTP method.
      *
@@ -8448,7 +8485,6 @@ class FunkMethod
         $this->c->batch('batchSetNoRouteMatchPageMethod', $this->method, $PageFileName, $statusCode);
         return $this;
     }
-
     /**
      * Return a JSON payload when no route matches this HTTP method.
      *
@@ -8461,7 +8497,6 @@ class FunkMethod
         $this->c->batch('batchSetNoRouteMatchJsonMethod', $this->method, $data, $statusCode);
         return $this;
     }
-
     /**
      * Return plain text when no route matches this HTTP method.
      *
@@ -8474,7 +8509,6 @@ class FunkMethod
         $this->c->batch('batchSetNoRouteMatchTextMethod', $this->method, $message, $statusCode);
         return $this;
     }
-
     /**
      * Register a callback function when no route matches this HTTP method.
      *
@@ -8487,7 +8521,6 @@ class FunkMethod
         $this->c->batch('batchSetNoRouteMatchCallbackMethod', $this->method, $functionName);
         return $this;
     }
-
     /**
      * Set reference nonces for this HTTP method.
      *
@@ -8545,7 +8578,6 @@ class FunkMethod
         $this->c->batch('batchSetCSPMethod', $this->method, $sourceType, ...$sources);
         return $this;
     }
-
     /**
      * Configure rate limiting options for this HTTP method.
      *
@@ -8557,7 +8589,6 @@ class FunkMethod
         $this->c->batch('batchSetRateLimitingRoute', $this->method, $rateLimitingOptions);
         return $this;
     }
-
     /**
      * Attach a middleware to all routes under this HTTP method.
      *
@@ -8570,7 +8601,6 @@ class FunkMethod
         $this->c->batch('batchPipeMiddlewareMethod', $this->method, $middleware);
         return $this;
     }
-
     /**
      * Pipe a response header to be sent for all routes under this HTTP method.
      *
@@ -8583,7 +8613,6 @@ class FunkMethod
         $this->c->batch('batchPipeHeaderMethod', $this->method, trim($header), trim($value));
         return $this;
     }
-
     /**
      * Remove a previously queued response header for this HTTP method.
      *
@@ -8596,7 +8625,6 @@ class FunkMethod
         $this->c->batch('batchRemoveHeaderMethod', $this->method, $header_to_remove);
         return $this;
     }
-
     /**
      * Define a parameter validation regex rule scoped to this HTTP method.
      *
@@ -8611,7 +8639,6 @@ class FunkMethod
         $this->c->batch('batchSetParamRuleMethod', $this->method, $param, $regex, $defaultParamValueOnRegexMismatch);
         return $this;
     }
-
     /**
      * Initialize a new route definition for the current HTTP method.
      *
@@ -8623,7 +8650,6 @@ class FunkMethod
         $this->c->batch('batchNewRoute', $this->method, strtolower(trim($path)));
         return new FunkRoute($this->c, $this, $this->method, strtolower(trim($path)));
     }
-
     /**
      * Switch context back to HEAD method builder.
      *
@@ -8633,7 +8659,6 @@ class FunkMethod
     {
         return $this->parent->HEAD();
     }
-
     /**
      * Switch context back to GET method builder.
      *
@@ -8643,7 +8668,6 @@ class FunkMethod
     {
         return $this->parent->GET();
     }
-
     /**
      * Switch context back to POST method builder.
      *
@@ -8653,7 +8677,6 @@ class FunkMethod
     {
         return $this->parent->POST();
     }
-
     /**
      * Switch context back to PUT method builder.
      *
@@ -8663,7 +8686,6 @@ class FunkMethod
     {
         return $this->parent->PUT();
     }
-
     /**
      * Switch context back to PATCH method builder.
      *
@@ -8673,7 +8695,6 @@ class FunkMethod
     {
         return $this->parent->PATCH();
     }
-
     /**
      * Switch context back to DELETE method builder.
      *
@@ -8695,7 +8716,29 @@ class FunkRoute
         private string $method,
         private string $routePath,
     ) {}
-
+    /**
+     * FLUENT METHOD VISUAL COMMENT DIVIDER (HAS NO LOGICAL, BUT MAYBE PRACTICAL EFFECT)
+     *
+     * USE: `_('GLOBAL HANDLERS')` or `_('ROUTES FOR BLABLA')`
+     *
+     * @param string ...$comment Optional Visual Label
+     *
+     * IMPORTANT: it is IGNORED during Compilation & Runtime.
+     * @return $this
+     */
+    public function _(string ...$comment): self
+    {
+        return $this;
+    }
+    /**
+     * ARBITRARY SPACE BETWEEN CHAINED METHODS (HAS NO LOGICAL, BUT MAYBE PRACTICAL EFFECT)
+     *
+     * @return $this
+     */
+    public function ______________________________________________(): self
+    {
+        return $this;
+    }
     /**
      * Set a named alias for this specific route.
      *
@@ -8708,7 +8751,6 @@ class FunkRoute
         $this->c->batch('batchSetAliasRoute', $this->method, $this->routePath, $aliasName);
         return $this;
     }
-
     /**
      * Configure rate limiting options specific to this route.
      *
@@ -8720,7 +8762,6 @@ class FunkRoute
         $this->c->batch('batchSetRateLimitingRoute', $this->method, $this->routePath, $rateLimitingOptions);
         return $this;
     }
-
     /**
      * Configure response caching options for this route.
      *
@@ -8732,7 +8773,6 @@ class FunkRoute
         $this->c->batch('batchSetCacheRoute', $this->method, $this->routePath, $cacheOptions);
         return $this;
     }
-
     /**
      * Define nonces required or generated for this route.
      *
@@ -8744,7 +8784,6 @@ class FunkRoute
         $this->c->batch('batchSetNoncesRoute', $this->method, $this->routePath, ...$noncesReferenceKeys);
         return $this;
     }
-
     /**
      * Attach a middleware specific to this route. They all run in FIFO.
      *
@@ -8757,7 +8796,6 @@ class FunkRoute
         $this->c->batch('batchPipeMiddlewareRoute', $this->method, $this->routePath, $middleware);
         return $this;
     }
-
     /**
      * Pipe a handler function for this route. They all run in FIFO.
      *
@@ -8770,7 +8808,6 @@ class FunkRoute
         $this->c->batch('batchPipeFunctionRoute', $this->method, $this->routePath, $fileNameAndFunctionName);
         return $this;
     }
-
     /**
      * Specify ONE Response transformation or content type format for this route.
      *
@@ -8783,7 +8820,6 @@ class FunkRoute
         $this->c->batch('batchPipeResponseRoute', $this->method, $this->routePath, $typeOfResponse);
         return $this;
     }
-
     /**
      * Pipe an raw SQL execution handler to this route.
      *
@@ -8796,7 +8832,6 @@ class FunkRoute
         $this->c->batch('batchPipeSQLRoute', $this->method, $this->routePath, $sqlFileFunction);
         return $this;
     }
-
     /**
      * Pipe a database query handler function to this route.
      *
@@ -8809,7 +8844,6 @@ class FunkRoute
         $this->c->batch('batchPipeQueryRoute', $this->method, $this->routePath, $queryFileFunction);
         return $this;
     }
-
     /**
      * Pipe a request validation handler function to this route.
      *
@@ -8822,7 +8856,6 @@ class FunkRoute
         $this->c->batch('batchPipeValidationRoute', $this->method, $this->routePath, $validationFileFunction);
         return $this;
     }
-
     /**
      * Pipe a compiled pre-optimized SQL handler to this route.
      *
@@ -8835,7 +8868,6 @@ class FunkRoute
         $this->c->batch('batchPipeCompiledSQLRoute', $this->method, $this->routePath, $compiledSQLFileFunction);
         return $this;
     }
-
     /**
      * Pipe a compiled pre-optimized database query handler to this route.
      *
@@ -8848,7 +8880,6 @@ class FunkRoute
         $this->c->batch('batchPipeCompiledQueryRoute', $this->method, $this->routePath, $compiledQueryFileFunction);
         return $this;
     }
-
     /**
      * Pipe a compiled pre-optimized validation handler to this route.
      *
@@ -8861,7 +8892,6 @@ class FunkRoute
         $this->c->batch('batchPipeCompiledValidationRoute', $this->method, $this->routePath, $compiledValidationFileFunction);
         return $this;
     }
-
     /**
      * Exclude specific global/method middlewares from running on this route.
      *
@@ -8873,7 +8903,6 @@ class FunkRoute
         $this->c->batch('batchExcludeMiddlewaresRoute', $this->method, $this->routePath, ...$middlewareToExclude);
         return $this;
     }
-
     /**
      * Exclude specific global/method response headers from being sent on this route.
      *
@@ -8885,7 +8914,6 @@ class FunkRoute
         $this->c->batch('batchExcludeHeadersRoute', $this->method, $this->routePath, ...$headersToExclude);
         return $this;
     }
-
     /**
      * Define a Single Parameter Regex Rule scoped exclusively to this Route.
      *
@@ -8900,7 +8928,6 @@ class FunkRoute
         $this->c->batch('batchSetParamRuleRoute', $this->method, $this->routePath, $param, $regex, $defaultParamValueOnRegexMismatch);
         return $this;
     }
-
     /**
      * Define Multiple Alternative Regex Rules for a Single Route Parameter (so called `Polymorphic Parameter`) scoped exclusively to this Route.
      *
@@ -8917,7 +8944,6 @@ class FunkRoute
         $this->c->batch('batchSetParamRulePolymorphicRoute', $this->method, $this->routePath, $paramIdentifier, ...$keyAndRegexPairs);
         return $this;
     }
-
     /**
      * Configures Content-Security-Policy (CSP) directives globally.
      *
@@ -8964,7 +8990,6 @@ class FunkRoute
         $this->c->batch('batchSetCSPRoute', $this->method, $this->routePath, $sourceType, ...$sources);
         return $this;
     }
-
     /**
      * Pipe a response header to be sent exclusively for this Route.
      *
@@ -8978,7 +9003,6 @@ class FunkRoute
         $this->c->batch('batchPipeHeaderRoute', $this->method, $this->routePath, trim($header), trim($value));
         return $this;
     }
-
     /**
      * Remove a previously queued header for this specific route.
      *
@@ -8990,7 +9014,6 @@ class FunkRoute
         $this->c->batch('batchRemoveHeaderRoute', $this->method, $this->routePath, $header_to_remove);
         return $this;
     }
-
     /**
      * Initialize another route under the current HTTP method context.
      *
@@ -9001,7 +9024,6 @@ class FunkRoute
     {
         return $this->parentMethod->ROUTE($path);
     }
-
     /**
      * Switch context back to HEAD method builder.
      *
@@ -9011,7 +9033,6 @@ class FunkRoute
     {
         return $this->parentMethod->HEAD();
     }
-
     /**
      * Switch context back to GET method builder.
      *
@@ -9021,7 +9042,6 @@ class FunkRoute
     {
         return $this->parentMethod->GET();
     }
-
     /**
      * Switch context back to POST method builder.
      *
@@ -9031,7 +9051,6 @@ class FunkRoute
     {
         return $this->parentMethod->POST();
     }
-
     /**
      * Switch context back to PUT method builder.
      *
@@ -9041,7 +9060,6 @@ class FunkRoute
     {
         return $this->parentMethod->PUT();
     }
-
     /**
      * Switch context back to PATCH method builder.
      *
@@ -9051,7 +9069,6 @@ class FunkRoute
     {
         return $this->parentMethod->PATCH();
     }
-
     /**
      * Switch context back to DELETE method builder.
      *

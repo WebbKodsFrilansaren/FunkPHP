@@ -5,8 +5,11 @@
 $APP->ROUTES()
     ->GET()
     ->setParamRule("ida", "/[\d]+/")
+    ->______________________________________________()
+
     ->ROUTE("/:id")
     ->setParamRule("id", "/[\d]+/")
     ->pipeHeader("content-type", 'text/html')
     ->removeHeader("content-typeb")
-    ->ROUTE("/users/:id");
+    ->ROUTE("/users/:id")
+    ->______________________________________________();
