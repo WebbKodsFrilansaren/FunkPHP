@@ -589,223 +589,7 @@ function funk_generate_random_password(&$c, $length = 20, $returnHashed = false)
     // Otherwise, return the generated password
     return $password;
 }
-// This function uses the "The Random\Randomizer class" to generate a unique number
-function funk_generate_random_number(&$c, $length = 10)
-{
-    // Create a new Randomizer object
-    $randomizer = new Random\Randomizer();
-    // Prepare numbers that can be used
-    $numbers =  [
-        '0',
-        '1',
-        '2',
-        '3',
-        '4',
-        '5',
-        '6',
-        '7',
-        '8',
-        '9',
-    ];
-    // Prepare empty number string and total count of numbers array minus 1
-    // and add random numbers to the number until it reaches the desired length
-    $total = count($numbers) - 1;
-    $number = '';
-    // First number cannot be 0
-    $randomCharIndex = $randomizer->getInt(1, $total);
-    $number .= $numbers[$randomCharIndex];
-    while (strlen($number) < $length) {
-        $randomCharIndex = $randomizer->getInt(0, $total);
-        $number .= $numbers[$randomCharIndex];
-    }
-    // Return the generated number as an integer
-    return (int)$number;
-}
-// This function uses the "The Random\Randomizer class" to generate a unique user_id
-function funk_generate_random_user_id(&$c, $length = 96)
-{
-    // Create a new Randomizer object
-    $randomizer = new Random\Randomizer();
 
-    // Prepare characters that can be used
-    $lowers =  [
-        'a',
-        'b',
-        'c',
-        'd',
-        'e',
-        'f',
-        'g',
-        'h',
-        'i',
-        'j',
-        'k',
-        'l',
-        'm',
-        'n',
-        'o',
-        'p',
-        'q',
-        'r',
-        's',
-        't',
-        'u',
-        'v',
-        'w',
-        'x',
-        'y',
-        'z',
-    ];
-    $uppers =  [
-        'A',
-        'B',
-        'C',
-        'D',
-        'E',
-        'F',
-        'G',
-        'H',
-        'I',
-        'J',
-        'K',
-        'L',
-        'M',
-        'N',
-        'O',
-        'P',
-        'Q',
-        'R',
-        'S',
-        'T',
-        'U',
-        'V',
-        'W',
-        'X',
-        'Y',
-        'Z',
-    ];
-    $numbers =  [
-        '0',
-        '1',
-        '2',
-        '3',
-        '4',
-        '5',
-        '6',
-        '7',
-        '8',
-        '9',
-    ];
-
-    // Merge the arrays into one:
-    $all = array_merge($lowers, $uppers, $numbers);
-    $total = count($all) - 1;
-
-    // Prepare empty user_id string and add random characters to the user_id until it reaches the desired length
-    $user_id = '';
-    while (strlen($user_id) < $length) {
-        // Insert a "-" after every 24 characters except for the last one
-        if (strlen($user_id) % 24 == 0 && strlen($user_id) != 0) {
-            $user_id .= '-';
-            continue;
-        }
-        $randomCharIndex = $randomizer->getInt(0, $total);
-        $user_id .= $all[$randomCharIndex];
-    }
-
-    // Return the generated user_id
-    return $user_id;
-}
-// This function uses the "The Random\Randomizer class" to generate a unique CSRF
-function funk_generate_random_csrf(&$c, $length = 384)
-{
-    // Create a new Randomizer object
-    $randomizer = new Random\Randomizer();
-
-    // Prepare characters that can be used
-    $lowers =  [
-        'a',
-        'b',
-        'c',
-        'd',
-        'e',
-        'f',
-        'g',
-        'h',
-        'i',
-        'j',
-        'k',
-        'l',
-        'm',
-        'n',
-        'o',
-        'p',
-        'q',
-        'r',
-        's',
-        't',
-        'u',
-        'v',
-        'w',
-        'x',
-        'y',
-        'z',
-    ];
-    $uppers =  [
-        'A',
-        'B',
-        'C',
-        'D',
-        'E',
-        'F',
-        'G',
-        'H',
-        'I',
-        'J',
-        'K',
-        'L',
-        'M',
-        'N',
-        'O',
-        'P',
-        'Q',
-        'R',
-        'S',
-        'T',
-        'U',
-        'V',
-        'W',
-        'X',
-        'Y',
-        'Z',
-    ];
-    $numbers =  [
-        '0',
-        '1',
-        '2',
-        '3',
-        '4',
-        '5',
-        '6',
-        '7',
-        '8',
-        '9',
-    ];
-
-    // Merge the arrays into one:
-    $all = array_merge($lowers, $uppers, $numbers);
-    $total = count($all) - 1;
-
-    // Prepare empty CSRF string and add random characters to the CSRF until it reaches the desired length
-    $csrf = '';
-    while (strlen($csrf) < $length) {
-        $randomCharIndex = $randomizer->getInt(0, $total);
-        $csrf .= $all[$randomCharIndex];
-    }
-
-    // Return the generated CSRF
-    return $csrf;
-}
 /***  ROUTE-RELATED PHP FUNCTIONS FOR FUNKPHP ***/
 // Default FunkPHP Exception Handler that catches any uncaught exceptions and returns
 // a JSON or HTML error response depending on the Accept Header of the request. It is
@@ -826,10 +610,10 @@ function funk_default_exception_handler(&$c, $e)
 function funk_default_register_shutdown_function(&$c)
 {
     if (
-        isset($c['<ENTRY>']['pipeline']['post_response'])
-        && is_array($c['<ENTRY>']['pipeline']['post_response'])
-        && array_is_list($c['<ENTRY>']['pipeline']['post_response'])
-        && !empty($c['<ENTRY>']['pipeline']['post_response'])
+        isset($c['pipeline']['post_response'])
+        && is_array($c['pipeline']['post_response'])
+        && array_is_list($c['pipeline']['post_response'])
+        && !empty($c['pipeline']['post_response'])
     ) {
         \funk_run_pipeline_post_response($c);
     } else {
@@ -2057,9 +1841,9 @@ function funk_db_conn(&$c, $dbKey)
     }
 }
 
-/*** PAGE-RELATED Functions For FunkPHP  ***/
-
-
+/******************************************/
+/*** PAGE-RELATED Functions For FunkPHP ***/
+/******************************************/
 
 
 
