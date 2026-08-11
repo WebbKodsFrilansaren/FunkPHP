@@ -19,28 +19,106 @@
 
 namespace funkphp\classes;
 
-class Test
+class EmptyClass {}
+/**
+ * Data Transfer Object with constructor property promotion and default values.
+ */
+class UserDTO
 {
-    public function __construct()
+    public function __construct(
+        public readonly int $id,
+        public string $username,
+        public string $email,
+        public array $roles = ['user'],
+        public bool $isActive = true
+    ) {}
+
+    public function hasRole(string $role): bool
     {
-        // This only runs when explicitly called with 'new Test()'
-        echo "Test class instantiated!";
+        return in_array(strtolower($role), array_map('strtolower', $this->roles), true);
     }
-    public function hello()
+
+    public function toArray(): array
     {
-        echo "Hello from Test class!";
+        return [
+            'id' => $this->id,
+            'username' => $this->username,
+            'email' => $this->email,
+            'roles' => $this->roles,
+            'is_active' => $this->isActive,
+        ];
     }
 }
 
-class Test2
+/**
+ * Utility Service featuring static methods, private properties, and conditional logic.
+ */
+class SecurityUtils
 {
-    public function __construct()
+    private static string $algo = 'sha256';
+    private const PEPPER = 'fphp_secret_key_2026';
+    public static function hashPassword(string $password): string
     {
-        // This only runs when explicitly called with 'new Test()'
-        echo "Test class instantiated!";
+        $salted = $password . self::PEPPER;
+        return password_hash($salted, PASSWORD_ARGON2ID, [
+            'memory_cost' => 65536,
+            'time_cost'   => 4,
+            'threads'     => 1,
+        ]);
     }
-    public function hello()
+    public static function generateNonce(int $length = 32): string
     {
-        echo "Hello from Test class!";
+        if ($length < 16) {
+            $length = 16;
+        }
+        return bin2hex(random_bytes((int) ($length / 2)));
+    }
+    public function verifyToken(?string $token, string $hash): bool
+    {
+        if (null === $token || '' === trim($token)) {
+            return false;
+        }
+
+        return hash_equals(
+            hash(self::$algo, $token . self::PEPPER),
+            $hash
+        );
+    }
+}
+/**
+ * Complex State Container testing method chaining support, variadic arguments, and array manipulation.
+ */
+class ResponsePipeline
+{
+    protected array $headers = [];
+    protected array $payload = [];
+    protected int $statusCode = 200;
+
+    public function setStatus(int $code): self
+    {
+        $this->statusCode = $code;
+        return $this;
+    }
+    public function withHeaders(array ...$headerPairs): self
+    {
+        foreach ($headerPairs as $pair) {
+            if (isset($pair['key'], $pair['value'])) {
+                $this->headers[strtolower($pair['key'])] = $pair['value'];
+            }
+        }
+        return $this;
+    }
+    public function buildResponse(string $format = 'json'): array
+    {
+        $formatted = [
+            'status' => $this->statusCode,
+            'headers' => $this->headers,
+            'timestamp' => time(),
+        ];
+        return match (strtolower($format)) {
+            'json' => array_merge($formatted, ['data' => $this->payload]),
+            'xml'  => array_merge($formatted, ['xml_data' => $this->payload]),
+            default => throw new \InvalidArgumentException("Unsupported format: {$format}"),
+        };
     }
 }

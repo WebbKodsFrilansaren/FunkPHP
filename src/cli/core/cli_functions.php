@@ -35,7 +35,7 @@
  * @param bool $exit  Whether to terminate script execution immediately after rendering
  * @param bool $horisontal  Whether to show more data horizontally (default is not to)
  */
-function cli_dump($var, $exit = true, $horisontal = false)
+function cli_dump_old($var, $exit = true, $horisontal = false)
 {
     // Define standard terminal ANSI escape codes
     $cReset   = "\e[0m";
@@ -411,9 +411,8 @@ function cli_dump_with_ignore_depths($var, $exit = true, $horisontal = false, ar
  * @param bool $exit  Whether to terminate script execution immediately after rendering
  * @param bool $horisontal  Whether to show more data horizontally (default is not to)
  */
-function cli_dump_safe($var, $exit = true, $horisontal = false)
+function cli_dump($var, $exit = true, $horisontal = false)
 {
-    // Define standard terminal ANSI escape codes
     $cReset   = "\e[0m";
     $cHeader  = "\e[1;35m"; // Bold Magenta
     $cLine    = "\e[0;90m"; // Dark Gray Divider
@@ -426,7 +425,6 @@ function cli_dump_safe($var, $exit = true, $horisontal = false)
     $cNull    = "\e[1;31m"; // Bold Red for Null values
     $cStatLbl = "\e[0;37m"; // White for Stat labels
     $cStatVal = "\e[1;32m"; // Bold Green for counts
-    // Global Value Type count (like how many strings, booleans, arrays, etc.)
     $globalTypeCount = [
         'nulls' => 0,
         'strings' => 0,
@@ -444,10 +442,8 @@ function cli_dump_safe($var, $exit = true, $horisontal = false)
         'objects' => 0,
         'others' => [],
     ];
-    // Output Header banner block
     echo "\n{$cHeader}[FunkCLI - DUMP]:{$cReset}\n";
     echo "{$cLine}" . str_repeat('=', 150) . "{$cReset}\n";
-    // Isolated recursive formatting closure engine
     $render = function ($data, $depth = 0, $keyName = null, $inList = false, array $seenObjects = []) use (
         &$render,
         $cReset,
@@ -473,7 +469,6 @@ function cli_dump_safe($var, $exit = true, $horisontal = false)
             $indent = str_repeat(' ', $depth);
         }
         $prefix = '';
-        // 1. Render the incoming accessor prefix (Key name vs list index position)
         if ($keyName !== null) {
             $prefix = $inList
                 ? "{$indent}{$cIndex}[{$keyName}]{$cReset} "
@@ -481,7 +476,6 @@ function cli_dump_safe($var, $exit = true, $horisontal = false)
         } else if ($depth > 0) {
             $prefix = $indent;
         }
-        // 2. Evaluate types and format payloads cleanly
         if (is_array($data)) {
             $globalTypeCount['arrays']++;
             $count = count($data);
@@ -512,7 +506,6 @@ function cli_dump_safe($var, $exit = true, $horisontal = false)
             $className = get_class($data);
             $properties = (array)$data;
             $objHash = spl_object_hash($data);
-            // Circular reference check for CLI
             if (isset($seenObjects[$objHash])) {
                 echo "{$prefix}{$cType}Object('{$className}') {$cNull}*RECURSION*{$cReset}\n";
                 return;
@@ -522,7 +515,6 @@ function cli_dump_safe($var, $exit = true, $horisontal = false)
             $globalTypeCount['objects']++;
             echo "{$prefix}{$cType}Object('{$className}') ({$count}) {{$cReset}\n";
             foreach ($properties as $k => $v) {
-                // Clean up invisible private/protected property null-bytes strings from casting
                 $k = str_replace("\0*\0", '(protected) ', $k);
                 $k = preg_replace('/^\0[^\0]+\0/', '(private) ', $k);
                 $render($v, $depth + 1, $k, false, $seenObjects);
@@ -568,7 +560,6 @@ function cli_dump_safe($var, $exit = true, $horisontal = false)
                 echo "\n";
             }
         } else {
-            // Safe fallback for unprintable CLI primitives (like resource descriptors)
             $type = gettype($data);
             $globalTypeCount['others'][$type]++;
             echo "{$prefix}{$cNull}[Type: {$type}]{$cReset}";
@@ -577,11 +568,9 @@ function cli_dump_safe($var, $exit = true, $horisontal = false)
             }
         }
     };
-    // Execute root level execution trace
     $render($var);
-    // Format and output the telemetry metric reporting engine blocks
     echo "{$cLine}" . str_repeat('=', 150) . "{$cReset}\n";
-    echo "{$cHeader}[ DUMP TELEMETRY METRICS SUMMARY ]{$cReset}\n";
+    echo "{$cHeader}[ FunkDUMP COUNTS ]{$cReset}\n";
     echo "  ├── {$cStatLbl}Structural Containers{$cReset}\n"
         . "  │   ├── Objects:         " . sprintf("{$cStatVal}%-4d{$cReset}", $globalTypeCount['objects']) . "\n"
         . "  │   └── Arrays Total:    " . sprintf("{$cStatVal}%-4d{$cReset}", $globalTypeCount['arrays'])
@@ -1182,11 +1171,17 @@ function cli_harvest_all_classes_from_code(string $code): array
 // Helper function (must get code as string) that can analyze already
 // loaded PHP code for safety by providing any functions a function
 // and/or class is using to compare against (dis)allowed functions and so on!
-function cli_analyze_body_tokens(string $bodyCode, int $startLine = 1): array
+function cli_analyze_body_tokens(string $bodyCode, int $startLine = 1, array $dangerousFNsDeclared = ['shell_exec', 'exec', 'system', 'passthru', 'proc_open', 'popen', 'pcntl_exec', 'base64_decode']): array
 {
     $tokens = PhpToken::tokenize("<?php " . $bodyCode);
     $count = count($tokens);
-    $dangerousFuncs = ['shell_exec', 'exec', 'system', 'passthru', 'proc_open', 'popen', 'pcntl_exec'];
+    $dangerousFuncs = (!empty($dangerousFNsDeclared) ? $dangerousFNsDeclared :  ['shell_exec', 'exec', 'system', 'passthru', 'proc_open', 'popen', 'pcntl_exec', 'base64_decode']);
+    $invalidFunkCallsInFNs = [
+        'funk_session_started_or_start_it',
+        'funk_session_cookie_set',
+        'funk_default_exception_handler',
+        'funk_default_register_shutdown_function'
+    ];
     $hasExit = false;
     $exitLines = [];
     $hasRawOutput = false;
@@ -1198,17 +1193,21 @@ function cli_analyze_body_tokens(string $bodyCode, int $startLine = 1): array
     $hasInnerClasses = false;
     $innerClassLines = [];
     $hasGlobals = false;
+    $hasReturn = false;
+    $returns = [];
     $globalVars = [];
     $hasDangerousCalls = false;
-    $hasVariableVars = false;
+    $dangerousCalls = [];
     $hasOnlyCommentsOrWhiteSpace = true;
+    $hasVariableVars = false;
     $calls = [];
-    // Account for added '<?php ' offset in line mapping if needed
+    $funkCalls = [];
+    $hasInvalidFunkCalls = false;
+    $invalidFunkCalls = [];
     $lineOffset = $startLine;
     for ($i = 0; $i < $count; $i++) {
         $tok = $tokens[$i];
         $line = $tok->line + $lineOffset;
-        // 0. NOT a Comment and NOT whitespace?
         if (
             $tok->text !== '{' &&
             $tok->text !== '}' &&
@@ -1241,7 +1240,6 @@ function cli_analyze_body_tokens(string $bodyCode, int $startLine = 1): array
         // 4. Nested Functions (Named vs Anonymous/Closures)
         if ($tok->id === T_FUNCTION || (defined('T_FN') && $tok->id === T_FN)) {
             $nextIdx = $i + 1;
-            // Fast-forward past whitespace, comments, and reference operators ('&')
             while ($nextIdx < $count && (
                 $tokens[$nextIdx]->id === T_WHITESPACE ||
                 $tokens[$nextIdx]->id === T_COMMENT ||
@@ -1250,13 +1248,11 @@ function cli_analyze_body_tokens(string $bodyCode, int $startLine = 1): array
             )) {
                 $nextIdx++;
             }
-            // If a T_STRING immediately follows, it's a NAMED inner function (e.g., function test() {})
             if ($nextIdx < $count && $tokens[$nextIdx]->id === T_STRING) {
                 $hasInnerFunctions = true;
                 $innerFunctionLines[] = $line;
                 continue;
             }
-            // Otherwise, it's an anonymous closure ($var = function() {}) or arrow function
             $hasClosures = true;
             $closureLines[] = $line;
             continue;
@@ -1287,7 +1283,6 @@ function cli_analyze_body_tokens(string $bodyCode, int $startLine = 1): array
             while ($prevIdx >= 0 && $tokens[$prevIdx]->id === T_WHITESPACE) {
                 $prevIdx--;
             }
-            // Exclude method calls ($obj->method), static calls (Class::method), definitions, or instantiations
             if ($prevIdx >= 0) {
                 $pId = $tokens[$prevIdx]->id;
                 if (
@@ -1305,7 +1300,6 @@ function cli_analyze_body_tokens(string $bodyCode, int $startLine = 1): array
             while ($nextIdx < $count && $tokens[$nextIdx]->id === T_WHITESPACE) {
                 $nextIdx++;
             }
-            // Confirm call via opening parenthesis '('
             if ($nextIdx < $count && $tokens[$nextIdx]->text === '(') {
                 $calledName = $tok->text;
                 $lineNo = $line;
@@ -1328,16 +1322,129 @@ function cli_analyze_body_tokens(string $bodyCode, int $startLine = 1): array
                 $loweredName = strtolower(ltrim($calledName, '\\'));
                 if (in_array($loweredName, $dangerousFuncs, true)) {
                     $hasDangerousCalls = true;
+                    $dangerousCalls[] = [
+                        'name' => $calledName,
+                        'line' => $lineNo,
+                        'args' => trim($argsString)
+                    ];
                 }
                 $calls[] = [
                     'name' => $calledName,
                     'line' => $lineNo,
                     'args' => trim($argsString)
                 ];
+                if (str_starts_with(strtolower($calledName), 'funk_')) {
+                    $funkCalls[] = [
+                        'name' => $calledName,
+                        'line' => $lineNo,
+                        'args' => trim($argsString)
+                    ];
+                    if (in_array($calledName, $invalidFunkCallsInFNs)) {
+                        $hasInvalidFunkCalls = true;
+                    }
+                }
             }
+        }
+        // 9. Return statement parsing & context extraction
+        if ($tok->id === T_RETURN) {
+            $hasReturn = true;
+            $returnLine = $line;
+            $returnExprTokens = [];
+            $returnExprString = '';
+            $exprRunner = $i + 1;
+            $nestedParenDepth = 0;
+            $nestedBracketDepth = 0;
+            $nestedBraceDepth = 0;
+            while ($exprRunner < $count) {
+                $exprTok = $tokens[$exprRunner];
+                if ($nestedParenDepth === 0 && $nestedBracketDepth === 0 && $nestedBraceDepth === 0) {
+                    if ($exprTok->text === ';' || $exprTok->id === T_CLOSE_TAG) {
+                        break;
+                    }
+                }
+                if ($exprTok->text === '(') $nestedParenDepth++;
+                elseif ($exprTok->text === ')') $nestedParenDepth--;
+                elseif ($exprTok->text === '[') $nestedBracketDepth++;
+                elseif ($exprTok->text === ']') $nestedBracketDepth--;
+                elseif ($exprTok->text === '{') $nestedBraceDepth++;
+                elseif ($exprTok->text === '}') $nestedBraceDepth--;
+                $returnExprTokens[] = $exprTok;
+                $returnExprString .= $exprTok->text;
+                $exprRunner++;
+            }
+            $rawExpr = trim($returnExprString);
+            $exprType = 'void';
+            $literalValue = null;
+            $isStaticLiteral = false;
+            if ($rawExpr !== '') {
+                $firstExprTok = null;
+                foreach ($returnExprTokens as $rTok) {
+                    if ($rTok->id !== T_WHITESPACE && $rTok->id !== T_COMMENT && $rTok->id !== T_DOC_COMMENT) {
+                        $firstExprTok = $rTok;
+                        break;
+                    }
+                }
+                if ($firstExprTok !== null) {
+                    switch ($firstExprTok->id) {
+                        case T_LNUMBER:
+                            $exprType = 'integer';
+                            $literalValue = (int)$rawExpr;
+                            $isStaticLiteral = true;
+                            break;
+                        case T_DNUMBER:
+                            $exprType = 'float';
+                            $literalValue = (float)$rawExpr;
+                            $isStaticLiteral = true;
+                            break;
+                        case T_CONSTANT_ENCAPSED_STRING:
+                            $exprType = 'string';
+                            $literalValue = substr($rawExpr, 1, -1);
+                            $isStaticLiteral = true;
+                            break;
+                        case T_STRING:
+                            $lowerFirst = strtolower($firstExprTok->text);
+                            if ($lowerFirst === 'true' || $lowerFirst === 'false') {
+                                $exprType = 'boolean';
+                                $literalValue = $lowerFirst === 'true';
+                                $isStaticLiteral = true;
+                            } elseif ($lowerFirst === 'null') {
+                                $exprType = 'null';
+                                $literalValue = null;
+                                $isStaticLiteral = true;
+                            } else {
+                                $exprType = 'constant_or_function';
+                            }
+                            break;
+                        case T_ARRAY:
+                        case $firstExprTok->text === '[':
+                            $exprType = 'array';
+                            break;
+                        case T_VARIABLE:
+                            $exprType = 'variable';
+                            break;
+                        case T_NEW:
+                            $exprType = 'object_instantiation';
+                            break;
+                        default:
+                            $exprType = 'expression';
+                            break;
+                    }
+                }
+            }
+            $returns[] = [
+                'line'              => $returnLine,
+                'raw_expression'    => $rawExpr,
+                'type_hint'         => $exprType,
+                'is_static_literal' => $isStaticLiteral,
+                'literal_value'     => $literalValue,
+                'has_variable'      => str_contains($rawExpr, '$'),
+                'is_funk_call'      => str_contains(strtolower($rawExpr), 'funk_'),
+            ];
         }
     }
     return [
+        'has_return_statement' => $hasReturn,
+        'returns' =>        $returns,
         'has_exit'             => $hasExit,
         'exit_lines'           => array_unique($exitLines),
         'has_raw_output'       => $hasRawOutput,
@@ -1346,16 +1453,20 @@ function cli_analyze_body_tokens(string $bodyCode, int $startLine = 1): array
         'eval_lines'           => array_unique($evalLines),
         'has_inner_functions'  => $hasInnerFunctions,
         'nested_function_lines' => array_unique($innerFunctionLines),
-        'has_closures'           => $hasClosures ?? false,   // Safe anonymous closures
+        'has_closures'           => $hasClosures ?? false,
         'closure_lines'          => array_unique($closureLines ?? []),
         'has_inner_classes'    => $hasInnerClasses,
         'inner_class_lines'    => array_unique($innerClassLines),
         'has_globals'          => $hasGlobals,
         'global_vars'          => array_unique($globalVars),
         'has_dangerous_calls'  => $hasDangerousCalls,
-        'has_variable_vars'    => $hasVariableVars,
+        'dangerous_calls' => $dangerousCalls,
         'only_whitespace_and_or_comments' => $hasOnlyCommentsOrWhiteSpace,
+        'has_variable_vars'    => $hasVariableVars,
         'calls'                => $calls,
+        'funk_calls' => $funkCalls,
+        'invalid_funk_calls' => $invalidFunkCalls,
+        'has_invalid_funk_calls' => $hasInvalidFunkCalls
     ];
 }
 function cli_analyze_class_tokens(string $classBodyCode, int $startLine = 1): array
@@ -1637,107 +1748,6 @@ function cli_analyze_class_tokens(string $classBodyCode, int $startLine = 1): ar
     ];
 }
 
-// Function that handles certain keys in <CONFIG_GLOBAL> & certain keys in <CONFIG_METHOD>
-// and "config" key for each "/route" key.
-function cli_build_command_validate_default_config_keys_for_global_method_route_level($level, $dataToValidate, $whatToValidate, &$refIfNeeded = null)
-{
-    if (!is_string($level) || (empty(trim($level)) || !in_array(strtolower($level), ['global', 'method', 'route']))) {
-        cli_err("cli_build_command_validate_default_no_route_match_response_keys(): Expected `\$whatToValidate` to be a Non-Empty String that contains what to validate for in `config` Key in a Route or from CONFIG_GLOBAL|METHOD such as (choose only one per call): `global_sris` (internal & external), `X_rate_limiting`, `X_headers` (add & remove), `X_param_rules`, `global_default_no_route_match_response` OR `method_default_no_route_match_response`, `route_cache`, `route_alias`!");
-    }
-    $level = strtolower($level);
-    if ($dataToValidate === null) {
-        cli_err("cli_build_command_validate_default_no_route_match_response_keys(): Expected `\$dataToValidate` to contain data, but got `null`, check if it is `null` instead before sending any data to this function!");
-    }
-    $CanValidate = ['param_rules', 'csp', 'sri', 'headers', 'rate_limiting', 'route_cache', 'default_no_route_match_response'];
-    if (!is_string($whatToValidate) || empty(trim($whatToValidate) || !in_array($whatToValidate, $CanValidate))) {
-        cli_err("cli_build_command_validate_default_no_route_match_response_keys(): Expected `\$whatToValidate` to be a Non-Empty String that contains what to validate for in `config` Key in a Route or from CONFIG_GLOBAL|METHOD such as (choose only one per call): `global_sris` (internal & external), `X_rate_limiting`, `X_headers` (add & remove), `X_param_rules`, `global_default_no_route_match_response` OR `method_default_no_route_match_response`, `route_cache`, `route_alias`!");
-    }
-    // The different validation cases (it will err if wrong level is used for certain ones!)
-    // Otherwise it will return TRUE or FALSE so build step can fix error handling after!
-    // PARAM_RULES
-    if ($whatToValidate === "param_rules") {
-    }
-    // CSP
-    elseif ($whatToValidate === "csp") {
-    }
-    // SRI
-    elseif ($whatToValidate === "sri") {
-    }
-    // HEADERS
-    elseif ($whatToValidate === "headers") {
-    }
-    // RATE_LIMITING
-    elseif ($whatToValidate === "rate_limiting") {
-    }
-    // DEFAULT NO_ROUTE_MATCHED response - only 'global|method' can do it
-    elseif ($whatToValidate === "default_no_route_match_response") {
-        if ($level === 'route') {
-            cli_err("cli_build_command_validate_default_no_route_match_response_keys(): Only `global|method` can validate 'default_no_route_match_response'!");
-        }
-    }
-    // ROUTE_CACHE - only 'route' can do it
-    elseif ($whatToValidate === "route_cache") {
-        if ($level !== 'route') {
-            cli_err("cli_build_command_validate_default_no_route_match_response_keys(): Only `route` can validate 'route_cache'!");
-        }
-    }
-    // Forgot to add the new one here?
-    else {
-        cli_err("cli_build_command_validate_default_no_route_match_response_keys(): Forgot to implement the `$whatToValidate`?");
-    }
-}
-
-function cli_build_command_validate_param_rules_regex($level, $dataToValidate, &$refWarnsErrs, &$ROUTES_CONFIG_PARSED)
-{
-    if (!is_string($level) || (empty(trim($level)) || !in_array(strtolower($level), ['global', 'method', 'route']))) {
-        cli_err("cli_build_command_validate_param_rules_regex(): Expected `\$level` to be a Non-Empty String that is `global`,`method` OR `route`!");
-    }
-    $level = strtolower($level);
-    if (
-        !is_array($ROUTES_CONFIG_PARSED) || empty($ROUTES_CONFIG_PARSED) || array_is_list($ROUTES_CONFIG_PARSED)
-        || !is_array($refWarnsErrs) || empty($refWarnsErrs) || array_is_list($refWarnsErrs)
-    ) {
-        cli_err("cli_build_command_validate_param_rules(): Expected `\$whatToValidate` and/or `\refWarnsErrs` both to be Non-Empty Associative Arrays!");
-    }
-    if ($dataToValidate === null) {
-        cli_err("cli_build_command_validate_param_rules(): Expected `\$dataToValidate! NOT to be `null` since that should be checked before passing it to this function!");
-    }
-    foreach ($dataToValidate as $param => $rule) {
-        if (!is_string($rule) || empty($rule)) {
-            cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "!");
-            return false;
-        }
-        // Simplified Regex shorthand layout check
-        if (str_starts_with($rule, '[') && (str_ends_with($rule, ']+') || str_ends_with($rule, ']*'))) {
-            continue;
-        }
-        // Complex Regex pattern syntax validation pass
-        if (str_starts_with($rule, '/')) {
-            try {
-                preg_match($rule, '');
-                if ($level === "global") {
-                    cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "!");
-                } else if ($level === "method") {
-                    cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "!");
-                } else if ($level === "route") {
-                    cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "!");
-                }
-            } catch (\Throwable $e) {
-                if ($level === "global") {
-                    cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "!");
-                } else if ($level === "method") {
-                    cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "!");
-                } else if ($level === "route") {
-                    cli_build_warning_err_list($pipelineWarnsAndErrs, "cli_err", "!");
-                }
-            }
-            // @ suppresses warnings while testing pattern compilation compilation state
-            if (@preg_match($rule, '') === false) {
-            }
-            continue;
-        }
-    }
-}
 /*
  * Function that replaces {{##text_tokens_inside_of_template_function##}}
  *

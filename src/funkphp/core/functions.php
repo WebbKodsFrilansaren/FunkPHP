@@ -2713,8 +2713,6 @@ class C
             $fileCnt = file_get_contents($file);
             if ($fileCnt !== false) {
                 $fileRaw = $fileCnt;
-                global $reserved_functions;
-                $reserved = $reserved_functions ?? [];
                 // 1. Tokenized Namespace & Use statements
                 $nsAndUses = $this->file_harvest_namespace_and_uses_from_code($fileRaw);
                 $namespace = $nsAndUses['namespace'];
@@ -2723,10 +2721,12 @@ class C
                 // 2. Tokenized Functions
                 $tokenizedFns = $this->file_harvest_all_functions_from_code($fileRaw);
                 foreach ($tokenizedFns as $fnName => $fnData) {
-                    $isReserved = in_array($fnName, $reserved, true);
                     $fns[$fnName] = array_merge($fnData, [
-                        'valid_fn_structure'          => !$isReserved && !$fnData['has_inner_functions'],
-                        'fn_name_reserved'            => $isReserved,
+                        'VALID_FN_FOR_FUNKPHP'          => (!$fnData['has_inner_functions']
+                            && !$fnData['only_whitespace_and_or_comments']
+                            && !str_starts_with(strtolower(trim($fnName)), 'cli_')
+                            && !str_starts_with(strtolower(trim($fnName)), 'funk_')
+                            && (strtolower(trim($fnName)) !== 'dd')),
                         'fn_name_same_as_lowercased'  => ($fnName === strtolower($fnName)),
                         'fn_uppercased'               => strtoupper($fnName),
                         'fn_starts_with_cli'          => str_starts_with(strtolower($fnName), 'cli_'),
@@ -3114,11 +3114,17 @@ class C
     // Helper function (must get code as string) that can analyze already
     // loaded PHP code for safety by providing any functions a function
     // and/or class is using to compare against (dis)allowed functions and so on!
-    private function file_analyze_body_tokens(string $bodyCode, int $startLine = 1): array
+    private function file_analyze_body_tokens(string $bodyCode, int $startLine = 1, array $dangerousFNsDeclared = ['shell_exec', 'exec', 'system', 'passthru', 'proc_open', 'popen', 'pcntl_exec', 'base64_decode']): array
     {
         $tokens = PhpToken::tokenize("<?php " . $bodyCode);
         $count = count($tokens);
-        $dangerousFuncs = ['shell_exec', 'exec', 'system', 'passthru', 'proc_open', 'popen', 'pcntl_exec', 'base64_decode'];
+        $dangerousFuncs = (!empty($dangerousFNsDeclared) ? $dangerousFNsDeclared :  ['shell_exec', 'exec', 'system', 'passthru', 'proc_open', 'popen', 'pcntl_exec', 'base64_decode']);
+        $invalidFunkCallsInFNs = [
+            'funk_session_started_or_start_it',
+            'funk_session_cookie_set',
+            'funk_default_exception_handler',
+            'funk_default_register_shutdown_function'
+        ];
         $hasExit = false;
         $exitLines = [];
         $hasRawOutput = false;
@@ -3130,6 +3136,8 @@ class C
         $hasInnerClasses = false;
         $innerClassLines = [];
         $hasGlobals = false;
+        $hasReturn = false;
+        $returns = [];
         $globalVars = [];
         $hasDangerousCalls = false;
         $dangerousCalls = [];
@@ -3137,7 +3145,8 @@ class C
         $hasVariableVars = false;
         $calls = [];
         $funkCalls = [];
-        // Account for added '<?php ' offset in line mapping if needed
+        $hasInvalidFunkCalls = false;
+        $invalidFunkCalls = [];
         $lineOffset = $startLine;
         for ($i = 0; $i < $count; $i++) {
             $tok = $tokens[$i];
@@ -3174,7 +3183,6 @@ class C
             // 4. Nested Functions (Named vs Anonymous/Closures)
             if ($tok->id === T_FUNCTION || (defined('T_FN') && $tok->id === T_FN)) {
                 $nextIdx = $i + 1;
-                // Fast-forward past whitespace, comments, and reference operators ('&')
                 while ($nextIdx < $count && (
                     $tokens[$nextIdx]->id === T_WHITESPACE ||
                     $tokens[$nextIdx]->id === T_COMMENT ||
@@ -3183,13 +3191,11 @@ class C
                 )) {
                     $nextIdx++;
                 }
-                // If a T_STRING immediately follows, it's a NAMED inner function (e.g., function test() {})
                 if ($nextIdx < $count && $tokens[$nextIdx]->id === T_STRING) {
                     $hasInnerFunctions = true;
                     $innerFunctionLines[] = $line;
                     continue;
                 }
-                // Otherwise, it's an anonymous closure ($var = function() {}) or arrow function
                 $hasClosures = true;
                 $closureLines[] = $line;
                 continue;
@@ -3220,7 +3226,6 @@ class C
                 while ($prevIdx >= 0 && $tokens[$prevIdx]->id === T_WHITESPACE) {
                     $prevIdx--;
                 }
-                // Exclude method calls ($obj->method), static calls (Class::method), definitions, or instantiations
                 if ($prevIdx >= 0) {
                     $pId = $tokens[$prevIdx]->id;
                     if (
@@ -3238,7 +3243,6 @@ class C
                 while ($nextIdx < $count && $tokens[$nextIdx]->id === T_WHITESPACE) {
                     $nextIdx++;
                 }
-                // Confirm call via opening parenthesis '('
                 if ($nextIdx < $count && $tokens[$nextIdx]->text === '(') {
                     $calledName = $tok->text;
                     $lineNo = $line;
@@ -3278,11 +3282,112 @@ class C
                             'line' => $lineNo,
                             'args' => trim($argsString)
                         ];
+                        if (in_array($calledName, $invalidFunkCallsInFNs)) {
+                            $hasInvalidFunkCalls = true;
+                        }
                     }
                 }
             }
+            // 9. Return statement parsing & context extraction
+            if ($tok->id === T_RETURN) {
+                $hasReturn = true;
+                $returnLine = $line;
+                $returnExprTokens = [];
+                $returnExprString = '';
+                $exprRunner = $i + 1;
+                $nestedParenDepth = 0;
+                $nestedBracketDepth = 0;
+                $nestedBraceDepth = 0;
+                while ($exprRunner < $count) {
+                    $exprTok = $tokens[$exprRunner];
+                    if ($nestedParenDepth === 0 && $nestedBracketDepth === 0 && $nestedBraceDepth === 0) {
+                        if ($exprTok->text === ';' || $exprTok->id === T_CLOSE_TAG) {
+                            break;
+                        }
+                    }
+                    if ($exprTok->text === '(') $nestedParenDepth++;
+                    elseif ($exprTok->text === ')') $nestedParenDepth--;
+                    elseif ($exprTok->text === '[') $nestedBracketDepth++;
+                    elseif ($exprTok->text === ']') $nestedBracketDepth--;
+                    elseif ($exprTok->text === '{') $nestedBraceDepth++;
+                    elseif ($exprTok->text === '}') $nestedBraceDepth--;
+                    $returnExprTokens[] = $exprTok;
+                    $returnExprString .= $exprTok->text;
+                    $exprRunner++;
+                }
+                $rawExpr = trim($returnExprString);
+                $exprType = 'void';
+                $literalValue = null;
+                $isStaticLiteral = false;
+                if ($rawExpr !== '') {
+                    $firstExprTok = null;
+                    foreach ($returnExprTokens as $rTok) {
+                        if ($rTok->id !== T_WHITESPACE && $rTok->id !== T_COMMENT && $rTok->id !== T_DOC_COMMENT) {
+                            $firstExprTok = $rTok;
+                            break;
+                        }
+                    }
+                    if ($firstExprTok !== null) {
+                        switch ($firstExprTok->id) {
+                            case T_LNUMBER:
+                                $exprType = 'integer';
+                                $literalValue = (int)$rawExpr;
+                                $isStaticLiteral = true;
+                                break;
+                            case T_DNUMBER:
+                                $exprType = 'float';
+                                $literalValue = (float)$rawExpr;
+                                $isStaticLiteral = true;
+                                break;
+                            case T_CONSTANT_ENCAPSED_STRING:
+                                $exprType = 'string';
+                                $literalValue = substr($rawExpr, 1, -1);
+                                $isStaticLiteral = true;
+                                break;
+                            case T_STRING:
+                                $lowerFirst = strtolower($firstExprTok->text);
+                                if ($lowerFirst === 'true' || $lowerFirst === 'false') {
+                                    $exprType = 'boolean';
+                                    $literalValue = $lowerFirst === 'true';
+                                    $isStaticLiteral = true;
+                                } elseif ($lowerFirst === 'null') {
+                                    $exprType = 'null';
+                                    $literalValue = null;
+                                    $isStaticLiteral = true;
+                                } else {
+                                    $exprType = 'constant_or_function';
+                                }
+                                break;
+                            case T_ARRAY:
+                            case $firstExprTok->text === '[':
+                                $exprType = 'array';
+                                break;
+                            case T_VARIABLE:
+                                $exprType = 'variable';
+                                break;
+                            case T_NEW:
+                                $exprType = 'object_instantiation';
+                                break;
+                            default:
+                                $exprType = 'expression';
+                                break;
+                        }
+                    }
+                }
+                $returns[] = [
+                    'line'              => $returnLine,
+                    'raw_expression'    => $rawExpr,
+                    'type_hint'         => $exprType,
+                    'is_static_literal' => $isStaticLiteral,
+                    'literal_value'     => $literalValue,
+                    'has_variable'      => str_contains($rawExpr, '$'),
+                    'is_funk_call'      => str_contains(strtolower($rawExpr), 'funk_'),
+                ];
+            }
         }
         return [
+            'has_return_statement' => $hasReturn,
+            'returns' =>        $returns,
             'has_exit'             => $hasExit,
             'exit_lines'           => array_unique($exitLines),
             'has_raw_output'       => $hasRawOutput,
@@ -3291,7 +3396,7 @@ class C
             'eval_lines'           => array_unique($evalLines),
             'has_inner_functions'  => $hasInnerFunctions,
             'nested_function_lines' => array_unique($innerFunctionLines),
-            'has_closures'           => $hasClosures ?? false,   // Safe anonymous closures
+            'has_closures'           => $hasClosures ?? false,
             'closure_lines'          => array_unique($closureLines ?? []),
             'has_inner_classes'    => $hasInnerClasses,
             'inner_class_lines'    => array_unique($innerClassLines),
@@ -3303,6 +3408,8 @@ class C
             'has_variable_vars'    => $hasVariableVars,
             'calls'                => $calls,
             'funk_calls' => $funkCalls,
+            'invalid_funk_calls' => $invalidFunkCalls,
+            'has_invalid_funk_calls' => $hasInvalidFunkCalls
         ];
     }
     private function file_analyze_class_tokens(string $classBodyCode, int $startLine = 1): array
@@ -3324,11 +3431,9 @@ class C
                 $braceDepth--;
                 continue;
             }
-            // We only parse class members at the top level of the class body (depth === 1 inside "class { ... }")
             if ($braceDepth !== 1) {
                 continue;
             }
-            // 1. TRAIT INCLUSION: "use TraitA, TraitB;"
             if ($tok->id === T_USE) {
                 $traitTokens = [];
                 for ($j = $i + 1; $j < $count; $j++) {
@@ -3349,7 +3454,6 @@ class C
                 }
                 continue;
             }
-            // 2. CONSTANTS: "public const FOO = 'bar';"
             if ($tok->id === T_CONST) {
                 $visibility = 'public';
                 // Look backward for visibility
@@ -3368,7 +3472,6 @@ class C
                     }
                     if ($tokens[$b]->text === ';' || $tokens[$b]->text === '}') break;
                 }
-                // Look forward for CONST_NAME = value
                 $constName = null;
                 $valueTokens = [];
                 $hasEquals = false;
@@ -3395,13 +3498,11 @@ class C
                 }
                 continue;
             }
-            // 3. METHODS: "public static function myMethod($a) { ... }"
             if ($tok->id === T_FUNCTION) {
-                $visibility = 'public'; // PHP default
+                $visibility = 'public';
                 $isStatic   = false;
                 $isAbstract = false;
                 $isFinal    = false;
-                // Look backward for modifiers
                 for ($b = $i - 1; $b >= 0; $b--) {
                     $bId = $tokens[$b]->id;
                     if ($bId === T_PRIVATE) {
@@ -3426,7 +3527,6 @@ class C
                         break;
                     }
                 }
-                // Find method name
                 $nameIdx = $i + 1;
                 while ($nameIdx < $count && ($tokens[$nameIdx]->id === T_WHITESPACE || $tokens[$nameIdx]->text === '&')) {
                     $nameIdx++;
@@ -3436,7 +3536,6 @@ class C
                 }
                 $methodName = $tokens[$nameIdx]->text;
                 $methodLine = $tok->line + $lineOffset;
-                // Harvest arguments string inside (...)
                 $argStart = $nameIdx + 1;
                 while ($argStart < $count && $tokens[$argStart]->text !== '(' && $tokens[$argStart]->text !== ';' && $tokens[$argStart]->text !== '{') {
                     $argStart++;
@@ -3457,14 +3556,12 @@ class C
                     }
                     $argsRaw = trim(implode('', $aTokens));
                 }
-                // Find method body opening '{' or abstract semicolon ';'
                 while ($bodySearchIdx < $count && $tokens[$bodySearchIdx]->text !== '{' && $tokens[$bodySearchIdx]->text !== ';') {
                     $bodySearchIdx++;
                 }
                 if ($bodySearchIdx >= $count) {
                     continue;
                 }
-                // Abstract or interface method with no body
                 if ($tokens[$bodySearchIdx]->text === ';') {
                     $methods[$methodName] = [
                         'name'        => $methodName,
@@ -3480,7 +3577,6 @@ class C
                     $i = $bodySearchIdx;
                     continue;
                 }
-                // Extract body using brace depth
                 $mBodyStartPos = $tokens[$bodySearchIdx]->pos;
                 $mBraceDepth = 0;
                 $mHasStarted = false;
@@ -3517,14 +3613,12 @@ class C
                 }
                 continue;
             }
-            // 4. PROPERTIES: "private static ?string $name = 'default';"
             if ($tok->id === T_VARIABLE) {
                 $propName = ltrim($tok->text, '$');
-                $visibility = 'public'; // Default if unassigned
+                $visibility = 'public';
                 $isStatic   = false;
                 $isReadonly = false;
                 $typeHint   = null;
-                // Scan backwards to semicolon / brace / docblock for modifiers and type hint
                 $modifierTokens = [];
                 for ($b = $i - 1; $b >= 0; $b--) {
                     $bTok = $tokens[$b];
@@ -3550,7 +3644,6 @@ class C
                         $typeHint .= $mTok->text;
                     }
                 }
-                // Scan forward for default value until ';'
                 $hasDefault = false;
                 $defaultValueTokens = [];
                 for ($j = $i + 1; $j < $count; $j++) {
@@ -7232,6 +7325,14 @@ class C
             $errCount = count($this->errors);
             dd(['API' => $this->FunkPHPFluentAPI, 'ERRORS' => $this->errors], "FunkPHP Compilation ($errCount Error" . ($errCount === 1 ? '' : 's') . ')', true);
         }
+
+        // ------------------------------------------------------------------------------------------
+        // STEP 2.5: Validate User-defined Functions & Classes that were used and that might exist
+        // ------------------------------------------------------------------------------------------
+        $this->cachedCreateKeyIfNullAndOptionalFileName('file_user_defined_functions');
+        $this->cachedCreateKeyIfNullAndOptionalFileName('file_user_defined_classes');
+        dd($this->cached['file_user_defined_functions']);
+
         // ------------------------------------------------------------------------------------------
         // STEP 2: First add to the $compiled->c variable that can be added right away
         // ------------------------------------------------------------------------------------------
