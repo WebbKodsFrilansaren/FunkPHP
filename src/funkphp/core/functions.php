@@ -3707,6 +3707,9 @@ class C
         if (strtolower($FN['fn_exact_name']) !== $FN['fn_lowercased']) {
             return "File Function Error in {$contextLabel}: Function `{$expectedFNName}()` in File `$relativePath` must have `Function Name` that is `all lowercased` and following this Naming Convention: `[a-z_][a-z0-9_]*`.";
         }
+        if (str_starts_with(strtolower($FN['fn_exact_name']), 'funk_') || str_starts_with(strtolower($FN['fn_exact_name']), 'cli_')) {
+            return "File Function Error in {$contextLabel}: Function `{$expectedFNName}()` in File `$relativePath` must have `Function Name` that does NOT start with `funk_` OR `cli_` as it will be in the Global Namespace and could clash with Internal FunkPHP Functions.";
+        }
         if ($expectedNSName !== '') {
             if (!isset($fileData['namespace']) || $fileData['namespace'] !== $expectedNSName) {
                 return "File Function Error in {$contextLabel}: Function `{$expectedFNName}` in File `$relativePath` must have the following namespace: `{$expectedNSName}` (Found: `" . ($fileData['namespace'] ?? '<NO NAMESPACE>') . "`).";
@@ -3720,9 +3723,62 @@ class C
             return "File Function Error in {$contextLabel}: Function `{$expectedFNName}()` in File `$relativePath` must have `&\$c` as its First Parameter (found `({$argsRaw})`).";
         }
         if ($FN['has_inner_functions'] === true) {
-            return "File Function Error in {$contextLabel}: Function `{$expectedFNName}()` in File `$relativePath` cannot have Inner Function Declarations (e.g. `function name(&\$c){ function inner(&\$c){} }`). See line(s):`" . join(', ', $FN['nested_function_lines']) . "` in the File.";
+            return "File Function Error in {$contextLabel}: Function `{$expectedFNName}()` in File `$relativePath` cannot have Inner Function Declarations (e.g. `function name(&\$c){ function inner(&\$c){} }`). See line(s): `" . join(', ', $FN['nested_function_lines']) . "` in the File.";
         }
         return null; // Function File for FunkPHP use is all OK here! - Warnings are emitted by another function
+    }
+    private function validateCLASSFile(array $fileData, string $expectedFNName, string $contextLabel, string $expectedNSName = '', bool $singleFNExpected = false): ?string
+    {
+        $relativePath = '/src/funkphp/' . $fileData['folder_provided_path'] . '/' . $fileData['file_name'];
+        if (empty($fileData) || array_is_list($fileData)) {
+            return "File Class Error in {$contextLabel}: Parsed File Data `$relativePath` as an Array is EITHER A Numbered Array when it should be an Associative Array OR it is Completely Empty. (This is possibly an Internal FunkPHP Error - try regenerate default files in `/src/funkphp/config/` and try again)";
+        }
+        if (empty($fileData['file_exists'])) {
+            return "File Class Error in {$contextLabel}: Expected File `$relativePath` does NOT exist.";
+        }
+        if (empty($fileData['file_readable'])) {
+            return "File Class Error in {$contextLabel}: Expected File `$relativePath` is NOT Readable.";
+        }
+        $fnCount = count($fileData['classes'] ?? []);
+        if ($singleFNExpected) {
+            if ($fnCount !== 1) {
+                return "File Class Error in {$contextLabel}: File `$relativePath` must contain EXACTLY 1 Class (found {$fnCount}).";
+            }
+        }
+        $FN = $fileData['classes'][$expectedFNName] ?? null;
+        if (!$FN) {
+            return "File Class Error in {$contextLabel}: Expected Class `{$expectedFNName}` in File `$relativePath` does NOT exist.";
+        }
+        if (str_starts_with(strtolower(trim($FN['class_name'])), 'funk')) {
+            return "File Class Error in {$contextLabel}: Class `{$expectedFNName}()` in File `$relativePath` cannot start with `Funk` as it is reserved despite being in the shared namespace `funkphp\\classes`.";
+        }
+        if ($expectedNSName !== '') {
+            if (!isset($fileData['namespace']) || $fileData['namespace'] !== $expectedNSName) {
+                return "File Class Error in {$contextLabel}: Class `{$expectedFNName}` in File `$relativePath` must have the following namespace: `{$expectedNSName}` (Found: `" . ($fileData['namespace'] ?? '<NO NAMESPACE>') . "`).";
+            }
+        }
+        if ($FN['body_raw'] === '{}' || $FN['only_whitespace_and_or_comments'] === true) {
+            return "File Class Error in {$contextLabel}: Class `{$expectedFNName}()` in File `$relativePath` must have `Code in its Class Body` and cannot just contain `whitespace` and/or `comments`.";
+        }
+        if ($FN['has_inner_functions'] === true) {
+            return "File Class Error in {$contextLabel}: Class `{$expectedFNName}()` in File `$relativePath` cannot have Inner Function Declarations (e.g. `function name(&\$c){ function inner(&\$c){} }`). See line(s): `" . join(', ', $FN['nested_function_lines']) . "` in the File.";
+        }
+        // Now we iterate through each method in the current Class in the classes.php
+        // file since those are what could be considered functions in classes.
+        foreach ($FN['methods'] as $method => $methodDetails) {
+            if ($method !== '__construct') { // Constructor CAN have empty body
+                if ($methodDetails['analysis']['only_whitespace_and_or_comments']) {
+                    return "File Class Error in {$contextLabel}: Class Method `{$expectedFNName}->{$method}` in File `$relativePath` has `Only Whitespace and/or Comments` in its `Code Body` while NOT being the `__construct` Method. Add some Code to the Class Method OR comment it out for later use.";
+                }
+            }
+            if ($methodDetails['analysis']['has_inner_functions']) {
+                return "File Class Error in {$contextLabel}: Class Method `{$expectedFNName}->{$method}` in File `$relativePath` has `Inner Function Declarations` on lines(s) " . $this->joinArray($methodDetails['analysis']['nested_function_lines']) . " which could Conflict with other Globally Namespaced Functions. `Convert it to a Valid Class-based Method` instead.";
+            }
+            if ($methodDetails['analysis']['has_invalid_funk_calls']) {
+                return "File Class Error in {$contextLabel}: Class Method `{$expectedFNName}->{$method}` in File `$relativePath` has calls to the following `Disallowed FunkPHP Functions` " . $this->joinArray($methodDetails['analysis']['invalid_funk_calls']) . " that are meant to be called by other Internal FunkPHP Functions directly and not inside of non-FunkPHP-based Classes.";
+            }
+        }
+        return null; // Class in File for FunkPHP use is all OK here! - Warnings are emitted by another function
     }
     // Validate Response Code is between 100-599
     private function validateStatusCode($status): bool
@@ -7331,8 +7387,28 @@ class C
         // ------------------------------------------------------------------------------------------
         $this->cachedCreateKeyIfNullAndOptionalFileName('file_user_defined_functions');
         $this->cachedCreateKeyIfNullAndOptionalFileName('file_user_defined_classes');
-        dd($this->cached['file_user_defined_functions']);
-
+        if (
+            isset($this->cached['file_user_defined_functions']['functions'])
+            && count($this->cached['file_user_defined_functions']['functions']) > 0
+        ) {
+            foreach ($this->cached['file_user_defined_functions']['functions'] as $userFN => $_) {
+                $fatalError = $this->validateFNFile($this->cached['file_user_defined_functions'], $userFN, " `while Compiling FunkPHP Configuration`", "");
+                if ($fatalError !== null) {
+                    $this->compile_setErr($fatalError . " If you wanna keep the Function but not use it for this Compilation, comment it out inside of the `{$PATH_USER_DEFINED_FNS}` File and retry.", $compileErrors);
+                }
+            }
+        }
+        if (
+            isset($this->cached['file_user_defined_classes']['classes'])
+            && count($this->cached['file_user_defined_classes']['classes']) > 0
+        ) {
+            foreach ($this->cached['file_user_defined_classes']['classes'] as $userClass => $_) {
+                $fatalError = $this->validateCLASSFile($this->cached['file_user_defined_classes'], $userClass, " `while Compiling FunkPHP Configuration`", "");
+                if ($fatalError !== null) {
+                    $this->compile_setErr($fatalError . " If you wanna keep the Class but not use it for this Compilation, comment it out inside of the `{$PATH_CLASSES}` File and retry.", $compileErrors);
+                }
+            }
+        }
         // ------------------------------------------------------------------------------------------
         // STEP 2: First add to the $compiled->c variable that can be added right away
         // ------------------------------------------------------------------------------------------

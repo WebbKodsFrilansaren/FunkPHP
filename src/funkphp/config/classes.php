@@ -19,7 +19,8 @@
 
 namespace funkphp\classes;
 
-class EmptyClass {}
+// class EmptyClass {}
+
 /**
  * Data Transfer Object with constructor property promotion and default values.
  */
@@ -78,7 +79,6 @@ class SecurityUtils
         if (null === $token || '' === trim($token)) {
             return false;
         }
-
         return hash_equals(
             hash(self::$algo, $token . self::PEPPER),
             $hash

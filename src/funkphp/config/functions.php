@@ -21,6 +21,19 @@
 //
 // Besides all that above, name your function(s) anything you want!
 
+// function testar10(&$c)
+// {
+//     $yas = "Yas";
+//     $yas = strtolower($yas);
+//     function test() {}
+// }
+
+function testar0(&$c)
+{
+    $yas = "Yas";
+    $yas = strtolower($yas);
+}
+
 function testar1(&$c)
 {
     $yas = "Yas";
