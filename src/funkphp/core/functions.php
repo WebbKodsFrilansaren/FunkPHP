@@ -7120,7 +7120,7 @@ class C
         $headerName = trim($header_to_remove);
         $lowerHeader = strtolower($headerName);
         // Header names cannot contain colons, spaces, or CRLF injections
-        if ($headerName === '' || !preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $headerName)) {
+        if ($headerName === '' || !preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/i', $headerName)) {
             $this->setErr($this->getErr('InvalidHeaderName', $ctxVals), 'Route-removeHeader', $method, $route);
             $this->invalidBatches['headers']['routes'][$method][$route]['remove'][$lowerHeader] = $header_to_remove;
             return;
@@ -7628,7 +7628,6 @@ class C
                 }
             }
         }
-
         // ------------------------------------------------------------------------------------------
         // STEP 11: Build `routes` - (unpacking) middlewares, headers|csp|nonces|exclusions and pipes
         // ------------------------------------------------------------------------------------------
