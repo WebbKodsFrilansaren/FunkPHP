@@ -7320,9 +7320,11 @@ class C
     // and/or warnings. It has TABS based upon what actually has errors/warnings. It starts with
     // the tabs "CONFIG | GET | POST | PUT | DELETE | PATCH" and then inside of each Tab (Methods)
     // there are errors for each <Method><Route>. $internalErrors are from $this->errors[] while
-    //  $compileErrors &  $compileWarninsg are exclusively from private function compile() which then
+    // $compileErrors & $compileWarnings are exclusively from private function compile() which then
     // would be calling this function exclusively to provide those compile errors and/or warnings.
-    // Essentially it is a typical REST API Swagger but with errors/warnings below each <Method> => <Route> Tab
+    // Essentially it is a typical REST API Swagger but with errors/warnings below each <Method> => <Route> Tab.
+    // Errors use heavily the `` that should be replaced with colorized spans instead and thus also
+    // removing the `` after the fact. This helps with seeing what is importand what is not.
     private function output_errors(array $internalErrors = [], ?array $compileErrors = [], array $compileWarnings = [])
     {
         // Prepare HTML based upon stored
