@@ -2713,47 +2713,56 @@ class C
             $fileCnt = file_get_contents($file);
             if ($fileCnt !== false) {
                 $fileRaw = $fileCnt;
-                // 1. Tokenized Namespace & Use statements
-                $nsAndUses = $this->file_harvest_namespace_and_uses_from_code($fileRaw);
-                $namespace = $nsAndUses['namespace'];
-                $namespaceParts = $nsAndUses['namespace_parts'];
-                $fileUse = $nsAndUses['file_use'];
-                // 2. Tokenized Functions
-                $tokenizedFns = $this->file_harvest_all_functions_from_code($fileRaw);
-                foreach ($tokenizedFns as $fnName => $fnData) {
-                    $fns[$fnName] = array_merge($fnData, [
-                        'VALID_FN_FOR_FUNKPHP'          => (!$fnData['has_inner_functions']
-                            && !$fnData['only_whitespace_and_or_comments']
-                            && !str_starts_with(strtolower(trim($fnName)), 'cli_')
-                            && !str_starts_with(strtolower(trim($fnName)), 'funk_')
-                            && (strtolower(trim($fnName)) !== 'dd')),
-                        'fn_name_same_as_lowercased'  => ($fnName === strtolower($fnName)),
-                        'fn_uppercased'               => strtoupper($fnName),
-                        'fn_starts_with_cli'          => str_starts_with(strtolower($fnName), 'cli_'),
-                        'fn_starts_with_funk'         => str_starts_with(strtolower($fnName), 'funk_'),
-                    ]);
-                    if (in_array(strtolower($fnName), $fnames_only, true)) {
-                        $fnames_duplicates[$fnName] = true;
-                    }
-                    $fnames_only[] = $fnName;
-                    if ($fns[$fnName]['fn_starts_with_cli']) $NO_FN_START_CLI = false;
-                    if ($fns[$fnName]['fn_starts_with_funk']) $NO_FN_START_FUNK = false;
+                $syntaxValid = true;
+                $syntaxError = null;
+                try {
+                    \PhpToken::tokenize($fileRaw, TOKEN_PARSE);
+                } catch (\ParseError | \CompileError $e) {
+                    $syntaxValid = false;
+                    $syntaxError = $e->getMessage() . " on line " . $e->getLine();
                 }
-                // 3. Tokenized Classes
-                $tokenizedClasses = $this->file_harvest_all_classes_from_code($fileRaw);
-                foreach ($tokenizedClasses as $className => $classData) {
-                    $classes[$className] = $classData;
-                    if (in_array(strtolower($className), $clnames_only, true)) {
-                        $clnames_duplicates[$className] = true;
+                if ($syntaxValid) {
+                    $nsAndUses = $this->file_harvest_namespace_and_uses_from_code($fileRaw);
+                    $namespace = $nsAndUses['namespace'];
+                    $namespaceParts = $nsAndUses['namespace_parts'];
+                    $fileUse = $nsAndUses['file_use'];
+                    $tokenizedFns = $this->file_harvest_all_functions_from_code($fileRaw);
+                    foreach ($tokenizedFns as $fnName => $fnData) {
+                        $fns[$fnName] = array_merge($fnData, [
+                            'VALID_FN_FOR_FUNKPHP'          => (!$fnData['has_inner_functions']
+                                && !$fnData['only_whitespace_and_or_comments']
+                                && !str_starts_with(strtolower(trim($fnName)), 'cli_')
+                                && !str_starts_with(strtolower(trim($fnName)), 'funk_')
+                                && (strtolower(trim($fnName)) !== 'dd')),
+                            'fn_name_same_as_lowercased'  => ($fnName === strtolower($fnName)),
+                            'fn_uppercased'               => strtoupper($fnName),
+                            'fn_starts_with_cli'          => str_starts_with(strtolower($fnName), 'cli_'),
+                            'fn_starts_with_funk'         => str_starts_with(strtolower($fnName), 'funk_'),
+                        ]);
+                        if (in_array(strtolower($fnName), $fnames_only, true)) {
+                            $fnames_duplicates[$fnName] = true;
+                        }
+                        $fnames_only[] = $fnName;
+                        if ($fns[$fnName]['fn_starts_with_cli']) $NO_FN_START_CLI = false;
+                        if ($fns[$fnName]['fn_starts_with_funk']) $NO_FN_START_FUNK = false;
                     }
-                    $clnames_only[] = $className;
+                    $tokenizedClasses = $this->file_harvest_all_classes_from_code($fileRaw);
+                    foreach ($tokenizedClasses as $className => $classData) {
+                        $classes[$className] = $classData;
+                        if (in_array(strtolower($className), $clnames_only, true)) {
+                            $clnames_duplicates[$className] = true;
+                        }
+                        $clnames_only[] = $className;
+                    }
                 }
             } else {
-                $this->errors[] = ['type' => 'internal', 'err' => "Class C->file_status()] - FAILED to read Folder+File Path:`{$folder}{$file}` when it should ahve been possible. Verify Folder/File Permissions in Your Project."];
-                return ['INTERNAL_FUNKPHP_ERROR' => "[INTERNAL FUNKPHP ERROR - file_status()] - FAILED to read Folder+File Path:`{$folder}{$file}` when it should ahve been possible. Verify Folder/File Permissions in Your Project."];
+                $this->errors[] = ['type' => 'internal', 'err' => "Class C->file_status()] - FAILED to read Folder+File Path:`{$folder}{$file}` when it should have been possible. Verify Folder/File Permissions in Your Project."];
+                return ['INTERNAL_FUNKPHP_ERROR' => "[INTERNAL FUNKPHP ERROR - file_status()] - FAILED to read Folder+File Path:`{$folder}{$file}` when it should have been possible. Verify Folder/File Permissions in Your Project."];
             }
         }
         return [
+            'syntax_valid'          => $syntaxValid ?? false,
+            'syntax_error'          => $syntaxError ?? null,
             'namespace'             => $namespace,
             'namespace_parts'       => $namespaceParts,
             'file_use'              => $fileUse,
@@ -3691,6 +3700,9 @@ class C
         if (empty($fileData['file_readable'])) {
             return "File Function Error in {$contextLabel}: Expected File `$relativePath` is NOT Readable.";
         }
+        if (!$fileData['syntax_valid']) {
+            return "File Function Error in {$contextLabel}: File `$relativePath` contains `Invalid PHP Code` as parsed by `\PhpToken::tokenize with TOKEN_PARSE Flag`. Review the PHP Syntax in the File:'`{$fileData['syntax_error']}`'.";
+        }
         if (!empty($fileData['classes_exist'])) {
             return "File Function Error in {$contextLabel}: File `$relativePath` contains `Class Definitions` which is forbidden for this type of `File Function`.";
         }
@@ -3738,6 +3750,9 @@ class C
         }
         if (empty($fileData['file_readable'])) {
             return "File Class Error in {$contextLabel}: Expected File `$relativePath` is NOT Readable.";
+        }
+        if (!$fileData['syntax_valid']) {
+            return "File Class Error in {$contextLabel}: File `$relativePath` contains `Invalid PHP Code` as parsed by `\PhpToken::tokenize with TOKEN_PARSE Flag`. Review the PHP Syntax in the File:'`{$fileData['syntax_error']}`'.";
         }
         $fnCount = count($fileData['classes'] ?? []);
         if ($singleFNExpected) {
@@ -7387,7 +7402,10 @@ class C
         // ------------------------------------------------------------------------------------------
         $this->cachedCreateKeyIfNullAndOptionalFileName('file_user_defined_functions');
         $this->cachedCreateKeyIfNullAndOptionalFileName('file_user_defined_classes');
-        if (
+        // If files are invalid PHP code already
+        if (!$this->cached['file_user_defined_functions']['syntax_valid']) {
+            $this->compile_setErr("File Function Error in `{$PATH_USER_DEFINED_FNS} while Compiling FunkPHP Configuration`: File contains Invalid PHP Syntax: '`{$this->cached['file_user_defined_functions']['syntax_error']}`' that needs to be resolved.", $compileErrors);
+        } else if (
             isset($this->cached['file_user_defined_functions']['functions'])
             && count($this->cached['file_user_defined_functions']['functions']) > 0
         ) {
@@ -7398,13 +7416,16 @@ class C
                 }
             }
         }
-        if (
+        if (!$this->cached['file_user_defined_classes']['syntax_valid']) {
+            $this->compile_setErr("File Class Error in `{$PATH_USER_DEFINED_FNS} while Compiling FunkPHP Configuration`: File contains Invalid PHP Syntax: '`{$this->cached['file_user_defined_classes']['syntax_error']}`' that needs to be resolved.", $compileErrors);
+        } else if (
             isset($this->cached['file_user_defined_classes']['classes'])
             && count($this->cached['file_user_defined_classes']['classes']) > 0
         ) {
             foreach ($this->cached['file_user_defined_classes']['classes'] as $userClass => $_) {
                 $fatalError = $this->validateCLASSFile($this->cached['file_user_defined_classes'], $userClass, " `while Compiling FunkPHP Configuration`", "");
                 if ($fatalError !== null) {
+                    echo "ERROR?";
                     $this->compile_setErr($fatalError . " If you wanna keep the Class but not use it for this Compilation, comment it out inside of the `{$PATH_CLASSES}` File and retry.", $compileErrors);
                 }
             }

@@ -80,10 +80,6 @@ if (is_object($FUNKPHP) && $FUNKPHP instanceof FunkPHP) {
         }
         dd($toDump, $title, false);
     }
-    // Only here we consider loading validated user-defined functions&classes
-    require_once __DIR__ . '/config/functions.php';
-    require_once __DIR__ . '/config/classes.php';
-
     // Attempt running Class C->compile() which meaning it will attempt
     // compiling first and then run right after it if no errors occurs.
     if ($errCount === 0) {
@@ -91,6 +87,10 @@ if (is_object($FUNKPHP) && $FUNKPHP instanceof FunkPHP) {
         $compileAndRun->setAccessible(true);
         $compileAndRun->invoke($cInstance);
     }
+
+    // Only here we consider loading validated user-defined functions&classes
+    require_once __DIR__ . '/config/functions.php';
+    require_once __DIR__ . '/config/classes.php';
 }
 // When it is NOT FunkPHP Object as defined in the `/src/funkphp/core/functions.php`
 else {

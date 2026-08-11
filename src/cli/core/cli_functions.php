@@ -749,7 +749,7 @@ function cli_file_status(string $folder, string $file, bool $useExactFilePathIns
     if (str_starts_with($file, '/')) {
         $file = ltrim($file, '/');
     }
-    $folder = ($useExactFilePathInstead === false) ? (PROJECT_DIR . '/' . $folder) : $folder;
+    $folder = ($useExactFilePathInstead === false) ? (ROOT_FOLDER . '/' . $folder) : $folder;
     $singleFolder = basename($folder);
     $filename = $file;
     $file = $folder . '/' . $file;
@@ -769,47 +769,61 @@ function cli_file_status(string $folder, string $file, bool $useExactFilePathIns
         $fileCnt = file_get_contents($file);
         if ($fileCnt !== false) {
             $fileRaw = $fileCnt;
-            global $reserved_functions;
-            $reserved = $reserved_functions ?? [];
-            // 1. Tokenized Namespace & Use statements
-            $nsAndUses = cli_harvest_namespace_and_uses_from_code($fileRaw);
-            $namespace = $nsAndUses['namespace'];
-            $namespaceParts = $nsAndUses['namespace_parts'];
-            $fileUse = $nsAndUses['file_use'];
-            // 2. Tokenized Functions
-            $tokenizedFns = cli_harvest_all_functions_from_code($fileRaw);
-            foreach ($tokenizedFns as $fnName => $fnData) {
-                $isReserved = in_array($fnName, $reserved, true);
-                $fns[$fnName] = array_merge($fnData, [
-                    'valid_fn_structure'          => !$isReserved && !$fnData['has_inner_functions'],
-                    'fn_name_reserved'            => $isReserved,
-                    'fn_name_same_as_lowercased'  => ($fnName === strtolower($fnName)),
-                    'fn_uppercased'               => strtoupper($fnName),
-                    'fn_starts_with_cli'          => str_starts_with(strtolower($fnName), 'cli_'),
-                    'fn_starts_with_funk'         => str_starts_with(strtolower($fnName), 'funk_'),
-                ]);
-                if (in_array(strtolower($fnName), $fnames_only, true)) {
-                    $fnames_duplicates[$fnName] = true;
-                }
-                $fnames_only[] = $fnName;
-                if ($fns[$fnName]['fn_starts_with_cli']) $NO_FN_START_CLI = false;
-                if ($fns[$fnName]['fn_starts_with_funk']) $NO_FN_START_FUNK = false;
+            $syntaxValid = true;
+            $syntaxError = null;
+            try {
+                \PhpToken::tokenize($fileRaw, TOKEN_PARSE);
+            } catch (\ParseError | \CompileError $e) {
+                $syntaxValid = false;
+                $syntaxError = $e->getMessage() . " on line " . $e->getLine();
             }
-            // 3. Tokenized Classes
-            $tokenizedClasses = cli_harvest_all_classes_from_code($fileRaw);
-            foreach ($tokenizedClasses as $className => $classData) {
-                $classes[$className] = $classData;
-                if (in_array(strtolower($className), $clnames_only, true)) {
-                    $clnames_duplicates[$className] = true;
+            if ($syntaxValid) {
+                $nsAndUses = cli_harvest_namespace_and_uses_from_code($fileRaw);
+                $namespace = $nsAndUses['namespace'];
+                $namespaceParts = $nsAndUses['namespace_parts'];
+                $fileUse = $nsAndUses['file_use'];
+                $tokenizedFns = cli_harvest_all_functions_from_code($fileRaw);
+                foreach ($tokenizedFns as $fnName => $fnData) {
+                    $fns[$fnName] = array_merge($fnData, [
+                        'VALID_FN_FOR_FUNKPHP'          => (!$fnData['has_inner_functions']
+                            && !$fnData['only_whitespace_and_or_comments']
+                            && !str_starts_with(strtolower(trim($fnName)), 'cli_')
+                            && !str_starts_with(strtolower(trim($fnName)), 'funk_')
+                            && (strtolower(trim($fnName)) !== 'dd')),
+                        'fn_name_same_as_lowercased'  => ($fnName === strtolower($fnName)),
+                        'fn_uppercased'               => strtoupper($fnName),
+                        'fn_starts_with_cli'          => str_starts_with(strtolower($fnName), 'cli_'),
+                        'fn_starts_with_funk'         => str_starts_with(strtolower($fnName), 'funk_'),
+                    ]);
+                    if (in_array(strtolower($fnName), $fnames_only, true)) {
+                        $fnames_duplicates[$fnName] = true;
+                    }
+                    $fnames_only[] = $fnName;
+                    if ($fns[$fnName]['fn_starts_with_cli']) $NO_FN_START_CLI = false;
+                    if ($fns[$fnName]['fn_starts_with_funk']) $NO_FN_START_FUNK = false;
                 }
-                $clnames_only[] = $className;
+                $tokenizedClasses = cli_harvest_all_classes_from_code($fileRaw);
+                foreach ($tokenizedClasses as $className => $classData) {
+                    $classes[$className] = $classData;
+                    if (in_array(strtolower($className), $clnames_only, true)) {
+                        $clnames_duplicates[$className] = true;
+                    }
+                    $clnames_only[] = $className;
+                }
             }
+        } else {
+            cli_err("Internal FunKPHP Error - cli_file_status()] - FAILED to read Folder+File Path:`{$folder}{$file}` when it should have been possible. Verify Folder/File Permissions in Your Project.");
         }
     }
     return [
+        'syntax_valid'          => $syntaxValid ?? false,
+        'syntax_error'          => $syntaxError ?? null,
         'namespace'             => $namespace,
         'namespace_parts'       => $namespaceParts,
         'file_use'              => $fileUse,
+        'functions'             => $fns,
+        'classes'               => $classes,
+        'file_raw'              => $fileRaw,
         'functions_exist'       => count($fns) > 0,
         'classes_exist'         => count($classes) > 0,
         'file_readable'         => is_readable($file),
@@ -826,10 +840,6 @@ function cli_file_status(string $folder, string $file, bool $useExactFilePathIns
         'class_names_duplicates' => $clnames_duplicates,
         'no_fn_starts_with_cli' => $NO_FN_START_CLI,
         'no_fn_starts_with_funk' => $NO_FN_START_FUNK,
-        'functions'             => $fns,
-        'classes'               => $classes,
-        'file_raw'              => $fileRaw,
-
     ];
 }
 // Helper function that ONLY grabs `namespace <part1\part2\and_so_on;`
