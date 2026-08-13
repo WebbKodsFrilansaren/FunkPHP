@@ -28,56 +28,56 @@
 //     function test() {}
 // }
 
-function testar0(&$c)
-{
-    // Yas?
-    return "test";
-}
+// function testar0(&$c)
+// {
+//     // Yas?
+//     return "test";
+// }
 
-function testar1(&$c)
-{
-    $yas = "Yas";
-    $yas = strtolower($yas);
-}
+// function testar1(&$c)
+// {
+//     $yas = "Yas";
+//     $yas = strtolower($yas);
+// }
 
-function testar2(&$c, $errNo, $errStr, $errFile, $errLine)
-{
-    $yas = "Yas";
-    $yas = strtolower($yas);
-}
+// function testar2(&$c, $errNo, $errStr, $errFile, $errLine)
+// {
+//     $yas = "Yas";
+//     $yas = strtolower($yas);
+// }
 
-function testar3(&$c, \Throwable $e)
-{
-    $yas = "Yas";
-    $yas = strtolower($yas);
-}
+// function testar3(&$c, \Throwable $e)
+// {
+//     $yas = "Yas";
+//     $yas = strtolower($yas);
+// }
 
-function testar4(&$c)
-{
-    $yas = "Yas";
-    $yas = strtolower($yas);
-}
+// function testar4(&$c)
+// {
+//     $yas = "Yas";
+//     $yas = strtolower($yas);
+// }
 
-function testar5(&$c)
-{
-    $yas = "Yas";
-    $yas = strtolower($yas);
-}
+// function testar5(&$c)
+// {
+//     $yas = "Yas";
+//     $yas = strtolower($yas);
+// }
 
-function testar6(&$c)
-{
-    $yas = "Yas";
-    $yas = strtolower($yas);
-}
+// function testar6(&$c)
+// {
+//     $yas = "Yas";
+//     $yas = strtolower($yas);
+// }
 
-function testar7(&$c)
-{
-    $yas = "Yas";
-    $yas = strtolower($yas);
-}
+// function testar7(&$c)
+// {
+//     $yas = "Yas";
+//     $yas = strtolower($yas);
+// }
 
-function testar8(&$c)
-{
-    $yas = "Yas";
-    $yas = strtolower($yas);
-}
+// function testar8(&$c)
+// {
+//     $yas = "Yas";
+//     $yas = strtolower($yas);
+// }

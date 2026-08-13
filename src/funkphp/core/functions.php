@@ -7275,6 +7275,12 @@ class C
         }
 
         // ------------------------------------------------------------------------------------------
+        // STEP 1.1 EDGE-CASE: Nothing Configured but CONFIG() and ROUTES() are up but nothing used?
+        // ------------------------------------------------------------------------------------------
+        if (count($this->validBatches) === 0) {
+        }
+
+        // ------------------------------------------------------------------------------------------
         // STEP 2.5: Validate User-defined Functions & Classes that were used and that might exist
         // ------------------------------------------------------------------------------------------
         $this->cachedCreateKeyIfNullAndOptionalFileName('file_user_defined_functions');
@@ -7726,7 +7732,7 @@ class C
             isset($this->debug['SHOW_MAIN_CONFIG'])
             && !$this->debug['SHOW_MAIN_CONFIG']
         ) {
-            $this->FunkPHPFluentAPI['CONFIG'] = '(' . (count($this->FunkPHPFluentAPI['CONFIG'])) . ' Configurations)';
+            $this->FunkPHPFluentAPI['CONFIG'] = '(' . (count($this->FunkPHPFluentAPI['CONFIG'])) . ' Configuration' . (count($this->FunkPHPFluentAPI['CONFIG']) > 1 ? 's' : '') . ') - Show all Configuration by setting third Boolean in `CONFIG()->setDebug()` in `/src/funkphp/app/CONFIG.php` to `true`.';
         }
         dd(['COMPILE FLAGS' => $this->compileFlags, 'API' => $this->FunkPHPFluentAPI, 'COMPILE_ERRORS' => $compileErrors, 'COMPILE_WARNINGS' => $compileWarnings, 'COMPILED' => $this->compiled, 'VALID' => $this->validBatches,  'CACHED' => $this->cached], "COMPILATION - DEBUG", true);
     }

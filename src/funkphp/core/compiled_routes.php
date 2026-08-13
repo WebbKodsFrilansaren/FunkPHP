@@ -1,6 +1,5 @@
 <?php
-// compiled_routes.php - FunkPHP | FunkCLI created/updated 2026-08-10 05:26:29
-
+// compiled_routes.php - FunkPHP | FunkCLI created/updated 2026-08-13 14:23:01
 /**
  * -----------------------------------------------------
  * FUNKPHP AUTOMATICALLY GENERATED/CREATED COMPILED FILE
@@ -14,106 +13,131 @@
  * 'compiled_routes.php' and/or 'pipeline_routes.php'),
  * run the following Terminal Command in Working Path '/src/cli': `php funk recompile`
  */
-return array(
-  'TRIE' =>
-  array(
-    'GET' =>
-    array(),
-    'POST' =>
-    array(),
-    'PUT' =>
-    array(),
-    'DELETE' =>
-    array(),
-    'PATCH' =>
-    array(),
+return array (
+  'TRIE' => 
+  array (
+    'GET' => 
+    array (
+    ),
+    'POST' => 
+    array (
+    ),
+    'PUT' => 
+    array (
+    ),
+    'DELETE' => 
+    array (
+    ),
+    'PATCH' => 
+    array (
+    ),
   ),
-  'METADATA' =>
-  array(
-    '<ALL>' =>
-    array(
+  'METADATA' => 
+  array (
+    '<ALL>' => 
+    array (
       'totalAllRoutes' => 0,
       'totalStaticRoutes' => 0,
       'totalDynamicRoutes' => 0,
       'minURICountAll' => 0,
       'maxURICountAll' => 0,
     ),
-    'GET' =>
-    array(
-      'allRoutes' =>
-      array(),
-      'staticRoutes' =>
-      array(),
-      'dynamicRoutes' =>
-      array(),
+    'GET' => 
+    array (
+      'allRoutes' => 
+      array (
+      ),
+      'staticRoutes' => 
+      array (
+      ),
+      'dynamicRoutes' => 
+      array (
+      ),
       'minURICount' => 0,
       'maxURICount' => 0,
-      'URICountExistsForNumber' =>
-      array(),
+      'URICountExistsForNumber' => 
+      array (
+      ),
       'allRoutesCount' => 0,
       'staticRoutesCount' => 0,
       'dynamicRoutesCount' => 0,
     ),
-    'PATCH' =>
-    array(
-      'allRoutes' =>
-      array(),
-      'staticRoutes' =>
-      array(),
-      'dynamicRoutes' =>
-      array(),
+    'PATCH' => 
+    array (
+      'allRoutes' => 
+      array (
+      ),
+      'staticRoutes' => 
+      array (
+      ),
+      'dynamicRoutes' => 
+      array (
+      ),
       'minURICount' => 0,
       'maxURICount' => 0,
-      'URICountExistsForNumber' =>
-      array(),
+      'URICountExistsForNumber' => 
+      array (
+      ),
       'allRoutesCount' => 0,
       'staticRoutesCount' => 0,
       'dynamicRoutesCount' => 0,
     ),
-    'POST' =>
-    array(
-      'allRoutes' =>
-      array(),
-      'staticRoutes' =>
-      array(),
-      'dynamicRoutes' =>
-      array(),
+    'POST' => 
+    array (
+      'allRoutes' => 
+      array (
+      ),
+      'staticRoutes' => 
+      array (
+      ),
+      'dynamicRoutes' => 
+      array (
+      ),
       'minURICount' => 0,
       'maxURICount' => 0,
-      'URICountExistsForNumber' =>
-      array(),
+      'URICountExistsForNumber' => 
+      array (
+      ),
       'allRoutesCount' => 0,
       'staticRoutesCount' => 0,
       'dynamicRoutesCount' => 0,
     ),
-    'PUT' =>
-    array(
-      'allRoutes' =>
-      array(),
-      'staticRoutes' =>
-      array(),
-      'dynamicRoutes' =>
-      array(),
+    'PUT' => 
+    array (
+      'allRoutes' => 
+      array (
+      ),
+      'staticRoutes' => 
+      array (
+      ),
+      'dynamicRoutes' => 
+      array (
+      ),
       'minURICount' => 0,
       'maxURICount' => 0,
-      'URICountExistsForNumber' =>
-      array(),
+      'URICountExistsForNumber' => 
+      array (
+      ),
       'allRoutesCount' => 0,
       'staticRoutesCount' => 0,
       'dynamicRoutesCount' => 0,
     ),
-    'DELETE' =>
-    array(
-      'allRoutes' =>
-      array(),
-      'staticRoutes' =>
-      array(),
-      'dynamicRoutes' =>
-      array(),
+    'DELETE' => 
+    array (
+      'allRoutes' => 
+      array (
+      ),
+      'staticRoutes' => 
+      array (
+      ),
+      'dynamicRoutes' => 
+      array (
+      ),
       'minURICount' => 0,
       'maxURICount' => 0,
-      'URICountExistsForNumber' =>
-      array(),
+      'URICountExistsForNumber' => 
+      array (
+      ),
       'allRoutesCount' => 0,
       'staticRoutesCount' => 0,
       'dynamicRoutesCount' => 0,
