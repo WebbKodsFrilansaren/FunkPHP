@@ -1863,6 +1863,12 @@ class C
     // The actual written config line by line starting with FunkPHP()
     private array $FORBIDDEN = [
         'headers' => ['set-cookie', 'content-length', 'transfer-encoding', 'connection'],
+        'funk_functions_in_regular_functions' => [
+            'funk_session_started_or_start_it',
+            'funk_session_cookie_set',
+            'funk_default_exception_handler',
+            'funk_default_register_shutdown_function'
+        ],
     ];
     public array $FunkPHPFluentAPI = [
         'CONFIG' => [],
@@ -2915,25 +2921,26 @@ class C
         $tokens = PhpToken::tokenize("<?php " . $bodyCode);
         $count = count($tokens);
         $dangerousFuncs = (!empty($dangerousFNsDeclared) ? $dangerousFNsDeclared :  ['shell_exec', 'exec', 'system', 'passthru', 'proc_open', 'popen', 'pcntl_exec', 'base64_decode']);
-        $invalidFunkCallsInFNs = [
-            'funk_session_started_or_start_it',
-            'funk_session_cookie_set',
-            'funk_default_exception_handler',
-            'funk_default_register_shutdown_function'
-        ];
+        $invalidFunkCallsInFNs = $this->FORBIDDEN['funk_functions_in_regular_functions'];
+        $firstSignificantTokenId = null;
+        $firstSignificantTokenText = null;
+        $startsWithReturn = false;
+        $hasReturn = false;
+        $returns = [];
         $hasExit = false;
         $exitLines = [];
+        $hasInlineHtml = false;
+        $inlineHtmlLines = [];
         $hasRawOutput = false;
         $rawOutputLines = [];
         $hasEval = false;
         $evalLines = [];
+        $evalValues = [];
         $hasInnerFunctions = false;
         $innerFunctionLines = [];
         $hasInnerClasses = false;
         $innerClassLines = [];
         $hasGlobals = false;
-        $hasReturn = false;
-        $returns = [];
         $globalVars = [];
         $hasDangerousCalls = false;
         $dangerousCalls = [];
@@ -2947,6 +2954,25 @@ class C
         for ($i = 0; $i < $count; $i++) {
             $tok = $tokens[$i];
             $line = $tok->line + $lineOffset;
+            // Find first significant token and store info if "return" statement is first.
+            $isIgnoredToken = (
+                $tok->text === '{' ||
+                $tok->text === '}' ||
+                $tok->id === T_OPEN_TAG ||
+                $tok->id === T_CLOSE_TAG ||
+                $tok->id === T_COMMENT ||
+                $tok->id === T_DOC_COMMENT ||
+                $tok->id === T_WHITESPACE
+            );
+            if (!$isIgnoredToken) {
+                $hasOnlyCommentsOrWhiteSpace = false;
+                if ($firstSignificantTokenId === null) {
+                    $firstSignificantTokenId   = $tok->id;
+                    $firstSignificantTokenText = $tok->text;
+                    $startsWithReturn          = ($tok->id === T_RETURN);
+                }
+            }
+            // Only whitespace?
             if (
                 $tok->text !== '{' &&
                 $tok->text !== '}' &&
@@ -2970,10 +2996,34 @@ class C
                 $rawOutputLines[] = $line;
                 continue;
             }
+            if ($tok->id === T_INLINE_HTML) {
+                if (trim($tok->text) !== '') {
+                    $hasInlineHtml = true;
+                    $inlineHtmlLines[] = $line;
+                }
+                continue;
+            }
             // 3. Eval / Dynamic Code
             if ($tok->id === T_EVAL) {
                 $hasEval = true;
                 $evalLines[] = $line;
+                $evalTokens = [];
+                $parenDepth = 0;
+                while (++$i < $count) {
+                    $subTok = $tokens[$i];
+                    if ($subTok->text === '(') $parenDepth++;
+                    if ($subTok->text === ')') {
+                        $parenDepth--;
+                        if ($parenDepth === 0) break;
+                    }
+                    $evalTokens[] = $subTok;
+                }
+                $evalPayload = trim(implode('', array_column($evalTokens, 'text')));
+                $evalValues[] = [
+                    'line' => $line,
+                    'payload' => $evalPayload,
+                    'has_variable' => str_contains($evalPayload, '$')
+                ];
                 continue;
             }
             // 4. Nested Functions (Named vs Anonymous/Closures)
@@ -3182,14 +3232,20 @@ class C
             }
         }
         return [
+            'first_significant_token_id' => $firstSignificantTokenId,
+            'first_significant_token_text' => $firstSignificantTokenText,
+            'starts_with_return' => $startsWithReturn,
             'has_return_statement' => $hasReturn,
             'returns' =>        $returns,
             'has_exit'             => $hasExit,
             'exit_lines'           => array_unique($exitLines),
             'has_raw_output'       => $hasRawOutput,
             'raw_output_lines'     => array_unique($rawOutputLines),
+            'has_inline_html_output' =>    $hasInlineHtml,
+            'inline_html_lines' => $inlineHtmlLines,
             'has_eval'             => $hasEval,
             'eval_lines'           => array_unique($evalLines),
+            'eval_values' => $evalValues,
             'has_inner_functions'  => $hasInnerFunctions,
             'nested_function_lines' => array_unique($innerFunctionLines),
             'has_closures'           => $hasClosures ?? false,
@@ -3713,7 +3769,7 @@ class C
             'InvalidJSONSourceForResponseCtx' => "Invalid JSON Data Source Syntax in {$optionalCtx}: use only `[a-zA-Z0-9-_.]` characters. 'YourKey' after `json:` will then be used in `\$c['d']['YourKey']` as the Final Data Source ",
 
             // Forbidden via $this->FORBIDDEN Variable
-            'ForbiddenResponseHeaders' => "Forbidden Header in {$optionalCtx}: ",
+            'ForbiddenResponseHeaders' => "Forbidden Response Header Name in {$optionalCtx}: ",
 
             // Scope & Existence for FUNCTIONS Validation Errors
             'UserDefinedFUNCTIONHasWrongArgs'                       => "Provided User-defined Function in {$optionalCtx} from `/src/funkphp/config/functions.php` must besides the starting Function Parameter `&\$c` also have the following Function Parameters:",

@@ -30,8 +30,8 @@
 
 function testar0(&$c)
 {
-    $yas = "Yas";
-    $yas = strtolower($yas);
+    // Yas?
+    return "test";
 }
 
 function testar1(&$c)
