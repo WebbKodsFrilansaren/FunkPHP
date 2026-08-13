@@ -1861,6 +1861,9 @@ function funk_db_conn(&$c, $dbKey)
 class C
 {
     // The actual written config line by line starting with FunkPHP()
+    private array $FORBIDDEN = [
+        'headers' => ['set-cookie', 'content-length', 'transfer-encoding', 'connection'],
+    ];
     public array $FunkPHPFluentAPI = [
         'CONFIG' => [],
         'METHODS' => []
@@ -3709,6 +3712,9 @@ class C
             'InvalidCompilerFlag' => "Invalid Compiler Flag in {$optionalCtx}: must be one of the following: ",
             'InvalidJSONSourceForResponseCtx' => "Invalid JSON Data Source Syntax in {$optionalCtx}: use only `[a-zA-Z0-9-_.]` characters. 'YourKey' after `json:` will then be used in `\$c['d']['YourKey']` as the Final Data Source ",
 
+            // Forbidden via $this->FORBIDDEN Variable
+            'ForbiddenResponseHeaders' => "Forbidden Header in {$optionalCtx}: ",
+
             // Scope & Existence for FUNCTIONS Validation Errors
             'UserDefinedFUNCTIONHasWrongArgs'                       => "Provided User-defined Function in {$optionalCtx} from `/src/funkphp/config/functions.php` must besides the starting Function Parameter `&\$c` also have the following Function Parameters:",
             'UserDefinedFUNCTIONAlreadyInArray'                       => "Provided User-defined Function in {$optionalCtx} from `/src/funkphp/config/functions.php` is already in a must-be-unique array:",
@@ -3766,7 +3772,7 @@ class C
      * Choose Error Type based on scope (global, method, route) and optional method and route when applicable.
      *
      * @param string $errMsg
-     * @param 'Route-setParamRulePolymorphic'|'Method-setParamRulePolymorphic'|'Global-setParamRulePolymorphic'|'Global-setDebug'|'Route-pipeCompiledQuery'|'Route-pipeCompiledSQL'|'Route-pipeCompiledValidation'|'Global-setCompileFlag'|'Global-setGroupPipeUserdefined'|'Global-setGroupPipeRequest'|'Global-setGroupPipePostResponse'|'Global-setGroupPipeRoute'|'Global-setGroupPipeMiddlewares'|'Global-setINI_SET'|'Global-setNonces'|'Global-setCSP'|'Global-setSRIInternal'|'Global-setSRIExternal'|'Global-setNoRouteMatchPage'|'Global-setNoRouteMatchJSON'|'Global-setNoRouteMatchText'|'Global-setNoRouteMatchCallback'|'Global-setDefaultRegisteredShutdownHandler'|'Global-setDefaultExceptionHandler'|'Global-setDefaultErrorHandler'|'Global-setDefaultURI_NormalizerHandler'|'Global-setDefaultKernelHandler'|'Global-setBaseURLLocal'|'Global-setBaseURLOnline'|'Global-setBaseURLHost'|'Global-setBaseURLUri'|'Global-setSessionDriver'|'Global-setSessionCookieOptions'|'Global-setSessionCookieName'|'Global-setSessionCookieLifetime'|'Global-setSessionCookiePath'|'Global-setSessionCookieDomain'|'Global-setSessionCookieSecure'|'Global-setSessionCookieHTTPOnly'|'Global-setSessionCookieSameSite'|'Global-setUseFunkPHPOnline'|'Global-setUseHTTPS'|'Global-setUseVendor'|'Global-setParamRule'|'Global-pipeHeader'|'Global-removeHeader'|'Global-pipeMiddleware'|'Global-pipeRequestFunction'|'Global-pipePostResponseFunction'|'Method-setNoRouteMatch'|'Method-setNoRouteMatchPage'|'Method-setNoRouteMatchJson'|'Method-setNoRouteMatchText'|'Method-setNoRouteMatchCallback'|'Method-setNonces'|'Method-setCSP'|'Method-setRateLimiting'|'Method-pipeMiddleware'|'Method-pipeHeader'|'Method-removeHeader'|'Method-setParamRule'|'Method-route'|'Route-setAlias'|'Route-setRateLimiting'|'Route-setCache'|'Route-setNonces'|'Route-pipeMiddleware'|'Route-pipeFunction'|'Route-pipeResponse'|'Route-pipeSQL'|'Route-pipeQuery'|'Route-pipeValidation'|'Route-setExcludeMiddlewares'|'Route-setExcludeHeaders'|'Route-setParamRule'|'Route-setCSP'|'Route-pipeHeader'|'Route-removeHeader'|'Route-route' $errType
+     * @param 'Route-setParamRulePolymorphic'|'Method-setParamRulePolymorphic'|'Global-setParamRulePolymorphic'|'Global-setDebug'|'Route-pipeCompiledQuery'|'Route-pipeCompiledSQL'|'Route-pipeCompiledValidation'|'Global-setCompileFlag'|'Global-setGroupPipeUserdefined'|'Global-setGroupPipeRequest'|'Global-setGroupPipePostResponse'|'Global-setGroupPipeRoute'|'Global-setGroupPipeMiddlewares'|'Global-setINI_SET'|'Global-setNonces'|'Global-setCSP'|'Global-setSRIInternal'|'Global-setSRIExternal'|'Global-setNoRouteMatchPage'|'Global-setNoRouteMatchJSON'|'Global-setNoRouteMatchText'|'Global-setNoRouteMatchCallback'|'Global-setDefaultRegisteredShutdownHandler'|'Global-setDefaultExceptionHandler'|'Global-setDefaultErrorHandler'|'Global-setDefaultURI_NormalizerHandler'|'Global-setDefaultKernelHandler'|'Global-setBaseURLLocal'|'Global-setBaseURLOnline'|'Global-setBaseURLHost'|'Global-setBaseURLUri'|'Global-setSessionDriver'|'Global-setSessionCookieOptions'|'Global-setSessionCookieName'|'Global-setSessionCookieLifetime'|'Global-setSessionCookiePath'|'Global-setSessionCookieDomain'|'Global-setSessionCookieSecure'|'Global-setSessionCookieHTTPOnly'|'Global-setSessionCookieSameSite'|'Global-setUseFunkPHPOnline'|'Global-setUseHTTPS'|'Global-setUseVendor'|'Global-setParamRule'|'Global-setHeader'|'Global-removeHeader'|'Global-pipeMiddleware'|'Global-pipeRequestFunction'|'Global-pipePostResponseFunction'|'Method-setNoRouteMatch'|'Method-setNoRouteMatchPage'|'Method-setNoRouteMatchJson'|'Method-setNoRouteMatchText'|'Method-setNoRouteMatchCallback'|'Method-setNonces'|'Method-setCSP'|'Method-setRateLimiting'|'Method-pipeMiddleware'|'Method-setHeader'|'Method-removeHeader'|'Method-setParamRule'|'Method-route'|'Route-setAlias'|'Route-setRateLimiting'|'Route-setCache'|'Route-setNonces'|'Route-pipeMiddleware'|'Route-pipeFunction'|'Route-pipeResponse'|'Route-pipeSQL'|'Route-pipeQuery'|'Route-pipeValidation'|'Route-setExcludeMiddlewares'|'Route-setExcludeHeaders'|'Route-setParamRule'|'Route-setCSP'|'Route-setHeader'|'Route-removeHeader'|'Route-route' $errType
      * @param 'GET'|'POST'|'PUT'|'PATCH'|'DELETE'|'HEAD'|null $method
      * @param string|null $route
      *
@@ -3813,7 +3819,7 @@ class C
             'Global-setUseVendor',
             'Global-setParamRule',
             'Global-setParamRulePolymorphic',
-            'Global-pipeHeader',
+            'Global-setHeader',
             'Global-removeHeader',
             'Global-pipeMiddleware',
             'Global-pipeRequestFunction',
@@ -3827,7 +3833,7 @@ class C
             'Method-setCSP',
             'Method-setRateLimiting',
             'Method-pipeMiddleware',
-            'Method-pipeHeader',
+            'Method-setHeader',
             'Method-removeHeader',
             'Method-setParamRule',
             'Method-setParamRulePolymorphic',
@@ -3850,7 +3856,7 @@ class C
             'Route-setParamRule',
             'Route-setParamRulePolymorphic',
             'Route-setCSP',
-            'Route-pipeHeader',
+            'Route-setHeader',
             'Route-removeHeader',
             'Route-route',
         ];
@@ -3858,7 +3864,7 @@ class C
         // No error (or valid) type
         if (!is_string($errType) || trim($errType) === '' || !in_array($errType, $validErrTypes)) {
             $this->errors['ERRORS']++;
-            $this->errors['INTERNAL'][count($this->errors['INTERNAL']) + 1] = ['type' => 'internal', 'err' => 'Invalid \$type (Error Type) Value in `class C->setErr()` when setting Error:\'`' . $errMsg . '`\' Report this found bug/issue to the Official FunkPHP Repositories. Choose a `Valid Error Type` from: ' . $this->joinArray($validErrTypes), 'method' => $method, 'route' => $route];
+            $this->errors['INTERNAL'][count($this->errors['INTERNAL']) + 1] = ['type' => 'internal', 'err' => 'Invalid `\$type` (Error Type) Value (OR it is missing) in `class C->setErr()` when setting Error:\'`' . $errMsg . '`\' Report this found bug/issue to the Official FunkPHP Repositories. Choose a `Valid Error Type` from: ' . $this->joinArray($validErrTypes), 'method' => $method, 'route' => $route];
             return;
         }
         // No method (or valid) provided for Method- & Route-related errors (since Route always needs Method)
@@ -3868,7 +3874,7 @@ class C
                 || trim($method) === '' || !in_array($method, $validMethodTypes))
         ) {
             $this->errors['ERRORS']++;
-            $this->errors['INTERNAL'][count($this->errors['INTERNAL']) + 1] = ['type' => 'internal', 'err' => 'Invalid \$method (Method Type) Value in `class C->setErr()`: must be provided when Error Type starts with `Method-` OR `Route-`. Report this found bug/issue to the Official FunkPHP Repositories. Choose a `Valid Error Type` from: ' . $this->joinArray($validMethodTypes), 'method' => $method, 'route' => $route];
+            $this->errors['INTERNAL'][count($this->errors['INTERNAL']) + 1] = ['type' => 'internal', 'err' => 'Invalid `\$method` (Method Type) Value (OR it is missing) in `class C->setErr()`: must be provided when Error Type starts with `Method-` OR `Route-`. Report this found bug/issue to the Official FunkPHP Repositories. Choose a `Valid Error Type` from: ' . $this->joinArray($validMethodTypes), 'method' => $method, 'route' => $route];
             return;
         }
         if (
@@ -3877,7 +3883,7 @@ class C
                 || trim($route) === '')
         ) {
             $this->errors['ERRORS']++;
-            $this->errors['INTERNAL'][count($this->errors['INTERNAL']) + 1] = ['type' => 'internal', 'err' => 'Invalid \$route Value in `class C->setErr()`: must be provided when Error Type starts with `Route-`. Report this found bug/issue to the Official FunkPHP Repositories.', 'method' => $method, 'route' => $route];
+            $this->errors['INTERNAL'][count($this->errors['INTERNAL']) + 1] = ['type' => 'internal', 'err' => 'Invalid `\$route` Value (OR it is missing) in `class C->setErr()`: must be provided when Error Type starts with `Route-`. Report this found bug/issue to the Official FunkPHP Repositories.', 'method' => $method, 'route' => $route];
             return;
         }
         // = get next error index depending on CONFIG, a METHODS CONFIG, or a METHODS ROUTES
@@ -3941,7 +3947,7 @@ class C
      * Choose Error Type based on scope (global, method, route) and optional method and route when applicable.
      *
      * @param string $errMsg
-     * @param 'Internal'|'Global-setDebug'|'Route-pipeCompiledQuery'|'Route-pipeCompiledSQL'|'Route-pipeCompiledValidation'|'Global-setCompileFlag'|'Global-setGroupPipeUserdefined'|'Global-setGroupPipeRequest'|'Global-setGroupPipePostResponse'|'Global-setGroupPipeRoute'|'Global-setGroupPipeMiddlewares'|'Global-setINI_SET'|'Global-setNonces'|'Global-setCSP'|'Global-setSRIInternal'|'Global-setSRIExternal'|'Global-setNoRouteMatchPage'|'Global-setNoRouteMatchJSON'|'Global-setNoRouteMatchText'|'Global-setNoRouteMatchCallback'|'Global-setDefaultRegisteredShutdownHandler'|'Global-setDefaultExceptionHandler'|'Global-setDefaultErrorHandler'|'Global-setDefaultURI_NormalizerHandler'|'Global-setDefaultKernelHandler'|'Global-setBaseURLLocal'|'Global-setBaseURLOnline'|'Global-setBaseURLHost'|'Global-setBaseURLUri'|'Global-setSessionDriver'|'Global-setSessionCookieOptions'|'Global-setSessionCookieName'|'Global-setSessionCookieLifetime'|'Global-setSessionCookiePath'|'Global-setSessionCookieDomain'|'Global-setSessionCookieSecure'|'Global-setSessionCookieHTTPOnly'|'Global-setSessionCookieSameSite'|'Global-setUseFunkPHPOnline'|'Global-setUseHTTPS'|'Global-setUseVendor'|'Global-setParamRule'|'Global-pipeHeader'|'Global-removeHeader'|'Global-pipeMiddleware'|'Global-pipeRequestFunction'|'Global-pipePostResponseFunction'|'Method-setNoRouteMatch'|'Method-setNoRouteMatchPage'|'Method-setNoRouteMatchJson'|'Method-setNoRouteMatchText'|'Method-setNoRouteMatchCallback'|'Method-setNonces'|'Method-setCSP'|'Method-setRateLimiting'|'Method-pipeMiddleware'|'Method-pipeHeader'|'Method-removeHeader'|'Method-setParamRule'|'Method-route'|'Route-setAlias'|'Route-setRateLimiting'|'Route-setCache'|'Route-setNonces'|'Route-pipeMiddleware'|'Route-pipeFunction'|'Route-pipeResponse'|'Route-pipeSQL'|'Route-pipeQuery'|'Route-pipeValidation'|'Route-setExcludeMiddlewares'|'Route-setExcludeHeaders'|'Route-setParamRule'|'Route-setCSP'|'Route-pipeHeader'|'Route-removeHeader'|'Route-route' $errType
+     * @param 'Internal'|'Global-setDebug'|'Route-pipeCompiledQuery'|'Route-pipeCompiledSQL'|'Route-pipeCompiledValidation'|'Global-setCompileFlag'|'Global-setGroupPipeUserdefined'|'Global-setGroupPipeRequest'|'Global-setGroupPipePostResponse'|'Global-setGroupPipeRoute'|'Global-setGroupPipeMiddlewares'|'Global-setINI_SET'|'Global-setNonces'|'Global-setCSP'|'Global-setSRIInternal'|'Global-setSRIExternal'|'Global-setNoRouteMatchPage'|'Global-setNoRouteMatchJSON'|'Global-setNoRouteMatchText'|'Global-setNoRouteMatchCallback'|'Global-setDefaultRegisteredShutdownHandler'|'Global-setDefaultExceptionHandler'|'Global-setDefaultErrorHandler'|'Global-setDefaultURI_NormalizerHandler'|'Global-setDefaultKernelHandler'|'Global-setBaseURLLocal'|'Global-setBaseURLOnline'|'Global-setBaseURLHost'|'Global-setBaseURLUri'|'Global-setSessionDriver'|'Global-setSessionCookieOptions'|'Global-setSessionCookieName'|'Global-setSessionCookieLifetime'|'Global-setSessionCookiePath'|'Global-setSessionCookieDomain'|'Global-setSessionCookieSecure'|'Global-setSessionCookieHTTPOnly'|'Global-setSessionCookieSameSite'|'Global-setUseFunkPHPOnline'|'Global-setUseHTTPS'|'Global-setUseVendor'|'Global-setParamRule'|'Global-setHeader'|'Global-removeHeader'|'Global-pipeMiddleware'|'Global-pipeRequestFunction'|'Global-pipePostResponseFunction'|'Method-setNoRouteMatch'|'Method-setNoRouteMatchPage'|'Method-setNoRouteMatchJson'|'Method-setNoRouteMatchText'|'Method-setNoRouteMatchCallback'|'Method-setNonces'|'Method-setCSP'|'Method-setRateLimiting'|'Method-pipeMiddleware'|'Method-setHeader'|'Method-removeHeader'|'Method-setParamRule'|'Method-route'|'Route-setAlias'|'Route-setRateLimiting'|'Route-setCache'|'Route-setNonces'|'Route-pipeMiddleware'|'Route-pipeFunction'|'Route-pipeResponse'|'Route-pipeSQL'|'Route-pipeQuery'|'Route-pipeValidation'|'Route-setExcludeMiddlewares'|'Route-setExcludeHeaders'|'Route-setParamRule'|'Route-setCSP'|'Route-setHeader'|'Route-removeHeader'|'Route-route' $errType
      * @param 'GET'|'POST'|'PUT'|'PATCH'|'DELETE'|'HEAD'|null $method
      * @param string|null $route
      *
@@ -3987,7 +3993,7 @@ class C
             'Global-setUseHTTPS',
             'Global-setUseVendor',
             'Global-setParamRule',
-            'Global-pipeHeader',
+            'Global-setHeader',
             'Global-removeHeader',
             'Global-pipeMiddleware',
             'Global-pipeRequestFunction',
@@ -4001,7 +4007,7 @@ class C
             'Method-setCSP',
             'Method-setRateLimiting',
             'Method-pipeMiddleware',
-            'Method-pipeHeader',
+            'Method-setHeader',
             'Method-removeHeader',
             'Method-setParamRule',
             'Method-route',
@@ -4022,7 +4028,7 @@ class C
             'Route-setExcludeHeaders',
             'Route-setParamRule',
             'Route-setCSP',
-            'Route-pipeHeader',
+            'Route-setHeader',
             'Route-removeHeader',
             'Route-route',
         ];
@@ -5580,14 +5586,14 @@ class C
         // Store header to be removed from Global level (->config())
         $this->validBatches['config']['headers']['remove'][$lowerHeader] = $headerName;
     }
-    private function batchPipeHeaderGlobal(string $header, string $value)
+    private function batchSetHeaderGlobal(string $header, string $value)
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'pipeHeader', "CONFIG()", $header, $value);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setHeader', "CONFIG()", $header, $value);
         $headerName  = trim($header);
         $headerValue = trim($value);
         $lowerHeader = strtolower($headerName);
         if (isset($this->invalidBatches['headers']['config']['add'][$lowerHeader])) {
-            $this->setErr($this->getErr('DuplicateCallInvalidMustBeSetWithDifferentValues', $ctx) . " Each `Header Name` must be unique (case-insensitive).", 'Global-pipeHeader');
+            $this->setErr($this->getErr('DuplicateCallInvalidMustBeSetWithDifferentValues', $ctx) . " Each `Header Name` must be unique (case-insensitive).", 'Global-setHeader');
             return;
         }
         // Forbid possible CRLF injection
@@ -5597,17 +5603,21 @@ class C
             || str_contains($headerName, "\r") || str_contains($headerName, "\n")
             || str_contains($headerValue, "\r") || str_contains($headerValue, "\n")
         ) {
-            $this->setErr($this->getErr('InvalidAddHeaderFormat', $ctx), 'Global-pipeHeader');
+            $this->setErr($this->getErr('InvalidAddHeaderFormat', $ctx), 'Global-setHeader');
             $this->invalidBatches['headers']['config']['add'][$lowerHeader] = true;
             return;
         }
+        if (in_array($lowerHeader, $this->FORBIDDEN['headers'], true)) {
+            $this->setErr($this->getErr('ForbiddenResponseHeaders', $ctxVals) . " Header Name `'{$lowerHeader}'` is a Forbidden Response Header along with: " . $this->joinArray($this->FORBIDDEN['headers']) . '.', 'Global-setHeader');
+            return;
+        }
         if (isset($this->validBatches['config']['headers']['add'][$lowerHeader])) {
-            $this->setErr($this->getErr('DuplicateCallValidMustBeSetWithDifferentValues', $ctxVals) . " Each `Header Name` must be unique (case-insensitive).", 'Global-pipeHeader');
+            $this->setErr($this->getErr('DuplicateCallValidMustBeSetWithDifferentValues', $ctxVals) . " Each `Header Name` must be unique (case-insensitive).", 'Global-setHeader');
             return;
         }
         // Cannot add a header that was first meant to be removed
         if (isset($this->validBatches['config']['headers']['remove'][$lowerHeader])) {
-            $this->setErr($this->getErr('ConflictPipeRemovedHeader', $ctxVals), 'Global-pipeHeader');
+            $this->setErr($this->getErr('ConflictPipeRemovedHeader', $ctxVals), 'Global-setHeader');
             $this->invalidBatches['headers']['config']['add'][$lowerHeader] = true;
             return;
         }
@@ -6042,14 +6052,14 @@ class C
     }
 
     /*METHOD: removeHeader & pipeHeader */
-    private function batchPipeHeaderMethod(string $method, string $header, $value)
+    private function batchSetHeaderMethod(string $method, string $header, $value)
     {
-        [$ctx, $ctxVals] = $this->setCtx($method, null, 'pipeHeader', "ROUTES()->{$method}()", $header, $value);
+        [$ctx, $ctxVals] = $this->setCtx($method, null, 'setHeader', "ROUTES()->{$method}()", $header, $value);
         $headerName  = $header;
         $headerValue = $value;
         $lowerHeader = strtolower($headerName);
         if (isset($this->invalidBatches['headers']['methods'][$method]['add'][$header])) {
-            $this->setErr($this->getErr('DuplicateCallInvalidMustBeSetWithDifferentValues', $ctx) . " Each `Header Name` must be unique (case-insensitive).", 'Method-pipeHeader', $method);
+            $this->setErr($this->getErr('DuplicateCallInvalidMustBeSetWithDifferentValues', $ctx) . " Each `Header Name` must be unique (case-insensitive).", 'Method-setHeader', $method);
             return;
         }
         // Forbid possible CRLF injection
@@ -6059,18 +6069,22 @@ class C
             || str_contains($headerName, "\r") || str_contains($headerName, "\n")
             || str_contains($headerValue, "\r") || str_contains($headerValue, "\n")
         ) {
-            $this->setErr($this->getErr('InvalidAddHeaderFormat', $ctx), 'Method-pipeHeader', $method);
+            $this->setErr($this->getErr('InvalidAddHeaderFormat', $ctx), 'Method-setHeader', $method);
             $this->invalidBatches['headers']['methods'][$method]['add'][$lowerHeader] = true;
+            return;
+        }
+        if (in_array($lowerHeader, $this->FORBIDDEN['headers'], true)) {
+            $this->setErr($this->getErr('ForbiddenResponseHeaders', $ctxVals) . " Header Name `'{$lowerHeader}'` is a Forbidden Response Header along with: " . $this->joinArray($this->FORBIDDEN['headers']) . '.', 'Method-setHeader', $method);
             return;
         }
         // Check if it already exists
         if (isset($this->validBatches['methods'][$method]['headers']['add'][$lowerHeader])) {
-            $this->setErr($this->getErr('DuplicateCallValidMustBeSetWithDifferentValues', $ctxVals) . " Each `Header Name` must be unique (case-insensitive).", 'Method-pipeHeader', $method);
+            $this->setErr($this->getErr('DuplicateCallValidMustBeSetWithDifferentValues', $ctxVals) . " Each `Header Name` must be unique (case-insensitive).", 'Method-setHeader', $method);
             return;
         }
         // Cannot add a header that was first meant to be removed
         if (isset($this->validBatches['methods'][$method]['headers']['remove'][$lowerHeader])) {
-            $this->setErr($this->getErr('ConflictPipeRemovedHeader', $ctxVals), 'Method-pipeHeader', $method);
+            $this->setErr($this->getErr('ConflictPipeRemovedHeader', $ctxVals), 'Method-setHeader', $method);
             $this->invalidBatches['headers']['methods'][$method]['add'][$lowerHeader] = true;
             return;
         }
@@ -7000,12 +7014,12 @@ class C
 
     /*ROUTE: pipeHeader & removeHeader */
     /*ROUTE: setpipeHeaderRoute*/
-    private function batchPipeHeaderRoute(string $method, string $route, string $header, $value)
+    private function batchSetHeaderRoute(string $method, string $route, string $header, $value)
     {
-        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'pipeHeader', "ROUTES()->{$method}()->ROUTE('{$route}')", $header);
+        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'setHeader', "ROUTES()->{$method}()->ROUTE('{$route}')", $header);
         // Route must be valid first
         if (isset($this->invalidBatches['routes'][$method][$route])) {
-            $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route-pipeHeader', $method, $route);
+            $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route-setHeader', $method, $route);
             return;
         }
         $headerName  = $header;
@@ -7013,7 +7027,7 @@ class C
         $lowerHeader = strtolower($headerName);
         // Then check against valid/invalid batches
         if (isset($this->invalidBatches['headers']['routes'][$method][$route]['add'][$lowerHeader])) {
-            $this->setErr($this->getErr('DuplicateCallInvalidMustBeSetWithDifferentValues', $ctx) . " Each `Header Name` must be unique (case-insensitive).", 'Route-pipeHeader', $method, $route);
+            $this->setErr($this->getErr('DuplicateCallInvalidMustBeSetWithDifferentValues', $ctx) . " Each `Header Name` must be unique (case-insensitive).", 'Route-setHeader', $method, $route);
             return;
         }
         // Forbid possible CRLF injection
@@ -7023,23 +7037,27 @@ class C
             || str_contains($headerName, "\r") || str_contains($headerName, "\n")
             || str_contains($headerValue, "\r") || str_contains($headerValue, "\n")
         ) {
-            $this->setErr($this->getErr('InvalidAddHeaderFormat', $ctx), 'Route-pipeHeader', $method, $route);
+            $this->setErr($this->getErr('InvalidAddHeaderFormat', $ctx), 'Route-setHeader', $method, $route);
             $this->invalidBatches['headers']['routes'][$method][$route]['add'][$lowerHeader] = true;
+            return;
+        }
+        if (in_array($lowerHeader, $this->FORBIDDEN['headers'], true)) {
+            $this->setErr($this->getErr('ForbiddenResponseHeaders', $ctxVals) . " Header Name `'{$lowerHeader}'` is a Forbidden Response Header along with: " . $this->joinArray($this->FORBIDDEN['headers']) . '.', 'Route-setHeader', $method, $route);
             return;
         }
         // First check if it already exists
         if (isset($this->validBatches['routes'][$method][$route]['headers']['add'][$lowerHeader])) {
-            $this->setErr($this->getErr('DuplicateCallValidMustBeSetWithDifferentValues', $ctxVals) . " Each `Header Name` must be unique (case-insensitive).", 'Route-pipeHeader', $method, $route);
+            $this->setErr($this->getErr('DuplicateCallValidMustBeSetWithDifferentValues', $ctxVals) . " Each `Header Name` must be unique (case-insensitive).", 'Route-setHeader', $method, $route);
             return;
         }
         if (in_array($lowerHeader, ($this->validBatches['routes'][$method][$route]['excludeHeaders'] ?? []), true)) {
-            $this->setErr($this->getErr('ConflictingPipeHeaderWithAlreadyExcludeHeaders', $ctxVals) . " Conflict: `->setExcludeHeaders('{$lowerHeader}')`.", 'Route-pipeHeader', $method, $route);
+            $this->setErr($this->getErr('ConflictingPipeHeaderWithAlreadyExcludeHeaders', $ctxVals) . " Conflict: `->setExcludeHeaders('{$lowerHeader}')`.", 'Route-setHeader', $method, $route);
             $this->invalidBatches['headers']['routes'][$method][$route]['add'][$lowerHeader] = true;
             return;
         }
         // Cannot add a header that was first meant to be removed
         if (isset($this->validBatches['routes'][$method][$route]['headers']['remove'][$lowerHeader])) {
-            $this->setErr($this->getErr('ConflictPipeRemovedHeader', $ctxVals), 'Route-pipeHeader', $method, $route);
+            $this->setErr($this->getErr('ConflictPipeRemovedHeader', $ctxVals), 'Route-setHeader', $method, $route);
             $this->invalidBatches['headers']['routes'][$method][$route]['add'][$lowerHeader] = true;
             return;
         }
@@ -8269,15 +8287,15 @@ class FunkConfig
     }
 
     /**
-     * Pipe a global response header to be sent on every response.
+     * Set a response Header that is applied globally (can be overwritten with a setHeader on a given Method AND on a given Route).
      *
-     * @param string $header Header Name (e.g., "X-Content-Type-Options")
+     * @param 'Accept-Ranges'|'Access-Control-Allow-Credentials'|'Access-Control-Allow-Headers'|'Access-Control-Allow-Methods'|'Access-Control-Allow-Origin'|'Access-Control-Expose-Headers'|'Access-Control-Max-Age'|'Age'|'Allow'|'Alt-Svc'|'Cache-Control'|'Clear-Site-Data'|'Content-Disposition'|'Content-Encoding'|'Content-Language'|'Content-Location'|'Content-Range'|'Content-Security-Policy'|'Content-Security-Policy-Report-Only'|'Content-Type'|'Cross-Origin-Embedder-Policy'|'Cross-Origin-Opener-Policy'|'Cross-Origin-Resource-Policy'|'ETag'|'Expires'|'Last-Modified'|'Location'|'Origin-Trial'|'Permissions-Policy'|'Pragma'|'Referrer-Policy'|'Retry-After'|'Server-Timing'|'Strict-Transport-Security'|'Timing-Allow-Origin'|'Vary'|'WWW-Authenticate'|'X-Content-Type-Options'|'X-Frame-Options'|'X-RateLimit-Limit'|'X-RateLimit-Remaining'|'X-RateLimit-Reset'|'X-Request-ID'|'X-XSS-Protection'|string $header Header Name
      * @param string $value Header Value (e.g., "nosniff")
      * @return $this
      */
-    public function pipeHeader(string $header, string $value): self
+    public function setHeader(string $header, string $value): self
     {
-        $this->c->batch('batchPipeHeaderGlobal', trim($header), trim($value));
+        $this->c->batch('batchSetHeaderGlobal', trim($header), trim($value));
         return $this;
     }
 
@@ -8604,15 +8622,15 @@ class FunkMethod
         return $this;
     }
     /**
-     * Pipe a response header to be sent for all routes under this HTTP method.
+     * Set a response Header that is applied on current HTTP Method (can be overwritten by a given matched Route AND/OR via `->setExcludeHeaders`).
      *
-     * @param string $header Header Name (e.g., "X-Content-Type-Options")
+     * @param 'Accept-Ranges'|'Access-Control-Allow-Credentials'|'Access-Control-Allow-Headers'|'Access-Control-Allow-Methods'|'Access-Control-Allow-Origin'|'Access-Control-Expose-Headers'|'Access-Control-Max-Age'|'Age'|'Allow'|'Alt-Svc'|'Cache-Control'|'Clear-Site-Data'|'Content-Disposition'|'Content-Encoding'|'Content-Language'|'Content-Location'|'Content-Range'|'Content-Security-Policy'|'Content-Security-Policy-Report-Only'|'Content-Type'|'Cross-Origin-Embedder-Policy'|'Cross-Origin-Opener-Policy'|'Cross-Origin-Resource-Policy'|'ETag'|'Expires'|'Last-Modified'|'Location'|'Origin-Trial'|'Permissions-Policy'|'Pragma'|'Referrer-Policy'|'Retry-After'|'Server-Timing'|'Strict-Transport-Security'|'Timing-Allow-Origin'|'Vary'|'WWW-Authenticate'|'X-Content-Type-Options'|'X-Frame-Options'|'X-RateLimit-Limit'|'X-RateLimit-Remaining'|'X-RateLimit-Reset'|'X-Request-ID'|'X-XSS-Protection'|string $header Header Name
      * @param string $value Header Value (e.g., "nosniff")
      * @return $this
      */
-    public function pipeHeader(string $header, string $value): self
+    public function setHeader(string $header, string $value): self
     {
-        $this->c->batch('batchPipeHeaderMethod', $this->method, trim($header), trim($value));
+        $this->c->batch('batchSetHeaderMethod', $this->method, trim($header), trim($value));
         return $this;
     }
     /**
@@ -8993,16 +9011,16 @@ class FunkRoute
         return $this;
     }
     /**
-     * Pipe a response header to be sent exclusively for this Route.
+     * Set a response header to be sent exclusively for this Route.
      *
-     * @param string $header Header Name (e.g., "X-Content-Type-Options")
+     * @param 'Accept-Ranges'|'Access-Control-Allow-Credentials'|'Access-Control-Allow-Headers'|'Access-Control-Allow-Methods'|'Access-Control-Allow-Origin'|'Access-Control-Expose-Headers'|'Access-Control-Max-Age'|'Age'|'Allow'|'Alt-Svc'|'Cache-Control'|'Clear-Site-Data'|'Content-Disposition'|'Content-Encoding'|'Content-Language'|'Content-Location'|'Content-Range'|'Content-Security-Policy'|'Content-Security-Policy-Report-Only'|'Content-Type'|'Cross-Origin-Embedder-Policy'|'Cross-Origin-Opener-Policy'|'Cross-Origin-Resource-Policy'|'ETag'|'Expires'|'Last-Modified'|'Location'|'Origin-Trial'|'Permissions-Policy'|'Pragma'|'Referrer-Policy'|'Retry-After'|'Server-Timing'|'Strict-Transport-Security'|'Timing-Allow-Origin'|'Vary'|'WWW-Authenticate'|'X-Content-Type-Options'|'X-Frame-Options'|'X-RateLimit-Limit'|'X-RateLimit-Remaining'|'X-RateLimit-Reset'|'X-Request-ID'|'X-XSS-Protection'|string $header Header Name
      * @param string $value Header Value (e.g., "nosniff")
      *
      * @return $this
      */
-    public function pipeHeader(string $header, string $value): self
+    public function setHeader(string $header, string $value): self
     {
-        $this->c->batch('batchPipeHeaderRoute', $this->method, $this->routePath, trim($header), trim($value));
+        $this->c->batch('batchSetHeaderRoute', $this->method, $this->routePath, trim($header), trim($value));
         return $this;
     }
     /**

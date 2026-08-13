@@ -16,7 +16,6 @@ $APP->CONFIG()
     // DEFAULT NoMatcheHandlers
     ->setNoRouteMatchPage("test")
     ->setNoRouteMatchCallback("testar1")
-    ->pipeHeader("Content-type", "application/json")
     ->setCSP('base-uri', 'none')
     ->setNonces('test', 'test2')
     // DEFAULT Global Handlers

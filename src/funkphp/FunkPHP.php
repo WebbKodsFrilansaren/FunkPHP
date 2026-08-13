@@ -49,11 +49,11 @@ if (is_object($FUNKPHP) && $FUNKPHP instanceof FunkPHP) {
     if ($shouldTriggerDump) {
         $toDump = [];
         $toDump['API'] = $fluent;
-        if (!$showMainConfig) {
-            $toDump['API']['CONFIG'] = '(' . (count($toDump['API']['CONFIG'])) . ' Configurations)';
-        }
         if ($errCount > 0) {
             $toDump['ERRORS'] = $errors;
+        }
+        if (!$showMainConfig) {
+            $toDump['API']['CONFIG'] = '(' . (count($toDump['API']['CONFIG'])) . ' Configurations)';
         }
         if ($warnCount > 0) {
             $toDump['WARNINGS'] = $warnings;
