@@ -3,5 +3,4 @@
 
 /** @var FunkPHP $APP */
 $APP->CONFIG()
-    ->setDebug(true, true, false)
-    ->pipeMiddleware("test");
+    ->setDebug(true, true, false);

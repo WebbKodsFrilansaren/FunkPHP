@@ -7317,15 +7317,8 @@ class C
         exit;
     }
 
-    // Function that generates HTML to then output an easier visualized version of current errors
-    // and/or warnings. It has TABS based upon what actually has errors/warnings. It starts with
-    // the tabs "CONFIG | GET | POST | PUT | DELETE | PATCH" and then inside of each Tab (Methods)
-    // there are errors for each <Method><Route>. $internalErrors are from $this->errors[] while
-    // $compileErrors & $compileWarnings are exclusively from private function compile() which then
-    // would be calling this function exclusively to provide those compile errors and/or warnings.
-    // Essentially it is a typical REST API Swagger but with errors/warnings below each <Method> => <Route> Tab.
-    // Errors use heavily the `` that should be replaced with colorized spans instead and thus also
-    // removing the `` after the fact. This helps with seeing what is important what is not.
+    // Function that generates HTML to then output an easier
+    // visualized version of current errors and/or warnings.
     private function output_errors(array $internalErrors = [], ?array $compileErrors = [], array $compileWarnings = [])
     {
         header("content-type: text/html; charset=utf-8");
@@ -7721,7 +7714,7 @@ class C
                                 $hasContent = true;
                             }
                         } else if ($tab === 'COMPILATION') {
-                            if (count(($compileErrors ?? [])) > 0) {
+                            if (count(($compileErrors ?? [])) > 0 || count($compileWarnings) > 0) {
                                 $hasContent = true;
                             }
                         } else if ($tab === 'INTERNAL') {
@@ -7774,7 +7767,7 @@ class C
                                 ?> <div class="route-group">
                                         <div class="route-header">Internal FunkPHP Errors (applies to all files in /src/funkphp/app)</div>
                                         <?php foreach ($INTERNAL_ERRS as $idx => $I_ERR) {
-                                        ?> <div class="issue-card">
+                                        ?> <div class="issue-card.warn">
                                                 <div class="issue-type">ERROR #<?= $idx ?></div>
                                                 <div class="issue-body"><?= $formatMsg($I_ERR['err']) ?></div>
                                             </div> <?php
@@ -7820,15 +7813,29 @@ class C
                                 // TAB IS "COMPILATION"?
                                 else if ($tab === 'COMPILATION') {
                                     $COMPILE_ERRS = $compileErrors ?? [];
-                                ?> <div class="route-group">
-                                        <div class="route-header">FunkPHP Compilation Errors (happens only if Zero Errors otherwise in all files in /src/funkphp/app)</div>
-                                        <?php foreach ($COMPILE_ERRS as $idx => $COMP_ERR) {
-                                        ?> <div class="issue-card">
-                                                <div class="issue-type">ERROR #<?= $idx ?></div>
-                                                <div class="issue-body"><?= $formatMsg($COMP_ERR) ?></div>
-                                            </div> <?php
-                                                } ?>
-                                    </div>
+                                    $COMPLE_WARNS = $compileWarnings ?? [];
+                                ?> <?php if (count($COMPILE_ERRS) > 0): ?>
+                                        <div class="route-group">
+                                            <div class="route-header">FunkPHP Compilation Errors (happens only if Zero Errors otherwise in all files in /src/funkphp/app)</div>
+                                            <?php foreach ($COMPILE_ERRS as $idx => $COMP_ERR) {
+                                            ?> <div class="issue-card">
+                                                    <div class="issue-type">ERROR #<?= $idx ?></div>
+                                                    <div class="issue-body"><?= $formatMsg($COMP_ERR) ?></div>
+                                                </div> <?php
+                                                    } ?>
+                                        </div>
+                                    <?php endif ?>
+                                    <?php if (count($COMPLE_WARNS) > 0): ?>
+                                        <div class="route-group">
+                                            <div class="route-header">FunkPHP Compilation Warnings (happens only if Zero Errors otherwise in all files in /src/funkphp/app)</div>
+                                            <?php foreach ($COMPLE_WARNS as $idx2 => $COMP_WARN) {
+                                            ?> <div class="issue-card warn">
+                                                    <div class="issue-type">WARNING #<?= $idx2 ?></div>
+                                                    <div class="issue-body"><?= $formatMsg($COMP_WARN) ?></div>
+                                                </div> <?php
+                                                    } ?>
+                                        </div>
+                                    <?php endif ?>
                                     <?php
                                 }
                                 // TAB IS <METHOD>?
@@ -7962,7 +7969,6 @@ class C
         // Otherwise, we dump API + Errors and exist early (default in dd()).
         // ------------------------------------------------------------------------------------------
         if ($this->errors['ERRORS'] > 0 || count($this->invalidBatches) > 0) {
-            $errCount = count($this->errors);
             $this->output_errors($this->errors, $this->compileErrors, $this->compileWarnings);
         }
 
@@ -8467,6 +8473,10 @@ class C
         ) {
             $this->FunkPHPFluentAPI['CONFIG'] = '(' . (count($this->FunkPHPFluentAPI['CONFIG'])) . ' Configuration' . (count($this->FunkPHPFluentAPI['CONFIG']) > 1 ? 's' : '') . ') - Show all Configuration by setting third Boolean in `CONFIG()->setDebug()` in `/src/funkphp/app/CONFIG.php` to `true`.';
         }
+        if (count($this->compileErrors) > 0 || $this->debug['ALWAYS_SHOW']) {
+            $this->output_errors($this->errors, $this->compileErrors, $this->compileWarnings);
+        }
+
         dd(['COMPILE FLAGS' => $this->compileFlags, 'API' => $this->FunkPHPFluentAPI, 'COMPILE_ERRORS' => $compileErrors, 'COMPILE_WARNINGS' => $this->compileWarnings, 'COMPILED' => $this->compiled, 'VALID' => $this->validBatches,  'CACHED' => $this->cached], "COMPILATION - DEBUG", true);
     }
     private function run()

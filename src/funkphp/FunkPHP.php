@@ -46,6 +46,16 @@ if (is_object($FUNKPHP) && $FUNKPHP instanceof FunkPHP) {
     $showAll            = $debug['SHOW_ALL'] ?? false;
     $hasErrorsToReport = ($errCount > 0);
     $shouldTriggerDump = $hasErrorsToReport || ($isDebugOn && $alwaysShow);
+    // Attempt running Class C->compile() which meaning it will attempt
+    // compiling first and then run right after it if no errors occurs.
+    if ($errCount === 0) {
+        $compileAndRun = new ReflectionMethod($cInstance, 'compile');
+        $compileAndRun->setAccessible(true);
+        $compileAndRun->invoke($cInstance);
+    }
+    $compileErrs = $getProp('compileErrors') ?? [];
+    $compileWarns = $getProp('compileWarnings') ?? [];
+    $warnings = $getProp('WARNINGS') ?? [];
     if ($shouldTriggerDump) {
         $toDump = [];
         $toDump['API'] = $fluent;
@@ -81,14 +91,7 @@ if (is_object($FUNKPHP) && $FUNKPHP instanceof FunkPHP) {
         //dd($toDump, $title, false);
         $outputErrWarns = new ReflectionMethod($cInstance, 'output_errors');
         $outputErrWarns->setAccessible(true);
-        $outputErrWarns->invoke($cInstance, $toDump);
-    }
-    // Attempt running Class C->compile() which meaning it will attempt
-    // compiling first and then run right after it if no errors occurs.
-    if ($errCount === 0) {
-        $compileAndRun = new ReflectionMethod($cInstance, 'compile');
-        $compileAndRun->setAccessible(true);
-        $compileAndRun->invoke($cInstance);
+        $outputErrWarns->invoke($cInstance, $toDump, $compileErrs, $compileWarns);
     }
 
     // Only here we consider loading validated user-defined functions&classes
