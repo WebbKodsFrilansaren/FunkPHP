@@ -1860,16 +1860,48 @@ function funk_db_conn(&$c, $dbKey)
 */
 class C
 {
-    // The actual written config line by line starting with FunkPHP()
+    // ARRAY LISTS of $FORBIDDEN and $ALLOWED
     private array $FORBIDDEN = [
         'headers' => ['set-cookie', 'content-length', 'transfer-encoding', 'connection'],
-        'funk_functions_in_regular_functions' => [
+        'functions_in_regular_functions' => [
             'funk_session_started_or_start_it',
             'funk_session_cookie_set',
             'funk_default_exception_handler',
-            'funk_default_register_shutdown_function'
+            'register_shutdown_function',
+            'set_exception_handler',
+            'set_error_handler',
         ],
     ];
+    private array $ALLOWED = [
+        'csp-directives' => [ // used by setCSP()
+            'default-src',
+            'script-src',
+            'script-src-elem',
+            'script-src-attr',
+            'style-src',
+            'style-src-elem',
+            'style-src-attr',
+            'img-src',
+            'font-src',
+            'connect-src',
+            'media-src',
+            'object-src',
+            'child-src',
+            'frame-src',
+            'worker-src',
+            'manifest-src',
+            'prefetch-src',
+            'base-uri',
+            'form-action',
+            'frame-ancestors',
+            'sandbox',
+            'require-trusted-types-for',
+            'trusted-types',
+            'report-uri',
+            'report-to'
+        ]
+    ];
+    // The actual written config line by line starting with FunkPHP()
     public array $FunkPHPFluentAPI = [
         'CONFIG' => [],
         'METHODS' => []
@@ -2921,7 +2953,10 @@ class C
         $tokens = PhpToken::tokenize("<?php " . $bodyCode);
         $count = count($tokens);
         $dangerousFuncs = (!empty($dangerousFNsDeclared) ? $dangerousFNsDeclared :  ['shell_exec', 'exec', 'system', 'passthru', 'proc_open', 'popen', 'pcntl_exec', 'base64_decode']);
-        $invalidFunkCallsInFNs = $this->FORBIDDEN['funk_functions_in_regular_functions'];
+        $invalidFunkCallsInFNs = $this->FORBIDDEN['functions_in_regular_functions'];
+        $hasSetExceptionHandler = false;
+        $hasSetErrorHandler = false;
+        $hasSetRegisterShutdownFunction = false;
         $firstSignificantTokenId = null;
         $firstSignificantTokenText = null;
         $startsWithReturn = false;
@@ -3122,15 +3157,25 @@ class C
                         'line' => $lineNo,
                         'args' => trim($argsString)
                     ];
-                    if (str_starts_with(strtolower($calledName), 'funk_')) {
+                    if (str_starts_with($loweredName, 'funk_')) {
                         $funkCalls[] = [
                             'name' => $calledName,
                             'line' => $lineNo,
                             'args' => trim($argsString)
                         ];
-                        if (in_array($calledName, $invalidFunkCallsInFNs)) {
-                            $hasInvalidFunkCalls = true;
-                        }
+                    }
+                    if (in_array($loweredName, $invalidFunkCallsInFNs)) {
+                        $hasInvalidFunkCalls = true;
+                        $invalidFunkCalls[] = $calledName;
+                    }
+                    if ($loweredName === 'set_exception_handler') {
+                        $hasSetExceptionHandler = true;
+                    }
+                    if ($loweredName === 'set_error_handler') {
+                        $hasSetErrorHandler = true;
+                    }
+                    if ($loweredName === 'register_shutdown_function') {
+                        $hasSetRegisterShutdownFunction = true;
                     }
                 }
             }
@@ -3258,6 +3303,9 @@ class C
             'dangerous_calls' => $dangerousCalls,
             'only_whitespace_and_or_comments' => $hasOnlyCommentsOrWhiteSpace,
             'has_variable_vars'    => $hasVariableVars,
+            'has_set_error_hankder' => $hasSetErrorHandler,
+            'has_set_exception_handler' => $hasSetExceptionHandler,
+            'has_register_shutdown_function' => $hasSetRegisterShutdownFunction,
             'calls'                => $calls,
             'funk_calls' => $funkCalls,
             'invalid_funk_calls' => $invalidFunkCalls,
@@ -3580,6 +3628,18 @@ class C
         if ($FN['has_inner_functions'] === true) {
             return "File Function Error in {$contextLabel}: Function `{$expectedFNName}()` in File `$relativePath` cannot have Inner Function Declarations (e.g. `function name(&\$c){ function inner(&\$c){} }`). See line(s): `" . join(', ', $FN['nested_function_lines']) . "` in the File.";
         }
+        if ($FN['has_set_error_hankder']) {
+            return "File Function Error in {$contextLabel}: Function `{$expectedFNName}()` in File `$relativePath` has `Forbidden Function 'set_error_handler'` which must instead be set with `->setDefaultErrorHandler('FN_From_/src/funkphp/config/functions.php>')` under `->CONFIG()` in `/src/funkphp/app/CONFIG.php`.";
+        }
+        if ($FN['has_set_exception_handler']) {
+            return "File Function Error in {$contextLabel}: Function `{$expectedFNName}()` in File `$relativePath` has `Forbidden Function 'set_exception_handler'` which must instead be set with `->setDefaultExceptionHandler('FN_From_/src/funkphp/config/functions.php>')` under `->CONFIG()` in `/src/funkphp/app/CONFIG.php`.";
+        }
+        if ($FN['has_register_shutdown_function']) {
+            return "File Function Error in {$contextLabel}: Function `{$expectedFNName}()` in File `$relativePath` has `Forbidden Function 'register_shutdown_function'` which must instead be set with `->pipePostResponseFunction('<FN_From_/src/funkphp/pipes/post_response/FileName.php>')` under `->CONFIG()` in `/src/funkphp/app/CONFIG.php`. They are added using the in-built `register_shutdown_function()` and are executed in such order. `IMPORTANT:` Remember that any use of `exit()` in those `Piped Post-Response Function(s)` will make the remaining (if any) to NOT run Post-Response!";
+        }
+        if ($FN['has_invalid_funk_calls']) {
+            return "File Function Error in {$contextLabel}: Function `{$expectedFNName}()` in File `$relativePath` has `Forbidden Function(s): `" . $this->joinArray($FN['invalid_funk_calls']) . ". Some of these Functions are set under `->CONFIG()` in `/src/funkphp/app/CONFIG.php` while others are not meant to be called inside the `pipes` of a given Matched Route but are meant instead to be used internally by FunkPHP.";
+        }
         return null; // Function File for FunkPHP use is all OK here! - Warnings are emitted by another function
     }
     private function validateCLASSFile(array $fileData, string $expectedFNName, string $contextLabel, string $expectedNSName = '', bool $singleFNExpected = false): ?string
@@ -3852,7 +3912,6 @@ class C
             'Global-setNoRouteMatchJSON',
             'Global-setNoRouteMatchText',
             'Global-setNoRouteMatchCallback',
-            'Global-setDefaultRegisteredShutdownHandler',
             'Global-setDefaultExceptionHandler',
             'Global-setDefaultErrorHandler',
             'Global-setDefaultURI_NormalizerHandler',
@@ -4003,7 +4062,7 @@ class C
      * Choose Error Type based on scope (global, method, route) and optional method and route when applicable.
      *
      * @param string $errMsg
-     * @param 'Internal'|'Global-setDebug'|'Route-pipeCompiledQuery'|'Route-pipeCompiledSQL'|'Route-pipeCompiledValidation'|'Global-setCompileFlag'|'Global-setGroupPipeUserdefined'|'Global-setGroupPipeRequest'|'Global-setGroupPipePostResponse'|'Global-setGroupPipeRoute'|'Global-setGroupPipeMiddlewares'|'Global-setINI_SET'|'Global-setNonces'|'Global-setCSP'|'Global-setSRIInternal'|'Global-setSRIExternal'|'Global-setNoRouteMatchPage'|'Global-setNoRouteMatchJSON'|'Global-setNoRouteMatchText'|'Global-setNoRouteMatchCallback'|'Global-setDefaultRegisteredShutdownHandler'|'Global-setDefaultExceptionHandler'|'Global-setDefaultErrorHandler'|'Global-setDefaultURI_NormalizerHandler'|'Global-setDefaultKernelHandler'|'Global-setBaseURLLocal'|'Global-setBaseURLOnline'|'Global-setBaseURLHost'|'Global-setBaseURLUri'|'Global-setSessionDriver'|'Global-setSessionCookieOptions'|'Global-setSessionCookieName'|'Global-setSessionCookieLifetime'|'Global-setSessionCookiePath'|'Global-setSessionCookieDomain'|'Global-setSessionCookieSecure'|'Global-setSessionCookieHTTPOnly'|'Global-setSessionCookieSameSite'|'Global-setUseFunkPHPOnline'|'Global-setUseHTTPS'|'Global-setUseVendor'|'Global-setParamRule'|'Global-setHeader'|'Global-removeHeader'|'Global-pipeMiddleware'|'Global-pipeRequestFunction'|'Global-pipePostResponseFunction'|'Method-setNoRouteMatch'|'Method-setNoRouteMatchPage'|'Method-setNoRouteMatchJson'|'Method-setNoRouteMatchText'|'Method-setNoRouteMatchCallback'|'Method-setNonces'|'Method-setCSP'|'Method-setRateLimiting'|'Method-pipeMiddleware'|'Method-setHeader'|'Method-removeHeader'|'Method-setParamRule'|'Method-route'|'Route-setAlias'|'Route-setRateLimiting'|'Route-setCache'|'Route-setNonces'|'Route-pipeMiddleware'|'Route-pipeFunction'|'Route-pipeResponse'|'Route-pipeSQL'|'Route-pipeQuery'|'Route-pipeValidation'|'Route-setExcludeMiddlewares'|'Route-setExcludeHeaders'|'Route-setParamRule'|'Route-setCSP'|'Route-setHeader'|'Route-removeHeader'|'Route-route' $errType
+     * @param 'Internal'|'Global-setDebug'|'Route-pipeCompiledQuery'|'Route-pipeCompiledSQL'|'Route-pipeCompiledValidation'|'Global-setCompileFlag'|'Global-setGroupPipeUserdefined'|'Global-setGroupPipeRequest'|'Global-setGroupPipePostResponse'|'Global-setGroupPipeRoute'|'Global-setGroupPipeMiddlewares'|'Global-setINI_SET'|'Global-setNonces'|'Global-setCSP'|'Global-setSRIInternal'|'Global-setSRIExternal'|'Global-setNoRouteMatchPage'|'Global-setNoRouteMatchJSON'|'Global-setNoRouteMatchText'|'Global-setNoRouteMatchCallback'|'Global-setDefaultExceptionHandler'|'Global-setDefaultErrorHandler'|'Global-setDefaultURI_NormalizerHandler'|'Global-setDefaultKernelHandler'|'Global-setBaseURLLocal'|'Global-setBaseURLOnline'|'Global-setBaseURLHost'|'Global-setBaseURLUri'|'Global-setSessionDriver'|'Global-setSessionCookieOptions'|'Global-setSessionCookieName'|'Global-setSessionCookieLifetime'|'Global-setSessionCookiePath'|'Global-setSessionCookieDomain'|'Global-setSessionCookieSecure'|'Global-setSessionCookieHTTPOnly'|'Global-setSessionCookieSameSite'|'Global-setUseFunkPHPOnline'|'Global-setUseHTTPS'|'Global-setUseVendor'|'Global-setParamRule'|'Global-setHeader'|'Global-removeHeader'|'Global-pipeMiddleware'|'Global-pipeRequestFunction'|'Global-pipePostResponseFunction'|'Method-setNoRouteMatch'|'Method-setNoRouteMatchPage'|'Method-setNoRouteMatchJson'|'Method-setNoRouteMatchText'|'Method-setNoRouteMatchCallback'|'Method-setNonces'|'Method-setCSP'|'Method-setRateLimiting'|'Method-pipeMiddleware'|'Method-setHeader'|'Method-removeHeader'|'Method-setParamRule'|'Method-route'|'Route-setAlias'|'Route-setRateLimiting'|'Route-setCache'|'Route-setNonces'|'Route-pipeMiddleware'|'Route-pipeFunction'|'Route-pipeResponse'|'Route-pipeSQL'|'Route-pipeQuery'|'Route-pipeValidation'|'Route-setExcludeMiddlewares'|'Route-setExcludeHeaders'|'Route-setParamRule'|'Route-setCSP'|'Route-setHeader'|'Route-removeHeader'|'Route-route' $errType
      * @param 'GET'|'POST'|'PUT'|'PATCH'|'DELETE'|'HEAD'|null $method
      * @param string|null $route
      *
@@ -4027,7 +4086,6 @@ class C
             'Global-setNoRouteMatchJSON',
             'Global-setNoRouteMatchText',
             'Global-setNoRouteMatchCallback',
-            'Global-setDefaultRegisteredShutdownHandler',
             'Global-setDefaultExceptionHandler',
             'Global-setDefaultErrorHandler',
             'Global-setDefaultURI_NormalizerHandler',
@@ -4296,50 +4354,7 @@ class C
         $this->validBatches['config']['USE_VENDOR'] = $trueOrFalse;
     }
 
-    /* setUseDefault<Register,Exception,Error,UriNormalizer,In-builtKernel-UserDefinedFunctions> Global */
-    private function batchSetDefaultRegisteredShutdownFunctionGlobal(string $userDefinedFunction)  // DEFAULT REGISTER SHUTDOWN HANDLER
-    {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setDefaultRegisteredShutdownHandler', "CONFIG()", $userDefinedFunction);
-        if (isset($this->invalidBatches['config']['DEFAULT_REGISTER_SHUTDOWN_HANDLER'])) {
-            $this->setErr($this->getErr('DuplicateCallInvalidMustBeSetWithDifferentValues', $ctx) . " Each Function Name must be unique.", 'Global-setDefaultRegisteredShutdownHandler');
-            return;
-        }
-        if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($userDefinedFunction)) {
-            $this->setErr($this->getErr('NonEmptyAllLowercasedStringNotStartCLIorFUNK', $ctxVals), 'Global-setDefaultRegisteredShutdownHandler');
-            $this->invalidBatches['config']['DEFAULT_REGISTER_SHUTDOWN_HANDLER'] = $userDefinedFunction;
-            return;
-        }
-        // FN already used by some other Global Engine Function? (exception, error, uri normalizer, https kernel?)
-        if (isset($this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunction])) {
-            $err = $this->getErr('UserDefinedFUNCTIONAlreadyUsedBy', $ctxVals) . "`{$this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction]}` and cannot be used for multiple purposes as a result.";
-            $this->setErr($err, 'Global-setDefaultRegisteredShutdownHandler');
-            $this->invalidBatches['config']['DEFAULT_REGISTER_SHUTDOWN_HANDLER'] = $userDefinedFunction;
-            return;
-        }
-        // FN already in array of chained Register Shutdown FNs?
-        if (in_array($userDefinedFunction, $this->validBatches['config']['REGISTERED_SHUTDOWN_HANDLERS'] ?? [], true)) {
-            $err = $this->getErr('UserDefinedFUNCTIONAlreadyInArray', $ctxVals) . ($this->joinArray($this->validBatches['config']['REGISTERED_SHUTDOWN_HANDLERS'] ?? ['***EMPTY***']) . " Each Function Name must be unique.");
-            $this->setErr($err, 'Global-setDefaultRegisteredShutdownHandler');
-            return;
-        }
-        // Prepare Config Functions.php File I/O if needed
-        // assuming ROOT_FOLDER constant exists first!
-        if (!$this->rootFolderExistOrSetError()) return;
-        $this->cachedCreateKeyIfNullAndOptionalFileName('file_user_defined_functions');
-        $fileData = $this->cached['file_user_defined_functions'] ?? [];
-        // Bails on the first structural error regarding a typical user-defined function
-        $fatalError = $this->validateFNFile($fileData, $userDefinedFunction, $ctxVals);
-        if ($fatalError !== null) {
-            $this->setErr($fatalError, 'Global-setDefaultRegisteredShutdownHandler');
-            $this->invalidBatches['config']['DEFAULT_REGISTER_SHUTDOWN_HANDLER'] = $userDefinedFunction;
-            return;
-        }
-        // Add to ValidBatches, UserDefinedFNs and also UserDefinedEngineFNs which means any User-defined function
-        // that is added there cannot be used for multiple purposes as they are meant to be very specifically used.
-        $this->validBatches['config']['DEFAULT_REGISTER_SHUTDOWN_HANDLER'][] = $userDefinedFunction;
-        $this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction] = "->CONFIG()->setDefaultRegisteredShutdownHandler()";
-        $this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunction] = "->CONFIG()->setDefaultRegisteredShutdownHandler()";
-    }
+    /* setUseDefault<Exception,Error,UriNormalizer,In-builtKernel-UserDefinedFunctions> Global */
     private function batchSetDefaultExceptionHandlerGlobal(string $userDefinedFunction) // DEFAULT EXCEPTION HANDLER
     {
         [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setDefaultExceptionHandler', "CONFIG()", $userDefinedFunction);
@@ -5405,45 +5420,7 @@ class C
         ];
     }
 
-    /* setCSP<VARIANTS> & setNonces Global */
-    private function batchSetNoncesGlobal(string ...$noncesReferenceKeys)
-    {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setNonces', "CONFIG()", ...$noncesReferenceKeys);
-        // Check if already in inValidBatches OR validBatches!
-        if (isset($this->invalidBatches['nonces']['config'])) {
-            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Global-setNonces');
-            return;
-        }
-        if (isset($this->validBatches['config']['nonces'])) {
-            $this->setErr($this->getErr('DuplicateCallValidCanOnlyBeSetOnce', $ctxVals), 'Global-setNonces');
-            return;
-        }
-        if (empty($noncesReferenceKeys)) {
-            $this->setErr($this->getErr('InvalidNonceKeys', $ctxVals), 'Global-setNonces');
-            $this->invalidBatches['nonces']['config'] = $noncesReferenceKeys;
-            return;
-        }
-        $cleanedKeys = [];
-        foreach ($noncesReferenceKeys as $key) {
-            if (!is_string($key)) {
-                $this->setErr($this->getErr('InvalidNonceKeys', $ctxVals), 'Global-setNonces');
-                $this->invalidBatches['nonces']['config'] = $noncesReferenceKeys;
-                return;
-            }
-            $trimmed = trim($key);
-            if ($trimmed === '' || !preg_match('/^[a-zA-Z0-9_-]+$/', $trimmed)) {
-                $this->setErr($this->getErr('InvalidNonceKeyName', $ctxVals), 'Global-setNonces');
-                $this->invalidBatches['nonces']['config'] = $noncesReferenceKeys;
-                return;
-            }
-            if (in_array($trimmed, $cleanedKeys)) {
-                $this->setErr($this->getErr('DuplicateNonceKeyName', $ctxVals) . "`{$key}`", 'Global-setNonces');
-                $this->invalidBatches['nonces']['config'] = $noncesReferenceKeys;
-            }
-            $cleanedKeys[] = $trimmed;
-        }
-        $this->validBatches['config']['nonces'] = $cleanedKeys;
-    }
+    /* setCSP Global */
     private function batchSetCSPGlobal(string $directive, string ...$sources)
     {
         [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setCSP', "CONFIG()", $directive, ...$sources);
@@ -5456,31 +5433,7 @@ class C
             $this->setErr($this->getErr('DuplicateCallValidMustBeSetWithDifferentValues', $ctxVals) . " Each `\$directive` can only be used/set once.", 'Global-setCSP');
             return;
         }
-        $allowedDirectives = [
-            'default-src',
-            'script-src',
-            'script-src-elem',
-            'script-src-attr',
-            'style-src',
-            'style-src-elem',
-            'style-src-attr',
-            'img-src',
-            'font-src',
-            'connect-src',
-            'media-src',
-            'object-src',
-            'child-src',
-            'frame-src',
-            'worker-src',
-            'manifest-src',
-            'prefetch-src',
-            'base-uri',
-            'form-action',
-            'frame-ancestors',
-            'sandbox',
-            'report-uri',
-            'report-to'
-        ];
+        $allowedDirectives = $this->ALLOWED['csp-directives'];
         if ($directive === '' || !in_array($directive, $allowedDirectives, true)) {
             $this->setErr($this->getErr('InvalidCSPDirective', $ctxVals) . $this->joinArray($allowedDirectives), 'Global-setCSP');
             return;
@@ -5627,6 +5580,10 @@ class C
         // We will store both the original value and its lowercased version to find future conflicts
         $headerName = trim($header_to_remove);
         $lowerHeader = strtolower($headerName);
+        if (in_array($lowerHeader, $this->FORBIDDEN['headers'], true)) {
+            $this->setErr($this->getErr('ForbiddenResponseHeaders', $ctxVals) . " Header Name `'{$lowerHeader}'` is a Forbidden Response Header along with: " . $this->joinArray($this->FORBIDDEN['headers']) . '.', 'Global-removeHeader');
+            return;
+        }
         // Header names cannot contain colons, spaces, or CRLF injections
         if ($headerName === '' || !preg_match('/^[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$/', $headerName)) {
             $this->setErr($this->getErr('InvalidHeaderName', $ctxVals), 'Global-removeHeader');
@@ -5986,45 +5943,7 @@ class C
         ];
     }
 
-    //METHOD: setNonces & setCSP
-    private function batchSetNoncesMethod(string $method, string ...$noncesReferenceKeys)
-    {
-        [$ctx, $ctxVals] = $this->setCtx($method, null, 'setNonces', "ROUTES()->{$method}()", ...$noncesReferenceKeys);
-        // Check if already in inValidBatches OR validBatches!
-        if (isset($this->invalidBatches['nonces']['methods'][$method])) {
-            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Method-setNonces', $method);
-            return;
-        }
-        if (isset($this->validBatches['methods'][$method]['nonces'])) {
-            $this->setErr($this->getErr('DuplicateCallValidCanOnlyBeSetOnce', $ctxVals), 'Method-setNonces', $method);
-            return;
-        }
-        if (empty($noncesReferenceKeys)) {
-            $this->setErr($this->getErr('InvalidNonceKeys', $ctxVals), 'Method-setNonces', $method);
-            $this->invalidBatches['nonces']['methods'][$method] = $noncesReferenceKeys;
-            return;
-        }
-        $cleanedKeys = [];
-        foreach ($noncesReferenceKeys as $key) {
-            if (!is_string($key)) {
-                $this->setErr($this->getErr('InvalidNonceKeys', $ctxVals), 'Method-setNonces', $method);
-                $this->invalidBatches['nonces']['methods'][$method] = $noncesReferenceKeys;
-                return;
-            }
-            $trimmed = trim($key);
-            if ($trimmed === '' || !preg_match('/^[a-zA-Z0-9_-]+$/', $trimmed)) {
-                $this->setErr($this->getErr('InvalidNonceKeyName', $ctxVals), 'Method-setNonces', $method);
-                $this->invalidBatches['nonces']['methods'][$method] = $noncesReferenceKeys;
-                return;
-            }
-            if (in_array($trimmed, $cleanedKeys)) {
-                $this->setErr($this->getErr('DuplicateNonceKeyName', $ctxVals) . "`{$key}`", 'Method-setNonces', $method);
-                $this->invalidBatches['nonces']['methods'][$method] = $noncesReferenceKeys;
-            }
-            $cleanedKeys[] = $trimmed;
-        }
-        $this->validBatches['methods'][$method]['nonces'] = $cleanedKeys;
-    }
+    //METHOD: setCSP
     private function batchSetCSPMethod(string $method, string $directive, string ...$sources)
     {
         [$ctx, $ctxVals] = $this->setCtx($method, null, 'setCSP', "ROUTES()->{$method}()", $directive, ...$sources);
@@ -6037,31 +5956,7 @@ class C
             $this->setErr($this->getErr('DuplicateCallValidMustBeSetWithDifferentValues', $ctxVals) . " Each `\$directive` can only be used/set once.", 'Method-setCSP', $method);
             return;
         }
-        $allowedDirectives = [
-            'default-src',
-            'script-src',
-            'script-src-elem',
-            'script-src-attr',
-            'style-src',
-            'style-src-elem',
-            'style-src-attr',
-            'img-src',
-            'font-src',
-            'connect-src',
-            'media-src',
-            'object-src',
-            'child-src',
-            'frame-src',
-            'worker-src',
-            'manifest-src',
-            'prefetch-src',
-            'base-uri',
-            'form-action',
-            'frame-ancestors',
-            'sandbox',
-            'report-uri',
-            'report-to'
-        ];
+        $allowedDirectives = $this->ALLOWED['csp-directives'];
         if ($directive === '' || !in_array($directive, $allowedDirectives, true)) {
             $this->setErr($this->getErr('InvalidCSPDirective', $ctxVals) . $this->joinArray($allowedDirectives), 'Method-setCSP', $method);
             $this->invalidBatches['csp']['methods'][$method][$directive] = $sources;
@@ -6161,6 +6056,10 @@ class C
         // We will store both the original value and its lowercased version to find future conflicts
         $headerName = trim($header_to_remove);
         $lowerHeader = strtolower($headerName);
+        if (in_array($lowerHeader, $this->FORBIDDEN['headers'], true)) {
+            $this->setErr($this->getErr('ForbiddenResponseHeaders', $ctxVals) . " Header Name `'{$lowerHeader}'` is a Forbidden Response Header along with: " . $this->joinArray($this->FORBIDDEN['headers']) . '.', 'Method-removeHeader', $method);
+            return;
+        }
         // Header names cannot contain colons, spaces, or CRLF injections
         if ($headerName === '' || !preg_match('/^[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$/', $headerName)) {
             $this->setErr($this->getErr('InvalidHeaderName', $ctxVals), 'Method-removeHeader', $method);
@@ -6257,7 +6156,6 @@ class C
         // Check for duplicates if dynamic params are used (indicated by existence of ":")
         // If it is still OK then we check against dynamic structural conflicts like
         // "/:users/" and "/:id" where both use dynamic params on same URI segment level
-        //$placeHolderRoute = ''; // dead code maybe?
         $routeHasParams = null;
         if (str_contains($route, ":")) {
             preg_match_all('/:([a-z0-9_-]+)/i', $route, $paramMatches);
@@ -6300,19 +6198,18 @@ class C
                 }
             }
             $routeHasParams = $paramMatches[1]; // Store any params used
-            // $placeHolderRoute = preg_replace('/:([a-z0-9_-]+)/', ':PARAM', $route); // dead code?
+
         }
-        // If it is a dynamic param route we check if it already exists given same
-        // URI segment levels for <METHOD>/:PARAM1|STATIC1/:PARAM2|STATIC and so on
-        // POSSIBLE DEAD CODE SO OUTCOMMENTED FOR NOW (UNTIL IT NO LONGER IS SO SAY !:P):
-        // if ($placeHolderRoute !== '') {
-        //     if (isset($this->cached['placeholderRoutes'][$method][$placeHolderRoute])) {
-        //         $this->setErr($this->getErr('ConflictRouteParam', $ctxVals) . ' with (defined first):`' . $this->cached['placeholderRoutes'][$method][$placeHolderRoute] . '`.', $this->errors['routes'][$method]);
-        //         return;
-        //     } else {
-        //         $this->cached['placeholderRoutes'][$method][$placeHolderRoute] = "->ROUTES()->{$method}()->ROUTE('{$route}')";
-        //     }
-        // }
+        // Prepare all subroutes for fast lookup of what middlewares can be excluded and not
+        $subRoutes = [];
+        $splittedRoute = array_filter(explode('/', $route));
+        $currentSubRoute = "{$method}/";
+        $subRoutes[] = $currentSubRoute;
+        foreach ($splittedRoute as $splitRoute) {
+            $currentSubRoute .= "{$splitRoute}/";
+            $subRoutes[] = $currentSubRoute;
+        }
+        $subRoutes[count($subRoutes) - 1] = substr($subRoutes[count($subRoutes) - 1], 0, strlen($subRoutes[count($subRoutes) - 1]) - 1);
         // Add Valid String Formatted METHOD/Route now; in compilation it will be checked for
         // conflicting URI segments with other routes as we do not know which order they are added!
         $this->validBatches['routes'][$method][$route] = [
@@ -6322,10 +6219,12 @@ class C
             'pipes' => [],
             'middlewares' => [],
             'excludeMiddleware' => null,
-            'nonces' => null,
-            'csp' => null,
+            'routeSplits' => $splittedRoute,
+            'subRoutes' => $subRoutes,
             'headers' => ['add' => null, 'remove' => null],
-            'excludeHeaders' => null
+            'csp' => null,
+            'nonces' => null,
+            'excludeHeaders' => null,
         ];
     }
 
@@ -6518,50 +6417,6 @@ class C
     }
     private function batchSetCacheRoute(string $method, string $route, int $ttl = 3600, string $driver = 'redis', mixed $varyBy = null, bool $private = false) {}
 
-    /*ROUTE: setNoncesRoute & setCSP<VARIANTS> */
-    private function batchSetNoncesRoute(string $method, $route, string ...$noncesReferenceKeys)
-    {
-        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'setNonces', "ROUTES()->{$method}()->ROUTE('{$route}')", ...$noncesReferenceKeys);
-        // Route must be valid first
-        if (isset($this->invalidBatches['routes'][$method][$route])) {
-            $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route-setNonces', $method, $route);
-            return;
-        }
-        // Check if already in inValidBatches OR validBatches!
-        if (isset($this->invalidBatches['nonces']['routes'][$method][$route])) {
-            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Route-setNonces', $method, $route);
-            return;
-        }
-        if (isset($this->validBatches['routes'][$method][$route]['nonces'])) {
-            $this->setErr($this->getErr('DuplicateCallValidCanOnlyBeSetOnce', $ctxVals), 'Route-setNonces', $method, $route);
-            return;
-        }
-        if (empty($noncesReferenceKeys)) {
-            $this->setErr($this->getErr('InvalidNonceKeys', $ctxVals), 'Route-setNonces', $method, $route);
-            $this->invalidBatches['nonces']['routes'][$method][$route] = $noncesReferenceKeys;
-            return;
-        }
-        $cleanedKeys = [];
-        foreach ($noncesReferenceKeys as $key) {
-            if (!is_string($key)) {
-                $this->setErr($this->getErr('InvalidNonceKeys', $ctxVals), 'Route-setNonces', $method, $route);
-                $this->invalidBatches['nonces']['routes'][$method][$route] = $noncesReferenceKeys;
-                return;
-            }
-            $trimmed = trim($key);
-            if ($trimmed === '' || !preg_match('/^[a-zA-Z0-9_-]+$/', $trimmed)) {
-                $this->setErr($this->getErr('InvalidNonceKeyName', $ctxVals), 'Route-setNonces', $method, $route);
-                $this->invalidBatches['nonces']['routes'][$method][$route] = $noncesReferenceKeys;
-                return;
-            }
-            if (in_array($trimmed, $cleanedKeys)) {
-                $this->setErr($this->getErr('DuplicateNonceKeyName', $ctxVals) . "`{$key}`", 'Route-setNonces', $method, $route);
-                $this->invalidBatches['nonces']['routes'][$method][$route] = $noncesReferenceKeys;
-            }
-            $cleanedKeys[] = $trimmed;
-        }
-        $this->validBatches['routes'][$method][$route]['nonces'] = $cleanedKeys;
-    }
     /*ROUTE: setCSPRoute */
     private function batchSetCSPRoute(string $method, string $route, string $directive, string ...$sources)
     {
@@ -6580,31 +6435,7 @@ class C
             $this->setErr($this->getErr('DuplicateCallValidMustBeSetWithDifferentValues', $ctxVals) . " Each `\$directive` can only be used/set once.", 'Route-setCSP', $method, $route);
             return;
         }
-        $allowedDirectives = [
-            'default-src',
-            'script-src',
-            'script-src-elem',
-            'script-src-attr',
-            'style-src',
-            'style-src-elem',
-            'style-src-attr',
-            'img-src',
-            'font-src',
-            'connect-src',
-            'media-src',
-            'object-src',
-            'child-src',
-            'frame-src',
-            'worker-src',
-            'manifest-src',
-            'prefetch-src',
-            'base-uri',
-            'form-action',
-            'frame-ancestors',
-            'sandbox',
-            'report-uri',
-            'report-to'
-        ];
+        $allowedDirectives = $this->ALLOWED['csp-directives'];
         if ($directive === '' || !in_array($directive, $allowedDirectives, true)) {
             $this->setErr($this->getErr('InvalidCSPDirective', $ctxVals) . $this->joinArray($allowedDirectives), 'Route-setCSP', $method, $route);
             return;
@@ -7141,6 +6972,10 @@ class C
         // We will store both the original value and its lowercased version to find future conflicts
         $headerName = trim($header_to_remove);
         $lowerHeader = strtolower($headerName);
+        if (in_array($lowerHeader, $this->FORBIDDEN['headers'], true)) {
+            $this->setErr($this->getErr('ForbiddenResponseHeaders', $ctxVals) . " Header Name `'{$lowerHeader}'` is a Forbidden Response Header along with: " . $this->joinArray($this->FORBIDDEN['headers']) . '.', 'Route-removeHeader', $method, $route);
+            return;
+        }
         // Header names cannot contain colons, spaces, or CRLF injections
         if ($headerName === '' || !preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/i', $headerName)) {
             $this->setErr($this->getErr('InvalidHeaderName', $ctxVals), 'Route-removeHeader', $method, $route);
@@ -7351,12 +7186,6 @@ class C
         if (isset($this->validBatches['config']['DEFAULT_HTTPS_KERNEL'])) {
             $this->compiled['c']['FUNKPHP_CUSTOM_HTTPS_KERNEL'] = $this->validBatches['config']['DEFAULT_HTTPS_KERNEL'];
             $GLOBAL_HANDLERS[$this->validBatches['config']['DEFAULT_HTTPS_KERNEL']] = "User-defined Default HTTPS Kernel Handler";
-        }
-        if (isset($this->validBatches['config']['DEFAULT_REGISTER_SHUTDOWN_HANDLER'])) {
-            $this->compiled['c']['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION'] = $this->validBatches['config']['DEFAULT_REGISTER_SHUTDOWN_HANDLER'];
-            foreach ($this->validBatches['config']['DEFAULT_REGISTER_SHUTDOWN_HANDLER'] as $DEFAULT_SHUTDOWN_FN) {
-                $GLOBAL_HANDLERS[$DEFAULT_SHUTDOWN_FN] = "User-defined Default Registered Shutdown Handler";
-            }
         }
         if (isset($this->validBatches['config']['DEFAULT_EXCEPTION_HANDLER'])) {
             $this->compiled['c']['FUNKPHP_CUSTOM_EXCEPTION_HANDLER'] = $this->validBatches['config']['DEFAULT_EXCEPTION_HANDLER'];
@@ -7621,41 +7450,33 @@ class C
         // 8.3 Post-Response Pipes
         // ------------------------------------------------------------------------------------------
         if (!isset($this->validBatches['config']['post_response'])) {
-            if (!isset($this->validBatches['config']['DEFAULT_REGISTER_SHUTDOWN_HANDLER'])) {
-                $this->compile_setWarn("No Post-Response Pipes (via `->pipePostResponseFunction() in ->CONFIG()` detected. If intended to use No Post-Response Pipes, just ignore this warning. This means that after each HTTP(S) Request that completes (or via `exit()`) nothing else will happen as `Default Registered Shutdown Function` is to only run the Post-Response Pipe Functions.", $compileWarnings);
-            } else {
-                $this->compile_setWarn("No Post-Response Pipes (via `->pipePostResponseFunction() in ->CONFIG()` detected. If intended to use No Post-Response Pipes, just ignore this warning. This means that after each HTTP(S) Request that completes (or via `exit()`) the `User-defined Custom Default Registered Shutdown Functions` will run. This is would be the same as using same `User-defined Functions as Post-Response Pipe Functions` and remove all Default Registered Shutdown Functions. Either way works.", $compileWarnings);
-            }
+            $this->compile_setWarn("No Post-Response Pipes (via `->pipePostResponseFunction() in ->CONFIG()` detected. If intended to use No Post-Response Pipes, just ignore this warning. This means that after each HTTP(S) Request that completes (or via `exit()`), nothing else happens. `Piped Post-Response Functions` are otherwise executed via the in-built PHP Function `register_shutdown_function()` in the ordered they have been added/piped. This is also why you will get a Fatal Compiling Error if you try to use the `register_shutdown_function()` inside any of your Function Files.", $compileWarnings);
         }
         // post_response pipes exist
         else {
-            if (isset($this->validBatches['config']['DEFAULT_REGISTER_SHUTDOWN_HANDLER'])) {
-                $this->compile_setErr("Conflict between `User-defined Custom Default Registered Shutdown Handlers` (via `->CONFIG->setDefaultRegisteredShutdownHandler()`) and `->CONFIG()->pipePostResponseFunction()` as Post-Response Pipes run as part of the `In-built Default Registered Shutdown Handler` when no Custom Default one has been configured. Consider converting your Post-Response Pipes into User-defined Functions that you then register with `->setDefaultRegisteredShutdownHandler()` OR vice versa.", $compileErrors);
-            } else {
-                // VALIDATE "group:" Variants and then ADD POST-RESPONSE PIPES
-                // VALIDATE "group:" Variants and then ADD REQUEST PIPES
-                $allPipes = [];
-                foreach ($this->validBatches['config']['post_response'] as $pipe) {
-                    if (!str_starts_with($pipe, 'group:')) {
-                        if (count($allPipes) > 0 && $allPipes[count($allPipes) - 1] === $pipe) {
-                            $this->compile_setWarn("`Consecutive GLOBAL Pipe Post-Response Function '{$pipe}' found`. Ignore this warning if it is intentional or Review `->CONFIG()->pipePostResponseFunction()` in `/src/funkphp/app/CONFIG.php`.", $compileWarnings);
-                        }
-                        $allPipes[] = $pipe;
-                        continue;
+            // VALIDATE "group:" Variants and then ADD POST-RESPONSE PIPES
+            // VALIDATE "group:" Variants and then ADD REQUEST PIPES
+            $allPipes = [];
+            foreach ($this->validBatches['config']['post_response'] as $pipe) {
+                if (!str_starts_with($pipe, 'group:')) {
+                    if (count($allPipes) > 0 && $allPipes[count($allPipes) - 1] === $pipe) {
+                        $this->compile_setWarn("`Consecutive GLOBAL Pipe Post-Response Function '{$pipe}' found`. Ignore this warning if it is intentional or Review `->CONFIG()->pipePostResponseFunction()` in `/src/funkphp/app/CONFIG.php`.", $compileWarnings);
                     }
-                    if (!isset($GLOBAL_GROUPED['POST_RESPONSE'][$pipe])) {
-                        $this->compile_setErr("Grouped GLOBAL Post-Response Pipe Functions with the name `{$pipe}` does not exist but was still part of the `->CONFIG()->pipePostResponseFunction('{$pipe}')` in `/src/funkphp/app/CONFIG.php`. Use `->setGroupPipePostResponse('{$pipe}')` in `/src/funkphp/app/CONFIG.php` to first create the Grouping.", $compileErrors);
-                    } else {
-                        foreach ($GLOBAL_GROUPED['POST_RESPONSE'][$pipe] as $groupPipe) {
-                            if (count($allPipes) > 0 && $allPipes[count($allPipes) - 1] === $groupPipe) {
-                                $this->compile_setWarn("`Consecutive GLOBAL Pipe Post-Response Function '{$groupPipe}' found`. Ignore this warning if it is intentional or Review `->CONFIG()->pipePostResponseFunction()` in `/src/funkphp/app/CONFIG.php`.", $compileWarnings);
-                            }
-                            $allPipes[] = $groupPipe;
+                    $allPipes[] = $pipe;
+                    continue;
+                }
+                if (!isset($GLOBAL_GROUPED['POST_RESPONSE'][$pipe])) {
+                    $this->compile_setErr("Grouped GLOBAL Post-Response Pipe Functions with the name `{$pipe}` does not exist but was still part of the `->CONFIG()->pipePostResponseFunction('{$pipe}')` in `/src/funkphp/app/CONFIG.php`. Use `->setGroupPipePostResponse('{$pipe}')` in `/src/funkphp/app/CONFIG.php` to first create the Grouping.", $compileErrors);
+                } else {
+                    foreach ($GLOBAL_GROUPED['POST_RESPONSE'][$pipe] as $groupPipe) {
+                        if (count($allPipes) > 0 && $allPipes[count($allPipes) - 1] === $groupPipe) {
+                            $this->compile_setWarn("`Consecutive GLOBAL Pipe Post-Response Function '{$groupPipe}' found`. Ignore this warning if it is intentional or Review `->CONFIG()->pipePostResponseFunction()` in `/src/funkphp/app/CONFIG.php`.", $compileWarnings);
                         }
+                        $allPipes[] = $groupPipe;
                     }
                 }
-                $this->compiled['config']['pipes']['post_response'] =  $allPipes;
             }
+            $this->compiled['config']['pipes']['post_response'] =  $allPipes;
         }
         // ------------------------------------------------------------------------------------------
         // STEP 9: Build `middlewares` for all <METHODS> - same checks as global config()
@@ -7921,23 +7742,12 @@ class FunkConfig
     }
 
     /**
-     * Define global reference keys for nonces generated across all routes.
-     *
-     * @param string ...$noncesReferenceKeys Reference key names for nonces
-     * @return $this
-     */
-    public function setNonces(string ...$noncesReferenceKeys)
-    {
-        $this->c->batch('batchSetNoncesGlobal', ...$noncesReferenceKeys);
-        return $this;
-    }
-    /**
-     * Configures Content-Security-Policy (CSP) directives globally.
+     * Configures Content-Security-Policy (CSP) directives Globally (in `/src/funkphp/app/CONFIG.php`).
      *
      * Automatically wraps standard CSP keywords (e.g. 'self', 'none', 'unsafe-inline') in single quotes,
      * while preserving casing for hashes, nonces, and domains.
      *
-     * @param 'default-src'|'script-src'|'script-src-elem'|'script-src-attr'|'style-src'|'style-src-elem'|'style-src-attr'|'img-src'|'font-src'|'connect-src'|'media-src'|'object-src'|'child-src'|'frame-src'|'worker-src'|'manifest-src'|'prefetch-src'|'base-uri'|'form-action'|'frame-ancestors'|'sandbox'|'plugin-types'|'navigate-to'|'report-uri'|'report-to' $sourceType
+     * @param 'require-trusted-types-for'|'trusted-types'|'default-src'|'script-src'|'script-src-elem'|'script-src-attr'|'style-src'|'style-src-elem'|'style-src-attr'|'img-src'|'font-src'|'connect-src'|'media-src'|'object-src'|'child-src'|'frame-src'|'worker-src'|'manifest-src'|'prefetch-src'|'base-uri'|'form-action'|'frame-ancestors'|'sandbox'|'plugin-types'|'navigate-to'|'report-uri'|'report-to' $sourceType
      * The CSP directive name. Supported values:
      * - `default-src`      : Fallback for other fetch directives.
      * - `script-src`       : JavaScript execution sources.
@@ -8052,19 +7862,6 @@ class FunkConfig
     {
         $userDefinedFunctionName = strtolower(trim($userDefinedFunctionName));
         $this->c->batch('batchSetNoRouteMatchCallbackGlobal', $userDefinedFunctionName);
-        return $this;
-    }
-
-    /**
-     * Set the global shutdown handler callback function.
-     *
-     * @param string $userDefinedFunctionName Name of the function registered for script shutdown
-     * @return $this
-     */
-    public function setDefaultRegisteredShutdownHandler(string $userDefinedFunctionName): self
-    {
-        $userDefinedFunctionName = strtolower(trim($userDefinedFunctionName));
-        $this->c->batch('batchSetDefaultRegisteredShutdownFunctionGlobal', $userDefinedFunctionName);
         return $this;
     }
 
@@ -8604,23 +8401,12 @@ class FunkMethod
         return $this;
     }
     /**
-     * Set reference nonces for this HTTP method.
-     *
-     * @param string ...$noncesReferenceKeys
-     * @return $this
-     */
-    public function setNonces(...$noncesReferenceKeys)
-    {
-        $this->c->batch('batchSetNoncesMethod', $this->method, ...$noncesReferenceKeys);
-        return $this;
-    }
-    /**
-     * Configures Content-Security-Policy (CSP) directives globally.
+     * Configures Content-Security-Policy (CSP) directives for a given Method (in `/src/funkphp/app/<METHOD>.php`).
      *
      * Automatically wraps standard CSP keywords (e.g. 'self', 'none', 'unsafe-inline') in single quotes,
      * while preserving casing for hashes, nonces, and domains.
      *
-     * @param 'default-src'|'script-src'|'script-src-elem'|'script-src-attr'|'style-src'|'style-src-elem'|'style-src-attr'|'img-src'|'font-src'|'connect-src'|'media-src'|'object-src'|'child-src'|'frame-src'|'worker-src'|'manifest-src'|'prefetch-src'|'base-uri'|'form-action'|'frame-ancestors'|'sandbox'|'plugin-types'|'navigate-to'|'report-uri'|'report-to' $sourceType
+     * @param 'require-trusted-types-for'|'trusted-types'|'default-src'|'script-src'|'script-src-elem'|'script-src-attr'|'style-src'|'style-src-elem'|'style-src-attr'|'img-src'|'font-src'|'connect-src'|'media-src'|'object-src'|'child-src'|'frame-src'|'worker-src'|'manifest-src'|'prefetch-src'|'base-uri'|'form-action'|'frame-ancestors'|'sandbox'|'plugin-types'|'navigate-to'|'report-uri'|'report-to' $sourceType
      * The CSP directive name. Supported values:
      * - `default-src`      : Fallback for other fetch directives.
      * - `script-src`       : JavaScript execution sources.
@@ -8856,17 +8642,6 @@ class FunkRoute
         return $this;
     }
     /**
-     * Define nonces required or generated for this route.
-     *
-     * @param string ...$noncesReferenceKeys Reference keys for nonces
-     * @return $this
-     */
-    public function setNonces(...$noncesReferenceKeys)
-    {
-        $this->c->batch('batchSetNoncesRoute', $this->method, $this->routePath, ...$noncesReferenceKeys);
-        return $this;
-    }
-    /**
      * Attach a middleware specific to this route. They all run in FIFO.
      *
      * @param string $middleware Middleware function or group name
@@ -9027,12 +8802,12 @@ class FunkRoute
         return $this;
     }
     /**
-     * Configures Content-Security-Policy (CSP) directives globally.
+     * Configures Content-Security-Policy (CSP) directives for a given Route in a Method (in `/src/funkphp/app/<METHOD>.php`).
      *
      * Automatically wraps standard CSP keywords (e.g. 'self', 'none', 'unsafe-inline') in single quotes,
      * while preserving casing for hashes, nonces, and domains.
      *
-     * @param 'default-src'|'script-src'|'script-src-elem'|'script-src-attr'|'style-src'|'style-src-elem'|'style-src-attr'|'img-src'|'font-src'|'connect-src'|'media-src'|'object-src'|'child-src'|'frame-src'|'worker-src'|'manifest-src'|'prefetch-src'|'base-uri'|'form-action'|'frame-ancestors'|'sandbox'|'plugin-types'|'navigate-to'|'report-uri'|'report-to' $sourceType
+     * @param 'require-trusted-types-for'|'trusted-types'|'default-src'|'script-src'|'script-src-elem'|'script-src-attr'|'style-src'|'style-src-elem'|'style-src-attr'|'img-src'|'font-src'|'connect-src'|'media-src'|'object-src'|'child-src'|'frame-src'|'worker-src'|'manifest-src'|'prefetch-src'|'base-uri'|'form-action'|'frame-ancestors'|'sandbox'|'plugin-types'|'navigate-to'|'report-uri'|'report-to' $sourceType
      * The CSP directive name. Supported values:
      * - `default-src`      : Fallback for other fetch directives.
      * - `script-src`       : JavaScript execution sources.
