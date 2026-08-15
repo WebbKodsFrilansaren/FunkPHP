@@ -1910,7 +1910,8 @@ class C
     // The actual written config line by line starting with FunkPHP()
     public array $FunkPHPFluentAPI = [
         'CONFIG' => [],
-        'METHODS' => []
+        'METHODS' => [],
+        'ALL' => []
     ];
     // $errors contain all errors + categorized errors
     // $WARNINGS contain warnings meaning compiling/running will happen
@@ -3728,22 +3729,10 @@ class C
         return $json;
     }
     // Set context to not having to repeat so much for each batchFUNCTION
-    // It also first appends to the FunkPHPFluentAPI | OLD VERSION THAT WORKS!
-    private function setCtxOLD_BUT_WORKED(string $batchFN, string $under, mixed ...$vals)
-    {
-        $this->FunkPHPFluentAPI[count($this->FunkPHPFluentAPI) + 1] = $this->appendFunkPHPFluentAPI($batchFN, ...$vals);
-        $exportedVals = array_map(fn($v) => $this->exportShortSyntax($v), $vals);
-        $argString = implode(', ', $exportedVals);
-        return [
-            "`->$batchFN()` under `->{$under}`",
-            "`->$batchFN({$argString})` under `->{$under}`"
-        ];
-    }
-
-    // Set context to not having to repeat so much for each batchFUNCTION
     // It also first appends to the FunkPHPFluentAPI // THE NEW VERSION
     private function setCtx(string $config_or_method, ?string $route = null, string $batchFN, string $under, mixed ...$vals)
     {
+        $this->FunkPHPFluentAPI['ALL'][count($this->FunkPHPFluentAPI['ALL']) + 1] = $this->appendFunkPHPFluentAPI($batchFN, ...$vals);
         if ($config_or_method === 'CONFIG') {
             $this->FunkPHPFluentAPI['CONFIG'][count($this->FunkPHPFluentAPI['CONFIG']) + 1] = $this->appendFunkPHPFluentAPI($batchFN, ...$vals);
         } else {
@@ -4196,12 +4185,14 @@ class C
     // and can jump to->pipesRequest(),->pipesPostResponse() or ->routes()
     public function CONFIG(): FunkConfig
     {
+        $this->setCtx('CONFIG', null, "CONFIG", '');
         return $this->configScope ??= new FunkConfig($this);
     }
     // ->routes() | gives access to:->GET(),->POST(),->PATCH(),->PUT(),->DELETE()
     // and can jump back to ->config()
     public function ROUTES(): FunkRoutes
     {
+        $this->setCtx('CONFIG', null, "ROUTES", '');
         return $this->routesScope ??= new FunkRoutes($this);
     }
     // batchFunctions that attempt batching something in $batches that would be validated later unless
@@ -4220,6 +4211,15 @@ class C
             return;
         }
         $this->$fn(...$payload);
+    }
+
+    private function batchSetMETHOD(string $method)
+    {
+        if (!in_array(strtoupper(trim($method)), ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD'])) {
+            $this->errors[] = ['type' => 'internal', 'err' => '[Class C->batchSetMETHOD()]: Invalid Method Choice to set as Context in Class `C` in `/src/funkphp/core/functions.php`. Please report this Bug/Issue to the `Official FunkPHP Repositories`.'];
+            return;
+        }
+        $this->setCtx('CONFIG', null, $method, '');
     }
 
     /* !!! GLOBAL/CONFIG() BATCHES FUNCTIONS !!! */
@@ -6135,11 +6135,11 @@ class C
     {
         [$ctx, $ctxVals] = $this->setCtx($method, null, 'pipeMiddleware', "ROUTES()->$method()", $middleware);
         if (isset($this->invalidBatches['middlewares']['methods'][$method][$middleware])) {
-            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Method-pipeMiddleware');
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Method-pipeMiddleware', $method);
             return;
         }
         if (!$this->nonEmptyLC_Str_ThatISGroupORFNWithoutCLIorFunk($middleware)) {
-            $this->setErr($this->getErr('InvalidGroupORFunctionName', $ctxVals), 'Method-pipeMiddleware');
+            $this->setErr($this->getErr('InvalidGroupORFunctionName', $ctxVals), 'Method-pipeMiddleware', $method);
             $this->invalidBatches['middlewares']['methods'][$method][$middleware] = true;
             return;
         }
@@ -6154,7 +6154,7 @@ class C
         // Fatal check: Bails on the first structural error
         $fatalError = $this->validateFNFile($fileData, $middleware, $ctxVals, "funkphp\\pipes\\middlewares\\{$middleware}", true);
         if ($fatalError !== null) {
-            $this->setErr($fatalError, 'Method-pipeMiddleware');
+            $this->setErr($fatalError, 'Method-pipeMiddleware', $method);
             $this->invalidBatches['middlewares']['methods'][$method][$middleware] = true;
             return;
         }
@@ -6438,6 +6438,7 @@ class C
         if (!isset($this->validBatches['routes'][$method][$route]['hasParams'])) {
             $this->setErr($this->getErr('RouteHasNoParams', $ctxVals), 'Route-setParamRule', $method, $route);
             $this->invalidBatches['paramRules']['routes'][$method][$route][$param] = "{$param},{$regex},{$defaultParamValueOnRegexMismatch}";
+            return;
         }
         // Validate valid $param identifier formatting
         if (!is_string($param) || !preg_match('/^[a-z0-9_-]+$/', $param)) {
@@ -7343,88 +7344,57 @@ class C
         // Get the `` highlighted version instead
         $formatMsg = function ($msg) {
             if (!is_string($msg)) {
-                $msg = json_encode($msg, JSON_PRETTY_PRINT, JSON_UNESCAPED_SLASHES);
+                $msg = str_replace(['\/', '\\/'], '/', json_encode($msg, JSON_PRETTY_PRINT, JSON_UNESCAPED_SLASHES));
             }
             $escaped = htmlspecialchars($msg, ENT_QUOTES, 'UTF-8');
             return preg_replace('/`([^`]+)`/', '<span class="code-badge">$1</span>', $escaped);
         };
-        // Pre-process and bucket all errors & warnings into tabs [CONFIG, GET, POST, PUT, DELETE, PATCH]
-        $tabs = ['CONFIG', 'GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
+        // Prepare and count all errors (if any)
+        $tabs = ['API', 'CONFIG', 'GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'COMPILATION', 'INTERNAL'];
         $bucketed = [];
         foreach ($tabs as $t) {
             $bucketed[$t] = [
-                'errors' => [],   // Format: ['route' => '...', 'msg' => '...']
-                'warnings' => []  // Format: ['route' => '...', 'msg' => '...']
+                'errors' => 0,
+                'warnings' => 0
             ];
         }
-        // 1. Parse Internal Fluent API Errors ($this->errors)
-        if (!empty($internalErrors['CONFIG'])) {
-            foreach ((array)$internalErrors['CONFIG'] as $err) {
-                $bucketed['CONFIG']['errors'][] = ['route' => 'Global Config', 'msg' => $err];
-            }
+        $allErrors = $internalErrors['ERRORS'];
+        if (!empty($allErrors['CONFIG'])) {
+            $bucketed['CONFIG']['errors'] = count($allErrors['CONFIG']);
         }
-        if (!empty($internalErrors['METHODS'])) {
-            foreach ($internalErrors['METHODS'] as $method => $routes) {
+        if (!empty($compileErrors)) {
+            $bucketed['COMPILATION']['errors'] = count($compileErrors);
+        }
+        if (!empty($compileWarnings)) {
+            $bucketed['COMPILATION']['warnings'] = count($compileWarnings);
+        }
+        if (!empty($allErrors['METHODS'])) {
+            foreach ($allErrors['METHODS'] as $method => $methodData) {
                 $methodUpper = strtoupper($method);
                 if (isset($bucketed[$methodUpper])) {
-                    foreach ($routes as $route => $errList) {
-                        foreach ((array)$errList as $err) {
-                            $bucketed[$methodUpper]['errors'][] = ['route' => $route, 'msg' => $err];
+                    if (!empty($methodData['CONFIG']) && is_array($methodData['CONFIG'])) {
+                        $bucketed[$methodUpper]['errors'] += count($methodData['CONFIG']);
+                    }
+                    if (!empty($methodData['ROUTES']) && is_array($methodData['ROUTES'])) {
+                        foreach ($methodData['ROUTES'] as $routePath => $routeErrors) {
+                            if (is_array($routeErrors)) {
+                                $bucketed[$methodUpper]['errors'] += count($routeErrors);
+                            }
                         }
                     }
                 }
             }
         }
-        // 2. Parse Compile Errors ($compileErrors)
-        if (!empty($compileErrors)) {
-            foreach ($compileErrors as $err) {
-                $matched = false;
-                // Check for explicit Route matches like 'GET/test' or 'POST /api/v1'
-                foreach ($tabs as $m) {
-                    if ($m === 'CONFIG') continue;
-                    if (preg_match('/\'(' . $m . ')(\/[^\']*)\'/i', $err, $matches)) {
-                        $bucketed[$m]['errors'][] = ['route' => $matches[2], 'msg' => $err];
-                        $matched = true;
-                        break;
-                    }
-                }
-                if (!$matched) {
-                    if (str_contains($err, 'CONFIG') || str_contains($err, 'Global')) {
-                        $bucketed['CONFIG']['errors'][] = ['route' => 'Global Config', 'msg' => $err];
-                    } else {
-                        // Fallback to CONFIG tab if unclassified
-                        $bucketed['CONFIG']['errors'][] = ['route' => 'General Compiler', 'msg' => $err];
-                    }
-                }
-            }
-        }
-        // 3. Parse Compile Warnings ($compileWarnings)
-        if (!empty($compileWarnings)) {
-            foreach ($compileWarnings as $warn) {
-                $matched = false;
-                foreach ($tabs as $m) {
-                    if ($m === 'CONFIG') continue;
-                    // Match route specific warnings like: "No Pipes for Route 'GET/test'."
-                    if (preg_match('/\'(' . $m . ')(\/[^\']*)\'/i', $warn, $matches)) {
-                        $bucketed[$m]['warnings'][] = ['route' => $matches[2], 'msg' => $warn];
-                        $matched = true;
-                        break;
-                    }
-                }
-                if (!$matched) {
-                    $bucketed['CONFIG']['warnings'][] = ['route' => 'Global Config', 'msg' => $warn];
-                }
-            }
-        }
-        // Calculate total summary counts
         $totalErrors = 0;
-        $totalWarnings = 0;
+        $totalWarnings = count($compileWarnings);
         foreach ($tabs as $t) {
-            $totalErrors += count($bucketed[$t]['errors']);
-            $totalWarnings += count($bucketed[$t]['warnings']);
+            if (isset($bucketed[$t]['errors'])) {
+                $totalErrors += $bucketed[$t]['errors'];
+            }
         }
-        // Find first active tab that actually contains diagnostic items
-        $activeTab = 'CONFIG';
+        // Show first tab with errors OR API as default since it never has errors.
+        // There is also a <script> tag part that remembers last chosen tab.
+        $activeTab = 'API';
         foreach ($tabs as $t) {
             if (!empty($bucketed[$t]['errors']) || !empty($bucketed[$t]['warnings'])) {
                 $activeTab = $t;
@@ -7581,19 +7551,19 @@ class C
                 }
 
                 .route-group {
-                    margin-bottom: 1.8rem;
+                    margin-bottom: 2rem;
                 }
 
                 .route-header {
                     font-family: monospace;
-                    font-size: 1.05rem;
+                    font-size: 1.00rem;
                     font-weight: 600;
                     color: #79c0ff;
                     background: #161b22;
                     padding: 0.5rem 0.8rem;
                     border-radius: 6px;
                     border: 1px solid #21262d;
-                    margin-bottom: 0.8rem;
+                    margin-bottom: 0.75rem;
                     display: inline-block;
                 }
 
@@ -7604,6 +7574,27 @@ class C
                     margin-bottom: 0.8rem;
                     border-radius: 0 6px 6px 0;
                     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+                }
+
+                .api-card-consolidated {
+                    background: #161b22;
+                    border-left: 4px solid #8d55c9;
+                    padding: 1.25rem 1rem;
+                    border-radius: 0 6px 6px 0;
+                    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+                    font-family: 'Consolas', 'Courier New', monospace;
+                }
+
+                .api-tree-line {
+                    margin-bottom: 0.5rem;
+                    position: relative;
+                    transition: padding 0.1s ease;
+                }
+
+                .code-badge.badge-root {
+                    background: #232d3f;
+                    border-color: #388bfd66;
+                    font-weight: 700;
                 }
 
                 .issue-card.warn {
@@ -7630,17 +7621,17 @@ class C
                     font-family: 'Consolas', 'Courier New', monospace;
                     font-size: 0.92rem;
                     color: #e6edf3;
-                    line-height: 1.6;
+                    line-height: 2;
                 }
 
                 .code-badge {
                     background: #21262d;
                     color: #79c0ff;
-                    padding: 0.15rem 0.45rem;
+                    padding: 0.05rem 0.15rem;
                     border-radius: 4px;
                     border: 1px solid #363b42;
                     font-family: monospace;
-                    font-size: 0.88rem;
+                    font-size: 0.75rem;
                 }
 
                 .empty-state {
@@ -7648,6 +7639,40 @@ class C
                     color: #8b949e;
                     padding: 4rem 1rem;
                     font-size: 1rem;
+                }
+
+                .alert-warning {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    background: rgba(210, 153, 34, 0.12);
+                    border: 1px solid rgba(210, 153, 34, 0.4);
+                    border-left: 4px solid #d29922;
+                    color: #e3b341;
+                    padding: 12px 16px;
+                    border-radius: 6px;
+                    margin-bottom: 1rem;
+                    font-size: 0.88rem;
+                    line-height: 1.4;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+                }
+
+                .alert-warning .alert-icon {
+                    font-size: 1.25rem;
+                    flex-shrink: 0;
+                }
+
+                .alert-warning .alert-content {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 2px;
+                }
+
+                .alert-warning .alert-content strong {
+                    color: #f0b72f;
+                    font-size: 0.82rem;
+                    letter-spacing: 0.04em;
+                    text-transform: uppercase;
                 }
             </style>
         </head>
@@ -7661,14 +7686,22 @@ class C
                         <span class="badge badge-warning"><?= $totalWarnings ?> Warning<?= $totalWarnings === 1 ? '' : 's' ?></span>
                     </div>
                 </div>
+                <?php if (!empty($this->debug['ALWAYS_SHOW'])): ?>
+                    <div class="alert-warning">
+                        <span class="alert-icon">⚠️</span>
+                        <div class="alert-content">
+                            <span><code>->CONFIG()->setDebug()</code> 2nd argument is <code>TRUE</code> (always show). Set it to <code>FALSE</code> to Allow Compiled Execution.</span>
+                        </div>
+                    </div>
+                <?php endif; ?>
                 <div class="tabs-header">
                     <?php foreach ($tabs as $tab):
-                        $errCnt = count($bucketed[$tab]['errors']);
-                        $warnCnt = count($bucketed[$tab]['warnings']);
+                        $errCnt = $bucketed[$tab]['errors'] ?? 0;
+                        $warnCnt = $bucketed[$tab]['warnings'] ?? 0;
                         $totalTabItems = $errCnt + $warnCnt;
                         $hasClass = $errCnt > 0 ? 'has-errors' : '';
                     ?>
-                        <button class="tab-btn <?= $tab === $activeTab ? 'active' : '' ?> <?= $hasClass ?>" onclick="switchTab(event, 'tab-<?= $tab ?>')">
+                        <button id="btn-tab-<?= $tab ?>" class="tab-btn <?= $tab === $activeTab ? 'active' : '' ?> <?= $hasClass ?>" onclick="switchTab(event, 'tab-<?= $tab ?>')">
                             <?= $tab ?>
                             <?php if ($totalTabItems > 0): ?>
                                 <span class="tab-count"><?= $totalTabItems ?></span>
@@ -7678,59 +7711,174 @@ class C
                 </div>
                 <div class="tab-content">
                     <?php foreach ($tabs as $tab):
-                        $tabData = $bucketed[$tab];
-                        $hasContent = !empty($tabData['errors']) || !empty($tabData['warnings']);
+                        $hasContent = false;
+                        if ($tab === 'CONFIG') {
+                            if (count(($allErrors['CONFIG'] ?? [])) > 0) {
+                                $hasContent = true;
+                            }
+                        } else if ($tab === 'API') {
+                            if (count(($this->FunkPHPFluentAPI ?? [])) > 0) {
+                                $hasContent = true;
+                            }
+                        } else if ($tab === 'COMPILATION') {
+                            if (count(($compileErrors ?? [])) > 0) {
+                                $hasContent = true;
+                            }
+                        } else if ($tab === 'INTERNAL') {
+                            if (count(($allErrors['INTERNAL'] ?? [])) > 0) {
+                                $hasContent = true;
+                            }
+                        } else {
+                            if (
+                                count(($allErrors['METHODS'][$tab]['CONFIG'] ?? [])) > 0
+                                || count(($allErrors['METHODS'][$tab]['ROUTES'] ?? [])) > 0
+                            ) {
+                                $hasContent = true;
+                            }
+                        }
                     ?>
                         <div id="tab-<?= $tab ?>" class="tab-panel <?= $tab === $activeTab ? 'active' : '' ?>">
                             <?php if (!$hasContent): ?>
-                                <div class="empty-state">
-                                    ✓ No Compile Errors or Warnings in <code><?= $tab ?></code> - <?= $formatMsg("`/src/funkphp/app/{$tab}.php`");  ?>
-                                </div>
+                                <?php if ($tab === 'INTERNAL'): ?>
+                                    <div class="empty-state">
+                                        ✓ No Internal FunkPHP Errors
+                                    </div>
+                                <?php elseif ($tab === 'COMPILATION'): ?>
+                                    <div class="empty-state">
+                                        ✓ No FunkPHP Compilation Errors
+                                    </div>
+                                <?php else: ?>
+                                    <div class="empty-state">
+                                        ✓ No Configuration Errors/Warnings in <code><?= $tab ?></code> - <?= $formatMsg("`/src/funkphp/app/{$tab}.php`");  ?>
+                                    </div>
+                                <?php endif ?>
                             <?php else: ?>
                                 <?php
-                                $grouped = [];
-                                foreach ($tabData['errors'] as $item) {
-                                    $grouped[$item['route']]['errors'][] = $item['msg'];
-                                }
-                                foreach ($tabData['warnings'] as $item) {
-                                    $grouped[$item['route']]['warnings'][] = $item['msg'];
-                                }
-
-                                foreach ($grouped as $route => $issues): ?>
-                                    <div class="route-group">
-                                        <div class="route-header">
-                                            <?= htmlspecialchars($tab !== 'CONFIG' ? "{$tab} {$route}" : $route, ENT_QUOTES, 'UTF-8') ?>
-                                        </div>
-                                        <?php if (!empty($issues['errors'])): ?>
-                                            <?php foreach ($issues['errors'] as $msg): ?>
-                                                <div class="issue-card">
-                                                    <div class="issue-type">ERROR</div>
-                                                    <div class="issue-body"><?= $formatMsg($msg) ?></div>
-                                                </div>
-                                            <?php endforeach; ?>
-                                        <?php endif; ?>
-                                        <?php if (!empty($issues['warnings'])): ?>
-                                            <?php foreach ($issues['warnings'] as $msg): ?>
-                                                <div class="issue-card warn">
-                                                    <div class="issue-type">WARNING</div>
-                                                    <div class="issue-body"><?= $formatMsg($msg) ?></div>
-                                                </div>
-                                            <?php endforeach; ?>
-                                        <?php endif; ?>
+                                // TAB IS "CONFIG"?
+                                if ($tab === 'CONFIG') {
+                                    $CONFIG_ERRS = $allErrors['CONFIG'] ?? [];
+                                ?> <div class="route-group">
+                                        <div class="route-header">GLOBAL CONFIG | $APP->CONFIG() in /src/funkphp/app/CONFIG.php</div>
+                                        <?php foreach ($CONFIG_ERRS as $idx => $C_ERR) {
+                                        ?> <div class="issue-card">
+                                                <div class="issue-type">ERROR #<?= $idx ?></div>
+                                                <div class="issue-body"><?= $formatMsg($C_ERR['err']) ?></div>
+                                            </div> <?php
+                                                } ?>
                                     </div>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
+                                <?php
+                                }
+                                // TAB IS "INTERNAL"?
+                                else if ($tab === 'INTERNAL') {
+                                    $INTERNAL_ERRS = $allErrors['INTERNAL'] ?? [];
+                                ?> <div class="route-group">
+                                        <div class="route-header">Internal FunkPHP Errors (applies to all files in /src/funkphp/app)</div>
+                                        <?php foreach ($INTERNAL_ERRS as $idx => $I_ERR) {
+                                        ?> <div class="issue-card">
+                                                <div class="issue-type">ERROR #<?= $idx ?></div>
+                                                <div class="issue-body"><?= $formatMsg($I_ERR['err']) ?></div>
+                                            </div> <?php
+                                                } ?>
+                                    </div>
+                                <?php
+                                }
+                                // TAB IS "API"?
+                                else if ($tab === 'API') {
+                                    $API_TREE = $this->FunkPHPFluentAPI['ALL'] ?? [];
+                                    $currentDepth = 0;
+                                ?>
+                                    <div class="route-group">
+                                        <div class="route-header">FunkPHP Fluent API Tree (all files in /src/funkphp/app)</div>
+                                        <div class="api-card api-card-consolidated">
+                                            <?php foreach ($API_TREE as $idx => $apiStr):
+                                                $trimmed = trim($apiStr);
+                                                $upper = strtoupper($trimmed);
+                                                if ($upper === '->CONFIG()' || $upper === '->ROUTES()') {
+                                                    $currentDepth = 0;
+                                                    $lineDepth = 0;
+                                                } elseif (preg_match('/^->(GET|POST|PUT|DELETE|PATCH)\(\)$/', $upper)) {
+                                                    $currentDepth = 1;
+                                                    $lineDepth = 1;
+                                                } elseif (str_starts_with($upper, '->ROUTE(')) {
+                                                    $currentDepth = 2;
+                                                    $lineDepth = 2;
+                                                } else {
+                                                    $lineDepth = $currentDepth + 1;
+                                                }
+                                                $paddingPx = $lineDepth * 24;
+                                            ?>
+                                                <div class="api-tree-line" style="padding-left: <?= $paddingPx ?>px;">
+                                                    <span class="code-badge <?= ($upper === '->ROUTES()' || $upper === '->CONFIG()') ? '' : (preg_match('/^->(GET|POST|PUT|DELETE|PATCH)\(\)$/', $upper) ? 'badge-method' : '') ?>">
+                                                        <?= $formatMsg($trimmed); ?>
+                                                    </span>
+                                                </div>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    </div>
+                                <?php
+                                }
+                                // TAB IS "COMPILATION"?
+                                else if ($tab === 'COMPILATION') {
+                                    $COMPILE_ERRS = $compileErrors ?? [];
+                                ?> <div class="route-group">
+                                        <div class="route-header">FunkPHP Compilation Errors (happens only if Zero Errors otherwise in all files in /src/funkphp/app)</div>
+                                        <?php foreach ($COMPILE_ERRS as $idx => $COMP_ERR) {
+                                        ?> <div class="issue-card">
+                                                <div class="issue-type">ERROR #<?= $idx ?></div>
+                                                <div class="issue-body"><?= $formatMsg($COMP_ERR) ?></div>
+                                            </div> <?php
+                                                } ?>
+                                    </div>
+                                    <?php
+                                }
+                                // TAB IS <METHOD>?
+                                else {
+                                    $R_CONFIG_ERRS = $allErrors['METHODS'][$tab]['CONFIG'] ?? [];
+                                    $R_ROUTES_ERRS = $allErrors['METHODS'][$tab]['ROUTES'] ?? [];
+                                    ?><?php if (count($R_CONFIG_ERRS) > 0) {  ?>
+                                    <div class="route-group">
+                                        <div class="route-header"><?= $tab ?> CONFIG | $APP->ROUTES()-><?= $tab ?>() in /src/funkphp/app/<?= $tab ?>.php</div>
+                                        <?php foreach ($R_CONFIG_ERRS as $idx => $RC_ERR) {
+                                        ?> <div class="issue-card">
+                                                <div class="issue-type">ERROR #<?= $idx ?></div>
+                                                <div class="issue-body"><?= $formatMsg($RC_ERR['err']) ?></div>
+                                            </div> <?php
+                                                }
+                                                    ?>
+                                    </div>
+                                <?php } ?>
+                                <div class="route-group">
+                                    <?php foreach ($R_ROUTES_ERRS as $singleMethodRoute => $singleMethodRouteDetails) {
+                                    ?>
+                                        <div class="route-header">'<?= "$tab$singleMethodRoute"; ?>' | $APP->ROUTES()-><?= $tab ?>()->ROUTE('<?= $singleMethodRoute; ?>') in /src/funkphp/app/<?= $tab ?>.php</div>
+                                        <?php foreach ($singleMethodRouteDetails as $rErrIdx => $rErr) {
+                                        ?> <div class="issue-card">
+                                                <div class="issue-type">ERROR #<?= $rErrIdx ?></div>
+                                                <div class="issue-body"><?= $formatMsg($rErr['err']) ?></div>
+                                            </div> <?php
+                                                }
+                                            } ?>
+                                </div>
+                            <?php
+                                } ?>
+                        <?php endif; ?>
                         </div>
                     <?php endforeach; ?>
                 </div>
             </div>
-
             <script>
                 function switchTab(evt, tabId) {
                     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
                     document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
                     evt.currentTarget.classList.add('active');
+                    localStorage.setItem('lastTab', tabId);
                     document.getElementById(tabId).classList.add('active');
+                }
+                if (localStorage.getItem('lastTab') !== null) {
+                    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+                    document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'))
+                    document.getElementById(localStorage.getItem('lastTab')).classList.add('active');
+                    document.getElementById("btn-" + localStorage.getItem('lastTab')).classList.add('active');
                 }
             </script>
         </body>
@@ -9005,6 +9153,7 @@ class FunkRoutes
      */
     public function HEAD(): FunkMethod
     {
+        $this->c->batch("batchSetMETHOD", "HEAD");
         return $this->methodInstances['HEAD'] ??= new FunkMethod($this->c, $this, 'HEAD');
     }
     /**
@@ -9014,6 +9163,7 @@ class FunkRoutes
      */
     public function GET(): FunkMethod
     {
+        $this->c->batch("batchSetMETHOD", "GET");
         return $this->methodInstances['GET'] ??= new FunkMethod($this->c, $this, 'GET');
     }
     /**
@@ -9023,6 +9173,7 @@ class FunkRoutes
      */
     public function POST(): FunkMethod
     {
+        $this->c->batch("batchSetMETHOD", "POST");
         return $this->methodInstances['POST'] ??= new FunkMethod($this->c, $this, 'POST');
     }
     /**
@@ -9032,6 +9183,7 @@ class FunkRoutes
      */
     public function PUT(): FunkMethod
     {
+        $this->c->batch("batchSetMETHOD", "PUT");
         return $this->methodInstances['PUT'] ??= new FunkMethod($this->c, $this, 'PUT');
     }
     /**
@@ -9041,6 +9193,7 @@ class FunkRoutes
      */
     public function PATCH(): FunkMethod
     {
+        $this->c->batch("batchSetMETHOD", "PATCH");
         return $this->methodInstances['PATCH'] ??= new FunkMethod($this->c, $this, 'PATCH');
     }
     /**
@@ -9050,6 +9203,7 @@ class FunkRoutes
      */
     public function DELETE(): FunkMethod
     {
+        $this->c->batch("batchSetMETHOD", "DELETE");
         return $this->methodInstances['DELETE'] ??= new FunkMethod($this->c, $this, 'DELETE');
     }
     /**

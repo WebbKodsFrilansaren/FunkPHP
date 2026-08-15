@@ -3,7 +3,7 @@
 
 /** @var FunkPHP $APP */
 $APP->ROUTES()->GET()
-    //->pipeMiddleware("test")
-    ->route("/test")
-    ->pipeMiddleware("test")
-    ->route("/test");
+    ->pipeMiddleware("auth3")
+    ->route("/test2")
+    ->pipeMiddleware("test2")
+    ->setParamRule("test", "/i/", "yas");

@@ -3,5 +3,5 @@
 
 /** @var FunkPHP $APP */
 $APP->CONFIG()
-    ->setDebug(true, true, true)
-    ->setCSP('script-src', 'nonce:test', 'nonce:test2');
+    ->setDebug(true, true, false)
+    ->pipeMiddleware("test");

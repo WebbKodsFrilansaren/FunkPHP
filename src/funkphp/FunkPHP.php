@@ -78,10 +78,10 @@ if (is_object($FUNKPHP) && $FUNKPHP instanceof FunkPHP) {
         } else {
             $title = "FunkPHP Configuration Debug";
         }
+        //dd($toDump, $title, false);
         $outputErrWarns = new ReflectionMethod($cInstance, 'output_errors');
         $outputErrWarns->setAccessible(true);
-        $outputErrWarns->invoke($cInstance, $errors);
-        // dd($toDump, $title, false);
+        $outputErrWarns->invoke($cInstance, $toDump);
     }
     // Attempt running Class C->compile() which meaning it will attempt
     // compiling first and then run right after it if no errors occurs.
