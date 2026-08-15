@@ -24,7 +24,9 @@ define('NAMESPACE_DATA_SQL', 'funkphp\\data\\sql\\');
 define('NAMESPACE_DATA_VALIDATION', 'funkphp\\data\\validation\\');
 
 // Constants for Localhost vs Online Usage
+
 define('ROOT_FOLDER', dirname(__DIR__, 1)); // src/funkphp/
+define('ROOT_PUBLIC_HTML', dirname(__DIR__, 2) . '/public_html'); // src/public_html
 define('ROOT_APP', ROOT_FOLDER . '/app'); // src/funkphp/app
 define('ROOT_CORE_APP', ROOT_FOLDER . '/core/app.php'); // src/funkphp/config/app.php
 define('ROOT_APP_CONFIG', ROOT_FOLDER . '/app/CONFIG.php'); // src/funkphp/app/CONFIG.php
@@ -344,7 +346,7 @@ function dd(mixed $data, string $headerOptionalMsg = '', bool $exit = true, bool
             <?php endif; ?>
         </script>
     </div>
-<?php
+    <?php
     if ($exit) {
         exit(1);
     }
@@ -1305,14 +1307,6 @@ function funk_clear_log(&$c, $saveFirst = false)
     return;
 }
 
-// Function to skip the post_response pipeline
-function funk_skip_post_response(&$c)
-{
-    $c['req']['skip_post_response'] = true;
-    ob_end_clean();
-    return;
-}
-
 // `pipeline` is the list of functions to always run for each request (unless any
 // of the functions terminates it early!) This is the main entry point for each request!
 // &$c is Global Config Variable with "everything"!
@@ -1491,15 +1485,6 @@ function funk_run_pipeline_post_response(&$c)
     $c['req']['current_pipeline'] = null;
     $c['req']['keep_running_pipeline'] = false;
     $c['<ENTRY>']['pipeline']['post_response'] = null;
-}
-
-// Same as above but used for the post response functions
-// IMPORTANT: As you can see, it will remove all remaining
-// pipeline functions, so use with care!
-function funk_abort_pipeline_post_response(&$c)
-{
-    $c['req']['keep_running_pipeline'] = false;
-    return;
 }
 
 // Match Compiled Route with URI Segments, used by "r_match_developer_route"
@@ -1844,9 +1829,30 @@ function funk_db_conn(&$c, $dbKey)
 /******************************************/
 /*** PAGE-RELATED Functions For FunkPHP ***/
 /******************************************/
+function funk_internal_nonces(&$c, $nonce) {}
 
+function funk_internal_sri_internal(&$c, $nonce) {}
 
+function funk_internal_sri_external(&$c, $nonce) {}
 
+function funk_internal_send_headers(&$c)
+{
+    /* CSP PARTS! - Must first get from Global, Method then Route OR
+    Maybe it should be that during compile(), every Route already has
+    all available headers to grab and thus return here? */
+    $cspParts = [];
+    $cspDirectives = ['placeholder' => ['placeholder2']];
+    foreach ($cspDirectives as $directive => $sources) {
+        // If count is 0 (because no nonces were ever evaluated for this directive), SKIP IT!
+        if (empty($sources)) {
+            continue;
+        }
+        $cspParts[] = $directive . ' ' . implode(' ', $sources);
+    }
+    if (!empty($cspParts)) {
+        header('Content-Security-Policy: ' . implode('; ', $cspParts));
+    }
+}
 
 /**************************************
  * CLASSES USED BY FunkPHP FOR IDE $DX!
@@ -1873,7 +1879,7 @@ class C
         ],
     ];
     private array $ALLOWED = [
-        'csp-directives' => [ // used by setCSP()
+        'csp-directives' => [ // used by setCSP() (global,method,route)
             'default-src',
             'script-src',
             'script-src-elem',
@@ -1917,6 +1923,8 @@ class C
         'CONFIG' => [],
         'METHODS' => []
     ];
+    private array $compileErrors = [];
+    private array $compileWarnings = [];
     private array $WARNINGS = [];
     private array $compileFlags = [];
     // Valid + Invalid batches, compile() only starts if $invalidBatches is empty!
@@ -2002,7 +2010,7 @@ class C
             'INI_SETS' => [],
         ],
         'methods' => [],
-        'routes' => [],
+        'routes' => ['trie' => [], 'trie_metadata' => []],
         'pages' => [],
         'data' => [],
         // This is the $c Variable that is then assigned automatically globally.
@@ -3809,8 +3817,7 @@ class C
             'InvalidCSPSourceArray' => "Invalid CSP Source Array in {$optionalCtx}: Ensure Sources are Valid Non-Empty Strings with no spaces, semicolons, or CRLF Injections.",
             'InvalidCSPDirective' => "Invalid CSP Directive Name Value in {$optionalCtx}. Must be one of the following: ",
             'InvalidCSPWildcardUse' => "Invalid Wildcard Domain CSP Source Value in {$optionalCtx}. Wildcards must appear as `*.domain.com` OR `https://*.domain.com`.",
-            'InvalidNonceKeys' => "Invalid Nonce Array Value in {$optionalCtx}: Nonce Keys must be Non-Empty Strings containing only `[a-zA-Z0-9_-]` characters (e.g., `test`, `main_script`, `inline-css`). They are then referenced with `SetCSP` as `->setCSP('script-src','nonce:main_script')` OR in Templated Pages:`{{nonce:main_script}}`.",
-            'InvalidNonceKeyName' => "Invalid Nonce Key Value in {$optionalCtx}: Nonce Keys must be Non-Empty Strings containing only `[a-zA-Z0-9_-]` characters (e.g., `test`, `main-script`).",
+            'InvalidNonceKeyName' => "Invalid Nonce Key Value in {$optionalCtx}: Nonce Keys must be Non-Empty Strings containing only `[a-zA-Z0-9-_\.]` characters (e.g., `test`, `main-script`).",
             'InvalidPageName' => "Invalid Page Name Value in {$optionalCtx}: must be a `Non-Empty String` containing only `[a-zA-Z0-9-_]` characters (no trailing spaces) and without the File Extension.",
             'InvalidNoRouteMatchTextValue' => "Invalid Text Value in {$optionalCtx}: must be a `Non-Empty String` after `trim()` have been applied to it.",
             'InvalidRegex'                                => "Invalid Regex Value in {$optionalCtx}: must be a `Non-Empty String` that is also a `Valid Regex Pattern` when parsed by `preg_match()`. It cannot be an Empty Expression with optional modifiers (e.g. `//` OR `//i`).",
@@ -3850,7 +3857,8 @@ class C
 
             // Call Order & Duplicate|Conflict Validation Errors
             'DuplicateFlexibleRegexPairName' => "`Duplicate Regex Pair Name` in {$optionalCtx}: ",
-            'DuplicateNonceKeyName'           => "`Duplicate Nonce Key Name` in {$optionalCtx}. Review/change the already `Valid` Nonce Key Name ",
+            'DuplicateNonceDirectiveUse' => "`Duplicate Nonce CSP Directive Use` in {$optionalCtx}: ",
+            'DuplicateNonceName'           => "`Duplicate Nonce Name` in {$optionalCtx}. Review/change the already `Valid` Nonce Key Name ",
             'DuplicateRouteAliasName'           => "Duplicate Route Alias Name` in {$optionalCtx}. Review/change the already `Valid` Configuration first defined in ",
             'DuplicateCallSessionCookieDueToValidOptionsVersion' => "`Duplicate Setting Session Cookie Call` to {$optionalCtx} due to already being set and `Valid` OR because `->setSessionCookieOptions()` has been used already which sets all Session Cookie Values at once.",
             'DuplicateRouteConflict' => "`Duplicate Route Conflict` in Valid Formatted Route in {$optionalCtx} ",
@@ -5449,13 +5457,35 @@ class C
             $this->invalidBatches['csp']['config'][$directive] = $sources;
             return;
         }
+        $nonces = [];
         foreach ($sources as $source) {
             if (!is_string($source)) {
                 $this->setErr($this->getErr('InvalidCSPSourceArray', $ctxVals), 'Global-setCSP');
                 $this->invalidBatches['csp']['config'][$directive] = $sources;
                 return;
             }
+            // Is it a nonce that is supposed to be in the 'nonces' array instead?
             $trimmed = trim($source);
+            if (str_starts_with(strtolower($trimmed), 'nonce:')) {
+                if (in_array(strtolower($trimmed), $nonces)) {
+                    $this->setErr($this->getErr('DuplicateNonceName', $ctxVals) . "`{$trimmed}`. You can only use each Unique Nonce Name once per CSP Directive.", 'Global-setCSP');
+                    $this->invalidBatches['csp']['config'][$directive] = $sources;
+                    return;
+                }
+                if (!preg_match('/^nonce:[a-zA-Z0-9-_\.]+$/', strtolower($trimmed))) {
+                    $this->setErr($this->getErr('InvalidNonceKeyName', $ctxVals), 'Global-setCSP');
+                    $this->invalidBatches['csp']['config'][$directive] = $sources;
+                    return;
+                }
+                if (isset($this->validBatches['config']['nonces'][strtolower($trimmed)])) {
+                    $this->setErr($this->getErr('DuplicateNonceDirectiveUse', $ctxVals) . "`Nonce Name {$trimmed} ` is already being used by CSP Directive: `{$this->validBatches['config']['nonces'][strtolower($trimmed)]}`.", 'Global-setCSP');
+                    $this->invalidBatches['csp']['config'][$directive] = $sources;
+                    return;
+                }
+                $nonces[] = strtolower($trimmed);
+                $this->validBatches['config']['nonces'][strtolower($trimmed)] = $directive;
+                continue;
+            }
             if (
                 $trimmed === ''
                 || str_contains($trimmed, ';')
@@ -5475,7 +5505,9 @@ class C
                 }
             }
         }
-        $this->validBatches['config']['csp'][$directive] = $formattedSources;
+        $this->validBatches['config']['csp'][$directive] = array_filter($formattedSources, function ($src) {
+            return str_starts_with('nonce:', $src);
+        });
     }
 
     /* setSRI Internal&External Global */
@@ -5973,13 +6005,35 @@ class C
             $this->invalidBatches['csp']['methods'][$method][$directive] = $sources;
             return;
         }
+        $nonces = [];
         foreach ($sources as $source) {
             if (!is_string($source)) {
                 $this->setErr($this->getErr('InvalidCSPSourceArray', $ctxVals), 'Method-setCSP', $method);
                 $this->invalidBatches['csp']['methods'][$method][$directive] = $sources;
                 return;
             }
+            // Is it a nonce that is supposed to be in the 'nonces' array instead?
             $trimmed = trim($source);
+            if (str_starts_with(strtolower($trimmed), 'nonce:')) {
+                if (in_array(strtolower($trimmed), $nonces)) {
+                    $this->setErr($this->getErr('DuplicateNonceName', $ctxVals) . "`{$trimmed}`. You can only use each Unique Nonce Name once per CSP Directive.", 'Method-setCSP', $method);
+                    $this->invalidBatches['csp']['methods'][$method][$directive] = $sources;
+                    return;
+                }
+                if (!preg_match('/^nonce:[a-zA-Z0-9-_\.]+$/', strtolower($trimmed))) {
+                    $this->setErr($this->getErr('InvalidNonceKeyName', $ctxVals), 'Method-setCSP');
+                    $this->invalidBatches['csp']['methods'][$method][$directive] = $sources;
+                    return;
+                }
+                if (isset($this->validBatches['methods'][$method]['nonces'][strtolower($trimmed)])) {
+                    $this->setErr($this->getErr('DuplicateNonceDirectiveUse', $ctxVals) . "`Nonce Name {$trimmed} ` is already being used by CSP Directive: `{$this->validBatches['methods'][$method]['nonces'][strtolower($trimmed)]}`.", 'Method-setCSP', $method);
+                    $this->invalidBatches['csp']['methods'][$method][$directive] = $sources;
+                    return;
+                }
+                $nonces[] = strtolower($trimmed);
+                $this->validBatches['methods'][$method]['nonces'][strtolower($trimmed)] = $directive;
+                continue;
+            }
             if (
                 $trimmed === ''
                 || str_contains($trimmed, ';')
@@ -5999,7 +6053,9 @@ class C
                 }
             }
         }
-        $this->validBatches['methods'][$method]['csp'][$directive] = $formattedSources;
+        $this->validBatches['methods'][$method]['csp'][$directive] = array_filter($formattedSources, function ($src) {
+            return str_starts_with('nonce:', $src);
+        });
     }
 
     /*METHOD: removeHeader & pipeHeader */
@@ -6225,6 +6281,16 @@ class C
             'csp' => null,
             'nonces' => null,
             'excludeHeaders' => null,
+            'all' => [
+                'all_headers' => [
+                    'all_add' => [],
+                    'all_remove' => []
+                ],
+                'all_middlewares' => [],
+                'all_middlewares_and_pipes' => [],
+                'all_csp' => [],
+                'all_nonces' => []
+            ]
         ];
     }
 
@@ -6451,6 +6517,7 @@ class C
             $this->invalidBatches['csp']['routes'][$method][$route][$directive] = $sources;
             return;
         }
+        $nonces = []; // cannot use same nonce:<name> twice for same directory
         foreach ($sources as $source) {
             if (!is_string($source)) {
                 $this->setErr($this->getErr('InvalidCSPSourceArray', $ctxVals), 'Route-setCSP', $method, $route);
@@ -6458,6 +6525,28 @@ class C
                 return;
             }
             $trimmed = trim($source);
+            // Is it a nonce that is supposed to be in the 'nonces' array instead?
+            if (str_starts_with(strtolower($trimmed), 'nonce:')) {
+                if (in_array(strtolower($trimmed), $nonces)) {
+                    $this->setErr($this->getErr('DuplicateNonceName', $ctxVals) . "`{$trimmed}`. You can only use each Unique Nonce Name once per CSP Directive.", 'Route-setCSP', $method, $route);
+                    $this->invalidBatches['csp']['routes'][$method][$route][$directive] = $sources;
+                    return;
+                }
+                if (!preg_match('/^nonce:[a-zA-Z0-9-_\.]+$/', strtolower($trimmed))) {
+                    $this->setErr($this->getErr('InvalidNonceKeyName', $ctxVals), 'Route-setCSP', $method, $route);
+                    $this->invalidBatches['csp']['routes'][$method][$route][$directive] = $sources;
+                    return;
+                }
+                if (isset($this->validBatches['routes'][$method][$route]['nonces'][strtolower($trimmed)])) {
+                    $this->setErr($this->getErr('DuplicateNonceDirectiveUse', $ctxVals) . "`Nonce Name {$trimmed} ` is already being used by CSP Directive: `{$this->validBatches['routes'][$method][$route]['nonces'][strtolower($trimmed)]}`.", 'Route-setCSP', $method, $route);
+                    $this->invalidBatches['csp']['routes'][$method][$route][$directive] = $sources;
+                    return;
+                }
+                $nonces[] = strtolower($trimmed);
+                $this->validBatches['routes'][$method][$route]['nonces'][strtolower($trimmed)] = $directive;
+                continue;
+            }
+            // Not nonce: special-case so check for other stuff
             if (
                 $trimmed === ''
                 || str_contains($trimmed, ';')
@@ -6477,7 +6566,9 @@ class C
                 }
             }
         }
-        $this->validBatches['routes'][$method][$route]['csp'][$directive] = $formattedSources;
+        $this->validBatches['routes'][$method][$route]['csp'][$directive] = array_filter($formattedSources, function ($src) {
+            return str_starts_with('nonce:', $src);
+        });
     }
 
     /*ROUTE: pipeMiddleware, pipeFunction, pipeResponse, pipeSQL, pipeQuery & pipeValidation */
@@ -7009,6 +7100,222 @@ class C
     {
         $compileWarnings[count($compileWarnings) + 1] = $err;
     }
+    private function compile_add_to_route_trie(string $method, $route) {}
+
+    // Function that generates a Welcome HTML screen when there is nothing in $this->validBatches
+    // OR there are zero routes in $this->validBatches['routes]. This should then show a soft success
+    // screen and showing how to add some routes and configuration, maybe a link to the Official Docs?
+    private function compile_welcome_splash()
+    {
+        header("content-type: text/html");
+        http_response_code(200);
+        $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || ($_SERVER['SERVER_PORT'] ?? '') == 443 ? 'https' : 'http';
+        $host = $_SERVER['HTTP_HOST'] ?? 'loclhost';
+        $scriptDir = dirname($_SERVER['SCRIPT_NAME'] ?? '');
+        $basePath = ($scriptDir === '/' || $scriptDir === '\\') ? '' : rtrim(str_replace('\\', '/', $scriptDir), '/');
+        $baseUrl = "{$scheme}://{$host}{$basePath}";
+        $imgDiskPath = ROOT_PUBLIC_HTML . '/images/favicon.ico';
+        $fontDiskPath = ROOT_PUBLIC_HTML . '/fonts/Fredoka-Bold.ttf';
+        $fontLightDiskPath = ROOT_PUBLIC_HTML . '/fonts/Fredoka-Light.ttf';
+        $PHTML_IMG_SRC = file_exists($imgDiskPath) ? "{$baseUrl}/images/favicon.ico" : "";
+        $PHTML_FONT_SRC = file_exists($fontDiskPath) ? "{$baseUrl}/fonts/Fredoka-Bold.ttf" : "";
+        $PHTML_FONT2_SRC = file_exists($fontLightDiskPath) ? "{$baseUrl}/fonts/Fredoka-Light.ttf" : "";
+    ?>
+        <!doctype html>
+        <html lang="en">
+
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>FunkPHP</title>
+            <?php if ($PHTML_IMG_SRC): ?>
+                <link rel="shortcut icon" href="<?= htmlspecialchars($PHTML_IMG_SRC, ENT_QUOTES, 'UTF-8') ?>" />
+            <?php endif; ?>
+            <style>
+                <?php if ($PHTML_FONT_SRC): ?>@font-face {
+                    font-family: 'Fredoka-Bold';
+                    src: url("<?= htmlspecialchars($PHTML_FONT_SRC, ENT_QUOTES, 'UTF-8') ?>");
+                }
+
+                <?php endif; ?><?php if ($PHTML_FONT2_SRC): ?>@font-face {
+                    font-family: 'Fredoka-Light';
+                    src: url("<?= htmlspecialchars($PHTML_FONT2_SRC, ENT_QUOTES, 'UTF-8') ?>");
+                }
+
+                <?php endif; ?>* {
+                    box-sizing: border-box;
+                    margin: 0;
+                    padding: 0;
+                }
+
+                html {
+                    font-size: 14px;
+                    font-family: <?php echo $PHTML_FONT_SRC ? "'Fredoka-Bold', " : ""; ?>system-ui, -apple-system, sans-serif;
+                    color: #1d2a3b;
+                    background-color: #f7f9fc;
+                }
+
+                .container {
+                    max-width: 900px;
+                    margin: 0 auto;
+                    padding: 2rem 1rem;
+                }
+
+                .card {
+                    background: #ffffff;
+                    border-radius: 12px;
+                    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+                    padding: 3rem;
+                    text-align: left;
+                }
+
+                .header {
+                    text-align: center;
+                    margin-bottom: 2.5rem;
+                }
+
+                .title-main {
+                    font-size: 2.8rem;
+                    color: rgb(28, 9, 48);
+                    margin-bottom: 0.5rem;
+                    letter-spacing: 0.05rem;
+                }
+
+                .badge-success {
+                    display: inline-block;
+                    background: #e6f4ea;
+                    color: #137333;
+                    padding: 0.35rem 0.8rem;
+                    border-radius: 50px;
+                    font-size: 0.9rem;
+                    margin-top: 0.5rem;
+                }
+
+                .subheading {
+                    font-size: 1.1rem;
+                    color: #5f6368;
+                    line-height: 1.6;
+                    font-family: 'Fredroka-Light';
+                    font-weight: bold;
+                }
+
+                .section-title {
+                    font-size: 1.3rem;
+                    color: rgb(28, 9, 48);
+                    margin: 2rem 0 1rem 0;
+                    border-bottom: 2px solid #f1f3f4;
+                    padding-bottom: 0.5rem;
+                }
+
+                .code-block {
+                    background: #1e1e1e;
+                    color: #d4d4d4;
+                    padding: 1.2rem;
+                    border-radius: 8px;
+                    font-family: 'Consolas', 'Courier New', monospace;
+                    font-size: 0.95rem;
+                    line-height: 1.5;
+                    overflow-x: auto;
+                    margin-bottom: 1rem;
+                }
+
+                .code-keyword {
+                    color: #569cd6;
+                }
+
+                .code-string {
+                    color: #ce9178;
+                }
+
+                .code-comment {
+                    color: #6a9955;
+                }
+
+                .code-variable {
+                    color: #9cdcfe;
+                }
+
+                .btn-docs {
+                    display: inline-block;
+                    background: rgb(28, 9, 48);
+                    color: #ffffff;
+                    text-decoration: none;
+                    padding: 0.8rem 1.6rem;
+                    border-radius: 6px;
+                    font-size: 1rem;
+                    transition: background 0.2s;
+                    margin-top: 1rem;
+                }
+
+                .btn-docs:hover {
+                    background: #321650;
+                }
+
+                footer {
+                    text-align: center;
+                    color: #b1b1b1;
+                    font-size: 0.85rem;
+                    margin-top: 2rem;
+                    letter-spacing: 0.1rem;
+                }
+            </style>
+        </head>
+
+        <body>
+            <div class="container">
+                <div class="card">
+                    <div class="header">
+                        <h1 class="title-main">FunkPHP App Ready</h1>
+                        <span class="badge-success">✓ Zero-Config Soft Success</span>
+                    </div>
+
+                    <p class="subheading">Your framework core is successfully compiled. To start building endpoints, configure your global settings and routes below.</p>
+
+                    <h2 class="section-title">1. Global Configuration</h2>
+                    <p style="margin-bottom: 0.5rem; color: #5f6368;">Configure global security, database instances, and global middleware in <code>/src/funkphp/app/CONFIG.php</code>:</p>
+                    <div class="code-block">
+                        <span class="code-comment">// src/funkphp/app/CONFIG.php</span><br />
+                        <span class="code-comment">/** @var FunkPHP $APP */</span><br />
+                        <span class="code-variable">$APP</span>-><span class="code-keyword">CONFIG</span>()<br />
+                        -><span class="code-keyword">setDebug</span>(<span class="code-keyword">true</span>)<br />
+                        -><span class="code-keyword">pipeMiddleware</span>(<span class="code-string">'cors'</span>)<br />
+                        -><span class="code-keyword">pipeMiddleware</span>(<span class="code-string">'rateLimiter'</span>)<br />
+                        -><span class="code-keyword">setCSP</span>(<span class="code-string">'default-src'</span>, <span class="code-string">'self'</span>)<br />
+                        -><span class="code-keyword">setCSP</span>(<span class="code-string">'script-src'</span>, <span class="code-string">'self'</span>, <span class="code-string">'https://cdn.jsdelivr.net'</span>);<br />
+                    </div>
+
+                    <h2 class="section-title">2. Define Route Pipelines</h2>
+                    <p style="margin-bottom: 0.5rem; color: #5f6368;">Register RESTful routes with auth guards and handlers in <code>/src/funkphp/app/GET.php</code>:</p>
+                    <div class="code-block">
+                        <span class="code-comment">// src/funkphp/app/GET.php</span><br />
+                        <span class="code-comment">/** @var FunkPHP $APP */</span><br />
+                        <span class="code-comment">// Public Healthcheck Endpoint</span><br />
+                        <span class="code-variable">$APP</span>-><span class="code-keyword">ROUTES</span>()-><span class="code-keyword">GET</span>()<br />
+                        -><span class="code-keyword">ROUTE</span>(<span class="code-string">"/api/v1/health"</span>)<br />
+                        -><span class="code-keyword">pipeFunction</span>(<span class="code-string">"system.healthCheck"</span>);<br />
+
+                        <span class="code-comment">// Authenticated User Resource Route</span><br />
+                        <span class="code-variable">$APP</span>-><span class="code-keyword">ROUTES</span>()-><span class="code-keyword">GET</span>()<br />
+                        -><span class="code-keyword">pipeMiddleware</span>(<span class="code-string">'authGuard'</span>)<br />
+                        -><span class="code-keyword">pipeMiddleware</span>(<span class="code-string">'verifyCsrfToken'</span>)<br />
+                        -><span class="code-keyword">ROUTE</span>(<span class="code-string">"/api/v1/users/:id"</span>)<br />
+                        -><span class="code-keyword">ROUTE</span>(<span class="code-string">"/api/v1/users/:id/profile"</span>)<br />
+                        -><span class="code-keyword">pipeFunction</span>(<span class="code-string">"users.getProfile"</span>);<br />
+                    </div>
+
+                    <div style="text-align: center; margin-top: 2rem;">
+                        <a href="https://www.funkphp.com" target="_blank" class="btn-docs">FunkPHP Official DOCS →</a>
+                    </div>
+                </div>
+                <footer>©2025-2026 FunkPHP.com — Funky Functional Programming</footer>
+            </div>
+        </body>
+
+        </html>
+    <?php
+        exit;
+    }
+
     // Function that generates HTML to then output an easier visualized version of current errors
     // and/or warnings. It has TABS based upon what actually has errors/warnings. It starts with
     // the tabs "CONFIG | GET | POST | PUT | DELETE | PATCH" and then inside of each Tab (Methods)
@@ -7017,16 +7324,420 @@ class C
     // would be calling this function exclusively to provide those compile errors and/or warnings.
     // Essentially it is a typical REST API Swagger but with errors/warnings below each <Method> => <Route> Tab.
     // Errors use heavily the `` that should be replaced with colorized spans instead and thus also
-    // removing the `` after the fact. This helps with seeing what is importand what is not.
+    // removing the `` after the fact. This helps with seeing what is important what is not.
     private function output_errors(array $internalErrors = [], ?array $compileErrors = [], array $compileWarnings = [])
     {
-        // Prepare HTML based upon stored
-        $html = "";
-
-        // Output Error HTML
-        header("content-type: text/html");
+        header("content-type: text/html; charset=utf-8");
         http_response_code(500);
-        echo $html;
+        $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || ($_SERVER['SERVER_PORT'] ?? '') == 443 ? 'https' : 'http';
+        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+        $scriptDir = dirname($_SERVER['SCRIPT_NAME'] ?? '');
+        $basePath = ($scriptDir === '/' || $scriptDir === '\\') ? '' : rtrim(str_replace('\\', '/', $scriptDir), '/');
+        $baseUrl = "{$scheme}://{$host}{$basePath}";
+        $imgDiskPath = ROOT_PUBLIC_HTML . '/images/favicon.ico';
+        $fontDiskPath = ROOT_PUBLIC_HTML . '/fonts/Fredoka-Bold.ttf';
+        $fontLightDiskPath = ROOT_PUBLIC_HTML . '/fonts/Fredoka-Light.ttf';
+        $PHTML_IMG_SRC = file_exists($imgDiskPath) ? "{$baseUrl}/images/favicon.ico" : "";
+        $PHTML_FONT_SRC = file_exists($fontDiskPath) ? "{$baseUrl}/fonts/Fredoka-Bold.ttf" : "";
+        $PHTML_FONT2_SRC = file_exists($fontLightDiskPath) ? "{$baseUrl}/fonts/Fredoka-Light.ttf" : "";
+        // Get the `` highlighted version instead
+        $formatMsg = function ($msg) {
+            if (!is_string($msg)) {
+                $msg = json_encode($msg, JSON_PRETTY_PRINT, JSON_UNESCAPED_SLASHES);
+            }
+            $escaped = htmlspecialchars($msg, ENT_QUOTES, 'UTF-8');
+            return preg_replace('/`([^`]+)`/', '<span class="code-badge">$1</span>', $escaped);
+        };
+        // Pre-process and bucket all errors & warnings into tabs [CONFIG, GET, POST, PUT, DELETE, PATCH]
+        $tabs = ['CONFIG', 'GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
+        $bucketed = [];
+        foreach ($tabs as $t) {
+            $bucketed[$t] = [
+                'errors' => [],   // Format: ['route' => '...', 'msg' => '...']
+                'warnings' => []  // Format: ['route' => '...', 'msg' => '...']
+            ];
+        }
+        // 1. Parse Internal Fluent API Errors ($this->errors)
+        if (!empty($internalErrors['CONFIG'])) {
+            foreach ((array)$internalErrors['CONFIG'] as $err) {
+                $bucketed['CONFIG']['errors'][] = ['route' => 'Global Config', 'msg' => $err];
+            }
+        }
+        if (!empty($internalErrors['METHODS'])) {
+            foreach ($internalErrors['METHODS'] as $method => $routes) {
+                $methodUpper = strtoupper($method);
+                if (isset($bucketed[$methodUpper])) {
+                    foreach ($routes as $route => $errList) {
+                        foreach ((array)$errList as $err) {
+                            $bucketed[$methodUpper]['errors'][] = ['route' => $route, 'msg' => $err];
+                        }
+                    }
+                }
+            }
+        }
+        // 2. Parse Compile Errors ($compileErrors)
+        if (!empty($compileErrors)) {
+            foreach ($compileErrors as $err) {
+                $matched = false;
+                // Check for explicit Route matches like 'GET/test' or 'POST /api/v1'
+                foreach ($tabs as $m) {
+                    if ($m === 'CONFIG') continue;
+                    if (preg_match('/\'(' . $m . ')(\/[^\']*)\'/i', $err, $matches)) {
+                        $bucketed[$m]['errors'][] = ['route' => $matches[2], 'msg' => $err];
+                        $matched = true;
+                        break;
+                    }
+                }
+                if (!$matched) {
+                    if (str_contains($err, 'CONFIG') || str_contains($err, 'Global')) {
+                        $bucketed['CONFIG']['errors'][] = ['route' => 'Global Config', 'msg' => $err];
+                    } else {
+                        // Fallback to CONFIG tab if unclassified
+                        $bucketed['CONFIG']['errors'][] = ['route' => 'General Compiler', 'msg' => $err];
+                    }
+                }
+            }
+        }
+        // 3. Parse Compile Warnings ($compileWarnings)
+        if (!empty($compileWarnings)) {
+            foreach ($compileWarnings as $warn) {
+                $matched = false;
+                foreach ($tabs as $m) {
+                    if ($m === 'CONFIG') continue;
+                    // Match route specific warnings like: "No Pipes for Route 'GET/test'."
+                    if (preg_match('/\'(' . $m . ')(\/[^\']*)\'/i', $warn, $matches)) {
+                        $bucketed[$m]['warnings'][] = ['route' => $matches[2], 'msg' => $warn];
+                        $matched = true;
+                        break;
+                    }
+                }
+                if (!$matched) {
+                    $bucketed['CONFIG']['warnings'][] = ['route' => 'Global Config', 'msg' => $warn];
+                }
+            }
+        }
+        // Calculate total summary counts
+        $totalErrors = 0;
+        $totalWarnings = 0;
+        foreach ($tabs as $t) {
+            $totalErrors += count($bucketed[$t]['errors']);
+            $totalWarnings += count($bucketed[$t]['warnings']);
+        }
+        // Find first active tab that actually contains diagnostic items
+        $activeTab = 'CONFIG';
+        foreach ($tabs as $t) {
+            if (!empty($bucketed[$t]['errors']) || !empty($bucketed[$t]['warnings'])) {
+                $activeTab = $t;
+                break;
+            }
+        }
+    ?>
+        <!doctype html>
+        <html lang="en">
+
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>FunkPHP Fluent API</title>
+            <?php if ($PHTML_IMG_SRC): ?>
+                <link rel="shortcut icon" href="<?= htmlspecialchars($PHTML_IMG_SRC, ENT_QUOTES, 'UTF-8') ?>" />
+            <?php endif; ?>
+            <style>
+                <?php if ($PHTML_FONT_SRC): ?>@font-face {
+                    font-family: 'Fredoka-Bold';
+                    src: url("<?= htmlspecialchars($PHTML_FONT_SRC, ENT_QUOTES, 'UTF-8') ?>");
+                }
+
+                <?php endif; ?><?php if ($PHTML_FONT2_SRC): ?>@font-face {
+                    font-family: 'Fredoka-Light';
+                    src: url("<?= htmlspecialchars($PHTML_FONT2_SRC, ENT_QUOTES, 'UTF-8') ?>");
+                }
+
+                <?php endif; ?>* {
+                    box-sizing: border-box;
+                    margin: 0;
+                    padding: 0;
+                }
+
+                body {
+                    font-family: system-ui, -apple-system, sans-serif;
+                    background: #0d1117;
+                    color: #c9d1d9;
+                    padding: 2rem 1rem;
+                }
+
+                .container {
+                    max-width: 1100px;
+                    margin: 0 auto;
+                }
+
+                .header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 1.5rem;
+                    padding-bottom: 1rem;
+                    border-bottom: 1px solid #21262d;
+                }
+
+                .title {
+                    font-family: <?php echo $PHTML_FONT_SRC ? "'Fredoka-Bold', " : ""; ?>sans-serif;
+                    font-size: 2rem;
+                    color: rgb(141, 85, 201);
+                }
+
+                .summary-badges {
+                    display: flex;
+                    gap: 0.6rem;
+                }
+
+                .badge {
+                    padding: 0.35rem 0.8rem;
+                    border-radius: 20px;
+                    font-size: 0.85rem;
+                    font-weight: 600;
+                    font-family: monospace;
+                }
+
+                .badge-danger {
+                    background: rgba(248, 81, 73, 0.15);
+                    color: #ff7b72;
+                    border: 1px solid rgba(248, 81, 73, 0.4);
+                }
+
+                .badge-warning {
+                    background: rgba(210, 153, 34, 0.15);
+                    color: #d29922;
+                    border: 1px solid rgba(210, 153, 34, 0.4);
+                }
+
+                .tabs-header {
+                    display: flex;
+                    background: #161b22;
+                    border-radius: 8px 8px 0 0;
+                    border: 1px solid #30363d;
+                    border-bottom: none;
+                    overflow-x: auto;
+                }
+
+                .tab-btn {
+                    padding: 0.85rem 1.4rem;
+                    background: none;
+                    border: none;
+                    color: #8b949e;
+                    font-size: 0.95rem;
+                    font-weight: 700;
+                    cursor: pointer;
+                    border-bottom: 3px solid transparent;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    transition: all 0.15s ease;
+                }
+
+                .tab-btn:hover {
+                    color: #c9d1d9;
+                    background: rgba(255, 255, 255, 0.02);
+                }
+
+                .tab-btn.active {
+                    color: #58a6ff;
+                    border-bottom: 3px solid #58a6ff;
+                    background: #0d1117;
+                }
+
+                .tab-count {
+                    background: #21262d;
+                    color: #8b949e;
+                    border-radius: 10px;
+                    padding: 0.1rem 0.45rem;
+                    font-size: 0.75rem;
+                }
+
+                .tab-btn.active .tab-count {
+                    background: rgba(56, 139, 253, 0.15);
+                    color: #58a6ff;
+                }
+
+                .tab-btn.has-errors .tab-count {
+                    background: rgba(248, 81, 73, 0.2);
+                    color: #ff7b72;
+                }
+
+                .tab-content {
+                    background: #0d1117;
+                    border: 1px solid #30363d;
+                    border-radius: 0 0 8px 8px;
+                    padding: 1.5rem;
+                    min-height: 420px;
+                }
+
+                .tab-panel {
+                    display: none;
+                }
+
+                .tab-panel.active {
+                    display: block;
+                }
+
+                .route-group {
+                    margin-bottom: 1.8rem;
+                }
+
+                .route-header {
+                    font-family: monospace;
+                    font-size: 1.05rem;
+                    font-weight: 600;
+                    color: #79c0ff;
+                    background: #161b22;
+                    padding: 0.5rem 0.8rem;
+                    border-radius: 6px;
+                    border: 1px solid #21262d;
+                    margin-bottom: 0.8rem;
+                    display: inline-block;
+                }
+
+                .issue-card {
+                    background: #161b22;
+                    border-left: 4px solid #ff7b72;
+                    padding: 1rem 1.2rem;
+                    margin-bottom: 0.8rem;
+                    border-radius: 0 6px 6px 0;
+                    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+                }
+
+                .issue-card.warn {
+                    border-left-color: #d29922;
+                }
+
+                .issue-type {
+                    font-size: 0.75rem;
+                    text-transform: uppercase;
+                    font-weight: 700;
+                    letter-spacing: 0.05rem;
+                    margin-bottom: 0.3rem;
+                }
+
+                .issue-card .issue-type {
+                    color: #ff7b72;
+                }
+
+                .issue-card.warn .issue-type {
+                    color: #d29922;
+                }
+
+                .issue-body {
+                    font-family: 'Consolas', 'Courier New', monospace;
+                    font-size: 0.92rem;
+                    color: #e6edf3;
+                    line-height: 1.6;
+                }
+
+                .code-badge {
+                    background: #21262d;
+                    color: #79c0ff;
+                    padding: 0.15rem 0.45rem;
+                    border-radius: 4px;
+                    border: 1px solid #363b42;
+                    font-family: monospace;
+                    font-size: 0.88rem;
+                }
+
+                .empty-state {
+                    text-align: center;
+                    color: #8b949e;
+                    padding: 4rem 1rem;
+                    font-size: 1rem;
+                }
+            </style>
+        </head>
+
+        <body>
+            <div class="container">
+                <div class="header">
+                    <div class="title">FunkPHP Fluent API</div>
+                    <div class="summary-badges">
+                        <span class="badge badge-danger"><?= $totalErrors ?> Error<?= $totalErrors === 1 ? '' : 's' ?></span>
+                        <span class="badge badge-warning"><?= $totalWarnings ?> Warning<?= $totalWarnings === 1 ? '' : 's' ?></span>
+                    </div>
+                </div>
+                <div class="tabs-header">
+                    <?php foreach ($tabs as $tab):
+                        $errCnt = count($bucketed[$tab]['errors']);
+                        $warnCnt = count($bucketed[$tab]['warnings']);
+                        $totalTabItems = $errCnt + $warnCnt;
+                        $hasClass = $errCnt > 0 ? 'has-errors' : '';
+                    ?>
+                        <button class="tab-btn <?= $tab === $activeTab ? 'active' : '' ?> <?= $hasClass ?>" onclick="switchTab(event, 'tab-<?= $tab ?>')">
+                            <?= $tab ?>
+                            <?php if ($totalTabItems > 0): ?>
+                                <span class="tab-count"><?= $totalTabItems ?></span>
+                            <?php endif; ?>
+                        </button>
+                    <?php endforeach; ?>
+                </div>
+                <div class="tab-content">
+                    <?php foreach ($tabs as $tab):
+                        $tabData = $bucketed[$tab];
+                        $hasContent = !empty($tabData['errors']) || !empty($tabData['warnings']);
+                    ?>
+                        <div id="tab-<?= $tab ?>" class="tab-panel <?= $tab === $activeTab ? 'active' : '' ?>">
+                            <?php if (!$hasContent): ?>
+                                <div class="empty-state">
+                                    ✓ No Compile Errors or Warnings in <code><?= $tab ?></code> - <?= $formatMsg("`/src/funkphp/app/{$tab}.php`");  ?>
+                                </div>
+                            <?php else: ?>
+                                <?php
+                                $grouped = [];
+                                foreach ($tabData['errors'] as $item) {
+                                    $grouped[$item['route']]['errors'][] = $item['msg'];
+                                }
+                                foreach ($tabData['warnings'] as $item) {
+                                    $grouped[$item['route']]['warnings'][] = $item['msg'];
+                                }
+
+                                foreach ($grouped as $route => $issues): ?>
+                                    <div class="route-group">
+                                        <div class="route-header">
+                                            <?= htmlspecialchars($tab !== 'CONFIG' ? "{$tab} {$route}" : $route, ENT_QUOTES, 'UTF-8') ?>
+                                        </div>
+                                        <?php if (!empty($issues['errors'])): ?>
+                                            <?php foreach ($issues['errors'] as $msg): ?>
+                                                <div class="issue-card">
+                                                    <div class="issue-type">ERROR</div>
+                                                    <div class="issue-body"><?= $formatMsg($msg) ?></div>
+                                                </div>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
+                                        <?php if (!empty($issues['warnings'])): ?>
+                                            <?php foreach ($issues['warnings'] as $msg): ?>
+                                                <div class="issue-card warn">
+                                                    <div class="issue-type">WARNING</div>
+                                                    <div class="issue-body"><?= $formatMsg($msg) ?></div>
+                                                </div>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+
+            <script>
+                function switchTab(evt, tabId) {
+                    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+                    document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
+                    evt.currentTarget.classList.add('active');
+                    document.getElementById(tabId).classList.add('active');
+                }
+            </script>
+        </body>
+
+        </html>
+<?php
+        exit;
     }
     /**
      * Checks whether a middleware is active globally, in method,
@@ -7078,8 +7789,6 @@ class C
         // Initialize global $c already in `/src/funkphp/FunkPHP.php` to populate it
         // for runtime either in compiled `/src/funkphp/FunkPHPDeployment.php` or
         // just after calling $this->run() after, only, a valid compilation.
-        $compileErrors = [];
-        $compileWarnings = [];
         $PATH_USER_DEFINED_FNS = '/src/funkphp/config/functions.php';
         $PATH_CLASSES = '/src/funkphp/config/classes.php';
         // Contains User-defined functions that are assigned Global Handlers meaning
@@ -7106,13 +7815,14 @@ class C
         // ------------------------------------------------------------------------------------------
         if ($this->errors['ERRORS'] > 0 || count($this->invalidBatches) > 0) {
             $errCount = count($this->errors);
-            dd(['API' => $this->FunkPHPFluentAPI, 'ERRORS' => $this->errors], "FunkPHP Compilation ($errCount Error" . ($errCount === 1 ? '' : 's') . ')', true);
+            $this->output_errors($this->errors, $this->compileErrors, $this->compileWarnings);
         }
 
         // ------------------------------------------------------------------------------------------
         // STEP 1.1 EDGE-CASE: Nothing Configured but CONFIG() and ROUTES() are up but nothing used?
         // ------------------------------------------------------------------------------------------
         if (count($this->validBatches) === 0) {
+            $this->compile_welcome_splash();
         }
 
         // ------------------------------------------------------------------------------------------
@@ -7122,7 +7832,7 @@ class C
         $this->cachedCreateKeyIfNullAndOptionalFileName('file_user_defined_classes');
         // If files are invalid PHP code already
         if (!$this->cached['file_user_defined_functions']['syntax_valid']) {
-            $this->compile_setErr("File Function Error in `{$PATH_USER_DEFINED_FNS} while Compiling FunkPHP Configuration`: File contains Invalid PHP Syntax: '`{$this->cached['file_user_defined_functions']['syntax_error']}`' that needs to be resolved.", $compileErrors);
+            $this->compile_setErr("File Function Error in `{$PATH_USER_DEFINED_FNS} while Compiling FunkPHP Configuration`: File contains Invalid PHP Syntax: '`{$this->cached['file_user_defined_functions']['syntax_error']}`' that needs to be resolved.", $this->compileErrors);
         } else if (
             isset($this->cached['file_user_defined_functions']['functions'])
             && count($this->cached['file_user_defined_functions']['functions']) > 0
@@ -7130,12 +7840,12 @@ class C
             foreach ($this->cached['file_user_defined_functions']['functions'] as $userFN => $_) {
                 $fatalError = $this->validateFNFile($this->cached['file_user_defined_functions'], $userFN, " `while Compiling FunkPHP Configuration`", "");
                 if ($fatalError !== null) {
-                    $this->compile_setErr($fatalError . " If you wanna keep the Function but not use it for this Compilation, comment it out inside of the `{$PATH_USER_DEFINED_FNS}` File and retry.", $compileErrors);
+                    $this->compile_setErr($fatalError . " If you wanna keep the Function but not use it for this Compilation, comment it out inside of the `{$PATH_USER_DEFINED_FNS}` File and retry.", $this->compileErrors);
                 }
             }
         }
         if (!$this->cached['file_user_defined_classes']['syntax_valid']) {
-            $this->compile_setErr("File Class Error in `{$PATH_USER_DEFINED_FNS} while Compiling FunkPHP Configuration`: File contains Invalid PHP Syntax: '`{$this->cached['file_user_defined_classes']['syntax_error']}`' that needs to be resolved.", $compileErrors);
+            $this->compile_setErr("File Class Error in `{$PATH_USER_DEFINED_FNS} while Compiling FunkPHP Configuration`: File contains Invalid PHP Syntax: '`{$this->cached['file_user_defined_classes']['syntax_error']}`' that needs to be resolved.", $this->compileErrors);
         } else if (
             isset($this->cached['file_user_defined_classes']['classes'])
             && count($this->cached['file_user_defined_classes']['classes']) > 0
@@ -7144,7 +7854,7 @@ class C
                 $fatalError = $this->validateCLASSFile($this->cached['file_user_defined_classes'], $userClass, " `while Compiling FunkPHP Configuration`", "");
                 if ($fatalError !== null) {
                     echo "ERROR?";
-                    $this->compile_setErr($fatalError . " If you wanna keep the Class but not use it for this Compilation, comment it out inside of the `{$PATH_CLASSES}` File and retry.", $compileErrors);
+                    $this->compile_setErr($fatalError . " If you wanna keep the Class but not use it for this Compilation, comment it out inside of the `{$PATH_CLASSES}` File and retry.", $this->compileErrors);
                 }
             }
         }
@@ -7207,7 +7917,7 @@ class C
                 $validGroup = true;
                 foreach ($GROUPED_UD_VALS as $UD_FN) {
                     if (isset($GLOBAL_HANDLERS[$UD_FN])) {
-                        $this->compile_setErr("Grouped-configured User-defined Function `{$UD_FN}` in `{$PATH_USER_DEFINED_FNS}` in `->setGroupPipeUserdefined('{$GROUPED_UD_NAME}')` conflicts with already defined Global Handler Role `{$GLOBAL_HANDLERS[$UD_FN]}.` Remove `{$UD_FN}` from the `->setGroupPipeUserdefined()` OR from the `Global Handler Role`.", $compileErrors);
+                        $this->compile_setErr("Grouped-configured User-defined Function `{$UD_FN}` in `{$PATH_USER_DEFINED_FNS}` in `->setGroupPipeUserdefined('{$GROUPED_UD_NAME}')` conflicts with already defined Global Handler Role `{$GLOBAL_HANDLERS[$UD_FN]}.` Remove `{$UD_FN}` from the `->setGroupPipeUserdefined()` OR from the `Global Handler Role`.", $this->compileErrors);
                         //$compileErrors[count($compileErrors) + 1] = "Grouped-configured User-defined Function `{$UD_FN}` in `{$PATH_USER_DEFINED_FNS}` in `->setGroupPipeUserdefined('{$GROUPED_UD_NAME}')` conflicts with already defined Global Handler Role `{$GLOBAL_HANDLERS[$UD_FN]}.` Remove `{$UD_FN}` from the `->setGroupPipeUserdefined()` OR from the `Global Handler Role`.";
                         $validGroup = false;
                     }
@@ -7246,56 +7956,56 @@ class C
             // Use user-defined (UD) OR default Session Driver? (files)
             if (!isset($this->validBatches['config']['SESSION']['driver'])) {
                 $this->compiled['c']['SESSION']['driver'] = "files";
-                $this->compile_setWarn("No Default `Session Cookie Driver` set (with `'->CONFIG()->setSessionDriver()'`) - using default: `'files'`.", $compileWarnings);
+                $this->compile_setWarn("No Default `Session Cookie Driver` set (with `'->CONFIG()->setSessionDriver()'`) - using default: `'files'`.", $this->compileWarnings);
             } else {
                 $this->compiled['c']['SESSION']['driver'] = $this->validBatches['config']['SESSION']['driver'];
             }
             // UD or default Session Name?
             if (!isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_NAME'])) {
                 $this->compiled['c']['SESSION']['COOKIES']['SESSION_NAME'] = "fphp_id";
-                $this->compile_setWarn("No Default `Session Cookie Name` set (with `'->CONFIG()->setSessionCookieName()'`) - using default: `'fphp_id'`.", $compileWarnings);
+                $this->compile_setWarn("No Default `Session Cookie Name` set (with `'->CONFIG()->setSessionCookieName()'`) - using default: `'fphp_id'`.", $this->compileWarnings);
             } else {
                 $this->compiled['c']['SESSION']['COOKIES']['SESSION_NAME'] = $this->validBatches['config']['SESSION']['COOKIES']['SESSION_NAME'];
             }
             // UD or default Session Domain?
             if (!isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_DOMAIN'])) {
                 $this->compiled['c']['SESSION']['COOKIES']['SESSION_DOMAIN'] = "funkphp";
-                $this->compile_setWarn("No Default `Session Cookie Domain` set (with `'->CONFIG()->setSessionCookieDomain()'`) - using default: `'funkphp'`.", $compileWarnings);
+                $this->compile_setWarn("No Default `Session Cookie Domain` set (with `'->CONFIG()->setSessionCookieDomain()'`) - using default: `'funkphp'`.", $this->compileWarnings);
             } else {
                 $this->compiled['c']['SESSION']['COOKIES']['SESSION_DOMAIN'] = $this->validBatches['config']['SESSION']['COOKIES']['SESSION_DOMAIN'];
             }
             // UD or default Session Path?
             if (!isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_PATH'])) {
                 $this->compiled['c']['SESSION']['COOKIES']['SESSION_PATH'] = "/";
-                $this->compile_setWarn("No Default `Session Cookie Domain` set (with `'->CONFIG()->setSessionCookiePath()'`) - using default: `'/'`.", $compileWarnings);
+                $this->compile_setWarn("No Default `Session Cookie Domain` set (with `'->CONFIG()->setSessionCookiePath()'`) - using default: `'/'`.", $this->compileWarnings);
             } else {
                 $this->compiled['c']['SESSION']['COOKIES']['SESSION_PATH'] = $this->validBatches['config']['SESSION']['COOKIES']['SESSION_PATH'];
             }
             // UD or default Session Lifetime?
             if (!isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_LIFETIME'])) {
                 $this->compiled['c']['SESSION']['COOKIES']['SESSION_LIFETIME'] = 28800;
-                $this->compile_setWarn("No Default `Session Cookie Lifetime` set (with `'->CONFIG()->setSessionCookieLifetime()'`) - using default: `'28800'`.", $compileWarnings);
+                $this->compile_setWarn("No Default `Session Cookie Lifetime` set (with `'->CONFIG()->setSessionCookieLifetime()'`) - using default: `'28800'`.", $this->compileWarnings);
             } else {
                 $this->compiled['c']['SESSION']['COOKIES']['SESSION_LIFETIME'] = $this->validBatches['config']['SESSION']['COOKIES']['SESSION_LIFETIME'];
             }
             // UD or default Session Lifetime?
             if (!isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_SAMESITE'])) {
                 $this->compiled['c']['SESSION']['COOKIES']['SESSION_SAMESITE'] = 'Lax';
-                $this->compile_setWarn("No Default `Session Cookie Samesite` set (with `'->CONFIG()->setSessionCookieSameSite()'`) - using default: `'Lax'`.", $compileWarnings);
+                $this->compile_setWarn("No Default `Session Cookie Samesite` set (with `'->CONFIG()->setSessionCookieSameSite()'`) - using default: `'Lax'`.", $this->compileWarnings);
             } else {
                 $this->compiled['c']['SESSION']['COOKIES']['SESSION_SAMESITE'] = $this->validBatches['config']['SESSION']['COOKIES']['SESSION_SAMESITE'];
             }
             // UD or default Session SECURE?
             if (!isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_SECURE'])) {
                 $this->compiled['c']['SESSION']['COOKIES']['SESSION_SECURE'] = false;
-                $this->compile_setWarn("No Default `Session Cookie Secure` set (with `'->CONFIG()->setSessionCookieSecure()'`) - using default: `'false'`.", $compileWarnings);
+                $this->compile_setWarn("No Default `Session Cookie Secure` set (with `'->CONFIG()->setSessionCookieSecure()'`) - using default: `'false'`.", $this->compileWarnings);
             } else {
                 $this->compiled['c']['SESSION']['COOKIES']['SESSION_SECURE'] = $this->validBatches['config']['SESSION']['COOKIES']['SESSION_SECURE'];
             }
             // UD or default Session HTTP?
             if (!isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_HTTPONLY'])) {
                 $this->compiled['c']['SESSION']['COOKIES']['SESSION_HTTPONLY'] = true;
-                $this->compile_setWarn("No Default `Session Cookie HttpOnly` set (with `'->CONFIG()->setSessionCookieHTTPOnly()'`) - using default: `'true'`.", $compileWarnings);
+                $this->compile_setWarn("No Default `Session Cookie HttpOnly` set (with `'->CONFIG()->setSessionCookieHTTPOnly()'`) - using default: `'true'`.", $this->compileWarnings);
             } else {
                 $this->compiled['c']['SESSION']['COOKIES']['SESSION_HTTPONLY'] = $this->validBatches['config']['SESSION']['COOKIES']['SESSION_HTTPONLY'];
             }
@@ -7309,7 +8019,7 @@ class C
                 isset($this->validBatches['config']['NO_ROUTE_MATCH']['CALLBACK'])
                 && isset($GLOBAL_HANDLERS[$this->validBatches['config']['NO_ROUTE_MATCH']['CALLBACK']])
             ) {
-                $this->compile_setErr("User-defined Function `{$this->validBatches['config']['NO_ROUTE_MATCH']['CALLBACK']}` in `{$PATH_USER_DEFINED_FNS}` in `->CONFIG()->setNoRouteMatchCallback('{$this->validBatches['config']['NO_ROUTE_MATCH']['CALLBACK']}')` conflicts with already defined `Global Handler Role {$GLOBAL_HANDLERS[$this->validBatches['config']['NO_ROUTE_MATCH']['CALLBACK']]}`. Remove `{$this->validBatches['config']['NO_ROUTE_MATCH']['CALLBACK']}` from `->CONFIG()->setNoRouteMatchCallback()` OR from the `Global Handler Role`.", $compileErrors);
+                $this->compile_setErr("User-defined Function `{$this->validBatches['config']['NO_ROUTE_MATCH']['CALLBACK']}` in `{$PATH_USER_DEFINED_FNS}` in `->CONFIG()->setNoRouteMatchCallback('{$this->validBatches['config']['NO_ROUTE_MATCH']['CALLBACK']}')` conflicts with already defined `Global Handler Role {$GLOBAL_HANDLERS[$this->validBatches['config']['NO_ROUTE_MATCH']['CALLBACK']]}`. Remove `{$this->validBatches['config']['NO_ROUTE_MATCH']['CALLBACK']}` from `->CONFIG()->setNoRouteMatchCallback()` OR from the `Global Handler Role`.", $this->compileErrors);
             } else {
                 $this->compiled['config']['NO_ROUTE_MATCH']['CALLBACK'] =  $this->validBatches['config']['NO_ROUTE_MATCH']['CALLBACK'];
             }
@@ -7378,32 +8088,32 @@ class C
         // ------------------------------------------------------------------------------------------
         if (!isset($this->validBatches['config']['request'])) {
             if (!isset($this->validBatches['config']['DEFAULT_HTTPS_KERNEL'])) {
-                $this->compile_setWarn("No Request Pipes (via `->pipeRequestFunction() in ->CONFIG()` detected. If intended to use No Request Pipes, just ignore this warning. This means that only Global-based Middlewares, then Route-matching, then Method-based Middleware and finally Route-based Middleware and its remaining pipes will run.", $compileWarnings);
+                $this->compile_setWarn("No Request Pipes (via `->pipeRequestFunction() in ->CONFIG()` detected. If intended to use No Request Pipes, just ignore this warning. This means that only Global-based Middlewares, then Route-matching, then Method-based Middleware and finally Route-based Middleware and its remaining pipes will run.", $this->compileWarnings);
             } else {
-                $this->compile_setWarn("No Request Pipes (via `->pipeRequestFunction() in ->CONFIG()` detected. If intended to use No Request Pipes, just ignore this warning. The `User-defined Custom Default HTTPS Kernel Handler` is configured for use meaning that after Successful Compilation it will have access to Trie-based Routes with Metadata and then it is `all up to that User-defined Function to handle everything` from Route-matching to executing each Route-associated Pipe Function(s).", $compileWarnings);
+                $this->compile_setWarn("No Request Pipes (via `->pipeRequestFunction() in ->CONFIG()` detected. If intended to use No Request Pipes, just ignore this warning. The `User-defined Custom Default HTTPS Kernel Handler` is configured for use meaning that after Successful Compilation it will have access to Trie-based Routes with Metadata and then it is `all up to that User-defined Function to handle everything` from Route-matching to executing each Route-associated Pipe Function(s).", $this->compileWarnings);
             }
         }
         // request pipes exist
         else {
             if (isset($this->validBatches['config']['DEFAULT_HTTPS_KERNEL'])) {
-                $this->compile_setWarn("Request Pipes (via `->pipeRequestFunction() in ->CONFIG()` and the `User-defined Custom Default HTTPS Kernel Handler` detected. This means that that after Successful Compilation it will have access to Trie-based Routes with Metadata and then it is `all up to that User-defined Function to handle everything AFTER Request Pipe Functions first have ran`; everything from Route-matching to executing each Route-associated Pipe Function(s).", $compileWarnings);
+                $this->compile_setWarn("Request Pipes (via `->pipeRequestFunction() in ->CONFIG()` and the `User-defined Custom Default HTTPS Kernel Handler` detected. This means that that after Successful Compilation it will have access to Trie-based Routes with Metadata and then it is `all up to that User-defined Function to handle everything AFTER Request Pipe Functions first have ran`; everything from Route-matching to executing each Route-associated Pipe Function(s).", $this->compileWarnings);
             }
             // VALIDATE "group:" Variants and then ADD REQUEST PIPES
             $allPipes = [];
             foreach ($this->validBatches['config']['request'] as $pipe) {
                 if (!str_starts_with($pipe, 'group:')) {
                     if (count($allPipes) > 0 && $allPipes[count($allPipes) - 1] === $pipe) {
-                        $this->compile_setWarn("`Consecutive GLOBAL Pipe Request Function '{$pipe}' found`. Ignore this warning if it is intentional or Review `->CONFIG()->pipeRequestFunction()` in `/src/funkphp/app/CONFIG.php`.", $compileWarnings);
+                        $this->compile_setWarn("`Consecutive GLOBAL Pipe Request Function '{$pipe}' found`. Ignore this warning if it is intentional or Review `->CONFIG()->pipeRequestFunction()` in `/src/funkphp/app/CONFIG.php`.", $this->compileWarnings);
                     }
                     $allPipes[] = $pipe;
                     continue;
                 }
                 if (!isset($GLOBAL_GROUPED['REQUEST'][$pipe])) {
-                    $this->compile_setErr("Grouped GLOBAL Request Pipe Functions with the name `{$pipe}` does not exist but was still part of the `->CONFIG()->pipeRequestFunction('{$pipe}')` in `/src/funkphp/app/CONFIG.php`. Use `->setGroupPipeRequest('{$pipe}')` in `/src/funkphp/app/CONFIG.php` to first create the Grouping.", $compileErrors);
+                    $this->compile_setErr("Grouped GLOBAL Request Pipe Functions with the name `{$pipe}` does not exist but was still part of the `->CONFIG()->pipeRequestFunction('{$pipe}')` in `/src/funkphp/app/CONFIG.php`. Use `->setGroupPipeRequest('{$pipe}')` in `/src/funkphp/app/CONFIG.php` to first create the Grouping.", $this->compileErrors);
                 } else {
                     foreach ($GLOBAL_GROUPED['REQUEST'][$pipe] as $groupPipe) {
                         if (count($allPipes) > 0 && $allPipes[count($allPipes) - 1] === $groupPipe) {
-                            $this->compile_setWarn("`Consecutive GLOBAL Pipe Request Function '{$groupPipe}' found`. Ignore this warning if it is intentional or Review `->CONFIG()->pipeRequestFunction()` in `/src/funkphp/app/CONFIG.php`.", $compileWarnings);
+                            $this->compile_setWarn("`Consecutive GLOBAL Pipe Request Function '{$groupPipe}' found`. Ignore this warning if it is intentional or Review `->CONFIG()->pipeRequestFunction()` in `/src/funkphp/app/CONFIG.php`.", $this->compileWarnings);
                         }
                         $allPipes[] = $groupPipe;
                     }
@@ -7420,17 +8130,17 @@ class C
             foreach ($this->validBatches['config']['middlewares'] as $pipe) {
                 if (!str_starts_with($pipe, 'group:')) {
                     if (count($allPipes) > 0 && $allPipes[count($allPipes) - 1] === $pipe) {
-                        $this->compile_setWarn("`Consecutive GLOBAL Pipe Middleware Function '{$pipe}' found`. Ignore this warning if it is intentional or Review `->CONFIG()->pipeMiddleware()` in `/src/funkphp/app/CONFIG.php`.", $compileWarnings);
+                        $this->compile_setWarn("`Consecutive GLOBAL Pipe Middleware Function '{$pipe}' found`. Ignore this warning if it is intentional or Review `->CONFIG()->pipeMiddleware()` in `/src/funkphp/app/CONFIG.php`.", $this->compileWarnings);
                     }
                     $allPipes[] = $pipe;
                     continue;
                 }
                 if (!isset($GLOBAL_GROUPED['MIDDLEWARES'][$pipe])) {
-                    $this->compile_setErr("Grouped GLOBAL Middleware Pipe Functions with the name `{$pipe}` does not exist but was still part of the `->CONFIG()->pipeMiddleware('{$pipe}')` in `/src/funkphp/app/CONFIG.php`. Use `->setGroupPipeMiddlewares('{$pipe}')` in `/src/funkphp/app/CONFIG.php` to first create the Grouping.", $compileErrors);
+                    $this->compile_setErr("Grouped GLOBAL Middleware Pipe Functions with the name `{$pipe}` does not exist but was still part of the `->CONFIG()->pipeMiddleware('{$pipe}')` in `/src/funkphp/app/CONFIG.php`. Use `->setGroupPipeMiddlewares('{$pipe}')` in `/src/funkphp/app/CONFIG.php` to first create the Grouping.", $this->compileErrors);
                 } else {
                     foreach ($GLOBAL_GROUPED['MIDDLEWARES'][$pipe] as $groupPipe) {
                         if (count($allPipes) > 0 && $allPipes[count($allPipes) - 1] === $groupPipe) {
-                            $this->compile_setWarn("`Consecutive GLOBAL Pipe Middleware Function '{$groupPipe}' found`. Ignore this warning if it is intentional or Review `->CONFIG()->pipeMiddleware()` in `/src/funkphp/app/CONFIG.php`.", $compileWarnings);
+                            $this->compile_setWarn("`Consecutive GLOBAL Pipe Middleware Function '{$groupPipe}' found`. Ignore this warning if it is intentional or Review `->CONFIG()->pipeMiddleware()` in `/src/funkphp/app/CONFIG.php`.", $this->compileWarnings);
                         }
                         $allPipes[] = $groupPipe;
                         // As MWs are unpacked, add then them to global-based MW Invert Index
@@ -7450,7 +8160,7 @@ class C
         // 8.3 Post-Response Pipes
         // ------------------------------------------------------------------------------------------
         if (!isset($this->validBatches['config']['post_response'])) {
-            $this->compile_setWarn("No Post-Response Pipes (via `->pipePostResponseFunction() in ->CONFIG()` detected. If intended to use No Post-Response Pipes, just ignore this warning. This means that after each HTTP(S) Request that completes (or via `exit()`), nothing else happens. `Piped Post-Response Functions` are otherwise executed via the in-built PHP Function `register_shutdown_function()` in the ordered they have been added/piped. This is also why you will get a Fatal Compiling Error if you try to use the `register_shutdown_function()` inside any of your Function Files.", $compileWarnings);
+            $this->compile_setWarn("No Post-Response Pipes (via `->pipePostResponseFunction() in ->CONFIG()` detected. If intended to use No Post-Response Pipes, just ignore this warning. This means that after each HTTP(S) Request that completes (or via `exit()`), nothing else happens. `Piped Post-Response Functions` are otherwise executed via the in-built PHP Function `register_shutdown_function()` in the ordered they have been added/piped. This is also why you will get a Fatal Compiling Error if you try to use the `register_shutdown_function()` inside any of your Function Files.", $this->compileWarnings);
         }
         // post_response pipes exist
         else {
@@ -7460,17 +8170,17 @@ class C
             foreach ($this->validBatches['config']['post_response'] as $pipe) {
                 if (!str_starts_with($pipe, 'group:')) {
                     if (count($allPipes) > 0 && $allPipes[count($allPipes) - 1] === $pipe) {
-                        $this->compile_setWarn("`Consecutive GLOBAL Pipe Post-Response Function '{$pipe}' found`. Ignore this warning if it is intentional or Review `->CONFIG()->pipePostResponseFunction()` in `/src/funkphp/app/CONFIG.php`.", $compileWarnings);
+                        $this->compile_setWarn("`Consecutive GLOBAL Pipe Post-Response Function '{$pipe}' found`. Ignore this warning if it is intentional or Review `->CONFIG()->pipePostResponseFunction()` in `/src/funkphp/app/CONFIG.php`.", $this->compileWarnings);
                     }
                     $allPipes[] = $pipe;
                     continue;
                 }
                 if (!isset($GLOBAL_GROUPED['POST_RESPONSE'][$pipe])) {
-                    $this->compile_setErr("Grouped GLOBAL Post-Response Pipe Functions with the name `{$pipe}` does not exist but was still part of the `->CONFIG()->pipePostResponseFunction('{$pipe}')` in `/src/funkphp/app/CONFIG.php`. Use `->setGroupPipePostResponse('{$pipe}')` in `/src/funkphp/app/CONFIG.php` to first create the Grouping.", $compileErrors);
+                    $this->compile_setErr("Grouped GLOBAL Post-Response Pipe Functions with the name `{$pipe}` does not exist but was still part of the `->CONFIG()->pipePostResponseFunction('{$pipe}')` in `/src/funkphp/app/CONFIG.php`. Use `->setGroupPipePostResponse('{$pipe}')` in `/src/funkphp/app/CONFIG.php` to first create the Grouping.", $this->compileErrors);
                 } else {
                     foreach ($GLOBAL_GROUPED['POST_RESPONSE'][$pipe] as $groupPipe) {
                         if (count($allPipes) > 0 && $allPipes[count($allPipes) - 1] === $groupPipe) {
-                            $this->compile_setWarn("`Consecutive GLOBAL Pipe Post-Response Function '{$groupPipe}' found`. Ignore this warning if it is intentional or Review `->CONFIG()->pipePostResponseFunction()` in `/src/funkphp/app/CONFIG.php`.", $compileWarnings);
+                            $this->compile_setWarn("`Consecutive GLOBAL Pipe Post-Response Function '{$groupPipe}' found`. Ignore this warning if it is intentional or Review `->CONFIG()->pipePostResponseFunction()` in `/src/funkphp/app/CONFIG.php`.", $this->compileWarnings);
                         }
                         $allPipes[] = $groupPipe;
                     }
@@ -7489,17 +8199,17 @@ class C
                     foreach ($methodConfig['middlewares'] as $pipe) {
                         if (!str_starts_with($pipe, 'group:')) {
                             if (count($allPipes) > 0 && $allPipes[count($allPipes) - 1] === $pipe) {
-                                $this->compile_setWarn("`Consecutive {$method} Pipe Middleware Function '{$pipe}' found`. Ignore this warning if it is intentional or Review `->ROUTES()->{$method}()->pipeMiddleware()` in `/src/funkphp/app/{$method}.php`.", $compileWarnings);
+                                $this->compile_setWarn("`Consecutive {$method} Pipe Middleware Function '{$pipe}' found`. Ignore this warning if it is intentional or Review `->ROUTES()->{$method}()->pipeMiddleware()` in `/src/funkphp/app/{$method}.php`.", $this->compileWarnings);
                             }
                             $allPipes[] = $pipe;
                             continue;
                         }
                         if (!isset($GLOBAL_GROUPED['MIDDLEWARES'][$pipe])) {
-                            $this->compile_setErr("Grouped Middleware {$method} Pipe Functions with the name `{$pipe}` does not exist but was still part of the `->ROUTES()->{$method}()->pipeMiddleware('{$pipe}')` in `/src/funkphp/app/{$method}.php`. Use `->setGroupPipeMiddlewares('{$pipe}')` in `/src/funkphp/app/CONFIG.php` to first create the Grouping.", $compileErrors);
+                            $this->compile_setErr("Grouped Middleware {$method} Pipe Functions with the name `{$pipe}` does not exist but was still part of the `->ROUTES()->{$method}()->pipeMiddleware('{$pipe}')` in `/src/funkphp/app/{$method}.php`. Use `->setGroupPipeMiddlewares('{$pipe}')` in `/src/funkphp/app/CONFIG.php` to first create the Grouping.", $this->compileErrors);
                         } else {
                             foreach ($GLOBAL_GROUPED['MIDDLEWARES'][$pipe] as $groupPipe) {
                                 if (count($allPipes) > 0 && $allPipes[count($allPipes) - 1] === $groupPipe) {
-                                    $this->compile_setWarn("`Consecutive {$method} Pipe Middleware Function '{$groupPipe}' found`. Ignore this warning if it is intentional or Review `->ROUTES()->{$method}()->pipeMiddleware()` in `/src/funkphp/app/{$method}.php`.", $compileWarnings);
+                                    $this->compile_setWarn("`Consecutive {$method} Pipe Middleware Function '{$groupPipe}' found`. Ignore this warning if it is intentional or Review `->ROUTES()->{$method}()->pipeMiddleware()` in `/src/funkphp/app/{$method}.php`.", $this->compileWarnings);
                                 }
                                 $allPipes[] = $groupPipe;
                                 // As MWs are unpacked, add then them to method-based MW Invert Index
@@ -7511,6 +8221,17 @@ class C
                                     }
                                 }
                             }
+                        }
+                    }
+                    // Last MW Globally same as First MW in Method? That is another Consecutive version!
+                    if (
+                        count($allPipes) > 0 &&
+                        isset($this->compiled['config']['pipes']['middlewares'])
+                        && count($this->compiled['config']['pipes']['middlewares']) > 0
+                    ) {
+                        $lastConfigMW = $this->compiled['config']['pipes']['middlewares'][count($this->compiled['config']['pipes']['middlewares']) - 1];
+                        if ($allPipes[0] === $lastConfigMW) {
+                            $this->compile_setWarn("`Consecutive Pipe Middleware Function '{$allPipes[0]}' found`. It runs as `Last Middleware Globally` and then it runs as the `First {$method} Middleware` for any Matched Route in `{$method}`. Ignore this warning if it is intentional or Review: `->CONFIG()->pipeMiddleware('{$lastConfigMW}')` in `/src/funkphp/app/CONFIG.php` AND `->ROUTES()->{$method}()->pipeMiddleware()` in `/src/funkphp/app/{$method}.php`.", $this->compileWarnings);
                         }
                     }
                     $this->compiled['methods'][$method]['middlewares'] = $allPipes;
@@ -7533,29 +8254,72 @@ class C
         // ------------------------------------------------------------------------------------------
         // STEP 11: Build `routes` - (unpacking) middlewares, headers|csp|nonces|exclusions and pipes
         // ------------------------------------------------------------------------------------------
-        // STEP 11.1: Build `routes` -
-        if (!isset($this->validBatches['routes'])) {
+        // STEP 11.1: Build `routes` - Check if routes exist or not and output error if not?
+        // or should it be allowed to NOT have any routes just as a "soft success"?
+        // No Routes?
+        if (!isset($this->validBatches['routes']) || count($this->validBatches['routes']) === 0) {
+            //$this->compile_setWarn("`No Routes Configured`. This means ", $this->compileWarnings);
+            $this->compile_welcome_splash();
+        }
+        // Routes exist!
+        else {
+            // STEP 11.2: Build `routes` - Iterate through each Method and their Single Routes
+            foreach ($this->validBatches['routes'] as $method => $methodRoutes) {
+                foreach ($methodRoutes as $route => $routeDetails) {
+                    // STEP 11.3.0: Add the current Route to the Trie - this is only
+                    // when compiling and running it as the deployed build would
+                    // have flattened route matching instead.
+                    $this->compile_add_to_route_trie($method, $route);
+
+                    // STEP 11.3: Build `routes` - unpack all "group:" in Middlewares & Pipes first
+                    // and add them to the $GLOBAL_GROUPED Array
+                    $CURRENT_ROUTE_STR = "`'{$method}{$route}`";
+                    // FORBIDDEN EDGE-CASE: 0 Pipes but at least 1 MW for the Route.
+                    if (
+                        isset($routeDetails['pipes'])
+                        && count($routeDetails['pipes']) === 0
+                        && isset($routeDetails['middlewares'])
+                        && count($routeDetails['middlewares']) > 0
+                    ) {
+                        $this->compile_setErr("`Only Middlewares` in Route {$CURRENT_ROUTE_STR} but `No Pipes`. You need `at least one Pipe Function` for the Route {$CURRENT_ROUTE_STR}.", $this->compileErrors);
+                        continue;
+                    }
+                    if (!isset($routeDetails['pipes']) || count($routeDetails['pipes']) === 0) {
+                        $this->compile_setWarn("No Pipes for Route {$CURRENT_ROUTE_STR}'.", $this->compileWarnings);
+                    }
+                    if (!isset($routeDetails['middlewares']) || count($routeDetails['middlewares']) === 0) {
+                        $this->compile_setWarn("No Middlewares for Route {$CURRENT_ROUTE_STR}'.", $this->compileWarnings);
+                    }
+
+                    // STEP 11.4: Iterate through Route Middlewares and warn about consecutive runs that
+                    // could stem from inherting last MW from Method that is same as first MW in
+                    // route. Also, then check setMiddlewaresToExclude() that all those exist down
+                    // the Method+Globally or set Error if not. Do same for setHeadersToExclude()
+
+                    // STEP 11.5: Iterate through Route Pipes and check for consecutive FN piping
+
+                    // STEP 11.6 Add to the $this->COMPILED['routes'][$method][$route] with the 'all' part!
+                }
+            }
+
+            // STEP 11.4: Build `routes` -
+
+            // STEP 11.5: Build `routes` -
+
+            // STEP 11.6: Build `routes` -
         }
 
-        // STEP 11.2: Build `routes` -
 
-        // STEP 11.3: Build `routes` -
-
-        // STEP 11.4: Build `routes` -
-
-        // STEP 11.5: Build `routes` -
-
-        // STEP 11.6: Build `routes` -
 
         /////////////////////////////////////// END /////////////////////////////
-        //$this->compile_setErr("", $compileErrors);
+        //$this->compile_setErr("", $this->compileErrors);
         if (
             isset($this->debug['SHOW_MAIN_CONFIG'])
             && !$this->debug['SHOW_MAIN_CONFIG']
         ) {
             $this->FunkPHPFluentAPI['CONFIG'] = '(' . (count($this->FunkPHPFluentAPI['CONFIG'])) . ' Configuration' . (count($this->FunkPHPFluentAPI['CONFIG']) > 1 ? 's' : '') . ') - Show all Configuration by setting third Boolean in `CONFIG()->setDebug()` in `/src/funkphp/app/CONFIG.php` to `true`.';
         }
-        dd(['COMPILE FLAGS' => $this->compileFlags, 'API' => $this->FunkPHPFluentAPI, 'COMPILE_ERRORS' => $compileErrors, 'COMPILE_WARNINGS' => $compileWarnings, 'COMPILED' => $this->compiled, 'VALID' => $this->validBatches,  'CACHED' => $this->cached], "COMPILATION - DEBUG", true);
+        dd(['COMPILE FLAGS' => $this->compileFlags, 'API' => $this->FunkPHPFluentAPI, 'COMPILE_ERRORS' => $compileErrors, 'COMPILE_WARNINGS' => $this->compileWarnings, 'COMPILED' => $this->compiled, 'VALID' => $this->validBatches,  'CACHED' => $this->cached], "COMPILATION - DEBUG", true);
     }
     private function run()
     {
