@@ -8750,11 +8750,15 @@ class C
         // Routes exist!
         else {
             // STEP 11.2: Build `routes` - Iterate through each Method and their Single Routes
+            // It is already GUARANTEED that Routes are not conflicting with one another as in
+            // being exactly same or having different /:paramNames on the same URI segment level.
+            // They are all following Folder-based Pathing so only one [dynamic] on a given level
+            // or "directory depth" is allowed. So: "GET/:userid" & "POST/:user_id" will conflict.
             foreach ($this->validBatches['routes'] as $method => $methodRoutes) {
                 foreach ($methodRoutes as $route => $routeDetails) {
                     // STEP 11.3.0: Add the current Route to the Trie - this is only
                     // when compiling and running it as the deployed build would
-                    // have flattened route matching instead.
+                    // have flattened route matching function instead.
                     $this->compile_add_to_route_trie($method, $route);
 
                     // STEP 11.3: Build `routes` - unpack all "group:" in Middlewares & Pipes first
@@ -8767,7 +8771,7 @@ class C
                         && isset($routeDetails['middlewares'])
                         && count($routeDetails['middlewares']) > 0
                     ) {
-                        $this->compile_setErr("Middlwares without Route Pipes in {$CURRENT_ROUTE_STR}", "`Only Middlewares` in Route {$CURRENT_ROUTE_STR} but `No Pipes`. You need `at least one Pipe Function` for the Route {$CURRENT_ROUTE_STR}.");
+                        $this->compile_setErr("Middlewares without Route Pipes in {$CURRENT_ROUTE_STR}", "`Only Middlewares` in Route {$CURRENT_ROUTE_STR} but `No Pipes`. You need `at least one Pipe Function` for the Route {$CURRENT_ROUTE_STR}.");
                         continue;
                     }
                     if (!isset($routeDetails['pipes']) || count($routeDetails['pipes']) === 0) {

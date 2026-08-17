@@ -3,4 +3,5 @@
 
 /** @var FunkPHP $APP */
 $APP->CONFIG()
+    ->pipeMiddleware("auth")
     ->setDebug(true, true, false);

@@ -3,4 +3,5 @@
 
 /** @var FunkPHP $APP */
 $APP->ROUTES()->GET()
-    ->route("/test2");
+    ->route("/test2")
+    ->setExcludeMiddlewares("auth");
