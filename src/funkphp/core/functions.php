@@ -2157,7 +2157,8 @@ class C
             || !str_ends_with(ROOT_FOLDER, 'src/funkphp')
         ) {
             $err = "`[Class C->rootFolderExistOrSetError() in /src/funkphp/core/functions.php]:` Expected `ROOT_FOLDER` Constant Not Defined or is not ending with `src/funkphp` as a Non-Empty String. It is supposed to be defined in `/src/funkphp/core/CONSTANTS.php`. Verify the integrity of that File.";
-            $this->errors[] = ['type' => 'internal', 'err' => $err];
+            $this->errors['ERRORS']++;
+            $this->errors['INTERNAL'][count($this->errors['INTERNAL']) + 1] = ['errShort' => 'Internal FunKPHP Constant Missing', 'err' => $err];
             return false;
         }
         return true;
@@ -2322,8 +2323,9 @@ class C
                 $this->cached[$key]['?file_type'] = 'core-manifest';
             }
         } else {
-            $err = "[Class C->\$this->cachedCreateKeyIfNull()]: Unknown `{$key}` Value passed when it expected one of those defined in \$this->cached in Class C. Report this Internal Error to the Official FunkPHP repository.";
-            $this->errors[] = ['type' => 'internal', 'err' => $err];
+            $err = "[Class C->\$this->cachedCreateKeyIfNull()]: Unknown `{$key}` Value passed when it expected one of those defined in \$this->cached in Class C. Report this Internal Error to the Official FunkPHP Repositories.";
+            $this->errors['ERRORS']++;
+            $this->errors['INTERNAL'][count($this->errors['INTERNAL']) + 1] = ['errShort' => 'Unknown Passed Value', 'err' => $err];
         }
         return;
     }
@@ -2478,7 +2480,8 @@ class C
     {
         if (array_is_list($FNKeyFromCachedKey) && count($FNKeyFromCachedKey) > 0) {
             $err = "[Class C->cachedKeyFNWarnings()]: A Numbered Array passed when expected an Associative Array to validate using its Key-Value pairs.";
-            $this->errors[] = $err;
+            $this->errors['INTERNAL'][count($this->errors['INTERNAL']) + 1] = $err;
+            $this->errors['ERRORS']++;
         }
         // Validate OR add warnings if FN is safe by checking certain Key Values
         else {
@@ -2543,7 +2546,8 @@ class C
     {
         if (array_is_list($CLASSKeyFromCachedKey) && count($CLASSKeyFromCachedKey) > 0) {
             $err = "[Class C->cachedKeyCLASSWarnings()]: A Numbered Array passed when expected an Associative Array to validate using its Key-Value pairs.";
-            $this->errors[] = ['type' => 'internal', 'err' => $err];
+            $this->errors['ERRORS']++;
+            $this->errors['INTERNAL'][count($this->errors['INTERNAL']) + 1] = ['errShort' => 'Expected a Non-Empty Associative Array', 'err' => $err];
         }
         // Validate OR add warnings if CLASS is safe by checking certain Key Values
         else {
@@ -2635,7 +2639,8 @@ class C
                     }
                 }
             } else {
-                $this->errors[] = ['type' => 'internal', 'err' => "Class C->file_status()] - FAILED to read Folder+File Path:`{$folder}{$file}` when it should have been possible. Verify Folder/File Permissions in Your Project."];
+                $this->errors['ERRORS']++;
+                $this->errors['INTERNAL'][count($this->errors['INTERNAL']) + 1] = ['errShort' => 'Local File Reading Failed', 'err' => "Class C->file_status()] - FAILED to read Folder+File Path:`{$folder}{$file}` when it should have been possible. Verify Folder/File Permissions in Your Project."];
                 return ['INTERNAL_FUNKPHP_ERROR' => "[INTERNAL FUNKPHP ERROR - file_status()] - FAILED to read Folder+File Path:`{$folder}{$file}` when it should have been possible. Verify Folder/File Permissions in Your Project."];
             }
         }
@@ -3827,16 +3832,6 @@ class C
         }
         return true;
     }
-    // Validate AND return a JSON String OR just Null when failure
-    private function encodeJSONorReturnNull($json): string|null
-    {
-        try {
-            $json = json_encode($json, JSON_THROW_ON_ERROR, JSON_PRETTY_PRINT);
-        } catch (\Throwable $e) {
-            return null;
-        }
-        return $json;
-    }
     // Set context to not having to repeat so much for each batchFUNCTION
     // It also first appends to the FunkPHPFluentAPI // THE NEW VERSION
     private function setCtx(string $config_or_method, ?string $route = null, string $batchFN, string $under, mixed ...$vals)
@@ -3984,7 +3979,8 @@ class C
         if (isset($errors[$errType])) {
             return $errors[$errType];
         } else {
-            $this->errors[] = ['type' => 'internal', 'err' => "[Class C->getErr()]: Unknown Internal Error Type:`{$errType}`. Report this as a Bug/Issue to the `Official FunkPHP Respositories`."];
+            $this->errors['ERRORS']++;
+            $this->errors['INTERNAL'][count($this->errors['INTERNAL']) + 1] = ['type' => 'internal', 'err' => "[Class C->getErr()]: Unknown Internal Error Type:`{$errType}`. Report this as a Bug/Issue to the `Official FunkPHP Respositories`."];
             return "UNKNOWN ERROR TYPE CHOSEN: SEE 'internal' Error in `\$this->errors`!";
         }
     }
@@ -4178,7 +4174,7 @@ class C
     // batchFunctions that attempt batching something in $batches that would be validated later unless
     // placed in $invalidBatches based upon initial valid string value like empty string or invalid
     // formatting for a regex or route, and so on! It is structured on "batch<New|Set><LEVEL><WHAT>"
-    // Where "New" means you can add several as long as they are not duplicates OR conflict in certain
+    // Where "New" means you can add sevseral as long as they are not duplicates OR conflict in certain
     // order like "pipeResponse" means you have completed the request cycle for that route and now
     // any piped ->requestPostResponse() should run as a result! Different levels (global, method, route)
     // have different amount of settings/piping they can do (thus what can be batched and not!)
@@ -4187,11 +4183,19 @@ class C
     public function batch(string $fn, mixed ...$payload)
     {
         if ($fn === '' || !method_exists($this, $fn)) {
-            $this->errors[] = ['type' => 'internal', 'err' => '[Class C->batch()]: Tried calling to a Non-existing Private Function `' . $fn  . '` in Class `C` in `/src/funkphp/core/functions.php`. Please report this Bug/Issue to the `Official FunkPHP Repositories`.'];
+            $this->errors['ERRORS']++;
+            $this->errors['INTERNAL'][count($this->errors['INTERNAL']) + 1] = ['errShort' => 'Failed to call Internal batch<METHOD>', 'err' => '[Class C->batch()]: Tried calling to a Non-existing Private Function `' . $fn  . '` in Class `C` in `/src/funkphp/core/functions.php`. Please report this Bug/Issue to the `Official FunkPHP Repositories`.'];
             return;
         }
         $this->$fn(...$payload);
     }
+
+    // batchSetMETHOD is for setting -><METHOD>() so it shows up correctly in "API" Tab
+    private function batchSetMETHOD(string $method)
+    {
+        $this->FunkPHPFluentAPI['ALL'][count($this->FunkPHPFluentAPI['ALL']) + 1] = "->$method()";
+    }
+
 
     /* !!! GLOBAL/CONFIG() BATCHES FUNCTIONS !!! */
     /* setCompileFlag & setDebug */
@@ -7344,6 +7348,9 @@ class C
         if (!empty($internalErrors['CONFIG'])) {
             $bucketed['CONFIG']['errors'] = count($internalErrors['CONFIG']);
         }
+        if (!empty($internalErrors['INTERNAL'])) {
+            $bucketed['INTERNAL']['errors'] = count($internalErrors['INTERNAL']);
+        }
         if (!empty($internalErrors['COMPILATION']['errors'])) {
             $bucketed['COMPILATION']['errors'] = count($internalErrors['COMPILATION']['errors']);
         }
@@ -7427,7 +7434,7 @@ class C
                 }
 
                 .container {
-                    max-width: 1100px;
+                    max-width: 1200px;
                     margin: 0 auto;
                 }
 
@@ -7490,7 +7497,7 @@ class C
                 }
 
                 .tab-btn {
-                    padding: 0.85rem 1.4rem;
+                    padding: 0.69rem 0.9rem;
                     background: none;
                     border: none;
                     color: #8b949e;
@@ -7522,7 +7529,7 @@ class C
                     color: #8b949e;
                     border-radius: 10px;
                     padding: 0.1rem 0.45rem;
-                    font-size: 0.75rem;
+                    font-size: 1rem;
                 }
 
                 .tab-btn.active .tab-count {
@@ -7670,7 +7677,7 @@ class C
                 }
 
                 .issue-type {
-                    font-size: 0.75rem;
+                    font-size: 0.8rem;
                     font-weight: 700;
                     letter-spacing: 0.05rem;
                     margin-bottom: 0.3rem;
@@ -7686,7 +7693,7 @@ class C
 
                 .issue-body {
                     font-family: 'Consolas', 'Courier New', monospace;
-                    font-size: 0.92rem;
+                    font-size: 1rem;
                     color: #e6edf3;
                     line-height: 2;
                 }
@@ -7748,7 +7755,7 @@ class C
         <body>
             <div class="container">
                 <div class="header">
-                    <div class="title">FunkPHP Fluent API</div>
+                    <div class="title">FunkPHP Fluent API - Set, Pipe, Deploy!</div>
                     <div class="summary-badges">
                         <span class="badge badge-danger"><?= $totalErrors ?> Error<?= $totalErrors === 1 ? '' : 's' ?></span>
                         <span class="badge badge-warning"><?= $totalWarnings ?> Warning<?= $totalWarnings === 1 ? '' : 's' ?></span>
@@ -7825,7 +7832,7 @@ class C
                                     </div>
                                 <?php elseif ($tab === 'FILES'): ?>
                                     <div class="empty-state">
-                                        ✓ No FunkPHP File (Function) Errors/Warnings<br />Errors/Warnings here are related to the Files and/or <br />their Functions in Directories (including sub-directories):<br /><?= $formatMsg('`/src/funkphp/config/`'); ?><br /><?= $formatMsg('`/src/funkphp/data/`'); ?><br /><?= $formatMsg('`/src/funkphp/pages/`'); ?><br /><?= $formatMsg('`/src/funkphp/pipes/`'); ?>
+                                        ✓ No FunkPHP File (Function|Class) Errors/Warnings<br />Errors/Warnings here are related to the Files and/or their<br /> Functions/Classes in Directories (including sub-directories):<br /><?= $formatMsg('`/src/funkphp/config/`'); ?><br /><?= $formatMsg('`/src/funkphp/data/`'); ?><br /><?= $formatMsg('`/src/funkphp/pages/`'); ?><br /><?= $formatMsg('`/src/funkphp/pipes/`'); ?>
                                     </div>
                                 <?php else: ?>
                                     <div class="empty-state">
