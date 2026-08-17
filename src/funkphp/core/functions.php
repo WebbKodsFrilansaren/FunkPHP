@@ -1920,6 +1920,7 @@ class C
     // unless configured so (if $this->NoWarningsAllowed is set to TRUE).
     private array $errors = [
         'ERRORS' => 0,
+        'FILES' => [],
         'INTERNAL' => [],
         'CONFIG' => [],
         'METHODS' => []
@@ -3884,118 +3885,35 @@ class C
      *
      * Choose Error Type based on scope (global, method, route) and optional method and route when applicable.
      *
-     * @param string $errMsg
-     * @param 'Route-setParamRulePolymorphic'|'Method-setParamRulePolymorphic'|'Global-setParamRulePolymorphic'|'Global-setDebug'|'Route-pipeCompiledQuery'|'Route-pipeCompiledSQL'|'Route-pipeCompiledValidation'|'Global-setCompileFlag'|'Global-setGroupPipeUserdefined'|'Global-setGroupPipeRequest'|'Global-setGroupPipePostResponse'|'Global-setGroupPipeRoute'|'Global-setGroupPipeMiddlewares'|'Global-setINI_SET'|'Global-setNonces'|'Global-setCSP'|'Global-setSRIInternal'|'Global-setSRIExternal'|'Global-setNoRouteMatchPage'|'Global-setNoRouteMatchJSON'|'Global-setNoRouteMatchText'|'Global-setNoRouteMatchCallback'|'Global-setDefaultRegisteredShutdownHandler'|'Global-setDefaultExceptionHandler'|'Global-setDefaultErrorHandler'|'Global-setDefaultURI_NormalizerHandler'|'Global-setDefaultKernelHandler'|'Global-setBaseURLLocal'|'Global-setBaseURLOnline'|'Global-setBaseURLHost'|'Global-setBaseURLUri'|'Global-setSessionDriver'|'Global-setSessionCookieOptions'|'Global-setSessionCookieName'|'Global-setSessionCookieLifetime'|'Global-setSessionCookiePath'|'Global-setSessionCookieDomain'|'Global-setSessionCookieSecure'|'Global-setSessionCookieHTTPOnly'|'Global-setSessionCookieSameSite'|'Global-setUseFunkPHPOnline'|'Global-setUseHTTPS'|'Global-setUseVendor'|'Global-setParamRule'|'Global-setHeader'|'Global-removeHeader'|'Global-pipeMiddleware'|'Global-pipeRequestFunction'|'Global-pipePostResponseFunction'|'Method-setNoRouteMatch'|'Method-setNoRouteMatchPage'|'Method-setNoRouteMatchJson'|'Method-setNoRouteMatchText'|'Method-setNoRouteMatchCallback'|'Method-setNonces'|'Method-setCSP'|'Method-setRateLimiting'|'Method-pipeMiddleware'|'Method-setHeader'|'Method-removeHeader'|'Method-setParamRule'|'Method-route'|'Route-setAlias'|'Route-setRateLimiting'|'Route-setCache'|'Route-setNonces'|'Route-pipeMiddleware'|'Route-pipeFunction'|'Route-pipeResponse'|'Route-pipeSQL'|'Route-pipeQuery'|'Route-pipeValidation'|'Route-setExcludeMiddlewares'|'Route-setExcludeHeaders'|'Route-setParamRule'|'Route-setCSP'|'Route-setHeader'|'Route-removeHeader'|'Route-route' $errType
+     * @param string $errMsg The detailed Error Message that is shown when pressing "Details ->" button
+     * @param string $errShort The short version of the Error Message that is shown after the Error Number
      * @param 'GET'|'POST'|'PUT'|'PATCH'|'DELETE'|'HEAD'|null $method
      * @param string|null $route
      *
      */
-    private function setErr(string $errMsg, string $errType = '', string $method = 'CONFIG', ?string $route = null)
+    private function setErr(string $errMsg, string $errShort = '', string $method = 'CONFIG', ?string $route = null)
     {
-        $validErrTypes = [
-            'Global-setDebug',
-            'Global-setGroupPipeUserdefined',
-            'Global-setGroupPipeRequest',
-            'Global-setGroupPipePostResponse',
-            'Global-setGroupPipeRoute',
-            'Global-setGroupPipeMiddlewares',
-            'Global-setCompileFlag',
-            'Global-setINI_SET',
-            'Global-setNonces',
-            'Global-setCSP',
-            'Global-setSRIInternal',
-            'Global-setSRIExternal',
-            'Global-setNoRouteMatchPage',
-            'Global-setNoRouteMatchJSON',
-            'Global-setNoRouteMatchText',
-            'Global-setNoRouteMatchCallback',
-            'Global-setDefaultExceptionHandler',
-            'Global-setDefaultErrorHandler',
-            'Global-setDefaultURI_NormalizerHandler',
-            'Global-setDefaultKernelHandler',
-            'Global-setBaseURLLocal',
-            'Global-setBaseURLOnline',
-            'Global-setBaseURLHost',
-            'Global-setBaseURLUri',
-            'Global-setSessionDriver',
-            'Global-setSessionCookieOptions',
-            'Global-setSessionCookieName',
-            'Global-setSessionCookieLifetime',
-            'Global-setSessionCookiePath',
-            'Global-setSessionCookieDomain',
-            'Global-setSessionCookieSecure',
-            'Global-setSessionCookieHTTPOnly',
-            'Global-setSessionCookieSameSite',
-            'Global-setUseFunkPHPOnline',
-            'Global-setUseHTTPS',
-            'Global-setUseVendor',
-            'Global-setParamRule',
-            'Global-setParamRulePolymorphic',
-            'Global-setHeader',
-            'Global-removeHeader',
-            'Global-pipeMiddleware',
-            'Global-pipeRequestFunction',
-            'Global-pipePostResponseFunction',
-            'Method-setNoRouteMatch',
-            'Method-setNoRouteMatchPage',
-            'Method-setNoRouteMatchJson',
-            'Method-setNoRouteMatchText',
-            'Method-setNoRouteMatchCallback',
-            'Method-setNonces',
-            'Method-setCSP',
-            'Method-setRateLimiting',
-            'Method-pipeMiddleware',
-            'Method-setHeader',
-            'Method-removeHeader',
-            'Method-setParamRule',
-            'Method-setParamRulePolymorphic',
-            'Method-route',
-            'Route-setAlias',
-            'Route-setRateLimiting',
-            'Route-setCache',
-            'Route-setNonces',
-            'Route-pipeMiddleware',
-            'Route-pipeFunction',
-            'Route-pipeResponse',
-            'Route-pipeSQL',
-            'Route-pipeQuery',
-            'Route-pipeValidation',
-            'Route-pipeCompiledSQL',
-            'Route-pipeCompiledQuery',
-            'Route-pipeCompiledValidation',
-            'Route-setExcludeMiddlewares',
-            'Route-setExcludeHeaders',
-            'Route-setParamRule',
-            'Route-setParamRulePolymorphic',
-            'Route-setCSP',
-            'Route-setHeader',
-            'Route-removeHeader',
-            'Route-route',
-        ];
         $validMethodTypes = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'CONFIG'];
-        // No error (or valid) type
-        if (!is_string($errType) || trim($errType) === '' || !in_array($errType, $validErrTypes)) {
+        $validRouteMethodTypes = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD'];
+        // No short error
+        if (!is_string($errShort) || trim($errShort) === '') {
             $this->errors['ERRORS']++;
-            $this->errors['INTERNAL'][count($this->errors['INTERNAL']) + 1] = ['type' => 'internal', 'err' => 'Invalid `\$type` (Error Type) Value (OR it is missing) in `class C->setErr()` when setting Error:\'`' . $errMsg . '`\' Report this found bug/issue to the Official FunkPHP Repositories. Choose a `Valid Error Type` from: ' . $this->joinArray($validErrTypes), 'method' => $method, 'route' => $route];
+            $this->errors['INTERNAL'][count($this->errors['INTERNAL']) + 1] = ['errShort' => 'Invalid Value in (\$type)', 'err' => 'Invalid `\$type` (Error Type) Value (OR it is missing) in `class C->setErr()` when setting Error:\'`' . $errMsg . '`\' Report this found bug/issue to the Official FunkPHP Repositories.', 'method' => $method, 'route' => $route];
             return;
         }
-        // No method (or valid) provided for Method- & Route-related errors (since Route always needs Method)
+        // No method (or valid) provided
         if (
-            (str_starts_with($errType, 'Method-') || str_starts_with($errType, 'Route-'))
-            && (!is_string($method)
-                || trim($method) === '' || !in_array($method, $validMethodTypes))
+            !is_string($method) || trim($method) === '' || !in_array($method, $validMethodTypes)
         ) {
             $this->errors['ERRORS']++;
-            $this->errors['INTERNAL'][count($this->errors['INTERNAL']) + 1] = ['type' => 'internal', 'err' => 'Invalid `\$method` (Method Type) Value (OR it is missing) in `class C->setErr()`: must be provided when Error Type starts with `Method-` OR `Route-`. Report this found bug/issue to the Official FunkPHP Repositories. Choose a `Valid Error Type` from: ' . $this->joinArray($validMethodTypes), 'method' => $method, 'route' => $route];
+            $this->errors['INTERNAL'][count($this->errors['INTERNAL']) + 1] = ['errShort' => 'Invalid Value in (\$method)', 'err' => 'Invalid `\$method` (Method Type) Value (OR it is missing) in `class C->setErr()`: must be provided where `\'CONFIG\'` is default. Report this found bug/issue to the Official FunkPHP Repositories. Choose a `Valid Method Type` from: ' . $this->joinArray($validMethodTypes), 'method' => $method, 'route' => $route];
             return;
         }
         if (
-            str_starts_with($errType, 'Route-')
-            && (!is_string($route)
-                || trim($route) === '')
+            isset($route) && (!is_string($route) || trim($route) === '' || !in_array($method, $validRouteMethodTypes))
         ) {
             $this->errors['ERRORS']++;
-            $this->errors['INTERNAL'][count($this->errors['INTERNAL']) + 1] = ['type' => 'internal', 'err' => 'Invalid `\$route` Value (OR it is missing) in `class C->setErr()`: must be provided when Error Type starts with `Route-`. Report this found bug/issue to the Official FunkPHP Repositories.', 'method' => $method, 'route' => $route];
+            $this->errors['INTERNAL'][count($this->errors['INTERNAL']) + 1] = ['errShort' => 'Invalid Value in (\$route)', 'err' => 'Invalid `\$route` Value (OR it is missing) in `class C->setErr()`: must be provided when Error Type starts with `Route-`. Report this found bug/issue to the Official FunkPHP Repositories.', 'method' => $method, 'route' => $route];
             return;
         }
         // = get next error index depending on CONFIG, a METHODS CONFIG, or a METHODS ROUTES
@@ -4036,139 +3954,22 @@ class C
         // = $this->errors[$nextErrIndex] = ['err' => $errMsg, 'type' => $errType, 'method' => $method, 'route' => $route];
         if ($method === 'CONFIG') {
             $this->errors['ERRORS']++;
-            $this->errors['CONFIG'][$nextErrIndex] = ['err' => $errMsg, 'type' => $errType, 'method' => $method, 'route' => $route];
+            $this->errors['CONFIG'][$nextErrIndex] = ['err' => $errMsg, 'errShort' => $errShort, 'method' => $method, 'route' => $route];
         } else {
             if ($route) {
                 if (!isset($this->errors['METHODS'][$method]['ROUTES'][$route])) {
                     $this->errors['METHODS'][$method]['ROUTES'][$route] = [];
                 }
                 $this->errors['ERRORS']++;
-                $this->errors['METHODS'][$method]['ROUTES'][$route][$nextErrIndex] = ['err' => $errMsg, 'type' => $errType, 'method' => $method, 'route' => $route];
+                $this->errors['METHODS'][$method]['ROUTES'][$route][$nextErrIndex] = ['err' => $errMsg, 'errShort' => $errShort, 'method' => $method, 'route' => $route];
             } else {
                 $this->errors['ERRORS']++;
                 if (!isset($this->errors['METHODS'][$method]['CONFIG'])) {
                     $this->errors['METHODS'][$method]['CONFIG'] = [];
                 }
-                $this->errors['METHODS'][$method]['CONFIG'][$nextErrIndex] = ['err' => $errMsg, 'type' => $errType, 'method' => $method, 'route' => $route];
+                $this->errors['METHODS'][$method]['CONFIG'][$nextErrIndex] = ['err' => $errMsg, 'errShort' => $errShort, 'method' => $method, 'route' => $route];
             }
         }
-    }
-    /**
-     * Set Error Message with specific type ($type) so it can be grouped if needed.
-     *
-     * Choose Error Type based on scope (global, method, route) and optional method and route when applicable.
-     *
-     * @param string $errMsg
-     * @param 'Internal'|'Global-setDebug'|'Route-pipeCompiledQuery'|'Route-pipeCompiledSQL'|'Route-pipeCompiledValidation'|'Global-setCompileFlag'|'Global-setGroupPipeUserdefined'|'Global-setGroupPipeRequest'|'Global-setGroupPipePostResponse'|'Global-setGroupPipeRoute'|'Global-setGroupPipeMiddlewares'|'Global-setINI_SET'|'Global-setNonces'|'Global-setCSP'|'Global-setSRIInternal'|'Global-setSRIExternal'|'Global-setNoRouteMatchPage'|'Global-setNoRouteMatchJSON'|'Global-setNoRouteMatchText'|'Global-setNoRouteMatchCallback'|'Global-setDefaultExceptionHandler'|'Global-setDefaultErrorHandler'|'Global-setDefaultURI_NormalizerHandler'|'Global-setDefaultKernelHandler'|'Global-setBaseURLLocal'|'Global-setBaseURLOnline'|'Global-setBaseURLHost'|'Global-setBaseURLUri'|'Global-setSessionDriver'|'Global-setSessionCookieOptions'|'Global-setSessionCookieName'|'Global-setSessionCookieLifetime'|'Global-setSessionCookiePath'|'Global-setSessionCookieDomain'|'Global-setSessionCookieSecure'|'Global-setSessionCookieHTTPOnly'|'Global-setSessionCookieSameSite'|'Global-setUseFunkPHPOnline'|'Global-setUseHTTPS'|'Global-setUseVendor'|'Global-setParamRule'|'Global-setHeader'|'Global-removeHeader'|'Global-pipeMiddleware'|'Global-pipeRequestFunction'|'Global-pipePostResponseFunction'|'Method-setNoRouteMatch'|'Method-setNoRouteMatchPage'|'Method-setNoRouteMatchJson'|'Method-setNoRouteMatchText'|'Method-setNoRouteMatchCallback'|'Method-setNonces'|'Method-setCSP'|'Method-setRateLimiting'|'Method-pipeMiddleware'|'Method-setHeader'|'Method-removeHeader'|'Method-setParamRule'|'Method-route'|'Route-setAlias'|'Route-setRateLimiting'|'Route-setCache'|'Route-setNonces'|'Route-pipeMiddleware'|'Route-pipeFunction'|'Route-pipeResponse'|'Route-pipeSQL'|'Route-pipeQuery'|'Route-pipeValidation'|'Route-setExcludeMiddlewares'|'Route-setExcludeHeaders'|'Route-setParamRule'|'Route-setCSP'|'Route-setHeader'|'Route-removeHeader'|'Route-route' $errType
-     * @param 'GET'|'POST'|'PUT'|'PATCH'|'DELETE'|'HEAD'|null $method
-     * @param string|null $route
-     *
-     */
-    private function setErrOLD_BUT_WORKED(string $errMsg, string $errType = '', ?string $method = null, ?string $route = null)
-    {
-        $validErrTypes = [
-            'Global-setDebug',
-            'Global-setGroupPipeUserdefined',
-            'Global-setGroupPipeRequest',
-            'Global-setGroupPipePostResponse',
-            'Global-setGroupPipeRoute',
-            'Global-setGroupPipeMiddlewares',
-            'Global-setCompileFlag',
-            'Global-setINI_SET',
-            'Global-setNonces',
-            'Global-setCSP',
-            'Global-setSRIInternal',
-            'Global-setSRIExternal',
-            'Global-setNoRouteMatchPage',
-            'Global-setNoRouteMatchJSON',
-            'Global-setNoRouteMatchText',
-            'Global-setNoRouteMatchCallback',
-            'Global-setDefaultExceptionHandler',
-            'Global-setDefaultErrorHandler',
-            'Global-setDefaultURI_NormalizerHandler',
-            'Global-setDefaultKernelHandler',
-            'Global-setBaseURLLocal',
-            'Global-setBaseURLOnline',
-            'Global-setBaseURLHost',
-            'Global-setBaseURLUri',
-            'Global-setSessionDriver',
-            'Global-setSessionCookieOptions',
-            'Global-setSessionCookieName',
-            'Global-setSessionCookieLifetime',
-            'Global-setSessionCookiePath',
-            'Global-setSessionCookieDomain',
-            'Global-setSessionCookieSecure',
-            'Global-setSessionCookieHTTPOnly',
-            'Global-setSessionCookieSameSite',
-            'Global-setUseFunkPHPOnline',
-            'Global-setUseHTTPS',
-            'Global-setUseVendor',
-            'Global-setParamRule',
-            'Global-setHeader',
-            'Global-removeHeader',
-            'Global-pipeMiddleware',
-            'Global-pipeRequestFunction',
-            'Global-pipePostResponseFunction',
-            'Method-setNoRouteMatch',
-            'Method-setNoRouteMatchPage',
-            'Method-setNoRouteMatchJson',
-            'Method-setNoRouteMatchText',
-            'Method-setNoRouteMatchCallback',
-            'Method-setNonces',
-            'Method-setCSP',
-            'Method-setRateLimiting',
-            'Method-pipeMiddleware',
-            'Method-setHeader',
-            'Method-removeHeader',
-            'Method-setParamRule',
-            'Method-route',
-            'Route-setAlias',
-            'Route-setRateLimiting',
-            'Route-setCache',
-            'Route-setNonces',
-            'Route-pipeMiddleware',
-            'Route-pipeFunction',
-            'Route-pipeResponse',
-            'Route-pipeSQL',
-            'Route-pipeQuery',
-            'Route-pipeValidation',
-            'Route-pipeCompiledSQL',
-            'Route-pipeCompiledQuery',
-            'Route-pipeCompiledValidation',
-            'Route-setExcludeMiddlewares',
-            'Route-setExcludeHeaders',
-            'Route-setParamRule',
-            'Route-setCSP',
-            'Route-setHeader',
-            'Route-removeHeader',
-            'Route-route',
-        ];
-        $validMethodTypes = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD'];
-        // No error (or valid) type
-        $nextErrIndex = (count($this->errors) + 1);
-        if (!is_string($errType) || trim($errType) === '' || !in_array($errType, $validErrTypes)) {
-            $this->errors[$nextErrIndex] = ['type' => 'internal', 'err' => 'Invalid \$type (Error Type) Value in `class C->setErr()` when setting Error:\'`' . $errMsg . '`\' Report this found bug/issue to the Official FunkPHP Repositories. Choose a `Valid Error Type` from: ' . $this->joinArray($validErrTypes), 'method' => $method, 'route' => $route];
-            return;
-        }
-        // No method (or valid) provided for Method- & Route-related errors (since Route always needs Method)
-        if (
-            (str_starts_with($errType, 'Method-') || str_starts_with($errType, 'Route-'))
-            && (!is_string($method)
-                || trim($method) === '' || !in_array($method, $validMethodTypes))
-        ) {
-            $this->errors[] = ['type' => 'internal', 'err' => 'Invalid \$method (Method Type) Value in `class C->setErr()`: must be provided when Error Type starts with `Method-` OR `Route-`. Report this found bug/issue to the Official FunkPHP Repositories. Choose a `Valid Error Type` from: ' . $this->joinArray($validMethodTypes), 'method' => $method, 'route' => $route];
-            return;
-        }
-        if (
-            str_starts_with($errType, 'Route-')
-            && (!is_string($route)
-                || trim($route) === '')
-        ) {
-            $this->errors[$nextErrIndex] = ['type' => 'internal', 'err' => 'Invalid \$route Value in `class C->setErr()`: must be provided when Error Type starts with `Route-`. Report this found bug/issue to the Official FunkPHP Repositories.', 'method' => $method, 'route' => $route];
-            return;
-        }
-        $this->FunkPHPFluentAPI[count($this->FunkPHPFluentAPI)] .= ' - (`See Error #' . $nextErrIndex . '`)';
-        $this->errors[$nextErrIndex] = ['err' => $errMsg, 'type' => $errType, 'method' => $method, 'route' => $route];
     }
 
     // Join array with wrapped `` and comma
@@ -7319,7 +7120,7 @@ class C
 
     // Function that generates HTML to then output an easier
     // visualized version of current errors and/or warnings.
-    private function output_errors(array $internalErrors = [], ?array $compileErrors = [], array $compileWarnings = [])
+    private function output_errors(array $internalErrors = [], array $compileErrors = [], array $compileWarnings = [])
     {
         header("content-type: text/html; charset=utf-8");
         http_response_code(500);
@@ -7330,10 +7131,10 @@ class C
         $baseUrl = "{$scheme}://{$host}{$basePath}";
         $imgDiskPath = ROOT_PUBLIC_HTML . '/images/favicon.ico';
         $fontDiskPath = ROOT_PUBLIC_HTML . '/fonts/Fredoka-Bold.ttf';
-        $fontLightDiskPath = ROOT_PUBLIC_HTML . '/fonts/Fredoka-Light.ttf';
+        $fontLightDiskPath = ROOT_PUBLIC_HTML . '/fonts/Fredoka-Regular.ttf';
         $PHTML_IMG_SRC = file_exists($imgDiskPath) ? "{$baseUrl}/images/favicon.ico" : "";
         $PHTML_FONT_SRC = file_exists($fontDiskPath) ? "{$baseUrl}/fonts/Fredoka-Bold.ttf" : "";
-        $PHTML_FONT2_SRC = file_exists($fontLightDiskPath) ? "{$baseUrl}/fonts/Fredoka-Light.ttf" : "";
+        $PHTML_FONT2_SRC = file_exists($fontLightDiskPath) ? "{$baseUrl}/fonts/Fredoka-Regular.ttf" : "";
         // Get the `` highlighted version instead
         $formatMsg = function ($msg) {
             if (!is_string($msg)) {
@@ -7343,7 +7144,7 @@ class C
             return preg_replace('/`([^`]+)`/', '<span class="code-badge">$1</span>', $escaped);
         };
         // Prepare and count all errors (if any)
-        $tabs = ['API', 'CONFIG', 'GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'COMPILATION', 'INTERNAL'];
+        $tabs = ['API', 'CONFIG', 'GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'FILES', 'COMPILATION', 'INTERNAL'];
         $bucketed = [];
         foreach ($tabs as $t) {
             $bucketed[$t] = [
@@ -7377,6 +7178,9 @@ class C
                     }
                 }
             }
+        }
+        if (!empty($allErrors['FILES'])) {
+            $bucketed['FILES']['errors'] = count($allErrors['FILES']);
         }
         $totalErrors = 0;
         $totalWarnings = count($compileWarnings);
@@ -7412,7 +7216,7 @@ class C
                 }
 
                 <?php endif; ?><?php if ($PHTML_FONT2_SRC): ?>@font-face {
-                    font-family: 'Fredoka-Light';
+                    font-family: 'Fredoka-Regular';
                     src: url("<?= htmlspecialchars($PHTML_FONT2_SRC, ENT_QUOTES, 'UTF-8') ?>");
                 }
 
@@ -7446,7 +7250,7 @@ class C
                 .title {
                     font-family: <?php echo $PHTML_FONT_SRC ? "'Fredoka-Bold', " : ""; ?>sans-serif;
                     font-size: 2rem;
-                    color: rgb(141, 85, 201);
+                    color: rgb(162, 74, 255);
                 }
 
                 .summary-badges {
@@ -7464,18 +7268,25 @@ class C
 
                 .badge-danger {
                     background: rgba(248, 81, 73, 0.15);
+                    font-family: 'Fredoka-Bold';
+                    font-size: 1rem;
+                    letter-spacing: 0.1rem;
                     color: #ff7b72;
                     border: 1px solid rgba(248, 81, 73, 0.4);
                 }
 
                 .badge-warning {
                     background: rgba(210, 153, 34, 0.15);
+                    font-family: 'Fredoka-Bold';
+                    font-size: 1rem;
+                    letter-spacing: 0.1rem;
                     color: #d29922;
                     border: 1px solid rgba(210, 153, 34, 0.4);
                 }
 
                 .tabs-header {
                     display: flex;
+                    flex-wrap: wrap;
                     background: #161b22;
                     border-radius: 8px 8px 0 0;
                     border: 1px solid #30363d;
@@ -7489,7 +7300,9 @@ class C
                     border: none;
                     color: #8b949e;
                     font-size: 0.95rem;
+                    letter-spacing: 0.1rem;
                     font-weight: 700;
+                    font-family: 'Fredoka-Bold';
                     cursor: pointer;
                     border-bottom: 3px solid transparent;
                     display: flex;
@@ -7543,11 +7356,11 @@ class C
                     display: block;
                 }
 
-                .route-group {
+                .tab-group {
                     margin-bottom: 2rem;
                 }
 
-                .route-header {
+                .tab-header {
                     font-family: monospace;
                     font-size: 1.00rem;
                     font-weight: 600;
@@ -7558,6 +7371,7 @@ class C
                     border: 1px solid #21262d;
                     margin-bottom: 0.75rem;
                     display: inline-block;
+                    width: 100%;
                 }
 
                 .issue-card {
@@ -7567,6 +7381,50 @@ class C
                     margin-bottom: 0.8rem;
                     border-radius: 0 6px 6px 0;
                     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+                }
+
+                .issue-type-with-button {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    width: 100%;
+                }
+
+                .view-details-btn {
+                    background: #21262d;
+                    color: #c9d1d9;
+                    border: 1px solid #30363d;
+                    border-radius: 6px;
+                    padding: 4px 10px;
+                    font-size: 1rem;
+                    font-family: 'Fredoka-Bold';
+                    cursor: pointer;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 6px;
+                    transition: background-color 0.15s ease, border-color 0.15s ease;
+                }
+
+                .view-details-btn:hover {
+                    background: #30363d;
+                    border-color: #8b949e;
+                    color: #f0f6fc;
+                }
+
+                .view-details-btn .chevron {
+                    display: inline-block;
+                    font-size: 0.65rem;
+                    transition: transform 0.2s ease;
+                }
+
+                .view-details-btn.active .chevron {
+                    transform: rotate(90deg);
+                }
+
+                .issue-body {
+                    margin-top: 10px;
+                    padding-top: 10px;
+                    border-top: 1px solid #21262d;
                 }
 
                 .api-card-consolidated {
@@ -7645,7 +7503,8 @@ class C
                     padding: 12px 16px;
                     border-radius: 6px;
                     margin-bottom: 1rem;
-                    font-size: 0.88rem;
+                    font-size: 0.9rem;
+                    font-family: 'Consolas', 'Courier New', monospace;
                     line-height: 1.4;
                     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
                 }
@@ -7693,6 +7552,10 @@ class C
                         $warnCnt = $bucketed[$tab]['warnings'] ?? 0;
                         $totalTabItems = $errCnt + $warnCnt;
                         $hasClass = $errCnt > 0 ? 'has-errors' : '';
+                        // Only show "INTERNAL" tab when having actual errors
+                        if ($errCnt === 0 && $tab === 'INTERNAL') {
+                            continue;
+                        }
                     ?>
                         <button id="btn-tab-<?= $tab ?>" class="tab-btn <?= $tab === $activeTab ? 'active' : '' ?> <?= $hasClass ?>" onclick="switchTab(event, 'tab-<?= $tab ?>')">
                             <?= $tab ?>
@@ -7734,11 +7597,15 @@ class C
                             <?php if (!$hasContent): ?>
                                 <?php if ($tab === 'INTERNAL'): ?>
                                     <div class="empty-state">
-                                        ✓ No Internal FunkPHP Errors
+                                        ✓ No Internal FunkPHP Errors/Warnings<br />Errors/Warnings showing up here strongly suggest Internal Issues with FunkPHP that you are usually recommended to report to the Official Repositories of FunkPHP.
                                     </div>
                                 <?php elseif ($tab === 'COMPILATION'): ?>
                                     <div class="empty-state">
-                                        ✓ No FunkPHP Compilation Errors
+                                        ✓ No FunkPHP Compilation Errors/Warnings<br />Errors/Warnings here only first show up after No Errors/Warnings in<br /><?= $formatMsg('`API`, `CONFIG`, `GET`, `POST`, `PUT`, `DELETE`, `PATCH`, `FILES`'); ?>
+                                    </div>
+                                <?php elseif ($tab === 'FILES'): ?>
+                                    <div class="empty-state">
+                                        ✓ No FunkPHP File (Function) Errors/Warnings<br />Errors/Warnings here are related to the Files and/or <br />their Functions in Directories (including sub-directories):<br /><?= $formatMsg('`/src/funkphp/config/`'); ?><br /><?= $formatMsg('`/src/funkphp/data/`'); ?><br /><?= $formatMsg('`/src/funkphp/pages/`'); ?><br /><?= $formatMsg('`/src/funkphp/pipes/`'); ?>
                                     </div>
                                 <?php else: ?>
                                     <div class="empty-state">
@@ -7750,12 +7617,41 @@ class C
                                 // TAB IS "CONFIG"?
                                 if ($tab === 'CONFIG') {
                                     $CONFIG_ERRS = $allErrors['CONFIG'] ?? [];
-                                ?> <div class="route-group">
-                                        <div class="route-header">GLOBAL CONFIG | $APP->CONFIG() in /src/funkphp/app/CONFIG.php</div>
+                                ?> <div class="tab-group">
+                                        <div class="tab-header">GLOBAL CONFIG | $APP->CONFIG() in /src/funkphp/app/CONFIG.php</div>
                                         <?php foreach ($CONFIG_ERRS as $idx => $C_ERR) {
-                                        ?> <div class="issue-card">
-                                                <div class="issue-type">ERROR #<?= $idx ?></div>
-                                                <div class="issue-body"><?= $formatMsg($C_ERR['err']) ?></div>
+                                        ?>
+                                            <div class="issue-card">
+                                                <div class="issue-type-with-button">
+                                                    <div class="issue-type">ERROR #<?= $idx ?>: <?= $formatMsg($C_ERR['errShort'] ?? '<Error Title Missing>') ?>
+                                                    </div>
+                                                    <button type="button" class="view-details-btn">
+                                                        Details <span class="chevron">▶</span>
+                                                    </button>
+                                                </div>
+                                                <div style="display:none;" class="issue-body"><?= $formatMsg($C_ERR['err']) ?></div>
+                                            </div>
+                                        <?php
+                                        } ?>
+                                    </div>
+                                <?php
+                                }
+                                // TAB IS "FILES"?
+                                else if ($tab === 'FILES') {
+                                    $FILES_ERRS = $allErrors['FILES'] ?? [];
+                                ?> <div class="tab-group">
+                                        <div class="tab-header">Files/Functions FunkPHP Errors</div>
+                                        <?php foreach ($FILES_ERRS as $idx => $F_ERR) {
+                                        ?>
+                                            <div class="issue-card">
+                                                <div class="issue-type-with-button">
+                                                    <div class="issue-type">ERROR #<?= $idx ?>: <?= $formatMsg($F_ERR['errShort'] ?? '<Error Title Missing>') ?>
+                                                    </div>
+                                                    <button type="button" class="view-details-btn">
+                                                        Details <span class="chevron">▶</span>
+                                                    </button>
+                                                </div>
+                                                <div style="display:none;" class="issue-body"><?= $formatMsg($F_ERR['err']) ?></div>
                                             </div> <?php
                                                 } ?>
                                     </div>
@@ -7764,12 +7660,19 @@ class C
                                 // TAB IS "INTERNAL"?
                                 else if ($tab === 'INTERNAL') {
                                     $INTERNAL_ERRS = $allErrors['INTERNAL'] ?? [];
-                                ?> <div class="route-group">
-                                        <div class="route-header">Internal FunkPHP Errors (applies to all files in /src/funkphp/app)</div>
+                                ?> <div class="tab-group">
+                                        <div class="tab-header">Internal FunkPHP Errors (applies to all files in /src/funkphp/app)</div>
                                         <?php foreach ($INTERNAL_ERRS as $idx => $I_ERR) {
-                                        ?> <div class="issue-card.warn">
-                                                <div class="issue-type">ERROR #<?= $idx ?></div>
-                                                <div class="issue-body"><?= $formatMsg($I_ERR['err']) ?></div>
+                                        ?>
+                                            <div class="issue-card">
+                                                <div class="issue-type-with-button">
+                                                    <div class="issue-type">ERROR #<?= $idx ?>: <?= $formatMsg($I_ERR['errShort'] ?? '<Error Title Missing>') ?>
+                                                    </div>
+                                                    <button type="button" class="view-details-btn">
+                                                        Details <span class="chevron">▶</span>
+                                                    </button>
+                                                </div>
+                                                <div style="display:none;" class="issue-body"><?= $formatMsg($I_ERR['err']) ?></div>
                                             </div> <?php
                                                 } ?>
                                     </div>
@@ -7780,8 +7683,8 @@ class C
                                     $API_TREE = $this->FunkPHPFluentAPI['ALL'] ?? [];
                                     $currentDepth = 0;
                                 ?>
-                                    <div class="route-group">
-                                        <div class="route-header">FunkPHP Fluent API Tree (all files in /src/funkphp/app)</div>
+                                    <div class="tab-group">
+                                        <div class="tab-header">FunkPHP Fluent API Tree (all files in /src/funkphp/app)</div>
                                         <div class="api-card api-card-consolidated">
                                             <?php foreach ($API_TREE as $idx => $apiStr):
                                                 $trimmed = trim($apiStr);
@@ -7815,25 +7718,41 @@ class C
                                     $COMPILE_ERRS = $compileErrors ?? [];
                                     $COMPLE_WARNS = $compileWarnings ?? [];
                                 ?> <?php if (count($COMPILE_ERRS) > 0): ?>
-                                        <div class="route-group">
-                                            <div class="route-header">FunkPHP Compilation Errors (happens only if Zero Errors otherwise in all files in /src/funkphp/app)</div>
+                                        <div class="tab-group">
+                                            <div class="tab-header">FunkPHP Compilation Errors (happens only if Zero Errors otherwise in all files in /src/funkphp/app)</div>
                                             <?php foreach ($COMPILE_ERRS as $idx => $COMP_ERR) {
-                                            ?> <div class="issue-card">
-                                                    <div class="issue-type">ERROR #<?= $idx ?></div>
-                                                    <div class="issue-body"><?= $formatMsg($COMP_ERR) ?></div>
-                                                </div> <?php
-                                                    } ?>
+                                            ?>
+                                                <div class="issue-card">
+                                                    <div class="issue-type-with-button">
+                                                        <div class="issue-type">ERROR #<?= $idx ?>: <?= $formatMsg($COMP_ERR['errShort'] ?? '<Error Title Missing>') ?>
+                                                        </div>
+                                                        <button type="button" class="view-details-btn">
+                                                            Details <span class="chevron">▶</span>
+                                                        </button>
+                                                    </div>
+                                                    <div style="display:none;" class="issue-body"><?= $formatMsg($COMP_ERR['err']) ?></div>
+                                                </div>
+                                            <?php
+                                            } ?>
                                         </div>
                                     <?php endif ?>
                                     <?php if (count($COMPLE_WARNS) > 0): ?>
-                                        <div class="route-group">
-                                            <div class="route-header">FunkPHP Compilation Warnings (happens only if Zero Errors otherwise in all files in /src/funkphp/app)</div>
+                                        <div class="tab-group">
+                                            <div class="tab-header">FunkPHP Compilation Warnings (happens only if Zero Errors otherwise in all files in /src/funkphp/app)</div>
                                             <?php foreach ($COMPLE_WARNS as $idx2 => $COMP_WARN) {
-                                            ?> <div class="issue-card warn">
-                                                    <div class="issue-type">WARNING #<?= $idx2 ?></div>
-                                                    <div class="issue-body"><?= $formatMsg($COMP_WARN) ?></div>
-                                                </div> <?php
-                                                    } ?>
+                                            ?>
+                                                <div class="issue-card">
+                                                    <div class="issue-type-with-button">
+                                                        <div class="issue-type">WARNING #<?= $idx2 ?>: <?= $formatMsg($COMP_WARN['warnShort'] ?? '<Warning Title Missing>') ?>
+                                                        </div>
+                                                        <button type="button" class="view-details-btn">
+                                                            Details <span class="chevron">▶</span>
+                                                        </button>
+                                                    </div>
+                                                    <div style="display:none;" class="issue-body"><?= $formatMsg($COMP_WARN['warn']) ?></div>
+                                                </div>
+                                            <?php
+                                            } ?>
                                         </div>
                                     <?php endif ?>
                                     <?php
@@ -7843,25 +7762,38 @@ class C
                                     $R_CONFIG_ERRS = $allErrors['METHODS'][$tab]['CONFIG'] ?? [];
                                     $R_ROUTES_ERRS = $allErrors['METHODS'][$tab]['ROUTES'] ?? [];
                                     ?><?php if (count($R_CONFIG_ERRS) > 0) {  ?>
-                                    <div class="route-group">
-                                        <div class="route-header"><?= $tab ?> CONFIG | $APP->ROUTES()-><?= $tab ?>() in /src/funkphp/app/<?= $tab ?>.php</div>
+                                    <div class="tab-group">
+                                        <div class="tab-header"><?= $tab ?> CONFIG | $APP->ROUTES()-><?= $tab ?>() in /src/funkphp/app/<?= $tab ?>.php</div>
                                         <?php foreach ($R_CONFIG_ERRS as $idx => $RC_ERR) {
-                                        ?> <div class="issue-card">
-                                                <div class="issue-type">ERROR #<?= $idx ?></div>
-                                                <div class="issue-body"><?= $formatMsg($RC_ERR['err']) ?></div>
+                                        ?>
+                                            <div class="issue-card">
+                                                <div class="issue-type-with-button">
+                                                    <div class="issue-type">ERROR #<?= $idx ?>: <?= $formatMsg($RC_ERR['errShort'] ?? '<Error Title Missing>') ?>
+                                                    </div>
+                                                    <button type="button" class="view-details-btn">
+                                                        Details <span class="chevron">▶</span>
+                                                    </button>
+                                                </div>
+                                                <div style="display:none;" class="issue-body"><?= $formatMsg($RC_ERR['err']) ?></div>
                                             </div> <?php
                                                 }
                                                     ?>
                                     </div>
                                 <?php } ?>
-                                <div class="route-group">
+                                <div class="tab-group">
                                     <?php foreach ($R_ROUTES_ERRS as $singleMethodRoute => $singleMethodRouteDetails) {
                                     ?>
-                                        <div class="route-header">'<?= "$tab$singleMethodRoute"; ?>' | $APP->ROUTES()-><?= $tab ?>()->ROUTE('<?= $singleMethodRoute; ?>') in /src/funkphp/app/<?= $tab ?>.php</div>
+                                        <div class="tab-header">'<?= "$tab$singleMethodRoute"; ?>' | $APP->ROUTES()-><?= $tab ?>()->ROUTE('<?= $singleMethodRoute; ?>') in /src/funkphp/app/<?= $tab ?>.php</div>
                                         <?php foreach ($singleMethodRouteDetails as $rErrIdx => $rErr) {
                                         ?> <div class="issue-card">
-                                                <div class="issue-type">ERROR #<?= $rErrIdx ?></div>
-                                                <div class="issue-body"><?= $formatMsg($rErr['err']) ?></div>
+                                                <div class="issue-type-with-button">
+                                                    <div class="issue-type">ERROR #<?= $rErrIdx ?>: <?= $formatMsg($rErr['errShort'] ?? '<Error Title Missing>') ?>
+                                                    </div>
+                                                    <button type="button" class="view-details-btn">
+                                                        Details <span class="chevron">▶</span>
+                                                    </button>
+                                                </div>
+                                                <div style="display:none;" class="issue-body"><?= $formatMsg($rErr['err']) ?></div>
                                             </div> <?php
                                                 }
                                             } ?>
@@ -7886,6 +7818,24 @@ class C
                     document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'))
                     document.getElementById(localStorage.getItem('lastTab')).classList.add('active');
                     document.getElementById("btn-" + localStorage.getItem('lastTab')).classList.add('active');
+                }
+                document.addEventListener('click', viewDetails);
+
+                function viewDetails(evt) {
+                    const btn = evt.target.closest('.view-details-btn');
+                    if (!btn) return;
+                    const issueCard = btn.closest('.issue-card');
+                    if (!issueCard) return;
+                    const issueBody = issueCard.querySelector('.issue-body');
+                    if (!issueBody) return;
+                    const isHidden = issueBody.style.display === 'none' || getComputedStyle(issueBody).display === 'none';
+                    if (isHidden) {
+                        issueBody.style.display = 'block';
+                        btn.classList.add('active');
+                    } else {
+                        issueBody.style.display = 'none';
+                        btn.classList.remove('active');
+                    }
                 }
             </script>
         </body>
@@ -8193,7 +8143,7 @@ class C
                     $role = $GLOBAL_HANDLERS[$callbackFn];
                     $this->compile_setErr(
                         "User-defined Function `{$callbackFn}` in `{$PATH_USER_DEFINED_FNS}` in `->ROUTES()->{$method}()->setNoRouteMatchCallback('{$callbackFn}')` conflicts with already defined `Global Handler Role {$role}`. Remove `{$callbackFn}` from `->ROUTES()->{$method}()->setNoRouteMatchCallback()` OR from the `Global Handler Role`.",
-                        $compileErrors
+                        $this->errors['COMPILATION']
                     );
                 } else {
                     $this->compiled['methods'][$method]['NO_ROUTE_MATCH']['CALLBACK'] =   $this->validBatches['methods'][$method]['NO_ROUTE_MATCH']['CALLBACK'];
@@ -8477,7 +8427,7 @@ class C
             $this->output_errors($this->errors, $this->compileErrors, $this->compileWarnings);
         }
 
-        dd(['COMPILE FLAGS' => $this->compileFlags, 'API' => $this->FunkPHPFluentAPI, 'COMPILE_ERRORS' => $compileErrors, 'COMPILE_WARNINGS' => $this->compileWarnings, 'COMPILED' => $this->compiled, 'VALID' => $this->validBatches,  'CACHED' => $this->cached], "COMPILATION - DEBUG", true);
+        dd(['COMPILE FLAGS' => $this->compileFlags, 'API' => $this->FunkPHPFluentAPI, 'COMPILE_ERRORS' => $this->errors['COMPILATION'], 'COMPILE_WARNINGS' => $this->compileWarnings, 'COMPILED' => $this->compiled, 'VALID' => $this->validBatches,  'CACHED' => $this->cached], "COMPILATION - DEBUG", true);
     }
     private function run()
     {

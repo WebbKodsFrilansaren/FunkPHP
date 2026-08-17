@@ -3,4 +3,5 @@
 
 /** @var FunkPHP $APP */
 $APP->CONFIG()
+    ->setParamRule("a", "b", "c")
     ->setDebug(true, true, false);
