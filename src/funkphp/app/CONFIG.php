@@ -3,5 +3,4 @@
 
 /** @var FunkPHP $APP */
 $APP->CONFIG()
-    ->setDebug(true, true, false)
-    ->setDefaultExceptionHandler("a");
+    ->setDebug(true, true, false);

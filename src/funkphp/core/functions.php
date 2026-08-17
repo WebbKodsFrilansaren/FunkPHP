@@ -7315,6 +7315,11 @@ class C
         $PHTML_FONT2_SRC = file_exists($fontLightDiskPath) ? "{$baseUrl}/fonts/Fredoka-Regular.ttf" : "";
 
         // Base64 Images
+        $WARNING_BASE64 = '<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAACXBIWXMAAAsTAAALEwEAmpwYAAADX0lEQVR4nO2ZTUgVURTHb2WLggqKWkUu+ti0iiLCxDnnaWWo9E1tpQ8IIVoEgYtsI1TbWlW0k1AqfOdMFhlIC2lhm8JVJPTueVpktajog8qJqymi7+m8eTNv5sn9wYHh8ebM+f/nzr33zChlsVgsFovFYrFYLCUiQ061MLQK462JgNbhNOxWCx1hB4TwlTB6uUIzvNQu1qiFiHDqvCb8nU/8lAnmPwTn1EIim3YaNeHYfOKnmTCmyTmoFgLv7u9ZJ4Sf/YqfCoJP5lxV7sjERFeY+KmRADdVOZPtrtmmGf4ENoDhb6bb2aHKFSF4FlT8tFHQ73lqkSo3NDsnihU/GRmC46qc0F27lmmCt2EZoAllmBqXq3JBE7SFJX7ao3BJlQPS46zXBN/CNkAYv4+4WKmSjjB0+JvhcVQIH5nQhB/8mQAdKslkXazys+PTDPS6p37l5HnmWBi7fcwFY+YaKol4bW2LhXDAj4iRnuq1M883v/naLhMOmGuppKEJm/0NffiYNwfDR5+rQrNKEqPdVSuEcMTns/8lXx7N+NXnXPB+qLdulUoKQnjV/3KGY16fUzEzx4sX25cW2DFeUUkg04MbheBnIUta9kHtmlxzQGHLIvzKPqzdouJGCNKFFY6eTjubZuXhms2F5jErRzyq/yNpTAUo2svV4WlO7QySSzPsU3Hg9TkVwjAYpGhx8fDMfFk3dSxQLobBXHNK5GiClmAFj9+1zln5GO8FzkfQUlrxj/euNq+sghY8+fwK42mdhpN+doFzBsEnU1PJDBDGG0WKDz8IrpdEfCaNW/283vbx7D4RxsumddaEvcXmMzWZ2iI3QCYKL7bYC7PyunAxDFOjFe9CQ9HiGb/mama8rmNL/G+F5wgXGiIzQDM+Ld6A/M1QCBOrGV29kYgfcbGykL36XJFJw4HZ5qYOhZHb1DhMdRtCN0AotT+MAseD8IcwXMtSqsl8NjPHhfYTc5rgOvWhG6DJORWaARGH2VuEbkCWUk1xC4t1IpRg3VosYVp0FQWa8Xnihz9Bv4oKYedo3ALnDYIjkRlgEIY7sYvMH7dVSb77MXQm787jXVObKhXi4hkhGIpfOLwxbbWK7WMIO5BhPKsJ282b2hJF+8Q1wUnkRxKLxWKxWCwWi8Wiks4/S+qQp9eHxIoAAAAASUVORK5CYII=" style="height:25px;">';
+        $ERROR_BASE64 = '<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAACXBIWXMAAAsTAAALEwEAmpwYAAADHUlEQVR4nO2ZPWgUURDHnxoLBSMosRJTRG1SCWIRRYONSgx+Bm1DNBDChZ3ZxMu9WVwbQdNqpWIXJGARbQRjYxEsUikpFQRBRBMLI36g5i97l3jCfWR3b/d273g/mO7e3Pz/b2/uzT6lDAaDwWAwGAwGg6FOQPgQhDWE7haCNXLWQdXsQOxuaH4FYZQPegmxD6tmBJosaPpVWfxKeJ/RNKKaCTh8EsLLa4ovxjIcPq2aAbj2Dgh9DiB+5UngRW+tanRQaHLBxBdNuKMaGTi8D8K/wxtAf6Ct/apRgabnocUXTZiFUutUo4EcXaxZfDEuqEYCRJug6W1kBmh6B3dws2oUoNmNcPdXD0lXVSMA98pOCH2N3gD+BrHbVdqB8KTPx/oTND/Jh/BHnyZMqjQD4S6fJ77HcDOt/9a5mVYIT/tY5+XuUmkErrsewnO+ROQybSXrc5k2n+bNed+l0gaE+n0+xguVc/CCz4bYr9IExsa2QPi9z+K/VMyjecmniR+QzW5VaQGabgbo5stw3ZaSHIODGwNOjDdUGoCMdkD4R6C/tPHh7RV6gP8cmn5inPcmo/o/oOlRoMLzBtDukjzO2J7AeYSnVZJA7KMhika5CQ+aDoTLxceSEe+6LdA8H6poxz5bkk+4L6QB8+V6SvwGCA+HKrgQU2XyPawh33B9xbu0Lf/KKnzB+d8vhC5DaMDnKbDaU7Do1VQ/AzTdrlF8HHGrPuIdq9PX6+01g55C6Fp+dNY8U3M+rybH6ozfAPEKr3m3RkvyaspGYWq84rXdU/tO8VK5YQZ9fRsCHIWr5Ld74jNA6FkEu195GKq9sXoGz8Qk3m4PeFavUqR1qlQ8nYkkt1djdmRX9AZo+0REBXoN6zuEJ6Ct3pVrs4nA80TVoOMxGMCXoisw7qCBGAywepMXlmAjRLhpLaEY7YjcAA8Iv0j/7tOsigs49vkGMOBcbAZ4QPP99Irne6ou937CU4mLLY0HXm2xG7AKtD0I4TeJC9f02hurVXKXIXY3hIeg6br3prYuUfiuIeToSCovSQwGg8FgMBgMBoNKO38BiP/u0tQ90GMAAAAASUVORK5CYII=" style="height:25px;">';
+        $API_TREE_BASE64 = '<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAACXBIWXMAAAsTAAALEwEAmpwYAAABXklEQVR4nO3asUrDUBTG8UxuOvga9mVEfBTrPSAE3FxUlL6N9X6DFHcrOOsbqKPySelyW6SmwWh6zveHjLec/NIkw01VKaWUUhuTgWxzVF4yAVAAJgD6ArDMQcq8NHBq4PuqwV0B1FNuWeYoZX42HdwNQD0/+fG6g7sBsMxRm8FdAFjmwMCPcsCU+Xx8y4OjO26vXOsBIM0feAsnX0+422StF4DHcrjZlW+61gWAZb6Ww/30t/cHgPbDhQdwkQmA/QewDu81AUAA7P1bwARAAZgAKAD7/2MYGyDzJDYAeBoaIGWebRRA1eK3+zLXQgKAACgACIB9A/izLDpAlwkAAqAA0PO3QJeF3xpLy5uj4H4oAAMvyuES+BRqe3w45t7yBxIGviTwsL7njnuAWQZetxne1UdSCbwJC1AgXH1zO8QAKJ8JCTxP4EMC38IBrJMAIAAKAAJgWACllFLV7/UFRqMuZVg/Fm0AAAAASUVORK5CYII=" style="height:25px;">';
+        $CONFIG_BASE64 = '<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAYAAAA7MK6iAAAACXBIWXMAAAsTAAALEwEAmpwYAAABTklEQVR4nO2WsUoDQRCGDwQFfRTfIFiI+Ao+gNiaKuDNYJF0amlhIQTEQgTbgGAhM1dYBCwsfANJFEQQGyv9Ze4ucmzuTGL2rrofBo6Z3f12do+dCYJatcpW+xGLJDgiwZAV8GqCAQsOjTEGtoB3oGOkOMgDDyy4H6Hh+zRDwdoo83Fwuivf0Inrcw32LK7BVYFDwToLTisHF8onuHmNJVa0WPFAik9SvJBgs1Rw6wYrJLhz3upO4QRfYBacTA31Cla8/hYFwUXemDDCRhkZx8UmtV5OvGOlNwt+tsFWSeYEH2cyHrpQTvxvc9djEnyRYHv0Y7EgcuLWWPRIcZnx9d2j8Qr9Y97u/zsPwTdH2JkZqtCtKyzEvVYMnzFzEnQnQs2f3PmTPSL23b7HcuBDJDgvgtqmgrLEgo/KoUGScb9yqGnvFqsp/J0UZ9NCfwBksk4l0OsZrwAAAABJRU5ErkJggg==" style="height:25px;">';
+        $ROUTE_BASE64 = "<img src=\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAACXBIWXMAAAsTAAALEwEAmpwYAAACs0lEQVR4nO2av2sUQRTHR2wUIdcZFH+A2Fjqn6BRWwv9B2y0lcHszKU4SwsFCxGxtIzGHHZySd4s0RDsJCcKlilFjEas1K/M4shxbszt7Ozt3M584DV3x7z9fndn9ua9YSwSiUQikUikBpIeWjpYSLRXcFEQFoTCtlRAFoSvUuGpVDjPmkrSQ0sQnv8VvXN0O+uYYk1CLmFaKGyMID6L7LdLmGZNgL/CwSLiB0x4305xiIUoXjbBBF5S/ESbwB2Jn0gTuGPxE2UCr0j8RJjAKxbvtQl8TOK9NIGPWbxXJvCaxHthAq9ZfK0mcE/E12KC1BsbwluHAn60U5xJFE4LwhtrE/Q1Vb2Bku7F69g043cI+wThvpcmJD20pEK/gkd48x+jCZcE4ZPldNiopJ4gRitm7BYfpMJjQbgjCbd1CILMyzeX4qgkpJZ5um7Fp7hQRrhQeJekOFs075V57JWEW3qdsJgOM+4MICxYG0B4XbbwqWuFkvCroOlPXBrwxdKAb7OEI2Xz8xc4IAnfCxrw2eXiB6tHn3CvbP65ZRyXhDWb/E4Ww6SEAXIF5/LGvPkSh8UqTuhIVnFsp9yScFnfSdv8znoOwnIKCMLJnLGu7/YavLGG/YLw0Np4l1NA86dpUfgi8ua/JNz9nwGzCqfK/CMciHnmCkGYqdCALf26y75Lca3oYld0+tmboLDoZAooPMh5XJVUICfCdRCeMdd01jFVdAeYKFwdHEPf6THsIvuVtdZk8c3QR90MZcCerDeo8KhK8d7uCIXCtiD8nHjxhqALIr6ZEHRdUIRcGRY+iDcE3RgxBN0aMwTdHDUE3R43BH1AwhD0ERlD0IekDEEfkzPoTUrBrlK/MQclh4qr3RHu/GLjjsoONzl002Ko0LqlP3NexvKdJMTj8pFIJBKJRJgv/AbJ5iExuMEOugAAAABJRU5ErkJggg==\" style=\"height:25px;\">";
         $OOP_BASE64 = "<img src=\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAAA8CAYAAAA6/NlyAAAACXBIWXMAAAsTAAALEwEAmpwYAAACzklEQVR4nO2Zz3LTMBDG9RiUP8fSdwE6fRlKtElOMMzwKi0FLky5JJHSwtsUBgKXnj5mEzm1N7YS/6tVxd+MDnU/O/uzbGl3rZRSajTHM7K4IIMFWSCqYbDQFl/GUxypBFYb/Ow8sPbBfzGrWs6sBbTF1+EET1RkemPwVBtcOvBzlTzG/A8VqUarVxba4I9Kpjz5pzb44Y5dlz3WhVJx5I3rxLfmlMBscnfjquyxLpTEkTd0Nt584FhFew9MezLU3gKryEU9cOSiHjhyUQ8cuagH9kh0RDqtjjYqJdnRqAs8Eh2Rrqujwkop6WjUBabAOyIbHY3awCb8jkimo9HADOMhLGo7c1APnFUPnNJghhNtYcninxtmaHGc9lTxFzTmvNdvHZgMPhQV2drgfR3/tiI+9/ptAg9mOHE/fEsG+vQ7Hg/nONAWg+UxCwxneFnVn/ebfE6Rv3VgvXoseW8eSD8fc4nAtKrfF1Oe/z6A/y7v8hwH0v/a4JELaFHV74spz986MJU8p21/qXPIY0wyGLL4XeniLfj5Xc7LqvhvX0ZI24Ad7Df37n0MBZgXPRfTRAB/cjfiMg+afMDpfZArpbHFYdfAcpXWFi8yMV/hufjOnSljvcDpsqtLYM94K68hgWUZS9seaVF2XXQOvCr0J3Jm1+cYfPaVsfRQF60i1V60GtkCWvLvco1GgbVLJHghkX5+nOS2UdYfHDBZmKJUMdk2RKpY1h8W8NDi2M3KLUPwzPmS+7L+4IBZXKIVbRva4p2q4Q8SmKUNXmmDGb+jy/fUYCrLtip+zgPKtoPvBTgk9cBC1ANH0IiXGWElYP5Q5Su7ulamjDU4qw08nuKIP1SltpGwvh7exXXjmxDaFTh1F885/Qvt66GL6Wzb00dlgGMQ9cCRi3rgyEX7C2zCz6QazcR04JlU45nYeDOTinXcrCc0nUkFEFijQ2Zi/wEwSFQGAW+qkwAAAABJRU5ErkJggg==\" style=\"height:25px;\">";
         $PATH_BASE64 = "<img src=\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAACXBIWXMAAAsTAAALEwEAmpwYAAABKElEQVR4nO2aPU4DMRCFpwKJy1BRkJyBgoNQx48Uqfir6DgKHZlJT4UoOEBCroBoHjLaFIgFHIjkcZhPetVO4W89bjwWCYKgiMkjd5LyKimfYeRPyXUj47F4A8rLEoEPUb4m44F4AspFXtx4xkFRvfH6fWeMT5N77okX0P3l0vqTW+5C+dDJ3EirIpnRHfdhfFm7Jf8a5SIZL/K5lk2IZE6NR6u2rJDzjYnUAFMOVzvTtMi36906ERiXlfp9nSxLRJqKfCWSjIfinPGMg/9zRqQRECLOQIg4AyHiDISIMxAizkCIOAMh4gyEiDMQIs5AiDgDIeIMhIgzsP0i2k2dphxKI4OeZJx/+phncr+9Ea+VpDzrfzCQZerNA8sFjPMs0TsMDYJA+ngDFYpM7MYn2H0AAAAASUVORK5CYII=\" style=\"height:25px;\">";
         // Get the `` highlighted version instead
@@ -7656,6 +7661,14 @@ class C
                     border-left-color: #d29922;
                 }
 
+                .issue-card-warn {
+                    border-left-color: #d29922;
+                }
+
+                .warn-color {
+                    color: #d29922;
+                }
+
                 .issue-type {
                     font-size: 0.75rem;
                     font-weight: 700;
@@ -7742,10 +7755,10 @@ class C
                     </div>
                 </div>
                 <?php if (!empty($this->debug['ALWAYS_SHOW'])): ?>
-                    <div class="alert-warning">
-                        <span class="alert-icon">⚠️</span>
-                        <div class="alert-content">
-                            <span><code>->CONFIG()->setDebug()</code> 2nd argument is <code>TRUE</code> (always show). Set it to <code>FALSE</code> to Allow Compiled Execution.</span>
+                    <div class="alert-warning" style="display:flex; align-items:center; align-content:center; gap:0.5rem;">
+                        <span class="alert-icon"><?= $WARNING_BASE64; ?></span>
+                        <div class="alert-content" style="width:100%; display:inline-block; padding-bottom:0.2rem;">
+                            <code>->CONFIG()->setDebug()</code> 2nd argument is <code>TRUE</code> (always show). Set it to <code>FALSE</code> to Allow Compiled Execution.
                         </div>
                     </div>
                 <?php endif; ?>
@@ -7825,12 +7838,12 @@ class C
                                 if ($tab === 'CONFIG') {
                                     $CONFIG_ERRS = $internalErrors['CONFIG'] ?? [];
                                 ?> <div class="tab-group">
-                                        <div class="tab-header">GLOBAL CONFIG | $APP->CONFIG() in /src/funkphp/app/CONFIG.php</div>
+                                        <div class="tab-header" style="display:flex; align-items:center; align-content:center; gap:0.5rem;"><?= $CONFIG_BASE64; ?> GLOBAL CONFIG | $APP->CONFIG() <?= $PATH_BASE64; ?> /src/funkphp/app/CONFIG.php</div>
                                         <?php foreach ($CONFIG_ERRS as $idx => $C_ERR) {
                                         ?>
                                             <div class="issue-card">
                                                 <div class="issue-type-with-button">
-                                                    <div class="issue-type">ERROR #<?= $idx ?>: <?= $formatMsg($C_ERR['errShort'] ?? '<Error Title Missing>') ?>
+                                                    <div class="issue-type" style="display:flex; align-items:center; align-content:center; gap:0.5rem;"><?= $ERROR_BASE64; ?> ERROR #<?= $idx ?>: <?= $formatMsg($C_ERR['errShort'] ?? '<Error Title Missing>') ?>
                                                     </div>
                                                     <button type="button" class="view-details-btn">
                                                         Details <span class="chevron">▶</span>
@@ -7879,7 +7892,7 @@ class C
                                                     <?php foreach ($F_ERR as $idx => $F_ERR2) { ?>
                                                         <div class="issue-card">
                                                             <div class="issue-type-with-button">
-                                                                <div class="issue-type">ERROR #<?= $idx ?>: <?= $formatMsg($F_ERR2['errShort'] ?? '<Error Title Missing>') ?>
+                                                                <div class="issue-type" style="display:flex; align-items:center; align-content:center; gap:0.5rem;"><?= $ERROR_BASE64; ?> ERROR #<?= $idx ?>: <?= $formatMsg($F_ERR2['errShort'] ?? '<Error Title Missing>') ?>
                                                                 </div>
                                                                 <button type="button" class="view-details-btn">
                                                                     Details <span class="chevron">▶</span>
@@ -7900,7 +7913,7 @@ class C
                                                     <?php foreach ($C_ERR as $idx => $C_ERR2) { ?>
                                                         <div class="issue-card">
                                                             <div class="issue-type-with-button">
-                                                                <div class="issue-type">ERROR #<?= $idx ?>: <?= $formatMsg($C_ERR2['errShort'] ?? '<Error Title Missing>') ?>
+                                                                <div class="issue-type" style="display:flex; align-items:center; align-content:center; gap:0.5rem;"><?= $ERROR_BASE64; ?> ERROR #<?= $idx ?>: <?= $formatMsg($C_ERR2['errShort'] ?? '<Error Title Missing>') ?>
                                                                 </div>
                                                                 <button type="button" class="view-details-btn">
                                                                     Details <span class="chevron">▶</span>
@@ -7922,8 +7935,7 @@ class C
                                                         <?php foreach ($errors as $idx => $errData) { ?>
                                                             <div class="issue-card">
                                                                 <div class="issue-type-with-button">
-                                                                    <div class="issue-type">
-                                                                        ERROR #<?= $idx ?>: <?= $formatMsg($errData['errShort'] ?? '<Error Title Missing>') ?>
+                                                                    <div class="issue-type" style="display:flex; align-items:center; align-content:center; gap:0.5rem;"><?= $ERROR_BASE64; ?> ERROR #<?= $idx ?>: <?= $formatMsg($errData['errShort'] ?? '<Error Title Missing>') ?>
                                                                     </div>
                                                                     <button type="button" class="view-details-btn">
                                                                         Details <span class="chevron">▶</span>
@@ -7948,8 +7960,7 @@ class C
                                                         <?php foreach ($errors as $idx => $errData) { ?>
                                                             <div class="issue-card">
                                                                 <div class="issue-type-with-button">
-                                                                    <div class="issue-type">
-                                                                        ERROR #<?= $idx ?>: <?= $formatMsg($errData['errShort'] ?? '<Error Title Missing>') ?>
+                                                                    <div class="issue-type" style="display:flex; align-items:center; align-content:center; gap:0.5rem;"><?= $ERROR_BASE64; ?> ERROR #<?= $idx ?>: <?= $formatMsg($errData['errShort'] ?? '<Error Title Missing>') ?>
                                                                     </div>
                                                                     <button type="button" class="view-details-btn">
                                                                         Details <span class="chevron">▶</span>
@@ -7974,8 +7985,7 @@ class C
                                                         <?php foreach ($errors as $idx => $errData) { ?>
                                                             <div class="issue-card">
                                                                 <div class="issue-type-with-button">
-                                                                    <div class="issue-type">
-                                                                        ERROR #<?= $idx ?>: <?= $formatMsg($errData['errShort'] ?? '<Error Title Missing>') ?>
+                                                                    <div class="issue-type" style="display:flex; align-items:center; align-content:center; gap:0.5rem;"><?= $ERROR_BASE64; ?> ERROR #<?= $idx ?>: <?= $formatMsg($errData['errShort'] ?? '<Error Title Missing>') ?>
                                                                     </div>
                                                                     <button type="button" class="view-details-btn">
                                                                         Details <span class="chevron">▶</span>
@@ -8000,8 +8010,7 @@ class C
                                                         <?php foreach ($errors as $idx => $errData) { ?>
                                                             <div class="issue-card">
                                                                 <div class="issue-type-with-button">
-                                                                    <div class="issue-type">
-                                                                        ERROR #<?= $idx ?>: <?= $formatMsg($errData['errShort'] ?? '<Error Title Missing>') ?>
+                                                                    <div class="issue-type" style="display:flex; align-items:center; align-content:center; gap:0.5rem;"><?= $ERROR_BASE64; ?> ERROR #<?= $idx ?>: <?= $formatMsg($errData['errShort'] ?? '<Error Title Missing>') ?>
                                                                     </div>
                                                                     <button type="button" class="view-details-btn">
                                                                         Details <span class="chevron">▶</span>
@@ -8051,7 +8060,7 @@ class C
                                     $currentDepth = 0;
                                 ?>
                                     <div class="tab-group">
-                                        <div class="tab-header">FunkPHP Fluent API Tree (all files in /src/funkphp/app)</div>
+                                        <div class="tab-header" style="display:flex; align-items:center; align-content:center; gap:0.5rem;"><?= $API_TREE_BASE64; ?>FunkPHP Fluent API (all files <?= $PATH_BASE64; ?> /src/funkphp/app)</div>
                                         <div class="api-card api-card-consolidated">
                                             <?php foreach ($API_TREE as $idx => $apiStr):
                                                 $trimmed = trim($apiStr);
@@ -8091,7 +8100,7 @@ class C
                                             ?>
                                                 <div class="issue-card">
                                                     <div class="issue-type-with-button">
-                                                        <div class="issue-type">ERROR #<?= $idx ?>: <?= $formatMsg($COMP_ERR['errShort'] ?? '<Error Title Missing>') ?>
+                                                        <div class="issue-type" style="display:flex; align-items:center; align-content:center; gap:0.5rem;"><?= $ERROR_BASE64; ?> ERROR #<?= $idx ?>: <?= $formatMsg($COMP_ERR['errShort'] ?? '<Error Title Missing>') ?>
                                                         </div>
                                                         <button type="button" class="view-details-btn">
                                                             Details <span class="chevron">▶</span>
@@ -8108,9 +8117,9 @@ class C
                                             <div class="tab-header">FunkPHP Compilation Warnings (happens only if Zero Errors otherwise in all files in /src/funkphp/app)</div>
                                             <?php foreach ($COMPILE_WARNS as $idx2 => $COMP_WARN) {
                                             ?>
-                                                <div class="issue-card">
+                                                <div class="issue-card issue-card-warn">
                                                     <div class="issue-type-with-button">
-                                                        <div class="issue-type">WARNING #<?= $idx2 ?>: <?= $formatMsg($COMP_WARN['warnShort'] ?? '<Warning Title Missing>') ?>
+                                                        <div class="issue-type" style="display:flex; align-items:center; align-content:center; gap:0.5rem; color:#e3b341;"><?= $WARNING_BASE64; ?> WARNING #<?= $idx2 ?>: <?= $formatMsg($COMP_WARN['warnShort'] ?? '<Warning Title Missing>') ?>
                                                         </div>
                                                         <button type="button" class="view-details-btn">
                                                             Details <span class="chevron">▶</span>
@@ -8130,12 +8139,13 @@ class C
                                     $R_ROUTES_ERRS = $internalErrors['METHODS'][$tab]['ROUTES'] ?? [];
                                     ?><?php if (count($R_CONFIG_ERRS) > 0) {  ?>
                                     <div class="tab-group">
-                                        <div class="tab-header"><?= $tab ?> CONFIG | $APP->ROUTES()-><?= $tab ?>() in /src/funkphp/app/<?= $tab ?>.php</div>
+                                        <div class="tab-header" style="display:flex; align-items:center; align-content:center; gap:0.5rem;">
+                                            <?= $CONFIG_BASE64; ?> <?= $tab ?> CONFIG | $APP->ROUTES()-><?= $tab ?>() <?= $PATH_BASE64; ?> /src/funkphp/app/<?= $tab ?>.php</div>
                                         <?php foreach ($R_CONFIG_ERRS as $idx => $RC_ERR) {
                                         ?>
-                                            <div class="issue-card">
+                                            <div class=" issue-card">
                                                 <div class="issue-type-with-button">
-                                                    <div class="issue-type">ERROR #<?= $idx ?>: <?= $formatMsg($RC_ERR['errShort'] ?? '<Error Title Missing>') ?>
+                                                    <div class="issue-type" style="display:flex; align-items:center; align-content:center; gap:0.5rem;"><?= $ERROR_BASE64; ?> ERROR #<?= $idx ?>: <?= $formatMsg($RC_ERR['errShort'] ?? '<Error Title Missing>') ?>
                                                     </div>
                                                     <button type="button" class="view-details-btn">
                                                         Details <span class="chevron">▶</span>
@@ -8150,11 +8160,11 @@ class C
                                 <div class="tab-group">
                                     <?php foreach ($R_ROUTES_ERRS as $singleMethodRoute => $singleMethodRouteDetails) {
                                     ?>
-                                        <div class="tab-header">'<?= "$tab$singleMethodRoute"; ?>' | $APP->ROUTES()-><?= $tab ?>()->ROUTE('<?= $singleMethodRoute; ?>') in /src/funkphp/app/<?= $tab ?>.php</div>
+                                        <div class="tab-header" style="display:flex; align-items:center; align-content:center; gap:0.5rem;"><?= $ROUTE_BASE64; ?><?= "$tab$singleMethodRoute"; ?> | $APP->ROUTES()-><?= $tab ?>()->ROUTE('<?= $singleMethodRoute; ?>') <?= $PATH_BASE64; ?> /src/funkphp/app/<?= $tab ?>.php</div>
                                         <?php foreach ($singleMethodRouteDetails as $rErrIdx => $rErr) {
                                         ?> <div class="issue-card">
                                                 <div class="issue-type-with-button">
-                                                    <div class="issue-type">ERROR #<?= $rErrIdx ?>: <?= $formatMsg($rErr['errShort'] ?? '<Error Title Missing>') ?>
+                                                    <div class="issue-type" style="display:flex; align-items:center; align-content:center; gap:0.5rem;"><?= $ERROR_BASE64; ?> ERROR #<?= $rErrIdx ?>: <?= $formatMsg($rErr['errShort'] ?? '<Error Title Missing>') ?>
                                                     </div>
                                                     <button type="button" class="view-details-btn">
                                                         Details <span class="chevron">▶</span>

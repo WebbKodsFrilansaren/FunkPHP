@@ -3,5 +3,4 @@
 
 /** @var FunkPHP $APP */
 $APP->ROUTES()->GET()
-    ->route("/test2")
-    ->pipeFunction("test.tset");
+    ->route("/test2");
