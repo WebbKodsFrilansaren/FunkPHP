@@ -4138,7 +4138,7 @@ class C
         $file =  strtolower(trim($file));
         $err =  trim($err);
         $errShort =  trim($errShort);
-        $this->errors['ERRORS']++;
+        //s$this->errors['ERRORS']++;
         if (!isset($this->errors['FILES'][$fileType])) {
             $this->errors['FILES'][$fileType] = [];
         }
@@ -7313,6 +7313,10 @@ class C
         $PHTML_IMG_SRC = file_exists($imgDiskPath) ? "{$baseUrl}/images/favicon.ico" : "";
         $PHTML_FONT_SRC = file_exists($fontDiskPath) ? "{$baseUrl}/fonts/Fredoka-Bold.ttf" : "";
         $PHTML_FONT2_SRC = file_exists($fontLightDiskPath) ? "{$baseUrl}/fonts/Fredoka-Regular.ttf" : "";
+
+        // Base64 Images
+        $OOP_BASE64 = "<img src=\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAAA8CAYAAAA6/NlyAAAACXBIWXMAAAsTAAALEwEAmpwYAAACzklEQVR4nO2Zz3LTMBDG9RiUP8fSdwE6fRlKtElOMMzwKi0FLky5JJHSwtsUBgKXnj5mEzm1N7YS/6tVxd+MDnU/O/uzbGl3rZRSajTHM7K4IIMFWSCqYbDQFl/GUxypBFYb/Ow8sPbBfzGrWs6sBbTF1+EET1RkemPwVBtcOvBzlTzG/A8VqUarVxba4I9Kpjz5pzb44Y5dlz3WhVJx5I3rxLfmlMBscnfjquyxLpTEkTd0Nt584FhFew9MezLU3gKryEU9cOSiHjhyUQ8cuagH9kh0RDqtjjYqJdnRqAs8Eh2Rrqujwkop6WjUBabAOyIbHY3awCb8jkimo9HADOMhLGo7c1APnFUPnNJghhNtYcninxtmaHGc9lTxFzTmvNdvHZgMPhQV2drgfR3/tiI+9/ptAg9mOHE/fEsG+vQ7Hg/nONAWg+UxCwxneFnVn/ebfE6Rv3VgvXoseW8eSD8fc4nAtKrfF1Oe/z6A/y7v8hwH0v/a4JELaFHV74spz986MJU8p21/qXPIY0wyGLL4XeniLfj5Xc7LqvhvX0ZI24Ad7Df37n0MBZgXPRfTRAB/cjfiMg+afMDpfZArpbHFYdfAcpXWFi8yMV/hufjOnSljvcDpsqtLYM94K68hgWUZS9seaVF2XXQOvCr0J3Jm1+cYfPaVsfRQF60i1V60GtkCWvLvco1GgbVLJHghkX5+nOS2UdYfHDBZmKJUMdk2RKpY1h8W8NDi2M3KLUPwzPmS+7L+4IBZXKIVbRva4p2q4Q8SmKUNXmmDGb+jy/fUYCrLtip+zgPKtoPvBTgk9cBC1ANH0IiXGWElYP5Q5Su7ulamjDU4qw08nuKIP1SltpGwvh7exXXjmxDaFTh1F885/Qvt66GL6Wzb00dlgGMQ9cCRi3rgyEX7C2zCz6QazcR04JlU45nYeDOTinXcrCc0nUkFEFijQ2Zi/wEwSFQGAW+qkwAAAABJRU5ErkJggg==\" style=\"height:25px;\">";
+        $PATH_BASE64 = "<img src=\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAACXBIWXMAAAsTAAALEwEAmpwYAAABKElEQVR4nO2aPU4DMRCFpwKJy1BRkJyBgoNQx48Uqfir6DgKHZlJT4UoOEBCroBoHjLaFIgFHIjkcZhPetVO4W89bjwWCYKgiMkjd5LyKimfYeRPyXUj47F4A8rLEoEPUb4m44F4AspFXtx4xkFRvfH6fWeMT5N77okX0P3l0vqTW+5C+dDJ3EirIpnRHfdhfFm7Jf8a5SIZL/K5lk2IZE6NR6u2rJDzjYnUAFMOVzvTtMi36906ERiXlfp9nSxLRJqKfCWSjIfinPGMg/9zRqQRECLOQIg4AyHiDISIMxAizkCIOAMh4gyEiDMQIs5AiDgDIeIMhIgzsP0i2k2dphxKI4OeZJx/+phncr+9Ea+VpDzrfzCQZerNA8sFjPMs0TsMDYJA+ngDFYpM7MYn2H0AAAAASUVORK5CYII=\" style=\"height:25px;\">";
         // Get the `` highlighted version instead
         $formatMsg = function ($msg) {
             if (!is_string($msg)) {
@@ -7365,7 +7369,8 @@ class C
                 }
             }
         }
-        $totalErrors = 0;
+        // FILES errors are also in other Tabs so remove them after adding their count to tab
+        $totalErrors = 0 - $bucketed['FILES']['errors'];
         $totalWarnings =  $bucketed['COMPILATION']['warnings'] ?? 0;
         foreach ($tabs as $t) {
             if (isset($bucketed[$t]['errors'])) {
@@ -7870,7 +7875,7 @@ class C
                                             <?php // SHOW for "User Defined Functions"
                                             if ($fileType === 'user-functions') {
                                                 foreach ($singleFile['functions.php'] as $fName => $F_ERR) {
-                                            ?><div class="tab-header" style="margin-top:0.8rem; display:flex; align-items:center; align-content:center; gap:0.5rem;">&fnof; <?= $fName; ?> | <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAACXBIWXMAAAsTAAALEwEAmpwYAAABKElEQVR4nO2aPU4DMRCFpwKJy1BRkJyBgoNQx48Uqfir6DgKHZlJT4UoOEBCroBoHjLaFIgFHIjkcZhPetVO4W89bjwWCYKgiMkjd5LyKimfYeRPyXUj47F4A8rLEoEPUb4m44F4AspFXtx4xkFRvfH6fWeMT5N77okX0P3l0vqTW+5C+dDJ3EirIpnRHfdhfFm7Jf8a5SIZL/K5lk2IZE6NR6u2rJDzjYnUAFMOVzvTtMi36906ERiXlfp9nSxLRJqKfCWSjIfinPGMg/9zRqQRECLOQIg4AyHiDISIMxAizkCIOAMh4gyEiDMQIs5AiDgDIeIMhIgzsP0i2k2dphxKI4OeZJx/+phncr+9Ea+VpDzrfzCQZerNA8sFjPMs0TsMDYJA+ngDFYpM7MYn2H0AAAAASUVORK5CYII=" style="height:25px;"> /src/funkphp/config/functions.php</div>
+                                            ?><div class="tab-header" style="margin-top:0.8rem; display:flex; align-items:center; align-content:center; gap:0.5rem;">&fnof; <?= $fName; ?> | <?= $PATH_BASE64; ?> /src/funkphp/config/functions.php</div>
                                                     <?php foreach ($F_ERR as $idx => $F_ERR2) { ?>
                                                         <div class="issue-card">
                                                             <div class="issue-type-with-button">
@@ -7891,7 +7896,7 @@ class C
                                                             if (count($C_ERR) > 0) {
                                                                 $cName = $C_ERR[1]['exact_name'] ?? "<Failed to Retrieve Class Name>";
                                                             }
-                                                                ?><div class="tab-header" style="margin-top:0.8rem; display:flex; align-items:center; align-content:center; gap:0.5rem;"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAAA8CAYAAAA6/NlyAAAACXBIWXMAAAsTAAALEwEAmpwYAAACzklEQVR4nO2Zz3LTMBDG9RiUP8fSdwE6fRlKtElOMMzwKi0FLky5JJHSwtsUBgKXnj5mEzm1N7YS/6tVxd+MDnU/O/uzbGl3rZRSajTHM7K4IIMFWSCqYbDQFl/GUxypBFYb/Ow8sPbBfzGrWs6sBbTF1+EET1RkemPwVBtcOvBzlTzG/A8VqUarVxba4I9Kpjz5pzb44Y5dlz3WhVJx5I3rxLfmlMBscnfjquyxLpTEkTd0Nt584FhFew9MezLU3gKryEU9cOSiHjhyUQ8cuagH9kh0RDqtjjYqJdnRqAs8Eh2Rrqujwkop6WjUBabAOyIbHY3awCb8jkimo9HADOMhLGo7c1APnFUPnNJghhNtYcninxtmaHGc9lTxFzTmvNdvHZgMPhQV2drgfR3/tiI+9/ptAg9mOHE/fEsG+vQ7Hg/nONAWg+UxCwxneFnVn/ebfE6Rv3VgvXoseW8eSD8fc4nAtKrfF1Oe/z6A/y7v8hwH0v/a4JELaFHV74spz986MJU8p21/qXPIY0wyGLL4XeniLfj5Xc7LqvhvX0ZI24Ad7Df37n0MBZgXPRfTRAB/cjfiMg+afMDpfZArpbHFYdfAcpXWFi8yMV/hufjOnSljvcDpsqtLYM94K68hgWUZS9seaVF2XXQOvCr0J3Jm1+cYfPaVsfRQF60i1V60GtkCWvLvco1GgbVLJHghkX5+nOS2UdYfHDBZmKJUMdk2RKpY1h8W8NDi2M3KLUPwzPmS+7L+4IBZXKIVbRva4p2q4Q8SmKUNXmmDGb+jy/fUYCrLtip+zgPKtoPvBTgk9cBC1ANH0IiXGWElYP5Q5Su7ulamjDU4qw08nuKIP1SltpGwvh7exXXjmxDaFTh1F885/Qvt66GL6Wzb00dlgGMQ9cCRi3rgyEX7C2zCz6QazcR04JlU45nYeDOTinXcrCc0nUkFEFijQ2Zi/wEwSFQGAW+qkwAAAABJRU5ErkJggg==" style="height:25px;"> <?= $formatMsg($cName); ?> | <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAACXBIWXMAAAsTAAALEwEAmpwYAAABKElEQVR4nO2aPU4DMRCFpwKJy1BRkJyBgoNQx48Uqfir6DgKHZlJT4UoOEBCroBoHjLaFIgFHIjkcZhPetVO4W89bjwWCYKgiMkjd5LyKimfYeRPyXUj47F4A8rLEoEPUb4m44F4AspFXtx4xkFRvfH6fWeMT5N77okX0P3l0vqTW+5C+dDJ3EirIpnRHfdhfFm7Jf8a5SIZL/K5lk2IZE6NR6u2rJDzjYnUAFMOVzvTtMi36906ERiXlfp9nSxLRJqKfCWSjIfinPGMg/9zRqQRECLOQIg4AyHiDISIMxAizkCIOAMh4gyEiDMQIs5AiDgDIeIMhIgzsP0i2k2dphxKI4OeZJx/+phncr+9Ea+VpDzrfzCQZerNA8sFjPMs0TsMDYJA+ngDFYpM7MYn2H0AAAAASUVORK5CYII=" style="height:25px;"> /src/funkphp/config/classes.php</div>
+                                                                ?><div class="tab-header" style="margin-top:0.8rem; display:flex; align-items:center; align-content:center; gap:0.5rem;"><?= $OOP_BASE64; ?> <?= $formatMsg($cName); ?> | <?= $PATH_BASE64; ?> /src/funkphp/config/classes.php</div>
                                                     <?php foreach ($C_ERR as $idx => $C_ERR2) { ?>
                                                         <div class="issue-card">
                                                             <div class="issue-type-with-button">
@@ -7912,7 +7917,7 @@ class C
                                                             foreach ($functions as $fnName => $errors) {
                                                                 ?>
                                                         <div class="tab-header" style="margin-top:0.8rem; display:flex; align-items:center; align-content:center; gap:0.5rem;">
-                                                            &fnof; <?= $fnName; ?> | <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAACXBIWXMAAAsTAAALEwEAmpwYAAABKElEQVR4nO2aPU4DMRCFpwKJy1BRkJyBgoNQx48Uqfir6DgKHZlJT4UoOEBCroBoHjLaFIgFHIjkcZhPetVO4W89bjwWCYKgiMkjd5LyKimfYeRPyXUj47F4A8rLEoEPUb4m44F4AspFXtx4xkFRvfH6fWeMT5N77okX0P3l0vqTW+5C+dDJ3EirIpnRHfdhfFm7Jf8a5SIZL/K5lk2IZE6NR6u2rJDzjYnUAFMOVzvTtMi36906ERiXlfp9nSxLRJqKfCWSjIfinPGMg/9zRqQRECLOQIg4AyHiDISIMxAizkCIOAMh4gyEiDMQIs5AiDgDIeIMhIgzsP0i2k2dphxKI4OeZJx/+phncr+9Ea+VpDzrfzCQZerNA8sFjPMs0TsMDYJA+ngDFYpM7MYn2H0AAAAASUVORK5CYII=" style="height:25px;"> /src/funkphp/pipes/request/<?= $fileName; ?>
+                                                            &fnof; <?= $fnName; ?> | <?= $PATH_BASE64; ?> /src/funkphp/pipes/request/<?= $fileName; ?>
                                                         </div>
                                                         <?php foreach ($errors as $idx => $errData) { ?>
                                                             <div class="issue-card">
@@ -7938,7 +7943,7 @@ class C
                                                             foreach ($functions as $fnName => $errors) {
                                                         ?>
                                                         <div class="tab-header" style="margin-top:0.8rem; display:flex; align-items:center; align-content:center; gap:0.5rem;">
-                                                            &fnof; <?= $fnName; ?> | <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAACXBIWXMAAAsTAAALEwEAmpwYAAABKElEQVR4nO2aPU4DMRCFpwKJy1BRkJyBgoNQx48Uqfir6DgKHZlJT4UoOEBCroBoHjLaFIgFHIjkcZhPetVO4W89bjwWCYKgiMkjd5LyKimfYeRPyXUj47F4A8rLEoEPUb4m44F4AspFXtx4xkFRvfH6fWeMT5N77okX0P3l0vqTW+5C+dDJ3EirIpnRHfdhfFm7Jf8a5SIZL/K5lk2IZE6NR6u2rJDzjYnUAFMOVzvTtMi36906ERiXlfp9nSxLRJqKfCWSjIfinPGMg/9zRqQRECLOQIg4AyHiDISIMxAizkCIOAMh4gyEiDMQIs5AiDgDIeIMhIgzsP0i2k2dphxKI4OeZJx/+phncr+9Ea+VpDzrfzCQZerNA8sFjPMs0TsMDYJA+ngDFYpM7MYn2H0AAAAASUVORK5CYII=" style="height:25px;"> /src/funkphp/pipes/post_response/<?= $fileName; ?>
+                                                            &fnof; <?= $fnName; ?> | <?= $PATH_BASE64; ?> /src/funkphp/pipes/post_response/<?= $fileName; ?>
                                                         </div>
                                                         <?php foreach ($errors as $idx => $errData) { ?>
                                                             <div class="issue-card">
@@ -7964,7 +7969,7 @@ class C
                                                             foreach ($functions as $fnName => $errors) {
                                                         ?>
                                                         <div class="tab-header" style="margin-top:0.8rem; display:flex; align-items:center; align-content:center; gap:0.5rem;">
-                                                            &fnof; <?= $fnName; ?> | <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAACXBIWXMAAAsTAAALEwEAmpwYAAABKElEQVR4nO2aPU4DMRCFpwKJy1BRkJyBgoNQx48Uqfir6DgKHZlJT4UoOEBCroBoHjLaFIgFHIjkcZhPetVO4W89bjwWCYKgiMkjd5LyKimfYeRPyXUj47F4A8rLEoEPUb4m44F4AspFXtx4xkFRvfH6fWeMT5N77okX0P3l0vqTW+5C+dDJ3EirIpnRHfdhfFm7Jf8a5SIZL/K5lk2IZE6NR6u2rJDzjYnUAFMOVzvTtMi36906ERiXlfp9nSxLRJqKfCWSjIfinPGMg/9zRqQRECLOQIg4AyHiDISIMxAizkCIOAMh4gyEiDMQIs5AiDgDIeIMhIgzsP0i2k2dphxKI4OeZJx/+phncr+9Ea+VpDzrfzCQZerNA8sFjPMs0TsMDYJA+ngDFYpM7MYn2H0AAAAASUVORK5CYII=" style="height:25px;"> /src/funkphp/pipes/middlewares/<?= $fileName; ?>
+                                                            &fnof; <?= $fnName; ?> | <?= $PATH_BASE64; ?> /src/funkphp/pipes/middlewares/<?= $fileName; ?>
                                                         </div>
                                                         <?php foreach ($errors as $idx => $errData) { ?>
                                                             <div class="issue-card">
@@ -7990,7 +7995,7 @@ class C
                                                             foreach ($functions as $fnName => $errors) {
                                                         ?>
                                                         <div class="tab-header" style="margin-top:0.8rem; display:flex; align-items:center; align-content:center; gap:0.5rem;">
-                                                            &fnof; <?= $fnName; ?> | <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAACXBIWXMAAAsTAAALEwEAmpwYAAABKElEQVR4nO2aPU4DMRCFpwKJy1BRkJyBgoNQx48Uqfir6DgKHZlJT4UoOEBCroBoHjLaFIgFHIjkcZhPetVO4W89bjwWCYKgiMkjd5LyKimfYeRPyXUj47F4A8rLEoEPUb4m44F4AspFXtx4xkFRvfH6fWeMT5N77okX0P3l0vqTW+5C+dDJ3EirIpnRHfdhfFm7Jf8a5SIZL/K5lk2IZE6NR6u2rJDzjYnUAFMOVzvTtMi36906ERiXlfp9nSxLRJqKfCWSjIfinPGMg/9zRqQRECLOQIg4AyHiDISIMxAizkCIOAMh4gyEiDMQIs5AiDgDIeIMhIgzsP0i2k2dphxKI4OeZJx/+phncr+9Ea+VpDzrfzCQZerNA8sFjPMs0TsMDYJA+ngDFYpM7MYn2H0AAAAASUVORK5CYII=" style="height:25px;"> /src/funkphp/pipes/routes/<?= $fileName; ?>
+                                                            &fnof; <?= $fnName; ?> | <?= $PATH_BASE64; ?> /src/funkphp/pipes/routes/<?= $fileName; ?>
                                                         </div>
                                                         <?php foreach ($errors as $idx => $errData) { ?>
                                                             <div class="issue-card">
