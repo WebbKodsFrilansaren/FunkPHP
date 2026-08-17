@@ -2228,88 +2228,88 @@ class C
             }
         } elseif ($key === 'file_user_defined_classes') {
             if (!isset($this->cached[$key])) {
-                $this->cached[$key] = $this->file_status('/config', 'classes');
+                $this->cached[$key] = $this->file_status('/config', 'classes', false, true);
                 $this->cached[$key]['?file_type'] = 'user-classes';
             }
         } elseif ($key === 'file_user_defined_tables') {
             if (!isset($this->cached[$key])) {
                 $this->cached[$key] = $this->file_status('/config', 'tables');
-                $this->cached[$key]['?file_type'] = 'user-tables';
+                $this->cached[$key][$optionalFileName]['?file_type'] = 'user-tables';
             }
         } elseif ($key === 'files_pipes_request') {
             if (!isset($this->cached[$key][$optionalFileName])) {
                 $this->cached[$key][$optionalFileName] = $this->file_status('/pipes/request', $optionalFileName);
-                $this->cached[$key]['?file_type'] = 'request';
+                $this->cached[$key][$optionalFileName]['?file_type'] = 'request';
             }
         } elseif ($key === 'files_pipes_post_response') {
             if (!isset($this->cached[$key][$optionalFileName])) {
                 $this->cached[$key][$optionalFileName] = $this->file_status('/pipes/post_response', $optionalFileName);
-                $this->cached[$key]['?file_type'] = 'post-response';
+                $this->cached[$key][$optionalFileName]['?file_type'] = 'post-response';
             }
         } elseif ($key === 'files_pipes_middlewares') {
             if (!isset($this->cached[$key][$optionalFileName])) {
                 $this->cached[$key][$optionalFileName] = $this->file_status('/pipes/middlewares', $optionalFileName);
-                $this->cached[$key]['?file_type'] = 'middleware';
+                $this->cached[$key][$optionalFileName]['?file_type'] = 'middleware';
             }
         } elseif ($key === 'files_routes') {
             if (!isset($this->cached[$key][$optionalFileName])) {
                 $this->cached[$key][$optionalFileName] = $this->file_status('/pipes/routes', $optionalFileName);
-                $this->cached[$key]['?file_type'] = 'route';
+                $this->cached[$key][$optionalFileName]['?file_type'] = 'route';
             }
         } elseif ($key === 'files_pages') {
             if (!isset($this->cached[$key][$optionalFileName])) {
                 $this->cached[$key][$optionalFileName] = $this->file_status('/pages', $optionalFileName);
-                $this->cached[$key]['?file_type'] = 'pages-uncompiled';
+                $this->cached[$key][$optionalFileName]['?file_type'] = 'pages-uncompiled';
             }
         } elseif ($key === 'files_pages_compiled') {
             if (!isset($this->cached[$key][$optionalFileName])) {
                 $this->cached[$key][$optionalFileName] = $this->file_status('/pages/compiled', $optionalFileName);
-                $this->cached[$key]['?file_type'] = 'pages-compiled';
+                $this->cached[$key][$optionalFileName]['?file_type'] = 'pages-compiled';
             }
         } elseif ($key === 'files_pages_components') {
             if (!isset($this->cached[$key][$optionalFileName])) {
                 $this->cached[$key][$optionalFileName] = $this->file_status('/pages/components', $optionalFileName);
-                $this->cached[$key]['?file_type'] = 'pages-components';
+                $this->cached[$key][$optionalFileName]['?file_type'] = 'pages-components';
             }
         } elseif ($key === 'files_pages_layouts') {
             if (!isset($this->cached[$key][$optionalFileName])) {
                 $this->cached[$key][$optionalFileName] = $this->file_status('/pages/layouts', $optionalFileName);
-                $this->cached[$key]['?file_type'] = 'pages-layouts';
+                $this->cached[$key][$optionalFileName]['?file_type'] = 'pages-layouts';
             }
         } elseif ($key === 'files_pages_partials') {
             if (!isset($this->cached[$key][$optionalFileName])) {
                 $this->cached[$key][$optionalFileName] = $this->file_status('/pages/partials', $optionalFileName);
-                $this->cached[$key]['?file_type'] = 'pages-partials';
+                $this->cached[$key][$optionalFileName]['?file_type'] = 'pages-partials';
             }
         } elseif ($key === 'files_data_sql') {
             if (!isset($this->cached[$key][$optionalFileName])) {
                 $this->cached[$key][$optionalFileName] = $this->file_status('/data/sql', $optionalFileName);
-                $this->cached[$key]['?file_type'] = 'data-sql-uncompiled';
+                $this->cached[$key][$optionalFileName]['?file_type'] = 'data-sql-uncompiled';
             }
         } elseif ($key === 'files_data_query') {
             if (!isset($this->cached[$key][$optionalFileName])) {
                 $this->cached[$key][$optionalFileName] = $this->file_status('/data/query', $optionalFileName);
-                $this->cached[$key]['?file_type'] = 'data-query-uncompiled';
+                $this->cached[$key][$optionalFileName]['?file_type'] = 'data-query-uncompiled';
             }
         } elseif ($key === 'files_data_validation') {
             if (!isset($this->cached[$key][$optionalFileName])) {
                 $this->cached[$key][$optionalFileName] = $this->file_status('/data/validation', $optionalFileName);
-                $this->cached[$key]['?file_type'] = 'data-validation-uncompiled';
+                $this->cached[$key][$optionalFileName]['?file_type'] = 'data-validation-uncompiled';
             }
         } elseif ($key === 'files_data_sql_compiled') {
             if (!isset($this->cached[$key][$optionalFileName])) {
                 $this->cached[$key][$optionalFileName] = $this->file_status('/data/compiled/sql', $optionalFileName);
-                $this->cached[$key]['?file_type'] = 'data-sql-compiled';
+                $this->cached[$key][$optionalFileName]['?file_type'] = 'data-sql-compiled';
             }
         } elseif ($key === 'files_data_query_compiled') {
             if (!isset($this->cached[$key][$optionalFileName])) {
                 $this->cached[$key][$optionalFileName] = $this->file_status('/data/compiled/query', $optionalFileName);
-                $this->cached[$key]['?file_type'] = 'data-query-compiled';
+                $this->cached[$key][$optionalFileName]['?file_type'] = 'data-query-compiled';
             }
         } elseif ($key === 'files_data_validation_compiled') {
             if (!isset($this->cached[$key][$optionalFileName])) {
                 $this->cached[$key][$optionalFileName] = $this->file_status('/data/compiled/validation', $optionalFileName);
-                $this->cached[$key]['?file_type'] = 'data-validation-compiled';
+                $this->cached[$key][$optionalFileName]['?file_type'] = 'data-validation-compiled';
             }
         } elseif ($key === 'file_core_functions') {
             if (!isset($this->cached[$key])) {
@@ -2551,7 +2551,7 @@ class C
     }
     /*** !!! PRIVATE HELPER FUNCTIONS FOR MANY batch<VARIANTS> ABOVE !!! */
     // Also used by compile() & run() below!
-    private function file_status(string $folder, string $file, bool $useExactFilePathInstead = false, bool $deeperAnalysis = false)
+    private function file_status(string $folder, string $file, bool $useExactFilePathInstead = false, bool $OnlyGetClasses = false)
     {
         if (!$useExactFilePathInstead) {
             if (is_string($folder) && str_starts_with(trim($folder), "/")) {
@@ -2603,25 +2603,27 @@ class C
                     $namespace = $nsAndUses['namespace'];
                     $namespaceParts = $nsAndUses['namespace_parts'];
                     $fileUse = $nsAndUses['file_use'];
-                    $tokenizedFns = $this->file_harvest_all_functions_from_code($fileRaw);
-                    foreach ($tokenizedFns as $fnName => $fnData) {
-                        $fns[$fnName] = array_merge($fnData, [
-                            'VALID_FN_FOR_FUNKPHP'          => (!$fnData['has_inner_functions']
-                                && !$fnData['only_whitespace_and_or_comments']
-                                && !str_starts_with(strtolower(trim($fnName)), 'cli_')
-                                && !str_starts_with(strtolower(trim($fnName)), 'funk_')
-                                && (strtolower(trim($fnName)) !== 'dd')),
-                            'fn_name_same_as_lowercased'  => ($fnName === strtolower($fnName)),
-                            'fn_uppercased'               => strtoupper($fnName),
-                            'fn_starts_with_cli'          => str_starts_with(strtolower($fnName), 'cli_'),
-                            'fn_starts_with_funk'         => str_starts_with(strtolower($fnName), 'funk_'),
-                        ]);
-                        if (in_array(strtolower($fnName), $fnames_only, true)) {
-                            $fnames_duplicates[$fnName] = true;
+                    if (!$OnlyGetClasses) {
+                        $tokenizedFns = $this->file_harvest_all_functions_from_code($fileRaw);
+                        foreach ($tokenizedFns as $fnName => $fnData) {
+                            $fns[$fnName] = array_merge($fnData, [
+                                'VALID_FN_FOR_FUNKPHP'          => (!$fnData['has_inner_functions']
+                                    && !$fnData['only_whitespace_and_or_comments']
+                                    && !str_starts_with(strtolower(trim($fnName)), 'cli_')
+                                    && !str_starts_with(strtolower(trim($fnName)), 'funk_')
+                                    && (strtolower(trim($fnName)) !== 'dd')),
+                                'fn_name_same_as_lowercased'  => ($fnName === strtolower($fnName)),
+                                'fn_uppercased'               => strtoupper($fnName),
+                                'fn_starts_with_cli'          => str_starts_with(strtolower($fnName), 'cli_'),
+                                'fn_starts_with_funk'         => str_starts_with(strtolower($fnName), 'funk_'),
+                            ]);
+                            if (in_array(strtolower($fnName), $fnames_only, true)) {
+                                $fnames_duplicates[$fnName] = true;
+                            }
+                            $fnames_only[] = $fnName;
+                            if ($fns[$fnName]['fn_starts_with_cli']) $NO_FN_START_CLI = false;
+                            if ($fns[$fnName]['fn_starts_with_funk']) $NO_FN_START_FUNK = false;
                         }
-                        $fnames_only[] = $fnName;
-                        if ($fns[$fnName]['fn_starts_with_cli']) $NO_FN_START_CLI = false;
-                        if ($fns[$fnName]['fn_starts_with_funk']) $NO_FN_START_FUNK = false;
                     }
                     $tokenizedClasses = $this->file_harvest_all_classes_from_code($fileRaw);
                     foreach ($tokenizedClasses as $className => $classData) {
@@ -2672,9 +2674,15 @@ class C
         $tokens = PhpToken::tokenize($code);
         $count = count($tokens);
         $harvested = [];
+        $braceDepth = 0;
         for ($i = 0; $i < $count; $i++) {
             if ($tokens[$i]->id !== T_FUNCTION) {
                 continue;
+            }
+            if ($tok->text === '{') {
+                $braceDepth++;
+            } elseif ($tok->text === '}') {
+                $braceDepth--;
             }
             $curr = $i + 1;
             $isByRef = false;
@@ -2690,7 +2698,6 @@ class C
             $fnName = $tokens[$curr]->text;
             $fnTokenPos = $tokens[$i]->pos;
             $startLine = $tokens[$i]->line;
-            // DocComments
             $commentStartPos = $fnTokenPos;
             $collectedComments = [];
             $back = $i - 1;
@@ -2709,7 +2716,6 @@ class C
                 break;
             }
             $docComment = !empty($collectedComments) ? implode("\n", $collectedComments) : null;
-            // Extract Arguments
             $argStartTok = $curr + 1;
             while ($argStartTok < $count && $tokens[$argStartTok]->text !== '(' && $tokens[$argStartTok]->text !== '{' && $tokens[$argStartTok]->text !== ';') {
                 $argStartTok++;
@@ -2730,7 +2736,6 @@ class C
                 }
                 $argsRaw = trim(implode('', $argTokens));
             }
-            // Body '{' lookup
             while ($bodySearchTokIdx < $count && $tokens[$bodySearchTokIdx]->text !== '{' && $tokens[$bodySearchTokIdx]->text !== ';') {
                 $bodySearchTokIdx++;
             }
@@ -2762,7 +2767,6 @@ class C
             $fnRawWithDoc = substr($code, $commentStartPos, $bodyEndPos - $commentStartPos);
             $fnRaw        = substr($code, $fnTokenPos, $bodyEndPos - $fnTokenPos);
             $bodyRaw      = substr($code, $bodyStartPos, $bodyEndPos - $bodyStartPos);
-            // Run analysis on the body
             $analysis = $this->file_analyze_body_tokens($bodyRaw, $startLine);
             $harvested[$fnName] = array_merge([
                 'fn_exact_name'   => $fnName,
@@ -3751,13 +3755,6 @@ class C
             $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'Invalid PHP Code in Class File', $fatalErr);
             return $fatalErr;
         }
-        // Class File /src/funkphp/config/classes.php cannot have functions
-        $FNCount = count($fileData['functions'] ?? []);
-        if ($FNCount !== 1) {
-            $fatalErr = "File Class Error in {$contextLabel}: File `$relativePath` contains Functions in the Global Namespace ({$FNCount}: " . $this->joinArray(array_keys($fileData['functions'])) . ") when that is not allowed. Write `User-defined Functions` in `/src/funkphp/config/functions.php` instead.";
-            $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'Class File Contains Too Many Functions', $fatalErr);
-            return $fatalErr;
-        }
         // Class count that must be fulfilled
         $fnCount = count($fileData['classes'] ?? []);
         if ($singleFNExpected) {
@@ -3773,26 +3770,27 @@ class C
             $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'Expected Class Missing in Class File', $fatalErr);
             return $fatalErr;
         }
+        $CLASS_EXACT_NAME = $FN['class_name'] ?? null;
         if (str_starts_with(strtolower(trim($FN['class_name'])), 'funk')) {
             $fatalErr = "File Class Error in {$contextLabel}: Class `{$expectedFNName}()` in File `$relativePath` cannot start with `Funk` as it is reserved despite being in the shared namespace `funkphp\\classes`.";
-            $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'Forbidden Class Name in Class File', $fatalErr);
+            $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'Forbidden Class Name in Class File', $fatalErr, $CLASS_EXACT_NAME);
             return $fatalErr;
         }
         if ($expectedNSName !== '') {
             if (!isset($fileData['namespace']) || $fileData['namespace'] !== $expectedNSName) {
                 $fatalErr = "File Class Error in {$contextLabel}: Class `{$expectedFNName}` in File `$relativePath` must have the following namespace: `{$expectedNSName}` (Found: `" . ($fileData['namespace'] ?? '<NO NAMESPACE>') . "`).";
-                $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'Class File Missing Required Namespace', $fatalErr);
+                $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'Class File Missing Required Namespace', $fatalErr, $CLASS_EXACT_NAME);
                 return $fatalErr;
             }
         }
         if ($FN['body_raw'] === '{}' || $FN['only_whitespace_and_or_comments'] === true) {
             $fatalErr = "File Class Error in {$contextLabel}: Class `{$expectedFNName}()` in File `$relativePath` must have `Code in its Class Body` and cannot just contain `whitespace` and/or `comments`.";
-            $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'Class File Missing Code In Main Body', $fatalErr);
+            $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'Class File Missing Code In Main Body', $fatalErr, $CLASS_EXACT_NAME);
             return $fatalErr;
         }
         if ($FN['has_inner_functions'] === true) {
             $fatalErr = "File Class Error in {$contextLabel}: Class `{$expectedFNName}()` in File `$relativePath` cannot have Inner Function Declarations (e.g. `function name(&\$c){ function inner(&\$c){} }`). See line(s): `" . join(', ', $FN['nested_function_lines']) . "` in the File. Use `Anonymous Function Declarations` instead such as: `\$innerFN = function(\$arg) use (\$otherArgs) { return \$arg; };` OR `\$innerFN = fn(\$arg) => \$arg + \$otherArgs;`.";
-            $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'Forbidden Inner Functions in Class Method in Class File', $fatalErr);
+            $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'Forbidden Inner Functions in Class Method in Class File', $fatalErr, $CLASS_EXACT_NAME);
             return $fatalErr;
         }
         // Now we iterate through each method in the current Class in the classes.php
@@ -3801,18 +3799,18 @@ class C
             if ($method !== '__construct') { // Constructor CAN have empty body
                 if ($methodDetails['analysis']['only_whitespace_and_or_comments']) {
                     $fatalErr = "File Class Error in {$contextLabel}: Class Method `{$expectedFNName}->{$method}` in File `$relativePath` has `Only Whitespace and/or Comments` in its `Code Body` while NOT being the `__construct` Method. Add some Code to the Class Method OR comment it out for later use.";
-                    $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'No Function Body in Class Method in Class File', $fatalErr);
+                    $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'No Function Body in Class Method in Class File', $fatalErr, $CLASS_EXACT_NAME);
                     return $fatalErr;
                 }
             }
             if ($methodDetails['analysis']['has_inner_functions']) {
                 $fatalErr = "File Class Error in {$contextLabel}: Class Method `{$expectedFNName}->{$method}` in File `$relativePath` has `Inner Function Declarations` on lines(s) " . $this->joinArray($methodDetails['analysis']['nested_function_lines']) . " which could Conflict with other Globally Namespaced Functions. `Convert it to a Valid Class-based Method` instead. Also, regarding using Inner Functions in general in FunkPHP; Use `Anonymous Function Declarations` instead such as: `\$innerFN = function(\$arg) use (\$otherArgs) { return \$arg; };` OR `\$innerFN = fn(\$arg) => \$arg + \$otherArgs;`.";
-                $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'Forbidden Inner Functions in Class Method in Class File', $fatalErr);
+                $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'Forbidden Inner Functions in Class Method in Class File', $fatalErr, $CLASS_EXACT_NAME);
                 return $fatalErr;
             }
             if ($methodDetails['analysis']['has_invalid_funk_calls']) {
                 $fatalErr = "File Class Error in {$contextLabel}: Class Method `{$expectedFNName}->{$method}` in File `$relativePath` has calls to the following `Disallowed FunkPHP Functions` " . $this->joinArray($methodDetails['analysis']['invalid_funk_calls']) . " that are meant to be called by other Internal FunkPHP Functions directly and not inside of non-FunkPHP-based Classes.";
-                $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'Forbidden use of Internal FunkPHP Functions in Class Method in Class File', $fatalErr);
+                $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'Forbidden use of Internal FunkPHP Functions in Class Method in Class File', $fatalErr, $CLASS_EXACT_NAME);
                 return $fatalErr;
             }
         }
@@ -4095,7 +4093,7 @@ class C
      * @param string|null $route
      *
      */
-    private function setFileErr(string $fileType, string $file, string $fn, string $errShort, string $err)
+    private function setFileErr(string $fileType, string $file, string $fn, string $errShort, string $err, string|null $fnOrClassNameExact = null)
     {
         $validFileTypes = [
             'user-functions',
@@ -4106,7 +4104,7 @@ class C
             'pages-uncompiled',
             'pages-compiled',
             'user-tables',
-            'response',
+            'request',
             'post-response',
             'middleware',
             'route',
@@ -4150,7 +4148,7 @@ class C
         if (!isset($this->errors['FILES'][$fileType][$file][$fn])) {
             $this->errors['FILES'][$fileType][$file][$fn] = [];
         }
-        $this->errors['FILES'][$fileType][$file][$fn][count($this->errors['FILES'][$fileType][$file][$fn]) + 1] = ['errShort' => $errShort, 'err' => $err, 'file' => $file, 'fn' => $fn];
+        $this->errors['FILES'][$fileType][$file][$fn][count($this->errors['FILES'][$fileType][$file][$fn]) + 1] = ['errShort' => $errShort, 'err' => $err, 'file' => $file, 'fn' => $fn, 'exact_name' => $fnOrClassNameExact];
     }
 
     // Join array with wrapped `` and comma
@@ -7570,7 +7568,7 @@ class C
                     padding: 0.5rem 0.8rem;
                     border-radius: 6px;
                     border: 1px solid #21262d;
-                    margin-bottom: 0.75rem;
+                    margin-bottom: 0.25rem;
                     display: inline-block;
                     width: 100%;
                 }
@@ -7579,7 +7577,7 @@ class C
                     background: #161b22;
                     border-left: 4px solid #ff7b72;
                     padding: 1rem 1.2rem;
-                    margin-bottom: 0.8rem;
+                    margin-bottom: 0.5rem;
                     border-radius: 0 6px 6px 0;
                     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
                 }
@@ -7843,8 +7841,8 @@ class C
                                 // TAB IS "FILES"?
                                 else if ($tab === 'FILES') {
                                     $FILE_TYPES_PATHS = [
-                                        'user-functions' => 'User-defined Functions | /src/funkphp/config/functions.php',
-                                        'user-classes' => 'User-defined Classes | /src/funkphp/config/classes.php',
+                                        'user-functions' => 'User-defined Functions | /src/funkphp/config',
+                                        'user-classes' => 'User-defined Classes | /src/funkphp/config',
                                         'user-tables' => 'Tables | /src/funkphp/config/tables.php',
                                         'core-manifest' => 'Core Manifest | /src/funkphp/core/manifest.php',
                                         'core-functions' => 'Core Functions | /src/funkphp/core/functions.php',
@@ -7853,7 +7851,7 @@ class C
                                         'pages-components' => 'Page Components | /src/funkphp/pages/components',
                                         'pages-uncompiled' => 'Page Uncompiled | /src/funkphp/pages',
                                         'pages-compiled' => 'Page Compiled | /src/funkphp/pages/compiled',
-                                        'response' => 'Request Pipe Functions | /src/funkphp/pipes/request',
+                                        'request' => 'Request Pipe Functions | /src/funkphp/pipes/request',
                                         'post-response' => 'Post-Response Pipe Functions | /src/funkphp/pipes/post_response',
                                         'middleware' => 'Middleware Pipe Functions | /src/funkphp/pipes/middlewares',
                                         'route' => 'Route Pipe Functions | /src/funkphp/pipes/routes',
@@ -7872,7 +7870,7 @@ class C
                                             <?php // SHOW for "User Defined Functions"
                                             if ($fileType === 'user-functions') {
                                                 foreach ($singleFile['functions.php'] as $fName => $F_ERR) {
-                                            ?><div class="tab-header">&fnof; <?= $fName; ?></div>
+                                            ?><div class="tab-header" style="margin-top:0.8rem; display:flex; align-items:center; align-content:center; gap:0.5rem;">&fnof; <?= $fName; ?> | <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAACXBIWXMAAAsTAAALEwEAmpwYAAABKElEQVR4nO2aPU4DMRCFpwKJy1BRkJyBgoNQx48Uqfir6DgKHZlJT4UoOEBCroBoHjLaFIgFHIjkcZhPetVO4W89bjwWCYKgiMkjd5LyKimfYeRPyXUj47F4A8rLEoEPUb4m44F4AspFXtx4xkFRvfH6fWeMT5N77okX0P3l0vqTW+5C+dDJ3EirIpnRHfdhfFm7Jf8a5SIZL/K5lk2IZE6NR6u2rJDzjYnUAFMOVzvTtMi36906ERiXlfp9nSxLRJqKfCWSjIfinPGMg/9zRqQRECLOQIg4AyHiDISIMxAizkCIOAMh4gyEiDMQIs5AiDgDIeIMhIgzsP0i2k2dphxKI4OeZJx/+phncr+9Ea+VpDzrfzCQZerNA8sFjPMs0TsMDYJA+ngDFYpM7MYn2H0AAAAASUVORK5CYII=" style="height:25px;"> /src/funkphp/config/functions.php</div>
                                                     <?php foreach ($F_ERR as $idx => $F_ERR2) { ?>
                                                         <div class="issue-card">
                                                             <div class="issue-type-with-button">
@@ -7882,14 +7880,18 @@ class C
                                                                     Details <span class="chevron">▶</span>
                                                                 </button>
                                                             </div>
-                                                            <div style="display:none;" class="issue-body"><?= $formatMsg($F_ERR2['err'] ?? '<Error Missing>') ?></div>
+                                                            <div style="display:none; font-weight:normal;" class="issue-body"><?= $formatMsg($F_ERR2['err'] ?? '<Error Missing>') ?></div>
                                                         </div> <?php
                                                             }
                                                         }
                                                     }  // SHOW for "User Defined Classes"
                                                     else if ($fileType === 'user-classes') {
                                                         foreach ($singleFile['classes.php'] as $cName => $C_ERR) {
-                                                                ?><div class="tab-header">class <?= $cName; ?></div>
+                                                            $cName = "<Unknown Class Name>";
+                                                            if (count($C_ERR) > 0) {
+                                                                $cName = $C_ERR[1]['exact_name'] ?? "<Failed to Retrieve Class Name>";
+                                                            }
+                                                                ?><div class="tab-header" style="margin-top:0.8rem; display:flex; align-items:center; align-content:center; gap:0.5rem;"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAAA8CAYAAAA6/NlyAAAACXBIWXMAAAsTAAALEwEAmpwYAAACzklEQVR4nO2Zz3LTMBDG9RiUP8fSdwE6fRlKtElOMMzwKi0FLky5JJHSwtsUBgKXnj5mEzm1N7YS/6tVxd+MDnU/O/uzbGl3rZRSajTHM7K4IIMFWSCqYbDQFl/GUxypBFYb/Ow8sPbBfzGrWs6sBbTF1+EET1RkemPwVBtcOvBzlTzG/A8VqUarVxba4I9Kpjz5pzb44Y5dlz3WhVJx5I3rxLfmlMBscnfjquyxLpTEkTd0Nt584FhFew9MezLU3gKryEU9cOSiHjhyUQ8cuagH9kh0RDqtjjYqJdnRqAs8Eh2Rrqujwkop6WjUBabAOyIbHY3awCb8jkimo9HADOMhLGo7c1APnFUPnNJghhNtYcninxtmaHGc9lTxFzTmvNdvHZgMPhQV2drgfR3/tiI+9/ptAg9mOHE/fEsG+vQ7Hg/nONAWg+UxCwxneFnVn/ebfE6Rv3VgvXoseW8eSD8fc4nAtKrfF1Oe/z6A/y7v8hwH0v/a4JELaFHV74spz986MJU8p21/qXPIY0wyGLL4XeniLfj5Xc7LqvhvX0ZI24Ad7Df37n0MBZgXPRfTRAB/cjfiMg+afMDpfZArpbHFYdfAcpXWFi8yMV/hufjOnSljvcDpsqtLYM94K68hgWUZS9seaVF2XXQOvCr0J3Jm1+cYfPaVsfRQF60i1V60GtkCWvLvco1GgbVLJHghkX5+nOS2UdYfHDBZmKJUMdk2RKpY1h8W8NDi2M3KLUPwzPmS+7L+4IBZXKIVbRva4p2q4Q8SmKUNXmmDGb+jy/fUYCrLtip+zgPKtoPvBTgk9cBC1ANH0IiXGWElYP5Q5Su7ulamjDU4qw08nuKIP1SltpGwvh7exXXjmxDaFTh1F885/Qvt66GL6Wzb00dlgGMQ9cCRi3rgyEX7C2zCz6QazcR04JlU45nYeDOTinXcrCc0nUkFEFijQ2Zi/wEwSFQGAW+qkwAAAABJRU5ErkJggg==" style="height:25px;"> <?= $formatMsg($cName); ?> | <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAACXBIWXMAAAsTAAALEwEAmpwYAAABKElEQVR4nO2aPU4DMRCFpwKJy1BRkJyBgoNQx48Uqfir6DgKHZlJT4UoOEBCroBoHjLaFIgFHIjkcZhPetVO4W89bjwWCYKgiMkjd5LyKimfYeRPyXUj47F4A8rLEoEPUb4m44F4AspFXtx4xkFRvfH6fWeMT5N77okX0P3l0vqTW+5C+dDJ3EirIpnRHfdhfFm7Jf8a5SIZL/K5lk2IZE6NR6u2rJDzjYnUAFMOVzvTtMi36906ERiXlfp9nSxLRJqKfCWSjIfinPGMg/9zRqQRECLOQIg4AyHiDISIMxAizkCIOAMh4gyEiDMQIs5AiDgDIeIMhIgzsP0i2k2dphxKI4OeZJx/+phncr+9Ea+VpDzrfzCQZerNA8sFjPMs0TsMDYJA+ngDFYpM7MYn2H0AAAAASUVORK5CYII=" style="height:25px;"> /src/funkphp/config/classes.php</div>
                                                     <?php foreach ($C_ERR as $idx => $C_ERR2) { ?>
                                                         <div class="issue-card">
                                                             <div class="issue-type-with-button">
@@ -7899,30 +7901,121 @@ class C
                                                                     Details <span class="chevron">▶</span>
                                                                 </button>
                                                             </div>
-                                                            <div style="display:none;" class="issue-body"><?= $formatMsg($C_ERR2['err'] ?? '<Error Missing>') ?></div>
+                                                            <div style="display:none; font-weight:normal;" class="issue-body"><?= $formatMsg($C_ERR2['err'] ?? '<Error Missing>') ?></div>
                                                         </div> <?php
                                                             }
                                                         }
                                                     }
-                                                    // SHOW for "Response Pipe Functions" (/src/funphp/pipes/response)
-                                                    else if ($fileType === 'response') {
-                                                        foreach ($singleFile['functions'] as $rName => $R_ERR) {
-                                                                ?><div class="tab-header">function <?= $rName; ?></div>
-                                                    <?php foreach ($R_ERR as $idx => $R_ERR2) { ?>
-                                                        <div class="issue-card">
-                                                            <div class="issue-type-with-button">
-                                                                <div class="issue-type">ERROR #<?= $idx ?>: <?= $formatMsg($R_ERR2['errShort'] ?? '<Error Title Missing>') ?>
+                                                    // SHOW for "Request Pipe Functions" (/src/funphp/pipes/response)
+                                                    else if ($fileType === 'request') {
+                                                        foreach ($singleFile as $fileName => $functions) {
+                                                            foreach ($functions as $fnName => $errors) {
+                                                                ?>
+                                                        <div class="tab-header" style="margin-top:0.8rem; display:flex; align-items:center; align-content:center; gap:0.5rem;">
+                                                            &fnof; <?= $fnName; ?> | <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAACXBIWXMAAAsTAAALEwEAmpwYAAABKElEQVR4nO2aPU4DMRCFpwKJy1BRkJyBgoNQx48Uqfir6DgKHZlJT4UoOEBCroBoHjLaFIgFHIjkcZhPetVO4W89bjwWCYKgiMkjd5LyKimfYeRPyXUj47F4A8rLEoEPUb4m44F4AspFXtx4xkFRvfH6fWeMT5N77okX0P3l0vqTW+5C+dDJ3EirIpnRHfdhfFm7Jf8a5SIZL/K5lk2IZE6NR6u2rJDzjYnUAFMOVzvTtMi36906ERiXlfp9nSxLRJqKfCWSjIfinPGMg/9zRqQRECLOQIg4AyHiDISIMxAizkCIOAMh4gyEiDMQIs5AiDgDIeIMhIgzsP0i2k2dphxKI4OeZJx/+phncr+9Ea+VpDzrfzCQZerNA8sFjPMs0TsMDYJA+ngDFYpM7MYn2H0AAAAASUVORK5CYII=" style="height:25px;"> /src/funkphp/pipes/request/<?= $fileName; ?>
+                                                        </div>
+                                                        <?php foreach ($errors as $idx => $errData) { ?>
+                                                            <div class="issue-card">
+                                                                <div class="issue-type-with-button">
+                                                                    <div class="issue-type">
+                                                                        ERROR #<?= $idx ?>: <?= $formatMsg($errData['errShort'] ?? '<Error Title Missing>') ?>
+                                                                    </div>
+                                                                    <button type="button" class="view-details-btn">
+                                                                        Details <span class="chevron">▶</span>
+                                                                    </button>
                                                                 </div>
-                                                                <button type="button" class="view-details-btn">
-                                                                    Details <span class="chevron">▶</span>
-                                                                </button>
+                                                                <div style="display:none; font-weight:normal;" class="issue-body">
+                                                                    <?= $formatMsg($errData['err'] ?? '<Error Missing>') ?>
+                                                                </div>
                                                             </div>
-                                                            <div style="display:none;" class="issue-body"><?= $formatMsg($R_ERR2['err'] ?? '<Error Missing>') ?></div>
-                                                        </div> <?php
+                                                        <?php }
                                                             }
                                                         }
                                                     }
-                                                } ?>
+                                                    // SHOW for "Request Pipe Functions" (/src/funphp/pipes/post_response)
+                                                    else if ($fileType === 'post-response') {
+                                                        foreach ($singleFile as $fileName => $functions) {
+                                                            foreach ($functions as $fnName => $errors) {
+                                                        ?>
+                                                        <div class="tab-header" style="margin-top:0.8rem; display:flex; align-items:center; align-content:center; gap:0.5rem;">
+                                                            &fnof; <?= $fnName; ?> | <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAACXBIWXMAAAsTAAALEwEAmpwYAAABKElEQVR4nO2aPU4DMRCFpwKJy1BRkJyBgoNQx48Uqfir6DgKHZlJT4UoOEBCroBoHjLaFIgFHIjkcZhPetVO4W89bjwWCYKgiMkjd5LyKimfYeRPyXUj47F4A8rLEoEPUb4m44F4AspFXtx4xkFRvfH6fWeMT5N77okX0P3l0vqTW+5C+dDJ3EirIpnRHfdhfFm7Jf8a5SIZL/K5lk2IZE6NR6u2rJDzjYnUAFMOVzvTtMi36906ERiXlfp9nSxLRJqKfCWSjIfinPGMg/9zRqQRECLOQIg4AyHiDISIMxAizkCIOAMh4gyEiDMQIs5AiDgDIeIMhIgzsP0i2k2dphxKI4OeZJx/+phncr+9Ea+VpDzrfzCQZerNA8sFjPMs0TsMDYJA+ngDFYpM7MYn2H0AAAAASUVORK5CYII=" style="height:25px;"> /src/funkphp/pipes/post_response/<?= $fileName; ?>
+                                                        </div>
+                                                        <?php foreach ($errors as $idx => $errData) { ?>
+                                                            <div class="issue-card">
+                                                                <div class="issue-type-with-button">
+                                                                    <div class="issue-type">
+                                                                        ERROR #<?= $idx ?>: <?= $formatMsg($errData['errShort'] ?? '<Error Title Missing>') ?>
+                                                                    </div>
+                                                                    <button type="button" class="view-details-btn">
+                                                                        Details <span class="chevron">▶</span>
+                                                                    </button>
+                                                                </div>
+                                                                <div style="display:none; font-weight:normal;" class="issue-body">
+                                                                    <?= $formatMsg($errData['err'] ?? '<Error Missing>') ?>
+                                                                </div>
+                                                            </div>
+                                                        <?php }
+                                                            }
+                                                        }
+                                                    }
+                                                    // SHOW for "Middlewares Pipe Functions" (/src/funphp/pipes/middlewares)
+                                                    else if ($fileType === 'middleware') {
+                                                        foreach ($singleFile as $fileName => $functions) {
+                                                            foreach ($functions as $fnName => $errors) {
+                                                        ?>
+                                                        <div class="tab-header" style="margin-top:0.8rem; display:flex; align-items:center; align-content:center; gap:0.5rem;">
+                                                            &fnof; <?= $fnName; ?> | <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAACXBIWXMAAAsTAAALEwEAmpwYAAABKElEQVR4nO2aPU4DMRCFpwKJy1BRkJyBgoNQx48Uqfir6DgKHZlJT4UoOEBCroBoHjLaFIgFHIjkcZhPetVO4W89bjwWCYKgiMkjd5LyKimfYeRPyXUj47F4A8rLEoEPUb4m44F4AspFXtx4xkFRvfH6fWeMT5N77okX0P3l0vqTW+5C+dDJ3EirIpnRHfdhfFm7Jf8a5SIZL/K5lk2IZE6NR6u2rJDzjYnUAFMOVzvTtMi36906ERiXlfp9nSxLRJqKfCWSjIfinPGMg/9zRqQRECLOQIg4AyHiDISIMxAizkCIOAMh4gyEiDMQIs5AiDgDIeIMhIgzsP0i2k2dphxKI4OeZJx/+phncr+9Ea+VpDzrfzCQZerNA8sFjPMs0TsMDYJA+ngDFYpM7MYn2H0AAAAASUVORK5CYII=" style="height:25px;"> /src/funkphp/pipes/middlewares/<?= $fileName; ?>
+                                                        </div>
+                                                        <?php foreach ($errors as $idx => $errData) { ?>
+                                                            <div class="issue-card">
+                                                                <div class="issue-type-with-button">
+                                                                    <div class="issue-type">
+                                                                        ERROR #<?= $idx ?>: <?= $formatMsg($errData['errShort'] ?? '<Error Title Missing>') ?>
+                                                                    </div>
+                                                                    <button type="button" class="view-details-btn">
+                                                                        Details <span class="chevron">▶</span>
+                                                                    </button>
+                                                                </div>
+                                                                <div style="display:none;" class="issue-body">
+                                                                    <?= $formatMsg($errData['err'] ?? '<Error Missing>') ?>
+                                                                </div>
+                                                            </div>
+                                                        <?php }
+                                                            }
+                                                        }
+                                                    }
+                                                    // SHOW for "Route Pipe Functions" (/src/funphp/pipes/routes)
+                                                    else if ($fileType === 'route') {
+                                                        foreach ($singleFile as $fileName => $functions) {
+                                                            foreach ($functions as $fnName => $errors) {
+                                                        ?>
+                                                        <div class="tab-header" style="margin-top:0.8rem; display:flex; align-items:center; align-content:center; gap:0.5rem;">
+                                                            &fnof; <?= $fnName; ?> | <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAACXBIWXMAAAsTAAALEwEAmpwYAAABKElEQVR4nO2aPU4DMRCFpwKJy1BRkJyBgoNQx48Uqfir6DgKHZlJT4UoOEBCroBoHjLaFIgFHIjkcZhPetVO4W89bjwWCYKgiMkjd5LyKimfYeRPyXUj47F4A8rLEoEPUb4m44F4AspFXtx4xkFRvfH6fWeMT5N77okX0P3l0vqTW+5C+dDJ3EirIpnRHfdhfFm7Jf8a5SIZL/K5lk2IZE6NR6u2rJDzjYnUAFMOVzvTtMi36906ERiXlfp9nSxLRJqKfCWSjIfinPGMg/9zRqQRECLOQIg4AyHiDISIMxAizkCIOAMh4gyEiDMQIs5AiDgDIeIMhIgzsP0i2k2dphxKI4OeZJx/+phncr+9Ea+VpDzrfzCQZerNA8sFjPMs0TsMDYJA+ngDFYpM7MYn2H0AAAAASUVORK5CYII=" style="height:25px;"> /src/funkphp/pipes/routes/<?= $fileName; ?>
+                                                        </div>
+                                                        <?php foreach ($errors as $idx => $errData) { ?>
+                                                            <div class="issue-card">
+                                                                <div class="issue-type-with-button">
+                                                                    <div class="issue-type">
+                                                                        ERROR #<?= $idx ?>: <?= $formatMsg($errData['errShort'] ?? '<Error Title Missing>') ?>
+                                                                    </div>
+                                                                    <button type="button" class="view-details-btn">
+                                                                        Details <span class="chevron">▶</span>
+                                                                    </button>
+                                                                </div>
+                                                                <div style="display:none;" class="issue-body">
+                                                                    <?= $formatMsg($errData['err'] ?? '<Error Missing>') ?>
+                                                                </div>
+                                                            </div>
+                                            <?php }
+                                                            }
+                                                        }
+                                                    }
+                                            ?>
+                                            <hr style="margin-bottom:1.5rem; margin-top:1rem; border-top:1px solid #21262d;" />
+
+                                        <?php
+                                        } ?>
+
                                     </div>
                                 <?php
                                 }
@@ -7985,7 +8078,7 @@ class C
                                 // TAB IS "COMPILATION"?
                                 else if ($tab === 'COMPILATION') {
                                     $COMPILE_ERRS = $internalErrors['COMPILATION']['errors'] ?? [];
-                                    $COMPLE_WARNS = $internalErrors['COMPILATION']['warnings'] ?? [];
+                                    $COMPILE_WARNS = $internalErrors['COMPILATION']['warnings'] ?? [];
                                 ?> <?php if (count($COMPILE_ERRS) > 0): ?>
                                         <div class="tab-group">
                                             <div class="tab-header">FunkPHP Compilation Errors (happens only if Zero Errors otherwise in all files in /src/funkphp/app)</div>
@@ -8005,10 +8098,10 @@ class C
                                             } ?>
                                         </div>
                                     <?php endif ?>
-                                    <?php if (count($COMPLE_WARNS) > 0): ?>
+                                    <?php if (count($COMPILE_WARNS) > 0): ?>
                                         <div class="tab-group">
                                             <div class="tab-header">FunkPHP Compilation Warnings (happens only if Zero Errors otherwise in all files in /src/funkphp/app)</div>
-                                            <?php foreach ($COMPLE_WARNS as $idx2 => $COMP_WARN) {
+                                            <?php foreach ($COMPILE_WARNS as $idx2 => $COMP_WARN) {
                                             ?>
                                                 <div class="issue-card">
                                                     <div class="issue-type-with-button">

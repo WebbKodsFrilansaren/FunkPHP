@@ -19,8 +19,6 @@
 
 namespace funkphp\classes;
 
-// class EmptyClass {}
-
 /**
  * Data Transfer Object with constructor property promotion and default values.
  */
@@ -36,6 +34,11 @@ class UserDTO
 
     public function hasRole(string $role): bool
     {
+        function test()
+        {
+            $test = "";
+            function test2() {}
+        }
         return in_array(strtolower($role), array_map('strtolower', $this->roles), true);
     }
 
