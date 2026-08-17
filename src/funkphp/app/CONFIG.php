@@ -3,8 +3,4 @@
 
 /** @var FunkPHP $APP */
 $APP->CONFIG()
-    ->setCSP("base-uri", 'nonce:test')
-    ->setCSP("connect-src", 'nonce:test')
-    ->setDefaultExceptionHandler("test")
-    ->setDefaultExceptionHandler("test2")
     ->setDebug(true, true, false);

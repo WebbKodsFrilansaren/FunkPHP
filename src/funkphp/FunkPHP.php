@@ -21,79 +21,11 @@ if (is_object($FUNKPHP) && $FUNKPHP instanceof FunkPHP) {
     $cProperty   = $reflectFunk->getProperty('c');
     $cProperty->setAccessible(true);
     $cInstance   = $cProperty->getValue($FUNKPHP);
-    $reflectC    = new ReflectionObject($cInstance);
-    $getProp = function (string $propName) use ($reflectC, $cInstance) {
-        if (!$reflectC->hasProperty($propName)) {
-            return null;
-        }
-        $prop = $reflectC->getProperty($propName);
-        $prop->setAccessible(true);
-        return $prop->getValue($cInstance);
-    };
-    $debug    = $getProp('debug') ?? [];
-    $errors   = $getProp('errors') ?? [];
-    $warnings = $getProp('WARNINGS') ?? [];
-    $fluent   = $getProp('FunkPHPFluentAPI') ?? [];
-    $errCount  = $errors['ERRORS'];
-    $warnCount = count($warnings);
-    $isDebugOn          = $debug['ON_OR_OFF'] ?? false;
-    $alwaysShow         = $debug['ALWAYS_SHOW'] ?? true;
-    $showMainConfig         = $debug['SHOW_MAIN_CONFIG'] ?? true;
-    $showValid          = $debug['SHOW_VALID_BATCHES'] ?? false;
-    $showInvalid        = $debug['SHOW_INVALID_BATCHES'] ?? false;
-    $showCached         = $debug['SHOW_CACHED'] ?? false;
-    $showCompiled       = $debug['SHOW_COMPILED'] ?? false;
-    $showAll            = $debug['SHOW_ALL'] ?? false;
-    $hasErrorsToReport = ($errCount > 0);
-    $shouldTriggerDump = $hasErrorsToReport || ($isDebugOn && $alwaysShow);
     // Attempt running Class C->compile() which meaning it will attempt
     // compiling first and then run right after it if no errors occurs.
-    if ($errCount === 0) {
-        $compileAndRun = new ReflectionMethod($cInstance, 'compile');
-        $compileAndRun->setAccessible(true);
-        $compileAndRun->invoke($cInstance);
-    }
-    $compileErrs = $getProp('compileErrors') ?? [];
-    $compileWarns = $getProp('compileWarnings') ?? [];
-    $warnings = $getProp('WARNINGS') ?? [];
-    if ($shouldTriggerDump) {
-        $toDump = [];
-        $toDump['API'] = $fluent;
-        if ($errCount > 0) {
-            $toDump['ERRORS'] = $errors;
-        }
-        if (!$showMainConfig) {
-            $toDump['API']['CONFIG'] = '(' . (count($toDump['API']['CONFIG'])) . ' Configurations)';
-        }
-        if ($warnCount > 0) {
-            $toDump['WARNINGS'] = $warnings;
-        }
-        if ($showAll || $showValid) {
-            $toDump['VALID_BATCHES'] = $getProp('validBatches') ?? [];
-        }
-        if ($showAll || $showInvalid) {
-            $toDump['INVALID_BATCHES'] = $getProp('invalidBatches') ?? [];
-        }
-        if ($showAll || $showCached) {
-            $toDump['CACHED'] = $getProp('cached') ?? [];
-        }
-        if ($showAll || $showCompiled) {
-            $toDump['COMPILED'] = $getProp('compiled') ?? [];
-        }
-        if ($showAll) {
-            $toDump['COMPILE_FLAGS'] = $getProp('compileFlags') ?? [];
-        }
-        if ($errCount > 0) {
-            $title = "FunkPHP Configuration Debug ($errCount Error" . ($errCount === 1 ? '' : 's') . ")";
-        } else {
-            $title = "FunkPHP Configuration Debug";
-        }
-        //dd($toDump, $title, false);
-        $outputErrWarns = new ReflectionMethod($cInstance, 'output_errors');
-        $outputErrWarns->setAccessible(true);
-        $outputErrWarns->invoke($cInstance, $toDump, $compileErrs, $compileWarns);
-    }
-
+    $compileAndRun = new ReflectionMethod($cInstance, 'compile');
+    $compileAndRun->setAccessible(true);
+    $compileAndRun->invoke($cInstance);
     // Only here we consider loading validated user-defined functions&classes
     require_once __DIR__ . '/config/functions.php';
     require_once __DIR__ . '/config/classes.php';

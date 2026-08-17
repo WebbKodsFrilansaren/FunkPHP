@@ -3,6 +3,4 @@
 
 /** @var FunkPHP $APP */
 $APP->ROUTES()->GET()
-    ->setParamRule("a", "a", "a")
-    ->setParamRule("b", "a", "a")
-    ->route("a/test2");
+    ->route("/test2");

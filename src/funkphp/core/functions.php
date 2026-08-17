@@ -1920,13 +1920,13 @@ class C
     // unless configured so (if $this->NoWarningsAllowed is set to TRUE).
     private array $errors = [
         'ERRORS' => 0,
+        'WARNINGS' => 0,
+        'CONFIG' => [],
+        'METHODS' => [],
+        'COMPILATION' => ['errors' => [], 'warnings' => []],
         'FILES' => [],
         'INTERNAL' => [],
-        'CONFIG' => [],
-        'METHODS' => []
     ];
-    private array $compileErrors = [];
-    private array $compileWarnings = [];
     private array $WARNINGS = [];
     private array $compileFlags = [];
     // Valid + Invalid batches, compile() only starts if $invalidBatches is empty!
@@ -6928,7 +6928,7 @@ class C
             $validMWs[] = $middleware;
         }
         // Add to excludeMiddleware when all OK!
-        $this->validBatches['routes'][$method][$route]['excludeMiddlewares'] = $$validMWs;
+        $this->validBatches['routes'][$method][$route]['excludeMiddlewares'] = $validMWs;
     }
     private function batchExcludeHeadersRoute(string $method, string $route, string ...$headersToExclude)
     {
@@ -7066,13 +7066,21 @@ class C
     // Two private functions that are ONLY used via Reflection classes so you do not see
     // them while configuring `/src/funkphp/FunkPHP.php` and runs it unless `FunkPHPDeployment.php`
     // is set in `/src/public_html/index.php` to run instead!
-    private function compile_setErr(string $errShort, string $err, array &$compileErrors)
+    private function compile_setWarn(string $errShort, string $err)
     {
-        $compileErrors[count($compileErrors) + 1] = ['errShort' => $errShort, 'err' => $err];
+        if (!isset($this->errors['COMPILATION']['warnings'])) {
+            $this->errors['COMPILATION']['warnings'] = [];
+        }
+        $this->errors['WARNINGS']++;
+        $this->errors['COMPILATION']['warnings'][count($this->errors['COMPILATION']['warnings']) + 1] = ['warnShort' => $errShort, 'warn' => $err];
     }
-    private function compile_setWarn(string $errShort, string $err, array &$compileWarnings)
+    private function compile_setErr(string $errShort, string $err)
     {
-        $compileWarnings[count($compileWarnings) + 1] = ['warnShort' => $errShort, 'warn' => $err];
+        if (!isset($this->errors['COMPILATION']['errors'])) {
+            $this->errors['COMPILATION']['errors'] = [];
+        }
+        $this->errors['ERRORS']++;
+        $this->errors['COMPILATION']['errors'][count($this->errors['COMPILATION']['errors']) + 1] = ['errShort' => $errShort, 'err' => $err];
     }
     private function compile_add_to_route_trie(string $method, $route) {}
 
@@ -7292,7 +7300,7 @@ class C
 
     // Function that generates HTML to then output an easier
     // visualized version of current errors and/or warnings.
-    private function output_errors(array $internalErrors = [], array $compileErrors = [], array $compileWarnings = [])
+    private function output_errors(array $internalErrors = [])
     {
         header("content-type: text/html; charset=utf-8");
         http_response_code(500);
@@ -7324,18 +7332,19 @@ class C
                 'warnings' => 0
             ];
         }
-        $allErrors = $internalErrors['ERRORS'];
-        if (!empty($allErrors['CONFIG'])) {
-            $bucketed['CONFIG']['errors'] = count($allErrors['CONFIG']);
+        $errCount = $internalErrors['ERRORS'];
+
+        if (!empty($internalErrors['CONFIG'])) {
+            $bucketed['CONFIG']['errors'] = count($internalErrors['CONFIG']);
         }
-        if (!empty($compileErrors)) {
-            $bucketed['COMPILATION']['errors'] = count($compileErrors);
+        if (!empty($internalErrors['COMPILATION']['errors'])) {
+            $bucketed['COMPILATION']['errors'] = count($internalErrors['COMPILATION']['errors']);
         }
-        if (!empty($compileWarnings)) {
-            $bucketed['COMPILATION']['warnings'] = count($compileWarnings);
+        if (!empty($internalErrors['COMPILATION']['warnings'])) {
+            $bucketed['COMPILATION']['warnings'] = count($internalErrors['COMPILATION']['warnings']);
         }
-        if (!empty($allErrors['METHODS'])) {
-            foreach ($allErrors['METHODS'] as $method => $methodData) {
+        if (!empty($internalErrors['METHODS'])) {
+            foreach ($internalErrors['METHODS'] as $method => $methodData) {
                 $methodUpper = strtoupper($method);
                 if (isset($bucketed[$methodUpper])) {
                     if (!empty($methodData['CONFIG']) && is_array($methodData['CONFIG'])) {
@@ -7351,15 +7360,15 @@ class C
                 }
             }
         }
-        if (!empty($allErrors['FILES'])) {
-            foreach ($allErrors['FILES'] as $fileType => $singleFile) {
+        if (!empty($internalErrors['FILES'])) {
+            foreach ($internalErrors['FILES'] as $fileType => $singleFile) {
                 if (!empty($singleFile)) {
                     $bucketed['FILES']['errors'] += count($singleFile);
                 }
             }
         }
         $totalErrors = 0;
-        $totalWarnings = count($compileWarnings);
+        $totalWarnings =  $bucketed['COMPILATION']['warnings'] ?? 0;
         foreach ($tabs as $t) {
             if (isset($bucketed[$t]['errors'])) {
                 $totalErrors += $bucketed[$t]['errors'];
@@ -7760,7 +7769,7 @@ class C
                     <?php foreach ($tabs as $tab):
                         $hasContent = false;
                         if ($tab === 'CONFIG') {
-                            if (count(($allErrors['CONFIG'] ?? [])) > 0) {
+                            if (count(($internalErrors['CONFIG'] ?? [])) > 0) {
                                 $hasContent = true;
                             }
                         } else if ($tab === 'API') {
@@ -7768,21 +7777,21 @@ class C
                                 $hasContent = true;
                             }
                         } else if ($tab === 'COMPILATION') {
-                            if (count(($compileErrors ?? [])) > 0 || count($compileWarnings) > 0) {
+                            if (count($internalErrors['COMPILATION']['errors']) > 0 || count($internalErrors['COMPILATION']['warnings']) > 0) {
                                 $hasContent = true;
                             }
                         } else if ($tab === 'FILES') {
-                            if (count(($allErrors['FILES'] ?? [])) > 0) {
+                            if (count(($internalErrors['FILES'] ?? [])) > 0) {
                                 $hasContent = true;
                             }
                         } else if ($tab === 'INTERNAL') {
-                            if (count(($allErrors['INTERNAL'] ?? [])) > 0) {
+                            if (count(($internalErrors['INTERNAL'] ?? [])) > 0) {
                                 $hasContent = true;
                             }
                         } else {
                             if (
-                                count(($allErrors['METHODS'][$tab]['CONFIG'] ?? [])) > 0
-                                || count(($allErrors['METHODS'][$tab]['ROUTES'] ?? [])) > 0
+                                count(($internalErrors['METHODS'][$tab]['CONFIG'] ?? [])) > 0
+                                || count(($internalErrors['METHODS'][$tab]['ROUTES'] ?? [])) > 0
                             ) {
                                 $hasContent = true;
                             }
@@ -7811,7 +7820,7 @@ class C
                                 <?php
                                 // TAB IS "CONFIG"?
                                 if ($tab === 'CONFIG') {
-                                    $CONFIG_ERRS = $allErrors['CONFIG'] ?? [];
+                                    $CONFIG_ERRS = $internalErrors['CONFIG'] ?? [];
                                 ?> <div class="tab-group">
                                         <div class="tab-header">GLOBAL CONFIG | $APP->CONFIG() in /src/funkphp/app/CONFIG.php</div>
                                         <?php foreach ($CONFIG_ERRS as $idx => $C_ERR) {
@@ -7855,7 +7864,7 @@ class C
                                         'data-sql-uncompiled' => 'Data SQL Uncompiled | /src/funkphp/data/sql',
                                         'data-validation-uncompiled' => 'Data Validation Uncompiled | /src/funkphp/data/validation'
                                     ];
-                                    $FILES_ERRS = $allErrors['FILES'] ?? [];
+                                    $FILES_ERRS = $internalErrors['FILES'] ?? [];
 
                                 ?> <div class="tab-group">
                                         <?php foreach ($FILES_ERRS as $fileType => $singleFile) {
@@ -7919,7 +7928,7 @@ class C
                                 }
                                 // TAB IS "INTERNAL"?
                                 else if ($tab === 'INTERNAL') {
-                                    $INTERNAL_ERRS = $allErrors['INTERNAL'] ?? [];
+                                    $INTERNAL_ERRS = $internalErrors['INTERNAL'] ?? [];
                                 ?> <div class="tab-group">
                                         <div class="tab-header">Internal FunkPHP Errors (applies to all files in /src/funkphp/app)</div>
                                         <?php foreach ($INTERNAL_ERRS as $idx => $I_ERR) {
@@ -7975,8 +7984,8 @@ class C
                                 }
                                 // TAB IS "COMPILATION"?
                                 else if ($tab === 'COMPILATION') {
-                                    $COMPILE_ERRS = $compileErrors ?? [];
-                                    $COMPLE_WARNS = $compileWarnings ?? [];
+                                    $COMPILE_ERRS = $internalErrors['COMPILATION']['errors'] ?? [];
+                                    $COMPLE_WARNS = $internalErrors['COMPILATION']['warnings'] ?? [];
                                 ?> <?php if (count($COMPILE_ERRS) > 0): ?>
                                         <div class="tab-group">
                                             <div class="tab-header">FunkPHP Compilation Errors (happens only if Zero Errors otherwise in all files in /src/funkphp/app)</div>
@@ -8019,8 +8028,8 @@ class C
                                 }
                                 // TAB IS <METHOD>?
                                 else {
-                                    $R_CONFIG_ERRS = $allErrors['METHODS'][$tab]['CONFIG'] ?? [];
-                                    $R_ROUTES_ERRS = $allErrors['METHODS'][$tab]['ROUTES'] ?? [];
+                                    $R_CONFIG_ERRS = $internalErrors['METHODS'][$tab]['CONFIG'] ?? [];
+                                    $R_ROUTES_ERRS = $internalErrors['METHODS'][$tab]['ROUTES'] ?? [];
                                     ?><?php if (count($R_CONFIG_ERRS) > 0) {  ?>
                                     <div class="tab-group">
                                         <div class="tab-header"><?= $tab ?> CONFIG | $APP->ROUTES()-><?= $tab ?>() in /src/funkphp/app/<?= $tab ?>.php</div>
@@ -8179,7 +8188,7 @@ class C
         // Otherwise, we dump API + Errors and exist early (default in dd()).
         // ------------------------------------------------------------------------------------------
         if ($this->errors['ERRORS'] > 0 || count($this->invalidBatches) > 0) {
-            $this->output_errors($this->errors, $this->compileErrors, $this->compileWarnings);
+            $this->output_errors($this->errors);
         }
 
         // ------------------------------------------------------------------------------------------
@@ -8196,7 +8205,7 @@ class C
         $this->cachedCreateKeyIfNullAndOptionalFileName('file_user_defined_classes');
         // If files are invalid PHP code already
         if (!$this->cached['file_user_defined_functions']['syntax_valid']) {
-            $this->compile_setErr("", "File Function Error in `{$PATH_USER_DEFINED_FNS} while Compiling FunkPHP Configuration`: File contains Invalid PHP Syntax: '`{$this->cached['file_user_defined_functions']['syntax_error']}`' that needs to be resolved.", $this->errors['COMPILATION']);
+            $this->compile_setErr("Invalid PHP Code Syntax", "File Function Error in `{$PATH_USER_DEFINED_FNS} while Compiling FunkPHP Configuration`: File contains Invalid PHP Syntax: '`{$this->cached['file_user_defined_functions']['syntax_error']}`' that needs to be resolved.");
         } else if (
             isset($this->cached['file_user_defined_functions']['functions'])
             && count($this->cached['file_user_defined_functions']['functions']) > 0
@@ -8204,12 +8213,12 @@ class C
             foreach ($this->cached['file_user_defined_functions']['functions'] as $userFN => $_) {
                 $fatalError = $this->validateFNFile($this->cached['file_user_defined_functions'], $userFN, " `while Compiling FunkPHP Configuration`", "");
                 if ($fatalError !== null) {
-                    $this->compile_setErr("", $fatalError . " If you wanna keep the Function but not use it for this Compilation, comment it out inside of the `{$PATH_USER_DEFINED_FNS}` File and retry.", $this->errors['COMPILATION']);
+                    $this->compile_setErr("Invalid User-defined File Function (also see FILES tab)", $fatalError . " If you wanna keep the Function but not use it for this Compilation, comment it out inside of the `{$PATH_USER_DEFINED_FNS}` File and retry.");
                 }
             }
         }
         if (!$this->cached['file_user_defined_classes']['syntax_valid']) {
-            $this->compile_setErr("", "File Class Error in `{$PATH_USER_DEFINED_FNS} while Compiling FunkPHP Configuration`: File contains Invalid PHP Syntax: '`{$this->cached['file_user_defined_classes']['syntax_error']}`' that needs to be resolved.", $this->errors['COMPILATION']);
+            $this->compile_setErr("Invalid User-defined Class File", "File Class Error in `{$PATH_USER_DEFINED_FNS} while Compiling FunkPHP Configuration`: File contains Invalid PHP Syntax: '`{$this->cached['file_user_defined_classes']['syntax_error']}`' that needs to be resolved.");
         } else if (
             isset($this->cached['file_user_defined_classes']['classes'])
             && count($this->cached['file_user_defined_classes']['classes']) > 0
@@ -8217,8 +8226,7 @@ class C
             foreach ($this->cached['file_user_defined_classes']['classes'] as $userClass => $_) {
                 $fatalError = $this->validateCLASSFile($this->cached['file_user_defined_classes'], $userClass, " `while Compiling FunkPHP Configuration`", "");
                 if ($fatalError !== null) {
-                    echo "ERROR?";
-                    $this->compile_setErr("", $fatalError . " If you wanna keep the Class but not use it for this Compilation, comment it out inside of the `{$PATH_CLASSES}` File and retry.", $this->errors['COMPILATION']);
+                    $this->compile_setErr("Invalid User-defined Class File (also see FILES tab)", $fatalError . " If you wanna keep the Class but not use it for this Compilation, comment it out inside of the `{$PATH_CLASSES}` File and retry.");
                 }
             }
         }
@@ -8281,8 +8289,7 @@ class C
                 $validGroup = true;
                 foreach ($GROUPED_UD_VALS as $UD_FN) {
                     if (isset($GLOBAL_HANDLERS[$UD_FN])) {
-                        $this->compile_setErr("", "Grouped-configured User-defined Function `{$UD_FN}` in `{$PATH_USER_DEFINED_FNS}` in `->setGroupPipeUserdefined('{$GROUPED_UD_NAME}')` conflicts with already defined Global Handler Role `{$GLOBAL_HANDLERS[$UD_FN]}.` Remove `{$UD_FN}` from the `->setGroupPipeUserdefined()` OR from the `Global Handler Role`.", $this->compileErrors);
-                        //$compileErrors[count($compileErrors) + 1] = "Grouped-configured User-defined Function `{$UD_FN}` in `{$PATH_USER_DEFINED_FNS}` in `->setGroupPipeUserdefined('{$GROUPED_UD_NAME}')` conflicts with already defined Global Handler Role `{$GLOBAL_HANDLERS[$UD_FN]}.` Remove `{$UD_FN}` from the `->setGroupPipeUserdefined()` OR from the `Global Handler Role`.";
+                        $this->compile_setErr("Conflicting User-defined Functions", "Grouped-configured User-defined Function `{$UD_FN}` in `{$PATH_USER_DEFINED_FNS}` in `->setGroupPipeUserdefined('{$GROUPED_UD_NAME}')` conflicts with already defined Global Handler Role `{$GLOBAL_HANDLERS[$UD_FN]}.` Remove `{$UD_FN}` from the `->setGroupPipeUserdefined()` OR from the `Global Handler Role`.");
                         $validGroup = false;
                     }
                 }
@@ -8320,56 +8327,56 @@ class C
             // Use user-defined (UD) OR default Session Driver? (files)
             if (!isset($this->validBatches['config']['SESSION']['driver'])) {
                 $this->compiled['c']['SESSION']['driver'] = "files";
-                $this->compile_setWarn("", "No Default `Session Cookie Driver` set (with `'->CONFIG()->setSessionDriver()'`) - using default: `'files'`.", $this->compileWarnings);
+                $this->compile_setWarn("Missing Default Session Cookie Driver", "No Default `Session Cookie Driver` set (with `'->CONFIG()->setSessionDriver()'`) - using default: `'files'`.");
             } else {
                 $this->compiled['c']['SESSION']['driver'] = $this->validBatches['config']['SESSION']['driver'];
             }
             // UD or default Session Name?
             if (!isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_NAME'])) {
                 $this->compiled['c']['SESSION']['COOKIES']['SESSION_NAME'] = "fphp_id";
-                $this->compile_setWarn("", "No Default `Session Cookie Name` set (with `'->CONFIG()->setSessionCookieName()'`) - using default: `'fphp_id'`.", $this->compileWarnings);
+                $this->compile_setWarn("Missing Default Session Cookie Name", "No Default `Session Cookie Name` set (with `'->CONFIG()->setSessionCookieName()'`) - using default: `'fphp_id'`.");
             } else {
                 $this->compiled['c']['SESSION']['COOKIES']['SESSION_NAME'] = $this->validBatches['config']['SESSION']['COOKIES']['SESSION_NAME'];
             }
             // UD or default Session Domain?
             if (!isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_DOMAIN'])) {
                 $this->compiled['c']['SESSION']['COOKIES']['SESSION_DOMAIN'] = "funkphp";
-                $this->compile_setWarn("", "No Default `Session Cookie Domain` set (with `'->CONFIG()->setSessionCookieDomain()'`) - using default: `'funkphp'`.", $this->compileWarnings);
+                $this->compile_setWarn("Missing Default Session Cookie Domain", "No Default `Session Cookie Domain` set (with `'->CONFIG()->setSessionCookieDomain()'`) - using default: `'funkphp'`.");
             } else {
                 $this->compiled['c']['SESSION']['COOKIES']['SESSION_DOMAIN'] = $this->validBatches['config']['SESSION']['COOKIES']['SESSION_DOMAIN'];
             }
             // UD or default Session Path?
             if (!isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_PATH'])) {
                 $this->compiled['c']['SESSION']['COOKIES']['SESSION_PATH'] = "/";
-                $this->compile_setWarn("", "No Default `Session Cookie Domain` set (with `'->CONFIG()->setSessionCookiePath()'`) - using default: `'/'`.", $this->compileWarnings);
+                $this->compile_setWarn("Missing Default Session Cookie Path", "No Default `Session Cookie Domain` set (with `'->CONFIG()->setSessionCookiePath()'`) - using default: `'/'`.");
             } else {
                 $this->compiled['c']['SESSION']['COOKIES']['SESSION_PATH'] = $this->validBatches['config']['SESSION']['COOKIES']['SESSION_PATH'];
             }
             // UD or default Session Lifetime?
             if (!isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_LIFETIME'])) {
                 $this->compiled['c']['SESSION']['COOKIES']['SESSION_LIFETIME'] = 28800;
-                $this->compile_setWarn("", "No Default `Session Cookie Lifetime` set (with `'->CONFIG()->setSessionCookieLifetime()'`) - using default: `'28800'`.", $this->compileWarnings);
+                $this->compile_setWarn("Missing Default Session Cookie Lifetime", "No Default `Session Cookie Lifetime` set (with `'->CONFIG()->setSessionCookieLifetime()'`) - using default: `'28800'`.");
             } else {
                 $this->compiled['c']['SESSION']['COOKIES']['SESSION_LIFETIME'] = $this->validBatches['config']['SESSION']['COOKIES']['SESSION_LIFETIME'];
             }
             // UD or default Session Lifetime?
             if (!isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_SAMESITE'])) {
                 $this->compiled['c']['SESSION']['COOKIES']['SESSION_SAMESITE'] = 'Lax';
-                $this->compile_setWarn("", "No Default `Session Cookie Samesite` set (with `'->CONFIG()->setSessionCookieSameSite()'`) - using default: `'Lax'`.", $this->compileWarnings);
+                $this->compile_setWarn("Missing Default Session Cookie SameSite", "No Default `Session Cookie Samesite` set (with `'->CONFIG()->setSessionCookieSameSite()'`) - using default: `'Lax'`.");
             } else {
                 $this->compiled['c']['SESSION']['COOKIES']['SESSION_SAMESITE'] = $this->validBatches['config']['SESSION']['COOKIES']['SESSION_SAMESITE'];
             }
             // UD or default Session SECURE?
             if (!isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_SECURE'])) {
                 $this->compiled['c']['SESSION']['COOKIES']['SESSION_SECURE'] = false;
-                $this->compile_setWarn("", "No Default `Session Cookie Secure` set (with `'->CONFIG()->setSessionCookieSecure()'`) - using default: `'false'`.", $this->compileWarnings);
+                $this->compile_setWarn("Missing Default Session Cookie Secure", "No Default `Session Cookie Secure` set (with `'->CONFIG()->setSessionCookieSecure()'`) - using default: `'false'`.");
             } else {
                 $this->compiled['c']['SESSION']['COOKIES']['SESSION_SECURE'] = $this->validBatches['config']['SESSION']['COOKIES']['SESSION_SECURE'];
             }
             // UD or default Session HTTP?
             if (!isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_HTTPONLY'])) {
                 $this->compiled['c']['SESSION']['COOKIES']['SESSION_HTTPONLY'] = true;
-                $this->compile_setWarn("", "No Default `Session Cookie HttpOnly` set (with `'->CONFIG()->setSessionCookieHTTPOnly()'`) - using default: `'true'`.", $this->compileWarnings);
+                $this->compile_setWarn("Missing Default Session Cookie HTTPOnly", "No Default `Session Cookie HttpOnly` set (with `'->CONFIG()->setSessionCookieHTTPOnly()'`) - using default: `'true'`.");
             } else {
                 $this->compiled['c']['SESSION']['COOKIES']['SESSION_HTTPONLY'] = $this->validBatches['config']['SESSION']['COOKIES']['SESSION_HTTPONLY'];
             }
@@ -8383,7 +8390,7 @@ class C
                 isset($this->validBatches['config']['NO_ROUTE_MATCH']['CALLBACK'])
                 && isset($GLOBAL_HANDLERS[$this->validBatches['config']['NO_ROUTE_MATCH']['CALLBACK']])
             ) {
-                $this->compile_setErr("", "User-defined Function `{$this->validBatches['config']['NO_ROUTE_MATCH']['CALLBACK']}` in `{$PATH_USER_DEFINED_FNS}` in `->CONFIG()->setNoRouteMatchCallback('{$this->validBatches['config']['NO_ROUTE_MATCH']['CALLBACK']}')` conflicts with already defined `Global Handler Role {$GLOBAL_HANDLERS[$this->validBatches['config']['NO_ROUTE_MATCH']['CALLBACK']]}`. Remove `{$this->validBatches['config']['NO_ROUTE_MATCH']['CALLBACK']}` from `->CONFIG()->setNoRouteMatchCallback()` OR from the `Global Handler Role`.", $this->compileErrors);
+                $this->compile_setErr("Conflicting User-defined Functions", "User-defined Function `{$this->validBatches['config']['NO_ROUTE_MATCH']['CALLBACK']}` in `{$PATH_USER_DEFINED_FNS}` in `->CONFIG()->setNoRouteMatchCallback('{$this->validBatches['config']['NO_ROUTE_MATCH']['CALLBACK']}')` conflicts with already defined `Global Handler Role {$GLOBAL_HANDLERS[$this->validBatches['config']['NO_ROUTE_MATCH']['CALLBACK']]}`. Remove `{$this->validBatches['config']['NO_ROUTE_MATCH']['CALLBACK']}` from `->CONFIG()->setNoRouteMatchCallback()` OR from the `Global Handler Role`.");
             } else {
                 $this->compiled['config']['NO_ROUTE_MATCH']['CALLBACK'] =  $this->validBatches['config']['NO_ROUTE_MATCH']['CALLBACK'];
             }
@@ -8402,9 +8409,8 @@ class C
                     $callbackFn = $this->validBatches['methods'][$method]['NO_ROUTE_MATCH']['CALLBACK'];
                     $role = $GLOBAL_HANDLERS[$callbackFn];
                     $this->compile_setErr(
-                        "",
+                        "Conflicting User-defined Functions",
                         "User-defined Function `{$callbackFn}` in `{$PATH_USER_DEFINED_FNS}` in `->ROUTES()->{$method}()->setNoRouteMatchCallback('{$callbackFn}')` conflicts with already defined `Global Handler Role {$role}`. Remove `{$callbackFn}` from `->ROUTES()->{$method}()->setNoRouteMatchCallback()` OR from the `Global Handler Role`.",
-                        $this->errors['COMPILATION']
                     );
                 } else {
                     $this->compiled['methods'][$method]['NO_ROUTE_MATCH']['CALLBACK'] =   $this->validBatches['methods'][$method]['NO_ROUTE_MATCH']['CALLBACK'];
@@ -8453,32 +8459,32 @@ class C
         // ------------------------------------------------------------------------------------------
         if (!isset($this->validBatches['config']['request'])) {
             if (!isset($this->validBatches['config']['DEFAULT_HTTPS_KERNEL'])) {
-                $this->compile_setWarn("", "No Request Pipes (via `->pipeRequestFunction() in ->CONFIG()` detected. If intended to use No Request Pipes, just ignore this warning. This means that only Global-based Middlewares, then Route-matching, then Method-based Middleware and finally Route-based Middleware and its remaining pipes will run.", $this->compileWarnings);
+                $this->compile_setWarn("No Request Pipes used with Funk HTTPS Kernel", "No Request Pipes (via `->pipeRequestFunction() in ->CONFIG()` detected. If intended to use No Request Pipes, just ignore this warning. This means that only Global-based Middlewares, then Route-matching, then Method-based Middleware and finally Route-based Middleware and its remaining pipes will run.");
             } else {
-                $this->compile_setWarn("", "No Request Pipes (via `->pipeRequestFunction() in ->CONFIG()` detected. If intended to use No Request Pipes, just ignore this warning. The `User-defined Custom Default HTTPS Kernel Handler` is configured for use meaning that after Successful Compilation it will have access to Trie-based Routes with Metadata and then it is `all up to that User-defined Function to handle everything` from Route-matching to executing each Route-associated Pipe Function(s).", $this->compileWarnings);
+                $this->compile_setWarn("No request Pipes used without Funk HTTPS Kernel", "No Request Pipes (via `->pipeRequestFunction() in ->CONFIG()` detected. If intended to use No Request Pipes, just ignore this warning. The `User-defined Custom Default HTTPS Kernel Handler` is configured for use meaning that after Successful Compilation it will have access to Trie-based Routes with Metadata and then it is `all up to that User-defined Function to handle everything` from Route-matching to executing each Route-associated Pipe Function(s).");
             }
         }
         // request pipes exist
         else {
             if (isset($this->validBatches['config']['DEFAULT_HTTPS_KERNEL'])) {
-                $this->compile_setWarn("", "Request Pipes (via `->pipeRequestFunction() in ->CONFIG()` and the `User-defined Custom Default HTTPS Kernel Handler` detected. This means that that after Successful Compilation it will have access to Trie-based Routes with Metadata and then it is `all up to that User-defined Function to handle everything AFTER Request Pipe Functions first have ran`; everything from Route-matching to executing each Route-associated Pipe Function(s).", $this->compileWarnings);
+                $this->compile_setWarn("Request Pipes with User-defined HTTPS Kernel", "Request Pipes (via `->pipeRequestFunction() in ->CONFIG()` and the `User-defined Custom Default HTTPS Kernel Handler` detected. This means that that after Successful Compilation it will have access to Trie-based Routes with Metadata and then it is `all up to that User-defined Function to handle everything AFTER Request Pipe Functions first have ran`; everything from Route-matching to executing each Route-associated Pipe Function(s).");
             }
             // VALIDATE "group:" Variants and then ADD REQUEST PIPES
             $allPipes = [];
             foreach ($this->validBatches['config']['request'] as $pipe) {
                 if (!str_starts_with($pipe, 'group:')) {
                     if (count($allPipes) > 0 && $allPipes[count($allPipes) - 1] === $pipe) {
-                        $this->compile_setWarn("", "`Consecutive GLOBAL Pipe Request Function '{$pipe}' found`. Ignore this warning if it is intentional or Review `->CONFIG()->pipeRequestFunction()` in `/src/funkphp/app/CONFIG.php`.", $this->compileWarnings);
+                        $this->compile_setWarn("Consecutive Request Pipe File Functions", "`Consecutive GLOBAL Pipe Request Function '{$pipe}' found`. Ignore this warning if it is intentional or Review `->CONFIG()->pipeRequestFunction()` in `/src/funkphp/app/CONFIG.php`.");
                     }
                     $allPipes[] = $pipe;
                     continue;
                 }
                 if (!isset($GLOBAL_GROUPED['REQUEST'][$pipe])) {
-                    $this->compile_setErr("", "Grouped GLOBAL Request Pipe Functions with the name `{$pipe}` does not exist but was still part of the `->CONFIG()->pipeRequestFunction('{$pipe}')` in `/src/funkphp/app/CONFIG.php`. Use `->setGroupPipeRequest('{$pipe}')` in `/src/funkphp/app/CONFIG.php` to first create the Grouping.", $this->compileErrors);
+                    $this->compile_setErr("Missing Request Pipe File Function", "Grouped GLOBAL Request Pipe Functions with the name `{$pipe}` does not exist but was still part of the `->CONFIG()->pipeRequestFunction('{$pipe}')` in `/src/funkphp/app/CONFIG.php`. Use `->setGroupPipeRequest('{$pipe}')` in `/src/funkphp/app/CONFIG.php` to first create the Grouping.");
                 } else {
                     foreach ($GLOBAL_GROUPED['REQUEST'][$pipe] as $groupPipe) {
                         if (count($allPipes) > 0 && $allPipes[count($allPipes) - 1] === $groupPipe) {
-                            $this->compile_setWarn("", "`Consecutive GLOBAL Pipe Request Function '{$groupPipe}' found`. Ignore this warning if it is intentional or Review `->CONFIG()->pipeRequestFunction()` in `/src/funkphp/app/CONFIG.php`.", $this->compileWarnings);
+                            $this->compile_setWarn("Consecutive Request Pipe File Functions", "`Consecutive GLOBAL Pipe Request Function '{$groupPipe}' found`. Ignore this warning if it is intentional or Review `->CONFIG()->pipeRequestFunction()` in `/src/funkphp/app/CONFIG.php`.");
                         }
                         $allPipes[] = $groupPipe;
                     }
@@ -8495,17 +8501,17 @@ class C
             foreach ($this->validBatches['config']['middlewares'] as $pipe) {
                 if (!str_starts_with($pipe, 'group:')) {
                     if (count($allPipes) > 0 && $allPipes[count($allPipes) - 1] === $pipe) {
-                        $this->compile_setWarn("", "`Consecutive GLOBAL Pipe Middleware Function '{$pipe}' found`. Ignore this warning if it is intentional or Review `->CONFIG()->pipeMiddleware()` in `/src/funkphp/app/CONFIG.php`.", $this->compileWarnings);
+                        $this->compile_setWarn("Consecutive Middleware Pipe File Functions", "`Consecutive GLOBAL Pipe Middleware Function '{$pipe}' found`. Ignore this warning if it is intentional or Review `->CONFIG()->pipeMiddleware()` in `/src/funkphp/app/CONFIG.php`.");
                     }
                     $allPipes[] = $pipe;
                     continue;
                 }
                 if (!isset($GLOBAL_GROUPED['MIDDLEWARES'][$pipe])) {
-                    $this->compile_setErr("", "Grouped GLOBAL Middleware Pipe Functions with the name `{$pipe}` does not exist but was still part of the `->CONFIG()->pipeMiddleware('{$pipe}')` in `/src/funkphp/app/CONFIG.php`. Use `->setGroupPipeMiddlewares('{$pipe}')` in `/src/funkphp/app/CONFIG.php` to first create the Grouping.", $this->compileErrors);
+                    $this->compile_setErr("Missing Middleware File Function", "Grouped GLOBAL Middleware Pipe Functions with the name `{$pipe}` does not exist but was still part of the `->CONFIG()->pipeMiddleware('{$pipe}')` in `/src/funkphp/app/CONFIG.php`. Use `->setGroupPipeMiddlewares('{$pipe}')` in `/src/funkphp/app/CONFIG.php` to first create the Grouping.");
                 } else {
                     foreach ($GLOBAL_GROUPED['MIDDLEWARES'][$pipe] as $groupPipe) {
                         if (count($allPipes) > 0 && $allPipes[count($allPipes) - 1] === $groupPipe) {
-                            $this->compile_setWarn("", "`Consecutive GLOBAL Pipe Middleware Function '{$groupPipe}' found`. Ignore this warning if it is intentional or Review `->CONFIG()->pipeMiddleware()` in `/src/funkphp/app/CONFIG.php`.", $this->compileWarnings);
+                            $this->compile_setWarn("Consecutive Middleware Pipe File Functions", "`Consecutive GLOBAL Pipe Middleware Function '{$groupPipe}' found`. Ignore this warning if it is intentional or Review `->CONFIG()->pipeMiddleware()` in `/src/funkphp/app/CONFIG.php`.");
                         }
                         $allPipes[] = $groupPipe;
                         // As MWs are unpacked, add then them to global-based MW Invert Index
@@ -8525,7 +8531,7 @@ class C
         // 8.3 Post-Response Pipes
         // ------------------------------------------------------------------------------------------
         if (!isset($this->validBatches['config']['post_response'])) {
-            $this->compile_setWarn("", "No Post-Response Pipes (via `->pipePostResponseFunction() in ->CONFIG()` detected. If intended to use No Post-Response Pipes, just ignore this warning. This means that after each HTTP(S) Request that completes (or via `exit()`), nothing else happens. `Piped Post-Response Functions` are otherwise executed via the in-built PHP Function `register_shutdown_function()` in the ordered they have been added/piped. This is also why you will get a Fatal Compiling Error if you try to use the `register_shutdown_function()` inside any of your Function Files.", $this->compileWarnings);
+            $this->compile_setWarn("No Post-Response File Functions used", "No Post-Response Pipes (via `->pipePostResponseFunction() in ->CONFIG()` detected. If intended to use No Post-Response Pipes, just ignore this warning. This means that after each HTTP(S) Request that completes (or via `exit()`), nothing else happens. `Piped Post-Response Functions` are otherwise executed via the in-built PHP Function `register_shutdown_function()` in the ordered they have been added/piped. This is also why you will get a Fatal Compiling Error if you try to use the `register_shutdown_function()` inside any of your Function Files.");
         }
         // post_response pipes exist
         else {
@@ -8535,17 +8541,17 @@ class C
             foreach ($this->validBatches['config']['post_response'] as $pipe) {
                 if (!str_starts_with($pipe, 'group:')) {
                     if (count($allPipes) > 0 && $allPipes[count($allPipes) - 1] === $pipe) {
-                        $this->compile_setWarn("", "`Consecutive GLOBAL Pipe Post-Response Function '{$pipe}' found`. Ignore this warning if it is intentional or Review `->CONFIG()->pipePostResponseFunction()` in `/src/funkphp/app/CONFIG.php`.", $this->compileWarnings);
+                        $this->compile_setWarn("Consecutive Post-Response Pipe File Functions", "`Consecutive GLOBAL Pipe Post-Response Function '{$pipe}' found`. Ignore this warning if it is intentional or Review `->CONFIG()->pipePostResponseFunction()` in `/src/funkphp/app/CONFIG.php`.");
                     }
                     $allPipes[] = $pipe;
                     continue;
                 }
                 if (!isset($GLOBAL_GROUPED['POST_RESPONSE'][$pipe])) {
-                    $this->compile_setErr("", "Grouped GLOBAL Post-Response Pipe Functions with the name `{$pipe}` does not exist but was still part of the `->CONFIG()->pipePostResponseFunction('{$pipe}')` in `/src/funkphp/app/CONFIG.php`. Use `->setGroupPipePostResponse('{$pipe}')` in `/src/funkphp/app/CONFIG.php` to first create the Grouping.", $this->compileErrors);
+                    $this->compile_setErr("Missing Post-Response Pipe File Function", "Grouped GLOBAL Post-Response Pipe Functions with the name `{$pipe}` does not exist but was still part of the `->CONFIG()->pipePostResponseFunction('{$pipe}')` in `/src/funkphp/app/CONFIG.php`. Use `->setGroupPipePostResponse('{$pipe}')` in `/src/funkphp/app/CONFIG.php` to first create the Grouping.");
                 } else {
                     foreach ($GLOBAL_GROUPED['POST_RESPONSE'][$pipe] as $groupPipe) {
                         if (count($allPipes) > 0 && $allPipes[count($allPipes) - 1] === $groupPipe) {
-                            $this->compile_setWarn("", "`Consecutive GLOBAL Pipe Post-Response Function '{$groupPipe}' found`. Ignore this warning if it is intentional or Review `->CONFIG()->pipePostResponseFunction()` in `/src/funkphp/app/CONFIG.php`.", $this->compileWarnings);
+                            $this->compile_setWarn("Consecutive Post-Response Pipe File Functions", "`Consecutive GLOBAL Pipe Post-Response Function '{$groupPipe}' found`. Ignore this warning if it is intentional or Review `->CONFIG()->pipePostResponseFunction()` in `/src/funkphp/app/CONFIG.php`.");
                         }
                         $allPipes[] = $groupPipe;
                     }
@@ -8564,17 +8570,17 @@ class C
                     foreach ($methodConfig['middlewares'] as $pipe) {
                         if (!str_starts_with($pipe, 'group:')) {
                             if (count($allPipes) > 0 && $allPipes[count($allPipes) - 1] === $pipe) {
-                                $this->compile_setWarn("", "`Consecutive {$method} Pipe Middleware Function '{$pipe}' found`. Ignore this warning if it is intentional or Review `->ROUTES()->{$method}()->pipeMiddleware()` in `/src/funkphp/app/{$method}.php`.", $this->compileWarnings);
+                                $this->compile_setWarn("Consecutive Middleware Pipe File Functions", "`Consecutive {$method} Pipe Middleware Function '{$pipe}' found`. Ignore this warning if it is intentional or Review `->ROUTES()->{$method}()->pipeMiddleware()` in `/src/funkphp/app/{$method}.php`.");
                             }
                             $allPipes[] = $pipe;
                             continue;
                         }
                         if (!isset($GLOBAL_GROUPED['MIDDLEWARES'][$pipe])) {
-                            $this->compile_setErr("", "Grouped Middleware {$method} Pipe Functions with the name `{$pipe}` does not exist but was still part of the `->ROUTES()->{$method}()->pipeMiddleware('{$pipe}')` in `/src/funkphp/app/{$method}.php`. Use `->setGroupPipeMiddlewares('{$pipe}')` in `/src/funkphp/app/CONFIG.php` to first create the Grouping.", $this->compileErrors);
+                            $this->compile_setErr("", "Grouped Middleware {$method} Pipe Functions with the name `{$pipe}` does not exist but was still part of the `->ROUTES()->{$method}()->pipeMiddleware('{$pipe}')` in `/src/funkphp/app/{$method}.php`. Use `->setGroupPipeMiddlewares('{$pipe}')` in `/src/funkphp/app/CONFIG.php` to first create the Grouping.");
                         } else {
                             foreach ($GLOBAL_GROUPED['MIDDLEWARES'][$pipe] as $groupPipe) {
                                 if (count($allPipes) > 0 && $allPipes[count($allPipes) - 1] === $groupPipe) {
-                                    $this->compile_setWarn("", "`Consecutive {$method} Pipe Middleware Function '{$groupPipe}' found`. Ignore this warning if it is intentional or Review `->ROUTES()->{$method}()->pipeMiddleware()` in `/src/funkphp/app/{$method}.php`.", $this->compileWarnings);
+                                    $this->compile_setWarn("Consecutive Middleware Pipe File Functions", "`Consecutive {$method} Pipe Middleware Function '{$groupPipe}' found`. Ignore this warning if it is intentional or Review `->ROUTES()->{$method}()->pipeMiddleware()` in `/src/funkphp/app/{$method}.php`.");
                                 }
                                 $allPipes[] = $groupPipe;
                                 // As MWs are unpacked, add then them to method-based MW Invert Index
@@ -8596,7 +8602,7 @@ class C
                     ) {
                         $lastConfigMW = $this->compiled['config']['pipes']['middlewares'][count($this->compiled['config']['pipes']['middlewares']) - 1];
                         if ($allPipes[0] === $lastConfigMW) {
-                            $this->compile_setWarn("", "`Consecutive Pipe Middleware Function '{$allPipes[0]}' found`. It runs as `Last Middleware Globally` and then it runs as the `First {$method} Middleware` for any Matched Route in `{$method}`. Ignore this warning if it is intentional or Review: `->CONFIG()->pipeMiddleware('{$lastConfigMW}')` in `/src/funkphp/app/CONFIG.php` AND `->ROUTES()->{$method}()->pipeMiddleware()` in `/src/funkphp/app/{$method}.php`.", $this->compileWarnings);
+                            $this->compile_setWarn("Consecutive Middlewares between Global and Method", "`Consecutive Pipe Middleware Function '{$allPipes[0]}' found`. It runs as `Last Middleware Globally` and then it runs as the `First {$method} Middleware` for any Matched Route in `{$method}`. Ignore this warning if it is intentional or Review: `->CONFIG()->pipeMiddleware('{$lastConfigMW}')` in `/src/funkphp/app/CONFIG.php` AND `->ROUTES()->{$method}()->pipeMiddleware()` in `/src/funkphp/app/{$method}.php`.");
                         }
                     }
                     $this->compiled['methods'][$method]['middlewares'] = $allPipes;
@@ -8623,7 +8629,7 @@ class C
         // or should it be allowed to NOT have any routes just as a "soft success"?
         // No Routes?
         if (!isset($this->validBatches['routes']) || count($this->validBatches['routes']) === 0) {
-            //$this->compile_setWarn("`No Routes Configured`. This means ", $this->compileWarnings);
+            //$this->compile_setWarn("`No Routes Configured`. This means ");
             $this->compile_welcome_splash();
         }
         // Routes exist!
@@ -8646,14 +8652,14 @@ class C
                         && isset($routeDetails['middlewares'])
                         && count($routeDetails['middlewares']) > 0
                     ) {
-                        $this->compile_setErr("Middlwares without Route Pipes in {$CURRENT_ROUTE_STR}", "`Only Middlewares` in Route {$CURRENT_ROUTE_STR} but `No Pipes`. You need `at least one Pipe Function` for the Route {$CURRENT_ROUTE_STR}.", $this->compileErrors);
+                        $this->compile_setErr("Middlwares without Route Pipes in {$CURRENT_ROUTE_STR}", "`Only Middlewares` in Route {$CURRENT_ROUTE_STR} but `No Pipes`. You need `at least one Pipe Function` for the Route {$CURRENT_ROUTE_STR}.");
                         continue;
                     }
                     if (!isset($routeDetails['pipes']) || count($routeDetails['pipes']) === 0) {
-                        $this->compile_setWarn("No Route Pipes in {$CURRENT_ROUTE_STR}", "No Pipes for Route {$CURRENT_ROUTE_STR}'.", $this->compileWarnings);
+                        $this->compile_setWarn("No Route Pipes in {$CURRENT_ROUTE_STR}", "No Pipes for Route {$CURRENT_ROUTE_STR}'.");
                     }
                     if (!isset($routeDetails['middlewares']) || count($routeDetails['middlewares']) === 0) {
-                        $this->compile_setWarn("No Middlewares in {$CURRENT_ROUTE_STR}", "No Middlewares for Route {$CURRENT_ROUTE_STR}'.", $this->compileWarnings);
+                        $this->compile_setWarn("No Middlewares in {$CURRENT_ROUTE_STR}", "No Middlewares for Route {$CURRENT_ROUTE_STR}'.");
                     }
 
                     // STEP 11.4: Iterate through Route Middlewares and warn about consecutive runs that
@@ -8673,22 +8679,16 @@ class C
 
             // STEP 11.6: Build `routes` -
         }
-
-
-
         /////////////////////////////////////// END /////////////////////////////
-        //$this->compile_setErr("", $this->compileErrors);
-        if (
-            isset($this->debug['SHOW_MAIN_CONFIG'])
-            && !$this->debug['SHOW_MAIN_CONFIG']
+        //$this->compile_setErr("");
+        if ((isset($this->errors['COMPILATION']['errors'])
+                && count($this->errors['COMPILATION']['errors']) > 0)
+            || $this->debug['ALWAYS_SHOW']
         ) {
-            $this->FunkPHPFluentAPI['CONFIG'] = '(' . (count($this->FunkPHPFluentAPI['CONFIG'])) . ' Configuration' . (count($this->FunkPHPFluentAPI['CONFIG']) > 1 ? 's' : '') . ') - Show all Configuration by setting third Boolean in `CONFIG()->setDebug()` in `/src/funkphp/app/CONFIG.php` to `true`.';
-        }
-        if (count($this->compileErrors) > 0 || $this->debug['ALWAYS_SHOW']) {
-            $this->output_errors($this->errors, $this->compileErrors, $this->compileWarnings);
+            $this->output_errors($this->errors);
         }
 
-        dd(['COMPILE FLAGS' => $this->compileFlags, 'API' => $this->FunkPHPFluentAPI, 'COMPILE_ERRORS' => $this->errors['COMPILATION'], 'COMPILE_WARNINGS' => $this->compileWarnings, 'COMPILED' => $this->compiled, 'VALID' => $this->validBatches,  'CACHED' => $this->cached], "COMPILATION - DEBUG", true);
+        dd(['COMPILE FLAGS' => $this->compileFlags, 'API' => $this->FunkPHPFluentAPI, 'COMPILE_ERRORS' => $this->errors['COMPILATION']['errors'], 'COMPILE_WARNINGS' => $this->errors['COMPILATION']['warnings'], 'COMPILED' => $this->compiled, 'VALID' => $this->validBatches,  'CACHED' => $this->cached], "COMPILATION - DEBUG", true);
     }
     private function run()
     {
