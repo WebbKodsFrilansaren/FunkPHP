@@ -2222,75 +2222,105 @@ class C
     private function cachedCreateKeyIfNullAndOptionalFileName(string $key, string $optionalFileName = '1_NO_FILE_NAME_PROVIDED_1'): void
     {
         if ($key === 'file_user_defined_functions') {
-            $this->cached[$key] = $this->file_status('/config', 'functions');
+            if (!isset($this->cached[$key])) {
+                $this->cached[$key] = $this->file_status('/config', 'functions');
+                $this->cached[$key]['?file_type'] = 'user-functions';
+            }
         } elseif ($key === 'file_user_defined_classes') {
-            $this->cached[$key] = $this->file_status('/config', 'classes');
+            if (!isset($this->cached[$key])) {
+                $this->cached[$key] = $this->file_status('/config', 'classes');
+                $this->cached[$key]['?file_type'] = 'user-classes';
+            }
         } elseif ($key === 'file_user_defined_tables') {
-            $this->cached[$key] = $this->file_status('/config', 'tables');
+            if (!isset($this->cached[$key])) {
+                $this->cached[$key] = $this->file_status('/config', 'tables');
+                $this->cached[$key]['?file_type'] = 'user-tables';
+            }
         } elseif ($key === 'files_pipes_request') {
             if (!isset($this->cached[$key][$optionalFileName])) {
                 $this->cached[$key][$optionalFileName] = $this->file_status('/pipes/request', $optionalFileName);
+                $this->cached[$key]['?file_type'] = 'request';
             }
         } elseif ($key === 'files_pipes_post_response') {
             if (!isset($this->cached[$key][$optionalFileName])) {
                 $this->cached[$key][$optionalFileName] = $this->file_status('/pipes/post_response', $optionalFileName);
+                $this->cached[$key]['?file_type'] = 'post-response';
             }
         } elseif ($key === 'files_pipes_middlewares') {
             if (!isset($this->cached[$key][$optionalFileName])) {
                 $this->cached[$key][$optionalFileName] = $this->file_status('/pipes/middlewares', $optionalFileName);
+                $this->cached[$key]['?file_type'] = 'middleware';
             }
         } elseif ($key === 'files_routes') {
             if (!isset($this->cached[$key][$optionalFileName])) {
                 $this->cached[$key][$optionalFileName] = $this->file_status('/pipes/routes', $optionalFileName);
+                $this->cached[$key]['?file_type'] = 'route';
             }
         } elseif ($key === 'files_pages') {
             if (!isset($this->cached[$key][$optionalFileName])) {
                 $this->cached[$key][$optionalFileName] = $this->file_status('/pages', $optionalFileName);
+                $this->cached[$key]['?file_type'] = 'pages-uncompiled';
             }
         } elseif ($key === 'files_pages_compiled') {
             if (!isset($this->cached[$key][$optionalFileName])) {
                 $this->cached[$key][$optionalFileName] = $this->file_status('/pages/compiled', $optionalFileName);
+                $this->cached[$key]['?file_type'] = 'pages-compiled';
             }
         } elseif ($key === 'files_pages_components') {
             if (!isset($this->cached[$key][$optionalFileName])) {
                 $this->cached[$key][$optionalFileName] = $this->file_status('/pages/components', $optionalFileName);
+                $this->cached[$key]['?file_type'] = 'pages-components';
             }
         } elseif ($key === 'files_pages_layouts') {
             if (!isset($this->cached[$key][$optionalFileName])) {
                 $this->cached[$key][$optionalFileName] = $this->file_status('/pages/layouts', $optionalFileName);
+                $this->cached[$key]['?file_type'] = 'pages-layouts';
             }
         } elseif ($key === 'files_pages_partials') {
             if (!isset($this->cached[$key][$optionalFileName])) {
                 $this->cached[$key][$optionalFileName] = $this->file_status('/pages/partials', $optionalFileName);
+                $this->cached[$key]['?file_type'] = 'pages-partials';
             }
         } elseif ($key === 'files_data_sql') {
             if (!isset($this->cached[$key][$optionalFileName])) {
                 $this->cached[$key][$optionalFileName] = $this->file_status('/data/sql', $optionalFileName);
+                $this->cached[$key]['?file_type'] = 'data-sql-uncompiled';
             }
         } elseif ($key === 'files_data_query') {
             if (!isset($this->cached[$key][$optionalFileName])) {
                 $this->cached[$key][$optionalFileName] = $this->file_status('/data/query', $optionalFileName);
+                $this->cached[$key]['?file_type'] = 'data-query-uncompiled';
             }
         } elseif ($key === 'files_data_validation') {
             if (!isset($this->cached[$key][$optionalFileName])) {
                 $this->cached[$key][$optionalFileName] = $this->file_status('/data/validation', $optionalFileName);
+                $this->cached[$key]['?file_type'] = 'data-validation-uncompiled';
             }
         } elseif ($key === 'files_data_sql_compiled') {
             if (!isset($this->cached[$key][$optionalFileName])) {
                 $this->cached[$key][$optionalFileName] = $this->file_status('/data/compiled/sql', $optionalFileName);
+                $this->cached[$key]['?file_type'] = 'data-sql-compiled';
             }
         } elseif ($key === 'files_data_query_compiled') {
             if (!isset($this->cached[$key][$optionalFileName])) {
                 $this->cached[$key][$optionalFileName] = $this->file_status('/data/compiled/query', $optionalFileName);
+                $this->cached[$key]['?file_type'] = 'data-query-compiled';
             }
         } elseif ($key === 'files_data_validation_compiled') {
             if (!isset($this->cached[$key][$optionalFileName])) {
                 $this->cached[$key][$optionalFileName] = $this->file_status('/data/compiled/validation', $optionalFileName);
+                $this->cached[$key]['?file_type'] = 'data-validation-compiled';
             }
         } elseif ($key === 'file_core_functions') {
-            $this->cached[$key] = $this->file_status('/core', 'functions');
+            if (!isset($this->cached[$key])) {
+                $this->cached[$key] = $this->file_status('/core', 'functions');
+                $this->cached[$key]['?file_type'] = 'core-functions';
+            }
         } elseif ($key === 'file_manifest') {
-            $this->cached[$key] = $this->file_status('/core', 'manifest');
+            if (!isset($this->cached[$key])) {
+                $this->cached[$key] = $this->file_status('/core', 'manifest');
+                $this->cached[$key]['?file_type'] = 'core-manifest';
+            }
         } else {
             $err = "[Class C->\$this->cachedCreateKeyIfNull()]: Unknown `{$key}` Value passed when it expected one of those defined in \$this->cached in Class C. Report this Internal Error to the Official FunkPHP repository.";
             $this->errors[] = ['type' => 'internal', 'err' => $err];
@@ -3605,62 +3635,96 @@ class C
     {
         $relativePath = '/src/funkphp/' . $fileData['folder_provided_path'] . '/' . $fileData['file_name'];
         if (empty($fileData) || array_is_list($fileData)) {
-            return "File Function Error in {$contextLabel}: Parsed File Data `$relativePath` as an Array is EITHER A Numbered Array when it should be an Associative Array OR it is Completely Empty. (This is possibly an Internal FunkPHP Error - try regenerate default files in `/src/funkphp/config/` and try again)";
+            $fatalErr = "Function File Error in {$contextLabel}: Parsed File Data `$relativePath` as an Array is EITHER A Numbered Array when it should be an Associative Array OR it is Completely Empty. (This is possibly an Internal FunkPHP Error - try regenerate default files in `/src/funkphp/config/` and try again)";
+            $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'Cannot Parse Expected Function File Data', $fatalErr);
+            return $fatalErr;
         }
         if (empty($fileData['file_exists'])) {
-            return "File Function Error in {$contextLabel}: Expected File `$relativePath` does NOT exist.";
+            $fatalErr = "Function File Error in {$contextLabel}: Expected File `$relativePath` does NOT exist. Validate/Review File Reading Permissions for the Path mentioned here in the Error in order to attempt looking up the File in the first place.";
+            $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'Function File Not Found', $fatalErr);
+            return $fatalErr;
         }
         if (empty($fileData['file_readable'])) {
-            return "File Function Error in {$contextLabel}: Expected File `$relativePath` is NOT Readable.";
+            $fatalErr = "Function File Error in {$contextLabel}: Expected File `$relativePath` is NOT Readable. Validate/Review File Reading Permissions for the Path mentioned here in the Error in order to attempt reading the File in the first place.";
+            $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'Function File Not Readable', $fatalErr);
+            return $fatalErr;
         }
         if (!$fileData['syntax_valid']) {
-            return "File Function Error in {$contextLabel}: File `$relativePath` contains `Invalid PHP Code` as parsed by `\PhpToken::tokenize with TOKEN_PARSE Flag`. Review the PHP Syntax in the File:'`{$fileData['syntax_error']}`'.";
+            $fatalErr = "Function File Error in {$contextLabel}: File `$relativePath` contains `Invalid PHP Code` as parsed by `\PhpToken::tokenize with TOKEN_PARSE Flag`. Review the PHP Syntax in the File:'`{$fileData['syntax_error']}`'.";
+            $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'Invalid PHP Code in Function File', $fatalErr);
+            return $fatalErr;
         }
-        if (!empty($fileData['classes_exist'])) {
-            return "File Function Error in {$contextLabel}: File `$relativePath` contains `Class Definitions` which is forbidden for this type of `File Function`.";
+        if ($fileData['classes_exist']) {
+            $fatalErr = "Function File Error in {$contextLabel}: File `$relativePath` contains `Class Definitions` (" . count($fileData['classes']) . ':' . $this->joinArray(array_keys($fileData['classes'])) . ") which is forbidden for this type of `File Function`. Write `User-defined Classes` in `/src/funkphp/config/classes.php` instead.";
+            $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'Function File Contains Classes while Not Allowed', $fatalErr);
+            return $fatalErr;
         }
         $fnCount = count($fileData['functions'] ?? []);
         if ($singleFNExpected) {
             if ($fnCount !== 1) {
-                return "File Function Error in {$contextLabel}: File `$relativePath` must contain EXACTLY 1 Function (found {$fnCount}).";
+                $fatalErr = "Function File Error in {$contextLabel}: File `$relativePath` must contain EXACTLY 1 Function (found {$fnCount}).";
+                $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'Function File Contains Too Many Functions', $fatalErr);
+                return $fatalErr;
             }
         }
         $FN = $fileData['functions'][$expectedFNName] ?? null;
         if (!$FN) {
-            return "File Function Error in {$contextLabel}: Expected Function `{$expectedFNName}` in File `$relativePath` does NOT exist.";
+            $fatalErr = "Function File Error in {$contextLabel}: Expected Function `{$expectedFNName}` in File `$relativePath` does NOT exist.";
+            $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'Expected Function in Function File Not Found', $fatalErr);
+            return $fatalErr;
         }
         if (strtolower($FN['fn_exact_name']) !== $FN['fn_lowercased']) {
-            return "File Function Error in {$contextLabel}: Function `{$expectedFNName}()` in File `$relativePath` must have `Function Name` that is `all lowercased` and following this Naming Convention: `[a-z_][a-z0-9_]*`.";
+            $fatalErr = "Function File Error in {$contextLabel}: Function `{$expectedFNName}()` in File `$relativePath` must have `Function Name` that is `all lowercased` and following this Naming Convention: `[a-z_][a-z0-9_]*`.";
+            $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'Invalid Function Name in Function File', $fatalErr);
+            return $fatalErr;
         }
         if (str_starts_with(strtolower($FN['fn_exact_name']), 'funk_') || str_starts_with(strtolower($FN['fn_exact_name']), 'cli_')) {
-            return "File Function Error in {$contextLabel}: Function `{$expectedFNName}()` in File `$relativePath` must have `Function Name` that does NOT start with `funk_` OR `cli_` as it will be in the Global Namespace and could clash with Internal FunkPHP Functions.";
+            $fatalErr = "Function File Error in {$contextLabel}: Function `{$expectedFNName}()` in File `$relativePath` must have `Function Name` that does NOT start with `funk_` OR `cli_` as it will be in the Global Namespace and could clash with Internal FunkPHP Functions.";
+            $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'Forbidden Function Name in Function File', $fatalErr);
+            return $fatalErr;
         }
         if ($expectedNSName !== '') {
             if (!isset($fileData['namespace']) || $fileData['namespace'] !== $expectedNSName) {
-                return "File Function Error in {$contextLabel}: Function `{$expectedFNName}` in File `$relativePath` must have the following namespace: `{$expectedNSName}` (Found: `" . ($fileData['namespace'] ?? '<NO NAMESPACE>') . "`).";
+                $fatalErr = "Function File Error in {$contextLabel}: Function `{$expectedFNName}` in File `$relativePath` must have the following namespace: `{$expectedNSName}` (Found: `" . ($fileData['namespace'] ?? '<NO NAMESPACE>') . "`).";
+                $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'Function File Missing Required Namespace', $fatalErr);
+                return $fatalErr;
             }
         }
         if ($FN['body_raw'] === '{}' || $FN['only_whitespace_and_or_comments'] === true) {
-            return "File Function Error in {$contextLabel}: Function `{$expectedFNName}()` in File `$relativePath` must have `Code in its Function Body` and cannot just contain `whitespace` and/or `comments`.";
+            $fatalErr = "Function File Error in {$contextLabel}: Function `{$expectedFNName}()` in File `$relativePath` must have `Code in its Function Body` and cannot just contain `whitespace` and/or `comments`.";
+            $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'Function Body for Function Missing in Function File', $fatalErr);
+            return $fatalErr;
         }
         $argsRaw = trim($FN['args_raw'] ?? '');
         if (!str_starts_with($argsRaw, '&$c')) {
-            return "File Function Error in {$contextLabel}: Function `{$expectedFNName}()` in File `$relativePath` must have `&\$c` as its First Parameter (found `({$argsRaw})`).";
+            $fatalErr = "Function File Error in {$contextLabel}: Function `{$expectedFNName}()` in File `$relativePath` must have `&\$c` as its First Parameter (found `({$argsRaw})`).";
+            $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'Missing Function Argument \'&$c\' as First Function Argument in Function File', $fatalErr);
+            return $fatalErr;
         }
         if ($FN['has_inner_functions'] === true) {
-            return "File Function Error in {$contextLabel}: Function `{$expectedFNName}()` in File `$relativePath` cannot have Inner Function Declarations (e.g. `function name(&\$c){ function inner(&\$c){} }`). See line(s): `" . join(', ', $FN['nested_function_lines']) . "` in the File.";
+            $fatalErr = "Function File Error in {$contextLabel}: Function `{$expectedFNName}()` in File `$relativePath` cannot have Inner Function Declarations (e.g. `function name(&\$c){ function inner(&\$c){} }`). See line(s): `" . join(', ', $FN['nested_function_lines']) . "` in the File. Use `Anonymous Function Declarations` instead such as: `\$innerFN = function(\$arg) use (\$otherArgs) { return \$arg; };` OR `\$innerFN = fn(\$arg) => \$arg + \$otherArgs;`.";
+            $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'Forbidden Inner Functions in Function in Function File', $fatalErr);
+            return $fatalErr;
         }
         if ($FN['has_set_error_hankder']) {
-            return "File Function Error in {$contextLabel}: Function `{$expectedFNName}()` in File `$relativePath` has `Forbidden Function 'set_error_handler'` which must instead be set with `->setDefaultErrorHandler('FN_From_/src/funkphp/config/functions.php>')` under `->CONFIG()` in `/src/funkphp/app/CONFIG.php`.";
+            $fatalErr = "Function File Error in {$contextLabel}: Function `{$expectedFNName}()` in File `$relativePath` has `Forbidden Function 'set_error_handler'` which must instead be set with `->setDefaultErrorHandler('FN_From_/src/funkphp/config/functions.php>')` under `->CONFIG()` in `/src/funkphp/app/CONFIG.php`.";
+            $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'Forbidden use of In-built PHP Function in Function in Function File', $fatalErr);
+            return $fatalErr;
         }
         if ($FN['has_set_exception_handler']) {
-            return "File Function Error in {$contextLabel}: Function `{$expectedFNName}()` in File `$relativePath` has `Forbidden Function 'set_exception_handler'` which must instead be set with `->setDefaultExceptionHandler('FN_From_/src/funkphp/config/functions.php>')` under `->CONFIG()` in `/src/funkphp/app/CONFIG.php`.";
+            $fatalErr = "Function File Error in {$contextLabel}: Function `{$expectedFNName}()` in File `$relativePath` has `Forbidden Function 'set_exception_handler'` which must instead be set with `->setDefaultExceptionHandler('FN_From_/src/funkphp/config/functions.php>')` under `->CONFIG()` in `/src/funkphp/app/CONFIG.php`.";
+            $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'Forbidden use of In-built PHP Function in Function in Function File', $fatalErr);
+            return $fatalErr;
         }
         if ($FN['has_register_shutdown_function']) {
-            return "File Function Error in {$contextLabel}: Function `{$expectedFNName}()` in File `$relativePath` has `Forbidden Function 'register_shutdown_function'` which must instead be set with `->pipePostResponseFunction('<FN_From_/src/funkphp/pipes/post_response/FileName.php>')` under `->CONFIG()` in `/src/funkphp/app/CONFIG.php`. They are added using the in-built `register_shutdown_function()` and are executed in such order. `IMPORTANT:` Remember that any use of `exit()` in those `Piped Post-Response Function(s)` will make the remaining (if any) to NOT run Post-Response!";
+            $fatalErr = "Function File Error in {$contextLabel}: Function `{$expectedFNName}()` in File `$relativePath` has `Forbidden Function 'register_shutdown_function'` which must instead be set with `->pipePostResponseFunction('<FN_From_/src/funkphp/pipes/post_response/FileName.php>')` under `->CONFIG()` in `/src/funkphp/app/CONFIG.php`. They are added using the in-built `register_shutdown_function()` and are executed in such order. `IMPORTANT:` Remember that any use of `exit()` in those `Piped Post-Response Function(s)` will make the remaining (if any) to NOT run Post-Response!";
+            $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'Forbidden use of In-built PHP Function in Function in Function File', $fatalErr);
+            return $fatalErr;
         }
         if ($FN['has_invalid_funk_calls']) {
-            return "File Function Error in {$contextLabel}: Function `{$expectedFNName}()` in File `$relativePath` has `Forbidden Function(s): `" . $this->joinArray($FN['invalid_funk_calls']) . ". Some of these Functions are set under `->CONFIG()` in `/src/funkphp/app/CONFIG.php` while others are not meant to be called inside the `pipes` of a given Matched Route but are meant instead to be used internally by FunkPHP.";
+            $fatalErr = "Function File Error in {$contextLabel}: Function `{$expectedFNName}()` in File `$relativePath` has `Forbidden Function(s): `" . $this->joinArray($FN['invalid_funk_calls']) . ". Some of these Functions are set under `->CONFIG()` in `/src/funkphp/app/CONFIG.php` while others are not meant to be called inside the `pipes` of a given Matched Route but are meant instead to be used internally by FunkPHP.";
+            $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'Forbidden use of Internal FunkPHP Functions in Function in Function File', $fatalErr);
+            return $fatalErr;
         }
         return null; // Function File for FunkPHP use is all OK here! - Warnings are emitted by another function
     }
@@ -3668,54 +3732,88 @@ class C
     {
         $relativePath = '/src/funkphp/' . $fileData['folder_provided_path'] . '/' . $fileData['file_name'];
         if (empty($fileData) || array_is_list($fileData)) {
-            return "File Class Error in {$contextLabel}: Parsed File Data `$relativePath` as an Array is EITHER A Numbered Array when it should be an Associative Array OR it is Completely Empty. (This is possibly an Internal FunkPHP Error - try regenerate default files in `/src/funkphp/config/` and try again)";
+            $fatalErr = "File Class Error in {$contextLabel}: Parsed File Data `$relativePath` as an Array is EITHER A Numbered Array when it should be an Associative Array OR it is Completely Empty. (This is possibly an Internal FunkPHP Error - try regenerate default files in `/src/funkphp/config/` and try again)";
+            $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'Cannot Parse Expected Class File Data', $fatalErr);
+            return $fatalErr;
         }
         if (empty($fileData['file_exists'])) {
-            return "File Class Error in {$contextLabel}: Expected File `$relativePath` does NOT exist.";
+            $fatalErr = "File Class Error in {$contextLabel}: Expected File `$relativePath` does NOT exist.";
+            $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'Class File Not Found', $fatalErr);
+            return $fatalErr;
         }
         if (empty($fileData['file_readable'])) {
-            return "File Class Error in {$contextLabel}: Expected File `$relativePath` is NOT Readable.";
+            $fatalErr = "File Class Error in {$contextLabel}: Expected File `$relativePath` is NOT Readable.";
+            $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'Class File Not Readable ', $fatalErr);
+            return $fatalErr;
         }
         if (!$fileData['syntax_valid']) {
-            return "File Class Error in {$contextLabel}: File `$relativePath` contains `Invalid PHP Code` as parsed by `\PhpToken::tokenize with TOKEN_PARSE Flag`. Review the PHP Syntax in the File:'`{$fileData['syntax_error']}`'.";
+            $fatalErr = "File Class Error in {$contextLabel}: File `$relativePath` contains `Invalid PHP Code` as parsed by `\PhpToken::tokenize with TOKEN_PARSE Flag`. Review the PHP Syntax in the File:'`{$fileData['syntax_error']}`'.";
+            $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'Invalid PHP Code in Class File', $fatalErr);
+            return $fatalErr;
         }
+        // Class File /src/funkphp/config/classes.php cannot have functions
+        $FNCount = count($fileData['functions'] ?? []);
+        if ($FNCount !== 1) {
+            $fatalErr = "File Class Error in {$contextLabel}: File `$relativePath` contains Functions in the Global Namespace ({$FNCount}: " . $this->joinArray(array_keys($fileData['functions'])) . ") when that is not allowed. Write `User-defined Functions` in `/src/funkphp/config/functions.php` instead.";
+            $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'Class File Contains Too Many Functions', $fatalErr);
+            return $fatalErr;
+        }
+        // Class count that must be fulfilled
         $fnCount = count($fileData['classes'] ?? []);
         if ($singleFNExpected) {
             if ($fnCount !== 1) {
-                return "File Class Error in {$contextLabel}: File `$relativePath` must contain EXACTLY 1 Class (found {$fnCount}).";
+                $fatalErr = "File Class Error in {$contextLabel}: File `$relativePath` must contain EXACTLY 1 Class (found {$fnCount}).";
+                $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'Class File Contains Too Many Classes', $fatalErr);
+                return $fatalErr;
             }
         }
         $FN = $fileData['classes'][$expectedFNName] ?? null;
         if (!$FN) {
-            return "File Class Error in {$contextLabel}: Expected Class `{$expectedFNName}` in File `$relativePath` does NOT exist.";
+            $fatalErr = "File Class Error in {$contextLabel}: Expected Class `{$expectedFNName}` in File `$relativePath` does NOT exist.";
+            $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'Expected Class Missing in Class File', $fatalErr);
+            return $fatalErr;
         }
         if (str_starts_with(strtolower(trim($FN['class_name'])), 'funk')) {
-            return "File Class Error in {$contextLabel}: Class `{$expectedFNName}()` in File `$relativePath` cannot start with `Funk` as it is reserved despite being in the shared namespace `funkphp\\classes`.";
+            $fatalErr = "File Class Error in {$contextLabel}: Class `{$expectedFNName}()` in File `$relativePath` cannot start with `Funk` as it is reserved despite being in the shared namespace `funkphp\\classes`.";
+            $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'Forbidden Class Name in Class File', $fatalErr);
+            return $fatalErr;
         }
         if ($expectedNSName !== '') {
             if (!isset($fileData['namespace']) || $fileData['namespace'] !== $expectedNSName) {
-                return "File Class Error in {$contextLabel}: Class `{$expectedFNName}` in File `$relativePath` must have the following namespace: `{$expectedNSName}` (Found: `" . ($fileData['namespace'] ?? '<NO NAMESPACE>') . "`).";
+                $fatalErr = "File Class Error in {$contextLabel}: Class `{$expectedFNName}` in File `$relativePath` must have the following namespace: `{$expectedNSName}` (Found: `" . ($fileData['namespace'] ?? '<NO NAMESPACE>') . "`).";
+                $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'Class File Missing Required Namespace', $fatalErr);
+                return $fatalErr;
             }
         }
         if ($FN['body_raw'] === '{}' || $FN['only_whitespace_and_or_comments'] === true) {
-            return "File Class Error in {$contextLabel}: Class `{$expectedFNName}()` in File `$relativePath` must have `Code in its Class Body` and cannot just contain `whitespace` and/or `comments`.";
+            $fatalErr = "File Class Error in {$contextLabel}: Class `{$expectedFNName}()` in File `$relativePath` must have `Code in its Class Body` and cannot just contain `whitespace` and/or `comments`.";
+            $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'Class File Missing Code In Main Body', $fatalErr);
+            return $fatalErr;
         }
         if ($FN['has_inner_functions'] === true) {
-            return "File Class Error in {$contextLabel}: Class `{$expectedFNName}()` in File `$relativePath` cannot have Inner Function Declarations (e.g. `function name(&\$c){ function inner(&\$c){} }`). See line(s): `" . join(', ', $FN['nested_function_lines']) . "` in the File.";
+            $fatalErr = "File Class Error in {$contextLabel}: Class `{$expectedFNName}()` in File `$relativePath` cannot have Inner Function Declarations (e.g. `function name(&\$c){ function inner(&\$c){} }`). See line(s): `" . join(', ', $FN['nested_function_lines']) . "` in the File. Use `Anonymous Function Declarations` instead such as: `\$innerFN = function(\$arg) use (\$otherArgs) { return \$arg; };` OR `\$innerFN = fn(\$arg) => \$arg + \$otherArgs;`.";
+            $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'Forbidden Inner Functions in Class Method in Class File', $fatalErr);
+            return $fatalErr;
         }
         // Now we iterate through each method in the current Class in the classes.php
         // file since those are what could be considered functions in classes.
         foreach ($FN['methods'] as $method => $methodDetails) {
             if ($method !== '__construct') { // Constructor CAN have empty body
                 if ($methodDetails['analysis']['only_whitespace_and_or_comments']) {
-                    return "File Class Error in {$contextLabel}: Class Method `{$expectedFNName}->{$method}` in File `$relativePath` has `Only Whitespace and/or Comments` in its `Code Body` while NOT being the `__construct` Method. Add some Code to the Class Method OR comment it out for later use.";
+                    $fatalErr = "File Class Error in {$contextLabel}: Class Method `{$expectedFNName}->{$method}` in File `$relativePath` has `Only Whitespace and/or Comments` in its `Code Body` while NOT being the `__construct` Method. Add some Code to the Class Method OR comment it out for later use.";
+                    $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'No Function Body in Class Method in Class File', $fatalErr);
+                    return $fatalErr;
                 }
             }
             if ($methodDetails['analysis']['has_inner_functions']) {
-                return "File Class Error in {$contextLabel}: Class Method `{$expectedFNName}->{$method}` in File `$relativePath` has `Inner Function Declarations` on lines(s) " . $this->joinArray($methodDetails['analysis']['nested_function_lines']) . " which could Conflict with other Globally Namespaced Functions. `Convert it to a Valid Class-based Method` instead.";
+                $fatalErr = "File Class Error in {$contextLabel}: Class Method `{$expectedFNName}->{$method}` in File `$relativePath` has `Inner Function Declarations` on lines(s) " . $this->joinArray($methodDetails['analysis']['nested_function_lines']) . " which could Conflict with other Globally Namespaced Functions. `Convert it to a Valid Class-based Method` instead. Also, regarding using Inner Functions in general in FunkPHP; Use `Anonymous Function Declarations` instead such as: `\$innerFN = function(\$arg) use (\$otherArgs) { return \$arg; };` OR `\$innerFN = fn(\$arg) => \$arg + \$otherArgs;`.";
+                $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'Forbidden Inner Functions in Class Method in Class File', $fatalErr);
+                return $fatalErr;
             }
             if ($methodDetails['analysis']['has_invalid_funk_calls']) {
-                return "File Class Error in {$contextLabel}: Class Method `{$expectedFNName}->{$method}` in File `$relativePath` has calls to the following `Disallowed FunkPHP Functions` " . $this->joinArray($methodDetails['analysis']['invalid_funk_calls']) . " that are meant to be called by other Internal FunkPHP Functions directly and not inside of non-FunkPHP-based Classes.";
+                $fatalErr = "File Class Error in {$contextLabel}: Class Method `{$expectedFNName}->{$method}` in File `$relativePath` has calls to the following `Disallowed FunkPHP Functions` " . $this->joinArray($methodDetails['analysis']['invalid_funk_calls']) . " that are meant to be called by other Internal FunkPHP Functions directly and not inside of non-FunkPHP-based Classes.";
+                $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'Forbidden use of Internal FunkPHP Functions in Class Method in Class File', $fatalErr);
+                return $fatalErr;
             }
         }
         return null; // Class in File for FunkPHP use is all OK here! - Warnings are emitted by another function
@@ -4270,7 +4368,7 @@ class C
         $fatalError = $this->validateFNFile($fileData, $userDefinedFunction, $ctxVals, '', false);
         if ($fatalError !== null) {
             $this->setErr($fatalError, 'Invalid User-defined File Function ' . $ctxVals);
-            $this->setFileErr('user-functions', 'functions', $userDefinedFunction, 'User-defined File Function Error', $fatalError);
+            //$this->setFileErr('user-functions', 'functions', $userDefinedFunction, 'User-defined File Function Error', $fatalError);
             $this->invalidBatches['config']['DEFAULT_EXCEPTION_HANDLER'] = $userDefinedFunction;
             return;
         }
@@ -7739,12 +7837,14 @@ class C
                                     $FILE_TYPES_PATHS = [
                                         'user-functions' => 'User-defined Functions | /src/funkphp/config/functions.php',
                                         'user-classes' => 'User-defined Classes | /src/funkphp/config/classes.php',
+                                        'user-tables' => 'Tables | /src/funkphp/config/tables.php',
+                                        'core-manifest' => 'Core Manifest | /src/funkphp/core/manifest.php',
+                                        'core-functions' => 'Core Functions | /src/funkphp/core/functions.php',
                                         'pages-layouts' => 'Page Layouts | /src/funkphp/pages/layouts',
                                         'pages-partials' => 'Page Partials | /src/funkphp/pages/partials',
                                         'pages-components' => 'Page Components | /src/funkphp/pages/components',
                                         'pages-uncompiled' => 'Page Uncompiled | /src/funkphp/pages',
                                         'pages-compiled' => 'Page Compiled | /src/funkphp/pages/compiled',
-                                        'user-tables' => 'Tables | /src/funkphp/config/tables.php',
                                         'response' => 'Request Pipe Functions | /src/funkphp/pipes/request',
                                         'post-response' => 'Post-Response Pipe Functions | /src/funkphp/pipes/post_response',
                                         'middleware' => 'Middleware Pipe Functions | /src/funkphp/pipes/middlewares',
@@ -7757,13 +7857,14 @@ class C
                                         'data-validation-uncompiled' => 'Data Validation Uncompiled | /src/funkphp/data/validation'
                                     ];
                                     $FILES_ERRS = $allErrors['FILES'] ?? [];
+
                                 ?> <div class="tab-group">
                                         <?php foreach ($FILES_ERRS as $fileType => $singleFile) {
                                         ?><div class="tab-header-category"><?= $FILE_TYPES_PATHS[$fileType]; ?></div>
                                             <?php // SHOW for "User Defined Functions"
                                             if ($fileType === 'user-functions') {
-                                                foreach ($singleFile['functions'] as $fName => $F_ERR) {
-                                            ?><div class="tab-header">function <?= $fName; ?>(&$c){}</div>
+                                                foreach ($singleFile['functions.php'] as $fName => $F_ERR) {
+                                            ?><div class="tab-header">&fnof; <?= $fName; ?></div>
                                                     <?php foreach ($F_ERR as $idx => $F_ERR2) { ?>
                                                         <div class="issue-card">
                                                             <div class="issue-type-with-button">
@@ -7779,8 +7880,8 @@ class C
                                                         }
                                                     }  // SHOW for "User Defined Classes"
                                                     else if ($fileType === 'user-classes') {
-                                                        foreach ($singleFile['classes'] as $cName => $C_ERR) {
-                                                                ?><div class="tab-header">class <?= $cName; ?>(&$c){}</div>
+                                                        foreach ($singleFile['classes.php'] as $cName => $C_ERR) {
+                                                                ?><div class="tab-header">class <?= $cName; ?></div>
                                                     <?php foreach ($C_ERR as $idx => $C_ERR2) { ?>
                                                         <div class="issue-card">
                                                             <div class="issue-type-with-button">
@@ -7797,8 +7898,8 @@ class C
                                                     }
                                                     // SHOW for "Response Pipe Functions" (/src/funphp/pipes/response)
                                                     else if ($fileType === 'response') {
-                                                        foreach ($singleFile as $rName => $R_ERR) {
-                                                                ?><div class="tab-header">class <?= $rName; ?>(&$c){}</div>
+                                                        foreach ($singleFile['functions'] as $rName => $R_ERR) {
+                                                                ?><div class="tab-header">function <?= $rName; ?></div>
                                                     <?php foreach ($R_ERR as $idx => $R_ERR2) { ?>
                                                         <div class="issue-card">
                                                             <div class="issue-type-with-button">
