@@ -29,192 +29,6 @@
 // be shown ONLY in termianl and not in FunKGUI or in the web in general so!
 /**
  * Custom ultra-scannable terminal dumper for FunkPHP development.
- * Minimizes vertical lines, tracks precise depths, and colorizes outputs.
- *
- * @param mixed $var  The variable payload to inspect
- * @param bool $exit  Whether to terminate script execution immediately after rendering
- * @param bool $horisontal  Whether to show more data horizontally (default is not to)
- */
-function cli_dump_old($var, $exit = true, $horisontal = false)
-{
-    // Define standard terminal ANSI escape codes
-    $cReset   = "\e[0m";
-    $cHeader  = "\e[1;35m"; // Bold Magenta
-    $cLine    = "\e[0;90m"; // Dark Gray Divider
-    $cKey     = "\e[1;36m"; // Bold Cyan for Keys
-    $cIndex   = "\e[0;36m"; // Cyan for Numeric Indexes
-    $cType    = "\e[0;90m"; // Dark Gray for structural types
-    $cStr     = "\e[0;32m"; // Green for Strings
-    $cNum     = "\e[0;34m"; // Blue for Ints/Floats
-    $cBool    = "\e[1;33m"; // Bold Yellow for Booleans
-    $cNull    = "\e[1;31m"; // Bold Red for Null values
-    $cStatLbl = "\e[0;37m"; // White for Stat labels
-    $cStatVal = "\e[1;32m"; // Bold Green for counts
-    // Global Value Type count (like how many strings, booleans, arrays, etc.)
-    $globalTypeCount = [
-        'nulls' => 0,
-        'strings' => 0,
-        'strings-empty' => 0,
-        'booleans' => 0,
-        'booleans-true' => 0,
-        'booleans-false' => 0,
-        'integers' => 0,
-        'numbers' => 0,
-        'floats' => 0,
-        'arrays' => 0,
-        'arrays-empty' => 0,
-        'arrays-lists' => 0,
-        'arrays-assocs' => 0,
-        'objects' => 0,
-        'others' => [],
-    ];
-    // Output Header banner block
-    echo "\n{$cHeader}[FunkCLI - DUMP]:{$cReset}\n";
-    echo "{$cLine}" . str_repeat('=', 150) . "{$cReset}\n";
-    // Isolated recursive formatting closure engine
-    $render = function ($data, $depth = 0, $keyName = null, $inList = false) use (
-        &$render,
-        $cReset,
-        $cKey,
-        $cIndex,
-        $cType,
-        $cStr,
-        $cNum,
-        $cBool,
-        $cNull,
-        &$globalTypeCount,
-        $horisontal,
-        $cStatLbl,
-        $cStatVal
-    ) {
-        if (!$horisontal) {
-            $indent = str_repeat('   ', $depth);
-        } else {
-            $indent = str_repeat(' ', $depth);
-        }
-        $prefix = '';
-        // 1. Render the incoming accessor prefix (Key name vs list index position)
-        if ($keyName !== null) {
-            $prefix = $inList
-                ? "{$indent}{$cIndex}[{$keyName}]{$cReset} "
-                : "{$indent}{$cKey}'{$keyName}'{$cReset} => ";
-        } else if ($depth > 0) {
-            $prefix = $indent;
-        }
-        // 2. Evaluate types and format payloads cleanly
-        if (is_array($data)) {
-            $globalTypeCount['arrays']++;
-            $count = count($data);
-            $isList = array_is_list($data);
-            $arrType = $isList ? "List-Array" : "Assoc-Array";
-            if ($arrType === "List-Array") {
-                $globalTypeCount['arrays-lists']++;
-            } else {
-                $globalTypeCount['arrays-assocs']++;
-            }
-            if ($count === 0) {
-                echo "{$prefix}{$cType}{$arrType}(0) []{$cReset}";
-                if (!$horisontal) {
-                    echo "\n";
-                }
-                $globalTypeCount['arrays-empty']++;
-            } else {
-                echo "{$prefix}{$cType}{$arrType}({$count}) [{$cReset}";
-                if (!$horisontal) {
-                    echo "\n";
-                }
-                foreach ($data as $k => $v) {
-                    $render($v, $depth + 1, $k, $isList);
-                }
-                echo "{$indent}{$cType}] // {$keyName} ({$arrType}, {$count}) {$cReset}\n";
-            }
-        } elseif (is_object($data)) {
-            $className = get_class($data);
-            $properties = (array)$data;
-            $count = count($properties);
-            $globalTypeCount['objects']++;
-            echo "{$prefix}{$cType}Object('{$className}') ({$count}) {{$cReset}\n";
-            foreach ($properties as $k => $v) {
-                // Clean up invisible private/protected property null-bytes strings from casting
-                $k = str_replace("\0*\0", '(protected) ', $k);
-                $k = preg_replace('/^\0[^\0]+\0/', '(private) ', $k);
-                $render($v, $depth + 1, $k, false);
-            }
-            echo "{$indent}{$cType}}{$cReset}\n";
-        } elseif (is_string($data)) {
-            $globalTypeCount['strings']++;
-            if (strlen($data) === 0) {
-                $globalTypeCount['strings-empty']++;
-            }
-            echo "{$prefix}{$cStr}\"{$data}\"{$cReset} {$cType}(string:" . strlen($data) . "){$cReset}";
-            if (!$horisontal) {
-                echo "\n";
-            }
-        } elseif (is_int($data)) {
-            $globalTypeCount['integers']++;
-            echo "{$prefix}{$cNum}{$data}{$cReset} {$cType}(integer){$cReset}";
-            if (!$horisontal) {
-                echo "\n";
-            }
-        } elseif (is_float($data)) {
-            $globalTypeCount['floats']++;
-            echo "{$prefix}{$cNum}{$data}{$cReset} {$cType}(float){$cReset}";
-            if (!$horisontal) {
-                echo "\n";
-            }
-        } elseif (is_bool($data)) {
-            $boolStr = $data ? 'true' : 'false';
-            $globalTypeCount['booleans']++;
-            if ($data === true) {
-                $globalTypeCount['booleans-true']++;
-            } else {
-                $globalTypeCount['booleans-false']++;
-            }
-            echo "{$prefix}{$cBool}{$boolStr}{$cReset} {$cType}(boolean){$cReset}";
-            if (!$horisontal) {
-                echo "\n";
-            }
-        } elseif (is_null($data)) {
-            $globalTypeCount['nulls']++;
-            echo "{$prefix}{$cNull}null{$cReset}";
-            if (!$horisontal) {
-                echo "\n";
-            }
-        } else {
-            // Safe fallback for unprintable CLI primitives (like resource descriptors)
-            $type = gettype($data);
-            $globalTypeCount['others'][$type]++;
-            echo "{$prefix}{$cNull}[Type: {$type}]{$cReset}";
-            if (!$horisontal) {
-                echo "\n";
-            }
-        }
-    };
-    // Execute root level execution trace
-    $render($var);
-    // Format and output the telemetry metric reporting engine blocks
-    echo "{$cLine}" . str_repeat('=', 150) . "{$cReset}\n";
-    echo "{$cHeader}[ DUMP TELEMETRY METRICS SUMMARY ]{$cReset}\n";
-    echo "  ├── {$cStatLbl}Structural Containers{$cReset}\n"
-        . "  │   ├── Objects:         " . sprintf("{$cStatVal}%-4d{$cReset}", $globalTypeCount['objects']) . "\n"
-        . "  │   └── Arrays Total:    " . sprintf("{$cStatVal}%-4d{$cReset}", $globalTypeCount['arrays'])
-        . " {$cType}(Empty: {$globalTypeCount['arrays-empty']} | Lists: {$globalTypeCount['arrays-lists']} | Assocs: {$globalTypeCount['arrays-assocs']}){$cReset}\n"
-        . "  │\n"
-        . "  └── {$cStatLbl}Scalar Data Primitives{$cReset}\n"
-        . "      ├── Strings Total:   " . sprintf("{$cStatVal}%-4d{$cReset}", $globalTypeCount['strings'])
-        . " {$cType}(Empty/Whitespace-Only: {$globalTypeCount['strings-empty']}){$cReset}\n"
-        . "      ├── Numbers Total:   " . sprintf("{$cStatVal}%-4d{$cReset}", $globalTypeCount['numbers'])
-        . " {$cType}(Integers: {$globalTypeCount['integers']} | Floats: {$globalTypeCount['floats']}){$cReset}\n"
-        . "      ├── Booleans Total:  " . sprintf("{$cStatVal}%-4d{$cReset}", $globalTypeCount['booleans'])
-        . " {$cType}(True: {$globalTypeCount['booleans-true']} | False: {$globalTypeCount['booleans-false']}){$cReset}\n"
-        . "      ├── Null Values:     " . sprintf("{$cStatVal}%-4d{$cReset}", $globalTypeCount['nulls'])       . "\n"
-        . "      └── Unmapped Others: " . sprintf("{$cStatVal}%-4d{$cReset}", $globalTypeCount['others'])      . "\n";
-    if ($exit) {
-        exit(1);
-    }
-}
-/**
- * Custom ultra-scannable terminal dumper for FunkPHP development.
  * Minimizes vertical lines, tracks precise depths, colorizes outputs,
  * and allows suppressing sensitive or noisy key paths dynamically.
  *
@@ -223,7 +37,7 @@ function cli_dump_old($var, $exit = true, $horisontal = false)
  * @param bool $horisontal  Whether to show more data horizontally (default is false)
  * @param array $ignoreSpecificKeyDepths  Key paths to skip (always starting from `$var`) separated by single dots (e.g. ['user.password', 'config.db'])
  */
-function cli_dump_with_ignore_depths($var, $exit = true, $horisontal = false, array $ignoreSpecificKeyDepths = [])
+function cli_dd_with_ignore_depths($var, $exit = true, $horisontal = false, array $ignoreSpecificKeyDepths = [])
 {
     // Define standard terminal ANSI escape codes
     $cReset   = "\e[0m";
@@ -402,7 +216,6 @@ function cli_dump_with_ignore_depths($var, $exit = true, $horisontal = false, ar
         exit(1);
     }
 }
-
 /**
  * Custom ultra-scannable terminal dumper for FunkPHP development.
  * Minimizes vertical lines, tracks precise depths, and colorizes outputs.
@@ -411,7 +224,7 @@ function cli_dump_with_ignore_depths($var, $exit = true, $horisontal = false, ar
  * @param bool $exit  Whether to terminate script execution immediately after rendering
  * @param bool $horisontal  Whether to show more data horizontally (default is not to)
  */
-function cli_dump($var, $exit = true, $horisontal = false)
+function cli_dd($var, $exit = true, $horisontal = false)
 {
     $cReset   = "\e[0m";
     $cHeader  = "\e[1;35m"; // Bold Magenta
@@ -460,7 +273,7 @@ function cli_dump($var, $exit = true, $horisontal = false)
         $cStatVal
     ) {
         if ($depth > 25) {
-            echo "{$cNull}*MAX DEPTH EXCEEDED*{$cReset}\n";
+            echo "{$cNull}*MAX DEPTH {$depth} EXCEEDED*{$cReset}\n";
             return;
         }
         if (!$horisontal) {
@@ -480,8 +293,8 @@ function cli_dump($var, $exit = true, $horisontal = false)
             $globalTypeCount['arrays']++;
             $count = count($data);
             $isList = array_is_list($data);
-            $arrType = $isList ? "List-Array" : "Assoc-Array";
-            if ($arrType === "List-Array") {
+            $arrType = $isList ? "[List]" : "[Assoc]";
+            if ($arrType === "[List]") {
                 $globalTypeCount['arrays-lists']++;
             } else {
                 $globalTypeCount['arrays-assocs']++;
@@ -507,7 +320,7 @@ function cli_dump($var, $exit = true, $horisontal = false)
             $properties = (array)$data;
             $objHash = spl_object_hash($data);
             if (isset($seenObjects[$objHash])) {
-                echo "{$prefix}{$cType}Object('{$className}') {$cNull}*RECURSION*{$cReset}\n";
+                echo "{$prefix}{$cType}Object('{$className}') {$cNull}*RECURSION (AT DEPTH:{$depth})*{$cReset}\n";
                 return;
             }
             $seenObjects[$objHash] = true;
@@ -589,11 +402,6 @@ function cli_dump($var, $exit = true, $horisontal = false)
         exit(1);
     }
 }
-
-
-
-// Function that wants the return value of: "cli_file_status()"
-// and make do checks that then return boolean whether true, like checking
 /**
  * Evaluates a sequence of integrity rules for a parsed asset payload.
  *

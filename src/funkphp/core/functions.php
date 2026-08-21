@@ -58,7 +58,7 @@ define('ROOT_VALIDATION', ROOT_FOLDER . '/data/validation'); // src/funkphp/data
 function dd(mixed $data, string $headerOptionalMsg = '', bool $exit = true, bool $ignoreC = true, bool $colorizeAccentGravedText = true): void
 {
     if (php_sapi_name() === 'cli' && function_exists('cli_dump')) {
-        cli_dump($data, $exit);
+        cli_dd($data, $exit);
         return;
     }
     global $c;
@@ -78,11 +78,9 @@ function dd(mixed $data, string $headerOptionalMsg = '', bool $exit = true, bool
         'objects'        => 0,
         'others'         => 0,
     ];
-    // Recursive HTML UL/LI Generator with recursion tracking
-    $render = function ($data, $key = null, $isList = false, array $seenObjects = [], int $depth = 0) use (&$render, &$metrics): string {
-        // Max depth guard (prevents potential infinite array-reference loops)
+    $render = function ($data, $key = null, $isList = false, array $seenObjects = [], int $depth = 0) use (&$render, &$metrics, $colorizeAccentGravedText): string {
         if ($depth > 25) {
-            return "<span class=\"fd-null\">*MAX DEPTH EXCEEDED*</span>";
+            return "<div class=\"fd-row\"><span class=\"fd-null\">*MAX DEPTH EXCEEDED:{$depth}*</span></div>";
         }
         $prefix = '';
         if ($key !== null) {
@@ -91,76 +89,83 @@ function dd(mixed $data, string $headerOptionalMsg = '', bool $exit = true, bool
                 ? "<span class=\"fd-idx\">[{$safeKey}]</span> "
                 : "<span class=\"fd-key\">'{$safeKey}'</span> <span class=\"fd-type\">=&gt;</span> ";
         }
+        $openAttr = ($depth <= 2) ? ' open' : '';
         if (is_array($data)) {
             $metrics['arrays']++;
             $count = count($data);
             $isListArr = array_is_list($data);
-            $typeLabel = $isListArr ? 'List-Array' : 'Assoc-Array';
+            $typeLabel = $isListArr ? '[List]' : '[Assoc]';
             if ($isListArr) $metrics['arrays-lists']++;
             else $metrics['arrays-assocs']++;
             if ($count === 0) {
                 $metrics['arrays-empty']++;
-                return "{$prefix}<span class=\"fd-type\">{$typeLabel}(0) []</span>";
+                return "<div class=\"fd-row\">{$prefix}<span class=\"fd-type\">{$typeLabel}(0) []</span></div>";
             }
-            $html = "{$prefix}<span class=\"fd-toggle\">▼</span> <span class=\"fd-type\">{$typeLabel}({$count}) [</span>";
-            $html .= "<ul class=\"fd-tree\">";
+            $html = "<details class=\"fd-details\"{$openAttr}>";
+            $html .= "<summary class=\"fd-summary\">{$prefix}<span class=\"fd-type\">{$typeLabel}({$count}) [</span></summary>";
+            $html .= "<div class=\"fd-tree-body\">";
             foreach ($data as $k => $v) {
-                $html .= "<li>" . $render($v, $k, $isListArr, $seenObjects, $depth + 1) . "</li>";
+                $html .= $render($v, $k, $isListArr, $seenObjects, $depth + 1);
             }
-            $html .= "</ul><span class=\"fd-type\">]</span>";
+            $html .= "</div>";
+            $html .= "<div class=\"fd-close-bracket\"><span class=\"fd-type\">]</span></div>";
+            $html .= "</details>";
             return $html;
         } elseif (is_object($data)) {
             $metrics['objects']++;
             $className = get_class($data);
             $objHash = spl_object_hash($data);
-            // Circular reference detection!
             if (isset($seenObjects[$objHash])) {
-                return "{$prefix}<span class=\"fd-type\">Object('{$className}')</span> <span class=\"fd-null\">*RECURSION*</span>";
+                return "<div class=\"fd-row\">{$prefix}<span class=\"fd-type\">{{$className}}</span> <span class=\"fd-null\">*RECURSION* (AT DEPTH:{$depth})</span></div>";
             }
-            // Mark object as seen in this branch
             $seenObjects[$objHash] = true;
             $properties = (array)$data;
             $count = count($properties);
             if ($count === 0) {
-                return "{$prefix}<span class=\"fd-type\">Object('{$className}') {}</span>";
+                return "<div class=\"fd-row\">{$prefix}<span class=\"fd-type\">{{$className}} {}</span></div>";
             }
-            $html = "{$prefix}<span class=\"fd-toggle\">▼</span> <span class=\"fd-type\">Object('{$className}') ({$count}) {</span>";
-            $html .= "<ul class=\"fd-tree\">";
+            $html = "<details class=\"fd-details\"{$openAttr}>";
+            $html .= "<summary class=\"fd-summary\">{$prefix}<span class=\"fd-type\">{{$className}} ({$count}) {</span></summary>";
+            $html .= "<div class=\"fd-tree-body\">";
             foreach ($properties as $k => $v) {
                 $k = str_replace("\0*\0", '(protected) ', $k);
                 $k = preg_replace('/^\0[^\0]+\0/', '(private) ', $k);
-                $html .= "<li>" . $render($v, $k, false, $seenObjects, $depth + 1) . "</li>";
+                $html .= $render($v, $k, false, $seenObjects, $depth + 1);
             }
-            $html .= "</ul><span class=\"fd-type\">}</span>";
+            $html .= "</div>";
+            $html .= "<div class=\"fd-close-bracket\"><span class=\"fd-type\">}</span></div>";
+            $html .= "</details>";
             return $html;
         } elseif (is_string($data)) {
             $metrics['strings']++;
             $len = strlen($data);
             if ($len === 0) $metrics['strings-empty']++;
             $safeStr = htmlspecialchars($data, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-            return "{$prefix}<span class=\"fd-str\">\"{$safeStr}\"</span> <span class=\"fd-meta\">(string:{$len})</span>";
+            if ($colorizeAccentGravedText && str_contains($safeStr, '`')) {
+                $safeStr = preg_replace('/`([^`]+)`/', '<span class="fd-gravel">$1</span>', $safeStr);
+            }
+            return "<div class=\"fd-row\">{$prefix}<span class=\"fd-str\">\"{$safeStr}\"</span> <span class=\"fd-meta\">(str:{$len})</span></div>";
         } elseif (is_int($data)) {
             $metrics['integers']++;
-            return "{$prefix}<span class=\"fd-num\">{$data}</span> <span class=\"fd-meta\">(integer)</span>";
+            return "<div class=\"fd-row\">{$prefix}<span class=\"fd-num\">{$data}</span> <span class=\"fd-meta\">(int)</span></div>";
         } elseif (is_float($data)) {
             $metrics['floats']++;
-            return "{$prefix}<span class=\"fd-num\">{$data}</span> <span class=\"fd-meta\">(float)</span>";
+            return "<div class=\"fd-row\">{$prefix}<span class=\"fd-num\">{$data}</span> <span class=\"fd-meta\">(flt)</span></div>";
         } elseif (is_bool($data)) {
             $metrics['booleans']++;
             if ($data) $metrics['booleans-true']++;
             else $metrics['booleans-false']++;
             $boolStr = $data ? 'true' : 'false';
-            return "{$prefix}<span class=\"fd-bool\">{$boolStr}</span> <span class=\"fd-meta\">(boolean)</span>";
+            return "<div class=\"fd-row\">{$prefix}<span class=\"fd-bool\">{$boolStr}</span> <span class=\"fd-meta\">(bool)</span></div>";
         } elseif (is_null($data)) {
             $metrics['nulls']++;
-            return "{$prefix}<span class=\"fd-null\">null</span>";
+            return "<div class=\"fd-row\">{$prefix}<span class=\"fd-null\">null</span></div>";
         } else {
             $metrics['others']++;
             $type = gettype($data);
-            return "{$prefix}<span class=\"fd-null\">[Type: {$type}]</span>";
+            return "<div class=\"fd-row\">{$prefix}<span class=\"fd-null\">[Type: {$type}]</span></div>";
         }
     };
-
     $treeHtml = $render($data);
     if (!$ignoreC && $c) {
         $treeHtmlC = $render($c);
@@ -198,30 +203,53 @@ function dd(mixed $data, string $headerOptionalMsg = '', bool $exit = true, bool
                 padding-bottom: 3px;
             }
 
-            .funk-web-dump ul.fd-tree {
-                list-style: none;
-                margin: 2px 0;
-                padding-left: 20px;
-                border-left: 1px dashed #45475a;
-            }
-
-            .funk-web-dump li {
+            .funk-web-dump details.fd-details {
                 margin: 2px 0;
             }
 
-            .funk-web-dump .fd-toggle {
+            .funk-web-dump summary.fd-summary {
                 cursor: pointer;
                 user-select: none;
-                color: #f5e0dc;
-                display: inline-block;
-                width: 14px;
-                font-size: 11px;
-                transition: transform 0.1s ease;
+                list-style: none;
+                display: flex;
+                align-items: center;
+                gap: 4px;
             }
 
-            .funk-web-dump .fd-toggle.collapsed {
-                transform: rotate(-90deg);
+            .funk-web-dump summary.fd-summary::-webkit-details-marker {
+                display: none;
+            }
+
+            .funk-web-dump summary.fd-summary::before {
+                content: '▶';
+                display: inline-block;
+                width: 12px;
+                font-size: 9px;
                 color: #a6adc8;
+                transition: transform 0.15s ease;
+            }
+
+            .funk-web-dump details[open]>summary.fd-summary::before {
+                transform: rotate(90deg);
+                color: #f5e0dc;
+            }
+
+            .funk-web-dump .fd-tree-body {
+                padding-left: 18px;
+                border-left: 1px dashed #45475a;
+                margin-left: 5px;
+                margin-top: 2px;
+                margin-bottom: 2px;
+            }
+
+            .funk-web-dump .fd-close-bracket {
+                padding-left: 18px;
+                margin-left: 5px;
+            }
+
+            .funk-web-dump .fd-row {
+                margin: 2px 0;
+                padding-left: 17px;
             }
 
             .funk-web-dump .fd-key {
@@ -268,8 +296,8 @@ function dd(mixed $data, string $headerOptionalMsg = '', bool $exit = true, bool
                 color: #a6adc8;
             }
 
-            .funk-web-dump div .metrics-top {
-                margin-top: 8x;
+            .funk-web-dump div.metrics-top {
+                margin-top: 8px;
                 padding-top: 4px;
                 margin-bottom: 8px;
                 font-size: 11px;
@@ -286,8 +314,7 @@ function dd(mixed $data, string $headerOptionalMsg = '', bool $exit = true, bool
                 font-weight: bold;
             }
         </style>
-
-        <header>[FunkDump]<?= (strlen($headerOptionalMsg) > 0 ? " - $headerOptionalMsg" : '') ?></header>
+        <header><?= (strlen(trim($headerOptionalMsg)) > 0 ? "$headerOptionalMsg" : '[FunkDump]') ?></header>
         <div class="metrics-top" style="font-size:11px; border-bottom: 1px solid #45475a; padding-bottom:8px;">
             <strong>COUNTS:</strong>
             Objects: <span class="fd-val"><?= $metrics['objects'] ?></span> |
@@ -320,31 +347,6 @@ function dd(mixed $data, string $headerOptionalMsg = '', bool $exit = true, bool
             Booleans: <span class="fd-val"><?= $metrics['booleans'] ?></span> |
             Nulls: <span class="fd-val"><?= $metrics['nulls'] ?></span>
         </footer>
-        <script>
-            document.querySelectorAll('.funk-web-dump .fd-toggle').forEach(function(btn) {
-                btn.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    const parent = this.parentElement;
-                    const tree = parent.querySelector(':scope > .fd-tree');
-                    if (tree) {
-                        if (tree.style.display === 'none') {
-                            tree.style.display = 'block';
-                            this.classList.remove('collapsed');
-                        } else {
-                            tree.style.display = 'none';
-                            this.classList.add('collapsed');
-                        }
-                    }
-                });
-            });
-            <?php if ($colorizeAccentGravedText): ?>
-                document.querySelectorAll('.funk-web-dump .fd-str').forEach(function(el) {
-                    if (el.textContent.includes('`')) {
-                        el.innerHTML = el.innerHTML.replace(/`([^`]+)`/g, '<span class="fd-gravel">$1</span>');
-                    }
-                });
-            <?php endif; ?>
-        </script>
     </div>
     <?php
     if ($exit) {
@@ -4028,6 +4030,7 @@ class C
         if (!is_string($errShort) || trim($errShort) === '') {
             $this->errors['ERRORS']++;
             $this->errors['INTERNAL'][count($this->errors['INTERNAL']) + 1] = ['errShort' => 'Invalid Value in (\$type)', 'err' => 'Invalid `\$type` (Error Type) Value (OR it is missing) in `class C->setErr()` when setting Error:\'`' . $errMsg . '`\' Report this found bug/issue to the Official FunkPHP Repositories.', 'method' => $method, 'route' => $route];
+            $this->FunkPHPFluentAPI['ALL'][count($this->FunkPHPFluentAPI)['ALL']] .= "`(See Error #" . count($this->errors['INTERNAL']) . " in 'INTERNALS')`";
             return;
         }
         // No method (or valid) provided
@@ -4036,6 +4039,7 @@ class C
         ) {
             $this->errors['ERRORS']++;
             $this->errors['INTERNAL'][count($this->errors['INTERNAL']) + 1] = ['errShort' => 'Invalid Value in (\$method)', 'err' => 'Invalid `\$method` (Method Type) Value (OR it is missing) in `class C->setErr()`: must be provided where `\'CONFIG\'` is default. Report this found bug/issue to the Official FunkPHP Repositories. Choose a `Valid Method Type` from: ' . $this->joinArray($validMethodTypes), 'method' => $method, 'route' => $route];
+            $this->FunkPHPFluentAPI['ALL'][count($this->FunkPHPFluentAPI)['ALL']] .= "`(See Error #" . count($this->errors['INTERNAL']) . " in 'INTERNALS')`";
             return;
         }
         if (
@@ -4043,6 +4047,7 @@ class C
         ) {
             $this->errors['ERRORS']++;
             $this->errors['INTERNAL'][count($this->errors['INTERNAL']) + 1] = ['errShort' => 'Invalid Value in (\$route)', 'err' => 'Invalid `\$route` Value (OR it is missing) in `class C->setErr()`: must be provided when Error Type starts with `Route-`. Report this found bug/issue to the Official FunkPHP Repositories.', 'method' => $method, 'route' => $route];
+            $this->FunkPHPFluentAPI['ALL'][count($this->FunkPHPFluentAPI)['ALL']] .= "`(See Error #" . count($this->errors['INTERNAL']) . " in 'INTERNALS')`";
             return;
         }
         // = get next error index depending on CONFIG, a METHODS CONFIG, or a METHODS ROUTES
@@ -4062,21 +4067,24 @@ class C
                 $nextErrIndex  = (count($this->errors['METHODS'][$method]['CONFIG']) + 1);
             }
         }
-        // append to last API depending on CONFIG, a METHODS CONFIG, or a METHODS ROUTES
+        // append to last API depending on CONFIG, a METHODS CONFIG, or a METHODS ROUTESs
         // = $this->FunkPHPFluentAPI[count($this->FunkPHPFluentAPI)] .= ' - (`See Error #' . $nextErrIndex . '`)';
         if ($method === 'CONFIG') {
             $this->FunkPHPFluentAPI['CONFIG'][count($this->FunkPHPFluentAPI['CONFIG'])] .= ' - (`See Error #' . $nextErrIndex . '`)';
+            $this->FunkPHPFluentAPI['ALL'][array_key_last($this->FunkPHPFluentAPI['ALL'])] .= " (See Error #" . $nextErrIndex . " in 'CONFIG')";
         } else {
             if ($route) {
                 if (!isset($this->FunkPHPFluentAPI['METHODS'][$method]['ROUTES'][$route])) {
                     $this->FunkPHPFluentAPI['METHODS'][$method]['ROUTES'][$route] = [];
                 }
                 $this->FunkPHPFluentAPI['METHODS'][$method]['ROUTES'][$route][count($this->FunkPHPFluentAPI['METHODS'][$method]['ROUTES'][$route])] .= ' - (`See Error #' . $nextErrIndex . '`)';
+                $this->FunkPHPFluentAPI['ALL'][array_key_last($this->FunkPHPFluentAPI['ALL'])] .= " (See Error #" . $nextErrIndex . " in '$method' => '$method$route')";
             } else {
                 if (!isset($this->FunkPHPFluentAPI['METHODS'][$method]['CONFIG'])) {
                     $this->FunkPHPFluentAPI['METHODS'][$method]['CONFIG'] = [];
                 }
                 $this->FunkPHPFluentAPI['METHODS'][$method]['CONFIG'][count($this->FunkPHPFluentAPI['METHODS'][$method]['CONFIG'])] .= ' - (`See Error #' . $nextErrIndex . '`)';
+                $this->FunkPHPFluentAPI['ALL'][array_key_last($this->FunkPHPFluentAPI['ALL'])] .= " (See Error #" . $nextErrIndex . " in 'GET' => '$method CONFIG')";
             }
         }
         // add the latest error depending on CONFIG, a METHODS CONFIG, or a METHODS ROUTES
@@ -7471,6 +7479,9 @@ class C
         $OOP_BASE64 = "<img src=\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAAA8CAYAAAA6/NlyAAAACXBIWXMAAAsTAAALEwEAmpwYAAACzklEQVR4nO2Zz3LTMBDG9RiUP8fSdwE6fRlKtElOMMzwKi0FLky5JJHSwtsUBgKXnj5mEzm1N7YS/6tVxd+MDnU/O/uzbGl3rZRSajTHM7K4IIMFWSCqYbDQFl/GUxypBFYb/Ow8sPbBfzGrWs6sBbTF1+EET1RkemPwVBtcOvBzlTzG/A8VqUarVxba4I9Kpjz5pzb44Y5dlz3WhVJx5I3rxLfmlMBscnfjquyxLpTEkTd0Nt584FhFew9MezLU3gKryEU9cOSiHjhyUQ8cuagH9kh0RDqtjjYqJdnRqAs8Eh2Rrqujwkop6WjUBabAOyIbHY3awCb8jkimo9HADOMhLGo7c1APnFUPnNJghhNtYcninxtmaHGc9lTxFzTmvNdvHZgMPhQV2drgfR3/tiI+9/ptAg9mOHE/fEsG+vQ7Hg/nONAWg+UxCwxneFnVn/ebfE6Rv3VgvXoseW8eSD8fc4nAtKrfF1Oe/z6A/y7v8hwH0v/a4JELaFHV74spz986MJU8p21/qXPIY0wyGLL4XeniLfj5Xc7LqvhvX0ZI24Ad7Df37n0MBZgXPRfTRAB/cjfiMg+afMDpfZArpbHFYdfAcpXWFi8yMV/hufjOnSljvcDpsqtLYM94K68hgWUZS9seaVF2XXQOvCr0J3Jm1+cYfPaVsfRQF60i1V60GtkCWvLvco1GgbVLJHghkX5+nOS2UdYfHDBZmKJUMdk2RKpY1h8W8NDi2M3KLUPwzPmS+7L+4IBZXKIVbRva4p2q4Q8SmKUNXmmDGb+jy/fUYCrLtip+zgPKtoPvBTgk9cBC1ANH0IiXGWElYP5Q5Su7ulamjDU4qw08nuKIP1SltpGwvh7exXXjmxDaFTh1F885/Qvt66GL6Wzb00dlgGMQ9cCRi3rgyEX7C2zCz6QazcR04JlU45nYeDOTinXcrCc0nUkFEFijQ2Zi/wEwSFQGAW+qkwAAAABJRU5ErkJggg==\" style=\"height:25px;\">";
         $PATH_BASE64 = "<img src=\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAACXBIWXMAAAsTAAALEwEAmpwYAAABKElEQVR4nO2aPU4DMRCFpwKJy1BRkJyBgoNQx48Uqfir6DgKHZlJT4UoOEBCroBoHjLaFIgFHIjkcZhPetVO4W89bjwWCYKgiMkjd5LyKimfYeRPyXUj47F4A8rLEoEPUb4m44F4AspFXtx4xkFRvfH6fWeMT5N77okX0P3l0vqTW+5C+dDJ3EirIpnRHfdhfFm7Jf8a5SIZL/K5lk2IZE6NR6u2rJDzjYnUAFMOVzvTtMi36906ERiXlfp9nSxLRJqKfCWSjIfinPGMg/9zRqQRECLOQIg4AyHiDISIMxAizkCIOAMh4gyEiDMQIs5AiDgDIeIMhIgzsP0i2k2dphxKI4OeZJx/+phncr+9Ea+VpDzrfzCQZerNA8sFjPMs0TsMDYJA+ngDFYpM7MYn2H0AAAAASUVORK5CYII=\" style=\"height:25px;\">";
         // Get the `` highlighted version instead
+        $formatMsg2 = function ($msg) {
+            return preg_replace('/\((See Error[^\)]+)\)/', '<span class="code-badge-error">[$1]</span>', $msg);
+        };
         $formatMsg = function ($msg) {
             if (!is_string($msg)) {
                 $msg = str_replace(['\/', '\\/'], '/', json_encode($msg, JSON_PRETTY_PRINT, JSON_UNESCAPED_SLASHES));
@@ -7852,6 +7863,13 @@ class C
                     font-size: 0.75rem;
                 }
 
+                .code-badge-error {
+                    color: #ff7b72;
+                    padding: 0.05rem 0.15rem;
+                    font-family: 'Consolas', 'Courier New', monospace;
+                    font-size: 0.75rem;
+                }
+
                 .empty-state {
                     text-align: center;
                     color: #8b949e;
@@ -8230,9 +8248,9 @@ class C
                                                 }
                                                 $paddingPx = $lineDepth * 24;
                                             ?>
-                                                <div class="api-tree-line" style="padding-left: <?= $paddingPx ?>px;">
-                                                    <span class="code-badge <?= ($upper === '->ROUTES()' || $upper === '->CONFIG()') ? '' : (preg_match('/^->(GET|POST|PUT|DELETE|PATCH)\(\)$/', $upper) ? 'badge-method' : '') ?>">
-                                                        <?= $formatMsg($trimmed); ?>
+                                                <div data-api-row="<?= $idx; ?>" class="api-tree-line" style="padding-left: <?= $paddingPx ?>px;">
+                                                    <span class="code-badge<?= ($upper === '->ROUTES()' || $upper === '->CONFIG()') ? '' : (preg_match('/^->(GET|POST|PUT|DELETE|PATCH)\(\)$/', $upper) ? ' badge-method' : '') ?>">
+                                                        <?= $formatMsg2($formatMsg($trimmed)); ?>
                                                     </span>
                                                 </div>
                                             <?php endforeach; ?>
@@ -8240,7 +8258,7 @@ class C
                                     </div>
                                     <div class="tab-group">
                                         <div class="tab-header" style="display:flex; align-items:center; align-content:center; gap:0.5rem;"><?= $COMPILED_BASE64; ?>FunkPHP Compiled API (relevant files <?= $PATH_BASE64; ?> /src/funkphp/app)</div>
-                                        <div class="api-card api-card-consolidated">
+                                        <div class="api-card api-card-consolidated" style="padding:1px;">
                                             <?= dd($compiled, 'Either RUNS/OUTPUTS as FunkPHPDeployment.php OR You Parse with Custom HTTPS Kernel Function!', false); ?>
                                         </div>
                                     </div>
