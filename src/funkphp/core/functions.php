@@ -6166,6 +6166,7 @@ class C
         }
     }
 
+    //METHOD+ROUTE: ROUTEPrefixSet()
     private function batchNewRoutePrefixSet(string $method, string $prefix)
     {
         [$ctx, $ctxVals] = $this->setCtx($method, null, 'ROUTEPrefixSet', "", $prefix);
@@ -6198,10 +6199,12 @@ class C
                 return;
             }
         }
-        // All good here
+        // Valid Route Prefix
         $this->routePrefixes[$method] = $prefix;
         $this->validBatches['methods']['prefix'][$method] = $prefix;
     }
+
+    //METHOD+ROUTE: ROUTEPrefixReset()
     private function batchNewRoutePrefixReset(string $method)
     {
         [$ctx, $ctxVals] = $this->setCtx($method, null, 'ROUTEPrefixReset', "");
@@ -6209,8 +6212,9 @@ class C
             $this->setErr($this->getErr('DuplicateCallInvalid', $ctxVals) . " (Current Invalid Route Prefix: `{$this->invalidBatches['methods']['prefix'][$method]}`)", "Invalid Route Prefix Already Set (`{$this->invalidBatches['methods']['prefix'][$method]}`) " . $ctxVals, $method, null);
             return;
         }
+        // Reset Current Method Valid Route Prefix
         $this->routePrefixes[$method] = null;
-        $this->validBatches['methods']['prefix'][$method] = null;
+        unset($this->validBatches['methods']['prefix'][$method]);
     }
     // Get current HTTP Method Prefix
     private function batchMethodPrefix(string $method)
@@ -6224,10 +6228,9 @@ class C
     {
         $rawRoute = $route;
         if (isset($this->routePrefixes[$method])) {
-            $rawRoute = substr($route, 0, strlen($this->routePrefixes[$method]));
-            echo $rawRoute;
+            $rawRoute = substr($route, strlen($this->routePrefixes[$method]));
         }
-        [$ctx, $ctxVals] = $this->setCtx($method, $rawRoute, 'ROUTE', "", $route);
+        [$ctx, $ctxVals] = $this->setCtx($method, $rawRoute, 'ROUTE', "", $rawRoute);
 
         // Check if the associated $method$route is in the InvalidBatches first
         // OR if it is already as an invalid alias OR a valid alias already exists
@@ -7377,7 +7380,7 @@ class C
 
     // Function that generates HTML to then output an easier
     // visualized version of current errors and/or warnings.
-    private function output_errors(array $internalErrors = [])
+    private function output_errors(array $internalErrors = [], array $compiled = [])
     {
         header("content-type: text/html; charset=utf-8");
         http_response_code(500);
@@ -7394,6 +7397,7 @@ class C
         $PHTML_FONT2_SRC = file_exists($fontLightDiskPath) ? "{$baseUrl}/fonts/Fredoka-Regular.ttf" : "";
 
         // Base64 Images
+        $COMPILED_BASE64 = '<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAsTAAALEwEAmpwYAAAB5UlEQVR4nO1WXU7CQBDuAVATTYw+eAY9hpiYkBi5iBp26kMfxZBYOA/BGUCMR+BZgpfg4TNbtqSU7X9540smaXens9/OfDtdxznAQAnuSLAgATJs4QqaTt2gfIsHphi/+yCAiHFnhOvw3Txz1MfyTdympQgoxuRphnNijKLB4mM5CKAUgdcxrkjQswTsmbnM4JUIkICD3W6nfGcsKY5izEqVgWIacBk34bt53tGAhsdoKEbfFdxb4gR+eo4Evvat9RR4jIbeZTAmWGkiFt++ngszkkjCFTR14DyLK8atIe3nJR0xv3BZnATo1EZ2F5DrfOLh5QtH2ojRUoL5Zl6wCkuVCrUtpFRBEWMQLv7MuFCMd8X4I8aSGF0zts4sY5B351NL6idpJPXO9YI7xBldJXis1KRsiC9kUr60EFh6Pziu1KSqEugMcbIPAtPYQi1bCZTgjQTttHJWwkaEgrkWXEBiLcBAhO4Yl5sekyZCVeI+YDuGWnC65qbu7WjM1GNIxtH7xmkiySHOop2wTCNSgo8kAgjFkfRx3K/WVkw51Rn3MyT8rJ+R3nnWzwhFM5B1OgqpnWoikNenFgKUIbiiBBZB2oY4K3AK0n7bxZqNW+I+sHdQXX27KFSB+8BeQDnuAwc4NeEfSbNmHP2EIRUAAAAASUVORK5CYII=" style="height:25px;">';
         $WARNING_BASE64 = '<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAACXBIWXMAAAsTAAALEwEAmpwYAAADX0lEQVR4nO2ZTUgVURTHb2WLggqKWkUu+ti0iiLCxDnnaWWo9E1tpQ8IIVoEgYtsI1TbWlW0k1AqfOdMFhlIC2lhm8JVJPTueVpktajog8qJqymi7+m8eTNv5sn9wYHh8ebM+f/nzr33zChlsVgsFovFYrFYLCUiQ061MLQK462JgNbhNOxWCx1hB4TwlTB6uUIzvNQu1qiFiHDqvCb8nU/8lAnmPwTn1EIim3YaNeHYfOKnmTCmyTmoFgLv7u9ZJ4Sf/YqfCoJP5lxV7sjERFeY+KmRADdVOZPtrtmmGf4ENoDhb6bb2aHKFSF4FlT8tFHQ73lqkSo3NDsnihU/GRmC46qc0F27lmmCt2EZoAllmBqXq3JBE7SFJX7ao3BJlQPS46zXBN/CNkAYv4+4WKmSjjB0+JvhcVQIH5nQhB/8mQAdKslkXazys+PTDPS6p37l5HnmWBi7fcwFY+YaKol4bW2LhXDAj4iRnuq1M883v/naLhMOmGuppKEJm/0NffiYNwfDR5+rQrNKEqPdVSuEcMTns/8lXx7N+NXnXPB+qLdulUoKQnjV/3KGY16fUzEzx4sX25cW2DFeUUkg04MbheBnIUta9kHtmlxzQGHLIvzKPqzdouJGCNKFFY6eTjubZuXhms2F5jErRzyq/yNpTAUo2svV4WlO7QySSzPsU3Hg9TkVwjAYpGhx8fDMfFk3dSxQLobBXHNK5GiClmAFj9+1zln5GO8FzkfQUlrxj/euNq+sghY8+fwK42mdhpN+doFzBsEnU1PJDBDGG0WKDz8IrpdEfCaNW/283vbx7D4RxsumddaEvcXmMzWZ2iI3QCYKL7bYC7PyunAxDFOjFe9CQ9HiGb/mama8rmNL/G+F5wgXGiIzQDM+Ld6A/M1QCBOrGV29kYgfcbGykL36XJFJw4HZ5qYOhZHb1DhMdRtCN0AotT+MAseD8IcwXMtSqsl8NjPHhfYTc5rgOvWhG6DJORWaARGH2VuEbkCWUk1xC4t1IpRg3VosYVp0FQWa8Xnihz9Bv4oKYedo3ALnDYIjkRlgEIY7sYvMH7dVSb77MXQm787jXVObKhXi4hkhGIpfOLwxbbWK7WMIO5BhPKsJ282b2hJF+8Q1wUnkRxKLxWKxWCwWi8Wiks4/S+qQp9eHxIoAAAAASUVORK5CYII=" style="height:25px;">';
         $ERROR_BASE64 = '<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAACXBIWXMAAAsTAAALEwEAmpwYAAADHUlEQVR4nO2ZPWgUURDHnxoLBSMosRJTRG1SCWIRRYONSgx+Bm1DNBDChZ3ZxMu9WVwbQdNqpWIXJGARbQRjYxEsUikpFQRBRBMLI36g5i97l3jCfWR3b/d273g/mO7e3Pz/b2/uzT6lDAaDwWAwGAwGg6FOQPgQhDWE7haCNXLWQdXsQOxuaH4FYZQPegmxD6tmBJosaPpVWfxKeJ/RNKKaCTh8EsLLa4ovxjIcPq2aAbj2Dgh9DiB+5UngRW+tanRQaHLBxBdNuKMaGTi8D8K/wxtAf6Ct/apRgabnocUXTZiFUutUo4EcXaxZfDEuqEYCRJug6W1kBmh6B3dws2oUoNmNcPdXD0lXVSMA98pOCH2N3gD+BrHbVdqB8KTPx/oTND/Jh/BHnyZMqjQD4S6fJ77HcDOt/9a5mVYIT/tY5+XuUmkErrsewnO+ROQybSXrc5k2n+bNed+l0gaE+n0+xguVc/CCz4bYr9IExsa2QPi9z+K/VMyjecmniR+QzW5VaQGabgbo5stw3ZaSHIODGwNOjDdUGoCMdkD4R6C/tPHh7RV6gP8cmn5inPcmo/o/oOlRoMLzBtDukjzO2J7AeYSnVZJA7KMhika5CQ+aDoTLxceSEe+6LdA8H6poxz5bkk+4L6QB8+V6SvwGCA+HKrgQU2XyPawh33B9xbu0Lf/KKnzB+d8vhC5DaMDnKbDaU7Do1VQ/AzTdrlF8HHGrPuIdq9PX6+01g55C6Fp+dNY8U3M+rybH6ozfAPEKr3m3RkvyaspGYWq84rXdU/tO8VK5YQZ9fRsCHIWr5Ld74jNA6FkEu195GKq9sXoGz8Qk3m4PeFavUqR1qlQ8nYkkt1djdmRX9AZo+0REBXoN6zuEJ6Ct3pVrs4nA80TVoOMxGMCXoisw7qCBGAywepMXlmAjRLhpLaEY7YjcAA8Iv0j/7tOsigs49vkGMOBcbAZ4QPP99Irne6ou937CU4mLLY0HXm2xG7AKtD0I4TeJC9f02hurVXKXIXY3hIeg6br3prYuUfiuIeToSCovSQwGg8FgMBgMBoNKO38BiP/u0tQ90GMAAAAASUVORK5CYII=" style="height:25px;">';
         $API_TREE_BASE64 = '<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAACXBIWXMAAAsTAAALEwEAmpwYAAABXklEQVR4nO3asUrDUBTG8UxuOvga9mVEfBTrPSAE3FxUlL6N9X6DFHcrOOsbqKPySelyW6SmwWh6zveHjLec/NIkw01VKaWUUhuTgWxzVF4yAVAAJgD6ArDMQcq8NHBq4PuqwV0B1FNuWeYoZX42HdwNQD0/+fG6g7sBsMxRm8FdAFjmwMCPcsCU+Xx8y4OjO26vXOsBIM0feAsnX0+422StF4DHcrjZlW+61gWAZb6Ww/30t/cHgPbDhQdwkQmA/QewDu81AUAA7P1bwARAAZgAKAD7/2MYGyDzJDYAeBoaIGWebRRA1eK3+zLXQgKAACgACIB9A/izLDpAlwkAAqAA0PO3QJeF3xpLy5uj4H4oAAMvyuES+BRqe3w45t7yBxIGviTwsL7njnuAWQZetxne1UdSCbwJC1AgXH1zO8QAKJ8JCTxP4EMC38IBrJMAIAAKAAJgWACllFLV7/UFRqMuZVg/Fm0AAAAASUVORK5CYII=" style="height:25px;">';
@@ -7830,7 +7834,7 @@ class C
         <body>
             <div class="container">
                 <div class="header">
-                    <div class="title">FunkPHP Fluent API - Set, Pipe, Deploy!</div>
+                    <div class="title">FunkPHP - Set, Pipe, Run!</div>
                     <div class="summary-badges">
                         <span class="badge badge-danger"><?= $totalErrors ?> Error<?= $totalErrors === 1 ? '' : 's' ?></span>
                         <span class="badge badge-warning"><?= $totalWarnings ?> Warning<?= $totalWarnings === 1 ? '' : 's' ?></span>
@@ -8142,7 +8146,7 @@ class C
                                     $currentDepth = 0;
                                 ?>
                                     <div class="tab-group">
-                                        <div class="tab-header" style="display:flex; align-items:center; align-content:center; gap:0.5rem;"><?= $API_TREE_BASE64; ?>FunkPHP Fluent API (all files <?= $PATH_BASE64; ?> /src/funkphp/app)</div>
+                                        <div class="tab-header" style="display:flex; align-items:center; align-content:center; gap:0.5rem;"><?= $API_TREE_BASE64; ?>FunkPHP Fluent API (relevant files <?= $PATH_BASE64; ?> /src/funkphp/app)</div>
                                         <div class="api-card api-card-consolidated">
                                             <?php foreach ($API_TREE as $idx => $apiStr):
                                                 $trimmed = trim($apiStr);
@@ -8153,7 +8157,7 @@ class C
                                                 } elseif (preg_match('/^->(GET|POST|PUT|DELETE|PATCH)\(\)$/', $upper)) {
                                                     $currentDepth = 1;
                                                     $lineDepth = 1;
-                                                } elseif (str_starts_with($upper, '->ROUTE(')) {
+                                                } elseif (str_starts_with($upper, '->ROUTE(') || str_starts_with($upper, '->ROUTEP')) {
                                                     $currentDepth = 2;
                                                     $lineDepth = 2;
                                                 } else {
@@ -8167,6 +8171,12 @@ class C
                                                     </span>
                                                 </div>
                                             <?php endforeach; ?>
+                                        </div>
+                                    </div>
+                                    <div class="tab-group">
+                                        <div class="tab-header" style="display:flex; align-items:center; align-content:center; gap:0.5rem;"><?= $COMPILED_BASE64; ?>FunkPHP Compiled API (relevant files <?= $PATH_BASE64; ?> /src/funkphp/app)</div>
+                                        <div class="api-card api-card-consolidated">
+                                            <?= dd($compiled, 'Either RUNS/OUTPUTS as FunkPHPDeployment.php OR You Parse with Custom HTTPS Kernel Function!', false); ?>
                                         </div>
                                     </div>
                                 <?php
@@ -8378,7 +8388,7 @@ class C
         // Otherwise, we dump API + Errors and exist early (default in dd()).
         // ------------------------------------------------------------------------------------------
         if ($this->errors['ERRORS'] > 0 || count($this->invalidBatches) > 0) {
-            $this->output_errors($this->errors);
+            $this->output_errors($this->errors, $this->compiled);
         }
 
         // ------------------------------------------------------------------------------------------
@@ -8879,7 +8889,7 @@ class C
                 && count($this->errors['COMPILATION']['errors']) > 0)
             || $this->debug['ALWAYS_SHOW']
         ) {
-            $this->output_errors($this->errors);
+            $this->output_errors($this->errors, $this->compiled);
         }
 
         dd(['COMPILE FLAGS' => $this->compileFlags, 'API' => $this->FunkPHPFluentAPI, 'COMPILE_ERRORS' => $this->errors['COMPILATION']['errors'], 'COMPILE_WARNINGS' => $this->errors['COMPILATION']['warnings'], 'COMPILED' => $this->compiled, 'VALID' => $this->validBatches,  'CACHED' => $this->cached], "COMPILATION - DEBUG", true);
