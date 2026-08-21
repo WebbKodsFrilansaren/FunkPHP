@@ -6023,7 +6023,8 @@ class C
                     color: #ff7b72;
                     padding: 0.05rem 0.15rem;
                     font-family: 'Consolas', 'Courier New', monospace;
-                    font-size: 0.75rem;
+                    font-size: 0.9rem;
+                    font-weight: 700;
                 }
 
                 .empty-state {
