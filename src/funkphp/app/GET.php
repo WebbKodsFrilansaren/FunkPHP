@@ -3,5 +3,8 @@
 
 /** @var FunkPHP $APP */
 $APP->ROUTES()->GET()
+    ->route("/")
+    ->ROUTEPrefixReset()
+    ->ROUTEPrefixSet("/users2")
     ->route("/test2")
     ->setExcludeMiddlewares("auth");

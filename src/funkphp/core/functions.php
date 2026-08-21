@@ -1871,11 +1871,15 @@ class C
         'headers' => ['set-cookie', 'content-length', 'transfer-encoding', 'connection'],
         'functions_in_regular_functions' => [
             'funk_session_started_or_start_it',
+            'funk_internal_session_started_or_start_it',
             'funk_session_cookie_set',
             'funk_default_exception_handler',
             'register_shutdown_function',
             'set_exception_handler',
             'set_error_handler',
+            'funk_internal_handle_no_route_match',
+            'funk_internal_send_headers',
+            'funk_internal_return_response',
         ],
     ];
     private array $ALLOWED = [
@@ -2001,8 +2005,18 @@ class C
     ];
     // $compiled = The entire compiled code that can either be executed as is OR
     // be exported to the `/src/funkphp/FunkPHPDeployment.php` File!
+    private array $routePrefixes = [
+        'GET' => null,
+        'POST' => null,
+        'PUT' => null,
+        'DELETE' => null,
+        'PATCH' => null,
+    ];
     private array $compiled = [
         'config' => [
+            'runtime_settings' => [
+                'form_spoof_methods' => ['PUT', 'PATCH', 'DELETE']
+            ],
             'NO_ROUTE_MATCH' => [],
             'pipes' => ['request' => [], 'middlewares' => [], 'post_response' => [],],
             'params' => [],
@@ -3915,7 +3929,10 @@ class C
             'InvalidNoRouteMatchTextValue' => "Invalid Text Value in {$optionalCtx}: must be a `Non-Empty String` after `trim()` have been applied to it.",
             'InvalidRegex'                                => "Invalid Regex Value in {$optionalCtx}: must be a `Non-Empty String` that is also a `Valid Regex Pattern` when parsed by `preg_match()`. It cannot be an Empty Expression with optional modifiers (e.g. `//` OR `//i`).",
             'InvalidRouteFormat' => "Invalid Route Value in {$optionalCtx}: A Valid Route must: 1) Start with or just be `/` as root (`never end with -, _ OR /`), 2) Be all `lowercased`, 3) Have all `Uniquely Named /:params` URI segments (if any used), 4) Never use `-` and/or `_ consecutively`, after each other (e.g. `-_` or `_-`) OR as start in static/dynamic segments (e.g. `/:-`, `/:_`, `/_`, OR `/-`), 5) Only use `[a-z0-9_-]` characters.",
+            'InvalidRoutePrefixFormat' => "Invalid Route Prefix Value in {$optionalCtx}: A Valid Route Prefix must: 1) Start with `/` (it can NEVER just be only `/` for Route Prefixes!) as root (`never end with -, _ OR /`), 2) Be all `lowercased`, 3) Have all `Uniquely Named /:params` URI segments (if any used), 4) Never use `-` and/or `_ consecutively`, after each other (e.g. `-_` or `_-`) OR as start in static/dynamic segments (e.g. `/:-`, `/:_`, `/_`, OR `/-`), 5) Only use `[a-z0-9_-]` characters.",
+            'InvalidRoutePrefixResetFirst' => "Route Prefix Value in {$optionalCtx}: Reset the current Method Route Prefix Value with the help of `->ROUTEPrefixReset()` before setting a New Route Prefix for the current Method!",
             'InvalidRouteFormatDuplicateParams' => "Invalid Route Value in {$optionalCtx}: `Check for Duplicate Params`. A Valid Route must: 1) Start with or just be `/` as root (`never end with -, _ OR /`), 2) Be all `lowercased`, 3) Have all `Uniquely Named /:params` URI segments (if any used), 4) Never use `-` and/or `_ consecutively`, after each other (e.g. `-_` or `_-`) OR as start in static/dynamic segments (e.g. `/:-`, `/:_`, `/_`, OR `/-`), 5) Only use `[a-z0-9_-]` characters.",
+            'InvalidRouteFormatDuplicateParamsPrefix' => "Invalid Route Prefix Value in {$optionalCtx}: `Check for Duplicate Params`. A Valid Route Prefix must: 1) Start with `/` (it can NEVER just be only `/` for Route Prefixes!) as root (`never end with -, _ OR /`), 2) Be all `lowercased`, 3) Have all `Uniquely Named /:params` URI segments (if any used), 4) Never use `-` and/or `_ consecutively`, after each other (e.g. `-_` or `_-`) OR as start in static/dynamic segments (e.g. `/:-`, `/:_`, `/_`, OR `/-`), 5) Only use `[a-z0-9_-]` characters.",
             'InvalidRouteAliasName'                     => "Invalid Route Alias Name in {$optionalCtx}: Aliases must only contain `[a-zA-Z0-9_.-]` characters (e.g., `users.all` OR `Users.All`).",
             'NonEmptyAllLowercasedStringSTARTWithHTTP'  => "Invalid String Value in {$optionalCtx}: must be a Non-Empty String (no trailing spaces) all lowercased that starts with `http://`.",
             'NonEmptyAllLowercasedStringSTARTWithHTTPS'  => "Invalid String Value in {$optionalCtx}: must be a Non-Empty String (no trailing spaces) all lowercased that starts with `https://`.",
@@ -4184,10 +4201,10 @@ class C
     {
         if ($fn === '' || !method_exists($this, $fn)) {
             $this->errors['ERRORS']++;
-            $this->errors['INTERNAL'][count($this->errors['INTERNAL']) + 1] = ['errShort' => 'Failed to call Internal batch<METHOD>', 'err' => '[Class C->batch()]: Tried calling to a Non-existing Private Function `' . $fn  . '` in Class `C` in `/src/funkphp/core/functions.php`. Please report this Bug/Issue to the `Official FunkPHP Repositories`.'];
-            return;
+            $this->errors['INTERNAL'][count($this->errors['INTERNAL']) + 1] = ['errShort' => 'Failed to call Internal batch<METHOD>', 'err' => '[Class C->batch()]: Tried calling to a Non-existing Private Function `' . $fn  . '` in Class `C` in `/src/funkphp/core/functions.php`. Any Value(s) `Class C->batch()` were supposed to return to some other function will now have been converted to `null`. Please report this Bug/Issue to the `Official FunkPHP Repositories`.'];
+            return null;
         }
-        $this->$fn(...$payload);
+        return $this->$fn(...$payload);
     }
 
     // batchSetMETHOD is for setting -><METHOD>() so it shows up correctly in "API" Tab
@@ -5575,7 +5592,7 @@ class C
     /* remove|pipeHeader - Global */
     private function batchRemoveHeaderGlobal(string $header_to_remove)
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'removeHeader', "CONFIG()", $header_to_remove);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setHeaderRemove', "CONFIG()", $header_to_remove);
         if (isset($this->invalidBatches['headers']['config']['remove'][$header_to_remove])) {
             $this->setErr($this->getErr('DuplicateCallInvalidMustBeSetWithDifferentValues', $ctx) . " Header Name must be unique (case-insensitive).", 'Duplicate Call ' . $ctxVals);
             return;
@@ -5608,7 +5625,7 @@ class C
     }
     private function batchSetHeaderGlobal(string $header, string $value)
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setHeader', "CONFIG()", $header, $value);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setHeaderAdd', "CONFIG()", $header, $value);
         $headerName  = trim($header);
         $headerValue = trim($value);
         $lowerHeader = strtolower($headerName);
@@ -6036,7 +6053,7 @@ class C
     /*METHOD: removeHeader & pipeHeader */
     private function batchSetHeaderMethod(string $method, string $header, $value)
     {
-        [$ctx, $ctxVals] = $this->setCtx($method, null, 'setHeader', "ROUTES()->{$method}()", $header, $value);
+        [$ctx, $ctxVals] = $this->setCtx($method, null, 'setHeaderAdd', "ROUTES()->{$method}()", $header, $value);
         $headerName  = $header;
         $headerValue = $value;
         $lowerHeader = strtolower($headerName);
@@ -6075,7 +6092,7 @@ class C
     }
     private function batchRemoveHeaderMethod(string $method, string $header_to_remove)
     {
-        [$ctx, $ctxVals] = $this->setCtx($method, null, 'removeHeader', "ROUTES()->{$method}()", $header_to_remove);
+        [$ctx, $ctxVals] = $this->setCtx($method, null, 'setHeaderRemove', "ROUTES()->{$method}()", $header_to_remove);
         if (isset($this->invalidBatches['headers']['methods'][$method]['remove'][$header_to_remove])) {
             $this->setErr($this->getErr('DuplicateCallInvalidMustBeSetWithDifferentValues', $ctx) . " Header Name must be unique (case-insensitive).", 'Duplicate Call ' . $ctxVals, $method);
             return;
@@ -6149,19 +6166,77 @@ class C
         }
     }
 
+    private function batchNewRoutePrefixSet(string $method, string $prefix)
+    {
+        [$ctx, $ctxVals] = $this->setCtx($method, null, 'ROUTEPrefixSet', "", $prefix);
+        if (isset($this->invalidBatches['methods']['prefix'][$method])) {
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctxVals) . " (Current Invalid Route Prefix: `{$this->invalidBatches['methods']['prefix'][$method]}`)", "Invalid Route Prefix Already Set (`{$this->invalidBatches['methods']['prefix'][$method]}`) " . $ctxVals, $method, null);
+            return;
+        }
+        if (isset($this->validBatches['methods']['prefix'][$method])) {
+            $this->setErr($this->getErr('InvalidRoutePrefixResetFirst', $ctxVals) . " (Current Valid Route Prefix: `{$this->validBatches['methods']['prefix'][$method]}`)", "Reset Route Prefix First " . $ctxVals, $method, null);
+            return;
+        }
+        // Route Prefix must be valid just like a regular Route...
+        if (
+            !is_string($prefix) || (trim($prefix) === '' || trim($prefix) === '/')
+            || (strtolower($prefix) !== $prefix)
+            || !str_starts_with($prefix, '/')
+            || (str_ends_with($prefix, '/') && $prefix !== '/')
+            || !preg_match('/^(?!.*[-_]{2,})(?:\/|(?:\/[:]?[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?)+)$/', $prefix)
+        ) {
+            $this->setErr($this->getErr('InvalidRoutePrefixFormat', $ctxVals), 'Invalid Route Prefix Formatting ' . $ctxVals, $method, null);
+            $this->invalidBatches['methods']['prefix'][$method] = $prefix;
+            return;
+        }
+        // ...which includes its Params parts!
+        if (str_contains($prefix, ":")) {
+            preg_match_all('/:([a-z0-9_-]+)/i', $prefix, $paramMatches);
+            if (count($paramMatches[1]) !== count(array_unique($paramMatches[1]))) {
+                $this->setErr($this->getErr('InvalidRouteFormatDuplicateParamsPrefix', $ctxVals), 'Duplicate Route Prefix Params ' . $ctxVals, $method, null);
+                $this->invalidBatches['methods']['prefix'][$method] = $prefix;
+                return;
+            }
+        }
+        // All good here
+        $this->routePrefixes[$method] = $prefix;
+        $this->validBatches['methods']['prefix'][$method] = $prefix;
+    }
+    private function batchNewRoutePrefixReset(string $method)
+    {
+        [$ctx, $ctxVals] = $this->setCtx($method, null, 'ROUTEPrefixReset', "");
+        if (isset($this->invalidBatches['methods']['prefix'][$method])) {
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctxVals) . " (Current Invalid Route Prefix: `{$this->invalidBatches['methods']['prefix'][$method]}`)", "Invalid Route Prefix Already Set (`{$this->invalidBatches['methods']['prefix'][$method]}`) " . $ctxVals, $method, null);
+            return;
+        }
+        $this->routePrefixes[$method] = null;
+        $this->validBatches['methods']['prefix'][$method] = null;
+    }
+    // Get current HTTP Method Prefix
+    private function batchMethodPrefix(string $method)
+    {
+        return (isset($this->routePrefixes[$method]) ? $this->routePrefixes[$method] : '');
+    }
+
     /* !!! ROUTE/ROUTES()-><METHOD>()->route()-> BATCHES FUNCTIONS !!! */
     //ROUTE:Batching New Route `->route("/route", $optionalParamRules as an array)`
     private function batchNewRoute(string $method, string $route)
     {
-        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'ROUTE', "ROUTES()->{$method}()->ROUTE('{$route}')", $route);
+        $rawRoute = $route;
+        if (isset($this->routePrefixes[$method])) {
+            $rawRoute = substr($route, 0, strlen($this->routePrefixes[$method]));
+            echo $rawRoute;
+        }
+        [$ctx, $ctxVals] = $this->setCtx($method, $rawRoute, 'ROUTE', "", $route);
+
         // Check if the associated $method$route is in the InvalidBatches first
         // OR if it is already as an invalid alias OR a valid alias already exists
-        if (isset($this->invalidBatches['routes'][$method][$route])) {
+        if (isset($this->invalidBatches['methods'][$method][$route])) {
             $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Duplicate Call ' . $ctxVals, $method, $route);
             return;
         }
         // Does $route already exist as a valid one? (meaning it was formatted correctly but duplicate)
-        if (isset($this->validBatches['routes'][$method][$route])) {
+        if (isset($this->validBatches['methods'][$method][$route])) {
             $this->setErr($this->getErr('DuplicateCallValidCanOnlyBeSetOnce', $ctxVals), 'Duplicate Call ' . $ctxVals, $method, $route);
             return;
         }
@@ -6970,7 +7045,7 @@ class C
     /*ROUTE: setpipeHeaderRoute*/
     private function batchSetHeaderRoute(string $method, string $route, string $header, $value)
     {
-        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'setHeader', "ROUTES()->{$method}()->ROUTE('{$route}')", $header);
+        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'setHeaderAdd', "ROUTES()->{$method}()->ROUTE('{$route}')", $header);
         // Route must be valid first
         if (isset($this->invalidBatches['routes'][$method][$route])) {
             $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route is Invalid - must become Valid First ' . $ctxVals, $method, $route);
@@ -7021,7 +7096,7 @@ class C
     /*ROUTE: setRemoveHeaderRoute*/
     private function batchRemoveHeaderRoute(string $method, string $route, string $header_to_remove)
     {
-        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'removeHeader', "ROUTES()->{$method}()->ROUTE('{$route}')", $header_to_remove);
+        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'setHeaderRemove', "ROUTES()->{$method}()->ROUTE('{$route}')", $header_to_remove);
         // Route must be valid first
         if (isset($this->invalidBatches['routes'][$method][$route])) {
             $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route is Invalid - must become Valid First ' . $ctxVals, $method, $route);
@@ -9404,7 +9479,7 @@ class FunkConfig
      * @param string $value Header Value (e.g., "nosniff")
      * @return $this
      */
-    public function setHeader(string $header, string $value): self
+    public function setHeaderAdd(string $header, string $value): self
     {
         $this->c->batch('batchSetHeaderGlobal', trim($header), trim($value));
         return $this;
@@ -9416,7 +9491,7 @@ class FunkConfig
      * @param string $header_to_remove Case-insensitive header key to remove
      * @return $this
      */
-    public function removeHeader(string $header_to_remove): self
+    public function setHeaderRemove(string $header_to_remove): self
     {
         $header_to_remove = strtolower(trim($header_to_remove));
         $this->c->batch('batchRemoveHeaderGlobal', $header_to_remove);
@@ -9734,7 +9809,7 @@ class FunkMethod
      * @param string $value Header Value (e.g., "nosniff")
      * @return $this
      */
-    public function setHeader(string $header, string $value): self
+    public function setHeaderAdd(string $header, string $value): self
     {
         $this->c->batch('batchSetHeaderMethod', $this->method, trim($header), trim($value));
         return $this;
@@ -9745,7 +9820,7 @@ class FunkMethod
      * @param string $header_to_remove Case-insensitive header key to remove
      * @return $this
      */
-    public function removeHeader(string $header_to_remove): self
+    public function setHeaderRemove(string $header_to_remove): self
     {
         $header_to_remove = strtolower(trim($header_to_remove));
         $this->c->batch('batchRemoveHeaderMethod', $this->method, $header_to_remove);
@@ -9766,6 +9841,27 @@ class FunkMethod
         return $this;
     }
     /**
+     * Initialize a New Route Prefix for the current HTTP method.
+     *
+     * @param string $prefix Route Prefix that must be a Valid Route Path Pattern (e.g., "/users" OR "/users/:id" and so on)
+     * @return $this
+     */
+    public function ROUTEPrefixSet(string $prefix): self
+    {
+        $this->c->batch('batchNewRoutePrefixSet', $this->method, strtolower(trim($prefix)));
+        return $this;
+    }
+    /**
+     * Resets last used Route Prefix for the current HTTP method.
+     *
+     * @return $this
+     */
+    public function ROUTEPrefixReset(): self
+    {
+        $this->c->batch('batchNewRoutePrefixReset', $this->method);
+        return $this;
+    }
+    /**
      * Initialize a new route definition for the current HTTP method.
      *
      * @param string $path Route path pattern (e.g., "/users/:id")
@@ -9773,8 +9869,9 @@ class FunkMethod
      */
     public function ROUTE(string $path): FunkRoute
     {
-        $this->c->batch('batchNewRoute', $this->method, strtolower(trim($path)));
-        return new FunkRoute($this->c, $this, $this->method, strtolower(trim($path)));
+        $methodPrefix = $this->c->batch("batchMethodPrefix", $this->method);
+        $this->c->batch('batchNewRoute', $this->method, strtolower(trim($methodPrefix . $path)));
+        return new FunkRoute($this->c, $this, $this->method, strtolower(trim($methodPrefix . $path)));
     }
     /**
      * Switch context back to HEAD method builder.
@@ -9863,6 +9960,27 @@ class FunkRoute
      */
     public function ______________________________________________(): self
     {
+        return $this;
+    }
+    /**
+     * Initialize a New Route Prefix for the current HTTP method.
+     *
+     * @param string $prefix Route Prefix that must be a Valid Route Path Pattern (e.g., "/users" OR "/users/:id" and so on)
+     * @return $this
+     */
+    public function ROUTEPrefixSet(string $prefix): self
+    {
+        $this->c->batch('batchNewRoutePrefixSet', $this->method, strtolower(trim($prefix)));
+        return $this;
+    }
+    /**
+     * Resets last used Route Prefix for the current HTTP method.
+     *
+     * @return $this
+     */
+    public function ROUTEPrefixReset(): self
+    {
+        $this->c->batch('batchNewRoutePrefixReset', $this->method);
         return $this;
     }
     /**
@@ -10113,7 +10231,7 @@ class FunkRoute
      *
      * @return $this
      */
-    public function setHeader(string $header, string $value): self
+    public function setHeaderAdd(string $header, string $value): self
     {
         $this->c->batch('batchSetHeaderRoute', $this->method, $this->routePath, trim($header), trim($value));
         return $this;
@@ -10124,7 +10242,7 @@ class FunkRoute
      * @param string $header_to_remove Case-insensitive header key to remove
      * @return $this
      */
-    public function removeHeader(string $header_to_remove): self
+    public function setHeaderRemove(string $header_to_remove): self
     {
         $this->c->batch('batchRemoveHeaderRoute', $this->method, $this->routePath, $header_to_remove);
         return $this;
