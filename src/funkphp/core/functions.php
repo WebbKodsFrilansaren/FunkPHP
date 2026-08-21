@@ -1881,6 +1881,7 @@ class C
             'funk_internal_send_headers',
             'funk_internal_return_response',
         ],
+        'reserved_fn_names' => ['cli_dump', 'cli_dd', 'dd'],
     ];
     private array $ALLOWED = [
         'csp-directives' => [ // used by setCSP() (global,method,route)
@@ -1982,6 +1983,7 @@ class C
             'segments' => null,
             'auth' => null,
             'matched_config' => null,
+            'matched_params' => null,
             'matched_pipes' => [],
             'matched_middlewares' => null,
             'skip_post_response' => false,
@@ -2014,8 +2016,9 @@ class C
     ];
     private array $compiled = [
         'config' => [
-            'runtime_settings' => [
-                'form_spoof_methods' => ['PUT', 'PATCH', 'DELETE']
+            'runtime' => [
+                'request_ip_sources' => [],
+                'request_form_spoof_methods' => ['PUT', 'PATCH', 'DELETE']
             ],
             'NO_ROUTE_MATCH' => [],
             'pipes' => ['request' => [], 'middlewares' => [], 'post_response' => [],],
@@ -2186,6 +2189,7 @@ class C
             || !preg_match('/^[a-z_][a-z0-9_]*$/', $str)
             || (str_starts_with($str, 'cli_'))
             || (str_starts_with($str, 'funk_'))
+            || in_array($str, $this->FORBIDDEN['reserved_fn_names'])
         ) {
             return false;
         }
@@ -2214,6 +2218,8 @@ class C
             || !preg_match('/^((group:)?[a-z_][a-z0-9_]*)$/', $str)
             || (str_starts_with($str, 'cli_'))
             || (str_starts_with($str, 'funk_'))
+            || (str_starts_with($str, 'group:cli_'))
+            || (str_starts_with($str, 'group:funk_'))
         ) {
             return false;
         }
@@ -2226,6 +2232,8 @@ class C
             !is_string($str) || trim($str) === ''
             || ($str !== strtolower($str))
             || !preg_match('/^(group:[a-z_][a-z0-9_]*)|([a-z_][a-z0-9_]*\.[a-z_][a-z0-9_]*)$/', $str)
+            || (str_starts_with($str, 'group:cli_'))
+            || (str_starts_with($str, 'group:funk_'))
             || (str_starts_with($str, 'cli_'))
             || (str_starts_with($str, 'funk_'))
         ) {
@@ -5387,9 +5395,14 @@ class C
         // Validate valid $param identifier formatting
         if (!is_string($param) || !preg_match('/^[a-z0-9_-]+$/', $param)) {
             $this->setErr($this->getErr('InvalidParamName', $ctxVals), 'Invalid Param Name ' .  $ctxVals);
-            $this->invalidBatches['paramRules']['config'][$param] = "{$param},{$regex},{$defaultParamValueOnRegexMismatch}";
+            $this->invalidBatches['paramRules']['config'][$param] = [
+                'pattern' => $regex,
+                'default' => $defaultParamValueOnRegexMismatch,
+                'callback' => null,
+            ];
             return;
         }
+        $callback = null;
         // Validate valid $regex pattern
         $regexValid = true;
         try {
@@ -5401,22 +5414,33 @@ class C
         }
         if (!$regexValid || preg_match('#\/\/[gimsuy]*#', $regex)) {
             $this->setErr($this->getErr('InvalidRegex', $ctxVals), 'Invalid Regex Pattern ' .  $ctxVals);
-            $this->invalidBatches['paramRules']['config'][$param] = "{$param},{$regex},{$defaultParamValueOnRegexMismatch}";
+            $this->invalidBatches['paramRules']['config'][$param] = [
+                'pattern' => $regex,
+                'default' => $defaultParamValueOnRegexMismatch,
+                'callback' => $callback,
+            ];
             return;
         }
         // Check for duplicate valid rule at global level
         if (isset($this->validBatches['config']['paramRules'][$param])) {
             $this->setErr($this->getErr('DuplicateParamGlobal', $ctxVals), 'Duplicate Param Rule ' . $ctxVals);
+            $this->invalidBatches['paramRules']['config'][$param] = [
+                'pattern' => $regex,
+                'default' => $defaultParamValueOnRegexMismatch,
+                'callback' => $callback,
+            ];
             return;
         }
         // Finally store valid global param rule
         $this->validBatches['config']['paramRules'][$param] = [
             'pattern' => $regex,
-            'default' => $defaultParamValueOnRegexMismatch
+            'default' => $defaultParamValueOnRegexMismatch,
+            'callback' => $callback,
         ];
         $this->cached['placeholderUNSUEDParams']['GLOBAL'][$param] = [
             'pattern' => $regex,
-            'default' => $defaultParamValueOnRegexMismatch
+            'default' => $defaultParamValueOnRegexMismatch,
+            'callback' => $callback,
         ];
     }
 
@@ -5933,9 +5957,14 @@ class C
         // Validate valid $param identifier formatting
         if (!is_string($param) || !preg_match('/^[a-z0-9_-]+$/', $param)) {
             $this->setErr($this->getErr('InvalidParamName', $ctxVals), 'Invalid Param Name ' . $ctxVals, $method);
-            $this->invalidBatches['paramRules']['methods'][$method][$param] = "{$param},{$regex},{$defaultParamValueOnRegexMismatch}";
+            $this->invalidBatches['paramRules']['methods'][$method][$param] = [
+                'pattern' => $regex,
+                'default' => $defaultParamValueOnRegexMismatch,
+                'callback' => null,
+            ];
             return;
         }
+        $callback = null;
         // Validate valid $regex pattern
         $regexValid = true;
         try {
@@ -5947,23 +5976,33 @@ class C
         }
         if (!$regexValid || preg_match('#\/\/[gimsuy]*#', $regex)) {
             $this->setErr($this->getErr('InvalidRegex', $ctxVals), 'Invalid Regex Pattern ' . $ctxVals, $method);
-            $this->invalidBatches['paramRules']['methods'][$method][$param] = "{$param},{$regex},{$defaultParamValueOnRegexMismatch}";
+            $this->invalidBatches['paramRules']['methods'][$method][$param] = [
+                'pattern' => $regex,
+                'default' => $defaultParamValueOnRegexMismatch,
+                'callback' => $callback,
+            ];
             return;
         }
         // Check for duplicate valid rule at method level
         if (isset($this->validBatches['methods'][$method]['paramRules'][$param])) {
             $this->setErr($this->getErr('DuplicateParamMethod', $ctxVals), 'Duplicate Param ' . $ctxVals, $method);
-            $this->invalidBatches['paramRules']['methods'][$method][$param] = "{$param},{$regex},{$defaultParamValueOnRegexMismatch}";
+            $this->invalidBatches['paramRules']['methods'][$method][$param] = [
+                'pattern' => $regex,
+                'default' => $defaultParamValueOnRegexMismatch,
+                'callback' => $callback,
+            ];
             return;
         }
         // Finally store valid method param rule
         $this->validBatches['methods'][$method]['paramRules'][$param] = [
             'pattern' => $regex,
-            'default' => $defaultParamValueOnRegexMismatch
+            'default' => $defaultParamValueOnRegexMismatch,
+            'callback' => $callback,
         ];
         $this->cached['placeholderUNSUEDParams'][$method][$param] = [
             'pattern' => $regex,
-            'default' => $defaultParamValueOnRegexMismatch
+            'default' => $defaultParamValueOnRegexMismatch,
+            'callback' => $callback,
         ];
     }
 
@@ -6490,21 +6529,34 @@ class C
         // Does the valid route even have params?
         if (!isset($this->validBatches['routes'][$method][$route]['hasParams'])) {
             $this->setErr($this->getErr('RouteHasNoParams', $ctxVals), 'Route uses No Params ' . $ctxVals, $method, $route);
-            $this->invalidBatches['paramRules']['routes'][$method][$route][$param] = "{$param},{$regex},{$defaultParamValueOnRegexMismatch}";
+            $this->invalidBatches['paramRules']['routes'][$method][$route][$param] = [
+                'pattern' => $regex,
+                'default' => $defaultParamValueOnRegexMismatch,
+                'callback' => null,
+            ];
             return;
         }
         // Validate valid $param identifier formatting
         if (!is_string($param) || !preg_match('/^[a-z0-9_-]+$/', $param)) {
             $this->setErr($this->getErr('InvalidParamName', $ctxVals), 'Invalid Param Name ' . $ctxVals, $method, $route);
-            $this->invalidBatches['paramRules']['routes'][$method][$route][$param] = "{$param},{$regex},{$defaultParamValueOnRegexMismatch}";
+            $this->invalidBatches['paramRules']['routes'][$method][$route][$param] = [
+                'pattern' => $regex,
+                'default' => $defaultParamValueOnRegexMismatch,
+                'callback' => null,
+            ];
             return;
         }
         // $param identifier formatting is valid, but does it exist in the array of hasParams?
         if (!in_array($param, $this->validBatches['routes'][$method][$route]['hasParams'])) {
             $this->setErr($this->getErr('RouteHasNotChosenParam', $ctxVals) . " The available Params in the Route: " . $this->joinArray($this->validBatches['routes'][$method][$route]['hasParams']) . '.', 'Param Name not in Available Params of Route ' . $ctxVals, $method, $route);
-            $this->invalidBatches['paramRules']['routes'][$method][$route][$param] = "{$param},{$regex},{$defaultParamValueOnRegexMismatch}";
+            $this->invalidBatches['paramRules']['routes'][$method][$route][$param] = [
+                'pattern' => $regex,
+                'default' => $defaultParamValueOnRegexMismatch,
+                'callback' => null,
+            ];
             return;
         }
+        $callback = null;
         // Validate valid $regex pattern
         $regexValid = true;
         try {
@@ -6516,19 +6568,32 @@ class C
         }
         if (!$regexValid || preg_match('#\/\/[gimsuy]*#', $regex)) {
             $this->setErr($this->getErr('InvalidRegex', $ctxVals), 'Invalid Regex Pattern ' . $ctxVals, $method, $route);
-            $this->invalidBatches['paramRules']['routes'][$method][$route][$param] = "{$param},{$regex},{$defaultParamValueOnRegexMismatch}";
+            $this->invalidBatches['paramRules']['routes'][$method][$route][$param] = [
+                'pattern' => $regex,
+                'default' => $defaultParamValueOnRegexMismatch,
+                'callback' => $callback,
+            ];
             return;
         }
         // Check for duplicate valid rule at route level
         if (isset($this->validBatches['routes'][$method][$route]['paramRules'][$param])) {
             $this->setErr($this->getErr('DuplicateParamRoute', $ctxVals), 'Duplicate Route Param ' . $ctxVals, $method, $route);
+            $this->invalidBatches['paramRules']['routes'][$method][$route][$param] = [
+                'pattern' => $regex,
+                'default' => $defaultParamValueOnRegexMismatch,
+                'callback' => $callback,
+            ];
             return;
         }
         // Finally add it as valid for that route in
         // $validBatches->paramRules->routes->method->route-><$param>
         // Method-leveled paramRules uses 'paramRules'->'methods',
         // while config() uses 'paramRules'->'global'
-        $this->validBatches['routes'][$method][$route]['paramRules'][$param] = ['pattern' => $regex, 'default' => $defaultParamValueOnRegexMismatch];
+        $this->validBatches['routes'][$method][$route]['paramRules'][$param] = [
+            'pattern' => $regex,
+            'default' => $defaultParamValueOnRegexMismatch,
+            'callback' => $callback,
+        ];
     }
     /*ROUTE: RateLimiting & setCache */
     private function batchSetRateLimitingRoute(string $method, string $route, int $maxRequestsPerWindowSize = 60, int $windowSizeInSeconds = 60, $by = 'ip', $driver = 'redis')
