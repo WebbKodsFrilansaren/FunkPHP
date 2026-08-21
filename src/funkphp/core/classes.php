@@ -5910,6 +5910,7 @@ class C
 
                 .issue-type-with-button {
                     display: flex;
+                    flex-wrap: wrap;
                     justify-content: space-between;
                     align-items: center;
                     width: 100%;
@@ -6015,6 +6016,7 @@ class C
                     border: 1px solid #363b42;
                     font-family: monospace;
                     font-size: 0.75rem;
+                    overflow-x: scroll;
                 }
 
                 .code-badge-error {
