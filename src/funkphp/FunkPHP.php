@@ -10,6 +10,7 @@
  * source of truth, your app will most likely crash, and your peer will know
  * you do not understand how caching and/or compiled files work.
  **/
+require_once __DIR__ . '/core/classes.php'; // Core classes
 require_once __DIR__ . '/core/functions.php'; // Core functions
 $c = null; // Initialize c that is then populated after compile() and/or run()
 ini_set('display_errors', 1);
@@ -37,8 +38,6 @@ else {
         'Step-by-Step Fix' => 'The return Value in `/src/funkphp/config/app.php` must be the Object Instance of `FunkPHP` (defined in `/src/funkphp/core/functions.php`) that is returned at the end of the File. `DO NOT` modify the `return $FUNK; statement` (unless: you just `return the entire Object in one long method-chaining`) at the end of the `app.php` File.'
     ], 'See Internal FunkPHP Error');
 }
-
-
 exit;
 
 
