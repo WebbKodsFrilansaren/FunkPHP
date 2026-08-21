@@ -3,6 +3,6 @@
 
 /** @var FunkPHP $APP */
 $APP->ROUTES()->GET()
-    ->route("/")
-    ->pipeMiddleware("auth")
+    ->setParamRule('id', '/a/', '')
+    ->route("/:id")
     ->setExcludeMiddlewares("auth");

@@ -2061,7 +2061,7 @@ class C
             'InvalidFileNameCustomErrAfterColon' => "Invalid Function Filename Value in {$optionalCtx}:",
             'InvalidFunctionNameCustomErrAfterColon' => "Invalid Function Name Value in {$optionalCtx}:",
             'InvalidFunctionStructureCustomErrAfterColon' => "Invalid Function Structure in {$optionalCtx}:",
-            'InvalidParamName' => "Invalid Param Rule Name in {$optionalCtx}: Param Rule Name must be a Non-Empty String (no trailing spaces) all lowercased containing only `[a-z0-9_-]` characters without the colon (`:`).",
+            'InvalidParamName' => "Invalid Param Rule Name in {$optionalCtx}: Param Rule Name must be a Non-Empty String (no trailing spaces) all lowercased containing only `[a-z0-9_-]` characters without the colon (`:`). If used for a specific `METHOD/route`, it MUST match at least one of the Params of the Route meaning that `METHOD/route` must have at least one Param in its Route Segments.",
             'InvalidParamFlexibleStringArray' => "Invalid Param Rule Collection in {$optionalCtx}: must be an Array of Strings where each first element is the Name of the Regex Rule and each second element is the Regex Rule itself. Any matched Flexible Regex Rule is then set to `\$c['req']['matched_params_flexible']['{paramIdentifier}'] = '{name}|null';` when matched OR it is set to null if no Param Flexible Rule match.",
             'NonEmptyStringNoTrailing' => "Invalid String Value in {$optionalCtx}: must be a Non-Empty String (no trailing spaces).",
             'NonEmptyAllLowercasedStringNotStartCLIorFUNK' => "Invalid String Value in {$optionalCtx}: must be a Non-Empty String (no trailing spaces) all lowercased that does NOT start with `cli_` OR `funk_`.",
@@ -2091,6 +2091,7 @@ class C
             'InvalidNonceKeyName' => "Invalid Nonce Key Value in {$optionalCtx}: Nonce Keys must be Non-Empty Strings containing only `[a-zA-Z0-9-_\.]` characters (e.g., `test`, `main-script`).",
             'InvalidPageName' => "Invalid Page Name Value in {$optionalCtx}: must be a `Non-Empty String` containing only `[a-zA-Z0-9-_]` characters (no trailing spaces) and without the File Extension.",
             'InvalidNoRouteMatchTextValue' => "Invalid Text Value in {$optionalCtx}: must be a `Non-Empty String` after `trim()` have been applied to it.",
+            'InvalidParamCBFN' => "Invalid Function Name as Callback for Param Rule in {$optionalCtx}: must be a `Non-Empty String` after `trim()` all lowercased that start with `[a-z_]` and then only contain `[a-z0-9_]` characters. In other words; a valid Function Declaration in PHP.",
             'InvalidRegex'                                => "Invalid Regex Value in {$optionalCtx}: must be a `Non-Empty String` that is also a `Valid Regex Pattern` when parsed by `preg_match()`. It cannot be an Empty Expression with optional modifiers (e.g. `//` OR `//i`).",
             'InvalidRouteFormat' => "Invalid Route Value in {$optionalCtx}: A Valid Route must: 1) Start with or just be `/` as root (`never end with -, _ OR /`), 2) Be all `lowercased`, 3) Have all `Uniquely Named /:params` URI segments (if any used), 4) Never use `-` and/or `_ consecutively`, after each other (e.g. `-_` or `_-`) OR as start in static/dynamic segments (e.g. `/:-`, `/:_`, `/_`, OR `/-`), 5) Only use `[a-z0-9_-]` characters.",
             'InvalidRoutePrefixFormat' => "Invalid Route Prefix Value in {$optionalCtx}: A Valid Route Prefix must: 1) Start with `/` (it can NEVER just be only `/` for Route Prefixes!) as root (`never end with -, _ OR /`), 2) Be all `lowercased`, 3) Have all `Uniquely Named /:params` URI segments (if any used), 4) Never use `-` and/or `_ consecutively`, after each other (e.g. `-_` or `_-`) OR as start in static/dynamic segments (e.g. `/:-`, `/:_`, `/_`, OR `/-`), 5) Only use `[a-z0-9_-]` characters.",
@@ -3564,24 +3565,69 @@ class C
             ];
             return;
         }
+        // callback|cb: OR a regex pattern for the param?
         $callback = null;
-        // Validate valid $regex pattern
-        $regexValid = true;
-        try {
-            if (@preg_match($regex, '') === false) {
+        $cbFN = null;
+        // if=callback
+        if (
+            str_starts_with(strtolower(trim($regex)), 'callback:')
+            || str_starts_with(strtolower(trim($regex)), 'callback:')
+        ) {
+            $regex = strtolower(trim($regex));
+            // must be valid fn name and NOT set as global handler
+            if (!preg_match('/^(callback|cb){1}:([a-z_][a-z0-9_]*)$/', $regex, $cbFN)) {
+                $this->setErr($this->getErr('InvalidParamCBFN', $ctxVals), 'Invalid User-Defined Function Name for Param Rule ' .  $ctxVals);
+                $this->invalidBatches['paramRules']['config'][$param] = [
+                    'pattern' => $regex,
+                    'default' => $defaultParamValueOnRegexMismatch,
+                    'callback' => null,
+                ];
+                return;
+            }
+            // User-defined FN already used by Global handlers?
+            if (isset($this->cached['placeHolderUsedUserDefinedEngineFNS'][$cbFN[2]])) {
+                $err = $this->getErr('UserDefinedFUNCTIONAlreadyUsedBy', $ctxVals) . "`{$this->cached['placeholderUsedUserDefinedFunctions'][$cbFN]}` and cannot be used for multiple purposes as a result.";
+                $this->setErr($err, 'User-defined Function Already In Use ' . $ctxVals);
+                $this->invalidBatches['paramRules']['config'][$param] = [
+                    'pattern' => $regex,
+                    'default' => $defaultParamValueOnRegexMismatch,
+                    'callback' => null,
+                ];
+                return;
+            }
+            // User-defined FN even exist?
+            if (!$this->cachedUserDefinedFNExists($cbFN[2])) {
+                $this->setErr($this->getErr('UserDefinedFUNCTIONNotFound', $ctxVals) . " User-Defined Function `{$cbFN[2]}` as a Callback for a Param Rule was NOT found in other words.", 'User-Defined Function for Param Rule Not Found' .  $ctxVals);
+                $this->invalidBatches['paramRules']['config'][$param] = [
+                    'pattern' => $regex,
+                    'default' => $defaultParamValueOnRegexMismatch,
+                    'callback' => null,
+                ];
+                return;
+            }
+            // Swap places since callback will be used and not a pattern!
+            $callback = $cbFN[2];
+            $regex = null;
+        } // else=$regex pattern to use instead of callback
+        else {
+            // Validate valid $regex pattern
+            $regexValid = true;
+            try {
+                if (@preg_match($regex, '') === false) {
+                    $regexValid = false;
+                }
+            } catch (\Throwable $e) {
                 $regexValid = false;
             }
-        } catch (\Throwable $e) {
-            $regexValid = false;
-        }
-        if (!$regexValid || preg_match('#\/\/[gimsuy]*#', $regex)) {
-            $this->setErr($this->getErr('InvalidRegex', $ctxVals), 'Invalid Regex Pattern ' .  $ctxVals);
-            $this->invalidBatches['paramRules']['config'][$param] = [
-                'pattern' => $regex,
-                'default' => $defaultParamValueOnRegexMismatch,
-                'callback' => $callback,
-            ];
-            return;
+            if (!$regexValid || preg_match('#\/\/[gimsuy]*#', $regex)) {
+                $this->setErr($this->getErr('InvalidRegex', $ctxVals), 'Invalid Regex Pattern ' .  $ctxVals);
+                $this->invalidBatches['paramRules']['config'][$param] = [
+                    'pattern' => $regex,
+                    'default' => $defaultParamValueOnRegexMismatch,
+                    'callback' => $callback,
+                ];
+                return;
+            }
         }
         // Check for duplicate valid rule at global level
         if (isset($this->validBatches['config']['paramRules'][$param])) {
@@ -4126,24 +4172,70 @@ class C
             ];
             return;
         }
+        // callback|cb: OR a regex pattern for the param?
         $callback = null;
-        // Validate valid $regex pattern
-        $regexValid = true;
-        try {
-            if (@preg_match($regex, '') === false) {
+        $cbFN = null;
+        // if=callback
+        if (
+            str_starts_with(strtolower(trim($regex)), 'callback:')
+            || str_starts_with(strtolower(trim($regex)), 'callback:')
+        ) {
+            $regex = strtolower(trim($regex));
+            // must be valid fn name and NOT set as global handler
+            if (!preg_match('/^(callback|cb){1}:([a-z_][a-z0-9_]*)$/', $regex, $cbFN)) {
+                $this->setErr($this->getErr('InvalidParamCBFN', $ctxVals), 'Invalid User-Defined Function Name for Param Rule ' .  $ctxVals, $method);
+                $this->invalidBatches['paramRules']['methods'][$method][$param] = [
+                    'pattern' => $regex,
+                    'default' => $defaultParamValueOnRegexMismatch,
+                    'callback' => null,
+                ];
+                return;
+            }
+            // User-defined FN already used by Global handlers?
+            if (isset($this->cached['placeHolderUsedUserDefinedEngineFNS'][$cbFN[2]])) {
+                $err = $this->getErr('UserDefinedFUNCTIONAlreadyUsedBy', $ctxVals) . "`{$this->cached['placeholderUsedUserDefinedFunctions'][$cbFN]}` and cannot be used for multiple purposes as a result.";
+                $this->setErr($err, 'User-defined Function Already In Use ' . $ctxVals, $method);
+                $this->invalidBatches['paramRules']['methods'][$method][$param] = [
+                    'pattern' => $regex,
+                    'default' => $defaultParamValueOnRegexMismatch,
+                    'callback' => null,
+                ];
+                return;
+            }
+            // User-defined FN even exist?
+            if (!$this->cachedUserDefinedFNExists($cbFN[2])) {
+                $this->setErr($this->getErr('UserDefinedFUNCTIONNotFound', $ctxVals) . " User-Defined Function `{$cbFN[2]}` as a Callback for a Param Rule was NOT found in other words.", 'User-Defined Function for Param Rule Not Found' .  $ctxVals, $method);
+                $this->invalidBatches['paramRules']['methods'][$method][$param] = [
+                    'pattern' => $regex,
+                    'default' => $defaultParamValueOnRegexMismatch,
+                    'callback' => null,
+                ];
+                return;
+            }
+            // Swap places since callback will be used and not a pattern!
+            $callback = $cbFN[2];
+            $regex = null;
+        }
+        // else=$regex pattern to use instead of callback
+        else {
+            // Validate valid $regex pattern
+            $regexValid = true;
+            try {
+                if (@preg_match($regex, '') === false) {
+                    $regexValid = false;
+                }
+            } catch (\Throwable $e) {
                 $regexValid = false;
             }
-        } catch (\Throwable $e) {
-            $regexValid = false;
-        }
-        if (!$regexValid || preg_match('#\/\/[gimsuy]*#', $regex)) {
-            $this->setErr($this->getErr('InvalidRegex', $ctxVals), 'Invalid Regex Pattern ' . $ctxVals, $method);
-            $this->invalidBatches['paramRules']['methods'][$method][$param] = [
-                'pattern' => $regex,
-                'default' => $defaultParamValueOnRegexMismatch,
-                'callback' => $callback,
-            ];
-            return;
+            if (!$regexValid || preg_match('#\/\/[gimsuy]*#', $regex)) {
+                $this->setErr($this->getErr('InvalidRegex', $ctxVals), 'Invalid Regex Pattern ' . $ctxVals, $method);
+                $this->invalidBatches['paramRules']['methods'][$method][$param] = [
+                    'pattern' => $regex,
+                    'default' => $defaultParamValueOnRegexMismatch,
+                    'callback' => $callback,
+                ];
+                return;
+            }
         }
         // Check for duplicate valid rule at method level
         if (isset($this->validBatches['methods'][$method]['paramRules'][$param])) {
@@ -4719,23 +4811,68 @@ class C
             return;
         }
         $callback = null;
-        // Validate valid $regex pattern
-        $regexValid = true;
-        try {
-            if (@preg_match($regex, '') === false) {
+        $cbFN = null;
+        // if=callback
+        if (
+            str_starts_with(strtolower(trim($regex)), 'callback:')
+            || str_starts_with(strtolower(trim($regex)), 'callback:')
+        ) {
+            $regex = strtolower(trim($regex));
+            // must be valid fn name and NOT set as global handler
+            if (!preg_match('/^(callback|cb){1}:([a-z_][a-z0-9_]*)$/', $regex, $cbFN)) {
+                $this->setErr($this->getErr('InvalidParamCBFN', $ctxVals), 'Invalid User-Defined Function Name for Param Rule ' .  $ctxVals, $method, $route);
+                $this->invalidBatches['paramRules']['routes'][$method][$route][$param] = [
+                    'pattern' => $regex,
+                    'default' => $defaultParamValueOnRegexMismatch,
+                    'callback' => null,
+                ];
+                return;
+            }
+            // User-defined FN already used by Global handlers?
+            if (isset($this->cached['placeHolderUsedUserDefinedEngineFNS'][$cbFN[2]])) {
+                $err = $this->getErr('UserDefinedFUNCTIONAlreadyUsedBy', $ctxVals) . "`{$this->cached['placeholderUsedUserDefinedFunctions'][$cbFN]}` and cannot be used for multiple purposes as a result.";
+                $this->setErr($err, 'User-defined Function Already In Use ' . $ctxVals, $method, $route);
+                $this->invalidBatches['paramRules']['routes'][$method][$route][$param] = [
+                    'pattern' => $regex,
+                    'default' => $defaultParamValueOnRegexMismatch,
+                    'callback' => null,
+                ];
+                return;
+            }
+            // User-defined FN even exist?
+            if (!$this->cachedUserDefinedFNExists($cbFN[2])) {
+                $this->setErr($this->getErr('UserDefinedFUNCTIONNotFound', $ctxVals) . " User-Defined Function `{$cbFN[2]}` as a Callback for a Param Rule was NOT found in other words.", 'User-Defined Function for Param Rule Not Found' .  $ctxVals, $method, $route);
+                $this->invalidBatches['paramRules']['routes'][$method][$route][$param] = [
+                    'pattern' => $regex,
+                    'default' => $defaultParamValueOnRegexMismatch,
+                    'callback' => null,
+                ];
+                return;
+            }
+            // Swap places since callback will be used and not a pattern!
+            $callback = $cbFN[2];
+            $regex = null;
+        }
+        // else=$regex pattern to use instead of callback
+        else {
+            // Validate valid $regex pattern
+            $regexValid = true;
+            try {
+                if (@preg_match($regex, '') === false) {
+                    $regexValid = false;
+                }
+            } catch (\Throwable $e) {
                 $regexValid = false;
             }
-        } catch (\Throwable $e) {
-            $regexValid = false;
-        }
-        if (!$regexValid || preg_match('#\/\/[gimsuy]*#', $regex)) {
-            $this->setErr($this->getErr('InvalidRegex', $ctxVals), 'Invalid Regex Pattern ' . $ctxVals, $method, $route);
-            $this->invalidBatches['paramRules']['routes'][$method][$route][$param] = [
-                'pattern' => $regex,
-                'default' => $defaultParamValueOnRegexMismatch,
-                'callback' => $callback,
-            ];
-            return;
+            if (!$regexValid || preg_match('#\/\/[gimsuy]*#', $regex)) {
+                $this->setErr($this->getErr('InvalidRegex', $ctxVals), 'Invalid Regex Pattern ' . $ctxVals, $method, $route);
+                $this->invalidBatches['paramRules']['routes'][$method][$route][$param] = [
+                    'pattern' => $regex,
+                    'default' => $defaultParamValueOnRegexMismatch,
+                    'callback' => $callback,
+                ];
+                return;
+            }
         }
         // Check for duplicate valid rule at route level
         if (isset($this->validBatches['routes'][$method][$route]['paramRules'][$param])) {
@@ -6147,11 +6284,11 @@ class C
                                     </div>
                                 <?php elseif ($tab === 'COMPILATION'): ?>
                                     <div class="empty-state">
-                                        ✓ No FunkPHP Compilation Errors/Warnings<br />Errors/Warnings here only first show up after No Errors/Warnings in<br /><?= $formatMsg('`API`, `CONFIG`, `GET`, `POST`, `PUT`, `DELETE`, `PATCH`, `FILES`'); ?>
+                                        ✓ No FunkPHP Compilation Errors/Warnings<br />Errors/Warnings here only first show up after No Errors/Warnings in<br /><?= $formatMsg('`API`, `CONFIG`, `GET`, `POST`, `PUT`, `DELETE`, `PATCH`'); ?>
                                     </div>
                                 <?php elseif ($tab === 'FILES'): ?>
                                     <div class="empty-state">
-                                        ✓ No FunkPHP File (Function|Class) Errors/Warnings<br />Errors/Warnings here are related to the Files and/or their<br /> Functions/Classes in Directories (including sub-directories):<br /><?= $formatMsg('`/src/funkphp/config/`'); ?><br /><?= $formatMsg('`/src/funkphp/data/`'); ?><br /><?= $formatMsg('`/src/funkphp/pages/`'); ?><br /><?= $formatMsg('`/src/funkphp/pipes/`'); ?>
+                                        ✓ No FunkPHP File (Function|Class) Errors/Warnings<br />Errors/Warnings here are related to the Files and/or their<br /> Functions/Classes in Directories (including sub-directories):<br /><?= $formatMsg('`/src/funkphp/config/`'); ?><br /><?= $formatMsg('`/src/funkphp/pipes/`'); ?><br /><?= $formatMsg('`/src/funkphp/data/`'); ?><br /><?= $formatMsg('`/src/funkphp/pages/`'); ?>
                                     </div>
                                 <?php else: ?>
                                     <div class="empty-state">
@@ -7711,14 +7848,14 @@ class FunkConfig
      * Define a global parameter validation regex rule applied across all routes.
      *
      * @param string $param Parameter name without leading colon (e.g., "id")
-     * @param string $regex Regex pattern (e.g., "/[\d]+/")
+     * @param 'callback:user_defined_fn'|'/^regex_pattern$/i' $regexORcb EITHER a User-defined Function defined in `/src/funkphp/config/functions.php` OR a Valid Regex pattern (e.g., "/[\d]+/")
      * @param string|null $defaultParamValueOnRegexMismatch Fallback value if validation fails
      * @return $this
      */
-    public function setParamRule(string $param, string $regex, $defaultParamValueOnRegexMismatch = null): self
+    public function setParamRule(string $param, string $regexORcb, $defaultParamValueOnRegexMismatch = null): self
     {
         $param = strtolower(trim($param));
-        $this->c->batch('batchSetParamRuleGlobal', $param, $regex, $defaultParamValueOnRegexMismatch);
+        $this->c->batch('batchSetParamRuleGlobal', $param, $regexORcb, $defaultParamValueOnRegexMismatch);
         return $this;
     }
 
@@ -8080,14 +8217,14 @@ class FunkMethod
      * Define a parameter validation regex rule scoped to this HTTP method.
      *
      * @param string $param Parameter name without leading colon (e.g., "id")
-     * @param string $regex Regex pattern (e.g., "/[\d]+/")
+     * @param 'callback:user_defined_fn'|'/^regex_pattern$/i' $regexORcb EITHER a User-defined Function defined in `/src/funkphp/config/functions.php` OR a Valid Regex pattern (e.g., "/[\d]+/")
      * @param string|null $defaultParamValueOnRegexMismatch Fallback value if validation fails
      * @return $this
      */
-    public function setParamRule(string $param, string $regex, string|null $defaultParamValueOnRegexMismatch = null): self
+    public function setParamRule(string $param, string $regexORcb, string|null $defaultParamValueOnRegexMismatch = null): self
     {
         $param = strtolower(trim($param));
-        $this->c->batch('batchSetParamRuleMethod', $this->method, $param, $regex, $defaultParamValueOnRegexMismatch);
+        $this->c->batch('batchSetParamRuleMethod', $this->method, $param, $regexORcb, $defaultParamValueOnRegexMismatch);
         return $this;
     }
     /**
@@ -8401,14 +8538,14 @@ class FunkRoute
      * Define a Single Parameter Regex Rule scoped exclusively to this Route.
      *
      * @param string $param Parameter name without leading colon (e.g., "id")
-     * @param string $regex Regex pattern (e.g., "/[\d]+/")
+     * @param 'callback:user_defined_fn'|'/^regex_pattern$/i' $regexORcb EITHER a User-defined Function defined in `/src/funkphp/config/functions.php` OR a Valid Regex pattern (e.g., "/[\d]+/")
      * @param string|null $defaultParamValueOnRegexMismatch Fallback value if validation fails
      * @return $this
      */
-    public function setParamRule(string $param, string $regex, string|null $defaultParamValueOnRegexMismatch = null): self
+    public function setParamRule(string $param, string $regexORcb, string|null $defaultParamValueOnRegexMismatch = null): self
     {
         $param = strtolower(trim($param));
-        $this->c->batch('batchSetParamRuleRoute', $this->method, $this->routePath, $param, $regex, $defaultParamValueOnRegexMismatch);
+        $this->c->batch('batchSetParamRuleRoute', $this->method, $this->routePath, $param, $regexORcb, $defaultParamValueOnRegexMismatch);
         return $this;
     }
     /**
