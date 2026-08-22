@@ -4,6 +4,5 @@
 /** @var FunkPHP $APP */
 $APP->ROUTES()
     ->GET()
-    ->setParamRule("id", "cb:test")
     ->route("/:id")
     ->setExcludeMiddlewares("auth");
