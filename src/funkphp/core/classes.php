@@ -173,8 +173,16 @@ class C
     private array $compiled = [
         'config' => [
             'runtime' => [
+                'online' => false,
+                'use_https' => false,
+                'use_vendor' => true,
+                'custom_exception_handler' => null,
+                'custom_error_handler' => null,
+                'custom_uri_normalizer' => null,
+                'custom_https_kernel' => null,
                 'request_ip_sources' => [],
-                'request_form_spoof_methods' => ['PUT', 'PATCH', 'DELETE']
+                'request_form_spoof_methods' => ['PUT', 'PATCH', 'DELETE'],
+                'ini_sets' => [],
             ],
             'NO_ROUTE_MATCH' => [],
             'pipes' => ['request' => [], 'middlewares' => [], 'post_response' => [],],
@@ -182,7 +190,7 @@ class C
             'headers' => [],
             'csp' => [],
             'nonces' => [],
-            'INI_SETS' => [],
+
         ],
         'methods' => [],
         'routes' => ['trie' => [], 'trie_metadata' => []],
@@ -194,7 +202,6 @@ class C
             'FUNKPHP_USE_HTTPS' => false,
             "FUNKPHP_USE_VENDOR" => true,
             "FUNKPHP_CUSTOM_EXCEPTION_HANDLER" => null,
-            "FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION" => null,
             "FUNKPHP_CUSTOM_ERROR_HANDLER" => null,
             "FUNKPHP_CUSTOM_URI_NORMALIZER" => null,
             "FUNKPHP_CUSTOM_HTTPS_KERNEL" => null,
@@ -2544,7 +2551,7 @@ class C
         }
         // FN already used by some other Global Engine Function? (exception, error, uri normalizer, https kernel?)
         if (isset($this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunction])) {
-            $err = $this->getErr('UserDefinedFUNCTIONAlreadyUsedBy', $ctxVals) . "`{$this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction]}` and cannot be used for multiple purposes as a result.";
+            $err = $this->getErr('UserDefinedFUNCTIONAlreadyUsedBy', $ctxVals) . "`{$this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction]}` and cannot be used for multiple purposes as a result. The Global Handlers such as `Error Handler`, `Exception Handler`, `URI Normalizer` and `Custom HTTPS Kernel` are always prioritized when first set with User-defined Functions.";
             $this->setErr($err, 'User-defined Function Already In Use ' . $ctxVals);
             $this->invalidBatches['config']['DEFAULT_EXCEPTION_HANDLER'] = $userDefinedFunction;
             return;
@@ -2595,7 +2602,7 @@ class C
         }
         // FN already used by some other Global Engine Function? (exception, error, uri normalizer, https kernel?)
         if (isset($this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunction])) {
-            $err = $this->getErr('UserDefinedFUNCTIONAlreadyUsedBy', $ctxVals) . "`{$this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction]}` and cannot be used for multiple purposes as a result.";
+            $err = $this->getErr('UserDefinedFUNCTIONAlreadyUsedBy', $ctxVals) . "`{$this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction]}` and cannot be used for multiple purposes as a result. The Global Handlers such as `Error Handler`, `Exception Handler`, `URI Normalizer` and `Custom HTTPS Kernel` are always prioritized when first set with User-defined Functions.";
             $this->setErr($err, 'User-defined Function Already In Use ' . $ctxVals);
             $this->invalidBatches['config']['DEFAULT_ERROR_HANDLER'] = $userDefinedFunction;
             return;
@@ -2646,7 +2653,7 @@ class C
         }
         // FN already used by some other Global Engine Function? (exception, error, uri normalizer, https kernel?)
         if (isset($this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunction])) {
-            $err = $this->getErr('UserDefinedFUNCTIONAlreadyUsedBy', $ctxVals) . "`{$this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction]}` and cannot be used for multiple purposes as a result.";
+            $err = $this->getErr('UserDefinedFUNCTIONAlreadyUsedBy', $ctxVals) . "`{$this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction]}` and cannot be used for multiple purposes as a result. The Global Handlers such as `Error Handler`, `Exception Handler`, `URI Normalizer` and `Custom HTTPS Kernel` are always prioritized when first set with User-defined Functions.";
             $this->setErr($err,  'User-defined Function Already In Use ' . $ctxVals);
             $this->invalidBatches['config']['DEFAULT_URI_NORMALIZER'] = $userDefinedFunction;
             return;
@@ -2687,7 +2694,7 @@ class C
         }
         // FN already used by some other Global Engine Function? (exception, error, uri normalizer, https kernel?)
         if (isset($this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunction])) {
-            $err = $this->getErr('UserDefinedFUNCTIONAlreadyUsedBy', $ctxVals) . "`{$this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction]}` and cannot be used for multiple purposes as a result.";
+            $err = $this->getErr('UserDefinedFUNCTIONAlreadyUsedBy', $ctxVals) . "`{$this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction]}` and cannot be used for multiple purposes as a result. The Global Handlers such as `Error Handler`, `Exception Handler`, `URI Normalizer` and `Custom HTTPS Kernel` are always prioritized when first set with User-defined Functions.";
             $this->setErr($err, 'User-defined Function Already In Use ' . $ctxVals);
             $this->invalidBatches['config']['DEFAULT_HTTPS_KERNEL'] = $userDefinedFunction;
             return;
@@ -3571,7 +3578,7 @@ class C
         // if=callback
         if (
             str_starts_with(strtolower(trim($regex)), 'callback:')
-            || str_starts_with(strtolower(trim($regex)), 'callback:')
+            || str_starts_with(strtolower(trim($regex)), 'cb:')
         ) {
             $regex = strtolower(trim($regex));
             // must be valid fn name and NOT set as global handler
@@ -3584,9 +3591,10 @@ class C
                 ];
                 return;
             }
+
             // User-defined FN already used by Global handlers?
             if (isset($this->cached['placeHolderUsedUserDefinedEngineFNS'][$cbFN[2]])) {
-                $err = $this->getErr('UserDefinedFUNCTIONAlreadyUsedBy', $ctxVals) . "`{$this->cached['placeholderUsedUserDefinedFunctions'][$cbFN]}` and cannot be used for multiple purposes as a result.";
+                $err = $this->getErr('UserDefinedFUNCTIONAlreadyUsedBy', $ctxVals) . "`{$this->cached['placeholderUsedUserDefinedFunctions'][$cbFN[2]]}` and cannot be used for multiple purposes as a result. The Global Handlers such as `Error Handler`, `Exception Handler`, `URI Normalizer` and `Custom HTTPS Kernel` are always prioritized when first set with User-defined Functions.";
                 $this->setErr($err, 'User-defined Function Already In Use ' . $ctxVals);
                 $this->invalidBatches['paramRules']['config'][$param] = [
                     'pattern' => $regex,
@@ -4178,7 +4186,7 @@ class C
         // if=callback
         if (
             str_starts_with(strtolower(trim($regex)), 'callback:')
-            || str_starts_with(strtolower(trim($regex)), 'callback:')
+            || str_starts_with(strtolower(trim($regex)), 'cb:')
         ) {
             $regex = strtolower(trim($regex));
             // must be valid fn name and NOT set as global handler
@@ -4193,7 +4201,7 @@ class C
             }
             // User-defined FN already used by Global handlers?
             if (isset($this->cached['placeHolderUsedUserDefinedEngineFNS'][$cbFN[2]])) {
-                $err = $this->getErr('UserDefinedFUNCTIONAlreadyUsedBy', $ctxVals) . "`{$this->cached['placeholderUsedUserDefinedFunctions'][$cbFN]}` and cannot be used for multiple purposes as a result.";
+                $err = $this->getErr('UserDefinedFUNCTIONAlreadyUsedBy', $ctxVals) . "`{$this->cached['placeholderUsedUserDefinedFunctions'][$cbFN[2]]}` and cannot be used for multiple purposes as a result. The Global Handlers such as `Error Handler`, `Exception Handler`, `URI Normalizer` and `Custom HTTPS Kernel` are always prioritized when first set with User-defined Functions.";
                 $this->setErr($err, 'User-defined Function Already In Use ' . $ctxVals, $method);
                 $this->invalidBatches['paramRules']['methods'][$method][$param] = [
                     'pattern' => $regex,
@@ -4815,7 +4823,7 @@ class C
         // if=callback
         if (
             str_starts_with(strtolower(trim($regex)), 'callback:')
-            || str_starts_with(strtolower(trim($regex)), 'callback:')
+            || str_starts_with(strtolower(trim($regex)), 'cb:')
         ) {
             $regex = strtolower(trim($regex));
             // must be valid fn name and NOT set as global handler
@@ -4830,7 +4838,7 @@ class C
             }
             // User-defined FN already used by Global handlers?
             if (isset($this->cached['placeHolderUsedUserDefinedEngineFNS'][$cbFN[2]])) {
-                $err = $this->getErr('UserDefinedFUNCTIONAlreadyUsedBy', $ctxVals) . "`{$this->cached['placeholderUsedUserDefinedFunctions'][$cbFN]}` and cannot be used for multiple purposes as a result.";
+                $err = $this->getErr('UserDefinedFUNCTIONAlreadyUsedBy', $ctxVals) . "`{$this->cached['placeholderUsedUserDefinedFunctions'][$cbFN[2]]}` and cannot be used for multiple purposes as a result. The Global Handlers such as `Error Handler`, `Exception Handler`, `URI Normalizer` and `Custom HTTPS Kernel` are always prioritized when first set with User-defined Functions.";
                 $this->setErr($err, 'User-defined Function Already In Use ' . $ctxVals, $method, $route);
                 $this->invalidBatches['paramRules']['routes'][$method][$route][$param] = [
                     'pattern' => $regex,
@@ -6812,13 +6820,13 @@ class C
         // ------------------------------------------------------------------------------------------
         // 3 BOOLEANS
         if (isset($this->validBatches['config']['FUNKPHP_ONLINE'])) {
-            $this->compiled['c']['FUNKPHP_ONLINE'] = $this->validBatches['config']['FUNKPHP_ONLINE'];
+            $this->compiled['config']['runtime']['online'] = $this->validBatches['config']['FUNKPHP_ONLINE'];
         }
         if (isset($this->validBatches['config']['USE_VENDOR'])) {
-            $this->compiled['c']['FUNKPHP_USE_VENDOR'] = $this->validBatches['config']['USE_VENDOR'];
+            $this->compiled['config']['runtime']['use_vendor'] = $this->validBatches['config']['USE_VENDOR'];
         }
         if (isset($this->validBatches['config']['USE_HTTPS'])) {
-            $this->compiled['c']['FUNKPHP_USE_HTTPS'] = $this->validBatches['config']['USE_HTTPS'];
+            $this->compiled['config']['runtime']['use_https'] = $this->validBatches['config']['USE_HTTPS'];
         }
         // 4 STRINGS
         if (isset($this->validBatches['config']['BASEURL_HOST'])) {
@@ -6835,7 +6843,7 @@ class C
         }
         // 1 ARRAY (ini_set(s))
         if (isset($this->validBatches['config']['setINI_SET'])) {
-            $this->compiled['config']['INI_SETS'] = $this->validBatches['config']['setINI_SET'];
+            $this->compiled['config']['runtime']['ini_sets'] = $this->validBatches['config']['setINI_SET'];
         }
         // ------------------------------------------------------------------------------------------
         // STEP 3: Check Global Handlers set and then all setGroup<VARIANTS> since they can refer to
@@ -6843,19 +6851,19 @@ class C
         // STEP 3.1 - Global Handlers
         // ------------------------------------------------------------------------------------------
         if (isset($this->validBatches['config']['DEFAULT_HTTPS_KERNEL'])) {
-            $this->compiled['c']['FUNKPHP_CUSTOM_HTTPS_KERNEL'] = $this->validBatches['config']['DEFAULT_HTTPS_KERNEL'];
+            $this->compiled['config']['runtime']['custom_https_kernel'] = $this->validBatches['config']['DEFAULT_HTTPS_KERNEL'];
             $GLOBAL_HANDLERS[$this->validBatches['config']['DEFAULT_HTTPS_KERNEL']] = "User-defined Default HTTPS Kernel Handler";
         }
         if (isset($this->validBatches['config']['DEFAULT_EXCEPTION_HANDLER'])) {
-            $this->compiled['c']['FUNKPHP_CUSTOM_EXCEPTION_HANDLER'] = $this->validBatches['config']['DEFAULT_EXCEPTION_HANDLER'];
+            $this->compiled['config']['runtime']['custom_exception_handler'] = $this->validBatches['config']['DEFAULT_EXCEPTION_HANDLER'];
             $GLOBAL_HANDLERS[$this->validBatches['config']['DEFAULT_EXCEPTION_HANDLER']] = "User-defined Default Exception Handler";
         }
         if (isset($this->validBatches['config']['DEFAULT_ERROR_HANDLER'])) {
-            $this->compiled['c']['FUNKPHP_CUSTOM_ERROR_HANDLER'] = $this->validBatches['config']['DEFAULT_ERROR_HANDLER'];
+            $this->compiled['config']['runtime']['custom_error_handler'] = $this->validBatches['config']['DEFAULT_ERROR_HANDLER'];
             $GLOBAL_HANDLERS[$this->validBatches['config']['DEFAULT_ERROR_HANDLER']] = "User-defined Default Error Handler";
         }
         if (isset($this->validBatches['config']['DEFAULT_URI_NORMALIZER'])) {
-            $this->compiled['c']['FUNKPHP_CUSTOM_URI_NORMALIZER'] = $this->validBatches['config']['DEFAULT_URI_NORMALIZER'];
+            $this->compiled['config']['runtime']['custom_uri_normalizer'] = $this->validBatches['config']['DEFAULT_URI_NORMALIZER'];
             $GLOBAL_HANDLERS[$this->validBatches['config']['DEFAULT_URI_NORMALIZER']] = "User-defined Default URI Normalizer Handler";
         }
         // -----------------------------------------------------------------------------
@@ -7187,15 +7195,34 @@ class C
             }
         }
         // ------------------------------------------------------------------------------------------
-        // STEP 10: Build `params` for GLOBAL & for all <METHODS>
+        // STEP 10: Build `params` for GLOBAL & for all <METHODS> - if they use UserDefined FNs for
+        // callback-based param rules they cannot conflict with already set global handlers
         // ------------------------------------------------------------------------------------------
         if (isset($this->validBatches['config']['paramRules'])) {
-            $this->compiled['config']['params'] = $this->validBatches['config']['paramRules'];
+            $validRules = true;
+            foreach ($this->validBatches['config']['paramRules'] as $configParamR) {
+                if (isset($configParamR['callback']) && isset($GLOBAL_HANDLERS[$configParamR['callback']])) {
+                    $this->compile_setErr("Conflicting User-defined Functions", "User-defined Callback for Global Param Rule `{$configParamR['callback']}` is Already being used by Global Handler `{$GLOBAL_HANDLERS[$configParamR['callback']]}`.  The Global Handlers such as `Error Handler`, `Exception Handler`, `URI Normalizer` and `Custom HTTPS Kernel` are always prioritized when first set with User-defined Functions.");
+                    $validRules = false;
+                }
+            }
+            if ($validRules) {
+                $this->compiled['config']['params'] = $this->validBatches['config']['paramRules'];
+            }
         }
         if (isset($this->validBatches['methods'])) {
+            $validRules = true;
             foreach ($this->validBatches['methods'] as $method => $methodConfig) {
                 if (isset($methodConfig['paramRules'])) {
-                    $this->compiled['methods'][$method]['params'] = $methodConfig['paramRules'];
+                    foreach ($methodConfig['paramRules'] as $methodConfigParamR) {
+                        if (isset($methodConfigParamR['callback']) && isset($GLOBAL_HANDLERS[$methodConfigParamR['callback']])) {
+                            $this->compile_setErr("Conflicting User-defined Functions", "User-defined Callback for {$method} Param Rule `{$methodConfigParamR['callback']}` is Already being used by Global Handler `{$GLOBAL_HANDLERS[$methodConfigParamR['callback']]}`.  The Global Handlers such as `Error Handler`, `Exception Handler`, `URI Normalizer` and `Custom HTTPS Kernel` are always prioritized when first set with User-defined Functions.");
+                            $validRules = false;
+                        }
+                    }
+                    if ($validRules) {
+                        $this->compiled['methods'][$method]['params'] = $methodConfig['paramRules'];
+                    }
                 }
             }
         }
@@ -8007,15 +8034,6 @@ class FunkRoutes
     {
         $this->c->batch("batchSetMETHOD", "DELETE");
         return $this->methodInstances['DELETE'] ??= new FunkMethod($this->c, $this, 'DELETE');
-    }
-    /**
-     * Jump directly back to the global application configuration context.
-     *
-     * @return FunkConfig
-     */
-    public function CONFIG(): FunkConfig
-    {
-        return $this->c->config();
     }
 }
 /**
