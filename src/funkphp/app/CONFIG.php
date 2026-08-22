@@ -3,7 +3,5 @@
 
 /** @var FunkPHP $APP */
 $APP->CONFIG()
-    //->setParamRule("id", "cb:test")
-    ->setDefaultKernelHandler("test")
-    ->pipeMiddleware("auth")
+    ->pipeMiddleware('log_access')
     ->setDebug(true, true, false);
