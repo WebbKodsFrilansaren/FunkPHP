@@ -37,6 +37,7 @@ class C
             'funk_internal_send_headers',
             'funk_internal_return_response',
         ],
+        'reserved_group_names' => ['sql', 'query', 'validation'],
         'reserved_fn_names' => ['cli_dump', 'cli_dd', 'dd'],
     ];
     private array $ALLOWED = [
@@ -7276,8 +7277,9 @@ class C
                         && isset($routeDetails['middlewares'])
                         && count($routeDetails['middlewares']) === 0
                     ) {
-                        $this->compile_setErr("Dead Route `{$CURRENT_ROUTE_STR}`", "You must have `at least 1 Pipe` OR `at least 1 Middleware` for a given Method/Route. Due to this Error, no further Compiling for this current Route `{$method}{$route}` will take place until `at least 1 Route Pipe/Middleware` first has been added.");
+                        $this->compile_setErr("👻 GHOST ROUTE `{$CURRENT_ROUTE_STR}`👻", "You must have `at least 1 Pipe` (when you do not need any Middleware) OR `at least 1 Middleware` (when you only want the Route to act as a Middleware Scope for other Children Routes to inherit Middleware from; this means the Pipe-Empty Route returns `404` when 'matched') for a given Method/Route in order for it to be considered Valid to Compile. Due to this Error, no further Compiling for this current Route `{$method}{$route}` will take place until `at least 1 Route Pipe/Middleware` first has been added.");
                         $this->compiled['routes'][$method][$route] = $routeDetails;
+                        $this->compiled['routes'][$method][$route]['👻GHOST_ROUTE👻'] = true;
                         continue;
                     }
                     // When ONLY MWs implying a scoping method/route (like MWs that to be inherited by subroutes)
@@ -7290,7 +7292,8 @@ class C
                         $this->compile_setWarn("Only Route Middlewares without Route Pipes in `{$CURRENT_ROUTE_STR}`", "`Only Middlewares` in Route `{$CURRENT_ROUTE_STR}`. This means that Route `{$CURRENT_ROUTE_STR}` will return `404` when Routing Matched while its `Middlewares Will Be Inherited` by its Children Routes.");
                     }
                     // Now unpacking Pipes & MWs (meaning when they start with "group:")
-                    // UNPACK PIPES for ROUTE
+                    // UNPACK PIPES for ROUTE: ???FIX LATER??? add "group:" for sql,query & validation?
+                    // in the sense of: "group:sql:name", "group:query:name" & "group:validation:name"?
                     if (
                         isset($routeDetails['pipes'])
                         && count($routeDetails['pipes']) > 0
@@ -7317,7 +7320,6 @@ class C
                     }
                     // Add ALL Pipes to Compiled Route
                     $this->compiled['routes'][$method][$route]['pipes'] = $CURRENT_ROUTE_PIPES;
-
                     // Before we unpack MWs inside Route, we need to check if it has any routes first
                     // from current $method and then if any of its subroutes has any MWs (including MWs to unpack!)
                     // MWs inherited from Global Config (compared with what is in excludeMiddlewares!)
@@ -7431,11 +7433,11 @@ class C
                                                 }
                                                 $CURRENT_ROUTE_MWS[] = $subRGroupPipe;
                                                 // As MWs are unpacked, add then them to method-route-based MW Invert Index
-                                                if (!isset($this->cached['placeholderMiddlewareInvertIindex'][$rMWPipe])) {
-                                                    $this->cached['placeholderMiddlewareInvertIindex'][$rMWPipe][] =  $method . $route;
+                                                if (!isset($this->cached['placeholderMiddlewareInvertIindex'][$subRGroupPipe])) {
+                                                    $this->cached['placeholderMiddlewareInvertIindex'][$subRGroupPipe][] =  $method . $subRouteMW;
                                                 } else {
-                                                    if (!in_array("$method$route", $this->cached['placeholderMiddlewareInvertIindex'][$rMWPipe])) {
-                                                        $this->cached['placeholderMiddlewareInvertIindex'][$rMWPipe][] = "$method$route";
+                                                    if (!in_array("$method$subRouteMW", $this->cached['placeholderMiddlewareInvertIindex'][$subRGroupPipe])) {
+                                                        $this->cached['placeholderMiddlewareInvertIindex'][$subRGroupPipe][] = "$method$subRouteMW";
                                                     }
                                                 }
                                             }
@@ -7449,7 +7451,6 @@ class C
                             }
                         }
                     }
-
                     // UNPACK MWs for ROUTE
                     if (
                         isset($routeDetails['middlewares'])
@@ -7471,6 +7472,12 @@ class C
                                 $this->compile_setErr("Missing `Middleware` Function Group in `{$CURRENT_ROUTE_STR}`", "Grouped Middleware Pipe Functions with the name `{$rMW}` used in `{$CURRENT_ROUTE_STR}` does not exist but was still part of the `->ROUTES()->{$method}()->ROUTE('{$route}')->pipeiddleware('{$rMW}')` in `/src/funkphp/app/{$method}.php`. Use `->setGroupPipeMiddlewares('{$pipe}')` in `/src/funkphp/app/CONFIG.php` to first create the Grouping.");
                             } else {
                                 foreach ($GLOBAL_GROUPED['MIDDLEWARES'][$rMW] as $rMWPipe) {
+                                    // This is Route's MW and here you CANNOT exclude the same one to pipe as exclusion applies to
+                                    // subroutes, method and global config, not the route itself. Same applies for excluding headers.
+                                    if (isset($routeDetails['excludeMiddlewares']) && in_array($rMWPipe, $routeDetails['excludeMiddlewares'])) {
+                                        $this->setErr("Conflicting Middlewares in `{$method}{$route}`", "Middleware `{$rMWPipe}` in Middleware Group `{$rMW}` (first set in `CONFIG()` in `/src/funkphp/app/CONFIG.php`) is also registered as a `Middleware to Exclude` in `->ROUTES()->{$method}()->ROUTE('{$route}')->setExcludeMiddlewares()` in `/src/funkphp/app/{$method}.php`.");
+                                        continue;
+                                    }
                                     if (count($CURRENT_ROUTE_MWS) > 0 && $CURRENT_ROUTE_MWS[count($CURRENT_ROUTE_MWS) - 1] === $rMWPipe) {
                                         $this->compile_setWarn("Consecutive Middleware Function `{$rMWPipe}` in `{$method}{$route}`", "Consecutive Pipe Middleware File Function `{$rMWPipe}` in `{$CURRENT_ROUTE_STR}` found. This could be from `{$method}` Middlewares OR it is from its own Middlewares. Ignore this warning if it is intentional OR Review `->ROUTES()->{$method}()->ROUTE('{$route}')->pipeMiddleware()` in `/src/funkphp/app/{$method}.php`.");
                                     }
@@ -7492,22 +7499,19 @@ class C
                         isset($routeDetails['excludeMiddlewares'])
                         && count(array_diff($routeDetails['excludeMiddlewares'], $CURRENT_ROUTE_EXCLUDED_MWS)) > 0
                     ) {
-                        $this->compile_setErr("Failed to Exclude Middlewares in `{$method}{$route}`", "Failed to Exclude these Middlewares in `{$method}{$route}`:" . $this->joinArray(array_diff($routeDetails['excludeMiddlewares'], $CURRENT_ROUTE_EXCLUDED_MWS)) . ". This means those Middlewares in `{$method}{$route}` do NOT exist in the `CONFIG()`, `{$method} CONFIG`, or any of the Subroutes: " . $this->joinArray(($routeDetails['subRoutes'] ?? ['<No Subroutes>'])) . ". Review the Excluded Middlewares in `->ROUTES()->{$method}()->ROUTE('{$route}')->setExcludeHeaders()` in `/src/funkphp/config/{$method}.php`.");
+                        $this->compile_setErr("Failed to Exclude Middlewares in `{$method}{$route}`", "Failed to Exclude these Middlewares in `{$method}{$route}`: '" . $this->joinArray(array_diff($routeDetails['excludeMiddlewares'], $CURRENT_ROUTE_EXCLUDED_MWS)) . "'. This means that Middleware/those Middlewares in `{$method}{$route}` do NOT exist in the `CONFIG()`, `{$method} CONFIG`, or any of the Subroutes: " . $this->joinArray(($routeDetails['subRoutes'] ?? ['<No Subroutes>'])) . ". Review the Excluded Middlewares in `->ROUTES()->{$method}()->ROUTE('{$route}')->setExcludeMiddlewares()` in `/src/funkphp/config/{$method}.php`.");
                     }
                     $this->compiled['routes'][$method][$route]['middlewares'] = $CURRENT_ROUTE_MWS;
 
-                    // STEP 11.4: Iterate through Route Middlewares and warn about consecutive runs that
-                    // could stem from inherting last MW from Method that is same as first MW in
-                    // route. Also, then check setMiddlewaresToExclude() that all those exist down
-                    // the Method+Globally or set Error if not. Do same for setHeadersToExclude()
-
-                    // STEP 11.5: Iterate through Route Pipes and check for consecutive FN piping
-
-                    // STEP 11.6 Add to the $this->COMPILED['routes'][$method][$route] with the 'all' part!
+                    // STEP 11.4: Build `routes` - BUILD HEADERS (COMBINED WITH ExcludedHeaders) for ROUTES
+                    // where it just really first checks what CONFIG() and then METHOD() has and then whether
+                    // any of those Headers are in ExcludedHeaders for the Route meaning they are not used.
+                    // Same Header-names means the Route Header goes first, then Method Header and finally Config Header
+                    // in terms of prioritizing.
                 }
             }
 
-            // STEP 11.4: Build `routes` -
+
 
             // STEP 11.5: Build `routes` -
 

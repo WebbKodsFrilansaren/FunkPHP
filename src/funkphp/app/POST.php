@@ -3,5 +3,4 @@
 
 /** @var FunkPHP $APP */
 $APP->ROUTES()->POST()
-    ->route("/test")
-    ->pipeMiddleware("log_access");
+    ->route("/test");
