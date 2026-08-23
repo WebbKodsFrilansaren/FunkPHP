@@ -38,6 +38,8 @@ class C
             'funk_internal_return_response',
             'funk_internal_exception_handler',
             'funk_internal_error_handler',
+            'funk_internal_rate_limiter',
+            'funk_internal_is_ip_trusted',
         ],
         'reserved_group_names' => ['sql', 'query', 'validation'],
         'reserved_fn_names' => ['cli_dump', 'cli_dd', 'dd'],
@@ -137,12 +139,46 @@ class C
     private array $compiled = [
         'config' => [
             'runtime' => [
+                'trusted_ip_proxies' => [
+                    'ip4' => [
+                        "173.245.48.0/20",
+                        "103.21.244.0/22",
+                        "103.22.200.0/22",
+                        "103.31.4.0/22",
+                        "141.101.64.0/18",
+                        "108.162.192.0/18",
+                        "190.93.240.0/20",
+                        "188.114.96.0/20",
+                        "197.234.240.0/22",
+                        "198.41.128.0/17",
+                        "162.158.0.0/15",
+                        "104.16.0.0/13",
+                        "104.24.0.0/14",
+                        "172.64.0.0/13",
+                        "131.0.72.0/22",
+                    ],
+                    'ip6' => [
+                        "2400:cb00::/32",
+                        "2606:4700::/32",
+                        "2803:f800::/32",
+                        "2405:b500::/32",
+                        "2405:8100::/32",
+                        "2a06:98c0::/29",
+                        "2c0f:f248::/32"
+                    ],
+                ],
+                'trusted_ip_headers' => [
+                    'HTTP_CF_CONNECTING_IP',
+                    'HTTP_X_FORWARDED_FOR',
+                    'HTTP_X_REAL_IP'
+                ],
                 'debug' => [],
                 'online' => false,
                 'use_https' => false,
                 'use_vendor' => true,
                 'custom_exception_handler' => null,
                 'custom_error_handler' => null,
+                'custom_ip_resolver' => null,
                 'custom_uri_normalizer' => null,
                 'custom_https_kernel' => null,
                 'request_ip_sources' => [],
@@ -2753,6 +2789,47 @@ class C
         $this->validBatches['config']['DEFAULT_HTTPS_KERNEL'] = $userDefinedFunction;
         $this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction] = "->CONFIG()->setDefaultKernelHandler('{$userDefinedFunction}')";
         $this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunction] = "->CONFIG()->setDefaultKernelHandler('{$userDefinedFunction}')";
+    }
+    private function batchSetDefaultIPResolverGlobal(string $userDefinedFunction) // URI NORMALIZER GLOBAL
+    {
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setDefaultIPResolver', "CONFIG()", $userDefinedFunction);
+        if (isset($this->invalidBatches['config']['DEFAULT_IP_RESOLVER'])) {
+            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Duplicate Call ' . $ctxVals);
+            return;
+        }
+        if (isset($this->validBatches['config']['DEFAULT_IP_RESOLVER'])) {
+            $this->setErr($this->getErr('DuplicateCallValidCanOnlyBeSetOnce', $ctxVals),  'Duplicate Call ' . $ctxVals);
+            return;
+        }
+        if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($userDefinedFunction)) {
+            $this->setErr($this->getErr('NonEmptyAllLowercasedStringNotStartCLIorFUNK', $ctxVals),  'Invalid String Value ' . $ctxVals);
+            $this->invalidBatches['config']['DEFAULT_IP_RESOLVER'] = $userDefinedFunction;
+            return;
+        }
+        // FN already used by some other Global Engine Function? (exception, error, uri normalizer, https kernel?)
+        if (isset($this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunction])) {
+            $err = $this->getErr('UserDefinedFUNCTIONAlreadyUsedBy', $ctxVals) . "`{$this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction]}` and cannot be used for multiple purposes as a result. The Global Handlers such as `Error Handler`, `Exception Handler`, `URI Normalizer`, `IP Resolver`, and `Custom HTTPS Kernel` are always prioritized when first set with User-defined Functions.";
+            $this->setErr($err,  'User-defined Function Already In Use ' . $ctxVals);
+            $this->invalidBatches['config']['DEFAULT_IP_RESOLVER'] = $userDefinedFunction;
+            return;
+        }
+        // Prepare Config Functions.php File I/O if needed
+        // assuming ROOT_FOLDER constant exists first!
+        if (!$this->rootFolderExistOrSetError()) return;
+        $this->cachedCreateKeyIfNullAndOptionalFileName('file_user_defined_functions');
+        $fileData = $this->cached['file_user_defined_functions'] ?? [];
+        // Bails on the first structural error regarding a typical user-defined function
+        $fatalError = $this->validateFNFile($fileData, $userDefinedFunction, $ctxVals, '', false);
+        if ($fatalError !== null) {
+            $this->setErr($fatalError,  'Function File Error (also see FILES tab) ' . $ctxVals);
+            $this->invalidBatches['config']['DEFAULT_IP_RESOLVER'] = $userDefinedFunction;
+            return;
+        }
+        // Add to ValidBatches, UserDefinedFNs and also UserDefinedEngineFNs which means any User-defined function
+        // that is added there cannot be used for multiple purposes as they are meant to be very specifically used.
+        $this->validBatches['config']['DEFAULT_IP_RESOLVER'] = $userDefinedFunction;
+        $this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction] = "->CONFIG()->setDefaultIPResolver('{$userDefinedFunction}')";
+        $this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunction] = "->CONFIG()->setDefaultIPResolver('{$userDefinedFunction}')";
     }
 
     /* setNoRouteMatch<VARIANTS> Global - These are all catches when no catches for specific <method(s)> are defined/applied */
@@ -7510,6 +7587,10 @@ class C
             $this->compiled['config']['runtime']['custom_uri_normalizer'] = $this->validBatches['config']['DEFAULT_URI_NORMALIZER'];
             $GLOBAL_HANDLERS[$this->validBatches['config']['DEFAULT_URI_NORMALIZER']] = "User-defined Default URI Normalizer Handler";
         }
+        if (isset($this->validBatches['config']['DEFAULT_IP_RESOLVER'])) {
+            $this->compiled['config']['runtime']['custom_ip_resolver'] = $this->validBatches['config']['DEFAULT_IP_RESOLVER'];
+            $GLOBAL_HANDLERS[$this->validBatches['config']['DEFAULT_IP_RESOLVER']] = "User-defined Default IP Resolver Handler";
+        }
         // -----------------------------------------------------------------------------
         // STEP 3.2 - Grouped<VARIANTS>
         // -----------------------------------------------------------------------------
@@ -8490,24 +8571,16 @@ class C
         if (isset($this->compiled['config']['runtime']['custom_uri_normalizer'])) {
             $c['req']['uri'] = $this->compiled['config']['runtime']['custom_uri_normalizer']($c);
         } else {
-            // 1. Grab raw URI from server environment
             $rawUri = $_SERVER['REQUEST_URI'] ?? '/';
-            // 2. Chop off query parameters and fragment injections instantly
-            // Explode splits at '?' or '#' if a raw socket forged it
             $cleanPath = explode('?', $rawUri, 2)[0];
             $cleanPath = explode('#', $cleanPath, 2)[0];
-            // 3. Resolve potential Subfolder installations (e.g., localhost/project/public/)
             $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
             $baseUrl = dirname($scriptName);
             if ($baseUrl !== '/' && str_starts_with($cleanPath, $baseUrl)) {
                 $cleanPath = substr($cleanPath, strlen($baseUrl));
             }
-            // 4. Fallback safeguard: collapse duplicate slashes down to single slashes
-            // Fixes Apache installations where merge_slashes isn't handling it
             $cleanPath = preg_replace('#/{2,#', '/', $cleanPath);
-            // 5. Enforce clean boundary states: Strip trailing and leading slashes, then wrap in a root slash
             $cleanPath = trim($cleanPath, '/');
-            // Result is guaranteed to be a uniform format: '/' or '/users' or '/blog/post/view'
             $c['req']['uri'] = ($cleanPath === '') ? '/' : '/' . $cleanPath;
             $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
             $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
@@ -8523,7 +8596,15 @@ class C
                 $c['req']['method'] = $spoofedMethod;
             }
         }
-        $c['req']['ip'] = $_SERVER['REMOTE_ADDR'] ?? null;
+        // Resolve IP (parse correct IP from trusted proxy if configured)
+        // with either User-defined Function OR with internal default
+        $c['runtime']['trusted_ip_proxies'] = $this->compiled['config']['runtime']['trusted_ip_proxies'];
+        $c['runtime']['trusted_ip_headers'] = $this->compiled['config']['runtime']['trusted_ip_headers'];
+        if (isset($this->compiled['config']['runtime']['custom_ip_resolver'])) {
+            $c['req']['ip'] = $this->compiled['config']['runtime']['custom_ip_resolver']($c);
+        } else {
+            $c['req']['ip'] = funk_internal_resolve_ip($c);
+        }
         $c['req']['time'] = $_SERVER['REQUEST_TIME'] ?? time();
         $c['req']['query'] = $_SERVER['QUERY_STRING'] ?? null;
 
@@ -8899,15 +8980,28 @@ class FunkConfig
     }
 
     /**
-     * Set the primary HTTP kernel dispatch handler callback function.
+     * Set the Custom HTTP(S) Kernel that will do everything with the Successful Compiled
      *
-     * @param string $userDefinedFunctionName Name of the kernel dispatch handler function
+     * @param string $userDefinedFunctionName Name of the Custom HTTP(S) Kernel
      * @return $this
      */
     public function setDefaultKernelHandler(string $userDefinedFunctionName): self
     {
         $userDefinedFunctionName = strtolower(trim($userDefinedFunctionName));
         $this->c->batch('batchSetDefaultHTTPSKernelDispatchHandlerGlobal', $userDefinedFunctionName);
+        return $this;
+    }
+
+    /**
+     * Set the Custom IP Resolver instead of using in-built (`funk_internal_resolve_ip()`)
+     *
+     * @param string $userDefinedFunctionName Name of the IP Resolver Function
+     * @return $this
+     */
+    public function setDefaultIPResolver(string $userDefinedFunctionName): self
+    {
+        $userDefinedFunctionName = strtolower(trim($userDefinedFunctionName));
+        $this->c->batch('batchSetDefaultIPResolverGlobal', $userDefinedFunctionName);
         return $this;
     }
 

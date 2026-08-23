@@ -459,143 +459,105 @@ function funk_generate_csrf(&$c, string $currentUri, ?int $lifetimeSeconds = nul
     return $token;
 }
 
-// FUNKPHP GENERIC RANDOMIZER FUNCTIONS
-// This function uses the "The Random\Randomizer class" to generate a unique password
-function funk_generate_random_password(&$c, $length = 20, $returnHashed = false)
-{
-    // Create a new Randomizer object
-    $randomizer = new Random\Randomizer();
-    // Prepare characters that can be used
-    $lowers =  [
-        'a',
-        'b',
-        'c',
-        'd',
-        'e',
-        'f',
-        'g',
-        'h',
-        'i',
-        'j',
-        'k',
-        'l',
-        'm',
-        'n',
-        'o',
-        'p',
-        'q',
-        'r',
-        's',
-        't',
-        'u',
-        'v',
-        'w',
-        'x',
-        'y',
-        'z',
-    ];
-    $uppers =  [
-        'A',
-        'B',
-        'C',
-        'D',
-        'E',
-        'F',
-        'G',
-        'H',
-        'I',
-        'J',
-        'K',
-        'L',
-        'M',
-        'N',
-        'O',
-        'P',
-        'Q',
-        'R',
-        'S',
-        'T',
-        'U',
-        'V',
-        'W',
-        'X',
-        'Y',
-        'Z',
-    ];
-    $numbers =  [
-        '0',
-        '1',
-        '2',
-        '3',
-        '4',
-        '5',
-        '6',
-        '7',
-        '8',
-        '9',
-    ];
-    $special = [
-        '!',
-        '"',
-        '#',
-        '$',
-        '%',
-        '&',
-        '\'',
-        '(',
-        ')',
-        '*',
-        '+',
-        ',',
-        '-',
-        '.',
-        '/',
-        ':',
-        ';',
-        '<',
-        '=',
-        '>',
-        '?',
-        '@',
-        '[',
-        '\\',
-        ']',
-        '^',
-        '_',
-        '`',
-        '{',
-        '|',
-        '}',
-        '~',
-    ];
-    // Merge the arrays into one:
-    $all = array_merge($lowers, $uppers, $numbers, $special);
-    $total = count($all) - 1;
-
-    // Prepare empty password string
-    $password = '';
-
-    // Add random characters to the password until it reaches the desired length
-    while (strlen($password) < $length) {
-        $randomCharIndex = $randomizer->getInt(0, $total); // Get a random index using the randomizer
-        $password .= $all[$randomCharIndex];
-    }
-
-    // Split the password, shuffle it and join it back together using shuffleArray from randomizer class!
-    $password = $randomizer->shuffleArray(str_split($password));
-    $password = implode('', $password);
-
-    // Return a hashed password if needed
-    if ($returnHashed) {
-        return password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
-    }
-
-    // Otherwise, return the generated password
-    return $password;
-}
-
 /***  ROUTE-RELATED PHP FUNCTIONS FOR FUNKPHP ***/
 function funk_internal_rate_limiter(&$c, int $maxRequestsPerWindowSize, int $windowSizeSecs, string|array $by = 'ip', $driver = 'redis') {}
+
+/**
+ * Checks if an IP (IPv4 or IPv6) matches an IP/CIDR string.
+ */
+function funk_internal_is_ip_trusted(&$c, string $ip, array $trustedList): bool
+{
+    if (empty($ip)) {
+        return false;
+    }
+
+    // Flatten nested arrays if passed like ['ip4' => [...], 'ip6' => [...]]
+    $flatList = [];
+    foreach ($trustedList as $key => $val) {
+        if (is_array($val)) {
+            $flatList = array_merge($flatList, $val);
+        } else {
+            $flatList[] = $val;
+        }
+    }
+
+    if (in_array('*', $flatList, true) || in_array($ip, $flatList, true)) {
+        return true;
+    }
+
+    $ipBin = @inet_pton($ip);
+    if ($ipBin === false) {
+        return false;
+    }
+    $isIPv4 = (strlen($ipBin) === 4);
+    foreach ($flatList as $trusted) {
+        if (!str_contains($trusted, '/')) {
+            if ($ip === $trusted) {
+                return true;
+            }
+            continue;
+        }
+        [$range, $netmask] = explode('/', $trusted, 2);
+        $rangeBin = @inet_pton($range);
+        if ($rangeBin === false || strlen($rangeBin) !== strlen($ipBin)) {
+            continue;
+        }
+        $netmask = (int)$netmask;
+        $maxBits = $isIPv4 ? 32 : 128;
+        if ($netmask < 0 || $netmask > $maxBits) {
+            continue;
+        }
+        $maskBin = '';
+        $fullBytes = (int)($netmask / 8);
+        $remainderBits = $netmask % 8;
+        if ($fullBytes > 0) {
+            $maskBin .= str_repeat("\xFF", $fullBytes);
+        }
+        if ($remainderBits > 0) {
+            $maskBin .= chr(0xFF << (8 - $remainderBits));
+        }
+        $maskBin = str_pad($maskBin, $isIPv4 ? 4 : 16, "\x00", STR_PAD_RIGHT);
+        if (($ipBin & $maskBin) === ($rangeBin & $maskBin)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Resolves true client IP using Custom Resolver,
+ * Trusted Proxies, or REMOTE_ADDR fallback.
+ */
+function funk_internal_resolve_ip(&$c): string
+{
+    $remoteAddr     = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+    $trustedProxies = $c['runtime']['trusted_ip_proxies'] ?? [];
+    $ipHeaders      = $c['runtime']['trusted_ip_headers'] ?? [
+        'HTTP_CF_CONNECTING_IP',
+        'HTTP_X_FORWARDED_FOR',
+        'HTTP_X_REAL_IP'
+    ];
+    if (empty($trustedProxies) || !funk_internal_is_ip_trusted($c, $remoteAddr, $trustedProxies)) {
+        return $remoteAddr;
+    }
+    foreach ($ipHeaders as $headerKey) {
+        if (!empty($_SERVER[$headerKey])) {
+            $rawHeader = $_SERVER[$headerKey];
+            $ipList    = array_map('trim', explode(',', $rawHeader));
+            for ($i = count($ipList) - 1; $i >= 0; $i--) {
+                $candidateIp = $ipList[$i];
+
+                if (filter_var($candidateIp, FILTER_VALIDATE_IP)) {
+                    if (!funk_internal_is_ip_trusted($c, $candidateIp, $trustedProxies)) {
+                        return $candidateIp;
+                    }
+                }
+            }
+        }
+    }
+    return $remoteAddr;
+}
+
 
 // Default FunkPHP Exception Handler that catches any uncaught exceptions and returns
 // a JSON or HTML error response depending on the Accept Header of the request. It is
@@ -633,6 +595,7 @@ function funk_internal_exception_handler(&$c, \Throwable $e)
     $err = 'An unexpected internal server error occurred. Please check the application logs.';
     \funk_use_error_json_or_page($c, 500, ["internal_error" => $err], '500', $err);
 }
+
 
 /**
  * Internal Default Error Handler
