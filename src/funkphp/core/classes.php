@@ -5092,6 +5092,11 @@ class C
         for ($i = 0; $i < $pairCount; $i += 2) {
             $ruleName = strtolower(trim($keyAndRegexPairs[$i]));
             $regex    = trim($keyAndRegexPairs[$i + 1]);
+            if (str_starts_with(strtolower(trim($ruleName)), 'callback:') || str_starts_with(strtolower(trim($ruleName)), 'cb:')) {
+                $this->setErr($this->getErr('InvalidParamName', $ctxVals) . " `Callback-based Param Rule` cannot be used with `->setParamRulePolymorphic()`, that is only available with regular `->setParamRule()`.", 'Invalid Param Name ' . $ctxVals, $method, $route);
+                $this->invalidBatches['paramRulesFlexible']['routes'][$method][$route][$paramIdentifier] = $paramIdentifier;
+                return;
+            }
             if ($ruleName === '' || !preg_match('/^[a-z0-9_-]+$/', $ruleName)) {
                 $this->setErr($this->getErr('InvalidParamName', $ctxVals), 'Invalid Param Name ' . $ctxVals, $method, $route);
                 $this->invalidBatches['paramRulesFlexible']['routes'][$method][$route][$paramIdentifier] = $paramIdentifier;
@@ -8565,16 +8570,7 @@ class C
                 trigger_error("Request Pipe Function `{$funcName}` could not be resolved.", E_USER_WARNING);
             }
         }
-        // Run any set funk_internal_rate_limiter() for global/CONFIG() context
-        if (isset($this->compiled['config']['ratelimit'])) {
-            funk_internal_rate_limiter(
-                $c,
-                $this->compiled['config']['ratelimit']['max_requests'],
-                $this->compiled['config']['ratelimit']['window_seconds'],
-                $this->compiled['config']['ratelimit']['by'],
-                $this->compiled['config']['ratelimit']['driver']
-            );
-        }
+
         // Run any set URI normalizer OR the in-built will run
         // Here we also set the method whether on "_method" is in $_POST meaning form spoofing
         if (isset($this->compiled['config']['runtime']['custom_uri_normalizer'])) {
@@ -8617,10 +8613,47 @@ class C
         $c['req']['time'] = $_SERVER['REQUEST_TIME'] ?? time();
         $c['req']['query'] = $_SERVER['QUERY_STRING'] ?? null;
 
-        // The question now is: run global middlewares BEFORE route-matching OR should they
-        // only run after a matched route just like middlewares for matched method+route only
-        // run when matched method (its middlewares) and then also the matched route's mws?
-        // REMOVE LATER: Placeholder echo to know when compiled
+        // Run any set funk_internal_rate_limiter() for global/CONFIG() context
+        // since it can know limit it using the correct $c['req']['ip'] retrieved
+        if (isset($this->compiled['config']['ratelimit'])) {
+            funk_internal_rate_limiter(
+                $c,
+                $this->compiled['config']['ratelimit']['max_requests'],
+                $this->compiled['config']['ratelimit']['window_seconds'],
+                $this->compiled['config']['ratelimit']['by'],
+                $this->compiled['config']['ratelimit']['driver']
+            );
+        }
+
+        // First check if matched request method even exists in internal route trie and
+        // then run internal route match against the $c['compiled']['routes]['trie'] array
+        if (!isset($c['compiled']['routes']['trie'][$c['req']['method']])) {
+            // Check and run GLOBAL NoRouteMatch due to not even method match,
+            // fallback to in-built Page+JSON Response(s) based on Accept Header
+            // if no GLOBAL NoRouteMatch is set
+            if (!empty($c['compiled']['config']['NO_ROUTE_MATCH'])) {
+            }
+            // Fallback to In-built NoRouteMatch - the question here is what to do with
+            // setHeadersAdd that were created GLOBALLY? Send them or not in this case?
+            // TODO: ASK LLMs about it
+
+        }
+        if (!funk_internal_match_route_trie($c, $c['req']['uri'], ($c['compiled']['routes']['trie'][$c['req']['method']] ?? []))) {
+            // Check and run METHOD NoRouteMatch due to no matched method/route
+            // but also fallback to GLOBAL NoRouteMatch if METHOD NoRouteMatch is not set
+            // and then in-built Page+JSON Response(s) based on Accept Header
+            if (isset($c['compiled']['methods'][$c['req']['method']]['NO_ROUTE_MATCH'])) {
+            }
+            // Fallback to GLOBAL NoRouteMatch
+            if (!empty($c['compiled']['config']['NO_ROUTE_MATCH'])) {
+            }
+
+            // Fallback to In-built NoRouteMatch - the question here is what to do with
+            // setHeadersAdd that were created GLOBALLY? Send them or not in this case?
+            // TODO: ASK LLMs about it
+
+        }
+
         echo "run() started - compilation succeeded!<br/>";
         // A final exit to not be able to jump back to the compile() again
         // This will also trigger registered shutdown functions/any post-response pipes
