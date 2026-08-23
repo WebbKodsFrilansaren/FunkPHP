@@ -2421,9 +2421,10 @@ class C
     {
         [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setCompileFlag', "CONFIG()",  $flag);
         $validFlags = [
-            'NO_WARNINGS_ALLOWED', // $this->WARNINGS must be 0 after compile() is done or it is considered a failure and discarded
-            'COMPILE_ROUTES_SORTED_ASC',
-            'COMPILE_ROUTES_SORTED_DESC',
+            'ALLOW_GHOST_ROUTES', // no error issued when
+            'ALL_ROUTES_MUST_HAVE_PIPE_RESPONSE', // pipeResponse() must be applied to every route or hard compilation error.
+            'HIDE_NO_ROUTE_RESPONSE_WARNING', // No warning issued when a Route has no 'response' (no pipeResponse())
+            'NO_WARNINGS_ALLOWED', // $this->errors['COMPILATION']['warnings'] must be 0 after compile() is done or compilation fails
             'ONLY_RETURN_COMPILED_PAGES', // pipeResponse() config will ONLY look for compiled pages and error out if not found during config
             'ONLY_RETURN_NONCOMPILED_PAGES' // pipeResponse() config wil ONLY look for non-compiled pages and error out if not found during config
         ];
@@ -5587,7 +5588,7 @@ class C
         }
         $this->validBatches['routes'][$method][$route]['pipes'][] = $fileFunctionName;
     }
-    private function batchPipeResponseRoute(string $method, string $route, string $typeOfResponse)
+    private function batchPipeResponseRoute(string $method, string $route, string $typeOfResponse, int $httpResponseStatusCode = 200)
     {
         [$ctx, $ctxVals] = $this->setCtx($method, $route, 'pipeResponse', "ROUTES()->{$method}()->ROUTE('{$route}')", $typeOfResponse);
         // Route must be valid first
@@ -5601,6 +5602,11 @@ class C
         }
         if (isset($this->validBatches['routes'][$method][$route]['response'])) {
             $this->setErr($this->getErr('DuplicateCallValid', $ctx), 'Duplicate Call ' . $ctxVals, $method, $route);
+            return;
+        }
+        if (!$this->validateStatusCode($httpResponseStatusCode)) {
+            $this->setErr($this->getErr('InvalidHttpStatusCode', $ctxVals), 'Invalid Route Resoponse HTTP(S) Status Code ' . $ctxVals, $method, $route);
+            $this->invalidBatches['pipes']['responses']['routes'][$method][$route][strtolower(trim($typeOfResponse))] = true;
             return;
         }
         if (str_starts_with(strtolower(trim($typeOfResponse)), 'group:')) {
@@ -5671,7 +5677,7 @@ class C
             // Nothing really needs to be done here.
         }
         // All good by here so add!
-        $this->validBatches['routes'][$method][$route]['response'] = ['type' => $type, 'context' => $ctx];
+        $this->validBatches['routes'][$method][$route]['response'] = ['type' => $type, 'context' => $ctx, 'code' => $httpResponseStatusCode];
     }
     private function batchPipeSQLRoute(string $method, string $route, string $sqlFileFunction)
     {
@@ -7951,10 +7957,14 @@ class C
                         && isset($routeDetails['middlewares'])
                         && count($routeDetails['middlewares']) === 0
                     ) {
-                        $this->compile_setErr("👻 GHOST ROUTE `{$CURRENT_ROUTE_STR}`👻", "You must have `at least 1 Pipe` (when you do not need any Middleware) OR `at least 1 Middleware` (when you only want the Route to act as a Middleware Scope for other Children Routes to inherit Middleware from; this means the Pipe-Empty Route returns `404` when 'matched') for a given Method/Route in order for it to be considered Valid to Compile. Due to this Error, no further Compiling for this current Route `{$method}{$route}` will take place until `at least 1 Route Pipe/Middleware` first has been added.");
-                        $this->compiled['routes'][$method][$route] = $routeDetails;
-                        $this->compiled['routes'][$method][$route]['👻GHOST_ROUTE👻'] = true;
-                        continue;
+                        if (!isset($this->compileFlags['ALLOW_GHOST_ROUTES'])) {
+                            $this->compile_setErr("👻 GHOST ROUTE `{$CURRENT_ROUTE_STR}`👻", "You must have `at least 1 Pipe` (when you do not need any Middleware) OR `at least 1 Middleware` (when you only want the Route to act as a Middleware Scope for other Children Routes to inherit Middleware from; this means the Pipe-Empty Route returns `404` when 'matched') for a given Method/Route in order for it to be considered Valid to Compile. Due to this Error, no further Compiling for this current Route `{$method}{$route}` will take place until `at least 1 Route Pipe/Middleware` first has been added. Use `->setCompileFlag('ALLOW_GHOST_ROUTES')` in `/src/funkphp/app/CONFIG.app` if you need to allow for Empty Routes for the moment. This Compiler Flag will be removed when `php funk build` is used to build the `FunkPHPDeployment.php` File as Empty Routes should NOT be used in Production.");
+                            $this->compiled['routes'][$method][$route] = $routeDetails;
+                            $this->compiled['routes'][$method][$route]['👻GHOST_ROUTE👻'] = true;
+                            continue;
+                        } else {
+                            $this->compiled['routes'][$method][$route]['👻GHOST_ROUTE👻'] = true;
+                        }
                     }
                     // When ONLY MWs implying a scoping method/route (like MWs that to be inherited by subroutes)
                     if (
@@ -8300,12 +8310,17 @@ class C
                     if (isset($this->validBatches['ratelimit']['routes'][$method][$route])) {
                         $this->compiled['routes'][$method][$route]['ratelimit'] = $this->validBatches['ratelimit']['routes'][$method][$route];
                     }
-                    // STEP 11.7: Build `routes` - Check for any pipeResponse
+                    // STEP 11.7: Build `routes` - Check for any pipeResponse, it is either something
+                    // OR null so just add it anyway but issue a warning when it is null.
                     if (!isset($this->validBatches['routes'][$method][$route]['response'])) {
-                        $this->compile_setWarn("No Response in Route `{$CURRENT_ROUTE_STR}`", "The Route `{$CURRENT_ROUTE_STR}` has no `Piped Response` (via `->pipeResponse()`) meaning it must be handled manually inside of Pipe Functions OR the Route `{$CURRENT_ROUTE_STR}` would essentially NOT have a Response to the End-user. Use `funk_return_response_page()`, `funk_return_response_json()`, `funk_return_response_callback()`, or `funk_return_response_file()` inside any of the referenced Files=>Functions in any of the `->pipeFunction()` in order to fulfill the requirement of returning a Response in the Route `{$CURRENT_ROUTE_STR}`.");
-                    } else {
-                        $this->compiled['routes'][$method][$route]['response'] = $this->validBatches['routes'][$method][$route]['response'];
+                        if (isset($this->compileFlags['ALL_ROUTES_MUST_HAVE_PIPE_RESPONSE'])) {
+                            $this->compile_setErr("Response is REQUIRED in Route `{$CURRENT_ROUTE_STR}`", "Compiler Flag `ALL_ROUTES_MUST_HAVE_PIPE_RESPONSE` forces `{$CURRENT_ROUTE_STR}` to have a `->pipeResponse()`.");
+                        } else if (!isset($this->compileFlags['HIDE_NO_ROUTE_RESPONSE_WARNING'])) {
+                            $this->compile_setWarn("No Response in Route `{$CURRENT_ROUTE_STR}`", "The Route `{$CURRENT_ROUTE_STR}` has no `Piped Response` (via `->pipeResponse()`) meaning it must be handled manually inside of Pipe Functions OR the Route `{$CURRENT_ROUTE_STR}` would essentially NOT have a Response to the End-user. Use `funk_return_response_page()`, `funk_return_response_json()`, `funk_return_response_callback()`, or `funk_return_response_file()` inside any of the referenced Files=>Functions in any of the `->pipeFunction()` in order to fulfill the requirement of returning a Response in the Route `{$CURRENT_ROUTE_STR}`. Remember that no other `->pipe<TYPE>()` can be used after the `->pipeResponse()` for the Route as it is meant to complete the HTTP(S) Request.");
+                        }
                     }
+                    $this->compiled['routes'][$method][$route]['response'] = $this->validBatches['routes'][$method][$route]['response'];
+
                     // END OF Current $route Iteration!
                 }
                 // Any Param Rules for Current $method that were NEVER used by Any of its $route(s)?
@@ -8511,9 +8526,9 @@ class FunkConfig
     }
 
     /**
-     * Set a compilation engine flag to control code generation rules.
+     * Set Compiler Flags that are applied when compiling. Most of them are about what is allowed or not, whether to ignore certain warnings and/or errors or not.
      *
-     * @param string $flag Compiler flag (e.g., "NO_WARNINGS_ALLOWED")
+     * @param 'ALLOW_GHOST_ROUTES'|'ALL_ROUTES_MUST_HAVE_PIPE_RESPONSE'|'HIDE_NO_ROUTE_RESPONSE_WARNING'|'NO_WARNINGS_ALLOWED'|'ONLY_RETURN_COMPILED_PAGES'|'ONLY_RETURN_NONCOMPILED_PAGES' $flag Compiler flag (e.g., "NO_WARNINGS_ALLOWED")
      * @return $this
      */
     public function setCompileFlag(string $flag): self
@@ -9630,13 +9645,27 @@ class FunkRoute
     /**
      * Specify ONE Response transformation or content type format for this route.
      *
-     * @param string $typeOfResponse Response format identifier (e.g., "json", "html")
+     * @param string $typeOfResponse Response Type as a Key-Value pair
+     * `page:file_name` OR
+     * `json:key_in_$c['d'][<key>]` OR
+     * `text:plain text message` OR
+     * `callback:user_defined_fn`.
+     *
+     * For Page Response: `->pipeResponse('page:about')` will look for the page "about.php" in "/src/funkphp/pages/compiled/about.php" and then in "/src/funkphp/pages/about.php". It also runs exit() after.
+     *
+     * For JSON Response: `->pipeResponse('json:users')` it will try parse "$c['d']['users']" as JSON and then return it or JSON containing Internal Server Error. It also runs exit() after.
+     *
+     * For Callback Response: `->pipeResponse('callback:special')` it will look for User-defined Function `test(&$c){}` in "/src/funkphp/config/functions.php" and run it and also run exit() unless that function does it first.
+     *
+     * For Text Response: `->pipeResponse('text:this is just plain text')` it will just echo that text back as "text/plain" Content-Type and then exit().
+     *
+     * @param int $httpResponseStatusCode HTTP Response Code where 200 is default if omitted.
      * @return $this
      */
-    public function pipeResponse(string $typeOfResponse): self
+    public function pipeResponse(string $typeOfResponse, int $httpResponseStatusCode = 200): self
     {
         $typeOfResponse = trim($typeOfResponse);
-        $this->c->batch('batchPipeResponseRoute', $this->method, $this->routePath, $typeOfResponse);
+        $this->c->batch('batchPipeResponseRoute', $this->method, $this->routePath, $typeOfResponse, $httpResponseStatusCode);
         return $this;
     }
     /**

@@ -18,4 +18,5 @@ $APP->ROUTES()
     //->setParamRule('id', '/a/')
     ->setCache(3600, 'redis', null, true)
     ->setRateLimit(60, 60, 'ip', 'redis')
+    ->pipeResponse('json:test')
     ->setCSP('font-src', 'nonce:test');
