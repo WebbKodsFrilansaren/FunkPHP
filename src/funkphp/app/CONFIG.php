@@ -4,6 +4,9 @@
 /** @var FunkPHP $APP */
 $APP->CONFIG()
     ->pipeMiddleware('log_access')
+    ->setHeaderRemove('server')
     ->pipeRequestFunction('use_cors')
     ->pipePostResponseFunction('debug')
-    ->setDebug(true, true, false);
+    ->setDebug(true, true, false)
+    ->setCSP('default-src', 'example.com')
+    ->setCSP('font-src', 'nonce:testa');

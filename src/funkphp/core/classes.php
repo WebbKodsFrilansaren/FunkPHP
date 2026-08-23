@@ -67,7 +67,11 @@ class C
             'trusted-types',
             'report-uri',
             'report-to'
-        ]
+        ],
+        'drivers' => [
+            'cache' => ['redis', 'memcached', 'file', 'apcu', 'array'],
+            'ratelimit' => ['redis', 'memcached', 'file', 'apcu', 'array']
+        ],
     ];
     // The actual written config line by line starting with FunkPHP()
     public array $FunkPHPFluentAPI = [
@@ -2100,6 +2104,7 @@ class C
             'InvalidResponseContext' => "Invalid Response Context in {$optionalCtx}: Valid choice between `page:|json:|callback:|text:` found, but the Context after the Single Colon (`:`) is Empty or Invalid. ",
             'InvalidAddHeaderFormat' => "Invalid Header Format in {$optionalCtx}: Header Name and Header Value cannot contain any kind of newline characters (`CRLF Injections` risks) OR the Single Colon (`:`) as that is added automatically. Valid Examples: `'Header-Name','HeaderValue'` OR `'Content-type','application/json'`.",
             'InvalidHeaderName' => "Invalid Header Name Value in {$optionalCtx}: Must be a `Non-Empty String` with Header Name Only (e.g. `server`, `x-powered-by`), with `Only Alphanumerics` and `single dashes between the words.`",
+            'InvalidHeaderNameChoiceCSP' => "Invalid Header Name Value in {$optionalCtx}: Header `Content-Security-Policy` must be set using `->setCSP()` instead where each call then sets one directive for it. Here You can also use `nonces:<name>` as a source in order to cause it to generate a nonce value when the CSP Header is sent. This nonce value would then be used in `{{nonce:<name>}}` in any HTML Element where applicable. `->setCSP()` inherits CSP Directives from Method and CONFIG. So, if you set one CSP Directive for Global CONFIG but not for a given Route, then that Route inherits that CSP Directive, and same for inheriting from the Method the Route is attached to.",
             'InvalidCSPSourceArray' => "Invalid CSP Source Array in {$optionalCtx}: Ensure Sources are Valid Non-Empty Strings with no spaces, semicolons, or CRLF Injections.",
             'InvalidCSPDirective' => "Invalid CSP Directive Name Value in {$optionalCtx}. Must be one of the following: ",
             'InvalidCSPWildcardUse' => "Invalid Wildcard Domain CSP Source Value in {$optionalCtx}. Wildcards must appear as `*.domain.com` OR `https://*.domain.com`.",
@@ -2114,6 +2119,14 @@ class C
             'InvalidRouteFormatDuplicateParams' => "Invalid Route Value in {$optionalCtx}: `Check for Duplicate Params`. A Valid Route must: 1) Start with or just be `/` as root (`never end with -, _ OR /`), 2) Be all `lowercased`, 3) Have all `Uniquely Named /:params` URI segments (if any used), 4) Never use `-` and/or `_ consecutively`, after each other (e.g. `-_` or `_-`) OR as start in static/dynamic segments (e.g. `/:-`, `/:_`, `/_`, OR `/-`), 5) Only use `[a-z0-9_-]` characters.",
             'InvalidRouteFormatDuplicateParamsPrefix' => "Invalid Route Prefix Value in {$optionalCtx}: `Check for Duplicate Params`. A Valid Route Prefix must: 1) Start with `/` (it can NEVER just be only `/` for Route Prefixes!) as root (`never end with -, _ OR /`), 2) Be all `lowercased`, 3) Have all `Uniquely Named /:params` URI segments (if any used), 4) Never use `-` and/or `_ consecutively`, after each other (e.g. `-_` or `_-`) OR as start in static/dynamic segments (e.g. `/:-`, `/:_`, `/_`, OR `/-`), 5) Only use `[a-z0-9_-]` characters.",
             'InvalidRouteAliasName'                     => "Invalid Route Alias Name in {$optionalCtx}: Aliases must only contain `[a-zA-Z0-9_.-]` characters (e.g., `users.all` OR `Users.All`).",
+            'InvalidTTL_Cache' => "Invalid TTL (time-to-live) Value in {$optionalCtx}: It must be an `Integer` - meaning the `number of seconds` - between `0` and `31536000` (1 year).",
+            'InvalidDriver_Cache' => "Invalid Driver Value in {$optionalCtx}: It must be one of the following Valid ones: ",
+            'InvalidDriver_RateLimit' => "Invalid Driver Value in {$optionalCtx}: It must be one of the following Valid ones: ",
+            'InvalidVaryBy_Cache' => "Invalid \$varyBy Value in {$optionalCtx}:",
+            'InvalidPrivate_Cache' => 'Invalid Boolean Value in {$optionalCtx}: It must be a Valid Boolean Value that is either `TRUE` or `FALSE`.',
+            'InvalidMaxRequests_RateLimit' => "Invalid Max Request Per Window Size Value in {$optionalCtx}: Must be between - in the `number of seconds` - `1` and `1 000 000` (1 million).",
+            'InvalidWindowSize_RateLimit' => "Invalid Window Size in Seconds Value in {$optionalCtx}: Must be between - in the `number of seconds` - `1` and `86 400` (24 hours).",
+            'InvalidBy_RateLimit' => "Invalid \$by Value in {$optionalCtx}:",
             'NonEmptyAllLowercasedStringSTARTWithHTTP'  => "Invalid String Value in {$optionalCtx}: must be a Non-Empty String (no trailing spaces) all lowercased that starts with `http://`.",
             'NonEmptyAllLowercasedStringSTARTWithHTTPS'  => "Invalid String Value in {$optionalCtx}: must be a Non-Empty String (no trailing spaces) all lowercased that starts with `https://`.",
             'InvalidArrayMustBeNUMBERED'                  => "Invalid Array in {$optionalCtx}: must be Numbered Array.",
@@ -2146,6 +2159,8 @@ class C
             'RouteHasNotChosenParam' => "Provided Param for Route in {$optionalCtx} does NOT exist so it cannot be used in `->setParamRule()`.",
 
             // Call Order & Duplicate|Conflict Validation Errors
+            'DuplicateCacheOption' => "`Duplicate Cache Option` in {$optionalCtx}:",
+            'DuplicateRateLimitOption' => "`Duplicate Rate Limit Option` in {$optionalCtx}:",
             'DuplicateFlexibleRegexPairName' => "`Duplicate Regex Pair Name` in {$optionalCtx}: ",
             'DuplicateNonceDirectiveUse' => "`Duplicate Nonce CSP Directive Use` in {$optionalCtx}: ",
             'DuplicateNonceName'           => "`Duplicate Nonce Name` in {$optionalCtx}. Review/change the already `Valid` Nonce Key Name ",
@@ -3745,7 +3760,7 @@ class C
             }
         }
         $this->validBatches['config']['csp'][$directive] = array_filter($formattedSources, function ($src) {
-            return str_starts_with('nonce:', $src);
+            return !str_starts_with($src, 'nonce:');
         });
     }
 
@@ -3880,6 +3895,12 @@ class C
             $this->setErr($this->getErr('DuplicateCallInvalidMustBeSetWithDifferentValues', $ctx) . " Each `Header Name` must be unique (case-insensitive).", 'Duplicate Call ' . $ctxVals);
             return;
         }
+        // Check for special case: cannot use content-security-policy (use setCSP instead)
+        if ($lowerHeader === 'content-security-policy') {
+            $this->setErr($this->getErr('InvalidHeaderNameChoiceCSP', $ctxVals), 'Cannot use Header Name `Content-Security-Policy`, use `->setCSP()` instead');
+            $this->invalidBatches['headers']['config']['add'][$lowerHeader] = true;
+            return;
+        }
         // Forbid possible CRLF injection
         if (
             $headerName === '' || $headerValue === ''
@@ -3893,6 +3914,7 @@ class C
         }
         if (in_array($lowerHeader, $this->FORBIDDEN['headers'], true)) {
             $this->setErr($this->getErr('ForbiddenResponseHeaders', $ctxVals) . " Header Name `'{$lowerHeader}'` is a Forbidden Response Header along with: " . $this->joinArray($this->FORBIDDEN['headers']) . '.', 'Forbidden Response Header Name ' . $ctxVals);
+            $this->invalidBatches['headers']['config']['add'][$lowerHeader] = true;
             return;
         }
         if (isset($this->validBatches['config']['headers']['add'][$lowerHeader])) {
@@ -4354,7 +4376,7 @@ class C
             }
         }
         $this->validBatches['methods'][$method]['csp'][$directive] = array_filter($formattedSources, function ($src) {
-            return str_starts_with('nonce:', $src);
+            return !str_starts_with($src, 'nonce:');
         });
     }
 
@@ -4367,6 +4389,12 @@ class C
         $lowerHeader = strtolower($headerName);
         if (isset($this->invalidBatches['headers']['methods'][$method]['add'][$header])) {
             $this->setErr($this->getErr('DuplicateCallInvalidMustBeSetWithDifferentValues', $ctx) . " Each `Header Name` must be unique (case-insensitive).", 'Duplicate Call ' . $ctxVals, $method);
+            return;
+        }
+        // Check for special case: cannot use content-security-policy (use setCSP instead)
+        if ($lowerHeader === 'content-security-policy') {
+            $this->setErr($this->getErr('InvalidHeaderNameChoiceCSP', $ctxVals), 'Cannot use Header Name `Content-Security-Policy`, use `->setCSP()` instead', $method);
+            $this->invalidBatches['headers']['methods'][$method]['add'][$lowerHeader] = true;
             return;
         }
         // Forbid possible CRLF injection
@@ -4382,6 +4410,7 @@ class C
         }
         if (in_array($lowerHeader, $this->FORBIDDEN['headers'], true)) {
             $this->setErr($this->getErr('ForbiddenResponseHeaders', $ctxVals) . " Header Name `'{$lowerHeader}'` is a Forbidden Response Header along with: " . $this->joinArray($this->FORBIDDEN['headers']) . '.', 'Forbidden Response Header Name ' . $ctxVals, $method);
+            $this->invalidBatches['headers']['methods'][$method]['add'][$lowerHeader] = true;
             return;
         }
         // Check if it already exists
@@ -4641,6 +4670,7 @@ class C
             'paramRules' => null,
             'response' => null,
             'pipes' => [],
+            'pipes-resolved' => [],
             'middlewares' => [],
             'pipes_and_middlewares' => [],
             'middlewares_to_inherit' => [],
@@ -4651,14 +4681,6 @@ class C
             'csp' => null,
             'nonces' => null,
             'excludeHeaders' => null,
-            'all' => [
-                'all_headers' => [
-                    'all_add' => [],
-                    'all_remove' => []
-                ],
-                'all_csp' => [],
-                'all_nonces' => []
-            ]
         ];
     }
 
@@ -4917,11 +4939,232 @@ class C
         ];
     }
     /*ROUTE: RateLimiting & setCache */
-    private function batchSetRateLimitingRoute(string $method, string $route, int $maxRequestsPerWindowSize = 60, int $windowSizeInSeconds = 60, $by = 'ip', $driver = 'redis')
-    {
-        [$ctx, $ctxVals] = $this->setCtx($method, null, 'setRateLimit', "CONFIG()->{$method}()->ROUTE('{$route}')", $maxRequestsPerWindowSize, $windowSizeInSeconds, $by, $driver);
+    private function batchSetRateLimitingRoute(
+        string $method,
+        string $route,
+        int $maxRequestsPerWindowSize = 60,
+        int $windowSizeInSeconds = 60,
+        $by = 'ip',
+        $driver = 'redis'
+    ) {
+        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'setRateLimit', "", $maxRequestsPerWindowSize, $windowSizeInSeconds, $by, $driver);
+        // Route must be valid first
+        if (isset($this->invalidBatches['routes'][$method][$route])) {
+            $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route is Invalid - must become Valid First ' . $ctxVals, $method, $route);
+            return;
+        }
+        // Now validate inValidBatches|validBatches
+        if (isset($this->invalidBatches['ratelimit']['routes'][$method][$route])) {
+            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx) . " You can only set Rate Limit for a Route once.", 'Duplicate Call ' . $ctxVals, $method, $route);
+            return;
+        }
+        if (isset($this->validBatches['ratelimit']['routes'][$method][$route])) {
+            $this->setErr($this->getErr('DuplicateCallValidCanOnlyBeSetOnce', $ctxVals) . " You can only set Rate Limit for a Route once.", 'Duplicate Call ' . $ctxVals, $method, $route);
+            return;
+        }
+        // Max Requests per window size (between 1-1000000)
+        if ($maxRequestsPerWindowSize < 1 || $maxRequestsPerWindowSize > 1000000) {
+            $this->setErr($this->getErr('InvalidMaxRequests_RateLimit', $ctxVals), 'Invalid $maxRequestsPerWindowSize for Route Rate Limit. Must be between 1 and 1,000,000 ' . $ctxVals, $method, $route);
+            $this->invalidBatches['ratelimit']['routes'][$method][$route] = [$maxRequestsPerWindowSize, $windowSizeInSeconds, $by, $driver];
+            return;
+        }
+        // Window Size in Seconds (between 1-86400 seconds OR 1 second-24 hours)
+        if ($windowSizeInSeconds < 1 || $windowSizeInSeconds > 86400) {
+            $this->setErr($this->getErr('InvalidWindowSize_RateLimit', $ctxVals), 'Invalid $windowSizeInSeconds for Route Rate Limit. Must be between 1 and 86,400 seconds (24h) ' . $ctxVals, $method, $route);
+            $this->invalidBatches['ratelimit']['routes'][$method][$route] = [$maxRequestsPerWindowSize, $windowSizeInSeconds, $by, $driver];
+            return;
+        }
+        // Driver validation
+        $cleanDriver = strtolower(trim($driver));
+        if (!in_array($cleanDriver, $this->FORBIDDEN['drivers']['ratelimit'], true)) {
+            $this->setErr($this->getErr('InvalidDriver_RateLimit', $ctxVals) . $this->joinArray($this->FORBIDDEN['drivers']['ratelimit']) . '.', 'Invalid Driver for Route Rate Limit ' . $ctxVals, $method, $route);
+            $this->invalidBatches['ratelimit']['routes'][$method][$route] = [$maxRequestsPerWindowSize, $windowSizeInSeconds, $by, $driver];
+            return;
+        }
+        // Validate `$by` (Identifier strategy)
+        $normalizedBy = [];
+        if (!is_string($by) && !is_array($by)) {
+            $this->setErr(
+                $this->getErr('InvalidBy_RateLimit', $ctxVals) . " `$by` must be a `String` or an `Array of Strings`.",
+                'Invalid $by Value for Route Rate Limit ' . $ctxVals,
+                $method,
+                $route
+            );
+            $this->invalidBatches['ratelimit']['routes'][$method][$route] = [$maxRequestsPerWindowSize, $windowSizeInSeconds, $by, $driver];
+            return;
+        }
+        $items = is_string($by) ? [$by] : $by;
+        if (empty($items)) {
+            $this->setErr(
+                $this->getErr('InvalidBy_RateLimit', $ctxVals) . " `$by` cannot be empty.",
+                'Empty $by for Route Rate Limit ' . $ctxVals,
+                $method,
+                $route
+            );
+            $this->invalidBatches['ratelimit']['routes'][$method][$route] = [$maxRequestsPerWindowSize, $windowSizeInSeconds, $by, $driver];
+            return;
+        }
+        foreach ($items as $item) {
+            if (!is_string($item)) {
+                $this->setErr(
+                    $this->getErr('InvalidBy_RateLimit', $ctxVals) . " Array items in `$by` must all be `Non-Empty Strings`.",
+                    'Invalid $by Array Item for Route Rate Limit ' . $ctxVals,
+                    $method,
+                    $route
+                );
+                $this->invalidBatches['ratelimit']['routes'][$method][$route] = [$maxRequestsPerWindowSize, $windowSizeInSeconds, $by, $driver];
+                return;
+            }
+            $trimmedItem = strtolower(trim($item));
+            if ($trimmedItem === '') {
+                $this->setErr(
+                    $this->getErr('InvalidBy_RateLimit', $ctxVals) . " `$by` items cannot be `Empty Strings`.",
+                    'Empty $by Item for Route Rate Limit ' . $ctxVals,
+                    $method,
+                    $route
+                );
+                $this->invalidBatches['ratelimit']['routes'][$method][$route] = [$maxRequestsPerWindowSize, $windowSizeInSeconds, $by, $driver];
+                return;
+            }
+            // Valid identifier formats: 'ip', 'user_id', 'session', 'api_key', 'header:<name>', 'query:<name>'
+            if (
+                !preg_match('/^(header|query):[a-z0-9_-]+$/i', $trimmedItem)
+                && !in_array($trimmedItem, ['ip', 'user_id', 'session', 'api_key'], true)
+            ) {
+                $this->setErr(
+                    $this->getErr('InvalidBy_RateLimit', $ctxVals) . " Item `{$item}` is Invalid. Use formats like `'header:X-Api-Key'`, `'query:token'`, or a direct token from: " . $this->joinArray(['ip', 'user_id', 'session', 'api_key']) . '.',
+                    'Invalid $by Format for Route Rate Limit ' . $ctxVals,
+                    $method,
+                    $route
+                );
+                $this->invalidBatches['ratelimit']['routes'][$method][$route] = [$maxRequestsPerWindowSize, $windowSizeInSeconds, $by, $driver];
+                return;
+            }
+            // Duplicate identifier check
+            if (!in_array($trimmedItem, $normalizedBy, true)) {
+                $normalizedBy[] = $trimmedItem;
+            } else {
+                $this->setErr($this->getErr('DuplicateRateLimitOption', $ctxVals) . " Rate Limit Identifier `{$trimmedItem}` has already been added.", 'Duplicate Rate Limit Identifier ' . $ctxVals, $method, $route);
+                $this->invalidBatches['ratelimit']['routes'][$method][$route] = [$maxRequestsPerWindowSize, $windowSizeInSeconds, $by, $driver];
+                return;
+            }
+        }
+        // Add to valid batches when all OK
+        $this->validBatches['ratelimit']['routes'][$method][$route] = [
+            'max_requests' => $maxRequestsPerWindowSize,
+            'window' => $windowSizeInSeconds,
+            'by' => $normalizedBy,
+            'driver' => $cleanDriver,
+        ];
     }
-    private function batchSetCacheRoute(string $method, string $route, int $ttl = 3600, string $driver = 'redis', mixed $varyBy = null, bool $private = false) {}
+    private function batchSetCacheRoute(
+        string $method,
+        string $route,
+        int $ttl = 3600,
+        string $driver = 'redis',
+        string|array|null $varyBy = null,
+        bool $private = false
+    ) {
+        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'setCache', "", $ttl, $driver, $varyBy, $private);
+        // Route must be valid first
+        if (isset($this->invalidBatches['routes'][$method][$route])) {
+            $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route is Invalid - must become Valid First ' . $ctxVals, $method, $route);
+            return;
+        }
+        // Now validate inValidBatches|validBatches
+        if (isset($this->invalidBatches['cache']['routes'][$method][$route])) {
+            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx) . " You can only set Cache for a Route once.", 'Duplicate Call ' . $ctxVals, $method, $route);
+            return;
+        }
+        if (isset($this->validBatches['cache']['routes'][$method][$route])) {
+            $this->setErr($this->getErr('DuplicateCallValidCanOnlyBeSetOnce', $ctxVals) . " You can only set Cache for a Route once.", 'Duplicate Call ' . $ctxVals, $method, $route);
+            return;
+        }
+        // TTL (time-to-live) must be 0 OR at most 1 year (31536000)
+        if ($ttl < 0 || $ttl > 31536000) {
+            $this->setErr($this->getErr('InvalidTTL_Cache', $ctxVals), 'Invalid TTL (time-to-live) for Route Cache ' . $ctxVals, $method, $route);
+            $this->invalidBatches['cache']['routes'][$method][$route] = [$ttl, $driver, $varyBy, $private];
+            return;
+        }
+        // Driver (based upon $this->FORBIDDEN['drivers']['cache'])
+        if (!in_array($driver, $this->FORBIDDEN['drivers']['cache'])) {
+            $this->setErr($this->getErr('InvalidDriver_Cache', $ctxVals) . $this->joinArray($this->FORBIDDEN['drivers']['cache']) . '.', 'Invalid Driver for Route Cache ' . $ctxVals, $method, $route);
+            $this->invalidBatches['cache']['routes'][$method][$route] = [$ttl, $driver, $varyBy, $private];
+            return;
+        }
+        if (!is_bool($private)) {
+            $this->setErr($this->getErr('InvalidPrivate_Cache', $ctxVals), 'Invalid $private Value for Route Cache ' . $ctxVals, $method, $route);
+            $this->invalidBatches['cache']['routes'][$method][$route] = [$ttl, $driver, $varyBy, $private];
+            return;
+        }
+        // Validate $varyBy if provided (not null)
+        $normalizedVaryBy = [];
+        if ($varyBy !== null) {
+            if (!is_string($varyBy) && !is_array($varyBy)) {
+                $this->setErr(
+                    $this->getErr('InvalidVaryBy_Cache', $ctxVals) . " `$varyBy` must be a `String`, an `Array of Strings`, or `null`.",
+                    'Invalid $varyBy Value for Route Cache ' . $ctxVals,
+                    $method,
+                    $route
+                );
+                $this->invalidBatches['cache']['routes'][$method][$route] = [$ttl, $driver, $varyBy, $private];
+                return;
+            }
+            $items = is_string($varyBy) ? [$varyBy] : $varyBy;
+            foreach ($items as $item) {
+                if (!is_string($item)) {
+                    $this->setErr(
+                        $this->getErr('InvalidVaryBy_Cache', $ctxVals) . " Array items in `$varyBy` must all be `Non-Empty Strings`.",
+                        'Invalid $varyBy Array Item for Route Cache ' . $ctxVals,
+                        $method,
+                        $route
+                    );
+                    $this->invalidBatches['cache']['routes'][$method][$route] = [$ttl, $driver, $varyBy, $private];
+                    return;
+                }
+                $trimmedItem = strtolower(trim($item));
+                if ($trimmedItem === '') {
+                    $this->setErr(
+                        $this->getErr('InvalidVaryBy_Cache', $ctxVals) . " `$varyBy` items cannot be `Empty Strings`.",
+                        'Empty $varyBy Item for Route Cache ' . $ctxVals,
+                        $method,
+                        $route
+                    );
+                    $this->invalidBatches['cache']['routes'][$method][$route] = [$ttl, $driver, $varyBy, $private];
+                    return;
+                }
+                // Valid prefixes such as: header:x, query:x, cookie:x, param:x, or non-keys like ip/user_id
+                if (
+                    !preg_match('/^(header|query|cookie|param):[a-z0-9_-]+$/i', $trimmedItem)
+                    && !in_array($trimmedItem, ['ip', 'user_id', 'session'], true)
+                ) {
+                    $this->setErr(
+                        $this->getErr('InvalidVaryBy_Cache', $ctxVals) . " Item `{$item}` is Invalid. Use formats like `'header:Accept'`, `'query:page'`, `'cookie:session'`, `'param:id'`, or a single direct one of the following: " . $this->joinArray(['ip', 'user_id', 'session']) . '.',
+                        'Invalid $varyBy Format for Route Cache ' . $ctxVals,
+                        $method,
+                        $route
+                    );
+                    $this->invalidBatches['cache']['routes'][$method][$route] = [$ttl, $driver, $varyBy, $private];
+                    return;
+                }
+                // error out if duplicate
+                if (!in_array($trimmedItem, $normalizedVaryBy, true)) {
+                    $normalizedVaryBy[] = $trimmedItem;
+                } else {
+                    $this->setErr($this->getErr('DuplicateCacheOption', $ctxVals) . " Route Cache Option `{$trimmedItem}` has already been added.", 'Duplicate Route Cache Option ' . $ctxVals, $method, $route);
+                    $this->invalidBatches['cache']['routes'][$method][$route] = [$ttl, $driver, $varyBy, $private];
+                    return;
+                }
+            }
+        }
+        // Add to valid batches when all ok
+        $this->validBatches['cache']['routes'][$method][$route] = [
+            'ttl' => $ttl,
+            'driver' => $driver,
+            'varyBy' => !empty($normalizedVaryBy) ? $normalizedVaryBy : null,
+            'private' => $private,
+        ];
+    }
 
     /*ROUTE: setCSPRoute */
     private function batchSetCSPRoute(string $method, string $route, string $directive, string ...$sources)
@@ -5007,7 +5250,7 @@ class C
             }
         }
         $this->validBatches['routes'][$method][$route]['csp'][$directive] = array_filter($formattedSources, function ($src) {
-            return str_starts_with('nonce:', $src);
+            return !str_starts_with($src, 'nonce:');
         });
     }
 
@@ -5449,6 +5692,12 @@ class C
             $this->setErr($this->getErr('DuplicateCallInvalidMustBeSetWithDifferentValues', $ctx) . " Each `Header Name` must be unique (case-insensitive).", 'Duplicate Call ' . $ctxVals, $method, $route);
             return;
         }
+        // Check for special case: cannot use content-security-policy (use setCSP instead)
+        if ($lowerHeader === 'content-security-policy') {
+            $this->setErr($this->getErr('InvalidHeaderNameChoiceCSP', $ctxVals), 'Cannot use Header Name `Content-Security-Policy`, use `->setCSP()` instead', $method, $route);
+            $this->invalidBatches['headers']['routes'][$method][$route]['add'][$lowerHeader] = true;
+            return;
+        }
         // Forbid possible CRLF injection
         if (
             $headerName === '' || $headerValue === ''
@@ -5462,6 +5711,7 @@ class C
         }
         if (in_array($lowerHeader, $this->FORBIDDEN['headers'], true)) {
             $this->setErr($this->getErr('ForbiddenResponseHeaders', $ctxVals) . " Header Name `'{$lowerHeader}'` is a Forbidden Response Header along with: " . $this->joinArray($this->FORBIDDEN['headers']) . '.', 'Forbidden Response Header Name ' . $ctxVals, $method, $route);
+            $this->invalidBatches['headers']['routes'][$method][$route]['add'][$lowerHeader] = true;
             return;
         }
         // First check if it already exists
@@ -7262,11 +7512,11 @@ class C
                             $this->compile_setWarn("Consecutive Middleware Function `{$lastConfigMW}` between `CONFIG()`<->`{$method}`", "Consecutive Pipe Middleware Function `{$allPipes[0]}` found. It runs as `Last Middleware Globally/CONFIG()` and then it runs as the `First {$method} Middleware` for any Matched Route in `{$method}`. Ignore this warning if it is intentional or Review: `->CONFIG()->pipeMiddleware('{$lastConfigMW}')` in `/src/funkphp/app/CONFIG.php` AND `->ROUTES()->{$method}()->pipeMiddleware()` in `/src/funkphp/app/{$method}.php`.");
                         }
                     }
+                    $this->compiled['methods'][$method]['middlewares'] = $allPipes;
                     foreach ($allPipes as $pipe) {
                         $resolved = $this->compile_resolve_fn_paths('middleware', $pipe);
                         $this->compiled['methods'][$method]['middlewares-resolved'][] = ['run' => $resolved[0], 'path' => $resolved[1]];
                     }
-                    $this->compiled['methods'][$method]['middlewares'] = $allPipes;
                 }
             }
         }
@@ -7360,6 +7610,10 @@ class C
                     ) {
                         $this->compile_setWarn("Only Route Middlewares without Route Pipes in `{$CURRENT_ROUTE_STR}`", "`Only Middlewares` in Route `{$CURRENT_ROUTE_STR}`. This means that Route `{$CURRENT_ROUTE_STR}` will return `404` when Routing Matched while its `Middlewares Will Be Inherited` by its Children Routes.");
                     }
+                    // Add any Route alias - already guaranteed to be unique globally
+                    if (isset($this->validBatches['routes'][$method][$route]['alias'])) {
+                        $this->compiled['routes'][$method][$route]['alias'] = $this->validBatches['routes'][$method][$route]['alias'];
+                    }
                     // Now unpacking Pipes & MWs (meaning when they start with "group:")
                     // UNPACK PIPES for ROUTE: ???FIX LATER??? add "group:" for sql,query & validation?
                     // in the sense of: "group:sql:name", "group:query:name" & "group:validation:name"?
@@ -7387,7 +7641,11 @@ class C
                             }
                         }
                     }
-                    // Add ALL Pipes to Compiled Route
+                    // Add ALL Pipes to Compiled Route including resolved versions of them
+                    foreach ($CURRENT_ROUTE_PIPES as $CRoutePipe) {
+                        $resolved = $this->compile_resolve_fn_paths('pipe', $CRoutePipe);
+                        $this->compiled['routes'][$method][$route]['pipes-resolved'][] = $resolved;
+                    }
                     $this->compiled['routes'][$method][$route]['pipes'] = $CURRENT_ROUTE_PIPES;
                     // Before we unpack MWs inside Route, we need to check if it has any routes first
                     // from current $method and then if any of its subroutes has any MWs (including MWs to unpack!)
@@ -7552,18 +7810,127 @@ class C
                     $this->compiled['routes'][$method][$route]['middlewares_to_inherit'] = $CURRENT_ROUTE_MWS_TO_INHERIT;
 
                     // STEP 11.4: Build `routes` - BUILD HEADERS (COMBINED WITH ExcludedHeaders) for ROUTES
-                    // where it just really first checks what CONFIG() and then METHOD() has and then whether
-                    // any of those Headers are in ExcludedHeaders for the Route meaning they are not used.
-                    // Same Header-names means the Route Header goes first, then Method Header and finally Config Header
-                    // in terms of prioritizing.
-                }
-            }
+                    // where we begin adding those from the Route itself and then we only add those that are
+                    // not already added with the same header name (as Route Headers are prioritized) OR are
+                    // in the excludeHeaders array for the Route. Then we do the same for 'remove' Headers.
+                    if (isset($routeDetails['headers']['add'])) {
+                        foreach ($routeDetails['headers']['add'] as $routeHeader) {
+                            $this->compiled['routes'][$method][$route]['headers']['add'][] = strtolower($routeHeader['name']) . ': ' . $routeHeader['value'];
+                        }
+                    }
+                    // Add any Non-Excluded Or Already-Added-With-Same-Name Method Headers
+                    if (isset($this->compiled['methods'][$method]['headers']['add'])) {
+                        foreach ($this->compiled['methods'][$method]['headers']['add'] as $methodHKey => $methodHeader) {
+                            if (
+                                isset($routeDetails['headers']['add'][$methodHKey])
+                                || (isset($routeDetails['excludeHeaders'])
+                                    && in_array($methodHKey, $routeDetails['excludeHeaders']))
+                            ) {
+                                if (
+                                    isset($routeDetails['excludeHeaders'])
+                                    && in_array($methodHKey, $routeDetails['excludeHeaders'])
+                                ) {
+                                    $CURRENT_ROUTE_EXCLUDED_HEADERS[] = $methodHKey;
+                                }
+                                continue;
+                            } else {
+                                $this->compiled['routes'][$method][$route]['headers']['add'][] = strtolower($methodHeader['name']) . ': ' . $methodHeader['value'];
+                            }
+                        }
+                    }
+                    // Add any Non-Excluded Or Already-Added-With-Same-Name Config/GLOBAL Headers
+                    if (isset($this->compiled['config']['headers']['add'])) {
+                        foreach ($this->compiled['config']['headers']['add'] as $configHKey => $configHeader) {
+                            if (
+                                isset($routeDetails['headers']['add'][$configHKey])
+                                || (isset($routeDetails['excludeHeaders'])
+                                    && in_array($configHKey, $routeDetails['excludeHeaders']))
+                            ) {
+                                if (
+                                    isset($routeDetails['excludeHeaders'])
+                                    && in_array($configHKey, $routeDetails['excludeHeaders'])
+                                ) {
+                                    $CURRENT_ROUTE_EXCLUDED_HEADERS[] = $configHKey;
+                                }
+                                continue;
+                            } else {
+                                $this->compiled['routes'][$method][$route]['headers']['add'][] = strtolower($configHeader['name']) . ': ' . $configHeader['value'];
+                            }
+                        }
+                    }
+                    // Finally check that all headers to exclude from route actually were that or set compile error
+                    if (
+                        isset($routeDetails['excludeHeaders'])
+                        && count(array_diff($routeDetails['excludeHeaders'], $CURRENT_ROUTE_EXCLUDED_HEADERS)) > 0
+                    ) {
+                        $this->compile_setErr("Failed to Exclude Headers in `{$method}{$route}`", "Failed to Exclude these Headers in `{$method}{$route}`: '" . $this->joinArray(array_diff($routeDetails['excludeHeaders'], $CURRENT_ROUTE_EXCLUDED_HEADERS)) . "'. This means that Header/those Headers in `{$method}{$route}` do NOT exist in the `CONFIG()` or `{$method} CONFIG`. Review the Excluded Headers in `->ROUTES()->{$method}()->ROUTE('{$route}')->setExcludeHeaders()` in `/src/funkphp/config/{$method}.php`.");
+                    }
+                    // Quick adding of 'remove' headers for current Route, then from Method and Config unless already added
+                    if (isset($routeDetails['headers']['remove'])) {
+                        foreach ($routeDetails['headers']['remove'] as $routeHeaderRemove) {
+                            $this->compiled['routes'][$method][$route]['headers']['remove'][] = $routeHeaderRemove;
+                        }
+                    }
+                    if (isset($this->compiled['methods'][$method]['headers']['remove'])) {
+                        foreach ($this->compiled['methods'][$method]['headers']['remove'] as $methodHeaderRemove) {
+                            if (!in_array($methodHeaderRemove,  $this->compiled['routes'][$method][$route]['headers']['remove'])) {
+                                $this->compiled['routes'][$method][$route]['headers']['remove'][] = $methodHeaderRemove;
+                            }
+                        }
+                    }
+                    if (isset($this->compiled['config']['headers']['remove'])) {
+                        foreach ($this->compiled['config']['headers']['remove'] as $configHeaderRemove) {
+                            if (!in_array($configHeaderRemove,  $this->compiled['routes'][$method][$route]['headers']['remove'])) {
+                                $this->compiled['routes'][$method][$route]['headers']['remove'][] = $configHeaderRemove;
+                            }
+                        }
+                    }
+
+                    // STEP 11.5: Build `routes` - setCSP() and nonces for the Route as CSP Directives
+                    // are inherited first from Method and then from CONFIG (those actually defined)
+                    // and NOT empty with nonces waiting for them to be used.
+                    // First from CONFIG
+                    if (!empty($this->compiled['config']['csp'])) {
+                        $this->compiled['routes'][$method][$route]['csp'] = $this->compiled['config']['csp'];
+                        $this->compiled['routes'][$method][$route]['nonces'] = $this->compiled['config']['nonces'] ?? [];
+                    }
+                    // Then from current $method
+                    if (!empty($this->compiled['methods'][$method]['csp'])) {
+                        foreach ($this->compiled['methods'][$method]['csp'] as $directive => $sources) {
+                            $this->compiled['routes'][$method][$route]['csp'][$directive] = $sources;
+                        }
+                        if (!empty($this->compiled['methods'][$method]['nonces'])) {
+                            foreach ($this->compiled['methods'][$method]['nonces'] as $nonceName => $dir) {
+                                $this->compiled['routes'][$method][$route]['nonces'][$nonceName] = $dir;
+                            }
+                        }
+                    }
+                    // Finally from current $route
+                    if (!empty($routeDetails['csp'])) {
+                        foreach ($routeDetails['csp'] as $directive => $sources) {
+                            $this->compiled['routes'][$method][$route]['csp'][$directive] = $sources;
+                        }
+                        if (!empty($routeDetails['nonces'])) {
+                            foreach ($routeDetails['nonces'] as $nonceName => $dir) {
+                                $this->compiled['routes'][$method][$route]['nonces'][$nonceName] = $dir;
+                            }
+                        }
+                    }
+                    // STEP 11.6: Build `routes` - setCache() and setRateLimit() for Route
+                    if (isset($this->validBatches['cache']['routes'][$method][$route])) {
+                        $this->compiled['routes'][$method][$route]['cache'] = $this->validBatches['cache']['routes'][$method][$route];
+                    }
+                    if (isset($this->validBatches['ratelimit']['routes'][$method][$route])) {
+                        $this->compiled['routes'][$method][$route]['ratelimit'] = $this->validBatches['ratelimit']['routes'][$method][$route];
+                    }
+                } // END OF Current $route Iteration!
+            } // END OF Current $method Iteration!
 
 
 
-            // STEP 11.5: Build `routes` -
+            // STEP 11.7: Build `routes` -
 
-            // STEP 11.6: Build `routes` -
+            // STEP 11.8: Build `routes` -
         }
         /////////////////////////////////////// END /////////////////////////////
         //$this->compile_setErr("");
@@ -8679,25 +9046,31 @@ class FunkRoute
         return $this;
     }
     /**
-     * Configure rate limiting options specific to this route.
+     * Set Rate Limiting for current Method=>Route. Remember that any Rate Limiting set on the Method as a whole and/or Globally are always applied first, including that this Route must also first be matched on its method before this Rate Limit kicks into full gear.
      *
-     * @param array<string, mixed> $rateLimitingOptions Rate limiting parameters
+     * @param int $maxRequestsPerWindowSize Maximum allowed requests within the time window (1 to 1,000,000).
+     * @param int $windowSizeInSeconds Time window duration in seconds (1 to 86,400 / 24 hours).
+     * @param string|array<int, string> $by Client identifier key or array of keys (e.g. 'ip', 'user_id', 'header:X-Api-Key', 'query:token').
+     * @param string $driver Rate limiter storage driver (e.g. 'redis', 'memcached', 'apcu').
      * @return $this
      */
-    public function setRateLimit(array $rateLimitingOptions): self
+    public function setRateLimit(int $maxRequestsPerWindowSize = 60, int $windowSizeInSeconds = 60, string $by = 'ip', string $driver = 'redis'): self
     {
-        $this->c->batch('batchSetRateLimitingRoute', $this->method, $this->routePath, $rateLimitingOptions);
+        $this->c->batch('batchSetRateLimitingRoute', $this->method, $this->routePath, $maxRequestsPerWindowSize, $windowSizeInSeconds, $by, strtolower(trim($driver)));
         return $this;
     }
     /**
-     * Configure response caching options for this route.
+     * Set Caching Options for Current Method=>Route. Caching can only be done for each specific Route once.
      *
-     * @param array<string, mixed> $cacheOptions Cache strategy configuration
+     * @param int $ttl Time-To-Live in seconds (0 to 31,536,000 / 1 year). 0 disables caching.
+     * @param 'redis'|'memcached'|'file'|'apcu'|'array' $driver Cache storage driver (e.g. 'redis', 'memcached', 'file', 'apcu').
+     * @param string|array<int, string>|null $varyBy Cache Key to check against (e.g. `'header:Authorization', 'query:page', 'ip', 'session', 'user_id'`).
+     * @param bool $private If true, sets HTTP response header 'Cache-Control: private'.
      * @return $this
      */
-    public function setCache(array $cacheOptions): self
+    public function setCache(int $ttl, string $driver = 'redis', string|array|null $varyBy = null, bool $private = false): self
     {
-        $this->c->batch('batchSetCacheRoute', $this->method, $this->routePath, $cacheOptions);
+        $this->c->batch('batchSetCacheRoute', $this->method, $this->routePath, $ttl, strtolower(trim($driver)), $varyBy, $private);
         return $this;
     }
     /**

@@ -4,10 +4,14 @@
 /** @var FunkPHP $APP */
 $APP->ROUTES()
     ->GET()
+    ->setHeaderRemove('server')
     ->pipeMiddleware('log_access')
-    ->route("/users")
-    ->pipeMiddleware("auth2")
     ->route("/users/:id")
-    ->pipeMiddleware("log_access")
-    ->route("/users/:id/test")
-    ->pipeMiddleware("auth");
+    ->pipeMiddleware('log_access')
+    ->pipeFunction("test.test")
+    ->setHeaderAdd("Content-Type", 'application/json')
+    ->setHeaderRemove('server')
+    ->setCSP('default-src', 'self')
+    ->setAlias('test')
+    ->setParamRule('id', '/a/')
+    ->setCSP('font-src', 'nonce:test');
