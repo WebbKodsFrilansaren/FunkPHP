@@ -123,49 +123,6 @@ class C
         'file_core_functions' => null,
         'file_manifest' => null,
     ];
-    // Add this later to finalized/compiled $c ($this->compiled['c'])
-    // in order to reduce the amount of info on the screen during dev.
-    private array $cAddLater = [
-        'shared' => [],
-        'classes' => ['vendor' => [], 'user' => []],
-        'credentials' => null,
-        'connections' => [],
-        'req' => [
-            'method' => '##TOKEN_REQ_METHOD##',
-            'ip'     => '##TOKEN_REQ_IP##',
-            'time'   => '##TOKEN_REQ_TIME##',
-            'uri' => null,
-            'query' => '##TOKEN_REQ_QUERY_STRING##',
-            'base_url_absolute' => null,
-            'base_url_relative' => null,
-            'matched_in' => null,
-            'route' => null,
-            'params' => null,
-            'segments' => null,
-            'auth' => null,
-            'matched_config' => null,
-            'matched_params' => null,
-            'matched_pipes' => [],
-            'matched_middlewares' => null,
-            'skip_post_response' => false,
-            'keep_running_exit' => null,
-            'code' => 418,
-            'log' => [],
-            'ua' => null,
-            'content_type' => null,
-            'accept' => null,
-            'protocol' => null,
-        ],
-        'd' => null,
-        'v' => null,
-        'v_ok' => null,
-        'v_ok_files' => null,
-        'v_config' => [],
-        'v_data' => null,
-        'p' => null,
-        'files' => null,
-        'err' => [],
-    ];
     // $compiled = The entire compiled code that can either be executed as is OR
     // be exported to the `/src/funkphp/FunkPHPDeployment.php` File!
     private array $routePrefixes = [
@@ -206,10 +163,6 @@ class C
         // This is the $c Variable that is then assigned automatically globally.
         'c' => [
             'FUNKPHP_ONLINE' => false,
-            'FUNKPHP_USE_HTTPS' => false,
-            "FUNKPHP_USE_VENDOR" => true,
-            "FUNKPHP_CUSTOM_EXCEPTION_HANDLER" => null,
-            "FUNKPHP_CUSTOM_ERROR_HANDLER" => null,
             "FUNKPHP_CUSTOM_URI_NORMALIZER" => null,
             "FUNKPHP_CUSTOM_HTTPS_KERNEL" => null,
             // 'session.cache_limiter' => 'public',
@@ -233,6 +186,45 @@ class C
                 'driver' => 'files',
                 'COOKIES' => []
             ],
+            'shared' => [],
+            'classes' => ['vendor' => [], 'user' => []],
+            'credentials' => null,
+            'connections' => [],
+            'req' => [
+                'method' => '##TOKEN_REQ_METHOD##',
+                'ip'     => '##TOKEN_REQ_IP##',
+                'time'   => '##TOKEN_REQ_TIME##',
+                'uri' => null,
+                'query' => '##TOKEN_REQ_QUERY_STRING##',
+                'base_url_absolute' => null,
+                'base_url_relative' => null,
+                'matched_in' => null,
+                'route' => null,
+                'params' => null,
+                'segments' => null,
+                'auth' => null,
+                'matched_config' => null,
+                'matched_params' => null,
+                'matched_pipes' => [],
+                'matched_middlewares' => null,
+                'skip_post_response' => false,
+                'keep_running_exit' => null,
+                'code' => 418,
+                'log' => [],
+                'ua' => null,
+                'content_type' => null,
+                'accept' => null,
+                'protocol' => null,
+            ],
+            'd' => null,
+            'v' => null,
+            'v_ok' => null,
+            'v_ok_files' => null,
+            'v_config' => [],
+            'v_data' => null,
+            'p' => null,
+            'files' => null,
+            'err' => [],
         ],
     ];
 
@@ -243,7 +235,14 @@ class C
     private bool $FUNKPHP_COMPILED = false;
     private bool $FUNKPHP_COMPILED_SUCCESS = false;
     private bool $FUNKPHP_RAN = false;
-    private array $debug = ['ON_OR_OFF' => false, 'SHOW_VALID_BATCHES' => false, 'SHOW_INVALID_BATCHES' => false, 'SHOW_CACHED' => false, 'SHOW_COMPILED' => false, 'SHOW_ALL' => false,];
+    private array $debug = [
+        'ON_OR_OFF' => false,
+        'SHOW_VALID_BATCHES' => false,
+        'SHOW_INVALID_BATCHES' => false,
+        'SHOW_CACHED' => false,
+        'SHOW_COMPILED' => false,
+        'SHOW_ALL' => false,
+    ];
 
     // Helper function to build the $FunkPHPFluentAPI
     // using var_export($var,true). It throws away last optional values like [] & null
@@ -1870,7 +1869,11 @@ class C
         }
         $FN = $fileData['functions'][$expectedFNName] ?? null;
         if (!$FN) {
-            $fatalErr = "Function File Error in {$contextLabel}: Expected Function `{$expectedFNName}` in File `$relativePath` does NOT exist. It should exist as a Function Declaration `function {$expectedFNName}(&\$c){}` within the Global Namespace inside of the Function File.";
+            $fnThatExist = "<No Functions>";
+            if (isset($fileData['functions']) && count($fileData['functions']) > 0) {
+                $fnThatExist = $this->joinArray($fileData['functions'], true);
+            }
+            $fatalErr = "Function File Error in {$contextLabel}: Expected Function `{$expectedFNName}` in File `$relativePath` does NOT exist. It should exist as a Function Declaration `function {$expectedFNName}(&\$c){}` within the Global Namespace inside of the Function File. Available Functions in `$relativePath`: {$fnThatExist}.";
             $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'Expected Function in Function File Not Found', $fatalErr);
             return $fatalErr;
         }
@@ -2177,9 +2180,12 @@ class C
             'ConflictPipeRemovedHeader' => "`Conflicting Calls` in {$optionalCtx}: cannot set `Pipe a Header` that was first configured as `Remove a Header` .",
             'ConflictingExcludeHeadersWithAlreadyPipedHeader' => "Conflicting Calls in {$optionalCtx}: cannot reference the same Header(s) in `->setExcludeHeaders()` and `->pipeHeader()` in the same Route. Headers to Exclude should target Piped Headers in the same `<METHOD>()` and/or `CONFIG()`.",
             'ConflictingPipeHeaderWithAlreadyExcludeHeaders' => "Conflicting Calls in {$optionalCtx}: cannot reference the same Header(s) in `->pipeHeader()` and `->setExcludeHeaders()` in the same Route. Headers to Exclude should target Piped Headers in the same `<METHOD>()` and/or `CONFIG()`.",
-            'ConflictingConfiguration'           => "Valid Configuration (`{$optionalCtx}`) is already set and CANNOT be overridden, only changed manually.",
+            'ConflictingConfiguration'           => "Valid Configuration {$optionalCtx} is already set and CANNOT be overridden, only changed manually.",
+            'ConflictingHTTPSWithInsecureSessionCookie' => "Conflicting Values in {$optionalCtx} with `Session Cookie Secure` that is set to `false` while `->setUseHTTPS()` is set to `true`. This would mean using `HTTP Insecure Cookies` with otherwise `HTTP Secure Connections` which is not allowed. Choose EITHER both Insecure (`false`) OR both Secure (`true`). This is automated if you omit both.",
+            'ConflictingInsecureSessionCookieAndUseHTTPS' => "Conflicting Values in {$optionalCtx} with `useHTTPS` that are NOT the same value which they need to be otherwise it would mean to use EITHER `Insecure Connection with Secure Session Cookies` OR `Secure Connection with Insecure Session Cookies`. Choose EITHER both Insecure (`false`) OR both Secure (`true`). This is automated if you omit both.",
             'ConflictingExcludeMWWithAlreadyPipedMW' => "Conflicting Calls in {$optionalCtx}: cannot reference the same Middleware(s) in `->setExcludeMiddleware()` and `->pipeMiddleware` in the same Route. Middlewares to Exclude should target Piped Middlewares in the same `<METHOD>()` and/or `CONFIG()`.",
             'ConflictingPipeMiddlewareWithAlreadyExcludeMW' => "Conflicting Calls in {$optionalCtx}: cannot reference the same Middleware(s) in `->pipeMiddleware()` and `->setExcludeMiddleware()` in the same Route. Middlewares to Exclude should target Piped Middlewares in the same `<METHOD>()` and/or `CONFIG()`.",
+            'ConflictingURINormalizerWithCustomHTTPSKernel' => "Conflicting User-defined Defaults in {$optionalCtx}: Cannot use `->setDefaultKernelHandler()` together with `->setDefaultURI_NormalizerHandler()` as latter one is meant to be used internally during Route Matching, and Route Matching is meant to be handled by the User-defined Function in `->setDefaultKernelHandler()` if used. Choose between using `->setDefaultKernelHandler()` OR `->setDefaultURI_NormalizerHandler()`, but not both.",
             // When Response Already exists
             'ConflictResponseAlreadyAdded' => "Conflicting Calls in {$optionalCtx}: A `->pipeResponse()` has already been piped. Cannot use `->pipe<Function|SQL|Query|Validation>` after that. If you need `Different Possible Responses` in the same Matched Route, use `funk_return_response()` inside your Piped Functions and one final `->pipeResponse()`.",
         ];
@@ -2526,6 +2532,15 @@ class C
             $this->invalidBatches['config']['USE_HTTPS'] = $trueOrFalse;
             return;
         }
+        if (
+            $trueOrFalse === true
+            && isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_SECURE'])
+            && $this->validBatches['config']['SESSION']['COOKIES']['SESSION_SECURE'] !== true
+        ) {
+            $this->setErr($this->getErr('ConflictingHTTPSWithInsecureSessionCookie', $ctxVals), 'Conflicting Use HTTPS with Insecure Session Cookie ' . $ctxVals);
+            $this->invalidBatches['config']['USE_HTTPS'] = $trueOrFalse;
+            return;
+        }
         $this->validBatches['config']['USE_HTTPS'] = $trueOrFalse;
     }
     private function batchSetUseVendorGlobal(bool $trueOrFalse)
@@ -2663,6 +2678,10 @@ class C
             $this->setErr($this->getErr('DuplicateCallValidCanOnlyBeSetOnce', $ctxVals),  'Duplicate Call ' . $ctxVals);
             return;
         }
+        if (isset($this->validBatches['config']['DEFAULT_HTTPS_KERNEL'])) {
+            $this->setErr($this->getErr('ConflictingURINormalizerWithCustomHTTPSKernel', $ctxVals), 'Conflicting User-defined Defaults ' . $ctxVals);
+            return;
+        }
         if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($userDefinedFunction)) {
             $this->setErr($this->getErr('NonEmptyAllLowercasedStringNotStartCLIorFUNK', $ctxVals),  'Invalid String Value ' . $ctxVals);
             $this->invalidBatches['config']['DEFAULT_URI_NORMALIZER'] = $userDefinedFunction;
@@ -2702,6 +2721,10 @@ class C
         }
         if (isset($this->validBatches['config']['DEFAULT_HTTPS_KERNEL'])) {
             $this->setErr($this->getErr('DuplicateCallValidCanOnlyBeSetOnce', $ctxVals), 'Duplicate Call ' . $ctxVals);
+            return;
+        }
+        if (isset($this->validBatches['config']['DEFAULT_URI_NORMALIZER'])) {
+            $this->setErr($this->getErr('ConflictingURINormalizerWithCustomHTTPSKernel', $ctxVals), 'Conflicting User-defined Defaults ' . $ctxVals);
             return;
         }
         if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($userDefinedFunction)) {
@@ -3069,6 +3092,18 @@ class C
                     $validated[$key] = $val;
                     break;
                 case 'SESSION_SECURE':
+                    if (!is_bool($val)) {
+                        $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctx) . " Invalid `{$key}` Value. Must be a Boolean as either `TRUE` or `FALSE`.", 'Invalid Boolean Value ' . $ctxVals);
+                        $this->invalidBatches['config']['SESSION']['COOKIES']['AS_OPTIONS'] = $SessionCookieOptions;
+                        return;
+                    }
+                    if (isset($this->validBatches['config']['USE_HTTPS']) && $this->validBatches['config']['USE_HTTPS'] !== $val) {
+                        $this->setErr($this->getErr('ConflictingInsecureSessionCookieAndUseHTTPS', $ctx), 'Conflicting Use HTTPS with Session Cookie Option ' . $ctxVals);
+                        $this->invalidBatches['config']['SESSION']['COOKIES']['AS_OPTIONS'] = $SessionCookieOptions;
+                        return;
+                    }
+                    $validated[$key] = $val;
+                    break;
                 case 'SESSION_HTTPONLY':
                     if (!is_bool($val)) {
                         $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctx) . " Invalid `{$key}` Value. Must be a Boolean as either `TRUE` or `FALSE`.", 'Invalid Boolean Value ' . $ctxVals);
@@ -3214,6 +3249,11 @@ class C
         }
         if (!is_bool($trueOrFalse)) {
             $this->setErr($this->getErr('NotBoolean', $ctxVals), 'Invalid Boolean Value ' . $ctxVals);
+            $this->invalidBatches['config']['SESSION']['COOKIES']['SESSION_SECURE'] = $trueOrFalse;
+            return;
+        }
+        if (isset($this->validBatches['config']['USE_HTTPS']) && $this->validBatches['config']['USE_HTTPS'] !== $trueOrFalse) {
+            $this->setErr($this->getErr('ConflictingInsecureSessionCookieAndUseHTTPS', $ctx), 'Conflicting Use HTTPS with Session Cookie Option ' . $ctxVals);
             $this->invalidBatches['config']['SESSION']['COOKIES']['SESSION_SECURE'] = $trueOrFalse;
             return;
         }
@@ -6001,8 +6041,101 @@ class C
     }
 
     // Add current compiled route to trie ($this->compiled['routes']['trie'])
-    private function compile_add_to_route_trie(string $method, $route) {}
-
+    private function compile_add_to_route_trie(string $method, string $route): void
+    {
+        if ($route === '') {
+            return;
+        }
+        if ($route === '/') {
+            $this->compiled['routes']['trie'][$method]['/'] = [];
+            return;
+        }
+        $segments = explode('/', trim($route, '/'));
+        $currentNode = &$this->compiled['routes']['trie'][$method];
+        foreach ($segments as $segment) {
+            if (str_starts_with($segment, ':')) {
+                // Dynamic parameter segment
+                $paramName = substr($segment, 1);
+                if (!isset($currentNode[':'])) {
+                    $currentNode[':'] = [];
+                }
+                if (!isset($currentNode[':'][$paramName])) {
+                    $currentNode[':'][$paramName] = [];
+                }
+                $currentNode = &$currentNode[':'][$paramName];
+            } else {
+                $segmentStr = (string)$segment;
+                if (!isset($currentNode[$segmentStr])) {
+                    $currentNode[$segmentStr] = [];
+                }
+                $currentNode = &$currentNode[$segmentStr];
+            }
+        }
+    }
+    // Create metadata after all routes added to the trie
+    private function compile_build_trie_metadata(): void
+    {
+        $validMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
+        $metadata = [
+            '<ALL>' => [
+                'totalAllRoutes'     => 0,
+                'totalStaticRoutes'  => 0,
+                'totalDynamicRoutes' => 0,
+                'minURICountAll'     => 0,
+                'maxURICountAll'     => 0,
+            ]
+        ];
+        $allMins = [];
+        $allMaxs = [];
+        foreach ($validMethods as $method) {
+            $methodRoutes = $this->compiled['routes'][$method] ?? [];
+            $segmentCountsCollected = [];
+            $metadata[$method] = [
+                'allRoutes'               => [],
+                'staticRoutes'            => [],
+                'dynamicRoutes'           => [],
+                'minURICount'             => 0,
+                'maxURICount'             => 0,
+                'URICountExistsForNumber' => [],
+                'allRoutesCount'          => 0,
+                'staticRoutesCount'       => 0,
+                'dynamicRoutesCount'      => 0,
+            ];
+            foreach ($methodRoutes as $routeStr => $routeConfig) {
+                if ($routeStr === '/') {
+                    $segmentCount = 0;
+                } else {
+                    $trimmedRoute = trim($routeStr, '/');
+                    $segmentCount = substr_count($trimmedRoute, '/') + 1;
+                }
+                $segmentCountsCollected[] = $segmentCount;
+                $metadata[$method]['URICountExistsForNumber'][$segmentCount] = 1;
+                $metadata[$method]['allRoutes'][$routeStr] = 1;
+                if (str_contains($routeStr, ':')) {
+                    $metadata[$method]['dynamicRoutes'][$routeStr] = 1;
+                } else {
+                    $metadata[$method]['staticRoutes'][$routeStr] = 1;
+                }
+            }
+            $metadata[$method]['allRoutesCount']     = count($metadata[$method]['allRoutes']);
+            $metadata[$method]['staticRoutesCount']  = count($metadata[$method]['staticRoutes']);
+            $metadata[$method]['dynamicRoutesCount'] = count($metadata[$method]['dynamicRoutes']);
+            if (!empty($segmentCountsCollected)) {
+                $min = min($segmentCountsCollected);
+                $max = max($segmentCountsCollected);
+                $metadata[$method]['minURICount'] = $min;
+                $metadata[$method]['maxURICount'] = $max;
+                $allMins[] = $min;
+                $allMaxs[] = $max;
+            }
+            $metadata['<ALL>']['totalAllRoutes']     += $metadata[$method]['allRoutesCount'];
+            $metadata['<ALL>']['totalStaticRoutes']  += $metadata[$method]['staticRoutesCount'];
+            $metadata['<ALL>']['totalDynamicRoutes'] += $metadata[$method]['dynamicRoutesCount'];
+        }
+        $metadata['<ALL>']['minURICountAll'] = !empty($allMins) ? min($allMins) : 0;
+        $metadata['<ALL>']['maxURICountAll'] = !empty($allMaxs) ? max($allMaxs) : 0;
+        $this->compiled['routes']['trie_metadata'] = $metadata;
+    }
     // Resolve file & namespace running paths for a type of fn or page file
     private function compile_resolve_fn_paths(string $type, string $fn)
     {
@@ -7462,8 +7595,18 @@ class C
             }
             // UD or default Session SECURE?
             if (!isset($this->validBatches['config']['SESSION']['COOKIES']['SESSION_SECURE'])) {
-                $this->compiled['c']['SESSION']['COOKIES']['SESSION_SECURE'] = false;
-                $this->compile_setWarn("Missing Default Session Cookie Secure", "No Default `Session Cookie Secure` set (with `'->CONFIG()->setSessionCookieSecure()'`) - using default: `'false'`.");
+                $what = '';
+                if (
+                    isset($this->compiled['config']['runtime']['use_https']) &&
+                    $this->compiled['config']['runtime']['use_https'] === true
+                ) {
+                    $this->compiled['c']['SESSION']['COOKIES']['SESSION_SECURE'] = true;
+                    $what = 'true';
+                } else {
+                    $this->compiled['c']['SESSION']['COOKIES']['SESSION_SECURE'] = false;
+                    $what = 'false';
+                }
+                $this->compile_setWarn("Missing Default Session Cookie Secure", "No Default `Session Cookie Secure` set (with `'->CONFIG()->setSessionCookieSecure()'`) - using default: `'{$what}'`.");
             } else {
                 $this->compiled['c']['SESSION']['COOKIES']['SESSION_SECURE'] = $this->validBatches['config']['SESSION']['COOKIES']['SESSION_SECURE'];
             }
@@ -7553,9 +7696,9 @@ class C
         // ------------------------------------------------------------------------------------------
         if (!isset($this->validBatches['config']['request'])) {
             if (!isset($this->validBatches['config']['DEFAULT_HTTPS_KERNEL'])) {
-                $this->compile_setWarn("No Request Pipes used with Funk HTTPS Kernel", "No Request Pipes (via `->pipeRequestFunction() in ->CONFIG()` found. If intended to use No Request Pipes, just ignore this warning. This means that only Global-based Middlewares, then Route-matching, then Method-based Middleware and finally Route-based Middleware and its remaining pipes will run.");
+                $this->compile_setWarn("No Request Pipes used with FunkPHP HTTPS Kernel", "No Request Pipes (via `->pipeRequestFunction() in ->CONFIG()` found. If intended to use No Request Pipes, just ignore this warning. This means that only Global-based Middlewares, then Route-matching, then Method-based Middleware and finally Route-based Middleware and its remaining Pipe Functions will run.");
             } else {
-                $this->compile_setWarn("No request Pipes used without Funk HTTPS Kernel", "No Request Pipes (via `->pipeRequestFunction() in ->CONFIG()` found. If intended to use No Request Pipes, just ignore this warning. The `User-defined Custom Default HTTPS Kernel Handler` is configured for use meaning that after Successful Compilation it will have access to Trie-based Routes with Metadata and then it is `all up to that User-defined Function to handle everything` from Route-matching to executing each Route-associated Pipe Function(s).");
+                $this->compile_setWarn("No request Pipes used without FunkPHP HTTPS Kernel", "No Request Pipes (via `->pipeRequestFunction() in ->CONFIG()` found. If intended to use No Request Pipes, just ignore this warning. The `User-defined Custom Default HTTPS Kernel Handler` is configured for use meaning that after Successful Compilation it will have access to `All Compiled Data`, `Trie-based Routes with Metadata` and then it is `all up to that User-defined Function to handle everything` from Route-matching to executing each Route-associated Pipe Function(s).");
             }
         }
         // request pipes exist
@@ -7846,7 +7989,7 @@ class C
                             }
                             // Issue warning when no Param Rule found for current Route Param
                             else {
-                                $this->compile_setWarn("No Param Rule Available for `{$routeParam}` in `{$CURRENT_ROUTE_STR}`", "The following Param `{$routeParam}` in `{$CURRENT_ROUTE_STR}` has no Available Param Rules in Current Route, not in `{$method}`, and not in Global CONFIG. This means that You need to `Parse the Param Manually` using any of your `Route Pipe Function(s)`.");
+                                $this->compile_setWarn("No Param Rule Available for `{$routeParam}` in `{$CURRENT_ROUTE_STR}`", "The following Param `{$routeParam}` in `{$CURRENT_ROUTE_STR}` has no Available Param Rules in Current Route, not in `{$method}`, and not in Global CONFIG. This means that You need to `Parse the Param Manually` using any of your `Route Pipe Function(s)`. If that is exactly what You are doing for `{$CURRENT_ROUTE_STR}`, just ignore this warning.");
                             }
                         }
                     }
@@ -8169,37 +8312,109 @@ class C
                     );
                 }
                 // END OF Current $method Iteration!
-            }
+            } // ITERATING THROUGH ALL METHODS WITH ROUTES COMPLETE HERE!
             // Any Param Rules for ALL $method(s) and $route(s) that were NEVER used?
             if (isset($USED_PARAM_RULES['config']) && count($USED_PARAM_RULES['config']) > 0) {
                 $unusedCount = count($USED_PARAM_RULES['config']);
                 $rulesList = $this->joinArray($USED_PARAM_RULES['config'], true);
-
                 $this->compile_setWarn(
                     "`{$unusedCount} Unused` Global Param Rule(s)",
                     "The following `Global Param Rule(s)` were NEVER USED by Any Route: {$rulesList}. Methods/Routes either Override Them Locally or do not require them. Feel free to remove any deemed unnecessary (see all `->setParamRule()` in `/src/funkphp/app/CONFIG.php`) OR ignore this warning."
                 );
             }
-
-
-            // STEP 11.7: Build `routes` -
-
-            // STEP 11.8: Build `routes` -
-        }
+            // STEP 11.7: Build `routes` - generate final metadata for trie
+            // which is very useful when building flattened route matching
+            $this->compile_build_trie_metadata();
+            // STEP 11.8: Populate the $c Variable (only relevant if it then
+            // runs locally though) via global access
+            global $c;
+            $c = $this->compiled['c'];
+        }  // COMPILATION COMPLETE HERE (CAN NOW RUN OR CREATE FunkPHPDeployment.php)
         /////////////////////////////////////// END /////////////////////////////
-        //$this->compile_setErr("");
+        // Show in-built FunkPHP GUI if any Compilation Errors OR Warnings if
+        // not allowed OR if Debug is set to ALWAYS_SHOW - good for... debugging
+        // OTHERWISE: run() it as is (when running locally) OR move on to building
+        // the FunkPHPDeployment.php File (usually happens when `php funk build` runs
+        // as it calls the same function with CompileAndRunLocally=false)
         if ((isset($this->errors['COMPILATION']['errors'])
                 && count($this->errors['COMPILATION']['errors']) > 0)
-            || $this->debug['ALWAYS_SHOW']
+            || $this->debug['ALWAYS_SHOW'] || (isset($this->compileFlags['NO_WARNINGS_ALLOWED'])
+                && (count($this->errors['COMPILATION']['warnings']) > 0))
         ) {
             $this->output_errors($this->errors, $this->compiled);
         }
+        if ($CompileAndRunLocally) {
+            $this->run();
+        }
 
-        dd(['COMPILE FLAGS' => $this->compileFlags, 'API' => $this->FunkPHPFluentAPI, 'COMPILE_ERRORS' => $this->errors['COMPILATION']['errors'], 'COMPILE_WARNINGS' => $this->errors['COMPILATION']['warnings'], 'COMPILED' => $this->compiled, 'VALID' => $this->validBatches,  'CACHED' => $this->cached], "COMPILATION - DEBUG", true);
+        ///////////////////////////////////////////////////////
+        ////////// START BUILDING FunkPHPDeployment.php ///////
+        ///////////////////////////////////////////////////////
+
+        //////////////////////////////////////////////////////
+        ////////// DONE BUILDING FunkPHPDeployment.php ///////
+        //////////////////////////////////////////////////////
     }
     private function run()
     {
-        // Run the valid compiled FunkPHP
+        // Run the valid compiled FunkPHP - which is NOT the same as outputting
+        // it to the FunkPHPDeployment.php Monolithic File. This is essentially
+        // running locally without the optimized output file which is why the
+        // Trie Routes version also exist to run it locally without the file.
+
+        // First load custom functions & classes (core functions already loaded)
+        require_once ROOT_FOLDER . '/config/functions.php';
+        require_once ROOT_FOLDER . '/config/classes.php';
+
+        // Grab the global $c since that is what is passed around everywhere
+        global $c;
+
+        // Output buffering starts
+        ob_start();
+
+        // Set User-defined or default exception handler
+        set_exception_handler(function (\Throwable $e) use (&$c) {
+            if (isset($this->compiled['config']['runtime']['custom_exception_handler'])) {
+                if (function_exists($this->compiled['config']['runtime']['custom_exception_handler'])) {
+                    $this->compiled['config']['runtime']['custom_exception_handler']($c, $e);
+                } else {
+                    $c['err']['INTERNAL'][] = "Failed to find expected `Custom User-defined Exception Handler Function`.";
+                }
+            } else {
+                \funk_default_exception_handler($c, $e);
+            }
+        });
+        if (isset($this->compiled['config']['runtime']['custom_error_handler'])) {
+            if (function_exists($this->compiled['config']['runtime']['custom_error_handler'])) {
+                set_error_handler($this->compiled['config']['runtime']['custom_error_handler']);
+            } else {
+                $c['err']['INTERNAL'][] = "Failed to find expected `Custom User-defined Error Handler Function`.";
+            }
+        }
+
+        // Add any post-response pipes as registered shutdown functions so that is prepared first
+        foreach ($this->compiled['config']['pipes']['post_response-resolved'] as $pResponseRegister) {
+            $funcName = $pResponseRegister['run'];
+            $filePath = $pResponseRegister['path'];
+            if (!function_exists($funcName) && file_exists($filePath)) {
+                require_once $filePath;
+            }
+            if (function_exists($funcName)) {
+                register_shutdown_function(function () use ($funcName, &$c) {
+                    $funcName($c);
+                });
+            } else {
+                // Fallback or early warning if file/function failed to resolve
+                $c['err']['post-response'][] = "Post-response Pipe Function `{$funcName}` Failed to be resolved after being loaded from Path `{$pResponseRegister['path']}`.";
+                trigger_error("Post-response Pipe Function `{$funcName}` could not be resolved.", E_USER_WARNING);
+            }
+        }
+
+        // Placeholder echo to know when compiled
+        echo "run() started - compilation succeeded!<br/>";
+
+        // A final exit to not be able to jump back to the compile() again
+        exit;
     }
 }
 /**

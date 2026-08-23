@@ -27,11 +27,11 @@ function test(&$c)
     $yas = strtolower($yas);
 }
 
-// function testar0(&$c)
-// {
-//     // Yas?
-//     return "test";
-// }
+function testar0(&$c)
+{
+    // Yas?
+    return "test";
+}
 
 // function testar1(&$c)
 // {

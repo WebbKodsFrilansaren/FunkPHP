@@ -5,7 +5,7 @@
 $APP->ROUTES()
     ->GET()
     ->setRateLimit(60, 60, 'ip', 'redis')
-    ->setParamRule('id2', '/[\d]{1,2}/', 0)
+    ->setParamRule('id', '/[\d]{1,2}/', 0)
     ->setHeaderRemove('server')
     ->pipeMiddleware('log_access')
     ->route("/users/:id")

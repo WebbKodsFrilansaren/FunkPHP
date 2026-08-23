@@ -4,6 +4,8 @@
 /** @var FunkPHP $APP */
 $APP->CONFIG()
     ->setRateLimit(60, 60, 'ip', 'redis')
-    ->setParamRule('id3', '/[\d]+/', 0)
-    ->setDebug(true, true, false)
+    ->setDefaultKernelHandler("test")
+    ->setDefaultURI_NormalizerHandler('testar0')
+    ->pipePostResponseFunction('debug')
+    ->setDebug(true, false, false)
 ;
