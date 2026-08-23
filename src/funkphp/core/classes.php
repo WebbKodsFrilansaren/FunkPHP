@@ -8395,6 +8395,15 @@ class C
                         } else if (!isset($this->compileFlags['HIDE_NO_ROUTE_RESPONSE_WARNING'])) {
                             $this->compile_setWarn("No Response in Route `{$CURRENT_ROUTE_STR}`", "The Route `{$CURRENT_ROUTE_STR}` has no `Piped Response` (via `->pipeResponse()`) meaning it must be handled manually inside of Pipe Functions OR the Route `{$CURRENT_ROUTE_STR}` would essentially NOT have a Response to the End-user. Use `funk_return_response_page()`, `funk_return_response_json()`, `funk_return_response_callback()`, or `funk_return_response_file()` inside any of the referenced Files=>Functions in any of the `->pipeFunction()` in order to fulfill the requirement of returning a Response in the Route `{$CURRENT_ROUTE_STR}`. Remember that no other `->pipe<TYPE>()` can be used after the `->pipeResponse()` for the Route as it is meant to complete the HTTP(S) Request.");
                         }
+                    } else {
+                        if (
+                            isset($this->validBatches['routes'][$method][$route]['response']['type'])
+                            && $this->validBatches['routes'][$method][$route]['response']['type'] === 'callback'
+                        ) {
+                            if (isset($GLOBAL_HANDLERS[$this->validBatches['routes'][$method][$route]['response']['context']])) {
+                                $this->compile_setErr("User-defined File Function for Route Response Already in Use", "Provided User-defined Function `{$this->validBatches['routes'][$method][$route]['response']['context']}` in `/src/funkphp/config/functions.php` used for `Piped Response` in `{$CURRENT_ROUTE_STR}`  is already set as the following Global Handler: `{$GLOBAL_HANDLERS[$this->validBatches['routes'][$method][$route]['response']['context']]}`.");
+                            }
+                        }
                     }
                     $this->compiled['routes'][$method][$route]['response'] = $this->validBatches['routes'][$method][$route]['response'];
 
@@ -8941,7 +8950,7 @@ class FunkConfig
     }
 
     /**
-     * Set the globaluncaught exception handler callback function.
+     * Set Custom User-defined Exception Handler to be set in `set_exception_handler()`
      *
      * @param string $userDefinedFunctionName Name of the user-defined exception handler function
      * @return $this
@@ -8954,7 +8963,7 @@ class FunkConfig
     }
 
     /**
-     * Set the global PHP error handler callback function.
+     * Set Custom User-defined Error Handler to be set in `set_error_handler()`
      *
      * @param string $userDefinedFunctionName Name of the user-defined error handler function
      * @return $this
@@ -8967,7 +8976,7 @@ class FunkConfig
     }
 
     /**
-     * Set the global URI normalizer handler callback function.
+     * Set Custom User-defined URI Normalizer to normalize `$_SERVER['REQUEST_URI']` to be set in `$c['req']['uri']`
      *
      * @param string $userDefinedFunctionName Name of the URI normalization function
      * @return $this
@@ -8980,7 +8989,7 @@ class FunkConfig
     }
 
     /**
-     * Set the Custom HTTP(S) Kernel that will do everything with the Successful Compiled
+     * Set Custom User-defined HTTP(S) Kernel that will do everything with the Successful Compiled
      *
      * @param string $userDefinedFunctionName Name of the Custom HTTP(S) Kernel
      * @return $this
@@ -8993,7 +9002,11 @@ class FunkConfig
     }
 
     /**
-     * Set the Custom IP Resolver instead of using in-built (`funk_internal_resolve_ip()`)
+     * Set Custom User-defined IP Resolver instead of using in-built `funk_internal_resolve_ip()`
+     *
+     * If you set a Custom IP Resolver, you can use the stored `Trusted IPv4 & IPv6 Proxies` in:
+     * `$c['runtime']['trusted_ip_proxies']['ip4']` and `$c['runtime']['trusted_ip_proxies']['ip6']`
+     *  for `Trusted IP Headers` stored in `$c['runtime']['trusted_ip_headers']` - all 3 List Arrays.
      *
      * @param string $userDefinedFunctionName Name of the IP Resolver Function
      * @return $this

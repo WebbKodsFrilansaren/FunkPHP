@@ -18,6 +18,7 @@ $APP->CONFIG()
     ])
     ->setRateLimit(60, 60, 'ip', 'redis')
     ->pipeMiddleware("auth")
+    ->setDefaultURI_NormalizerHandler('test')
     ->pipePostResponseFunction('debug')
     ->setDebug(true, true, false)
 ;
