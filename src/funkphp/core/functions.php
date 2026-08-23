@@ -595,15 +595,42 @@ function funk_generate_random_password(&$c, $length = 20, $returnHashed = false)
 }
 
 /***  ROUTE-RELATED PHP FUNCTIONS FOR FUNKPHP ***/
+function funk_internal_rate_limiter(&$c, int $maxRequestsPerWindowSize, int $windowSizeSecs, string|array $by = 'ip', $driver = 'redis') {}
+
 // Default FunkPHP Exception Handler that catches any uncaught exceptions and returns
 // a JSON or HTML error response depending on the Accept Header of the request. It is
 // used unless a user-defined Exception Handler is set by the Developer creating one
 // own using the "funk_handle_uncaught_exception()" in "/src/funkphp/config/functions.php" file.
-function funk_internal_exception_handler(&$c, $e)
+function funk_internal_exception_handler(&$c, \Throwable $e)
 {
-    $c['err']['INTERNAL'] = "UNCAUGHT EXCEPTION: $e";
-    \funk_use_log($c, "UNCAUGHT EXCEPTION BY DEVELOPER: " . $e->getMessage(), 'CRIT');
-    $err = 'Tell the Developer: An Uncaught Exception Occurred: `' . $e->getMessage() . '` Please check the Logs for more details.';
+    $c['err']['INTERNAL'][] = "UNCAUGHT EXCEPTION: " . $e->getMessage();
+    \funk_use_log($c, "UNCAUGHT EXCEPTION: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine(), 'CRIT');
+
+    // Debug only happens when NOT online and when debug is to show errors
+    $isDebug = ((defined('FUNKPHP_ONLINE') && FUNKPHP_ONLINE === false && isset($c['debug']['show_errors'])) ? true : false);
+    if ($isDebug) {
+        $file = $e->getFile();
+        $line = $e->getLine();
+        $msg  = htmlspecialchars($e->getMessage());
+        $type = get_class($e);
+        $snippet = funk_internal_render_code_snippet($file, $line);
+        $htmlOutput = "
+        <div style='font-family: system-ui, -apple-system, sans-serif; background:#121212; color:#f1f1f1; padding:20px; min-height:100vh;'>
+            <h1 style='color:#ff5555; margin:0 0 10px 0;'>{$type}</h1>
+            <h2 style='font-size:18px; color:#e0e0e0; font-weight:normal; margin:0 0 20px 0;'>{$msg}</h2>
+            <p style='color:#888; margin-bottom:5px;'>Exception triggered in <strong>{$file}</strong> on line <strong>{$line}</strong></p>
+            {$snippet}
+            <h3>Stack Trace</h3>
+            <pre style='background:#1e1e1e; padding:15px; border-radius:6px; overflow-x:auto; color:#b0b0b0; font-size:12px;'>" . htmlspecialchars($e->getTraceAsString()) . "</pre>
+        </div>";
+        if (!headers_sent()) {
+            http_response_code(500);
+            header('Content-Type: text/html; charset=UTF-8');
+        }
+        echo $htmlOutput;
+        exit;
+    }
+    $err = 'An unexpected internal server error occurred. Please check the application logs.';
     \funk_use_error_json_or_page($c, 500, ["internal_error" => $err], '500', $err);
 }
 

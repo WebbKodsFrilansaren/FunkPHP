@@ -17,6 +17,7 @@ $APP->CONFIG()
         'error_reporting'         => 1,
     ])
     ->setRateLimit(60, 60, 'ip', 'redis')
+    ->pipeMiddleware("auth")
     ->pipePostResponseFunction('debug')
     ->setDebug(true, true, false)
 ;

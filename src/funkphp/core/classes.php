@@ -202,14 +202,10 @@ class C
                 'route' => null,
                 'params' => null,
                 'segments' => null,
-                'auth' => null,
                 'matched_config' => null,
                 'matched_params' => null,
                 'matched_pipes' => [],
                 'matched_middlewares' => null,
-                'skip_post_response' => false,
-                'keep_running_exit' => null,
-                'code' => 418,
                 'log' => [],
                 'ua' => null,
                 'content_type' => null,
@@ -8401,8 +8397,18 @@ class C
             }
             exit;
         }
+        // Run all set ini if any with ini_set()
+        if (isset($this->compiled['config']['runtime']['ini_sets'])) {
+            foreach ($this->compiled['config']['runtime']['ini_sets'] as $compiledIniSetK => $compiledIniSetV) {
+                ini_set($compiledIniSetK, $compiledIniSetV);
+            }
+        }
         // Output buffering starts
         ob_start();
+        // Constant FUNKPHP_ONLINE is always FALSE during run() / local running
+        if (isset($this->compiled['config']['runtime']['online'])) {
+            define("FUNKPHP_ONLINE", false);
+        }
         // Include Composer Vendor stuff is set to true and if file exist
         if (
             isset($this->compiled['config']['runtime']['use_vendor']) &&
@@ -8413,12 +8419,6 @@ class C
                 require_once $vendorPath;
             } else {
                 $c['err']['INTERNAL'][] = "Vendor Autoload Enabled (`use_vendor = true`), but File `{$vendorPath}` was NOT Found.";
-            }
-        }
-        // Run all set ini if any with ini_set()
-        if (isset($this->compiled['config']['runtime']['ini_sets'])) {
-            foreach ($this->compiled['config']['runtime']['ini_sets'] as $compiledIniSetK => $compiledIniSetV) {
-                ini_set($compiledIniSetK, $compiledIniSetV);
             }
         }
         // Set User-defined or default exception handler
@@ -8456,14 +8456,84 @@ class C
                     $funcName($c);
                 });
             } else {
-                // Fallback or early warning if file/function failed to resolve
                 $c['err']['post-response'][] = "Post-response Pipe Function `{$funcName}` Failed to be resolved after being loaded from Path `{$pResponseRegister['path']}`.";
                 trigger_error("Post-response Pipe Function `{$funcName}` could not be resolved.", E_USER_WARNING);
             }
         }
+        // Run any request pipes registered
+        foreach ($this->compiled['config']['pipes']['request-resolved'] as $pRequest) {
+            $funcName = $pRequest['run'];
+            $filePath = $pRequest['path'];
+            if (!function_exists($funcName) && file_exists($filePath)) {
+                require_once $filePath;
+            }
+            if (function_exists($funcName)) {
+                $funcName($c);
+            } else {
+                // Fallback or early warning if file/function failed to resolve
+                $c['err']['request'][] = "Request Pipe Function `{$funcName}` Failed to be resolved after being loaded from Path `{$pRequest['path']}`.";
+                trigger_error("Request Pipe Function `{$funcName}` could not be resolved.", E_USER_WARNING);
+            }
+        }
+        // Run any set funk_internal_rate_limiter() for global/CONFIG() context
+        if (isset($this->compiled['config']['ratelimit'])) {
+            funk_internal_rate_limiter(
+                $c,
+                $this->compiled['config']['ratelimit']['max_requests'],
+                $this->compiled['config']['ratelimit']['window_seconds'],
+                $this->compiled['config']['ratelimit']['by'],
+                $this->compiled['config']['ratelimit']['driver']
+            );
+        }
+        // Run any set URI normalizer OR the in-built will run
+        // Here we also set the method whether on "_method" is in $_POST meaning form spoofing
+        if (isset($this->compiled['config']['runtime']['custom_uri_normalizer'])) {
+            $c['req']['uri'] = $this->compiled['config']['runtime']['custom_uri_normalizer']($c);
+        } else {
+            // 1. Grab raw URI from server environment
+            $rawUri = $_SERVER['REQUEST_URI'] ?? '/';
+            // 2. Chop off query parameters and fragment injections instantly
+            // Explode splits at '?' or '#' if a raw socket forged it
+            $cleanPath = explode('?', $rawUri, 2)[0];
+            $cleanPath = explode('#', $cleanPath, 2)[0];
+            // 3. Resolve potential Subfolder installations (e.g., localhost/project/public/)
+            $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+            $baseUrl = dirname($scriptName);
+            if ($baseUrl !== '/' && str_starts_with($cleanPath, $baseUrl)) {
+                $cleanPath = substr($cleanPath, strlen($baseUrl));
+            }
+            // 4. Fallback safeguard: collapse duplicate slashes down to single slashes
+            // Fixes Apache installations where merge_slashes isn't handling it
+            $cleanPath = preg_replace('#/{2,#', '/', $cleanPath);
+            // 5. Enforce clean boundary states: Strip trailing and leading slashes, then wrap in a root slash
+            $cleanPath = trim($cleanPath, '/');
+            // Result is guaranteed to be a uniform format: '/' or '/users' or '/blog/post/view'
+            $c['req']['uri'] = ($cleanPath === '') ? '/' : '/' . $cleanPath;
+            $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
+            $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+            $scriptName = $scriptName ?: $_SERVER['SCRIPT_NAME'] ?: '';
+            $baseUrl = $baseUrl ? $baseUrl : dirname($scriptName);
+            $c['req']['base_url_absolute'] = rtrim($protocol . $host . $baseUrl, '/');
+            $c['req']['base_url_relative'] = ($baseUrl === '/') ? '' : $baseUrl;
+        }
+        $c['req']['method'] = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+        if ($c['req']['method'] === 'POST' && !empty($this->compiled['config']['runtime']['request_form_spoof_methods'])) {
+            $spoofedMethod = ($_POST['_method'] ?? $_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE'] ?? '');
+            if (in_array($spoofedMethod, $this->compiled['config']['runtime']['request_form_spoof_methods'], true)) {
+                $c['req']['method'] = $spoofedMethod;
+            }
+        }
+        $c['req']['ip'] = $_SERVER['REMOTE_ADDR'] ?? null;
+        $c['req']['time'] = $_SERVER['REQUEST_TIME'] ?? time();
+        $c['req']['query'] = $_SERVER['QUERY_STRING'] ?? null;
+
+        // The question now is: run global middlewares BEFORE route-matching OR should they
+        // only run after a matched route just like middlewares for matched method+route only
+        // run when matched method (its middlewares) and then also the matched route's mws?
         // REMOVE LATER: Placeholder echo to know when compiled
         echo "run() started - compilation succeeded!<br/>";
         // A final exit to not be able to jump back to the compile() again
+        // This will also trigger registered shutdown functions/any post-response pipes
         exit;
     }
 }
