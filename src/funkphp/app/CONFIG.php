@@ -4,10 +4,6 @@
 /** @var FunkPHP $APP */
 $APP->CONFIG()
     ->setRateLimit(60, 60, 'ip', 'redis')
-    ->pipeMiddleware('log_access')
-    ->setHeaderRemove('server')
-    ->pipeRequestFunction('use_cors')
-    ->pipePostResponseFunction('debug')
+    ->setParamRule('id3', '/[\d]+/', 0)
     ->setDebug(true, true, false)
-    ->setCSP('default-src', 'example.com')
-    ->setCSP('font-src', 'nonce:testa');
+;

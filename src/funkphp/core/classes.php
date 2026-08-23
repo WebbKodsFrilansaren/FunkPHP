@@ -198,11 +198,6 @@ class C
                 'post_response' => [],
                 'post_response-resolved' => [],
             ],
-            'params' => [],
-            'headers' => [],
-            'csp' => [],
-            'nonces' => [],
-
         ],
         'methods' => [],
         'routes' => ['trie' => [], 'trie_metadata' => []],
@@ -7730,6 +7725,9 @@ class C
         // callback-based param rules they cannot conflict with already set global handlers
         // Also, add any setRateLimit() for 'config' and <METHODS>
         // ------------------------------------------------------------------------------------------
+        // This one is used to validate all param rules are used or warning is issued after iterating
+        // through all routes who are the ones using param rules via themselves, method or config
+        $USED_PARAM_RULES = ['config' => [], 'methods' => []];
         if (isset($this->validBatches['config']['paramRules'])) {
             $validRules = true;
             foreach ($this->validBatches['config']['paramRules'] as $configParamR) {
@@ -7740,6 +7738,7 @@ class C
             }
             if ($validRules) {
                 $this->compiled['config']['params'] = $this->validBatches['config']['paramRules'];
+                $USED_PARAM_RULES['config'] = $this->validBatches['config']['paramRules'];
             }
         }
         if (isset($this->validBatches['ratelimit']['config'])) {
@@ -7757,6 +7756,7 @@ class C
                     }
                     if ($validRules) {
                         $this->compiled['methods'][$method]['params'] = $methodConfig['paramRules'];
+                        $USED_PARAM_RULES['methods'][$method] = $methodConfig['paramRules'];
                     }
                 }
                 if (isset($this->validBatches['ratelimit']['methods'][$method])) {
@@ -7770,7 +7770,8 @@ class C
         // STEP 11.1: Build `routes` - Check if routes exist or not and output error if not?
         // or should it be allowed to NOT have any routes just as a "soft success"?
         // First set the middleware
-        $this->compiled['config']['pipes']['middlewares_inverted'] = $this->cached['placeholderMiddlewareInvertIindex'];
+        $this->compiled['config']['runtime']['middlewares_inverted'] = $this->cached['placeholderMiddlewareInvertIindex'];
+
         // No Routes?
         if (!isset($this->validBatches['routes']) || count($this->validBatches['routes']) === 0) {
             //$this->compile_setWarn("`No Routes Configured`. This means ");
@@ -7790,7 +7791,6 @@ class C
                     // when compiling and running it as the deployed build would
                     // have flattened route matching function instead.
                     $this->compile_add_to_route_trie($method, $route);
-
                     // STEP 11.3: Build `routes` - unpack all "group:" in Middlewares & Pipes first
                     // and add them to the $GLOBAL_GROUPED Array
                     $CURRENT_ROUTE_STR = "{$method}{$route}";
@@ -7825,6 +7825,30 @@ class C
                     // Add any Route alias - already guaranteed to be unique globally
                     if (isset($this->validBatches['routes'][$method][$route]['alias'])) {
                         $this->compiled['routes'][$method][$route]['alias'] = $this->validBatches['routes'][$method][$route]['alias'];
+                    }
+                    // Add hasParams Rule so it can be used to check for params where it first checks if route has needed param rules
+                    // based upon param identifier matching (/user/:id must match 'id') and then it checks same but from the current
+                    // method and then from global config. If no param rule found for any param from route then warning is issued.
+                    $this->compiled['routes'][$method][$route]['hasParams'] = $this->validBatches['routes'][$method][$route]['hasParams'];
+                    if (isset($this->compiled['routes'][$method][$route]['hasParams'])) {
+                        foreach ($this->compiled['routes'][$method][$route]['hasParams'] as $routeParam) {
+                            // Param Rule in Current Route?
+                            if (isset($this->validBatches['routes'][$method][$route]['paramRules'][$routeParam])) {
+                                $this->compiled['routes'][$method][$route]['params'][$routeParam] = $this->validBatches['routes'][$method][$route]['paramRules'][$routeParam];
+                            } // Param Rule in Current Method?
+                            else if (isset($this->compiled['methods'][$method]['params'][$routeParam])) {
+                                $this->compiled['routes'][$method][$route]['params'][$routeParam] = $this->compiled['methods'][$method]['params'][$routeParam];
+                                unset($USED_PARAM_RULES['methods'][$method][$routeParam]);
+                            } // Param Rule in Global Config?
+                            else if (isset($this->compiled['config']['params'][$routeParam])) {
+                                $this->compiled['routes'][$method][$route]['params'][$routeParam] = $this->compiled['config']['params'][$routeParam];
+                                unset($USED_PARAM_RULES['config'][$routeParam]);
+                            }
+                            // Issue warning when no Param Rule found for current Route Param
+                            else {
+                                $this->compile_setWarn("No Param Rule Available for `{$routeParam}` in `{$CURRENT_ROUTE_STR}`", "The following Param `{$routeParam}` in `{$CURRENT_ROUTE_STR}` has no Available Param Rules in Current Route, not in `{$method}`, and not in Global CONFIG. This means that You need to `Parse the Param Manually` using any of your `Route Pipe Function(s)`.");
+                            }
+                        }
                     }
                     // Now unpacking Pipes & MWs (meaning when they start with "group:")
                     // UNPACK PIPES for ROUTE: ???FIX LATER??? add "group:" for sql,query & validation?
@@ -8020,7 +8044,6 @@ class C
                     }
                     $this->compiled['routes'][$method][$route]['middlewares'] = $CURRENT_ROUTE_MWS;
                     $this->compiled['routes'][$method][$route]['middlewares_to_inherit'] = $CURRENT_ROUTE_MWS_TO_INHERIT;
-
                     // STEP 11.4: Build `routes` - BUILD HEADERS (COMBINED WITH ExcludedHeaders) for ROUTES
                     // where we begin adding those from the Route itself and then we only add those that are
                     // not already added with the same header name (as Route Headers are prioritized) OR are
@@ -8097,7 +8120,6 @@ class C
                             }
                         }
                     }
-
                     // STEP 11.5: Build `routes` - setCSP() and nonces for the Route as CSP Directives
                     // are inherited first from Method and then from CONFIG (those actually defined)
                     // and NOT empty with nonces waiting for them to be used.
@@ -8135,9 +8157,29 @@ class C
                     if (isset($this->validBatches['ratelimit']['routes'][$method][$route])) {
                         $this->compiled['routes'][$method][$route]['ratelimit'] = $this->validBatches['ratelimit']['routes'][$method][$route];
                     }
-                } // END OF Current $route Iteration!
-            } // END OF Current $method Iteration!
+                    // END OF Current $route Iteration!
+                }
+                // Any Param Rules for Current $method that were NEVER used by Any of its $route(s)?
+                if (isset($USED_PARAM_RULES['methods'][$method]) && count($USED_PARAM_RULES['methods'][$method]) > 0) {
+                    $unusedCount = count($USED_PARAM_RULES['methods'][$method]);
+                    $rulesList = $this->joinArray($USED_PARAM_RULES['methods'][$method], true);
+                    $this->compile_setWarn(
+                        "`{$unusedCount} Unused` {$method} Param Rule(s)",
+                        "The following `{$method} Param Rule(s)` were NEVER USED by any Route in `{$method}`: {$rulesList}. Routes either Override Them Locally or do not require them. Feel free to remove any deemed unnecessary (see all `->setParamRule()` in `/src/funkphp/app/{$method}.php`) OR ignore this warning."
+                    );
+                }
+                // END OF Current $method Iteration!
+            }
+            // Any Param Rules for ALL $method(s) and $route(s) that were NEVER used?
+            if (isset($USED_PARAM_RULES['config']) && count($USED_PARAM_RULES['config']) > 0) {
+                $unusedCount = count($USED_PARAM_RULES['config']);
+                $rulesList = $this->joinArray($USED_PARAM_RULES['config'], true);
 
+                $this->compile_setWarn(
+                    "`{$unusedCount} Unused` Global Param Rule(s)",
+                    "The following `Global Param Rule(s)` were NEVER USED by Any Route: {$rulesList}. Methods/Routes either Override Them Locally or do not require them. Feel free to remove any deemed unnecessary (see all `->setParamRule()` in `/src/funkphp/app/CONFIG.php`) OR ignore this warning."
+                );
+            }
 
 
             // STEP 11.7: Build `routes` -
