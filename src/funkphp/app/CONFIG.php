@@ -3,6 +3,7 @@
 
 /** @var FunkPHP $APP */
 $APP->CONFIG()
+    ->setRateLimit(60, 60, 'ip', 'redis')
     ->pipeMiddleware('log_access')
     ->setHeaderRemove('server')
     ->pipeRequestFunction('use_cors')

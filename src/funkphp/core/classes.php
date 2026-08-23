@@ -3290,8 +3290,109 @@ class C
         }
         $this->validBatches['config']['setINI_SET'] = $iniSetArrayWithKeyNamesAsSettingTypeWithSingleScalarValue;
     }
-    private function batchSetRateLimitingGlobal(int $maxRequestsPerWindowSize = 60, int $windowSizeInSeconds = 60, $by = 'ip', $driver = 'redis') {}
 
+    /* setRateLimit Global */
+    private function batchSetRateLimitingGlobal(
+        int $maxRequestsPerWindowSize = 60,
+        int $windowSizeInSeconds = 60,
+        $by = 'ip',
+        $driver = 'redis'
+    ) {
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setRateLimit', "", $maxRequestsPerWindowSize, $windowSizeInSeconds, $by, $driver);
+        // Now validate inValidBatches|validBatches
+        if (isset($this->invalidBatches['ratelimit']['config'])) {
+            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx) . " You can only set Rate Limit for a Global CONFIG once.", 'Duplicate Call ' . $ctxVals);
+            return;
+        }
+        if (isset($this->validBatches['ratelimit']['config'])) {
+            $this->setErr($this->getErr('DuplicateCallValidCanOnlyBeSetOnce', $ctxVals) . " You can only set Rate Limit for a Global CONFIG once.", 'Duplicate Call ' . $ctxVals);
+            return;
+        }
+        // Max Requests per window size (between 1-1000000)
+        if ($maxRequestsPerWindowSize < 1 || $maxRequestsPerWindowSize > 1000000) {
+            $this->setErr($this->getErr('InvalidMaxRequests_RateLimit', $ctxVals), 'Invalid $maxRequestsPerWindowSize for Global CONFIG Rate Limit. Must be between 1 and 1,000,000 ' . $ctxVals);
+            $this->invalidBatches['ratelimit']['config'] = [$maxRequestsPerWindowSize, $windowSizeInSeconds, $by, $driver];
+            return;
+        }
+        // Window Size in Seconds (between 1-86400 seconds OR 1 second-24 hours)
+        if ($windowSizeInSeconds < 1 || $windowSizeInSeconds > 86400) {
+            $this->setErr($this->getErr('InvalidWindowSize_RateLimit', $ctxVals), 'Invalid $windowSizeInSeconds for Global CONFIG Rate Limit. Must be between 1 and 86,400 seconds (24h) ' . $ctxVals);
+            $this->invalidBatches['ratelimit']['config'] = [$maxRequestsPerWindowSize, $windowSizeInSeconds, $by, $driver];
+            return;
+        }
+        // Driver validation
+        $cleanDriver = strtolower(trim($driver));
+        if (!in_array($cleanDriver, $this->ALLOWED['drivers']['ratelimit'], true)) {
+            $this->setErr($this->getErr('InvalidDriver_RateLimit', $ctxVals) . $this->joinArray($this->ALLOWED['drivers']['ratelimit']) . '.', 'Invalid Driver for Global CONFIG Rate Limit ' . $ctxVals);
+            $this->invalidBatches['ratelimit']['config'] = [$maxRequestsPerWindowSize, $windowSizeInSeconds, $by, $driver];
+            return;
+        }
+        // Validate `$by` (Identifier strategy)
+        $normalizedBy = [];
+        if (!is_string($by) && !is_array($by)) {
+            $this->setErr(
+                $this->getErr('InvalidBy_RateLimit', $ctxVals) . " `$by` must be a `String` or an `Array of Strings`.",
+                'Invalid $by Value for Global CONFIG Rate Limit ' . $ctxVals,
+            );
+            $this->invalidBatches['ratelimit']['config'] = [$maxRequestsPerWindowSize, $windowSizeInSeconds, $by, $driver];
+            return;
+        }
+        $items = is_string($by) ? [$by] : $by;
+        if (empty($items)) {
+            $this->setErr(
+                $this->getErr('InvalidBy_RateLimit', $ctxVals) . " `$by` cannot be empty.",
+                'Empty $by for Global CONFIG Rate Limit ' . $ctxVals,
+            );
+            $this->invalidBatches['ratelimit']['config'] = [$maxRequestsPerWindowSize, $windowSizeInSeconds, $by, $driver];
+            return;
+        }
+        foreach ($items as $item) {
+            if (!is_string($item)) {
+                $this->setErr(
+                    $this->getErr('InvalidBy_RateLimit', $ctxVals) . " Array items in `$by` must all be `Non-Empty Strings`.",
+                    'Invalid $by Array Item for Global CONFIG Rate Limit ' . $ctxVals,
+                );
+                $this->invalidBatches['ratelimit']['config'] = [$maxRequestsPerWindowSize, $windowSizeInSeconds, $by, $driver];
+                return;
+            }
+            $trimmedItem = strtolower(trim($item));
+            if ($trimmedItem === '') {
+                $this->setErr(
+                    $this->getErr('InvalidBy_RateLimit', $ctxVals) . " `$by` items cannot be `Empty Strings`.",
+                    'Empty $by Item for Global CONFIG Rate Limit ' . $ctxVals,
+                );
+                $this->invalidBatches['ratelimit']['config'] = [$maxRequestsPerWindowSize, $windowSizeInSeconds, $by, $driver];
+                return;
+            }
+            // Valid identifier formats: 'ip', 'user_id', 'session', 'api_key', 'header:<name>', 'query:<name>'
+            if (
+                !preg_match('/^(header|query):[a-z0-9_-]+$/i', $trimmedItem)
+                && !in_array($trimmedItem, ['ip', 'user_id', 'session', 'api_key'], true)
+            ) {
+                $this->setErr(
+                    $this->getErr('InvalidBy_RateLimit', $ctxVals) . " Item `{$item}` is Invalid. Use formats like `'header:X-Api-Key'`, `'query:token'`, or a direct token from: " . $this->joinArray(['ip', 'user_id', 'session', 'api_key']) . '.',
+                    'Invalid $by Format for Global CONFIG Rate Limit ' . $ctxVals,
+                );
+                $this->invalidBatches['ratelimit']['config'] = [$maxRequestsPerWindowSize, $windowSizeInSeconds, $by, $driver];
+                return;
+            }
+            // Duplicate identifier check
+            if (!in_array($trimmedItem, $normalizedBy, true)) {
+                $normalizedBy[] = $trimmedItem;
+            } else {
+                $this->setErr($this->getErr('DuplicateRateLimitOption', $ctxVals) . " Rate Limit Identifier `{$trimmedItem}` has already been added.", 'Duplicate Rate Limit Identifier ' . $ctxVals);
+                $this->invalidBatches['ratelimit']['config'] = [$maxRequestsPerWindowSize, $windowSizeInSeconds, $by, $driver];
+                return;
+            }
+        }
+        // Add to valid batches when all OK
+        $this->validBatches['ratelimit']['config'] = [
+            'max_requests' => $maxRequestsPerWindowSize,
+            'window_seconds' => $windowSizeInSeconds,
+            'by' => $normalizedBy,
+            'driver' => $cleanDriver,
+        ];
+    }
     /* setGrouped<VARIANTS> Global */
     private function batchSetGroupedPipeUserDefined(string $groupName, string ...$userDefFNS)
     {
@@ -4041,9 +4142,113 @@ class C
 
     /* !!! METHOD BATCHES/ROUTES()->GET|POST|PATCH|PUT|DELETE() FUNCTIONS !!! */
     //METHOD:Set & New Batches for SPECIFIC_METHOD! (so ->routes()-><Method>->set|pipe<What>)
-    private function batchSetRateLimitingMethod(string $method, int $maxRequestsPerWindowSize = 60, int $windowSizeInSeconds = 60, $by = 'ip', $driver = 'redis')
-    {
-        [$ctx, $ctxVals] = $this->setCtx($method, null, 'setRateLimit', "CONFIG()->{$method}()", $maxRequestsPerWindowSize, $windowSizeInSeconds, $by, $driver);
+    //METHOD: setRateLimit
+    private function batchSetRateLimitingMethod(
+        string $method,
+        int $maxRequestsPerWindowSize = 60,
+        int $windowSizeInSeconds = 60,
+        $by = 'ip',
+        $driver = 'redis'
+    ) {
+        [$ctx, $ctxVals] = $this->setCtx($method, null, 'setRateLimit', "", $maxRequestsPerWindowSize, $windowSizeInSeconds, $by, $driver);
+        // Now validate inValidBatches|validBatches
+        if (isset($this->invalidBatches['ratelimit']['methods'][$method])) {
+            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx) . " You can only set Rate Limit for a Method once.", 'Duplicate Call ' . $ctxVals, $method);
+            return;
+        }
+        if (isset($this->validBatches['ratelimit']['methods'][$method])) {
+            $this->setErr($this->getErr('DuplicateCallValidCanOnlyBeSetOnce', $ctxVals) . " You can only set Rate Limit for a Method once.", 'Duplicate Call ' . $ctxVals, $method);
+            return;
+        }
+        // Max Requests per window size (between 1-1000000)
+        if ($maxRequestsPerWindowSize < 1 || $maxRequestsPerWindowSize > 1000000) {
+            $this->setErr($this->getErr('InvalidMaxRequests_RateLimit', $ctxVals), 'Invalid $maxRequestsPerWindowSize for Method Rate Limit. Must be between 1 and 1,000,000 ' . $ctxVals, $method);
+            $this->invalidBatches['ratelimit']['methods'][$method] = [$maxRequestsPerWindowSize, $windowSizeInSeconds, $by, $driver];
+            return;
+        }
+        // Window Size in Seconds (between 1-86400 seconds OR 1 second-24 hours)
+        if ($windowSizeInSeconds < 1 || $windowSizeInSeconds > 86400) {
+            $this->setErr($this->getErr('InvalidWindowSize_RateLimit', $ctxVals), 'Invalid $windowSizeInSeconds for Method Rate Limit. Must be between 1 and 86,400 seconds (24h) ' . $ctxVals, $method);
+            $this->invalidBatches['ratelimit']['methods'][$method] = [$maxRequestsPerWindowSize, $windowSizeInSeconds, $by, $driver];
+            return;
+        }
+        // Driver validation
+        $cleanDriver = strtolower(trim($driver));
+        if (!in_array($cleanDriver, $this->ALLOWED['drivers']['ratelimit'], true)) {
+            $this->setErr($this->getErr('InvalidDriver_RateLimit', $ctxVals) . $this->joinArray($this->ALLOWED['drivers']['ratelimit']) . '.', 'Invalid Driver for Method Rate Limit ' . $ctxVals, $method);
+            $this->invalidBatches['ratelimit']['methods'][$method] = [$maxRequestsPerWindowSize, $windowSizeInSeconds, $by, $driver];
+            return;
+        }
+        // Validate `$by` (Identifier strategy)
+        $normalizedBy = [];
+        if (!is_string($by) && !is_array($by)) {
+            $this->setErr(
+                $this->getErr('InvalidBy_RateLimit', $ctxVals) . " `$by` must be a `String` or an `Array of Strings`.",
+                'Invalid $by Value for Method Rate Limit ' . $ctxVals,
+                $method,
+            );
+            $this->invalidBatches['ratelimit']['methods'][$method] = [$maxRequestsPerWindowSize, $windowSizeInSeconds, $by, $driver];
+            return;
+        }
+        $items = is_string($by) ? [$by] : $by;
+        if (empty($items)) {
+            $this->setErr(
+                $this->getErr('InvalidBy_RateLimit', $ctxVals) . " `$by` cannot be empty.",
+                'Empty $by for Method Rate Limit ' . $ctxVals,
+                $method,
+            );
+            $this->invalidBatches['ratelimit']['methods'][$method] = [$maxRequestsPerWindowSize, $windowSizeInSeconds, $by, $driver];
+            return;
+        }
+        foreach ($items as $item) {
+            if (!is_string($item)) {
+                $this->setErr(
+                    $this->getErr('InvalidBy_RateLimit', $ctxVals) . " Array items in `$by` must all be `Non-Empty Strings`.",
+                    'Invalid $by Array Item for Method Rate Limit ' . $ctxVals,
+                    $method,
+                );
+                $this->invalidBatches['ratelimit']['methods'][$method] = [$maxRequestsPerWindowSize, $windowSizeInSeconds, $by, $driver];
+                return;
+            }
+            $trimmedItem = strtolower(trim($item));
+            if ($trimmedItem === '') {
+                $this->setErr(
+                    $this->getErr('InvalidBy_RateLimit', $ctxVals) . " `$by` items cannot be `Empty Strings`.",
+                    'Empty $by Item for Method Rate Limit ' . $ctxVals,
+                    $method,
+                );
+                $this->invalidBatches['ratelimit']['methods'][$method] = [$maxRequestsPerWindowSize, $windowSizeInSeconds, $by, $driver];
+                return;
+            }
+            // Valid identifier formats: 'ip', 'user_id', 'session', 'api_key', 'header:<name>', 'query:<name>'
+            if (
+                !preg_match('/^(header|query):[a-z0-9_-]+$/i', $trimmedItem)
+                && !in_array($trimmedItem, ['ip', 'user_id', 'session', 'api_key'], true)
+            ) {
+                $this->setErr(
+                    $this->getErr('InvalidBy_RateLimit', $ctxVals) . " Item `{$item}` is Invalid. Use formats like `'header:X-Api-Key'`, `'query:token'`, or a direct token from: " . $this->joinArray(['ip', 'user_id', 'session', 'api_key']) . '.',
+                    'Invalid $by Format for Method Rate Limit ' . $ctxVals,
+                    $method,
+                );
+                $this->invalidBatches['ratelimit']['methods'][$method] = [$maxRequestsPerWindowSize, $windowSizeInSeconds, $by, $driver];
+                return;
+            }
+            // Duplicate identifier check
+            if (!in_array($trimmedItem, $normalizedBy, true)) {
+                $normalizedBy[] = $trimmedItem;
+            } else {
+                $this->setErr($this->getErr('DuplicateRateLimitOption', $ctxVals) . " Rate Limit Identifier `{$trimmedItem}` has already been added.", 'Duplicate Rate Limit Identifier ' . $ctxVals, $method);
+                $this->invalidBatches['ratelimit']['methods'][$method] = [$maxRequestsPerWindowSize, $windowSizeInSeconds, $by, $driver];
+                return;
+            }
+        }
+        // Add to valid batches when all OK
+        $this->validBatches['ratelimit']['methods'][$method] = [
+            'max_requests' => $maxRequestsPerWindowSize,
+            'window_seconds' => $windowSizeInSeconds,
+            'by' => $normalizedBy,
+            'driver' => $cleanDriver,
+        ];
     }
 
     //METHOD: No Match for this https method, if none is set, it falls back to the global versions.
@@ -4572,7 +4777,7 @@ class C
         // Check if the associated $method$route is in the InvalidBatches first
         // OR if it is already as an invalid alias OR a valid alias already exists
         if (isset($this->invalidBatches['methods'][$method][$route])) {
-            $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Duplicate Call ' . $ctxVals, $method, $route);
+            $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Duplicate Call ' . $ctxVals, $method);
             return;
         }
         // Does $route already exist as a valid one? (meaning it was formatted correctly but duplicate)
@@ -4976,8 +5181,8 @@ class C
         }
         // Driver validation
         $cleanDriver = strtolower(trim($driver));
-        if (!in_array($cleanDriver, $this->FORBIDDEN['drivers']['ratelimit'], true)) {
-            $this->setErr($this->getErr('InvalidDriver_RateLimit', $ctxVals) . $this->joinArray($this->FORBIDDEN['drivers']['ratelimit']) . '.', 'Invalid Driver for Route Rate Limit ' . $ctxVals, $method, $route);
+        if (!in_array($cleanDriver, $this->ALLOWED['drivers']['ratelimit'], true)) {
+            $this->setErr($this->getErr('InvalidDriver_RateLimit', $ctxVals) . $this->joinArray($this->ALLOWED['drivers']['ratelimit']) . '.', 'Invalid Driver for Route Rate Limit ' . $ctxVals, $method, $route);
             $this->invalidBatches['ratelimit']['routes'][$method][$route] = [$maxRequestsPerWindowSize, $windowSizeInSeconds, $by, $driver];
             return;
         }
@@ -5052,7 +5257,7 @@ class C
         // Add to valid batches when all OK
         $this->validBatches['ratelimit']['routes'][$method][$route] = [
             'max_requests' => $maxRequestsPerWindowSize,
-            'window' => $windowSizeInSeconds,
+            'window_seconds' => $windowSizeInSeconds,
             'by' => $normalizedBy,
             'driver' => $cleanDriver,
         ];
@@ -5087,8 +5292,8 @@ class C
             return;
         }
         // Driver (based upon $this->FORBIDDEN['drivers']['cache'])
-        if (!in_array($driver, $this->FORBIDDEN['drivers']['cache'])) {
-            $this->setErr($this->getErr('InvalidDriver_Cache', $ctxVals) . $this->joinArray($this->FORBIDDEN['drivers']['cache']) . '.', 'Invalid Driver for Route Cache ' . $ctxVals, $method, $route);
+        if (!in_array($driver, $this->ALLOWED['drivers']['cache'])) {
+            $this->setErr($this->getErr('InvalidDriver_Cache', $ctxVals) . $this->joinArray($this->ALLOWED['drivers']['cache']) . '.', 'Invalid Driver for Route Cache ' . $ctxVals, $method, $route);
             $this->invalidBatches['cache']['routes'][$method][$route] = [$ttl, $driver, $varyBy, $private];
             return;
         }
@@ -7523,6 +7728,7 @@ class C
         // ------------------------------------------------------------------------------------------
         // STEP 10: Build `params` for GLOBAL & for all <METHODS> - if they use UserDefined FNs for
         // callback-based param rules they cannot conflict with already set global handlers
+        // Also, add any setRateLimit() for 'config' and <METHODS>
         // ------------------------------------------------------------------------------------------
         if (isset($this->validBatches['config']['paramRules'])) {
             $validRules = true;
@@ -7535,6 +7741,9 @@ class C
             if ($validRules) {
                 $this->compiled['config']['params'] = $this->validBatches['config']['paramRules'];
             }
+        }
+        if (isset($this->validBatches['ratelimit']['config'])) {
+            $this->compiled['config']['ratelimit'] = $this->validBatches['ratelimit']['config'];
         }
         if (isset($this->validBatches['methods'])) {
             $validRules = true;
@@ -7549,6 +7758,9 @@ class C
                     if ($validRules) {
                         $this->compiled['methods'][$method]['params'] = $methodConfig['paramRules'];
                     }
+                }
+                if (isset($this->validBatches['ratelimit']['methods'][$method])) {
+                    $this->compiled['methods'][$method]['ratelimit'] =  $this->validBatches['ratelimit']['methods'][$method];
                 }
             }
         }
@@ -8199,6 +8411,25 @@ class FunkConfig
     }
 
     /**
+     * Set Rate Limiting Globally. This is always applied first before any Matched Method's Rate Limiting which itself applies before any Matched Route's Rate Limiting.
+     *
+     * @param int $maxRequestsPerWindowSize Maximum allowed requests within the time window (1 to 1,000,000).
+     * @param int $windowSizeInSeconds Time window duration in seconds (1 to 86,400 / 24 hours).
+     * @param string|array<int, string> $by Client identifier key or array of keys (e.g. 'ip', 'user_id', 'header:X-Api-Key', 'query:token').
+     * @param 'redis'|'memcached'|'file'|'apcu'|'array' $driver Rate limiter storage driver (e.g. 'redis', 'memcached', 'apcu').
+     * @return $this
+     */
+    public function setRateLimit(
+        int $maxRequestsPerWindowSize = 60,
+        int $windowSizeInSeconds = 60,
+        string|array $by = 'ip',
+        string $driver = 'redis'
+    ): self {
+        $this->c->batch('batchSetRateLimitingGlobal', $maxRequestsPerWindowSize, $windowSizeInSeconds, $by, strtolower(trim($driver)));
+        return $this;
+    }
+
+    /**
      * Render a template page as the global fallback when no route matches.
      *
      * @param string $PageFileName Template filename or path
@@ -8830,14 +9061,21 @@ class FunkMethod
         return $this;
     }
     /**
-     * Configure rate limiting options for this HTTP method.
+     * Set Rate Limiting for current Method. Remember that any Rate Limiting set on the Global CONFIG is always applied first, and this Method must also be matched before its Rate Limiting kicks into full gear.
      *
-     * @param array<string, mixed> $rateLimitingOptions
+     * @param int $maxRequestsPerWindowSize Maximum allowed requests within the time window (1 to 1,000,000).
+     * @param int $windowSizeInSeconds Time window duration in seconds (1 to 86,400 / 24 hours).
+     * @param string|array<int, string> $by Client identifier key or array of keys (e.g. 'ip', 'user_id', 'header:X-Api-Key', 'query:token').
+     * @param 'redis'|'memcached'|'file'|'apcu'|'array' $driver Rate limiter storage driver (e.g. 'redis', 'memcached', 'apcu').
      * @return $this
      */
-    public function setRateLimit(array $rateLimitingOptions): self
-    {
-        $this->c->batch('batchSetRateLimitingRoute', $this->method, $rateLimitingOptions);
+    public function setRateLimit(
+        int $maxRequestsPerWindowSize = 60,
+        int $windowSizeInSeconds = 60,
+        string|array $by = 'ip',
+        string $driver = 'redis'
+    ): self {
+        $this->c->batch('batchSetRateLimitingMethod', $this->method, $maxRequestsPerWindowSize, $windowSizeInSeconds, $by, strtolower(trim($driver)));
         return $this;
     }
     /**
@@ -9051,7 +9289,7 @@ class FunkRoute
      * @param int $maxRequestsPerWindowSize Maximum allowed requests within the time window (1 to 1,000,000).
      * @param int $windowSizeInSeconds Time window duration in seconds (1 to 86,400 / 24 hours).
      * @param string|array<int, string> $by Client identifier key or array of keys (e.g. 'ip', 'user_id', 'header:X-Api-Key', 'query:token').
-     * @param string $driver Rate limiter storage driver (e.g. 'redis', 'memcached', 'apcu').
+     * @param 'redis'|'memcached'|'file'|'apcu'|'array' $driver Rate limiter storage driver (e.g. 'redis', 'memcached', 'apcu').
      * @return $this
      */
     public function setRateLimit(int $maxRequestsPerWindowSize = 60, int $windowSizeInSeconds = 60, string $by = 'ip', string $driver = 'redis'): self
@@ -9068,7 +9306,7 @@ class FunkRoute
      * @param bool $private If true, sets HTTP response header 'Cache-Control: private'.
      * @return $this
      */
-    public function setCache(int $ttl, string $driver = 'redis', string|array|null $varyBy = null, bool $private = false): self
+    public function setCache(int $ttl = 3600, string $driver = 'redis', string|array|null $varyBy = null, bool $private = false): self
     {
         $this->c->batch('batchSetCacheRoute', $this->method, $this->routePath, $ttl, strtolower(trim($driver)), $varyBy, $private);
         return $this;

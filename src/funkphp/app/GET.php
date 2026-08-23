@@ -4,6 +4,7 @@
 /** @var FunkPHP $APP */
 $APP->ROUTES()
     ->GET()
+    ->setRateLimit(60, 60, 'ip', 'redis')
     ->setHeaderRemove('server')
     ->pipeMiddleware('log_access')
     ->route("/users/:id")
@@ -14,4 +15,6 @@ $APP->ROUTES()
     ->setCSP('default-src', 'self')
     ->setAlias('test')
     ->setParamRule('id', '/a/')
+    ->setCache(3600, 'redis', null, true)
+    ->setRateLimit(60, 60, 'ip', 'redis')
     ->setCSP('font-src', 'nonce:test');
