@@ -4,4 +4,6 @@
 /** @var FunkPHP $APP */
 $APP->CONFIG()
     ->pipeMiddleware('log_access')
+    ->pipeRequestFunction('use_cors')
+    ->pipePostResponseFunction('debug')
     ->setDebug(true, true, false);

@@ -1,6 +1,6 @@
 <?php
 
-namespace funkphp\pipes\post_response\debug2;
+namespace funkphp\pipes\post_response;
 
 function debug2(&$c)
 {

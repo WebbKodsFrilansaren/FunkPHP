@@ -1,6 +1,6 @@
 <?php
 
-namespace funkphp\pipes\request\match_denied_uas;
+namespace funkphp\pipes\request;
 
 function match_denied_uas(&$c, $passedValue = null)
 {

@@ -186,7 +186,14 @@ class C
                 'ini_sets' => [],
             ],
             'NO_ROUTE_MATCH' => [],
-            'pipes' => ['request' => [], 'middlewares' => [], 'post_response' => [],],
+            'pipes' => [
+                'request' => [],
+                'request-resolved' => [],
+                'middlewares' => [],
+                'middlewares-resolved' => [],
+                'post_response' => [],
+                'post_response-resolved' => [],
+            ],
             'params' => [],
             'headers' => [],
             'csp' => [],
@@ -666,7 +673,7 @@ class C
     {
         if (array_is_list($FNKeyFromCachedKey) && count($FNKeyFromCachedKey) > 0) {
             $err = "[Class C->cachedKeyFNWarnings()]: A Numbered Array passed when expected an Associative Array to validate using its Key-Value pairs.";
-            $this->errors['INTERNAL'][count($this->errors['INTERNAL']) + 1] = $err;
+            $this->errors['INTERNAL'][count($this->errors['INTERNAL']) + 1] = ['errShort' => 'Invalid Array Value `$FNKeyFromCachedKey`', 'err' => $err];
             $this->errors['ERRORS']++;
         }
         // Validate OR add warnings if FN is safe by checking certain Key Values
@@ -2330,7 +2337,6 @@ class C
         $file =  strtolower(trim($file));
         $err =  trim($err);
         $errShort =  trim($errShort);
-        //s$this->errors['ERRORS']++;
         if (!isset($this->errors['FILES'][$fileType])) {
             $this->errors['FILES'][$fileType] = [];
         }
@@ -5553,7 +5559,7 @@ class C
         $validTypes = [
             'middleware',
             'request',
-            'post-response',
+            'post_response',
             'pipe',
             'user-defined',
             'page-uncompiled',
@@ -5570,13 +5576,13 @@ class C
             || strtolower(trim($type)) === '' || !in_array(strtolower(trim($type)), $validTypes)
         ) {
             $err = "[Class C->compile_resolve_fn_paths()]: `\$type` passed to Function must be one of the following (case-insensitive): " . $this->joinArray($validTypes) . ". Report this INTERNAL Error as a Bug/Issue to the Official FunkPHP Repositories.";
-            $this->errors['INTERNAL'][count($this->errors['INTERNAL']) + 1] = $err;
+            $this->errors['INTERNAL'][count($this->errors['INTERNAL']) + 1] = ['errShort' => 'Invalid $type Value Passed: `' . $type . '`', 'err' => $err];
             $this->errors['ERRORS']++;
             return ['<INVALID_$type_PROVIDED>', '<INVALID_$type_PROVIDED>'];
         }
         if (!defined('ROOT_FOLDER')) {
             $err = "[Class C->compile_resolve_fn_paths()]: Constant `ROOT_FOLDER` must exist that is the Root Folder pointing to `/src/funkphp` in order to resolve correct inclusion/running paths. Report this INTERNAL Error as a Bug/Issue to the Official FunkPHP Repositories.";
-            $this->errors['INTERNAL'][count($this->errors['INTERNAL']) + 1] = $err;
+            $this->errors['INTERNAL'][count($this->errors['INTERNAL']) + 1] = ['errShort' => 'Missing Internal Constant', 'err' => $err];
             $this->errors['ERRORS']++;
             return ['<CONSTANT_ROOT_FOLDER_MISSING>', '<CONSTANT_ROOT_FOLDER_MISSING>'];
         }
@@ -5587,7 +5593,7 @@ class C
         if ($type === 'request') {
             return ["\\funkphp\\pipes\\response\\$fn", ROOT_FOLDER . "/pipes/request/$fn.php"];
         }
-        if ($type === 'post-response') {
+        if ($type === 'post_response') {
             return ["\\funkphp\\pipes\\post_response\\$fn", ROOT_FOLDER . "/pipes/post_response/$fn.php"];
         }
         if ($type === 'pipe') {

@@ -1,5 +1,5 @@
 <?php // IN-BUILT MIDDLEWARE: Deny Any Matched HTTP(S) Methods From Config File!
-namespace funkphp\pipes\request\match_denied_methods;
+namespace funkphp\pipes\request;
 
 function match_denied_methods(&$c, $passedValue = null)
 {

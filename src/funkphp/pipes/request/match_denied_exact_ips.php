@@ -1,6 +1,6 @@
 <?php
 
-namespace funkphp\pipes\request\match_denied_exact_ips;
+namespace funkphp\pipes\request;
 
 function match_denied_exact_ips(&$c, $passedValue = null)
 {

@@ -1,6 +1,6 @@
 <?php
 
-namespace funkphp\pipes\request\use_cors;
+namespace funkphp\pipes\request;
 // FunkCLI Created File on 2026-07-05 10:17:21!
 
 function use_cors(&$c)

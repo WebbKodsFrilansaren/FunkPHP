@@ -1,6 +1,6 @@
 <?php
 
-namespace funkphp\pipes\request\https_kernel_dispatch;
+namespace funkphp\pipes\request;
 
 function https_kernel_dispatch(&$c)
 {

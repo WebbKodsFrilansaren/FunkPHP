@@ -1,6 +1,6 @@
 <?php
 
-namespace funkphp\pipes\request\run_ini_sets;
+namespace funkphp\pipes\request;
 
 function run_ini_sets(&$c)
 {
