@@ -4,5 +4,9 @@
 /** @var FunkPHP $APP */
 $APP->ROUTES()
     ->GET()
+    ->route("/users")
+    ->pipeMiddleware("auth2")
+    ->route("/users/:id")
+    ->pipeMiddleware("log_access")
     ->route("/users/:id/test")
     ->pipeMiddleware("auth");

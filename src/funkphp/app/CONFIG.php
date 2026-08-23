@@ -3,5 +3,5 @@
 
 /** @var FunkPHP $APP */
 $APP->CONFIG()
-    ->setGroupPipeMiddlewares("test", "auth", "auth2")
+    ->pipeMiddleware('log_access')
     ->setDebug(true, true, false);

@@ -3376,7 +3376,7 @@ class C
             $this->cachedCreateKeyIfNullAndOptionalFileName('files_pipes_request', $FN_FILE);
             $fileData = $this->cached['files_pipes_request'][$FN_FILE] ?? [];
             // Fatal check: Bails on the first structural error
-            $fatalError = $this->validateFNFile($fileData, $FN_FILE, $ctxVals, "funkphp\\pipes\\request\\{$FN_FILE}", true);
+            $fatalError = $this->validateFNFile($fileData, $FN_FILE, $ctxVals, "funkphp\\pipes\\request", true);
             if ($fatalError !== null) {
                 $this->setErr($fatalError, 'Function File Error (also see FILES tab) ' . $ctxVals);
                 $this->invalidBatches['config']['GROUPED_PIPE_REQUEST'][$groupName] = [...$RequestFNs];
@@ -3432,7 +3432,7 @@ class C
             $this->cachedCreateKeyIfNullAndOptionalFileName('files_pipes_post_response', $FN_FILE);
             $fileData = $this->cached['files_pipes_post_response'][$FN_FILE] ?? [];
             // Fatal check: Bails on the first structural error
-            $fatalError = $this->validateFNFile($fileData, $FN_FILE, $ctxVals, "funkphp\\pipes\\post_response\\{$FN_FILE}", true);
+            $fatalError = $this->validateFNFile($fileData, $FN_FILE, $ctxVals, "funkphp\\pipes\\post_response", true);
             if ($fatalError !== null) {
                 $this->setErr($fatalError, 'Function File Error (also see FILES tab) ' . $ctxVals);
                 $this->invalidBatches['config']['GROUPED_PIPE_POST_RESPONSE'][$groupName] = [...$PostResponseFNs];
@@ -3540,7 +3540,7 @@ class C
             $this->cachedCreateKeyIfNullAndOptionalFileName('files_pipes_middlewares', $FN_FILE);
             $fileData = $this->cached['files_pipes_middlewares'][$FN_FILE] ?? [];
             // Fatal check: Bails on the first structural error
-            $fatalError = $this->validateFNFile($fileData, $FN_FILE, $ctxVals, "funkphp\\pipes\\middlewares\\{$FN_FILE}", true);
+            $fatalError = $this->validateFNFile($fileData, $FN_FILE, $ctxVals, "funkphp\\pipes\\middlewares", true);
             if ($fatalError !== null) {
                 $this->setErr($fatalError, 'Function File Error (also see FILES tab) ' . $ctxVals);
                 $this->invalidBatches['config']['GROUPED_PIPE_MIDDLEWARES'][$groupName] = [...$middlewareFNs];
@@ -3928,7 +3928,7 @@ class C
         $this->cachedCreateKeyIfNullAndOptionalFileName('files_pipes_middlewares', $middleware);
         $fileData = $this->cached['files_pipes_middlewares'][$middleware] ?? [];
         // Fatal check: Bails on the first structural error
-        $fatalError = $this->validateFNFile($fileData, $middleware, $ctxVals, "funkphp\\pipes\\middlewares\\{$middleware}", true);
+        $fatalError = $this->validateFNFile($fileData, $middleware, $ctxVals, "funkphp\\pipes\\middlewares", true);
         if ($fatalError !== null) {
             $this->setErr($fatalError, 'Invalid Middleware File Function (also see FILES tab) ' . $ctxVals);
             $this->invalidBatches['middlewares']['config'][$middleware] = true;
@@ -3971,7 +3971,7 @@ class C
         $this->cachedCreateKeyIfNullAndOptionalFileName('files_pipes_request', $fileFunctionName);
         $fileData = $this->cached['files_pipes_request'][$fileFunctionName] ?? [];
         // Fatal check: Bails on the first structural error
-        $fatalError = $this->validateFNFile($fileData, $fileFunctionName, $ctxVals, "funkphp\\pipes\\request\\{$fileFunctionName}", true);
+        $fatalError = $this->validateFNFile($fileData, $fileFunctionName, $ctxVals, "funkphp\\pipes\\request", true);
         if ($fatalError !== null) {
             $this->setErr($fatalError, 'Invalid Request Pipe File Function (also see FILES tab) ' . $ctxVals);
             $this->invalidBatches['config']['request'][$fileFunctionName] = true;
@@ -4001,7 +4001,7 @@ class C
         $this->cachedCreateKeyIfNullAndOptionalFileName('files_pipes_post_response', $fileFunctionName);
         $fileData = $this->cached['files_pipes_post_response'][$fileFunctionName] ?? [];
         // Fatal check: Bails on the first structural error
-        $fatalError = $this->validateFNFile($fileData, $fileFunctionName, $ctxVals, "funkphp\\pipes\\post_response\\{$fileFunctionName}", true);
+        $fatalError = $this->validateFNFile($fileData, $fileFunctionName, $ctxVals, "funkphp\\pipes\\post_response", true);
         if ($fatalError !== null) {
             $this->setErr($fatalError, 'Invalid Post-Response File Function (also see FILES tab) ' . $ctxVals);
             $this->invalidBatches['config']['post_response'][$fileFunctionName] = true;
@@ -4446,7 +4446,7 @@ class C
         $this->cachedCreateKeyIfNullAndOptionalFileName('files_pipes_middlewares', $middleware);
         $fileData = $this->cached['files_pipes_middlewares'][$middleware] ?? [];
         // Fatal check: Bails on the first structural error
-        $fatalError = $this->validateFNFile($fileData, $middleware, $ctxVals, "funkphp\\pipes\\middlewares\\{$middleware}", true);
+        $fatalError = $this->validateFNFile($fileData, $middleware, $ctxVals, "funkphp\\pipes\\middlewares", true);
         if ($fatalError !== null) {
             $this->setErr($fatalError, 'Invalid Middleware File Function (also see FILES tab) ' . $ctxVals, $method);
             $this->invalidBatches['middlewares']['methods'][$method][$middleware] = true;
@@ -4636,6 +4636,8 @@ class C
             'response' => null,
             'pipes' => [],
             'middlewares' => [],
+            'pipes_and_middlewares' => [],
+            'middlewares_to_inherit' => [],
             'excludeMiddlewares' => null,
             'routeSplits' => $splittedRoute,
             'subRoutes' => $subRoutes,
@@ -4648,8 +4650,6 @@ class C
                     'all_add' => [],
                     'all_remove' => []
                 ],
-                'all_middlewares' => [],
-                'all_middlewares_and_pipes' => [],
                 'all_csp' => [],
                 'all_nonces' => []
             ]
@@ -5036,7 +5036,7 @@ class C
         $this->cachedCreateKeyIfNullAndOptionalFileName('files_pipes_middlewares', $middleware);
         $fileData = $this->cached['files_pipes_middlewares'][$middleware] ?? [];
         // Fatal check: Bails on the first structural error
-        $fatalError = $this->validateFNFile($fileData, $middleware, $ctxVals, "funkphp\\pipes\\middlewares\\{$middleware}", true);
+        $fatalError = $this->validateFNFile($fileData, $middleware, $ctxVals, "funkphp\\pipes\\middlewares", true);
         if ($fatalError !== null) {
             $this->setErr($fatalError, 'Invalid Middleware Function File (also see FILES tab) ' . $ctxVals, $method, $route);
             $this->invalidBatches['middlewares']['routes'][$method][$route][$middleware] = true;
@@ -5044,6 +5044,7 @@ class C
         }
         // Pipe Route MW when all OK!
         $this->validBatches['routes'][$method][$route]['middlewares'][] = $middleware;
+        $this->validBatches['routes'][$method][$route]['middlewares_to_inherit'][] = $middleware;
         // Add middleware (unless group: named) to what middlewares are used by what routes
         // where "GLOBAL" is for CONFIG(), and "<METHOD_NAME>" are CONFIG in each Method
         // but otherwise, it is added with each route.
@@ -5542,8 +5543,91 @@ class C
         $this->errors['ERRORS']++;
         $this->errors['COMPILATION']['errors'][count($this->errors['COMPILATION']['errors']) + 1] = ['errShort' => $errShort, 'err' => $err];
     }
+
+    // Add current compiled route to trie ($this->compiled['routes']['trie'])
     private function compile_add_to_route_trie(string $method, $route) {}
 
+    // Resolve file & namespace running paths for a type of fn or page file
+    private function compile_resolve_fn_paths(string $type, string $fn)
+    {
+        $validTypes = [
+            'middleware',
+            'request',
+            'post-response',
+            'pipe',
+            'user-defined',
+            'page-uncompiled',
+            'page-compiled',
+            'sql-uncompiled',
+            'sql-compiled',
+            'query-uncompiled',
+            'query-compiled',
+            'validation-uncompiled',
+            'validation-compiled',
+        ];
+        if (
+            !isset($type) || !is_string($type)
+            || strtolower(trim($type)) === '' || !in_array(strtolower(trim($type)), $validTypes)
+        ) {
+            $err = "[Class C->compile_resolve_fn_paths()]: `\$type` passed to Function must be one of the following (case-insensitive): " . $this->joinArray($validTypes) . ". Report this INTERNAL Error as a Bug/Issue to the Official FunkPHP Repositories.";
+            $this->errors['INTERNAL'][count($this->errors['INTERNAL']) + 1] = $err;
+            $this->errors['ERRORS']++;
+            return ['<INVALID_$type_PROVIDED>', '<INVALID_$type_PROVIDED>'];
+        }
+        if (!defined('ROOT_FOLDER')) {
+            $err = "[Class C->compile_resolve_fn_paths()]: Constant `ROOT_FOLDER` must exist that is the Root Folder pointing to `/src/funkphp` in order to resolve correct inclusion/running paths. Report this INTERNAL Error as a Bug/Issue to the Official FunkPHP Repositories.";
+            $this->errors['INTERNAL'][count($this->errors['INTERNAL']) + 1] = $err;
+            $this->errors['ERRORS']++;
+            return ['<CONSTANT_ROOT_FOLDER_MISSING>', '<CONSTANT_ROOT_FOLDER_MISSING>'];
+        }
+        $type = strtolower(trim($type));
+        if ($type === 'middleware') {
+            return ["\\funkphp\\pipes\\middlewares\\$fn", ROOT_FOLDER . "/pipes/middlewares/$fn.php"];
+        }
+        if ($type === 'request') {
+            return ["\\funkphp\\pipes\\response\\$fn", ROOT_FOLDER . "/pipes/request/$fn.php"];
+        }
+        if ($type === 'post-response') {
+            return ["\\funkphp\\pipes\\post_response\\$fn", ROOT_FOLDER . "/pipes/post_response/$fn.php"];
+        }
+        if ($type === 'pipe') {
+            $parts = explode('.', $fn, 2);
+            return ["\\funkphp\\pipes\\routes\\{$parts[0]}\\{$parts[1]}", ROOT_FOLDER . "/pipes/routes/{$parts[0]}.php"];
+        }
+        if ($type === 'user-defined') {
+            return ["\\$fn", ROOT_FOLDER . "/config/functions.php"];
+        }
+        if ($type === 'sql-uncompiled') {
+            $parts = explode('.', $fn, 2);
+            return ["\\funkphp\\data\\sql\\{$parts[0]}\\{$parts[1]}", ROOT_FOLDER . "/data/sql/{$parts[0]}.php"];
+        }
+        if ($type === 'query-uncompiled') {
+            $parts = explode('.', $fn, 2);
+            return ["\\funkphp\\data\\query\\{$parts[0]}\\{$parts[1]}", ROOT_FOLDER . "/data/query/{$parts[0]}.php"];
+        }
+        if ($type === 'validation-uncompiled') {
+            $parts = explode('.', $fn, 2);
+            return ["\\funkphp\\data\\validation\\{$parts[0]}\\{$parts[1]}", ROOT_FOLDER . "/data/validation/{$parts[0]}.php"];
+        }
+        if ($type === 'sql-compiled') {
+            $parts = explode('.', $fn, 2);
+            return ["\\funkphp\\data\\compiled\\sql\\{$parts[0]}_{$parts[1]}", ROOT_FOLDER . "/data/compiled/sql.php"];
+        }
+        if ($type === 'query-compiled') {
+            $parts = explode('.', $fn, 2);
+            return ["\\funkphp\\data\\compiled\\query\\{$parts[0]}_{$parts[1]}", ROOT_FOLDER . "/data/compiled/query.php"];
+        }
+        if ($type === 'validation-compiled') {
+            $parts = explode('.', $fn, 2);
+            return ["\\funkphp\\data\\compiled\\validation\\{$parts[0]}_{$parts[1]}", ROOT_FOLDER . "/data/compiled/validation.php"];
+        }
+        if ($type === 'page-compiled') {
+            return ["\\funkphp\\pages\\compiled\\{$fn}", ROOT_FOLDER . "/pages/compiled/{$fn}.php"];
+        }
+        if ($type === 'page-uncompiled') {
+            return ["\\funkphp\\pages\\uncompiled\\{$fn}", ROOT_FOLDER . "/pages/{$fn}.php"];
+        }
+    }
     // Function that generates a Welcome HTML screen when there is nothing in $this->validBatches
     // OR there are zero routes in $this->validBatches['routes]. This should then show a soft success
     // screen and showing how to add some routes and configuration, maybe a link to the Official Docs?
@@ -6706,45 +6790,6 @@ class C
 <?php
         exit;
     }
-    /**
-     * Checks whether a middleware is active globally, in method,
-     * OR on any parent route prefix leading up to the current route.
-     */
-    private function isMiddlewareActiveInScope(string $middleware, string $method, string $route): bool
-    {
-        // Even registered?
-        if (!isset($this->cached['placeholderMiddlewaresInWhatRoutes'][$middleware])) {
-            return false;
-        }
-        $activeScopes = $this->cached['placeholderMiddlewaresInWhatRoutes'][$middleware];
-        // In global OR method scope?
-        if (
-            in_array('GLOBAL', $activeScopes, true)
-            || in_array($method, $activeScopes, true)
-        ) {
-            return true;
-        }
-        // Check Direct Route Path & Parent Ancestor Routes
-        // Construct target key format: "GET/:id/users"
-        $fullPathKey = $method . ($route === '/' ? '/' : $route);
-        foreach ($activeScopes as $scope) {
-            if ($scope === 'GLOBAL' || $scope === $method) {
-                continue;
-            }
-            // Exact Route Match
-            if ($scope === $fullPathKey) {
-                return true;
-            }
-            // Prefix/Ancestor Match: Ensures "GET/:id" matches a descendant "GET/:id/users"
-            // append trailing slash to prevent false positives like "GET/:id" matching "GET/:identifier"
-            $scopePrefix = rtrim($scope, '/') . '/';
-            $fullPathPrefix = rtrim($fullPathKey, '/') . '/';
-            if (str_starts_with($fullPathPrefix, $scopePrefix)) {
-                return true;
-            }
-        }
-        return false;
-    }
     // Actual compile() function that can EITHER compile and run it as is
     // OR compile and output it to the FunkPHPDeployment.php File instead.
     private function compile(bool $CompileAndRunLocally = true)
@@ -7083,6 +7128,11 @@ class C
                     }
                 }
             }
+            // Add by resolving their run + file paths
+            foreach ($allPipes as $pipe) {
+                $resolved = $this->compile_resolve_fn_paths('request', $pipe);
+                $this->compiled['config']['pipes']['request-resolved'][] = ['run' => $resolved[0], 'path' => $resolved[1]];
+            }
             $this->compiled['config']['pipes']['request'] =  $allPipes;
         }
         // ------------------------------------------------------------------------------------------
@@ -7118,6 +7168,10 @@ class C
                     }
                 }
             }
+            foreach ($allPipes as $pipe) {
+                $resolved = $this->compile_resolve_fn_paths('middleware', $pipe);
+                $this->compiled['config']['pipes']['middlewares-resolved'][] = ['run' => $resolved[0], 'path' => $resolved[1]];
+            }
             $this->compiled['config']['pipes']['middlewares'] =  $allPipes;
         }
         // ------------------------------------------------------------------------------------------
@@ -7149,6 +7203,10 @@ class C
                         $allPipes[] = $groupPipe;
                     }
                 }
+            }
+            foreach ($allPipes as $pipe) {
+                $resolved = $this->compile_resolve_fn_paths('post_response', $pipe);
+                $this->compiled['config']['pipes']['post_response-resolved'][] = ['run' => $resolved[0], 'path' => $resolved[1]];
             }
             $this->compiled['config']['pipes']['post_response'] =  $allPipes;
         }
@@ -7197,6 +7255,10 @@ class C
                         if ($allPipes[0] === $lastConfigMW) {
                             $this->compile_setWarn("Consecutive Middleware Function `{$lastConfigMW}` between `CONFIG()`<->`{$method}`", "Consecutive Pipe Middleware Function `{$allPipes[0]}` found. It runs as `Last Middleware Globally/CONFIG()` and then it runs as the `First {$method} Middleware` for any Matched Route in `{$method}`. Ignore this warning if it is intentional or Review: `->CONFIG()->pipeMiddleware('{$lastConfigMW}')` in `/src/funkphp/app/CONFIG.php` AND `->ROUTES()->{$method}()->pipeMiddleware()` in `/src/funkphp/app/{$method}.php`.");
                         }
+                    }
+                    foreach ($allPipes as $pipe) {
+                        $resolved = $this->compile_resolve_fn_paths('middleware', $pipe);
+                        $this->compiled['methods'][$method]['middlewares-resolved'][] = ['run' => $resolved[0], 'path' => $resolved[1]];
                     }
                     $this->compiled['methods'][$method]['middlewares'] = $allPipes;
                 }
@@ -7266,6 +7328,7 @@ class C
                     $CURRENT_ROUTE_STR = "{$method}{$route}";
                     $CURRENT_ROUTE_PIPES = [];
                     $CURRENT_ROUTE_MWS = [];
+                    $CURRENT_ROUTE_MWS_TO_INHERIT = [];
                     // if not same count as excludeMiddleware|Headers after merging
                     // all MWs|Headers, it means it tried to exlude non-existing ones
                     $CURRENT_ROUTE_EXCLUDED_MWS = [];
@@ -7393,55 +7456,27 @@ class C
                         foreach ($routeDetails['subRoutes'] as $subRouteMW) {
                             if (isset($this->validBatches['routes'][$method][$subRouteMW])) {
                                 if (
-                                    isset($this->validBatches['routes'][$method][$subRouteMW]['middlewares']) &&
-                                    count($this->validBatches['routes'][$method][$subRouteMW]['middlewares']) > 0
+                                    isset($this->validBatches['routes'][$method][$subRouteMW]['middlewares_to_inherit']) &&
+                                    count($this->validBatches['routes'][$method][$subRouteMW]['middlewares_to_inherit']) > 0
                                 ) {
-                                    foreach ($this->validBatches['routes'][$method][$subRouteMW]['middlewares'] as $subRMWidx => $subRMW) {
-                                        if (!str_starts_with($subRMW, 'group:')) {
-                                            if (isset($routeDetails['excludeMiddlewares'])) {
-                                                if (in_array($subRMW, $routeDetails['excludeMiddlewares'])) {
-                                                    if (!in_array($subRMW, $CURRENT_ROUTE_EXCLUDED_MWS)) {
-                                                        array_push($CURRENT_ROUTE_EXCLUDED_MWS, $subRMW);
-                                                    }
-                                                    continue;
+                                    foreach ($this->validBatches['routes'][$method][$subRouteMW]['middlewares_to_inherit'] as $subRMWidx => $subRMW) {
+                                        if (isset($routeDetails['excludeMiddlewares'])) {
+                                            if (in_array($subRMW, $routeDetails['excludeMiddlewares'])) {
+                                                if (!in_array($subRMW, $CURRENT_ROUTE_EXCLUDED_MWS)) {
+                                                    array_push($CURRENT_ROUTE_EXCLUDED_MWS, $subRMW);
                                                 }
-                                            }
-                                            if (count($CURRENT_ROUTE_MWS) > 0 && $CURRENT_ROUTE_MWS[count($CURRENT_ROUTE_MWS) - 1] === $subRMW) {
-                                                if ($subRMWidx === 0) {
-                                                    $this->compile_setWarn("Consecutive Middleware Function `{$subRMW}` between `{$method}{$subRouteMW}`<->`{$method}{$route}`", "Consecutive Pipe Middleware Function `{$subRMW}` in `{$CURRENT_ROUTE_STR}` found. It is `Inherited from SubRoute {$method}{$subRouteMW} Middlewares`. Ignore this warning if it is intentional OR Review `->ROUTES()->{$method}()->ROUTE('{$subRouteMW}')->pipeMiddleware()` and/or `->ROUTES()->{$method}()->ROUTE('{$route}')->pipeMiddleware()` in `/src/funkphp/app/{$method}.php`.");
-                                                } else {
-                                                    $this->compile_setWarn("Consecutive `{$method}{$route}` Middleware Function `{$subRMW}` from `{$method}{$subRouteMW}`", "Consecutive Pipe Middleware Function `{$subRMW}` in `{$CURRENT_ROUTE_STR}` found. Ignore this warning if it is intentional OR Review `->ROUTES()->{$method}()->ROUTE('{$route}')->pipeMiddleware()` in `/src/funkphp/app/{$method}.php`.");
-                                                }
-                                            }
-                                            $CURRENT_ROUTE_MWS[] = $subRMW;
-                                            continue;
-                                        }
-                                        if (!isset($GLOBAL_GROUPED['MIDDLEWARES'][$subRMW])) {
-                                            $this->compile_setErr("Missing `Middleware` Function Group in SubRoute `{$method}{$subRouteMW}` for `{$CURRENT_ROUTE_STR}`", "Grouped Middleware Functions with the name `{$subRMW}` used in `{$method}{$subRouteMW}` for `{$CURRENT_ROUTE_STR}` does not exist but was still part of the `->ROUTES()->{$method}()->ROUTE('{$subRouteMW}')->pipeiddleware('{$subRMW}')` in `/src/funkphp/app/{$method}.php`. Use `->setGroupPipeMiddlewares('{$pipe}')` in `/src/funkphp/app/CONFIG.php` to first create the Grouping.");
-                                        } else {
-                                            foreach ($GLOBAL_GROUPED['MIDDLEWARES'][$subRMW] as $subRGroupPipe) {
-                                                if (isset($routeDetails['excludeMiddlewares'])) {
-                                                    if (in_array($subRGroupPipe, $routeDetails['excludeMiddlewares'])) {
-                                                        if (!in_array($subRGroupPipe, $CURRENT_ROUTE_EXCLUDED_MWS)) {
-                                                            array_push($CURRENT_ROUTE_EXCLUDED_MWS, $subRGroupPipe);
-                                                        }
-                                                        continue;
-                                                    }
-                                                }
-                                                if (count($CURRENT_ROUTE_MWS) > 0 && $CURRENT_ROUTE_MWS[count($CURRENT_ROUTE_MWS) - 1] === $subRGroupPipe) {
-                                                    $this->compile_setWarn("Consecutive Middleware Function `{$subRGroupPipe}` in SubRoute `{$method}{$subRouteMW}` for `{$method}{$route}`", "Consecutive Pipe Middleware Function `{$subRGroupPipe}` in SubRoute `{$method}{$subRouteMW}` in `{$CURRENT_ROUTE_STR}` found. Ignore this warning if it is intentional OR Review `->ROUTES()->{$method}()->ROUTE('{$subRouteMW}')->pipeMiddleware()` and/or `->ROUTES()->{$method}()->ROUTE('{$route}')->pipeMiddleware()` in `/src/funkphp/app/{$method}.php`.");
-                                                }
-                                                $CURRENT_ROUTE_MWS[] = $subRGroupPipe;
-                                                // As MWs are unpacked, add then them to method-route-based MW Invert Index
-                                                if (!isset($this->cached['placeholderMiddlewareInvertIindex'][$subRGroupPipe])) {
-                                                    $this->cached['placeholderMiddlewareInvertIindex'][$subRGroupPipe][] =  $method . $subRouteMW;
-                                                } else {
-                                                    if (!in_array("$method$subRouteMW", $this->cached['placeholderMiddlewareInvertIindex'][$subRGroupPipe])) {
-                                                        $this->cached['placeholderMiddlewareInvertIindex'][$subRGroupPipe][] = "$method$subRouteMW";
-                                                    }
-                                                }
+                                                continue;
                                             }
                                         }
+                                        if (count($CURRENT_ROUTE_MWS) > 0 && $CURRENT_ROUTE_MWS[count($CURRENT_ROUTE_MWS) - 1] === $subRMW) {
+                                            if ($subRMWidx === 0) {
+                                                $this->compile_setWarn("Consecutive Middleware Function `{$subRMW}` between `{$method}{$subRouteMW}`<->`{$method}{$route}`", "Consecutive Pipe Middleware Function `{$subRMW}` in `{$CURRENT_ROUTE_STR}` found. It is `Inherited from SubRoute {$method}{$subRouteMW} Middlewares`. Ignore this warning if it is intentional OR Review `->ROUTES()->{$method}()->ROUTE('{$subRouteMW}')->pipeMiddleware()` and/or `->ROUTES()->{$method}()->ROUTE('{$route}')->pipeMiddleware()` in `/src/funkphp/app/{$method}.php`.");
+                                            } else {
+                                                $this->compile_setWarn("Consecutive `{$method}{$route}` Middleware Function `{$subRMW}` from `{$method}{$subRouteMW}`", "Consecutive Pipe Middleware Function `{$subRMW}` in `{$CURRENT_ROUTE_STR}` found. Ignore this warning if it is intentional OR Review `->ROUTES()->{$method}()->ROUTE('{$route}')->pipeMiddleware()` in `/src/funkphp/app/{$method}.php`.");
+                                            }
+                                        }
+                                        $CURRENT_ROUTE_MWS[] = $subRMW;
+                                        continue;
                                     }
                                 }
                             }
@@ -7466,6 +7501,7 @@ class C
                                     }
                                 }
                                 $CURRENT_ROUTE_MWS[] = $rMW;
+                                $CURRENT_ROUTE_MWS_TO_INHERIT[] = $rMW;
                                 continue;
                             }
                             if (!isset($GLOBAL_GROUPED['MIDDLEWARES'][$rMW])) {
@@ -7475,13 +7511,14 @@ class C
                                     // This is Route's MW and here you CANNOT exclude the same one to pipe as exclusion applies to
                                     // subroutes, method and global config, not the route itself. Same applies for excluding headers.
                                     if (isset($routeDetails['excludeMiddlewares']) && in_array($rMWPipe, $routeDetails['excludeMiddlewares'])) {
-                                        $this->setErr("Conflicting Middlewares in `{$method}{$route}`", "Middleware `{$rMWPipe}` in Middleware Group `{$rMW}` (first set in `CONFIG()` in `/src/funkphp/app/CONFIG.php`) is also registered as a `Middleware to Exclude` in `->ROUTES()->{$method}()->ROUTE('{$route}')->setExcludeMiddlewares()` in `/src/funkphp/app/{$method}.php`.");
+                                        $this->compile_setErr("Conflicting Middlewares in `{$method}{$route}`", "Middleware `{$rMWPipe}` in Middleware Group `{$rMW}` (first set in `CONFIG()` in `/src/funkphp/app/CONFIG.php`) is also registered as a `Middleware to Exclude` in `->ROUTES()->{$method}()->ROUTE('{$route}')->setExcludeMiddlewares()` in `/src/funkphp/app/{$method}.php`.");
                                         continue;
                                     }
                                     if (count($CURRENT_ROUTE_MWS) > 0 && $CURRENT_ROUTE_MWS[count($CURRENT_ROUTE_MWS) - 1] === $rMWPipe) {
                                         $this->compile_setWarn("Consecutive Middleware Function `{$rMWPipe}` in `{$method}{$route}`", "Consecutive Pipe Middleware File Function `{$rMWPipe}` in `{$CURRENT_ROUTE_STR}` found. This could be from `{$method}` Middlewares OR it is from its own Middlewares. Ignore this warning if it is intentional OR Review `->ROUTES()->{$method}()->ROUTE('{$route}')->pipeMiddleware()` in `/src/funkphp/app/{$method}.php`.");
                                     }
                                     $CURRENT_ROUTE_MWS[] = $rMWPipe;
+                                    $CURRENT_ROUTE_MWS_TO_INHERIT[] = $rMWPipe;
                                     // As MWs are unpacked, add then them to method-route-based MW Invert Index
                                     if (!isset($this->cached['placeholderMiddlewareInvertIindex'][$rMWPipe])) {
                                         $this->cached['placeholderMiddlewareInvertIindex'][$rMWPipe][] =  $method . $route;
@@ -7501,7 +7538,12 @@ class C
                     ) {
                         $this->compile_setErr("Failed to Exclude Middlewares in `{$method}{$route}`", "Failed to Exclude these Middlewares in `{$method}{$route}`: '" . $this->joinArray(array_diff($routeDetails['excludeMiddlewares'], $CURRENT_ROUTE_EXCLUDED_MWS)) . "'. This means that Middleware/those Middlewares in `{$method}{$route}` do NOT exist in the `CONFIG()`, `{$method} CONFIG`, or any of the Subroutes: " . $this->joinArray(($routeDetails['subRoutes'] ?? ['<No Subroutes>'])) . ". Review the Excluded Middlewares in `->ROUTES()->{$method}()->ROUTE('{$route}')->setExcludeMiddlewares()` in `/src/funkphp/config/{$method}.php`.");
                     }
+                    foreach ($CURRENT_ROUTE_MWS as $currRmw) {
+                        $resolved = $this->compile_resolve_fn_paths('middleware', $currRmw);
+                        $this->compiled['routes'][$method][$route]['middlewares-resolved'][] = ['run' => $resolved[0], 'path' => $resolved[1]];
+                    }
                     $this->compiled['routes'][$method][$route]['middlewares'] = $CURRENT_ROUTE_MWS;
+                    $this->compiled['routes'][$method][$route]['middlewares_to_inherit'] = $CURRENT_ROUTE_MWS_TO_INHERIT;
 
                     // STEP 11.4: Build `routes` - BUILD HEADERS (COMBINED WITH ExcludedHeaders) for ROUTES
                     // where it just really first checks what CONFIG() and then METHOD() has and then whether
