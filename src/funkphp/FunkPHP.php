@@ -29,51 +29,10 @@ if (is_object($FUNKPHP) && $FUNKPHP instanceof FunkPHP) {
     $compileAndRun->invoke($cInstance, true);
 }
 // When it is NOT FunkPHP Object as defined in the `/src/funkphp/core/functions.php`
+// dd() automatically exits here
 else {
     dd([
         'Internal FunkPHP Error' => 'Expected to find `FunkPHP Class` in `/src/funkphp/config/app.php` but instead found Data Type: `' . (is_object($FUNKPHP) ? get_class($FUNKPHP) : gettype($FUNKPHP)) . '`',
         'Step-by-Step Fix' => 'The return Value in `/src/funkphp/config/app.php` must be the Object Instance of `FunkPHP` (defined in `/src/funkphp/core/functions.php`) that is returned at the end of the File. `DO NOT` modify the `return $FUNK; statement` (unless: you just `return the entire Object in one long method-chaining`) at the end of the `app.php` File.'
     ], 'See Internal FunkPHP Error');
 }
-exit;
-
-
-//$c['<ENTRY>'] = require_once __DIR__ . '/core/pipeline_request.php';
-// Use either Custom Exception Handler by Developer OR Default one!
-// Developer is advised to use `funk_use_error_throw` to intentionally
-// throw exceptions that are caught the Developer then catches later!
-set_exception_handler(function (\Throwable $e) use (&$c) {
-    if (
-        isset($c['FUNKPHP_CUSTOM_EXCEPTION_HANDLER'])
-        && is_string($c['FUNKPHP_CUSTOM_EXCEPTION_HANDLER'])
-        && !empty($c['FUNKPHP_CUSTOM_EXCEPTION_HANDLER'])
-        && function_exists(($c['FUNKPHP_CUSTOM_EXCEPTION_HANDLER']))
-    ) {
-        $c['FUNKPHP_CUSTOM_EXCEPTION_HANDLER']($c, $e);
-    } else {
-        \funk_default_exception_handler($c, $e);
-    }
-});
-// Load Composer Autoloader so that any Composer installed packages can be used
-if (isset($c['FUNKPHP_USE_VENDOR']) && $c['FUNKPHP_USE_VENDOR'] === true) {
-    if (file_exists(__DIR__ . '/vendor/autoload.php')) {
-        require_once __DIR__ . '/vendor/autoload.php';
-    }
-}
-// Prepare what to run after each request is handled
-// and/or exit() is used prematurely by the application
-register_shutdown_function(function () use (&$c) {
-    if (
-        isset($c['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION'])
-        && is_string($c['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION'])
-        && !empty($c['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION'])
-        && function_exists(($c['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION']))
-    ) {
-        $c['req']['FUNKPHP_CUSTOM_REGISTER_SHUTDOWN_FUNCTION']($c);
-    } else {
-        \funk_default_register_shutdown_function($c);
-    }
-});
-ob_start();
-// The MAIN "KERNEL" STEP: Run the Pipeline of Anonymous
-\funk_run_pipeline_request($c);

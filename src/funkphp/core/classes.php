@@ -36,6 +36,8 @@ class C
             'funk_internal_handle_no_route_match',
             'funk_internal_send_headers',
             'funk_internal_return_response',
+            'funk_internal_exception_handler',
+            'funk_internal_error_handler',
         ],
         'reserved_group_names' => ['sql', 'query', 'validation'],
         'reserved_fn_names' => ['cli_dump', 'cli_dd', 'dd'],
@@ -135,6 +137,7 @@ class C
     private array $compiled = [
         'config' => [
             'runtime' => [
+                'debug' => [],
                 'online' => false,
                 'use_https' => false,
                 'use_vendor' => true,
@@ -162,9 +165,6 @@ class C
         'data' => [],
         // This is the $c Variable that is then assigned automatically globally.
         'c' => [
-            'FUNKPHP_ONLINE' => false,
-            "FUNKPHP_CUSTOM_URI_NORMALIZER" => null,
-            "FUNKPHP_CUSTOM_HTTPS_KERNEL" => null,
             // 'session.cache_limiter' => 'public',
             // 'session.use_strict_mode' => 8,
             // 'session.use_only_cookies' => 1,
@@ -8300,6 +8300,12 @@ class C
                     if (isset($this->validBatches['ratelimit']['routes'][$method][$route])) {
                         $this->compiled['routes'][$method][$route]['ratelimit'] = $this->validBatches['ratelimit']['routes'][$method][$route];
                     }
+                    // STEP 11.7: Build `routes` - Check for any pipeResponse
+                    if (!isset($this->validBatches['routes'][$method][$route]['response'])) {
+                        $this->compile_setWarn("No Response in Route `{$CURRENT_ROUTE_STR}`", "The Route `{$CURRENT_ROUTE_STR}` has no `Piped Response` (via `->pipeResponse()`) meaning it must be handled manually inside of Pipe Functions OR the Route `{$CURRENT_ROUTE_STR}` would essentially NOT have a Response to the End-user. Use `funk_return_response_page()`, `funk_return_response_json()`, `funk_return_response_callback()`, or `funk_return_response_file()` inside any of the referenced Files=>Functions in any of the `->pipeFunction()` in order to fulfill the requirement of returning a Response in the Route `{$CURRENT_ROUTE_STR}`.");
+                    } else {
+                        $this->compiled['routes'][$method][$route]['response'] = $this->validBatches['routes'][$method][$route]['response'];
+                    }
                     // END OF Current $route Iteration!
                 }
                 // Any Param Rules for Current $method that were NEVER used by Any of its $route(s)?
@@ -8365,33 +8371,64 @@ class C
         // First load custom functions & classes (core functions already loaded)
         require_once ROOT_FOLDER . '/config/functions.php';
         require_once ROOT_FOLDER . '/config/classes.php';
-
         // Grab the global $c since that is what is passed around everywhere
         global $c;
-
+        // If Custom HTTPS Kernel wanna deal with all the running, then just pass on the $this->compiled
+        // inside of the $c and exit early as Custom HTTPS Kernel gotta deal then with shutdown reigster
+        // if desirable or if wanna use the post_response-resolved parts differently. Even ob_start()
+        // must be turned on manually if using Custom HTTPS Kernel. GL&HF! ^_^ May the best Kernel Win!
+        if (isset($this->compiled['config']['runtime']['custom_https_kernel'])) {
+            if (function_exists($this->compiled['config']['runtime']['custom_https_kernel'])) {
+                $c['compiled'] = $this->compiled;
+                $this->compiled['config']['runtime']['custom_https_kernel']($c);
+            } else {
+                $c['err']['INTERNAL'][] = "Failed to find expected `Custom User-defined HTTPS Kernel Handler Function`.";
+            }
+            exit;
+        }
         // Output buffering starts
         ob_start();
-
+        // Include Composer Vendor stuff is set to true and if file exist
+        if (
+            isset($this->compiled['config']['runtime']['use_vendor']) &&
+            $this->compiled['config']['runtime']['use_vendor'] === true
+        ) {
+            $vendorPath = ROOT_FOLDER . '/vendor/autoload.php';
+            if (file_exists($vendorPath)) {
+                require_once $vendorPath;
+            } else {
+                $c['err']['INTERNAL'][] = "Vendor Autoload Enabled (`use_vendor = true`), but File `{$vendorPath}` was NOT Found.";
+            }
+        }
+        // Run all set ini if any with ini_set()
+        if (isset($this->compiled['config']['runtime']['ini_sets'])) {
+            foreach ($this->compiled['config']['runtime']['ini_sets'] as $compiledIniSetK => $compiledIniSetV) {
+                ini_set($compiledIniSetK, $compiledIniSetV);
+            }
+        }
         // Set User-defined or default exception handler
         set_exception_handler(function (\Throwable $e) use (&$c) {
             if (isset($this->compiled['config']['runtime']['custom_exception_handler'])) {
                 if (function_exists($this->compiled['config']['runtime']['custom_exception_handler'])) {
                     $this->compiled['config']['runtime']['custom_exception_handler']($c, $e);
                 } else {
-                    $c['err']['INTERNAL'][] = "Failed to find expected `Custom User-defined Exception Handler Function`.";
+                    $c['err']['INTERNAL'][] = "Failed to find expected `Custom User-defined Exception Handler Function`. Fallbacks to In-built Default.";
+                    \funk_internal_exception_handler($c, $e);
                 }
             } else {
-                \funk_default_exception_handler($c, $e);
+                \funk_internal_exception_handler($c, $e);
             }
         });
+        // Set User-defined or default error handler
         if (isset($this->compiled['config']['runtime']['custom_error_handler'])) {
             if (function_exists($this->compiled['config']['runtime']['custom_error_handler'])) {
                 set_error_handler($this->compiled['config']['runtime']['custom_error_handler']);
             } else {
                 $c['err']['INTERNAL'][] = "Failed to find expected `Custom User-defined Error Handler Function`.";
             }
+        } else {
+            set_error_handler('\funk_internal_error_handler');
         }
-
         // Add any post-response pipes as registered shutdown functions so that is prepared first
         foreach ($this->compiled['config']['pipes']['post_response-resolved'] as $pResponseRegister) {
             $funcName = $pResponseRegister['run'];
@@ -8409,10 +8446,8 @@ class C
                 trigger_error("Post-response Pipe Function `{$funcName}` could not be resolved.", E_USER_WARNING);
             }
         }
-
-        // Placeholder echo to know when compiled
+        // REMOVE LATER: Placeholder echo to know when compiled
         echo "run() started - compilation succeeded!<br/>";
-
         // A final exit to not be able to jump back to the compile() again
         exit;
     }

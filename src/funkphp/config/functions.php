@@ -30,7 +30,7 @@ function test(&$c)
 function testar0(&$c)
 {
     // Yas?
-    return "test";
+    echo "HTTPS KERNEL CUSTOM TEST";
 }
 
 // function testar1(&$c)

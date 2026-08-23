@@ -599,30 +599,56 @@ function funk_generate_random_password(&$c, $length = 20, $returnHashed = false)
 // a JSON or HTML error response depending on the Accept Header of the request. It is
 // used unless a user-defined Exception Handler is set by the Developer creating one
 // own using the "funk_handle_uncaught_exception()" in "/src/funkphp/config/functions.php" file.
-function funk_default_exception_handler(&$c, $e)
+function funk_internal_exception_handler(&$c, $e)
 {
-    $c['err']['UNCAUGHT_EXCEPTION'] = $e;
+    $c['err']['INTERNAL'] = "UNCAUGHT EXCEPTION: $e";
     \funk_use_log($c, "UNCAUGHT EXCEPTION BY DEVELOPER: " . $e->getMessage(), 'CRIT');
     $err = 'Tell the Developer: An Uncaught Exception Occurred: `' . $e->getMessage() . '` Please check the Logs for more details.';
     \funk_use_error_json_or_page($c, 500, ["internal_error" => $err], '500', $err);
 }
 
-// Default FunkPHP Registered Shutdown Function which runs after a request has been
-// handled. It is used unless a user-defined register_shutdown_function is set by
-// the Developer creating one own using the "funk_set_register_shutdown_function()"
-// in the "/src/funkphp/config/functions.php" file.
-function funk_default_register_shutdown_function(&$c)
+/**
+ * Internal Default Error Handler
+ * Converts standard PHP errors/warnings into ErrorException so they
+ * get caught by the Exception Handler.
+ */
+function funk_internal_error_handler(int $severity, string $message, string $file, int $line): bool
 {
-    if (
-        isset($c['pipeline']['post_response'])
-        && is_array($c['pipeline']['post_response'])
-        && array_is_list($c['pipeline']['post_response'])
-        && !empty($c['pipeline']['post_response'])
-    ) {
-        \funk_run_pipeline_post_response($c);
-    } else {
-        $c['err']['MAYBE']['PIPELINE']['funk_run_post_request'][] = 'No Configured Post-Response Pipeline Functions (`"<ENTRY>" => "pipeline" => "post_response"`) to run. Check the `[\'<ENTRY>\'][\'pipeline\'][\'post_response\']` Key in the Pipeline Configuration File `funkphp/core/pipeline_request.php` File!';
+    // Respect the error_reporting setting (e.g. ignore @ operator)
+    if (!(error_reporting() & $severity)) {
+        return false;
     }
+    throw new \ErrorException($message, 0, $severity, $file, $line);
+}
+
+/**
+ * Extracts lines around an error to render a visual code snippet in HTML.
+ */
+function funk_internal_render_code_snippet(string $filePath, int $errorLine, int $padding = 5): string
+{
+    if (!file_exists($filePath) || !is_readable($filePath)) {
+        return '<div style="padding:10px; background:#222; color:#888;">Source File Unavailable</div>';
+    }
+    $lines = file($filePath);
+    $start = max(0, $errorLine - $padding - 1);
+    $end   = min(count($lines), $errorLine + $padding);
+    $html = '<div style="background:#1e1e1e; color:#d4d4d4; font-family: monospace; border-radius:6px; overflow:hidden; margin:15px 0;">';
+    $html .= '<div style="background:#2d2d2d; color:#aaa; padding:6px 12px; font-size:12px; border-bottom:1px solid #333;">' . htmlspecialchars($filePath) . '</div>';
+    $html .= '<table style="width:100%; border-collapse:collapse; font-size:13px; line-height:1.4;">';
+    for ($i = $start; $i < $end; $i++) {
+        $lineNum = $i + 1;
+        $isErrorLine = ($lineNum === $errorLine);
+        $rowBg = $isErrorLine ? 'background:#44171a;' : 'background:#1e1e1e;';
+        $numColor = $isErrorLine ? 'color:#ff6b6b; font-weight:bold;' : 'color:#555;';
+        $codeColor = $isErrorLine ? 'color:#ffffff; font-weight:bold;' : 'color:#d4d4d4;';
+        $codeContent = htmlspecialchars($lines[$i]);
+        $html .= "<tr style='{$rowBg}'>";
+        $html .= "<td style='width:40px; text-align:right; padding:2px 10px; {$numColor} user-select:none;'>{$lineNum}</td>";
+        $html .= "<td style='padding:2px 10px; {$codeColor} white-space:pre-wrap;'>{$codeContent}</td>";
+        $html .= "</tr>";
+    }
+    $html .= '</table></div>';
+    return $html;
 }
 
 /**
