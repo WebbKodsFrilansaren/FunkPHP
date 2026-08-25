@@ -242,6 +242,7 @@ class C
                 'segments' => null,
                 'params' => null,
                 'param_valid' => null,
+                'params_valid' => null,
                 'accept_order' => null,
                 'accepts' => null,
                 'query' => '##TOKEN_REQ_QUERY_STRING##',
@@ -5178,7 +5179,12 @@ class C
                 return;
             }
             if (isset($compiledPairs[$ruleName])) {
-                $this->setErr($this->getErr('DuplicateFlexibleRegexPairName', $ctxVals) . " `{$ruleName}` is already used for `{$paramIdentifier}`.", 'Duplicate "RuleName, RegexPattern" Pair ' . $ctxVals, $method, $route);
+                $this->setErr($this->getErr('DuplicateFlexibleRegexPairName', $ctxVals) . " `{$ruleName}` is already used for `{$paramIdentifier}`. All Param Names (e.g., :id) and Polymorphic Variant Keys - via `->setParamRulePolymorphic()` - across a Route share a Single Namespace and must be Uniquely named.", 'Duplicate "RuleName,RegexPattern" Pair ' . $ctxVals, $method, $route);
+                $this->invalidBatches['paramRulesFlexible']['routes'][$method][$route][$paramIdentifier] = $paramIdentifier;
+                return;
+            }
+            if (isset($this->validBatches['routes'][$method][$route]['paramRules'][$ruleName])) {
+                $this->setErr($this->getErr('DuplicateParamRoute', $ctxVals) . " Polymorphic Variant Key `{$ruleName}` is already used as Param Rule Name in the Route. All Param Names (e.g., :id) and Polymorphic Variant Keys - via `->setParamRulePolymorphic()` - across a Route share a Single Namespace and must be Uniquely named", 'Param "RuleName,RegexPattern" Pair Rule Conflicts with another Param Rule ' . $ctx, $method, $route);
                 $this->invalidBatches['paramRulesFlexible']['routes'][$method][$route][$paramIdentifier] = $paramIdentifier;
                 return;
             }
@@ -8204,9 +8210,29 @@ class C
                                 $this->compile_setWarn("No Param Rule Available for `{$routeParam}` in `{$CURRENT_ROUTE_STR}`", "The following Param `{$routeParam}` in `{$CURRENT_ROUTE_STR}` has no Available Param Rules in Current Route, not in `{$method}`, and not in Global CONFIG. This means that You need to `Parse the Param Manually` using any of your `Route Pipe Function(s)`. If that is exactly what You are doing for `{$CURRENT_ROUTE_STR}`, just ignore this warning.");
                             }
                         }
+                        // Iterate through each param to disallow conflicting param id names
+                        // with any of polymorphic named patterns for params in same route!
+                        $routeParamIdentifiers = [];
+                        foreach ($this->compiled['routes'][$method][$route]['params'] as $compiledParamN => $compiledParamV) {
+                            if (isset($routeParamIdentifiers[$compiledParamN])) {
+                                $this->compile_setErr("Conflicting Parameter Variant Name in Route `{$CURRENT_ROUTE_STR}`", "Route Param Identifier `{$compiledParamN}` is conflicting with {$routeParamIdentifiers[$compiledParamN]} in Route `{$CURRENT_ROUTE_STR}`. All Param Names (e.g., :id) and Polymorphic Variant Keys - via `->setParamRulePolymorphic()` - across a Route share a Single Namespace and must be Uniquely named. Route have these Params: " . $this->joinArray($this->compiled['routes'][$method][$route]['params'], true) . '. Make sure none of Param Rules collide with any other Param Rules OR Polymorphic Variant Keys in other Param Rules. Check all your `->setParamRulePolymorphic()` used for ' . "`{$CURRENT_ROUTE_STR}`.");
+                            } else {
+                                $routeParamIdentifiers[$compiledParamN] = "Param Identifier `{$compiledParamN}`";
+                            }
+                            if (isset($compiledParamV['pairs'])) {
+                                $pairKeys = array_keys($compiledParamV['pairs']);
+                                foreach ($pairKeys as $pKey) {
+                                    if (isset($routeParamIdentifiers[$pKey])) {
+                                        $this->compile_setErr("Conflicting Parameter Variant Name in Route `{$CURRENT_ROUTE_STR}`", "Parameter Variant Key `{$pKey}` in `{$compiledParamN}` collides with {$routeParamIdentifiers[$pKey]} in Route `{$CURRENT_ROUTE_STR}`. All Param Names (e.g., :id) and Polymorphic Variant Keys - via `->setParamRulePolymorphic()` - across a Route share a Single Namespace and must be Uniquely named. Param `{$compiledParamN}` have these Polymorphic Variant Keys: " . $this->joinArray($pairKeys) . '. Make sure none of those Keys collide with any other Polymorphic Variant Keys in other Param Rules inside of the same Route: ' . $this->joinArray(array_keys($this->compiled['routes'][$method][$route]['params'])) . '. Check all your `->setParamRulePolymorphic()` used for ' . "`{$CURRENT_ROUTE_STR}`.");
+                                    } else {
+                                        $routeParamIdentifiers[$pKey] = "Param Pattern Name `$pKey` in Param Identifier `'{$compiledParamN}'`";
+                                    }
+                                }
+                            }
+                        }
                     }
                     // Now unpacking Pipes & MWs (meaning when they start with "group:")
-                    // UNPACK PIPES for ROUTE: ???FIX LATER??? add "group:" for sql,query & validation?
+                    // **TODO:** UNPACK PIPES for ROUTE: ???FIX LATER??? add "group:" for sql,query & validation?
                     // in the sense of: "group:sql:name", "group:query:name" & "group:validation:name"?
                     if (
                         isset($routeDetails['pipes'])
@@ -8797,58 +8823,7 @@ class C
         $c['runtime']['route'] = $this->compiled['routes'][$c['req']['method']][$c['req']['route']];
 
         // Route has any params to validate first?
-        if (isset($c['runtime']['route']['hasParams'])) {
-            if (isset($c['runtime']['route']['params'])) {
-                foreach ($c['runtime']['route']['params'] as $rParam => $rParDetails) {
-                    // Param has polymorphic?
-                    if (isset($rParDetails['pairs'])) {
-                        $anyPairMatch = false;
-                        $c['req']['param_variant'][$rParam] = null;
-                        foreach ($rParDetails['pairs'] as $rPairName => $rPairPattern) {
-                            if (preg_match($rPairPattern, $c['req']['params'][$rParam])) {
-                                $anyPairMatch = true;
-                                break;
-                            } else {
-                                continue;
-                            }
-                        }
-                        // Polymorphic pattern match, its name becomes the valid param
-                        // it is already validated in route that no other param with
-                        // or without polymorphic patterns would collide so
-                        if ($anyPairMatch) {
-                            $c['req']['param_valid'][$rPairName] = true;
-                        } else {
-                            $c['req']['param_valid'][$rParam] = false;
-                        }
-                    }
-                    // Here regular param but with callback?
-                    elseif (isset($rParDetails['callback'])) {
-                        if (function_exists($rParDetails['callback'])) {
-                            if ($rParDetails['callback'](
-                                $c,
-                                $c['req']['params'][$rParam]
-                            ) === true) {
-                                $c['req']['param_valid'][$rParam] = true;
-                            } else {
-                                $c['req']['params'][$rParam] = (isset($rParDetails['default']) ? $rParDetails['default'] : $c['req']['params'][$rParam]);
-                                $c['req']['param_valid'][$rParam] = false;
-                            }
-                        } else {
-                            \funk_use_error_json_or_page($c, 500, ['internal_server_error' => 'Expected `User-Defined Function` in `/src/funkphp/config/functions.php` was Not Found for Validating a Param Rule?'], '500', 'Expected `User-Defined Function` in `/src/funkphp/config/functions.php` was Not Found for Validating a Param Rule?');
-                        }
-                    }
-                    // Here just regular param with pattern
-                    else {
-                        if (!preg_match($rParDetails['pattern'], $c['req']['params'][$rParam])) {
-                            $c['req']['params'][$rParam] = (isset($rParDetails['default']) ? $rParDetails['default'] : $c['req']['params'][$rParam]);
-                            $c['req']['param_valid'][$rParam] = false;
-                        } else {
-                            $c['req']['param_valid'][$rParam] = true;
-                        }
-                    }
-                }
-            }
-        }
+        funk_internal_validate_params($c);
         dd([$c['req'], $c['runtime']['route']]);
 
         // Run any set funk_internal_rate_limiter() for MATCHED <METHOD><ROUTE>() context
@@ -10270,13 +10245,17 @@ class FunkRoute
         return $this;
     }
     /**
-     * Define Multiple Alternative Regex Rules for a Single Route Parameter (so called `Polymorphic Parameter`) scoped exclusively to this Route.
+     * Define Multiple Alternative Regex Rules for a Single Route Parameter (Polymorphic Parameter) scoped exclusively to this Route.
      *
-     * Allows a parameter (e.g., ":identifier") to match against different input forms
+     * Allows a Single Param (e.g., ":id") to Match against Different Input Forms
      * (e.g., "numeric_id", "/\d+/", "slug", "/[a-z0-9-]+/").
      *
+     * **IMPORTANT**: All Variant Keys (e.g., "numeric_id", "slug") share a Single Param
+     * Namespace for the Route. Every Variant Key MUST be unique across all Route Param
+     * Names and other Polymorphic Variant Keys within the same route.
+     *
      * @param string $paramIdentifier Parameter name without leading colon (e.g., "id" or "identifier")
-     * @param string ...$keyAndRegexPairs Sequential pairs of [RuleName, RegexPattern] (e.g., "num", "/\d+/", "slug", "/[a-z]+/")
+     * @param string ...$keyAndRegexPairs Sequential pairs of [VariantKey, RegexPattern] (e.g., "num", "/\d+/", "slug", "/[a-z]+/")
      * @return $this
      */
     public function setParamRulePolymorphic(string $paramIdentifier, string ...$keyAndRegexPairs): self
