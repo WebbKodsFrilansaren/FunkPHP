@@ -1164,11 +1164,78 @@ function funk_set_header(&$c, $headerName, $value)
  *
  * @param 'Accept-Ranges'|'Access-Control-Allow-Credentials'|'Access-Control-Allow-Headers'|'Access-Control-Allow-Methods'|'Access-Control-Allow-Origin'|'Access-Control-Expose-Headers'|'Access-Control-Max-Age'|'Age'|'Allow'|'Alt-Svc'|'Cache-Control'|'Clear-Site-Data'|'Content-Disposition'|'Content-Encoding'|'Content-Language'|'Content-Location'|'Content-Range'|'Content-Security-Policy'|'Content-Security-Policy-Report-Only'|'Content-Type'|'Cross-Origin-Embedder-Policy'|'Cross-Origin-Opener-Policy'|'Cross-Origin-Resource-Policy'|'ETag'|'Expires'|'Last-Modified'|'Location'|'Origin-Trial'|'Permissions-Policy'|'Pragma'|'Referrer-Policy'|'Retry-After'|'Server-Timing'|'Strict-Transport-Security'|'Timing-Allow-Origin'|'Vary'|'WWW-Authenticate'|'X-Content-Type-Options'|'X-Frame-Options'|'X-RateLimit-Limit'|'X-RateLimit-Remaining'|'X-RateLimit-Reset'|'X-Request-ID'|'X-XSS-Protection'|string $headerName Header Name
  */
-function funk_remove_header(&$c, $headerName)
+function funk_remove_header(&$c, string $headerName)
 {
     if (!headers_sent()) {
         header_remove($headerName);
     }
+}
+
+function funk_return_response_page(&$c, string $pageNameWithoutExtension, int $code = 200)
+{
+    header_remove('content-type');
+    if (isset($c['runtime']['route']['headers']['add']['content-type'])) {
+        unset($c['runtime']['route']['headers']['add']['content-type']);
+    }
+    http_response_code($code);
+    funk_set_header($c, 'content-type', 'text/html');
+    funk_internal_send_response_headers($c);
+    if (defined('ROOT_FOLDER')) {
+        require_once ROOT_FOLDER . '/pages/' . $pageNameWithoutExtension . '.php';
+    } else {
+        \funk_use_error_json_or_page($c, 500, ['internal_server_error' => 'Failed to load a `User-defined Page` to Return a Response. This means the `Page` does NOT exist in the Expected Folder `/pages/`.'], '500', 'Failed to use a `User-defined Function` to Return a Response. This means the Function-name does NOT exist.');
+    }
+    exit;
+}
+
+function funk_return_response_json(&$c, string $c_data_key_with_JSON_encoded_Data, int $code = 200)
+{
+    header_remove('content-type');
+    if (isset($c['runtime']['route']['headers']['add']['content-type'])) {
+        unset($c['runtime']['route']['headers']['add']['content-type']);
+    }
+    http_response_code($code);
+    funk_set_header($c, 'content-type', 'application/json');
+    funk_internal_send_response_headers($c);
+    if (isset($c['d'][$c_data_key_with_JSON_encoded_Data])) {
+        echo is_string($c['d'][$c_data_key_with_JSON_encoded_Data])
+            ? $c['d'][$c_data_key_with_JSON_encoded_Data]
+            : json_encode($c['d'][$c_data_key_with_JSON_encoded_Data]);
+    }
+    exit;
+}
+
+function funk_return_response_text(&$c, string $rawTextString, int $code = 200)
+{
+    header_remove('content-type');
+    if (isset($c['runtime']['route']['headers']['add']['content-type'])) {
+        unset($c['runtime']['route']['headers']['add']['content-type']);
+    }
+    http_response_code($code);
+    funk_set_header($c, 'content-type', 'text/plain');
+    funk_internal_send_response_headers($c);
+    echo $rawTextString;
+    exit;
+}
+
+/**
+ *
+ * @param string $userDefinedFunctionName User-Defined Function that should set
+ * the correct Content Type Header AND correct Status Code before it returns its
+ * final version of the Body/Content/Payload.
+ *
+ * *IMPORTANT*: Using this type of Returned Response requires You setting Status Code
+ * AND also remove any previous `content-type` Header if you need a specific one
+ * in order to not send duplicate `content-type` Header. *(This assumes that is what
+ * you wanna do in the first place; otherwise just ignore this info.)*
+ */
+function funk_return_response_callback(&$c, string $userDefinedFunctionName)
+{
+    if (function_exists($userDefinedFunctionName)) {
+        $userDefinedFunctionName($c);
+        exit;
+    }
+    \funk_use_error_json_or_page($c, 500, ['INTERNAL_SERVER_ERROR' => 'Failed to use a `User-defined Function` to Return a Response. This means the Function-name does NOT exist.'], '500', 'Failed to use a `User-defined Function` to Return a Response. This means the Function-name does NOT exist.');
 }
 
 
@@ -1533,8 +1600,8 @@ function funk_internal_exception_handler(&$c, \Throwable $e)
         echo $htmlOutput;
         exit;
     }
-    $err = 'An unexpected internal server error occurred. Please check the application logs.';
-    \funk_use_error_json_or_page($c, 500, ["internal_error" => $err], '500', $err);
+    $err = 'An unexpected Internal Server Error occurred. Please check the Application Logs.';
+    \funk_use_error_json_or_page($c, 500, ["internal_server_error" => $err], '500', $err);
 }
 /**
  * Internal Default Error Handler
@@ -1942,14 +2009,11 @@ function funk_internal_handle_no_no_route_match(&$c)
         && is_string($c['runtime']['NO_NO_MATCH_MESSAGE'])
         && trim($c['runtime']['NO_NO_MATCH_MESSAGE']) !== '')
         ? $c['runtime']['NO_NO_MATCH_MESSAGE']
-        : htmlspecialchars('404 | No Content or Page Found | Are You the Developer? This means You have NOT Configured Any `NO_ROUTE_MATCH<Variant>`!');
-    $isJson = ($c['req']['prefers'] === 'json' ||
-        (isset(($c['req']['accepts']['json']))
-            && $c['req']['accepts']['json'] === true));
-    if ($isJson) {
+        : (htmlspecialchars('404 | No Content or Page Found <br/>Are You the Developer, Web Administrator or General Web Master?<br/> There is NO Configured Global `->setNoRouteMatch&lt;Variant&gt;` Yet 😱!'));
+    if ($c['req']['prefers'] === 'json') {
         http_response_code(404);
         header("content-type: application/json; charset=utf-8");
-        echo json_encode(['error' => $message, 'status' => 404]);
+        echo json_encode(['internal_server_error' => html_entity_decode($message, ENT_NOQUOTES | ENT_SUBSTITUTE, 'UTF-8'), 'status' => 404]);
         exit;
     }
     // Set HTTP status code & headers BEFORE sending HTML output
@@ -1961,7 +2025,7 @@ function funk_internal_handle_no_no_route_match(&$c)
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>404 - Page Not Found</title>
+    <title>404 - No Content or Page Found | Have You Configured `->setNoRouteMatch` Yet?</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {

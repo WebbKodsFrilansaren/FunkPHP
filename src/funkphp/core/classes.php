@@ -189,7 +189,7 @@ class C
                 'method_headers' => null,
                 'NO_ROUTE_MATCH' => null,
                 'NO_ROUTE_MATCH_METHOD' => null,
-                'NO_NO_MATCH_MESSAGE' => '404 | No Content or Page Found a',
+                'NO_NO_MATCH_MESSAGE' => '404 | No Content or Page Found <br/>Are You the Developer, Web Administrator or General Web Master?<br/> There is NO Configured Global `->setNoRouteMatch&lt;Variant&gt;` Yet 😱!',
                 'SKIP_POST_RESPONSE_ON_NO_MATCH' => false,
             ],
             'pipes' => [
@@ -8732,8 +8732,6 @@ class C
         }
         // Resolve IP (parse correct IP from trusted proxy if configured)
         // with either User-defined Function OR with internal default
-        $c['runtime']['trusted_ip_proxies'] = $this->compiled['config']['runtime']['trusted_ip_proxies'];
-        $c['runtime']['trusted_ip_headers'] = $this->compiled['config']['runtime']['trusted_ip_headers'];
         if (isset($this->compiled['config']['runtime']['custom_ip_resolver'])) {
             $c['req']['ip'] = $this->compiled['config']['runtime']['custom_ip_resolver']($c);
         } else {
@@ -8754,7 +8752,6 @@ class C
         }
         // Now resolve Content Negotation
         [$c['req']['accept_order'], $c['req']['prefers']] = funk_internal_negotiate_content($c);
-
         // First check if matched request method even exists in internal route trie and
         // then run internal route match against the $c['compiled']['routes]['trie'] array
         if (!isset($this->compiled['routes']['trie'][$c['req']['method']])) {
@@ -8771,13 +8768,12 @@ class C
         if (isset($this->compiled['methods'][$c['req']['method']]['ratelimit'])) {
             funk_internal_rate_limiter(
                 $c,
-                $this->compiled['config']['ratelimit']['max_requests'],
-                $this->compiled['config']['ratelimit']['window_seconds'],
-                $this->compiled['config']['ratelimit']['by'],
-                $this->compiled['config']['ratelimit']['driver']
+                $this->compiled['methods'][$c['req']['method']]['ratelimit']['max_requests'],
+                $this->compiled['methods'][$c['req']['method']]['ratelimit']['window_seconds'],
+                $this->compiled['methods'][$c['req']['method']]['ratelimit']['by'],
+                $this->compiled['methods'][$c['req']['method']]['ratelimit']['driver']
             );
         }
-
         // Try match first in Trie and then also that it exists as an exact Route Key in the Compiled Routes Array!
         if (
             !funk_internal_match_route_trie($c, $c['req']['uri'], ($this->compiled['routes']['trie'][$c['req']['method']] ?? []))
@@ -8806,23 +8802,22 @@ class C
                 $this->compiled['routes'][$c['req']['method']][$c['req']['route']]['ratelimit']['driver']
             );
         }
-        // Run any set funk_internal_route_cache() for the MATCHED <METHOD><ROUTE>() context
-        if (isset($this->compiled['routes'][$c['req']['method']][$c['req']['route']]['cache'])) {
-            funk_internal_route_cache(
-                $c,
-                $this->compiled['routes'][$c['req']['method']][$c['req']['route']]['cache']['ttl'],
-                $this->compiled['routes'][$c['req']['method']][$c['req']['route']]['cache']['driver'],
-                $this->compiled['routes'][$c['req']['method']][$c['req']['route']]['cache']['varyBy'],
-                $this->compiled['routes'][$c['req']['method']][$c['req']['route']]['cache']['private']
-            );
-        }
         // INTERNAL Local Running ONLY: Add Current Matched Route for Easier Reuse
         $c['runtime']['route'] = $this->compiled['routes'][$c['req']['method']][$c['req']['route']];
-
+        // Run any set funk_internal_route_cache() for the MATCHED <METHOD><ROUTE>() context
+        if (isset($c['runtime']['route']['cache'])) {
+            funk_internal_route_cache(
+                $c,
+                $c['runtime']['route']['cache']['ttl'],
+                $c['runtime']['route']['cache']['driver'],
+                $c['runtime']['route']['cache']['varyBy'],
+                $c['runtime']['route']['cache']['private']
+            );
+        }
         // NOW FINALLY RUN _ALL_ MWs of Route (it has already inherited them in correct order)
         // first Running Global, then Method, then Route exclusive Middlewares. After this, Run
-        // any pipes and that's pretty much it!
-        dd($c['runtime']['route']);
+        // any pipes and complete it with any response unless returned inside already. And that's it!
+        // You have no completed FunkPHP run() Local Version!
         if (isset($c['runtime']['route']['middlewares-resolved'])) {
             foreach ($c['runtime']['route']['middlewares-resolved'] as $routeMW) {
                 $mwFN = $routeMW['run'];
@@ -8837,15 +8832,28 @@ class C
             foreach ($c['runtime']['route']['pipes-resolved'] as $routePipe) {
                 $pipeFN = $routePipe['run'];
                 $pipePath = $routePipe['path'];
-                var_dump($pipePath);
                 if (!function_exists($pipeFN)) {
                     require_once $pipePath;
                 }
                 $pipeFN($c);
             }
         }
-
-        echo "run() started - compilation succeeded!<br/>";
+        // Return any final response unless it happened before all of this (meaning
+        // a `funk_return_response_<TYPE>` were used which always ends with exit so)
+        if (isset($c['runtime']['route']['response'])) {
+            $res = $c['runtime']['route']['response'];
+            if ($res['type'] === 'page') {
+                \funk_return_response_page($c, $res['context'], $res['code']);
+            } else if ($res['type'] === 'json') {
+                \funk_return_response_json($c, $res['context'], $res['code']);
+            } else if ($res['type'] === 'text') {
+                \funk_return_response_text($c, $res['context'], $res['code']);
+            } else if ($res['type'] === 'callback') {
+                \funk_return_response_callback($c, $res['context']);
+            } else {
+                \funk_use_error_json_or_page($c, 500, ['internal_server_error' => 'Failed to Return a Valid Response (`page`,`json`,`text`, or `callback`) as none of those Response Types existed?'], '500', 'Failed to Return a Valid Response (`page`,`json`,`text`, or `callback`) as none of those Response Types existed?');
+            }
+        }
         // A final exit to not be able to jump back to the compile() again
         // This will also trigger registered shutdown functions/any post-response pipes
         exit;
@@ -10072,7 +10080,7 @@ class FunkRoute
     /**
      * Specify ONE Response transformation or content type format for this route.
      *
-     * @param string $typeOfResponse Response Type as a Key-Value pair
+     * @param 'page:file_name'|'json:key_in_$c["d"][<key>]'|'text:plain text message'|'callback:user_defined_fn' $typeOfResponse Response Type as a Key-Value pair
      * `page:file_name` OR
      * `json:key_in_$c['d'][<key>]` OR
      * `text:plain text message` OR
