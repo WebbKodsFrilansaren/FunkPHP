@@ -8,7 +8,7 @@ function test(&$c)
 	// Placeholder Comment so Regex works - Remove & Add Real Code!
 
 	// Return JSOn if accept method is application/json just to test FunKGUIs testing sending from its file!
-	if (\str_contains($_SERVER['HTTP_ACCEPT'], 'application/json')) {
+	if (\funk_req_prefers($c, 'json')) {
 		header('Content-Type: application/json');
 		echo json_encode([
 			"message" => "This is a test JSON response from the test function!",

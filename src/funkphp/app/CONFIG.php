@@ -5,9 +5,9 @@
 $APP->CONFIG()
     ->setNoRouteMatchJSON(["err" => "nothing found"], 404)
     ->setNoRouteMatchText("Not allowed", 404)
-    ->setNoRouteMatchPage("test", 404)
+    //->setNoRouteMatchPage("test", 404)
     ->setNoRouteMatchCallback("test")
-    ->setHeaderAdd("Content-Type", 'text/html')
+    //->setHeaderAdd("Content-Type", 'text/html')
     ->setINI_SET([
         'session.cache_limiter' => 'public',
         'session.use_strict_mode' => 8,
@@ -21,7 +21,6 @@ $APP->CONFIG()
         'display_startup_errors'  => 1,
         'error_reporting'         => 1,
     ])
-    ->setAccepts('application/hal+json:jsonhal')
     ->setRateLimit(60, 60, 'ip', 'redis')
     ->pipeMiddleware("auth")
     ->pipePostResponseFunction('debug')

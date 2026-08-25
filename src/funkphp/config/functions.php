@@ -23,8 +23,7 @@
 
 function test(&$c)
 {
-    $yas = "Yas";
-    $yas = strtolower($yas);
+    echo "YAS from test() user defined fn!";
 }
 
 function testar0(&$c)

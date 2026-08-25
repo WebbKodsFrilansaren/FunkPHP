@@ -1713,7 +1713,7 @@ function funk_internal_render_code_snippet(string $filePath, int $errorLine, int
     return $html;
 }
 // Match Trie Route (only used locally)
-function funk_internal_match_route_trie(&$c, string $requestUri, array $methodRootNode): ?array
+function funk_internal_match_route_trie(&$c, string $requestUri, array $methodRootNode)
 {
     $path = trim(strtolower($requestUri), '/');
     $uriSegments = empty($path) ? [] : array_values(array_filter(explode('/', $path)));
@@ -1725,9 +1725,11 @@ function funk_internal_match_route_trie(&$c, string $requestUri, array $methodRo
     // EDGE-CASE: '/' only but does it exist in Trie?
     if ($uriSegmentCount === 0) {
         if (!isset($currentNode['/'])) {
-            return null;
+            return false;
         }
-        return ["route" => '/', "params" => $matchedParams];
+        $c['req']['segments'] = ['/'];
+        $c['req']['matched_uri'] = '/';
+        return true;
     }
     // Iterate URI segments when more than 0
     for ($i = 0; $i < $uriSegmentCount; $i++) {
@@ -1745,6 +1747,7 @@ function funk_internal_match_route_trie(&$c, string $requestUri, array $methodRo
             $placeholderKey = key($currentNode[':']);
             if ($placeholderKey !== null && isset($currentNode[':'][$placeholderKey])) {
                 $matchedParams[$placeholderKey] = $currentUriSegment;
+                $c['req']['params'][$placeholderKey] = $currentUriSegment;
                 $matchedPathSegments['route'][] = ":" . $placeholderKey;
                 $currentNode = $currentNode[':'][$placeholderKey];
                 $segmentsConsumed++;
@@ -1752,30 +1755,65 @@ function funk_internal_match_route_trie(&$c, string $requestUri, array $methodRo
             }
         }
         // No matched ":" or literal route in Compiled Routes!
-        return null;
+        return false;
     }
     // Return matched route, params if all consumed segments matched
     if ($segmentsConsumed === $uriSegmentCount) {
         if (!empty($matchedPathSegments['route'])) {
-            return ["route" => '/' . implode('/', $matchedPathSegments['route']), "segments" => $matchedPathSegments, "params" => $matchedParams];
+            $c['req']['segments'] = $matchedPathSegments['route'];
+            $c['req']['route'] = ('/' . implode('/', $matchedPathSegments['route']));
+            //$c['req']['params'] = $matchedParams;
+            return true;
+        } else {
+            return false;
         }
-        // EDGE-CASE: 0 consumed segments, return null instead of matched
-        else {
-            return null;
-        }
-    }
-    // EDGE-CASES: Return null when impossible(?)/unexpected behavior
-    else {
-        return null;
+    } else {
+        return false;
     }
 }
 // Retrieve what content UA accepts
-function funk_internal_negotiate_content(mixed &$c)
+function funk_internal_negotiate_content(mixed &$c): array
 {
     $acceptHeader = $_SERVER['HTTP_ACCEPT'] ?? '';
     if (empty(trim($acceptHeader))) {
         return [[], null];
     }
+    $mimeTypeToShortHand = [
+        'text/html'                 => 'html',
+        'application/xhtml+xml'     => 'xhtml',
+        'application/json'          => 'json',
+        'text/json'                 => 'json',
+        'application/vnd.api+json'  => 'jsonapi',
+        'application/problem+json'  => 'jsonproblem',
+        'application/ld+json'       => 'jsonld',
+        'application/hal+json'      => 'jsonhal',
+        'application/wasm'          => 'wasm',
+        'application/xml'           => 'xml',
+        'application/octet-stream'  => 'stream',
+        'text/xml'                  => 'xml',
+        'text/plain'                => 'text',
+        'text/csv'                  => 'csv',
+        'text/calendar'             => 'calendar',
+        'text/vcard'                => 'vcard',
+        'text/markdown'             => 'markdown',
+        'image/webp'                => 'webp',
+        'image/avif'                => 'avif',
+        'image/x-icon'              => 'ico',
+        'image/bmp'                 => 'bmp',
+        'image/apng'                => 'apng',
+        'image/png'                 => 'png',
+        'image/jpeg'                => 'jpg',
+        'image/jpg'                 => 'jpg',
+        'image/gif'                 => 'gif',
+        'image/tiff'                => 'tiff',
+        'image/heic'                => 'heic',
+        'image/svg+xml'             => 'svg',
+        'audio/mpeg'                => 'mp3',
+        'audio/wav'                 => 'wav',
+        'audio/flac'                => 'flac',
+        'video/mp4'                 => 'mp4',
+    ];
+    $userCustomAccepts = $c['runtime']['request_accepts'] ?? [];
     $types = [];
     $c['req']['accepts']['json']  = false;
     $c['req']['accepts']['html']  = false;
@@ -1784,11 +1822,12 @@ function funk_internal_negotiate_content(mixed &$c)
     $c['req']['accepts']['image'] = false;
     $c['req']['accepts']['media'] = false;
     foreach (explode(',', $acceptHeader) as $part) {
-        $segments = explode(';', trim($part));
-        $mediaType = strtolower(trim($segments[0]));
+        $segments  = explode(';', trim($part));
+        $mediaType = trim($segments[0]);
         if (empty($mediaType)) {
             continue;
         }
+        // Assume equal weight
         $q = 1.0;
         foreach (array_slice($segments, 1) as $param) {
             $param = trim($param);
@@ -1797,54 +1836,64 @@ function funk_internal_negotiate_content(mixed &$c)
                 break;
             }
         }
+        // Skip q>=0
         if ($q <= 0) {
             continue;
         }
-        if (
-            $mediaType === 'application/json' ||
-            $mediaType === 'text/json' ||
-            str_ends_with($mediaType, '+json')
-        ) {
+        // First check user-defined ones, then static
+        // lookups and finally generic ones
+        if (isset($userCustomAccepts[$mediaType])) {
+            $alias = $userCustomAccepts[$mediaType];
+            $c['req']['accepts'][$alias] = true;
+        }
+        if (isset($mimeTypeToShortHand[$mediaType])) {
+            $alias = $mimeTypeToShortHand[$mediaType];
+            $c['req']['accepts'][$alias] = true;
+        }
+        if ($mediaType === 'application/json' || $mediaType === 'text/json' || str_ends_with($mediaType, '+json')) {
             $c['req']['accepts']['json'] = true;
-        } else if (
-            $mediaType === 'text/html' ||
-            $mediaType === 'application/xhtml+xml'
-        ) {
+        } else if ($mediaType === 'text/html' || $mediaType === 'application/xhtml+xml') {
             $c['req']['accepts']['html'] = true;
-        } else if (
-            $mediaType === 'application/xml' ||
-            $mediaType === 'text/xml' ||
-            str_ends_with($mediaType, '+xml')
-        ) {
+        } else if ($mediaType === 'application/xml' || $mediaType === 'text/xml' || str_ends_with($mediaType, '+xml')) {
             $c['req']['accepts']['xml'] = true;
-        } else if (
-            $mediaType === 'text/plain' ||
-            $mediaType === 'text/markdown' ||
-            $mediaType === 'text/csv'
-        ) {
+        } else if ($mediaType === 'text/plain' || $mediaType === 'text/markdown' || $mediaType === 'text/csv') {
             $c['req']['accepts']['text'] = true;
-        } else if (
-            str_starts_with($mediaType, 'image/')
-        ) {
+        } else if (str_starts_with($mediaType, 'image/')) {
             $c['req']['accepts']['image'] = true;
-        } else if (
-            str_starts_with($mediaType, 'audio/') ||
-            str_starts_with($mediaType, 'video/')
-        ) {
+        } else if (str_starts_with($mediaType, 'audio/') || str_starts_with($mediaType, 'video/')) {
             $c['req']['accepts']['media'] = true;
         } else if ($mediaType === '*/*') {
             $c['req']['accepts']['json']  = true;
             $c['req']['accepts']['html']  = true;
             $c['req']['accepts']['xml']   = true;
             $c['req']['accepts']['text']  = true;
-        } else if (isset($c['runtime']['request_accepts'][$mediaType])) {
-            $c['req']['accepts'][$mediaType] = true;
+            $c['req']['accepts']['media'] = true;
+            $c['req']['accepts']['audio'] = true;
+            $c['req']['accepts']['video'] = true;
+            $c['req']['accepts']['image'] = true;
         }
         $types[] = ['type' => $mediaType, 'q' => $q];
     }
+    // Sort based on q value and also try find preferred one
     usort($types, fn($a, $b) => $b['q'] <=> $a['q']);
     $sortedList = array_column($types, 'type');
-    $prefers    = $sortedList[0] ?? null;
+    $topMime    = $sortedList[0] ?? null;
+    $prefers = null;
+    if ($topMime !== null) {
+        if (isset($userCustomAccepts[$topMime])) {
+            $prefers = $userCustomAccepts[$topMime];
+        } else if (isset($mimeTypeToShortHand[$topMime])) {
+            $prefers = $mimeTypeToShortHand[$topMime];
+        } else if (str_ends_with($topMime, '+json')) {
+            $prefers = 'json';
+        } else if (str_ends_with($topMime, '+xml')) {
+            $prefers = 'xml';
+        } else if ($topMime === '*/*') {
+            $prefers = 'html';
+        } else {
+            $prefers = $topMime;
+        }
+    }
     return [$sortedList, $prefers];
 }
 
@@ -1853,6 +1902,14 @@ function funk_internal_negotiate_content(mixed &$c)
 // check against what is actually configured
 function funk_internal_handle_no_route_match(&$c, $globalOrMethod)
 {
+    // Set boolean on whether Post-Response Pipe should
+    // run or not due to NoMatchMethod/Match
+    if (
+        isset($c['runtime']['SKIP_POST_RESPONSE_ON_NO_MATCH'])
+        && $c['runtime']['SKIP_POST_RESPONSE_ON_NO_MATCH'] === true
+    ) {
+        $c['runtime']['SKIP_POST_RESPONSE'] = true;
+    }
     if ($globalOrMethod === 'CONFIG') {
         // early return when no configured no route match handling
         if (!isset($c['runtime']['NO_ROUTE_MATCH'])) {
@@ -1860,7 +1917,6 @@ function funk_internal_handle_no_route_match(&$c, $globalOrMethod)
         }
         $prefers = $c['req']['prefers'];
         if ($prefers === 'json' && isset($c['runtime']['NO_ROUTE_MATCH']['JSON'])) {
-            var_dump("test");
             funk_internal_send_global_headers($c);
             header("content-type: application/json; charset=utf-8");
             http_response_code($c['runtime']['NO_ROUTE_MATCH']['JSON']['code']);
@@ -1967,7 +2023,6 @@ function funk_internal_send_response_headers(&$c)
         header('Content-Security-Policy: ' . implode('; ', $cspParts));
     }
 }
-
 // Send ONLY Global Headers, used only when things stops already globally without route match
 function funk_internal_send_global_headers(&$c)
 {
@@ -1990,15 +2045,21 @@ function funk_internal_send_method_headers(&$c)
 // When there is no configured no match route globally nor for non-matched method
 function funk_internal_handle_no_no_route_match(&$c)
 {
-    // Emit any queued global headers first (CORS, HSTS, etc.)
+    if (
+        isset($c['runtime']['SKIP_POST_RESPONSE_ON_NO_MATCH'])
+        && $c['runtime']['SKIP_POST_RESPONSE_ON_NO_MATCH'] === true
+    ) {
+        $c['runtime']['SKIP_POST_RESPONSE'] = true;
+    }
     funk_internal_send_global_headers($c);
-
     $message = (isset($c['runtime']['NO_NO_MATCH_MESSAGE'])
         && is_string($c['runtime']['NO_NO_MATCH_MESSAGE'])
         && trim($c['runtime']['NO_NO_MATCH_MESSAGE']) !== '')
         ? $c['runtime']['NO_NO_MATCH_MESSAGE']
         : htmlspecialchars('404 | No Content or Page Found | Are You the Developer? This means You have NOT Configured Any `NO_ROUTE_MATCH<Variant>`!');
-    $isJson = ($c['req']['prefers'] === 'json' || !empty($c['req']['accepts']['json']));
+    $isJson = ($c['req']['prefers'] === 'json' ||
+        (isset(($c['req']['accepts']['json']))
+            && $c['req']['accepts']['json'] === true));
     if ($isJson) {
         http_response_code(404);
         header("content-type: application/json; charset=utf-8");

@@ -189,7 +189,8 @@ class C
                 'method_headers' => null,
                 'NO_ROUTE_MATCH' => null,
                 'NO_ROUTE_MATCH_METHOD' => null,
-                'NO_NO_MATCH_MESSAGE' => '404 | No Content or Page Found',
+                'NO_NO_MATCH_MESSAGE' => '404 | No Content or Page Found a',
+                'SKIP_POST_RESPONSE_ON_NO_MATCH' => false,
             ],
             'pipes' => [
                 'request' => [],
@@ -236,9 +237,8 @@ class C
                 'accept_order' => null,
                 'accepts' => null,
                 'prefers' => null,
-                'ip'     => '##TOKEN_REQ_IP##',
-                'time'   => '##TOKEN_REQ_TIME##',
                 'uri' => null,
+                'matched_uri' => null,
                 'query' => '##TOKEN_REQ_QUERY_STRING##',
                 'base_url_absolute' => null,
                 'base_url_relative' => null,
@@ -246,6 +246,8 @@ class C
                 'route' => null,
                 'params' => null,
                 'segments' => null,
+                'ip'     => '##TOKEN_REQ_IP##',
+                'time'   => '##TOKEN_REQ_TIME##',
                 'matched_config' => null,
                 'matched_params' => null,
                 'matched_pipes' => [],
@@ -253,8 +255,6 @@ class C
                 'log' => [],
                 'ua' => null,
                 'content_type' => null,
-                'accept' => null,
-                'protocol' => null,
             ],
             'd' => null,
             'v' => null,
@@ -2648,11 +2648,31 @@ class C
         }
         $this->validBatches['config']['USE_VENDOR'] = $trueOrFalse;
     }
+    private function batchSetDisablePostResponseOnNoMatchGlobal(bool $trueOrFalse)
+    {
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setDisablePostResponseOnNoMatch', "", $trueOrFalse);
+        if (isset($this->invalidBatches['config']['FUNKPHP_DISABLE_POSTRESPONSE_ON_NO_MATCH'])) {
+            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Duplicate Call ' . $ctxVals);
+            return;
+        }
+        if (isset($this->validBatches['config']['FUNKPHP_DISABLE_POSTRESPONSE_ON_NO_MATCH'])) {
+            $this->setErr($this->getErr('DuplicateCallValidCanOnlyBeSetOnce', $ctxVals), 'Duplicate Call ' . $ctxVals);
+            return;
+        }
+        if (
+            !is_bool($trueOrFalse) || ($trueOrFalse !== FALSE && $trueOrFalse !== TRUE)
+        ) {
+            $this->setErr($this->getErr('NotBoolean', $ctxVals), 'Invalid Boolean Value ' . $ctxVals);
+            $this->invalidBatches['config']['FUNKPHP_DISABLE_POSTRESPONSE_ON_NO_MATCH'] = $trueOrFalse;
+            return;
+        }
+        $this->validBatches['config']['FUNKPHP_DISABLE_POSTRESPONSE_ON_NO_MATCH'] = $trueOrFalse;
+    }
 
     /* setUseDefault<Exception,Error,UriNormalizer,In-builtKernel-UserDefinedFunctions> Global */
     private function batchSetDefaultExceptionHandlerGlobal(string $userDefinedFunction) // DEFAULT EXCEPTION HANDLER
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setDefaultExceptionHandler', "CONFIG()", $userDefinedFunction);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setCustomExceptionHandler', "CONFIG()", $userDefinedFunction);
         if (isset($this->invalidBatches['config']['DEFAULT_EXCEPTION_HANDLER'])) {
             $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Duplicate Call ' . $ctxVals);
             return;
@@ -2698,12 +2718,12 @@ class C
         // Add to ValidBatches, UserDefinedFNs and also UserDefinedEngineFNs which means any User-defined function
         // that is added there cannot be used for multiple purposes as they are meant to be very specifically used.
         $this->validBatches['config']['DEFAULT_EXCEPTION_HANDLER'] = $userDefinedFunction;
-        $this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction] = "->CONFIG()->setDefaultExceptionHandler('{$userDefinedFunction}')";
-        $this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunction] = "->CONFIG()->setDefaultExceptionHandler('{$userDefinedFunction}')";
+        $this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction] = "->CONFIG()->setCustomExceptionHandler('{$userDefinedFunction}')";
+        $this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunction] = "->CONFIG()->setCustomExceptionHandler('{$userDefinedFunction}')";
     }
     private function batchSetDefaultErrorHandlerGlobal(string $userDefinedFunction) // DEFAULT GLOBAL ERROR HANDLER
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setDefaultErrorHandler', "CONFIG()", $userDefinedFunction);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setCustomErrorHandler', "CONFIG()", $userDefinedFunction);
         if (isset($this->invalidBatches['config']['DEFAULT_ERROR_HANDLER'])) {
             $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Duplicate Call ' . $ctxVals);
             return;
@@ -2749,12 +2769,12 @@ class C
         // Add to ValidBatches, UserDefinedFNs and also UserDefinedEngineFNs which means any User-defined function
         // that is added there cannot be used for multiple purposes as they are meant to be very specifically used.
         $this->validBatches['config']['DEFAULT_ERROR_HANDLER'] = $userDefinedFunction;
-        $this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction] = "->CONFIG()->setDefaultErrorHandler('{$userDefinedFunction}')";
-        $this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunction] = "->CONFIG()->setDefaultErrorHandler('{$userDefinedFunction}')";
+        $this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction] = "->CONFIG()->setCustomErrorHandler('{$userDefinedFunction}')";
+        $this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunction] = "->CONFIG()->setCustomErrorHandler('{$userDefinedFunction}')";
     }
     private function batchSetDefaultURINormalizerGlobal(string $userDefinedFunction) // URI NORMALIZER GLOBAL
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setDefaultURI_NormalizerHandler', "CONFIG()", $userDefinedFunction);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setCustomURI_NormalizerHandler', "CONFIG()", $userDefinedFunction);
         if (isset($this->invalidBatches['config']['DEFAULT_URI_NORMALIZER'])) {
             $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Duplicate Call ' . $ctxVals);
             return;
@@ -2794,12 +2814,12 @@ class C
         // Add to ValidBatches, UserDefinedFNs and also UserDefinedEngineFNs which means any User-defined function
         // that is added there cannot be used for multiple purposes as they are meant to be very specifically used.
         $this->validBatches['config']['DEFAULT_URI_NORMALIZER'] = $userDefinedFunction;
-        $this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction] = "->CONFIG()->setDefaultURI_NormalizerHandler('{$userDefinedFunction}')";
-        $this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunction] = "->CONFIG()->setDefaultURI_NormalizerHandler('{$userDefinedFunction}')";
+        $this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction] = "->CONFIG()->setCustomURI_NormalizerHandler('{$userDefinedFunction}')";
+        $this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunction] = "->CONFIG()->setCustomURI_NormalizerHandler('{$userDefinedFunction}')";
     }
     private function batchSetDefaultHTTPSKernelDispatchHandlerGlobal(string $userDefinedFunction) // DEFAULT HTTSP KERNEL/ROUTING
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setDefaultKernelHandler', "CONFIG()", $userDefinedFunction);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setCustomKernelHandler', "CONFIG()", $userDefinedFunction);
         if (isset($this->invalidBatches['config']['DEFAULT_HTTPS_KERNEL'])) {
             $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Duplicate Call ' . $ctxVals);
             return;
@@ -2839,12 +2859,12 @@ class C
         // Add to ValidBatches, UserDefinedFNs and also UserDefinedEngineFNs which means any User-defined function
         // that is added there cannot be used for multiple purposes as they are meant to be very specifically used.
         $this->validBatches['config']['DEFAULT_HTTPS_KERNEL'] = $userDefinedFunction;
-        $this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction] = "->CONFIG()->setDefaultKernelHandler('{$userDefinedFunction}')";
-        $this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunction] = "->CONFIG()->setDefaultKernelHandler('{$userDefinedFunction}')";
+        $this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction] = "->CONFIG()->setCustomKernelHandler('{$userDefinedFunction}')";
+        $this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunction] = "->CONFIG()->setCustomKernelHandler('{$userDefinedFunction}')";
     }
     private function batchSetDefaultIPResolverGlobal(string $userDefinedFunction) // URI NORMALIZER GLOBAL
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setDefaultIPResolver', "CONFIG()", $userDefinedFunction);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setCustomIPResolver', "CONFIG()", $userDefinedFunction);
         if (isset($this->invalidBatches['config']['DEFAULT_IP_RESOLVER'])) {
             $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Duplicate Call ' . $ctxVals);
             return;
@@ -2880,8 +2900,8 @@ class C
         // Add to ValidBatches, UserDefinedFNs and also UserDefinedEngineFNs which means any User-defined function
         // that is added there cannot be used for multiple purposes as they are meant to be very specifically used.
         $this->validBatches['config']['DEFAULT_IP_RESOLVER'] = $userDefinedFunction;
-        $this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction] = "->CONFIG()->setDefaultIPResolver('{$userDefinedFunction}')";
-        $this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunction] = "->CONFIG()->setDefaultIPResolver('{$userDefinedFunction}')";
+        $this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction] = "->CONFIG()->setCustomIPResolver('{$userDefinedFunction}')";
+        $this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunction] = "->CONFIG()->setCustomIPResolver('{$userDefinedFunction}')";
     }
 
     /* setNoRouteMatch<VARIANTS> Global - These are all catches when no catches for specific <method(s)> are defined/applied */
@@ -7602,7 +7622,7 @@ class C
         // ------------------------------------------------------------------------------------------
         // STEP 2: First add to the $compiled->c variable that can be added right away
         // ------------------------------------------------------------------------------------------
-        // 3 BOOLEANS
+        // 4 BOOLEANS
         if (isset($this->validBatches['config']['FUNKPHP_ONLINE'])) {
             $this->compiled['config']['runtime']['online'] = $this->validBatches['config']['FUNKPHP_ONLINE'];
         }
@@ -7611,6 +7631,9 @@ class C
         }
         if (isset($this->validBatches['config']['USE_HTTPS'])) {
             $this->compiled['config']['runtime']['use_https'] = $this->validBatches['config']['USE_HTTPS'];
+        }
+        if (isset($this->validBatches['config']['FUNKPHP_DISABLE_POSTRESPONSE_ON_NO_MATCH'])) {
+            $this->compiled['config']['runtime']['SKIP_POST_RESPONSE_ON_NO_MATCH'] = $this->validBatches['config']['FUNKPHP_DISABLE_POSTRESPONSE_ON_NO_MATCH'];
         }
         // 4 STRINGS
         if (isset($this->validBatches['config']['BASEURL_HOST'])) {
@@ -8652,6 +8675,12 @@ class C
             }
             if (function_exists($funcName)) {
                 register_shutdown_function(function () use ($funcName, &$c) {
+                    if (
+                        isset($c['runtime']['SKIP_POST_RESPONSE'])
+                        && $c['runtime']['SKIP_POST_RESPONSE'] === true
+                    ) {
+                        return;
+                    }
                     $funcName($c);
                 });
             } else {
@@ -8731,35 +8760,32 @@ class C
 
         // First check if matched request method even exists in internal route trie and
         // then run internal route match against the $c['compiled']['routes]['trie'] array
-        var_dump($c['compiled']);
-        if (!isset($this->$compiled['config']['routes']['trie'][$c['req']['method']])) {
+        if (!isset($this->compiled['routes']['trie'][$c['req']['method']])) {
             // Check and run GLOBAL NoRouteMatch due to not even method match,
             // fallback to in-built Page+JSON Response(s) based on Accept Header
             // if no GLOBAL NoRouteMatch is set
-            if (!empty($this->$compiled['config']['config']['NO_ROUTE_MATCH'])) {
+            if (isset($this->compiled['config']['runtime']['NO_ROUTE_MATCH'])) {
                 funk_internal_handle_no_route_match($c, 'CONFIG');
             }
-            // Fallback to In-built NoRouteMatch - the question here is what to do with
-            // setHeadersAdd that were created GLOBALLY? Send them or not in this case?
-            // TODO: ASK LLMs about it
+            // Fallback to In-built NoNoRouteMatch - when no route match is configured
             funk_internal_handle_no_no_route_match($c);
         }
-        if (!funk_internal_match_route_trie($c, $c['req']['uri'], ($this->$compiled['config']['routes']['trie'][$c['req']['method']] ?? []))) {
+        //var_dump($c['req']['uri']);
+        if (!funk_internal_match_route_trie($c, $c['req']['uri'], ($this->compiled['routes']['trie'][$c['req']['method']] ?? []))) {
             // Check and run METHOD NoRouteMatch due to no matched method/route
             // but also fallback to GLOBAL NoRouteMatch if METHOD NoRouteMatch is not set
             // and then in-built Page+JSON Response(s) based on Accept Header
-            if (isset($this->$compiled['config']['methods'][$c['req']['method']]['NO_ROUTE_MATCH'])) {
+            if (isset($this->compiled['config']['runtime']['NO_ROUTE_MATCH_METHOD'][$c['req']['method']])) {
                 funk_internal_handle_no_route_match($c, $c['req']['method']);
             }
             // Fallback to GLOBAL NoRouteMatch
-            if (!empty($this->$compiled['config']['config']['NO_ROUTE_MATCH'])) {
+            if (isset($this->compiled['config']['runtime']['NO_ROUTE_MATCH'])) {
                 funk_internal_handle_no_route_match($c, 'CONFIG');
             }
-            // Fallback to In-built NoRouteMatch - the question here is what to do with
-            // setHeadersAdd that were created GLOBALLY? Send them or not in this case?
-            // TODO: ASK LLMs about it
+            // Fallback to In-built NoNoRouteMatch - when no route match is configured
             funk_internal_handle_no_no_route_match($c);
         }
+        printf($c['req']);
 
         echo "run() started - compilation succeeded!<br/>";
         // A final exit to not be able to jump back to the compile() again
@@ -8856,6 +8882,17 @@ class FunkConfig
     public function setDebug(bool $ON_OR_OFF = true, bool $ALWAYS_SHOW = true, bool $SHOW_ALL = false, bool $SHOW_MAIN_CONFIG = true, bool $SHOW_VALID_BATCHES = false, bool $SHOW_INVALID_BATCHES = false, bool $SHOW_CACHED = false, bool $SHOW_COMPILED = false): self
     {
         $this->c->batch('batchSetDebug', $ON_OR_OFF, $ALWAYS_SHOW, $SHOW_ALL, $SHOW_VALID_BATCHES, $SHOW_INVALID_BATCHES, $SHOW_CACHED, $SHOW_COMPILED);
+        return $this;
+    }
+
+    /**
+     * @param bool $trueOrfalse Set to `TRUE` to DISABLE Post-Response Pipe Functions to run No Matched Method/(or) Route.
+     *
+     * This means that when a Method OR Route is NOT Matched, it will NOT run any Functions set by `->pipePostResponseFunction()`
+     */
+    public function setDisablePostResponseOnNoMatch(bool $trueOrfalse)
+    {
+        $this->c->batch('batchSetDisablePostResponseOnNoMatchGlobal', $trueOrfalse);
         return $this;
     }
 
@@ -9095,7 +9132,7 @@ class FunkConfig
      * @param string $userDefinedFunctionName Name of the user-defined exception handler function
      * @return $this
      */
-    public function setDefaultExceptionHandler(string $userDefinedFunctionName): self
+    public function setCustomExceptionHandler(string $userDefinedFunctionName): self
     {
         $userDefinedFunctionName = strtolower(trim($userDefinedFunctionName));
         $this->c->batch('batchSetDefaultExceptionHandlerGlobal', $userDefinedFunctionName);
@@ -9108,7 +9145,7 @@ class FunkConfig
      * @param string $userDefinedFunctionName Name of the user-defined error handler function
      * @return $this
      */
-    public function setDefaultErrorHandler(string $userDefinedFunctionName): self
+    public function setCustomErrorHandler(string $userDefinedFunctionName): self
     {
         $userDefinedFunctionName = strtolower(trim($userDefinedFunctionName));
         $this->c->batch('batchSetDefaultErrorHandlerGlobal', $userDefinedFunctionName);
@@ -9121,7 +9158,7 @@ class FunkConfig
      * @param string $userDefinedFunctionName Name of the URI normalization function
      * @return $this
      */
-    public function setDefaultURI_NormalizerHandler(string $userDefinedFunctionName): self
+    public function setCustomURI_NormalizerHandler(string $userDefinedFunctionName): self
     {
         $userDefinedFunctionName = strtolower(trim($userDefinedFunctionName));
         $this->c->batch('batchSetDefaultURINormalizerGlobal', $userDefinedFunctionName);
@@ -9134,7 +9171,7 @@ class FunkConfig
      * @param string $userDefinedFunctionName Name of the Custom HTTP(S) Kernel
      * @return $this
      */
-    public function setDefaultKernelHandler(string $userDefinedFunctionName): self
+    public function setCustomKernelHandler(string $userDefinedFunctionName): self
     {
         $userDefinedFunctionName = strtolower(trim($userDefinedFunctionName));
         $this->c->batch('batchSetDefaultHTTPSKernelDispatchHandlerGlobal', $userDefinedFunctionName);
@@ -9151,7 +9188,7 @@ class FunkConfig
      * @param string $userDefinedFunctionName Name of the IP Resolver Function
      * @return $this
      */
-    public function setDefaultIPResolver(string $userDefinedFunctionName): self
+    public function setCustomIPResolver(string $userDefinedFunctionName): self
     {
         $userDefinedFunctionName = strtolower(trim($userDefinedFunctionName));
         $this->c->batch('batchSetDefaultIPResolverGlobal', $userDefinedFunctionName);
