@@ -1719,30 +1719,26 @@ function funk_internal_match_route_trie(&$c, string $requestUri, array $methodRo
     $uriSegments = empty($path) ? [] : array_values(array_filter(explode('/', $path)));
     $uriSegmentCount = count($uriSegments);
     $currentNode = $methodRootNode;
-    $matchedPathSegments = ['uri' => $uriSegments, 'route' => []];
+    $matchedPathSegments = ['route' => []];
     $matchedParams = [];
     $segmentsConsumed = 0;
-    // EDGE-CASE: '/' only but does it exist in Trie?
     if ($uriSegmentCount === 0) {
         if (!isset($currentNode['/'])) {
             return false;
         }
+        $c['req']['matched_route'] = true;
         $c['req']['segments'] = ['/'];
-        $c['req']['matched_uri'] = '/';
+        $c['req']['route'] = '/';
         return true;
     }
-    // Iterate URI segments when more than 0
     for ($i = 0; $i < $uriSegmentCount; $i++) {
         $currentUriSegment = $uriSegments[$i];
-        // Then try match literal route
         if (isset($currentNode[$currentUriSegment])) {
             $matchedPathSegments['route'][] = $currentUriSegment;
             $currentNode = $currentNode[$currentUriSegment];
             $segmentsConsumed++;
             continue;
         }
-        // Or try match dynamic route ":" indicator node and
-        // only store param and matched URI segment if not null
         if (isset($currentNode[':'])) {
             $placeholderKey = key($currentNode[':']);
             if ($placeholderKey !== null && isset($currentNode[':'][$placeholderKey])) {
@@ -1762,7 +1758,7 @@ function funk_internal_match_route_trie(&$c, string $requestUri, array $methodRo
         if (!empty($matchedPathSegments['route'])) {
             $c['req']['segments'] = $matchedPathSegments['route'];
             $c['req']['route'] = ('/' . implode('/', $matchedPathSegments['route']));
-            //$c['req']['params'] = $matchedParams;
+            $c['req']['matched_route'] = true;
             return true;
         } else {
             return false;

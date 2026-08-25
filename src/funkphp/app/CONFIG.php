@@ -4,8 +4,6 @@
 /** @var FunkPHP $APP */
 $APP->CONFIG()
     ->setNoRouteMatchJSON(["err" => "nothing found"], 404)
-    ->setNoRouteMatchText("Not allowed", 404)
-    //->setNoRouteMatchPage("test", 404)
     ->setNoRouteMatchCallback("test")
     //->setHeaderAdd("Content-Type", 'text/html')
     ->setINI_SET([

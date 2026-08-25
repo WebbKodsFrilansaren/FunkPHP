@@ -233,25 +233,20 @@ class C
             'credentials' => null,
             'connections' => [],
             'req' => [
+                'ip'     => '##TOKEN_REQ_IP##',
                 'method' => '##TOKEN_REQ_METHOD##',
-                'accept_order' => null,
-                'accepts' => null,
                 'prefers' => null,
                 'uri' => null,
-                'matched_uri' => null,
+                'route' => null,
+                'route_matched' => false,
+                'segments' => null,
+                'params' => null,
+                'accept_order' => null,
+                'accepts' => null,
                 'query' => '##TOKEN_REQ_QUERY_STRING##',
                 'base_url_absolute' => null,
                 'base_url_relative' => null,
-                'matched_in' => null,
-                'route' => null,
-                'params' => null,
-                'segments' => null,
-                'ip'     => '##TOKEN_REQ_IP##',
                 'time'   => '##TOKEN_REQ_TIME##',
-                'matched_config' => null,
-                'matched_params' => null,
-                'matched_pipes' => [],
-                'matched_middlewares' => null,
                 'log' => [],
                 'ua' => null,
                 'content_type' => null,
@@ -8465,14 +8460,14 @@ class C
                     }
                     if (isset($this->compiled['methods'][$method]['headers']['remove'])) {
                         foreach ($this->compiled['methods'][$method]['headers']['remove'] as $methodHeaderRemove) {
-                            if (!in_array($methodHeaderRemove,  $this->compiled['routes'][$method][$route]['headers']['remove'])) {
+                            if (!in_array($methodHeaderRemove, ($this->compiled['routes'][$method][$route]['headers']['remove'] ?? []))) {
                                 $this->compiled['routes'][$method][$route]['headers']['remove'][] = $methodHeaderRemove;
                             }
                         }
                     }
                     if (isset($this->compiled['config']['headers']['remove'])) {
                         foreach ($this->compiled['config']['headers']['remove'] as $configHeaderRemove) {
-                            if (!in_array($configHeaderRemove,  $this->compiled['routes'][$method][$route]['headers']['remove'])) {
+                            if (!in_array($configHeaderRemove, ($this->compiled['routes'][$method][$route]['headers']['remove'] ?? []))) {
                                 $this->compiled['routes'][$method][$route]['headers']['remove'][] = $configHeaderRemove;
                             }
                         }
@@ -8771,7 +8766,10 @@ class C
             funk_internal_handle_no_no_route_match($c);
         }
         //var_dump($c['req']['uri']);
-        if (!funk_internal_match_route_trie($c, $c['req']['uri'], ($this->compiled['routes']['trie'][$c['req']['method']] ?? []))) {
+        if (
+            !funk_internal_match_route_trie($c, $c['req']['uri'], ($this->compiled['routes']['trie'][$c['req']['method']] ?? []))
+            || !isset($this->compiled['routes'][$c['req']['method']][$c['req']['route']])
+        ) {
             // Check and run METHOD NoRouteMatch due to no matched method/route
             // but also fallback to GLOBAL NoRouteMatch if METHOD NoRouteMatch is not set
             // and then in-built Page+JSON Response(s) based on Accept Header
@@ -8785,7 +8783,7 @@ class C
             // Fallback to In-built NoNoRouteMatch - when no route match is configured
             funk_internal_handle_no_no_route_match($c);
         }
-        printf($c['req']);
+        dd($c['req']);
 
         echo "run() started - compilation succeeded!<br/>";
         // A final exit to not be able to jump back to the compile() again

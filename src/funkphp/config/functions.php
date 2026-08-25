@@ -23,7 +23,8 @@
 
 function test(&$c)
 {
-    echo "YAS from test() user defined fn!";
+    echo "YAS from test() user defined fn! This is callback on NO_ROUTE_MATCH";
+    dd($c['req']);
 }
 
 function testar0(&$c)
