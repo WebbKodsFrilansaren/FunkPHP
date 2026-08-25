@@ -1860,6 +1860,7 @@ function funk_internal_handle_no_route_match(&$c, $globalOrMethod)
         }
         $prefers = $c['req']['prefers'];
         if ($prefers === 'json' && isset($c['runtime']['NO_ROUTE_MATCH']['JSON'])) {
+            var_dump("test");
             funk_internal_send_global_headers($c);
             header("content-type: application/json; charset=utf-8");
             http_response_code($c['runtime']['NO_ROUTE_MATCH']['JSON']['code']);
@@ -1913,14 +1914,14 @@ function funk_internal_handle_no_route_match(&$c, $globalOrMethod)
             header("content-type: text/html; charset=utf-8");
             http_response_code($c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['PAGE']['code']);
             if (defined(FUNKPHP_ONLINE)) {
-                include_once ROOT_FOLDER . '/pages/' . $c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['PAGE']['page'] . '/.php';
+                require ROOT_FOLDER . '/pages/' . $c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['PAGE']['page'] . '/.php';
                 exit;
             } else {
                 if (
                     file_exists($c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['PAGE']['path'])
                     && is_readable($c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['PAGE']['path'])
                 ) {
-                    include_once $c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['PAGE']['path'];
+                    require $c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['PAGE']['path'];
                     exit;
                 }
             }
@@ -1970,8 +1971,8 @@ function funk_internal_send_response_headers(&$c)
 // Send ONLY Global Headers, used only when things stops already globally without route match
 function funk_internal_send_global_headers(&$c)
 {
-    if (isset($c['runtime']['global_headers']) && !empty($c['runtime']['global_headers'])) {
-        foreach ($c['runtime']['global_headers'] as $gh) {
+    if (isset($c['runtime']['global_headers']['add']) && !empty($c['runtime']['global_headers']['add'])) {
+        foreach ($c['runtime']['global_headers']['add'] as $gh) {
             header($gh);
         }
     }
@@ -1980,8 +1981,8 @@ function funk_internal_send_global_headers(&$c)
 function funk_internal_send_method_headers(&$c)
 {
     $method = $c['req']['method'];
-    if (isset($c['runtime']['method_headers'][$method]) && !empty($c['runtime']['method_headers'][$method])) {
-        foreach ($c['runtime']['method_headers'][$method] as $mh) {
+    if (isset($c['runtime']['method_headers']['add'][$method]) && !empty($c['runtime']['method_headers']['add'][$method])) {
+        foreach ($c['runtime']['method_headers']['add'][$method] as $mh) {
             header($mh);
         }
     }
@@ -1996,7 +1997,7 @@ function funk_internal_handle_no_no_route_match(&$c)
         && is_string($c['runtime']['NO_NO_MATCH_MESSAGE'])
         && trim($c['runtime']['NO_NO_MATCH_MESSAGE']) !== '')
         ? $c['runtime']['NO_NO_MATCH_MESSAGE']
-        : '404 | No Content or Page Found';
+        : htmlspecialchars('404 | No Content or Page Found | Are You the Developer? This means You have NOT Configured Any `NO_ROUTE_MATCH<Variant>`!');
     $isJson = ($c['req']['prefers'] === 'json' || !empty($c['req']['accepts']['json']));
     if ($isJson) {
         http_response_code(404);

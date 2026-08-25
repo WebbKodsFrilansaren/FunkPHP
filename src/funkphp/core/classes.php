@@ -7826,16 +7826,34 @@ class C
         // ------------------------------------------------------------------------------------------------
         if (isset($this->validBatches['config']['headers'])) {
             $this->compiled['config']['headers'] =  $this->validBatches['config']['headers'];
+            if (isset($this->validBatches['config']['headers']['remove'])) {
+                $this->compiled['config']['runtime']['global_headers']['remove'] = $this->validBatches['config']['headers']['remove'];
+            }
+            // Global headers are also added to $c['runtime']
             foreach ($this->validBatches['config']['headers']['add'] as $_ => $globalHeaderOnly) {
-                $this->compiled['config']['runtime']['global_headers'][] = strtolower($globalHeaderOnly['name']) . ': ' . $globalHeaderOnly['value'];
+                $this->compiled['config']['runtime']['global_headers']['add'][] = strtolower($globalHeaderOnly['name']) . ': ' . $globalHeaderOnly['value'];
             }
         }
         foreach (['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD'] as $method) {
             if (isset($this->validBatches['methods'][$method]['headers'])) {
                 $this->compiled['methods'][$method]['headers'] = $this->validBatches['methods'][$method]['headers'];
             }
+            if (isset($this->validBatches['methods'][$method]['headers']['remove'])) {
+                $this->compiled['config']['runtime']['method_headers']['remove'][$method] = $this->validBatches['methods'][$method]['headers']['remove'];
+            }
+            // Global headers inherited + method headers added to $c['runtime'] so global headers
+            // already in $method header, they are ignored/continued from
+            if (isset($this->validBatches['config']['headers']['add'])) {
+                foreach ($this->validBatches['config']['headers']['add'] as $_ => $globalHeaderOnly2) {
+                    if (isset($this->validBatches['methods'][$method]['headers']['add'][$_])) {
+                        continue;
+                    }
+                    $this->compiled['config']['runtime']['method_headers']['add'][$method][] = strtolower($globalHeaderOnly2['name']) . ': ' . $globalHeaderOnly2['value'];
+                }
+            }
+
             foreach ($this->validBatches['methods'][$method]['headers']['add'] as $_ => $methodHeaderOnly) {
-                $this->compiled['config']['runtime']['method_headers'][$method][] = strtolower($methodHeaderOnly['name']) . ': ' . $methodHeaderOnly['value'];
+                $this->compiled['config']['runtime']['method_headers']['add'][$method][] = strtolower($methodHeaderOnly['name']) . ': ' . $methodHeaderOnly['value'];
             }
         }
         // ------------------------------------------------------------------------------------------------
@@ -7850,9 +7868,11 @@ class C
         foreach (['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD'] as $method) {
             if (isset($this->validBatches['methods'][$method]['csp'])) {
                 $this->compiled['methods'][$method]['csp'] = $this->validBatches['methods'][$method]['csp'];
+                $this->compiled['config']['runtime']['method_csp'][$method] = $this->validBatches['methods'][$method]['csp'];
             }
             if (isset($this->validBatches['methods'][$method]['nonces'])) {
                 $this->compiled['methods'][$method]['nonces'] = $this->validBatches['methods'][$method]['nonces'];
+                $this->compiled['config']['runtime']['method_nonces'][$method] = $this->validBatches['methods'][$method]['nonces'];
             }
         }
         // ------------------------------------------------------------------------------------------
@@ -8490,7 +8510,6 @@ class C
                         }
                     }
                     $this->compiled['routes'][$method][$route]['response'] = $this->validBatches['routes'][$method][$route]['response'];
-
                     // END OF Current $route Iteration!
                 }
                 // Any Param Rules for Current $method that were NEVER used by Any of its $route(s)?
@@ -8712,11 +8731,12 @@ class C
 
         // First check if matched request method even exists in internal route trie and
         // then run internal route match against the $c['compiled']['routes]['trie'] array
-        if (!isset($c['compiled']['routes']['trie'][$c['req']['method']])) {
+        var_dump($c['compiled']);
+        if (!isset($this->$compiled['config']['routes']['trie'][$c['req']['method']])) {
             // Check and run GLOBAL NoRouteMatch due to not even method match,
             // fallback to in-built Page+JSON Response(s) based on Accept Header
             // if no GLOBAL NoRouteMatch is set
-            if (!empty($c['compiled']['config']['NO_ROUTE_MATCH'])) {
+            if (!empty($this->$compiled['config']['config']['NO_ROUTE_MATCH'])) {
                 funk_internal_handle_no_route_match($c, 'CONFIG');
             }
             // Fallback to In-built NoRouteMatch - the question here is what to do with
@@ -8724,15 +8744,15 @@ class C
             // TODO: ASK LLMs about it
             funk_internal_handle_no_no_route_match($c);
         }
-        if (!funk_internal_match_route_trie($c, $c['req']['uri'], ($c['compiled']['routes']['trie'][$c['req']['method']] ?? []))) {
+        if (!funk_internal_match_route_trie($c, $c['req']['uri'], ($this->$compiled['config']['routes']['trie'][$c['req']['method']] ?? []))) {
             // Check and run METHOD NoRouteMatch due to no matched method/route
             // but also fallback to GLOBAL NoRouteMatch if METHOD NoRouteMatch is not set
             // and then in-built Page+JSON Response(s) based on Accept Header
-            if (isset($c['compiled']['methods'][$c['req']['method']]['NO_ROUTE_MATCH'])) {
+            if (isset($this->$compiled['config']['methods'][$c['req']['method']]['NO_ROUTE_MATCH'])) {
                 funk_internal_handle_no_route_match($c, $c['req']['method']);
             }
             // Fallback to GLOBAL NoRouteMatch
-            if (!empty($c['compiled']['config']['NO_ROUTE_MATCH'])) {
+            if (!empty($this->$compiled['config']['config']['NO_ROUTE_MATCH'])) {
                 funk_internal_handle_no_route_match($c, 'CONFIG');
             }
             // Fallback to In-built NoRouteMatch - the question here is what to do with
