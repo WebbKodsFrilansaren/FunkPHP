@@ -5059,6 +5059,7 @@ class C
             'pipes' => [],
             'pipes-resolved' => [],
             'middlewares' => [],
+            'middlewares-resolved' => [],
             'pipes_and_middlewares' => [],
             'middlewares_to_inherit' => [],
             'excludeMiddlewares' => null,
@@ -7860,7 +7861,7 @@ class C
                 $this->compiled['config']['runtime']['method_headers']['remove'][$method] = $this->validBatches['methods'][$method]['headers']['remove'];
             }
             // Global headers inherited + method headers added to $c['runtime'] so global headers
-            // already in $method header, they are ignored/continued from
+            // already in $method header, they are ignored/continued from since method headers "overwrites"
             if (isset($this->validBatches['config']['headers']['add'])) {
                 foreach ($this->validBatches['config']['headers']['add'] as $_ => $globalHeaderOnly2) {
                     if (isset($this->validBatches['methods'][$method]['headers']['add'][$_])) {
@@ -7869,9 +7870,10 @@ class C
                     $this->compiled['config']['runtime']['method_headers']['add'][$method][] = strtolower($globalHeaderOnly2['name']) . ': ' . $globalHeaderOnly2['value'];
                 }
             }
-
-            foreach ($this->validBatches['methods'][$method]['headers']['add'] as $_ => $methodHeaderOnly) {
-                $this->compiled['config']['runtime']['method_headers']['add'][$method][] = strtolower($methodHeaderOnly['name']) . ': ' . $methodHeaderOnly['value'];
+            if (isset($this->validBatches['methods'][$method]['headers']['add'])) {
+                foreach ($this->validBatches['methods'][$method]['headers']['add'] as $_ => $methodHeaderOnly) {
+                    $this->compiled['config']['runtime']['method_headers']['add'][$method][] = strtolower($methodHeaderOnly['name']) . ': ' . $methodHeaderOnly['value'];
+                }
             }
         }
         // ------------------------------------------------------------------------------------------------
@@ -8232,7 +8234,7 @@ class C
                     // Add ALL Pipes to Compiled Route including resolved versions of them
                     foreach ($CURRENT_ROUTE_PIPES as $CRoutePipe) {
                         $resolved = $this->compile_resolve_fn_paths('pipe', $CRoutePipe);
-                        $this->compiled['routes'][$method][$route]['pipes-resolved'][] = $resolved;
+                        $this->compiled['routes'][$method][$route]['pipes-resolved'][] = ['run' => $resolved[0], 'path' => $resolved[1]];
                     }
                     $this->compiled['routes'][$method][$route]['pipes'] = $CURRENT_ROUTE_PIPES;
                     // Before we unpack MWs inside Route, we need to check if it has any routes first
@@ -8402,7 +8404,7 @@ class C
                     // in the excludeHeaders array for the Route. Then we do the same for 'remove' Headers.
                     if (isset($routeDetails['headers']['add'])) {
                         foreach ($routeDetails['headers']['add'] as $routeHeader) {
-                            $this->compiled['routes'][$method][$route]['headers']['add'][] = strtolower($routeHeader['name']) . ': ' . $routeHeader['value'];
+                            $this->compiled['routes'][$method][$route]['headers']['add'][strtolower($routeHeader['name'])] = strtolower($routeHeader['name']) . ': ' . $routeHeader['value'];
                         }
                     }
                     // Add any Non-Excluded Or Already-Added-With-Same-Name Method Headers
@@ -8421,7 +8423,7 @@ class C
                                 }
                                 continue;
                             } else {
-                                $this->compiled['routes'][$method][$route]['headers']['add'][] = strtolower($methodHeader['name']) . ': ' . $methodHeader['value'];
+                                $this->compiled['routes'][$method][$route]['headers']['add'][strtolower($methodHeader['name'])] = strtolower($methodHeader['name']) . ': ' . $methodHeader['value'];
                             }
                         }
                     }
@@ -8441,7 +8443,7 @@ class C
                                 }
                                 continue;
                             } else {
-                                $this->compiled['routes'][$method][$route]['headers']['add'][] = strtolower($configHeader['name']) . ': ' . $configHeader['value'];
+                                $this->compiled['routes'][$method][$route]['headers']['add'][strtolower($configHeader['name'])] = strtolower($configHeader['name']) . ': ' . $configHeader['value'];
                             }
                         }
                     }
@@ -8765,7 +8767,18 @@ class C
             // Fallback to In-built NoNoRouteMatch - when no route match is configured
             funk_internal_handle_no_no_route_match($c);
         }
-        //var_dump($c['req']['uri']);
+        // Run any set funk_internal_rate_limiter() for MATCHED <METHOD>() context
+        if (isset($this->compiled['methods'][$c['req']['method']]['ratelimit'])) {
+            funk_internal_rate_limiter(
+                $c,
+                $this->compiled['config']['ratelimit']['max_requests'],
+                $this->compiled['config']['ratelimit']['window_seconds'],
+                $this->compiled['config']['ratelimit']['by'],
+                $this->compiled['config']['ratelimit']['driver']
+            );
+        }
+
+        // Try match first in Trie and then also that it exists as an exact Route Key in the Compiled Routes Array!
         if (
             !funk_internal_match_route_trie($c, $c['req']['uri'], ($this->compiled['routes']['trie'][$c['req']['method']] ?? []))
             || !isset($this->compiled['routes'][$c['req']['method']][$c['req']['route']])
@@ -8783,7 +8796,54 @@ class C
             // Fallback to In-built NoNoRouteMatch - when no route match is configured
             funk_internal_handle_no_no_route_match($c);
         }
-        dd($c['req']);
+        // Run any set funk_internal_rate_limiter() for MATCHED <METHOD><ROUTE>() context
+        if (isset($this->compiled['routes'][$c['req']['method']][$c['req']['route']]['ratelimit'])) {
+            funk_internal_rate_limiter(
+                $c,
+                $this->compiled['routes'][$c['req']['method']][$c['req']['route']]['ratelimit']['max_requests'],
+                $this->compiled['routes'][$c['req']['method']][$c['req']['route']]['ratelimit']['window_seconds'],
+                $this->compiled['routes'][$c['req']['method']][$c['req']['route']]['ratelimit']['by'],
+                $this->compiled['routes'][$c['req']['method']][$c['req']['route']]['ratelimit']['driver']
+            );
+        }
+        // Run any set funk_internal_route_cache() for the MATCHED <METHOD><ROUTE>() context
+        if (isset($this->compiled['routes'][$c['req']['method']][$c['req']['route']]['cache'])) {
+            funk_internal_route_cache(
+                $c,
+                $this->compiled['routes'][$c['req']['method']][$c['req']['route']]['cache']['ttl'],
+                $this->compiled['routes'][$c['req']['method']][$c['req']['route']]['cache']['driver'],
+                $this->compiled['routes'][$c['req']['method']][$c['req']['route']]['cache']['varyBy'],
+                $this->compiled['routes'][$c['req']['method']][$c['req']['route']]['cache']['private']
+            );
+        }
+        // INTERNAL Local Running ONLY: Add Current Matched Route for Easier Reuse
+        $c['runtime']['route'] = $this->compiled['routes'][$c['req']['method']][$c['req']['route']];
+
+        // NOW FINALLY RUN _ALL_ MWs of Route (it has already inherited them in correct order)
+        // first Running Global, then Method, then Route exclusive Middlewares. After this, Run
+        // any pipes and that's pretty much it!
+        dd($c['runtime']['route']);
+        if (isset($c['runtime']['route']['middlewares-resolved'])) {
+            foreach ($c['runtime']['route']['middlewares-resolved'] as $routeMW) {
+                $mwFN = $routeMW['run'];
+                $mwPath = $routeMW['path'];
+                if (!function_exists($mwFN)) {
+                    require_once $mwPath;
+                }
+                $mwFN($c);
+            }
+        }
+        if (isset($c['runtime']['route']['pipes-resolved'])) {
+            foreach ($c['runtime']['route']['pipes-resolved'] as $routePipe) {
+                $pipeFN = $routePipe['run'];
+                $pipePath = $routePipe['path'];
+                var_dump($pipePath);
+                if (!function_exists($pipeFN)) {
+                    require_once $pipePath;
+                }
+                $pipeFN($c);
+            }
+        }
 
         echo "run() started - compilation succeeded!<br/>";
         // A final exit to not be able to jump back to the compile() again

@@ -5,6 +5,7 @@
 $APP->CONFIG()
     ->setNoRouteMatchJSON(["err" => "nothing found"], 404)
     ->setNoRouteMatchCallback("test")
+    ->setHeaderAdd('Allow', 'all')
     //->setHeaderAdd("Content-Type", 'text/html')
     ->setINI_SET([
         'session.cache_limiter' => 'public',
@@ -20,7 +21,6 @@ $APP->CONFIG()
         'error_reporting'         => 1,
     ])
     ->setRateLimit(60, 60, 'ip', 'redis')
-    ->pipeMiddleware("auth")
     ->pipePostResponseFunction('debug')
     //->setDebug(true, true, false)
 ;

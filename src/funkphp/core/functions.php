@@ -1120,144 +1120,6 @@ function funk_clear_log(&$c, $saveFirst = false)
     return;
 }
 
-// Match Compiled Route with URI Segments, used by "r_match_developer_route"
-function funk_match_compiled_route(&$c, string $requestUri, array $methodRootNode): ?array
-{
-    // Prepare & and extract URI Segments and remove empty segments
-    $path = trim(strtolower($requestUri), '/');
-    $uriSegments = empty($path) ? [] : array_values(array_filter(explode('/', $path)));
-    $uriSegmentCount = count($uriSegments);
-    // Prepare variables to store the current node,
-    // matched segments, parameters, and middlewares
-    $currentNode = $methodRootNode;
-    $matchedPathSegments = ['uri' => $uriSegments, 'route' => []]; // Start with empty string to make implode work correctly
-    $matchedParams = [];
-    $matchedMiddlewares = [];
-    $segmentsConsumed = 0;
-    // EDGE-CASE: '/' and include middleware at root node if it exists
-    if ($uriSegmentCount === 0) {
-        // When no match for root node
-        if (!isset($currentNode['/'])) {
-            return null;
-        }
-        if (isset($currentNode['|'])) {
-            array_push($matchedMiddlewares, "/" . implode('/', $matchedPathSegments['route']));
-        }
-        return ["route" => '/', "params" => $matchedParams, "middlewares" => $matchedMiddlewares];
-    }
-    // Iterate URI segments when more than 0
-    for ($i = 0; $i < $uriSegmentCount; $i++) {
-        $currentUriSegment = $uriSegments[$i];
-        /// First try match "|" middleware node
-        if (isset($currentNode['|'])) {
-            array_push($matchedMiddlewares, "/" . implode('/', $matchedPathSegments['route']));
-        }
-        // Then try match literal route
-        if (isset($currentNode[$currentUriSegment])) {
-            $matchedPathSegments['route'][] = $currentUriSegment;
-            $currentNode = $currentNode[$currentUriSegment];
-            $segmentsConsumed++;
-            continue;
-        }
-        // Or try match dynamic route ":" indicator node and
-        // only store param and matched URI segment if not null
-        if (isset($currentNode[':'])) {
-            $placeholderKey = key($currentNode[':']);
-            if ($placeholderKey !== null && isset($currentNode[':'][$placeholderKey])) {
-                $matchedParams[$placeholderKey] = $currentUriSegment;
-                $matchedPathSegments['route'][] = ":" . $placeholderKey;
-                $currentNode = $currentNode[':'][$placeholderKey];
-                $segmentsConsumed++;
-                continue;
-            }
-        }
-        // No matched "|", ":" or literal route in Compiled Routes!
-        return null;
-    }
-    // EDGE-CASE: Add middleware at last node if it exists
-    if (isset($currentNode['|'])) {
-        array_push($matchedMiddlewares, "/" . implode('/', $matchedPathSegments['route']));
-    }
-    // Return matched route, params & middlewares
-    // if all consumed segments matched
-    if ($segmentsConsumed === $uriSegmentCount) {
-        if (!empty($matchedPathSegments['route'])) {
-            return ["route" => '/' . implode('/', $matchedPathSegments['route']), "segments" => $matchedPathSegments, "params" => $matchedParams, "middlewares" => $matchedMiddlewares];
-        }
-        // EDGE-CASE: 0 consumed segments,
-        // return null instead of matched
-        else {
-            return null;
-        }
-    }
-    // EDGE-CASES: Return null when impossible(?)/unexpected behavior
-    else {
-        return null;
-    }
-    return null;
-}
-
-// TRIE ROUTER STARTING POINT: Match Returned Matched Compiled Route With Developer's Defined Route
-function funk_match_developer_route(&$c, string $method, string $uri, array $compiledRouteTrie, array $developerSingleRoutes)
-{
-    // Prepare return values
-    $matchedRoute = null;
-    $matchedPathSegments = null;
-    $matchedRouteParams = null;
-    $matchedMiddlewareHandlers = [];
-    $routeDefinition = null;
-    $noMatchIn = ''; // Use as debug value
-    // Try match HTTP Method Key in Compiled Routes
-    if (isset($compiledRouteTrie[$method])) {
-        $routeDefinition = \funk_match_compiled_route($c, $uri, $compiledRouteTrie[$method]);
-    } else {
-        $noMatchIn = 'NO MATCH FOR COMPILED_ROUTE_KEY (' . mb_strtoupper($method) . ') & ';
-        return false;
-    }
-    // When Matched Compiled Route, try match Developer's defined route
-    if ($routeDefinition !== null) {
-        $matchedRoute = $routeDefinition["route"];
-        $matchedPathSegments = $routeDefinition["segments"] ?? [];
-        $matchedRouteParams = $routeDefinition["params"] ?? null;
-        // If Compiled Route Matches Developers Defined Route!
-        if (isset($developerSingleRoutes[$method][$routeDefinition["route"]])) {
-            $routeInfo = $developerSingleRoutes[$method][$routeDefinition["route"]];
-            $noMatchIn = 'ROUTE_MATCHED_BOTH';
-            $c['req']['route'] = $matchedRoute;
-            $c['req']['segments'] = $matchedPathSegments;
-            $c['req']['params'] = $matchedRouteParams;
-            $c['req']['matched_in'] = $noMatchIn;
-            $c['req']['matched_config'] = $routeInfo['config'] ?? [];
-            $c['req']['matched_pipeline'] = $routeInfo['pipeline'] ?? [];
-            // Add Any Matched Middlewares
-            if (
-                isset($routeDefinition["middlewares"])
-                && is_array($routeDefinition["middlewares"])
-                && !empty($routeDefinition["middlewares"])
-            ) {
-                // Each 'middlewares' key is an numbered array so
-                // we can use array_merge so always keep the order
-                foreach ($routeDefinition["middlewares"] as $middleware) {
-                    if (
-                        isset($developerSingleRoutes[$method][$middleware])
-                        && isset($developerSingleRoutes[$method][$middleware]['middlewares'])
-                    ) {
-                        $matchedMiddlewareHandlers = array_merge($matchedMiddlewareHandlers, $developerSingleRoutes[$method][$middleware]['middlewares']);
-                    }
-                }
-            }
-            $c['req']['matched_middlewares'] = $matchedMiddlewareHandlers;
-            return true;
-        } else {
-            $noMatchIn .= 'NO MATCH IN DEVELOPER_ROUTES(funkphp/core/pipeline_routes.php)';
-        }
-    } else {
-        $noMatchIn .= 'NO MATCH IN COMPILED_ROUTES(funkphp/core/compiled_routes.php)';
-    }
-    // Return all Keys in matched Route and then overwrite some keys that are "hardcoded"
-    return false;
-}
-
 /**
  * Check if Current Request accepts specific Mime Type using its shorthand name (e.g. `json` for `application/json`).
  *
@@ -1294,7 +1156,7 @@ function funk_req_prefers(&$c, $contentType): bool
  */
 function funk_set_header(&$c, $headerName, $value)
 {
-    $c['req']['response']['headers'][strtolower(trim($headerName))] = $headerName . ': ' . $value;
+    $c['runtime']['route']['headers']['add'][strtolower(trim($headerName))] = $headerName . ': ' . $value;
 }
 
 /**
@@ -1542,7 +1404,11 @@ function funk_internal_session_started_or_start_it(&$c)
         funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
     }
 }
+
+/* INTERNAL RATE LIMITER (ALL LEVELS) & INERNAL ROUTE CACHE (Route Exclusive) */
 function funk_internal_rate_limiter(&$c, int $maxRequestsPerWindowSize, int $windowSizeSecs, string|array $by = 'ip', $driver = 'redis') {}
+
+function funk_internal_route_cache(&$c, int $ttl, string $driver = 'redis', string|array|null $varyBy = null, bool $private = false) {}
 /**
  * Checks if an IP (IPv4 or IPv6) matches an IP/CIDR string.
  */
@@ -1750,10 +1616,8 @@ function funk_internal_match_route_trie(&$c, string $requestUri, array $methodRo
                 continue;
             }
         }
-        // No matched ":" or literal route in Compiled Routes!
         return false;
     }
-    // Return matched route, params if all consumed segments matched
     if ($segmentsConsumed === $uriSegmentCount) {
         if (!empty($matchedPathSegments['route'])) {
             $c['req']['segments'] = $matchedPathSegments['route'];
@@ -1893,6 +1757,76 @@ function funk_internal_negotiate_content(mixed &$c): array
     return [$sortedList, $prefers];
 }
 
+
+function funk_internal_handle_nonces(&$c, $nonce) {}
+
+function funk_internal_handle_sri_internal(&$c, $nonce) {}
+
+function funk_internal_handle_sri_external(&$c, $nonce) {}
+
+function funk_internal_send_response_headers(&$c)
+{
+    if (headers_sent()) {
+        $c['err']['INTERNAL'][] = "Headers have already been sent when they should be sent by `funk_internal_send_response_headers()` Function. Check if You have used `header()` anywhere inside Any of Your Pipe Functions (including Request Pipes, Middleware Pipes, Route Pipes & Post-Response Pipes).";
+        return;
+    }
+    // First remove any previously added header from 3rd party;
+    // IMPORTANT: this does NOT remove any added via `funk_set_header()`
+    if (isset($c['runtime']['route']['headers']['remove'])) {
+        foreach ($c['runtime']['route']['headers']['remove'] as $routeHeaderRemove) {
+            header_remove($routeHeaderRemove);
+        }
+    }
+    if (isset($c['runtime']['route']['headers']['add'])) {
+        foreach ($c['runtime']['route']['headers']['add'] as $routeHeaderAddK => $routeHeaderAddV) {
+            header($routeHeaderAddV);
+        }
+    }
+    /* CSP PARTS! - Must first get from Global, Method then Route OR
+    Maybe it should be that during compile(), every Route already has
+    all available headers to grab and thus return here? */
+    $cspParts = [];
+    $cspDirectives = ['placeholder' => ['placeholder2']];
+    foreach ($cspDirectives as $directive => $sources) {
+        // If count is 0 (because no nonces were ever evaluated for this directive), SKIP IT!
+        if (empty($sources)) {
+            continue;
+        }
+        $cspParts[] = $directive . ' ' . implode(' ', $sources);
+    }
+    if (!empty($cspParts)) {
+        header('Content-Security-Policy: ' . implode('; ', $cspParts));
+    }
+}
+// Send ONLY Global Headers, used only when things stops already globally without route match
+function funk_internal_send_global_headers(&$c)
+{
+    if (isset($c['runtime']['global_headers']['remove']) && !empty($c['runtime']['global_headers']['remove'])) {
+        foreach ($c['runtime']['global_headers']['remove'] as $ghr) {
+            header_remove($ghr);
+        }
+    }
+    if (isset($c['runtime']['global_headers']['add']) && !empty($c['runtime']['global_headers']['add'])) {
+        foreach ($c['runtime']['global_headers']['add'] as $gh) {
+            header($gh);
+        }
+    }
+}
+// Send ONLY Method Headers, used only when things stops already without route match in matched method though
+function funk_internal_send_method_headers(&$c)
+{
+    $method = $c['req']['method'];
+    if (isset($c['runtime']['method_headers']['remove'][$method]) && !empty($c['runtime']['method_headers']['remove'][$method])) {
+        foreach ($c['runtime']['method_headers']['remove'][$method] as $mhr) {
+            header_remove($mhr);
+        }
+    }
+    if (isset($c['runtime']['method_headers']['add'][$method]) && !empty($c['runtime']['method_headers']['add'][$method])) {
+        foreach ($c['runtime']['method_headers']['add'][$method] as $mh) {
+            header($mh);
+        }
+    }
+}
 // Handle No Route Match (CONFIG means it was globally otherwise current Method)
 // When this is called, we do have Acceptable Content so we can check that and also
 // check against what is actually configured
@@ -1990,52 +1924,8 @@ function funk_internal_handle_no_route_match(&$c, $globalOrMethod)
                 exit;
             }
         }
-        // No match between preferred content type AND configured no route match
+        // no match between preferred content type AND configured no route match
         return;
-    }
-}
-
-function funk_internal_handle_nonces(&$c, $nonce) {}
-
-function funk_internal_handle_sri_internal(&$c, $nonce) {}
-
-function funk_internal_handle_sri_external(&$c, $nonce) {}
-
-function funk_internal_send_response_headers(&$c)
-{
-    /* CSP PARTS! - Must first get from Global, Method then Route OR
-    Maybe it should be that during compile(), every Route already has
-    all available headers to grab and thus return here? */
-    $cspParts = [];
-    $cspDirectives = ['placeholder' => ['placeholder2']];
-    foreach ($cspDirectives as $directive => $sources) {
-        // If count is 0 (because no nonces were ever evaluated for this directive), SKIP IT!
-        if (empty($sources)) {
-            continue;
-        }
-        $cspParts[] = $directive . ' ' . implode(' ', $sources);
-    }
-    if (!empty($cspParts)) {
-        header('Content-Security-Policy: ' . implode('; ', $cspParts));
-    }
-}
-// Send ONLY Global Headers, used only when things stops already globally without route match
-function funk_internal_send_global_headers(&$c)
-{
-    if (isset($c['runtime']['global_headers']['add']) && !empty($c['runtime']['global_headers']['add'])) {
-        foreach ($c['runtime']['global_headers']['add'] as $gh) {
-            header($gh);
-        }
-    }
-}
-// Send ONLY Method Headers, used only when things stops already without route match in matched method though
-function funk_internal_send_method_headers(&$c)
-{
-    $method = $c['req']['method'];
-    if (isset($c['runtime']['method_headers']['add'][$method]) && !empty($c['runtime']['method_headers']['add'][$method])) {
-        foreach ($c['runtime']['method_headers']['add'][$method] as $mh) {
-            header($mh);
-        }
     }
 }
 // When there is no configured no match route globally nor for non-matched method

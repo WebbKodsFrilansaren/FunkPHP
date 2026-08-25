@@ -6,5 +6,5 @@ namespace funkphp\pipes\middlewares;
 function auth2(&$c)
 {
 	// Placeholder Comment so Regex works - Remove & Add Your Own Code!
-	echo "YO FROM MiddleWare TEST 2!";
+	echo "YO FROM MiddleWare TEST 2 (AUTH2)!";
 };

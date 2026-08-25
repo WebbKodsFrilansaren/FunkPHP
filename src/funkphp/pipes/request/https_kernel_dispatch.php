@@ -133,13 +133,13 @@ function https_kernel_dispatch(&$c)
         \funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
     }
     // Try match route and if it fails, we check if we should
-    $FPHP_MATCHED_ROUTE = \funk_match_developer_route(
-        $c,
-        $c['req']['method'],
-        $c['req']['uri'],
-        $c['ROUTES']['COMPILED']['TRIE'] ?? [],
-        $c['ROUTES']['DEVELOPER']['ROUTES'] ?? [],
-    );
+    $FPHP_MATCHED_ROUTE =  null; //\funk_match_developer_route(
+    //     $c,
+    //     $c['req']['method'],
+    //     $c['req']['uri'],
+    //     $c['ROUTES']['COMPILED']['TRIE'] ?? [],
+    //     $c['ROUTES']['DEVELOPER']['ROUTES'] ?? [],
+    // );
     // Return JSON/Page when no match!
     // When (no) matched, data is stored in $c['req'] and it is up to the Developer to do whatever they want with it!
     // We matched so we NOW store some server-provided metadata
