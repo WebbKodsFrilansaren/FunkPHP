@@ -139,6 +139,19 @@ class C
     private array $compiled = [
         'config' => [
             'runtime' => [
+                'debug' => [],
+                'online' => false,
+                'use_https' => false,
+                'use_vendor' => true,
+                'custom_exception_handler' => null,
+                'custom_error_handler' => null,
+                'custom_ip_resolver' => null,
+                'custom_uri_normalizer' => null,
+                'custom_https_kernel' => null,
+                'request_accepts' => [],
+                'request_ip_sources' => [],
+                'request_form_spoof_methods' => ['PUT', 'PATCH', 'DELETE'],
+                'ini_sets' => [],
                 'trusted_ip_proxies' => [
                     'ip4' => [
                         "173.245.48.0/20",
@@ -172,20 +185,12 @@ class C
                     'HTTP_X_FORWARDED_FOR',
                     'HTTP_X_REAL_IP'
                 ],
-                'debug' => [],
-                'online' => false,
-                'use_https' => false,
-                'use_vendor' => true,
-                'custom_exception_handler' => null,
-                'custom_error_handler' => null,
-                'custom_ip_resolver' => null,
-                'custom_uri_normalizer' => null,
-                'custom_https_kernel' => null,
-                'request_ip_sources' => [],
-                'request_form_spoof_methods' => ['PUT', 'PATCH', 'DELETE'],
-                'ini_sets' => [],
+                'global_headers' => null,
+                'method_headers' => null,
+                'NO_ROUTE_MATCH' => null,
+                'NO_ROUTE_MATCH_METHOD' => null,
+                'NO_NO_MATCH_MESSAGE' => '404 | No Content or Page Found',
             ],
-            'NO_ROUTE_MATCH' => [],
             'pipes' => [
                 'request' => [],
                 'request-resolved' => [],
@@ -228,6 +233,9 @@ class C
             'connections' => [],
             'req' => [
                 'method' => '##TOKEN_REQ_METHOD##',
+                'accept_order' => null,
+                'accepts' => null,
+                'prefers' => null,
                 'ip'     => '##TOKEN_REQ_IP##',
                 'time'   => '##TOKEN_REQ_TIME##',
                 'uri' => null,
@@ -2167,6 +2175,7 @@ class C
             'RouteIsInvalidMustBecomeValidBeforeWhat' => "Invalid Route being applied with {$optionalCtx}. Route must first become Valid.",
             'InvalidCompilerFlag' => "Invalid Compiler Flag in {$optionalCtx}: must be one of the following: ",
             'InvalidJSONSourceForResponseCtx' => "Invalid JSON Data Source Syntax in {$optionalCtx}: use only `[a-zA-Z0-9-_.]` characters. 'YourKey' after `json:` will then be used in `\$c['d']['YourKey']` as the Final Data Source ",
+            'InvalidAcceptContentValue' => "Invalid Content Accept Value in {$optionalCtx}: It must have the structure of `mime_type:shorthand` (e.g.`application/json:json`). Remember that `*/*` cannot be used/set. Characters before `/` are `[a-z0-9-]` and after `[+a-z0-9-.]` and the only `[a-z]` after the single colon (`:`).",
 
             // Forbidden via $this->FORBIDDEN Variable
             'ForbiddenResponseHeaders' => "Forbidden Response Header Name in {$optionalCtx}: ",
@@ -2206,6 +2215,7 @@ class C
             'DuplicateParamGlobal' => "`Duplicate Global Param Rule` in {$optionalCtx}. Review/change the already `Valid` Configuration which is before this Error in the `API Array`.",
             'DuplicateParamMethod' => "`Duplicate Method Param Rule` in {$optionalCtx}. Review/change the already `Valid` Configuration which is before this Error in the `API Array`.",
             'DuplicateParamRoute' => "`Duplicate Route Param Rule` in {$optionalCtx}. Review/change the already `Valid` Configuration which is before this Error in the `API Array`.",
+            'DuplicateAcceptContentType' => "`Duplicate Accept Content` in {$optionalCtx}:",
             'ConflictNoneSourceInCSP' => "`Invalid` CSP Configuration in {$optionalCtx}: Source `'none'` must always be used isolated for a given CSP Directive. More than one Source is used.",
             'ConflictRouteParam' => "`Route Parameter in Conflict` in {$optionalCtx}:",
             'ConflictRemovePipedHeader' => "`Conflicting Calls` in {$optionalCtx}: cannot set `Remove a Header` that was first configured as `Pipe a Header`.",
@@ -2526,10 +2536,52 @@ class C
         ];
     }
 
+    /* Set `$c['req']['accepts']` content types additional to those in-built */
+    private function batchSetAcceptsGlobal(string ...$acceptedContentTypesToCheckFor)
+    {
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setAccepts', "", ...$acceptedContentTypesToCheckFor);
+        if (isset($this->invalidBatches['config']['set_accepts'])) {
+            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Duplicate Call ' . $ctxVals);
+            return;
+        }
+        if (isset($this->validBatches['config']['set_accepts'])) {
+            $this->setErr($this->getErr('DuplicateCallValidCanOnlyBeSetOnce', $ctxVals), 'Duplicate Call ' . $ctxVals);
+            return;
+        }
+        $builtList = [];
+        $acceptList = [];
+        foreach ($acceptedContentTypesToCheckFor as $singleAccept) {
+            if (isset($acceptList[$singleAccept])) {
+                $this->setErr($this->getErr('DuplicateAcceptContentType', $ctxVals) . " Accept Content Type `{$singleAccept}` has already been set.", 'Duplicate Accept Content Type ' . $ctx);
+                $this->invalidBatches['config']['set_accepts'] = $acceptedContentTypesToCheckFor;
+                return;
+            }
+            if (str_contains($singleAccept, '*/*')) {
+                $this->setErr($this->getErr('InvalidAcceptContentValue', $ctxVals), 'Cannot set `*/*` as Content Accept Type ' . $ctx);
+                $this->invalidBatches['config']['set_accepts'] = $acceptedContentTypesToCheckFor;
+                return;
+            }
+            if ($singleAccept === '' || !preg_match('/^[a-z0-9-]+\/[+a-z0-9-\.]+:[+a-z0-9]+$/', $singleAccept)) {
+                $this->setErr($this->getErr('InvalidAcceptContentValue', $ctxVals), 'Invalid Content Accept Value ' . $ctx);
+                $this->invalidBatches['config']['set_accepts'] = $acceptedContentTypesToCheckFor;
+                return;
+            }
+            $parts = explode(':', $singleAccept, 2);
+            if (isset($builtList[$parts[0]])) {
+                $this->setErr($this->getErr('DuplicateAcceptContentType', $ctxVals) . " Accept Content Type `{$parts[0]}` has already been set.", 'Duplicate Accept Content Type ' . $ctx);
+                $this->invalidBatches['config']['set_accepts'] = $acceptedContentTypesToCheckFor;
+                return;
+            }
+            $builtList[$parts[0]] = $parts[1];
+        }
+        // All OK here
+        $this->validBatches['config']['set_accepts'] = $builtList;
+    }
+
     /* set<BOOLEAN_VARIANTS_OPTIONS-FunkPHPOnline,UseHTTPS,UseVendor> Global */
     private function batchSetFunkPHPOnlineGlobal(bool $trueOrFalse)
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setUseFunkPHPOnline', "CONFIG()", $trueOrFalse);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setUseFunkPHPOnline', "", $trueOrFalse);
         if (isset($this->invalidBatches['config']['FUNKPHP_ONLINE'])) {
             $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Duplicate Call ' . $ctxVals);
             return;
@@ -2856,6 +2908,7 @@ class C
         }
         // Now check if Page File exists either in "/src/funkphp/pages/$PageFileName.php"
         // or in "/src/funkphp/pages/compiled/$PageFileName.php". First hydrate if not yet.
+        $pagePath = null;
         $this->cachedCreateKeyIfNullAndOptionalFileName('files_pages', $PageFileName);
         $this->cachedCreateKeyIfNullAndOptionalFileName('files_pages_compiled', $PageFileName);
         // Prioritize Compiled Pages, then possibly non-compiled pages (they could still contain no template engine)
@@ -2865,11 +2918,13 @@ class C
             && $this->cached['files_pages_compiled'][$PageFileName]['file_exists'] === true
         ) {
             $pageFound = true;
+            $pagePath = $this->cached['files_pages_compiled'][$PageFileName]['file_path'];
         } else if (
             isset($this->cached['files_pages'][$PageFileName]['file_exists'])
             && $this->cached['files_pages'][$PageFileName]['file_exists'] === true
         ) {
             $pageFound = true;
+            $pagePath = $this->cached['files_pages'][$PageFileName]['file_path'];
         }
         // No Page at all found?
         if (!$pageFound) {
@@ -2877,7 +2932,7 @@ class C
             $this->invalidBatches['config']['NO_ROUTE_MATCH']['PAGE'] = $PageFileName;
             return;
         }
-        $this->validBatches['config']['NO_ROUTE_MATCH']['PAGE'] = ['page' => $PageFileName, 'code' => $statusCode];
+        $this->validBatches['config']['NO_ROUTE_MATCH']['PAGE'] = ['page' => $PageFileName, 'path' => $pagePath, 'code' => $statusCode];
     }
     private function batchSetNoRouteMatchJsonGlobal(array|object $data, int $statusCode = 404)  // NO MATCH: JSON - GLOBAL
     {
@@ -4388,16 +4443,19 @@ class C
         $this->cachedCreateKeyIfNullAndOptionalFileName('files_pages_compiled', $PageFileName);
         // Prioritize Compiled Pages, then possibly non-compiled pages (they could still contain no template engine)
         $pageFound = false;
+        $pagePath = null;
         if (
             isset($this->cached['files_pages_compiled'][$PageFileName]['file_exists'])
             && $this->cached['files_pages_compiled'][$PageFileName]['file_exists'] === true
         ) {
             $pageFound = true;
+            $pagePath = $this->cached['files_pages_compiled'][$PageFileName]['file_path'];
         } else if (
             isset($this->cached['files_pages'][$PageFileName]['file_exists'])
             && $this->cached['files_pages'][$PageFileName]['file_exists'] === true
         ) {
             $pageFound = true;
+            $pagePath = $this->cached['files_pages'][$PageFileName]['file_path'];
         }
         // No Page at all found?
         if (!$pageFound) {
@@ -4405,7 +4463,7 @@ class C
             $this->invalidBatches['methods'][$method]['NO_ROUTE_MATCH']['PAGE'] = $PageFileName;
             return;
         }
-        $this->validBatches['methods'][$method]['NO_ROUTE_MATCH']['PAGE'] = ['page' => $PageFileName, 'code' => $statusCode];
+        $this->validBatches['methods'][$method]['NO_ROUTE_MATCH']['PAGE'] = ['page' => $PageFileName, 'path' => $pagePath, 'code' => $statusCode];
     }
     private function batchSetNoRouteMatchJsonMethod(string $method, array|object $data, int $statusCode = 404)
     {
@@ -7567,9 +7625,12 @@ class C
         if (isset($this->validBatches['config']['BASEURL_URI'])) {
             $this->compiled['c']['BASEURLS']['BASEURL_URI'] = $this->validBatches['config']['BASEURL_URI'];
         }
-        // 1 ARRAY (ini_set(s))
+        // 2 ARRAYs (ini_set(s), request_accepts)
         if (isset($this->validBatches['config']['setINI_SET'])) {
             $this->compiled['config']['runtime']['ini_sets'] = $this->validBatches['config']['setINI_SET'];
+        }
+        if (isset($this->validBatches['config']['set_accepts'])) {
+            $this->compiled['config']['runtime']['request_accepts'] = $this->validBatches['config']['set_accepts'];
         }
         // ------------------------------------------------------------------------------------------
         // STEP 3: Check Global Handlers set and then all setGroup<VARIANTS> since they can refer to
@@ -7717,13 +7778,18 @@ class C
             ) {
                 $this->compile_setErr("Conflicting User-defined Functions", "User-defined Function `{$this->validBatches['config']['NO_ROUTE_MATCH']['CALLBACK']}` in `{$PATH_USER_DEFINED_FNS}` in `->CONFIG()->setNoRouteMatchCallback('{$this->validBatches['config']['NO_ROUTE_MATCH']['CALLBACK']}')` conflicts with already defined `Global Handler Role {$GLOBAL_HANDLERS[$this->validBatches['config']['NO_ROUTE_MATCH']['CALLBACK']]}`. Remove `{$this->validBatches['config']['NO_ROUTE_MATCH']['CALLBACK']}` from `->CONFIG()->setNoRouteMatchCallback()` OR from the `Global Handler Role`.");
             } else {
-                $this->compiled['config']['NO_ROUTE_MATCH']['CALLBACK'] =  $this->validBatches['config']['NO_ROUTE_MATCH']['CALLBACK'];
+                if (isset($this->validBatches['config']['NO_ROUTE_MATCH']['CALLBACK'])) {
+                    $this->compiled['config']['runtime']['NO_ROUTE_MATCH']['CALLBACK'] =  $this->validBatches['config']['NO_ROUTE_MATCH']['CALLBACK'];
+                }
             }
             if (isset($this->validBatches['config']['NO_ROUTE_MATCH']['PAGE'])) {
-                $this->compiled['config']['NO_ROUTE_MATCH']['PAGE'] =  $this->validBatches['config']['NO_ROUTE_MATCH']['PAGE'];
+                $this->compiled['config']['runtime']['NO_ROUTE_MATCH']['PAGE'] =  $this->validBatches['config']['NO_ROUTE_MATCH']['PAGE'];
             }
             if (isset($this->validBatches['config']['NO_ROUTE_MATCH']['JSON'])) {
-                $this->compiled['config']['NO_ROUTE_MATCH']['JSON'] =  $this->validBatches['config']['NO_ROUTE_MATCH']['JSON'];
+                $this->compiled['config']['runtime']['NO_ROUTE_MATCH']['JSON'] =  $this->validBatches['config']['NO_ROUTE_MATCH']['JSON'];
+            }
+            if (isset($this->validBatches['config']['NO_ROUTE_MATCH']['TEXT'])) {
+                $this->compiled['config']['runtime']['NO_ROUTE_MATCH']['TEXT'] =  $this->validBatches['config']['NO_ROUTE_MATCH']['TEXT'];
             }
         }
         foreach (['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD'] as $method) {
@@ -7739,13 +7805,20 @@ class C
                     );
                 } else {
                     $this->compiled['methods'][$method]['NO_ROUTE_MATCH']['CALLBACK'] =   $this->validBatches['methods'][$method]['NO_ROUTE_MATCH']['CALLBACK'];
+                    $this->compiled['config']['runtime']['NO_ROUTE_MATCH_METHOD'][$method]['CALLBACK'] = $this->validBatches['methods'][$method]['NO_ROUTE_MATCH']['CALLBACK'];
                 }
             }
             if (isset($this->validBatches['methods'][$method]['NO_ROUTE_MATCH']['PAGE'])) {
                 $this->compiled['methods'][$method]['NO_ROUTE_MATCH']['PAGE'] =  $this->validBatches['methods'][$method]['NO_ROUTE_MATCH']['PAGE'];
+                $this->compiled['config']['runtime']['NO_ROUTE_MATCH_METHOD'][$method]['PAGE'] = $this->validBatches['methods'][$method]['NO_ROUTE_MATCH']['PAGE'];
             }
             if (isset($this->validBatches['methods'][$method]['NO_ROUTE_MATCH']['JSON'])) {
                 $this->compiled['methods'][$method]['NO_ROUTE_MATCH']['JSON'] =  $this->validBatches['methods'][$method]['NO_ROUTE_MATCH']['JSON'];
+                $this->compiled['config']['runtime']['NO_ROUTE_MATCH_METHOD'][$method]['JSON'] = $this->validBatches['methods'][$method]['NO_ROUTE_MATCH']['JSON'];
+            }
+            if (isset($this->validBatches['methods'][$method]['NO_ROUTE_MATCH']['TEXT'])) {
+                $this->compiled['methods'][$method]['NO_ROUTE_MATCH']['TEXT'] =  $this->validBatches['methods'][$method]['NO_ROUTE_MATCH']['TEXT'];
+                $this->compiled['config']['runtime']['NO_ROUTE_MATCH_METHOD'][$method]['TEXT'] = $this->validBatches['methods'][$method]['NO_ROUTE_MATCH']['TEXT'];
             }
         }
         // ------------------------------------------------------------------------------------------------
@@ -7753,10 +7826,16 @@ class C
         // ------------------------------------------------------------------------------------------------
         if (isset($this->validBatches['config']['headers'])) {
             $this->compiled['config']['headers'] =  $this->validBatches['config']['headers'];
+            foreach ($this->validBatches['config']['headers']['add'] as $_ => $globalHeaderOnly) {
+                $this->compiled['config']['runtime']['global_headers'][] = strtolower($globalHeaderOnly['name']) . ': ' . $globalHeaderOnly['value'];
+            }
         }
         foreach (['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD'] as $method) {
             if (isset($this->validBatches['methods'][$method]['headers'])) {
                 $this->compiled['methods'][$method]['headers'] = $this->validBatches['methods'][$method]['headers'];
+            }
+            foreach ($this->validBatches['methods'][$method]['headers']['add'] as $_ => $methodHeaderOnly) {
+                $this->compiled['config']['runtime']['method_headers'][$method][] = strtolower($methodHeaderOnly['name']) . ': ' . $methodHeaderOnly['value'];
             }
         }
         // ------------------------------------------------------------------------------------------------
@@ -8441,6 +8520,7 @@ class C
             // runs locally though) via global access
             global $c;
             $c = $this->compiled['c'];
+            $c['runtime'] = $this->compiled['config']['runtime'];
         }  // COMPILATION COMPLETE HERE (CAN NOW RUN OR CREATE FunkPHPDeployment.php)
         /////////////////////////////////////// END /////////////////////////////
         // Show in-built FunkPHP GUI if any Compilation Errors OR Warnings if
@@ -8448,6 +8528,7 @@ class C
         // OTHERWISE: run() it as is (when running locally) OR move on to building
         // the FunkPHPDeployment.php File (usually happens when `php funk build` runs
         // as it calls the same function with CompileAndRunLocally=false)
+        $this->FUNKPHP_COMPILED = true; // Compilation done but was it a success?
         if ((isset($this->errors['COMPILATION']['errors'])
                 && count($this->errors['COMPILATION']['errors']) > 0)
             || $this->debug['ALWAYS_SHOW'] || (isset($this->compileFlags['NO_WARNINGS_ALLOWED'])
@@ -8455,13 +8536,17 @@ class C
         ) {
             $this->output_errors($this->errors, $this->compiled);
         }
+        // Here Compilation was successful so either run it locally
+        // or build it into FunkPHPDeployment.php monolithic file
+        $this->FUNKPHP_COMPILED_SUCCESS = true;
         if ($CompileAndRunLocally) {
             $this->run();
         }
-
         ///////////////////////////////////////////////////////
         ////////// START BUILDING FunkPHPDeployment.php ///////
         ///////////////////////////////////////////////////////
+        // Debug is not allowed in Production Build!
+        unset($c['runtime']['debug']);
 
         //////////////////////////////////////////////////////
         ////////// DONE BUILDING FunkPHPDeployment.php ///////
@@ -8570,7 +8655,6 @@ class C
                 trigger_error("Request Pipe Function `{$funcName}` could not be resolved.", E_USER_WARNING);
             }
         }
-
         // Run any set URI normalizer OR the in-built will run
         // Here we also set the method whether on "_method" is in $_POST meaning form spoofing
         if (isset($this->compiled['config']['runtime']['custom_uri_normalizer'])) {
@@ -8612,7 +8696,6 @@ class C
         }
         $c['req']['time'] = $_SERVER['REQUEST_TIME'] ?? time();
         $c['req']['query'] = $_SERVER['QUERY_STRING'] ?? null;
-
         // Run any set funk_internal_rate_limiter() for global/CONFIG() context
         // since it can know limit it using the correct $c['req']['ip'] retrieved
         if (isset($this->compiled['config']['ratelimit'])) {
@@ -8624,6 +8707,8 @@ class C
                 $this->compiled['config']['ratelimit']['driver']
             );
         }
+        // Now resolve Content Negotation
+        [$c['req']['accept_order'], $c['req']['prefers']] = funk_internal_negotiate_content($c);
 
         // First check if matched request method even exists in internal route trie and
         // then run internal route match against the $c['compiled']['routes]['trie'] array
@@ -8632,26 +8717,28 @@ class C
             // fallback to in-built Page+JSON Response(s) based on Accept Header
             // if no GLOBAL NoRouteMatch is set
             if (!empty($c['compiled']['config']['NO_ROUTE_MATCH'])) {
+                funk_internal_handle_no_route_match($c, 'CONFIG');
             }
             // Fallback to In-built NoRouteMatch - the question here is what to do with
             // setHeadersAdd that were created GLOBALLY? Send them or not in this case?
             // TODO: ASK LLMs about it
-
+            funk_internal_handle_no_no_route_match($c);
         }
         if (!funk_internal_match_route_trie($c, $c['req']['uri'], ($c['compiled']['routes']['trie'][$c['req']['method']] ?? []))) {
             // Check and run METHOD NoRouteMatch due to no matched method/route
             // but also fallback to GLOBAL NoRouteMatch if METHOD NoRouteMatch is not set
             // and then in-built Page+JSON Response(s) based on Accept Header
             if (isset($c['compiled']['methods'][$c['req']['method']]['NO_ROUTE_MATCH'])) {
+                funk_internal_handle_no_route_match($c, $c['req']['method']);
             }
             // Fallback to GLOBAL NoRouteMatch
             if (!empty($c['compiled']['config']['NO_ROUTE_MATCH'])) {
+                funk_internal_handle_no_route_match($c, 'CONFIG');
             }
-
             // Fallback to In-built NoRouteMatch - the question here is what to do with
             // setHeadersAdd that were created GLOBALLY? Send them or not in this case?
             // TODO: ASK LLMs about it
-
+            funk_internal_handle_no_no_route_match($c);
         }
 
         echo "run() started - compilation succeeded!<br/>";
@@ -9261,6 +9348,21 @@ class FunkConfig
     public function setUseVendor(bool $trueOrFalse): self
     {
         $this->c->batch('batchSetUseVendorGlobal', $trueOrFalse);
+        return $this;
+    }
+
+    /**
+     * Register expected MIME types or "mime:alias" mappings for the application.
+     * Write as `"mime_type:shorthand"` as in `"application/json:json"`
+     *
+     * @param 'text/html:html'|'application/json:json'|'application/vnd.api+json:jsonapi'|'application/problem+json:jsonproblem'|'application/hal+json:jsonhal'|'application/xml:xml'|'text/xml:xml'|'application/xhtml+xml:xhtml'|'text/plain:text'|'text/csv:csv'|'text/markdown:markdown'|'image/webp:webp'|'image/avif:avif'|'image/png:png'|'image/jpeg:jpg'|'image/gif:gif'|'image/svg+xml:svg'|'audio/mpeg:mp3'|'video/mp4:mp4'|string ...$acceptedContentTypesToCheckFor     */
+    public function setAccepts(string ...$acceptedContentTypesToCheckFor): self
+    {
+        $cleanedTypes = array_map(
+            fn(string $type) => strtolower(trim($type)),
+            $acceptedContentTypesToCheckFor
+        );
+        $this->c->batch('batchSetAcceptsGlobal', ...$cleanedTypes);
         return $this;
     }
 

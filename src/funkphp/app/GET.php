@@ -4,9 +4,10 @@
 /** @var FunkPHP $APP */
 $APP->ROUTES()
     ->GET()
+    ->setNoRouteMatchText("nothing in GET!")
     ->setRateLimit(60, 60, 'ip', 'redis')
     ->setParamRule('id', '/[\d]{1,2}/', 0)
-    ->setHeaderRemove('server')
+    ->setHeaderAdd('server', 'funkphp')
     ->pipeMiddleware('log_access')
     ->route("/")
     ->route("/users/:id")

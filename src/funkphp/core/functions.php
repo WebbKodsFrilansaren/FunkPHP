@@ -364,41 +364,16 @@ function funk_return_download($filePath, $fileName = null, $statusCode = 200)
 }
 
 // FUNKPHP SESSION-BASED FUNCTIONS
-function funk_session_started_or_start_it(&$c)
-{ // If already active in this request lifecycle, exit instantly (Zero overhead)
-    if (session_status() === PHP_SESSION_ACTIVE) {
-        return;
-    }
-    // Lazy infrastructure allocation: Connect to Redis/DB only when a session is actually requested!
-    if (($c['SESSION']['driver'] ?? 'files') === 'redis') {
-        // funk_connect_redis_infrastructure($c); TODO: FIX LATER Or remove?
-    }
-    // Configure native cookie settings right before booting
-    // Pass the raw, pre-verified array straight to PHP. No runtime IF statements required!
-    session_set_cookie_params([
-        'lifetime' => $c['SESSION']['COOKIES']['SESSION_LIFETIME'] ?? 0,
-        'path' => $c['SESSION']['COOKIES']['SESSION_PATH'] ?? '/',
-        'domain' => $c['SESSION']['COOKIES']['SESSION_DOMAIN'] ?? '',
-        'secure' => $c['SESSION']['COOKIES']['SESSION_SECURE'] ?? true,
-        'httponly' => true,
-        'samesite' => $c['SESSION']['COOKIES']['SESSION_SAMESITE'] ?? 'Lax',
-    ]);
-    // If it fails to start a session, throw an error and exit with a 500 Internal Server Error
-    if (!session_start()) {
-        $err = 'Tell The Developer: FAILED to Start Session-based Cookie Session. Please check $c[\'INI_SETS\'] and/or $c[\'COOKIES\'] in the Global Configuration `funkphp/config/_all.php` File and adjust the values accordingly if needed!';
-        funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
-    }
-}
 // The unified way to read session values across FunkPHP
 function funk_session_get(&$c, string $key, $default = null)
 {
-    \funk_session_started_or_start_it($c);
+    \funk_internal_session_started_or_start_it($c);
     return $_SESSION[$key] ?? $default;
 }
 // The unified way to write session values across FunkPHP
 function funk_session_set(&$c, string $key, $value): void
 {
-    \funk_session_started_or_start_it($c);
+    \funk_internal_session_started_or_start_it($c);
     $_SESSION[$key] = $value;
 }
 
@@ -460,186 +435,6 @@ function funk_generate_csrf(&$c, string $currentUri, ?int $lifetimeSeconds = nul
 }
 
 /***  ROUTE-RELATED PHP FUNCTIONS FOR FUNKPHP ***/
-function funk_internal_rate_limiter(&$c, int $maxRequestsPerWindowSize, int $windowSizeSecs, string|array $by = 'ip', $driver = 'redis') {}
-
-/**
- * Checks if an IP (IPv4 or IPv6) matches an IP/CIDR string.
- */
-function funk_internal_is_ip_trusted(&$c, string $ip, array $trustedList): bool
-{
-    if (empty($ip)) {
-        return false;
-    }
-
-    // Flatten nested arrays if passed like ['ip4' => [...], 'ip6' => [...]]
-    $flatList = [];
-    foreach ($trustedList as $key => $val) {
-        if (is_array($val)) {
-            $flatList = array_merge($flatList, $val);
-        } else {
-            $flatList[] = $val;
-        }
-    }
-
-    if (in_array('*', $flatList, true) || in_array($ip, $flatList, true)) {
-        return true;
-    }
-
-    $ipBin = @inet_pton($ip);
-    if ($ipBin === false) {
-        return false;
-    }
-    $isIPv4 = (strlen($ipBin) === 4);
-    foreach ($flatList as $trusted) {
-        if (!str_contains($trusted, '/')) {
-            if ($ip === $trusted) {
-                return true;
-            }
-            continue;
-        }
-        [$range, $netmask] = explode('/', $trusted, 2);
-        $rangeBin = @inet_pton($range);
-        if ($rangeBin === false || strlen($rangeBin) !== strlen($ipBin)) {
-            continue;
-        }
-        $netmask = (int)$netmask;
-        $maxBits = $isIPv4 ? 32 : 128;
-        if ($netmask < 0 || $netmask > $maxBits) {
-            continue;
-        }
-        $maskBin = '';
-        $fullBytes = (int)($netmask / 8);
-        $remainderBits = $netmask % 8;
-        if ($fullBytes > 0) {
-            $maskBin .= str_repeat("\xFF", $fullBytes);
-        }
-        if ($remainderBits > 0) {
-            $maskBin .= chr(0xFF << (8 - $remainderBits));
-        }
-        $maskBin = str_pad($maskBin, $isIPv4 ? 4 : 16, "\x00", STR_PAD_RIGHT);
-        if (($ipBin & $maskBin) === ($rangeBin & $maskBin)) {
-            return true;
-        }
-    }
-    return false;
-}
-
-/**
- * Resolves true client IP using Custom Resolver,
- * Trusted Proxies, or REMOTE_ADDR fallback.
- */
-function funk_internal_resolve_ip(&$c): string
-{
-    $remoteAddr     = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
-    $trustedProxies = $c['runtime']['trusted_ip_proxies'] ?? [];
-    $ipHeaders      = $c['runtime']['trusted_ip_headers'] ?? [
-        'HTTP_CF_CONNECTING_IP',
-        'HTTP_X_FORWARDED_FOR',
-        'HTTP_X_REAL_IP'
-    ];
-    if (empty($trustedProxies) || !funk_internal_is_ip_trusted($c, $remoteAddr, $trustedProxies)) {
-        return $remoteAddr;
-    }
-    foreach ($ipHeaders as $headerKey) {
-        if (!empty($_SERVER[$headerKey])) {
-            $rawHeader = $_SERVER[$headerKey];
-            $ipList    = array_map('trim', explode(',', $rawHeader));
-            for ($i = count($ipList) - 1; $i >= 0; $i--) {
-                $candidateIp = $ipList[$i];
-
-                if (filter_var($candidateIp, FILTER_VALIDATE_IP)) {
-                    if (!funk_internal_is_ip_trusted($c, $candidateIp, $trustedProxies)) {
-                        return $candidateIp;
-                    }
-                }
-            }
-        }
-    }
-    return $remoteAddr;
-}
-
-
-// Default FunkPHP Exception Handler that catches any uncaught exceptions and returns
-// a JSON or HTML error response depending on the Accept Header of the request. It is
-// used unless a user-defined Exception Handler is set by the Developer creating one
-// own using the "funk_handle_uncaught_exception()" in "/src/funkphp/config/functions.php" file.
-function funk_internal_exception_handler(&$c, \Throwable $e)
-{
-    $c['err']['INTERNAL'][] = "UNCAUGHT EXCEPTION: " . $e->getMessage();
-    \funk_use_log($c, "UNCAUGHT EXCEPTION: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine(), 'CRIT');
-
-    // Debug only happens when NOT online and when debug is to show errors
-    $isDebug = ((defined('FUNKPHP_ONLINE') && FUNKPHP_ONLINE === false && isset($c['debug']['show_errors'])) ? true : false);
-    if ($isDebug) {
-        $file = $e->getFile();
-        $line = $e->getLine();
-        $msg  = htmlspecialchars($e->getMessage());
-        $type = get_class($e);
-        $snippet = funk_internal_render_code_snippet($file, $line);
-        $htmlOutput = "
-        <div style='font-family: system-ui, -apple-system, sans-serif; background:#121212; color:#f1f1f1; padding:20px; min-height:100vh;'>
-            <h1 style='color:#ff5555; margin:0 0 10px 0;'>{$type}</h1>
-            <h2 style='font-size:18px; color:#e0e0e0; font-weight:normal; margin:0 0 20px 0;'>{$msg}</h2>
-            <p style='color:#888; margin-bottom:5px;'>Exception triggered in <strong>{$file}</strong> on line <strong>{$line}</strong></p>
-            {$snippet}
-            <h3>Stack Trace</h3>
-            <pre style='background:#1e1e1e; padding:15px; border-radius:6px; overflow-x:auto; color:#b0b0b0; font-size:12px;'>" . htmlspecialchars($e->getTraceAsString()) . "</pre>
-        </div>";
-        if (!headers_sent()) {
-            http_response_code(500);
-            header('Content-Type: text/html; charset=UTF-8');
-        }
-        echo $htmlOutput;
-        exit;
-    }
-    $err = 'An unexpected internal server error occurred. Please check the application logs.';
-    \funk_use_error_json_or_page($c, 500, ["internal_error" => $err], '500', $err);
-}
-
-
-/**
- * Internal Default Error Handler
- * Converts standard PHP errors/warnings into ErrorException so they
- * get caught by the Exception Handler.
- */
-function funk_internal_error_handler(int $severity, string $message, string $file, int $line): bool
-{
-    // Respect the error_reporting setting (e.g. ignore @ operator)
-    if (!(error_reporting() & $severity)) {
-        return false;
-    }
-    throw new \ErrorException($message, 0, $severity, $file, $line);
-}
-
-/**
- * Extracts lines around an error to render a visual code snippet in HTML.
- */
-function funk_internal_render_code_snippet(string $filePath, int $errorLine, int $padding = 5): string
-{
-    if (!file_exists($filePath) || !is_readable($filePath)) {
-        return '<div style="padding:10px; background:#222; color:#888;">Source File Unavailable</div>';
-    }
-    $lines = file($filePath);
-    $start = max(0, $errorLine - $padding - 1);
-    $end   = min(count($lines), $errorLine + $padding);
-    $html = '<div style="background:#1e1e1e; color:#d4d4d4; font-family: monospace; border-radius:6px; overflow:hidden; margin:15px 0;">';
-    $html .= '<div style="background:#2d2d2d; color:#aaa; padding:6px 12px; font-size:12px; border-bottom:1px solid #333;">' . htmlspecialchars($filePath) . '</div>';
-    $html .= '<table style="width:100%; border-collapse:collapse; font-size:13px; line-height:1.4;">';
-    for ($i = $start; $i < $end; $i++) {
-        $lineNum = $i + 1;
-        $isErrorLine = ($lineNum === $errorLine);
-        $rowBg = $isErrorLine ? 'background:#44171a;' : 'background:#1e1e1e;';
-        $numColor = $isErrorLine ? 'color:#ff6b6b; font-weight:bold;' : 'color:#555;';
-        $codeColor = $isErrorLine ? 'color:#ffffff; font-weight:bold;' : 'color:#d4d4d4;';
-        $codeContent = htmlspecialchars($lines[$i]);
-        $html .= "<tr style='{$rowBg}'>";
-        $html .= "<td style='width:40px; text-align:right; padding:2px 10px; {$numColor} user-select:none;'>{$lineNum}</td>";
-        $html .= "<td style='padding:2px 10px; {$codeColor} white-space:pre-wrap;'>{$codeContent}</td>";
-        $html .= "</tr>";
-    }
-    $html .= '</table></div>';
-    return $html;
-}
 
 /**
  * CUSTOM ERROR HANDLER: Outputs a raw HTML string directly to the client.
@@ -1463,6 +1258,58 @@ function funk_match_developer_route(&$c, string $method, string $uri, array $com
     return false;
 }
 
+/**
+ * Check if Current Request accepts specific Mime Type using its shorthand name (e.g. `json` for `application/json`).
+ *
+ * The check is done inside of `$c['req']['accepts][$contentType]` using isset() returning `TRUE|FALSE`
+ * @param 'html'|'json'|'jsonapi'|'jsonproblem'|'jsonhal'|'xml'|'xhtml'|'soap'|'atom'|'rss'|'text'|'markdown'|'csv'|'css'|'js'|'form'|'formdata'|'binary'|'webp'|'avif'|'png'|'jpg'|'gif'|'svg'|'mp3'|'ogg'|'mp4'|'webm'|'image'|'media'|string $contentType
+ */
+function funk_req_accepts(&$c, $contentType): bool
+{
+    if (isset($c['req']['accepts'][$contentType])) {
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Check if Current Request Prefers specific Mime Type using its shorthand name (e.g. `json` for `application/json`).
+ *
+ * The check is done inside of `$c['req']['prefers][$contentType]` using isset() returning `TRUE|FALSE`
+ * @param 'html'|'json'|'jsonapi'|'jsonproblem'|'jsonhal'|'xml'|'xhtml'|'soap'|'atom'|'rss'|'text'|'markdown'|'csv'|'css'|'js'|'form'|'formdata'|'binary'|'webp'|'avif'|'png'|'jpg'|'gif'|'svg'|'mp3'|'ogg'|'mp4'|'webm'|'image'|'media'|string $contentType
+ */
+function funk_req_prefers(&$c, $contentType): bool
+{
+    if (isset($c['req']['prefers'][$contentType])) {
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Set (OVERWRITE(!)) Response Header for this Current Matched Route.
+ *
+ * @param 'Accept-Ranges'|'Access-Control-Allow-Credentials'|'Access-Control-Allow-Headers'|'Access-Control-Allow-Methods'|'Access-Control-Allow-Origin'|'Access-Control-Expose-Headers'|'Access-Control-Max-Age'|'Age'|'Allow'|'Alt-Svc'|'Cache-Control'|'Clear-Site-Data'|'Content-Disposition'|'Content-Encoding'|'Content-Language'|'Content-Location'|'Content-Range'|'Content-Security-Policy'|'Content-Security-Policy-Report-Only'|'Content-Type'|'Cross-Origin-Embedder-Policy'|'Cross-Origin-Opener-Policy'|'Cross-Origin-Resource-Policy'|'ETag'|'Expires'|'Last-Modified'|'Location'|'Origin-Trial'|'Permissions-Policy'|'Pragma'|'Referrer-Policy'|'Retry-After'|'Server-Timing'|'Strict-Transport-Security'|'Timing-Allow-Origin'|'Vary'|'WWW-Authenticate'|'X-Content-Type-Options'|'X-Frame-Options'|'X-RateLimit-Limit'|'X-RateLimit-Remaining'|'X-RateLimit-Reset'|'X-Request-ID'|'X-XSS-Protection'|string $headerName Header Name
+ * @param string $value Header Value (e.g., "nosniff")
+ */
+function funk_set_header(&$c, $headerName, $value)
+{
+    $c['req']['response']['headers'][strtolower(trim($headerName))] = $headerName . ': ' . $value;
+}
+
+/**
+ * Remove a Header already registered (but NOT that was set via `->setHeaderAdd()` OR `funk_set_header()`!)
+ *
+ * @param 'Accept-Ranges'|'Access-Control-Allow-Credentials'|'Access-Control-Allow-Headers'|'Access-Control-Allow-Methods'|'Access-Control-Allow-Origin'|'Access-Control-Expose-Headers'|'Access-Control-Max-Age'|'Age'|'Allow'|'Alt-Svc'|'Cache-Control'|'Clear-Site-Data'|'Content-Disposition'|'Content-Encoding'|'Content-Language'|'Content-Location'|'Content-Range'|'Content-Security-Policy'|'Content-Security-Policy-Report-Only'|'Content-Type'|'Cross-Origin-Embedder-Policy'|'Cross-Origin-Opener-Policy'|'Cross-Origin-Resource-Policy'|'ETag'|'Expires'|'Last-Modified'|'Location'|'Origin-Trial'|'Permissions-Policy'|'Pragma'|'Referrer-Policy'|'Retry-After'|'Server-Timing'|'Strict-Transport-Security'|'Timing-Allow-Origin'|'Vary'|'WWW-Authenticate'|'X-Content-Type-Options'|'X-Frame-Options'|'X-RateLimit-Limit'|'X-RateLimit-Remaining'|'X-RateLimit-Reset'|'X-Request-ID'|'X-XSS-Protection'|string $headerName Header Name
+ */
+function funk_remove_header(&$c, $headerName)
+{
+    if (!headers_sent()) {
+        header_remove($headerName);
+    }
+}
+
+
 /***  DATA-RELATED PHP FUNCTIONS FOR FUNKPHP ***/
 // Function that either creates and returns a new database connection or returns
 // an already existing one in $c['DATABASES'][<$dbKey>] if it exists
@@ -1664,9 +1511,208 @@ function funk_db_conn(&$c, $dbKey)
     }
 }
 
-/******************************************/
-/*** PAGE-RELATED Functions For FunkPHP ***/
-/******************************************/
+/*****************************************/
+/* INTERNAL Functions For FunkPHP        */
+/* These should NEVER be called directly */
+/* inside any Pipe Function              */
+/*****************************************/
+// Start Session using defined Session Driver or default 'files'
+function funk_internal_session_started_or_start_it(&$c)
+{ // If already active in this request lifecycle, exit instantly (Zero overhead)
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        return;
+    }
+    // Lazy infrastructure allocation: Connect to Redis/DB only when a session is actually requested!
+    if (($c['SESSION']['driver'] ?? 'files') === 'redis') {
+        // funk_connect_redis_infrastructure($c); TODO: FIX LATER Or remove?
+    }
+    // Configure native cookie settings right before booting
+    // Pass the raw, pre-verified array straight to PHP. No runtime IF statements required!
+    session_set_cookie_params([
+        'lifetime' => $c['SESSION']['COOKIES']['SESSION_LIFETIME'] ?? 0,
+        'path' => $c['SESSION']['COOKIES']['SESSION_PATH'] ?? '/',
+        'domain' => $c['SESSION']['COOKIES']['SESSION_DOMAIN'] ?? '',
+        'secure' => $c['SESSION']['COOKIES']['SESSION_SECURE'] ?? true,
+        'httponly' => true,
+        'samesite' => $c['SESSION']['COOKIES']['SESSION_SAMESITE'] ?? 'Lax',
+    ]);
+    // If it fails to start a session, throw an error and exit with a 500 Internal Server Error
+    if (!session_start()) {
+        $err = 'Tell The Developer: FAILED to Start Session-based Cookie Session. Please check $c[\'INI_SETS\'] and/or $c[\'COOKIES\'] in the Global Configuration `funkphp/config/_all.php` File and adjust the values accordingly if needed!';
+        funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+    }
+}
+function funk_internal_rate_limiter(&$c, int $maxRequestsPerWindowSize, int $windowSizeSecs, string|array $by = 'ip', $driver = 'redis') {}
+/**
+ * Checks if an IP (IPv4 or IPv6) matches an IP/CIDR string.
+ */
+function funk_internal_is_ip_trusted(&$c, string $ip, array $trustedList): bool
+{
+    if (empty($ip)) {
+        return false;
+    }
+    // Flatten nested arrays if passed like ['ip4' => [...], 'ip6' => [...]]
+    $flatList = [];
+    foreach ($trustedList as $key => $val) {
+        if (is_array($val)) {
+            $flatList = array_merge($flatList, $val);
+        } else {
+            $flatList[] = $val;
+        }
+    }
+    if (in_array('*', $flatList, true) || in_array($ip, $flatList, true)) {
+        return true;
+    }
+    $ipBin = @inet_pton($ip);
+    if ($ipBin === false) {
+        return false;
+    }
+    $isIPv4 = (strlen($ipBin) === 4);
+    foreach ($flatList as $trusted) {
+        if (!str_contains($trusted, '/')) {
+            if ($ip === $trusted) {
+                return true;
+            }
+            continue;
+        }
+        [$range, $netmask] = explode('/', $trusted, 2);
+        $rangeBin = @inet_pton($range);
+        if ($rangeBin === false || strlen($rangeBin) !== strlen($ipBin)) {
+            continue;
+        }
+        $netmask = (int)$netmask;
+        $maxBits = $isIPv4 ? 32 : 128;
+        if ($netmask < 0 || $netmask > $maxBits) {
+            continue;
+        }
+        $maskBin = '';
+        $fullBytes = (int)($netmask / 8);
+        $remainderBits = $netmask % 8;
+        if ($fullBytes > 0) {
+            $maskBin .= str_repeat("\xFF", $fullBytes);
+        }
+        if ($remainderBits > 0) {
+            $maskBin .= chr(0xFF << (8 - $remainderBits));
+        }
+        $maskBin = str_pad($maskBin, $isIPv4 ? 4 : 16, "\x00", STR_PAD_RIGHT);
+        if (($ipBin & $maskBin) === ($rangeBin & $maskBin)) {
+            return true;
+        }
+    }
+    return false;
+}
+/**
+ * Resolves true client IP using Custom Resolver,
+ * Trusted Proxies, or REMOTE_ADDR fallback.
+ */
+function funk_internal_resolve_ip(&$c): string
+{
+    $remoteAddr     = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+    $trustedProxies = $c['runtime']['trusted_ip_proxies'] ?? [];
+    $ipHeaders      = $c['runtime']['trusted_ip_headers'] ?? [
+        'HTTP_CF_CONNECTING_IP',
+        'HTTP_X_FORWARDED_FOR',
+        'HTTP_X_REAL_IP'
+    ];
+    if (empty($trustedProxies) || !funk_internal_is_ip_trusted($c, $remoteAddr, $trustedProxies)) {
+        return $remoteAddr;
+    }
+    foreach ($ipHeaders as $headerKey) {
+        if (!empty($_SERVER[$headerKey])) {
+            $rawHeader = $_SERVER[$headerKey];
+            $ipList    = array_map('trim', explode(',', $rawHeader));
+            for ($i = count($ipList) - 1; $i >= 0; $i--) {
+                $candidateIp = $ipList[$i];
+
+                if (filter_var($candidateIp, FILTER_VALIDATE_IP)) {
+                    if (!funk_internal_is_ip_trusted($c, $candidateIp, $trustedProxies)) {
+                        return $candidateIp;
+                    }
+                }
+            }
+        }
+    }
+    return $remoteAddr;
+}
+// Default FunkPHP Exception Handler that catches any uncaught exceptions and returns
+// a JSON or HTML error response depending on the Accept Header of the request. It is
+// used unless a user-defined Exception Handler is set by the Developer creating one
+// own using the "funk_handle_uncaught_exception()" in "/src/funkphp/config/functions.php" file.
+function funk_internal_exception_handler(&$c, \Throwable $e)
+{
+    $c['err']['INTERNAL'][] = "UNCAUGHT EXCEPTION: " . $e->getMessage();
+    \funk_use_log($c, "UNCAUGHT EXCEPTION: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine(), 'CRIT');
+
+    // Debug only happens when NOT online and when debug is to show errors
+    $isDebug = ((defined('FUNKPHP_ONLINE') && FUNKPHP_ONLINE === false && isset($c['debug']['show_errors'])) ? true : false);
+    if ($isDebug) {
+        $file = $e->getFile();
+        $line = $e->getLine();
+        $msg  = htmlspecialchars($e->getMessage());
+        $type = get_class($e);
+        $snippet = funk_internal_render_code_snippet($file, $line);
+        $htmlOutput = "
+        <div style='font-family: system-ui, -apple-system, sans-serif; background:#121212; color:#f1f1f1; padding:20px; min-height:100vh;'>
+            <h1 style='color:#ff5555; margin:0 0 10px 0;'>{$type}</h1>
+            <h2 style='font-size:18px; color:#e0e0e0; font-weight:normal; margin:0 0 20px 0;'>{$msg}</h2>
+            <p style='color:#888; margin-bottom:5px;'>Exception triggered in <strong>{$file}</strong> on line <strong>{$line}</strong></p>
+            {$snippet}
+            <h3>Stack Trace</h3>
+            <pre style='background:#1e1e1e; padding:15px; border-radius:6px; overflow-x:auto; color:#b0b0b0; font-size:12px;'>" . htmlspecialchars($e->getTraceAsString()) . "</pre>
+        </div>";
+        if (!headers_sent()) {
+            http_response_code(500);
+            header('Content-Type: text/html; charset=UTF-8');
+        }
+        echo $htmlOutput;
+        exit;
+    }
+    $err = 'An unexpected internal server error occurred. Please check the application logs.';
+    \funk_use_error_json_or_page($c, 500, ["internal_error" => $err], '500', $err);
+}
+/**
+ * Internal Default Error Handler
+ * Converts standard PHP errors/warnings into ErrorException so they
+ * get caught by the Exception Handler.
+ */
+function funk_internal_error_handler(int $severity, string $message, string $file, int $line): bool
+{
+    // Respect the error_reporting setting (e.g. ignore @ operator)
+    if (!(error_reporting() & $severity)) {
+        return false;
+    }
+    throw new \ErrorException($message, 0, $severity, $file, $line);
+}
+/**
+ * Extracts lines around an error to render a visual code snippet in HTML.
+ */
+function funk_internal_render_code_snippet(string $filePath, int $errorLine, int $padding = 5): string
+{
+    if (!file_exists($filePath) || !is_readable($filePath)) {
+        return '<div style="padding:10px; background:#222; color:#888;">Source File Unavailable</div>';
+    }
+    $lines = file($filePath);
+    $start = max(0, $errorLine - $padding - 1);
+    $end   = min(count($lines), $errorLine + $padding);
+    $html = '<div style="background:#1e1e1e; color:#d4d4d4; font-family: monospace; border-radius:6px; overflow:hidden; margin:15px 0;">';
+    $html .= '<div style="background:#2d2d2d; color:#aaa; padding:6px 12px; font-size:12px; border-bottom:1px solid #333;">' . htmlspecialchars($filePath) . '</div>';
+    $html .= '<table style="width:100%; border-collapse:collapse; font-size:13px; line-height:1.4;">';
+    for ($i = $start; $i < $end; $i++) {
+        $lineNum = $i + 1;
+        $isErrorLine = ($lineNum === $errorLine);
+        $rowBg = $isErrorLine ? 'background:#44171a;' : 'background:#1e1e1e;';
+        $numColor = $isErrorLine ? 'color:#ff6b6b; font-weight:bold;' : 'color:#555;';
+        $codeColor = $isErrorLine ? 'color:#ffffff; font-weight:bold;' : 'color:#d4d4d4;';
+        $codeContent = htmlspecialchars($lines[$i]);
+        $html .= "<tr style='{$rowBg}'>";
+        $html .= "<td style='width:40px; text-align:right; padding:2px 10px; {$numColor} user-select:none;'>{$lineNum}</td>";
+        $html .= "<td style='padding:2px 10px; {$codeColor} white-space:pre-wrap;'>{$codeContent}</td>";
+        $html .= "</tr>";
+    }
+    $html .= '</table></div>';
+    return $html;
+}
+// Match Trie Route (only used locally)
 function funk_internal_match_route_trie(&$c, string $requestUri, array $methodRootNode): ?array
 {
     $path = trim(strtolower($requestUri), '/');
@@ -1723,14 +1769,186 @@ function funk_internal_match_route_trie(&$c, string $requestUri, array $methodRo
         return null;
     }
 }
+// Retrieve what content UA accepts
+function funk_internal_negotiate_content(mixed &$c)
+{
+    $acceptHeader = $_SERVER['HTTP_ACCEPT'] ?? '';
+    if (empty(trim($acceptHeader))) {
+        return [[], null];
+    }
+    $types = [];
+    $c['req']['accepts']['json']  = false;
+    $c['req']['accepts']['html']  = false;
+    $c['req']['accepts']['xml']   = false;
+    $c['req']['accepts']['text']  = false;
+    $c['req']['accepts']['image'] = false;
+    $c['req']['accepts']['media'] = false;
+    foreach (explode(',', $acceptHeader) as $part) {
+        $segments = explode(';', trim($part));
+        $mediaType = strtolower(trim($segments[0]));
+        if (empty($mediaType)) {
+            continue;
+        }
+        $q = 1.0;
+        foreach (array_slice($segments, 1) as $param) {
+            $param = trim($param);
+            if (str_starts_with($param, 'q=')) {
+                $q = (float) substr($param, 2);
+                break;
+            }
+        }
+        if ($q <= 0) {
+            continue;
+        }
+        if (
+            $mediaType === 'application/json' ||
+            $mediaType === 'text/json' ||
+            str_ends_with($mediaType, '+json')
+        ) {
+            $c['req']['accepts']['json'] = true;
+        } else if (
+            $mediaType === 'text/html' ||
+            $mediaType === 'application/xhtml+xml'
+        ) {
+            $c['req']['accepts']['html'] = true;
+        } else if (
+            $mediaType === 'application/xml' ||
+            $mediaType === 'text/xml' ||
+            str_ends_with($mediaType, '+xml')
+        ) {
+            $c['req']['accepts']['xml'] = true;
+        } else if (
+            $mediaType === 'text/plain' ||
+            $mediaType === 'text/markdown' ||
+            $mediaType === 'text/csv'
+        ) {
+            $c['req']['accepts']['text'] = true;
+        } else if (
+            str_starts_with($mediaType, 'image/')
+        ) {
+            $c['req']['accepts']['image'] = true;
+        } else if (
+            str_starts_with($mediaType, 'audio/') ||
+            str_starts_with($mediaType, 'video/')
+        ) {
+            $c['req']['accepts']['media'] = true;
+        } else if ($mediaType === '*/*') {
+            $c['req']['accepts']['json']  = true;
+            $c['req']['accepts']['html']  = true;
+            $c['req']['accepts']['xml']   = true;
+            $c['req']['accepts']['text']  = true;
+        } else if (isset($c['runtime']['request_accepts'][$mediaType])) {
+            $c['req']['accepts'][$mediaType] = true;
+        }
+        $types[] = ['type' => $mediaType, 'q' => $q];
+    }
+    usort($types, fn($a, $b) => $b['q'] <=> $a['q']);
+    $sortedList = array_column($types, 'type');
+    $prefers    = $sortedList[0] ?? null;
+    return [$sortedList, $prefers];
+}
 
-function funk_internal_nonces(&$c, $nonce) {}
+// Handle No Route Match (CONFIG means it was globally otherwise current Method)
+// When this is called, we do have Acceptable Content so we can check that and also
+// check against what is actually configured
+function funk_internal_handle_no_route_match(&$c, $globalOrMethod)
+{
+    if ($globalOrMethod === 'CONFIG') {
+        // early return when no configured no route match handling
+        if (!isset($c['runtime']['NO_ROUTE_MATCH'])) {
+            return;
+        }
+        $prefers = $c['req']['prefers'];
+        if ($prefers === 'json' && isset($c['runtime']['NO_ROUTE_MATCH']['JSON'])) {
+            funk_internal_send_global_headers($c);
+            header("content-type: application/json; charset=utf-8");
+            http_response_code($c['runtime']['NO_ROUTE_MATCH']['JSON']['code']);
+            echo $c['runtime']['NO_ROUTE_MATCH']['JSON']['JSON'];
+            exit;
+        } else if ($prefers === 'html' && isset($c['runtime']['NO_ROUTE_MATCH']['PAGE'])) {
+            funk_internal_send_global_headers($c);
+            header("content-type: text/html; charset=utf-8");
+            http_response_code($c['runtime']['NO_ROUTE_MATCH']['PAGE']['code']);
+            if (defined(FUNKPHP_ONLINE)) {
+                include_once ROOT_FOLDER . '/pages/' . $c['runtime']['NO_ROUTE_MATCH']['PAGE']['page'] . '/.php';
+                exit;
+            } else {
+                if (
+                    file_exists($c['runtime']['NO_ROUTE_MATCH']['PAGE']['path'])
+                    && is_readable($c['runtime']['NO_ROUTE_MATCH']['PAGE']['path'])
+                ) {
+                    include_once $c['runtime']['NO_ROUTE_MATCH']['PAGE']['path'];
+                    exit;
+                }
+            }
+        } else if ($prefers === 'text' && isset($c['runtime']['NO_ROUTE_MATCH']['TEXT'])) {
+            funk_internal_send_global_headers($c);
+            header("content-type: text/plain; charset=utf-8");
+            http_response_code($c['runtime']['NO_ROUTE_MATCH']['TEXT']['code']);
+            echo $c['runtime']['NO_ROUTE_MATCH']['TEXT']['text'];
+            exit;
+        } else if (isset($c['runtime']['NO_ROUTE_MATCH']['CALLBACK'])) {
+            funk_internal_send_global_headers($c);
+            if (function_exists($c['runtime']['NO_ROUTE_MATCH']['CALLBACK'])) {
+                $c['runtime']['NO_ROUTE_MATCH']['CALLBACK']($c);
+                exit;
+            }
+        }
+        // No match between preferred content type AND configured no route match
+        return;
+    } else {
+        // early return when no configured no route match handling for method
+        if (!isset($c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod])) {
+            return;
+        }
+        $prefers = $c['req']['prefers'];
+        if ($prefers === 'json' && isset($c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['JSON'])) {
+            funk_internal_send_method_headers($c);
+            header("content-type: application/json; charset=utf-8");
+            http_response_code($c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['JSON']['code']);
+            echo $c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['JSON']['JSON'];
+            exit;
+        } else if ($prefers === 'html' && isset($c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['PAGE'])) {
+            funk_internal_send_method_headers($c);
+            header("content-type: text/html; charset=utf-8");
+            http_response_code($c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['PAGE']['code']);
+            if (defined(FUNKPHP_ONLINE)) {
+                include_once ROOT_FOLDER . '/pages/' . $c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['PAGE']['page'] . '/.php';
+                exit;
+            } else {
+                if (
+                    file_exists($c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['PAGE']['path'])
+                    && is_readable($c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['PAGE']['path'])
+                ) {
+                    include_once $c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['PAGE']['path'];
+                    exit;
+                }
+            }
+        } else if ($prefers === 'text' && isset($c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['TEXT'])) {
+            funk_internal_send_method_headers($c);
+            header("content-type: text/plain; charset=utf-8");
+            http_response_code($c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['TEXT']['code']);
+            echo $c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['TEXT']['text'];
+            exit;
+        } else if (isset($c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['CALLBACK'])) {
+            funk_internal_send_method_headers($c);
+            if (function_exists($c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['CALLBACK'])) {
+                $c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['CALLBACK']($c);
+                exit;
+            }
+        }
+        // No match between preferred content type AND configured no route match
+        return;
+    }
+}
 
-function funk_internal_sri_internal(&$c, $nonce) {}
+function funk_internal_handle_nonces(&$c, $nonce) {}
 
-function funk_internal_sri_external(&$c, $nonce) {}
+function funk_internal_handle_sri_internal(&$c, $nonce) {}
 
-function funk_internal_send_headers(&$c)
+function funk_internal_handle_sri_external(&$c, $nonce) {}
+
+function funk_internal_send_response_headers(&$c)
 {
     /* CSP PARTS! - Must first get from Global, Method then Route OR
     Maybe it should be that during compile(), every Route already has
@@ -1748,6 +1966,93 @@ function funk_internal_send_headers(&$c)
         header('Content-Security-Policy: ' . implode('; ', $cspParts));
     }
 }
+
+// Send ONLY Global Headers, used only when things stops already globally without route match
+function funk_internal_send_global_headers(&$c)
+{
+    if (isset($c['runtime']['global_headers']) && !empty($c['runtime']['global_headers'])) {
+        foreach ($c['runtime']['global_headers'] as $gh) {
+            header($gh);
+        }
+    }
+}
+// Send ONLY Method Headers, used only when things stops already without route match in matched method though
+function funk_internal_send_method_headers(&$c)
+{
+    $method = $c['req']['method'];
+    if (isset($c['runtime']['method_headers'][$method]) && !empty($c['runtime']['method_headers'][$method])) {
+        foreach ($c['runtime']['method_headers'][$method] as $mh) {
+            header($mh);
+        }
+    }
+}
+// When there is no configured no match route globally nor for non-matched method
+function funk_internal_handle_no_no_route_match(&$c)
+{
+    // Emit any queued global headers first (CORS, HSTS, etc.)
+    funk_internal_send_global_headers($c);
+
+    $message = (isset($c['runtime']['NO_NO_MATCH_MESSAGE'])
+        && is_string($c['runtime']['NO_NO_MATCH_MESSAGE'])
+        && trim($c['runtime']['NO_NO_MATCH_MESSAGE']) !== '')
+        ? $c['runtime']['NO_NO_MATCH_MESSAGE']
+        : '404 | No Content or Page Found';
+    $isJson = ($c['req']['prefers'] === 'json' || !empty($c['req']['accepts']['json']));
+    if ($isJson) {
+        http_response_code(404);
+        header("content-type: application/json; charset=utf-8");
+        echo json_encode(['error' => $message, 'status' => 404]);
+        exit;
+    }
+    // Set HTTP status code & headers BEFORE sending HTML output
+    http_response_code(404);
+    header("content-type: text/html; charset=utf-8");
+    $html = <<<HTML
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 - Page Not Found</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: #181825;
+            color: #cdd6f4;
+            font-family: system-ui, -apple-system, sans-serif;
+            display: grid;
+            place-items: center;
+            min-height: 100vh;
+        }
+        .container { text-align: center; padding: 2rem; }
+        h1 {
+            font-size: 5rem;
+            font-weight: 800;
+            color: rgb(162, 74, 255);
+            line-height: 1;
+            margin-bottom: 0.5rem;
+        }
+        p {
+            font-size: 1.25rem;
+            color: #a6adc8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>404</h1>
+        <p>{$message}</p>
+    </div>
+</body>
+</html>
+HTML;
+    echo $html;
+    exit;
+}
+
+/******************************************/
+/*** PAGE-RELATED Functions For FunkPHP ***/
+/******************************************/
 
 /*************************************************/
 /*** ENTRY-POINT-RELATED Functions For FunkPHP ***/
