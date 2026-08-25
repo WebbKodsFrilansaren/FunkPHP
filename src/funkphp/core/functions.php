@@ -1544,7 +1544,19 @@ function funk_internal_session_started_or_start_it(&$c)
 /* INTERNAL RATE LIMITER (ALL LEVELS) & INERNAL ROUTE CACHE (Route Exclusive) */
 function funk_internal_rate_limiter(&$c, int $maxRequestsPerWindowSize, int $windowSizeSecs, string|array $by = 'ip', $driver = 'redis') {}
 
-function funk_internal_route_cache(&$c, int $ttl, string $driver = 'redis', string|array|null $varyBy = null, bool $private = false) {}
+/**
+ * GET or SET current cache on a Route-level. GET = retrieve any currently valid cached
+ * SET = store any valid new cache. This should not run if invalid params in route (if any).
+ */
+function funk_internal_route_cache(&$c, int $ttl, string $driver = 'redis', string|array|null $varyBy = null, bool $private = false, string $getOrSet = 'GET')
+{
+    // GET current cache
+    if ($getOrSet === 'GET') {
+    }
+    // SET new cache
+    else {
+    }
+}
 /**
  * Checks if an IP (IPv4 or IPv6) matches an IP/CIDR string.
  */
@@ -1717,7 +1729,7 @@ function funk_internal_render_code_snippet(string $filePath, int $errorLine, int
 // Match Trie Route (only used locally)
 function funk_internal_match_route_trie(&$c, string $requestUri, array $methodRootNode)
 {
-    $path = trim(strtolower($requestUri), '/');
+    $path = trim($requestUri, '/');
     $uriSegments = empty($path) ? [] : array_values(array_filter(explode('/', $path)));
     $uriSegmentCount = count($uriSegments);
     $currentNode = $methodRootNode;
@@ -1728,21 +1740,22 @@ function funk_internal_match_route_trie(&$c, string $requestUri, array $methodRo
         if (!isset($currentNode['/'])) {
             return false;
         }
-        $c['req']['matched_route'] = true;
+        $c['req']['route_matched'] = true;
         $c['req']['segments'] = ['/'];
         $c['req']['route'] = '/';
         return true;
     }
     for ($i = 0; $i < $uriSegmentCount; $i++) {
         $currentUriSegment = $uriSegments[$i];
-        if (isset($currentNode[$currentUriSegment])) {
-            $matchedPathSegments['route'][] = $currentUriSegment;
-            $currentNode = $currentNode[$currentUriSegment];
+        $lowerSegment = strtolower($currentUriSegment);
+        if (isset($currentNode[$lowerSegment])) {
+            $matchedPathSegments['route'][] = $lowerSegment;
+            $currentNode = $currentNode[$lowerSegment];
             $segmentsConsumed++;
             continue;
         }
         if (isset($currentNode[':'])) {
-            $placeholderKey = key($currentNode[':']);
+            $placeholderKey = array_key_first($currentNode[':']);
             if ($placeholderKey !== null && isset($currentNode[':'][$placeholderKey])) {
                 $matchedParams[$placeholderKey] = $currentUriSegment;
                 $c['req']['params'][$placeholderKey] = $currentUriSegment;
@@ -1758,7 +1771,7 @@ function funk_internal_match_route_trie(&$c, string $requestUri, array $methodRo
         if (!empty($matchedPathSegments['route'])) {
             $c['req']['segments'] = $matchedPathSegments['route'];
             $c['req']['route'] = ('/' . implode('/', $matchedPathSegments['route']));
-            $c['req']['matched_route'] = true;
+            $c['req']['route_matched'] = true;
             return true;
         } else {
             return false;
@@ -1767,6 +1780,9 @@ function funk_internal_match_route_trie(&$c, string $requestUri, array $methodRo
         return false;
     }
 }
+
+// Validate Params to set individual params validated as true|false
+// and also overall to know whether cache is allowed to run or not?
 function funk_internal_validate_params(&$c)
 {
     $allParamsValid = true;
@@ -1991,6 +2007,7 @@ function funk_internal_send_response_headers(&$c)
             header($routeHeaderAddV);
         }
     }
+
     /* CSP PARTS! - Must first get from Global, Method then Route OR
     Maybe it should be that during compile(), every Route already has
     all available headers to grab and thus return here? */

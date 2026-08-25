@@ -251,7 +251,6 @@ class C
                 'time'   => '##TOKEN_REQ_TIME##',
                 'log' => [],
                 'ua' => null,
-                'content_type' => null,
             ],
             'd' => null,
             'v' => null,
@@ -8630,6 +8629,9 @@ class C
         require_once ROOT_FOLDER . '/config/classes.php';
         // Grab the global $c since that is what is passed around everywhere
         global $c;
+        $c['req']['time'] = $_SERVER['REQUEST_TIME'] ?? time();
+        $c['req']['query'] = $_SERVER['QUERY_STRING'] ?? null;
+        $c['req']['ua'] = $_SERVER['HTTP_USER_AGENT'] ?? null;
         // If Custom HTTPS Kernel wanna deal with all the running, then just pass on the $this->compiled
         // inside of the $c and exit early as Custom HTTPS Kernel gotta deal then with shutdown reigster
         // if desirable or if wanna use the post_response-resolved parts differently. Even ob_start()
@@ -8655,6 +8657,14 @@ class C
         if (isset($this->compiled['config']['runtime']['online'])) {
             define("FUNKPHP_ONLINE", false);
         }
+        // Load any connections set from `/src/funkphp/config/conns.php`
+        // if it exist.
+        $connsPath = ROOT_FOLDER . '/config/conns.php';
+        $conns = null;
+        if (file_exists($connsPath) && is_readable($connsPath)) {
+            $conns = require $connsPath;
+        }
+        $c['connections'] = $conns ?? [];
         // Include Composer Vendor stuff is set to true and if file exist
         if (
             isset($this->compiled['config']['runtime']['use_vendor']) &&
@@ -8712,6 +8722,13 @@ class C
                 trigger_error("Post-response Pipe Function `{$funcName}` could not be resolved.", E_USER_WARNING);
             }
         }
+        // Resolve IP (parse correct IP from trusted proxy if configured)
+        // with either User-defined Function OR with internal default
+        if (isset($this->compiled['config']['runtime']['custom_ip_resolver'])) {
+            $c['req']['ip'] = $this->compiled['config']['runtime']['custom_ip_resolver']($c);
+        } else {
+            $c['req']['ip'] = funk_internal_resolve_ip($c);
+        }
         // Run any request pipes registered
         foreach ($this->compiled['config']['pipes']['request-resolved'] as $pRequest) {
             $funcName = $pRequest['run'];
@@ -8757,15 +8774,6 @@ class C
                 $c['req']['method'] = $spoofedMethod;
             }
         }
-        // Resolve IP (parse correct IP from trusted proxy if configured)
-        // with either User-defined Function OR with internal default
-        if (isset($this->compiled['config']['runtime']['custom_ip_resolver'])) {
-            $c['req']['ip'] = $this->compiled['config']['runtime']['custom_ip_resolver']($c);
-        } else {
-            $c['req']['ip'] = funk_internal_resolve_ip($c);
-        }
-        $c['req']['time'] = $_SERVER['REQUEST_TIME'] ?? time();
-        $c['req']['query'] = $_SERVER['QUERY_STRING'] ?? null;
         // Run any set funk_internal_rate_limiter() for global/CONFIG() context
         // since it can know limit it using the correct $c['req']['ip'] retrieved
         if (isset($this->compiled['config']['ratelimit'])) {
@@ -8822,11 +8830,9 @@ class C
         // INTERNAL Local Running ONLY: Add Current Matched Route for Easier Reuse
         $c['runtime']['route'] = $this->compiled['routes'][$c['req']['method']][$c['req']['route']];
 
-        // Route has any params to validate first?
-        funk_internal_validate_params($c);
-        dd([$c['req'], $c['runtime']['route']]);
-
         // Run any set funk_internal_rate_limiter() for MATCHED <METHOD><ROUTE>() context
+        // THIS LEVEL OF Rate Limiting might need extra checks whether it tries to parse
+        // specific param rule that has not yet been validated although it is probably a string
         if (isset($this->compiled['routes'][$c['req']['method']][$c['req']['route']]['ratelimit'])) {
             funk_internal_rate_limiter(
                 $c,
@@ -8836,17 +8842,25 @@ class C
                 $this->compiled['routes'][$c['req']['method']][$c['req']['route']]['ratelimit']['driver']
             );
         }
+        // Route has any params to validate first?
+        funk_internal_validate_params($c);
 
         // Run any set funk_internal_route_cache() for the MATCHED <METHOD><ROUTE>() context
-        if (isset($c['runtime']['route']['cache'])) {
-            funk_internal_route_cache(
-                $c,
-                $c['runtime']['route']['cache']['ttl'],
-                $c['runtime']['route']['cache']['driver'],
-                $c['runtime']['route']['cache']['varyBy'],
-                $c['runtime']['route']['cache']['private']
-            );
+        // THIS LEVEL where Cache occurs might need to be allowed to be skipped in some cases
+        // dependning on how validation of params goes and if they fail thus do not try to store
+        // bad junk cached data.
+        if ($c['req']['params_valid'] === true) {
+            if (isset($c['runtime']['route']['cache'])) {
+                funk_internal_route_cache(
+                    $c,
+                    $c['runtime']['route']['cache']['ttl'],
+                    $c['runtime']['route']['cache']['driver'],
+                    $c['runtime']['route']['cache']['varyBy'],
+                    $c['runtime']['route']['cache']['private']
+                );
+            }
         }
+        dd([$this->compiled['routes']['trie'][$c['req']['method']], $c['req']]);
         // NOW FINALLY RUN _ALL_ MWs of Route (it has already inherited them in correct order)
         // first Running Global, then Method, then Route exclusive Middlewares. After this, Run
         // any pipes and complete it with any response unless returned inside already. And that's it!
@@ -8887,6 +8901,7 @@ class C
                 \funk_use_error_json_or_page($c, 500, ['internal_server_error' => 'Failed to Return a Valid Response (`page`,`json`,`text`, or `callback`) as none of those Response Types existed?'], '500', 'Failed to Return a Valid Response (`page`,`json`,`text`, or `callback`) as none of those Response Types existed?');
             }
         }
+        echo "END OF run() - Before exit to optional Post-Response Pipes";
         // A final exit to not be able to jump back to the compile() again
         // This will also trigger registered shutdown functions/any post-response pipes
         exit;
@@ -10264,6 +10279,21 @@ class FunkRoute
         $this->c->batch('batchSetParamRulePolymorphicRoute', $this->method, $this->routePath, $paramIdentifier, ...$keyAndRegexPairs);
         return $this;
     }
+
+    public function setParamMismatch(string $paramIdentifier, string $actionType)
+    {
+        $paramIdentifier = strtolower(trim($paramIdentifier));
+        $actionType = strtolower(trim($actionType));
+        $this->c->batch('batchSetParamMismatchRoute', $this->method, $this->routePath, $paramIdentifier, $actionType);
+        return $this;
+    }
+
+    public function setParamsStrict(bool $trueOrFalse)
+    {
+        $this->c->batch('batchSetParamsStrictRoute', $this->method, $this->routePath, $trueOrFalse);
+        return $this;
+    }
+
     /**
      * Configures Content-Security-Policy (CSP) directives for a given Route in a Method (in `/src/funkphp/app/<METHOD>.php`).
      *
