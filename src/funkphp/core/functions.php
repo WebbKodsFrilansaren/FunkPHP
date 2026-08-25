@@ -801,9 +801,9 @@ function funk_use_error_json_or_page(&$c, int $errCode, $jsonObjectOrStringThatR
 {
     // Clear any previous use of output buffering - although the Framework should not really use ob_start
     // during request pipeline, only during post_response pipeline since all data there is only for server
-    // if (ob_get_level() > 0) {
-    //     ob_clean();
-    // }
+    if (ob_get_level() > 0) {
+        ob_clean();
+    }
     // When error code is NOT integer or within wrong range
     if (
         !isset($errCode)
@@ -1171,6 +1171,21 @@ function funk_remove_header(&$c, string $headerName)
     }
 }
 
+/**
+ * Return HTML Page Response from the `/src/funkphp/pages/` Directory.
+ *
+ * *IMPORTANT*: This clears the `Content-Type` Header to set HTML Content Type.
+ *
+ * Clears any previously registered Content-Type headers, sets `text/html`,
+ * emits all pending route response headers, requires the requested page file,
+ * and terminates execution (via `exit()`).
+ *
+ * @param array $c Main application state/context array (passed by reference).
+ * @param string $pageNameWithoutExtension The filename under `/pages/` without the `.php` extension (e.g., `"home"` or `"auth/login"`).
+ * @param int $code HTTP response status code (default: `200`).
+ *
+ * @return never
+ */
 function funk_return_response_page(&$c, string $pageNameWithoutExtension, int $code = 200)
 {
     header_remove('content-type');
@@ -1188,6 +1203,21 @@ function funk_return_response_page(&$c, string $pageNameWithoutExtension, int $c
     exit;
 }
 
+/**
+ * Return a JSON Response using Payload Data stored inside `$c['d']`.
+ *
+ * *IMPORTANT*: This clears the `Content-Type` Header to set JSON Content Type.
+ *
+ * Clears any previously registered Content-Type headers, sets `application/json`,
+ * emits pending route headers, outputs the value found at `$c['d'][$c_data_key_with_JSON_encoded_Data]`
+ * (auto-encoding to JSON if array/object), and terminates execution (via `exit()`).
+ *
+ * @param array $c Main application state/context array (passed by reference).
+ * @param string $c_data_key_with_JSON_encoded_Data The key name inside `$c['d']` containing stringified JSON or raw data array/object.
+ * @param int $code HTTP Response Status Code (default: `200`).
+ *
+ * @return never
+ */
 function funk_return_response_json(&$c, string $c_data_key_with_JSON_encoded_Data, int $code = 200)
 {
     header_remove('content-type');
@@ -1205,6 +1235,21 @@ function funk_return_response_json(&$c, string $c_data_key_with_JSON_encoded_Dat
     exit;
 }
 
+/**
+ * Return a Raw Plain Text Response.
+ *
+ * *IMPORTANT*: This clears the `Content-Type` Header to set Plain Text Content Type.
+ *
+ * Clears any previously registered Content-Type headers, sets `text/plain`,
+ * emits all pending route response headers, outputs the provided raw string,
+ * and terminates execution (via `exit()`).
+ *
+ * @param array $c Main application state/context array (passed by reference).
+ * @param string $rawTextString The Plain Text Payload to echo.
+ * @param int $code HTTP Response Status Code (default: `200`).
+ *
+ * @return never
+ */
 function funk_return_response_text(&$c, string $rawTextString, int $code = 200)
 {
     header_remove('content-type');
@@ -1219,15 +1264,17 @@ function funk_return_response_text(&$c, string $rawTextString, int $code = 200)
 }
 
 /**
+ * Run a Custom User-Defined Function as the Returned Response
  *
- * @param string $userDefinedFunctionName User-Defined Function that should set
- * the correct Content Type Header AND correct Status Code before it returns its
- * final version of the Body/Content/Payload.
+ * Provides full control over the Response Process by delegating execution to a Custom
+ * Function (defined in `/src/funkphp/config/functions.php`). The target Function must handle
+ * its own Status Code, Response Headers (including clearing/setting Content-Type), and (if any) Payload/Output
+ * before this Function explicitly terminates it (via `exit()`).
  *
- * *IMPORTANT*: Using this type of Returned Response requires You setting Status Code
- * AND also remove any previous `content-type` Header if you need a specific one
- * in order to not send duplicate `content-type` Header. *(This assumes that is what
- * you wanna do in the first place; otherwise just ignore this info.)*
+ * @param array $c Main application state/context array (passed by reference).
+ * @param string $userDefinedFunctionName The Name of the Custom Callable from `/src/funkphp/config/functions.php`.
+ *
+ * @return never
  */
 function funk_return_response_callback(&$c, string $userDefinedFunctionName)
 {
@@ -1236,6 +1283,17 @@ function funk_return_response_callback(&$c, string $userDefinedFunctionName)
         exit;
     }
     \funk_use_error_json_or_page($c, 500, ['INTERNAL_SERVER_ERROR' => 'Failed to use a `User-defined Function` to Return a Response. This means the Function-name does NOT exist.'], '500', 'Failed to use a `User-defined Function` to Return a Response. This means the Function-name does NOT exist.');
+}
+
+function funk_req_param_valid(&$c, string $param): bool
+{
+    if (
+        isset($c['req']['param_valid'][$param])
+        && $c['req']['param_valid'][$param] === true
+    ) {
+        return true;
+    }
+    return false;
 }
 
 
@@ -1698,6 +1756,8 @@ function funk_internal_match_route_trie(&$c, string $requestUri, array $methodRo
         return false;
     }
 }
+function funk_internal_validate_params(&$c) {}
+
 // Retrieve what content UA accepts
 function funk_internal_negotiate_content(mixed &$c): array
 {

@@ -241,6 +241,7 @@ class C
                 'route_matched' => false,
                 'segments' => null,
                 'params' => null,
+                'param_valid' => null,
                 'accept_order' => null,
                 'accepts' => null,
                 'query' => '##TOKEN_REQ_QUERY_STRING##',
@@ -8792,6 +8793,64 @@ class C
             // Fallback to In-built NoNoRouteMatch - when no route match is configured
             funk_internal_handle_no_no_route_match($c);
         }
+        // INTERNAL Local Running ONLY: Add Current Matched Route for Easier Reuse
+        $c['runtime']['route'] = $this->compiled['routes'][$c['req']['method']][$c['req']['route']];
+
+        // Route has any params to validate first?
+        if (isset($c['runtime']['route']['hasParams'])) {
+            if (isset($c['runtime']['route']['params'])) {
+                foreach ($c['runtime']['route']['params'] as $rParam => $rParDetails) {
+                    // Param has polymorphic?
+                    if (isset($rParDetails['pairs'])) {
+                        $anyPairMatch = false;
+                        $c['req']['param_variant'][$rParam] = null;
+                        foreach ($rParDetails['pairs'] as $rPairName => $rPairPattern) {
+                            if (preg_match($rPairPattern, $c['req']['params'][$rParam])) {
+                                $anyPairMatch = true;
+                                break;
+                            } else {
+                                continue;
+                            }
+                        }
+                        // Polymorphic pattern match, its name becomes the valid param
+                        // it is already validated in route that no other param with
+                        // or without polymorphic patterns would collide so
+                        if ($anyPairMatch) {
+                            $c['req']['param_valid'][$rPairName] = true;
+                        } else {
+                            $c['req']['param_valid'][$rParam] = false;
+                        }
+                    }
+                    // Here regular param but with callback?
+                    elseif (isset($rParDetails['callback'])) {
+                        if (function_exists($rParDetails['callback'])) {
+                            if ($rParDetails['callback'](
+                                $c,
+                                $c['req']['params'][$rParam]
+                            ) === true) {
+                                $c['req']['param_valid'][$rParam] = true;
+                            } else {
+                                $c['req']['params'][$rParam] = (isset($rParDetails['default']) ? $rParDetails['default'] : $c['req']['params'][$rParam]);
+                                $c['req']['param_valid'][$rParam] = false;
+                            }
+                        } else {
+                            \funk_use_error_json_or_page($c, 500, ['internal_server_error' => 'Expected `User-Defined Function` in `/src/funkphp/config/functions.php` was Not Found for Validating a Param Rule?'], '500', 'Expected `User-Defined Function` in `/src/funkphp/config/functions.php` was Not Found for Validating a Param Rule?');
+                        }
+                    }
+                    // Here just regular param with pattern
+                    else {
+                        if (!preg_match($rParDetails['pattern'], $c['req']['params'][$rParam])) {
+                            $c['req']['params'][$rParam] = (isset($rParDetails['default']) ? $rParDetails['default'] : $c['req']['params'][$rParam]);
+                            $c['req']['param_valid'][$rParam] = false;
+                        } else {
+                            $c['req']['param_valid'][$rParam] = true;
+                        }
+                    }
+                }
+            }
+        }
+        dd([$c['req'], $c['runtime']['route']]);
+
         // Run any set funk_internal_rate_limiter() for MATCHED <METHOD><ROUTE>() context
         if (isset($this->compiled['routes'][$c['req']['method']][$c['req']['route']]['ratelimit'])) {
             funk_internal_rate_limiter(
@@ -8802,8 +8861,7 @@ class C
                 $this->compiled['routes'][$c['req']['method']][$c['req']['route']]['ratelimit']['driver']
             );
         }
-        // INTERNAL Local Running ONLY: Add Current Matched Route for Easier Reuse
-        $c['runtime']['route'] = $this->compiled['routes'][$c['req']['method']][$c['req']['route']];
+
         // Run any set funk_internal_route_cache() for the MATCHED <METHOD><ROUTE>() context
         if (isset($c['runtime']['route']['cache'])) {
             funk_internal_route_cache(

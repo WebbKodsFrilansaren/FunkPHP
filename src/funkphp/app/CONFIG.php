@@ -22,5 +22,5 @@ $APP->CONFIG()
     ])
     ->setRateLimit(60, 60, 'ip', 'redis')
     ->pipePostResponseFunction('debug')
-    //->setDebug(true, true, false)
+    ->setDebug(true, false, false)
 ;
