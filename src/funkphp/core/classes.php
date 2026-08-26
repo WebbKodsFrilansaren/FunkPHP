@@ -77,6 +77,7 @@ class C
             'ratelimit' => ['redis', 'memcached', 'file', 'apcu', 'array']
         ],
         'shorthandRegexes' => [
+            '*'               => '[^\/]+',
             'int'             => '/^-?\d+$/',
             'number'          => '/^-?\d+$/',
             'uint'            => '/^\d+$/',
@@ -219,6 +220,7 @@ class C
                     'HTTP_X_FORWARDED_FOR',
                     'HTTP_X_REAL_IP'
                 ],
+                'state' => 'global',
                 'global_headers' => null,
                 'method_headers' => null,
                 'NO_ROUTE_MATCH' => null,
@@ -277,6 +279,7 @@ class C
                 'params' => null,
                 'param_valid' => null,
                 'params_valid' => null,
+                'params_details' => null,
                 'accept_order' => null,
                 'accepts' => null,
                 'query' => '##TOKEN_REQ_QUERY_STRING##',
@@ -8337,7 +8340,9 @@ class C
                             }
                             // Issue warning when no Param Rule found for current Route Param
                             else {
-                                $this->compile_setWarn("No Param Rule Available for `{$routeParam}` in `{$CURRENT_ROUTE_STR}`", "The following Param `{$routeParam}` in `{$CURRENT_ROUTE_STR}` has no Available Param Rules in Current Route, not in `{$method}`, and not in Global CONFIG. This means that You need to `Parse the Param Manually` using any of your `Route Pipe Function(s)`. If that is exactly what You are doing for `{$CURRENT_ROUTE_STR}`, just ignore this warning.");
+                                $this->compiled['routes'][$method][$route]['params'][$routeParam] = ['pattern' => '/[^\/]+/', 'default' => null, 'callback' => null];
+                                $this->compiled['routes'][$method][$route]['hasImplicitAlwaysMatchParam'] = true;
+                                $this->compile_setWarn("No Param Rule Available for `{$routeParam}` in `{$CURRENT_ROUTE_STR}`", "The following Param `{$routeParam}` in `{$CURRENT_ROUTE_STR}` has no Available Param Rules in Current Route, not in `{$method}`, and not in Global CONFIG. This means that You need to `Parse the Param Manually` using any of your `Route Pipe Function(s)`. If that is exactly what You are doing for `{$CURRENT_ROUTE_STR}`, just ignore this warning. Default Param Regex `/[^/]+/` has been applied to it so it gets through Param Validation. You will see the Route Key `hasImplicitAlwaysMatchParam` in Debugging/Logging for this Route that means it was automatically added since you must EXPLCITITLY set an Everything-Matches `*` Regex Pattern in order for it to get into Build Version (running locally always works).");
                             }
                         }
                         // Iterate through each param to disallow conflicting param id names
@@ -8764,6 +8769,8 @@ class C
         require_once ROOT_FOLDER . '/config/classes.php';
         // Grab the global $c since that is what is passed around everywhere
         global $c;
+        $c['runtime']['state'] = 'global';
+
         $c['req']['time'] = $_SERVER['REQUEST_TIME'] ?? time();
         $c['req']['query'] = $_SERVER['QUERY_STRING'] ?? null;
         $c['req']['ua'] = $_SERVER['HTTP_USER_AGENT'] ?? null;
@@ -8934,6 +8941,9 @@ class C
             // Fallback to In-built NoNoRouteMatch - when no route match is configured
             funk_internal_handle_no_no_route_match($c);
         }
+        // Starting State is 'global', now we reached 'method' by checking if route
+        // exist for route or not.
+        $c['runtime']['state'] = 'method';
         // Run any set funk_internal_rate_limiter() for MATCHED <METHOD>() context
         if (isset($this->compiled['methods'][$c['req']['method']]['ratelimit'])) {
             funk_internal_rate_limiter(
@@ -8967,7 +8977,9 @@ class C
 
         // No pipes means no route match in method since in monolithic file the route
         // won't even be able to be parsed/found compared to this Trie version
-        if (count($c['runtime']['route']['pipes']) === 0) {
+        if (
+            count($c['runtime']['route']['pipes']) === 0
+        ) {
             if (isset($this->compiled['config']['runtime']['NO_ROUTE_MATCH_METHOD'][$c['req']['method']])) {
                 funk_internal_handle_no_route_match($c, $c['req']['method']);
             }
@@ -8978,6 +8990,18 @@ class C
             // Fallback to In-built NoNoRouteMatch - when no route match is configured
             funk_internal_handle_no_no_route_match($c);
         }
+        // Route has any params to validate first? Otherwise this is considered a non-match
+        // for current method but that does not mean there are no match actions configured
+        // for no route match<method> so be prepared to default to what is configured. This is
+        // not the case in built version as it already knows what can be done at any stage.
+        funk_internal_validate_params($c);
+        if ($c['req']['params_valid'] === false) {
+            funk_internal_handle_invalid_params($c);
+        }
+        dd([$c['req'], $c['runtime']['route']]);
+
+        // Now state is 'route' since we matched
+        $c['runtime']['state'] = 'route';
 
         // Run any set funk_internal_rate_limiter() for MATCHED <METHOD><ROUTE>() context
         // THIS LEVEL OF Rate Limiting might need extra checks whether it tries to parse
@@ -8990,10 +9014,6 @@ class C
                 $this->compiled['routes'][$c['req']['method']][$c['req']['route']]['ratelimit']['by'],
                 $this->compiled['routes'][$c['req']['method']][$c['req']['route']]['ratelimit']['driver']
             );
-        }
-        // Route has any params to validate first?
-        funk_internal_validate_params($c);
-        if ($c['req']['params_valid'] === false) {
         }
 
         // Run any set funk_internal_route_cache() for the MATCHED <METHOD><ROUTE>() context
@@ -9050,7 +9070,7 @@ class C
             } else if ($res['type'] === 'callback') {
                 \funk_return_response_callback($c, $res['context']);
             } else {
-                \funk_use_error_json_or_page($c, 500, ['internal_server_error' => 'Failed to Return a Valid Response (`page`,`json`,`text`, or `callback`) as none of those Response Types existed?'], '500', 'Failed to Return a Valid Response (`page`,`json`,`text`, or `callback`) as none of those Response Types existed?');
+                \funk_return_error_json_or_page($c, 500, ['internal_server_error' => 'Failed to Return a Valid Response (`page`,`json`,`text`, or `callback`) as none of those Response Types existed?'], '500', 'Failed to Return a Valid Response (`page`,`json`,`text`, or `callback`) as none of those Response Types existed?');
             }
         }
         echo "END OF run() - Before exit to optional Post-Response Pipes";

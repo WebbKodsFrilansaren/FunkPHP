@@ -365,16 +365,26 @@ function funk_return_download($filePath, $fileName = null, $statusCode = 200)
 
 // FUNKPHP SESSION-BASED FUNCTIONS
 // The unified way to read session values across FunkPHP
-function funk_session_get(&$c, string $key, $default = null)
+function funk_session_get_key(&$c, string $key, $default = null)
 {
     \funk_internal_session_started_or_start_it($c);
     return $_SESSION[$key] ?? $default;
 }
 // The unified way to write session values across FunkPHP
-function funk_session_set(&$c, string $key, $value): void
+function funk_session_set_key(&$c, string $key, $value): void
 {
     \funk_internal_session_started_or_start_it($c);
     $_SESSION[$key] = $value;
+}
+// The unified way to check if session key exit across FunkPHP
+function funk_session_key_exist(&$c, string $key): bool
+{
+    \funk_internal_session_started_or_start_it($c);
+    if (isset($_SESSION[$key]) || array_key_exists($key, $_SESSION)) {
+        return true;
+    } else {
+        return false;
+    }
 }
 
 // Function to destroy the session and optionally set other cookies using funk_session_cookie_set as an array
@@ -417,7 +427,7 @@ function funk_session_cookie_set(&$c, $name, $value, $expire = 0, $path = '/', $
 }
 function funk_generate_csrf(&$c, string $currentUri, ?int $lifetimeSeconds = null): string
 {
-    if (\funk_session_get($c, '_funk_csrf') === null) {
+    if (\funk_session_get_key($c, '_funk_csrf') === null) {
         $_SESSION['_funk_csrf'] = [];
     }
     // 1. Generate a completely unique, unpredictable token string
@@ -437,129 +447,31 @@ function funk_generate_csrf(&$c, string $currentUri, ?int $lifetimeSeconds = nul
 /***  ROUTE-RELATED PHP FUNCTIONS FOR FUNKPHP ***/
 
 /**
- * CUSTOM ERROR HANDLER: Outputs a raw HTML string directly to the client.
- *
- * This is used for simple, non-templated HTML error responses.
- *
- *
- * @param array $c           The global context array (passed by reference).
- * @param int $errCode       The HTTP status code associated with the error (100-599).
- * @param string $errMsg     The raw HTML string to be echoed as the response body.
- * @return void              Sends the HTML response and terminates execution via `exit()`.
+ * Internal Raw Terminal Response: Output raw string content with specified content-type and status, then exit.
  */
-function funk_use_error_raw_html(&$c, int $errCode, string $errMsg)
+function funk_return_error_raw(&$c, int $errCode, string $errMsg, string $contentType = 'text/plain; charset=utf-8'): void
 {
-    // Clear any previous use of output buffering - although the Framework should not really use ob_start
-    // during request pipeline, only during post_response pipeline since all data there is only for server
     if (ob_get_level() > 0) {
         ob_clean();
     }
-    // When error code is NOT integer or within wrong range
-    if (
-        !isset($erCode)
-        || !is_int($erCode)
-        || $erCode < 100
-        || $erCode > 599
-    ) {
-        \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_handle_error_html_string()` Function. This should be an integer between 100 and 599!');
-    }
-    // When $errMsg is not a string or empty
-    if (
-        !isset($errMsg)
-        || !is_string($errMsg)
-        || empty($errMsg)
-    ) {
-        \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_handle_error_html_string()` Function. This should be a non-empty string!');
-    }
-    // Set the response code & header for HTML and output the message
+    header_remove('content-type');
     http_response_code($errCode);
-    header('Content-Type: text/html; charset=utf-8');
+    funk_set_header($c, 'content-type', $contentType);
+    funk_internal_send_headers($c);
     echo $errMsg;
     exit();
 }
-
-/**
- * CUSTOM ERROR HANDLER: Outputs a raw plain text string directly to the client.
- *
- * This is typically used for simple API errors or basic, non-formatted text responses.
- *
- *
- * @param array $c           The global context array (passed by reference).
- * @param int $errCode       The HTTP status code associated with the error (100-599).
- * @param string $errMsg     The raw plain text string to be echoed as the response body.
- * @return void              Sends the plain text response and terminates execution via `exit()`.
- */
-function funk_use_error_raw_plain(&$c, int $errCode, string $errMsg)
+function funk_return_error_raw_plain(&$c, int $errCode, string $errMsg): void
 {
-    // Clear any previous use of output buffering - although the Framework should not really use ob_start
-    // during request pipeline, only during post_response pipeline since all data there is only for server
-    if (ob_get_level() > 0) {
-        ob_clean();
-    }
-    // When error code is NOT integer or within wrong range
-    if (
-        !isset($errCode)
-        || !is_int($errCode)
-        || $errCode < 100
-        || $errCode > 599
-    ) {
-        \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_handle_error_plain_text()` Function. This should be an integer between 100 and 599!');
-    }
-    // When $errMsg is not a string or empty
-    if (
-        !isset($errMsg)
-        || !is_string($errMsg)
-        || empty($errMsg)
-    ) {
-        \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_handle_error_plain_text()` Function. This should be a non-empty string!');
-    }
-    // Set response code & header for plain text and output the message
-    http_response_code($errCode);
-    header('Content-Type: text/plain; charset=utf-8');
-    echo $errMsg;
-    exit();
+    funk_return_error_raw($c, $errCode, $errMsg, 'text/plain; charset=utf-8');
 }
-
-/**
- * CUSTOM ERROR HANDLER: Outputs a raw XML string directly to the client.
- *
- * This is used for providing error responses compatible with older SOAP/XML-based APIs.
- *
- *
- * @param array $c           The global context array (passed by reference).
- * @param int $errCode       The HTTP status code associated with the error (100-599).
- * @param string $errMsg     The raw XML string to be echoed as the response body.
- * @return void              Sends the XML response and terminates execution via `exit()`.
- */
-function funk_use_error_xml(&$c, int $errCode, string $errMsg)
+function funk_return_error_raw_html(&$c, int $errCode, string $errMsg): void
 {
-    // Clear any previous use of output buffering - although the Framework should not really use ob_start
-    // during request pipeline, only during post_response pipeline since all data there is only for server
-    if (ob_get_level() > 0) {
-        ob_clean();
-    }
-    // When error code is NOT integer or within wrong range
-    if (
-        !isset($errCode)
-        || !is_int($errCode)
-        || $errCode < 100
-        || $errCode > 599
-    ) {
-        \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_handle_error_xml()` Function. This should be an integer between 100 and 599!');
-    }
-    // When $errMsg is not a string or empty
-    if (
-        !isset($errMsg)
-        || !is_string($errMsg)
-        || empty($errMsg)
-    ) {
-        \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_handle_error_xml()` Function. This should be a non-empty string!');
-    }
-    // Set response code & header for XML and output the message
-    http_response_code($errCode);
-    header('Content-Type: application/xml; charset=utf-8');
-    echo $errMsg;
-    exit();
+    funk_return_error_raw($c, $errCode, $errMsg, 'text/html; charset=utf-8');
+}
+function funk_return_error_xml(&$c, int $errCode, string $errMsg): void
+{
+    funk_return_error_raw($c, $errCode, $errMsg, 'application/xml; charset=utf-8');
 }
 
 /**
@@ -759,7 +671,7 @@ function funk_use_error_json(&$c, int $errCode, $jsonObjectOrStringThatReturnsJS
         try {
             $jsonData = $jsonData($c);
         } catch (\Throwable $e) {
-            \critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the JSON Callable:`' . $e->getMessage() . '` that was called using the `funk_use_error_json_or_page_or_callback()` Function!');
+            \critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the JSON Callable:`' . $e->getMessage() . '` that was called using the `funk_return_error_json_or_page_or_callback()` Function!');
         }
     }
     // Now $jsonData is guaranteed to be the final data structure (or null/invalid)
@@ -773,248 +685,49 @@ function funk_use_error_json(&$c, int $errCode, $jsonObjectOrStringThatReturnsJS
 }
 
 /**
- * CUSTOM ERROR HANDLER: Determines error response based on the client's Accept header,
- * choosing between JSON (for APIs) or a dedicated HTML error page (as the universal fallback).
- *
- * Execution Logic:
- * 1. If the client accepts 'application/json' or 'text/json', a JSON response is generated.
- * 2. If JSON is NOT accepted (i.e., any other Accept header, or none at all), the specified
- * HTML error page is served as the guaranteed fallback.
- *
- * NOTE ON HTML PAGES: For the HTML error page, the custom message (passed in **$pageErrMsg**) is made
- * available to the included file via the variable **$custom_error_message**.
- *
- * IMPORTANT: Database Credentials are cleared before calling the callable function
- * (the one optionally used for JSON Generation) so they need to be set again if needed!
- *
- * @param array $c                                The global context array (passed by reference).
- * @param int $errCode                            The HTTP status code associated with the error (100-599).
- * @param mixed $jsonObjectOrStringThatReturnsJSON The source of the JSON payload. This must be an array, object,
- * or a string/callable that returns an array/object.
- * @param string $pageName                        The filename (without '.php') of the custom error page in the
- * 'ROOT_FOLDER/page/complete/[errors]/' directory. Must be a readable file.
- * @param string $pageErrMsg                      The human-readable message used exclusively for:
- * - The custom message on the HTML error page (**$custom_error_message**).
- * @return void                                   Sends the appropriate response headers/content and terminates execution via `exit()`.
+ * Internal Error Handler: Emits a structured JSON payload or an HTML error page based on
+ * content negotiation, then terminates the process immediately.
  */
-function funk_use_error_json_or_page(&$c, int $errCode, $jsonObjectOrStringThatReturnsJSON, string $pageName, string $pageErrMsg)
+function funk_return_error_json_or_page(&$c, int $errCode, mixed $jsonObjectOrStringThatReturnsJSON, string $pageName, string $pageErrMsg): void
 {
-    // Clear any previous use of output buffering - although the Framework should not really use ob_start
-    // during request pipeline, only during post_response pipeline since all data there is only for server
     if (ob_get_level() > 0) {
         ob_clean();
     }
-    // When error code is NOT integer or within wrong range
-    if (
-        !isset($errCode)
-        || !is_int($errCode)
-        || $errCode < 100
-        || $errCode > 599
-    ) {
-        \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_use_error_json_or_page()` Function. This should be an Integer between 100 and 599!');
-    }
-    // When $pageErrMsg is not a string or empty
-    if (
-        !isset($pageErrMsg)
-        || !is_string($pageErrMsg)
-        || empty($pageErrMsg)
-    ) {
-        \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_use_error_json_or_page()` Function. This should be a Non-Empty String!');
-    }
-    // When $jsonObjectOrStringThatReturnsJSON is not an Object/Array, nor a String that is also Callable
-    if (
-        !isset($jsonObjectOrStringThatReturnsJSON)
-        || (
-            !is_array($jsonObjectOrStringThatReturnsJSON) && !is_object($jsonObjectOrStringThatReturnsJSON)
-            && (
-                !is_string($jsonObjectOrStringThatReturnsJSON) || !is_callable($jsonObjectOrStringThatReturnsJSON)
-            )
-        )
-    ) {
-        \critical_err_json_or_html(500, 'Tell the Developer: No Valid JSON Data or Callable Provided to `funk_use_error_json_or_page()` Function. This should be either a Non-Empty Array/Object OR a Non-Empty String that is also Callable which returns a Valid JSON Payload!');
-    }
-    // When $pageName is not a string or empty or the file does not exist in the expected folder
-    if (
-        !isset($pageName)
-        || !is_string($pageName)
-        || empty($pageName)
-        || !is_readable(ROOT_PAGES_ERRORS . '/' . $pageName . '.php')
-    ) {
-        \critical_err_json_or_html(500, 'Tell the Developer: No Valid Page Filename Provided to `funk_use_error_json_or_page()` Function. This should be a Non-Empty String and it must exist as a file in the `src/funkphp/pages/compiled/[errors]` directory!');
-    }
-    // Set the response code for both JSON and Page
     http_response_code($errCode);
-    // JSON Response
-    if (
-        isset($c['req']['accept'])
-        && is_string($c['req']['accept'])
-        && !empty($c['req']['accept'])
-        && (str_contains($c['req']['accept'], 'application/json') || str_contains($c['req']['accept'], 'text/json'))
-    ) {
-        // Retrieve JSON Payload either directly or by verified callable
+    $prefers = $c['req']['prefers'] ?? null;
+    if ($prefers === null) {
+        $negotiated = funk_internal_negotiate_content($c);
+        $c['req']['accept_order'] = $negotiated[0];
+        $c['req']['prefers'] = $negotiated[1];
+        $prefers = $c['req']['prefers'];
+    }
+    if ($prefers === 'json') {
+        header('Content-Type: application/json; charset=utf-8');
         $jsonData = $jsonObjectOrStringThatReturnsJSON;
         if (is_string($jsonData) && is_callable($jsonData)) {
             try {
                 $jsonData = $jsonData($c);
             } catch (\Throwable $e) {
-                \critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the JSON Callable:`' . $e->getMessage() . '` that was called using the `funk_use_error_json_or_page_or_callback()` Function!');
+                \critical_err_json_or_html(500, '[INTERNAL SERVER ERROR]: JSON Callable Error: ' . $e->getMessage());
             }
         }
-        // Now $jsonData is guaranteed to be the final data structure (or null/invalid)
-        header('Content-Type: application/json; charset=utf-8');
         try {
             echo json_encode($jsonData, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         } catch (\JsonException $e) {
-            \critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the `funk_use_error_json_or_page_or_callback()` While Encoding the Provided Data to JSON:`' . $e->getMessage() . '`');
+            \critical_err_json_or_html(500, '[INTERNAL SERVER ERROR]: JSON Encoding Failure: ' . $e->getMessage());
         }
+        exit();
     }
-    // Otherwise we return a Page even if that was not explicitly requested
-    else {
-        // Headers that also support <styles> tag inline
-        header('Content-Type: text/html; charset=utf-8');
-        header("Content-Security-Policy: default-src 'none'; img-src 'self'; script-src 'self'; connect-src 'none'; style-src 'self' 'unsafe-inline'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; font-src 'self'; base-uri 'self';");
-        try {
-            $custom_error_message = $pageErrMsg;
-            include_once ROOT_PAGES_ERRORS . '/' . $pageName . '.php';
-        } catch (\Throwable $e) {
-            \critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the `funk_use_error_json_or_page()` Function while trying to return a Custom Error Page. Yes, an error to show an error occured:`' . $e->getMessage() . '`.');
-        }
-    }
-    exit();
-}
-
-/**
- * CUSTOM ERROR HANDLER: Provides flexible error handling based on the client's Accept header.
- *
- * This function attempts to handle the error in the following order:
- * 1. **HTML:** If the client accepts 'text/html', it includes the specified error page.
- * 2. **JSON:** If the client accepts 'application/json' or 'text/json', it encodes and returns the provided JSON data/callable result.
- * 3. **CALLBACK:** If neither HTML nor JSON is accepted, it executes the specified user-defined callback function.
- *
- * IMPORTANT ABOUT CALLBACK: Database Credentials are cleared before calling the callback function so they need to be set again if needed!
- *
- * NOTE ON HTML PAGES: For HTML error pages, the custom message is made available to the included file
- * via the variable **$custom_error_message**.
- *
- * @param array $c                               The global context array (passed by reference).
- * @param int $errCode                           The HTTP status code associated with the error (100-599).
- * @param string $errMsgForPageAndCallback       The human-readable message used for:
- * - The custom message on the HTML error page ($custom_error_message).
- * - The second argument passed to the callable function.
- * @param mixed $jsonObjectOrStringThatReturnsJSON The source of the JSON payload. This must be an array, object,
- * or a string/callable that returns an array/object.
- * @param string $pageName                       The filename (without '.php') of the custom error page in the
- * 'ROOT_FOLDER/page/complete/[errors]/' directory.
- * @param string $callableName                   The string name of the callable function to execute if neither
- * HTML nor JSON is accepted.
- * @param mixed $optionalCallbackData            Optional data passed as the third argument to the callback function.
- * @return void                                  Sends response headers/content and terminates execution via `exit()`.
- */
-function funk_use_error_json_or_page_or_callback(&$c, int $errCode, string $errMsgForPageAndCallback, $jsonObjectOrStringThatReturnsJSON, string $pageName, string $callableName, $optionalCallbackData = null)
-{
-    // Clear any previous use of output buffering - although the Framework should not really use ob_start
-    // during request pipeline, only during post_response pipeline since all data there is only for server
-    if (ob_get_level() > 0) {
-        ob_clean();
-    }
-    // When error code is NOT integer or within wrong range
-    if (
-        !isset($errCode)
-        || !is_int($errCode)
-        || $errCode < 100
-        || $errCode > 599
-    ) {
-        \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_use_error_json_or_page_or_callback()` Function. This should be an integer between 100 and 599!');
-    }
-    // When $errMsgForPageAndCallback is not a string or empty
-    if (
-        !isset($errMsgForPageAndCallback)
-        || !is_string($errMsgForPageAndCallback)
-        || empty($errMsgForPageAndCallback)
-    ) {
-        \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_use_error_json_or_page_or_callback()` Function. This should be a Non-Empty String!');
-    }
-    // When $pageName is not a string or empty or the file does not exist in the expected folder
-    if (
-        !isset($pageName)
-        || !is_string($pageName)
-        || empty($pageName)
-        || !is_readable(ROOT_PAGES_ERRORS . '/' . $pageName . '.php')
-    ) {
-        \critical_err_json_or_html(500, 'Tell the Developer: No Valid Page Filename Provided to `funk_use_error_json_or_page_or_callback()` Function. This should be a Non-Empty String and it must exist as a file in the `src/funkphp/pages/compiled/[errors]` directory!');
-    }
-    // $callableName is not a string or empty or not callable
-    if (
-        !isset($callableName)
-        || !is_string($callableName)
-        || empty($callableName)
-        || !is_callable($callableName)
-    ) {
-        \critical_err_json_or_html(500, 'Tell the Developer: No Valid Callback Name Provided to `funk_use_error_json_or_page_or_callback()` Function. This should be a Non-Empty String that is also Callable!');
-    }
-    // When $jsonObjectOrStringThatReturnsJSON is not an Object/Array, nor a String that is also Callable
-    if (
-        !isset($jsonObjectOrStringThatReturnsJSON)
-        || (
-            !is_array($jsonObjectOrStringThatReturnsJSON) && !is_object($jsonObjectOrStringThatReturnsJSON)
-            && (
-                !is_string($jsonObjectOrStringThatReturnsJSON) || !is_callable($jsonObjectOrStringThatReturnsJSON)
-            )
-        )
-    ) {
-        \critical_err_json_or_html(500, 'Tell the Developer: No Valid JSON Data or Callable Provided to `funk_use_error_json_or_page_or_callback()` Function. This should be either a Non-Empty Array/Object OR a Non-Empty String that is also Callable which returns a Valid JSON Payload!');
-    }
-    // Set response code and check if Accept header contains text/html, application/json or text/json
-    // If none of those headers then we call the callback function. We always exit nonetheless!
-    http_response_code($errCode);
-    // HTML Response
-    if (
-        isset($c['req']['accept'])
-        && is_string($c['req']['accept'])
-        && !empty($c['req']['accept'])
-        && str_contains($c['req']['accept'], 'text/html')
-    ) {
-        // Headers that also support <styles> tag inline
-        header('Content-Type: text/html; charset=utf-8');
-        header("Content-Security-Policy: default-src 'none'; img-src 'self'; script-src 'self'; connect-src 'none'; style-src 'self' 'unsafe-inline'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; font-src 'self'; base-uri 'self';");
-        try {
-            $custom_error_message = $errMsgForPageAndCallback;
-            include_once ROOT_PAGES_ERRORS . '/' . $pageName . '.php';
-        } catch (\Throwable $e) {
-            \critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the `funk_use_error_json_or_page_or_callback()` Function while trying to return a Custom Error Page. Yes, an error to show an error occured:`' . $e->getMessage() . '`.');
-        }
-    }
-    // JSON Response
-    else if (
-        isset($c['req']['accept'])
-        && is_string($c['req']['accept'])
-        && !empty($c['req']['accept'])
-        && (str_contains($c['req']['accept'], 'application/json') || str_contains($c['req']['accept'], 'text/json'))
-    ) {
-        // Retrieve JSON Payload either directly or by verified callable
-        $jsonData = $jsonObjectOrStringThatReturnsJSON;
-        if (is_string($jsonData) && is_callable($jsonData)) {
-            try {
-                $jsonData = $jsonData($c);
-            } catch (\Throwable $e) {
-                \critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the JSON Callable:`' . $e->getMessage() . '` that was called using the `funk_use_error_json_or_page_or_callback()` Function!');
-            }
-        }
-        // Now $jsonData is guaranteed to be the final data structure (or null/invalid)
-        header('Content-Type: application/json; charset=utf-8');
-        try {
-            echo json_encode($jsonData, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-        } catch (\JsonException $e) {
-            \critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the `funk_use_error_json_or_page_or_callback()` While Encoding the Provided Data to JSON:`' . $e->getMessage() . '`');
-        }
-    }
-    // CALLBACK Response
-    else {
-        try {
-            $callableName($c, $errMsgForPageAndCallback, $optionalCallbackData);
-        } catch (\Throwable $e) {
-            critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the `funk_use_error_json_or_page_or_callback()` Function with the following Error Message:`' . $e->getMessage() . '`');
-        }
+    header('Content-Type: text/html; charset=utf-8');
+    header("Content-Security-Policy: default-src 'none'; img-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'self';");
+    try {
+        $custom_error_message = $pageErrMsg;
+        $pagePath = defined('FUNKPHP_ONLINE')
+            ? ROOT_FOLDER . '/pages/' . $pageName . '.php'
+            : ROOT_FOLDER . '/pages/compiled/' . $pageName . '.php';
+        include_once $pagePath;
+    } catch (\Throwable $e) {
+        \critical_err_json_or_html(500, '[INTERNAL SERVER ERROR]: Error Page Rendering Failure: ' . $e->getMessage());
     }
     exit();
 }
@@ -1156,7 +869,8 @@ function funk_req_prefers(&$c, $contentType): bool
  */
 function funk_set_header(&$c, $headerName, $value)
 {
-    $c['runtime']['route']['headers']['add'][strtolower(trim($headerName))] = $headerName . ': ' . $value;
+    $key = strtolower(trim($headerName));
+    $c['runtime']['route']['headers']['add'][$key] = $headerName . ': ' . $value;
 }
 
 /**
@@ -1189,16 +903,16 @@ function funk_remove_header(&$c, string $headerName)
 function funk_return_response_page(&$c, string $pageNameWithoutExtension, int $code = 200)
 {
     header_remove('content-type');
-    if (isset($c['runtime']['route']['headers']['add']['content-type'])) {
-        unset($c['runtime']['route']['headers']['add']['content-type']);
-    }
     http_response_code($code);
     funk_set_header($c, 'content-type', 'text/html');
-    funk_internal_send_response_headers($c);
-    if (defined('ROOT_FOLDER')) {
-        require_once ROOT_FOLDER . '/pages/' . $pageNameWithoutExtension . '.php';
+    funk_internal_send_headers($c);
+    $pagePath = defined('FUNKPHP_ONLINE')
+        ? ROOT_FOLDER . '/pages/' . $pageNameWithoutExtension . '.php'
+        : ROOT_FOLDER . '/pages/compiled/' . $pageNameWithoutExtension . '.php';
+    if (file_exists($pagePath)) {
+        require_once $pagePath;
     } else {
-        \funk_use_error_json_or_page($c, 500, ['internal_server_error' => 'Failed to load a `User-defined Page` to Return a Response. This means the `Page` does NOT exist in the Expected Folder `/pages/`.'], '500', 'Failed to use a `User-defined Function` to Return a Response. This means the Function-name does NOT exist.');
+        \funk_return_error_json_or_page($c, 500, ['internal_server_error' => 'Failed to load a `User-defined Page` to Return a Response. This means the `Page` does NOT exist in the Expected Folder `/pages/`.'], '500', 'Failed to use a `User-defined Function` to Return a Response. This means the Function-name does NOT exist.');
     }
     exit;
 }
@@ -1221,12 +935,9 @@ function funk_return_response_page(&$c, string $pageNameWithoutExtension, int $c
 function funk_return_response_json(&$c, string $c_data_key_with_JSON_encoded_Data, int $code = 200)
 {
     header_remove('content-type');
-    if (isset($c['runtime']['route']['headers']['add']['content-type'])) {
-        unset($c['runtime']['route']['headers']['add']['content-type']);
-    }
     http_response_code($code);
     funk_set_header($c, 'content-type', 'application/json');
-    funk_internal_send_response_headers($c);
+    funk_internal_send_headers($c);
     if (isset($c['d'][$c_data_key_with_JSON_encoded_Data])) {
         echo is_string($c['d'][$c_data_key_with_JSON_encoded_Data])
             ? $c['d'][$c_data_key_with_JSON_encoded_Data]
@@ -1253,12 +964,9 @@ function funk_return_response_json(&$c, string $c_data_key_with_JSON_encoded_Dat
 function funk_return_response_text(&$c, string $rawTextString, int $code = 200)
 {
     header_remove('content-type');
-    if (isset($c['runtime']['route']['headers']['add']['content-type'])) {
-        unset($c['runtime']['route']['headers']['add']['content-type']);
-    }
     http_response_code($code);
     funk_set_header($c, 'content-type', 'text/plain');
-    funk_internal_send_response_headers($c);
+    funk_internal_send_headers($c);
     echo $rawTextString;
     exit;
 }
@@ -1282,7 +990,7 @@ function funk_return_response_callback(&$c, string $userDefinedFunctionName)
         $userDefinedFunctionName($c);
         exit;
     }
-    \funk_use_error_json_or_page($c, 500, ['INTERNAL_SERVER_ERROR' => 'Failed to use a `User-defined Function` to Return a Response. This means the Function-name does NOT exist.'], '500', 'Failed to use a `User-defined Function` to Return a Response. This means the Function-name does NOT exist.');
+    \funk_return_error_json_or_page($c, 500, ['INTERNAL_SERVER_ERROR' => 'Failed to use a `User-defined Function` to Return a Response. This means the Function-name does NOT exist.'], '500', 'Failed to use a `User-defined Function` to Return a Response. This means the Function-name does NOT exist.');
 }
 
 function funk_req_param_valid(&$c, string $param): bool
@@ -1537,7 +1245,7 @@ function funk_internal_session_started_or_start_it(&$c)
     // If it fails to start a session, throw an error and exit with a 500 Internal Server Error
     if (!session_start()) {
         $err = 'Tell The Developer: FAILED to Start Session-based Cookie Session. Please check $c[\'INI_SETS\'] and/or $c[\'COOKIES\'] in the Global Configuration `funkphp/config/_all.php` File and adjust the values accordingly if needed!';
-        funk_use_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
+        funk_return_error_json_or_page($c, 500, ['internal_error' => $err], '500', $err);
     }
 }
 
@@ -1682,7 +1390,7 @@ function funk_internal_exception_handler(&$c, \Throwable $e)
         exit;
     }
     $err = 'An unexpected Internal Server Error occurred. Please check the Application Logs.';
-    \funk_use_error_json_or_page($c, 500, ["internal_server_error" => $err], '500', $err);
+    \funk_return_error_json_or_page($c, 500, ["internal_server_error" => $err], '500', $err);
 }
 /**
  * Internal Default Error Handler
@@ -1794,9 +1502,9 @@ function funk_internal_validate_params(&$c)
                 return;
             }
             foreach ($c['runtime']['route']['params'] as $rParam => $rParDetails) {
-                // Param has polymorphic?
                 if (isset($rParDetails['pairs'])) {
                     $anyPairMatch = false;
+                    $regexesToMatch = [];
                     $c['req']['param_variant'][$rParam] = null;
                     $matchedrPairName = null;
                     foreach ($rParDetails['pairs'] as $rPairName => $rPairPattern) {
@@ -1805,6 +1513,7 @@ function funk_internal_validate_params(&$c)
                             $matchedrPairName = $rPairName;
                             break;
                         } else {
+                            $regexesToMatch[] = $rPairPattern;
                             continue;
                         }
                     }
@@ -1813,8 +1522,10 @@ function funk_internal_validate_params(&$c)
                     // or without polymorphic patterns would collide so
                     if ($anyPairMatch) {
                         $c['req']['param_valid'][$matchedrPairName] = true;
+                        $c['req']['params_details']['match'][$matchedrPairName] = ['from' => $rParam];
                     } else {
                         $c['req']['param_valid'][$rParam] = false;
+                        $c['req']['params_details']['mismatch'][$rParam] = ['Mismatches Regexes' => [...$regexesToMatch]];
                         $allParamsValid = false;
                     }
                 }
@@ -1826,13 +1537,15 @@ function funk_internal_validate_params(&$c)
                             $c['req']['params'][$rParam]
                         ) === true) {
                             $c['req']['param_valid'][$rParam] = true;
+                            $c['req']['params_details']['match'][$rParam] = true;
                         } else {
                             $c['req']['params'][$rParam] = (isset($rParDetails['default']) ? $rParDetails['default'] : $c['req']['params'][$rParam]);
                             $c['req']['param_valid'][$rParam] = false;
                             $allParamsValid = false;
+                            $c['req']['params_details']['mismatch'][$rParam] = 'Mismatches Callback Regex - ask Provider what it is';
                         }
                     } else {
-                        \funk_use_error_json_or_page($c, 500, ['internal_server_error' => 'Expected `User-Defined Function` in `/src/funkphp/config/functions.php` was Not Found for Validating a Param Rule.'], '500', 'Expected `User-Defined Function` in `/src/funkphp/config/functions.php` was Not Found for Validating a Param Rule.');
+                        \funk_return_error_json_or_page($c, 500, ['internal_server_error' => 'Expected `User-Defined Function` in `/src/funkphp/config/functions.php` was Not Found for Validating a Param Rule.'], '500', 'Expected `User-Defined Function` in `/src/funkphp/config/functions.php` was Not Found for Validating a Param Rule.');
                     }
                 }
                 // Here just regular param with pattern
@@ -1841,8 +1554,10 @@ function funk_internal_validate_params(&$c)
                         $c['req']['params'][$rParam] = (isset($rParDetails['default']) ? $rParDetails['default'] : $c['req']['params'][$rParam]);
                         $c['req']['param_valid'][$rParam] = false;
                         $allParamsValid = false;
+                        $c['req']['params_details']['mismatch'][$rParam] = 'Mismatches Regex ' . $rParDetails['pattern'];
                     } else {
                         $c['req']['param_valid'][$rParam] = true;
+                        $c['req']['params_details']['match'][$rParam] = true;
                     }
                 }
             }
@@ -1855,7 +1570,45 @@ function funk_internal_validate_params(&$c)
         $c['req']['params_valid'] = true;
     }
 }
+/**
+ * Handles parameter validation failures for matched routes.
+ * Emits 422 Unprocessable Entity for API consumers or delegates to custom overrides.
+ */
+function funk_internal_handle_invalid_params(&$c): void
+{
+    // 1. If route has a custom parametric mismatch handler/JSON set via ->setParamRuleMismatch()
+    if (isset($c['runtime']['route']['param_mismatch_page'])) {
+        $handler = $c['runtime']['route']['param_mismatch_page'];
+        if (is_callable($handler)) {
+            $handler($c);
+            exit;
+        }
+        if (is_array($handler) || is_string($handler)) {
+            funk_return_response_json($c, $handler, 422);
+        }
+    }
 
+    // 2. Default API/JSON response (422 Unprocessable Entity)
+    if (($c['req']['prefers'] ?? 'json') === 'json') {
+        $errorPayload = json_encode([
+            'status'  => 422,
+            'error'   => 'Unprocessable Entity',
+            'message' => 'Invalid Route Parameter Format OR Type Validation Failed.',
+            'details' => ($c['runtime']['route']['params_details'] ?? [])
+        ]);
+        funk_return_response_json($c, $errorPayload, 422);
+    }
+
+    // Ultimate fallback if no custom web error view exists
+    echo "YAS";
+    funk_return_error_json_or_page(
+        $c,
+        422,
+        ['invalid_parameters' => 'The parameters provided in the URI do not conform to expected parameter rules.'],
+        '404',
+        'Parameter Validation Failed'
+    );
+}
 // Retrieve what content UA accepts
 function funk_internal_negotiate_content(mixed &$c): array
 {
@@ -1989,67 +1742,69 @@ function funk_internal_handle_sri_internal(&$c, $nonce) {}
 
 function funk_internal_handle_sri_external(&$c, $nonce) {}
 
-function funk_internal_send_response_headers(&$c)
+function funk_internal_send_headers(&$c): void
 {
     if (headers_sent()) {
-        $c['err']['INTERNAL'][] = "Headers have already been sent when they should be sent by `funk_internal_send_response_headers()` Function. Check if You have used `header()` anywhere inside Any of Your Pipe Functions (including Request Pipes, Middleware Pipes, Route Pipes & Post-Response Pipes).";
+        $c['err']['INTERNAL'][] = "Headers already sent prior to funk_internal_send_headers(). Check for Unhandled Output or manual `header()` calls.";
         return;
     }
-    // First remove any previously added header from 3rd party;
-    // IMPORTANT: this does NOT remove any added via `funk_set_header()`
-    if (isset($c['runtime']['route']['headers']['remove'])) {
-        foreach ($c['runtime']['route']['headers']['remove'] as $routeHeaderRemove) {
-            header_remove($routeHeaderRemove);
+    // Current state that is global as default
+    $state = $c['runtime']['state'] ?? 'global';
+    // Matched Route always have all needed headers (inherited during compile())
+    if ($state === 'route' && isset($c['runtime']['route']['headers'])) {
+        if (isset($c['runtime']['route']['headers']['remove'])) {
+            foreach ($c['runtime']['route']['headers']['remove'] as $headerToRemove) {
+                header_remove($headerToRemove);
+            }
+        }
+        if (isset($c['runtime']['route']['headers']['add'])) {
+            foreach ($c['runtime']['route']['headers']['add'] as $headerLine) {
+                header($headerLine);
+            }
+        }
+        // TODO: Add sending CSP Header as well
+        /* CSP PARTS! - Must first get from Global, Method then Route OR
+        Maybe it should be that during compile(), every Route already has
+        all available headers to grab and thus return here? */
+        $cspParts = [];
+        $cspDirectives = ['placeholder' => ['placeholder2']];
+        foreach ($cspDirectives as $directive => $sources) {
+            // If count is 0 (because no nonces were ever evaluated for this directive), SKIP IT!
+            if (empty($sources)) {
+                continue;
+            }
+            $cspParts[] = $directive . ' ' . implode(' ', $sources);
+        }
+        if (!empty($cspParts)) {
+            header('Content-Security-Policy: ' . implode('; ', $cspParts));
+        }
+        return;
+    }
+    // global OR matched method (but not matched route) and their needed headers
+    $staticHeaders = match ($state) {
+        'method' => $c['runtime']['method_headers'][$c['req']['method']] ?? [],
+        default  => $c['runtime']['global_headers'] ?? [],
+    };
+    if (isset($staticHeaders['remove'])) {
+        foreach ($staticHeaders['remove'] as $headerToRemove) {
+            header_remove($headerToRemove);
         }
     }
+    if (isset($staticHeaders['add'])) {
+        foreach ($staticHeaders['add'] as $headerLine) {
+            header($headerLine);
+        }
+    }
+    // Use any funk_set_header() since they are always
+    // set for Route headers even if no route match
     if (isset($c['runtime']['route']['headers']['add'])) {
-        foreach ($c['runtime']['route']['headers']['add'] as $routeHeaderAddK => $routeHeaderAddV) {
-            header($routeHeaderAddV);
+        foreach ($c['runtime']['route']['headers']['add'] as $dynamicHeaderLine) {
+            header($dynamicHeaderLine);
         }
     }
-
-    /* CSP PARTS! - Must first get from Global, Method then Route OR
-    Maybe it should be that during compile(), every Route already has
-    all available headers to grab and thus return here? */
-    $cspParts = [];
-    $cspDirectives = ['placeholder' => ['placeholder2']];
-    foreach ($cspDirectives as $directive => $sources) {
-        // If count is 0 (because no nonces were ever evaluated for this directive), SKIP IT!
-        if (empty($sources)) {
-            continue;
-        }
-        $cspParts[] = $directive . ' ' . implode(' ', $sources);
-    }
-    if (!empty($cspParts)) {
-        header('Content-Security-Policy: ' . implode('; ', $cspParts));
-    }
-}
-// Send ONLY Global Headers, used only when things stops already globally without route match
-function funk_internal_send_global_headers(&$c)
-{
-    if (isset($c['runtime']['global_headers']['remove']) && !empty($c['runtime']['global_headers']['remove'])) {
-        foreach ($c['runtime']['global_headers']['remove'] as $ghr) {
-            header_remove($ghr);
-        }
-    }
-    if (isset($c['runtime']['global_headers']['add']) && !empty($c['runtime']['global_headers']['add'])) {
-        foreach ($c['runtime']['global_headers']['add'] as $gh) {
-            header($gh);
-        }
-    }
-}
-// Send ONLY Method Headers, used only when things stops already without route match in matched method though
-function funk_internal_send_method_headers(&$c)
-{
-    $method = $c['req']['method'];
-    if (isset($c['runtime']['method_headers']['remove'][$method]) && !empty($c['runtime']['method_headers']['remove'][$method])) {
-        foreach ($c['runtime']['method_headers']['remove'][$method] as $mhr) {
-            header_remove($mhr);
-        }
-    }
-    if (isset($c['runtime']['method_headers']['add'][$method]) && !empty($c['runtime']['method_headers']['add'][$method])) {
-        foreach ($c['runtime']['method_headers']['add'][$method] as $mh) {
-            header($mh);
+    if (isset($c['runtime']['route']['headers']['remove'])) {
+        foreach ($c['runtime']['route']['headers']['remove'] as $dynamicHeaderLineRemove) {
+            header_remove($dynamicHeaderLineRemove);
         }
     }
 }
@@ -2073,13 +1828,13 @@ function funk_internal_handle_no_route_match(&$c, $globalOrMethod)
         }
         $prefers = $c['req']['prefers'];
         if ($prefers === 'json' && isset($c['runtime']['NO_ROUTE_MATCH']['JSON'])) {
-            funk_internal_send_global_headers($c);
+            funk_internal_send_headers($c);
             header("content-type: application/json; charset=utf-8");
             http_response_code($c['runtime']['NO_ROUTE_MATCH']['JSON']['code']);
             echo $c['runtime']['NO_ROUTE_MATCH']['JSON']['JSON'];
             exit;
         } else if ($prefers === 'html' && isset($c['runtime']['NO_ROUTE_MATCH']['PAGE'])) {
-            funk_internal_send_global_headers($c);
+            funk_internal_send_headers($c);
             header("content-type: text/html; charset=utf-8");
             http_response_code($c['runtime']['NO_ROUTE_MATCH']['PAGE']['code']);
             if (defined(FUNKPHP_ONLINE)) {
@@ -2095,13 +1850,13 @@ function funk_internal_handle_no_route_match(&$c, $globalOrMethod)
                 }
             }
         } else if ($prefers === 'text' && isset($c['runtime']['NO_ROUTE_MATCH']['TEXT'])) {
-            funk_internal_send_global_headers($c);
+            funk_internal_send_headers($c);
             header("content-type: text/plain; charset=utf-8");
             http_response_code($c['runtime']['NO_ROUTE_MATCH']['TEXT']['code']);
             echo $c['runtime']['NO_ROUTE_MATCH']['TEXT']['text'];
             exit;
         } else if (isset($c['runtime']['NO_ROUTE_MATCH']['CALLBACK'])) {
-            funk_internal_send_global_headers($c);
+            funk_internal_send_headers($c);
             if (function_exists($c['runtime']['NO_ROUTE_MATCH']['CALLBACK'])) {
                 $c['runtime']['NO_ROUTE_MATCH']['CALLBACK']($c);
                 exit;
@@ -2116,13 +1871,13 @@ function funk_internal_handle_no_route_match(&$c, $globalOrMethod)
         }
         $prefers = $c['req']['prefers'];
         if ($prefers === 'json' && isset($c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['JSON'])) {
-            funk_internal_send_method_headers($c);
+            funk_internal_send_headers($c);
             header("content-type: application/json; charset=utf-8");
             http_response_code($c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['JSON']['code']);
             echo $c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['JSON']['JSON'];
             exit;
         } else if ($prefers === 'html' && isset($c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['PAGE'])) {
-            funk_internal_send_method_headers($c);
+            funk_internal_send_headers($c);
             header("content-type: text/html; charset=utf-8");
             http_response_code($c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['PAGE']['code']);
             if (defined(FUNKPHP_ONLINE)) {
@@ -2138,13 +1893,13 @@ function funk_internal_handle_no_route_match(&$c, $globalOrMethod)
                 }
             }
         } else if ($prefers === 'text' && isset($c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['TEXT'])) {
-            funk_internal_send_method_headers($c);
+            funk_internal_send_headers($c);
             header("content-type: text/plain; charset=utf-8");
             http_response_code($c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['TEXT']['code']);
             echo $c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['TEXT']['text'];
             exit;
         } else if (isset($c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['CALLBACK'])) {
-            funk_internal_send_method_headers($c);
+            funk_internal_send_headers($c);
             if (function_exists($c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['CALLBACK'])) {
                 $c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['CALLBACK']($c);
                 exit;
@@ -2163,7 +1918,7 @@ function funk_internal_handle_no_no_route_match(&$c)
     ) {
         $c['runtime']['SKIP_POST_RESPONSE'] = true;
     }
-    funk_internal_send_global_headers($c);
+    funk_internal_send_headers($c);
     $message = (isset($c['runtime']['NO_NO_MATCH_MESSAGE'])
         && is_string($c['runtime']['NO_NO_MATCH_MESSAGE'])
         && trim($c['runtime']['NO_NO_MATCH_MESSAGE']) !== '')
