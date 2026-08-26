@@ -354,14 +354,6 @@ function dd(mixed $data, string $headerOptionalMsg = '', bool $exit = true, bool
     }
 }
 
-function funk_return_download($filePath, $fileName = null, $statusCode = 200)
-{
-    // Set the content type to application/octet-stream and the status code, then return the file response
-    header('Content-Type: application/octet-stream', true, $statusCode);
-    header('Content-Disposition: attachment; filename="' . ($fileName ?? basename($filePath)) . '"');
-    readfile($filePath);
-    exit;
-}
 
 // FUNKPHP SESSION-BASED FUNCTIONS
 // The unified way to read session values across FunkPHP
@@ -446,6 +438,16 @@ function funk_generate_csrf(&$c, string $currentUri, ?int $lifetimeSeconds = nul
 
 /***  ROUTE-RELATED PHP FUNCTIONS FOR FUNKPHP ***/
 
+
+function funk_return_download($filePath, $fileName = null, $statusCode = 200)
+{
+    // Set the content type to application/octet-stream and the status code, then return the file response
+    header('Content-Type: application/octet-stream', true, $statusCode);
+    header('Content-Disposition: attachment; filename="' . ($fileName ?? basename($filePath)) . '"');
+    readfile($filePath);
+    exit;
+}
+
 /**
  * Internal Raw Terminal Response: Output raw string content with specified content-type and status, then exit.
  */
@@ -457,7 +459,12 @@ function funk_return_error_raw(&$c, int $errCode, string $errMsg, string $conten
     header_remove('content-type');
     http_response_code($errCode);
     funk_set_header($c, 'content-type', $contentType);
-    funk_internal_send_headers($c);
+    if ($contentType === 'text/html; charset=utf-8') {
+        funk_set_header($c, 'content-security-policy', "default-src 'none'; img-src 'self'; script-src 'self'; connect-src 'none'; style-src 'self' 'unsafe-inline'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; font-src 'self'; base-uri 'self';");
+        funk_internal_send_headers($c, true);
+    } else {
+        funk_internal_send_headers($c);
+    }
     echo $errMsg;
     exit();
 }
@@ -491,107 +498,39 @@ function funk_return_error_xml(&$c, int $errCode, string $errMsg): void
  * located in the 'ROOT_FOLDER/page/complete/[errors]/' directory. Must be a readable file.
  * @return void              Sends the HTML response and terminates execution via `exit()`.
  */
-function funk_use_error_page(&$c, int $errCode, string $errMsg, string $pageName)
+function funk_return_error_page(&$c, int $errCode, string $errMsg, string $pageName)
 {
     // Clear any previous use of output buffering - although the Framework should not really use ob_start
     // during request pipeline, only during post_response pipeline since all data there is only for server
     if (ob_get_level() > 0) {
         ob_clean();
     }
-    // When error code is NOT integer or within wrong range
-    if (
-        !isset($errCode)
-        || !is_int($errCode)
-        || $errCode < 100
-        || $errCode > 599
-    ) {
-        \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_handle_error_page()` Function. This should be an integer between 100 and 599!');
+    header_remove('content-type');
+    http_response_code($errCode);
+    funk_set_header($c, 'content-type', 'text/html');
+    funk_set_header($c, 'content-security-policy', "default-src 'none'; img-src 'self'; script-src 'self'; connect-src 'none'; style-src 'self' 'unsafe-inline'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; font-src 'self'; base-uri 'self';");
+    funk_internal_send_headers($c, true); // true means ignoring current configured CSP and using above one instead
+    $pagePath = defined('FUNKPHP_ONLINE')
+        ? ROOT_FOLDER . '/pages/' . $pageName . '.php'
+        : ROOT_FOLDER . '/pages/compiled/' . $pageName . '.php';
+    if (file_exists($pagePath)) {
+        require_once $pagePath;
+    } else {
+        \funk_return_error_json_or_page(
+            $c,
+            500,
+            [
+                'internal_server_error' => 'Failed to load a `User-defined Page` to Return a Response. This means the `Page` does NOT exist in the Expected Folder `/pages/`.'
+            ],
+            '500',
+            'Failed to use a `User-defined Function` to Return a Response. This means the Function-name does NOT exist.'
+        );
     }
-    // When $errMsg is not a string or empty
-    if (
-        !isset($errMsg)
-        || !is_string($errMsg)
-        || empty($errMsg)
-    ) {
-        \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_handle_error_page()` Function. This should be a non-empty string!');
-    }
-    // When $pageName is not a string or empty or file not readable
-    if (
-        !isset($pageName)
-        || !is_string($pageName)
-        || empty($pageName)
-        || !is_readable(ROOT_PAGES_ERRORS . '/' . $pageName . '.php')
-    ) {
-        \critical_err_json_or_html(500, 'Tell the Developer: No Valid Page Filename Provided to `funk_handle_error_page()` Function. This should be a non-empty string that is also a readable file inside `/pages/compiled/[errors]/` directory!');
-    }
-    // Headers that also support <styles> tag inline
-    header('Content-Type: text/html; charset=utf-8');
-    header("Content-Security-Policy: default-src 'none'; img-src 'self'; script-src 'self'; connect-src 'none'; style-src 'self' 'unsafe-inline'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; font-src 'self'; base-uri 'self';");
     try {
         $custom_error_message = $errMsg;
         include_once ROOT_PAGES_ERRORS . '/' . $pageName . '.php';
     } catch (\Throwable $e) {
         \critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the `funk_use_error_page()` Function while trying to return a Custom Error Page. Yes, an error to show an error occured:`' . $e->getMessage() . '`.');
-    }
-    exit();
-}
-
-/**
- * CUSTOM ERROR HANDLER: Executes a user-defined callback function to handle an error.
- *
- * This function clears the output buffer, performs validation on the error code
- * and callback, and then executes the callback, passing the global context ($c)
- * and optional custom data to it. The function exits execution after the callback
- * runs successfully or fails critically.
- *
- * IMPORTANT: Database Credentials are cleared before calling the callback function so they need to be set again if needed!
- *
- * @param array $c                     The global context array (passed by reference). 1st Argument passed to the Callback.
- * @param int $errCode                 The HTTP status code associated with the error (100-599).
- * @param string $errMsg               The Primary Error Message passed as the 2nd Argument after $c.
- * @param string $callbackName         The String name of the Callable Function or method to execute.
- * @param mixed $optionalCallbackData  Optional Data passed as the 3rd Argument to the Callback Function.
- * @return void                        Sends response and exits execution via `exit()`.
- */
-function funk_use_error_callback(&$c, int $errCode, string $errMsg, string $callbackName, $optionalCallbackData = null)
-{
-    // Clear any previous use of output buffering - although the Framework should not really use ob_start
-    // during request pipeline, only during post_response pipeline since all data there is only for server
-    if (ob_get_level() > 0) {
-        ob_clean();
-    }
-    // When error code is NOT integer or within wrong range
-    if (
-        !isset($errCode)
-        || !is_int($errCode)
-        || $errCode < 100
-        || $errCode > 599
-    ) {
-        \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_handle_error_callback()` Function. This should be an integer between 100 and 599!');
-    }
-    // When $errMsg is not a string or empty
-    if (
-        !isset($errMsg)
-        || !is_string($errMsg)
-        || empty($errMsg)
-    ) {
-        \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_handle_error_callback()` Function. This should be a non-empty string!');
-    }
-    // When $callbackName is not a string or empty or not callable
-    if (
-        !isset($callbackName)
-        || !is_string($callbackName)
-        || empty($callbackName)
-        || !is_callable($callbackName)
-    ) {
-        \critical_err_json_or_html(500, 'Tell the Developer: No Valid Callback Name Provided to `funk_handle_error_callback()` Function. This should be a non-empty string that is also callable!');
-    }
-    // Set response code, call function and exit
-    http_response_code($errCode);
-    try {
-        $callbackName($c, $errMsg, $optionalCallbackData);
-    } catch (\Throwable $e) {
-        \critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the `funk_handle_error_callback()` Function with the following Error Message:`' . $e->getMessage() . '`.');
     }
     exit();
 }
@@ -608,7 +547,7 @@ function funk_use_error_callback(&$c, int $errCode, string $errMsg, string $call
  * @return void
  * @throws \Exception              Always throws a new \Exception with the provided message.
  */
-function funk_use_error_throw(&$c, string $exceptionErrMsg)
+function funk_throw_exception(&$c, string $exceptionErrMsg)
 {
     // The `funk_use_error_throw()` does not set any HTTP status code
     // OR "eating" output buffering since it just throws an exception
@@ -635,51 +574,29 @@ function funk_use_error_throw(&$c, string $exceptionErrMsg)
  * @param mixed $jsonObjectOrCallableThatReturnsJSON The JSON data (array/object) OR a string/callable that returns JSON Data.
  * @return void         Sends response and exits.
  */
-function funk_use_error_json(&$c, int $errCode, $jsonObjectOrStringThatReturnsJSON)
+function funk_return_error_json(&$c, int $errCode, $jsonObjectOrStringThatReturnsJSON)
 {
     // Clear any previous use of output buffering - although the Framework should not really use ob_start
     // during request pipeline, only during post_response pipeline since all data there is only for server
     if (ob_get_level() > 0) {
         ob_clean();
     }
-    // When error code is NOT integer or within wrong range
-    if (
-        !isset($errCode)
-        || !is_int($errCode)
-        || $errCode < 100
-        || $errCode > 599
-    ) {
-        \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Code Provided to `funk_handle_error_json()` Function. This should be an integer between 100 and 599!');
-    }
-    // When $jsonObjectOrStringThatReturnsJSON is not an Object/Array, nor a String that is also Callable
-    if (
-        !isset($jsonObjectOrStringThatReturnsJSON)
-        || (
-            !is_array($jsonObjectOrStringThatReturnsJSON) && !is_object($jsonObjectOrStringThatReturnsJSON)
-            && (
-                !is_string($jsonObjectOrStringThatReturnsJSON) || !is_callable($jsonObjectOrStringThatReturnsJSON)
-            )
-        )
-    ) {
-        \critical_err_json_or_html(500, 'Tell the Developer: No Valid JSON Data or Callable Provided to `funk_handle_error_json()` Function. This should be either a Non-Empty Array/Object OR a Non-Empty String that is also Callable which returns a Valid JSON Payload!');
-    }
-    // Set the response code for both JSON
+    header_remove('content-type');
     http_response_code($errCode);
-    // Retrieve JSON Payload either directly or by verified callable
+    funk_set_header($c, 'content-type', 'application/json; charset=utf-8');
+    funk_internal_send_headers($c);
     $jsonData = $jsonObjectOrStringThatReturnsJSON;
     if (is_string($jsonData) && is_callable($jsonData)) {
         try {
             $jsonData = $jsonData($c);
         } catch (\Throwable $e) {
-            \critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the JSON Callable:`' . $e->getMessage() . '` that was called using the `funk_return_error_json_or_page_or_callback()` Function!');
+            \critical_err_json_or_html(500, '[INTERNAL SERVER ERROR]: JSON Callable Error: ' . $e->getMessage());
         }
     }
-    // Now $jsonData is guaranteed to be the final data structure (or null/invalid)
-    header('Content-Type: application/json; charset=utf-8');
     try {
         echo json_encode($jsonData, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     } catch (\JsonException $e) {
-        \critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the `funk_handle_error_json()` While Encoding the Provided Data to JSON:`' . $e->getMessage() . '`');
+        \critical_err_json_or_html(500, '[INTERNAL SERVER ERROR]: JSON Encoding Failure: ' . $e->getMessage());
     }
     exit();
 }
@@ -693,6 +610,7 @@ function funk_return_error_json_or_page(&$c, int $errCode, mixed $jsonObjectOrSt
     if (ob_get_level() > 0) {
         ob_clean();
     }
+    header_remove('content-type');
     http_response_code($errCode);
     $prefers = $c['req']['prefers'] ?? null;
     if ($prefers === null) {
@@ -702,7 +620,8 @@ function funk_return_error_json_or_page(&$c, int $errCode, mixed $jsonObjectOrSt
         $prefers = $c['req']['prefers'];
     }
     if ($prefers === 'json') {
-        header('Content-Type: application/json; charset=utf-8');
+        funk_set_header($c, 'content-type', 'application/json; charset=utf-8');
+        funk_internal_send_headers($c);
         $jsonData = $jsonObjectOrStringThatReturnsJSON;
         if (is_string($jsonData) && is_callable($jsonData)) {
             try {
@@ -718,8 +637,9 @@ function funk_return_error_json_or_page(&$c, int $errCode, mixed $jsonObjectOrSt
         }
         exit();
     }
-    header('Content-Type: text/html; charset=utf-8');
-    header("Content-Security-Policy: default-src 'none'; img-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'self';");
+    funk_set_header($c, 'content-type', 'text/html; charset=utf-8');
+    funk_set_header($c, 'content-security-policy', "default-src 'none'; img-src 'self'; script-src 'self'; connect-src 'none'; style-src 'self' 'unsafe-inline'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; font-src 'self'; base-uri 'self';");
+    funk_internal_send_headers($c, true); // true means ignoring current configured CSP and using above one instead
     try {
         $custom_error_message = $pageErrMsg;
         $pagePath = defined('FUNKPHP_ONLINE')
@@ -730,107 +650,6 @@ function funk_return_error_json_or_page(&$c, int $errCode, mixed $jsonObjectOrSt
         \critical_err_json_or_html(500, '[INTERNAL SERVER ERROR]: Error Page Rendering Failure: ' . $e->getMessage());
     }
     exit();
-}
-
-// Function stores a user-focused message that is meant to be used in the final output (HTML page or JSON output)
-function funk_collect_output_message(&$c, $level, $key, $message)
-{
-    // All three variables must be non-empty strings!
-    if (
-        !isset($level)
-        || !is_string($level)
-        || empty($level)
-        || !in_array(strtolower($level), [ // Add more below in array as needed
-            'info',
-            'warning',
-            'error',
-            'debug',
-            'critical',
-            'notice',
-            'alert',
-            'emergency',
-            'success',
-            'failure',
-        ])
-        || !isset($key)
-        || !is_string($key)
-        || empty($key)
-        || !isset($message)
-        || !is_string($message)
-        || empty($message)
-    ) {
-        error_log('FunkPHP: Invalid Parameters Passed to funk_collect_output_message() Function. Expected 3 Non-Empty String:s: [Level, Key, Message]!');
-        return;
-    }
-    $c['req']['user_messages'][] = [
-        'level'   => strtolower($level),
-        'key'     => mb_strtoupper($key),
-        'message' => $message,
-    ];
-}
-
-/**
- * Pushes a log message into the global configuration object.
- * This log array is typically persisted (e.g., written to disk)
- * in the framework's shutdown function.
- *
- * @param array $c The global configuration array, passed by reference.
- * @param string $logMessage The message to log.
- * @param string $logType Optional type identifier (e.g., 'CRITICAL','FATAL', 'WARN','INFO' - these are just examples, and You decide what to use!).
- * @return void
- */
-function funk_use_log(&$c, string $logMessage, string $logType = 'WARN'): void
-{
-    // Ensure the log structure exists, otherwise create it
-    // and log that it was created due to not existing
-    if (!isset($c['req']['log']) || !is_array($c['req']['log'])) {
-        $c['req']['log'] = [];
-        funk_use_log($c, 'The Log Array Did Not Exist, so it was Created Automatically!', 'INFO');
-        return;
-    }
-    // Add the log entry with timestamp and type
-    $c['req']['log'][] = [
-        'timestamp' => time(),
-        'type' => strtoupper($logType),
-        'message' => $logMessage
-    ];
-    return;
-}
-
-/**
- * Placeholder for the final function that saves the log array to a file.
- * This function should be called within the application's shutdown handler.
- *
- * @param array $c The global configuration array, passed by reference.
- * @return void
- */
-function funk_save_log(&$c): void
-{
-    // TODO: Add support later for different ways of saving (file, db, etc.)
-    // Implementation needed here to serialize and write $c['req']['log']
-    // to a persistent location (e.g., a file or database).
-    // For now, we will simply log to the PHP error log for visibility.
-    if (!empty($c['req']['log'])) {
-        error_log("--- FUNKPHP POST-RESPONSE LOGS ---");
-        error_log(print_r($c['req']['log'], true));
-        error_log("--- END LOGS ---");
-    }
-    return;
-}
-// Function that clears the log array
-function funk_clear_log(&$c, $saveFirst = false)
-{
-    if ($saveFirst === true) {
-        \funk_save_log($c);
-    }
-    if (!isset($c['req']['log']) || !is_array($c['req']['log'])) {
-        $c['err']['FUNCTIONS']['funk_clear_log'][] = 'The Log Array Did Not Exist, so it was Created Automatically!';
-        \funk_use_log($c, 'The Log Array Did Not Exist, so it was Created Automatically!', 'INFO');
-    } else {
-        $c['req']['log'] = [];
-        \funk_use_log($c, 'The Log Array was Cleared Successfully!', 'INFO');
-    }
-    return;
 }
 
 /**
@@ -912,7 +731,15 @@ function funk_return_response_page(&$c, string $pageNameWithoutExtension, int $c
     if (file_exists($pagePath)) {
         require_once $pagePath;
     } else {
-        \funk_return_error_json_or_page($c, 500, ['internal_server_error' => 'Failed to load a `User-defined Page` to Return a Response. This means the `Page` does NOT exist in the Expected Folder `/pages/`.'], '500', 'Failed to use a `User-defined Function` to Return a Response. This means the Function-name does NOT exist.');
+        \funk_return_error_json_or_page(
+            $c,
+            500,
+            [
+                'internal_server_error' => 'Failed to load a `User-defined Page` to Return a Response. This means the `Page` does NOT exist in the Expected Folder `/pages/`.'
+            ],
+            '500',
+            'Failed to use a `User-defined Function` to Return a Response. This means the Function-name does NOT exist.'
+        );
     }
     exit;
 }
@@ -1266,69 +1093,64 @@ function funk_internal_route_cache(&$c, int $ttl, string $driver = 'redis', stri
     }
 }
 /**
- * Checks if an IP (IPv4 or IPv6) matches an IP/CIDR string.
- */
-function funk_internal_is_ip_trusted(&$c, string $ip, array $trustedList): bool
-{
-    if (empty($ip)) {
-        return false;
-    }
-    // Flatten nested arrays if passed like ['ip4' => [...], 'ip6' => [...]]
-    $flatList = [];
-    foreach ($trustedList as $key => $val) {
-        if (is_array($val)) {
-            $flatList = array_merge($flatList, $val);
-        } else {
-            $flatList[] = $val;
-        }
-    }
-    if (in_array('*', $flatList, true) || in_array($ip, $flatList, true)) {
-        return true;
-    }
-    $ipBin = @inet_pton($ip);
-    if ($ipBin === false) {
-        return false;
-    }
-    $isIPv4 = (strlen($ipBin) === 4);
-    foreach ($flatList as $trusted) {
-        if (!str_contains($trusted, '/')) {
-            if ($ip === $trusted) {
-                return true;
-            }
-            continue;
-        }
-        [$range, $netmask] = explode('/', $trusted, 2);
-        $rangeBin = @inet_pton($range);
-        if ($rangeBin === false || strlen($rangeBin) !== strlen($ipBin)) {
-            continue;
-        }
-        $netmask = (int)$netmask;
-        $maxBits = $isIPv4 ? 32 : 128;
-        if ($netmask < 0 || $netmask > $maxBits) {
-            continue;
-        }
-        $maskBin = '';
-        $fullBytes = (int)($netmask / 8);
-        $remainderBits = $netmask % 8;
-        if ($fullBytes > 0) {
-            $maskBin .= str_repeat("\xFF", $fullBytes);
-        }
-        if ($remainderBits > 0) {
-            $maskBin .= chr(0xFF << (8 - $remainderBits));
-        }
-        $maskBin = str_pad($maskBin, $isIPv4 ? 4 : 16, "\x00", STR_PAD_RIGHT);
-        if (($ipBin & $maskBin) === ($rangeBin & $maskBin)) {
-            return true;
-        }
-    }
-    return false;
-}
-/**
  * Resolves true client IP using Custom Resolver,
  * Trusted Proxies, or REMOTE_ADDR fallback.
  */
 function funk_internal_resolve_ip(&$c): string
 {
+    $RESOLVE_IP = function ($ip, $trustedList) use ($c) {
+        if (empty($ip)) {
+            return false;
+        }
+        $flatList = [];
+        foreach ($trustedList as $key => $val) {
+            if (is_array($val)) {
+                $flatList = array_merge($flatList, $val);
+            } else {
+                $flatList[] = $val;
+            }
+        }
+        if (in_array('*', $flatList, true) || in_array($ip, $flatList, true)) {
+            return true;
+        }
+        $ipBin = @inet_pton($ip);
+        if ($ipBin === false) {
+            return false;
+        }
+        $isIPv4 = (strlen($ipBin) === 4);
+        foreach ($flatList as $trusted) {
+            if (!str_contains($trusted, '/')) {
+                if ($ip === $trusted) {
+                    return true;
+                }
+                continue;
+            }
+            [$range, $netmask] = explode('/', $trusted, 2);
+            $rangeBin = @inet_pton($range);
+            if ($rangeBin === false || strlen($rangeBin) !== strlen($ipBin)) {
+                continue;
+            }
+            $netmask = (int)$netmask;
+            $maxBits = $isIPv4 ? 32 : 128;
+            if ($netmask < 0 || $netmask > $maxBits) {
+                continue;
+            }
+            $maskBin = '';
+            $fullBytes = (int)($netmask / 8);
+            $remainderBits = $netmask % 8;
+            if ($fullBytes > 0) {
+                $maskBin .= str_repeat("\xFF", $fullBytes);
+            }
+            if ($remainderBits > 0) {
+                $maskBin .= chr(0xFF << (8 - $remainderBits));
+            }
+            $maskBin = str_pad($maskBin, $isIPv4 ? 4 : 16, "\x00", STR_PAD_RIGHT);
+            if (($ipBin & $maskBin) === ($rangeBin & $maskBin)) {
+                return true;
+            }
+        }
+        return false;
+    };
     $remoteAddr     = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
     $trustedProxies = $c['runtime']['trusted_ip_proxies'] ?? [];
     $ipHeaders      = $c['runtime']['trusted_ip_headers'] ?? [
@@ -1336,7 +1158,7 @@ function funk_internal_resolve_ip(&$c): string
         'HTTP_X_FORWARDED_FOR',
         'HTTP_X_REAL_IP'
     ];
-    if (empty($trustedProxies) || !funk_internal_is_ip_trusted($c, $remoteAddr, $trustedProxies)) {
+    if (empty($trustedProxies) || !$RESOLVE_IP($remoteAddr, $trustedProxies)) {
         return $remoteAddr;
     }
     foreach ($ipHeaders as $headerKey) {
@@ -1345,9 +1167,8 @@ function funk_internal_resolve_ip(&$c): string
             $ipList    = array_map('trim', explode(',', $rawHeader));
             for ($i = count($ipList) - 1; $i >= 0; $i--) {
                 $candidateIp = $ipList[$i];
-
                 if (filter_var($candidateIp, FILTER_VALIDATE_IP)) {
-                    if (!funk_internal_is_ip_trusted($c, $candidateIp, $trustedProxies)) {
+                    if (!$RESOLVE_IP($candidateIp, $trustedProxies)) {
                         return $candidateIp;
                     }
                 }
@@ -1363,7 +1184,7 @@ function funk_internal_resolve_ip(&$c): string
 function funk_internal_exception_handler(&$c, \Throwable $e)
 {
     $c['err']['INTERNAL'][] = "UNCAUGHT EXCEPTION: " . $e->getMessage();
-    \funk_use_log($c, "UNCAUGHT EXCEPTION: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine(), 'CRIT');
+    $c['req']['log'][] = 'UNCAUGHT EXCEPTION: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine();
 
     // Debug only happens when NOT online and when debug is to show errors
     $isDebug = ((defined('FUNKPHP_ONLINE') && FUNKPHP_ONLINE === false && isset($c['debug']['show_errors'])) ? true : false);
@@ -1551,7 +1372,7 @@ function funk_internal_validate_params(&$c)
                             $c['req']['params_details']['mismatch'][$rParam] = 'Mismatches Callback Regex - ask Provider what it is';
                         }
                     } else {
-                        \funk_return_error_json_or_page($c, 500, ['internal_server_error' => 'Expected `User-Defined Function` in `/src/funkphp/config/functions.php` was Not Found for Validating a Param Rule.'], '500', 'Expected `User-Defined Function` in `/src/funkphp/config/functions.php` was Not Found for Validating a Param Rule.');
+                        \funk_return_error_json_or_page($c, 500, ['internal_server_error' => 'Expected `User-Defined Function` \'' . $rParDetails['callback'] .  '\' in `/src/funkphp/config/functions.php` was Not Found for Validating a Param Rule.'], '500', 'Expected `User-Defined Function` \'' . $rParDetails['callback'] .  '\' in `/src/funkphp/config/functions.php` was Not Found for Validating a Param Rule.');
                     }
                 }
                 // Here just regular param with pattern
@@ -1759,7 +1580,7 @@ function funk_internal_handle_sri_internal(&$c, $nonce) {}
 
 function funk_internal_handle_sri_external(&$c, $nonce) {}
 
-function funk_internal_send_headers(&$c): void
+function funk_internal_send_headers(&$c, bool $ignoreCSP = false): void
 {
     if (headers_sent()) {
         $c['err']['INTERNAL'][] = "Headers already sent prior to funk_internal_send_headers(). Check for Unhandled Output or manual `header()` calls.";
@@ -1783,17 +1604,19 @@ function funk_internal_send_headers(&$c): void
         /* CSP PARTS! - Must first get from Global, Method then Route OR
         Maybe it should be that during compile(), every Route already has
         all available headers to grab and thus return here? */
-        $cspParts = [];
-        $cspDirectives = ['placeholder' => ['placeholder2']];
-        foreach ($cspDirectives as $directive => $sources) {
-            // If count is 0 (because no nonces were ever evaluated for this directive), SKIP IT!
-            if (empty($sources)) {
-                continue;
+        if (!$ignoreCSP) {
+            $cspParts = [];
+            $cspDirectives = ['placeholder' => ['placeholder2']];
+            foreach ($cspDirectives as $directive => $sources) {
+                // If count is 0 (because no nonces were ever evaluated for this directive), SKIP IT!
+                if (empty($sources)) {
+                    continue;
+                }
+                $cspParts[] = $directive . ' ' . implode(' ', $sources);
             }
-            $cspParts[] = $directive . ' ' . implode(' ', $sources);
-        }
-        if (!empty($cspParts)) {
-            header('Content-Security-Policy: ' . implode('; ', $cspParts));
+            if (!empty($cspParts)) {
+                header('Content-Security-Policy: ' . implode('; ', $cspParts));
+            }
         }
         return;
     }

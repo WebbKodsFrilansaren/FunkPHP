@@ -9156,7 +9156,6 @@ class C
         if ($c['req']['params_valid'] === false) {
             funk_internal_handle_invalid_params($c);
         }
-        dd([$c['req'], $c['runtime']['route']]);
 
         // Now state is 'route' since we matched
         $c['runtime']['state'] = 'route';
