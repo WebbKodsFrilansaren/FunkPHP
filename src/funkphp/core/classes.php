@@ -8864,7 +8864,7 @@ class C
         } else {
             $c['req']['ip'] = funk_internal_resolve_ip($c);
         }
-        // Run any request pipes registered
+        // Run any request pipes registered - IP is resolved so it can be used
         foreach ($this->compiled['config']['pipes']['request-resolved'] as $pRequest) {
             $funcName = $pRequest['run'];
             $filePath = $pRequest['path'];
@@ -8965,6 +8965,20 @@ class C
         // INTERNAL Local Running ONLY: Add Current Matched Route for Easier Reuse
         $c['runtime']['route'] = $this->compiled['routes'][$c['req']['method']][$c['req']['route']];
 
+        // No pipes means no route match in method since in monolithic file the route won't even be able
+        // to be parsed compared to this Trie version
+        if (count($c['runtime']['route']['pipes']) === 0) {
+            if (isset($this->compiled['config']['runtime']['NO_ROUTE_MATCH_METHOD'][$c['req']['method']])) {
+                funk_internal_handle_no_route_match($c, $c['req']['method']);
+            }
+            // Fallback to GLOBAL NoRouteMatch
+            if (isset($this->compiled['config']['runtime']['NO_ROUTE_MATCH'])) {
+                funk_internal_handle_no_route_match($c, 'CONFIG');
+            }
+            // Fallback to In-built NoNoRouteMatch - when no route match is configured
+            funk_internal_handle_no_no_route_match($c);
+        }
+
         // Run any set funk_internal_rate_limiter() for MATCHED <METHOD><ROUTE>() context
         // THIS LEVEL OF Rate Limiting might need extra checks whether it tries to parse
         // specific param rule that has not yet been validated although it is probably a string
@@ -8991,7 +9005,8 @@ class C
                     $c['runtime']['route']['cache']['ttl'],
                     $c['runtime']['route']['cache']['driver'],
                     $c['runtime']['route']['cache']['varyBy'],
-                    $c['runtime']['route']['cache']['private']
+                    $c['runtime']['route']['cache']['private'],
+                    'GET'
                 );
             }
         }

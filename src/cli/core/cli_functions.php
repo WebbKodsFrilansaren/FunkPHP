@@ -12629,7 +12629,7 @@ function cli_restore_default_folders_and_files()
         "$folderBase/funkphp/core/valid_mysql_datatypes.php",
         "$folderBase/funkphp/core/valid_mysql_operators.php",
         "$folderBase/funkphp/config/functions.php",
-        "$folderBase/funkphp/core/app.php",
+        "$folderBase/funkphp/app/app.php",
         "$folderBase/funkphp/app/CONFIG.php",
         "$folderBase/funkphp/app/GET.php",
         "$folderBase/funkphp/app/POST.php",
@@ -12670,7 +12670,7 @@ function cli_restore_default_folders_and_files()
             }
             // Recreate default Core App File `/src/funkphp/core/app.php`
             else if (str_contains($file, "app.php")) {
-                file_put_contents($file, "<?php\n// src/funkphp/core/app.php - FunkPHP | FunkCLI recreated it $date\n\n" . cli_get_prefix_code("do_not_modify_warning") . "\n/** @var FunkPHP \$APP */\n\$APP = FunkPHP(); require_once ROOT_APP_CONFIG; \$routeFiles = [ ROOT_APP_GET,ROOT_APP_POST, ROOT_APP_PUT,ROOT_APP_PATCH,ROOT_APP_DELETE,]; foreach (\$routeFiles as \$file) {if (file_exists(\$file)) { require_once \$file; } } return \$APP;");
+                file_put_contents($file, "<?php\n// src/funkphp/app/app.php - FunkPHP | FunkCLI recreated it $date\n\n" . cli_get_prefix_code("do_not_modify_warning") . "\n/** @var FunkPHP \$APP */\n\$APP = FunkPHP(); require_once ROOT_APP_CONFIG; \$routeFiles = [ ROOT_APP_GET,ROOT_APP_POST, ROOT_APP_PUT,ROOT_APP_PATCH,ROOT_APP_DELETE,]; foreach (\$routeFiles as \$file) {if (file_exists(\$file)) { require_once \$file; } } return \$APP;");
                 cli_success_without_exit("Recreated Default FunkPHP Core App File: $file");
                 continue;
             }
