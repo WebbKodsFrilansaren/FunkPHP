@@ -76,6 +76,40 @@ class C
             'cache' => ['redis', 'memcached', 'file', 'apcu', 'array'],
             'ratelimit' => ['redis', 'memcached', 'file', 'apcu', 'array']
         ],
+        'shorthandRegexes' => [
+            'int'             => '/^-?\d+$/',
+            'number'          => '/^-?\d+$/',
+            'uint'            => '/^\d+$/',
+            'digits'          => '/^\d+$/',
+            'float'           => '/^-?\d+(?:\.\d+)?$/',
+            'decimal'         => '/^-?\d+(?:\.\d+)?$/',
+            'numeric'         => '/^-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?$/',
+            'alpha'           => '/^[a-zA-Z]+$/',
+            'alpha_num'       => '/^[a-zA-Z0-9]+$/',
+            'slug'            => '/^[a-z0-9]+(?:-[a-z0-9]+)*$/',
+            'hex'             => '/^[a-fA-F0-9]+$/',
+            'base64'          => '/^(?:[A-Za-z0-9+\/]{4})*(?:[A-Za-z0-9+\/]{2}==|[A-Za-z0-9+\/]{3}=)?$/',
+            'mac'             => '/^(?:[0-9a-fA-F]{2}[:-]){5}[0-9a-fA-F]{2}$/',
+            'mac_address'     => '/^(?:[0-9a-fA-F]{2}[:-]){5}[0-9a-fA-F]{2}$/',
+            'ipv4'            => '/^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/',
+            'ipv6'            => '/^(?:[a-fA-F0-9]{1,4}:){7}[a-fA-F0-9]{1,4}$|^::(?:[a-fA-F0-9]{1,4}:){0,5}[a-fA-F0-9]{1,4}$|^(?:[a-fA-F0-9]{1,4}:){1,6}::$|^(?:[a-fA-F0-9]{1,4}:){1,5}:[a-fA-F0-9]{1,4}$/',
+            'ip'              => '/^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$|^(?:[a-fA-F0-9]{1,4}:){7}[a-fA-F0-9]{1,4}$|^::(?:[a-fA-F0-9]{1,4}:){0,5}[a-fA-F0-9]{1,4}$/',
+            'uuid'            => '/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/',
+            'uuid_v1'         => '/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-1[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/',
+            'uuid_v3'         => '/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-3[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/',
+            'uuid_v4'         => '/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/',
+            'uuid_v5'         => '/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-5[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/',
+            'uuid_v7'         => '/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/',
+            'date'            => '/^\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])$/', // YYYY-MM-DD
+            'date_iso'        => '/^\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])$/', // YYYY-MM-DD
+            'time'            => '/^(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d$/',              // HH:MM:SS (24-hour)
+            'time_short'      => '/^(?:[01]\d|2[0-3]):[0-5]\d$/',                       // HH:MM (24-hour)
+            'datetime'        => '/^\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])[ T](?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d$/', // YYYY-MM-DD HH:MM:SS or YYYY-MM-DDTHH:MM:SS
+            'year'            => '/^(?:19|20)\d{2}$/',                                  // 1900-2099
+            'month'           => '/^(?:0[1-9]|1[0-2])$/',                               // 01-12
+            'day'             => '/^(?:0[1-9]|[12]\d|3[01])$/',                         // 01-31
+            'ulid'            => '/^[0-7][0-9A-HJKMNP-TV-Z]{25}$/i',
+        ]
     ];
     // The actual written config line by line starting with FunkPHP()
     public array $FunkPHPFluentAPI = [
@@ -2146,7 +2180,10 @@ class C
             'InvalidPageName' => "Invalid Page Name Value in {$optionalCtx}: must be a `Non-Empty String` containing only `[a-zA-Z0-9-_]` characters (no trailing spaces) and without the File Extension.",
             'InvalidNoRouteMatchTextValue' => "Invalid Text Value in {$optionalCtx}: must be a `Non-Empty String` after `trim()` have been applied to it.",
             'InvalidParamCBFN' => "Invalid Function Name as Callback for Param Rule in {$optionalCtx}: must be a `Non-Empty String` after `trim()` all lowercased that start with `[a-z_]` and then only contain `[a-z0-9_]` characters. In other words; a valid Function Declaration in PHP.",
+            'InvalidParamShorthand' => "Invalid Shorthand Regex for Param Rule in {$optionalCtx}:",
+            'InvalidParamShorthandNoDefaultMatch' => "Invalid Default Value with Shorthand Regex for Param Rule in  {$optionalCtx}:",
             'InvalidRegex'                                => "Invalid Regex Value in {$optionalCtx}: must be a `Non-Empty String` that is also a `Valid Regex Pattern` when parsed by `preg_match()`. It cannot be an Empty Expression with optional modifiers (e.g. `//` OR `//i`).",
+            'InvalidRegexNotMatchDefaultValue' => "Invalid Default Value for Param Regex Rule in {$optionalCtx}:",
             'InvalidRouteFormat' => "Invalid Route Value in {$optionalCtx}: A Valid Route must: 1) Start with or just be `/` as root (`never end with -, _ OR /`), 2) Be all `lowercased`, 3) Have all `Uniquely Named /:params` URI segments (if any used), 4) Never use `-` and/or `_ consecutively`, after each other (e.g. `-_` or `_-`) OR as start in static/dynamic segments (e.g. `/:-`, `/:_`, `/_`, OR `/-`), 5) Only use `[a-z0-9_-]` characters.",
             'InvalidRoutePrefixFormat' => "Invalid Route Prefix Value in {$optionalCtx}: A Valid Route Prefix must: 1) Start with `/` (it can NEVER just be only `/` for Route Prefixes!) as root (`never end with -, _ OR /`), 2) Be all `lowercased`, 3) Have all `Uniquely Named /:params` URI segments (if any used), 4) Never use `-` and/or `_ consecutively`, after each other (e.g. `-_` or `_-`) OR as start in static/dynamic segments (e.g. `/:-`, `/:_`, `/_`, OR `/-`), 5) Only use `[a-z0-9_-]` characters.",
             'InvalidRoutePrefixResetFirst' => "Route Prefix Value in {$optionalCtx}: Reset the current Method Route Prefix Value with the help of `->ROUTEPrefixReset()` before setting a New Route Prefix for the current Method!",
@@ -2208,6 +2245,7 @@ class C
             'DuplicateCallinValidCanOnlyBeSetOnce' => "`Duplicate Invalid Call` to {$optionalCtx}: this can only be set once. Review the already `Invalid` Configuration which is before this Error in the `API Array`.",
             'DuplicateCallValidMustBeSetWithDifferentValues' => "`Duplicate Valid Call` to {$optionalCtx}: one or more values must be different in order to use this more than once. Review the already `Valid` Configuration which is before this Error in the `API Array`.",
             'DuplicateCallInvalidMustBeSetWithDifferentValues' => "`Duplicate Invalid Call` to {$optionalCtx}: one or more values must be different in order to use this more than once. Review the already `Invalid` Configuration which is before this Error in the `API Array`.",
+            'DuplicateRegexInPolymorphic' => "`Duplicate Regex` in {$optionalCtx}:",
             'DuplicateParamGlobal' => "`Duplicate Global Param Rule` in {$optionalCtx}. Review/change the already `Valid` Configuration which is before this Error in the `API Array`.",
             'DuplicateParamMethod' => "`Duplicate Method Param Rule` in {$optionalCtx}. Review/change the already `Valid` Configuration which is before this Error in the `API Array`.",
             'DuplicateParamRoute' => "`Duplicate Route Param Rule` in {$optionalCtx}. Review/change the already `Valid` Configuration which is before this Error in the `API Array`.",
@@ -3878,8 +3916,31 @@ class C
         // callback|cb: OR a regex pattern for the param?
         $callback = null;
         $cbFN = null;
-        // if=callback
-        if (
+        // if=shorthand regex
+        if (preg_match('/^[a-z_]+$/i', $regex)) {
+            if (isset($this->ALLOWED['shorthandRegexes'][strtolower(trim($regex))])) {
+                $regex = $this->ALLOWED['shorthandRegexes'][strtolower(trim($regex))];
+                if (isset($defaultParamValueOnRegexMismatch) && !preg_match($regex, $defaultParamValueOnRegexMismatch)) {
+                    $this->setErr($this->getErr('InvalidParamShorthandNoDefaultMatch', $ctxVals) . " Default Value in `\$defaultParamValueOnRegexMismatch` must Match the Shorthand Regex Pattern: `{$regex}` in order to use it. Current Default Regex Value does not Match it.", 'Invalid Shorthand Regex Default Value for Param Rule ' .  $ctxVals);
+                    $this->invalidBatches['paramRules']['config'][$param] = [
+                        'pattern' => $regex,
+                        'default' => $defaultParamValueOnRegexMismatch,
+                        'callback' => null,
+                    ];
+                    return;
+                }
+            } else {
+                $this->setErr($this->getErr('InvalidParamShorthand', $ctxVals) . " Choose one of the following available Shorthand Regexes for Param Rule: " . $this->joinArray($this->ALLOWED['shorthandRegexes'], true) . '. Remember that any `default` Value used must also match that chosen Shorthand Regex Pattern!', 'Invalid Shorthand Regex for Param Rule ' .  $ctxVals);
+                $this->invalidBatches['paramRules']['config'][$param] = [
+                    'pattern' => $regex,
+                    'default' => $defaultParamValueOnRegexMismatch,
+                    'callback' => null,
+                ];
+                return;
+            }
+        }
+        // elseif=Callback/cb
+        else if (
             str_starts_with(strtolower(trim($regex)), 'callback:')
             || str_starts_with(strtolower(trim($regex)), 'cb:')
         ) {
@@ -4600,8 +4661,30 @@ class C
         // callback|cb: OR a regex pattern for the param?
         $callback = null;
         $cbFN = null;
-        // if=callback
-        if (
+        // if=shorthand regex
+        if (preg_match('/^[a-z_]+$/i', $regex)) {
+            if (isset($this->ALLOWED['shorthandRegexes'][strtolower(trim($regex))])) {
+                $regex = $this->ALLOWED['shorthandRegexes'][strtolower(trim($regex))];
+                if (isset($defaultParamValueOnRegexMismatch) && !preg_match($regex, $defaultParamValueOnRegexMismatch)) {
+                    $this->setErr($this->getErr('InvalidParamShorthandNoDefaultMatch', $ctxVals) . " Default Value in `\$defaultParamValueOnRegexMismatch` must Match the Shorthand Regex Pattern: `{$regex}` in order to use it. Current Default Regex Value does not Match it.", 'Invalid Shorthand Regex Default Value for Param Rule ' .  $ctxVals, $method);
+                    $this->invalidBatches['paramRules']['methods'][$method][$param] = [
+                        'pattern' => $regex,
+                        'default' => $defaultParamValueOnRegexMismatch,
+                        'callback' => null,
+                    ];
+                    return;
+                }
+            } else {
+                $this->setErr($this->getErr('InvalidParamShorthand', $ctxVals) . " Choose one of the following available Shorthand Regexes for Param Rule: " . $this->joinArray($this->ALLOWED['shorthandRegexes'], true) . '. Remember that any `default` Value used must also match that chosen Shorthand Regex Pattern!', 'Invalid Shorthand Regex for Param Rule ' .  $ctxVals, $method);
+                $this->invalidBatches['paramRules']['methods'][$method][$param] = [
+                    'pattern' => $regex,
+                    'default' => $defaultParamValueOnRegexMismatch,
+                    'callback' => null,
+                ];
+                return;
+            }
+        } //elseif = callback/cb
+        else if (
             str_starts_with(strtolower(trim($regex)), 'callback:')
             || str_starts_with(strtolower(trim($regex)), 'cb:')
         ) {
@@ -5163,6 +5246,7 @@ class C
             $this->invalidBatches['paramRulesFlexible']['routes'][$method][$route][$paramIdentifier] = $paramIdentifier;
             return;
         }
+        $usedRegex = [];
         $compiledPairs = [];
         for ($i = 0; $i < $pairCount; $i += 2) {
             $ruleName = strtolower(trim($keyAndRegexPairs[$i]));
@@ -5187,19 +5271,35 @@ class C
                 $this->invalidBatches['paramRulesFlexible']['routes'][$method][$route][$paramIdentifier] = $paramIdentifier;
                 return;
             }
-            $regexValid = true;
-            try {
-                if (@preg_match($regex, '') === false) {
+            if (preg_match('/^[a-z_]+$/i', $regex)) {
+                if (isset($this->ALLOWED['shorthandRegexes'][strtolower(trim($regex))])) {
+                    $regex = $this->ALLOWED['shorthandRegexes'][strtolower(trim($regex))];
+                } else {
+                    $this->setErr($this->getErr('InvalidParamShorthand', $ctxVals) . " Choose one of the following available Shorthand Regexes for Param Rule: " . $this->joinArray($this->ALLOWED['shorthandRegexes'], true) . '. Remember that any `default` Value used must also match that chosen Shorthand Regex Pattern!', 'Invalid Shorthand Regex for Param Rule ' .  $ctxVals, $method, $route);
+                    $this->invalidBatches['paramRulesFlexible']['routes'][$method][$route][$paramIdentifier] = $paramIdentifier;
+                    return;
+                }
+            } else {
+                $regexValid = true;
+                try {
+                    if (@preg_match($regex, '') === false) {
+                        $regexValid = false;
+                    }
+                } catch (\Throwable $e) {
                     $regexValid = false;
                 }
-            } catch (\Throwable $e) {
-                $regexValid = false;
+                if (!$regexValid || preg_match('#\/\/[gimsuy]*#', $regex)) {
+                    $this->setErr($this->getErr('InvalidRegex', $ctxVals), 'Invalid Regex Pattern ' . $ctxVals, $method, $route);
+                    $this->invalidBatches['paramRulesFlexible']['routes'][$method][$route][$paramIdentifier] = $paramIdentifier;
+                    return;
+                }
             }
-            if (!$regexValid || preg_match('#\/\/[gimsuy]*#', $regex)) {
-                $this->setErr($this->getErr('InvalidRegex', $ctxVals), 'Invalid Regex Pattern ' . $ctxVals, $method, $route);
+            if (in_array($regex, $usedRegex)) {
+                $this->setErr($this->getErr('DuplicateRegexInPolymorphic', $ctxVals) . " Regex `{$regex}` in Polymorphic Variant Key `{$ruleName}` has already been used. Use unique Regexes for each Polymorphic Variant Key when using `->setParamRulePolymorphic()`.", 'Duplicate Regex in "RuleName,RegexPattern" Param Pair Rule ' . $ctx, $method, $route);
                 $this->invalidBatches['paramRulesFlexible']['routes'][$method][$route][$paramIdentifier] = $paramIdentifier;
                 return;
             }
+            $usedRegex[] = $regex;
             $compiledPairs[$ruleName] = $regex;
         }
         $this->validBatches['routes'][$method][$route]['paramRules'][$paramIdentifier] = ['pairs' => $compiledPairs];
@@ -5255,8 +5355,30 @@ class C
         }
         $callback = null;
         $cbFN = null;
-        // if=callback
-        if (
+        // if=shorthand regex
+        if (preg_match('/^[a-z_]+$/i', $regex)) {
+            if (isset($this->ALLOWED['shorthandRegexes'][strtolower(trim($regex))])) {
+                $regex = $this->ALLOWED['shorthandRegexes'][strtolower(trim($regex))];
+                if (isset($defaultParamValueOnRegexMismatch) && !preg_match($regex, $defaultParamValueOnRegexMismatch)) {
+                    $this->setErr($this->getErr('InvalidParamShorthandNoDefaultMatch', $ctxVals) . " Default Value in `\$defaultParamValueOnRegexMismatch` must Match the Shorthand Regex Pattern: `{$regex}` in order to use it. Current Default Regex Value does not Match it.", 'Invalid Shorthand Regex Default Value for Param Rule ' .  $ctxVals, $method, $route);
+                    $this->invalidBatches['paramRules']['routes'][$method][$route][$param] = [
+                        'pattern' => $regex,
+                        'default' => $defaultParamValueOnRegexMismatch,
+                        'callback' => null,
+                    ];
+                    return;
+                }
+            } else {
+                $this->setErr($this->getErr('InvalidParamShorthand', $ctxVals) . " Choose one of the following available Shorthand Regexes for Param Rule: " . $this->joinArray($this->ALLOWED['shorthandRegexes'], true) . '. Remember that any `default` Value used must also match that chosen Shorthand Regex Pattern!', 'Invalid Shorthand Regex for Param Rule ' .  $ctxVals, $method, $route);
+                $this->invalidBatches['paramRules']['routes'][$method][$route][$param] = [
+                    'pattern' => $regex,
+                    'default' => $defaultParamValueOnRegexMismatch,
+                    'callback' => null,
+                ];
+                return;
+            }
+        } //elseif = callback/cb
+        else if (
             str_starts_with(strtolower(trim($regex)), 'callback:')
             || str_starts_with(strtolower(trim($regex)), 'cb:')
         ) {
@@ -5313,6 +5435,15 @@ class C
                     'pattern' => $regex,
                     'default' => $defaultParamValueOnRegexMismatch,
                     'callback' => $callback,
+                ];
+                return;
+            }
+            if (isset($defaultParamValueOnRegexMismatch) && !preg_match($regex, $defaultParamValueOnRegexMismatch)) {
+                $this->setErr($this->getErr('InvalidRegexNotMatchDefaultValue', $ctxVals) . " Default Value in `\$defaultParamValueOnRegexMismatch` must Match the Regex Pattern: `{$regex}` in order to use it. Current Default Regex Value does not Match it.", 'Invalid Regex Default Value for Param Rule ' .  $ctxVals, $method, $route);
+                $this->invalidBatches['paramRules']['routes'][$method][$route][$param] = [
+                    'pattern' => $regex,
+                    'default' => $defaultParamValueOnRegexMismatch,
+                    'callback' => null,
                 ];
                 return;
             }
@@ -8530,6 +8661,10 @@ class C
                             }
                         }
                     }
+                    // STEP 11.5.1 EXTRA: Build the current most complete CSP-Header by not taking
+                    // directives that turns out to be part of one or more nonces
+                    // TODO:
+
                     // STEP 11.6: Build `routes` - setCache() and setRateLimit() for Route
                     if (isset($this->validBatches['cache']['routes'][$method][$route])) {
                         $this->compiled['routes'][$method][$route]['cache'] = $this->validBatches['cache']['routes'][$method][$route];
@@ -9541,7 +9676,7 @@ class FunkConfig
      * Define a global parameter validation regex rule applied across all routes.
      *
      * @param string $param Parameter name without leading colon (e.g., "id")
-     * @param 'callback:user_defined_fn'|'/^regex_pattern$/i' $regexORcb EITHER a User-defined Function defined in `/src/funkphp/config/functions.php` OR a Valid Regex pattern (e.g., "/[\d]+/")
+     * @param 'int'|'number'|'uint'|'digits'|'float'|'decimal'|'numeric'|'alpha'|'alpha_num'|'slug'|'hex'|'base64'|'mac'|'mac_address'|'ipv4'|'ipv6'|'ip'|'uuid'|'uuid_v1'|'uuid_v3'|'uuid_v4'|'uuid_v5'|'uuid_v7'|'ulid'|'date'|'date_iso'|'time'|'time_short'|'datetime'|'year'|'month'|'day'|string $regexORcb Pattern Alias, Raw Regex String, OR Custom Callback Function defined in `/src/funkphp/config/functions.php`.
      * @param string|null $defaultParamValueOnRegexMismatch Fallback value if validation fails
      * @return $this
      */
@@ -9908,7 +10043,7 @@ class FunkMethod
      * Define a parameter validation regex rule scoped to this HTTP method.
      *
      * @param string $param Parameter name without leading colon (e.g., "id")
-     * @param 'callback:user_defined_fn'|'/^regex_pattern$/i' $regexORcb EITHER a User-defined Function defined in `/src/funkphp/config/functions.php` OR a Valid Regex pattern (e.g., "/[\d]+/")
+     * @param 'int'|'number'|'uint'|'digits'|'float'|'decimal'|'numeric'|'alpha'|'alpha_num'|'slug'|'hex'|'base64'|'mac'|'mac_address'|'ipv4'|'ipv6'|'ip'|'uuid'|'uuid_v1'|'uuid_v3'|'uuid_v4'|'uuid_v5'|'uuid_v7'|'ulid'|'date'|'date_iso'|'time'|'time_short'|'datetime'|'year'|'month'|'day'|string $regexORcb Pattern Alias, Raw Regex String, OR Custom Callback Function defined in `/src/funkphp/config/functions.php`.
      * @param string|null $defaultParamValueOnRegexMismatch Fallback value if validation fails
      * @return $this
      */
@@ -10249,7 +10384,7 @@ class FunkRoute
      * Define a Single Parameter Regex Rule scoped exclusively to this Route.
      *
      * @param string $param Parameter name without leading colon (e.g., "id")
-     * @param 'callback:user_defined_fn'|'/^regex_pattern$/i' $regexORcb EITHER a User-defined Function defined in `/src/funkphp/config/functions.php` OR a Valid Regex pattern (e.g., "/[\d]+/")
+     * @param 'int'|'number'|'uint'|'digits'|'float'|'decimal'|'numeric'|'alpha'|'alpha_num'|'slug'|'hex'|'base64'|'mac'|'mac_address'|'ipv4'|'ipv6'|'ip'|'uuid'|'uuid_v1'|'uuid_v3'|'uuid_v4'|'uuid_v5'|'uuid_v7'|'ulid'|'date'|'date_iso'|'time'|'time_short'|'datetime'|'year'|'month'|'day'|string $regexORcb Pattern Alias, Raw Regex String, OR Custom Callback Function defined in `/src/funkphp/config/functions.php`.
      * @param string|null $defaultParamValueOnRegexMismatch Fallback value if validation fails
      * @return $this
      */
@@ -10263,34 +10398,21 @@ class FunkRoute
      * Define Multiple Alternative Regex Rules for a Single Route Parameter (Polymorphic Parameter) scoped exclusively to this Route.
      *
      * Allows a Single Param (e.g., ":id") to Match against Different Input Forms
-     * (e.g., "numeric_id", "/\d+/", "slug", "/[a-z0-9-]+/").
+     * (e.g., "numeric_id", "/\d+/", "slug", "/[a-z0-9-]+/"). OR You can also use
+     * a number of shorthand Regexes such as `int`,`time`,`slug` and so on.
      *
      * **IMPORTANT**: All Variant Keys (e.g., "numeric_id", "slug") share a Single Param
      * Namespace for the Route. Every Variant Key MUST be unique across all Route Param
      * Names and other Polymorphic Variant Keys within the same route.
      *
      * @param string $paramIdentifier Parameter name without leading colon (e.g., "id" or "identifier")
-     * @param string ...$keyAndRegexPairs Sequential pairs of [VariantKey, RegexPattern] (e.g., "num", "/\d+/", "slug", "/[a-z]+/")
+     * @param 'int'|'number'|'uint'|'digits'|'float'|'decimal'|'numeric'|'alpha'|'alpha_num'|'slug'|'hex'|'base64'|'mac'|'mac_address'|'ipv4'|'ipv6'|'ip'|'uuid'|'uuid_v1'|'uuid_v3'|'uuid_v4'|'uuid_v5'|'uuid_v7'|'ulid'|'date'|'date_iso'|'time'|'time_short'|'datetime'|'year'|'month'|'day'|string ...$keyAndRegexPairs Alternating pairs of [VariantKey, RegexPatternOrAlias] (e.g., "num", "uint", "slug_id", "slug")
      * @return $this
      */
     public function setParamRulePolymorphic(string $paramIdentifier, string ...$keyAndRegexPairs): self
     {
         $paramIdentifier = strtolower(trim($paramIdentifier));
         $this->c->batch('batchSetParamRulePolymorphicRoute', $this->method, $this->routePath, $paramIdentifier, ...$keyAndRegexPairs);
-        return $this;
-    }
-
-    public function setParamMismatch(string $paramIdentifier, string $actionType)
-    {
-        $paramIdentifier = strtolower(trim($paramIdentifier));
-        $actionType = strtolower(trim($actionType));
-        $this->c->batch('batchSetParamMismatchRoute', $this->method, $this->routePath, $paramIdentifier, $actionType);
-        return $this;
-    }
-
-    public function setParamsStrict(bool $trueOrFalse)
-    {
-        $this->c->batch('batchSetParamsStrictRoute', $this->method, $this->routePath, $trueOrFalse);
         return $this;
     }
 
