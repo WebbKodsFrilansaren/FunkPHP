@@ -8965,8 +8965,8 @@ class C
         // INTERNAL Local Running ONLY: Add Current Matched Route for Easier Reuse
         $c['runtime']['route'] = $this->compiled['routes'][$c['req']['method']][$c['req']['route']];
 
-        // No pipes means no route match in method since in monolithic file the route won't even be able
-        // to be parsed compared to this Trie version
+        // No pipes means no route match in method since in monolithic file the route
+        // won't even be able to be parsed/found compared to this Trie version
         if (count($c['runtime']['route']['pipes']) === 0) {
             if (isset($this->compiled['config']['runtime']['NO_ROUTE_MATCH_METHOD'][$c['req']['method']])) {
                 funk_internal_handle_no_route_match($c, $c['req']['method']);
@@ -8993,6 +8993,8 @@ class C
         }
         // Route has any params to validate first?
         funk_internal_validate_params($c);
+        if ($c['req']['params_valid'] === false) {
+        }
 
         // Run any set funk_internal_route_cache() for the MATCHED <METHOD><ROUTE>() context
         // THIS LEVEL where Cache occurs might need to be allowed to be skipped in some cases

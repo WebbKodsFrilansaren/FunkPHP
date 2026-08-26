@@ -3,7 +3,7 @@
 // You can change this Page as it is used when even the Error Handling fails for some reason. It is the last resort page!
 // The variable $custom_error_message is automatically available here.
 // Ensure $custom_error_message is a string, defaulting to a generic message if not set.
-$display_message = $custom_error_message ?? 'The server encountered an internal error and was unable to complete your request.';
+$display_message = $custom_error_message ?? 'The Server Encountered an Internal Error and was Unable to Complete Your Request.';
 
 // Basic HTML structure for the error page
 ?>
@@ -13,67 +13,49 @@ $display_message = $custom_error_message ?? 'The server encountered an internal 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>500 Internal Server Error</title>
+    <title>500 - Internal Server Error | Have You Configured `->setNoRouteMatch` Yet?</title>
     <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-            background-color: #f7f7f9;
+            background-color: #181825;
+            color: #cdd6f4;
+            font-family: system-ui, -apple-system, sans-serif;
+            display: grid;
+            place-items: center;
+            min-height: 100vh;
         }
 
-        .container-500 {
-            max-width: 768px;
-            margin: 100px auto;
-            padding: 30px;
-            background-color: #ffffff;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        .container {
             text-align: center;
+            padding: 2rem;
         }
 
-        .code {
-            font-size: 6rem;
+        h1 {
+            font-size: 5rem;
             font-weight: 800;
-            color: #ef4444;
-            /* Red 500 */
+            color: rgb(162, 74, 255);
+            line-height: 1;
             margin-bottom: 0.5rem;
         }
 
-        .title {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: #1f2937;
-            /* Gray 800 */
-            margin-bottom: 1rem;
-        }
-
-        .message {
-            font-size: 1rem;
-            color: #4b5563;
-            /* Gray 600 */
-            margin-bottom: 2rem;
-            line-height: 1.5;
-        }
-
-        .developer-note {
-            font-size: 0.875rem;
-            color: #9ca3af;
-            /* Gray 400 */
-            margin-top: 2rem;
-            border-top: 1px solid #e5e7eb;
-            padding-top: 1rem;
+        p {
+            font-size: 1.25rem;
+            color: #a6adc8;
         }
     </style>
 </head>
 
 <body>
-    <div class="container-500">
-        <div class="code">500</div>
-        <div class="title">500 - Internal Server Error</div>
-        <p class="message">
-            <?php echo htmlspecialchars($display_message); ?>
-        </p>
+    <div class="container">
+        <h1>500</h1>
+        <?php echo htmlspecialchars($display_message); ?>
         <div class="developer-note" style="text-align: left;">
-            If you are the developer, this error might indicate a server misconfiguration or an issue with the application code. Please check the server logs for more details.<br /><br /> If this is running in FUNKPHP_IS_LOCAL set to True you should see a var_dump right now!<br /><br />
+            If you are the developer, this error might indicate a Server Misconfiguration or an issue with the application code. Please check the server logs for more details.<br /><br /> If this is running in FUNKPHP_IS_LOCAL set to True you should see a var_dump right now!<br /><br />
             <?php
             $localIps = ['127.0.0.1', '::1', '192.168.122.1'];  // Add Your Own Local IP Addresses Here In Order To See Debug Dumps When Running Locally
             $isLocal = in_array($_SERVER['REMOTE_ADDR'] ?? '', $localIps, true) || str_ends_with($_SERVER['HTTP_HOST'] ?? '', '.local');
@@ -87,7 +69,7 @@ $display_message = $custom_error_message ?? 'The server encountered an internal 
                 <?php endif ?>
 
             <?php else: ?>
-                Production Environment active. Internal request signatures are hidden.
+                Production Environment active. Internal Request Signatures are hidden.
             <?php endif; ?>
         </div>
     </div>
