@@ -405,6 +405,17 @@ class C
         }
         return array_values(array_unique($cleaned));
     }
+
+    // Valid Path for Pages or any depths of files
+    private function pathValid(string $path): bool
+    {
+        $path = strtolower(trim($path));
+        if ($path === '' || !preg_match('/^[a-z_][a-z0-9_]*(\/[a-z_][a-z0-9_]*)*$/', $path)) {
+            return false;
+        }
+        return true;
+    }
+
     /* !!! SMALL HELPER FUNCTIONS FOR $this->cached and all File I/O !!! */
     // ROOT_FOLDER constant must exist as string ending with `src/funkphp`
     private function rootFolderExistOrSetError(): bool
@@ -5306,6 +5317,34 @@ class C
             $compiledPairs[$ruleName] = $regex;
         }
         $this->validBatches['routes'][$method][$route]['paramRules'][$paramIdentifier] = ['pairs' => $compiledPairs];
+    }
+
+    //ROUTE: setParamRuleMismatchJSONRoute & setParamRuleMismatchPageRoute
+    private function batchSetParamRuleMismatchJSONRoute(
+        string $method,
+        string $route,
+        string|array $callableThatReturnsJSONorJSONArray,
+        int $statusCodeJSON = 422
+    ) {
+        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'setParamRuleMismatchJSONRoute', "", $callableThatReturnsJSONorJSONArray, $statusCodeJSON);
+        // Route must be valid first
+        if (isset($this->invalidBatches['routes'][$method][$route])) {
+            $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route is Invalid - must become Valid First ' . $ctxVals, $method, $route);
+            return;
+        }
+    }
+    private function batchSetParamRuleMismatchPageRoute(
+        string $method,
+        string $route,
+        string $pageWithInfoAboutParamRuleMismatch,
+        int $statusCodePage = 404
+    ) {
+        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'setParamRuleMismatchPageRoute', "", $pageWithInfoAboutParamRuleMismatch, $statusCodePage);
+        // Route must be valid first
+        if (isset($this->invalidBatches['routes'][$method][$route])) {
+            $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route is Invalid - must become Valid First ' . $ctxVals, $method, $route);
+            return;
+        }
     }
 
     //ROUTE: SetParamRule
