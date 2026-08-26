@@ -1508,6 +1508,12 @@ function funk_internal_validate_params(&$c)
                     $c['req']['param_variant'][$rParam] = null;
                     $matchedrPairName = null;
                     foreach ($rParDetails['pairs'] as $rPairName => $rPairPattern) {
+                        // Edge-case: this means it matches all so just assign it
+                        if ($rPairPattern === '/[^\/]+/') {
+                            $anyPairMatch = true;
+                            $matchedrPairName = $rPairName;
+                            break;
+                        }
                         if (preg_match($rPairPattern, $c['req']['params'][$rParam])) {
                             $anyPairMatch = true;
                             $matchedrPairName = $rPairName;
@@ -1550,7 +1556,11 @@ function funk_internal_validate_params(&$c)
                 }
                 // Here just regular param with pattern
                 else {
-                    if (!preg_match($rParDetails['pattern'], $c['req']['params'][$rParam])) {
+                    // Edge-case: this means it matches all so just assign it
+                    if ($rParDetails['pattern'] === '/[^\/]+/') {
+                        $c['req']['param_valid'][$rParam] = true;
+                        $c['req']['params_details']['match'][$rParam] = true;
+                    } else if (!preg_match($rParDetails['pattern'], $c['req']['params'][$rParam])) {
                         $c['req']['params'][$rParam] = (isset($rParDetails['default']) ? $rParDetails['default'] : $c['req']['params'][$rParam]);
                         $c['req']['param_valid'][$rParam] = false;
                         $allParamsValid = false;
@@ -1576,38 +1586,45 @@ function funk_internal_validate_params(&$c)
  */
 function funk_internal_handle_invalid_params(&$c): void
 {
-    // 1. If route has a custom parametric mismatch handler/JSON set via ->setParamRuleMismatch()
-    if (isset($c['runtime']['route']['param_mismatch_page'])) {
-        $handler = $c['runtime']['route']['param_mismatch_page'];
-        if (is_callable($handler)) {
-            $handler($c);
-            exit;
+    $prefers = $c['req']['prefers'] ?? 'json';
+    $route = $c['runtime']['route'] ?? [];
+    $method  = $c['req']['method'] ?? 'GET';
+    // When ->setParamRuleMismatchJSON()
+    if ($prefers === 'json') {
+        if (isset($route['params_mismatch_json'])) {
+            $jsonOverride = $route['params_mismatch_json']['json'];
+            $code = $route['params_mismatch_json']['code'] ?? 422;
+            // if Callable, it should return JSON(-Encodable) String to use
+            if (is_string($jsonOverride) && function_exists($jsonOverride)) {
+                $data = $jsonOverride($c);
+                funk_return_response_json($c, $data, $code);
+            } else {
+                funk_return_response_json($c, $jsonOverride, $code);
+            }
         }
-        if (is_array($handler) || is_string($handler)) {
-            funk_return_response_json($c, $handler, 422);
-        }
-    }
-
-    // 2. Default API/JSON response (422 Unprocessable Entity)
-    if (($c['req']['prefers'] ?? 'json') === 'json') {
-        $errorPayload = json_encode([
+        // Default Fallback - JSON assumes API consumers so 422 should be returned instead of viewing it as 404
+        $defaultApiPayload = json_encode([
             'status'  => 422,
             'error'   => 'Unprocessable Entity',
-            'message' => 'Invalid Route Parameter Format OR Type Validation Failed.',
-            'details' => ($c['runtime']['route']['params_details'] ?? [])
+            'message' => 'Invalid Route Parameter Format OR Type Validation Failed. See `details` Key for Matches & Mismatches.',
+            'details' => ($c['req']['params_details'] ?? [])
         ]);
-        funk_return_response_json($c, $errorPayload, 422);
+        funk_return_response_json($c, $defaultApiPayload, 422);
     }
-
-    // Ultimate fallback if no custom web error view exists
-    echo "YAS";
-    funk_return_error_json_or_page(
-        $c,
-        422,
-        ['invalid_parameters' => 'The parameters provided in the URI do not conform to expected parameter rules.'],
-        '404',
-        'Parameter Validation Failed'
-    );
+    // When ->setParamRuleMismatchPage()
+    if (isset($route['params_mismatch_page'])) {
+        $pageName = $route['params_mismatch_page']['page'];
+        $code = $route['params_mismatch_page']['code'] ?? 404;
+        funk_return_response_page($c, $pageName, $code);
+    }
+    // Default No Route Matched Fallback (really only for Pages as API need the 422 info)
+    if (isset($c['runtime']['NO_ROUTE_MATCH_METHOD'][$method])) {
+        funk_internal_handle_no_route_match($c, $method);
+    }
+    if (isset($c['runtime']['NO_ROUTE_MATCH'])) {
+        funk_internal_handle_no_route_match($c, 'CONFIG');
+    }
+    funk_internal_handle_no_no_route_match($c);
 }
 // Retrieve what content UA accepts
 function funk_internal_negotiate_content(mixed &$c): array

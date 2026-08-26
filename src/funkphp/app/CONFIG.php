@@ -16,7 +16,6 @@ $APP->CONFIG()
         'display_startup_errors'  => 1,
         'error_reporting'         => 1,
     ])
-
     ->setNoRouteMatchJSON(["err" => "nothing found"], 404)
     ->setHeaderAdd('Allow', 'all')
     ->setRateLimit(60, 60, 'ip', 'redis')

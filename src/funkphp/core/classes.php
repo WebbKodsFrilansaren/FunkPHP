@@ -77,7 +77,7 @@ class C
             'ratelimit' => ['redis', 'memcached', 'file', 'apcu', 'array']
         ],
         'shorthandRegexes' => [
-            '*'               => '[^\/]+',
+            '*'               => '/[^\/]+/',
             'int'             => '/^-?\d+$/',
             'number'          => '/^-?\d+$/',
             'uint'            => '/^\d+$/',
@@ -747,6 +747,34 @@ class C
         }
         return $FNFound;
     }
+
+
+    /**
+     * Resolves a page file path, prioritizing compiled pages over raw pages. Bool can be set to force only compiled.
+     *
+     * @param string $pageFileName The Validated Page File Name.
+     * @param bool $onlyCompiled When ONLY allowing Compiled page.
+     * @return array{0: bool, 1: string|null} Tuple containing [$pageFound, $pagePath].
+     */
+    private function cachedReturnFoundPageOrNull(string $pageFileName, $onlyCompiled = false): array
+    {
+        $this->cachedCreateKeyIfNullAndOptionalFileName('files_pages', $pageFileName);
+        if ($onlyCompiled) {
+            if (!empty($this->cached['files_pages_compiled'][$pageFileName]['file_exists'])) {
+                return [true, $this->cached['files_pages_compiled'][$pageFileName]['file_path']];
+            }
+            return [false, null];
+        }
+        $this->cachedCreateKeyIfNullAndOptionalFileName('files_pages_compiled', $pageFileName);
+        if (!empty($this->cached['files_pages_compiled'][$pageFileName]['file_exists'])) {
+            return [true, $this->cached['files_pages_compiled'][$pageFileName]['file_path']];
+        }
+        if (!empty($this->cached['files_pages'][$pageFileName]['file_exists'])) {
+            return [true, $this->cached['files_pages'][$pageFileName]['file_path']];
+        }
+        return [false, null];
+    }
+
     // These 2 functions check things like eval(), early exit(), which can be used to inform
     // developer about possible dangerous code but it is only emitted as warnings - nothing else.
     // They set the warnings for a given FN|CLASS and if the boolean $this->NoWarningsAllowed is
@@ -2178,7 +2206,7 @@ class C
             'NotNumericNotPositive' => "Invalid Numeric Value in {$optionalCtx}: must an Numeric Value that is also not Positive.",
             'InvalidGroupORFunctionName'                            => "Invalid Group|Function Name in {$optionalCtx}: must EITHER start with `group:` and then follow with these Valid `[a-z_][a-z0-9_]*` characters, OR it must a `Non-Empty String (no trailing spaces)` all `lowercased` starting with `[_a-z]` and then only use the following characters: `[_a-z0-9]` while it also does NOT start with `funk_` OR `cli_`.",
             'InvalidGroupORFileFunctionNames' => "Invalid Group|File+Function Name(s) in {$optionalCtx}: must EITHER start with `group:` and then follow with these Valid `[a-z_][a-z0-9_]*` characters, OR it must be a Valid `FileName.FunctionName` using `[a-z_][a-z0-9_]*` characters only for `Filename`, then a Single Dot (`.`), followed by these `[a-z_][a-z0-9_]*` characters again for `Function Name` (what PHP considers a `Valid Declared Function Name`). VALID: `users.by_id`, `_users._by_id`, OR `users.all`. NOT VALID: `1users.by_id`, `us-ers.by_id`, `users.by-id`, OR `users.1by_id`.",
-            'InvalidFunctionName'                         => "Invalid Function Name in {$optionalCtx}: must be a `Non-Empty String (no trailing spaces)` all `lowercased` starting with `[_a-z]` and then only use the following characters: `[_a-z0-9]` while it also does NOT start with `funk_` OR `cli_`.",
+            'InvalidFunctionName'                         => "Invalid Function Name in {$optionalCtx}: must be a `Non-Empty String (no trailing spaces)` all `lowercased` starting with `[_a-z]` and then only use the following characters: `[_a-z0-9]` while it also does NOT start with `funk_` OR `cli_`. Also, it CANNOT be any of the `Forbidden Functions` (which are usually Internal Functions used by FunkPHP and some helpers like `dd` and `cli_dd`).",
             'InvalidFileAndFunctionName'                         => "Invalid File & Function Name in {$optionalCtx}: must be a `Non-Empty String (no trailing spaces) all lowercased` with a Single Dot (`.`) between the `Filename` and `Function Name`. Both must start with `[a-z_]` and then only use `[a-z0-9_]` characters while NOT starting with `funk_` OR `cli_`.",
             'InvalidMiddlewareFunctionName' => "Invalid Middleware Function Name in {$optionalCtx}: must be a `Non-Empty All Lowercased String (no trailing spaces)` that only uses `[a-z_][a-z0-9_]+` characters in that order while it does NOT start with `cli_` OR `funk_`.",
             'InvalidGroupName'                                => "Invalid Group Name Value in {$optionalCtx}: must be a `Non-Empty String (no trailing spaces)` all `lowercased` that does NOT start with `cli_` OR `funk_`.",
@@ -2242,6 +2270,7 @@ class C
             'NoPageAtAllFound' => "Provided Page Filename in {$optionalCtx} was NOT found in `/src/funkphp/pages/` and also NOT found in `/src/funkphp/pages/compiled/`",
             'GroupPipeResponseNotSupported' => "Unsupported `'group:' Syntax` in {$optionalCtx}: cannot use `group:` in `->pipeResponse()` as you are meant to only use `->pipeResponse()` once for each Route.",
             'RouteHasNoParams' => "No Params for Route in {$optionalCtx} so `->setParamRule()` cannot be used. Add Valid Params to the Route first via `/:param-segment` parts.",
+            'RouteHasNoParamsNoMismatch' => "No Params for Route in {$optionalCtx} so `->setParamRuleMismatchJSONRoute()` cannot be used. Add Valid Params to the Route first via `/:param-segment` parts.",
             'RouteHasNotChosenParam' => "Provided Param for Route in {$optionalCtx} does NOT exist so it cannot be used in `->setParamRule()`.",
 
             // Call Order & Duplicate|Conflict Validation Errors
@@ -5332,6 +5361,56 @@ class C
             $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route is Invalid - must become Valid First ' . $ctxVals, $method, $route);
             return;
         }
+        // Now validate inValidBatches|validBatches
+        if (isset($this->invalidBatches['params_mismatch_json']['routes'][$method][$route])) {
+            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx) . " You can only set Param Rule Mismatch JSON for a Route once.", 'Duplicate Call ' . $ctxVals, $method, $route);
+            return;
+        }
+        if (isset($this->validBatches['params_mismatch_json']['routes'][$method][$route])) {
+            $this->setErr($this->getErr('DuplicateCallValidCanOnlyBeSetOnce', $ctxVals) . " You can only set Param Rule Mismatch JSON for a Route once.", 'Duplicate Call ' . $ctxVals, $method, $route);
+            return;
+        }
+        if (!isset($this->validBatches['routes'][$method][$route]['hasParams'])) {
+            $this->setErr($this->getErr('RouteHasNoParamsNoMismatch', $ctx), 'No Params in Route ' . $ctxVals, $method, $route);
+            return;
+        }
+        if (!$this->validateStatusCode($statusCodeJSON)) {
+            $this->setErr($this->getErr('InvalidHttpStatusCode', $ctxVals) . " Recommended Status Code is `422` to signal Invalid Request Data Provided due to Mismatched Param Rule(s).", 'Invalid HTTP(S) Status Code ' . $ctxVals, $method, $route);
+            $this->invalidBatches['params_mismatch_json']['routes'][$method][$route] = [$callableThatReturnsJSONorJSONArray, $statusCodeJSON];
+            return;
+        }
+        if (is_string($callableThatReturnsJSONorJSONArray)) {
+            if (!$this->nonEmptyLowercaseStrNotStartWithCLIorFunk($callableThatReturnsJSONorJSONArray)) {
+                $this->setErr($this->getErr('InvalidFunctionName', $ctxVals), 'Invalid Callable Name to return JSON Data from ' . $ctxVals, $method, $route);
+                $this->invalidBatches['params_mismatch_json']['routes'][$method][$route] = [$callableThatReturnsJSONorJSONArray, $statusCodeJSON];
+                return;
+            }
+            if (!$this->cachedUserDefinedFNExists($callableThatReturnsJSONorJSONArray)) {
+                $this->setErr($this->getErr('UserDefinedFUNCTIONNotFound', $ctxVals), 'User-Defined Function to return JSON Data from Not Found ' . $ctxVals, $method, $route);
+                $this->invalidBatches['params_mismatch_json']['routes'][$method][$route] = [$callableThatReturnsJSONorJSONArray, $statusCodeJSON];
+                return;
+            }
+            if (isset($this->cached['placeHolderUsedUserDefinedEngineFNS'][$callableThatReturnsJSONorJSONArray])) {
+                $this->setErr($this->getErr('UserDefinedFNSetAsEngineFN', $ctxVals), 'User-Defined Function Already in Use ' . $ctxVals, $method, $route);
+                $this->invalidBatches['params_mismatch_json']['routes'][$method][$route] = [$callableThatReturnsJSONorJSONArray, $statusCodeJSON];
+                return;
+            }
+            $this->validBatches['params_mismatch_json']['routes'][$method][$route] = ['callable' => $callableThatReturnsJSONorJSONArray, 'code' => $statusCodeJSON];
+        } else if (is_array($callableThatReturnsJSONorJSONArray)) {
+            if (empty($callableThatReturnsJSONorJSONArray)) {
+                $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctxVals) . " JSON Data to return for Param Rule Mismatch in Route `{$route}` cannot be an Empty Array.", 'Invalid Array Value for JSON Encoding ' . $ctxVals, $method, $route);
+                $this->invalidBatches['params_mismatch_json']['routes'][$method][$route] = [$callableThatReturnsJSONorJSONArray, $statusCodeJSON];
+                return;
+            }
+            try {
+                $callableThatReturnsJSONorJSONArray = json_encode($callableThatReturnsJSONorJSONArray, JSON_THROW_ON_ERROR);
+            } catch (\Throwable $e) {
+                $this->setErr($this->getErr('JsonEncodingFailed', $ctxVals), 'JSON Encoding Failed to use for Param Rule Mismatch ' . $ctxVals, $method, $route);
+                $this->invalidBatches['params_mismatch_json']['routes'][$method][$route] = [$callableThatReturnsJSONorJSONArray, $statusCodeJSON];
+                return;
+            }
+            $this->validBatches['params_mismatch_json']['routes'][$method][$route] = ['json' => $callableThatReturnsJSONorJSONArray, 'code' => $statusCodeJSON];
+        }
     }
     private function batchSetParamRuleMismatchPageRoute(
         string $method,
@@ -5345,6 +5424,32 @@ class C
             $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route is Invalid - must become Valid First ' . $ctxVals, $method, $route);
             return;
         }
+        // Now validate inValidBatches|validBatches
+        if (isset($this->invalidBatches['params_mismatch_page']['routes'][$method][$route])) {
+            $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx) . " You can only set Param Rule Mismatch Page for a Route once.", 'Duplicate Call ' . $ctxVals, $method, $route);
+            return;
+        }
+        if (isset($this->validBatches['params_mismatch_page']['routes'][$method][$route])) {
+            $this->setErr($this->getErr('DuplicateCallValidCanOnlyBeSetOnce', $ctxVals) . " You can only set Param Rule Mismatch Page for a Route once.", 'Duplicate Call ' . $ctxVals, $method, $route);
+            return;
+        }
+        if (!$this->validateStatusCode($statusCodePage)) {
+            $this->setErr($this->getErr('InvalidHttpStatusCode', $ctxVals) . " Recommended Status Code is `404` to signal Nothing Found due to Mismatched Param Rule(s).", 'Invalid HTTP(S) Status Code ' . $ctxVals, $method, $route);
+            $this->invalidBatches['params_mismatch_page']['routes'][$method][$route] = [$pageWithInfoAboutParamRuleMismatch, $statusCodePage];
+            return;
+        }
+        if (!is_string($pageWithInfoAboutParamRuleMismatch) || (trim($pageWithInfoAboutParamRuleMismatch) === '') || !preg_match('/[a-zA-Z0-9-_]+/i', $pageWithInfoAboutParamRuleMismatch)) {
+            $this->setErr($this->getErr('InvalidPageName', $ctx), 'Invalid Page Name ' . $ctxVals);
+            $this->invalidBatches['params_mismatch_page']['routes'][$method][$route] = [$pageWithInfoAboutParamRuleMismatch, $statusCodePage];
+            return;
+        }
+        [$found, $path] = $this->cachedReturnFoundPageOrNull($pageWithInfoAboutParamRuleMismatch);
+        if (!$found) {
+            $this->setErr($this->getErr('NoPageAtAllFound', $ctxVals) . " using Filename `{$pageWithInfoAboutParamRuleMismatch}.php`.", 'No Page File Found ' . $ctxVals);
+            $this->invalidBatches['params_mismatch_page']['routes'][$method][$route] = [$pageWithInfoAboutParamRuleMismatch, $statusCodePage];
+            return;
+        }
+        $this->validBatches['params_mismatch_page']['routes'][$method][$route] = ['page' => $pageWithInfoAboutParamRuleMismatch, 'path' => $path, 'code' => $statusCodePage];
     }
 
     //ROUTE: SetParamRule
@@ -8403,6 +8508,20 @@ class C
                                     }
                                 }
                             }
+                        }
+                        // Add "setParamRuleMismatchJSON|Page()" (if any) to the route
+                        if (isset($this->validBatches['params_mismatch_json']['routes'][$method][$route])) {
+                            $this->compiled['routes'][$method][$route]['params_mismatch_json'] = $this->validBatches['params_mismatch_json']['routes'][$method][$route];
+                        }
+                        if (isset($this->validBatches['params_mismatch_page']['routes'][$method][$route])) {
+                            // Warn if there is no Page Response for Route suggesting it is not intended for HTML-Web users?
+                            if (
+                                !isset($this->compiled['routes'][$method][$route]['response'])
+                                || $this->compiled['routes'][$method][$route]['response']['type'] !== 'page'
+                            ) {
+                                $this->compile_setWarn("Route `{$CURRENT_ROUTE_STR}` does NOT have `Return Response Page` (via `->setResponse('page:name')`) implying it does not intend to display HTML to End-users. Ignore this warning if you are using `funk_return_response_page()` elsewhere for this Route.", 'Param Rule Mismatch Page Set but no Page Response used in Route?');
+                            }
+                            $this->compiled['routes'][$method][$route]['params_mismatch_page'] = $this->validBatches['params_mismatch_page']['routes'][$method][$route];
                         }
                     }
                     // Now unpacking Pipes & MWs (meaning when they start with "group:")
