@@ -8951,6 +8951,13 @@ class C
                 ini_set($compiledIniSetK, $compiledIniSetV);
             }
         }
+        // Run any ini_set() if set - must happen before ob_start()
+        if (isset($c['runtime']['ini_sets'])) {
+            foreach ($c['runtime']['ini_sets'] as $isk => $isv) {
+                ini_set($isk, $isv);
+            }
+            unset($c['runtime']['ini_sets']);
+        }
         // Output buffering starts
         ob_start();
         // Constant FUNKPHP_ONLINE is always FALSE during run() / local running
@@ -9002,26 +9009,25 @@ class C
         }
         // Add any post-response pipes as registered shutdown functions so that is prepared first
         foreach ($this->compiled['config']['pipes']['post_response-resolved'] as $pResponseRegister) {
-            $funcName = $pResponseRegister['run'];
             $filePath = $pResponseRegister['path'];
+            $funcName = $pResponseRegister['run'];
             if (!function_exists($funcName) && file_exists($filePath)) {
                 require_once $filePath;
             }
             if (function_exists($funcName)) {
+                // Register shutdown function without reference capture issues
                 register_shutdown_function(function () use ($funcName, &$c) {
-                    if (
-                        isset($c['runtime']['SKIP_POST_RESPONSE'])
-                        && $c['runtime']['SKIP_POST_RESPONSE'] === true
-                    ) {
+                    if (isset($c['runtime']['SKIP_POST_RESPONSE']) && $c['runtime']['SKIP_POST_RESPONSE'] === true) {
                         return;
                     }
                     $funcName($c);
                 });
             } else {
-                $c['err']['post-response'][] = "Post-response Pipe Function `{$funcName}` Failed to be resolved after being loaded from Path `{$pResponseRegister['path']}`.";
+                $c['err']['post-response'][] = "Post-response Pipe Function `{$funcName}` failed to resolve from path `{$filePath}`.";
                 trigger_error("Post-response Pipe Function `{$funcName}` could not be resolved.", E_USER_WARNING);
             }
         }
+
         // Resolve IP (parse correct IP from trusted proxy if configured)
         // with either User-defined Function OR with internal default
         if (isset($this->compiled['config']['runtime']['custom_ip_resolver'])) {
@@ -9156,10 +9162,8 @@ class C
         if ($c['req']['params_valid'] === false) {
             funk_internal_handle_invalid_params($c);
         }
-
         // Now state is 'route' since we matched
         $c['runtime']['state'] = 'route';
-
         // Run any set funk_internal_rate_limiter() for MATCHED <METHOD><ROUTE>() context
         // THIS LEVEL OF Rate Limiting might need extra checks whether it tries to parse
         // specific param rule that has not yet been validated although it is probably a string
@@ -9172,7 +9176,6 @@ class C
                 $this->compiled['routes'][$c['req']['method']][$c['req']['route']]['ratelimit']['driver']
             );
         }
-
         // Run any set funk_internal_route_cache() for the MATCHED <METHOD><ROUTE>() context
         // THIS LEVEL where Cache occurs might need to be allowed to be skipped in some cases
         // dependning on how validation of params goes and if they fail thus do not try to store
@@ -9189,7 +9192,6 @@ class C
                 );
             }
         }
-        dd([$this->compiled['routes']['trie'][$c['req']['method']], $c['req']]);
         // NOW FINALLY RUN _ALL_ MWs of Route (it has already inherited them in correct order)
         // first Running Global, then Method, then Route exclusive Middlewares. After this, Run
         // any pipes and complete it with any response unless returned inside already. And that's it!
@@ -9230,7 +9232,8 @@ class C
                 \funk_return_error_json_or_page($c, 500, ['internal_server_error' => 'Failed to Return a Valid Response (`page`,`json`,`text`, or `callback`) as none of those Response Types existed?'], '500', 'Failed to Return a Valid Response (`page`,`json`,`text`, or `callback`) as none of those Response Types existed?');
             }
         }
-        echo "END OF run() - Before exit to optional Post-Response Pipes";
+        echo "END OF run() - Before exit to optional Post-Response Pipes - THIS WILL NOT BE SHOWN IF A RESPONSE WAS RETURNED SINCE THAT WILL EXIT EARLY!";
+
         // A final exit to not be able to jump back to the compile() again
         // This will also trigger registered shutdown functions/any post-response pipes
         exit;

@@ -14,7 +14,7 @@ $APP->CONFIG()
         'session.sid_bits_per_character' => 6,
         'display_errors'          => 1,
         'display_startup_errors'  => 1,
-        'error_reporting'         => 1,
+        'error_reporting'         => (string)E_ALL,
     ])
     ->setNoRouteMatchJSON(["err" => "nothing found"], 404)
     ->setHeaderAdd('Allow', 'all')

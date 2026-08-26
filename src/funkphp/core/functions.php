@@ -439,11 +439,26 @@ function funk_generate_csrf(&$c, string $currentUri, ?int $lifetimeSeconds = nul
 /***  ROUTE-RELATED PHP FUNCTIONS FOR FUNKPHP ***/
 
 
-function funk_return_download($filePath, $fileName = null, $statusCode = 200)
+function funk_return_response_file($filePath, $fileName = null, $statusCode = 200)
 {
-    // Set the content type to application/octet-stream and the status code, then return the file response
-    header('Content-Type: application/octet-stream', true, $statusCode);
-    header('Content-Disposition: attachment; filename="' . ($fileName ?? basename($filePath)) . '"');
+    if (!file_exists($filePath) || !is_readable($filePath)) {
+        \funk_return_error_json_or_page($c, 404, ['INTERNAL_SERVER_ERROR' => 'File `' . $fileName . '` Not Found. Do this check before Calling this Function.'], '404', 'File `' . $fileName . '` Not Found. Do this check before Calling this Function.');
+    }
+    header_remove('content-type');
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+    funk_internal_send_headers($c);
+    http_response_code($statusCode);
+    $downloadName = $fileName ?? basename($filePath);
+    $safeFileName = str_replace(['"', "\r", "\n"], '', $downloadName);
+    header('Content-Type: application/octet-stream');
+    header('Content-Disposition: attachment; filename="' . $safeFileName . '"');
+    header('Content-Transfer-Encoding: binary');
+    header('Expires: 0');
+    header('Cache-Control: must-revalidate, post-check=0, pre-check=0'); // For You IE5!
+    header('Pragma: public'); // Hi IE6-I8!
+    header('Content-Length: ' . filesize($filePath));
     readfile($filePath);
     exit;
 }
@@ -674,7 +689,7 @@ function funk_req_accepts(&$c, $contentType): bool
  */
 function funk_req_prefers(&$c, $contentType): bool
 {
-    if (isset($c['req']['prefers'][$contentType])) {
+    if (isset($c['req']['prefers']) && $c['req']['prefers'] === $contentType) {
         return true;
     }
     return false;
@@ -741,7 +756,7 @@ function funk_return_response_page(&$c, string $pageNameWithoutExtension, int $c
             'Failed to use a `User-defined Function` to Return a Response. This means the Function-name does NOT exist.'
         );
     }
-    exit;
+    exit();
 }
 
 /**
@@ -770,7 +785,7 @@ function funk_return_response_json(&$c, string $c_data_key_with_JSON_encoded_Dat
             ? $c['d'][$c_data_key_with_JSON_encoded_Data]
             : json_encode($c['d'][$c_data_key_with_JSON_encoded_Data]);
     }
-    exit;
+    exit();
 }
 
 /**
@@ -795,7 +810,7 @@ function funk_return_response_text(&$c, string $rawTextString, int $code = 200)
     funk_set_header($c, 'content-type', 'text/plain');
     funk_internal_send_headers($c);
     echo $rawTextString;
-    exit;
+    exit();
 }
 
 /**
@@ -815,7 +830,7 @@ function funk_return_response_callback(&$c, string $userDefinedFunctionName)
 {
     if (function_exists($userDefinedFunctionName)) {
         $userDefinedFunctionName($c);
-        exit;
+        exit();
     }
     \funk_return_error_json_or_page($c, 500, ['INTERNAL_SERVER_ERROR' => 'Failed to use a `User-defined Function` to Return a Response. This means the Function-name does NOT exist.'], '500', 'Failed to use a `User-defined Function` to Return a Response. This means the Function-name does NOT exist.');
 }
