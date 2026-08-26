@@ -10454,6 +10454,36 @@ class FunkRoute
     }
 
     /**
+     * Sets a Custom JSON Response or Callback (that returns JSON Data) that runs when one or more Route Parameter(s) is/are Invalid.
+     *
+     * @param string|array $callableThatReturnsJSONorJSONArray Array payload or callable string function.
+     * @param int $statusCodeJSON HTTP status code for the response (default: 422).
+     * @return $this
+     */
+    public function setParamRuleMismatchJSON(string|array $callableThatReturnsJSONorJSONArray, int $statusCodeJSON = 422)
+    {
+        if (is_string($callableThatReturnsJSONorJSONArray)) {
+            $callableThatReturnsJSONorJSONArray = strtolower(trim($callableThatReturnsJSONorJSONArray));
+        }
+        $this->c->batch('batchSetParamRuleMismatchJSONRoute', $this->method, $this->routePath, $callableThatReturnsJSONorJSONArray, $statusCodeJSON);
+        return $this;
+    }
+
+    /**
+     * Sets a Custom HTML/Page to show when one or more Route Parameter(s) is/are Invalid.
+     *
+     * @param string $pageWithInfoAboutParamRuleMismatch Path or name of the template/view to render.
+     * @param int $statusCodePage HTTP status code for the response (default: 404).
+     * @return $this
+     */
+    public function setParamRuleMismatchPage(string $pageWithInfoAboutParamRuleMismatch, int $statusCodePage = 404)
+    {
+        $pageWithInfoAboutParamRuleMismatch = strtolower(trim($pageWithInfoAboutParamRuleMismatch));
+        $this->c->batch('batchSetParamRuleMismatchPageRoute', $this->method, $this->routePath, $pageWithInfoAboutParamRuleMismatch, $statusCodePage);
+        return $this;
+    }
+
+    /**
      * Configures Content-Security-Policy (CSP) directives for a given Route in a Method (in `/src/funkphp/app/<METHOD>.php`).
      *
      * Automatically wraps standard CSP keywords (e.g. 'self', 'none', 'unsafe-inline') in single quotes,
