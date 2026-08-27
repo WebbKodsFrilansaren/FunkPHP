@@ -10,5 +10,4 @@ $APP->ROUTES()
     ->route("/users/:id/:id2")
     ->setParamRuleMismatchJSON(['err' => 'no match'], 404)
     ->setParamRuleMismatchPage('test')
-    ->pipeFunctions("test.test")
-    ->pipeResponse('page:test', 200);
+    ->pipeFunctionsThenResponse('test.test', 'page:test', 200);

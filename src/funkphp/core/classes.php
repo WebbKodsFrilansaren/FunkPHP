@@ -187,6 +187,7 @@ class C
                 'request_ip_sources' => [],
                 'request_form_spoof_methods' => ['PUT', 'PATCH', 'DELETE'],
                 'ini_sets' => [],
+                'pipes' => [],
                 'trusted_ip_proxies' => [
                     'ip4' => [
                         "173.245.48.0/20",
@@ -6352,6 +6353,7 @@ class C
         }
     }
 
+    //ROUTE: Pipe Response (ONLY)
     private function batchPipeResponseRoute(string $method, string $route, string $typeOfResponse, int $httpResponseStatusCode = 200)
     {
         [$ctx, $ctxVals] = $this->setCtx($method, $route, 'pipeResponse', $typeOfResponse);
@@ -6443,6 +6445,143 @@ class C
         // All good by here so add!
         $this->validBatches['routes'][$method][$route]['response'] = ['type' => $type, 'context' => $ctx, 'code' => $httpResponseStatusCode];
     }
+
+    //ROUTE: Pipe Functions (PLURAL) WITH a Final Response where two last elements are: response type,status code
+    private function pipeFunctionsThenResponseRoute(string $method, string $route, string|int ...$fileFunctionName)
+    {
+        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'pipeFunctionsThenResponse', ...$fileFunctionName);
+        // Route must be valid first
+        if (isset($this->invalidBatches['routes'][$method][$route])) {
+            $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route is Invalid - must become Valid First ' . $ctxVals, $method, $route);
+            return;
+        }
+        if (isset($this->invalidBatches['routes-fn-plural-response'][$method][$route])) {
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctxVals), 'Duplicate Call ' . $ctxVals, $method, $route);
+            return;
+        }
+        if (isset($this->validBatches['routes'][$method][$route]['response'])) {
+            $this->setErr($this->getErr('ConflictResponseAlreadyAdded', $ctxVals), 'Route Response Already Added ' . $ctxVals, $method, $route);
+            $this->invalidBatches['routes-fn-routes-fn-plural-response'][$method][$route] = $fileFunctionName;
+            return;
+        }
+        if (count($fileFunctionName) < 3) {
+            $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctx) . " You must provide at least one(1) Route Function AND a Response Type (`page:name`, `json:key_in_c['d][<key>]`, `callback:user_defined_fn`, OR `text:raw text`,) AND a Valid `HTTP(S) Response Code` in order to use `->pipeFunctionsThenResponse()`. For example: `->pipeFunctionsThenResponse('file.fn','page:about',200)`. Use `->pipeFunction()` OR `->pipeFunctions()` to only Pipe one or more Route Function(s). Then use `->pipeResponse()` to set the Response for the Route. Remember that as soon as you have set a Response for the Route, it cannot be piped any more Route Functions (middlewares run separately so they are not affected).", 'Too Few Route Function(s) + Response ' . $ctxVals, $method, $route);
+            $this->invalidBatches['routes-fn-routes-fn-plural-response'][$method][$route] = $fileFunctionName;
+            return;
+        }
+        $routeFNS = [];
+        $lastlastIndex = count($fileFunctionName) - 2;
+        $lastIndex = count($fileFunctionName) - 1;
+        foreach ($fileFunctionName as $idx => $RFN) {
+            // If all Route FNs added, add them and then go on to validate last keys for response
+            // where first/last last one is the response type and second/last one the http(s) response code
+            if ($idx === $lastlastIndex) {
+                break;
+            }
+            if (!is_string($RFN) || !$this->nonEmptyLC_Str_ThatISGroupORRouteFileFNWithoutCLIorFunk($RFN)) {
+                $this->setErr($this->getErr('InvalidGroupORFileFunctionNames', $ctxVals), 'Invalid Function Name Formatting ' . $ctxVals, $method, $route);
+                $this->invalidBatches['routes-fn-routes-fn-plural-response'][$method][$route] = $fileFunctionName;
+                return;
+            }
+            // Just add if it starts with "group:" since that is validated by compile()
+            if (str_starts_with($RFN, 'group:')) {
+                $routeFNS[] = $RFN;
+                continue;
+            }
+            // Otherwise we know it is a valid string formatted "filename.functionname"
+            [$file, $fn] = explode('.', $RFN);
+            $fileData = $this->cachedCreateKeyIfNullAndOptionalFileName('files_routes', $file);
+            // Fatal check: Bails on the first structural error
+            $fatalError = $this->validateFNFile($fileData, $fn, $ctxVals, "funkphp\\pipes\\routes\\{$file}", false);
+            if ($fatalError !== null) {
+                $this->setErr($fatalError, 'Invalid Route Pipe File Function (also see FILES tab) ' . $ctxVals, $method, $route);
+                $this->invalidBatches['routes-fn-routes-fn-plural-response'][$method][$route] = $fileFunctionName;
+                return;
+            }
+            $routeFNS[] = $RFN;
+        }
+        foreach ($routeFNS as $vRFN) {
+            $this->validBatches['routes'][$method][$route]['pipes'][] = $vRFN;
+        }
+        // Validate last key response
+        $httpResponseStatusCode = $fileFunctionName[$lastIndex];
+        $routeRes = $fileFunctionName[$lastlastIndex];
+        if (!is_int($httpResponseStatusCode) || !$this->validateStatusCode($httpResponseStatusCode)) {
+            $this->setErr($this->getErr('InvalidHttpStatusCode', $ctxVals), 'Invalid Route Resoponse HTTP(S) Status Code ' . $ctxVals, $method, $route);
+            $this->invalidBatches['routes-fn-routes-fn-plural-response'][$method][$route] = $fileFunctionName;
+            return;
+        }
+        if (str_starts_with(strtolower(trim($routeRes)), 'group:')) {
+            $this->setErr($this->getErr('GroupPipeResponseNotSupported', $ctxVals), '"group:" Prefix Not Supported ' . $ctxVals, $method, $route);
+            $this->invalidBatches['routes-fn-routes-fn-plural-response'][$method][$route] = $fileFunctionName;
+            return;
+        }
+        // The valid Response Types
+        if (!is_string($routeRes) || !preg_match('/^(json:|page:|callback:|text:)/i', $routeRes)) {
+            $this->setErr($this->getErr('InvalidResponseType', $ctxVals) . "| UNIQUELY FOR `->pipeFunctionsThenResponse()`: The formatting should be `type:name_or_key:HTTP_RESPONSE_CODE` meaning last one must be the `3 digits` for the `HTTP(s) Response Code` which is also Validated so it is within the Valid Ranges.", 'Invalid Route Function(s) OR Response Type Formatting ' . $ctx, $method, $route);
+            $this->invalidBatches['routes-fn-routes-fn-plural-response'][$method][$route] = $fileFunctionName;
+            return;
+        }
+        // Handle each response type, error out if not possible, and if all OK, just set it to validBatches
+        [$type, $ctx] = explode(':', $routeRes, 2);
+        $typeErr = '';
+        $type = strtolower(trim($type));
+        if ($type === 'json') {
+            $typeErr = 'Choose a Array Path for where to return the `Stored Valid JSON Data` from. For exampel: `d.subKey.optionalSubkey` will return `Stored JSON Data` from `\$c["d"]["subKey"]["optionalSubkey"]`. Make sure that `JSON Data` is stored in that variable `before pipeResponse() executes`. Invalid JSON Data when it is being returned will make it instead return `500 HTTP(S) Status Code` and `[\'code\':500, \'error\':\'Internal Server Error\']`';
+        } else if ($type === 'page') {
+            $typeErr = 'Choose a `Page Filename` (e.g. `login`). It will then first check for `/src/funkphp/pages/compiled/login.php` and then for `/src/funkphp/pages/login.php` attempting to Compile it On-the-Fly and then return it. `In-built Page Not Found` is returned instead if both Page Files are not found during runtime (or Page On-the-Fly-Compilation fails).';
+        } else if ($type === 'callback') {
+            $typeErr = 'Choose a `User-defined Function in /src/funkphp/config/functions.php` that is also NOT already used as a `Global Handler`. For example, if you have set `->setDefaultKernelHandler(\'test\')`, then you cannot use the User-Defined Function `function test(&$c){}` in `/src/funkphp/config/functions.php`.';
+        } else if ($type === 'text') {
+            $typeErr = 'Write any length (except 0) of Plain-Text after the Single Colon (`:`) that is Valid UTF-8. If you need to return `Non-UTF-8 Plain-Text use a Callback instead` to achieve that kind of Response Type as `pipeResponse() assumes UTF-8` during Configuration.';
+        } else {
+            $typeErr = "The Response Type `{$type}` does NOT exist but somehow got through the Configuration Checks. Report this FunkPHP Internal Bug/Issue to the `Official FunkPHP Repositories`.";
+        }
+        if (!isset($ctx) || trim($ctx) === '') {
+            $this->setErr($this->getErr('InvalidResponseContext', $ctxVals) . $typeErr, 'Invalid Route Response Context' . $ctxVals, $method, $route);
+            $this->invalidBatches['routes-fn-routes-fn-plural-response'][$method][$route] = $fileFunctionName;
+            return;
+        }
+        // Check that Page exists in compiled OR non-compiled for page:
+        if ($type === 'page') {
+            $ctx = trim($ctx);
+            if (!$this->cachedPageFileEITHER_TYPEExists($ctx)) {
+                $this->setErr($this->getErr('NoPageAtAllFound', $ctxVals) . ' to be used as the `returned Page in pipeResponse()`.', 'Page for Route Response Not Found ' . $ctxVals, $method, $route);
+                $this->invalidBatches['routes-fn-routes-fn-plural-response'][$method][$route] = $fileFunctionName;
+                return;
+            }
+        }
+        // Check that a Single Simple Array Depth String is used for json:
+        else if ($type === 'json') {
+            $ctx = trim($ctx);
+            if (!preg_match('/^[a-zA-Z0-9-_\.]+$/', $ctx)) {
+                $this->setErr($this->getErr('InvalidJSONSourceForResponseCtx', $ctxVals) . ' to be used as the `returned JSON Data in pipeResponse()`.', 'Invalid JSON Data for Route Response ' . $ctxVals, $method, $route);
+                $this->invalidBatches['routes-fn-routes-fn-plural-response'][$method][$route] = $fileFunctionName;
+                return;
+            }
+            [$root, $rest] = explode('.', $ctx, 2);
+        }
+        // Check that User-defined function exists for callback:
+        // and that it is not already is set as a Global Handler.
+        else if ($type === 'callback') {
+            $ctx = trim($ctx);
+            if (!$this->cachedUserDefinedFNExists($ctx)) {
+                $this->setErr($this->getErr('UserDefinedFUNCTIONNotFoundForResponseCtx', $ctxVals) . ' to be used as the `returned User-defined Callback Function in pipeResponse()`.', 'User-defined File Function for Route Response Not Found ' . $ctxVals, $method, $route);
+                $this->invalidBatches['routes-fn-routes-fn-plural-response'][$method][$route] = $fileFunctionName;
+                return;
+            }
+            if (isset($this->cached['placeHolderUsedUserDefinedEngineFNS'][$ctx])) {
+                $this->setErr($this->getErr('UserDefinedFNSetAsEngineFN', $ctxVals) . ' It cannot be as the `returned User-defined Callback Function in pipeResponse()`. See `' . $this->cached['placeHolderUsedUserDefinedEngineFNS'][$ctx] . '`', 'User-defined File Function for Route Response Already in Use ' . $ctxVals, $method, $route);
+                $this->invalidBatches['routes-fn-routes-fn-plural-response'][$method][$route] = $fileFunctionName;
+                return;
+            }
+        } else if ($type === 'text') {
+            // Nothing really needs to be done here.
+        }
+        // All good by here so add!
+        $this->validBatches['routes'][$method][$route]['response'] = ['type' => $type, 'context' => $ctx, 'code' => $httpResponseStatusCode];
+    }
+
     private function batchPipeSQLRoute(string $method, string $route, string $sqlFileFunction)
     {
         [$ctx, $ctxVals] = $this->setCtx($method, $route, 'pipeSQL', $sqlFileFunction);
@@ -9252,10 +9391,10 @@ class C
         // Grab the global $c since that is what is passed around everywhere
         global $c;
         $c['runtime']['state'] = 'global';
-        $c['runtime']['request'] = $this->compiled['config']['pipes']['request'];
-        $c['runtime']['request-resolved'] = $this->compiled['config']['pipes']['request-resolved'];
-        $c['runtime']['post-response'] = $this->compiled['config']['pipes']['post_response'];
-        $c['runtime']['post-response-resolved'] = $this->compiled['config']['pipes']['post_response-resolved'];
+        $c['runtime']['pipes']['request'] = $this->compiled['config']['pipes']['request'] ?? null;
+        $c['runtime']['pipes']['request-resolved'] = $this->compiled['config']['pipes']['request-resolved'] ?? null;
+        $c['runtime']['pipes']['post-response'] = $this->compiled['config']['pipes']['post_response'] ?? null;
+        $c['runtime']['pipes']['post-response-resolved'] = $this->compiled['config']['pipes']['post_response-resolved'] ?? null;
 
         $c['req']['time'] = $_SERVER['REQUEST_TIME'] ?? time();
         $c['req']['query'] = $_SERVER['QUERY_STRING'] ?? null;
@@ -10821,7 +10960,7 @@ class FunkRoute
      * @param string $fileNameAndFunctionName Function or file reference key
      * @return $this
      */
-    public function pipeFunctions(string ...$fileNameAndFunctionName): self
+    public function pipeFunctions(string|int ...$fileNameAndFunctionName): self
     {
         foreach ($fileNameAndFunctionName as $FNFN) {
             $FNFN = strtolower(trim($FNFN));
@@ -10829,8 +10968,20 @@ class FunkRoute
         $this->c->batch('batchPipeFunctionsRoute', $this->method, $this->routePath, ...$fileNameAndFunctionName);
         return $this;
     }
-
-
+    /**
+     * Register one or more Route Functions and then a Final Response with Status Code for current Route where the two last elements must first be the Response Type and then the HTTP(S) Response Code. They run FIRST AFTER all Middlewares iva Global->Method->Route have ran.
+     *
+     * @param string|int ...$fileNameAndFunctionName Function or file reference key
+     * @return $this
+     */
+    public function pipeFunctionsThenResponse(string|int ...$fileNameAndFunctionName): self
+    {
+        foreach ($fileNameAndFunctionName as $FNFN) {
+            $FNFN = strtolower(trim($FNFN));
+        }
+        $this->c->batch('pipeFunctionsThenResponseRoute', $this->method, $this->routePath, ...$fileNameAndFunctionName);
+        return $this;
+    }
     /**
      * Specify ONE Response transformation or content type format for this route.
      *
