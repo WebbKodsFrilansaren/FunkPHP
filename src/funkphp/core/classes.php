@@ -495,112 +495,158 @@ class C
         return true;
     }
     // Autoload any non-existing $this->cached[$key] that is either always a file with functions OR classes
-    private function cachedCreateKeyIfNullAndOptionalFileName(string $key, string $optionalFileName = '1_NO_FILE_NAME_PROVIDED_1'): void
+    private function cachedCreateKeyIfNullAndOptionalFileName(string $key, string $optionalFileName = '1_NO_FILE_NAME_PROVIDED_1')
     {
+
         if ($key === 'file_user_defined_functions') {
             if (!isset($this->cached[$key])) {
                 $this->cached[$key] = $this->file_status('/config', 'functions');
                 $this->cached[$key]['?file_type'] = 'user-functions';
             }
+            return $this->cached[$key];
         } elseif ($key === 'file_user_defined_classes') {
             if (!isset($this->cached[$key])) {
                 $this->cached[$key] = $this->file_status('/config', 'classes', false, true);
                 $this->cached[$key]['?file_type'] = 'user-classes';
             }
+            return $this->cached[$key];
         } elseif ($key === 'file_user_defined_tables') {
             if (!isset($this->cached[$key])) {
                 $this->cached[$key] = $this->file_status('/config', 'tables');
                 $this->cached[$key][$optionalFileName]['?file_type'] = 'user-tables';
             }
+            return $this->cached[$key][$optionalFileName];
         } elseif ($key === 'files_pipes_request') {
             if (!isset($this->cached[$key][$optionalFileName])) {
                 $this->cached[$key][$optionalFileName] = $this->file_status('/pipes/request', $optionalFileName);
                 $this->cached[$key][$optionalFileName]['?file_type'] = 'request';
             }
+            return $this->cached[$key][$optionalFileName];
         } elseif ($key === 'files_pipes_post_response') {
             if (!isset($this->cached[$key][$optionalFileName])) {
                 $this->cached[$key][$optionalFileName] = $this->file_status('/pipes/post_response', $optionalFileName);
                 $this->cached[$key][$optionalFileName]['?file_type'] = 'post-response';
             }
+            return $this->cached[$key][$optionalFileName];
         } elseif ($key === 'files_pipes_middlewares') {
             if (!isset($this->cached[$key][$optionalFileName])) {
                 $this->cached[$key][$optionalFileName] = $this->file_status('/pipes/middlewares', $optionalFileName);
                 $this->cached[$key][$optionalFileName]['?file_type'] = 'middleware';
             }
+            return $this->cached[$key][$optionalFileName];
         } elseif ($key === 'files_routes') {
             if (!isset($this->cached[$key][$optionalFileName])) {
                 $this->cached[$key][$optionalFileName] = $this->file_status('/pipes/routes', $optionalFileName);
                 $this->cached[$key][$optionalFileName]['?file_type'] = 'route';
             }
+            return $this->cached[$key][$optionalFileName];
         } elseif ($key === 'files_pages') {
             if (!isset($this->cached[$key][$optionalFileName])) {
                 $this->cached[$key][$optionalFileName] = $this->file_status('/pages', $optionalFileName);
                 $this->cached[$key][$optionalFileName]['?file_type'] = 'pages-uncompiled';
             }
+            return $this->cached[$key][$optionalFileName];
         } elseif ($key === 'files_pages_compiled') {
             if (!isset($this->cached[$key][$optionalFileName])) {
                 $this->cached[$key][$optionalFileName] = $this->file_status('/pages/compiled', $optionalFileName);
                 $this->cached[$key][$optionalFileName]['?file_type'] = 'pages-compiled';
             }
+            return $this->cached[$key][$optionalFileName];
         } elseif ($key === 'files_pages_components') {
             if (!isset($this->cached[$key][$optionalFileName])) {
                 $this->cached[$key][$optionalFileName] = $this->file_status('/pages/components', $optionalFileName);
                 $this->cached[$key][$optionalFileName]['?file_type'] = 'pages-components';
             }
+            return $this->cached[$key][$optionalFileName];
         } elseif ($key === 'files_pages_layouts') {
             if (!isset($this->cached[$key][$optionalFileName])) {
                 $this->cached[$key][$optionalFileName] = $this->file_status('/pages/layouts', $optionalFileName);
                 $this->cached[$key][$optionalFileName]['?file_type'] = 'pages-layouts';
             }
+            return $this->cached[$key][$optionalFileName];
         } elseif ($key === 'files_pages_partials') {
             if (!isset($this->cached[$key][$optionalFileName])) {
                 $this->cached[$key][$optionalFileName] = $this->file_status('/pages/partials', $optionalFileName);
                 $this->cached[$key][$optionalFileName]['?file_type'] = 'pages-partials';
             }
+            return $this->cached[$key][$optionalFileName];
         } elseif ($key === 'files_data_sql') {
             if (!isset($this->cached[$key][$optionalFileName])) {
                 $this->cached[$key][$optionalFileName] = $this->file_status('/data/sql', $optionalFileName);
                 $this->cached[$key][$optionalFileName]['?file_type'] = 'data-sql-uncompiled';
             }
+            return $this->cached[$key][$optionalFileName];
         } elseif ($key === 'files_data_query') {
             if (!isset($this->cached[$key][$optionalFileName])) {
                 $this->cached[$key][$optionalFileName] = $this->file_status('/data/query', $optionalFileName);
                 $this->cached[$key][$optionalFileName]['?file_type'] = 'data-query-uncompiled';
             }
+            return $this->cached[$key][$optionalFileName];
         } elseif ($key === 'files_data_validation') {
             if (!isset($this->cached[$key][$optionalFileName])) {
                 $this->cached[$key][$optionalFileName] = $this->file_status('/data/validation', $optionalFileName);
                 $this->cached[$key][$optionalFileName]['?file_type'] = 'data-validation-uncompiled';
             }
+            return $this->cached[$key][$optionalFileName];
         } elseif ($key === 'files_data_sql_compiled') {
             if (!isset($this->cached[$key][$optionalFileName])) {
                 $this->cached[$key][$optionalFileName] = $this->file_status('/data/compiled/sql', $optionalFileName);
                 $this->cached[$key][$optionalFileName]['?file_type'] = 'data-sql-compiled';
             }
+            return $this->cached[$key][$optionalFileName];
         } elseif ($key === 'files_data_query_compiled') {
             if (!isset($this->cached[$key][$optionalFileName])) {
                 $this->cached[$key][$optionalFileName] = $this->file_status('/data/compiled/query', $optionalFileName);
                 $this->cached[$key][$optionalFileName]['?file_type'] = 'data-query-compiled';
             }
+            return $this->cached[$key][$optionalFileName];
         } elseif ($key === 'files_data_validation_compiled') {
             if (!isset($this->cached[$key][$optionalFileName])) {
                 $this->cached[$key][$optionalFileName] = $this->file_status('/data/compiled/validation', $optionalFileName);
                 $this->cached[$key][$optionalFileName]['?file_type'] = 'data-validation-compiled';
             }
+            return $this->cached[$key][$optionalFileName];
         } elseif ($key === 'file_core_functions') {
             if (!isset($this->cached[$key])) {
                 $this->cached[$key] = $this->file_status('/core', 'functions');
                 $this->cached[$key]['?file_type'] = 'core-functions';
             }
+            return $this->cached[$key];
         } elseif ($key === 'file_manifest') {
             if (!isset($this->cached[$key])) {
                 $this->cached[$key] = $this->file_status('/core', 'manifest');
                 $this->cached[$key]['?file_type'] = 'core-manifest';
             }
+            return $this->cached[$key];
         } else {
-            $err = "[Class C->\$this->cachedCreateKeyIfNull()]: Unknown `{$key}` Value passed when it expected one of those defined in \$this->cached in Class C. Report this Internal Error to the Official FunkPHP Repositories.";
+            $keys = [
+                'file_user_defined_functions',
+                'file_user_defined_classes',
+                'file_user_defined_tables',
+                'files_pipes_request',
+                'files_pipes_post_response',
+                'files_pipes_middlewares',
+                'files_routes',
+                'files_pages',
+                'files_pages_compiled',
+                'files_pages_components',
+                'files_pages_layouts',
+                'files_pages_partials',
+                'files_data_sql',
+                'files_data_query',
+                'files_data_validation',
+                'files_data_sql_compiled',
+                'files_data_query_compiled',
+                'files_data_validation_compiled',
+                'file_core_functions',
+                'file_manifest',
+            ];
+            $this->cached[$key] = $this->file_status('', $optionalFileName);
+            $this->cached[$key]['?file_type'] = 'internal-error';
+            $err = "[Class C->\$this->cachedCreateKeyIfNull()]: Unknown `{$key}` Value passed when it expected one of these: " . $this->joinArray($keys) . ". This Function is meant to grab the correct File and store it in the `\$this->cached` so every File is only read once. Report this Internal Error to the Official FunkPHP Repositories.";
             $this->errors['ERRORS']++;
-            $this->errors['INTERNAL'][count($this->errors['INTERNAL']) + 1] = ['errShort' => 'Unknown Passed Value', 'err' => $err];
+            $this->errors['INTERNAL'][count($this->errors['INTERNAL']) + 1] = ['errShort' => 'Unknown `$key` Value - Cannot Read Correct File', 'err' => $err];
+            return $this->cached[$key];
         }
         return;
     }
@@ -2141,7 +2187,7 @@ class C
     }
     // Set context to not having to repeat so much for each batchFUNCTION
     // It also first appends to the FunkPHPFluentAPI // THE NEW VERSION
-    private function setCtx(string $config_or_method, ?string $route = null, string $batchFN, string $under, mixed ...$vals)
+    private function setCtx(string $config_or_method, ?string $route = null, string $batchFN, mixed ...$vals)
     {
         $this->FunkPHPFluentAPI['ALL'][count($this->FunkPHPFluentAPI['ALL']) + 1] = $this->appendFunkPHPFluentAPI($batchFN, ...$vals);
         if ($config_or_method === 'CONFIG') {
@@ -2427,9 +2473,13 @@ class C
      * @param string|null $route
      *
      */
-    private function setFileErr(string $fileType, string $file, string $fn, string $errShort, string $err, string|null $fnOrClassNameExact = null)
+    private function setFileErr(string|null $fileType = 'internal-error', string $file, string $fn, string $errShort, string $err, string|null $fnOrClassNameExact = null)
     {
+        if ($fileType === null) {
+            $fileType = 'internal-error';
+        }
         $validFileTypes = [
+            'internal-error',
             'user-functions',
             'user-classes',
             'pages-layouts',
@@ -2451,10 +2501,11 @@ class C
         ];
         if (
             !isset($fileType) || !is_string($fileType) || trim($fileType) === ''
+            || $fileType === 'internal-error'
             || !in_array(strtolower(trim($fileType)), $validFileTypes)
         ) {
             $this->errors['ERRORS']++;
-            $this->errors['INTERNAL'][count($this->errors['INTERNAL']) + 1] = ['errShort' => 'Invalid Value in (\$fileType)', 'err' => 'Invalid `\$type` (Error Type) Value (OR it is missing) in `class C->setFileErr()` when trying to Set a File/Function Error. Must be one of these: ' . $this->joinArray($validFileTypes) . '. Report this found bug/issue to the Official FunkPHP Repositories.', 'file' => $file, 'fn' => $fn];
+            $this->errors['INTERNAL'][count($this->errors['INTERNAL']) + 1] = ['errShort' => 'Invalid Value in `$fileType`', 'err' => '[Class C->$this->setFileErr()]: Invalid `\$type` (Error Type) Value (OR it is missing) in `class C->setFileErr()` when trying to Set a File/Function Error. Must be one of these: ' . $this->joinArray($validFileTypes) . ' (except `internal-error` which means this function was called with invalid data/context). Value Provided: `' . $fileType . '`. Report this found bug/issue to the Official FunkPHP Repositories.', 'file' => $file, 'fn' => $fn];
             return;
         }
         if (
@@ -2464,7 +2515,7 @@ class C
             || trim($err) === '' || trim($errShort) === ''
         ) {
             $this->errors['ERRORS']++;
-            $this->errors['INTERNAL'][count($this->errors['INTERNAL']) + 1] = ['errShort' => 'Invalid Value(s) in `\$file, \$fn, \$errShort and/or \$err`', 'err' => 'Invalid Data Types (all must be Non-Empty Strings) for `\$file, \$fn, \$errShort and/or \$err` in `class C->setFileErr()` when trying to Set a File/Function Error. Report this found bug/issue to the Official FunkPHP Repositories.', 'file' => $file, 'fn' => $fn];
+            $this->errors['INTERNAL'][count($this->errors['INTERNAL']) + 1] = ['errShort' => 'Invalid Value(s) in `$file, $fn, $errShort and/or $err`', 'err' => '[Class C->$this->setFileErr()]: Invalid Data Types (all must be Non-Empty Strings) for `\$file, \$fn, \$errShort and/or \$err` in `class C->setFileErr()` when trying to Set a File/Function Error. Report this found bug/issue to the Official FunkPHP Repositories.', 'file' => $file, 'fn' => $fn];
             return;
         }
         $fileType = strtolower(trim($fileType));
@@ -2538,7 +2589,7 @@ class C
     /* setCompileFlag & setDebug */
     private function batchSetCompileFlag(string $flag)
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setCompileFlag', "CONFIG()",  $flag);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setCompileFlag', $flag);
         $validFlags = [
             'ALLOW_GHOST_ROUTES', // no error issued when
             'ALL_ROUTES_MUST_HAVE_PIPE_RESPONSE', // pipeResponse() must be applied to every route or hard compilation error.
@@ -2582,7 +2633,7 @@ class C
      */
     private function batchSetDebug(bool $ON_OR_OFF = true, bool $ALWAYS_SHOW = true, bool $SHOW_ALL = false, bool $SHOW_MAIN_CONFIG = true, bool $SHOW_VALID_BATCHES = false, bool $SHOW_INVALID_BATCHES = false, bool $SHOW_CACHED = false, bool $SHOW_COMPILED = false)
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setDebug', "CONFIG()->setDebug", $ON_OR_OFF, $ALWAYS_SHOW, $SHOW_ALL, $SHOW_MAIN_CONFIG, $SHOW_VALID_BATCHES, $SHOW_INVALID_BATCHES, $SHOW_CACHED, $SHOW_COMPILED);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setDebug', $ON_OR_OFF, $ALWAYS_SHOW, $SHOW_ALL, $SHOW_MAIN_CONFIG, $SHOW_VALID_BATCHES, $SHOW_INVALID_BATCHES, $SHOW_CACHED, $SHOW_COMPILED);
         if (isset($this->invalidBatches['config']['DEBUG'])) {
             $this->setErr($this->getErr('DuplicateCallInvalid', $ctxVals), 'Duplicate Call ' . $ctxVals);
             return;
@@ -2616,7 +2667,7 @@ class C
     /* Set `$c['req']['accepts']` content types additional to those in-built */
     private function batchSetAcceptsGlobal(string ...$acceptedContentTypesToCheckFor)
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setAccepts', "", ...$acceptedContentTypesToCheckFor);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setAccepts', ...$acceptedContentTypesToCheckFor);
         if (isset($this->invalidBatches['config']['set_accepts'])) {
             $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Duplicate Call ' . $ctxVals);
             return;
@@ -2658,7 +2709,7 @@ class C
     /* set<BOOLEAN_VARIANTS_OPTIONS-FunkPHPOnline,UseHTTPS,UseVendor> Global */
     private function batchSetFunkPHPOnlineGlobal(bool $trueOrFalse)
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setUseFunkPHPOnline', "", $trueOrFalse);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setUseFunkPHPOnline', $trueOrFalse);
         if (isset($this->invalidBatches['config']['FUNKPHP_ONLINE'])) {
             $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Duplicate Call ' . $ctxVals);
             return;
@@ -2678,7 +2729,7 @@ class C
     }
     private function batchSetUseHTTPSGlobal(bool $trueOrFalse)
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setUseHTTPS', "CONFIG()", $trueOrFalse);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setUseHTTPS', $trueOrFalse);
         if (isset($this->invalidBatches['config']['USE_HTTPS'])) {
             $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Duplicate Call ' . $ctxVals);
             return;
@@ -2707,7 +2758,7 @@ class C
     }
     private function batchSetUseVendorGlobal(bool $trueOrFalse)
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setUseVendor', "CONFIG()", $trueOrFalse);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setUseVendor', $trueOrFalse);
         if (isset($this->invalidBatches['config']['USE_VENDOR'])) {
             $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Duplicate Call ' . $ctxVals);
             return;
@@ -2749,7 +2800,7 @@ class C
     /* setUseDefault<Exception,Error,UriNormalizer,In-builtKernel-UserDefinedFunctions> Global */
     private function batchSetDefaultExceptionHandlerGlobal(string $userDefinedFunction) // DEFAULT EXCEPTION HANDLER
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setCustomExceptionHandler', "CONFIG()", $userDefinedFunction);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setCustomExceptionHandler', $userDefinedFunction);
         if (isset($this->invalidBatches['config']['DEFAULT_EXCEPTION_HANDLER'])) {
             $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Duplicate Call ' . $ctxVals);
             return;
@@ -2773,8 +2824,7 @@ class C
         // Prepare Config Functions.php File I/O if needed
         // assuming ROOT_FOLDER constant exists first!
         if (!$this->rootFolderExistOrSetError()) return;
-        $this->cachedCreateKeyIfNullAndOptionalFileName('file_user_defined_functions');
-        $fileData = $this->cached['file_user_defined_functions'] ?? [];
+        $fileData = $this->cachedCreateKeyIfNullAndOptionalFileName('file_user_defined_functions');
         // Bails on the first structural error regarding a typical user-defined function
         $fatalError = $this->validateFNFile($fileData, $userDefinedFunction, $ctxVals, '', false);
         if ($fatalError !== null) {
@@ -2800,7 +2850,7 @@ class C
     }
     private function batchSetDefaultErrorHandlerGlobal(string $userDefinedFunction) // DEFAULT GLOBAL ERROR HANDLER
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setCustomErrorHandler', "CONFIG()", $userDefinedFunction);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setCustomErrorHandler', $userDefinedFunction);
         if (isset($this->invalidBatches['config']['DEFAULT_ERROR_HANDLER'])) {
             $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Duplicate Call ' . $ctxVals);
             return;
@@ -2824,8 +2874,7 @@ class C
         // Prepare Config Functions.php File I/O if needed
         // assuming ROOT_FOLDER constant exists first!
         if (!$this->rootFolderExistOrSetError()) return;
-        $this->cachedCreateKeyIfNullAndOptionalFileName('file_user_defined_functions');
-        $fileData = $this->cached['file_user_defined_functions'] ?? [];
+        $fileData = $this->cachedCreateKeyIfNullAndOptionalFileName('file_user_defined_functions');
         // Bails on the first structural error regarding a typical user-defined function
         $fatalError = $this->validateFNFile($fileData, $userDefinedFunction, $ctxVals, '', false);
         if ($fatalError !== null) {
@@ -2851,7 +2900,7 @@ class C
     }
     private function batchSetDefaultURINormalizerGlobal(string $userDefinedFunction) // URI NORMALIZER GLOBAL
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setCustomURI_NormalizerHandler', "CONFIG()", $userDefinedFunction);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setCustomURI_NormalizerHandler', $userDefinedFunction);
         if (isset($this->invalidBatches['config']['DEFAULT_URI_NORMALIZER'])) {
             $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Duplicate Call ' . $ctxVals);
             return;
@@ -2879,8 +2928,7 @@ class C
         // Prepare Config Functions.php File I/O if needed
         // assuming ROOT_FOLDER constant exists first!
         if (!$this->rootFolderExistOrSetError()) return;
-        $this->cachedCreateKeyIfNullAndOptionalFileName('file_user_defined_functions');
-        $fileData = $this->cached['file_user_defined_functions'] ?? [];
+        $fileData = $this->cachedCreateKeyIfNullAndOptionalFileName('file_user_defined_functions');
         // Bails on the first structural error regarding a typical user-defined function
         $fatalError = $this->validateFNFile($fileData, $userDefinedFunction, $ctxVals, '', false);
         if ($fatalError !== null) {
@@ -2896,7 +2944,7 @@ class C
     }
     private function batchSetDefaultHTTPSKernelDispatchHandlerGlobal(string $userDefinedFunction) // DEFAULT HTTSP KERNEL/ROUTING
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setCustomKernelHandler', "CONFIG()", $userDefinedFunction);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setCustomKernelHandler', $userDefinedFunction);
         if (isset($this->invalidBatches['config']['DEFAULT_HTTPS_KERNEL'])) {
             $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Duplicate Call ' . $ctxVals);
             return;
@@ -2924,8 +2972,7 @@ class C
         // Prepare Config Functions.php File I/O if needed
         // assuming ROOT_FOLDER constant exists first!
         if (!$this->rootFolderExistOrSetError()) return;
-        $this->cachedCreateKeyIfNullAndOptionalFileName('file_user_defined_functions');
-        $fileData = $this->cached['file_user_defined_functions'] ?? [];
+        $fileData = $this->cachedCreateKeyIfNullAndOptionalFileName('file_user_defined_functions');
         // Bails on the first structural error regarding a typical user-defined function
         $fatalError = $this->validateFNFile($fileData, $userDefinedFunction, $ctxVals, '', false);
         if ($fatalError !== null) {
@@ -2941,7 +2988,7 @@ class C
     }
     private function batchSetDefaultIPResolverGlobal(string $userDefinedFunction) // URI NORMALIZER GLOBAL
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setCustomIPResolver', "CONFIG()", $userDefinedFunction);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setCustomIPResolver', $userDefinedFunction);
         if (isset($this->invalidBatches['config']['DEFAULT_IP_RESOLVER'])) {
             $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Duplicate Call ' . $ctxVals);
             return;
@@ -2965,8 +3012,7 @@ class C
         // Prepare Config Functions.php File I/O if needed
         // assuming ROOT_FOLDER constant exists first!
         if (!$this->rootFolderExistOrSetError()) return;
-        $this->cachedCreateKeyIfNullAndOptionalFileName('file_user_defined_functions');
-        $fileData = $this->cached['file_user_defined_functions'] ?? [];
+        $fileData = $this->cachedCreateKeyIfNullAndOptionalFileName('file_user_defined_functions');
         // Bails on the first structural error regarding a typical user-defined function
         $fatalError = $this->validateFNFile($fileData, $userDefinedFunction, $ctxVals, '', false);
         if ($fatalError !== null) {
@@ -2984,7 +3030,7 @@ class C
     /* setNoRouteMatch<VARIANTS> Global - These are all catches when no catches for specific <method(s)> are defined/applied */
     private function batchSetNoRouteMatchPageGlobal(string $PageFileName, int $statusCode = 404) // NO MATCH: PAGE - GLOBAL
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setNoRouteMatchPage', "CONFIG()", $PageFileName);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setNoRouteMatchPage', $PageFileName);
         if (isset($this->invalidBatches['config']['NO_ROUTE_MATCH']['PAGE'])) {
             $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Duplicate Cal ' . $ctxVals);
             return;
@@ -3033,7 +3079,7 @@ class C
     }
     private function batchSetNoRouteMatchJsonGlobal(array|object $data, int $statusCode = 404)  // NO MATCH: JSON - GLOBAL
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setNoRouteMatchJSON', "CONFIG()", $data, $statusCode);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setNoRouteMatchJSON', $data, $statusCode);
         if (isset($this->invalidBatches['config']['NO_ROUTE_MATCH']['JSON'])) {
             $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Duplicate Call ' . $ctxVals);
             return;
@@ -3069,7 +3115,7 @@ class C
     }
     private function batchSetNoRouteMatchTextGlobal(string $message, int $statusCode = 404)  // NO MATCH: TEXT - GLOBAL
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setNoRouteMatchText', "CONFIG()", $message, $statusCode);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setNoRouteMatchText', $message, $statusCode);
         if (isset($this->invalidBatches['config']['NO_ROUTE_MATCH']['TEXT'])) {
             $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Duplicate Call ' . $ctxVals);
             return;
@@ -3092,7 +3138,7 @@ class C
     }
     private function batchSetNoRouteMatchCallbackGlobal(string $userDefinedFunctionName)  // NO MATCH: CALLBACK - GLOBAL
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setNoRouteMatchCallback', "CONFIG()", $userDefinedFunctionName);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setNoRouteMatchCallback', $userDefinedFunctionName);
         if (isset($this->invalidBatches['config']['NO_ROUTE_MATCH']['CALLBACK'])) {
             $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Duplicate Call ' . $ctxVals);
             return;
@@ -3107,8 +3153,7 @@ class C
             return;
         }
         // Hydrate user defined functions if not already
-        $this->cachedCreateKeyIfNullAndOptionalFileName('file_user_defined_functions', $userDefinedFunctionName);
-        $fileData = $this->cached['file_user_defined_functions'] ?? [];
+        $fileData = $this->cachedCreateKeyIfNullAndOptionalFileName('file_user_defined_functions', $userDefinedFunctionName);
         // Bails on the first structural error regarding a typical user-defined function
         $fatalError = $this->validateFNFile($fileData, $userDefinedFunctionName, $ctxVals);
         if ($fatalError !== null) {
@@ -3128,7 +3173,7 @@ class C
     /* setBASEURL<VARIANTS> Global */
     private function batchSetDefaultBaseURLLocalGlobal(string $httpPath)
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setBaseURLLocal', "CONFIG()", $httpPath);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setBaseURLLocal', $httpPath);
         if (isset($this->invalidBatches['config']['BASEURL_LOCAL'])) {
             $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Duplicate Call ' . $ctxVals);
             return;
@@ -3149,7 +3194,7 @@ class C
     }
     private function batchSetDefaultBaseURLOnlineGlobal(string $httpsPath)
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setBaseURLLocal', "CONFIG()", $httpsPath);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setBaseURLLocal', $httpsPath);
         if (isset($this->invalidBatches['config']['BASEURL_ONLINE'])) {
             $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Duplicate Call ' . $ctxVals);
             return;
@@ -3170,7 +3215,7 @@ class C
     }
     private function batchSetDefaultBaseURLHostGlobal(string $hostNameLocally)
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setBaseURLHost', "CONFIG()", $hostNameLocally);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setBaseURLHost', $hostNameLocally);
         if (isset($this->invalidBatches['config']['BASEURL_HOST'])) {
             $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Duplicate Call ' . $ctxVals);
             return;
@@ -3188,7 +3233,7 @@ class C
     }
     private function batchSetDefaultBaseURLUriGlobal(string $localURI)
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setBaseURLHost', "CONFIG()", $localURI);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setBaseURLHost', $localURI);
         if (isset($this->invalidBatches['config']['BASEURL_URI'])) {
             $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Duplicate Call ' . $ctxVals);
             return;
@@ -3206,7 +3251,7 @@ class C
     }
     private function batchSetDefaultSessionCookieOptionsGlobal(array $SessionCookieOptions)
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setSessionCookieOptions', "CONFIG()", $SessionCookieOptions);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setSessionCookieOptions', $SessionCookieOptions);
         if (isset($this->invalidBatches['config']['SESSION']['COOKIES']['AS_OPTIONS'])) {
             $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Duplicate Call ' . $ctxVals);
             return;
@@ -3362,7 +3407,7 @@ class C
     /* setSESSIONDriver Global & then setSESSION_COOKIE<VARIANTS> Global */
     private function batchSetDefaultSessionDriverGlobal(string $filesOrRedisOrSomethingElse = 'files')
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setSessionDriver', "CONFIG()", $filesOrRedisOrSomethingElse);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setSessionDriver', $filesOrRedisOrSomethingElse);
         if (isset($this->invalidBatches['config']['SESSION']['driver'])) {
             $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Duplicate Call ' . $ctxVals);
             return;
@@ -3383,7 +3428,7 @@ class C
     }
     private function batchSetDefaultSessionCookieNameGlobal(string $sessionCookieName = 'fphp_id')
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setSessionCookieName', "CONFIG()", $sessionCookieName);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setSessionCookieName', $sessionCookieName);
         if (isset($this->invalidBatches['config']['SESSION']['COOKIES']['SESSION_NAME'])) {
             $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Duplicate Call ' . $ctxVals);
             return;
@@ -3401,7 +3446,7 @@ class C
     }
     private function batchSetDefaultSessionCookieLifetimeGlobal(int $sessionCookieLifetime = 28800)
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setSessionCookieLifetime', "CONFIG()", $sessionCookieLifetime);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setSessionCookieLifetime', $sessionCookieLifetime);
         if (isset($this->invalidBatches['config']['SESSION']['COOKIES']['SESSION_LIFETIME'])) {
             $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Duplicate Call ' . $ctxVals);
             return;
@@ -3419,7 +3464,7 @@ class C
     }
     private function batchSetDefaultSessionCookiePathGlobal(string $sessionCookiePath = '/')
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setSessionCookiePath', "CONFIG()", $sessionCookiePath);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setSessionCookiePath', $sessionCookiePath);
         if (isset($this->invalidBatches['config']['SESSION']['COOKIES']['SESSION_PATH'])) {
             $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Duplicate Call ' . $ctxVals);
             return;
@@ -3440,7 +3485,7 @@ class C
     }
     private function batchSetDefaultSessionCookieDomainGlobal(string $sessionCookieDomain = 'webdev.local')
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setSessionCookieDomain', "CONFIG()", $sessionCookieDomain);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setSessionCookieDomain', $sessionCookieDomain);
         if (isset($this->invalidBatches['config']['SESSION']['COOKIES']['SESSION_DOMAIN'])) {
             $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Duplicate Call ' . $ctxVals);
             return;
@@ -3464,7 +3509,7 @@ class C
     }
     private function batchSetDefaultSessionCookieSecureGlobal(bool $trueOrFalse = false)
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setSessionCookieSecure', "CONFIG()", $trueOrFalse);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setSessionCookieSecure', $trueOrFalse);
         if (isset($this->invalidBatches['config']['SESSION']['COOKIES']['SESSION_SECURE'])) {
             $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Duplicate Call ' . $ctxVals);
             return;
@@ -3488,7 +3533,7 @@ class C
     private function batchSetDefaultSessionCookieHTTPOnlyGlobal(bool $trueOrFalse = true)
     {
 
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setSessionCookieHTTPOnly', "CONFIG()", $trueOrFalse);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setSessionCookieHTTPOnly', $trueOrFalse);
         if (isset($this->invalidBatches['config']['SESSION']['COOKIES']['SESSION_HTTPONLY'])) {
             $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Duplicate Call ' . $ctxVals);
             return;
@@ -3506,7 +3551,7 @@ class C
     }
     private function batchSetDefaultSessionCookieSameSiteGlobal(string $LaxOrStrict = 'Lax')
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setSessionCookieSameSite', "CONFIG()", $LaxOrStrict);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setSessionCookieSameSite', $LaxOrStrict);
         if (isset($this->invalidBatches['config']['SESSION']['COOKIES']['SESSION_SAMESITE'])) {
             $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Duplicate Call ' . $ctxVals);
             return;
@@ -3526,7 +3571,7 @@ class C
     /* setINI_SET for "ini_set()" calls Global */
     private function batchSetINI_SETGlobal(array $iniSetArrayWithKeyNamesAsSettingTypeWithSingleScalarValue)
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setINI_SET', "CONFIG()", $iniSetArrayWithKeyNamesAsSettingTypeWithSingleScalarValue);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setINI_SET', $iniSetArrayWithKeyNamesAsSettingTypeWithSingleScalarValue);
         if (isset($this->invalidBatches['config']['setINI_SET'])) {
             $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Duplicate Call ' . $ctxVals);
             return;
@@ -3559,7 +3604,7 @@ class C
         $by = 'ip',
         $driver = 'redis'
     ) {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setRateLimit', "", $maxRequestsPerWindowSize, $windowSizeInSeconds, $by, $driver);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setRateLimit', $maxRequestsPerWindowSize, $windowSizeInSeconds, $by, $driver);
         // Now validate inValidBatches|validBatches
         if (isset($this->invalidBatches['ratelimit']['config'])) {
             $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx) . " You can only set Rate Limit for a Global CONFIG once.", 'Duplicate Call ' . $ctxVals);
@@ -3657,7 +3702,7 @@ class C
     /* setGrouped<VARIANTS> Global */
     private function batchSetGroupedPipeUserDefined(string $groupName, string ...$userDefFNS)
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setGroupPipeUserdefined', "CONFIG()", $groupName, ...$userDefFNS);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setGroupPipeUserdefined', $groupName, ...$userDefFNS);
         // Initial checks: invalidBathced already? ValidBatched already? Invalid $groupName string?
         // Any of the FNs invalid in their naming? Only after that, do we start checking each FN file.
         if (isset($this->invalidBatches['config']['GROUPED_PIPE_USER_DEFINED'][$groupName])) {
@@ -3697,8 +3742,7 @@ class C
         // 1. Only one function per file, 2. Function body cannot be empty or just comments,
         // 3. Function body must start with "&$c" in its function parameters.
         foreach ($userDefFNS as $FN_FILE) {
-            $this->cachedCreateKeyIfNullAndOptionalFileName('file_user_defined_functions', $FN_FILE);
-            $fileData = $this->cached['file_user_defined_functions'] ?? [];
+            $fileData = $this->cachedCreateKeyIfNullAndOptionalFileName('file_user_defined_functions', $FN_FILE);
             // Fatal check: Bails on the first structural error
             $fatalError = $this->validateFNFile($fileData, $FN_FILE, $ctxVals, "");
             if ($fatalError !== null) {
@@ -3716,7 +3760,7 @@ class C
     }
     private function batchSetGroupedPipeRequest(string $groupName, string ...$RequestFNs)
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setGroupPipeRequest', "CONFIG()", $groupName, ...$RequestFNs);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setGroupPipeRequest', $groupName, ...$RequestFNs);
         // Initial checks: invalidBathced already? ValidBatched already? Invalid $groupName string?
         // Any of the FNs invalid in their naming? Only after that, do we start checking each FN file.
         if (isset($this->invalidBatches['config']['GROUPED_PIPE_REQUEST'][$groupName])) {
@@ -3756,8 +3800,7 @@ class C
         // 1. Only one function per file, 2. Function body cannot be empty or just comments,
         // 3. Function body must start with "&$c" in its function parameters.
         foreach ($RequestFNs as $FN_FILE) {
-            $this->cachedCreateKeyIfNullAndOptionalFileName('files_pipes_request', $FN_FILE);
-            $fileData = $this->cached['files_pipes_request'][$FN_FILE] ?? [];
+            $fileData = $this->cachedCreateKeyIfNullAndOptionalFileName('files_pipes_request', $FN_FILE);
             // Fatal check: Bails on the first structural error
             $fatalError = $this->validateFNFile($fileData, $FN_FILE, $ctxVals, "funkphp\\pipes\\request", true);
             if ($fatalError !== null) {
@@ -3771,7 +3814,7 @@ class C
     }
     private function batchSetGroupedPipePostResponse(string $groupName, string ...$PostResponseFNs)
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setGroupPipePostResponse', "CONFIG()", $groupName, ...$PostResponseFNs);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setGroupPipePostResponse', $groupName, ...$PostResponseFNs);
         // Initial checks: invalidBathced already? ValidBatched already? Invalid $groupName string?
         // Any of the FNs invalid in their naming? Only after that, do we start checking each FN file.
         if (isset($this->invalidBatches['config']['GROUPED_PIPE_POST_RESPONSE'][$groupName])) {
@@ -3812,8 +3855,7 @@ class C
         // 1. Only one function per file, 2. Function body cannot be empty or just comments,
         // 3. Function body must start with "&$c" in its function parameters.
         foreach ($PostResponseFNs as $FN_FILE) {
-            $this->cachedCreateKeyIfNullAndOptionalFileName('files_pipes_post_response', $FN_FILE);
-            $fileData = $this->cached['files_pipes_post_response'][$FN_FILE] ?? [];
+            $fileData = $this->cachedCreateKeyIfNullAndOptionalFileName('files_pipes_post_response', $FN_FILE);
             // Fatal check: Bails on the first structural error
             $fatalError = $this->validateFNFile($fileData, $FN_FILE, $ctxVals, "funkphp\\pipes\\post_response", true);
             if ($fatalError !== null) {
@@ -3827,7 +3869,7 @@ class C
     }
     private function batchSetGroupedPipeRoute(string $groupName, string ...$RoutePipeFNs)
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setGroupPipeRoute', "CONFIG()", $groupName, ...$RoutePipeFNs);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setGroupPipeRoute', $groupName, ...$RoutePipeFNs);
         // Initial checks: invalidBathced already? ValidBatched already? Invalid $groupName string?
         // Any of the FNs invalid in their naming? Only after that, do we start checking each FN file.
         if (isset($this->invalidBatches['config']['GROUPED_PIPE_ROUTES'][$groupName])) {
@@ -3864,8 +3906,7 @@ class C
         // Now we check each File using $this->cached
         foreach ($RoutePipeFNs as $FN_FILE) {
             [$file, $fn] = explode('.', $FN_FILE);
-            $this->cachedCreateKeyIfNullAndOptionalFileName('files_routes', $file);
-            $fileData = $this->cached['files_routes'][$file] ?? [];
+            $fileData = $this->cachedCreateKeyIfNullAndOptionalFileName('files_routes', $file);
             // Fatal check: Bails on the first structural error
             $fatalError = $this->validateFNFile($fileData, $fn, $ctxVals, "funkphp\\pipes\\routes\\{$file}", false);
             if ($fatalError !== null) {
@@ -3879,7 +3920,7 @@ class C
     }
     private function batchSetGroupedPipeMiddlewares(string $groupName, string ...$middlewareFNs)
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setGroupPipeMiddlewares', "CONFIG()", $groupName, ...$middlewareFNs);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setGroupPipeMiddlewares', $groupName, ...$middlewareFNs);
         // Initial checks: invalidBathced already? ValidBatched already? Invalid $groupName string?
         // Any of the FNs invalid in their naming? Only after that, do we start checking each FN file.
         if (isset($this->invalidBatches['config']['GROUPED_PIPE_MIDDLEWARES'][$groupName])) {
@@ -3920,8 +3961,7 @@ class C
         // 1. Only one function per file, 2. Function body cannot be empty or just comments,
         // 3. Function body must start with "&$c" in its function parameters.
         foreach ($middlewareFNs as $FN_FILE) {
-            $this->cachedCreateKeyIfNullAndOptionalFileName('files_pipes_middlewares', $FN_FILE);
-            $fileData = $this->cached['files_pipes_middlewares'][$FN_FILE] ?? [];
+            $fileData = $this->cachedCreateKeyIfNullAndOptionalFileName('files_pipes_middlewares', $FN_FILE);
             // Fatal check: Bails on the first structural error
             $fatalError = $this->validateFNFile($fileData, $FN_FILE, $ctxVals, "funkphp\\pipes\\middlewares", true);
             if ($fatalError !== null) {
@@ -3937,7 +3977,7 @@ class C
     /* setParamRule GLOBAL */
     private function batchSetParamRuleGlobal(string $param, string $regex, $defaultParamValueOnRegexMismatch = null)
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setParamRule', "CONFIG()", $param, $regex, $defaultParamValueOnRegexMismatch);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setParamRule', $param, $regex, $defaultParamValueOnRegexMismatch);
         if (isset($this->invalidBatches['paramRules']['config'][$param])) {
             $this->setErr($this->getErr('DuplicateCallInvalidMustBeSetWithDifferentValues', $ctxVals) . " Param Identifier must be unique.", 'Duplicate Call ' . $ctxVals);
             return;
@@ -4070,7 +4110,7 @@ class C
     /* setCSP Global */
     private function batchSetCSPGlobal(string $directive, string ...$sources)
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setCSP', "CONFIG()", $directive, ...$sources);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setCSP', $directive, ...$sources);
         // Check if already in inValidBatches OR validBatches!
         if (isset($this->invalidBatches['csp']['config'][$directive])) {
             $this->setErr($this->getErr('DuplicateCallInvalidMustBeSetWithDifferentValues', $ctx) . " Each `\$directive` can only be used/set once.", 'Duplicate Call ' . $ctxVals);
@@ -4154,7 +4194,7 @@ class C
     /* setSRIInternal & setSRIExternal - GLOBAL */
     private function batchSetSRIInternalGlobal(array $internalSRI)
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setSRIInternal', "CONFIG()", $internalSRI);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setSRIInternal', $internalSRI);
         if (isset($this->invalidBatches['global_sris']['internal']['config'])) {
             $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx) . " Set everything once in a Single Array.", 'Duplicate Call ' . $ctxVals);
             return;
@@ -4192,7 +4232,7 @@ class C
     }
     private function batchSetSRIExternalGlobal(array $externalSRI)
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setSRIExternal', "CONFIG()", $externalSRI);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setSRIExternal', $externalSRI);
         if (isset($this->invalidBatches['global_sris']['external']['config'])) {
             $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Duplicate Call ' . $ctxVals);
             return;
@@ -4239,7 +4279,7 @@ class C
     /* remove|pipeHeader - Global */
     private function batchRemoveHeaderGlobal(string $header_to_remove)
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setHeaderRemove', "CONFIG()", $header_to_remove);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setHeaderRemove', $header_to_remove);
         if (isset($this->invalidBatches['headers']['config']['remove'][$header_to_remove])) {
             $this->setErr($this->getErr('DuplicateCallInvalidMustBeSetWithDifferentValues', $ctx) . " Header Name must be unique (case-insensitive).", 'Duplicate Call ' . $ctxVals);
             return;
@@ -4272,7 +4312,7 @@ class C
     }
     private function batchSetHeaderGlobal(string $header, string $value)
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setHeaderAdd', "CONFIG()", $header, $value);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setHeaderAdd', $header, $value);
         $headerName  = trim($header);
         $headerValue = trim($value);
         $lowerHeader = strtolower($headerName);
@@ -4316,19 +4356,17 @@ class C
         $this->validBatches['config']['headers']['add'][$lowerHeader] = ['name' => $headerName, 'value' => $headerValue];
     }
 
-    /* pipeMiddleware|requestFunction|postResponseFunction - Global - NEXT UP TO FIX:
-    // REMEMBER: when using "group:" to pipe you do not know whether pipe group has been
-       added yet due to chaining so just then check that the middlewares|FNs wanna be used
-       actually exist and then let compile() resolve if setGroup<Type> actually existed! */
+    /* pipeMiddleware|requestFunction|postResponseFunction - Global */
+    // PIPE MIDDLEWARE GLOBAL (SINGULAR)
     private function batchPipeMiddlewareGlobal(string $middleware)
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'pipeMiddleware', "CONFIG()", $middleware);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'pipeMiddleware', $middleware);
         if (isset($this->invalidBatches['middlewares']['config'][$middleware])) {
             $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Duplicate call ' . $ctxVals);
             return;
         }
         if (!$this->nonEmptyLC_Str_ThatISGroupORFNWithoutCLIorFunk($middleware)) {
-            $this->setErr($this->getErr('InvalidGroupORFunctionName', $ctxVals), 'Duplicate call ' . $ctxVals);
+            $this->setErr($this->getErr('InvalidGroupORFunctionName', $ctxVals), 'Invalid Middleware Name ' . $ctxVals);
             $this->invalidBatches['middlewares']['config'][$middleware] = true;
             return;
         }
@@ -4338,8 +4376,7 @@ class C
             return;
         }
         // Check if FN actually exists as a valid file + function
-        $this->cachedCreateKeyIfNullAndOptionalFileName('files_pipes_middlewares', $middleware);
-        $fileData = $this->cached['files_pipes_middlewares'][$middleware] ?? [];
+        $fileData = $this->cachedCreateKeyIfNullAndOptionalFileName('files_pipes_middlewares', $middleware);
         // Fatal check: Bails on the first structural error
         $fatalError = $this->validateFNFile($fileData, $middleware, $ctxVals, "funkphp\\pipes\\middlewares", true);
         if ($fatalError !== null) {
@@ -4363,15 +4400,65 @@ class C
             }
         }
     }
+    // PIPE MIDDLEWARES GLOBAL (PLURAL)
+    private function batchPipeMiddlewaresGlobal(string ...$middleware)
+    {
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'pipeMiddlewares', $middleware);
+        if (isset($this->invalidBatches['middlewares']['config']['mws'])) {
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Duplicate call ' . $ctxVals);
+            return;
+        }
+        if (count($middleware) < 2) {
+            $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctx) . " You must provide at least two(2) Middlewares in order to use `->pipeMiddlewares()`. Use `->pipeMiddleware()` to only Pipe one Middleware.", 'Too Few Global Middlewares ' . $ctxVals);
+            $this->invalidBatches['middlewares']['config']['mws'] = $middleware;
+            return;
+        }
+        $validMWs = [];
+        foreach ($middleware as $mw) {
+            if (!$this->nonEmptyLC_Str_ThatISGroupORFNWithoutCLIorFunk($mw)) {
+                $this->setErr($this->getErr('InvalidGroupORFunctionName', $ctxVals), 'Invalid Middleware Name ' . $ctxVals);
+                $this->invalidBatches['middlewares']['config']['mws'] = $middleware;
+                return;
+            }
+            // Just add "group:" as is (validated by compile())
+            if (str_starts_with($mw, 'group:')) {
+                $validMWs[] = $mw;
+                continue;
+            }
+            // Check if FN actually exists as a valid file + function
+            $fileData = $this->cachedCreateKeyIfNullAndOptionalFileName('files_pipes_middlewares', $mw);
+            // Fatal check: Bails on the first structural error
+            $fatalError = $this->validateFNFile($fileData, $mw, $ctxVals, "funkphp\\pipes\\middlewares", true);
+            if ($fatalError !== null) {
+                $this->setErr($fatalError, 'Invalid Middleware File Function (also see FILES tab) ' . $ctxVals);
+                $this->invalidBatches['middlewares']['config']['mws'] = $middleware;
+                return;
+            }
+            $validMWs[] = $mw;
+            if (!str_starts_with($mw, 'group:')) {
+                if (!isset($this->cached['placeholderMiddlewareInvertIindex'][$mw])) {
+                    $this->cached['placeholderMiddlewareInvertIindex'][$mw][] = 'GLOBAL';
+                } else {
+                    if (!in_array('GLOBAL', $this->cached['placeholderMiddlewareInvertIindex'][$mw])) {
+                        $this->cached['placeholderMiddlewareInvertIindex'][$mw][] = 'GLOBAL';
+                    }
+                }
+            }
+        }
+        foreach ($validMWs as $vMW) {
+            $this->validBatches['config']['middlewares'][] = $vMW;
+        }
+    }
+    // PIPE REQUEST FUNCTION (SINGULAR)
     private function batchPipeRequestFunctionGlobal(string $fileFunctionName)
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'pipeRequestFunction', "CONFIG()", $fileFunctionName);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'pipeRequestFunction', $fileFunctionName);
         if (isset($this->invalidBatches['config']['request'][$fileFunctionName])) {
             $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Duplicate Call ' . $ctxVals);
             return;
         }
         if (!$this->nonEmptyLC_Str_ThatISGroupORFNWithoutCLIorFunk($fileFunctionName)) {
-            $this->setErr($this->getErr('InvalidGroupORFunctionName', $ctxVals), 'Duplicate Call ' . $ctxVals);
+            $this->setErr($this->getErr('InvalidGroupORFunctionName', $ctxVals), 'Invalid Request Function Name ' . $ctxVals);
             $this->invalidBatches['config']['request'][$fileFunctionName] = true;
             return;
         }
@@ -4381,8 +4468,7 @@ class C
             return;
         }
         // Check if FN actually exists as a valid file + function
-        $this->cachedCreateKeyIfNullAndOptionalFileName('files_pipes_request', $fileFunctionName);
-        $fileData = $this->cached['files_pipes_request'][$fileFunctionName] ?? [];
+        $fileData = $this->cachedCreateKeyIfNullAndOptionalFileName('files_pipes_request', $fileFunctionName);
         // Fatal check: Bails on the first structural error
         $fatalError = $this->validateFNFile($fileData, $fileFunctionName, $ctxVals, "funkphp\\pipes\\request", true);
         if ($fatalError !== null) {
@@ -4390,18 +4476,60 @@ class C
             $this->invalidBatches['config']['request'][$fileFunctionName] = true;
             return;
         }
-        // Pipe Global MW when all OK!
+        // Pipe Global Request FN when all OK!
         $this->validBatches['config']['request'][] = $fileFunctionName;
     }
+    // PIPE REQUEST FUNCTIONS (PLURAL)
+    private function batchPipeRequestFunctionsGlobal(string ...$fileFunctionName)
+    {
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'pipeRequestFunctions', ...$fileFunctionName);
+        if (isset($this->invalidBatches['config']['requests']['requests'])) {
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Duplicate Call ' . $ctxVals);
+            return;
+        }
+        if (count($fileFunctionName) < 2) {
+            $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctx) . " You must provide at least two(2) Request Functions in order to use `->pipeRequestFunctions()`. Use `->pipeRequestFunction()` to only Pipe one Request Function.", 'Too Few Request Functions ' . $ctxVals);
+            $this->invalidBatches['config']['requests']['requests'] = $fileFunctionName;
+            return;
+        }
+        $validPRFNS = [];
+        foreach ($fileFunctionName as $FNN) {
+            if (!$this->nonEmptyLC_Str_ThatISGroupORFNWithoutCLIorFunk($FNN)) {
+                $this->setErr($this->getErr('InvalidGroupORFunctionName', $ctxVals), 'Invalid Request Function Name ' . $ctxVals);
+                $this->invalidBatches['config']['requests']['requests'] = $fileFunctionName;
+                return;
+            }
+            // Just add if it starts with "group:" since that is validated by compile()
+            if (str_starts_with($FNN, 'group:')) {
+                $validPRFNS[] = $FNN;
+                continue;
+            }
+            // Check if FN actually exists as a valid file + function
+            $fileData = $this->cachedCreateKeyIfNullAndOptionalFileName('files_pipes_request', $FNN);
+            // Fatal check: Bails on the first structural error
+            $fatalError = $this->validateFNFile($fileData, $FNN, $ctxVals, "funkphp\\pipes\\request", true);
+            if ($fatalError !== null) {
+                $this->setErr($fatalError, 'Invalid Request Pipe File Function (also see FILES tab) ' . $ctxVals);
+                $this->invalidBatches['config']['requests']['requests'] = $fileFunctionName;
+                return;
+            }
+            $validPRFNS[] = $FNN;
+        }
+        // Pipe Global Request FNs when all OK!
+        foreach ($validPRFNS as $VPRFN) {
+            $this->validBatches['config']['request'][] = $VPRFN;
+        }
+    }
+    // PIPE POST-RESPONSE FUNCTION (SINGULAR)
     private function batchPipePostResponseFunctionGlobal(string $fileFunctionName)
     {
-        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'pipePostResponseFunction', "CONFIG()", $fileFunctionName);
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'pipePostResponseFunction', $fileFunctionName);
         if (isset($this->invalidBatches['config']['post_response'][$fileFunctionName])) {
             $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Duplicate Call ' . $ctxVals);
             return;
         }
         if (!$this->nonEmptyLC_Str_ThatISGroupORFNWithoutCLIorFunk($fileFunctionName)) {
-            $this->setErr($this->getErr('InvalidGroupORFunctionName', $ctxVals), 'Duplicate Call ' . $ctxVals);
+            $this->setErr($this->getErr('InvalidGroupORFunctionName', $ctxVals), 'Invalid Post-Response Name ' . $ctxVals);
             $this->invalidBatches['config']['post_response'][$fileFunctionName] = true;
             return;
         }
@@ -4411,8 +4539,7 @@ class C
             return;
         }
         // Check if FN actually exists as a valid file + function
-        $this->cachedCreateKeyIfNullAndOptionalFileName('files_pipes_post_response', $fileFunctionName);
-        $fileData = $this->cached['files_pipes_post_response'][$fileFunctionName] ?? [];
+        $fileData = $this->cachedCreateKeyIfNullAndOptionalFileName('files_pipes_post_response', $fileFunctionName);
         // Fatal check: Bails on the first structural error
         $fatalError = $this->validateFNFile($fileData, $fileFunctionName, $ctxVals, "funkphp\\pipes\\post_response", true);
         if ($fatalError !== null) {
@@ -4423,9 +4550,49 @@ class C
         // Pipe Global MW when all OK!
         $this->validBatches['config']['post_response'][] = $fileFunctionName;
     }
-
+    // PIPE POST-RESPONSE FUNCTIONS (PLURAL)
+    private function batchPipePostResponseFunctionsGlobal(string ...$fileFunctionName)
+    {
+        [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'pipePostResponseFunctions', ...$fileFunctionName);
+        if (isset($this->invalidBatches['config']['post_responses']['post_responses'])) {
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Duplicate Call ' . $ctxVals);
+            return;
+        }
+        if (count($fileFunctionName) < 2) {
+            $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctx) . " You must provide at least two(2) Post-Response Functions in order to use `->pipePostResponseFunctions()`. Use `->pipePostResponseFunction()` to only Pipe one Post-Response Function.", 'Too Few Post-Response Functions ' . $ctxVals);
+            $this->invalidBatches['config']['post_responses']['post_responses'] = $fileFunctionName;
+            return;
+        }
+        $validPRFNS = [];
+        foreach ($fileFunctionName as $FNN) {
+            // Just add if it starts with "group:" since that is validated by compile()
+            if (str_starts_with($FNN, 'group:')) {
+                $validPRFNS[] = $FNN;
+                continue;
+            }
+            // Check if FN actually exists as a valid file + function
+            $fileData = $this->cachedCreateKeyIfNullAndOptionalFileName('files_pipes_post_response', $FNN);
+            // Fatal check: Bails on the first structural error
+            $fatalError = $this->validateFNFile($fileData, $FNN, $ctxVals, "funkphp\\pipes\\post_response", true);
+            if ($fatalError !== null) {
+                $this->setErr($fatalError, 'Invalid Post-Response File Function (also see FILES tab) ' . $ctxVals);
+                $this->invalidBatches['config']['post_responses']['post_responses'] = $fileFunctionName;
+                return;
+            }
+            $validPRFNS[] = $FNN;
+        }
+        if (!$this->nonEmptyLC_Str_ThatISGroupORFNWithoutCLIorFunk($FNN)) {
+            $this->setErr($this->getErr('InvalidGroupORFunctionName', $ctxVals), 'Invalid Post-Response Name ' . $ctxVals);
+            $this->invalidBatches['config']['post_responses']['post_responses'] = $fileFunctionName;
+            return;
+        }
+        // Pipe Global Post-Response FNs when all OK!
+        foreach ($validPRFNS as $VPRFN) {
+            $this->validBatches['config']['post_response'][] = $VPRFN;
+        }
+    }
     /* !!! METHOD BATCHES/ROUTES()->GET|POST|PATCH|PUT|DELETE() FUNCTIONS !!! */
-    //METHOD:Set & New Batches for SPECIFIC_METHOD! (so ->routes()-><Method>->set|pipe<What>)
+    //METHOD:Set & New Batches for SPECIFIC_METHOD!
     //METHOD: setRateLimit
     private function batchSetRateLimitingMethod(
         string $method,
@@ -4434,7 +4601,7 @@ class C
         $by = 'ip',
         $driver = 'redis'
     ) {
-        [$ctx, $ctxVals] = $this->setCtx($method, null, 'setRateLimit', "", $maxRequestsPerWindowSize, $windowSizeInSeconds, $by, $driver);
+        [$ctx, $ctxVals] = $this->setCtx($method, null, 'setRateLimit', $maxRequestsPerWindowSize, $windowSizeInSeconds, $by, $driver);
         // Now validate inValidBatches|validBatches
         if (isset($this->invalidBatches['ratelimit']['methods'][$method])) {
             $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx) . " You can only set Rate Limit for a Method once.", 'Duplicate Call ' . $ctxVals, $method);
@@ -4534,11 +4701,10 @@ class C
             'driver' => $cleanDriver,
         ];
     }
-
     //METHOD: No Match for this https method, if none is set, it falls back to the global versions.
     private function batchSetNoRouteMatchPageMethod(string $method, string $PageFileName, int $statusCode = 404)
     {
-        [$ctx, $ctxVals] = $this->setCtx($method, null, 'setNoRouteMatchPage', "CONFIG()->{$method}()", $PageFileName);
+        [$ctx, $ctxVals] = $this->setCtx($method, null, 'setNoRouteMatchPage', $PageFileName);
         if (isset($this->invalidBatches['methods'][$method]['NO_ROUTE_MATCH']['PAGE'])) {
             $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Duplicate Call ' . $ctxVals, $method);
             return;
@@ -4587,7 +4753,7 @@ class C
     }
     private function batchSetNoRouteMatchJsonMethod(string $method, array|object $data, int $statusCode = 404)
     {
-        [$ctx, $ctxVals] = $this->setCtx($method, null, 'setNoRouteMatchJSON', "CONFIG()->{$method}()", $data, $statusCode);
+        [$ctx, $ctxVals] = $this->setCtx($method, null, 'setNoRouteMatchJSON', $data, $statusCode);
         if (isset($this->invalidBatches['methods'][$method]['NO_ROUTE_MATCH']['JSON'])) {
             $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Duplicate Call ' . $ctxVals, $method);
             return;
@@ -4623,7 +4789,7 @@ class C
     }
     private function batchSetNoRouteMatchTextMethod(string $method, string $message, int $statusCode = 404)
     {
-        [$ctx, $ctxVals] = $this->setCtx($method, null, 'setNoRouteMatchText', "CONFIG()->{$method}()", $message, $statusCode);
+        [$ctx, $ctxVals] = $this->setCtx($method, null, 'setNoRouteMatchText', $message, $statusCode);
         if (isset($this->invalidBatches['methods'][$method]['NO_ROUTE_MATCH']['TEXT'])) {
             $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Duplicate Call ' . $ctxVals, $method);
             return;
@@ -4646,7 +4812,7 @@ class C
     }
     private function batchSetNoRouteMatchCallbackMethod(string $method, string $userDefinedFunctionName)
     {
-        [$ctx, $ctxVals] = $this->setCtx($method, null, 'setNoRouteMatchCallback', "CONFIG()->{$method}()", $userDefinedFunctionName);
+        [$ctx, $ctxVals] = $this->setCtx($method, null, 'setNoRouteMatchCallback', $userDefinedFunctionName);
         if (isset($this->invalidBatches['methods'][$method]['NO_ROUTE_MATCH']['CALLBACK'])) {
             $this->setErr($this->getErr('DuplicateCallinValidCanOnlyBeSetOnce', $ctx), 'Duplicate Call ' . $ctxVals, $method);
             return;
@@ -4661,8 +4827,7 @@ class C
             return;
         }
         // Hydrate user defined functions if not already
-        $this->cachedCreateKeyIfNullAndOptionalFileName('file_user_defined_functions', $userDefinedFunctionName);
-        $fileData = $this->cached['file_user_defined_functions'] ?? [];
+        $fileData = $this->cachedCreateKeyIfNullAndOptionalFileName('file_user_defined_functions', $userDefinedFunctionName);
         // Bails on the first structural error regarding a typical user-defined function
         $fatalError = $this->validateFNFile($fileData, $userDefinedFunctionName, $ctxVals);
         if ($fatalError !== null) {
@@ -4678,11 +4843,10 @@ class C
         // Finally add it
         $this->validBatches['methods'][$method]['NO_ROUTE_MATCH']['CALLBACK'] = $userDefinedFunctionName;
     }
-
     //METHOD: setParamRule Method
     private function batchSetParamRuleMethod(string $method, string $param, string $regex, $defaultParamValueOnRegexMismatch = null)
     {
-        [$ctx, $ctxVals] = $this->setCtx($method, null, 'setParamRule', "ROUTES()->{$method}()", $param, $regex, $defaultParamValueOnRegexMismatch);
+        [$ctx, $ctxVals] = $this->setCtx($method, null, 'setParamRule', $param, $regex, $defaultParamValueOnRegexMismatch);
         if (isset($this->invalidBatches['paramRules']['methods'][$method][$param])) {
             $this->setErr($this->getErr('DuplicateCallInvalidMustBeSetWithDifferentValues', $ctx) . " Each Param Identifier must be unique (case-insensitive).", 'Duplicate Call ' . $ctxVals, $method);
             return;
@@ -4810,11 +4974,10 @@ class C
             'callback' => $callback,
         ];
     }
-
     //METHOD: setCSP
     private function batchSetCSPMethod(string $method, string $directive, string ...$sources)
     {
-        [$ctx, $ctxVals] = $this->setCtx($method, null, 'setCSP', "ROUTES()->{$method}()", $directive, ...$sources);
+        [$ctx, $ctxVals] = $this->setCtx($method, null, 'setCSP', $directive, ...$sources);
         // Check if already in inValidBatches OR validBatches!
         if (isset($this->invalidBatches['csp']['methods'][$method][$directive])) {
             $this->setErr($this->getErr('DuplicateCallInvalidMustBeSetWithDifferentValues', $ctx) . " Each `\$directive` can only be used/set once.", 'Duplicate Call ' . $ctxVals, $method);
@@ -4893,11 +5056,10 @@ class C
             return !str_starts_with($src, 'nonce:');
         });
     }
-
     /*METHOD: removeHeader & pipeHeader */
     private function batchSetHeaderMethod(string $method, string $header, $value)
     {
-        [$ctx, $ctxVals] = $this->setCtx($method, null, 'setHeaderAdd', "ROUTES()->{$method}()", $header, $value);
+        [$ctx, $ctxVals] = $this->setCtx($method, null, 'setHeaderAdd', $header, $value);
         $headerName  = $header;
         $headerValue = $value;
         $lowerHeader = strtolower($headerName);
@@ -4943,7 +5105,7 @@ class C
     }
     private function batchRemoveHeaderMethod(string $method, string $header_to_remove)
     {
-        [$ctx, $ctxVals] = $this->setCtx($method, null, 'setHeaderRemove', "ROUTES()->{$method}()", $header_to_remove);
+        [$ctx, $ctxVals] = $this->setCtx($method, null, 'setHeaderRemove', $header_to_remove);
         if (isset($this->invalidBatches['headers']['methods'][$method]['remove'][$header_to_remove])) {
             $this->setErr($this->getErr('DuplicateCallInvalidMustBeSetWithDifferentValues', $ctx) . " Header Name must be unique (case-insensitive).", 'Duplicate Call ' . $ctxVals, $method);
             return;
@@ -4974,9 +5136,10 @@ class C
         // Store header to be removed from Method level (->config()->ROUTES()-><METHOD>)
         $this->validBatches['methods'][$method]['headers']['remove'][$lowerHeader] = $headerName;
     }
+    //METHOD: MIDDLEWARE (SINGULAR)
     private function batchPipeMiddlewareMethod(string $method, string $middleware)
     {
-        [$ctx, $ctxVals] = $this->setCtx($method, null, 'pipeMiddleware', "ROUTES()->$method()", $middleware);
+        [$ctx, $ctxVals] = $this->setCtx($method, null, 'pipeMiddleware', $middleware);
         if (isset($this->invalidBatches['middlewares']['methods'][$method][$middleware])) {
             $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Duplicate Call ' . $ctxVals, $method);
             return;
@@ -4992,8 +5155,7 @@ class C
             return;
         }
         // Check if FN actually exists as a valid file + function
-        $this->cachedCreateKeyIfNullAndOptionalFileName('files_pipes_middlewares', $middleware);
-        $fileData = $this->cached['files_pipes_middlewares'][$middleware] ?? [];
+        $fileData = $this->cachedCreateKeyIfNullAndOptionalFileName('files_pipes_middlewares', $middleware);
         // Fatal check: Bails on the first structural error
         $fatalError = $this->validateFNFile($fileData, $middleware, $ctxVals, "funkphp\\pipes\\middlewares", true);
         if ($fatalError !== null) {
@@ -5016,11 +5178,62 @@ class C
             }
         }
     }
-
+    //METHOD: Middleware (PLURAL)
+    private function batchPipeMiddlewaresMethod(string $method, string ...$middleware)
+    {
+        [$ctx, $ctxVals] = $this->setCtx($method, null, 'pipeMiddlewares', ...$middleware);
+        if (isset($this->invalidBatches['middlewares-plural']['methods'][$method])) {
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Duplicate Call ' . $ctxVals, $method);
+            return;
+        }
+        if (count($middleware) < 2) {
+            $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctx) . " You must provide at least two(2) Middlewares in order to use `->pipeMiddlewares()`. Use `->pipeMiddleware()` to only Pipe one Middleware.", 'Too Few Method Middlewares ' . $ctxVals, $method);
+            $this->invalidBatches['middlewares-plural']['methods'][$method] = $middleware;
+            return;
+        }
+        $validMWs = [];
+        foreach ($middleware as $mw) {
+            if (!$this->nonEmptyLC_Str_ThatISGroupORFNWithoutCLIorFunk($mw)) {
+                $this->setErr($this->getErr('InvalidGroupORFunctionName', $ctxVals), 'Invalid Middleware Function Name ' . $ctxVals, $method);
+                $this->invalidBatches['middlewares-plural']['methods'][$method] = $middleware;
+                return;
+            }
+            // Just add if it starts with "group:" since that is validated by compile()
+            if (str_starts_with($mw, 'group:')) {
+                $validMWs[] = $mw;
+                return;
+            }
+            // Check if FN actually exists as a valid file + function
+            $fileData = $this->cachedCreateKeyIfNullAndOptionalFileName('files_pipes_middlewares', $mw);
+            // Fatal check: Bails on the first structural error
+            $fatalError = $this->validateFNFile($fileData, $mw, $ctxVals, "funkphp\\pipes\\middlewares", true);
+            if ($fatalError !== null) {
+                $this->setErr($fatalError, 'Invalid Middleware File Function (also see FILES tab) ' . $ctxVals, $method);
+                $this->invalidBatches['middlewares-plural']['methods'][$method] = $middleware;
+                return;
+            }
+            // Add middleware (unless group: named) to what middlewares are used by what routes
+            // where "GLOBAL" is for CONFIG(), and "<METHOD_NAME>" are CONFIG in each Method
+            // but otherwise, it is added with each route.
+            if (!str_starts_with($mw, 'group:')) {
+                if (!isset($this->cached['placeholderMiddlewareInvertIindex'][$mw])) {
+                    $this->cached['placeholderMiddlewareInvertIindex'][$mw][] = $method;
+                } else {
+                    if (!in_array($method, $this->cached['placeholderMiddlewareInvertIindex'][$mw])) {
+                        $this->cached['placeholderMiddlewareInvertIindex'][$mw][] = $method;
+                    }
+                }
+            }
+        }
+        // Pipe all Method MWs when all OK!
+        foreach ($validMWs as $vMW) {
+            $this->validBatches['methods'][$method]['middlewares'][] = $vMW;
+        }
+    }
     //METHOD+ROUTE: ROUTEPrefixSet()
     private function batchNewRoutePrefixSet(string $method, string $prefix)
     {
-        [$ctx, $ctxVals] = $this->setCtx($method, null, 'ROUTEPrefixSet', "", $prefix);
+        [$ctx, $ctxVals] = $this->setCtx($method, null, 'ROUTEPrefixSet', $prefix);
         if (isset($this->invalidBatches['methods']['prefix'][$method])) {
             $this->setErr($this->getErr('DuplicateCallInvalid', $ctxVals) . " (Current Invalid Route Prefix: `{$this->invalidBatches['methods']['prefix'][$method]}`)", "Invalid Route Prefix Already Set (`{$this->invalidBatches['methods']['prefix'][$method]}`) " . $ctxVals, $method, null);
             return;
@@ -5054,11 +5267,10 @@ class C
         $this->routePrefixes[$method] = $prefix;
         $this->validBatches['methods']['prefix'][$method] = $prefix;
     }
-
     //METHOD+ROUTE: ROUTEPrefixReset()
     private function batchNewRoutePrefixReset(string $method)
     {
-        [$ctx, $ctxVals] = $this->setCtx($method, null, 'ROUTEPrefixReset', "");
+        [$ctx, $ctxVals] = $this->setCtx($method, null, 'ROUTEPrefixReset');
         if (isset($this->invalidBatches['methods']['prefix'][$method])) {
             $this->setErr($this->getErr('DuplicateCallInvalid', $ctxVals) . " (Current Invalid Route Prefix: `{$this->invalidBatches['methods']['prefix'][$method]}`)", "Invalid Route Prefix Already Set (`{$this->invalidBatches['methods']['prefix'][$method]}`) " . $ctxVals, $method, null);
             return;
@@ -5072,7 +5284,6 @@ class C
     {
         return (isset($this->routePrefixes[$method]) ? $this->routePrefixes[$method] : '');
     }
-
     /* !!! ROUTE/ROUTES()-><METHOD>()->route()-> BATCHES FUNCTIONS !!! */
     //ROUTE:Batching New Route `->route("/route", $optionalParamRules as an array)`
     private function batchNewRoute(string $method, string $route)
@@ -5081,7 +5292,7 @@ class C
         if (isset($this->routePrefixes[$method])) {
             $rawRoute = substr($route, strlen($this->routePrefixes[$method]));
         }
-        [$ctx, $ctxVals] = $this->setCtx($method, $rawRoute, 'ROUTE', "", $rawRoute);
+        [$ctx, $ctxVals] = $this->setCtx($method, $rawRoute, 'ROUTE', $rawRoute);
 
         // Check if the associated $method$route is in the InvalidBatches first
         // OR if it is already as an invalid alias OR a valid alias already exists
@@ -5202,7 +5413,7 @@ class C
     //ROUTE: Set & New Batches for ROUTES! (so ->routes()-><Method>()->route()->set|pipe<What>)
     private function batchSetAliasRoute(string $method, string $route, string $alias)
     {
-        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'setAlias', "ROUTES()->{$method}()->ROUTE('{$route}')", $alias);
+        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'setAlias', $alias);
         // Route must be valid first
         if (isset($this->invalidBatches['routes'][$method][$route])) {
             $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route is Invalid - must become Valid First ' . $ctxVals, $method, $route);
@@ -5238,7 +5449,7 @@ class C
     //ROUTE: setParamRulePolymorphic
     private function batchSetParamRulePolymorphicRoute(string $method, string $route, string $paramIdentifier, string ...$keyAndRegexPairs)
     {
-        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'setParamRulePolymorphic', "ROUTES()->{$method}()->ROUTE('{$route}')", $paramIdentifier, ...$keyAndRegexPairs);
+        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'setParamRulePolymorphic', $paramIdentifier, ...$keyAndRegexPairs);
         // Route must be valid first
         if (isset($this->invalidBatches['routes'][$method][$route])) {
             $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route is Invalid - must become Valid First ' . $ctxVals, $method, $route);
@@ -5355,7 +5566,7 @@ class C
         string|array $callableThatReturnsJSONorJSONArray,
         int $statusCodeJSON = 422
     ) {
-        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'setParamRuleMismatchJSONRoute', "", $callableThatReturnsJSONorJSONArray, $statusCodeJSON);
+        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'setParamRuleMismatchJSONRoute', $callableThatReturnsJSONorJSONArray, $statusCodeJSON);
         // Route must be valid first
         if (isset($this->invalidBatches['routes'][$method][$route])) {
             $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route is Invalid - must become Valid First ' . $ctxVals, $method, $route);
@@ -5418,7 +5629,7 @@ class C
         string $pageWithInfoAboutParamRuleMismatch,
         int $statusCodePage = 404
     ) {
-        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'setParamRuleMismatchPageRoute', "", $pageWithInfoAboutParamRuleMismatch, $statusCodePage);
+        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'setParamRuleMismatchPageRoute', $pageWithInfoAboutParamRuleMismatch, $statusCodePage);
         // Route must be valid first
         if (isset($this->invalidBatches['routes'][$method][$route])) {
             $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route is Invalid - must become Valid First ' . $ctxVals, $method, $route);
@@ -5455,7 +5666,7 @@ class C
     //ROUTE: SetParamRule
     private function batchSetParamRuleRoute(string $method, string $route, string $param, string $regex, $defaultParamValueOnRegexMismatch = null)
     {
-        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'setParamRule', "ROUTES()->{$method}()->ROUTE('{$route}')", $param, $regex, $defaultParamValueOnRegexMismatch);
+        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'setParamRule', $param, $regex, $defaultParamValueOnRegexMismatch);
         // Route must be valid first
         if (isset($this->invalidBatches['routes'][$method][$route])) {
             $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route is Invalid - must become Valid First ' . $ctxVals, $method, $route);
@@ -5624,7 +5835,7 @@ class C
         $by = 'ip',
         $driver = 'redis'
     ) {
-        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'setRateLimit', "", $maxRequestsPerWindowSize, $windowSizeInSeconds, $by, $driver);
+        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'setRateLimit', $maxRequestsPerWindowSize, $windowSizeInSeconds, $by, $driver);
         // Route must be valid first
         if (isset($this->invalidBatches['routes'][$method][$route])) {
             $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route is Invalid - must become Valid First ' . $ctxVals, $method, $route);
@@ -5742,7 +5953,7 @@ class C
         string|array|null $varyBy = null,
         bool $private = false
     ) {
-        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'setCache', "", $ttl, $driver, $varyBy, $private);
+        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'setCache', $ttl, $driver, $varyBy, $private);
         // Route must be valid first
         if (isset($this->invalidBatches['routes'][$method][$route])) {
             $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route is Invalid - must become Valid First ' . $ctxVals, $method, $route);
@@ -5846,7 +6057,7 @@ class C
     /*ROUTE: setCSPRoute */
     private function batchSetCSPRoute(string $method, string $route, string $directive, string ...$sources)
     {
-        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'setCSP', "ROUTES()->{$method}()->ROUTE('{$route}')", $directive, ...$sources);
+        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'setCSP', $directive, ...$sources);
         // Route must be valid first
         if (isset($this->invalidBatches['csp']['routes'][$method][$route])) {
             $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route is Invalid - must become Valid First ' . $ctxVals, $method, $route);
@@ -5932,9 +6143,74 @@ class C
     }
 
     /*ROUTE: pipeMiddleware, pipeFunction, pipeResponse, pipeSQL, pipeQuery & pipeValidation */
+    //ROUTE: Middleware (PLURAL)
+    private function batchPipeMiddlewaresRoute(string $method, string $route, string ...$middleware)
+    {
+        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'pipeMiddlewares', ...$middleware);
+        // Route must be valid first
+        if (isset($this->invalidBatches['routes'][$method][$route])) {
+            $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route is Invalid - must become Valid First ' . $ctxVals, $method, $route);
+            return;
+        }
+        if (isset($this->invalidBatches['middlewares-plural']['routes'][$method][$route])) {
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctx), 'Duplicate Call ' . $ctxVals, $method, $route);
+            return;
+        }
+        if (count($middleware) < 2) {
+            $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctx) . " You must provide at least two(2) Middlewares in order to use `->pipeMiddlewares()`. Use `->pipeMiddleware()` to only Pipe one Middleware.", 'Too Few Route Middlewares ' . $ctxVals, $method, $route);
+            $this->invalidBatches['middlewares-plural']['routes'][$method][$route] = $middleware;
+            return;
+        }
+        $routeMWS = [];
+        foreach ($middleware as $rMW) {
+            if (!$this->nonEmptyLC_Str_ThatISGroupORFNWithoutCLIorFunk($rMW)) {
+                $this->setErr($this->getErr('InvalidGroupORFunctionName', $ctxVals), 'Invalid Function Name Formatting ' . $ctxVals, $method, $route);
+                $this->invalidBatches['middlewares-plural']['routes'][$method][$route] = $middleware;
+                return;
+            }
+            if (in_array($middleware, ($this->validBatches['routes'][$method][$route]['excludeMiddleware'] ?? []), true)) {
+                $this->setErr($this->getErr('ConflictingPipeMiddlewareWithAlreadyExcludeMW', $ctxVals) . " Conflict: `->setExcludeMiddleware('{$middleware}')`.", 'Conflicting Middlewares ' . $ctxVals, $method, $route);
+                $this->invalidBatches['middlewares-plural']['routes'][$method][$route] = $middleware;
+                return;
+            }
+            // Just add if it starts with "group:" since that is validated by compile()
+            if (str_starts_with($rMW, 'group:')) {
+                $routeMWS[] = $rMW;
+                continue;
+            }
+            // Check if FN actually exists as a valid file + function
+            $fileData = $this->cachedCreateKeyIfNullAndOptionalFileName('files_pipes_middlewares', $rMW);
+            // Fatal check: Bails on the first structural error
+            $fatalError = $this->validateFNFile($fileData, $rMW, $ctxVals, "funkphp\\pipes\\middlewares", true);
+            if ($fatalError !== null) {
+                $this->setErr($fatalError, 'Invalid Middleware Function File (also see FILES tab) ' . $ctxVals, $method, $route);
+                $this->invalidBatches['middlewares-plural']['routes'][$method][$route] = $middleware;
+                return;
+            }
+            $routeMWS[] = $rMW;
+            // Add middleware (unless group: named) to what middlewares are used by what routes
+            // where "GLOBAL" is for CONFIG(), and "<METHOD_NAME>" are CONFIG in each Method
+            // but otherwise, it is added with each route.
+            if (!str_starts_with($rMW, 'group:')) {
+                if (!isset($this->cached['placeholderMiddlewareInvertIindex'][$rMW])) {
+                    $this->cached['placeholderMiddlewareInvertIindex'][$rMW][] = "$method$route";
+                } else {
+                    if (!in_array("$method$route", $this->cached['placeholderMiddlewareInvertIindex'][$rMW])) {
+                        $this->cached['placeholderMiddlewareInvertIindex'][$rMW][] = "$method$route";
+                    }
+                }
+            }
+        }
+        // Pipeall  Route MW when all OK!
+        foreach ($routeMWS as $vRMW) {
+            $this->validBatches['routes'][$method][$route]['middlewares'][] = $vRMW;
+            $this->validBatches['routes'][$method][$route]['middlewares_to_inherit'][] = $vRMW;
+        }
+    }
+    //ROUTE: Middleware (SINGULAR)
     private function batchPipeMiddlewareRoute(string $method, string $route, string $middleware)
     {
-        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'pipeMiddleware', "ROUTES()->{$method}()->ROUTE('{$route}')", $middleware);
+        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'pipeMiddleware', $middleware);
         // Route must be valid first
         if (isset($this->invalidBatches['routes'][$method][$route])) {
             $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route is Invalid - must become Valid First ' . $ctxVals, $method, $route);
@@ -5959,8 +6235,7 @@ class C
             return;
         }
         // Check if FN actually exists as a valid file + function
-        $this->cachedCreateKeyIfNullAndOptionalFileName('files_pipes_middlewares', $middleware);
-        $fileData = $this->cached['files_pipes_middlewares'][$middleware] ?? [];
+        $fileData = $this->cachedCreateKeyIfNullAndOptionalFileName('files_pipes_middlewares', $middleware);
         // Fatal check: Bails on the first structural error
         $fatalError = $this->validateFNFile($fileData, $middleware, $ctxVals, "funkphp\\pipes\\middlewares", true);
         if ($fatalError !== null) {
@@ -5984,9 +6259,10 @@ class C
             }
         }
     }
+    //ROUTE: Pipe Function (SINGULAR)
     private function batchPipeFunctionRoute(string $method, string $route, string $fileFunctionName)
     {
-        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'pipeFunction', "ROUTES()->{$method}()->ROUTE('{$route}')", $fileFunctionName);
+        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'pipeFunction', $fileFunctionName);
         // Route must be valid first
         if (isset($this->invalidBatches['routes'][$method][$route])) {
             $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route is Invalid - must become Valid First ' . $ctxVals, $method, $route);
@@ -6013,8 +6289,7 @@ class C
         }
         // Otherwise we know it is a valid string formatted "filename.functionname"
         [$file, $fn] = explode('.', $fileFunctionName);
-        $this->cachedCreateKeyIfNullAndOptionalFileName('files_routes', $file);
-        $fileData = $this->cached['files_routes'][$file] ?? [];
+        $fileData = $this->cachedCreateKeyIfNullAndOptionalFileName('files_routes', $file);
         // Fatal check: Bails on the first structural error
         $fatalError = $this->validateFNFile($fileData, $fn, $ctxVals, "funkphp\\pipes\\routes\\{$file}", false);
         if ($fatalError !== null) {
@@ -6024,9 +6299,62 @@ class C
         }
         $this->validBatches['routes'][$method][$route]['pipes'][] = $fileFunctionName;
     }
+
+    //ROUTE: Pipe Functions (PLURAL)
+    private function batchPipeFunctionsRoute(string $method, string $route, string ...$fileFunctionName)
+    {
+        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'pipeFunctions', ...$fileFunctionName);
+        // Route must be valid first
+        if (isset($this->invalidBatches['routes'][$method][$route])) {
+            $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route is Invalid - must become Valid First ' . $ctxVals, $method, $route);
+            return;
+        }
+        if (isset($this->invalidBatches['routes-fn-plural'][$method][$route])) {
+            $this->setErr($this->getErr('DuplicateCallInvalid', $ctxVals), 'Duplicate Call ' . $ctxVals, $method, $route);
+            return;
+        }
+        if (isset($this->validBatches['routes'][$method][$route]['response'])) {
+            $this->setErr($this->getErr('ConflictResponseAlreadyAdded', $ctxVals), 'Route Response Already Added ' . $ctxVals, $method, $route);
+            $this->invalidBatches['routes-fn-plural'][$method][$route] = $fileFunctionName;
+            return;
+        }
+        if (count($fileFunctionName) < 2) {
+            $this->setErr($this->getErr('InvalidArrayCustomErrAfterColon', $ctx) . " You must provide at least two(2) Route Functions in order to use `->pipeFunctions()`. Use `->pipeFunction()` to only Pipe one Route Function.", 'Too Few Route Functions ' . $ctxVals, $method, $route);
+            $this->invalidBatches['routes-fn-plural'][$method][$route] = $fileFunctionName;
+            return;
+        }
+        $routeFNS = [];
+        foreach ($fileFunctionName as $RFN) {
+            if (!$this->nonEmptyLC_Str_ThatISGroupORRouteFileFNWithoutCLIorFunk($RFN)) {
+                $this->setErr($this->getErr('InvalidGroupORFileFunctionNames', $ctxVals), 'Invalid Function Name Formatting ' . $ctxVals, $method, $route);
+                $this->invalidBatches['routes-fn-plural'][$method][$route] = $fileFunctionName;
+                return;
+            }
+            // Just add if it starts with "group:" since that is validated by compile()
+            if (str_starts_with($RFN, 'group:')) {
+                $routeFNS[] = $RFN;
+                continue;
+            }
+            // Otherwise we know it is a valid string formatted "filename.functionname"
+            [$file, $fn] = explode('.', $RFN);
+            $fileData = $this->cachedCreateKeyIfNullAndOptionalFileName('files_routes', $file);
+            // Fatal check: Bails on the first structural error
+            $fatalError = $this->validateFNFile($fileData, $fn, $ctxVals, "funkphp\\pipes\\routes\\{$file}", false);
+            if ($fatalError !== null) {
+                $this->setErr($fatalError, 'Invalid Route Pipe File Function (also see FILES tab) ' . $ctxVals, $method, $route);
+                $this->invalidBatches['routes-fn-plural'][$method][$route] = $fileFunctionName;
+                return;
+            }
+            $routeFNS[] = $RFN;
+        }
+        foreach ($routeFNS as $vRFN) {
+            $this->validBatches['routes'][$method][$route]['pipes'][] = $vRFN;
+        }
+    }
+
     private function batchPipeResponseRoute(string $method, string $route, string $typeOfResponse, int $httpResponseStatusCode = 200)
     {
-        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'pipeResponse', "ROUTES()->{$method}()->ROUTE('{$route}')", $typeOfResponse);
+        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'pipeResponse', $typeOfResponse);
         // Route must be valid first
         if (isset($this->invalidBatches['routes'][$method][$route])) {
             $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route is Invalid - must become Valid First ' . $ctxVals, $method, $route);
@@ -6117,7 +6445,7 @@ class C
     }
     private function batchPipeSQLRoute(string $method, string $route, string $sqlFileFunction)
     {
-        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'pipeSQL', "ROUTES()->{$method}()->ROUTE('{$route}')", $sqlFileFunction);
+        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'pipeSQL', $sqlFileFunction);
         // Route must be valid first
         if (isset($this->invalidBatches['routes'][$method][$route])) {
             $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route is Invalid - must become Valid First ' . $ctxVals, $method, $route);
@@ -6147,8 +6475,7 @@ class C
         // Parse "filename.fnname" and check just like for pipeFunction()
         // Otherwise we know it is a valid string formatted "filename.functionname"
         [$file, $fn] = explode('.', $sqlFileFunction);
-        $this->cachedCreateKeyIfNullAndOptionalFileName('files_data_sql', $file);
-        $fileData = $this->cached['files_data_sql'][$file] ?? [];
+        $fileData = $this->cachedCreateKeyIfNullAndOptionalFileName('files_data_sql', $file);
         // Fatal check: Bails on the first structural error
         $fatalError = $this->validateFNFile($fileData, $fn, $ctxVals, "funkphp\\data\\sql\\{$file}", false);
         if ($fatalError !== null) {
@@ -6161,7 +6488,7 @@ class C
     }
     private function batchPipeQueryRoute(string $method, string $route, string $queryFileFunction)
     {
-        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'pipeQuery', "ROUTES()->{$method}()->ROUTE('{$route}')", $queryFileFunction);
+        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'pipeQuery', $queryFileFunction);
         // Route must be valid first
         if (isset($this->invalidBatches['routes'][$method][$route])) {
             $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route is Invalid - must become Valid First ' . $ctxVals, $method, $route);
@@ -6190,8 +6517,7 @@ class C
         }
         // Parse "filename.fnname" and check just like for pipeFunction()
         [$file, $fn] = explode('.', $queryFileFunction);
-        $this->cachedCreateKeyIfNullAndOptionalFileName('files_data_query', $file);
-        $fileData = $this->cached['files_data_query'][$file] ?? [];
+        $fileData = $this->cachedCreateKeyIfNullAndOptionalFileName('files_data_query', $file);
         // Fatal check: Bails on the first structural error
         $fatalError = $this->validateFNFile($fileData, $fn, $ctxVals, "funkphp\\data\\query\\{$file}", false);
         if ($fatalError !== null) {
@@ -6204,7 +6530,7 @@ class C
     }
     private function batchPipeValidationRoute(string $method, string $route, string $validationFileFunction)
     {
-        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'pipeValidation', "ROUTES()->{$method}()->ROUTE('{$route}')", $validationFileFunction);
+        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'pipeValidation', $validationFileFunction);
         // Route must be valid first
         if (isset($this->invalidBatches['routes'][$method][$route])) {
             $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route is Invalid - must become Valid First ' . $ctxVals, $method, $route);
@@ -6233,8 +6559,7 @@ class C
         }
         // Parse "filename.fnname" and check just like for pipeFunction()
         [$file, $fn] = explode('.', $validationFileFunction);
-        $this->cachedCreateKeyIfNullAndOptionalFileName('files_data_validation', $file);
-        $fileData = $this->cached['files_data_validation'][$file] ?? [];
+        $fileData = $this->cachedCreateKeyIfNullAndOptionalFileName('files_data_validation', $file);
         // Fatal check: Bails on the first structural error
         $fatalError = $this->validateFNFile($fileData, $fn, $ctxVals, "funkphp\\data\\validation\\{$file}", false);
         if ($fatalError !== null) {
@@ -6249,7 +6574,7 @@ class C
     /*ROUTE: Compiled versions of above "pipe<Query|SQL|Validation>" Methods!!! Checks in /data/compiled/ Folder! */
     private function batchPipeCompiledSQLRoute(string $method, string $route, string $compiledSQLFileFunction)
     {
-        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'pipeCompiledSQL', "ROUTES()->{$method}()->ROUTE('{$route}')", $compiledSQLFileFunction);
+        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'pipeCompiledSQL', $compiledSQLFileFunction);
         // Route must be valid first
         if (isset($this->invalidBatches['routes'][$method][$route])) {
             $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route is Invalid - must become Valid First ' . $ctxVals, $method, $route);
@@ -6258,7 +6583,7 @@ class C
     }
     private function batchPipeCompiledQueryRoute(string $method, string $route, string $compiledQueryFileFunction)
     {
-        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'pipeCompiledQuery', "ROUTES()->{$method}()->ROUTE('{$route}')", $compiledQueryFileFunction);
+        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'pipeCompiledQuery', $compiledQueryFileFunction);
         // Route must be valid first
         if (isset($this->invalidBatches['routes'][$method][$route])) {
             $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route is Invalid - must become Valid First ' . $ctxVals, $method, $route);
@@ -6267,7 +6592,7 @@ class C
     }
     private function batchPipeCompiledValidationRoute(string $method, string $route, string $compiledValidationFileFunction)
     {
-        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'pipeCompiledValidation', "ROUTES()->{$method}()->ROUTE('{$route}')", $compiledValidationFileFunction);
+        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'pipeCompiledValidation', $compiledValidationFileFunction);
         // Route must be valid first
         if (isset($this->invalidBatches['routes'][$method][$route])) {
             $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route is Invalid - must become Valid First ' . $ctxVals, $method, $route);
@@ -6278,7 +6603,7 @@ class C
     /*ROUTE: excludeMiddleware & excludeHeaders */
     private function batchExcludeMiddlewaresRoute(string $method, string $route, string ...$middlewareToExclude)
     {
-        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'setExcludeMiddlewares', "ROUTES()->{$method}()->ROUTE('{$route}')", ...$middlewareToExclude);
+        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'setExcludeMiddlewares', ...$middlewareToExclude);
         // Route must be valid first
         if (isset($this->invalidBatches['routes'][$method][$route])) {
             $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route is Invalid - must become Valid First ' . $ctxVals, $method, $route);
@@ -6308,8 +6633,7 @@ class C
                 $this->invalidBatches['excludeMiddlewares']['routes'][$method][$route] = true;
                 return;
             }
-            $this->cachedCreateKeyIfNullAndOptionalFileName('files_pipes_middlewares', $middleware);
-            $fileData = $this->cached['files_pipes_middlewares'][$middleware] ?? [];
+            $fileData = $this->cachedCreateKeyIfNullAndOptionalFileName('files_pipes_middlewares', $middleware);
             // Fatal check: Bails on the first structural error
             $fatalError = $this->validateFNFile($fileData, $middleware, $ctxVals, "funkphp\\pipes\\middlewares\\{$middleware}", true);
             if ($fatalError !== null) {
@@ -6324,7 +6648,7 @@ class C
     }
     private function batchExcludeHeadersRoute(string $method, string $route, string ...$headersToExclude)
     {
-        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'setExcludeHeaders', "ROUTES()->{$method}()->ROUTE('{$route}')", ...$headersToExclude);
+        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'setExcludeHeaders', ...$headersToExclude);
         // Route must be valid first
         if (isset($this->invalidBatches['routes'][$method][$route])) {
             $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route is Invalid - must become Valid First ' . $ctxVals, $method, $route);
@@ -6360,7 +6684,7 @@ class C
     /*ROUTE: setpipeHeaderRoute*/
     private function batchSetHeaderRoute(string $method, string $route, string $header, $value)
     {
-        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'setHeaderAdd', "ROUTES()->{$method}()->ROUTE('{$route}')", $header);
+        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'setHeaderAdd', $header);
         // Route must be valid first
         if (isset($this->invalidBatches['routes'][$method][$route])) {
             $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route is Invalid - must become Valid First ' . $ctxVals, $method, $route);
@@ -6418,7 +6742,7 @@ class C
     /*ROUTE: setRemoveHeaderRoute*/
     private function batchRemoveHeaderRoute(string $method, string $route, string $header_to_remove)
     {
-        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'setHeaderRemove', "ROUTES()->{$method}()->ROUTE('{$route}')", $header_to_remove);
+        [$ctx, $ctxVals] = $this->setCtx($method, $route, 'setHeaderRemove', $header_to_remove);
         // Route must be valid first
         if (isset($this->invalidBatches['routes'][$method][$route])) {
             $this->setErr($this->getErr('RouteIsInvalidMustBecomeValidBeforeWhat', $ctxVals), 'Route is Invalid - must become Valid First ' . $ctxVals, $method, $route);
@@ -6616,7 +6940,7 @@ class C
             return ["\\funkphp\\pipes\\middlewares\\$fn", ROOT_FOLDER . "/pipes/middlewares/$fn.php"];
         }
         if ($type === 'request') {
-            return ["\\funkphp\\pipes\\response\\$fn", ROOT_FOLDER . "/pipes/request/$fn.php"];
+            return ["\\funkphp\\pipes\\request\\$fn", ROOT_FOLDER . "/pipes/request/$fn.php"];
         }
         if ($type === 'post_response') {
             return ["\\funkphp\\pipes\\post_response\\$fn", ROOT_FOLDER . "/pipes/post_response/$fn.php"];
@@ -8519,7 +8843,7 @@ class C
                                 !isset($this->compiled['routes'][$method][$route]['response'])
                                 || $this->compiled['routes'][$method][$route]['response']['type'] !== 'page'
                             ) {
-                                $this->compile_setWarn("Route `{$CURRENT_ROUTE_STR}` does NOT have `Return Response Page` (via `->setResponse('page:name')`) implying it does not intend to display HTML to End-users. Ignore this warning if you are using `funk_return_response_page()` elsewhere for this Route.", 'Param Rule Mismatch Page Set but no Page Response used in Route?');
+                                $this->compile_setWarn('Param Rule Mismatch Page Set but no Page Response used in Route?', "Route `{$CURRENT_ROUTE_STR}` does NOT have `Return Response Page` (via `->setResponse('page:name')`) implying it does not intend to display HTML to End-users. Ignore this warning if you are using `funk_return_response_page()` elsewhere for this Route.",);
                             }
                             $this->compiled['routes'][$method][$route]['params_mismatch_page'] = $this->validBatches['params_mismatch_page']['routes'][$method][$route];
                         }
@@ -8928,6 +9252,10 @@ class C
         // Grab the global $c since that is what is passed around everywhere
         global $c;
         $c['runtime']['state'] = 'global';
+        $c['runtime']['request'] = $this->compiled['config']['pipes']['request'];
+        $c['runtime']['request-resolved'] = $this->compiled['config']['pipes']['request-resolved'];
+        $c['runtime']['post-response'] = $this->compiled['config']['pipes']['post_response'];
+        $c['runtime']['post-response-resolved'] = $this->compiled['config']['pipes']['post_response-resolved'];
 
         $c['req']['time'] = $_SERVER['REQUEST_TIME'] ?? time();
         $c['req']['query'] = $_SERVER['QUERY_STRING'] ?? null;
@@ -9036,6 +9364,7 @@ class C
             $c['req']['ip'] = funk_internal_resolve_ip($c);
         }
         // Run any request pipes registered - IP is resolved so it can be used
+
         foreach ($this->compiled['config']['pipes']['request-resolved'] as $pRequest) {
             $funcName = $pRequest['run'];
             $filePath = $pRequest['path'];
@@ -9296,7 +9625,6 @@ class FunkConfig
     {
         return $this;
     }
-
     /**
      * Set Compiler Flags that are applied when compiling. Most of them are about what is allowed or not, whether to ignore certain warnings and/or errors or not.
      *
@@ -9330,7 +9658,6 @@ class FunkConfig
         $this->c->batch('batchSetDebug', $ON_OR_OFF, $ALWAYS_SHOW, $SHOW_ALL, $SHOW_VALID_BATCHES, $SHOW_INVALID_BATCHES, $SHOW_CACHED, $SHOW_COMPILED);
         return $this;
     }
-
     /**
      * @param bool $trueOrfalse Set to `TRUE` to DISABLE Post-Response Pipe Functions to run No Matched Method/(or) Route.
      *
@@ -9341,7 +9668,6 @@ class FunkConfig
         $this->c->batch('batchSetDisablePostResponseOnNoMatchGlobal', $trueOrfalse);
         return $this;
     }
-
     /* setGroup<VARIANTS> - use the prefix "group:<$groupName>"
     // to faster more pipes at the same time! - GLOBAL */
     /**
@@ -9360,7 +9686,6 @@ class FunkConfig
         $this->c->batch('batchSetGroupedPipeUserDefined', $groupName, ...$pipeUserDefinedFNs);
         return $this;
     }
-
     /**
      * Group multiple request pipeline function names under a single reference key.
      *
@@ -9374,7 +9699,6 @@ class FunkConfig
         $this->c->batch('batchSetGroupedPipeRequest', $groupName, ...$pipeRequestFNs);
         return $this;
     }
-
     /**
      * Group multiple post-response pipeline function names under a single reference key.
      *
@@ -9388,7 +9712,6 @@ class FunkConfig
         $this->c->batch('batchSetGroupedPipePostResponse', $groupName, ...$pipePostReponseFNs);
         return $this;
     }
-
     /**
      * Group multiple route handler function names under a single reference key.
      *
@@ -9402,7 +9725,6 @@ class FunkConfig
         $this->c->batch('batchSetGroupedPipeRoute', $groupName, ...$pipeRouteFNs);
         return $this;
     }
-
     /**
      * Group multiple middleware function names under a single reference key.
      *
@@ -9416,7 +9738,6 @@ class FunkConfig
         $this->c->batch('batchSetGroupedPipeMiddlewares', $groupName, ...$pipeMiddlewareFNs);
         return $this;
     }
-
     /**
      * Apply runtime php.ini configuration settings globally.
      *
@@ -9428,7 +9749,6 @@ class FunkConfig
         $this->c->batch('batchSetINI_SETGlobal', $iniSetArrayWithKeyNamesAsSettingTypeWithSingleScalarValue);
         return $this;
     }
-
     /**
      * Configures Content-Security-Policy (CSP) directives Globally (in `/src/funkphp/app/CONFIG.php`).
      *
@@ -9475,7 +9795,6 @@ class FunkConfig
         $this->c->batch('batchSetCSPGlobal', $sourceType, ...$sources);
         return $this;
     }
-
     /**
      * Define Subresource Integrity (SRI) hashes for internal assets.
      *
@@ -9487,7 +9806,6 @@ class FunkConfig
         $this->c->batch('batchSetSRIInternalGlobal', $internalSRI);
         return $this;
     }
-
     /**
      * Define Subresource Integrity (SRI) hashes and options for external scripts/styles.
      *
@@ -9499,7 +9817,6 @@ class FunkConfig
         $this->c->batch('batchSetSRIExternalGlobal', $options);
         return $this;
     }
-
     /**
      * Set Rate Limiting Globally. This is always applied first before any Matched Method's Rate Limiting which itself applies before any Matched Route's Rate Limiting.
      *
@@ -9518,7 +9835,6 @@ class FunkConfig
         $this->c->batch('batchSetRateLimitingGlobal', $maxRequestsPerWindowSize, $windowSizeInSeconds, $by, strtolower(trim($driver)));
         return $this;
     }
-
     /**
      * Render a template page as the global fallback when no route matches.
      *
@@ -9532,7 +9848,6 @@ class FunkConfig
         $this->c->batch('batchSetNoRouteMatchPageGlobal', $PageFileName, $statusCode);
         return $this;
     }
-
     /**
      * Return a JSON payload as the global fallback when no route matches.
      *
@@ -9545,7 +9860,6 @@ class FunkConfig
         $this->c->batch('batchSetNoRouteMatchJsonGlobal', $data, $statusCode);
         return $this;
     }
-
     /**
      * Return plain text as the global fallback when no route matches.
      *
@@ -9558,7 +9872,6 @@ class FunkConfig
         $this->c->batch('batchSetNoRouteMatchTextGlobal', $message, $statusCode);
         return $this;
     }
-
     /**
      * Register a callback function as the global fallback handler when no route matches.
      *
@@ -9571,7 +9884,6 @@ class FunkConfig
         $this->c->batch('batchSetNoRouteMatchCallbackGlobal', $userDefinedFunctionName);
         return $this;
     }
-
     /**
      * Set Custom User-defined Exception Handler to be set in `set_exception_handler()`
      *
@@ -9584,7 +9896,6 @@ class FunkConfig
         $this->c->batch('batchSetDefaultExceptionHandlerGlobal', $userDefinedFunctionName);
         return $this;
     }
-
     /**
      * Set Custom User-defined Error Handler to be set in `set_error_handler()`
      *
@@ -9597,7 +9908,6 @@ class FunkConfig
         $this->c->batch('batchSetDefaultErrorHandlerGlobal', $userDefinedFunctionName);
         return $this;
     }
-
     /**
      * Set Custom User-defined URI Normalizer to normalize `$_SERVER['REQUEST_URI']` to be set in `$c['req']['uri']`
      *
@@ -9610,7 +9920,6 @@ class FunkConfig
         $this->c->batch('batchSetDefaultURINormalizerGlobal', $userDefinedFunctionName);
         return $this;
     }
-
     /**
      * Set Custom User-defined HTTP(S) Kernel that will do everything with the Successful Compiled
      *
@@ -9623,7 +9932,6 @@ class FunkConfig
         $this->c->batch('batchSetDefaultHTTPSKernelDispatchHandlerGlobal', $userDefinedFunctionName);
         return $this;
     }
-
     /**
      * Set Custom User-defined IP Resolver instead of using in-built `funk_internal_resolve_ip()`
      *
@@ -9640,7 +9948,6 @@ class FunkConfig
         $this->c->batch('batchSetDefaultIPResolverGlobal', $userDefinedFunctionName);
         return $this;
     }
-
     /**
      * Set the base URL for local development environments.
      *
@@ -9652,7 +9959,6 @@ class FunkConfig
         $this->c->batch('batchSetDefaultBaseURLLocalGlobal', $httpsPath);
         return $this;
     }
-
     /**
      * Set the base URL for production/online deployment.
      *
@@ -9664,7 +9970,6 @@ class FunkConfig
         $this->c->batch('batchSetDefaultBaseURLOnlineGlobal', $httpsPath);
         return $this;
     }
-
     /**
      * Set the target host name string used to detect local development environment.
      *
@@ -9676,7 +9981,6 @@ class FunkConfig
         $this->c->batch('batchSetDefaultBaseURLHostGlobal', $hostNameLocally);
         return $this;
     }
-
     /**
      * Set the base sub-folder or sub-path prefix for local development URLs.
      *
@@ -9688,7 +9992,6 @@ class FunkConfig
         $this->c->batch('batchSetDefaultBaseURLUriGlobal', $localURI);
         return $this;
     }
-
     /**
      * Set Default Session Cookie Driver
      *
@@ -9702,7 +10005,6 @@ class FunkConfig
         $this->c->batch('batchSetDefaultSessionDriverGlobal', $filesOrRedisOrSomethingElse);
         return $this;
     }
-
     /**
      * Set session cookie options in bulk using an associative array.
      *
@@ -9723,7 +10025,6 @@ class FunkConfig
         $this->c->batch('batchSetDefaultSessionCookieOptionsGlobal', $sessionCookieOptions);
         return $this;
     }
-
     /**
      * Set the global session cookie name.
      *
@@ -9735,7 +10036,6 @@ class FunkConfig
         $this->c->batch('batchSetDefaultSessionCookieNameGlobal', $sessionCookieName);
         return $this;
     }
-
     /**
      * Set the global session cookie lifetime in seconds.
      *
@@ -9747,7 +10047,6 @@ class FunkConfig
         $this->c->batch('batchSetDefaultSessionCookieLifetimeGlobal', $sessionCookieLifetime);
         return $this;
     }
-
     /**
      * Set the session cookie path scope.
      *
@@ -9759,7 +10058,6 @@ class FunkConfig
         $this->c->batch('batchSetDefaultSessionCookiePathGlobal', $sessionCookiePath);
         return $this;
     }
-
     /**
      * Set the domain scope for session cookies.
      *
@@ -9772,7 +10070,6 @@ class FunkConfig
         $this->c->batch('batchSetDefaultSessionCookieDomainGlobal', $sessionCookieDomain);
         return $this;
     }
-
     /**
      * Set Default Session Cookie HTTP Secure Boolean
      *
@@ -9810,7 +10107,6 @@ class FunkConfig
         $this->c->batch('batchSetDefaultSessionCookieSameSiteGlobal', $LaxOrStrict);
         return $this;
     }
-
     /* set<VARIANTS> that are ONLY Boolean - GLOBAL */
     /**
      * Set if FunkPHP should act as if online. `IMPORTANT: This one
@@ -9853,7 +10149,6 @@ class FunkConfig
         $this->c->batch('batchSetUseVendorGlobal', $trueOrFalse);
         return $this;
     }
-
     /**
      * Register expected MIME types or "mime:alias" mappings for the application.
      * Write as `"mime_type:shorthand"` as in `"application/json:json"`
@@ -9868,7 +10163,6 @@ class FunkConfig
         $this->c->batch('batchSetAcceptsGlobal', ...$cleanedTypes);
         return $this;
     }
-
     /**
      * Define a global parameter validation regex rule applied across all routes.
      *
@@ -9883,7 +10177,6 @@ class FunkConfig
         $this->c->batch('batchSetParamRuleGlobal', $param, $regexORcb, $defaultParamValueOnRegexMismatch);
         return $this;
     }
-
     /**
      * Set a response Header that is applied globally (can be overwritten with a setHeader on a given Method AND on a given Route).
      *
@@ -9896,7 +10189,6 @@ class FunkConfig
         $this->c->batch('batchSetHeaderGlobal', trim($header), trim($value));
         return $this;
     }
-
     /**
      * Remove a previously queued global response header.
      *
@@ -9909,11 +10201,10 @@ class FunkConfig
         $this->c->batch('batchRemoveHeaderGlobal', $header_to_remove);
         return $this;
     }
-
     /**
-     * Attach a middleware globally to run across all incoming requests.
+     * Register a Piped Global Middleware Function applied to all HTTP(S) Requests.
      *
-     * @param string $middleware Middleware name or reference key
+     * @param string $middleware Middleware File name in `/src/funkphp/pipes/middlewares`
      * @return $this
      */
     public function pipeMiddleware(string $middleware): self
@@ -9922,11 +10213,24 @@ class FunkConfig
         $this->c->batch('batchPipeMiddlewareGlobal', $middleware);
         return $this;
     }
-
     /**
-     * Register a global request pipeline function to execute before route handling.
+     * Register two or more Piped Global Middleware(s) Function(s) applied to all HTTP(S) Requests.
      *
-     * @param string $requestFunction Function name or "group:name"
+     * @param string ...$middleware Middleware File name in `/src/funkphp/pipes/middlewares`
+     * @return $this
+     */
+    public function pipeMiddlewares(string ...$middleware): self
+    {
+        foreach ($middleware as $mw) {
+            $mw = strtolower(trim($mw));
+        }
+        $this->c->batch('batchPipeMiddlewaresGlobal', ...$middleware);
+        return $this;
+    }
+    /**
+     * Register a Global Request Piped Function which runs BEFORE Route Matching (and also before Global Middleware).
+     *
+     * @param string $requestFunction Function Name or "group:name" in `/src/funkphp/pipes/request`
      * @return $this
      */
     public function pipeRequestFunction(string $requestFunction): self
@@ -9935,11 +10239,24 @@ class FunkConfig
         $this->c->batch('batchPipeRequestFunctionGlobal', $requestFunction);
         return $this;
     }
-
     /**
-     * Register a global post-response function to execute after the response is sent.
+     * Register two or more Global Request Piped Function(s) which run(s) BEFORE Route Matching (and also before Global Middleware).
      *
-     * @param string $postResponseFunction Function name or "group:name"
+     * @param string ...$requestFunction Function Name or "group:name" in `/src/funkphp/pipes/request`
+     * @return $this
+     */
+    public function pipeRequestFunctions(string ...$requestFunction): self
+    {
+        foreach ($requestFunction as $RFN) {
+            $RFN = strtolower(trim($RFN));
+        }
+        $this->c->batch('batchPipeRequestFunctionsGlobal', ...$requestFunction);
+        return $this;
+    }
+    /**
+     * Register a Global Post-Response Piped Function which runs AFTER Request (successful or not) using the in-built `register_shutdown_function()`.
+     *
+     * @param string $postResponseFunction Function Name or "group:name" in `/src/funkphp/pipes/post_response`
      * @return $this
      */
     public function pipePostResponseFunction(string $postResponseFunction): self
@@ -9948,7 +10265,20 @@ class FunkConfig
         $this->c->batch('batchPipePostResponseFunctionGlobal', $postResponseFunction);
         return $this;
     }
-
+    /**
+     * Register two or more Global Post-Response Piped Function(s) which run(s) AFTER Request (successful or not) using the in-built `register_shutdown_function()`.
+     *
+     * @param string ...$postResponseFunction Function Name or "group:name" in `/src/funkphp/pipes/post_response`
+     * @return $this
+     */
+    public function pipePostResponseFunctions(string ...$postResponseFunction): self
+    {
+        foreach ($postResponseFunction as $PFN) {
+            $PFN = strtolower(trim($PFN));
+        }
+        $this->c->batch('batchPipePostResponseFunctionsGlobal', ...$postResponseFunction);
+        return $this;
+    }
     /**
      * Switch context directly from configuration to the route definition builder.
      *
@@ -10201,7 +10531,7 @@ class FunkMethod
         return $this;
     }
     /**
-     * Attach a middleware to all routes under this HTTP method.
+     * Register a Method Middleware Function applied to all HTTP(S) Requests. Runs FIRST On Any Matched Route within that Method.
      *
      * @param string $middleware Middleware name or reference key
      * @return $this
@@ -10210,6 +10540,20 @@ class FunkMethod
     {
         $middleware = strtolower(trim($middleware));
         $this->c->batch('batchPipeMiddlewareMethod', $this->method, $middleware);
+        return $this;
+    }
+    /**
+     * Register two or more Piped Method Middleware(s) Function(s) applied to all HTTP(S) Requests. Runs FIRST On Any Matched Route within that Method.
+     *
+     * @param string ...$middleware Middleware File name in `/src/funkphp/pipes/middlewares`
+     * @return $this
+     */
+    public function pipeMiddlewares(string ...$middleware): self
+    {
+        foreach ($middleware as $mw) {
+            $mw = strtolower(trim($mw));
+        }
+        $this->c->batch('batchPipeMiddlewaresMethod', ...$middleware);
         return $this;
     }
     /**
@@ -10434,7 +10778,7 @@ class FunkRoute
         return $this;
     }
     /**
-     * Attach a middleware specific to this route. They all run in FIFO.
+     * Register a Piped Route Middleware(s) Function(s) applied to all HTTP(S) Requests. Runs FIRST On That Matched Route within that Method.
      *
      * @param string $middleware Middleware function or group name
      * @return $this
@@ -10446,7 +10790,21 @@ class FunkRoute
         return $this;
     }
     /**
-     * Pipe a handler function for this route. They all run in FIFO.
+     * Register two or more Piped Route Middleware(s) Function(s) applied to all HTTP(S) Requests. Runs FIRST On That Matched Route within that Method.
+     *
+     * @param string ...$middleware Middleware File name in `/src/funkphp/pipes/middlewares`
+     * @return $this
+     */
+    public function pipeMiddlewares(string ...$middleware): self
+    {
+        foreach ($middleware as $mw) {
+            $mw = strtolower(trim($mw));
+        }
+        $this->c->batch('batchPipeMiddlewaresRoute', ...$middleware);
+        return $this;
+    }
+    /**
+     * Register a Route Function for current Route. They run FIRST AFTER all Middlewares iva Global->Method->Route have ran.
      *
      * @param string $fileNameAndFunctionName Function or file reference key
      * @return $this
@@ -10457,6 +10815,22 @@ class FunkRoute
         $this->c->batch('batchPipeFunctionRoute', $this->method, $this->routePath, $fileNameAndFunctionName);
         return $this;
     }
+    /**
+     * Register two or more Route Functions for current Route. They run FIRST AFTER all Middlewares iva Global->Method->Route have ran.
+     *
+     * @param string $fileNameAndFunctionName Function or file reference key
+     * @return $this
+     */
+    public function pipeFunctions(string ...$fileNameAndFunctionName): self
+    {
+        foreach ($fileNameAndFunctionName as $FNFN) {
+            $FNFN = strtolower(trim($FNFN));
+        }
+        $this->c->batch('batchPipeFunctionsRoute', $this->method, $this->routePath, ...$fileNameAndFunctionName);
+        return $this;
+    }
+
+
     /**
      * Specify ONE Response transformation or content type format for this route.
      *

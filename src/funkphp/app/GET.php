@@ -10,6 +10,5 @@ $APP->ROUTES()
     ->route("/users/:id/:id2")
     ->setParamRuleMismatchJSON(['err' => 'no match'], 404)
     ->setParamRuleMismatchPage('test')
-    ->pipeMiddleware('log_access')
-    ->pipeFunction("test.test")
+    ->pipeFunctions("test.test")
     ->pipeResponse('page:test', 200);
