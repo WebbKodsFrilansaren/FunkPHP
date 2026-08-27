@@ -8307,12 +8307,6 @@ class C
             'POST_RESPONSE' => [],
             'USER_DEFINED' => [],
             'ROUTES_FILE_FUNCTIONS' => [],
-            'DATA_QUERY_FNS' => [],
-            'DATA_SQL_FNS' => [],
-            'DATA_VALIDATION_FNS' => [],
-            'DATA_QUERY_COMPILED_FNS' => [],
-            'DATA_SQL_COMPILED_FNS' => [],
-            'DATA_VALIDATION_COMPILED_FNS' => [],
         ];
         // ------------------------------------------------------------------------------------------
         // Attempt compiling FunkPHP and create the code
@@ -9373,10 +9367,38 @@ class C
         ///////////////////////////////////////////////////////
         // Debug is not allowed in Production Build!
         unset($c['runtime']['debug']);
+        $FUNK_DEPLOY_ARR = [];
+        $OUTPUT_PATH = ROOT_FOLDER . '/' . 'FunkPHPDeployment.php';
 
         //////////////////////////////////////////////////////
         ////////// DONE BUILDING FunkPHPDeployment.php ///////
         //////////////////////////////////////////////////////
+    }
+
+    // Output the final FunkPHPDeployment.php file (but essentially it can output any file anywhere)
+    // It is the non-cli version of cli_crud_folder_php_file_atomic_write()
+    private function compile_output_file(string $fileContent, string $file_path): bool
+    {
+        $tempFilePath = $file_path . '.tmp';
+        if (file_put_contents($tempFilePath, $fileContent) === false) {
+            if (!function_exists('cli_err_without_exit')) {
+                $this->compile_setErr('FAILED to Write Content to Temporary File', '[FAILED to Write Content to Temporary File]: Failed to Output `FunkPHPDeployment.php` File in Path:`' . $file_path .  '`. Review/Verify File Permission(s) for that Specific Path and its (Sub)folders.');
+            } else {
+                cli_err_without_exit('FAILED to Write Content to Temporary File `' . $tempFilePath . '`!');
+            }
+            return false;
+        }
+        if (!rename($tempFilePath, $file_path)) {
+            @unlink($tempFilePath);
+            if (!function_exists('cli_err_without_exit')) {
+                $this->compile_setErr('FAILED to Rename Temporary File', '[FAILED to Rename Temporary File]: FAILED to Rename Temporary File `' . $tempFilePath . '` back to Correct File Path `' . $file_path . '`!');
+            } else {
+                cli_err_without_exit('FAILED to Rename Temporary File `' . $tempFilePath . '` back to Correct File Path `' . $file_path . '`!');
+            }
+            return false;
+        }
+        @chmod($file_path, 0666);
+        return true;
     }
     private function run()
     {
