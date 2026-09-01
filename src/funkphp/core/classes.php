@@ -1034,9 +1034,9 @@ class C
             if ($tokens[$i]->id !== T_FUNCTION) {
                 continue;
             }
-            if ($tok->text === '{') {
+            if ($tokens[$i]->text === '{') {
                 $braceDepth++;
-            } elseif ($tok->text === '}') {
+            } elseif ($tokens[$i]->text === '}') {
                 $braceDepth--;
             }
             $curr = $i + 1;
@@ -2466,12 +2466,11 @@ class C
      *
      * Choose Error Type based on scope (global, method, route) and optional method and route when applicable.
      *
-     * @param string 'user-functions'|'user-classes'|'pages-layouts'|'pages-partials'|'pages-components'|'pages-uncompiled'|'pages-compiled'|'user-tables'|'response'|'post-response'|'middleware'|'route'|'data-query-compiled'|'data-sql-compiled'|'data-validation-compiled'|'data-query-uncompiled'|'data-sql-uncompiled'|'data-validation-uncompiled' $fileType
+     * @param 'user-functions'|'user-classes'|'pages-layouts'|'pages-partials'|'pages-components'|'pages-uncompiled'|'pages-compiled'|'user-tables'|'response'|'post-response'|'middleware'|'route'|'data-query-compiled'|'data-sql-compiled'|'data-validation-compiled'|'data-query-uncompiled'|'data-sql-uncompiled'|'data-validation-uncompiled' $fileType
      * @param string $file File Name to the file that is within that $fileType Category
      * @param string $fn Function Name inside that $file within that $fileType Category
-     * @param string $errMsg The detailed Error Message that is shown when pressing "Details ->" button
+     * @param string $err The detailed Error Message that is shown when pressing "Details ->" button
      * @param string $errShort The short version of the Error Message that is shown after the Error Number
-     * @param string|null $route
      *
      */
     private function setFileErr(string|null $fileType = 'internal-error', string $file, string $fn, string $errShort, string $err, string|null $fnOrClassNameExact = null)
@@ -4566,6 +4565,11 @@ class C
         }
         $validPRFNS = [];
         foreach ($fileFunctionName as $FNN) {
+            if (!$this->nonEmptyLC_Str_ThatISGroupORFNWithoutCLIorFunk($FNN)) {
+                $this->setErr($this->getErr('InvalidGroupORFunctionName', $ctxVals), 'Invalid Post-Response Name ' . $ctxVals);
+                $this->invalidBatches['config']['post_responses']['post_responses'] = $fileFunctionName;
+                return;
+            }
             // Just add if it starts with "group:" since that is validated by compile()
             if (str_starts_with($FNN, 'group:')) {
                 $validPRFNS[] = $FNN;
@@ -4582,11 +4586,7 @@ class C
             }
             $validPRFNS[] = $FNN;
         }
-        if (!$this->nonEmptyLC_Str_ThatISGroupORFNWithoutCLIorFunk($FNN)) {
-            $this->setErr($this->getErr('InvalidGroupORFunctionName', $ctxVals), 'Invalid Post-Response Name ' . $ctxVals);
-            $this->invalidBatches['config']['post_responses']['post_responses'] = $fileFunctionName;
-            return;
-        }
+
         // Pipe Global Post-Response FNs when all OK!
         foreach ($validPRFNS as $VPRFN) {
             $this->validBatches['config']['post_response'][] = $VPRFN;
