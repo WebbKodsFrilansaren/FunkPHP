@@ -183,6 +183,8 @@ class C
         'PATCH' => null,
     ];
     private array $compiled = [
+        'built' => false,
+        'flags' => [],
         'config' => [
             'runtime' => [
                 'debug' => [],
@@ -319,6 +321,7 @@ class C
     // Default booleans for compile(), run()
     private bool $FUNKPHP_COMPILED = false;
     private bool $FUNKPHP_COMPILED_SUCCESS = false;
+    private bool $FUNKPHP_BUILT = false;
     private bool $FUNKPHP_RAN = false;
     private array $debug = [
         'ON_OR_OFF' => false,
@@ -2633,6 +2636,7 @@ class C
     {
         [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setCompileFlag', $flag);
         $validFlags = [
+            'OUTPUT_AFTER_COMPILATION', // ignore in-built run() when compiling in web
             'ALLOW_GHOST_ROUTES', // no error issued when
             'ALL_ROUTES_MUST_HAVE_PIPE_RESPONSE', // pipeResponse() must be applied to every route or hard compilation error.
             'HIDE_NO_ROUTE_RESPONSE_WARNING', // No warning issued when a Route has no 'response' (no pipeResponse())
@@ -7256,6 +7260,43 @@ class C
             return ["\\funkphp\\pages\\uncompiled\\{$fn}", ROOT_FOLDER . "/pages/{$fn}.php"];
         }
     }
+    // Remove comments and add "\" namespace qualifiers to final built file
+    private function compile_php_strip_whitespace_and_optimize(string $code, array $otherPrefixes = []): string
+    {
+        $tokens = token_get_all($code);
+        $output = '';
+        $lastSignificantToken = null;
+        foreach ($tokens as $token) {
+            if (is_array($token)) {
+                $type = $token[0];
+                $value = $token[1];
+                if ($type === T_COMMENT || $type === T_DOC_COMMENT) {
+                    continue;
+                }
+                if ($type === T_WHITESPACE) {
+                    $output .= ' ';
+                    continue;
+                }
+                if ($type === T_STRING && str_starts_with($value, 'funk_')) {
+                    if (
+                        $lastSignificantToken !== T_FUNCTION &&
+                        $lastSignificantToken !== T_OBJECT_OPERATOR &&
+                        $lastSignificantToken !== T_DOUBLE_COLON
+                    ) {
+                        $value = '\\' . $value;
+                    }
+                }
+                $output .= $value;
+                $lastSignificantToken = $type;
+            } else {
+                $output .= $token;
+                if (trim($token) !== '') {
+                    $lastSignificantToken = $token;
+                }
+            }
+        }
+        return trim($output);
+    }
     // Function that generates a Welcome HTML screen when there is nothing in $this->validBatches
     // OR there are zero routes in $this->validBatches['routes]. This should then show a soft success
     // screen and showing how to add some routes and configuration, maybe a link to the Official Docs?
@@ -7949,7 +7990,7 @@ class C
                     <div class="alert-warning" style="display:flex; align-items:center; align-content:center; gap:0.5rem;">
                         <span class="alert-icon"><?= $WARNING_BASE64; ?></span>
                         <div class="alert-content" style="width:100%; display:inline-block; padding-bottom:0.2rem;">
-                            <code>->CONFIG()->setDebug()</code> 2nd argument is <code>TRUE</code> (always show). Set it to <code>FALSE</code> to Allow Compiled Execution.
+                            <code>->CONFIG()->setDebug()</code> 2nd argument is <code>TRUE</code> (always show). Set it to <code>FALSE</code> to Allow Compiled Execution with <code>run()</code> OR Built Compiled File <code>/src/funkphp/FunkPHPDeployment.php</code> which can only take place after a Successful Compilation.
                         </div>
                     </div>
                 <?php endif; ?>
@@ -8442,6 +8483,7 @@ class C
             'USER_DEFINED' => [],
             'ROUTES_FILE_FUNCTIONS' => [],
         ];
+        $this->compiled['flags'] = $this->compileFlags;
         // ------------------------------------------------------------------------------------------
         // Attempt compiling FunkPHP and create the code
         // STEP 1: Check there are zero Invalid Batches and zero errors so far.
@@ -9514,8 +9556,11 @@ class C
         }
         // Here Compilation was successful so either run it locally
         // or build it into FunkPHPDeployment.php monolithic file
+        // ->setCompileFlag('OUTPUT_AFTER_COMPILATION') can override
+        // it though meaning it will output the file and NOT run it
+        // after successful compilation!
         $this->FUNKPHP_COMPILED_SUCCESS = true;
-        if ($CompileAndRunLocally) {
+        if ($CompileAndRunLocally && !isset($this->compileFlags['OUTPUT_AFTER_COMPILATION'])) {
             $this->run();
         }
         ///////////////////////////////////////////////////////
@@ -9523,6 +9568,7 @@ class C
         ///////////////////////////////////////////////////////
         // Debug is not allowed in Production Build!
         unset($c['runtime']['debug']);
+        $COMPLETE_DEPLOYMENT_BUFFER = null;
         $FUNK_DEPLOY_ARR = [];
         $OUTPUT_PATH = ROOT_FOLDER . '/' . 'FunkPHPDeployment.php';
         // 1. Opening PHP Banner & Opcode Optimization Headers
@@ -9533,6 +9579,28 @@ class C
         $FUNK_DEPLOY_ARR[] = " * DO NOT EDIT DIRECTLY - ALL CHANGES WILL BE OVERWRITTEN\n";
         $FUNK_DEPLOY_ARR[] = " */\n\n";
 
+        // Add global $c variable
+        $FUNK_DEPLOY_ARR[] = '$c = ' . var_export($c, true) . ";\n\n";
+
+        // When all buffering building has been completed, just implode, optimize and attempt outputting it
+        $COMPLETE_DEPLOYMENT_BUFFER = implode($FUNK_DEPLOY_ARR);
+        $COMPLETE_DEPLOYMENT_BUFFER =  $this->compile_php_strip_whitespace_and_optimize($COMPLETE_DEPLOYMENT_BUFFER);
+        if ($this->compile_output_file($COMPLETE_DEPLOYMENT_BUFFER, $OUTPUT_PATH)) {
+            $this->FUNKPHP_BUILT = true;
+            if (!function_exists('cli_success')) {
+                $this->compiled['built'] = $this->FUNKPHP_BUILT;
+                $this->output_errors($this->errors, $this->compiled);
+            } else {
+                cli_success("`/src/funkphp/FunkPHPDeployment.php` has SUCCESSFULLY been Built after Compilation. It can now, together with its `/src/funkphp/pages/compiled/` Files, be uploaded to your Server of Choice!");
+            }
+        } else {
+            if (!function_exists('cli_err')) {
+                $this->compiled['built'] = $this->FUNKPHP_BUILT;
+                $this->output_errors($this->errors, $this->compiled);
+            } else {
+                cli_err("`/src/funkphp/FunkPHPDeployment.php` FAILED being Built after Compilation!");
+            }
+        }
         //////////////////////////////////////////////////////
         ////////// DONE BUILDING FunkPHPDeployment.php ///////
         //////////////////////////////////////////////////////
@@ -9960,7 +10028,7 @@ class FunkConfig
     /**
      * Set Compiler Flags that are applied when compiling. Most of them are about what is allowed or not, whether to ignore certain warnings and/or errors or not.
      *
-     * @param 'ALLOW_GHOST_ROUTES'|'ALL_ROUTES_MUST_HAVE_PIPE_RESPONSE'|'HIDE_NO_ROUTE_RESPONSE_WARNING'|'NO_WARNINGS_ALLOWED'|'ONLY_RETURN_COMPILED_PAGES'|'ONLY_RETURN_NONCOMPILED_PAGES' $flag Compiler flag (e.g., "NO_WARNINGS_ALLOWED")
+     * @param 'OUTPUT_AFTER_COMPILATION'|'ALLOW_GHOST_ROUTES'|'ALL_ROUTES_MUST_HAVE_PIPE_RESPONSE'|'HIDE_NO_ROUTE_RESPONSE_WARNING'|'NO_WARNINGS_ALLOWED'|'ONLY_RETURN_COMPILED_PAGES'|'ONLY_RETURN_NONCOMPILED_PAGES' $flag Compiler flag (e.g., "NO_WARNINGS_ALLOWED")
      * @return $this
      */
     public function setCompileFlag(string $flag): self
