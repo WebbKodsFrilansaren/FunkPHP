@@ -3,7 +3,6 @@
 
 /** @var FunkPHP $APP */
 $APP->CONFIG()
-    ->setDebug(true, false, false)
     ->setINI_SET([
         'session.cache_limiter' => 'public',
         'session.use_strict_mode' => 8,
@@ -22,4 +21,5 @@ $APP->CONFIG()
     ->pipeMiddlewares('log_access', 'auth')
     ->setRateLimit(60, 60, 'ip', 'redis')
     ->pipePostResponseFunction('debug')
+    ->setDebug(true, false, false)
 ;
