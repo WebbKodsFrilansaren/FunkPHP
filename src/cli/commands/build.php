@@ -1443,7 +1443,7 @@ cli_stop_from_warn_err_list($pipelineWarnsAndErrs, "Please Review (" . count($pi
 // BUILD/COMPILE Pipeline Keys - VALIDATE PARTS OF <GLOBAL_CONFIG> since it is only in pipeline_request.php file!
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL CONFIG PARAM RULES:
-cli_dump($pipelineFile['pipeline']['<CONFIG_GLOBAL>']['global_param_rules'], false);
+cli_dd($pipelineFile['pipeline']['<CONFIG_GLOBAL>']['global_param_rules'], false);
 foreach ($pipelineFile['pipeline']['<CONFIG_GLOBAL>']['global_param_rules'] as $GLOBAL_PARAM_KEY => $GLOBAL_PARAM_VAL) {
     if (
         isset($ROUTES_CONFIG_PARSED['GLOBAL']['PARAMS_USED']['INVALID'][$GLOBAL_PARAM_KEY])
@@ -2106,7 +2106,7 @@ if (isset($COMPILE_STATS_TRACKER)) {
         . "      └── Memoized Pure Queries:         " . $cntDataQry . "\n";
 }
 // Print final success payload
-cli_dump($ROUTES_CONFIG_PARSED['ALL'], false);
+cli_dd($ROUTES_CONFIG_PARSED['ALL'], false);
 cli_success("
 ==========================================================================================================================
 FunkCLI SUCCESSFULLY Compiled `" . FUNKPHP_FILE_PATH_DEPLOYMENT_FILE . "`

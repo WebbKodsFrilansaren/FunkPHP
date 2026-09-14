@@ -141,6 +141,8 @@ class C
     private array $cached = [
         //'placeholderRoutes' => [],
         'placeholderBuildFiles' => [
+            'user_defined_fns' => [],
+            'user_defined_classes' => [],
             'request' => [],
             'middlewares' => [],
             'routes' => [],
@@ -1039,13 +1041,14 @@ class C
         $count = count($tokens);
         $harvested = [];
         $braceDepth = 0;
+        $returnType = null;
         for ($i = 0; $i < $count; $i++) {
             if ($tokens[$i]->id !== T_FUNCTION) {
                 continue;
             }
-            if ($tok->text === '{') {
+            if ($tokens[$i]->text === '{') {
                 $braceDepth++;
-            } elseif ($tok->text === '}') {
+            } elseif ($tokens[$i]->text === '}') {
                 $braceDepth--;
             }
             $curr = $i + 1;
@@ -1086,6 +1089,7 @@ class C
             }
             $argsRaw = '';
             $bodySearchTokIdx = $argStartTok;
+            $closeParenIdx    = -1;
             if ($argStartTok < $count && $tokens[$argStartTok]->text === '(') {
                 $parenDepth = 1;
                 $argTokens = [];
@@ -1093,6 +1097,7 @@ class C
                     if ($tokens[$j]->text === '(') $parenDepth++;
                     elseif ($tokens[$j]->text === ')') $parenDepth--;
                     if ($parenDepth === 0) {
+                        $closeParenIdx    = $j;
                         $bodySearchTokIdx = $j + 1;
                         break;
                     }
@@ -1100,6 +1105,26 @@ class C
                 }
                 $argsRaw = trim(implode('', $argTokens));
             }
+            // Extract "return_type" if any
+            $returnTypeTokens = [];
+            $hasColon = false;
+            if ($closeParenIdx !== -1) {
+                for ($rt = $closeParenIdx + 1; $rt < $count; $rt++) {
+                    $tText = $tokens[$rt]->text;
+                    if ($tText === '{' || $tText === ';') {
+                        $bodySearchTokIdx = $rt;
+                        break;
+                    }
+                    if ($tText === ':') {
+                        $hasColon = true;
+                        continue;
+                    }
+                    if ($hasColon && $tokens[$rt]->id !== T_WHITESPACE) {
+                        $returnTypeTokens[] = $tText;
+                    }
+                }
+            }
+            $returnType = !empty($returnTypeTokens) ? implode('', $returnTypeTokens) : null;
             while ($bodySearchTokIdx < $count && $tokens[$bodySearchTokIdx]->text !== '{' && $tokens[$bodySearchTokIdx]->text !== ';') {
                 $bodySearchTokIdx++;
             }
@@ -1137,6 +1162,7 @@ class C
                 'fn_lowercased'   => strtolower($fnName),
                 'doc_comment'     => $docComment,
                 'args_raw'        => $argsRaw,
+                'return_type' => $returnType,
                 'body_raw'        => $bodyRaw,
                 'fn_raw'          => $fnRaw,
                 'fn_raw_with_doc' => $fnRawWithDoc,
@@ -2312,6 +2338,12 @@ class C
             'ForbiddenResponseHeaders' => "Forbidden Response Header Name in {$optionalCtx}: ",
 
             // Scope & Existence for FUNCTIONS Validation Errors
+            'UserDefinedFUNCTIONReturnTypeNotVoid' => "Provided User-defined Function in {$optionalCtx} from `/src/funkphp/config/functions.php` must have a `void` Return Type (e.g. `function user_defined(\$c): void {}`).",
+            'UserDefinedFUNCTIONReturnTypeNotBool' => "Provided User-defined Function in {$optionalCtx} from `/src/funkphp/config/functions.php` must have a `bool` Return Type (e.g. `function user_defined(\$c): bool {}`).",
+            'UserDefinedFUNCTIONReturnTypeNotArray' => "Provided User-defined Function in {$optionalCtx} from `/src/funkphp/config/functions.php` must have a `array` Return Type (e.g. `function user_defined(\$c): array {}`).",
+            'UserDefinedFUNCTIONReturnTypeNotString' => "Provided User-defined Function in {$optionalCtx} from `/src/funkphp/config/functions.php` must have a `string` Return Type (e.g. `function user_defined(\$c): string {}`).",
+            'UserDefinedFUNCTIONReturnTypeNotInteger' => "Provided User-defined Function in {$optionalCtx} from `/src/funkphp/config/functions.php` must have a `integer` Return Type (e.g. `function user_defined(\$c): integer {}`).",
+            'UserDefinedFUNCTIONReturnTypeNotFloat' => "Provided User-defined Function in {$optionalCtx} from `/src/funkphp/config/functions.php` must have a `float` Return Type (e.g. `function user_defined(\$c): float {}`).",
             'UserDefinedFUNCTIONHasWrongArgs'                       => "Provided User-defined Function in {$optionalCtx} from `/src/funkphp/config/functions.php` must besides the starting Function Parameter `&\$c` also have the following Function Parameters:",
             'UserDefinedFUNCTIONAlreadyInArray'                       => "Provided User-defined Function in {$optionalCtx} from `/src/funkphp/config/functions.php` is already in a must-be-unique array:",
             'UserDefinedCLASSAlreadyInArray'                       => "Provided User-defined Class in {$optionalCtx} from `/src/funkphp/config/classes.php` is already in a must-be-unique array:",
@@ -2836,12 +2868,21 @@ class C
             $this->invalidBatches['config']['DEFAULT_EXCEPTION_HANDLER'] = $userDefinedFunction;
             return;
         }
+        // Function must return a bool as that is the signature of set_exception_handler()
+        if (
+            !isset($fileData['functions'][$userDefinedFunction]['return_type'])
+            || strtolower(trim($fileData['functions'][$userDefinedFunction]['return_type'])) !== 'void'
+        ) {
+            $this->setErr($this->getErr('UserDefinedFUNCTIONReturnTypeNotVoid', $ctxVals) . " The User-Defined Function `{$userDefinedFunction}` must Return void as it sets the Custom Exception Handler via PHP in-built `set_exception_handler()`. Make sure `{$userDefinedFunction}` in `/src/funkphp/config/functions.php` has the Return Type `: void` as part of its Function Declaration (e.g. `function {$userDefinedFunction}(&\$c, \Throwable \$e){}): void {}`).",  'User-defined Function has No or Invalid Return Type ' . $ctxVals);
+            $this->invalidBatches['config']['DEFAULT_EXCEPTION_HANDLER'] = $userDefinedFunction;
+            return;
+        }
         // Unique Function checks for SetExceptionHandler: it must contain "\throwable $<varName>"
         // and this is checked AFTER it starts with &$c so no issues there!
         if (
             !preg_match('/\\\\Throwable\s+\$[_a-z][_a-z0-9]*/i', $fileData['functions'][$userDefinedFunction]['args_raw'])
         ) {
-            $err = $this->getErr('UserDefinedFUNCTIONHasWrongArgs', $ctxVals) . ' `\Throwable \$e` (e.g. `function userDefined(&\$c, \Throwable \$e){}`) in order to use it as a User-defined Exception Handler. The variable `$e` can be named something else as well.' . " Found instead:`{$fileData['functions'][$userDefinedFunction]['args_raw']}`.";
+            $err = $this->getErr('UserDefinedFUNCTIONHasWrongArgs', $ctxVals) . ' `\Throwable \$e` (e.g. `function userDefined(&\$c, \Throwable \$e): void {}`) in order to use it as a User-defined Exception Handler. The variable `$e` can be named something else as well.' . " Found instead:`{$fileData['functions'][$userDefinedFunction]['args_raw']}`.";
             $this->setErr($err, 'Invalid Function Arguments in User-defined Function File ' . $ctxVals);
             $this->invalidBatches['config']['DEFAULT_EXCEPTION_HANDLER'] = $userDefinedFunction;
             return;
@@ -2851,6 +2892,7 @@ class C
         $this->validBatches['config']['DEFAULT_EXCEPTION_HANDLER'] = $userDefinedFunction;
         $this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction] = "->CONFIG()->setCustomExceptionHandler('{$userDefinedFunction}')";
         $this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunction] = "->CONFIG()->setCustomExceptionHandler('{$userDefinedFunction}')";
+        $this->cached['placeholderBuildFiles']['user_defined_fns'][$userDefinedFunction] = true;
     }
     private function batchSetDefaultErrorHandlerGlobal(string $userDefinedFunction) // DEFAULT GLOBAL ERROR HANDLER
     {
@@ -2886,12 +2928,21 @@ class C
             $this->invalidBatches['config']['DEFAULT_ERROR_HANDLER'] = $userDefinedFunction;
             return;
         }
+        // Function must return a bool as that is the signature of set_error_handler()
+        if (
+            !isset($fileData['functions'][$userDefinedFunction]['return_type'])
+            || strtolower(trim($fileData['functions'][$userDefinedFunction]['return_type'])) !== 'bool'
+        ) {
+            $this->setErr($this->getErr('UserDefinedFUNCTIONReturnTypeNotBool', $ctxVals) . " The User-Defined Function `{$userDefinedFunction}` must Return bool as it sets the Custom Error Handler via PHP in-built `set_error_handler()`. Make sure `{$userDefinedFunction}` in `/src/funkphp/config/functions.php` has the Return Type `: bool` as part of its Function Declaration (e.g. `function {$userDefinedFunction}(&\$c, \$errNo, \$errStr, \$errFile, \$errLine): bool {}`).",  'User-defined Function has No or Invalid Return Type ' . $ctxVals);
+            $this->invalidBatches['config']['DEFAULT_ERROR_HANDLER'] = $userDefinedFunction;
+            return;
+        }
         // Unique Function checks for SetErrorHandler: it must contain "$errNo, $errStr, $errFile, $errLine"
         // and this is checked AFTER it starts with &$c so no issues there! The variables can be typed or not.
         if (
             !preg_match('/^&\$c\s*,\s*(?:int\s+)?\$[_a-z0-9]+\s*,\s*(?:string\s+)?\$[_a-z0-9]+\s*,\s*(?:string\s+)?\$[_a-z0-9]+\s*,\s*(?:int\s+)?\$[_a-z0-9]+$/i', $fileData['functions'][$userDefinedFunction]['args_raw'])
         ) {
-            $err = $this->getErr('UserDefinedFUNCTIONHasWrongArgs', $ctxVals) . '` $errNo, $errStr, $errFile, $errLine` (e.g. `function userDefined(&\$c, $errNo, $errStr, $errFile, $errLine){}`) in order to use it as a User-defined Error Handler. The `$errNo,$errStr,$errFile,$errLine` can be named something else as well.' . " Found instead:`{$fileData['functions'][$userDefinedFunction]['args_raw']}`.";
+            $err = $this->getErr('UserDefinedFUNCTIONHasWrongArgs', $ctxVals) . '` $errNo, $errStr, $errFile, $errLine` (e.g. `function userDefined(&\$c, $errNo, $errStr, $errFile, $errLine): bool {}`) in order to use it as a User-defined Error Handler. The `$errNo,$errStr,$errFile,$errLine` can be named something else as well.' . " Found instead:`{$fileData['functions'][$userDefinedFunction]['args_raw']}`.";
             $this->setErr($err, 'Invalid Function Arguments in User-defined File Function ' . $ctxVals);
             $this->invalidBatches['config']['DEFAULT_ERROR_HANDLER'] = $userDefinedFunction;
             return;
@@ -2901,6 +2952,7 @@ class C
         $this->validBatches['config']['DEFAULT_ERROR_HANDLER'] = $userDefinedFunction;
         $this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction] = "->CONFIG()->setCustomErrorHandler('{$userDefinedFunction}')";
         $this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunction] = "->CONFIG()->setCustomErrorHandler('{$userDefinedFunction}')";
+        $this->cached['placeholderBuildFiles']['user_defined_fns'][$userDefinedFunction] = true;
     }
     private function batchSetDefaultURINormalizerGlobal(string $userDefinedFunction) // URI NORMALIZER GLOBAL
     {
@@ -2940,11 +2992,21 @@ class C
             $this->invalidBatches['config']['DEFAULT_URI_NORMALIZER'] = $userDefinedFunction;
             return;
         }
+        // Function must return a string as it returns the normalized URI string
+        if (
+            !isset($fileData['functions'][$userDefinedFunction]['return_type'])
+            || strtolower(trim($fileData['functions'][$userDefinedFunction]['return_type'])) !== 'string'
+        ) {
+            $this->setErr($this->getErr('UserDefinedFUNCTIONReturnTypeNotString', $ctxVals) . " The User-Defined Function `{$userDefinedFunction}` must Return a String as it sets the Custom-Normalized Request URI String. Make sure `{$userDefinedFunction}` in `/src/funkphp/config/functions.php` has the Return Type `: string` as part of its Function Declaration (e.g. `function {$userDefinedFunction}(&\$c): string {}`).",  'User-defined Function has No or Invalid Return Type ' . $ctxVals);
+            $this->invalidBatches['config']['DEFAULT_URI_NORMALIZER'] = $userDefinedFunction;
+            return;
+        }
         // Add to ValidBatches, UserDefinedFNs and also UserDefinedEngineFNs which means any User-defined function
         // that is added there cannot be used for multiple purposes as they are meant to be very specifically used.
         $this->validBatches['config']['DEFAULT_URI_NORMALIZER'] = $userDefinedFunction;
         $this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction] = "->CONFIG()->setCustomURI_NormalizerHandler('{$userDefinedFunction}')";
         $this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunction] = "->CONFIG()->setCustomURI_NormalizerHandler('{$userDefinedFunction}')";
+        $this->cached['placeholderBuildFiles']['user_defined_fns'][$userDefinedFunction] = true;
     }
     private function batchSetDefaultHTTPSKernelDispatchHandlerGlobal(string $userDefinedFunction) // DEFAULT HTTSP KERNEL/ROUTING
     {
@@ -2989,6 +3051,7 @@ class C
         $this->validBatches['config']['DEFAULT_HTTPS_KERNEL'] = $userDefinedFunction;
         $this->cached['placeholderUsedUserDefinedFunctions'][$userDefinedFunction] = "->CONFIG()->setCustomKernelHandler('{$userDefinedFunction}')";
         $this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunction] = "->CONFIG()->setCustomKernelHandler('{$userDefinedFunction}')";
+        $this->cached['placeholderBuildFiles']['user_defined_fns'][$userDefinedFunction] = true;
     }
     private function batchSetDefaultIPResolverGlobal(string $userDefinedFunction) // URI NORMALIZER GLOBAL
     {
@@ -3024,6 +3087,16 @@ class C
             $this->invalidBatches['config']['DEFAULT_IP_RESOLVER'] = $userDefinedFunction;
             return;
         }
+        // Function must return a string as it returns the resolved IP String
+        if (
+            !isset($fileData['functions'][$userDefinedFunction]['return_type'])
+            || strtolower(trim($fileData['functions'][$userDefinedFunction]['return_type'])) !== 'string'
+        ) {
+            $this->setErr($this->getErr('UserDefinedFUNCTIONReturnTypeNotString', $ctxVals) . " The User-Defined Function `{$userDefinedFunction}` must Return a String as it sets the Custom-Resolved IP String for the Current Request. Make sure `{$userDefinedFunction}` in `/src/funkphp/config/functions.php` has the Return Type `: string` as part of its Function Declaration (e.g. `function {$userDefinedFunction}(&\$c): string {}`).",  'User-defined Function has No or Invalid Return Type ' . $ctxVals);
+            $this->invalidBatches['config']['DEFAULT_IP_RESOLVER'] = $userDefinedFunction;
+            return;
+        }
+
         // Add to ValidBatches, UserDefinedFNs and also UserDefinedEngineFNs which means any User-defined function
         // that is added there cannot be used for multiple purposes as they are meant to be very specifically used.
         $this->validBatches['config']['DEFAULT_IP_RESOLVER'] = $userDefinedFunction;
@@ -3172,6 +3245,7 @@ class C
         }
         // Finally add it
         $this->validBatches['config']['NO_ROUTE_MATCH']['CALLBACK'] = $userDefinedFunctionName;
+        $this->cached['placeholderBuildFiles']['user_defined_fns'][$userDefinedFunctionName] = true;
     }
 
     /* setBASEURL<VARIANTS> Global */
@@ -4064,6 +4138,21 @@ class C
                 ];
                 return;
             }
+            // User-defined FN must have a ":bool" return type
+            $CB_TO_USE = $this->cached['file_user_defined_functions']['functions'][$cbFN[2]];
+            if (
+                !isset($CB_TO_USE['return_type'])
+                || strtolower(trim($CB_TO_USE['return_type'])) !== 'bool'
+                || count(($CB_TO_USE['returns'] ?? [])) === 0
+            ) {
+                $this->setErr($this->getErr('UserDefinedFUNCTIONReturnTypeNotBool', $ctxVals) . " Check your User-defined Function `{$cbFN[2]}` in `/src/funkphp/config/functions.php` and make sure it has the `: bool` as the Return Type in its Function Declaration!", 'User-Defined Function for Param Rule Has No Or Invalid Return Type' .  $ctxVals);
+                $this->invalidBatches['paramRules']['config'][$param] = [
+                    'pattern' => $regex,
+                    'default' => $defaultParamValueOnRegexMismatch,
+                    'callback' => null,
+                ];
+                return;
+            }
             // Swap places since callback will be used and not a pattern!
             $callback = $cbFN[2];
             $regex = null;
@@ -4097,6 +4186,10 @@ class C
                 'callback' => $callback,
             ];
             return;
+        }
+        // Store used USER-DEFINED FN for callback!
+        if (isset($callback)) {
+            $this->cached['placeholderBuildFiles']['user_defined_fns'][$callback] = true;
         }
         // Finally store valid global param rule
         $this->validBatches['config']['paramRules'][$param] = [
@@ -4846,6 +4939,7 @@ class C
         }
         // Finally add it
         $this->validBatches['methods'][$method]['NO_ROUTE_MATCH']['CALLBACK'] = $userDefinedFunctionName;
+        $this->cached['placeholderBuildFiles']['user_defined_fns'][$userDefinedFunctionName] = true;
     }
     //METHOD: setParamRule Method
     private function batchSetParamRuleMethod(string $method, string $param, string $regex, $defaultParamValueOnRegexMismatch = null)
@@ -4931,6 +5025,21 @@ class C
                 ];
                 return;
             }
+            // User-defined FN must have a ":bool" return type
+            $CB_TO_USE = $this->cached['file_user_defined_functions']['functions'][$cbFN[2]];
+            if (
+                !isset($CB_TO_USE['return_type'])
+                || strtolower(trim($CB_TO_USE['return_type'])) !== 'bool'
+                || count(($CB_TO_USE['returns'] ?? [])) === 0
+            ) {
+                $this->setErr($this->getErr('UserDefinedFUNCTIONReturnTypeNotBool', $ctxVals) . " Check your User-defined Function `{$cbFN[2]}` in `/src/funkphp/config/functions.php` and make sure it has the `: bool` as the Return Type in its Function Declaration!", 'User-Defined Function for Param Rule Has No Or Invalid Return Type' .  $ctxVals, $method);
+                $this->invalidBatches['paramRules']['methods'][$method][$param] = [
+                    'pattern' => $regex,
+                    'default' => $defaultParamValueOnRegexMismatch,
+                    'callback' => null,
+                ];
+                return;
+            }
             // Swap places since callback will be used and not a pattern!
             $callback = $cbFN[2];
             $regex = null;
@@ -4965,6 +5074,10 @@ class C
                 'callback' => $callback,
             ];
             return;
+        }
+        // Store used USER-DEFINED FN for callback!
+        if (isset($callback)) {
+            $this->cached['placeholderBuildFiles']['user_defined_fns'][$callback] = true;
         }
         // Finally store valid method param rule
         $this->validBatches['methods'][$method]['paramRules'][$param] = [
@@ -5776,6 +5889,21 @@ class C
                 ];
                 return;
             }
+            // User-defined FN must have a ":bool" return type
+            $CB_TO_USE = $this->cached['file_user_defined_functions']['functions'][$cbFN[2]];
+            if (
+                !isset($CB_TO_USE['return_type'])
+                || strtolower(trim($CB_TO_USE['return_type'])) !== 'bool'
+                || count(($CB_TO_USE['returns'] ?? [])) === 0
+            ) {
+                $this->setErr($this->getErr('UserDefinedFUNCTIONReturnTypeNotBool', $ctxVals) . " Check your User-defined Function `{$cbFN[2]}` in `/src/funkphp/config/functions.php` and make sure it has the `: bool` as the Return Type in its Function Declaration!", 'User-Defined Function for Param Rule Has No Or Invalid Return Type' .  $ctxVals, $method, $route);
+                $this->invalidBatches['paramRules']['routes'][$method][$route][$param] = [
+                    'pattern' => $regex,
+                    'default' => $defaultParamValueOnRegexMismatch,
+                    'callback' => null,
+                ];
+                return;
+            }
             // Swap places since callback will be used and not a pattern!
             $callback = $cbFN[2];
             $regex = null;
@@ -5819,6 +5947,10 @@ class C
                 'callback' => $callback,
             ];
             return;
+        }
+        // Store used USER-DEFINED FN for callback!
+        if (isset($callback)) {
+            $this->cached['placeholderBuildFiles']['user_defined_fns'][$callback] = true;
         }
         // Finally add it as valid for that route in
         // $validBatches->paramRules->routes->method->route-><$param>
@@ -6962,7 +7094,6 @@ class C
         $currentNode = &$this->compiled['routes']['trie'][$method];
         foreach ($segments as $segment) {
             if (str_starts_with($segment, ':')) {
-                // Dynamic parameter segment
                 $paramName = substr($segment, 1);
                 if (!isset($currentNode[':'])) {
                     $currentNode[':'] = [];
@@ -9394,6 +9525,13 @@ class C
         unset($c['runtime']['debug']);
         $FUNK_DEPLOY_ARR = [];
         $OUTPUT_PATH = ROOT_FOLDER . '/' . 'FunkPHPDeployment.php';
+        // 1. Opening PHP Banner & Opcode Optimization Headers
+        $FUNK_DEPLOY_ARR[] = "<?php\n";
+        $FUNK_DEPLOY_ARR[] = "/**\n";
+        $FUNK_DEPLOY_ARR[] = " * FunkPHPDeployment File\n";
+        $FUNK_DEPLOY_ARR[] = " * Generated: " . date('Y-m-d H:i:s') . "\n";
+        $FUNK_DEPLOY_ARR[] = " * DO NOT EDIT DIRECTLY - ALL CHANGES WILL BE OVERWRITTEN\n";
+        $FUNK_DEPLOY_ARR[] = " */\n\n";
 
         //////////////////////////////////////////////////////
         ////////// DONE BUILDING FunkPHPDeployment.php ///////
@@ -9404,27 +9542,35 @@ class C
     // It is the non-cli version of cli_crud_folder_php_file_atomic_write()
     private function compile_output_file(string $fileContent, string $file_path): bool
     {
-        $tempFilePath = $file_path . '.tmp';
-        if (file_put_contents($tempFilePath, $fileContent) === false) {
+        $tempFilePath = $file_path . '.' . uniqid('tmp_', true);
+        if (file_put_contents($tempFilePath, $fileContent, LOCK_EX) === false) {
             if (!function_exists('cli_err_without_exit')) {
-                $this->compile_setErr('FAILED to Write Content to Temporary File', '[FAILED to Write Content to Temporary File]: Failed to Output `FunkPHPDeployment.php` File in Path:`' . $file_path .  '`. Review/Verify File Permission(s) for that Specific Path and its (Sub)folders.');
+                $this->compile_setErr(
+                    'FAILED to Write Content to Temporary File',
+                    '[/src/funkphp/core/classes.php->class C->compile_output_file()]: Failed to Output file in path:`' . $file_path . '`. Review/Verify File Permission(s) for that Specific Path.'
+                );
             } else {
                 cli_err_without_exit('FAILED to Write Content to Temporary File `' . $tempFilePath . '`!');
             }
             return false;
         }
-        if (!rename($tempFilePath, $file_path)) {
+        @chmod($tempFilePath, 0666);
+        if (!@rename($tempFilePath, $file_path)) {
             @unlink($tempFilePath);
             if (!function_exists('cli_err_without_exit')) {
-                $this->compile_setErr('FAILED to Rename Temporary File', '[FAILED to Rename Temporary File]: FAILED to Rename Temporary File `' . $tempFilePath . '` back to Correct File Path `' . $file_path . '`!');
+                $this->compile_setErr(
+                    'FAILED to Rename Temporary File',
+                    '[/src/funkphp/core/classes.php->class C->compile_output_file()]: FAILED to Rename Temporary File `' . $tempFilePath . '` back to Correct File Path `' . $file_path . '`. Review/Verify File Permission(s) again?'
+                );
             } else {
-                cli_err_without_exit('FAILED to Rename Temporary File `' . $tempFilePath . '` back to Correct File Path `' . $file_path . '`!');
+                cli_err_without_exit('FAILED to Rename Temporary File `' . $tempFilePath . '` back to Correct File Path `' . $file_path . '`. Review/Verify File Permission(s) again?');
             }
             return false;
         }
-        @chmod($file_path, 0666);
         return true;
     }
+
+    // `run()` is when it runs locally after successful compilation
     private function run()
     {
         // Run the valid compiled FunkPHP - which is NOT the same as outputting
