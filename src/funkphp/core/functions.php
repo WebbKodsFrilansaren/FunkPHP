@@ -525,27 +525,14 @@ function funk_return_error_page(&$c, int $errCode, string $errMsg, string $pageN
     funk_set_header($c, 'content-type', 'text/html');
     funk_set_header($c, 'content-security-policy', "default-src 'none'; img-src 'self'; script-src 'self'; connect-src 'none'; style-src 'self' 'unsafe-inline'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; font-src 'self'; base-uri 'self';");
     funk_internal_send_headers($c, true); // true means ignoring current configured CSP and using above one instead
-    $pagePath = defined('FUNKPHP_ONLINE')
-        ? ROOT_FOLDER . '/pages/' . $pageName . '.php'
-        : ROOT_FOLDER . '/pages/compiled/' . $pageName . '.php';
-    if (file_exists($pagePath)) {
-        require_once $pagePath;
-    } else {
-        \funk_return_error_json_or_page(
-            $c,
-            500,
-            [
-                'internal_server_error' => 'Failed to load a `User-defined Page` to Return a Response. This means the `Page` does NOT exist in the Expected Folder `/pages/`.'
-            ],
-            '500',
-            'Failed to use a `User-defined Function` to Return a Response. This means the Function-name does NOT exist.'
-        );
-    }
     try {
         $custom_error_message = $errMsg;
-        include_once ROOT_PAGES_ERRORS . '/' . $pageName . '.php';
+        $pagePath = defined('FUNKPHP_ONLINE')
+            ? ROOT_FOLDER . '/pages/' . $pageName . '.php'
+            : ROOT_FOLDER . '/pages/compiled/' . $pageName . '.php';
+        include_once $pagePath;
     } catch (\Throwable $e) {
-        \critical_err_json_or_html(500, 'Tell the Developer: An Exception Occurred Inside the `funk_use_error_page()` Function while trying to return a Custom Error Page. Yes, an error to show an error occured:`' . $e->getMessage() . '`.');
+        \critical_err_json_or_html(500, '[INTERNAL SERVER ERROR]: Error Page Rendering Failure: ' . $e->getMessage());
     }
     exit();
 }
@@ -1841,5 +1828,25 @@ HTML;
 /* Global entry point for initializing FunkPHP in `/src/funkphp/config/app.php` */
 function FunkPHP()
 {
-    return new FunkPHP(new C);
+    return new FunkPHP(new FunkPHPC);
+}
+
+function FunkConnect()
+{
+    return new FunkPHPConnect(new FunkPHPConnectC);
+}
+
+function FunkSchemas()
+{
+    return new FunkPHPSchemas(new FunkPHPSchemasC);
+}
+
+function FunkValidate()
+{
+    return new FunkPHPValidate(new FunkPHPValidateC);
+}
+
+function FunkSQL()
+{
+    return new FunkPHPSQL(new FunkPHPSQLC);
 }

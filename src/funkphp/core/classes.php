@@ -17,10 +17,10 @@
  * FunkPHP Classes used in the `/src/funkphp/config/app.php`
 */
 /*
- * Class C is the "source of truth" regarding app state, app configuration (globally, on method leve, on route level)
+ * Class FunkPHPC is the "source of truth" regarding app state, app configuration (globally, on method leve, on route level)
  * such as `request, post-response, routes, middlewares, individual routse and their piped functions`
 */
-class C
+class FunkPHPC
 {
     // ARRAY LISTS of $FORBIDDEN and $ALLOWED
     private array $FORBIDDEN = [
@@ -316,8 +316,8 @@ class C
     ];
 
     // NAVIGATION VARIABLES+METHODS IN IDE ->config()
-    private ?FunkConfig $configScope = null;
-    private ?FunkRoutes $routesScope = null;
+    private ?FunkPHPConfig $configScope = null;
+    private ?FunkPHPRoutes $routesScope = null;
     // Default booleans for compile(), run()
     private bool $FUNKPHP_COMPILED = false;
     private bool $FUNKPHP_COMPILED_SUCCESS = false;
@@ -2592,17 +2592,17 @@ class C
 
     // ->config()
     // and can jump to->pipesRequest(),->pipesPostResponse() or ->routes()
-    public function CONFIG(): FunkConfig
+    public function CONFIG(): FunkPHPConfig
     {
         $this->setCtx('CONFIG', null, "CONFIG",);
-        return $this->configScope ??= new FunkConfig($this);
+        return $this->configScope ??= new FunkPHPConfig($this);
     }
     // ->routes() | gives access to:->GET(),->POST(),->PATCH(),->PUT(),->DELETE()
     // and can jump back to ->config()
-    public function ROUTES(): FunkRoutes
+    public function ROUTES(): FunkPHPRoutes
     {
         $this->setCtx('CONFIG', null, "ROUTES");
-        return $this->routesScope ??= new FunkRoutes($this);
+        return $this->routesScope ??= new FunkPHPRoutes($this);
     }
     // batchFunctions that attempt batching something in $batches that would be validated later unless
     // placed in $invalidBatches based upon initial valid string value like empty string or invalid
@@ -2636,7 +2636,7 @@ class C
     {
         [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setCompileFlag', $flag);
         $validFlags = [
-            'OUTPUT_AFTER_COMPILATION', // ignore in-built run() when compiling in web
+            'OUTPUT_OVERRIDE_DEBUG', // ignore in-built run() when compiling in web
             'ALLOW_GHOST_ROUTES', // no error issued when
             'ALL_ROUTES_MUST_HAVE_PIPE_RESPONSE', // pipeResponse() must be applied to every route or hard compilation error.
             'HIDE_NO_ROUTE_RESPONSE_WARNING', // No warning issued when a Route has no 'response' (no pipeResponse())
@@ -7261,7 +7261,7 @@ class C
         }
     }
     // Remove comments and add "\" namespace qualifiers to final built file
-    private function compile_php_strip_whitespace_and_optimize(string $code, array $otherPrefixes = []): string
+    private function compile_php_strip_whitespace_and_optimize(string $code): string
     {
         $tokens = token_get_all($code);
         $output = '';
@@ -7990,7 +7990,7 @@ class C
                     <div class="alert-warning" style="display:flex; align-items:center; align-content:center; gap:0.5rem;">
                         <span class="alert-icon"><?= $WARNING_BASE64; ?></span>
                         <div class="alert-content" style="width:100%; display:inline-block; padding-bottom:0.2rem;">
-                            <code>->CONFIG()->setDebug()</code> 2nd argument is <code>TRUE</code> (always show). Set it to <code>FALSE</code> to Allow Compiled Execution with <code>run()</code> OR Built Compiled File <code>/src/funkphp/FunkPHPDeployment.php</code> which can only take place after a Successful Compilation.
+                            <code>->CONFIG()->setDebug()</code> 2nd argument is <code>TRUE</code> (always show). Set it to <code>FALSE</code> to Allow Compiled Execution with <code>run()</code> OR Built Compiled File <code>/src/funkphp/FunkPHPDeployment.php</code> which is only after a Successful Compilation. Use <code>->CONFIG()->setCompileFlag('OUTPUT_OVERRIDE_DEBUG')</code> to Build /src/funkphp/FunkPHPDeployment.php File even if Debug is Always Shown.
                         </div>
                     </div>
                 <?php endif; ?>
@@ -8490,6 +8490,7 @@ class C
         // Otherwise, we dump API + Errors and exist early (default in dd()).
         // ------------------------------------------------------------------------------------------
         if ($this->errors['ERRORS'] > 0 || count($this->invalidBatches) > 0) {
+            $this->compiled['built'] = $this->FUNKPHP_BUILT;
             $this->output_errors($this->errors, $this->compiled);
         }
 
@@ -9552,6 +9553,7 @@ class C
                     $this->compiled['cached'] = $this->cached;
                 }
             }
+            $this->compiled['built'] = $this->FUNKPHP_BUILT;
             $this->output_errors($this->errors, $this->compiled);
         }
         // Here Compilation was successful so either run it locally
@@ -9571,20 +9573,34 @@ class C
         $COMPLETE_DEPLOYMENT_BUFFER = null;
         $FUNK_DEPLOY_ARR = [];
         $OUTPUT_PATH = ROOT_FOLDER . '/' . 'FunkPHPDeployment.php';
-        // 1. Opening PHP Banner & Opcode Optimization Headers
-        $FUNK_DEPLOY_ARR[] = "<?php\n";
-        $FUNK_DEPLOY_ARR[] = "/**\n";
-        $FUNK_DEPLOY_ARR[] = " * FunkPHPDeployment File\n";
-        $FUNK_DEPLOY_ARR[] = " * Generated: " . date('Y-m-d H:i:s') . "\n";
-        $FUNK_DEPLOY_ARR[] = " * DO NOT EDIT DIRECTLY - ALL CHANGES WILL BE OVERWRITTEN\n";
-        $FUNK_DEPLOY_ARR[] = " */\n\n";
 
-        // Add global $c variable
+        // 1. Opening PHP Tag with also Info about Compiler Flags
+        // and this one will replace the otherwise comment-free string
+        $FUNK_DEPLOY_HEADER  = "<?php\n";
+        $FUNK_DEPLOY_HEADER .= "/**\n";
+        $FUNK_DEPLOY_HEADER .= " * FunkPHPDeployment File\n";
+        $FUNK_DEPLOY_HEADER .= " * Built: " . date('Y-m-d H:i:s') . "\n";
+        $FUNK_DEPLOY_HEADER .= " * Compiler Flags: " . $this->joinArray($this->compileFlags, true) . "\n";
+        $FUNK_DEPLOY_HEADER .= " * DO NOT EDIT DIRECTLY - ALL CHANGES WILL BE OVERWRITTEN\n";
+        $FUNK_DEPLOY_HEADER .= " */\n";
+
+        // 2. Defined Constants needed for the Built Version
+        $FUNK_DEPLOY_ARR[] = "define('FUNKPHP_NO_VALUE', new stdClass());\n";
+        $FUNK_DEPLOY_ARR[] = "define('FUNKPHP_ONLINE', true));\n";
+        $FUNK_DEPLOY_ARR[] = "define('ROOT_FOLDER', __DIR__);\n";
+        $FUNK_DEPLOY_ARR[] = "define('ROOT_PAGES', __DIR__ . '/pages');\n";
+
+        // Add global $c variable (with optional compiled part if running custom kernel)
+        if (isset($this->compiled['config']['runtime']['custom_https_kernel'])) {
+            $c['compiled'] = $this->compiled;
+        }
         $FUNK_DEPLOY_ARR[] = '$c = ' . var_export($c, true) . ";\n\n";
 
+        compile_output_final_deploy_file:
         // When all buffering building has been completed, just implode, optimize and attempt outputting it
         $COMPLETE_DEPLOYMENT_BUFFER = implode($FUNK_DEPLOY_ARR);
         $COMPLETE_DEPLOYMENT_BUFFER =  $this->compile_php_strip_whitespace_and_optimize($COMPLETE_DEPLOYMENT_BUFFER);
+        $COMPLETE_DEPLOYMENT_BUFFER = str_replace('<?php', $FUNK_DEPLOY_HEADER, $COMPLETE_DEPLOYMENT_BUFFER, 1);
         if ($this->compile_output_file($COMPLETE_DEPLOYMENT_BUFFER, $OUTPUT_PATH)) {
             $this->FUNKPHP_BUILT = true;
             if (!function_exists('cli_success')) {
@@ -9975,33 +9991,33 @@ class C
  */
 class FunkPHP
 {
-    public function __construct(private C $c) {}
+    public function __construct(private FunkPHPC $c) {}
     /**
      * Access global framework configuration settings.
      *
-     * @return FunkConfig
+     * @return FunkPHPConfig
      */
-    public function CONFIG(): FunkConfig
+    public function CONFIG(): FunkPHPConfig
     {
         return $this->c->config();
     }
     /**
      * Access HTTP route definition builders.
      *
-     * @return FunkRoutes
+     * @return FunkPHPRoutes
      */
-    public function ROUTES(): FunkRoutes
+    public function ROUTES(): FunkPHPRoutes
     {
         return $this->c->routes();
     }
 }
 /*
- * Class FunkConfig() - accessed via FunkPHP()->config() - contains
+ * Class FunkPHPConfig() - accessed via FunkPHP()->config() - contains
  * Can jump to ->routes() | This is also known as "global"
 */
-class FunkConfig
+class FunkPHPConfig
 {
-    public function __construct(private C $c) {}
+    public function __construct(private FunkPHPC $c) {}
     /**
      * FLUENT METHOD VISUAL COMMENT DIVIDER (HAS NO LOGICAL, BUT MAYBE PRACTICAL EFFECT)
      *
@@ -10028,7 +10044,7 @@ class FunkConfig
     /**
      * Set Compiler Flags that are applied when compiling. Most of them are about what is allowed or not, whether to ignore certain warnings and/or errors or not.
      *
-     * @param 'OUTPUT_AFTER_COMPILATION'|'ALLOW_GHOST_ROUTES'|'ALL_ROUTES_MUST_HAVE_PIPE_RESPONSE'|'HIDE_NO_ROUTE_RESPONSE_WARNING'|'NO_WARNINGS_ALLOWED'|'ONLY_RETURN_COMPILED_PAGES'|'ONLY_RETURN_NONCOMPILED_PAGES' $flag Compiler flag (e.g., "NO_WARNINGS_ALLOWED")
+     * @param 'OUTPUT_OVERRIDE_DEBUG'|'ALLOW_GHOST_ROUTES'|'ALL_ROUTES_MUST_HAVE_PIPE_RESPONSE'|'HIDE_NO_ROUTE_RESPONSE_WARNING'|'NO_WARNINGS_ALLOWED'|'ONLY_RETURN_COMPILED_PAGES'|'ONLY_RETURN_NONCOMPILED_PAGES' $flag Compiler flag (e.g., "NO_WARNINGS_ALLOWED")
      * @return $this
      */
     public function setCompileFlag(string $flag): self
@@ -10680,105 +10696,105 @@ class FunkConfig
     /**
      * Switch context directly from configuration to the route definition builder.
      *
-     * @return FunkRoutes
+     * @return FunkPHPRoutes
      */
-    public function ROUTES(): FunkRoutes
+    public function ROUTES(): FunkPHPRoutes
     {
         return $this->c->routes();
     }
 }
 /**
- * Class FunkRoutes
+ * Class FunkPHPRoutes
  *
- * @method FunkMethod GET()
- * @method FunkMethod POST()
- * @method FunkMethod PUT()
- * @method FunkMethod PATCH()
- * @method FunkMethod DELETE()
- * @method FunkMethod CONFIG()
+ * @method FunkPHPMethod GET()
+ * @method FunkPHPMethod POST()
+ * @method FunkPHPMethod PUT()
+ * @method FunkPHPMethod PATCH()
+ * @method FunkPHPMethod DELETE()
+ * @method FunkPHPMethod CONFIG()
  */
-class FunkRoutes
+class FunkPHPRoutes
 {
     private array $methodInstances = [];
-    public function __construct(private C $c) {}
+    public function __construct(private FunkPHPC $c) {}
     /**
      * Switch or initialize routing context for HEAD requests.
      *
-     * @return FunkMethod
+     * @return FunkPHPMethod
      */
-    public function HEAD(): FunkMethod
+    public function HEAD(): FunkPHPMethod
     {
         $this->c->batch("batchSetMETHOD", "HEAD");
-        return $this->methodInstances['HEAD'] ??= new FunkMethod($this->c, $this, 'HEAD');
+        return $this->methodInstances['HEAD'] ??= new FunkPHPMethod($this->c, $this, 'HEAD');
     }
     /**
      * Switch or initialize routing context for GET requests.
      *
-     * @return FunkMethod
+     * @return FunkPHPMethod
      */
-    public function GET(): FunkMethod
+    public function GET(): FunkPHPMethod
     {
         $this->c->batch("batchSetMETHOD", "GET");
-        return $this->methodInstances['GET'] ??= new FunkMethod($this->c, $this, 'GET');
+        return $this->methodInstances['GET'] ??= new FunkPHPMethod($this->c, $this, 'GET');
     }
     /**
      * Switch or initialize routing context for POST requests.
      *
-     * @return FunkMethod
+     * @return FunkPHPMethod
      */
-    public function POST(): FunkMethod
+    public function POST(): FunkPHPMethod
     {
         $this->c->batch("batchSetMETHOD", "POST");
-        return $this->methodInstances['POST'] ??= new FunkMethod($this->c, $this, 'POST');
+        return $this->methodInstances['POST'] ??= new FunkPHPMethod($this->c, $this, 'POST');
     }
     /**
      * Switch or initialize routing context for PUT requests.
      *
-     * @return FunkMethod
+     * @return FunkPHPMethod
      */
-    public function PUT(): FunkMethod
+    public function PUT(): FunkPHPMethod
     {
         $this->c->batch("batchSetMETHOD", "PUT");
-        return $this->methodInstances['PUT'] ??= new FunkMethod($this->c, $this, 'PUT');
+        return $this->methodInstances['PUT'] ??= new FunkPHPMethod($this->c, $this, 'PUT');
     }
     /**
      * Switch or initialize routing context for PATCH requests.
      *
-     * @return FunkMethod
+     * @return FunkPHPMethod
      */
-    public function PATCH(): FunkMethod
+    public function PATCH(): FunkPHPMethod
     {
         $this->c->batch("batchSetMETHOD", "PATCH");
-        return $this->methodInstances['PATCH'] ??= new FunkMethod($this->c, $this, 'PATCH');
+        return $this->methodInstances['PATCH'] ??= new FunkPHPMethod($this->c, $this, 'PATCH');
     }
     /**
      * Switch or initialize routing context for DELETE requests.
      *
-     * @return FunkMethod
+     * @return FunkPHPMethod
      */
-    public function DELETE(): FunkMethod
+    public function DELETE(): FunkPHPMethod
     {
         $this->c->batch("batchSetMETHOD", "DELETE");
-        return $this->methodInstances['DELETE'] ??= new FunkMethod($this->c, $this, 'DELETE');
+        return $this->methodInstances['DELETE'] ??= new FunkPHPMethod($this->c, $this, 'DELETE');
     }
 }
 /**
- * Class FunkMethod
+ * Class FunkPHPMethod
  *
  * Manages HTTP method-level routing defaults, nonces, and fallback handlers.
  *
- * @method FunkMethod HEAD()
- * @method FunkMethod GET()
- * @method FunkMethod POST()
- * @method FunkMethod PUT()
- * @method FunkMethod PATCH()
- * @method FunkMethod DELETE()
+ * @method FunkPHPMethod HEAD()
+ * @method FunkPHPMethod GET()
+ * @method FunkPHPMethod POST()
+ * @method FunkPHPMethod PUT()
+ * @method FunkPHPMethod PATCH()
+ * @method FunkPHPMethod DELETE()
  */
-class FunkMethod
+class FunkPHPMethod
 {
     public function __construct(
-        private C $c,
-        private FunkRoutes $parent,
+        private FunkPHPC $c,
+        private FunkPHPRoutes $parent,
         private string $method
     ) {}
     /**
@@ -11017,77 +11033,77 @@ class FunkMethod
      * Initialize a new route definition for the current HTTP method.
      *
      * @param string $path Route path pattern (e.g., "/users/:id")
-     * @return FunkRoute
+     * @return FunkPHPRoute
      */
-    public function ROUTE(string $path): FunkRoute
+    public function ROUTE(string $path): FunkPHPRoute
     {
         $methodPrefix = $this->c->batch("batchMethodPrefix", $this->method);
         $this->c->batch('batchNewRoute', $this->method, strtolower(trim($methodPrefix . $path)));
-        return new FunkRoute($this->c, $this, $this->method, strtolower(trim($methodPrefix . $path)));
+        return new FunkPHPRoute($this->c, $this, $this->method, strtolower(trim($methodPrefix . $path)));
     }
     /**
      * Switch context back to HEAD method builder.
      *
-     * @return FunkMethod
+     * @return FunkPHPMethod
      */
-    public function HEAD(): FunkMethod
+    public function HEAD(): FunkPHPMethod
     {
         return $this->parent->HEAD();
     }
     /**
      * Switch context back to GET method builder.
      *
-     * @return FunkMethod
+     * @return FunkPHPMethod
      */
-    public function GET(): FunkMethod
+    public function GET(): FunkPHPMethod
     {
         return $this->parent->GET();
     }
     /**
      * Switch context back to POST method builder.
      *
-     * @return FunkMethod
+     * @return FunkPHPMethod
      */
-    public function POST(): FunkMethod
+    public function POST(): FunkPHPMethod
     {
         return $this->parent->POST();
     }
     /**
      * Switch context back to PUT method builder.
      *
-     * @return FunkMethod
+     * @return FunkPHPMethod
      */
-    public function PUT(): FunkMethod
+    public function PUT(): FunkPHPMethod
     {
         return $this->parent->PUT();
     }
     /**
      * Switch context back to PATCH method builder.
      *
-     * @return FunkMethod
+     * @return FunkPHPMethod
      */
-    public function PATCH(): FunkMethod
+    public function PATCH(): FunkPHPMethod
     {
         return $this->parent->PATCH();
     }
     /**
      * Switch context back to DELETE method builder.
      *
-     * @return FunkMethod
+     * @return FunkPHPMethod
      */
-    public function DELETE(): FunkMethod
+    public function DELETE(): FunkPHPMethod
     {
         return $this->parent->DELETE();
     }
 }
 /*
- * Class FunkRoute() - accessed via FunkPHP()->routes()-><METHOD>()->route("/URI-path")
+ * Class FunkPHPRoute() - accessed via FunkPHP()->routes()-><METHOD>()->route("/URI-path")
 */
-class FunkRoute
+class FunkPHPRoute
 {
     public function __construct(
-        private C $c,
-        private FunkMethod $parentMethod,
+        private FunkPHPC $c,
+        private FunkPHPMethod $parentMethod,
         private string $method,
         private string $routePath,
     ) {}
@@ -11501,64 +11517,94 @@ class FunkRoute
      * Initialize another route under the current HTTP method context.
      *
      * @param string $path Route path pattern (e.g., "/posts/:slug")
-     * @return FunkRoute
+     * @return FunkPHPRoute
      */
-    public function ROUTE(string $path): FunkRoute
+    public function ROUTE(string $path): FunkPHPRoute
     {
         return $this->parentMethod->ROUTE($path);
     }
     /**
      * Switch context back to HEAD method builder.
      *
-     * @return FunkMethod
+     * @return FunkPHPMethod
      */
-    public function HEAD(): FunkMethod
+    public function HEAD(): FunkPHPMethod
     {
         return $this->parentMethod->HEAD();
     }
     /**
      * Switch context back to GET method builder.
      *
-     * @return FunkMethod
+     * @return FunkPHPMethod
      */
-    public function GET(): FunkMethod
+    public function GET(): FunkPHPMethod
     {
         return $this->parentMethod->GET();
     }
     /**
      * Switch context back to POST method builder.
      *
-     * @return FunkMethod
+     * @return FunkPHPMethod
      */
-    public function POST(): FunkMethod
+    public function POST(): FunkPHPMethod
     {
         return $this->parentMethod->POST();
     }
     /**
      * Switch context back to PUT method builder.
      *
-     * @return FunkMethod
+     * @return FunkPHPMethod
      */
-    public function PUT(): FunkMethod
+    public function PUT(): FunkPHPMethod
     {
         return $this->parentMethod->PUT();
     }
     /**
      * Switch context back to PATCH method builder.
      *
-     * @return FunkMethod
+     * @return FunkPHPMethod
      */
-    public function PATCH(): FunkMethod
+    public function PATCH(): FunkPHPMethod
     {
         return $this->parentMethod->PATCH();
     }
     /**
      * Switch context back to DELETE method builder.
      *
-     * @return FunkMethod
+     * @return FunkPHPMethod
      */
-    public function DELETE(): FunkMethod
+    public function DELETE(): FunkPHPMethod
     {
         return $this->parentMethod->DELETE();
     }
 }
+
+// FunkPHPConnect Classes - related to the database and other forms of connections used in the app
+class FunkPHPConnect {}
+
+class FunkPHPConnectC {}
+class FunkPHPConnectSQLi {}
+// "Unsafe" is the NOT "mysql" class version instead of "mysqli" which is safer?
+class FunkPHPConnectSQLUnsafe {}
+class FunkPHPConnectPostgresSQL {}
+class FunkPHPConnectMongoDB {}
+
+// FunkPHPSchema Classes - related to the table schemas (mainly (postgress)sql(i) for now)
+class FunkPHPSchemas {}
+class FunkPHPSchemasC {}
+class FunkPHPSchema {}
+class FunkPHPSchemaCol {}
+
+// FunkPHPValidation Classes - related to the validation schemas
+class FunkPHPValidate {}
+class FunkPHPValidateC {}
+class FunkPHPValidateCONFIG {}
+class FunkPHPValidateINPUT {}
+
+// FunkPHPSQL - related to writing then converted optimized sql queries
+class FunkPHPSQL {}
+class FunkPHPSQLC {}
+class FunkPHPSQLSelect {}
+class FunkPHPSQLInsert {}
+class FunkPHPSQLUpdate {}
+class FunkPHPSQLDelete {}

@@ -3,8 +3,8 @@
 
 /** @var FunkPHP $APP */
 $APP->CONFIG()
-    ->setDebug(true, false, true)
-    ->setCompileFlag('OUTPUT_AFTER_COMPILATION')
+    ->setDebug(true, true, true)
+    //->setCompileFlag('OUTPUT_OVERRIDE_DEBUG')
     ->setINI_SET([
         'session.cache_limiter' => 'public',
         'session.use_strict_mode' => 8,
