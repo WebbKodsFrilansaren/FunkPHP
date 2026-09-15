@@ -3081,6 +3081,7 @@ class FunkPHPC
             $this->invalidBatches['config']['DEFAULT_HTTPS_KERNEL'] = $userDefinedFunction;
             return;
         }
+        // Function can ONLY have &$c as its only fn arg
         if ($fileData['functions'][$userDefinedFunction]['args_raw'] !== '&$c') {
             $this->setErr("The User-Defined Function `{$userDefinedFunction}` in `/src/funkphp/config/functions.php` must only use `&\$c` as its Arguments in order to use as the Custom Kernel Handler. In other words, its Function Signature should be: `function {$userDefinedFunction}(&\$c){}`.", 'User-Defined Function Must Only Use `&$c` in ' . $ctxVals);
             $this->invalidBatches['config']['DEFAULT_HTTPS_KERNEL'] = $userDefinedFunction;
@@ -9610,7 +9611,6 @@ class FunkPHPC
         // other things are NOT meant to be included unless custom
         // https kernel is set to be used which might wanna use
         // all available validated+parsed data =>compiled data
-
         if (!isset($this->compiled['config']['runtime']['custom_https_kernel'])) {
             unset($c['runtime']['debug']);
             unset($c['runtime']['online']);
@@ -9837,6 +9837,8 @@ class FunkPHPC
         /// FINAL BUILD PART - OR FLATTENED GOTO MATCHED ROUTE ///
         // THIS OPENS GLOBAL SCOPE AGAIN "namespace {"
         $FUNK_DEPLOY_ARR[] = "namespace {\n";
+
+
         // CLOSE namespace GLOBAL "namespace {"
         $FUNK_DEPLOY_ARR[] = "}\n";
 
