@@ -24,6 +24,17 @@ class FunkPHPC
 {
     // ARRAY LISTS of $FORBIDDEN and $ALLOWED
     private array $FORBIDDEN = [
+        'compiler_flag_forbidden_configured' => [
+            'IGNORED_USER_DEFINED_FUNCTIONS' => [],
+            'IGNORED_USER_DEFINED_CLASSES' => [],
+            'IGNORED_CORE_FUNCTIONS' => [],
+        ],
+        'compiler_ignored_core_fns_predefined' => [
+            'FunkPHP',
+            'FunkConnect',
+            'FunkTables',
+            'FunkSchemas'
+        ],
         'headers' => ['set-cookie', 'content-length', 'transfer-encoding', 'connection'],
         'functions_in_regular_functions' => [
             'funk_session_started_or_start_it',
@@ -42,7 +53,7 @@ class FunkPHPC
             'funk_internal_is_ip_trusted',
         ],
         'reserved_group_names' => ['sql', 'query', 'validation'],
-        'reserved_fn_names' => ['cli_dump', 'cli_dd', 'dd'],
+        'reserved_fn_names' => ['cli_dump', 'cli_dd', 'dd', 'FunkPHP', 'FunkConnect', 'FunkSchemas', 'FunkValidate', 'FunkSQL', 'FunkQuery', 'FunkTables'],
     ];
     private array $ALLOWED = [
         'csp-directives' => [ // used by setCSP() (global,method,route)
@@ -163,7 +174,7 @@ class FunkPHPC
         'files_pipes_request' => null,
         'files_pipes_post_response' => null,
         'files_pipes_middlewares' => null,
-        'files_pipes_routes' => null,
+        'files_routes' => null,
         'files_data_sql' => null,
         'files_data_query' => null,
         'files_data_validation' => null,
@@ -2175,7 +2186,7 @@ class FunkPHPC
         }
         if ($expectedNSName !== '') {
             if (!isset($fileData['namespace']) || $fileData['namespace'] !== $expectedNSName) {
-                $fatalErr = "File Class Error in {$contextLabel}: Class `{$expectedFNName}` in File `$relativePath` must have the following namespace: `{$expectedNSName}` (Found: `" . ($fileData['namespace'] ?? '<NO NAMESPACE>') . "`).";
+                $fatalErr = "File Class Error in {$contextLabel}: Class `{$expectedFNName}` in File `$relativePath` must have the following namespace: `{$expectedNSName}` (Found: `" . ($fileData['namespace'] ?? '<NO NAMESPACE>') . "`). **IMPORTANT** This Error is repeated for each Class inside the Class File `$relativePath` until the namespace has been resolved meaning this might just be a Single Error!";
                 $this->setFileErr($fileData['?file_type'], $fileData['file_name'], $expectedFNName, 'Class File Missing Required Namespace', $fatalErr, $CLASS_EXACT_NAME);
                 return $fatalErr;
             }
@@ -2636,6 +2647,9 @@ class FunkPHPC
     {
         [$ctx, $ctxVals] = $this->setCtx('CONFIG', null, 'setCompileFlag', $flag);
         $validFlags = [
+            'IGNORE_USER_DEFINED_FUNCTIONS:',
+            'IGNORE_USER_DEFINED_CLASSES:',
+            'IGNORE_CORE_FUNCTIONS:',
             'OUTPUT_OVERRIDE_DEBUG', // ignore in-built run() when compiling in web
             'ALLOW_GHOST_ROUTES', // no error issued when
             'ALL_ROUTES_MUST_HAVE_PIPE_RESPONSE', // pipeResponse() must be applied to every route or hard compilation error.
@@ -2644,6 +2658,16 @@ class FunkPHPC
             'ONLY_RETURN_COMPILED_PAGES', // pipeResponse() config will ONLY look for compiled pages and error out if not found during config
             'ONLY_RETURN_NONCOMPILED_PAGES' // pipeResponse() config wil ONLY look for non-compiled pages and error out if not found during config
         ];
+        $ignoreCOREFNs = null;
+        $ignoreUDFNs = null;
+        // Special cases check (when starting with and then colon)
+        if (is_string($flag) && str_starts_with(trim($flag), 'IGNORE_USER_DEFINED_FUNCTIONS:')) {
+            [$flag, $flagParts] = explode('IGNORE_USER_DEFINED_FUNCTIONS:', $flag);
+        } else if (is_string($flag) && str_starts_with(trim($flag), 'IGNORE_USER_DEFINED_CLASSES:')) {
+            [$flag, $flagParts] = explode('IGNORE_USER_DEFINED_CLASSES:', $flag);
+        } else if (is_string($flag) && str_starts_with(trim($flag), 'IGNORE_CORE_FUNCTIONS:')) {
+            [$flag, $flagParts] = explode('IGNORE_CORE_FUNCTIONS:', $flag);
+        }
         if (isset($this->invalidBatches['config']['compileFlags'][$flag])) {
             $this->setErr($this->getErr('DuplicateCallInvalid', $ctxVals), 'Duplicate Call ' . $ctxVals);
             return;
@@ -2652,6 +2676,7 @@ class FunkPHPC
             $this->setErr($this->getErr('DuplicateCallValid', $ctxVals), 'Duplicate Call ' . $ctxVals);
             return;
         }
+        // Default cases check
         if (!is_string($flag) || trim($flag) === '' || !in_array($flag, $validFlags)) {
             $this->setErr($this->getErr('InvalidCompilerFlag', $ctxVals) . $this->joinArray($validFlags), 'Duplicate Compiler Flag ' . $ctxVals);
             $this->invalidBatches['config']['compileFlags'][$flag] = true;
@@ -2659,6 +2684,12 @@ class FunkPHPC
         }
         $this->validBatches['config']['compileFlags'][$flag] = true;
         $this->compileFlags[$flag] = true;
+        if (isset($ignoreUDFNs)) {
+            $this->FORBIDDEN['compiler_flag_forbidden_configured']['IGNORED_USER_DEFINED_FUNCTIONS'] = $ignoreUDFNs;
+        }
+        if (isset($ignoreCOREFNs)) {
+            $this->FORBIDDEN['compiler_flag_forbidden_configured']['IGNORED_CORE_FUNCTIONS'] = $ignoreCOREFNs;
+        }
     }
 
     /**
@@ -3047,6 +3078,11 @@ class FunkPHPC
         $fatalError = $this->validateFNFile($fileData, $userDefinedFunction, $ctxVals, '', false);
         if ($fatalError !== null) {
             $this->setErr($fatalError, 'Function File Error (also see FILES tab) ' . $ctxVals);
+            $this->invalidBatches['config']['DEFAULT_HTTPS_KERNEL'] = $userDefinedFunction;
+            return;
+        }
+        if ($fileData['functions'][$userDefinedFunction]['args_raw'] !== '&$c') {
+            $this->setErr("The User-Defined Function `{$userDefinedFunction}` in `/src/funkphp/config/functions.php` must only use `&\$c` as its Arguments in order to use as the Custom Kernel Handler. In other words, its Function Signature should be: `function {$userDefinedFunction}(&\$c){}`.", 'User-Defined Function Must Only Use `&$c` in ' . $ctxVals);
             $this->invalidBatches['config']['DEFAULT_HTTPS_KERNEL'] = $userDefinedFunction;
             return;
         }
@@ -8527,7 +8563,7 @@ class FunkPHPC
             && count($this->cached['file_user_defined_classes']['classes']) > 0
         ) {
             foreach ($this->cached['file_user_defined_classes']['classes'] as $userClass => $_) {
-                $fatalError = $this->validateCLASSFile($this->cached['file_user_defined_classes'], $userClass, " `while Compiling FunkPHP Configuration`", "");
+                $fatalError = $this->validateCLASSFile($this->cached['file_user_defined_classes'], $userClass, " `while Compiling FunkPHP Configuration`", "funkphp\\classes");
                 if ($fatalError !== null) {
                     $this->compile_setErr("Invalid User-defined Class File (also see FILES tab)", $fatalError . " If you wanna keep the Class but not use it for this Compilation, comment it out inside of the `{$PATH_CLASSES}` File and retry.");
                 }
@@ -9554,7 +9590,9 @@ class FunkPHPC
                 }
             }
             $this->compiled['built'] = $this->FUNKPHP_BUILT;
-            $this->output_errors($this->errors, $this->compiled);
+            if (!isset($this->compileFlags['OUTPUT_OVERRIDE_DEBUG'])) {
+                $this->output_errors($this->errors, $this->compiled);
+            }
         }
         // Here Compilation was successful so either run it locally
         // or build it into FunkPHPDeployment.php monolithic file
@@ -9562,14 +9600,38 @@ class FunkPHPC
         // it though meaning it will output the file and NOT run it
         // after successful compilation!
         $this->FUNKPHP_COMPILED_SUCCESS = true;
-        if ($CompileAndRunLocally && !isset($this->compileFlags['OUTPUT_AFTER_COMPILATION'])) {
+        if ($CompileAndRunLocally && !isset($this->compileFlags['OUTPUT_OVERRIDE_DEBUG'])) {
             $this->run();
         }
         ///////////////////////////////////////////////////////
         ////////// START BUILDING FunkPHPDeployment.php ///////
         ///////////////////////////////////////////////////////
-        // Debug is not allowed in Production Build!
-        unset($c['runtime']['debug']);
+        // Debug is not allowed in Production Build! And also some
+        // other things are NOT meant to be included unless custom
+        // https kernel is set to be used which might wanna use
+        // all available validated+parsed data =>compiled data
+
+        if (!isset($this->compiled['config']['runtime']['custom_https_kernel'])) {
+            unset($c['runtime']['debug']);
+            unset($c['runtime']['online']);
+            unset($c['runtime']['use_https']);
+            unset($c['runtime']['use_vendor']);
+            unset($c['runtime']['custom_exception_handler']);
+            unset($c['runtime']['custom_error_handler']);
+            unset($c['runtime']['custom_ip_resolver']);
+            unset($c['runtime']['custom_uri_normalizer']);
+            unset($c['runtime']['custom_https_kernel']);
+            unset($c['runtime']['ini_sets']);
+            unset($c['runtime']['pipes']);
+            unset($c['runtime']['']); // More added here later when knowing why/when needed
+            unset($c['runtime']['']);
+            unset($c['runtime']['']);
+            unset($c['runtime']['middlewares_inverted']);
+        } else {
+            $c['runtime']['debug'] = $this->debug;
+            $c['compiled']['config']['runtime']['debug'] = $this->debug;
+        }
+        // Prepare final output string, working buffer and final output path
         $COMPLETE_DEPLOYMENT_BUFFER = null;
         $FUNK_DEPLOY_ARR = [];
         $OUTPUT_PATH = ROOT_FOLDER . '/' . 'FunkPHPDeployment.php';
@@ -9581,26 +9643,216 @@ class FunkPHPC
         $FUNK_DEPLOY_HEADER .= " * FunkPHPDeployment File\n";
         $FUNK_DEPLOY_HEADER .= " * Built: " . date('Y-m-d H:i:s') . "\n";
         $FUNK_DEPLOY_HEADER .= " * Compiler Flags: " . $this->joinArray($this->compileFlags, true) . "\n";
-        $FUNK_DEPLOY_HEADER .= " * DO NOT EDIT DIRECTLY - ALL CHANGES WILL BE OVERWRITTEN\n";
+        $FUNK_DEPLOY_HEADER .= " * DO NOT EDIT DIRECTLY - CHANGES ARE OVERWRITTEN WHEN (RE)BUILDING\n";
         $FUNK_DEPLOY_HEADER .= " */\n";
 
-        // 2. Defined Constants needed for the Built Version
-        $FUNK_DEPLOY_ARR[] = "define('FUNKPHP_NO_VALUE', new stdClass());\n";
-        $FUNK_DEPLOY_ARR[] = "define('FUNKPHP_ONLINE', true));\n";
+        // 2. Global namespace + Defined Constants needed for the Built Version
+        $FUNK_DEPLOY_ARR[] = "\nnamespace { \n";
+        $FUNK_DEPLOY_ARR[] = "define('FUNKPHP_NO_VALUE', new \\stdClass());\n";
+        $FUNK_DEPLOY_ARR[] = "define('FUNKPHP_ONLINE', true);\n";
         $FUNK_DEPLOY_ARR[] = "define('ROOT_FOLDER', __DIR__);\n";
         $FUNK_DEPLOY_ARR[] = "define('ROOT_PAGES', __DIR__ . '/pages');\n";
 
-        // Add global $c variable (with optional compiled part if running custom kernel)
+        // 3. Add global $c variable (with optional compiled part if running custom kernel)
         if (isset($this->compiled['config']['runtime']['custom_https_kernel'])) {
             $c['compiled'] = $this->compiled;
+            $c['compiled']['built'] = true;
+            unset($c['compiled']['c']);
+            unset($c['compiled']['cached']);
+            unset($c['compiled']['validBatches']);
+            unset($c['compiled']['inValidBatches']);
         }
-        $FUNK_DEPLOY_ARR[] = '$c = ' . var_export($c, true) . ";\n\n";
+        $exportedC = $this->exportShortSyntax($c);
+        $FUNK_DEPLOY_ARR[] = '$c = ' . $exportedC . ";\n";
+        $FUNK_DEPLOY_ARR[] = '$c[\'req\'][\'time\'] = $_SERVER[\'REQUEST_TIME\'] ?? time();' . "\n";
+        $FUNK_DEPLOY_ARR[] = '$c[\'req\'][\'query\'] = $_SERVER[\'QUERY_STRING\'] ?? null;' . "\n";
+        $FUNK_DEPLOY_ARR[] = '$c[\'req\'][\'ua\'] = $_SERVER[\'HTTP_USER_AGENT\'] ?? null;' . "\n";
+
+        // 4. Now add all FUNCTIONS & CLASSES (user-defined functions first, then core functions,
+        // then user-defined classes and finally class-based FunkPHP Functions for all the pipes!)
+        // 4.1 USER-DEFINED Functions
+        if (isset($this->cached['file_user_defined_functions'])) {
+            if (
+                isset($this->cached['file_user_defined_functions']['functions'])
+                && count($this->cached['file_user_defined_functions']['functions']) > 0
+            ) {
+                foreach ($this->cached['file_user_defined_functions']['functions'] as $UD_FNK => $UD_FNV) {
+                    // Ignore user-defined functions that they wanna have
+                    // in function config file but not in built file
+                    if (
+                        in_array($UD_FNK, $this->FORBIDDEN['compiler_flag_forbidden_configured']['IGNORED_USER_DEFINED_FUNCTIONS'], true)
+                    ) {
+                        continue;
+                    }
+                    $FUNK_DEPLOY_ARR[] = $UD_FNV['fn_raw'] . "\n";
+                }
+            }
+        }
+        // 4.2 CORE Functions
+        $this->cachedCreateKeyIfNullAndOptionalFileName('file_core_functions');
+        if (
+            !isset($this->cached['file_core_functions']['functions'])
+            || count($this->cached['file_core_functions']['functions']) === 0
+        ) {
+            $this->compile_setErr('[Build Step]: Core Functions Missing?!', 'Core Functions for FunkPHP (in expected `/src/funkphp/core/functions.php`) is either Empty or Not Found At All. Review/Verify possible File Permission(s) issue(s) and try again OR redownload the Core Function file again from any Official FunkPHP Online Source and then try again.');
+        } else {
+            foreach ($this->cached['file_core_functions']['functions'] as $CORE_FNK => $CORE_FNV) {
+                // Ignore some predefined Core Functions (only used during local dev) and any
+                // user-defined ignored functions (maybe they do NOT wanna have dd() in build)
+                if (
+                    in_array($CORE_FNK, $this->FORBIDDEN['compiler_ignored_core_fns_predefined'], true)
+                    || in_array($CORE_FNK, $this->FORBIDDEN['compiler_flag_forbidden_configured']['IGNORED_CORE_FUNCTIONS'], true)
+                ) {
+                    continue;
+                }
+                $FUNK_DEPLOY_ARR[] = $CORE_FNV['fn_raw'] . "\n";
+            }
+        }
+        // 4.3 CLOSE namespace GLOBAL "namespace {"
+        $FUNK_DEPLOY_ARR[] = "}\n";
+        // 4.4 Add USER-DEFINED Classes (under namespace "funkphp\\classes")
+        $FUNK_DEPLOY_ARR[] = "namespace funkphp\\classes {\n";
+        if (isset($this->cached['file_user_defined_classes'])) {
+            if (
+                isset($this->cached['file_user_defined_classes']['classes'])
+                && count($this->cached['file_user_defined_classes']['classes']) > 0
+            ) {
+                foreach ($this->cached['file_user_defined_classes']['classes'] as $UD_CLASSK => $UD_CLASSV) {
+                    // Ignore user-defined classes that they wanna
+                    // have in config class file but not in built file
+                    if (
+                        in_array($UD_CLASSK, $this->FORBIDDEN['compiler_flag_forbidden_configured']['IGNORED_USER_DEFINED_CLASSES'], true)
+                    ) {
+                        continue;
+                    }
+                    $FUNK_DEPLOY_ARR[] = $UD_CLASSV['class_raw'] . "\n";
+                }
+            }
+        }
+        // 4.5 CLOSE namespace "funkphp\classes {}"
+        $FUNK_DEPLOY_ARR[] = "}\n";
+        // 5. Build Pipes (middlewares if any, then request if any, then routes if any
+        // and finally post_response if any. LATER: Validation, SQL & Query will be here)
+        // 5.1 Build Middlewares if any
+        if (
+            isset($this->cached['placeholderBuildFiles']['middlewares'])
+            && count($this->cached['placeholderBuildFiles']['middlewares']) > 0
+        ) {
+            // OPEN Middlewares namespace and close it after loop since middlewares exist!
+            $FUNK_DEPLOY_ARR[] = "namespace funkphp\\pipes\\middlewares {\n";
+            foreach ($this->cached['files_pipes_middlewares'] as $PIPE_MW_K => $PIPE_MW_V) {
+                if (isset($this->cached['placeholderBuildFiles']['middlewares'][$PIPE_MW_K])) {
+                    $FUNK_DEPLOY_ARR[] = $PIPE_MW_V['functions'][$PIPE_MW_K]['fn_raw'] . "\n";
+                }
+            }
+            $FUNK_DEPLOY_ARR[] = "}\n";
+        }
+        // // 5.2 Build Request if any
+        if (
+            isset($this->cached['placeholderBuildFiles']['request'])
+            && count($this->cached['placeholderBuildFiles']['request']) > 0
+        ) {
+            // OPEN Request namespace and close it after loop since request fns exist!
+            $FUNK_DEPLOY_ARR[] = "namespace funkphp\\pipes\\request {\n";
+            foreach ($this->cached['files_pipes_request'] as $PIPE_REQ_K => $PIPE_REQ_V) {
+                if (isset($this->cached['placeholderBuildFiles']['request'][$PIPE_REQ_K])) {
+                    $FUNK_DEPLOY_ARR[] = $PIPE_REQ_V['functions'][$PIPE_REQ_K]['fn_raw'] . "\n";
+                }
+            }
+            $FUNK_DEPLOY_ARR[] = "}\n";
+        }
+        // // 5.3 Build Routes if any
+        if (
+            isset($this->cached['placeholderBuildFiles']['routes'])
+            && count($this->cached['placeholderBuildFiles']['routes']) > 0
+        ) {
+            // Each Route is first a File (thus own namespace) with then a number of fns
+            foreach ($this->cached['files_routes'] as $PIPE_R_K => $PIPE_R_V) {
+                if (isset($this->cached['placeholderBuildFiles']['routes'][$PIPE_R_K])) {
+                    $FUNK_DEPLOY_ARR[] = "namespace funkphp\\pipes\\routes\\$PIPE_R_K {\n";
+                    if (isset($PIPE_R_V['functions']) && count($PIPE_R_V['functions']) === 0) {
+                        $this->compile_setErr('[Build Step]: Empty Route Pipe File', "Route File `/src/funkphp/pipes/routes/$PIPE_R_K.php` to use for FunkPHPDeployment Build File has no Functions when it is expected to have. Make sure the Route Pipe File has Functions using Function Declaration Signatures such as `function name(&\$c){}`.");
+                    } else {
+                        foreach ($PIPE_R_V['functions'] as $PIPE_R_File => $PIPE_R_FN) {
+                            if (isset($this->cached['placeholderBuildFiles']['routes'][$PIPE_R_K][$PIPE_R_File])) {
+                                $FUNK_DEPLOY_ARR[] = $PIPE_R_FN['fn_raw'] . "\n";
+                            }
+                        }
+                    }
+                    $FUNK_DEPLOY_ARR[] = "}\n";
+                }
+            }
+        }
+        // // 5.4 Build Post_Response if any
+        if (
+            isset($this->cached['placeholderBuildFiles']['post_response'])
+            && count($this->cached['placeholderBuildFiles']['post_response']) > 0
+        ) {
+            // OPEN Post Response namespace and close it after loop since post response fns exist!
+            $FUNK_DEPLOY_ARR[] = "namespace funkphp\\pipes\\post_response {\n";
+            foreach ($this->cached['files_pipes_post_response'] as $PIPE_PR_K => $PIPE_PR_V) {
+                if (isset($this->cached['placeholderBuildFiles']['post_response'][$PIPE_PR_K])) {
+                    $FUNK_DEPLOY_ARR[] = $PIPE_PR_V['functions'][$PIPE_PR_K]['fn_raw'] . "\n";
+                }
+            }
+            $FUNK_DEPLOY_ARR[] = "}\n";
+        }
+        // // LATER: 5.5 Build Validation if any
+        if (
+            isset($this->cached['placeholderBuildFiles']['validation'])
+            && count($this->cached['placeholderBuildFiles']['validation']) > 0
+        ) {
+            $FUNK_DEPLOY_ARR[] = "namespace funkphp\\data\\validation {\n";
+            $FUNK_DEPLOY_ARR[] = "}\n";
+        }
+        // // LATER: 5.6 Build SQL if any
+        if (
+            isset($this->cached['placeholderBuildFiles']['sql'])
+            && count($this->cached['placeholderBuildFiles']['sql']) > 0
+        ) {
+            $FUNK_DEPLOY_ARR[] = "namespace funkphp\\data\\sql {\n";
+            $FUNK_DEPLOY_ARR[] = "}\n";
+        }
+        // // LATER: 5.7 Build Query if any
+        if (
+            isset($this->cached['placeholderBuildFiles']['query'])
+            && count($this->cached['placeholderBuildFiles']['query']) > 0
+        ) {
+            $FUNK_DEPLOY_ARR[] = "namespace funkphp\\data\\query {\n";
+            $FUNK_DEPLOY_ARR[] = "}\n";
+        }
+
+        /// FINAL BUILD PART - EITHER EDGE CASE CUSTOM KERNEL ///
+        if (isset($this->compiled['config']['runtime']['custom_https_kernel'])) {
+            $CUSTOM_KERNEL_FN = $this->compiled['config']['runtime']['custom_https_kernel'];
+            // THIS OPENS GLOBAL SCOPE AGAIN "namespace {"
+            $FUNK_DEPLOY_ARR[] = "namespace {\n";
+            $FUNK_DEPLOY_ARR[] = "\\$CUSTOM_KERNEL_FN(\$c);\n";
+            // CLOSE namespace GLOBAL "namespace {"
+            $FUNK_DEPLOY_ARR[] = "}\n";
+            // Output final file already now!
+            goto compile_output_final_deploy_file;
+        }
+
+        /// FINAL BUILD PART - OR FLATTENED GOTO MATCHED ROUTE ///
+        // THIS OPENS GLOBAL SCOPE AGAIN "namespace {"
+        $FUNK_DEPLOY_ARR[] = "namespace {\n";
+        // CLOSE namespace GLOBAL "namespace {"
+        $FUNK_DEPLOY_ARR[] = "}\n";
 
         compile_output_final_deploy_file:
+        // First check if any rare build errors did occur here although highly unlikely
+        if (
+            isset($this->errors['COMPILATION']['errors'])
+            && count($this->errors['COMPILATION']['errors']) > 0
+        ) {
+            $this->compiled['built'] = $this->FUNKPHP_BUILT;
+            $this->output_errors($this->errors, $this->compiled);
+        }
         // When all buffering building has been completed, just implode, optimize and attempt outputting it
-        $COMPLETE_DEPLOYMENT_BUFFER = implode($FUNK_DEPLOY_ARR);
-        $COMPLETE_DEPLOYMENT_BUFFER =  $this->compile_php_strip_whitespace_and_optimize($COMPLETE_DEPLOYMENT_BUFFER);
-        $COMPLETE_DEPLOYMENT_BUFFER = str_replace('<?php', $FUNK_DEPLOY_HEADER, $COMPLETE_DEPLOYMENT_BUFFER, 1);
+        $COMPLETE_DEPLOYMENT_BUFFER = implode('', $FUNK_DEPLOY_ARR);
+        $COMPLETE_DEPLOYMENT_BUFFER =  $this->compile_php_strip_whitespace_and_optimize('<?php ' . $COMPLETE_DEPLOYMENT_BUFFER);
+        $COMPLETE_DEPLOYMENT_BUFFER = substr_replace($COMPLETE_DEPLOYMENT_BUFFER, $FUNK_DEPLOY_HEADER, 0, 6);
         if ($this->compile_output_file($COMPLETE_DEPLOYMENT_BUFFER, $OUTPUT_PATH)) {
             $this->FUNKPHP_BUILT = true;
             if (!function_exists('cli_success')) {
@@ -9672,7 +9924,6 @@ class FunkPHPC
         $c['runtime']['pipes']['request-resolved'] = $this->compiled['config']['pipes']['request-resolved'] ?? null;
         $c['runtime']['pipes']['post-response'] = $this->compiled['config']['pipes']['post_response'] ?? null;
         $c['runtime']['pipes']['post-response-resolved'] = $this->compiled['config']['pipes']['post_response-resolved'] ?? null;
-
         $c['req']['time'] = $_SERVER['REQUEST_TIME'] ?? time();
         $c['req']['query'] = $_SERVER['QUERY_STRING'] ?? null;
         $c['req']['ua'] = $_SERVER['HTTP_USER_AGENT'] ?? null;
@@ -10044,7 +10295,7 @@ class FunkPHPConfig
     /**
      * Set Compiler Flags that are applied when compiling. Most of them are about what is allowed or not, whether to ignore certain warnings and/or errors or not.
      *
-     * @param 'OUTPUT_OVERRIDE_DEBUG'|'ALLOW_GHOST_ROUTES'|'ALL_ROUTES_MUST_HAVE_PIPE_RESPONSE'|'HIDE_NO_ROUTE_RESPONSE_WARNING'|'NO_WARNINGS_ALLOWED'|'ONLY_RETURN_COMPILED_PAGES'|'ONLY_RETURN_NONCOMPILED_PAGES' $flag Compiler flag (e.g., "NO_WARNINGS_ALLOWED")
+     * @param 'IGNORE_USER_DEFINED_CLASSES'|'IGNORE_USER_DEFINED_FUNCTIONS:fn1,fn2,etc'|'IGNORE_CORE_FUNCTIONS:fn1,fn2,etc'|'OUTPUT_OVERRIDE_DEBUG'|'ALLOW_GHOST_ROUTES'|'ALL_ROUTES_MUST_HAVE_PIPE_RESPONSE'|'HIDE_NO_ROUTE_RESPONSE_WARNING'|'NO_WARNINGS_ALLOWED'|'ONLY_RETURN_COMPILED_PAGES'|'ONLY_RETURN_NONCOMPILED_PAGES' $flag Compiler flag (e.g., "NO_WARNINGS_ALLOWED")
      * @return $this
      */
     public function setCompileFlag(string $flag): self

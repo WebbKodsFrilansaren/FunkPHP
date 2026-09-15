@@ -12873,9 +12873,6 @@ EOF,
 // that begin with "Funk" or any other class(es) from
 // the `/src/funkphp/vendor` (Composer Classes).
 //
-// Also, you may remove the `namespace funkphp\classes;` and your classes
-// will then be put in the Global Namespace Scope during compiling/running.
-//
 // Besides all that above, name your class(es) anything you want!
 
 EOF,

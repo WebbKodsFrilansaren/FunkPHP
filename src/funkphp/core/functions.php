@@ -354,7 +354,6 @@ function dd(mixed $data, string $headerOptionalMsg = '', bool $exit = true, bool
     }
 }
 
-
 // FUNKPHP SESSION-BASED FUNCTIONS
 // The unified way to read session values across FunkPHP
 function funk_session_get_key(&$c, string $key, $default = null)
@@ -1775,45 +1774,44 @@ function funk_internal_handle_no_no_route_match(&$c)
     // Set HTTP status code & headers BEFORE sending HTML output
     http_response_code(404);
     header("content-type: text/html; charset=utf-8");
-    $html = <<<HTML
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>404 - No Content or Page Found | Have You Configured `->setNoRouteMatch` Yet?</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            background-color: #181825;
-            color: #cdd6f4;
-            font-family: system-ui, -apple-system, sans-serif;
-            display: grid;
-            place-items: center;
-            min-height: 100vh;
-        }
-        .container { text-align: center; padding: 2rem; }
-        h1 {
-            font-size: 5rem;
-            font-weight: 800;
-            color: rgb(162, 74, 255);
-            line-height: 1;
-            margin-bottom: 0.5rem;
-        }
-        p {
-            font-size: 1.25rem;
-            color: #a6adc8;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>404</h1>
-        <p>{$message}</p>
-    </div>
-</body>
-</html>
-HTML;
+    $html = '';
+    $html .= '<!DOCTYPE html>';
+    $html .= '<html lang="en">';
+    $html .= '<head>';
+    $html .= '    <meta charset="UTF-8">';
+    $html .= '    <meta name="viewport" content="width=device-width, initial-scale=1.0">';
+    $html .= '    <title>404 - No Content or Page Found | Have You Configured `->setNoRouteMatch` Yet?</title>';
+    $html .= '    <style>';
+    $html .= '        * { box-sizing: border-box; margin: 0; padding: 0; }';
+    $html .= '        body {';
+    $html .= '            background-color: #181825;';
+    $html .= '            color: #cdd6f4;';
+    $html .= '            font-family: system-ui, -apple-system, sans-serif;';
+    $html .= '            display: grid;';
+    $html .= '            place-items: center;';
+    $html .= '            min-height: 100vh;';
+    $html .= '        }';
+    $html .= '        .container { text-align: center; padding: 2rem; }';
+    $html .= '        h1 {';
+    $html .= '            font-size: 5rem;';
+    $html .= '            font-weight: 800;';
+    $html .= '            color: rgb(162, 74, 255);';
+    $html .= '            line-height: 1;';
+    $html .= '            margin-bottom: 0.5rem;';
+    $html .= '        }';
+    $html .= '        p {';
+    $html .= '            font-size: 1.25rem;';
+    $html .= '            color: #a6adc8;';
+    $html .= '        }';
+    $html .= '    </style>';
+    $html .= '</head>';
+    $html .= '<body>';
+    $html .= '    <div class="container">';
+    $html .= '        <h1>404</h1>';
+    $html .= '        <p>' . $message . '</p>';
+    $html .= '    </div>';
+    $html .= '</body>';
+    $html .= '</html>';
     echo $html;
     exit;
 }
@@ -1830,22 +1828,18 @@ function FunkPHP()
 {
     return new FunkPHP(new FunkPHPC);
 }
-
 function FunkConnect()
 {
     return new FunkPHPConnect(new FunkPHPConnectC);
 }
-
 function FunkSchemas()
 {
     return new FunkPHPSchemas(new FunkPHPSchemasC);
 }
-
 function FunkValidate()
 {
     return new FunkPHPValidate(new FunkPHPValidateC);
 }
-
 function FunkSQL()
 {
     return new FunkPHPSQL(new FunkPHPSQLC);

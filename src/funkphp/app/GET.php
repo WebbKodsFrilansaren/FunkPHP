@@ -9,5 +9,4 @@ $APP->ROUTES()
     ->setHeaderRemove('server')
     ->route("/users/:id/:id2")
     ->setParamRuleMismatchJSON(['err' => 'no match'], 404)
-    ->setParamRule('id', 'cb:test')
     ->pipeFunctionsThenResponse('test.test', 'page:test', 200);

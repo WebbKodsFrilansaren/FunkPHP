@@ -21,7 +21,7 @@
 //
 // Besides all that above, name your function(s) anything you want!
 
-function test(&$c, $test): bool
+function test(&$c): bool
 {
     echo "YAS from test() user defined fn! This is callback on NO_ROUTE_MATCH";
     //dd($c['req']);
