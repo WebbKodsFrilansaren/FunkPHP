@@ -9875,7 +9875,150 @@ class FunkPHPC
         ////////// DONE BUILDING FunkPHPDeployment.php ///////
         //////////////////////////////////////////////////////
     }
-
+    /**
+     * Calculates Binary Specificity Score for routes under a single HTTP method.
+     * Segment counts take priority; binary masks break ties (Static = 1, Dynamic = 0).
+     */
+    private function compile_prepare_binary_specificity(array $routes): array
+    {
+        $processed = [];
+        foreach ($routes as $routeStr => $routeConfig) {
+            $trimmed = trim($routeStr, '/');
+            if ($trimmed === '') {
+                $processed[] = [
+                    'original_route' => '/',
+                    'segment_count'  => 0,
+                    'binary_mask'    => '1',
+                    'binary_score'   => 1,
+                    'config'         => $routeConfig,
+                ];
+                continue;
+            }
+            $segments = explode('/', $trimmed);
+            $segmentCount = count($segments);
+            $binaryMask = '';
+            foreach ($segments as $segment) {
+                $binaryMask .= str_starts_with($segment, ':') ? '0' : '1';
+            }
+            $processed[] = [
+                'original_route' => $routeStr,
+                'segment_count'  => $segmentCount,
+                'binary_mask'    => $binaryMask,
+                'binary_score'   => bindec($binaryMask),
+                'config'         => $routeConfig,
+            ];
+        }
+        // Sort: Segment count DESC -> Binary score DESC
+        usort($processed, function ($a, $b) {
+            if ($a['segment_count'] !== $b['segment_count']) {
+                return $b['segment_count'] <=> $a['segment_count'];
+            }
+            return $b['binary_score'] <=> $a['binary_score'];
+        });
+        return $processed;
+    }
+    /**
+     * Builds intermediate AST tree grouped by segment count and path segments.
+     */
+    private function compile_build_route_ast(array $preparedRoutes, string $method): array
+    {
+        $ast = [];
+        $method = strtoupper($method);
+        foreach ($preparedRoutes as $routeData) {
+            $segCount = $routeData['segment_count'];
+            $routeStr = $routeData['original_route'];
+            $trimmed  = trim($routeStr, '/');
+            if ($trimmed === '' && $segCount === 0) {
+                $ast[0]['/'] = [
+                    'segment_value' => '/',
+                    'is_parameter'  => false,
+                    'route_target'  => '/',
+                    'route_comment' => "//$method /",
+                    'config'        => $routeData['config'],
+                    'children'      => []
+                ];
+                continue;
+            }
+            $segments = explode('/', $trimmed);
+            if (!isset($ast[$segCount])) {
+                $ast[$segCount] = [];
+            }
+            $currentNode = &$ast[$segCount];
+            foreach ($segments as $index => $segment) {
+                $isParam = str_starts_with($segment, ':');
+                $nodeKey = $segment;
+                if (!isset($currentNode[$nodeKey])) {
+                    $currentNode[$nodeKey] = [
+                        'segment_value' => $segment,
+                        'is_parameter'  => $isParam,
+                        'route_target'  => null,
+                        'config'        => null,
+                        'children'      => []
+                    ];
+                }
+                if ($index === ($segCount - 1)) {
+                    $currentNode[$nodeKey]['route_target'] = $routeStr;
+                    $currentNode[$nodeKey]['route_comment'] = "//$method $routeStr";
+                    $currentNode[$nodeKey]['config']       = $routeData['config'];
+                }
+                $currentNode = &$currentNode[$nodeKey]['children'];
+            }
+            unset($currentNode);
+        }
+        return $ast;
+    }
+    /**
+     * Recursively compiles AST nodes into optimized nested `if` statements with zero runtime overhead.
+     */
+    private function compile_generate_ast_code(array $nodes, int $segIndex = 0, int $indent = 1): string
+    {
+        $code = "";
+        $pad = str_repeat("    ", $indent);
+        // Sort nodes so absolute static matches are checked BEFORE parameter nodes at the same level
+        usort($nodes, function ($a, $b) {
+            return ($a['is_parameter'] ? 1 : 0) <=> ($b['is_parameter'] ? 1 : 0);
+        });
+        foreach ($nodes as $node) {
+            if ($node['is_parameter']) {
+                $paramName = ltrim($node['segment_value'], ':');
+                $code .= "{$pad}\$c['req']['params']['{$paramName}'] = \$segs[{$segIndex}];\n";
+                if ($node['route_target']) {
+                    $code .= "{$pad}// MATCHED_ROUTE: {$node['route_comment']}\n";
+                    $code .= $this->compile_emit_route_execution($node, $indent);
+                }
+                if (!empty($node['children'])) {
+                    $code .= $this->compile_generate_ast_code($node['children'], $segIndex + 1, $indent);
+                }
+            } else {
+                $code .= "{$pad}if (\\strcasecmp(\$segs[{$segIndex}], '{$node['segment_value']}') === 0) {\n";
+                if ($node['route_target']) {
+                    $code .= "{$pad}    // MATCHED_ROUTE: {$node['route_comment']}\n";
+                    $code .= $this->compile_emit_route_execution($node, $indent + 1);
+                }
+                if (!empty($node['children'])) {
+                    $code .= $this->compile_generate_ast_code($node['children'], $segIndex + 1, $indent + 1);
+                }
+                $code .= "{$pad}}\n";
+            }
+        }
+        return $code;
+    }
+    /**
+     * Emits pipeline execution calls (Middlewares -> Pipe Handler -> Post Response) when a route matches.
+     */
+    private function compile_emit_route_execution(array $node, int $indent): string
+    {
+        $pad = str_repeat("    ", $indent);
+        $out = "";
+        // Emit route pipeline dispatch execution
+        $out .= "{$pad}\$c['req']['route'] = '{$node['route_target']}';\n";
+        if (isset($node['config']['handler'])) {
+            $handlerFn = $node['config']['handler'];
+            $out .= "{$pad}\\{$handlerFn}(\$c);\n";
+        }
+        $out .= "{$pad}goto funkphp_post_response_stage;\n";
+        return $out;
+    }
     // Output the final FunkPHPDeployment.php file (but essentially it can output any file anywhere)
     // It is the non-cli version of cli_crud_folder_php_file_atomic_write()
     private function compile_output_file(string $fileContent, string $file_path): bool
