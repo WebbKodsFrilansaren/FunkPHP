@@ -3,9 +3,10 @@
 
 /** @var FunkPHP $APP */
 $APP->CONFIG()
-    ->setCustomKernelHandler('test')
     ->setDebug(true, true, true)
+    //->setCustomExceptionHandler('test')
     ->setCompileFlag('OUTPUT_OVERRIDE_DEBUG')
+    ->setDisablePostResponseOnNoMatch(true)
     ->setINI_SET([
         'session.cache_limiter' => 'public',
         'session.use_strict_mode' => 8,
@@ -24,4 +25,6 @@ $APP->CONFIG()
     ->pipeMiddlewares('log_access', 'auth')
     ->setRateLimit(60, 60, 'ip', 'redis')
     ->pipeRequestFunction('req_test')
+    ->pipeRequestFunction('req_test')
+    ->pipePostResponseFunction('debug')
     ->pipePostResponseFunction('debug');

@@ -9662,11 +9662,18 @@ class FunkPHPC
             unset($c['compiled']['validBatches']);
             unset($c['compiled']['inValidBatches']);
         }
+
+        // 3.1 FIX / TODO: Parse and add the connections from the conns.php file that should be
+        // a returned FunkConnect()->sql|postgres|redis('') and so on...
+
+
+        // 3.2 Output the $c variable with (if any) connections and set some default values
         $exportedC = $this->exportShortSyntax($c);
         $FUNK_DEPLOY_ARR[] = '$c = ' . $exportedC . ";\n";
         $FUNK_DEPLOY_ARR[] = '$c[\'req\'][\'time\'] = $_SERVER[\'REQUEST_TIME\'] ?? time();' . "\n";
         $FUNK_DEPLOY_ARR[] = '$c[\'req\'][\'query\'] = $_SERVER[\'QUERY_STRING\'] ?? null;' . "\n";
         $FUNK_DEPLOY_ARR[] = '$c[\'req\'][\'ua\'] = $_SERVER[\'HTTP_USER_AGENT\'] ?? null;' . "\n";
+        $FUNK_DEPLOY_ARR[] = "\$c['runtime']['state'] = 'global';\n";
 
         // 4. Now add all FUNCTIONS & CLASSES (user-defined functions first, then core functions,
         // then user-defined classes and finally class-based FunkPHP Functions for all the pipes!)
@@ -9837,11 +9844,124 @@ class FunkPHPC
         /// FINAL BUILD PART - OR FLATTENED GOTO MATCHED ROUTE ///
         // THIS OPENS GLOBAL SCOPE AGAIN "namespace {"
         $FUNK_DEPLOY_ARR[] = "namespace {\n";
+        // ini_sets (if any)
+        if (isset($this->compiled['config']['runtime']['ini_sets'])) {
+            foreach ($this->compiled['config']['runtime']['ini_sets'] as $compiledIniSetK => $compiledIniSetV) {
+                $FUNK_DEPLOY_ARR[] = "ini_set(" . var_export($compiledIniSetK, true) . "," . var_export($compiledIniSetV, true) . ")\n;";
+            }
+        }
+        // ob_start()
+        $FUNK_DEPLOY_ARR[] = "ob_start();\n";
+        // load composer vendor folder (if used)
+        if (
+            isset($this->compiled['config']['runtime']['use_vendor']) &&
+            $this->compiled['config']['runtime']['use_vendor'] === true
+        ) {
+            $FUNK_DEPLOY_ARR[] = "if(file_exists(ROOT_FOLDER . '/vendor/autoload.php')){\n";
+            $FUNK_DEPLOY_ARR[] = "require_once ROOT_FOLDER . '/vendor/autoload.php';";
+            $FUNK_DEPLOY_ARR[] = "} else {\n";
+            $FUNK_DEPLOY_ARR[] = "\$c['err']['INTERNAL'][] = 'Vendor Autoload Enabled (`use_vendor = true`), but File `' . ROOT_FOLDER . '/vendor/autoload.php' . '` was NOT Found.';\n";
+            $FUNK_DEPLOY_ARR[] = "}\n";
+        }
+        // set any custom exception handler (if any) or use default in-built
+        $FUNK_DEPLOY_ARR[] = "set_exception_handler(function (\Throwable \$e) use (&\$c){\n";
+        if (isset($this->compiled['config']['runtime']['custom_exception_handler'])) {
+            $FNM = $this->compiled['config']['runtime']['custom_exception_handler'];
+            $FUNK_DEPLOY_ARR[] =  "\\$FNM(\$c,\$e);\n";
+        } else {
+            $FUNK_DEPLOY_ARR[] =  "\\funk_internal_exception_handler(\$c,\$e);\n";
+        }
+        $FUNK_DEPLOY_ARR[] = "});\n";
+        // set any custom error handler (if any) or use default in-built
+        $FUNK_DEPLOY_ARR[] = "set_error_handler(function (int \$errno, string \$errstr, string \$errfile = '', int \$errline = 0) use (&\$c) {\n";
+        if (isset($this->compiled['config']['runtime']['custom_error_handler'])) {
+            $FNM = $this->compiled['config']['runtime']['custom_error_handler'];
+            $FUNK_DEPLOY_ARR[] = "    return \\{$FNM}(\$c, \$errno, \$errstr, \$errfile, \$errline);\n";
+        } else {
+            $FUNK_DEPLOY_ARR[] = "    return \\funk_internal_error_handler(\$c, \$errno, \$errstr, \$errfile, \$errline);\n";
+        }
+        $FUNK_DEPLOY_ARR[] = "});\n";
+        // set/register (if any) Post-Response functions with register_shutdown_function()
+        foreach ($this->compiled['config']['pipes']['post_response-resolved'] as $pResponseRegister) {
+            $funcName = $pResponseRegister['run'];
+            $FUNK_DEPLOY_ARR[] = "register_shutdown_function(function () use (&\$c) {\n";
+            $FUNK_DEPLOY_ARR[] = "if(isset(\$c['runtime']['SKIP_POST_RESPONSE']) && \$c['runtime']['SKIP_POST_RESPONSE'] === true) { return; }\n";
+            $FUNK_DEPLOY_ARR[] = "$funcName(\$c);\n";
+            $FUNK_DEPLOY_ARR[] = "});\n";
+        }
+        // set custom or default in-built ip resolver so IP is resolved before any request pipes
+        if (isset($this->compiled['config']['runtime']['custom_ip_resolver'])) {
+            $FNM = $this->compiled['config']['runtime']['custom_ip_resolver'];
+            $FUNK_DEPLOY_ARR[] = "\$c['req']['ip'] = \\$FNM(\$c);\n";
+        } else {
+            $FUNK_DEPLOY_ARR[] = "\$c['req']['ip'] = \\funk_internal_resolve_ip(\$c);\n";
+        }
+        // set custom or default in-built URI normalizer before any request pipes
+        if (isset($this->compiled['config']['runtime']['custom_uri_normalizer'])) {
+            $FNM = $this->compiled['config']['runtime']['custom_uri_normalizer'];
+            $FUNK_DEPLOY_ARR[] = "\$c['req']['uri'] = \\$FNM(\$c);\n";
+        } else {
+            $FUNK_DEPLOY_ARR[] = "\$rawUri = \$_SERVER['REQUEST_URI'] ?? '/';\n";
+            $FUNK_DEPLOY_ARR[] = "\$cleanPath = explode('?', \$rawUri, 2)[0];\n";
+            $FUNK_DEPLOY_ARR[] = "\$cleanPath = explode('#', \$cleanPath, 2)[0];\n";
+            $FUNK_DEPLOY_ARR[] = "\$scriptName = \$_SERVER['SCRIPT_NAME'] ?? '';\n";
+            $FUNK_DEPLOY_ARR[] = "\$baseUrl = dirname(\$scriptName);\n";
+            $FUNK_DEPLOY_ARR[] = "if (\$baseUrl !== '/' && str_starts_with(\$cleanPath, \$baseUrl)) {\n";
+            $FUNK_DEPLOY_ARR[] = "    \$cleanPath = substr(\$cleanPath, strlen(\$baseUrl));\n";
+            $FUNK_DEPLOY_ARR[] = "}\n";
+            $FUNK_DEPLOY_ARR[] = "\$cleanPath = preg_replace('#/{2,#', '/', \$cleanPath);\n";
+            $FUNK_DEPLOY_ARR[] = "\$cleanPath = trim(\$cleanPath, '/');\n";
+            $FUNK_DEPLOY_ARR[] = "\$c['req']['uri'] = (\$cleanPath === '') ? '/' : '/' . \$cleanPath;\n";
+            $FUNK_DEPLOY_ARR[] = "\$protocol = (isset(\$_SERVER['HTTPS']) && \$_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';\n";
+            $FUNK_DEPLOY_ARR[] = "\$host = \$_SERVER['HTTP_HOST'] ?? 'localhost';\n";
+            $FUNK_DEPLOY_ARR[] = "\$scriptName = \$scriptName ?: \$_SERVER['SCRIPT_NAME'] ?: '';\n";
+            $FUNK_DEPLOY_ARR[] = "\$baseUrl = \$baseUrl ? \$baseUrl : dirname(\$scriptName);\n";
+            $FUNK_DEPLOY_ARR[] = "\$c['req']['base_url_absolute'] = rtrim(\$protocol . \$host . \$baseUrl, '/');\n";
+            $FUNK_DEPLOY_ARR[] = "\$c['req']['base_url_relative'] = (\$baseUrl === '/') ? '' : \$baseUrl;\n";
+        }
+        // set the req method + req method spoofing before any request pipes
+        $FUNK_DEPLOY_ARR[] = "\$c['req']['method'] = \$_SERVER['REQUEST_METHOD'] ?? 'GET';\n";
+        $FUNK_DEPLOY_ARR[] = "if(\$c['req']['method'] === 'POST' && !empty(\$c['runtime']['request_form_spoof_methods'])) {\n";
+        $FUNK_DEPLOY_ARR[] = "\$spoofedMethod = (\$_POST['_method'] ?? \$_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE'] ?? '');\n";
+        $FUNK_DEPLOY_ARR[] = "if (in_array(\$spoofedMethod,\$c['runtime']['request_form_spoof_methods'],true)) {\n";
+        $FUNK_DEPLOY_ARR[] = "\$c['req']['method'] = \$spoofedMethod;\n}\n}";
+        $FUNK_DEPLOY_ARR[] = "unset(\$rawUri,\$cleanPath,\$scriptName,\$baseUrl,\$protocol,\$host,\$spoofedMethod);\n";
+        // set custom or default in-built Content Negotiation before any request pipes
+        if (isset($this->compiled['config']['runtime']['custom_content_negotiation'])) {
+            $FNM = $this->compiled['config']['runtime']['custom_content_negotiation'];
+            $FUNK_DEPLOY_ARR[] = "[\$c['req']['accept_order'], \$c['req']['prefers']] = \\$FNM(\$c);\n";
+        } else {
+            $FUNK_DEPLOY_ARR[] = "[\$c['req']['accept_order'], \$c['req']['prefers']] = \\funk_internal_negotiate_content(\$c);\n";
+        }
+        // run any request pipes
+        foreach ($this->compiled['config']['pipes']['request-resolved'] as $pRequest) {
+            $funcName = $pRequest['run'];
+            $FUNK_DEPLOY_ARR[] = "$funcName(\$c);\n";
+        }
+        // run global (if any) rate limiter before trying to match method for route matching
+        if (isset($this->compiled['config']['ratelimit'])) {
+            $FUNK_DEPLOY_ARR[] = "\\funk_internal_rate_limiter(\$c,"
+                . var_export($this->compiled['config']['ratelimit']['max_requests'], true)
+                . ','
+                . var_export($this->compiled['config']['ratelimit']['window_seconds'], true)
+                . ','
+                . $this->exportShortSyntax($this->compiled['config']['ratelimit']['by'])
+                . ','
+                . var_export($this->compiled['config']['ratelimit']['driver'], true)
+                . ");\n";
+        }
 
+        // **HERE GOTO LABELS:-based ROUTE MATCHING BEGINS!!!**
+
+        // state is 'method' as we here have matched an existing method!
+        //$FUNK_DEPLOY_ARR[] = "\$c['runtime']['state'] = 'method';\n";
+
+        // **HERE GOTO LABELS:-based ROUTE MATCHING ENDS!!!**
 
         // CLOSE namespace GLOBAL "namespace {"
         $FUNK_DEPLOY_ARR[] = "}\n";
 
+        // FINALLY OUTPUT FILE USING THE GOTO LABEL BELOW:
         compile_output_final_deploy_file:
         // First check if any rare build errors did occur here although highly unlikely
         if (
@@ -10167,29 +10287,12 @@ class FunkPHPC
                 trigger_error("Post-response Pipe Function `{$funcName}` could not be resolved.", E_USER_WARNING);
             }
         }
-
         // Resolve IP (parse correct IP from trusted proxy if configured)
         // with either User-defined Function OR with internal default
         if (isset($this->compiled['config']['runtime']['custom_ip_resolver'])) {
             $c['req']['ip'] = $this->compiled['config']['runtime']['custom_ip_resolver']($c);
         } else {
             $c['req']['ip'] = funk_internal_resolve_ip($c);
-        }
-        // Run any request pipes registered - IP is resolved so it can be used
-
-        foreach ($this->compiled['config']['pipes']['request-resolved'] as $pRequest) {
-            $funcName = $pRequest['run'];
-            $filePath = $pRequest['path'];
-            if (!function_exists($funcName) && file_exists($filePath)) {
-                require_once $filePath;
-            }
-            if (function_exists($funcName)) {
-                $funcName($c);
-            } else {
-                // Fallback or early warning if file/function failed to resolve
-                $c['err']['request'][] = "Request Pipe Function `{$funcName}` Failed to be resolved after being loaded from Path `{$pRequest['path']}`.";
-                trigger_error("Request Pipe Function `{$funcName}` could not be resolved.", E_USER_WARNING);
-            }
         }
         // Run any set URI normalizer OR the in-built will run
         // Here we also set the method whether on "_method" is in $_POST meaning form spoofing
@@ -10221,6 +10324,23 @@ class FunkPHPC
                 $c['req']['method'] = $spoofedMethod;
             }
         }
+        // Now resolve Content Negotation
+        [$c['req']['accept_order'], $c['req']['prefers']] = funk_internal_negotiate_content($c);
+        // Run any request pipes registered - IP is resolved so it can be used
+        foreach ($this->compiled['config']['pipes']['request-resolved'] as $pRequest) {
+            $funcName = $pRequest['run'];
+            $filePath = $pRequest['path'];
+            if (!function_exists($funcName) && file_exists($filePath)) {
+                require_once $filePath;
+            }
+            if (function_exists($funcName)) {
+                $funcName($c);
+            } else {
+                // Fallback or early warning if file/function failed to resolve
+                $c['err']['request'][] = "Request Pipe Function `{$funcName}` Failed to be resolved after being loaded from Path `{$pRequest['path']}`.";
+                trigger_error("Request Pipe Function `{$funcName}` could not be resolved.", E_USER_WARNING);
+            }
+        }
         // Run any set funk_internal_rate_limiter() for global/CONFIG() context
         // since it can know limit it using the correct $c['req']['ip'] retrieved
         if (isset($this->compiled['config']['ratelimit'])) {
@@ -10232,8 +10352,6 @@ class FunkPHPC
                 $this->compiled['config']['ratelimit']['driver']
             );
         }
-        // Now resolve Content Negotation
-        [$c['req']['accept_order'], $c['req']['prefers']] = funk_internal_negotiate_content($c);
         // First check if matched request method even exists in internal route trie and
         // then run internal route match against the $c['compiled']['routes]['trie'] array
         if (!isset($this->compiled['routes']['trie'][$c['req']['method']])) {
@@ -11980,10 +12098,12 @@ class FunkPHPConnect {}
 
 class FunkPHPConnectC {}
 class FunkPHPConnectSQLi {}
-// "Unsafe" is the NOT "mysql" class version instead of "mysqli" which is safer?
-class FunkPHPConnectSQLUnsafe {}
+class FunkPHPConnectRedis {}
+class FunkPHPConnectMemcached {}
 class FunkPHPConnectPostgresSQL {}
 class FunkPHPConnectMongoDB {}
+// "Unsafe" is the NOT "mysql" class version instead of "mysqli" which is safer?
+class FunkPHPConnectSQLUnsafe {}
 
 // FunkPHPSchema Classes - related to the table schemas (mainly (postgress)sql(i) for now)
 class FunkPHPSchemas {}

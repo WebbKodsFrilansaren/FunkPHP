@@ -1219,7 +1219,7 @@ function funk_internal_exception_handler(&$c, \Throwable $e)
  * Converts standard PHP errors/warnings into ErrorException so they
  * get caught by the Exception Handler.
  */
-function funk_internal_error_handler(int $severity, string $message, string $file, int $line): bool
+function funk_internal_error_handler(&$c, int $severity, string $message, string $file, int $line): bool
 {
     // Respect the error_reporting setting (e.g. ignore @ operator)
     if (!(error_reporting() & $severity)) {

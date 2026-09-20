@@ -2,7 +2,7 @@
 
 /**
  * FunkPHPDeployment File
- * Built: 2026-09-15 21:36:52
+ * Built: 2026-09-20 10:22:48
  * Compiler Flags: `OUTPUT_OVERRIDE_DEBUG`
  * DO NOT EDIT DIRECTLY - CHANGES ARE OVERWRITTEN WHEN (RE)BUILDING
  */
@@ -12,14 +12,14 @@ namespace {
     define('FUNKPHP_ONLINE', true);
     define('ROOT_FOLDER', __DIR__);
     define('ROOT_PAGES', __DIR__ . '/pages');
-    $c = ['BASEURLS' => ['LOCAL' => null, 'ONLINE' => null, 'BASEURL_URI' => null, 'HOST' => null], 'SESSION' => ['driver' => 'files', 'COOKIES' => ['SESSION_NAME' => 'fphp_id', 'SESSION_DOMAIN' => 'funkphp', 'SESSION_PATH' => '/', 'SESSION_LIFETIME' => 28800, 'SESSION_SAMESITE' => 'Lax', 'SESSION_SECURE' => false, 'SESSION_HTTPONLY' => true]], 'shared' => [], 'classes' => ['vendor' => [], 'user' => []], 'credentials' => null, 'connections' => [], 'req' => ['ip' => null, 'method' => null, 'prefers' => null, 'uri' => null, 'route' => null, 'route_matched' => false, 'segments' => null, 'params' => null, 'param_valid' => null, 'params_valid' => null, 'params_details' => null, 'accept_order' => null, 'accepts' => null, 'query' => null, 'base_url_absolute' => null, 'base_url_relative' => null, 'time' => null, 'log' => [], 'ua' => null], 'd' => null, 'v' => null, 'v_ok' => null, 'v_ok_files' => null, 'v_config' => [], 'v_data' => null, 'p' => null, 'files' => null, 'err' => [], 'runtime' => ['debug' => ['ON_OR_OFF' => true, 'ALWAYS_SHOW' => true, 'SHOW_VALID_BATCHES' => true, 'SHOW_INVALID_BATCHES' => true, 'SHOW_CACHED' => true, 'SHOW_ALL' => true], 'online' => false, 'use_https' => false, 'use_vendor' => true, 'custom_exception_handler' => null, 'custom_error_handler' => null, 'custom_ip_resolver' => null, 'custom_uri_normalizer' => null, 'custom_https_kernel' => 'test', 'request_accepts' => [], 'request_ip_sources' => [], 'request_form_spoof_methods' => ['PUT', 'PATCH', 'DELETE'], 'ini_sets' => ['session.cache_limiter' => 'public', 'session.use_strict_mode' => 8, 'session.use_only_cookies' => 1, 'session.cache_expire' => 30, 'session.cookie_lifetime' => 0, 'session.name' => 'fphp_id', 'session.sid_length' => 192, 'session.sid_bits_per_character' => 6, 'display_errors' => 1, 'display_startup_errors' => 1, 'error_reporting' => '32767'], 'pipes' => [], 'trusted_ip_proxies' => ['ip4' => ['173.245.48.0/20', '103.21.244.0/22', '103.22.200.0/22', '103.31.4.0/22', '141.101.64.0/18', '108.162.192.0/18', '190.93.240.0/20', '188.114.96.0/20', '197.234.240.0/22', '198.41.128.0/17', '162.158.0.0/15', '104.16.0.0/13', '104.24.0.0/14', '172.64.0.0/13', '131.0.72.0/22'], 'ip6' => ['2400:cb00::/32', '2606:4700::/32', '2803:f800::/32', '2405:b500::/32', '2405:8100::/32', '2a06:98c0::/29', '2c0f:f248::/32']], 'trusted_ip_headers' => ['HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_REAL_IP'], 'state' => 'global', 'global_headers' => ['add' => ['allow: all']], 'method_headers' => ['remove' => ['GET' => ['server' => 'server']], 'add' => ['GET' => ['allow: all'], 'POST' => ['allow: all'], 'PUT' => ['allow: all'], 'PATCH' => ['allow: all'], 'DELETE' => ['allow: all'], 'HEAD' => ['allow: all']]], 'NO_ROUTE_MATCH' => ['JSON' => ['JSON' => '{"err":"nothing found"}', 'code' => 404]], 'NO_ROUTE_MATCH_METHOD' => ['GET' => ['TEXT' => ['text' => 'nothing in GET!', 'code' => 404]]], 'NO_NO_MATCH_MESSAGE' => '404 | No Content or Page Found <br/>Are You the Developer, Web Administrator or General Web Master?<br/> There is NO Configured Global `->setNoRouteMatch&lt;Variant&gt;` Yet 😱!', 'SKIP_POST_RESPONSE_ON_NO_MATCH' => false, 'middlewares_inverted' => ['log_access' => ['GLOBAL'], 'auth' => ['GLOBAL']]], 'compiled' => ['built' => true, 'flags' => ['OUTPUT_OVERRIDE_DEBUG' => true], 'config' => ['runtime' => ['debug' => [], 'online' => false, 'use_https' => false, 'use_vendor' => true, 'custom_exception_handler' => null, 'custom_error_handler' => null, 'custom_ip_resolver' => null, 'custom_uri_normalizer' => null, 'custom_https_kernel' => 'test', 'request_accepts' => [], 'request_ip_sources' => [], 'request_form_spoof_methods' => ['PUT', 'PATCH', 'DELETE'], 'ini_sets' => ['session.cache_limiter' => 'public', 'session.use_strict_mode' => 8, 'session.use_only_cookies' => 1, 'session.cache_expire' => 30, 'session.cookie_lifetime' => 0, 'session.name' => 'fphp_id', 'session.sid_length' => 192, 'session.sid_bits_per_character' => 6, 'display_errors' => 1, 'display_startup_errors' => 1, 'error_reporting' => '32767'], 'pipes' => [], 'trusted_ip_proxies' => ['ip4' => ['173.245.48.0/20', '103.21.244.0/22', '103.22.200.0/22', '103.31.4.0/22', '141.101.64.0/18', '108.162.192.0/18', '190.93.240.0/20', '188.114.96.0/20', '197.234.240.0/22', '198.41.128.0/17', '162.158.0.0/15', '104.16.0.0/13', '104.24.0.0/14', '172.64.0.0/13', '131.0.72.0/22'], 'ip6' => ['2400:cb00::/32', '2606:4700::/32', '2803:f800::/32', '2405:b500::/32', '2405:8100::/32', '2a06:98c0::/29', '2c0f:f248::/32']], 'trusted_ip_headers' => ['HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_REAL_IP'], 'state' => 'global', 'global_headers' => ['add' => ['allow: all']], 'method_headers' => ['remove' => ['GET' => ['server' => 'server']], 'add' => ['GET' => ['allow: all'], 'POST' => ['allow: all'], 'PUT' => ['allow: all'], 'PATCH' => ['allow: all'], 'DELETE' => ['allow: all'], 'HEAD' => ['allow: all']]], 'NO_ROUTE_MATCH' => ['JSON' => ['JSON' => '{"err":"nothing found"}', 'code' => 404]], 'NO_ROUTE_MATCH_METHOD' => ['GET' => ['TEXT' => ['text' => 'nothing in GET!', 'code' => 404]]], 'NO_NO_MATCH_MESSAGE' => '404 | No Content or Page Found <br/>Are You the Developer, Web Administrator or General Web Master?<br/> There is NO Configured Global `->setNoRouteMatch&lt;Variant&gt;` Yet 😱!', 'SKIP_POST_RESPONSE_ON_NO_MATCH' => false, 'middlewares_inverted' => ['log_access' => ['GLOBAL'], 'auth' => ['GLOBAL']]], 'pipes' => ['request' => ['req_test'], 'request-resolved' => [['run' => '\\funkphp\\pipes\\request\\req_test', 'path' => '/home/wkf_server/code_vm/funkphp/src/funkphp/pipes/request/req_test.php']], 'middlewares' => ['log_access', 'auth'], 'middlewares-resolved' => [['run' => '\\funkphp\\pipes\\middlewares\\log_access', 'path' => '/home/wkf_server/code_vm/funkphp/src/funkphp/pipes/middlewares/log_access.php'], ['run' => '\\funkphp\\pipes\\middlewares\\auth', 'path' => '/home/wkf_server/code_vm/funkphp/src/funkphp/pipes/middlewares/auth.php']], 'post_response' => ['debug'], 'post_response-resolved' => [['run' => '\\funkphp\\pipes\\post_response\\debug', 'path' => '/home/wkf_server/code_vm/funkphp/src/funkphp/pipes/post_response/debug.php']]], 'headers' => ['add' => ['allow' => ['name' => 'Allow', 'value' => 'all']]], 'ratelimit' => ['max_requests' => 60, 'window_seconds' => 60, 'by' => ['ip'], 'driver' => 'redis']], 'methods' => ['GET' => ['NO_ROUTE_MATCH' => ['TEXT' => ['text' => 'nothing in GET!', 'code' => 404]], 'headers' => ['remove' => ['server' => 'server']], 'ratelimit' => ['max_requests' => 60, 'window_seconds' => 60, 'by' => ['ip'], 'driver' => 'redis']]], 'routes' => ['trie' => ['GET' => ['users' => [':' => ['id' => [':' => ['id2' => []]]]]]], 'trie_metadata' => ['<ALL>' => ['totalAllRoutes' => 1, 'totalStaticRoutes' => 0, 'totalDynamicRoutes' => 1, 'minURICountAll' => 3, 'maxURICountAll' => 3], 'GET' => ['allRoutes' => ['/users/:id/:id2' => 1], 'staticRoutes' => [], 'dynamicRoutes' => ['/users/:id/:id2' => 1], 'minURICount' => 3, 'maxURICount' => 3, 'URICountExistsForNumber' => [3 => 1], 'allRoutesCount' => 1, 'staticRoutesCount' => 0, 'dynamicRoutesCount' => 1], 'POST' => ['allRoutes' => [], 'staticRoutes' => [], 'dynamicRoutes' => [], 'minURICount' => 0, 'maxURICount' => 0, 'URICountExistsForNumber' => [], 'allRoutesCount' => 0, 'staticRoutesCount' => 0, 'dynamicRoutesCount' => 0], 'PUT' => ['allRoutes' => [], 'staticRoutes' => [], 'dynamicRoutes' => [], 'minURICount' => 0, 'maxURICount' => 0, 'URICountExistsForNumber' => [], 'allRoutesCount' => 0, 'staticRoutesCount' => 0, 'dynamicRoutesCount' => 0], 'DELETE' => ['allRoutes' => [], 'staticRoutes' => [], 'dynamicRoutes' => [], 'minURICount' => 0, 'maxURICount' => 0, 'URICountExistsForNumber' => [], 'allRoutesCount' => 0, 'staticRoutesCount' => 0, 'dynamicRoutesCount' => 0], 'PATCH' => ['allRoutes' => [], 'staticRoutes' => [], 'dynamicRoutes' => [], 'minURICount' => 0, 'maxURICount' => 0, 'URICountExistsForNumber' => [], 'allRoutesCount' => 0, 'staticRoutesCount' => 0, 'dynamicRoutesCount' => 0]], 'GET' => ['/users/:id/:id2' => ['hasParams' => ['id', 'id2'], 'params' => ['id' => ['pattern' => '/[^\\/]+/', 'default' => null, 'callback' => null], 'id2' => ['pattern' => '/[^\\/]+/', 'default' => null, 'callback' => null]], 'hasImplicitAlwaysMatchParam' => true, 'params_mismatch_json' => ['json' => '{"err":"no match"}', 'code' => 404], 'pipes-resolved' => [['run' => '\\funkphp\\pipes\\routes\\test\\test', 'path' => '/home/wkf_server/code_vm/funkphp/src/funkphp/pipes/routes/test.php']], 'pipes' => ['test.test'], 'subRoutes' => ['/users', '/users/:id'], 'middlewares-resolved' => [['run' => '\\funkphp\\pipes\\middlewares\\log_access', 'path' => '/home/wkf_server/code_vm/funkphp/src/funkphp/pipes/middlewares/log_access.php'], ['run' => '\\funkphp\\pipes\\middlewares\\auth', 'path' => '/home/wkf_server/code_vm/funkphp/src/funkphp/pipes/middlewares/auth.php']], 'middlewares' => ['log_access', 'auth'], 'middlewares_to_inherit' => [], 'headers' => ['add' => ['allow' => 'allow: all'], 'remove' => ['server']], 'response' => ['type' => 'page', 'context' => 'test', 'code' => 200]]]], 'pages' => [], 'data' => []]];
+    $c = ['BASEURLS' => ['LOCAL' => null, 'ONLINE' => null, 'BASEURL_URI' => null, 'HOST' => null], 'SESSION' => ['driver' => 'files', 'COOKIES' => ['SESSION_NAME' => 'fphp_id', 'SESSION_DOMAIN' => 'funkphp', 'SESSION_PATH' => '/', 'SESSION_LIFETIME' => 28800, 'SESSION_SAMESITE' => 'Lax', 'SESSION_SECURE' => false, 'SESSION_HTTPONLY' => true]], 'shared' => [], 'classes' => ['vendor' => [], 'user' => []], 'credentials' => null, 'connections' => [], 'req' => ['ip' => null, 'method' => null, 'prefers' => null, 'uri' => null, 'route' => null, 'route_matched' => false, 'segments' => null, 'params' => null, 'param_valid' => null, 'params_valid' => null, 'params_details' => null, 'accept_order' => null, 'accepts' => null, 'query' => null, 'base_url_absolute' => null, 'base_url_relative' => null, 'time' => null, 'log' => [], 'ua' => null], 'd' => null, 'v' => null, 'v_ok' => null, 'v_ok_files' => null, 'v_config' => [], 'v_data' => null, 'p' => null, 'files' => null, 'err' => [], 'runtime' => ['request_accepts' => [], 'request_ip_sources' => [], 'request_form_spoof_methods' => ['PUT', 'PATCH', 'DELETE'], 'trusted_ip_proxies' => ['ip4' => ['173.245.48.0/20', '103.21.244.0/22', '103.22.200.0/22', '103.31.4.0/22', '141.101.64.0/18', '108.162.192.0/18', '190.93.240.0/20', '188.114.96.0/20', '197.234.240.0/22', '198.41.128.0/17', '162.158.0.0/15', '104.16.0.0/13', '104.24.0.0/14', '172.64.0.0/13', '131.0.72.0/22'], 'ip6' => ['2400:cb00::/32', '2606:4700::/32', '2803:f800::/32', '2405:b500::/32', '2405:8100::/32', '2a06:98c0::/29', '2c0f:f248::/32']], 'trusted_ip_headers' => ['HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_REAL_IP'], 'state' => 'global', 'global_headers' => ['add' => ['allow: all']], 'method_headers' => ['remove' => ['GET' => ['server' => 'server']], 'add' => ['GET' => ['allow: all'], 'POST' => ['allow: all'], 'PUT' => ['allow: all'], 'PATCH' => ['allow: all'], 'DELETE' => ['allow: all'], 'HEAD' => ['allow: all']]], 'NO_ROUTE_MATCH' => ['JSON' => ['JSON' => '{"err":"nothing found"}', 'code' => 404]], 'NO_ROUTE_MATCH_METHOD' => ['GET' => ['TEXT' => ['text' => 'nothing in GET!', 'code' => 404]]], 'NO_NO_MATCH_MESSAGE' => '404 | No Content or Page Found <br/>Are You the Developer, Web Administrator or General Web Master?<br/> There is NO Configured Global `->setNoRouteMatch&lt;Variant&gt;` Yet 😱!', 'SKIP_POST_RESPONSE_ON_NO_MATCH' => true]];
     $c['req']['time'] = $_SERVER['REQUEST_TIME'] ?? time();
     $c['req']['query'] = $_SERVER['QUERY_STRING'] ?? null;
     $c['req']['ua'] = $_SERVER['HTTP_USER_AGENT'] ?? null;
-    function test(&$c): bool
+    $c['runtime']['state'] = 'global';
+    function test(&$c, \Throwable $e): void
     {
         echo "YAS from test() user defined fn! This is callback on NO_ROUTE_MATCH";
-        return "false";
     }
     function testar0(&$c)
     {
@@ -851,7 +851,7 @@ namespace {
         $err = 'An unexpected Internal Server Error occurred. Please check the Application Logs.';
         \funk_return_error_json_or_page($c, 500, ["internal_server_error" => $err], '500', $err);
     }
-    function funk_internal_error_handler(int $severity, string $message, string $file, int $line): bool
+    function funk_internal_error_handler(&$c, int $severity, string $message, string $file, int $line): bool
     {
         if (!(error_reporting() & $severity)) {
             return false;
@@ -1456,5 +1456,70 @@ namespace funkphp\pipes\post_response {
 }
 
 namespace {
-    \test($c);
+    ini_set('session.cache_limiter', 'public');
+    ini_set('session.use_strict_mode', 8);
+    ini_set('session.use_only_cookies', 1);
+    ini_set('session.cache_expire', 30);
+    ini_set('session.cookie_lifetime', 0);
+    ini_set('session.name', 'fphp_id');
+    ini_set('session.sid_length', 192);
+    ini_set('session.sid_bits_per_character', 6);
+    ini_set('display_errors', 1);
+    ini_set('display_startup_errors', 1);
+    ini_set('error_reporting', '32767');
+    ob_start();
+    if (file_exists(ROOT_FOLDER . '/vendor/autoload.php')) {
+        require_once ROOT_FOLDER . '/vendor/autoload.php';
+    } else {
+        $c['err']['INTERNAL'][] = 'Vendor Autoload Enabled (`use_vendor = true`), but File `' . ROOT_FOLDER . '/vendor/autoload.php' . '` was NOT Found.';
+    }
+    set_exception_handler(function (\Throwable $e) use (&$c) {
+        \funk_internal_exception_handler($c, $e);
+    });
+    set_error_handler(function (int $errno, string $errstr, string $errfile = '', int $errline = 0) use (&$c) {
+        return \funk_internal_error_handler($c, $errno, $errstr, $errfile, $errline);
+    });
+    register_shutdown_function(function () use (&$c) {
+        if (isset($c['runtime']['SKIP_POST_RESPONSE']) && $c['runtime']['SKIP_POST_RESPONSE'] === true) {
+            return;
+        }
+        \funkphp\pipes\post_response\debug($c);
+    });
+    register_shutdown_function(function () use (&$c) {
+        if (isset($c['runtime']['SKIP_POST_RESPONSE']) && $c['runtime']['SKIP_POST_RESPONSE'] === true) {
+            return;
+        }
+        \funkphp\pipes\post_response\debug($c);
+    });
+    $c['req']['ip'] = \funk_internal_resolve_ip($c);
+    $rawUri = $_SERVER['REQUEST_URI'] ?? '/';
+    $cleanPath = explode('?', $rawUri, 2)[0];
+    $cleanPath = explode('#', $cleanPath, 2)[0];
+    $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+    $baseUrl = dirname($scriptName);
+    if ($baseUrl !== '/' && str_starts_with($cleanPath, $baseUrl)) {
+        $cleanPath = substr($cleanPath, strlen($baseUrl));
+    }
+    $cleanPath = preg_replace('#/{2,#', '/', $cleanPath);
+    $cleanPath = trim($cleanPath, '/');
+    $c['req']['uri'] = ($cleanPath === '') ? '/' : '/' . $cleanPath;
+    $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
+    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    $scriptName = $scriptName ?: $_SERVER['SCRIPT_NAME'] ?: '';
+    $baseUrl = $baseUrl ? $baseUrl : dirname($scriptName);
+    $c['req']['base_url_absolute'] = rtrim($protocol . $host . $baseUrl, '/');
+    $c['req']['base_url_relative'] = ($baseUrl === '/') ? '' : $baseUrl;
+    $c['req']['method'] = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+    if ($c['req']['method'] === 'POST' && !empty($c['runtime']['request_form_spoof_methods'])) {
+        $spoofedMethod = ($_POST['_method'] ?? $_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE'] ?? '');
+        if (in_array($spoofedMethod, $c['runtime']['request_form_spoof_methods'], true)) {
+            $c['req']['method'] = $spoofedMethod;
+        }
+    }
+    unset($rawUri, $cleanPath, $scriptName, $baseUrl, $protocol, $host, $spoofedMethod);
+    [$c['req']['accept_order'], $c['req']['prefers']] = \funk_internal_negotiate_content($c);
+    \funkphp\pipes\request\req_test($c);
+    \funkphp\pipes\request\req_test($c);
+    \funk_internal_rate_limiter($c, 60, 60, ['ip'], 'redis');
+    $c['runtime']['state'] = 'method';
 }
