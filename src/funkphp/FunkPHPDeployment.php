@@ -2,7 +2,7 @@
 
 /**
  * FunkPHPDeployment File
- * Built: 2026-09-20 12:46:30
+ * Built: 2026-09-20 14:15:04
  * Compiler Flags: `OUTPUT_OVERRIDE_DEBUG`
  * DO NOT EDIT DIRECTLY - CHANGES ARE OVERWRITTEN WHEN (RE)BUILDING
  */
@@ -12,7 +12,7 @@ namespace {
     define('FUNKPHP_ONLINE', true);
     define('ROOT_FOLDER', __DIR__);
     define('ROOT_PAGES', __DIR__ . '/pages');
-    $c = ['BASEURLS' => ['LOCAL' => null, 'ONLINE' => null, 'BASEURL_URI' => null, 'HOST' => null], 'SESSION' => ['driver' => 'files', 'COOKIES' => ['SESSION_NAME' => 'fphp_id', 'SESSION_DOMAIN' => 'funkphp', 'SESSION_PATH' => '/', 'SESSION_LIFETIME' => 28800, 'SESSION_SAMESITE' => 'Lax', 'SESSION_SECURE' => false, 'SESSION_HTTPONLY' => true]], 'shared' => [], 'classes' => ['vendor' => [], 'user' => []], 'credentials' => null, 'connections' => [], 'req' => ['ip' => null, 'method' => null, 'prefers' => null, 'uri' => null, 'route' => null, 'route_matched' => false, 'segments' => null, 'params' => null, 'param_valid' => null, 'params_valid' => null, 'params_details' => null, 'accept_order' => null, 'accepts' => null, 'query' => null, 'base_url_absolute' => null, 'base_url_relative' => null, 'time' => null, 'log' => [], 'ua' => null], 'd' => null, 'v' => null, 'v_ok' => null, 'v_ok_files' => null, 'v_config' => [], 'v_data' => null, 'p' => null, 'files' => null, 'err' => [], 'runtime' => ['request_accepts' => [], 'request_ip_sources' => [], 'request_form_spoof_methods' => ['PUT', 'PATCH', 'DELETE'], 'trusted_ip_proxies' => ['ip4' => ['173.245.48.0/20', '103.21.244.0/22', '103.22.200.0/22', '103.31.4.0/22', '141.101.64.0/18', '108.162.192.0/18', '190.93.240.0/20', '188.114.96.0/20', '197.234.240.0/22', '198.41.128.0/17', '162.158.0.0/15', '104.16.0.0/13', '104.24.0.0/14', '172.64.0.0/13', '131.0.72.0/22'], 'ip6' => ['2400:cb00::/32', '2606:4700::/32', '2803:f800::/32', '2405:b500::/32', '2405:8100::/32', '2a06:98c0::/29', '2c0f:f248::/32']], 'trusted_ip_headers' => ['HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_REAL_IP'], 'state' => 'global', 'global_headers' => ['add' => ['allow: all']], 'method_headers' => ['remove' => ['GET' => ['server' => 'server']], 'add' => ['GET' => ['allow: all'], 'POST' => ['allow: all'], 'PUT' => ['allow: all'], 'PATCH' => ['allow: all'], 'DELETE' => ['allow: all'], 'HEAD' => ['allow: all']]], 'NO_ROUTE_MATCH' => null, 'NO_ROUTE_MATCH_METHOD' => ['GET' => ['TEXT' => ['text' => 'nothing in GET!', 'code' => 404]]], 'NO_NO_MATCH_MESSAGE' => '404 | No Content or Page Found <br/>Are You the Developer, Web Administrator or General Web Master?<br/> There is NO Configured Global `->setNoRouteMatch&lt;Variant&gt;` Yet 😱!', 'SKIP_POST_RESPONSE_ON_NO_MATCH' => true]];
+    $c = ['BASEURLS' => ['LOCAL' => null, 'ONLINE' => null, 'BASEURL_URI' => null, 'HOST' => null], 'SESSION' => ['driver' => 'files', 'COOKIES' => ['SESSION_NAME' => 'fphp_id', 'SESSION_DOMAIN' => 'funkphp', 'SESSION_PATH' => '/', 'SESSION_LIFETIME' => 28800, 'SESSION_SAMESITE' => 'Lax', 'SESSION_SECURE' => false, 'SESSION_HTTPONLY' => true]], 'shared' => [], 'classes' => ['vendor' => [], 'user' => []], 'credentials' => null, 'connections' => [], 'req' => ['ip' => null, 'method' => null, 'prefers' => null, 'uri' => null, 'route' => null, 'route_matched' => false, 'segments' => null, 'params' => null, 'param_valid' => null, 'params_valid' => null, 'params_details' => null, 'accept_order' => null, 'accepts' => null, 'query' => null, 'base_url_absolute' => null, 'base_url_relative' => null, 'time' => null, 'log' => [], 'ua' => null], 'd' => null, 'v' => null, 'v_ok' => null, 'v_ok_files' => null, 'v_config' => [], 'v_data' => null, 'p' => null, 'files' => null, 'err' => [], 'runtime' => ['request_accepts' => [], 'request_ip_sources' => [], 'request_form_spoof_methods' => ['PUT', 'PATCH', 'DELETE'], 'trusted_ip_proxies' => ['ip4' => ['173.245.48.0/20', '103.21.244.0/22', '103.22.200.0/22', '103.31.4.0/22', '141.101.64.0/18', '108.162.192.0/18', '190.93.240.0/20', '188.114.96.0/20', '197.234.240.0/22', '198.41.128.0/17', '162.158.0.0/15', '104.16.0.0/13', '104.24.0.0/14', '172.64.0.0/13', '131.0.72.0/22'], 'ip6' => ['2400:cb00::/32', '2606:4700::/32', '2803:f800::/32', '2405:b500::/32', '2405:8100::/32', '2a06:98c0::/29', '2c0f:f248::/32']], 'trusted_ip_headers' => ['HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_REAL_IP'], 'state' => 'global', 'global_headers' => ['add' => ['allow: all']], 'method_headers' => ['remove' => ['GET' => ['server' => 'server']], 'add' => ['GET' => ['allow: all'], 'POST' => ['allow: all'], 'PUT' => ['allow: all'], 'PATCH' => ['allow: all'], 'DELETE' => ['allow: all'], 'HEAD' => ['allow: all']]], 'NO_ROUTE_MATCH' => ['PAGE' => ['page' => 'test', 'path' => '/home/wkf_server/code_vm/funkphp/src/funkphp/pages/test.php', 'code' => 404], 'JSON' => ['JSON' => '{"err":"nothing found"}', 'code' => 404], 'TEXT' => ['text' => 'nothing in GLOBAL!', 'code' => 404]], 'NO_ROUTE_MATCH_METHOD' => ['GET' => ['TEXT' => ['text' => 'nothing in GET!', 'code' => 404]]], 'NO_NO_MATCH_MESSAGE' => '404 | No Content or Page Found <br/>Are You the Developer, Web Administrator or General Web Master?<br/> There is NO Configured Global `->setNoRouteMatch&lt;Variant&gt;` Yet 😱!', 'SKIP_POST_RESPONSE_ON_NO_MATCH' => true]];
     $c['req']['time'] = $_SERVER['REQUEST_TIME'] ?? time();
     $c['req']['query'] = $_SERVER['QUERY_STRING'] ?? null;
     $c['req']['ua'] = $_SERVER['HTTP_USER_AGENT'] ?? null;
@@ -850,7 +850,7 @@ namespace {
             exit;
         }
         $err = 'An unexpected Internal Server Error occurred. Please check the Application Logs.';
-        \funk_return_error_json_or_page($c, 500, ["internal_server_error" => $err], '500', $err);
+        \funk_return_error_json_or_page($c, 500, \funk_internal_critical_error_json($c, 500, $err), '500', $err);
     }
     function funk_internal_error_handler(&$c, int $severity, string $message, string $file, int $line): bool
     {
@@ -1289,13 +1289,16 @@ namespace {
     \funkphp\pipes\request\req_test($c);
     \funkphp\pipes\request\req_test($c);
     \funk_internal_rate_limiter($c, 60, 60, ['ip'], 'redis');
-    if (!in_array($c['req']['method'], ['GET'], true)) {
-        \funk_internal_handle_no_no_route_match($c);
+    if (!in_array($c['req']['method'], ['GET', 'POST'], true)) {
+        \funk_internal_handle_no_route_match($c, 'CONFIG');
     }
     $c['runtime']['state'] = 'method';
     switch ($c['req']['method']) {
         case 'GET':
             \funk_internal_rate_limiter($c, 60, 60, ['ip'], 'redis');
+            break;
+        case 'POST':
+            \funk_internal_rate_limiter($c, 67, 69, ['ip'], 'redis');
             break;
     }
 }

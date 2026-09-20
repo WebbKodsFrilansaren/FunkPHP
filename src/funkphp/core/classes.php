@@ -175,6 +175,7 @@ class FunkPHPC
             'query' => [],
             'post_response' => []
         ],
+        'placeholderImplicitParams' => null,
         'placeholderParamContexts' => [],
         'placeholderUNSUEDParams' => null,
         'placeHolderUsedUserDefinedEngineFNS' => [],
@@ -4132,7 +4133,7 @@ class FunkPHPC
         $callback = null;
         $cbFN = null;
         // if=shorthand regex
-        if (preg_match('/^[a-z_]+$/i', $regex)) {
+        if (preg_match('/^[*a-z_]+$/i', $regex)) {
             if (isset($this->ALLOWED['shorthandRegexes'][strtolower(trim($regex))])) {
                 $regex = $this->ALLOWED['shorthandRegexes'][strtolower(trim($regex))];
                 if (isset($defaultParamValueOnRegexMismatch) && !preg_match($regex, $defaultParamValueOnRegexMismatch)) {
@@ -5021,7 +5022,7 @@ class FunkPHPC
         $callback = null;
         $cbFN = null;
         // if=shorthand regex
-        if (preg_match('/^[a-z_]+$/i', $regex)) {
+        if (preg_match('/^[*a-z_]+$/i', $regex)) {
             if (isset($this->ALLOWED['shorthandRegexes'][strtolower(trim($regex))])) {
                 $regex = $this->ALLOWED['shorthandRegexes'][strtolower(trim($regex))];
                 if (isset($defaultParamValueOnRegexMismatch) && !preg_match($regex, $defaultParamValueOnRegexMismatch)) {
@@ -5696,7 +5697,7 @@ class FunkPHPC
                 $this->invalidBatches['paramRulesFlexible']['routes'][$method][$route][$paramIdentifier] = $paramIdentifier;
                 return;
             }
-            if (preg_match('/^[a-z_]+$/i', $regex)) {
+            if (preg_match('/^[*a-z_]+$/i', $regex)) {
                 if (isset($this->ALLOWED['shorthandRegexes'][strtolower(trim($regex))])) {
                     $regex = $this->ALLOWED['shorthandRegexes'][strtolower(trim($regex))];
                 } else {
@@ -5885,7 +5886,7 @@ class FunkPHPC
         $callback = null;
         $cbFN = null;
         // if=shorthand regex
-        if (preg_match('/^[a-z_]+$/i', $regex)) {
+        if (preg_match('/^[*a-z_]+$/i', $regex)) {
             if (isset($this->ALLOWED['shorthandRegexes'][strtolower(trim($regex))])) {
                 $regex = $this->ALLOWED['shorthandRegexes'][strtolower(trim($regex))];
                 if (isset($defaultParamValueOnRegexMismatch) && !preg_match($regex, $defaultParamValueOnRegexMismatch)) {
@@ -9067,9 +9068,9 @@ class FunkPHPC
             $this->compiled['config']['ratelimit'] = $this->validBatches['ratelimit']['config'];
         }
         if (isset($this->validBatches['methods'])) {
-            $validRules = true;
             foreach ($this->validBatches['methods'] as $method => $methodConfig) {
                 if (isset($methodConfig['paramRules'])) {
+                    $validRules = true;
                     foreach ($methodConfig['paramRules'] as $methodConfigParamR) {
                         if (isset($methodConfigParamR['callback']) && isset($GLOBAL_HANDLERS[$methodConfigParamR['callback']])) {
                             $this->compile_setErr("Conflicting User-defined Functions", "User-defined Callback for {$method} Param Rule `{$methodConfigParamR['callback']}` is Already being used by Global Handler `{$GLOBAL_HANDLERS[$methodConfigParamR['callback']]}`.  The Global Handlers such as `Error Handler`, `Exception Handler`, `URI Normalizer` and `Custom HTTPS Kernel` are always prioritized when first set with User-defined Functions.");
@@ -9081,9 +9082,11 @@ class FunkPHPC
                         $USED_PARAM_RULES['methods'][$method] = $methodConfig['paramRules'];
                     }
                 }
-                if (isset($this->validBatches['ratelimit']['methods'][$method])) {
-                    $this->compiled['methods'][$method]['ratelimit'] =  $this->validBatches['ratelimit']['methods'][$method];
-                }
+            }
+        }
+        if (isset($this->validBatches['ratelimit']['methods'])) {
+            foreach ($this->validBatches['ratelimit']['methods'] as $method => $methodRateLimit) {
+                $this->compiled['methods'][$method]['ratelimit'] = $methodRateLimit;
             }
         }
         // ------------------------------------------------------------------------------------------
@@ -9172,8 +9175,9 @@ class FunkPHPC
                             }
                             // Issue warning when no Param Rule found for current Route Param
                             else {
-                                $this->compiled['routes'][$method][$route]['params'][$routeParam] = ['pattern' => '/[^\/]+/', 'default' => null, 'callback' => null];
+                                $this->compiled['routes'][$method][$route]['params'][$routeParam] = ['pattern' => '/[^\/]+/', 'default' => null, 'callback' => null, 'implicit' => true];
                                 $this->compiled['routes'][$method][$route]['hasImplicitAlwaysMatchParam'] = true;
+                                $this->cached['placeholderImplicitParams'][$method][$route][] = [$routeParam];
                                 $this->compile_setWarn("No Param Rule Available for `{$routeParam}` in `{$CURRENT_ROUTE_STR}`", "The following Param `{$routeParam}` in `{$CURRENT_ROUTE_STR}` has no Available Param Rules in Current Route, not in `{$method}`, and not in Global CONFIG. This means that You need to `Parse the Param Manually` using any of your `Route Pipe Function(s)`. If that is exactly what You are doing for `{$CURRENT_ROUTE_STR}`, just ignore this warning. Default Param Regex `/[^/]+/` has been applied to it so it gets through Param Validation. You will see the Route Key `hasImplicitAlwaysMatchParam` in Debugging/Logging for this Route that means it was automatically added since you must EXPLCITITLY set an Everything-Matches `*` Regex Pattern in order for it to get into Build Version (running locally always works).");
                             }
                         }
@@ -9532,7 +9536,7 @@ class FunkPHPC
                         if (isset($this->compileFlags['ALL_ROUTES_MUST_HAVE_PIPE_RESPONSE'])) {
                             $this->compile_setErr("Response is REQUIRED in Route `{$CURRENT_ROUTE_STR}`", "Compiler Flag `ALL_ROUTES_MUST_HAVE_PIPE_RESPONSE` forces `{$CURRENT_ROUTE_STR}` to have a `->pipeResponse()`.");
                         } else if (!isset($this->compileFlags['HIDE_NO_ROUTE_RESPONSE_WARNING'])) {
-                            $this->compile_setWarn("No Response in Route `{$CURRENT_ROUTE_STR}`", "The Route `{$CURRENT_ROUTE_STR}` has no `Piped Response` (via `->pipeResponse()`) meaning it must be handled manually inside of Pipe Functions OR the Route `{$CURRENT_ROUTE_STR}` would essentially NOT have a Response to the End-user. Use `funk_return_response_page()`, `funk_return_response_json()`, `funk_return_response_callback()`, or `funk_return_response_file()` inside any of the referenced Files=>Functions in any of the `->pipeFunction()` in order to fulfill the requirement of returning a Response in the Route `{$CURRENT_ROUTE_STR}`. Remember that no other `->pipe<TYPE>()` can be used after the `->pipeResponse()` for the Route as it is meant to complete the HTTP(S) Request.");
+                            $this->compile_setWarn("No Response in Route `{$CURRENT_ROUTE_STR}`", "The Route `{$CURRENT_ROUTE_STR}` has no `Piped Response` (via `->pipeResponse()`) meaning it must be handled manually inside of Pipe Functions OR the Route `{$CURRENT_ROUTE_STR}` would essentially NOT have a Response to the End-user. Use `funk_return_response_page()`, `funk_return_response_json()`, `funk_return_response_text()`, `funk_return_response_callback()`, or `funk_return_response_file()` inside any of the referenced Files=>Functions in any of the `->pipeFunction()` in order to fulfill the requirement of returning a Response in the Route `{$CURRENT_ROUTE_STR}`. Remember that no other `->pipe<TYPE>()` can be used after the `->pipeResponse()` for the Route as it is meant to complete the HTTP(S) Request.");
                         }
                     } else {
                         if (
@@ -9970,6 +9974,8 @@ class FunkPHPC
         $VALID_METHODS = $this->exportShortSyntax(array_keys(($this->compiled['routes']['trie'] ?? [])));
         $FUNK_DEPLOY_ARR[] = "if (!in_array(\$c['req']['method'], $VALID_METHODS, true)) {\n";
         if (isset($this->compiled['config']['runtime']['NO_ROUTE_MATCH'])) {
+            // HARDCODE OUT the only No Route Match-config that actually exists globally!
+
             $FUNK_DEPLOY_ARR[] = "    \\funk_internal_handle_no_route_match(\$c, 'CONFIG');\n";
         } else {
             $FUNK_DEPLOY_ARR[] = "    \\funk_internal_handle_no_no_route_match(\$c);\n";
@@ -11136,7 +11142,7 @@ class FunkPHPConfig
      * Define a global parameter validation regex rule applied across all routes.
      *
      * @param string $param Parameter name without leading colon (e.g., "id")
-     * @param 'int'|'number'|'uint'|'digits'|'float'|'decimal'|'numeric'|'alpha'|'alpha_num'|'slug'|'hex'|'base64'|'mac'|'mac_address'|'ipv4'|'ipv6'|'ip'|'uuid'|'uuid_v1'|'uuid_v3'|'uuid_v4'|'uuid_v5'|'uuid_v7'|'ulid'|'date'|'date_iso'|'time'|'time_short'|'datetime'|'year'|'month'|'day'|string $regexORcb Pattern Alias, Raw Regex String, OR Custom Callback Function defined in `/src/funkphp/config/functions.php`.
+     * @param '*'|'int'|'number'|'uint'|'digits'|'float'|'decimal'|'numeric'|'alpha'|'alpha_num'|'slug'|'hex'|'base64'|'mac'|'mac_address'|'ipv4'|'ipv6'|'ip'|'uuid'|'uuid_v1'|'uuid_v3'|'uuid_v4'|'uuid_v5'|'uuid_v7'|'ulid'|'date'|'date_iso'|'time'|'time_short'|'datetime'|'year'|'month'|'day'|string $regexORcb Pattern Alias, Raw Regex String, OR Custom Callback Function defined in `/src/funkphp/config/functions.php`.
      * @param string|null $defaultParamValueOnRegexMismatch Fallback value if validation fails
      * @return $this
      */
@@ -11553,7 +11559,7 @@ class FunkPHPMethod
      * Define a parameter validation regex rule scoped to this HTTP method.
      *
      * @param string $param Parameter name without leading colon (e.g., "id")
-     * @param 'int'|'number'|'uint'|'digits'|'float'|'decimal'|'numeric'|'alpha'|'alpha_num'|'slug'|'hex'|'base64'|'mac'|'mac_address'|'ipv4'|'ipv6'|'ip'|'uuid'|'uuid_v1'|'uuid_v3'|'uuid_v4'|'uuid_v5'|'uuid_v7'|'ulid'|'date'|'date_iso'|'time'|'time_short'|'datetime'|'year'|'month'|'day'|string $regexORcb Pattern Alias, Raw Regex String, OR Custom Callback Function defined in `/src/funkphp/config/functions.php`.
+     * @param '*'|'int'|'number'|'uint'|'digits'|'float'|'decimal'|'numeric'|'alpha'|'alpha_num'|'slug'|'hex'|'base64'|'mac'|'mac_address'|'ipv4'|'ipv6'|'ip'|'uuid'|'uuid_v1'|'uuid_v3'|'uuid_v4'|'uuid_v5'|'uuid_v7'|'ulid'|'date'|'date_iso'|'time'|'time_short'|'datetime'|'year'|'month'|'day'|string $regexORcb Pattern Alias, Raw Regex String, OR Custom Callback Function defined in `/src/funkphp/config/functions.php`.
      * @param string|null $defaultParamValueOnRegexMismatch Fallback value if validation fails
      * @return $this
      */
@@ -11936,7 +11942,7 @@ class FunkPHPRoute
      * Define a Single Parameter Regex Rule scoped exclusively to this Route.
      *
      * @param string $param Parameter name without leading colon (e.g., "id")
-     * @param 'int'|'number'|'uint'|'digits'|'float'|'decimal'|'numeric'|'alpha'|'alpha_num'|'slug'|'hex'|'base64'|'mac'|'mac_address'|'ipv4'|'ipv6'|'ip'|'uuid'|'uuid_v1'|'uuid_v3'|'uuid_v4'|'uuid_v5'|'uuid_v7'|'ulid'|'date'|'date_iso'|'time'|'time_short'|'datetime'|'year'|'month'|'day'|string $regexORcb Pattern Alias, Raw Regex String, OR Custom Callback Function defined in `/src/funkphp/config/functions.php`.
+     * @param '*'|'int'|'number'|'uint'|'digits'|'float'|'decimal'|'numeric'|'alpha'|'alpha_num'|'slug'|'hex'|'base64'|'mac'|'mac_address'|'ipv4'|'ipv6'|'ip'|'uuid'|'uuid_v1'|'uuid_v3'|'uuid_v4'|'uuid_v5'|'uuid_v7'|'ulid'|'date'|'date_iso'|'time'|'time_short'|'datetime'|'year'|'month'|'day'|string $regexORcb Pattern Alias, Raw Regex String, OR Custom Callback Function defined in `/src/funkphp/config/functions.php`.
      * @param string|null $defaultParamValueOnRegexMismatch Fallback value if validation fails
      * @return $this
      */
@@ -11958,7 +11964,7 @@ class FunkPHPRoute
      * Names and other Polymorphic Variant Keys within the same route.
      *
      * @param string $paramIdentifier Parameter name without leading colon (e.g., "id" or "identifier")
-     * @param 'int'|'number'|'uint'|'digits'|'float'|'decimal'|'numeric'|'alpha'|'alpha_num'|'slug'|'hex'|'base64'|'mac'|'mac_address'|'ipv4'|'ipv6'|'ip'|'uuid'|'uuid_v1'|'uuid_v3'|'uuid_v4'|'uuid_v5'|'uuid_v7'|'ulid'|'date'|'date_iso'|'time'|'time_short'|'datetime'|'year'|'month'|'day'|string ...$keyAndRegexPairs Alternating pairs of [VariantKey, RegexPatternOrAlias] (e.g., "num", "uint", "slug_id", "slug")
+     * @param '*'|'int'|'number'|'uint'|'digits'|'float'|'decimal'|'numeric'|'alpha'|'alpha_num'|'slug'|'hex'|'base64'|'mac'|'mac_address'|'ipv4'|'ipv6'|'ip'|'uuid'|'uuid_v1'|'uuid_v3'|'uuid_v4'|'uuid_v5'|'uuid_v7'|'ulid'|'date'|'date_iso'|'time'|'time_short'|'datetime'|'year'|'month'|'day'|string ...$keyAndRegexPairs Alternating pairs of [VariantKey, RegexPatternOrAlias] (e.g., "num", "uint", "slug_id", "slug")
      * @return $this
      */
     public function setParamRulePolymorphic(string $paramIdentifier, string ...$keyAndRegexPairs): self

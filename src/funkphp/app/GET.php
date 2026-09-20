@@ -8,5 +8,7 @@ $APP->ROUTES()
     ->setRateLimit(60, 60, 'ip', 'redis')
     ->setHeaderRemove('server')
     ->route("/users/:id/:id2")
+    ->setParamRule('id', '*')
+    //->setParamRule('id2', '*')
     ->setParamRuleMismatchJSON(['err' => 'no match'], 404)
     ->pipeFunctionsThenResponse('test.test', 'page:test', 200);
