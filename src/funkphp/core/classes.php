@@ -35,22 +35,35 @@ class FunkPHPC
             'FunkTables',
             'FunkSchemas'
         ],
+        'ignored_core_functions_if_no_custom_kernel' => [
+            'funk_internal_handle_no_route_match',
+            'funk_internal_match_route_trie',
+            'funk_internal_validate_params',
+            'funk_internal_handle_invalid_params'
+        ],
         'headers' => ['set-cookie', 'content-length', 'transfer-encoding', 'connection'],
         'functions_in_regular_functions' => [
-            'funk_session_started_or_start_it',
-            'funk_internal_session_started_or_start_it',
-            'funk_session_cookie_set',
-            'funk_default_exception_handler',
             'register_shutdown_function',
             'set_exception_handler',
             'set_error_handler',
-            'funk_internal_handle_no_route_match',
-            'funk_internal_send_headers',
-            'funk_internal_return_response',
+            'funk_internal_session_started_or_start_it',
+            'funk_internal_rate_limiter',
+            'funk_internal_route_cache',
+            'funk_internal_resolve_ip',
             'funk_internal_exception_handler',
             'funk_internal_error_handler',
-            'funk_internal_rate_limiter',
-            'funk_internal_is_ip_trusted',
+            'funk_internal_render_code_snippet',
+            'funk_internal_match_route_trie',
+            'funk_internal_validate_params',
+            'funk_internal_handle_invalid_params',
+            'funk_internal_negotiate_content',
+            'funk_internal_handle_nonces',
+            'funk_internal_handle_sri_internal',
+            'funk_internal_handle_sri_external',
+            'funk_internal_send_headers',
+            'funk_internal_handle_no_route_match',
+            'funk_internal_handle_no_no_route_match',
+            'funk_internal_critical_error_page'
         ],
         'reserved_group_names' => ['sql', 'query', 'validation'],
         'reserved_fn_names' => ['cli_dump', 'cli_dd', 'dd', 'FunkPHP', 'FunkConnect', 'FunkSchemas', 'FunkValidate', 'FunkSQL', 'FunkQuery', 'FunkTables'],
@@ -9709,6 +9722,8 @@ class FunkPHPC
                 if (
                     in_array($CORE_FNK, $this->FORBIDDEN['compiler_ignored_core_fns_predefined'], true)
                     || in_array($CORE_FNK, $this->FORBIDDEN['compiler_flag_forbidden_configured']['IGNORED_CORE_FUNCTIONS'], true)
+                    || (!isset($this->compiled['config']['runtime']['custom_https_kernel'])
+                        && in_array($CORE_FNK, $this->FORBIDDEN['ignored_core_functions_if_no_custom_kernel'], true))
                 ) {
                     continue;
                 }
@@ -9952,9 +9967,35 @@ class FunkPHPC
         }
 
         // **HERE GOTO LABELS:-based ROUTE MATCHING BEGINS!!!**
+        $VALID_METHODS = $this->exportShortSyntax(array_keys(($this->compiled['routes']['trie'] ?? [])));
+        $FUNK_DEPLOY_ARR[] = "if (!in_array(\$c['req']['method'], $VALID_METHODS, true)) {\n";
+        if (isset($this->compiled['config']['runtime']['NO_ROUTE_MATCH'])) {
+            $FUNK_DEPLOY_ARR[] = "    \\funk_internal_handle_no_route_match(\$c, 'CONFIG');\n";
+        } else {
+            $FUNK_DEPLOY_ARR[] = "    \\funk_internal_handle_no_no_route_match(\$c);\n";
+        }
+        $FUNK_DEPLOY_ARR[] = "}\n";
 
-        // state is 'method' as we here have matched an existing method!
-        //$FUNK_DEPLOY_ARR[] = "\$c['runtime']['state'] = 'method';\n";
+        // state is 'method' as we here have matched an existing method and setting
+        // this state is really only for also sending correct method headers
+        $FUNK_DEPLOY_ARR[] = "\$c['runtime']['state'] = 'method';\n";
+
+        // set & run (if any) method-based rate limiting for matched method
+        if (!empty($this->compiled['methods'])) {
+            $FUNK_DEPLOY_ARR[] = "switch (\$c['req']['method']) {\n";
+            foreach ($this->compiled['methods'] as $methodName => $mConfig) {
+                if (isset($mConfig['ratelimit'])) {
+                    $mMax    = (int) $mConfig['ratelimit']['max_requests'];
+                    $mWindow = (int) $mConfig['ratelimit']['window_seconds'];
+                    $mBy     = $this->exportShortSyntax($mConfig['ratelimit']['by']);
+                    $mDriver = var_export($mConfig['ratelimit']['driver'], true);
+                    $FUNK_DEPLOY_ARR[] = "    case '{$methodName}':\n";
+                    $FUNK_DEPLOY_ARR[] = "        \\funk_internal_rate_limiter(\$c, {$mMax}, {$mWindow}, {$mBy}, {$mDriver});\n";
+                    $FUNK_DEPLOY_ARR[] = "        break;\n";
+                }
+            }
+            $FUNK_DEPLOY_ARR[] = "}\n";
+        }
 
         // **HERE GOTO LABELS:-based ROUTE MATCHING ENDS!!!**
 
@@ -12124,3 +12165,7 @@ class FunkPHPSQLSelect {}
 class FunkPHPSQLInsert {}
 class FunkPHPSQLUpdate {}
 class FunkPHPSQLDelete {}
+
+// FunkPHPQuery - related to writing then converted optimized other types of queries?
+class FunkPHPQuery {}
+class FunkPHPQueryC {}

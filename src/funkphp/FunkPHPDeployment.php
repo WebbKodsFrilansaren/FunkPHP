@@ -2,7 +2,7 @@
 
 /**
  * FunkPHPDeployment File
- * Built: 2026-09-20 10:22:48
+ * Built: 2026-09-20 12:46:30
  * Compiler Flags: `OUTPUT_OVERRIDE_DEBUG`
  * DO NOT EDIT DIRECTLY - CHANGES ARE OVERWRITTEN WHEN (RE)BUILDING
  */
@@ -12,7 +12,7 @@ namespace {
     define('FUNKPHP_ONLINE', true);
     define('ROOT_FOLDER', __DIR__);
     define('ROOT_PAGES', __DIR__ . '/pages');
-    $c = ['BASEURLS' => ['LOCAL' => null, 'ONLINE' => null, 'BASEURL_URI' => null, 'HOST' => null], 'SESSION' => ['driver' => 'files', 'COOKIES' => ['SESSION_NAME' => 'fphp_id', 'SESSION_DOMAIN' => 'funkphp', 'SESSION_PATH' => '/', 'SESSION_LIFETIME' => 28800, 'SESSION_SAMESITE' => 'Lax', 'SESSION_SECURE' => false, 'SESSION_HTTPONLY' => true]], 'shared' => [], 'classes' => ['vendor' => [], 'user' => []], 'credentials' => null, 'connections' => [], 'req' => ['ip' => null, 'method' => null, 'prefers' => null, 'uri' => null, 'route' => null, 'route_matched' => false, 'segments' => null, 'params' => null, 'param_valid' => null, 'params_valid' => null, 'params_details' => null, 'accept_order' => null, 'accepts' => null, 'query' => null, 'base_url_absolute' => null, 'base_url_relative' => null, 'time' => null, 'log' => [], 'ua' => null], 'd' => null, 'v' => null, 'v_ok' => null, 'v_ok_files' => null, 'v_config' => [], 'v_data' => null, 'p' => null, 'files' => null, 'err' => [], 'runtime' => ['request_accepts' => [], 'request_ip_sources' => [], 'request_form_spoof_methods' => ['PUT', 'PATCH', 'DELETE'], 'trusted_ip_proxies' => ['ip4' => ['173.245.48.0/20', '103.21.244.0/22', '103.22.200.0/22', '103.31.4.0/22', '141.101.64.0/18', '108.162.192.0/18', '190.93.240.0/20', '188.114.96.0/20', '197.234.240.0/22', '198.41.128.0/17', '162.158.0.0/15', '104.16.0.0/13', '104.24.0.0/14', '172.64.0.0/13', '131.0.72.0/22'], 'ip6' => ['2400:cb00::/32', '2606:4700::/32', '2803:f800::/32', '2405:b500::/32', '2405:8100::/32', '2a06:98c0::/29', '2c0f:f248::/32']], 'trusted_ip_headers' => ['HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_REAL_IP'], 'state' => 'global', 'global_headers' => ['add' => ['allow: all']], 'method_headers' => ['remove' => ['GET' => ['server' => 'server']], 'add' => ['GET' => ['allow: all'], 'POST' => ['allow: all'], 'PUT' => ['allow: all'], 'PATCH' => ['allow: all'], 'DELETE' => ['allow: all'], 'HEAD' => ['allow: all']]], 'NO_ROUTE_MATCH' => ['JSON' => ['JSON' => '{"err":"nothing found"}', 'code' => 404]], 'NO_ROUTE_MATCH_METHOD' => ['GET' => ['TEXT' => ['text' => 'nothing in GET!', 'code' => 404]]], 'NO_NO_MATCH_MESSAGE' => '404 | No Content or Page Found <br/>Are You the Developer, Web Administrator or General Web Master?<br/> There is NO Configured Global `->setNoRouteMatch&lt;Variant&gt;` Yet 😱!', 'SKIP_POST_RESPONSE_ON_NO_MATCH' => true]];
+    $c = ['BASEURLS' => ['LOCAL' => null, 'ONLINE' => null, 'BASEURL_URI' => null, 'HOST' => null], 'SESSION' => ['driver' => 'files', 'COOKIES' => ['SESSION_NAME' => 'fphp_id', 'SESSION_DOMAIN' => 'funkphp', 'SESSION_PATH' => '/', 'SESSION_LIFETIME' => 28800, 'SESSION_SAMESITE' => 'Lax', 'SESSION_SECURE' => false, 'SESSION_HTTPONLY' => true]], 'shared' => [], 'classes' => ['vendor' => [], 'user' => []], 'credentials' => null, 'connections' => [], 'req' => ['ip' => null, 'method' => null, 'prefers' => null, 'uri' => null, 'route' => null, 'route_matched' => false, 'segments' => null, 'params' => null, 'param_valid' => null, 'params_valid' => null, 'params_details' => null, 'accept_order' => null, 'accepts' => null, 'query' => null, 'base_url_absolute' => null, 'base_url_relative' => null, 'time' => null, 'log' => [], 'ua' => null], 'd' => null, 'v' => null, 'v_ok' => null, 'v_ok_files' => null, 'v_config' => [], 'v_data' => null, 'p' => null, 'files' => null, 'err' => [], 'runtime' => ['request_accepts' => [], 'request_ip_sources' => [], 'request_form_spoof_methods' => ['PUT', 'PATCH', 'DELETE'], 'trusted_ip_proxies' => ['ip4' => ['173.245.48.0/20', '103.21.244.0/22', '103.22.200.0/22', '103.31.4.0/22', '141.101.64.0/18', '108.162.192.0/18', '190.93.240.0/20', '188.114.96.0/20', '197.234.240.0/22', '198.41.128.0/17', '162.158.0.0/15', '104.16.0.0/13', '104.24.0.0/14', '172.64.0.0/13', '131.0.72.0/22'], 'ip6' => ['2400:cb00::/32', '2606:4700::/32', '2803:f800::/32', '2405:b500::/32', '2405:8100::/32', '2a06:98c0::/29', '2c0f:f248::/32']], 'trusted_ip_headers' => ['HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_REAL_IP'], 'state' => 'global', 'global_headers' => ['add' => ['allow: all']], 'method_headers' => ['remove' => ['GET' => ['server' => 'server']], 'add' => ['GET' => ['allow: all'], 'POST' => ['allow: all'], 'PUT' => ['allow: all'], 'PATCH' => ['allow: all'], 'DELETE' => ['allow: all'], 'HEAD' => ['allow: all']]], 'NO_ROUTE_MATCH' => null, 'NO_ROUTE_MATCH_METHOD' => ['GET' => ['TEXT' => ['text' => 'nothing in GET!', 'code' => 404]]], 'NO_NO_MATCH_MESSAGE' => '404 | No Content or Page Found <br/>Are You the Developer, Web Administrator or General Web Master?<br/> There is NO Configured Global `->setNoRouteMatch&lt;Variant&gt;` Yet 😱!', 'SKIP_POST_RESPONSE_ON_NO_MATCH' => true]];
     $c['req']['time'] = $_SERVER['REQUEST_TIME'] ?? time();
     $c['req']['query'] = $_SERVER['QUERY_STRING'] ?? null;
     $c['req']['ua'] = $_SERVER['HTTP_USER_AGENT'] ?? null;
@@ -362,7 +362,7 @@ namespace {
     function funk_return_response_file($filePath, $fileName = null, $statusCode = 200)
     {
         if (!file_exists($filePath) || !is_readable($filePath)) {
-            \funk_return_error_json_or_page($c, 404, ['INTERNAL_SERVER_ERROR' => 'File `' . $fileName . '` Not Found. Do this check before Calling this Function.'], '404', 'File `' . $fileName . '` Not Found. Do this check before Calling this Function.');
+            \funk_return_error_json_or_page($c, 404, \funk_internal_critical_error_json($c, 404, 'Internal Server Error: File `' . $fileName . '` Not Found. Do this check before Calling this Function.'), '404', 'Internal Server Error: File `' . $fileName . '` Not Found. Do this check before Calling this Function.');
         }
         header_remove('content-type');
         while (ob_get_level() > 0) {
@@ -426,14 +426,15 @@ namespace {
             $pagePath = defined('FUNKPHP_ONLINE') ? ROOT_FOLDER . '/pages/' . $pageName . '.php' : ROOT_FOLDER . '/pages/compiled/' . $pageName . '.php';
             include_once $pagePath;
         } catch (\Throwable $e) {
-            \critical_err_json_or_html(500, '[INTERNAL SERVER ERROR]: Error Page Rendering Failure: ' . $e->getMessage());
+            echo \funk_internal_critical_error_page($c, 404, 'Internal Error Page Rendering Failure: ' . $e->getMessage() . ' | Error Message meant to show: ' . $errMsg);
+            exit;
         }
         exit();
     }
     function funk_throw_exception(&$c, string $exceptionErrMsg)
     {
         if (!isset($exceptionErrMsg) || !is_string($exceptionErrMsg) || empty($exceptionErrMsg)) {
-            \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_handle_error_throw()` Function. This should be a non-empty string!');
+            \funk_return_error_json_or_page($c, 500, \funk_internal_critical_error_json($c, 500, 'Tell the Developer: No Valid Error Message Provided to `funk_handle_error_throw()` Function. This should be a non-empty string!'), '500', 'Tell the Developer: No Valid Error Message Provided to `funk_handle_error_throw()` Function. This should be a non-empty string!');
         }
         throw new Exception($exceptionErrMsg);
     }
@@ -451,13 +452,13 @@ namespace {
             try {
                 $jsonData = $jsonData($c);
             } catch (\Throwable $e) {
-                \critical_err_json_or_html(500, '[INTERNAL SERVER ERROR]: JSON Callable Error: ' . $e->getMessage());
+                echo json_encode(\funk_internal_critical_error_json($c, 500, 'INTERNAL SERVER ERROR: JSON Callable Error: ' . $e->getMessage()));
             }
         }
         try {
             echo json_encode($jsonData, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         } catch (\JsonException $e) {
-            \critical_err_json_or_html(500, '[INTERNAL SERVER ERROR]: JSON Encoding Failure: ' . $e->getMessage());
+            echo json_encode(\funk_internal_critical_error_json($c, 500, 'INTERNAL SERVER ERROR: JSON Encoding Failure: ' . $e->getMessage()));
         }
         exit();
     }
@@ -483,13 +484,13 @@ namespace {
                 try {
                     $jsonData = $jsonData($c);
                 } catch (\Throwable $e) {
-                    \critical_err_json_or_html(500, '[INTERNAL SERVER ERROR]: JSON Callable Error: ' . $e->getMessage());
+                    echo json_encode(\funk_internal_critical_error_json($c, 500, 'INTERNAL SERVER ERROR: JSON Callable Error: ' . $e->getMessage()));
                 }
             }
             try {
                 echo json_encode($jsonData, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
             } catch (\JsonException $e) {
-                \critical_err_json_or_html(500, '[INTERNAL SERVER ERROR]: JSON Encoding Failure: ' . $e->getMessage());
+                echo json_encode(\funk_internal_critical_error_json($c, 500, 'INTERNAL SERVER ERROR: JSON Encoding Failure: ' . $e->getMessage()));
             }
             exit();
         }
@@ -501,7 +502,7 @@ namespace {
             $pagePath = defined('FUNKPHP_ONLINE') ? ROOT_FOLDER . '/pages/' . $pageName . '.php' : ROOT_FOLDER . '/pages/compiled/' . $pageName . '.php';
             include_once $pagePath;
         } catch (\Throwable $e) {
-            \critical_err_json_or_html(500, '[INTERNAL SERVER ERROR]: Error Page Rendering Failure: ' . $e->getMessage());
+            echo \funk_internal_critical_error_page($c, 404, 'Internal Error Page Rendering Failure: ' . $e->getMessage() . ' | Error Message meant to show: ' . $pageErrMsg);
         }
         exit();
     }
@@ -540,7 +541,7 @@ namespace {
         if (file_exists($pagePath)) {
             require_once $pagePath;
         } else {
-            \funk_return_error_json_or_page($c, 500, ['internal_server_error' => 'Failed to load a `User-defined Page` to Return a Response. This means the `Page` does NOT exist in the Expected Folder `/pages/`.'], '500', 'Failed to use a `User-defined Function` to Return a Response. This means the Function-name does NOT exist.');
+            \funk_return_error_json_or_page($c, 500, \funk_internal_critical_error_json($c, 500, 'Failed to load a `User-defined Page` to Return a Response. This means the `Page` does NOT exist in the Expected Folder `/pages/`.'), '500', 'Failed to use a `User-defined Function` to Return a Response. This means the Function-name does NOT exist.');
         }
         exit();
     }
@@ -570,7 +571,7 @@ namespace {
             $userDefinedFunctionName($c);
             exit();
         }
-        \funk_return_error_json_or_page($c, 500, ['INTERNAL_SERVER_ERROR' => 'Failed to use a `User-defined Function` to Return a Response. This means the Function-name does NOT exist.'], '500', 'Failed to use a `User-defined Function` to Return a Response. This means the Function-name does NOT exist.');
+        \funk_return_error_json_or_page($c, 500, \funk_internal_critical_error_json($c, 500, 'Failed to use a `User-defined Function` to Return a Response. This means the Function-name does NOT exist.'), '500', 'Failed to use a `User-defined Function` to Return a Response. This means the Function-name does NOT exist.');
     }
     function funk_req_param_valid(&$c, string $param): bool
     {
@@ -884,168 +885,6 @@ namespace {
         $html .= '</table></div>';
         return $html;
     }
-    function funk_internal_match_route_trie(&$c, string $requestUri, array $methodRootNode)
-    {
-        $path = trim($requestUri, '/');
-        $uriSegments = empty($path) ? [] : array_values(array_filter(explode('/', $path)));
-        $uriSegmentCount = count($uriSegments);
-        $currentNode = $methodRootNode;
-        $matchedPathSegments = ['route' => []];
-        $matchedParams = [];
-        $segmentsConsumed = 0;
-        if ($uriSegmentCount === 0) {
-            if (!isset($currentNode['/'])) {
-                return false;
-            }
-            $c['req']['route_matched'] = true;
-            $c['req']['segments'] = ['/'];
-            $c['req']['route'] = '/';
-            return true;
-        }
-        for ($i = 0; $i < $uriSegmentCount; $i++) {
-            $currentUriSegment = $uriSegments[$i];
-            $lowerSegment = strtolower($currentUriSegment);
-            if (isset($currentNode[$lowerSegment])) {
-                $matchedPathSegments['route'][] = $lowerSegment;
-                $currentNode = $currentNode[$lowerSegment];
-                $segmentsConsumed++;
-                continue;
-            }
-            if (isset($currentNode[':'])) {
-                $placeholderKey = array_key_first($currentNode[':']);
-                if ($placeholderKey !== null && isset($currentNode[':'][$placeholderKey])) {
-                    $matchedParams[$placeholderKey] = $currentUriSegment;
-                    $c['req']['params'][$placeholderKey] = $currentUriSegment;
-                    $matchedPathSegments['route'][] = ":" . $placeholderKey;
-                    $currentNode = $currentNode[':'][$placeholderKey];
-                    $segmentsConsumed++;
-                    continue;
-                }
-            }
-            return false;
-        }
-        if ($segmentsConsumed === $uriSegmentCount) {
-            if (!empty($matchedPathSegments['route'])) {
-                $c['req']['segments'] = $matchedPathSegments['route'];
-                $c['req']['route'] = ('/' . implode('/', $matchedPathSegments['route']));
-                $c['req']['route_matched'] = true;
-                return true;
-            } else {
-                return false;
-            }
-        } else {
-            return false;
-        }
-    }
-    function funk_internal_validate_params(&$c)
-    {
-        $allParamsValid = true;
-        if (isset($c['runtime']['route']['hasParams'])) {
-            $noOfParams = count($c['req']['params']);
-            if (isset($c['runtime']['route']['params'])) {
-                if ($noOfParams !== count($c['runtime']['route']['params'])) {
-                    $c['req']['params_valid'] = false;
-                    return;
-                }
-                foreach ($c['runtime']['route']['params'] as $rParam => $rParDetails) {
-                    if (isset($rParDetails['pairs'])) {
-                        $anyPairMatch = false;
-                        $regexesToMatch = [];
-                        $c['req']['param_variant'][$rParam] = null;
-                        $matchedrPairName = null;
-                        foreach ($rParDetails['pairs'] as $rPairName => $rPairPattern) {
-                            if ($rPairPattern === '/[^\/]+/') {
-                                $anyPairMatch = true;
-                                $matchedrPairName = $rPairName;
-                                break;
-                            }
-                            if (preg_match($rPairPattern, $c['req']['params'][$rParam])) {
-                                $anyPairMatch = true;
-                                $matchedrPairName = $rPairName;
-                                break;
-                            } else {
-                                $regexesToMatch[] = $rPairPattern;
-                                continue;
-                            }
-                        }
-                        if ($anyPairMatch) {
-                            $c['req']['param_valid'][$matchedrPairName] = true;
-                            $c['req']['params_details']['match'][$matchedrPairName] = ['from' => $rParam];
-                        } else {
-                            $c['req']['param_valid'][$rParam] = false;
-                            $c['req']['params_details']['mismatch'][$rParam] = ['Mismatches Regexes' => [...$regexesToMatch]];
-                            $allParamsValid = false;
-                        }
-                    } elseif (isset($rParDetails['callback'])) {
-                        if (function_exists($rParDetails['callback'])) {
-                            if ($rParDetails['callback']($c, $c['req']['params'][$rParam]) === true) {
-                                $c['req']['param_valid'][$rParam] = true;
-                                $c['req']['params_details']['match'][$rParam] = true;
-                            } else {
-                                $c['req']['params'][$rParam] = (isset($rParDetails['default']) ? $rParDetails['default'] : $c['req']['params'][$rParam]);
-                                $c['req']['param_valid'][$rParam] = false;
-                                $allParamsValid = false;
-                                $c['req']['params_details']['mismatch'][$rParam] = 'Mismatches Callback Regex - ask Provider what it is';
-                            }
-                        } else {
-                            \funk_return_error_json_or_page($c, 500, ['internal_server_error' => 'Expected `User-Defined Function` \'' . $rParDetails['callback'] . '\' in `/src/funkphp/config/functions.php` was Not Found for Validating a Param Rule.'], '500', 'Expected `User-Defined Function` \'' . $rParDetails['callback'] . '\' in `/src/funkphp/config/functions.php` was Not Found for Validating a Param Rule.');
-                        }
-                    } else {
-                        if ($rParDetails['pattern'] === '/[^\/]+/') {
-                            $c['req']['param_valid'][$rParam] = true;
-                            $c['req']['params_details']['match'][$rParam] = true;
-                        } else if (!preg_match($rParDetails['pattern'], $c['req']['params'][$rParam])) {
-                            $c['req']['params'][$rParam] = (isset($rParDetails['default']) ? $rParDetails['default'] : $c['req']['params'][$rParam]);
-                            $c['req']['param_valid'][$rParam] = false;
-                            $allParamsValid = false;
-                            $c['req']['params_details']['mismatch'][$rParam] = 'Mismatches Regex ' . $rParDetails['pattern'];
-                        } else {
-                            $c['req']['param_valid'][$rParam] = true;
-                            $c['req']['params_details']['match'][$rParam] = true;
-                        }
-                    }
-                }
-            } else {
-                $c['req']['params_valid'] = false;
-                return;
-            }
-        }
-        if ($allParamsValid) {
-            $c['req']['params_valid'] = true;
-        }
-    }
-    function funk_internal_handle_invalid_params(&$c): void
-    {
-        $prefers = $c['req']['prefers'] ?? 'json';
-        $route = $c['runtime']['route'] ?? [];
-        $method = $c['req']['method'] ?? 'GET';
-        if ($prefers === 'json') {
-            if (isset($route['params_mismatch_json'])) {
-                $jsonOverride = $route['params_mismatch_json']['json'];
-                $code = $route['params_mismatch_json']['code'] ?? 422;
-                if (is_string($jsonOverride) && function_exists($jsonOverride)) {
-                    $data = $jsonOverride($c);
-                    \funk_return_response_json($c, $data, $code);
-                } else {
-                    \funk_return_response_json($c, $jsonOverride, $code);
-                }
-            }
-            $defaultApiPayload = json_encode(['status' => 422, 'error' => 'Unprocessable Entity', 'message' => 'Invalid Route Parameter Format OR Type Validation Failed. See `details` Key for Matches & Mismatches.', 'details' => ($c['req']['params_details'] ?? [])]);
-            \funk_return_response_json($c, $defaultApiPayload, 422);
-        }
-        if (isset($route['params_mismatch_page'])) {
-            $pageName = $route['params_mismatch_page']['page'];
-            $code = $route['params_mismatch_page']['code'] ?? 404;
-            \funk_return_response_page($c, $pageName, $code);
-        }
-        if (isset($c['runtime']['NO_ROUTE_MATCH_METHOD'][$method])) {
-            \funk_internal_handle_no_route_match($c, $method);
-        }
-        if (isset($c['runtime']['NO_ROUTE_MATCH'])) {
-            \funk_internal_handle_no_route_match($c, 'CONFIG');
-        }
-        \funk_internal_handle_no_no_route_match($c);
-    }
     function funk_internal_negotiate_content(mixed &$c): array
     {
         $acceptHeader = $_SERVER['HTTP_ACCEPT'] ?? '';
@@ -1192,94 +1031,13 @@ namespace {
             }
         }
     }
-    function funk_internal_handle_no_route_match(&$c, $globalOrMethod)
-    {
-        if (isset($c['runtime']['SKIP_POST_RESPONSE_ON_NO_MATCH']) && $c['runtime']['SKIP_POST_RESPONSE_ON_NO_MATCH'] === true) {
-            $c['runtime']['SKIP_POST_RESPONSE'] = true;
-        }
-        if ($globalOrMethod === 'CONFIG') {
-            if (!isset($c['runtime']['NO_ROUTE_MATCH'])) {
-                return;
-            }
-            $prefers = $c['req']['prefers'];
-            if ($prefers === 'json' && isset($c['runtime']['NO_ROUTE_MATCH']['JSON'])) {
-                \funk_internal_send_headers($c);
-                header("content-type: application/json; charset=utf-8");
-                http_response_code($c['runtime']['NO_ROUTE_MATCH']['JSON']['code']);
-                echo $c['runtime']['NO_ROUTE_MATCH']['JSON']['JSON'];
-                exit;
-            } else if ($prefers === 'html' && isset($c['runtime']['NO_ROUTE_MATCH']['PAGE'])) {
-                \funk_internal_send_headers($c);
-                header("content-type: text/html; charset=utf-8");
-                http_response_code($c['runtime']['NO_ROUTE_MATCH']['PAGE']['code']);
-                if (defined(FUNKPHP_ONLINE)) {
-                    include_once ROOT_FOLDER . '/pages/' . $c['runtime']['NO_ROUTE_MATCH']['PAGE']['page'] . '/.php';
-                    exit;
-                } else {
-                    if (file_exists($c['runtime']['NO_ROUTE_MATCH']['PAGE']['path']) && is_readable($c['runtime']['NO_ROUTE_MATCH']['PAGE']['path'])) {
-                        include_once $c['runtime']['NO_ROUTE_MATCH']['PAGE']['path'];
-                        exit;
-                    }
-                }
-            } else if ($prefers === 'text' && isset($c['runtime']['NO_ROUTE_MATCH']['TEXT'])) {
-                \funk_internal_send_headers($c);
-                header("content-type: text/plain; charset=utf-8");
-                http_response_code($c['runtime']['NO_ROUTE_MATCH']['TEXT']['code']);
-                echo $c['runtime']['NO_ROUTE_MATCH']['TEXT']['text'];
-                exit;
-            } else if (isset($c['runtime']['NO_ROUTE_MATCH']['CALLBACK'])) {
-                \funk_internal_send_headers($c);
-                if (function_exists($c['runtime']['NO_ROUTE_MATCH']['CALLBACK'])) {
-                    $c['runtime']['NO_ROUTE_MATCH']['CALLBACK']($c);
-                    exit;
-                }
-            }
-            return;
-        } else {
-            if (!isset($c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod])) {
-                return;
-            }
-            $prefers = $c['req']['prefers'];
-            if ($prefers === 'json' && isset($c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['JSON'])) {
-                \funk_internal_send_headers($c);
-                header("content-type: application/json; charset=utf-8");
-                http_response_code($c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['JSON']['code']);
-                echo $c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['JSON']['JSON'];
-                exit;
-            } else if ($prefers === 'html' && isset($c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['PAGE'])) {
-                \funk_internal_send_headers($c);
-                header("content-type: text/html; charset=utf-8");
-                http_response_code($c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['PAGE']['code']);
-                if (defined(FUNKPHP_ONLINE)) {
-                    require ROOT_FOLDER . '/pages/' . $c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['PAGE']['page'] . '/.php';
-                    exit;
-                } else {
-                    if (file_exists($c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['PAGE']['path']) && is_readable($c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['PAGE']['path'])) {
-                        require $c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['PAGE']['path'];
-                        exit;
-                    }
-                }
-            } else if ($prefers === 'text' && isset($c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['TEXT'])) {
-                \funk_internal_send_headers($c);
-                header("content-type: text/plain; charset=utf-8");
-                http_response_code($c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['TEXT']['code']);
-                echo $c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['TEXT']['text'];
-                exit;
-            } else if (isset($c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['CALLBACK'])) {
-                \funk_internal_send_headers($c);
-                if (function_exists($c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['CALLBACK'])) {
-                    $c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['CALLBACK']($c);
-                    exit;
-                }
-            }
-            return;
-        }
-    }
     function funk_internal_handle_no_no_route_match(&$c)
     {
         if (isset($c['runtime']['SKIP_POST_RESPONSE_ON_NO_MATCH']) && $c['runtime']['SKIP_POST_RESPONSE_ON_NO_MATCH'] === true) {
             $c['runtime']['SKIP_POST_RESPONSE'] = true;
         }
+        unset($c['runtime']['global_headers']['add']['content-type']);
+        unset($c['runtime']['method_headers']['add'][($c['req']['method'] ?? 'GET')]['content-type']);
         \funk_internal_send_headers($c);
         $message = (isset($c['runtime']['NO_NO_MATCH_MESSAGE']) && is_string($c['runtime']['NO_NO_MATCH_MESSAGE']) && trim($c['runtime']['NO_NO_MATCH_MESSAGE']) !== '') ? $c['runtime']['NO_NO_MATCH_MESSAGE'] : (htmlspecialchars('404 | No Content or Page Found <br/>Are You the Developer, Web Administrator or General Web Master?<br/> There is NO Configured Global `->setNoRouteMatch&lt;Variant&gt;` Yet 😱!'));
         if ($c['req']['prefers'] === 'json') {
@@ -1290,13 +1048,19 @@ namespace {
         }
         http_response_code(404);
         header("content-type: text/html; charset=utf-8");
+        $html = \funk_internal_critical_error_page($c, $message);
+        echo $html;
+        exit;
+    }
+    function funk_internal_critical_error_page(&$c, $code = 500, $message = 'No Specific Error Message Provided.', $configuredThisYet = 'setNoRouteMatch')
+    {
         $html = '';
         $html .= '<!DOCTYPE html>';
         $html .= '<html lang="en">';
         $html .= '<head>';
         $html .= '    <meta charset="UTF-8">';
         $html .= '    <meta name="viewport" content="width=device-width, initial-scale=1.0">';
-        $html .= '    <title>404 - No Content or Page Found | Have You Configured `->setNoRouteMatch` Yet?</title>';
+        $html .= '    <title>' . $code . ' - No Content or Page Found | Have You Configured `->' . $configuredThisYet . '` Yet?</title>';
         $html .= '    <style>';
         $html .= '        * { box-sizing: border-box; margin: 0; padding: 0; }';
         $html .= '        body {';
@@ -1323,13 +1087,17 @@ namespace {
         $html .= '</head>';
         $html .= '<body>';
         $html .= '    <div class="container">';
-        $html .= '        <h1>404</h1>';
+        $html .= '        <h1>' . $code . '</h1>';
         $html .= '        <p>' . $message . '</p>';
         $html .= '    </div>';
         $html .= '</body>';
         $html .= '</html>';
-        echo $html;
-        exit;
+        return $html;
+    }
+    function funk_internal_critical_error_json(&$c, $code = 500, $message = 'No Specific Error Message Provided.')
+    {
+        $json = ['code' => $code, 'error' => $message];
+        return $json;
     }
     function FunkValidate()
     {
@@ -1521,5 +1289,13 @@ namespace {
     \funkphp\pipes\request\req_test($c);
     \funkphp\pipes\request\req_test($c);
     \funk_internal_rate_limiter($c, 60, 60, ['ip'], 'redis');
+    if (!in_array($c['req']['method'], ['GET'], true)) {
+        \funk_internal_handle_no_no_route_match($c);
+    }
     $c['runtime']['state'] = 'method';
+    switch ($c['req']['method']) {
+        case 'GET':
+            \funk_internal_rate_limiter($c, 60, 60, ['ip'], 'redis');
+            break;
+    }
 }

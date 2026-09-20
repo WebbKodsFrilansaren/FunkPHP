@@ -441,13 +441,23 @@ function funk_generate_csrf(&$c, string $currentUri, ?int $lifetimeSeconds = nul
 function funk_return_response_file($filePath, $fileName = null, $statusCode = 200)
 {
     if (!file_exists($filePath) || !is_readable($filePath)) {
-        \funk_return_error_json_or_page($c, 404, ['INTERNAL_SERVER_ERROR' => 'File `' . $fileName . '` Not Found. Do this check before Calling this Function.'], '404', 'File `' . $fileName . '` Not Found. Do this check before Calling this Function.');
+        \funk_return_error_json_or_page(
+            $c,
+            404,
+            \funk_internal_critical_error_json(
+                $c,
+                404,
+                'Internal Server Error: File `' . $fileName . '` Not Found. Do this check before Calling this Function.'
+            ),
+            '404',
+            'Internal Server Error: File `' . $fileName . '` Not Found. Do this check before Calling this Function.'
+        );
     }
     header_remove('content-type');
     while (ob_get_level() > 0) {
         ob_end_clean();
     }
-    funk_internal_send_headers($c);
+    \funk_internal_send_headers($c);
     http_response_code($statusCode);
     $downloadName = $fileName ?? basename($filePath);
     $safeFileName = str_replace(['"', "\r", "\n"], '', $downloadName);
@@ -472,12 +482,12 @@ function funk_return_error_raw(&$c, int $errCode, string $errMsg, string $conten
     }
     header_remove('content-type');
     http_response_code($errCode);
-    funk_set_header($c, 'content-type', $contentType);
+    \funk_set_header($c, 'content-type', $contentType);
     if ($contentType === 'text/html; charset=utf-8') {
-        funk_set_header($c, 'content-security-policy', "default-src 'none'; img-src 'self'; script-src 'self'; connect-src 'none'; style-src 'self' 'unsafe-inline'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; font-src 'self'; base-uri 'self';");
-        funk_internal_send_headers($c, true);
+        \funk_set_header($c, 'content-security-policy', "default-src 'none'; img-src 'self'; script-src 'self'; connect-src 'none'; style-src 'self' 'unsafe-inline'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; font-src 'self'; base-uri 'self';");
+        \funk_internal_send_headers($c, true);
     } else {
-        funk_internal_send_headers($c);
+        \funk_internal_send_headers($c);
     }
     echo $errMsg;
     exit();
@@ -521,9 +531,9 @@ function funk_return_error_page(&$c, int $errCode, string $errMsg, string $pageN
     }
     header_remove('content-type');
     http_response_code($errCode);
-    funk_set_header($c, 'content-type', 'text/html');
-    funk_set_header($c, 'content-security-policy', "default-src 'none'; img-src 'self'; script-src 'self'; connect-src 'none'; style-src 'self' 'unsafe-inline'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; font-src 'self'; base-uri 'self';");
-    funk_internal_send_headers($c, true); // true means ignoring current configured CSP and using above one instead
+    \funk_set_header($c, 'content-type', 'text/html');
+    \funk_set_header($c, 'content-security-policy', "default-src 'none'; img-src 'self'; script-src 'self'; connect-src 'none'; style-src 'self' 'unsafe-inline'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; font-src 'self'; base-uri 'self';");
+    \funk_internal_send_headers($c, true); // true means ignoring current configured CSP and using above one instead
     try {
         $custom_error_message = $errMsg;
         $pagePath = defined('FUNKPHP_ONLINE')
@@ -531,7 +541,12 @@ function funk_return_error_page(&$c, int $errCode, string $errMsg, string $pageN
             : ROOT_FOLDER . '/pages/compiled/' . $pageName . '.php';
         include_once $pagePath;
     } catch (\Throwable $e) {
-        \critical_err_json_or_html(500, '[INTERNAL SERVER ERROR]: Error Page Rendering Failure: ' . $e->getMessage());
+        echo \funk_internal_critical_error_page(
+            $c,
+            404,
+            'Internal Error Page Rendering Failure: ' . $e->getMessage() . ' | Error Message meant to show: ' . $errMsg
+        );
+        exit;
     }
     exit();
 }
@@ -558,7 +573,17 @@ function funk_throw_exception(&$c, string $exceptionErrMsg)
         || !is_string($exceptionErrMsg)
         || empty($exceptionErrMsg)
     ) {
-        \critical_err_json_or_html(500, 'Tell the Developer: No Valid Error Message Provided to `funk_handle_error_throw()` Function. This should be a non-empty string!');
+        \funk_return_error_json_or_page(
+            $c,
+            500,
+            \funk_internal_critical_error_json(
+                $c,
+                500,
+                'Tell the Developer: No Valid Error Message Provided to `funk_handle_error_throw()` Function. This should be a non-empty string!'
+            ),
+            '500',
+            'Tell the Developer: No Valid Error Message Provided to `funk_handle_error_throw()` Function. This should be a non-empty string!'
+        );
     }
     throw new Exception($exceptionErrMsg);
 }
@@ -584,20 +609,28 @@ function funk_return_error_json(&$c, int $errCode, $jsonObjectOrStringThatReturn
     }
     header_remove('content-type');
     http_response_code($errCode);
-    funk_set_header($c, 'content-type', 'application/json; charset=utf-8');
-    funk_internal_send_headers($c);
+    \funk_set_header($c, 'content-type', 'application/json; charset=utf-8');
+    \funk_internal_send_headers($c);
     $jsonData = $jsonObjectOrStringThatReturnsJSON;
     if (is_string($jsonData) && is_callable($jsonData)) {
         try {
             $jsonData = $jsonData($c);
         } catch (\Throwable $e) {
-            \critical_err_json_or_html(500, '[INTERNAL SERVER ERROR]: JSON Callable Error: ' . $e->getMessage());
+            echo json_encode(\funk_internal_critical_error_json(
+                $c,
+                500,
+                'INTERNAL SERVER ERROR: JSON Callable Error: ' . $e->getMessage()
+            ));
         }
     }
     try {
         echo json_encode($jsonData, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     } catch (\JsonException $e) {
-        \critical_err_json_or_html(500, '[INTERNAL SERVER ERROR]: JSON Encoding Failure: ' . $e->getMessage());
+        echo json_encode(\funk_internal_critical_error_json(
+            $c,
+            500,
+            'INTERNAL SERVER ERROR: JSON Encoding Failure: ' . $e->getMessage()
+        ));
     }
     exit();
 }
@@ -621,26 +654,34 @@ function funk_return_error_json_or_page(&$c, int $errCode, mixed $jsonObjectOrSt
         $prefers = $c['req']['prefers'];
     }
     if ($prefers === 'json') {
-        funk_set_header($c, 'content-type', 'application/json; charset=utf-8');
-        funk_internal_send_headers($c);
+        \funk_set_header($c, 'content-type', 'application/json; charset=utf-8');
+        \funk_internal_send_headers($c);
         $jsonData = $jsonObjectOrStringThatReturnsJSON;
         if (is_string($jsonData) && is_callable($jsonData)) {
             try {
                 $jsonData = $jsonData($c);
             } catch (\Throwable $e) {
-                \critical_err_json_or_html(500, '[INTERNAL SERVER ERROR]: JSON Callable Error: ' . $e->getMessage());
+                echo json_encode(\funk_internal_critical_error_json(
+                    $c,
+                    500,
+                    'INTERNAL SERVER ERROR: JSON Callable Error: ' . $e->getMessage()
+                ));
             }
         }
         try {
             echo json_encode($jsonData, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         } catch (\JsonException $e) {
-            \critical_err_json_or_html(500, '[INTERNAL SERVER ERROR]: JSON Encoding Failure: ' . $e->getMessage());
+            echo json_encode(\funk_internal_critical_error_json(
+                $c,
+                500,
+                'INTERNAL SERVER ERROR: JSON Encoding Failure: ' . $e->getMessage()
+            ));
         }
         exit();
     }
-    funk_set_header($c, 'content-type', 'text/html; charset=utf-8');
-    funk_set_header($c, 'content-security-policy', "default-src 'none'; img-src 'self'; script-src 'self'; connect-src 'none'; style-src 'self' 'unsafe-inline'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; font-src 'self'; base-uri 'self';");
-    funk_internal_send_headers($c, true); // true means ignoring current configured CSP and using above one instead
+    \funk_set_header($c, 'content-type', 'text/html; charset=utf-8');
+    \funk_set_header($c, 'content-security-policy', "default-src 'none'; img-src 'self'; script-src 'self'; connect-src 'none'; style-src 'self' 'unsafe-inline'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; font-src 'self'; base-uri 'self';");
+    \funk_internal_send_headers($c, true); // true means ignoring current configured CSP and using above one instead
     try {
         $custom_error_message = $pageErrMsg;
         $pagePath = defined('FUNKPHP_ONLINE')
@@ -648,7 +689,11 @@ function funk_return_error_json_or_page(&$c, int $errCode, mixed $jsonObjectOrSt
             : ROOT_FOLDER . '/pages/compiled/' . $pageName . '.php';
         include_once $pagePath;
     } catch (\Throwable $e) {
-        \critical_err_json_or_html(500, '[INTERNAL SERVER ERROR]: Error Page Rendering Failure: ' . $e->getMessage());
+        echo \funk_internal_critical_error_page(
+            $c,
+            404,
+            'Internal Error Page Rendering Failure: ' . $e->getMessage() .  ' | Error Message meant to show: ' . $pageErrMsg
+        );
     }
     exit();
 }
@@ -724,8 +769,8 @@ function funk_return_response_page(&$c, string $pageNameWithoutExtension, int $c
 {
     header_remove('content-type');
     http_response_code($code);
-    funk_set_header($c, 'content-type', 'text/html');
-    funk_internal_send_headers($c);
+    \funk_set_header($c, 'content-type', 'text/html');
+    \funk_internal_send_headers($c);
     $pagePath = defined('FUNKPHP_ONLINE')
         ? ROOT_FOLDER . '/pages/' . $pageNameWithoutExtension . '.php'
         : ROOT_FOLDER . '/pages/compiled/' . $pageNameWithoutExtension . '.php';
@@ -735,9 +780,11 @@ function funk_return_response_page(&$c, string $pageNameWithoutExtension, int $c
         \funk_return_error_json_or_page(
             $c,
             500,
-            [
-                'internal_server_error' => 'Failed to load a `User-defined Page` to Return a Response. This means the `Page` does NOT exist in the Expected Folder `/pages/`.'
-            ],
+            \funk_internal_critical_error_json(
+                $c,
+                500,
+                'Failed to load a `User-defined Page` to Return a Response. This means the `Page` does NOT exist in the Expected Folder `/pages/`.'
+            ),
             '500',
             'Failed to use a `User-defined Function` to Return a Response. This means the Function-name does NOT exist.'
         );
@@ -764,8 +811,8 @@ function funk_return_response_json(&$c, string $c_data_key_with_JSON_encoded_Dat
 {
     header_remove('content-type');
     http_response_code($code);
-    funk_set_header($c, 'content-type', 'application/json');
-    funk_internal_send_headers($c);
+    \funk_set_header($c, 'content-type', 'application/json');
+    \funk_internal_send_headers($c);
     if (isset($c['d'][$c_data_key_with_JSON_encoded_Data])) {
         echo is_string($c['d'][$c_data_key_with_JSON_encoded_Data])
             ? $c['d'][$c_data_key_with_JSON_encoded_Data]
@@ -793,8 +840,8 @@ function funk_return_response_text(&$c, string $rawTextString, int $code = 200)
 {
     header_remove('content-type');
     http_response_code($code);
-    funk_set_header($c, 'content-type', 'text/plain');
-    funk_internal_send_headers($c);
+    \funk_set_header($c, 'content-type', 'text/plain');
+    \funk_internal_send_headers($c);
     echo $rawTextString;
     exit();
 }
@@ -818,7 +865,17 @@ function funk_return_response_callback(&$c, string $userDefinedFunctionName)
         $userDefinedFunctionName($c);
         exit();
     }
-    \funk_return_error_json_or_page($c, 500, ['INTERNAL_SERVER_ERROR' => 'Failed to use a `User-defined Function` to Return a Response. This means the Function-name does NOT exist.'], '500', 'Failed to use a `User-defined Function` to Return a Response. This means the Function-name does NOT exist.');
+    \funk_return_error_json_or_page(
+        $c,
+        500,
+        \funk_internal_critical_error_json(
+            $c,
+            500,
+            'Failed to use a `User-defined Function` to Return a Response. This means the Function-name does NOT exist.'
+        ),
+        '500',
+        'Failed to use a `User-defined Function` to Return a Response. This means the Function-name does NOT exist.'
+    );
 }
 
 function funk_req_param_valid(&$c, string $param): bool
@@ -1194,7 +1251,7 @@ function funk_internal_exception_handler(&$c, \Throwable $e)
         $line = $e->getLine();
         $msg  = htmlspecialchars($e->getMessage());
         $type = get_class($e);
-        $snippet = funk_internal_render_code_snippet($file, $line);
+        $snippet = \funk_internal_render_code_snippet($file, $line);
         $htmlOutput = "
         <div style='font-family: system-ui, -apple-system, sans-serif; background:#121212; color:#f1f1f1; padding:20px; min-height:100vh;'>
             <h1 style='color:#ff5555; margin:0 0 10px 0;'>{$type}</h1>
@@ -1212,7 +1269,17 @@ function funk_internal_exception_handler(&$c, \Throwable $e)
         exit;
     }
     $err = 'An unexpected Internal Server Error occurred. Please check the Application Logs.';
-    \funk_return_error_json_or_page($c, 500, ["internal_server_error" => $err], '500', $err);
+    \funk_return_error_json_or_page(
+        $c,
+        500,
+        \funk_internal_critical_error_json(
+            $c,
+            500,
+            $err
+        ),
+        '500',
+        $err
+    );
 }
 /**
  * Internal Default Error Handler
@@ -1669,13 +1736,15 @@ function funk_internal_handle_no_route_match(&$c, $globalOrMethod)
         }
         $prefers = $c['req']['prefers'];
         if ($prefers === 'json' && isset($c['runtime']['NO_ROUTE_MATCH']['JSON'])) {
-            funk_internal_send_headers($c);
+            unset($c['runtime']['global_headers']['add']['content-type']);
+            \funk_internal_send_headers($c);
             header("content-type: application/json; charset=utf-8");
             http_response_code($c['runtime']['NO_ROUTE_MATCH']['JSON']['code']);
             echo $c['runtime']['NO_ROUTE_MATCH']['JSON']['JSON'];
             exit;
         } else if ($prefers === 'html' && isset($c['runtime']['NO_ROUTE_MATCH']['PAGE'])) {
-            funk_internal_send_headers($c);
+            unset($c['runtime']['global_headers']['add']['content-type']);
+            \funk_internal_send_headers($c);
             header("content-type: text/html; charset=utf-8");
             http_response_code($c['runtime']['NO_ROUTE_MATCH']['PAGE']['code']);
             if (defined(FUNKPHP_ONLINE)) {
@@ -1691,13 +1760,15 @@ function funk_internal_handle_no_route_match(&$c, $globalOrMethod)
                 }
             }
         } else if ($prefers === 'text' && isset($c['runtime']['NO_ROUTE_MATCH']['TEXT'])) {
-            funk_internal_send_headers($c);
+            unset($c['runtime']['global_headers']['add']['content-type']);
+            \funk_internal_send_headers($c);
             header("content-type: text/plain; charset=utf-8");
             http_response_code($c['runtime']['NO_ROUTE_MATCH']['TEXT']['code']);
             echo $c['runtime']['NO_ROUTE_MATCH']['TEXT']['text'];
             exit;
         } else if (isset($c['runtime']['NO_ROUTE_MATCH']['CALLBACK'])) {
-            funk_internal_send_headers($c);
+            unset($c['runtime']['global_headers']['add']['content-type']);
+            \funk_internal_send_headers($c);
             if (function_exists($c['runtime']['NO_ROUTE_MATCH']['CALLBACK'])) {
                 $c['runtime']['NO_ROUTE_MATCH']['CALLBACK']($c);
                 exit;
@@ -1712,13 +1783,15 @@ function funk_internal_handle_no_route_match(&$c, $globalOrMethod)
         }
         $prefers = $c['req']['prefers'];
         if ($prefers === 'json' && isset($c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['JSON'])) {
-            funk_internal_send_headers($c);
+            unset($c['runtime']['method_headers']['add'][$globalOrMethod]['content-type']);
+            \funk_internal_send_headers($c);
             header("content-type: application/json; charset=utf-8");
             http_response_code($c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['JSON']['code']);
             echo $c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['JSON']['JSON'];
             exit;
         } else if ($prefers === 'html' && isset($c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['PAGE'])) {
-            funk_internal_send_headers($c);
+            unset($c['runtime']['method_headers']['add'][$globalOrMethod]['content-type']);
+            \funk_internal_send_headers($c);
             header("content-type: text/html; charset=utf-8");
             http_response_code($c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['PAGE']['code']);
             if (defined(FUNKPHP_ONLINE)) {
@@ -1731,16 +1804,30 @@ function funk_internal_handle_no_route_match(&$c, $globalOrMethod)
                 ) {
                     require $c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['PAGE']['path'];
                     exit;
+                } else {
+                    \funk_return_error_json_or_page(
+                        $c,
+                        500,
+                        \funk_internal_critical_error_json(
+                            $c,
+                            500,
+                            'Internal Server Error: Custom Page For No Found Route Was NOT Found!'
+                        ),
+                        '500',
+                        'Internal Server Error: Custom Page For No Found Route Was NOT Found!'
+                    );
                 }
             }
         } else if ($prefers === 'text' && isset($c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['TEXT'])) {
-            funk_internal_send_headers($c);
+            unset($c['runtime']['method_headers']['add'][$globalOrMethod]['content-type']);
+            \funk_internal_send_headers($c);
             header("content-type: text/plain; charset=utf-8");
             http_response_code($c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['TEXT']['code']);
             echo $c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['TEXT']['text'];
             exit;
         } else if (isset($c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['CALLBACK'])) {
-            funk_internal_send_headers($c);
+            unset($c['runtime']['method_headers']['add'][$globalOrMethod]['content-type']);
+            \funk_internal_send_headers($c);
             if (function_exists($c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['CALLBACK'])) {
                 $c['runtime']['NO_ROUTE_MATCH_METHOD'][$globalOrMethod]['CALLBACK']($c);
                 exit;
@@ -1759,7 +1846,9 @@ function funk_internal_handle_no_no_route_match(&$c)
     ) {
         $c['runtime']['SKIP_POST_RESPONSE'] = true;
     }
-    funk_internal_send_headers($c);
+    unset($c['runtime']['global_headers']['add']['content-type']);
+    unset($c['runtime']['method_headers']['add'][($c['req']['method'] ?? 'GET')]['content-type']);
+    \funk_internal_send_headers($c);
     $message = (isset($c['runtime']['NO_NO_MATCH_MESSAGE'])
         && is_string($c['runtime']['NO_NO_MATCH_MESSAGE'])
         && trim($c['runtime']['NO_NO_MATCH_MESSAGE']) !== '')
@@ -1774,13 +1863,21 @@ function funk_internal_handle_no_no_route_match(&$c)
     // Set HTTP status code & headers BEFORE sending HTML output
     http_response_code(404);
     header("content-type: text/html; charset=utf-8");
+    $html = \funk_internal_critical_error_page($c, $message);
+    echo $html;
+    exit;
+}
+
+// Default in-built error page when other pages are not found
+function funk_internal_critical_error_page(&$c, $code = 500, $message = 'No Specific Error Message Provided.', $configuredThisYet = 'setNoRouteMatch')
+{
     $html = '';
     $html .= '<!DOCTYPE html>';
     $html .= '<html lang="en">';
     $html .= '<head>';
     $html .= '    <meta charset="UTF-8">';
     $html .= '    <meta name="viewport" content="width=device-width, initial-scale=1.0">';
-    $html .= '    <title>404 - No Content or Page Found | Have You Configured `->setNoRouteMatch` Yet?</title>';
+    $html .= '    <title>' . $code . ' - No Content or Page Found | Have You Configured `->' . $configuredThisYet . '` Yet?</title>';
     $html .= '    <style>';
     $html .= '        * { box-sizing: border-box; margin: 0; padding: 0; }';
     $html .= '        body {';
@@ -1807,13 +1904,19 @@ function funk_internal_handle_no_no_route_match(&$c)
     $html .= '</head>';
     $html .= '<body>';
     $html .= '    <div class="container">';
-    $html .= '        <h1>404</h1>';
+    $html .= '        <h1>' . $code . '</h1>';
     $html .= '        <p>' . $message . '</p>';
     $html .= '    </div>';
     $html .= '</body>';
     $html .= '</html>';
-    echo $html;
-    exit;
+    return $html;
+}
+
+// Default in-built json object to return when json is preferred and/or json-related stuff fails
+function funk_internal_critical_error_json(&$c, $code = 500, $message = 'No Specific Error Message Provided.')
+{
+    $json = ['code' => $code, 'error' => $message];
+    return $json;
 }
 
 /******************************************/
