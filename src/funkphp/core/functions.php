@@ -1235,6 +1235,31 @@ function funk_internal_resolve_ip(&$c): string
     }
     return $remoteAddr;
 }
+function funk_internal_resolve_uri(&$c): array
+{
+    $URI = null;
+    $URL_REL = null;
+    $URL_ABS = null;
+    $rawUri = $_SERVER['REQUEST_URI'] ?? '/';
+    $cleanPath = explode('?', $rawUri, 2)[0];
+    $cleanPath = explode('#', $cleanPath, 2)[0];
+    $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+    $baseUrl = dirname($scriptName);
+    if ($baseUrl !== '/' && str_starts_with($cleanPath, $baseUrl)) {
+        $cleanPath = substr($cleanPath, strlen($baseUrl));
+    }
+    $cleanPath = preg_replace('#/{2,#', '/', $cleanPath);
+    $cleanPath = trim($cleanPath, '/');
+    $URI = ($cleanPath === '') ? '/' : '/' . $cleanPath;
+    $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
+    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    $scriptName = $scriptName ?: $_SERVER['SCRIPT_NAME'] ?: '';
+    $baseUrl = $baseUrl ? $baseUrl : dirname($scriptName);
+    $URL_ABS = rtrim($protocol . $host . $baseUrl, '/');
+    $URL_REL = ($baseUrl === '/') ? '' : $baseUrl;
+    return [$URI, $URL_ABS, $URL_REL];
+}
+
 // Default FunkPHP Exception Handler that catches any uncaught exceptions and returns
 // a JSON or HTML error response depending on the Accept Header of the request. It is
 // used unless a user-defined Exception Handler is set by the Developer creating one

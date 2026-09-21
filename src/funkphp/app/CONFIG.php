@@ -4,12 +4,14 @@
 /** @var FunkPHP $APP */
 $APP->CONFIG()
     ->setDebug(true, true, true)
-    //->setCustomExceptionHandler('test')
+    //->setNoRouteMatchJSON(["err" => "nothing found"], 404)
+    //->setNoRouteMatchPage('test', 404)
     //->setNoRouteMatchText("nothing in GLOBAL!")
-    //->setNoRouteMatchCallback('test')
+    ->setNoRouteMatchCallback('test')
+    //->setCustomExceptionHandler('test')
     ->setCompileFlag('OUTPUT_OVERRIDE_DEBUG')
     ->setCompileFlag('ALLOW_GHOST_ROUTES')
-    ->setDisablePostResponseOnNoMatch(true)
+    //->setDisablePostResponseOnNoMatch(true)
     ->setParamRule('id2', '*')
     ->setINI_SET([
         'session.cache_limiter' => 'public',
@@ -24,12 +26,9 @@ $APP->CONFIG()
         'display_startup_errors'  => 1,
         'error_reporting'         => (string)E_ALL,
     ])
-    //->setNoRouteMatchJSON(["err" => "nothing found"], 404)
-    //->setNoRouteMatchPage('test', 404)
+
     ->setHeaderAdd('Allow', 'all')
     ->pipeMiddlewares('log_access', 'auth')
     ->setRateLimit(60, 60, 'ip', 'redis')
     ->pipeRequestFunction('req_test')
-    ->pipeRequestFunction('req_test')
-    ->pipePostResponseFunction('debug')
     ->pipePostResponseFunction('debug');

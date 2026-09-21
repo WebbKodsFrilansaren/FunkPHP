@@ -2,7 +2,7 @@
 
 /**
  * FunkPHPDeployment File
- * Built: 2026-09-21 12:40:42
+ * Built: 2026-09-21 16:08:09
  * Compiler Flags: `OUTPUT_OVERRIDE_DEBUG`, `ALLOW_GHOST_ROUTES`
  * DO NOT EDIT DIRECTLY - CHANGES ARE OVERWRITTEN WHEN (RE)BUILDING
  */
@@ -12,7 +12,7 @@ namespace {
     define('FUNKPHP_ONLINE', true);
     define('ROOT_FOLDER', __DIR__);
     define('ROOT_PAGES', __DIR__ . '/pages');
-    $c = ['BASEURLS' => ['LOCAL' => null, 'ONLINE' => null, 'BASEURL_URI' => null, 'HOST' => null], 'SESSION' => ['driver' => 'files', 'COOKIES' => ['SESSION_NAME' => 'fphp_id', 'SESSION_DOMAIN' => 'funkphp', 'SESSION_PATH' => '/', 'SESSION_LIFETIME' => 28800, 'SESSION_SAMESITE' => 'Lax', 'SESSION_SECURE' => false, 'SESSION_HTTPONLY' => true]], 'shared' => [], 'classes' => ['vendor' => [], 'user' => []], 'credentials' => null, 'connections' => [], 'req' => ['ip' => null, 'method' => null, 'prefers' => null, 'uri' => null, 'route' => null, 'route_matched' => false, 'segments' => null, 'params' => null, 'param_valid' => null, 'params_valid' => null, 'params_details' => null, 'accept_order' => null, 'accepts' => null, 'query' => null, 'base_url_absolute' => null, 'base_url_relative' => null, 'time' => null, 'log' => [], 'ua' => null], 'd' => null, 'v' => null, 'v_ok' => null, 'v_ok_files' => null, 'v_config' => [], 'v_data' => null, 'p' => null, 'files' => null, 'err' => [], 'runtime' => ['request_accepts' => [], 'request_ip_sources' => [], 'request_form_spoof_methods' => ['PUT', 'PATCH', 'DELETE'], 'trusted_ip_proxies' => ['ip4' => ['173.245.48.0/20', '103.21.244.0/22', '103.22.200.0/22', '103.31.4.0/22', '141.101.64.0/18', '108.162.192.0/18', '190.93.240.0/20', '188.114.96.0/20', '197.234.240.0/22', '198.41.128.0/17', '162.158.0.0/15', '104.16.0.0/13', '104.24.0.0/14', '172.64.0.0/13', '131.0.72.0/22'], 'ip6' => ['2400:cb00::/32', '2606:4700::/32', '2803:f800::/32', '2405:b500::/32', '2405:8100::/32', '2a06:98c0::/29', '2c0f:f248::/32']], 'trusted_ip_headers' => ['HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_REAL_IP'], 'state' => 'global', 'global_headers' => ['add' => ['allow: all']], 'method_headers' => ['remove' => ['GET' => ['server' => 'server']], 'add' => ['GET' => ['allow: all'], 'POST' => ['allow: all'], 'PUT' => ['allow: all'], 'PATCH' => ['allow: all'], 'DELETE' => ['allow: all'], 'HEAD' => ['allow: all']]], 'SKIP_POST_RESPONSE_ON_NO_MATCH' => true]];
+    $c = ['BASEURLS' => ['LOCAL' => null, 'ONLINE' => null, 'BASEURL_URI' => null, 'HOST' => null], 'SESSION' => ['driver' => 'files', 'COOKIES' => ['SESSION_NAME' => 'fphp_id', 'SESSION_DOMAIN' => 'funkphp', 'SESSION_PATH' => '/', 'SESSION_LIFETIME' => 28800, 'SESSION_SAMESITE' => 'Lax', 'SESSION_SECURE' => false, 'SESSION_HTTPONLY' => true]], 'shared' => [], 'classes' => ['vendor' => [], 'user' => []], 'credentials' => null, 'connections' => [], 'req' => ['ip' => null, 'method' => null, 'prefers' => null, 'uri' => null, 'route' => null, 'route_matched' => false, 'segments' => null, 'params' => null, 'param_valid' => null, 'params_valid' => null, 'params_details' => null, 'accept_order' => null, 'accepts' => null, 'query' => null, 'base_url_absolute' => null, 'base_url_relative' => null, 'time' => null, 'log' => [], 'ua' => null], 'd' => null, 'v' => null, 'v_ok' => null, 'v_ok_files' => null, 'v_config' => [], 'v_data' => null, 'p' => null, 'files' => null, 'err' => [], 'runtime' => ['request_accepts' => [], 'request_ip_sources' => [], 'request_form_spoof_methods' => ['PUT', 'PATCH', 'DELETE'], 'trusted_ip_proxies' => ['ip4' => ['173.245.48.0/20', '103.21.244.0/22', '103.22.200.0/22', '103.31.4.0/22', '141.101.64.0/18', '108.162.192.0/18', '190.93.240.0/20', '188.114.96.0/20', '197.234.240.0/22', '198.41.128.0/17', '162.158.0.0/15', '104.16.0.0/13', '104.24.0.0/14', '172.64.0.0/13', '131.0.72.0/22'], 'ip6' => ['2400:cb00::/32', '2606:4700::/32', '2803:f800::/32', '2405:b500::/32', '2405:8100::/32', '2a06:98c0::/29', '2c0f:f248::/32']], 'trusted_ip_headers' => ['HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_REAL_IP'], 'state' => 'global', 'global_headers' => ['add' => ['allow: all']], 'method_headers' => ['remove' => ['GET' => ['server' => 'server']], 'add' => ['GET' => ['allow: all'], 'POST' => ['allow: all'], 'PUT' => ['allow: all'], 'PATCH' => ['allow: all'], 'DELETE' => ['allow: all'], 'HEAD' => ['allow: all']]], 'SKIP_POST_RESPONSE_ON_NO_MATCH' => false]];
     $c['req']['time'] = $_SERVER['REQUEST_TIME'] ?? time();
     $c['req']['query'] = $_SERVER['QUERY_STRING'] ?? null;
     $c['req']['ua'] = $_SERVER['HTTP_USER_AGENT'] ?? null;
@@ -822,6 +822,30 @@ namespace {
         }
         return $remoteAddr;
     }
+    function funk_internal_resolve_uri(&$c): array
+    {
+        $URI = null;
+        $URL_REL = null;
+        $URL_ABS = null;
+        $rawUri = $_SERVER['REQUEST_URI'] ?? '/';
+        $cleanPath = explode('?', $rawUri, 2)[0];
+        $cleanPath = explode('#', $cleanPath, 2)[0];
+        $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+        $baseUrl = dirname($scriptName);
+        if ($baseUrl !== '/' && str_starts_with($cleanPath, $baseUrl)) {
+            $cleanPath = substr($cleanPath, strlen($baseUrl));
+        }
+        $cleanPath = preg_replace('#/{2,#', '/', $cleanPath);
+        $cleanPath = trim($cleanPath, '/');
+        $URI = ($cleanPath === '') ? '/' : '/' . $cleanPath;
+        $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
+        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+        $scriptName = $scriptName ?: $_SERVER['SCRIPT_NAME'] ?: '';
+        $baseUrl = $baseUrl ? $baseUrl : dirname($scriptName);
+        $URL_ABS = rtrim($protocol . $host . $baseUrl, '/');
+        $URL_REL = ($baseUrl === '/') ? '' : $baseUrl;
+        return [$URI, $URL_ABS, $URL_REL];
+    }
     function funk_internal_exception_handler(&$c, \Throwable $e)
     {
         $c['err']['INTERNAL'][] = "UNCAUGHT EXCEPTION: " . $e->getMessage();
@@ -1232,66 +1256,115 @@ namespace {
         }
         \funkphp\pipes\post_response\debug($c);
     });
-    register_shutdown_function(function () use (&$c) {
-        if (isset($c['runtime']['SKIP_POST_RESPONSE']) && $c['runtime']['SKIP_POST_RESPONSE'] === true) {
-            return;
-        }
-        \funkphp\pipes\post_response\debug($c);
-    });
     $c['req']['ip'] = \funk_internal_resolve_ip($c);
-    $rawUri = $_SERVER['REQUEST_URI'] ?? '/';
-    $cleanPath = explode('?', $rawUri, 2)[0];
-    $cleanPath = explode('#', $cleanPath, 2)[0];
-    $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
-    $baseUrl = dirname($scriptName);
-    if ($baseUrl !== '/' && str_starts_with($cleanPath, $baseUrl)) {
-        $cleanPath = substr($cleanPath, strlen($baseUrl));
-    }
-    $cleanPath = preg_replace('#/{2,#', '/', $cleanPath);
-    $cleanPath = trim($cleanPath, '/');
-    $c['req']['uri'] = ($cleanPath === '') ? '/' : '/' . $cleanPath;
-    $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
-    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-    $scriptName = $scriptName ?: $_SERVER['SCRIPT_NAME'] ?: '';
-    $baseUrl = $baseUrl ? $baseUrl : dirname($scriptName);
-    $c['req']['base_url_absolute'] = rtrim($protocol . $host . $baseUrl, '/');
-    $c['req']['base_url_relative'] = ($baseUrl === '/') ? '' : $baseUrl;
+    [$c['req']['uri'], $c['req']['base_url_absolute'], $c['req']['base_url_relative']] = \funk_internal_resolve_uri($c);
     $c['req']['method'] = $_SERVER['REQUEST_METHOD'] ?? 'GET';
     if ($c['req']['method'] === 'POST' && !empty($c['runtime']['request_form_spoof_methods'])) {
         $spoofedMethod = ($_POST['_method'] ?? $_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE'] ?? '');
         if (in_array($spoofedMethod, $c['runtime']['request_form_spoof_methods'], true)) {
             $c['req']['method'] = $spoofedMethod;
         }
+        unset($spoofedMethod);
     }
-    unset($rawUri, $cleanPath, $scriptName, $baseUrl, $protocol, $host, $spoofedMethod);
     [$c['req']['accept_order'], $c['req']['prefers']] = \funk_internal_negotiate_content($c);
-    \funkphp\pipes\request\req_test($c);
     \funkphp\pipes\request\req_test($c);
     \funk_internal_rate_limiter($c, 60, 60, ['ip'], 'redis');
     if (!in_array($c['req']['method'], ['GET', 'POST'], true)) {
-        $c['runtime']['SKIP_POST_RESPONSE'] = true;
-        unset($c['runtime']['global_headers']['add']['content-type']);
-        header_remove('content-type');
-        unset($c['runtime']['method_headers']['add'][($c['req']['method'] ?? 'GET')]['content-type']);
-        \funk_internal_send_headers($c);
-        if (($c['req']['prefers'] ?? 'html') === 'json') {
-            http_response_code(404);
-            header('content-type: application/json; charset=utf-8');
-            echo '{"code":500,"error":"404 | No Content or Page Found <br\\/>Are You the Developer, Web Administrator or General Web Master?<br\\/> There is NO Configured Global `->setNoRouteMatch&lt;Variant&gt;` Yet \\ud83d\\ude31!"}';
-        } else {
-            http_response_code(404);
-            header('content-type: text/html; charset=utf-8');
-            echo '404 | No Content or Page Found <br/>Are You the Developer, Web Administrator or General Web Master?<br/> There is NO Configured Global `->setNoRouteMatch&lt;Variant&gt;` Yet 😱!';
+        FUNKPHP_NO_ROUTE_MATCH_GLOBAL_AND_NO_NO_MATCH_GOTO:
+        switch (($c['req']['prefers'] ?? 'html')) {
+            case 'default':
+                unset($c['runtime']['global_headers']['add']['content-type']);
+                unset($c['runtime']['method_headers']['add'][($c['req']['method'] ?? 'GET')]['content-type']);
+                header_remove('content-type');
+                \test($c);
+                exit;
         }
-        exit;
+        FUNKPHP_NO_ROUTE_MATCH_GET:
+        switch (($c['req']['prefers'] ?? 'html')) {
+            case 'html':
+                \funk_set_header($c, 'content-type', 'text/html');
+                header_remove('content-type');
+                \funk_internal_send_headers($c);
+                if (!file_exists(ROOT_FOLDER . '/pages/test.php')) {
+                    http_response_code(404);
+                    echo \funk_internal_critical_error_page($c, 404, 'Internal Server Error: Could Not Find Configured \'Not Found\' Page!', '->setNoRouteMatchPage()');
+                } else {
+                    http_response_code(404);
+                    include ROOT_FOLDER . '/pages/test.php';
+                }
+                exit;
+            case 'text':
+                \funk_set_header($c, 'content-type', 'text/plain');
+                header_remove('content-type');
+                \funk_internal_send_headers($c);
+                http_response_code(404);
+                echo 'nothing in GET!';
+                exit;
+            default:
+                goto FUNKPHP_NO_ROUTE_MATCH_GLOBAL_AND_NO_NO_MATCH_GOTO;
+        }
+        FUNKPHP_NO_ROUTE_MATCH_POST:
+        switch (($c['req']['prefers'] ?? 'html')) {
+            case 'html':
+                \funk_set_header($c, 'content-type', 'text/html');
+                header_remove('content-type');
+                \funk_internal_send_headers($c);
+                if (!file_exists(ROOT_FOLDER . '/pages/test.php')) {
+                    http_response_code(404);
+                    echo \funk_internal_critical_error_page($c, 404, 'Internal Server Error: Could Not Find Configured \'Not Found\' Page!', '->setNoRouteMatchPage()');
+                } else {
+                    http_response_code(404);
+                    include ROOT_FOLDER . '/pages/test.php';
+                }
+                exit;
+            case 'default':
+                goto FUNKPHP_NO_ROUTE_MATCH_GLOBAL_AND_NO_NO_MATCH_GOTO;
+        }
+    }
+    $URI = $c['req']['uri'] ?? '/';
+    $SEGS = ($URI === '/') ? [] : explode('/', trim($URI, '/'));
+    $SEGS_COUNT = count($SEGS);
+    if ($SEGS_COUNT < 1 || $SEGS_COUNT > 5) {
+        unset($URI, $SEGS_COUNT);
+        goto FUNKPHP_NO_ROUTE_MATCH_GLOBAL_AND_NO_NO_MATCH_GOTO;
     }
     $c['runtime']['state'] = 'method';
-    switch ($c['req']['method']) {
+    switch (($c['req']['method'] ?? 'GET')) {
         case 'GET':
             \funk_internal_rate_limiter($c, 60, 60, ['ip'], 'redis');
+            switch ($URI) {
+                case '/users':
+                    goto FUNKPHP_ROUTE_GET_USERS;
+                case '/users/static/even/longer/uri':
+                    goto FUNKPHP_ROUTE_GET_USERS_STATIC_EVEN_LONGER_URI;
+            }
+            switch ($SEGS_COUNT) {
+                case 1:
+                    goto FUNKPHP_GET_SEGS_1;
+                case 2:
+                    goto FUNKPHP_GET_SEGS_2;
+                case 5:
+                    goto FUNKPHP_GET_SEGS_5;
+                default:
+                    goto FUNKPHP_NO_ROUTE_MATCH_GET;
+            }
             break;
         case 'POST':
             \funk_internal_rate_limiter($c, 67, 69, ['ip'], 'redis');
+            switch ($URI) {
+                case '/users':
+                    goto FUNKPHP_ROUTE_POST_USERS;
+            }
+            switch ($SEGS_COUNT) {
+                case 1:
+                    goto FUNKPHP_POST_SEGS_1;
+                case 2:
+                    goto FUNKPHP_POST_SEGS_2;
+                case 3:
+                    goto FUNKPHP_POST_SEGS_3;
+                default:
+                    goto FUNKPHP_NO_ROUTE_MATCH_POST;
+            }
             break;
     }
 }
