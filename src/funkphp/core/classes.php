@@ -37,6 +37,7 @@ class FunkPHPC
         ],
         'ignored_core_functions_if_no_custom_kernel' => [
             'funk_internal_handle_no_route_match',
+            'funk_internal_handle_no_no_route_match',
             'funk_internal_match_route_trie',
             'funk_internal_validate_params',
             'funk_internal_handle_invalid_params'
@@ -2372,6 +2373,8 @@ class FunkPHPC
             'UserDefinedFUNCTIONReturnTypeNotString' => "Provided User-defined Function in {$optionalCtx} from `/src/funkphp/config/functions.php` must have a `string` Return Type (e.g. `function user_defined(\$c): string {}`).",
             'UserDefinedFUNCTIONReturnTypeNotInteger' => "Provided User-defined Function in {$optionalCtx} from `/src/funkphp/config/functions.php` must have a `integer` Return Type (e.g. `function user_defined(\$c): integer {}`).",
             'UserDefinedFUNCTIONReturnTypeNotFloat' => "Provided User-defined Function in {$optionalCtx} from `/src/funkphp/config/functions.php` must have a `float` Return Type (e.g. `function user_defined(\$c): float {}`).",
+            'UserDefinedFUNCTIONHasNotValidParamArgs' => "Provided User-defined Function in {$optionalCtx} from `/src/funkphp/config/functions.php` must have only two (2) arguments such as `&\$c` and then the variable that receives the Param to Validate using User-defined Function!",
+            'UserDefinedFUNCTIONHasNotJustCArgAsOnlyArg' => "Provided User-defined Function in {$optionalCtx} from `/src/funkphp/config/functions.php` must ONLY have the `&\$c` as the Single and Only Argument in the Function.",
             'UserDefinedFUNCTIONHasWrongArgs'                       => "Provided User-defined Function in {$optionalCtx} from `/src/funkphp/config/functions.php` must besides the starting Function Parameter `&\$c` also have the following Function Parameters:",
             'UserDefinedFUNCTIONAlreadyInArray'                       => "Provided User-defined Function in {$optionalCtx} from `/src/funkphp/config/functions.php` is already in a must-be-unique array:",
             'UserDefinedCLASSAlreadyInArray'                       => "Provided User-defined Class in {$optionalCtx} from `/src/funkphp/config/classes.php` is already in a must-be-unique array:",
@@ -3293,9 +3296,26 @@ class FunkPHPC
             $this->invalidBatches['config']['NO_ROUTE_MATCH']['CALLBACK'] = $userDefinedFunctionName;
             return;
         }
+        if (
+            isset($fileData['functions'][$userDefinedFunctionName]['return_type'])
+            && $fileData['functions'][$userDefinedFunctionName]['return_type'] !== 'void'
+        ) {
+            $this->setErr($this->getErr('UserDefinedFUNCTIONReturnTypeNotVoid', $ctx) . " In other words: `function $userDefinedFunctionName(&\$c): void {}`.", 'Invalid Function Return Type ' . $ctxVals);
+            $this->invalidBatches['config']['NO_ROUTE_MATCH']['CALLBACK'] = $userDefinedFunctionName;
+            return;
+        }
+        if (
+            isset($fileData['functions'][$userDefinedFunctionName]['args_raw'])
+            && $fileData['functions'][$userDefinedFunctionName]['args_raw'] !== '&$c'
+        ) {
+            $this->setErr($this->getErr('UserDefinedFUNCTIONHasNotJustCArgAsOnlyArg', $ctx) . " In other words: `function $userDefinedFunctionName(&\$c): void {}`.", 'Invalid Function Arguments ' . $ctxVals);
+            $this->invalidBatches['config']['NO_ROUTE_MATCH']['CALLBACK'] = $userDefinedFunctionName;
+            return;
+        }
         // After initial check, check that it is not already used by Global Handlers (->CONFIG()->setDefault<Handler>)
         if (isset($this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunctionName])) {
             $this->setErr($this->getErr('UserDefinedFNSetAsEngineFN', $ctxVals) . ' See: `' . $this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunctionName] . '`', 'User-defined File Function Already in Use ');
+            $this->invalidBatches['config']['NO_ROUTE_MATCH']['CALLBACK'] = $userDefinedFunctionName;
             return;
         }
         // Finally add it
@@ -4208,6 +4228,15 @@ class FunkPHPC
                 ];
                 return;
             }
+            if (!isset($CB_TO_USE['args_raw']) || !preg_match('/^&\$c,\s*\$[_a-z][a-z_0-9]*$/i', $CB_TO_USE['args_raw'])) {
+                $this->setErr($this->getErr('UserDefinedFUNCTIONHasNotValidParamArgs', $ctxVals) . " For example `function {$cbFN[2]}(&\$c, \$rule): bool {}` where you then validate `\$rule` (received Param as a Matched Dynamic Route Segment) and return a boolean for it. Found instead: `{$CB_TO_USE['args_raw']}`.", 'User-Defined Function for Param Rule Has Invalid Argument Count' .  $ctxVals);
+                $this->invalidBatches['paramRules']['config'][$param] = [
+                    'pattern' => $regex,
+                    'default' => $defaultParamValueOnRegexMismatch,
+                    'callback' => null,
+                ];
+                return;
+            }
             // Swap places since callback will be used and not a pattern!
             $callback = $cbFN[2];
             $regex = null;
@@ -4987,9 +5016,26 @@ class FunkPHPC
             $this->invalidBatches['methods'][$method]['NO_ROUTE_MATCH']['CALLBACK'] = $userDefinedFunctionName;
             return;
         }
+        if (
+            isset($fileData['functions'][$userDefinedFunctionName]['return_type'])
+            && $fileData['functions'][$userDefinedFunctionName]['return_type'] !== 'void'
+        ) {
+            $this->setErr($this->getErr('UserDefinedFUNCTIONReturnTypeNotVoid', $ctx) . " In other words: `function $userDefinedFunctionName(&\$c): void {}`.", 'Invalid Function Return Type ' . $ctxVals, $method);
+            $this->invalidBatches['methods'][$method]['NO_ROUTE_MATCH']['CALLBACK'] = $userDefinedFunctionName;
+            return;
+        }
+        if (
+            isset($fileData['functions'][$userDefinedFunctionName]['args_raw'])
+            && $fileData['functions'][$userDefinedFunctionName]['args_raw'] !== '&$c'
+        ) {
+            $this->setErr($this->getErr('UserDefinedFUNCTIONHasNotJustCArgAsOnlyArg', $ctx) . " In other words: `function $userDefinedFunctionName(&\$c): void {}`.", 'Invalid Function Arguments ' . $ctxVals, $method);
+            $this->invalidBatches['methods'][$method]['NO_ROUTE_MATCH']['CALLBACK'] = $userDefinedFunctionName;
+            return;
+        }
         // After initial check, check that it is not already used by Global Handlers (->CONFIG()->setDefault<Handler>)
         if (isset($this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunctionName])) {
             $this->setErr($this->getErr('UserDefinedFNSetAsEngineFN', $ctxVals) . ' See: `' . $this->cached['placeHolderUsedUserDefinedEngineFNS'][$userDefinedFunctionName] . '`', 'User-defined File Function Already in Use ' . $ctxVals, $method);
+            $this->invalidBatches['methods'][$method]['NO_ROUTE_MATCH']['CALLBACK'] = $userDefinedFunctionName;
             return;
         }
         // Finally add it
@@ -5088,6 +5134,15 @@ class FunkPHPC
                 || count(($CB_TO_USE['returns'] ?? [])) === 0
             ) {
                 $this->setErr($this->getErr('UserDefinedFUNCTIONReturnTypeNotBool', $ctxVals) . " Check your User-defined Function `{$cbFN[2]}` in `/src/funkphp/config/functions.php` and make sure it has the `: bool` as the Return Type in its Function Declaration!", 'User-Defined Function for Param Rule Has No Or Invalid Return Type' .  $ctxVals, $method);
+                $this->invalidBatches['paramRules']['methods'][$method][$param] = [
+                    'pattern' => $regex,
+                    'default' => $defaultParamValueOnRegexMismatch,
+                    'callback' => null,
+                ];
+                return;
+            }
+            if (!isset($CB_TO_USE['args_raw']) || !preg_match('/^&\$c,\s*\$[_a-z][a-z_0-9]*$/i', $CB_TO_USE['args_raw'])) {
+                $this->setErr($this->getErr('UserDefinedFUNCTIONHasNotValidParamArgs', $ctxVals) . " For example `function {$cbFN[2]}(&\$c, \$rule): bool {}` where you then validate `\$rule` (received Param as a Matched Dynamic Route Segment) and return a boolean for it. Found instead: `{$CB_TO_USE['args_raw']}`.", 'User-Defined Function for Param Rule Has Invalid Argument Count' .  $ctxVals, $method);
                 $this->invalidBatches['paramRules']['methods'][$method][$param] = [
                     'pattern' => $regex,
                     'default' => $defaultParamValueOnRegexMismatch,
@@ -5952,6 +6007,15 @@ class FunkPHPC
                 || count(($CB_TO_USE['returns'] ?? [])) === 0
             ) {
                 $this->setErr($this->getErr('UserDefinedFUNCTIONReturnTypeNotBool', $ctxVals) . " Check your User-defined Function `{$cbFN[2]}` in `/src/funkphp/config/functions.php` and make sure it has the `: bool` as the Return Type in its Function Declaration!", 'User-Defined Function for Param Rule Has No Or Invalid Return Type' .  $ctxVals, $method, $route);
+                $this->invalidBatches['paramRules']['routes'][$method][$route][$param] = [
+                    'pattern' => $regex,
+                    'default' => $defaultParamValueOnRegexMismatch,
+                    'callback' => null,
+                ];
+                return;
+            }
+            if (!isset($CB_TO_USE['args_raw']) || !preg_match('/^&\$c,\s*\$[_a-z][a-z_0-9]*$/i', $CB_TO_USE['args_raw'])) {
+                $this->setErr($this->getErr('UserDefinedFUNCTIONHasNotValidParamArgs', $ctxVals) . " For example `function {$cbFN[2]}(&\$c, \$rule): bool {}` where you then validate `\$rule` (received Param as a Matched Dynamic Route Segment) and return a boolean for it. Found instead: `{$CB_TO_USE['args_raw']}`.", 'User-Defined Function for Param Rule Has Invalid Argument Count' .  $ctxVals, $method, $route);
                 $this->invalidBatches['paramRules']['routes'][$method][$route][$param] = [
                     'pattern' => $regex,
                     'default' => $defaultParamValueOnRegexMismatch,
@@ -9640,8 +9704,10 @@ class FunkPHPC
             unset($c['runtime']['custom_https_kernel']);
             unset($c['runtime']['ini_sets']);
             unset($c['runtime']['pipes']);
+            unset($c['runtime']['NO_ROUTE_MATCH']);
+            unset($c['runtime']['NO_ROUTE_MATCH_METHOD']);
+            unset($c['runtime']['NO_NO_MATCH_MESSAGE']);
             unset($c['runtime']['']); // More added here later when knowing why/when needed
-            unset($c['runtime']['']);
             unset($c['runtime']['']);
             unset($c['runtime']['middlewares_inverted']);
         } else {
@@ -9972,15 +10038,177 @@ class FunkPHPC
 
         // **HERE GOTO LABELS:-based ROUTE MATCHING BEGINS!!!**
         $VALID_METHODS = $this->exportShortSyntax(array_keys(($this->compiled['routes']['trie'] ?? [])));
+        $SKIP_POST_RESPONSE_IF_STRING = "\$c['runtime']['SKIP_POST_RESPONSE'] = true;\n";
+        $SEND_INTERNAL_HEADERS_STRING = "\\funk_internal_send_headers(\$c);\n";
         $FUNK_DEPLOY_ARR[] = "if (!in_array(\$c['req']['method'], $VALID_METHODS, true)) {\n";
+        if (
+            isset($this->compiled['config']['runtime']['SKIP_POST_RESPONSE_ON_NO_MATCH'])
+            && $this->compiled['config']['runtime']['SKIP_POST_RESPONSE_ON_NO_MATCH'] === true
+        ) {
+            $FUNK_DEPLOY_ARR[] = $SKIP_POST_RESPONSE_IF_STRING;
+        }
         if (isset($this->compiled['config']['runtime']['NO_ROUTE_MATCH'])) {
             // HARDCODE OUT the only No Route Match-config that actually exists globally!
-
-            $FUNK_DEPLOY_ARR[] = "    \\funk_internal_handle_no_route_match(\$c, 'CONFIG');\n";
-        } else {
-            $FUNK_DEPLOY_ARR[] = "    \\funk_internal_handle_no_no_route_match(\$c);\n";
+            // When only 1
+            if (count($this->compiled['config']['runtime']['NO_ROUTE_MATCH']) === 1) {
+                if (isset($this->compiled['config']['runtime']['NO_ROUTE_MATCH']['JSON'])) {
+                    $JSON = var_export($this->compiled['config']['runtime']['NO_ROUTE_MATCH']['JSON']['JSON'], true);
+                    $CODE = $this->compiled['config']['runtime']['NO_ROUTE_MATCH']['JSON']['code'];
+                    $FUNK_DEPLOY_ARR[] = "funk_set_header(\$c,'content-type','application/json'); header_remove('content-type');\n";
+                    $FUNK_DEPLOY_ARR[] = $SEND_INTERNAL_HEADERS_STRING;
+                    $FUNK_DEPLOY_ARR[] = "http_response_code($CODE);\n";
+                    $FUNK_DEPLOY_ARR[] = "echo $JSON;\n";
+                    $FUNK_DEPLOY_ARR[] = "exit;\n";
+                } else if (isset($this->compiled['config']['runtime']['NO_ROUTE_MATCH']['PAGE'])) {
+                    $PAGE = $this->compiled['config']['runtime']['NO_ROUTE_MATCH']['PAGE']['page'];
+                    $CODE = $this->compiled['config']['runtime']['NO_ROUTE_MATCH']['PAGE']['code'];
+                    $FUNK_DEPLOY_ARR[] = "funk_set_header(\$c,'content-type','text/html'); header_remove('content-type');\n";
+                    $FUNK_DEPLOY_ARR[] = $SEND_INTERNAL_HEADERS_STRING;
+                    $FUNK_DEPLOY_ARR[] = "if(!file_exists(ROOT_FOLDER . '/pages/$PAGE.php')) {\n";
+                    $FUNK_DEPLOY_ARR[] = "http_response_code(404);\n echo \\funk_internal_critical_error_page(\$c,404,'Internal Server Error: Could Not Find Configured \'Not Found\' Page!', '->setNoRouteMatchPage()'); } \n";
+                    $FUNK_DEPLOY_ARR[] = "else { http_response_code($CODE);\n include ROOT_FOLDER . '/pages/$PAGE.php'; }\n";
+                    $FUNK_DEPLOY_ARR[] = "exit;\n";
+                } else if (isset($this->compiled['config']['runtime']['NO_ROUTE_MATCH']['TEXT'])) {
+                    $TEXT = var_export($this->compiled['config']['runtime']['NO_ROUTE_MATCH']['TEXT']['text'], true);
+                    $CODE = $this->compiled['config']['runtime']['NO_ROUTE_MATCH']['TEXT']['code'];
+                    $FUNK_DEPLOY_ARR[] = "funk_set_header(\$c,'content-type','text/plain'); header_remove('content-type');\n";
+                    $FUNK_DEPLOY_ARR[] = $SEND_INTERNAL_HEADERS_STRING;
+                    $FUNK_DEPLOY_ARR[] = "http_response_code($CODE);\n";
+                    $FUNK_DEPLOY_ARR[] = "echo $TEXT;\n";
+                    $FUNK_DEPLOY_ARR[] = "exit;\n";
+                } else if (isset($this->compiled['config']['runtime']['NO_ROUTE_MATCH']['CALLBACK'])) {
+                    $CALLBACK = $this->compiled['config']['runtime']['NO_ROUTE_MATCH']['CALLBACK'];
+                    $FUNK_DEPLOY_ARR[] = "unset(\$c['runtime']['global_headers']['add']['content-type']); header_remove('content-type');\n";
+                    $FUNK_DEPLOY_ARR[] = "unset(\$c['runtime']['method_headers']['add'][(\$c['req']['method'] ?? 'GET')]['content-type']);\n";
+                    $FUNK_DEPLOY_ARR[] = "\\$CALLBACK(\$c);\n";
+                    $FUNK_DEPLOY_ARR[] = "exit;\n";
+                }
+                $FUNK_DEPLOY_ARR[] = "}\n";
+            }
+            // When more than 1, switch based upon $c['req']['prefers'] or default to callback OR no_no_route_match
+            else if (count($this->compiled['config']['runtime']['NO_ROUTE_MATCH']) > 1) {
+                $noMatch = $this->compiled['config']['runtime']['NO_ROUTE_MATCH'];
+                $FUNK_DEPLOY_ARR[] = "    switch ((\$c['req']['prefers'] ?? 'html')) {\n";
+                if (isset($noMatch['JSON'])) {
+                    $JSON = var_export($noMatch['JSON']['JSON'], true);
+                    $CODE    = $noMatch['JSON']['code'];
+                    $FUNK_DEPLOY_ARR[] = "case 'json':\n";
+                    $FUNK_DEPLOY_ARR[] = "funk_set_header(\$c,'content-type', 'application/json'); header_remove('content-type');\n";
+                    $FUNK_DEPLOY_ARR[] = $SEND_INTERNAL_HEADERS_STRING;
+                    $FUNK_DEPLOY_ARR[] = "http_response_code({$CODE});\n";
+                    $FUNK_DEPLOY_ARR[] = "echo {$JSON};\n";
+                    $FUNK_DEPLOY_ARR[] = "exit;\n";
+                }
+                if (isset($noMatch['PAGE'])) {
+                    $PAGE = $noMatch['PAGE']['page'];
+                    $CODE = $noMatch['PAGE']['code'];
+                    $FUNK_DEPLOY_ARR[] = "case 'html':\n";
+                    $FUNK_DEPLOY_ARR[] = "funk_set_header(\$c,'content-type','text/html'); header_remove('content-type');\n";
+                    $FUNK_DEPLOY_ARR[] = $SEND_INTERNAL_HEADERS_STRING;
+                    $FUNK_DEPLOY_ARR[] = "if(!file_exists(ROOT_FOLDER . '/pages/$PAGE.php')) {\n";
+                    $FUNK_DEPLOY_ARR[] = "http_response_code(404);\n echo \\funk_internal_critical_error_page(\$c,404,'Internal Server Error: Could Not Find Configured \'Not Found\' Page!', '->setNoRouteMatchPage()'); } \n";
+                    $FUNK_DEPLOY_ARR[] = "else { http_response_code($CODE);\n include ROOT_FOLDER . '/pages/$PAGE.php'; }\n";
+                    $FUNK_DEPLOY_ARR[] = "exit;\n";
+                }
+                if (isset($noMatch['TEXT'])) {
+                    $TEXT = var_export($noMatch['TEXT']['text'], true);
+                    $CODE    = $noMatch['TEXT']['code'];
+                    $FUNK_DEPLOY_ARR[] = "case 'text':\n";
+                    $FUNK_DEPLOY_ARR[] = "funk_set_header(\$c,'content-type', 'text/plain'); header_remove('content-type');\n";
+                    $FUNK_DEPLOY_ARR[] = $SEND_INTERNAL_HEADERS_STRING;
+                    $FUNK_DEPLOY_ARR[] = "http_response_code({$CODE});\n";
+                    $FUNK_DEPLOY_ARR[] = "echo {$TEXT};\n";
+                    $FUNK_DEPLOY_ARR[] = "exit;\n";
+                }
+                // default is EITHER (if any set) 'callback' for it OR no no route
+                // it is "duplicate" else {} because you might have something else than "callback"
+                // but not callback that can be used as default so thus using same no_no_route_match() code
+                $FUNK_DEPLOY_ARR[] = "default:\n";
+                if (isset($noMatch['CALLBACK'])) {
+                    $CALLBACK = $noMatch['CALLBACK'];
+                    $FUNK_DEPLOY_ARR[] = "unset(\$c['runtime']['global_headers']['add']['content-type']); header_remove('content-type');\n";
+                    $FUNK_DEPLOY_ARR[] = "unset(\$c['runtime']['method_headers']['add'][(\$c['req']['method'] ?? 'GET')]['content-type']);\n";
+                    $FUNK_DEPLOY_ARR[] = "\\{$CALLBACK}(\$c);\n";
+                    $FUNK_DEPLOY_ARR[] = "exit;\n";
+                } else {
+                    $FUNK_DEPLOY_ARR[] = "unset(\$c['runtime']['global_headers']['add']['content-type']); header_remove('content-type');\n";
+                    $FUNK_DEPLOY_ARR[] = "unset(\$c['runtime']['method_headers']['add'][(\$c['req']['method'] ?? 'GET')]['content-type']);\n";
+                    $FUNK_DEPLOY_ARR[] = $SEND_INTERNAL_HEADERS_STRING;
+                    $FUNK_DEPLOY_ARR[] = "if((\$c['req']['prefers'] ?? 'html') === 'json') { http_response_code(404); header('content-type: application/json; charset=utf-8');\n";
+                    $FUNK_DEPLOY_ARR[] = "echo ";
+                    if (
+                        isset($this->compiled['config']['runtime']['NO_NO_MATCH_MESSAGE'])
+                        && is_string($this->compiled['config']['runtime']['NO_NO_MATCH_MESSAGE'])
+                        && trim($this->compiled['config']['runtime']['NO_NO_MATCH_MESSAGE']) !== ''
+                    ) {
+                        $FUNK_DEPLOY_ARR[] = var_export(json_encode([
+                            'code' => 404,
+                            'error' => $this->compiled['config']['runtime']['NO_NO_MATCH_MESSAGE']
+                        ]), true);
+                    } else {
+                        $FUNK_DEPLOY_ARR[] = var_export(json_encode([
+                            'code' => 404,
+                            'error' => "404 | No Content or Page Found <br/>Are You the Developer, Web Administrator or General Web Master?<br/> There is NO Configured Global `->setNoRouteMatch&lt;Variant&gt;` Yet 😱!"
+                        ]), true);
+                    }
+                    $FUNK_DEPLOY_ARR[] = ";";
+                    $FUNK_DEPLOY_ARR[] = "}\n";
+                    $FUNK_DEPLOY_ARR[] = "else {\n";
+                    $FUNK_DEPLOY_ARR[] = "http_response_code(404); header('content-type: text/html; charset=utf-8');\n";
+                    if (
+                        isset($this->compiled['config']['runtime']['NO_NO_MATCH_MESSAGE'])
+                        && is_string($this->compiled['config']['runtime']['NO_NO_MATCH_MESSAGE'])
+                        && trim($this->compiled['config']['runtime']['NO_NO_MATCH_MESSAGE']) !== ''
+                    ) {
+                        $FUNK_DEPLOY_ARR[] = "echo " . var_export($this->compiled['config']['runtime']['NO_NO_MATCH_MESSAGE'], true) . ";\n";
+                    } else {
+                        $FUNK_DEPLOY_ARR[] = "echo '404 | No Content or Page Found <br/>Are You the Developer, Web Administrator or General Web Master?<br/> There is NO Configured Global `->setNoRouteMatch&lt;Variant&gt;` Yet 😱!';";
+                    }
+                    $FUNK_DEPLOY_ARR[] = "} exit;\n";
+                }
+                $FUNK_DEPLOY_ARR[] = "    }\n";
+                $FUNK_DEPLOY_ARR[] = "}\n";
+            }
         }
-        $FUNK_DEPLOY_ARR[] = "}\n";
+        // This is equivalent to 'funk_internal_handle_no_no_route_match(&$c)' for run() used locally
+        else {
+            $FUNK_DEPLOY_ARR[] = "unset(\$c['runtime']['global_headers']['add']['content-type']); header_remove('content-type');\n";
+            $FUNK_DEPLOY_ARR[] = "unset(\$c['runtime']['method_headers']['add'][(\$c['req']['method'] ?? 'GET')]['content-type']);\n";
+            $FUNK_DEPLOY_ARR[] = $SEND_INTERNAL_HEADERS_STRING;
+            $FUNK_DEPLOY_ARR[] = "if((\$c['req']['prefers'] ?? 'html') === 'json') { http_response_code(404); header('content-type: application/json; charset=utf-8');\n";
+            $FUNK_DEPLOY_ARR[] = "echo ";
+            if (
+                isset($this->compiled['config']['runtime']['NO_NO_MATCH_MESSAGE'])
+                && is_string($this->compiled['config']['runtime']['NO_NO_MATCH_MESSAGE'])
+                && trim($this->compiled['config']['runtime']['NO_NO_MATCH_MESSAGE']) !== ''
+            ) {
+                $FUNK_DEPLOY_ARR[] = var_export(json_encode([
+                    'code' => 500,
+                    'error' => $this->compiled['config']['runtime']['NO_NO_MATCH_MESSAGE']
+                ]), true);
+            } else {
+                $FUNK_DEPLOY_ARR[] = var_export(json_encode([
+                    'code' => 500,
+                    'error' => "404 | No Content or Page Found <br/>Are You the Developer, Web Administrator or General Web Master?<br/> There is NO Configured Global `->setNoRouteMatch&lt;Variant&gt;` Yet 😱!"
+                ]),);
+            }
+            $FUNK_DEPLOY_ARR[] = ";";
+            $FUNK_DEPLOY_ARR[] = "}\n";
+            $FUNK_DEPLOY_ARR[] = "else {\n";
+            $FUNK_DEPLOY_ARR[] = "http_response_code(404); header('content-type: text/html; charset=utf-8');\n";
+            if (
+                isset($this->compiled['config']['runtime']['NO_NO_MATCH_MESSAGE'])
+                && is_string($this->compiled['config']['runtime']['NO_NO_MATCH_MESSAGE'])
+                && trim($this->compiled['config']['runtime']['NO_NO_MATCH_MESSAGE']) !== ''
+            ) {
+                $FUNK_DEPLOY_ARR[] = "echo " . var_export($this->compiled['config']['runtime']['NO_NO_MATCH_MESSAGE'], true) . ";\n";
+            } else {
+                $FUNK_DEPLOY_ARR[] = "echo '404 | No Content or Page Found <br/>Are You the Developer, Web Administrator or General Web Master?<br/> There is NO Configured Global `->setNoRouteMatch&lt;Variant&gt;` Yet 😱!';";
+            }
+            $FUNK_DEPLOY_ARR[] = "} exit;\n";
+            $FUNK_DEPLOY_ARR[] = "}\n";
+        }
+
 
         // state is 'method' as we here have matched an existing method and setting
         // this state is really only for also sending correct method headers

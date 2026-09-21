@@ -5,8 +5,10 @@
 $APP->CONFIG()
     ->setDebug(true, true, true)
     //->setCustomExceptionHandler('test')
-    ->setNoRouteMatchText("nothing in GLOBAL!")
+    //->setNoRouteMatchText("nothing in GLOBAL!")
+    //->setNoRouteMatchCallback('test')
     ->setCompileFlag('OUTPUT_OVERRIDE_DEBUG')
+    ->setCompileFlag('ALLOW_GHOST_ROUTES')
     ->setDisablePostResponseOnNoMatch(true)
     ->setParamRule('id2', '*')
     ->setINI_SET([
@@ -22,8 +24,8 @@ $APP->CONFIG()
         'display_startup_errors'  => 1,
         'error_reporting'         => (string)E_ALL,
     ])
-    ->setNoRouteMatchJSON(["err" => "nothing found"], 404)
-    ->setNoRouteMatchPage('test', 404)
+    //->setNoRouteMatchJSON(["err" => "nothing found"], 404)
+    //->setNoRouteMatchPage('test', 404)
     ->setHeaderAdd('Allow', 'all')
     ->pipeMiddlewares('log_access', 'auth')
     ->setRateLimit(60, 60, 'ip', 'redis')

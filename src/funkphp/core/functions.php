@@ -1869,7 +1869,7 @@ function funk_internal_handle_no_no_route_match(&$c)
 }
 
 // Default in-built error page when other pages are not found
-function funk_internal_critical_error_page(&$c, $code = 500, $message = 'No Specific Error Message Provided.', $configuredThisYet = 'setNoRouteMatch')
+function funk_internal_critical_error_page(&$c, $code = 500, $message = 'No Specific Error Message Provided.', $configuredThisYet = '->setNoRouteMatch')
 {
     $html = '';
     $html .= '<!DOCTYPE html>';
@@ -1877,7 +1877,7 @@ function funk_internal_critical_error_page(&$c, $code = 500, $message = 'No Spec
     $html .= '<head>';
     $html .= '    <meta charset="UTF-8">';
     $html .= '    <meta name="viewport" content="width=device-width, initial-scale=1.0">';
-    $html .= '    <title>' . $code . ' - No Content or Page Found | Have You Configured `->' . $configuredThisYet . '` Yet?</title>';
+    $html .= '    <title>' . $code . ' - No Content or Page Found | Have You Configured `' . $configuredThisYet . '` Yet?</title>';
     $html .= '    <style>';
     $html .= '        * { box-sizing: border-box; margin: 0; padding: 0; }';
     $html .= '        body {';

@@ -5,5 +5,8 @@
 $APP->ROUTES()->POST()
     ->setRateLimit(67, 69, 'ip', 'redis')
     ->pipeMiddleware('auth')
-    ->route("/test")
-    ->pipeFunction('test.test');
+    ->route("/users")
+    ->pipeFunction('test.test')
+    ->route("/users/:id")
+    ->pipeFunction('test.test')
+    ->route("/users/:id/:id2");
