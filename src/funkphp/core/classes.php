@@ -7279,8 +7279,6 @@ class FunkPHPC
                 $segmentCountsCollected[] = $segmentCount;
                 $metadata[$method]['URICountExistsForNumber'][$segmentCount] = true;
                 $metadata[$method]['RouteCOUNTByURINumber'][$segmentCount][] = $routeStr;
-                ksort($metadata[$method]['URICountExistsForNumber']);
-                ksort($metadata[$method]['RouteCOUNTByURINumber']);
                 $metadata[$method]['allRoutes'][$routeStr] = 1;
                 if (str_contains($routeStr, ':')) {
                     $metadata[$method]['dynamicRoutes'][$routeStr] = 1;
@@ -10959,7 +10957,7 @@ class FunkPHPC
         if (!str_contains($route, ':') && !str_contains($route, '/')) {
             return strtoupper($route);
         }
-        return str_replace([':', '/'], '_', strtoupper($route));
+        return str_replace([':', '/', '-'], '_', strtoupper($route));
     }
 
     function compile_score_routes_by_method(array $routesForMethod): array

@@ -2,7 +2,7 @@
 
 /**
  * FunkPHPDeployment File
- * Built: 2026-09-22 13:31:59
+ * Built: 2026-09-22 13:39:25
  * Compiler Flags: `ALLOW_GHOST_ROUTES`, `OUTPUT_OVERRIDE_DEBUG`
  * DO NOT EDIT DIRECTLY - CHANGES ARE OVERWRITTEN WHEN (RE)BUILDING
  */
@@ -1288,15 +1288,15 @@ namespace {
                     goto FUNKPHP_ROUTE_GET_;
                 case '/test':
                     goto FUNKPHP_ROUTE_GET_TEST;
-                case '/testa/test2':
-                    goto FUNKPHP_ROUTE_GET_TESTA_TEST2;
+                case '/test/test-2':
+                    goto FUNKPHP_ROUTE_GET_TEST_TEST_2;
             }
             switch ($SEGS_COUNT) {
                 case 1:
                     goto FUNKPHP_GET_SEGS_1;
                 case 2:
-                    if (strcasecmp($SEGS[0], 'testa') === 0 && strcasecmp($SEGS[1], 'test2') === 0) {
-                        goto FUNKPHP_ROUTE_GET_TESTA_TEST2;
+                    if (strcasecmp($SEGS[0], 'test') === 0 && strcasecmp($SEGS[1], 'test-2') === 0) {
+                        goto FUNKPHP_ROUTE_GET_TEST_TEST_2;
                     }
                 case 4:
                     if (strcasecmp($SEGS[0], 'test2') === 0 && strcasecmp($SEGS[3], 'test') === 0) {
